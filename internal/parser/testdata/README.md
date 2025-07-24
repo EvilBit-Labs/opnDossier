@@ -12,7 +12,9 @@ This directory contains sample OPNsense configuration files used for testing the
 To add additional sample configuration files for testing:
 
 1. **Add your XML file** to this directory with a `.xml.sample` extension
+
 2. **Name it descriptively**, e.g.:
+
    - `config-minimal.xml.sample` - for a minimal configuration
    - `config-enterprise.xml.sample` - for an enterprise setup
    - `config-vpn.xml.sample` - for a VPN-focused configuration
