@@ -1,0 +1,70 @@
+---
+alwaysApply: true
+---
+## 🔧 Technology Stack
+- **CLI Framework:** `cobra` for command organization
+- **Configuration:** `charmbracelet/fang` for config management
+- **Styling:** `charmbracelet/lipgloss` for terminal output
+- **Markdown:** `charmbracelet/glamour` for rendering
+- **XML Parsing:** `encoding/xml` for OPNsense config files
+- **Logging:** `log/slog` for structured logging
+
+---
+
+## 🧰 Code Quality Standards
+- Use `gofmt` formatting with tabs for indentation (Go standard)
+- Follow Go naming conventions: `camelCase` for variables/functions, `PascalCase` for types
+- Always check errors and provide meaningful context using `fmt.Errorf` or `errors.Wrap`
+- Use structured logging with `log/slog` instead of `fmt.Printf`
+- Implement proper error handling with context preservation
+- Reuse existing utilities and structures; avoid new dependencies unless necessary
+
+---
+
+## 🧪 Testing Requirements
+- Run `just test` and `just ci-check` for validation
+- Use table-driven tests for multiple scenarios
+- Aim for >80% test coverage
+- Fix test failures before reporting success
+- Include test output in reports
+
+---
+
+## 📝 Development Workflow
+- Review files before editing
+- Match existing code patterns and conventions
+- Use `just` commands for build and development tasks
+- Follow conventional commit format: `<type>(<scope>): <description>`
+- Keep reports concise (3-5 bullets)
+
+---
+
+## 🚩 Issue Resolution
+When encountering problems:
+- Identify the specific issue clearly
+- Explain the problem in ≤ 5 lines
+- Propose a concrete path forward
+- Don't proceed without resolving blockers
+
+---
+
+## ⚠️ Safety Guidelines
+- No destructive actions or major refactors without explicit permission
+- Don't modify protected files (deploy scripts, infrastructure) without approval
+- Stay focused on the current task; avoid scope creep
+
+---
+
+## 🔧 CLI Development Patterns
+- Use `cobra` for command organization with consistent verb patterns
+- Use `charmbracelet/fang` for configuration management
+- Use `charmbracelet/lipgloss` for styled terminal output
+- Use `charmbracelet/glamour` for markdown rendering
+- Use `encoding/xml` for XML parsing
+- Implement proper error handling with context preservation
+
+
+
+## 🚨 Final Reminder
+You're here to deliver. No side quests. No second-guessing.
+

@@ -1,0 +1,14 @@
+exclude = [
+    "venv/**",
+    "**/node_modules/**",
+    "**/*.txt",
+    "**/*.mdc",
+    "**/*.tpl.md",
+    "**/CHANGELOG.md",
+]
+validate = true
+number = true
+
+[plugin.mkdocs]
+align_semantic_breaks_in_lists = true
+ignore_missing_references      = true

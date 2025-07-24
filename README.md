@@ -1,70 +1,162 @@
-# opnFocus
+# OPNsense Configuration Processor
 
-## Introduction
+[![Go Version](https://img.shields.io/badge/go-1.21+-blue.svg)](https://golang.org)
+[![License](https://img.shields.io/badge/license-Apache-green.svg)](LICENSE)
+[![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](http://127.0.0.1:8000/)
 
-`opnFocus` is a powerful tool developed in Golang, designed to generate meaningful output from your OPNsense configuration file. Inspired by the well-regarded `TKCERT/pfFocus`, opnFocus aims to provide a similar utility for the OPNsense community, enriching the experience and management of OPNsense configurations. This project is licensed under GPL-3.0.
+## Overview
 
-## Features
+A command-line tool designed specifically for network operators and administrators working with OPNsense firewalls. This tool transforms complex XML configuration files into clear, human-readable markdown documentation, making it easier to understand, document, and audit your network configurations.
 
-- **Configuration Analysis:** Parse and analyze your OPNsense configuration files to extract vital information.
-- **Insightful Summaries:** Get summaries of your firewall rules, NAT port forwards, aliases, and more.
-- **Security Audits:** Perform basic security checks to identify potential vulnerabilities or misconfigurations.
-- **Export Options:** Export your analyzed data into various formats for further analysis or documentation purposes.
+**Built for operators, by operators** - with a focus on offline operation, structured data, and intuitive workflows.
 
-## Installation
+## ✨ Features
 
-To install opnFocus, ensure you have Golang installed on your system. Follow these steps:
+- 🔧 **Parse OPNsense XML configurations** - Process complex configuration files with ease
+- 📝 **Convert to Markdown** - Generate human-readable documentation from XML configs
+- 🎨 **Terminal Display** - View results with syntax highlighting directly in your terminal
+- 💾 **Export to Files** - Save processed configurations as markdown files
+- 🔌 **Offline Operation** - Works completely offline, perfect for airgapped environments
+- 🛡️ **Security-First** - No external dependencies, no telemetry, secure by design
+- ⚡ **Fast & Lightweight** - Built with Go for performance and reliability
+
+## 🚀 Quick Start
+
+### Installation
+
+**Prerequisites:** Go 1.21 or later
 
 ```bash
 # Clone the repository
-git clone https://github.com/unclesp1d3r/opnFocus.git
-
-# Navigate to the project directory
+git clone https://github.com/your-username/opnFocus.git
 cd opnFocus
 
-# Build the project
-go build
+# Install dependencies and build
+just install
+just build
 ```
 
-# Alternatively, you can install it directly
+**Alternative installation methods:**
 
 ```bash
-go install
+# Direct Go installation
+go install github.com/your-username/opnFocus@latest
+
+# Or build from source
+go build -o opnfocus main.go
 ```
 
-## Usage
-
-To use opnFocus, run the following command:
+### Basic Usage
 
 ```bash
-./opnFocus <path-to-your-OPNsense-configuration-file>
+# Convert OPNsense config to markdown and save to file
+opnfocus convert config.xml -o documentation.md
+
+# Display result in terminal with syntax highlighting
+opnfocus convert config.xml --display
+
+# Get help for any command
+opnfocus --help
+opnfocus convert --help
 ```
 
-For more detailed usage instructions, including the list of available options, run:
+## 🏗️ Architecture
+
+Built with modern Go practices and established libraries:
+
+| Component | Technology |
+|-----------|------------|
+| CLI Framework | [Cobra](https://github.com/spf13/cobra) |
+| Configuration | [Charm Fang](https://github.com/charmbracelet/fang) |
+| Terminal Styling | [Charm Lipgloss](https://github.com/charmbracelet/lipgloss) |
+| Markdown Rendering | [Charm Glamour](https://github.com/charmbracelet/glamour) |
+| XML Processing | Go's built-in `encoding/xml` |
+
+## 🛠️ Development
+
+This project follows comprehensive development standards and uses modern Go tooling:
 
 ```bash
-./opnFocus -h
+# Development workflow using Just
+just test      # Run tests
+just lint      # Run linters
+just check     # Run all pre-commit checks
+just dev       # Run in development mode
+just docs      # Serve documentation locally
 ```
 
-## Contributing
+### Project Structure
 
-We welcome contributions! If you would like to help make opnFocus better, please follow our contributing guidelines:
+```
+opnfocus/
+├── cmd/                 # Application entry point
+├── internal/
+│   ├── config/         # Configuration handling
+│   ├── parser/         # XML parsing logic
+│   ├── converter/      # Data conversion logic
+│   └── display/        # Output formatting
+├── docs/               # MkDocs documentation
+├── justfile           # Task runner configuration
+└── AGENTS.md          # Development standards
+```
 
-1. Fork the repository.
-2. Create a new branch for your feature or fix.
-3. Commit your changes.
-4. Push to the branch.
-5. Submit a pull request.
-   Please ensure your code adheres to the project's coding standards and include tests, if applicable.
+## 🤝 Contributing
 
-## License
+We welcome contributions! This project follows strict coding standards and development practices.
 
-opnFocus is licensed under the GNU General Public License v3.0. For more information, please see the LICENSE file.
+**Before contributing:**
+1. Read our [development standards](AGENTS.md)
+2. Check existing issues and pull requests
+3. Follow our Git workflow and commit message standards
 
-## Support
+**Development process:**
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feat/your-feature`
+3. Follow our coding standards (see [AGENTS.md](AGENTS.md))
+4. Write tests and ensure >80% coverage: `just test`
+5. Run all checks: `just ci-check`
+6. Commit using [Conventional Commits](https://www.conventionalcommits.org/)
+7. Submit a pull request
 
-If you need help or have any questions, please open an issue in the GitHub issue tracker for this project.
+**Quality standards:**
+- All code must pass `golangci-lint`
+- Tests required for new functionality
+- Documentation updates for user-facing changes
+- Follow Go best practices and project conventions
 
-## Acknowledgements
+## 📖 Documentation
 
-A special thanks to TKCERT/pfFocus for the inspiration behind opnFocus. Check out their project [here](https://github.com/TKCERT/pfFocus).
+- **[Full Documentation](http://127.0.0.1:8000/)** - Complete user and developer guides
+- **[Development Standards](AGENTS.md)** - Coding standards and architectural principles
+- **[API Reference](docs/dev-guide/api.md)** - Detailed API documentation
+
+## 🔒 Security
+
+This tool is designed with security as a first-class concern:
+
+- **No external dependencies** - Operates completely offline
+- **No telemetry** - No data collection or external communication
+- **Secure by default** - Follows security best practices
+- **Input validation** - All inputs are validated and sanitized
+
+For security issues, please see our security policy.
+
+## 📄 License
+
+This project is licensed under the Apache License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgements
+
+- Inspired by [TKCERT/pfFocus](https://github.com/TKCERT/pfFocus) for pfSense configurations
+- Built with [Charm](https://charm.sh/) libraries for beautiful terminal experiences
+- Follows [Google Go Style Guide](https://google.github.io/styleguide/go/) for code quality
+
+## 📞 Support
+
+- **Issues:** [GitHub Issues](https://github.com/unclesp1d3r/opnFocus/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/unclesp1d3r/opnFocus/discussions)
+- **Documentation:** [Full Documentation](http://127.0.0.1:8000/)
+
+---
+
+*Built with ❤️ for network operators everywhere.*

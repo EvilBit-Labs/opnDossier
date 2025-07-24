@@ -1,0 +1,107 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - binary: opnfocus
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+
+archives:
+  - formats: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        formats: zip
+    files:
+      - LICENSE
+      - README.md
+      - CHANGELOG.md
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: "Bug fixes"
+      regexp: '^.*?bug(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: Others
+      order: 999
+checksum:
+  name_template: "{{ .ProjectName }}_checksums.txt"
+release:
+  github:
+    owner: "unclesp1d3r"
+    name: "opnfocus"
+  prerelease: auto
+  include_meta: true
+source:
+  enabled: true
+universal_binaries:
+  - replace: true
+nfpms:
+  - id: opnfocus
+    package_name: "{{.ProjectName}}"
+    vendor: "unclesp1d3r"
+    homepage: "https://unclesp1d3r.github.io"
+    maintainer: "unclesp1d3r <unclespider@protonmail.com>"
+    license: Apache 2.0
+    formats:
+      - apk
+      - deb
+      - rpm
+      - termux.deb
+      - archlinux
+    dependencies:
+      - 7zip
+    recommends:
+      - hashcat
+    priority: extra
+    changelog: changelog.yml
+
+milestones:
+  - repo:
+      owner: "unclesp1d3r"
+      name: opnfocus
+    close: true
+    fail_on_error: false
+sboms:
+  - artifacts: archive
+notarize:
+  macos:
+    - enabled: '{{ isEnvSet "MACOS_SIGN_P12" }}'
+      sign:
+        certificate: "{{.Env.MACOS_SIGN_P12}}"
+        password: "{{.Env.MACOS_SIGN_PASSWORD}}"
+      notarize:
+        issuer_id: "{{.Env.MACOS_NOTARY_ISSUER_ID}}"
+        key_id: "{{.Env.MACOS_NOTARY_KEY_ID}}"
+        key: "{{.Env.MACOS_NOTARY_KEY}}"
+        wait: true

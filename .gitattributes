@@ -1,0 +1,85 @@
+# Auto detect text files and perform LF normalization
+* text=auto eol=lf
+
+# Python files
+*.py text diff=python
+*.pyi text diff=python
+*.pyw text diff=python
+*.ipynb text
+
+# Docker files
+Dockerfile text
+*.dockerfile text
+docker-compose*.yml text
+.dockerignore text
+
+# Documentation
+*.md text diff=markdown
+*.txt text
+*.rst text
+LICENSE text
+
+# Config files
+*.json text
+*.toml text
+*.yml text
+*.yaml text
+*.ini text
+*.cfg text
+*.conf text
+
+# Web files
+*.html text diff=html
+*.html.j2 text diff=html
+*.css text diff=css
+*.js text
+*.jsx text
+*.ts text
+*.tsx text
+*.vue text
+
+# SQL files
+*.sql text
+
+# Binary files
+*.db binary
+*.p binary
+*.pkl binary
+*.pickle binary
+*.pyc binary
+*.pyd binary
+*.pyo binary
+*.pdb binary
+
+# Image files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg text
+
+# Font files
+*.ttf binary
+*.eot binary
+*.woff binary
+*.woff2 binary
+
+# Archive files
+*.zip binary
+*.7z binary
+*.gz binary
+*.tar binary
+*.tgz binary
+*.rar binary
+
+# Executables
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
+
+# Go files
+*.go text eol=lf diff=go
+
+.env text=utf-8 eol=lf
