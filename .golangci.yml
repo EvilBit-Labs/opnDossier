@@ -1,37 +1,115 @@
 version: "2"
+
 run:
-  tests: false
+  concurrency: 8
+  timeout: 30m
+  issues-exit-code: 1
+  tests: true
+  modules-download-mode: readonly
+  allow-parallel-runners: false
+
 linters:
   enable:
+    - asasalint
+    - asciicheck
+    - bidichk
     - bodyclose
-    - exhaustive
+    - contextcheck
+    - canonicalheader
+    - containedctx
+    - decorder
+    - durationcheck
+    - err113
+    - errchkjson
+    - errname
+    - errorlint
+    - exptostd
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    - gochecknoglobals
     - goconst
+    - gocritic
     - godot
     - gomoddirectives
-    - goprintffuncname
     - gosec
+    - iface
+    - importas
+    - inamedparam
+    - ineffassign
     - misspell
+    - mnd
     - nakedret
-    - nestif
     - nilerr
+    - nilnil
     - noctx
     - nolintlint
+    - perfsprint
     - prealloc
+    - predeclared
+    - promlinter
+    - reassign
     - revive
     - rowserrcheck
+    - sloglint
     - sqlclosecheck
+    - staticcheck
+    - tagliatelle
+    - testableexamples
+    - thelper
     - tparallel
     - unconvert
     - unparam
-    - whitespace
-    - wrapcheck
+    - unused
+    - usestdlibvars
+    - wastedassign
+    - wsl_v5
   exclusions:
     generated: lax
     presets:
       - common-false-positives
+  disable:
+    - gomodguard
+  #  - wrapcheck # Disabled: most violations are internal package calls within same module
+  settings:
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - experimental
+        - opinionated
+        - performance
+        - style
+      disabled-checks:
+        - hugeParam
+        - rangeExprCopy
+        - rangeValCopy
+    tagliatelle:
+      case:
+        overrides:
+          -
+            pkg: internal/model/opnsense.go
+            ignore: true
+
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+      exclude-functions:
+        - io/ioutil.ReadFile
+        - io.Copy(*bytes.Buffer)
+        - io.Copy(os.Stdout)
+
+    govet:
+      disable:
+        - fieldalignment
+
+    nakedret:
+      max-func-lines: 1
+
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
+  new: false
+  uniq-by-line: true
+  fix: true
 formatters:
   enable:
     - gofumpt

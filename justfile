@@ -1,4 +1,4 @@
-# Justfile for CipherSwarm Agent
+# Justfile for opnFocus
 
 # Set shell to PowerShell for Windows compatibility
 set shell := ["pwsh", "-c"]
@@ -8,8 +8,8 @@ set shell := ["pwsh", "-c"]
     .venv\Scripts\Activate.ps1; mkdocs serve
 
 # Run the agent (development)
-dev:
-    go run main.go
+dev *args="":
+    go run main.go {{args}}
 
 # Install all requirements and build the project
 install:
@@ -20,19 +20,24 @@ install:
     go mod tidy
 
 
-# Run pre-commit hooks and linting
-check:
-    cd {{justfile_dir()}}
-    pre-commit run -a # Runs all hooks on all files
-    just lint
-    goreleaser check --verbose
+# Code quality
+format:
+    golangci-lint run --fix ./...
+    goimports -w .
 
-# Run lint and code checks
-lint:
-    cd {{justfile_dir()}}
+format-check:
     golangci-lint fmt ./...
+    goimports -d .
+
+lint:
     golangci-lint run ./...
     go vet ./...
+    gosec ./...
+
+check:
+    just format-check
+    just lint
+    goreleaser check --verbose
 
 # Run tests
 test:
@@ -40,10 +45,10 @@ test:
 
 # Run all checks and tests (CI)
 ci-check:
-    cd {{justfile_dir()}}
-    pre-commit run # Same as just check, but only runs on staged files
+    just format-check
     just lint
     just test
+    goreleaser check --verbose
 
 # Run all checks and tests, and build the agent
 build:
