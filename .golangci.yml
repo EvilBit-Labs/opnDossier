@@ -114,5 +114,9 @@ formatters:
   enable:
     - gofumpt
     - goimports
+  settings:
+    gofumpt:
+      module-path: "github.com/unclesp1d3r/opnFocus"
+      extra-rules: true
   exclusions:
     generated: lax

@@ -7,7 +7,6 @@ repos:
       hooks:
           - id: check-added-large-files
             args: ['--maxkb=1024']
-          - id: check-ast
           - id: check-case-conflict
           - id: check-merge-conflict
           - id: check-illegal-windows-names
