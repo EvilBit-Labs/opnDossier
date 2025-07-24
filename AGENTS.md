@@ -61,14 +61,14 @@ Follow the [Conventional Commits](https://www.conventionalcommits.org) specifica
 
 ### 3.1. Technology Stack
 
-| Layer      | Technology                                                |
-| ---------- | --------------------------------------------------------- |
+| Layer      | Technology                                                       |
+| ---------- | ---------------------------------------------------------------- |
 | CLI Tool   | `cobra` v1.8.0 + `charmbracelet/fang` + `charmbracelet/lipgloss` |
-| Config     | `charmbracelet/fang` for configuration parsing            |
-| Display    | `charmbracelet/glamour` for markdown rendering            |
-| Data Model | Go structs with `encoding/xml` and `encoding/json`        |
-| Logging    | `charmbracelet/log` for structured logging                |
-| Testing    | Go's built-in `testing` package                           |
+| Config     | `charmbracelet/fang` for configuration parsing                   |
+| Display    | `charmbracelet/glamour` for markdown rendering                   |
+| Data Model | Go structs with `encoding/xml` and `encoding/json`               |
+| Logging    | `charmbracelet/log` for structured logging                       |
+| Testing    | Go's built-in `testing` package                                  |
 
 ### 3.2. Go Version Requirements
 

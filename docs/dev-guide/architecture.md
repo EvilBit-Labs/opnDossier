@@ -222,26 +222,31 @@ sequenceDiagram
 ### Data Transformation Pipeline
 
 1. **Input Validation**
+
    - File existence verification
    - XML syntax validation
    - Permission checks
 
 2. **Parsing Phase**
+
    - XML deserialization
    - Structure validation
    - Error context preservation
 
 3. **Conversion Phase**
+
    - Data mapping and transformation
    - Hierarchy preservation
    - Metadata enrichment
 
 4. **Rendering Phase**
+
    - Template application
    - Format-specific rendering
    - Output optimization
 
 5. **Output Phase**
+
    - Terminal display or file writing
    - User feedback
    - Error handling

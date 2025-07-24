@@ -128,7 +128,7 @@ This document captures user stories for the opnFocus CLI tool in EARS (Easy Appr
 **I want** to use environment variables for sensitive options
 **So that** I can avoid hardcoding sensitive information
 **Given** I need to configure sensitive settings
-**When** I set environment variables with OPNFOCUS_ prefix
+**When** I set environment variables with OPNFOCUS\_ prefix
 **Then** the system should use those values while keeping them secure
 
 **US-014**
@@ -430,7 +430,7 @@ This document captures user stories for the opnFocus CLI tool in EARS (Easy Appr
 - [ ] CLI provides comprehensive help documentation
 - [ ] Configuration management supports YAML files and environment variables
 - [ ] Command-line flags override configuration file settings
-- [ ] Performance meets specified requirements (<100ms for tests, efficient memory usage)
+- [ ] Performance meets specified requirements (\<100ms for tests, efficient memory usage)
 
 ### Quality Assurance Acceptance
 

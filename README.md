@@ -2,7 +2,7 @@
 
 [![Go Version](https://img.shields.io/badge/go-1.21+-blue.svg)](https://golang.org)
 [![License](https://img.shields.io/badge/license-Apache-green.svg)](LICENSE)
-[![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](http://127.0.0.1:8000/)
+[![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://github.com/unclesp1d3r/opnFocus/blob/main/docs/index.md)
 
 ## Overview
 
@@ -14,7 +14,6 @@ A command-line tool designed specifically for network operators and administrato
 
 - 🔧 **Parse OPNsense XML configurations** - Process complex configuration files with ease
 - 📝 **Convert to Markdown** - Generate human-readable documentation from XML configs
-- 🎨 **Terminal Display** - View results with syntax highlighting directly in your terminal
 - 💾 **Export to Files** - Save processed configurations as markdown files
 - 🔌 **Offline Operation** - Works completely offline, perfect for airgapped environments
 - 🛡️ **Security-First** - No external dependencies, no telemetry, secure by design
@@ -28,7 +27,7 @@ A command-line tool designed specifically for network operators and administrato
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/opnFocus.git
+git clone https://github.com/unclesp1d3r/opnFocus.git
 cd opnFocus
 
 # Install dependencies and build
@@ -40,7 +39,7 @@ just build
 
 ```bash
 # Direct Go installation
-go install github.com/your-username/opnFocus@latest
+go install github.com/unclesp1d3r/opnFocus@latest
 
 # Or build from source
 go build -o opnfocus main.go
@@ -52,13 +51,9 @@ go build -o opnfocus main.go
 # Convert OPNsense config to markdown and save to file
 opnfocus convert config.xml -o documentation.md
 
-# Display result in terminal with syntax highlighting
-opnfocus display config.xml
-
 # Get help for any command
 opnfocus --help
 opnfocus convert --help
-opnfocus display --help
 ```
 
 ## 🏗️ Architecture
@@ -68,7 +63,7 @@ Built with modern Go practices and established libraries:
 | Component          | Technology                                                  |
 | ------------------ | ----------------------------------------------------------- |
 | CLI Framework      | [Cobra](https://github.com/spf13/cobra)                     |
-| Configuration      | [Charm Fang](https://github.com/charmbracelet/fang)         |
+| Configuration      | [Viper](https://github.com/spf13/viper)                     |
 | Terminal Styling   | [Charm Lipgloss](https://github.com/charmbracelet/lipgloss) |
 | Markdown Rendering | [Charm Glamour](https://github.com/charmbracelet/glamour)   |
 | XML Processing     | Go's built-in `encoding/xml`                                |
@@ -95,7 +90,8 @@ opnfocus/
 │   ├── config/         # Configuration handling
 │   ├── parser/         # XML parsing logic
 │   ├── converter/      # Data conversion logic
-│   └── display/        # Output formatting
+│   ├── display/        # Output formatting
+│   └── export/         # File export logic
 ├── docs/               # MkDocs documentation
 ├── justfile           # Task runner configuration
 └── AGENTS.md          # Development standards
@@ -130,7 +126,7 @@ We welcome contributions! This project follows strict coding standards and devel
 
 ## 📖 Documentation
 
-- **[Full Documentation](http://127.0.0.1:8000/)** - Complete user and developer guides
+- **[Full Documentation](https://github.com/unclesp1d3r/opnFocus/blob/main/docs/index.md)** - Complete user and developer guides
 - **[Development Standards](AGENTS.md)** - Coding standards and architectural principles
 - **[API Reference](docs/dev-guide/api.md)** - Detailed API documentation
 
@@ -159,7 +155,7 @@ This project is licensed under the Apache License - see the [LICENSE](LICENSE) f
 
 - **Issues:** [GitHub Issues](https://github.com/unclesp1d3r/opnFocus/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/unclesp1d3r/opnFocus/discussions)
-- **Documentation:** [Full Documentation](http://127.0.0.1:8000/)
+- **Documentation:** [Full Documentation](https://github.com/unclesp1d3r/opnFocus/blob/main/docs/index.md)
 
 ---
 
