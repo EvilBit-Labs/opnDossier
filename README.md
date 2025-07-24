@@ -53,24 +53,25 @@ go build -o opnfocus main.go
 opnfocus convert config.xml -o documentation.md
 
 # Display result in terminal with syntax highlighting
-opnfocus convert config.xml --display
+opnfocus display config.xml
 
 # Get help for any command
 opnfocus --help
 opnfocus convert --help
+opnfocus display --help
 ```
 
 ## 🏗️ Architecture
 
 Built with modern Go practices and established libraries:
 
-| Component | Technology |
-|-----------|------------|
-| CLI Framework | [Cobra](https://github.com/spf13/cobra) |
-| Configuration | [Charm Fang](https://github.com/charmbracelet/fang) |
-| Terminal Styling | [Charm Lipgloss](https://github.com/charmbracelet/lipgloss) |
-| Markdown Rendering | [Charm Glamour](https://github.com/charmbracelet/glamour) |
-| XML Processing | Go's built-in `encoding/xml` |
+| Component          | Technology                                                  |
+| ------------------ | ----------------------------------------------------------- |
+| CLI Framework      | [Cobra](https://github.com/spf13/cobra)                     |
+| Configuration      | [Charm Fang](https://github.com/charmbracelet/fang)         |
+| Terminal Styling   | [Charm Lipgloss](https://github.com/charmbracelet/lipgloss) |
+| Markdown Rendering | [Charm Glamour](https://github.com/charmbracelet/glamour)   |
+| XML Processing     | Go's built-in `encoding/xml`                                |
 
 ## 🛠️ Development
 
@@ -87,7 +88,7 @@ just docs      # Serve documentation locally
 
 ### Project Structure
 
-```
+```text
 opnfocus/
 ├── cmd/                 # Application entry point
 ├── internal/
@@ -105,11 +106,13 @@ opnfocus/
 We welcome contributions! This project follows strict coding standards and development practices.
 
 **Before contributing:**
+
 1. Read our [development standards](AGENTS.md)
 2. Check existing issues and pull requests
 3. Follow our Git workflow and commit message standards
 
 **Development process:**
+
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feat/your-feature`
 3. Follow our coding standards (see [AGENTS.md](AGENTS.md))
@@ -119,6 +122,7 @@ We welcome contributions! This project follows strict coding standards and devel
 7. Submit a pull request
 
 **Quality standards:**
+
 - All code must pass `golangci-lint`
 - Tests required for new functionality
 - Documentation updates for user-facing changes

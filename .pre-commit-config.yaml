@@ -1,53 +1,64 @@
 # .pre-commit-config.yaml
 
 repos:
-  # 🧼 Standard Python code cleanup hooks
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
-    hooks:
-      - id: check-added-large-files
-      - id: check-ast
-      - id: check-case-conflict
-      - id: check-merge-conflict
-      - id: check-illegal-windows-names
-      - id: check-json
-      - id: check-toml
-      - id: check-yaml
-        args: [--unsafe]
-      - id: check-xml
-      - id: mixed-line-ending
-        args: [--fix=auto]
+    # 🧼 Standard Python code cleanup hooks
+    - repo: https://github.com/pre-commit/pre-commit-hooks
+      rev: v5.0.0
+      hooks:
+          - id: check-added-large-files
+            args: ['--maxkb=1024']
+          - id: check-ast
+          - id: check-case-conflict
+          - id: check-merge-conflict
+          - id: check-illegal-windows-names
+          - id: check-json
+          - id: check-toml
+          - id: check-yaml
+            args: [--unsafe]
+          - id: check-xml
+          - id: mixed-line-ending
+            args: [--fix=auto]
+          - id: check-docstring-first
+          - id: check-vcs-permalinks
 
-  # 📝 Commit message linting via commitlint
-  - repo: local
-    hooks:
-      - id: commitlint
-        name: commitlint
-        entry: npx --no-install commitlint --edit
-        language: node
-        stages: [commit-msg]
+    - repo: https://github.com/rhysd/actionlint
+      rev: v1.7.7
+      hooks:
+        - id: actionlint
+          files: ".github/workflows/"
 
-  # 📝 Markdown formatting
-  - repo: https://github.com/hukkin/mdformat
-    rev: 0.7.22
-    hooks:
-      - id: mdformat
-        additional_dependencies:
-          - mdformat-mkdocs
-          - mdformat-config
-          - mdformat-footnote
-          - mdformat-frontmatter
-          - mdformat-simple-breaks
-          - mdformat-tables
-          - mdformat-web
-          - mdformat-wikilink
-          - mdformat-ruff
-          - mdformat-gfm-alerts
-          - mdformat-rustfmt
-          - mdformat-toc
+    - repo: https://github.com/koalaman/shellcheck-precommit
+      rev: v0.10.0
+      hooks:
+        - id: shellcheck
 
-  - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.18.1
-    hooks:
-      - id: markdownlint-cli2
-        args: ["-c", ".markdownlint-cli2.jsonc"]
+    # 📝 Commit message linting via commitlint
+    - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+      rev: v9.22.0
+      hooks:
+        - id: commitlint
+          name: commitlint
+          entry: npx --no-install commitlint --edit
+          language: node
+          stages: [commit-msg]
+
+    - repo: https://github.com/hukkin/mdformat
+      rev: 0.7.22
+      hooks:
+          - id: mdformat
+            additional_dependencies:
+                - mdformat-gfm
+                - mdformat-admon
+                - mdformat-config
+                - mdformat-footnote
+                - mdformat-frontmatter
+                - mdformat-simple-breaks
+                - mdformat-tables
+                - mdformat-web
+                - mdformat-wikilink
+                - mdformat-ruff
+                - mdformat-gfm-alerts
+                - mdformat-rustfmt
+                - mdformat-toc
+
+

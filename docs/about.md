@@ -9,7 +9,7 @@ The **OPNsense Configuration Processor** is a command-line tool designed to brid
 Network administrators often need to:
 
 - **Understand complex configurations** quickly during troubleshooting
-- **Document network setups** for compliance and knowledge sharing  
+- **Document network setups** for compliance and knowledge sharing
 - **Review configuration changes** in a human-readable format
 - **Work in offline environments** where web-based tools aren't available
 
@@ -18,15 +18,19 @@ Traditional approaches involve manually parsing XML files or using web-based con
 ## Core Principles
 
 ### Operator-Focused Design
+
 Every feature is designed with the network operator in mind. Commands are intuitive, output is clear, and workflows match real-world operational needs.
 
 ### Offline-First Architecture
+
 The tool functions completely offline, making it suitable for secure, airgapped environments where many network operations take place.
 
 ### Structured Data Philosophy
+
 All output is structured, versioned, and portable, enabling automated processing and reliable documentation workflows.
 
 ### Framework-First Development
+
 Rather than reinventing the wheel, the tool leverages established Go libraries and follows proven architectural patterns.
 
 ## Technology Stack

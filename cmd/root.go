@@ -1,3 +1,4 @@
+// Package cmd provides the command-line interface for opnFocus.
 /*
 Copyright © 2024 UncleSp1d3r <unclespider@protonmail.com>
 
@@ -19,17 +20,18 @@ package cmd
 import (
 	"encoding/xml"
 	"fmt"
+	"log"
+	"os"
+
 	goutbra "github.com/drewstinnett/gout-cobra"
 	"github.com/drewstinnett/gout/v2"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"log"
-	"os"
 )
 
 var cfgFile string
 
-// rootCmd represents the base command when called without any subcommands
+// rootCmd represents the base command when called without any subcommands.
 var rootCmd = &cobra.Command{
 	Use:   "opnFocus",
 	Short: "Generate meaningful output from your opnSense configuration files.",
@@ -38,7 +40,7 @@ It is designed to be used in a pipeline with other tools to generate reports,
 or to be used as a standalone tool to generate human-readable output from your opnSense configuration files.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, args []string) {
 		dat, err := os.Open(args[0])
 		if err != nil {
 			log.Fatal(err)
@@ -50,7 +52,7 @@ or to be used as a standalone tool to generate human-readable output from your o
 		}
 		gout.MustPrint(doc)
 	},
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+	PersistentPreRun: func(cmd *cobra.Command, _ []string) {
 		err := goutbra.Cmd(cmd)
 		if err != nil {
 			log.Fatal(err)

@@ -5,6 +5,7 @@ exclude = [
     "**/*.mdc",
     "**/*.tpl.md",
     "**/CHANGELOG.md",
+    "**/*.mdc",
 ]
 validate = true
 number = true

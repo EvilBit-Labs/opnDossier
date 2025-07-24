@@ -17,7 +17,7 @@ Welcome to the **OPNsense Configuration Processor** documentation! This CLI tool
 opnfocus convert config.xml -o output.md
 
 # Display the result in terminal with syntax highlighting
-opnfocus convert config.xml --display
+opnfocus display config.xml
 
 # Get help for any command
 opnfocus --help
@@ -36,13 +36,13 @@ This tool follows the **operator-focused** philosophy:
 
 The tool is built using:
 
-| Component | Technology |
-|-----------|------------|
-| CLI Framework | [Cobra](https://github.com/spf13/cobra) |
-| Configuration | [Charm Fang](https://github.com/charmbracelet/fang) |
-| Terminal Styling | [Charm Lipgloss](https://github.com/charmbracelet/lipgloss) |
-| Markdown Rendering | [Charm Glamour](https://github.com/charmbracelet/glamour) |
-| XML Processing | Go's built-in `encoding/xml` |
+| Component          | Technology                                                  |
+| ------------------ | ----------------------------------------------------------- |
+| CLI Framework      | [Cobra](https://github.com/spf13/cobra)                     |
+| Configuration      | [Charm Fang](https://github.com/charmbracelet/fang)         |
+| Terminal Styling   | [Charm Lipgloss](https://github.com/charmbracelet/lipgloss) |
+| Markdown Rendering | [Charm Glamour](https://github.com/charmbracelet/glamour)   |
+| XML Processing     | Go's built-in `encoding/xml`                                |
 
 ## Getting Started
 
