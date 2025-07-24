@@ -120,20 +120,20 @@ test(parser): add integration tests for XML parsing
 ```text
 opnFocus/
 ├── cmd/
-│   ├── opnsense.go          # Main CLI entry point
-│   └── root.go              # Root command definition
+│   ├── opnsense.go                       # Main CLI entry point
+│   └── root.go                           # Root command definition
 ├── internal/
-│   ├── config/              # Configuration handling
-│   ├── parser/              # XML parsing logic
-│   ├── converter/           # XML to Markdown conversion
-│   └── display/             # Terminal output formatting
-├── pkg/                     # Public packages (if any)
-├── docs/                    # Documentation
-├── go.mod
-├── go.sum
-├── justfile                 # Task runner
-├── README.md
-└── requirements.md          # Project requirements
+│   ├── config/                           # Configuration handling
+│   ├── parser/                           # XML parsing logic
+│   ├── converter/                        # XML to Markdown conversion
+│   └── display/                          # Terminal output formatting
+├── pkg/                                  # Public packages (if any)
+├── docs/                                 # Documentation
+├── go.mod                                # Go module file
+├── go.sum                                # Go module checksum file
+├── justfile                              # Task runner
+├── README.md                             # Project README
+└── project_spec/requirements.md          # Project requirements
 ```
 
 ### Development Commands
@@ -425,4 +425,4 @@ func generateSecureID() (string, error) {
 
 ---
 
-This document serves as the comprehensive development standards guide for the opnFocus CLI tool. All team members and AI assistants should refer to and follow these standards when working on the project. The standards align with the specific requirements outlined in `requirements.md` and should be updated as new patterns emerge or requirements change.
+This document serves as the comprehensive development standards guide for the opnFocus CLI tool. All team members and AI assistants should refer to and follow these standards when working on the project. The standards align with the specific requirements outlined in `project_spec/requirements.md` and should be updated as new patterns emerge or requirements change.
