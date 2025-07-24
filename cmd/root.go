@@ -1,112 +1,78 @@
-// Package cmd provides the command-line interface for opnFocus.
-/*
-Copyright © 2024 UncleSp1d3r <unclespider@protonmail.com>
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <http://www.gnu.org/licenses/>.
-*/
 package cmd
 
 import (
-	"encoding/xml"
 	"fmt"
-	"log"
+	"opnFocus/internal/config"
 	"os"
 
-	goutbra "github.com/drewstinnett/gout-cobra"
-	"github.com/drewstinnett/gout/v2"
+	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
-var cfgFile string
+var (
+	cfgFile string //nolint:gochecknoglobals // CLI config file path
+	// Cfg holds the application's configuration, loaded from file, environment, or flags.
+	Cfg    *config.Config //nolint:gochecknoglobals // Application configuration
+	logger *log.Logger    //nolint:gochecknoglobals // Application logger
+)
 
 // rootCmd represents the base command when called without any subcommands.
-var rootCmd = &cobra.Command{
+var rootCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra root command
 	Use:   "opnFocus",
-	Short: "Generate meaningful output from your opnSense configuration files.",
-	Long: `opnFocus is a tool to generate meaningful output from your opnSense configuration files. 
-It is designed to be used in a pipeline with other tools to generate reports, 
-or to be used as a standalone tool to generate human-readable output from your opnSense configuration files.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	Run: func(_ *cobra.Command, args []string) {
-		dat, err := os.Open(args[0])
-		if err != nil {
-			log.Fatal(err)
-		}
-		dec := xml.NewDecoder(dat)
-		var doc Opnsense
-		if err := dec.Decode(&doc); err != nil {
-			log.Fatal(err)
-		}
-		gout.MustPrint(doc)
-	},
-	PersistentPreRun: func(cmd *cobra.Command, _ []string) {
-		err := goutbra.Cmd(cmd)
-		if err != nil {
-			log.Fatal(err)
-		}
-	},
-	Args: cobra.ExactArgs(1),
-}
+	Short: "opnFocus: A CLI tool for processing OPNsense configuration files.",
+	Long: `opnFocus is a command-line interface (CLI) tool designed to process OPNsense firewall
+configuration files (config.xml) and convert them into human-readable formats,
+primarily Markdown. This tool is built to assist network administrators and
+security professionals in documenting, auditing, and understanding their
+OPNsense configurations more effectively.
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
-	err := rootCmd.Execute()
-	if err != nil {
-		os.Exit(1)
-	}
+
+Examples:
+  # Convert an OPNsense config.xml to markdown and print to console
+  opnFocus convert config.xml
+
+  # Convert an OPNsense config.xml to markdown and save to a file
+  opnFocus convert config.xml -o output.md
+`,
+	PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+		var err error
+		Cfg, err = config.LoadConfig(cfgFile)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+
+		quiet, err := cmd.Flags().GetBool("quiet")
+		if err != nil {
+			return fmt.Errorf("failed to get quiet flag: %w", err)
+		}
+		verbose, err := cmd.Flags().GetBool("verbose")
+		if err != nil {
+			return fmt.Errorf("failed to get verbose flag: %w", err)
+		}
+
+		if quiet {
+			logger.SetLevel(log.ErrorLevel)
+		} else if verbose || Cfg.Verbose {
+			logger.SetLevel(log.DebugLevel)
+		} else {
+			logger.SetLevel(log.InfoLevel)
+		}
+		return nil
+	},
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
+	logger = log.NewWithOptions(os.Stderr, log.Options{
+		ReportCaller:    true,
+		ReportTimestamp: true,
+	})
 
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.opnFocus.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	err := goutbra.Bind(rootCmd, goutbra.WithHelp("Some help"))
-	if err != nil {
-		return
-	}
+	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose output (debug logging)")
+	rootCmd.PersistentFlags().BoolP("quiet", "q", false, "Suppress all output except errors")
 }
 
-// initConfig reads in config file and ENV variables if set.
-func initConfig() {
-	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
-	} else {
-		// Find home directory.
-		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
-
-		// Search config in home directory with name ".opnFocus" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigType("yaml")
-		viper.SetConfigName(".opnFocus")
-	}
-
-	viper.AutomaticEnv() // read in environment variables that match
-
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
-	}
+// GetRootCmd returns the root command for the application.
+func GetRootCmd() *cobra.Command {
+	return rootCmd
 }
