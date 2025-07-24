@@ -4,7 +4,6 @@ package cmd
 
 import "encoding/xml"
 
-// Opnsense was generated 2024-02-15 14:40:32 by kmelton on Worf.local.
 type Opnsense struct {
 	XMLName              xml.Name `xml:"opnsense" json:"opnsense,omitempty"`
 	TriggerInitialWizard struct {
