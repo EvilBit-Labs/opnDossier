@@ -17,22 +17,22 @@
 
 ### Project Overview
 
-- [x] **Project Description and Purpose**: opnFocus is a CLI tool designed to convert OPNsense firewall configuration files (config.xml) into human-readable Markdown documentation. It provides operators with clear visibility into their firewall configurations for documentation, auditing, and troubleshooting purposes.
+- **Project Description and Purpose**: opnFocus is a CLI tool designed to convert OPNsense firewall configuration files (config.xml) into human-readable Markdown documentation. It provides operators with clear visibility into their firewall configurations for documentation, auditing, and troubleshooting purposes.
 
-- [x] **Project Goals and Objectives**:
+- **Project Goals and Objectives**:
   - Enable offline-first configuration analysis and documentation
   - Provide operator-focused design for security professionals
   - Support airgapped environments with zero external dependencies
   - Generate structured, readable documentation from XML configurations
   - Maintain security-first approach with no telemetry or external communication
 
-- [x] **Target Audience and Stakeholders**:
+- **Target Audience and Stakeholders**:
   - Network security operators and administrators
   - Security auditors and compliance teams
   - DevOps engineers managing OPNsense firewalls
   - Documentation teams requiring configuration visibility
 
-- [x] **Project Boundaries and Limitations**:
+- **Project Boundaries and Limitations**:
   - Limited to OPNsense config.xml file processing
   - No real-time configuration monitoring or management
   - No integration with live firewall systems
@@ -40,7 +40,7 @@
 
 ### Scope Definition
 
-- [x] **In-scope Features and Functionality**:
+- **In-scope Features and Functionality**:
   - XML configuration file parsing and validation
   - Markdown conversion with syntax highlighting
   - Terminal display with colored output
@@ -49,7 +49,7 @@
   - Cross-platform CLI interface
   - Offline operation without external dependencies
 
-- [x] **Out-of-scope Items**:
+- **Out-of-scope Items**:
   - Real-time firewall configuration management
   - Network connectivity or external API calls
   - GUI or web interface development
@@ -57,7 +57,7 @@
   - Integration with other firewall platforms
   - Telemetry or analytics collection
 
-- [x] **Success Criteria and Acceptance Criteria**:
+- **Success Criteria and Acceptance Criteria**:
   - Successfully parse valid OPNsense config.xml files
   - Generate readable markdown documentation
   - Operate completely offline without errors
@@ -65,7 +65,7 @@
   - Pass all linting and quality checks
   - Support cross-platform compilation and distribution
 
-- [x] **Timeline and Milestones**:
+- **Timeline and Milestones**:
   - Core XML parsing and markdown conversion (Phase 1)
   - CLI interface and configuration management (Phase 2)
   - Testing, documentation, and release preparation (Phase 3)
@@ -73,25 +73,25 @@
 
 ### Context and Background
 
-- [x] **Business Context and Justification**:
+- **Business Context and Justification**:
   - OPNsense firewalls are widely used in enterprise environments
   - Configuration documentation is critical for security compliance
   - Manual documentation is error-prone and time-consuming
   - Offline tools are essential for airgapped security environments
 
-- [x] **Previous Work and Dependencies**:
+- **Previous Work and Dependencies**:
   - Built on Go ecosystem and Charm libraries
   - Leverages existing OPNsense configuration format
   - Follows established CLI development patterns
   - Integrates with existing documentation workflows
 
-- [x] **Assumptions and Constraints**:
+- **Assumptions and Constraints**:
   - Assumes valid OPNsense config.xml file format
   - Requires Go 1.21+ runtime environment
   - Assumes local file system access for input/output
   - Constrained to offline operation only
 
-- [x] **Risk Assessment Overview**:
+- **Risk Assessment Overview**:
   - Low risk: Well-established technology stack
   - Medium risk: XML parsing complexity and edge cases
   - Low risk: Security concerns (offline operation)
@@ -103,7 +103,7 @@
 
 ### Core Features
 
-- [x] **Primary Functionality Requirements**:
+- **Primary Functionality Requirements**:
   - **F001**: Parse OPNsense XML configuration files using Go's encoding/xml package
   - **F002**: Convert XML configurations to structured Markdown format with hierarchy preservation
   - **F003**: Display processed configurations with syntax highlighting in terminal using Charm Lipgloss
@@ -113,17 +113,17 @@
   - **F007**: Accept OPNsense config.xml files as input through command-line arguments
   - **F008**: Validate XML structure and provide meaningful error messages for malformed files
 
-- [x] **User Stories and Use Cases**:
+- **User Stories and Use Cases**:
   - **Primary Workflow**: User obtains OPNsense config.xml file → runs `opnFocus convert config.xml` → system parses XML, converts to markdown, displays in terminal → user optionally exports to file
   - **Configuration Workflow**: User creates YAML config file with preferred settings → sets environment variables for sensitive options → runs commands with config automatically applied → overrides with CLI flags as needed
   - **Error Recovery Workflow**: System detects invalid XML → provides specific error message with line/column information → user corrects input file → re-runs command successfully
 
-- [x] **Feature Priority Matrix**:
+- **Feature Priority Matrix**:
   - **High Priority**: XML parsing, markdown conversion, CLI interface, offline operation
   - **Medium Priority**: Configuration management, file export, error handling
   - **Low Priority**: Advanced formatting options, template customization
 
-- [x] **Performance Requirements**:
+- **Performance Requirements**:
   - Individual tests must complete in <100ms
   - CLI startup time should be quick for operator efficiency
   - Memory-efficient streaming XML processing for large files
@@ -131,7 +131,7 @@
 
 ### User Interface Requirements
 
-- [x] **User Experience Specifications**:
+- **User Experience Specifications**:
   - Intuitive command-line interface using Cobra framework
   - Comprehensive help documentation for all commands
   - Usage examples and common workflow guidance
@@ -139,47 +139,47 @@
   - Progress indicators for long-running operations
   - Human-friendly file size and processing time information
 
-- [x] **Accessibility Requirements**:
+- **Accessibility Requirements**:
   - Support for both light and dark terminal themes
   - Consistent output formatting across different terminal environments
   - Clear, actionable error messages for all failure scenarios
   - Tab completion for command-line options where supported
 
-- [x] **Mobile and Responsive Design Needs**: N/A (CLI-only application)
+- **Mobile and Responsive Design Needs**: N/A (CLI-only application)
 
-- [x] **Browser Compatibility**: N/A (CLI-only application)
+- **Browser Compatibility**: N/A (CLI-only application)
 
 ### Data Requirements
 
-- [x] **Data Models and Structures**:
+- **Data Models and Structures**:
   - OPNsense XML configuration schema representation
   - Markdown output format specification
   - Configuration hierarchy preservation
   - Metadata structures (version, timestamp, generation info)
 
-- [x] **Data Validation Rules**:
+- **Data Validation Rules**:
   - XML structure validation against OPNsense schema
   - Input file existence and readability checks
   - Output directory creation and write permissions
   - Configuration file format validation (YAML)
 
-- [x] **Data Persistence Requirements**:
+- **Data Persistence Requirements**:
   - Temporary processing of XML files in memory
   - Markdown file output to user-specified locations
   - Configuration file persistence for user preferences
   - No database or persistent storage required
 
-- [x] **Data Migration Needs**: N/A (no existing data to migrate)
+- **Data Migration Needs**: N/A (no existing data to migrate)
 
 ### Integration Requirements
 
-- [x] **External System Integrations**: None required (offline operation)
+- **External System Integrations**: None required (offline operation)
 
-- [x] **API Requirements and Specifications**: None required (offline operation)
+- **API Requirements and Specifications**: None required (offline operation)
 
-- [x] **Third-party Service Dependencies**: None required (offline operation)
+- **Third-party Service Dependencies**: None required (offline operation)
 
-- [x] **Authentication and Authorization**: None required (local file processing only)
+- **Authentication and Authorization**: None required (local file processing only)
 
 ---
 
@@ -189,61 +189,61 @@
 
 #### Language/Runtime Versions
 
-- [x] **Go**: 1.21.6+ (toolchain: go1.21.7, system: go1.24.5)
-- [x] **Python**: 3.11+ (development: 3.13.5 for documentation)
+- **Go**: 1.21.6+ (toolchain: go1.21.7, system: go1.24.5)
+- **Python**: 3.11+ (development: 3.13.5 for documentation)
 
 #### Core Libraries and Frameworks
 
-- [x] **CLI Framework**: `github.com/spf13/cobra` v1.8.0
-- [x] **Configuration Management**: `charmbracelet/fang` (reconciled requirement - Viper removed due to conflict)
-- [x] **Terminal Styling**: `charmbracelet/lipgloss` for colored output
-- [x] **Markdown Rendering**: `charmbracelet/glamour` for terminal markdown display
-- [x] **Standard Library**: `encoding/xml`, `encoding/json` for data processing
-- [x] **Structured Logging**: `charmbracelet/log` for consistent logging
+- **CLI Framework**: `github.com/spf13/cobra` v1.8.0
+- **Configuration Management**: `charmbracelet/fang` (reconciled requirement - Viper removed due to conflict)
+- **Terminal Styling**: `charmbracelet/lipgloss` for colored output
+- **Markdown Rendering**: `charmbracelet/glamour` for terminal markdown display
+- **Standard Library**: `encoding/xml`, `encoding/json` for data processing
+- **Structured Logging**: `charmbracelet/log` for consistent logging
 
 #### Build Tools and Dependency Management
 
-- [x] **Go Modules**: `go.mod` and `go.sum` for dependency management
-- [x] **Task Runner**: `just` (Justfile) for development tasks
-- [x] **Release Management**: GoReleaser v2 for cross-platform builds
-- [x] **Pre-commit Hooks**: `pre-commit` v5.0.0 for code quality automation
+- **Go Modules**: `go.mod` and `go.sum` for dependency management
+- **Task Runner**: `just` (Justfile) for development tasks
+- **Release Management**: GoReleaser v2 for cross-platform builds
+- **Pre-commit Hooks**: `pre-commit` v5.0.0 for code quality automation
 
 #### Testing Frameworks
 
-- [x] **Unit Testing**: Go's built-in `testing` package
-- [x] **Test Organization**: Table-driven tests with `t.Run()` subtests
-- [x] **Coverage Analysis**: `go test -cover` with >80% coverage target
-- [x] **Benchmarking**: `go test -bench` for performance testing
-- [x] **Race Detection**: `go test -race` for concurrency testing
-- [x] **Integration Tests**: Build tags (`//go:build integration`)
+- **Unit Testing**: Go's built-in `testing` package
+- **Test Organization**: Table-driven tests with `t.Run()` subtests
+- **Coverage Analysis**: `go test -cover` with >80% coverage target
+- **Benchmarking**: `go test -bench` for performance testing
+- **Race Detection**: `go test -race` for concurrency testing
+- **Integration Tests**: Build tags (`//go:build integration`)
 
 #### Code Quality and Linting
 
-- [x] **Formatter**: `gofmt` and `gofumpt` for code formatting
-- [x] **Linter**: `golangci-lint` with comprehensive rule set
-- [x] **Static Analysis**: `go vet` for code analysis
-- [x] **Import Management**: `goimports` for import organization
-- [x] **Security Scanning**: `gosec` via golangci-lint
+- **Formatter**: `gofmt` and `gofumpt` for code formatting
+- **Linter**: `golangci-lint` with comprehensive rule set
+- **Static Analysis**: `go vet` for code analysis
+- **Import Management**: `goimports` for import organization
+- **Security Scanning**: `gosec` via golangci-lint
 
 ### CI/CD Expectations
 
 #### Automated Quality Checks
 
-- [x] **Pre-commit Hooks**: Automated on every commit
+- **Pre-commit Hooks**: Automated on every commit
   - File format validation (JSON, YAML, XML)
   - Markdown formatting with `mdformat`
   - Line ending normalization
   - Large file detection
-- [x] **Commit Message Validation**: `commitlint` for conventional commits
-- [x] **Continuous Integration**: GitHub Actions (implied by GoReleaser config)
+- **Commit Message Validation**: `commitlint` for conventional commits
+- **Continuous Integration**: GitHub Actions (implied by GoReleaser config)
 
 #### Build and Release Pipeline
 
-- [x] **Multi-platform Builds**: Linux, macOS, Windows (amd64, arm64)
-- [x] **Package Formats**: tar.gz, zip, deb, rpm, apk, archlinux
-- [x] **Code Signing**: macOS notarization support
-- [x] **SBOM Generation**: Software Bill of Materials for security
-- [x] **Automated Changelogs**: Conventional commit-based
+- **Multi-platform Builds**: Linux, macOS, Windows (amd64, arm64)
+- **Package Formats**: tar.gz, zip, deb, rpm, apk, archlinux
+- **Code Signing**: macOS notarization support
+- **SBOM Generation**: Software Bill of Materials for security
+- **Automated Changelogs**: Conventional commit-based
 
 #### Development Workflow Commands
 
@@ -261,63 +261,63 @@ just build      # Build application
 
 #### CLI Performance Requirements
 
-- [x] **Test Performance**: Individual tests <100ms
-- [x] **Startup Time**: CLI should start quickly for operator efficiency
-- [x] **Memory Efficiency**: Streaming XML processing for large files
-- [x] **Concurrent Processing**: Goroutines and channels for I/O operations
+- **Test Performance**: Individual tests <100ms
+- **Startup Time**: CLI should start quickly for operator efficiency
+- **Memory Efficiency**: Streaming XML processing for large files
+- **Concurrent Processing**: Goroutines and channels for I/O operations
 
 #### Resource Utilization
 
-- [x] **Zero External Dependencies**: Offline-first architecture
-- [x] **Local Processing**: All operations work without internet
-- [x] **Portable Binaries**: Static compilation with CGO_ENABLED=0
-- [x] **Cross-platform Support**: Native binaries for major platforms
+- **Zero External Dependencies**: Offline-first architecture
+- **Local Processing**: All operations work without internet
+- **Portable Binaries**: Static compilation with CGO_ENABLED=0
+- **Cross-platform Support**: Native binaries for major platforms
 
 ### Security Requirements
 
 #### Code Security
 
-- [x] **No Hardcoded Secrets**: Environment variables for sensitive data
-- [x] **Input Validation**: Comprehensive validation for XML parsing
-- [x] **Secure Defaults**: Security-first configuration
-- [x] **Static Security Analysis**: `gosec` integration
+- **No Hardcoded Secrets**: Environment variables for sensitive data
+- **Input Validation**: Comprehensive validation for XML parsing
+- **Secure Defaults**: Security-first configuration
+- **Static Security Analysis**: `gosec` integration
 
 #### Operational Security
 
-- [x] **Airgap Compatibility**: Full functionality in isolated environments
-- [x] **No Telemetry**: No external data transmission
-- [x] **Portable Data Exchange**: Secure data bundle import/export
-- [x] **Error Message Safety**: No sensitive information exposure
+- **Airgap Compatibility**: Full functionality in isolated environments
+- **No Telemetry**: No external data transmission
+- **Portable Data Exchange**: Secure data bundle import/export
+- **Error Message Safety**: No sensitive information exposure
 
 #### Dependency Security
 
-- [x] **Minimal Dependencies**: Reduced attack surface
-- [x] **Dependency Scanning**: Automated vulnerability detection
-- [x] **Supply Chain Security**: Go module checksums and verification
-- [x] **SBOM Generation**: Dependency transparency
+- **Minimal Dependencies**: Reduced attack surface
+- **Dependency Scanning**: Automated vulnerability detection
+- **Supply Chain Security**: Go module checksums and verification
+- **SBOM Generation**: Dependency transparency
 
 ### Infrastructure Requirements
 
 #### Development Environment
 
-- [x] **Go Toolchain**: 1.21.6+ with module support
-- [x] **Python Environment**: 3.11+ for documentation (MkDocs)
-- [x] **Documentation**: MkDocs Material for project documentation
-- [x] **Version Control**: Git with conventional commit workflow
+- **Go Toolchain**: 1.21.6+ with module support
+- **Python Environment**: 3.11+ for documentation (MkDocs)
+- **Documentation**: MkDocs Material for project documentation
+- **Version Control**: Git with conventional commit workflow
 
 #### Deployment Architecture
 
-- [x] **Distribution**: GitHub Releases with multi-platform binaries
-- [x] **Package Managers**: Support for system package managers
-- [x] **Container Support**: Minimal binary suitable for containers
-- [x] **Configuration Management**: Environment variables and config files
+- **Distribution**: GitHub Releases with multi-platform binaries
+- **Package Managers**: Support for system package managers
+- **Container Support**: Minimal binary suitable for containers
+- **Configuration Management**: Environment variables and config files
 
 #### Monitoring and Observability
 
-- [x] **Structured Logging**: `log/slog` for consistent logging
-- [x] **Error Handling**: Comprehensive error wrapping with context
-- [x] **Performance Profiling**: `go tool pprof` integration capability
-- [x] **Health Checks**: CLI self-validation commands
+- **Structured Logging**: `log/slog` for consistent logging
+- **Error Handling**: Comprehensive error wrapping with context
+- **Performance Profiling**: `go tool pprof` integration capability
+- **Health Checks**: CLI self-validation commands
 
 ---
 
@@ -325,79 +325,79 @@ just build      # Build application
 
 ### High-Level Architecture
 
-- [x] **System Overview and Components**:
+- **System Overview and Components**:
   - **Input Layer**: XML file parsing and validation
   - **Processing Layer**: Configuration conversion and transformation
   - **Output Layer**: Markdown generation and terminal display
   - **Configuration Layer**: Settings management and user preferences
   - **CLI Layer**: Command interface and user interaction
 
-- [x] **Architecture Patterns and Principles**:
+- **Architecture Patterns and Principles**:
   - **Operator-focused Design**: Prioritizes security professional workflows
   - **Offline-first Architecture**: All functionality works without internet
   - **Framework-first Development**: Leverages established Go patterns
   - **Clean Separation of Concerns**: Modular, testable components
   - **Dependency Injection**: Loose coupling between components
 
-- [x] **Component Interaction Diagrams**:
+- **Component Interaction Diagrams**:
   - XML Parser → Configuration Processor → Markdown Generator → Display Engine
   - Configuration Manager → All Components (dependency injection)
   - CLI Interface → All Components (command orchestration)
 
-- [x] **Data Flow Architecture**:
+- **Data Flow Architecture**:
   - Input: OPNsense config.xml → Validation → Parsing → Processing → Output: Markdown/Display
 
 ### Detailed Design
 
-- [x] **Module Specifications**:
+- **Module Specifications**:
   - **cmd/**: CLI command definitions and entry points
   - **internal/**: Private application logic and business rules
   - **pkg/**: Public packages for potential reuse
   - **docs/**: Documentation and user guides
 
-- [x] **Interface Definitions**:
+- **Interface Definitions**:
   - XML Parser Interface: `ParseXML(data []byte) (*Config, error)`
   - Markdown Generator Interface: `GenerateMarkdown(config *Config) (string, error)`
   - Display Interface: `RenderMarkdown(markdown string) error`
   - Configuration Interface: `LoadConfig() (*Settings, error)`
 
-- [x] **Database Schema Design**: N/A (no database required)
+- **Database Schema Design**: N/A (no database required)
 
-- [x] **API Design and Documentation**: N/A (CLI-only application)
+- **API Design and Documentation**: N/A (CLI-only application)
 
 ### Scalability and Performance
 
-- [x] **Load Balancing Strategies**: N/A (single-user CLI application)
+- **Load Balancing Strategies**: N/A (single-user CLI application)
 
-- [x] **Caching Mechanisms**:
+- **Caching Mechanisms**:
   - In-memory caching of parsed configurations during processing
   - Configuration file caching for user preferences
 
-- [x] **Database Optimization**: N/A (no database required)
+- **Database Optimization**: N/A (no database required)
 
-- [x] **Performance Monitoring**:
+- **Performance Monitoring**:
   - Built-in performance profiling with `go tool pprof`
   - Benchmark testing for critical code paths
   - Memory usage monitoring for large file processing
 
 ### Deployment Architecture
 
-- [x] **Environment Specifications**:
+- **Environment Specifications**:
   - **Development**: Go 1.21+ with development tools
   - **Build**: GoReleaser environment with cross-compilation
   - **Runtime**: Any environment with Go 1.21+ runtime
 
-- [x] **Containerization Strategy**:
+- **Containerization Strategy**:
   - Minimal container images based on scratch or alpine
   - Single binary deployment with no runtime dependencies
   - Multi-stage builds for optimal image size
 
-- [x] **CI/CD Pipeline Design**:
+- **CI/CD Pipeline Design**:
   - GitHub Actions for automated testing and building
   - GoReleaser for release management and distribution
   - Pre-commit hooks for code quality enforcement
 
-- [x] **Configuration Management**:
+- **Configuration Management**:
   - Environment variables with `OPNFOCUS_` prefix
   - YAML configuration files for persistent settings
   - Command-line flags for runtime overrides
@@ -408,26 +408,26 @@ just build      # Build application
 
 ### Code Quality Standards
 
-- [x] **Coding Style Guidelines**:
+- **Coding Style Guidelines**:
   - Follow Google Go Style Guide
   - Use `gofmt` and `gofumpt` for code formatting
   - camelCase for private functions/variables
   - PascalCase for exported functions/types
   - Tab indentation (Go standard)
 
-- [x] **Code Review Processes**:
+- **Code Review Processes**:
   - All changes require pull request review
   - Automated quality checks must pass
   - Manual review for architectural decisions
   - Security review for configuration handling
 
-- [x] **Static Analysis Tools**:
+- **Static Analysis Tools**:
   - `golangci-lint` with comprehensive rule set
   - `go vet` for code analysis
   - `gosec` for security scanning
   - `goimports` for import organization
 
-- [x] **Documentation Standards**:
+- **Documentation Standards**:
   - Package documentation for all exported packages
   - Function documentation for public APIs
   - Example usage in documentation
@@ -435,24 +435,24 @@ just build      # Build application
 
 ### Version Control
 
-- [x] **Branching Strategy**:
+- **Branching Strategy**:
   - `main` branch for stable releases
   - Feature branches for development
   - Release branches for version management
 
-- [x] **Commit Message Conventions**:
+- **Commit Message Conventions**:
   - Conventional Commits format: `<type>(<scope>): <description>`
   - Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore
   - Scope required for all commits
   - Imperative mood, no period, ≤72 characters
 
-- [x] **Pull Request Workflow**:
+- **Pull Request Workflow**:
   - Automated quality checks on every PR
   - Manual review for code changes
   - Squash merge for feature branches
   - Conventional commit validation
 
-- [x] **Release Management**:
+- **Release Management**:
   - Semantic versioning with GoReleaser
   - Automated changelog generation
   - Multi-platform binary distribution
@@ -460,25 +460,25 @@ just build      # Build application
 
 ### Testing Standards
 
-- [x] **Unit Testing Requirements**:
+- **Unit Testing Requirements**:
   - >80% test coverage target
   - Table-driven tests for multiple scenarios
   - Mock interfaces for external dependencies
   - Benchmark tests for performance-critical code
 
-- [x] **Integration Testing Approach**:
+- **Integration Testing Approach**:
   - Build tags for integration tests (`//go:build integration`)
   - End-to-end workflow testing
   - Configuration file testing
   - Cross-platform compatibility testing
 
-- [x] **End-to-end Testing Strategy**:
+- **End-to-end Testing Strategy**:
   - Full CLI workflow testing
   - File input/output testing
   - Error handling validation
   - Performance testing with large files
 
-- [x] **Test Coverage Targets**:
+- **Test Coverage Targets**:
   - Minimum 80% code coverage
   - 100% coverage for critical paths
   - Coverage reporting in CI/CD
@@ -486,25 +486,25 @@ just build      # Build application
 
 ### Quality Assurance
 
-- [x] **Code Quality Metrics**:
+- **Code Quality Metrics**:
   - Cyclomatic complexity limits
   - Function length guidelines
   - Comment density requirements
   - Technical debt tracking
 
-- [x] **Automated Quality Checks**:
+- **Automated Quality Checks**:
   - Pre-commit hooks for all commits
   - CI/CD pipeline validation
   - Automated security scanning
   - Performance regression testing
 
-- [x] **Manual Testing Procedures**:
+- **Manual Testing Procedures**:
   - Cross-platform testing
   - Large file processing validation
   - Error scenario testing
   - User experience validation
 
-- [x] **Bug Tracking and Resolution**:
+- **Bug Tracking and Resolution**:
   - GitHub Issues for bug tracking
   - Bug template with reproduction steps
   - Root cause analysis for critical bugs
@@ -516,25 +516,25 @@ just build      # Build application
 
 ### Development Workflow
 
-- [x] **Agile Methodology Adoption**:
+- **Agile Methodology Adoption**:
   - Iterative development with regular releases
   - User story-driven development
   - Continuous integration and deployment
   - Regular retrospectives and process improvement
 
-- [x] **Sprint Planning and Execution**:
+- **Sprint Planning and Execution**:
   - Feature-based sprint planning
   - Definition of done criteria
   - Daily progress tracking
   - Sprint review and demo
 
-- [x] **Daily Standup Procedures**:
+- **Daily Standup Procedures**:
   - Progress updates and blockers
   - Cross-team coordination
   - Issue escalation procedures
   - Knowledge sharing
 
-- [x] **Retrospective Processes**:
+- **Retrospective Processes**:
   - Regular sprint retrospectives
   - Process improvement identification
   - Action item tracking
@@ -542,25 +542,25 @@ just build      # Build application
 
 ### Project Management
 
-- [x] **Task Tracking and Management**:
+- **Task Tracking and Management**:
   - GitHub Issues for task tracking
   - Milestone-based project planning
   - Priority-based task ordering
   - Progress tracking and reporting
 
-- [x] **Communication Protocols**:
+- **Communication Protocols**:
   - GitHub Discussions for technical discussions
   - Issue templates for standardized communication
   - Release notes for user communication
   - Documentation updates for changes
 
-- [x] **Documentation Requirements**:
+- **Documentation Requirements**:
   - README with clear project overview
   - Installation and usage instructions
   - API documentation for public packages
   - Contributing guidelines for developers
 
-- [x] **Knowledge Sharing Practices**:
+- **Knowledge Sharing Practices**:
   - Code review knowledge transfer
   - Architecture decision records
   - Best practices documentation
@@ -568,25 +568,25 @@ just build      # Build application
 
 ### Deployment Practices
 
-- [x] **Continuous Integration Setup**:
+- **Continuous Integration Setup**:
   - GitHub Actions for automated testing
   - Multi-platform build validation
   - Quality gate enforcement
   - Automated release preparation
 
-- [x] **Deployment Automation**:
+- **Deployment Automation**:
   - GoReleaser for automated releases
   - Multi-platform binary distribution
   - Package manager integration
   - Release note generation
 
-- [x] **Environment Management**:
+- **Environment Management**:
   - Development environment setup
   - Build environment configuration
   - Runtime environment requirements
   - Configuration management
 
-- [x] **Rollback Procedures**:
+- **Rollback Procedures**:
   - Version tagging for releases
   - Binary artifact preservation
   - Quick rollback mechanisms
@@ -594,25 +594,25 @@ just build      # Build application
 
 ### Monitoring and Maintenance
 
-- [x] **Application Monitoring**:
+- **Application Monitoring**:
   - Performance profiling capabilities
   - Error tracking and logging
   - Usage analytics (local only)
   - Health check endpoints
 
-- [x] **Error Tracking and Alerting**:
+- **Error Tracking and Alerting**:
   - Structured error logging
   - Error categorization and prioritization
   - User feedback collection
   - Issue resolution tracking
 
-- [x] **Performance Optimization**:
+- **Performance Optimization**:
   - Regular performance benchmarking
   - Memory usage optimization
   - CPU utilization monitoring
   - Bottleneck identification and resolution
 
-- [x] **Regular Maintenance Schedules**:
+- **Regular Maintenance Schedules**:
   - Dependency updates and security patches
   - Code quality improvements
   - Documentation updates
@@ -624,25 +624,25 @@ just build      # Build application
 
 ### Cursor Rules Integration
 
-- [x] **`.cursor/rules/*.mdc` File Compliance**:
+- **`.cursor/rules/*.mdc` File Compliance**:
   - Core concepts and development patterns
   - Go organization and structure guidelines
   - Testing standards and best practices
   - Documentation requirements and standards
 
-- [x] **`AGENTS.md` and `GEMINI.md` Adherence**:
+- **`AGENTS.md` and `GEMINI.md` Adherence**:
   - AI agent configuration and protocols
   - Development workflow automation
   - Code quality enforcement
   - Security and safety guidelines
 
-- [x] **AI Coding Assistant Configuration**:
+- **AI Coding Assistant Configuration**:
   - Context-aware development assistance
   - Automated code review and suggestions
   - Best practice enforcement
   - Documentation generation
 
-- [x] **Framework-first Principle Implementation**:
+- **Framework-first Principle Implementation**:
   - Established Go patterns and conventions
   - Proven library and tool selection
   - Community best practices adoption
@@ -650,25 +650,25 @@ just build      # Build application
 
 ### AI Agent Best Practices
 
-- [x] **Structured Data Models**:
+- **Structured Data Models**:
   - Well-defined configuration structures
   - Type-safe data handling
   - Validation and error handling
   - Clear data flow patterns
 
-- [x] **Non-destructive Update Patterns**:
+- **Non-destructive Update Patterns**:
   - Immutable data structures where possible
   - Safe configuration updates
   - Backup and recovery mechanisms
   - Version compatibility management
 
-- [x] **Operator-centric Design Principles**:
+- **Operator-centric Design Principles**:
   - Security professional workflow optimization
   - Clear and actionable output
   - Efficient command-line interface
   - Offline operation capability
 
-- [x] **Offline-first/Airgap Support**:
+- **Offline-first/Airgap Support**:
   - Zero external dependencies
   - Local processing capabilities
   - Secure data handling
@@ -676,25 +676,25 @@ just build      # Build application
 
 ### Development Tool Integration
 
-- [x] **Go Dependency Management**:
+- **Go Dependency Management**:
   - Go modules for dependency tracking
   - Version pinning for stability
   - Security scanning integration
   - Dependency update automation
 
-- [x] **`just` Task Runner Configuration**:
+- **`just` Task Runner Configuration**:
   - Standardized development commands
   - Build and test automation
   - Quality check integration
   - Release preparation workflows
 
-- [x] **`gofmt` Formatting and Linting**:
+- **`gofmt` Formatting and Linting**:
   - Automated code formatting
   - Style consistency enforcement
   - Quality gate integration
   - Pre-commit hook configuration
 
-- [x] **Conventional Commit Standards**:
+- **Conventional Commit Standards**:
   - Automated commit message validation
   - Changelog generation
   - Version management integration
@@ -702,13 +702,13 @@ just build      # Build application
 
 ### Technology Stack Compliance
 
-- [x] **Go CLI Implementation**:
+- **Go CLI Implementation**:
   - Cobra framework integration
   - Command structure and organization
   - Help system and documentation
   - Error handling and user feedback
 
-- [x] **Testing Framework Integration (Go test)**:
+- **Testing Framework Integration (Go test)**:
   - Unit test organization
   - Integration test setup
   - Benchmark testing
@@ -720,28 +720,28 @@ just build      # Build application
 
 ### Technical Terminology
 
-- [x] **Project-specific Terms and Definitions**:
+- **Project-specific Terms and Definitions**:
   - **opnFocus**: CLI tool for OPNsense configuration documentation
   - **OPNsense**: Open-source firewall and routing platform
   - **config.xml**: OPNsense configuration file format
   - **Airgap**: Isolated network environment without internet connectivity
   - **Operator-focused**: Design philosophy prioritizing security professional workflows
 
-- [x] **Industry Standard Terminology**:
+- **Industry Standard Terminology**:
   - **CLI**: Command Line Interface
   - **XML**: Extensible Markup Language
   - **Markdown**: Lightweight markup language
   - **YAML**: YAML Ain't Markup Language
   - **SBOM**: Software Bill of Materials
 
-- [x] **Acronym Definitions**:
+- **Acronym Definitions**:
   - **CI/CD**: Continuous Integration/Continuous Deployment
   - **API**: Application Programming Interface
   - **GUI**: Graphical User Interface
   - **DevOps**: Development and Operations
   - **QA**: Quality Assurance
 
-- [x] **Technology Stack Glossary**:
+- **Technology Stack Glossary**:
   - **Go**: Programming language and runtime
   - **Cobra**: CLI framework for Go
   - **Charm**: Terminal UI library collection
@@ -750,25 +750,25 @@ just build      # Build application
 
 ### External References
 
-- [x] **Framework Documentation Links**:
+- **Framework Documentation Links**:
   - [Cobra CLI Framework](https://github.com/spf13/cobra)
   - [Charm Libraries](https://github.com/charmbracelet)
   - [Go Programming Language](https://golang.org/)
   - [GoReleaser](https://goreleaser.com/)
   - [MkDocs Material](https://squidfunk.github.io/mkdocs-material/)
 
-- [x] **Industry Standards and Specifications**:
+- **Industry Standards and Specifications**:
   - [Conventional Commits](https://www.conventionalcommits.org/)
   - [Google Go Style Guide](https://google.github.io/styleguide/go/)
   - [Semantic Versioning](https://semver.org/)
   - [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 
-- [x] **Third-party Service Documentation**:
+- **Third-party Service Documentation**:
   - [GitHub Actions](https://docs.github.com/en/actions)
   - [GitHub Releases](https://docs.github.com/en/repositories/releasing-projects-on-github)
   - [Pre-commit Hooks](https://pre-commit.com/)
 
-- [x] **Regulatory Compliance References**:
+- **Regulatory Compliance References**:
   - Software Bill of Materials (SBOM) standards
   - Open source license compliance
   - Security best practices
@@ -776,25 +776,25 @@ just build      # Build application
 
 ### Internal References
 
-- [x] **Related Project Documentation**:
+- **Related Project Documentation**:
   - `README.md`: Project overview and quick start
   - `AGENTS.md`: Development standards and AI agent protocols
   - `ARCHITECTURE.md`: System architecture documentation
   - `DEVELOPMENT_STANDARDS.md`: Coding standards and practices
 
-- [x] **Architecture Decision Records**:
+- **Architecture Decision Records**:
   - Technology stack selection rationale
   - Framework choice justifications
   - Security design decisions
   - Performance optimization strategies
 
-- [x] **Design Documents**:
+- **Design Documents**:
   - System architecture diagrams
   - Data flow specifications
   - Interface definitions
   - Component interaction models
 
-- [x] **Meeting Notes and Decisions**:
+- **Meeting Notes and Decisions**:
   - Project planning discussions
   - Technical decision records
   - Stakeholder feedback
@@ -802,25 +802,25 @@ just build      # Build application
 
 ### Standards and Guidelines
 
-- [x] **Coding Standards References**:
+- **Coding Standards References**:
   - Google Go Style Guide
   - Effective Go documentation
   - Go Code Review Comments
   - Project-specific conventions
 
-- [x] **Security Compliance Frameworks**:
+- **Security Compliance Frameworks**:
   - OWASP security guidelines
   - Secure coding practices
   - Input validation standards
   - Error handling security
 
-- [x] **Accessibility Guidelines**:
+- **Accessibility Guidelines**:
   - Terminal accessibility considerations
   - Color contrast requirements
   - Keyboard navigation support
   - Screen reader compatibility
 
-- [x] **Performance Benchmarking Standards**:
+- **Performance Benchmarking Standards**:
   - Go benchmarking best practices
   - Performance testing methodologies
   - Memory profiling techniques

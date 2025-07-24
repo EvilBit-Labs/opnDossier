@@ -2,6 +2,16 @@
 
 This document outlines the preferred coding standards, architectural principles, and development workflows for the opnFocus project.
 
+## 📚 Related Documentation
+
+For comprehensive project information, refer to these key documents:
+
+- **[Requirements Document](requirements.md)** - Complete project requirements, functional specifications, and technical constraints
+- **[System Architecture](ARCHITECTURE.md)** - Detailed system design, component interactions, and deployment patterns
+- **[Development Standards](DEVELOPMENT_STANDARDS.md)** - Go-specific coding standards, project structure, and development workflow
+
+These documents provide the foundation for all development decisions and should be consulted when implementing new features or making architectural changes.
+
 ## Rule Precedence
 
 **CRITICAL - Rules are applied in the following order of precedence:**
@@ -122,9 +132,12 @@ opnfocus/
 ├── go.sum
 ├── README.md
 ├── requirements.md          # Project requirements
+├── ARCHITECTURE.md          # System architecture documentation
 ├── DEVELOPMENT_STANDARDS.md # Development standards
 └── justfile                 # Build and development tasks
 ```
+
+> **Note:** For detailed project structure and development guidelines, see [DEVELOPMENT_STANDARDS.md](DEVELOPMENT_STANDARDS.md). For system architecture details, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ### 3.7. Testing and Quality
 
@@ -842,6 +855,7 @@ When AI agents contribute to this project, they should:
 08. **Validate all inputs** and handle edge cases
 09. **Document new functions and types** following Go conventions
 10. **Never commit secrets** or hardcoded credentials
+11. **Consult project documentation** - [requirements.md](requirements.md), [ARCHITECTURE.md](ARCHITECTURE.md), and [DEVELOPMENT_STANDARDS.md](DEVELOPMENT_STANDARDS.md) for guidance
 
 #### AI Agent Code Review Checklist
 
@@ -857,5 +871,20 @@ Before submitting code, AI agents should verify:
 - [ ] Documentation updated for new features
 - [ ] Dependencies properly managed (`go mod tidy`)
 - [ ] Code follows established patterns and interfaces
+- [ ] Requirements compliance verified against [requirements.md](requirements.md)
+- [ ] Architecture patterns followed per [ARCHITECTURE.md](ARCHITECTURE.md)
+- [ ] Development standards adhered to per [DEVELOPMENT_STANDARDS.md](DEVELOPMENT_STANDARDS.md)
 
 These implementation guidelines ensure that all contributors, whether human or AI, can work effectively within the established project standards and produce high-quality, maintainable code.
+
+---
+
+## 📖 Additional Resources
+
+For comprehensive project understanding, AI agents should familiarize themselves with:
+
+- **[requirements.md](requirements.md)** - Complete functional and technical requirements
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System design, data flow, and component architecture
+- **[DEVELOPMENT_STANDARDS.md](DEVELOPMENT_STANDARDS.md)** - Go-specific coding standards and project structure
+
+These documents provide the complete context needed for effective development and decision-making within the opnFocus project.
