@@ -62,7 +62,6 @@ linters:
     - unused
     - usestdlibvars
     - wastedassign
-    - wsl_v5
   exclusions:
     generated: lax
     presets:
