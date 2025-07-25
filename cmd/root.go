@@ -33,7 +33,7 @@ CONFIGURATION:
   2. Environment variables (OPNFOCUS_*)
   3. Configuration file (~/.opnFocus.yaml)
   4. Default values (lowest priority)
-  
+
   The CLI is enhanced with Fang for improved user experience including
   styled help, automatic version/completion commands, and error formatting.
 
@@ -43,10 +43,10 @@ Examples:
 
   # Convert an OPNsense config.xml to markdown and save to a file
   opnFocus convert config.xml -o output.md
-  
+
   # Use verbose logging with JSON format
   opnFocus --verbose --log_format=json convert config.xml
-  
+
   # Override config file settings with environment variables
   OPNFOCUS_LOG_LEVEL=debug opnFocus convert config.xml
 `,
@@ -72,13 +72,17 @@ Examples:
 		}
 
 		// Create new logger with centralized configuration
-		logger = log.New(log.Config{
+		var loggerErr error
+		logger, loggerErr = log.New(log.Config{
 			Level:           logLevel,
 			Format:          logFormat,
 			Output:          os.Stderr,
 			ReportCaller:    true,
 			ReportTimestamp: true,
 		})
+		if loggerErr != nil {
+			return fmt.Errorf("failed to create logger: %w", loggerErr)
+		}
 
 		return nil
 	},
@@ -87,13 +91,19 @@ Examples:
 // init initializes the global logger and sets up persistent CLI flags for configuration file, verbose output, and quiet mode.
 func init() {
 	// Initialize logger with default configuration before config is loaded
-	logger = log.New(log.Config{
+	var loggerErr error
+	logger, loggerErr = log.New(log.Config{
 		Level:           "info",
 		Format:          "text",
 		Output:          os.Stderr,
 		ReportCaller:    true,
 		ReportTimestamp: true,
 	})
+	if loggerErr != nil {
+		// In init function, we can't return an error, so we'll panic
+		// This should never happen with valid default config
+		panic(fmt.Sprintf("failed to create default logger: %v", loggerErr))
+	}
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.opnFocus.yaml)")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose output (debug logging)")

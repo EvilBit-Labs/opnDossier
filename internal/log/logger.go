@@ -3,11 +3,19 @@ package log
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"strings"
 
 	"github.com/charmbracelet/log"
+)
+
+// Error definitions for validation.
+var (
+	ErrInvalidLogLevel  = errors.New("invalid log level")
+	ErrInvalidLogFormat = errors.New("invalid log format")
 )
 
 // Logger is the application logger instance.
@@ -30,10 +38,20 @@ type Config struct {
 }
 
 // New creates a new logger with the specified configuration.
-func New(cfg Config) *Logger {
+func New(cfg Config) (*Logger, error) {
 	// Set default output if not specified
 	if cfg.Output == nil {
 		cfg.Output = os.Stderr
+	}
+
+	// Validate log level
+	if err := validateLevel(cfg.Level); err != nil {
+		return nil, err
+	}
+
+	// Validate format
+	if err := validateFormat(cfg.Format); err != nil {
+		return nil, err
 	}
 
 	// Create logger options
@@ -55,12 +73,29 @@ func New(cfg Config) *Logger {
 		logger.SetFormatter(log.JSONFormatter)
 	case "text", "":
 		logger.SetFormatter(log.TextFormatter)
-	default:
-		// Default to text if unknown format
-		logger.SetFormatter(log.TextFormatter)
 	}
 
-	return &Logger{Logger: logger}
+	return &Logger{Logger: logger}, nil
+}
+
+// validateLevel checks if the provided level is valid.
+func validateLevel(level string) error {
+	switch strings.ToLower(level) {
+	case "debug", "info", "warn", "warning", "error", "":
+		return nil
+	default:
+		return fmt.Errorf("%w: %s", ErrInvalidLogLevel, level)
+	}
+}
+
+// validateFormat checks if the provided format is valid.
+func validateFormat(format string) error {
+	switch strings.ToLower(format) {
+	case "text", "json", "":
+		return nil
+	default:
+		return fmt.Errorf("%w: %s", ErrInvalidLogFormat, format)
+	}
 }
 
 // parseLevel converts a string level to log.Level.

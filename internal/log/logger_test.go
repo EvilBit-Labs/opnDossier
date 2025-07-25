@@ -12,6 +12,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Test constants to avoid repeated string literals.
+const (
+	testLevelDebug = "debug"
+	testLevelInfo  = "info"
+	testLevelWarn  = "warn"
+	testLevelError = "error"
+	testFormatJSON = "json"
+)
+
 func TestNew(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -70,18 +79,19 @@ func TestNew(t *testing.T) {
 			var buf bytes.Buffer
 			tt.config.Output = &buf
 
-			logger := New(tt.config)
+			logger, err := New(tt.config)
+			require.NoError(t, err)
 			require.NotNil(t, logger)
 
 			// Test each log level method
 			switch tt.config.Level {
-			case "debug":
+			case testLevelDebug:
 				logger.Debug(tt.testMsg)
-			case "info":
+			case testLevelInfo:
 				logger.Debug(tt.testMsg) // Should be filtered for info level
-			case "warn":
+			case testLevelWarn:
 				logger.Info(tt.testMsg) // Should be filtered for warn level
-			case "error":
+			case testLevelError:
 				logger.Warn(tt.testMsg) // Should be filtered for error level
 			}
 
@@ -117,9 +127,9 @@ func TestLoggerFormats(t *testing.T) {
 			expected: "INFO",
 		},
 		{
-			name:     "invalid format defaults to text",
+			name:     "invalid format returns error",
 			format:   "invalid",
-			expected: "INFO",
+			expected: "", // This test will be handled differently
 		},
 	}
 
@@ -134,14 +144,20 @@ func TestLoggerFormats(t *testing.T) {
 				ReportTimestamp: false,
 			}
 
-			logger := New(config)
+			logger, err := New(config)
+			if tt.format == "invalid" {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), "invalid log format: invalid")
+				return
+			}
+			require.NoError(t, err)
 			logger.Info("test message")
 
 			output := buf.String()
 			assert.Contains(t, output, tt.expected)
 
 			// For JSON format, verify it's valid JSON
-			if tt.format == "json" {
+			if tt.format == testFormatJSON {
 				lines := strings.Split(strings.TrimSpace(output), "\n")
 				for _, line := range lines {
 					if line == "" {
@@ -168,8 +184,8 @@ func TestLoggerLevels(t *testing.T) {
 		{"warn", log.WarnLevel},
 		{"warning", log.WarnLevel},
 		{"error", log.ErrorLevel},
-		{"invalid", log.InfoLevel}, // Should default to info
-		{"", log.InfoLevel},        // Should default to info
+		// Note: invalid levels are now validated and return errors, so we don't test them here
+		{"", log.InfoLevel}, // Should default to info
 	}
 
 	for _, tt := range tests {
@@ -190,7 +206,8 @@ func TestLoggerWithContext(t *testing.T) {
 		ReportTimestamp: false,
 	}
 
-	logger := New(config)
+	logger, err := New(config)
+	require.NoError(t, err)
 	type contextKey string
 	ctx := context.WithValue(context.Background(), contextKey("test"), "value")
 
@@ -212,7 +229,8 @@ func TestLoggerWithFields(t *testing.T) {
 		ReportTimestamp: false,
 	}
 
-	logger := New(config)
+	logger, err := New(config)
+	require.NoError(t, err)
 	fieldLogger := logger.WithFields("key1", "value1", "key2", "value2")
 
 	fieldLogger.Info("test message")
@@ -235,7 +253,8 @@ func TestLoggerSub(t *testing.T) {
 		ReportTimestamp: false,
 	}
 
-	logger := New(config)
+	logger, err := New(config)
+	require.NoError(t, err)
 	subLogger := logger.Sub("parser")
 
 	subLogger.Info("test message")
@@ -256,7 +275,8 @@ func TestLoggerWithPrefix(t *testing.T) {
 		ReportTimestamp: false,
 	}
 
-	logger := New(config)
+	logger, err := New(config)
+	require.NoError(t, err)
 	prefixLogger := logger.WithPrefix("[TEST]")
 
 	prefixLogger.Info("test message")
@@ -277,7 +297,8 @@ func TestLevelFiltering(t *testing.T) {
 		ReportTimestamp: false,
 	}
 
-	logger := New(config)
+	logger, err := New(config)
+	require.NoError(t, err)
 
 	// These should be filtered out
 	logger.Debug("debug message")
@@ -294,6 +315,64 @@ func TestLevelFiltering(t *testing.T) {
 	assert.Contains(t, output, "error message")
 }
 
+func TestNewWithInvalidConfig(t *testing.T) {
+	tests := []struct {
+		name        string
+		config      Config
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name: "invalid log level",
+			config: Config{
+				Level:  "invalid",
+				Format: "text",
+			},
+			expectError: true,
+			errorMsg:    "invalid log level: invalid",
+		},
+		{
+			name: "invalid format",
+			config: Config{
+				Level:  "info",
+				Format: "invalid",
+			},
+			expectError: true,
+			errorMsg:    "invalid log format: invalid",
+		},
+		{
+			name: "valid config",
+			config: Config{
+				Level:  "info",
+				Format: "text",
+			},
+			expectError: false,
+		},
+		{
+			name: "empty level and format",
+			config: Config{
+				Level:  "",
+				Format: "",
+			},
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			logger, err := New(tt.config)
+			if tt.expectError {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errorMsg)
+				assert.Nil(t, logger)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, logger)
+			}
+		})
+	}
+}
+
 func BenchmarkLogger(b *testing.B) {
 	var buf bytes.Buffer
 	config := Config{
@@ -304,7 +383,8 @@ func BenchmarkLogger(b *testing.B) {
 		ReportTimestamp: false,
 	}
 
-	logger := New(config)
+	logger, err := New(config)
+	require.NoError(b, err)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
