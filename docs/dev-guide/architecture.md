@@ -113,10 +113,12 @@ graph TB
 
 **Configuration Sources** (in order of precedence):
 
-1. Command-line flags
-2. Environment variables (`OPNFOCUS_*`)
-3. Configuration file (`~/.opnFocus.yaml`)
-4. Default values
+1. **Command-line flags** (highest priority)
+2. **Environment variables** (`OPNFOCUS_*`)
+3. **Configuration file** (`~/.opnFocus.yaml`)
+4. **Default values** (lowest priority)
+
+This follows the standard precedence order used by most CLI tools, where environment variables can override configuration file settings for deployment flexibility and security.
 
 ### Data Processing Engine
 

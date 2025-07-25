@@ -137,7 +137,7 @@ This document captures user stories for the opnFocus CLI tool in EARS (Easy Appr
 **So that** I can make temporary changes without modifying config files
 **Given** I have a configuration file with default settings
 **When** I provide command-line flags
-**Then** the system should prioritize flags over configuration file values
+**Then** the system should prioritize flags over all other configuration sources (highest precedence)
 
 ### Performance Requirements
 

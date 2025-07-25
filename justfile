@@ -49,7 +49,6 @@ update-deps:
     go get -u ./...
     go mod tidy
     go mod verify
-    go mod vendor
 
 
 # -----------------------------

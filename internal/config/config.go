@@ -24,7 +24,7 @@ func LoadConfig(cfgFile string) (*Config, error) {
 }
 
 // LoadConfigWithViper loads the configuration using a provided Viper instance.
-// LoadConfigWithViper loads application configuration using the provided Viper instance, applying defaults, config file values, and environment variables with explicit precedence for config file values.
+// LoadConfigWithViper loads application configuration using the provided Viper instance, applying defaults, config file values, and environment variables with standard precedence.
 // If a config file path is given, it is used; otherwise, the function attempts to load from a default YAML file in the user's home directory. Environment variables with the prefix "OPNFOCUS" are also read. If the config file is missing, environment variables and defaults are used instead. Returns a populated Config struct or an error if configuration loading fails.
 func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 	// Set defaults
@@ -32,6 +32,11 @@ func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 	v.SetDefault("output_file", "")
 	v.SetDefault("verbose", false)
 
+	// Set up environment variable handling
+	v.SetEnvPrefix("OPNFOCUS")
+	v.AutomaticEnv()
+
+	// Configure config file settings
 	if cfgFile != "" {
 		v.SetConfigFile(cfgFile)
 	} else {
@@ -45,9 +50,7 @@ func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 		v.SetConfigName(".opnFocus")
 	}
 
-	v.SetEnvPrefix("OPNFOCUS") // Set environment variable prefix
-	v.AutomaticEnv()           // read in environment variables that match
-
+	// Read config file if it exists
 	if err := v.ReadInConfig(); err != nil {
 		var configFileNotFoundError viper.ConfigFileNotFoundError
 		if !errors.As(err, &configFileNotFoundError) {
@@ -55,20 +58,6 @@ func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 			return nil, fmt.Errorf("failed to read config file: %w", err)
 		}
 		// If config file not found, that's okay - we can still use env vars and defaults
-	}
-
-	// After reading config and env, explicitly set values from config file to ensure precedence
-	// This is a workaround for Viper's default precedence where env vars override config files.
-	if v.IsSet("input_file") {
-		v.Set("input_file", v.GetString("input_file"))
-	}
-
-	if v.IsSet("output_file") {
-		v.Set("output_file", v.GetString("output_file"))
-	}
-
-	if v.IsSet("verbose") {
-		v.Set("verbose", v.GetBool("verbose"))
 	}
 
 	cfg := &Config{}

@@ -72,10 +72,11 @@ verbose: true
 	t.Setenv("OPNFOCUS_INPUT_FILE", "/env/input.xml")
 	t.Setenv("OPNFOCUS_VERBOSE", "false")
 
-	// Environment variables should override file
+	// Environment variables should override config file values (standard precedence)
 	cfg, err := LoadConfigWithViper(cfgFilePath, viper.New())
 	assert.NoError(t, err)
 	assert.NotNil(t, cfg)
-	assert.Equal(t, "/env/input.xml", cfg.InputFile)
-	assert.False(t, cfg.Verbose)
+	assert.Equal(t, "/env/input.xml", cfg.InputFile)  // Environment variable should win
+	assert.Equal(t, "/tmp/output.md", cfg.OutputFile) // Config file value (no env var set)
+	assert.False(t, cfg.Verbose)                      // Environment variable should win
 }

@@ -34,7 +34,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Requirement**: US-012, US-013, US-014 (Configuration Management)
   - **User Story**: US-012-US-014 (Configuration Management)
   - **Action**: Implement YAML config files, environment variables, CLI overrides
-  - **Acceptance**: Configuration system supports all three methods with proper precedence
+  - **Acceptance**: Configuration system supports all three methods with standard precedence (CLI flags > env vars > config file > defaults)
 
 ### 1.2 Project Structure & Organization
 
@@ -265,7 +265,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Requirement**: US-013 (Environment variables), Security Requirements
   - **User Story**: US-013 (Environment variables)
   - **Action**: Implement OPNFOCUS\_ prefixed environment variables
-  - **Acceptance**: Environment variables override configuration file settings
+  - **Acceptance**: Environment variables override configuration file settings (standard precedence)
 
 - [ ] **TASK-028**: Implement CLI flag override system
 
@@ -273,7 +273,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Requirement**: US-014 (CLI overrides), Configuration Management
   - **User Story**: US-014 (Command-line overrides)
   - **Action**: Ensure CLI flags take precedence over config file and env vars
-  - **Acceptance**: Command-line flags override all other configuration sources
+  - **Acceptance**: Command-line flags override all other configuration sources (highest precedence)
 
 ### 6.2 Configuration Validation
 

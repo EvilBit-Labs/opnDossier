@@ -56,6 +56,28 @@ opnfocus --help
 opnfocus convert --help
 ```
 
+### Configuration
+
+opnFocus supports multiple configuration sources with standard precedence order:
+
+1. **Command-line flags** (highest priority)
+2. **Environment variables** (`OPNFOCUS_*`)
+3. **Configuration file** (`~/.opnFocus.yaml`)
+4. **Default values** (lowest priority)
+
+```bash
+# Using environment variables
+export OPNFOCUS_VERBOSE=true
+opnfocus convert config.xml
+
+# Using configuration file
+echo "verbose: true" > ~/.opnFocus.yaml
+opnfocus convert config.xml
+
+# Command-line flags override all other sources
+opnfocus --verbose convert config.xml
+```
+
 ## 🏗️ Architecture
 
 Built with modern Go practices and established libraries:

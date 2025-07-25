@@ -261,6 +261,7 @@ type Config struct {
 }
 
 // Configuration precedence: CLI flags > environment variables > config file > defaults
+// This follows standard CLI tool conventions where environment variables can override config files
 ```
 
 ## Development Workflow
