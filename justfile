@@ -50,7 +50,6 @@ update-deps:
     go mod tidy
     go mod verify
     go mod vendor
-    go mod tidy
 
 
 # -----------------------------
