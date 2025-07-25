@@ -24,13 +24,15 @@ type Config struct {
 
 // LoadConfig loads application configuration from the specified YAML file, environment variables, and defaults.
 // If cfgFile is empty, it attempts to load from a default config file location.
-// Returns a populated Config struct or an error if loading fails.
+// LoadConfig loads application configuration from a YAML file, environment variables, and defaults using a new Viper instance.
+// Returns a populated Config struct or an error if loading or validation fails.
 func LoadConfig(cfgFile string) (*Config, error) {
 	return LoadConfigWithViper(cfgFile, viper.New())
 }
 
 // LoadConfigWithFlags loads configuration with CLI flag binding for proper precedence.
-// This function binds the provided flags to Viper for correct precedence handling.
+// LoadConfigWithFlags loads configuration using a config file and a set of CLI flags, ensuring that flag values take precedence over other sources.
+// Returns the populated Config struct or an error if loading or validation fails.
 func LoadConfigWithFlags(cfgFile string, flags *pflag.FlagSet) (*Config, error) {
 	v := viper.New()
 
@@ -46,7 +48,9 @@ func LoadConfigWithFlags(cfgFile string, flags *pflag.FlagSet) (*Config, error) 
 
 // LoadConfigWithViper loads the configuration using a provided Viper instance.
 // LoadConfigWithViper loads application configuration using the provided Viper instance, applying defaults, config file values, and environment variables with standard precedence.
-// If a config file path is given, it is used; otherwise, the function attempts to load from a default YAML file in the user's home directory. Environment variables with the prefix "OPNFOCUS" are also read. If the config file is missing, environment variables and defaults are used instead. Returns a populated Config struct or an error if configuration loading fails.
+// LoadConfigWithViper loads application configuration using the provided Viper instance, merging values from a config file, environment variables with the "OPNFOCUS" prefix, and defaults.
+// If a config file path is specified, it is used; otherwise, a default YAML file in the user's home directory is attempted. If the config file is missing, environment variables and defaults are used.
+// Returns a validated Config struct or an error if loading or validation fails.
 func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 	// Set defaults
 	v.SetDefault("input_file", "")

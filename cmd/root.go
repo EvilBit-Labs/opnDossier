@@ -88,7 +88,7 @@ Examples:
 	},
 }
 
-// init initializes the global logger and sets up persistent CLI flags for configuration file, verbose output, and quiet mode.
+// init initializes the global logger with default settings and defines persistent CLI flags for configuration file path, log verbosity, log level, and log format. Panics if logger initialization fails.
 func init() {
 	// Initialize logger with default configuration before config is loaded
 	var loggerErr error
@@ -112,19 +112,20 @@ func init() {
 	rootCmd.PersistentFlags().String("log_format", "text", "Set log format (text, json)")
 }
 
-// GetRootCmd returns the root Cobra command for the opnFocus CLI application. Use this to access the application's main command and its subcommands.
+// GetRootCmd returns the root Cobra command for the opnFocus CLI application.
+// This provides access to the application's main command and its subcommands for integration or extension.
 func GetRootCmd() *cobra.Command {
 	return rootCmd
 }
 
 // GetLogger returns the current application logger instance.
-// This allows other packages to access the centrally configured logger.
+// GetLogger returns the centrally configured logger instance for use by other packages.
 func GetLogger() *log.Logger {
 	return logger
 }
 
 // GetConfig returns the current application configuration instance.
-// This allows sub-commands to access the configured Cfg via dependency injection.
+// GetConfig returns the current application configuration instance for use by subcommands and other packages.
 func GetConfig() *config.Config {
 	return Cfg
 }

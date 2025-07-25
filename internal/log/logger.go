@@ -37,7 +37,10 @@ type Config struct {
 	ReportTimestamp bool
 }
 
-// New creates a new logger with the specified configuration.
+// New returns a new Logger instance configured according to the provided Config.
+// It validates the log level and format, sets default output to standard error if unspecified, and applies options for caller and timestamp reporting.
+// The logger's output format and level are set based on the configuration.
+// Returns an error if the log level or format is invalid.
 func New(cfg Config) (*Logger, error) {
 	// Set default output if not specified
 	if cfg.Output == nil {
@@ -78,7 +81,7 @@ func New(cfg Config) (*Logger, error) {
 	return &Logger{Logger: logger}, nil
 }
 
-// validateLevel checks if the provided level is valid.
+// validateLevel returns an error if the provided log level string is not one of "debug", "info", "warn", "warning", "error", or empty.
 func validateLevel(level string) error {
 	switch strings.ToLower(level) {
 	case "debug", "info", "warn", "warning", "error", "":
@@ -88,7 +91,7 @@ func validateLevel(level string) error {
 	}
 }
 
-// validateFormat checks if the provided format is valid.
+// validateFormat returns an error if the provided log format is not "text", "json", or empty.
 func validateFormat(format string) error {
 	switch strings.ToLower(format) {
 	case "text", "json", "":
@@ -98,7 +101,7 @@ func validateFormat(format string) error {
 	}
 }
 
-// parseLevel converts a string level to log.Level.
+// parseLevel returns the corresponding log.Level for a given string, defaulting to InfoLevel if the input is unrecognized.
 func parseLevel(level string) log.Level {
 	switch strings.ToLower(level) {
 	case "debug":

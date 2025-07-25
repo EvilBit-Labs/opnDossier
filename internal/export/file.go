@@ -20,7 +20,7 @@ type Exporter interface {
 // FileExporter is a file exporter for OPNsense configurations.
 type FileExporter struct{}
 
-// NewFileExporter returns a new instance of FileExporter for exporting data to files.
+// NewFileExporter creates and returns a new FileExporter for writing data to files.
 func NewFileExporter() *FileExporter {
 	return &FileExporter{}
 }

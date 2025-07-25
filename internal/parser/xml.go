@@ -26,7 +26,7 @@ type XMLParser struct {
 	MaxInputSize int64
 }
 
-// NewXMLParser returns a new instance of XMLParser for parsing OPNsense XML configuration files.
+// NewXMLParser creates a new XMLParser configured with the default maximum input size for parsing OPNsense XML configuration files.
 func NewXMLParser() *XMLParser {
 	return &XMLParser{
 		MaxInputSize: DefaultMaxInputSize,
