@@ -58,25 +58,70 @@ opnfocus convert --help
 
 ### Configuration
 
-opnFocus supports multiple configuration sources with standard precedence order:
+opnFocus uses **Viper for layered configuration management** with a clear precedence order:
 
 1. **Command-line flags** (highest priority)
 2. **Environment variables** (`OPNFOCUS_*`)
 3. **Configuration file** (`~/.opnFocus.yaml`)
 4. **Default values** (lowest priority)
 
-```bash
-# Using environment variables
-export OPNFOCUS_VERBOSE=true
-opnfocus convert config.xml
+#### Configuration File Example
 
-# Using configuration file
-echo "verbose: true" > ~/.opnFocus.yaml
-opnfocus convert config.xml
+Create `~/.opnFocus.yaml` with your preferred settings:
 
-# Command-line flags override all other sources
-opnfocus --verbose convert config.xml
+```yaml
+# ~/.opnFocus.yaml - opnFocus Configuration
+
+# Input/Output settings
+input_file: "/path/to/default/config.xml"
+output_file: "./output.md"
+
+# Logging configuration
+log_level: "info"     # debug, info, warn, error
+log_format: "text"    # text, json
+verbose: false        # Enable debug logging
+quiet: false          # Suppress all output except errors
 ```
+
+#### Environment Variables
+
+All configuration options can be set via environment variables:
+
+```bash
+# Logging options
+export OPNFOCUS_VERBOSE=true          # Enable verbose/debug logging
+export OPNFOCUS_QUIET=false           # Suppress non-error output
+export OPNFOCUS_LOG_LEVEL=debug       # Set log level
+export OPNFOCUS_LOG_FORMAT=json       # Use JSON log format
+
+# File paths
+export OPNFOCUS_INPUT_FILE="/path/to/config.xml"
+export OPNFOCUS_OUTPUT_FILE="./documentation.md"
+
+# Run with environment configuration
+opnfocus convert config.xml
+```
+
+#### CLI Flag Examples
+
+```bash
+# Basic conversion with verbose logging
+opnfocus --verbose convert config.xml -o output.md
+
+# JSON logging format for structured output
+opnfocus --log_format=json convert config.xml
+
+# Quiet mode - only show errors
+opnfocus --quiet convert config.xml
+
+# Custom log level
+opnfocus --log_level=debug convert config.xml
+
+# Configuration precedence: CLI flags override everything
+opnfocus --verbose --log_format=json convert config.xml
+```
+
+**Note:** The CLI uses a layered architecture: **Cobra** provides command structure & argument parsing, **Viper** handles layered configuration management (files, env, flags), and **Fang** adds enhanced UX features like styled help, automatic version flags, and shell completion.
 
 ## 🏗️ Architecture
 

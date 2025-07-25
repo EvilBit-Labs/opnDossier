@@ -1,6 +1,7 @@
 package export
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -32,7 +33,7 @@ func TestFileExporter_Export(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := NewFileExporter()
-			err := e.Export(tt.content, tt.path)
+			err := e.Export(context.Background(), tt.content, tt.path)
 
 			if tt.wantErr {
 				assert.Error(t, err)

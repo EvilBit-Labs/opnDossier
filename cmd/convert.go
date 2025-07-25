@@ -2,6 +2,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/unclesp1d3r/opnFocus/internal/converter"
 	"github.com/unclesp1d3r/opnFocus/internal/export"
+	"github.com/unclesp1d3r/opnFocus/internal/log"
 	"github.com/unclesp1d3r/opnFocus/internal/parser"
 
 	"github.com/spf13/cobra"
@@ -34,6 +36,15 @@ save it to a specified output file using the '--output' or '-o' flag.
 When processing multiple files, the --output flag will be ignored, and
 each output file will be named based on its input file (e.g., config.xml -> config.md).
 
+CONFIGURATION:
+  This command respects the global configuration precedence:
+  CLI flags > environment variables (OPNFOCUS_*) > config file > defaults
+  
+  Output file can be set via:
+    --output flag (highest priority)
+    OPNFOCUS_OUTPUT_FILE environment variable
+    output_file in ~/.opnFocus.yaml
+
 Examples:
   # Convert 'my_config.xml' and print the Markdown to standard output
   opnFocus convert my_config.xml
@@ -46,9 +57,17 @@ Examples:
 
   # Convert 'backup_config.xml' and enable verbose logging during the process
   opnFocus --verbose convert backup_config.xml
+  
+  # Use environment variable to set default output location
+  OPNFOCUS_OUTPUT_FILE=./docs/network.md opnFocus convert config.xml
 `,
 	Args: cobra.MinimumNArgs(1),
-	RunE: func(_ *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := cmd.Context()
+		if ctx == nil {
+			ctx = context.Background()
+		}
+
 		var wg sync.WaitGroup
 		errs := make(chan error, len(args))
 
@@ -56,7 +75,10 @@ Examples:
 			wg.Add(1)
 			go func(fp string) {
 				defer wg.Done()
-				logger.Info("Starting conversion process", "input_file", fp)
+
+				// Create context-aware logger for this goroutine with input file field
+				ctxLogger := logger.WithContext(ctx).WithFields("input_file", fp)
+				ctxLogger.Info("Starting conversion process")
 
 				// Sanitize the file path
 				cleanPath := filepath.Clean(fp)
@@ -78,25 +100,31 @@ Examples:
 				}
 				defer func() {
 					if cerr := file.Close(); cerr != nil {
-						logger.Error("failed to close file", "error", cerr)
+						ctxLogger.Error("failed to close file", "error", cerr)
 					}
 				}()
 
 				// Parse the XML
+				ctxLogger.Debug("Parsing XML file")
 				p := parser.NewXMLParser()
-				opnsense, err := p.Parse(file)
+				opnsense, err := p.Parse(ctx, file)
 				if err != nil {
+					ctxLogger.Error("Failed to parse XML", "error", err)
 					errs <- fmt.Errorf("failed to parse XML from %s: %w", fp, err)
 					return
 				}
+				ctxLogger.Debug("XML parsing completed successfully")
 
 				// Convert to markdown
+				ctxLogger.Debug("Converting to markdown")
 				c := converter.NewMarkdownConverter()
-				md, err := c.ToMarkdown(opnsense)
+				md, err := c.ToMarkdown(ctx, opnsense)
 				if err != nil {
+					ctxLogger.Error("Failed to convert to markdown", "error", err)
 					errs <- fmt.Errorf("failed to convert to markdown from %s: %w", fp, err)
 					return
 				}
+				ctxLogger.Debug("Markdown conversion completed successfully")
 
 				// Determine output path
 				actualOutputFile := outputFile
@@ -108,17 +136,30 @@ Examples:
 					actualOutputFile = strings.TrimSuffix(base, ext) + ".md"
 				}
 
+				// Create enhanced logger with output file information
+				var enhancedLogger *log.Logger
+				if actualOutputFile != "" {
+					enhancedLogger = ctxLogger.WithFields("output_file", actualOutputFile)
+				} else {
+					enhancedLogger = ctxLogger.WithFields("output_mode", "stdout")
+				}
+
 				// Export or print the markdown
 				if actualOutputFile != "" {
+					enhancedLogger.Debug("Exporting to file")
 					e := export.NewFileExporter()
-					if err := e.Export(md, actualOutputFile); err != nil {
+					if err := e.Export(ctx, md, actualOutputFile); err != nil {
+						enhancedLogger.Error("Failed to export markdown", "error", err)
 						errs <- fmt.Errorf("failed to export markdown to %s: %w", actualOutputFile, err)
 						return
 					}
-					logger.Info("Markdown exported", "output_file", actualOutputFile)
+					enhancedLogger.Info("Markdown exported successfully")
 				} else {
-					logger.Info(md)
+					enhancedLogger.Debug("Outputting to stdout")
+					enhancedLogger.Info(md)
 				}
+
+				ctxLogger.Info("Conversion process completed successfully")
 			}(filePath)
 		}
 

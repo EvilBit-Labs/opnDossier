@@ -2,6 +2,7 @@
 package parser
 
 import (
+	"context"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -16,7 +17,7 @@ const (
 
 // Parser is the interface for parsing OPNsense configuration files.
 type Parser interface {
-	Parse(r io.Reader) (*model.Opnsense, error)
+	Parse(ctx context.Context, r io.Reader) (*model.Opnsense, error)
 }
 
 // XMLParser is an XML parser for OPNsense configuration files.
@@ -33,7 +34,7 @@ func NewXMLParser() *XMLParser {
 }
 
 // Parse parses an OPNsense configuration file with security protections.
-func (p *XMLParser) Parse(r io.Reader) (*model.Opnsense, error) {
+func (p *XMLParser) Parse(ctx context.Context, r io.Reader) (*model.Opnsense, error) {
 	// Limit input size to prevent XML bombs
 	limitedReader := io.LimitReader(r, p.MaxInputSize)
 

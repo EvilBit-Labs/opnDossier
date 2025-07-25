@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -48,7 +49,7 @@ func TestXMLParser_Parse(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := NewXMLParser()
-			opnsense, err := p.Parse(strings.NewReader(tt.input))
+			opnsense, err := p.Parse(context.Background(), strings.NewReader(tt.input))
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -85,7 +86,7 @@ func TestXMLParser_ParseSampleFiles(t *testing.T) {
 
 			defer func() { _ = file.Close() }() //nolint:errcheck // Defer close
 
-			opnsense, err := parser.Parse(file)
+			opnsense, err := parser.Parse(context.Background(), file)
 			require.NoError(t, err, "Failed to parse sample file: %s", sampleFile)
 			require.NotNil(t, opnsense, "Parsed config should not be nil")
 
@@ -110,7 +111,7 @@ func TestXMLParser_ParseConfigSample(t *testing.T) {
 
 	defer func() { _ = file.Close() }() //nolint:errcheck // Ignore error in test cleanup
 
-	opnsense, err := parser.Parse(file)
+	opnsense, err := parser.Parse(context.Background(), file)
 	require.NoError(t, err)
 	require.NotNil(t, opnsense)
 
@@ -326,7 +327,7 @@ func BenchmarkXMLParser_Parse(b *testing.B) {
 			b.Fatal(err)
 		}
 
-		_, err = parser.Parse(file)
+		_, err = parser.Parse(context.Background(), file)
 		if err != nil {
 			_ = file.Close() //nolint:errcheck // Ignore error in benchmark cleanup
 

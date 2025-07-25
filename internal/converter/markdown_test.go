@@ -1,6 +1,7 @@
 package converter
 
 import (
+	"context"
 	"regexp"
 	"strings"
 	"testing"
@@ -64,7 +65,7 @@ func TestMarkdownConverter_ToMarkdown(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewMarkdownConverter()
-			md, err := c.ToMarkdown(tt.input)
+			md, err := c.ToMarkdown(context.Background(), tt.input)
 
 			if tt.wantErr {
 				assert.Error(t, err)

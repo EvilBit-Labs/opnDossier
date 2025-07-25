@@ -2,6 +2,7 @@
 package export
 
 import (
+	"context"
 	"fmt"
 	"os"
 )
@@ -13,7 +14,7 @@ const (
 
 // Exporter is the interface for exporting OPNsense configurations.
 type Exporter interface {
-	Export(content, path string) error
+	Export(ctx context.Context, content, path string) error
 }
 
 // FileExporter is a file exporter for OPNsense configurations.
@@ -25,7 +26,7 @@ func NewFileExporter() *FileExporter {
 }
 
 // Export exports an OPNsense configuration to a file.
-func (e *FileExporter) Export(content, path string) error {
+func (e *FileExporter) Export(ctx context.Context, content, path string) error {
 	if err := os.WriteFile(path, []byte(content), DefaultFilePermissions); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}

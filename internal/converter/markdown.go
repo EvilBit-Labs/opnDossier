@@ -3,6 +3,7 @@ package converter
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 
@@ -13,7 +14,7 @@ import (
 
 // Converter is the interface for converting OPNsense configurations to markdown.
 type Converter interface {
-	ToMarkdown(opnsense *model.Opnsense) (string, error)
+	ToMarkdown(ctx context.Context, opnsense *model.Opnsense) (string, error)
 }
 
 // MarkdownConverter is a markdown converter for OPNsense configurations.
@@ -28,7 +29,7 @@ func NewMarkdownConverter() *MarkdownConverter {
 var ErrNilOpnsense = errors.New("input Opnsense struct is nil")
 
 // ToMarkdown converts an OPNsense configuration to markdown.
-func (c *MarkdownConverter) ToMarkdown(opnsense *model.Opnsense) (string, error) {
+func (c *MarkdownConverter) ToMarkdown(ctx context.Context, opnsense *model.Opnsense) (string, error) {
 	if opnsense == nil {
 		return "", ErrNilOpnsense
 	}
