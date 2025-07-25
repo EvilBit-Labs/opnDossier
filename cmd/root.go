@@ -2,8 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"opnFocus/internal/config"
 	"os"
+
+	"github.com/unclesp1d3r/opnFocus/internal/config"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"

@@ -3,8 +3,10 @@ package converter
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
-	"opnFocus/internal/model"
+
+	"github.com/unclesp1d3r/opnFocus/internal/model"
 
 	"github.com/charmbracelet/glamour"
 )
@@ -22,8 +24,15 @@ func NewMarkdownConverter() *MarkdownConverter {
 	return &MarkdownConverter{}
 }
 
+// ErrNilOpnsense is returned when the input Opnsense struct is nil.
+var ErrNilOpnsense = errors.New("input Opnsense struct is nil")
+
 // ToMarkdown converts an OPNsense configuration to markdown.
 func (c *MarkdownConverter) ToMarkdown(opnsense *model.Opnsense) (string, error) {
+	if opnsense == nil {
+		return "", ErrNilOpnsense
+	}
+
 	var b bytes.Buffer
 
 	b.WriteString("# OPNsense Configuration\n\n")

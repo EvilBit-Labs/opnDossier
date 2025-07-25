@@ -1,10 +1,11 @@
 package converter
 
 import (
-	"opnFocus/internal/model"
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/unclesp1d3r/opnFocus/internal/model"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -38,6 +39,26 @@ func TestMarkdownConverter_ToMarkdown(t *testing.T) {
   Hostname: test-host Domain: test.local`,
 			wantErr: false,
 		},
+		{
+			name:     "nil input",
+			input:    nil,
+			expected: "",
+			wantErr:  true,
+		},
+		{
+			name:     "empty struct",
+			input:    &model.Opnsense{},
+			expected: "OPNsense Configuration",
+			wantErr:  false,
+		},
+		{
+			name: "missing system fields",
+			input: &model.Opnsense{
+				System: model.System{},
+			},
+			expected: "OPNsense Configuration",
+			wantErr:  false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -50,13 +71,14 @@ func TestMarkdownConverter_ToMarkdown(t *testing.T) {
 				assert.Empty(t, md)
 			} else {
 				assert.NoError(t, err)
-				// Clean up whitespace and ANSI escape codes for comparison
-				actual := strings.TrimSpace(stripANSI(md))
 
-				// Check that the markdown contains key content rather than exact match
+				actual := strings.TrimSpace(stripANSI(md))
 				assert.Contains(t, actual, "OPNsense Configuration")
 				assert.Contains(t, actual, "## System")
-				assert.Contains(t, actual, "Hostname: test-host Domain: test.local")
+
+				if tt.input != nil && tt.input.System.Hostname != "" && tt.input.System.Domain != "" {
+					assert.Contains(t, actual, "Hostname: "+tt.input.System.Hostname+" Domain: "+tt.input.System.Domain)
+				}
 			}
 		})
 	}

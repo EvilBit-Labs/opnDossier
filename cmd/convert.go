@@ -3,13 +3,14 @@ package cmd
 
 import (
 	"fmt"
-	"opnFocus/internal/converter"
-	"opnFocus/internal/export"
-	"opnFocus/internal/parser"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/unclesp1d3r/opnFocus/internal/converter"
+	"github.com/unclesp1d3r/opnFocus/internal/export"
+	"github.com/unclesp1d3r/opnFocus/internal/parser"
 
 	"github.com/spf13/cobra"
 )

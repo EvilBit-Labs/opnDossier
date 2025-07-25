@@ -3,10 +3,10 @@ package main
 
 import (
 	"context"
-	"opnFocus/cmd"
 	"os"
 
 	"github.com/charmbracelet/fang"
+	"github.com/unclesp1d3r/opnFocus/cmd"
 )
 
 // main is the entry point for the opnFocus CLI tool, executing the root command and exiting with status code 1 on error.

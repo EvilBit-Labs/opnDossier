@@ -5,7 +5,8 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"opnFocus/internal/model"
+
+	"github.com/unclesp1d3r/opnFocus/internal/model"
 )
 
 // Parser is the interface for parsing OPNsense configuration files.
