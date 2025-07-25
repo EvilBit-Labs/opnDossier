@@ -40,7 +40,7 @@ rootCmd.Execute()
 
 ##### `GetLogger() *log.Logger`
 
-Returns the current application logger instance configured with user settings.
+Returns the current application logger instance configured with user settings. This returns a `*log.Logger` from the internal/log package, which wraps `charmbracelet/log.Logger` for structured logging.
 
 ```go
 logger := cmd.GetLogger()
@@ -258,15 +258,19 @@ err := exporter.Export(ctx, markdownContent, \"output.md\")
 
 ## Log Package (internal/log)
 
+The log package provides a wrapper around `charmbracelet/log` for structured logging with additional application-specific functionality.
+
 ### Types
 
 #### Logger
 
 ```go
 type Logger struct {
-    // Internal fields
+    *log.Logger  // Embeds charmbracelet/log.Logger
 }
 ```
+
+The `Logger` type wraps `charmbracelet/log.Logger` to provide structured logging capabilities with key-value pairs and context support.
 
 #### Config
 
@@ -282,18 +286,21 @@ type Config struct {
 
 ### Functions
 
-#### `New(config Config) *Logger`
+#### `New(config Config) (*Logger, error)`
 
-Creates a new logger instance with the specified configuration.
+Creates a new logger instance with the specified configuration. Returns a `*log.Logger` from the internal/log package that wraps `charmbracelet/log.Logger`.
 
 ```go
-logger := log.New(log.Config{
+logger, err := log.New(log.Config{
     Level:           \"info\",
     Format:          \"text\",
     Output:          os.Stderr,
     ReportCaller:    true,
     ReportTimestamp: true,
 })
+if err != nil {
+    return fmt.Errorf(\"failed to create logger: %w\", err)
+}
 ```
 
 ### Methods
@@ -401,11 +408,11 @@ func TestConvertCommand(t *testing.T) {
     // Set up test command
     cmd := cmd.GetRootCmd()
     cmd.SetArgs([]string{\"convert\", \"testdata/config.xml\"})
-    
+
     // Capture output
     var buf bytes.Buffer
     cmd.SetOutput(&buf)
-    
+
     // Execute and verify
     err := cmd.Execute()
     assert.NoError(t, err)
@@ -419,11 +426,11 @@ For testing configuration:
 func TestConfigPrecedence(t *testing.T) {
     // Set environment variable
     t.Setenv(\"OPNFOCUS_LOG_LEVEL\", \"debug\")
-    
+
     // Load config
     cfg, err := config.LoadConfig(\"\")
     require.NoError(t, err)
-    
+
     // Verify precedence
     assert.Equal(t, \"debug\", cfg.LogLevel)
 }

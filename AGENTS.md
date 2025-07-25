@@ -195,18 +195,38 @@ var convertCmd = &cobra.Command{
 
 ```go
 // Use viper for configuration management
+import (
+    "fmt"
+    "github.com/charmbracelet/log"
+    "github.com/spf13/viper"
+)
+
 type Config struct {
     InputFile  string `mapstructure:"input_file"`
     OutputFile string `mapstructure:"output_file"`
     Display    bool   `mapstructure:"display"`
 }
 
-func initConfig() {
+func initConfig() error {
     viper.SetConfigName("config")
     viper.SetConfigType("yaml")
     viper.AddConfigPath(".")
     viper.AutomaticEnv()
     viper.SetEnvPrefix("OPNFOCUS")
+
+    // Read the config file and handle errors appropriately
+    if err := viper.ReadInConfig(); err != nil {
+        // Check if it's a config file not found error (which is often acceptable)
+        if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+            log.Debug("No config file found, using defaults and environment variables")
+            return nil // This is not a fatal error
+        }
+        // For other errors, return them as they indicate actual problems
+        return fmt.Errorf("failed to read config file: %w", err)
+    }
+
+    log.Debug("Config file loaded successfully")
+    return nil
 }
 ```
 
@@ -239,7 +259,7 @@ func main() {
 
     // Execute with fang for enhanced experience
     if err := fang.Execute(context.Background(), rootCmd); err != nil {
-        os.Exit(1)
+        os.Exit(1) // fang handles error display automatically
     }
 }
 

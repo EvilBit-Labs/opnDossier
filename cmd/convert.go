@@ -39,7 +39,7 @@ each output file will be named based on its input file (e.g., config.xml -> conf
 CONFIGURATION:
   This command respects the global configuration precedence:
   CLI flags > environment variables (OPNFOCUS_*) > config file > defaults
-  
+
   Output file can be set via:
     --output flag (highest priority)
     OPNFOCUS_OUTPUT_FILE environment variable
@@ -57,7 +57,7 @@ Examples:
 
   # Convert 'backup_config.xml' and enable verbose logging during the process
   opnFocus --verbose convert backup_config.xml
-  
+
   # Use environment variable to set default output location
   OPNFOCUS_OUTPUT_FILE=./docs/network.md opnFocus convert config.xml
 `,

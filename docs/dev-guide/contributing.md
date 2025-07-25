@@ -104,7 +104,7 @@ We use [Conventional Commits](https://www.conventionalcommits.org/):
 # Feature commits
 git commit -m \"feat(parser): add support for new XML schema\"
 
-# Bug fixes  
+# Bug fixes
 git commit -m \"fix(config): resolve environment variable precedence\"
 
 # Documentation
@@ -142,10 +142,10 @@ import (
     // Standard library first
     \"context\"
     \"fmt\"
-    
+
     // Third-party packages
     \"github.com/spf13/cobra\"
-    
+
     // Local packages last
     \"github.com/unclesp1d3r/opnFocus/internal/config\"
 )
@@ -170,12 +170,12 @@ func processFile(path string) error {
         return fmt.Errorf(\"failed to open file %s: %w\", path, err)
     }
     defer file.Close()
-    
+
     // Process file...
     if err := someOperation(); err != nil {
         return fmt.Errorf(\"failed to process file %s: %w\", path, err)
     }
-    
+
     return nil
 }
 
@@ -191,16 +191,13 @@ Use structured logging with charmbracelet/log:
 
 ```go
 // Good: Structured logging with context
-logger := log.New(log.Config{
-    Level:  \"info\",
-    Format: \"text\",
-})
+logger := log.New()
 
 logger.Info(\"Starting conversion\", \"input_file\", inputPath)
 logger.Debug(\"Processing section\", \"section\", sectionName, \"count\", itemCount)
 
-// With context
-ctxLogger := logger.WithContext(ctx).WithFields(\"operation\", \"convert\")
+// With fields for additional context
+ctxLogger := logger.With(\"operation\", \"convert\")
 ctxLogger.Error(\"Conversion failed\", \"error\", err)
 ```
 
@@ -232,14 +229,14 @@ func TestConfigLoad(t *testing.T) {
             wantErr:    false,
         },
     }
-    
+
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
             // Set up environment
             for k, v := range tt.envVars {
                 t.Setenv(k, v)
             }
-            
+
             got, err := LoadConfig(tt.configFile)
             if (err != nil) != tt.wantErr {
                 t.Errorf(\"LoadConfig() error = %v, wantErr %v\", err, tt.wantErr)
@@ -336,16 +333,16 @@ var newCmd = &cobra.Command{
     Use:   \"new [args]\",
     Short: \"Brief description\",
     Long: `Detailed description with configuration info:
-    
+
 CONFIGURATION:
   This command respects the global configuration precedence:
   CLI flags > environment variables (OPNFOCUS_*) > config file > defaults`,
-    
+
     RunE: func(cmd *cobra.Command, args []string) error {
         // Get config and logger from root command
         cfg := GetConfig()
         logger := GetLogger()
-        
+
         // Implementation...
         return nil
     },

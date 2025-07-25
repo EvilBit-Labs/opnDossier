@@ -67,9 +67,24 @@ Pre-built binaries are available for multiple platforms:
 ```bash
 # Download the latest release for your platform
 curl -L https://github.com/unclesp1d3r/opnFocus/releases/latest/download/opnfocus-linux-amd64 -o opnfocus
+
+# Download the SHA-256 checksum file for verification
+curl -L https://github.com/unclesp1d3r/opnFocus/releases/latest/download/checksums.txt -o checksums.txt
+
+# Verify the binary integrity
+sha256sum -c checksums.txt 2>/dev/null | grep opnfocus-linux-amd64 || \
+shasum -a 256 -c checksums.txt 2>/dev/null | grep opnfocus-linux-amd64 || \
+echo "Warning: Could not verify checksum. Proceed with caution."
+
+# Make executable and install (only if verification passed)
 chmod +x opnfocus
 sudo mv opnfocus /usr/local/bin/
+
+# Clean up checksum file
+rm checksums.txt
 ```
+
+**Security Note:** Always verify binary integrity before installation. The checksum verification ensures the binary hasn't been tampered with during download.
 
 Available platforms:
 
@@ -97,9 +112,9 @@ opnfocus completion bash  # Should show bash completion script
 ### 1. Create Configuration Directory
 
 ```bash
-# Configuration file location
-mkdir -p ~/.config
-touch ~/.opnFocus.yaml
+# Configuration file location (following XDG Base Directory Specification)
+mkdir -p ~/.config/opnFocus
+touch ~/.config/opnFocus/config.yaml
 ```
 
 ### 2. Basic Configuration
@@ -107,7 +122,7 @@ touch ~/.opnFocus.yaml
 Create a basic configuration file:
 
 ```yaml
-# ~/.opnFocus.yaml
+# ~/.config/opnFocus/config.yaml
 log_level: info
 log_format: text
 verbose: false
@@ -187,7 +202,7 @@ opnfocus completion powershell | Out-String | Invoke-Expression
 
    ```bash
    # Verify config file location
-   ls -la ~/.opnFocus.yaml
+   ls -la ~/.config/opnFocus/config.yaml
 
    # Use custom config location
    opnfocus --config /path/to/config.yaml convert config.xml

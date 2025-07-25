@@ -109,6 +109,14 @@ CLI flags have the highest precedence and override all other configuration sourc
 --log_format string   # Set log format (text, json)
 ```
 
+### Convert Command Flags
+
+The `convert` command has additional flags specific to file conversion:
+
+```bash
+--output, -o string   # Output file path for conversion results
+```
+
 ### Usage Examples
 
 ```bash
@@ -119,7 +127,7 @@ opnfocus --log_level=debug convert config.xml
 opnfocus --quiet --log_format=json convert config.xml
 
 # Verbose mode with custom output
-opnfocus --verbose convert config.xml -o detailed-output.md
+opnfocus --verbose convert config.xml --output detailed-output.md
 
 # Use custom config file
 opnfocus --config ./project-config.yaml convert config.xml
@@ -142,7 +150,7 @@ opnfocus --config ./project-config.yaml convert config.xml
 
 Human-readable format suitable for terminal output:
 
-```
+```text
 2024-01-15 10:30:45 INFO Starting conversion process input_file=config.xml
 2024-01-15 10:30:45 DEBUG Parsing XML file
 2024-01-15 10:30:46 INFO Conversion completed successfully
@@ -233,7 +241,7 @@ For temporary debugging or testing:
 opnfocus --verbose convert problematic-config.xml
 
 # Generate output to a different location
-opnfocus convert config.xml -o ./debug/output.md
+opnfocus convert config.xml --output ./debug/output.md
 ```
 
 ### 4. Airgapped Environment Configuration
