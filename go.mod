@@ -1,4 +1,4 @@
-module opnFocus
+module github.com/unclesp1d3r/opnFocus
 
 go 1.24.0
 
