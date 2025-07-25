@@ -159,15 +159,16 @@ func (c *Config) Validate() error {
 
 	// Validate log level
 	validLogLevels := map[string]bool{
-		"debug": true,
-		"info":  true,
-		"warn":  true,
-		"error": true,
+		"debug":   true,
+		"info":    true,
+		"warn":    true,
+		"warning": true,
+		"error":   true,
 	}
 	if !validLogLevels[c.LogLevel] {
 		validationErrors = append(validationErrors, ValidationError{
 			Field:   "log_level",
-			Message: fmt.Sprintf("invalid log level '%s', must be one of: debug, info, warn, error", c.LogLevel),
+			Message: fmt.Sprintf("invalid log level '%s', must be one of: debug, info, warn, warning, error", c.LogLevel),
 		})
 	}
 

@@ -156,7 +156,7 @@ Examples:
 					enhancedLogger.Info("Markdown exported successfully")
 				} else {
 					enhancedLogger.Debug("Outputting to stdout")
-					enhancedLogger.Info(md)
+					fmt.Print(md)
 				}
 
 				ctxLogger.Info("Conversion process completed successfully")

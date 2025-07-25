@@ -255,6 +255,8 @@ docker run --rm -v $(pwd):/data opnfocus convert /data/config.xml
 
 ### Kubernetes
 
+The following example mounts the configuration file to `/app/config/config.yaml` and uses the `--config` flag to specify its location. Alternatively, you can mount the config to `/etc/opnfocus/config.yaml` or use environment variables for configuration.
+
 ```yaml
 apiVersion: v1
 kind: ConfigMap
@@ -275,10 +277,10 @@ spec:
       containers:
       - name: opnfocus
         image: opnfocus:latest
-        args: ["convert", "/data/config.xml"]
+        args: ["convert", "/data/config.xml", "--config", "/app/config/config.yaml"]
         volumeMounts:
         - name: config
-          mountPath: /.opnFocus.yaml
+          mountPath: /app/config
           subPath: config.yaml
         - name: data
           mountPath: /data
