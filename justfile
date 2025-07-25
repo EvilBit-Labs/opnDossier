@@ -1,63 +1,163 @@
-# Justfile for CipherSwarm Agent
+# Justfile for opnFocus
 
-# Set shell to PowerShell for Windows compatibility
-set shell := ["pwsh", "-c"]
+set shell := ["bash", "-cu"]
+set windows-powershell := true
+set dotenv-load := true
+set ignore-comments := true
 
-# Serve documentation locally
-@docs:
-    .venv\Scripts\Activate.ps1; mkdocs serve
 
-# Run the agent (development)
-dev:
-    go run main.go
+default:
+    just --summary
 
-# Install all requirements and build the project
-install:
-    cd {{justfile_dir()}}
+alias h := help
+help:
+    just --summary
+
+# -----------------------------
+# 🔧 Setup & Installation
+# -----------------------------
+
+
+# Setup the environment for windows
+[windows]
+setup-env:
+    @cd {{justfile_dir()}}
     python -m venv .venv
-    .venv\Scripts\Activate.ps1; pip install mkdocs-material
-    pre-commit install --hook-type commit-msg
+
+# Setup the environment for unix
+[unix]
+setup-env:
+    @cd {{justfile_dir()}}
+    python3 -m venv .venv
+
+# Virtual environment paths
+venv-python := if os_family() == "windows" { ".venv\\Scripts\\python.exe" } else { ".venv/bin/python" }
+venv-pip := if os_family() == "windows" { ".venv\\Scripts\\pip.exe" } else { ".venv/bin/pip" }
+venv-mkdocs := if os_family() == "windows" { ".venv\\Scripts\\mkdocs.exe" } else { ".venv/bin/mkdocs" }
+
+
+# Install dependencies
+install:
+    @just setup-env
+    @{{venv-pip}} install mkdocs-material
+    @pre-commit install --hook-type commit-msg
+    @go mod tidy
+
+# Update dependencies
+update-deps:
+    go get -u ./...
     go mod tidy
+    go mod verify
 
 
-# Run pre-commit hooks and linting
+# -----------------------------
+# 🧹 Linting, Typing, Dep Check
+# -----------------------------
+
+# Run pre-commit checks
 check:
-    cd {{justfile_dir()}}
-    pre-commit run -a # Runs all hooks on all files
-    just lint
-    goreleaser check --verbose
+    pre-commit run --all-files
 
-# Run lint and code checks
-lint:
-    cd {{justfile_dir()}}
+# Run code formatting
+format:
+    golangci-lint run --fix ./...
+    goimports -w .
+
+# Run code formatting checks
+format-check:
     golangci-lint fmt ./...
+    goimports -d .
+
+# Run code linting
+lint:
     golangci-lint run ./...
     go vet ./...
+    gosec ./...
+
+
+# -----------------------------
+# 🧪 Testing & Coverage
+# -----------------------------
 
 # Run tests
 test:
     go test ./...
 
-# Run all checks and tests (CI)
-ci-check:
-    cd {{justfile_dir()}}
-    pre-commit run # Same as just check, but only runs on staged files
-    just lint
-    just test
+coverage:
+    go test -coverprofile=coverage.out ./...
+    go tool cover -html=coverage.out
+
+
+# -----------------------------
+# 📦 Build & Clean
+# -----------------------------
+
+[unix]
+clean:
+    go clean
+    rm -f coverage.out
+    rm -f opnfocus
+
+[windows]
+clean:
+    go clean
+    del /q coverage.out
+    del /q opnfocus.exe
+
+
+# Build the project
+build:
+    go build -o opnfocus main.go
+
+clean-build:
+    just clean
+    just build
 
 # Run all checks and tests, and build the agent
-build:
-    cd {{justfile_dir()}}
-    just install
-    go mod tidy
-    just check
-    just test
+build-for-release:
+    @just install
+    @go mod tidy
+    @just check
+    @just test
     goreleaser build --clean --auto-snapshot --single-target
 
-update-deps:
-    cd {{justfile_dir()}}
-    go get -u ./...
-    go mod tidy
-    go mod verify
-    go mod vendor
-    go mod tidy
+# -----------------------------
+# 📖 Documentation
+# -----------------------------
+
+# Serve documentation locally
+@docs:
+    @{{venv-mkdocs}} serve
+
+# Test documentation build
+docs-test:
+    @{{venv-mkdocs}} build --verbose
+
+# Build documentation
+docs-export:
+    @{{venv-mkdocs}} build
+
+
+
+# -----------------------------
+# 🚀 Development Environment
+# -----------------------------
+
+# Run the agent (development)
+dev *args="":
+    go run main.go {{args}}
+
+# -----------------------------
+# 🤖 CI Workflow
+# -----------------------------
+
+# Run all checks and tests (CI)
+ci-check:
+    @cd {{justfile_dir()}}
+    @just check
+    @just format-check
+    @just lint
+    @just test
+    @goreleaser check --verbose
+
+

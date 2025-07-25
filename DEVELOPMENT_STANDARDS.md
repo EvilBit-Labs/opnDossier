@@ -81,15 +81,15 @@ test(parser): add integration tests for XML parsing
 
 ### Technology Stack
 
-| Layer | Technology | Notes |
-|-------|------------|-------|
-| **CLI Framework** | `cobra` | Command organization and help system |
-| **Configuration** | `charmbracelet/fang` | Configuration management |
-| **Terminal Styling** | `charmbracelet/lipgloss` | Colored output and styling |
-| **Markdown Rendering** | `charmbracelet/glamour` | Terminal markdown display |
-| **Logging** | `charmbracelet/log` | Structured logging |
-| **Data Processing** | `encoding/xml`, `encoding/json` | Standard library XML/JSON handling |
-| **Testing** | Go's built-in `testing` package | Table-driven tests with >80% coverage |
+| Layer                  | Technology                      | Notes                                 |
+| ---------------------- | ------------------------------- | ------------------------------------- |
+| **CLI Framework**      | `cobra`                         | Command organization and help system  |
+| **Configuration**      | `charmbracelet/fang`            | Configuration management              |
+| **Terminal Styling**   | `charmbracelet/lipgloss`        | Colored output and styling            |
+| **Markdown Rendering** | `charmbracelet/glamour`         | Terminal markdown display             |
+| **Logging**            | `charmbracelet/log`             | Structured logging                    |
+| **Data Processing**    | `encoding/xml`, `encoding/json` | Standard library XML/JSON handling    |
+| **Testing**            | Go's built-in `testing` package | Table-driven tests with >80% coverage |
 
 ### Code Style and Formatting
 
@@ -187,7 +187,7 @@ logger.Info("processing config file", "filename", filename)
 
 - **Coverage Target:** >80% test coverage
 - **Test Organization:** Table-driven tests with `t.Run()` subtests
-- **Performance:** Individual tests <100ms
+- **Performance:** Individual tests \<100ms
 - **Integration Tests:** Use build tags (`//go:build integration`)
 
 **Example Test Structure:**
@@ -261,6 +261,7 @@ type Config struct {
 }
 
 // Configuration precedence: CLI flags > environment variables > config file > defaults
+// This follows standard CLI tool conventions where environment variables can override config files
 ```
 
 ## Development Workflow
@@ -346,7 +347,7 @@ go test -race ./...         # Race detection
 - **Startup Time:** CLI should start quickly for operator efficiency
 - **Memory Efficiency:** Streaming XML processing for large files
 - **Concurrent Processing:** Use goroutines and channels for I/O operations
-- **Test Performance:** Individual tests <100ms
+- **Test Performance:** Individual tests \<100ms
 
 ## Security Standards
 

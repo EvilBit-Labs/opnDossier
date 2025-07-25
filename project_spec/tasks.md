@@ -13,6 +13,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 ### 1.1 Dependency Management & Technology Stack Setup
 
 - [ ] **TASK-001**: Update Go dependencies to match requirements
+
   - **Context**: Current `go.mod` uses Viper but requirements specify `charmbracelet/fang`
   - **Requirement**: F001-F008 (Core Features), Technical Specifications section
   - **User Story**: US-012 (Configuration Management)
@@ -20,6 +21,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: `go.mod` matches requirements specification
 
 - [ ] **TASK-002**: Implement structured logging with `log/slog`
+
   - **Context**: Replace current `log` usage with structured logging
   - **Requirement**: US-036 (Structured Logging), Technical Specifications
   - **User Story**: US-036 (Monitoring and Observability)
@@ -27,15 +29,17 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: All logging uses structured format with proper levels
 
 - [ ] **TASK-003**: Set up configuration management with fang
+
   - **Context**: Replace Viper configuration with fang framework
   - **Requirement**: US-012, US-013, US-014 (Configuration Management)
   - **User Story**: US-012-US-014 (Configuration Management)
   - **Action**: Implement YAML config files, environment variables, CLI overrides
-  - **Acceptance**: Configuration system supports all three methods with proper precedence
+  - **Acceptance**: Configuration system supports all three methods with standard precedence (CLI flags > env vars > config file > defaults)
 
 ### 1.2 Project Structure & Organization
 
 - [ ] **TASK-004**: Create internal package structure
+
   - **Context**: Current structure only has `cmd/` package
   - **Requirement**: System Architecture section, Go organization standards
   - **User Story**: US-033 (Development Standards)
@@ -43,6 +47,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Follows Google Go Style Guide organization
 
 - [ ] **TASK-005**: Implement proper error handling patterns
+
   - **Context**: Current error handling uses `log.Fatal`
   - **Requirement**: US-018, US-019 (Error Handling), Development Standards
   - **User Story**: US-018-US-019 (Error Handling and Recovery)
@@ -56,6 +61,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 ### 2.1 XML Parser Implementation
 
 - [ ] **TASK-006**: Create XML parser interface and implementation
+
   - **Context**: Current XML parsing is basic, needs proper interface
   - **Requirement**: F001 (XML parsing), US-001, US-002 (XML Parsing)
   - **User Story**: US-001-US-002 (XML Parsing and Validation)
@@ -63,6 +69,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Parser validates XML structure and provides meaningful errors
 
 - [ ] **TASK-007**: Implement OPNsense schema validation
+
   - **Context**: Current parsing doesn't validate against OPNsense schema
   - **Requirement**: F008 (XML validation), US-001 (Schema validation)
   - **User Story**: US-001 (Schema validation)
@@ -70,6 +77,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Invalid XML files produce specific error messages with line/column info
 
 - [ ] **TASK-008**: Implement streaming XML processing
+
   - **Context**: Current parsing loads entire file into memory
   - **Requirement**: US-015, US-040 (Memory efficiency), Performance Requirements
   - **User Story**: US-015-US-017 (Performance Requirements)
@@ -79,6 +87,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 ### 2.2 Configuration Data Models
 
 - [ ] **TASK-009**: Refactor OPNsense struct for better organization
+
   - **Context**: Current struct is auto-generated and not well organized
   - **Requirement**: Data Requirements section, F001 (Data models)
   - **User Story**: US-003 (Markdown conversion)
@@ -86,6 +95,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Configuration hierarchy is preserved for markdown conversion
 
 - [ ] **TASK-010**: Create configuration processor interface
+
   - **Context**: Need interface for processing parsed configurations
   - **Requirement**: System Architecture section, Component interaction
   - **User Story**: US-003 (Configuration processing)
@@ -99,6 +109,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 ### 3.1 Markdown Generator Implementation
 
 - [ ] **TASK-011**: Create markdown generator interface
+
   - **Context**: No markdown generation capability exists
   - **Requirement**: F002 (Markdown conversion), US-003 (Markdown conversion)
   - **User Story**: US-003-US-004 (Markdown Conversion)
@@ -106,6 +117,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Generator converts XML configurations to structured markdown
 
 - [ ] **TASK-012**: Implement hierarchy preservation in markdown
+
   - **Context**: Need to maintain configuration structure in output
   - **Requirement**: F002 (Hierarchy preservation), US-003 (Structure preservation)
   - **User Story**: US-003 (Hierarchy preservation)
@@ -113,6 +125,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Output markdown reflects original configuration structure
 
 - [ ] **TASK-013**: Add markdown formatting and styling
+
   - **Context**: Basic markdown needs proper formatting
   - **Requirement**: US-004 (Syntax highlighting), Technical Specifications
   - **User Story**: US-004 (Terminal output styling)
@@ -122,6 +135,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 ### 3.2 Terminal Display Implementation
 
 - [ ] **TASK-014**: Implement terminal display with lipgloss
+
   - **Context**: No terminal styling currently implemented
   - **Requirement**: F003 (Terminal display), US-004 (Syntax highlighting)
   - **User Story**: US-004 (Terminal output), US-043 (Theme support)
@@ -129,6 +143,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Terminal output includes colored, syntax-highlighted markdown
 
 - [ ] **TASK-015**: Add theme support (light/dark)
+
   - **Context**: Need support for different terminal themes
   - **Requirement**: US-043 (Theme support), Usability Stories
   - **User Story**: US-043 (Light and dark theme support)
@@ -136,6 +151,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Output is readable in both light and dark terminal themes
 
 - [ ] **TASK-016**: Implement markdown rendering with glamour
+
   - **Context**: Need proper markdown rendering in terminal
   - **Requirement**: Technical Specifications (glamour library)
   - **User Story**: US-004 (Markdown rendering)
@@ -149,6 +165,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 ### 4.1 File Export Implementation
 
 - [ ] **TASK-017**: Create file export functionality
+
   - **Context**: No file export capability exists
   - **Requirement**: F004 (File export), US-005, US-006 (File export)
   - **User Story**: US-005-US-006 (File Export)
@@ -156,6 +173,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Can export processed configurations to markdown files
 
 - [ ] **TASK-018**: Implement custom output directory support
+
   - **Context**: Need flexible output location support
   - **Requirement**: US-006 (Custom output directories)
   - **User Story**: US-006 (Custom output directories)
@@ -163,6 +181,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Creates directories if needed and saves files to specified location
 
 - [ ] **TASK-019**: Add file validation and error handling
+
   - **Context**: Need proper file I/O error handling
   - **Requirement**: US-018 (Error handling), Data validation rules
   - **User Story**: US-018 (Clear error messages)
@@ -185,6 +204,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 ### 5.1 Command Structure
 
 - [ ] **TASK-021**: Refactor CLI command structure
+
   - **Context**: Current CLI is basic, needs proper command organization
   - **Requirement**: F007 (CLI interface), US-009-US-011 (CLI Interface)
   - **User Story**: US-009-US-011 (CLI Interface)
@@ -192,6 +212,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: CLI provides intuitive command structure with proper help
 
 - [ ] **TASK-022**: Implement comprehensive help system
+
   - **Context**: Need detailed help documentation
   - **Requirement**: US-010 (Help documentation), CLI Interface Requirements
   - **User Story**: US-010 (Comprehensive help)
@@ -199,6 +220,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Help system provides clear usage instructions and examples
 
 - [ ] **TASK-023**: Add verbose and quiet output modes
+
   - **Context**: Need output level control
   - **Requirement**: US-011 (Output modes), User Experience Specifications
   - **User Story**: US-011 (Verbose and quiet modes)
@@ -208,6 +230,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 ### 5.2 CLI Features
 
 - [ ] **TASK-024**: Implement progress indicators
+
   - **Context**: Need feedback for long-running operations
   - **Requirement**: User Experience Specifications, Performance Requirements
   - **User Story**: US-011 (Progress feedback)
@@ -215,6 +238,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Users get feedback during long-running operations
 
 - [ ] **TASK-025**: Add tab completion support
+
   - **Context**: Need CLI completion for better UX
   - **Requirement**: US-045 (Tab completion), Usability Stories
   - **User Story**: US-045 (Tab completion support)
@@ -228,6 +252,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 ### 6.1 Configuration System
 
 - [ ] **TASK-026**: Implement YAML configuration file support
+
   - **Context**: Need persistent configuration storage
   - **Requirement**: US-012 (YAML config), Configuration Management
   - **User Story**: US-012 (YAML configuration files)
@@ -235,18 +260,20 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Tool loads settings from YAML configuration files
 
 - [ ] **TASK-027**: Add environment variable support
+
   - **Context**: Need secure configuration for sensitive options
   - **Requirement**: US-013 (Environment variables), Security Requirements
   - **User Story**: US-013 (Environment variables)
-  - **Action**: Implement OPNFOCUS_ prefixed environment variables
-  - **Acceptance**: Environment variables override configuration file settings
+  - **Action**: Implement OPNFOCUS\_ prefixed environment variables
+  - **Acceptance**: Environment variables override configuration file settings (standard precedence)
 
 - [ ] **TASK-028**: Implement CLI flag override system
+
   - **Context**: Need runtime configuration override capability
   - **Requirement**: US-014 (CLI overrides), Configuration Management
   - **User Story**: US-014 (Command-line overrides)
   - **Action**: Ensure CLI flags take precedence over config file and env vars
-  - **Acceptance**: Command-line flags override all other configuration sources
+  - **Acceptance**: Command-line flags override all other configuration sources (highest precedence)
 
 ### 6.2 Configuration Validation
 
@@ -264,6 +291,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 ### 7.1 Performance Implementation
 
 - [ ] **TASK-030**: Implement concurrent processing
+
   - **Context**: Need efficient processing for multiple files
   - **Requirement**: US-017 (Concurrent processing), Performance Requirements
   - **User Story**: US-017 (Concurrent processing)
@@ -271,6 +299,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Multiple files can be processed concurrently
 
 - [ ] **TASK-031**: Optimize CLI startup time
+
   - **Context**: Need fast startup for operator efficiency
   - **Requirement**: US-016 (Fast startup), Performance Requirements
   - **User Story**: US-016 (Fast CLI startup)
@@ -278,6 +307,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: CLI starts quickly for operator efficiency
 
 - [ ] **TASK-032**: Implement memory-efficient processing
+
   - **Context**: Need to handle large configuration files
   - **Requirement**: US-015, US-040 (Memory efficiency), Performance Constraints
   - **User Story**: US-015-US-017 (Performance Requirements)
@@ -287,6 +317,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 ### 7.2 Benchmarking & Monitoring
 
 - [ ] **TASK-033**: Add performance benchmarking
+
   - **Context**: Need to measure and optimize performance
   - **Requirement**: US-037 (Performance profiling), Testing Standards
   - **User Story**: US-037 (Performance profiling)
@@ -294,6 +325,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Performance benchmarks are established and tracked
 
 - [ ] **TASK-034**: Implement health check functionality
+
   - **Context**: Need system health validation
   - **Requirement**: US-038 (Health checks), Monitoring and Observability
   - **User Story**: US-038 (Health check capabilities)
@@ -307,6 +339,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 ### 8.1 Test Implementation
 
 - [ ] **TASK-035**: Implement comprehensive unit tests
+
   - **Context**: Need >80% test coverage
   - **Requirement**: US-020, US-021 (Testing), Testing Standards
   - **User Story**: US-020-US-021 (Testing and Validation)
@@ -314,6 +347,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Test coverage exceeds 80%
 
 - [ ] **TASK-036**: Add integration tests
+
   - **Context**: Need end-to-end workflow testing
   - **Requirement**: Testing Standards, Integration Testing Approach
   - **User Story**: US-021 (Thorough testing)
@@ -321,15 +355,17 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Full CLI workflow is tested end-to-end
 
 - [ ] **TASK-037**: Implement performance tests
+
   - **Context**: Need to validate performance requirements
   - **Requirement**: US-039 (Test performance), Performance Requirements
   - **User Story**: US-039 (Individual test performance)
   - **Action**: Add benchmark tests and performance validation
-  - **Acceptance**: Individual tests complete in <100ms
+  - **Acceptance**: Individual tests complete in \<100ms
 
 ### 8.2 Quality Assurance
 
 - [ ] **TASK-038**: Implement automated quality checks
+
   - **Context**: Need automated code quality enforcement
   - **Requirement**: US-033 (Quality checks), CI/CD Expectations
   - **User Story**: US-033 (Automated quality checks)
@@ -337,6 +373,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: All quality checks pass automatically
 
 - [ ] **TASK-039**: Add security scanning
+
   - **Context**: Need security validation
   - **Requirement**: Security Requirements, Code Security
   - **User Story**: US-041 (No hardcoded secrets)
@@ -350,6 +387,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 ### 9.1 Documentation Implementation
 
 - [ ] **TASK-040**: Create comprehensive README
+
   - **Context**: Need clear project documentation
   - **Requirement**: US-022 (Installation instructions), Documentation Standards
   - **User Story**: US-022-US-024 (Documentation and Help)
@@ -357,6 +395,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: README provides clear project overview and quick start
 
 - [ ] **TASK-041**: Implement usage examples
+
   - **Context**: Need examples for common workflows
   - **Requirement**: US-023 (Usage examples), User Experience Specifications
   - **User Story**: US-023 (Usage examples)
@@ -364,6 +403,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Documentation includes clear examples for common workflows
 
 - [ ] **TASK-042**: Add API documentation
+
   - **Context**: Need documentation for public packages
   - **Requirement**: US-024 (API documentation), Documentation Standards
   - **User Story**: US-024 (API documentation)
@@ -386,6 +426,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 ### 10.1 Security Implementation
 
 - [ ] **TASK-044**: Ensure offline operation
+
   - **Context**: Need to verify no external dependencies
   - **Requirement**: F005, US-007, US-008 (Offline operation), Security Requirements
   - **User Story**: US-007-US-008 (Offline Operation)
@@ -393,6 +434,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Tool operates completely offline without errors
 
 - [ ] **TASK-045**: Implement secure error messages
+
   - **Context**: Need to prevent sensitive information exposure
   - **Requirement**: US-026 (Secure error messages), Security Requirements
   - **User Story**: US-026 (Secure error messages)
@@ -400,6 +442,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Error messages are secure and don't leak sensitive data
 
 - [ ] **TASK-046**: Add secure defaults
+
   - **Context**: Need security-first default configuration
   - **Requirement**: US-042 (Secure defaults), Security Requirements
   - **User Story**: US-042 (Secure defaults)
@@ -422,6 +465,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 ### 11.1 Platform Compatibility
 
 - [ ] **TASK-048**: Test cross-platform compatibility
+
   - **Context**: Need to support Linux, macOS, Windows
   - **Requirement**: US-028 (Cross-platform), Technical Specifications
   - **User Story**: US-028-US-029 (Cross-Platform Support)
@@ -429,6 +473,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Tool works consistently across all supported platforms
 
 - [ ] **TASK-049**: Implement container support
+
   - **Context**: Need to work in containerized environments
   - **Requirement**: US-029 (Container support), Deployment Architecture
   - **User Story**: US-029 (Container environments)
@@ -451,6 +496,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 ### 12.1 Build System
 
 - [ ] **TASK-051**: Configure GoReleaser for multi-platform builds
+
   - **Context**: Need automated cross-platform builds
   - **Requirement**: Build and Distribution, CI/CD Pipeline Design
   - **User Story**: US-030-US-031 (Build and Distribution)
@@ -458,6 +504,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Automated builds work for all target platforms
 
 - [ ] **TASK-052**: Implement package manager support
+
   - **Context**: Need easy installation from package managers
   - **Requirement**: US-030 (Package managers), Build and Distribution
   - **User Story**: US-030 (Package manager installation)
@@ -465,6 +512,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Tool can be installed via package managers
 
 - [ ] **TASK-053**: Add binary signing and verification
+
   - **Context**: Need signed and verified binaries
   - **Requirement**: US-031 (Signed binaries), Security Requirements
   - **User Story**: US-031 (Signed and verified binaries)
@@ -474,6 +522,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 ### 12.2 Release Management
 
 - [ ] **TASK-054**: Implement automated release process
+
   - **Context**: Need automated release management
   - **Requirement**: US-034 (Release management), CI/CD Pipeline Design
   - **User Story**: US-034 (Automated release management)
@@ -481,6 +530,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Releases are automatically built, tested, and distributed
 
 - [ ] **TASK-055**: Add SBOM generation
+
   - **Context**: Need software bill of materials for security
   - **Requirement**: Security Requirements, Dependency Security
   - **User Story**: US-031 (Security verification)
@@ -494,6 +544,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 ### 13.1 Development Workflow
 
 - [ ] **TASK-056**: Implement contributing guidelines
+
   - **Context**: Need clear contribution process
   - **Requirement**: US-035 (Contributing guidelines), Development Standards
   - **User Story**: US-035 (Contributing guidelines)
@@ -501,6 +552,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Contributors can follow clear guidelines for contributions
 
 - [ ] **TASK-057**: Configure automated CI/CD pipeline
+
   - **Context**: Need automated quality enforcement
   - **Requirement**: CI/CD Expectations, Development Workflow
   - **User Story**: US-033 (Automated quality checks)

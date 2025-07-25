@@ -61,14 +61,14 @@ Follow the [Conventional Commits](https://www.conventionalcommits.org) specifica
 
 ### 3.1. Technology Stack
 
-| Layer      | Technology                                                |
-| ---------- | --------------------------------------------------------- |
-| CLI Tool   | `cobra` v1.8.0 + `charmbracelet/fang` + `charmbracelet/lipgloss` |
-| Config     | `charmbracelet/fang` for configuration parsing            |
-| Display    | `charmbracelet/glamour` for markdown rendering            |
-| Data Model | Go structs with `encoding/xml` and `encoding/json`        |
-| Logging    | `charmbracelet/log` for structured logging                |
-| Testing    | Go's built-in `testing` package                           |
+| Layer      | Technology                                                                  |
+| ---------- | --------------------------------------------------------------------------- |
+| CLI Tool   | `cobra` v1.8.0 + `charmbracelet/lipgloss`                                   |
+| Config     | `spf13/viper` for configuration parsing (migrating to `charmbracelet/fang`) |
+| Display    | `charmbracelet/glamour` for markdown rendering                              |
+| Data Model | Go structs with `encoding/xml` and `encoding/json`                          |
+| Logging    | `charmbracelet/log` for structured logging                                  |
+| Testing    | Go's built-in `testing` package                                             |
 
 ### 3.2. Go Version Requirements
 
@@ -79,7 +79,7 @@ Follow the [Conventional Commits](https://www.conventionalcommits.org) specifica
 ### 3.3. CLI Architecture
 
 - **Command Structure:** Use `cobra` for CLI command organization with consistent verb patterns (`create`, `list`, `get`, `update`, `delete`)
-- **Configuration:** Use `charmbracelet/fang` for configuration management with support for environment variables, config files, and command-line flags
+- **Configuration:** Use `spf13/viper` for configuration management with support for environment variables, config files, and command-line flags (migrating to `charmbracelet/fang`)
 - **Output Formatting:** Use `charmbracelet/lipgloss` for styled terminal output and `charmbracelet/glamour` for markdown rendering
 - **Error Handling:** Use Go's error handling patterns with `fmt.Errorf` and `errors.Wrap` for context preservation
 
