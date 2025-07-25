@@ -29,23 +29,18 @@ setup-env:
 [unix]
 setup-env:
     @cd {{justfile_dir()}}
-    python -m venv .venv
+    python3 -m venv .venv
 
-# Activate the virtual environment
-[windows]
-use-venv:
-    @.venv\Scripts\Activate.ps1
-
-# Activate the virtual environment
-[unix]
-use-venv:
-    @.venv/bin/activate
+# Virtual environment paths
+venv-python := if os_family() == "windows" { ".venv\\Scripts\\python.exe" } else { ".venv/bin/python" }
+venv-pip := if os_family() == "windows" { ".venv\\Scripts\\pip.exe" } else { ".venv/bin/pip" }
+venv-mkdocs := if os_family() == "windows" { ".venv\\Scripts\\mkdocs.exe" } else { ".venv/bin/mkdocs" }
 
 
 # Install dependencies
 install:
     @just setup-env
-    @pip install mkdocs-material
+    @{{venv-pip}} install mkdocs-material
     @pre-commit install --hook-type commit-msg
     @go mod tidy
 
@@ -135,18 +130,15 @@ build-for-release:
 
 # Serve documentation locally
 @docs:
-    @just use-venv
-    @mkdocs serve
+    @{{venv-mkdocs}} serve
 
 # Test documentation build
 docs-test:
-    @just use-venv
-    @mkdocs build --verbose
+    @{{venv-mkdocs}} build --verbose
 
 # Build documentation
 docs-export:
-    @just use-venv
-    @mkdocs build
+    @{{venv-mkdocs}} build
 
 
 
