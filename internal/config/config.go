@@ -16,13 +16,16 @@ type Config struct {
 	Verbose    bool   `mapstructure:"verbose"`
 }
 
-// LoadConfig loads the configuration from a YAML file, environment variables, and CLI flags.
+// LoadConfig loads application configuration from the specified YAML file, environment variables, and defaults.
+// If cfgFile is empty, it attempts to load from a default config file location.
+// Returns a populated Config struct or an error if loading fails.
 func LoadConfig(cfgFile string) (*Config, error) {
 	return LoadConfigWithViper(cfgFile, viper.New())
 }
 
 // LoadConfigWithViper loads the configuration using a provided Viper instance.
-// This is useful for testing purposes.
+// LoadConfigWithViper loads application configuration using the provided Viper instance, applying defaults, config file values, and environment variables with explicit precedence for config file values.
+// If a config file path is given, it is used; otherwise, the function attempts to load from a default YAML file in the user's home directory. Environment variables with the prefix "OPNFOCUS" are also read. If the config file is missing, environment variables and defaults are used instead. Returns a populated Config struct or an error if configuration loading fails.
 func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 	// Set defaults
 	v.SetDefault("input_file", "")

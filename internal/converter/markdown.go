@@ -17,7 +17,7 @@ type Converter interface {
 // MarkdownConverter is a markdown converter for OPNsense configurations.
 type MarkdownConverter struct{}
 
-// NewMarkdownConverter creates a new MarkdownConverter.
+// NewMarkdownConverter returns a new instance of MarkdownConverter for converting OPNsense configurations to markdown format.
 func NewMarkdownConverter() *MarkdownConverter {
 	return &MarkdownConverter{}
 }

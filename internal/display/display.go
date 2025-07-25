@@ -19,12 +19,12 @@ var (
 			Foreground(lipgloss.Color("#FF0000"))
 )
 
-// Title prints a title to the console.
+// Title prints the given string to the console using the predefined title style.
 func Title(s string) {
 	fmt.Println(titleStyle.Render(s))
 }
 
-// Error prints an error to the console.
+// Error prints the given string to the console using a bold red error style.
 func Error(s string) {
 	fmt.Println(errorStyle.Render(s))
 }

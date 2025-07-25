@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var outputFile string //nolint:gochecknoglobals // CLI flag variable
+var outputFile string // init registers the convert command with the root command and defines the --output flag for specifying the output file path.
 
 func init() {
 	rootCmd.AddCommand(convertCmd)
