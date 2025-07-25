@@ -23,7 +23,6 @@ help:
 setup-env:
     @cd {{justfile_dir()}}
     python -m venv .venv
-    just use-venv
 
 # Setup the environment for unix
 [unix]
