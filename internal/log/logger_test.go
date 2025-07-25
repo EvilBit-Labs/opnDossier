@@ -144,13 +144,14 @@ func TestLoggerFormats(t *testing.T) {
 			if tt.format == "json" {
 				lines := strings.Split(strings.TrimSpace(output), "\n")
 				for _, line := range lines {
-					if line != "" {
-						var jsonData map[string]interface{}
-						err := json.Unmarshal([]byte(line), &jsonData)
-						assert.NoError(t, err, "Output should be valid JSON")
-						assert.Equal(t, "info", jsonData["level"])
-						assert.Equal(t, "test message", jsonData["msg"])
+					if line == "" {
+						continue
 					}
+					var jsonData map[string]interface{}
+					err := json.Unmarshal([]byte(line), &jsonData)
+					assert.NoError(t, err, "Output should be valid JSON")
+					assert.Equal(t, "info", jsonData["level"])
+					assert.Equal(t, "test message", jsonData["msg"])
 				}
 			}
 		})
@@ -190,7 +191,8 @@ func TestLoggerWithContext(t *testing.T) {
 	}
 
 	logger := New(config)
-	ctx := context.WithValue(context.Background(), "test", "value")
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("test"), "value")
 
 	contextLogger := logger.WithContext(ctx)
 	require.NotNil(t, contextLogger)

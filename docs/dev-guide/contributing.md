@@ -33,7 +33,7 @@ just test
 opnFocus uses a layered CLI architecture:
 
 - **Cobra**: Command structure & argument parsing
-- **Viper**: Layered configuration (files, env, flags)  
+- **Viper**: Layered configuration (files, env, flags)
 - **Fang**: Enhanced UX layer (styled help, completion)
 - **charmbracelet/log**: Structured, leveled logging
 - **Lipgloss**: Styled terminal output formatting
@@ -115,6 +115,7 @@ git commit -m \"feat(api)!: change configuration file format\"
 ```
 
 **Commit Types:**
+
 - `feat`: New features
 - `fix`: Bug fixes
 - `docs`: Documentation changes
@@ -266,6 +267,7 @@ The configuration system uses **Viper** for layered configuration management:
 ### Adding New Configuration Options
 
 1. **Add to Config struct:**
+
 ```go
 // internal/config/config.go
 type Config struct {
@@ -275,6 +277,7 @@ type Config struct {
 ```
 
 2. **Set default value:**
+
 ```go
 func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
     // Existing defaults...
@@ -284,6 +287,7 @@ func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 ```
 
 3. **Add CLI flag:**
+
 ```go
 // cmd/root.go
 func init() {
@@ -293,6 +297,7 @@ func init() {
 ```
 
 4. **Add validation:**
+
 ```go
 func (c *Config) Validate() error {
     // Existing validation...
@@ -307,6 +312,7 @@ func (c *Config) Validate() error {
 ```
 
 5. **Update documentation:**
+
 - Add to README examples
 - Update `docs/user-guide/configuration.md`
 - Add to CLI help text
@@ -316,6 +322,7 @@ func (c *Config) Validate() error {
 ### Understanding Fang's Role
 
 **Fang** provides enhanced UX features on top of Cobra:
+
 - Styled help and error messages
 - Automatic `--version` flag
 - Shell completion commands
@@ -355,7 +362,7 @@ func init() {
 ### Test Categories
 
 1. **Unit Tests** - Test individual functions
-2. **Integration Tests** - Test component interactions  
+2. **Integration Tests** - Test component interactions
 3. **CLI Tests** - Test command-line interface
 
 ### Running Tests
@@ -417,16 +424,19 @@ When adding features:
 ### Before Submitting
 
 1. **Run all checks:**
+
    ```bash
    just check  # Must pass all checks
    ```
 
 2. **Update documentation:**
+
    - Code comments
    - User guides if needed
    - CLI help text
 
 3. **Add tests:**
+
    - Unit tests for new functions
    - Integration tests for new features
    - CLI tests for new commands
@@ -472,9 +482,10 @@ Brief description of changes
 ### Versioning
 
 We use [Semantic Versioning](https://semver.org/):
+
 - `MAJOR.MINOR.PATCH`
 - Breaking changes increment MAJOR
-- New features increment MINOR  
+- New features increment MINOR
 - Bug fixes increment PATCH
 
 ### Release Checklist
@@ -496,14 +507,16 @@ We use [Semantic Versioning](https://semver.org/):
 ### Issue Templates
 
 Use appropriate issue templates:
+
 - Bug Report
-- Feature Request  
+- Feature Request
 - Documentation Issue
 - Question
 
 ### Development Questions
 
 For development questions:
+
 1. Check existing documentation
 2. Search existing issues
 3. Ask in GitHub Discussions

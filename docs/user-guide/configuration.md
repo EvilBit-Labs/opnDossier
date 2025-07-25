@@ -31,26 +31,26 @@ The configuration file uses YAML format:
 # ~/.opnFocus.yaml - opnFocus Configuration
 
 # Input/Output settings
-input_file: "/path/to/default/config.xml"
-output_file: "./output.md"
+input_file: /path/to/default/config.xml
+output_file: ./output.md
 
 # Logging configuration
-log_level: "info"     # debug, info, warn, error
-log_format: "text"    # text, json
+log_level: info       # debug, info, warn, error
+log_format: text      # text, json
 verbose: false        # Enable debug logging
 quiet: false          # Suppress all output except errors
 ```
 
 ### Configuration Options
 
-| Option       | Type     | Default | Description                                    |
-|--------------|----------|---------|------------------------------------------------|
-| `input_file` | string   | ""      | Default input file path                        |
-| `output_file`| string   | ""      | Default output file path                       |
-| `verbose`    | boolean  | false   | Enable verbose/debug logging                   |
-| `quiet`      | boolean  | false   | Suppress all output except errors              |
-| `log_level`  | string   | "info"  | Log level: debug, info, warn, error           |
-| `log_format` | string   | "text"  | Log format: text, json                         |
+| Option        | Type    | Default | Description                         |
+| ------------- | ------- | ------- | ----------------------------------- |
+| `input_file`  | string  | ""      | Default input file path             |
+| `output_file` | string  | ""      | Default output file path            |
+| `verbose`     | boolean | false   | Enable verbose/debug logging        |
+| `quiet`       | boolean | false   | Suppress all output except errors   |
+| `log_level`   | string  | "info"  | Log level: debug, info, warn, error |
+| `log_format`  | string  | "text"  | Log format: text, json              |
 
 ## Environment Variables
 
@@ -85,6 +85,7 @@ opnfocus convert config.xml
 ### Environment Variable Naming
 
 Environment variables follow this pattern:
+
 - Prefix: `OPNFOCUS_`
 - Key transformation: Convert config key to uppercase and replace `-` with `_`
 - Examples:
@@ -128,16 +129,17 @@ opnfocus --config ./project-config.yaml convert config.xml
 
 ### Log Levels
 
-| Level   | Description                                      | Use Case                    |
-|---------|--------------------------------------------------|-----------------------------|
-| `debug` | Detailed diagnostic information                  | Development, troubleshooting |
-| `info`  | General operational messages (default)          | Normal operation            |
-| `warn`  | Warning messages for potential issues           | Monitoring                  |
-| `error` | Error messages for failures                     | Error tracking              |
+| Level   | Description                            | Use Case                     |
+| ------- | -------------------------------------- | ---------------------------- |
+| `debug` | Detailed diagnostic information        | Development, troubleshooting |
+| `info`  | General operational messages (default) | Normal operation             |
+| `warn`  | Warning messages for potential issues  | Monitoring                   |
+| `error` | Error messages for failures            | Error tracking               |
 
 ### Log Formats
 
 #### Text Format (Default)
+
 Human-readable format suitable for terminal output:
 
 ```
@@ -147,6 +149,7 @@ Human-readable format suitable for terminal output:
 ```
 
 #### JSON Format
+
 Structured format suitable for log aggregation systems:
 
 ```json
@@ -203,9 +206,9 @@ Store frequently used settings in `~/.opnFocus.yaml`:
 
 ```yaml
 # Common settings for your environment
-log_level: "info"
-log_format: "text"
-output_file: "./network-documentation.md"
+log_level: info
+log_format: text
+output_file: ./network-documentation.md
 ```
 
 ### 2. Use Environment Variables for Deployment
@@ -239,8 +242,8 @@ For secure, offline environments:
 
 ```yaml
 # ~/.opnFocus.yaml for airgapped systems
-log_level: "warn"        # Minimal logging
-log_format: "text"       # Human-readable
+log_level: warn          # Minimal logging
+log_format: text         # Human-readable
 verbose: false
 quiet: false
 ```
@@ -250,14 +253,17 @@ quiet: false
 ### Common Issues
 
 1. **Configuration file not found**
+
    - Verify file exists at `~/.opnFocus.yaml`
    - Use `--config` flag to specify custom location
 
 2. **Environment variables not working**
+
    - Ensure correct `OPNFOCUS_` prefix
    - Check variable names match expected format
 
 3. **CLI flags not overriding config**
+
    - Verify flag syntax is correct
    - Check for typos in flag names
 
@@ -270,6 +276,7 @@ opnfocus --verbose --config /path/to/config.yaml convert config.xml
 ```
 
 This will show:
+
 - Which configuration file is loaded
 - Which environment variables are detected
 - Final configuration values after precedence resolution

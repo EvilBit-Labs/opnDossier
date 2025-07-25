@@ -82,7 +82,7 @@ func parseLevel(level string) log.Level {
 // WithContext returns a logger with the provided context.
 // Note: charmbracelet/log doesn't have built-in context support,
 // but we maintain this method signature for compatibility.
-func (l *Logger) WithContext(ctx context.Context) *Logger {
+func (l *Logger) WithContext(_ context.Context) *Logger {
 	// For now, just return the same logger since charmbracelet/log
 	// doesn't have native context support. In the future, we could
 	// add context-based functionality if needed.

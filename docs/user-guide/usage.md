@@ -42,9 +42,9 @@ Create `~/.opnFocus.yaml` for persistent settings:
 
 ```yaml
 # Default settings for all operations
-log_level: "info"
-log_format: "text"
-output_file: "./network-docs.md"
+log_level: info
+log_format: text
+output_file: ./network-docs.md
 verbose: false
 ```
 
@@ -206,30 +206,29 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Setup Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: '1.21'
-    
-    - name: Install opnFocus
-      run: go install github.com/unclesp1d3r/opnFocus@latest
-    
-    - name: Generate Documentation
-      env:
-        OPNFOCUS_LOG_FORMAT: json
-        OPNFOCUS_LOG_LEVEL: info
-      run: opnfocus convert config.xml -o docs/network-config.md
-    
-    - name: Commit Documentation
-      if: github.event_name == 'push'
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add docs/network-config.md
-        git commit -m "docs: update network configuration" || exit 0
-        git push
+      - uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.21'
+      - name: Install opnFocus
+        run: go install github.com/unclesp1d3r/opnFocus@latest
+
+      - name: Generate Documentation
+        env:
+          OPNFOCUS_LOG_FORMAT: json
+          OPNFOCUS_LOG_LEVEL: info
+        run: opnfocus convert config.xml -o docs/network-config.md
+
+      - name: Commit Documentation
+        if: github.event_name == 'push'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add docs/network-config.md
+          git commit -m "docs: update network configuration" || exit 0
+          git push
 ```
 
 #### Monitoring Integration
@@ -294,22 +293,26 @@ opnfocus --log_level=trace convert config.xml
 ### Debugging Tips
 
 1. **Use verbose mode for detailed information:**
+
    ```bash
    opnfocus --verbose convert config.xml
    ```
 
 2. **Check configuration precedence:**
+
    ```bash
    opnfocus --verbose --config /path/to/config.yaml convert --help
    ```
 
 3. **Validate configuration files:**
+
    ```bash
    # Test config file syntax
    opnfocus --config test-config.yaml --help
    ```
 
 4. **Use JSON logging for automated analysis:**
+
    ```bash
    opnfocus --log_format=json convert config.xml > output.log 2>&1
    jq '.' output.log  # Parse JSON logs
@@ -342,7 +345,7 @@ find /configs -name "*.xml" | xargs -P 4 -I {} opnfocus convert {} -o {}.md
 ### 1. Configuration Management
 
 - Use configuration files for persistent settings
-- Use environment variables for deployment-specific settings  
+- Use environment variables for deployment-specific settings
 - Use CLI flags for temporary overrides
 
 ### 2. File Organization

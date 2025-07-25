@@ -16,31 +16,29 @@ func TestLoadConfigFromFile(t *testing.T) {
 
 	// Create a temporary config file
 	tmpDir := t.TempDir()
+	inputFile := filepath.Join(tmpDir, "input.xml")
 	cfgFilePath := filepath.Join(tmpDir, ".opnFocus.yaml")
-	content := `
-input_file: /tmp/input.xml
-output_file: /tmp/output.md
+	content := fmt.Sprintf(`
+input_file: %s
+output_file: %s
 verbose: true
 quiet: false
 log_level: debug
 log_format: json
-`
+`, inputFile, filepath.Join(tmpDir, "output.md"))
 	err := os.WriteFile(cfgFilePath, []byte(content), 0o600)
 	assert.NoError(t, err)
 
 	// Create the input file to pass validation
-	err = os.MkdirAll("/tmp", 0o755)
+	err = os.WriteFile(inputFile, []byte("<test/>"), 0o600)
 	assert.NoError(t, err)
-	err = os.WriteFile("/tmp/input.xml", []byte("<test/>"), 0o600)
-	assert.NoError(t, err)
-	defer os.Remove("/tmp/input.xml")
 
 	// Test loading from file
 	cfg, err := LoadConfigWithViper(cfgFilePath, viper.New())
 	assert.NoError(t, err)
 	assert.NotNil(t, cfg)
-	assert.Equal(t, "/tmp/input.xml", cfg.InputFile)
-	assert.Equal(t, "/tmp/output.md", cfg.OutputFile)
+	assert.Equal(t, inputFile, cfg.InputFile)
+	assert.Equal(t, filepath.Join(tmpDir, "output.md"), cfg.OutputFile)
 	assert.True(t, cfg.Verbose)
 	assert.False(t, cfg.Quiet)
 	assert.Equal(t, "debug", cfg.LogLevel)
@@ -230,7 +228,7 @@ func TestValidationError_Error(t *testing.T) {
 }
 
 // clearEnvironment removes all OPNFOCUS_ environment variables for testing.
-func clearEnvironment(t *testing.T) {
+func clearEnvironment(_ *testing.T) {
 	envVars := []string{
 		"OPNFOCUS_INPUT_FILE",
 		"OPNFOCUS_OUTPUT_FILE",

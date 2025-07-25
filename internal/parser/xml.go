@@ -34,7 +34,7 @@ func NewXMLParser() *XMLParser {
 }
 
 // Parse parses an OPNsense configuration file with security protections.
-func (p *XMLParser) Parse(ctx context.Context, r io.Reader) (*model.Opnsense, error) {
+func (p *XMLParser) Parse(_ context.Context, r io.Reader) (*model.Opnsense, error) {
 	// Limit input size to prevent XML bombs
 	limitedReader := io.LimitReader(r, p.MaxInputSize)
 

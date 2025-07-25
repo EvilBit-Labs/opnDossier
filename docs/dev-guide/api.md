@@ -62,13 +62,13 @@ if cfg.IsVerbose() {
 
 All commands inherit these global flags:
 
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `--config` | string | `~/.opnFocus.yaml` | Configuration file path |
-| `--verbose, -v` | bool | false | Enable debug logging |
-| `--quiet, -q` | bool | false | Suppress non-error output |
-| `--log_level` | string | \"info\" | Log level (debug, info, warn, error) |
-| `--log_format` | string | \"text\" | Log format (text, json) |
+| Flag            | Type   | Default            | Description                          |
+| --------------- | ------ | ------------------ | ------------------------------------ |
+| `--config`      | string | `~/.opnFocus.yaml` | Configuration file path              |
+| `--verbose, -v` | bool   | false              | Enable debug logging                 |
+| `--quiet, -q`   | bool   | false              | Suppress non-error output            |
+| `--log_level`   | string | "info"             | Log level (debug, info, warn, error) |
+| `--log_format`  | string | "text"             | Log format (text, json)              |
 
 ### Convert Command
 
@@ -82,9 +82,9 @@ opnfocus convert [file ...] [flags]
 
 #### Flags
 
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `--output, -o` | string | \"\" | Output file path |
+| Flag           | Type   | Default | Description      |
+| -------------- | ------ | ------- | ---------------- |
+| `--output, -o` | string | ""      | Output file path |
 
 #### Examples
 
@@ -347,14 +347,14 @@ The configuration system follows this precedence order (highest to lowest):
 
 ### Environment Variable Mapping
 
-| Config Field | Environment Variable | Default |
-|--------------|---------------------|---------|
-| `input_file` | `OPNFOCUS_INPUT_FILE` | \"\" |
-| `output_file` | `OPNFOCUS_OUTPUT_FILE` | \"\" |
-| `verbose` | `OPNFOCUS_VERBOSE` | false |
-| `quiet` | `OPNFOCUS_QUIET` | false |
-| `log_level` | `OPNFOCUS_LOG_LEVEL` | \"info\" |
-| `log_format` | `OPNFOCUS_LOG_FORMAT` | \"text\" |
+| Config Field  | Environment Variable   | Default |
+| ------------- | ---------------------- | ------- |
+| `input_file`  | `OPNFOCUS_INPUT_FILE`  | ""      |
+| `output_file` | `OPNFOCUS_OUTPUT_FILE` | ""      |
+| `verbose`     | `OPNFOCUS_VERBOSE`     | false   |
+| `quiet`       | `OPNFOCUS_QUIET`       | false   |
+| `log_level`   | `OPNFOCUS_LOG_LEVEL`   | "info"  |
+| `log_format`  | `OPNFOCUS_LOG_FORMAT`  | "text"  |
 
 ## Error Handling
 

@@ -72,6 +72,7 @@ sudo mv opnfocus /usr/local/bin/
 ```
 
 Available platforms:
+
 - Linux (amd64, arm64)
 - macOS (amd64, arm64)
 - Windows (amd64)
@@ -107,8 +108,8 @@ Create a basic configuration file:
 
 ```yaml
 # ~/.opnFocus.yaml
-log_level: "info"
-log_format: "text"
+log_level: info
+log_format: text
 verbose: false
 quiet: false
 ```
@@ -168,6 +169,7 @@ opnfocus completion powershell | Out-String | Invoke-Expression
 ### Common Issues
 
 1. **Command not found**
+
    ```bash
    # Check if Go bin is in PATH
    echo $GOPATH/bin
@@ -175,16 +177,18 @@ opnfocus completion powershell | Out-String | Invoke-Expression
    ```
 
 2. **Permission denied**
+
    ```bash
    # Make binary executable
    chmod +x opnfocus
    ```
 
 3. **Config file not found**
+
    ```bash
    # Verify config file location
    ls -la ~/.opnFocus.yaml
-   
+
    # Use custom config location
    opnfocus --config /path/to/config.yaml convert config.xml
    ```

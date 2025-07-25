@@ -29,7 +29,7 @@ func NewMarkdownConverter() *MarkdownConverter {
 var ErrNilOpnsense = errors.New("input Opnsense struct is nil")
 
 // ToMarkdown converts an OPNsense configuration to markdown.
-func (c *MarkdownConverter) ToMarkdown(ctx context.Context, opnsense *model.Opnsense) (string, error) {
+func (c *MarkdownConverter) ToMarkdown(_ context.Context, opnsense *model.Opnsense) (string, error) {
 	if opnsense == nil {
 		return "", ErrNilOpnsense
 	}

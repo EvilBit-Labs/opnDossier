@@ -188,7 +188,10 @@ func (c *Config) Validate() error {
 			}
 			errMsg += err.Error()
 		}
-		return errors.New(errMsg)
+		return &ValidationError{
+			Field:   "config",
+			Message: errMsg,
+		}
 	}
 
 	return nil

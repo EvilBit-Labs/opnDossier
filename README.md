@@ -73,12 +73,12 @@ Create `~/.opnFocus.yaml` with your preferred settings:
 # ~/.opnFocus.yaml - opnFocus Configuration
 
 # Input/Output settings
-input_file: "/path/to/default/config.xml"
-output_file: "./output.md"
+input_file: /path/to/default/config.xml
+output_file: ./output.md
 
 # Logging configuration
-log_level: "info"     # debug, info, warn, error
-log_format: "text"    # text, json
+log_level: info       # debug, info, warn, error
+log_format: text      # text, json
 verbose: false        # Enable debug logging
 quiet: false          # Suppress all output except errors
 ```
