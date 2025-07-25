@@ -121,7 +121,7 @@ func TestXMLParser_ParseConfigSample(t *testing.T) {
 		assert.Equal(t, "localdomain", opnsense.System.Domain)
 		assert.Equal(t, "normal", opnsense.System.Optimization)
 		assert.Equal(t, "Etc/UTC", opnsense.System.Timezone)
-		assert.Equal(t, "1", opnsense.System.Dnsallowoverride)
+		assert.Equal(t, "1", opnsense.System.DNSAllowOverride)
 		assert.Equal(t, "https", opnsense.System.Webgui.Protocol)
 	})
 
@@ -142,16 +142,16 @@ func TestXMLParser_ParseConfigSample(t *testing.T) {
 		// WAN Interface
 		assert.Equal(t, "1", opnsense.Interfaces.Wan.Enable)
 		assert.Equal(t, "mismatch1", opnsense.Interfaces.Wan.If)
-		assert.Equal(t, "dhcp", opnsense.Interfaces.Wan.Ipaddr)
-		assert.Equal(t, "dhcp6", opnsense.Interfaces.Wan.Ipaddrv6)
-		assert.Equal(t, "1", opnsense.Interfaces.Wan.Blockpriv)
-		assert.Equal(t, "1", opnsense.Interfaces.Wan.Blockbogons)
+		assert.Equal(t, "dhcp", opnsense.Interfaces.Wan.IPAddr)
+		assert.Equal(t, "dhcp6", opnsense.Interfaces.Wan.IPAddrv6)
+		assert.Equal(t, "1", opnsense.Interfaces.Wan.BlockPriv)
+		assert.Equal(t, "1", opnsense.Interfaces.Wan.BlockBogons)
 
 		// LAN Interface
 		assert.Equal(t, "1", opnsense.Interfaces.Lan.Enable)
 		assert.Equal(t, "mismatch0", opnsense.Interfaces.Lan.If)
-		assert.Equal(t, "192.168.1.1", opnsense.Interfaces.Lan.Ipaddr)
-		assert.Equal(t, "track6", opnsense.Interfaces.Lan.Ipaddrv6)
+		assert.Equal(t, "192.168.1.1", opnsense.Interfaces.Lan.IPAddr)
+		assert.Equal(t, "track6", opnsense.Interfaces.Lan.IPAddrv6)
 		assert.Equal(t, "24", opnsense.Interfaces.Lan.Subnet)
 		assert.Equal(t, "64", opnsense.Interfaces.Lan.Subnetv6)
 		assert.Equal(t, "wan", opnsense.Interfaces.Lan.Track6Interface)
@@ -165,7 +165,7 @@ func TestXMLParser_ParseConfigSample(t *testing.T) {
 
 	t.Run("Services", func(t *testing.T) {
 		assert.Equal(t, "1", opnsense.Unbound.Enable)
-		assert.Equal(t, "public", opnsense.Snmpd.Rocommunity)
+		assert.Equal(t, "public", opnsense.Snmpd.ROCommunity)
 		assert.Equal(t, "automatic", opnsense.Nat.Outbound.Mode)
 		assert.Equal(t, "0.opnsense.pool.ntp.org", opnsense.Ntpd.Prefer)
 	})
@@ -194,14 +194,14 @@ func TestXMLParser_ParseConfigSample(t *testing.T) {
 
 		// Check first rule
 		assert.Equal(t, "pass", opnsense.Filter.Rule[0].Type)
-		assert.Equal(t, "inet", opnsense.Filter.Rule[0].Ipprotocol)
+		assert.Equal(t, "inet", opnsense.Filter.Rule[0].IPProtocol)
 		assert.Equal(t, "Default allow LAN to any rule", opnsense.Filter.Rule[0].Descr)
 		assert.Equal(t, "lan", opnsense.Filter.Rule[0].Interface)
 		assert.Equal(t, "lan", opnsense.Filter.Rule[0].Source.Network)
 
 		// Check second rule (IPv6)
 		assert.Equal(t, "pass", opnsense.Filter.Rule[1].Type)
-		assert.Equal(t, "inet6", opnsense.Filter.Rule[1].Ipprotocol)
+		assert.Equal(t, "inet6", opnsense.Filter.Rule[1].IPProtocol)
 		assert.Equal(t, "Default allow LAN IPv6 to any rule", opnsense.Filter.Rule[1].Descr)
 	})
 
@@ -285,8 +285,8 @@ func validateOPNsenseConfig(t *testing.T, config *model.Opnsense, _ string) {
 			assert.NotEmpty(t, rule.Type, "Rule %d type should not be empty", i)
 			assert.Contains(t, []string{"pass", "block", "reject"}, rule.Type, "Rule %d type should be valid", i)
 
-			if rule.Ipprotocol != "" {
-				assert.Contains(t, []string{"inet", "inet6"}, rule.Ipprotocol, "Rule %d IP protocol should be valid", i)
+			if rule.IPProtocol != "" {
+				assert.Contains(t, []string{"inet", "inet6"}, rule.IPProtocol, "Rule %d IP protocol should be valid", i)
 			}
 
 			if rule.Interface != "" {

@@ -35,22 +35,22 @@ type System struct {
 	Optimization                  string   `xml:"optimization"`
 	Hostname                      string   `xml:"hostname"`
 	Domain                        string   `xml:"domain"`
-	Dnsallowoverride              string   `xml:"dnsallowoverride"`
+	DNSAllowOverride              string   `xml:"dnsallowoverride"`
 	Group                         []Group  `xml:"group"`
 	User                          []User   `xml:"user"`
-	Nextuid                       string   `xml:"nextuid"`
-	Nextgid                       string   `xml:"nextgid"`
+	NextUID                       string   `xml:"nextuid"`
+	NextGID                       string   `xml:"nextgid"`
 	Timezone                      string   `xml:"timezone"`
 	Timeservers                   string   `xml:"timeservers"`
 	Webgui                        Webgui   `xml:"webgui"`
-	Disablenatreflection          string   `xml:"disablenatreflection"`
-	Usevirtualterminal            string   `xml:"usevirtualterminal"`
-	Disableconsolemenu            struct{} `xml:"disableconsolemenu"`
-	Disablevlanhwfilter           string   `xml:"disablevlanhwfilter"`
-	Disablechecksumoffloading     string   `xml:"disablechecksumoffloading"`
-	Disablesegmentationoffloading string   `xml:"disablesegmentationoffloading"`
-	Disablelargereceiveoffloading string   `xml:"disablelargereceiveoffloading"`
-	Ipv6allow                     struct{} `xml:"ipv6allow"`
+	DisableNATReflection          string   `xml:"disablenatreflection"`
+	UseVirtualTerminal            string   `xml:"usevirtualterminal"`
+	DisableConsoleMenu            struct{} `xml:"disableconsolemenu"`
+	DisableVLANHWFilter           string   `xml:"disablevlanhwfilter"`
+	DisableChecksumOffloading     string   `xml:"disablechecksumoffloading"`
+	DisableSegmentationOffloading string   `xml:"disablesegmentationoffloading"`
+	DisableLargeReceiveOffloading string   `xml:"disablelargereceiveoffloading"`
+	IPv6Allow                     struct{} `xml:"ipv6allow"`
 	PowerdAcMode                  string   `xml:"powerd_ac_mode"`
 	PowerdBatteryMode             string   `xml:"powerd_battery_mode"`
 	PowerdNormalMode              string   `xml:"powerd_normal_mode"`
@@ -58,8 +58,8 @@ type System struct {
 	PfShareForward                string   `xml:"pf_share_forward"`
 	LbUseSticky                   string   `xml:"lb_use_sticky"`
 	SSH                           SSH      `xml:"ssh"`
-	Rrdbackup                     string   `xml:"rrdbackup"`
-	Netflowbackup                 string   `xml:"netflowbackup"`
+	RrdBackup                     string   `xml:"rrdbackup"`
+	NetflowBackup                 string   `xml:"netflowbackup"`
 }
 
 // Group represents a user group.
@@ -107,18 +107,18 @@ type Interfaces struct {
 type Interface struct {
 	Enable          string `xml:"enable,omitempty"`
 	If              string `xml:"if,omitempty"`
-	Mtu             string `xml:"mtu,omitempty"`
-	Ipaddr          string `xml:"ipaddr,omitempty"`
-	Ipaddrv6        string `xml:"ipaddrv6,omitempty"`
+	MTU             string `xml:"mtu,omitempty"`
+	IPAddr          string `xml:"ipaddr,omitempty"`
+	IPAddrv6        string `xml:"ipaddrv6,omitempty"`
 	Subnet          string `xml:"subnet,omitempty"`
 	Subnetv6        string `xml:"subnetv6,omitempty"`
 	Gateway         string `xml:"gateway,omitempty"`
-	Blockpriv       string `xml:"blockpriv,omitempty"`
-	Blockbogons     string `xml:"blockbogons,omitempty"`
-	Dhcphostname    string `xml:"dhcphostname,omitempty"`
+	BlockPriv       string `xml:"blockpriv,omitempty"`
+	BlockBogons     string `xml:"blockbogons,omitempty"`
+	DHCPHostname    string `xml:"dhcphostname,omitempty"`
 	Media           string `xml:"media,omitempty"`
-	Mediaopt        string `xml:"mediaopt,omitempty"`
-	Dhcp6IaPdLen    string `xml:"dhcp6-ia-pd-len,omitempty"`
+	MediaOpt        string `xml:"mediaopt,omitempty"`
+	DHCP6IaPdLen    string `xml:"dhcp6-ia-pd-len,omitempty"`
 	Track6Interface string `xml:"track6-interface,omitempty"`
 	Track6PrefixID  string `xml:"track6-prefix-id,omitempty"`
 }
@@ -149,9 +149,9 @@ type Unbound struct {
 
 // Snmpd contains the SNMP daemon configuration.
 type Snmpd struct {
-	Syslocation string `xml:"syslocation"`
-	Syscontact  string `xml:"syscontact"`
-	Rocommunity string `xml:"rocommunity"`
+	SysLocation string `xml:"syslocation"`
+	SysContact  string `xml:"syscontact"`
+	ROCommunity string `xml:"rocommunity"`
 }
 
 // Nat contains the NAT configuration.
@@ -172,7 +172,7 @@ type Filter struct {
 // Rule represents a firewall filter rule.
 type Rule struct {
 	Type        string      `xml:"type"`
-	Ipprotocol  string      `xml:"ipprotocol"`
+	IPProtocol  string      `xml:"ipprotocol"`
 	Descr       string      `xml:"descr"`
 	Interface   string      `xml:"interface"`
 	Source      Source      `xml:"source"`
