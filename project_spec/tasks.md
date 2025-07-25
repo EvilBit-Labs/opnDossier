@@ -14,27 +14,35 @@ This document provides a comprehensive task checklist for implementing the opnFo
 
 - [ ] **TASK-001**: Update Go dependencies to match requirements
 
-  - **Context**: Current `go.mod` uses Viper but requirements specify `charmbracelet/fang`
+  - **Context**: Current `go.mod` needs to include all required dependencies
   - **Requirement**: F001-F008 (Core Features), Technical Specifications section
   - **User Story**: US-012 (Configuration Management)
-  - **Action**: Replace Viper with fang, add lipgloss, glamour, and log dependencies
+  - **Action**: Add viper for configuration, fang for CLI enhancement, lipgloss, glamour, and charmbracelet/log dependencies
   - **Acceptance**: `go.mod` matches requirements specification
 
-- [ ] **TASK-002**: Implement structured logging with `log/slog`
+- [ ] **TASK-002**: Implement structured logging with `charmbracelet/log`
 
   - **Context**: Replace current `log` usage with structured logging
   - **Requirement**: US-036 (Structured Logging), Technical Specifications
   - **User Story**: US-036 (Monitoring and Observability)
-  - **Action**: Configure structured logging throughout application
+  - **Action**: Configure structured logging throughout application using charmbracelet/log
   - **Acceptance**: All logging uses structured format with proper levels
 
-- [ ] **TASK-003**: Set up configuration management with fang
+- [ ] **TASK-003**: Set up configuration management with viper
 
-  - **Context**: Replace Viper configuration with fang framework
+  - **Context**: Implement proper configuration management with viper framework
   - **Requirement**: US-012, US-013, US-014 (Configuration Management)
   - **User Story**: US-012-US-014 (Configuration Management)
-  - **Action**: Implement YAML config files, environment variables, CLI overrides
+  - **Action**: Implement YAML config files, environment variables, CLI overrides using viper
   - **Acceptance**: Configuration system supports all three methods with standard precedence (CLI flags > env vars > config file > defaults)
+
+- [ ] **TASK-003a**: Implement CLI enhancement with fang
+
+  - **Context**: Add fang for enhanced CLI experience with styled help, errors, and automatic features
+  - **Requirement**: User Experience Specifications, CLI Interface Requirements
+  - **User Story**: US-009-US-011 (CLI Interface)
+  - **Action**: Integrate fang.Execute() for enhanced CLI experience with styled help, errors, and automatic version/completion
+  - **Acceptance**: CLI provides enhanced user experience with styled output and automatic features
 
 ### 1.2 Project Structure & Organization
 

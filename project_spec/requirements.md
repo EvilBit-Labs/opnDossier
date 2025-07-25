@@ -215,7 +215,8 @@
 #### Core Libraries and Frameworks
 
 - **CLI Framework**: `github.com/spf13/cobra` v1.8.0
-- **Configuration Management**: `charmbracelet/fang` (reconciled requirement - Viper removed due to conflict)
+- **Configuration Management**: `spf13/viper` for configuration parsing
+- **CLI Enhancement**: `charmbracelet/fang` for enhanced CLI experience with styled help, errors, and automatic features
 - **Terminal Styling**: `charmbracelet/lipgloss` for colored output
 - **Markdown Rendering**: `charmbracelet/glamour` for terminal markdown display
 - **Standard Library**: `encoding/xml`, `encoding/json` for data processing
@@ -334,7 +335,7 @@ just build      # Build application
 
 #### Monitoring and Observability
 
-- **Structured Logging**: `log/slog` for consistent logging
+- **Structured Logging**: `charmbracelet/log` for consistent logging
 - **Error Handling**: Comprehensive error wrapping with context
 - **Performance Profiling**: `go tool pprof` integration capability
 - **Health Checks**: CLI self-validation commands

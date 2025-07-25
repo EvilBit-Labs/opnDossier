@@ -86,6 +86,7 @@ Built with modern Go practices and established libraries:
 | ------------------ | ----------------------------------------------------------- |
 | CLI Framework      | [Cobra](https://github.com/spf13/cobra)                     |
 | Configuration      | [Viper](https://github.com/spf13/viper)                     |
+| CLI Enhancement    | [Charm Fang](https://github.com/charmbracelet/fang)         |
 | Terminal Styling   | [Charm Lipgloss](https://github.com/charmbracelet/lipgloss) |
 | Markdown Rendering | [Charm Glamour](https://github.com/charmbracelet/glamour)   |
 | XML Processing     | Go's built-in `encoding/xml`                                |

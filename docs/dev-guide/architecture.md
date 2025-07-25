@@ -102,7 +102,7 @@ graph TB
 
 ### Configuration Management Layer
 
-**Technology**: Charm Fang (planned migration from Viper)
+**Technology**: spf13/viper
 
 **Responsibilities**:
 

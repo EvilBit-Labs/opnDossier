@@ -84,7 +84,8 @@ test(parser): add integration tests for XML parsing
 | Layer                  | Technology                      | Notes                                 |
 | ---------------------- | ------------------------------- | ------------------------------------- |
 | **CLI Framework**      | `cobra`                         | Command organization and help system  |
-| **Configuration**      | `charmbracelet/fang`            | Configuration management              |
+| **Configuration**      | `spf13/viper`                   | Configuration management              |
+| **CLI Enhancement**    | `charmbracelet/fang`            | Enhanced CLI experience               |
 | **Terminal Styling**   | `charmbracelet/lipgloss`        | Colored output and styling            |
 | **Markdown Rendering** | `charmbracelet/glamour`         | Terminal markdown display             |
 | **Logging**            | `charmbracelet/log`             | Structured logging                    |
@@ -240,7 +241,7 @@ func TestParseXMLConfig(t *testing.T) {
 
 **internal/ - Private Application Logic:**
 
-- `config/`: Configuration management using `charmbracelet/fang`
+- `config/`: Configuration management using `spf13/viper`
 - `parser/`: XML parsing using `encoding/xml`
 - `converter/`: XML to Markdown conversion logic
 - `display/`: Terminal output using `charmbracelet/lipgloss` and `charmbracelet/glamour`
@@ -253,7 +254,7 @@ func TestParseXMLConfig(t *testing.T) {
 ### Configuration Management
 
 ```go
-// Using charmbracelet/fang for configuration
+// Using spf13/viper for configuration
 type Config struct {
     InputFile  string `flag:"input" desc:"Input XML file path"`
     OutputFile string `flag:"output" desc:"Output markdown file path"`

@@ -33,7 +33,7 @@ opnFocus is a **CLI-based OPNsense configuration processor** designed with an **
 
 ### 2. Configuration Management
 
-- **Framework**: Charm Fang (migrating from Viper)
+- **Framework**: spf13/viper
 - **Sources**: CLI flags > Environment variables > Config file > Defaults
 - **Format**: YAML configuration files
 - **Precedence**: Standard order where environment variables override config files for deployment flexibility

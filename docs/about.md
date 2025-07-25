@@ -39,7 +39,8 @@ Built with modern Go practices and established libraries:
 
 - **[Go](https://golang.org/)** - Primary programming language
 - **[Cobra](https://github.com/spf13/cobra)** - CLI framework for command organization
-- **[Fang](https://github.com/charmbracelet/fang)** - Configuration management
+- **[Viper](https://github.com/spf13/viper)** - Configuration management
+- **[Fang](https://github.com/charmbracelet/fang)** - Enhanced CLI experience
 - **[Lipgloss](https://github.com/charmbracelet/lipgloss)** - Terminal styling and formatting
 - **[Glamour](https://github.com/charmbracelet/glamour)** - Markdown rendering in terminal
 

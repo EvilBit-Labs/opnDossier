@@ -63,8 +63,8 @@ Follow the [Conventional Commits](https://www.conventionalcommits.org) specifica
 
 | Layer      | Technology                                                                  |
 | ---------- | --------------------------------------------------------------------------- |
-| CLI Tool   | `cobra` v1.8.0 + `charmbracelet/lipgloss`                                   |
-| Config     | `spf13/viper` for configuration parsing (migrating to `charmbracelet/fang`) |
+| CLI Tool   | `cobra` v1.8.0 + `charmbracelet/fang` for styled help, errors, and features |
+| Config     | `spf13/viper` for configuration parsing                                     |
 | Display    | `charmbracelet/glamour` for markdown rendering                              |
 | Data Model | Go structs with `encoding/xml` and `encoding/json`                          |
 | Logging    | `charmbracelet/log` for structured logging                                  |
@@ -79,7 +79,8 @@ Follow the [Conventional Commits](https://www.conventionalcommits.org) specifica
 ### 3.3. CLI Architecture
 
 - **Command Structure:** Use `cobra` for CLI command organization with consistent verb patterns (`create`, `list`, `get`, `update`, `delete`)
-- **Configuration:** Use `spf13/viper` for configuration management with support for environment variables, config files, and command-line flags (migrating to `charmbracelet/fang`)
+- **Configuration:** Use `spf13/viper` for configuration management with support for environment variables, config files, and command-line flags
+- **CLI Enhancement:** Use `charmbracelet/fang` for enhanced CLI experience with styled help, errors, automatic version/completion, and manpage generation
 - **Output Formatting:** Use `charmbracelet/lipgloss` for styled terminal output and `charmbracelet/glamour` for markdown rendering
 - **Error Handling:** Use Go's error handling patterns with `fmt.Errorf` and `errors.Wrap` for context preservation
 
@@ -190,16 +191,73 @@ var convertCmd = &cobra.Command{
 }
 ```
 
-#### Configuration with Fang
+#### Configuration with Viper
 
 ```go
-// Use fang for configuration management
+// Use viper for configuration management
 type Config struct {
-    InputFile  string `env:"INPUT_FILE" flag:"input" short:"i" desc:"Input XML file"`
-    OutputFile string `env:"OUTPUT_FILE" flag:"output" short:"o" desc:"Output markdown file"`
-    Display    bool   `env:"DISPLAY" flag:"display" short:"d" desc:"Display in terminal"`
+    InputFile  string `mapstructure:"input_file"`
+    OutputFile string `mapstructure:"output_file"`
+    Display    bool   `mapstructure:"display"`
+}
+
+func initConfig() {
+    viper.SetConfigName("config")
+    viper.SetConfigType("yaml")
+    viper.AddConfigPath(".")
+    viper.AutomaticEnv()
+    viper.SetEnvPrefix("OPNFOCUS")
 }
 ```
+
+#### CLI Enhancement with Fang
+
+```go
+// Use fang for enhanced CLI experience with styled help, errors, and automatic features
+import (
+    "context"
+    "os"
+    "github.com/charmbracelet/fang"
+    "github.com/spf13/cobra"
+)
+
+func main() {
+    rootCmd := &cobra.Command{
+        Use:   "opnFocus",
+        Short: "OPNsense configuration processor",
+        Long:  `A CLI tool for processing OPNsense config.xml files and converting them to markdown.`,
+    }
+
+    // Add subcommands
+    convertCmd := &cobra.Command{
+        Use:   "convert [file]",
+        Short: "Convert OPNsense config to markdown",
+        Args:  cobra.ExactArgs(1),
+        RunE:  runConvert,
+    }
+    rootCmd.AddCommand(convertCmd)
+
+    // Execute with fang for enhanced experience
+    if err := fang.Execute(context.Background(), rootCmd); err != nil {
+        os.Exit(1)
+    }
+}
+
+func runConvert(cmd *cobra.Command, args []string) error {
+    // Implementation here
+    return nil
+}
+```
+
+**Fang Features:**
+
+- Styled help and usage pages
+- Styled error messages
+- Automatic `--version` flag
+- Hidden `man` command for manpage generation
+- `completion` command for shell completions
+- Themeable appearance
+- Silent usage output (no help shown after user errors)
 
 #### Styled Output with Lipgloss
 
