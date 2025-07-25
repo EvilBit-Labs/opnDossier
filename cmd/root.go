@@ -61,6 +61,7 @@ Examples:
 	},
 }
 
+// init initializes the global logger and sets up persistent CLI flags for configuration file, verbose output, and quiet mode.
 func init() {
 	logger = log.NewWithOptions(os.Stderr, log.Options{
 		ReportCaller:    true,
@@ -72,7 +73,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolP("quiet", "q", false, "Suppress all output except errors")
 }
 
-// GetRootCmd returns the root command for the application.
+// GetRootCmd returns the root Cobra command for the opnFocus CLI application. Use this to access the application's main command and its subcommands.
 func GetRootCmd() *cobra.Command {
 	return rootCmd
 }

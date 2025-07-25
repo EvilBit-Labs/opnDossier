@@ -16,7 +16,7 @@ type Parser interface {
 // XMLParser is an XML parser for OPNsense configuration files.
 type XMLParser struct{}
 
-// NewXMLParser creates a new XMLParser.
+// NewXMLParser returns a new instance of XMLParser for parsing OPNsense XML configuration files.
 func NewXMLParser() *XMLParser {
 	return &XMLParser{}
 }
