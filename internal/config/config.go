@@ -221,4 +221,3 @@ func (c *Config) IsVerbose() bool {
 func (c *Config) IsQuiet() bool {
 	return c.Quiet
 }
-

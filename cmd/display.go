@@ -15,16 +15,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	noValidation bool //nolint:gochecknoglobals // Cobra flag variable
-)
+var noValidation bool //nolint:gochecknoglobals // Cobra flag variable
 
 func init() {
 	rootCmd.AddCommand(displayCmd)
 	displayCmd.Flags().BoolVar(&noValidation, "no-validate", false, "Skip validation and display potentially malformed configurations")
 }
 
-var displayCmd = &cobra.Command{
+var displayCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 	Use:   "display [file]",
 	Short: "Display OPNsense configuration as formatted markdown in terminal",
 	Long: `The 'display' command converts an OPNsense config.xml file to markdown

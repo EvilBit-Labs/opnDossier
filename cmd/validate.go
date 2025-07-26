@@ -17,7 +17,7 @@ func init() {
 	rootCmd.AddCommand(validateCmd)
 }
 
-var validateCmd = &cobra.Command{
+var validateCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 	Use:   "validate [file ...]",
 	Short: "Validate OPNsense configuration files",
 	Long: `The 'validate' command checks one or more OPNsense config.xml files for

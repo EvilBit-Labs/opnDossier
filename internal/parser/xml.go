@@ -227,7 +227,6 @@ func (p *XMLParser) ParseAndValidate(ctx context.Context, r io.Reader) (*model.O
 	return cfg, nil
 }
 
-
 // convertValidatorToParserValidationErrors converts validator.ValidationError slice to parser.ValidationError slice.
 // This helper bridges the gap between the two validation error types.
 func convertValidatorToParserValidationErrors(validatorErrors []validator.ValidationError) []ValidationError {

@@ -15,6 +15,7 @@ Thank you for your interest in contributing to the OPNsense Configuration Proces
 ### Getting Started
 
 1. Fork the repository on GitHub
+
 2. Clone your fork locally:
 
    ```bash
@@ -125,18 +126,21 @@ go test -cover ./...
 ## Pull Request Process
 
 1. **Before submitting**:
+
    - Ensure all tests pass
    - Run linting tools
    - Update documentation if needed
    - Add changelog entry if appropriate
 
 2. **PR Description**:
+
    - Clearly describe what changes were made
    - Reference any related issues
    - Include examples of new functionality
    - Note any breaking changes
 
 3. **Review process**:
+
    - All PRs require at least one review
    - CI must pass (tests, linting, benchmarks)
    - Documentation updates may be requested

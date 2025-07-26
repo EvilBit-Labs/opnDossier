@@ -21,6 +21,11 @@ var (
 			Foreground(lipgloss.Color("#FF0000"))
 )
 
+const (
+	// DefaultWordWrapWidth is the default word wrap width for terminal display.
+	DefaultWordWrapWidth = 120
+)
+
 // Title prints the given string to the console using the predefined title style.
 func Title(s string) {
 	fmt.Println(titleStyle.Render(s))
@@ -41,11 +46,16 @@ func NewTerminalDisplay() *TerminalDisplay {
 	// Create renderer with auto style detection (adapts to terminal theme)
 	renderer, err := glamour.NewTermRenderer(
 		glamour.WithAutoStyle(),
-		glamour.WithWordWrap(120),
+		glamour.WithWordWrap(DefaultWordWrapWidth),
 	)
 	if err != nil {
 		// Fallback to default renderer if auto style fails
-		renderer, _ = glamour.NewTermRenderer()
+		renderer, err = glamour.NewTermRenderer()
+		if err != nil {
+			// If we can't create any renderer, this is a critical error
+			// but we'll create a minimal fallback that just passes through text
+			return &TerminalDisplay{renderer: nil}
+		}
 	}
 
 	return &TerminalDisplay{
@@ -55,6 +65,13 @@ func NewTerminalDisplay() *TerminalDisplay {
 
 // Display renders and displays markdown content in the terminal with syntax highlighting.
 func (td *TerminalDisplay) Display(_ context.Context, markdown string) error {
+	// Handle fallback case where renderer is nil
+	if td.renderer == nil {
+		// Just print the markdown as-is without rendering
+		fmt.Print(markdown)
+		return nil
+	}
+
 	out, err := td.renderer.Render(markdown)
 	if err != nil {
 		return fmt.Errorf("failed to render markdown: %w", err)

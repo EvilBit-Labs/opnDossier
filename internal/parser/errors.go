@@ -210,4 +210,3 @@ func WrapXMLSyntaxErrorWithOffset(err error, elementPath string, dec *xml.Decode
 		Message: message,
 	}
 }
-
