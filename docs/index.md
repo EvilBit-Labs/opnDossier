@@ -5,10 +5,12 @@ Welcome to the **OPNsense Configuration Processor** documentation! This CLI tool
 ## Features
 
 - 🔧 **Parse OPNsense XML configurations** - Process complex configuration files with ease
+- ✅ **Configuration Validation** - Comprehensive validation with detailed error reporting
 - 📝 **Convert to Markdown** - Generate human-readable documentation
 - 🎨 **Terminal Display** - View results with syntax highlighting in your terminal
 - 💾 **Export to Files** - Save processed configurations to markdown files
 - 🔌 **Offline Operation** - Works completely offline, no external dependencies
+- 🚀 **Streaming Processing** - Memory-efficient handling of large configuration files
 
 ## Quick Start
 
@@ -65,6 +67,40 @@ opnFocus implements comprehensive configuration management with Viper:
 - `log_format`: Set log format (text, json)
 - `input_file`: Default input file path
 - `output_file`: Default output file path
+
+## Validation & Error Handling
+
+opnFocus includes comprehensive validation capabilities:
+
+### Validation Features
+
+- **Structure Validation** - Ensures required fields are present (hostname, domain, etc.)
+- **Data Type Validation** - Verifies IP addresses, subnet masks, and network configurations
+- **Cross-Field Validation** - Checks relationships between configuration elements
+- **Streaming Limits** - Handles large files efficiently with memory-conscious processing
+
+### Error Output Examples
+
+**Parse Error:**
+
+```text
+parse error at line 45, column 12: XML syntax error: expected element name after <
+```
+
+**Validation Error:**
+
+```text
+validation error at opnsense.system.hostname: hostname is required
+```
+
+**Aggregated Report:**
+
+```text
+validation failed with 3 errors: hostname is required (and 2 more)
+  - opnsense.system.hostname: hostname is required
+  - opnsense.system.domain: domain is required
+  - opnsense.interfaces.lan.subnet: subnet mask '35' must be valid (0-32)
+```
 
 ## Getting Started
 

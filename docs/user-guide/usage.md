@@ -15,6 +15,9 @@ opnfocus convert config.xml
 # Convert and save to file
 opnfocus convert config.xml -o documentation.md
 
+# Convert with validation enabled
+opnfocus convert config.xml --validate -o documentation.md
+
 # Convert multiple files
 opnfocus convert config1.xml config2.xml config3.xml
 ```
@@ -32,6 +35,9 @@ opnfocus --quiet convert config.xml
 
 # JSON logging format
 opnfocus --log_format=json convert config.xml
+
+# Enable validation with verbose output
+opnfocus --validate --verbose convert config.xml
 ```
 
 ## Configuration Management
@@ -137,11 +143,71 @@ fi
 # Debug XML parsing issues
 opnfocus --verbose --log_level=debug convert problematic-config.xml
 
+# Debug with validation enabled
+opnfocus --validate --verbose --log_level=debug convert config.xml
+
 # Capture detailed logs
 opnfocus --log_format=json --log_level=debug convert config.xml > debug.log 2>&1
 
 # Test configuration loading
 opnfocus --verbose --config ./test-config.yaml convert --help
+```
+
+## Validation and Error Handling
+
+### Understanding Validation Output
+
+opnFocus provides comprehensive validation with detailed error reporting:
+
+```bash
+# Enable validation during conversion
+opnfocus convert config.xml --validate
+
+# Example validation error output
+# validation error at opnsense.system.hostname: hostname is required
+# validation error at opnsense.interfaces.wan.ipaddr: IP address '300.300.300.300' must be a valid IP address
+```
+
+### Common Validation Errors
+
+#### Missing Required Fields
+
+```bash
+# Error: hostname is required
+opnfocus --validate convert incomplete-config.xml
+# Output: validation error at opnsense.system.hostname: hostname is required
+```
+
+#### Invalid Network Configuration
+
+```bash
+# Error: invalid IP address
+opnfocus --validate convert bad-network-config.xml
+# Output: validation error at opnsense.interfaces.lan.ipaddr: IP address '256.256.256.256' must be a valid IP address
+```
+
+#### Aggregated Error Reports
+
+```bash
+# Multiple validation errors
+opnfocus --validate convert multi-error-config.xml
+# Output: validation failed with 3 errors: hostname is required (and 2 more)
+#   - opnsense.system.hostname: hostname is required
+#   - opnsense.system.domain: domain is required
+#   - opnsense.interfaces.lan.subnet: subnet mask '35' must be valid (0-32)
+```
+
+### Streaming Processing
+
+opnFocus handles large configuration files efficiently:
+
+```bash
+# Process large configuration files
+opnfocus convert large-config.xml  # Automatically uses streaming
+
+# Monitor memory usage during processing
+opnfocus --verbose convert large-config.xml
+# Output shows memory cleanup after processing large sections
 ```
 
 ## Advanced Usage

@@ -8,6 +8,8 @@ Thank you for your interest in contributing to the OPNsense Configuration Proces
 
 - Go 1.21 or later
 - Git
+- [golangci-lint](https://golangci-lint.run/usage/install/) - Go linter (latest version recommended)
+- [MkDocs](https://www.mkdocs.org/getting-started/) - Documentation generator (latest version recommended)
 - Just (command runner) - optional but recommended
 
 ### Getting Started

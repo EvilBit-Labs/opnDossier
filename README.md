@@ -1,4 +1,4 @@
-# OPNsense Configuration Processor
+# opnFocus - OPNsense Configuration Processor
 
 [![Go Version](https://img.shields.io/badge/go-1.21+-blue.svg)](https://golang.org)
 [![License](https://img.shields.io/badge/license-Apache-green.svg)](LICENSE)
@@ -13,11 +13,13 @@ A command-line tool designed specifically for network operators and administrato
 ## ✨ Features
 
 - 🔧 **Parse OPNsense XML configurations** - Process complex configuration files with ease
+- ✅ **Configuration Validation** - Comprehensive validation with detailed error reporting
 - 📝 **Convert to Markdown** - Generate human-readable documentation from XML configs
 - 💾 **Export to Files** - Save processed configurations as markdown files
 - 🔌 **Offline Operation** - Works completely offline, perfect for airgapped environments
 - 🛡️ **Security-First** - No external dependencies, no telemetry, secure by design
-- ⚡ **Fast & Lightweight** - Built with Go for performance and reliability
+- ⚡ **Fast 6 Lightweight** - Built with Go for performance and reliability
+- 🚀 **Streaming Processing** - Memory-efficient handling of large configuration files
 
 ## 🚀 Quick Start
 
@@ -117,11 +119,56 @@ opnfocus --quiet convert config.xml
 # Custom log level
 opnfocus --log_level=debug convert config.xml
 
+# Enable validation during conversion
+opnfocus convert config.xml --validate
+
 # Configuration precedence: CLI flags override everything
 opnfocus --verbose --log_format=json convert config.xml
 ```
 
-**Note:** The CLI uses a layered architecture: **Cobra** provides command structure & argument parsing, **Viper** handles layered configuration management (files, env, flags), and **Fang** adds enhanced UX features like styled help, automatic version flags, and shell completion.
+**Note:** The CLI uses a layered architecture: **Cobra** provides command structure 6 argument parsing, **Viper** handles layered configuration management (files, env, flags), and **Fang** adds enhanced UX features like styled help, automatic version flags, and shell completion.
+
+## 🔍 Validation 6 Error Handling
+
+opnFocus includes comprehensive validation capabilities to ensure configuration integrity:
+
+### Validation Features
+
+- **Configuration Structure Validation** - Validates required fields like hostname, domain, and network interfaces
+- **Data Type Validation** - Ensures IP addresses, subnet masks, and network configurations are valid
+- **Cross-Field Validation** - Checks relationships between configuration elements
+- **Streaming Limits** - Handles large files efficiently with memory-conscious processing
+
+### Typical Error Output Examples
+
+**Parse Error Example**:
+
+```
+parse error at line 45, column 12: XML syntax error: expected element name after <
+```
+
+**Validation Error Example**:
+
+```
+validation error at opnsense.system.hostname: hostname is required
+validation error at opnsense.interfaces.wan.ipaddr: IP address '300.300.300.300' must be a valid IP address
+```
+
+**Aggregated Validation Report**:
+
+```
+validation failed with 3 errors: hostname is required (and 2 more)
+  - opnsense.system.hostname: hostname is required
+  - opnsense.system.domain: domain is required
+  - opnsense.interfaces.lan.subnet: subnet mask '35' must be a valid subnet mask (0-32)
+```
+
+### Streaming Processing Limits
+
+- **Memory Efficiency**: Processes large XML files without loading entire document into memory
+- **Element Streaming**: Handles configurations with thousands of rules or large sysctl sections
+- **Garbage Collection**: Automatic memory cleanup after processing large sections
+- **Error Recovery**: Continues processing when possible, collecting all validation errors
 
 ## 🏗️ Architecture
 

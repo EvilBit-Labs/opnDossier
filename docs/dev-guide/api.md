@@ -1,6 +1,63 @@
 # API Reference
 
-This document provides detailed API documentation for opnFocus internal packages and public interfaces.
+This document provides detailed information about the opnFocus API and its components.
+
+## Migration Notice: New Validate Method
+
+**Important for downstream consumers:** A new `Validate` method has been added to the `XMLParser` interface in this release.
+
+### What Changed
+
+The `XMLParser` now includes a dedicated validation method:
+
+```go
+// New method added to XMLParser interface
+func (p *XMLParser) Validate(cfg *model.Opnsense) error
+```
+
+### Migration Guide
+
+#### For Library Users
+
+If you're using opnFocus as a library and have implemented custom parsers based on the `XMLParser` interface, you'll need to implement the new `Validate` method:
+
+```go
+// Before: Your custom parser only needed Parse method
+type CustomParser struct{}
+
+func (p *CustomParser) Parse(ctx context.Context, r io.Reader) (*model.Opnsense, error) {
+    // Your implementation
+}
+
+// After: You must also implement Validate method
+func (p *CustomParser) Validate(cfg *model.Opnsense) error {
+    // Your validation implementation
+    // You can return nil if no validation is needed
+    return nil
+}
+```
+
+#### For CLI Users
+
+No changes are required for CLI usage. The validation is automatically integrated into existing commands.
+
+#### Recommended Integration
+
+For new integrations, consider using the combined `ParseAndValidate` method:
+
+```go
+// Recommended approach for new code
+parser := parser.NewXMLParser()
+cfg, err := parser.ParseAndValidate(ctx, reader)
+if err != nil {
+    // Handle both parse and validation errors
+    return err
+}
+```
+
+#### Backward Compatibility
+
+Existing code using only the `Parse` method will continue to work without validation. Validation is opt-in through explicit method calls or CLI flags.
 
 ## Overview
 
@@ -8,7 +65,7 @@ opnFocus is structured with clear separation between CLI interface (cmd/) and in
 
 ## Package Structure
 
-```
+```text
 opnfocus/
 ├── cmd/                    # CLI commands (public interface)
 ├── internal/

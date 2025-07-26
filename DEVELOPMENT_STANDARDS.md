@@ -350,6 +350,203 @@ go test -race ./...         # Race detection
 - **Concurrent Processing:** Use goroutines and channels for I/O operations
 - **Test Performance:** Individual tests \<100ms
 
+## Validator Patterns
+
+### Overview
+
+The opnFocus project implements a comprehensive validation system to ensure configuration integrity and provide meaningful feedback to users. The validation patterns follow a structured approach that separates concerns and provides extensible validation capabilities.
+
+### Validation Architecture
+
+#### Core Components
+
+1. **ValidationError Structure** - Standardized error representation
+2. **Field-Specific Validators** - Targeted validation for different configuration elements
+3. **Cross-Field Validation** - Relationship validation between configuration elements
+4. **Aggregated Reporting** - Collection and presentation of multiple validation errors
+
+#### Validation Error Types
+
+```go
+// ValidationError represents a single validation failure with path context
+type ValidationError struct {
+    Field   string // Configuration field path (e.g., "system.hostname")
+    Message string // Human-readable error message
+}
+
+// AggregatedValidationReport collects multiple validation errors
+type AggregatedValidationReport struct {
+    Errors []ValidationError // List of all validation failures
+}
+```
+
+### Validation Implementation Patterns
+
+#### 1. Required Field Validation
+
+```go
+// Validate required fields with clear error messages
+if system.Hostname == "" {
+    errors = append(errors, ValidationError{
+        Field:   "system.hostname",
+        Message: "hostname is required",
+    })
+}
+```
+
+#### 2. Format Validation
+
+```go
+// Validate data formats with specific validation functions
+if system.Hostname != "" && !isValidHostname(system.Hostname) {
+    errors = append(errors, ValidationError{
+        Field:   "system.hostname",
+        Message: fmt.Sprintf("hostname '%s' contains invalid characters", system.Hostname),
+    })
+}
+```
+
+#### 3. Enumeration Validation
+
+```go
+// Validate against allowed values
+validOptimizations := []string{"normal", "high-latency", "aggressive", "conservative"}
+if system.Optimization != "" && !contains(validOptimizations, system.Optimization) {
+    errors = append(errors, ValidationError{
+        Field:   "system.optimization",
+        Message: fmt.Sprintf("optimization '%s' must be one of: %v", system.Optimization, validOptimizations),
+    })
+}
+```
+
+#### 4. Cross-Field Validation
+
+```go
+// Validate relationships between fields
+if iface.IPAddrv6 == "track6" {
+    if iface.Track6Interface == "" {
+        errors = append(errors, ValidationError{
+            Field:   fmt.Sprintf("interfaces.%s.track6-interface", name),
+            Message: "track6-interface is required when using track6 mode",
+        })
+    }
+}
+```
+
+### Validation Helper Functions
+
+#### Network Validation
+
+```go
+// isValidIP validates IPv4 addresses
+func isValidIP(ip string) bool {
+    return net.ParseIP(ip) != nil && strings.Contains(ip, ".")
+}
+
+// isValidIPv6 validates IPv6 addresses
+func isValidIPv6(ip string) bool {
+    parsed := net.ParseIP(ip)
+    return parsed != nil && strings.Contains(ip, ":")
+}
+```
+
+#### String Validation
+
+```go
+// isValidHostname validates hostname format
+func isValidHostname(hostname string) bool {
+    hostnameRegex := regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$`)
+    return hostnameRegex.MatchString(hostname)
+}
+```
+
+#### Range Validation
+
+```go
+// Validate numeric ranges with proper error context
+if iface.MTU != "" {
+    if mtu, err := strconv.Atoi(iface.MTU); err != nil || mtu < 68 || mtu > 9000 {
+        errors = append(errors, ValidationError{
+            Field:   fmt.Sprintf("interfaces.%s.mtu", name),
+            Message: fmt.Sprintf("MTU '%s' must be a valid MTU (68-9000)", iface.MTU),
+        })
+    }
+}
+```
+
+### Validation Integration
+
+#### Parser Integration
+
+```go
+// Validate method in XMLParser
+func (p *XMLParser) Validate(cfg *model.Opnsense) error {
+    validationErrors := config.ValidateOpnsense(cfg)
+    if len(validationErrors) > 0 {
+        // Convert to parser validation errors and return aggregated report
+        parserValidationErrors := convertConfigToParserValidationErrors(validationErrors)
+        return NewAggregatedValidationReport(parserValidationErrors)
+    }
+    return nil
+}
+```
+
+#### CLI Integration
+
+```go
+// Handle validation errors in CLI commands
+if err := p.Validate(opnsense); err != nil {
+    var aggErr *AggregatedValidationReport
+    if errors.As(err, &aggErr) {
+        // Display structured validation errors to user
+        for _, validationErr := range aggErr.Errors {
+            fmt.Printf("validation error at %s: %s\n", validationErr.Path, validationErr.Message)
+        }
+        return fmt.Errorf("configuration validation failed with %d errors", len(aggErr.Errors))
+    }
+    return err
+}
+```
+
+### Best Practices
+
+1. **Comprehensive Error Messages** - Include field paths and specific error descriptions
+2. **Early Validation** - Validate inputs as early as possible in the processing pipeline
+3. **Collect All Errors** - Don't fail on first error; collect all validation issues
+4. **Contextual Information** - Provide enough context for users to fix validation issues
+5. **Extensible Design** - Structure validators to be easily extended for new configuration elements
+
+### Testing Validation
+
+#### Unit Tests for Validators
+
+```go
+func TestValidateSystem(t *testing.T) {
+    tests := []struct {
+        name           string
+        system         *model.System
+        expectedErrors int
+        expectedFields []string
+    }{
+        {
+            name: "missing hostname",
+            system: &model.System{Domain: "example.com"},
+            expectedErrors: 1,
+            expectedFields: []string{"system.hostname"},
+        },
+        // More test cases...
+    }
+    
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            errors := validateSystem(tt.system)
+            assert.Len(t, errors, tt.expectedErrors)
+            // Verify specific error fields...
+        })
+    }
+}
+```
+
 ## Security Standards
 
 ### General Security Principles

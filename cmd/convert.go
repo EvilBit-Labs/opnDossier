@@ -31,6 +31,9 @@ var convertCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 its content into a structured Markdown format. This allows for easier
 readability, documentation, and auditing of your firewall configuration.
 
+The convert command focuses on conversion only and does not perform validation.
+To validate your configuration files before conversion, use the 'validate' command.
+
 You can either print the generated Markdown directly to the console or
 save it to a specified output file using the '--output' or '-o' flag.
 When processing multiple files, the --output flag will be ignored, and
@@ -46,7 +49,7 @@ CONFIGURATION:
     output_file in ~/.opnFocus.yaml
 
 Examples:
-  # Convert 'my_config.xml' and print the Markdown to standard output
+  # Convert 'my_config.xml' and print to console
   opnFocus convert my_config.xml
 
   # Convert 'my_config.xml' and save the Markdown to 'documentation.md'
@@ -60,6 +63,9 @@ Examples:
 
   # Use environment variable to set default output location
   OPNFOCUS_OUTPUT_FILE=./docs/network.md opnFocus convert config.xml
+
+  # Validate before converting (recommended workflow)
+  opnFocus validate config.xml && opnFocus convert config.xml -o output.md
 `,
 	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -104,12 +110,21 @@ Examples:
 					}
 				}()
 
-				// Parse the XML
+				// Parse the XML without validation (use 'validate' command for validation)
 				ctxLogger.Debug("Parsing XML file")
 				p := parser.NewXMLParser()
 				opnsense, err := p.Parse(ctx, file)
 				if err != nil {
 					ctxLogger.Error("Failed to parse XML", "error", err)
+					// Enhanced error handling for different error types
+					if parser.IsParseError(err) {
+						if parseErr := parser.GetParseError(err); parseErr != nil {
+							ctxLogger.Error("XML syntax error detected", "line", parseErr.Line, "message", parseErr.Message)
+						}
+					}
+					if parser.IsValidationError(err) {
+						ctxLogger.Error("Configuration validation failed")
+					}
 					errs <- fmt.Errorf("failed to parse XML from %s: %w", fp, err)
 					return
 				}

@@ -9,7 +9,7 @@ type Opnsense struct {
 	Version              string       `xml:"version,omitempty"`
 	TriggerInitialWizard struct{}     `xml:"trigger_initial_wizard,omitempty"`
 	Theme                string       `xml:"theme,omitempty"`
-	Sysctl               []SysctlItem `xml:"sysctl>item,omitempty"`
+	Sysctl               []SysctlItem `xml:"sysctl,omitempty"`
 	System               System       `xml:"system,omitempty"`
 	Interfaces           Interfaces   `xml:"interfaces,omitempty"`
 	Dhcpd                Dhcpd        `xml:"dhcpd,omitempty"`

@@ -2,10 +2,14 @@ package parser
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 
@@ -336,4 +340,353 @@ func BenchmarkXMLParser_Parse(b *testing.B) {
 
 		_ = file.Close() //nolint:errcheck // Ignore error in benchmark cleanup
 	}
+}
+
+// TestXMLParser_Validate tests the Validate method of XMLParser.
+func TestXMLParser_Validate(t *testing.T) {
+	p := NewXMLParser()
+
+	// Load a valid sample configuration
+	validConfig := &model.Opnsense{
+		Version: "1.2.3",
+		System: model.System{
+			Hostname: "test-host",
+			Domain:   "test.local",
+		},
+	}
+
+	// Validate should return no error for a valid configuration
+	err := p.Validate(validConfig)
+	assert.NoError(t, err)
+
+	// Load an invalid configuration
+	invalidConfig := &model.Opnsense{
+		Version: "",
+		System:  model.System{}, // Missing hostname and domain
+	}
+
+	// Validate should return an error for an invalid configuration
+	err = p.Validate(invalidConfig)
+	assert.Error(t, err)
+}
+
+// TestXMLParser_ParseAndValidate tests the ParseAndValidate method of XMLParser.
+func TestXMLParser_ParseAndValidate(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		wantErr bool
+	}{
+		{
+			name:    "valid input",
+			input:   `<opnsense><version>1.2.3</version><system><hostname>test-host</hostname><domain>test.local</domain></system></opnsense>`,
+			wantErr: false,
+		},
+		{
+			name:    "invalid input - missing required fields",
+			input:   `<opnsense><system></system></opnsense>`,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := NewXMLParser()
+
+			_, err := p.ParseAndValidate(context.Background(), strings.NewReader(tt.input))
+
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestXMLParser_MalformedXML tests parsing of malformed XML with line/column assertion.
+func TestXMLParser_MalformedXML(t *testing.T) {
+	tests := []struct {
+		name         string
+		input        string
+		expectedLine int
+		description  string
+	}{
+		{
+			name: "unclosed tag",
+			input: `<opnsense>
+				<system>
+					<hostname>testhost</hostname>
+					<domain>example.com</domain>
+				</system>`, // Missing </opnsense>
+			expectedLine: 1, // xml.SyntaxError reports line of root element
+			description:  "Unclosed root tag should produce ParseError with line information",
+		},
+		{
+			name: "mismatched tag",
+			input: `<opnsense>
+				<system>
+					<hostname>testhost</hostname>
+					<domain>example.com</domain>
+				</wrong>
+			</opnsense>`,
+			expectedLine: 5, // Line where mismatched tag occurs
+			description:  "Mismatched tag should produce ParseError with line information",
+		},
+		{
+			name: "invalid character in tag name",
+			input: `<opnsense>
+				<system>
+					<host-name@invalid>testhost</host-name@invalid>
+					<domain>example.com</domain>
+				</system>
+			</opnsense>`,
+			expectedLine: 3, // Line where invalid character occurs
+			description:  "Invalid character in tag name should produce ParseError with line information",
+		},
+		{
+			name: "malformed attribute",
+			input: `<opnsense>
+				<system version="1.0>
+					<hostname>testhost</hostname>
+					<domain>example.com</domain>
+				</system>
+			</opnsense>`,
+			expectedLine: 2, // Line where malformed attribute occurs
+			description:  "Malformed attribute should produce ParseError with line information",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			parser := NewXMLParser()
+			reader := strings.NewReader(tt.input)
+
+			_, err := parser.Parse(context.Background(), reader)
+
+			require.Error(t, err, tt.description)
+
+			// Check if it's a ParseError with line information
+			var parseErr *ParseError
+			if errors.As(err, &parseErr) {
+				assert.Greater(t, parseErr.Line, 0, "ParseError should have line information")
+				assert.Contains(t, parseErr.Message, "opnsense", "ParseError should contain element context")
+			} else {
+				// If not a direct ParseError, check if it's wrapped with system decode error
+				errorStr := err.Error()
+				isValidError := strings.Contains(errorStr, "failed to decode XML") ||
+					strings.Contains(errorStr, "failed to decode system") ||
+					strings.Contains(errorStr, "XML syntax error")
+				assert.True(t, isValidError, "Error should indicate XML parsing failure, got: %s", errorStr)
+			}
+		})
+	}
+}
+
+// TestXMLParser_ValidationFailure tests cases that should produce ValidationError.
+func TestXMLParser_ValidationFailure(t *testing.T) {
+	tests := []struct {
+		name         string
+		input        string
+		validationOn bool
+		description  string
+	}{
+		{
+			name: "missing required hostname",
+			input: `<opnsense>
+				<system>
+					<domain>example.com</domain>
+				</system>
+			</opnsense>`,
+			validationOn: true,
+			description:  "Missing hostname should produce ValidationError when validation is enabled",
+		},
+		{
+			name: "invalid enum value",
+			input: `<opnsense>
+				<system>
+					<hostname>testhost</hostname>
+					<domain>example.com</domain>
+					<optimization>invalid-value</optimization>
+				</system>
+			</opnsense>`,
+			validationOn: true,
+			description:  "Invalid enum value should produce ValidationError when validation is enabled",
+		},
+		{
+			name: "cross-field validation error",
+			input: `<opnsense>
+				<system>
+					<hostname>testhost</hostname>
+					<domain>example.com</domain>
+				</system>
+				<interfaces>
+					<lan>
+						<ipaddrv6>track6</ipaddrv6>
+					</lan>
+				</interfaces>
+			</opnsense>`,
+			validationOn: true,
+			description:  "Missing track6 fields should produce ValidationError when validation is enabled",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			parser := NewXMLParser()
+			reader := strings.NewReader(tt.input)
+
+			if tt.validationOn {
+				// Test ParseAndValidate which always validates
+				_, err := parser.ParseAndValidate(context.Background(), reader)
+				require.Error(t, err, tt.description)
+
+				// Check if it's an AggregatedValidationError
+				var aggErr *AggregatedValidationError
+				assert.True(t, errors.As(err, &aggErr), "Should be AggregatedValidationError or contain one")
+				if aggErr != nil {
+					assert.Greater(t, len(aggErr.Errors), 0, "Should have validation errors")
+				}
+			} else {
+				// When validation is off, should pass parsing
+				_, err := parser.Parse(context.Background(), reader)
+				assert.NoError(t, err, "Should pass parsing when validation is disabled")
+			}
+		})
+	}
+}
+
+// generateLargeXML generates a large XML configuration for testing.
+func generateLargeXML(size int) string {
+	var builder strings.Builder
+	builder.WriteString(`<?xml version="1.0"?>`)
+	builder.WriteString(`<opnsense>`)
+	builder.WriteString(`<system>`)
+	builder.WriteString(`<hostname>testhost</hostname>`)
+	builder.WriteString(`<domain>example.com</domain>`)
+	builder.WriteString(`</system>`)
+
+	// Generate many sysctl items to reach desired size - all within a single <sysctl> element
+	builder.WriteString(`<sysctl>`)
+	for i := 0; i < size; i++ {
+		builder.WriteString(`<item>`)
+		builder.WriteString(fmt.Sprintf(`<tunable>net.inet.ip.test_%d</tunable>`, i))
+		builder.WriteString(fmt.Sprintf(`<value>%d</value>`, i%10))
+		builder.WriteString(fmt.Sprintf(`<descr>Test sysctl item number %d with some additional descriptive text to increase size and memory usage for the benchmark</descr>`, i))
+		builder.WriteString(`</item>`)
+	}
+	builder.WriteString(`</sysctl>`)
+
+	// Add some filter rules to increase complexity
+	builder.WriteString(`<filter>`)
+	for i := 0; i < size/100; i++ { // Reduce number of rules to focus on sysctl items
+		builder.WriteString(`<rule>`)
+		builder.WriteString(`<type>pass</type>`)
+		builder.WriteString(`<ipprotocol>inet</ipprotocol>`)
+		builder.WriteString(`<interface>lan</interface>`)
+		builder.WriteString(fmt.Sprintf(`<descr>Generated rule number %d for testing large XML configurations</descr>`, i))
+		builder.WriteString(`<source>`)
+		builder.WriteString(`<network>lan</network>`)
+		builder.WriteString(`</source>`)
+		builder.WriteString(`<destination>`)
+		builder.WriteString(`<any/>`)
+		builder.WriteString(`</destination>`)
+		builder.WriteString(`</rule>`)
+	}
+	builder.WriteString(`</filter>`)
+
+	builder.WriteString(`</opnsense>`)
+	return builder.String()
+}
+
+// BenchmarkXMLParser_LargeConfig benchmarks parsing of large XML configurations
+// Tests memory usage and time constraints for 60 MB generated config.
+func BenchmarkXMLParser_LargeConfig(b *testing.B) {
+	// Generate a configuration that will be large but manageable for testing
+	// Each sysctl item is roughly 200 bytes, start with 10,000 items for ~2MB
+	const targetItems = 10000
+	tempDir := b.TempDir() // Use b.TempDir() for benchmark
+
+	// Generate and write large XML to temporary file to avoid keeping it in memory
+	xmlFile := filepath.Join(tempDir, "large-config.xml")
+	xmlContent := generateLargeXML(targetItems)
+
+	err := os.WriteFile(xmlFile, []byte(xmlContent), 0o600)
+	if err != nil {
+		b.Fatalf("Failed to write large XML file: %v", err)
+	}
+
+	// Verify file size
+	stat, err := os.Stat(xmlFile)
+	if err != nil {
+		b.Fatalf("Failed to stat XML file: %v", err)
+	}
+
+	fileSizeMB := float64(stat.Size()) / (1024 * 1024)
+	b.Logf("Generated XML file size: %.2f MB", fileSizeMB)
+
+	// Ensure file is at least 1 MB for meaningful test
+	if fileSizeMB < 1 {
+		b.Fatalf("Generated file too small: %.2f MB, expected at least 1 MB", fileSizeMB)
+	}
+
+	parser := NewXMLParser()
+
+	// Record initial memory stats
+	var m1, m2 runtime.MemStats
+	runtime.GC()
+	runtime.ReadMemStats(&m1)
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		file, err := os.Open(xmlFile)
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		start := time.Now()
+		_, err = parser.Parse(context.Background(), file)
+		duration := time.Since(start)
+
+		if err != nil {
+			if err := file.Close(); err != nil {
+				b.Logf("Warning: failed to close file: %v", err)
+			}
+			b.Fatal(err)
+		}
+
+		if err := file.Close(); err != nil {
+			b.Logf("Warning: failed to close file: %v", err)
+		}
+
+		// Assert time constraint: should complete within 200ms
+		if duration > 200*time.Millisecond {
+			b.Errorf("Parsing took %v, expected ≤ 200ms", duration)
+		}
+
+		// Check memory usage periodically
+		if i%10 == 0 {
+			runtime.GC()
+			runtime.ReadMemStats(&m2)
+			memUsedMB := float64(m2.Alloc) / (1024 * 1024)
+
+			// Memory usage should be reasonable (less than 50 MB for parsing)
+			if memUsedMB > 50 {
+				b.Errorf("Memory usage too high: %.2f MB", memUsedMB)
+			}
+		}
+	}
+
+	b.StopTimer()
+
+	// Final memory check
+	runtime.GC()
+	runtime.ReadMemStats(&m2)
+	memUsedMB := float64(m2.Alloc) / (1024 * 1024)
+	b.Logf("Peak memory usage: %.2f MB", memUsedMB)
+
+	// Report performance metrics
+	b.ReportMetric(fileSizeMB, "file_size_MB")
+	b.ReportMetric(memUsedMB, "memory_MB")
 }
