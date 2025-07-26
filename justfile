@@ -83,6 +83,14 @@ lint:
 test:
     go test ./...
 
+# Run benchmarks
+bench:
+    go test -bench=. ./...
+
+# Run memory benchmark
+bench-memory:
+    go test -bench=BenchmarkParse -benchmem ./internal/parser
+
 coverage:
     go test -coverprofile=coverage.out ./...
     go tool cover -html=coverage.out

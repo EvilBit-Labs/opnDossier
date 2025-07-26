@@ -12,6 +12,15 @@ For comprehensive project information, refer to these key documents:
 
 These documents provide the foundation for all development decisions and should be consulted when implementing new features or making architectural changes.
 
+## New Feature: Validation
+
+The latest version introduces a comprehensive validation feature:
+
+- **Purpose**: Enhances configuration integrity by validating against rules and constraints.
+- **Usage**: Automatically applied during parsing, or can be explicitly initiated via CLI.
+- **Typical Output**: See README for detailed examples.
+- **Limitations**: Handles large configurations using streamlined memory-efficient approaches.
+
 ## Rule Precedence
 
 **CRITICAL - Rules are applied in the following order of precedence:**
@@ -539,13 +548,6 @@ func TestConvertCommand_RealFile_GeneratesMarkdown(t *testing.T) {
     assert.FileExists(t, outputFile)
 }
 ```
-
-#### Tier 3: End-to-End Tests
-
-- **Purpose:** Test complete user workflows
-- **Location:** `e2e/` directory
-- **Command:** `go test ./e2e/...`
-- **Focus:** Full CLI interactions, file processing workflows
 
 ### 4.3. Dependency Injection Patterns
 

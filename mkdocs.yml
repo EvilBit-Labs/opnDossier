@@ -40,7 +40,6 @@ nav:
     - Usage: user-guide/usage.md
     - Configuration: user-guide/configuration.md
   - Developer Guide:
-    - Contributing: dev-guide/contributing.md
     - Architecture: dev-guide/architecture.md
     - API Reference: dev-guide/api.md
   - About: about.md
