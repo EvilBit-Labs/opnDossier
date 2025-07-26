@@ -17,6 +17,7 @@ import (
 
 var noValidation bool //nolint:gochecknoglobals // Cobra flag variable
 
+// init registers the display command with the root command and adds the --no-validate flag to control configuration validation.
 func init() {
 	rootCmd.AddCommand(displayCmd)
 	displayCmd.Flags().BoolVar(&noValidation, "no-validate", false, "Skip validation and display potentially malformed configurations")

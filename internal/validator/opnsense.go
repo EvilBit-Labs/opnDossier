@@ -20,7 +20,9 @@ func (e ValidationError) Error() string {
 	return fmt.Sprintf("validation error for field '%s': %s", e.Field, e.Message)
 }
 
-// ValidateOpnsense validates the given OPNsense configuration and returns a slice of ValidationErrors.
+// ValidateOpnsense performs comprehensive validation of an OPNsense configuration.
+// It checks system settings, network interfaces, DHCP server, firewall rules, NAT, users, groups, and sysctl tunables,
+// returning all validation errors found in the configuration.
 func ValidateOpnsense(o *model.Opnsense) []ValidationError {
 	var errors []ValidationError
 
@@ -48,7 +50,8 @@ func ValidateOpnsense(o *model.Opnsense) []ValidationError {
 	return errors
 }
 
-// validateSystem validates system-level configuration.
+// validateSystem checks the system-level configuration for required fields, valid formats, and allowed values.
+// It returns a slice of ValidationError for any invalid or missing system configuration fields.
 func validateSystem(system *model.System) []ValidationError {
 	var errors []ValidationError
 
@@ -134,7 +137,7 @@ func validateSystem(system *model.System) []ValidationError {
 	return errors
 }
 
-// validateInterfaces validates network interface configuration.
+// validateInterfaces validates the WAN and LAN network interface configurations and returns any validation errors found.
 func validateInterfaces(interfaces *model.Interfaces) []ValidationError {
 	var errors []ValidationError
 
@@ -147,7 +150,8 @@ func validateInterfaces(interfaces *model.Interfaces) []ValidationError {
 	return errors
 }
 
-// validateInterface validates a single interface configuration.
+// validateInterface checks a single network interface configuration for valid IP address types and formats, subnet masks, MTU range, and required fields for track6 IPv6 addressing.
+// It returns a slice of ValidationError for any invalid or missing configuration fields.
 func validateInterface(iface *model.Interface, name string) []ValidationError {
 	var errors []ValidationError
 
@@ -222,7 +226,10 @@ func validateInterface(iface *model.Interface, name string) []ValidationError {
 	return errors
 }
 
-// validateDhcpd validates DHCP server configuration.
+// validateDhcpd checks the validity of the DHCP server configuration for the LAN interface.
+// It ensures that the "from" and "to" addresses in the DHCP range are valid IP addresses if set,
+// and verifies that the "from" address is numerically less than the "to" address.
+// Returns a slice of ValidationError for any invalid or inconsistent DHCP range fields.
 func validateDhcpd(dhcpd *model.Dhcpd) []ValidationError {
 	var errors []ValidationError
 
@@ -265,7 +272,8 @@ func validateDhcpd(dhcpd *model.Dhcpd) []ValidationError {
 	return errors
 }
 
-// validateFilter validates firewall filter rules.
+// validateFilter checks each firewall filter rule for valid type, IP protocol, interface, and source network values.
+// It returns a slice of ValidationError for any rule fields that do not meet the required criteria.
 func validateFilter(filter *model.Filter) []ValidationError {
 	var errors []ValidationError
 
@@ -310,7 +318,8 @@ func validateFilter(filter *model.Filter) []ValidationError {
 	return errors
 }
 
-// validateNat validates NAT configuration.
+// validateNat checks that the NAT outbound mode is set to one of the allowed values: "automatic", "hybrid", "advanced", or "disabled".
+// It returns a slice of ValidationError for any invalid mode detected.
 func validateNat(nat *model.Nat) []ValidationError {
 	var errors []ValidationError
 
@@ -326,7 +335,8 @@ func validateNat(nat *model.Nat) []ValidationError {
 	return errors
 }
 
-// validateUsersAndGroups validates system users and groups.
+// validateUsersAndGroups checks system users and groups for required fields, uniqueness, valid IDs, valid scopes, and correct group references.
+// It returns a slice of ValidationError for any invalid or inconsistent user or group entries.
 func validateUsersAndGroups(system *model.System) []ValidationError {
 	var errors []ValidationError
 
@@ -445,7 +455,8 @@ func validateUsersAndGroups(system *model.System) []ValidationError {
 	return errors
 }
 
-// validateSysctl validates sysctl configuration items.
+// validateSysctl checks sysctl tunable items for required fields, uniqueness, valid naming format, and presence of values.
+// It returns a slice of ValidationError for any missing, duplicate, or improperly formatted tunable names, or missing values.
 func validateSysctl(items []model.SysctlItem) []ValidationError {
 	var errors []ValidationError
 
@@ -490,7 +501,7 @@ func validateSysctl(items []model.SysctlItem) []ValidationError {
 
 // Helper functions for validation
 
-// contains checks if a slice contains a specific string.
+// contains reports whether the given slice contains the specified string.
 func contains(slice []string, item string) bool {
 	for _, s := range slice {
 		if s == item {
@@ -500,7 +511,7 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-// isValidHostname validates hostname format.
+// isValidHostname returns true if the given string is a valid hostname according to length and character rules.
 func isValidHostname(hostname string) bool {
 	if hostname == "" || len(hostname) > 253 {
 		return false
@@ -513,7 +524,7 @@ func isValidHostname(hostname string) bool {
 	return matched
 }
 
-// isValidTimezone validates timezone format.
+// isValidTimezone returns true if the given timezone string matches common timezone patterns such as "Region/City", "Etc/UTC", "UTC", or "GMT" with optional offset.
 func isValidTimezone(timezone string) bool {
 	// More restrictive timezone validation - common timezone patterns
 	// Allow: America/New_York, Europe/London, Etc/UTC, UTC, GMT+/-offset
@@ -532,24 +543,24 @@ func isValidTimezone(timezone string) bool {
 	return false
 }
 
-// isValidIP validates IPv4 address.
+// isValidIP returns true if the input string is a valid IPv4 address.
 func isValidIP(ip string) bool {
 	return net.ParseIP(ip) != nil && net.ParseIP(ip).To4() != nil
 }
 
-// isValidIPv6 validates IPv6 address.
+// isValidIPv6 returns true if the input string is a valid IPv6 address.
 func isValidIPv6(ip string) bool {
 	parsedIP := net.ParseIP(ip)
 	return parsedIP != nil && parsedIP.To4() == nil
 }
 
-// isValidCIDR validates CIDR notation.
+// isValidCIDR returns true if the input string is a valid CIDR notation, otherwise false.
 func isValidCIDR(cidr string) bool {
 	_, _, err := net.ParseCIDR(cidr)
 	return err == nil
 }
 
-// isValidSysctlName validates sysctl tunable names.
+// isValidSysctlName returns true if the provided string is a valid sysctl tunable name, requiring it to start with a letter, contain only letters, digits, underscores, or dots, and include at least one dot.
 func isValidSysctlName(name string) bool {
 	// Basic sysctl name validation - allows dots, letters, numbers, and underscores
 	matched, err := regexp.MatchString(`^[a-zA-Z][a-zA-Z0-9_.]*$`, name)

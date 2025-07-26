@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// init registers the validate command with the root command for the CLI.
 func init() {
 	rootCmd.AddCommand(validateCmd)
 }

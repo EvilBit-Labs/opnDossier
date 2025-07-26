@@ -7,7 +7,9 @@ import (
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 )
 
-// DemoValidation demonstrates the OPNsense validator with examples.
+// DemoValidation runs example validations of OPNsense configuration data, printing results for valid, invalid, and cross-field error scenarios.
+// 
+// This function constructs several sample OPNsense configurations, invokes the validator on each, and displays the validation outcomes to illustrate typical validation results and error reporting.
 func DemoValidation() {
 	fmt.Println("=== OPNsense Configuration Validator Demo ===")
 

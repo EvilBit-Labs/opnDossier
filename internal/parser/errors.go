@@ -46,7 +46,7 @@ func (e *ValidationError) Is(target error) bool {
 	return errors.As(target, &validationErr)
 }
 
-// NewParseError creates a new ParseError with the specified location and message.
+// NewParseError returns a new ParseError with the given line, column, and error message.
 func NewParseError(line, column int, message string) *ParseError {
 	return &ParseError{
 		Line:    line,
@@ -55,7 +55,7 @@ func NewParseError(line, column int, message string) *ParseError {
 	}
 }
 
-// NewValidationError creates a new ValidationError with the specified path and message.
+// NewValidationError returns a new ValidationError for the given element path and message.
 func NewValidationError(path, message string) *ValidationError {
 	return &ValidationError{
 		Path:    path,
@@ -65,7 +65,8 @@ func NewValidationError(path, message string) *ValidationError {
 
 // WrapXMLSyntaxError wraps an xml.SyntaxError with location information and marshal context.
 // It extracts the line and column information from the xml.SyntaxError and creates a ParseError
-// with additional context about the element path if available.
+// WrapXMLSyntaxError converts an xml.SyntaxError into a ParseError, including the line number and optional element path context.
+// If the error is not an xml.SyntaxError, it wraps it as a generic ParseError with the error message. Returns nil if err is nil.
 func WrapXMLSyntaxError(err error, elementPath string) error {
 	if err == nil {
 		return nil
@@ -96,25 +97,25 @@ func WrapXMLSyntaxError(err error, elementPath string) error {
 }
 
 // BuildElementPath constructs an element path from a slice of element names.
-// This is useful for tracking the current position in the XML hierarchy during parsing.
+// BuildElementPath returns a dot-separated string representing the XML element path constructed from the provided slice of element names.
 func BuildElementPath(elements []string) string {
 	return strings.Join(elements, ".")
 }
 
-// IsParseError checks if an error is a ParseError or wraps a ParseError.
+// IsParseError returns true if the provided error is or wraps a ParseError.
 func IsParseError(err error) bool {
 	var parseErr *ParseError
 	return errors.As(err, &parseErr)
 }
 
-// IsValidationError checks if an error is a ValidationError or wraps a ValidationError.
+// IsValidationError returns true if the error is or wraps a ValidationError.
 func IsValidationError(err error) bool {
 	var validationErr *ValidationError
 	return errors.As(err, &validationErr)
 }
 
 // GetParseError extracts a ParseError from an error chain.
-// Returns nil if no ParseError is found.
+// GetParseError extracts a ParseError from the error chain, or returns nil if none is found.
 func GetParseError(err error) *ParseError {
 	var parseErr *ParseError
 	if errors.As(err, &parseErr) {
@@ -124,7 +125,7 @@ func GetParseError(err error) *ParseError {
 }
 
 // GetValidationError extracts a ValidationError from an error chain.
-// Returns nil if no ValidationError is found.
+// GetValidationError extracts a ValidationError from the error chain, or returns nil if none is found.
 func GetValidationError(err error) *ValidationError {
 	var validationErr *ValidationError
 	if errors.As(err, &validationErr) {
@@ -161,7 +162,7 @@ func (r *AggregatedValidationError) HasErrors() bool {
 	return len(r.Errors) > 0
 }
 
-// NewAggregatedValidationError creates a new validation error from a slice of validation errors.
+// NewAggregatedValidationError returns an AggregatedValidationError containing the provided slice of ValidationError instances.
 func NewAggregatedValidationError(validationErrors []ValidationError) *AggregatedValidationError {
 	return &AggregatedValidationError{
 		Errors: validationErrors,
@@ -169,7 +170,8 @@ func NewAggregatedValidationError(validationErrors []ValidationError) *Aggregate
 }
 
 // WrapXMLSyntaxErrorWithOffset wraps an xml.SyntaxError with enhanced location information using decoder's InputOffset.
-// It captures precise byte offset information when available and creates a ParseError with detailed context.
+// WrapXMLSyntaxErrorWithOffset converts an XML syntax error into a ParseError, including element path and byte offset context when available.
+// If the error is not an xml.SyntaxError, it wraps it as a generic ParseError with the current decoder offset. Returns nil if err is nil.
 func WrapXMLSyntaxErrorWithOffset(err error, elementPath string, dec *xml.Decoder) error {
 	if err == nil {
 		return nil
