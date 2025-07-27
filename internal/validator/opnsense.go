@@ -1,3 +1,7 @@
+// Package validator provides comprehensive validation functionality for OPNsense configuration files.
+// It validates system settings, network interfaces, DHCP server configuration, firewall rules,
+// NAT rules, user and group settings, and sysctl tunables to ensure configuration integrity
+// and prevent deployment of invalid configurations.
 package validator
 
 import (
