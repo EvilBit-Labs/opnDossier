@@ -1,0 +1,304 @@
+# 🔧 OPNsense Configuration Summary
+
+**Hostname**: {{ .System.Hostname }}
+**Platform**: OPNsense {{ .Version }}
+**Generated On**: {{ .Generated }}
+**Parsed By**: opnFocus v{{ .ToolVersion }}
+
+---
+
+## 📜 Table of Contents
+
+- [System Configuration](#system-configuration)
+- [Interfaces](#interfaces)
+- [Firewall Rules](#firewall-rules)
+- [NAT Configuration](#nat-configuration)
+- [DHCP Services](#dhcp-services)
+- [DNS Resolver](#dns-resolver)
+- [System Users](#system-users)
+- [System Groups](#system-groups)
+- [System Tunables](#system-tunables)
+- [Gateways](#gateways)
+- [WireGuard VPN](#wireguard-vpn)
+- [Revision History](#revision-history)
+
+---
+
+## ⚙️ System Configuration
+
+### Basic Information
+| Property | Value |
+|----------|-------|
+| **Hostname** | {{ .System.Hostname }} |
+| **Domain** | {{ .System.Domain }} |
+| **Optimization** | {{ .System.Optimization }} |
+| **Timezone** | {{ .System.Timezone }} |
+| **Language** | {{ .System.Language }} |
+
+### Web GUI Configuration
+| Property | Value |
+|----------|-------|
+| **Protocol** | {{ .System.Webgui.Protocol }} |
+
+### System Settings
+| Property | Value |
+|----------|-------|
+| **DNS Allow Override** | {{ .System.Dnsallowoverride }} |
+| **Next UID** | {{ .System.NextUID }} |
+| **Next GID** | {{ .System.NextGID }} |
+| **Time Servers** | {{ .System.Timeservers }} |
+| **DNS Server** | {{ .System.Dnsserver }} |
+
+### Hardware Offloading
+| Property | Value |
+|----------|-------|
+| **Disable NAT Reflection** | {{ .System.DisableNATReflection }} |
+| **Use Virtual Terminal** | {{ .System.UseVirtualTerminal }} |
+| **Disable Console Menu** | {{ if .System.DisableConsoleMenu }}✅{{ else }}❌{{ end }} |
+| **Disable VLAN HW Filter** | {{ .System.DisableVLANHWFilter }} |
+| **Disable Checksum Offloading** | {{ .System.DisableChecksumOffloading }} |
+| **Disable Segmentation Offloading** | {{ .System.DisableSegmentationOffloading }} |
+| **Disable Large Receive Offloading** | {{ .System.DisableLargeReceiveOffloading }} |
+| **IPv6 Allow** | {{ if .System.IPv6Allow }}✅{{ else }}❌{{ end }} |
+
+### Power Management
+| Property | Value |
+|----------|-------|
+| **Powerd AC Mode** | {{ .System.PowerdAcMode }} |
+| **Powerd Battery Mode** | {{ .System.PowerdBatteryMode }} |
+| **Powerd Normal Mode** | {{ .System.PowerdNormalMode }} |
+
+### System Features
+| Property | Value |
+|----------|-------|
+| **PF Share Forward** | {{ .System.PfShareForward }} |
+| **LB Use Sticky** | {{ .System.LbUseSticky }} |
+| **RRD Backup** | {{ .System.RrdBackup }} |
+| **Netflow Backup** | {{ .System.NetflowBackup }} |
+
+### Bogons Configuration
+| Property | Value |
+|----------|-------|
+| **Interval** | {{ .System.Bogons.Interval }} |
+
+### SSH Configuration
+| Property | Value |
+|----------|-------|
+| **Group** | {{ .System.SSH.Group }} |
+
+### Firmware Information
+| Property | Value |
+|----------|-------|
+| **Version** | {{ .System.Firmware.Version }} |
+| **Mirror** | {{ .System.Firmware.Mirror }} |
+| **Flavour** | {{ .System.Firmware.Flavour }} |
+| **Plugins** | {{ .System.Firmware.Plugins }} |
+
+---
+
+## 🌐 Interfaces
+
+| Name | Description | Physical Interface | IP Address | CIDR | IPv6 Address | IPv6 CIDR | Gateway | IPv6 Gateway | Enabled | Type | Virtual | Locked |
+|------|-------------|-------------------|------------|------|--------------|-----------|---------|--------------|---------|------|---------|--------|
+{{- range $name, $iface := .Interfaces.Items }}
+| `{{ $name }}` | `{{ $iface.Descr }}` | `{{ $iface.If }}` | `{{ $iface.IPAddr }}` | /{{ $iface.Subnet }} | `{{ $iface.IPAddrv6 }}` | /{{ $iface.Subnetv6 }} | `{{ $iface.Gateway }}` | `{{ $iface.Gatewayv6 }}` | {{ if $iface.Enable }}✅{{ else }}❌{{ end }} | `{{ $iface.Type }}` | {{ if $iface.Virtual }}✅{{ else }}❌{{ end }} | {{ if $iface.Lock }}🔒{{ else }}🔓{{ end }} |
+{{- end }}
+
+### Interface Details
+{{- range $name, $iface := .Interfaces.Items }}
+#### {{ $name | title }} Interface
+- **Spoof MAC**: `{{ $iface.Spoofmac }}`
+- **Internal Dynamic**: {{ if $iface.InternalDynamic }}✅{{ else }}❌{{ end }}
+- **MTU**: `{{ $iface.MTU }}`
+- **Media**: `{{ $iface.Media }}`
+- **Media Options**: `{{ $iface.MediaOpt }}`
+- **DHCP Hostname**: `{{ $iface.DHCPHostname }}`
+- **Block Private**: {{ if $iface.BlockPriv }}✅{{ else }}❌{{ end }}
+- **Block Bogons**: {{ if $iface.BlockBogons }}✅{{ else }}❌{{ end }}
+- **DHCP6 IA-PD Length**: `{{ $iface.DHCP6IaPdLen }}`
+- **Track6 Interface**: `{{ $iface.Track6Interface }}`
+- **Track6 Prefix ID**: `{{ $iface.Track6PrefixID }}`
+
+{{- end }}
+
+---
+
+## 🔥 Firewall Rules
+
+| # | Action | Proto | Interface | Direction | State Type | Quick | Source | Source Port | Destination | Dest Port | Description |
+|---|--------|-------|-----------|-----------|------------|-------|--------|-------------|-------------|-----------|-------------|
+{{- range $index, $rule := .Filter.Rule }}
+| {{ add $index 1 }} | {{ $rule.Type }} | {{ $rule.IPProtocol }} | {{ $rule.Interface }} | {{ $rule.Direction }} | {{ $rule.Statetype }} | {{ if $rule.Quick }}✅{{ else }}❌{{ end }} | {{ $rule.Source.Network }}{{ if $rule.Source.Any }} (any){{ end }} | {{ $rule.Source.Port }} | {{ $rule.Destination.Network }}{{ if $rule.Destination.Any }} (any){{ end }} | {{ $rule.Destination.Port }} | `{{ $rule.Descr }}` |
+{{- end }}
+
+---
+
+## 🔀 NAT Configuration
+
+| Mode |
+|------|
+| {{ .Nat.Outbound.Mode }} |
+
+---
+
+## 🧭 DHCP Services
+
+| Interface | Enabled | Gateway | Range Start | Range End | DNS Server | WINS Server | NTP Server | DDNS Algorithm |
+|-----------|---------|---------|-------------|-----------|------------|-------------|------------|----------------|
+{{- range $name, $dhcp := .Dhcpd.Items }}
+| {{ $name }} | {{ if $dhcp.Enable }}✅{{ else }}❌{{ end }} | `{{ $dhcp.Gateway }}` | {{ $dhcp.Range.From }} | {{ $dhcp.Range.To }} | `{{ $dhcp.Dnsserver }}` | `{{ $dhcp.Winsserver }}` | `{{ $dhcp.Ntpserver }}` | `{{ $dhcp.DdnsDomainAlgorithm }}` |
+{{- end }}
+
+### DHCP Options
+{{- range $name, $dhcp := .Dhcpd.Items }}
+#### {{ $name | title }} DHCP Options
+{{- if $dhcp.NumberOptions }}
+- **Number Options**: {{ len $dhcp.NumberOptions }} configured
+{{- end }}
+{{- end }}
+
+---
+
+## 🧠 DNS Resolver
+
+| Property | Value |
+|----------|-------|
+| **Enabled** | {{ .Unbound.Enable }} |
+| **DNSSEC** | {{ .Unbound.Dnssec }} |
+| **DNSSEC Stripped** | {{ .Unbound.Dnssecstripped }} |
+
+---
+
+## 👥 System Users
+
+| Username | UID | Group | Description | Scope | Expires | API Keys | SSH Keys | IPsec PSK | OTP Seed |
+|----------|-----|-------|-------------|-------|---------|----------|----------|-----------|----------|
+{{- range .System.User }}
+| `{{ .Name }}` | {{ .UID }} | {{ .Groupname }} | `{{ .Descr }}` | {{ .Scope }} | `{{ .Expires }}` | {{ if .Apikeys }}🔑{{ else }}❌{{ end }} | {{ if .Authorizedkeys }}🔑{{ else }}❌{{ end }} | {{ if .Ipsecpsk }}🔑{{ else }}❌{{ end }} | {{ if .OtpSeed }}🔑{{ else }}❌{{ end }} |
+{{- end }}
+
+### User API Keys
+{{- range .System.User }}
+{{- if .Apikeys }}
+#### {{ .Name }} API Keys
+{{- range .Apikeys }}
+- **Key**: `{{ .Key }}`
+- **Secret**: `{{ .Secret }}`
+{{- end }}
+{{- end }}
+{{- end }}
+
+---
+
+## 👥 System Groups
+
+| Group Name | GID | Description | Scope | Members | Privileges |
+|------------|-----|-------------|-------|---------|------------|
+{{- range .System.Group }}
+| `{{ .Name }}` | {{ .Gid }} | `{{ .Description }}` | {{ .Scope }} | `{{ .Member }}` | `{{ .Priv }}` |
+{{- end }}
+
+---
+
+## ⚙️ System Tunables
+
+| Name | Value | Description |
+|------|--------|-------------|
+{{- range .Sysctl }}
+| `{{ .Tunable }}` | `{{ .Value }}` | `{{ .Descr }}` |
+{{- end }}
+
+---
+
+## 🛣️ Gateways
+
+| Name | Description | Interface | Gateway | Protocol | Default | Monitor Disable | Interval | Weight | Far Gateway |
+|------|-------------|-----------|---------|----------|---------|-----------------|----------|--------|-------------|
+{{- range .Gateways.GatewayItem }}
+| `{{ .Name }}` | `{{ .Descr }}` | {{ .Interface }} | `{{ .Gateway }}` | {{ .Ipprotocol }} | {{ if .Defaultgw }}✅{{ else }}❌{{ end }} | {{ if .MonitorDisable }}✅{{ else }}❌{{ end }} | {{ .Interval }} | {{ .Weight }} | {{ if .Fargw }}✅{{ else }}❌{{ end }} |
+{{- end }}
+
+---
+
+## 🛡️ WireGuard VPN
+
+### General Configuration
+| Property | Value |
+|----------|-------|
+| **Enabled** | {{ .OPNsense.Wireguard.General.Enabled }} |
+| **Version** | {{ .OPNsense.Wireguard.General.Version }} |
+
+### Servers
+{{- range .OPNsense.Wireguard.Server.Servers.Server }}
+#### Server: {{ .Name }}
+| Property | Value |
+|----------|-------|
+| **UUID** | `{{ .UUID }}` |
+| **Enabled** | {{ if .Enabled }}✅{{ else }}❌{{ end }} |
+| **Instance** | {{ .Instance }} |
+| **Port** | {{ .Port }} |
+| **MTU** | {{ .MTU }} |
+| **DNS** | `{{ .DNS }}` |
+| **Tunnel Address** | `{{ .Tunneladdress }}` |
+| **Disable Routes** | {{ if .Disableroutes }}✅{{ else }}❌{{ end }} |
+| **Gateway** | `{{ .Gateway }}` |
+| **Peers** | `{{ .Peers }}` |
+
+**Public Key**: `{{ .Pubkey }}`
+**Private Key**: `{{ .Privkey }}`
+
+{{- end }}
+
+### Clients
+{{- range .OPNsense.Wireguard.Client.Clients.Client }}
+#### Client: {{ .Name }}
+| Property | Value |
+|----------|-------|
+| **UUID** | `{{ .UUID }}` |
+| **Enabled** | {{ if .Enabled }}✅{{ else }}❌{{ end }} |
+| **Tunnel Address** | `{{ .Tunneladdress }}` |
+| **Server Address** | `{{ .Serveraddress }}` |
+| **Server Port** | `{{ .Serverport }}` |
+| **Keepalive** | `{{ .Keepalive }}` |
+
+**Public Key**: `{{ .Pubkey }}`
+**PSK**: `{{ .PSK }}`
+
+{{- end }}
+
+---
+
+## 📝 Revision History
+
+| Username | Time | Description |
+|----------|------|-------------|
+{{- if .Revision }}
+| `{{ .Revision.Username }}` | {{ .Revision.Time }} | `{{ .Revision.Description }}` |
+{{- else }}
+| No revision history available | - | - |
+{{- end }}
+
+---
+
+## 📊 Configuration Summary
+
+### Statistics
+- **Total Interfaces**: {{ len .Interfaces.Items }}
+- **Total Firewall Rules**: {{ len .Filter.Rule }}
+- **Total Users**: {{ len .System.User }}
+- **Total Groups**: {{ len .System.Group }}
+- **Total Sysctl Tunables**: {{ len .Sysctl }}
+- **Total DHCP Scopes**: {{ len .Dhcpd.Items }}
+- **Total Gateways**: {{ len .Gateways.GatewayItem }}
+- **WireGuard Servers**: {{ len .OPNsense.Wireguard.Server.Servers.Server }}
+- **WireGuard Clients**: {{ len .OPNsense.Wireguard.Client.Clients.Client }}
+
+### Security Assessment
+- **Web GUI Protocol**: {{ if eq .System.Webgui.Protocol "https" }}🔒 Secure{{ else }}⚠️ Insecure{{ end }}
+- **SNMP Community**: {{ if eq .Snmpd.ROCommunity "public" }}⚠️ Default{{ else }}✅ Custom{{ end }}
+- **SSH Access**: {{ if .System.SSH.Group }}✅ Configured{{ else }}❌ Not configured{{ end }}
+- **Hardware Offloading**: {{ if or .System.DisableChecksumOffloading .System.DisableSegmentationOffloading .System.DisableLargeReceiveOffloading }}⚠️ Disabled{{ else }}✅ Enabled{{ end }}
+
+---
+
+*Generated by opnFocus. No telemetry. No nonsense.*
