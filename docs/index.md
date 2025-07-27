@@ -40,7 +40,7 @@ The tool uses a layered CLI architecture built with modern Go libraries:
 
 | Component          | Technology                                                  | Purpose                                     |
 | ------------------ | ----------------------------------------------------------- | ------------------------------------------- |
-| CLI Framework      | [Cobra](https://github.com/spf13/cobra)                     | Command structure 6 argument parsing                                             |
+| CLI Framework      | [Cobra](https://github.com/spf13/cobra)                     | Command structure & argument parsing        |
 | Configuration      | [Viper](https://github.com/spf13/viper)                     | Layered configuration (files, env, flags)   |
 | CLI Enhancement    | [Charm Fang](https://github.com/charmbracelet/fang)         | Enhanced UX layer (styled help, completion) |
 | Structured Logging | [Charm Log](https://github.com/charmbracelet/log)           | Structured, leveled logging                 |

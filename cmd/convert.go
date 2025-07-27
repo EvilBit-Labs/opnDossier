@@ -141,25 +141,61 @@ Examples:
 				}
 				ctxLogger.Debug("XML parsing completed successfully")
 
-				// Convert to markdown
-				ctxLogger.Debug("Converting to markdown")
-				c := converter.NewMarkdownConverter()
-				md, err := c.ToMarkdown(ctx, opnsense)
-				if err != nil {
-					ctxLogger.Error("Failed to convert to markdown", "error", err)
-					errs <- fmt.Errorf("failed to convert to markdown from %s: %w", fp, err)
+				// Convert based on format
+				var output string
+				var fileExt string
+
+				switch strings.ToLower(format) {
+				case "markdown", "md":
+					ctxLogger.Debug("Converting to markdown")
+					c := converter.NewMarkdownConverter()
+					output, err = c.ToMarkdown(ctx, opnsense)
+					if err != nil {
+						ctxLogger.Error("Failed to convert to markdown", "error", err)
+						errs <- fmt.Errorf("failed to convert to markdown from %s: %w", fp, err)
+						return
+					}
+					fileExt = ".md"
+					ctxLogger.Debug("Markdown conversion completed successfully")
+
+				case "json":
+					ctxLogger.Debug("Converting to JSON")
+					c := converter.NewJSONConverter()
+					output, err = c.ToJSON(ctx, opnsense)
+					if err != nil {
+						ctxLogger.Error("Failed to convert to JSON", "error", err)
+						errs <- fmt.Errorf("failed to convert to JSON from %s: %w", fp, err)
+						return
+					}
+					fileExt = ".json"
+					ctxLogger.Debug("JSON conversion completed successfully")
+
+				case "yaml", "yml":
+					ctxLogger.Debug("Converting to YAML")
+					c := converter.NewYAMLConverter()
+					output, err = c.ToYAML(ctx, opnsense)
+					if err != nil {
+						ctxLogger.Error("Failed to convert to YAML", "error", err)
+						errs <- fmt.Errorf("failed to convert to YAML from %s: %w", fp, err)
+						return
+					}
+					fileExt = ".yaml"
+					ctxLogger.Debug("YAML conversion completed successfully")
+
+				default:
+					ctxLogger.Error("Unsupported format", "format", format)
+					errs <- fmt.Errorf("%w: got '%s'", converter.ErrUnsupportedFormat, format)
 					return
 				}
-				ctxLogger.Debug("Markdown conversion completed successfully")
 
 				// Determine output path
 				actualOutputFile := outputFile
 				if len(args) > 1 || (actualOutputFile == "" && Cfg.OutputFile != "") {
 					// If multiple files, or single file with no -o but config has output_file
-					// use input filename with .md extension
+					// use input filename with appropriate extension
 					base := filepath.Base(fp)
 					ext := filepath.Ext(base)
-					actualOutputFile = strings.TrimSuffix(base, ext) + ".md"
+					actualOutputFile = strings.TrimSuffix(base, ext) + fileExt
 				}
 
 				// Create enhanced logger with output file information
@@ -170,19 +206,19 @@ Examples:
 					enhancedLogger = ctxLogger.WithFields("output_mode", "stdout")
 				}
 
-				// Export or print the markdown
+				// Export or print the output
 				if actualOutputFile != "" {
 					enhancedLogger.Debug("Exporting to file")
 					e := export.NewFileExporter()
-					if err := e.Export(ctx, md, actualOutputFile); err != nil {
-						enhancedLogger.Error("Failed to export markdown", "error", err)
-						errs <- fmt.Errorf("failed to export markdown to %s: %w", actualOutputFile, err)
+					if err := e.Export(ctx, output, actualOutputFile); err != nil {
+						enhancedLogger.Error("Failed to export output", "error", err)
+						errs <- fmt.Errorf("failed to export output to %s: %w", actualOutputFile, err)
 						return
 					}
-					enhancedLogger.Info("Markdown exported successfully")
+					enhancedLogger.Info("Output exported successfully")
 				} else {
 					enhancedLogger.Debug("Outputting to stdout")
-					fmt.Print(md)
+					fmt.Print(output)
 				}
 
 				ctxLogger.Info("Conversion process completed successfully")

@@ -1,7 +1,9 @@
 // Package model defines the data structures for OPNsense configurations.
 package model
 
-import "encoding/xml"
+import (
+	"encoding/xml"
+)
 
 // SystemConfig groups system-related configuration.
 type SystemConfig struct {
@@ -64,8 +66,8 @@ func (o *Opnsense) Hostname() string {
 }
 
 // InterfaceByName returns a network interface by its interface name (e.g., "em0", "igb0").
-// It searches through the WAN and LAN interfaces and returns a pointer to the matching interface,
-// or nil if no interface with the given name is found.
+// It searches through all interfaces in the map-based Interfaces struct and returns a pointer
+// to the matching interface, or nil if no interface with the given name is found.
 //
 // Parameters:
 //   - name: The interface name to search for (e.g., "em0", "igb0", "vtnet0")
@@ -80,11 +82,10 @@ func (o *Opnsense) Hostname() string {
 //		fmt.Printf("Interface %s has IP: %s\n", iface.If, iface.IPAddr)
 //	}
 func (o *Opnsense) InterfaceByName(name string) *Interface {
-	if o.Interfaces.Wan.If == name {
-		return &o.Interfaces.Wan
-	}
-	if o.Interfaces.Lan.If == name {
-		return &o.Interfaces.Lan
+	for _, iface := range o.Interfaces.Items {
+		if iface.If == name {
+			return &iface
+		}
 	}
 	return nil
 }
@@ -171,8 +172,8 @@ func (o *Opnsense) SecurityConfig() SecurityConfig {
 // Example:
 //
 //	svcConfig := config.ServiceConfig()
-//	if svcConfig.Dhcpd.Lan.Range.From != "" {
-//		fmt.Printf("DHCP range: %s - %s\n", svcConfig.Dhcpd.Lan.Range.From, svcConfig.Dhcpd.Lan.Range.To)
+//	if lanDhcp, ok := svcConfig.Dhcpd.Get("lan"); ok && lanDhcp.Range.From != "" {
+//		fmt.Printf("DHCP range: %s - %s\n", lanDhcp.Range.From, lanDhcp.Range.To)
 //	}
 //	fmt.Printf("SNMP community: %s\n", svcConfig.Snmpd.ROCommunity)
 func (o *Opnsense) ServiceConfig() ServiceConfig {
@@ -261,9 +262,82 @@ type SSH struct {
 }
 
 // Interfaces contains the network interface configurations.
+// Uses a map-based representation to store all interface blocks generically,
+// supporting wan, lan, opt0, opt1, etc., and any custom interface elements.
 type Interfaces struct {
-	Wan Interface `xml:"wan"`
-	Lan Interface `xml:"lan"`
+	Items map[string]Interface `xml:",any" json:"interfaces,omitempty" yaml:"interfaces,omitempty"`
+}
+
+// UnmarshalXML implements custom XML unmarshaling for the Interfaces map.
+func (i *Interfaces) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	i.Items = make(map[string]Interface)
+
+	for {
+		tok, err := d.Token()
+		if err != nil {
+			return err
+		}
+
+		switch se := tok.(type) {
+		case xml.StartElement:
+			// Each interface element (wan, lan, opt0, etc.) becomes a map entry
+			var iface Interface
+			if err := d.DecodeElement(&iface, &se); err != nil {
+				return err
+			}
+			i.Items[se.Name.Local] = iface
+		case xml.EndElement:
+			if se.Name == start.Name {
+				return nil
+			}
+		}
+	}
+}
+
+// Get returns an interface by its key name (e.g., "wan", "lan", "opt0").
+// Returns the interface and a boolean indicating if it was found.
+//
+// Example:
+//
+//	if wan, ok := interfaces.Get("wan"); ok {
+//		fmt.Printf("WAN IP: %s\n", wan.IPAddr)
+//	}
+func (i *Interfaces) Get(key string) (Interface, bool) {
+	if i.Items == nil {
+		return Interface{}, false
+	}
+	iface, ok := i.Items[key]
+	return iface, ok
+}
+
+// Names returns a slice of all interface key names in the configuration.
+// This includes standard interfaces like "wan", "lan" and optional ones like "opt0", "opt1", etc.
+//
+// Example:
+//
+//	names := interfaces.Names()
+//	fmt.Printf("Available interfaces: %s\n", strings.Join(names, ", "))
+func (i *Interfaces) Names() []string {
+	if i.Items == nil {
+		return []string{}
+	}
+	names := make([]string, 0, len(i.Items))
+	for key := range i.Items {
+		names = append(names, key)
+	}
+	return names
+}
+
+// Wan returns the WAN interface if it exists, otherwise returns a zero-value Interface and false.
+// This is a convenience method for backward compatibility.
+func (i *Interfaces) Wan() (Interface, bool) {
+	return i.Get("wan")
+}
+
+// Lan returns the LAN interface if it exists, otherwise returns a zero-value Interface and false.
+// This is a convenience method for backward compatibility.
+func (i *Interfaces) Lan() (Interface, bool) {
+	return i.Get("lan")
 }
 
 // Interface represents a network interface.
@@ -287,10 +361,82 @@ type Interface struct {
 }
 
 // Dhcpd contains the DHCP server configuration for all interfaces.
+// Uses a map-based representation to store all interface blocks generically,
+// supporting wan, lan, opt0, opt1, etc., and any custom interface elements.
 type Dhcpd struct {
-	Lan DhcpdInterface `xml:"lan,omitempty"`
-	Wan DhcpdInterface `xml:"wan,omitempty"`
-	// Add other interfaces as needed
+	Items map[string]DhcpdInterface `xml:",any" json:"dhcp,omitempty" yaml:"dhcp,omitempty"`
+}
+
+// UnmarshalXML implements custom XML unmarshaling for the Dhcpd map.
+func (d *Dhcpd) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
+	d.Items = make(map[string]DhcpdInterface)
+
+	for {
+		tok, err := decoder.Token()
+		if err != nil {
+			return err
+		}
+
+		switch se := tok.(type) {
+		case xml.StartElement:
+			// Each interface element (wan, lan, opt0, etc.) becomes a map entry
+			var dhcpIface DhcpdInterface
+			if err := decoder.DecodeElement(&dhcpIface, &se); err != nil {
+				return err
+			}
+			d.Items[se.Name.Local] = dhcpIface
+		case xml.EndElement:
+			if se.Name == start.Name {
+				return nil
+			}
+		}
+	}
+}
+
+// Get returns a DHCP interface configuration by its key name (e.g., "wan", "lan", "opt0").
+// Returns the DHCP interface configuration and a boolean indicating if it was found.
+//
+// Example:
+//
+//	if lanDhcp, ok := dhcpd.Get("lan"); ok {
+//		fmt.Printf("LAN DHCP range: %s - %s\n", lanDhcp.Range.From, lanDhcp.Range.To)
+//	}
+func (d *Dhcpd) Get(key string) (DhcpdInterface, bool) {
+	if d.Items == nil {
+		return DhcpdInterface{}, false
+	}
+	dhcpIface, ok := d.Items[key]
+	return dhcpIface, ok
+}
+
+// Names returns a slice of all DHCP interface key names in the configuration.
+// This includes standard interfaces like "wan", "lan" and optional ones like "opt0", "opt1", etc.
+//
+// Example:
+//
+//	names := dhcpd.Names()
+//	fmt.Printf("DHCP configured on interfaces: %s\n", strings.Join(names, ", "))
+func (d *Dhcpd) Names() []string {
+	if d.Items == nil {
+		return []string{}
+	}
+	names := make([]string, 0, len(d.Items))
+	for key := range d.Items {
+		names = append(names, key)
+	}
+	return names
+}
+
+// Wan returns the WAN DHCP interface configuration if it exists, otherwise returns a zero-value DhcpdInterface and false.
+// This is a convenience method for backward compatibility.
+func (d *Dhcpd) Wan() (DhcpdInterface, bool) {
+	return d.Get("wan")
+}
+
+// Lan returns the LAN DHCP interface configuration if it exists, otherwise returns a zero-value DhcpdInterface and false.
+// This is a convenience method for backward compatibility.
+func (d *Dhcpd) Lan() (DhcpdInterface, bool) {
+	return d.Get("lan")
 }
 
 // DhcpdInterface contains the DHCP server configuration for a specific interface.
@@ -349,7 +495,8 @@ type Source struct {
 
 // Destination represents the destination of a firewall rule.
 type Destination struct {
-	Any struct{} `xml:"any"`
+	Any     struct{} `xml:"any"`
+	Network string   `xml:"network"`
 }
 
 // Rrd contains the RRDtool configuration.

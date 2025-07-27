@@ -41,26 +41,13 @@ type TerminalDisplay struct {
 	renderer *glamour.TermRenderer
 }
 
-// NewTerminalDisplay returns a TerminalDisplay instance with a Glamour renderer configured for automatic style detection and word wrapping at 120 characters. If automatic style detection fails, it falls back to a default renderer.
+// NewTerminalDisplay returns a TerminalDisplay instance with a Glamour renderer configured for terminal display with proper fallbacks.
 func NewTerminalDisplay() *TerminalDisplay {
-	// Create renderer with auto style detection (adapts to terminal theme)
-	renderer, err := glamour.NewTermRenderer(
-		glamour.WithAutoStyle(),
-		glamour.WithWordWrap(DefaultWordWrapWidth),
-	)
+	renderer, err := glamour.NewTermRenderer()
 	if err != nil {
-		// Fallback to default renderer if auto style fails
-		renderer, err = glamour.NewTermRenderer()
-		if err != nil {
-			// If we can't create any renderer, this is a critical error
-			// but we'll create a minimal fallback that just passes through text
-			return &TerminalDisplay{renderer: nil}
-		}
+		return &TerminalDisplay{renderer: nil}
 	}
-
-	return &TerminalDisplay{
-		renderer: renderer,
-	}
+	return &TerminalDisplay{renderer: renderer}
 }
 
 // Display renders and displays markdown content in the terminal with syntax highlighting.

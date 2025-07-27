@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"runtime"
+	"strings"
 
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 	"github.com/unclesp1d3r/opnFocus/internal/validator"
@@ -41,6 +42,26 @@ func NewXMLParser() *XMLParser {
 	}
 }
 
+// charsetReader creates a reader for the specified charset.
+// This is a simple implementation that handles common encodings.
+func charsetReader(charset string, input io.Reader) (io.Reader, error) {
+	switch strings.ToLower(charset) {
+	case "us-ascii", "ascii":
+		// us-ascii is a subset of UTF-8, so we can use the input as-is
+		return input, nil
+	case "utf-8", "utf8":
+		// UTF-8 is the default, use input as-is
+		return input, nil
+	case "iso-8859-1", "latin1":
+		// For now, treat as UTF-8 (this is a simplification)
+		// TODO: use golang.org/x/text/encoding
+		return input, nil
+	default:
+		// For unknown encodings, try to use as-is (common fallback)
+		return input, nil
+	}
+}
+
 // Parse parses an OPNsense configuration file with security protections using streaming to minimize memory usage.
 // The streaming approach processes XML tokens individually rather than loading the entire document into memory,
 // providing better memory efficiency for large configuration files while maintaining security protections
@@ -51,6 +72,9 @@ func (p *XMLParser) Parse(_ context.Context, r io.Reader) (*model.Opnsense, erro
 
 	// Create decoder with security configurations
 	dec := xml.NewDecoder(limitedReader)
+
+	// Add charset reader to handle encoding declarations
+	dec.CharsetReader = charsetReader
 
 	// Disable external entity loading to prevent XXE attacks
 	dec.Entity = map[string]string{}

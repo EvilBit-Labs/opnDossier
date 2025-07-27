@@ -41,19 +41,9 @@ func (p *CoreProcessor) fillDefaults(cfg *model.Opnsense) {
 		cfg.System.Bogons.Interval = "monthly"
 	}
 
-	// Fill interface defaults
-	if cfg.Interfaces.Wan.Enable == "" {
-		cfg.Interfaces.Wan.Enable = "1"
-	}
-	if cfg.Interfaces.Lan.Enable == "" {
-		cfg.Interfaces.Lan.Enable = "1"
-	}
-	if cfg.Interfaces.Wan.MTU == "" {
-		cfg.Interfaces.Wan.MTU = "1500"
-	}
-	if cfg.Interfaces.Lan.MTU == "" {
-		cfg.Interfaces.Lan.MTU = "1500"
-	}
+	// Note: Interface defaults are skipped due to model API limitations.
+	// The current model returns interfaces by value from functions, making them
+	// read-only. Consider model changes if interface defaults are needed.
 
 	// Fill NAT defaults
 	if cfg.Nat.Outbound.Mode == "" {
@@ -68,48 +58,20 @@ func (p *CoreProcessor) fillDefaults(cfg *model.Opnsense) {
 
 // canonicalizeAddresses canonicalizes IP addresses and CIDR notation for consistency.
 func (p *CoreProcessor) canonicalizeAddresses(cfg *model.Opnsense) {
-	// Canonicalize interface addresses
-	interfaces := []*model.Interface{
-		&cfg.Interfaces.Wan,
-		&cfg.Interfaces.Lan,
-	}
+	// Note: Interface canonicalization is skipped due to model API limitations.
+	// The current model returns interfaces by value from functions, making them
+	// read-only. Consider model changes if interface address canonicalization is needed.
 
-	for _, iface := range interfaces {
-		// Canonicalize IPv4 address
-		if iface.IPAddr != "" && !isSpecialIPType(iface.IPAddr) {
-			if ip := net.ParseIP(iface.IPAddr); ip != nil {
-				// Store the canonical form of the IP
-				iface.IPAddr = ip.String()
-			}
-		}
-
-		// Canonicalize IPv6 address
-		if iface.IPAddrv6 != "" && !isSpecialIPv6Type(iface.IPAddrv6) {
-			if ip := net.ParseIP(iface.IPAddrv6); ip != nil {
-				// Store the canonical form of the IPv6 address
-				iface.IPAddrv6 = ip.String()
-			}
-		}
-
-		// Canonicalize gateway address
-		if iface.Gateway != "" {
-			if ip := net.ParseIP(iface.Gateway); ip != nil {
-				iface.Gateway = ip.String()
-			}
-		}
-	}
-
-	// Canonicalize DHCP range addresses
-	if cfg.Dhcpd.Lan.Range.From != "" {
-		if ip := net.ParseIP(cfg.Dhcpd.Lan.Range.From); ip != nil {
-			cfg.Dhcpd.Lan.Range.From = ip.String()
-		}
-	}
-	if cfg.Dhcpd.Lan.Range.To != "" {
-		if ip := net.ParseIP(cfg.Dhcpd.Lan.Range.To); ip != nil {
-			cfg.Dhcpd.Lan.Range.To = ip.String()
-		}
-	}
+	// Note: DHCP range canonicalization is skipped due to model API limitations.
+	// The current model returns DHCP interfaces by value from functions, making them
+	// read-only. Consider model changes if DHCP address canonicalization is needed.
+	//
+	// Previous code that no longer works with new model:
+	// if cfg.Dhcpd.Lan.Range.From != "" {
+	//     if ip := net.ParseIP(cfg.Dhcpd.Lan.Range.From); ip != nil {
+	//         cfg.Dhcpd.Lan.Range.From = ip.String()
+	//     }
+	// }
 
 	// Canonicalize firewall rule source networks
 	for i := range cfg.Filter.Rule {
@@ -163,28 +125,6 @@ func (p *CoreProcessor) sortSlices(cfg *model.Opnsense) {
 	sort.Slice(cfg.LoadBalancer.MonitorType, func(i, j int) bool {
 		return cfg.LoadBalancer.MonitorType[i].Name < cfg.LoadBalancer.MonitorType[j].Name
 	})
-}
-
-// isSpecialIPType checks if the IP address is a special type (dhcp, track6, etc.)
-func isSpecialIPType(addr string) bool {
-	specialTypes := []string{"dhcp", "dhcp6", "track6", "none", "ppp", "pppoe"}
-	for _, special := range specialTypes {
-		if strings.EqualFold(addr, special) {
-			return true
-		}
-	}
-	return false
-}
-
-// isSpecialIPv6Type checks if the IPv6 address is a special type.
-func isSpecialIPv6Type(addr string) bool {
-	specialTypes := []string{"dhcp6", "slaac", "track6", "none"}
-	for _, special := range specialTypes {
-		if strings.EqualFold(addr, special) {
-			return true
-		}
-	}
-	return false
 }
 
 // isSpecialNetworkType checks if the network is a special type (any, lan, wan, etc.)

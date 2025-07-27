@@ -15,6 +15,11 @@ import (
 	"github.com/nao1215/markdown"
 )
 
+// Constants for common values.
+const (
+	destinationAny = "any"
+)
+
 // Converter is the interface for converting OPNsense configurations to markdown.
 type Converter interface {
 	ToMarkdown(ctx context.Context, opnsense *model.Opnsense) (string, error)
@@ -30,6 +35,9 @@ func NewMarkdownConverter() *MarkdownConverter {
 
 // ErrNilOpnsense is returned when the input Opnsense struct is nil.
 var ErrNilOpnsense = errors.New("input Opnsense struct is nil")
+
+// ErrUnsupportedFormat is returned when an unsupported output format is requested.
+var ErrUnsupportedFormat = errors.New("unsupported format. Supported formats: markdown, json, yaml")
 
 // ToMarkdown converts an OPNsense configuration to markdown.
 func (c *MarkdownConverter) ToMarkdown(_ context.Context, opnsense *model.Opnsense) (string, error) {
@@ -162,15 +170,19 @@ func (c *MarkdownConverter) buildNetworkSection(md *markdown.Markdown, opnsense 
 
 	// WAN Interface
 	md.H3("WAN Interface")
-	c.buildInterfaceDetails(md, "WAN", netConfig.Interfaces.Wan)
+	if wan, ok := netConfig.Interfaces.Wan(); ok {
+		c.buildInterfaceDetails(md, wan)
+	}
 
 	// LAN Interface
 	md.H3("LAN Interface")
-	c.buildInterfaceDetails(md, "LAN", netConfig.Interfaces.Lan)
+	if lan, ok := netConfig.Interfaces.Lan(); ok {
+		c.buildInterfaceDetails(md, lan)
+	}
 }
 
 // buildInterfaceDetails builds interface configuration details.
-func (c *MarkdownConverter) buildInterfaceDetails(md *markdown.Markdown, _ string, iface model.Interface) {
+func (c *MarkdownConverter) buildInterfaceDetails(md *markdown.Markdown, iface model.Interface) {
 	if iface.If != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("Physical Interface"), iface.If)
 	}
@@ -232,9 +244,17 @@ func (c *MarkdownConverter) buildSecuritySection(md *markdown.Markdown, opnsense
 		for _, rule := range rules {
 			source := rule.Source.Network
 			if source == "" {
-				source = "any"
+				source = destinationAny
 			}
-			dest := "any" // Since Destination has an Any field
+
+			// Check destination - can be either Network or Any
+			dest := rule.Destination.Network
+			if dest == "" {
+				// If no network is specified, check if it's any destination
+				// Since Any is a struct{}, we'll assume it's "any" if Network is empty
+				dest = destinationAny
+			}
+
 			rows = append(rows, []string{
 				rule.Type,
 				rule.Interface,
@@ -259,14 +279,14 @@ func (c *MarkdownConverter) buildServiceSection(md *markdown.Markdown, opnsense 
 
 	// DHCP Server
 	md.H3("DHCP Server")
-	if svcConfig.Dhcpd.Lan.Enable != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("LAN DHCP Enabled"), svcConfig.Dhcpd.Lan.Enable)
-		if svcConfig.Dhcpd.Lan.Range.From != "" && svcConfig.Dhcpd.Lan.Range.To != "" {
-			md.PlainTextf("%s: %s - %s", markdown.Bold("LAN DHCP Range"), svcConfig.Dhcpd.Lan.Range.From, svcConfig.Dhcpd.Lan.Range.To)
+	if lanDhcp, ok := svcConfig.Dhcpd.Get("lan"); ok && lanDhcp.Enable != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("LAN DHCP Enabled"), lanDhcp.Enable)
+		if lanDhcp.Range.From != "" && lanDhcp.Range.To != "" {
+			md.PlainTextf("%s: %s - %s", markdown.Bold("LAN DHCP Range"), lanDhcp.Range.From, lanDhcp.Range.To)
 		}
 	}
-	if svcConfig.Dhcpd.Wan.Enable != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("WAN DHCP Enabled"), svcConfig.Dhcpd.Wan.Enable)
+	if wanDhcp, ok := svcConfig.Dhcpd.Get("wan"); ok && wanDhcp.Enable != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("WAN DHCP Enabled"), wanDhcp.Enable)
 	}
 
 	// DNS Resolver (Unbound)

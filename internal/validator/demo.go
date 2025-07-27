@@ -62,17 +62,21 @@ func DemoValidation() {
 			},
 		},
 		Interfaces: model.Interfaces{
-			Lan: model.Interface{
-				IPAddr:   "invalid-ip", // Invalid IP
-				Subnet:   "35",         // Invalid subnet
-				IPAddrv6: "track6",     // Missing required track6 fields
+			Items: map[string]model.Interface{
+				"lan": {
+					IPAddr:   "invalid-ip", // Invalid IP
+					Subnet:   "35",         // Invalid subnet
+					IPAddrv6: "track6",     // Missing required track6 fields
+				},
 			},
 		},
 		Dhcpd: model.Dhcpd{
-			Lan: model.DhcpdInterface{
-				Range: model.Range{
-					From: "192.168.1.200",
-					To:   "192.168.1.100", // Invalid range order
+			Items: map[string]model.DhcpdInterface{
+				"lan": {
+					Range: model.Range{
+						From: "192.168.1.200",
+						To:   "192.168.1.100", // Invalid range order
+					},
 				},
 			},
 		},
@@ -101,8 +105,10 @@ func DemoValidation() {
 			},
 		},
 		Interfaces: model.Interfaces{
-			Lan: model.Interface{
-				IPAddrv6: "track6", // Missing track6-interface and track6-prefix-id
+			Items: map[string]model.Interface{
+				"lan": {
+					IPAddrv6: "track6", // Missing track6-interface and track6-prefix-id
+				},
 			},
 		},
 	}

@@ -68,11 +68,16 @@ func TestOpnsenseModel_XMLUnmarshalling(t *testing.T) {
 	assert.Equal(t, "test.local", opnsense.System.Domain)
 
 	// Test interfaces
-	assert.Equal(t, "em0", opnsense.Interfaces.Wan.If)
-	assert.Equal(t, "dhcp", opnsense.Interfaces.Wan.IPAddr)
-	assert.Equal(t, "em1", opnsense.Interfaces.Lan.If)
-	assert.Equal(t, "192.168.1.1", opnsense.Interfaces.Lan.IPAddr)
-	assert.Equal(t, "24", opnsense.Interfaces.Lan.Subnet)
+	wan, exists := opnsense.Interfaces.Items["wan"]
+	assert.True(t, exists)
+	assert.Equal(t, "em0", wan.If)
+	assert.Equal(t, "dhcp", wan.IPAddr)
+
+	lan, exists := opnsense.Interfaces.Items["lan"]
+	assert.True(t, exists)
+	assert.Equal(t, "em1", lan.If)
+	assert.Equal(t, "192.168.1.1", lan.IPAddr)
+	assert.Equal(t, "24", lan.Subnet)
 
 	// Test NAT configuration
 	assert.Equal(t, "automatic", opnsense.Nat.Outbound.Mode)
@@ -100,8 +105,10 @@ func TestOpnsenseModel_HelperMethods(t *testing.T) {
 			Hostname: "test-hostname",
 		},
 		Interfaces: Interfaces{
-			Wan: Interface{If: "em0"},
-			Lan: Interface{If: "em1"},
+			Items: map[string]Interface{
+				"wan": {If: "em0"},
+				"lan": {If: "em1"},
+			},
 		},
 		Filter: Filter{
 			Rule: []Rule{
@@ -143,13 +150,17 @@ func TestOpnsenseModel_ConfigGroupHelpers(t *testing.T) {
 			{Tunable: "net.inet.ip.test", Value: "1"},
 		},
 		Interfaces: Interfaces{
-			Wan: Interface{If: "em0"},
-			Lan: Interface{If: "em1"},
+			Items: map[string]Interface{
+				"wan": {If: "em0"},
+				"lan": {If: "em1"},
+			},
 		},
 		Nat:    Nat{Outbound: Outbound{Mode: "automatic"}},
 		Filter: Filter{Rule: []Rule{{Type: "pass"}}},
 		Dhcpd: Dhcpd{
-			Lan: DhcpdInterface{Enable: "1"},
+			Items: map[string]DhcpdInterface{
+				"lan": {Enable: "1"},
+			},
 		},
 	}
 
@@ -162,8 +173,12 @@ func TestOpnsenseModel_ConfigGroupHelpers(t *testing.T) {
 
 	// Test NetworkConfig helper
 	networkConfig := opnsense.NetworkConfig()
-	assert.Equal(t, "em0", networkConfig.Interfaces.Wan.If)
-	assert.Equal(t, "em1", networkConfig.Interfaces.Lan.If)
+	wan, wanExists := networkConfig.Interfaces.Get("wan")
+	assert.True(t, wanExists)
+	assert.Equal(t, "em0", wan.If)
+	lan, lanExists := networkConfig.Interfaces.Get("lan")
+	assert.True(t, lanExists)
+	assert.Equal(t, "em1", lan.If)
 
 	// Test SecurityConfig helper
 	securityConfig := opnsense.SecurityConfig()
@@ -172,7 +187,9 @@ func TestOpnsenseModel_ConfigGroupHelpers(t *testing.T) {
 
 	// Test ServiceConfig helper
 	serviceConfig := opnsense.ServiceConfig()
-	assert.Equal(t, "1", serviceConfig.Dhcpd.Lan.Enable)
+	lanDhcp, lanDhcpExists := serviceConfig.Dhcpd.Get("lan")
+	assert.True(t, lanDhcpExists)
+	assert.Equal(t, "1", lanDhcp.Enable)
 }
 
 func TestOpnsenseModel_Validation(t *testing.T) {
@@ -187,8 +204,10 @@ func TestOpnsenseModel_Validation(t *testing.T) {
 			SSH:      SSH{Group: "admins"},
 		},
 		Interfaces: Interfaces{
-			Wan: Interface{If: "em0"},
-			Lan: Interface{If: "em1"},
+			Items: map[string]Interface{
+				"wan": {If: "em0"},
+				"lan": {If: "em1"},
+			},
 		},
 		Sysctl: []SysctlItem{
 			{Tunable: "net.inet.ip.test", Value: "1"},
@@ -266,10 +285,14 @@ func TestOpnsenseModel_XMLUnmarshalFromFile(t *testing.T) {
 	assert.Equal(t, "users", opnsense.System.Group[1].Name)
 
 	// Verify interfaces
-	assert.Equal(t, "em0", opnsense.Interfaces.Wan.If)
-	assert.Equal(t, "dhcp", opnsense.Interfaces.Wan.IPAddr)
-	assert.Equal(t, "em1", opnsense.Interfaces.Lan.If)
-	assert.Equal(t, "192.168.1.1", opnsense.Interfaces.Lan.IPAddr)
+	wan, wanExists := opnsense.Interfaces.Get("wan")
+	assert.True(t, wanExists)
+	assert.Equal(t, "em0", wan.If)
+	assert.Equal(t, "dhcp", wan.IPAddr)
+	lan, lanExists := opnsense.Interfaces.Get("lan")
+	assert.True(t, lanExists)
+	assert.Equal(t, "em1", lan.If)
+	assert.Equal(t, "192.168.1.1", lan.IPAddr)
 
 	// Verify filter rules
 	assert.Len(t, opnsense.Filter.Rule, 3)
@@ -300,8 +323,10 @@ func TestOpnsenseModel_MissingRequiredFieldsValidation(t *testing.T) {
 					SSH:    SSH{Group: "admins"},
 				},
 				Interfaces: Interfaces{
-					Wan: Interface{If: "em0"},
-					Lan: Interface{If: "em1"},
+					Items: map[string]Interface{
+						"wan": {If: "em0"},
+						"lan": {If: "em1"},
+					},
 				},
 			},
 			wantErr: true,
@@ -315,8 +340,10 @@ func TestOpnsenseModel_MissingRequiredFieldsValidation(t *testing.T) {
 					SSH:      SSH{Group: "admins"},
 				},
 				Interfaces: Interfaces{
-					Wan: Interface{If: "em0"},
-					Lan: Interface{If: "em1"},
+					Items: map[string]Interface{
+						"wan": {If: "em0"},
+						"lan": {If: "em1"},
+					},
 				},
 			},
 			wantErr: true,
@@ -330,8 +357,10 @@ func TestOpnsenseModel_MissingRequiredFieldsValidation(t *testing.T) {
 					SSH:      SSH{Group: "admins"},
 				},
 				Interfaces: Interfaces{
-					Wan: Interface{If: "em0"},
-					Lan: Interface{If: "em1"},
+					Items: map[string]Interface{
+						"wan": {If: "em0"},
+						"lan": {If: "em1"},
+					},
 				},
 			},
 			wantErr: true,
@@ -345,8 +374,10 @@ func TestOpnsenseModel_MissingRequiredFieldsValidation(t *testing.T) {
 					Webgui:   Webgui{Protocol: "https"},
 				},
 				Interfaces: Interfaces{
-					Wan: Interface{If: "em0"},
-					Lan: Interface{If: "em1"},
+					Items: map[string]Interface{
+						"wan": {If: "em0"},
+						"lan": {If: "em1"},
+					},
 				},
 			},
 			wantErr: true,
@@ -361,8 +392,10 @@ func TestOpnsenseModel_MissingRequiredFieldsValidation(t *testing.T) {
 					SSH:      SSH{Group: "admins"},
 				},
 				Interfaces: Interfaces{
-					Wan: Interface{If: "em0"},
-					Lan: Interface{If: "em1"},
+					Items: map[string]Interface{
+						"wan": {If: "em0"},
+						"lan": {If: "em1"},
+					},
 				},
 				Sysctl: []SysctlItem{
 					{Value: "1", Descr: "Test"}, // Missing Tunable
@@ -380,8 +413,10 @@ func TestOpnsenseModel_MissingRequiredFieldsValidation(t *testing.T) {
 					SSH:      SSH{Group: "admins"},
 				},
 				Interfaces: Interfaces{
-					Wan: Interface{If: "em0"},
-					Lan: Interface{If: "em1"},
+					Items: map[string]Interface{
+						"wan": {If: "em0"},
+						"lan": {If: "em1"},
+					},
 				},
 				Sysctl: []SysctlItem{
 					{Tunable: "net.inet.ip.test", Descr: "Test"}, // Missing Value
@@ -399,8 +434,10 @@ func TestOpnsenseModel_MissingRequiredFieldsValidation(t *testing.T) {
 					SSH:      SSH{Group: "admins"},
 				},
 				Interfaces: Interfaces{
-					Wan: Interface{If: "em0"},
-					Lan: Interface{If: "em1"},
+					Items: map[string]Interface{
+						"wan": {If: "em0"},
+						"lan": {If: "em1"},
+					},
 				},
 				Sysctl: []SysctlItem{
 					{Tunable: "net.inet.ip.test", Value: "1", Descr: "Test"},
@@ -475,13 +512,15 @@ func TestOpnsenseModel_EdgeCases(t *testing.T) {
 		assert.Len(t, sysConfig.Sysctl, 0)
 
 		netConfig := opnsense.NetworkConfig()
-		assert.Equal(t, "", netConfig.Interfaces.Wan.If)
+		_, wanExists := netConfig.Interfaces.Get("wan")
+		assert.False(t, wanExists)
 
 		secConfig := opnsense.SecurityConfig()
 		assert.Equal(t, "", secConfig.Nat.Outbound.Mode)
 
 		svcConfig := opnsense.ServiceConfig()
-		assert.Equal(t, "", svcConfig.Dhcpd.Lan.Enable)
+		_, lanDhcpExists := svcConfig.Dhcpd.Get("lan")
+		assert.False(t, lanDhcpExists)
 	})
 
 	t.Run("Nil pointer safety", func(t *testing.T) {
@@ -493,5 +532,36 @@ func TestOpnsenseModel_EdgeCases(t *testing.T) {
 
 		assert.Equal(t, "test", opnsense.Hostname())
 		assert.Nil(t, opnsense.InterfaceByName("em0"))
+	})
+
+	t.Run("InterfaceByName reflection-based search", func(t *testing.T) {
+		// Test that InterfaceByName works with reflection-based field discovery
+		opnsense := Opnsense{
+			Interfaces: Interfaces{
+				Items: map[string]Interface{
+					"wan": {If: "em0", IPAddr: "dhcp"},
+					"lan": {If: "em1", IPAddr: "192.168.1.1"},
+				},
+			},
+		}
+
+		// Test finding existing interfaces
+		wanInterface := opnsense.InterfaceByName("em0")
+		require.NotNil(t, wanInterface)
+		assert.Equal(t, "em0", wanInterface.If)
+		assert.Equal(t, "dhcp", wanInterface.IPAddr)
+
+		lanInterface := opnsense.InterfaceByName("em1")
+		require.NotNil(t, lanInterface)
+		assert.Equal(t, "em1", lanInterface.If)
+		assert.Equal(t, "192.168.1.1", lanInterface.IPAddr)
+
+		// Test finding non-existent interface
+		nonExistentInterface := opnsense.InterfaceByName("em2")
+		assert.Nil(t, nonExistentInterface)
+
+		// Test with empty interface names
+		emptyInterface := opnsense.InterfaceByName("")
+		assert.Nil(t, emptyInterface)
 	})
 }

@@ -267,7 +267,7 @@ func (r *Report) ToMarkdown() string {
 
 	// Title and generation info
 	md.H1("OPNsense Configuration Analysis Report")
-	md.PlainText("Generated: " + r.GeneratedAt.Format(time.RFC3339))
+	md.PlainTextf("Generated: %s", r.GeneratedAt.Format(time.RFC3339))
 	md.LF()
 
 	// Configuration Information
@@ -586,28 +586,37 @@ func generateStatistics(cfg *model.Opnsense) *Statistics {
 	stats.InterfacesByType["lan"] = 1
 
 	// Interface details
-	stats.InterfaceDetails = append(stats.InterfaceDetails,
-		InterfaceStatistics{
-			Name:        "wan",
-			Type:        "wan",
-			Enabled:     cfg.Interfaces.Wan.Enable != "",
-			HasIPv4:     cfg.Interfaces.Wan.IPAddr != "",
-			HasIPv6:     cfg.Interfaces.Wan.IPAddrv6 != "",
-			HasDHCP:     cfg.Dhcpd.Wan.Enable != "",
-			BlockPriv:   cfg.Interfaces.Wan.BlockPriv != "",
-			BlockBogons: cfg.Interfaces.Wan.BlockBogons != "",
-		},
-		InterfaceStatistics{
-			Name:        "lan",
-			Type:        "lan",
-			Enabled:     cfg.Interfaces.Lan.Enable != "",
-			HasIPv4:     cfg.Interfaces.Lan.IPAddr != "",
-			HasIPv6:     cfg.Interfaces.Lan.IPAddrv6 != "",
-			HasDHCP:     cfg.Dhcpd.Lan.Enable != "",
-			BlockPriv:   cfg.Interfaces.Lan.BlockPriv != "",
-			BlockBogons: cfg.Interfaces.Lan.BlockBogons != "",
-		},
-	)
+	wanStats := InterfaceStatistics{
+		Name: "wan",
+		Type: "wan",
+	}
+	if wanDhcp, exists := cfg.Dhcpd.Wan(); exists {
+		wanStats.HasDHCP = wanDhcp.Enable != ""
+	}
+	if wan, ok := cfg.Interfaces.Wan(); ok {
+		wanStats.Enabled = wan.Enable != ""
+		wanStats.HasIPv4 = wan.IPAddr != ""
+		wanStats.HasIPv6 = wan.IPAddrv6 != ""
+		wanStats.BlockPriv = wan.BlockPriv != ""
+		wanStats.BlockBogons = wan.BlockBogons != ""
+	}
+
+	lanStats := InterfaceStatistics{
+		Name: "lan",
+		Type: "lan",
+	}
+	if lanDhcp, exists := cfg.Dhcpd.Lan(); exists {
+		lanStats.HasDHCP = lanDhcp.Enable != ""
+	}
+	if lan, ok := cfg.Interfaces.Lan(); ok {
+		lanStats.Enabled = lan.Enable != ""
+		lanStats.HasIPv4 = lan.IPAddr != ""
+		lanStats.HasIPv6 = lan.IPAddrv6 != ""
+		lanStats.BlockPriv = lan.BlockPriv != ""
+		lanStats.BlockBogons = lan.BlockBogons != ""
+	}
+
+	stats.InterfaceDetails = append(stats.InterfaceDetails, wanStats, lanStats)
 
 	// Firewall rule statistics
 	rules := cfg.FilterRules()
@@ -625,22 +634,22 @@ func generateStatistics(cfg *model.Opnsense) *Statistics {
 
 	// DHCP statistics
 	dhcpScopes := 0
-	if cfg.Dhcpd.Lan.Enable != "" {
+	if lanDhcp, exists := cfg.Dhcpd.Lan(); exists && lanDhcp.Enable != "" {
 		dhcpScopes++
 		stats.DHCPScopeDetails = append(stats.DHCPScopeDetails, DHCPScopeStatistics{
 			Interface: "lan",
 			Enabled:   true,
-			From:      cfg.Dhcpd.Lan.Range.From,
-			To:        cfg.Dhcpd.Lan.Range.To,
+			From:      lanDhcp.Range.From,
+			To:        lanDhcp.Range.To,
 		})
 	}
-	if cfg.Dhcpd.Wan.Enable != "" {
+	if wanDhcp, exists := cfg.Dhcpd.Wan(); exists && wanDhcp.Enable != "" {
 		dhcpScopes++
 		stats.DHCPScopeDetails = append(stats.DHCPScopeDetails, DHCPScopeStatistics{
 			Interface: "wan",
 			Enabled:   true,
-			From:      cfg.Dhcpd.Wan.Range.From,
-			To:        cfg.Dhcpd.Wan.Range.To,
+			From:      wanDhcp.Range.From,
+			To:        wanDhcp.Range.To,
 		})
 	}
 	stats.DHCPScopes = dhcpScopes
@@ -657,28 +666,28 @@ func generateStatistics(cfg *model.Opnsense) *Statistics {
 
 	// Service statistics
 	serviceCount := 0
-	if cfg.Dhcpd.Lan.Enable != "" {
+	if lanDhcp, exists := cfg.Dhcpd.Lan(); exists && lanDhcp.Enable != "" {
 		stats.EnabledServices = append(stats.EnabledServices, "DHCP Server (LAN)")
 		stats.ServiceDetails = append(stats.ServiceDetails, ServiceStatistics{
 			Name:    "DHCP Server (LAN)",
 			Enabled: true,
 			Details: map[string]string{
 				"interface": "lan",
-				"from":      cfg.Dhcpd.Lan.Range.From,
-				"to":        cfg.Dhcpd.Lan.Range.To,
+				"from":      lanDhcp.Range.From,
+				"to":        lanDhcp.Range.To,
 			},
 		})
 		serviceCount++
 	}
-	if cfg.Dhcpd.Wan.Enable != "" {
+	if wanDhcp, exists := cfg.Dhcpd.Wan(); exists && wanDhcp.Enable != "" {
 		stats.EnabledServices = append(stats.EnabledServices, "DHCP Server (WAN)")
 		stats.ServiceDetails = append(stats.ServiceDetails, ServiceStatistics{
 			Name:    "DHCP Server (WAN)",
 			Enabled: true,
 			Details: map[string]string{
 				"interface": "wan",
-				"from":      cfg.Dhcpd.Wan.Range.From,
-				"to":        cfg.Dhcpd.Wan.Range.To,
+				"from":      wanDhcp.Range.From,
+				"to":        wanDhcp.Range.To,
 			},
 		})
 		serviceCount++
@@ -733,11 +742,13 @@ func generateStatistics(cfg *model.Opnsense) *Statistics {
 	stats.LoadBalancerMonitors = len(cfg.LoadBalancer.MonitorType)
 
 	// Security features detection
-	if cfg.Interfaces.Wan.BlockPriv != "" {
-		stats.SecurityFeatures = append(stats.SecurityFeatures, "Block Private Networks")
-	}
-	if cfg.Interfaces.Wan.BlockBogons != "" {
-		stats.SecurityFeatures = append(stats.SecurityFeatures, "Block Bogon Networks")
+	if wan, ok := cfg.Interfaces.Wan(); ok {
+		if wan.BlockPriv != "" {
+			stats.SecurityFeatures = append(stats.SecurityFeatures, "Block Private Networks")
+		}
+		if wan.BlockBogons != "" {
+			stats.SecurityFeatures = append(stats.SecurityFeatures, "Block Bogon Networks")
+		}
 	}
 	if cfg.System.Webgui.Protocol == "https" {
 		stats.SecurityFeatures = append(stats.SecurityFeatures, "HTTPS Web GUI")

@@ -37,10 +37,10 @@ func ValidateOpnsense(o *model.Opnsense) []ValidationError {
 	errors = append(errors, validateInterfaces(&o.Interfaces)...)
 
 	// Validate DHCP configuration
-	errors = append(errors, validateDhcpd(&o.Dhcpd)...)
+	errors = append(errors, validateDhcpd(&o.Dhcpd, &o.Interfaces)...)
 
 	// Validate filter rules
-	errors = append(errors, validateFilter(&o.Filter)...)
+	errors = append(errors, validateFilter(&o.Filter, &o.Interfaces)...)
 
 	// Validate NAT configuration
 	errors = append(errors, validateNat(&o.Nat)...)
@@ -141,23 +141,30 @@ func validateSystem(system *model.System) []ValidationError {
 	return errors
 }
 
-// validateInterfaces validates the WAN and LAN network interface configurations and returns any validation errors found.
+// validateInterfaces validates all configured network interfaces and returns any validation errors found.
 func validateInterfaces(interfaces *model.Interfaces) []ValidationError {
 	var errors []ValidationError
 
-	// Validate WAN interface
-	errors = append(errors, validateInterface(&interfaces.Wan, "wan")...)
+	if interfaces == nil || interfaces.Items == nil {
+		return errors
+	}
 
-	// Validate LAN interface
-	errors = append(errors, validateInterface(&interfaces.Lan, "lan")...)
+	// Validate each configured interface
+	for name, iface := range interfaces.Items {
+		ifaceCopy := iface // Create a copy to get a pointer
+		errors = append(errors, validateInterface(&ifaceCopy, name, interfaces)...)
+	}
 
 	return errors
 }
 
 // validateInterface checks a single network interface configuration for valid IP address types and formats, subnet masks, MTU range, and required fields for track6 IPv6 addressing.
 // It returns a slice of ValidationError for any invalid or missing configuration fields.
-func validateInterface(iface *model.Interface, name string) []ValidationError {
+func validateInterface(iface *model.Interface, name string, interfaces *model.Interfaces) []ValidationError {
 	var errors []ValidationError
+
+	// Get valid interface names for cross-field validation
+	validInterfaceNames := collectInterfaceNames(interfaces)
 
 	// Validate IP address configuration
 	if iface.IPAddr != "" {
@@ -218,6 +225,19 @@ func validateInterface(iface *model.Interface, name string) []ValidationError {
 				Field:   fmt.Sprintf("interfaces.%s.track6-interface", name),
 				Message: "track6-interface is required when using track6 IPv6 addressing",
 			})
+		} else {
+			// Validate that the referenced interface exists
+			if _, exists := validInterfaceNames[iface.Track6Interface]; !exists {
+				// Create a sorted slice of interface names for error message
+				interfaceList := make([]string, 0, len(validInterfaceNames))
+				for interfaceName := range validInterfaceNames {
+					interfaceList = append(interfaceList, interfaceName)
+				}
+				errors = append(errors, ValidationError{
+					Field:   fmt.Sprintf("interfaces.%s.track6-interface", name),
+					Message: fmt.Sprintf("track6-interface '%s' must reference a configured interface: %v", iface.Track6Interface, interfaceList),
+				})
+			}
 		}
 		if iface.Track6PrefixID == "" {
 			errors = append(errors, ValidationError{
@@ -230,39 +250,74 @@ func validateInterface(iface *model.Interface, name string) []ValidationError {
 	return errors
 }
 
-// validateDhcpd checks the validity of the DHCP server configuration for the LAN interface.
-// It ensures that the "from" and "to" addresses in the DHCP range are valid IP addresses if set,
-// and verifies that the "from" address is numerically less than the "to" address.
-// Returns a slice of ValidationError for any invalid or inconsistent DHCP range fields.
-func validateDhcpd(dhcpd *model.Dhcpd) []ValidationError {
+// validateDhcpd checks the validity of the DHCP server configuration for all interfaces.
+// It iterates over the interface map and validates each DHCP block that exists in the dhcpd section.
+// Returns a slice of ValidationError for any invalid or inconsistent DHCP configuration fields.
+func validateDhcpd(dhcpd *model.Dhcpd, interfaces *model.Interfaces) []ValidationError {
 	var errors []ValidationError
 
-	// Validate LAN DHCP range
-	if dhcpd.Lan.Range.From != "" || dhcpd.Lan.Range.To != "" {
-		if dhcpd.Lan.Range.From != "" && !isValidIP(dhcpd.Lan.Range.From) {
+	if dhcpd == nil || dhcpd.Items == nil {
+		return errors
+	}
+
+	// Get valid interface names for cross-validation
+	ifaceSet := collectInterfaceNames(interfaces)
+
+	// Validate each DHCP interface configuration
+	for name, cfg := range dhcpd.Items {
+		errors = append(errors, validateDhcpdInterface(name, cfg, ifaceSet)...)
+	}
+
+	return errors
+}
+
+// validateDhcpdInterface validates a single DHCP interface configuration.
+// It ensures that the "from" and "to" addresses in the DHCP range are valid IP addresses if set,
+// verifies that the "from" address is numerically less than the "to" address,
+// and checks that the interface name exists in the provided interface set.
+// Returns a slice of ValidationError for any invalid or inconsistent DHCP interface fields.
+func validateDhcpdInterface(name string, cfg model.DhcpdInterface, ifaceSet map[string]struct{}) []ValidationError {
+	var errors []ValidationError
+
+	// Validate that the interface exists in the configuration
+	if _, exists := ifaceSet[name]; !exists {
+		// Create a sorted slice of interface names for error message
+		interfaceList := make([]string, 0, len(ifaceSet))
+		for interfaceName := range ifaceSet {
+			interfaceList = append(interfaceList, interfaceName)
+		}
+		errors = append(errors, ValidationError{
+			Field:   "dhcpd." + name,
+			Message: fmt.Sprintf("DHCP interface '%s' must reference a configured interface: %v", name, interfaceList),
+		})
+	}
+
+	// Validate DHCP range if either from or to is set
+	if cfg.Range.From != "" || cfg.Range.To != "" {
+		if cfg.Range.From != "" && !isValidIP(cfg.Range.From) {
 			errors = append(errors, ValidationError{
-				Field:   "dhcpd.lan.range.from",
-				Message: fmt.Sprintf("DHCP range 'from' address '%s' must be a valid IP address", dhcpd.Lan.Range.From),
+				Field:   fmt.Sprintf("dhcpd.%s.range.from", name),
+				Message: fmt.Sprintf("DHCP range 'from' address '%s' must be a valid IP address", cfg.Range.From),
 			})
 		}
-		if dhcpd.Lan.Range.To != "" && !isValidIP(dhcpd.Lan.Range.To) {
+		if cfg.Range.To != "" && !isValidIP(cfg.Range.To) {
 			errors = append(errors, ValidationError{
-				Field:   "dhcpd.lan.range.to",
-				Message: fmt.Sprintf("DHCP range 'to' address '%s' must be a valid IP address", dhcpd.Lan.Range.To),
+				Field:   fmt.Sprintf("dhcpd.%s.range.to", name),
+				Message: fmt.Sprintf("DHCP range 'to' address '%s' must be a valid IP address", cfg.Range.To),
 			})
 		}
 
 		// Cross-validation: from address should be less than to address
-		if isValidIP(dhcpd.Lan.Range.From) && isValidIP(dhcpd.Lan.Range.To) {
-			fromIP := net.ParseIP(dhcpd.Lan.Range.From).To4()
-			toIP := net.ParseIP(dhcpd.Lan.Range.To).To4()
+		if isValidIP(cfg.Range.From) && isValidIP(cfg.Range.To) {
+			fromIP := net.ParseIP(cfg.Range.From).To4()
+			toIP := net.ParseIP(cfg.Range.To).To4()
 			if fromIP != nil && toIP != nil {
 				// Compare byte by byte
 				for i := 0; i < 4; i++ {
 					if fromIP[i] > toIP[i] {
 						errors = append(errors, ValidationError{
-							Field:   "dhcpd.lan.range",
-							Message: fmt.Sprintf("DHCP range 'from' address (%s) must be less than 'to' address (%s)", dhcpd.Lan.Range.From, dhcpd.Lan.Range.To),
+							Field:   fmt.Sprintf("dhcpd.%s.range", name),
+							Message: fmt.Sprintf("DHCP range 'from' address (%s) must be less than 'to' address (%s)", cfg.Range.From, cfg.Range.To),
 						})
 						break
 					} else if fromIP[i] < toIP[i] {
@@ -276,10 +331,41 @@ func validateDhcpd(dhcpd *model.Dhcpd) []ValidationError {
 	return errors
 }
 
+// collectInterfaceNames returns every key from the interfaces map as a set.
+func collectInterfaceNames(ifaces *model.Interfaces) map[string]struct{} {
+	interfaceNames := make(map[string]struct{})
+	if ifaces != nil && ifaces.Items != nil {
+		for name := range ifaces.Items {
+			interfaceNames[name] = struct{}{}
+		}
+	}
+	return interfaceNames
+}
+
 // validateFilter checks each firewall filter rule for valid type, IP protocol, interface, and source network values.
 // It returns a slice of ValidationError for any rule fields that do not meet the required criteria.
-func validateFilter(filter *model.Filter) []ValidationError {
+func stripIPSuffix(network string) string {
+	if strings.HasSuffix(network, "ip") {
+		return strings.TrimSuffix(network, "ip")
+	}
+	return network
+}
+
+func isReservedNetwork(network string) bool {
+	reserved := []string{"any", "lan", "wan", "localhost", "loopback"}
+	for _, r := range reserved {
+		if network == r {
+			return true
+		}
+	}
+	return false
+}
+
+func validateFilter(filter *model.Filter, interfaces *model.Interfaces) []ValidationError {
 	var errors []ValidationError
+
+	// Collect valid interface names from the configuration
+	validInterfaceNames := collectInterfaceNames(interfaces)
 
 	for i, rule := range filter.Rule {
 		// Validate rule type
@@ -300,22 +386,41 @@ func validateFilter(filter *model.Filter) []ValidationError {
 			})
 		}
 
-		// Validate interface
-		validInterfaces := []string{"wan", "lan", "opt1", "opt2", "opt3", "opt4"}
-		if rule.Interface != "" && !contains(validInterfaces, rule.Interface) {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("filter.rule[%d].interface", i),
-				Message: fmt.Sprintf("interface '%s' must be one of: %v", rule.Interface, validInterfaces),
-			})
+		// Validate interface against configured interfaces
+		if rule.Interface != "" {
+			if _, exists := validInterfaceNames[rule.Interface]; !exists {
+				// Create a sorted slice of interface names for error message
+				interfaceList := make([]string, 0, len(validInterfaceNames))
+				for name := range validInterfaceNames {
+					interfaceList = append(interfaceList, name)
+				}
+				errors = append(errors, ValidationError{
+					Field:   fmt.Sprintf("filter.rule[%d].interface", i),
+					Message: fmt.Sprintf("interface '%s' must be one of the configured interfaces: %v", rule.Interface, interfaceList),
+				})
+			}
 		}
 
 		// Validate source network
-		validNetworks := []string{"any", "lan", "wan"}
-		if rule.Source.Network != "" && !contains(validNetworks, rule.Source.Network) && !isValidCIDR(rule.Source.Network) {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("filter.rule[%d].source.network", i),
-				Message: fmt.Sprintf("source network '%s' must be a valid CIDR or one of: %v", rule.Source.Network, validNetworks),
-			})
+		network := stripIPSuffix(rule.Source.Network)
+		if rule.Source.Network != "" && !isReservedNetwork(network) && !isValidCIDR(rule.Source.Network) {
+			if _, exists := validInterfaceNames[network]; !exists {
+				errors = append(errors, ValidationError{
+					Field:   fmt.Sprintf("filter.rule[%d].source.network", i),
+					Message: fmt.Sprintf("source network '%s' must be a valid CIDR, reserved word, or an interface key followed by 'ip'", rule.Source.Network),
+				})
+			}
+		}
+
+		// Validate destination network
+		destNetwork := stripIPSuffix(rule.Destination.Network)
+		if rule.Destination.Network != "" && !isReservedNetwork(destNetwork) && !isValidCIDR(rule.Destination.Network) {
+			if _, exists := validInterfaceNames[destNetwork]; !exists {
+				errors = append(errors, ValidationError{
+					Field:   fmt.Sprintf("filter.rule[%d].destination.network", i),
+					Message: fmt.Sprintf("destination network '%s' must be a valid CIDR, reserved word, or an interface key followed by 'ip'", rule.Destination.Network),
+				})
+			}
 		}
 	}
 

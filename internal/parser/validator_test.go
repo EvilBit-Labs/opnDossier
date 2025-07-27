@@ -288,8 +288,8 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 					},
 				},
 			},
-			expectedErrors: 1,
-			expectedFields: []string{"opnsense.filter.rule[0].type"},
+			expectedErrors: 2,
+			expectedFields: []string{"opnsense.filter.rule[0].type", "opnsense.filter.rule[0].interface"},
 			description:    "Rule type must be pass, block, or reject",
 		},
 		{
@@ -309,8 +309,8 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 					},
 				},
 			},
-			expectedErrors: 1,
-			expectedFields: []string{"opnsense.filter.rule[0].ipprotocol"},
+			expectedErrors: 2,
+			expectedFields: []string{"opnsense.filter.rule[0].ipprotocol", "opnsense.filter.rule[0].interface"},
 			description:    "IP protocol must be inet or inet6",
 		},
 		{
@@ -434,9 +434,11 @@ func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 					Domain:   "example.com",
 				},
 				Interfaces: model.Interfaces{
-					Lan: model.Interface{
-						IPAddrv6: "track6",
-						// Missing Track6Interface and Track6PrefixID
+					Items: map[string]model.Interface{
+						"lan": {
+							IPAddrv6: "track6",
+							// Missing Track6Interface and Track6PrefixID
+						},
 					},
 				},
 			},
@@ -452,16 +454,18 @@ func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 					Domain:   "example.com",
 				},
 				Dhcpd: model.Dhcpd{
-					Lan: model.DhcpdInterface{
-						Range: model.Range{
-							From: "192.168.1.200",
-							To:   "192.168.1.100", // From > To
+					Items: map[string]model.DhcpdInterface{
+						"lan": {
+							Range: model.Range{
+								From: "192.168.1.200",
+								To:   "192.168.1.100", // From > To
+							},
 						},
 					},
 				},
 			},
-			expectedErrors: 1,
-			expectedFields: []string{"opnsense.dhcpd.lan.range"},
+			expectedErrors: 2,
+			expectedFields: []string{"opnsense.dhcpd.lan.range", "opnsense.dhcpd.lan"},
 			description:    "DHCP range 'from' address must be less than 'to' address",
 		},
 		{
@@ -636,16 +640,20 @@ func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 					},
 				},
 				Interfaces: model.Interfaces{
-					Lan: model.Interface{
-						IPAddrv6: "track6",
-						// Missing Track6Interface and Track6PrefixID
+					Items: map[string]model.Interface{
+						"lan": {
+							IPAddrv6: "track6",
+							// Missing Track6Interface and Track6PrefixID
+						},
 					},
 				},
 				Dhcpd: model.Dhcpd{
-					Lan: model.DhcpdInterface{
-						Range: model.Range{
-							From: "192.168.1.200",
-							To:   "192.168.1.100", // Invalid range order
+					Items: map[string]model.DhcpdInterface{
+						"lan": {
+							Range: model.Range{
+								From: "192.168.1.200",
+								To:   "192.168.1.100", // Invalid range order
+							},
 						},
 					},
 				},
@@ -733,7 +741,7 @@ func TestXMLParser_ValidateComplexScenarios(t *testing.T) {
 					},
 				},
 			},
-			expectedErrors: 6, // hostname missing, invalid optimization, invalid protocol, duplicate group name, invalid group reference, rule type
+			expectedErrors: 7, // hostname missing, invalid optimization, invalid protocol, duplicate group name, invalid group reference, rule type, interface validation
 			description:    "Configuration with mixed validation error types",
 		},
 	}
@@ -791,24 +799,28 @@ func TestXMLParser_ValidateValidConfiguration(t *testing.T) {
 			},
 		},
 		Interfaces: model.Interfaces{
-			Wan: model.Interface{
-				IPAddr:   "dhcp",
-				IPAddrv6: "dhcp6",
-			},
-			Lan: model.Interface{
-				IPAddr:          "192.168.1.1",
-				Subnet:          "24",
-				IPAddrv6:        "track6",
-				Subnetv6:        "64",
-				Track6Interface: "wan",
-				Track6PrefixID:  "0",
+			Items: map[string]model.Interface{
+				"wan": {
+					IPAddr:   "dhcp",
+					IPAddrv6: "dhcp6",
+				},
+				"lan": {
+					IPAddr:          "192.168.1.1",
+					Subnet:          "24",
+					IPAddrv6:        "track6",
+					Subnetv6:        "64",
+					Track6Interface: "wan",
+					Track6PrefixID:  "0",
+				},
 			},
 		},
 		Dhcpd: model.Dhcpd{
-			Lan: model.DhcpdInterface{
-				Range: model.Range{
-					From: "192.168.1.100",
-					To:   "192.168.1.199",
+			Items: map[string]model.DhcpdInterface{
+				"lan": {
+					Range: model.Range{
+						From: "192.168.1.100",
+						To:   "192.168.1.199",
+					},
 				},
 			},
 		},

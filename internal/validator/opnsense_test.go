@@ -40,24 +40,32 @@ func TestValidateOpnsense_ValidConfig(t *testing.T) {
 			},
 		},
 		Interfaces: model.Interfaces{
-			Wan: model.Interface{
-				IPAddr:   "dhcp",
-				IPAddrv6: "dhcp6",
-			},
-			Lan: model.Interface{
-				IPAddr:          "192.168.1.1",
-				Subnet:          "24",
-				IPAddrv6:        "track6",
-				Subnetv6:        "64",
-				Track6Interface: "wan",
-				Track6PrefixID:  "0",
+			Items: map[string]model.Interface{
+				"wan": {
+					IPAddr:   "dhcp",
+					IPAddrv6: "dhcp6",
+				},
+				"lan": {
+					IPAddr:          "192.168.1.1",
+					Subnet:          "24",
+					IPAddrv6:        "track6",
+					Subnetv6:        "64",
+					Track6Interface: "wan",
+					Track6PrefixID:  "0",
+				},
+				"opt0": {
+					IPAddr: "10.0.0.1",
+					Subnet: "24",
+				},
 			},
 		},
 		Dhcpd: model.Dhcpd{
-			Lan: model.DhcpdInterface{
-				Range: model.Range{
-					From: "192.168.1.100",
-					To:   "192.168.1.199",
+			Items: map[string]model.DhcpdInterface{
+				"lan": {
+					Range: model.Range{
+						From: "192.168.1.100",
+						To:   "192.168.1.199",
+					},
 				},
 			},
 		},
@@ -69,6 +77,9 @@ func TestValidateOpnsense_ValidConfig(t *testing.T) {
 					Interface:  "lan",
 					Source: model.Source{
 						Network: "lan",
+					},
+					Destination: model.Destination{
+						Network: "opt0ip",
 					},
 				},
 			},
@@ -89,6 +100,166 @@ func TestValidateOpnsense_ValidConfig(t *testing.T) {
 
 	errors := ValidateOpnsense(config)
 	assert.Empty(t, errors, "Valid configuration should not produce validation errors")
+}
+
+func TestStripIPSuffix(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "with ip suffix",
+			input:    "opt0ip",
+			expected: "opt0",
+		},
+		{
+			name:     "without ip suffix",
+			input:    "opt0",
+			expected: "opt0",
+		},
+		{
+			name:     "reserved word",
+			input:    "any",
+			expected: "any",
+		},
+		{
+			name:     "lanip",
+			input:    "lanip",
+			expected: "lan",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := stripIPSuffix(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestValidateFilter_NetworkValidation(t *testing.T) {
+	interfaces := &model.Interfaces{
+		Items: map[string]model.Interface{
+			"wan":  {},
+			"lan":  {},
+			"opt0": {},
+		},
+	}
+
+	tests := []struct {
+		name           string
+		filter         model.Filter
+		expectedErrors int
+		errorField     string
+	}{
+		{
+			name: "valid reserved network",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Interface: "lan",
+						Source: model.Source{
+							Network: "any",
+						},
+						Destination: model.Destination{
+							Network: "lan",
+						},
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "valid interface with ip suffix",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Interface: "lan",
+						Source: model.Source{
+							Network: "opt0ip",
+						},
+						Destination: model.Destination{
+							Network: "wanip",
+						},
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "valid CIDR",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Interface: "lan",
+						Source: model.Source{
+							Network: "192.168.1.0/24",
+						},
+						Destination: model.Destination{
+							Network: "10.0.0.0/8",
+						},
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "invalid source network",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Interface: "lan",
+						Source: model.Source{
+							Network: "nonexistent",
+						},
+					},
+				},
+			},
+			expectedErrors: 1,
+			errorField:     "filter.rule[0].source.network",
+		},
+		{
+			name: "invalid destination network",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Interface: "lan",
+						Destination: model.Destination{
+							Network: "nonexistent",
+						},
+					},
+				},
+			},
+			expectedErrors: 1,
+			errorField:     "filter.rule[0].destination.network",
+		},
+		{
+			name: "invalid interface validation",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Interface: "nonexistent",
+						Source: model.Source{
+							Network: "any",
+						},
+					},
+				},
+			},
+			expectedErrors: 1,
+			errorField:     "filter.rule[0].interface",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errors := validateFilter(&tt.filter, interfaces)
+			assert.Len(t, errors, tt.expectedErrors, "Expected number of errors")
+			if tt.expectedErrors > 0 && len(errors) > 0 {
+				assert.Equal(t, tt.errorField, errors[0].Field, "Expected error field")
+			}
+		})
+	}
 }
 
 func TestValidateSystem_RequiredFields(t *testing.T) {
@@ -222,7 +393,14 @@ func TestValidateInterface_IPAddressValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			errors := validateInterface(&tt.iface, tt.interfaceName)
+			// Create a mock interfaces structure for cross-field validation
+			interfaces := &model.Interfaces{
+				Items: map[string]model.Interface{
+					"wan": {},
+					"lan": {},
+				},
+			}
+			errors := validateInterface(&tt.iface, tt.interfaceName, interfaces)
 			assert.Len(t, errors, tt.expectedErrors, "Expected number of errors")
 		})
 	}
@@ -301,7 +479,14 @@ func TestValidateFilter_RuleValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			errors := validateFilter(&tt.filter)
+			// Create a mock interfaces structure for the test
+			interfaces := &model.Interfaces{
+				Items: map[string]model.Interface{
+					"wan": {},
+					"lan": {},
+				},
+			}
+			errors := validateFilter(&tt.filter, interfaces)
 			assert.Len(t, errors, tt.expectedErrors, "Expected number of errors")
 		})
 	}
@@ -311,16 +496,25 @@ func TestValidateDhcpd_RangeValidation(t *testing.T) {
 	tests := []struct {
 		name           string
 		dhcpd          model.Dhcpd
+		interfaces     model.Interfaces
 		expectedErrors int
 	}{
 		{
 			name: "valid DHCP range",
 			dhcpd: model.Dhcpd{
-				Lan: model.DhcpdInterface{
-					Range: model.Range{
-						From: "192.168.1.100",
-						To:   "192.168.1.199",
+				Items: map[string]model.DhcpdInterface{
+					"lan": {
+						Range: model.Range{
+							From: "192.168.1.100",
+							To:   "192.168.1.199",
+						},
 					},
+				},
+			},
+			interfaces: model.Interfaces{
+				Items: map[string]model.Interface{
+					"wan": {},
+					"lan": {},
 				},
 			},
 			expectedErrors: 0,
@@ -328,11 +522,19 @@ func TestValidateDhcpd_RangeValidation(t *testing.T) {
 		{
 			name: "invalid from IP",
 			dhcpd: model.Dhcpd{
-				Lan: model.DhcpdInterface{
-					Range: model.Range{
-						From: "invalid-ip",
-						To:   "192.168.1.199",
+				Items: map[string]model.DhcpdInterface{
+					"lan": {
+						Range: model.Range{
+							From: "invalid-ip",
+							To:   "192.168.1.199",
+						},
 					},
+				},
+			},
+			interfaces: model.Interfaces{
+				Items: map[string]model.Interface{
+					"wan": {},
+					"lan": {},
 				},
 			},
 			expectedErrors: 1,
@@ -340,20 +542,75 @@ func TestValidateDhcpd_RangeValidation(t *testing.T) {
 		{
 			name: "invalid range order",
 			dhcpd: model.Dhcpd{
-				Lan: model.DhcpdInterface{
-					Range: model.Range{
-						From: "192.168.1.200",
-						To:   "192.168.1.100",
+				Items: map[string]model.DhcpdInterface{
+					"lan": {
+						Range: model.Range{
+							From: "192.168.1.200",
+							To:   "192.168.1.100",
+						},
 					},
 				},
 			},
+			interfaces: model.Interfaces{
+				Items: map[string]model.Interface{
+					"wan": {},
+					"lan": {},
+				},
+			},
 			expectedErrors: 1,
+		},
+		{
+			name: "DHCP interface not in configured interfaces",
+			dhcpd: model.Dhcpd{
+				Items: map[string]model.DhcpdInterface{
+					"opt0": {
+						Range: model.Range{
+							From: "192.168.1.100",
+							To:   "192.168.1.199",
+						},
+					},
+				},
+			},
+			interfaces: model.Interfaces{
+				Items: map[string]model.Interface{
+					"wan": {},
+					"lan": {},
+				},
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "multiple interfaces validation",
+			dhcpd: model.Dhcpd{
+				Items: map[string]model.DhcpdInterface{
+					"lan": {
+						Range: model.Range{
+							From: "192.168.1.100",
+							To:   "192.168.1.199",
+						},
+					},
+					"opt0": {
+						Range: model.Range{
+							From: "10.0.0.100",
+							To:   "10.0.0.199",
+						},
+					},
+				},
+			},
+			interfaces: model.Interfaces{
+				Items: map[string]model.Interface{
+					"wan":  {},
+					"lan":  {},
+					"opt0": {},
+				},
+			},
+			expectedErrors: 0,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			errors := validateDhcpd(&tt.dhcpd)
+			errors := validateDhcpd(&tt.dhcpd, &tt.interfaces)
 			assert.Len(t, errors, tt.expectedErrors, "Expected number of errors")
 		})
 	}
@@ -674,7 +931,13 @@ func TestValidateInterface_MTUValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			errors := validateInterface(&tt.iface, "test")
+			// Create a mock interfaces structure for cross-field validation
+			interfaces := &model.Interfaces{
+				Items: map[string]model.Interface{
+					"test": {},
+				},
+			}
+			errors := validateInterface(&tt.iface, "test", interfaces)
 			assert.Len(t, errors, tt.expectedErrors, "Expected number of errors")
 		})
 	}
@@ -739,7 +1002,13 @@ func TestValidateFilter_SourceNetworkValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			errors := validateFilter(&tt.filter)
+			// Create a mock interfaces structure for the test
+			interfaces := &model.Interfaces{
+				Items: map[string]model.Interface{
+					"lan": {},
+				},
+			}
+			errors := validateFilter(&tt.filter, interfaces)
 			assert.Len(t, errors, tt.expectedErrors, "Expected number of errors")
 		})
 	}

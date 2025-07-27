@@ -145,27 +145,33 @@ func TestXMLParser_ParseConfigSample(t *testing.T) {
 
 	t.Run("Network Interfaces", func(t *testing.T) {
 		// WAN Interface
-		assert.Equal(t, "1", opnsense.Interfaces.Wan.Enable)
-		assert.Equal(t, "mismatch1", opnsense.Interfaces.Wan.If)
-		assert.Equal(t, "dhcp", opnsense.Interfaces.Wan.IPAddr)
-		assert.Equal(t, "dhcp6", opnsense.Interfaces.Wan.IPAddrv6)
-		assert.Equal(t, "1", opnsense.Interfaces.Wan.BlockPriv)
-		assert.Equal(t, "1", opnsense.Interfaces.Wan.BlockBogons)
+		wan, wanExists := opnsense.Interfaces.Wan()
+		require.True(t, wanExists, "WAN interface should exist")
+		assert.Equal(t, "1", wan.Enable)
+		assert.Equal(t, "mismatch1", wan.If)
+		assert.Equal(t, "dhcp", wan.IPAddr)
+		assert.Equal(t, "dhcp6", wan.IPAddrv6)
+		assert.Equal(t, "1", wan.BlockPriv)
+		assert.Equal(t, "1", wan.BlockBogons)
 
 		// LAN Interface
-		assert.Equal(t, "1", opnsense.Interfaces.Lan.Enable)
-		assert.Equal(t, "mismatch0", opnsense.Interfaces.Lan.If)
-		assert.Equal(t, "192.168.1.1", opnsense.Interfaces.Lan.IPAddr)
-		assert.Equal(t, "track6", opnsense.Interfaces.Lan.IPAddrv6)
-		assert.Equal(t, "24", opnsense.Interfaces.Lan.Subnet)
-		assert.Equal(t, "64", opnsense.Interfaces.Lan.Subnetv6)
-		assert.Equal(t, "wan", opnsense.Interfaces.Lan.Track6Interface)
-		assert.Equal(t, "0", opnsense.Interfaces.Lan.Track6PrefixID)
+		lan, lanExists := opnsense.Interfaces.Lan()
+		require.True(t, lanExists, "LAN interface should exist")
+		assert.Equal(t, "1", lan.Enable)
+		assert.Equal(t, "mismatch0", lan.If)
+		assert.Equal(t, "192.168.1.1", lan.IPAddr)
+		assert.Equal(t, "track6", lan.IPAddrv6)
+		assert.Equal(t, "24", lan.Subnet)
+		assert.Equal(t, "64", lan.Subnetv6)
+		assert.Equal(t, "wan", lan.Track6Interface)
+		assert.Equal(t, "0", lan.Track6PrefixID)
 	})
 
 	t.Run("DHCP Configuration", func(t *testing.T) {
-		assert.Equal(t, "192.168.1.100", opnsense.Dhcpd.Lan.Range.From)
-		assert.Equal(t, "192.168.1.199", opnsense.Dhcpd.Lan.Range.To)
+		lanDhcp, lanDhcpExists := opnsense.Dhcpd.Lan()
+		require.True(t, lanDhcpExists, "LAN DHCP configuration should exist")
+		assert.Equal(t, "192.168.1.100", lanDhcp.Range.From)
+		assert.Equal(t, "192.168.1.199", lanDhcp.Range.To)
 	})
 
 	t.Run("Services", func(t *testing.T) {
@@ -260,18 +266,22 @@ func validateOPNsenseConfig(t *testing.T, config *model.Opnsense, _ string) {
 
 	t.Run("Network Interfaces", func(t *testing.T) {
 		// At least one interface should be enabled
-		wanEnabled := config.Interfaces.Wan.Enable == "1"
-		lanEnabled := config.Interfaces.Lan.Enable == "1"
+		var wanEnabled, lanEnabled bool
+		if wan, exists := config.Interfaces.Wan(); exists {
+			wanEnabled = wan.Enable == "1"
+			// Validate interface name if specified
+			if wan.If != "" {
+				assert.NotEmpty(t, wan.If, "WAN interface name should not be empty if specified")
+			}
+		}
+		if lan, exists := config.Interfaces.Lan(); exists {
+			lanEnabled = lan.Enable == "1"
+			// Validate interface name if specified
+			if lan.If != "" {
+				assert.NotEmpty(t, lan.If, "LAN interface name should not be empty if specified")
+			}
+		}
 		assert.True(t, wanEnabled || lanEnabled, "At least one interface should be enabled")
-
-		// Validate interface names if specified
-		if config.Interfaces.Wan.If != "" {
-			assert.NotEmpty(t, config.Interfaces.Wan.If, "WAN interface name should not be empty if specified")
-		}
-
-		if config.Interfaces.Lan.If != "" {
-			assert.NotEmpty(t, config.Interfaces.Lan.If, "LAN interface name should not be empty if specified")
-		}
 	})
 
 	t.Run("Sysctl Items", func(t *testing.T) {

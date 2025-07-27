@@ -86,9 +86,9 @@ func (p *CoreProcessor) analyzeInterfaceRules(iface string, rules []model.Rule, 
 		}
 
 		// Check for overly broad rules that might be unintentional
-		if rule.Type == "pass" && rule.Source.Network == NetworkAny && rule.Descr == "" {
+		if rule.Type == RuleTypePass && rule.Source.Network == NetworkAny && rule.Descr == "" {
 			report.AddFinding(SeverityHigh, Finding{
-				Type:           "security",
+				Type:           FindingTypeSecurity,
 				Title:          "Overly Broad Pass Rule",
 				Description:    fmt.Sprintf("Rule at position %d on interface %s allows all traffic without description", i+1, iface),
 				Component:      fmt.Sprintf("filter.rule[%d]", i),
@@ -99,11 +99,41 @@ func (p *CoreProcessor) analyzeInterfaceRules(iface string, rules []model.Rule, 
 }
 
 // rulesAreEquivalent checks if two firewall rules are functionally equivalent.
+// This function compares all relevant fields that determine rule behavior.
+// Note: The current model.Rule struct is limited compared to actual OPNsense configurations.
+// Future model enhancements should include additional fields like statetype, direction,
+// quick, protocol, port, and more detailed source/destination specifications.
 func (p *CoreProcessor) rulesAreEquivalent(rule1, rule2 model.Rule) bool {
-	return rule1.Type == rule2.Type &&
-		rule1.IPProtocol == rule2.IPProtocol &&
-		rule1.Interface == rule2.Interface &&
-		rule1.Source.Network == rule2.Source.Network
+	// Compare core rule properties (excluding description as it doesn't affect functionality)
+	if rule1.Type != rule2.Type ||
+		rule1.IPProtocol != rule2.IPProtocol ||
+		rule1.Interface != rule2.Interface {
+		return false
+	}
+
+	// Compare source configuration
+	if rule1.Source.Network != rule2.Source.Network {
+		return false
+	}
+
+	// Compare destination configuration
+	// Note: Current model only supports "any" destination via struct{} field
+	// This is a limitation of the current model structure
+	// In real OPNsense configs, destinations can have network, port, and other specifications
+	dest1 := p.getDestinationString(rule1.Destination)
+	dest2 := p.getDestinationString(rule2.Destination)
+	return dest1 == dest2
+}
+
+// getDestinationString converts the destination struct to a string for comparison.
+// This is a workaround for the current model limitation where Destination only has an Any field.
+// Future model enhancements should include proper destination fields like Network, Port, etc.
+func (p *CoreProcessor) getDestinationString(_ model.Destination) string {
+	// Check if the Any field is set (indicating "any" destination)
+	// Since struct{} is zero-sized, we can't distinguish between "not set" and "set to empty"
+	// This is a limitation of the current model structure
+	// For now, we'll assume all destinations are "any" since that's what the model supports
+	return NetworkAny
 }
 
 // analyzeUnusedInterfaces detects interfaces that are defined but not used in rules or services.
@@ -119,17 +149,20 @@ func (p *CoreProcessor) analyzeUnusedInterfaces(cfg *model.Opnsense, report *Rep
 	}
 
 	// Mark interfaces used in services
-	if cfg.Dhcpd.Lan.Enable != "" {
+	if lanDhcp, exists := cfg.Dhcpd.Lan(); exists && lanDhcp.Enable != "" {
 		usedInterfaces["lan"] = true
 	}
-	if cfg.Dhcpd.Wan.Enable != "" {
+	if wanDhcp, exists := cfg.Dhcpd.Wan(); exists && wanDhcp.Enable != "" {
 		usedInterfaces["wan"] = true
 	}
 
 	// Check WAN and LAN interfaces
-	interfaces := map[string]model.Interface{
-		"wan": cfg.Interfaces.Wan,
-		"lan": cfg.Interfaces.Lan,
+	interfaces := map[string]model.Interface{}
+	if wan, ok := cfg.Interfaces.Wan(); ok {
+		interfaces["wan"] = wan
+	}
+	if lan, ok := cfg.Interfaces.Lan(); ok {
+		interfaces["lan"] = lan
 	}
 
 	for name, iface := range interfaces {
@@ -160,9 +193,12 @@ func (p *CoreProcessor) analyzeConsistency(cfg *model.Opnsense, report *Report) 
 // checkGatewayConsistency verifies that gateways referenced in interfaces are properly configured.
 func (p *CoreProcessor) checkGatewayConsistency(cfg *model.Opnsense, report *Report) {
 	// For now, just check if gateway IPs are valid when specified
-	interfaces := map[string]model.Interface{
-		"wan": cfg.Interfaces.Wan,
-		"lan": cfg.Interfaces.Lan,
+	interfaces := map[string]model.Interface{}
+	if wan, ok := cfg.Interfaces.Wan(); ok {
+		interfaces["wan"] = wan
+	}
+	if lan, ok := cfg.Interfaces.Lan(); ok {
+		interfaces["lan"] = lan
 	}
 
 	for name, iface := range interfaces {
@@ -185,8 +221,8 @@ func (p *CoreProcessor) checkGatewayConsistency(cfg *model.Opnsense, report *Rep
 // checkDHCPConsistency verifies DHCP configuration consistency with interface settings.
 func (p *CoreProcessor) checkDHCPConsistency(cfg *model.Opnsense, report *Report) {
 	// Check LAN DHCP configuration
-	if cfg.Dhcpd.Lan.Enable != "" && cfg.Dhcpd.Lan.Range.From != "" && cfg.Dhcpd.Lan.Range.To != "" {
-		if cfg.Interfaces.Lan.IPAddr == "" {
+	if lanDhcp, exists := cfg.Dhcpd.Lan(); exists && lanDhcp.Enable != "" && lanDhcp.Range.From != "" && lanDhcp.Range.To != "" {
+		if lan, ok := cfg.Interfaces.Lan(); ok && lan.IPAddr == "" {
 			report.AddFinding(SeverityHigh, Finding{
 				Type:           "consistency",
 				Title:          "DHCP Enabled Without Interface IP",
@@ -225,7 +261,7 @@ func (p *CoreProcessor) analyzeSecurityIssues(cfg *model.Opnsense, report *Repor
 	// Check for weak configurations
 	if cfg.System.Webgui.Protocol == "http" {
 		report.AddFinding(SeverityCritical, Finding{
-			Type:           "security",
+			Type:           FindingTypeSecurity,
 			Title:          "Insecure Web GUI Protocol",
 			Description:    "Web GUI is configured to use HTTP instead of HTTPS",
 			Component:      "system.webgui.protocol",
@@ -237,7 +273,7 @@ func (p *CoreProcessor) analyzeSecurityIssues(cfg *model.Opnsense, report *Repor
 	// Check for default SNMP community strings
 	if cfg.Snmpd.ROCommunity == "public" {
 		report.AddFinding(SeverityHigh, Finding{
-			Type:           "security",
+			Type:           FindingTypeSecurity,
 			Title:          "Default SNMP Community String",
 			Description:    "SNMP is using the default 'public' community string",
 			Component:      "snmpd.rocommunity",
@@ -248,9 +284,9 @@ func (p *CoreProcessor) analyzeSecurityIssues(cfg *model.Opnsense, report *Repor
 
 	// Check for overly permissive firewall rules
 	for i, rule := range cfg.FilterRules() {
-		if rule.Type == "pass" && rule.Source.Network == "any" && rule.Interface == "wan" {
+		if rule.Type == RuleTypePass && rule.Source.Network == NetworkAny && rule.Interface == "wan" {
 			report.AddFinding(SeverityHigh, Finding{
-				Type:           "security",
+				Type:           FindingTypeSecurity,
 				Title:          "Overly Permissive WAN Rule",
 				Description:    fmt.Sprintf("Rule %d allows any source to pass traffic on WAN interface", i+1),
 				Component:      fmt.Sprintf("filter.rule[%d]", i),

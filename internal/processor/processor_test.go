@@ -335,15 +335,17 @@ func TestCoreProcessor_NormalizationIdempotence(t *testing.T) {
 					Domain:   "example.com",
 				},
 				Interfaces: model.Interfaces{
-					Wan: model.Interface{
-						Enable: "1",
-						IPAddr: "192.168.1.1",
-						Subnet: "24",
-					},
-					Lan: model.Interface{
-						Enable: "1",
-						IPAddr: "10.0.0.1",
-						Subnet: "24",
+					Items: map[string]model.Interface{
+						"wan": {
+							Enable: "1",
+							IPAddr: "192.168.1.1",
+							Subnet: "24",
+						},
+						"lan": {
+							Enable: "1",
+							IPAddr: "10.0.0.1",
+							Subnet: "24",
+						},
 					},
 				},
 			},
@@ -366,8 +368,10 @@ func TestCoreProcessor_NormalizationIdempotence(t *testing.T) {
 					},
 				},
 				Interfaces: model.Interfaces{
-					Wan: model.Interface{Enable: "1"},
-					Lan: model.Interface{Enable: "1"},
+					Items: map[string]model.Interface{
+						"wan": {Enable: "1"},
+						"lan": {Enable: "1"},
+					},
 				},
 				Sysctl: []model.SysctlItem{
 					{Tunable: "net.inet.tcp.mssdflt", Value: "1460"},
@@ -384,8 +388,10 @@ func TestCoreProcessor_NormalizationIdempotence(t *testing.T) {
 					Domain:   "secure.local",
 				},
 				Interfaces: model.Interfaces{
-					Wan: model.Interface{Enable: "1"},
-					Lan: model.Interface{Enable: "1"},
+					Items: map[string]model.Interface{
+						"wan": {Enable: "1"},
+						"lan": {Enable: "1"},
+					},
 				},
 				Filter: model.Filter{
 					Rule: []model.Rule{
@@ -480,8 +486,10 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 					},
 				},
 				Interfaces: model.Interfaces{
-					Wan: model.Interface{Enable: "1"},
-					Lan: model.Interface{Enable: "1"},
+					Items: map[string]model.Interface{
+						"wan": {Enable: "1"},
+						"lan": {Enable: "1"},
+					},
 				},
 				Snmpd: model.Snmpd{
 					ROCommunity: "public", // Default community
@@ -502,8 +510,10 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 					Domain:   "example.com",
 				},
 				Interfaces: model.Interfaces{
-					Wan: model.Interface{Enable: "1"},
-					Lan: model.Interface{Enable: "1"},
+					Items: map[string]model.Interface{
+						"wan": {Enable: "1"},
+						"lan": {Enable: "1"},
+					},
 				},
 				Filter: model.Filter{
 					Rule: []model.Rule{
@@ -553,8 +563,10 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 					DisableSegmentationOffloading: "1",
 				},
 				Interfaces: model.Interfaces{
-					Wan: model.Interface{Enable: "1"},
-					Lan: model.Interface{Enable: "1"},
+					Items: map[string]model.Interface{
+						"wan": {Enable: "1"},
+						"lan": {Enable: "1"},
+					},
 				},
 				// Create a large number of rules to trigger performance warning
 				Filter: model.Filter{
@@ -591,15 +603,19 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 					},
 				},
 				Interfaces: model.Interfaces{
-					Wan: model.Interface{Enable: "1"},
-					Lan: model.Interface{Enable: "1"},
+					Items: map[string]model.Interface{
+						"wan": {Enable: "1"},
+						"lan": {Enable: "1"},
+					},
 				},
 				Dhcpd: model.Dhcpd{
-					Lan: model.DhcpdInterface{
-						Enable: "1", // DHCP enabled but no interface IP
-						Range: model.Range{
-							From: "192.168.1.100",
-							To:   "192.168.1.200",
+					Items: map[string]model.DhcpdInterface{
+						"lan": {
+							Enable: "1", // DHCP enabled but no interface IP
+							Range: model.Range{
+								From: "192.168.1.100",
+								To:   "192.168.1.200",
+							},
 						},
 					},
 				},
@@ -623,8 +639,10 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 					DisableChecksumOffloading: "1",
 				},
 				Interfaces: model.Interfaces{
-					Wan: model.Interface{Enable: "1"},
-					Lan: model.Interface{Enable: "1"},
+					Items: map[string]model.Interface{
+						"wan": {Enable: "1"},
+						"lan": {Enable: "1"},
+					},
 				},
 				Snmpd: model.Snmpd{
 					ROCommunity: "public",
@@ -727,15 +745,17 @@ func generateSmallConfig() *model.Opnsense {
 			},
 		},
 		Interfaces: model.Interfaces{
-			Wan: model.Interface{
-				Enable: "1",
-				IPAddr: "203.0.113.1",
-				Subnet: "24",
-			},
-			Lan: model.Interface{
-				Enable: "1",
-				IPAddr: "192.168.1.1",
-				Subnet: "24",
+			Items: map[string]model.Interface{
+				"wan": {
+					Enable: "1",
+					IPAddr: "203.0.113.1",
+					Subnet: "24",
+				},
+				"lan": {
+					Enable: "1",
+					IPAddr: "192.168.1.1",
+					Subnet: "24",
+				},
 			},
 		},
 		Filter: model.Filter{
@@ -794,17 +814,19 @@ func generateLargeConfig() *model.Opnsense {
 			Group: groups,
 		},
 		Interfaces: model.Interfaces{
-			Wan: model.Interface{
-				Enable:      "1",
-				IPAddr:      "203.0.113.1",
-				Subnet:      "24",
-				BlockPriv:   "1",
-				BlockBogons: "1",
-			},
-			Lan: model.Interface{
-				Enable: "1",
-				IPAddr: "192.168.1.1",
-				Subnet: "24",
+			Items: map[string]model.Interface{
+				"wan": {
+					Enable:      "1",
+					IPAddr:      "203.0.113.1",
+					Subnet:      "24",
+					BlockPriv:   "1",
+					BlockBogons: "1",
+				},
+				"lan": {
+					Enable: "1",
+					IPAddr: "192.168.1.1",
+					Subnet: "24",
+				},
 			},
 		},
 		Filter: model.Filter{
@@ -812,11 +834,13 @@ func generateLargeConfig() *model.Opnsense {
 		},
 		Sysctl: sysctlItems,
 		Dhcpd: model.Dhcpd{
-			Lan: model.DhcpdInterface{
-				Enable: "1",
-				Range: model.Range{
-					From: "192.168.1.100",
-					To:   "192.168.1.200",
+			Items: map[string]model.DhcpdInterface{
+				"lan": {
+					Enable: "1",
+					Range: model.Range{
+						From: "192.168.1.100",
+						To:   "192.168.1.200",
+					},
 				},
 			},
 		},
@@ -1212,17 +1236,19 @@ func TestCoreProcessor_StatisticsAccuracy(t *testing.T) {
 					},
 				},
 				Interfaces: model.Interfaces{
-					Wan: model.Interface{
-						Enable:      "1",
-						IPAddr:      "203.0.113.1",
-						Subnet:      "24",
-						BlockPriv:   "1",
-						BlockBogons: "1",
-					},
-					Lan: model.Interface{
-						Enable: "1",
-						IPAddr: "192.168.1.1",
-						Subnet: "24",
+					Items: map[string]model.Interface{
+						"wan": {
+							Enable:      "1",
+							IPAddr:      "203.0.113.1",
+							Subnet:      "24",
+							BlockPriv:   "1",
+							BlockBogons: "1",
+						},
+						"lan": {
+							Enable: "1",
+							IPAddr: "192.168.1.1",
+							Subnet: "24",
+						},
 					},
 				},
 				Filter: model.Filter{
@@ -1233,11 +1259,13 @@ func TestCoreProcessor_StatisticsAccuracy(t *testing.T) {
 					},
 				},
 				Dhcpd: model.Dhcpd{
-					Lan: model.DhcpdInterface{
-						Enable: "1",
-						Range: model.Range{
-							From: "192.168.1.100",
-							To:   "192.168.1.200",
+					Items: map[string]model.DhcpdInterface{
+						"lan": {
+							Enable: "1",
+							Range: model.Range{
+								From: "192.168.1.100",
+								To:   "192.168.1.200",
+							},
 						},
 					},
 				},
@@ -1337,8 +1365,10 @@ func TestCoreProcessor_StatisticsAccuracy(t *testing.T) {
 					Domain:   "example.com",
 				},
 				Interfaces: model.Interfaces{
-					Wan: model.Interface{Enable: "1"},
-					Lan: model.Interface{Enable: "1"},
+					Items: map[string]model.Interface{
+						"wan": {Enable: "1"},
+						"lan": {Enable: "1"},
+					},
 				},
 			},
 			validate: func(t *testing.T, stats *Statistics) {

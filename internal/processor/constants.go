@@ -10,6 +10,9 @@ const (
 	// Protocol constants.
 	ProtocolHTTPS = "https"
 
+	// Rule type constants.
+	RuleTypePass = "pass"
+
 	// Finding types.
 	FindingTypeSecurity = "security"
 )
