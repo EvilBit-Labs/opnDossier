@@ -69,7 +69,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 
 ### 2.1 XML Parser Implementation
 
-- [ ] **TASK-006**: Create XML parser interface and implementation
+- [x] **TASK-006**: Create XML parser interface and implementation
 
   - **Context**: Current XML parsing is basic, needs proper interface
   - **Requirement**: F001 (XML parsing), US-001, US-002 (XML Parsing)
@@ -77,7 +77,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Action**: Create `internal/parser/` package with XML parsing interface
   - **Acceptance**: Parser validates XML structure and provides meaningful errors
 
-- [ ] **TASK-007**: Implement OPNsense schema validation
+- [x] **TASK-007**: Implement OPNsense schema validation
 
   - **Context**: Current parsing doesn't validate against OPNsense schema
   - **Requirement**: F008 (XML validation), US-001 (Schema validation)
@@ -85,7 +85,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Action**: Add schema validation for OPNsense config.xml format
   - **Acceptance**: Invalid XML files produce specific error messages with line/column info
 
-- [ ] **TASK-008**: Implement streaming XML processing
+- [x] **TASK-008**: Implement streaming XML processing
 
   - **Context**: Current parsing loads entire file into memory
   - **Requirement**: US-015, US-040 (Memory efficiency), Performance Requirements
@@ -95,7 +95,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 
 ### 2.2 Configuration Data Models
 
-- [ ] **TASK-009**: Refactor OPNsense struct for better organization
+- [x] **TASK-009**: Refactor OPNsense struct for better organization
 
   - **Context**: Current struct is auto-generated and not well organized
   - **Requirement**: Data Requirements section, F001 (Data models)
@@ -103,7 +103,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Action**: Reorganize struct for better hierarchy preservation
   - **Acceptance**: Configuration hierarchy is preserved for markdown conversion
 
-- [ ] **TASK-010**: Create configuration processor interface
+- [x] **TASK-010**: Create configuration processor interface
 
   - **Context**: Need interface for processing parsed configurations
   - **Requirement**: System Architecture section, Component interaction
