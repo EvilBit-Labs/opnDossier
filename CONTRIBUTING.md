@@ -102,16 +102,16 @@ We use [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```bash
 # Feature commits
-git commit -m \"feat(parser): add support for new XML schema\"
+git commit -m "feat(parser): add support for new XML schema"
 
 # Bug fixes
-git commit -m \"fix(config): resolve environment variable precedence\"
+git commit -m "fix(config): resolve environment variable precedence"
 
 # Documentation
-git commit -m \"docs(readme): update configuration examples\"
+git commit -m "docs(readme): update configuration examples"
 
 # Breaking changes
-git commit -m \"feat(api)!: change configuration file format\"
+git commit -m "feat(api)!: change configuration file format"
 ```
 
 **Commit Types:**
@@ -140,14 +140,14 @@ package cmd
 
 import (
     // Standard library first
-    \"context\"
-    \"fmt\"
+    "context"
+    "fmt"
 
     // Third-party packages
-    \"github.com/spf13/cobra\"
+    "github.com/spf13/cobra"
 
     // Local packages last
-    \"github.com/unclesp1d3r/opnFocus/internal/config\"
+    "github.com/unclesp1d3r/opnFocus/internal/config"
 )
 
 // Function documentation required for exported functions
