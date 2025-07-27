@@ -65,16 +65,16 @@ export OPNFOCUS_TEST_MODE=true
 
 ### Technology Stack
 
-| Component          | Technology                      | Purpose                                |
-| ------------------ | ------------------------------- | -------------------------------------- |
-| **CLI Framework**  | `cobra`                         | Command organization and help system   |
-| **Configuration**  | `spf13/viper`                   | Configuration management               |
-| **CLI Enhancement**| `charmbracelet/fang`            | Enhanced CLI experience                |
-| **Terminal Styling**| `charmbracelet/lipgloss`        | Colored output and styling             |
-| **Markdown Rendering**| `charmbracelet/glamour`         | Terminal markdown display              |
-| **Logging**        | `charmbracelet/log`             | Structured logging                     |
-| **Data Processing**| `encoding/xml`, `encoding/json` | Standard library XML/JSON handling     |
-| **Testing**        | Go's built-in `testing` package | Table-driven tests with >80% coverage  |
+| Component              | Technology                      | Purpose                               |
+| ---------------------- | ------------------------------- | ------------------------------------- |
+| **CLI Framework**      | `cobra`                         | Command organization and help system  |
+| **Configuration**      | `spf13/viper`                   | Configuration management              |
+| **CLI Enhancement**    | `charmbracelet/fang`            | Enhanced CLI experience               |
+| **Terminal Styling**   | `charmbracelet/lipgloss`        | Colored output and styling            |
+| **Markdown Rendering** | `charmbracelet/glamour`         | Terminal markdown display             |
+| **Logging**            | `charmbracelet/log`             | Structured logging                    |
+| **Data Processing**    | `encoding/xml`, `encoding/json` | Standard library XML/JSON handling    |
+| **Testing**            | Go's built-in `testing` package | Table-driven tests with >80% coverage |
 
 ### Code Style and Formatting
 
@@ -162,7 +162,7 @@ test(parser): add integration tests for XML parsing
 
 - **Coverage Target:** >80% test coverage
 - **Test Organization:** Table-driven tests with `t.Run()` subtests
-- **Performance:** Individual tests <100ms
+- **Performance:** Individual tests \<100ms
 - **Integration Tests:** Use build tags (`//go:build integration`)
 
 ### Test Structure
@@ -248,6 +248,7 @@ just test                         # Verify tests still pass
    ```
 
 2. **Implement feature:**
+
    - Follow existing patterns in similar code
    - Add tests for new functionality
    - Update documentation if needed

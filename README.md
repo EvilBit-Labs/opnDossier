@@ -294,7 +294,6 @@ opnFocus provides comprehensive analysis of your OPNsense configurations:
 - **Performance Analysis**: Identifies disabled hardware offloading and excessive rule counts
 - **Compliance Checking**: Validates against security and operational best practices
 
-
 ## 🛠️ Development
 
 This project follows comprehensive development standards and uses modern Go tooling:

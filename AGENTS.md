@@ -84,7 +84,7 @@ Follow the [Conventional Commits](https://www.conventionalcommits.org) specifica
 | CLI Tool   | `cobra` v1.8.0 + `charmbracelet/fang` for styled help, errors, and features |
 | Config     | `spf13/viper` for configuration parsing                                     |
 | Display    | `charmbracelet/glamour` for markdown rendering                              |
-| Data Model | Go structs with `encoding/xml`, `encoding/json`, and `gopkg.in/yaml.v3`    |
+| Data Model | Go structs with `encoding/xml`, `encoding/json`, and `gopkg.in/yaml.v3`     |
 | Logging    | `charmbracelet/log` for structured logging                                  |
 | Testing    | Go's built-in `testing` package                                             |
 
