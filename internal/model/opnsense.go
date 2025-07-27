@@ -494,9 +494,21 @@ type Source struct {
 }
 
 // Destination represents the destination of a firewall rule.
+// TODO: More Granular Destination Analysis - Expand destination model to include:
+//   - Port specifications (single port, port ranges, aliases)
+//   - Protocol-specific destination options
+//   - Network aliases and address groups
+//   - IPv6 destination support
+//   - Negation support (not destination)
+//
+// This would enable more comprehensive firewall rule analysis and comparison.
 type Destination struct {
 	Any     struct{} `xml:"any"`
 	Network string   `xml:"network"`
+	// TODO: Add missing destination fields for enhanced analysis:
+	// Port    string   `xml:"port,omitempty" json:"port,omitempty" yaml:"port,omitempty"`
+	// Address string   `xml:"address,omitempty" json:"address,omitempty" yaml:"address,omitempty"`
+	// Not     string   `xml:"not,omitempty" json:"not,omitempty" yaml:"not,omitempty"`
 }
 
 // Rrd contains the RRDtool configuration.

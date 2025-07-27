@@ -397,6 +397,7 @@ After analyzing the testdata files, the following properties are present in the 
 ## Summary of Issues
 
 1. **Missing Model Fields**: Several template fields reference data that doesn't exist in the current model:
+
    - OpenVPN configuration
    - Static DHCP leases
    - DNS DNSSEC and custom options
@@ -406,15 +407,18 @@ After analyzing the testdata files, the following properties are present in the 
    - NAT rule details (only mode is available)
 
 2. **Structural Mismatches**:
+
    - Template expects separate WAN/LAN firewall rule arrays, but model has single array
    - Template expects NAT rules array, but model has only NAT mode string
    - Template expects DHCP servers array, but model uses map structure
 
 3. **Missing Helper Functions**:
+
    - `join` function for DNS servers
    - `add` function for rule numbering
 
 4. **Extensive Missing Properties**: The testdata files contain many more properties than the current model supports, including:
+
    - Advanced interface properties (descriptions, types, virtual flags)
    - Extended DHCP configuration (gateways, DNS servers, WINS servers)
    - Detailed firewall rule properties (state types, directions, protocols, ports)

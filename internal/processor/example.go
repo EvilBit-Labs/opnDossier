@@ -225,6 +225,16 @@ func (p *ExampleProcessor) performPerformanceAnalysis(ctx context.Context, cfg *
 }
 
 // performComplianceCheck performs compliance-related checks of the configuration.
+// TODO: Extended Compliance Rules - Add additional compliance checks for:
+//   - Password policy enforcement (complexity, expiration)
+//   - Audit logging configuration requirements
+//   - Certificate management and expiration monitoring
+//   - Backup and disaster recovery configuration
+//   - Network segmentation best practices
+//   - Security framework compliance (CIS, NIST, etc.)
+//   - Regulatory compliance requirements (PCI-DSS, HIPAA, etc.)
+//
+// This would provide comprehensive compliance monitoring capabilities.
 func (p *ExampleProcessor) performComplianceCheck(ctx context.Context, cfg *model.Opnsense, report *Report) error {
 	select {
 	case <-ctx.Done():

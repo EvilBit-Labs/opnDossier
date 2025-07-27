@@ -103,6 +103,16 @@ func (p *CoreProcessor) analyzeInterfaceRules(iface string, rules []model.Rule, 
 // Note: The current model.Rule struct is limited compared to actual OPNsense configurations.
 // Future model enhancements should include additional fields like statetype, direction,
 // quick, protocol, port, and more detailed source/destination specifications.
+//
+// TODO: Enhanced Rule Comparison - Expand model.Rule struct to include:
+//   - statetype (keep state, no state, etc.)
+//   - direction (in, out)
+//   - quick (quick rule processing)
+//   - port specifications for source/destination
+//   - more detailed protocol options
+//   - rule flags and advanced options
+//
+// This would enable more accurate duplicate detection and dead rule analysis.
 func (p *CoreProcessor) rulesAreEquivalent(rule1, rule2 model.Rule) bool {
 	// Compare core rule properties (excluding description as it doesn't affect functionality)
 	if rule1.Type != rule2.Type ||
@@ -149,12 +159,19 @@ func (p *CoreProcessor) analyzeUnusedInterfaces(cfg *model.Opnsense, report *Rep
 	}
 
 	// Mark interfaces used in services
+	// TODO: Additional Service Integration - Expand service usage detection to:
+	//   - Check all DHCP interfaces in cfg.Dhcpd.Items map (not just lan/wan)
+	//   - Include other services like DNS, VPN, load balancer interface usage
+	//   - Detect interface usage in routing, VLAN, and bridge configurations
+	//   - Check for interface references in monitoring and logging services
+	// This would provide more comprehensive unused interface detection.
 	if lanDhcp, exists := cfg.Dhcpd.Lan(); exists && lanDhcp.Enable != "" {
 		usedInterfaces["lan"] = true
 	}
 	if wanDhcp, exists := cfg.Dhcpd.Wan(); exists && wanDhcp.Enable != "" {
 		usedInterfaces["wan"] = true
 	}
+	// TODO: Iterate through all DHCP interfaces in cfg.Dhcpd.Items map
 
 	// Check WAN and LAN interfaces
 	interfaces := map[string]model.Interface{}
