@@ -757,7 +757,7 @@ just build      # Build application
   - Quality check integration
   - Release preparation workflows
 
-- **`gofmt` Formatting and Linting**:
+- **`golangci-lint` Formatting and Linting**:
 
   - Automated code formatting
   - Style consistency enforcement

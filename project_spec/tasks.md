@@ -123,7 +123,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Requirement**: F002 (Markdown conversion), US-003 (Markdown conversion)
   - **User Story**: US-003-US-004 (Markdown Conversion)
   - **Action**: Create `internal/markdown/` package with generation interface
-  - **Acceptance**: Generator converts XML configurations to structured markdown
+  - **Acceptance**: Generator converts all XML files in the `testdata/` directory to structured markdown
 
 - [ ] **TASK-012**: Implement hierarchy preservation in markdown
 
