@@ -2,6 +2,7 @@
 
 [![Go Version](https://img.shields.io/badge/go-1.21+-blue.svg)](https://golang.org)
 [![License](https://img.shields.io/badge/license-Apache-green.svg)](LICENSE)
+[![Coverage](https://img.shields.io/badge/coverage-80%25-green.svg)](https://github.com/unclesp1d3r/opnFocus)
 [![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://github.com/unclesp1d3r/opnFocus/blob/main/docs/index.md)
 
 ## Overview
@@ -50,12 +51,24 @@ go build -o opnfocus main.go
 ### Basic Usage
 
 ```bash
-# Convert OPNsense config to markdown and save to file
-opnfocus convert config.xml -o documentation.md
+# Convert OPNsense config to markdown (default format)
+opnFocus convert config.xml
+
+# Convert to markdown and save to file
+opnFocus convert config.xml -o documentation.md
+
+# Convert to markdown format explicitly
+opnFocus convert -f markdown config.xml
+
+# Convert to JSON format
+opnFocus convert -f json config.xml -o output.json
+
+# Convert to YAML format
+opnFocus convert -f yaml config.xml -o output.yaml
 
 # Get help for any command
-opnfocus --help
-opnfocus convert --help
+opnFocus --help
+opnFocus convert --help
 ```
 
 ### Configuration
@@ -182,6 +195,140 @@ Built with modern Go practices and established libraries:
 | Terminal Styling   | [Charm Lipgloss](https://github.com/charmbracelet/lipgloss) |
 | Markdown Rendering | [Charm Glamour](https://github.com/charmbracelet/glamour)   |
 | XML Processing     | Go's built-in `encoding/xml`                                |
+
+### Data Model Architecture
+
+opnFocus uses a hierarchical model structure that mirrors the OPNsense XML configuration while organizing functionality into logical domains:
+
+```mermaid
+graph TB
+    subgraph "Root Configuration"
+        ROOT[Opnsense Root]
+        META[Metadata & Global Settings]
+    end
+
+    subgraph "System Domain"
+        SYS[System Configuration]
+        USERS[User Management]
+        GROUPS[Group Management]
+        SYSCFG[System Services Config]
+    end
+
+    subgraph "Network Domain"
+        NET[Network Configuration]
+        IFACES[Interface Management]
+        ROUTING[Routing & Gateways]
+        VLAN[VLAN Configuration]
+    end
+
+    subgraph "Security Domain"
+        SEC[Security Configuration]
+        FIREWALL[Firewall Rules]
+        NAT[NAT Configuration]
+        VPN[VPN Services]
+        CERTS[Certificate Management]
+    end
+
+    subgraph "Services Domain"
+        SVC[Services Configuration]
+        DNS[DNS Services]
+        DHCP[DHCP Services]
+        MONITOR[Monitoring Services]
+        WEB[Web Services]
+    end
+
+    ROOT --> META
+    ROOT --> SYS
+    ROOT --> NET
+    ROOT --> SEC
+    ROOT --> SVC
+
+    SYS --> USERS
+    SYS --> GROUPS
+    SYS --> SYSCFG
+
+    NET --> IFACES
+    NET --> ROUTING
+    NET --> VLAN
+
+    SEC --> FIREWALL
+    SEC --> NAT
+    SEC --> VPN
+    SEC --> CERTS
+
+    SVC --> DNS
+    SVC --> DHCP
+    SVC --> MONITOR
+    SVC --> WEB
+```
+
+This hierarchical structure provides:
+
+- **Logical Organization**: Related configuration grouped by functional domain
+- **Maintainability**: Easier to locate and modify specific configuration types
+- **Extensibility**: New features can be added to appropriate domains
+- **Validation**: Domain-specific validation rules improve data integrity
+- **API Evolution**: JSON tags enable better REST API integration
+
+### Processor Workflow
+
+The processor implements a comprehensive four-phase pipeline for analyzing OPNsense configurations:
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Phase 1:      │    │   Phase 2:      │    │   Phase 3:      │    │   Phase 4:      │
+│   NORMALIZE     │───▶│   VALIDATE      │───▶│   ANALYZE       │───▶│   TRANSFORM     │
+│                 │    │                 │    │                 │    │                 │
+│ • Fill defaults │    │ • Struct tags   │    │ • Dead rules    │    │ • Markdown      │
+│ • Canonicalize  │    │ • Custom checks │    │ • Unused ifaces │    │ • JSON/YAML     │
+│ • Sort for      │    │ • Cross-field   │    │ • Security scan │    │ • Plain text    │
+│   determinism   │    │   validation    │    │ • Performance   │    │ • Export        │
+└─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+#### Phase 1: Normalization
+
+- **Fill Defaults**: Populates missing values (system optimization: "normal", web GUI: "https", timezone: "UTC")
+- **Canonicalize Addresses**: Standardizes IP addresses and converts single IPs to CIDR notation
+- **Sort Slices**: Ensures deterministic output by sorting users, groups, rules, and sysctl items
+
+#### Phase 2: Validation
+
+- **Struct Tag Validation**: Uses go-playground/validator for field-level validation
+- **Custom Business Logic**: Domain-specific validation rules
+- **Cross-field Validation**: Validates relationships between configuration elements
+
+#### Phase 3: Analysis
+
+- **Dead Rule Detection**: Identifies unreachable rules after "block all" rules and duplicate rules
+- **Unused Interface Analysis**: Finds enabled interfaces not used in rules or services
+- **Security Analysis**: Detects insecure protocols, default SNMP community strings, overly permissive rules
+- **Performance Analysis**: Identifies disabled hardware offloading and excessive rule counts
+- **Compliance Checking**: Validates against security and operational best practices
+
+#### Phase 4: Transform
+
+- **Multi-format Output**: Generates Markdown, JSON, YAML, or plain text summaries
+- **Structured Reports**: Organizes findings by severity (Critical, High, Medium, Low, Info)
+- **Export Capabilities**: Saves to files or streams to stdout
+
+#### Configurable Analysis Options
+
+The processor supports flexible configuration through functional options:
+
+```go
+// Enable specific analysis features
+report, err := processor.Process(ctx, opnsenseConfig,
+    WithStats(),
+    WithSecurityAnalysis(),
+    WithDeadRuleCheck(),
+    WithPerformanceAnalysis(),
+    WithComplianceCheck(),
+)
+
+// Or enable all features
+report, err := processor.Process(ctx, opnsenseConfig, WithAllFeatures())
+```
 
 ## 🛠️ Development
 

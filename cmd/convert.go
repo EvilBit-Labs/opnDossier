@@ -17,27 +17,35 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var outputFile string //nolint:gochecknoglobals // Cobra flag variable
+var (
+	outputFile string //nolint:gochecknoglobals // Cobra flag variable
+	format     string //nolint:gochecknoglobals // Output format (markdown, json, yaml)
+)
 
 func init() {
 	rootCmd.AddCommand(convertCmd)
 	convertCmd.Flags().StringVarP(&outputFile, "output", "o", "", "Output file path")
+	convertCmd.Flags().StringVarP(&format, "format", "f", "markdown", "Output format (markdown, json, yaml)")
 }
 
 var convertCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 	Use:   "convert [file ...]",
-	Short: "Convert OPNsense configuration files to markdown",
+	Short: "Convert OPNsense configuration files to various formats",
 	Long: `The 'convert' command processes one or more OPNsense config.xml files and transforms
-its content into a structured Markdown format. This allows for easier
-readability, documentation, and auditing of your firewall configuration.
+its content into structured formats. Supported output formats include Markdown (default),
+JSON, and YAML. This allows for easier readability, documentation, programmatic access,
+and auditing of your firewall configuration.
 
 The convert command focuses on conversion only and does not perform validation.
 To validate your configuration files before conversion, use the 'validate' command.
 
-You can either print the generated Markdown directly to the console or
-save it to a specified output file using the '--output' or '-o' flag.
-When processing multiple files, the --output flag will be ignored, and
-each output file will be named based on its input file (e.g., config.xml -> config.md).
+You can either print the generated output directly to the console or save it to a
+specified output file using the '--output' or '-o' flag. Use the '--format' or '-f'
+flag to specify the output format (markdown, json, or yaml).
+
+When processing multiple files, the --output flag will be ignored, and each output
+file will be named based on its input file with the appropriate extension
+(e.g., config.xml -> config.md, config.json, or config.yaml).
 
 CONFIGURATION:
   This command respects the global configuration precedence:
@@ -49,23 +57,26 @@ CONFIGURATION:
     output_file in ~/.opnFocus.yaml
 
 Examples:
-  # Convert 'my_config.xml' and print to console
+  # Convert 'my_config.xml' and print markdown to console
   opnFocus convert my_config.xml
 
-  # Convert 'my_config.xml' and save the Markdown to 'documentation.md'
-  opnFocus convert my_config.xml -o documentation.md
+  # Convert 'my_config.xml' to JSON format
+  opnFocus convert my_config.xml --format json
 
-  # Convert multiple files and save them with .md extension
-  opnFocus convert config1.xml config2.xml
+  # Convert 'my_config.xml' to YAML and save to file
+  opnFocus convert my_config.xml -f yaml -o documentation.yaml
 
-  # Convert 'backup_config.xml' and enable verbose logging during the process
-  opnFocus --verbose convert backup_config.xml
+  # Convert multiple files to JSON format
+  opnFocus convert config1.xml config2.xml --format json
+
+  # Convert 'backup_config.xml' with verbose logging
+  opnFocus --verbose convert backup_config.xml -f json
 
   # Use environment variable to set default output location
   OPNFOCUS_OUTPUT_FILE=./docs/network.md opnFocus convert config.xml
 
   # Validate before converting (recommended workflow)
-  opnFocus validate config.xml && opnFocus convert config.xml -o output.md
+  opnFocus validate config.xml && opnFocus convert config.xml -f json -o output.json
 `,
 	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {

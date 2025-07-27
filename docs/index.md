@@ -40,13 +40,35 @@ The tool uses a layered CLI architecture built with modern Go libraries:
 
 | Component          | Technology                                                  | Purpose                                     |
 | ------------------ | ----------------------------------------------------------- | ------------------------------------------- |
-| CLI Framework      | [Cobra](https://github.com/spf13/cobra)                     | Command structure & argument parsing        |
+| CLI Framework      | [Cobra](https://github.com/spf13/cobra)                     | Command structure 6 argument parsing                                             |
 | Configuration      | [Viper](https://github.com/spf13/viper)                     | Layered configuration (files, env, flags)   |
 | CLI Enhancement    | [Charm Fang](https://github.com/charmbracelet/fang)         | Enhanced UX layer (styled help, completion) |
 | Structured Logging | [Charm Log](https://github.com/charmbracelet/log)           | Structured, leveled logging                 |
 | Terminal Styling   | [Charm Lipgloss](https://github.com/charmbracelet/lipgloss) | Styled terminal output formatting           |
 | Markdown Rendering | [Charm Glamour](https://github.com/charmbracelet/glamour)   | Markdown rendering in terminal              |
 | XML Processing     | Go's built-in `encoding/xml`                                | Native XML parsing and validation           |
+
+### Data Model Architecture
+
+opnFocus uses a hierarchical model structure that organizes OPNsense configuration into logical domains:
+
+- **System Domain**: Core system settings, users, groups, system services
+- **Network Domain**: Interfaces, routing, VLANs, network addressing
+- **Security Domain**: Firewall rules, NAT, VPN, certificates
+- **Services Domain**: DNS, DHCP, monitoring, web services
+
+This hierarchical approach provides logical organization, improved maintainability, domain-specific validation, and better extensibility. See the [Model Refactor Documentation](model_refactor.md) for detailed information.
+
+### Processor Workflow
+
+The processor implements a comprehensive four-phase pipeline:
+
+1. **Normalize**: Fill defaults, canonicalize addresses, sort for determinism
+2. **Validate**: Struct tag validation, custom checks, cross-field validation
+3. **Analyze**: Dead rule detection, security analysis, performance checks
+4. **Transform**: Multi-format output (Markdown, JSON, YAML)
+
+See the [Sample Report](sample-report.md) for an example of the comprehensive analysis output.
 
 ### Configuration Management
 

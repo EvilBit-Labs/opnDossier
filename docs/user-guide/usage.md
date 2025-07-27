@@ -9,17 +9,26 @@ This guide covers common workflows and examples for using opnFocus effectively.
 The primary use case is converting OPNsense configuration files to markdown:
 
 ```bash
-# Convert and display in terminal
-opnfocus convert config.xml
+# Convert to markdown (default format)
+opnFocus convert config.xml
 
-# Convert and save to file
-opnfocus convert config.xml -o documentation.md
+# Convert to markdown and save to file
+opnFocus convert config.xml -o documentation.md
 
-# Convert with validation enabled
-opnfocus convert config.xml --validate -o documentation.md
+# Convert to markdown format explicitly
+opnFocus convert -f markdown config.xml
 
-# Convert multiple files
-opnfocus convert config1.xml config2.xml config3.xml
+# Convert to JSON format
+opnFocus convert -f json config.xml -o output.json
+
+# Convert to YAML format
+opnFocus convert -f yaml config.xml -o output.yaml
+
+# Convert multiple files (each gets appropriate extension)
+opnFocus convert config1.xml config2.xml config3.xml
+
+# Convert multiple files to JSON format
+opnFocus convert -f json config1.xml config2.xml config3.xml
 ```
 
 ### Display Options

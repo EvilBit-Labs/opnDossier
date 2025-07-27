@@ -444,3 +444,303 @@ func TestHelperFunctions(t *testing.T) {
 		assert.False(t, isValidSysctlName(".invalid"))
 	})
 }
+
+// TestValidateNat_ComprehensiveTests tests NAT validation with various modes.
+func TestValidateNat_ComprehensiveTests(t *testing.T) {
+	tests := []struct {
+		name           string
+		nat            model.Nat
+		expectedErrors int
+	}{
+		{
+			name: "valid automatic mode",
+			nat: model.Nat{
+				Outbound: model.Outbound{Mode: "automatic"},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "valid hybrid mode",
+			nat: model.Nat{
+				Outbound: model.Outbound{Mode: "hybrid"},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "valid advanced mode",
+			nat: model.Nat{
+				Outbound: model.Outbound{Mode: "advanced"},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "valid disabled mode",
+			nat: model.Nat{
+				Outbound: model.Outbound{Mode: "disabled"},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "invalid mode",
+			nat: model.Nat{
+				Outbound: model.Outbound{Mode: "invalid-mode"},
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "empty mode (should be valid)",
+			nat: model.Nat{
+				Outbound: model.Outbound{Mode: ""},
+			},
+			expectedErrors: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errors := validateNat(&tt.nat)
+			assert.Len(t, errors, tt.expectedErrors, "Expected number of errors")
+		})
+	}
+}
+
+// TestValidateSystem_PowerManagement tests power management validation.
+func TestValidateSystem_PowerManagement(t *testing.T) {
+	tests := []struct {
+		name           string
+		system         model.System
+		expectedErrors int
+	}{
+		{
+			name: "valid power modes",
+			system: model.System{
+				Hostname:          "test",
+				Domain:            "test.local",
+				PowerdAcMode:      "hadp",
+				PowerdBatteryMode: "hiadp",
+				PowerdNormalMode:  "adaptive",
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "invalid AC power mode",
+			system: model.System{
+				Hostname:     "test",
+				Domain:       "test.local",
+				PowerdAcMode: "invalid",
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "invalid battery power mode",
+			system: model.System{
+				Hostname:          "test",
+				Domain:            "test.local",
+				PowerdBatteryMode: "invalid",
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "invalid normal power mode",
+			system: model.System{
+				Hostname:         "test",
+				Domain:           "test.local",
+				PowerdNormalMode: "invalid",
+			},
+			expectedErrors: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errors := validateSystem(&tt.system)
+			assert.Len(t, errors, tt.expectedErrors, "Expected number of errors")
+		})
+	}
+}
+
+// TestValidateSystem_BogonsInterval tests bogons interval validation.
+func TestValidateSystem_BogonsInterval(t *testing.T) {
+	tests := []struct {
+		name           string
+		system         model.System
+		expectedErrors int
+	}{
+		{
+			name: "valid bogons intervals",
+			system: model.System{
+				Hostname: "test",
+				Domain:   "test.local",
+				Bogons:   model.Bogons{Interval: "monthly"},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "valid weekly interval",
+			system: model.System{
+				Hostname: "test",
+				Domain:   "test.local",
+				Bogons:   model.Bogons{Interval: "weekly"},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "valid daily interval",
+			system: model.System{
+				Hostname: "test",
+				Domain:   "test.local",
+				Bogons:   model.Bogons{Interval: "daily"},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "valid never interval",
+			system: model.System{
+				Hostname: "test",
+				Domain:   "test.local",
+				Bogons:   model.Bogons{Interval: "never"},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "invalid bogons interval",
+			system: model.System{
+				Hostname: "test",
+				Domain:   "test.local",
+				Bogons:   model.Bogons{Interval: "invalid"},
+			},
+			expectedErrors: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errors := validateSystem(&tt.system)
+			assert.Len(t, errors, tt.expectedErrors, "Expected number of errors")
+		})
+	}
+}
+
+// TestValidateInterface_MTUValidation tests MTU validation.
+func TestValidateInterface_MTUValidation(t *testing.T) {
+	tests := []struct {
+		name           string
+		iface          model.Interface
+		expectedErrors int
+	}{
+		{
+			name: "valid MTU",
+			iface: model.Interface{
+				MTU: "1500",
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "minimum valid MTU",
+			iface: model.Interface{
+				MTU: "68",
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "maximum valid MTU",
+			iface: model.Interface{
+				MTU: "9000",
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "MTU too low",
+			iface: model.Interface{
+				MTU: "67",
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "MTU too high",
+			iface: model.Interface{
+				MTU: "9001",
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "invalid MTU format",
+			iface: model.Interface{
+				MTU: "invalid",
+			},
+			expectedErrors: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errors := validateInterface(&tt.iface, "test")
+			assert.Len(t, errors, tt.expectedErrors, "Expected number of errors")
+		})
+	}
+}
+
+// TestValidateFilter_SourceNetworkValidation tests source network validation with CIDR.
+func TestValidateFilter_SourceNetworkValidation(t *testing.T) {
+	tests := []struct {
+		name           string
+		filter         model.Filter
+		expectedErrors int
+	}{
+		{
+			name: "valid CIDR source network",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:       "pass",
+						IPProtocol: "inet",
+						Interface:  "lan",
+						Source: model.Source{
+							Network: "192.168.1.0/24",
+						},
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "valid IPv6 CIDR source network",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:       "pass",
+						IPProtocol: "inet6",
+						Interface:  "lan",
+						Source: model.Source{
+							Network: "2001:db8::/32",
+						},
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "invalid CIDR source network",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:       "pass",
+						IPProtocol: "inet",
+						Interface:  "lan",
+						Source: model.Source{
+							Network: "invalid-cidr",
+						},
+					},
+				},
+			},
+			expectedErrors: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errors := validateFilter(&tt.filter)
+			assert.Len(t, errors, tt.expectedErrors, "Expected number of errors")
+		})
+	}
+}
