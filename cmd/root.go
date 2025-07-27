@@ -110,6 +110,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolP("quiet", "q", false, "Suppress all output except errors")
 	rootCmd.PersistentFlags().String("log_level", "info", "Set log level (debug, info, warn, error)")
 	rootCmd.PersistentFlags().String("log_format", "text", "Set log format (text, json)")
+	rootCmd.PersistentFlags().String("theme", "", "Set display theme (light, dark, custom, or empty for auto-detect)")
 }
 
 // GetRootCmd returns the root Cobra command for the opnFocus CLI application.

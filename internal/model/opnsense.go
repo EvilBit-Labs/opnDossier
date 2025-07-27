@@ -14,12 +14,21 @@ type SystemConfig struct {
 // NetworkConfig groups network-related configuration.
 type NetworkConfig struct {
 	Interfaces Interfaces `json:"interfaces,omitempty" yaml:"interfaces,omitempty" validate:"required"`
+	// TODO: Add VLANs, Gateways, and DHCP when these fields are added to the model
+	// VLANs     []VLAN      `json:"vlans,omitempty" yaml:"vlans,omitempty"`
+	// Gateways  []Gateway   `json:"gateways,omitempty" yaml:"gateways,omitempty"`
+	// DHCP      Dhcpd       `json:"dhcp,omitempty" yaml:"dhcp,omitempty"`
 }
 
 // SecurityConfig groups security-related configuration.
 type SecurityConfig struct {
 	Nat    Nat    `json:"nat,omitempty" yaml:"nat,omitempty"`
 	Filter Filter `json:"filter,omitempty" yaml:"filter,omitempty"`
+	// TODO: Add Aliases, IDS/IPS, VPNs when these fields are added to the model
+	// Aliases []Alias    `json:"aliases,omitempty" yaml:"aliases,omitempty"`
+	// IDS     IDSConfig  `json:"ids,omitempty" yaml:"ids,omitempty"`
+	// IPS     IPSConfig  `json:"ips,omitempty" yaml:"ips,omitempty"`
+	// VPNs    VPNConfig  `json:"vpns,omitempty" yaml:"vpns,omitempty"`
 }
 
 // ServiceConfig groups service-related configuration.
@@ -30,6 +39,10 @@ type ServiceConfig struct {
 	Rrd          Rrd          `json:"rrd,omitempty" yaml:"rrd,omitempty"`
 	LoadBalancer LoadBalancer `json:"loadBalancer,omitempty" yaml:"loadBalancer,omitempty"`
 	Ntpd         Ntpd         `json:"ntpd,omitempty" yaml:"ntpd,omitempty"`
+	SSH          SSH          `json:"ssh,omitempty" yaml:"ssh,omitempty"`
+	// TODO: Add OpenVPN and other VPN services when these fields are added to the model
+	// OpenVPN   OpenVPNConfig `json:"openvpn,omitempty" yaml:"openvpn,omitempty"`
+	// HAProxy   HAProxyConfig `json:"haproxy,omitempty" yaml:"haproxy,omitempty"`
 }
 
 // Opnsense is the root of the OPNsense configuration.
@@ -184,6 +197,7 @@ func (o *Opnsense) ServiceConfig() ServiceConfig {
 		Rrd:          o.Rrd,
 		LoadBalancer: o.LoadBalancer,
 		Ntpd:         o.Ntpd,
+		SSH:          o.System.SSH,
 	}
 }
 

@@ -14,12 +14,17 @@ import (
 
 // Config holds the configuration for the opnFocus application.
 type Config struct {
-	InputFile  string `mapstructure:"input_file"`
-	OutputFile string `mapstructure:"output_file"`
-	Verbose    bool   `mapstructure:"verbose"`
-	Quiet      bool   `mapstructure:"quiet"`
-	LogLevel   string `mapstructure:"log_level"`
-	LogFormat  string `mapstructure:"log_format"`
+	InputFile  string   `mapstructure:"input_file"`
+	OutputFile string   `mapstructure:"output_file"`
+	Verbose    bool     `mapstructure:"verbose"`
+	Quiet      bool     `mapstructure:"quiet"`
+	LogLevel   string   `mapstructure:"log_level"`
+	LogFormat  string   `mapstructure:"log_format"`
+	Theme      string   `mapstructure:"theme"`
+	Format     string   `mapstructure:"format"`
+	Template   string   `mapstructure:"template"`
+	Sections   []string `mapstructure:"sections"`
+	WrapWidth  int      `mapstructure:"wrap"`
 }
 
 // LoadConfig loads application configuration from the specified YAML file, environment variables, and defaults.
@@ -59,6 +64,11 @@ func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 	v.SetDefault("quiet", false)
 	v.SetDefault("log_level", "info")
 	v.SetDefault("log_format", "text")
+	v.SetDefault("theme", "")
+	v.SetDefault("format", "markdown")
+	v.SetDefault("template", "")
+	v.SetDefault("sections", []string{})
+	v.SetDefault("wrap", 0)
 
 	// Set up environment variable handling
 	v.SetEnvPrefix("OPNFOCUS")
@@ -184,6 +194,45 @@ func (c *Config) Validate() error {
 		})
 	}
 
+	// Validate theme
+	validThemes := map[string]bool{
+		"":       true, // Empty means auto-detect
+		"light":  true,
+		"dark":   true,
+		"custom": true,
+		"auto":   true,
+		"none":   true,
+	}
+	if !validThemes[c.Theme] {
+		validationErrors = append(validationErrors, ValidationError{
+			Field:   "theme",
+			Message: fmt.Sprintf("invalid theme '%s', must be one of: light, dark, custom, auto, none (or empty for auto-detect)", c.Theme),
+		})
+	}
+
+	// Validate format
+	validFormats := map[string]bool{
+		"markdown": true,
+		"md":       true,
+		"json":     true,
+		"yaml":     true,
+		"yml":      true,
+	}
+	if c.Format != "" && !validFormats[c.Format] {
+		validationErrors = append(validationErrors, ValidationError{
+			Field:   "format",
+			Message: fmt.Sprintf("invalid format '%s', must be one of: markdown, md, json, yaml, yml", c.Format),
+		})
+	}
+
+	// Validate wrap width
+	if c.WrapWidth < 0 {
+		validationErrors = append(validationErrors, ValidationError{
+			Field:   "wrap",
+			Message: fmt.Sprintf("wrap width cannot be negative: %d", c.WrapWidth),
+		})
+	}
+
 	// Return combined validation errors
 	if len(validationErrors) > 0 {
 		var errMsg string
@@ -220,4 +269,29 @@ func (c *Config) IsVerbose() bool {
 // IsQuiet returns true if quiet mode is enabled.
 func (c *Config) IsQuiet() bool {
 	return c.Quiet
+}
+
+// GetTheme returns the configured theme.
+func (c *Config) GetTheme() string {
+	return c.Theme
+}
+
+// GetFormat returns the configured output format.
+func (c *Config) GetFormat() string {
+	return c.Format
+}
+
+// GetTemplate returns the configured template name.
+func (c *Config) GetTemplate() string {
+	return c.Template
+}
+
+// GetSections returns the configured sections to include.
+func (c *Config) GetSections() []string {
+	return c.Sections
+}
+
+// GetWrapWidth returns the configured wrap width.
+func (c *Config) GetWrapWidth() int {
+	return c.WrapWidth
 }

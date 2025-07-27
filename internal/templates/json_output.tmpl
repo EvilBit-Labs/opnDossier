@@ -1,0 +1,67 @@
+{
+  "hostname": "{{ .System.Hostname }}",
+  "domain": "{{ .System.Domain }}",
+  "version": "{{ .Version }}",
+  "generated_at": "{{ .GeneratedAt }}",
+  "system": {
+    "hostname": "{{ .System.Hostname }}",
+    "domain": "{{ .System.Domain }}",
+    "timezone": "{{ .System.Timezone }}",
+    "optimization": "{{ .System.Optimization }}",
+    "webgui": {
+      "protocol": "{{ .System.Webgui.Protocol }}"
+    }
+  },
+  "interfaces": {
+    {{- range $key, $interface := .Interfaces }}
+    "{{ $key }}": {
+      "enabled": "{{ $interface.Enable }}",
+      "physical_interface": "{{ $interface.If }}",
+      "ipv4_address": "{{ $interface.IPAddr }}",
+      "ipv4_subnet": "{{ $interface.Subnet }}",
+      "ipv6_address": "{{ $interface.IPAddrv6 }}",
+      "ipv6_subnet": "{{ $interface.Subnetv6 }}",
+      "gateway": "{{ $interface.Gateway }}",
+      "mtu": "{{ $interface.MTU }}",
+      "block_private": "{{ $interface.BlockPriv }}",
+      "block_bogons": "{{ $interface.BlockBogons }}"
+    }{{ if not (isLast $key $.Interfaces) }},{{ end }}
+    {{- end }}
+  },
+  "firewall_rules": [
+    {{- range $index, $rule := .Filter.Rule }}
+    {
+      "type": "{{ $rule.Type }}",
+      "interface": "{{ $rule.Interface }}",
+      "protocol": "{{ $rule.IPProtocol }}",
+      "source": "{{ if $rule.Source.Network }}{{ $rule.Source.Network }}{{ else }}any{{ end }}",
+      "destination": "{{ if $rule.Destination.Network }}{{ $rule.Destination.Network }}{{ else }}any{{ end }}",
+      "description": "{{ $rule.Descr }}"
+    }{{ if not (isLast $index $.Filter.Rule) }},{{ end }}
+    {{- end }}
+  ],
+  "services": {
+    "dhcp": {
+      {{- range $key, $dhcp := .Dhcpd }}
+      "{{ $key }}": {
+        "enabled": "{{ $dhcp.Enable }}",
+        "range": {
+          "from": "{{ $dhcp.Range.From }}",
+          "to": "{{ $dhcp.Range.To }}"
+        }
+      }{{ if not (isLast $key $.Dhcpd) }},{{ end }}
+      {{- end }}
+    },
+    "dns_resolver": {
+      "enabled": "{{ .Unbound.Enable }}"
+    },
+    "snmp": {
+      "system_location": "{{ .Snmpd.SysLocation }}",
+      "system_contact": "{{ .Snmpd.SysContact }}",
+      "ro_community": "{{ .Snmpd.ROCommunity }}"
+    },
+    "ntp": {
+      "preferred_server": "{{ .Ntpd.Prefer }}"
+    }
+  }
+}

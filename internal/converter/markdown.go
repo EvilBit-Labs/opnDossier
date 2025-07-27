@@ -1,4 +1,6 @@
 // Package converter provides functionality to convert OPNsense configurations to markdown.
+//
+// Deprecated: Use the markdown.Generator interface instead.
 package converter
 
 import (
@@ -26,6 +28,8 @@ type Converter interface {
 }
 
 // MarkdownConverter is a markdown converter for OPNsense configurations.
+//
+// Deprecated: Use the markdown.Generator interface instead.
 type MarkdownConverter struct{}
 
 // NewMarkdownConverter returns a new instance of MarkdownConverter for converting OPNsense configurations to markdown format.

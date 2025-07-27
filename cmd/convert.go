@@ -9,23 +9,32 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/unclesp1d3r/opnFocus/internal/converter"
+	"github.com/unclesp1d3r/opnFocus/internal/config"
 	"github.com/unclesp1d3r/opnFocus/internal/export"
 	"github.com/unclesp1d3r/opnFocus/internal/log"
+	"github.com/unclesp1d3r/opnFocus/internal/markdown"
 	"github.com/unclesp1d3r/opnFocus/internal/parser"
 
 	"github.com/spf13/cobra"
 )
 
 var (
-	outputFile string //nolint:gochecknoglobals // Cobra flag variable
-	format     string //nolint:gochecknoglobals // Output format (markdown, json, yaml)
+	outputFile   string   //nolint:gochecknoglobals // Cobra flag variable
+	format       string   //nolint:gochecknoglobals // Output format (markdown, json, yaml)
+	templateName string   //nolint:gochecknoglobals // Template name to use
+	sections     []string //nolint:gochecknoglobals // Sections to include
+	themeName    string   //nolint:gochecknoglobals // Theme for rendering
+	wrapWidth    int      //nolint:gochecknoglobals // Text wrap width
 )
 
 func init() {
 	rootCmd.AddCommand(convertCmd)
 	convertCmd.Flags().StringVarP(&outputFile, "output", "o", "", "Output file path")
 	convertCmd.Flags().StringVarP(&format, "format", "f", "markdown", "Output format (markdown, json, yaml)")
+	convertCmd.Flags().StringVar(&templateName, "template", "", "Template name to use for rendering")
+	convertCmd.Flags().StringSliceVar(&sections, "section", []string{}, "Sections to include (comma-separated)")
+	convertCmd.Flags().StringVar(&themeName, "theme", "", "Theme for rendering (light, dark, auto, none)")
+	convertCmd.Flags().IntVar(&wrapWidth, "wrap", 0, "Text wrap width (0 = no wrapping)")
 }
 
 var convertCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
@@ -65,6 +74,12 @@ Examples:
 
   # Convert 'my_config.xml' to YAML and save to file
   opnFocus convert my_config.xml -f yaml -o documentation.yaml
+
+  # Convert with specific theme and sections
+  opnFocus convert my_config.xml --theme dark --section system,network
+
+  # Convert with custom template and text wrapping
+  opnFocus convert my_config.xml --template detailed --wrap 120
 
   # Convert multiple files to JSON format
   opnFocus convert config1.xml config2.xml --format json
@@ -141,52 +156,36 @@ Examples:
 				}
 				ctxLogger.Debug("XML parsing completed successfully")
 
-				// Convert based on format
+				// Build options for conversion with precedence: CLI flags > env vars > config > defaults
+				eff := buildEffectiveFormat(format, Cfg)
+				opt := buildConversionOptions(eff, templateName, sections, themeName, wrapWidth, Cfg)
+
+				// Convert using the new markdown generator
 				var output string
 				var fileExt string
 
-				switch strings.ToLower(format) {
-				case "markdown", "md":
-					ctxLogger.Debug("Converting to markdown")
-					c := converter.NewMarkdownConverter()
-					output, err = c.ToMarkdown(ctx, opnsense)
-					if err != nil {
-						ctxLogger.Error("Failed to convert to markdown", "error", err)
-						errs <- fmt.Errorf("failed to convert to markdown from %s: %w", fp, err)
-						return
-					}
-					fileExt = ".md"
-					ctxLogger.Debug("Markdown conversion completed successfully")
-
-				case "json":
-					ctxLogger.Debug("Converting to JSON")
-					c := converter.NewJSONConverter()
-					output, err = c.ToJSON(ctx, opnsense)
-					if err != nil {
-						ctxLogger.Error("Failed to convert to JSON", "error", err)
-						errs <- fmt.Errorf("failed to convert to JSON from %s: %w", fp, err)
-						return
-					}
-					fileExt = ".json"
-					ctxLogger.Debug("JSON conversion completed successfully")
-
-				case "yaml", "yml":
-					ctxLogger.Debug("Converting to YAML")
-					c := converter.NewYAMLConverter()
-					output, err = c.ToYAML(ctx, opnsense)
-					if err != nil {
-						ctxLogger.Error("Failed to convert to YAML", "error", err)
-						errs <- fmt.Errorf("failed to convert to YAML from %s: %w", fp, err)
-						return
-					}
-					fileExt = ".yaml"
-					ctxLogger.Debug("YAML conversion completed successfully")
-
-				default:
-					ctxLogger.Error("Unsupported format", "format", format)
-					errs <- fmt.Errorf("%w: got '%s'", converter.ErrUnsupportedFormat, format)
+				ctxLogger.Debug("Converting with options", "format", opt.Format, "theme", opt.Theme, "sections", opt.Sections)
+				g := markdown.NewMarkdownGenerator()
+				output, err = g.Generate(ctx, opnsense, opt)
+				if err != nil {
+					ctxLogger.Error("Failed to convert", "error", err)
+					errs <- fmt.Errorf("failed to convert from %s: %w", fp, err)
 					return
 				}
+
+				// Determine file extension based on format
+				switch strings.ToLower(string(opt.Format)) {
+				case "markdown", "md":
+					fileExt = ".md"
+				case "json":
+					fileExt = ".json"
+				case "yaml", "yml":
+					fileExt = ".yaml"
+				default:
+					fileExt = ".md" // Default to markdown
+				}
+
+				ctxLogger.Debug("Conversion completed successfully")
 
 				// Determine output path
 				actualOutputFile := outputFile
@@ -239,4 +238,59 @@ Examples:
 
 		return allErrors
 	},
+}
+
+// buildEffectiveFormat determines the effective format using CLI flags > config > defaults.
+func buildEffectiveFormat(flagFormat string, cfg *config.Config) string {
+	// CLI flag takes precedence
+	if flagFormat != "" {
+		return flagFormat
+	}
+
+	// Use config value if CLI flag not specified
+	if cfg != nil && cfg.GetFormat() != "" {
+		return cfg.GetFormat()
+	}
+
+	// Default
+	return "markdown"
+}
+
+// buildConversionOptions builds markdown.Options with proper precedence.
+func buildConversionOptions(format, template string, sections []string, theme string, wrap int, cfg *config.Config) markdown.Options {
+	// Start with defaults
+	opt := markdown.DefaultOptions()
+
+	// Set format
+	opt.Format = markdown.Format(format)
+
+	// Template: CLI flag > config > default
+	if template != "" {
+		opt.TemplateName = template
+	} else if cfg != nil && cfg.GetTemplate() != "" {
+		opt.TemplateName = cfg.GetTemplate()
+	}
+
+	// Sections: CLI flag > config > default
+	if len(sections) > 0 {
+		opt.Sections = sections
+	} else if cfg != nil && len(cfg.GetSections()) > 0 {
+		opt.Sections = cfg.GetSections()
+	}
+
+	// Theme: CLI flag > config > default
+	if theme != "" {
+		opt.Theme = markdown.Theme(theme)
+	} else if cfg != nil && cfg.GetTheme() != "" {
+		opt.Theme = markdown.Theme(cfg.GetTheme())
+	}
+
+	// Wrap width: CLI flag > config > default
+	if wrap > 0 {
+		opt.WrapWidth = wrap
+	} else if cfg != nil && cfg.GetWrapWidth() > 0 {
+		opt.WrapWidth = cfg.GetWrapWidth()
+	}
+
+	return opt
 }

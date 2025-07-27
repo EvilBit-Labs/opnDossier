@@ -132,10 +132,23 @@ Examples:
 		}
 		ctxLogger.Debug("Markdown conversion completed successfully")
 
-		// Display the markdown in terminal
+		// Display the markdown in terminal with progress indication
 		ctxLogger.Debug("Displaying markdown in terminal")
 		displayer := display.NewTerminalDisplay()
-		if err := displayer.Display(ctx, md); err != nil {
+
+		// Create a progress channel to stream progress events
+		progressCh := make(chan display.ProgressEvent, 10)
+
+		// Start displaying with progress in a goroutine
+		go func() {
+			defer close(progressCh)
+			progressCh <- display.ProgressEvent{Percent: 0.1, Message: "Parsing complete"}
+			progressCh <- display.ProgressEvent{Percent: 0.3, Message: "Markdown conversion complete"}
+			progressCh <- display.ProgressEvent{Percent: 0.7, Message: "Preparing display..."}
+			progressCh <- display.ProgressEvent{Percent: 0.9, Message: "Rendering..."}
+		}()
+
+		if err := displayer.DisplayWithProgress(ctx, md, progressCh); err != nil {
 			ctxLogger.Error("Failed to display markdown", "error", err)
 			return fmt.Errorf("failed to display markdown: %w", err)
 		}

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/nao1215/markdown"
+	mdhelper "github.com/unclesp1d3r/opnFocus/internal/markdown"
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 	"gopkg.in/yaml.v3"
 )
@@ -826,4 +827,364 @@ func calculateConfigComplexity(stats *Statistics) int {
 	}
 
 	return normalizedComplexity
+}
+
+// Configuration builders that use the common helper to emit tables/lists consistently
+
+// BuildNetworkConfig builds a comprehensive network configuration report.
+func BuildNetworkConfig(cfg *model.Opnsense) string {
+	if cfg == nil {
+		return "*No configuration available*"
+	}
+
+	netConfig := cfg.NetworkConfig()
+	var buf strings.Builder
+
+	buf.WriteString("## Network Configuration\n\n")
+
+	// Interfaces section
+	buf.WriteString("### Interfaces\n\n")
+	if len(netConfig.Interfaces.Items) == 0 {
+		buf.WriteString("*No interfaces configured*\n\n")
+	} else {
+		// Create interface table
+		headers := []string{"Interface", "Physical", "Enabled", "IP Address", "Subnet", "IPv6", "Gateway", "MTU"}
+		rows := [][]string{}
+
+		for name, iface := range netConfig.Interfaces.Items {
+			enabled := "❌"
+			if iface.Enable != "" {
+				enabled = "✅"
+			}
+
+			row := []string{
+				name,
+				iface.If,
+				enabled,
+				iface.IPAddr,
+				iface.Subnet,
+				iface.IPAddrv6,
+				iface.Gateway,
+				iface.MTU,
+			}
+			rows = append(rows, row)
+		}
+
+		buf.WriteString(mdhelper.Table(headers, rows))
+		buf.WriteString("\n\n")
+	}
+
+	// Interface security settings
+	buf.WriteString("### Interface Security\n\n")
+	securityHeaders := []string{"Interface", "Block Private", "Block Bogons", "DHCP Hostname"}
+	securityRows := [][]string{}
+
+	for name, iface := range netConfig.Interfaces.Items {
+		blockPriv := "❌"
+		if iface.BlockPriv != "" {
+			blockPriv = "✅"
+		}
+
+		blockBogons := "❌"
+		if iface.BlockBogons != "" {
+			blockBogons = "✅"
+		}
+
+		row := []string{
+			name,
+			blockPriv,
+			blockBogons,
+			iface.DHCPHostname,
+		}
+		securityRows = append(securityRows, row)
+	}
+
+	if len(securityRows) > 0 {
+		buf.WriteString(mdhelper.Table(securityHeaders, securityRows))
+		buf.WriteString("\n\n")
+	} else {
+		buf.WriteString("*No interface security settings configured*\n\n")
+	}
+
+	// TODO: Add VLANs and Gateways sections when model supports them
+	buf.WriteString("### VLANs\n\n*VLAN configuration not available in current model*\n\n")
+	buf.WriteString("### Gateways\n\n*Gateway configuration not available in current model*\n\n")
+
+	return buf.String()
+}
+
+// BuildSecurityConfig builds a comprehensive security configuration report.
+func BuildSecurityConfig(cfg *model.Opnsense) string {
+	if cfg == nil {
+		return "*No configuration available*"
+	}
+
+	secConfig := cfg.SecurityConfig()
+	var buf strings.Builder
+
+	buf.WriteString("## Security Configuration\n\n")
+
+	// Firewall Rules section
+	buf.WriteString("### Firewall Rules\n\n")
+	if len(secConfig.Filter.Rule) == 0 {
+		buf.WriteString("*No firewall rules configured*\n\n")
+	} else {
+		// Create rules table
+		headers := []string{"#", "Action", "Protocol", "Interface", "Source", "Destination", "Description"}
+		rows := [][]string{}
+
+		for i, rule := range secConfig.Filter.Rule {
+			source := rule.Source.Network
+			if source == "" {
+				source = "any"
+			}
+
+			dest := rule.Destination.Network
+			if dest == "" {
+				dest = "any"
+			}
+
+			row := []string{
+				strconv.Itoa(i + 1),
+				rule.Type,
+				rule.IPProtocol,
+				rule.Interface,
+				source,
+				dest,
+				rule.Descr,
+			}
+			rows = append(rows, row)
+		}
+
+		buf.WriteString(mdhelper.Table(headers, rows))
+		buf.WriteString("\n\n")
+	}
+
+	// NAT Configuration section
+	buf.WriteString("### NAT Configuration\n\n")
+	if secConfig.Nat.Outbound.Mode != "" {
+		natItems := []string{
+			"**Outbound Mode**: " + secConfig.Nat.Outbound.Mode,
+		}
+		buf.WriteString(strings.Join(natItems, "\n"))
+		buf.WriteString("\n\n")
+	} else {
+		buf.WriteString("*No NAT configuration found*\n\n")
+	}
+
+	// Security features summary
+	buf.WriteString("### Security Features\n\n")
+	securityFeatures := []string{}
+
+	// Check for enabled security features
+	if wan, ok := cfg.Interfaces.Wan(); ok {
+		if wan.BlockPriv != "" {
+			securityFeatures = append(securityFeatures, "🔒 Block Private Networks (WAN)")
+		}
+		if wan.BlockBogons != "" {
+			securityFeatures = append(securityFeatures, "🔒 Block Bogon Networks (WAN)")
+		}
+	}
+
+	if cfg.System.Webgui.Protocol == "https" {
+		securityFeatures = append(securityFeatures, "🔒 HTTPS Web Interface")
+	}
+
+	if len(secConfig.Filter.Rule) > 0 {
+		securityFeatures = append(securityFeatures, fmt.Sprintf("🔥 %d Firewall Rules Configured", len(secConfig.Filter.Rule)))
+	}
+
+	if len(securityFeatures) > 0 {
+		for _, feature := range securityFeatures {
+			buf.WriteString(fmt.Sprintf("- %s\n", feature))
+		}
+		buf.WriteString("\n")
+	} else {
+		buf.WriteString("*No security features detected*\n\n")
+	}
+
+	// TODO: Add sections for Aliases, IDS/IPS, VPNs when model supports them
+	buf.WriteString("### Firewall Aliases\n\n*Alias configuration not available in current model*\n\n")
+	buf.WriteString("### IDS/IPS\n\n*IDS/IPS configuration not available in current model*\n\n")
+	buf.WriteString("### VPNs\n\n*VPN configuration not available in current model*\n\n")
+
+	return buf.String()
+}
+
+// BuildServiceConfig builds a comprehensive service configuration report.
+func BuildServiceConfig(cfg *model.Opnsense) string {
+	if cfg == nil {
+		return "*No configuration available*"
+	}
+
+	svcConfig := cfg.ServiceConfig()
+	var buf strings.Builder
+
+	buf.WriteString("## Service Configuration\n\n")
+
+	// DHCP Services section
+	buf.WriteString("### DHCP Services\n\n")
+	if len(svcConfig.Dhcpd.Items) == 0 {
+		buf.WriteString("*No DHCP services configured*\n\n")
+	} else {
+		// Create DHCP table
+		headers := []string{"Interface", "Enabled", "Range Start", "Range End"}
+		rows := [][]string{}
+
+		for name, dhcp := range svcConfig.Dhcpd.Items {
+			enabled := "❌"
+			if dhcp.Enable != "" {
+				enabled = "✅"
+			}
+
+			row := []string{
+				name,
+				enabled,
+				dhcp.Range.From,
+				dhcp.Range.To,
+			}
+			rows = append(rows, row)
+		}
+
+		buf.WriteString(mdhelper.Table(headers, rows))
+		buf.WriteString("\n\n")
+	}
+
+	// DNS Resolver (Unbound) section
+	buf.WriteString("### DNS Resolver (Unbound)\n\n")
+	if svcConfig.Unbound.Enable != "" {
+		buf.WriteString("✅ **Status**: Enabled\n\n")
+	} else {
+		buf.WriteString("❌ **Status**: Disabled\n\n")
+	}
+
+	// SNMP Service section
+	buf.WriteString("### SNMP Service\n\n")
+	if svcConfig.Snmpd.ROCommunity != "" {
+		snmpItems := []string{
+			"✅ **Status**: Enabled",
+			"**System Location**: " + svcConfig.Snmpd.SysLocation,
+			"**System Contact**: " + svcConfig.Snmpd.SysContact,
+			"**RO Community**: [REDACTED]",
+		}
+		buf.WriteString(strings.Join(snmpItems, "\n"))
+		buf.WriteString("\n\n")
+	} else {
+		buf.WriteString("❌ **Status**: Disabled\n\n")
+	}
+
+	// SSH Service section
+	buf.WriteString("### SSH Service\n\n")
+	if svcConfig.SSH.Group != "" {
+		sshItems := []string{
+			"✅ **Status**: Enabled",
+			"**Allowed Group**: " + svcConfig.SSH.Group,
+		}
+		buf.WriteString(strings.Join(sshItems, "\n"))
+		buf.WriteString("\n\n")
+	} else {
+		buf.WriteString("❌ **Status**: Disabled\n\n")
+	}
+
+	// NTP Service section
+	buf.WriteString("### NTP Service\n\n")
+	if svcConfig.Ntpd.Prefer != "" {
+		ntpItems := []string{
+			"✅ **Status**: Enabled",
+			"**Preferred Server**: " + svcConfig.Ntpd.Prefer,
+		}
+		buf.WriteString(strings.Join(ntpItems, "\n"))
+		buf.WriteString("\n\n")
+	} else {
+		buf.WriteString("❌ **Status**: Disabled\n\n")
+	}
+
+	// Load Balancer section
+	buf.WriteString("### Load Balancer\n\n")
+	if len(svcConfig.LoadBalancer.MonitorType) == 0 {
+		buf.WriteString("*No load balancer monitors configured*\n\n")
+	} else {
+		// Create load balancer table
+		headers := []string{"Monitor Name", "Type", "Description"}
+		rows := [][]string{}
+
+		for _, monitor := range svcConfig.LoadBalancer.MonitorType {
+			row := []string{
+				monitor.Name,
+				monitor.Type,
+				monitor.Descr,
+			}
+			rows = append(rows, row)
+		}
+
+		buf.WriteString(mdhelper.Table(headers, rows))
+		buf.WriteString("\n\n")
+	}
+
+	// RRD Service section
+	buf.WriteString("### RRD (Monitoring)\n\n")
+	// Check if RRD is enabled (struct{} means enabled in OPNsense XML)
+	buf.WriteString("✅ **Status**: Enabled (default)\n\n")
+
+	// Service summary
+	buf.WriteString("### Service Summary\n\n")
+	enabledCount := 0
+	totalServices := 5 // Base services we check for
+
+	serviceStatus := []string{}
+	if svcConfig.Unbound.Enable != "" {
+		enabledCount++
+		serviceStatus = append(serviceStatus, "✅ DNS Resolver")
+	} else {
+		serviceStatus = append(serviceStatus, "❌ DNS Resolver")
+	}
+
+	if svcConfig.Snmpd.ROCommunity != "" {
+		enabledCount++
+		serviceStatus = append(serviceStatus, "✅ SNMP")
+	} else {
+		serviceStatus = append(serviceStatus, "❌ SNMP")
+	}
+
+	if svcConfig.SSH.Group != "" {
+		enabledCount++
+		serviceStatus = append(serviceStatus, "✅ SSH")
+	} else {
+		serviceStatus = append(serviceStatus, "❌ SSH")
+	}
+
+	if svcConfig.Ntpd.Prefer != "" {
+		enabledCount++
+		serviceStatus = append(serviceStatus, "✅ NTP")
+	} else {
+		serviceStatus = append(serviceStatus, "❌ NTP")
+	}
+
+	// Count DHCP services
+	dhcpEnabled := 0
+	for _, dhcp := range svcConfig.Dhcpd.Items {
+		if dhcp.Enable != "" {
+			dhcpEnabled++
+		}
+	}
+	enabledCount += dhcpEnabled
+	totalServices += len(svcConfig.Dhcpd.Items)
+
+	if dhcpEnabled > 0 {
+		serviceStatus = append(serviceStatus, fmt.Sprintf("✅ DHCP (%d interfaces)", dhcpEnabled))
+	} else {
+		serviceStatus = append(serviceStatus, "❌ DHCP")
+	}
+
+	buf.WriteString(fmt.Sprintf("**Enabled Services**: %d/%d\n\n", enabledCount, totalServices))
+	for _, status := range serviceStatus {
+		buf.WriteString(fmt.Sprintf("- %s\n", status))
+	}
+	buf.WriteString("\n")
+
+	// TODO: Add sections for OpenVPN and other VPN services when model supports them
+	buf.WriteString("### OpenVPN\n\n*OpenVPN configuration not available in current model*\n\n")
+	buf.WriteString("### Other VPN Services\n\n*VPN service configuration not available in current model*\n\n")
+
+	return buf.String()
 }
