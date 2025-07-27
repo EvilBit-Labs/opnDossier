@@ -13,6 +13,12 @@ This document captures user stories for the opnFocus CLI tool in EARS (Easy Appr
 
 ---
 
+## Table of Contents
+
+[TOC]
+
+---
+
 ## Core Functionality Stories
 
 ### XML Parsing and Validation

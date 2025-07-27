@@ -2,14 +2,7 @@
 
 ## Table of Contents
 
-1. [Introduction & Scope](#introduction--scope)
-2. [Functional Requirements](#functional-requirements)
-3. [Technical Specifications](#technical-specifications)
-4. [System Architecture](#system-architecture)
-5. [Development Standards & Coding Conventions](#development-standards--coding-conventions)
-6. [Implementation Guidelines & Best Practices](#implementation-guidelines--best-practices)
-7. [Compliance with Cursor Rules & AI Agent Protocols](#compliance-with-cursor-rules--ai-agent-protocols)
-8. [Glossary & References](#glossary--references)
+[TOC]
 
 ---
 
