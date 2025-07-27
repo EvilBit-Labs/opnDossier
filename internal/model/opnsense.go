@@ -15,9 +15,45 @@ type SystemConfig struct {
 type NetworkConfig struct {
 	Interfaces Interfaces `json:"interfaces,omitempty" yaml:"interfaces,omitempty" validate:"required"`
 	// TODO: Add VLANs, Gateways, and DHCP when these fields are added to the model
-	// VLANs     []VLAN      `json:"vlans,omitempty" yaml:"vlans,omitempty"`
-	// Gateways  []Gateway   `json:"gateways,omitempty" yaml:"gateways,omitempty"`
+	VLANs    []VLAN    `json:"vlans,omitempty" yaml:"vlans,omitempty"`
+	Gateways []Gateway `json:"gateways,omitempty" yaml:"gateways,omitempty"`
 	// DHCP      Dhcpd       `json:"dhcp,omitempty" yaml:"dhcp,omitempty"`
+}
+
+// VLAN represents a Virtual Local Area Network configuration.
+type VLAN struct {
+	Name              string `xml:"vlanif,omitempty"`
+	Tag               string `xml:"tag,omitempty"`
+	PhysicalInterface string `xml:"if,omitempty"`
+	Enable            string `xml:"enable,omitempty"`
+	Description       string `xml:"descr,omitempty"`
+}
+
+// Bridge represents a network bridge configuration.
+type Bridge struct {
+	Name        string   `xml:"bridgeif,omitempty"`
+	Members     []string `xml:"members,omitempty"`
+	Description string   `xml:"descr,omitempty"`
+	Interface   string   `xml:"if,omitempty"`
+}
+
+// Gateway represents a network gateway configuration.
+type Gateway struct {
+	DefaultGateway string `xml:"defaultgw,omitempty"`
+	Name           string `xml:"name,omitempty"`
+	Interface      string `xml:"if,omitempty"`
+	Gateway        string `xml:"gateway,omitempty"`
+	Weight         string `xml:"weight,omitempty"`
+	IPAddress      string `xml:"ipprotocol,omitempty"`
+	Description    string `xml:"descr,omitempty"`
+}
+
+// StaticRoute represents a network static route configuration.
+type StaticRoute struct {
+	Disabled    string `xml:"disabled,omitempty"`
+	Network     string `xml:"network,omitempty"`
+	Gateway     string `xml:"gateway,omitempty"`
+	Description string `xml:"descr,omitempty"`
 }
 
 // SecurityConfig groups security-related configuration.
@@ -202,6 +238,7 @@ func (o *Opnsense) ServiceConfig() ServiceConfig {
 }
 
 // SysctlItem represents a single sysctl item.
+// This supports both the simple format (direct elements) and nested item format.
 type SysctlItem struct {
 	Descr   string `xml:"descr" json:"description,omitempty" yaml:"description,omitempty"`
 	Tunable string `xml:"tunable" json:"tunable" yaml:"tunable" validate:"required"`
@@ -214,6 +251,9 @@ type System struct {
 	Hostname                      string   `xml:"hostname" json:"hostname" yaml:"hostname" validate:"required,hostname"`
 	Domain                        string   `xml:"domain" json:"domain" yaml:"domain" validate:"required,fqdn"`
 	DNSAllowOverride              string   `xml:"dnsallowoverride" json:"dnsAllowOverride,omitempty" yaml:"dnsAllowOverride,omitempty"`
+	DNSServer                     string   `xml:"dnsserver" json:"dnsServer,omitempty" yaml:"dnsServer,omitempty"`
+	Language                      string   `xml:"language" json:"language,omitempty" yaml:"language,omitempty"`
+	Firmware                      Firmware `xml:"firmware" json:"firmware,omitempty" yaml:"firmware,omitempty"`
 	Group                         []Group  `xml:"group" json:"groups,omitempty" yaml:"groups,omitempty" validate:"dive"`
 	User                          []User   `xml:"user" json:"users,omitempty" yaml:"users,omitempty" validate:"dive"`
 	NextUID                       string   `xml:"nextuid" json:"nextUid,omitempty" yaml:"nextUid,omitempty" validate:"omitempty,numeric,min=1000"`
@@ -250,14 +290,33 @@ type Group struct {
 	Priv        string `xml:"priv" json:"privileges,omitempty" yaml:"privileges,omitempty"`
 }
 
+// Firmware represents the firmware configuration.
+type Firmware struct {
+	Version string `xml:"version,attr" json:"version,omitempty" yaml:"version,omitempty"`
+	Mirror  string `xml:"mirror" json:"mirror,omitempty" yaml:"mirror,omitempty"`
+	Flavour string `xml:"flavour" json:"flavour,omitempty" yaml:"flavour,omitempty"`
+	Plugins string `xml:"plugins" json:"plugins,omitempty" yaml:"plugins,omitempty"`
+}
+
 // User represents a user.
 type User struct {
-	Name      string `xml:"name" json:"name" yaml:"name" validate:"required,alphanum"`
-	Descr     string `xml:"descr" json:"description,omitempty" yaml:"description,omitempty"`
-	Scope     string `xml:"scope" json:"scope" yaml:"scope" validate:"required,oneof=system local"`
-	Groupname string `xml:"groupname" json:"groupname" yaml:"groupname" validate:"required"`
-	Password  string `xml:"password" json:"password" yaml:"password" validate:"required"`
-	UID       string `xml:"uid" json:"uid" yaml:"uid" validate:"required,numeric"`
+	Name           string   `xml:"name" json:"name" yaml:"name" validate:"required,alphanum"`
+	Descr          string   `xml:"descr" json:"description,omitempty" yaml:"description,omitempty"`
+	Scope          string   `xml:"scope" json:"scope" yaml:"scope" validate:"required,oneof=system local"`
+	Groupname      string   `xml:"groupname" json:"groupname" yaml:"groupname" validate:"required"`
+	Password       string   `xml:"password" json:"password" yaml:"password" validate:"required"`
+	UID            string   `xml:"uid" json:"uid" yaml:"uid" validate:"required,numeric"`
+	APIKeys        []APIKey `xml:"apikeys>item" json:"apiKeys,omitempty" yaml:"apiKeys,omitempty"`
+	Expires        struct{} `xml:"expires" json:"expires,omitempty" yaml:"expires,omitempty"`
+	AuthorizedKeys struct{} `xml:"authorizedkeys" json:"authorizedKeys,omitempty" yaml:"authorizedKeys,omitempty"`
+	IPSecPSK       struct{} `xml:"ipsecpsk" json:"ipsecPsk,omitempty" yaml:"ipsecPsk,omitempty"`
+	OTPSeed        struct{} `xml:"otp_seed" json:"otpSeed,omitempty" yaml:"otpSeed,omitempty"`
+}
+
+// APIKey represents a user API key.
+type APIKey struct {
+	Key    string `xml:"key" json:"key" yaml:"key"`
+	Secret string `xml:"secret" json:"secret" yaml:"secret"`
 }
 
 // Webgui contains the web GUI configuration.
@@ -358,12 +417,19 @@ func (i *Interfaces) Lan() (Interface, bool) {
 type Interface struct {
 	Enable          string `xml:"enable,omitempty"`
 	If              string `xml:"if,omitempty"`
+	Descr           string `xml:"descr,omitempty"`
+	Spoofmac        string `xml:"spoofmac,omitempty"`
+	InternalDynamic string `xml:"internal_dynamic,omitempty"`
+	Type            string `xml:"type,omitempty"`
+	Virtual         string `xml:"virtual,omitempty"`
+	Lock            string `xml:"lock,omitempty"`
 	MTU             string `xml:"mtu,omitempty"`
 	IPAddr          string `xml:"ipaddr,omitempty"`
 	IPAddrv6        string `xml:"ipaddrv6,omitempty"`
 	Subnet          string `xml:"subnet,omitempty"`
 	Subnetv6        string `xml:"subnetv6,omitempty"`
 	Gateway         string `xml:"gateway,omitempty"`
+	Gatewayv6       string `xml:"gatewayv6,omitempty"`
 	BlockPriv       string `xml:"blockpriv,omitempty"`
 	BlockBogons     string `xml:"blockbogons,omitempty"`
 	DHCPHostname    string `xml:"dhcphostname,omitempty"`
@@ -455,8 +521,35 @@ func (d *Dhcpd) Lan() (DhcpdInterface, bool) {
 
 // DhcpdInterface contains the DHCP server configuration for a specific interface.
 type DhcpdInterface struct {
-	Enable string `xml:"enable,omitempty"`
-	Range  Range  `xml:"range,omitempty"`
+	Enable              string             `xml:"enable,omitempty"`
+	Range               Range              `xml:"range,omitempty"`
+	Gateway             string             `xml:"gateway,omitempty"`
+	DdnsDomainAlgorithm string             `xml:"ddnsdomainalgorithm,omitempty"`
+	NumberOptions       []DHCPNumberOption `xml:"numberoptions>item,omitempty"`
+	Winsserver          string             `xml:"winsserver,omitempty"`
+	Dnsserver           string             `xml:"dnsserver,omitempty"`
+	Ntpserver           string             `xml:"ntpserver,omitempty"`
+	Staticmap           []DHCPStaticLease  `xml:"staticmap,omitempty"`
+}
+
+// DHCPNumberOption represents a DHCP option with a number and value.
+type DHCPNumberOption struct {
+	Number string `xml:"number"`
+	Type   string `xml:"type,omitempty"`
+	Value  string `xml:"value,omitempty"`
+}
+
+// DHCPStaticLease represents a static DHCP lease.
+type DHCPStaticLease struct {
+	Mac              string `xml:"mac"`
+	Cid              string `xml:"cid,omitempty"`
+	IPAddr           string `xml:"ipaddr"`
+	Hostname         string `xml:"hostname,omitempty"`
+	Descr            string `xml:"descr,omitempty"`
+	Filename         string `xml:"filename,omitempty"`
+	Rootpath         string `xml:"rootpath,omitempty"`
+	Defaultleasetime string `xml:"defaultleasetime,omitempty"`
+	Maxleasetime     string `xml:"maxleasetime,omitempty"`
 }
 
 // Range represents a DHCP address range.

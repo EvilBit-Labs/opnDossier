@@ -7,16 +7,20 @@ import (
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewMarkdownGenerator(t *testing.T) {
-	generator := NewMarkdownGenerator()
+	generator, err := NewMarkdownGenerator()
+	require.NoError(t, err)
 	assert.NotNil(t, generator)
 	assert.Implements(t, (*Generator)(nil), generator)
 }
 
 func TestMarkdownGenerator_Generate(t *testing.T) {
-	generator := NewMarkdownGenerator()
+	generator, err := NewMarkdownGenerator()
+	require.NoError(t, err)
+
 	ctx := context.Background()
 
 	t.Run("nil configuration", func(t *testing.T) {
@@ -49,9 +53,24 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 		opts := DefaultOptions().WithFormat(FormatMarkdown)
 		result, err := generator.Generate(ctx, cfg, opts)
 
-		// We expect this to work since it delegates to the existing converter
 		assert.NoError(t, err)
 		assert.NotEmpty(t, result)
+		assert.Contains(t, result, "test-host")
+	})
+
+	t.Run("valid comprehensive markdown generation", func(t *testing.T) {
+		cfg := &model.Opnsense{
+			System: model.System{
+				Hostname: "test-host",
+				Domain:   "test.local",
+			},
+		}
+		opts := DefaultOptions().WithFormat(FormatMarkdown).WithComprehensive(true)
+		result, err := generator.Generate(ctx, cfg, opts)
+
+		assert.NoError(t, err)
+		assert.NotEmpty(t, result)
+		assert.Contains(t, result, "test-host")
 	})
 
 	t.Run("valid JSON generation", func(t *testing.T) {
@@ -64,7 +83,6 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 		opts := DefaultOptions().WithFormat(FormatJSON)
 		result, err := generator.Generate(ctx, cfg, opts)
 
-		// We expect this to work since it delegates to the existing converter
 		assert.NoError(t, err)
 		assert.NotEmpty(t, result)
 		assert.Contains(t, result, "test-host")
@@ -80,7 +98,6 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 		opts := DefaultOptions().WithFormat(FormatYAML)
 		result, err := generator.Generate(ctx, cfg, opts)
 
-		// We expect this to work since it delegates to the existing converter
 		assert.NoError(t, err)
 		assert.NotEmpty(t, result)
 		assert.Contains(t, result, "test-host")

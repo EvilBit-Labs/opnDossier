@@ -122,7 +122,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Context**: Parse config.xml into opnSense model using Phase 2 functionality, then generate markdown string in memory using templates
   - **Requirement**: F002 (Markdown conversion), US-003 (Markdown conversion), F011 (Markdown generation)
   - **User Story**: US-003-US-004 (Markdown Conversion)
-  - **Action**: Create `internal/markdown/` package that takes opnSense model and generates structured markdown string using templates in `internal/templates`
+  - **Action**: Create `internal/markdown/` package that takes opnSense model and generates structured markdown string using templates in `internal/templates` and `https://pkg.go.dev/github.com/Masterminds/sprig/v3` for template functions
   - **Acceptance**: Generator produces properly formatted markdown string from opnSense model using templates
 
 - [ ] **TASK-012**: Implement calculated fields and model enrichment
@@ -166,7 +166,6 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **User Story**: US-004 (Markdown rendering), US-043 (Theme support)
   - **Action**: Configure glamour renderer with theme detection and appropriate color schemes
   - **Acceptance**: Markdown renders with appropriate colors for both light and dark terminal themes
-
 
 ---
 

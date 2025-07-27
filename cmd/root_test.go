@@ -86,7 +86,7 @@ func TestRootCmdSubcommands(t *testing.T) {
 	subcommands := cmd.Commands()
 
 	// Verify we have the expected subcommands
-	var commandNames []string
+	commandNames := make([]string, 0, len(subcommands))
 	for _, subcmd := range subcommands {
 		commandNames = append(commandNames, subcmd.Name())
 	}
@@ -103,7 +103,7 @@ func TestGetLogger(t *testing.T) {
 	require.NotNil(t, logger)
 }
 
-func TestGetConfig(t *testing.T) {
+func TestGetConfig(_ *testing.T) {
 	// Initially, config should be nil until initialized
 	config := GetConfig()
 	// Config is initialized during PersistentPreRunE, so it may be nil initially
@@ -115,7 +115,10 @@ func TestRootCmdPersistentPreRunE(t *testing.T) {
 	// Create a temporary config file for testing
 	tmpFile, err := os.CreateTemp("", "opnfocus-test-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		err := os.Remove(tmpFile.Name())
+		require.NoError(t, err)
+	}()
 
 	// Write a minimal config
 	configContent := `log_level: info
@@ -125,12 +128,13 @@ quiet: false
 `
 	_, err = tmpFile.WriteString(configContent)
 	require.NoError(t, err)
-	tmpFile.Close()
+	err = tmpFile.Close()
+	require.NoError(t, err)
 
 	// Create a fresh command for testing
 	testCmd := &cobra.Command{
 		Use: "test",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			return nil
 		},
 	}
@@ -140,7 +144,7 @@ quiet: false
 	testCmd.PersistentFlags().AddFlagSet(rootCmd.PersistentFlags())
 
 	// Set the config file flag
-	testCmd.PersistentFlags().Set("config", tmpFile.Name())
+	require.NoError(t, testCmd.PersistentFlags().Set("config", tmpFile.Name()))
 
 	// Test PersistentPreRunE
 	err = rootCmd.PersistentPreRunE(testCmd, []string{})
@@ -155,12 +159,16 @@ func TestRootCmdInvalidConfig(t *testing.T) {
 	// Create a temporary invalid config file
 	tmpFile, err := os.CreateTemp("", "opnfocus-invalid-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		err := os.Remove(tmpFile.Name())
+		require.NoError(t, err)
+	}()
 
 	// Write invalid YAML
 	_, err = tmpFile.WriteString("invalid: yaml: content: [")
 	require.NoError(t, err)
-	tmpFile.Close()
+	err = tmpFile.Close()
+	require.NoError(t, err)
 
 	// Create a fresh command for testing
 	testCmd := &cobra.Command{
@@ -172,7 +180,7 @@ func TestRootCmdInvalidConfig(t *testing.T) {
 	testCmd.PersistentFlags().AddFlagSet(rootCmd.PersistentFlags())
 
 	// Set the invalid config file flag
-	testCmd.PersistentFlags().Set("config", tmpFile.Name())
+	require.NoError(t, testCmd.PersistentFlags().Set("config", tmpFile.Name()))
 
 	// Test PersistentPreRunE should return an error
 	err = rootCmd.PersistentPreRunE(testCmd, []string{})
@@ -184,7 +192,10 @@ func TestRootCmdVerboseQuietFlags(t *testing.T) {
 	// Create a temporary config file for testing
 	tmpFile, err := os.CreateTemp("", "opnfocus-test-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		err := os.Remove(tmpFile.Name())
+		require.NoError(t, err)
+	}()
 
 	// Write a minimal config
 	configContent := `log_level: info
@@ -194,7 +205,8 @@ quiet: false
 `
 	_, err = tmpFile.WriteString(configContent)
 	require.NoError(t, err)
-	tmpFile.Close()
+	err = tmpFile.Close()
+	require.NoError(t, err)
 
 	// Test verbose flag functionality
 	testCmd := &cobra.Command{Use: "test"}
@@ -202,8 +214,8 @@ quiet: false
 	testCmd.PersistentFlags().AddFlagSet(rootCmd.PersistentFlags())
 
 	// Set the config file and verbose flag
-	testCmd.PersistentFlags().Set("config", tmpFile.Name())
-	testCmd.PersistentFlags().Set("verbose", "true")
+	require.NoError(t, testCmd.PersistentFlags().Set("config", tmpFile.Name()))
+	require.NoError(t, testCmd.PersistentFlags().Set("verbose", "true"))
 	err = rootCmd.PersistentPreRunE(testCmd, []string{})
 	require.NoError(t, err)
 
@@ -212,8 +224,8 @@ quiet: false
 	testCmd2.PersistentFlags().AddFlagSet(rootCmd.PersistentFlags())
 
 	// Set the config file and quiet flag
-	testCmd2.PersistentFlags().Set("config", tmpFile.Name())
-	testCmd2.PersistentFlags().Set("quiet", "true")
+	require.NoError(t, testCmd2.PersistentFlags().Set("config", tmpFile.Name()))
+	require.NoError(t, testCmd2.PersistentFlags().Set("quiet", "true"))
 	err = rootCmd.PersistentPreRunE(testCmd2, []string{})
 	require.NoError(t, err)
 }

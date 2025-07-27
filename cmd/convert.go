@@ -165,7 +165,12 @@ Examples:
 				var fileExt string
 
 				ctxLogger.Debug("Converting with options", "format", opt.Format, "theme", opt.Theme, "sections", opt.Sections)
-				g := markdown.NewMarkdownGenerator()
+				g, err := markdown.NewMarkdownGenerator()
+				if err != nil {
+					ctxLogger.Error("Failed to create markdown generator", "error", err)
+					errs <- fmt.Errorf("failed to create markdown generator: %w", err)
+					return
+				}
 				output, err = g.Generate(ctx, opnsense, opt)
 				if err != nil {
 					ctxLogger.Error("Failed to convert", "error", err)

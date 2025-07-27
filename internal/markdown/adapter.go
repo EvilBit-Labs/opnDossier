@@ -14,19 +14,27 @@ type ConverterAdapter struct {
 }
 
 // NewConverterAdapter creates a new adapter that wraps the new Generator interface.
-func NewConverterAdapter() *ConverterAdapter {
-	return &ConverterAdapter{
-		generator: NewMarkdownGenerator(),
-		opts:      DefaultOptions(),
+func NewConverterAdapter() (*ConverterAdapter, error) {
+	generator, err := NewMarkdownGenerator()
+	if err != nil {
+		return nil, err
 	}
+	return &ConverterAdapter{
+		generator: generator,
+		opts:      DefaultOptions(),
+	}, nil
 }
 
 // NewConverterAdapterWithOptions creates a new adapter with custom options.
-func NewConverterAdapterWithOptions(opts Options) *ConverterAdapter {
-	return &ConverterAdapter{
-		generator: NewMarkdownGenerator(),
-		opts:      opts,
+func NewConverterAdapterWithOptions(opts Options) (*ConverterAdapter, error) {
+	generator, err := NewMarkdownGenerator()
+	if err != nil {
+		return nil, err
 	}
+	return &ConverterAdapter{
+		generator: generator,
+		opts:      opts,
+	}, nil
 }
 
 // ToMarkdown converts an OPNsense configuration to markdown using the new Generator API.

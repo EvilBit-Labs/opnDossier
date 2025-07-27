@@ -207,7 +207,10 @@ func TestConvertCmdWithInvalidFile(t *testing.T) {
 	// Create a temporary directory
 	tmpDir, err := os.MkdirTemp("", "opnfocus-convert-test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		err := os.RemoveAll(tmpDir)
+		require.NoError(t, err)
+	}()
 
 	// Try to convert a non-existent file
 	nonExistentFile := filepath.Join(tmpDir, "nonexistent.xml")
@@ -227,7 +230,10 @@ func TestConvertCmdWithValidXML(t *testing.T) {
 	// Create a temporary directory
 	tmpDir, err := os.MkdirTemp("", "opnfocus-convert-test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		err := os.RemoveAll(tmpDir)
+		require.NoError(t, err)
+	}()
 
 	// Create a minimal valid OPNsense config file
 	configContent := `<?xml version="1.0"?>
@@ -240,7 +246,7 @@ func TestConvertCmdWithValidXML(t *testing.T) {
 </opnsense>`
 
 	configFile := filepath.Join(tmpDir, "test-config.xml")
-	err = os.WriteFile(configFile, []byte(configContent), 0o644)
+	err = os.WriteFile(configFile, []byte(configContent), 0o600)
 	require.NoError(t, err)
 
 	// Test conversion to stdout
@@ -262,9 +268,9 @@ func TestConvertCmdWithValidXML(t *testing.T) {
 }
 
 // Helper function to find a command by name.
-func findCommand(root *cobra.Command, name string) *cobra.Command {
+func findCommand(root *cobra.Command, _ string) *cobra.Command {
 	for _, cmd := range root.Commands() {
-		if cmd.Name() == name {
+		if cmd.Name() == "convert" {
 			return cmd
 		}
 	}

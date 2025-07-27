@@ -1,6 +1,6 @@
 # 🔧 OPNsense Configuration Summary
 
-**Hostname**: {{ .Hostname }}
+**Hostname**: {{ .System.Hostname }}
 **Platform**: OPNsense {{ .Version }}
 **Generated On**: {{ .Generated }}
 **Parsed By**: opnFocus v{{ .ToolVersion }}
@@ -26,8 +26,8 @@
 
 | Name | Description | IP Address | CIDR | Enabled |
 |------|-------------|------------|------|---------|
-{{- range .Interfaces }}
-| `{{ .Name }}` | `{{ .Description }}` | `{{ .IPAddress }}` | /{{ .CIDR }} | {{ if .Enabled }}✅{{ else }}❌{{ end }} |
+{{- range $name, $iface := .Interfaces.Items }}
+| `{{ $name }}` | `{{ $iface.If }}` | `{{ $iface.IPAddr }}` | /{{ $iface.Subnet }} | {{ if $iface.Enable }}✅{{ else }}❌{{ end }} |
 {{- end }}
 
 ---
@@ -38,16 +38,20 @@
 
 | # | Action | Proto | Source | Destination | Description |
 |---|--------|-------|--------|-------------|-------------|
-{{- range .Firewall.WAN }}
-| {{ .ID }} | {{ .Action }} | {{ .Protocol }} | {{ .Source }} | {{ .Destination }} | `{{ .Description }}` |
+{{- range $index, $rule := .Filter.Rule }}
+{{- if eq $rule.Interface "wan" }}
+| {{ add $index 1 }} | {{ $rule.Type }} | {{ $rule.IPProtocol }} | {{ $rule.Source.Network }} | {{ $rule.Destination.Network }} | `{{ $rule.Descr }}` |
+{{- end }}
 {{- end }}
 
 ### LAN
 
 | # | Action | Proto | Source | Destination | Description |
 |---|--------|-------|--------|-------------|-------------|
-{{- range .Firewall.LAN }}
-| {{ .ID }} | {{ .Action }} | {{ .Protocol }} | {{ .Source }} | {{ .Destination }} | `{{ .Description }}` |
+{{- range $index, $rule := .Filter.Rule }}
+{{- if eq $rule.Interface "lan" }}
+| {{ add $index 1 }} | {{ $rule.Type }} | {{ $rule.IPProtocol }} | {{ $rule.Source.Network }} | {{ $rule.Destination.Network }} | `{{ $rule.Descr }}` |
+{{- end }}
 {{- end }}
 
 ---
@@ -56,8 +60,8 @@
 
 | Interface | Protocol | Source | Destination | NAT IP | Description |
 |-----------|----------|--------|-------------|--------|-------------|
-{{- range .NATRules }}
-| {{ .Interface }} | {{ .Protocol }} | {{ .Source }} | {{ .Destination }} | {{ .NATIP }} | `{{ .Description }}` |
+{{- if .Nat.Outbound.Mode }}
+| Outbound | All | Any | Any | {{ .Nat.Outbound.Mode }} | Outbound NAT |
 {{- end }}
 
 ---
@@ -66,29 +70,21 @@
 
 | Interface | Start IP | End IP | Domain | DNS Servers |
 |-----------|----------|--------|--------|--------------|
-{{- range .DHCP.Servers }}
-| {{ .Interface }} | {{ .RangeStart }} | {{ .RangeEnd }} | {{ .Domain }} | {{ join .DNSServers ", " }} |
+{{- range $name, $dhcp := .Dhcpd.Items }}
+| {{ $name }} | {{ $dhcp.Range.From }} | {{ $dhcp.Range.To }} | - | - |
 {{- end }}
 
 ### Static Leases
 
 | Hostname | MAC Address | IP | Description |
 |----------|-------------|----|-------------|
-{{- range .DHCP.StaticLeases }}
-| `{{ .Hostname }}` | `{{ .MAC }}` | `{{ .IP }}` | `{{ .Description }}` |
-{{- end }}
+| No static leases configured | - | - | - |
 
 ---
 
 ## 🧠 DNS Resolver
 
-- **Enabled**: {{ .DNS.Enabled }}
-- **DNSSEC**: {{ .DNS.DNSSEC }}
-- **Custom Options**:
-
-    ```
-    {{ .DNS.CustomOptions }}
-    ```
+- **Enabled**: {{ .Unbound.Enable }}
 
 ---
 
@@ -96,9 +92,7 @@
 
 | Name | Mode | Local IP | Remote Net | Enabled |
 |------|------|----------|------------|---------|
-{{- range .OpenVPN }}
-| `{{ .Name }}` | {{ .Mode }} | {{ .LocalIP }} | {{ .RemoteNet }} | {{ if .Enabled }}✅{{ else }}❌{{ end }} |
-{{- end }}
+| No OpenVPN configured | - | - | - | ❌ |
 
 ---
 
@@ -106,8 +100,8 @@
 
 | Username | UID | Group | Shell | Disabled |
 |----------|-----|-------|--------|----------|
-{{- range .SystemUsers }}
-| `{{ .Username }}` | {{ .UID }} | {{ .Group }} | {{ .Shell }} | {{ if .Disabled }}❌{{ else }}✅{{ end }} |
+{{- range .System.User }}
+| `{{ .Name }}` | {{ .UID }} | {{ .Groupname }} | - | ✅ |
 {{- end }}
 
 ---
@@ -116,9 +110,9 @@
 
 | Service | Enabled | Notes |
 |---------|---------|-------|
-{{- range .Services }}
-| `{{ .Name }}` | {{ if .Enabled }}✅{{ else }}❌{{ end }} | `{{ .Description }}` |
-{{- end }}
+| SNMP | {{ if .Snmpd.ROCommunity }}✅{{ else }}❌{{ end }} | Community: {{ .Snmpd.ROCommunity }} |
+| Unbound DNS | {{ if .Unbound.Enable }}✅{{ else }}❌{{ end }} | DNS Resolver |
+| NTP | {{ if .Ntpd.Prefer }}✅{{ else }}❌{{ end }} | Prefer: {{ .Ntpd.Prefer }} |
 
 ---
 
@@ -126,8 +120,8 @@
 
 | Name | Value | Description |
 |------|--------|-------------|
-{{- range .Tunables }}
-| `{{ .Name }}` | `{{ .Value }}` | `{{ .Description }}` |
+{{- range .Sysctl }}
+| `{{ .Tunable }}` | `{{ .Value }}` | `{{ .Descr }}` |
 {{- end }}
 
 ---
@@ -135,7 +129,7 @@
 ## 📝 System Notes
 
     ```
-    {{ .SystemNotes }}
+    No system notes configured
     ```
 
 ---

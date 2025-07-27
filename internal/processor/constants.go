@@ -1,8 +1,7 @@
 package processor
 
-import "time"
-
-// String constants.
+// Re-export constants from the constants package for backward compatibility.
+// This allows existing code to continue working while avoiding import cycles.
 const (
 	// Network constants.
 	NetworkAny = "any"
@@ -15,30 +14,15 @@ const (
 
 	// Finding types.
 	FindingTypeSecurity = "security"
-)
 
-// Numeric constants.
-const (
-	// Timeout constants.
-	DefaultProcessingTimeout = 5 * time.Minute
-	QuickProcessingTimeout   = 10 * time.Second
+	// Theme constants.
+	ThemeLight = "light"
+	ThemeDark  = "dark"
 
-	// Scoring constants.
-	SecurityFeatureMultiplier = 10
-	MaxSecurityScore          = 100
-	MaxComplexityScore        = 100
+	// Status display constants.
+	StatusNotEnabled = "❌"
+	StatusEnabled    = "✅"
 
-	// Complexity scoring weights.
-	InterfaceComplexityWeight    = 5
-	FirewallRuleComplexityWeight = 2
-	UserComplexityWeight         = 3
-	GroupComplexityWeight        = 3
-	SysctlComplexityWeight       = 4
-	ServiceComplexityWeight      = 6
-	DHCPComplexityWeight         = 4
-	LoadBalancerComplexityWeight = 8
-
-	// Thresholds.
-	LargeRuleCountThreshold = 100
-	MaxReasonableComplexity = 1000
+	// Configuration availability.
+	NoConfigAvailable = "*No configuration available*"
 )

@@ -1,8 +1,8 @@
 package converter
 
-// ConverterAdapter represents the interface for adapters that bridge between
+// Adapter represents the interface for adapters that bridge between
 // old and new converter implementations.
-type ConverterAdapter interface {
+type Adapter interface {
 	Converter
 	SetOptions(opts interface{})
 	GetOptions() interface{}

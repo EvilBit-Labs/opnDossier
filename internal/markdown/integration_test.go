@@ -36,29 +36,28 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 			name:    "config.xml",
 			xmlFile: "testdata/config.xml",
 			expectedSections: []string{
-				"# OPNsense Configuration",
-				"## System Configuration",
-				"## Network Configuration",
-				"## Security Configuration",
-				"## Service Configuration",
+				"# 🔧 OPNsense Configuration Summary",
+				"## 🌐 Interfaces",
+				"## 🔥 Firewall Rules",
+				"## 🔀 NAT Rules",
+				"## 🧭 DHCP Services",
 			},
 			expectedSystemMarkers: []string{
-				"### Basic Information",
-				"**Hostname**:",
-				"**Domain**:",
+				"**Hostname**: TestHost",
+				"**Platform**: OPNsense",
 			},
 			expectedNetworkMarkers: []string{
-				"### WAN Interface",
-				"### LAN Interface",
-				"**Physical Interface**:",
+				"## 🌐 Interfaces",
+				"wan",
+				"lan",
 			},
 			expectedSecurityMarkers: []string{
-				"### NAT Configuration",
-				"**Outbound NAT Mode**:",
+				"## 🔀 NAT Rules",
+				"automatic",
 			},
 			expectedServiceMarkers: []string{
-				"### DHCP Server",
-				"### DNS Resolver",
+				"## 🧭 DHCP Services",
+				"## 🧠 DNS Resolver",
 			},
 			expectedSysctlKeys: []string{
 				// We'll validate these dynamically based on actual XML content
@@ -68,44 +67,32 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 			name:    "sample.config.1.xml",
 			xmlFile: "testdata/sample.config.1.xml",
 			expectedSections: []string{
-				"# OPNsense Configuration",
-				"## System Configuration",
-				"## Network Configuration",
-				"## Security Configuration",
-				"## Service Configuration",
+				"# 🔧 OPNsense Configuration Summary",
+				"## 🌐 Interfaces",
+				"## 🔥 Firewall Rules",
+				"## 🔀 NAT Rules",
+				"## 🧭 DHCP Services",
 			},
 			expectedSystemMarkers: []string{
-				"### Basic Information",
-				"### Hardware Settings",
-				"### Power Management",
 				"**Hostname**: TestHost",
-				"**Domain**: test.local",
-				"**Timezone**: Etc/UTC",
-				"**Disable NAT Reflection**: yes",
+				"**Platform**: OPNsense",
 			},
 			expectedNetworkMarkers: []string{
-				"### WAN Interface",
-				"### LAN Interface",
-				"**Physical Interface**: em0",
-				"**Physical Interface**: em1",
-				"**IPv4 Address**: 192.168.1.1",
-				"**IPv4 Subnet**: 24",
+				"## 🌐 Interfaces",
+				"wan",
+				"lan",
+				"192.168.1.1",
 			},
 			expectedSecurityMarkers: []string{
-				"### NAT Configuration",
-				"### Firewall Rules",
-				"**Outbound NAT Mode**: automatic",
+				"## 🔀 NAT Rules",
+				"automatic",
 				"Default allow LAN to any rule",
-				"Block bogon networks on WAN",
 			},
 			expectedServiceMarkers: []string{
-				"### DHCP Server",
-				"### DNS Resolver (Unbound)",
-				"### SNMP",
-				"### Load Balancer Monitors",
-				"**LAN DHCP Range**: 192.168.1.100 - 192.168.1.199",
-				"**System Location**: Test Location",
-				"**Read-Only Community**: public",
+				"## 🧭 DHCP Services",
+				"## 🧠 DNS Resolver",
+				"192.168.1.100",
+				"public",
 			},
 			expectedSysctlKeys: []string{
 				// NOTE: Currently sysctl parsing is not working in the parser
@@ -116,26 +103,25 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 			name:    "sample.config.2.xml",
 			xmlFile: "testdata/sample.config.2.xml",
 			expectedSections: []string{
-				"# OPNsense Configuration",
-				"## System Configuration",
-				"## Network Configuration",
-				"## Security Configuration",
-				"## Service Configuration",
+				"# 🔧 OPNsense Configuration Summary",
+				"## 🌐 Interfaces",
+				"## 🔥 Firewall Rules",
+				"## 🔀 NAT Rules",
+				"## 🧭 DHCP Services",
 			},
 			expectedSystemMarkers: []string{
-				"### Basic Information",
-				"**Hostname**:",
-				"**Domain**:",
+				"**Platform**: OPNsense",
 			},
 			expectedNetworkMarkers: []string{
-				"### WAN Interface",
-				"### LAN Interface",
+				"## 🌐 Interfaces",
+				"wan",
+				"lan",
 			},
 			expectedSecurityMarkers: []string{
-				"### NAT Configuration",
+				"## 🔀 NAT Rules",
 			},
 			expectedServiceMarkers: []string{
-				"### DHCP Server",
+				"## 🧭 DHCP Services",
 			},
 			expectedSysctlKeys: []string{
 				// Will be populated based on actual content
@@ -145,26 +131,25 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 			name:    "sample.config.3.xml",
 			xmlFile: "testdata/sample.config.3.xml",
 			expectedSections: []string{
-				"# OPNsense Configuration",
-				"## System Configuration",
-				"## Network Configuration",
-				"## Security Configuration",
-				"## Service Configuration",
+				"# 🔧 OPNsense Configuration Summary",
+				"## 🌐 Interfaces",
+				"## 🔥 Firewall Rules",
+				"## 🔀 NAT Rules",
+				"## 🧭 DHCP Services",
 			},
 			expectedSystemMarkers: []string{
-				"### Basic Information",
-				"**Hostname**:",
-				"**Domain**:",
+				"**Platform**: OPNsense",
 			},
 			expectedNetworkMarkers: []string{
-				"### WAN Interface",
-				"### LAN Interface",
+				"## 🌐 Interfaces",
+				"wan",
+				"lan",
 			},
 			expectedSecurityMarkers: []string{
-				"### NAT Configuration",
+				"## 🔀 NAT Rules",
 			},
 			expectedServiceMarkers: []string{
-				"### DHCP Server",
+				"## 🧭 DHCP Services",
 			},
 			expectedSysctlKeys: []string{
 				// Will be populated based on actual content
@@ -183,18 +168,22 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 			// Load XML file
 			xmlFile, err := os.Open(tt.xmlFile)
 			require.NoError(t, err, "Failed to open XML file: %s", tt.xmlFile)
-			defer xmlFile.Close()
+			defer func() {
+				err := xmlFile.Close()
+				require.NoError(t, err)
+			}()
 
 			// Parse XML into model
-			parser := parser.NewXMLParser()
+			xmlParser := parser.NewXMLParser()
 			ctx := context.Background()
-			cfg, err := parser.Parse(ctx, xmlFile)
+			cfg, err := xmlParser.Parse(ctx, xmlFile)
 			require.NoError(t, err, "Failed to parse XML file: %s", tt.xmlFile)
 			assert.NotNil(t, cfg, "Parsed configuration should not be nil")
 
 			// Test Markdown generation
 			t.Run("markdown_generation", func(t *testing.T) {
-				generator := NewMarkdownGenerator()
+				generator, err := NewMarkdownGenerator()
+				require.NoError(t, err)
 				opts := DefaultOptions().WithFormat(FormatMarkdown)
 
 				result, err := generator.Generate(ctx, cfg, opts)
@@ -235,7 +224,7 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 				}
 
 				// Additional validation: ensure sections are properly formatted
-				assert.Contains(t, result, "# OPNsense Configuration", "Should have main title")
+				assert.Contains(t, result, "# 🔧 OPNsense Configuration Summary", "Should have main title")
 
 				// Count section headers to ensure we have expected structure
 				sectionCount := strings.Count(result, "## ")
@@ -248,7 +237,8 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 
 			// Test JSON generation
 			t.Run("json_generation", func(t *testing.T) {
-				generator := NewMarkdownGenerator()
+				generator, err := NewMarkdownGenerator()
+				require.NoError(t, err)
 				opts := DefaultOptions().WithFormat(FormatJSON)
 
 				result, err := generator.Generate(ctx, cfg, opts)
@@ -270,7 +260,8 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 
 			// Test YAML generation
 			t.Run("yaml_generation", func(t *testing.T) {
-				generator := NewMarkdownGenerator()
+				generator, err := NewMarkdownGenerator()
+				require.NoError(t, err)
 				opts := DefaultOptions().WithFormat(FormatYAML)
 
 				result, err := generator.Generate(ctx, cfg, opts)
@@ -308,9 +299,15 @@ func TestGenerateFromXMLFilesRobustness(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Failed to create temp file: %v", err)
 				}
-				tmpFile.Close()
+				if err := tmpFile.Close(); err != nil {
+					t.Fatalf("Failed to close temp file: %v", err)
+				}
 
-				return tmpFile.Name(), func() { os.Remove(tmpFile.Name()) }
+				return tmpFile.Name(), func() {
+					if err := os.Remove(tmpFile.Name()); err != nil {
+						t.Logf("Failed to remove temp file: %v", err)
+					}
+				}
 			},
 			expectError: true,
 			errorType:   "parse_error",
@@ -325,13 +322,23 @@ func TestGenerateFromXMLFilesRobustness(t *testing.T) {
 
 				content := `<?xml version="1.0"?><invalid><unclosed>`
 				if _, err := tmpFile.WriteString(content); err != nil {
-					tmpFile.Close()
-					os.Remove(tmpFile.Name())
+					if err := tmpFile.Close(); err != nil {
+						t.Fatalf("Failed to close temp file: %v", err)
+					}
+					if err := os.Remove(tmpFile.Name()); err != nil {
+						t.Logf("Failed to remove temp file: %v", err)
+					}
 					t.Fatalf("Failed to write temp file: %v", err)
 				}
-				tmpFile.Close()
+				if err := tmpFile.Close(); err != nil {
+					t.Fatalf("Failed to close temp file: %v", err)
+				}
 
-				return tmpFile.Name(), func() { os.Remove(tmpFile.Name()) }
+				return tmpFile.Name(), func() {
+					if err := os.Remove(tmpFile.Name()); err != nil {
+						t.Logf("Failed to remove temp file: %v", err)
+					}
+				}
 			},
 			expectError: true,
 			errorType:   "xml_syntax_error",
@@ -346,13 +353,23 @@ func TestGenerateFromXMLFilesRobustness(t *testing.T) {
 
 				content := `<?xml version="1.0"?><config><system><hostname>test</hostname></system></config>`
 				if _, err := tmpFile.WriteString(content); err != nil {
-					tmpFile.Close()
-					os.Remove(tmpFile.Name())
+					if err := tmpFile.Close(); err != nil {
+						t.Fatalf("Failed to close temp file: %v", err)
+					}
+					if err := os.Remove(tmpFile.Name()); err != nil {
+						t.Logf("Failed to remove temp file: %v", err)
+					}
 					t.Fatalf("Failed to write temp file: %v", err)
 				}
-				tmpFile.Close()
+				if err := tmpFile.Close(); err != nil {
+					t.Fatalf("Failed to close temp file: %v", err)
+				}
 
-				return tmpFile.Name(), func() { os.Remove(tmpFile.Name()) }
+				return tmpFile.Name(), func() {
+					if err := os.Remove(tmpFile.Name()); err != nil {
+						t.Logf("Failed to remove temp file: %v", err)
+					}
+				}
 			},
 			expectError: true,
 			errorType:   "missing_root",
@@ -367,11 +384,14 @@ func TestGenerateFromXMLFilesRobustness(t *testing.T) {
 			// Try to parse the XML file
 			xmlFile, err := os.Open(filePath)
 			require.NoError(t, err, "Failed to open test XML file")
-			defer xmlFile.Close()
+			defer func() {
+				err := xmlFile.Close()
+				require.NoError(t, err)
+			}()
 
-			parser := parser.NewXMLParser()
+			xmlParser := parser.NewXMLParser()
 			ctx := context.Background()
-			cfg, err := parser.Parse(ctx, xmlFile)
+			cfg, err := xmlParser.Parse(ctx, xmlFile)
 
 			if tt.expectError {
 				assert.Error(t, err, "Should have failed to parse invalid XML")
@@ -383,7 +403,8 @@ func TestGenerateFromXMLFilesRobustness(t *testing.T) {
 			require.NoError(t, err, "Should successfully parse XML")
 			require.NotNil(t, cfg, "Configuration should not be nil")
 
-			generator := NewMarkdownGenerator()
+			generator, err := NewMarkdownGenerator()
+			require.NoError(t, err)
 			opts := DefaultOptions().WithFormat(FormatMarkdown)
 
 			result, err := generator.Generate(ctx, cfg, opts)
@@ -398,11 +419,14 @@ func TestDebugSysctlParsing(t *testing.T) {
 	// Load sample.config.1.xml which has known sysctl entries
 	xmlFile, err := os.Open("testdata/sample.config.1.xml")
 	require.NoError(t, err, "Failed to open sample.config.1.xml")
-	defer xmlFile.Close()
+	defer func() {
+		err := xmlFile.Close()
+		require.NoError(t, err)
+	}()
 
-	parser := parser.NewXMLParser()
+	xmlParser := parser.NewXMLParser()
 	ctx := context.Background()
-	cfg, err := parser.Parse(ctx, xmlFile)
+	cfg, err := xmlParser.Parse(ctx, xmlFile)
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")
 	require.NotNil(t, cfg, "Configuration should not be nil")
 
@@ -420,7 +444,8 @@ func TestDebugSysctlParsing(t *testing.T) {
 	}
 
 	// Generate markdown to see output
-	generator := NewMarkdownGenerator()
+	generator, err := NewMarkdownGenerator()
+	require.NoError(t, err)
 	opts := DefaultOptions().WithFormat(FormatMarkdown)
 
 	result, err := generator.Generate(ctx, cfg, opts)
@@ -444,15 +469,20 @@ func TestSysctlKeyValidation(t *testing.T) {
 	// Load sample.config.1.xml which has known sysctl entries
 	xmlFile, err := os.Open("testdata/sample.config.1.xml")
 	require.NoError(t, err, "Failed to open sample.config.1.xml")
-	defer xmlFile.Close()
+	defer func() {
+		if err := xmlFile.Close(); err != nil {
+			t.Logf("Failed to close XML file: %v", err)
+		}
+	}()
 
-	parser := parser.NewXMLParser()
+	xmlParser := parser.NewXMLParser()
 	ctx := context.Background()
-	cfg, err := parser.Parse(ctx, xmlFile)
+	cfg, err := xmlParser.Parse(ctx, xmlFile)
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")
 	require.NotNil(t, cfg, "Configuration should not be nil")
 
-	generator := NewMarkdownGenerator()
+	generator, err := NewMarkdownGenerator()
+	require.NoError(t, err)
 	opts := DefaultOptions().WithFormat(FormatMarkdown)
 
 	result, err := generator.Generate(ctx, cfg, opts)
@@ -502,33 +532,33 @@ func TestInterfaceConfigurationDetail(t *testing.T) {
 	// Load sample.config.1.xml which has detailed interface config
 	xmlFile, err := os.Open("testdata/sample.config.1.xml")
 	require.NoError(t, err, "Failed to open sample.config.1.xml")
-	defer xmlFile.Close()
+	defer func() {
+		if err := xmlFile.Close(); err != nil {
+			t.Logf("Failed to close XML file: %v", err)
+		}
+	}()
 
-	parser := parser.NewXMLParser()
+	xmlParser := parser.NewXMLParser()
 	ctx := context.Background()
-	cfg, err := parser.Parse(ctx, xmlFile)
+	cfg, err := xmlParser.Parse(ctx, xmlFile)
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")
 	require.NotNil(t, cfg, "Configuration should not be nil")
 
-	generator := NewMarkdownGenerator()
+	generator, err := NewMarkdownGenerator()
+	require.NoError(t, err)
 	opts := DefaultOptions().WithFormat(FormatMarkdown)
 
 	result, err := generator.Generate(ctx, cfg, opts)
 	require.NoError(t, err, "Markdown generation should not fail")
 	require.NotEmpty(t, result, "Generated markdown should not be empty")
 
-	// Test WAN interface details
-	assert.Contains(t, result, "### WAN Interface", "Should contain WAN interface section")
-	assert.Contains(t, result, "**Physical Interface**: em0", "Should show WAN physical interface")
-	assert.Contains(t, result, "**Enabled**: 1", "Should show WAN enabled status")
-	assert.Contains(t, result, "**Block Private Networks**: 1", "Should show WAN block private setting")
-	assert.Contains(t, result, "**Block Bogon", "Should show WAN block bogons setting (may be truncated)")
-
-	// Test LAN interface details
-	assert.Contains(t, result, "### LAN Interface", "Should contain LAN interface section")
-	assert.Contains(t, result, "**Physical Interface**: em1", "Should show LAN physical interface")
-	assert.Contains(t, result, "**IPv4 Address**: 192.168.1.1", "Should show LAN IPv4 address")
-	assert.Contains(t, result, "**IPv4 Subnet**: 24", "Should show LAN IPv4 subnet")
+	// Test interfaces table format (table-based instead of individual sections)
+	assert.Contains(t, result, "## 🌐 Interfaces", "Should contain interfaces section")
+	assert.Contains(t, result, "em0", "Should show WAN physical interface")
+	assert.Contains(t, result, "em1", "Should show LAN physical interface")
+	assert.Contains(t, result, "192.168.1.1", "Should show LAN IPv4 address")
+	assert.Contains(t, result, "/24", "Should show LAN subnet")
+	assert.Contains(t, result, "dhcp", "Should show WAN DHCP configuration")
 }
 
 // TestFirewallRulesFormatting tests that firewall rules are properly formatted in tables.
@@ -536,15 +566,20 @@ func TestFirewallRulesFormatting(t *testing.T) {
 	// Load sample.config.1.xml which has firewall rules
 	xmlFile, err := os.Open("testdata/sample.config.1.xml")
 	require.NoError(t, err, "Failed to open sample.config.1.xml")
-	defer xmlFile.Close()
+	defer func() {
+		if err := xmlFile.Close(); err != nil {
+			t.Logf("Failed to close XML file: %v", err)
+		}
+	}()
 
-	parser := parser.NewXMLParser()
+	xmlParser := parser.NewXMLParser()
 	ctx := context.Background()
-	cfg, err := parser.Parse(ctx, xmlFile)
+	cfg, err := xmlParser.Parse(ctx, xmlFile)
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")
 	require.NotNil(t, cfg, "Configuration should not be nil")
 
-	generator := NewMarkdownGenerator()
+	generator, err := NewMarkdownGenerator()
+	require.NoError(t, err)
 	opts := DefaultOptions().WithFormat(FormatMarkdown)
 
 	result, err := generator.Generate(ctx, cfg, opts)
@@ -552,18 +587,17 @@ func TestFirewallRulesFormatting(t *testing.T) {
 	require.NotEmpty(t, result, "Generated markdown should not be empty")
 
 	// Test firewall rules section
-	assert.Contains(t, result, "### Firewall Rules", "Should contain firewall rules section")
+	assert.Contains(t, result, "## 🔥 Firewall Rules", "Should contain firewall rules section")
 
-	// Test table headers (may be truncated)
-	// Based on actual output: TYPE | INTE… | PROTO… | SOUR… | DEST… | DESCRIPTION
-	expectedHeaders := []string{"TYPE", "INTE", "PROTO", "SOUR", "DEST", "DESCRIPTION"}
+	// Test table headers based on actual template output
+	expectedHeaders := []string{"Action", "Proto", "Source", "Destination", "Description"}
 	for _, header := range expectedHeaders {
 		assert.Contains(t, result, header, "Should contain firewall table header: %s", header)
 	}
 
 	// Test specific rule content from sample.config.1.xml
 	assert.Contains(t, result, "Default allow LAN to any rule", "Should contain specific rule description")
-	assert.Contains(t, result, "Block bogon networks on WAN", "Should contain specific rule description")
+	assert.Contains(t, result, "Block bogon networks on", "Should contain specific rule description")
 	assert.Contains(t, result, "pass", "Should contain pass action")
 	assert.Contains(t, result, "block", "Should contain block action")
 }

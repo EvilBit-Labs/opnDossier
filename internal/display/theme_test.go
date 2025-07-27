@@ -84,9 +84,9 @@ func TestThemeProperties(t *testing.T) {
 		colorExists bool
 		colorKey    string
 	}{
-		{"Light theme properties", display.LightTheme, true, false, true, "background"},
-		{"Dark theme properties", display.DarkTheme, false, true, true, "foreground"},
-		{"Custom theme properties", display.CustomTheme, false, false, false, "nonexistent"},
+		{"Light theme properties", display.LightTheme(), true, false, true, "background"},
+		{"Dark theme properties", display.DarkTheme(), false, true, true, "foreground"},
+		{"Custom theme properties", display.CustomTheme(), false, false, false, "nonexistent"},
 	}
 
 	for _, tt := range tests {
@@ -110,7 +110,7 @@ func TestThemeProperties(t *testing.T) {
 // TestThemeColorPalette tests the color palette functionality.
 func TestThemeColorPalette(t *testing.T) {
 	t.Run("Light theme palette", func(t *testing.T) {
-		theme := display.LightTheme
+		theme := display.LightTheme()
 
 		// Test that key colors exist
 		requiredColors := []string{"background", "foreground", "primary", "error", "warning", "success"}
@@ -122,7 +122,7 @@ func TestThemeColorPalette(t *testing.T) {
 	})
 
 	t.Run("Dark theme palette", func(t *testing.T) {
-		theme := display.DarkTheme
+		theme := display.DarkTheme()
 
 		// Test that key colors exist
 		requiredColors := []string{"background", "foreground", "primary", "error", "warning", "success"}
@@ -134,8 +134,8 @@ func TestThemeColorPalette(t *testing.T) {
 	})
 
 	t.Run("Nonexistent color fallback", func(t *testing.T) {
-		lightTheme := display.LightTheme
-		darkTheme := display.DarkTheme
+		lightTheme := display.LightTheme()
+		darkTheme := display.DarkTheme()
 
 		// Test fallback for nonexistent colors
 		lightFallback := lightTheme.GetColor("nonexistent")
@@ -154,7 +154,7 @@ func TestStyleSheetCreation(t *testing.T) {
 	})
 
 	t.Run("Themed stylesheet creation", func(t *testing.T) {
-		themes := []display.Theme{display.LightTheme, display.DarkTheme, display.CustomTheme}
+		themes := []display.Theme{display.LightTheme(), display.DarkTheme(), display.CustomTheme()}
 
 		for _, theme := range themes {
 			stylesheet := display.NewStyleSheetWithTheme(theme)
@@ -166,12 +166,12 @@ func TestStyleSheetCreation(t *testing.T) {
 // TestTerminalDisplayCreation tests the creation of TerminalDisplay with themes.
 func TestTerminalDisplayCreation(t *testing.T) {
 	t.Run("Default terminal display creation", func(t *testing.T) {
-		display := display.NewTerminalDisplay()
-		require.NotNil(t, display)
+		terminalDisplay := display.NewTerminalDisplay()
+		require.NotNil(t, terminalDisplay)
 	})
 
 	t.Run("Themed terminal display creation", func(t *testing.T) {
-		themes := []display.Theme{display.LightTheme, display.DarkTheme, display.CustomTheme}
+		themes := []display.Theme{display.LightTheme(), display.DarkTheme(), display.CustomTheme()}
 
 		for _, theme := range themes {
 			terminalDisplay := display.NewTerminalDisplayWithTheme(theme)

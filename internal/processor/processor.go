@@ -11,7 +11,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 
-	"github.com/unclesp1d3r/opnFocus/internal/converter"
+	"github.com/unclesp1d3r/opnFocus/internal/markdown"
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 )
 
@@ -27,14 +27,21 @@ type Processor interface {
 // CoreProcessor implements the Processor interface with normalize, validate, analyze, and transform capabilities.
 type CoreProcessor struct {
 	validator *validator.Validate
-	converter converter.Converter
+	generator markdown.Generator
 }
 
 // NewCoreProcessor creates a new CoreProcessor with default settings.
 func NewCoreProcessor() *CoreProcessor {
 	return &CoreProcessor{
 		validator: validator.New(),
-		converter: converter.NewMarkdownConverter(),
+		generator: func() markdown.Generator {
+			g, err := markdown.NewMarkdownGenerator()
+			if err != nil {
+				// For now, return nil on error - this should be handled better in the future
+				return nil
+			}
+			return g
+		}(),
 	}
 }
 

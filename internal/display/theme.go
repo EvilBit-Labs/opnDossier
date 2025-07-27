@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/unclesp1d3r/opnFocus/internal/constants"
 )
 
 // Theme represents a color theme with customizable palettes.
@@ -15,10 +16,9 @@ type Theme struct {
 	GlamourStyle string
 }
 
-// Predefined themes with comprehensive color palettes.
-var (
-	// LightTheme provides a light color scheme.
-	LightTheme = Theme{
+// LightTheme provides a light color scheme.
+func LightTheme() Theme {
+	return Theme{
 		Name: "light",
 		Palette: map[string]string{
 			"background":   "#FFFFFF",
@@ -40,9 +40,11 @@ var (
 		},
 		GlamourStyle: "light",
 	}
+}
 
-	// DarkTheme provides a dark color scheme.
-	DarkTheme = Theme{
+// DarkTheme provides a dark color scheme.
+func DarkTheme() Theme {
+	return Theme{
 		Name: "dark",
 		Palette: map[string]string{
 			"background":   "#1E1E1E",
@@ -64,14 +66,16 @@ var (
 		},
 		GlamourStyle: "dark",
 	}
+}
 
-	// CustomTheme allows for user-defined color schemes.
-	CustomTheme = Theme{
+// CustomTheme allows for user-defined color schemes.
+func CustomTheme() Theme {
+	return Theme{
 		Name:         "custom",
 		Palette:      map[string]string{},
 		GlamourStyle: "auto",
 	}
-)
+}
 
 // DetectTheme determines the theme based on configuration and environment.
 // Priority: explicit theme > OPNFOCUS_THEME env > auto-detection.
@@ -95,11 +99,11 @@ func DetectTheme(configTheme string) Theme {
 func getThemeByName(name string) Theme {
 	switch strings.ToLower(name) {
 	case "light":
-		return LightTheme
-	case "dark":
-		return DarkTheme
+		return LightTheme()
+	case constants.ThemeDark:
+		return DarkTheme()
 	case "custom":
-		return CustomTheme
+		return CustomTheme()
 	default:
 		return autoDetectTheme()
 	}
@@ -121,16 +125,16 @@ func autoDetectTheme() Theme {
 
 	// Use Glamour's detection as a fallback for determining if dark theme is appropriate
 	if isDarkTerminal {
-		return DarkTheme
+		return DarkTheme()
 	}
 
 	// Additional heuristics: check terminal color count
 	if strings.Contains(term, "256color") || hasFullColorSupport {
-		return DarkTheme // Modern terminals tend to use dark themes
+		return DarkTheme() // Modern terminals tend to use dark themes
 	}
 
 	// Default to light theme for basic terminals or when unsure
-	return LightTheme
+	return LightTheme()
 }
 
 // ApplyTheme applies the theme colors to a lipgloss style.

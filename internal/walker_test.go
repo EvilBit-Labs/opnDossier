@@ -36,20 +36,21 @@ func TestWalk_BasicStructure(t *testing.T) {
 	// Test that System is a child node
 	found := false
 	for _, child := range result.Children {
-		if strings.Contains(child.Title, "System") {
-			found = true
-			// Test system child properties
-			if child.Level != 2 {
-				t.Errorf("Expected System child level 2, got %d", child.Level)
-			}
-			if !strings.Contains(child.Body, "Hostname: firewall.local") {
-				t.Errorf("Expected Hostname in System body, got: %s", child.Body)
-			}
-			if !strings.Contains(child.Body, "Domain: example.com") {
-				t.Errorf("Expected Domain in System body, got: %s", child.Body)
-			}
-			break
+		if !strings.Contains(child.Title, "System") {
+			continue
 		}
+		found = true
+		// Test system child properties
+		if child.Level != 2 {
+			t.Errorf("Expected System child level 2, got %d", child.Level)
+		}
+		if !strings.Contains(child.Body, "Hostname: firewall.local") {
+			t.Errorf("Expected Hostname in System body, got: %s", child.Body)
+		}
+		if !strings.Contains(child.Body, "Domain: example.com") {
+			t.Errorf("Expected Domain in System body, got: %s", child.Body)
+		}
+		break
 	}
 	if !found {
 		t.Error("Expected System child node not found")

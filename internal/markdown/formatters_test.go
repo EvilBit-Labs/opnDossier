@@ -10,26 +10,26 @@ import (
 
 func TestBadgeConstants(t *testing.T) {
 	// Test that all badge constants are properly defined
-	assert.Equal(t, "✅", BadgeSuccess.Icon)
-	assert.Equal(t, "OK", BadgeSuccess.Text)
+	assert.Equal(t, "✅", BadgeSuccess().Icon)
+	assert.Equal(t, "OK", BadgeSuccess().Text)
 
-	assert.Equal(t, "❌", BadgeFail.Icon)
-	assert.Equal(t, "FAIL", BadgeFail.Text)
+	assert.Equal(t, "❌", BadgeFail().Icon)
+	assert.Equal(t, "FAIL", BadgeFail().Text)
 
-	assert.Equal(t, "⚠️", BadgeWarning.Icon)
-	assert.Equal(t, "WARNING", BadgeWarning.Text)
+	assert.Equal(t, "⚠️", BadgeWarning().Icon)
+	assert.Equal(t, "WARNING", BadgeWarning().Text)
 
-	assert.Equal(t, "ℹ️", BadgeInfo.Icon)
-	assert.Equal(t, "INFO", BadgeInfo.Text)
+	assert.Equal(t, "ℹ️", BadgeInfo().Icon)
+	assert.Equal(t, "INFO", BadgeInfo().Text)
 
-	assert.Equal(t, "✨", BadgeEnhanced.Icon)
-	assert.Equal(t, "ENHANCED", BadgeEnhanced.Text)
+	assert.Equal(t, "✨", BadgeEnhanced().Icon)
+	assert.Equal(t, "ENHANCED", BadgeEnhanced().Text)
 
-	assert.Equal(t, "🔒", BadgeSecure.Icon)
-	assert.Equal(t, "SECURE", BadgeSecure.Text)
+	assert.Equal(t, "🔒", BadgeSecure().Icon)
+	assert.Equal(t, "SECURE", BadgeSecure().Text)
 
-	assert.Equal(t, "🔓", BadgeInsecure.Icon)
-	assert.Equal(t, "INSECURE", BadgeInsecure.Text)
+	assert.Equal(t, "🔓", BadgeInsecure().Icon)
+	assert.Equal(t, "INSECURE", BadgeInsecure().Text)
 }
 
 func TestFormatValue(t *testing.T) {
@@ -185,35 +185,35 @@ func TestRenderBadge(t *testing.T) {
 func TestSecurityBadge(t *testing.T) {
 	// Test enhanced security
 	badge := SecurityBadge(true, true)
-	assert.Equal(t, BadgeEnhanced, badge)
+	assert.Equal(t, BadgeEnhanced(), badge)
 
 	// Test secure but not enhanced
 	badge = SecurityBadge(true, false)
-	assert.Equal(t, BadgeSecure, badge)
+	assert.Equal(t, BadgeSecure(), badge)
 
 	// Test insecure
 	badge = SecurityBadge(false, false)
-	assert.Equal(t, BadgeInsecure, badge)
+	assert.Equal(t, BadgeInsecure(), badge)
 }
 
 func TestStatusBadge(t *testing.T) {
 	// Test success
 	badge := StatusBadge(true)
-	assert.Equal(t, BadgeSuccess, badge)
+	assert.Equal(t, BadgeSuccess(), badge)
 
 	// Test failure
 	badge = StatusBadge(false)
-	assert.Equal(t, BadgeFail, badge)
+	assert.Equal(t, BadgeFail(), badge)
 }
 
 func TestWarningBadge(t *testing.T) {
 	badge := WarningBadge()
-	assert.Equal(t, BadgeWarning, badge)
+	assert.Equal(t, BadgeWarning(), badge)
 }
 
 func TestInfoBadge(t *testing.T) {
 	badge := InfoBadge()
-	assert.Equal(t, BadgeInfo, badge)
+	assert.Equal(t, BadgeInfo(), badge)
 }
 
 func TestValidateMarkdown(t *testing.T) {
@@ -240,7 +240,7 @@ func TestGetStructFieldNames(t *testing.T) {
 	type TestStruct struct {
 		PublicField  string
 		AnotherField int
-		privateField string // should be ignored
+		_            string // should be ignored
 	}
 
 	v := reflect.ValueOf(TestStruct{})

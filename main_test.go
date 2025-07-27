@@ -16,7 +16,8 @@ import (
 func TestMainFunction(t *testing.T) {
 	if os.Getenv("TEST_MAIN_FUNCTION") != "1" {
 		// This test is run in a subprocess to test main() function
-		cmd := exec.Command(os.Args[0], "-test.run=TestMainFunction")
+		// #nosec G204 - This is a test file executing a controlled test binary
+		cmd := exec.CommandContext(context.Background(), os.Args[0], "-test.run=TestMainFunction")
 		cmd.Env = append(os.Environ(), "TEST_MAIN_FUNCTION=1")
 
 		var stdout, stderr bytes.Buffer

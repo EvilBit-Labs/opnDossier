@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/unclesp1d3r/opnFocus/internal/converter"
 	"github.com/unclesp1d3r/opnFocus/internal/display"
+	"github.com/unclesp1d3r/opnFocus/internal/markdown"
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 	"github.com/unclesp1d3r/opnFocus/internal/parser"
 
@@ -16,6 +16,14 @@ import (
 )
 
 var noValidation bool //nolint:gochecknoglobals // Cobra flag variable
+
+const (
+	progressChannelBufferSize = 10
+	parsingCompletePercent    = 0.1
+	markdownCompletePercent   = 0.3
+	preparingDisplayPercent   = 0.7
+	renderingPercent          = 0.9
+)
 
 // init registers the display command with the root command and adds the --no-validate flag to control configuration validation.
 func init() {
@@ -124,8 +132,12 @@ Examples:
 
 		// Convert to markdown
 		ctxLogger.Debug("Converting to markdown")
-		c := converter.NewMarkdownConverter()
-		md, err := c.ToMarkdown(ctx, opnsense)
+		g, err := markdown.NewMarkdownGenerator()
+		if err != nil {
+			ctxLogger.Error("Failed to create markdown generator", "error", err)
+			return fmt.Errorf("failed to create markdown generator: %w", err)
+		}
+		md, err := g.Generate(ctx, opnsense, markdown.DefaultOptions())
 		if err != nil {
 			ctxLogger.Error("Failed to convert to markdown", "error", err)
 			return fmt.Errorf("failed to convert to markdown from %s: %w", filePath, err)
@@ -137,15 +149,15 @@ Examples:
 		displayer := display.NewTerminalDisplay()
 
 		// Create a progress channel to stream progress events
-		progressCh := make(chan display.ProgressEvent, 10)
+		progressCh := make(chan display.ProgressEvent, progressChannelBufferSize)
 
 		// Start displaying with progress in a goroutine
 		go func() {
 			defer close(progressCh)
-			progressCh <- display.ProgressEvent{Percent: 0.1, Message: "Parsing complete"}
-			progressCh <- display.ProgressEvent{Percent: 0.3, Message: "Markdown conversion complete"}
-			progressCh <- display.ProgressEvent{Percent: 0.7, Message: "Preparing display..."}
-			progressCh <- display.ProgressEvent{Percent: 0.9, Message: "Rendering..."}
+			progressCh <- display.ProgressEvent{Percent: parsingCompletePercent, Message: "Parsing complete"}
+			progressCh <- display.ProgressEvent{Percent: markdownCompletePercent, Message: "Markdown conversion complete"}
+			progressCh <- display.ProgressEvent{Percent: preparingDisplayPercent, Message: "Preparing display..."}
+			progressCh <- display.ProgressEvent{Percent: renderingPercent, Message: "Rendering..."}
 		}()
 
 		if err := displayer.DisplayWithProgress(ctx, md, progressCh); err != nil {

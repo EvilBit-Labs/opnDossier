@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/unclesp1d3r/opnFocus/internal/markdown"
 )
 
@@ -29,9 +30,9 @@ func TestNewStyleSheet(t *testing.T) {
 }
 
 func TestNewStyleSheetWithTheme(t *testing.T) {
-	ss := NewStyleSheetWithTheme(LightTheme)
+	ss := NewStyleSheetWithTheme(LightTheme())
 	assert.NotNil(t, ss)
-	assert.Equal(t, LightTheme, ss.theme)
+	assert.Equal(t, LightTheme(), ss.theme)
 }
 
 func TestStyleSheetPrintMethods(t *testing.T) {
@@ -74,7 +75,7 @@ func TestConvertMarkdownOptions(t *testing.T) {
 	}
 
 	opts := convertMarkdownOptions(mdOpts)
-	assert.Equal(t, LightTheme, opts.Theme)
+	assert.Equal(t, LightTheme(), opts.Theme)
 	assert.Equal(t, 100, opts.WrapWidth)
 	assert.True(t, opts.EnableTables)
 	assert.False(t, opts.EnableColors)
@@ -82,7 +83,7 @@ func TestConvertMarkdownOptions(t *testing.T) {
 
 func TestNewTerminalDisplayWithOptions(t *testing.T) {
 	opts := Options{
-		Theme:        DarkTheme,
+		Theme:        DarkTheme(),
 		WrapWidth:    80,
 		EnableTables: false,
 		EnableColors: true,
@@ -93,7 +94,7 @@ func TestNewTerminalDisplayWithOptions(t *testing.T) {
 	assert.Equal(t, 80, td.options.WrapWidth)
 	assert.False(t, td.options.EnableTables)
 	assert.True(t, td.options.EnableColors)
-	assert.Equal(t, DarkTheme, td.options.Theme)
+	assert.Equal(t, DarkTheme(), td.options.Theme)
 }
 
 func TestNewTerminalDisplayWithMarkdownOptions(t *testing.T) {
@@ -114,19 +115,30 @@ func TestNewTerminalDisplayWithMarkdownOptions(t *testing.T) {
 func TestGetTerminalWidth(t *testing.T) {
 	// Test default behavior
 	original := os.Getenv("COLUMNS")
-	defer os.Setenv("COLUMNS", original)
+	defer func() {
+		if original != "" {
+			err := os.Setenv("COLUMNS", original)
+			require.NoError(t, err)
+		} else {
+			err := os.Unsetenv("COLUMNS")
+			require.NoError(t, err)
+		}
+	}()
 
-	os.Unsetenv("COLUMNS")
+	err := os.Unsetenv("COLUMNS")
+	require.NoError(t, err)
 	width := getTerminalWidth()
 	assert.Equal(t, DefaultWordWrapWidth, width)
 
 	// Test with COLUMNS set
-	os.Setenv("COLUMNS", "100")
+	err = os.Setenv("COLUMNS", "100")
+	require.NoError(t, err)
 	width = getTerminalWidth()
 	assert.Equal(t, 100, width)
 
 	// Test with invalid COLUMNS
-	os.Setenv("COLUMNS", "invalid")
+	err = os.Setenv("COLUMNS", "invalid")
+	require.NoError(t, err)
 	width = getTerminalWidth()
 	assert.Equal(t, DefaultWordWrapWidth, width)
 }

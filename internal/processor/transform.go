@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/unclesp1d3r/opnFocus/internal/markdown"
 	"gopkg.in/yaml.v3"
 )
 
@@ -22,8 +23,8 @@ func (p *CoreProcessor) toMarkdown(ctx context.Context, report *Report) (string,
 		return "", ErrNormalizedConfigUnavailable
 	}
 
-	// Use the existing markdown converter to convert the configuration
-	configMarkdown, err := p.converter.ToMarkdown(ctx, report.NormalizedConfig)
+	// Use the existing markdown generator to convert the configuration
+	configMarkdown, err := p.generator.Generate(ctx, report.NormalizedConfig, markdown.DefaultOptions())
 	if err != nil {
 		return "", fmt.Errorf("failed to convert configuration to markdown: %w", err)
 	}

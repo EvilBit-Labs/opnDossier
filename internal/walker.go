@@ -1,3 +1,4 @@
+// Package internal provides utility functions for walking and processing node structures.
 package internal
 
 import (
@@ -21,11 +22,13 @@ func Walk(opnsense model.Opnsense) MDNode {
 	return walkNode("OPNsense Configuration", 1, opnsense)
 }
 
+const maxHeaderLevel = 6
+
 // walkNode recursively transforms each node into an MDNode structure.
 func walkNode(title string, level int, node interface{}) MDNode {
 	// Limit depth to H6 (level 6)
-	if level > 6 {
-		level = 6
+	if level > maxHeaderLevel {
+		level = maxHeaderLevel
 	}
 
 	mdNode := MDNode{

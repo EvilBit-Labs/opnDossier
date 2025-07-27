@@ -11,9 +11,11 @@ import (
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/unclesp1d3r/opnFocus/internal/constants"
 	"github.com/unclesp1d3r/opnFocus/internal/markdown"
 )
 
+// StyleSheet holds styles for various terminal display elements.
 type StyleSheet struct {
 	Title    lipgloss.Style
 	Subtitle lipgloss.Style
@@ -23,12 +25,14 @@ type StyleSheet struct {
 	theme    Theme
 }
 
+// NewStyleSheet creates a new StyleSheet with the auto-detected theme.
 func NewStyleSheet() *StyleSheet {
 	// Use auto-detected theme
 	theme := DetectTheme("")
 	return NewStyleSheetWithTheme(theme)
 }
 
+// NewStyleSheetWithTheme creates a new StyleSheet with a specified theme.
 func NewStyleSheetWithTheme(theme Theme) *StyleSheet {
 	return &StyleSheet{
 		Title: lipgloss.NewStyle().
@@ -59,22 +63,27 @@ const (
 	DefaultWordWrapWidth = 120
 )
 
+// TitlePrint prints a title-styled text on the terminal.
 func (s *StyleSheet) TitlePrint(text string) {
 	fmt.Println(s.Title.Render(text))
 }
 
+// ErrorPrint prints an error-styled text on the terminal.
 func (s *StyleSheet) ErrorPrint(text string) {
 	fmt.Println(s.Error.Render(text))
 }
 
+// WarningPrint prints a warning-styled text on the terminal.
 func (s *StyleSheet) WarningPrint(text string) {
 	fmt.Println(s.Warning.Render(text))
 }
 
+// SubtitlePrint prints a subtitle-styled text on the terminal.
 func (s *StyleSheet) SubtitlePrint(text string) {
 	fmt.Println(s.Subtitle.Render(text))
 }
 
+// TablePrint prints a table-styled text on the terminal.
 func (s *StyleSheet) TablePrint(text string) {
 	fmt.Println(s.Table.Render(text))
 }
@@ -82,7 +91,7 @@ func (s *StyleSheet) TablePrint(text string) {
 // Global stylesheet instance for backward compatibility.
 var globalStyleSheet = NewStyleSheet() //nolint:gochecknoglobals // Global UI styling
 
-// Temporary local Options struct to avoid markdown package dependency issues.
+// Options holds display configuration settings.
 type Options struct {
 	Theme        Theme
 	WrapWidth    int
@@ -90,14 +99,18 @@ type Options struct {
 	EnableColors bool
 }
 
-// Temporary Theme enum.
+// OptionsTheme represents theme settings for display.
 type OptionsTheme string
 
 const (
-	ThemeAuto  OptionsTheme = "auto"
+	// ThemeAuto automatically detects the appropriate theme.
+	ThemeAuto OptionsTheme = "auto"
+	// ThemeLight uses a light terminal theme.
 	ThemeLight OptionsTheme = "light"
-	ThemeDark  OptionsTheme = "dark"
-	ThemeNone  OptionsTheme = "none"
+	// ThemeDark uses a dark terminal theme.
+	ThemeDark OptionsTheme = "dark"
+	// ThemeNone disables styling for plain text output.
+	ThemeNone OptionsTheme = "none"
 )
 
 // DefaultOptions returns default options.
@@ -116,9 +129,9 @@ func convertMarkdownOptions(mdOpts markdown.Options) Options {
 	var theme Theme
 	switch mdOpts.Theme {
 	case markdown.ThemeLight:
-		theme = LightTheme
+		theme = LightTheme()
 	case markdown.ThemeDark:
-		theme = DarkTheme
+		theme = DarkTheme()
 	default: // markdown.ThemeAuto or other
 		theme = DetectTheme("")
 	}
@@ -134,7 +147,6 @@ func convertMarkdownOptions(mdOpts markdown.Options) Options {
 // Singleton Glamour renderer variables.
 var (
 	rendererMu   sync.RWMutex          //nolint:gochecknoglobals // Singleton pattern
-	rendererOnce sync.Once             //nolint:gochecknoglobals // Singleton pattern
 	rendererInst *glamour.TermRenderer //nolint:gochecknoglobals // Singleton instance
 	rendererOpts *Options              //nolint:gochecknoglobals // Last used options
 )
@@ -172,10 +184,10 @@ func getGlamourRenderer(opts *Options) (*glamour.TermRenderer, error) {
 	// Determine theme for Glamour
 	var glamourStyle string
 	switch opts.Theme.Name {
-	case "light":
-		glamourStyle = "light"
-	case "dark":
-		glamourStyle = "dark"
+	case constants.ThemeLight:
+		glamourStyle = constants.ThemeLight
+	case constants.ThemeDark:
+		glamourStyle = constants.ThemeDark
 	case "none":
 		glamourStyle = "notty"
 	default: // "auto" or other
@@ -195,8 +207,15 @@ func getGlamourRenderer(opts *Options) (*glamour.TermRenderer, error) {
 	// Configure environment for consistent rendering
 	if !opts.EnableColors {
 		// Set TERM to dumb to disable colors as per user rules
-		os.Setenv("TERM", "dumb")
-		defer os.Unsetenv("TERM")
+		if err := os.Setenv("TERM", "dumb"); err != nil {
+			return nil, fmt.Errorf("failed to set TERM environment variable: %w", err)
+		}
+		defer func() {
+			if err := os.Unsetenv("TERM"); err != nil {
+				// Log the error, but don't return it as it's in a defer
+				fmt.Fprintf(os.Stderr, "failed to unset TERM environment variable: %v\n", err)
+			}
+		}()
 	}
 
 	// Create new renderer with options
@@ -340,7 +359,7 @@ func (td *TerminalDisplay) Display(_ context.Context, markdownContent string) er
 }
 
 // DisplayWithProgress renders and displays markdown content with progress events.
-func (td *TerminalDisplay) DisplayWithProgress(ctx context.Context, markdownContent string, progressCh <-chan ProgressEvent) error {
+func (td *TerminalDisplay) DisplayWithProgress(_ context.Context, markdownContent string, progressCh <-chan ProgressEvent) error {
 	// Show initial progress
 	td.ShowProgress(0.0, "Starting display...")
 
@@ -352,7 +371,7 @@ func (td *TerminalDisplay) DisplayWithProgress(ctx context.Context, markdownCont
 	}()
 
 	// Simulate progress during rendering
-	td.ShowProgress(0.5, "Rendering markdown...")
+	td.ShowProgress(constants.ProgressRenderingMarkdown, "Rendering markdown...")
 
 	// Get singleton renderer with current options
 	renderer, err := getGlamourRenderer(td.options)

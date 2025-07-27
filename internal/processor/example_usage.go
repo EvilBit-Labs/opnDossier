@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/unclesp1d3r/opnFocus/internal/constants"
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 )
 
@@ -17,7 +18,7 @@ func ExampleUsage(cfg *model.Opnsense) {
 	processor := NewExampleProcessor()
 
 	// Set up context with timeout for long-running analysis
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultProcessingTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), constants.DefaultProcessingTimeout)
 	defer cancel()
 
 	// Example 1: Basic processing with default options
@@ -87,7 +88,7 @@ func ExampleUsage(cfg *model.Opnsense) {
 
 	// Example 4: Processing with custom timeout and error handling
 	fmt.Println("\n=== Analysis with Custom Timeout ===")
-	quickCtx, quickCancel := context.WithTimeout(context.Background(), QuickProcessingTimeout)
+	quickCtx, quickCancel := context.WithTimeout(context.Background(), constants.QuickProcessingTimeout)
 	defer quickCancel()
 
 	quickReport, err := processor.Process(quickCtx, cfg, WithDeadRuleCheck())

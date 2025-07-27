@@ -14,4 +14,7 @@ var (
 
 	// ErrTemplateExecution is returned when template execution fails.
 	ErrTemplateExecution = errors.New("template execution failed")
+
+	// ErrUnsupportedDataType is returned when the data type for markdown generation is unsupported.
+	ErrUnsupportedDataType = errors.New("unsupported data type for markdown generation")
 )

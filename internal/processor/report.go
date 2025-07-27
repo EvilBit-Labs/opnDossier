@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/nao1215/markdown"
+	"github.com/unclesp1d3r/opnFocus/internal/constants"
 	mdhelper "github.com/unclesp1d3r/opnFocus/internal/markdown"
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 	"gopkg.in/yaml.v3"
@@ -751,7 +752,7 @@ func generateStatistics(cfg *model.Opnsense) *Statistics {
 			stats.SecurityFeatures = append(stats.SecurityFeatures, "Block Bogon Networks")
 		}
 	}
-	if cfg.System.Webgui.Protocol == "https" {
+	if cfg.System.Webgui.Protocol == ProtocolHTTPS {
 		stats.SecurityFeatures = append(stats.SecurityFeatures, "HTTPS Web GUI")
 	}
 	if cfg.System.DisableNATReflection != "" {
@@ -781,7 +782,7 @@ func calculateSecurityScore(cfg *model.Opnsense, stats *Statistics) int {
 	score := 0
 
 	// Security features contribute to score
-	score += len(stats.SecurityFeatures) * SecurityFeatureMultiplier
+	score += len(stats.SecurityFeatures) * constants.SecurityFeatureMultiplier
 
 	// Firewall rules indicate active security configuration
 	if stats.TotalFirewallRules > 0 {
@@ -789,7 +790,7 @@ func calculateSecurityScore(cfg *model.Opnsense, stats *Statistics) int {
 	}
 
 	// HTTPS web interface
-	if cfg.System.Webgui.Protocol == "https" {
+	if cfg.System.Webgui.Protocol == ProtocolHTTPS {
 		score += 15
 	}
 
@@ -799,8 +800,8 @@ func calculateSecurityScore(cfg *model.Opnsense, stats *Statistics) int {
 	}
 
 	// Cap at MaxSecurityScore
-	if score > MaxSecurityScore {
-		score = 100
+	if score > constants.MaxSecurityScore {
+		score = constants.MaxSecurityScore
 	}
 
 	return score
@@ -811,19 +812,19 @@ func calculateConfigComplexity(stats *Statistics) int {
 	complexity := 0
 
 	// Each configuration type adds to complexity
-	complexity += stats.TotalInterfaces * InterfaceComplexityWeight
-	complexity += stats.TotalFirewallRules * FirewallRuleComplexityWeight
-	complexity += stats.TotalUsers * UserComplexityWeight
-	complexity += stats.TotalGroups * GroupComplexityWeight
-	complexity += stats.SysctlSettings * SysctlComplexityWeight
-	complexity += stats.TotalServices * ServiceComplexityWeight
-	complexity += stats.DHCPScopes * DHCPComplexityWeight
-	complexity += stats.LoadBalancerMonitors * LoadBalancerComplexityWeight
+	complexity += stats.TotalInterfaces * constants.InterfaceComplexityWeight
+	complexity += stats.TotalFirewallRules * constants.FirewallRuleComplexityWeight
+	complexity += stats.TotalUsers * constants.UserComplexityWeight
+	complexity += stats.TotalGroups * constants.GroupComplexityWeight
+	complexity += stats.SysctlSettings * constants.SysctlComplexityWeight
+	complexity += stats.TotalServices * constants.ServiceComplexityWeight
+	complexity += stats.DHCPScopes * constants.DHCPComplexityWeight
+	complexity += stats.LoadBalancerMonitors * constants.LoadBalancerComplexityWeight
 
 	// Normalize to 0-100 scale (assuming max reasonable config)
-	normalizedComplexity := (complexity * MaxComplexityScore) / MaxReasonableComplexity
-	if normalizedComplexity > MaxComplexityScore {
-		normalizedComplexity = MaxComplexityScore
+	normalizedComplexity := (complexity * constants.MaxComplexityScore) / constants.MaxReasonableComplexity
+	if normalizedComplexity > constants.MaxComplexityScore {
+		normalizedComplexity = constants.MaxComplexityScore
 	}
 
 	return normalizedComplexity
@@ -834,7 +835,7 @@ func calculateConfigComplexity(stats *Statistics) int {
 // BuildNetworkConfig builds a comprehensive network configuration report.
 func BuildNetworkConfig(cfg *model.Opnsense) string {
 	if cfg == nil {
-		return "*No configuration available*"
+		return NoConfigAvailable
 	}
 
 	netConfig := cfg.NetworkConfig()
@@ -852,9 +853,9 @@ func BuildNetworkConfig(cfg *model.Opnsense) string {
 		rows := [][]string{}
 
 		for name, iface := range netConfig.Interfaces.Items {
-			enabled := "❌"
+			enabled := StatusNotEnabled
 			if iface.Enable != "" {
-				enabled = "✅"
+				enabled = StatusEnabled
 			}
 
 			row := []string{
@@ -880,14 +881,14 @@ func BuildNetworkConfig(cfg *model.Opnsense) string {
 	securityRows := [][]string{}
 
 	for name, iface := range netConfig.Interfaces.Items {
-		blockPriv := "❌"
+		blockPriv := StatusNotEnabled
 		if iface.BlockPriv != "" {
-			blockPriv = "✅"
+			blockPriv = StatusEnabled
 		}
 
-		blockBogons := "❌"
+		blockBogons := StatusNotEnabled
 		if iface.BlockBogons != "" {
-			blockBogons = "✅"
+			blockBogons = StatusEnabled
 		}
 
 		row := []string{
@@ -916,7 +917,7 @@ func BuildNetworkConfig(cfg *model.Opnsense) string {
 // BuildSecurityConfig builds a comprehensive security configuration report.
 func BuildSecurityConfig(cfg *model.Opnsense) string {
 	if cfg == nil {
-		return "*No configuration available*"
+		return NoConfigAvailable
 	}
 
 	secConfig := cfg.SecurityConfig()
@@ -936,12 +937,12 @@ func BuildSecurityConfig(cfg *model.Opnsense) string {
 		for i, rule := range secConfig.Filter.Rule {
 			source := rule.Source.Network
 			if source == "" {
-				source = "any"
+				source = NetworkAny
 			}
 
 			dest := rule.Destination.Network
 			if dest == "" {
-				dest = "any"
+				dest = constants.NetworkAny
 			}
 
 			row := []string{

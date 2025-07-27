@@ -3,6 +3,7 @@
 package markdown
 
 import (
+	"errors"
 	"fmt"
 	"text/template"
 )
@@ -30,7 +31,7 @@ func (f Format) Validate() error {
 	case FormatMarkdown, FormatJSON, FormatYAML:
 		return nil
 	default:
-		return fmt.Errorf("unsupported format: %s", f)
+		return fmt.Errorf("%w: %s", ErrUnsupportedFormat, f)
 	}
 }
 
@@ -54,9 +55,13 @@ func (t Theme) String() string {
 }
 
 // Options contains configuration options for markdown generation.
+// Options contains configuration options for markdown generation.
 type Options struct {
 	// Format specifies the output format (markdown, json, yaml).
 	Format Format
+
+	// Comprehensive specifies whether to generate a comprehensive report.
+	Comprehensive bool
 
 	// Template specifies a custom Go text/template to use for rendering.
 	// If nil, the default template for the specified format will be used.
@@ -114,6 +119,9 @@ func DefaultOptions() Options {
 	}
 }
 
+// ErrInvalidWrapWidth indicates that the wrap width setting is invalid.
+var ErrInvalidWrapWidth = errors.New("wrap width cannot be negative")
+
 // Validate checks if the options are valid.
 func (o Options) Validate() error {
 	if err := o.Format.Validate(); err != nil {
@@ -121,7 +129,7 @@ func (o Options) Validate() error {
 	}
 
 	if o.WrapWidth < 0 {
-		return fmt.Errorf("wrap width cannot be negative: %d", o.WrapWidth)
+		return fmt.Errorf("%w: %d", ErrInvalidWrapWidth, o.WrapWidth)
 	}
 
 	return nil
@@ -199,5 +207,11 @@ func (o Options) WithCustomField(key string, value interface{}) Options {
 		o.CustomFields = make(map[string]interface{})
 	}
 	o.CustomFields[key] = value
+	return o
+}
+
+// WithComprehensive enables or disables comprehensive report generation.
+func (o Options) WithComprehensive(enabled bool) Options {
+	o.Comprehensive = enabled
 	return o
 }

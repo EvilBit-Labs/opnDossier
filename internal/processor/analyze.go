@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/unclesp1d3r/opnFocus/internal/constants"
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 )
 
@@ -341,7 +342,7 @@ func (p *CoreProcessor) analyzePerformanceIssues(cfg *model.Opnsense, report *Re
 
 	// Check for excessive firewall rules
 	ruleCount := len(cfg.FilterRules())
-	if ruleCount > LargeRuleCountThreshold {
+	if ruleCount > constants.LargeRuleCountThreshold {
 		report.AddFinding(SeverityMedium, Finding{
 			Type:           "performance",
 			Title:          "High Number of Firewall Rules",

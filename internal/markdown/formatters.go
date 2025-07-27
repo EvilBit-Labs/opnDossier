@@ -3,10 +3,12 @@ package markdown
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"regexp"
 	"strings"
 
+	"github.com/unclesp1d3r/opnFocus/internal/constants"
 	"github.com/yuin/goldmark"
 	goldmark_parser "github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
@@ -20,51 +22,75 @@ type Badge struct {
 	BGColor string
 }
 
-// Common badge definitions for security warnings and status indicators.
-var (
-	BadgeSuccess = Badge{
+// BadgeSuccess returns a success badge.
+func BadgeSuccess() Badge {
+	return Badge{
 		Icon:    "✅",
 		Text:    "OK",
 		Color:   "#28a745",
 		BGColor: "#d4edda",
 	}
-	BadgeFail = Badge{
+}
+
+// BadgeFail returns a failure badge.
+func BadgeFail() Badge {
+	return Badge{
 		Icon:    "❌",
 		Text:    "FAIL",
 		Color:   "#dc3545",
 		BGColor: "#f8d7da",
 	}
-	BadgeWarning = Badge{
+}
+
+// BadgeWarning returns a warning badge.
+func BadgeWarning() Badge {
+	return Badge{
 		Icon:    "⚠️",
 		Text:    "WARNING",
 		Color:   "#ffc107",
 		BGColor: "#fff3cd",
 	}
-	BadgeInfo = Badge{
+}
+
+// BadgeInfo returns an info badge.
+func BadgeInfo() Badge {
+	return Badge{
 		Icon:    "ℹ️",
 		Text:    "INFO",
 		Color:   "#17a2b8",
 		BGColor: "#d1ecf1",
 	}
-	BadgeEnhanced = Badge{
+}
+
+// BadgeEnhanced returns an enhanced badge.
+func BadgeEnhanced() Badge {
+	return Badge{
 		Icon:    "✨",
 		Text:    "ENHANCED",
 		Color:   "#6f42c1",
 		BGColor: "#e2d9f3",
 	}
-	BadgeSecure = Badge{
+}
+
+// BadgeSecure returns a secure badge.
+func BadgeSecure() Badge {
+	return Badge{
 		Icon:    "🔒",
 		Text:    "SECURE",
 		Color:   "#28a745",
 		BGColor: "#d4edda",
 	}
-	BadgeInsecure = Badge{
+}
+
+// BadgeInsecure returns an insecure badge.
+func BadgeInsecure() Badge {
+	return Badge{
 		Icon:    "🔓",
 		Text:    "INSECURE",
 		Color:   "#dc3545",
 		BGColor: "#f8d7da",
 	}
-)
+}
 
 // FormatValue automatically detects the type of value and formats it appropriately.
 // Slices and structs are formatted as tables, scalars as code blocks or inline text.
@@ -103,7 +129,7 @@ func formatSliceValue(key string, v reflect.Value) string {
 	}
 
 	// For simple slices, format as list
-	var items []string
+	items := make([]string, 0, v.Len())
 	for i := 0; i < v.Len(); i++ {
 		item := fmt.Sprintf("%v", v.Index(i).Interface())
 		items = append(items, "- "+item)
@@ -169,7 +195,8 @@ func formatMapValue(key string, v reflect.Value) string {
 		return fmt.Sprintf("**%s**: *empty*\n", key)
 	}
 
-	var lines []string
+	mapKeys := v.MapKeys()
+	lines := make([]string, 0, len(mapKeys))
 	for _, mapKey := range v.MapKeys() {
 		mapValue := v.MapIndex(mapKey)
 		line := fmt.Sprintf("**%v**: %v", mapKey.Interface(), mapValue.Interface())
@@ -248,30 +275,30 @@ func RenderBadge(badge Badge) string {
 // SecurityBadge returns an appropriate security badge based on the security level.
 func SecurityBadge(secure, enhanced bool) Badge {
 	if enhanced {
-		return BadgeEnhanced
+		return BadgeEnhanced()
 	}
 	if secure {
-		return BadgeSecure
+		return BadgeSecure()
 	}
-	return BadgeInsecure
+	return BadgeInsecure()
 }
 
 // StatusBadge returns an appropriate status badge based on success/failure.
 func StatusBadge(success bool) Badge {
 	if success {
-		return BadgeSuccess
+		return BadgeSuccess()
 	}
-	return BadgeFail
+	return BadgeFail()
 }
 
 // WarningBadge returns a warning badge for potential issues.
 func WarningBadge() Badge {
-	return BadgeWarning
+	return BadgeWarning()
 }
 
 // InfoBadge returns an info badge for informational content.
 func InfoBadge() Badge {
-	return BadgeInfo
+	return BadgeInfo()
 }
 
 // ValidateMarkdown validates markdown content using goldmark parser.
@@ -389,7 +416,13 @@ func isConfigContent(s string) bool {
 		}
 
 		for _, pattern := range configPatterns {
-			if matched, _ := regexp.MatchString(pattern, line); matched {
+			matched, err := regexp.MatchString(pattern, line)
+			if err != nil {
+				// Log the error, but continue processing. This should ideally not happen with hardcoded patterns.
+				fmt.Fprintf(os.Stderr, "Error matching regex pattern %s: %v\n", pattern, err)
+				continue
+			}
+			if matched {
 				configLineCount++
 				break
 			}
@@ -408,7 +441,7 @@ func isConfigContent(s string) bool {
 		return false
 	}
 
-	return float64(configLineCount)/float64(nonEmptyLines) > 0.3
+	return float64(configLineCount)/float64(nonEmptyLines) > constants.ConfigThreshold
 }
 
 // detectConfigLanguage attempts to detect the configuration language.
