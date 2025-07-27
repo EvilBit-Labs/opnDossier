@@ -119,7 +119,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 
 - [ ] **TASK-011**: Create markdown generator interface
 
-  - **Context**: No markdown generation capability exists
+  - **Context**: A markdown generator is already implemented, but it needs to be refactored to use the enhanced model and to represent more of the configuration.
   - **Requirement**: F002 (Markdown conversion), US-003 (Markdown conversion)
   - **User Story**: US-003-US-004 (Markdown Conversion)
   - **Action**: Create `internal/markdown/` package with generation interface
@@ -135,7 +135,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 
 - [ ] **TASK-013**: Add markdown formatting and styling
 
-  - **Context**: Basic markdown needs proper formatting
+  - **Context**: Enhanced markdown generator to use the templates in `internal/templates`
   - **Requirement**: US-004 (Syntax highlighting), Technical Specifications
   - **User Story**: US-004 (Terminal output styling)
   - **Action**: Implement proper markdown formatting with headers, lists, code blocks
