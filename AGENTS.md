@@ -12,14 +12,23 @@ For comprehensive project information, refer to these key documents:
 
 These documents provide the foundation for all development decisions and should be consulted when implementing new features or making architectural changes.
 
-## New Feature: Validation
+## New Features: Multi-Format Export and Validation
 
-The latest version introduces a comprehensive validation feature:
+The latest version introduces comprehensive multi-format export and validation features:
 
-- **Purpose**: Enhances configuration integrity by validating against rules and constraints.
-- **Usage**: Automatically applied during parsing, or can be explicitly initiated via CLI.
-- **Typical Output**: See README for detailed examples.
-- **Limitations**: Handles large configurations using streamlined memory-efficient approaches.
+### Multi-Format Export
+
+- **Purpose**: Export OPNsense configurations to markdown, JSON, or YAML formats
+- **Usage**: `opnfocus convert config.xml --format [markdown|json|yaml]`
+- **File Quality**: Exported files are valid and parseable by standard tools and libraries
+- **Output Control**: Smart file naming with overwrite protection and `-f` force option
+
+### Validation System
+
+- **Purpose**: Enhances configuration integrity by validating against rules and constraints
+- **Usage**: Automatically applied during parsing, or can be explicitly initiated via CLI
+- **Typical Output**: See README for detailed examples
+- **Limitations**: Handles large configurations using streamlined memory-efficient approaches
 
 ## Rule Precedence
 
@@ -75,7 +84,7 @@ Follow the [Conventional Commits](https://www.conventionalcommits.org) specifica
 | CLI Tool   | `cobra` v1.8.0 + `charmbracelet/fang` for styled help, errors, and features |
 | Config     | `spf13/viper` for configuration parsing                                     |
 | Display    | `charmbracelet/glamour` for markdown rendering                              |
-| Data Model | Go structs with `encoding/xml` and `encoding/json`                          |
+| Data Model | Go structs with `encoding/xml`, `encoding/json`, and `gopkg.in/yaml.v3`    |
 | Logging    | `charmbracelet/log` for structured logging                                  |
 | Testing    | Go's built-in `testing` package                                             |
 
@@ -96,7 +105,7 @@ Follow the [Conventional Commits](https://www.conventionalcommits.org) specifica
 ### 3.4. Data Processing
 
 - **XML Parsing:** Use Go's `encoding/xml` package for parsing XML configuration files
-- **Data Models:** Define clear struct types with appropriate tags for XML/JSON serialization
+- **Data Models:** Define clear struct types with appropriate tags for XML/JSON/YAML serialization
 - **Validation:** Implement validation using struct tags and custom validation functions
 - **Transformation:** Use functional programming patterns for data transformation pipelines
 
@@ -129,13 +138,21 @@ Follow the [Conventional Commits](https://www.conventionalcommits.org) specifica
 ```text
 opnfocus/
 ├── cmd/
-│   ├── opnsense.go                        # OPNsense command entry point
+│   ├── convert.go                         # Convert command entry point
+│   ├── display.go                         # Display command entry point
+│   ├── validate.go                        # Validate command entry point
 │   └── root.go                            # Root command and main entry point
 ├── internal/
 │   ├── config/                            # Configuration handling
 │   ├── parser/                            # XML parsing logic
-│   ├── converter/                         # Data conversion logic
-│   └── display/                           # Output formatting
+│   ├── markdown/                          # Markdown generation and templates
+│   ├── display/                           # Terminal display formatting
+│   ├── export/                            # File export functionality
+│   ├── processor/                         # Data processing and analysis
+│   ├── model/                             # Data models and structures
+│   ├── validator/                         # Configuration validation
+│   ├── templates/                         # Output templates
+│   └── log/                               # Structured logging
 ├── pkg/                                   # Public packages (if any)
 ├── docs/                                  # Documentation
 ├── go.mod                                 # Go module file
@@ -180,270 +197,64 @@ opnfocus/
 - **Dependency Management:** Use Go modules (`go.mod`) for dependency management.
 - **Release Management:** Use GoReleaser v2 for cross-platform builds and releases.
 
-### 3.9. CLI Tool Implementation Examples
+### 3.9. Key Implementation Patterns
+
+#### Configuration Management
+
+**Note for AI Assistants**: `viper` is used for managing the opnFocus application's own configuration (CLI settings, display preferences, etc.), not for parsing OPNsense config.xml files. The OPNsense configuration parsing is handled separately by the XML parser in `internal/parser/`.
+
+**Pattern**: Use `spf13/viper` for configuration with precedence: CLI flags > Environment variables > Config file > Defaults
+
+#### Error Handling
+
+**Pattern**: Always wrap errors with context using `fmt.Errorf` with `%w` verb
+**Pattern**: Create domain-specific error types for better error handling
+**Pattern**: Use `errors.Is()` and `errors.As()` for error type checking
+
+#### Structured Logging
+
+**Pattern**: Use `charmbracelet/log` for structured logging with appropriate levels
+**Pattern**: Include context in log messages (filename, operation, duration)
+**Pattern**: Use debug level for troubleshooting, info for operations, warn for issues, error for failures
+
+#### Testing
+
+**Pattern**: Use table-driven tests for multiple scenarios
+**Pattern**: Test both success and error conditions
+**Pattern**: Use `t.Helper()` in test helper functions
+**Pattern**: Aim for >80% test coverage
+
+#### Security
+
+**Pattern**: Never hardcode secrets - use environment variables
+**Pattern**: Validate all user inputs and sanitize file paths
+**Pattern**: Use restrictive file permissions (0600 for config files)
+**Pattern**: Avoid exposing sensitive information in error messages
+
+### 3.10. CLI Implementation Guidelines
 
 #### Command Structure
 
-```go
-// Use cobra for command organization
-var rootCmd = &cobra.Command{
-    Use:   "opnFocus",
-    Short: "OPNsense configuration processor",
-    Long:  `A CLI tool for processing OPNsense config.xml files and converting them to markdown.`,
-}
+- Use `cobra` for command organization
+- Use `charmbracelet/fang` for enhanced CLI experience
+- Follow consistent verb patterns: `convert`, `display`, `validate`
+- Provide comprehensive help documentation
 
-var convertCmd = &cobra.Command{
-    Use:   "convert [file]",
-    Short: "Convert OPNsense config to markdown",
-    Args:  cobra.ExactArgs(1),
-    RunE:  runConvert,
-}
-```
+#### Configuration
 
-#### Configuration with Viper
+- Use `spf13/viper` for configuration management
+- Support YAML config files, environment variables, and CLI flags
+- Implement proper precedence order
+- Handle missing config files gracefully
 
-```go
-// Use viper for configuration management
-import (
-    "fmt"
-    "github.com/charmbracelet/log"
-    "github.com/spf13/viper"
-)
+#### Output Formatting
 
-type Config struct {
-    InputFile  string `mapstructure:"input_file"`
-    OutputFile string `mapstructure:"output_file"`
-    Display    bool   `mapstructure:"display"`
-}
-
-func initConfig() error {
-    viper.SetConfigName("config")
-    viper.SetConfigType("yaml")
-    viper.AddConfigPath(".")
-    viper.AutomaticEnv()
-    viper.SetEnvPrefix("OPNFOCUS")
-
-    // Read the config file and handle errors appropriately
-    if err := viper.ReadInConfig(); err != nil {
-        // Check if it's a config file not found error (which is often acceptable)
-        if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-            log.Debug("No config file found, using defaults and environment variables")
-            return nil // This is not a fatal error
-        }
-        // For other errors, return them as they indicate actual problems
-        return fmt.Errorf("failed to read config file: %w", err)
-    }
-
-    log.Debug("Config file loaded successfully")
-    return nil
-}
-```
-
-#### CLI Enhancement with Fang
-
-```go
-// Use fang for enhanced CLI experience with styled help, errors, and automatic features
-import (
-    "context"
-    "os"
-    "github.com/charmbracelet/fang"
-    "github.com/spf13/cobra"
-)
-
-func main() {
-    rootCmd := &cobra.Command{
-        Use:   "opnFocus",
-        Short: "OPNsense configuration processor",
-        Long:  `A CLI tool for processing OPNsense config.xml files and converting them to markdown.`,
-    }
-
-    // Add subcommands
-    convertCmd := &cobra.Command{
-        Use:   "convert [file]",
-        Short: "Convert OPNsense config to markdown",
-        Args:  cobra.ExactArgs(1),
-        RunE:  runConvert,
-    }
-    rootCmd.AddCommand(convertCmd)
-
-    // Execute with fang for enhanced experience
-    if err := fang.Execute(context.Background(), rootCmd); err != nil {
-        os.Exit(1) // fang handles error display automatically
-    }
-}
-
-func runConvert(cmd *cobra.Command, args []string) error {
-    // Implementation here
-    return nil
-}
-```
-
-**Fang Features:**
-
-- Styled help and usage pages
-- Styled error messages
-- Automatic `--version` flag
-- Hidden `man` command for manpage generation
-- `completion` command for shell completions
-- Themeable appearance
-- Silent usage output (no help shown after user errors)
-
-#### Styled Output with Lipgloss
-
-```go
-// Use lipgloss for styled terminal output
-var (
-    titleStyle = lipgloss.NewStyle().
-        Bold(true).
-        Foreground(lipgloss.Color("#FAFAFA")).
-        Background(lipgloss.Color("#7D56F4")).
-        Padding(0, 1)
-
-    errorStyle = lipgloss.NewStyle().
-        Bold(true).
-        Foreground(lipgloss.Color("#FF0000"))
-)
-```
-
-#### Markdown Rendering with Glamour
-
-```go
-// Use glamour for markdown rendering
-func renderMarkdown(content string) (string, error) {
-    return glamour.Render(content, "dark")
-}
-```
-
-### 3.10. Error Handling Patterns
-
-```go
-// Always check errors and provide context
-func parseConfig(filename string) (*Opnsense, error) {
-    data, err := os.ReadFile(filename)
-    if err != nil {
-        return nil, fmt.Errorf("failed to read config file %s: %w", filename, err)
-    }
-
-    var config Opnsense
-    if err := xml.Unmarshal(data, &config); err != nil {
-        return nil, fmt.Errorf("failed to parse XML config: %w", err)
-    }
-
-    return &config, nil
-}
-```
-
-### 3.11. Documentation Standards
-
-- **Package Documentation:**
-  - Every package should have a package comment starting with "Package packagename".
-  - Use complete sentences and proper grammar.
-  - Place package comment before package declaration.
-- **Function Documentation:**
-  - Document all exported functions and types.
-  - Start with the function name and use complete sentences.
-  - Describe parameters, return values, and error conditions.
-  - Include usage examples for complex functions.
-- **Type Documentation:**
-  - Document all exported types and interfaces.
-  - Include field descriptions for structs.
-  - Document any constraints or requirements.
-- **Code Comments:**
-  - Use comments to explain "why" not "what".
-  - Use TODO, FIXME, and NOTE comments appropriately.
-  - Keep comments up to date with code changes.
-
-### 3.12. Testing Patterns
-
-```go
-// Use table-driven tests for multiple scenarios
-func TestConvertConfig(t *testing.T) {
-    tests := []struct {
-        name     string
-        input    string
-        expected string
-        wantErr  bool
-    }{
-        {
-            name:     "valid config",
-            input:    "<opnsense>...</opnsense>",
-            expected: "# OPNsense Configuration\n",
-            wantErr:  false,
-        },
-        // Add more test cases
-    }
-
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            result, err := ConvertConfig(tt.input)
-            if (err != nil) != tt.wantErr {
-                t.Errorf("ConvertConfig() error = %v, wantErr %v", err, tt.wantErr)
-                return
-            }
-            if result != tt.expected {
-                t.Errorf("ConvertConfig() = %v, want %v", result, tt.expected)
-            }
-        })
-    }
-}
-
-// Test helpers should use t.Helper()
-func setupTestConfig(t *testing.T) *Config {
-    t.Helper()
-    return &Config{
-        InputFile:  "testdata/config.xml",
-        OutputFile: "testdata/output.md",
-    }
-}
-```
-
-### 3.13. Error Handling Best Practices
-
-- **Custom Error Types:** Create domain-specific error types when appropriate:
-
-```go
-type ParseError struct {
-    Message string
-    Line    int
-    Column  int
-}
-
-func (e *ParseError) Error() string {
-    return fmt.Sprintf("parse error at line %d, column %d: %s", e.Line, e.Column, e.Message)
-}
-```
-
-- **Error Wrapping:** Use `fmt.Errorf` with `%w` for error context:
-
-```go
-if err := xml.Unmarshal(data, &config); err != nil {
-    return nil, fmt.Errorf("failed to unmarshal config: %w", err)
-}
-```
-
-- **Error Checking:** Use `errors.Is()` and `errors.As()` for error type checking.
-
-### 3.14. Performance Considerations
-
-- **Memory Efficiency:** Use streaming for large XML files when possible.
-- **Concurrency:** Use goroutines and channels for I/O-bound operations.
-- **Profiling:** Use `go tool pprof` for performance analysis.
-- **Benchmarks:** Write benchmarks for performance-critical code paths.
-- **Zero-Value Friendliness:** Design structs that work correctly when initialized with zero values.
-
-### 3.15. Security Best Practices
-
-- **Input Validation:** Validate all input data and sanitize user inputs.
-- **No Secrets in Code:** Use environment variables or secure vaults for secrets.
-- **Error Messages:** Avoid exposing sensitive information in error messages.
-- **Command Injection:** Avoid command injection vulnerabilities in CLI tools.
-- **Security Scanning:** Use `gosec` via golangci-lint for automated security analysis.
-
-This document provides a comprehensive framework with shared development standards that apply across all projects, with specific Go language implementations that follow consistent patterns while respecting the established rule precedence.
+- Use `charmbracelet/lipgloss` for styled terminal output
+- Use `charmbracelet/glamour` for markdown rendering
+- Support theme detection (light/dark)
+- Provide progress indicators for long operations
 
 ## 4. Implementation Guidelines
-
-This section provides actionable guidance for contributors and AI agents working on this project. These guidelines ensure consistency, reliability, and maintainability across all contributions.
 
 ### 4.1. Preferred Tooling Commands
 
@@ -470,31 +281,6 @@ just update-deps        # Update and verify dependencies
 just docs               # Serve documentation locally
 ```
 
-#### Go Toolchain Commands
-
-When working directly with Go (when just commands are not available):
-
-```bash
-# Dependency management
-go mod tidy             # Clean up dependencies
-go mod download         # Download dependencies
-go mod verify           # Verify dependency checksums
-
-# Code quality
-golangci-lint run       # Run comprehensive linting
-go vet ./...            # Static analysis
-go fmt ./...            # Format code
-
-# Testing
-go test ./...           # Run all tests
-go test -race ./...     # Run tests with race detection
-go test -cover ./...    # Run tests with coverage
-
-# Building
-go build                # Build the application
-go install             # Build and install
-```
-
 ### 4.2. Testing Tiers
 
 The project implements a three-tier testing strategy:
@@ -507,20 +293,6 @@ The project implements a three-tier testing strategy:
 - **Coverage Target:** >80% for critical business logic
 - **Speed:** \<100ms per test
 
-```go
-// Example unit test structure
-func TestParseConfig_ValidXML_ReturnsConfig(t *testing.T) {
-    t.Parallel()
-
-    input := `<opnsense><version>24.1</version></opnsense>`
-
-    config, err := ParseConfig(strings.NewReader(input))
-
-    assert.NoError(t, err)
-    assert.Equal(t, "24.1", config.Version)
-}
-```
-
 #### Tier 2: Integration Tests
 
 - **Purpose:** Test interactions between components
@@ -528,398 +300,33 @@ func TestParseConfig_ValidXML_ReturnsConfig(t *testing.T) {
 - **Command:** `go test -tags=integration ./...`
 - **Focus:** File I/O, configuration parsing, command execution
 
-```go
-//go:build integration
-
-func TestConvertCommand_RealFile_GeneratesMarkdown(t *testing.T) {
-    tmpDir := t.TempDir()
-    inputFile := filepath.Join(tmpDir, "config.xml")
-    outputFile := filepath.Join(tmpDir, "output.md")
-
-    // Create test XML file
-    err := os.WriteFile(inputFile, testXMLData, 0644)
-    require.NoError(t, err)
-
-    // Run conversion command
-    cmd := exec.Command("./opnFocus", "convert", inputFile, "-o", outputFile)
-    err = cmd.Run()
-
-    require.NoError(t, err)
-    assert.FileExists(t, outputFile)
-}
-```
-
 ### 4.3. Dependency Injection Patterns
 
-Use dependency injection to improve testability and maintainability:
-
-#### Interface-Based Design
-
-```go
-// Define interfaces for dependencies
-type ConfigReader interface {
-    ReadConfig(filename string) (*Config, error)
-}
-
-type MarkdownWriter interface {
-    WriteMarkdown(content string, filename string) error
-}
-
-// Implement concrete types
-type XMLConfigReader struct{}
-
-func (r *XMLConfigReader) ReadConfig(filename string) (*Config, error) {
-    // Implementation
-}
-
-// Use dependency injection in main components
-type Converter struct {
-    reader ConfigReader
-    writer MarkdownWriter
-}
-
-func NewConverter(reader ConfigReader, writer MarkdownWriter) *Converter {
-    return &Converter{
-        reader: reader,
-        writer: writer,
-    }
-}
-```
-
-#### Testing with Mocks
-
-```go
-// Create test doubles for dependencies
-type mockConfigReader struct {
-    config *Config
-    err    error
-}
-
-func (m *mockConfigReader) ReadConfig(filename string) (*Config, error) {
-    return m.config, m.err
-}
-
-// Use in tests
-func TestConverter_Convert_CallsDependencies(t *testing.T) {
-    mockReader := &mockConfigReader{config: &Config{Version: "24.1"}}
-    mockWriter := &mockMarkdownWriter{}
-
-    converter := NewConverter(mockReader, mockWriter)
-
-    err := converter.Convert("input.xml", "output.md")
-
-    assert.NoError(t, err)
-    assert.True(t, mockWriter.writeCalled)
-}
-```
+- Use interface-based design for testability
+- Define interfaces for dependencies (ConfigReader, FileWriter, etc.)
+- Use dependency injection in main components
+- Create test doubles (mocks) for testing
 
 ### 4.4. Error Handling Patterns
 
-#### Structured Error Types
-
-Create domain-specific error types for better error handling:
-
-```go
-// Define error types
-type ValidationError struct {
-    Field   string
-    Value   interface{}
-    Message string
-}
-
-func (e *ValidationError) Error() string {
-    return fmt.Sprintf("validation failed for field '%s' with value '%v': %s",
-        e.Field, e.Value, e.Message)
-}
-
-type ProcessingError struct {
-    Step    string
-    Cause   error
-    Context map[string]interface{}
-}
-
-func (e *ProcessingError) Error() string {
-    return fmt.Sprintf("processing failed at step '%s': %v", e.Step, e.Cause)
-}
-
-func (e *ProcessingError) Unwrap() error {
-    return e.Cause
-}
-```
-
-#### Error Wrapping and Context
-
-```go
-// Always provide context when wrapping errors
-func parseConfigFile(filename string) (*Config, error) {
-    data, err := os.ReadFile(filename)
-    if err != nil {
-        return nil, fmt.Errorf("failed to read config file '%s': %w", filename, err)
-    }
-
-    var config Config
-    if err := xml.Unmarshal(data, &config); err != nil {
-        return nil, &ProcessingError{
-            Step:  "xml_parsing",
-            Cause: err,
-            Context: map[string]interface{}{
-                "filename": filename,
-                "filesize": len(data),
-            },
-        }
-    }
-
-    if err := validateConfig(&config); err != nil {
-        return nil, fmt.Errorf("config validation failed for '%s': %w", filename, err)
-    }
-
-    return &config, nil
-}
-```
-
-#### Error Handling in CLI Commands
-
-```go
-// Handle errors gracefully in CLI commands
-func runConvertCommand(cmd *cobra.Command, args []string) error {
-    filename := args[0]
-
-    config, err := parseConfigFile(filename)
-    if err != nil {
-        // Check for specific error types
-        var validationErr *ValidationError
-        if errors.As(err, &validationErr) {
-            return fmt.Errorf("configuration validation failed: %s\nPlease check your config file and try again", validationErr.Message)
-        }
-
-        var processingErr *ProcessingError
-        if errors.As(err, &processingErr) {
-            return fmt.Errorf("failed to process config at step '%s': %s\nContext: %+v",
-                processingErr.Step, processingErr.Cause, processingErr.Context)
-        }
-
-        // Generic error handling
-        return fmt.Errorf("failed to process config file '%s': %w", filename, err)
-    }
-
-    // Continue with processing...
-    return nil
-}
-```
+- Create domain-specific error types (ValidationError, ProcessingError)
+- Always wrap errors with context using `fmt.Errorf` with `%w`
+- Use `errors.Is()` and `errors.As()` for error type checking
+- Handle errors gracefully in CLI commands with user-friendly messages
 
 ### 4.5. Logging Guidelines
 
-#### Structured Logging with charmbracelet/log
-
-```go
-import (
-    "github.com/charmbracelet/log"
-    "os"
-)
-
-// Initialize logger with appropriate level
-func initLogger(debug bool) *log.Logger {
-    level := log.InfoLevel
-    if debug {
-        level = log.DebugLevel
-    }
-
-    return log.NewWithOptions(os.Stdout, log.Options{
-        Level: level,
-    })
-}
-
-// Use structured logging throughout the application
-func processConfig(logger *log.Logger, filename string) error {
-    logger.Info("Starting config processing",
-        "filename", filename,
-        "timestamp", time.Now())
-
-    config, err := parseConfigFile(filename)
-    if err != nil {
-        logger.Error("Failed to parse config file",
-            "filename", filename,
-            "error", err,
-            "step", "parsing")
-        return err
-    }
-
-    logger.Debug("Config parsed successfully",
-        "filename", filename,
-        "version", config.Version,
-        "sections", len(config.Sections))
-
-    // Continue processing...
-    logger.Info("Config processing completed",
-        "filename", filename,
-        "duration", time.Since(start))
-
-    return nil
-}
-```
-
-#### Log Levels and Usage
-
-- **Debug:** Detailed information for troubleshooting (enabled with `--debug` flag)
-- **Info:** General operational messages (default level)
-- **Warn:** Recoverable issues that should be noted
-- **Error:** Error conditions that prevent operation completion
-
-#### Context-Aware Logging
-
-```go
-// Add context to logger for request/operation tracking
-func handleConversion(logger *log.Logger, req ConversionRequest) error {
-    // Create logger with operation context
-    opLogger := logger.With(
-        "operation", "conversion",
-        "request_id", req.ID,
-        "input_file", req.InputFile,
-    )
-
-    opLogger.Info("Starting conversion")
-
-    // Use contextual logger throughout the operation
-    if err := validateRequest(opLogger, req); err != nil {
-        opLogger.Error("Request validation failed", "error", err)
-        return err
-    }
-
-    // Continue with contextual logging...
-    return nil
-}
-```
+- Use `charmbracelet/log` for structured logging
+- Initialize logger with appropriate level (debug, info, warn, error)
+- Add context to logger for request/operation tracking
+- Use appropriate log levels for different types of messages
 
 ### 4.6. Security Practices
 
-#### Secret Management
-
-**NEVER hardcode secrets in source code.** Follow these patterns:
-
-```go
-// ✅ Good: Use environment variables
-func getAPIKey() (string, error) {
-    key := os.Getenv("API_KEY")
-    if key == "" {
-        return "", fmt.Errorf("API_KEY environment variable is required")
-    }
-    return key, nil
-}
-
-// ✅ Good: Use configuration files with environment variable substitution
-type Config struct {
-    APIKey    string `env:"API_KEY" flag:"api-key" desc:"API key for external service"`
-    Database  string `env:"DATABASE_URL" flag:"db-url" desc:"Database connection string"`
-}
-
-// ❌ Bad: Hardcoded secrets
-const APIKey = "sk-1234567890abcdef"  // Never do this!
-```
-
-#### Input Validation and Sanitization
-
-```go
-// Validate all user inputs
-func validateFilename(filename string) error {
-    // Check for path traversal attempts
-    if strings.Contains(filename, "..") {
-        return fmt.Errorf("invalid filename: path traversal not allowed")
-    }
-
-    // Check file extension
-    if !strings.HasSuffix(filename, ".xml") {
-        return fmt.Errorf("invalid file type: only .xml files are supported")
-    }
-
-    // Check filename length
-    if len(filename) > 255 {
-        return fmt.Errorf("filename too long: maximum 255 characters")
-    }
-
-    return nil
-}
-
-// Sanitize file paths
-func sanitizeFilePath(path string) (string, error) {
-    // Clean the path
-    cleanPath := filepath.Clean(path)
-
-    // Ensure it's not an absolute path if not expected
-    if filepath.IsAbs(cleanPath) && !allowAbsolutePaths {
-        return "", fmt.Errorf("absolute paths not allowed")
-    }
-
-    return cleanPath, nil
-}
-```
-
-#### Secure File Operations
-
-```go
-// Create files with appropriate permissions
-func writeConfigFile(filename string, data []byte) error {
-    // Use restrictive permissions (owner read/write only)
-    return os.WriteFile(filename, data, 0600)
-}
-
-// Safely create temporary files
-func createTempFile(pattern string) (*os.File, error) {
-    // Create in secure temporary directory
-    return os.CreateTemp("", pattern)
-}
-
-// Validate file size before processing
-func validateFileSize(filename string, maxSize int64) error {
-    info, err := os.Stat(filename)
-    if err != nil {
-        return fmt.Errorf("failed to stat file: %w", err)
-    }
-
-    if info.Size() > maxSize {
-        return fmt.Errorf("file size (%d bytes) exceeds maximum allowed size (%d bytes)",
-            info.Size(), maxSize)
-    }
-
-    return nil
-}
-```
-
-#### Configuration Security
-
-```go
-// Secure configuration loading
-type SecureConfig struct {
-    // Non-sensitive configuration
-    LogLevel    string `json:"log_level"`
-    OutputPath  string `json:"output_path"`
-
-    // Sensitive configuration (loaded from environment)
-    APIKey      string `json:"-"` // Don't serialize
-    DatabaseURL string `json:"-"` // Don't serialize
-}
-
-func LoadConfig(configFile string) (*SecureConfig, error) {
-    config := &SecureConfig{}
-
-    // Load non-sensitive config from file
-    if configFile != "" {
-        data, err := os.ReadFile(configFile)
-        if err != nil {
-            return nil, fmt.Errorf("failed to read config file: %w", err)
-        }
-
-        if err := json.Unmarshal(data, config); err != nil {
-            return nil, fmt.Errorf("failed to parse config file: %w", err)
-        }
-    }
-
-    // Load sensitive config from environment
-    config.APIKey = os.Getenv("API_KEY")
-    config.DatabaseURL = os.Getenv("DATABASE_URL")
-
-    return config, nil
-}
-```
+- **Secret Management:** Use environment variables, never hardcode secrets
+- **Input Validation:** Validate all user inputs and sanitize file paths
+- **File Operations:** Use secure file permissions and validate file sizes
+- **Configuration Security:** Separate sensitive and non-sensitive configuration
 
 ### 4.7. AI Agent Guidelines
 

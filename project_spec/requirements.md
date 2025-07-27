@@ -110,13 +110,20 @@
 - **Primary Functionality Requirements**:
 
   - **F001**: Parse OPNsense XML configuration files using Go's encoding/xml package
-  - **F002**: Convert XML configurations to structured Markdown format with hierarchy preservation
-  - **F003**: Display processed configurations with syntax highlighting in terminal using Charm Lipgloss
-  - **F004**: Export processed configurations to markdown files on disk with user-specified paths
+  - **F002**: Convert XML configurations to structured Markdown format with hierarchy preservation (comprehensive, summary), using the templates in `internal/templates` (selectable via CLI flag)
+  - **F003**: Display processed configurations with syntax highlighting in terminal using Charm Lipgloss (selectable via CLI flag)
+  - **F004**: Export processed configurations to markdown files on disk with user-specified paths, as markdown or JSON or YAML (selectable via CLI flag), without special formatting for the terminal
   - **F005**: Support offline operation without external dependencies or network connectivity
-  - **F006**: Generate human-readable documentation from XML configuration data
+  - **F006**: Generate human-readable documentation from XML configuration data (selectable via CLI flag)
   - **F007**: Accept OPNsense config.xml files as input through command-line arguments
   - **F008**: Validate XML structure and provide meaningful error messages for malformed files
+  - **F009**: Support multiple themes (light, dark, custom) for terminal display (selectable via CLI flag)
+  - **F010**: Support multiple output formats (markdown, json, yaml) for file export (selectable via CLI flag)
+  - **F011**: Support multiple output styles (comprehensive, summary) for markdown generation (selectable via CLI flag)
+  - **F012**: Support multiple output styles (comprehensive, summary) for terminal display (selectable via CLI flag)
+  - **F013**: Support multiple output styles (comprehensive, summary) for file export (selectable via CLI flag)
+  - **F014**: Analyze the XML configuration and provide a report of the configuration, containing common security and performance issues, if any are found
+  - **F015**: Export files must be valid and parseable by standard tools and libraries (markdown linters, JSON parsers, YAML parsers)
 
 - **User Stories and Use Cases**:
 

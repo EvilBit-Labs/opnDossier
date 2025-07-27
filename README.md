@@ -4,6 +4,7 @@
 [![License](https://img.shields.io/badge/license-Apache-green.svg)](LICENSE)
 [![Coverage](https://img.shields.io/badge/coverage-80%25-green.svg)](https://github.com/unclesp1d3r/opnFocus)
 [![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://github.com/unclesp1d3r/opnFocus/blob/main/docs/index.md)
+[![wakatime](https://wakatime.com/badge/user/2d2fbc27-e3f7-4ec1-b2a7-935e48bad498/project/018dae18-42c0-4e3e-8330-14d39f574bd5.svg)](https://wakatime.com/badge/user/2d2fbc27-e3f7-4ec1-b2a7-935e48bad498/project/018dae18-42c0-4e3e-8330-14d39f574bd5)
 
 ## Overview
 
@@ -16,11 +17,16 @@ A command-line tool designed specifically for network operators and administrato
 - 🔧 **Parse OPNsense XML configurations** - Process complex configuration files with ease
 - ✅ **Configuration Validation** - Comprehensive validation with detailed error reporting
 - 📝 **Convert to Markdown** - Generate human-readable documentation from XML configs
-- 💾 **Export to Files** - Save processed configurations as markdown files
+- 💾 **Export to Files** - Save processed configurations as markdown, JSON, or YAML files
 - 🔌 **Offline Operation** - Works completely offline, perfect for airgapped environments
 - 🛡️ **Security-First** - No external dependencies, no telemetry, secure by design
-- ⚡ **Fast 6 Lightweight** - Built with Go for performance and reliability
+- ⚡ **Fast & Lightweight** - Built with Go for performance and reliability
 - 🚀 **Streaming Processing** - Memory-efficient handling of large configuration files
+- 🔍 **Advanced Analysis** - Dead rule detection, unused interface analysis, and security scanning
+- 📊 **Compliance Checking** - Built-in compliance validation with detailed reporting
+- 🎨 **Template-Based Reports** - Customizable markdown templates for professional documentation
+- 📈 **Performance Analysis** - Identifies configuration bottlenecks and optimization opportunities
+- 🖥️ **Terminal Display** - Rich terminal output with syntax highlighting and theme support
 
 ## 🚀 Quick Start
 
@@ -65,6 +71,12 @@ opnFocus convert -f json config.xml -o output.json
 
 # Convert to YAML format
 opnFocus convert -f yaml config.xml -o output.yaml
+
+# Display configuration in terminal with syntax highlighting
+opnFocus display config.xml
+
+# Validate configuration file
+opnFocus validate config.xml
 
 # Get help for any command
 opnFocus --help
@@ -139,9 +151,9 @@ opnfocus convert config.xml --validate
 opnfocus --verbose --log_format=json convert config.xml
 ```
 
-**Note:** The CLI uses a layered architecture: **Cobra** provides command structure 6 argument parsing, **Viper** handles layered configuration management (files, env, flags), and **Fang** adds enhanced UX features like styled help, automatic version flags, and shell completion.
+**Note:** The CLI uses a layered architecture: **Cobra** provides command structure and argument parsing, **Viper** handles layered configuration management (files, env, flags), and **Fang** adds enhanced UX features like styled help, automatic version flags, and shell completion.
 
-## 🔍 Validation 6 Error Handling
+## 🔍 Validation & Error Handling
 
 opnFocus includes comprehensive validation capabilities to ensure configuration integrity:
 
@@ -156,20 +168,20 @@ opnFocus includes comprehensive validation capabilities to ensure configuration 
 
 **Parse Error Example**:
 
-```
+```text
 parse error at line 45, column 12: XML syntax error: expected element name after <
 ```
 
 **Validation Error Example**:
 
-```
+```text
 validation error at opnsense.system.hostname: hostname is required
 validation error at opnsense.interfaces.wan.ipaddr: IP address '300.300.300.300' must be a valid IP address
 ```
 
 **Aggregated Validation Report**:
 
-```
+```text
 validation failed with 3 errors: hostname is required (and 2 more)
   - opnsense.system.hostname: hostname is required
   - opnsense.system.domain: domain is required
@@ -195,6 +207,7 @@ Built with modern Go practices and established libraries:
 | Terminal Styling   | [Charm Lipgloss](https://github.com/charmbracelet/lipgloss) |
 | Markdown Rendering | [Charm Glamour](https://github.com/charmbracelet/glamour)   |
 | XML Processing     | Go's built-in `encoding/xml`                                |
+| Structured Logging | [Charm Log](https://github.com/charmbracelet/log)           |
 
 ### Data Model Architecture
 
@@ -270,65 +283,17 @@ This hierarchical structure provides:
 - **Validation**: Domain-specific validation rules improve data integrity
 - **API Evolution**: JSON tags enable better REST API integration
 
-### Processor Workflow
+### Analysis Capabilities
 
-The processor implements a comprehensive four-phase pipeline for analyzing OPNsense configurations:
+opnFocus provides comprehensive analysis of your OPNsense configurations:
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Phase 1:      │    │   Phase 2:      │    │   Phase 3:      │    │   Phase 4:      │
-│   NORMALIZE     │───▶│   VALIDATE      │───▶│   ANALYZE       │───▶│   TRANSFORM     │
-│                 │    │                 │    │                 │    │                 │
-│ • Fill defaults │    │ • Struct tags   │    │ • Dead rules    │    │ • Markdown      │
-│ • Canonicalize  │    │ • Custom checks │    │ • Unused ifaces │    │ • JSON/YAML     │
-│ • Sort for      │    │ • Cross-field   │    │ • Security scan │    │ • Plain text    │
-│   determinism   │    │   validation    │    │ • Performance   │    │ • Export        │
-└─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────────┘
-```
-
-#### Phase 1: Normalization
-
-- **Fill Defaults**: Populates missing values (system optimization: "normal", web GUI: "https", timezone: "UTC")
-- **Canonicalize Addresses**: Standardizes IP addresses and converts single IPs to CIDR notation
-- **Sort Slices**: Ensures deterministic output by sorting users, groups, rules, and sysctl items
-
-#### Phase 2: Validation
-
-- **Struct Tag Validation**: Uses go-playground/validator for field-level validation
-- **Custom Business Logic**: Domain-specific validation rules
-- **Cross-field Validation**: Validates relationships between configuration elements
-
-#### Phase 3: Analysis
-
-- **Dead Rule Detection**: Identifies unreachable rules after "block all" rules and duplicate rules
+- **Configuration Validation**: Ensures all required fields are present and valid
+- **Dead Rule Detection**: Identifies unreachable firewall rules that come after "block all" rules
 - **Unused Interface Analysis**: Finds enabled interfaces not used in rules or services
-- **Security Analysis**: Detects insecure protocols, default SNMP community strings, overly permissive rules
+- **Security Analysis**: Detects insecure protocols, default SNMP community strings, and overly permissive rules
 - **Performance Analysis**: Identifies disabled hardware offloading and excessive rule counts
 - **Compliance Checking**: Validates against security and operational best practices
 
-#### Phase 4: Transform
-
-- **Multi-format Output**: Generates Markdown, JSON, YAML, or plain text summaries
-- **Structured Reports**: Organizes findings by severity (Critical, High, Medium, Low, Info)
-- **Export Capabilities**: Saves to files or streams to stdout
-
-#### Configurable Analysis Options
-
-The processor supports flexible configuration through functional options:
-
-```go
-// Enable specific analysis features
-report, err := processor.Process(ctx, opnsenseConfig,
-    WithStats(),
-    WithSecurityAnalysis(),
-    WithDeadRuleCheck(),
-    WithPerformanceAnalysis(),
-    WithComplianceCheck(),
-)
-
-// Or enable all features
-report, err := processor.Process(ctx, opnsenseConfig, WithAllFeatures())
-```
 
 ## 🛠️ Development
 
@@ -343,29 +308,13 @@ just dev       # Run in development mode
 just docs      # Serve documentation locally
 ```
 
-### Project Structure
-
-```text
-opnfocus/
-├── cmd/                 # Application entry point
-├── internal/
-│   ├── config/         # Configuration handling
-│   ├── parser/         # XML parsing logic
-│   ├── converter/      # Data conversion logic
-│   ├── display/        # Output formatting
-│   └── export/         # File export logic
-├── docs/               # MkDocs documentation
-├── justfile           # Task runner configuration
-└── AGENTS.md          # Development standards
-```
-
 ## 🤝 Contributing
 
 We welcome contributions! This project follows strict coding standards and development practices.
 
 **Before contributing:**
 
-1. Read our [development standards](AGENTS.md)
+1. Read our [development standards](DEVELOPMENT_STANDARDS.md)
 2. Check existing issues and pull requests
 3. Follow our Git workflow and commit message standards
 
@@ -373,7 +322,7 @@ We welcome contributions! This project follows strict coding standards and devel
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feat/your-feature`
-3. Follow our coding standards (see [AGENTS.md](AGENTS.md))
+3. Follow our coding standards (see [DEVELOPMENT_STANDARDS.md](DEVELOPMENT_STANDARDS.md))
 4. Write tests and ensure >80% coverage: `just test`
 5. Run all checks: `just ci-check`
 6. Commit using [Conventional Commits](https://www.conventionalcommits.org/)
@@ -389,7 +338,7 @@ We welcome contributions! This project follows strict coding standards and devel
 ## 📖 Documentation
 
 - **[Full Documentation](https://github.com/unclesp1d3r/opnFocus/blob/main/docs/index.md)** - Complete user and developer guides
-- **[Development Standards](AGENTS.md)** - Coding standards and architectural principles
+- **[Development Standards](DEVELOPMENT_STANDARDS.md)** - Coding standards and architectural principles
 - **[API Reference](docs/dev-guide/api.md)** - Detailed API documentation
 
 ## 🔒 Security

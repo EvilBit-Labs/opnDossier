@@ -113,93 +113,118 @@ This document provides a comprehensive task checklist for implementing the opnFo
 
 ---
 
-## Phase 3: Markdown Generation
+## Phase 3: Markdown Generation & Output
 
-### 3.1 Markdown Generator Implementation
+### 3.1 In-Memory Markdown Generation
 
 - [ ] **TASK-011**: Create markdown generator interface
 
-  - **Context**: A markdown generator is already implemented, but it needs to be refactored to use the enhanced model and to represent more of the configuration.
-  - **Requirement**: F002 (Markdown conversion), US-003 (Markdown conversion)
+  - **Context**: Parse config.xml into opnSense model using Phase 2 functionality, then generate markdown string in memory using templates
+  - **Requirement**: F002 (Markdown conversion), US-003 (Markdown conversion), F011 (Markdown generation)
   - **User Story**: US-003-US-004 (Markdown Conversion)
-  - **Action**: Create `internal/markdown/` package with generation interface
-  - **Acceptance**: Generator converts all XML files in the `testdata/` directory to structured markdown
+  - **Action**: Create `internal/markdown/` package that takes opnSense model and generates structured markdown string using templates in `internal/templates`
+  - **Acceptance**: Generator produces properly formatted markdown string from opnSense model using templates
 
-- [ ] **TASK-012**: Implement hierarchy preservation in markdown
+- [ ] **TASK-012**: Implement calculated fields and model enrichment
 
-  - **Context**: Need to maintain configuration structure in output
-  - **Requirement**: F002 (Hierarchy preservation), US-003 (Structure preservation)
-  - **User Story**: US-003 (Hierarchy preservation)
-  - **Action**: Implement markdown generation that preserves XML hierarchy
-  - **Acceptance**: Output markdown reflects original configuration structure
+  - **Context**: Need to populate calculated fields in opnSense model for comprehensive reporting
+  - **Requirement**: F002 (Hierarchy preservation), US-003 (Structure preservation), F011 (Markdown generation), F014 (Configuration analysis)
+  - **User Story**: US-003 (Comprehensive configuration representation)
+  - **Action**: Implement model enrichment to calculate derived fields, statistics, and analysis data
+  - **Acceptance**: opnSense model contains all calculated fields needed for comprehensive markdown generation
 
-- [ ] **TASK-013**: Add markdown formatting and styling
+- [ ] **TASK-013**: Implement template-based markdown generation
 
-  - **Context**: Enhanced markdown generator to use the templates in `internal/templates`
-  - **Requirement**: US-004 (Syntax highlighting), Technical Specifications
-  - **User Story**: US-004 (Terminal output styling)
-  - **Action**: Implement proper markdown formatting with headers, lists, code blocks
-  - **Acceptance**: Generated markdown is well-formatted and readable
+  - **Context**: Use templates in `internal/templates` to generate structured markdown with proper formatting
+  - **Requirement**: F002 (Template-based generation), US-004 (Syntax highlighting), F011 (Markdown generation)
+  - **User Story**: US-004 (Structured markdown output)
+  - **Action**: Implement template rendering system using templates in `internal/templates` for comprehensive and summary formats
+  - **Acceptance**: Generated markdown string is well-formatted, structured, and uses appropriate templates
 
-### 3.2 Terminal Display Implementation
+### 3.2 Terminal Display Implementation (`opnfocus display`)
 
-- [ ] **TASK-014**: Implement terminal display with lipgloss
+- [ ] **TASK-014**: Implement terminal display with glamour
 
-  - **Context**: No terminal styling currently implemented
-  - **Requirement**: F003 (Terminal display), US-004 (Syntax highlighting)
+  - **Context**: Take in-memory markdown string and render to terminal with markdown rendering
+  - **Requirement**: F003 (Terminal display), US-004 (Syntax highlighting), F012 (Terminal display)
   - **User Story**: US-004 (Terminal output), US-043 (Theme support)
-  - **Action**: Create `internal/display/` package with lipgloss integration
-  - **Acceptance**: Terminal output includes colored, syntax-highlighted markdown
+  - **Action**: Create `internal/display/` package that renders markdown string to terminal using `github.com/charmbracelet/glamour`
+  - **Acceptance**: `opnfocus display` command renders markdown string with colored, syntax-highlighted output
 
 - [ ] **TASK-015**: Add theme support (light/dark)
 
-  - **Context**: Need support for different terminal themes
-  - **Requirement**: US-043 (Theme support), Usability Stories
+  - **Context**: Need support for different terminal themes in display output
+  - **Requirement**: US-043 (Theme support), F009 (Theme support), F012 (Terminal display)
   - **User Story**: US-043 (Light and dark theme support)
-  - **Action**: Implement theme detection and appropriate color schemes
-  - **Acceptance**: Output is readable in both light and dark terminal themes
+  - **Action**: Implement theme detection and appropriate color schemes for terminal display
+  - **Acceptance**: Terminal display is readable in both light and dark terminal themes
 
-- [ ] **TASK-016**: Implement markdown rendering with glamour
+- [ ] **TASK-016**: Implement theme-aware markdown rendering
 
-  - **Context**: Need proper markdown rendering in terminal
-  - **Requirement**: Technical Specifications (glamour library)
-  - **User Story**: US-004 (Markdown rendering)
-  - **Action**: Integrate glamour for markdown rendering in terminal
-  - **Acceptance**: Markdown renders properly with syntax highlighting
+  - **Context**: Configure glamour with theme detection and appropriate styling for light/dark terminals
+  - **Requirement**: Technical Specifications (glamour library), F009 (Theme support), F012 (Terminal display)
+  - **User Story**: US-004 (Markdown rendering), US-043 (Theme support)
+  - **Action**: Configure glamour renderer with theme detection and appropriate color schemes
+  - **Acceptance**: Markdown renders with appropriate colors for both light and dark terminal themes
+
 
 ---
 
-## Phase 4: File Export & I/O
+## Phase 4: File Export & Input Validation
 
-### 4.1 File Export Implementation
+### 4.1 File Export Implementation (`opnfocus convert`)
 
-- [ ] **TASK-017**: Create file export functionality
+- [ ] **TASK-017**: Implement markdown file export
 
-  - **Context**: No file export capability exists
-  - **Requirement**: F004 (File export), US-005, US-006 (File export)
+  - **Context**: Export opnSense model as markdown string to file using templates
+  - **Requirement**: F004 (File export), US-005, US-006 (File export), F010 (Multiple output formats), F013 (File export), F015 (Valid and parseable files)
   - **User Story**: US-005-US-006 (File Export)
-  - **Action**: Create `internal/export/` package for markdown file export
-  - **Acceptance**: Can export processed configurations to markdown files
+  - **Action**: Create markdown export functionality in `internal/export/` package
+  - **Acceptance**: Exports valid markdown file with no terminal control characters, uses templates from `internal/templates`, passes markdown validation tests
 
-- [ ] **TASK-018**: Implement custom output directory support
+- [ ] **TASK-018**: Implement JSON file export
 
-  - **Context**: Need flexible output location support
-  - **Requirement**: US-006 (Custom output directories)
-  - **User Story**: US-006 (Custom output directories)
-  - **Action**: Add support for user-specified output directories with auto-creation
-  - **Acceptance**: Creates directories if needed and saves files to specified location
+  - **Context**: Export opnSense model as JSON file for programmatic access
+  - **Requirement**: F004 (File export), F010 (Multiple output formats), F013 (File export), F015 (Valid and parseable files)
+  - **User Story**: US-005-US-006 (File Export)
+  - **Action**: Create JSON export functionality in `internal/export/` package
+  - **Acceptance**: Exports valid, parsable JSON file with no terminal control characters, passes JSON validation tests
 
-- [ ] **TASK-019**: Add file validation and error handling
+- [ ] **TASK-019**: Implement YAML file export
 
-  - **Context**: Need proper file I/O error handling
+  - **Context**: Export opnSense model as YAML file for human-readable structured data
+  - **Requirement**: F004 (File export), F010 (Multiple output formats), F013 (File export), F015 (Valid and parseable files)
+  - **User Story**: US-005-US-006 (File Export)
+  - **Action**: Create YAML export functionality in `internal/export/` package
+  - **Acceptance**: Exports valid, parsable YAML file with no terminal control characters, passes YAML validation tests
+
+- [ ] **TASK-020**: Implement output file naming and overwrite protection
+
+  - **Context**: Handle output file naming with smart defaults and overwrite protection
+  - **Requirement**: US-006 (Custom output files), F004 (File export), US-018 (Error handling)
+  - **User Story**: US-006 (Custom output files), US-018 (Clear error messages)
+  - **Action**: Implement output file naming logic with defaults (config.md, config.json, config.yaml) and overwrite prompts with `-f` force option
+  - **Acceptance**: Uses input filename with appropriate extension as default, prompts before overwrite unless `-f` flag provided, no automatic directory creation
+
+- [ ] **TASK-021**: Add file validation and error handling
+
+  - **Context**: Need proper file I/O error handling for export operations
   - **Requirement**: US-018 (Error handling), Data validation rules
   - **User Story**: US-018 (Clear error messages)
-  - **Action**: Implement comprehensive file validation and error handling
-  - **Acceptance**: Provides clear error messages for file I/O issues
+  - **Action**: Implement comprehensive file validation and error handling for export operations
+  - **Acceptance**: Provides clear error messages for file I/O issues during export
+
+- [ ] **TASK-021a**: Implement exported file validation tests
+
+  - **Context**: Need to ensure exported files are valid and parseable by standard tools
+  - **Requirement**: F015 (Valid and parseable files), Testing Standards
+  - **User Story**: US-020-US-021 (Testing and Validation)
+  - **Action**: Create validation tests that verify exported files can be parsed by standard tools (markdown linters, JSON parsers, YAML parsers)
+  - **Acceptance**: All exported files pass validation tests with standard tools and libraries
 
 ### 4.2 Input Validation
 
-- [ ] **TASK-020**: Implement comprehensive input validation
+- [ ] **TASK-022**: Implement comprehensive input validation
   - **Context**: Need validation for all user inputs
   - **Requirement**: US-027 (Input validation), Security Requirements
   - **User Story**: US-027 (Input validation)
@@ -212,7 +237,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 
 ### 5.1 Command Structure
 
-- [ ] **TASK-021**: Refactor CLI command structure
+- [ ] **TASK-023**: Refactor CLI command structure
 
   - **Context**: Current CLI is basic, needs proper command organization
   - **Requirement**: F007 (CLI interface), US-009-US-011 (CLI Interface)
@@ -220,7 +245,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Action**: Reorganize commands using proper Cobra patterns
   - **Acceptance**: CLI provides intuitive command structure with proper help
 
-- [ ] **TASK-022**: Implement comprehensive help system
+- [ ] **TASK-024**: Implement comprehensive help system
 
   - **Context**: Need detailed help documentation
   - **Requirement**: US-010 (Help documentation), CLI Interface Requirements
@@ -228,7 +253,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Action**: Add detailed help text, examples, and usage instructions
   - **Acceptance**: Help system provides clear usage instructions and examples
 
-- [ ] **TASK-023**: Add verbose and quiet output modes
+- [ ] **TASK-025**: Add verbose and quiet output modes
 
   - **Context**: Need output level control
   - **Requirement**: US-011 (Output modes), User Experience Specifications
@@ -238,7 +263,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 
 ### 5.2 CLI Features
 
-- [ ] **TASK-024**: Implement progress indicators
+- [ ] **TASK-026**: Implement progress indicators
 
   - **Context**: Need feedback for long-running operations
   - **Requirement**: User Experience Specifications, Performance Requirements
@@ -246,7 +271,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Action**: Add progress indicators for file processing operations
   - **Acceptance**: Users get feedback during long-running operations
 
-- [ ] **TASK-025**: Add tab completion support
+- [ ] **TASK-027**: Add tab completion support
 
   - **Context**: Need CLI completion for better UX
   - **Requirement**: US-045 (Tab completion), Usability Stories
@@ -587,9 +612,9 @@ This document provides a comprehensive task checklist for implementing the opnFo
 - [ ] Invalid XML files produce meaningful error messages (TASK-007, TASK-008)
 - [ ] Markdown conversion preserves configuration hierarchy (TASK-011, TASK-012)
 - [ ] Terminal output includes syntax highlighting (TASK-014, TASK-016)
-- [ ] File export creates valid markdown files (TASK-017, TASK-018)
+- [ ] File export creates valid output files (markdown, json, or yaml) (TASK-017, TASK-018, TASK-019)
 - [ ] Tool operates completely offline (TASK-044)
-- [ ] CLI provides comprehensive help documentation (TASK-022, TASK-043)
+- [ ] CLI provides comprehensive help documentation (TASK-024, TASK-043)
 - [ ] Configuration management supports YAML files and environment variables (TASK-026, TASK-027)
 - [ ] Command-line flags override configuration file settings (TASK-028)
 - [ ] Performance meets specified requirements (TASK-030, TASK-031, TASK-032)
@@ -603,7 +628,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 - [ ] Cross-platform compatibility is verified (TASK-048)
 - [ ] Security requirements are met (TASK-044, TASK-045, TASK-046, TASK-047)
 - [ ] Performance benchmarks are established and met (TASK-033)
-- [x] Error handling is comprehensive and user-friendly (TASK-005, TASK-019, TASK-020)
+- [x] Error handling is comprehensive and user-friendly (TASK-005, TASK-021, TASK-022)
 
 ### Deployment Acceptance
 
@@ -623,15 +648,17 @@ This document provides a comprehensive task checklist for implementing the opnFo
 
 - TASK-001 → TASK-002 → TASK-003 (Dependencies must be set up first)
 - TASK-006 → TASK-007 → TASK-008 (XML parsing foundation)
-- TASK-011 → TASK-012 → TASK-013 (Markdown generation foundation)
+- TASK-011 → TASK-012 → TASK-013 (In-memory markdown generation foundation)
 - TASK-014 → TASK-015 → TASK-016 (Terminal display foundation)
-- TASK-021 → TASK-022 → TASK-023 (CLI foundation)
+- TASK-017 → TASK-018 → TASK-019 → TASK-020 → TASK-021 (File export foundation)
+- TASK-023 → TASK-024 → TASK-025 (CLI foundation)
 
 ### Parallel Development Opportunities
 
 - Phase 1 (Infrastructure) can be developed in parallel with Phase 2 (XML Processing)
-- Phase 3 (Markdown) can be developed in parallel with Phase 4 (File Export)
-- Phase 5 (CLI) can be developed in parallel with Phase 6 (Configuration)
+- Phase 3.1 (Markdown generation) can be developed in parallel with Phase 3.2 (Terminal display)
+- Phase 4.1 (File export) can be developed in parallel with Phase 4.2 (Input validation)
+- Phase 5 (CLI interface) can be developed in parallel with Phase 6 (Configuration)
 - Phase 7 (Performance) can be developed in parallel with Phase 8 (Testing)
 
 ---
