@@ -600,7 +600,7 @@ func generateLargeXML(size int) string {
 }
 
 // BenchmarkXMLParser_LargeConfig benchmarks parsing of large XML configurations
-// Tests memory usage and time constraints for 60 MB generated config.
+// Tests memory usage and time constraints for ~2 MB generated config.
 func BenchmarkXMLParser_LargeConfig(b *testing.B) {
 	// Generate a configuration that will be large but manageable for testing
 	// Each sysctl item is roughly 200 bytes, start with 10,000 items for ~2MB

@@ -22,8 +22,25 @@ func (e *ParseError) Error() string {
 
 // Is implements error matching for ParseError.
 func (e *ParseError) Is(target error) bool {
-	var parseErr *ParseError
-	return errors.As(target, &parseErr)
+	if target == nil {
+		return false
+	}
+
+	// Check if target is the same type
+	targetParse, ok := target.(*ParseError)
+	if !ok {
+		return false
+	}
+
+	// If target has zero values, match any ParseError (type-only matching)
+	if targetParse.Line == 0 && targetParse.Column == 0 && targetParse.Message == "" {
+		return true
+	}
+
+	// Otherwise, compare all fields for equality
+	return e.Line == targetParse.Line &&
+		e.Column == targetParse.Column &&
+		e.Message == targetParse.Message
 }
 
 // ValidationError represents an error that occurred during validation with path information.
@@ -42,8 +59,24 @@ func (e *ValidationError) Error() string {
 
 // Is implements error matching for ValidationError.
 func (e *ValidationError) Is(target error) bool {
-	var validationErr *ValidationError
-	return errors.As(target, &validationErr)
+	if target == nil {
+		return false
+	}
+
+	// Check if target is the same type
+	targetValidation, ok := target.(*ValidationError)
+	if !ok {
+		return false
+	}
+
+	// If target has zero values, match any ValidationError (type-only matching)
+	if targetValidation.Path == "" && targetValidation.Message == "" {
+		return true
+	}
+
+	// Otherwise, compare all fields for equality
+	return e.Path == targetValidation.Path &&
+		e.Message == targetValidation.Message
 }
 
 // NewParseError returns a new ParseError with the given line, column, and error message.
@@ -153,8 +186,37 @@ func (r *AggregatedValidationError) Error() string {
 
 // Is implements error matching for AggregatedValidationError.
 func (r *AggregatedValidationError) Is(target error) bool {
-	var aggErr *AggregatedValidationError
-	return errors.As(target, &aggErr)
+	if target == nil {
+		return false
+	}
+
+	// Check if target is the same type
+	targetAgg, ok := target.(*AggregatedValidationError)
+	if !ok {
+		return false
+	}
+
+	// If target has no errors, match any AggregatedValidationError (type-only matching)
+	if len(targetAgg.Errors) == 0 {
+		return true
+	}
+
+	// If target has errors, check if receiver has the same errors
+	if len(r.Errors) != len(targetAgg.Errors) {
+		return false
+	}
+
+	// Compare each error in the slice
+	for i, targetErr := range targetAgg.Errors {
+		if i >= len(r.Errors) {
+			return false
+		}
+		if !errors.Is(&r.Errors[i], &targetErr) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // HasErrors returns true if the report contains any validation errors.

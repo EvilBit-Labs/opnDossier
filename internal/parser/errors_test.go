@@ -227,3 +227,65 @@ func TestErrorChaining(t *testing.T) {
 		assert.Equal(t, original.Message, extracted.Message)
 	})
 }
+
+func TestAggregatedValidationError(t *testing.T) {
+	t.Run("Error message formatting", func(t *testing.T) {
+		// Test with no errors
+		aggErr := NewAggregatedValidationError([]ValidationError{})
+		assert.Equal(t, "no validation errors", aggErr.Error())
+
+		// Test with single error
+		singleErr := NewAggregatedValidationError([]ValidationError{
+			*NewValidationError("path.to.field", "invalid value"),
+		})
+		assert.Contains(t, singleErr.Error(), "invalid value")
+
+		// Test with multiple errors
+		multiErr := NewAggregatedValidationError([]ValidationError{
+			*NewValidationError("path1", "error1"),
+			*NewValidationError("path2", "error2"),
+		})
+		assert.Contains(t, multiErr.Error(), "validation failed with 2 errors")
+		assert.Contains(t, multiErr.Error(), "error1")
+		assert.Contains(t, multiErr.Error(), "and 1 more")
+	})
+
+	t.Run("Is method works correctly", func(t *testing.T) {
+		err1 := NewAggregatedValidationError([]ValidationError{
+			*NewValidationError("path1", "error1"),
+		})
+		err2 := NewAggregatedValidationError([]ValidationError{
+			*NewValidationError("path2", "error2"),
+		})
+
+		// Test type-only matching with empty struct
+		assert.True(t, errors.Is(err1, &AggregatedValidationError{}))
+		assert.True(t, errors.Is(err2, &AggregatedValidationError{}))
+
+		// Test exact matching with same errors
+		sameErr := NewAggregatedValidationError([]ValidationError{
+			*NewValidationError("path1", "error1"),
+		})
+		assert.True(t, errors.Is(err1, sameErr))
+
+		// Test exact matching with different errors
+		assert.False(t, errors.Is(err1, err2))
+
+		// Test wrapping
+		wrapped := fmt.Errorf("wrapped: %w", err1)
+		var aggErr *AggregatedValidationError
+		assert.True(t, errors.As(wrapped, &aggErr))
+	})
+
+	t.Run("HasErrors method", func(t *testing.T) {
+		// Test with no errors
+		emptyErr := NewAggregatedValidationError([]ValidationError{})
+		assert.False(t, emptyErr.HasErrors())
+
+		// Test with errors
+		withErr := NewAggregatedValidationError([]ValidationError{
+			*NewValidationError("path", "error"),
+		})
+		assert.True(t, withErr.HasErrors())
+	})
+}
