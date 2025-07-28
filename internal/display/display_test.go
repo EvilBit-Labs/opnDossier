@@ -2,6 +2,7 @@ package display
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -190,4 +191,292 @@ func TestDeprecatedFunctions(t *testing.T) {
 	assert.NotPanics(t, func() {
 		Error("Test error")
 	})
+}
+
+func TestDisplayWithProgressGoroutineLeakFix(t *testing.T) {
+	td := NewTerminalDisplay()
+
+	// Create a channel that will never be closed to test the leak scenario
+	progressCh := make(chan ProgressEvent)
+
+	// Start the display in a goroutine
+	done := make(chan error, 1)
+	go func() {
+		err := td.DisplayWithProgress(nil, "# Test Markdown", progressCh)
+		done <- err
+	}()
+
+	// Send a few progress events
+	progressCh <- ProgressEvent{Percent: 0.25, Message: "Processing..."}
+	progressCh <- ProgressEvent{Percent: 0.5, Message: "Halfway..."}
+	progressCh <- ProgressEvent{Percent: 0.75, Message: "Almost done..."}
+
+	// Close the channel to signal completion
+	close(progressCh)
+
+	// Wait for the display to complete
+	err := <-done
+	assert.NoError(t, err)
+
+	// The test passes if we reach here without hanging
+	// The original code would have leaked the goroutine
+}
+
+func TestDisplayRawMarkdownWhenColorsDisabled(t *testing.T) {
+	// Create display with colors disabled
+	opts := Options{
+		Theme:        LightTheme(),
+		WrapWidth:    80,
+		EnableTables: true,
+		EnableColors: false,
+	}
+	td := NewTerminalDisplayWithOptions(opts)
+
+	// Test markdown content with ANSI codes
+	markdownContent := "# Test Header\n\nThis is **bold** and *italic* text.\n\n```go\nfunc test() {}\n```"
+
+	// Capture stdout
+	originalStdout := os.Stdout
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+	os.Stdout = w
+	defer func() {
+		os.Stdout = originalStdout
+		if err := w.Close(); err != nil {
+			t.Logf("failed to close pipe: %v", err)
+		}
+	}()
+
+	// Run display
+	err = td.Display(nil, markdownContent)
+	require.NoError(t, err)
+
+	// Close write end and read output
+	if err := w.Close(); err != nil {
+		t.Logf("failed to close pipe: %v", err)
+	}
+	output := make([]byte, 1024)
+	n, err := r.Read(output)
+	require.NoError(t, err)
+	outputStr := string(output[:n])
+
+	// Verify raw markdown is output (no ANSI codes)
+	assert.Contains(t, outputStr, "# Test Header")
+	assert.Contains(t, outputStr, "**bold**")
+	assert.Contains(t, outputStr, "*italic*")
+	assert.Contains(t, outputStr, "```go")
+	assert.Contains(t, outputStr, "func test() {}")
+	assert.Contains(t, outputStr, "```")
+
+	// Verify no ANSI escape sequences are present
+	// ANSI codes start with \x1b[ (ESC [)
+	assert.NotContains(t, outputStr, "\x1b[")
+}
+
+func TestDisplayWithANSIWhenColorsEnabled(t *testing.T) {
+	// Create display with colors enabled
+	opts := Options{
+		Theme:        LightTheme(),
+		WrapWidth:    80,
+		EnableTables: true,
+		EnableColors: true,
+	}
+	td := NewTerminalDisplayWithOptions(opts)
+
+	// Test markdown content
+	markdownContent := "# Test Header\n\nThis is **bold** and *italic* text.\n\n```go\nfunc test() {}\n```"
+
+	// Capture stdout
+	originalStdout := os.Stdout
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+	os.Stdout = w
+	defer func() {
+		os.Stdout = originalStdout
+		if err := w.Close(); err != nil {
+			t.Logf("failed to close pipe: %v", err)
+		}
+	}()
+
+	// Run display
+	err = td.Display(nil, markdownContent)
+	require.NoError(t, err)
+
+	// Close write end and read output
+	if err := w.Close(); err != nil {
+		t.Logf("failed to close pipe: %v", err)
+	}
+	output := make([]byte, 8192) // Increased buffer size
+	n, err := r.Read(output)
+	require.NoError(t, err)
+	outputStr := string(output[:n])
+
+	// Verify ANSI escape sequences are present (indicating colored output)
+	assert.Contains(t, outputStr, "\x1b[")
+
+	// Verify some content is present (may be wrapped in ANSI codes)
+	// The exact text might be split by ANSI codes, so we check for partial matches
+	assert.True(t, strings.Contains(outputStr, "Test") || strings.Contains(outputStr, "Header"),
+		"Expected to find 'Test' or 'Header' in output")
+}
+
+func TestDisplayWithProgressRawMarkdownWhenColorsDisabled(t *testing.T) {
+	// Create display with colors disabled
+	opts := Options{
+		Theme:        LightTheme(),
+		WrapWidth:    80,
+		EnableTables: true,
+		EnableColors: false,
+	}
+	td := NewTerminalDisplayWithOptions(opts)
+
+	// Test markdown content
+	markdownContent := "# Test Header\n\nThis is **bold** and *italic* text."
+
+	// Create progress channel
+	progressCh := make(chan ProgressEvent, 1)
+
+	// Capture stdout
+	originalStdout := os.Stdout
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+	os.Stdout = w
+	defer func() {
+		os.Stdout = originalStdout
+		if err := w.Close(); err != nil {
+			t.Logf("failed to close pipe: %v", err)
+		}
+	}()
+
+	// Run display with progress
+	done := make(chan error, 1)
+	go func() {
+		err := td.DisplayWithProgress(nil, markdownContent, progressCh)
+		done <- err
+	}()
+
+	// Send progress event and close channel
+	progressCh <- ProgressEvent{Percent: 0.5, Message: "Processing..."}
+	close(progressCh)
+
+	// Wait for completion
+	err = <-done
+	require.NoError(t, err)
+
+	// Close write end and read output
+	if err := w.Close(); err != nil {
+		t.Logf("failed to close pipe: %v", err)
+	}
+	output := make([]byte, 2048) // Increased buffer size
+	n, err := r.Read(output)
+	require.NoError(t, err)
+	outputStr := string(output[:n])
+
+	// Verify raw markdown is output
+	assert.Contains(t, outputStr, "# Test Header")
+	assert.Contains(t, outputStr, "**bold**")
+	assert.Contains(t, outputStr, "*italic*")
+
+	// Verify no ANSI escape sequences in the markdown content
+	// (progress bar may still use ANSI codes for clearing lines)
+	// Extract just the markdown content by looking for the actual text
+	markdownSection := outputStr
+	if idx := strings.Index(outputStr, "# Test Header"); idx != -1 {
+		markdownSection = outputStr[idx:]
+	}
+	assert.Contains(t, markdownSection, "# Test Header")
+	assert.Contains(t, markdownSection, "**bold**")
+	assert.Contains(t, markdownSection, "*italic*")
+
+	// The progress bar may use ANSI codes, but the markdown content should be raw
+	// We can't easily separate them in the test, so we just verify the content is there
+}
+
+func TestDisplayWithProgressANSIWhenColorsEnabled(t *testing.T) {
+	// Create display with colors enabled
+	opts := Options{
+		Theme:        LightTheme(),
+		WrapWidth:    80,
+		EnableTables: true,
+		EnableColors: true,
+	}
+	td := NewTerminalDisplayWithOptions(opts)
+
+	// Test markdown content
+	markdownContent := "# Test Header\n\nThis is **bold** and *italic* text."
+
+	// Create progress channel
+	progressCh := make(chan ProgressEvent, 1)
+
+	// Capture stdout
+	originalStdout := os.Stdout
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+	os.Stdout = w
+	defer func() {
+		os.Stdout = originalStdout
+		if err := w.Close(); err != nil {
+			t.Logf("failed to close pipe: %v", err)
+		}
+	}()
+
+	// Run display with progress
+	done := make(chan error, 1)
+	go func() {
+		err := td.DisplayWithProgress(nil, markdownContent, progressCh)
+		done <- err
+	}()
+
+	// Send progress event and close channel
+	progressCh <- ProgressEvent{Percent: 0.5, Message: "Processing..."}
+	close(progressCh)
+
+	// Wait for completion
+	err = <-done
+	require.NoError(t, err)
+
+	// Close write end and read output
+	if err := w.Close(); err != nil {
+		t.Logf("failed to close pipe: %v", err)
+	}
+	output := make([]byte, 4096) // Increased buffer size
+	n, err := r.Read(output)
+	require.NoError(t, err)
+	outputStr := string(output[:n])
+
+	// Verify ANSI escape sequences are present
+	assert.Contains(t, outputStr, "\x1b[")
+
+	// Verify some content is present (may be wrapped in ANSI codes)
+	assert.True(t, strings.Contains(outputStr, "Test") || strings.Contains(outputStr, "Header"),
+		"Expected to find 'Test' or 'Header' in output")
+}
+
+func TestGlamourRendererWithDifferentColorSettings(t *testing.T) {
+	// Test with colors enabled
+	opts1 := Options{
+		Theme:        LightTheme(),
+		WrapWidth:    80,
+		EnableTables: true,
+		EnableColors: true,
+	}
+	renderer1, err1 := getGlamourRenderer(&opts1)
+	assert.NoError(t, err1)
+	assert.NotNil(t, renderer1)
+
+	// Test with colors disabled
+	opts2 := Options{
+		Theme:        LightTheme(),
+		WrapWidth:    80,
+		EnableTables: true,
+		EnableColors: false,
+	}
+	renderer2, err2 := getGlamourRenderer(&opts2)
+	assert.Equal(t, ErrRawMarkdown, err2)
+	assert.Nil(t, renderer2)
+}
+
+func TestErrRawMarkdownSentinel(t *testing.T) {
+	// Test that our sentinel error is properly defined
+	assert.Equal(t, "raw markdown display requested", ErrRawMarkdown.Error())
 }

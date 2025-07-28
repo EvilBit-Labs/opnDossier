@@ -3,6 +3,7 @@ package display
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -14,6 +15,9 @@ import (
 	"github.com/unclesp1d3r/opnFocus/internal/constants"
 	"github.com/unclesp1d3r/opnFocus/internal/markdown"
 )
+
+// ErrRawMarkdown is a sentinel error indicating that raw markdown should be displayed.
+var ErrRawMarkdown = errors.New("raw markdown display requested")
 
 // StyleSheet holds styles for various terminal display elements.
 type StyleSheet struct {
@@ -98,20 +102,6 @@ type Options struct {
 	EnableTables bool
 	EnableColors bool
 }
-
-// OptionsTheme represents theme settings for display.
-type OptionsTheme string
-
-const (
-	// ThemeAuto automatically detects the appropriate theme.
-	ThemeAuto OptionsTheme = "auto"
-	// ThemeLight uses a light terminal theme.
-	ThemeLight OptionsTheme = "light"
-	// ThemeDark uses a dark terminal theme.
-	ThemeDark OptionsTheme = "dark"
-	// ThemeNone disables styling for plain text output.
-	ThemeNone OptionsTheme = "none"
-)
 
 // DefaultOptions returns default options.
 func DefaultOptions() Options {
@@ -204,18 +194,10 @@ func getGlamourRenderer(opts *Options) (*glamour.TermRenderer, error) {
 		glamourOpts = append(glamourOpts, glamour.WithWordWrap(opts.WrapWidth))
 	}
 
-	// Configure environment for consistent rendering
+	// Skip Glamour rendering if colors are disabled
 	if !opts.EnableColors {
-		// Set TERM to dumb to disable colors as per user rules
-		if err := os.Setenv("TERM", "dumb"); err != nil {
-			return nil, fmt.Errorf("failed to set TERM environment variable: %w", err)
-		}
-		defer func() {
-			if err := os.Unsetenv("TERM"); err != nil {
-				// Log the error, but don't return it as it's in a defer
-				fmt.Fprintf(os.Stderr, "failed to unset TERM environment variable: %v\n", err)
-			}
-		}()
+		// Return sentinel error to indicate raw markdown should be used
+		return nil, ErrRawMarkdown
 	}
 
 	// Create new renderer with options
@@ -250,8 +232,9 @@ func Error(s string) {
 
 // TerminalDisplay represents a terminal markdown displayer.
 type TerminalDisplay struct {
-	options  *Options
-	progress *progress.Model
+	options    *Options
+	progress   *progress.Model
+	progressMu sync.Mutex
 }
 
 // NewTerminalDisplay returns a TerminalDisplay instance with default options.
@@ -315,6 +298,9 @@ type ProgressEvent struct {
 
 // ShowProgress displays a progress bar with the given completion percentage and message.
 func (td *TerminalDisplay) ShowProgress(percent float64, message string) {
+	td.progressMu.Lock()
+	defer td.progressMu.Unlock()
+
 	if td.progress == nil {
 		return
 	}
@@ -328,6 +314,9 @@ func (td *TerminalDisplay) ShowProgress(percent float64, message string) {
 
 // ClearProgress clears the progress indicator from the terminal.
 func (td *TerminalDisplay) ClearProgress() {
+	td.progressMu.Lock()
+	defer td.progressMu.Unlock()
+
 	fmt.Print("\r\033[K") // Clear the current line
 }
 
@@ -336,6 +325,11 @@ func (td *TerminalDisplay) Display(_ context.Context, markdownContent string) er
 	// Get singleton renderer with current options
 	renderer, err := getGlamourRenderer(td.options)
 	if err != nil {
+		// Check if this is our sentinel error for raw markdown
+		if errors.Is(err, ErrRawMarkdown) {
+			fmt.Print(markdownContent)
+			return nil
+		}
 		// Fallback: print raw markdown if renderer creation fails
 		fmt.Print(markdownContent)
 		return fmt.Errorf("failed to create renderer, displaying raw markdown: %w", err)
@@ -347,7 +341,6 @@ func (td *TerminalDisplay) Display(_ context.Context, markdownContent string) er
 		return fmt.Errorf("failed to render markdown: %w", err)
 	}
 
-	// Output rendered content (replaces direct fmt.Print)
 	fmt.Print(out)
 
 	// Add navigation hints placeholder for future paging support
@@ -363,8 +356,13 @@ func (td *TerminalDisplay) DisplayWithProgress(_ context.Context, markdownConten
 	// Show initial progress
 	td.ShowProgress(0.0, "Starting display...")
 
+	// Use WaitGroup to synchronize with the progress goroutine
+	var wg sync.WaitGroup
+	wg.Add(1)
+
 	// Listen for progress events in a goroutine
 	go func() {
+		defer wg.Done()
 		for event := range progressCh {
 			td.ShowProgress(event.Percent, event.Message)
 		}
@@ -376,10 +374,21 @@ func (td *TerminalDisplay) DisplayWithProgress(_ context.Context, markdownConten
 	// Get singleton renderer with current options
 	renderer, err := getGlamourRenderer(td.options)
 	if err != nil {
+		// Check if this is our sentinel error for raw markdown
+		if errors.Is(err, ErrRawMarkdown) {
+			td.ShowProgress(1.0, "Displaying raw markdown...")
+			td.ClearProgress()
+			fmt.Print(markdownContent)
+			// Wait for progress goroutine to finish before returning
+			wg.Wait()
+			return nil
+		}
 		td.ShowProgress(1.0, "Displaying raw markdown...")
 		td.ClearProgress()
 		// Fallback: print raw markdown if renderer creation fails
 		fmt.Print(markdownContent)
+		// Wait for progress goroutine to finish before returning
+		wg.Wait()
 		return fmt.Errorf("failed to create renderer, displaying raw markdown: %w", err)
 	}
 
@@ -387,19 +396,23 @@ func (td *TerminalDisplay) DisplayWithProgress(_ context.Context, markdownConten
 	out, err := renderer.Render(markdownContent)
 	if err != nil {
 		td.ClearProgress()
+		// Wait for progress goroutine to finish before returning
+		wg.Wait()
 		return fmt.Errorf("failed to render markdown: %w", err)
 	}
 
 	td.ShowProgress(1.0, "Display complete!")
 	td.ClearProgress()
 
-	// Output rendered content (replaces direct fmt.Print)
 	fmt.Print(out)
 
 	// Add navigation hints placeholder for future paging support
 	if td.shouldShowNavigationHints() {
 		td.showNavigationHints()
 	}
+
+	// Wait for progress goroutine to finish before returning
+	wg.Wait()
 
 	return nil
 }
