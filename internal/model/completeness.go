@@ -82,11 +82,27 @@ func CheckModelCompleteness(filePath string) error {
 	// Get all XML paths from the map
 	xmlPaths := getAllXMLPaths(xmlMap, "")
 
+	// Strip the root element name from XML paths to match model paths
+	// The XML has "opnsense" as root, but our model paths don't include it
+	strippedXMLPaths := make(map[string]bool)
+	for path := range xmlPaths {
+		// Remove the "opnsense." prefix if it exists
+		if strings.HasPrefix(path, "opnsense.") {
+			strippedPath := strings.TrimPrefix(path, "opnsense.")
+			strippedXMLPaths[strippedPath] = true
+		} else if path == "opnsense" {
+			// Skip the root element itself
+			continue
+		} else {
+			strippedXMLPaths[path] = true
+		}
+	}
+
 	// Get all expected paths from our Go model
 	modelPaths := getModelPaths(reflect.TypeOf(OpnSenseDocument{}), "")
 
 	// Find missing paths (XML paths not in our model)
-	missingPaths := findMissingPaths(xmlPaths, modelPaths)
+	missingPaths := findMissingPaths(strippedXMLPaths, modelPaths)
 
 	if len(missingPaths) > 0 {
 		return fmt.Errorf("%w: %s: %d missing fields", ErrIncompleteModel, filePath, len(missingPaths))
@@ -244,6 +260,14 @@ func getModelPaths(t reflect.Type, prefix string) map[string]bool {
 
 		paths[currentPath] = true
 
+		// Also add version and UUID attributes if they exist at the top level
+		if strings.Contains(xmlTag, "version,attr") {
+			paths[currentPath+".-version"] = true
+		}
+		if strings.Contains(xmlTag, "uuid,attr") {
+			paths[currentPath+".-uuid"] = true
+		}
+
 		// Recursively process nested structs, pointers, and slices
 		if field.Type.Kind() == reflect.Struct || field.Type.Kind() == reflect.Ptr {
 			nestedPaths := getModelPaths(field.Type, currentPath)
@@ -256,6 +280,31 @@ func getModelPaths(t reflect.Type, prefix string) map[string]bool {
 			nestedPaths := getModelPaths(elementType, currentPath)
 			for path := range nestedPaths {
 				paths[path] = true
+			}
+		}
+
+		// For struct fields, also add the individual field paths
+		// This handles cases where we have a struct like Widgets with nested fields
+		if field.Type.Kind() == reflect.Struct {
+			// Add paths for each field in the nested struct
+			for i := 0; i < field.Type.NumField(); i++ {
+				nestedField := field.Type.Field(i)
+				nestedXMLTag := nestedField.Tag.Get("xml")
+				if nestedXMLTag != "" && nestedXMLTag != "-" {
+					nestedXMLName := strings.Split(nestedXMLTag, ",")[0]
+					if nestedXMLName != "" {
+						nestedPath := currentPath + "." + nestedXMLName
+						paths[nestedPath] = true
+
+						// Also add version and UUID attributes if they exist
+						if strings.Contains(nestedXMLTag, "version,attr") {
+							paths[nestedPath+".-version"] = true
+						}
+						if strings.Contains(nestedXMLTag, "uuid,attr") {
+							paths[nestedPath+".-uuid"] = true
+						}
+					}
+				}
 			}
 		}
 	}
@@ -281,6 +330,86 @@ func findMissingPaths(xmlPaths, modelPaths map[string]bool) []string {
 						if strings.HasPrefix(path, prefix) {
 							matched = true
 							break
+						}
+					}
+				}
+			}
+
+			// Check for various path formats that might be equivalent
+			if !matched {
+				// Check if the path without version attributes exists
+				if strings.Contains(path, ".-version") {
+					basePath := strings.ReplaceAll(path, ".-version", "")
+					if modelPaths[basePath] {
+						matched = true
+					}
+				}
+
+				// Check if the path without UUID attributes exists
+				if strings.Contains(path, ".-uuid") {
+					basePath := strings.ReplaceAll(path, ".-uuid", "")
+					if modelPaths[basePath] {
+						matched = true
+					}
+				}
+
+				// Check for XML parser vs model attribute path differences
+				// XML parser: element.-attribute
+				// Model: element.attribute.-attribute
+				if strings.Contains(path, ".-uuid") {
+					// Try converting from XML parser format to model format
+					parts := strings.Split(path, ".")
+					if len(parts) >= 2 {
+						lastPart := parts[len(parts)-1]
+						if lastPart == "-uuid" {
+							// Convert element.-uuid to element.uuid.-uuid
+							modelPath := strings.Join(parts[:len(parts)-1], ".") + ".uuid.-uuid"
+							if modelPaths[modelPath] {
+								matched = true
+							}
+							// Also try without the attribute suffix
+							basePath := strings.Join(parts[:len(parts)-1], ".") + ".uuid"
+							if modelPaths[basePath] {
+								matched = true
+							}
+						}
+					}
+				}
+
+				if strings.Contains(path, ".-version") {
+					// Try converting from XML parser format to model format
+					parts := strings.Split(path, ".")
+					if len(parts) >= 2 {
+						lastPart := parts[len(parts)-1]
+						if lastPart == "-version" {
+							// Convert element.-version to element.version.-version
+							modelPath := strings.Join(parts[:len(parts)-1], ".") + ".version.-version"
+							if modelPaths[modelPath] {
+								matched = true
+							}
+							// Also try without the attribute suffix
+							basePath := strings.Join(parts[:len(parts)-1], ".") + ".version"
+							if modelPaths[basePath] {
+								matched = true
+							}
+						}
+					}
+				}
+
+				// Check for parent path existence (for nested structs)
+				// Only do this if we haven't already matched the path
+				if !matched {
+					pathParts := strings.Split(path, ".")
+					if len(pathParts) > 1 {
+						// Check if any parent path exists
+						for i := 1; i < len(pathParts); i++ {
+							parentPath := strings.Join(pathParts[:i], ".")
+							if modelPaths[parentPath] {
+								// Parent exists, this is likely a valid nested field
+								// Keep it as missing for implementation
+								matched = false
+								break
+							}
 						}
 					}
 				}

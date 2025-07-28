@@ -165,7 +165,7 @@ type WireGuard struct {
 	} `xml:"client" json:"client,omitempty"`
 }
 
-// WireGuardServerItem represents an individual WireGuard server.
+// WireGuardServerItem represents a WireGuard server configuration.
 type WireGuardServerItem struct {
 	Text          string `xml:",chardata" json:"text,omitempty"`
 	UUID          string `xml:"uuid,attr" json:"uuid,omitempty"`
@@ -184,7 +184,7 @@ type WireGuardServerItem struct {
 	Peers         string `xml:"peers" json:"peers,omitempty"`
 }
 
-// WireGuardClientItem represents an individual WireGuard client.
+// WireGuardClientItem represents a WireGuard client configuration.
 type WireGuardClientItem struct {
 	Text          string `xml:",chardata" json:"text,omitempty"`
 	UUID          string `xml:"uuid,attr" json:"uuid,omitempty"`

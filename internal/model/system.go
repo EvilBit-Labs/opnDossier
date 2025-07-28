@@ -15,6 +15,7 @@ type SysctlItem struct {
 	Value   string `xml:"value" json:"value" yaml:"value" validate:"required"`
 	Key     string `xml:"key,omitempty" json:"key,omitempty" yaml:"key,omitempty"`
 	Secret  string `xml:"secret,omitempty" json:"secret,omitempty" yaml:"secret,omitempty"`
+	Item    string `xml:"item,omitempty" json:"item,omitempty" yaml:"item,omitempty"`
 }
 
 // System contains the system configuration.
@@ -73,11 +74,13 @@ type System struct {
 	LoadBalancer struct {
 		MonitorType []MonitorType `xml:"monitor_type"`
 	} `xml:"load_balancer" json:"loadBalancer,omitempty" yaml:"loadBalancer,omitempty"`
-	Widgets struct {
-		Sequence    string `xml:"sequence" json:"sequence,omitempty" yaml:"sequence,omitempty"`
-		ColumnCount string `xml:"column_count" json:"columnCount,omitempty" yaml:"columnCount,omitempty"`
-	} `xml:"widgets" json:"widgets,omitempty" yaml:"widgets,omitempty"`
 	Unbound Unbound `xml:"unbound" json:"unbound,omitempty" yaml:"unbound,omitempty"`
+}
+
+// Widgets represents the dashboard widgets configuration.
+type Widgets struct {
+	Sequence    string `xml:"sequence" json:"sequence,omitempty" yaml:"sequence,omitempty"`
+	ColumnCount string `xml:"column_count" json:"columnCount,omitempty" yaml:"columnCount,omitempty"`
 }
 
 // Group represents a user group.

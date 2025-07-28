@@ -22,6 +22,7 @@ type OpnSenseDocument struct {
 	Rrd                  Rrd                  `xml:"rrd,omitempty" json:"rrd,omitempty" yaml:"rrd,omitempty"`
 	LoadBalancer         LoadBalancer         `xml:"load_balancer,omitempty" json:"loadBalancer,omitempty" yaml:"loadBalancer,omitempty"`
 	Ntpd                 Ntpd                 `xml:"ntpd,omitempty" json:"ntpd,omitempty" yaml:"ntpd,omitempty"`
+	Widgets              Widgets              `xml:"widgets,omitempty" json:"widgets,omitempty" yaml:"widgets,omitempty"`
 	Revision             Revision             `xml:"revision,omitempty" json:"revision,omitempty" yaml:"revision,omitempty"`
 	Gateways             Gateways             `xml:"gateways,omitempty" json:"gateways,omitempty" yaml:"gateways,omitempty"`
 	HighAvailabilitySync HighAvailabilitySync `xml:"hasync,omitempty" json:"hasync,omitempty" yaml:"hasync,omitempty"`
@@ -40,12 +41,12 @@ type OpnSenseDocument struct {
 	DHCPv6Server         DHCPv6Server         `xml:"dhcpdv6,omitempty" json:"dhcpdv6,omitempty" yaml:"dhcpdv6,omitempty"`
 	DNSMasquerade        DNSMasq              `xml:"dnsmasq,omitempty" json:"dnsmasq,omitempty" yaml:"dnsmasq,omitempty"`
 	Syslog               Syslog               `xml:"syslog,omitempty" json:"syslog,omitempty" yaml:"syslog,omitempty"`
-	OPNsense             OPNsense             `xml:"opnsense,omitempty" json:"opnsense,omitempty" yaml:"opnsense,omitempty"`
+	OPNsense             OPNsense             `xml:"OPNsense,omitempty" json:"opnsense,omitempty" yaml:"opnsense,omitempty"`
 }
 
 // OPNsense represents the main OPNsense system configuration.
 type OPNsense struct {
-	XMLName xml.Name `xml:"opnsense"`
+	XMLName xml.Name `xml:"OPNsense"`
 	Text    string   `xml:",chardata" json:"text,omitempty"`
 
 	Captiveportal struct {
@@ -98,37 +99,31 @@ type OPNsense struct {
 
 	// DHCP components
 	Kea struct {
-		Text      string `xml:",chardata" json:"text,omitempty"`
-		CtrlAgent struct {
-			Text    string `xml:",chardata" json:"text,omitempty"`
-			Version string `xml:"version,attr" json:"version,omitempty"`
-			General struct {
-				Text     string `xml:",chardata" json:"text,omitempty"`
-				Enabled  string `xml:"enabled"`
-				HTTPHost string `xml:"http_host"`
-				HTTPPort string `xml:"http_port"`
-			} `xml:"general" json:"general"`
-		} `xml:"ctrl_agent" json:"ctrlAgent"`
-		Dhcp4 struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+		Dhcp4   struct {
 			Text    string `xml:",chardata" json:"text,omitempty"`
 			Version string `xml:"version,attr" json:"version,omitempty"`
 			General struct {
 				Text          string `xml:",chardata" json:"text,omitempty"`
 				Enabled       string `xml:"enabled"`
-				Interfaces    string `xml:"interfaces"`
-				ValidLifetime string `xml:"valid_lifetime"`
 				FirewallRules string `xml:"fwrules"`
+				ValidLifetime string `xml:"valid_lifetime"`
 			} `xml:"general" json:"general"`
 			HighAvailability struct {
 				Text              string `xml:",chardata" json:"text,omitempty"`
 				Enabled           string `xml:"enabled"`
-				ThisServerName    string `xml:"this_server_name"`
 				MaxUnackedClients string `xml:"max_unacked_clients"`
 			} `xml:"ha" json:"ha"`
-			Subnets      string `xml:"subnets"`
-			Reservations string `xml:"reservations"`
-			HaPeers      string `xml:"ha_peers"`
 		} `xml:"dhcp4" json:"dhcp4"`
+		CtrlAgent struct {
+			Text    string `xml:",chardata" json:"text,omitempty"`
+			Version string `xml:"version,attr" json:"version,omitempty"`
+			General struct {
+				Text     string `xml:",chardata" json:"text,omitempty"`
+				HTTPPort string `xml:"http_port"`
+			} `xml:"general" json:"general"`
+		} `xml:"ctrl_agent" json:"ctrlAgent"`
 	} `xml:"Kea" json:"kea"`
 
 	// Other system components
@@ -136,6 +131,18 @@ type OPNsense struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Version string `xml:"version,attr" json:"version,omitempty"`
 	} `xml:"Gateways" json:"gateways"`
+
+	Netflow struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+		Capture struct {
+			Text       string `xml:",chardata" json:"text,omitempty"`
+			EgressOnly string `xml:"egress_only"`
+			Targets    string `xml:"targets"`
+		} `xml:"capture" json:"capture"`
+		InactiveTimeout string `xml:"inactiveTimeout"`
+		ActiveTimeout   string `xml:"activeTimeout"`
+	} `xml:"Netflow" json:"netflow"`
 
 	Syslog struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`

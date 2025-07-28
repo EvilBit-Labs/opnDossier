@@ -47,11 +47,11 @@ type MonitorType struct {
 
 // Options contains the options for a load balancer monitor type.
 type Options struct {
-	Path   string `xml:"path"`
-	Host   string `xml:"host"`
-	Code   string `xml:"code"`
-	Send   string `xml:"send"`
-	Expect string `xml:"expect"`
+	Path   string `xml:"path,omitempty"`
+	Host   string `xml:"host,omitempty"`
+	Code   string `xml:"code,omitempty"`
+	Send   string `xml:"send,omitempty"`
+	Expect string `xml:"expect,omitempty"`
 }
 
 // Ntpd contains the NTP daemon configuration.

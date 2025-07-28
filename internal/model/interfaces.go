@@ -181,6 +181,13 @@ type Interface struct {
 	Winsserver          string       `xml:"winsserver,omitempty" json:"winsserver,omitempty" yaml:"winsserver,omitempty"`
 	Dnsserver           string       `xml:"dnsserver,omitempty" json:"dnsserver,omitempty" yaml:"dnsserver,omitempty"`
 	Ntpserver           string       `xml:"ntpserver,omitempty" json:"ntpserver,omitempty" yaml:"ntpserver,omitempty"`
+
+	// Advanced DHCP fields for interfaces
+	AdvDHCPRequestOptions                    string `xml:"adv_dhcp_request_options,omitempty" json:"advDhcpRequestOptions,omitempty" yaml:"advDhcpRequestOptions,omitempty"`
+	AdvDHCPRequiredOptions                   string `xml:"adv_dhcp_required_options,omitempty" json:"advDhcpRequiredOptions,omitempty" yaml:"advDhcpRequiredOptions,omitempty"`
+	AdvDHCP6InterfaceStatementRequestOptions string `xml:"adv_dhcp6_interface_statement_request_options,omitempty" json:"advDhcp6InterfaceStatementRequestOptions,omitempty" yaml:"advDhcp6InterfaceStatementRequestOptions,omitempty"`
+	AdvDHCP6ConfigFileOverride               string `xml:"adv_dhcp6_config_file_override,omitempty" json:"advDhcp6ConfigFileOverride,omitempty" yaml:"advDhcp6ConfigFileOverride,omitempty"`
+	AdvDHCP6IDAssocStatementPrefixPLTime     string `xml:"adv_dhcp6_id_assoc_statement_prefix_pltime,omitempty" json:"advDhcp6IdAssocStatementPrefixPltime,omitempty" yaml:"advDhcp6IdAssocStatementPrefixPltime,omitempty"`
 }
 
 // VLANConfig represents a Virtual Local Area Network configuration for network config.
