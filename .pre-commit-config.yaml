@@ -1,7 +1,7 @@
 # .pre-commit-config.yaml
 
 repos:
-    # 🧼 Standard Python code cleanup hooks
+    # Standard Python code cleanup hooks
     - repo: https://github.com/pre-commit/pre-commit-hooks
       rev: v5.0.0
       hooks:
@@ -31,7 +31,7 @@ repos:
       hooks:
         - id: shellcheck
 
-    # 📝 Commit message linting via commitlint
+    # Commit message linting via commitlint
     - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
       rev: v9.22.0
       hooks:

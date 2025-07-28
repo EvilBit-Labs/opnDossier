@@ -1,6 +1,7 @@
 package display
 
 import (
+	"context"
 	"os"
 	"strings"
 	"testing"
@@ -202,7 +203,7 @@ func TestDisplayWithProgressGoroutineLeakFix(t *testing.T) {
 	// Start the display in a goroutine
 	done := make(chan error, 1)
 	go func() {
-		err := td.DisplayWithProgress(nil, "# Test Markdown", progressCh)
+		err := td.DisplayWithProgress(context.Background(), "# Test Markdown", progressCh)
 		done <- err
 	}()
 
@@ -248,7 +249,7 @@ func TestDisplayRawMarkdownWhenColorsDisabled(t *testing.T) {
 	}()
 
 	// Run display
-	err = td.Display(nil, markdownContent)
+	err = td.Display(context.Background(), markdownContent)
 	require.NoError(t, err)
 
 	// Close write end and read output
@@ -299,7 +300,7 @@ func TestDisplayWithANSIWhenColorsEnabled(t *testing.T) {
 	}()
 
 	// Run display
-	err = td.Display(nil, markdownContent)
+	err = td.Display(context.Background(), markdownContent)
 	require.NoError(t, err)
 
 	// Close write end and read output
@@ -351,7 +352,7 @@ func TestDisplayWithProgressRawMarkdownWhenColorsDisabled(t *testing.T) {
 	// Run display with progress
 	done := make(chan error, 1)
 	go func() {
-		err := td.DisplayWithProgress(nil, markdownContent, progressCh)
+		err := td.DisplayWithProgress(context.Background(), markdownContent, progressCh)
 		done <- err
 	}()
 
@@ -423,7 +424,7 @@ func TestDisplayWithProgressANSIWhenColorsEnabled(t *testing.T) {
 	// Run display with progress
 	done := make(chan error, 1)
 	go func() {
-		err := td.DisplayWithProgress(nil, markdownContent, progressCh)
+		err := td.DisplayWithProgress(context.Background(), markdownContent, progressCh)
 		done <- err
 	}()
 
