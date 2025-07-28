@@ -5,10 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"text/template"
 	"time"
 
+	"github.com/Masterminds/sprig/v3"
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 
 	"github.com/charmbracelet/glamour"
@@ -28,48 +28,21 @@ type markdownGenerator struct {
 
 // NewMarkdownGenerator returns an instance of the default markdownGenerator implementation.
 func NewMarkdownGenerator() (Generator, error) {
-	// Create template with custom functions
-	funcMap := template.FuncMap{
-		"isLast": func(index, slice interface{}) bool {
-			switch s := slice.(type) {
-			case map[string]interface{}:
-				// For maps, we can't determine order, so always return false for now
-				return false
-			case []interface{}:
-				if i, ok := index.(int); ok {
-					return i == len(s)-1
-				}
-			}
+	// Create template with sprig functions
+	funcMap := sprig.FuncMap()
+
+	// Add custom functions that aren't provided by sprig
+	funcMap["isLast"] = func(index, slice interface{}) bool {
+		switch s := slice.(type) {
+		case map[string]interface{}:
+			// For maps, we can't determine order, so always return false for now
 			return false
-		},
-		"join": strings.Join,
-		"add": func(a, b int) int {
-			return a + b
-		},
-		"title": func(s string) string {
-			if s == "" {
-				return s
+		case []interface{}:
+			if i, ok := index.(int); ok {
+				return i == len(s)-1
 			}
-			return strings.ToUpper(s[:1]) + s[1:]
-		},
-		"len": func(v interface{}) int {
-			switch s := v.(type) {
-			case []interface{}:
-				return len(s)
-			case map[string]interface{}:
-				return len(s)
-			case string:
-				return len(s)
-			default:
-				return 0
-			}
-		},
-		"eq": func(a, b interface{}) bool {
-			return a == b
-		},
-		"or": func(a, b bool) bool {
-			return a || b
-		},
+		}
+		return false
 	}
 
 	// Try multiple possible paths for templates
