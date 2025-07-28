@@ -39,7 +39,7 @@ func NewConverterAdapterWithOptions(opts Options) (*ConverterAdapter, error) {
 
 // ToMarkdown converts an OPNsense configuration to markdown using the new Generator API.
 // This method implements the converter.Converter interface.
-func (a *ConverterAdapter) ToMarkdown(ctx context.Context, opnsense *model.Opnsense) (string, error) {
+func (a *ConverterAdapter) ToMarkdown(ctx context.Context, opnsense *model.OpnSenseDocument) (string, error) {
 	return a.generator.Generate(ctx, opnsense, a.opts)
 }
 

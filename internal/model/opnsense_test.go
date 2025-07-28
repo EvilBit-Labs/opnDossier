@@ -18,7 +18,7 @@ import (
 // ErrUnsupportedCharset is returned when an unsupported charset is encountered.
 var ErrUnsupportedCharset = errors.New("unsupported charset")
 
-func TestOpnsenseModel_XMLUnmarshalling(t *testing.T) {
+func TestOpnSenseDocumentModel_XMLUnmarshalling(t *testing.T) {
 	// Test that XML unmarshalling still works with the refactored model
 	xmlData := `<opnsense>
 		<version>1.2.3</version>
@@ -64,7 +64,7 @@ func TestOpnsenseModel_XMLUnmarshalling(t *testing.T) {
 		</sysctl>
 	</opnsense>`
 
-	var opnsense Opnsense
+	var opnsense OpnSenseDocument
 	err := xml.Unmarshal([]byte(xmlData), &opnsense)
 	require.NoError(t, err)
 
@@ -106,8 +106,8 @@ func TestOpnsenseModel_XMLUnmarshalling(t *testing.T) {
 	assert.Equal(t, "1", sysctl.Value)
 }
 
-func TestOpnsenseModel_HelperMethods(t *testing.T) {
-	opnsense := Opnsense{
+func TestOpnSenseDocumentModel_HelperMethods(t *testing.T) {
+	opnsense := OpnSenseDocument{
 		System: System{
 			Hostname: "test-hostname",
 		},
@@ -147,8 +147,8 @@ func TestOpnsenseModel_HelperMethods(t *testing.T) {
 	assert.Equal(t, "Test rule 2", rules[1].Descr)
 }
 
-func TestOpnsenseModel_ConfigGroupHelpers(t *testing.T) {
-	opnsense := Opnsense{
+func TestOpnSenseDocumentModel_ConfigGroupHelpers(t *testing.T) {
+	opnsense := OpnSenseDocument{
 		System: System{
 			Hostname: "test-hostname",
 			Domain:   "test.local",
@@ -199,11 +199,11 @@ func TestOpnsenseModel_ConfigGroupHelpers(t *testing.T) {
 	assert.Equal(t, "1", lanDhcp.Enable)
 }
 
-func TestOpnsenseModel_Validation(t *testing.T) {
+func TestOpnSenseDocumentModel_Validation(t *testing.T) {
 	validate := validator.New()
 
 	// Test valid configuration
-	validConfig := Opnsense{
+	validConfig := OpnSenseDocument{
 		System: System{
 			Hostname: "test-host",
 			Domain:   "test.local",
@@ -225,7 +225,7 @@ func TestOpnsenseModel_Validation(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Test invalid configuration - missing required fields
-	invalidConfig := Opnsense{
+	invalidConfig := OpnSenseDocument{
 		Sysctl: []SysctlItem{
 			{Tunable: "", Value: ""}, // Empty required fields
 		},
@@ -259,15 +259,15 @@ func TestSysctlItem_Validation(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// TestOpnsenseModel_XMLUnmarshalFromFile tests XML unmarshalling from the sample testdata file.
-func TestOpnsenseModel_XMLUnmarshalFromFile(t *testing.T) {
+// TestOpnSenseDocumentModel_XMLUnmarshalFromFile tests XML unmarshalling from the sample testdata file.
+func TestOpnSenseDocumentModel_XMLUnmarshalFromFile(t *testing.T) {
 	// Read the sample XML file
 	xmlPath := filepath.Join("..", "..", "testdata", "sample.config.1.xml")
 	xmlData, err := os.ReadFile(xmlPath)
 	require.NoError(t, err, "Failed to read testdata XML file")
 
 	// Unmarshal into struct
-	var opnsense Opnsense
+	var opnsense OpnSenseDocument
 	err = xml.Unmarshal(xmlData, &opnsense)
 	require.NoError(t, err, "XML unmarshalling should succeed")
 
@@ -305,18 +305,18 @@ func TestOpnsenseModel_XMLUnmarshalFromFile(t *testing.T) {
 	assert.Equal(t, "ICMP", opnsense.LoadBalancer.MonitorType[0].Name)
 }
 
-// TestOpnsenseModel_MissingRequiredFieldsValidation tests that validation catches missing required fields.
-func TestOpnsenseModel_MissingRequiredFieldsValidation(t *testing.T) {
+// TestOpnSenseDocumentModel_MissingRequiredFieldsValidation tests that validation catches missing required fields.
+func TestOpnSenseDocumentModel_MissingRequiredFieldsValidation(t *testing.T) {
 	validate := validator.New()
 
 	tests := []struct {
 		name    string
-		config  Opnsense
+		config  OpnSenseDocument
 		wantErr bool
 	}{
 		{
 			name: "Missing hostname in system",
-			config: Opnsense{
+			config: OpnSenseDocument{
 				System: System{
 					Domain: "test.local",
 					Webgui: Webgui{Protocol: "https"},
@@ -333,7 +333,7 @@ func TestOpnsenseModel_MissingRequiredFieldsValidation(t *testing.T) {
 		},
 		{
 			name: "Missing domain in system",
-			config: Opnsense{
+			config: OpnSenseDocument{
 				System: System{
 					Hostname: "test-host",
 					Webgui:   Webgui{Protocol: "https"},
@@ -350,7 +350,7 @@ func TestOpnsenseModel_MissingRequiredFieldsValidation(t *testing.T) {
 		},
 		{
 			name: "Missing webgui protocol",
-			config: Opnsense{
+			config: OpnSenseDocument{
 				System: System{
 					Hostname: "test-host",
 					Domain:   "test.local",
@@ -367,7 +367,7 @@ func TestOpnsenseModel_MissingRequiredFieldsValidation(t *testing.T) {
 		},
 		{
 			name: "Missing SSH group",
-			config: Opnsense{
+			config: OpnSenseDocument{
 				System: System{
 					Hostname: "test-host",
 					Domain:   "test.local",
@@ -384,7 +384,7 @@ func TestOpnsenseModel_MissingRequiredFieldsValidation(t *testing.T) {
 		},
 		{
 			name: "Missing sysctl tunable",
-			config: Opnsense{
+			config: OpnSenseDocument{
 				System: System{
 					Hostname: "test-host",
 					Domain:   "test.local",
@@ -405,7 +405,7 @@ func TestOpnsenseModel_MissingRequiredFieldsValidation(t *testing.T) {
 		},
 		{
 			name: "Missing sysctl value",
-			config: Opnsense{
+			config: OpnSenseDocument{
 				System: System{
 					Hostname: "test-host",
 					Domain:   "test.local",
@@ -426,7 +426,7 @@ func TestOpnsenseModel_MissingRequiredFieldsValidation(t *testing.T) {
 		},
 		{
 			name: "Valid complete configuration",
-			config: Opnsense{
+			config: OpnSenseDocument{
 				System: System{
 					Hostname: "test-host",
 					Domain:   "test.local",
@@ -459,8 +459,8 @@ func TestOpnsenseModel_MissingRequiredFieldsValidation(t *testing.T) {
 	}
 }
 
-// TestOpnsenseModel_XMLUnmarshalInvalid tests handling of invalid XML.
-func TestOpnsenseModel_XMLUnmarshalInvalid(t *testing.T) {
+// TestOpnSenseDocumentModel_XMLUnmarshalInvalid tests handling of invalid XML.
+func TestOpnSenseDocumentModel_XMLUnmarshalInvalid(t *testing.T) {
 	tests := []struct {
 		name    string
 		xmlData string
@@ -485,7 +485,7 @@ func TestOpnsenseModel_XMLUnmarshalInvalid(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var opnsense Opnsense
+			var opnsense OpnSenseDocument
 			err := xml.Unmarshal([]byte(tt.xmlData), &opnsense)
 			if tt.wantErr {
 				assert.Error(t, err, "Expected XML unmarshalling error for %s", tt.name)
@@ -496,10 +496,10 @@ func TestOpnsenseModel_XMLUnmarshalInvalid(t *testing.T) {
 	}
 }
 
-// TestOpnsenseModel_EdgeCases tests edge cases in the model.
-func TestOpnsenseModel_EdgeCases(t *testing.T) {
+// TestOpnSenseDocumentModel_EdgeCases tests edge cases in the model.
+func TestOpnSenseDocumentModel_EdgeCases(t *testing.T) {
 	t.Run("Empty opnsense struct", func(t *testing.T) {
-		opnsense := Opnsense{}
+		opnsense := OpnSenseDocument{}
 
 		// Should not panic and return empty values
 		assert.Equal(t, "", opnsense.Hostname())
@@ -525,7 +525,7 @@ func TestOpnsenseModel_EdgeCases(t *testing.T) {
 
 	t.Run("Nil pointer safety", func(t *testing.T) {
 		// Test that helper methods don't panic with partially initialized structs
-		opnsense := Opnsense{
+		opnsense := OpnSenseDocument{
 			System: System{Hostname: "test"},
 			// Interfaces not initialized
 		}
@@ -536,7 +536,7 @@ func TestOpnsenseModel_EdgeCases(t *testing.T) {
 
 	t.Run("InterfaceByName reflection-based search", func(t *testing.T) {
 		// Test that InterfaceByName works with reflection-based field discovery
-		opnsense := Opnsense{
+		opnsense := OpnSenseDocument{
 			Interfaces: Interfaces{
 				Items: map[string]Interface{
 					"wan": {If: "em0", IPAddr: "dhcp"},
@@ -566,7 +566,7 @@ func TestOpnsenseModel_EdgeCases(t *testing.T) {
 	})
 }
 
-func TestOpnsenseModel_XMLCoverage(t *testing.T) {
+func TestOpnSenseDocumentModel_XMLCoverage(t *testing.T) {
 	testDir := "../../testdata"
 	files, err := os.ReadDir(testDir)
 	if err != nil {
@@ -604,7 +604,7 @@ func TestOpnsenseModel_XMLCoverage(t *testing.T) {
 				}
 			}
 
-			var config Opnsense
+			var config OpnSenseDocument
 			err = decoder.Decode(&config)
 			if err != nil {
 				t.Errorf("failed to unmarshal %s: %v", file, err)

@@ -199,6 +199,9 @@ opnfocus/
 
 ### 3.9. Key Implementation Patterns
 
+> [!NOTE]
+> The user prefers to use well maintained 3rd party libraries and frameworks over custom solutions.
+
 #### Configuration Management
 
 **Note for AI Assistants**: `viper` is used for managing the opnFocus application's own configuration (CLI settings, display preferences, etc.), not for parsing OPNsense config.xml files. The OPNsense configuration parsing is handled separately by the XML parser in `internal/parser/`.

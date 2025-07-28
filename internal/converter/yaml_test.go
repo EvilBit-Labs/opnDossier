@@ -13,7 +13,7 @@ import (
 func TestYAMLConverter_ToYAML(t *testing.T) {
 	tests := []struct {
 		name      string
-		opnsense  *model.Opnsense
+		opnsense  *model.OpnSenseDocument
 		wantErr   bool
 		errType   error
 		checkYAML bool
@@ -22,11 +22,11 @@ func TestYAMLConverter_ToYAML(t *testing.T) {
 			name:     "nil opnsense",
 			opnsense: nil,
 			wantErr:  true,
-			errType:  ErrNilOpnsense,
+			errType:  ErrNilOpnSenseDocument,
 		},
 		{
 			name: "valid opnsense",
-			opnsense: &model.Opnsense{
+			opnsense: &model.OpnSenseDocument{
 				Version: "1.0.0",
 				System: model.System{
 					Hostname: "test-host",

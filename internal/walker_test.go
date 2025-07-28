@@ -12,7 +12,7 @@ import (
 
 func TestWalk_BasicStructure(t *testing.T) {
 	// Create a minimal OPNsense configuration
-	opnsense := model.Opnsense{
+	opnsense := model.OpnSenseDocument{
 		Version: "1.0",
 		System: model.System{
 			Hostname: "firewall.local",
@@ -61,7 +61,7 @@ func TestWalk_BasicStructure(t *testing.T) {
 
 func TestWalk_DepthLimiting(t *testing.T) {
 	// Create a structure that would go beyond level 6
-	opnsense := model.Opnsense{
+	opnsense := model.OpnSenseDocument{
 		System: model.System{
 			Webgui: model.Webgui{
 				Protocol: "https",
@@ -92,7 +92,7 @@ func TestWalk_DepthLimiting(t *testing.T) {
 
 func TestWalk_EmptyStructHandling(t *testing.T) {
 	// Create OPNsense config with empty struct fields
-	opnsense := model.Opnsense{
+	opnsense := model.OpnSenseDocument{
 		System: model.System{
 			Hostname:           "test.local",
 			Domain:             "test.com",
@@ -127,7 +127,7 @@ func TestWalk_EmptyStructHandling(t *testing.T) {
 
 func TestWalk_SliceHandling(t *testing.T) {
 	// Create OPNsense config with slice fields
-	opnsense := model.Opnsense{
+	opnsense := model.OpnSenseDocument{
 		Sysctl: []model.SysctlItem{
 			{
 				Tunable: "net.inet.tcp.rfc3390",
@@ -174,7 +174,7 @@ func TestWalk_SliceHandling(t *testing.T) {
 
 func TestWalk_MapHandling(t *testing.T) {
 	// Create OPNsense config with map-like structures (Interfaces)
-	opnsense := model.Opnsense{
+	opnsense := model.OpnSenseDocument{
 		Interfaces: model.Interfaces{
 			Items: map[string]model.Interface{
 				"wan": {
@@ -252,7 +252,7 @@ func TestWalk_MapHandling(t *testing.T) {
 
 func TestWalk_XMLNameSkipping(t *testing.T) {
 	// Create OPNsense config to test that XMLName fields are skipped
-	opnsense := model.Opnsense{
+	opnsense := model.OpnSenseDocument{
 		XMLName: xml.Name{Local: "opnsense"},
 		Version: "1.0",
 		System: model.System{

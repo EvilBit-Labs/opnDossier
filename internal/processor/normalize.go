@@ -9,7 +9,7 @@ import (
 )
 
 // normalize normalizes the given OPNsense configuration by filling defaults, canonicalizing IP/CIDR, and sorting slices for determinism.
-func (p *CoreProcessor) normalize(cfg *model.Opnsense) *model.Opnsense {
+func (p *CoreProcessor) normalize(cfg *model.OpnSenseDocument) *model.OpnSenseDocument {
 	// Create a copy to avoid modifying the original
 	normalized := *cfg
 
@@ -26,7 +26,7 @@ func (p *CoreProcessor) normalize(cfg *model.Opnsense) *model.Opnsense {
 }
 
 // fillDefaults fills in default values for missing configuration elements.
-func (p *CoreProcessor) fillDefaults(cfg *model.Opnsense) {
+func (p *CoreProcessor) fillDefaults(cfg *model.OpnSenseDocument) {
 	// Fill system defaults
 	if cfg.System.Optimization == "" {
 		cfg.System.Optimization = "normal"
@@ -57,7 +57,7 @@ func (p *CoreProcessor) fillDefaults(cfg *model.Opnsense) {
 }
 
 // canonicalizeAddresses canonicalizes IP addresses and CIDR notation for consistency.
-func (p *CoreProcessor) canonicalizeAddresses(cfg *model.Opnsense) {
+func (p *CoreProcessor) canonicalizeAddresses(cfg *model.OpnSenseDocument) {
 	// Note: Interface canonicalization is skipped due to model API limitations.
 	// The current model returns interfaces by value from functions, making them
 	// read-only. Consider model changes if interface address canonicalization is needed.
@@ -93,7 +93,7 @@ func (p *CoreProcessor) canonicalizeAddresses(cfg *model.Opnsense) {
 }
 
 // sortSlices sorts all slices in the configuration for deterministic output.
-func (p *CoreProcessor) sortSlices(cfg *model.Opnsense) {
+func (p *CoreProcessor) sortSlices(cfg *model.OpnSenseDocument) {
 	// Sort users by name
 	sort.Slice(cfg.System.User, func(i, j int) bool {
 		return cfg.System.User[i].Name < cfg.System.User[j].Name

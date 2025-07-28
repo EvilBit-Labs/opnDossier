@@ -10,7 +10,7 @@ import (
 )
 
 // analyze performs comprehensive analysis of the OPNsense configuration based on enabled options.
-func (p *CoreProcessor) analyze(_ context.Context, cfg *model.Opnsense, config *Config, report *Report) {
+func (p *CoreProcessor) analyze(_ context.Context, cfg *model.OpnSenseDocument, config *Config, report *Report) {
 	// Dead rule detection
 	if config.EnableDeadRuleCheck {
 		p.analyzeDeadRules(cfg, report)
@@ -38,7 +38,7 @@ func (p *CoreProcessor) analyze(_ context.Context, cfg *model.Opnsense, config *
 }
 
 // analyzeDeadRules detects firewall rules that are never hit or are effectively dead.
-func (p *CoreProcessor) analyzeDeadRules(cfg *model.Opnsense, report *Report) {
+func (p *CoreProcessor) analyzeDeadRules(cfg *model.OpnSenseDocument, report *Report) {
 	rules := cfg.FilterRules()
 	if len(rules) == 0 {
 		return
@@ -148,7 +148,7 @@ func (p *CoreProcessor) getDestinationString(_ model.Destination) string {
 }
 
 // analyzeUnusedInterfaces detects interfaces that are defined but not used in rules or services.
-func (p *CoreProcessor) analyzeUnusedInterfaces(cfg *model.Opnsense, report *Report) {
+func (p *CoreProcessor) analyzeUnusedInterfaces(cfg *model.OpnSenseDocument, report *Report) {
 	// Track which interfaces are used
 	usedInterfaces := make(map[string]bool)
 
@@ -197,7 +197,7 @@ func (p *CoreProcessor) analyzeUnusedInterfaces(cfg *model.Opnsense, report *Rep
 }
 
 // analyzeConsistency performs consistency checks across the configuration.
-func (p *CoreProcessor) analyzeConsistency(cfg *model.Opnsense, report *Report) {
+func (p *CoreProcessor) analyzeConsistency(cfg *model.OpnSenseDocument, report *Report) {
 	// Check if gateways referenced in interfaces exist
 	p.checkGatewayConsistency(cfg, report)
 
@@ -209,7 +209,7 @@ func (p *CoreProcessor) analyzeConsistency(cfg *model.Opnsense, report *Report) 
 }
 
 // checkGatewayConsistency verifies that gateways referenced in interfaces are properly configured.
-func (p *CoreProcessor) checkGatewayConsistency(cfg *model.Opnsense, report *Report) {
+func (p *CoreProcessor) checkGatewayConsistency(cfg *model.OpnSenseDocument, report *Report) {
 	// For now, just check if gateway IPs are valid when specified
 	interfaces := map[string]model.Interface{}
 	if wan, ok := cfg.Interfaces.Wan(); ok {
@@ -237,7 +237,7 @@ func (p *CoreProcessor) checkGatewayConsistency(cfg *model.Opnsense, report *Rep
 }
 
 // checkDHCPConsistency verifies DHCP configuration consistency with interface settings.
-func (p *CoreProcessor) checkDHCPConsistency(cfg *model.Opnsense, report *Report) {
+func (p *CoreProcessor) checkDHCPConsistency(cfg *model.OpnSenseDocument, report *Report) {
 	// Check LAN DHCP configuration
 	if lanDhcp, exists := cfg.Dhcpd.Lan(); exists && lanDhcp.Enable != "" && lanDhcp.Range.From != "" && lanDhcp.Range.To != "" {
 		if lan, ok := cfg.Interfaces.Lan(); ok && lan.IPAddr == "" {
@@ -253,7 +253,7 @@ func (p *CoreProcessor) checkDHCPConsistency(cfg *model.Opnsense, report *Report
 }
 
 // checkUserGroupConsistency verifies user and group relationships.
-func (p *CoreProcessor) checkUserGroupConsistency(cfg *model.Opnsense, report *Report) {
+func (p *CoreProcessor) checkUserGroupConsistency(cfg *model.OpnSenseDocument, report *Report) {
 	// Build set of existing groups
 	existingGroups := make(map[string]bool)
 	for _, group := range cfg.System.Group {
@@ -275,7 +275,7 @@ func (p *CoreProcessor) checkUserGroupConsistency(cfg *model.Opnsense, report *R
 }
 
 // analyzeSecurityIssues performs security-focused analysis.
-func (p *CoreProcessor) analyzeSecurityIssues(cfg *model.Opnsense, report *Report) {
+func (p *CoreProcessor) analyzeSecurityIssues(cfg *model.OpnSenseDocument, report *Report) {
 	// Check for weak configurations
 	if cfg.System.Webgui.Protocol == "http" {
 		report.AddFinding(SeverityCritical, Finding{
@@ -316,7 +316,7 @@ func (p *CoreProcessor) analyzeSecurityIssues(cfg *model.Opnsense, report *Repor
 }
 
 // analyzePerformanceIssues performs performance-focused analysis.
-func (p *CoreProcessor) analyzePerformanceIssues(cfg *model.Opnsense, report *Report) {
+func (p *CoreProcessor) analyzePerformanceIssues(cfg *model.OpnSenseDocument, report *Report) {
 	// Check for suboptimal hardware settings
 	if cfg.System.DisableChecksumOffloading != "" {
 		report.AddFinding(SeverityLow, Finding{

@@ -14,9 +14,11 @@ type ServiceConfig struct {
 	SSH          SSH          `json:"ssh,omitempty" yaml:"ssh,omitempty"`
 }
 
-// Unbound contains the Unbound DNS resolver configuration.
+// Unbound represents the Unbound DNS resolver configuration.
 type Unbound struct {
-	Enable string `xml:"enable"`
+	Enable         string `xml:"enable" json:"enable" yaml:"enable"`
+	Dnssec         string `xml:"dnssec,omitempty" json:"dnssec,omitempty" yaml:"dnssec,omitempty"`
+	Dnssecstripped string `xml:"dnssecstripped,omitempty" json:"dnssecstripped,omitempty" yaml:"dnssecstripped,omitempty"`
 }
 
 // Snmpd contains the SNMP daemon configuration.
@@ -123,9 +125,81 @@ type Syslog struct {
 	Updated       string   `xml:"updated,omitempty"`
 }
 
-// Constructor functions for service models
+// Monit represents system monitoring configuration.
+type Monit struct {
+	XMLName xml.Name `xml:"monit"`
+	Text    string   `xml:",chardata" json:"text,omitempty"`
+	Version string   `xml:"version,attr" json:"version,omitempty"`
+	General struct {
+		Text                      string `xml:",chardata" json:"text,omitempty"`
+		Enabled                   string `xml:"enabled"`
+		Interval                  string `xml:"interval"`
+		Startdelay                string `xml:"startdelay"`
+		Mailserver                string `xml:"mailserver"`
+		Port                      string `xml:"port"`
+		Username                  string `xml:"username"`
+		Password                  string `xml:"password"`
+		Ssl                       string `xml:"ssl"`
+		Sslversion                string `xml:"sslversion"`
+		Sslverify                 string `xml:"sslverify"`
+		Logfile                   string `xml:"logfile"`
+		Statefile                 string `xml:"statefile"`
+		EventqueuePath            string `xml:"eventqueuePath"`
+		EventqueueSlots           string `xml:"eventqueueSlots"`
+		HttpdEnabled              string `xml:"httpdEnabled"`
+		HttpdUsername             string `xml:"httpdUsername"`
+		HttpdPassword             string `xml:"httpdPassword"`
+		HttpdPort                 string `xml:"httpdPort"`
+		HttpdAllow                string `xml:"httpdAllow"`
+		MmonitURL                 string `xml:"mmonitUrl"`
+		MmonitTimeout             string `xml:"mmonitTimeout"`
+		MmonitRegisterCredentials string `xml:"mmonitRegisterCredentials"`
+	} `xml:"general" json:"general,omitempty"`
+	Alert struct {
+		Text        string `xml:",chardata" json:"text,omitempty"`
+		UUID        string `xml:"uuid,attr" json:"uuid,omitempty"`
+		Enabled     string `xml:"enabled"`
+		Recipient   string `xml:"recipient"`
+		Noton       string `xml:"noton"`
+		Events      string `xml:"events"`
+		Format      string `xml:"format"`
+		Reminder    string `xml:"reminder"`
+		Description string `xml:"description"`
+	} `xml:"alert" json:"alert,omitempty"`
+	Service []struct {
+		Text         string `xml:",chardata" json:"text,omitempty"`
+		UUID         string `xml:"uuid,attr" json:"uuid,omitempty"`
+		Enabled      string `xml:"enabled"`
+		Name         string `xml:"name"`
+		Description  string `xml:"description"`
+		Type         string `xml:"type"`
+		Pidfile      string `xml:"pidfile"`
+		Match        string `xml:"match"`
+		Path         string `xml:"path"`
+		Timeout      string `xml:"timeout"`
+		Starttimeout string `xml:"starttimeout"`
+		Address      string `xml:"address"`
+		Interface    string `xml:"interface"`
+		Start        string `xml:"start"`
+		Stop         string `xml:"stop"`
+		Tests        string `xml:"tests"`
+		Depends      string `xml:"depends"`
+		Polltime     string `xml:"polltime"`
+	} `xml:"service" json:"service,omitempty"`
+	Test []struct {
+		Text      string `xml:",chardata" json:"text,omitempty"`
+		UUID      string `xml:"uuid,attr" json:"uuid,omitempty"`
+		Name      string `xml:"name"`
+		Type      string `xml:"type"`
+		Condition string `xml:"condition"`
+		Action    string `xml:"action"`
+		Path      string `xml:"path"`
+	} `xml:"test" json:"test,omitempty"`
+}
 
-// NewDNSMasq creates a new DNSMasq configuration with properly initialized slices.
+// Constructor functions
+
+// NewDNSMasq creates a new DNSMasq configuration.
 func NewDNSMasq() *DNSMasq {
 	return &DNSMasq{
 		Hosts:           make([]DNSMasqHost, 0),
@@ -133,16 +207,51 @@ func NewDNSMasq() *DNSMasq {
 	}
 }
 
-// NewDNSMasqHost creates a new DNSMasqHost with properly initialized slices.
+// NewDNSMasqHost creates a new DNSMasqHost.
 func NewDNSMasqHost() DNSMasqHost {
 	return DNSMasqHost{
 		Aliases: make([]string, 0),
 	}
 }
 
-// NewSyslog creates a new Syslog configuration with properly initialized slices.
+// NewSyslog creates a new Syslog configuration.
 func NewSyslog() *Syslog {
 	return &Syslog{
 		Reverse: make([]string, 0),
+	}
+}
+
+// NewMonit creates a new Monit configuration.
+func NewMonit() *Monit {
+	return &Monit{
+		Service: make([]struct {
+			Text         string `xml:",chardata" json:"text,omitempty"`
+			UUID         string `xml:"uuid,attr" json:"uuid,omitempty"`
+			Enabled      string `xml:"enabled"`
+			Name         string `xml:"name"`
+			Description  string `xml:"description"`
+			Type         string `xml:"type"`
+			Pidfile      string `xml:"pidfile"`
+			Match        string `xml:"match"`
+			Path         string `xml:"path"`
+			Timeout      string `xml:"timeout"`
+			Starttimeout string `xml:"starttimeout"`
+			Address      string `xml:"address"`
+			Interface    string `xml:"interface"`
+			Start        string `xml:"start"`
+			Stop         string `xml:"stop"`
+			Tests        string `xml:"tests"`
+			Depends      string `xml:"depends"`
+			Polltime     string `xml:"polltime"`
+		}, 0),
+		Test: make([]struct {
+			Text      string `xml:",chardata" json:"text,omitempty"`
+			UUID      string `xml:"uuid,attr" json:"uuid,omitempty"`
+			Name      string `xml:"name"`
+			Type      string `xml:"type"`
+			Condition string `xml:"condition"`
+			Action    string `xml:"action"`
+			Path      string `xml:"path"`
+		}, 0),
 	}
 }

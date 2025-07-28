@@ -13,7 +13,7 @@ import (
 // ExampleUsage demonstrates how to use the processor package in practice.
 // This function shows various usage patterns and would typically be called
 // from a CLI command or web service handler.
-func ExampleUsage(cfg *model.Opnsense) {
+func ExampleUsage(cfg *model.OpnSenseDocument) {
 	// Create a processor instance
 	processor := NewExampleProcessor()
 
@@ -116,7 +116,7 @@ func ExampleUsage(cfg *model.Opnsense) {
 func ProcessConfigFromFile(configPath string) error {
 	// This would typically involve:
 	// 1. Loading the configuration file
-	// 2. Parsing it into model.Opnsense
+	// 2. Parsing it into model.OpnSenseDocument
 	// 3. Processing with the processor
 	// 4. Outputting results
 
@@ -129,7 +129,7 @@ func ProcessConfigFromFile(configPath string) error {
 	// }
 
 	// For demonstration, create a minimal config
-	cfg := &model.Opnsense{
+	cfg := &model.OpnSenseDocument{
 		System: model.System{
 			Hostname: "example-firewall",
 			Domain:   "example.com",
@@ -168,7 +168,7 @@ type CustomProcessorExample struct {
 type CustomCheck struct {
 	Name        string
 	Description string
-	CheckFunc   func(*model.Opnsense) []Finding
+	CheckFunc   func(*model.OpnSenseDocument) []Finding
 }
 
 // NewCustomProcessor creates a new custom processor with additional checks.
@@ -180,7 +180,7 @@ func NewCustomProcessor(customChecks []CustomCheck) *CustomProcessorExample {
 }
 
 // Process extends the base processor with custom checks.
-func (p *CustomProcessorExample) Process(ctx context.Context, cfg *model.Opnsense, opts ...Option) (*Report, error) {
+func (p *CustomProcessorExample) Process(ctx context.Context, cfg *model.OpnSenseDocument, opts ...Option) (*Report, error) {
 	// First run the standard processing
 	report, err := p.ExampleProcessor.Process(ctx, cfg, opts...)
 	if err != nil {
@@ -210,7 +210,7 @@ func ExampleCustomCheck() CustomCheck {
 	return CustomCheck{
 		Name:        "Theme Check",
 		Description: "Validates the configured theme",
-		CheckFunc: func(cfg *model.Opnsense) []Finding {
+		CheckFunc: func(cfg *model.OpnSenseDocument) []Finding {
 			var findings []Finding
 
 			if cfg.Theme == "" {

@@ -17,8 +17,8 @@ type MDNode struct {
 	Children []MDNode
 }
 
-// Walk transforms a decoded model.Opnsense node into a hierarchy of MDNodes.
-func Walk(opnsense model.Opnsense) MDNode {
+// Walk transforms a decoded model.OpnSenseDocument node into a hierarchy of MDNodes.
+func Walk(opnsense model.OpnSenseDocument) MDNode {
 	return walkNode("OPNsense Configuration", 1, opnsense)
 }
 

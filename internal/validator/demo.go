@@ -15,7 +15,7 @@ func DemoValidation() {
 
 	// Example 1: Valid configuration
 	fmt.Println("1. Valid Configuration:")
-	validConfig := &model.Opnsense{
+	validConfig := &model.OpnSenseDocument{
 		System: model.System{
 			Hostname: "OPNsense",
 			Domain:   "localdomain",
@@ -34,7 +34,7 @@ func DemoValidation() {
 		},
 	}
 
-	errors := ValidateOpnsense(validConfig)
+	errors := ValidateOpnSenseDocument(validConfig)
 	if len(errors) == 0 {
 		fmt.Println("✓ Configuration is valid!")
 	} else {
@@ -47,7 +47,7 @@ func DemoValidation() {
 
 	// Example 2: Invalid configuration
 	fmt.Println("2. Invalid Configuration:")
-	invalidConfig := &model.Opnsense{
+	invalidConfig := &model.OpnSenseDocument{
 		System: model.System{
 			// Missing required hostname
 			Domain:       "example.com",
@@ -87,7 +87,7 @@ func DemoValidation() {
 		},
 	}
 
-	errors = ValidateOpnsense(invalidConfig)
+	errors = ValidateOpnSenseDocument(invalidConfig)
 	fmt.Printf("✗ Found %d validation errors:\n", len(errors))
 	for _, err := range errors {
 		fmt.Printf("  - %s\n", err.Error())
@@ -96,7 +96,7 @@ func DemoValidation() {
 
 	// Example 3: Cross-field validation
 	fmt.Println("3. Cross-field Validation Example:")
-	crossFieldConfig := &model.Opnsense{
+	crossFieldConfig := &model.OpnSenseDocument{
 		System: model.System{
 			Hostname: "test",
 			Domain:   "example.com",
@@ -113,7 +113,7 @@ func DemoValidation() {
 		},
 	}
 
-	errors = ValidateOpnsense(crossFieldConfig)
+	errors = ValidateOpnSenseDocument(crossFieldConfig)
 	fmt.Printf("✗ Found %d cross-field validation errors:\n", len(errors))
 	for _, err := range errors {
 		fmt.Printf("  - %s\n", err.Error())

@@ -41,7 +41,7 @@ func TestExampleProcessor_Process_BasicAnalysis(t *testing.T) {
 	ctx := context.Background()
 
 	// Create a minimal OPNsense configuration
-	cfg := &model.Opnsense{
+	cfg := &model.OpnSenseDocument{
 		System: model.System{
 			Hostname: "test-firewall",
 			Domain:   "example.com",
@@ -67,7 +67,7 @@ func TestExampleProcessor_Process_WithOptions(t *testing.T) {
 	processor := NewExampleProcessor()
 	ctx := context.Background()
 
-	cfg := &model.Opnsense{
+	cfg := &model.OpnSenseDocument{
 		System: model.System{
 			Hostname: "test-firewall",
 			Domain:   "example.com",
@@ -118,7 +118,7 @@ func TestExampleProcessor_Process_ContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // Cancel immediately
 
-	cfg := &model.Opnsense{
+	cfg := &model.OpnSenseDocument{
 		System: model.System{
 			Hostname: "test-firewall",
 		},
@@ -131,7 +131,7 @@ func TestExampleProcessor_Process_ContextCancellation(t *testing.T) {
 }
 
 func TestReport_AddFinding(t *testing.T) {
-	cfg := &model.Opnsense{
+	cfg := &model.OpnSenseDocument{
 		System: model.System{
 			Hostname: "test",
 			Domain:   "example.com",
@@ -163,7 +163,7 @@ func TestReport_AddFinding(t *testing.T) {
 }
 
 func TestReport_ToJSON(t *testing.T) {
-	cfg := &model.Opnsense{
+	cfg := &model.OpnSenseDocument{
 		System: model.System{
 			Hostname: "test-firewall",
 			Domain:   "example.com",
@@ -180,7 +180,7 @@ func TestReport_ToJSON(t *testing.T) {
 }
 
 func TestReport_ToMarkdown(t *testing.T) {
-	cfg := &model.Opnsense{
+	cfg := &model.OpnSenseDocument{
 		System: model.System{
 			Hostname: "test-firewall",
 			Domain:   "example.com",
@@ -208,7 +208,7 @@ func TestReport_ToMarkdown(t *testing.T) {
 }
 
 func TestReport_Summary(t *testing.T) {
-	cfg := &model.Opnsense{
+	cfg := &model.OpnSenseDocument{
 		System: model.System{
 			Hostname: "test-firewall",
 			Domain:   "example.com",
@@ -276,7 +276,7 @@ func TestProcessorOptions(t *testing.T) {
 }
 
 func TestNewReport(t *testing.T) {
-	cfg := &model.Opnsense{
+	cfg := &model.OpnSenseDocument{
 		Version: "24.1",
 		Theme:   "opnsense",
 		System: model.System{
@@ -325,11 +325,11 @@ func TestCoreProcessor_NormalizationIdempotence(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		config *model.Opnsense
+		config *model.OpnSenseDocument
 	}{
 		{
 			name: "Basic configuration",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "test-firewall",
 					Domain:   "example.com",
@@ -352,7 +352,7 @@ func TestCoreProcessor_NormalizationIdempotence(t *testing.T) {
 		},
 		{
 			name: "Configuration with users and groups",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "test-firewall2",
 					Domain:   "test.local",
@@ -382,7 +382,7 @@ func TestCoreProcessor_NormalizationIdempotence(t *testing.T) {
 		},
 		{
 			name: "Configuration with firewall rules",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "test-firewall3",
 					Domain:   "secure.local",
@@ -470,14 +470,14 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 
 	tests := []struct {
 		name             string
-		config           *model.Opnsense
+		config           *model.OpnSenseDocument
 		options          []Option
 		expectedFindings map[Severity]int // Expected minimum number of findings per severity
 		expectedTypes    []string         // Expected finding types
 	}{
 		{
 			name: "Security issues - HTTP and default SNMP",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "insecure-firewall",
 					Domain:   "example.com",
@@ -504,7 +504,7 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 		},
 		{
 			name: "Dead rules detection",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "deadrule-firewall",
 					Domain:   "example.com",
@@ -555,7 +555,7 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 		},
 		{
 			name: "Performance issues",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname:                      "perf-firewall",
 					Domain:                        "example.com",
@@ -582,7 +582,7 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 		},
 		{
 			name: "Consistency issues",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "consistency-firewall",
 					Domain:   "example.com",
@@ -629,7 +629,7 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 		},
 		{
 			name: "All features combined",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "combined-firewall",
 					Domain:   "example.com",
@@ -728,8 +728,8 @@ func generateManyRules(count int) []model.Rule {
 }
 
 // generateSmallConfig creates a small configuration for benchmarking.
-func generateSmallConfig() *model.Opnsense {
-	return &model.Opnsense{
+func generateSmallConfig() *model.OpnSenseDocument {
+	return &model.OpnSenseDocument{
 		System: model.System{
 			Hostname: "small-config",
 			Domain:   "example.com",
@@ -772,7 +772,7 @@ func generateSmallConfig() *model.Opnsense {
 }
 
 // generateLargeConfig creates a large configuration for benchmarking.
-func generateLargeConfig() *model.Opnsense {
+func generateLargeConfig() *model.OpnSenseDocument {
 	// Create many users
 	users := make([]model.User, 100)
 	for i := 0; i < 100; i++ {
@@ -803,7 +803,7 @@ func generateLargeConfig() *model.Opnsense {
 		}
 	}
 
-	return &model.Opnsense{
+	return &model.OpnSenseDocument{
 		System: model.System{
 			Hostname: "large-config",
 			Domain:   "example.com",
@@ -1010,7 +1010,7 @@ func BenchmarkCoreProcessor_ProcessConcurrent(b *testing.B) {
 			i := 0
 			for pb.Next() {
 				// Alternate between small and large configs
-				var config *model.Opnsense
+				var config *model.OpnSenseDocument
 				if i%2 == 0 {
 					config = smallConfig
 				} else {
@@ -1130,7 +1130,7 @@ func TestCoreProcessor_RaceConditions(t *testing.T) {
 			wg.Add(1)
 			go func(id int) {
 				defer wg.Done()
-				var config *model.Opnsense
+				var config *model.OpnSenseDocument
 				var expectedHostname string
 				if id%2 == 0 {
 					config = smallConfig
@@ -1208,12 +1208,12 @@ func TestCoreProcessor_StatisticsAccuracy(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		config   *model.Opnsense
+		config   *model.OpnSenseDocument
 		validate func(t *testing.T, stats *Statistics)
 	}{
 		{
 			name: "Basic statistics accuracy",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				Version: "24.1.1",
 				Theme:   "opnsense",
 				System: model.System{
@@ -1359,7 +1359,7 @@ func TestCoreProcessor_StatisticsAccuracy(t *testing.T) {
 		},
 		{
 			name: "Empty configuration statistics",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "minimal-firewall",
 					Domain:   "example.com",

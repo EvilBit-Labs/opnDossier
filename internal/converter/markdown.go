@@ -24,7 +24,7 @@ const (
 
 // Converter is the interface for converting OPNsense configurations to markdown.
 type Converter interface {
-	ToMarkdown(ctx context.Context, opnsense *model.Opnsense) (string, error)
+	ToMarkdown(ctx context.Context, opnsense *model.OpnSenseDocument) (string, error)
 }
 
 // MarkdownConverter is a markdown converter for OPNsense configurations.
@@ -37,16 +37,16 @@ func NewMarkdownConverter() *MarkdownConverter {
 	return &MarkdownConverter{}
 }
 
-// ErrNilOpnsense is returned when the input Opnsense struct is nil.
-var ErrNilOpnsense = errors.New("input Opnsense struct is nil")
+// ErrNilOpnSenseDocument is returned when the input OpnSenseDocument struct is nil.
+var ErrNilOpnSenseDocument = errors.New("input OpnSenseDocument struct is nil")
 
 // ErrUnsupportedFormat is returned when an unsupported output format is requested.
 var ErrUnsupportedFormat = errors.New("unsupported format. Supported formats: markdown, json, yaml")
 
 // ToMarkdown converts an OPNsense configuration to markdown.
-func (c *MarkdownConverter) ToMarkdown(_ context.Context, opnsense *model.Opnsense) (string, error) {
+func (c *MarkdownConverter) ToMarkdown(_ context.Context, opnsense *model.OpnSenseDocument) (string, error) {
 	if opnsense == nil {
-		return "", ErrNilOpnsense
+		return "", ErrNilOpnSenseDocument
 	}
 
 	// Create markdown using github.com/nao1215/markdown for structured output
@@ -100,7 +100,7 @@ func (c *MarkdownConverter) getTheme() string {
 }
 
 // buildSystemSection builds the system configuration section using helper methods.
-func (c *MarkdownConverter) buildSystemSection(md *markdown.Markdown, opnsense *model.Opnsense) {
+func (c *MarkdownConverter) buildSystemSection(md *markdown.Markdown, opnsense *model.OpnSenseDocument) {
 	sysConfig := opnsense.SystemConfig()
 	md.H2("System Configuration")
 
@@ -168,7 +168,7 @@ func (c *MarkdownConverter) buildSystemSection(md *markdown.Markdown, opnsense *
 }
 
 // buildNetworkSection builds the network configuration section using helper methods.
-func (c *MarkdownConverter) buildNetworkSection(md *markdown.Markdown, opnsense *model.Opnsense) {
+func (c *MarkdownConverter) buildNetworkSection(md *markdown.Markdown, opnsense *model.OpnSenseDocument) {
 	netConfig := opnsense.NetworkConfig()
 	md.H2("Network Configuration")
 
@@ -229,7 +229,7 @@ func (c *MarkdownConverter) buildInterfaceDetails(md *markdown.Markdown, iface m
 }
 
 // buildSecuritySection builds the security configuration section using helper methods.
-func (c *MarkdownConverter) buildSecuritySection(md *markdown.Markdown, opnsense *model.Opnsense) {
+func (c *MarkdownConverter) buildSecuritySection(md *markdown.Markdown, opnsense *model.OpnSenseDocument) {
 	secConfig := opnsense.SecurityConfig()
 	md.H2("Security Configuration")
 
@@ -277,7 +277,7 @@ func (c *MarkdownConverter) buildSecuritySection(md *markdown.Markdown, opnsense
 }
 
 // buildServiceSection builds the service configuration section using helper methods.
-func (c *MarkdownConverter) buildServiceSection(md *markdown.Markdown, opnsense *model.Opnsense) {
+func (c *MarkdownConverter) buildServiceSection(md *markdown.Markdown, opnsense *model.OpnSenseDocument) {
 	svcConfig := opnsense.ServiceConfig()
 	md.H2("Service Configuration")
 

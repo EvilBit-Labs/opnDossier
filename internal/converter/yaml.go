@@ -18,12 +18,12 @@ func NewYAMLConverter() *YAMLConverter {
 }
 
 // ToYAML converts an OPNsense configuration to YAML.
-func (c *YAMLConverter) ToYAML(_ context.Context, opnsense *model.Opnsense) (string, error) {
+func (c *YAMLConverter) ToYAML(_ context.Context, opnsense *model.OpnSenseDocument) (string, error) {
 	if opnsense == nil {
-		return "", ErrNilOpnsense
+		return "", ErrNilOpnSenseDocument
 	}
 
-	// Marshal the Opnsense struct to YAML
+	// Marshal the OpnSenseDocument struct to YAML
 	yamlBytes, err := yaml.Marshal(opnsense)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal to YAML: %w", err)

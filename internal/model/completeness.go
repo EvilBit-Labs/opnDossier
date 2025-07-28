@@ -83,7 +83,7 @@ func CheckModelCompleteness(filePath string) error {
 	xmlPaths := getAllXMLPaths(xmlMap, "")
 
 	// Get all expected paths from our Go model
-	modelPaths := getModelPaths(reflect.TypeOf(Opnsense{}), "")
+	modelPaths := getModelPaths(reflect.TypeOf(OpnSenseDocument{}), "")
 
 	// Find missing paths (XML paths not in our model)
 	missingPaths := findMissingPaths(xmlPaths, modelPaths)
@@ -130,7 +130,7 @@ func GetModelCompletenessDetails(filePath string) (xmlPaths, modelPaths map[stri
 	xmlPaths = getAllXMLPaths(xmlMap, "")
 
 	// Get all expected paths from our Go model
-	modelPaths = getModelPaths(reflect.TypeOf(Opnsense{}), "")
+	modelPaths = getModelPaths(reflect.TypeOf(OpnSenseDocument{}), "")
 
 	// Find missing paths (XML paths not in our model)
 	missingPaths = findMissingPaths(xmlPaths, modelPaths)

@@ -32,7 +32,7 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 	})
 
 	t.Run("invalid options", func(t *testing.T) {
-		cfg := &model.Opnsense{}
+		cfg := &model.OpnSenseDocument{}
 		opts := Options{
 			Format:    "invalid",
 			WrapWidth: -1,
@@ -44,7 +44,7 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 	})
 
 	t.Run("valid markdown generation", func(t *testing.T) {
-		cfg := &model.Opnsense{
+		cfg := &model.OpnSenseDocument{
 			System: model.System{
 				Hostname: "test-host",
 				Domain:   "test.local",
@@ -59,7 +59,7 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 	})
 
 	t.Run("valid comprehensive markdown generation", func(t *testing.T) {
-		cfg := &model.Opnsense{
+		cfg := &model.OpnSenseDocument{
 			System: model.System{
 				Hostname: "test-host",
 				Domain:   "test.local",
@@ -74,7 +74,7 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 	})
 
 	t.Run("valid JSON generation", func(t *testing.T) {
-		cfg := &model.Opnsense{
+		cfg := &model.OpnSenseDocument{
 			System: model.System{
 				Hostname: "test-host",
 				Domain:   "test.local",
@@ -89,7 +89,7 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 	})
 
 	t.Run("valid YAML generation", func(t *testing.T) {
-		cfg := &model.Opnsense{
+		cfg := &model.OpnSenseDocument{
 			System: model.System{
 				Hostname: "test-host",
 				Domain:   "test.local",
@@ -104,7 +104,7 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 	})
 
 	t.Run("unsupported format", func(t *testing.T) {
-		cfg := &model.Opnsense{}
+		cfg := &model.OpnSenseDocument{}
 		opts := Options{Format: Format("unsupported")}
 		result, err := generator.Generate(ctx, cfg, opts)
 

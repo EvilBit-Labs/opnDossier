@@ -10,6 +10,7 @@ require (
 	github.com/charmbracelet/glamour v0.10.0
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 	github.com/charmbracelet/log v0.4.2
+	github.com/clbanning/mxj v1.8.4
 	github.com/go-playground/validator/v10 v10.27.0
 	github.com/nao1215/markdown v0.8.0
 	github.com/spf13/cobra v1.9.1
@@ -34,7 +35,6 @@ require (
 	github.com/charmbracelet/x/exp/color v0.0.0-20250725211024-d60e1b0112b2 // indirect
 	github.com/charmbracelet/x/exp/slice v0.0.0-20250725211024-d60e1b0112b2 // indirect
 	github.com/charmbracelet/x/term v0.2.1 // indirect
-	github.com/clbanning/mxj v1.8.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect

@@ -21,13 +21,13 @@ func TestXMLParser_Parse(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
-		expected *model.Opnsense
+		expected *model.OpnSenseDocument
 		wantErr  bool
 	}{
 		{
 			name:  "valid config",
 			input: `<opnsense><version>1.2.3</version><system><hostname>test-host</hostname><domain>test.local</domain></system></opnsense>`,
-			expected: &model.Opnsense{
+			expected: &model.OpnSenseDocument{
 				Version: "1.2.3",
 				System: model.System{
 					Hostname: "test-host",
@@ -238,7 +238,7 @@ func TestXMLParser_ParseConfigSample(t *testing.T) {
 }
 
 // validateOPNsenseConfig performs comprehensive validation of an OPNsense configuration.
-func validateOPNsenseConfig(t *testing.T, config *model.Opnsense, _ string) {
+func validateOPNsenseConfig(t *testing.T, config *model.OpnSenseDocument, _ string) {
 	t.Helper()
 
 	t.Run("Basic Structure", func(t *testing.T) {
@@ -356,7 +356,7 @@ func TestXMLParser_Validate(t *testing.T) {
 	p := NewXMLParser()
 
 	// Load a valid sample configuration
-	validConfig := &model.Opnsense{
+	validConfig := &model.OpnSenseDocument{
 		Version: "1.2.3",
 		System: model.System{
 			Hostname: "test-host",
@@ -369,7 +369,7 @@ func TestXMLParser_Validate(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Load an invalid configuration
-	invalidConfig := &model.Opnsense{
+	invalidConfig := &model.OpnSenseDocument{
 		Version: "",
 		System:  model.System{}, // Missing hostname and domain
 	}

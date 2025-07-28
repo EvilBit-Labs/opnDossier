@@ -226,7 +226,7 @@ func TestInterfaceReferences_TableDriven(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create the test configuration
-			config := &model.Opnsense{
+			config := &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "test-firewall",
 					Domain:   "example.com",
@@ -243,7 +243,7 @@ func TestInterfaceReferences_TableDriven(t *testing.T) {
 			}
 
 			// Validate the configuration
-			errors := ValidateOpnsense(config)
+			errors := ValidateOpnSenseDocument(config)
 
 			// Check the number of errors
 			assert.Len(t, errors, tt.expectedErrors, "Expected %d validation errors, got %d. Errors: %v", tt.expectedErrors, len(errors), errors)
@@ -311,7 +311,7 @@ func TestInterfaceNameResolution_EdgeCases(t *testing.T) {
 // multiple validation aspects including opt interfaces.
 func TestValidation_RealWorldScenarios(t *testing.T) {
 	t.Run("complex firewall configuration with opt interfaces", func(t *testing.T) {
-		config := &model.Opnsense{
+		config := &model.OpnSenseDocument{
 			System: model.System{
 				Hostname: "firewall",
 				Domain:   "example.com",
@@ -433,7 +433,7 @@ func TestValidation_RealWorldScenarios(t *testing.T) {
 		}
 
 		// Validate the complex configuration
-		errors := ValidateOpnsense(config)
+		errors := ValidateOpnSenseDocument(config)
 
 		// Should have no validation errors for this well-formed configuration
 		if len(errors) > 0 {
@@ -460,7 +460,7 @@ func TestValidation_RealWorldScenarios(t *testing.T) {
 func TestSampleConfig2_ZeroValidationErrors(t *testing.T) {
 	// This test represents the structure and content from sample.config.2.xml
 	// but constructs it manually to avoid parser dependency issues
-	config := &model.Opnsense{
+	config := &model.OpnSenseDocument{
 		System: model.System{
 			Hostname: "TestHost2",
 			Domain:   "test.local",
@@ -553,7 +553,7 @@ func TestSampleConfig2_ZeroValidationErrors(t *testing.T) {
 	}
 
 	// **KEY REQUIREMENT**: Validate the configuration and assert len(errors)==0
-	errors := ValidateOpnsense(config)
+	errors := ValidateOpnSenseDocument(config)
 	assert.Len(t, errors, 0, "Validation should produce zero errors for sample.config.2.xml-like configuration. Found errors: %v", errors)
 
 	// Verify interface accessibility

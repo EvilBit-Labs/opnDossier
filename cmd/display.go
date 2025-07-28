@@ -104,7 +104,7 @@ Examples:
 		// Parse the XML with or without validation based on flag
 		ctxLogger.Debug("Parsing XML file")
 		p := parser.NewXMLParser()
-		var opnsense *model.Opnsense
+		var opnsense *model.OpnSenseDocument
 		if noValidation {
 			// Use Parse when validation is explicitly disabled
 			opnsense, err = p.Parse(ctx, file)

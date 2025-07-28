@@ -36,7 +36,7 @@ func TestXMLParser_SampleConfig2XMLValidation(t *testing.T) {
 	require.NotNil(t, config, "Parsed config should not be nil")
 
 	// Validate the configuration
-	errors := validator.ValidateOpnsense(config)
+	errors := validator.ValidateOpnSenseDocument(config)
 
 	// Assert that there are no validation errors
 	if len(errors) > 0 {

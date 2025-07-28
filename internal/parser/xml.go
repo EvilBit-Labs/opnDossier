@@ -19,14 +19,14 @@ const (
 	DefaultMaxInputSize = 10 * 1024 * 1024 // 10MB
 )
 
-// ErrMissingOpnsenseRoot is returned when the XML document is missing the required opnsense root element.
-var ErrMissingOpnsenseRoot = errors.New("invalid XML: missing opnsense root element")
+// ErrMissingOpnSenseDocumentRoot is returned when the XML document is missing the required opnsense root element.
+var ErrMissingOpnSenseDocumentRoot = errors.New("invalid XML: missing opnsense root element")
 
 // Parser is the interface for parsing OPNsense configuration files.
 type Parser interface {
-	Parse(ctx context.Context, r io.Reader) (*model.Opnsense, error)
+	Parse(ctx context.Context, r io.Reader) (*model.OpnSenseDocument, error)
 
-	Validate(cfg *model.Opnsense) error
+	Validate(cfg *model.OpnSenseDocument) error
 }
 
 // XMLParser is an XML parser for OPNsense configuration files.
@@ -66,7 +66,7 @@ func charsetReader(charset string, input io.Reader) (io.Reader, error) {
 // The streaming approach processes XML tokens individually rather than loading the entire document into memory,
 // providing better memory efficiency for large configuration files while maintaining security protections
 // against XML bombs, XXE attacks, and excessive entity expansion.
-func (p *XMLParser) Parse(_ context.Context, r io.Reader) (*model.Opnsense, error) {
+func (p *XMLParser) Parse(_ context.Context, r io.Reader) (*model.OpnSenseDocument, error) {
 	// Limit input size to prevent XML bombs
 	limitedReader := io.LimitReader(r, p.MaxInputSize)
 
@@ -83,9 +83,9 @@ func (p *XMLParser) Parse(_ context.Context, r io.Reader) (*model.Opnsense, erro
 	dec.DefaultSpace = ""
 	dec.AutoClose = xml.HTMLAutoClose
 
-	var doc model.Opnsense
+	var doc model.OpnSenseDocument
 	inOPNsenseRoot := false
-	foundOpnsenseRoot := false
+	foundOpnSenseDocumentRoot := false
 
 	for {
 		tok, err := dec.Token()
@@ -104,7 +104,7 @@ func (p *XMLParser) Parse(_ context.Context, r io.Reader) (*model.Opnsense, erro
 		case xml.StartElement:
 			if se.Name.Local == "opnsense" {
 				inOPNsenseRoot = true
-				foundOpnsenseRoot = true
+				foundOpnSenseDocumentRoot = true
 				// Set the XMLName field for compatibility with existing tests
 				doc.XMLName = se.Name
 				continue
@@ -224,8 +224,8 @@ func (p *XMLParser) Parse(_ context.Context, r io.Reader) (*model.Opnsense, erro
 	}
 
 	// Check if we found a valid opnsense root element
-	if !foundOpnsenseRoot {
-		return nil, ErrMissingOpnsenseRoot
+	if !foundOpnSenseDocumentRoot {
+		return nil, ErrMissingOpnSenseDocumentRoot
 	}
 
 	return &doc, nil
@@ -233,8 +233,8 @@ func (p *XMLParser) Parse(_ context.Context, r io.Reader) (*model.Opnsense, erro
 
 // Validate validates the given OPNsense configuration and returns an error if validation fails.
 // Returns an AggregatedValidationError containing all validation failures with element paths.
-func (p *XMLParser) Validate(cfg *model.Opnsense) error {
-	validationErrors := validator.ValidateOpnsense(cfg)
+func (p *XMLParser) Validate(cfg *model.OpnSenseDocument) error {
+	validationErrors := validator.ValidateOpnSenseDocument(cfg)
 	if len(validationErrors) > 0 {
 		return NewAggregatedValidationError(convertValidatorToParserValidationErrors(validationErrors))
 	}
@@ -243,7 +243,7 @@ func (p *XMLParser) Validate(cfg *model.Opnsense) error {
 
 // ParseAndValidate parses and validates the given OPNsense configuration from an io.Reader.
 // Returns an error if parsing or validation fails.
-func (p *XMLParser) ParseAndValidate(ctx context.Context, r io.Reader) (*model.Opnsense, error) {
+func (p *XMLParser) ParseAndValidate(ctx context.Context, r io.Reader) (*model.OpnSenseDocument, error) {
 	cfg, err := p.Parse(ctx, r)
 	if err != nil {
 		return nil, err

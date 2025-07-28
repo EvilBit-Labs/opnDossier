@@ -14,14 +14,14 @@ import (
 func TestXMLParser_ValidateRequiredElements(t *testing.T) {
 	tests := []struct {
 		name           string
-		config         *model.Opnsense
+		config         *model.OpnSenseDocument
 		expectedErrors int
 		expectedFields []string
 		description    string
 	}{
 		{
 			name: "missing hostname",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Domain: "example.com",
 				},
@@ -32,7 +32,7 @@ func TestXMLParser_ValidateRequiredElements(t *testing.T) {
 		},
 		{
 			name: "missing domain",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "testhost",
 				},
@@ -43,7 +43,7 @@ func TestXMLParser_ValidateRequiredElements(t *testing.T) {
 		},
 		{
 			name: "missing both hostname and domain",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Optimization: "normal",
 				},
@@ -54,7 +54,7 @@ func TestXMLParser_ValidateRequiredElements(t *testing.T) {
 		},
 		{
 			name: "missing group name",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
@@ -72,7 +72,7 @@ func TestXMLParser_ValidateRequiredElements(t *testing.T) {
 		},
 		{
 			name: "missing group GID",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
@@ -90,7 +90,7 @@ func TestXMLParser_ValidateRequiredElements(t *testing.T) {
 		},
 		{
 			name: "missing user name",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
@@ -114,7 +114,7 @@ func TestXMLParser_ValidateRequiredElements(t *testing.T) {
 		},
 		{
 			name: "missing user UID",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
@@ -138,7 +138,7 @@ func TestXMLParser_ValidateRequiredElements(t *testing.T) {
 		},
 		{
 			name: "missing sysctl tunable",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
@@ -156,7 +156,7 @@ func TestXMLParser_ValidateRequiredElements(t *testing.T) {
 		},
 		{
 			name: "missing sysctl value",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
@@ -209,14 +209,14 @@ func TestXMLParser_ValidateRequiredElements(t *testing.T) {
 func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 	tests := []struct {
 		name           string
-		config         *model.Opnsense
+		config         *model.OpnSenseDocument
 		expectedErrors int
 		expectedFields []string
 		description    string
 	}{
 		{
 			name: "invalid system optimization",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname:     "testhost",
 					Domain:       "example.com",
@@ -229,7 +229,7 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 		},
 		{
 			name: "invalid webgui protocol",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
@@ -244,7 +244,7 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 		},
 		{
 			name: "invalid power management mode",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname:         "testhost",
 					Domain:           "example.com",
@@ -258,7 +258,7 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 		},
 		{
 			name: "invalid bogons interval",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
@@ -273,7 +273,7 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 		},
 		{
 			name: "invalid firewall rule type",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
@@ -294,7 +294,7 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 		},
 		{
 			name: "invalid IP protocol",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
@@ -315,7 +315,7 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 		},
 		{
 			name: "invalid interface name",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
@@ -336,7 +336,7 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 		},
 		{
 			name: "invalid NAT outbound mode",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
@@ -353,7 +353,7 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 		},
 		{
 			name: "invalid group scope",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
@@ -372,7 +372,7 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 		},
 		{
 			name: "invalid user scope",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
@@ -421,14 +421,14 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 	tests := []struct {
 		name           string
-		config         *model.Opnsense
+		config         *model.OpnSenseDocument
 		expectedErrors int
 		expectedFields []string
 		description    string
 	}{
 		{
 			name: "track6 without required fields",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
@@ -448,7 +448,7 @@ func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 		},
 		{
 			name: "DHCP range with invalid order",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
@@ -470,7 +470,7 @@ func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 		},
 		{
 			name: "user referencing non-existent group",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
@@ -495,7 +495,7 @@ func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 		},
 		{
 			name: "duplicate group names",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
@@ -517,7 +517,7 @@ func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 		},
 		{
 			name: "duplicate group GIDs",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
@@ -539,7 +539,7 @@ func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 		},
 		{
 			name: "duplicate user names",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
@@ -569,7 +569,7 @@ func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 		},
 		{
 			name: "duplicate user UIDs",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
@@ -599,7 +599,7 @@ func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 		},
 		{
 			name: "duplicate sysctl tunables",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
@@ -621,7 +621,7 @@ func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 		},
 		{
 			name: "multiple cross-field validation errors",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
@@ -699,13 +699,13 @@ func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 func TestXMLParser_ValidateComplexScenarios(t *testing.T) {
 	tests := []struct {
 		name           string
-		config         *model.Opnsense
+		config         *model.OpnSenseDocument
 		expectedErrors int
 		description    string
 	}{
 		{
 			name: "configuration with all types of validation errors",
-			config: &model.Opnsense{
+			config: &model.OpnSenseDocument{
 				System: model.System{
 					// Missing hostname (required field error)
 					Domain:       "example.com",
@@ -767,7 +767,7 @@ func TestXMLParser_ValidateComplexScenarios(t *testing.T) {
 
 // TestXMLParser_ValidateValidConfiguration tests that valid configurations pass validation.
 func TestXMLParser_ValidateValidConfiguration(t *testing.T) {
-	validConfig := &model.Opnsense{
+	validConfig := &model.OpnSenseDocument{
 		System: model.System{
 			Hostname:     "OPNsense",
 			Domain:       "localdomain",

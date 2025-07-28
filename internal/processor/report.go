@@ -24,7 +24,7 @@ type Report struct {
 	ConfigInfo ConfigInfo `json:"configInfo"`
 
 	// NormalizedConfig contains the processed and normalized configuration
-	NormalizedConfig *model.Opnsense `json:"normalizedConfig,omitempty"`
+	NormalizedConfig *model.OpnSenseDocument `json:"normalizedConfig,omitempty"`
 
 	// Statistics contains various statistics about the configuration
 	Statistics *Statistics `json:"statistics,omitempty"`
@@ -165,7 +165,7 @@ const (
 )
 
 // NewReport creates a new Report with the given configuration and processor config.
-func NewReport(cfg *model.Opnsense, processorConfig Config) *Report {
+func NewReport(cfg *model.OpnSenseDocument, processorConfig Config) *Report {
 	report := &Report{
 		GeneratedAt:     time.Now().UTC(),
 		ProcessorConfig: processorConfig,
@@ -574,7 +574,7 @@ func (r *Report) addFindingsSection(md *markdown.Markdown, title string, finding
 }
 
 // generateStatistics creates statistics from the given OPNsense configuration.
-func generateStatistics(cfg *model.Opnsense) *Statistics {
+func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 	stats := &Statistics{
 		InterfacesByType: make(map[string]int),
 		InterfaceDetails: []InterfaceStatistics{},
@@ -784,7 +784,7 @@ func generateStatistics(cfg *model.Opnsense) *Statistics {
 }
 
 // calculateSecurityScore computes a security score based on security features and configuration.
-func calculateSecurityScore(cfg *model.Opnsense, stats *Statistics) int {
+func calculateSecurityScore(cfg *model.OpnSenseDocument, stats *Statistics) int {
 	score := 0
 
 	// Security features contribute to score
@@ -839,7 +839,7 @@ func calculateConfigComplexity(stats *Statistics) int {
 // Configuration builders that use the common helper to emit tables/lists consistently
 
 // BuildNetworkConfig builds a comprehensive network configuration report.
-func BuildNetworkConfig(cfg *model.Opnsense) string {
+func BuildNetworkConfig(cfg *model.OpnSenseDocument) string {
 	if cfg == nil {
 		return NoConfigAvailable
 	}
@@ -921,7 +921,7 @@ func BuildNetworkConfig(cfg *model.Opnsense) string {
 }
 
 // BuildSecurityConfig builds a comprehensive security configuration report.
-func BuildSecurityConfig(cfg *model.Opnsense) string {
+func BuildSecurityConfig(cfg *model.OpnSenseDocument) string {
 	if cfg == nil {
 		return NoConfigAvailable
 	}
@@ -1019,7 +1019,7 @@ func BuildSecurityConfig(cfg *model.Opnsense) string {
 }
 
 // BuildServiceConfig builds a comprehensive service configuration report.
-func BuildServiceConfig(cfg *model.Opnsense) string {
+func BuildServiceConfig(cfg *model.OpnSenseDocument) string {
 	if cfg == nil {
 		return "*No configuration available*"
 	}

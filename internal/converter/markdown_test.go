@@ -24,13 +24,13 @@ func stripANSI(s string) string {
 func TestMarkdownConverter_ToMarkdown(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    *model.Opnsense
+		input    *model.OpnSenseDocument
 		expected string
 		wantErr  bool
 	}{
 		{
 			name: "basic conversion",
-			input: &model.Opnsense{
+			input: &model.OpnSenseDocument{
 				Version: "1.2.3",
 				System: model.System{
 					Hostname: "test-host",
@@ -52,13 +52,13 @@ func TestMarkdownConverter_ToMarkdown(t *testing.T) {
 		},
 		{
 			name:     "empty struct",
-			input:    &model.Opnsense{},
+			input:    &model.OpnSenseDocument{},
 			expected: "OPNsense Configuration",
 			wantErr:  false,
 		},
 		{
 			name: "missing system fields",
-			input: &model.Opnsense{
+			input: &model.OpnSenseDocument{
 				System: model.System{},
 			},
 			expected: "OPNsense Configuration",
@@ -176,19 +176,19 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 	t.Run("nil opnsense struct", func(t *testing.T) {
 		md, err := c.ToMarkdown(context.Background(), nil)
 		assert.Error(t, err)
-		assert.Equal(t, ErrNilOpnsense, err)
+		assert.Equal(t, ErrNilOpnSenseDocument, err)
 		assert.Empty(t, md)
 	})
 
 	t.Run("empty opnsense struct", func(t *testing.T) {
-		md, err := c.ToMarkdown(context.Background(), &model.Opnsense{})
+		md, err := c.ToMarkdown(context.Background(), &model.OpnSenseDocument{})
 		assert.NoError(t, err)
 		assert.NotEmpty(t, md)
 		assert.Contains(t, stripANSI(md), "OPNsense Configuration")
 	})
 
 	t.Run("opnsense with only system configuration", func(t *testing.T) {
-		opnsense := &model.Opnsense{
+		opnsense := &model.OpnSenseDocument{
 			System: model.System{
 				Hostname: "test-host",
 				Domain:   "test.local",
@@ -206,7 +206,7 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("opnsense with complex sysctl configuration", func(t *testing.T) {
-		opnsense := &model.Opnsense{
+		opnsense := &model.OpnSenseDocument{
 			System: model.System{
 				Hostname: "sysctl-test",
 				Domain:   "test.local",
@@ -237,7 +237,7 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("opnsense with users and groups", func(t *testing.T) {
-		opnsense := &model.Opnsense{
+		opnsense := &model.OpnSenseDocument{
 			System: model.System{
 				Hostname: "user-test",
 				Domain:   "test.local",
@@ -272,7 +272,7 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("opnsense with multiple firewall rules", func(t *testing.T) {
-		opnsense := &model.Opnsense{
+		opnsense := &model.OpnSenseDocument{
 			System: model.System{
 				Hostname: "firewall-test",
 				Domain:   "test.local",
@@ -309,7 +309,7 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("opnsense with load balancer monitors", func(t *testing.T) {
-		opnsense := &model.Opnsense{
+		opnsense := &model.OpnSenseDocument{
 			System: model.System{
 				Hostname: "lb-test",
 				Domain:   "test.local",
@@ -348,7 +348,7 @@ func TestMarkdownConverter_ThemeSelection(t *testing.T) {
 
 	t.Run("default theme selection", func(t *testing.T) {
 		// Test the getTheme method indirectly through ToMarkdown
-		opnsense := &model.Opnsense{
+		opnsense := &model.OpnSenseDocument{
 			System: model.System{
 				Hostname: "theme-test",
 				Domain:   "test.local",

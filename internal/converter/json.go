@@ -18,12 +18,12 @@ func NewJSONConverter() *JSONConverter {
 }
 
 // ToJSON converts an OPNsense configuration to JSON.
-func (c *JSONConverter) ToJSON(_ context.Context, opnsense *model.Opnsense) (string, error) {
+func (c *JSONConverter) ToJSON(_ context.Context, opnsense *model.OpnSenseDocument) (string, error) {
 	if opnsense == nil {
-		return "", ErrNilOpnsense
+		return "", ErrNilOpnSenseDocument
 	}
 
-	// Marshal the Opnsense struct to JSON with indentation
+	// Marshal the OpnSenseDocument struct to JSON with indentation
 	jsonBytes, err := json.MarshalIndent(opnsense, "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal to JSON: %w", err)

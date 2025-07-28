@@ -24,10 +24,10 @@ func (e ValidationError) Error() string {
 	return fmt.Sprintf("validation error for field '%s': %s", e.Field, e.Message)
 }
 
-// ValidateOpnsense performs comprehensive validation of an OPNsense configuration.
+// ValidateOpnSenseDocument performs comprehensive validation of an OPNsense configuration.
 // It checks system settings, network interfaces, DHCP server, firewall rules, NAT, users, groups, and sysctl tunables,
 // returning all validation errors found in the configuration.
-func ValidateOpnsense(o *model.Opnsense) []ValidationError {
+func ValidateOpnSenseDocument(o *model.OpnSenseDocument) []ValidationError {
 	var errors []ValidationError
 
 	// Validate system configuration

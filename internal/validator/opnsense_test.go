@@ -7,8 +7,8 @@ import (
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 )
 
-func TestValidateOpnsense_ValidConfig(t *testing.T) {
-	config := &model.Opnsense{
+func TestValidateOpnSenseDocument_ValidConfig(t *testing.T) {
+	config := &model.OpnSenseDocument{
 		System: model.System{
 			Hostname:     "OPNsense",
 			Domain:       "localdomain",
@@ -98,7 +98,7 @@ func TestValidateOpnsense_ValidConfig(t *testing.T) {
 		},
 	}
 
-	errors := ValidateOpnsense(config)
+	errors := ValidateOpnSenseDocument(config)
 	assert.Empty(t, errors, "Valid configuration should not produce validation errors")
 }
 

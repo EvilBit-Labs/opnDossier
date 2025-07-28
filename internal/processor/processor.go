@@ -21,7 +21,7 @@ type Processor interface {
 	// Process analyzes the given OPNsense configuration and returns a comprehensive report.
 	// The context allows for cancellation and timeout control.
 	// Options can be used to enable specific analysis features.
-	Process(ctx context.Context, cfg *model.Opnsense, opts ...Option) (*Report, error)
+	Process(ctx context.Context, cfg *model.OpnSenseDocument, opts ...Option) (*Report, error)
 }
 
 // CoreProcessor implements the Processor interface with normalize, validate, analyze, and transform capabilities.
@@ -46,7 +46,7 @@ func NewCoreProcessor() *CoreProcessor {
 }
 
 // Process analyzes the given OPNsense configuration and returns a comprehensive report.
-func (p *CoreProcessor) Process(ctx context.Context, cfg *model.Opnsense, opts ...Option) (*Report, error) {
+func (p *CoreProcessor) Process(ctx context.Context, cfg *model.OpnSenseDocument, opts ...Option) (*Report, error) {
 	if cfg == nil {
 		return nil, ErrConfigurationNil
 	}

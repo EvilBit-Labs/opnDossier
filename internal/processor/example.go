@@ -17,7 +17,7 @@ func NewExampleProcessor() *ExampleProcessor {
 }
 
 // Process analyzes the given OPNsense configuration and returns a comprehensive report.
-func (p *ExampleProcessor) Process(ctx context.Context, cfg *model.Opnsense, opts ...Option) (*Report, error) {
+func (p *ExampleProcessor) Process(ctx context.Context, cfg *model.OpnSenseDocument, opts ...Option) (*Report, error) {
 	if cfg == nil {
 		return nil, ErrConfigurationNil
 	}
@@ -63,7 +63,7 @@ func (p *ExampleProcessor) Process(ctx context.Context, cfg *model.Opnsense, opt
 }
 
 // performBasicAnalysis performs basic configuration validation and analysis.
-func (p *ExampleProcessor) performBasicAnalysis(ctx context.Context, cfg *model.Opnsense, report *Report, _ Config) error {
+func (p *ExampleProcessor) performBasicAnalysis(ctx context.Context, cfg *model.OpnSenseDocument, report *Report, _ Config) error {
 	// Check for context cancellation
 	select {
 	case <-ctx.Done():
@@ -108,7 +108,7 @@ func (p *ExampleProcessor) performBasicAnalysis(ctx context.Context, cfg *model.
 }
 
 // performDeadRuleAnalysis analyzes firewall rules for potential dead/unused rules.
-func (p *ExampleProcessor) performDeadRuleAnalysis(ctx context.Context, cfg *model.Opnsense, report *Report) error {
+func (p *ExampleProcessor) performDeadRuleAnalysis(ctx context.Context, cfg *model.OpnSenseDocument, report *Report) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -149,7 +149,7 @@ func (p *ExampleProcessor) performDeadRuleAnalysis(ctx context.Context, cfg *mod
 }
 
 // performSecurityAnalysis performs security-related analysis of the configuration.
-func (p *ExampleProcessor) performSecurityAnalysis(ctx context.Context, cfg *model.Opnsense, report *Report) error {
+func (p *ExampleProcessor) performSecurityAnalysis(ctx context.Context, cfg *model.OpnSenseDocument, report *Report) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -192,7 +192,7 @@ func (p *ExampleProcessor) performSecurityAnalysis(ctx context.Context, cfg *mod
 }
 
 // performPerformanceAnalysis performs performance-related analysis of the configuration.
-func (p *ExampleProcessor) performPerformanceAnalysis(ctx context.Context, cfg *model.Opnsense, report *Report) error {
+func (p *ExampleProcessor) performPerformanceAnalysis(ctx context.Context, cfg *model.OpnSenseDocument, report *Report) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -235,7 +235,7 @@ func (p *ExampleProcessor) performPerformanceAnalysis(ctx context.Context, cfg *
 //   - Regulatory compliance requirements (PCI-DSS, HIPAA, etc.)
 //
 // This would provide comprehensive compliance monitoring capabilities.
-func (p *ExampleProcessor) performComplianceCheck(ctx context.Context, cfg *model.Opnsense, report *Report) error {
+func (p *ExampleProcessor) performComplianceCheck(ctx context.Context, cfg *model.OpnSenseDocument, report *Report) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()

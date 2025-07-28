@@ -15,7 +15,7 @@ func TestCoreProcessor_Process(t *testing.T) {
 	ctx := context.Background()
 
 	// Create a test configuration
-	cfg := &model.Opnsense{
+	cfg := &model.OpnSenseDocument{
 		System: model.System{
 			Hostname: "test-firewall",
 			Domain:   "example.com",
@@ -130,7 +130,7 @@ func TestCoreProcessor_Transform(t *testing.T) {
 	ctx := context.Background()
 
 	// Create a simple test configuration and process it
-	cfg := &model.Opnsense{
+	cfg := &model.OpnSenseDocument{
 		System: model.System{
 			Hostname: "test-firewall",
 			Domain:   "example.com",
@@ -181,7 +181,7 @@ func TestCoreProcessor_Normalization(t *testing.T) {
 	processor := NewCoreProcessor()
 
 	t.Run("IP address canonicalization", func(t *testing.T) {
-		cfg := &model.Opnsense{
+		cfg := &model.OpnSenseDocument{
 			System: model.System{
 				Hostname: "test",
 				Domain:   "example.com",
@@ -222,7 +222,7 @@ func TestCoreProcessor_Normalization(t *testing.T) {
 	})
 
 	t.Run("Default values filling", func(t *testing.T) {
-		cfg := &model.Opnsense{
+		cfg := &model.OpnSenseDocument{
 			System: model.System{
 				Hostname: "test",
 				Domain:   "example.com",
@@ -252,7 +252,7 @@ func TestCoreProcessor_Normalization(t *testing.T) {
 	})
 
 	t.Run("Slice sorting", func(t *testing.T) {
-		cfg := &model.Opnsense{
+		cfg := &model.OpnSenseDocument{
 			System: model.System{
 				Hostname: "test",
 				Domain:   "example.com",
@@ -304,7 +304,7 @@ func TestCoreProcessor_Analysis(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("Dead rule detection", func(t *testing.T) {
-		cfg := &model.Opnsense{
+		cfg := &model.OpnSenseDocument{
 			System: model.System{
 				Hostname: "test",
 				Domain:   "example.com",
@@ -348,7 +348,7 @@ func TestCoreProcessor_Analysis(t *testing.T) {
 	})
 
 	t.Run("Duplicate rule detection", func(t *testing.T) {
-		cfg := &model.Opnsense{
+		cfg := &model.OpnSenseDocument{
 			System: model.System{
 				Hostname: "test",
 				Domain:   "example.com",
@@ -394,7 +394,7 @@ func TestCoreProcessor_Analysis(t *testing.T) {
 	})
 
 	t.Run("User-group consistency check", func(t *testing.T) {
-		cfg := &model.Opnsense{
+		cfg := &model.OpnSenseDocument{
 			System: model.System{
 				Hostname: "test",
 				Domain:   "example.com",

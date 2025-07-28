@@ -18,7 +18,7 @@ func (e ValidationError) Error() string {
 
 // validate performs comprehensive validation of the OPNsense configuration using both
 // go-playground/validator struct tags and custom validation checks.
-func (p *CoreProcessor) validate(cfg *model.Opnsense) []ValidationError {
+func (p *CoreProcessor) validate(cfg *model.OpnSenseDocument) []ValidationError {
 	// Pre-allocate errors slice with reasonable capacity
 	const initialErrorCapacity = 10
 	errors := make([]ValidationError, 0, initialErrorCapacity)
@@ -34,7 +34,7 @@ func (p *CoreProcessor) validate(cfg *model.Opnsense) []ValidationError {
 	}
 
 	// Phase 2: Use existing custom validation logic
-	customErrors := validator.ValidateOpnsense(cfg)
+	customErrors := validator.ValidateOpnSenseDocument(cfg)
 	for _, customErr := range customErrors {
 		errors = append(errors, ValidationError{
 			Field:   customErr.Field,

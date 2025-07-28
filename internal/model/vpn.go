@@ -98,7 +98,6 @@ type ClientExport struct {
 type OpenVPNCSC struct {
 	XMLName          xml.Name `xml:"openvpn-csc"`
 	Common_name      string   `xml:"common_name,omitempty"` //nolint:revive // XML field name requires underscore
-	Description      string   `xml:"description,omitempty"`
 	Block            BoolFlag `xml:"block,omitempty"`
 	Tunnel_network   string   `xml:"tunnel_network,omitempty"`   //nolint:revive // XML field name requires underscore
 	Tunnel_networkv6 string   `xml:"tunnel_networkv6,omitempty"` //nolint:revive // XML field name requires underscore
@@ -121,9 +120,80 @@ type OpenVPNCSC struct {
 	Updated          string   `xml:"updated,omitempty"`
 }
 
-// Constructor functions for VPN models
+// OpenVPNExport represents OpenVPN export configuration.
+type OpenVPNExport struct {
+	XMLName xml.Name `xml:"OpenVPNExport"`
+	Text    string   `xml:",chardata" json:"text,omitempty"`
+	Version string   `xml:"version,attr" json:"version,omitempty"`
+	Servers string   `xml:"servers"`
+}
 
-// NewOpenVPN creates a new OpenVPN configuration with properly initialized slices.
+// OpenVPNSystem represents OpenVPN system configuration.
+type OpenVPNSystem struct {
+	XMLName    xml.Name `xml:"OpenVPN"`
+	Text       string   `xml:",chardata" json:"text,omitempty"`
+	Version    string   `xml:"version,attr" json:"version,omitempty"`
+	Overwrites string   `xml:"Overwrites"`
+	Instances  string   `xml:"Instances"`
+	StaticKeys string   `xml:"StaticKeys"`
+}
+
+// WireGuard represents WireGuard VPN configuration.
+type WireGuard struct {
+	XMLName xml.Name `xml:"wireguard"`
+	Text    string   `xml:",chardata" json:"text,omitempty"`
+	General struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+		Enabled string `xml:"enabled"`
+	} `xml:"general" json:"general,omitempty"`
+	Server struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+		Servers struct {
+			Text   string `xml:",chardata" json:"text,omitempty"`
+			Server struct {
+				Text          string `xml:",chardata" json:"text,omitempty"`
+				UUID          string `xml:"uuid,attr" json:"uuid,omitempty"`
+				Enabled       string `xml:"enabled"`
+				Name          string `xml:"name"`
+				Instance      string `xml:"instance"`
+				Pubkey        string `xml:"pubkey"`
+				Privkey       string `xml:"privkey"`
+				Port          string `xml:"port"`
+				Mtu           string `xml:"mtu"`
+				DNS           string `xml:"dns"`
+				Tunneladdress string `xml:"tunneladdress"`
+				Disableroutes string `xml:"disableroutes"`
+				Gateway       string `xml:"gateway"`
+				Peers         string `xml:"peers"`
+			} `xml:"server" json:"server,omitempty"`
+		} `xml:"servers" json:"servers,omitempty"`
+	} `xml:"server" json:"server,omitempty"`
+	Client struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+		Clients struct {
+			Text   string `xml:",chardata" json:"text,omitempty"`
+			Client struct {
+				Text          string `xml:",chardata" json:"text,omitempty"`
+				UUID          string `xml:"uuid,attr" json:"uuid,omitempty"`
+				Enabled       string `xml:"enabled"`
+				Name          string `xml:"name"`
+				Pubkey        string `xml:"pubkey"`
+				Psk           string `xml:"psk"`
+				Tunneladdress string `xml:"tunneladdress"`
+				Serveraddress string `xml:"serveraddress"`
+				Serverport    string `xml:"serverport"`
+				Keepalive     string `xml:"keepalive"`
+			} `xml:"client" json:"client,omitempty"`
+		} `xml:"clients" json:"clients,omitempty"`
+	} `xml:"client" json:"client,omitempty"`
+}
+
+// Constructor functions
+
+// NewOpenVPN creates a new OpenVPN configuration.
 func NewOpenVPN() *OpenVPN {
 	return &OpenVPN{
 		Servers: make([]OpenVPNServer, 0),
@@ -132,9 +202,24 @@ func NewOpenVPN() *OpenVPN {
 	}
 }
 
-// NewClientExport creates a new ClientExport with properly initialized slices.
+// NewClientExport creates a new ClientExport configuration.
 func NewClientExport() *ClientExport {
 	return &ClientExport{
 		Server_list: make([]string, 0),
 	}
+}
+
+// NewOpenVPNExport creates a new OpenVPNExport configuration.
+func NewOpenVPNExport() *OpenVPNExport {
+	return &OpenVPNExport{}
+}
+
+// NewOpenVPNSystem creates a new OpenVPNSystem configuration.
+func NewOpenVPNSystem() *OpenVPNSystem {
+	return &OpenVPNSystem{}
+}
+
+// NewWireGuard creates a new WireGuard configuration.
+func NewWireGuard() *WireGuard {
+	return &WireGuard{}
 }

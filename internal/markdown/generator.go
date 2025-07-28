@@ -18,7 +18,7 @@ import (
 // Generator represents the interface for generating documentation from OPNsense configurations.
 type Generator interface {
 	// Generate creates documentation in a specified format from the provided OPNsense configuration.
-	Generate(ctx context.Context, cfg *model.Opnsense, opts Options) (string, error)
+	Generate(ctx context.Context, cfg *model.OpnSenseDocument, opts Options) (string, error)
 }
 
 // markdownGenerator is the default implementation that wraps the old Markdown logic.
@@ -95,7 +95,7 @@ func NewMarkdownGenerator() (Generator, error) {
 }
 
 // Generate converts an OPNsense configuration to the specified format using the Options provided.
-func (g *markdownGenerator) Generate(ctx context.Context, cfg *model.Opnsense, opts Options) (string, error) {
+func (g *markdownGenerator) Generate(ctx context.Context, cfg *model.OpnSenseDocument, opts Options) (string, error) {
 	if cfg == nil {
 		return "", ErrNilConfiguration
 	}
@@ -106,13 +106,13 @@ func (g *markdownGenerator) Generate(ctx context.Context, cfg *model.Opnsense, o
 
 	// Add metadata for template rendering
 	metadata := struct {
-		*model.Opnsense
+		*model.OpnSenseDocument
 		Generated   string
 		ToolVersion string
 	}{
-		Opnsense:    cfg,
-		Generated:   time.Now().Format(time.RFC3339),
-		ToolVersion: "1.0.0", // Example version number, replace with actual
+		OpnSenseDocument: cfg,
+		Generated:        time.Now().Format(time.RFC3339),
+		ToolVersion:      "1.0.0", // Example version number, replace with actual
 	}
 
 	switch opts.Format {
@@ -164,8 +164,8 @@ func (g *markdownGenerator) generateMarkdown(_ context.Context, data interface{}
 }
 
 // generateJSON generates JSON output.
-func (g *markdownGenerator) generateJSON(_ context.Context, cfg *model.Opnsense, _ Options) (string, error) {
-	// Marshal the Opnsense struct to JSON with indentation
+func (g *markdownGenerator) generateJSON(_ context.Context, cfg *model.OpnSenseDocument, _ Options) (string, error) {
+	// Marshal the OpnSenseDocument struct to JSON with indentation
 	jsonBytes, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal to JSON: %w", err)
@@ -175,8 +175,8 @@ func (g *markdownGenerator) generateJSON(_ context.Context, cfg *model.Opnsense,
 }
 
 // generateYAML generates YAML output.
-func (g *markdownGenerator) generateYAML(_ context.Context, cfg *model.Opnsense, _ Options) (string, error) {
-	// Marshal the Opnsense struct to YAML
+func (g *markdownGenerator) generateYAML(_ context.Context, cfg *model.OpnSenseDocument, _ Options) (string, error) {
+	// Marshal the OpnSenseDocument struct to YAML
 	yamlBytes, err := yaml.Marshal(cfg)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal to YAML: %w", err)
