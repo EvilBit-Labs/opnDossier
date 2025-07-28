@@ -207,8 +207,13 @@ func TestOpnSenseDocumentModel_Validation(t *testing.T) {
 		System: System{
 			Hostname: "test-host",
 			Domain:   "test.local",
-			Webgui:   Webgui{Protocol: "https"},
-			SSH:      SSH{Group: "admins"},
+			WebGUI: struct {
+				Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+				SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+			}{Protocol: "https"},
+			SSH: struct {
+				Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
+			}{Group: "admins"},
 		},
 		Interfaces: Interfaces{
 			Items: map[string]Interface{
@@ -319,8 +324,13 @@ func TestOpnSenseDocumentModel_MissingRequiredFieldsValidation(t *testing.T) {
 			config: OpnSenseDocument{
 				System: System{
 					Domain: "test.local",
-					Webgui: Webgui{Protocol: "https"},
-					SSH:    SSH{Group: "admins"},
+					WebGUI: struct {
+						Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+						SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+					}{Protocol: "https"},
+					SSH: struct {
+						Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
+					}{Group: "admins"},
 				},
 				Interfaces: Interfaces{
 					Items: map[string]Interface{
@@ -336,8 +346,13 @@ func TestOpnSenseDocumentModel_MissingRequiredFieldsValidation(t *testing.T) {
 			config: OpnSenseDocument{
 				System: System{
 					Hostname: "test-host",
-					Webgui:   Webgui{Protocol: "https"},
-					SSH:      SSH{Group: "admins"},
+					WebGUI: struct {
+						Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+						SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+					}{Protocol: "https"},
+					SSH: struct {
+						Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
+					}{Group: "admins"},
 				},
 				Interfaces: Interfaces{
 					Items: map[string]Interface{
@@ -354,7 +369,9 @@ func TestOpnSenseDocumentModel_MissingRequiredFieldsValidation(t *testing.T) {
 				System: System{
 					Hostname: "test-host",
 					Domain:   "test.local",
-					SSH:      SSH{Group: "admins"},
+					SSH: struct {
+						Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
+					}{Group: "admins"},
 				},
 				Interfaces: Interfaces{
 					Items: map[string]Interface{
@@ -371,7 +388,10 @@ func TestOpnSenseDocumentModel_MissingRequiredFieldsValidation(t *testing.T) {
 				System: System{
 					Hostname: "test-host",
 					Domain:   "test.local",
-					Webgui:   Webgui{Protocol: "https"},
+					WebGUI: struct {
+						Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+						SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+					}{Protocol: "https"},
 				},
 				Interfaces: Interfaces{
 					Items: map[string]Interface{
@@ -388,8 +408,13 @@ func TestOpnSenseDocumentModel_MissingRequiredFieldsValidation(t *testing.T) {
 				System: System{
 					Hostname: "test-host",
 					Domain:   "test.local",
-					Webgui:   Webgui{Protocol: "https"},
-					SSH:      SSH{Group: "admins"},
+					WebGUI: struct {
+						Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+						SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+					}{Protocol: "https"},
+					SSH: struct {
+						Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
+					}{Group: "admins"},
 				},
 				Interfaces: Interfaces{
 					Items: map[string]Interface{
@@ -409,8 +434,13 @@ func TestOpnSenseDocumentModel_MissingRequiredFieldsValidation(t *testing.T) {
 				System: System{
 					Hostname: "test-host",
 					Domain:   "test.local",
-					Webgui:   Webgui{Protocol: "https"},
-					SSH:      SSH{Group: "admins"},
+					WebGUI: struct {
+						Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+						SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+					}{Protocol: "https"},
+					SSH: struct {
+						Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
+					}{Group: "admins"},
 				},
 				Interfaces: Interfaces{
 					Items: map[string]Interface{
@@ -430,8 +460,13 @@ func TestOpnSenseDocumentModel_MissingRequiredFieldsValidation(t *testing.T) {
 				System: System{
 					Hostname: "test-host",
 					Domain:   "test.local",
-					Webgui:   Webgui{Protocol: "https"},
-					SSH:      SSH{Group: "admins"},
+					WebGUI: struct {
+						Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+						SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+					}{Protocol: "https"},
+					SSH: struct {
+						Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
+					}{Group: "admins"},
 				},
 				Interfaces: Interfaces{
 					Items: map[string]Interface{

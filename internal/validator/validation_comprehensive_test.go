@@ -228,8 +228,15 @@ func TestInterfaceReferences_TableDriven(t *testing.T) {
 			// Create the test configuration
 			config := &model.OpnSenseDocument{
 				System: model.System{
-					Hostname: "test-firewall",
-					Domain:   "example.com",
+					Hostname: "test-host",
+					Domain:   "test.local",
+					WebGUI: struct {
+						Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+						SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+					}{Protocol: "https"},
+					Bogons: struct {
+						Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
+					}{Interval: "monthly"},
 				},
 				Interfaces: model.Interfaces{
 					Items: tt.interfaces,
@@ -315,8 +322,13 @@ func TestValidation_RealWorldScenarios(t *testing.T) {
 			System: model.System{
 				Hostname: "firewall",
 				Domain:   "example.com",
-				Webgui:   model.Webgui{Protocol: "https"},
-				Bogons:   model.Bogons{Interval: "monthly"},
+				WebGUI: struct {
+					Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+					SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+				}{Protocol: "https"},
+				Bogons: struct {
+					Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
+				}{Interval: "monthly"},
 			},
 			Interfaces: model.Interfaces{
 				Items: map[string]model.Interface{
@@ -464,8 +476,13 @@ func TestSampleConfig2_ZeroValidationErrors(t *testing.T) {
 		System: model.System{
 			Hostname: "TestHost2",
 			Domain:   "test.local",
-			Webgui:   model.Webgui{Protocol: "https"},
-			SSH:      model.SSH{Group: "admins"},
+			WebGUI: struct {
+				Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+				SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+			}{Protocol: "https"},
+			SSH: struct {
+				Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
+			}{Group: "admins"},
 		},
 		Interfaces: model.Interfaces{
 			Items: map[string]model.Interface{

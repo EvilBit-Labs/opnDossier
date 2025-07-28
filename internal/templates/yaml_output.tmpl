@@ -9,7 +9,7 @@ system:
   timezone: "{{ .System.Timezone }}"
   optimization: "{{ .System.Optimization }}"
   webgui:
-    protocol: "{{ .System.Webgui.Protocol }}"
+    protocol: "{{ .System.WebGUI.Protocol }}"
 
 interfaces:
 {{- range $key, $interface := .Interfaces }}

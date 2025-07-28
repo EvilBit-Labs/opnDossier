@@ -11,7 +11,6 @@ type ServiceConfig struct {
 	Rrd          Rrd          `json:"rrd,omitempty" yaml:"rrd,omitempty"`
 	LoadBalancer LoadBalancer `json:"loadBalancer,omitempty" yaml:"loadBalancer,omitempty"`
 	Ntpd         Ntpd         `json:"ntpd,omitempty" yaml:"ntpd,omitempty"`
-	SSH          SSH          `json:"ssh,omitempty" yaml:"ssh,omitempty"`
 }
 
 // Unbound represents the Unbound DNS resolver configuration.
@@ -166,35 +165,41 @@ type Monit struct {
 		Reminder    string `xml:"reminder"`
 		Description string `xml:"description"`
 	} `xml:"alert" json:"alert,omitempty"`
-	Service []struct {
-		Text         string `xml:",chardata" json:"text,omitempty"`
-		UUID         string `xml:"uuid,attr" json:"uuid,omitempty"`
-		Enabled      string `xml:"enabled"`
-		Name         string `xml:"name"`
-		Description  string `xml:"description"`
-		Type         string `xml:"type"`
-		Pidfile      string `xml:"pidfile"`
-		Match        string `xml:"match"`
-		Path         string `xml:"path"`
-		Timeout      string `xml:"timeout"`
-		Starttimeout string `xml:"starttimeout"`
-		Address      string `xml:"address"`
-		Interface    string `xml:"interface"`
-		Start        string `xml:"start"`
-		Stop         string `xml:"stop"`
-		Tests        string `xml:"tests"`
-		Depends      string `xml:"depends"`
-		Polltime     string `xml:"polltime"`
-	} `xml:"service" json:"service,omitempty"`
-	Test []struct {
-		Text      string `xml:",chardata" json:"text,omitempty"`
-		UUID      string `xml:"uuid,attr" json:"uuid,omitempty"`
-		Name      string `xml:"name"`
-		Type      string `xml:"type"`
-		Condition string `xml:"condition"`
-		Action    string `xml:"action"`
-		Path      string `xml:"path"`
-	} `xml:"test" json:"test,omitempty"`
+	Service []MonitService `xml:"service" json:"service,omitempty"`
+	Test    []MonitTest    `xml:"test" json:"test,omitempty"`
+}
+
+// MonitService represents a monitored service.
+type MonitService struct {
+	Text         string `xml:",chardata" json:"text,omitempty"`
+	UUID         string `xml:"uuid,attr" json:"uuid,omitempty"`
+	Enabled      string `xml:"enabled"`
+	Name         string `xml:"name"`
+	Description  string `xml:"description"`
+	Type         string `xml:"type"`
+	Pidfile      string `xml:"pidfile"`
+	Match        string `xml:"match"`
+	Path         string `xml:"path"`
+	Timeout      string `xml:"timeout"`
+	Starttimeout string `xml:"starttimeout"`
+	Address      string `xml:"address"`
+	Interface    string `xml:"interface"`
+	Start        string `xml:"start"`
+	Stop         string `xml:"stop"`
+	Tests        string `xml:"tests"`
+	Depends      string `xml:"depends"`
+	Polltime     string `xml:"polltime"`
+}
+
+// MonitTest represents a monitoring test.
+type MonitTest struct {
+	Text      string `xml:",chardata" json:"text,omitempty"`
+	UUID      string `xml:"uuid,attr" json:"uuid,omitempty"`
+	Name      string `xml:"name"`
+	Type      string `xml:"type"`
+	Condition string `xml:"condition"`
+	Action    string `xml:"action"`
+	Path      string `xml:"path"`
 }
 
 // Constructor functions
@@ -224,34 +229,7 @@ func NewSyslog() *Syslog {
 // NewMonit creates a new Monit configuration.
 func NewMonit() *Monit {
 	return &Monit{
-		Service: make([]struct {
-			Text         string `xml:",chardata" json:"text,omitempty"`
-			UUID         string `xml:"uuid,attr" json:"uuid,omitempty"`
-			Enabled      string `xml:"enabled"`
-			Name         string `xml:"name"`
-			Description  string `xml:"description"`
-			Type         string `xml:"type"`
-			Pidfile      string `xml:"pidfile"`
-			Match        string `xml:"match"`
-			Path         string `xml:"path"`
-			Timeout      string `xml:"timeout"`
-			Starttimeout string `xml:"starttimeout"`
-			Address      string `xml:"address"`
-			Interface    string `xml:"interface"`
-			Start        string `xml:"start"`
-			Stop         string `xml:"stop"`
-			Tests        string `xml:"tests"`
-			Depends      string `xml:"depends"`
-			Polltime     string `xml:"polltime"`
-		}, 0),
-		Test: make([]struct {
-			Text      string `xml:",chardata" json:"text,omitempty"`
-			UUID      string `xml:"uuid,attr" json:"uuid,omitempty"`
-			Name      string `xml:"name"`
-			Type      string `xml:"type"`
-			Condition string `xml:"condition"`
-			Action    string `xml:"action"`
-			Path      string `xml:"path"`
-		}, 0),
+		Service: make([]MonitService, 0),
+		Test:    make([]MonitTest, 0),
 	}
 }

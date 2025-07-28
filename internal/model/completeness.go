@@ -185,6 +185,36 @@ func getModelPaths(t reflect.Type, prefix string) map[string]bool {
 			continue
 		}
 
+		// Handle xml:",any" tags - these can accept any element name
+		if xmlTag == ",any" {
+			// For map types with ",any", we can't predict the specific names
+			// but we know the structure can handle any element name
+			// We'll add a wildcard path to indicate this
+			currentPath := "*"
+			if prefix != "" {
+				currentPath = prefix + ".*"
+			}
+			paths[currentPath] = true
+
+			// Also add the field name as a potential path
+			fieldPath := field.Name
+			if prefix != "" {
+				fieldPath = prefix + "." + field.Name
+			}
+			paths[fieldPath] = true
+
+			// Recursively process the map value type
+			if field.Type.Kind() == reflect.Map {
+				// For map[string]Interface, process the Interface type
+				valueType := field.Type.Elem()
+				nestedPaths := getModelPaths(valueType, currentPath)
+				for path := range nestedPaths {
+					paths[path] = true
+				}
+			}
+			continue
+		}
+
 		// Extract the XML name from the tag
 		xmlName := strings.Split(xmlTag, ",")[0]
 		if xmlName == "" {
@@ -216,7 +246,26 @@ func findMissingPaths(xmlPaths, modelPaths map[string]bool) []string {
 
 	for path := range xmlPaths {
 		if !modelPaths[path] {
-			missingPaths = append(missingPaths, path)
+			// Check if this path matches any wildcard patterns
+			matched := false
+			for modelPath := range modelPaths {
+				if strings.Contains(modelPath, "*") {
+					// Convert wildcard pattern to regex-like matching
+					pattern := strings.ReplaceAll(modelPath, "*", ".*")
+					if strings.Contains(pattern, ".*") {
+						// Simple wildcard matching - check if the path starts with the prefix
+						prefix := strings.Split(pattern, ".*")[0]
+						if strings.HasPrefix(path, prefix) {
+							matched = true
+							break
+						}
+					}
+				}
+			}
+
+			if !matched {
+				missingPaths = append(missingPaths, path)
+			}
 		}
 	}
 

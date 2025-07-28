@@ -17,11 +17,15 @@ func TestCoreProcessor_Process(t *testing.T) {
 	// Create a test configuration
 	cfg := &model.OpnSenseDocument{
 		System: model.System{
-			Hostname: "test-firewall",
-			Domain:   "example.com",
-			Webgui: model.Webgui{
-				Protocol: "http", // This should trigger a security finding
-			},
+			Hostname: "test-host",
+			Domain:   "test.local",
+			WebGUI: struct {
+				Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+				SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+			}{Protocol: "https"},
+			Bogons: struct {
+				Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
+			}{Interval: "monthly"},
 		},
 		Interfaces: model.Interfaces{
 			Items: map[string]model.Interface{
@@ -58,8 +62,8 @@ func TestCoreProcessor_Process(t *testing.T) {
 		assert.NotNil(t, report)
 		assert.NotNil(t, report.NormalizedConfig)
 		assert.NotNil(t, report.Statistics)
-		assert.Equal(t, "test-firewall", report.ConfigInfo.Hostname)
-		assert.Equal(t, "example.com", report.ConfigInfo.Domain)
+		assert.Equal(t, "test-host", report.ConfigInfo.Hostname)
+		assert.Equal(t, "test.local", report.ConfigInfo.Domain)
 	})
 
 	t.Run("Process with security analysis enabled", func(t *testing.T) {
@@ -239,7 +243,7 @@ func TestCoreProcessor_Normalization(t *testing.T) {
 
 		// Defaults should be filled
 		assert.Equal(t, "normal", normalized.System.Optimization)
-		assert.Equal(t, "https", normalized.System.Webgui.Protocol)
+		assert.Equal(t, "https", normalized.System.WebGUI.Protocol)
 		assert.Equal(t, "UTC", normalized.System.Timezone)
 		assert.Equal(t, "monthly", normalized.System.Bogons.Interval)
 		// Note: MTU default values are commented out in normalize.go due to

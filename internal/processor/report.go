@@ -758,7 +758,7 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 			stats.SecurityFeatures = append(stats.SecurityFeatures, "Block Bogon Networks")
 		}
 	}
-	if cfg.System.Webgui.Protocol == ProtocolHTTPS {
+	if cfg.System.WebGUI.Protocol == ProtocolHTTPS {
 		stats.SecurityFeatures = append(stats.SecurityFeatures, "HTTPS Web GUI")
 	}
 	if cfg.System.DisableNATReflection != "" {
@@ -796,7 +796,7 @@ func calculateSecurityScore(cfg *model.OpnSenseDocument, stats *Statistics) int 
 	}
 
 	// HTTPS web interface
-	if cfg.System.Webgui.Protocol == ProtocolHTTPS {
+	if cfg.System.WebGUI.Protocol == ProtocolHTTPS {
 		score += 15
 	}
 
@@ -993,7 +993,7 @@ func BuildSecurityConfig(cfg *model.OpnSenseDocument) string {
 		}
 	}
 
-	if cfg.System.Webgui.Protocol == "https" {
+	if cfg.System.WebGUI.Protocol == "https" {
 		securityFeatures = append(securityFeatures, "🔒 HTTPS Web Interface")
 	}
 
@@ -1082,10 +1082,10 @@ func BuildServiceConfig(cfg *model.OpnSenseDocument) string {
 
 	// SSH Service section
 	buf.WriteString("### SSH Service\n\n")
-	if svcConfig.SSH.Group != "" {
+	if cfg.System.SSH.Group != "" {
 		sshItems := []string{
 			"✅ **Status**: Enabled",
-			"**Allowed Group**: " + svcConfig.SSH.Group,
+			"**Allowed Group**: " + cfg.System.SSH.Group,
 		}
 		buf.WriteString(strings.Join(sshItems, "\n"))
 		buf.WriteString("\n\n")
@@ -1153,7 +1153,7 @@ func BuildServiceConfig(cfg *model.OpnSenseDocument) string {
 		serviceStatus = append(serviceStatus, "❌ SNMP")
 	}
 
-	if svcConfig.SSH.Group != "" {
+	if cfg.System.SSH.Group != "" {
 		enabledCount++
 		serviceStatus = append(serviceStatus, "✅ SSH")
 	} else {

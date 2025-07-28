@@ -112,6 +112,58 @@ type DhcpdInterface struct {
 	Dnsserver           string             `xml:"dnsserver,omitempty"`
 	Ntpserver           string             `xml:"ntpserver,omitempty"`
 	Staticmap           []DHCPStaticLease  `xml:"staticmap,omitempty"`
+
+	// Advanced DHCP fields
+	AliasAddress   string `xml:"alias-address,omitempty"`
+	AliasSubnet    string `xml:"alias-subnet,omitempty"`
+	DHCPRejectFrom string `xml:"dhcprejectfrom,omitempty"`
+
+	// Advanced DHCP options
+	AdvDHCPPTTimeout              string `xml:"adv_dhcp_pt_timeout,omitempty"`
+	AdvDHCPPTRetry                string `xml:"adv_dhcp_pt_retry,omitempty"`
+	AdvDHCPPTSelectTimeout        string `xml:"adv_dhcp_pt_select_timeout,omitempty"`
+	AdvDHCPPTReboot               string `xml:"adv_dhcp_pt_reboot,omitempty"`
+	AdvDHCPPTBackoffCutoff        string `xml:"adv_dhcp_pt_backoff_cutoff,omitempty"`
+	AdvDHCPPTInitialInterval      string `xml:"adv_dhcp_pt_initial_interval,omitempty"`
+	AdvDHCPPTValues               string `xml:"adv_dhcp_pt_values,omitempty"`
+	AdvDHCPSendOptions            string `xml:"adv_dhcp_send_options,omitempty"`
+	AdvDHCPRequestOptions         string `xml:"adv_dhcp_request_options,omitempty"`
+	AdvDHCPRequiredOptions        string `xml:"adv_dhcp_required_options,omitempty"`
+	AdvDHCPOptionModifiers        string `xml:"adv_dhcp_option_modifiers,omitempty"`
+	AdvDHCPConfigAdvanced         string `xml:"adv_dhcp_config_advanced,omitempty"`
+	AdvDHCPConfigFileOverride     string `xml:"adv_dhcp_config_file_override,omitempty"`
+	AdvDHCPConfigFileOverridePath string `xml:"adv_dhcp_config_file_override_path,omitempty"`
+
+	// Advanced DHCPv6 fields
+	Track6Interface                                 string `xml:"track6-interface,omitempty"`
+	Track6PrefixID                                  string `xml:"track6-prefix-id,omitempty"`
+	AdvDHCP6InterfaceStatementSendOptions           string `xml:"adv_dhcp6_interface_statement_send_options,omitempty"`
+	AdvDHCP6InterfaceStatementRequestOptions        string `xml:"adv_dhcp6_interface_statement_request_options,omitempty"`
+	AdvDHCP6InterfaceStatementInformationOnlyEnable string `xml:"adv_dhcp6_interface_statement_information_only_enable,omitempty"`
+	AdvDHCP6InterfaceStatementScript                string `xml:"adv_dhcp6_interface_statement_script,omitempty"`
+	AdvDHCP6IDAssocStatementAddressEnable           string `xml:"adv_dhcp6_id_assoc_statement_address_enable,omitempty"`
+	AdvDHCP6IDAssocStatementAddress                 string `xml:"adv_dhcp6_id_assoc_statement_address,omitempty"`
+	AdvDHCP6IDAssocStatementAddressID               string `xml:"adv_dhcp6_id_assoc_statement_address_id,omitempty"`
+	AdvDHCP6IDAssocStatementAddressPLTime           string `xml:"adv_dhcp6_id_assoc_statement_address_pltime,omitempty"`
+	AdvDHCP6IDAssocStatementAddressVLTime           string `xml:"adv_dhcp6_id_assoc_statement_address_vltime,omitempty"`
+	AdvDHCP6IDAssocStatementPrefixEnable            string `xml:"adv_dhcp6_id_assoc_statement_prefix_enable,omitempty"`
+	AdvDHCP6IDAssocStatementPrefix                  string `xml:"adv_dhcp6_id_assoc_statement_prefix,omitempty"`
+	AdvDHCP6IDAssocStatementPrefixID                string `xml:"adv_dhcp6_id_assoc_statement_prefix_id,omitempty"`
+	AdvDHCP6IDAssocStatementPrefixPLTime            string `xml:"adv_dhcp6_id_assoc_statement_prefix_pltime,omitempty"`
+	AdvDHCP6IDAssocStatementPrefixVLTime            string `xml:"adv_dhcp6_id_assoc_statement_prefix_vltime,omitempty"`
+	AdvDHCP6PrefixInterfaceStatementSLALen          string `xml:"adv_dhcp6_prefix_interface_statement_sla_len,omitempty"`
+	AdvDHCP6AuthenticationStatementAuthName         string `xml:"adv_dhcp6_authentication_statement_authname,omitempty"`
+	AdvDHCP6AuthenticationStatementProtocol         string `xml:"adv_dhcp6_authentication_statement_protocol,omitempty"`
+	AdvDHCP6AuthenticationStatementAlgorithm        string `xml:"adv_dhcp6_authentication_statement_algorithm,omitempty"`
+	AdvDHCP6AuthenticationStatementRDM              string `xml:"adv_dhcp6_authentication_statement_rdm,omitempty"`
+	AdvDHCP6KeyInfoStatementKeyName                 string `xml:"adv_dhcp6_key_info_statement_keyname,omitempty"`
+	AdvDHCP6KeyInfoStatementRealm                   string `xml:"adv_dhcp6_key_info_statement_realm,omitempty"`
+	AdvDHCP6KeyInfoStatementKeyID                   string `xml:"adv_dhcp6_key_info_statement_keyid,omitempty"`
+	AdvDHCP6KeyInfoStatementSecret                  string `xml:"adv_dhcp6_key_info_statement_secret,omitempty"`
+	AdvDHCP6KeyInfoStatementExpire                  string `xml:"adv_dhcp6_key_info_statement_expire,omitempty"`
+	AdvDHCP6ConfigAdvanced                          string `xml:"adv_dhcp6_config_advanced,omitempty"`
+	AdvDHCP6ConfigFileOverride                      string `xml:"adv_dhcp6_config_file_override,omitempty"`
+	AdvDHCP6ConfigFileOverridePath                  string `xml:"adv_dhcp6_config_file_override_path,omitempty"`
 }
 
 // DHCPNumberOption represents a DHCP option with a number and value.

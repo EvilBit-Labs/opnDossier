@@ -45,9 +45,16 @@ func TestExampleProcessor_Process_BasicAnalysis(t *testing.T) {
 		System: model.System{
 			Hostname: "test-firewall",
 			Domain:   "example.com",
-			Webgui: model.Webgui{
-				Protocol: "https",
-			},
+			WebGUI: struct {
+				Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+				SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+			}{Protocol: "https"},
+			SSH: struct {
+				Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
+			}{Group: "admins"},
+			Bogons: struct {
+				Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
+			}{Interval: "monthly"},
 		},
 	}
 
@@ -71,12 +78,13 @@ func TestExampleProcessor_Process_WithOptions(t *testing.T) {
 		System: model.System{
 			Hostname: "test-firewall",
 			Domain:   "example.com",
-			Webgui: model.Webgui{
-				Protocol: "http", // Insecure protocol
-			},
-			SSH: model.SSH{
-				Group: "admins", // SSH enabled
-			},
+			WebGUI: struct {
+				Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+				SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+			}{Protocol: "http"}, // Insecure protocol
+			SSH: struct {
+				Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
+			}{Group: "admins"}, // SSH enabled
 		},
 		Snmpd: model.Snmpd{
 			ROCommunity: "public", // Default community string
@@ -455,7 +463,7 @@ func TestCoreProcessor_NormalizationIdempotence(t *testing.T) {
 
 			// Check that defaults are consistently filled
 			assert.Equal(t, "normal", normalized1.System.Optimization)
-			assert.Equal(t, "https", normalized1.System.Webgui.Protocol)
+			assert.Equal(t, "https", normalized1.System.WebGUI.Protocol)
 			assert.Equal(t, "UTC", normalized1.System.Timezone)
 			assert.Equal(t, "monthly", normalized1.System.Bogons.Interval)
 			assert.Equal(t, "opnsense", normalized1.Theme)
@@ -481,9 +489,10 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 				System: model.System{
 					Hostname: "insecure-firewall",
 					Domain:   "example.com",
-					Webgui: model.Webgui{
-						Protocol: "http", // Insecure
-					},
+					WebGUI: struct {
+						Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+						SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+					}{Protocol: "http"}, // Insecure
 				},
 				Interfaces: model.Interfaces{
 					Items: map[string]model.Interface{
@@ -633,9 +642,10 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 				System: model.System{
 					Hostname: "combined-firewall",
 					Domain:   "example.com",
-					Webgui: model.Webgui{
-						Protocol: "http",
-					},
+					WebGUI: struct {
+						Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+						SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+					}{Protocol: "http"},
 					DisableChecksumOffloading: "1",
 				},
 				Interfaces: model.Interfaces{
@@ -733,9 +743,16 @@ func generateSmallConfig() *model.OpnSenseDocument {
 		System: model.System{
 			Hostname: "small-config",
 			Domain:   "example.com",
-			Webgui: model.Webgui{
-				Protocol: "https",
-			},
+			WebGUI: struct {
+				Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+				SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+			}{Protocol: "https"},
+			SSH: struct {
+				Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
+			}{Group: "admins"},
+			Bogons: struct {
+				Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
+			}{Interval: "monthly"},
 			User: []model.User{
 				{Name: "admin", UID: "1000", Scope: "local"},
 				{Name: "user1", UID: "1001", Scope: "local"},
@@ -807,9 +824,16 @@ func generateLargeConfig() *model.OpnSenseDocument {
 		System: model.System{
 			Hostname: "large-config",
 			Domain:   "example.com",
-			Webgui: model.Webgui{
-				Protocol: "https",
-			},
+			WebGUI: struct {
+				Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+				SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+			}{Protocol: "https"},
+			SSH: struct {
+				Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
+			}{Group: "admins"},
+			Bogons: struct {
+				Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
+			}{Interval: "monthly"},
 			User:  users,
 			Group: groups,
 		},
@@ -1228,12 +1252,16 @@ func TestCoreProcessor_StatisticsAccuracy(t *testing.T) {
 						{Name: "admins", Scope: "local", Gid: "1000"},
 						{Name: "users", Scope: "system", Gid: "1001"},
 					},
-					Webgui: model.Webgui{
-						Protocol: "https",
-					},
-					SSH: model.SSH{
-						Group: "admins",
-					},
+					WebGUI: struct {
+						Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+						SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+					}{Protocol: "https"},
+					SSH: struct {
+						Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
+					}{Group: "admins"},
+					Bogons: struct {
+						Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
+					}{Interval: "monthly"},
 				},
 				Interfaces: model.Interfaces{
 					Items: map[string]model.Interface{

@@ -99,19 +99,19 @@ func validateSystem(system *model.System) []ValidationError {
 
 	// Validate webgui protocol
 	validProtocols := []string{"http", "https"}
-	if system.Webgui.Protocol != "" && !contains(validProtocols, system.Webgui.Protocol) {
+	if system.WebGUI.Protocol != "" && !contains(validProtocols, system.WebGUI.Protocol) {
 		errors = append(errors, ValidationError{
 			Field:   "system.webgui.protocol",
-			Message: fmt.Sprintf("protocol '%s' must be one of: %v", system.Webgui.Protocol, validProtocols),
+			Message: fmt.Sprintf("protocol '%s' must be one of: %v", system.WebGUI.Protocol, validProtocols),
 		})
 	}
 
 	// Validate power management modes
 	validPowerModes := []string{"hadp", "hiadp", "adaptive", "minimum", "maximum"}
-	if system.PowerdAcMode != "" && !contains(validPowerModes, system.PowerdAcMode) {
+	if system.PowerdACMode != "" && !contains(validPowerModes, system.PowerdACMode) {
 		errors = append(errors, ValidationError{
 			Field:   "system.powerd_ac_mode",
-			Message: fmt.Sprintf("power mode '%s' must be one of: %v", system.PowerdAcMode, validPowerModes),
+			Message: fmt.Sprintf("power mode '%s' must be one of: %v", system.PowerdACMode, validPowerModes),
 		})
 	}
 

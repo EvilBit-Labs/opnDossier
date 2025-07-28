@@ -192,7 +192,13 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 			System: model.System{
 				Hostname: "test-host",
 				Domain:   "test.local",
-				Webgui:   model.Webgui{Protocol: "http"},
+				WebGUI: struct {
+					Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+					SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+				}{Protocol: "http"},
+				Bogons: struct {
+					Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
+				}{Interval: "monthly"},
 			},
 		}
 		md, err := c.ToMarkdown(context.Background(), opnsense)

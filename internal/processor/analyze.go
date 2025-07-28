@@ -276,8 +276,8 @@ func (p *CoreProcessor) checkUserGroupConsistency(cfg *model.OpnSenseDocument, r
 
 // analyzeSecurityIssues performs security-focused analysis.
 func (p *CoreProcessor) analyzeSecurityIssues(cfg *model.OpnSenseDocument, report *Report) {
-	// Check for weak configurations
-	if cfg.System.Webgui.Protocol == "http" {
+	// WebGUI configuration
+	if cfg.System.WebGUI.Protocol != "" {
 		report.AddFinding(SeverityCritical, Finding{
 			Type:           FindingTypeSecurity,
 			Title:          "Insecure Web GUI Protocol",

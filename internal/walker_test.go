@@ -63,9 +63,10 @@ func TestWalk_DepthLimiting(t *testing.T) {
 	// Create a structure that would go beyond level 6
 	opnsense := model.OpnSenseDocument{
 		System: model.System{
-			Webgui: model.Webgui{
-				Protocol: "https",
-			},
+			WebGUI: struct {
+				Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+				SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+			}{Protocol: "https"},
 		},
 	}
 
@@ -96,8 +97,8 @@ func TestWalk_EmptyStructHandling(t *testing.T) {
 		System: model.System{
 			Hostname:           "test.local",
 			Domain:             "test.com",
-			DisableConsoleMenu: struct{}{}, // Empty struct should be treated as "enabled"
-			IPv6Allow:          struct{}{}, // Another empty struct
+			DisableConsoleMenu: struct{}{}, // Empty struct for enabled
+			IPv6Allow:          "1",        // String value for enabled
 		},
 	}
 
@@ -120,8 +121,8 @@ func TestWalk_EmptyStructHandling(t *testing.T) {
 	if !strings.Contains(systemNode.Body, "Disable Console Menu: enabled") {
 		t.Errorf("Expected 'Disable Console Menu: enabled' in body, got: %s", systemNode.Body)
 	}
-	if !strings.Contains(systemNode.Body, "IPv6 Allow: enabled") {
-		t.Errorf("Expected 'IPv6 Allow: enabled' in body, got: %s", systemNode.Body)
+	if !strings.Contains(systemNode.Body, "IPv6 Allow: 1") {
+		t.Errorf("Expected 'IPv6 Allow: 1' in body, got: %s", systemNode.Body)
 	}
 }
 
@@ -390,10 +391,10 @@ func TestWalk_SyntheticXMLFragment(t *testing.T) {
 	// Verify system has webgui child
 	foundWebgui := false
 	for _, child := range systemNode.Children {
-		if strings.Contains(child.Title, "Webgui") {
+		if strings.Contains(child.Title, "Web GUI") {
 			foundWebgui = true
 			if child.Level != 3 {
-				t.Errorf("Expected Webgui level 3, got %d", child.Level)
+				t.Errorf("Expected WebGUI level 3, got %d", child.Level)
 			}
 			if !strings.Contains(child.Body, "Protocol: https") {
 				t.Errorf("Expected protocol in webgui body, got: %s", child.Body)
@@ -402,7 +403,7 @@ func TestWalk_SyntheticXMLFragment(t *testing.T) {
 		}
 	}
 	if !foundWebgui {
-		t.Error("Webgui child not found under System")
+		t.Error("WebGUI child not found under System")
 	}
 
 	// Verify filter rules are handled properly

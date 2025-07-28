@@ -204,12 +204,6 @@ func (p *XMLParser) Parse(_ context.Context, r io.Reader) (*model.OpnSenseDocume
 					return nil, fmt.Errorf("failed to decode ntpd: %w", err)
 				}
 				doc.Ntpd = ntpd
-			case "widgets":
-				var widgets model.Widgets
-				if err := dec.DecodeElement(&widgets, &se); err != nil {
-					return nil, fmt.Errorf("failed to decode widgets: %w", err)
-				}
-				doc.Widgets = widgets
 			default:
 				// Skip unknown elements by consuming tokens until the end element
 				if err := skipElement(dec); err != nil {

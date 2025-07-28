@@ -145,50 +145,58 @@ type WireGuard struct {
 	General struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Version string `xml:"version,attr" json:"version,omitempty"`
-		Enabled string `xml:"enabled"`
+		Enabled string `xml:"enabled" json:"enabled,omitempty"`
 	} `xml:"general" json:"general,omitempty"`
 	Server struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Version string `xml:"version,attr" json:"version,omitempty"`
 		Servers struct {
-			Text   string `xml:",chardata" json:"text,omitempty"`
-			Server struct {
-				Text          string `xml:",chardata" json:"text,omitempty"`
-				UUID          string `xml:"uuid,attr" json:"uuid,omitempty"`
-				Enabled       string `xml:"enabled"`
-				Name          string `xml:"name"`
-				Instance      string `xml:"instance"`
-				Pubkey        string `xml:"pubkey"`
-				Privkey       string `xml:"privkey"`
-				Port          string `xml:"port"`
-				Mtu           string `xml:"mtu"`
-				DNS           string `xml:"dns"`
-				Tunneladdress string `xml:"tunneladdress"`
-				Disableroutes string `xml:"disableroutes"`
-				Gateway       string `xml:"gateway"`
-				Peers         string `xml:"peers"`
-			} `xml:"server" json:"server,omitempty"`
+			Text   string                `xml:",chardata" json:"text,omitempty"`
+			Server []WireGuardServerItem `xml:"server" json:"server,omitempty"`
 		} `xml:"servers" json:"servers,omitempty"`
 	} `xml:"server" json:"server,omitempty"`
 	Client struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Version string `xml:"version,attr" json:"version,omitempty"`
 		Clients struct {
-			Text   string `xml:",chardata" json:"text,omitempty"`
-			Client struct {
-				Text          string `xml:",chardata" json:"text,omitempty"`
-				UUID          string `xml:"uuid,attr" json:"uuid,omitempty"`
-				Enabled       string `xml:"enabled"`
-				Name          string `xml:"name"`
-				Pubkey        string `xml:"pubkey"`
-				Psk           string `xml:"psk"`
-				Tunneladdress string `xml:"tunneladdress"`
-				Serveraddress string `xml:"serveraddress"`
-				Serverport    string `xml:"serverport"`
-				Keepalive     string `xml:"keepalive"`
-			} `xml:"client" json:"client,omitempty"`
+			Text   string                `xml:",chardata" json:"text,omitempty"`
+			Client []WireGuardClientItem `xml:"client" json:"client,omitempty"`
 		} `xml:"clients" json:"clients,omitempty"`
 	} `xml:"client" json:"client,omitempty"`
+}
+
+// WireGuardServerItem represents an individual WireGuard server.
+type WireGuardServerItem struct {
+	Text          string `xml:",chardata" json:"text,omitempty"`
+	UUID          string `xml:"uuid,attr" json:"uuid,omitempty"`
+	Version       string `xml:"version,attr" json:"version,omitempty"`
+	Enabled       string `xml:"enabled" json:"enabled,omitempty"`
+	Name          string `xml:"name" json:"name,omitempty"`
+	Instance      string `xml:"instance" json:"instance,omitempty"`
+	Pubkey        string `xml:"pubkey" json:"pubkey,omitempty"`
+	Privkey       string `xml:"privkey" json:"privkey,omitempty"`
+	Port          string `xml:"port" json:"port,omitempty"`
+	Mtu           string `xml:"mtu" json:"mtu,omitempty"`
+	DNS           string `xml:"dns" json:"dns,omitempty"`
+	Tunneladdress string `xml:"tunneladdress" json:"tunneladdress,omitempty"`
+	Disableroutes string `xml:"disableroutes" json:"disableroutes,omitempty"`
+	Gateway       string `xml:"gateway" json:"gateway,omitempty"`
+	Peers         string `xml:"peers" json:"peers,omitempty"`
+}
+
+// WireGuardClientItem represents an individual WireGuard client.
+type WireGuardClientItem struct {
+	Text          string `xml:",chardata" json:"text,omitempty"`
+	UUID          string `xml:"uuid,attr" json:"uuid,omitempty"`
+	Version       string `xml:"version,attr" json:"version,omitempty"`
+	Enabled       string `xml:"enabled" json:"enabled,omitempty"`
+	Name          string `xml:"name" json:"name,omitempty"`
+	Pubkey        string `xml:"pubkey" json:"pubkey,omitempty"`
+	Psk           string `xml:"psk" json:"psk,omitempty"`
+	Tunneladdress string `xml:"tunneladdress" json:"tunneladdress,omitempty"`
+	Serveraddress string `xml:"serveraddress" json:"serveraddress,omitempty"`
+	Serverport    string `xml:"serverport" json:"serverport,omitempty"`
+	Keepalive     string `xml:"keepalive" json:"keepalive,omitempty"`
 }
 
 // Constructor functions

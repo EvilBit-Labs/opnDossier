@@ -35,18 +35,21 @@ type Gateways struct {
 
 // Gateway struct for individual gateway configuration.
 type Gateway struct {
-	XMLName    xml.Name `xml:"gateway_item"`
-	Interface  string   `xml:"interface,omitempty"`
-	Gateway    string   `xml:"gateway,omitempty"`
-	Name       string   `xml:"name,omitempty"`
-	Weight     string   `xml:"weight,omitempty"`
-	IPProtocol string   `xml:"ipprotocol,omitempty"`
-	Interval   string   `xml:"interval,omitempty"`
-	Descr      string   `xml:"descr,omitempty"`
-	Monitor    string   `xml:"monitor,omitempty"`
-	Disabled   BoolFlag `xml:"disabled,omitempty"`
-	Created    string   `xml:"created,omitempty"`
-	Updated    string   `xml:"updated,omitempty"`
+	XMLName        xml.Name `xml:"gateway_item"`
+	Interface      string   `xml:"interface,omitempty"`
+	Gateway        string   `xml:"gateway,omitempty"`
+	Name           string   `xml:"name,omitempty"`
+	Weight         string   `xml:"weight,omitempty"`
+	IPProtocol     string   `xml:"ipprotocol,omitempty"`
+	Interval       string   `xml:"interval,omitempty"`
+	Descr          string   `xml:"descr,omitempty"`
+	Monitor        string   `xml:"monitor,omitempty"`
+	Disabled       BoolFlag `xml:"disabled,omitempty"`
+	Created        string   `xml:"created,omitempty"`
+	Updated        string   `xml:"updated,omitempty"`
+	DefaultGW      string   `xml:"defaultgw,omitempty"`
+	MonitorDisable string   `xml:"monitor_disable,omitempty"`
+	FarGW          string   `xml:"fargw,omitempty"`
 }
 
 // GatewayGroup represents a group of gateways for OPNsense configuration.

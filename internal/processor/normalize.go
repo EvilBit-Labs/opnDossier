@@ -31,8 +31,9 @@ func (p *CoreProcessor) fillDefaults(cfg *model.OpnSenseDocument) {
 	if cfg.System.Optimization == "" {
 		cfg.System.Optimization = "normal"
 	}
-	if cfg.System.Webgui.Protocol == "" {
-		cfg.System.Webgui.Protocol = ProtocolHTTPS
+	// Normalize WebGUI configuration
+	if cfg.System.WebGUI.Protocol == "" {
+		cfg.System.WebGUI.Protocol = "https"
 	}
 	if cfg.System.Timezone == "" {
 		cfg.System.Timezone = "UTC"

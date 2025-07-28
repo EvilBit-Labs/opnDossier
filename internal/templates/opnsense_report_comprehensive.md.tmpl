@@ -35,7 +35,7 @@
 ### Web GUI Configuration
 | Property | Value |
 |----------|-------|
-| **Protocol** | {{ .System.Webgui.Protocol }} |
+| **Protocol** | {{ .System.WebGUI.Protocol }} |
 
 ### System Settings
 | Property | Value |
@@ -43,7 +43,7 @@
 | **DNS Allow Override** | {{ .System.DNSAllowOverride }} |
 | **Next UID** | {{ .System.NextUID }} |
 | **Next GID** | {{ .System.NextGID }} |
-| **Time Servers** | {{ .System.Timeservers }} |
+| **Time Servers** | {{ .System.TimeServers }} |
 
 ### SSH Configuration
 | Property | Value |
@@ -139,7 +139,7 @@
 - **Total DHCP Scopes**: {{ len .Dhcpd.Items }}
 
 ### Security Assessment
-- **Web GUI Protocol**: {{ if eq .System.Webgui.Protocol "https" }}🔒 Secure{{ else }}⚠️ Insecure{{ end }}
+- **Web GUI Protocol**: {{ if eq .System.WebGUI.Protocol "https" }}🔒 Secure{{ else }}⚠️ Insecure{{ end }}
 - **SSH Access**: {{ if .System.SSH.Group }}✅ Configured{{ else }}❌ Not configured{{ end }}
 
 ---

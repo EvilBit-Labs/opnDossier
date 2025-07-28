@@ -93,7 +93,7 @@ func (p *ExampleProcessor) performBasicAnalysis(ctx context.Context, cfg *model.
 	}
 
 	// Check for default/weak configurations
-	if cfg.System.Webgui.Protocol == "http" {
+	if cfg.System.WebGUI.Protocol == "http" {
 		report.AddFinding(SeverityHigh, Finding{
 			Type:           "security",
 			Title:          "Insecure Web GUI Protocol",
@@ -254,7 +254,7 @@ func (p *ExampleProcessor) performComplianceCheck(ctx context.Context, cfg *mode
 	}
 
 	// Check for time synchronization
-	if cfg.System.Timeservers == "" && cfg.Ntpd.Prefer == "" {
+	if cfg.System.TimeServers == "" && cfg.Ntpd.Prefer == "" {
 		report.AddFinding(SeverityMedium, Finding{
 			Type:           "compliance",
 			Title:          "Time Synchronization Not Configured",

@@ -10,19 +10,20 @@ import (
 func TestValidateOpnSenseDocument_ValidConfig(t *testing.T) {
 	config := &model.OpnSenseDocument{
 		System: model.System{
-			Hostname:     "OPNsense",
-			Domain:       "localdomain",
+			Hostname:     "test-host",
+			Domain:       "test.local",
 			Timezone:     "Etc/UTC",
 			Optimization: "normal",
-			Webgui: model.Webgui{
-				Protocol: "https",
-			},
-			PowerdAcMode:      "hadp",
+			WebGUI: struct {
+				Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+				SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+			}{Protocol: "https"},
+			PowerdACMode:      "hadp",
 			PowerdBatteryMode: "hadp",
 			PowerdNormalMode:  "hadp",
-			Bogons: model.Bogons{
-				Interval: "monthly",
-			},
+			Bogons: struct {
+				Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
+			}{Interval: "monthly"},
 			Group: []model.Group{
 				{
 					Name:  "admins",
@@ -790,7 +791,7 @@ func TestValidateSystem_PowerManagement(t *testing.T) {
 			system: model.System{
 				Hostname:          "test",
 				Domain:            "test.local",
-				PowerdAcMode:      "hadp",
+				PowerdACMode:      "hadp",
 				PowerdBatteryMode: "hiadp",
 				PowerdNormalMode:  "adaptive",
 			},
@@ -801,7 +802,7 @@ func TestValidateSystem_PowerManagement(t *testing.T) {
 			system: model.System{
 				Hostname:     "test",
 				Domain:       "test.local",
-				PowerdAcMode: "invalid",
+				PowerdACMode: "invalid",
 			},
 			expectedErrors: 1,
 		},
@@ -845,7 +846,9 @@ func TestValidateSystem_BogonsInterval(t *testing.T) {
 			system: model.System{
 				Hostname: "test",
 				Domain:   "test.local",
-				Bogons:   model.Bogons{Interval: "monthly"},
+				Bogons: struct {
+					Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
+				}{Interval: "monthly"},
 			},
 			expectedErrors: 0,
 		},
@@ -854,7 +857,9 @@ func TestValidateSystem_BogonsInterval(t *testing.T) {
 			system: model.System{
 				Hostname: "test",
 				Domain:   "test.local",
-				Bogons:   model.Bogons{Interval: "weekly"},
+				Bogons: struct {
+					Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
+				}{Interval: "weekly"},
 			},
 			expectedErrors: 0,
 		},
@@ -863,7 +868,9 @@ func TestValidateSystem_BogonsInterval(t *testing.T) {
 			system: model.System{
 				Hostname: "test",
 				Domain:   "test.local",
-				Bogons:   model.Bogons{Interval: "daily"},
+				Bogons: struct {
+					Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
+				}{Interval: "daily"},
 			},
 			expectedErrors: 0,
 		},
@@ -872,7 +879,9 @@ func TestValidateSystem_BogonsInterval(t *testing.T) {
 			system: model.System{
 				Hostname: "test",
 				Domain:   "test.local",
-				Bogons:   model.Bogons{Interval: "never"},
+				Bogons: struct {
+					Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
+				}{Interval: "never"},
 			},
 			expectedErrors: 0,
 		},
@@ -881,7 +890,9 @@ func TestValidateSystem_BogonsInterval(t *testing.T) {
 			system: model.System{
 				Hostname: "test",
 				Domain:   "test.local",
-				Bogons:   model.Bogons{Interval: "invalid"},
+				Bogons: struct {
+					Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
+				}{Interval: "invalid"},
 			},
 			expectedErrors: 1,
 		},

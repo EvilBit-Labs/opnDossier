@@ -233,9 +233,10 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
-					Webgui: model.Webgui{
-						Protocol: "ftp",
-					},
+					WebGUI: struct {
+						Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+						SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+					}{Protocol: "ftp"},
 				},
 			},
 			expectedErrors: 1,
@@ -248,7 +249,7 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 				System: model.System{
 					Hostname:         "testhost",
 					Domain:           "example.com",
-					PowerdAcMode:     "invalid-mode",
+					PowerdACMode:     "invalid-mode",
 					PowerdNormalMode: "another-invalid",
 				},
 			},
@@ -262,9 +263,9 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
-					Bogons: model.Bogons{
-						Interval: "invalid-interval",
-					},
+					Bogons: struct {
+						Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
+					}{Interval: "invalid-interval"},
 				},
 			},
 			expectedErrors: 1,
@@ -710,9 +711,10 @@ func TestXMLParser_ValidateComplexScenarios(t *testing.T) {
 					// Missing hostname (required field error)
 					Domain:       "example.com",
 					Optimization: "invalid-opt", // Invalid enum value
-					Webgui: model.Webgui{
-						Protocol: "ftp", // Invalid enum value
-					},
+					WebGUI: struct {
+						Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+						SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+					}{Protocol: "ftp"}, // Invalid enum value
 					Group: []model.Group{
 						{
 							Name: "admin",
@@ -773,15 +775,16 @@ func TestXMLParser_ValidateValidConfiguration(t *testing.T) {
 			Domain:       "localdomain",
 			Timezone:     "Etc/UTC",
 			Optimization: "normal",
-			Webgui: model.Webgui{
-				Protocol: "https",
-			},
-			PowerdAcMode:      "hadp",
+			WebGUI: struct {
+				Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+				SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+			}{Protocol: "https"},
+			PowerdACMode:      "hadp",
 			PowerdBatteryMode: "hadp",
 			PowerdNormalMode:  "hadp",
-			Bogons: model.Bogons{
-				Interval: "monthly",
-			},
+			Bogons: struct {
+				Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
+			}{Interval: "monthly"},
 			Group: []model.Group{
 				{
 					Name:  "admins",

@@ -116,10 +116,10 @@ func (c *MarkdownConverter) buildSystemSection(md *markdown.Markdown, opnsense *
 		md.PlainTextf("%s: %s", markdown.Bold("Optimization"), sysConfig.System.Optimization)
 	}
 
-	// Web GUI configuration
-	if sysConfig.System.Webgui.Protocol != "" {
+	// WebGUI configuration
+	if sysConfig.System.WebGUI.Protocol != "" {
 		md.H3("Web GUI")
-		md.PlainTextf("%s: %s", markdown.Bold("Protocol"), sysConfig.System.Webgui.Protocol)
+		md.PlainTextf("%s: %s", markdown.Bold("Protocol"), sysConfig.System.WebGUI.Protocol)
 	}
 
 	// System tuning (sysctl)

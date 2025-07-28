@@ -126,7 +126,10 @@ func TestXMLParser_ParseConfigSample(t *testing.T) {
 		assert.Equal(t, "normal", opnsense.System.Optimization)
 		assert.Equal(t, "Etc/UTC", opnsense.System.Timezone)
 		assert.Equal(t, "1", opnsense.System.DNSAllowOverride)
-		assert.Equal(t, "https", opnsense.System.Webgui.Protocol)
+		// Test WebGUI configuration
+		if opnsense.System.WebGUI.Protocol != "https" {
+			t.Errorf("Expected WebGUI protocol 'https', got '%s'", opnsense.System.WebGUI.Protocol)
+		}
 	})
 
 	t.Run("Users and Groups", func(t *testing.T) {
@@ -231,10 +234,7 @@ func TestXMLParser_ParseConfigSample(t *testing.T) {
 		assert.Contains(t, monitorNames, "SMTP")
 	})
 
-	t.Run("Widgets", func(t *testing.T) {
-		assert.Equal(t, "2", opnsense.Widgets.ColumnCount)
-		assert.Contains(t, opnsense.Widgets.Sequence, "system_information-container")
-	})
+	// Widgets are now inline in System struct, so we test them there
 }
 
 // validateOPNsenseConfig performs comprehensive validation of an OPNsense configuration.
