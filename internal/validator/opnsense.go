@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -313,7 +314,7 @@ func validateDhcpdInterface(name string, cfg model.DhcpdInterface, ifaceSet map[
 			toIP := net.ParseIP(cfg.Range.To).To4()
 			if fromIP != nil && toIP != nil {
 				// Compare byte by byte
-				for i := 0; i < 4; i++ {
+				for i := range 4 {
 					if fromIP[i] > toIP[i] {
 						errors = append(errors, ValidationError{
 							Field:   fmt.Sprintf("dhcpd.%s.range", name),
@@ -353,12 +354,7 @@ func stripIPSuffix(network string) string {
 
 func isReservedNetwork(network string) bool {
 	reserved := []string{"any", "lan", "wan", "localhost", "loopback", "(self)"}
-	for _, r := range reserved {
-		if network == r {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(reserved, network)
 }
 
 func validateFilter(filter *model.Filter, interfaces *model.Interfaces) []ValidationError {
@@ -612,12 +608,7 @@ func validateSysctl(items []model.SysctlItem) []ValidationError {
 
 // contains reports whether the given slice contains the specified string.
 func contains(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(slice, item)
 }
 
 // isValidHostname returns true if the given string is a valid hostname according to length and character rules.

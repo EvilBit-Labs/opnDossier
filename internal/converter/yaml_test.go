@@ -56,7 +56,7 @@ func TestYAMLConverter_ToYAML(t *testing.T) {
 
 			if tt.checkYAML {
 				// Verify the result is valid YAML
-				var parsed map[string]interface{}
+				var parsed map[string]any
 				err := yaml.Unmarshal([]byte(result), &parsed)
 				assert.NoError(t, err, "Result should be valid YAML")
 			}

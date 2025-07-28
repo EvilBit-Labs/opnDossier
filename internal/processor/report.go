@@ -828,10 +828,7 @@ func calculateConfigComplexity(stats *Statistics) int {
 	complexity += stats.LoadBalancerMonitors * constants.LoadBalancerComplexityWeight
 
 	// Normalize to 0-100 scale (assuming max reasonable config)
-	normalizedComplexity := (complexity * constants.MaxComplexityScore) / constants.MaxReasonableComplexity
-	if normalizedComplexity > constants.MaxComplexityScore {
-		normalizedComplexity = constants.MaxComplexityScore
-	}
+	normalizedComplexity := min((complexity*constants.MaxComplexityScore)/constants.MaxReasonableComplexity, constants.MaxComplexityScore)
 
 	return normalizedComplexity
 }

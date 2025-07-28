@@ -133,7 +133,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Action**: Implement model enrichment to calculate derived fields, statistics, and analysis data
   - **Acceptance**: opnSense model contains all calculated fields needed for comprehensive markdown generation
 
-- [ ] **TASK-013**: Implement template-based markdown generation
+- [x] **TASK-013**: Implement template-based markdown generation
 
   - **Context**: Use templates in `internal/templates` to generate structured markdown with proper formatting
   - **Requirement**: F002 (Template-based generation), US-004 (Syntax highlighting), F011 (Markdown generation)

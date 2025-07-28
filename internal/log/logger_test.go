@@ -158,12 +158,12 @@ func TestLoggerFormats(t *testing.T) {
 
 			// For JSON format, verify it's valid JSON
 			if tt.format == testFormatJSON {
-				lines := strings.Split(strings.TrimSpace(output), "\n")
-				for _, line := range lines {
+				lines := strings.SplitSeq(strings.TrimSpace(output), "\n")
+				for line := range lines {
 					if line == "" {
 						continue
 					}
-					var jsonData map[string]interface{}
+					var jsonData map[string]any
 					err := json.Unmarshal([]byte(line), &jsonData)
 					assert.NoError(t, err, "Output should be valid JSON")
 					assert.Equal(t, "info", jsonData["level"])
@@ -386,8 +386,7 @@ func BenchmarkLogger(b *testing.B) {
 	logger, err := New(config)
 	require.NoError(b, err)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := 0; b.Loop(); i++ {
 		logger.Info("benchmark message", "iteration", i)
 	}
 }

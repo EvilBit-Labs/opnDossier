@@ -177,7 +177,7 @@ type Interface struct {
 	DHCPRejectFrom      string       `xml:"dhcprejectfrom,omitempty" json:"dhcprejectfrom,omitempty" yaml:"dhcprejectfrom,omitempty"`
 	DDNSDomainAlgorithm string       `xml:"ddnsdomainalgorithm,omitempty" json:"ddnsdomainalgorithm,omitempty" yaml:"ddnsdomainalgorithm,omitempty"`
 	NumberOptions       []DhcpOption `xml:"numberoptions,omitempty" json:"numberoptions,omitempty" yaml:"numberoptions,omitempty"`
-	Range               DhcpRange    `xml:"range,omitempty" json:"range,omitempty" yaml:"range,omitempty"`
+	Range               DhcpRange    `xml:"range,omitempty" json:"range" yaml:"range,omitempty"`
 	Winsserver          string       `xml:"winsserver,omitempty" json:"winsserver,omitempty" yaml:"winsserver,omitempty"`
 	Dnsserver           string       `xml:"dnsserver,omitempty" json:"dnsserver,omitempty" yaml:"dnsserver,omitempty"`
 	Ntpserver           string       `xml:"ntpserver,omitempty" json:"ntpserver,omitempty" yaml:"ntpserver,omitempty"`

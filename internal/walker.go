@@ -25,7 +25,7 @@ func Walk(opnsense model.OpnSenseDocument) MDNode {
 const maxHeaderLevel = 6
 
 // walkNode recursively transforms each node into an MDNode structure.
-func walkNode(title string, level int, node interface{}) MDNode {
+func walkNode(title string, level int, node any) MDNode {
 	// Limit depth to H6 (level 6)
 	if level > maxHeaderLevel {
 		level = maxHeaderLevel

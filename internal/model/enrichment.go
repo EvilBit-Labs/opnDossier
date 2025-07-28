@@ -573,18 +573,11 @@ func generatePerformanceMetrics(cfg *OpnSenseDocument) *PerformanceMetrics {
 	complexity += len(cfg.System.User) * 1
 	complexity += len(cfg.System.Group) * 1
 
-	if complexity > MaxComplexityScore {
-		metrics.ConfigComplexity = MaxComplexityScore
-	} else {
-		metrics.ConfigComplexity = complexity
-	}
+	metrics.ConfigComplexity = min(complexity, MaxComplexityScore)
 
 	// Calculate rule efficiency (simplified)
 	if len(rules) > 0 {
-		metrics.RuleEfficiency = MaxComplexityScore - (len(rules) * RuleComplexityWeight)
-		if metrics.RuleEfficiency < 0 {
-			metrics.RuleEfficiency = 0
-		}
+		metrics.RuleEfficiency = max(MaxComplexityScore-(len(rules)*RuleComplexityWeight), 0)
 	} else {
 		metrics.RuleEfficiency = MaxComplexityScore
 	}

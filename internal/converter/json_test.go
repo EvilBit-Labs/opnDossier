@@ -56,7 +56,7 @@ func TestJSONConverter_ToJSON(t *testing.T) {
 
 			if tt.checkJSON {
 				// Verify the result is valid JSON
-				var parsed map[string]interface{}
+				var parsed map[string]any
 				err := json.Unmarshal([]byte(result), &parsed)
 				assert.NoError(t, err, "Result should be valid JSON")
 			}

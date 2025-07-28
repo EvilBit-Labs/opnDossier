@@ -36,7 +36,7 @@ func TestFormatValue(t *testing.T) {
 	tests := []struct {
 		name     string
 		key      string
-		value    interface{}
+		value    any
 		expected string
 	}{
 		{
@@ -109,7 +109,7 @@ func TestFormatValueStruct(t *testing.T) {
 }
 
 func TestFormatValueMap(t *testing.T) {
-	m := map[string]interface{}{
+	m := map[string]any{
 		"key1": "value1",
 		"key2": 42,
 	}
@@ -267,7 +267,7 @@ func TestGetStructFieldValues(t *testing.T) {
 func TestIsEmptyValue(t *testing.T) {
 	tests := []struct {
 		name     string
-		value    interface{}
+		value    any
 		expected bool
 	}{
 		{"empty string", "", true},

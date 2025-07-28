@@ -4,8 +4,8 @@ package converter
 // old and new converter implementations.
 type Adapter interface {
 	Converter
-	SetOptions(opts interface{})
-	GetOptions() interface{}
+	SetOptions(opts any)
+	GetOptions() any
 }
 
 // Note: The actual MarkdownGeneratorAdapter has been moved to the markdown package

@@ -133,7 +133,7 @@ func (l *Logger) WithPrefix(prefix string) *Logger {
 }
 
 // WithFields returns a logger with the specified key-value pairs.
-func (l *Logger) WithFields(keyvals ...interface{}) *Logger {
+func (l *Logger) WithFields(keyvals ...any) *Logger {
 	return &Logger{Logger: l.With(keyvals...)}
 }
 

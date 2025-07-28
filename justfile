@@ -62,6 +62,7 @@ check:
 format:
     golangci-lint run --fix ./...
     goimports -w .
+    @just modernize
 
 # Run code formatting checks
 format-check:
@@ -73,6 +74,15 @@ lint:
     golangci-lint run ./...
     go vet ./...
     gosec ./...
+    @just modernize-check
+
+# Run modernize analyzer to check for modernization opportunities
+modernize:
+    go run golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@latest -fix -test ./...
+
+# Run modernize analyzer in dry-run mode (no fixes applied)
+modernize-check:
+    go run golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@latest -test ./...
 
 
 # -----------------------------
@@ -170,6 +180,7 @@ ci-check:
     @just check
     @just format-check
     @just lint
+    @just modernize-check
     @just test
     @goreleaser check --verbose
 

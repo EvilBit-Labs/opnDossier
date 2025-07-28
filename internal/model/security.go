@@ -5,8 +5,8 @@ import "encoding/xml"
 
 // SecurityConfig groups security-related configuration.
 type SecurityConfig struct {
-	Nat    Nat    `json:"nat,omitempty" yaml:"nat,omitempty"`
-	Filter Filter `json:"filter,omitempty" yaml:"filter,omitempty"`
+	Nat    Nat    `json:"nat" yaml:"nat,omitempty"`
+	Filter Filter `json:"filter" yaml:"filter,omitempty"`
 }
 
 // Nat represents NAT configuration.
@@ -77,21 +77,21 @@ type Firewall struct {
 		Text      string `xml:",chardata" json:"text,omitempty"`
 		Version   string `xml:"version,attr" json:"version,omitempty"`
 		Templates string `xml:"templates"`
-	} `xml:"Lvtemplate" json:"lvtemplate,omitempty"`
+	} `xml:"Lvtemplate" json:"lvtemplate"`
 	Alias struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Version string `xml:"version,attr" json:"version,omitempty"`
 		Geoip   struct {
 			Text string `xml:",chardata" json:"text,omitempty"`
 			URL  string `xml:"url"`
-		} `xml:"geoip" json:"geoip,omitempty"`
+		} `xml:"geoip" json:"geoip"`
 		Aliases string `xml:"aliases"`
-	} `xml:"Alias" json:"alias,omitempty"`
+	} `xml:"Alias" json:"alias"`
 	Category struct {
 		Text       string `xml:",chardata" json:"text,omitempty"`
 		Version    string `xml:"version,attr" json:"version,omitempty"`
 		Categories string `xml:"categories"`
-	} `xml:"Category" json:"category,omitempty"`
+	} `xml:"Category" json:"category"`
 	Filter struct {
 		Text      string `xml:",chardata" json:"text,omitempty"`
 		Version   string `xml:"version,attr" json:"version,omitempty"`
@@ -99,7 +99,7 @@ type Firewall struct {
 		Snatrules string `xml:"snatrules"`
 		Npt       string `xml:"npt"`
 		Onetoone  string `xml:"onetoone"`
-	} `xml:"Filter" json:"filter,omitempty"`
+	} `xml:"Filter" json:"filter"`
 }
 
 // IDS represents Intrusion Detection System configuration.
@@ -131,7 +131,7 @@ type IDS struct {
 			Profile        string `xml:"Profile"`
 			ToclientGroups string `xml:"toclient_groups"`
 			ToserverGroups string `xml:"toserver_groups"`
-		} `xml:"detect" json:"detect,omitempty"`
+		} `xml:"detect" json:"detect"`
 		Syslog     string `xml:"syslog"`
 		SyslogEve  string `xml:"syslog_eve"`
 		LogPayload string `xml:"LogPayload"`
@@ -143,16 +143,16 @@ type IDS struct {
 				Enable         string `xml:"enable"`
 				Extended       string `xml:"extended"`
 				DumpAllHeaders string `xml:"dumpAllHeaders"`
-			} `xml:"http" json:"http,omitempty"`
+			} `xml:"http" json:"http"`
 			TLS struct {
 				Text              string `xml:",chardata" json:"text,omitempty"`
 				Enable            string `xml:"enable"`
 				Extended          string `xml:"extended"`
 				SessionResumption string `xml:"sessionResumption"`
 				Custom            string `xml:"custom"`
-			} `xml:"tls" json:"tls,omitempty"`
-		} `xml:"eveLog" json:"evelog,omitempty"`
-	} `xml:"general" json:"general,omitempty"`
+			} `xml:"tls" json:"tls"`
+		} `xml:"eveLog" json:"evelog"`
+	} `xml:"general" json:"general"`
 }
 
 // IPsec represents IPsec configuration.
@@ -166,7 +166,7 @@ type IPsec struct {
 		PreferredOldsa      string `xml:"preferred_oldsa"`
 		Disablevpnrules     string `xml:"disablevpnrules"`
 		PassthroughNetworks string `xml:"passthrough_networks"`
-	} `xml:"general" json:"general,omitempty"`
+	} `xml:"general" json:"general"`
 	Charon struct {
 		Text               string `xml:",chardata" json:"text,omitempty"`
 		MaxIkev1Exchanges  string `xml:"max_ikev1_exchanges"`
@@ -205,9 +205,9 @@ type IPsec struct {
 				Pts      string `xml:"pts"`
 				TLS      string `xml:"tls"`
 				Tnc      string `xml:"tnc"`
-			} `xml:"daemon" json:"daemon,omitempty"`
-		} `xml:"syslog" json:"syslog,omitempty"`
-	} `xml:"charon" json:"charon,omitempty"`
+			} `xml:"daemon" json:"daemon"`
+		} `xml:"syslog" json:"syslog"`
+	} `xml:"charon" json:"charon"`
 	KeyPairs      string `xml:"keyPairs"`
 	PreSharedKeys string `xml:"preSharedKeys"`
 }

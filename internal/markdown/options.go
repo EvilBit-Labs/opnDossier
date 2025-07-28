@@ -98,7 +98,7 @@ type Options struct {
 	IncludeMetadata bool
 
 	// CustomFields allows for additional custom fields to be passed to templates.
-	CustomFields map[string]interface{}
+	CustomFields map[string]any
 }
 
 // DefaultOptions returns a new Options struct with sensible defaults.
@@ -115,7 +115,7 @@ func DefaultOptions() Options {
 		EnableEmojis:    true,
 		Compact:         false,
 		IncludeMetadata: true,
-		CustomFields:    make(map[string]interface{}),
+		CustomFields:    make(map[string]any),
 	}
 }
 
@@ -202,9 +202,9 @@ func (o Options) WithMetadata(enabled bool) Options {
 }
 
 // WithCustomField adds a custom field for template rendering.
-func (o Options) WithCustomField(key string, value interface{}) Options {
+func (o Options) WithCustomField(key string, value any) Options {
 	if o.CustomFields == nil {
-		o.CustomFields = make(map[string]interface{})
+		o.CustomFields = make(map[string]any)
 	}
 	o.CustomFields[key] = value
 	return o

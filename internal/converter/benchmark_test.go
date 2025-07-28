@@ -28,10 +28,9 @@ func BenchmarkMarkdownConverter_ToMarkdown(b *testing.B) {
 	converter := NewMarkdownConverter()
 	ctx := context.Background()
 
-	b.ResetTimer()
 	b.ReportAllocs()
 
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err := converter.ToMarkdown(ctx, opnsense)
 		if err != nil {
 			b.Fatalf("ToMarkdown failed: %v", err)
@@ -57,10 +56,9 @@ func BenchmarkMarkdownConverter_ToMarkdown_Large(b *testing.B) {
 	converter := NewMarkdownConverter()
 	ctx := context.Background()
 
-	b.ResetTimer()
 	b.ReportAllocs()
 
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err := converter.ToMarkdown(ctx, opnsense)
 		if err != nil {
 			b.Fatalf("ToMarkdown failed: %v", err)

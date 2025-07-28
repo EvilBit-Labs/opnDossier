@@ -94,7 +94,7 @@ func BadgeInsecure() Badge {
 
 // FormatValue automatically detects the type of value and formats it appropriately.
 // Slices and structs are formatted as tables, scalars as code blocks or inline text.
-func FormatValue(key string, value interface{}) string {
+func FormatValue(key string, value any) string {
 	if value == nil {
 		return CodeBlock("", "nil")
 	}
@@ -207,7 +207,7 @@ func formatMapValue(key string, v reflect.Value) string {
 }
 
 // formatScalarValue formats scalar values as inline text or code blocks.
-func formatScalarValue(key string, value interface{}) string {
+func formatScalarValue(key string, value any) string {
 	strValue := fmt.Sprintf("%v", value)
 
 	// Check if it looks like configuration content

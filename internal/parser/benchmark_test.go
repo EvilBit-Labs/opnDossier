@@ -27,9 +27,7 @@ func BenchmarkParse(b *testing.B) {
 	// Increase max size to handle large benchmark file
 	parser.MaxInputSize = 200 * 1024 * 1024 // 200 MB limit
 
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err := parser.Parse(context.Background(), bytes.NewReader(data))
 		if err != nil {
 			b.Fatal(err)
@@ -60,9 +58,7 @@ func BenchmarkParseConfigSample(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err := parser.Parse(context.Background(), bytes.NewReader(data))
 		if err != nil {
 			b.Fatal(err)
@@ -161,9 +157,7 @@ func BenchmarkXMLParser_ParseLarge(b *testing.B) {
 	runtime.GC()
 	runtime.ReadMemStats(&memBefore)
 
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
+	for i := 0; b.Loop(); i++ {
 		start := time.Now()
 		_, err := parser.Parse(context.Background(), bytes.NewReader(data))
 		duration := time.Since(start)

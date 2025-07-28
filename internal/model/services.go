@@ -5,12 +5,12 @@ import "encoding/xml"
 
 // ServiceConfig groups service-related configuration.
 type ServiceConfig struct {
-	Dhcpd        Dhcpd        `json:"dhcpd,omitempty" yaml:"dhcpd,omitempty"`
-	Unbound      Unbound      `json:"unbound,omitempty" yaml:"unbound,omitempty"`
-	Snmpd        Snmpd        `json:"snmpd,omitempty" yaml:"snmpd,omitempty"`
-	Rrd          Rrd          `json:"rrd,omitempty" yaml:"rrd,omitempty"`
-	LoadBalancer LoadBalancer `json:"loadBalancer,omitempty" yaml:"loadBalancer,omitempty"`
-	Ntpd         Ntpd         `json:"ntpd,omitempty" yaml:"ntpd,omitempty"`
+	Dhcpd        Dhcpd        `json:"dhcpd" yaml:"dhcpd,omitempty"`
+	Unbound      Unbound      `json:"unbound" yaml:"unbound,omitempty"`
+	Snmpd        Snmpd        `json:"snmpd" yaml:"snmpd,omitempty"`
+	Rrd          Rrd          `json:"rrd" yaml:"rrd,omitempty"`
+	LoadBalancer LoadBalancer `json:"loadBalancer" yaml:"loadBalancer,omitempty"`
+	Ntpd         Ntpd         `json:"ntpd" yaml:"ntpd,omitempty"`
 }
 
 // Unbound represents the Unbound DNS resolver configuration.
@@ -153,7 +153,7 @@ type Monit struct {
 		MmonitURL                 string `xml:"mmonitUrl"`
 		MmonitTimeout             string `xml:"mmonitTimeout"`
 		MmonitRegisterCredentials string `xml:"mmonitRegisterCredentials"`
-	} `xml:"general" json:"general,omitempty"`
+	} `xml:"general" json:"general"`
 	Alert struct {
 		Text        string `xml:",chardata" json:"text,omitempty"`
 		UUID        string `xml:"uuid,attr" json:"uuid,omitempty"`
@@ -164,7 +164,7 @@ type Monit struct {
 		Format      string `xml:"format"`
 		Reminder    string `xml:"reminder"`
 		Description string `xml:"description"`
-	} `xml:"alert" json:"alert,omitempty"`
+	} `xml:"alert" json:"alert"`
 	Service []MonitService `xml:"service" json:"service,omitempty"`
 	Test    []MonitTest    `xml:"test" json:"test,omitempty"`
 }

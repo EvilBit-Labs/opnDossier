@@ -32,12 +32,12 @@ func NewMarkdownGenerator() (Generator, error) {
 	funcMap := sprig.FuncMap()
 
 	// Add custom functions that aren't provided by sprig
-	funcMap["isLast"] = func(index, slice interface{}) bool {
+	funcMap["isLast"] = func(index, slice any) bool {
 		switch s := slice.(type) {
-		case map[string]interface{}:
+		case map[string]any:
 			// For maps, we can't determine order, so always return false for now
 			return false
-		case []interface{}:
+		case []any:
 			if i, ok := index.(int); ok {
 				return i == len(s)-1
 			}
@@ -110,7 +110,7 @@ func (g *markdownGenerator) Generate(ctx context.Context, cfg *model.OpnSenseDoc
 }
 
 // generateMarkdown generates markdown output using templates.
-func (g *markdownGenerator) generateMarkdown(_ context.Context, data interface{}, opts Options) (string, error) {
+func (g *markdownGenerator) generateMarkdown(_ context.Context, data any, opts Options) (string, error) {
 	// Determine which template to use based on comprehensive flag
 	templateName := "opnsense_report.md.tmpl"
 	if opts.Comprehensive {

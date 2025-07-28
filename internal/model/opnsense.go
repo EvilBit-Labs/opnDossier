@@ -9,40 +9,40 @@ import (
 type OpnSenseDocument struct {
 	XMLName              xml.Name             `xml:"opnsense" json:"-" yaml:"-"`
 	Version              string               `xml:"version,omitempty" json:"version,omitempty" yaml:"version,omitempty" validate:"omitempty,semver"`
-	TriggerInitialWizard struct{}             `xml:"trigger_initial_wizard,omitempty" json:"triggerInitialWizard,omitempty" yaml:"triggerInitialWizard,omitempty"`
+	TriggerInitialWizard struct{}             `xml:"trigger_initial_wizard,omitempty" json:"triggerInitialWizard" yaml:"triggerInitialWizard,omitempty"`
 	Theme                string               `xml:"theme,omitempty" json:"theme,omitempty" yaml:"theme,omitempty" validate:"omitempty,oneof=opnsense opnsense-ng bootstrap"`
 	Sysctl               []SysctlItem         `xml:"sysctl,omitempty" json:"sysctl,omitempty" yaml:"sysctl,omitempty" validate:"dive"`
-	System               System               `xml:"system,omitempty" json:"system,omitempty" yaml:"system,omitempty" validate:"required"`
-	Interfaces           Interfaces           `xml:"interfaces,omitempty" json:"interfaces,omitempty" yaml:"interfaces,omitempty" validate:"required"`
-	Dhcpd                Dhcpd                `xml:"dhcpd,omitempty" json:"dhcpd,omitempty" yaml:"dhcpd,omitempty"`
-	Unbound              Unbound              `xml:"unbound,omitempty" json:"unbound,omitempty" yaml:"unbound,omitempty"`
-	Snmpd                Snmpd                `xml:"snmpd,omitempty" json:"snmpd,omitempty" yaml:"snmpd,omitempty"`
-	Nat                  Nat                  `xml:"nat,omitempty" json:"nat,omitempty" yaml:"nat,omitempty"`
-	Filter               Filter               `xml:"filter,omitempty" json:"filter,omitempty" yaml:"filter,omitempty"`
-	Rrd                  Rrd                  `xml:"rrd,omitempty" json:"rrd,omitempty" yaml:"rrd,omitempty"`
-	LoadBalancer         LoadBalancer         `xml:"load_balancer,omitempty" json:"loadBalancer,omitempty" yaml:"loadBalancer,omitempty"`
-	Ntpd                 Ntpd                 `xml:"ntpd,omitempty" json:"ntpd,omitempty" yaml:"ntpd,omitempty"`
-	Widgets              Widgets              `xml:"widgets,omitempty" json:"widgets,omitempty" yaml:"widgets,omitempty"`
-	Revision             Revision             `xml:"revision,omitempty" json:"revision,omitempty" yaml:"revision,omitempty"`
-	Gateways             Gateways             `xml:"gateways,omitempty" json:"gateways,omitempty" yaml:"gateways,omitempty"`
-	HighAvailabilitySync HighAvailabilitySync `xml:"hasync,omitempty" json:"hasync,omitempty" yaml:"hasync,omitempty"`
-	InterfaceGroups      InterfaceGroups      `xml:"ifgroups,omitempty" json:"ifgroups,omitempty" yaml:"ifgroups,omitempty"`
-	GIFInterfaces        GIFInterfaces        `xml:"gifs,omitempty" json:"gifs,omitempty" yaml:"gifs,omitempty"`
-	GREInterfaces        GREInterfaces        `xml:"gres,omitempty" json:"gres,omitempty" yaml:"gres,omitempty"`
-	LAGGInterfaces       LAGGInterfaces       `xml:"laggs,omitempty" json:"laggs,omitempty" yaml:"laggs,omitempty"`
-	VirtualIP            VirtualIP            `xml:"virtualip,omitempty" json:"virtualip,omitempty" yaml:"virtualip,omitempty"`
-	VLANs                VLANs                `xml:"vlans,omitempty" json:"vlans,omitempty" yaml:"vlans,omitempty"`
-	OpenVPN              OpenVPN              `xml:"openvpn,omitempty" json:"openvpn,omitempty" yaml:"openvpn,omitempty"`
-	StaticRoutes         StaticRoutes         `xml:"staticroutes,omitempty" json:"staticroutes,omitempty" yaml:"staticroutes,omitempty"`
-	Bridges              BridgesConfig        `xml:"bridges,omitempty" json:"bridges,omitempty" yaml:"bridges,omitempty"`
-	PPPInterfaces        PPPInterfaces        `xml:"ppps,omitempty" json:"ppps,omitempty" yaml:"ppps,omitempty"`
-	Wireless             Wireless             `xml:"wireless,omitempty" json:"wireless,omitempty" yaml:"wireless,omitempty"`
-	CertificateAuthority CertificateAuthority `xml:"ca,omitempty" json:"ca,omitempty" yaml:"ca,omitempty"`
-	DHCPv6Server         DHCPv6Server         `xml:"dhcpdv6,omitempty" json:"dhcpdv6,omitempty" yaml:"dhcpdv6,omitempty"`
-	Cert                 Cert                 `xml:"cert,omitempty" json:"cert,omitempty" yaml:"cert,omitempty"`
-	DNSMasquerade        DNSMasq              `xml:"dnsmasq,omitempty" json:"dnsmasq,omitempty" yaml:"dnsmasq,omitempty"`
-	Syslog               Syslog               `xml:"syslog,omitempty" json:"syslog,omitempty" yaml:"syslog,omitempty"`
-	OPNsense             OPNsense             `xml:"OPNsense,omitempty" json:"opnsense,omitempty" yaml:"opnsense,omitempty"`
+	System               System               `xml:"system,omitempty" json:"system" yaml:"system,omitempty" validate:"required"`
+	Interfaces           Interfaces           `xml:"interfaces,omitempty" json:"interfaces" yaml:"interfaces,omitempty" validate:"required"`
+	Dhcpd                Dhcpd                `xml:"dhcpd,omitempty" json:"dhcpd" yaml:"dhcpd,omitempty"`
+	Unbound              Unbound              `xml:"unbound,omitempty" json:"unbound" yaml:"unbound,omitempty"`
+	Snmpd                Snmpd                `xml:"snmpd,omitempty" json:"snmpd" yaml:"snmpd,omitempty"`
+	Nat                  Nat                  `xml:"nat,omitempty" json:"nat" yaml:"nat,omitempty"`
+	Filter               Filter               `xml:"filter,omitempty" json:"filter" yaml:"filter,omitempty"`
+	Rrd                  Rrd                  `xml:"rrd,omitempty" json:"rrd" yaml:"rrd,omitempty"`
+	LoadBalancer         LoadBalancer         `xml:"load_balancer,omitempty" json:"loadBalancer" yaml:"loadBalancer,omitempty"`
+	Ntpd                 Ntpd                 `xml:"ntpd,omitempty" json:"ntpd" yaml:"ntpd,omitempty"`
+	Widgets              Widgets              `xml:"widgets,omitempty" json:"widgets" yaml:"widgets,omitempty"`
+	Revision             Revision             `xml:"revision,omitempty" json:"revision" yaml:"revision,omitempty"`
+	Gateways             Gateways             `xml:"gateways,omitempty" json:"gateways" yaml:"gateways,omitempty"`
+	HighAvailabilitySync HighAvailabilitySync `xml:"hasync,omitempty" json:"hasync" yaml:"hasync,omitempty"`
+	InterfaceGroups      InterfaceGroups      `xml:"ifgroups,omitempty" json:"ifgroups" yaml:"ifgroups,omitempty"`
+	GIFInterfaces        GIFInterfaces        `xml:"gifs,omitempty" json:"gifs" yaml:"gifs,omitempty"`
+	GREInterfaces        GREInterfaces        `xml:"gres,omitempty" json:"gres" yaml:"gres,omitempty"`
+	LAGGInterfaces       LAGGInterfaces       `xml:"laggs,omitempty" json:"laggs" yaml:"laggs,omitempty"`
+	VirtualIP            VirtualIP            `xml:"virtualip,omitempty" json:"virtualip" yaml:"virtualip,omitempty"`
+	VLANs                VLANs                `xml:"vlans,omitempty" json:"vlans" yaml:"vlans,omitempty"`
+	OpenVPN              OpenVPN              `xml:"openvpn,omitempty" json:"openvpn" yaml:"openvpn,omitempty"`
+	StaticRoutes         StaticRoutes         `xml:"staticroutes,omitempty" json:"staticroutes" yaml:"staticroutes,omitempty"`
+	Bridges              BridgesConfig        `xml:"bridges,omitempty" json:"bridges" yaml:"bridges,omitempty"`
+	PPPInterfaces        PPPInterfaces        `xml:"ppps,omitempty" json:"ppps" yaml:"ppps,omitempty"`
+	Wireless             Wireless             `xml:"wireless,omitempty" json:"wireless" yaml:"wireless,omitempty"`
+	CertificateAuthority CertificateAuthority `xml:"ca,omitempty" json:"ca" yaml:"ca,omitempty"`
+	DHCPv6Server         DHCPv6Server         `xml:"dhcpdv6,omitempty" json:"dhcpdv6" yaml:"dhcpdv6,omitempty"`
+	Cert                 Cert                 `xml:"cert,omitempty" json:"cert" yaml:"cert,omitempty"`
+	DNSMasquerade        DNSMasq              `xml:"dnsmasq,omitempty" json:"dnsmasq" yaml:"dnsmasq,omitempty"`
+	Syslog               Syslog               `xml:"syslog,omitempty" json:"syslog" yaml:"syslog,omitempty"`
+	OPNsense             OPNsense             `xml:"OPNsense,omitempty" json:"opnsense" yaml:"opnsense,omitempty"`
 }
 
 // OPNsense represents the main OPNsense system configuration.
@@ -301,54 +301,54 @@ type OPNsense struct {
 		Username        string `xml:"username"`
 		Password        string `xml:"password"`
 		Syncitems       string `xml:"syncitems"`
-	} `xml:"hasync" json:"hasync,omitempty"`
+	} `xml:"hasync" json:"hasync"`
 	InterfaceGroups struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Version string `xml:"version,attr" json:"version,omitempty"`
-	} `xml:"ifgroups" json:"ifgroups,omitempty"`
+	} `xml:"ifgroups" json:"ifgroups"`
 	GIFInterfaces struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Version string `xml:"version,attr" json:"version,omitempty"`
 		Gif     string `xml:"gif"`
-	} `xml:"gifs" json:"gifs,omitempty"`
+	} `xml:"gifs" json:"gifs"`
 	GREInterfaces struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Version string `xml:"version,attr" json:"version,omitempty"`
 		Gre     string `xml:"gre"`
-	} `xml:"gres" json:"gres,omitempty"`
+	} `xml:"gres" json:"gres"`
 	LAGGInterfaces struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Version string `xml:"version,attr" json:"version,omitempty"`
 		Lagg    string `xml:"lagg"`
-	} `xml:"laggs" json:"laggs,omitempty"`
+	} `xml:"laggs" json:"laggs"`
 	VirtualIP struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Version string `xml:"version,attr" json:"version,omitempty"`
 		Vip     string `xml:"vip"`
-	} `xml:"virtualip" json:"virtualip,omitempty"`
+	} `xml:"virtualip" json:"virtualip"`
 	VLANs struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Version string `xml:"version,attr" json:"version,omitempty"`
 		VLAN    string `xml:"vlan"`
-	} `xml:"vlans" json:"vlans,omitempty"`
+	} `xml:"vlans" json:"vlans"`
 	Openvpn      string `xml:"openvpn"`
 	Staticroutes struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Version string `xml:"version,attr" json:"version,omitempty"`
 		Route   string `xml:"route"`
-	} `xml:"staticroutes" json:"staticroutes,omitempty"`
+	} `xml:"staticroutes" json:"staticroutes"`
 	Bridges struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Bridged string `xml:"bridged"`
-	} `xml:"bridges" json:"bridges,omitempty"`
+	} `xml:"bridges" json:"bridges"`
 	PPPInterfaces struct {
 		Text string `xml:",chardata" json:"text,omitempty"`
 		Ppp  string `xml:"ppp"`
-	} `xml:"ppps" json:"ppps,omitempty"`
+	} `xml:"ppps" json:"ppps"`
 	Wireless struct {
 		Text  string `xml:",chardata" json:"text,omitempty"`
 		Clone string `xml:"clone"`
-	} `xml:"wireless" json:"wireless,omitempty"`
+	} `xml:"wireless" json:"wireless"`
 	CertificateAuthority string `xml:"ca"`
 	DHCPv6Server         string `xml:"dhcpdv6"`
 	Cert                 struct {
@@ -357,17 +357,17 @@ type OPNsense struct {
 		Descr string `xml:"descr"`
 		Crt   string `xml:"crt"`
 		Prv   string `xml:"prv"`
-	} `xml:"cert" json:"cert,omitempty"`
+	} `xml:"cert" json:"cert"`
 	Routes struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Version string `xml:"version,attr" json:"version,omitempty"`
 		Route   string `xml:"route"`
-	} `xml:"routes" json:"routes,omitempty"`
+	} `xml:"routes" json:"routes"`
 	UnboundDNS struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Version string `xml:"version,attr" json:"version,omitempty"`
 		Unbound string `xml:"unbound"`
-	} `xml:"unbound" json:"unbound,omitempty"`
+	} `xml:"unbound" json:"unbound"`
 	Created string `xml:"created,omitempty"`
 	Updated string `xml:"updated,omitempty"`
 }

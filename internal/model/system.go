@@ -3,7 +3,7 @@ package model
 
 // SystemConfig groups system-related configuration.
 type SystemConfig struct {
-	System System       `json:"system,omitempty" yaml:"system,omitempty" validate:"required"`
+	System System       `json:"system" yaml:"system,omitempty" validate:"required"`
 	Sysctl []SysctlItem `json:"sysctl,omitempty" yaml:"sysctl,omitempty"`
 }
 
@@ -26,16 +26,16 @@ type System struct {
 	DNSAllowOverride string   `xml:"dnsallowoverride" json:"dnsAllowOverride,omitempty" yaml:"dnsAllowOverride,omitempty"`
 	DNSServer        string   `xml:"dnsserver" json:"dnsServer,omitempty" yaml:"dnsServer,omitempty"`
 	Language         string   `xml:"language" json:"language,omitempty" yaml:"language,omitempty"`
-	Firmware         Firmware `xml:"firmware" json:"firmware,omitempty" yaml:"firmware,omitempty"`
+	Firmware         Firmware `xml:"firmware" json:"firmware" yaml:"firmware,omitempty"`
 	Group            []Group  `xml:"group" json:"groups,omitempty" yaml:"groups,omitempty" validate:"dive"`
 	User             []User   `xml:"user" json:"users,omitempty" yaml:"users,omitempty" validate:"dive"`
 	WebGUI           struct {
 		Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
 		SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-	} `xml:"webgui" json:"webgui,omitempty" yaml:"webgui,omitempty"`
+	} `xml:"webgui" json:"webgui" yaml:"webgui,omitempty"`
 	SSH struct {
 		Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
-	} `xml:"ssh" json:"ssh,omitempty" yaml:"ssh,omitempty"`
+	} `xml:"ssh" json:"ssh" yaml:"ssh,omitempty"`
 	Timezone                      string   `xml:"timezone" json:"timezone,omitempty" yaml:"timezone,omitempty"`
 	TimeServers                   string   `xml:"timeservers" json:"timeServers,omitempty" yaml:"timeServers,omitempty"`
 	UseVirtualTerminal            string   `xml:"usevirtualterminal" json:"useVirtualTerminal,omitempty" yaml:"useVirtualTerminal,omitempty"`
@@ -45,7 +45,7 @@ type System struct {
 	DisableLargeReceiveOffloading string   `xml:"disablelargereceiveoffloading" json:"disableLargeReceiveOffloading,omitempty" yaml:"disableLargeReceiveOffloading,omitempty"`
 	IPv6Allow                     string   `xml:"ipv6allow" json:"ipv6Allow,omitempty" yaml:"ipv6Allow,omitempty"`
 	DisableNATReflection          string   `xml:"disablenatreflection" json:"disableNatReflection,omitempty" yaml:"disableNatReflection,omitempty"`
-	DisableConsoleMenu            struct{} `xml:"disableconsolemenu" json:"disableConsoleMenu,omitempty" yaml:"disableConsoleMenu,omitempty"`
+	DisableConsoleMenu            struct{} `xml:"disableconsolemenu" json:"disableConsoleMenu" yaml:"disableConsoleMenu,omitempty"`
 	NextUID                       string   `xml:"nextuid" json:"nextUid,omitempty" yaml:"nextUid,omitempty"`
 	NextGID                       string   `xml:"nextgid" json:"nextGid,omitempty" yaml:"nextGid,omitempty"`
 	PowerdACMode                  string   `xml:"powerd_ac_mode" json:"powerdAcMode,omitempty" yaml:"powerdAcMode,omitempty" validate:"omitempty,oneof=hadp hiadp adaptive minimum maximum"`
@@ -53,7 +53,7 @@ type System struct {
 	PowerdNormalMode              string   `xml:"powerd_normal_mode" json:"powerdNormalMode,omitempty" yaml:"powerdNormalMode,omitempty" validate:"omitempty,oneof=hadp hiadp adaptive minimum maximum"`
 	Bogons                        struct {
 		Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
-	} `xml:"bogons" json:"bogons,omitempty" yaml:"bogons,omitempty"`
+	} `xml:"bogons" json:"bogons" yaml:"bogons,omitempty"`
 	PfShareForward string `xml:"pf_share_forward" json:"pfShareForward,omitempty" yaml:"pfShareForward,omitempty"`
 	LbUseSticky    string `xml:"lb_use_sticky" json:"lbUseSticky,omitempty" yaml:"lbUseSticky,omitempty"`
 	RrdBackup      string `xml:"rrdbackup" json:"rrdBackup,omitempty" yaml:"rrdBackup,omitempty"`
@@ -62,19 +62,19 @@ type System struct {
 	// Missing service configurations
 	NTPD struct {
 		Prefer string `xml:"prefer" json:"prefer,omitempty" yaml:"prefer,omitempty"`
-	} `xml:"ntpd" json:"ntpd,omitempty" yaml:"ntpd,omitempty"`
+	} `xml:"ntpd" json:"ntpd" yaml:"ntpd,omitempty"`
 	SNMPD struct {
 		SysLocation string `xml:"syslocation"`
 		SysContact  string `xml:"syscontact"`
 		ROCommunity string `xml:"rocommunity"`
-	} `xml:"snmpd" json:"snmpd,omitempty" yaml:"snmpd,omitempty"`
+	} `xml:"snmpd" json:"snmpd" yaml:"snmpd,omitempty"`
 	RRD struct {
 		Enable struct{} `xml:"enable"`
-	} `xml:"rrd" json:"rrd,omitempty" yaml:"rrd,omitempty"`
+	} `xml:"rrd" json:"rrd" yaml:"rrd,omitempty"`
 	LoadBalancer struct {
 		MonitorType []MonitorType `xml:"monitor_type"`
-	} `xml:"load_balancer" json:"loadBalancer,omitempty" yaml:"loadBalancer,omitempty"`
-	Unbound Unbound `xml:"unbound" json:"unbound,omitempty" yaml:"unbound,omitempty"`
+	} `xml:"load_balancer" json:"loadBalancer" yaml:"loadBalancer,omitempty"`
+	Unbound Unbound `xml:"unbound" json:"unbound" yaml:"unbound,omitempty"`
 }
 
 // Widgets represents the dashboard widgets configuration.
@@ -99,9 +99,9 @@ type Firmware struct {
 	Mirror       string   `xml:"mirror" json:"mirror,omitempty" yaml:"mirror,omitempty"`
 	Flavour      string   `xml:"flavour" json:"flavour,omitempty" yaml:"flavour,omitempty"`
 	Plugins      string   `xml:"plugins" json:"plugins,omitempty" yaml:"plugins,omitempty"`
-	Type         struct{} `xml:"type,omitempty" json:"type,omitempty" yaml:"type,omitempty"`
-	Subscription struct{} `xml:"subscription,omitempty" json:"subscription,omitempty" yaml:"subscription,omitempty"`
-	Reboot       struct{} `xml:"reboot,omitempty" json:"reboot,omitempty" yaml:"reboot,omitempty"`
+	Type         struct{} `xml:"type,omitempty" json:"type" yaml:"type,omitempty"`
+	Subscription struct{} `xml:"subscription,omitempty" json:"subscription" yaml:"subscription,omitempty"`
+	Reboot       struct{} `xml:"reboot,omitempty" json:"reboot" yaml:"reboot,omitempty"`
 }
 
 // User represents a user.
@@ -113,10 +113,10 @@ type User struct {
 	Password       string   `xml:"password" json:"password" yaml:"password" validate:"required"`
 	UID            string   `xml:"uid" json:"uid" yaml:"uid" validate:"required,numeric"`
 	APIKeys        []APIKey `xml:"apikeys>item" json:"apiKeys,omitempty" yaml:"apiKeys,omitempty"`
-	Expires        struct{} `xml:"expires" json:"expires,omitempty" yaml:"expires,omitempty"`
-	AuthorizedKeys struct{} `xml:"authorizedkeys" json:"authorizedKeys,omitempty" yaml:"authorizedKeys,omitempty"`
-	IPSecPSK       struct{} `xml:"ipsecpsk" json:"ipsecPsk,omitempty" yaml:"ipsecPsk,omitempty"`
-	OTPSeed        struct{} `xml:"otp_seed" json:"otpSeed,omitempty" yaml:"otpSeed,omitempty"`
+	Expires        struct{} `xml:"expires" json:"expires" yaml:"expires,omitempty"`
+	AuthorizedKeys struct{} `xml:"authorizedkeys" json:"authorizedKeys" yaml:"authorizedKeys,omitempty"`
+	IPSecPSK       struct{} `xml:"ipsecpsk" json:"ipsecPsk" yaml:"ipsecPsk,omitempty"`
+	OTPSeed        struct{} `xml:"otp_seed" json:"otpSeed" yaml:"otpSeed,omitempty"`
 }
 
 // APIKey represents a user API key.

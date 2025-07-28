@@ -332,9 +332,7 @@ func BenchmarkXMLParser_Parse(b *testing.B) {
 
 	parser := NewXMLParser()
 
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		file, err := os.Open(sampleFile)
 		if err != nil {
 			b.Fatal(err)
@@ -577,7 +575,7 @@ func generateLargeXML(size int) string {
 
 	// Generate many sysctl items to reach desired size - all within a single <sysctl> element
 	builder.WriteString(`<sysctl>`)
-	for i := 0; i < size; i++ {
+	for i := range size {
 		builder.WriteString(`<item>`)
 		builder.WriteString(fmt.Sprintf(`<tunable>net.inet.ip.test_%d</tunable>`, i))
 		builder.WriteString(fmt.Sprintf(`<value>%d</value>`, i%10))
@@ -646,9 +644,7 @@ func BenchmarkXMLParser_LargeConfig(b *testing.B) {
 	runtime.GC()
 	runtime.ReadMemStats(&m1)
 
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
+	for i := 0; b.Loop(); i++ {
 		file, err := os.Open(xmlFile)
 		if err != nil {
 			b.Fatal(err)

@@ -146,23 +146,23 @@ type WireGuard struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Version string `xml:"version,attr" json:"version,omitempty"`
 		Enabled string `xml:"enabled" json:"enabled,omitempty"`
-	} `xml:"general" json:"general,omitempty"`
+	} `xml:"general" json:"general"`
 	Server struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Version string `xml:"version,attr" json:"version,omitempty"`
 		Servers struct {
 			Text   string                `xml:",chardata" json:"text,omitempty"`
 			Server []WireGuardServerItem `xml:"server" json:"server,omitempty"`
-		} `xml:"servers" json:"servers,omitempty"`
-	} `xml:"server" json:"server,omitempty"`
+		} `xml:"servers" json:"servers"`
+	} `xml:"server" json:"server"`
 	Client struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Version string `xml:"version,attr" json:"version,omitempty"`
 		Clients struct {
 			Text   string                `xml:",chardata" json:"text,omitempty"`
 			Client []WireGuardClientItem `xml:"client" json:"client,omitempty"`
-		} `xml:"clients" json:"clients,omitempty"`
-	} `xml:"client" json:"client,omitempty"`
+		} `xml:"clients" json:"clients"`
+	} `xml:"client" json:"client"`
 }
 
 // WireGuardServerItem represents a WireGuard server configuration.

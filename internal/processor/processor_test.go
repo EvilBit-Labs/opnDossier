@@ -726,7 +726,7 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 // generateManyRules creates a large number of firewall rules for testing.
 func generateManyRules(count int) []model.Rule {
 	rules := make([]model.Rule, count)
-	for i := 0; i < count; i++ {
+	for i := range count {
 		rules[i] = model.Rule{
 			Type:      "pass",
 			Interface: "lan",
@@ -792,7 +792,7 @@ func generateSmallConfig() *model.OpnSenseDocument {
 func generateLargeConfig() *model.OpnSenseDocument {
 	// Create many users
 	users := make([]model.User, 100)
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		users[i] = model.User{
 			Name:  fmt.Sprintf("user%d", i),
 			UID:   strconv.Itoa(1000 + i),
@@ -802,7 +802,7 @@ func generateLargeConfig() *model.OpnSenseDocument {
 
 	// Create many groups
 	groups := make([]model.Group, 50)
-	for i := 0; i < 50; i++ {
+	for i := range 50 {
 		groups[i] = model.Group{
 			Name:  fmt.Sprintf("group%d", i),
 			Gid:   strconv.Itoa(2000 + i),
@@ -812,7 +812,7 @@ func generateLargeConfig() *model.OpnSenseDocument {
 
 	// Create many sysctl items
 	sysctlItems := make([]model.SysctlItem, 200)
-	for i := 0; i < 200; i++ {
+	for i := range 200 {
 		sysctlItems[i] = model.SysctlItem{
 			Tunable: fmt.Sprintf("net.inet.tcp.item%d", i),
 			Value:   strconv.Itoa(i % 10),
@@ -888,9 +888,7 @@ func BenchmarkCoreProcessor_ProcessSmallConfig(b *testing.B) {
 	ctx := context.Background()
 	smallConfig := generateSmallConfig()
 
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		start := time.Now()
 		report, err := processor.Process(ctx, smallConfig, WithAllFeatures())
 		duration := time.Since(start)
@@ -923,9 +921,7 @@ func BenchmarkCoreProcessor_ProcessLargeConfig(b *testing.B) {
 	runtime.GC()
 	runtime.ReadMemStats(&memBefore)
 
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
+	for i := 0; b.Loop(); i++ {
 		start := time.Now()
 		report, err := processor.Process(ctx, largeConfig, WithAllFeatures())
 		duration := time.Since(start)
@@ -1069,9 +1065,7 @@ func BenchmarkCoreProcessor_NormalizationOnly(b *testing.B) {
 	processor := NewCoreProcessor()
 	largeConfig := generateLargeConfig()
 
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		start := time.Now()
 		normalized := processor.normalize(largeConfig)
 		duration := time.Since(start)
@@ -1116,7 +1110,7 @@ func TestCoreProcessor_RaceConditions(t *testing.T) {
 		var wg sync.WaitGroup
 		errorChan := make(chan error, 10)
 
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			wg.Add(1)
 			go func(id int) {
 				defer wg.Done()
@@ -1150,7 +1144,7 @@ func TestCoreProcessor_RaceConditions(t *testing.T) {
 		var wg sync.WaitGroup
 		errorChan := make(chan error, 10)
 
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			wg.Add(1)
 			go func(id int) {
 				defer wg.Done()
@@ -1194,7 +1188,7 @@ func TestCoreProcessor_RaceConditions(t *testing.T) {
 		var wg sync.WaitGroup
 		errorChan := make(chan error, 10)
 
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			wg.Add(1)
 			go func(id int) {
 				defer wg.Done()

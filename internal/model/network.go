@@ -7,7 +7,7 @@ import (
 
 // NetworkConfig groups network-related configuration.
 type NetworkConfig struct {
-	Interfaces Interfaces   `json:"interfaces,omitempty" yaml:"interfaces,omitempty" validate:"required"`
+	Interfaces Interfaces   `json:"interfaces" yaml:"interfaces,omitempty" validate:"required"`
 	VLANs      []VLANConfig `json:"vlans,omitempty" yaml:"vlans,omitempty"`
 	Gateways   []Gateway    `json:"gateways,omitempty" yaml:"gateways,omitempty"`
 }

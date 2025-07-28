@@ -67,7 +67,7 @@
 | # | Action | Proto | Interface | Direction | State Type | Quick | Source | Source Port | Destination | Dest Port | Description |
 |---|--------|-------|-----------|-----------|------------|-------|--------|-------------|-------------|-----------|-------------|
 {{- range $index, $rule := .Filter.Rule }}
-| {{ add $index 1 }} | {{ $rule.Type }} | {{ $rule.IPProtocol }} | {{ $rule.Interface }} | {{ $rule.Direction }} | {{ $rule.Statetype }} | {{ if $rule.Quick }}✅{{ else }}❌{{ end }} | {{ $rule.Source.Network }}{{ if $rule.Source.Any }} (any){{ end }} | {{ $rule.Source.Port }} | {{ $rule.Destination.Network }}{{ if $rule.Destination.Any }} (any){{ end }} | {{ $rule.Destination.Port }} | `{{ $rule.Descr }}` |
+| {{ add $index 1 }} | {{ $rule.Type }} | {{ $rule.IPProtocol }} | {{ $rule.Interface }} | {{ $rule.Direction }} | {{ $rule.StateType }} | {{ if $rule.Quick }}✅{{ else }}❌{{ end }} | {{ $rule.Source.Network }}{{ if $rule.Source.Any }} (any){{ end }} | - | {{ $rule.Destination.Network }}{{ if $rule.Destination.Any }} (any){{ end }} | {{ $rule.Destination.Port }} | `{{ $rule.Descr }}` |
 {{- end }}
 
 ---
