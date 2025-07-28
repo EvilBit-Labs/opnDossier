@@ -13,6 +13,8 @@ type SysctlItem struct {
 	Descr   string `xml:"descr" json:"description,omitempty" yaml:"description,omitempty"`
 	Tunable string `xml:"tunable" json:"tunable" yaml:"tunable" validate:"required"`
 	Value   string `xml:"value" json:"value" yaml:"value" validate:"required"`
+	Key     string `xml:"key,omitempty" json:"key,omitempty" yaml:"key,omitempty"`
+	Secret  string `xml:"secret,omitempty" json:"secret,omitempty" yaml:"secret,omitempty"`
 }
 
 // System contains the system configuration.
@@ -90,10 +92,13 @@ type Group struct {
 
 // Firmware represents the firmware configuration.
 type Firmware struct {
-	Version string `xml:"version,attr" json:"version,omitempty" yaml:"version,omitempty"`
-	Mirror  string `xml:"mirror" json:"mirror,omitempty" yaml:"mirror,omitempty"`
-	Flavour string `xml:"flavour" json:"flavour,omitempty" yaml:"flavour,omitempty"`
-	Plugins string `xml:"plugins" json:"plugins,omitempty" yaml:"plugins,omitempty"`
+	Version      string   `xml:"version,attr" json:"version,omitempty" yaml:"version,omitempty"`
+	Mirror       string   `xml:"mirror" json:"mirror,omitempty" yaml:"mirror,omitempty"`
+	Flavour      string   `xml:"flavour" json:"flavour,omitempty" yaml:"flavour,omitempty"`
+	Plugins      string   `xml:"plugins" json:"plugins,omitempty" yaml:"plugins,omitempty"`
+	Type         struct{} `xml:"type,omitempty" json:"type,omitempty" yaml:"type,omitempty"`
+	Subscription struct{} `xml:"subscription,omitempty" json:"subscription,omitempty" yaml:"subscription,omitempty"`
+	Reboot       struct{} `xml:"reboot,omitempty" json:"reboot,omitempty" yaml:"reboot,omitempty"`
 }
 
 // User represents a user.
@@ -113,8 +118,22 @@ type User struct {
 
 // APIKey represents a user API key.
 type APIKey struct {
-	Key    string `xml:"key" json:"key" yaml:"key"`
-	Secret string `xml:"secret" json:"secret" yaml:"secret"`
+	Key         string `xml:"key" json:"key" yaml:"key"`
+	Secret      string `xml:"secret" json:"secret" yaml:"secret"`
+	Privileges  string `xml:"privileges,omitempty" json:"privileges,omitempty" yaml:"privileges,omitempty"`
+	Priv        string `xml:"priv,omitempty" json:"priv,omitempty" yaml:"priv,omitempty"`
+	Scope       string `xml:"scope,omitempty" json:"scope,omitempty" yaml:"scope,omitempty"`
+	UID         int    `xml:"uid,omitempty" json:"uid,omitempty" yaml:"uid,omitempty"`
+	GID         int    `xml:"gid,omitempty" json:"gid,omitempty" yaml:"gid,omitempty"`
+	Description string `xml:"descr,omitempty" json:"description,omitempty" yaml:"description,omitempty"`
+	CTime       int64  `xml:"ctime,omitempty" json:"ctime,omitempty" yaml:"ctime,omitempty"`
+	MTime       int64  `xml:"mtime,omitempty" json:"mtime,omitempty" yaml:"mtime,omitempty"`
+	CTimeUSec   int    `xml:"ctime_usec,omitempty" json:"ctimeUsec,omitempty" yaml:"ctimeUsec,omitempty"`
+	MTimeUSec   int    `xml:"mtime_usec,omitempty" json:"mtimeUsec,omitempty" yaml:"mtimeUsec,omitempty"`
+	CTimeNSec   int    `xml:"ctime_nsec,omitempty" json:"ctimeNsec,omitempty" yaml:"ctimeNsec,omitempty"`
+	MTimeNSec   int    `xml:"mtime_nsec,omitempty" json:"mtimeNsec,omitempty" yaml:"mtimeNsec,omitempty"`
+	CTimeSec    int64  `xml:"ctime_sec,omitempty" json:"ctimeSec,omitempty" yaml:"ctimeSec,omitempty"`
+	MTimeSec    int64  `xml:"mtime_sec,omitempty" json:"mtimeSec,omitempty" yaml:"mtimeSec,omitempty"`
 }
 
 // Constructor functions for system models
