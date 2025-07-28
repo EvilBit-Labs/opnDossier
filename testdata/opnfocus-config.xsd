@@ -1,0 +1,2214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="opnsense">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="trigger_initial_wizard"/>
+        <xs:element ref="theme"/>
+        <xs:element ref="sysctl"/>
+        <xs:element ref="system"/>
+        <xs:element ref="interfaces"/>
+        <xs:element ref="dhcpd"/>
+        <xs:element minOccurs="0" ref="unbound"/>
+        <xs:element ref="snmpd"/>
+        <xs:element ref="nat"/>
+        <xs:element ref="filter"/>
+        <xs:element ref="rrd"/>
+        <xs:element minOccurs="0" ref="load_balancer"/>
+        <xs:element ref="ntpd"/>
+        <xs:element minOccurs="0" ref="widgets"/>
+        <xs:element minOccurs="0" ref="revision"/>
+        <xs:element minOccurs="0" ref="gateways"/>
+        <xs:element minOccurs="0" ref="OPNsense"/>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="hasync"/>
+          <xs:element ref="ifgroups"/>
+          <xs:element ref="gifs"/>
+          <xs:element ref="gres"/>
+          <xs:element ref="laggs"/>
+          <xs:element ref="virtualip"/>
+          <xs:element ref="vlans"/>
+          <xs:element ref="openvpn"/>
+          <xs:element ref="staticroutes"/>
+          <xs:element ref="bridges"/>
+          <xs:element ref="ppps"/>
+          <xs:element ref="wireless"/>
+          <xs:element ref="ca"/>
+          <xs:element ref="dhcpdv6"/>
+          <xs:element ref="cert"/>
+        </xs:sequence>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="trigger_initial_wizard">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="theme" type="xs:NCName"/>
+  <xs:element name="sysctl">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="item"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="system">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="optimization"/>
+        <xs:element ref="hostname"/>
+        <xs:element ref="domain"/>
+        <xs:element minOccurs="0" ref="dnsallowoverride"/>
+        <xs:element ref="group"/>
+        <xs:element ref="user"/>
+        <xs:element ref="nextuid"/>
+        <xs:element ref="nextgid"/>
+        <xs:element ref="timezone"/>
+        <xs:element ref="timeservers"/>
+        <xs:element ref="webgui"/>
+        <xs:element ref="disablenatreflection"/>
+        <xs:element ref="usevirtualterminal"/>
+        <xs:element ref="disableconsolemenu"/>
+        <xs:element ref="disablevlanhwfilter"/>
+        <xs:element ref="disablechecksumoffloading"/>
+        <xs:element ref="disablesegmentationoffloading"/>
+        <xs:element ref="disablelargereceiveoffloading"/>
+        <xs:element ref="ipv6allow"/>
+        <xs:element ref="powerd_ac_mode"/>
+        <xs:element ref="powerd_battery_mode"/>
+        <xs:element ref="powerd_normal_mode"/>
+        <xs:element ref="bogons"/>
+        <xs:element ref="pf_share_forward"/>
+        <xs:element ref="lb_use_sticky"/>
+        <xs:element ref="ssh"/>
+        <xs:element ref="rrdbackup"/>
+        <xs:element ref="netflowbackup"/>
+        <xs:element minOccurs="0" ref="firmware"/>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="dnsserver"/>
+          <xs:element ref="language"/>
+        </xs:sequence>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="optimization" type="xs:NCName"/>
+  <xs:element name="hostname" type="xs:NCName"/>
+  <xs:element name="domain" type="xs:NCName"/>
+  <xs:element name="dnsallowoverride" type="xs:integer"/>
+  <xs:element name="user">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="name"/>
+        <xs:element ref="descr"/>
+        <xs:element ref="scope"/>
+        <xs:element ref="groupname"/>
+        <xs:element ref="password"/>
+        <xs:element ref="uid"/>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="apikeys"/>
+          <xs:element ref="expires"/>
+          <xs:element ref="authorizedkeys"/>
+          <xs:element ref="ipsecpsk"/>
+          <xs:element ref="otp_seed"/>
+        </xs:sequence>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="groupname" type="xs:NCName"/>
+  <xs:element name="uid" type="xs:integer"/>
+  <xs:element name="apikeys">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="item"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="expires">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="authorizedkeys">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="ipsecpsk">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="otp_seed">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="nextuid" type="xs:integer"/>
+  <xs:element name="nextgid" type="xs:integer"/>
+  <xs:element name="timezone" type="xs:string"/>
+  <xs:element name="timeservers" type="xs:string"/>
+  <xs:element name="webgui">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="protocol"/>
+        <xs:element minOccurs="0" ref="ssl-certref"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="ssl-certref" type="xs:NMTOKEN"/>
+  <xs:element name="disablenatreflection" type="xs:NCName"/>
+  <xs:element name="usevirtualterminal" type="xs:integer"/>
+  <xs:element name="disableconsolemenu">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="disablevlanhwfilter" type="xs:integer"/>
+  <xs:element name="disablechecksumoffloading" type="xs:integer"/>
+  <xs:element name="disablesegmentationoffloading" type="xs:integer"/>
+  <xs:element name="disablelargereceiveoffloading" type="xs:integer"/>
+  <xs:element name="ipv6allow" type="xs:string"/>
+  <xs:element name="powerd_ac_mode" type="xs:NCName"/>
+  <xs:element name="powerd_battery_mode" type="xs:NCName"/>
+  <xs:element name="powerd_normal_mode" type="xs:NCName"/>
+  <xs:element name="bogons">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="interval"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="pf_share_forward" type="xs:integer"/>
+  <xs:element name="lb_use_sticky" type="xs:integer"/>
+  <xs:element name="ssh">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="group"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="rrdbackup" type="xs:integer"/>
+  <xs:element name="netflowbackup" type="xs:integer"/>
+  <xs:element name="firmware">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="mirror"/>
+        <xs:element ref="flavour"/>
+        <xs:element ref="plugins"/>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="type"/>
+          <xs:element ref="subscription"/>
+          <xs:element ref="reboot"/>
+        </xs:sequence>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="mirror">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="flavour">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="plugins" type="xs:string"/>
+  <xs:element name="subscription">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="reboot">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="language" type="xs:NCName"/>
+  <xs:element name="dhcpd">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="lan"/>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="opt1"/>
+          <xs:element ref="opt2"/>
+        </xs:sequence>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="unbound">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="dnssec"/>
+          <xs:element ref="dnssecstripped"/>
+        </xs:sequence>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="snmpd">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="syslocation"/>
+        <xs:element ref="syscontact"/>
+        <xs:element ref="rocommunity"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="syslocation">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="syscontact">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="rocommunity" type="xs:NCName"/>
+  <xs:element name="nat">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="outbound"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="outbound">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="mode"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="mode" type="xs:NCName"/>
+  <xs:element name="filter">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="rule"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="rule">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="type"/>
+        <xs:choice maxOccurs="unbounded">
+          <xs:element ref="descr"/>
+          <xs:element ref="interface"/>
+          <xs:element ref="ipprotocol"/>
+        </xs:choice>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="statetype"/>
+          <xs:element ref="direction"/>
+          <xs:element ref="quick"/>
+          <xs:element ref="protocol"/>
+        </xs:sequence>
+        <xs:element ref="source"/>
+        <xs:element ref="destination"/>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="updated"/>
+          <xs:element ref="created"/>
+        </xs:sequence>
+      </xs:sequence>
+      <xs:attribute name="uuid"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="statetype" type="xs:string"/>
+  <xs:element name="direction" type="xs:NCName"/>
+  <xs:element name="quick" type="xs:integer"/>
+  <xs:element name="source">
+    <xs:complexType>
+      <xs:choice>
+        <xs:element ref="any"/>
+        <xs:element ref="network"/>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="destination">
+    <xs:complexType>
+      <xs:choice>
+        <xs:element ref="any"/>
+        <xs:sequence>
+          <xs:element ref="network"/>
+          <xs:element ref="port"/>
+        </xs:sequence>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="updated">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="username"/>
+        <xs:element ref="time"/>
+        <xs:element ref="description"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="created">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="username"/>
+        <xs:element ref="time"/>
+        <xs:element ref="description"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="rrd">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="enable"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="load_balancer">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="monitor_type"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="monitor_type">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="name"/>
+        <xs:element ref="type"/>
+        <xs:element ref="descr"/>
+        <xs:element ref="options"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="options">
+    <xs:complexType>
+      <xs:choice minOccurs="0">
+        <xs:sequence>
+          <xs:element ref="path"/>
+          <xs:element ref="host"/>
+          <xs:element ref="code"/>
+        </xs:sequence>
+        <xs:sequence>
+          <xs:element ref="send"/>
+          <xs:element ref="expect"/>
+        </xs:sequence>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="host">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="code" type="xs:integer"/>
+  <xs:element name="send">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="expect" type="xs:string"/>
+  <xs:element name="ntpd">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="prefer"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="prefer" type="xs:NMTOKEN"/>
+  <xs:element name="widgets">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="sequence"/>
+        <xs:element ref="column_count"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sequence" type="xs:string"/>
+  <xs:element name="column_count" type="xs:integer"/>
+  <xs:element name="revision">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="username"/>
+        <xs:element ref="time"/>
+        <xs:element ref="description"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="gateways">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="gateway_item"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="gateway_item">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="descr"/>
+        <xs:element ref="defaultgw"/>
+        <xs:element ref="ipprotocol"/>
+        <xs:element ref="interface"/>
+        <xs:element ref="gateway"/>
+        <xs:element ref="monitor_disable"/>
+        <xs:element ref="name"/>
+        <xs:element ref="interval"/>
+        <xs:element ref="weight"/>
+        <xs:element ref="fargw"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="defaultgw" type="xs:integer"/>
+  <xs:element name="monitor_disable" type="xs:integer"/>
+  <xs:element name="weight" type="xs:integer"/>
+  <xs:element name="fargw" type="xs:integer"/>
+  <xs:element name="OPNsense">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="captiveportal"/>
+          <xs:element ref="cron"/>
+          <xs:element ref="DHCRelay"/>
+          <xs:element ref="Firewall"/>
+          <xs:element ref="Netflow"/>
+          <xs:element ref="IDS"/>
+          <xs:element ref="IPsec"/>
+          <xs:element ref="Swanctl"/>
+          <xs:element ref="Interfaces"/>
+          <xs:element ref="Kea"/>
+          <xs:element ref="monit"/>
+          <xs:element ref="OpenVPNExport"/>
+          <xs:element ref="OpenVPN"/>
+          <xs:element ref="Gateways"/>
+          <xs:element ref="Syslog"/>
+          <xs:element ref="TrafficShaper"/>
+          <xs:element ref="trust"/>
+          <xs:element ref="unboundplus"/>
+        </xs:sequence>
+        <xs:element ref="wireguard"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="captiveportal">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="zones"/>
+        <xs:element ref="templates"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="zones">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="cron">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="jobs"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="jobs">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="DHCRelay">
+    <xs:complexType>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="Firewall">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="Lvtemplate"/>
+        <xs:element ref="Alias"/>
+        <xs:element ref="Category"/>
+        <xs:element ref="Filter"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="Lvtemplate">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="templates"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="Alias">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="geoip"/>
+        <xs:element ref="aliases"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="geoip">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="url"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="url">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="Category">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="categories"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="categories">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="Filter">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="rules"/>
+        <xs:element ref="snatrules"/>
+        <xs:element ref="npt"/>
+        <xs:element ref="onetoone"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="snatrules">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="npt">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="onetoone">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="Netflow">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="capture"/>
+        <xs:element ref="collect"/>
+        <xs:element ref="activeTimeout"/>
+        <xs:element ref="inactiveTimeout"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="capture">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="interfaces"/>
+        <xs:element ref="egress_only"/>
+        <xs:element ref="version"/>
+        <xs:element ref="targets"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="egress_only">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="version" type="xs:NCName"/>
+  <xs:element name="targets">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="collect">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="enable"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="activeTimeout" type="xs:integer"/>
+  <xs:element name="inactiveTimeout" type="xs:integer"/>
+  <xs:element name="IDS">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="rules"/>
+        <xs:element ref="policies"/>
+        <xs:element ref="userDefinedRules"/>
+        <xs:element ref="files"/>
+        <xs:element ref="fileTags"/>
+        <xs:element ref="general"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="policies">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="userDefinedRules">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="files">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="fileTags">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="IPsec">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="general"/>
+        <xs:element ref="charon"/>
+        <xs:element ref="keyPairs"/>
+        <xs:element ref="preSharedKeys"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="charon">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="max_ikev1_exchanges"/>
+        <xs:element ref="threads"/>
+        <xs:element ref="ikesa_table_size"/>
+        <xs:element ref="ikesa_table_segments"/>
+        <xs:element ref="init_limit_half_open"/>
+        <xs:element ref="ignore_acquire_ts"/>
+        <xs:element ref="make_before_break"/>
+        <xs:element ref="retransmit_tries"/>
+        <xs:element ref="retransmit_timeout"/>
+        <xs:element ref="retransmit_base"/>
+        <xs:element ref="retransmit_jitter"/>
+        <xs:element ref="retransmit_limit"/>
+        <xs:element ref="syslog"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="max_ikev1_exchanges">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="threads" type="xs:integer"/>
+  <xs:element name="ikesa_table_size" type="xs:integer"/>
+  <xs:element name="ikesa_table_segments" type="xs:integer"/>
+  <xs:element name="init_limit_half_open" type="xs:integer"/>
+  <xs:element name="ignore_acquire_ts" type="xs:integer"/>
+  <xs:element name="make_before_break">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="retransmit_tries">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="retransmit_timeout">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="retransmit_base">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="retransmit_jitter">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="retransmit_limit">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="keyPairs">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="preSharedKeys">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="Swanctl">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="Connections"/>
+        <xs:element ref="locals"/>
+        <xs:element ref="remotes"/>
+        <xs:element ref="children"/>
+        <xs:element ref="Pools"/>
+        <xs:element ref="VTIs"/>
+        <xs:element ref="SPDs"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="Connections">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="locals">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="remotes">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="children">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="Pools">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="VTIs">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="SPDs">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="Interfaces">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="loopbacks"/>
+        <xs:element ref="neighbors"/>
+        <xs:element ref="vxlans"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="loopbacks">
+    <xs:complexType>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="neighbors">
+    <xs:complexType>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="vxlans">
+    <xs:complexType>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="Kea">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="ctrl_agent"/>
+        <xs:element ref="dhcp4"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="ctrl_agent">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="general"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="dhcp4">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="general"/>
+        <xs:element ref="ha"/>
+        <xs:element ref="subnets"/>
+        <xs:element ref="reservations"/>
+        <xs:element ref="ha_peers"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="ha">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="enabled"/>
+        <xs:element ref="this_server_name"/>
+        <xs:element ref="max_unacked_clients"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="this_server_name">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="max_unacked_clients" type="xs:integer"/>
+  <xs:element name="subnets">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="reservations">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="ha_peers">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="monit">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="general"/>
+        <xs:element ref="alert"/>
+        <xs:element maxOccurs="unbounded" ref="service"/>
+        <xs:element maxOccurs="unbounded" ref="test"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="alert">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="enabled"/>
+        <xs:element ref="recipient"/>
+        <xs:element ref="noton"/>
+        <xs:element ref="events"/>
+        <xs:element ref="format"/>
+        <xs:element ref="reminder"/>
+        <xs:element ref="description"/>
+      </xs:sequence>
+      <xs:attribute name="uuid" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="recipient" type="xs:string"/>
+  <xs:element name="noton" type="xs:integer"/>
+  <xs:element name="events">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="format">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="reminder">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="service">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="enabled"/>
+        <xs:element ref="name"/>
+        <xs:element ref="description"/>
+        <xs:element ref="type"/>
+        <xs:element ref="pidfile"/>
+        <xs:element ref="match"/>
+        <xs:element ref="path"/>
+        <xs:element ref="timeout"/>
+        <xs:element ref="starttimeout"/>
+        <xs:element ref="address"/>
+        <xs:element ref="interface"/>
+        <xs:element ref="start"/>
+        <xs:element ref="stop"/>
+        <xs:element ref="tests"/>
+        <xs:element ref="depends"/>
+        <xs:element ref="polltime"/>
+      </xs:sequence>
+      <xs:attribute name="uuid" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="pidfile">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="match">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="timeout" type="xs:integer"/>
+  <xs:element name="starttimeout" type="xs:integer"/>
+  <xs:element name="start">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="stop">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="tests" type="xs:string"/>
+  <xs:element name="depends">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="polltime">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="test">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="name"/>
+        <xs:element ref="type"/>
+        <xs:element ref="condition"/>
+        <xs:element ref="action"/>
+        <xs:element ref="path"/>
+      </xs:sequence>
+      <xs:attribute name="uuid" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="condition" type="xs:string"/>
+  <xs:element name="action" type="xs:NCName"/>
+  <xs:element name="OpenVPNExport">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="servers"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="OpenVPN">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="Overwrites"/>
+        <xs:element ref="Instances"/>
+        <xs:element ref="StaticKeys"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="Overwrites">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="Instances">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="StaticKeys">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="Gateways">
+    <xs:complexType>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="Syslog">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="general"/>
+        <xs:element ref="destinations"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="destinations">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="TrafficShaper">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="pipes"/>
+        <xs:element ref="queues"/>
+        <xs:element ref="rules"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="pipes">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="queues">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="trust">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="general"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="unboundplus">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="general"/>
+        <xs:element ref="advanced"/>
+        <xs:element ref="acls"/>
+        <xs:element ref="dnsbl"/>
+        <xs:element ref="forwarding"/>
+        <xs:element ref="dots"/>
+        <xs:element ref="hosts"/>
+        <xs:element ref="aliases"/>
+        <xs:element ref="domains"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="advanced">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="hideidentity"/>
+        <xs:element ref="hideversion"/>
+        <xs:element ref="prefetch"/>
+        <xs:element ref="prefetchkey"/>
+        <xs:element ref="dnssecstripped"/>
+        <xs:element ref="aggressivensec"/>
+        <xs:element ref="serveexpired"/>
+        <xs:element ref="serveexpiredreplyttl"/>
+        <xs:element ref="serveexpiredttl"/>
+        <xs:element ref="serveexpiredttlreset"/>
+        <xs:element ref="serveexpiredclienttimeout"/>
+        <xs:element ref="qnameminstrict"/>
+        <xs:element ref="extendedstatistics"/>
+        <xs:element ref="logqueries"/>
+        <xs:element ref="logreplies"/>
+        <xs:element ref="logtagqueryreply"/>
+        <xs:element ref="logservfail"/>
+        <xs:element ref="loglocalactions"/>
+        <xs:element ref="logverbosity"/>
+        <xs:element ref="valloglevel"/>
+        <xs:element ref="privatedomain"/>
+        <xs:element ref="privateaddress"/>
+        <xs:element ref="insecuredomain"/>
+        <xs:element ref="msgcachesize"/>
+        <xs:element ref="rrsetcachesize"/>
+        <xs:element ref="outgoingnumtcp"/>
+        <xs:element ref="incomingnumtcp"/>
+        <xs:element ref="numqueriesperthread"/>
+        <xs:element ref="outgoingrange"/>
+        <xs:element ref="jostletimeout"/>
+        <xs:element ref="discardtimeout"/>
+        <xs:element ref="cachemaxttl"/>
+        <xs:element ref="cachemaxnegativettl"/>
+        <xs:element ref="cacheminttl"/>
+        <xs:element ref="infrahostttl"/>
+        <xs:element ref="infrakeepprobing"/>
+        <xs:element ref="infracachenumhosts"/>
+        <xs:element ref="unwantedreplythreshold"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="hideidentity">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="hideversion">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="prefetch">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="prefetchkey">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="aggressivensec" type="xs:integer"/>
+  <xs:element name="serveexpired">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="serveexpiredreplyttl">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="serveexpiredttl">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="serveexpiredttlreset">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="serveexpiredclienttimeout">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="qnameminstrict">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="extendedstatistics">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="logqueries">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="logreplies">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="logtagqueryreply">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="logservfail">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="loglocalactions">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="logverbosity" type="xs:integer"/>
+  <xs:element name="valloglevel" type="xs:integer"/>
+  <xs:element name="privatedomain">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="privateaddress" type="xs:string"/>
+  <xs:element name="insecuredomain">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="msgcachesize">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="rrsetcachesize">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="outgoingnumtcp">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="incomingnumtcp">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="numqueriesperthread">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="outgoingrange">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="jostletimeout">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="discardtimeout">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="cachemaxttl">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="cachemaxnegativettl">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="cacheminttl">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="infrahostttl">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="infrakeepprobing">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="infracachenumhosts">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="unwantedreplythreshold">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="acls">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="default_action"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="default_action" type="xs:NCName"/>
+  <xs:element name="dnsbl">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="enabled"/>
+        <xs:element ref="safesearch"/>
+        <xs:element ref="type"/>
+        <xs:element ref="lists"/>
+        <xs:element ref="whitelists"/>
+        <xs:element ref="blocklists"/>
+        <xs:element ref="wildcards"/>
+        <xs:element ref="address"/>
+        <xs:element ref="nxdomain"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="safesearch">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="lists">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="whitelists">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="blocklists">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="wildcards">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="nxdomain">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="forwarding">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="enabled"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="dots">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="hosts">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="domains">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="hasync">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="disablepreempt"/>
+        <xs:element ref="disconnectppps"/>
+        <xs:element ref="pfsyncinterface"/>
+        <xs:element ref="pfsyncpeerip"/>
+        <xs:element ref="pfsyncversion"/>
+        <xs:element ref="synchronizetoip"/>
+        <xs:element ref="username"/>
+        <xs:element ref="password"/>
+        <xs:element ref="syncitems"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="disablepreempt" type="xs:integer"/>
+  <xs:element name="disconnectppps" type="xs:integer"/>
+  <xs:element name="pfsyncinterface">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="pfsyncpeerip">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="pfsyncversion" type="xs:integer"/>
+  <xs:element name="synchronizetoip">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="syncitems">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="ifgroups">
+    <xs:complexType>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="gifs">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="gif"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="gif">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="gres">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="gre"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="gre">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="laggs">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="lagg"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="lagg">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="virtualip">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="vip"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="vip">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="vlans">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="vlan"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="vlan">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="openvpn">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="staticroutes">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="route"/>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="route">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="bridges">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="bridged"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="bridged">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="ppps">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="ppp"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="ppp">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="wireless">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="clone"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="clone">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="ca">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="dhcpdv6">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="cert">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="refid"/>
+        <xs:element ref="descr"/>
+        <xs:element ref="crt"/>
+        <xs:element ref="prv"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="refid" type="xs:NMTOKEN"/>
+  <xs:element name="crt" type="xs:base64Binary"/>
+  <xs:element name="prv" type="xs:base64Binary"/>
+  <xs:element name="item">
+    <xs:complexType>
+      <xs:choice minOccurs="0">
+        <xs:sequence>
+          <xs:element ref="descr"/>
+          <xs:element ref="tunable"/>
+          <xs:element ref="value"/>
+        </xs:sequence>
+        <xs:sequence>
+          <xs:element ref="key"/>
+          <xs:element ref="secret"/>
+        </xs:sequence>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="tunable" type="xs:NCName"/>
+  <xs:element name="value" type="xs:NMTOKEN"/>
+  <xs:element name="key" type="xs:string"/>
+  <xs:element name="secret" type="xs:string"/>
+  <xs:element name="group">
+    <xs:complexType mixed="true">
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="description"/>
+        <xs:element ref="name"/>
+        <xs:element ref="scope"/>
+        <xs:element ref="gid"/>
+        <xs:element ref="member"/>
+        <xs:element ref="priv"/>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="gid" type="xs:integer"/>
+  <xs:element name="member" type="xs:integer"/>
+  <xs:element name="priv" type="xs:NCName"/>
+  <xs:element name="name" type="xs:string"/>
+  <xs:element name="descr" type="xs:string"/>
+  <xs:element name="scope" type="xs:NCName"/>
+  <xs:element name="password" type="xs:string"/>
+  <xs:element name="protocol" type="xs:NCName"/>
+  <xs:element name="interval" type="xs:NMTOKEN"/>
+  <xs:element name="type" type="xs:string"/>
+  <xs:element name="dnsserver" type="xs:string"/>
+  <xs:element name="interfaces">
+    <xs:complexType mixed="true">
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="lan"/>
+        <xs:element ref="opt1"/>
+        <xs:element ref="opt2"/>
+        <xs:element ref="wireguard"/>
+        <xs:element ref="lo0"/>
+        <xs:element ref="opt0"/>
+        <xs:element ref="wan"/>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="lo0">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="internal_dynamic"/>
+        <xs:element ref="descr"/>
+        <xs:element ref="enable"/>
+        <xs:element ref="if"/>
+        <xs:element ref="ipaddr"/>
+        <xs:element ref="ipaddrv6"/>
+        <xs:element ref="subnet"/>
+        <xs:element ref="subnetv6"/>
+        <xs:element ref="type"/>
+        <xs:element ref="virtual"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt0">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="if"/>
+        <xs:element ref="descr"/>
+        <xs:element ref="enable"/>
+        <xs:element ref="lock"/>
+        <xs:element ref="spoofmac"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="lock" type="xs:integer"/>
+  <xs:element name="wan">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:element ref="if"/>
+        <xs:element minOccurs="0" ref="mtu"/>
+        <xs:element ref="ipaddr"/>
+        <xs:element ref="ipaddrv6"/>
+        <xs:element ref="subnet"/>
+        <xs:element ref="gateway"/>
+        <xs:element ref="blockpriv"/>
+        <xs:element ref="blockbogons"/>
+        <xs:element minOccurs="0" ref="dhcphostname"/>
+        <xs:element ref="media"/>
+        <xs:element ref="mediaopt"/>
+        <xs:element ref="dhcp6-ia-pd-len"/>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="subnetv6"/>
+          <xs:element ref="gatewayv6"/>
+        </xs:sequence>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="blockpriv" type="xs:NMTOKEN"/>
+  <xs:element name="blockbogons" type="xs:NMTOKEN"/>
+  <xs:element name="gatewayv6">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="lan">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+          <xs:element ref="descr"/>
+          <xs:element ref="enable"/>
+          <xs:element ref="if"/>
+        </xs:choice>
+        <xs:element minOccurs="0" ref="gateway"/>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="ddnsdomainalgorithm"/>
+          <xs:element ref="numberoptions"/>
+        </xs:sequence>
+        <xs:element minOccurs="0" ref="range"/>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="winsserver"/>
+          <xs:element ref="dnsserver"/>
+          <xs:element ref="ntpserver"/>
+        </xs:sequence>
+        <xs:element minOccurs="0" ref="spoofmac"/>
+        <xs:element minOccurs="0" ref="ipaddr"/>
+        <xs:choice minOccurs="0">
+          <xs:element ref="subnet"/>
+          <xs:sequence>
+            <xs:element ref="dhcphostname"/>
+            <xs:element ref="alias-address"/>
+            <xs:element ref="alias-subnet"/>
+            <xs:element ref="dhcprejectfrom"/>
+            <xs:element ref="adv_dhcp_pt_timeout"/>
+            <xs:element ref="adv_dhcp_pt_retry"/>
+            <xs:element ref="adv_dhcp_pt_select_timeout"/>
+            <xs:element ref="adv_dhcp_pt_reboot"/>
+            <xs:element ref="adv_dhcp_pt_backoff_cutoff"/>
+            <xs:element ref="adv_dhcp_pt_initial_interval"/>
+            <xs:element ref="adv_dhcp_pt_values"/>
+            <xs:element ref="adv_dhcp_send_options"/>
+            <xs:element ref="adv_dhcp_request_options"/>
+            <xs:element ref="adv_dhcp_required_options"/>
+            <xs:element ref="adv_dhcp_option_modifiers"/>
+            <xs:element ref="adv_dhcp_config_advanced"/>
+            <xs:element ref="adv_dhcp_config_file_override"/>
+            <xs:element ref="adv_dhcp_config_file_override_path"/>
+          </xs:sequence>
+        </xs:choice>
+        <xs:element minOccurs="0" ref="ipaddrv6"/>
+        <xs:choice minOccurs="0">
+          <xs:sequence>
+            <xs:element ref="subnetv6"/>
+            <xs:element ref="media"/>
+            <xs:element ref="mediaopt"/>
+            <xs:element ref="track6-interface"/>
+            <xs:element ref="track6-prefix-id"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="dhcp6-ia-pd-len"/>
+            <xs:element ref="adv_dhcp6_interface_statement_send_options"/>
+            <xs:element ref="adv_dhcp6_interface_statement_request_options"/>
+            <xs:element ref="adv_dhcp6_interface_statement_information_only_enable"/>
+            <xs:element ref="adv_dhcp6_interface_statement_script"/>
+            <xs:element ref="adv_dhcp6_id_assoc_statement_address_enable"/>
+            <xs:element ref="adv_dhcp6_id_assoc_statement_address"/>
+            <xs:element ref="adv_dhcp6_id_assoc_statement_address_id"/>
+            <xs:element ref="adv_dhcp6_id_assoc_statement_address_pltime"/>
+            <xs:element ref="adv_dhcp6_id_assoc_statement_address_vltime"/>
+            <xs:element ref="adv_dhcp6_id_assoc_statement_prefix_enable"/>
+            <xs:element ref="adv_dhcp6_id_assoc_statement_prefix"/>
+            <xs:element ref="adv_dhcp6_id_assoc_statement_prefix_id"/>
+            <xs:element ref="adv_dhcp6_id_assoc_statement_prefix_pltime"/>
+            <xs:element ref="adv_dhcp6_id_assoc_statement_prefix_vltime"/>
+            <xs:element ref="adv_dhcp6_prefix_interface_statement_sla_len"/>
+            <xs:element ref="adv_dhcp6_authentication_statement_authname"/>
+            <xs:element ref="adv_dhcp6_authentication_statement_protocol"/>
+            <xs:element ref="adv_dhcp6_authentication_statement_algorithm"/>
+            <xs:element ref="adv_dhcp6_authentication_statement_rdm"/>
+            <xs:element ref="adv_dhcp6_key_info_statement_keyname"/>
+            <xs:element ref="adv_dhcp6_key_info_statement_realm"/>
+            <xs:element ref="adv_dhcp6_key_info_statement_keyid"/>
+            <xs:element ref="adv_dhcp6_key_info_statement_secret"/>
+            <xs:element ref="adv_dhcp6_key_info_statement_expire"/>
+            <xs:element ref="adv_dhcp6_config_advanced"/>
+            <xs:element ref="adv_dhcp6_config_file_override"/>
+            <xs:element ref="adv_dhcp6_config_file_override_path"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="alias-address">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="alias-subnet" type="xs:integer"/>
+  <xs:element name="dhcprejectfrom">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp_pt_timeout">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp_pt_retry">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp_pt_select_timeout">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp_pt_reboot">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp_pt_backoff_cutoff">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp_pt_initial_interval">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp_pt_values" type="xs:NCName"/>
+  <xs:element name="adv_dhcp_send_options">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp_request_options">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp_required_options">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp_option_modifiers">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp_config_advanced">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp_config_file_override">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp_config_file_override_path">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="track6-interface" type="xs:NCName"/>
+  <xs:element name="track6-prefix-id" type="xs:integer"/>
+  <xs:element name="adv_dhcp6_interface_statement_send_options">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_interface_statement_request_options">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_interface_statement_information_only_enable">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_interface_statement_script">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_id_assoc_statement_address_enable">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_id_assoc_statement_address">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_id_assoc_statement_address_id">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_id_assoc_statement_address_pltime">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_id_assoc_statement_address_vltime">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_id_assoc_statement_prefix_enable">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_id_assoc_statement_prefix">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_id_assoc_statement_prefix_id">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_id_assoc_statement_prefix_pltime">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_id_assoc_statement_prefix_vltime">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_prefix_interface_statement_sla_len">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_authentication_statement_authname">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_authentication_statement_protocol">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_authentication_statement_algorithm">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_authentication_statement_rdm">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_key_info_statement_keyname">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_key_info_statement_realm">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_key_info_statement_keyid">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_key_info_statement_secret">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_key_info_statement_expire">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_config_advanced">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_config_file_override">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp6_config_file_override_path">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="opt1">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt2">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="enable" type="xs:string"/>
+  <xs:element name="dnssec" type="xs:string"/>
+  <xs:element name="dnssecstripped" type="xs:string"/>
+  <xs:element name="interface" type="xs:string"/>
+  <xs:element name="ipprotocol" type="xs:NCName"/>
+  <xs:element name="network" type="xs:string"/>
+  <xs:element name="any" type="xs:string"/>
+  <xs:element name="port" type="xs:integer"/>
+  <xs:element name="username" type="xs:string"/>
+  <xs:element name="time" type="xs:decimal"/>
+  <xs:element name="description" type="xs:string"/>
+  <xs:element name="path" type="xs:string"/>
+  <xs:element name="gateway" type="xs:string"/>
+  <xs:element name="templates">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="aliases">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="rules">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="general">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="store_intermediate_certs"/>
+          <xs:element ref="install_crls"/>
+          <xs:element ref="fetch_crls"/>
+          <xs:element ref="enable_legacy_sect"/>
+          <xs:element ref="enable_config_constraints"/>
+          <xs:element ref="CipherString"/>
+          <xs:element ref="Ciphersuites"/>
+          <xs:element ref="groups"/>
+          <xs:element ref="MinProtocol"/>
+          <xs:element ref="MinProtocol_DTLS"/>
+        </xs:sequence>
+        <xs:element minOccurs="0" ref="enabled"/>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="interval"/>
+          <xs:element ref="startdelay"/>
+          <xs:element ref="mailserver"/>
+        </xs:sequence>
+        <xs:element minOccurs="0" ref="port"/>
+        <xs:choice minOccurs="0">
+          <xs:sequence>
+            <xs:element ref="loglocal"/>
+            <xs:element ref="maxpreserve"/>
+            <xs:element ref="maxfilesize"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="http_host"/>
+            <xs:element ref="http_port"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="preferred_oldsa"/>
+            <xs:element ref="disablevpnrules"/>
+            <xs:element ref="passthrough_networks"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="username"/>
+            <xs:element ref="password"/>
+            <xs:element ref="ssl"/>
+            <xs:element ref="sslversion"/>
+            <xs:element ref="sslverify"/>
+            <xs:element ref="logfile"/>
+            <xs:element ref="statefile"/>
+            <xs:element ref="eventqueuePath"/>
+            <xs:element ref="eventqueueSlots"/>
+            <xs:element ref="httpdEnabled"/>
+            <xs:element ref="httpdUsername"/>
+            <xs:element ref="httpdPassword"/>
+            <xs:element ref="httpdPort"/>
+            <xs:element ref="httpdAllow"/>
+            <xs:element ref="mmonitUrl"/>
+            <xs:element ref="mmonitTimeout"/>
+            <xs:element ref="mmonitRegisterCredentials"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="stats"/>
+            <xs:element ref="active_interface"/>
+            <xs:element ref="dnssec"/>
+            <xs:element ref="dns64"/>
+            <xs:element ref="dns64prefix"/>
+            <xs:element ref="noarecords"/>
+            <xs:element ref="regdhcp"/>
+            <xs:element ref="regdhcpdomain"/>
+            <xs:element ref="regdhcpstatic"/>
+            <xs:element ref="noreglladdr6"/>
+            <xs:element ref="noregrecords"/>
+            <xs:element ref="txtsupport"/>
+            <xs:element ref="cacheflush"/>
+            <xs:element ref="local_zone_type"/>
+            <xs:element ref="outgoing_interface"/>
+            <xs:element ref="enable_wpad"/>
+          </xs:sequence>
+        </xs:choice>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="ips"/>
+          <xs:element ref="promisc"/>
+        </xs:sequence>
+        <xs:element minOccurs="0" ref="interfaces"/>
+        <xs:choice minOccurs="0">
+          <xs:sequence>
+            <xs:element ref="valid_lifetime"/>
+            <xs:element ref="fwrules"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="homenet"/>
+            <xs:element ref="defaultPacketSize"/>
+            <xs:element ref="UpdateCron"/>
+            <xs:element ref="AlertLogrotate"/>
+            <xs:element ref="AlertSaveLogs"/>
+            <xs:element ref="MPMAlgo"/>
+            <xs:element ref="detect"/>
+            <xs:element ref="syslog"/>
+            <xs:element ref="syslog_eve"/>
+            <xs:element ref="LogPayload"/>
+            <xs:element ref="verbosity"/>
+            <xs:element ref="eveLog"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+      <xs:attribute name="version" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="store_intermediate_certs" type="xs:integer"/>
+  <xs:element name="install_crls" type="xs:integer"/>
+  <xs:element name="fetch_crls" type="xs:integer"/>
+  <xs:element name="enable_legacy_sect" type="xs:integer"/>
+  <xs:element name="enable_config_constraints" type="xs:integer"/>
+  <xs:element name="CipherString">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="Ciphersuites">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="groups">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="MinProtocol">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="MinProtocol_DTLS">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="startdelay" type="xs:integer"/>
+  <xs:element name="mailserver" type="xs:NMTOKEN"/>
+  <xs:element name="loglocal" type="xs:integer"/>
+  <xs:element name="maxpreserve" type="xs:integer"/>
+  <xs:element name="maxfilesize">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="http_host" type="xs:NMTOKEN"/>
+  <xs:element name="http_port" type="xs:integer"/>
+  <xs:element name="preferred_oldsa" type="xs:integer"/>
+  <xs:element name="disablevpnrules" type="xs:integer"/>
+  <xs:element name="passthrough_networks">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="ssl" type="xs:integer"/>
+  <xs:element name="sslversion" type="xs:NCName"/>
+  <xs:element name="sslverify" type="xs:integer"/>
+  <xs:element name="logfile">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="statefile">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="eventqueuePath">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="eventqueueSlots">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="httpdEnabled" type="xs:integer"/>
+  <xs:element name="httpdUsername" type="xs:NCName"/>
+  <xs:element name="httpdPassword">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="httpdPort" type="xs:integer"/>
+  <xs:element name="httpdAllow">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="mmonitUrl">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="mmonitTimeout" type="xs:integer"/>
+  <xs:element name="mmonitRegisterCredentials" type="xs:integer"/>
+  <xs:element name="stats">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="active_interface">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="dns64">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="dns64prefix">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="noarecords">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="regdhcp">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="regdhcpdomain">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="regdhcpstatic">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="noreglladdr6">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="noregrecords">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="txtsupport">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="cacheflush">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="local_zone_type" type="xs:NCName"/>
+  <xs:element name="outgoing_interface">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="enable_wpad">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="ips" type="xs:integer"/>
+  <xs:element name="promisc" type="xs:integer"/>
+  <xs:element name="valid_lifetime" type="xs:integer"/>
+  <xs:element name="fwrules" type="xs:integer"/>
+  <xs:element name="homenet" type="xs:string"/>
+  <xs:element name="defaultPacketSize">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="UpdateCron">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="AlertLogrotate" type="xs:NCName"/>
+  <xs:element name="AlertSaveLogs" type="xs:integer"/>
+  <xs:element name="MPMAlgo">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="detect">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="Profile"/>
+        <xs:element ref="toclient_groups"/>
+        <xs:element ref="toserver_groups"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="Profile">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="toclient_groups">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="toserver_groups">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="syslog_eve" type="xs:integer"/>
+  <xs:element name="LogPayload" type="xs:integer"/>
+  <xs:element name="verbosity">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="eveLog">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="http"/>
+        <xs:element ref="tls"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="http">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:element ref="extended"/>
+        <xs:element ref="dumpAllHeaders"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="dumpAllHeaders">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="syslog">
+    <xs:complexType mixed="true">
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="daemon"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="daemon">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="ike_name"/>
+        <xs:element ref="log_level"/>
+        <xs:element ref="app"/>
+        <xs:element ref="asn"/>
+        <xs:element ref="cfg"/>
+        <xs:element ref="chd"/>
+        <xs:element ref="dmn"/>
+        <xs:element ref="enc"/>
+        <xs:element ref="esp"/>
+        <xs:element ref="ike"/>
+        <xs:element ref="imc"/>
+        <xs:element ref="imv"/>
+        <xs:element ref="job"/>
+        <xs:element ref="knl"/>
+        <xs:element ref="lib"/>
+        <xs:element ref="mgr"/>
+        <xs:element ref="net"/>
+        <xs:element ref="pts"/>
+        <xs:element ref="tls"/>
+        <xs:element ref="tnc"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="ike_name" type="xs:integer"/>
+  <xs:element name="log_level" type="xs:integer"/>
+  <xs:element name="app" type="xs:integer"/>
+  <xs:element name="asn" type="xs:integer"/>
+  <xs:element name="cfg" type="xs:integer"/>
+  <xs:element name="chd" type="xs:integer"/>
+  <xs:element name="dmn" type="xs:integer"/>
+  <xs:element name="enc" type="xs:integer"/>
+  <xs:element name="esp" type="xs:integer"/>
+  <xs:element name="ike" type="xs:integer"/>
+  <xs:element name="imc" type="xs:integer"/>
+  <xs:element name="imv" type="xs:integer"/>
+  <xs:element name="job" type="xs:integer"/>
+  <xs:element name="knl" type="xs:integer"/>
+  <xs:element name="lib" type="xs:integer"/>
+  <xs:element name="mgr" type="xs:integer"/>
+  <xs:element name="net" type="xs:integer"/>
+  <xs:element name="pts" type="xs:integer"/>
+  <xs:element name="tnc" type="xs:integer"/>
+  <xs:element name="enabled" type="xs:string"/>
+  <xs:element name="address">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="servers">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="server"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="wireguard">
+    <xs:complexType>
+      <xs:choice>
+        <xs:sequence>
+          <xs:element ref="internal_dynamic"/>
+          <xs:element ref="enable"/>
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+          <xs:element ref="type"/>
+          <xs:element ref="virtual"/>
+        </xs:sequence>
+        <xs:choice maxOccurs="unbounded">
+          <xs:element ref="client"/>
+          <xs:element ref="general"/>
+          <xs:element ref="server"/>
+        </xs:choice>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="if" type="xs:NCName"/>
+  <xs:element name="mtu">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="ipaddr" type="xs:NMTOKEN"/>
+  <xs:element name="ipaddrv6" type="xs:string"/>
+  <xs:element name="subnet" type="xs:string"/>
+  <xs:element name="dhcphostname">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="media">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="mediaopt">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="dhcp6-ia-pd-len" type="xs:integer"/>
+  <xs:element name="subnetv6" type="xs:string"/>
+  <xs:element name="spoofmac">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="internal_dynamic" type="xs:integer"/>
+  <xs:element name="virtual" type="xs:integer"/>
+  <xs:element name="ddnsdomainalgorithm" type="xs:NCName"/>
+  <xs:element name="numberoptions">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="item"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="range">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="from"/>
+        <xs:element ref="to"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="from" type="xs:NMTOKEN"/>
+  <xs:element name="to" type="xs:NMTOKEN"/>
+  <xs:element name="winsserver">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="ntpserver">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="extended" type="xs:integer"/>
+  <xs:element name="tls">
+    <xs:complexType mixed="true">
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="enable"/>
+        <xs:element ref="extended"/>
+        <xs:element ref="custom"/>
+        <xs:element ref="sessionResumption"/>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="custom">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="sessionResumption" type="xs:integer"/>
+  <xs:element name="server">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="servers"/>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="enabled"/>
+          <xs:element ref="name"/>
+          <xs:element ref="instance"/>
+          <xs:element ref="pubkey"/>
+          <xs:element ref="privkey"/>
+          <xs:element ref="port"/>
+          <xs:element ref="mtu"/>
+          <xs:element ref="dns"/>
+          <xs:element ref="tunneladdress"/>
+          <xs:element ref="disableroutes"/>
+          <xs:element ref="gateway"/>
+          <xs:element ref="peers"/>
+        </xs:sequence>
+      </xs:sequence>
+      <xs:attribute name="uuid"/>
+      <xs:attribute name="version" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="instance" type="xs:integer"/>
+  <xs:element name="privkey" type="xs:string"/>
+  <xs:element name="dns">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="disableroutes" type="xs:integer"/>
+  <xs:element name="peers" type="xs:string"/>
+  <xs:element name="client">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="clients"/>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="enabled"/>
+          <xs:element ref="name"/>
+          <xs:element ref="pubkey"/>
+          <xs:element ref="psk"/>
+          <xs:element ref="tunneladdress"/>
+          <xs:element ref="serveraddress"/>
+          <xs:element ref="serverport"/>
+          <xs:element ref="keepalive"/>
+        </xs:sequence>
+      </xs:sequence>
+      <xs:attribute name="uuid"/>
+      <xs:attribute name="version" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="clients">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="client"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="psk">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="serveraddress">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="serverport">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="keepalive">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="pubkey" type="xs:string"/>
+  <xs:element name="tunneladdress" type="xs:string"/>
+</xs:schema>
