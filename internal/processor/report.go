@@ -169,7 +169,13 @@ func NewReport(cfg *model.Opnsense, processorConfig Config) *Report {
 	report := &Report{
 		GeneratedAt:     time.Now().UTC(),
 		ProcessorConfig: processorConfig,
-		Findings:        Findings{},
+		Findings: Findings{
+			Critical: make([]Finding, 0),
+			High:     make([]Finding, 0),
+			Medium:   make([]Finding, 0),
+			Low:      make([]Finding, 0),
+			Info:     make([]Finding, 0),
+		},
 	}
 
 	if cfg != nil {

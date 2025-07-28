@@ -1,11 +1,13 @@
 package internal
 
 import (
+	"context"
 	"encoding/xml"
 	"strings"
 	"testing"
 
 	"github.com/unclesp1d3r/opnFocus/internal/model"
+	"github.com/unclesp1d3r/opnFocus/internal/parser"
 )
 
 func TestWalk_BasicStructure(t *testing.T) {
@@ -349,13 +351,14 @@ func TestWalk_SyntheticXMLFragment(t *testing.T) {
 		</filter>
 	</opnsense>`
 
-	var opnsense model.Opnsense
-	err := xml.Unmarshal([]byte(xmlData), &opnsense)
+	// Parse the XML using the parser
+	p := parser.NewXMLParser()
+	opnsense, err := p.Parse(context.Background(), strings.NewReader(xmlData))
 	if err != nil {
-		t.Fatalf("Failed to unmarshal XML: %v", err)
+		t.Fatalf("Failed to parse XML: %v", err)
 	}
 
-	result := Walk(opnsense)
+	result := Walk(*opnsense)
 
 	// Verify structure depth and hierarchy
 	if result.Level != 1 {

@@ -352,7 +352,7 @@ func stripIPSuffix(network string) string {
 }
 
 func isReservedNetwork(network string) bool {
-	reserved := []string{"any", "lan", "wan", "localhost", "loopback"}
+	reserved := []string{"any", "lan", "wan", "localhost", "loopback", "(self)"}
 	for _, r := range reserved {
 		if network == r {
 			return true

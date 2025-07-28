@@ -5,82 +5,6 @@ import (
 	"encoding/xml"
 )
 
-// SystemConfig groups system-related configuration.
-type SystemConfig struct {
-	System System       `json:"system,omitempty" yaml:"system,omitempty" validate:"required"`
-	Sysctl []SysctlItem `json:"sysctl,omitempty" yaml:"sysctl,omitempty"`
-}
-
-// NetworkConfig groups network-related configuration.
-type NetworkConfig struct {
-	Interfaces Interfaces `json:"interfaces,omitempty" yaml:"interfaces,omitempty" validate:"required"`
-	// TODO: Add VLANs, Gateways, and DHCP when these fields are added to the model
-	VLANs    []VLAN    `json:"vlans,omitempty" yaml:"vlans,omitempty"`
-	Gateways []Gateway `json:"gateways,omitempty" yaml:"gateways,omitempty"`
-	// DHCP      Dhcpd       `json:"dhcp,omitempty" yaml:"dhcp,omitempty"`
-}
-
-// VLAN represents a Virtual Local Area Network configuration.
-type VLAN struct {
-	Name              string `xml:"vlanif,omitempty"`
-	Tag               string `xml:"tag,omitempty"`
-	PhysicalInterface string `xml:"if,omitempty"`
-	Enable            string `xml:"enable,omitempty"`
-	Description       string `xml:"descr,omitempty"`
-}
-
-// Bridge represents a network bridge configuration.
-type Bridge struct {
-	Name        string   `xml:"bridgeif,omitempty"`
-	Members     []string `xml:"members,omitempty"`
-	Description string   `xml:"descr,omitempty"`
-	Interface   string   `xml:"if,omitempty"`
-}
-
-// Gateway represents a network gateway configuration.
-type Gateway struct {
-	DefaultGateway string `xml:"defaultgw,omitempty"`
-	Name           string `xml:"name,omitempty"`
-	Interface      string `xml:"if,omitempty"`
-	Gateway        string `xml:"gateway,omitempty"`
-	Weight         string `xml:"weight,omitempty"`
-	IPAddress      string `xml:"ipprotocol,omitempty"`
-	Description    string `xml:"descr,omitempty"`
-}
-
-// StaticRoute represents a network static route configuration.
-type StaticRoute struct {
-	Disabled    string `xml:"disabled,omitempty"`
-	Network     string `xml:"network,omitempty"`
-	Gateway     string `xml:"gateway,omitempty"`
-	Description string `xml:"descr,omitempty"`
-}
-
-// SecurityConfig groups security-related configuration.
-type SecurityConfig struct {
-	Nat    Nat    `json:"nat,omitempty" yaml:"nat,omitempty"`
-	Filter Filter `json:"filter,omitempty" yaml:"filter,omitempty"`
-	// TODO: Add Aliases, IDS/IPS, VPNs when these fields are added to the model
-	// Aliases []Alias    `json:"aliases,omitempty" yaml:"aliases,omitempty"`
-	// IDS     IDSConfig  `json:"ids,omitempty" yaml:"ids,omitempty"`
-	// IPS     IPSConfig  `json:"ips,omitempty" yaml:"ips,omitempty"`
-	// VPNs    VPNConfig  `json:"vpns,omitempty" yaml:"vpns,omitempty"`
-}
-
-// ServiceConfig groups service-related configuration.
-type ServiceConfig struct {
-	Dhcpd        Dhcpd        `json:"dhcpd,omitempty" yaml:"dhcpd,omitempty"`
-	Unbound      Unbound      `json:"unbound,omitempty" yaml:"unbound,omitempty"`
-	Snmpd        Snmpd        `json:"snmpd,omitempty" yaml:"snmpd,omitempty"`
-	Rrd          Rrd          `json:"rrd,omitempty" yaml:"rrd,omitempty"`
-	LoadBalancer LoadBalancer `json:"loadBalancer,omitempty" yaml:"loadBalancer,omitempty"`
-	Ntpd         Ntpd         `json:"ntpd,omitempty" yaml:"ntpd,omitempty"`
-	SSH          SSH          `json:"ssh,omitempty" yaml:"ssh,omitempty"`
-	// TODO: Add OpenVPN and other VPN services when these fields are added to the model
-	// OpenVPN   OpenVPNConfig `json:"openvpn,omitempty" yaml:"openvpn,omitempty"`
-	// HAProxy   HAProxyConfig `json:"haproxy,omitempty" yaml:"haproxy,omitempty"`
-}
-
 // Opnsense is the root of the OPNsense configuration.
 type Opnsense struct {
 	XMLName              xml.Name     `xml:"opnsense" json:"-" yaml:"-"`
@@ -99,6 +23,614 @@ type Opnsense struct {
 	LoadBalancer         LoadBalancer `xml:"load_balancer,omitempty" json:"loadBalancer,omitempty" yaml:"loadBalancer,omitempty"`
 	Ntpd                 Ntpd         `xml:"ntpd,omitempty" json:"ntpd,omitempty" yaml:"ntpd,omitempty"`
 	Widgets              Widgets      `xml:"widgets,omitempty" json:"widgets,omitempty" yaml:"widgets,omitempty"`
+
+	Vlans        *Vlans        `xml:"vlans,omitempty"`
+	Bridges      *Bridges      `xml:"bridges,omitempty"`
+	Gateways     *Gateways     `xml:"gateways,omitempty"`
+	StaticRoutes *StaticRoutes `xml:"staticroutes,omitempty"`
+	DNSMasq      *DNSMasq      `xml:"dnsmasq,omitempty"`
+	OpenVPN      *OpenVPN      `xml:"openvpn,omitempty"`
+	Syslog       *Syslog       `xml:"syslog,omitempty"`
+	OPNsense     *OPNsense     `xml:"opnsense,omitempty"`
+}
+
+// OPNsense represents the main OPNsense system configuration.
+type OPNsense struct {
+	XMLName xml.Name `xml:"opnsense"`
+	Text    string   `xml:",chardata" json:"text,omitempty"`
+
+	Captiveportal struct {
+		Text      string `xml:",chardata" json:"text,omitempty"`
+		Version   string `xml:"version,attr" json:"version,omitempty"`
+		Zones     string `xml:"zones"`
+		Templates string `xml:"templates"`
+	} `xml:"captiveportal" json:"captiveportal,omitempty"`
+	Cron struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+		Jobs    string `xml:"jobs"`
+	} `xml:"cron" json:"cron,omitempty"`
+
+	DHCRelay struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+	} `xml:"DHCRelay" json:"dhcrelay,omitempty"`
+	Firewall struct {
+		Text       string `xml:",chardata" json:"text,omitempty"`
+		Lvtemplate struct {
+			Text      string `xml:",chardata" json:"text,omitempty"`
+			Version   string `xml:"version,attr" json:"version,omitempty"`
+			Templates string `xml:"templates"`
+		} `xml:"Lvtemplate" json:"lvtemplate,omitempty"`
+		Alias struct {
+			Text    string `xml:",chardata" json:"text,omitempty"`
+			Version string `xml:"version,attr" json:"version,omitempty"`
+			Geoip   struct {
+				Text string `xml:",chardata" json:"text,omitempty"`
+				URL  string `xml:"url"`
+			} `xml:"geoip" json:"geoip,omitempty"`
+			Aliases string `xml:"aliases"`
+		} `xml:"Alias" json:"alias,omitempty"`
+		Category struct {
+			Text       string `xml:",chardata" json:"text,omitempty"`
+			Version    string `xml:"version,attr" json:"version,omitempty"`
+			Categories string `xml:"categories"`
+		} `xml:"Category" json:"category,omitempty"`
+		Filter struct {
+			Text      string `xml:",chardata" json:"text,omitempty"`
+			Version   string `xml:"version,attr" json:"version,omitempty"`
+			Rules     string `xml:"rules"`
+			Snatrules string `xml:"snatrules"`
+			Npt       string `xml:"npt"`
+			Onetoone  string `xml:"onetoone"`
+		} `xml:"Filter" json:"filter,omitempty"`
+	} `xml:"Firewall" json:"firewall,omitempty"`
+	Netflow struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+		Capture struct {
+			Text       string `xml:",chardata" json:"text,omitempty"`
+			Interfaces string `xml:"interfaces"`
+			EgressOnly string `xml:"egress_only"`
+			Version    string `xml:"version"`
+			Targets    string `xml:"targets"`
+		} `xml:"capture" json:"capture,omitempty"`
+		Collect struct {
+			Text   string `xml:",chardata" json:"text,omitempty"`
+			Enable string `xml:"enable"`
+		} `xml:"collect" json:"collect,omitempty"`
+		ActiveTimeout   string `xml:"activeTimeout"`
+		InactiveTimeout string `xml:"inactiveTimeout"`
+	} `xml:"Netflow" json:"netflow,omitempty"`
+	IDs struct {
+		Text             string `xml:",chardata" json:"text,omitempty"`
+		Version          string `xml:"version,attr" json:"version,omitempty"`
+		Rules            string `xml:"rules"`
+		Policies         string `xml:"policies"`
+		UserDefinedRules string `xml:"userDefinedRules"`
+		Files            string `xml:"files"`
+		FileTags         string `xml:"fileTags"`
+		General          struct {
+			Text              string `xml:",chardata" json:"text,omitempty"`
+			Enabled           string `xml:"enabled"`
+			Ips               string `xml:"ips"`
+			Promisc           string `xml:"promisc"`
+			Interfaces        string `xml:"interfaces"`
+			Homenet           string `xml:"homenet"`
+			DefaultPacketSize string `xml:"defaultPacketSize"`
+			UpdateCron        string `xml:"UpdateCron"`
+			AlertLogrotate    string `xml:"AlertLogrotate"`
+			AlertSaveLogs     string `xml:"AlertSaveLogs"`
+			MPMAlgo           string `xml:"MPMAlgo"`
+			Detect            struct {
+				Text           string `xml:",chardata" json:"text,omitempty"`
+				Profile        string `xml:"Profile"`
+				ToclientGroups string `xml:"toclient_groups"`
+				ToserverGroups string `xml:"toserver_groups"`
+			} `xml:"detect" json:"detect,omitempty"`
+			Syslog     string `xml:"syslog"`
+			SyslogEve  string `xml:"syslog_eve"`
+			LogPayload string `xml:"LogPayload"`
+			Verbosity  string `xml:"verbosity"`
+			EveLog     struct {
+				Text string `xml:",chardata" json:"text,omitempty"`
+				HTTP struct {
+					Text           string `xml:",chardata" json:"text,omitempty"`
+					Enable         string `xml:"enable"`
+					Extended       string `xml:"extended"`
+					DumpAllHeaders string `xml:"dumpAllHeaders"`
+				} `xml:"http" json:"http,omitempty"`
+				TLS struct {
+					Text              string `xml:",chardata" json:"text,omitempty"`
+					Enable            string `xml:"enable"`
+					Extended          string `xml:"extended"`
+					SessionResumption string `xml:"sessionResumption"`
+					Custom            string `xml:"custom"`
+				} `xml:"tls" json:"tls,omitempty"`
+			} `xml:"eveLog" json:"evelog,omitempty"`
+		} `xml:"general" json:"general,omitempty"`
+	} `xml:"IDS" json:"ids,omitempty"`
+	IPsec struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+		General struct {
+			Text                string `xml:",chardata" json:"text,omitempty"`
+			Enabled             string `xml:"enabled"`
+			PreferredOldsa      string `xml:"preferred_oldsa"`
+			Disablevpnrules     string `xml:"disablevpnrules"`
+			PassthroughNetworks string `xml:"passthrough_networks"`
+		} `xml:"general" json:"general,omitempty"`
+		Charon struct {
+			Text               string `xml:",chardata" json:"text,omitempty"`
+			MaxIkev1Exchanges  string `xml:"max_ikev1_exchanges"`
+			Threads            string `xml:"threads"`
+			IkesaTableSize     string `xml:"ikesa_table_size"`
+			IkesaTableSegments string `xml:"ikesa_table_segments"`
+			InitLimitHalfOpen  string `xml:"init_limit_half_open"`
+			IgnoreAcquireTs    string `xml:"ignore_acquire_ts"`
+			MakeBeforeBreak    string `xml:"make_before_break"`
+			RetransmitTries    string `xml:"retransmit_tries"`
+			RetransmitTimeout  string `xml:"retransmit_timeout"`
+			RetransmitBase     string `xml:"retransmit_base"`
+			RetransmitJitter   string `xml:"retransmit_jitter"`
+			RetransmitLimit    string `xml:"retransmit_limit"`
+			Syslog             struct {
+				Text   string `xml:",chardata" json:"text,omitempty"`
+				Daemon struct {
+					Text     string `xml:",chardata" json:"text,omitempty"`
+					IkeName  string `xml:"ike_name"`
+					LogLevel string `xml:"log_level"`
+					App      string `xml:"app"`
+					Asn      string `xml:"asn"`
+					Cfg      string `xml:"cfg"`
+					Chd      string `xml:"chd"`
+					Dmn      string `xml:"dmn"`
+					Enc      string `xml:"enc"`
+					Esp      string `xml:"esp"`
+					Ike      string `xml:"ike"`
+					Imc      string `xml:"imc"`
+					Imv      string `xml:"imv"`
+					Job      string `xml:"job"`
+					Knl      string `xml:"knl"`
+					Lib      string `xml:"lib"`
+					Mgr      string `xml:"mgr"`
+					Net      string `xml:"net"`
+					Pts      string `xml:"pts"`
+					TLS      string `xml:"tls"`
+					Tnc      string `xml:"tnc"`
+				} `xml:"daemon" json:"daemon,omitempty"`
+			} `xml:"syslog" json:"syslog,omitempty"`
+		} `xml:"charon" json:"charon,omitempty"`
+		KeyPairs      string `xml:"keyPairs"`
+		PreSharedKeys string `xml:"preSharedKeys"`
+	} `xml:"IPsec" json:"ipsec,omitempty"`
+	Swanctl struct {
+		Text        string `xml:",chardata" json:"text,omitempty"`
+		Version     string `xml:"version,attr" json:"version,omitempty"`
+		Connections string `xml:"Connections"`
+		Locals      string `xml:"locals"`
+		Remotes     string `xml:"remotes"`
+		Children    string `xml:"children"`
+		Pools       string `xml:"Pools"`
+		VTIs        string `xml:"VTIs"`
+		SPDs        string `xml:"SPDs"`
+	} `xml:"Swanctl" json:"swanctl,omitempty"`
+	Firmware   *Firmware `xml:"firmware,omitempty"`
+	Interfaces struct {
+		Text      string `xml:",chardata" json:"text,omitempty"`
+		Loopbacks struct {
+			Text    string `xml:",chardata" json:"text,omitempty"`
+			Version string `xml:"version,attr" json:"version,omitempty"`
+		} `xml:"loopbacks" json:"loopbacks,omitempty"`
+		Neighbors struct {
+			Text    string `xml:",chardata" json:"text,omitempty"`
+			Version string `xml:"version,attr" json:"version,omitempty"`
+		} `xml:"neighbors" json:"neighbors,omitempty"`
+		Vxlans struct {
+			Text    string `xml:",chardata" json:"text,omitempty"`
+			Version string `xml:"version,attr" json:"version,omitempty"`
+		} `xml:"vxlans" json:"vxlans,omitempty"`
+	} `xml:"Interfaces" json:"interfaces,omitempty"`
+	Kea struct {
+		Text      string `xml:",chardata" json:"text,omitempty"`
+		CtrlAgent struct {
+			Text    string `xml:",chardata" json:"text,omitempty"`
+			Version string `xml:"version,attr" json:"version,omitempty"`
+			General struct {
+				Text     string `xml:",chardata" json:"text,omitempty"`
+				Enabled  string `xml:"enabled"`
+				HTTPHost string `xml:"http_host"`
+				HTTPPort string `xml:"http_port"`
+			} `xml:"general" json:"general,omitempty"`
+		} `xml:"ctrl_agent" json:"ctrlAgent,omitempty"`
+		Dhcp4 struct {
+			Text    string `xml:",chardata" json:"text,omitempty"`
+			Version string `xml:"version,attr" json:"version,omitempty"`
+			General struct {
+				Text          string `xml:",chardata" json:"text,omitempty"`
+				Enabled       string `xml:"enabled"`
+				Interfaces    string `xml:"interfaces"`
+				ValidLifetime string `xml:"valid_lifetime"`
+				Fwrules       string `xml:"fwrules"`
+			} `xml:"general" json:"general,omitempty"`
+			Ha struct {
+				Text              string `xml:",chardata" json:"text,omitempty"`
+				Enabled           string `xml:"enabled"`
+				ThisServerName    string `xml:"this_server_name"`
+				MaxUnackedClients string `xml:"max_unacked_clients"`
+			} `xml:"ha" json:"ha,omitempty"`
+			Subnets      string `xml:"subnets"`
+			Reservations string `xml:"reservations"`
+			HaPeers      string `xml:"ha_peers"`
+		} `xml:"dhcp4" json:"dhcp4,omitempty"`
+	} `xml:"Kea" json:"kea,omitempty"`
+	Monit struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+		General struct {
+			Text                      string `xml:",chardata" json:"text,omitempty"`
+			Enabled                   string `xml:"enabled"`
+			Interval                  string `xml:"interval"`
+			Startdelay                string `xml:"startdelay"`
+			Mailserver                string `xml:"mailserver"`
+			Port                      string `xml:"port"`
+			Username                  string `xml:"username"`
+			Password                  string `xml:"password"`
+			Ssl                       string `xml:"ssl"`
+			Sslversion                string `xml:"sslversion"`
+			Sslverify                 string `xml:"sslverify"`
+			Logfile                   string `xml:"logfile"`
+			Statefile                 string `xml:"statefile"`
+			EventqueuePath            string `xml:"eventqueuePath"`
+			EventqueueSlots           string `xml:"eventqueueSlots"`
+			HttpdEnabled              string `xml:"httpdEnabled"`
+			HttpdUsername             string `xml:"httpdUsername"`
+			HttpdPassword             string `xml:"httpdPassword"`
+			HttpdPort                 string `xml:"httpdPort"`
+			HttpdAllow                string `xml:"httpdAllow"`
+			MmonitURL                 string `xml:"mmonitUrl"`
+			MmonitTimeout             string `xml:"mmonitTimeout"`
+			MmonitRegisterCredentials string `xml:"mmonitRegisterCredentials"`
+		} `xml:"general" json:"general,omitempty"`
+		Alert struct {
+			Text        string `xml:",chardata" json:"text,omitempty"`
+			UUID        string `xml:"uuid,attr" json:"uuid,omitempty"`
+			Enabled     string `xml:"enabled"`
+			Recipient   string `xml:"recipient"`
+			Noton       string `xml:"noton"`
+			Events      string `xml:"events"`
+			Format      string `xml:"format"`
+			Reminder    string `xml:"reminder"`
+			Description string `xml:"description"`
+		} `xml:"alert" json:"alert,omitempty"`
+		Service []struct {
+			Text         string `xml:",chardata" json:"text,omitempty"`
+			UUID         string `xml:"uuid,attr" json:"uuid,omitempty"`
+			Enabled      string `xml:"enabled"`
+			Name         string `xml:"name"`
+			Description  string `xml:"description"`
+			Type         string `xml:"type"`
+			Pidfile      string `xml:"pidfile"`
+			Match        string `xml:"match"`
+			Path         string `xml:"path"`
+			Timeout      string `xml:"timeout"`
+			Starttimeout string `xml:"starttimeout"`
+			Address      string `xml:"address"`
+			Interface    string `xml:"interface"`
+			Start        string `xml:"start"`
+			Stop         string `xml:"stop"`
+			Tests        string `xml:"tests"`
+			Depends      string `xml:"depends"`
+			Polltime     string `xml:"polltime"`
+		} `xml:"service" json:"service,omitempty"`
+		Test []struct {
+			Text      string `xml:",chardata" json:"text,omitempty"`
+			UUID      string `xml:"uuid,attr" json:"uuid,omitempty"`
+			Name      string `xml:"name"`
+			Type      string `xml:"type"`
+			Condition string `xml:"condition"`
+			Action    string `xml:"action"`
+			Path      string `xml:"path"`
+		} `xml:"test" json:"test,omitempty"`
+	} `xml:"monit" json:"monit,omitempty"`
+	OpenVPNExport struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+		Servers string `xml:"servers"`
+	} `xml:"OpenVPNExport" json:"openvpnexport,omitempty"`
+	OpenVPN struct {
+		Text       string `xml:",chardata" json:"text,omitempty"`
+		Version    string `xml:"version,attr" json:"version,omitempty"`
+		Overwrites string `xml:"Overwrites"`
+		Instances  string `xml:"Instances"`
+		StaticKeys string `xml:"StaticKeys"`
+	} `xml:"OpenVPN" json:"openvpn,omitempty"`
+	Gateways struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+	} `xml:"Gateways" json:"gateways,omitempty"`
+	Syslog struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+		General struct {
+			Text        string `xml:",chardata" json:"text,omitempty"`
+			Enabled     string `xml:"enabled"`
+			Loglocal    string `xml:"loglocal"`
+			Maxpreserve string `xml:"maxpreserve"`
+			Maxfilesize string `xml:"maxfilesize"`
+		} `xml:"general" json:"general,omitempty"`
+		Destinations string `xml:"destinations"`
+	} `xml:"Syslog" json:"syslog,omitempty"`
+	TrafficShaper struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+		Pipes   string `xml:"pipes"`
+		Queues  string `xml:"queues"`
+		Rules   string `xml:"rules"`
+	} `xml:"TrafficShaper" json:"trafficshaper,omitempty"`
+	Trust struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		General struct {
+			Text                    string `xml:",chardata" json:"text,omitempty"`
+			Version                 string `xml:"version,attr" json:"version,omitempty"`
+			StoreIntermediateCerts  string `xml:"store_intermediate_certs"`
+			InstallCrls             string `xml:"install_crls"`
+			FetchCrls               string `xml:"fetch_crls"`
+			EnableLegacySect        string `xml:"enable_legacy_sect"`
+			EnableConfigConstraints string `xml:"enable_config_constraints"`
+			CipherString            string `xml:"CipherString"`
+			Ciphersuites            string `xml:"Ciphersuites"`
+			Groups                  string `xml:"groups"`
+			MinProtocol             string `xml:"MinProtocol"`
+			MinProtocolDTLS         string `xml:"MinProtocol_DTLS"`
+		} `xml:"general" json:"general,omitempty"`
+	} `xml:"trust" json:"trust,omitempty"`
+	Unboundplus struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+		General struct {
+			Text              string `xml:",chardata" json:"text,omitempty"`
+			Enabled           string `xml:"enabled"`
+			Port              string `xml:"port"`
+			Stats             string `xml:"stats"`
+			ActiveInterface   string `xml:"active_interface"`
+			Dnssec            string `xml:"dnssec"`
+			DNS64             string `xml:"dns64"`
+			DNS64prefix       string `xml:"dns64prefix"`
+			Noarecords        string `xml:"noarecords"`
+			Regdhcp           string `xml:"regdhcp"`
+			Regdhcpdomain     string `xml:"regdhcpdomain"`
+			Regdhcpstatic     string `xml:"regdhcpstatic"`
+			Noreglladdr6      string `xml:"noreglladdr6"`
+			Noregrecords      string `xml:"noregrecords"`
+			Txtsupport        string `xml:"txtsupport"`
+			Cacheflush        string `xml:"cacheflush"`
+			LocalZoneType     string `xml:"local_zone_type"`
+			OutgoingInterface string `xml:"outgoing_interface"`
+			EnableWpad        string `xml:"enable_wpad"`
+		} `xml:"general" json:"general,omitempty"`
+		Advanced struct {
+			Text                      string `xml:",chardata" json:"text,omitempty"`
+			Hideidentity              string `xml:"hideidentity"`
+			Hideversion               string `xml:"hideversion"`
+			Prefetch                  string `xml:"prefetch"`
+			Prefetchkey               string `xml:"prefetchkey"`
+			Dnssecstripped            string `xml:"dnssecstripped"`
+			Aggressivensec            string `xml:"aggressivensec"`
+			Serveexpired              string `xml:"serveexpired"`
+			Serveexpiredreplyttl      string `xml:"serveexpiredreplyttl"`
+			Serveexpiredttl           string `xml:"serveexpiredttl"`
+			Serveexpiredttlreset      string `xml:"serveexpiredttlreset"`
+			Serveexpiredclienttimeout string `xml:"serveexpiredclienttimeout"`
+			Qnameminstrict            string `xml:"qnameminstrict"`
+			Extendedstatistics        string `xml:"extendedstatistics"`
+			Logqueries                string `xml:"logqueries"`
+			Logreplies                string `xml:"logreplies"`
+			Logtagqueryreply          string `xml:"logtagqueryreply"`
+			Logservfail               string `xml:"logservfail"`
+			Loglocalactions           string `xml:"loglocalactions"`
+			Logverbosity              string `xml:"logverbosity"`
+			Valloglevel               string `xml:"valloglevel"`
+			Privatedomain             string `xml:"privatedomain"`
+			Privateaddress            string `xml:"privateaddress"`
+			Insecuredomain            string `xml:"insecuredomain"`
+			Msgcachesize              string `xml:"msgcachesize"`
+			Rrsetcachesize            string `xml:"rrsetcachesize"`
+			Outgoingnumtcp            string `xml:"outgoingnumtcp"`
+			Incomingnumtcp            string `xml:"incomingnumtcp"`
+			Numqueriesperthread       string `xml:"numqueriesperthread"`
+			Outgoingrange             string `xml:"outgoingrange"`
+			Jostletimeout             string `xml:"jostletimeout"`
+			Discardtimeout            string `xml:"discardtimeout"`
+			Cachemaxttl               string `xml:"cachemaxttl"`
+			Cachemaxnegativettl       string `xml:"cachemaxnegativettl"`
+			Cacheminttl               string `xml:"cacheminttl"`
+			Infrahostttl              string `xml:"infrahostttl"`
+			Infrakeepprobing          string `xml:"infrakeepprobing"`
+			Infracachenumhosts        string `xml:"infracachenumhosts"`
+			Unwantedreplythreshold    string `xml:"unwantedreplythreshold"`
+		} `xml:"advanced" json:"advanced,omitempty"`
+		Acls struct {
+			Text          string `xml:",chardata" json:"text,omitempty"`
+			DefaultAction string `xml:"default_action"`
+		} `xml:"acls" json:"acls,omitempty"`
+		Dnsbl struct {
+			Text       string `xml:",chardata" json:"text,omitempty"`
+			Enabled    string `xml:"enabled"`
+			Safesearch string `xml:"safesearch"`
+			Type       string `xml:"type"`
+			Lists      string `xml:"lists"`
+			Whitelists string `xml:"whitelists"`
+			Blocklists string `xml:"blocklists"`
+			Wildcards  string `xml:"wildcards"`
+			Address    string `xml:"address"`
+			Nxdomain   string `xml:"nxdomain"`
+		} `xml:"dnsbl" json:"dnsbl,omitempty"`
+		Forwarding struct {
+			Text    string `xml:",chardata" json:"text,omitempty"`
+			Enabled string `xml:"enabled"`
+		} `xml:"forwarding" json:"forwarding,omitempty"`
+		Dots    string `xml:"dots"`
+		Hosts   string `xml:"hosts"`
+		Aliases string `xml:"aliases"`
+		Domains string `xml:"domains"`
+	} `xml:"unboundplus" json:"unboundplus,omitempty"`
+	Wireguard struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		General struct {
+			Text    string `xml:",chardata" json:"text,omitempty"`
+			Version string `xml:"version,attr" json:"version,omitempty"`
+			Enabled string `xml:"enabled"`
+		} `xml:"general" json:"general,omitempty"`
+		Server struct {
+			Text    string `xml:",chardata" json:"text,omitempty"`
+			Version string `xml:"version,attr" json:"version,omitempty"`
+			Servers struct {
+				Text   string `xml:",chardata" json:"text,omitempty"`
+				Server struct {
+					Text          string `xml:",chardata" json:"text,omitempty"`
+					UUID          string `xml:"uuid,attr" json:"uuid,omitempty"`
+					Enabled       string `xml:"enabled"`
+					Name          string `xml:"name"`
+					Instance      string `xml:"instance"`
+					Pubkey        string `xml:"pubkey"`
+					Privkey       string `xml:"privkey"`
+					Port          string `xml:"port"`
+					Mtu           string `xml:"mtu"`
+					DNS           string `xml:"dns"`
+					Tunneladdress string `xml:"tunneladdress"`
+					Disableroutes string `xml:"disableroutes"`
+					Gateway       string `xml:"gateway"`
+					Peers         string `xml:"peers"`
+				} `xml:"server" json:"server,omitempty"`
+			} `xml:"servers" json:"servers,omitempty"`
+		} `xml:"server" json:"server,omitempty"`
+		Client struct {
+			Text    string `xml:",chardata" json:"text,omitempty"`
+			Version string `xml:"version,attr" json:"version,omitempty"`
+			Clients struct {
+				Text   string `xml:",chardata" json:"text,omitempty"`
+				Client struct {
+					Text          string `xml:",chardata" json:"text,omitempty"`
+					UUID          string `xml:"uuid,attr" json:"uuid,omitempty"`
+					Enabled       string `xml:"enabled"`
+					Name          string `xml:"name"`
+					Pubkey        string `xml:"pubkey"`
+					Psk           string `xml:"psk"`
+					Tunneladdress string `xml:"tunneladdress"`
+					Serveraddress string `xml:"serveraddress"`
+					Serverport    string `xml:"serverport"`
+					Keepalive     string `xml:"keepalive"`
+				} `xml:"client" json:"client,omitempty"`
+			} `xml:"clients" json:"clients,omitempty"`
+		} `xml:"client" json:"client,omitempty"`
+	} `xml:"wireguard" json:"wireguard,omitempty"`
+	Hasync struct {
+		Text            string `xml:",chardata" json:"text,omitempty"`
+		Version         string `xml:"version,attr" json:"version,omitempty"`
+		Disablepreempt  string `xml:"disablepreempt"`
+		Disconnectppps  string `xml:"disconnectppps"`
+		Pfsyncinterface string `xml:"pfsyncinterface"`
+		Pfsyncpeerip    string `xml:"pfsyncpeerip"`
+		Pfsyncversion   string `xml:"pfsyncversion"`
+		Synchronizetoip string `xml:"synchronizetoip"`
+		Username        string `xml:"username"`
+		Password        string `xml:"password"`
+		Syncitems       string `xml:"syncitems"`
+	} `xml:"hasync" json:"hasync,omitempty"`
+	Ifgroups struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+	} `xml:"ifgroups" json:"ifgroups,omitempty"`
+	Gifs struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+		Gif     string `xml:"gif"`
+	} `xml:"gifs" json:"gifs,omitempty"`
+	Gres struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+		Gre     string `xml:"gre"`
+	} `xml:"gres" json:"gres,omitempty"`
+	Laggs struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+		Lagg    string `xml:"lagg"`
+	} `xml:"laggs" json:"laggs,omitempty"`
+	Virtualip struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+		Vip     string `xml:"vip"`
+	} `xml:"virtualip" json:"virtualip,omitempty"`
+	Vlans struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+		Vlan    string `xml:"vlan"`
+	} `xml:"vlans" json:"vlans,omitempty"`
+	Openvpn      string `xml:"openvpn"`
+	Staticroutes struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+		Route   string `xml:"route"`
+	} `xml:"staticroutes" json:"staticroutes,omitempty"`
+	Bridges struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Bridged string `xml:"bridged"`
+	} `xml:"bridges" json:"bridges,omitempty"`
+	Ppps struct {
+		Text string `xml:",chardata" json:"text,omitempty"`
+		Ppp  string `xml:"ppp"`
+	} `xml:"ppps" json:"ppps,omitempty"`
+	Wireless struct {
+		Text  string `xml:",chardata" json:"text,omitempty"`
+		Clone string `xml:"clone"`
+	} `xml:"wireless" json:"wireless,omitempty"`
+	Ca      string `xml:"ca"`
+	Dhcpdv6 string `xml:"dhcpdv6"`
+	Cert    struct {
+		Text  string `xml:",chardata" json:"text,omitempty"`
+		Refid string `xml:"refid"`
+		Descr string `xml:"descr"`
+		Crt   string `xml:"crt"`
+		Prv   string `xml:"prv"`
+	} `xml:"cert" json:"cert,omitempty"`
+	Routes struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+		Route   string `xml:"route"`
+	} `xml:"routes" json:"routes,omitempty"`
+	UnboundDNS struct {
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+		Unbound string `xml:"unbound"`
+	} `xml:"unbound" json:"unbound,omitempty"`
+	Created string `xml:"created,omitempty"`
+	Updated string `xml:"updated,omitempty"`
+}
+
+// Constructor functions
+
+// NewOpnsense creates a new Opnsense configuration with properly initialized slices.
+func NewOpnsense() *Opnsense {
+	return &Opnsense{
+		Sysctl: make([]SysctlItem, 0),
+		Filter: Filter{
+			Rule: make([]Rule, 0),
+		},
+		LoadBalancer: LoadBalancer{
+			MonitorType: make([]MonitorType, 0),
+		},
+		System: System{
+			Group: make([]Group, 0),
+			User:  make([]User, 0),
+		},
+		Interfaces: Interfaces{
+			Items: make(map[string]Interface),
+		},
+		Dhcpd: Dhcpd{
+			Items: make(map[string]DhcpdInterface),
+		},
+	}
 }
 
 // Helper methods for Opnsense
@@ -235,423 +767,4 @@ func (o *Opnsense) ServiceConfig() ServiceConfig {
 		Ntpd:         o.Ntpd,
 		SSH:          o.System.SSH,
 	}
-}
-
-// SysctlItem represents a single sysctl item.
-// This supports both the simple format (direct elements) and nested item format.
-type SysctlItem struct {
-	Descr   string `xml:"descr" json:"description,omitempty" yaml:"description,omitempty"`
-	Tunable string `xml:"tunable" json:"tunable" yaml:"tunable" validate:"required"`
-	Value   string `xml:"value" json:"value" yaml:"value" validate:"required"`
-}
-
-// System contains the system configuration.
-type System struct {
-	Optimization                  string   `xml:"optimization" json:"optimization,omitempty" yaml:"optimization,omitempty" validate:"omitempty,oneof=normal high-latency conservative aggressive"`
-	Hostname                      string   `xml:"hostname" json:"hostname" yaml:"hostname" validate:"required,hostname"`
-	Domain                        string   `xml:"domain" json:"domain" yaml:"domain" validate:"required,fqdn"`
-	DNSAllowOverride              string   `xml:"dnsallowoverride" json:"dnsAllowOverride,omitempty" yaml:"dnsAllowOverride,omitempty"`
-	DNSServer                     string   `xml:"dnsserver" json:"dnsServer,omitempty" yaml:"dnsServer,omitempty"`
-	Language                      string   `xml:"language" json:"language,omitempty" yaml:"language,omitempty"`
-	Firmware                      Firmware `xml:"firmware" json:"firmware,omitempty" yaml:"firmware,omitempty"`
-	Group                         []Group  `xml:"group" json:"groups,omitempty" yaml:"groups,omitempty" validate:"dive"`
-	User                          []User   `xml:"user" json:"users,omitempty" yaml:"users,omitempty" validate:"dive"`
-	NextUID                       string   `xml:"nextuid" json:"nextUid,omitempty" yaml:"nextUid,omitempty" validate:"omitempty,numeric,min=1000"`
-	NextGID                       string   `xml:"nextgid" json:"nextGid,omitempty" yaml:"nextGid,omitempty" validate:"omitempty,numeric,min=1000"`
-	Timezone                      string   `xml:"timezone" json:"timezone,omitempty" yaml:"timezone,omitempty"`
-	Timeservers                   string   `xml:"timeservers" json:"timeservers,omitempty" yaml:"timeservers,omitempty"`
-	Webgui                        Webgui   `xml:"webgui" json:"webgui,omitempty" yaml:"webgui,omitempty"`
-	DisableNATReflection          string   `xml:"disablenatreflection" json:"disableNatReflection,omitempty" yaml:"disableNatReflection,omitempty"`
-	UseVirtualTerminal            string   `xml:"usevirtualterminal" json:"useVirtualTerminal,omitempty" yaml:"useVirtualTerminal,omitempty"`
-	DisableConsoleMenu            struct{} `xml:"disableconsolemenu" json:"disableConsoleMenu,omitempty" yaml:"disableConsoleMenu,omitempty"`
-	DisableVLANHWFilter           string   `xml:"disablevlanhwfilter" json:"disableVlanHwFilter,omitempty" yaml:"disableVlanHwFilter,omitempty"`
-	DisableChecksumOffloading     string   `xml:"disablechecksumoffloading" json:"disableChecksumOffloading,omitempty" yaml:"disableChecksumOffloading,omitempty"`
-	DisableSegmentationOffloading string   `xml:"disablesegmentationoffloading" json:"disableSegmentationOffloading,omitempty" yaml:"disableSegmentationOffloading,omitempty"`
-	DisableLargeReceiveOffloading string   `xml:"disablelargereceiveoffloading" json:"disableLargeReceiveOffloading,omitempty" yaml:"disableLargeReceiveOffloading,omitempty"`
-	IPv6Allow                     struct{} `xml:"ipv6allow" json:"ipv6Allow,omitempty" yaml:"ipv6Allow,omitempty"`
-	PowerdAcMode                  string   `xml:"powerd_ac_mode" json:"powerdAcMode,omitempty" yaml:"powerdAcMode,omitempty" validate:"omitempty,oneof=hadp hiadp adaptive minimum maximum"`
-	PowerdBatteryMode             string   `xml:"powerd_battery_mode" json:"powerdBatteryMode,omitempty" yaml:"powerdBatteryMode,omitempty" validate:"omitempty,oneof=hadp hiadp adaptive minimum maximum"`
-	PowerdNormalMode              string   `xml:"powerd_normal_mode" json:"powerdNormalMode,omitempty" yaml:"powerdNormalMode,omitempty" validate:"omitempty,oneof=hadp hiadp adaptive minimum maximum"`
-	Bogons                        Bogons   `xml:"bogons" json:"bogons,omitempty" yaml:"bogons,omitempty"`
-	PfShareForward                string   `xml:"pf_share_forward" json:"pfShareForward,omitempty" yaml:"pfShareForward,omitempty"`
-	LbUseSticky                   string   `xml:"lb_use_sticky" json:"lbUseSticky,omitempty" yaml:"lbUseSticky,omitempty"`
-	SSH                           SSH      `xml:"ssh" json:"ssh,omitempty" yaml:"ssh,omitempty"`
-	RrdBackup                     string   `xml:"rrdbackup" json:"rrdBackup,omitempty" yaml:"rrdBackup,omitempty"`
-	NetflowBackup                 string   `xml:"netflowbackup" json:"netflowBackup,omitempty" yaml:"netflowBackup,omitempty"`
-}
-
-// Group represents a user group.
-type Group struct {
-	Name        string `xml:"name" json:"name" yaml:"name" validate:"required,alphanum"`
-	Description string `xml:"description" json:"description,omitempty" yaml:"description,omitempty"`
-	Scope       string `xml:"scope" json:"scope" yaml:"scope" validate:"required,oneof=system local"`
-	Gid         string `xml:"gid" json:"gid" yaml:"gid" validate:"required,numeric"`
-	Member      string `xml:"member" json:"member,omitempty" yaml:"member,omitempty"`
-	Priv        string `xml:"priv" json:"privileges,omitempty" yaml:"privileges,omitempty"`
-}
-
-// Firmware represents the firmware configuration.
-type Firmware struct {
-	Version string `xml:"version,attr" json:"version,omitempty" yaml:"version,omitempty"`
-	Mirror  string `xml:"mirror" json:"mirror,omitempty" yaml:"mirror,omitempty"`
-	Flavour string `xml:"flavour" json:"flavour,omitempty" yaml:"flavour,omitempty"`
-	Plugins string `xml:"plugins" json:"plugins,omitempty" yaml:"plugins,omitempty"`
-}
-
-// User represents a user.
-type User struct {
-	Name           string   `xml:"name" json:"name" yaml:"name" validate:"required,alphanum"`
-	Descr          string   `xml:"descr" json:"description,omitempty" yaml:"description,omitempty"`
-	Scope          string   `xml:"scope" json:"scope" yaml:"scope" validate:"required,oneof=system local"`
-	Groupname      string   `xml:"groupname" json:"groupname" yaml:"groupname" validate:"required"`
-	Password       string   `xml:"password" json:"password" yaml:"password" validate:"required"`
-	UID            string   `xml:"uid" json:"uid" yaml:"uid" validate:"required,numeric"`
-	APIKeys        []APIKey `xml:"apikeys>item" json:"apiKeys,omitempty" yaml:"apiKeys,omitempty"`
-	Expires        struct{} `xml:"expires" json:"expires,omitempty" yaml:"expires,omitempty"`
-	AuthorizedKeys struct{} `xml:"authorizedkeys" json:"authorizedKeys,omitempty" yaml:"authorizedKeys,omitempty"`
-	IPSecPSK       struct{} `xml:"ipsecpsk" json:"ipsecPsk,omitempty" yaml:"ipsecPsk,omitempty"`
-	OTPSeed        struct{} `xml:"otp_seed" json:"otpSeed,omitempty" yaml:"otpSeed,omitempty"`
-}
-
-// APIKey represents a user API key.
-type APIKey struct {
-	Key    string `xml:"key" json:"key" yaml:"key"`
-	Secret string `xml:"secret" json:"secret" yaml:"secret"`
-}
-
-// Webgui contains the web GUI configuration.
-type Webgui struct {
-	Protocol string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-}
-
-// Bogons contains the bogons configuration.
-type Bogons struct {
-	Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
-}
-
-// SSH contains the SSH configuration.
-type SSH struct {
-	Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
-}
-
-// Interfaces contains the network interface configurations.
-// Uses a map-based representation to store all interface blocks generically,
-// supporting wan, lan, opt0, opt1, etc., and any custom interface elements.
-type Interfaces struct {
-	Items map[string]Interface `xml:",any" json:"interfaces,omitempty" yaml:"interfaces,omitempty"`
-}
-
-// UnmarshalXML implements custom XML unmarshaling for the Interfaces map.
-func (i *Interfaces) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	i.Items = make(map[string]Interface)
-
-	for {
-		tok, err := d.Token()
-		if err != nil {
-			return err
-		}
-
-		switch se := tok.(type) {
-		case xml.StartElement:
-			// Each interface element (wan, lan, opt0, etc.) becomes a map entry
-			var iface Interface
-			if err := d.DecodeElement(&iface, &se); err != nil {
-				return err
-			}
-			i.Items[se.Name.Local] = iface
-		case xml.EndElement:
-			if se.Name == start.Name {
-				return nil
-			}
-		}
-	}
-}
-
-// Get returns an interface by its key name (e.g., "wan", "lan", "opt0").
-// Returns the interface and a boolean indicating if it was found.
-//
-// Example:
-//
-//	if wan, ok := interfaces.Get("wan"); ok {
-//		fmt.Printf("WAN IP: %s\n", wan.IPAddr)
-//	}
-func (i *Interfaces) Get(key string) (Interface, bool) {
-	if i.Items == nil {
-		return Interface{}, false
-	}
-	iface, ok := i.Items[key]
-	return iface, ok
-}
-
-// Names returns a slice of all interface key names in the configuration.
-// This includes standard interfaces like "wan", "lan" and optional ones like "opt0", "opt1", etc.
-//
-// Example:
-//
-//	names := interfaces.Names()
-//	fmt.Printf("Available interfaces: %s\n", strings.Join(names, ", "))
-func (i *Interfaces) Names() []string {
-	if i.Items == nil {
-		return []string{}
-	}
-	names := make([]string, 0, len(i.Items))
-	for key := range i.Items {
-		names = append(names, key)
-	}
-	return names
-}
-
-// Wan returns the WAN interface if it exists, otherwise returns a zero-value Interface and false.
-// This is a convenience method for backward compatibility.
-func (i *Interfaces) Wan() (Interface, bool) {
-	return i.Get("wan")
-}
-
-// Lan returns the LAN interface if it exists, otherwise returns a zero-value Interface and false.
-// This is a convenience method for backward compatibility.
-func (i *Interfaces) Lan() (Interface, bool) {
-	return i.Get("lan")
-}
-
-// Interface represents a network interface.
-type Interface struct {
-	Enable          string `xml:"enable,omitempty"`
-	If              string `xml:"if,omitempty"`
-	Descr           string `xml:"descr,omitempty"`
-	Spoofmac        string `xml:"spoofmac,omitempty"`
-	InternalDynamic string `xml:"internal_dynamic,omitempty"`
-	Type            string `xml:"type,omitempty"`
-	Virtual         string `xml:"virtual,omitempty"`
-	Lock            string `xml:"lock,omitempty"`
-	MTU             string `xml:"mtu,omitempty"`
-	IPAddr          string `xml:"ipaddr,omitempty"`
-	IPAddrv6        string `xml:"ipaddrv6,omitempty"`
-	Subnet          string `xml:"subnet,omitempty"`
-	Subnetv6        string `xml:"subnetv6,omitempty"`
-	Gateway         string `xml:"gateway,omitempty"`
-	Gatewayv6       string `xml:"gatewayv6,omitempty"`
-	BlockPriv       string `xml:"blockpriv,omitempty"`
-	BlockBogons     string `xml:"blockbogons,omitempty"`
-	DHCPHostname    string `xml:"dhcphostname,omitempty"`
-	Media           string `xml:"media,omitempty"`
-	MediaOpt        string `xml:"mediaopt,omitempty"`
-	DHCP6IaPdLen    string `xml:"dhcp6-ia-pd-len,omitempty"`
-	Track6Interface string `xml:"track6-interface,omitempty"`
-	Track6PrefixID  string `xml:"track6-prefix-id,omitempty"`
-}
-
-// Dhcpd contains the DHCP server configuration for all interfaces.
-// Uses a map-based representation to store all interface blocks generically,
-// supporting wan, lan, opt0, opt1, etc., and any custom interface elements.
-type Dhcpd struct {
-	Items map[string]DhcpdInterface `xml:",any" json:"dhcp,omitempty" yaml:"dhcp,omitempty"`
-}
-
-// UnmarshalXML implements custom XML unmarshaling for the Dhcpd map.
-func (d *Dhcpd) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
-	d.Items = make(map[string]DhcpdInterface)
-
-	for {
-		tok, err := decoder.Token()
-		if err != nil {
-			return err
-		}
-
-		switch se := tok.(type) {
-		case xml.StartElement:
-			// Each interface element (wan, lan, opt0, etc.) becomes a map entry
-			var dhcpIface DhcpdInterface
-			if err := decoder.DecodeElement(&dhcpIface, &se); err != nil {
-				return err
-			}
-			d.Items[se.Name.Local] = dhcpIface
-		case xml.EndElement:
-			if se.Name == start.Name {
-				return nil
-			}
-		}
-	}
-}
-
-// Get returns a DHCP interface configuration by its key name (e.g., "wan", "lan", "opt0").
-// Returns the DHCP interface configuration and a boolean indicating if it was found.
-//
-// Example:
-//
-//	if lanDhcp, ok := dhcpd.Get("lan"); ok {
-//		fmt.Printf("LAN DHCP range: %s - %s\n", lanDhcp.Range.From, lanDhcp.Range.To)
-//	}
-func (d *Dhcpd) Get(key string) (DhcpdInterface, bool) {
-	if d.Items == nil {
-		return DhcpdInterface{}, false
-	}
-	dhcpIface, ok := d.Items[key]
-	return dhcpIface, ok
-}
-
-// Names returns a slice of all DHCP interface key names in the configuration.
-// This includes standard interfaces like "wan", "lan" and optional ones like "opt0", "opt1", etc.
-//
-// Example:
-//
-//	names := dhcpd.Names()
-//	fmt.Printf("DHCP configured on interfaces: %s\n", strings.Join(names, ", "))
-func (d *Dhcpd) Names() []string {
-	if d.Items == nil {
-		return []string{}
-	}
-	names := make([]string, 0, len(d.Items))
-	for key := range d.Items {
-		names = append(names, key)
-	}
-	return names
-}
-
-// Wan returns the WAN DHCP interface configuration if it exists, otherwise returns a zero-value DhcpdInterface and false.
-// This is a convenience method for backward compatibility.
-func (d *Dhcpd) Wan() (DhcpdInterface, bool) {
-	return d.Get("wan")
-}
-
-// Lan returns the LAN DHCP interface configuration if it exists, otherwise returns a zero-value DhcpdInterface and false.
-// This is a convenience method for backward compatibility.
-func (d *Dhcpd) Lan() (DhcpdInterface, bool) {
-	return d.Get("lan")
-}
-
-// DhcpdInterface contains the DHCP server configuration for a specific interface.
-type DhcpdInterface struct {
-	Enable              string             `xml:"enable,omitempty"`
-	Range               Range              `xml:"range,omitempty"`
-	Gateway             string             `xml:"gateway,omitempty"`
-	DdnsDomainAlgorithm string             `xml:"ddnsdomainalgorithm,omitempty"`
-	NumberOptions       []DHCPNumberOption `xml:"numberoptions>item,omitempty"`
-	Winsserver          string             `xml:"winsserver,omitempty"`
-	Dnsserver           string             `xml:"dnsserver,omitempty"`
-	Ntpserver           string             `xml:"ntpserver,omitempty"`
-	Staticmap           []DHCPStaticLease  `xml:"staticmap,omitempty"`
-}
-
-// DHCPNumberOption represents a DHCP option with a number and value.
-type DHCPNumberOption struct {
-	Number string `xml:"number"`
-	Type   string `xml:"type,omitempty"`
-	Value  string `xml:"value,omitempty"`
-}
-
-// DHCPStaticLease represents a static DHCP lease.
-type DHCPStaticLease struct {
-	Mac              string `xml:"mac"`
-	Cid              string `xml:"cid,omitempty"`
-	IPAddr           string `xml:"ipaddr"`
-	Hostname         string `xml:"hostname,omitempty"`
-	Descr            string `xml:"descr,omitempty"`
-	Filename         string `xml:"filename,omitempty"`
-	Rootpath         string `xml:"rootpath,omitempty"`
-	Defaultleasetime string `xml:"defaultleasetime,omitempty"`
-	Maxleasetime     string `xml:"maxleasetime,omitempty"`
-}
-
-// Range represents a DHCP address range.
-type Range struct {
-	From string `xml:"from"`
-	To   string `xml:"to"`
-}
-
-// Unbound contains the Unbound DNS resolver configuration.
-type Unbound struct {
-	Enable string `xml:"enable"`
-}
-
-// Snmpd contains the SNMP daemon configuration.
-type Snmpd struct {
-	SysLocation string `xml:"syslocation"`
-	SysContact  string `xml:"syscontact"`
-	ROCommunity string `xml:"rocommunity"`
-}
-
-// Nat contains the NAT configuration.
-type Nat struct {
-	Outbound Outbound `xml:"outbound"`
-}
-
-// Outbound contains the outbound NAT configuration.
-type Outbound struct {
-	Mode string `xml:"mode"`
-}
-
-// Filter contains the firewall filter rules.
-type Filter struct {
-	Rule []Rule `xml:"rule"`
-}
-
-// Rule represents a firewall filter rule.
-type Rule struct {
-	Type        string      `xml:"type"`
-	IPProtocol  string      `xml:"ipprotocol"`
-	Descr       string      `xml:"descr"`
-	Interface   string      `xml:"interface"`
-	Source      Source      `xml:"source"`
-	Destination Destination `xml:"destination"`
-}
-
-// Source represents the source of a firewall rule.
-type Source struct {
-	Network string `xml:"network"`
-}
-
-// Destination represents the destination of a firewall rule.
-// TODO: More Granular Destination Analysis - Expand destination model to include:
-//   - Port specifications (single port, port ranges, aliases)
-//   - Protocol-specific destination options
-//   - Network aliases and address groups
-//   - IPv6 destination support
-//   - Negation support (not destination)
-//
-// This would enable more comprehensive firewall rule analysis and comparison.
-type Destination struct {
-	Any     struct{} `xml:"any"`
-	Network string   `xml:"network"`
-	// TODO: Add missing destination fields for enhanced analysis:
-	// Port    string   `xml:"port,omitempty" json:"port,omitempty" yaml:"port,omitempty"`
-	// Address string   `xml:"address,omitempty" json:"address,omitempty" yaml:"address,omitempty"`
-	// Not     string   `xml:"not,omitempty" json:"not,omitempty" yaml:"not,omitempty"`
-}
-
-// Rrd contains the RRDtool configuration.
-type Rrd struct {
-	Enable struct{} `xml:"enable"`
-}
-
-// LoadBalancer contains the load balancer configuration.
-type LoadBalancer struct {
-	MonitorType []MonitorType `xml:"monitor_type"`
-}
-
-// MonitorType represents a load balancer monitor type.
-type MonitorType struct {
-	Name    string  `xml:"name"`
-	Type    string  `xml:"type"`
-	Descr   string  `xml:"descr"`
-	Options Options `xml:"options"`
-}
-
-// Options contains the options for a load balancer monitor type.
-type Options struct {
-	Path   string `xml:"path"`
-	Host   string `xml:"host"`
-	Code   string `xml:"code"`
-	Send   string `xml:"send"`
-	Expect string `xml:"expect"`
-}
-
-// Ntpd contains the NTP daemon configuration.
-type Ntpd struct {
-	Prefer string `xml:"prefer"`
-}
-
-// Widgets contains the dashboard widget configuration.
-type Widgets struct {
-	Sequence    string `xml:"sequence"`
-	ColumnCount string `xml:"column_count"`
 }

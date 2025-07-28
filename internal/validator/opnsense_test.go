@@ -171,6 +171,23 @@ func TestValidateFilter_NetworkValidation(t *testing.T) {
 			expectedErrors: 0,
 		},
 		{
+			name: "valid (self) reserved network",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Interface: "wan",
+						Source: model.Source{
+							Network: "any",
+						},
+						Destination: model.Destination{
+							Network: "(self)",
+						},
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
 			name: "valid interface with ip suffix",
 			filter: model.Filter{
 				Rule: []model.Rule{

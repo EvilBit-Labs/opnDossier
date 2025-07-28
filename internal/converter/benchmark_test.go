@@ -2,26 +2,27 @@ package converter
 
 import (
 	"context"
-	"encoding/xml"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
-	"github.com/unclesp1d3r/opnFocus/internal/model"
+	"github.com/unclesp1d3r/opnFocus/internal/parser"
 )
 
 func BenchmarkMarkdownConverter_ToMarkdown(b *testing.B) {
 	// Load a medium-sized config.xml for realistic testing
-	xmlPath := filepath.Join("..", "..", "testdata", "config.xml")
+	xmlPath := filepath.Join("..", "..", "testdata", "sample.config.1.xml")
 	xmlData, err := os.ReadFile(xmlPath)
 	if err != nil {
 		b.Fatalf("Failed to read testdata XML file: %v", err)
 	}
 
-	var opnsense model.Opnsense
-	err = xml.Unmarshal(xmlData, &opnsense)
+	// Parse using the parser
+	p := parser.NewXMLParser()
+	opnsense, err := p.Parse(context.Background(), strings.NewReader(string(xmlData)))
 	if err != nil {
-		b.Fatalf("XML unmarshalling failed: %v", err)
+		b.Fatalf("XML parsing failed: %v", err)
 	}
 
 	converter := NewMarkdownConverter()
@@ -31,7 +32,7 @@ func BenchmarkMarkdownConverter_ToMarkdown(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_, err := converter.ToMarkdown(ctx, &opnsense)
+		_, err := converter.ToMarkdown(ctx, opnsense)
 		if err != nil {
 			b.Fatalf("ToMarkdown failed: %v", err)
 		}
@@ -46,10 +47,11 @@ func BenchmarkMarkdownConverter_ToMarkdown_Large(b *testing.B) {
 		b.Fatalf("Failed to read large testdata XML file: %v", err)
 	}
 
-	var opnsense model.Opnsense
-	err = xml.Unmarshal(xmlData, &opnsense)
+	// Parse using the parser
+	p := parser.NewXMLParser()
+	opnsense, err := p.Parse(context.Background(), strings.NewReader(string(xmlData)))
 	if err != nil {
-		b.Fatalf("XML unmarshalling failed: %v", err)
+		b.Fatalf("XML parsing failed: %v", err)
 	}
 
 	converter := NewMarkdownConverter()
@@ -59,7 +61,7 @@ func BenchmarkMarkdownConverter_ToMarkdown_Large(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_, err := converter.ToMarkdown(ctx, &opnsense)
+		_, err := converter.ToMarkdown(ctx, opnsense)
 		if err != nil {
 			b.Fatalf("ToMarkdown failed: %v", err)
 		}

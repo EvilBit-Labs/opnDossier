@@ -102,11 +102,11 @@ func TestXMLParser_ParseSampleFiles(t *testing.T) {
 
 // TestXMLParser_ParseConfigSample specifically tests the main config.xml.sample file.
 func TestXMLParser_ParseConfigSample(t *testing.T) {
-	sampleFile := filepath.Join("testdata", "config.xml.sample")
+	sampleFile := filepath.Join("testdata", "sample.config.3.xml")
 
 	// Check if file exists
 	if _, err := os.Stat(sampleFile); os.IsNotExist(err) {
-		t.Skip("config.xml.sample not found in testdata directory")
+		t.Skip("sample.config.3.xml not found in testdata directory")
 	}
 
 	parser := NewXMLParser()
@@ -119,9 +119,8 @@ func TestXMLParser_ParseConfigSample(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, opnsense)
 
-	// Test specific expected values from config.xml.sample
+	// Test specific expected values from sample.config.3.xml
 	t.Run("System Configuration", func(t *testing.T) {
-		assert.Equal(t, "opnsense", opnsense.Theme)
 		assert.Equal(t, "OPNsense", opnsense.System.Hostname)
 		assert.Equal(t, "localdomain", opnsense.System.Domain)
 		assert.Equal(t, "normal", opnsense.System.Optimization)

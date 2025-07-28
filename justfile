@@ -96,6 +96,11 @@ coverage:
     go tool cover -html=coverage.out
 
 
+completeness-check:
+    go test -tags=completeness ./internal/model -run TestModelCompleteness
+
+
+
 # -----------------------------
 # 📦 Build & Clean
 # -----------------------------

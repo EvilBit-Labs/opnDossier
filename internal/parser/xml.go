@@ -149,15 +149,18 @@ func (p *XMLParser) Parse(_ context.Context, r io.Reader) (*model.Opnsense, erro
 				}
 				doc.Dhcpd = dhcpd
 			case "sysctl":
-				// Create a temporary struct that matches the XML structure
-				var sysctlSection struct {
+				// Handle standard OPNsense sysctl format (container with <item> wrappers)
+				var container struct {
 					Items []model.SysctlItem `xml:"item"`
 				}
-				if err := dec.DecodeElement(&sysctlSection, &se); err != nil {
-					return nil, fmt.Errorf("failed to decode sysctl: %w", err)
+				if err := dec.DecodeElement(&container, &se); err == nil {
+					doc.Sysctl = append(doc.Sysctl, container.Items...)
+				} else {
+					// Skip non-standard direct format to avoid decoder corruption
+					if err := skipElement(dec); err != nil {
+						return nil, fmt.Errorf("failed to skip sysctl element: %w", err)
+					}
 				}
-				doc.Sysctl = sysctlSection.Items
-				// Trigger garbage collection after processing large sysctl section
 				runtime.GC()
 			case "unbound":
 				var unbound model.Unbound

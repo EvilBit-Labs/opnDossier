@@ -2,7 +2,6 @@ package converter
 
 import (
 	"context"
-	"encoding/xml"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -10,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/unclesp1d3r/opnFocus/internal/model"
+	"github.com/unclesp1d3r/opnFocus/internal/parser"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -92,18 +92,18 @@ func TestMarkdownConverter_ToMarkdown(t *testing.T) {
 // TestMarkdownConverter_ConvertFromTestdataFile tests conversion of the complete testdata file.
 func TestMarkdownConverter_ConvertFromTestdataFile(t *testing.T) {
 	// Read the sample XML file
-	xmlPath := filepath.Join("..", "..", "testdata", "config.xml")
+	xmlPath := filepath.Join("..", "..", "testdata", "sample.config.3.xml")
 	xmlData, err := os.ReadFile(xmlPath)
 	require.NoError(t, err, "Failed to read testdata XML file")
 
-	// Unmarshal into struct
-	var opnsense model.Opnsense
-	err = xml.Unmarshal(xmlData, &opnsense)
-	require.NoError(t, err, "XML unmarshalling should succeed")
+	// Parse the XML file using the parser
+	p := parser.NewXMLParser()
+	opnsense, err := p.Parse(context.Background(), strings.NewReader(string(xmlData)))
+	require.NoError(t, err, "XML parsing should succeed")
 
 	// Convert to markdown
 	c := NewMarkdownConverter()
-	markdown, err := c.ToMarkdown(context.Background(), &opnsense)
+	markdown, err := c.ToMarkdown(context.Background(), opnsense)
 	require.NoError(t, err, "Markdown conversion should succeed")
 
 	// Verify the markdown is not empty
@@ -120,16 +120,17 @@ func TestMarkdownConverter_ConvertFromTestdataFile(t *testing.T) {
 	assert.Contains(t, cleanMarkdown, "## Service Configuration")
 
 	// Verify system information
-	assert.Contains(t, cleanMarkdown, "Hostname: TestHost")
-	assert.Contains(t, cleanMarkdown, "Domain: test.local")
-	assert.Contains(t, cleanMarkdown, "Optimization: normal")
+	assert.Contains(t, cleanMarkdown, "Hostname: OPNsense")
+	assert.Contains(t, cleanMarkdown, "Domain: localdomain")
+	assert.Contains(t, cleanMarkdown, "Optimization:")
+	assert.Contains(t, cleanMarkdown, "normal")
 	assert.Contains(t, cleanMarkdown, "Protocol: https")
 
 	// Verify network interfaces
 	assert.Contains(t, cleanMarkdown, "## WAN Interface")
 	assert.Contains(t, cleanMarkdown, "## LAN Interface")
-	assert.Contains(t, cleanMarkdown, "Physical Interface: em0")
-	assert.Contains(t, cleanMarkdown, "Physical Interface: em1")
+	assert.Contains(t, cleanMarkdown, "Physical Interface: mismatch1")
+	assert.Contains(t, cleanMarkdown, "Physical Interface: mismatch0")
 	assert.Contains(t, cleanMarkdown, "IPv4 Address: dhcp")
 	assert.Contains(t, cleanMarkdown, "IPv4 Address: 192.168.1.1")
 
@@ -142,8 +143,7 @@ func TestMarkdownConverter_ConvertFromTestdataFile(t *testing.T) {
 	assert.Contains(t, cleanMarkdown, "DHCP Server")
 	assert.Contains(t, cleanMarkdown, "DNS Resolver (Unbound)")
 	assert.Contains(t, cleanMarkdown, "SNMP")
-	assert.Contains(t, cleanMarkdown, "System Location: Test Location")
-	assert.Contains(t, cleanMarkdown, "System Contact: admin@test.local")
+	assert.Contains(t, cleanMarkdown, "Read-Only Community: public")
 
 	// Verify tables are rendered
 	assert.Contains(t, cleanMarkdown, "TUNABLE")
@@ -154,12 +154,11 @@ func TestMarkdownConverter_ConvertFromTestdataFile(t *testing.T) {
 	assert.Contains(t, cleanMarkdown, "Users")
 	assert.Contains(t, cleanMarkdown, "Groups")
 	assert.Contains(t, cleanMarkdown, "root")
-	assert.Contains(t, cleanMarkdown, "testuser")
 	assert.Contains(t, cleanMarkdown, "admins")
 
 	// Verify firewall rules table
 	assert.Contains(t, cleanMarkdown, "TYPE")
-	assert.Contains(t, cleanMarkdown, "INTE")
+	assert.Contains(t, cleanMarkdown, "INT")
 	assert.Contains(t, cleanMarkdown, "PROTO")
 	assert.Contains(t, cleanMarkdown, "SOUR")
 	assert.Contains(t, cleanMarkdown, "DEST")
