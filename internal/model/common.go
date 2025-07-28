@@ -70,7 +70,7 @@ type RuleLocation struct {
 
 // IsAny returns true if this location represents "any".
 func (rl *RuleLocation) IsAny() bool {
-	return rl.Network == "any" || (rl.Network == "" && rl.Address == "" && rl.Port == "")
+	return rl.Network == NetworkAny || (rl.Network == "" && rl.Address == "" && rl.Port == "")
 }
 
 // String returns a human-readable representation of the rule location.

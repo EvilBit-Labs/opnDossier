@@ -125,7 +125,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Action**: Create `internal/markdown/` package that takes opnSense model and generates structured markdown string using templates in `internal/templates` and `https://pkg.go.dev/github.com/Masterminds/sprig/v3` for template functions
   - **Acceptance**: Generator produces properly formatted markdown string from opnSense model using templates
 
-- [ ] **TASK-012**: Implement calculated fields and model enrichment
+- [x] **TASK-012**: Implement calculated fields and model enrichment
 
   - **Context**: Need to populate calculated fields in opnSense model for comprehensive reporting
   - **Requirement**: F002 (Hierarchy preservation), US-003 (Structure preservation), F011 (Markdown generation), F014 (Configuration analysis)

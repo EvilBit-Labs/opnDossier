@@ -77,15 +77,21 @@ func (g *markdownGenerator) Generate(ctx context.Context, cfg *model.OpnSenseDoc
 		return "", fmt.Errorf("invalid options: %w", err)
 	}
 
+	// Enrich the model with calculated fields and analysis data
+	enrichedCfg := model.EnrichDocument(cfg)
+	if enrichedCfg == nil {
+		return "", ErrNilConfiguration
+	}
+
 	// Add metadata for template rendering
 	metadata := struct {
-		*model.OpnSenseDocument
+		*model.EnrichedOpnSenseDocument
 		Generated   string
 		ToolVersion string
 	}{
-		OpnSenseDocument: cfg,
-		Generated:        time.Now().Format(time.RFC3339),
-		ToolVersion:      "1.0.0", // Example version number, replace with actual
+		EnrichedOpnSenseDocument: enrichedCfg,
+		Generated:                time.Now().Format(time.RFC3339),
+		ToolVersion:              "1.0.0", // Example version number, replace with actual
 	}
 
 	switch opts.Format {
@@ -93,10 +99,10 @@ func (g *markdownGenerator) Generate(ctx context.Context, cfg *model.OpnSenseDoc
 		return g.generateMarkdown(ctx, metadata, opts)
 
 	case FormatJSON:
-		return g.generateJSON(ctx, cfg, opts)
+		return g.generateJSON(ctx, enrichedCfg, opts)
 
 	case FormatYAML:
-		return g.generateYAML(ctx, cfg, opts)
+		return g.generateYAML(ctx, enrichedCfg, opts)
 
 	default:
 		return "", fmt.Errorf("%w: %s", ErrUnsupportedFormat, opts.Format)
@@ -137,8 +143,8 @@ func (g *markdownGenerator) generateMarkdown(_ context.Context, data interface{}
 }
 
 // generateJSON generates JSON output.
-func (g *markdownGenerator) generateJSON(_ context.Context, cfg *model.OpnSenseDocument, _ Options) (string, error) {
-	// Marshal the OpnSenseDocument struct to JSON with indentation
+func (g *markdownGenerator) generateJSON(_ context.Context, cfg *model.EnrichedOpnSenseDocument, _ Options) (string, error) {
+	// Marshal the EnrichedOpnSenseDocument struct to JSON with indentation
 	jsonBytes, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal to JSON: %w", err)
@@ -148,8 +154,8 @@ func (g *markdownGenerator) generateJSON(_ context.Context, cfg *model.OpnSenseD
 }
 
 // generateYAML generates YAML output.
-func (g *markdownGenerator) generateYAML(_ context.Context, cfg *model.OpnSenseDocument, _ Options) (string, error) {
-	// Marshal the OpnSenseDocument struct to YAML
+func (g *markdownGenerator) generateYAML(_ context.Context, cfg *model.EnrichedOpnSenseDocument, _ Options) (string, error) {
+	// Marshal the EnrichedOpnSenseDocument struct to YAML
 	yamlBytes, err := yaml.Marshal(cfg)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal to YAML: %w", err)
