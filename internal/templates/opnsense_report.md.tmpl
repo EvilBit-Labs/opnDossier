@@ -79,13 +79,30 @@
 
 | Hostname | MAC Address | IP | Description |
 |----------|-------------|----|-------------|
+{{- $hasStaticLeases := false }}
+{{- range $name, $dhcp := .Dhcpd.Items }}
+{{- if $dhcp.Staticmap }}
+{{- $hasStaticLeases = true }}
+{{- range $dhcp.Staticmap }}
+| `{{ .Hostname }}` | `{{ .Mac }}` | `{{ .IPAddr }}` | `{{ .Descr }}` |
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if not $hasStaticLeases }}
 | No static leases configured | - | - | - |
+{{- end }}
 
 ---
 
 ## 🧠 DNS Resolver
 
-- **Enabled**: {{ .Unbound.Enable }}
+- **Enabled**: {{ if .Unbound.Enable }}✅{{ else }}❌{{ end }}
+{{- if .Unbound.Dnssec }}
+- **DNSSEC**: {{ if .Unbound.Dnssec }}✅{{ else }}❌{{ end }}
+{{- end }}
+{{- if .Unbound.Dnssecstripped }}
+- **DNSSEC Stripped**: {{ if .Unbound.Dnssecstripped }}✅{{ else }}❌{{ end }}
+{{- end }}
 
 ---
 
@@ -93,7 +110,19 @@
 
 | Name | Mode | Local IP | Remote Net | Enabled |
 |------|------|----------|------------|---------|
+{{- if .OpenVPN.Servers }}
+{{- range .OpenVPN.Servers }}
+| `{{ .Description }}` | {{ .Mode }} | {{ .Local_port }} | {{ .Remote_network }} | ✅ |
+{{- end }}
+{{- end }}
+{{- if .OpenVPN.Clients }}
+{{- range .OpenVPN.Clients }}
+| `{{ .Description }}` | {{ .Mode }} | {{ .Server_addr }}:{{ .Server_port }} | - | ✅ |
+{{- end }}
+{{- end }}
+{{- if and (not .OpenVPN.Servers) (not .OpenVPN.Clients) }}
 | No OpenVPN configured | - | - | - | ❌ |
+{{- end }}
 
 ---
 
@@ -102,7 +131,7 @@
 | Username | UID | Group | Shell | Disabled |
 |----------|-----|-------|--------|----------|
 {{- range .System.User }}
-| `{{ .Name }}` | {{ .UID }} | {{ .Groupname }} | - | ✅ |
+| `{{ .Name }}` | {{ .UID }} | {{ .Groupname }} | - | {{ if .Disabled.Bool }}✅{{ else }}❌{{ end }} |
 {{- end }}
 
 ---
@@ -112,7 +141,7 @@
 | Service | Enabled | Notes |
 |---------|---------|-------|
 | SNMP | {{ if .Snmpd.ROCommunity }}✅{{ else }}❌{{ end }} | Community: {{ .Snmpd.ROCommunity }} |
-| Unbound DNS | {{ if .Unbound.Enable }}✅{{ else }}❌{{ end }} | DNS Resolver |
+| Unbound DNS | {{ if .Unbound.Enable }}✅{{ else }}❌{{ end }} | {{ if .Unbound.Dnssec }}DNSSEC: ✅{{ if .Unbound.Dnssecstripped }}, Stripped: ✅{{ end }}{{ else }}DNSSEC: ❌{{ end }} |
 | NTP | {{ if .Ntpd.Prefer }}✅{{ else }}❌{{ end }} | Prefer: {{ .Ntpd.Prefer }} |
 
 ---
@@ -129,9 +158,17 @@
 
 ## 📝 System Notes
 
+{{- if .System.Notes }}
+{{- range .System.Notes }}
+    ```
+    {{ . }}
+    ```
+{{- end }}
+{{- else }}
     ```
     No system notes configured
     ```
+{{- end }}
 
 ---
 

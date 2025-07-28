@@ -75,6 +75,9 @@ type System struct {
 		MonitorType []MonitorType `xml:"monitor_type"`
 	} `xml:"load_balancer" json:"loadBalancer" yaml:"loadBalancer,omitempty"`
 	Unbound Unbound `xml:"unbound" json:"unbound" yaml:"unbound,omitempty"`
+
+	// System notes for additional configuration information
+	Notes []string `xml:"notes>note" json:"notes,omitempty" yaml:"notes,omitempty"`
 }
 
 // Widgets represents the dashboard widgets configuration.
@@ -107,6 +110,7 @@ type Firmware struct {
 // User represents a user.
 type User struct {
 	Name           string   `xml:"name" json:"name" yaml:"name" validate:"required,alphanum"`
+	Disabled       BoolFlag `xml:"disabled" json:"disabled" yaml:"disabled"`
 	Descr          string   `xml:"descr" json:"description,omitempty" yaml:"description,omitempty"`
 	Scope          string   `xml:"scope" json:"scope" yaml:"scope" validate:"required,oneof=system local"`
 	Groupname      string   `xml:"groupname" json:"groupname" yaml:"groupname" validate:"required"`
