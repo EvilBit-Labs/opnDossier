@@ -32,7 +32,7 @@ func TestModelCompleteness(t *testing.T) {
 		t.Fatalf("no XML files found in testdata directory")
 	}
 
-			for _, file := range xmlFiles {
+	for _, file := range xmlFiles {
 		t.Run(filepath.Base(file), func(t *testing.T) {
 			_, _, missingPaths, err := GetModelCompletenessDetails(file)
 			if err != nil {
