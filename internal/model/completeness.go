@@ -253,6 +253,37 @@ func getModelPaths(t reflect.Type, prefix string) map[string]bool {
 			continue
 		}
 
+		// Handle complex XML tags like "apikeys>item"
+		if strings.Contains(xmlName, ">") {
+			parts := strings.Split(xmlName, ">")
+			if len(parts) == 2 {
+				containerName := parts[0]
+				childName := parts[1]
+
+				// Add the container path
+				containerPath := containerName
+				if prefix != "" {
+					containerPath = prefix + "." + containerName
+				}
+				paths[containerPath] = true
+
+				// Add the child path
+				childPath := containerPath + "." + childName
+				paths[childPath] = true
+
+				// For slices, process the element type with the child path
+				if field.Type.Kind() == reflect.Slice || field.Type.Kind() == reflect.Array {
+					elementType := field.Type.Elem()
+					nestedPaths := getModelPaths(elementType, childPath)
+					for path := range nestedPaths {
+						paths[path] = true
+					}
+				}
+
+				continue
+			}
+		}
+
 		currentPath := xmlName
 		if prefix != "" {
 			currentPath = prefix + "." + xmlName

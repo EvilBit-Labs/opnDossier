@@ -34,11 +34,12 @@ type OpnSenseDocument struct {
 	VLANs                VLANs                `xml:"vlans,omitempty" json:"vlans,omitempty" yaml:"vlans,omitempty"`
 	OpenVPN              OpenVPN              `xml:"openvpn,omitempty" json:"openvpn,omitempty" yaml:"openvpn,omitempty"`
 	StaticRoutes         StaticRoutes         `xml:"staticroutes,omitempty" json:"staticroutes,omitempty" yaml:"staticroutes,omitempty"`
-	Bridges              Bridges              `xml:"bridges,omitempty" json:"bridges,omitempty" yaml:"bridges,omitempty"`
+	Bridges              BridgesConfig        `xml:"bridges,omitempty" json:"bridges,omitempty" yaml:"bridges,omitempty"`
 	PPPInterfaces        PPPInterfaces        `xml:"ppps,omitempty" json:"ppps,omitempty" yaml:"ppps,omitempty"`
 	Wireless             Wireless             `xml:"wireless,omitempty" json:"wireless,omitempty" yaml:"wireless,omitempty"`
 	CertificateAuthority CertificateAuthority `xml:"ca,omitempty" json:"ca,omitempty" yaml:"ca,omitempty"`
 	DHCPv6Server         DHCPv6Server         `xml:"dhcpdv6,omitempty" json:"dhcpdv6,omitempty" yaml:"dhcpdv6,omitempty"`
+	Cert                 Cert                 `xml:"cert,omitempty" json:"cert,omitempty" yaml:"cert,omitempty"`
 	DNSMasquerade        DNSMasq              `xml:"dnsmasq,omitempty" json:"dnsmasq,omitempty" yaml:"dnsmasq,omitempty"`
 	Syslog               Syslog               `xml:"syslog,omitempty" json:"syslog,omitempty" yaml:"syslog,omitempty"`
 	OPNsense             OPNsense             `xml:"OPNsense,omitempty" json:"opnsense,omitempty" yaml:"opnsense,omitempty"`
@@ -107,20 +108,27 @@ type OPNsense struct {
 			General struct {
 				Text          string `xml:",chardata" json:"text,omitempty"`
 				Enabled       string `xml:"enabled"`
+				Interfaces    string `xml:"interfaces"`
 				FirewallRules string `xml:"fwrules"`
 				ValidLifetime string `xml:"valid_lifetime"`
 			} `xml:"general" json:"general"`
 			HighAvailability struct {
 				Text              string `xml:",chardata" json:"text,omitempty"`
 				Enabled           string `xml:"enabled"`
+				ThisServerName    string `xml:"this_server_name"`
 				MaxUnackedClients string `xml:"max_unacked_clients"`
 			} `xml:"ha" json:"ha"`
+			Subnets      string `xml:"subnets"`
+			Reservations string `xml:"reservations"`
+			HAPeers      string `xml:"ha_peers"`
 		} `xml:"dhcp4" json:"dhcp4"`
 		CtrlAgent struct {
 			Text    string `xml:",chardata" json:"text,omitempty"`
 			Version string `xml:"version,attr" json:"version,omitempty"`
 			General struct {
 				Text     string `xml:",chardata" json:"text,omitempty"`
+				Enabled  string `xml:"enabled"`
+				HTTPHost string `xml:"http_host"`
 				HTTPPort string `xml:"http_port"`
 			} `xml:"general" json:"general"`
 		} `xml:"ctrl_agent" json:"ctrlAgent"`
@@ -137,9 +145,15 @@ type OPNsense struct {
 		Version string `xml:"version,attr" json:"version,omitempty"`
 		Capture struct {
 			Text       string `xml:",chardata" json:"text,omitempty"`
+			Interfaces string `xml:"interfaces"`
+			Version    string `xml:"version"`
 			EgressOnly string `xml:"egress_only"`
 			Targets    string `xml:"targets"`
 		} `xml:"capture" json:"capture"`
+		Collect struct {
+			Text   string `xml:",chardata" json:"text,omitempty"`
+			Enable string `xml:"enable"`
+		} `xml:"collect" json:"collect"`
 		InactiveTimeout string `xml:"inactiveTimeout"`
 		ActiveTimeout   string `xml:"activeTimeout"`
 	} `xml:"Netflow" json:"netflow"`
@@ -356,6 +370,15 @@ type OPNsense struct {
 	} `xml:"unbound" json:"unbound,omitempty"`
 	Created string `xml:"created,omitempty"`
 	Updated string `xml:"updated,omitempty"`
+}
+
+// Cert represents a certificate configuration.
+type Cert struct {
+	Text  string `xml:",chardata" json:"text,omitempty"`
+	Refid string `xml:"refid"`
+	Descr string `xml:"descr"`
+	Crt   string `xml:"crt"`
+	Prv   string `xml:"prv"`
 }
 
 // Constructor functions

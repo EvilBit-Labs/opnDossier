@@ -232,3 +232,9 @@ type Bridges struct {
 	XMLName xml.Name `xml:"bridges"`
 	Bridge  []Bridge `xml:"bridge,omitempty"`
 }
+
+// BridgesConfig represents the root-level bridges configuration.
+type BridgesConfig struct {
+	XMLName xml.Name `xml:"bridges"`
+	Bridged string   `xml:"bridged,omitempty"`
+}
