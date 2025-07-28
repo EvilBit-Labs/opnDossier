@@ -6,6 +6,7 @@ package model
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -53,5 +54,45 @@ func TestModelCompleteness(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestDebugModelPaths(t *testing.T) {
+	// Get all expected paths from our Go model
+	modelPaths := getModelPaths(reflect.TypeOf(OpnSenseDocument{}), "")
+
+	// Print all model paths for debugging
+	t.Log("Model paths:")
+	for path := range modelPaths {
+		t.Logf("  %s", path)
+	}
+
+	// Check for specific paths we expect
+	expectedPaths := []string{
+		"system",
+		"system.hostname",
+		"system.domain",
+		"system.timezone",
+		"system.timeservers",
+		"system.user",
+		"system.user.name",
+		"system.user.descr",
+		"system.user.scope",
+		"system.user.groupname",
+		"system.user.password",
+		"system.user.uid",
+		"system.group",
+		"system.group.name",
+		"system.group.description",
+		"system.group.scope",
+		"system.group.gid",
+		"system.group.member",
+		"system.group.priv",
+	}
+
+	for _, expected := range expectedPaths {
+		if !modelPaths[expected] {
+			t.Errorf("Expected path not found: %s", expected)
+		}
 	}
 }

@@ -129,11 +129,27 @@ func GetModelCompletenessDetails(filePath string) (xmlPaths, modelPaths map[stri
 	// Get all XML paths from the map
 	xmlPaths = getAllXMLPaths(xmlMap, "")
 
+	// Strip the root element name from XML paths to match model paths
+	// The XML has "opnsense" as root, but our model paths don't include it
+	strippedXMLPaths := make(map[string]bool)
+	for path := range xmlPaths {
+		// Remove the "opnsense." prefix if it exists
+		if strings.HasPrefix(path, "opnsense.") {
+			strippedPath := strings.TrimPrefix(path, "opnsense.")
+			strippedXMLPaths[strippedPath] = true
+		} else if path == "opnsense" {
+			// Skip the root element itself
+			continue
+		} else {
+			strippedXMLPaths[path] = true
+		}
+	}
+
 	// Get all expected paths from our Go model
 	modelPaths = getModelPaths(reflect.TypeOf(OpnSenseDocument{}), "")
 
 	// Find missing paths (XML paths not in our model)
-	missingPaths = findMissingPaths(xmlPaths, modelPaths)
+	missingPaths = findMissingPaths(strippedXMLPaths, modelPaths)
 
 	return xmlPaths, modelPaths, missingPaths, nil
 }
@@ -228,9 +244,16 @@ func getModelPaths(t reflect.Type, prefix string) map[string]bool {
 
 		paths[currentPath] = true
 
-		// Recursively process nested structs
+		// Recursively process nested structs, pointers, and slices
 		if field.Type.Kind() == reflect.Struct || field.Type.Kind() == reflect.Ptr {
 			nestedPaths := getModelPaths(field.Type, currentPath)
+			for path := range nestedPaths {
+				paths[path] = true
+			}
+		} else if field.Type.Kind() == reflect.Slice || field.Type.Kind() == reflect.Array {
+			// For slices/arrays, process the element type
+			elementType := field.Type.Elem()
+			nestedPaths := getModelPaths(elementType, currentPath)
 			for path := range nestedPaths {
 				paths[path] = true
 			}
