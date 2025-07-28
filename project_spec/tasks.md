@@ -143,7 +143,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 
 ### 3.2 Terminal Display Implementation (`opnfocus display`)
 
-- [ ] **TASK-014**: Implement terminal display with glamour
+- [x] **TASK-014**: Implement terminal display with glamour
 
   - **Context**: Take in-memory markdown string and render to terminal with markdown rendering
   - **Requirement**: F003 (Terminal display), US-004 (Syntax highlighting), F012 (Terminal display)
