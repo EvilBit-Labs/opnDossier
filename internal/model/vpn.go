@@ -201,7 +201,7 @@ type WireGuardClientItem struct {
 
 // Constructor functions
 
-// NewOpenVPN creates a new OpenVPN configuration.
+// NewOpenVPN returns a new OpenVPN configuration with empty server, client, and client-specific configuration lists.
 func NewOpenVPN() *OpenVPN {
 	return &OpenVPN{
 		Servers: make([]OpenVPNServer, 0),
@@ -210,24 +210,24 @@ func NewOpenVPN() *OpenVPN {
 	}
 }
 
-// NewClientExport creates a new ClientExport configuration.
+// NewClientExport returns a new ClientExport instance with an empty server list.
 func NewClientExport() *ClientExport {
 	return &ClientExport{
 		Server_list: make([]string, 0),
 	}
 }
 
-// NewOpenVPNExport creates a new OpenVPNExport configuration.
+// NewOpenVPNExport initializes and returns an empty OpenVPNExport configuration.
 func NewOpenVPNExport() *OpenVPNExport {
 	return &OpenVPNExport{}
 }
 
-// NewOpenVPNSystem creates a new OpenVPNSystem configuration.
+// NewOpenVPNSystem returns a new, empty OpenVPNSystem configuration instance.
 func NewOpenVPNSystem() *OpenVPNSystem {
 	return &OpenVPNSystem{}
 }
 
-// NewWireGuard creates a new WireGuard configuration.
+// NewWireGuard returns a new WireGuard configuration instance with default values.
 func NewWireGuard() *WireGuard {
 	return &WireGuard{}
 }

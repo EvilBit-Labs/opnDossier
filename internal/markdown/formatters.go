@@ -22,7 +22,7 @@ type Badge struct {
 	BGColor string
 }
 
-// BadgeSuccess returns a success badge.
+// BadgeSuccess returns a Badge representing a successful status with a checkmark icon and green colors.
 func BadgeSuccess() Badge {
 	return Badge{
 		Icon:    "✅",
@@ -32,7 +32,7 @@ func BadgeSuccess() Badge {
 	}
 }
 
-// BadgeFail returns a failure badge.
+// BadgeFail returns a Badge representing a failure status with a red icon and background.
 func BadgeFail() Badge {
 	return Badge{
 		Icon:    "❌",
@@ -42,7 +42,7 @@ func BadgeFail() Badge {
 	}
 }
 
-// BadgeWarning returns a warning badge.
+// BadgeWarning returns a Badge representing a warning status with a warning icon and yellow color scheme.
 func BadgeWarning() Badge {
 	return Badge{
 		Icon:    "⚠️",
@@ -52,7 +52,7 @@ func BadgeWarning() Badge {
 	}
 }
 
-// BadgeInfo returns an info badge.
+// BadgeInfo returns a Badge representing informational status with an info icon and blue color scheme.
 func BadgeInfo() Badge {
 	return Badge{
 		Icon:    "ℹ️",
@@ -62,7 +62,7 @@ func BadgeInfo() Badge {
 	}
 }
 
-// BadgeEnhanced returns an enhanced badge.
+// BadgeEnhanced returns a Badge representing an enhanced status with a sparkle emoji and purple color scheme.
 func BadgeEnhanced() Badge {
 	return Badge{
 		Icon:    "✨",
@@ -72,7 +72,7 @@ func BadgeEnhanced() Badge {
 	}
 }
 
-// BadgeSecure returns a secure badge.
+// BadgeSecure returns a Badge representing a secure status with a lock icon and green color scheme.
 func BadgeSecure() Badge {
 	return Badge{
 		Icon:    "🔒",
@@ -82,7 +82,7 @@ func BadgeSecure() Badge {
 	}
 }
 
-// BadgeInsecure returns an insecure badge.
+// BadgeInsecure returns a Badge representing an insecure status with a red color scheme and unlocked icon.
 func BadgeInsecure() Badge {
 	return Badge{
 		Icon:    "🔓",
@@ -93,7 +93,9 @@ func BadgeInsecure() Badge {
 }
 
 // FormatValue automatically detects the type of value and formats it appropriately.
-// Slices and structs are formatted as tables, scalars as code blocks or inline text.
+// FormatValue returns a markdown-formatted string representation of the given value, choosing an appropriate format based on its type.
+// Slices of structs are rendered as tables, other slices as lists, structs and maps as key-value pairs, and scalars as inline text or code blocks.
+// Nil values are represented as a code block containing "nil".
 func FormatValue(key string, value any) string {
 	if value == nil {
 		return CodeBlock("", "nil")
@@ -117,7 +119,7 @@ func FormatValue(key string, value any) string {
 	}
 }
 
-// formatSliceValue formats slice/array values as tables when appropriate.
+// formatSliceValue returns a markdown-formatted string for a slice or array value, rendering slices of structs as tables and other slices as bullet lists. Returns an "empty" indicator if the slice is empty.
 func formatSliceValue(key string, v reflect.Value) string {
 	if v.Len() == 0 {
 		return fmt.Sprintf("**%s**: *empty*\n", key)
@@ -138,7 +140,7 @@ func formatSliceValue(key string, v reflect.Value) string {
 	return fmt.Sprintf("**%s**:\n%s\n", key, strings.Join(items, "\n"))
 }
 
-// formatSliceAsTable formats a slice of structs as a markdown table.
+// formatSliceAsTable returns a markdown table representation of a slice of structs, using exported field names as headers and field values as rows. If the slice is empty, it returns a markdown line indicating emptiness.
 func formatSliceAsTable(key string, v reflect.Value) string {
 	if v.Len() == 0 {
 		return fmt.Sprintf("**%s**: *empty*\n", key)
@@ -158,7 +160,8 @@ func formatSliceAsTable(key string, v reflect.Value) string {
 	return fmt.Sprintf("### %s\n\n%s\n", key, Table(headers, rows))
 }
 
-// formatStructValue formats struct values as key-value pairs or tables.
+// formatStructValue returns a markdown-formatted section representing the non-empty exported fields of a struct as key-value pairs.
+// If all exported fields are empty, it returns a markdown line indicating the struct is empty.
 func formatStructValue(key string, v reflect.Value) string {
 	t := v.Type()
 	var lines []string
@@ -189,7 +192,7 @@ func formatStructValue(key string, v reflect.Value) string {
 	return fmt.Sprintf("### %s\n\n%s\n", key, strings.Join(lines, "\n"))
 }
 
-// formatMapValue formats map values as tables or key-value pairs.
+// formatMapValue returns a markdown-formatted string representing a map's key-value pairs, or indicates if the map is empty.
 func formatMapValue(key string, v reflect.Value) string {
 	if v.Len() == 0 {
 		return fmt.Sprintf("**%s**: *empty*\n", key)
@@ -206,7 +209,7 @@ func formatMapValue(key string, v reflect.Value) string {
 	return fmt.Sprintf("### %s\n\n%s\n", key, strings.Join(lines, "\n"))
 }
 
-// formatScalarValue formats scalar values as inline text or code blocks.
+// formatScalarValue returns a markdown-formatted string for a scalar value, rendering it as inline text or as a code block if the value resembles configuration content.
 func formatScalarValue(key string, value any) string {
 	strValue := fmt.Sprintf("%v", value)
 
@@ -219,7 +222,8 @@ func formatScalarValue(key string, value any) string {
 	return fmt.Sprintf("**%s**: %s\n", key, strValue)
 }
 
-// Table creates a formatted markdown table from headers and rows.
+// Table returns a markdown-formatted table using the provided headers and rows.
+// If headers or rows are empty, it returns a message indicating no data is available.
 func Table(headers []string, rows [][]string) string {
 	if len(headers) == 0 || len(rows) == 0 {
 		return "*No data available*"
@@ -259,7 +263,7 @@ func Table(headers []string, rows [][]string) string {
 	return builder.String()
 }
 
-// CodeBlock wraps content in a markdown code block with optional language hint.
+// CodeBlock returns the given content wrapped in a fenced markdown code block, using the specified language for syntax highlighting. If language is empty, "text" is used as the default.
 func CodeBlock(language, content string) string {
 	if language == "" {
 		language = "text"
@@ -267,12 +271,13 @@ func CodeBlock(language, content string) string {
 	return fmt.Sprintf("```%s\n%s\n```", language, content)
 }
 
-// RenderBadge creates a markdown representation of a status badge.
+// RenderBadge returns a markdown-formatted string representing the given badge, combining its icon and bolded text.
 func RenderBadge(badge Badge) string {
 	return fmt.Sprintf("%s **%s**", badge.Icon, badge.Text)
 }
 
-// SecurityBadge returns an appropriate security badge based on the security level.
+// SecurityBadge selects and returns a badge representing the security status.
+// Returns an enhanced badge if enhanced is true, a secure badge if secure is true, or an insecure badge otherwise.
 func SecurityBadge(secure, enhanced bool) Badge {
 	if enhanced {
 		return BadgeEnhanced()
@@ -283,7 +288,7 @@ func SecurityBadge(secure, enhanced bool) Badge {
 	return BadgeInsecure()
 }
 
-// StatusBadge returns an appropriate status badge based on success/failure.
+// StatusBadge returns a success badge if success is true, or a failure badge otherwise.
 func StatusBadge(success bool) Badge {
 	if success {
 		return BadgeSuccess()
@@ -291,17 +296,18 @@ func StatusBadge(success bool) Badge {
 	return BadgeFail()
 }
 
-// WarningBadge returns a warning badge for potential issues.
+// WarningBadge returns a Badge representing a warning status.
 func WarningBadge() Badge {
 	return BadgeWarning()
 }
 
-// InfoBadge returns an info badge for informational content.
+// InfoBadge returns a badge indicating informational status.
 func InfoBadge() Badge {
 	return BadgeInfo()
 }
 
-// ValidateMarkdown validates markdown content using goldmark parser.
+// ValidateMarkdown checks if the provided markdown content is syntactically valid.
+// It returns an error if the content cannot be parsed as markdown.
 func ValidateMarkdown(content string) error {
 	md := goldmark.New(
 		goldmark.WithParserOptions(
@@ -321,7 +327,8 @@ func ValidateMarkdown(content string) error {
 	return nil
 }
 
-// RenderMarkdown renders markdown content using goldmark for validation and formatting.
+// RenderMarkdown parses and renders markdown content to HTML using goldmark.
+// Returns the rendered HTML string or an error if rendering fails.
 func RenderMarkdown(content string) (string, error) {
 	md := goldmark.New(
 		goldmark.WithParserOptions(
@@ -343,7 +350,7 @@ func RenderMarkdown(content string) (string, error) {
 
 // Helper functions
 
-// getStructFieldNames extracts field names from a struct value.
+// getStructFieldNames returns the names of all exported fields in the given struct value.
 func getStructFieldNames(v reflect.Value) []string {
 	t := v.Type()
 	var names []string
@@ -358,7 +365,7 @@ func getStructFieldNames(v reflect.Value) []string {
 	return names
 }
 
-// getStructFieldValues extracts field values from a struct value.
+// getStructFieldValues returns the string representations of all exported field values from the given struct value.
 func getStructFieldValues(v reflect.Value) []string {
 	var values []string
 
@@ -373,7 +380,7 @@ func getStructFieldValues(v reflect.Value) []string {
 	return values
 }
 
-// isEmptyValue checks if a reflect.Value is considered empty.
+// isEmptyValue returns true if the provided reflect.Value is considered empty, such as zero values, nil pointers, or empty collections.
 func isEmptyValue(v reflect.Value) bool {
 	switch v.Kind() {
 	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
@@ -392,7 +399,7 @@ func isEmptyValue(v reflect.Value) bool {
 	return false
 }
 
-// isConfigContent checks if a string looks like configuration content.
+// isConfigContent returns true if the input string resembles configuration file content based on common syntax patterns such as key-value pairs, section headers, or comments.
 func isConfigContent(s string) bool {
 	// Check for common config patterns
 	configPatterns := []string{
@@ -444,7 +451,8 @@ func isConfigContent(s string) bool {
 	return float64(configLineCount)/float64(nonEmptyLines) > constants.ConfigThreshold
 }
 
-// detectConfigLanguage attempts to detect the configuration language.
+// detectConfigLanguage returns a string indicating the likely configuration language of the provided content based on common syntax markers.
+// It distinguishes between shell, ini, json, yaml, and xml formats, defaulting to "ini" if no specific pattern is matched.
 func detectConfigLanguage(content string) string {
 	content = strings.ToLower(content)
 

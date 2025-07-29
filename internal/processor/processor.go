@@ -30,7 +30,7 @@ type CoreProcessor struct {
 	generator markdown.Generator
 }
 
-// NewCoreProcessor creates a new CoreProcessor with default settings.
+// NewCoreProcessor returns a new CoreProcessor instance with a validator and a markdown generator initialized. If markdown generator creation fails, the generator field is set to nil.
 func NewCoreProcessor() *CoreProcessor {
 	return &CoreProcessor{
 		validator: validator.New(),

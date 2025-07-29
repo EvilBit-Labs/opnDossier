@@ -101,7 +101,7 @@ type Options struct {
 	CustomFields map[string]any
 }
 
-// DefaultOptions returns a new Options struct with sensible defaults.
+// DefaultOptions returns an Options struct initialized with default settings for markdown generation.
 func DefaultOptions() Options {
 	return Options{
 		Format:          FormatMarkdown,

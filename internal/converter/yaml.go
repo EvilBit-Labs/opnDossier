@@ -12,7 +12,7 @@ import (
 // YAMLConverter is a YAML converter for OPNsense configurations.
 type YAMLConverter struct{}
 
-// NewYAMLConverter returns a new instance of YAMLConverter for converting OPNsense configurations to YAML format.
+// NewYAMLConverter creates and returns a new YAMLConverter for transforming OPNsense configurations to YAML format.
 func NewYAMLConverter() *YAMLConverter {
 	return &YAMLConverter{}
 }

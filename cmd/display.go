@@ -32,7 +32,7 @@ const (
 	renderingPercent          = 0.9
 )
 
-// init registers the display command with the root command and adds the --no-validate flag to control configuration validation.
+// init registers the display command with the root command and configures its CLI flags for validation, theming, template selection, section filtering, and text wrapping.
 func init() {
 	rootCmd.AddCommand(displayCmd)
 	displayCmd.Flags().BoolVar(&noValidation, "no-validate", false, "Skip validation and display potentially malformed configurations")
@@ -207,7 +207,11 @@ Examples:
 	},
 }
 
-// buildDisplayOptions builds markdown.Options with proper precedence for display command.
+// buildDisplayOptions constructs markdown.Options for the display command, applying CLI flag values with precedence over configuration settings and defaults.
+// 
+// CLI-provided values for theme, template, sections, and wrap width override corresponding configuration values. If neither is set, defaults are used.
+// 
+// Returns the resulting markdown.Options struct for use in markdown generation.
 func buildDisplayOptions(theme, template string, sections []string, wrap int, cfg *config.Config) markdown.Options {
 	// Start with defaults
 	opt := markdown.DefaultOptions()

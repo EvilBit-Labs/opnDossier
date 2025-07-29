@@ -55,7 +55,9 @@ func LoadConfigWithFlags(cfgFile string, flags *pflag.FlagSet) (*Config, error) 
 // LoadConfigWithViper loads application configuration using the provided Viper instance, applying defaults, config file values, and environment variables with standard precedence.
 // LoadConfigWithViper loads application configuration using the provided Viper instance, merging values from a config file, environment variables with the "OPNFOCUS" prefix, and defaults.
 // If a config file path is specified, it is used; otherwise, a default YAML file in the user's home directory is attempted. If the config file is missing, environment variables and defaults are used.
-// Returns a validated Config struct or an error if loading or validation fails.
+// LoadConfigWithViper loads application configuration from a YAML file, environment variables, and defaults using the provided Viper instance.
+// It returns a validated Config struct or an error if loading or validation fails.
+// If the specified config file is missing, environment variables and defaults are used instead.
 func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 	// Set defaults
 	v.SetDefault("input_file", "")

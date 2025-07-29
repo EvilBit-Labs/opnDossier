@@ -9,7 +9,8 @@ import (
 
 // DemoValidation runs example validations of OPNsense configuration data, printing results for valid, invalid, and cross-field error scenarios.
 //
-// This function constructs several sample OPNsense configurations, invokes the validator on each, and displays the validation outcomes to illustrate typical validation results and error reporting.
+// DemoValidation demonstrates the validation of OPNsense configuration documents using sample data.
+// It constructs valid, invalid, and cross-field error examples, runs validation on each, and prints the resulting validation messages.
 func DemoValidation() {
 	fmt.Println("=== OPNsense Configuration Validator Demo ===")
 

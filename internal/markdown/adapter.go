@@ -13,7 +13,8 @@ type ConverterAdapter struct {
 	opts      Options
 }
 
-// NewConverterAdapter creates a new adapter that wraps the new Generator interface.
+// NewConverterAdapter returns a new ConverterAdapter using a default Generator and default options.
+// It returns an error if the Generator cannot be created.
 func NewConverterAdapter() (*ConverterAdapter, error) {
 	generator, err := NewMarkdownGenerator()
 	if err != nil {
@@ -25,7 +26,8 @@ func NewConverterAdapter() (*ConverterAdapter, error) {
 	}, nil
 }
 
-// NewConverterAdapterWithOptions creates a new adapter with custom options.
+// NewConverterAdapterWithOptions returns a new ConverterAdapter using the provided options.
+// It initializes the underlying markdown generator and returns an error if generator creation fails.
 func NewConverterAdapterWithOptions(opts Options) (*ConverterAdapter, error) {
 	generator, err := NewMarkdownGenerator()
 	if err != nil {

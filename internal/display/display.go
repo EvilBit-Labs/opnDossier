@@ -42,14 +42,15 @@ type StyleSheet struct {
 	theme    Theme
 }
 
-// NewStyleSheet creates a new StyleSheet with the auto-detected theme.
+// NewStyleSheet returns a new StyleSheet configured with an automatically detected theme based on the current environment.
 func NewStyleSheet() *StyleSheet {
 	// Use auto-detected theme
 	theme := DetectTheme("")
 	return NewStyleSheetWithTheme(theme)
 }
 
-// NewStyleSheetWithTheme creates a new StyleSheet with a specified theme.
+// NewStyleSheetWithTheme returns a new StyleSheet configured with the provided theme.
+// The StyleSheet includes styled elements for titles, subtitles, tables, errors, and warnings, using colors from the specified theme.
 func NewStyleSheetWithTheme(theme Theme) *StyleSheet {
 	return &StyleSheet{
 		Title: lipgloss.NewStyle().
@@ -116,7 +117,7 @@ type Options struct {
 	EnableColors bool
 }
 
-// DefaultOptions returns default options.
+// DefaultOptions returns an Options struct with the default theme, word wrap width, and both tables and colors enabled.
 func DefaultOptions() Options {
 	return Options{
 		Theme:        DetectTheme(""),
@@ -126,7 +127,7 @@ func DefaultOptions() Options {
 	}
 }
 
-// convertMarkdownOptions converts markdown.Options to display.Options.
+// convertMarkdownOptions creates a display.Options struct from the provided markdown.Options, mapping theme and display settings accordingly.
 func convertMarkdownOptions(mdOpts markdown.Options) Options {
 	// Convert theme
 	var theme Theme
@@ -155,7 +156,10 @@ var (
 )
 
 // getGlamourRenderer returns a singleton Glamour renderer configured with the given options.
-// It creates a new renderer only if options have changed or none exists.
+// getGlamourRenderer returns a singleton Glamour markdown renderer configured with the specified options.
+// It creates a new renderer only if the options differ from the previous invocation or if no renderer exists.
+// If color rendering is disabled, it returns ErrRawMarkdown to signal that raw markdown should be displayed instead.
+// Returns the Glamour renderer or an error if renderer creation fails.
 func getGlamourRenderer(opts *Options) (*glamour.TermRenderer, error) {
 	rendererMu.RLock()
 	// Check if we need to recreate the renderer
@@ -221,7 +225,7 @@ func getGlamourRenderer(opts *Options) (*glamour.TermRenderer, error) {
 	return renderer, nil
 }
 
-// DetermineGlamourStyle determines the appropriate Glamour style based on theme and terminal capabilities.
+// DetermineGlamourStyle returns the Glamour style string to use for markdown rendering based on the provided options, considering color enablement, terminal color support, and the selected theme.
 func DetermineGlamourStyle(opts *Options) string {
 	// Check if colors are disabled first
 	if !opts.EnableColors {
@@ -250,7 +254,7 @@ func DetermineGlamourStyle(opts *Options) string {
 	}
 }
 
-// IsTerminalColorCapable checks if the terminal supports color output.
+// IsTerminalColorCapable returns true if the current terminal environment supports color output, based on environment variables and terminal type heuristics.
 func IsTerminalColorCapable() bool {
 	// Check if we're in a terminal
 	if !isTerminal() {
@@ -288,7 +292,7 @@ func IsTerminalColorCapable() bool {
 	return false
 }
 
-// isTerminal checks if the current environment is a terminal.
+// isTerminal returns true if the standard output is a terminal device.
 func isTerminal() bool {
 	// Check if stdout is a terminal
 	fileInfo, err := os.Stdout.Stat()
@@ -301,12 +305,15 @@ func isTerminal() bool {
 }
 
 // Title prints the given string to the console using the predefined title style.
+// Title prints the given string as a styled title using the global StyleSheet.
+//
 // Deprecated: Use StyleSheet.TitlePrint instead.
 func Title(s string) {
 	globalStyleSheet.TitlePrint(s)
 }
 
 // Error prints the input string to the terminal using a bold red error style.
+// Error prints the given string as an error message using the global StyleSheet.
 // Deprecated: Use StyleSheet.ErrorPrint instead.
 func Error(s string) {
 	globalStyleSheet.ErrorPrint(s)
@@ -319,12 +326,14 @@ type TerminalDisplay struct {
 	progressMu sync.Mutex
 }
 
-// NewTerminalDisplay returns a TerminalDisplay instance with default options.
+// NewTerminalDisplay creates a TerminalDisplay with default display options and progress bar settings.
 func NewTerminalDisplay() *TerminalDisplay {
 	return NewTerminalDisplayWithOptions(DefaultOptions())
 }
 
 // NewTerminalDisplayWithTheme creates a TerminalDisplay with the specified theme.
+// NewTerminalDisplayWithTheme creates a TerminalDisplay with the specified theme and terminal width.
+//
 // Deprecated: Use NewTerminalDisplayWithOptions instead.
 func NewTerminalDisplayWithTheme(theme Theme) *TerminalDisplay {
 	opts := DefaultOptions()
@@ -333,7 +342,7 @@ func NewTerminalDisplayWithTheme(theme Theme) *TerminalDisplay {
 	return NewTerminalDisplayWithOptions(opts)
 }
 
-// NewTerminalDisplayWithOptions creates a TerminalDisplay with the specified options.
+// NewTerminalDisplayWithOptions returns a TerminalDisplay configured with the provided options, initializing the progress bar with theme-based colors and setting the wrap width if not specified.
 func NewTerminalDisplayWithOptions(opts Options) *TerminalDisplay {
 	// Set default wrap width if not specified
 	if opts.WrapWidth == 0 {
@@ -357,11 +366,12 @@ func NewTerminalDisplayWithOptions(opts Options) *TerminalDisplay {
 }
 
 // NewTerminalDisplayWithMarkdownOptions creates a TerminalDisplay with markdown options.
-// This provides compatibility with the markdown package options.
+// NewTerminalDisplayWithMarkdownOptions creates a TerminalDisplay using options converted from the markdown package.
 func NewTerminalDisplayWithMarkdownOptions(mdOpts markdown.Options) *TerminalDisplay {
 	return NewTerminalDisplayWithOptions(convertMarkdownOptions(mdOpts))
 }
 
+// getTerminalWidth returns the terminal width in columns, using the COLUMNS environment variable if set, or a default wrap width otherwise.
 func getTerminalWidth() int {
 	columns := os.Getenv("COLUMNS")
 	if columns != "" {

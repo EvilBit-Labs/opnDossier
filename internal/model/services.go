@@ -204,7 +204,7 @@ type MonitTest struct {
 
 // Constructor functions
 
-// NewDNSMasq creates a new DNSMasq configuration.
+// NewDNSMasq returns a new DNSMasq configuration with initialized empty slices for hosts and domain overrides.
 func NewDNSMasq() *DNSMasq {
 	return &DNSMasq{
 		Hosts:           make([]DNSMasqHost, 0),
@@ -212,21 +212,21 @@ func NewDNSMasq() *DNSMasq {
 	}
 }
 
-// NewDNSMasqHost creates a new DNSMasqHost.
+// NewDNSMasqHost returns a DNSMasqHost instance with an initialized empty Aliases slice.
 func NewDNSMasqHost() DNSMasqHost {
 	return DNSMasqHost{
 		Aliases: make([]string, 0),
 	}
 }
 
-// NewSyslog creates a new Syslog configuration.
+// NewSyslog returns a pointer to a new Syslog configuration with an initialized empty Reverse slice.
 func NewSyslog() *Syslog {
 	return &Syslog{
 		Reverse: make([]string, 0),
 	}
 }
 
-// NewMonit creates a new Monit configuration.
+// NewMonit returns a pointer to a new Monit configuration with initialized empty slices for services and tests.
 func NewMonit() *Monit {
 	return &Monit{
 		Service: make([]MonitService, 0),

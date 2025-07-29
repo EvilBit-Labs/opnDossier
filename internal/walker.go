@@ -17,14 +17,16 @@ type MDNode struct {
 	Children []MDNode
 }
 
-// Walk transforms a decoded model.OpnSenseDocument node into a hierarchy of MDNodes.
+// Walk converts an OpnSenseDocument into a hierarchical MDNode tree representing its structure as Markdown-like headers and content.
 func Walk(opnsense model.OpnSenseDocument) MDNode {
 	return walkNode("OPNsense Configuration", 1, opnsense)
 }
 
 const maxHeaderLevel = 6
 
-// walkNode recursively transforms each node into an MDNode structure.
+// walkNode recursively converts a Go value into an MDNode, building a hierarchical Markdown-like structure.
+// It handles structs, slices, maps, pointers, and strings, formatting field names and limiting header depth to level 6.
+// Struct fields are processed recursively, with empty structs treated as enabled flags and non-empty fields added as children or body content.
 func walkNode(title string, level int, node any) MDNode {
 	// Limit depth to H6 (level 6)
 	if level > maxHeaderLevel {
@@ -114,7 +116,7 @@ func walkNode(title string, level int, node any) MDNode {
 	return mdNode
 }
 
-// walkSlice handles slice types.
+// walkSlice creates an MDNode for a slice, generating child nodes for each element with indexed titles.
 func walkSlice(title string, level int, slice reflect.Value) MDNode {
 	mdNode := MDNode{
 		Level:    level,
@@ -132,7 +134,7 @@ func walkSlice(title string, level int, slice reflect.Value) MDNode {
 	return mdNode
 }
 
-// walkMap handles map types.
+// walkMap converts a map value into an MDNode, creating a child node for each key-value pair with the key as the title and recursively processing the value.
 func walkMap(title string, level int, m reflect.Value) MDNode {
 	mdNode := MDNode{
 		Level:    level,
@@ -150,7 +152,7 @@ func walkMap(title string, level int, m reflect.Value) MDNode {
 	return mdNode
 }
 
-// formatFieldName converts CamelCase field names to more readable format.
+// formatFieldName returns the input CamelCase string as a space-separated phrase, preserving acronyms.
 func formatFieldName(name string) string {
 	// Simple camelCase to space-separated conversion
 	result := ""
@@ -168,7 +170,7 @@ func formatFieldName(name string) string {
 	return result
 }
 
-// formatIndex formats array/slice indices.
+// formatIndex returns the given integer index formatted as a string in square brackets, e.g., "[0]".
 func formatIndex(i int) string {
 	return "[" + strconv.Itoa(i) + "]"
 }

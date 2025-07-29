@@ -88,7 +88,7 @@ Examples:
 	},
 }
 
-// init initializes the global logger with default settings and defines persistent CLI flags for configuration file path, log verbosity, log level, and log format. Panics if logger initialization fails.
+// init initializes the global logger with default settings and registers persistent CLI flags for configuration file path, verbosity, log level, log format, and display theme. Panics if logger initialization fails.
 func init() {
 	// Initialize logger with default configuration before config is loaded
 	var loggerErr error

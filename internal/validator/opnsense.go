@@ -27,7 +27,8 @@ func (e ValidationError) Error() string {
 
 // ValidateOpnSenseDocument performs comprehensive validation of an OPNsense configuration.
 // It checks system settings, network interfaces, DHCP server, firewall rules, NAT, users, groups, and sysctl tunables,
-// returning all validation errors found in the configuration.
+// ValidateOpnSenseDocument validates an entire OPNsense configuration document and returns all detected validation errors.
+// It checks system settings, network interfaces, DHCP server, firewall rules, NAT rules, users and groups, and sysctl tunables for correctness and consistency.
 func ValidateOpnSenseDocument(o *model.OpnSenseDocument) []ValidationError {
 	var errors []ValidationError
 
@@ -56,7 +57,8 @@ func ValidateOpnSenseDocument(o *model.OpnSenseDocument) []ValidationError {
 }
 
 // validateSystem checks the system-level configuration for required fields, valid formats, and allowed values.
-// It returns a slice of ValidationError for any invalid or missing system configuration fields.
+// validateSystem checks the system-level configuration fields for required values and valid formats.
+// It returns a slice of ValidationError for any invalid or missing system configuration fields, including hostname, domain, timezone, optimization, web GUI protocol, power management modes, and bogons interval.
 func validateSystem(system *model.System) []ValidationError {
 	var errors []ValidationError
 
@@ -276,7 +278,9 @@ func validateDhcpd(dhcpd *model.Dhcpd, interfaces *model.Interfaces) []Validatio
 // It ensures that the "from" and "to" addresses in the DHCP range are valid IP addresses if set,
 // verifies that the "from" address is numerically less than the "to" address,
 // and checks that the interface name exists in the provided interface set.
-// Returns a slice of ValidationError for any invalid or inconsistent DHCP interface fields.
+// validateDhcpdInterface checks a DHCP interface configuration for validity, ensuring the referenced interface exists and that any specified DHCP range addresses are valid IPs with the 'from' address less than the 'to' address.
+// 
+// Returns a slice of ValidationError for any detected issues.
 func validateDhcpdInterface(name string, cfg model.DhcpdInterface, ifaceSet map[string]struct{}) []ValidationError {
 	var errors []ValidationError
 
@@ -344,7 +348,7 @@ func collectInterfaceNames(ifaces *model.Interfaces) map[string]struct{} {
 }
 
 // validateFilter checks each firewall filter rule for valid type, IP protocol, interface, and source network values.
-// It returns a slice of ValidationError for any rule fields that do not meet the required criteria.
+// stripIPSuffix removes the trailing "ip" suffix from a network string, if present.
 func stripIPSuffix(network string) string {
 	if strings.HasSuffix(network, "ip") {
 		return strings.TrimSuffix(network, "ip")
@@ -352,11 +356,14 @@ func stripIPSuffix(network string) string {
 	return network
 }
 
+// isReservedNetwork returns true if the provided network string is a reserved keyword such as "any", "lan", "wan", "localhost", "loopback", or "(self)".
 func isReservedNetwork(network string) bool {
 	reserved := []string{"any", "lan", "wan", "localhost", "loopback", "(self)"}
 	return slices.Contains(reserved, network)
 }
 
+// validateFilter checks each firewall filter rule for valid types, protocols, interface references, and network specifications.
+// It returns a list of validation errors for any rule fields that are invalid or reference non-existent interfaces.
 func validateFilter(filter *model.Filter, interfaces *model.Interfaces) []ValidationError {
 	var errors []ValidationError
 
@@ -606,7 +613,7 @@ func validateSysctl(items []model.SysctlItem) []ValidationError {
 
 // Helper functions for validation
 
-// contains reports whether the given slice contains the specified string.
+// contains reports whether a slice of strings contains a specified string.
 func contains(slice []string, item string) bool {
 	return slices.Contains(slice, item)
 }

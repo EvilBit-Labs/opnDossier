@@ -145,14 +145,14 @@ type APIKey struct {
 
 // Constructor functions for system models
 
-// NewSystemConfig creates a new SystemConfig with properly initialized slices.
+// NewSystemConfig returns a SystemConfig instance with the Sysctl slice initialized as empty.
 func NewSystemConfig() SystemConfig {
 	return SystemConfig{
 		Sysctl: make([]SysctlItem, 0),
 	}
 }
 
-// NewUser creates a new User with properly initialized slices.
+// NewUser returns a User instance with the APIKeys slice initialized as empty.
 func NewUser() User {
 	return User{
 		APIKeys: make([]APIKey, 0),

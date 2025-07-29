@@ -26,7 +26,7 @@ var (
 	ErrInvalidFilePath = errors.New("invalid filepath")
 )
 
-// validateFilePath ensures the filepath is safe and doesn't contain path traversal
+// validateFilePath checks that the provided file path is safe, does not contain unsafe path traversal, resolves to an absolute path, and points to an existing regular file. Returns an error if validation fails.
 func validateFilePath(filePath string) error {
 	// Check for malicious path traversal attempts
 	if strings.Contains(filePath, "..") && !strings.HasPrefix(filePath, "../") {
@@ -48,7 +48,9 @@ func validateFilePath(filePath string) error {
 }
 
 // CheckModelCompleteness is a standalone function that can be called
-// programmatically to test model completeness for a specific file
+// CheckModelCompleteness verifies that all fields present in the specified XML file are represented in the Go data model.
+// It validates the file path, parses the XML with strict charset restrictions, extracts all XML element paths, and compares them against the model's expected paths.
+// Returns an error if any XML fields are missing from the model.
 func CheckModelCompleteness(filePath string) error {
 	// Validate the filepath first
 	if err := validateFilePath(filePath); err != nil {
@@ -111,7 +113,10 @@ func CheckModelCompleteness(filePath string) error {
 	return nil
 }
 
-// GetModelCompletenessDetails returns detailed information about model coverage
+// GetModelCompletenessDetails analyzes an XML file and the Go model to report detailed coverage information.
+// It returns all XML element paths found in the file, all expected model paths derived from the Go struct, and a list of XML paths not represented in the model.
+// The function validates the file path, enforces strict ASCII charset parsing, and compares the XML structure to the model for completeness.
+// Returns an error if the file path is invalid or the XML cannot be read or parsed.
 func GetModelCompletenessDetails(filePath string) (xmlPaths, modelPaths map[string]bool, missingPaths []string, err error) {
 	// Validate the filepath first
 	if err := validateFilePath(filePath); err != nil {
@@ -170,7 +175,8 @@ func GetModelCompletenessDetails(filePath string) (xmlPaths, modelPaths map[stri
 	return xmlPaths, modelPaths, missingPaths, nil
 }
 
-// getAllXMLPaths recursively extracts all XML paths from a map
+// getAllXMLPaths returns all hierarchical XML element paths found in a nested map, using dot-separated notation.
+// It recursively traverses the map structure to collect every unique path.
 func getAllXMLPaths(data map[string]interface{}, prefix string) map[string]bool {
 	paths := make(map[string]bool)
 
@@ -194,7 +200,8 @@ func getAllXMLPaths(data map[string]interface{}, prefix string) map[string]bool 
 	return paths
 }
 
-// getModelPaths recursively extracts all expected paths from a Go struct type
+// getModelPaths returns all expected XML element and attribute paths represented by a Go struct type.
+// It recursively traverses the struct, interpreting XML tags (including wildcards, attributes, and nested elements) to build a set of dot-separated paths that describe the model's structure.
 func getModelPaths(t reflect.Type, prefix string) map[string]bool {
 	paths := make(map[string]bool)
 
@@ -343,7 +350,8 @@ func getModelPaths(t reflect.Type, prefix string) map[string]bool {
 	return paths
 }
 
-// findMissingPaths finds XML paths that are not represented in the model
+// findMissingPaths returns a list of XML element paths that are not represented in the provided model paths.
+// It accounts for wildcard patterns, attribute suffix variations (such as version and UUID), and attempts to reconcile differences in attribute path formats between XML parsing and model representation. Paths are considered missing if they do not match any model path, including wildcards and alternative attribute formats.
 func findMissingPaths(xmlPaths, modelPaths map[string]bool) []string {
 	var missingPaths []string
 

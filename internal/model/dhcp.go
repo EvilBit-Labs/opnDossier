@@ -194,7 +194,7 @@ type Range struct {
 
 // Constructor functions for DHCP models
 
-// NewDhcpdInterface creates a new DhcpdInterface with properly initialized slices.
+// NewDhcpdInterface returns a new DhcpdInterface with empty NumberOptions and Staticmap slices initialized.
 func NewDhcpdInterface() DhcpdInterface {
 	return DhcpdInterface{
 		NumberOptions: make([]DHCPNumberOption, 0),

@@ -25,7 +25,8 @@ type markdownGenerator struct {
 	templates *template.Template
 }
 
-// NewMarkdownGenerator returns an instance of the default markdownGenerator implementation.
+// NewMarkdownGenerator creates a new Generator that produces documentation in Markdown, JSON, or YAML formats using predefined templates.
+// It attempts to load and parse templates from multiple possible filesystem paths and returns an error if none are found or parsing fails.
 func NewMarkdownGenerator() (Generator, error) {
 	// Create template with sprig functions
 	funcMap := sprig.FuncMap()

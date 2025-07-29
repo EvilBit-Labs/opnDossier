@@ -12,7 +12,7 @@ import (
 // JSONConverter is a JSON converter for OPNsense configurations.
 type JSONConverter struct{}
 
-// NewJSONConverter returns a new instance of JSONConverter for converting OPNsense configurations to JSON format.
+// NewJSONConverter creates and returns a new JSONConverter for converting OPNsense configurations to JSON format.
 func NewJSONConverter() *JSONConverter {
 	return &JSONConverter{}
 }

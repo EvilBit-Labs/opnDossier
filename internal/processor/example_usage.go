@@ -12,7 +12,7 @@ import (
 
 // ExampleUsage demonstrates how to use the processor package in practice.
 // This function shows various usage patterns and would typically be called
-// from a CLI command or web service handler.
+// ExampleUsage demonstrates various ways to process an OpnSense configuration document using the processor, including basic, security-focused, and comprehensive analyses, as well as handling custom timeouts and reporting in multiple formats.
 func ExampleUsage(cfg *model.OpnSenseDocument) {
 	// Create a processor instance
 	processor := NewExampleProcessor()
@@ -112,7 +112,8 @@ func ExampleUsage(cfg *model.OpnSenseDocument) {
 }
 
 // ProcessConfigFromFile demonstrates how to integrate the processor
-// with configuration file loading and processing.
+// ProcessConfigFromFile loads an OpnSense configuration from the specified file path, processes it with all analysis features enabled, and prints a summary of the results.
+// Returns an error if processing fails.
 func ProcessConfigFromFile(configPath string) error {
 	// This would typically involve:
 	// 1. Loading the configuration file
@@ -171,7 +172,7 @@ type CustomCheck struct {
 	CheckFunc   func(*model.OpnSenseDocument) []Finding
 }
 
-// NewCustomProcessor creates a new custom processor with additional checks.
+// NewCustomProcessor returns a CustomProcessorExample that applies the provided custom checks in addition to the standard processing.
 func NewCustomProcessor(customChecks []CustomCheck) *CustomProcessorExample {
 	return &CustomProcessorExample{
 		ExampleProcessor: NewExampleProcessor(),
@@ -205,7 +206,8 @@ func (p *CustomProcessorExample) Process(ctx context.Context, cfg *model.OpnSens
 	return report, nil
 }
 
-// ExampleCustomCheck demonstrates a custom check implementation.
+// ExampleCustomCheck returns a custom check that detects if the OpnSense configuration is using the default theme.
+// The check produces a finding if no specific theme is set, recommending that a theme be configured for consistency.
 func ExampleCustomCheck() CustomCheck {
 	return CustomCheck{
 		Name:        "Theme Check",

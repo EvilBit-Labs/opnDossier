@@ -11,7 +11,7 @@ import (
 // This serves as a reference implementation and can be extended with more sophisticated analysis.
 type ExampleProcessor struct{}
 
-// NewExampleProcessor creates a new instance of ExampleProcessor.
+// NewExampleProcessor returns a new ExampleProcessor for analyzing OPNsense configurations.
 func NewExampleProcessor() *ExampleProcessor {
 	return &ExampleProcessor{}
 }

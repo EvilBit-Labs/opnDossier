@@ -16,7 +16,7 @@ type Theme struct {
 	GlamourStyle string
 }
 
-// LightTheme provides a light color scheme.
+// LightTheme returns a Theme configured with a predefined light color palette and the Glamour style "light".
 func LightTheme() Theme {
 	return Theme{
 		Name: "light",
@@ -42,7 +42,7 @@ func LightTheme() Theme {
 	}
 }
 
-// DarkTheme provides a dark color scheme.
+// DarkTheme returns a Theme configured with a predefined dark color palette and the Glamour style "dark".
 func DarkTheme() Theme {
 	return Theme{
 		Name: "dark",
@@ -68,7 +68,7 @@ func DarkTheme() Theme {
 	}
 }
 
-// CustomTheme allows for user-defined color schemes.
+// CustomTheme returns a Theme with an empty palette and Glamour style set to "auto", intended for user customization.
 func CustomTheme() Theme {
 	return Theme{
 		Name:         "custom",
@@ -78,7 +78,7 @@ func CustomTheme() Theme {
 }
 
 // DetectTheme determines the theme based on configuration and environment.
-// Priority: explicit theme > OPNFOCUS_THEME env > auto-detection.
+// DetectTheme determines the terminal color theme to use based on the provided configuration, the OPNFOCUS_THEME environment variable, or automatic detection if neither is set.
 func DetectTheme(configTheme string) Theme {
 	// Check if theme is explicitly set in config
 	if configTheme != "" {
@@ -95,7 +95,8 @@ func DetectTheme(configTheme string) Theme {
 	return autoDetectTheme()
 }
 
-// getThemeByName returns the theme by name, defaulting to auto-detection for unknown names.
+// getThemeByName returns a Theme matching the provided name ("light", "dark", or "custom").
+// If the name is unrecognized, it falls back to automatic theme detection.
 func getThemeByName(name string) Theme {
 	switch strings.ToLower(name) {
 	case "light":
@@ -109,7 +110,8 @@ func getThemeByName(name string) Theme {
 	}
 }
 
-// autoDetectTheme detects the appropriate theme based on terminal capabilities and environment.
+// autoDetectTheme selects a terminal color theme by analyzing environment variables and terminal capabilities.
+// It returns a dark theme if indicators such as 24-bit color support or dark-related terminal names are detected; otherwise, it defaults to a light theme.
 func autoDetectTheme() Theme {
 	// Check common terminal environment variables that indicate dark mode preference
 	colorTerm := os.Getenv("COLORTERM")

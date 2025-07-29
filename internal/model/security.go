@@ -228,7 +228,7 @@ type Swanctl struct {
 
 // Constructor functions
 
-// NewSecurityConfig creates a new SecurityConfig.
+// NewSecurityConfig returns a new SecurityConfig instance with an empty filter rule set.
 func NewSecurityConfig() SecurityConfig {
 	return SecurityConfig{
 		Filter: Filter{
@@ -237,24 +237,24 @@ func NewSecurityConfig() SecurityConfig {
 	}
 }
 
-// NewFirewall creates a new Firewall configuration.
+// NewFirewall returns a pointer to a new, empty Firewall configuration.
 func NewFirewall() *Firewall {
 	return &Firewall{}
 }
 
 // NewIDS creates a new IDS configuration.
 //
-//revive:disable-next-line:var-naming
+// NewIDS returns a new instance of the IDS configuration struct.
 func NewIDS() *IDS {
 	return &IDS{}
 }
 
-// NewIPsec creates a new IPsec configuration.
+// NewIPsec returns a pointer to a new IPsec configuration instance.
 func NewIPsec() *IPsec {
 	return &IPsec{}
 }
 
-// NewSwanctl creates a new Swanctl configuration.
+// NewSwanctl returns a new instance of the Swanctl configuration struct.
 func NewSwanctl() *Swanctl {
 	return &Swanctl{}
 }

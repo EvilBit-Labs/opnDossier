@@ -12,7 +12,7 @@ type TemplateManager struct {
 	templates map[string]*template.Template
 }
 
-// NewTemplateManager creates a new template manager.
+// NewTemplateManager returns a new TemplateManager with an initialized empty template map.
 func NewTemplateManager() *TemplateManager {
 	return &TemplateManager{
 		templates: make(map[string]*template.Template),
@@ -60,17 +60,18 @@ func (tm *TemplateManager) loadFromEmbedded(_ string) (*template.Template, error
 	return nil, ErrTemplateNotImplemented
 }
 
-// GetDefaultTemplateManager returns the default template manager instance.
+// GetDefaultTemplateManager creates and returns a new default TemplateManager instance.
 func GetDefaultTemplateManager() *TemplateManager {
 	return NewTemplateManager()
 }
 
-// LoadBuiltinTemplate loads a built-in template by name.
+// LoadBuiltinTemplate retrieves a built-in template by name using the default template manager.
+// Returns the template if found, or an error if the template does not exist or cannot be loaded.
 func LoadBuiltinTemplate(name string) (*template.Template, error) {
 	return GetDefaultTemplateManager().LoadTemplate(name)
 }
 
-// RegisterCustomTemplate registers a custom template globally.
+// RegisterCustomTemplate registers a custom template with the default template manager, making it available globally by name.
 func RegisterCustomTemplate(name string, tmpl *template.Template) {
 	GetDefaultTemplateManager().RegisterTemplate(name, tmpl)
 }

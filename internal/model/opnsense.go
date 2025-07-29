@@ -383,7 +383,7 @@ type Cert struct {
 
 // Constructor functions
 
-// NewOpnSenseDocument creates a new OpnSenseDocument configuration with properly initialized slices.
+// NewOpnSenseDocument returns a new OpnSenseDocument with all slice and map fields initialized for safe use.
 func NewOpnSenseDocument() *OpnSenseDocument {
 	return &OpnSenseDocument{
 		Sysctl: make([]SysctlItem, 0),

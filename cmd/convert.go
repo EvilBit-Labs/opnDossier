@@ -27,6 +27,9 @@ var (
 	wrapWidth    int      //nolint:gochecknoglobals // Text wrap width
 )
 
+// init registers the convert command and its flags with the root command.
+//
+// This function sets up command-line flags for output file path, format, template, sections, theme, and text wrap width, enabling users to customize the conversion of OPNsense configuration files.
 func init() {
 	rootCmd.AddCommand(convertCmd)
 	convertCmd.Flags().StringVarP(&outputFile, "output", "o", "", "Output file path")
@@ -245,7 +248,7 @@ Examples:
 	},
 }
 
-// buildEffectiveFormat determines the effective format using CLI flags > config > defaults.
+// buildEffectiveFormat returns the output format to use, giving precedence to the CLI flag, then the configuration file, and defaulting to "markdown" if neither is set.
 func buildEffectiveFormat(flagFormat string, cfg *config.Config) string {
 	// CLI flag takes precedence
 	if flagFormat != "" {
@@ -261,7 +264,8 @@ func buildEffectiveFormat(flagFormat string, cfg *config.Config) string {
 	return "markdown"
 }
 
-// buildConversionOptions builds markdown.Options with proper precedence.
+// buildConversionOptions constructs a markdown.Options struct by merging CLI arguments and configuration values with defined precedence.
+// CLI arguments take priority over configuration file values, which in turn override defaults. The resulting options control output format, template, section filtering, theme, and text wrapping for the conversion process.
 func buildConversionOptions(format, template string, sections []string, theme string, wrap int, cfg *config.Config) markdown.Options {
 	// Start with defaults
 	opt := markdown.DefaultOptions()

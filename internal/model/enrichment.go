@@ -211,7 +211,8 @@ type ComplianceChecks struct {
 	Violations      []string `json:"violations"`
 }
 
-// EnrichDocument enriches an OpnSenseDocument with calculated fields and analysis data.
+// EnrichDocument returns an EnrichedOpnSenseDocument containing computed statistics, analysis findings, security assessment, performance metrics, and compliance checks for the provided OpnSenseDocument.
+// Returns nil if the input configuration is nil.
 func EnrichDocument(cfg *OpnSenseDocument) *EnrichedOpnSenseDocument {
 	if cfg == nil {
 		return nil
@@ -229,7 +230,11 @@ func EnrichDocument(cfg *OpnSenseDocument) *EnrichedOpnSenseDocument {
 	return enriched
 }
 
-// generateStatistics generates statistics for the configuration.
+// generateStatistics compiles detailed statistics from an OPNsense configuration document.
+//
+// The returned Statistics struct includes counts and breakdowns of interfaces, firewall rules, NAT settings, DHCP scopes, users, groups, enabled services, system settings, and detected security features. It also provides summary metrics such as total configuration items, calculated security score, configuration complexity, and the presence of security features.
+//
+// Returns nil if the input configuration is nil.
 func generateStatistics(cfg *OpnSenseDocument) *Statistics {
 	stats := &Statistics{
 		InterfacesByType: make(map[string]int),
@@ -367,7 +372,7 @@ func generateStatistics(cfg *OpnSenseDocument) *Statistics {
 	return stats
 }
 
-// generateAnalysis generates analysis findings.
+// generateAnalysis performs a comprehensive analysis of the given OPNsense configuration, returning findings on dead rules, unused interfaces, security issues, performance issues, and consistency issues.
 func generateAnalysis(cfg *OpnSenseDocument) *Analysis {
 	analysis := &Analysis{
 		DeadRules:         []DeadRuleFinding{},
@@ -395,7 +400,8 @@ func generateAnalysis(cfg *OpnSenseDocument) *Analysis {
 	return analysis
 }
 
-// analyzeDeadRules analyzes for dead rules.
+// analyzeDeadRules identifies firewall rules that are either unreachable due to preceding block-all rules or are overly permissive pass rules lacking descriptions.
+// It returns a slice of findings highlighting dead or potentially problematic rules with recommendations for remediation.
 func analyzeDeadRules(cfg *OpnSenseDocument) []DeadRuleFinding {
 	var findings []DeadRuleFinding
 	rules := cfg.FilterRules()
@@ -428,7 +434,8 @@ func analyzeDeadRules(cfg *OpnSenseDocument) []DeadRuleFinding {
 	return findings
 }
 
-// analyzeUnusedInterfaces analyzes for unused interfaces.
+// analyzeUnusedInterfaces identifies configured interfaces that are not referenced in any firewall rules.
+// It returns a list of findings for each unused interface, including a description and recommendation.
 func analyzeUnusedInterfaces(cfg *OpnSenseDocument) []UnusedInterfaceFinding {
 	var findings []UnusedInterfaceFinding
 
@@ -454,7 +461,9 @@ func analyzeUnusedInterfaces(cfg *OpnSenseDocument) []UnusedInterfaceFinding {
 	return findings
 }
 
-// analyzeSecurityIssues analyzes for security issues.
+// analyzeSecurityIssues identifies security issues in the OPNsense configuration, such as an insecure web GUI protocol and overly permissive firewall rules.
+// 
+// It returns a slice of SecurityFinding detailing each detected issue with severity, description, and recommended remediation.
 func analyzeSecurityIssues(cfg *OpnSenseDocument) []SecurityFinding {
 	var findings []SecurityFinding
 
@@ -486,7 +495,7 @@ func analyzeSecurityIssues(cfg *OpnSenseDocument) []SecurityFinding {
 	return findings
 }
 
-// analyzePerformanceIssues analyzes for performance issues.
+// analyzePerformanceIssues returns performance findings for the given configuration, flagging if the number of firewall rules exceeds the defined threshold.
 func analyzePerformanceIssues(cfg *OpnSenseDocument) []PerformanceFinding {
 	var findings []PerformanceFinding
 
@@ -505,7 +514,8 @@ func analyzePerformanceIssues(cfg *OpnSenseDocument) []PerformanceFinding {
 	return findings
 }
 
-// analyzeConsistencyIssues analyzes for consistency issues.
+// analyzeConsistencyIssues returns a list of consistency findings for firewall rules lacking descriptions.
+// Each finding identifies a rule missing a description and recommends adding explanatory text.
 func analyzeConsistencyIssues(cfg *OpnSenseDocument) []ConsistencyFinding {
 	var findings []ConsistencyFinding
 
@@ -526,7 +536,8 @@ func analyzeConsistencyIssues(cfg *OpnSenseDocument) []ConsistencyFinding {
 	return findings
 }
 
-// generateSecurityAssessment generates security assessment data.
+// generateSecurityAssessment evaluates the security posture of the given OPNsense configuration.
+// It checks for HTTPS usage on the web GUI and SSH access configuration, identifies security features and vulnerabilities, provides recommendations, and assigns an overall security score.
 func generateSecurityAssessment(cfg *OpnSenseDocument) *SecurityAssessment {
 	assessment := &SecurityAssessment{
 		SecurityFeatures: []string{},
@@ -563,7 +574,7 @@ func generateSecurityAssessment(cfg *OpnSenseDocument) *SecurityAssessment {
 	return assessment
 }
 
-// generatePerformanceMetrics generates performance metrics.
+// generatePerformanceMetrics calculates performance metrics for an OPNsense configuration, including configuration complexity, rule efficiency, and resource usage.
 func generatePerformanceMetrics(cfg *OpnSenseDocument) *PerformanceMetrics {
 	metrics := &PerformanceMetrics{}
 
@@ -588,7 +599,8 @@ func generatePerformanceMetrics(cfg *OpnSenseDocument) *PerformanceMetrics {
 	return metrics
 }
 
-// generateComplianceChecks generates compliance check results.
+// generateComplianceChecks evaluates the configuration for compliance with key security requirements.
+// It checks for HTTPS usage on the web GUI and SSH access configuration, records passed items and violations, and computes a compliance score based on the results.
 func generateComplianceChecks(cfg *OpnSenseDocument) *ComplianceChecks {
 	checks := &ComplianceChecks{
 		ComplianceItems: []string{},
@@ -616,7 +628,9 @@ func generateComplianceChecks(cfg *OpnSenseDocument) *ComplianceChecks {
 	return checks
 }
 
-// calculateSecurityScore calculates a security score based on configuration.
+// calculateSecurityScore computes a security score for the given OPNsense configuration.
+// The score is based on the presence of security features such as HTTPS web GUI and SSH access,
+// and is reduced for overly permissive firewall rules. The result is clamped between 0 and the maximum security score.
 func calculateSecurityScore(cfg *OpnSenseDocument, stats *Statistics) int {
 	score := 50 // Base score
 
@@ -652,7 +666,7 @@ func calculateSecurityScore(cfg *OpnSenseDocument, stats *Statistics) int {
 	return score
 }
 
-// calculateConfigComplexity calculates configuration complexity.
+// calculateConfigComplexity returns a configuration complexity score based on the weighted sum of firewall rules, users, groups, and services, capped at the maximum allowed complexity score.
 func calculateConfigComplexity(stats *Statistics) int {
 	complexity := stats.TotalFirewallRules * RuleComplexityWeight
 	complexity += stats.TotalUsers * 1

@@ -80,7 +80,7 @@ type StaticRoute struct {
 
 // Constructor functions for network models
 
-// NewNetworkConfig creates a new NetworkConfig with properly initialized slices.
+// NewNetworkConfig returns a NetworkConfig with initialized empty slices for VLANs and Gateways, and an initialized map for Interfaces.
 func NewNetworkConfig() NetworkConfig {
 	return NetworkConfig{
 		VLANs:    make([]VLANConfig, 0),
@@ -91,21 +91,21 @@ func NewNetworkConfig() NetworkConfig {
 	}
 }
 
-// NewVLANs creates a new VLANs configuration with properly initialized slices.
+// NewVLANs returns a pointer to a VLANs struct with an empty VLAN slice initialized.
 func NewVLANs() *VLANs {
 	return &VLANs{
 		VLAN: make([]VLAN, 0),
 	}
 }
 
-// NewBridges creates a new Bridges configuration with properly initialized slices.
+// NewBridges returns a pointer to a Bridges struct with an initialized empty slice of Bridge.
 func NewBridges() *Bridges {
 	return &Bridges{
 		Bridge: make([]Bridge, 0),
 	}
 }
 
-// NewGateways creates a new Gateways configuration with properly initialized slices.
+// NewGateways returns a pointer to a Gateways struct with empty slices for gateways and gateway groups.
 func NewGateways() *Gateways {
 	return &Gateways{
 		Gateway: make([]Gateway, 0),
@@ -113,14 +113,14 @@ func NewGateways() *Gateways {
 	}
 }
 
-// NewGatewayGroup creates a new GatewayGroup with properly initialized slices.
+// NewGatewayGroup returns a GatewayGroup with an initialized empty slice of items.
 func NewGatewayGroup() GatewayGroup {
 	return GatewayGroup{
 		Item: make([]string, 0),
 	}
 }
 
-// NewStaticRoutes creates a new StaticRoutes configuration with properly initialized slices.
+// NewStaticRoutes returns a pointer to a StaticRoutes struct with an initialized empty slice of StaticRoute.
 func NewStaticRoutes() *StaticRoutes {
 	return &StaticRoutes{
 		Route: make([]StaticRoute, 0),

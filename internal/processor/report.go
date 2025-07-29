@@ -164,7 +164,7 @@ const (
 	SeverityInfo     Severity = "info"
 )
 
-// NewReport creates a new Report with the given configuration and processor config.
+// NewReport returns a new Report instance populated with configuration metadata, processor settings, and optionally generated statistics and normalized configuration data.
 func NewReport(cfg *model.OpnSenseDocument, processorConfig Config) *Report {
 	report := &Report{
 		GeneratedAt:     time.Now().UTC(),
@@ -573,7 +573,9 @@ func (r *Report) addFindingsSection(md *markdown.Markdown, title string, finding
 	}
 }
 
-// generateStatistics creates statistics from the given OPNsense configuration.
+// generateStatistics analyzes an OPNsense configuration and returns aggregated statistics.
+//
+// The returned Statistics struct includes interface details, firewall and NAT rule counts, DHCP scopes, user and group counts, enabled services, system settings, detected security features, and summary metrics such as total configuration items, security score, and complexity.
 func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 	stats := &Statistics{
 		InterfacesByType: make(map[string]int),
@@ -783,7 +785,7 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 	return stats
 }
 
-// calculateSecurityScore computes a security score based on security features and configuration.
+// calculateSecurityScore returns a security score for the given OPNsense configuration based on detected security features, firewall rules, HTTPS Web GUI usage, and SSH group configuration. The score is capped at a defined maximum.
 func calculateSecurityScore(cfg *model.OpnSenseDocument, stats *Statistics) int {
 	score := 0
 
@@ -813,7 +815,7 @@ func calculateSecurityScore(cfg *model.OpnSenseDocument, stats *Statistics) int 
 	return score
 }
 
-// calculateConfigComplexity computes a complexity score based on configuration items.
+// calculateConfigComplexity returns a normalized complexity score for the configuration based on weighted counts of interfaces, firewall rules, users, groups, sysctl settings, services, DHCP scopes, and load balancer monitors. The score is scaled to a maximum defined value.
 func calculateConfigComplexity(stats *Statistics) int {
 	complexity := 0
 
@@ -835,7 +837,11 @@ func calculateConfigComplexity(stats *Statistics) int {
 
 // Configuration builders that use the common helper to emit tables/lists consistently
 
-// BuildNetworkConfig builds a comprehensive network configuration report.
+// BuildNetworkConfig generates a Markdown-formatted report section summarizing the network configuration from the provided OPNsense document.
+//
+// The report includes tables of interfaces with their properties and interface security settings. If no interfaces are configured, it notes their absence. VLAN and gateway sections are included as placeholders when not available in the model.
+//
+// Returns the Markdown string representing the network configuration report. If the configuration is nil, returns a placeholder message.
 func BuildNetworkConfig(cfg *model.OpnSenseDocument) string {
 	if cfg == nil {
 		return NoConfigAvailable
@@ -917,7 +923,10 @@ func BuildNetworkConfig(cfg *model.OpnSenseDocument) string {
 	return buf.String()
 }
 
-// BuildSecurityConfig builds a comprehensive security configuration report.
+// BuildSecurityConfig generates a Markdown-formatted report summarizing the security configuration of an OPNsense system.
+//
+// The report includes sections for firewall rules, NAT configuration, detected security features, and placeholders for aliases, IDS/IPS, and VPNs if not available in the current model.
+// If no configuration is provided, a placeholder message is returned.
 func BuildSecurityConfig(cfg *model.OpnSenseDocument) string {
 	if cfg == nil {
 		return NoConfigAvailable
@@ -1015,7 +1024,11 @@ func BuildSecurityConfig(cfg *model.OpnSenseDocument) string {
 	return buf.String()
 }
 
-// BuildServiceConfig builds a comprehensive service configuration report.
+// BuildServiceConfig generates a Markdown-formatted report detailing the status and configuration of core network services in the provided OPNsense configuration.
+// 
+// The report includes sections for DHCP, DNS Resolver (Unbound), SNMP, SSH, NTP, Load Balancer, and RRD monitoring, summarizing their enabled status and key settings. It also provides a service summary and placeholders for VPN services if not present in the model.
+// 
+// Returns a Markdown string representing the service configuration report. If the configuration is nil, returns a placeholder message.
 func BuildServiceConfig(cfg *model.OpnSenseDocument) string {
 	if cfg == nil {
 		return "*No configuration available*"
