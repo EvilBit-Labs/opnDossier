@@ -40,16 +40,16 @@
 ### Web GUI Configuration
 | Property | Value |
 |----------|-------|
-| **Protocol** | {{ .System.Webgui.Protocol }} |
+| **Protocol** | {{ .System.WebGUI.Protocol }} |
 
 ### System Settings
 | Property | Value |
 |----------|-------|
-| **DNS Allow Override** | {{ .System.Dnsallowoverride }} |
+| **DNS Allow Override** | {{ .System.DNSAllowOverride }} |
 | **Next UID** | {{ .System.NextUID }} |
 | **Next GID** | {{ .System.NextGID }} |
-| **Time Servers** | {{ .System.Timeservers }} |
-| **DNS Server** | {{ .System.Dnsserver }} |
+| **Time Servers** | {{ .System.TimeServers }} |
+| **DNS Server** | {{ .System.DNSServer }} |
 
 ### Hardware Offloading
 | Property | Value |
@@ -66,7 +66,7 @@
 ### Power Management
 | Property | Value |
 |----------|-------|
-| **Powerd AC Mode** | {{ .System.PowerdAcMode }} |
+| **Powerd AC Mode** | {{ .System.PowerdACMode }} |
 | **Powerd Battery Mode** | {{ .System.PowerdBatteryMode }} |
 | **Powerd Normal Mode** | {{ .System.PowerdNormalMode }} |
 
@@ -127,10 +127,10 @@
 
 ## Firewall Rules
 
-| # | Action | Proto | Interface | Direction | State Type | Quick | Source | Source Port | Destination | Dest Port | Description |
-|---|--------|-------|-----------|-----------|------------|-------|--------|-------------|-------------|-----------|-------------|
+| # | Action | Proto | Interface | Direction | State Type | Quick | Source | Destination | Dest Port | Description |
+|---|--------|-------|-----------|-----------|------------|-------|--------|-------------|-----------|-------------|
 {{- range $index, $rule := .Filter.Rule }}
-| {{ add $index 1 }} | {{ $rule.Type }} | {{ $rule.IPProtocol }} | {{ $rule.Interface }} | {{ $rule.Direction }} | {{ $rule.Statetype }} | {{ if $rule.Quick }}[x]{{ else }}[ ]{{ end }} | {{ $rule.Source.Network }}{{ if $rule.Source.Any }} (any){{ end }} | {{ $rule.Source.Port }} | {{ $rule.Destination.Network }}{{ if $rule.Destination.Any }} (any){{ end }} | {{ $rule.Destination.Port }} | `{{ $rule.Descr }}` |
+| {{ add $index 1 }} | {{ $rule.Type }} | {{ $rule.IPProtocol }} | {{ $rule.Interface }} | {{ $rule.Direction }} | {{ $rule.StateType }} | {{ if $rule.Quick }}[x]{{ else }}[ ]{{ end }} | {{ $rule.Source.Network }}{{ if $rule.Source.Any }} (any){{ end }} | {{ $rule.Destination.Network }}{{ if $rule.Destination.Any }} (any){{ end }} | {{ $rule.Destination.Port }} | `{{ $rule.Descr }}` |
 {{- end }}
 
 ---
@@ -227,10 +227,11 @@
 ### General Configuration
 | Property | Value |
 |----------|-------|
-| **Enabled** | {{ .OPNsense.Wireguard.General.Enabled }} |
-| **Version** | {{ .OPNsense.Wireguard.General.Version }} |
+| **Enabled** | {{ if .OPNsense.Wireguard }}{{ if .OPNsense.Wireguard.General }}{{ .OPNsense.Wireguard.General.Enabled }}{{ else }}Not configured{{ end }}{{ else }}Not configured{{ end }} |
+| **Version** | {{ if .OPNsense.Wireguard }}{{ if .OPNsense.Wireguard.General }}{{ .OPNsense.Wireguard.General.Version }}{{ else }}Not configured{{ end }}{{ else }}Not configured{{ end }} |
 
 ### Servers
+{{- if and .OPNsense.Wireguard .OPNsense.Wireguard.Server .OPNsense.Wireguard.Server.Servers .OPNsense.Wireguard.Server.Servers.Server }}
 {{- range .OPNsense.Wireguard.Server.Servers.Server }}
 #### Server: {{ .Name }}
 | Property | Value |
@@ -250,8 +251,12 @@
 **Private Key**: `{{ .Privkey }}`
 
 {{- end }}
+{{- else }}
+No WireGuard servers configured.
+{{- end }}
 
 ### Clients
+{{- if and .OPNsense.Wireguard .OPNsense.Wireguard.Client .OPNsense.Wireguard.Client.Clients .OPNsense.Wireguard.Client.Clients.Client }}
 {{- range .OPNsense.Wireguard.Client.Clients.Client }}
 #### Client: {{ .Name }}
 | Property | Value |
@@ -266,6 +271,9 @@
 **Public Key**: `{{ .Pubkey }}`
 **PSK**: `{{ .PSK }}`
 
+{{- end }}
+{{- else }}
+No WireGuard clients configured.
 {{- end }}
 
 ---
@@ -292,11 +300,11 @@
 - **Total Sysctl Tunables**: {{ len .Sysctl }}
 - **Total DHCP Scopes**: {{ len .Dhcpd.Items }}
 - **Total Gateways**: {{ len .Gateways.Gateway }}
-- **WireGuard Servers**: {{ len .OPNsense.Wireguard.Server.Servers.Server }}
-- **WireGuard Clients**: {{ len .OPNsense.Wireguard.Client.Clients.Client }}
+- **WireGuard Servers**: {{ if and .OPNsense.Wireguard .OPNsense.Wireguard.Server .OPNsense.Wireguard.Server.Servers .OPNsense.Wireguard.Server.Servers.Server }}{{ len .OPNsense.Wireguard.Server.Servers.Server }}{{ else }}0{{ end }}
+- **WireGuard Clients**: {{ if and .OPNsense.Wireguard .OPNsense.Wireguard.Client .OPNsense.Wireguard.Client.Clients .OPNsense.Wireguard.Client.Clients.Client }}{{ len .OPNsense.Wireguard.Client.Clients.Client }}{{ else }}0{{ end }}
 
 ### Security Assessment
-- **Web GUI Protocol**: {{ if eq .System.Webgui.Protocol "https" }}Secure{{ else }}Insecure{{ end }}
+- **Web GUI Protocol**: {{ if eq .System.WebGUI.Protocol "https" }}Secure{{ else }}Insecure{{ end }}
 - **SNMP Community**: {{ if eq .Snmpd.ROCommunity "public" }}Default{{ else }}Custom{{ end }}
 - **SSH Access**: {{ if .System.SSH.Group }}Configured{{ else }}Not configured{{ end }}
 - **Hardware Offloading**: {{ if or .System.DisableChecksumOffloading .System.DisableSegmentationOffloading .System.DisableLargeReceiveOffloading }}Disabled{{ else }}Enabled{{ end }}

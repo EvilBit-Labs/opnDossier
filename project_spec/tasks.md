@@ -159,7 +159,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Action**: Implement theme detection and appropriate color schemes for terminal display
   - **Acceptance**: Terminal display is readable in both light and dark terminal themes
 
-- [ ] **TASK-016**: Implement theme-aware markdown rendering
+- [x] **TASK-016**: Implement theme-aware markdown rendering
 
   - **Context**: Configure glamour with theme detection and appropriate styling for light/dark terminals
   - **Requirement**: Technical Specifications (glamour library), F009 (Theme support), F012 (Terminal display)

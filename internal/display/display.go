@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/charmbracelet/bubbles/progress"
@@ -14,6 +15,18 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/unclesp1d3r/opnFocus/internal/constants"
 	"github.com/unclesp1d3r/opnFocus/internal/markdown"
+)
+
+// Theme and terminal color constants used throughout the display package.
+const (
+	Light     = "light"
+	Dark      = "dark"
+	None      = "none"
+	Custom    = "custom"
+	Auto      = "auto"
+	Notty     = "notty"
+	Truecolor = "truecolor"
+	Bit24     = "24bit"
 )
 
 // ErrRawMarkdown is a sentinel error indicating that raw markdown should be displayed.
@@ -171,18 +184,8 @@ func getGlamourRenderer(opts *Options) (*glamour.TermRenderer, error) {
 		return rendererInst, nil
 	}
 
-	// Determine theme for Glamour
-	var glamourStyle string
-	switch opts.Theme.Name {
-	case constants.ThemeLight:
-		glamourStyle = constants.ThemeLight
-	case constants.ThemeDark:
-		glamourStyle = constants.ThemeDark
-	case "none":
-		glamourStyle = "notty"
-	default: // "auto" or other
-		glamourStyle = opts.Theme.GetGlamourStyleName()
-	}
+	// Determine theme for Glamour with proper fallback logic
+	glamourStyle := DetermineGlamourStyle(opts)
 
 	// Build Glamour options
 	glamourOpts := []glamour.TermRendererOption{
@@ -216,6 +219,85 @@ func getGlamourRenderer(opts *Options) (*glamour.TermRenderer, error) {
 	}
 
 	return renderer, nil
+}
+
+// DetermineGlamourStyle determines the appropriate Glamour style based on theme and terminal capabilities.
+func DetermineGlamourStyle(opts *Options) string {
+	// Check if colors are disabled first
+	if !opts.EnableColors {
+		return Notty
+	}
+
+	// Check terminal color capabilities
+	if !IsTerminalColorCapable() {
+		return "ascii"
+	}
+
+	// Determine theme-based style
+	switch opts.Theme.Name {
+	case constants.ThemeLight:
+		return Light
+	case constants.ThemeDark:
+		return Dark
+	case "none":
+		return Notty
+	case "custom":
+		// Custom theme uses auto-detection
+		return Auto
+	default: // "auto" or other
+		// Use the theme's Glamour style name, which should handle auto-detection
+		return opts.Theme.GetGlamourStyleName()
+	}
+}
+
+// IsTerminalColorCapable checks if the terminal supports color output.
+func IsTerminalColorCapable() bool {
+	// Check if we're in a terminal
+	if !isTerminal() {
+		return false
+	}
+
+	// Check for color support indicators
+	colorTerm := os.Getenv("COLORTERM")
+	term := os.Getenv("TERM")
+
+	// Check for explicit color support
+	if colorTerm == Truecolor || colorTerm == Bit24 {
+		return true
+	}
+
+	// Check for 256-color support
+	if strings.Contains(term, "256color") {
+		return true
+	}
+
+	// Check for basic color support
+	if strings.Contains(term, "color") {
+		return true
+	}
+
+	// Check for common terminal types that support color
+	colorTerminals := []string{"xterm", "screen", "tmux", "iterm", "konsole", "gnome", "alacritty"}
+	for _, colorTerm := range colorTerminals {
+		if strings.Contains(strings.ToLower(term), colorTerm) {
+			return true
+		}
+	}
+
+	// Default to false for unknown terminals
+	return false
+}
+
+// isTerminal checks if the current environment is a terminal.
+func isTerminal() bool {
+	// Check if stdout is a terminal
+	fileInfo, err := os.Stdout.Stat()
+	if err != nil {
+		return false
+	}
+
+	// Check if it's a character device (terminal)
+	return (fileInfo.Mode() & os.ModeCharDevice) != 0
 }
 
 // Title prints the given string to the console using the predefined title style.
