@@ -173,7 +173,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 
 ### 4.1 File Export Implementation (`opnfocus convert`)
 
-- [ ] **TASK-017**: Implement markdown file export
+- [x] **TASK-017**: Implement markdown file export
 
   - **Context**: Export opnSense model as markdown string to file using templates
   - **Requirement**: F004 (File export), US-005, US-006 (File export), F010 (Multiple output formats), F013 (File export), F015 (Valid and parseable files)
