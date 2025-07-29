@@ -15,7 +15,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var noValidation bool //nolint:gochecknoglobals // Cobra flag variable
+var (
+	noValidation bool   //nolint:gochecknoglobals // Cobra flag variable
+	displayTheme string //nolint:gochecknoglobals // Theme for display
+)
 
 const (
 	progressChannelBufferSize = 10
@@ -29,6 +32,7 @@ const (
 func init() {
 	rootCmd.AddCommand(displayCmd)
 	displayCmd.Flags().BoolVar(&noValidation, "no-validate", false, "Skip validation and display potentially malformed configurations")
+	displayCmd.Flags().StringVar(&displayTheme, "theme", "", "Theme for display (light, dark, auto, none)")
 }
 
 var displayCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
@@ -59,6 +63,10 @@ Examples:
 
   # Display configuration without validation
   opnFocus display --no-validate config.xml
+
+  # Display with specific theme
+  opnFocus display --theme dark config.xml
+  opnFocus display --theme light config.xml
 
   # Display with verbose logging to see processing details
   opnFocus --verbose display config.xml
@@ -137,7 +145,14 @@ Examples:
 			ctxLogger.Error("Failed to create markdown generator", "error", err)
 			return fmt.Errorf("failed to create markdown generator: %w", err)
 		}
-		md, err := g.Generate(ctx, opnsense, markdown.DefaultOptions())
+
+		// Create markdown options with theme support
+		mdOpts := markdown.DefaultOptions()
+		if displayTheme != "" {
+			mdOpts.Theme = markdown.Theme(displayTheme)
+		}
+
+		md, err := g.Generate(ctx, opnsense, mdOpts)
 		if err != nil {
 			ctxLogger.Error("Failed to convert to markdown", "error", err)
 			return fmt.Errorf("failed to convert to markdown from %s: %w", filePath, err)
@@ -146,7 +161,17 @@ Examples:
 
 		// Display the markdown in terminal with progress indication
 		ctxLogger.Debug("Displaying markdown in terminal")
-		displayer := display.NewTerminalDisplay()
+
+		// Create terminal display with theme support
+		var displayer *display.TerminalDisplay
+		if displayTheme != "" {
+			// Use explicit theme
+			theme := display.DetectTheme(displayTheme)
+			displayer = display.NewTerminalDisplayWithTheme(theme)
+		} else {
+			// Use auto-detection
+			displayer = display.NewTerminalDisplay()
+		}
 
 		// Create a progress channel to stream progress events
 		progressCh := make(chan display.ProgressEvent, progressChannelBufferSize)

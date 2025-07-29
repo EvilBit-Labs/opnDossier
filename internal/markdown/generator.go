@@ -11,7 +11,6 @@ import (
 	"github.com/Masterminds/sprig/v3"
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 
-	"github.com/charmbracelet/glamour"
 	"gopkg.in/yaml.v3"
 )
 
@@ -130,16 +129,8 @@ func (g *markdownGenerator) generateMarkdown(_ context.Context, data any, opts O
 		return "", fmt.Errorf("failed to execute template: %w", err)
 	}
 
-	rawMarkdown := buf.String()
-
-	// Use glamour for terminal rendering with theme compatibility
-	theme := g.getTheme(opts)
-	r, err := glamour.Render(rawMarkdown, theme)
-	if err != nil {
-		return "", fmt.Errorf("failed to render markdown: %w", err)
-	}
-
-	return r, nil
+	// Return raw markdown - let the display package handle theme-aware rendering
+	return buf.String(), nil
 }
 
 // generateJSON generates JSON output.
@@ -162,15 +153,4 @@ func (g *markdownGenerator) generateYAML(_ context.Context, cfg *model.EnrichedO
 	}
 
 	return string(yamlBytes), nil
-}
-
-// getTheme determines the appropriate theme based on the options provided.
-func (g *markdownGenerator) getTheme(opts Options) string {
-	// Check for explicit theme preference in options
-	if opts.Theme != "" {
-		return opts.Theme.String()
-	}
-
-	// Default to auto which will detect based on terminal
-	return "auto"
 }

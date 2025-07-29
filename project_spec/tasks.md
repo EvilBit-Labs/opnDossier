@@ -151,7 +151,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Action**: Create `internal/display/` package that renders markdown string to terminal using `github.com/charmbracelet/glamour`
   - **Acceptance**: `opnfocus display` command renders markdown string with colored, syntax-highlighted output
 
-- [ ] **TASK-015**: Add theme support (light/dark)
+- [x] **TASK-015**: Add theme support (light/dark)
 
   - **Context**: Need support for different terminal themes in display output
   - **Requirement**: US-043 (Theme support), F009 (Theme support), F012 (Terminal display)
@@ -165,7 +165,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Requirement**: Technical Specifications (glamour library), F009 (Theme support), F012 (Terminal display)
   - **User Story**: US-004 (Markdown rendering), US-043 (Theme support)
   - **Action**: Configure glamour renderer with theme detection and appropriate color schemes
-  - **Acceptance**: Markdown renders with appropriate colors for both light and dark terminal themes
+  - **Acceptance**: Markdown renders with appropriate colors for both light and dark terminal themes; it should fallback to ascii if the terminal is not color capable and notty if color is disabled
 
 ---
 
