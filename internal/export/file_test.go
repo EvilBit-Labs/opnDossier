@@ -58,6 +58,12 @@ func TestFileExporter_Export(t *testing.T) {
 			path:    "/nonexistent/path/test_output.md",
 			wantErr: true,
 		},
+		{
+			name:    "empty content",
+			content: "",
+			path:    filepath.Join(os.TempDir(), "test_output.md"),
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -76,6 +82,206 @@ func TestFileExporter_Export(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestFileExporter_ExportErrorTypes tests that export errors provide clear, actionable messages
+// This test ensures that the file export functionality meets the acceptance criteria
+// for TASK-021: "Provides clear error messages for file I/O issues during export".
+func TestFileExporter_ExportErrorTypes(t *testing.T) {
+	tests := []struct {
+		name       string
+		content    string
+		path       string
+		expectedOp string
+		checkError func(t *testing.T, err error)
+	}{
+		{
+			name:       "empty content error",
+			content:    "",
+			path:       filepath.Join(os.TempDir(), "test.md"),
+			expectedOp: "export",
+			checkError: func(t *testing.T, err error) {
+				t.Helper()
+				var exportErr *Error
+				assert.ErrorAs(t, err, &exportErr)
+				assert.Equal(t, "export", exportErr.Operation)
+				assert.Contains(t, exportErr.Message, "empty content")
+			},
+		},
+		{
+			name:       "path traversal error",
+			content:    "test content",
+			path:       "../../../etc/passwd",
+			expectedOp: "validate_path",
+			checkError: func(t *testing.T, err error) {
+				t.Helper()
+				var exportErr *Error
+				assert.ErrorAs(t, err, &exportErr)
+				assert.Equal(t, "validate_path", exportErr.Operation)
+				assert.Contains(t, exportErr.Message, "malicious traversal")
+			},
+		},
+		{
+			name:       "nonexistent directory error",
+			content:    "test content",
+			path:       "/nonexistent/directory/test.md",
+			expectedOp: "validate_path",
+			checkError: func(t *testing.T, err error) {
+				t.Helper()
+				var exportErr *Error
+				assert.ErrorAs(t, err, &exportErr)
+				assert.Equal(t, "validate_path", exportErr.Operation)
+				assert.Contains(t, exportErr.Message, "does not exist")
+			},
+		},
+		{
+			name:       "context cancellation error",
+			content:    "test content",
+			path:       filepath.Join(os.TempDir(), "test.md"),
+			expectedOp: "export",
+			checkError: func(t *testing.T, err error) {
+				t.Helper()
+				var exportErr *Error
+				assert.ErrorAs(t, err, &exportErr)
+				assert.Equal(t, "export", exportErr.Operation)
+				assert.Contains(t, exportErr.Message, "cancelled by context")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := NewFileExporter()
+
+			// For context cancellation test, create a cancelled context
+			ctx := context.Background()
+			if tt.name == "context cancellation error" {
+				cancelledCtx, cancel := context.WithCancel(context.Background())
+				cancel() // Cancel immediately
+				ctx = cancelledCtx
+			}
+
+			err := e.Export(ctx, tt.content, tt.path)
+			assert.Error(t, err)
+			tt.checkError(t, err)
+		})
+	}
+}
+
+// TestFileExporter_PathValidation tests comprehensive path validation
+// This test ensures that the file export functionality meets the acceptance criteria
+// for TASK-021: "Provides clear error messages for file I/O issues during export".
+func TestFileExporter_PathValidation(t *testing.T) {
+	tests := []struct {
+		name        string
+		path        string
+		expectError bool
+		errorCheck  func(t *testing.T, err error)
+	}{
+		{
+			name:        "valid path",
+			path:        filepath.Join(os.TempDir(), "valid_test.md"),
+			expectError: false,
+		},
+		{
+			name:        "path traversal attack",
+			path:        "../../../etc/passwd",
+			expectError: true,
+			errorCheck: func(t *testing.T, err error) {
+				t.Helper()
+				var exportErr *Error
+				assert.ErrorAs(t, err, &exportErr)
+				assert.Equal(t, "validate_path", exportErr.Operation)
+				assert.Contains(t, exportErr.Message, "malicious traversal")
+			},
+		},
+		{
+			name:        "nonexistent directory",
+			path:        "/nonexistent/dir/test.md",
+			expectError: true,
+			errorCheck: func(t *testing.T, err error) {
+				t.Helper()
+				var exportErr *Error
+				assert.ErrorAs(t, err, &exportErr)
+				assert.Equal(t, "validate_path", exportErr.Operation)
+				assert.Contains(t, exportErr.Message, "does not exist")
+			},
+		},
+		{
+			name:        "relative path traversal",
+			path:        "test/../../../etc/passwd",
+			expectError: true,
+			errorCheck: func(t *testing.T, err error) {
+				t.Helper()
+				var exportErr *Error
+				assert.ErrorAs(t, err, &exportErr)
+				assert.Equal(t, "validate_path", exportErr.Operation)
+				assert.Contains(t, exportErr.Message, "malicious traversal")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := NewFileExporter()
+			err := e.validateExportPath(tt.path)
+
+			if tt.expectError {
+				assert.Error(t, err)
+				if tt.errorCheck != nil {
+					tt.errorCheck(t, err)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestFileExporter_AtomicWrite tests that file writing is atomic and safe
+// This test ensures that the file export functionality meets the acceptance criteria
+// for TASK-021: "Provides clear error messages for file I/O issues during export".
+func TestFileExporter_AtomicWrite(t *testing.T) {
+	tmpDir := os.TempDir()
+	testPath := filepath.Join(tmpDir, "atomic_test.md")
+	testContent := "test content for atomic write"
+
+	e := NewFileExporter()
+
+	// Test atomic write
+	err := e.Export(context.Background(), testContent, testPath)
+	assert.NoError(t, err)
+
+	// Verify file was written correctly
+	content, err := os.ReadFile(testPath)
+	assert.NoError(t, err)
+	assert.Equal(t, testContent, string(content))
+
+	// Verify file permissions
+	info, err := os.Stat(testPath)
+	assert.NoError(t, err)
+	assert.Equal(t, os.FileMode(DefaultFilePermissions), info.Mode().Perm())
+
+	// Cleanup
+	if removeErr := os.Remove(testPath); removeErr != nil {
+		t.Logf("Failed to remove test file: %v", removeErr)
+	}
+}
+
+// TestFileExporter_ExportErrorUnwrap tests that Error properly unwraps underlying errors.
+func TestFileExporter_ExportErrorUnwrap(t *testing.T) {
+	e := NewFileExporter()
+
+	// Test with a path that will cause an underlying error
+	err := e.Export(context.Background(), "test content", "/nonexistent/dir/test.md")
+
+	var exportErr *Error
+	assert.ErrorAs(t, err, &exportErr)
+
+	// Test unwrapping
+	unwrapped := exportErr.Unwrap()
+	assert.NotNil(t, unwrapped)
+	assert.NotEqual(t, exportErr, unwrapped)
 }
 
 // TestFileExporter_MarkdownValidation tests that exported markdown files pass validation
