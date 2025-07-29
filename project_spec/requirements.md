@@ -124,6 +124,30 @@
   - **F013**: Support multiple output styles (comprehensive, summary) for file export (selectable via CLI flag)
   - **F014**: Analyze the XML configuration and provide a report of the configuration, containing common security and performance issues, if any are found
   - **F015**: Export files must be valid and parseable by standard tools and libraries (markdown linters, JSON parsers, YAML parsers)
+  - **F016**: Support for Audit Report Generation in Multiple Modes
+    - The system must support generating reports in at least three modes: standard, blue, and red
+    - The selected mode determines both the included content and the tone/perspective of the output
+  - **F017**: Template-Driven Markdown Output
+    - The system must generate Markdown reports using Go text/template files
+    - Templates must be user-extensible and include sections such as: interfaces, firewall rules, NAT rules, DHCP, certificates, VPN config, static routes, and high availability
+  - **F018**: Red Team Recon Reporting
+    - When --mode=red is selected, the report must:
+    - Highlight WAN-exposed services, weak NAT rules, admin portals, and known attack surfaces
+    - Include snarky or attacker-focused commentary if --blackhat-mode is enabled
+    - Present data useful for pivoting or enumeration (e.g., hostnames, static leases, service ports)
+  - **F019**: Blue Team Defensive Reporting
+    - When --mode=blue is selected, the report must:
+    - Include audit findings (e.g., insecure SNMP, allow-all rules, expired certs)
+    - Include structured configuration tables for visibility
+    - Include recommendations with severity ratings
+  - **F020**: Standard Summary Report
+    - When --mode=standard (or default) is selected, the system must:
+    - Produce a detailed but neutral config documentation report
+    - Include system metadata, rule counts, interfaces, certs, DHCP, routes, and HA
+  - **F021**: Audit Finding Struct Support
+    - The audit engine must use a consistent internal structure for audit findings:
+    - Title, Severity, Description, Recommendation, Tags
+    - Red mode may additionally include: AttackSurface, ExploitNotes
 
 - **User Stories and Use Cases**:
 

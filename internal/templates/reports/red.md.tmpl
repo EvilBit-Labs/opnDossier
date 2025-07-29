@@ -1,0 +1,81 @@
+{{/* red.md.tmpl — Red Team Recon Report */}}
+
+# OpnDossier - Recon Report (Red Team Mode)
+
+**Target:** `{{ .System.Hostname }}.{{ .System.Domain }}`
+**Firmware:** {{ .System.Version }}
+**Last Revision:** {{ .Revision.Timestamp }}
+
+---
+
+## Observations
+
+{{- if .Findings }}
+{{- range .Findings }}
+### {{ .Title }}
+
+**Severity:** {{ .Severity }}
+**Surface:** {{ .AttackSurface }}
+**Opportunity:** {{ .Description }}
+
+{{ if .ExploitNotes }}
+**Red Note:** {{ .ExploitNotes }}
+{{ end }}
+
+---
+{{- end }}
+{{ else }}
+_No exploitable findings identified. Time to dig deeper._
+{{- end }}
+
+---
+
+## Firewall Recon
+
+| Iface | Action | Src → Dst | Port | Comment |
+|-------|--------|-----------|------|---------|
+{{- range .FirewallRules }}
+| {{ .Interface }} | {{ .Action }} | {{ .Source }} → {{ .Destination }} | {{ .Port }} | {{ .Description }} |
+{{- end }}
+
+---
+
+## NAT Rules - External Exposure
+
+| Ext Port | → Internal IP:Port | Interface | Note |
+|----------|--------------------|-----------|------|
+{{- range .NAT }}
+| {{ .ExternalPort }} | {{ .InternalIP }}:{{ .InternalPort }} | {{ .Interface }} | {{ .Description }} |
+{{- end }}
+
+---
+
+## DHCP & Host Intel
+
+| Interface | Static Lease | Hostname | IP | MAC |
+|-----------|--------------|----------|----|-----|
+{{- range .DHCPLeases }}
+| {{ .Interface }} | {{ .Static }} | {{ .Hostname }} | {{ .IP }} | {{ .MAC }} |
+{{- end }}
+
+---
+
+## Routes / Lateral Paths
+
+| Destination | Gateway | Interface | Notes |
+|-------------|---------|-----------|-------|
+{{- range .Routes }}
+| {{ .Destination }} | {{ .Gateway }} | {{ .Interface }} | {{ .Description }} |
+{{- end }}
+
+---
+
+## Pivot Targets
+
+{{- range .Targets }}
+- {{ . }}
+{{- end }}
+
+---
+
+_Generated in **red team mode** — optimized for initial access and lateral recon. Use responsibly (or not)._

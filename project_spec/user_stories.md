@@ -424,26 +424,26 @@ This document captures user stories for the opnFocus CLI tool in EARS (Easy Appr
 **US-046**
 **As a** red team operator
 **I want** to generate a recon report from a config.xml file
-**So that** I can identify potential attack surfaces, misconfigurations, and pivot paths during an engagement.
+**So that** I can identify potential attack surfaces, misconfigurations, and pivot paths during an engagement
 **Given** I have a valid OPNsense config.xml file
 **When** I run the opnFocus command `analyze` with the `--mode=red` flag
-**Then** the system should generate a recon report from the config.xml file
+**Then** the system should generate a recon report highlighting WAN-exposed services, weak NAT rules, admin portals, and known attack surfaces
 
 **US-047**
 **As a** blue team engineer
 **I want** to generate a defensive audit of an OPNsense config
-**So that** I can quickly identify misconfigurations, insecure defaults, and missed hygiene steps.
+**So that** I can quickly identify misconfigurations, insecure defaults, and missed hygiene steps
 **Given** I have a valid OPNsense config.xml file
 **When** I run the opnFocus command `analyze` with the `--mode=blue` flag
-**Then** the system should generate a defensive audit of the config.xml file
+**Then** the system should generate a defensive audit report with audit findings, structured configuration tables, and recommendations with severity ratings
 
 **US-048**
 **As an** infrastructure maintainer or auditor
 **I want** to generate a complete but neutral summary of a config file
-**So that** I can include it in documentation or audit records without red/blue-specific commentary.
+**So that** I can include it in documentation or audit records without red/blue-specific commentary
 **Given** I have a valid OPNsense config.xml file
-**When** I run the opnFocus command `analyze` with the `--mode=summary` flag
-**Then** the system should generate a complete summary of the config.xml file
+**When** I run the opnFocus command `analyze` with the `--mode=standard` flag
+**Then** the system should generate a detailed but neutral config documentation report including system metadata, rule counts, interfaces, certs, DHCP, routes, and HA
 
 ---
 
@@ -461,11 +461,14 @@ This document captures user stories for the opnFocus CLI tool in EARS (Easy Appr
 - [ ] Configuration management supports YAML files and environment variables
 - [ ] Command-line flags override configuration file settings
 - [ ] Performance meets specified requirements (\<100ms for tests, efficient memory usage)
-- [ ] Analyze command with `--mode=red` generates recon reports identifying attack surfaces and misconfigurations
-- [ ] Analyze command with `--mode=blue` generates defensive audits highlighting security issues and hygiene gaps
-- [ ] Analyze command with `--mode=summary` generates neutral documentation suitable for audit records
+- [ ] Analyze command with `--mode=red` generates recon reports highlighting WAN-exposed services, weak NAT rules, admin portals, and known attack surfaces
+- [ ] Analyze command with `--mode=blue` generates defensive audits with audit findings, structured configuration tables, and recommendations with severity ratings
+- [ ] Analyze command with `--mode=standard` generates detailed but neutral config documentation including system metadata, rule counts, interfaces, certs, DHCP, routes, and HA
 - [ ] Analyze command validates --mode flag values and provides clear error messages for invalid modes
 - [ ] Analyze command output format is consistent across all modes and includes appropriate security context
+- [ ] Red team reports include snarky or attacker-focused commentary when --blackhat-mode is enabled
+- [ ] Blue team reports include structured configuration tables for visibility and actionable recommendations
+- [ ] Standard reports provide comprehensive, neutral documentation suitable for audit records
 
 ### Quality Assurance Acceptance
 
@@ -498,6 +501,7 @@ This document captures user stories for the opnFocus CLI tool in EARS (Easy Appr
 - Markdown Conversion
 - File Export
 - CLI Interface
+- Audit Report Generation
 
 ### Epic: Configuration Management
 
