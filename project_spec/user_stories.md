@@ -461,6 +461,11 @@ This document captures user stories for the opnFocus CLI tool in EARS (Easy Appr
 - [ ] Configuration management supports YAML files and environment variables
 - [ ] Command-line flags override configuration file settings
 - [ ] Performance meets specified requirements (\<100ms for tests, efficient memory usage)
+- [ ] Analyze command with `--mode=red` generates recon reports identifying attack surfaces and misconfigurations
+- [ ] Analyze command with `--mode=blue` generates defensive audits highlighting security issues and hygiene gaps
+- [ ] Analyze command with `--mode=summary` generates neutral documentation suitable for audit records
+- [ ] Analyze command validates --mode flag values and provides clear error messages for invalid modes
+- [ ] Analyze command output format is consistent across all modes and includes appropriate security context
 
 ### Quality Assurance Acceptance
 
