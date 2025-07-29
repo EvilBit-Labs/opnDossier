@@ -3,7 +3,6 @@ package markdown
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 	"regexp"
 	"strings"
@@ -12,6 +11,18 @@ import (
 	"github.com/yuin/goldmark"
 	goldmark_parser "github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
+)
+
+// Pre-compiled regex patterns for configuration content detection.
+var (
+	configKeyValuePattern     = regexp.MustCompile(`^\s*[a-zA-Z_][a-zA-Z0-9_]*\s*=`)       // key=value
+	configKeyColonPattern     = regexp.MustCompile(`^\s*[a-zA-Z_][a-zA-Z0-9_]*\s*:`)       // key: value
+	configSectionPattern      = regexp.MustCompile(`^\s*\[[^\]]+\]`)                       // [section]
+	configHashCommentPattern  = regexp.MustCompile(`^\s*#.*$`)                             // comments
+	configSlashCommentPattern = regexp.MustCompile(`^\s*//.*$`)                            // comments
+	configSemiCommentPattern  = regexp.MustCompile(`^\s*;.*$`)                             // comments
+	configExportPattern       = regexp.MustCompile(`^\s*export\s+[A-Z_][A-Z0-9_]*=`)       // shell exports
+	configSetPattern          = regexp.MustCompile(`^\s*set\s+[a-zA-Z_][a-zA-Z0-9_]*\s*=`) // shell set commands
 )
 
 // Badge represents a colorized status badge with emoji and text.
@@ -401,18 +412,6 @@ func isEmptyValue(v reflect.Value) bool {
 
 // isConfigContent returns true if the input string resembles configuration file content based on common syntax patterns such as key-value pairs, section headers, or comments.
 func isConfigContent(s string) bool {
-	// Check for common config patterns
-	configPatterns := []string{
-		`^\s*[a-zA-Z_][a-zA-Z0-9_]*\s*=`,       // key=value
-		`^\s*[a-zA-Z_][a-zA-Z0-9_]*\s*:`,       // key: value
-		`^\s*\[[^\]]+\]`,                       // [section]
-		`^\s*#.*$`,                             // comments
-		`^\s*//.*$`,                            // comments
-		`^\s*;.*$`,                             // comments
-		`^\s*export\s+[A-Z_][A-Z0-9_]*=`,       // shell exports
-		`^\s*set\s+[a-zA-Z_][a-zA-Z0-9_]*\s*=`, // shell set commands
-	}
-
 	lines := strings.Split(s, "\n")
 	configLineCount := 0
 
@@ -422,17 +421,15 @@ func isConfigContent(s string) bool {
 			continue
 		}
 
-		for _, pattern := range configPatterns {
-			matched, err := regexp.MatchString(pattern, line)
-			if err != nil {
-				// Log the error, but continue processing. This should ideally not happen with hardcoded patterns.
-				fmt.Fprintf(os.Stderr, "Error matching regex pattern %s: %v\n", pattern, err)
-				continue
-			}
-			if matched {
-				configLineCount++
-				break
-			}
+		if configKeyValuePattern.MatchString(line) ||
+			configKeyColonPattern.MatchString(line) ||
+			configSectionPattern.MatchString(line) ||
+			configHashCommentPattern.MatchString(line) ||
+			configSlashCommentPattern.MatchString(line) ||
+			configSemiCommentPattern.MatchString(line) ||
+			configExportPattern.MatchString(line) ||
+			configSetPattern.MatchString(line) {
+			configLineCount++
 		}
 	}
 
