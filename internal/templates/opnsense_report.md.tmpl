@@ -1,14 +1,15 @@
-# 🔧 OPNsense Configuration Summary
+# OPNsense Configuration Summary
 
-**Hostname**: {{ .System.Hostname }}
-**Domain**: {{ .System.Domain }}
-**Platform**: OPNsense {{ .Version }}
-**Generated On**: {{ .Generated }}
-**Parsed By**: opnFocus v{{ .ToolVersion }}
+## System Information
+- **Hostname**: {{ .System.Hostname }}
+- **Domain**: {{ .System.Domain }}
+- **Platform**: OPNsense {{ .System.Firmware.Version }}
+- **Generated On**: {{ .Generated }}
+- **Parsed By**: opnFocus v{{ .ToolVersion }}
 
 ---
 
-## 📜 Table of Contents
+## Table of Contents
 
 - [Interfaces](#interfaces)
 - [Firewall Rules](#firewall-rules)
@@ -23,17 +24,17 @@
 
 ---
 
-## 🌐 Interfaces
+## Interfaces
 
 | Name | Description | IP Address | CIDR | Enabled |
 |------|-------------|------------|------|---------|
 {{- range $name, $iface := .Interfaces.Items }}
-| `{{ $name }}` | `{{ $iface.If }}` | `{{ $iface.IPAddr }}` | /{{ $iface.Subnet }} | {{ if $iface.Enable }}✅{{ else }}❌{{ end }} |
+| `{{ $name }}` | `{{ $iface.If }}` | `{{ $iface.IPAddr }}` | /{{ $iface.Subnet }} | {{ if $iface.Enable }}[x]{{ else }}[ ]{{ end }} |
 {{- end }}
 
 ---
 
-## 🔥 Firewall Rules
+## Firewall Rules
 
 ### WAN
 
@@ -57,7 +58,7 @@
 
 ---
 
-## 🔀 NAT Rules
+## NAT Rules
 
 | Interface | Protocol | Source | Destination | NAT IP | Description |
 |-----------|----------|--------|-------------|--------|-------------|
@@ -67,7 +68,7 @@
 
 ---
 
-## 🧭 DHCP Services
+## DHCP Services
 
 | Interface | Start IP | End IP | Domain | DNS Servers |
 |-----------|----------|--------|--------|--------------|
@@ -94,59 +95,59 @@
 
 ---
 
-## 🧠 DNS Resolver
+## DNS Resolver
 
-- **Enabled**: {{ if .Unbound.Enable }}✅{{ else }}❌{{ end }}
+- **Enabled**: {{ if .Unbound.Enable }}[x]{{ else }}[ ]{{ end }}
 {{- if .Unbound.Dnssec }}
-- **DNSSEC**: {{ if .Unbound.Dnssec }}✅{{ else }}❌{{ end }}
+- **DNSSEC**: {{ if .Unbound.Dnssec }}[x]{{ else }}[ ]{{ end }}
 {{- end }}
 {{- if .Unbound.Dnssecstripped }}
-- **DNSSEC Stripped**: {{ if .Unbound.Dnssecstripped }}✅{{ else }}❌{{ end }}
+- **DNSSEC Stripped**: {{ if .Unbound.Dnssecstripped }}[x]{{ else }}[ ]{{ end }}
 {{- end }}
 
 ---
 
-## 🛡️ OpenVPN
+## OpenVPN
 
 | Name | Mode | Local IP | Remote Net | Enabled |
 |------|------|----------|------------|---------|
 {{- if .OpenVPN.Servers }}
 {{- range .OpenVPN.Servers }}
-| `{{ .Description }}` | {{ .Mode }} | {{ .Local_port }} | {{ .Remote_network }} | ✅ |
+| `{{ .Description }}` | {{ .Mode }} | {{ .Local_port }} | {{ .Remote_network }} | [x] |
 {{- end }}
 {{- end }}
 {{- if .OpenVPN.Clients }}
 {{- range .OpenVPN.Clients }}
-| `{{ .Description }}` | {{ .Mode }} | {{ .Server_addr }}:{{ .Server_port }} | - | ✅ |
+| `{{ .Description }}` | {{ .Mode }} | {{ .Server_addr }}:{{ .Server_port }} | - | [x] |
 {{- end }}
 {{- end }}
 {{- if and (not .OpenVPN.Servers) (not .OpenVPN.Clients) }}
-| No OpenVPN configured | - | - | - | ❌ |
+| No OpenVPN configured | - | - | - | [ ] |
 {{- end }}
 
 ---
 
-## 👥 System Users
+## System Users
 
 | Username | UID | Group | Shell | Disabled |
 |----------|-----|-------|--------|----------|
 {{- range .System.User }}
-| `{{ .Name }}` | {{ .UID }} | {{ .Groupname }} | - | {{ if .Disabled.Bool }}✅{{ else }}❌{{ end }} |
+| `{{ .Name }}` | {{ .UID }} | {{ .Groupname }} | - | {{ if .Disabled }}[x]{{ else }}[ ]{{ end }} |
 {{- end }}
 
 ---
 
-## 🧩 Services & Daemons
+## Services & Daemons
 
 | Service | Enabled | Notes |
 |---------|---------|-------|
-| SNMP | {{ if .Snmpd.ROCommunity }}✅{{ else }}❌{{ end }} | Community: {{ .Snmpd.ROCommunity }} |
-| Unbound DNS | {{ if .Unbound.Enable }}✅{{ else }}❌{{ end }} | {{ if .Unbound.Dnssec }}DNSSEC: ✅{{ if .Unbound.Dnssecstripped }}, Stripped: ✅{{ end }}{{ else }}DNSSEC: ❌{{ end }} |
-| NTP | {{ if .Ntpd.Prefer }}✅{{ else }}❌{{ end }} | Prefer: {{ .Ntpd.Prefer }} |
+| SNMP | {{ if .Snmpd.ROCommunity }}[x]{{ else }}[ ]{{ end }} | Community: {{ .Snmpd.ROCommunity }} |
+| Unbound DNS | {{ if .Unbound.Enable }}[x]{{ else }}[ ]{{ end }} | {{ if .Unbound.Dnssec }}DNSSEC: [x]{{ if .Unbound.Dnssecstripped }}, Stripped: [x]{{ end }}{{ else }}DNSSEC: [ ]{{ end }} |
+| NTP | {{ if .Ntpd.Prefer }}[x]{{ else }}[ ]{{ end }} | Prefer: {{ .Ntpd.Prefer }} |
 
 ---
 
-## ⚙️ System Tunables
+## System Tunables
 
 | Name | Value | Description |
 |------|--------|-------------|
@@ -156,7 +157,7 @@
 
 ---
 
-## 📝 System Notes
+## System Notes
 
 {{- if .System.Notes }}
 {{- range .System.Notes }}
