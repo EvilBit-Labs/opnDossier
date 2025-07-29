@@ -268,9 +268,9 @@ func TestConvertCmdWithValidXML(t *testing.T) {
 }
 
 // Helper function to find a command by name.
-func findCommand(root *cobra.Command, _ string) *cobra.Command {
+func findCommand(root *cobra.Command, name string) *cobra.Command {
 	for _, cmd := range root.Commands() {
-		if cmd.Name() == "convert" {
+		if cmd.Name() == name {
 			return cmd
 		}
 	}
