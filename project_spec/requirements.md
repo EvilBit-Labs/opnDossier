@@ -125,10 +125,10 @@
   - **F014**: Analyze the XML configuration and provide a report of the configuration, containing common security and performance issues, if any are found
   - **F015**: Export files must be valid and parseable by standard tools and libraries (markdown linters, JSON parsers, YAML parsers)
   - **F016**: Support for Audit Report Generation in Multiple Modes
-    - The system must support generating reports in at least three modes: standard, blue, and red
+    - The system must support generating reports in at least three modes: standard, blue, and red (see `internal/templates/reports/`)
     - The selected mode determines both the included content and the tone/perspective of the output
   - **F017**: Template-Driven Markdown Output
-    - The system must generate Markdown reports using Go text/template files
+    - The system must generate Markdown reports using Go text/template files (see `internal/templates/reports/`)
     - Templates must be user-extensible and include sections such as: interfaces, firewall rules, NAT rules, DHCP, certificates, VPN config, static routes, and high availability
   - **F018**: Red Team Recon Reporting
     - When --mode=red is selected, the report must:
