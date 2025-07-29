@@ -1025,9 +1025,9 @@ func BuildSecurityConfig(cfg *model.OpnSenseDocument) string {
 }
 
 // BuildServiceConfig generates a Markdown-formatted report detailing the status and configuration of core network services in the provided OPNsense configuration.
-// 
+//
 // The report includes sections for DHCP, DNS Resolver (Unbound), SNMP, SSH, NTP, Load Balancer, and RRD monitoring, summarizing their enabled status and key settings. It also provides a service summary and placeholders for VPN services if not present in the model.
-// 
+//
 // Returns a Markdown string representing the service configuration report. If the configuration is nil, returns a placeholder message.
 func BuildServiceConfig(cfg *model.OpnSenseDocument) string {
 	if cfg == nil {

@@ -366,7 +366,7 @@ func NewTerminalDisplayWithOptions(opts Options) *TerminalDisplay {
 }
 
 // NewTerminalDisplayWithMarkdownOptions creates a TerminalDisplay with markdown options.
-// NewTerminalDisplayWithMarkdownOptions creates a TerminalDisplay using options converted from the markdown package.
+// This provides compatibility with the markdown package options.
 func NewTerminalDisplayWithMarkdownOptions(mdOpts markdown.Options) *TerminalDisplay {
 	return NewTerminalDisplayWithOptions(convertMarkdownOptions(mdOpts))
 }

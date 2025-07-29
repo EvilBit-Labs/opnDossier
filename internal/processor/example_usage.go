@@ -10,8 +10,6 @@ import (
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 )
 
-// ExampleUsage demonstrates how to use the processor package in practice.
-// This function shows various usage patterns and would typically be called
 // ExampleUsage demonstrates various ways to process an OpnSense configuration document using the processor, including basic, security-focused, and comprehensive analyses, as well as handling custom timeouts and reporting in multiple formats.
 func ExampleUsage(cfg *model.OpnSenseDocument) {
 	// Create a processor instance
@@ -111,7 +109,6 @@ func ExampleUsage(cfg *model.OpnSenseDocument) {
 	fmt.Printf("Found %d maintenance issues\n", maintenanceIssues)
 }
 
-// ProcessConfigFromFile demonstrates how to integrate the processor
 // ProcessConfigFromFile loads an OpnSense configuration from the specified file path, processes it with all analysis features enabled, and prints a summary of the results.
 // Returns an error if processing fails.
 func ProcessConfigFromFile(configPath string) error {

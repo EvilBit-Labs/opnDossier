@@ -25,8 +25,6 @@ func (e ValidationError) Error() string {
 	return fmt.Sprintf("validation error for field '%s': %s", e.Field, e.Message)
 }
 
-// ValidateOpnSenseDocument performs comprehensive validation of an OPNsense configuration.
-// It checks system settings, network interfaces, DHCP server, firewall rules, NAT, users, groups, and sysctl tunables,
 // ValidateOpnSenseDocument validates an entire OPNsense configuration document and returns all detected validation errors.
 // It checks system settings, network interfaces, DHCP server, firewall rules, NAT rules, users and groups, and sysctl tunables for correctness and consistency.
 func ValidateOpnSenseDocument(o *model.OpnSenseDocument) []ValidationError {
@@ -56,7 +54,6 @@ func ValidateOpnSenseDocument(o *model.OpnSenseDocument) []ValidationError {
 	return errors
 }
 
-// validateSystem checks the system-level configuration for required fields, valid formats, and allowed values.
 // validateSystem checks the system-level configuration fields for required values and valid formats.
 // It returns a slice of ValidationError for any invalid or missing system configuration fields, including hostname, domain, timezone, optimization, web GUI protocol, power management modes, and bogons interval.
 func validateSystem(system *model.System) []ValidationError {
@@ -274,12 +271,8 @@ func validateDhcpd(dhcpd *model.Dhcpd, interfaces *model.Interfaces) []Validatio
 	return errors
 }
 
-// validateDhcpdInterface validates a single DHCP interface configuration.
-// It ensures that the "from" and "to" addresses in the DHCP range are valid IP addresses if set,
-// verifies that the "from" address is numerically less than the "to" address,
-// and checks that the interface name exists in the provided interface set.
 // validateDhcpdInterface checks a DHCP interface configuration for validity, ensuring the referenced interface exists and that any specified DHCP range addresses are valid IPs with the 'from' address less than the 'to' address.
-// 
+//
 // Returns a slice of ValidationError for any detected issues.
 func validateDhcpdInterface(name string, cfg model.DhcpdInterface, ifaceSet map[string]struct{}) []ValidationError {
 	var errors []ValidationError

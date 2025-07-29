@@ -47,7 +47,6 @@ func validateFilePath(filePath string) error {
 	return nil
 }
 
-// CheckModelCompleteness is a standalone function that can be called
 // CheckModelCompleteness verifies that all fields present in the specified XML file are represented in the Go data model.
 // It validates the file path, parses the XML with strict charset restrictions, extracts all XML element paths, and compares them against the model's expected paths.
 // Returns an error if any XML fields are missing from the model.

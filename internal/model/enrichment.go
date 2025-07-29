@@ -462,7 +462,7 @@ func analyzeUnusedInterfaces(cfg *OpnSenseDocument) []UnusedInterfaceFinding {
 }
 
 // analyzeSecurityIssues identifies security issues in the OPNsense configuration, such as an insecure web GUI protocol and overly permissive firewall rules.
-// 
+//
 // It returns a slice of SecurityFinding detailing each detected issue with severity, description, and recommended remediation.
 func analyzeSecurityIssues(cfg *OpnSenseDocument) []SecurityFinding {
 	var findings []SecurityFinding
