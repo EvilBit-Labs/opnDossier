@@ -380,3 +380,255 @@ func TestCalculateConfigComplexity(t *testing.T) {
 	complexity := calculateConfigComplexity(stats)
 	assert.Equal(t, 34, complexity)
 }
+
+func TestDynamicInterfaceCounting(t *testing.T) {
+	// Test with a configuration that has wan and lan interfaces
+	cfg := &OpnSenseDocument{
+		Interfaces: Interfaces{
+			Items: map[string]Interface{
+				"wan": {
+					Enable:      "1",
+					IPAddr:      "dhcp",
+					IPAddrv6:    "dhcp6",
+					BlockPriv:   "1",
+					BlockBogons: "1",
+				},
+				"lan": {
+					Enable:      "1",
+					IPAddr:      "192.168.1.1",
+					Subnet:      "24",
+					IPAddrv6:    "track6",
+					Subnetv6:    "64",
+					BlockPriv:   "",
+					BlockBogons: "",
+				},
+				"opt0": {
+					Enable:      "1",
+					IPAddr:      "10.0.0.1",
+					Subnet:      "24",
+					BlockPriv:   "1",
+					BlockBogons: "",
+				},
+			},
+		},
+		Dhcpd: Dhcpd{
+			Items: map[string]DhcpdInterface{
+				"lan": {
+					Enable: "1",
+					Range: Range{
+						From: "192.168.1.100",
+						To:   "192.168.1.199",
+					},
+				},
+				"opt0": {
+					Enable: "1",
+					Range: Range{
+						From: "10.0.0.100",
+						To:   "10.0.0.199",
+					},
+				},
+			},
+		},
+	}
+
+	stats := generateStatistics(cfg)
+
+	// Verify total interfaces count
+	if stats.TotalInterfaces != 3 {
+		t.Errorf("Expected 3 total interfaces, got %d", stats.TotalInterfaces)
+	}
+
+	// Verify interfaces by type
+	expectedInterfaces := map[string]int{
+		"wan":  1,
+		"lan":  1,
+		"opt0": 1,
+	}
+	for ifaceType, expectedCount := range expectedInterfaces {
+		if count := stats.InterfacesByType[ifaceType]; count != expectedCount {
+			t.Errorf("Expected %d %s interfaces, got %d", expectedCount, ifaceType, count)
+		}
+	}
+
+	// Verify interface details
+	if len(stats.InterfaceDetails) != 3 {
+		t.Errorf("Expected 3 interface details, got %d", len(stats.InterfaceDetails))
+	}
+
+	// Verify DHCP scopes
+	if stats.DHCPScopes != 2 {
+		t.Errorf("Expected 2 DHCP scopes, got %d", stats.DHCPScopes)
+	}
+
+	// Verify DHCP scope details
+	if len(stats.DHCPScopeDetails) != 2 {
+		t.Errorf("Expected 2 DHCP scope details, got %d", len(stats.DHCPScopeDetails))
+	}
+
+	// Check specific interface properties
+	for _, iface := range stats.InterfaceDetails {
+		switch iface.Name {
+		case "wan":
+			if !iface.Enabled {
+				t.Error("Expected WAN interface to be enabled")
+			}
+			if !iface.HasIPv4 {
+				t.Error("Expected WAN interface to have IPv4 (DHCP)")
+			}
+			if !iface.HasIPv6 {
+				t.Error("Expected WAN interface to have IPv6 (DHCP)")
+			}
+			if !iface.BlockPriv {
+				t.Error("Expected WAN interface to block private networks")
+			}
+			if !iface.BlockBogons {
+				t.Error("Expected WAN interface to block bogons")
+			}
+			if iface.HasDHCP {
+				t.Error("Expected WAN interface to not have DHCP server")
+			}
+		case "lan":
+			if !iface.Enabled {
+				t.Error("Expected LAN interface to be enabled")
+			}
+			if !iface.HasIPv4 {
+				t.Error("Expected LAN interface to have IPv4")
+			}
+			if !iface.HasIPv6 {
+				t.Error("Expected LAN interface to have IPv6")
+			}
+			if iface.BlockPriv {
+				t.Error("Expected LAN interface to not block private networks")
+			}
+			if iface.BlockBogons {
+				t.Error("Expected LAN interface to not block bogons")
+			}
+			if !iface.HasDHCP {
+				t.Error("Expected LAN interface to have DHCP server")
+			}
+		case "opt0":
+			if !iface.Enabled {
+				t.Error("Expected OPT0 interface to be enabled")
+			}
+			if !iface.HasIPv4 {
+				t.Error("Expected OPT0 interface to have IPv4")
+			}
+			if iface.HasIPv6 {
+				t.Error("Expected OPT0 interface to not have IPv6")
+			}
+			if !iface.BlockPriv {
+				t.Error("Expected OPT0 interface to block private networks")
+			}
+			if iface.BlockBogons {
+				t.Error("Expected OPT0 interface to not block bogons")
+			}
+			if !iface.HasDHCP {
+				t.Error("Expected OPT0 interface to have DHCP server")
+			}
+		default:
+			t.Errorf("Unexpected interface: %s", iface.Name)
+		}
+	}
+}
+
+func TestDynamicInterfaceAnalysis(t *testing.T) {
+	// Test with a configuration that has wan, lan, and opt0 interfaces
+	cfg := &OpnSenseDocument{
+		Interfaces: Interfaces{
+			Items: map[string]Interface{
+				"wan": {
+					Enable: "1",
+				},
+				"lan": {
+					Enable: "1",
+				},
+				"opt0": {
+					Enable: "1",
+				},
+			},
+		},
+		Filter: Filter{
+			Rule: []Rule{
+				{
+					Interface: "wan",
+					Type:      "pass",
+				},
+				{
+					Interface: "lan",
+					Type:      "pass",
+				},
+				// Note: opt0 is not used in any rules
+			},
+		},
+	}
+
+	findings := analyzeUnusedInterfaces(cfg)
+
+	// Should find that opt0 is unused
+	if len(findings) != 1 {
+		t.Errorf("Expected 1 unused interface finding, got %d", len(findings))
+	}
+
+	if findings[0].InterfaceName != "opt0" {
+		t.Errorf("Expected unused interface to be 'opt0', got '%s'", findings[0].InterfaceName)
+	}
+
+	// Test with a configuration that has no unused interfaces
+	cfg2 := &OpnSenseDocument{
+		Interfaces: Interfaces{
+			Items: map[string]Interface{
+				"wan": {
+					Enable: "1",
+				},
+				"lan": {
+					Enable: "1",
+				},
+			},
+		},
+		Filter: Filter{
+			Rule: []Rule{
+				{
+					Interface: "wan",
+					Type:      "pass",
+				},
+				{
+					Interface: "lan",
+					Type:      "pass",
+				},
+			},
+		},
+	}
+
+	findings2 := analyzeUnusedInterfaces(cfg2)
+
+	// Should find no unused interfaces
+	if len(findings2) != 0 {
+		t.Errorf("Expected 0 unused interface findings, got %d", len(findings2))
+	}
+
+	// Test with a configuration that has only wan interface
+	cfg3 := &OpnSenseDocument{
+		Interfaces: Interfaces{
+			Items: map[string]Interface{
+				"wan": {
+					Enable: "1",
+				},
+			},
+		},
+		Filter: Filter{
+			Rule: []Rule{
+				{
+					Interface: "wan",
+					Type:      "pass",
+				},
+			},
+		},
+	}
+
+	findings3 := analyzeUnusedInterfaces(cfg3)
+
+	// Should find no unused interfaces
+	if len(findings3) != 0 {
+		t.Errorf("Expected 0 unused interface findings for single interface config, got %d", len(findings3))
+	}
+}

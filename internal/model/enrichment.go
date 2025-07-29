@@ -249,44 +249,75 @@ func generateStatistics(cfg *OpnSenseDocument) *Statistics {
 		SecurityFeatures: []string{},
 	}
 
-	// Interface statistics
-	stats.TotalInterfaces = 2 // WAN and LAN are always present
-	stats.InterfacesByType["wan"] = 1
-	stats.InterfacesByType["lan"] = 1
+	// Generate interface statistics
+	generateInterfaceStatistics(cfg, stats)
 
-	// Interface details
-	wanStats := InterfaceStatistics{
-		Name: "wan",
-		Type: "wan",
-	}
-	if wanDhcp, exists := cfg.Dhcpd.Wan(); exists {
-		wanStats.HasDHCP = wanDhcp.Enable != ""
-	}
-	if wan, ok := cfg.Interfaces.Wan(); ok {
-		wanStats.Enabled = wan.Enable != ""
-		wanStats.HasIPv4 = wan.IPAddr != ""
-		wanStats.HasIPv6 = wan.IPAddrv6 != ""
-		wanStats.BlockPriv = wan.BlockPriv != ""
-		wanStats.BlockBogons = wan.BlockBogons != ""
-	}
+	// Generate firewall rule statistics
+	generateFirewallStatistics(cfg, stats)
 
-	lanStats := InterfaceStatistics{
-		Name: "lan",
-		Type: "lan",
-	}
-	if lanDhcp, exists := cfg.Dhcpd.Lan(); exists {
-		lanStats.HasDHCP = lanDhcp.Enable != ""
-	}
-	if lan, ok := cfg.Interfaces.Lan(); ok {
-		lanStats.Enabled = lan.Enable != ""
-		lanStats.HasIPv4 = lan.IPAddr != ""
-		lanStats.HasIPv6 = lan.IPAddrv6 != ""
-		lanStats.BlockPriv = lan.BlockPriv != ""
-		lanStats.BlockBogons = lan.BlockBogons != ""
+	// Generate DHCP statistics
+	generateDHCPStatistics(cfg, stats)
+
+	// Generate user and group statistics
+	generateUserGroupStatistics(cfg, stats)
+
+	// Generate service statistics
+	generateServiceStatistics(cfg, stats)
+
+	// Generate security features
+	generateSecurityFeatures(cfg, stats)
+
+	// Calculate summary statistics
+	stats.Summary = StatisticsSummary{
+		TotalConfigItems:    stats.TotalInterfaces + stats.TotalFirewallRules + stats.TotalUsers + stats.TotalGroups + stats.TotalServices,
+		SecurityScore:       calculateSecurityScore(cfg, stats),
+		ConfigComplexity:    calculateConfigComplexity(stats),
+		HasSecurityFeatures: len(stats.SecurityFeatures) > 0,
 	}
 
-	stats.InterfaceDetails = append(stats.InterfaceDetails, wanStats, lanStats)
+	return stats
+}
 
+// generateInterfaceStatistics extracts interface-related statistics from the configuration.
+func generateInterfaceStatistics(cfg *OpnSenseDocument, stats *Statistics) {
+	interfaceNames := cfg.Interfaces.Names()
+	stats.TotalInterfaces = len(interfaceNames)
+
+	// Count interfaces by type and build interface details
+	for _, ifaceName := range interfaceNames {
+		// Count by interface type (wan, lan, opt0, opt1, etc.)
+		stats.InterfacesByType[ifaceName]++
+
+		// Get interface configuration
+		iface, exists := cfg.Interfaces.Get(ifaceName)
+		if !exists {
+			continue
+		}
+
+		// Create interface statistics
+		ifaceStats := InterfaceStatistics{
+			Name: ifaceName,
+			Type: ifaceName,
+		}
+
+		// Check if interface is enabled
+		ifaceStats.Enabled = iface.Enable != ""
+		ifaceStats.HasIPv4 = iface.IPAddr != ""
+		ifaceStats.HasIPv6 = iface.IPAddrv6 != ""
+		ifaceStats.BlockPriv = iface.BlockPriv != ""
+		ifaceStats.BlockBogons = iface.BlockBogons != ""
+
+		// Check for DHCP configuration
+		if dhcpIface, dhcpExists := cfg.Dhcpd.Get(ifaceName); dhcpExists {
+			ifaceStats.HasDHCP = dhcpIface.Enable != ""
+		}
+
+		stats.InterfaceDetails = append(stats.InterfaceDetails, ifaceStats)
+	}
+}
+
+// generateFirewallStatistics extracts firewall rule and NAT statistics from the configuration.
+func generateFirewallStatistics(cfg *OpnSenseDocument, stats *Statistics) {
 	// Firewall rule statistics
 	rules := cfg.FilterRules()
 	stats.TotalFirewallRules = len(rules)
@@ -300,30 +331,29 @@ func generateStatistics(cfg *OpnSenseDocument) *Statistics {
 	if cfg.Nat.Outbound.Mode != "" {
 		stats.NATEntries = 1 // Count NAT configuration as present
 	}
+}
 
-	// DHCP statistics
+// generateDHCPStatistics extracts DHCP-related statistics from the configuration.
+func generateDHCPStatistics(cfg *OpnSenseDocument, stats *Statistics) {
 	dhcpScopes := 0
-	if lanDhcp, exists := cfg.Dhcpd.Lan(); exists && lanDhcp.Enable != "" {
-		dhcpScopes++
-		stats.DHCPScopeDetails = append(stats.DHCPScopeDetails, DHCPScopeStatistics{
-			Interface: "lan",
-			Enabled:   true,
-			From:      lanDhcp.Range.From,
-			To:        lanDhcp.Range.To,
-		})
-	}
-	if wanDhcp, exists := cfg.Dhcpd.Wan(); exists && wanDhcp.Enable != "" {
-		dhcpScopes++
-		stats.DHCPScopeDetails = append(stats.DHCPScopeDetails, DHCPScopeStatistics{
-			Interface: "wan",
-			Enabled:   true,
-			From:      wanDhcp.Range.From,
-			To:        wanDhcp.Range.To,
-		})
+	dhcpInterfaceNames := cfg.Dhcpd.Names()
+
+	for _, dhcpIfaceName := range dhcpInterfaceNames {
+		if dhcpIface, exists := cfg.Dhcpd.Get(dhcpIfaceName); exists && dhcpIface.Enable != "" {
+			dhcpScopes++
+			stats.DHCPScopeDetails = append(stats.DHCPScopeDetails, DHCPScopeStatistics{
+				Interface: dhcpIfaceName,
+				Enabled:   true,
+				From:      dhcpIface.Range.From,
+				To:        dhcpIface.Range.To,
+			})
+		}
 	}
 	stats.DHCPScopes = dhcpScopes
+}
 
-	// User and group statistics
+// generateUserGroupStatistics extracts user and group statistics from the configuration.
+func generateUserGroupStatistics(cfg *OpnSenseDocument, stats *Statistics) {
 	stats.TotalUsers = len(cfg.System.User)
 	stats.TotalGroups = len(cfg.System.Group)
 	for _, user := range cfg.System.User {
@@ -332,8 +362,10 @@ func generateStatistics(cfg *OpnSenseDocument) *Statistics {
 	for _, group := range cfg.System.Group {
 		stats.GroupsByScope[group.Scope]++
 	}
+}
 
-	// Service statistics
+// generateServiceStatistics extracts service-related statistics from the configuration.
+func generateServiceStatistics(cfg *OpnSenseDocument, stats *Statistics) {
 	serviceCount := 0
 	if cfg.Unbound.Enable != "" {
 		stats.EnabledServices = append(stats.EnabledServices, "unbound")
@@ -352,24 +384,16 @@ func generateStatistics(cfg *OpnSenseDocument) *Statistics {
 	// System configuration statistics
 	stats.SysctlSettings = len(cfg.Sysctl)
 	stats.LoadBalancerMonitors = 0 // TODO: Implement when load balancer is added
+}
 
-	// Security features
+// generateSecurityFeatures extracts security-related features from the configuration.
+func generateSecurityFeatures(cfg *OpnSenseDocument, stats *Statistics) {
 	if cfg.System.WebGUI.Protocol == ProtocolHTTPS {
 		stats.SecurityFeatures = append(stats.SecurityFeatures, "https-web-gui")
 	}
 	if cfg.System.SSH.Group != "" {
 		stats.SecurityFeatures = append(stats.SecurityFeatures, "ssh-access")
 	}
-
-	// Calculate summary statistics
-	stats.Summary = StatisticsSummary{
-		TotalConfigItems:    stats.TotalInterfaces + stats.TotalFirewallRules + stats.TotalUsers + stats.TotalGroups + stats.TotalServices,
-		SecurityScore:       calculateSecurityScore(cfg, stats),
-		ConfigComplexity:    calculateConfigComplexity(stats),
-		HasSecurityFeatures: len(stats.SecurityFeatures) > 0,
-	}
-
-	return stats
 }
 
 // generateAnalysis performs a comprehensive analysis of the given OPNsense configuration, returning findings on dead rules, unused interfaces, security issues, performance issues, and consistency issues.
@@ -439,8 +463,13 @@ func analyzeDeadRules(cfg *OpnSenseDocument) []DeadRuleFinding {
 func analyzeUnusedInterfaces(cfg *OpnSenseDocument) []UnusedInterfaceFinding {
 	var findings []UnusedInterfaceFinding
 
-	// Check if interfaces are configured but not used in rules
-	interfaces := []string{"wan", "lan"}
+	// Dynamically build interface list based on configured interfaces
+	interfaceNames := cfg.Interfaces.Names()
+	interfaces := make([]string, 0, len(interfaceNames))
+
+	// Add each configured interface to the list
+	interfaces = append(interfaces, interfaceNames...)
+
 	rules := cfg.FilterRules()
 	usedInterfaces := make(map[string]bool)
 
@@ -560,16 +589,8 @@ func generateSecurityAssessment(cfg *OpnSenseDocument) *SecurityAssessment {
 		assessment.Recommendations = append(assessment.Recommendations, "Configure SSH access for remote management")
 	}
 
-	// Calculate overall score (0-100)
-	score := BaseSecurityScore // Base score
-	if cfg.System.WebGUI.Protocol == ProtocolHTTPS {
-		score += 25
-	}
-	if cfg.System.SSH.Group != "" {
-		score += 25
-	}
-
-	assessment.OverallScore = score
+	// Calculate overall score using shared helper
+	assessment.OverallScore = calculateSecurityScoreBase(cfg, nil)
 
 	return assessment
 }
@@ -632,18 +653,7 @@ func generateComplianceChecks(cfg *OpnSenseDocument) *ComplianceChecks {
 // The score is based on the presence of security features such as HTTPS web GUI and SSH access,
 // and is reduced for overly permissive firewall rules. The result is clamped between 0 and the maximum security score.
 func calculateSecurityScore(cfg *OpnSenseDocument, stats *Statistics) int {
-	score := 50 // Base score
-
-	// Add points for security features
-	if cfg.System.WebGUI.Protocol == ProtocolHTTPS {
-		score += 20
-	}
-	if cfg.System.SSH.Group != "" {
-		score += 15
-	}
-	if len(stats.SecurityFeatures) > 0 {
-		score += 15
-	}
+	score := calculateSecurityScoreBase(cfg, stats)
 
 	// Subtract points for security issues
 	if len(stats.RulesByType) > 0 {
@@ -661,6 +671,26 @@ func calculateSecurityScore(cfg *OpnSenseDocument, stats *Statistics) int {
 	}
 	if score > MaxSecurityScore {
 		score = MaxSecurityScore
+	}
+
+	return score
+}
+
+// calculateSecurityScoreBase computes the base security score for the given OPNsense configuration.
+// This shared helper function centralizes the common security scoring logic used by both
+// generateSecurityAssessment and calculateSecurityScore functions.
+func calculateSecurityScoreBase(cfg *OpnSenseDocument, stats *Statistics) int {
+	score := BaseSecurityScore // Base score
+
+	// Add points for security features
+	if cfg.System.WebGUI.Protocol == ProtocolHTTPS {
+		score += 25
+	}
+	if cfg.System.SSH.Group != "" {
+		score += 25
+	}
+	if stats != nil && len(stats.SecurityFeatures) > 0 {
+		score += 15
 	}
 
 	return score

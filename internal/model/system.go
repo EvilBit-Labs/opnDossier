@@ -1,6 +1,17 @@
 // Package model defines the data structures for OPNsense configurations.
 package model
 
+// WebGUIConfig represents the WebGUI configuration.
+type WebGUIConfig struct {
+	Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+	SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+}
+
+// SSHConfig represents the SSH configuration.
+type SSHConfig struct {
+	Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
+}
+
 // SystemConfig groups system-related configuration.
 type SystemConfig struct {
 	System System       `json:"system" yaml:"system,omitempty" validate:"required"`
@@ -20,37 +31,32 @@ type SysctlItem struct {
 
 // System contains the system configuration.
 type System struct {
-	Optimization     string   `xml:"optimization" json:"optimization,omitempty" yaml:"optimization,omitempty" validate:"omitempty,oneof=normal high-latency conservative aggressive"`
-	Hostname         string   `xml:"hostname" json:"hostname" yaml:"hostname" validate:"required,hostname"`
-	Domain           string   `xml:"domain" json:"domain" yaml:"domain" validate:"required,fqdn"`
-	DNSAllowOverride string   `xml:"dnsallowoverride" json:"dnsAllowOverride,omitempty" yaml:"dnsAllowOverride,omitempty"`
-	DNSServer        string   `xml:"dnsserver" json:"dnsServer,omitempty" yaml:"dnsServer,omitempty"`
-	Language         string   `xml:"language" json:"language,omitempty" yaml:"language,omitempty"`
-	Firmware         Firmware `xml:"firmware" json:"firmware" yaml:"firmware,omitempty"`
-	Group            []Group  `xml:"group" json:"groups,omitempty" yaml:"groups,omitempty" validate:"dive"`
-	User             []User   `xml:"user" json:"users,omitempty" yaml:"users,omitempty" validate:"dive"`
-	WebGUI           struct {
-		Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-		SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-	} `xml:"webgui" json:"webgui" yaml:"webgui,omitempty"`
-	SSH struct {
-		Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
-	} `xml:"ssh" json:"ssh" yaml:"ssh,omitempty"`
-	Timezone                      string   `xml:"timezone" json:"timezone,omitempty" yaml:"timezone,omitempty"`
-	TimeServers                   string   `xml:"timeservers" json:"timeServers,omitempty" yaml:"timeServers,omitempty"`
-	UseVirtualTerminal            string   `xml:"usevirtualterminal" json:"useVirtualTerminal,omitempty" yaml:"useVirtualTerminal,omitempty"`
-	DisableVLANHWFilter           string   `xml:"disablevlanhwfilter" json:"disableVlanHwFilter,omitempty" yaml:"disableVlanHwFilter,omitempty"`
-	DisableChecksumOffloading     string   `xml:"disablechecksumoffloading" json:"disableChecksumOffloading,omitempty" yaml:"disableChecksumOffloading,omitempty"`
-	DisableSegmentationOffloading string   `xml:"disablesegmentationoffloading" json:"disableSegmentationOffloading,omitempty" yaml:"disableSegmentationOffloading,omitempty"`
-	DisableLargeReceiveOffloading string   `xml:"disablelargereceiveoffloading" json:"disableLargeReceiveOffloading,omitempty" yaml:"disableLargeReceiveOffloading,omitempty"`
-	IPv6Allow                     string   `xml:"ipv6allow" json:"ipv6Allow,omitempty" yaml:"ipv6Allow,omitempty"`
-	DisableNATReflection          string   `xml:"disablenatreflection" json:"disableNatReflection,omitempty" yaml:"disableNatReflection,omitempty"`
-	DisableConsoleMenu            struct{} `xml:"disableconsolemenu" json:"disableConsoleMenu" yaml:"disableConsoleMenu,omitempty"`
-	NextUID                       string   `xml:"nextuid" json:"nextUid,omitempty" yaml:"nextUid,omitempty"`
-	NextGID                       string   `xml:"nextgid" json:"nextGid,omitempty" yaml:"nextGid,omitempty"`
-	PowerdACMode                  string   `xml:"powerd_ac_mode" json:"powerdAcMode,omitempty" yaml:"powerdAcMode,omitempty" validate:"omitempty,oneof=hadp hiadp adaptive minimum maximum"`
-	PowerdBatteryMode             string   `xml:"powerd_battery_mode" json:"powerdBatteryMode,omitempty" yaml:"powerdBatteryMode,omitempty" validate:"omitempty,oneof=hadp hiadp adaptive minimum maximum"`
-	PowerdNormalMode              string   `xml:"powerd_normal_mode" json:"powerdNormalMode,omitempty" yaml:"powerdNormalMode,omitempty" validate:"omitempty,oneof=hadp hiadp adaptive minimum maximum"`
+	Optimization                  string       `xml:"optimization" json:"optimization,omitempty" yaml:"optimization,omitempty" validate:"omitempty,oneof=normal high-latency conservative aggressive"`
+	Hostname                      string       `xml:"hostname" json:"hostname" yaml:"hostname" validate:"required,hostname"`
+	Domain                        string       `xml:"domain" json:"domain" yaml:"domain" validate:"required,fqdn"`
+	DNSAllowOverride              string       `xml:"dnsallowoverride" json:"dnsAllowOverride,omitempty" yaml:"dnsAllowOverride,omitempty"`
+	DNSServer                     string       `xml:"dnsserver" json:"dnsServer,omitempty" yaml:"dnsServer,omitempty"`
+	Language                      string       `xml:"language" json:"language,omitempty" yaml:"language,omitempty"`
+	Firmware                      Firmware     `xml:"firmware" json:"firmware" yaml:"firmware,omitempty"`
+	Group                         []Group      `xml:"group" json:"groups,omitempty" yaml:"groups,omitempty" validate:"dive"`
+	User                          []User       `xml:"user" json:"users,omitempty" yaml:"users,omitempty" validate:"dive"`
+	WebGUI                        WebGUIConfig `xml:"webgui" json:"webgui" yaml:"webgui,omitempty"`
+	SSH                           SSHConfig    `xml:"ssh" json:"ssh" yaml:"ssh,omitempty"`
+	Timezone                      string       `xml:"timezone" json:"timezone,omitempty" yaml:"timezone,omitempty"`
+	TimeServers                   string       `xml:"timeservers" json:"timeServers,omitempty" yaml:"timeServers,omitempty"`
+	UseVirtualTerminal            string       `xml:"usevirtualterminal" json:"useVirtualTerminal,omitempty" yaml:"useVirtualTerminal,omitempty"`
+	DisableVLANHWFilter           string       `xml:"disablevlanhwfilter" json:"disableVlanHwFilter,omitempty" yaml:"disableVlanHwFilter,omitempty"`
+	DisableChecksumOffloading     string       `xml:"disablechecksumoffloading" json:"disableChecksumOffloading,omitempty" yaml:"disableChecksumOffloading,omitempty"`
+	DisableSegmentationOffloading string       `xml:"disablesegmentationoffloading" json:"disableSegmentationOffloading,omitempty" yaml:"disableSegmentationOffloading,omitempty"`
+	DisableLargeReceiveOffloading string       `xml:"disablelargereceiveoffloading" json:"disableLargeReceiveOffloading,omitempty" yaml:"disableLargeReceiveOffloading,omitempty"`
+	IPv6Allow                     string       `xml:"ipv6allow" json:"ipv6Allow,omitempty" yaml:"ipv6Allow,omitempty"`
+	DisableNATReflection          string       `xml:"disablenatreflection" json:"disableNatReflection,omitempty" yaml:"disableNatReflection,omitempty"`
+	DisableConsoleMenu            struct{}     `xml:"disableconsolemenu" json:"disableConsoleMenu" yaml:"disableConsoleMenu,omitempty"`
+	NextUID                       string       `xml:"nextuid" json:"nextUid,omitempty" yaml:"nextUid,omitempty"`
+	NextGID                       string       `xml:"nextgid" json:"nextGid,omitempty" yaml:"nextGid,omitempty"`
+	PowerdACMode                  string       `xml:"powerd_ac_mode" json:"powerdAcMode,omitempty" yaml:"powerdAcMode,omitempty" validate:"omitempty,oneof=hadp hiadp adaptive minimum maximum"`
+	PowerdBatteryMode             string       `xml:"powerd_battery_mode" json:"powerdBatteryMode,omitempty" yaml:"powerdBatteryMode,omitempty" validate:"omitempty,oneof=hadp hiadp adaptive minimum maximum"`
+	PowerdNormalMode              string       `xml:"powerd_normal_mode" json:"powerdNormalMode,omitempty" yaml:"powerdNormalMode,omitempty" validate:"omitempty,oneof=hadp hiadp adaptive minimum maximum"`
 	Bogons                        struct {
 		Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
 	} `xml:"bogons" json:"bogons" yaml:"bogons,omitempty"`
