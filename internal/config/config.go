@@ -10,6 +10,7 @@ import (
 
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"github.com/unclesp1d3r/opnFocus/internal/markdown"
 )
 
 // Config holds the configuration for the opnFocus application.
@@ -225,6 +226,16 @@ func (c *Config) Validate() error {
 			Field:   "format",
 			Message: fmt.Sprintf("invalid format '%s', must be one of: markdown, md, json, yaml, yml", c.Format),
 		})
+	}
+
+	// Validate template
+	if c.Template != "" {
+		if _, err := markdown.LoadBuiltinTemplate(c.Template); err != nil {
+			validationErrors = append(validationErrors, ValidationError{
+				Field:   "template",
+				Message: fmt.Sprintf("failed to load template '%s': %v", c.Template, err),
+			})
+		}
 	}
 
 	// Validate wrap width
