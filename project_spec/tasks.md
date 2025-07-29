@@ -197,7 +197,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Action**: Create YAML export functionality in `internal/export/` package
   - **Acceptance**: Exports valid, parsable YAML file with no terminal control characters, passes YAML validation tests
 
-- [ ] **TASK-020**: Implement output file naming and overwrite protection
+- [x] **TASK-020**: Implement output file naming and overwrite protection
 
   - **Context**: Handle output file naming with smart defaults and overwrite protection
   - **Requirement**: US-006 (Custom output files), F004 (File export), US-018 (Error handling)

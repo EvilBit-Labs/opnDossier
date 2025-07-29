@@ -267,6 +267,155 @@ func TestConvertCmdWithValidXML(t *testing.T) {
 	}
 }
 
+func TestDetermineOutputPath(t *testing.T) {
+	tests := []struct {
+		name        string
+		inputFile   string
+		outputFile  string
+		fileExt     string
+		cfg         *config.Config
+		force       bool
+		expectPath  string
+		expectError bool
+	}{
+		{
+			name:       "no output specified - return empty for stdout",
+			inputFile:  "config.xml",
+			outputFile: "",
+			fileExt:    ".md",
+			cfg:        nil,
+			force:      false,
+			expectPath: "",
+		},
+		{
+			name:       "CLI flag takes precedence",
+			inputFile:  "config.xml",
+			outputFile: "output.md",
+			fileExt:    ".json",
+			cfg: &config.Config{
+				OutputFile: "config_output.md",
+			},
+			force:      false,
+			expectPath: "output.md",
+		},
+		{
+			name:       "use config value when no CLI flag",
+			inputFile:  "config.xml",
+			outputFile: "",
+			fileExt:    ".json",
+			cfg: &config.Config{
+				OutputFile: "config_output.json",
+			},
+			force:      false,
+			expectPath: "config_output.json",
+		},
+		{
+			name:       "use input filename with extension when config has output_file",
+			inputFile:  "my_config.xml",
+			outputFile: "",
+			fileExt:    ".yaml",
+			cfg: &config.Config{
+				OutputFile: "default_output.yaml",
+			},
+			force:      false,
+			expectPath: "default_output.yaml",
+		},
+		{
+			name:       "handle input file with no extension",
+			inputFile:  "config",
+			outputFile: "output.md",
+			fileExt:    ".md",
+			cfg:        nil,
+			force:      false,
+			expectPath: "output.md",
+		},
+		{
+			name:       "handle input file with multiple dots",
+			inputFile:  "config.backup.xml",
+			outputFile: "output.json",
+			fileExt:    ".json",
+			cfg:        nil,
+			force:      false,
+			expectPath: "output.json",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path, err := determineOutputPath(tt.inputFile, tt.outputFile, tt.fileExt, tt.cfg, tt.force)
+
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expectPath, path)
+			}
+		})
+	}
+}
+
+func TestDetermineOutputPath_OverwriteProtection(t *testing.T) {
+	// Create a temporary file for testing
+	tmpDir := t.TempDir()
+	existingFile := filepath.Join(tmpDir, "existing.md")
+
+	// Create the file
+	err := os.WriteFile(existingFile, []byte("existing content"), 0o600)
+	require.NoError(t, err)
+
+	tests := []struct {
+		name        string
+		outputFile  string
+		force       bool
+		expectError bool
+		expectPath  string
+	}{
+		{
+			name:        "file exists with force - should overwrite",
+			outputFile:  existingFile,
+			force:       true,
+			expectError: false,
+			expectPath:  existingFile,
+		},
+		{
+			name:        "file does not exist - should work",
+			outputFile:  filepath.Join(tmpDir, "new_file.md"),
+			force:       false,
+			expectError: false,
+			expectPath:  filepath.Join(tmpDir, "new_file.md"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path, err := determineOutputPath("config.xml", tt.outputFile, ".md", nil, tt.force)
+
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expectPath, path)
+			}
+		})
+	}
+}
+
+func TestDetermineOutputPath_NoDirectoryCreation(t *testing.T) {
+	// Test that the function doesn't create directories automatically
+	nonexistentDir := filepath.Join("nonexistent", "path", "output.md")
+
+	path, err := determineOutputPath("config.xml", nonexistentDir, ".md", nil, false)
+
+	// Should not create directories, just return the path
+	assert.NoError(t, err)
+	assert.Equal(t, nonexistentDir, path)
+
+	// Verify the directory doesn't exist
+	dir := filepath.Dir(nonexistentDir)
+	_, err = os.Stat(dir)
+	assert.True(t, os.IsNotExist(err), "Directory should not be created")
+}
+
 // Helper function to find a command by name.
 func findCommand(root *cobra.Command) *cobra.Command {
 	for _, cmd := range root.Commands() {

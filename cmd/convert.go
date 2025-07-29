@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -25,7 +26,11 @@ var (
 	sections     []string //nolint:gochecknoglobals // Sections to include
 	themeName    string   //nolint:gochecknoglobals // Theme for rendering
 	wrapWidth    int      //nolint:gochecknoglobals // Text wrap width
+	force        bool     //nolint:gochecknoglobals // Force overwrite without prompt
 )
+
+// ErrOperationCancelled is returned when the user cancels an operation.
+var ErrOperationCancelled = errors.New("operation cancelled by user")
 
 // init registers the convert command and its flags with the root command.
 //
@@ -38,6 +43,7 @@ func init() {
 	convertCmd.Flags().StringSliceVar(&sections, "section", []string{}, "Sections to include (comma-separated)")
 	convertCmd.Flags().StringVar(&themeName, "theme", "", "Theme for rendering (light, dark, auto, none)")
 	convertCmd.Flags().IntVar(&wrapWidth, "wrap", 0, "Text wrap width (0 = no wrapping)")
+	convertCmd.Flags().BoolVar(&force, "force", false, "Force overwrite existing files without prompt")
 }
 
 var convertCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
@@ -92,6 +98,9 @@ Examples:
 
   # Use environment variable to set default output location
   OPNFOCUS_OUTPUT_FILE=./docs/network.md opnFocus convert config.xml
+
+  # Force overwrite existing file without prompt
+  opnFocus convert config.xml -o output.md --force
 
   # Validate before converting (recommended workflow)
   opnFocus validate config.xml && opnFocus convert config.xml -f json -o output.json
@@ -195,14 +204,12 @@ Examples:
 
 				ctxLogger.Debug("Conversion completed successfully")
 
-				// Determine output path
-				actualOutputFile := outputFile
-				if len(args) > 1 || (actualOutputFile == "" && Cfg.OutputFile != "") {
-					// If multiple files, or single file with no -o but config has output_file
-					// use input filename with appropriate extension
-					base := filepath.Base(fp)
-					ext := filepath.Ext(base)
-					actualOutputFile = strings.TrimSuffix(base, ext) + fileExt
+				// Determine output path with smart naming and overwrite protection
+				actualOutputFile, err := determineOutputPath(fp, outputFile, fileExt, Cfg, force)
+				if err != nil {
+					ctxLogger.Error("Failed to determine output path", "error", err)
+					errs <- fmt.Errorf("failed to determine output path for %s: %w", fp, err)
+					return
 				}
 
 				// Create enhanced logger with output file information
@@ -302,4 +309,58 @@ func buildConversionOptions(format, template string, sections []string, theme st
 	}
 
 	return opt
+}
+
+// determineOutputPath determines the output file path with smart naming and overwrite protection.
+// It handles the following scenarios:
+// 1. If outputFile is specified, use it (with overwrite protection)
+// 2. If multiple files are being processed, use input filename with appropriate extension
+// 3. If config has output_file but no CLI flag, use input filename with appropriate extension
+// 4. If no output specified, return empty string (stdout)
+//
+// The function ensures no automatic directory creation and provides overwrite prompts
+// unless the force flag is set.
+func determineOutputPath(inputFile, outputFile, fileExt string, cfg *config.Config, force bool) (string, error) {
+	// If no output file specified, return empty string for stdout
+	if outputFile == "" && (cfg == nil || cfg.OutputFile == "") {
+		return "", nil
+	}
+
+	var actualOutputFile string
+
+	// Determine the output file path using switch statement
+	switch {
+	case outputFile != "":
+		// CLI flag takes precedence
+		actualOutputFile = outputFile
+	case cfg != nil && cfg.OutputFile != "":
+		// Use config value if CLI flag not specified
+		actualOutputFile = cfg.OutputFile
+	default:
+		// Use input filename with appropriate extension as default
+		base := filepath.Base(inputFile)
+		ext := filepath.Ext(base)
+		actualOutputFile = strings.TrimSuffix(base, ext) + fileExt
+	}
+
+	// Check if file already exists and handle overwrite protection
+	if _, err := os.Stat(actualOutputFile); err == nil {
+		// File exists, check if we should overwrite
+		if !force {
+			// Prompt user for confirmation
+			fmt.Printf("File '%s' already exists. Overwrite? (y/N): ", actualOutputFile)
+
+			var response string
+			if _, err := fmt.Scanln(&response); err != nil {
+				return "", fmt.Errorf("failed to read user input: %w", err)
+			}
+
+			// Only proceed if user explicitly confirms with 'y' or 'Y'
+			if response != "y" && response != "Y" {
+				return "", ErrOperationCancelled
+			}
+		}
+	}
+
+	return actualOutputFile, nil
 }
