@@ -189,7 +189,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Action**: Create JSON export functionality in `internal/export/` package
   - **Acceptance**: Exports valid, parsable JSON file with no terminal control characters, passes JSON validation tests
 
-- [ ] **TASK-019**: Implement YAML file export
+- [x] **TASK-019**: Implement YAML file export
 
   - **Context**: Export opnSense model as YAML file for human-readable structured data
   - **Requirement**: F004 (File export), F010 (Multiple output formats), F013 (File export), F015 (Valid and parseable files)

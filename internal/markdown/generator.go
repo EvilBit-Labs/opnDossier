@@ -3,15 +3,12 @@ package markdown
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"text/template"
 	"time"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/unclesp1d3r/opnFocus/internal/model"
-
-	"gopkg.in/yaml.v3"
 )
 
 // Generator represents the interface for generating documentation from OPNsense configurations.
@@ -57,11 +54,11 @@ func NewMarkdownGenerator() (Generator, error) {
 	for _, path := range possiblePaths {
 		templates = template.New("opnfocus").Funcs(funcMap)
 		templates, err = templates.ParseGlob(path)
-		if err == nil && templates != nil && len(templates.Templates()) > 1 {
+		if err == nil && templates != nil && len(templates.Templates()) > 0 {
 			break
 		}
 	}
-	if err != nil || templates == nil || len(templates.Templates()) <= 1 {
+	if err != nil || templates == nil || len(templates.Templates()) == 0 {
 		return nil, fmt.Errorf("failed to parse templates from any path: %w", err)
 	}
 	return &markdownGenerator{templates: templates}, nil
@@ -134,24 +131,52 @@ func (g *markdownGenerator) generateMarkdown(_ context.Context, data any, opts O
 	return buf.String(), nil
 }
 
-// generateJSON generates JSON output.
+// generateJSON generates JSON output using the JSON template.
 func (g *markdownGenerator) generateJSON(_ context.Context, cfg *model.EnrichedOpnSenseDocument, _ Options) (string, error) {
-	// Marshal the EnrichedOpnSenseDocument struct to JSON with indentation
-	jsonBytes, err := json.MarshalIndent(cfg, "", "  ")
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal to JSON: %w", err)
+	// Create template data with base document and generated timestamp
+	templateData := struct {
+		*model.OpnSenseDocument
+		GeneratedAt string
+	}{
+		OpnSenseDocument: cfg.OpnSenseDocument,
+		GeneratedAt:      time.Now().Format(time.RFC3339),
 	}
 
-	return string(jsonBytes), nil
+	// Execute the JSON template
+	tmpl := g.templates.Lookup("json_output.tmpl")
+	if tmpl == nil {
+		return "", fmt.Errorf("%w: %s", ErrTemplateNotFound, "json_output.tmpl")
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, templateData); err != nil {
+		return "", fmt.Errorf("failed to execute JSON template: %w", err)
+	}
+
+	return buf.String(), nil
 }
 
-// generateYAML generates YAML output.
+// generateYAML generates YAML output using the YAML template.
 func (g *markdownGenerator) generateYAML(_ context.Context, cfg *model.EnrichedOpnSenseDocument, _ Options) (string, error) {
-	// Marshal the EnrichedOpnSenseDocument struct to YAML
-	yamlBytes, err := yaml.Marshal(cfg)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal to YAML: %w", err)
+	// Create template data with base document and generated timestamp
+	templateData := struct {
+		*model.OpnSenseDocument
+		GeneratedAt string
+	}{
+		OpnSenseDocument: cfg.OpnSenseDocument,
+		GeneratedAt:      time.Now().Format(time.RFC3339),
 	}
 
-	return string(yamlBytes), nil
+	// Execute the YAML template
+	tmpl := g.templates.Lookup("yaml_output.tmpl")
+	if tmpl == nil {
+		return "", fmt.Errorf("%w: %s", ErrTemplateNotFound, "yaml_output.tmpl")
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, templateData); err != nil {
+		return "", fmt.Errorf("failed to execute YAML template: %w", err)
+	}
+
+	return buf.String(), nil
 }
