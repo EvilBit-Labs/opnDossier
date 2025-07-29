@@ -19,8 +19,6 @@ import (
 
 // Theme and terminal color constants used throughout the display package.
 const (
-	Light     = "light"
-	Dark      = "dark"
 	None      = "none"
 	Custom    = "custom"
 	Auto      = "auto"
@@ -132,9 +130,9 @@ func convertMarkdownOptions(mdOpts markdown.Options) Options {
 	// Convert theme
 	var theme Theme
 	switch mdOpts.Theme {
-	case markdown.ThemeLight:
+	case constants.ThemeLight:
 		theme = LightTheme()
-	case markdown.ThemeDark:
+	case constants.ThemeDark:
 		theme = DarkTheme()
 	default: // markdown.ThemeAuto or other
 		theme = DetectTheme("")
@@ -168,13 +166,14 @@ func getGlamourRenderer(opts *Options) (*glamour.TermRenderer, error) {
 		rendererOpts.WrapWidth != opts.WrapWidth ||
 		rendererOpts.EnableTables != opts.EnableTables ||
 		rendererOpts.EnableColors != opts.EnableColors
-	rendererMu.RUnlock()
 
 	if !needsRecreate {
-		rendererMu.RLock()
-		defer rendererMu.RUnlock()
-		return rendererInst, nil
+		// Return cached instance while still holding read lock
+		renderer := rendererInst
+		rendererMu.RUnlock()
+		return renderer, nil
 	}
+	rendererMu.RUnlock()
 
 	rendererMu.Lock()
 	defer rendererMu.Unlock()
@@ -240,9 +239,9 @@ func DetermineGlamourStyle(opts *Options) string {
 	// Determine theme-based style
 	switch opts.Theme.Name {
 	case constants.ThemeLight:
-		return Light
+		return constants.ThemeLight
 	case constants.ThemeDark:
-		return Dark
+		return constants.ThemeDark
 	case "none":
 		return Notty
 	case "custom":
@@ -413,7 +412,14 @@ func (td *TerminalDisplay) ClearProgress() {
 }
 
 // Display renders and displays markdown content in the terminal with syntax highlighting.
-func (td *TerminalDisplay) Display(_ context.Context, markdownContent string) error {
+func (td *TerminalDisplay) Display(ctx context.Context, markdownContent string) error {
+	// Check for context cancellation before starting
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	// Get singleton renderer with current options
 	renderer, err := getGlamourRenderer(td.options)
 	if err != nil {
@@ -427,10 +433,24 @@ func (td *TerminalDisplay) Display(_ context.Context, markdownContent string) er
 		return fmt.Errorf("failed to create renderer, displaying raw markdown: %w", err)
 	}
 
+	// Check for context cancellation before rendering
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	// Render markdown with Glamour
 	out, err := renderer.Render(markdownContent)
 	if err != nil {
 		return fmt.Errorf("failed to render markdown: %w", err)
+	}
+
+	// Check for context cancellation before output
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
 	}
 
 	fmt.Print(out)
@@ -444,7 +464,14 @@ func (td *TerminalDisplay) Display(_ context.Context, markdownContent string) er
 }
 
 // DisplayWithProgress renders and displays markdown content with progress events.
-func (td *TerminalDisplay) DisplayWithProgress(_ context.Context, markdownContent string, progressCh <-chan ProgressEvent) error {
+func (td *TerminalDisplay) DisplayWithProgress(ctx context.Context, markdownContent string, progressCh <-chan ProgressEvent) error {
+	// Check for context cancellation before starting
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	// Show initial progress
 	td.ShowProgress(0.0, "Starting display...")
 
@@ -452,13 +479,40 @@ func (td *TerminalDisplay) DisplayWithProgress(_ context.Context, markdownConten
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	// Listen for progress events in a goroutine
+	// Create a done channel to signal goroutine completion
+	done := make(chan struct{})
+
+	// Listen for progress events in a goroutine with proper context handling
 	go func() {
 		defer wg.Done()
-		for event := range progressCh {
-			td.ShowProgress(event.Percent, event.Message)
+		defer close(done)
+
+		for {
+			select {
+			case event, ok := <-progressCh:
+				if !ok {
+					return
+				}
+				// Check context before updating progress
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					td.ShowProgress(event.Percent, event.Message)
+				}
+			case <-ctx.Done():
+				return
+			}
 		}
 	}()
+
+	// Check for context cancellation before rendering
+	select {
+	case <-ctx.Done():
+		wg.Wait()
+		return ctx.Err()
+	default:
+	}
 
 	// Simulate progress during rendering
 	td.ShowProgress(constants.ProgressRenderingMarkdown, "Rendering markdown...")
@@ -484,6 +538,14 @@ func (td *TerminalDisplay) DisplayWithProgress(_ context.Context, markdownConten
 		return fmt.Errorf("failed to create renderer, displaying raw markdown: %w", err)
 	}
 
+	// Check for context cancellation before rendering
+	select {
+	case <-ctx.Done():
+		wg.Wait()
+		return ctx.Err()
+	default:
+	}
+
 	// Render markdown with Glamour
 	out, err := renderer.Render(markdownContent)
 	if err != nil {
@@ -491,6 +553,14 @@ func (td *TerminalDisplay) DisplayWithProgress(_ context.Context, markdownConten
 		// Wait for progress goroutine to finish before returning
 		wg.Wait()
 		return fmt.Errorf("failed to render markdown: %w", err)
+	}
+
+	// Check for context cancellation before output
+	select {
+	case <-ctx.Done():
+		wg.Wait()
+		return ctx.Err()
+	default:
 	}
 
 	td.ShowProgress(1.0, "Display complete!")

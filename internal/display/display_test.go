@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/unclesp1d3r/opnFocus/internal/constants"
 	"github.com/unclesp1d3r/opnFocus/internal/markdown"
 )
 
@@ -514,28 +515,28 @@ func TestDetectTheme(t *testing.T) {
 		expected    string
 	}{
 		// Config theme takes highest priority
-		{"Config overrides all", Light, Dark, "truecolor", "xterm-256color", "", Light},
-		{"Config dark theme", Dark, "", "", "", "", Dark},
+		{"Config overrides all", constants.ThemeLight, constants.ThemeDark, "truecolor", "xterm-256color", "", constants.ThemeLight},
+		{"Config dark theme", constants.ThemeDark, "", "", "", "", constants.ThemeDark},
 		{"Config custom theme", Custom, "", "", "", "", Custom},
 
 		// Environment variable takes second priority
-		{"Env theme override", "", Dark, "", "xterm", "", Dark},
-		{"Env light theme", "", Light, "truecolor", "xterm-256color", "", Light},
+		{"Env theme override", "", constants.ThemeDark, "", "xterm", "", constants.ThemeDark},
+		{"Env light theme", "", constants.ThemeLight, "truecolor", "xterm-256color", "", constants.ThemeLight},
 
 		// Auto-detection based on terminal capabilities
-		{"Truecolor detection", "", "", "truecolor", "xterm-256color", "", Dark},
-		{"24bit color detection", "", "", Bit24, "xterm", "", Dark},
-		{"256color detection", "", "", "", "xterm-256color", "", Dark},
-		{"Dark term detection", "", "", "", "xterm-dark", "", Dark},
-		{"Dark term program", "", "", "", "xterm", "dark-term", Dark},
+		{"Truecolor detection", "", "", "truecolor", "xterm-256color", "", constants.ThemeDark},
+		{"24bit color detection", "", "", Bit24, "xterm", "", constants.ThemeDark},
+		{"256color detection", "", "", "", "xterm-256color", "", constants.ThemeDark},
+		{"Dark term detection", "", "", "", "xterm-dark", "", constants.ThemeDark},
+		{"Dark term program", "", "", "", "xterm", "dark-term", constants.ThemeDark},
 
 		// Default to light theme
-		{"Basic terminal default", "", "", "", "xterm", "", Light},
-		{"No terminal info", "", "", "", "", "", Light},
+		{"Basic terminal default", "", "", "", "xterm", "", constants.ThemeLight},
+		{"No terminal info", "", "", "", "", "", constants.ThemeLight},
 
 		// Invalid values default to auto-detection
-		{"Invalid config theme", "invalid", "", "", "xterm", "", Light},
-		{"Invalid env theme", "", "invalid", "", "xterm", "", Light},
+		{"Invalid config theme", "invalid", "", "", "xterm", "", constants.ThemeLight},
+		{"Invalid env theme", "", "invalid", "", "xterm", "", constants.ThemeLight},
 	}
 
 	for _, tt := range tests {
@@ -702,16 +703,16 @@ func TestGlamourStyleDetermination(t *testing.T) {
 		expectedStyle string
 	}{
 		// Colors disabled
-		{"Colors disabled", Light, false, "truecolor", "xterm-256color", Notty},
-		{"Colors disabled dark", Dark, false, "truecolor", "xterm-256color", Notty},
+		{"Colors disabled", constants.ThemeLight, false, "truecolor", "xterm-256color", Notty},
+		{"Colors disabled dark", constants.ThemeDark, false, "truecolor", "xterm-256color", Notty},
 
 		// No color capability
-		{"No color capability", Light, true, "", "dumb", "ascii"},
-		{"No color capability dark", Dark, true, "", "dumb", "ascii"},
+		{"No color capability", constants.ThemeLight, true, "", "dumb", "ascii"},
+		{"No color capability dark", constants.ThemeDark, true, "", "dumb", "ascii"},
 
 		// Theme-based styles (only test when colors are enabled and terminal is capable)
-		{"Light theme", Light, true, "truecolor", "xterm-256color", "light"},
-		{"Dark theme", Dark, true, "truecolor", "xterm-256color", "dark"},
+		{"Light theme", constants.ThemeLight, true, "truecolor", "xterm-256color", "light"},
+		{"Dark theme", constants.ThemeDark, true, "truecolor", "xterm-256color", "dark"},
 		{"None theme", None, true, "truecolor", "xterm-256color", Notty},
 		{"Custom theme", Custom, true, "truecolor", "xterm-256color", "auto"},
 		{"Auto theme", Auto, true, "truecolor", "xterm-256color", "dark"},
@@ -728,9 +729,9 @@ func TestGlamourStyleDetermination(t *testing.T) {
 			// Create theme based on the theme name directly
 			var theme Theme
 			switch tt.themeName {
-			case Light:
+			case constants.ThemeLight:
 				theme = LightTheme()
-			case Dark:
+			case constants.ThemeDark:
 				theme = DarkTheme()
 			case None:
 				theme = Theme{Name: "none", GlamourStyle: "notty"}
@@ -769,10 +770,10 @@ func testDetermineGlamourStyle(opts *Options, colorTerm, term string) string {
 
 	// Determine theme-based style
 	switch opts.Theme.Name {
-	case Light:
-		return Light
-	case Dark:
-		return Dark
+	case constants.ThemeLight:
+		return constants.ThemeLight
+	case constants.ThemeDark:
+		return constants.ThemeDark
 	case None:
 		return Notty
 	case Custom:

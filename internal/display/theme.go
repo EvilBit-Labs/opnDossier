@@ -99,7 +99,7 @@ func DetectTheme(configTheme string) Theme {
 // If the name is unrecognized, it falls back to automatic theme detection.
 func getThemeByName(name string) Theme {
 	switch strings.ToLower(name) {
-	case "light":
+	case constants.ThemeLight:
 		return LightTheme()
 	case constants.ThemeDark:
 		return DarkTheme()
