@@ -9,11 +9,16 @@ import (
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 )
 
-// MDNode represents a Markdown node structure.
+// MDNode represents a Markdown node structure used to build hierarchical document representations.
+// It converts structured data into a Markdown-like format with headers and content.
 type MDNode struct {
-	Level    int
-	Title    string
-	Body     string
+	// Level indicates the heading level (1-6) for this node in the Markdown hierarchy
+	Level int
+	// Title contains the formatted header text for this node (e.g., "# Section Name")
+	Title string
+	// Body contains the content text for this node, typically key-value pairs or descriptive text
+	Body string
+	// Children contains nested MDNode elements that represent subsections or related content
 	Children []MDNode
 }
 

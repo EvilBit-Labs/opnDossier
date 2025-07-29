@@ -760,7 +760,7 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 			stats.SecurityFeatures = append(stats.SecurityFeatures, "Block Bogon Networks")
 		}
 	}
-	if cfg.System.WebGUI.Protocol == ProtocolHTTPS {
+	if cfg.System.WebGUI.Protocol == constants.ProtocolHTTPS {
 		stats.SecurityFeatures = append(stats.SecurityFeatures, "HTTPS Web GUI")
 	}
 	if cfg.System.DisableNATReflection != "" {
@@ -798,7 +798,7 @@ func calculateSecurityScore(cfg *model.OpnSenseDocument, stats *Statistics) int 
 	}
 
 	// HTTPS web interface
-	if cfg.System.WebGUI.Protocol == ProtocolHTTPS {
+	if cfg.System.WebGUI.Protocol == constants.ProtocolHTTPS {
 		score += 15
 	}
 
@@ -844,7 +844,7 @@ func calculateConfigComplexity(stats *Statistics) int {
 // Returns the Markdown string representing the network configuration report. If the configuration is nil, returns a placeholder message.
 func BuildNetworkConfig(cfg *model.OpnSenseDocument) string {
 	if cfg == nil {
-		return NoConfigAvailable
+		return constants.NoConfigAvailable
 	}
 
 	netConfig := cfg.NetworkConfig()
@@ -862,9 +862,9 @@ func BuildNetworkConfig(cfg *model.OpnSenseDocument) string {
 		rows := [][]string{}
 
 		for name, iface := range netConfig.Interfaces.Items {
-			enabled := StatusNotEnabled
+			enabled := constants.StatusNotEnabled
 			if iface.Enable != "" {
-				enabled = StatusEnabled
+				enabled = constants.StatusEnabled
 			}
 
 			row := []string{
@@ -890,14 +890,14 @@ func BuildNetworkConfig(cfg *model.OpnSenseDocument) string {
 	securityRows := [][]string{}
 
 	for name, iface := range netConfig.Interfaces.Items {
-		blockPriv := StatusNotEnabled
+		blockPriv := constants.StatusNotEnabled
 		if iface.BlockPriv != "" {
-			blockPriv = StatusEnabled
+			blockPriv = constants.StatusEnabled
 		}
 
-		blockBogons := StatusNotEnabled
+		blockBogons := constants.StatusNotEnabled
 		if iface.BlockBogons != "" {
-			blockBogons = StatusEnabled
+			blockBogons = constants.StatusEnabled
 		}
 
 		row := []string{
@@ -929,7 +929,7 @@ func BuildNetworkConfig(cfg *model.OpnSenseDocument) string {
 // If no configuration is provided, a placeholder message is returned.
 func BuildSecurityConfig(cfg *model.OpnSenseDocument) string {
 	if cfg == nil {
-		return NoConfigAvailable
+		return constants.NoConfigAvailable
 	}
 
 	secConfig := cfg.SecurityConfig()
@@ -949,7 +949,7 @@ func BuildSecurityConfig(cfg *model.OpnSenseDocument) string {
 		for i, rule := range secConfig.Filter.Rule {
 			source := rule.Source.Network
 			if source == "" {
-				source = NetworkAny
+				source = constants.NetworkAny
 			}
 
 			dest := rule.Destination.Network
@@ -999,7 +999,7 @@ func BuildSecurityConfig(cfg *model.OpnSenseDocument) string {
 		}
 	}
 
-	if cfg.System.WebGUI.Protocol == "https" {
+	if cfg.System.WebGUI.Protocol == constants.ProtocolHTTPS {
 		securityFeatures = append(securityFeatures, "🔒 HTTPS Web Interface")
 	}
 

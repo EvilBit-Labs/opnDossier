@@ -30,19 +30,18 @@ type CoreProcessor struct {
 	generator markdown.Generator
 }
 
-// NewCoreProcessor returns a new CoreProcessor instance with a validator and a markdown generator initialized. If markdown generator creation fails, the generator field is set to nil.
-func NewCoreProcessor() *CoreProcessor {
+// NewCoreProcessor returns a new CoreProcessor instance with a validator and a markdown generator initialized.
+// Returns an error if the markdown generator cannot be created.
+func NewCoreProcessor() (*CoreProcessor, error) {
+	generator, err := markdown.NewMarkdownGenerator()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create markdown generator: %w", err)
+	}
+
 	return &CoreProcessor{
 		validator: validator.New(),
-		generator: func() markdown.Generator {
-			g, err := markdown.NewMarkdownGenerator()
-			if err != nil {
-				// For now, return nil on error - this should be handled better in the future
-				return nil
-			}
-			return g
-		}(),
-	}
+		generator: generator,
+	}, nil
 }
 
 // Process analyzes the given OPNsense configuration and returns a comprehensive report.

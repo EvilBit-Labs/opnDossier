@@ -11,7 +11,8 @@ import (
 )
 
 func TestCoreProcessor_Process(t *testing.T) {
-	processor := NewCoreProcessor()
+	processor, err := NewCoreProcessor()
+	require.NoError(t, err)
 	ctx := context.Background()
 
 	// Create a test configuration
@@ -130,7 +131,8 @@ func TestCoreProcessor_Process(t *testing.T) {
 }
 
 func TestCoreProcessor_Transform(t *testing.T) {
-	processor := NewCoreProcessor()
+	processor, err := NewCoreProcessor()
+	require.NoError(t, err)
 	ctx := context.Background()
 
 	// Create a simple test configuration and process it
@@ -182,7 +184,8 @@ func TestCoreProcessor_Transform(t *testing.T) {
 }
 
 func TestCoreProcessor_Normalization(t *testing.T) {
-	processor := NewCoreProcessor()
+	processor, err := NewCoreProcessor()
+	require.NoError(t, err)
 
 	t.Run("IP address canonicalization", func(t *testing.T) {
 		cfg := &model.OpnSenseDocument{
@@ -304,7 +307,8 @@ func TestCoreProcessor_Normalization(t *testing.T) {
 }
 
 func TestCoreProcessor_Analysis(t *testing.T) {
-	processor := NewCoreProcessor()
+	processor, err := NewCoreProcessor()
+	require.NoError(t, err)
 	ctx := context.Background()
 
 	t.Run("Dead rule detection", func(t *testing.T) {

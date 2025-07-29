@@ -14,7 +14,8 @@ import (
 )
 
 func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
-	processor := NewCoreProcessor()
+	processor, err := NewCoreProcessor()
+	require.NoError(t, err)
 
 	tests := []struct {
 		name     string
@@ -152,7 +153,8 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 }
 
 func TestCoreProcessor_GetDestinationString(t *testing.T) {
-	processor := NewCoreProcessor()
+	processor, err := NewCoreProcessor()
+	require.NoError(t, err)
 
 	// Test that the function returns "any" for any destination
 	dest := model.Destination{}
@@ -162,7 +164,8 @@ func TestCoreProcessor_GetDestinationString(t *testing.T) {
 
 // TestCoreProcessor_RealWorldConfigurations tests the implementation with actual OPNsense configuration files.
 func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
-	processor := NewCoreProcessor()
+	processor, err := NewCoreProcessor()
+	require.NoError(t, err)
 	testFiles := []string{
 		"../../testdata/sample.config.1.xml",
 		"../../testdata/sample.config.2.xml",
@@ -289,7 +292,8 @@ func TestCoreProcessor_ModelLimitations(t *testing.T) {
 
 // TestCoreProcessor_EdgeCases tests edge cases and boundary conditions.
 func TestCoreProcessor_EdgeCases(t *testing.T) {
-	processor := NewCoreProcessor()
+	processor, err := NewCoreProcessor()
+	require.NoError(t, err)
 
 	t.Run("empty_rules", func(t *testing.T) {
 		// Test with empty rules

@@ -329,7 +329,8 @@ func TestNewReport(t *testing.T) {
 // TestCoreProcessor_NormalizationIdempotence tests that normalization is idempotent
 // (applying it multiple times yields the same result).
 func TestCoreProcessor_NormalizationIdempotence(t *testing.T) {
-	processor := NewCoreProcessor()
+	processor, err := NewCoreProcessor()
+	require.NoError(t, err)
 
 	tests := []struct {
 		name   string
@@ -473,7 +474,8 @@ func TestCoreProcessor_NormalizationIdempotence(t *testing.T) {
 
 // TestCoreProcessor_AnalysisFindings tests various analysis findings with table-driven tests.
 func TestCoreProcessor_AnalysisFindings(t *testing.T) {
-	processor := NewCoreProcessor()
+	processor, err := NewCoreProcessor()
+	require.NoError(t, err)
 	ctx := context.Background()
 
 	tests := []struct {
@@ -884,7 +886,8 @@ func generateLargeConfig() *model.OpnSenseDocument {
 
 // BenchmarkCoreProcessor_ProcessSmallConfig benchmarks processing a small configuration.
 func BenchmarkCoreProcessor_ProcessSmallConfig(b *testing.B) {
-	processor := NewCoreProcessor()
+	processor, err := NewCoreProcessor()
+	require.NoError(b, err)
 	ctx := context.Background()
 	smallConfig := generateSmallConfig()
 
@@ -912,7 +915,8 @@ func BenchmarkCoreProcessor_ProcessSmallConfig(b *testing.B) {
 
 // BenchmarkCoreProcessor_ProcessLargeConfig benchmarks processing a large configuration.
 func BenchmarkCoreProcessor_ProcessLargeConfig(b *testing.B) {
-	processor := NewCoreProcessor()
+	processor, err := NewCoreProcessor()
+	require.NoError(b, err)
 	ctx := context.Background()
 	largeConfig := generateLargeConfig()
 
@@ -996,7 +1000,8 @@ func BenchmarkCoreProcessor_ProcessLargeConfig(b *testing.B) {
 
 // BenchmarkCoreProcessor_ProcessConcurrent benchmarks concurrent processing.
 func BenchmarkCoreProcessor_ProcessConcurrent(b *testing.B) {
-	processor := NewCoreProcessor()
+	processor, err := NewCoreProcessor()
+	require.NoError(b, err)
 	ctx := context.Background()
 	smallConfig := generateSmallConfig()
 	largeConfig := generateLargeConfig()
@@ -1062,7 +1067,8 @@ func BenchmarkCoreProcessor_ProcessConcurrent(b *testing.B) {
 
 // BenchmarkCoreProcessor_NormalizationOnly benchmarks just the normalization phase.
 func BenchmarkCoreProcessor_NormalizationOnly(b *testing.B) {
-	processor := NewCoreProcessor()
+	processor, err := NewCoreProcessor()
+	require.NoError(b, err)
 	largeConfig := generateLargeConfig()
 
 	for b.Loop() {
@@ -1100,7 +1106,8 @@ func BenchmarkCoreProcessor_NormalizationOnly(b *testing.B) {
 
 // TestCoreProcessor_RaceConditions tests for race conditions using -race flag.
 func TestCoreProcessor_RaceConditions(t *testing.T) {
-	processor := NewCoreProcessor()
+	localProcessor, err := NewCoreProcessor()
+	require.NoError(t, err)
 	ctx := context.Background()
 	smallConfig := generateSmallConfig()
 	largeConfig := generateLargeConfig()
@@ -1114,7 +1121,7 @@ func TestCoreProcessor_RaceConditions(t *testing.T) {
 			wg.Add(1)
 			go func(id int) {
 				defer wg.Done()
-				report, err := processor.Process(ctx, smallConfig, WithAllFeatures())
+				report, err := localProcessor.Process(ctx, smallConfig, WithAllFeatures())
 				if err != nil {
 					errorChan <- fmt.Errorf("goroutine %d: %w", id, err)
 					return
@@ -1158,7 +1165,7 @@ func TestCoreProcessor_RaceConditions(t *testing.T) {
 					expectedHostname = "large-config"
 				}
 
-				report, err := processor.Process(ctx, config, WithAllFeatures())
+				report, err := localProcessor.Process(ctx, config, WithAllFeatures())
 				if err != nil {
 					errorChan <- fmt.Errorf("goroutine %d: %w", id, err)
 					return
@@ -1192,9 +1199,9 @@ func TestCoreProcessor_RaceConditions(t *testing.T) {
 			wg.Add(1)
 			go func(id int) {
 				defer wg.Done()
-				localProcessor := NewCoreProcessor()
-				if localProcessor == nil {
-					errorChan <- NewTestError(id, "processor is nil")
+				localProcessor, err := NewCoreProcessor()
+				if err != nil {
+					errorChan <- fmt.Errorf("goroutine %d: failed to create processor: %w", id, err)
 					return
 				}
 
@@ -1221,7 +1228,8 @@ func TestCoreProcessor_RaceConditions(t *testing.T) {
 
 // TestCoreProcessor_StatisticsAccuracy tests that statistics are calculated accurately.
 func TestCoreProcessor_StatisticsAccuracy(t *testing.T) {
-	processor := NewCoreProcessor()
+	processor, err := NewCoreProcessor()
+	require.NoError(t, err)
 	ctx := context.Background()
 
 	tests := []struct {
