@@ -179,7 +179,9 @@ Examples:
 		if displayTheme != "" {
 			// Use explicit theme
 			theme := display.DetectTheme(displayTheme)
-			displayer = display.NewTerminalDisplayWithTheme(theme)
+			opts := display.DefaultOptions()
+			opts.Theme = theme
+			displayer = display.NewTerminalDisplayWithOptions(opts)
 		} else {
 			// Use auto-detection
 			displayer = display.NewTerminalDisplay()
