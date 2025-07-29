@@ -421,6 +421,30 @@ This document captures user stories for the opnFocus CLI tool in EARS (Easy Appr
 **When** I use tab completion
 **Then** the system should provide appropriate completions for commands and options
 
+**US-046**
+**As a** red team operator
+**I want** to generate a recon report from a config.xml file
+**So that** I can identify potential attack surfaces, misconfigurations, and pivot paths during an engagement.
+**Given** I have a valid OPNsense config.xml file
+**When** I run the opnFocus command `analyze` with the `--mode=red` flag
+**Then** the system should generate a recon report from the config.xml file
+
+**US-047**
+**As a** blue team engineer
+**I want** to generate a defensive audit of an OPNsense config
+**So that** I can quickly identify misconfigurations, insecure defaults, and missed hygiene steps.
+**Given** I have a valid OPNsense config.xml file
+**When** I run the opnFocus command `analyze` with the `--mode=blue` flag
+**Then** the system should generate a defensive audit of the config.xml file
+
+**US-048**
+**As an** infrastructure maintainer or auditor
+**I want** to generate a complete but neutral summary of a config file
+**So that** I can include it in documentation or audit records without red/blue-specific commentary.
+**Given** I have a valid OPNsense config.xml file
+**When** I run the opnFocus command `analyze` with the `--mode=summary` flag
+**Then** the system should generate a complete summary of the config.xml file
+
 ---
 
 ## Acceptance Criteria
