@@ -75,6 +75,13 @@ Follow the [Conventional Commits](https://www.conventionalcommits.org) specifica
   - `fix(parser): handle malformed XML gracefully`
   - `docs: update API documentation`
 
+### 2.4. Data Processing
+
+- **Data Model:** The data model OpnSenseDocument is the core data model representing the entire OPNsense configuration and requires the xml tags to strictly follow the OPNsense configuration file structure. JSON and YAML tags should follow recommended best practices for each format.
+- **Audit-Oriented Modeling:** Create internal structs (`Finding`, `Target`, `Exposure`) that represent red/blue audit concepts separately from core config structs.
+- **Presentation-Aware Output:** Each report mode must format and prioritize data differently based on audience: ops (standard), defense (blue), adversary (red).
+- **Data Processing:** The data processing pipeline is responsible for transforming the data model into the different report formats.
+
 ## 3. Go Language Standards
 
 ### 3.1. Technology Stack
@@ -346,6 +353,9 @@ When AI agents contribute to this project, they should:
 09. **Document new functions and types** following Go conventions
 10. **Never commit secrets** or hardcoded credentials
 11. **Consult project documentation** - [requirements.md](project_spec/requirements.md), [ARCHITECTURE.md](ARCHITECTURE.md), and [DEVELOPMENT_STANDARDS.md](DEVELOPMENT_STANDARDS.md) for guidance
+12. When rendering reports, always prefer structured config data + audit overlays over flat summary tables.
+13. Blue team output should favor clarity, grouping, and actionability. Red team output should favor target prioritization and pivot surface discovery.
+14. Validate all generated markdown for formatting correctness using mdformat or markdownlint.
 
 #### AI Agent Code Review Checklist
 

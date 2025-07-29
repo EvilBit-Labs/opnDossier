@@ -240,7 +240,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Action**: Create `internal/audit/` package with audit finding structs including Title, Severity, Description, Recommendation, Tags, and optional AttackSurface/ExploitNotes for red mode
   - **Acceptance**: Audit engine uses consistent internal structure for all findings
 
-- [ ] **TASK-024**: Implement multi-mode report generation system
+- [ ] **TASK-024**: Implement multi-mode report controller
 
   - **Context**: Need to support standard, blue, and red report modes with different content and tone
   - **Requirement**: F016 (Multiple Modes), F020 (Standard Summary Report)
@@ -256,7 +256,15 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Action**: Create template system using Go text/template with sections for interfaces, firewall rules, NAT rules, DHCP, certificates, VPN config, static routes, and high availability
   - **Acceptance**: Reports are generated using templates that are user-extensible and include all required sections
 
-- [ ] **TASK-026**: Implement red team recon reporting
+- [ ] **TASK-025a**: Support user template overrides
+
+  - **Context**: Power users should be able to customize markdown templates
+  - **Requirement**: F017 (Template-Driven Markdown Output), F016 (Multiple Modes), User Experience Specifications
+  - **User Story**: US-048 (Standard summary reporting)
+  - **Action**: Support `--template-dir` to override built-in templates with user-defined versions (e.g., `~/.opnDossier/templates`)
+  - **Acceptance**: If override exists, user template is rendered instead of bundled default
+
+- [ ] **TASK-026**: Build red team recon module
 
   - **Context**: Need to generate attacker-focused reports highlighting attack surfaces and enumeration data
   - **Requirement**: F018 (Red Team Recon Reporting), F016 (Multiple Modes)
@@ -264,7 +272,18 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Action**: Implement red mode reporting that highlights WAN-exposed services, weak NAT rules, admin portals, attack surfaces, and includes --blackhat-mode for snarky commentary
   - **Acceptance**: Red mode reports highlight attack surfaces and provide data useful for pivoting/enumeration
 
-- [ ] **TASK-027**: Implement blue team defensive reporting
+- [ ] **TASK-026a**: Classify red team findings
+
+  - **Context**: Enhance red team reporting with attack-surface-specific classification
+  - **Requirement**: F018 (Red Team Recon Reporting), F016 (Multiple Modes), F021 (Audit Finding Struct Support)
+  - **User Story**: US-046 (Red team recon reporting)
+  - **Action**: Add classification logic for:
+    - `WAN exposed`
+    - `Interesting ports` (`22`, `80`, `443`, `3389`, etc.)
+    - `Unfiltered/Shadowed rules`
+  - **Acceptance**: Red reports tag findings and NAT rules with targetable characteristics
+
+- [ ] **TASK-027**: Build blue team audit module
 
   - **Context**: Need to generate defensive audit reports with findings and recommendations
   - **Requirement**: F019 (Blue Team Defensive Reporting), F016 (Multiple Modes)
@@ -272,7 +291,15 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Action**: Implement blue mode reporting with audit findings, structured configuration tables, and recommendations with severity ratings
   - **Acceptance**: Blue mode reports include security findings, structured data, and actionable recommendations
 
-- [ ] **TASK-028**: Implement standard summary report mode
+- [ ] **TASK-027a**: Add compliance tagging to blue team findings
+
+  - **Context**: Enable future CIS/STIG correlation
+  - **Requirement**: F019 (Blue Team Defensive Reporting), F016 (Multiple Modes), F021 (Audit Finding Struct Support)
+  - **User Story**: US-047 (Blue team defensive reporting)
+  - **Action**: Allow findings to include optional compliance tags (e.g., `CIS-FW-2.1`)
+  - **Acceptance**: Blue team report includes optional compliance mappings per finding
+
+- [ ] **TASK-028**: Generate standard summary report
 
   - **Context**: Need neutral, comprehensive documentation reports for general use
   - **Requirement**: F020 (Standard Summary Report), F016 (Multiple Modes)
@@ -301,6 +328,14 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **User Story**: US-009-US-011 (CLI Interface)
   - **Action**: Reorganize commands using proper Cobra patterns
   - **Acceptance**: CLI provides intuitive command structure with proper help
+
+- [ ] **TASK-030a**: Implement `--about` CLI flag
+
+  - **Context**: Users should be able to see version, authorship, and project identity
+  - **Requirement**: F007 (CLI interface), User Experience Specifications
+  - **User Story**: US-009 (Intuitive CLI interface), US-010 (Comprehensive help)
+  - **Action**: Add `--about` flag to display banner, project info, evil bit tagline, etc.
+  - **Acceptance**: CLI displays a stylized ASCII/banner + basic metadata when invoked with `--about`
 
 - [ ] **TASK-031**: Implement comprehensive help system
 
@@ -732,7 +767,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 ### High-Risk Tasks
 
 - **TASK-007**: XML schema validation complexity
-- **TASK-026**: Red team recon reporting implementation
+- **TASK-026**: Red team recon module implementation
 - **TASK-039**: Concurrent processing implementation
 - **TASK-057**: Cross-platform compatibility challenges
 - **TASK-060**: Multi-platform build configuration
