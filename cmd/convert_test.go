@@ -16,7 +16,7 @@ import (
 func TestConvertCmd(t *testing.T) {
 	// Test that convert command is properly initialized
 	rootCmd := GetRootCmd()
-	convertCmd := findCommand(rootCmd, "convert")
+	convertCmd := findCommand(rootCmd)
 	require.NotNil(t, convertCmd)
 	assert.Equal(t, "convert", convertCmd.Name())
 	assert.Contains(t, convertCmd.Short, "Convert OPNsense configuration files")
@@ -24,7 +24,7 @@ func TestConvertCmd(t *testing.T) {
 
 func TestConvertCmdFlags(t *testing.T) {
 	rootCmd := GetRootCmd()
-	convertCmd := findCommand(rootCmd, "convert")
+	convertCmd := findCommand(rootCmd)
 	require.NotNil(t, convertCmd)
 
 	flags := convertCmd.Flags()
@@ -60,7 +60,7 @@ func TestConvertCmdFlags(t *testing.T) {
 
 func TestConvertCmdHelp(t *testing.T) {
 	rootCmd := GetRootCmd()
-	convertCmd := findCommand(rootCmd, "convert")
+	convertCmd := findCommand(rootCmd)
 	require.NotNil(t, convertCmd)
 
 	// Just verify command structure, not help output
@@ -71,7 +71,7 @@ func TestConvertCmdHelp(t *testing.T) {
 
 func TestConvertCmdRequiresArgs(t *testing.T) {
 	rootCmd := GetRootCmd()
-	convertCmd := findCommand(rootCmd, "convert")
+	convertCmd := findCommand(rootCmd)
 	require.NotNil(t, convertCmd)
 
 	// Just verify Args requirement is set correctly
@@ -268,9 +268,9 @@ func TestConvertCmdWithValidXML(t *testing.T) {
 }
 
 // Helper function to find a command by name.
-func findCommand(root *cobra.Command, name string) *cobra.Command {
+func findCommand(root *cobra.Command) *cobra.Command {
 	for _, cmd := range root.Commands() {
-		if cmd.Name() == name {
+		if cmd.Name() == "convert" {
 			return cmd
 		}
 	}
