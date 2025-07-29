@@ -213,7 +213,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Action**: Implement comprehensive file validation and error handling for export operations
   - **Acceptance**: Provides clear error messages for file I/O issues during export
 
-- [ ] **TASK-021a**: Implement exported file validation tests
+- [x] **TASK-021a**: Implement exported file validation tests
 
   - **Context**: Need to ensure exported files are valid and parseable by standard tools
   - **Requirement**: F015 (Valid and parseable files), Testing Standards
