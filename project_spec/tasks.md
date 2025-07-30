@@ -221,16 +221,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Action**: Create validation tests that verify exported files can be parsed by standard tools (markdown linters, JSON parsers, YAML parsers)
   - **Acceptance**: All exported files pass validation tests with standard tools and libraries
 
-### 4.2 Input Validation
-
-- [ ] **TASK-022**: Implement comprehensive input validation
-  - **Context**: Need validation for all user inputs
-  - **Requirement**: US-027 (Input validation), Security Requirements
-  - **User Story**: US-027 (Input validation)
-  - **Action**: Add validation for file paths, configuration options, CLI arguments
-  - **Acceptance**: All inputs are validated comprehensively
-
-### 4.3 Audit Report Generation
+### 4.2 Audit Report Generation
 
 - [ ] **TASK-023**: Implement audit finding struct and data model
 
@@ -352,6 +343,13 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **User Story**: US-011 (Verbose and quiet modes)
   - **Action**: Implement --verbose and --quiet flags with appropriate output levels
   - **Acceptance**: Output detail adjusts based on verbosity flags
+
+- [ ] **TASK-022**: Implement comprehensive input validation
+  - **Context**: Need validation for all user inputs
+  - **Requirement**: US-027 (Input validation), Security Requirements
+  - **User Story**: US-027 (Input validation)
+  - **Action**: Add validation for file paths, configuration options, CLI arguments
+  - **Acceptance**: All inputs are validated comprehensively
 
 ### 5.2 CLI Features
 
