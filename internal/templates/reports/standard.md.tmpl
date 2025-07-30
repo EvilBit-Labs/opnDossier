@@ -14,7 +14,7 @@
 | Name | Iface | IP | Netmask | Gateway | Enabled | Description |
 |------|-------|----|---------|---------|---------|-------------|
 {{- range .Interfaces }}
-| {{ .Name }} | {{ .If }} | {{ .Ipaddr }} | {{ .Subnet }} | {{ .Gateway }} | {{ .Enabled }} | {{ .Description }} |
+| {{ .Name }} | {{ .If }} | {{ .Ipaddr }} | {{ .Subnet }} | {{ .Gateway }} | {{ .Enabled }} | {{ escapeTableContent .Description }} |
 {{- end }}
 
 ---
@@ -34,7 +34,7 @@
 | Iface | Ext Port | Int IP | Int Port | Description |
 |-------|----------|--------|----------|-------------|
 {{- range .NAT }}
-| {{ .Interface }} | {{ .ExternalPort }} | {{ .InternalIP }} | {{ .InternalPort }} | {{ .Description }} |
+| {{ .Interface }} | {{ .ExternalPort }} | {{ .InternalIP }} | {{ .InternalPort }} | {{ escapeTableContent .Description }} |
 {{- end }}
 
 ---
@@ -44,7 +44,7 @@
 | Iface | Action | Proto | Src → Dst | Port | Comment |
 |-------|--------|-------|------------|------|---------|
 {{- range .FirewallRules }}
-| {{ .Interface }} | {{ .Action }} | {{ .Protocol }} | {{ .Source }} → {{ .Destination }} | {{ .Port }} | {{ .Description }} |
+| {{ .Interface }} | {{ .Action }} | {{ .Protocol }} | {{ .Source }} → {{ .Destination }} | {{ .Port }} | {{ escapeTableContent .Description }} |
 {{- end }}
 
 ---
@@ -54,7 +54,7 @@
 | Destination | Gateway | Interface | Description |
 |-------------|---------|-----------|-------------|
 {{- range .Routes }}
-| {{ .Destination }} | {{ .Gateway }} | {{ .Interface }} | {{ .Description }} |
+| {{ .Destination }} | {{ .Gateway }} | {{ .Interface }} | {{ escapeTableContent .Description }} |
 {{- end }}
 
 ---

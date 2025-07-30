@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"strings"
 	"text/template"
 	"time"
 
@@ -40,6 +41,23 @@ func NewMarkdownGenerator() (Generator, error) {
 			}
 		}
 		return false
+	}
+
+	// Escape markdown table cell content to prevent breaking table structure
+	funcMap["escapeTableContent"] = func(content any) string {
+		if content == nil {
+			return ""
+		}
+		str := fmt.Sprintf("%v", content)
+		// Escape pipe characters by replacing | with \|
+		str = strings.ReplaceAll(str, "|", "\\|")
+		// Replace carriage return + newline first to avoid double replacement
+		str = strings.ReplaceAll(str, "\r\n", "<br>")
+		// Replace remaining newlines with <br> for HTML rendering
+		str = strings.ReplaceAll(str, "\n", "<br>")
+		// Replace remaining carriage returns with <br>
+		str = strings.ReplaceAll(str, "\r", "<br>")
+		return str
 	}
 
 	// Try multiple possible paths for templates

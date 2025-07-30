@@ -35,7 +35,7 @@ _No exploitable findings identified. Time to dig deeper._
 | Iface | Action | Src → Dst | Port | Comment |
 |-------|--------|-----------|------|---------|
 {{- range .FirewallRules }}
-| {{ .Interface }} | {{ .Action }} | {{ .Source }} → {{ .Destination }} | {{ .Port }} | {{ .Description }} |
+| {{ .Interface }} | {{ .Action }} | {{ .Source }} → {{ .Destination }} | {{ .Port }} | {{ escapeTableContent .Description }} |
 {{- end }}
 
 ---
@@ -45,7 +45,7 @@ _No exploitable findings identified. Time to dig deeper._
 | Ext Port | → Internal IP:Port | Interface | Note |
 |----------|--------------------|-----------|------|
 {{- range .NAT }}
-| {{ .ExternalPort }} | {{ .InternalIP }}:{{ .InternalPort }} | {{ .Interface }} | {{ .Description }} |
+| {{ .ExternalPort }} | {{ .InternalIP }}:{{ .InternalPort }} | {{ .Interface }} | {{ escapeTableContent .Description }} |
 {{- end }}
 
 ---
@@ -65,7 +65,7 @@ _No exploitable findings identified. Time to dig deeper._
 | Destination | Gateway | Interface | Notes |
 |-------------|---------|-----------|-------|
 {{- range .Routes }}
-| {{ .Destination }} | {{ .Gateway }} | {{ .Interface }} | {{ .Description }} |
+| {{ .Destination }} | {{ .Gateway }} | {{ .Interface }} | {{ escapeTableContent .Description }} |
 {{- end }}
 
 ---

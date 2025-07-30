@@ -32,10 +32,10 @@ _No audit issues detected._
 
 ## Interfaces
 
-| Name | IP | Netmask | Gateway | Enabled | Comments |
-|------|----|---------|---------|---------|----------|
+| Name | IP | Subnet | Gateway | Enabled | Comments |
+|------|----|--------|---------|---------|----------|
 {{- range .Interfaces }}
-| {{ .Name }} | {{ .Ipaddr }} | {{ .Subnet }} | {{ .Gateway }} | {{ .Enabled }} | {{ .Description }} |
+| {{ .Name }} | {{ .Ipaddr }} | {{ .Subnet }} | {{ .Gateway }} | {{ .Enabled }} | {{ escapeTableContent .Description }} |
 {{- end }}
 
 ---
@@ -55,7 +55,7 @@ _No audit issues detected._
 | Iface | Ext Port | Int IP | Int Port | Description |
 |-------|----------|--------|----------|-------------|
 {{- range .NAT }}
-| {{ .Interface }} | {{ .ExternalPort }} | {{ .InternalIP }} | {{ .InternalPort }} | {{ .Description }} |
+| {{ .Interface }} | {{ .ExternalPort }} | {{ .InternalIP }} | {{ .InternalPort }} | {{ escapeTableContent .Description }} |
 {{- end }}
 
 ---
@@ -65,7 +65,7 @@ _No audit issues detected._
 | Iface | Action | Proto | Src → Dst | Port | Comment |
 |-------|--------|-------|------------|------|---------|
 {{- range .FirewallRules }}
-| {{ .Interface }} | {{ .Action }} | {{ .Protocol }} | {{ .Source }} → {{ .Destination }} | {{ .Port }} | {{ .Description }} |
+| {{ .Interface }} | {{ .Action }} | {{ .Protocol }} | {{ .Source }} → {{ .Destination }} | {{ .Port }} | {{ escapeTableContent .Description }} |
 {{- end }}
 
 ---
@@ -75,7 +75,7 @@ _No audit issues detected._
 | Destination | Gateway | Interface | Notes |
 |-------------|---------|-----------|-------|
 {{- range .Routes }}
-| {{ .Destination }} | {{ .Gateway }} | {{ .Interface }} | {{ .Description }} |
+| {{ .Destination }} | {{ .Gateway }} | {{ .Interface }} | {{ escapeTableContent .Description }} |
 {{- end }}
 
 ---

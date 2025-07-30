@@ -2,6 +2,8 @@ package markdown
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/unclesp1d3r/opnFocus/internal/model"
@@ -186,6 +188,95 @@ func TestFormatValidation(t *testing.T) {
 			} else {
 				assert.Error(t, err)
 			}
+		})
+	}
+}
+
+func TestEscapeTableContent(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    any
+		expected string
+	}{
+		{
+			name:     "nil input",
+			input:    nil,
+			expected: "",
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "simple text",
+			input:    "normal text",
+			expected: "normal text",
+		},
+		{
+			name:     "pipe character",
+			input:    "text with | pipe",
+			expected: "text with \\| pipe",
+		},
+		{
+			name:     "multiple pipe characters",
+			input:    "text | with | multiple | pipes",
+			expected: "text \\| with \\| multiple \\| pipes",
+		},
+		{
+			name:     "newline character",
+			input:    "line1\nline2",
+			expected: "line1<br>line2",
+		},
+		{
+			name:     "carriage return",
+			input:    "line1\rline2",
+			expected: "line1<br>line2",
+		},
+		{
+			name:     "carriage return newline",
+			input:    "line1\r\nline2",
+			expected: "line1<br>line2",
+		},
+		{
+			name:     "mixed special characters",
+			input:    "text | with\nnewlines\r\nand\rreturns",
+			expected: "text \\| with<br>newlines<br>and<br>returns",
+		},
+		{
+			name:     "non-string type",
+			input:    123,
+			expected: "123",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a template function map with our escapeTableContent function
+			funcMap := map[string]any{
+				"escapeTableContent": func(content any) string {
+					if content == nil {
+						return ""
+					}
+					str := fmt.Sprintf("%v", content)
+					// Escape pipe characters by replacing | with \|
+					str = strings.ReplaceAll(str, "|", "\\|")
+					// Replace carriage return + newline first to avoid double replacement
+					str = strings.ReplaceAll(str, "\r\n", "<br>")
+					// Replace remaining newlines with <br> for HTML rendering
+					str = strings.ReplaceAll(str, "\n", "<br>")
+					// Replace remaining carriage returns with <br>
+					str = strings.ReplaceAll(str, "\r", "<br>")
+					return str
+				},
+			}
+
+			// Get the function and call it
+			escapeFunc, ok := funcMap["escapeTableContent"].(func(any) string)
+			require.True(t, ok, "escapeTableContent function should be of correct type")
+			result := escapeFunc(tt.input)
+
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }

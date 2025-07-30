@@ -2,6 +2,7 @@
 package cmd
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -347,12 +348,22 @@ func determineOutputPath(inputFile, outputFile, fileExt string, cfg *config.Conf
 	if _, err := os.Stat(actualOutputFile); err == nil {
 		// File exists, check if we should overwrite
 		if !force {
-			// Prompt user for confirmation
-			fmt.Printf("File '%s' already exists. Overwrite? (y/N): ", actualOutputFile)
+			// Prompt user for confirmation (using stderr to avoid interfering with piped output)
+			fmt.Fprintf(os.Stderr, "File '%s' already exists. Overwrite? (y/N): ", actualOutputFile)
 
-			var response string
-			if _, err := fmt.Scanln(&response); err != nil {
+			// Use bufio.NewReader to correctly capture entire input line including spaces
+			reader := bufio.NewReader(os.Stdin)
+			response, err := reader.ReadString('\n')
+			if err != nil {
 				return "", fmt.Errorf("failed to read user input: %w", err)
+			}
+
+			// Trim whitespace and newline characters
+			response = strings.TrimSpace(response)
+
+			// Empty input defaults to "N" (no)
+			if response == "" {
+				response = "N"
 			}
 
 			// Only proceed if user explicitly confirms with 'y' or 'Y'
