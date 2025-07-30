@@ -275,22 +275,22 @@ spec:
   template:
     spec:
       containers:
-      - name: opnfocus
-        image: opnfocus:latest
-        args: ["convert", "/data/config.xml", "--config", "/app/config/config.yaml"]
-        volumeMounts:
-        - name: config
-          mountPath: /app/config
-          subPath: config.yaml
-        - name: data
-          mountPath: /data
+        - name: opnfocus
+          image: opnfocus:latest
+          args: ["convert", "/data/config.xml", "--config", "/app/config/config.yaml"]
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+              subPath: config.yaml
+            - name: data
+              mountPath: /data
       volumes:
-      - name: config
-        configMap:
-          name: opnfocus-config
-      - name: data
-        persistentVolumeClaim:
-          claimName: opnfocus-data
+        - name: config
+          configMap:
+            name: opnfocus-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: opnfocus-data
       restartPolicy: Never
 ```
 
