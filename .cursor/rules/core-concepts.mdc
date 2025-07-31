@@ -1,13 +1,22 @@
 ---
 alwaysApply: true
 ---
+## 🎯 Core Philosophy
+- **Operator-Focused:** Build tools for operators, by operators. Workflows should be intuitive and efficient for the end-user
+- **Offline-First:** Systems must operate in fully offline or airgapped environments with no external dependencies
+- **Structured Data:** Data should be structured, versioned, and portable for auditable, actionable, and reliable systems
+- **Framework-First:** Leverage built-in functionality of established frameworks. Avoid custom solutions when established ones exist
+
+---
 ## 🔧 Technology Stack
-- **CLI Framework:** `cobra` for command organization
-- **Configuration:** `charmbracelet/fang` for config management
+- **CLI Framework:** `cobra` v1.8.0 for command organization
+- **Configuration:** `charmbracelet/fang` for styled help, errors, and features + `spf13/viper` for configuration parsing
 - **Styling:** `charmbracelet/lipgloss` for terminal output
 - **Markdown:** `charmbracelet/glamour` for rendering
-- **XML Parsing:** `encoding/xml` for OPNsense config files
-- **Logging:** `log/slog` for structured logging
+- **XML Parsing:** `encoding/xml` for OPNsense config files (XML tags must strictly follow OPNsense structure)
+- **Logging:** `charmbracelet/log` for structured logging
+- **Data Formats:** Support for XML, JSON, and YAML export formats
+- **Multi-Format Export:** Convert configurations to markdown, JSON, or YAML formats
 
 ---
 
@@ -45,6 +54,16 @@ When encountering problems:
 - Explain the problem in ≤ 5 lines
 - Propose a concrete path forward
 - Don't proceed without resolving blockers
+
+---
+
+## 🔒 Security Principles
+- **No Secrets in Code:** Never hardcode API keys, passwords, or sensitive data in source code
+- **Environment Variables:** Use environment variables or secure vaults for configuration secrets
+- **Input Validation:** Always validate and sanitize user inputs
+- **Secure Defaults:** Default to secure configurations
+- **File Permissions:** Use restrictive file permissions (0600 for config files)
+- **Error Messages:** Avoid exposing sensitive information in error messages
 
 ---
 

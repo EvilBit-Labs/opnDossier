@@ -52,6 +52,23 @@
 - Handle configuration edge cases gracefully
 - Return meaningful findings with proper severity levels
 
+## Multi-Format Export and Validation
+
+### Export Standards
+
+- Support export to markdown, JSON, and YAML formats
+- Validate exported files are parseable by standard tools and libraries
+- Implement smart file naming with overwrite protection
+- Use `-f` flag for force overwrite operations
+- Usage: `opnfocus convert config.xml --format [markdown|json|yaml]`
+
+### Validation Integration
+
+- Apply validation automatically during parsing
+- Provide explicit validation via CLI commands
+- Handle large configurations with memory-efficient approaches
+- Enhance configuration integrity by validating against rules and constraints
+
 ## Integration Guidelines
 
 ### Plugin Development

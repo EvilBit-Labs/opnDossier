@@ -156,8 +156,15 @@ func (mc *ModeController) generateBlueReport(ctx context.Context, report *Report
 		complianceResult, err := mc.registry.RunComplianceChecks(report.Configuration, config.SelectedPlugins)
 		if err != nil {
 			mc.logger.WarnContext(ctx, "Failed to run compliance checks", "error", err)
+			// Add metadata to report indicating compliance check failure
+			report.Metadata["compliance_check_status"] = "failed"
+			report.Metadata["compliance_check_error"] = err.Error()
+			report.Metadata["compliance_check_time"] = time.Now().Format(time.RFC3339)
 		} else {
 			report.Compliance["plugin_results"] = *complianceResult
+			// Add metadata to report indicating successful compliance checks
+			report.Metadata["compliance_check_status"] = "completed"
+			report.Metadata["compliance_check_time"] = time.Now().Format(time.RFC3339)
 		}
 	}
 

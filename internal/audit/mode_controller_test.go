@@ -7,6 +7,9 @@ import (
 	"testing"
 
 	"github.com/unclesp1d3r/opnFocus/internal/model"
+	"github.com/unclesp1d3r/opnFocus/internal/plugins/firewall"
+	"github.com/unclesp1d3r/opnFocus/internal/plugins/sans"
+	"github.com/unclesp1d3r/opnFocus/internal/plugins/stig"
 	"github.com/unclesp1d3r/opnFocus/internal/processor"
 )
 
@@ -137,6 +140,21 @@ func TestModeController_ValidateModeConfig(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	controller := NewModeController(registry, logger)
 
+	// Register test plugins to validate against
+	stigPlugin := stig.NewPlugin()
+	sansPlugin := sans.NewPlugin()
+	firewallPlugin := firewall.NewPlugin()
+
+	if err := registry.RegisterPlugin(stigPlugin); err != nil {
+		t.Fatalf("Failed to register STIG plugin: %v", err)
+	}
+	if err := registry.RegisterPlugin(sansPlugin); err != nil {
+		t.Fatalf("Failed to register SANS plugin: %v", err)
+	}
+	if err := registry.RegisterPlugin(firewallPlugin); err != nil {
+		t.Fatalf("Failed to register Firewall plugin: %v", err)
+	}
+
 	tests := []struct {
 		name    string
 		config  *ModeConfig
@@ -172,6 +190,78 @@ func TestModeController_ValidateModeConfig(t *testing.T) {
 			name: "invalid mode",
 			config: &ModeConfig{
 				Mode: "invalid",
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid plugin selection - single plugin",
+			config: &ModeConfig{
+				Mode:            ModeBlue,
+				SelectedPlugins: []string{"stig"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid plugin selection - multiple plugins",
+			config: &ModeConfig{
+				Mode:            ModeRed,
+				SelectedPlugins: []string{"stig", "sans", "firewall"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid plugin selection - empty plugins array",
+			config: &ModeConfig{
+				Mode:            ModeStandard,
+				SelectedPlugins: []string{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid plugin selection - nil plugins array",
+			config: &ModeConfig{
+				Mode:            ModeBlue,
+				SelectedPlugins: nil,
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid plugin selection - non-existent plugin",
+			config: &ModeConfig{
+				Mode:            ModeRed,
+				SelectedPlugins: []string{"nonexistent"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid plugin selection - mixed valid and invalid",
+			config: &ModeConfig{
+				Mode:            ModeBlue,
+				SelectedPlugins: []string{"stig", "invalid-plugin", "sans"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid plugin selection - case sensitive",
+			config: &ModeConfig{
+				Mode:            ModeStandard,
+				SelectedPlugins: []string{"STIG"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid plugin selection - empty string",
+			config: &ModeConfig{
+				Mode:            ModeRed,
+				SelectedPlugins: []string{""},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid plugin selection - whitespace only",
+			config: &ModeConfig{
+				Mode:            ModeBlue,
+				SelectedPlugins: []string{"   "},
 			},
 			wantErr: true,
 		},
@@ -247,7 +337,7 @@ func TestModeController_GenerateReport(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "nil configuration",
+			name: "nil document",
 			config: &ModeConfig{
 				Mode: ModeStandard,
 			},
@@ -258,7 +348,7 @@ func TestModeController_GenerateReport(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var cfg *model.OpnSenseDocument
-			if tt.name == "nil configuration" {
+			if tt.name == "nil document" {
 				cfg = nil
 			} else {
 				cfg = testConfig

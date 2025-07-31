@@ -212,6 +212,10 @@ go test -bench=. ./...
 
 # Run integration tests
 go test -tags=integration ./...
+
+# Use just commands for consistent workflow
+just test              # Run the full test suite
+just ci-check          # Run CI-equivalent checks locally
 ```
 
 ## Test File Organization

@@ -286,41 +286,63 @@ func (sp *Plugin) hasUnnecessaryServices(config *model.OpnSenseDocument) bool {
 	return false
 }
 
-func (sp *Plugin) hasComprehensiveLogging(config *model.OpnSenseDocument) bool {
-	// Check for comprehensive logging configuration
+// LoggingStatus represents the result of logging configuration analysis.
+type LoggingStatus int
 
+const (
+	// LoggingStatusNotConfigured indicates no logging configuration is detected.
+	LoggingStatusNotConfigured LoggingStatus = iota
+	// LoggingStatusComprehensive indicates comprehensive logging is properly configured.
+	LoggingStatusComprehensive
+	// LoggingStatusPartial indicates logging is partially configured but missing critical components.
+	LoggingStatusPartial
+	// LoggingStatusUnableToDetermine indicates logging status cannot be determined due to model limitations.
+	LoggingStatusUnableToDetermine
+)
+
+func (sp *Plugin) hasComprehensiveLogging(config *model.OpnSenseDocument) bool {
+	status := sp.analyzeLoggingConfiguration(config)
+	return status == LoggingStatusComprehensive
+}
+
+// analyzeLoggingConfiguration provides detailed analysis of logging configuration
+// and returns a LoggingStatus indicating the level of logging coverage.
+func (sp *Plugin) analyzeLoggingConfiguration(config *model.OpnSenseDocument) LoggingStatus {
 	// Check syslog configuration
 	if config.Syslog.Enable.Bool() {
 		// Syslog is enabled - good
 		// Check if it's configured to log important events
 		if config.Syslog.System.Bool() && config.Syslog.Auth.Bool() {
 			// System and auth logging are enabled
-			return true
+			return LoggingStatusComprehensive
 		}
+		// Syslog enabled but missing critical logging categories
+		return LoggingStatusPartial
 	}
 
 	// Check for firewall rule logging
 	rules := config.FilterRules()
-	loggingEnabled := false
-	for range rules {
-		// Look for rules with logging enabled
-		// This would typically be indicated by a log field in the rule
-		// Since the current model doesn't show this explicitly,
-		// we'll assume logging is enabled if there are rules present
-		// and syslog is configured
-		if config.Syslog.Enable.Bool() {
-			loggingEnabled = true
-			break
-		}
+	if len(rules) > 0 {
+		// CRITICAL ASSUMPTION: When firewall rules exist and syslog is not explicitly
+		// configured, we cannot definitively determine if logging is enabled.
+		// The current model doesn't expose individual rule logging settings,
+		// so we must return "unable to determine" rather than making assumptions
+		// about logging being enabled or disabled.
+		//
+		// This assumption affects compliance assessment accuracy and should be
+		// addressed by enhancing the model to expose rule-level logging configuration.
+		return LoggingStatusUnableToDetermine
 	}
 
 	// Check for IDS/IPS logging if available
 	if config.OPNsense.Firewall != nil {
 		// Firewall is configured - this provides additional logging capabilities
-		return true
+		// but without syslog, we cannot determine if logging is actually enabled
+		return LoggingStatusUnableToDetermine
 	}
 
-	return loggingEnabled
+	// No logging configuration detected
+	return LoggingStatusNotConfigured
 }
 
 // broadNetworkRanges returns a slice of common broad network ranges.

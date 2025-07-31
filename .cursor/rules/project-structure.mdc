@@ -39,11 +39,16 @@ opnFocus/
 ### Source Code Organization
 
 ```text
-opnFocus/
-├── cmd/                      # CLI command definitions and entry points
-├── internal/                 # Private application logic and business rules
-├── testdata/                 # Test data and fixtures
-└── docs/                     # Documentation
+opnfocus/
+├── cmd/
+│   ├── convert.go                         # Convert command entry point
+│   ├── display.go                         # Display command entry point
+│   ├── validate.go                        # Validate command entry point
+│   └── root.go                            # Root command and main entry point
+├── internal/                              # Private application logic and business rules
+├── pkg/                                   # Public packages (if any)
+├── testdata/                              # Test data and fixtures
+└── docs/                                  # Documentation
 ```
 
 ### Internal Package Structure
