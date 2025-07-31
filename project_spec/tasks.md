@@ -231,7 +231,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Action**: Create `internal/audit/` package with audit finding structs including Title, Severity, Description, Recommendation, Tags, and optional AttackSurface/ExploitNotes for red mode
   - **Acceptance**: Audit engine uses consistent internal structure for all findings
 
-- [ ] **TASK-024**: Implement multi-mode report controller
+- [x] **TASK-024**: Implement multi-mode report controller
 
   - **Context**: Need to support standard, blue, and red report modes with different content and tone
   - **Requirement**: F016 (Multiple Modes), F020 (Standard Summary Report)
