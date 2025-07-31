@@ -1,0 +1,89 @@
+---
+globs: **/*.go
+alwaysApply: false
+---
+# Go Development Standards
+
+## Code Organization
+
+### Package Structure
+
+- Follow Google Go Style Guide for package organization
+- Use `internal/` for private application logic
+- Use `pkg/` for public packages that can be reused
+- Use `cmd/` for CLI command definitions
+
+### File Naming
+
+- Use snake_case for file names
+- Use descriptive names that indicate functionality
+- Group related functionality in the same package
+
+## Coding Standards
+
+### Naming Conventions
+
+- Use `camelCase` for variables and functions
+- Use `PascalCase` for exported types and functions
+- Use descriptive names that clearly indicate purpose
+- Avoid abbreviations unless they are widely understood
+
+### Error Handling
+
+- Always check errors and provide meaningful context
+- Use `fmt.Errorf` or `errors.Wrap` for error context
+- Don't use `log.Fatal` in library code
+- Return errors rather than panicking
+
+### Documentation
+
+- Include package comments for all packages
+- Document all exported functions and types
+- Use clear, concise descriptions
+- Include examples for complex functionality
+
+## Testing Standards
+
+### Test Organization
+
+- Use table-driven tests for multiple scenarios
+- Use `t.Run()` for subtests
+- Aim for >80% test coverage
+- Test both success and failure cases
+
+### Test Naming
+
+- Use descriptive test names that indicate what is being tested
+- Use `TestFunctionName` pattern for test functions
+- Use `TestFunctionName_Scenario` for specific test cases
+
+## Performance Guidelines
+
+### Memory Management
+
+- Minimize memory allocations
+- Use efficient data structures
+- Consider using object pools for frequently allocated objects
+- Profile memory usage for large operations
+
+### Concurrency
+
+- Use goroutines and channels appropriately
+- Avoid race conditions with proper synchronization
+- Use `go test -race` to detect race conditions
+- Consider context cancellation for long-running operations
+
+## Dependencies
+
+### Dependency Management
+
+- Use Go modules for dependency management
+- Pin dependency versions for stability
+- Regularly update dependencies for security
+- Minimize external dependencies
+
+### Import Organization
+
+- Use `goimports` for import organization
+- Group imports: standard library, third-party, internal
+- Use absolute import paths for clarity
