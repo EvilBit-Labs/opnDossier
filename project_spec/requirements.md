@@ -124,40 +124,16 @@
   - **F013**: Support multiple output styles (comprehensive, summary) for file export (selectable via CLI flag)
   - **F014**: Analyze the XML configuration and provide a report of the configuration, containing common security and performance issues, if any are found
   - **F015**: Export files must be valid and parseable by standard tools and libraries (markdown linters, JSON parsers, YAML parsers)
-  - **F016**: Support for Audit Report Generation in Multiple Modes
-    - The system must support generating reports in at least three modes: standard, blue, and red (see `internal/templates/reports/`)
-    - The selected mode determines both the included content and the tone/perspective of the output
-  - **F017**: Template-Driven Markdown Output
-    - The system must generate Markdown reports using Go text/template files (see `internal/templates/reports/`)
-    - Templates must be user-extensible and include sections such as: interfaces, firewall rules, NAT rules, DHCP, certificates, VPN config, static routes, and high availability
-  - **F018**: Red Team Recon Reporting
-    - When --mode=red is selected, the report must:
-    - Highlight WAN-exposed services, weak NAT rules, admin portals, and known attack surfaces
-    - Include snarky or attacker-focused commentary if --blackhat-mode is enabled
-    - Present data useful for pivoting or enumeration (e.g., hostnames, static leases, service ports)
-  - **F019**: Blue Team Defensive Reporting
-    - When --mode=blue is selected, the report must:
-    - Include audit findings (e.g., insecure SNMP, allow-all rules, expired certs)
-    - Include structured configuration tables for visibility
-    - Include recommendations with severity ratings
-  - **F020**: Standard Summary Report
-    - When --mode=standard (or default) is selected, the system must:
-    - Produce a detailed but neutral config documentation report
-    - Include system metadata, rule counts, interfaces, certs, DHCP, routes, and HA
-  - **F021**: Audit Finding Struct Support
-    - The audit engine must use a consistent internal structure for audit findings:
-    - Title, Severity, Description, Recommendation, Tags
-    - Red mode may additionally include: AttackSurface, ExploitNotes
-  - **F022**: Plugin-Based Compliance Architecture
-    - The system must support a plugin-based architecture for compliance standards
-    - Plugins must implement a standardized interface for compliance checking
-    - Support for dynamic plugin registration and management
-    - Plugin lifecycle management including initialization, validation, and cleanup
-    - Plugin metadata tracking (name, version, description, controls)
-    - Support for plugin-specific configuration and settings
-    - Plugin dependency management and validation
-    - Plugin statistics and usage reporting
-    - Support for both internal (bundled) and external (third-party) plugins
+  - **F016**: Support audit report generation in three modes: standard (neutral documentation), blue (defensive analysis with findings and recommendations), and red (attack surface enumeration with optional blackhat commentary)
+  - **F017**: Generate Markdown reports using Go text/template files from `internal/templates/reports/` with user-extensible sections for interfaces, firewall rules, NAT rules, DHCP, certificates, VPN config, static routes, and high availability
+  - **F018**: Red team mode must highlight WAN-exposed services, weak NAT rules, admin portals, attack surfaces, and provide pivot data (hostnames, static leases, service ports) with optional blackhat commentary
+  - **F019**: Blue team mode must include audit findings (insecure SNMP, allow-all rules, expired certs), structured configuration tables, and actionable recommendations with severity ratings
+  - **F020**: Standard mode must produce detailed neutral configuration documentation including system metadata, rule counts, interfaces, certificates, DHCP, routes, and high availability
+  - **F021**: Use consistent audit finding structure with Title, Severity, Description, Recommendation, Tags (Red mode adds AttackSurface, ExploitNotes)
+  - **F022**: Support plugin-based compliance architecture with standardized interfaces, dynamic registration, lifecycle management, metadata tracking, configuration support, dependency management, and statistics reporting for both internal and external plugins
+  - **F023**: Support convert mode that processes OPNsense XML configuration files and exports to JSON, YAML, or Markdown files on disk (with error handling, overwrite protection, and smart file naming)
+  - **F024**: Support display mode that converts XML configurations to Markdown and renders in terminal with syntax highlighting using Charm Lipgloss (supporting themes from F009 and output styles from F012)
+  - **F025**: Support audit mode that runs the compliance audit engine using plugin architecture (F022) and template-driven reporting (F017) with all three modes (F016) and structured findings (F021)
 
 - **User Stories and Use Cases**:
 
@@ -306,6 +282,7 @@
 ```bash
 just install    # Install dependencies and tools
 just dev        # Run development server
+just format     # Run formatting fixes
 just lint       # Run linting and code checks
 just test       # Run test suite
 just check      # Run pre-commit checks
@@ -966,14 +943,15 @@ just build      # Build application
 
 ## Document Metadata
 
-| Field            | Value                                    |
-| ---------------- | ---------------------------------------- |
-| Document Version | 2.0                                      |
-| Created Date     | 2025-07-23                               |
-| Last Modified    | 2025-07-23                               |
-| Author(s)        | unclesp1d3r <unclesp1d3r@protonmail.com> |
-| Reviewers        | unclesp1d3r <unclesp1d3r@protonmail.com> |
-| Approval Status  | Approved                                 |
+| Field            | Value                                                                            |
+| ---------------- | -------------------------------------------------------------------------------- |
+| Document Version | 2.1                                                                              |
+| Created Date     | 2025-07-23                                                                       |
+| Last Modified    | 2025-07-31                                                                       |
+| Author(s)        | unclesp1d3r <unclesp1d3r@protonmail.com>                                         |
+| Reviewers        | unclesp1d3r <unclesp1d3r@protonmail.com>                                         |
+| Approval Status  | Approved                                                                         |
+| Change Summary   | Balanced verbosity of requirements F016-F025 for consistency with document style |
 
 ---
 

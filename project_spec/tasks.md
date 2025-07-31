@@ -123,7 +123,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Requirement**: F002 (Markdown conversion), US-003 (Markdown conversion), F011 (Markdown generation)
   - **User Story**: US-003-US-004 (Markdown Conversion)
   - **Action**: Create `internal/markdown/` package that takes opnSense model and generates structured markdown string using templates in `internal/templates` and `https://pkg.go.dev/github.com/Masterminds/sprig/v3` for template functions
-  - **Acceptance**: Generator produces properly formatted markdown string from opnSense model using templates
+  - **Acceptance**: Generator produces properly formatted markdown string from opnSense model using templates from `internal/templates` with sprig template functions
 
 - [x] **TASK-012**: Implement calculated fields and model enrichment
 
@@ -139,22 +139,22 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Requirement**: F002 (Template-based generation), US-004 (Syntax highlighting), F011 (Markdown generation)
   - **User Story**: US-004 (Structured markdown output)
   - **Action**: Implement template rendering system using templates in `internal/templates` for comprehensive and summary formats
-  - **Acceptance**: Generated markdown string is well-formatted, structured, and uses appropriate templates
+  - **Acceptance**: Generated markdown string is well-formatted, structured, and uses appropriate templates with comprehensive and summary output styles
 
 ### 3.2 Terminal Display Implementation (`opnfocus display`)
 
 - [x] **TASK-014**: Implement terminal display with glamour
 
   - **Context**: Take in-memory markdown string and render to terminal with markdown rendering
-  - **Requirement**: F003 (Terminal display), US-004 (Syntax highlighting), F012 (Terminal display)
+  - **Requirement**: F003 (Terminal display), US-004 (Syntax highlighting), F012 (Terminal display), F024 (Display mode)
   - **User Story**: US-004 (Terminal output), US-043 (Theme support)
   - **Action**: Create `internal/display/` package that renders markdown string to terminal using `github.com/charmbracelet/glamour`
-  - **Acceptance**: `opnfocus display` command renders markdown string with colored, syntax-highlighted output
+  - **Acceptance**: `opnfocus display` command renders markdown string with colored, syntax-highlighted output and handles large configurations gracefully with pagination or scrolling
 
 - [x] **TASK-015**: Add theme support (light/dark)
 
   - **Context**: Need support for different terminal themes in display output
-  - **Requirement**: US-043 (Theme support), F009 (Theme support), F012 (Terminal display)
+  - **Requirement**: US-043 (Theme support), F009 (Theme support), F012 (Terminal display), F024 (Display mode)
   - **User Story**: US-043 (Light and dark theme support)
   - **Action**: Implement theme detection and appropriate color schemes for terminal display
   - **Acceptance**: Terminal display is readable in both light and dark terminal themes
@@ -162,10 +162,10 @@ This document provides a comprehensive task checklist for implementing the opnFo
 - [x] **TASK-016**: Implement theme-aware markdown rendering
 
   - **Context**: Configure glamour with theme detection and appropriate styling for light/dark terminals
-  - **Requirement**: Technical Specifications (glamour library), F009 (Theme support), F012 (Terminal display)
+  - **Requirement**: Technical Specifications (glamour library), F009 (Theme support), F012 (Terminal display), F024 (Display mode)
   - **User Story**: US-004 (Markdown rendering), US-043 (Theme support)
   - **Action**: Configure glamour renderer with theme detection and appropriate color schemes
-  - **Acceptance**: Markdown renders with appropriate colors for both light and dark terminal themes; it should fallback to ascii if the terminal is not color capable and notty if color is disabled
+  - **Acceptance**: Markdown renders with appropriate colors for both light and dark terminal themes; it should fallback to ascii if the terminal is not color capable and notty if color is disabled, with proper theme detection and fallback behavior
 
 ---
 
@@ -176,31 +176,31 @@ This document provides a comprehensive task checklist for implementing the opnFo
 - [x] **TASK-017**: Implement markdown file export
 
   - **Context**: Export opnSense model as markdown string to file using templates
-  - **Requirement**: F004 (File export), US-005, US-006 (File export), F010 (Multiple output formats), F013 (File export), F015 (Valid and parseable files)
+  - **Requirement**: F004 (File export), US-005, US-006 (File export), F010 (Multiple output formats), F013 (File export), F015 (Valid and parseable files), F023 (Convert mode)
   - **User Story**: US-005-US-006 (File Export)
   - **Action**: Create markdown export functionality in `internal/export/` package
-  - **Acceptance**: Exports valid markdown file with no terminal control characters, uses templates from `internal/templates`, passes markdown validation tests
+  - **Acceptance**: Exports valid markdown file with no terminal control characters, uses templates from `internal/templates`, passes markdown validation tests, includes error handling, overwrite protection, and smart file naming
 
 - [x] **TASK-018**: Implement JSON file export
 
   - **Context**: Export opnSense model as JSON file for programmatic access
-  - **Requirement**: F004 (File export), F010 (Multiple output formats), F013 (File export), F015 (Valid and parseable files)
+  - **Requirement**: F004 (File export), F010 (Multiple output formats), F013 (File export), F015 (Valid and parseable files), F023 (Convert mode)
   - **User Story**: US-005-US-006 (File Export)
   - **Action**: Create JSON export functionality in `internal/export/` package
-  - **Acceptance**: Exports valid, parsable JSON file with no terminal control characters, passes JSON validation tests
+  - **Acceptance**: Exports valid, parsable JSON file with no terminal control characters, passes JSON validation tests, includes error handling and validation features
 
 - [x] **TASK-019**: Implement YAML file export
 
   - **Context**: Export opnSense model as YAML file for human-readable structured data
-  - **Requirement**: F004 (File export), F010 (Multiple output formats), F013 (File export), F015 (Valid and parseable files)
+  - **Requirement**: F004 (File export), F010 (Multiple output formats), F013 (File export), F015 (Valid and parseable files), F023 (Convert mode)
   - **User Story**: US-005-US-006 (File Export)
   - **Action**: Create YAML export functionality in `internal/export/` package
-  - **Acceptance**: Exports valid, parsable YAML file with no terminal control characters, passes YAML validation tests
+  - **Acceptance**: Exports valid, parsable YAML file with no terminal control characters, passes YAML validation tests, includes error handling and validation features
 
 - [x] **TASK-020**: Implement output file naming and overwrite protection
 
   - **Context**: Handle output file naming with smart defaults and overwrite protection
-  - **Requirement**: US-006 (Custom output files), F004 (File export), US-018 (Error handling)
+  - **Requirement**: US-006 (Custom output files), F004 (File export), US-018 (Error handling), F023 (Convert mode)
   - **User Story**: US-006 (Custom output files), US-018 (Clear error messages)
   - **Action**: Implement output file naming logic with defaults (config.md, config.json, config.yaml) and overwrite prompts with `-f` force option
   - **Acceptance**: Uses input filename with appropriate extension as default, prompts before overwrite unless `-f` flag provided, no automatic directory creation
@@ -208,7 +208,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 - [x] **TASK-021**: Add file validation and error handling
 
   - **Context**: Need proper file I/O error handling for export operations
-  - **Requirement**: US-018 (Error handling), Data validation rules
+  - **Requirement**: US-018 (Error handling), Data validation rules, F023 (Convert mode)
   - **User Story**: US-018 (Clear error messages)
   - **Action**: Implement comprehensive file validation and error handling for export operations
   - **Acceptance**: Provides clear error messages for file I/O issues during export
@@ -216,7 +216,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 - [x] **TASK-021a**: Implement exported file validation tests
 
   - **Context**: Need to ensure exported files are valid and parseable by standard tools
-  - **Requirement**: F015 (Valid and parseable files), Testing Standards
+  - **Requirement**: F015 (Valid and parseable files), Testing Standards, F023 (Convert mode)
   - **User Story**: US-020-US-021 (Testing and Validation)
   - **Action**: Create validation tests that verify exported files can be parsed by standard tools (markdown linters, JSON parsers, YAML parsers)
   - **Acceptance**: All exported files pass validation tests with standard tools and libraries
@@ -226,7 +226,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 - [x] **TASK-023**: Implement audit finding struct and data model
 
   - **Context**: Need consistent internal structure for audit findings across all modes
-  - **Requirement**: F021 (Audit Finding Struct Support), F016 (Multiple Modes)
+  - **Requirement**: F021 (Audit Finding Struct Support), F016 (Multiple Modes), F025 (Audit mode)
   - **User Story**: US-046-US-048 (Audit Report Generation)
   - **Action**: Create `internal/audit/` package with audit finding structs including Title, Severity, Description, Recommendation, Tags, and optional AttackSurface/ExploitNotes for red mode
   - **Acceptance**: Audit engine uses consistent internal structure for all findings
@@ -234,7 +234,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 - [x] **TASK-024**: Implement multi-mode report controller
 
   - **Context**: Need to support standard, blue, and red report modes with different content and tone
-  - **Requirement**: F016 (Multiple Modes), F020 (Standard Summary Report)
+  - **Requirement**: F016 (Multiple Modes), F020 (Standard Summary Report), F025 (Audit mode)
   - **User Story**: US-046-US-048 (Audit Report Generation)
   - **Action**: Create mode-based report generation system that determines content and tone based on --mode flag
   - **Acceptance**: System generates different report types based on selected mode
@@ -242,15 +242,15 @@ This document provides a comprehensive task checklist for implementing the opnFo
 - [ ] **TASK-025**: Implement template-driven markdown generation for audit reports
 
   - **Context**: Need to use Go text/template files for generating markdown reports with user-extensible templates
-  - **Requirement**: F017 (Template-Driven Markdown Output), F016 (Multiple Modes)
+  - **Requirement**: F017 (Template-Driven Markdown Output), F016 (Multiple Modes), F025 (Audit mode)
   - **User Story**: US-046-US-048 (Audit Report Generation)
   - **Action**: Create template system using Go text/template with sections for interfaces, firewall rules, NAT rules, DHCP, certificates, VPN config, static routes, and high availability
-  - **Acceptance**: Reports are generated using templates that are user-extensible and include all required sections
+  - **Acceptance**: Reports are generated using templates that are user-extensible and include all required sections (interfaces, firewall rules, NAT rules, DHCP, certificates, VPN config, static routes, and high availability)
 
 - [ ] **TASK-025a**: Support user template overrides
 
   - **Context**: Power users should be able to customize markdown templates
-  - **Requirement**: F017 (Template-Driven Markdown Output), F016 (Multiple Modes), User Experience Specifications
+  - **Requirement**: F017 (Template-Driven Markdown Output), F016 (Multiple Modes), User Experience Specifications, F025 (Audit mode)
   - **User Story**: US-048 (Standard summary reporting)
   - **Action**: Support `--template-dir` to override built-in templates with user-defined versions (e.g., `~/.opnDossier/templates`)
   - **Acceptance**: If override exists, user template is rendered instead of bundled default
@@ -258,15 +258,15 @@ This document provides a comprehensive task checklist for implementing the opnFo
 - [ ] **TASK-026**: Build red team recon module
 
   - **Context**: Need to generate attacker-focused reports highlighting attack surfaces and enumeration data
-  - **Requirement**: F018 (Red Team Recon Reporting), F016 (Multiple Modes)
+  - **Requirement**: F018 (Red Team Recon Reporting), F016 (Multiple Modes), F025 (Audit mode)
   - **User Story**: US-046 (Red Team Recon Reporting)
   - **Action**: Implement red mode reporting that highlights WAN-exposed services, weak NAT rules, admin portals, attack surfaces, and includes --blackhat-mode for snarky commentary
-  - **Acceptance**: Red mode reports highlight attack surfaces and provide data useful for pivoting/enumeration
+  - **Acceptance**: Red mode reports highlight attack surfaces and provide data useful for pivoting/enumeration including pivot data (hostnames, static leases, service ports)
 
 - [ ] **TASK-026a**: Classify red team findings
 
   - **Context**: Enhance red team reporting with attack-surface-specific classification
-  - **Requirement**: F018 (Red Team Recon Reporting), F016 (Multiple Modes), F021 (Audit Finding Struct Support)
+  - **Requirement**: F018 (Red Team Recon Reporting), F016 (Multiple Modes), F021 (Audit Finding Struct Support), F025 (Audit mode)
   - **User Story**: US-046 (Red team recon reporting)
   - **Action**: Add classification logic for:
     - `WAN exposed`
@@ -277,15 +277,15 @@ This document provides a comprehensive task checklist for implementing the opnFo
 - [ ] **TASK-027**: Build blue team audit module
 
   - **Context**: Need to generate defensive audit reports with findings and recommendations
-  - **Requirement**: F019 (Blue Team Defensive Reporting), F016 (Multiple Modes)
+  - **Requirement**: F019 (Blue Team Defensive Reporting), F016 (Multiple Modes), F025 (Audit mode)
   - **User Story**: US-047 (Blue Team Defensive Reporting)
   - **Action**: Implement blue mode reporting with audit findings, structured configuration tables, and recommendations with severity ratings
-  - **Acceptance**: Blue mode reports include security findings, structured data, and actionable recommendations
+  - **Acceptance**: Blue mode reports include security findings, structured configuration tables, and actionable recommendations with severity ratings
 
 - [ ] **TASK-027a**: Add compliance tagging to blue team findings
 
   - **Context**: Enable future CIS/STIG correlation
-  - **Requirement**: F019 (Blue Team Defensive Reporting), F016 (Multiple Modes), F021 (Audit Finding Struct Support)
+  - **Requirement**: F019 (Blue Team Defensive Reporting), F016 (Multiple Modes), F021 (Audit Finding Struct Support), F025 (Audit mode)
   - **User Story**: US-047 (Blue team defensive reporting)
   - **Action**: Allow findings to include optional compliance tags (e.g., `CIS-FW-2.1`)
   - **Acceptance**: Blue team report includes optional compliance mappings per finding
@@ -294,7 +294,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 - [x] **TASK-027b**: Implement STIG and SANS compliance integration
 
   - **Context**: Integrate industry-standard security compliance frameworks for comprehensive blue team reporting
-  - **Requirement**: F019 (Blue Team Defensive Reporting), F016 (Multiple Modes), F021 (Audit Finding Struct Support)
+  - **Requirement**: F019 (Blue Team Defensive Reporting), F016 (Multiple Modes), F021 (Audit Finding Struct Support), F025 (Audit mode)
   - **User Story**: US-047 (Blue team defensive reporting)
   - **Action**:
     - Create `internal/audit/standards.go` with STIG and SANS control definitions
@@ -310,7 +310,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 - [x] **TASK-027c**: Implement plugin-based compliance architecture
 
   - **Context**: Create a flexible, extensible plugin system for compliance standards
-  - **Requirement**: F022 (Plugin-Based Compliance Architecture), F016 (Multiple Modes), F021 (Audit Finding Struct Support)
+  - **Requirement**: F022 (Plugin-Based Compliance Architecture), F016 (Multiple Modes), F021 (Audit Finding Struct Support), F025 (Audit mode)
   - **User Story**: US-047 (Blue team defensive reporting), US-048 (Standard summary reporting)
   - **Action**:
     - Create `internal/audit/interfaces.go` with CompliancePlugin interface
@@ -329,15 +329,15 @@ This document provides a comprehensive task checklist for implementing the opnFo
 - [ ] **TASK-028**: Generate standard summary report
 
   - **Context**: Need neutral, comprehensive documentation reports for general use
-  - **Requirement**: F020 (Standard Summary Report), F016 (Multiple Modes)
+  - **Requirement**: F020 (Standard Summary Report), F016 (Multiple Modes), F025 (Audit mode)
   - **User Story**: US-048 (Standard Summary Reporting)
   - **Action**: Implement standard mode reporting with detailed but neutral config documentation including system metadata, rule counts, interfaces, certs, DHCP, routes, and HA
-  - **Acceptance**: Standard mode produces comprehensive, neutral documentation suitable for audit records
+  - **Acceptance**: Standard mode produces comprehensive, neutral documentation suitable for audit records including system metadata, rule counts, interfaces, certificates, DHCP, routes, and high availability
 
 - [ ] **TASK-029**: Add CLI flags for audit report modes
 
   - **Context**: Need command-line interface for selecting report modes and options
-  - **Requirement**: F016 (Multiple Modes), F018 (Red Team Recon Reporting)
+  - **Requirement**: F016 (Multiple Modes), F018 (Red Team Recon Reporting), F025 (Audit mode)
   - **User Story**: US-046-US-048 (Audit Report Generation)
   - **Action**: Add --mode flag (standard/blue/red) and --blackhat-mode flag for red team reports
   - **Acceptance**: CLI supports mode selection and blackhat mode option with proper validation
@@ -345,7 +345,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 - [ ] **TASK-029a**: Add CLI support for plugin-based compliance
 
   - **Context**: Need command-line interface for plugin selection and management
-  - **Requirement**: F022 (Plugin-Based Compliance Architecture), F016 (Multiple Modes)
+  - **Requirement**: F022 (Plugin-Based Compliance Architecture), F016 (Multiple Modes), F025 (Audit mode)
   - **User Story**: US-047 (Blue team defensive reporting), US-048 (Standard summary reporting)
   - **Action**:
     - Add --compliance flag for selecting specific compliance plugins
