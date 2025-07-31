@@ -52,9 +52,9 @@ This document provides a reference guide for implementing firewall security cont
 
 #### 1.7 DNS Rebind Check
 
-- **Control**: Disable DNS rebind check
+- **Control**: Enable DNS rebind check
 - **Rationale**: Protect against DNS rebinding attacks
-- **Implementation**: Uncheck DNS Rebind Check in System > Advanced
+- **Implementation**: Check DNS Rebind Check in System > Advanced
 - **Default**: Unchecked
 
 #### 1.8 HTTPS Web Management

@@ -74,6 +74,7 @@ For dynamic plugins, create a new Go module or directory with a `main` package.
 package plugins
 
 import (
+    "fmt"
     "github.com/unclesp1d3r/opnFocus/internal/plugin"
     "github.com/unclesp1d3r/opnFocus/internal/model"
 )

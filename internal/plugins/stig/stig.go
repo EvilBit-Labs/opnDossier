@@ -2,8 +2,17 @@
 package stig
 
 import (
+	"slices"
+
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 	"github.com/unclesp1d3r/opnFocus/internal/plugin"
+)
+
+const (
+	// NetworkAny represents "any" network in firewall rules.
+	NetworkAny = "any"
+	// MaxDHCPInterfaces represents the maximum number of DHCP interfaces before flagging as unnecessary.
+	MaxDHCPInterfaces = 2
 )
 
 // Plugin implements the CompliancePlugin interface for STIG compliance.
@@ -164,23 +173,164 @@ func (sp *Plugin) ValidateConfiguration() error {
 
 // Helper methods for compliance checks
 
-func (sp *Plugin) hasDefaultDenyPolicy(_ *model.OpnSenseDocument) bool {
+func (sp *Plugin) hasDefaultDenyPolicy(config *model.OpnSenseDocument) bool {
 	// Check for default deny policy configuration
-	return true // Placeholder - implement actual logic
+	rules := config.FilterRules()
+
+	// If no rules exist, assume default deny (conservative approach)
+	if len(rules) == 0 {
+		return true
+	}
+
+	// Look for explicit deny rules at the end of rule sets
+	hasExplicitDeny := false
+	for _, rule := range rules {
+		// Look for rules that explicitly deny traffic
+		if rule.Type == "block" || rule.Type == "reject" {
+			hasExplicitDeny = true
+			break
+		}
+	}
+
+	// Check if there are any "any/any" allow rules that would override default deny
+	hasAnyAnyAllow := false
+	for _, rule := range rules {
+		if rule.Type == "pass" {
+			// Check if source is "any"
+			if rule.Source.Any == "1" || rule.Source.Network == NetworkAny {
+				// Check if destination is "any" or if protocol allows broad access
+				if rule.Destination.Any == "1" || rule.Destination.Network == NetworkAny {
+					hasAnyAnyAllow = true
+					break
+				}
+			}
+		}
+	}
+
+	// Conservative approach: if there are explicit deny rules and no overly broad allow rules,
+	// consider it as having a default deny policy
+	return hasExplicitDeny && !hasAnyAnyAllow
 }
 
-func (sp *Plugin) hasOverlyPermissiveRules(_ *model.OpnSenseDocument) bool {
+func (sp *Plugin) hasOverlyPermissiveRules(config *model.OpnSenseDocument) bool {
 	// Check for overly permissive firewall rules
-	// This would analyze rules for overly broad address ranges, any/any rules, etc.
-	return false // Placeholder - implement actual logic
+	rules := config.FilterRules()
+
+	for _, rule := range rules {
+		if rule.Type == "pass" {
+			// Check for "any/any" rules (most permissive)
+			if (rule.Source.Any == "1" || rule.Source.Network == NetworkAny) &&
+				(rule.Destination.Any == "1" || rule.Destination.Network == NetworkAny) {
+				return true
+			}
+
+			// Check for broad network ranges (e.g., entire subnets without specific restrictions)
+			if rule.Source.Network != "" && (rule.Source.Network == NetworkAny ||
+				slices.Contains(sp.broadNetworkRanges(), rule.Source.Network)) {
+				// If destination is also broad, this is overly permissive
+				if rule.Destination.Network == "" || rule.Destination.Network == NetworkAny ||
+					slices.Contains(sp.broadNetworkRanges(), rule.Destination.Network) {
+					return true
+				}
+			}
+
+			// Check for rules without specific port restrictions
+			if rule.Destination.Port == "" || rule.Destination.Port == NetworkAny {
+				// This allows all ports, which is overly permissive
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
-func (sp *Plugin) hasUnnecessaryServices(_ *model.OpnSenseDocument) bool {
+func (sp *Plugin) hasUnnecessaryServices(config *model.OpnSenseDocument) bool {
 	// Check for unnecessary network services
-	return false // Placeholder - implement actual logic
+
+	// Check SNMP configuration - SNMP with community strings can be a security risk
+	if config.Snmpd.ROCommunity != "" {
+		// SNMP is enabled with community string - could be unnecessary
+		return true
+	}
+
+	// Check for enabled services that might be unnecessary
+	// Unbound DNS resolver with DNSSEC stripping
+	if config.Unbound.Enable == "1" {
+		// Check if it's configured with insecure settings
+		if config.Unbound.Dnssecstripped == "1" {
+			return true // DNSSEC stripping is a security concern
+		}
+	}
+
+	// Check for DHCP server on interfaces that might not need it
+	dhcpInterfaces := config.Dhcpd.Names()
+	if len(dhcpInterfaces) > 0 {
+		// Multiple DHCP interfaces might indicate unnecessary services
+		if len(dhcpInterfaces) > MaxDHCPInterfaces {
+			return true
+		}
+	}
+
+	// Check for load balancer services
+	if len(config.LoadBalancer.MonitorType) > 0 {
+		// Load balancer is configured - check if it's necessary
+		// This is a conservative check - load balancers can be necessary
+		// but also represent additional attack surface
+		return true
+	}
+
+	// Check for RRD (Round Robin Database) - usually necessary for monitoring
+	// but could be disabled in high-security environments
+	// RRD is generally necessary for monitoring, so we won't flag it as unnecessary
+	return false
 }
 
-func (sp *Plugin) hasComprehensiveLogging(_ *model.OpnSenseDocument) bool {
+func (sp *Plugin) hasComprehensiveLogging(config *model.OpnSenseDocument) bool {
 	// Check for comprehensive logging configuration
-	return true // Placeholder - implement actual logic
+
+	// Check syslog configuration
+	if config.Syslog.Enable.Bool() {
+		// Syslog is enabled - good
+		// Check if it's configured to log important events
+		if config.Syslog.System.Bool() && config.Syslog.Auth.Bool() {
+			// System and auth logging are enabled
+			return true
+		}
+	}
+
+	// Check for firewall rule logging
+	rules := config.FilterRules()
+	loggingEnabled := false
+	for range rules {
+		// Look for rules with logging enabled
+		// This would typically be indicated by a log field in the rule
+		// Since the current model doesn't show this explicitly,
+		// we'll assume logging is enabled if there are rules present
+		// and syslog is configured
+		if config.Syslog.Enable.Bool() {
+			loggingEnabled = true
+			break
+		}
+	}
+
+	// Check for IDS/IPS logging if available
+	if config.OPNsense.Firewall != nil {
+		// Firewall is configured - this provides additional logging capabilities
+		return true
+	}
+
+	return loggingEnabled
+}
+
+// broadNetworkRanges returns a slice of common broad network ranges.
+func (sp *Plugin) broadNetworkRanges() []string {
+	return []string{
+		"0.0.0.0/0",      // All IPv4
+		"::/0",           // All IPv6
+		"10.0.0.0/8",     // Large private network
+		"172.16.0.0/12",  // Large private network
+		"192.168.0.0/16", // Large private network
+		NetworkAny,       // Any network
+	}
 }

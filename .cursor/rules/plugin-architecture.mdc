@@ -7,7 +7,7 @@ The plugin architecture is defined in the following files:
 - [internal/plugin/interfaces.go](mdc:internal/plugin/interfaces.go) - Contains the `CompliancePlugin` interface, `Control`, and `Finding` structs
 - [internal/audit/plugin.go](mdc:internal/audit/plugin.go) - Contains `PluginRegistry`, plugin management, and dynamic plugin loader
 - [internal/audit/plugin_manager.go](mdc:internal/audit/plugin_manager.go) - Contains `PluginManager` for high-level operations
-- [internal/audit/plugins/](mdc:internal/audit/plugins/) - Directory containing built-in plugin implementations
+- [internal/plugins/](mdc:internal/plugins/) - Directory containing built-in plugin implementations
 
 ## Plugin Development Standards
 
