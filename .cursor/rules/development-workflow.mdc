@@ -1,0 +1,136 @@
+---
+globs: **/*.md,**/*.go,**/justfile
+alwaysApply: false
+---
+# Development Workflow Guidelines
+
+## Pre-Development Checklist
+
+### Requirements Review
+
+- **Requirement Alignment**: Verify changes align with current requirements
+- **Task Reference**: Check if changes relate to specific tasks in [tasks.md](project_spec/tasks.md)
+- **Documentation Impact**: Identify which documentation needs updates
+- **Architecture Compliance**: Ensure changes follow [ARCHITECTURE.md](ARCHITECTURE.md) patterns
+
+### Code Quality Standards
+
+- **Go Standards**: Follow Go conventions and [DEVELOPMENT_STANDARDS.md](DEVELOPMENT_STANDARDS.md)
+- **Error Handling**: Implement proper error handling with context
+- **Logging**: Use structured logging for important operations
+- **Testing**: Write comprehensive tests for new functionality
+
+## Development Process
+
+### Implementation Steps
+
+1. **Review Requirements**: Understand the specific requirements being implemented
+2. **Check Existing Code**: Review similar implementations for patterns
+3. **Implement Changes**: Follow established patterns and conventions
+4. **Write Tests**: Create comprehensive test coverage
+5. **Update Documentation**: Update relevant documentation files
+
+### Quality Assurance
+
+- **Format Code**: Run `just format` to ensure proper formatting
+- **Lint Code**: Run `just lint` to check for issues
+- **Run Tests**: Execute `just test` to verify functionality
+- **CI Check**: Run `just ci-check` for comprehensive validation
+
+## Post-Development Validation
+
+### Mandatory Checks
+
+```bash
+# Format and lint
+just format
+just lint
+
+# Run tests
+just test
+
+# Comprehensive validation
+just ci-check
+```
+
+### Documentation Updates
+
+- **Requirements**: Update if implementation reveals new requirements
+- **Tasks**: Update task status and completion criteria
+- **User Stories**: Update if user stories are affected
+- **Architecture**: Update if architectural changes are made
+
+## Error Handling and Debugging
+
+### Common Issues
+
+- **Markdown Formatting**: Use `just format` to fix formatting issues
+- **Test Failures**: Fix test failures before reporting success
+- **Linting Errors**: Address all linting issues before committing
+- **Documentation Inconsistencies**: Ensure documentation aligns with code changes
+
+### Debugging Commands
+
+```bash
+# Check specific file formatting
+gofmt -w internal/package/file.go
+
+# Run specific tests
+go test ./internal/package -v
+
+# Check for linting issues
+golangci-lint run ./internal/package
+
+# Validate markdown
+markdownlint project_spec/*.md
+```
+
+## Integration Guidelines
+
+### Cross-Component Changes
+
+- **Interface Changes**: Update all implementations when interfaces change
+- **Model Updates**: Ensure all converters and processors handle model changes
+- **Template Changes**: Update all template references and usage
+- **Plugin Updates**: Verify plugin compatibility and registration
+
+### Testing Strategy
+
+- **Unit Tests**: Test individual components in isolation
+- **Integration Tests**: Test component interactions
+- **End-to-End Tests**: Test complete workflows
+- **Performance Tests**: Verify performance with large configurations
+
+## Key Commands Reference
+
+### Development Commands
+
+```bash
+just dev          # Run in development mode
+just build        # Build with all checks
+just install      # Install dependencies
+just update-deps  # Update dependencies
+```
+
+### Quality Commands
+
+```bash
+just format       # Format code and documentation
+just lint         # Run linting checks
+just test         # Run test suite
+just ci-check     # Run comprehensive checks
+```
+
+### Documentation Commands
+
+```bash
+just docs         # Serve documentation locally
+```
+
+## Key Documents
+
+- **[AGENTS.md](AGENTS.md)** - AI agent development guidelines
+- **[DEVELOPMENT_STANDARDS.md](DEVELOPMENT_STANDARDS.md)** - Go coding standards
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture
+- **[project_spec/requirements.md](project_spec/requirements.md)** - Requirements specification
+- **[project_spec/tasks.md](project_spec/tasks.md)** - Implementation tasks

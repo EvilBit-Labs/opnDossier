@@ -1,0 +1,82 @@
+---
+description: Documentation consistency and maintenance guidelines
+globs: **/*.md,docs/**/*,**/*.mdc
+alwaysApply: false
+---
+# Documentation Consistency Guidelines
+
+## Document Style Standards
+
+### Writing Style
+
+- **Conciseness**: Prefer concise, clear explanations over verbose descriptions
+- **Balance**: Strike balance between detail and brevity - provide essential information without unnecessary verbosity
+- **Consistency**: Maintain consistent style across all documentation files
+- **Clarity**: Use clear, direct language that avoids ambiguity
+
+### Formatting Standards
+
+- **Markdown Compliance**: Follow standard markdown formatting rules
+- **Structure**: Use consistent heading hierarchy (H1, H2, H3)
+- **Lists**: Use appropriate list formatting for different content types
+- **Code Blocks**: Use proper syntax highlighting for code examples
+- **Links**: Use proper markdown link syntax with descriptive text
+
+## Content Organization
+
+### Document Types
+
+- **Requirements**: Functional and technical specifications
+- **Architecture**: System design and component relationships
+- **User Guides**: End-user documentation and tutorials
+- **Developer Guides**: Technical implementation details
+- **API Documentation**: Interface specifications and usage
+
+### Cross-Reference Management
+
+- **Internal Links**: Use proper markdown links to reference other documents
+- **Consistency**: Ensure referenced content exists and is up-to-date
+- **Navigation**: Provide clear navigation paths between related documents
+- **Versioning**: Keep cross-references aligned with document versions
+
+## Maintenance Guidelines
+
+### Update Process
+
+- **Version Control**: Update document metadata when making changes
+- **Change Tracking**: Document specific changes in appropriate sections
+- **Review Cycle**: Regular review of documentation for accuracy and completeness
+- **Feedback Integration**: Incorporate user feedback and usage patterns
+
+### Quality Assurance
+
+- **Formatting**: Run markdown formatting tools before committing
+- **Validation**: Verify all links and cross-references are valid
+- **Completeness**: Ensure all sections are properly filled out
+- **Consistency**: Check for consistent terminology and style
+
+## Validation Commands
+
+```bash
+# Format markdown files
+just format
+
+# Check for broken links
+markdown-link-check **/*.md
+
+# Validate markdown syntax
+markdownlint **/*.md
+
+# Run comprehensive checks
+just ci-check
+```
+
+## Key Documentation Files
+
+- **[README.md](README.md)** - Project overview and quick start
+- **[AGENTS.md](AGENTS.md)** - AI agent development guidelines
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture
+- **[DEVELOPMENT_STANDARDS.md](DEVELOPMENT_STANDARDS.md)** - Coding standards
+- **[project_spec/requirements.md](project_spec/requirements.md)** - Requirements specification
+- **[project_spec/tasks.md](project_spec/tasks.md)** - Implementation tasks
+- **[project_spec/user_stories.md](project_spec/user_stories.md)** - User stories

@@ -64,7 +64,8 @@ just install            # Install dependencies and setup environment
 just build              # Complete build with all checks
 
 # Code quality
-just lint               # Run linting and formatting
+just format             # Run formatting fixes
+just lint               # Run linting checks
 just check              # Run pre-commit hooks and comprehensive checks
 just ci-check           # Run CI-equivalent checks locally
 
