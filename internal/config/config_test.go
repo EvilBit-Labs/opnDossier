@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLoadConfigFromFile(t *testing.T) {
@@ -27,15 +28,15 @@ log_level: debug
 log_format: json
 `, inputFile, filepath.Join(tmpDir, "output.md"))
 	err := os.WriteFile(cfgFilePath, []byte(content), 0o600)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Create the input file to pass validation
 	err = os.WriteFile(inputFile, []byte("<test/>"), 0o600)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Test loading from file
 	cfg, err := LoadConfigWithViper(cfgFilePath, viper.New())
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, cfg)
 	assert.Equal(t, inputFile, cfg.InputFile)
 	assert.Equal(t, filepath.Join(tmpDir, "output.md"), cfg.OutputFile)
@@ -53,16 +54,16 @@ func TestLoadConfigFromEnv(t *testing.T) {
 	tmpDir := t.TempDir()
 	inputFile := filepath.Join(tmpDir, "input.xml")
 	err := os.WriteFile(inputFile, []byte("<test/>"), 0o600)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	t.Setenv("OPNFOCUS_INPUT_FILE", inputFile)
 	t.Setenv("OPNFOCUS_VERBOSE", "false")
 
 	cfg, err := LoadConfigWithViper("", viper.New()) // Load without a specific file to pick up env vars
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, cfg)
 	assert.Equal(t, inputFile, cfg.InputFile)
-	assert.Equal(t, "", cfg.OutputFile) // Should not be overridden by env var
+	assert.Empty(t, cfg.OutputFile) // Should not be overridden by env var
 	assert.False(t, cfg.Verbose)
 }
 
@@ -76,9 +77,9 @@ func TestLoadConfigPrecedence(t *testing.T) {
 	envInputFile := filepath.Join(tmpDir, "env_input.xml")
 
 	err := os.WriteFile(fileInputFile, []byte("<test/>"), 0o600)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	err = os.WriteFile(envInputFile, []byte("<test/>"), 0o600)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Create a temporary config file
 	cfgFilePath := filepath.Join(tmpDir, ".opnFocus.yaml")
@@ -88,14 +89,14 @@ output_file: /tmp/output.md
 verbose: true
 `, fileInputFile)
 	err = os.WriteFile(cfgFilePath, []byte(content), 0o600)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	t.Setenv("OPNFOCUS_INPUT_FILE", envInputFile)
 	t.Setenv("OPNFOCUS_VERBOSE", "false")
 
 	// Environment variables should override config file values (standard precedence)
 	cfg, err := LoadConfigWithViper(cfgFilePath, viper.New())
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, cfg)
 	assert.Equal(t, envInputFile, cfg.InputFile)      // Environment variable should win
 	assert.Equal(t, "/tmp/output.md", cfg.OutputFile) // Config file value (no env var set)
@@ -177,10 +178,10 @@ func TestConfig_Validate(t *testing.T) {
 			err := tt.config.Validate()
 
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errMsg)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -210,7 +211,7 @@ func TestLoadConfigFromEnvWithNewFields(t *testing.T) {
 	t.Setenv("OPNFOCUS_LOG_FORMAT", "json")
 
 	cfg, err := LoadConfigWithViper("", viper.New())
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, cfg)
 	assert.True(t, cfg.Quiet)
 	assert.Equal(t, "warn", cfg.LogLevel)
@@ -239,6 +240,6 @@ func clearEnvironment(_ *testing.T) {
 	}
 
 	for _, env := range envVars {
-		_ = os.Unsetenv(env) //nolint:errcheck // Test cleanup
+		_ = os.Unsetenv(env)
 	}
 }

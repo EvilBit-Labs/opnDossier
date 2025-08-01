@@ -26,6 +26,7 @@ func TestWalk_BasicStructure(t *testing.T) {
 	if result.Level != 1 {
 		t.Errorf("Expected root level 1, got %d", result.Level)
 	}
+
 	if result.Title != "# OPNsense Configuration" {
 		t.Errorf("Expected root title '# OPNsense Configuration', got '%s'", result.Title)
 	}
@@ -37,23 +38,29 @@ func TestWalk_BasicStructure(t *testing.T) {
 
 	// Test that System is a child node
 	found := false
+
 	for _, child := range result.Children {
 		if !strings.Contains(child.Title, "System") {
 			continue
 		}
+
 		found = true
 		// Test system child properties
 		if child.Level != 2 {
 			t.Errorf("Expected System child level 2, got %d", child.Level)
 		}
+
 		if !strings.Contains(child.Body, "Hostname: firewall.local") {
 			t.Errorf("Expected Hostname in System body, got: %s", child.Body)
 		}
+
 		if !strings.Contains(child.Body, "Domain: example.com") {
 			t.Errorf("Expected Domain in System body, got: %s", child.Body)
 		}
+
 		break
 	}
+
 	if !found {
 		t.Error("Expected System child node not found")
 	}
@@ -63,10 +70,7 @@ func TestWalk_DepthLimiting(t *testing.T) {
 	// Create a structure that would go beyond level 6
 	opnsense := model.OpnSenseDocument{
 		System: model.System{
-			WebGUI: struct {
-				Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-				SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-			}{Protocol: "https"},
+			WebGUI: model.WebGUIConfig{Protocol: "https"},
 		},
 	}
 
@@ -74,6 +78,7 @@ func TestWalk_DepthLimiting(t *testing.T) {
 
 	// Find the deepest node and verify it doesn't exceed level 6
 	var findMaxLevel func(node MDNode) int
+
 	findMaxLevel = func(node MDNode) int {
 		maxLevel := node.Level
 		for _, child := range node.Children {
@@ -82,6 +87,7 @@ func TestWalk_DepthLimiting(t *testing.T) {
 				maxLevel = childMaxLevel
 			}
 		}
+
 		return maxLevel
 	}
 
@@ -106,6 +112,7 @@ func TestWalk_EmptyStructHandling(t *testing.T) {
 
 	// Find System child
 	var systemNode *MDNode
+
 	for _, child := range result.Children {
 		if strings.Contains(child.Title, "System") {
 			systemNode = &child
@@ -121,6 +128,7 @@ func TestWalk_EmptyStructHandling(t *testing.T) {
 	if !strings.Contains(systemNode.Body, "Disable Console Menu: enabled") {
 		t.Errorf("Expected 'Disable Console Menu: enabled' in body, got: %s", systemNode.Body)
 	}
+
 	if !strings.Contains(systemNode.Body, "IPv6 Allow: 1") {
 		t.Errorf("Expected 'IPv6 Allow: 1' in body, got: %s", systemNode.Body)
 	}
@@ -147,6 +155,7 @@ func TestWalk_SliceHandling(t *testing.T) {
 
 	// Find Sysctl child
 	var sysctlNode *MDNode
+
 	for _, child := range result.Children {
 		if strings.Contains(child.Title, "Sysctl") {
 			sysctlNode = &child
@@ -168,6 +177,7 @@ func TestWalk_SliceHandling(t *testing.T) {
 	if !strings.Contains(firstItem.Title, "[0]") {
 		t.Errorf("Expected first item to contain '[0]', got: %s", firstItem.Title)
 	}
+
 	if !strings.Contains(firstItem.Body, "net.inet.tcp.rfc3390") {
 		t.Errorf("Expected tunable in first item body, got: %s", firstItem.Body)
 	}
@@ -196,6 +206,7 @@ func TestWalk_MapHandling(t *testing.T) {
 
 	// Find Interfaces child
 	var interfacesNode *MDNode
+
 	for _, child := range result.Children {
 		if strings.Contains(child.Title, "Interfaces") {
 			interfacesNode = &child
@@ -209,6 +220,7 @@ func TestWalk_MapHandling(t *testing.T) {
 
 	// Find Items child under Interfaces
 	var itemsNode *MDNode
+
 	for _, child := range interfacesNode.Children {
 		if strings.Contains(child.Title, "Items") {
 			itemsNode = &child
@@ -228,15 +240,19 @@ func TestWalk_MapHandling(t *testing.T) {
 	// Verify interface entries exist
 	foundWan := false
 	foundLan := false
+
 	for _, child := range itemsNode.Children {
 		if strings.Contains(child.Title, "wan") {
 			foundWan = true
+
 			if !strings.Contains(child.Body, "IPAddr: 192.168.1.100") {
 				t.Errorf("Expected WAN IP in body, got: %s", child.Body)
 			}
 		}
+
 		if strings.Contains(child.Title, "lan") {
 			foundLan = true
+
 			if !strings.Contains(child.Body, "IPAddr: 10.0.0.1") {
 				t.Errorf("Expected LAN IP in body, got: %s", child.Body)
 			}
@@ -246,6 +262,7 @@ func TestWalk_MapHandling(t *testing.T) {
 	if !foundWan {
 		t.Error("WAN interface not found")
 	}
+
 	if !foundLan {
 		t.Error("LAN interface not found")
 	}
@@ -354,6 +371,7 @@ func TestWalk_SyntheticXMLFragment(t *testing.T) {
 
 	// Parse the XML using the parser
 	p := parser.NewXMLParser()
+
 	opnsense, err := p.Parse(context.Background(), strings.NewReader(xmlData))
 	if err != nil {
 		t.Fatalf("Failed to parse XML: %v", err)
@@ -373,6 +391,7 @@ func TestWalk_SyntheticXMLFragment(t *testing.T) {
 
 	// Find and verify system node
 	var systemNode *MDNode
+
 	for _, child := range result.Children {
 		if strings.Contains(child.Title, "System") {
 			systemNode = &child
@@ -390,24 +409,30 @@ func TestWalk_SyntheticXMLFragment(t *testing.T) {
 
 	// Verify system has webgui child
 	foundWebgui := false
+
 	for _, child := range systemNode.Children {
 		if strings.Contains(child.Title, "Web GUI") {
 			foundWebgui = true
+
 			if child.Level != 3 {
 				t.Errorf("Expected WebGUI level 3, got %d", child.Level)
 			}
+
 			if !strings.Contains(child.Body, "Protocol: https") {
 				t.Errorf("Expected protocol in webgui body, got: %s", child.Body)
 			}
+
 			break
 		}
 	}
+
 	if !foundWebgui {
 		t.Error("WebGUI child not found under System")
 	}
 
 	// Verify filter rules are handled properly
 	var filterNode *MDNode
+
 	for _, child := range result.Children {
 		if strings.Contains(child.Title, "Filter") {
 			filterNode = &child
@@ -421,6 +446,7 @@ func TestWalk_SyntheticXMLFragment(t *testing.T) {
 
 	// Find Rule slice
 	var ruleNode *MDNode
+
 	for _, child := range filterNode.Children {
 		if strings.Contains(child.Title, "Rule") {
 			ruleNode = &child

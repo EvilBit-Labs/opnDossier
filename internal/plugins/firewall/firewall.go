@@ -247,6 +247,7 @@ func (fp *Plugin) GetControlByID(id string) (*plugin.Control, error) {
 			return &control, nil
 		}
 	}
+
 	return nil, plugin.ErrControlNotFound
 }
 
@@ -255,6 +256,7 @@ func (fp *Plugin) ValidateConfiguration() error {
 	if len(fp.controls) == 0 {
 		return plugin.ErrNoControlsDefined
 	}
+
 	return nil
 }
 

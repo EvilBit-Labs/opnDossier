@@ -134,7 +134,11 @@ func convertMarkdownOptions(mdOpts markdown.Options) Options {
 		theme = LightTheme()
 	case constants.ThemeDark:
 		theme = DarkTheme()
-	default: // markdown.ThemeAuto or other
+	case markdown.ThemeAuto:
+		theme = DetectTheme("")
+	case markdown.ThemeNone:
+		theme = DetectTheme("") // Use detected theme but disable colors elsewhere
+	default:
 		theme = DetectTheme("")
 	}
 
@@ -170,9 +174,12 @@ func getGlamourRenderer(opts *Options) (*glamour.TermRenderer, error) {
 	if !needsRecreate {
 		// Return cached instance while still holding read lock
 		renderer := rendererInst
+
 		rendererMu.RUnlock()
+
 		return renderer, nil
 	}
+
 	rendererMu.RUnlock()
 
 	rendererMu.Lock()
@@ -338,6 +345,7 @@ func NewTerminalDisplayWithTheme(theme Theme) *TerminalDisplay {
 	opts := DefaultOptions()
 	opts.Theme = theme
 	opts.WrapWidth = getTerminalWidth()
+
 	return NewTerminalDisplayWithOptions(opts)
 }
 
@@ -378,6 +386,7 @@ func getTerminalWidth() int {
 			return width
 		}
 	}
+
 	return DefaultWordWrapWidth
 }
 
@@ -395,6 +404,7 @@ func (td *TerminalDisplay) ShowProgress(percent float64, message string) {
 	if td.progress == nil {
 		return
 	}
+
 	cmd := td.progress.SetPercent(percent)
 	if cmd != nil {
 		// For a simple progress display, we would normally handle the command in a Bubble Tea program
@@ -430,6 +440,7 @@ func (td *TerminalDisplay) Display(ctx context.Context, markdownContent string) 
 		}
 		// Fallback: print raw markdown if renderer creation fails
 		fmt.Print(markdownContent)
+
 		return fmt.Errorf("failed to create renderer, displaying raw markdown: %w", err)
 	}
 
@@ -464,7 +475,11 @@ func (td *TerminalDisplay) Display(ctx context.Context, markdownContent string) 
 }
 
 // DisplayWithProgress renders and displays markdown content with progress events.
-func (td *TerminalDisplay) DisplayWithProgress(ctx context.Context, markdownContent string, progressCh <-chan ProgressEvent) error {
+func (td *TerminalDisplay) DisplayWithProgress(
+	ctx context.Context,
+	markdownContent string,
+	progressCh <-chan ProgressEvent,
+) error {
 	// Check for context cancellation before starting
 	select {
 	case <-ctx.Done():
@@ -527,14 +542,17 @@ func (td *TerminalDisplay) DisplayWithProgress(ctx context.Context, markdownCont
 			fmt.Print(markdownContent)
 			// Wait for progress goroutine to finish before returning
 			wg.Wait()
+
 			return nil
 		}
+
 		td.ShowProgress(1.0, "Displaying raw markdown...")
 		td.ClearProgress()
 		// Fallback: print raw markdown if renderer creation fails
 		fmt.Print(markdownContent)
 		// Wait for progress goroutine to finish before returning
 		wg.Wait()
+
 		return fmt.Errorf("failed to create renderer, displaying raw markdown: %w", err)
 	}
 
@@ -552,6 +570,7 @@ func (td *TerminalDisplay) DisplayWithProgress(ctx context.Context, markdownCont
 		td.ClearProgress()
 		// Wait for progress goroutine to finish before returning
 		wg.Wait()
+
 		return fmt.Errorf("failed to render markdown: %w", err)
 	}
 

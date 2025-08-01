@@ -146,6 +146,7 @@ type Options struct {
 func DefaultOptions() Options {
 	return Options{
 		Format:          FormatMarkdown,
+		Comprehensive:   false,
 		Template:        nil,
 		TemplateName:    "",
 		Sections:        nil, // Include all sections
@@ -194,9 +195,12 @@ func (o Options) WithFormat(format Format) Options {
 		if logger, loggerErr := log.New(log.Config{Level: "warn"}); loggerErr == nil {
 			logger.Warn("format validation failed, returning unchanged options", "format", format, "error", err)
 		}
+
 		return o
 	}
+
 	o.Format = format
+
 	return o
 }
 
@@ -265,7 +269,9 @@ func (o Options) WithCustomField(key string, value any) Options {
 	if o.CustomFields == nil {
 		o.CustomFields = make(map[string]any)
 	}
+
 	o.CustomFields[key] = value
+
 	return o
 }
 
@@ -282,9 +288,12 @@ func (o Options) WithAuditMode(mode AuditMode) Options {
 		if logger, loggerErr := log.New(log.Config{Level: "warn"}); loggerErr == nil {
 			logger.Warn("audit mode validation failed, returning unchanged options", "mode", mode, "error", err)
 		}
+
 		return o
 	}
+
 	o.AuditMode = mode
+
 	return o
 }
 

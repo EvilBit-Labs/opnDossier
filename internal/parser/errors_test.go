@@ -22,8 +22,8 @@ func TestParseError(t *testing.T) {
 		err2 := NewParseError(2, 2, "another error")
 
 		// Test that Is works with same type
-		assert.True(t, errors.Is(err1, &ParseError{}))
-		assert.True(t, errors.Is(err2, &ParseError{}))
+		require.ErrorIs(t, err1, &ParseError{})
+		require.ErrorIs(t, err2, &ParseError{})
 
 		// Test wrapping
 		wrapped := fmt.Errorf("wrapped: %w", err1)
@@ -35,7 +35,7 @@ func TestParseError(t *testing.T) {
 		wrapped := fmt.Errorf("operation failed: %w", original)
 
 		var parseErr *ParseError
-		require.True(t, errors.As(wrapped, &parseErr))
+		require.ErrorAs(t, wrapped, &parseErr)
 		assert.Equal(t, 5, parseErr.Line)
 		assert.Equal(t, 10, parseErr.Column)
 		assert.Equal(t, "syntax error", parseErr.Message)
@@ -60,8 +60,8 @@ func TestValidationError(t *testing.T) {
 		err2 := NewValidationError("", "general error")
 
 		// Test that Is works with same type
-		assert.True(t, errors.Is(err1, &ValidationError{}))
-		assert.True(t, errors.Is(err2, &ValidationError{}))
+		require.ErrorIs(t, err1, &ValidationError{})
+		require.ErrorIs(t, err2, &ValidationError{})
 
 		// Test wrapping
 		wrapped := fmt.Errorf("validation failed: %w", err1)
@@ -73,7 +73,7 @@ func TestValidationError(t *testing.T) {
 		wrapped := fmt.Errorf("configuration error: %w", original)
 
 		var validationErr *ValidationError
-		require.True(t, errors.As(wrapped, &validationErr))
+		require.ErrorAs(t, wrapped, &validationErr)
 		assert.Equal(t, "config.port", validationErr.Path)
 		assert.Equal(t, "port out of range", validationErr.Message)
 	})
@@ -89,7 +89,7 @@ func TestWrapXMLSyntaxError(t *testing.T) {
 		wrapped := WrapXMLSyntaxError(xmlErr, "opnsense.interfaces.lan")
 
 		var parseErr *ParseError
-		require.True(t, errors.As(wrapped, &parseErr))
+		require.ErrorAs(t, wrapped, &parseErr)
 		assert.Equal(t, 15, parseErr.Line)
 		assert.Equal(t, 0, parseErr.Column) // xml.SyntaxError doesn't provide column info
 		assert.Contains(t, parseErr.Message, "XML syntax error: unexpected EOF")
@@ -105,7 +105,7 @@ func TestWrapXMLSyntaxError(t *testing.T) {
 		wrapped := WrapXMLSyntaxError(xmlErr, "")
 
 		var parseErr *ParseError
-		require.True(t, errors.As(wrapped, &parseErr))
+		require.ErrorAs(t, wrapped, &parseErr)
 		assert.Equal(t, 5, parseErr.Line)
 		assert.Equal(t, 0, parseErr.Column) // xml.SyntaxError doesn't provide column info
 		assert.Equal(t, "expected element name after <", parseErr.Message)
@@ -117,7 +117,7 @@ func TestWrapXMLSyntaxError(t *testing.T) {
 		wrapped := WrapXMLSyntaxError(genericErr, "some.path")
 
 		var parseErr *ParseError
-		require.True(t, errors.As(wrapped, &parseErr))
+		require.ErrorAs(t, wrapped, &parseErr)
 		assert.Equal(t, 0, parseErr.Line)
 		assert.Equal(t, 0, parseErr.Column)
 		assert.Equal(t, "XML error: some other error", parseErr.Message)
@@ -125,7 +125,7 @@ func TestWrapXMLSyntaxError(t *testing.T) {
 
 	t.Run("Wrap nil error", func(t *testing.T) {
 		wrapped := WrapXMLSyntaxError(nil, "some.path")
-		assert.Nil(t, wrapped)
+		require.NoError(t, wrapped)
 	})
 }
 
@@ -145,7 +145,7 @@ func TestBuildElementPath(t *testing.T) {
 	t.Run("Build path from empty slice", func(t *testing.T) {
 		elements := []string{}
 		path := BuildElementPath(elements)
-		assert.Equal(t, "", path)
+		assert.Empty(t, path)
 	})
 }
 
@@ -259,22 +259,23 @@ func TestAggregatedValidationError(t *testing.T) {
 		})
 
 		// Test type-only matching with empty struct
-		assert.True(t, errors.Is(err1, &AggregatedValidationError{}))
-		assert.True(t, errors.Is(err2, &AggregatedValidationError{}))
+		require.ErrorIs(t, err1, &AggregatedValidationError{})
+		require.ErrorIs(t, err2, &AggregatedValidationError{})
 
 		// Test exact matching with same errors
 		sameErr := NewAggregatedValidationError([]ValidationError{
 			*NewValidationError("path1", "error1"),
 		})
-		assert.True(t, errors.Is(err1, sameErr))
+		require.ErrorIs(t, err1, sameErr)
 
 		// Test exact matching with different errors
-		assert.False(t, errors.Is(err1, err2))
+		require.NotErrorIs(t, err1, err2)
 
 		// Test wrapping
 		wrapped := fmt.Errorf("wrapped: %w", err1)
+
 		var aggErr *AggregatedValidationError
-		assert.True(t, errors.As(wrapped, &aggErr))
+		assert.ErrorAs(t, wrapped, &aggErr)
 	})
 
 	t.Run("HasErrors method", func(t *testing.T) {

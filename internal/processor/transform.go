@@ -14,6 +14,7 @@ func (p *CoreProcessor) toYAML(report *Report) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal report to YAML: %w", err)
 	}
+
 	return string(data), nil
 }
 

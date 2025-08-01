@@ -76,7 +76,12 @@ func generateLargeConfigStream(targetSizeMB int) *bytes.Buffer {
 		buffer.WriteString(`<item>`)
 		buffer.WriteString(fmt.Sprintf(`<tunable>net.inet.ip.forwarding.benchmark.test.item_%d</tunable>`, itemCount))
 		buffer.WriteString(fmt.Sprintf(`<value>%d</value>`, itemCount%2))
-		buffer.WriteString(fmt.Sprintf(`<descr><![CDATA[Large sysctl description for benchmarking memory usage item %d. This description contains additional text to increase the size of each XML element and test the streaming parser's memory efficiency compared to traditional DOM parsing approaches. The streaming approach should maintain constant memory usage regardless of file size.]]></descr>`, itemCount))
+		buffer.WriteString(
+			fmt.Sprintf(
+				`<descr><![CDATA[Large sysctl description for benchmarking memory usage item %d. This description contains additional text to increase the size of each XML element and test the streaming parser's memory efficiency compared to traditional DOM parsing approaches. The streaming approach should maintain constant memory usage regardless of file size.]]></descr>`,
+				itemCount,
+			),
+		)
 		buffer.WriteString(`</item>`)
 		itemCount++
 	}
@@ -205,7 +210,12 @@ func BenchmarkParse_Legacy(b *testing.B) {
 	for buffer.Len() < synthSizeMB*1024*1024 {
 		buffer.WriteString("<sysctl>")
 		for i := 0; i < 100; i++ { // Add many items per sysctl section
-			buffer.WriteString("<item><descr><![CDATA[Large description for memory usage testing. This adds bulk to test streaming performance improvements over the traditional full DOM parsing approach. Streaming XML processing should use significantly less memory than loading the entire document into memory at once.]]></descr><tunable>test.tunable." + fmt.Sprintf("%d", i) + "</tunable><value>testvalue</value></item>")
+			buffer.WriteString(
+				"<item><descr><![CDATA[Large description for memory usage testing. This adds bulk to test streaming performance improvements over the traditional full DOM parsing approach. Streaming XML processing should use significantly less memory than loading the entire document into memory at once.]]></descr><tunable>test.tunable." + fmt.Sprintf(
+					"%d",
+					i,
+				) + "</tunable><value>testvalue</value></item>",
+			)
 		}
 		buffer.WriteString("</sysctl>")
 	}

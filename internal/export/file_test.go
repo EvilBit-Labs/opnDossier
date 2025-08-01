@@ -15,16 +15,50 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unclesp1d3r/opnFocus/internal/markdown"
-	"gopkg.in/yaml.v3"
-
 	"github.com/yuin/goldmark"
 	goldmark_parser "github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
+	"gopkg.in/yaml.v3"
 )
+
+// ValidationTestCase represents a test case for validation tests.
+type ValidationTestCase struct {
+	Name       string
+	Content    string
+	FileName   string
+	ValidateFn func(string) error
+}
+
+// runValidationTests runs the standard validation test suite.
+func runValidationTests(t *testing.T, tests []ValidationTestCase) {
+	t.Helper()
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			e := NewFileExporter()
+			path := filepath.Join(t.TempDir(), tt.FileName)
+
+			// Export the content
+			err := e.Export(context.Background(), tt.Content, path)
+			require.NoError(t, err)
+
+			defer os.Remove(path)
+
+			// Read the exported file
+			exportedContent, err := os.ReadFile(path)
+			require.NoError(t, err)
+			assert.Equal(t, tt.Content, string(exportedContent))
+
+			// Validate that the exported content passes validation
+			err = tt.ValidateFn(string(exportedContent))
+			require.NoError(t, err, "Exported content should pass validation")
+		})
+	}
+}
 
 // findTestConfigFile finds the test config file from various possible locations.
 func findTestConfigFile(t *testing.T) string {
 	t.Helper()
+
 	possiblePaths := []string{
 		filepath.Join("..", "..", "testdata", "config.xml.sample"), // From test directory
 		filepath.Join("testdata", "config.xml.sample"),             // From project root
@@ -38,11 +72,13 @@ func findTestConfigFile(t *testing.T) string {
 			if err == nil {
 				return absPath
 			}
+
 			return path
 		}
 	}
 
 	t.Fatalf("Could not find test config file in any of the expected locations: %v", possiblePaths)
+
 	return ""
 }
 
@@ -56,7 +92,7 @@ func TestFileExporter_Export(t *testing.T) {
 		{
 			name:    "successful export",
 			content: "test content",
-			path:    filepath.Join(os.TempDir(), "test_output.md"),
+			path:    filepath.Join(t.TempDir(), "test_output.md"),
 			wantErr: false,
 		},
 		{
@@ -68,7 +104,7 @@ func TestFileExporter_Export(t *testing.T) {
 		{
 			name:    "empty content",
 			content: "",
-			path:    filepath.Join(os.TempDir(), "test_output.md"),
+			path:    filepath.Join(t.TempDir(), "test_output.md"),
 			wantErr: true,
 		},
 	}
@@ -79,13 +115,13 @@ func TestFileExporter_Export(t *testing.T) {
 			err := e.Export(context.Background(), tt.content, tt.path)
 
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				content, err := os.ReadFile(tt.path)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, tt.content, string(content))
-				_ = os.Remove(tt.path) //nolint:errcheck // Test cleanup
+				_ = os.Remove(tt.path)
 			}
 		})
 	}
@@ -105,12 +141,12 @@ func TestFileExporter_ExportErrorTypes(t *testing.T) {
 		{
 			name:       "empty content error",
 			content:    "",
-			path:       filepath.Join(os.TempDir(), "test.md"),
+			path:       filepath.Join(t.TempDir(), "test.md"),
 			expectedOp: "export",
 			checkError: func(t *testing.T, err error) {
 				t.Helper()
 				var exportErr *Error
-				assert.ErrorAs(t, err, &exportErr)
+				require.ErrorAs(t, err, &exportErr)
 				assert.Equal(t, "export", exportErr.Operation)
 				assert.Contains(t, exportErr.Message, "empty content")
 			},
@@ -123,7 +159,7 @@ func TestFileExporter_ExportErrorTypes(t *testing.T) {
 			checkError: func(t *testing.T, err error) {
 				t.Helper()
 				var exportErr *Error
-				assert.ErrorAs(t, err, &exportErr)
+				require.ErrorAs(t, err, &exportErr)
 				assert.Equal(t, "validate_path", exportErr.Operation)
 				assert.Contains(t, exportErr.Message, "malicious traversal")
 			},
@@ -136,7 +172,7 @@ func TestFileExporter_ExportErrorTypes(t *testing.T) {
 			checkError: func(t *testing.T, err error) {
 				t.Helper()
 				var exportErr *Error
-				assert.ErrorAs(t, err, &exportErr)
+				require.ErrorAs(t, err, &exportErr)
 				assert.Equal(t, "validate_path", exportErr.Operation)
 				assert.Contains(t, exportErr.Message, "does not exist")
 			},
@@ -144,12 +180,12 @@ func TestFileExporter_ExportErrorTypes(t *testing.T) {
 		{
 			name:       "context cancellation error",
 			content:    "test content",
-			path:       filepath.Join(os.TempDir(), "test.md"),
+			path:       "test.md", // Will be joined with t.TempDir() in the test
 			expectedOp: "export",
 			checkError: func(t *testing.T, err error) {
 				t.Helper()
 				var exportErr *Error
-				assert.ErrorAs(t, err, &exportErr)
+				require.ErrorAs(t, err, &exportErr)
 				assert.Equal(t, "export", exportErr.Operation)
 				assert.Contains(t, exportErr.Message, "cancelled by context")
 			},
@@ -165,11 +201,12 @@ func TestFileExporter_ExportErrorTypes(t *testing.T) {
 			if tt.name == "context cancellation error" {
 				cancelledCtx, cancel := context.WithCancel(context.Background())
 				cancel() // Cancel immediately
+
 				ctx = cancelledCtx
 			}
 
 			err := e.Export(ctx, tt.content, tt.path)
-			assert.Error(t, err)
+			require.Error(t, err)
 			tt.checkError(t, err)
 		})
 	}
@@ -187,7 +224,7 @@ func TestFileExporter_PathValidation(t *testing.T) {
 	}{
 		{
 			name:        "valid path",
-			path:        filepath.Join(os.TempDir(), "valid_test.md"),
+			path:        "valid_test.md", // Will be joined with t.TempDir() in the test
 			expectError: false,
 		},
 		{
@@ -197,7 +234,7 @@ func TestFileExporter_PathValidation(t *testing.T) {
 			errorCheck: func(t *testing.T, err error) {
 				t.Helper()
 				var exportErr *Error
-				assert.ErrorAs(t, err, &exportErr)
+				require.ErrorAs(t, err, &exportErr)
 				assert.Equal(t, "validate_path", exportErr.Operation)
 				assert.Contains(t, exportErr.Message, "malicious traversal")
 			},
@@ -209,7 +246,7 @@ func TestFileExporter_PathValidation(t *testing.T) {
 			errorCheck: func(t *testing.T, err error) {
 				t.Helper()
 				var exportErr *Error
-				assert.ErrorAs(t, err, &exportErr)
+				require.ErrorAs(t, err, &exportErr)
 				assert.Equal(t, "validate_path", exportErr.Operation)
 				assert.Contains(t, exportErr.Message, "does not exist")
 			},
@@ -221,7 +258,7 @@ func TestFileExporter_PathValidation(t *testing.T) {
 			errorCheck: func(t *testing.T, err error) {
 				t.Helper()
 				var exportErr *Error
-				assert.ErrorAs(t, err, &exportErr)
+				require.ErrorAs(t, err, &exportErr)
 				assert.Equal(t, "validate_path", exportErr.Operation)
 				assert.Contains(t, exportErr.Message, "malicious traversal")
 			},
@@ -234,12 +271,13 @@ func TestFileExporter_PathValidation(t *testing.T) {
 			err := e.validateExportPath(tt.path)
 
 			if tt.expectError {
-				assert.Error(t, err)
+				require.Error(t, err)
+
 				if tt.errorCheck != nil {
 					tt.errorCheck(t, err)
 				}
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -249,7 +287,7 @@ func TestFileExporter_PathValidation(t *testing.T) {
 // This test ensures that the file export functionality meets the acceptance criteria
 // for TASK-021: "Provides clear error messages for file I/O issues during export".
 func TestFileExporter_AtomicWrite(t *testing.T) {
-	tmpDir := os.TempDir()
+	tmpDir := t.TempDir()
 	testPath := filepath.Join(tmpDir, "atomic_test.md")
 	testContent := "test content for atomic write"
 
@@ -257,16 +295,16 @@ func TestFileExporter_AtomicWrite(t *testing.T) {
 
 	// Test atomic write
 	err := e.Export(context.Background(), testContent, testPath)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Verify file was written correctly
 	content, err := os.ReadFile(testPath)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, testContent, string(content))
 
 	// Verify file permissions
 	info, err := os.Stat(testPath)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, os.FileMode(DefaultFilePermissions), info.Mode().Perm())
 
 	// Cleanup
@@ -283,11 +321,11 @@ func TestFileExporter_ExportErrorUnwrap(t *testing.T) {
 	err := e.Export(context.Background(), "test content", "/nonexistent/dir/test.md")
 
 	var exportErr *Error
-	assert.ErrorAs(t, err, &exportErr)
+	require.ErrorAs(t, err, &exportErr)
 
 	// Test unwrapping
 	unwrapped := exportErr.Unwrap()
-	assert.NotNil(t, unwrapped)
+	require.Error(t, unwrapped)
 	assert.NotEqual(t, exportErr, unwrapped)
 }
 
@@ -323,7 +361,7 @@ This is a **test** document with *markdown* formatting.
 echo "code block"
 ` + "```" + `
 `,
-			path: filepath.Join(os.TempDir(), "test_markdown_validation.md"),
+			path: filepath.Join(t.TempDir(), "test_markdown_validation.md"),
 		},
 		{
 			name: "simple markdown content",
@@ -334,7 +372,7 @@ Just plain text with a heading.
 - List item
 - Another item
 `,
-			path: filepath.Join(os.TempDir(), "test_simple_markdown.md"),
+			path: filepath.Join(t.TempDir(), "test_simple_markdown.md"),
 		},
 	}
 
@@ -345,7 +383,8 @@ Just plain text with a heading.
 			// Export the markdown content
 			err := e.Export(context.Background(), tt.content, tt.path)
 			require.NoError(t, err)
-			defer os.Remove(tt.path) //nolint:errcheck // Test cleanup
+
+			defer os.Remove(tt.path)
 
 			// Read the exported file
 			exportedContent, err := os.ReadFile(tt.path)
@@ -354,7 +393,7 @@ Just plain text with a heading.
 
 			// Validate that the exported markdown passes validation
 			err = markdown.ValidateMarkdown(string(exportedContent))
-			assert.NoError(t, err, "Exported markdown should pass validation")
+			require.NoError(t, err, "Exported markdown should pass validation")
 		})
 	}
 }
@@ -377,12 +416,13 @@ This text should be plain markdown without any ANSI escape codes or terminal con
 - Item 3
 `
 
-	path := filepath.Join(os.TempDir(), "test_no_control_chars.md")
+	path := filepath.Join(t.TempDir(), "test_no_control_chars.md")
 	e := NewFileExporter()
 
 	err := e.Export(context.Background(), testContent, path)
 	require.NoError(t, err)
-	defer os.Remove(path) //nolint:errcheck // Test cleanup
+
+	defer os.Remove(path)
 
 	// Read the exported file
 	exportedContent, err := os.ReadFile(path)
@@ -412,10 +452,10 @@ func TestFileExporter_ActualExportedFile(t *testing.T) {
 	// 3. Passes markdown validation tests
 
 	// Create a temporary directory for test files
-	tmpDir, err := os.MkdirTemp("", "opnfocus-export-test")
-	require.NoError(t, err)
+	tmpDir := t.TempDir()
+
 	defer func() {
-		_ = os.RemoveAll(tmpDir) //nolint:errcheck // Test cleanup
+		_ = os.RemoveAll(tmpDir)
 	}()
 
 	// Use existing test config file
@@ -425,14 +465,26 @@ func TestFileExporter_ActualExportedFile(t *testing.T) {
 	// Change to project root directory first
 	projectRoot := filepath.Join("..", "..")
 	outputFile := filepath.Join(tmpDir, "test_output.md")
-	cmd := exec.CommandContext(context.Background(), "go", "run", ".", "convert", configFile, "--format", "markdown", "-o", outputFile)
+	cmd := exec.CommandContext(
+		context.Background(),
+		"go",
+		"run",
+		".",
+		"convert",
+		configFile,
+		"--format",
+		"markdown",
+		"-o",
+		outputFile,
+	)
 	cmd.Dir = projectRoot
 
 	var stdout, stderr bytes.Buffer
+
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		t.Skipf("Skipping test - CLI command failed: %v, stderr: %s", err, stderr.String())
 	}
@@ -445,7 +497,7 @@ func TestFileExporter_ActualExportedFile(t *testing.T) {
 
 	// 1. Validate that the markdown passes validation
 	err = markdown.ValidateMarkdown(contentStr)
-	assert.NoError(t, err, "Exported markdown should pass validation")
+	require.NoError(t, err, "Exported markdown should pass validation")
 
 	// 2. Check for no terminal control characters
 	assert.NotContains(t, contentStr, "\x1b[", "Exported markdown should not contain ANSI escape sequences")
@@ -454,7 +506,12 @@ func TestFileExporter_ActualExportedFile(t *testing.T) {
 
 	// 3. Verify it uses templates from internal/templates by checking for expected content
 	// The templates should generate content with specific structure
-	assert.Contains(t, contentStr, "# OPNsense Configuration Summary", "Should contain expected template-generated content")
+	assert.Contains(
+		t,
+		contentStr,
+		"# OPNsense Configuration Summary",
+		"Should contain expected template-generated content",
+	)
 	assert.Contains(t, contentStr, "## System Information", "Should contain expected template-generated content")
 	assert.Contains(t, contentStr, "## Table of Contents", "Should contain expected template-generated content")
 	assert.Contains(t, contentStr, "## Interfaces", "Should contain expected template-generated content")
@@ -469,14 +526,10 @@ func TestFileExporter_ActualExportedFile(t *testing.T) {
 // This test ensures that the JSON export functionality meets the acceptance criteria
 // for TASK-018: "passes JSON validation tests".
 func TestFileExporter_JSONValidation(t *testing.T) {
-	tests := []struct {
-		name    string
-		content string
-		path    string
-	}{
+	tests := []ValidationTestCase{
 		{
-			name: "valid json content",
-			content: `{
+			Name: "valid json content",
+			Content: `{
   "system": {
     "hostname": "test-firewall",
     "domain": "example.com",
@@ -500,38 +553,22 @@ func TestFileExporter_JSONValidation(t *testing.T) {
     "totalFirewallRules": 2
   }
 }`,
-			path: filepath.Join(os.TempDir(), "test_json_validation.json"),
+			FileName:   "test_json_validation.json",
+			ValidateFn: validateJSON,
 		},
 		{
-			name: "simple json content",
-			content: `{
+			Name: "simple json content",
+			Content: `{
   "hostname": "simple-test",
   "enabled": true,
   "version": "1.0.0"
 }`,
-			path: filepath.Join(os.TempDir(), "test_simple_json.json"),
+			FileName:   "test_simple_json.json",
+			ValidateFn: validateJSON,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			e := NewFileExporter()
-
-			// Export the JSON content
-			err := e.Export(context.Background(), tt.content, tt.path)
-			require.NoError(t, err)
-			defer os.Remove(tt.path) //nolint:errcheck // Test cleanup
-
-			// Read the exported file
-			exportedContent, err := os.ReadFile(tt.path)
-			require.NoError(t, err)
-			assert.Equal(t, tt.content, string(exportedContent))
-
-			// Validate that the exported JSON passes validation
-			err = validateJSON(string(exportedContent))
-			assert.NoError(t, err, "Exported JSON should pass validation")
-		})
-	}
+	runValidationTests(t, tests)
 }
 
 // TestFileExporter_NoTerminalControlCharactersJSON tests that exported JSON files
@@ -555,12 +592,13 @@ func TestFileExporter_NoTerminalControlCharactersJSON(t *testing.T) {
   }
 }`
 
-	path := filepath.Join(os.TempDir(), "test_no_control_chars_json.json")
+	path := filepath.Join(t.TempDir(), "test_no_control_chars_json.json")
 	e := NewFileExporter()
 
 	err := e.Export(context.Background(), testContent, path)
 	require.NoError(t, err)
-	defer os.Remove(path) //nolint:errcheck // Test cleanup
+
+	defer os.Remove(path)
 
 	// Read the exported file
 	exportedContent, err := os.ReadFile(path)
@@ -589,10 +627,10 @@ func TestFileExporter_ActualExportedJSONFile(t *testing.T) {
 	// 2. Passes JSON validation tests
 
 	// Create a temporary directory for test files
-	tmpDir, err := os.MkdirTemp("", "opnfocus-export-test")
-	require.NoError(t, err)
+	tmpDir := t.TempDir()
+
 	defer func() {
-		_ = os.RemoveAll(tmpDir) //nolint:errcheck // Test cleanup
+		_ = os.RemoveAll(tmpDir)
 	}()
 
 	// Use existing test config file
@@ -602,14 +640,26 @@ func TestFileExporter_ActualExportedJSONFile(t *testing.T) {
 	// Change to project root directory first
 	projectRoot := filepath.Join("..", "..")
 	outputFile := filepath.Join(tmpDir, "test_output.json")
-	cmd := exec.CommandContext(context.Background(), "go", "run", ".", "convert", configFile, "--format", "json", "-o", outputFile)
+	cmd := exec.CommandContext(
+		context.Background(),
+		"go",
+		"run",
+		".",
+		"convert",
+		configFile,
+		"--format",
+		"json",
+		"-o",
+		outputFile,
+	)
 	cmd.Dir = projectRoot
 
 	var stdout, stderr bytes.Buffer
+
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		t.Skipf("Skipping test - CLI command failed: %v, stderr: %s", err, stderr.String())
 	}
@@ -622,7 +672,7 @@ func TestFileExporter_ActualExportedJSONFile(t *testing.T) {
 
 	// 1. Validate that the JSON passes validation
 	err = validateJSON(contentStr)
-	assert.NoError(t, err, "Exported JSON should pass validation")
+	require.NoError(t, err, "Exported JSON should pass validation")
 
 	// 2. Check for no terminal control characters
 	assert.NotContains(t, contentStr, "\x1b[", "Exported JSON should not contain ANSI escape sequences")
@@ -646,14 +696,10 @@ func validateJSON(content string) error {
 // This test ensures that the YAML export functionality meets the acceptance criteria
 // for TASK-019: "passes YAML validation tests".
 func TestFileExporter_YAMLValidation(t *testing.T) {
-	tests := []struct {
-		name    string
-		content string
-		path    string
-	}{
+	tests := []ValidationTestCase{
 		{
-			name: "valid yaml content",
-			content: `system:
+			Name: "valid yaml content",
+			Content: `system:
   hostname: test-firewall
   domain: example.com
   timezone: UTC
@@ -671,37 +717,21 @@ statistics:
   totalInterfaces: 2
   totalFirewallRules: 2
 `,
-			path: filepath.Join(os.TempDir(), "test_yaml_validation.yaml"),
+			FileName:   "test_yaml_validation.yaml",
+			ValidateFn: validateYAML,
 		},
 		{
-			name: "simple yaml content",
-			content: `hostname: simple-test
+			Name: "simple yaml content",
+			Content: `hostname: simple-test
 enabled: true
 version: "1.0.0"
 `,
-			path: filepath.Join(os.TempDir(), "test_simple_yaml.yaml"),
+			FileName:   "test_simple_yaml.yaml",
+			ValidateFn: validateYAML,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			e := NewFileExporter()
-
-			// Export the YAML content
-			err := e.Export(context.Background(), tt.content, tt.path)
-			require.NoError(t, err)
-			defer os.Remove(tt.path) //nolint:errcheck // Test cleanup
-
-			// Read the exported file
-			exportedContent, err := os.ReadFile(tt.path)
-			require.NoError(t, err)
-			assert.Equal(t, tt.content, string(exportedContent))
-
-			// Validate that the exported YAML passes validation
-			err = validateYAML(string(exportedContent))
-			assert.NoError(t, err, "Exported YAML should pass validation")
-		})
-	}
+	runValidationTests(t, tests)
 }
 
 // TestFileExporter_NoTerminalControlCharactersYAML tests that exported YAML files
@@ -720,12 +750,13 @@ statistics:
   totalInterfaces: 1
 `
 
-	path := filepath.Join(os.TempDir(), "test_no_control_chars_yaml.yaml")
+	path := filepath.Join(t.TempDir(), "test_no_control_chars_yaml.yaml")
 	e := NewFileExporter()
 
 	err := e.Export(context.Background(), testContent, path)
 	require.NoError(t, err)
-	defer os.Remove(path) //nolint:errcheck // Test cleanup
+
+	defer os.Remove(path)
 
 	// Read the exported file
 	exportedContent, err := os.ReadFile(path)
@@ -754,10 +785,10 @@ func TestFileExporter_ActualExportedYAMLFile(t *testing.T) {
 	// 2. Passes YAML validation tests
 
 	// Create a temporary directory for test files
-	tmpDir, err := os.MkdirTemp("", "opnfocus-export-test")
-	require.NoError(t, err)
+	tmpDir := t.TempDir()
+
 	defer func() {
-		_ = os.RemoveAll(tmpDir) //nolint:errcheck // Test cleanup
+		_ = os.RemoveAll(tmpDir)
 	}()
 
 	// Use existing test config file
@@ -767,14 +798,26 @@ func TestFileExporter_ActualExportedYAMLFile(t *testing.T) {
 	// Change to project root directory first
 	projectRoot := filepath.Join("..", "..")
 	outputFile := filepath.Join(tmpDir, "test_output.yaml")
-	cmd := exec.CommandContext(context.Background(), "go", "run", ".", "convert", configFile, "--format", "yaml", "-o", outputFile)
+	cmd := exec.CommandContext(
+		context.Background(),
+		"go",
+		"run",
+		".",
+		"convert",
+		configFile,
+		"--format",
+		"yaml",
+		"-o",
+		outputFile,
+	)
 	cmd.Dir = projectRoot
 
 	var stdout, stderr bytes.Buffer
+
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		t.Skipf("Skipping test - CLI command failed: %v, stderr: %s", err, stderr.String())
 	}
@@ -787,7 +830,7 @@ func TestFileExporter_ActualExportedYAMLFile(t *testing.T) {
 
 	// 1. Validate that the YAML passes validation
 	err = validateYAML(contentStr)
-	assert.NoError(t, err, "Exported YAML should pass validation")
+	require.NoError(t, err, "Exported YAML should pass validation")
 
 	// 2. Check for no terminal control characters
 	assert.NotContains(t, contentStr, "\x1b[", "Exported YAML should not contain ANSI escape sequences")
@@ -812,10 +855,10 @@ func validateYAML(content string) error {
 // for TASK-021a: "All exported files pass validation tests with standard tools and libraries".
 func TestFileExporter_StandardToolValidation(t *testing.T) {
 	// Create a temporary directory for test files
-	tmpDir, err := os.MkdirTemp("", "opnfocus-validation-test")
-	require.NoError(t, err)
+	tmpDir := t.TempDir()
+
 	defer func() {
-		_ = os.RemoveAll(tmpDir) //nolint:errcheck // Test cleanup
+		_ = os.RemoveAll(tmpDir)
 	}()
 
 	// Use existing test config file
@@ -851,7 +894,7 @@ func TestFileExporter_StandardToolValidation(t *testing.T) {
 				// Try to convert the markdown to validate syntax
 				var buf strings.Builder
 				err = md.Convert(content, &buf)
-				assert.NoError(t, err, "Markdown should pass strict goldmark validation")
+				require.NoError(t, err, "Markdown should pass strict goldmark validation")
 
 				// Additional basic validation checks
 				contentStr := string(content)
@@ -874,7 +917,7 @@ func TestFileExporter_StandardToolValidation(t *testing.T) {
 				// Use encoding/json with strict validation
 				var result map[string]any
 				err = json.Unmarshal(content, &result)
-				assert.NoError(t, err, "JSON should pass strict encoding/json validation")
+				require.NoError(t, err, "JSON should pass strict encoding/json validation")
 
 				// Additional basic validation checks
 				contentStr := string(content)
@@ -901,7 +944,7 @@ func TestFileExporter_StandardToolValidation(t *testing.T) {
 				// Use yaml.v3 with strict validation
 				var result map[string]any
 				err = yaml.Unmarshal(content, &result)
-				assert.NoError(t, err, "YAML should pass strict yaml.v3 validation")
+				require.NoError(t, err, "YAML should pass strict yaml.v3 validation")
 
 				// Additional basic validation checks
 				contentStr := string(content)
@@ -912,7 +955,7 @@ func TestFileExporter_StandardToolValidation(t *testing.T) {
 				// Test with yaml.Node for more detailed validation
 				var node yaml.Node
 				err = yaml.Unmarshal(content, &node)
-				assert.NoError(t, err, "YAML should pass yaml.Node validation")
+				require.NoError(t, err, "YAML should pass yaml.Node validation")
 			},
 		},
 	}
@@ -922,10 +965,22 @@ func TestFileExporter_StandardToolValidation(t *testing.T) {
 			outputFile := filepath.Join(tmpDir, "test_output."+tt.format)
 
 			// Run the CLI command to generate the file
-			cmd := exec.CommandContext(context.Background(), "go", "run", ".", "convert", configFile, "--format", tt.format, "-o", outputFile)
+			cmd := exec.CommandContext(
+				context.Background(),
+				"go",
+				"run",
+				".",
+				"convert",
+				configFile,
+				"--format",
+				tt.format,
+				"-o",
+				outputFile,
+			)
 			cmd.Dir = projectRoot
 
 			var stdout, stderr bytes.Buffer
+
 			cmd.Stdout = &stdout
 			cmd.Stderr = &stderr
 
@@ -950,10 +1005,10 @@ func TestFileExporter_StandardToolValidation(t *testing.T) {
 // for TASK-021a: "All exported files pass validation tests with standard tools and libraries".
 func TestFileExporter_LibraryValidation(t *testing.T) {
 	// Create a temporary directory for test files
-	tmpDir, err := os.MkdirTemp("", "opnfocus-library-test")
-	require.NoError(t, err)
+	tmpDir := t.TempDir()
+
 	defer func() {
-		_ = os.RemoveAll(tmpDir) //nolint:errcheck // Test cleanup
+		_ = os.RemoveAll(tmpDir)
 	}()
 
 	// Use existing test config file
@@ -974,12 +1029,12 @@ func TestFileExporter_LibraryValidation(t *testing.T) {
 
 				// 1. Test with goldmark (already used in ValidateMarkdown)
 				err := markdown.ValidateMarkdown(string(content))
-				assert.NoError(t, err, "Markdown should pass goldmark validation")
+				require.NoError(t, err, "Markdown should pass goldmark validation")
 
 				// 2. Test with glamour (terminal markdown renderer)
 				// This simulates what users would see in terminal
 				_, err = glamour.Render(string(content), "dark")
-				assert.NoError(t, err, "Markdown should pass glamour validation")
+				require.NoError(t, err, "Markdown should pass glamour validation")
 
 				// 3. Basic markdown structure validation
 				contentStr := string(content)
@@ -997,7 +1052,7 @@ func TestFileExporter_LibraryValidation(t *testing.T) {
 				// 1. Test with encoding/json
 				var result map[string]any
 				err := json.Unmarshal(content, &result)
-				assert.NoError(t, err, "JSON should pass encoding/json validation")
+				require.NoError(t, err, "JSON should pass encoding/json validation")
 
 				// 2. Test with json.Valid (Go 1.9+)
 				if !json.Valid(content) {
@@ -1030,7 +1085,7 @@ func TestFileExporter_LibraryValidation(t *testing.T) {
 				// 1. Test with gopkg.in/yaml.v3
 				var result map[string]any
 				err := yaml.Unmarshal(content, &result)
-				assert.NoError(t, err, "YAML should pass yaml.v3 validation")
+				require.NoError(t, err, "YAML should pass yaml.v3 validation")
 
 				// 2. Test with different target types
 				var arrayResult []any
@@ -1044,7 +1099,7 @@ func TestFileExporter_LibraryValidation(t *testing.T) {
 				// 3. Test with yaml.Node for more detailed validation
 				var node yaml.Node
 				err = yaml.Unmarshal(content, &node)
-				assert.NoError(t, err, "YAML should pass yaml.Node validation")
+				require.NoError(t, err, "YAML should pass yaml.Node validation")
 
 				// 4. Basic YAML structure validation
 				contentStr := string(content)
@@ -1059,10 +1114,22 @@ func TestFileExporter_LibraryValidation(t *testing.T) {
 			outputFile := filepath.Join(tmpDir, "test_output."+tt.format)
 
 			// Run the CLI command to generate the file
-			cmd := exec.CommandContext(context.Background(), "go", "run", ".", "convert", configFile, "--format", tt.format, "-o", outputFile)
+			cmd := exec.CommandContext(
+				context.Background(),
+				"go",
+				"run",
+				".",
+				"convert",
+				configFile,
+				"--format",
+				tt.format,
+				"-o",
+				outputFile,
+			)
 			cmd.Dir = projectRoot
 
 			var stdout, stderr bytes.Buffer
+
 			cmd.Stdout = &stdout
 			cmd.Stderr = &stderr
 
@@ -1087,10 +1154,10 @@ func TestFileExporter_LibraryValidation(t *testing.T) {
 // for TASK-021a: "All exported files pass validation tests with standard tools and libraries".
 func TestFileExporter_CrossPlatformValidation(t *testing.T) {
 	// Create a temporary directory for test files
-	tmpDir, err := os.MkdirTemp("", "opnfocus-crossplatform-test")
-	require.NoError(t, err)
+	tmpDir := t.TempDir()
+
 	defer func() {
-		_ = os.RemoveAll(tmpDir) //nolint:errcheck // Test cleanup
+		_ = os.RemoveAll(tmpDir)
 	}()
 
 	// Use existing test config file
@@ -1111,10 +1178,22 @@ func TestFileExporter_CrossPlatformValidation(t *testing.T) {
 			outputFile := filepath.Join(tmpDir, "test_output."+tt.format)
 
 			// Run the CLI command to generate the file
-			cmd := exec.CommandContext(context.Background(), "go", "run", ".", "convert", configFile, "--format", tt.format, "-o", outputFile)
+			cmd := exec.CommandContext(
+				context.Background(),
+				"go",
+				"run",
+				".",
+				"convert",
+				configFile,
+				"--format",
+				tt.format,
+				"-o",
+				outputFile,
+			)
 			cmd.Dir = projectRoot
 
 			var stdout, stderr bytes.Buffer
+
 			cmd.Stdout = &stdout
 			cmd.Stderr = &stderr
 
@@ -1150,13 +1229,14 @@ func TestFileExporter_CrossPlatformValidation(t *testing.T) {
 			switch tt.format {
 			case "markdown":
 				err = markdown.ValidateMarkdown(contentStr)
-				assert.NoError(t, err, "Markdown should be valid")
+				require.NoError(t, err, "Markdown should be valid")
 			case "json":
 				assert.True(t, json.Valid(exportedContent), "JSON should be valid")
 			case "yaml":
 				var result map[string]any
+
 				err = yaml.Unmarshal(exportedContent, &result)
-				assert.NoError(t, err, "YAML should be valid")
+				require.NoError(t, err, "YAML should be valid")
 			}
 		})
 	}

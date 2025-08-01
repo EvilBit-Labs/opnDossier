@@ -86,7 +86,11 @@ func (mc *ModeController) ValidateModeConfig(config *ModeConfig) error {
 }
 
 // GenerateReport generates an audit report based on the specified mode and configuration.
-func (mc *ModeController) GenerateReport(ctx context.Context, cfg *model.OpnSenseDocument, config *ModeConfig) (*Report, error) {
+func (mc *ModeController) GenerateReport(
+	ctx context.Context,
+	cfg *model.OpnSenseDocument,
+	config *ModeConfig,
+) (*Report, error) {
 	if err := mc.ValidateModeConfig(config); err != nil {
 		return nil, fmt.Errorf("invalid mode config: %w", err)
 	}

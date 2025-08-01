@@ -8,9 +8,8 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"sync"
-
 	pluginlib "plugin"
+	"sync"
 
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 	"github.com/unclesp1d3r/opnFocus/internal/plugin"
@@ -39,6 +38,7 @@ func (pr *PluginRegistry) RegisterPlugin(p plugin.CompliancePlugin) error {
 	}
 
 	pr.plugins[p.Name()] = p
+
 	return nil
 }
 
@@ -83,6 +83,7 @@ func (pr *PluginRegistry) LoadDynamicPlugins(ctx context.Context, dir string, lo
 		}
 
 		path := filepath.Join(dir, entry.Name())
+
 		p, err := pluginlib.Open(path)
 		if err != nil {
 			logger.ErrorContext(ctx, "Failed to open plugin", "file", path, "error", err)
@@ -106,14 +107,26 @@ func (pr *PluginRegistry) LoadDynamicPlugins(ctx context.Context, dir string, lo
 			continue
 		}
 
-		logger.InfoContext(ctx, "Loaded dynamic plugin", "file", path, "name", compliancePlugin.Name(), "version", compliancePlugin.Version())
+		logger.InfoContext(
+			ctx,
+			"Loaded dynamic plugin",
+			"file",
+			path,
+			"name",
+			compliancePlugin.Name(),
+			"version",
+			compliancePlugin.Version(),
+		)
 	}
 
 	return nil
 }
 
 // RunComplianceChecks runs compliance checks for specified plugins.
-func (pr *PluginRegistry) RunComplianceChecks(config *model.OpnSenseDocument, pluginNames []string) (*ComplianceResult, error) {
+func (pr *PluginRegistry) RunComplianceChecks(
+	config *model.OpnSenseDocument,
+	pluginNames []string,
+) (*ComplianceResult, error) {
 	result := &ComplianceResult{
 		Findings:   []plugin.Finding{},
 		Compliance: make(map[string]map[string]bool),

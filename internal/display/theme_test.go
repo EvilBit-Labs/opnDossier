@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
 	"github.com/unclesp1d3r/opnFocus/internal/display"
 )
 
@@ -20,10 +19,10 @@ func TestDetectTheme(t *testing.T) {
 
 	// Restore environment after tests
 	defer func() {
-		require.NoError(t, os.Setenv("COLORTERM", originalColorTerm))
-		require.NoError(t, os.Setenv("TERM", originalTerm))
-		require.NoError(t, os.Setenv("OPNFOCUS_THEME", originalTheme))
-		require.NoError(t, os.Setenv("TERM_PROGRAM", originalTermProgram))
+		t.Setenv("COLORTERM", originalColorTerm)
+		t.Setenv("TERM", originalTerm)
+		t.Setenv("OPNFOCUS_THEME", originalTheme)
+		t.Setenv("TERM_PROGRAM", originalTermProgram)
 	}()
 
 	tests := []struct {
@@ -63,10 +62,10 @@ func TestDetectTheme(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set environment variables for this test
-			require.NoError(t, os.Setenv("OPNFOCUS_THEME", tt.envTheme))
-			require.NoError(t, os.Setenv("COLORTERM", tt.colorTerm))
-			require.NoError(t, os.Setenv("TERM", tt.term))
-			require.NoError(t, os.Setenv("TERM_PROGRAM", tt.termProgram))
+			t.Setenv("OPNFOCUS_THEME", tt.envTheme)
+			t.Setenv("COLORTERM", tt.colorTerm)
+			t.Setenv("TERM", tt.term)
+			t.Setenv("TERM_PROGRAM", tt.termProgram)
 
 			theme := display.DetectTheme(tt.configTheme)
 			assert.Equal(t, tt.expected, theme.Name)
@@ -97,7 +96,7 @@ func TestThemeProperties(t *testing.T) {
 			if tt.colorExists {
 				color := tt.theme.GetColor(tt.colorKey)
 				assert.NotEmpty(t, color)
-				assert.True(t, color[0] == '#') // Should be a hex color
+				assert.Equal(t, '#', color[0]) // Should be a hex color
 			}
 
 			// Test Glamour style name
@@ -117,7 +116,7 @@ func TestThemeColorPalette(t *testing.T) {
 		for _, colorKey := range requiredColors {
 			color := theme.GetColor(colorKey)
 			assert.NotEmpty(t, color, "Color %s should exist in light theme", colorKey)
-			assert.True(t, color[0] == '#', "Color %s should be a hex color", colorKey)
+			assert.Equal(t, '#', color[0], "Color %s should be a hex color", colorKey)
 		}
 	})
 
@@ -129,7 +128,7 @@ func TestThemeColorPalette(t *testing.T) {
 		for _, colorKey := range requiredColors {
 			color := theme.GetColor(colorKey)
 			assert.NotEmpty(t, color, "Color %s should exist in dark theme", colorKey)
-			assert.True(t, color[0] == '#', "Color %s should be a hex color", colorKey)
+			assert.Equal(t, '#', color[0], "Color %s should be a hex color", colorKey)
 		}
 	})
 

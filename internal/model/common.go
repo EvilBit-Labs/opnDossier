@@ -17,16 +17,19 @@ func (bf BoolFlag) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	if bf {
 		return e.EncodeElement("", start)
 	}
+
 	return nil
 }
 
 // UnmarshalXML implements custom XML unmarshaling for boolean flags.
 func (bf *BoolFlag) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	*bf = true
+
 	var content string
 	if err := d.DecodeElement(&content, &start); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -35,6 +38,7 @@ func (bf BoolFlag) String() string {
 	if bf {
 		return "true"
 	}
+
 	return "false"
 }
 
@@ -88,6 +92,7 @@ func (rl *RuleLocation) String() string {
 		if rl.Subnet != "" {
 			addr += "/" + rl.Subnet
 		}
+
 		parts = append(parts, addr)
 	}
 

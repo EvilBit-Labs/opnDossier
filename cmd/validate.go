@@ -8,9 +8,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/unclesp1d3r/opnFocus/internal/parser"
-
 	"github.com/spf13/cobra"
+	"github.com/unclesp1d3r/opnFocus/internal/parser"
 )
 
 // init registers the validate command with the root command for the CLI.
@@ -110,7 +109,13 @@ Examples:
 					// Enhanced error handling for different error types
 					if parser.IsParseError(err) {
 						if parseErr := parser.GetParseError(err); parseErr != nil {
-							ctxLogger.Error("XML syntax error detected", "line", parseErr.Line, "message", parseErr.Message)
+							ctxLogger.Error(
+								"XML syntax error detected",
+								"line",
+								parseErr.Line,
+								"message",
+								parseErr.Message,
+							)
 						}
 					}
 					if parser.IsValidationError(err) {

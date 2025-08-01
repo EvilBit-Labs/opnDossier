@@ -21,6 +21,7 @@ func ExampleUsage(cfg *model.OpnSenseDocument) {
 
 	// Example 1: Basic processing with default options
 	fmt.Println("=== Basic Analysis ===")
+
 	report, err := processor.Process(ctx, cfg)
 	if err != nil {
 		fmt.Printf("Error during basic analysis: %v\n", err)
@@ -29,13 +30,16 @@ func ExampleUsage(cfg *model.OpnSenseDocument) {
 
 	fmt.Println(report.Summary())
 	fmt.Printf("Total findings: %d\n", report.TotalFindings())
+
 	if report.HasCriticalFindings() {
 		fmt.Printf("⚠️  Critical issues found: %d\n", len(report.Findings.Critical))
 	}
+
 	fmt.Println()
 
 	// Example 2: Security-focused analysis
 	fmt.Println("=== Security Analysis ===")
+
 	securityReport, err := processor.Process(ctx, cfg,
 		WithStats(),
 		WithSecurityAnalysis(),
@@ -49,16 +53,19 @@ func ExampleUsage(cfg *model.OpnSenseDocument) {
 	// Print security-specific findings
 	if len(securityReport.Findings.High) > 0 {
 		fmt.Println("High severity security findings:")
+
 		for _, finding := range securityReport.Findings.High {
 			if finding.Type == FindingTypeSecurity {
 				fmt.Printf("- %s: %s\n", finding.Title, finding.Description)
 			}
 		}
 	}
+
 	fmt.Println()
 
 	// Example 3: Comprehensive analysis with all features
 	fmt.Println("=== Comprehensive Analysis ===")
+
 	fullReport, err := processor.Process(ctx, cfg, WithAllFeatures())
 	if err != nil {
 		fmt.Printf("Error during comprehensive analysis: %v\n", err)
@@ -86,6 +93,7 @@ func ExampleUsage(cfg *model.OpnSenseDocument) {
 
 	// Example 4: Processing with custom timeout and error handling
 	fmt.Println("\n=== Analysis with Custom Timeout ===")
+
 	quickCtx, quickCancel := context.WithTimeout(context.Background(), constants.QuickProcessingTimeout)
 	defer quickCancel()
 
@@ -96,16 +104,19 @@ func ExampleUsage(cfg *model.OpnSenseDocument) {
 		} else {
 			fmt.Printf("Error during quick analysis: %v\n", err)
 		}
+
 		return
 	}
 
 	// Check for maintenance-related findings
 	maintenanceIssues := 0
+
 	for _, finding := range quickReport.Findings.Low {
 		if finding.Type == "maintenance" {
 			maintenanceIssues++
 		}
 	}
+
 	fmt.Printf("Found %d maintenance issues\n", maintenanceIssues)
 }
 
@@ -117,7 +128,6 @@ func ProcessConfigFromFile(configPath string) error {
 	// 2. Parsing it into model.OpnSenseDocument
 	// 3. Processing with the processor
 	// 4. Outputting results
-
 	fmt.Printf("Processing configuration from: %s\n", configPath)
 
 	// Placeholder - in real implementation you would:
@@ -159,6 +169,7 @@ func ProcessConfigFromFile(configPath string) error {
 // that extends or modifies the behavior of the example processor.
 type CustomProcessorExample struct {
 	*ExampleProcessor
+
 	customChecks []CustomCheck
 }
 
@@ -178,7 +189,11 @@ func NewCustomProcessor(customChecks []CustomCheck) *CustomProcessorExample {
 }
 
 // Process extends the base processor with custom checks.
-func (p *CustomProcessorExample) Process(ctx context.Context, cfg *model.OpnSenseDocument, opts ...Option) (*Report, error) {
+func (p *CustomProcessorExample) Process(
+	ctx context.Context,
+	cfg *model.OpnSenseDocument,
+	opts ...Option,
+) (*Report, error) {
 	// First run the standard processing
 	report, err := p.ExampleProcessor.Process(ctx, cfg, opts...)
 	if err != nil {

@@ -11,10 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/unclesp1d3r/opnFocus/internal/model"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/unclesp1d3r/opnFocus/internal/model"
 )
 
 func TestXMLParser_Parse(t *testing.T) {
@@ -56,10 +55,10 @@ func TestXMLParser_Parse(t *testing.T) {
 			opnsense, err := p.Parse(context.Background(), strings.NewReader(tt.input))
 
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 				assert.Nil(t, opnsense)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, tt.expected.Version, opnsense.Version)
 				assert.Equal(t, tt.expected.System.Hostname, opnsense.System.Hostname)
 				assert.Equal(t, tt.expected.System.Domain, opnsense.System.Domain)
@@ -88,7 +87,7 @@ func TestXMLParser_ParseSampleFiles(t *testing.T) {
 			file, err := os.Open(sampleFile)
 			require.NoError(t, err, "Failed to open sample file: %s", sampleFile)
 
-			defer func() { _ = file.Close() }() //nolint:errcheck // Defer close
+			defer func() { _ = file.Close() }()
 
 			opnsense, err := parser.Parse(context.Background(), file)
 			require.NoError(t, err, "Failed to parse sample file: %s", sampleFile)
@@ -113,7 +112,7 @@ func TestXMLParser_ParseConfigSample(t *testing.T) {
 	file, err := os.Open(sampleFile)
 	require.NoError(t, err)
 
-	defer func() { _ = file.Close() }() //nolint:errcheck // Ignore error in test cleanup
+	defer func() { _ = file.Close() }()
 
 	opnsense, err := parser.Parse(context.Background(), file)
 	require.NoError(t, err)
@@ -273,6 +272,7 @@ func validateOPNsenseConfig(t *testing.T, config *model.OpnSenseDocument, _ stri
 				assert.NotEmpty(t, wan.If, "WAN interface name should not be empty if specified")
 			}
 		}
+
 		if lan, exists := config.Interfaces.Lan(); exists {
 			lanEnabled = lan.Enable == "1"
 			// Validate interface name if specified
@@ -280,6 +280,7 @@ func validateOPNsenseConfig(t *testing.T, config *model.OpnSenseDocument, _ stri
 				assert.NotEmpty(t, lan.If, "LAN interface name should not be empty if specified")
 			}
 		}
+
 		assert.True(t, wanEnabled || lanEnabled, "At least one interface should be enabled")
 	})
 
@@ -340,12 +341,12 @@ func BenchmarkXMLParser_Parse(b *testing.B) {
 
 		_, err = parser.Parse(context.Background(), file)
 		if err != nil {
-			_ = file.Close() //nolint:errcheck // Ignore error in benchmark cleanup
+			_ = file.Close()
 
 			b.Fatal(err)
 		}
 
-		_ = file.Close() //nolint:errcheck // Ignore error in benchmark cleanup
+		_ = file.Close()
 	}
 }
 
@@ -364,7 +365,7 @@ func TestXMLParser_Validate(t *testing.T) {
 
 	// Validate should return no error for a valid configuration
 	err := p.Validate(validConfig)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Load an invalid configuration
 	invalidConfig := &model.OpnSenseDocument{
@@ -374,7 +375,7 @@ func TestXMLParser_Validate(t *testing.T) {
 
 	// Validate should return an error for an invalid configuration
 	err = p.Validate(invalidConfig)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 // TestXMLParser_ParseAndValidate tests the ParseAndValidate method of XMLParser.
@@ -403,9 +404,9 @@ func TestXMLParser_ParseAndValidate(t *testing.T) {
 			_, err := p.ParseAndValidate(context.Background(), strings.NewReader(tt.input))
 
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -476,7 +477,7 @@ func TestXMLParser_MalformedXML(t *testing.T) {
 			// Check if it's a ParseError with line information
 			var parseErr *ParseError
 			if errors.As(err, &parseErr) {
-				assert.Greater(t, parseErr.Line, 0, "ParseError should have line information")
+				assert.Positive(t, parseErr.Line, "ParseError should have line information")
 				assert.Contains(t, parseErr.Message, "opnsense", "ParseError should contain element context")
 			} else {
 				// If not a direct ParseError, check if it's wrapped with system decode error
@@ -550,14 +551,15 @@ func TestXMLParser_ValidationFailure(t *testing.T) {
 
 				// Check if it's an AggregatedValidationError
 				var aggErr *AggregatedValidationError
-				assert.True(t, errors.As(err, &aggErr), "Should be AggregatedValidationError or contain one")
+				require.ErrorAs(t, err, &aggErr, "Should be AggregatedValidationError or contain one")
+
 				if aggErr != nil {
-					assert.Greater(t, len(aggErr.Errors), 0, "Should have validation errors")
+					assert.NotEmpty(t, aggErr.Errors, "Should have validation errors")
 				}
 			} else {
 				// When validation is off, should pass parsing
 				_, err := parser.Parse(context.Background(), reader)
-				assert.NoError(t, err, "Should pass parsing when validation is disabled")
+				require.NoError(t, err, "Should pass parsing when validation is disabled")
 			}
 		})
 	}
@@ -575,23 +577,33 @@ func generateLargeXML(size int) string {
 
 	// Generate many sysctl items to reach desired size - all within a single <sysctl> element
 	builder.WriteString(`<sysctl>`)
+
 	for i := range size {
 		builder.WriteString(`<item>`)
 		builder.WriteString(fmt.Sprintf(`<tunable>net.inet.ip.test_%d</tunable>`, i))
 		builder.WriteString(fmt.Sprintf(`<value>%d</value>`, i%10))
-		builder.WriteString(fmt.Sprintf(`<descr>Test sysctl item number %d with some additional descriptive text to increase size and memory usage for the benchmark</descr>`, i))
+		builder.WriteString(
+			fmt.Sprintf(
+				`<descr>Test sysctl item number %d with some additional descriptive text to increase size and memory usage for the benchmark</descr>`,
+				i,
+			),
+		)
 		builder.WriteString(`</item>`)
 	}
+
 	builder.WriteString(`</sysctl>`)
 
 	// Add some filter rules to increase complexity
 	builder.WriteString(`<filter>`)
-	for i := 0; i < size/100; i++ { // Reduce number of rules to focus on sysctl items
+
+	for i := range size / 100 { // Reduce number of rules to focus on sysctl items
 		builder.WriteString(`<rule>`)
 		builder.WriteString(`<type>pass</type>`)
 		builder.WriteString(`<ipprotocol>inet</ipprotocol>`)
 		builder.WriteString(`<interface>lan</interface>`)
-		builder.WriteString(fmt.Sprintf(`<descr>Generated rule number %d for testing large XML configurations</descr>`, i))
+		builder.WriteString(
+			fmt.Sprintf(`<descr>Generated rule number %d for testing large XML configurations</descr>`, i),
+		)
 		builder.WriteString(`<source>`)
 		builder.WriteString(`<network>lan</network>`)
 		builder.WriteString(`</source>`)
@@ -600,9 +612,11 @@ func generateLargeXML(size int) string {
 		builder.WriteString(`</destination>`)
 		builder.WriteString(`</rule>`)
 	}
+
 	builder.WriteString(`</filter>`)
 
 	builder.WriteString(`</opnsense>`)
+
 	return builder.String()
 }
 
@@ -612,6 +626,7 @@ func BenchmarkXMLParser_LargeConfig(b *testing.B) {
 	// Generate a configuration that will be large but manageable for testing
 	// Each sysctl item is roughly 200 bytes, start with 10,000 items for ~2MB
 	const targetItems = 10000
+
 	tempDir := b.TempDir() // Use b.TempDir() for benchmark
 
 	// Generate and write large XML to temporary file to avoid keeping it in memory
@@ -658,6 +673,7 @@ func BenchmarkXMLParser_LargeConfig(b *testing.B) {
 			if err := file.Close(); err != nil {
 				b.Logf("Warning: failed to close file: %v", err)
 			}
+
 			b.Fatal(err)
 		}
 

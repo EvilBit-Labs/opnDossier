@@ -63,7 +63,12 @@ func (p *ExampleProcessor) Process(ctx context.Context, cfg *model.OpnSenseDocum
 }
 
 // performBasicAnalysis performs basic configuration validation and analysis.
-func (p *ExampleProcessor) performBasicAnalysis(ctx context.Context, cfg *model.OpnSenseDocument, report *Report, _ Config) error {
+func (p *ExampleProcessor) performBasicAnalysis(
+	ctx context.Context,
+	cfg *model.OpnSenseDocument,
+	report *Report,
+	_ Config,
+) error {
 	// Check for context cancellation
 	select {
 	case <-ctx.Done():
@@ -108,7 +113,11 @@ func (p *ExampleProcessor) performBasicAnalysis(ctx context.Context, cfg *model.
 }
 
 // performDeadRuleAnalysis analyzes firewall rules for potential dead/unused rules.
-func (p *ExampleProcessor) performDeadRuleAnalysis(ctx context.Context, cfg *model.OpnSenseDocument, report *Report) error {
+func (p *ExampleProcessor) performDeadRuleAnalysis(
+	ctx context.Context,
+	cfg *model.OpnSenseDocument,
+	report *Report,
+) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -124,11 +133,13 @@ func (p *ExampleProcessor) performDeadRuleAnalysis(ctx context.Context, cfg *mod
 			Recommendation: "Consider configuring appropriate firewall rules for security.",
 			Component:      "firewall",
 		})
+
 		return nil
 	}
 
 	// Basic check for rules without descriptions
 	rulesWithoutDescriptions := 0
+
 	for _, rule := range rules {
 		if rule.Descr == "" {
 			rulesWithoutDescriptions++
@@ -137,9 +148,12 @@ func (p *ExampleProcessor) performDeadRuleAnalysis(ctx context.Context, cfg *mod
 
 	if rulesWithoutDescriptions > 0 {
 		report.AddFinding(SeverityLow, Finding{
-			Type:           "maintenance",
-			Title:          "Firewall Rules Missing Descriptions",
-			Description:    fmt.Sprintf("%d firewall rules are missing descriptions, making them difficult to maintain.", rulesWithoutDescriptions),
+			Type:  "maintenance",
+			Title: "Firewall Rules Missing Descriptions",
+			Description: fmt.Sprintf(
+				"%d firewall rules are missing descriptions, making them difficult to maintain.",
+				rulesWithoutDescriptions,
+			),
 			Recommendation: "Add meaningful descriptions to all firewall rules for better maintainability.",
 			Component:      "firewall",
 		})
@@ -149,7 +163,11 @@ func (p *ExampleProcessor) performDeadRuleAnalysis(ctx context.Context, cfg *mod
 }
 
 // performSecurityAnalysis performs security-related analysis of the configuration.
-func (p *ExampleProcessor) performSecurityAnalysis(ctx context.Context, cfg *model.OpnSenseDocument, report *Report) error {
+func (p *ExampleProcessor) performSecurityAnalysis(
+	ctx context.Context,
+	cfg *model.OpnSenseDocument,
+	report *Report,
+) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -192,7 +210,11 @@ func (p *ExampleProcessor) performSecurityAnalysis(ctx context.Context, cfg *mod
 }
 
 // performPerformanceAnalysis performs performance-related analysis of the configuration.
-func (p *ExampleProcessor) performPerformanceAnalysis(ctx context.Context, cfg *model.OpnSenseDocument, report *Report) error {
+func (p *ExampleProcessor) performPerformanceAnalysis(
+	ctx context.Context,
+	cfg *model.OpnSenseDocument,
+	report *Report,
+) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -235,7 +257,11 @@ func (p *ExampleProcessor) performPerformanceAnalysis(ctx context.Context, cfg *
 //   - Regulatory compliance requirements (PCI-DSS, HIPAA, etc.)
 //
 // This would provide comprehensive compliance monitoring capabilities.
-func (p *ExampleProcessor) performComplianceCheck(ctx context.Context, cfg *model.OpnSenseDocument, report *Report) error {
+func (p *ExampleProcessor) performComplianceCheck(
+	ctx context.Context,
+	cfg *model.OpnSenseDocument,
+	report *Report,
+) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()

@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
-
 	"github.com/unclesp1d3r/opnFocus/internal/markdown"
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 )

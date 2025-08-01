@@ -6,13 +6,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 )
 
 func TestCoreProcessor_Process(t *testing.T) {
 	processor, err := NewCoreProcessor()
 	require.NoError(t, err)
+
 	ctx := context.Background()
 
 	// Create a test configuration
@@ -20,10 +20,7 @@ func TestCoreProcessor_Process(t *testing.T) {
 		System: model.System{
 			Hostname: "test-host",
 			Domain:   "test.local",
-			WebGUI: struct {
-				Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-				SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-			}{Protocol: "https"},
+			WebGUI:   model.WebGUIConfig{Protocol: "https"},
 			Bogons: struct {
 				Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
 			}{Interval: "monthly"},
@@ -80,12 +77,14 @@ func TestCoreProcessor_Process(t *testing.T) {
 		hasSNMPFinding := false
 
 		allFindings := append([]Finding{}, report.Findings.Critical...)
+
 		allFindings = append(allFindings, report.Findings.High...)
 		for _, finding := range allFindings {
 			if finding.Type == "security" {
 				if finding.Component == "system.webgui.protocol" {
 					hasHTTPFinding = true
 				}
+
 				if finding.Component == "snmpd.rocommunity" {
 					hasSNMPFinding = true
 				}
@@ -103,12 +102,14 @@ func TestCoreProcessor_Process(t *testing.T) {
 
 		// Should have findings about overly broad rules
 		hasSecurityFinding := false
+
 		for _, finding := range report.Findings.High {
 			if finding.Type == "security" && finding.Title == "Overly Broad Pass Rule" {
 				hasSecurityFinding = true
 				break
 			}
 		}
+
 		assert.True(t, hasSecurityFinding, "Should have overly broad rule finding")
 	})
 
@@ -125,7 +126,7 @@ func TestCoreProcessor_Process(t *testing.T) {
 
 	t.Run("Process with nil configuration", func(t *testing.T) {
 		_, err := processor.Process(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "configuration cannot be nil")
 	})
 }
@@ -133,6 +134,7 @@ func TestCoreProcessor_Process(t *testing.T) {
 func TestCoreProcessor_Transform(t *testing.T) {
 	processor, err := NewCoreProcessor()
 	require.NoError(t, err)
+
 	ctx := context.Background()
 
 	// Create a simple test configuration and process it
@@ -178,7 +180,7 @@ func TestCoreProcessor_Transform(t *testing.T) {
 
 	t.Run("Transform to unsupported format", func(t *testing.T) {
 		_, err := processor.Transform(ctx, report, "xml")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "unsupported format")
 	})
 }
@@ -220,6 +222,7 @@ func TestCoreProcessor_Normalization(t *testing.T) {
 		wan, wanExists := normalized.Interfaces.Wan()
 		assert.True(t, wanExists)
 		assert.Equal(t, "192.168.1.1", wan.IPAddr)
+
 		lan, lanExists := normalized.Interfaces.Lan()
 		assert.True(t, lanExists)
 		assert.Equal(t, "10.0.0.1", lan.IPAddr)
@@ -309,6 +312,7 @@ func TestCoreProcessor_Normalization(t *testing.T) {
 func TestCoreProcessor_Analysis(t *testing.T) {
 	processor, err := NewCoreProcessor()
 	require.NoError(t, err)
+
 	ctx := context.Background()
 
 	t.Run("Dead rule detection", func(t *testing.T) {
@@ -346,12 +350,14 @@ func TestCoreProcessor_Analysis(t *testing.T) {
 
 		// Should detect unreachable rule after block-all
 		hasDeadRuleFinding := false
+
 		for _, finding := range report.Findings.Medium {
 			if finding.Type == "dead-rule" {
 				hasDeadRuleFinding = true
 				break
 			}
 		}
+
 		assert.True(t, hasDeadRuleFinding, "Should detect dead rule after block-all")
 	})
 
@@ -392,12 +398,14 @@ func TestCoreProcessor_Analysis(t *testing.T) {
 
 		// Should detect duplicate rules
 		hasDuplicateFinding := false
+
 		for _, finding := range report.Findings.Low {
 			if finding.Type == "duplicate-rule" {
 				hasDuplicateFinding = true
 				break
 			}
 		}
+
 		assert.True(t, hasDuplicateFinding, "Should detect duplicate rules")
 	})
 
@@ -435,12 +443,14 @@ func TestCoreProcessor_Analysis(t *testing.T) {
 
 		// Should detect user referencing non-existent group
 		hasConsistencyFinding := false
+
 		for _, finding := range report.Findings.Medium {
 			if finding.Type == "consistency" && finding.Title == "User References Non-existent Group" {
 				hasConsistencyFinding = true
 				break
 			}
 		}
+
 		assert.True(t, hasConsistencyFinding, "Should detect user referencing non-existent group")
 	})
 }

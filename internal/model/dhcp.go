@@ -29,6 +29,7 @@ func (d *Dhcpd) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error
 			if err := decoder.DecodeElement(&dhcpIface, &se); err != nil {
 				return err
 			}
+
 			d.Items[se.Name.Local] = dhcpIface
 		case xml.EndElement:
 			if se.Name == start.Name {
@@ -67,7 +68,9 @@ func (d *Dhcpd) Get(key string) (DhcpdInterface, bool) {
 	if d.Items == nil {
 		return DhcpdInterface{}, false
 	}
+
 	dhcpIface, ok := d.Items[key]
+
 	return dhcpIface, ok
 }
 
@@ -82,10 +85,12 @@ func (d *Dhcpd) Names() []string {
 	if d.Items == nil {
 		return []string{}
 	}
+
 	names := make([]string, 0, len(d.Items))
 	for key := range d.Items {
 		names = append(names, key)
 	}
+
 	return names
 }
 

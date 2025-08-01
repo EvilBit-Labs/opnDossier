@@ -6,10 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/unclesp1d3r/opnFocus/internal/model"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/unclesp1d3r/opnFocus/internal/model"
 )
 
 func TestNewMarkdownGenerator(t *testing.T) {
@@ -18,6 +17,7 @@ func TestNewMarkdownGenerator(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create markdown generator with nil registry: %v", err)
 	}
+
 	if generator == nil {
 		t.Fatal("Generator should not be nil")
 	}
@@ -32,7 +32,7 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 	t.Run("nil configuration", func(t *testing.T) {
 		opts := DefaultOptions()
 		result, err := generator.Generate(ctx, nil, opts)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, ErrNilConfiguration, err)
 		assert.Empty(t, result)
 	})
@@ -44,7 +44,7 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 			WrapWidth: -1,
 		}
 		result, err := generator.Generate(ctx, cfg, opts)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid options")
 		assert.Empty(t, result)
 	})
@@ -59,7 +59,7 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 		opts := DefaultOptions().WithFormat(FormatMarkdown)
 		result, err := generator.Generate(ctx, cfg, opts)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, result)
 		assert.Contains(t, result, "test-host")
 	})
@@ -74,7 +74,7 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 		opts := DefaultOptions().WithFormat(FormatMarkdown).WithComprehensive(true)
 		result, err := generator.Generate(ctx, cfg, opts)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, result)
 		assert.Contains(t, result, "test-host")
 	})
@@ -89,7 +89,7 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 		opts := DefaultOptions().WithFormat(FormatJSON)
 		result, err := generator.Generate(ctx, cfg, opts)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, result)
 		assert.Contains(t, result, "test-host")
 	})
@@ -104,7 +104,7 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 		opts := DefaultOptions().WithFormat(FormatYAML)
 		result, err := generator.Generate(ctx, cfg, opts)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, result)
 		assert.Contains(t, result, "test-host")
 	})
@@ -114,7 +114,7 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 		opts := Options{Format: Format("unsupported")}
 		result, err := generator.Generate(ctx, cfg, opts)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "unsupported format")
 		assert.Empty(t, result)
 	})
@@ -136,16 +136,16 @@ func TestOptions(t *testing.T) {
 	t.Run("options validation", func(t *testing.T) {
 		// Valid options
 		opts := DefaultOptions()
-		assert.NoError(t, opts.Validate())
+		require.NoError(t, opts.Validate())
 
 		// Invalid format
 		opts.Format = Format("invalid")
-		assert.Error(t, opts.Validate())
+		require.Error(t, opts.Validate())
 
 		// Invalid wrap width
 		opts = DefaultOptions()
 		opts.WrapWidth = -1
-		assert.Error(t, opts.Validate())
+		require.Error(t, opts.Validate())
 	})
 
 	t.Run("options fluent interface", func(t *testing.T) {
@@ -203,9 +203,9 @@ func TestFormatValidation(t *testing.T) {
 		t.Run(string(tt.format), func(t *testing.T) {
 			err := tt.format.Validate()
 			if tt.valid {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			} else {
-				assert.Error(t, err)
+				require.Error(t, err)
 			}
 		})
 	}
@@ -293,6 +293,7 @@ func TestEscapeTableContent(t *testing.T) {
 			// Get the function and call it
 			escapeFunc, ok := funcMap["escapeTableContent"].(func(any) string)
 			require.True(t, ok, "escapeTableContent function should be of correct type")
+
 			result := escapeFunc(tt.input)
 
 			assert.Equal(t, tt.expected, result)

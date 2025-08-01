@@ -21,6 +21,7 @@ func (e ValidationError) Error() string {
 func (p *CoreProcessor) validate(cfg *model.OpnSenseDocument) []ValidationError {
 	// Pre-allocate errors slice with reasonable capacity
 	const initialErrorCapacity = 10
+
 	errors := make([]ValidationError, 0, initialErrorCapacity)
 
 	// Phase 1: Use go-playground/validator for struct tag validation

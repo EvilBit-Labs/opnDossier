@@ -123,15 +123,15 @@ type OpenVPNCSC struct {
 // OpenVPNExport represents OpenVPN export configuration.
 type OpenVPNExport struct {
 	XMLName xml.Name `xml:"OpenVPNExport"`
-	Text    string   `xml:",chardata" json:"text,omitempty"`
-	Version string   `xml:"version,attr" json:"version,omitempty"`
+	Text    string   `xml:",chardata"     json:"text,omitempty"`
+	Version string   `xml:"version,attr"  json:"version,omitempty"`
 	Servers string   `xml:"servers"`
 }
 
 // OpenVPNSystem represents OpenVPN system configuration.
 type OpenVPNSystem struct {
 	XMLName    xml.Name `xml:"OpenVPN"`
-	Text       string   `xml:",chardata" json:"text,omitempty"`
+	Text       string   `xml:",chardata"    json:"text,omitempty"`
 	Version    string   `xml:"version,attr" json:"version,omitempty"`
 	Overwrites string   `xml:"Overwrites"`
 	Instances  string   `xml:"Instances"`
@@ -146,7 +146,7 @@ type WireGuard struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Version string `xml:"version,attr" json:"version,omitempty"`
 		Enabled string `xml:"enabled" json:"enabled,omitempty"`
-	} `xml:"general" json:"general"`
+	} `xml:"general"   json:"general"`
 	Server struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Version string `xml:"version,attr" json:"version,omitempty"`
@@ -154,7 +154,7 @@ type WireGuard struct {
 			Text   string                `xml:",chardata" json:"text,omitempty"`
 			Server []WireGuardServerItem `xml:"server" json:"server,omitempty"`
 		} `xml:"servers" json:"servers"`
-	} `xml:"server" json:"server"`
+	} `xml:"server"    json:"server"`
 	Client struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Version string `xml:"version,attr" json:"version,omitempty"`
@@ -162,41 +162,41 @@ type WireGuard struct {
 			Text   string                `xml:",chardata" json:"text,omitempty"`
 			Client []WireGuardClientItem `xml:"client" json:"client,omitempty"`
 		} `xml:"clients" json:"clients"`
-	} `xml:"client" json:"client"`
+	} `xml:"client"    json:"client"`
 }
 
 // WireGuardServerItem represents a WireGuard server configuration.
 type WireGuardServerItem struct {
-	Text          string `xml:",chardata" json:"text,omitempty"`
-	UUID          string `xml:"uuid,attr" json:"uuid,omitempty"`
-	Version       string `xml:"version,attr" json:"version,omitempty"`
-	Enabled       string `xml:"enabled" json:"enabled,omitempty"`
-	Name          string `xml:"name" json:"name,omitempty"`
-	Instance      string `xml:"instance" json:"instance,omitempty"`
-	Pubkey        string `xml:"pubkey" json:"pubkey,omitempty"`
-	Privkey       string `xml:"privkey" json:"privkey,omitempty"`
-	Port          string `xml:"port" json:"port,omitempty"`
-	Mtu           string `xml:"mtu" json:"mtu,omitempty"`
-	DNS           string `xml:"dns" json:"dns,omitempty"`
+	Text          string `xml:",chardata"     json:"text,omitempty"`
+	UUID          string `xml:"uuid,attr"     json:"uuid,omitempty"`
+	Version       string `xml:"version,attr"  json:"version,omitempty"`
+	Enabled       string `xml:"enabled"       json:"enabled,omitempty"`
+	Name          string `xml:"name"          json:"name,omitempty"`
+	Instance      string `xml:"instance"      json:"instance,omitempty"`
+	Pubkey        string `xml:"pubkey"        json:"pubkey,omitempty"`
+	Privkey       string `xml:"privkey"       json:"privkey,omitempty"`
+	Port          string `xml:"port"          json:"port,omitempty"`
+	Mtu           string `xml:"mtu"           json:"mtu,omitempty"`
+	DNS           string `xml:"dns"           json:"dns,omitempty"`
 	Tunneladdress string `xml:"tunneladdress" json:"tunneladdress,omitempty"`
 	Disableroutes string `xml:"disableroutes" json:"disableroutes,omitempty"`
-	Gateway       string `xml:"gateway" json:"gateway,omitempty"`
-	Peers         string `xml:"peers" json:"peers,omitempty"`
+	Gateway       string `xml:"gateway"       json:"gateway,omitempty"`
+	Peers         string `xml:"peers"         json:"peers,omitempty"`
 }
 
 // WireGuardClientItem represents a WireGuard client configuration.
 type WireGuardClientItem struct {
-	Text          string `xml:",chardata" json:"text,omitempty"`
-	UUID          string `xml:"uuid,attr" json:"uuid,omitempty"`
-	Version       string `xml:"version,attr" json:"version,omitempty"`
-	Enabled       string `xml:"enabled" json:"enabled,omitempty"`
-	Name          string `xml:"name" json:"name,omitempty"`
-	Pubkey        string `xml:"pubkey" json:"pubkey,omitempty"`
-	Psk           string `xml:"psk" json:"psk,omitempty"`
+	Text          string `xml:",chardata"     json:"text,omitempty"`
+	UUID          string `xml:"uuid,attr"     json:"uuid,omitempty"`
+	Version       string `xml:"version,attr"  json:"version,omitempty"`
+	Enabled       string `xml:"enabled"       json:"enabled,omitempty"`
+	Name          string `xml:"name"          json:"name,omitempty"`
+	Pubkey        string `xml:"pubkey"        json:"pubkey,omitempty"`
+	Psk           string `xml:"psk"           json:"psk,omitempty"`
 	Tunneladdress string `xml:"tunneladdress" json:"tunneladdress,omitempty"`
 	Serveraddress string `xml:"serveraddress" json:"serveraddress,omitempty"`
-	Serverport    string `xml:"serverport" json:"serverport,omitempty"`
-	Keepalive     string `xml:"keepalive" json:"keepalive,omitempty"`
+	Serverport    string `xml:"serverport"    json:"serverport,omitempty"`
+	Keepalive     string `xml:"keepalive"     json:"keepalive,omitempty"`
 }
 
 // Constructor functions

@@ -402,14 +402,14 @@ func TestPlugin_broadNetworkRanges(t *testing.T) {
 	}
 }
 
-func TestPlugin_hasComprehensiveLogging(t *testing.T) {
-	plugin := NewPlugin()
+type loggingTestCase struct {
+	name     string
+	config   *model.OpnSenseDocument
+	expected any
+}
 
-	tests := []struct {
-		name     string
-		config   *model.OpnSenseDocument
-		expected bool
-	}{
+func getLoggingTestCases() []loggingTestCase {
+	return []loggingTestCase{
 		{
 			name:     "empty config",
 			config:   &model.OpnSenseDocument{},
@@ -467,8 +467,12 @@ func TestPlugin_hasComprehensiveLogging(t *testing.T) {
 			expected: false,
 		},
 	}
+}
 
-	for _, tt := range tests {
+func TestPlugin_hasComprehensiveLogging(t *testing.T) {
+	plugin := NewPlugin()
+
+	for _, tt := range getLoggingTestCases() {
 		t.Run(tt.name, func(t *testing.T) {
 			result := plugin.hasComprehensiveLogging(tt.config)
 			if result != tt.expected {

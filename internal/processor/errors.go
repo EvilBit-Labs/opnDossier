@@ -46,5 +46,10 @@ type TestHostnameError struct {
 }
 
 func (e *TestHostnameError) Error() string {
-	return fmt.Sprintf("goroutine %d: expected hostname %s, got %s", e.GoroutineID, e.ExpectedHostname, e.ActualHostname)
+	return fmt.Sprintf(
+		"goroutine %d: expected hostname %s, got %s",
+		e.GoroutineID,
+		e.ExpectedHostname,
+		e.ActualHostname,
+	)
 }

@@ -63,7 +63,8 @@ func init() {
 	convertCmd.Flags().StringVar(&auditMode, "mode", "", "Audit mode (standard, blue, red)")
 	convertCmd.Flags().BoolVar(&blackhatMode, "blackhat-mode", false, "Enable blackhat mode for red team reports")
 	convertCmd.Flags().BoolVar(&comprehensive, "comprehensive", false, "Generate comprehensive report")
-	convertCmd.Flags().StringSliceVar(&selectedPlugins, "plugins", []string{}, "Selected compliance plugins (comma-separated)")
+	convertCmd.Flags().
+		StringSliceVar(&selectedPlugins, "plugins", []string{}, "Selected compliance plugins (comma-separated)")
 	convertCmd.Flags().StringVar(&templateDir, "template-dir", "", "Custom template directory for user overrides")
 }
 
@@ -206,7 +207,13 @@ Examples:
 					// Enhanced error handling for different error types
 					if parser.IsParseError(err) {
 						if parseErr := parser.GetParseError(err); parseErr != nil {
-							ctxLogger.Error("XML syntax error detected", "line", parseErr.Line, "message", parseErr.Message)
+							ctxLogger.Error(
+								"XML syntax error detected",
+								"line",
+								parseErr.Line,
+								"message",
+								parseErr.Message,
+							)
 						}
 					}
 					if parser.IsValidationError(err) {
@@ -225,7 +232,15 @@ Examples:
 				var output string
 				var fileExt string
 
-				ctxLogger.Debug("Converting with options", "format", opt.Format, "theme", opt.Theme, "sections", opt.Sections)
+				ctxLogger.Debug(
+					"Converting with options",
+					"format",
+					opt.Format,
+					"theme",
+					opt.Theme,
+					"sections",
+					opt.Sections,
+				)
 
 				// Handle audit mode if specified
 				if opt.AuditMode != "" {
@@ -239,7 +254,7 @@ Examples:
 					}
 				} else {
 					// Standard markdown generation
-					g, err := markdown.NewMarkdownGenerator(nil)
+					g, err := markdown.NewMarkdownGeneratorWithTemplates(ctxLogger.Logger, opt.TemplateDir)
 					if err != nil {
 						ctxLogger.Error("Failed to create markdown generator", "error", err)
 						errs <- fmt.Errorf("failed to create markdown generator: %w", err)
@@ -336,7 +351,13 @@ func buildEffectiveFormat(flagFormat string, cfg *config.Config) string {
 
 // buildConversionOptions constructs a markdown.Options struct by merging CLI arguments and configuration values with defined precedence.
 // CLI arguments take priority over configuration file values, which in turn override defaults. The resulting options control output format, template, section filtering, theme, and text wrapping for the conversion process.
-func buildConversionOptions(format, template string, sections []string, theme string, wrap int, cfg *config.Config) markdown.Options {
+func buildConversionOptions(
+	format, template string,
+	sections []string,
+	theme string,
+	wrap int,
+	cfg *config.Config,
+) markdown.Options {
 	// Start with defaults
 	opt := markdown.DefaultOptions()
 
@@ -396,12 +417,19 @@ func buildConversionOptions(format, template string, sections []string, theme st
 }
 
 // handleAuditMode generates an audit report using the audit mode controller and markdown generator.
-func handleAuditMode(ctx context.Context, cfg *model.OpnSenseDocument, opts markdown.Options, logger *log.Logger, registry *audit.PluginRegistry) (string, error) {
+func handleAuditMode(
+	ctx context.Context,
+	cfg *model.OpnSenseDocument,
+	opts markdown.Options,
+	logger *log.Logger,
+	registry *audit.PluginRegistry,
+) (string, error) {
 	// Create audit mode controller with plugin registry
 	controller := audit.NewModeController(registry, logger.Logger)
 
 	// Convert audit mode string to ReportMode
 	var reportMode audit.ReportMode
+
 	switch opts.AuditMode {
 	case markdown.AuditModeStandard:
 		reportMode = audit.ModeStandard
@@ -435,16 +463,30 @@ func handleAuditMode(ctx context.Context, cfg *model.OpnSenseDocument, opts mark
 	}
 
 	// Create markdown generator for template rendering
-	generator, err := markdown.NewMarkdownGenerator(nil)
+	generator, err := markdown.NewMarkdownGeneratorWithTemplates(logger.Logger, opts.TemplateDir)
 	if err != nil {
 		return "", fmt.Errorf("failed to create markdown generator: %w", err)
 	}
 
 	// Build markdown options for audit mode
 	markdownOpts := markdown.Options{
-		Format:        markdown.FormatMarkdown,
-		AuditMode:     opts.AuditMode,
-		Comprehensive: opts.Comprehensive,
+		Format:          markdown.FormatMarkdown,
+		Comprehensive:   opts.Comprehensive,
+		Template:        nil,
+		TemplateName:    "",
+		Sections:        nil,
+		Theme:           markdown.ThemeAuto,
+		WrapWidth:       0,
+		EnableTables:    true,
+		EnableColors:    true,
+		EnableEmojis:    true,
+		Compact:         false,
+		IncludeMetadata: true,
+		CustomFields:    make(map[string]any),
+		AuditMode:       opts.AuditMode,
+		BlackhatMode:    false,
+		SelectedPlugins: nil,
+		TemplateDir:     "",
 	}
 
 	// Generate the audit report using template rendering
@@ -509,6 +551,7 @@ func determineOutputPath(inputFile, outputFile, fileExt string, cfg *config.Conf
 
 			// Use bufio.NewReader to correctly capture entire input line including spaces
 			reader := bufio.NewReader(os.Stdin)
+
 			response, err := reader.ReadString('\n')
 			if err != nil {
 				return "", fmt.Errorf("failed to read user input: %w", err)

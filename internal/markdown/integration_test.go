@@ -13,6 +13,36 @@ import (
 	"github.com/unclesp1d3r/opnFocus/internal/parser"
 )
 
+// createTempXMLFile creates a temporary XML file with given content and returns setup function.
+func createTempXMLFile(t *testing.T, pattern, content string) func() (string, func()) {
+	t.Helper()
+	return func() (string, func()) {
+		tmpFile, err := os.CreateTemp(t.TempDir(), pattern)
+		if err != nil {
+			t.Fatalf("Failed to create temp file: %v", err)
+		}
+
+		if _, err := tmpFile.WriteString(content); err != nil {
+			if err := tmpFile.Close(); err != nil {
+				t.Fatalf("Failed to close temp file: %v", err)
+			}
+			if err := os.Remove(tmpFile.Name()); err != nil {
+				t.Logf("Failed to remove temp file: %v", err)
+			}
+			t.Fatalf("Failed to write temp file: %v", err)
+		}
+		if err := tmpFile.Close(); err != nil {
+			t.Fatalf("Failed to close temp file: %v", err)
+		}
+
+		return tmpFile.Name(), func() {
+			if err := os.Remove(tmpFile.Name()); err != nil {
+				t.Logf("Failed to remove temp file: %v", err)
+			}
+		}
+	}
+}
+
 // TestGenerateFromXMLFiles tests the markdown generator with all XML files in testdata.
 func TestGenerateFromXMLFiles(t *testing.T) {
 	testdataDir := "testdata"
@@ -168,6 +198,7 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 			// Load XML file
 			xmlFile, err := os.Open(tt.xmlFile)
 			require.NoError(t, err, "Failed to open XML file: %s", tt.xmlFile)
+
 			defer func() {
 				err := xmlFile.Close()
 				require.NoError(t, err)
@@ -184,10 +215,11 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 			t.Run("markdown_generation", func(t *testing.T) {
 				generator, err := NewMarkdownGenerator(nil)
 				require.NoError(t, err)
+
 				opts := DefaultOptions().WithFormat(FormatMarkdown)
 
 				result, err := generator.Generate(ctx, cfg, opts)
-				assert.NoError(t, err, "Markdown generation should not fail")
+				require.NoError(t, err, "Markdown generation should not fail")
 				assert.NotEmpty(t, result, "Generated markdown should not be empty")
 
 				// Test main sections are present
@@ -218,6 +250,7 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 				// Test sysctl keys are present if any are defined
 				if len(tt.expectedSysctlKeys) > 0 {
 					assert.Contains(t, result, "### System Tuning (Sysctl)", "Should contain sysctl section")
+
 					for _, key := range tt.expectedSysctlKeys {
 						assert.Contains(t, result, key, "Should contain sysctl key: %s", key)
 					}
@@ -239,10 +272,11 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 			t.Run("json_generation", func(t *testing.T) {
 				generator, err := NewMarkdownGenerator(nil)
 				require.NoError(t, err)
+
 				opts := DefaultOptions().WithFormat(FormatJSON)
 
 				result, err := generator.Generate(ctx, cfg, opts)
-				assert.NoError(t, err, "JSON generation should not fail")
+				require.NoError(t, err, "JSON generation should not fail")
 				assert.NotEmpty(t, result, "Generated JSON should not be empty")
 
 				// Basic JSON structure validation
@@ -253,6 +287,7 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 				if cfg.System.Hostname != "" {
 					assert.Contains(t, result, cfg.System.Hostname, "JSON should contain hostname")
 				}
+
 				if cfg.System.Domain != "" {
 					assert.Contains(t, result, cfg.System.Domain, "JSON should contain domain")
 				}
@@ -262,10 +297,11 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 			t.Run("yaml_generation", func(t *testing.T) {
 				generator, err := NewMarkdownGenerator(nil)
 				require.NoError(t, err)
+
 				opts := DefaultOptions().WithFormat(FormatYAML)
 
 				result, err := generator.Generate(ctx, cfg, opts)
-				assert.NoError(t, err, "YAML generation should not fail")
+				require.NoError(t, err, "YAML generation should not fail")
 				assert.NotEmpty(t, result, "Generated YAML should not be empty")
 
 				// Basic YAML structure validation
@@ -276,6 +312,7 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 				if cfg.System.Hostname != "" {
 					assert.Contains(t, result, cfg.System.Hostname, "YAML should contain hostname")
 				}
+
 				if cfg.System.Domain != "" {
 					assert.Contains(t, result, cfg.System.Domain, "YAML should contain domain")
 				}
@@ -295,7 +332,7 @@ func TestGenerateFromXMLFilesRobustness(t *testing.T) {
 		{
 			name: "empty_xml_file",
 			setupFunc: func() (string, func()) {
-				tmpFile, err := os.CreateTemp("", "empty-*.xml")
+				tmpFile, err := os.CreateTemp(t.TempDir(), "empty-*.xml")
 				if err != nil {
 					t.Fatalf("Failed to create temp file: %v", err)
 				}
@@ -313,64 +350,18 @@ func TestGenerateFromXMLFilesRobustness(t *testing.T) {
 			errorType:   "parse_error",
 		},
 		{
-			name: "invalid_xml_content",
-			setupFunc: func() (string, func()) {
-				tmpFile, err := os.CreateTemp("", "invalid-*.xml")
-				if err != nil {
-					t.Fatalf("Failed to create temp file: %v", err)
-				}
-
-				content := `<?xml version="1.0"?><invalid><unclosed>`
-				if _, err := tmpFile.WriteString(content); err != nil {
-					if err := tmpFile.Close(); err != nil {
-						t.Fatalf("Failed to close temp file: %v", err)
-					}
-					if err := os.Remove(tmpFile.Name()); err != nil {
-						t.Logf("Failed to remove temp file: %v", err)
-					}
-					t.Fatalf("Failed to write temp file: %v", err)
-				}
-				if err := tmpFile.Close(); err != nil {
-					t.Fatalf("Failed to close temp file: %v", err)
-				}
-
-				return tmpFile.Name(), func() {
-					if err := os.Remove(tmpFile.Name()); err != nil {
-						t.Logf("Failed to remove temp file: %v", err)
-					}
-				}
-			},
+			name:        "invalid_xml_content",
+			setupFunc:   createTempXMLFile(t, "invalid-*.xml", `<?xml version="1.0"?><invalid><unclosed>`),
 			expectError: true,
 			errorType:   "xml_syntax_error",
 		},
 		{
 			name: "missing_opnsense_root",
-			setupFunc: func() (string, func()) {
-				tmpFile, err := os.CreateTemp("", "noroot-*.xml")
-				if err != nil {
-					t.Fatalf("Failed to create temp file: %v", err)
-				}
-
-				content := `<?xml version="1.0"?><config><system><hostname>test</hostname></system></config>`
-				if _, err := tmpFile.WriteString(content); err != nil {
-					if err := tmpFile.Close(); err != nil {
-						t.Fatalf("Failed to close temp file: %v", err)
-					}
-					if err := os.Remove(tmpFile.Name()); err != nil {
-						t.Logf("Failed to remove temp file: %v", err)
-					}
-					t.Fatalf("Failed to write temp file: %v", err)
-				}
-				if err := tmpFile.Close(); err != nil {
-					t.Fatalf("Failed to close temp file: %v", err)
-				}
-
-				return tmpFile.Name(), func() {
-					if err := os.Remove(tmpFile.Name()); err != nil {
-						t.Logf("Failed to remove temp file: %v", err)
-					}
-				}
-			},
+			setupFunc: createTempXMLFile(
+				t,
+				"noroot-*.xml",
+				`<?xml version="1.0"?><config><system><hostname>test</hostname></system></config>`,
+			),
 			expectError: true,
 			errorType:   "missing_root",
 		},
@@ -384,6 +375,7 @@ func TestGenerateFromXMLFilesRobustness(t *testing.T) {
 			// Try to parse the XML file
 			xmlFile, err := os.Open(filePath)
 			require.NoError(t, err, "Failed to open test XML file")
+
 			defer func() {
 				err := xmlFile.Close()
 				require.NoError(t, err)
@@ -394,8 +386,9 @@ func TestGenerateFromXMLFilesRobustness(t *testing.T) {
 			cfg, err := xmlParser.Parse(ctx, xmlFile)
 
 			if tt.expectError {
-				assert.Error(t, err, "Should have failed to parse invalid XML")
+				require.Error(t, err, "Should have failed to parse invalid XML")
 				assert.Nil(t, cfg, "Configuration should be nil on parse error")
+
 				return
 			}
 
@@ -405,10 +398,11 @@ func TestGenerateFromXMLFilesRobustness(t *testing.T) {
 
 			generator, err := NewMarkdownGenerator(nil)
 			require.NoError(t, err)
+
 			opts := DefaultOptions().WithFormat(FormatMarkdown)
 
 			result, err := generator.Generate(ctx, cfg, opts)
-			assert.NoError(t, err, "Generation should not fail with valid config")
+			require.NoError(t, err, "Generation should not fail with valid config")
 			assert.NotEmpty(t, result, "Generated content should not be empty")
 		})
 	}
@@ -419,6 +413,7 @@ func TestDebugSysctlParsing(t *testing.T) {
 	// Load sample.config.1.xml which has known sysctl entries
 	xmlFile, err := os.Open("testdata/sample.config.1.xml")
 	require.NoError(t, err, "Failed to open sample.config.1.xml")
+
 	defer func() {
 		err := xmlFile.Close()
 		require.NoError(t, err)
@@ -432,6 +427,7 @@ func TestDebugSysctlParsing(t *testing.T) {
 
 	// Debug print the sysctl entries
 	t.Logf("Sysctl entries found: %d", len(cfg.Sysctl))
+
 	for i, entry := range cfg.Sysctl {
 		t.Logf("Entry %d: Tunable=%s, Value=%s, Descr=%s", i, entry.Tunable, entry.Value, entry.Descr)
 	}
@@ -439,6 +435,7 @@ func TestDebugSysctlParsing(t *testing.T) {
 	// Check system config
 	sysConfig := cfg.SystemConfig()
 	t.Logf("System config sysctl entries: %d", len(sysConfig.Sysctl))
+
 	for i, entry := range sysConfig.Sysctl {
 		t.Logf("SysConfig Entry %d: Tunable=%s, Value=%s, Descr=%s", i, entry.Tunable, entry.Value, entry.Descr)
 	}
@@ -446,6 +443,7 @@ func TestDebugSysctlParsing(t *testing.T) {
 	// Generate markdown to see output
 	generator, err := NewMarkdownGenerator(nil)
 	require.NoError(t, err)
+
 	opts := DefaultOptions().WithFormat(FormatMarkdown)
 
 	result, err := generator.Generate(ctx, cfg, opts)
@@ -464,11 +462,14 @@ func TestDebugSysctlParsing(t *testing.T) {
 // TestSysctlKeyValidation specifically tests that sysctl keys are properly formatted and displayed
 // NOTE: Currently skipped because sysctl parsing is not working in the XML parser.
 func TestSysctlKeyValidation(t *testing.T) {
-	t.Skip("Sysctl parsing is currently not working in the XML parser - individual <sysctl> elements are not being handled correctly")
+	t.Skip(
+		"Sysctl parsing is currently not working in the XML parser - individual <sysctl> elements are not being handled correctly",
+	)
 
 	// Load sample.config.1.xml which has known sysctl entries
 	xmlFile, err := os.Open("testdata/sample.config.1.xml")
 	require.NoError(t, err, "Failed to open sample.config.1.xml")
+
 	defer func() {
 		if err := xmlFile.Close(); err != nil {
 			t.Logf("Failed to close XML file: %v", err)
@@ -483,6 +484,7 @@ func TestSysctlKeyValidation(t *testing.T) {
 
 	generator, err := NewMarkdownGenerator(nil)
 	require.NoError(t, err)
+
 	opts := DefaultOptions().WithFormat(FormatMarkdown)
 
 	result, err := generator.Generate(ctx, cfg, opts)
@@ -532,6 +534,7 @@ func TestInterfaceConfigurationDetail(t *testing.T) {
 	// Load sample.config.1.xml which has detailed interface config
 	xmlFile, err := os.Open("testdata/sample.config.1.xml")
 	require.NoError(t, err, "Failed to open sample.config.1.xml")
+
 	defer func() {
 		if err := xmlFile.Close(); err != nil {
 			t.Logf("Failed to close XML file: %v", err)
@@ -546,6 +549,7 @@ func TestInterfaceConfigurationDetail(t *testing.T) {
 
 	generator, err := NewMarkdownGenerator(nil)
 	require.NoError(t, err)
+
 	opts := DefaultOptions().WithFormat(FormatMarkdown)
 
 	result, err := generator.Generate(ctx, cfg, opts)
@@ -566,6 +570,7 @@ func TestFirewallRulesFormatting(t *testing.T) {
 	// Load sample.config.1.xml which has firewall rules
 	xmlFile, err := os.Open("testdata/sample.config.1.xml")
 	require.NoError(t, err, "Failed to open sample.config.1.xml")
+
 	defer func() {
 		if err := xmlFile.Close(); err != nil {
 			t.Logf("Failed to close XML file: %v", err)
@@ -580,6 +585,7 @@ func TestFirewallRulesFormatting(t *testing.T) {
 
 	generator, err := NewMarkdownGenerator(nil)
 	require.NoError(t, err)
+
 	opts := DefaultOptions().WithFormat(FormatMarkdown)
 
 	result, err := generator.Generate(ctx, cfg, opts)
@@ -632,7 +638,7 @@ func TestMarkdownGenerator_Integration(t *testing.T) {
 		opts := DefaultOptions().WithFormat(FormatMarkdown)
 		result, err := generator.Generate(ctx, cfg, opts)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, result)
 		assert.Contains(t, result, "test-host")
 		assert.Contains(t, result, "WAN Interface")
@@ -645,7 +651,7 @@ func TestMarkdownGenerator_Integration(t *testing.T) {
 		opts := DefaultOptions().WithFormat(FormatMarkdown).WithComprehensive(true)
 		result, err := generator.Generate(ctx, cfg, opts)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, result)
 		assert.Contains(t, result, "test-host")
 		assert.Contains(t, result, "WAN Interface")
@@ -658,7 +664,7 @@ func TestMarkdownGenerator_Integration(t *testing.T) {
 		opts := DefaultOptions().WithFormat(FormatJSON)
 		result, err := generator.Generate(ctx, cfg, opts)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, result)
 		assert.Contains(t, result, "test-host")
 		assert.Contains(t, result, "WAN Interface")
@@ -671,7 +677,7 @@ func TestMarkdownGenerator_Integration(t *testing.T) {
 		opts := DefaultOptions().WithFormat(FormatYAML)
 		result, err := generator.Generate(ctx, cfg, opts)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, result)
 		assert.Contains(t, result, "test-host")
 		assert.Contains(t, result, "WAN Interface")
@@ -695,7 +701,7 @@ func TestTemplateRendering_Integration(t *testing.T) {
 		opts := DefaultOptions().WithFormat(FormatMarkdown)
 		result, err := generator.Generate(ctx, cfg, opts)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Contains(t, result, "template-test")
 		assert.Contains(t, result, "test.local")
 	})
@@ -707,7 +713,7 @@ func TestTemplateRendering_Integration(t *testing.T) {
 		opts := DefaultOptions().WithFormat(FormatMarkdown).WithComprehensive(true)
 		result, err := generator.Generate(ctx, cfg, opts)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Contains(t, result, "template-test")
 		assert.Contains(t, result, "test.local")
 	})
@@ -723,7 +729,7 @@ func TestErrorHandling_Integration(t *testing.T) {
 		opts := DefaultOptions()
 		result, err := generator.Generate(ctx, nil, opts)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, ErrNilConfiguration, err)
 		assert.Empty(t, result)
 	})
@@ -736,7 +742,7 @@ func TestErrorHandling_Integration(t *testing.T) {
 		opts := Options{Format: Format("invalid")}
 		result, err := generator.Generate(ctx, cfg, opts)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid options")
 		assert.Empty(t, result)
 	})

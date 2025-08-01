@@ -21,6 +21,7 @@ func TestMainFunction(t *testing.T) {
 		cmd.Env = append(os.Environ(), "TEST_MAIN_FUNCTION=1")
 
 		var stdout, stderr bytes.Buffer
+
 		cmd.Stdout = &stdout
 		cmd.Stderr = &stderr
 
@@ -36,6 +37,7 @@ func TestMainFunction(t *testing.T) {
 		// Verify that some output was produced (help text or error message)
 		output := stdout.String() + stderr.String()
 		assert.NotEmpty(t, output, "Expected some output from main function")
+
 		return
 	}
 

@@ -230,10 +230,7 @@ func TestInterfaceReferences_TableDriven(t *testing.T) {
 				System: model.System{
 					Hostname: "test-host",
 					Domain:   "test.local",
-					WebGUI: struct {
-						Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-						SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-					}{Protocol: "https"},
+					WebGUI:   model.WebGUIConfig{Protocol: "https"},
 					Bogons: struct {
 						Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
 					}{Interval: "monthly"},
@@ -253,23 +250,34 @@ func TestInterfaceReferences_TableDriven(t *testing.T) {
 			errors := ValidateOpnSenseDocument(config)
 
 			// Check the number of errors
-			assert.Len(t, errors, tt.expectedErrors, "Expected %d validation errors, got %d. Errors: %v", tt.expectedErrors, len(errors), errors)
+			assert.Len(
+				t,
+				errors,
+				tt.expectedErrors,
+				"Expected %d validation errors, got %d. Errors: %v",
+				tt.expectedErrors,
+				len(errors),
+				errors,
+			)
 
 			// Check that expected error descriptions are present
 			for _, expectedDesc := range tt.expectedErrorsDesc {
 				found := false
+
 				for _, err := range errors {
 					if strings.Contains(err.Error(), expectedDesc) {
 						found = true
 						break
 					}
 				}
+
 				assert.True(t, found, "Expected error description '%s' not found in errors: %v", expectedDesc, errors)
 			}
 
 			// Log details for debugging
 			if len(errors) > 0 {
 				t.Logf("Validation errors found:")
+
 				for i, err := range errors {
 					t.Logf("  %d: %s", i+1, err.Error())
 				}
@@ -305,11 +313,25 @@ func TestInterfaceNameResolution_EdgeCases(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Test stripIPSuffix function
 			stripped := stripIPSuffix(tt.input)
-			assert.Equal(t, tt.expectedStrip, stripped, "stripIPSuffix('%s') should return '%s'", tt.input, tt.expectedStrip)
+			assert.Equal(
+				t,
+				tt.expectedStrip,
+				stripped,
+				"stripIPSuffix('%s') should return '%s'",
+				tt.input,
+				tt.expectedStrip,
+			)
 
 			// Test isReservedNetwork function
 			reserved := isReservedNetwork(tt.input)
-			assert.Equal(t, tt.isReserved, reserved, "isReservedNetwork('%s') should return %v", tt.input, tt.isReserved)
+			assert.Equal(
+				t,
+				tt.isReserved,
+				reserved,
+				"isReservedNetwork('%s') should return %v",
+				tt.input,
+				tt.isReserved,
+			)
 		})
 	}
 }
@@ -322,10 +344,7 @@ func TestValidation_RealWorldScenarios(t *testing.T) {
 			System: model.System{
 				Hostname: "firewall",
 				Domain:   "example.com",
-				WebGUI: struct {
-					Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-					SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-				}{Protocol: "https"},
+				WebGUI:   model.WebGUIConfig{Protocol: "https"},
 				Bogons: struct {
 					Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
 				}{Interval: "monthly"},
@@ -450,20 +469,27 @@ func TestValidation_RealWorldScenarios(t *testing.T) {
 		// Should have no validation errors for this well-formed configuration
 		if len(errors) > 0 {
 			t.Logf("Found %d validation errors:", len(errors))
+
 			for i, err := range errors {
 				t.Logf("  %d: %s", i+1, err.Error())
 			}
 		}
-		assert.Len(t, errors, 0, "Complex real-world configuration should produce zero validation errors")
+
+		assert.Empty(t, errors, "Complex real-world configuration should produce zero validation errors")
 
 		// Verify interface accessibility
 		interfaceNames := config.Interfaces.Names()
+
 		expectedInterfaces := []string{"wan", "lan", "opt0", "opt1", "opt2", "lo0", "wireguard"}
 		for _, expected := range expectedInterfaces {
 			assert.Contains(t, interfaceNames, expected, "Expected interface '%s' should be present", expected)
 		}
 
-		t.Logf("Successfully validated complex configuration with %d interfaces: %v", len(interfaceNames), interfaceNames)
+		t.Logf(
+			"Successfully validated complex configuration with %d interfaces: %v",
+			len(interfaceNames),
+			interfaceNames,
+		)
 	})
 }
 
@@ -476,10 +502,7 @@ func TestSampleConfig2_ZeroValidationErrors(t *testing.T) {
 		System: model.System{
 			Hostname: "TestHost2",
 			Domain:   "test.local",
-			WebGUI: struct {
-				Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-				SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-			}{Protocol: "https"},
+			WebGUI:   model.WebGUIConfig{Protocol: "https"},
 			SSH: struct {
 				Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
 			}{Group: "admins"},
@@ -571,15 +594,25 @@ func TestSampleConfig2_ZeroValidationErrors(t *testing.T) {
 
 	// **KEY REQUIREMENT**: Validate the configuration and assert len(errors)==0
 	errors := ValidateOpnSenseDocument(config)
-	assert.Len(t, errors, 0, "Validation should produce zero errors for sample.config.2.xml-like configuration. Found errors: %v", errors)
+	assert.Empty(
+		t,
+		errors,
+		"Validation should produce zero errors for sample.config.2.xml-like configuration. Found errors: %v",
+		errors,
+	)
 
 	// Verify interface accessibility
 	interfaceNames := config.Interfaces.Names()
+
 	expectedInterfaces := []string{"wan", "lan", "opt0", "opt1", "opt2"}
 	for _, expected := range expectedInterfaces {
 		assert.Contains(t, interfaceNames, expected, "Expected interface '%s' should be present", expected)
 	}
 
-	t.Logf("Successfully validated sample.config.2.xml-like configuration with %d interfaces: %v", len(interfaceNames), interfaceNames)
+	t.Logf(
+		"Successfully validated sample.config.2.xml-like configuration with %d interfaces: %v",
+		len(interfaceNames),
+		interfaceNames,
+	)
 	t.Logf("All validation tests passed with zero errors")
 }

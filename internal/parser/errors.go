@@ -15,6 +15,15 @@ type ParseError struct {
 	Message string // Human-readable error message
 }
 
+// NewParseError returns a new ParseError with the given line, column, and error message.
+func NewParseError(line, column int, message string) *ParseError {
+	return &ParseError{
+		Line:    line,
+		Column:  column,
+		Message: message,
+	}
+}
+
 // Error implements the error interface for ParseError.
 func (e *ParseError) Error() string {
 	return fmt.Sprintf("parse error at line %d, column %d: %s", e.Line, e.Column, e.Message)
@@ -49,11 +58,20 @@ type ValidationError struct {
 	Message string // Human-readable validation error message
 }
 
+// NewValidationError returns a new ValidationError for the given element path and message.
+func NewValidationError(path, message string) *ValidationError {
+	return &ValidationError{
+		Path:    path,
+		Message: message,
+	}
+}
+
 // Error implements the error interface for ValidationError.
 func (e *ValidationError) Error() string {
 	if e.Path != "" {
 		return fmt.Sprintf("validation error at %s: %s", e.Path, e.Message)
 	}
+
 	return "validation error: " + e.Message
 }
 
@@ -77,23 +95,6 @@ func (e *ValidationError) Is(target error) bool {
 	// Otherwise, compare all fields for equality
 	return e.Path == targetValidation.Path &&
 		e.Message == targetValidation.Message
-}
-
-// NewParseError returns a new ParseError with the given line, column, and error message.
-func NewParseError(line, column int, message string) *ParseError {
-	return &ParseError{
-		Line:    line,
-		Column:  column,
-		Message: message,
-	}
-}
-
-// NewValidationError returns a new ValidationError for the given element path and message.
-func NewValidationError(path, message string) *ValidationError {
-	return &ValidationError{
-		Path:    path,
-		Message: message,
-	}
 }
 
 // WrapXMLSyntaxError wraps an xml.SyntaxError with location information and marshal context.
@@ -154,6 +155,7 @@ func GetParseError(err error) *ParseError {
 	if errors.As(err, &parseErr) {
 		return parseErr
 	}
+
 	return nil
 }
 
@@ -164,6 +166,7 @@ func GetValidationError(err error) *ValidationError {
 	if errors.As(err, &validationErr) {
 		return validationErr
 	}
+
 	return nil
 }
 
@@ -172,14 +175,23 @@ type AggregatedValidationError struct {
 	Errors []ValidationError // List of validation errors with element paths
 }
 
+// NewAggregatedValidationError returns an AggregatedValidationError containing the provided slice of ValidationError instances.
+func NewAggregatedValidationError(validationErrors []ValidationError) *AggregatedValidationError {
+	return &AggregatedValidationError{
+		Errors: validationErrors,
+	}
+}
+
 // Error implements the error interface for AggregatedValidationError.
 func (r *AggregatedValidationError) Error() string {
 	if len(r.Errors) == 0 {
 		return "no validation errors"
 	}
+
 	if len(r.Errors) == 1 {
 		return r.Errors[0].Error()
 	}
+
 	return fmt.Sprintf("validation failed with %d errors: %s (and %d more)",
 		len(r.Errors), r.Errors[0].Message, len(r.Errors)-1)
 }
@@ -211,6 +223,7 @@ func (r *AggregatedValidationError) Is(target error) bool {
 		if i >= len(r.Errors) {
 			return false
 		}
+
 		if !errors.Is(&r.Errors[i], &targetErr) {
 			return false
 		}
@@ -222,13 +235,6 @@ func (r *AggregatedValidationError) Is(target error) bool {
 // HasErrors returns true if the report contains any validation errors.
 func (r *AggregatedValidationError) HasErrors() bool {
 	return len(r.Errors) > 0
-}
-
-// NewAggregatedValidationError returns an AggregatedValidationError containing the provided slice of ValidationError instances.
-func NewAggregatedValidationError(validationErrors []ValidationError) *AggregatedValidationError {
-	return &AggregatedValidationError{
-		Errors: validationErrors,
-	}
 }
 
 // WrapXMLSyntaxErrorWithOffset wraps an xml.SyntaxError with enhanced location information using decoder's InputOffset.
@@ -263,6 +269,7 @@ func WrapXMLSyntaxErrorWithOffset(err error, elementPath string, dec *xml.Decode
 
 	// If it's not an xml.SyntaxError, wrap it as a generic ParseError with offset if possible
 	offset := dec.InputOffset()
+
 	message := "XML error: " + err.Error()
 	if offset > 0 {
 		message = fmt.Sprintf("%s (at byte offset: %d)", message, offset)

@@ -144,6 +144,7 @@ func (t *Theme) ApplyTheme(style lipgloss.Style, colorKey string) lipgloss.Style
 	if color, exists := t.Palette[colorKey]; exists {
 		return style.Foreground(lipgloss.Color(color))
 	}
+
 	return style
 }
 
@@ -156,6 +157,7 @@ func (t *Theme) GetColor(colorKey string) string {
 	if t.Name == "dark" {
 		return "#FFFFFF" // White for dark theme
 	}
+
 	return "#000000" // Black for light theme
 }
 

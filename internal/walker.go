@@ -52,13 +52,19 @@ func walkNode(title string, level int, node any) MDNode {
 		if nodeValue.IsNil() {
 			return mdNode
 		}
+
 		nodeValue = nodeValue.Elem()
 		nodeType = nodeType.Elem()
 	}
 
 	switch nodeValue.Kind() {
+	case reflect.Ptr:
+		if !nodeValue.IsNil() {
+			child := walkNode(title, level+1, nodeValue.Elem().Interface())
+			mdNode.Children = append(mdNode.Children, child)
+		}
 	case reflect.Struct:
-		for i := 0; i < nodeValue.NumField(); i++ {
+		for i := range nodeValue.NumField() {
 			field := nodeValue.Field(i)
 			fieldType := nodeType.Field(i)
 
@@ -106,6 +112,11 @@ func walkNode(title string, level int, node any) MDNode {
 					child := walkNode(childTitle, level+1, field.Interface())
 					mdNode.Children = append(mdNode.Children, child)
 				}
+			case reflect.Invalid, reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+				reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
+				reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128,
+				reflect.Array, reflect.Chan, reflect.Func, reflect.Interface, reflect.UnsafePointer:
+				// Handle other types as needed or ignore
 			}
 		}
 	case reflect.Slice:
@@ -116,6 +127,11 @@ func walkNode(title string, level int, node any) MDNode {
 		if nodeValue.Len() > 0 {
 			mdNode.Body = nodeValue.String()
 		}
+	case reflect.Invalid, reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
+		reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128,
+		reflect.Array, reflect.Chan, reflect.Func, reflect.Interface, reflect.UnsafePointer:
+		// Handle other types as needed or ignore
 	}
 
 	return mdNode
@@ -129,7 +145,7 @@ func walkSlice(title string, level int, slice reflect.Value) MDNode {
 		Children: []MDNode{},
 	}
 
-	for i := 0; i < slice.Len(); i++ {
+	for i := range slice.Len() {
 		item := slice.Index(i)
 		itemTitle := title + " " + formatIndex(i)
 		child := walkNode(itemTitle, level+1, item.Interface())
@@ -161,6 +177,7 @@ func walkMap(title string, level int, m reflect.Value) MDNode {
 func formatFieldName(name string) string {
 	// Simple camelCase to space-separated conversion
 	result := ""
+
 	for i, r := range name {
 		// Add space before uppercase letters, but not at the beginning
 		// and not if the previous character was also uppercase (to handle acronyms)
@@ -170,8 +187,10 @@ func formatFieldName(name string) string {
 				result += " "
 			}
 		}
+
 		result += string(r)
 	}
+
 	return result
 }
 

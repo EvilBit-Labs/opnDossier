@@ -118,30 +118,30 @@ func TestNewTerminalDisplayWithMarkdownOptions(t *testing.T) {
 func TestGetTerminalWidth(t *testing.T) {
 	// Test default behavior
 	original := os.Getenv("COLUMNS")
+
 	defer func() {
 		if original != "" {
-			err := os.Setenv("COLUMNS", original)
-			require.NoError(t, err)
+			t.Setenv("COLUMNS", original)
 		} else {
-			err := os.Unsetenv("COLUMNS")
-			require.NoError(t, err)
+			t.Setenv("COLUMNS", "")
 		}
 	}()
 
 	err := os.Unsetenv("COLUMNS")
 	require.NoError(t, err)
+
 	width := getTerminalWidth()
 	assert.Equal(t, DefaultWordWrapWidth, width)
 
 	// Test with COLUMNS set
-	err = os.Setenv("COLUMNS", "100")
-	require.NoError(t, err)
+	t.Setenv("COLUMNS", "100")
+
 	width = getTerminalWidth()
 	assert.Equal(t, 100, width)
 
 	// Test with invalid COLUMNS
-	err = os.Setenv("COLUMNS", "invalid")
-	require.NoError(t, err)
+	t.Setenv("COLUMNS", "invalid")
+
 	width = getTerminalWidth()
 	assert.Equal(t, DefaultWordWrapWidth, width)
 }
@@ -151,7 +151,7 @@ func TestProgressEvent(t *testing.T) {
 		Percent: 0.5,
 		Message: "Test message",
 	}
-	assert.Equal(t, 0.5, event.Percent)
+	assert.InDelta(t, 0.5, event.Percent, 0.01)
 	assert.Equal(t, "Test message", event.Message)
 }
 
@@ -203,6 +203,7 @@ func TestDisplayWithProgressGoroutineLeakFix(t *testing.T) {
 
 	// Start the display in a goroutine
 	done := make(chan error, 1)
+
 	go func() {
 		err := td.DisplayWithProgress(context.Background(), "# Test Markdown", progressCh)
 		done <- err
@@ -210,7 +211,9 @@ func TestDisplayWithProgressGoroutineLeakFix(t *testing.T) {
 
 	// Send a few progress events
 	progressCh <- ProgressEvent{Percent: 0.25, Message: "Processing..."}
+
 	progressCh <- ProgressEvent{Percent: 0.5, Message: "Halfway..."}
+
 	progressCh <- ProgressEvent{Percent: 0.75, Message: "Almost done..."}
 
 	// Close the channel to signal completion
@@ -218,7 +221,7 @@ func TestDisplayWithProgressGoroutineLeakFix(t *testing.T) {
 
 	// Wait for the display to complete
 	err := <-done
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// The test passes if we reach here without hanging
 	// The original code would have leaked the goroutine
@@ -241,9 +244,12 @@ func TestDisplayRawMarkdownWhenColorsDisabled(t *testing.T) {
 	originalStdout := os.Stdout
 	r, w, err := os.Pipe()
 	require.NoError(t, err)
+
 	os.Stdout = w
+
 	defer func() {
 		os.Stdout = originalStdout
+
 		if err := w.Close(); err != nil {
 			t.Logf("failed to close pipe: %v", err)
 		}
@@ -257,9 +263,11 @@ func TestDisplayRawMarkdownWhenColorsDisabled(t *testing.T) {
 	if err := w.Close(); err != nil {
 		t.Logf("failed to close pipe: %v", err)
 	}
+
 	output := make([]byte, 1024)
 	n, err := r.Read(output)
 	require.NoError(t, err)
+
 	outputStr := string(output[:n])
 
 	// Verify raw markdown is output (no ANSI codes)
@@ -292,9 +300,12 @@ func TestDisplayWithANSIWhenColorsEnabled(t *testing.T) {
 	originalStdout := os.Stdout
 	r, w, err := os.Pipe()
 	require.NoError(t, err)
+
 	os.Stdout = w
+
 	defer func() {
 		os.Stdout = originalStdout
+
 		if err := w.Close(); err != nil {
 			t.Logf("failed to close pipe: %v", err)
 		}
@@ -308,9 +319,11 @@ func TestDisplayWithANSIWhenColorsEnabled(t *testing.T) {
 	if err := w.Close(); err != nil {
 		t.Logf("failed to close pipe: %v", err)
 	}
+
 	output := make([]byte, 8192) // Increased buffer size
 	n, err := r.Read(output)
 	require.NoError(t, err)
+
 	outputStr := string(output[:n])
 
 	// Verify content is present (the exact format may vary in test environments)
@@ -348,9 +361,12 @@ func TestDisplayWithProgressRawMarkdownWhenColorsDisabled(t *testing.T) {
 	originalStdout := os.Stdout
 	r, w, err := os.Pipe()
 	require.NoError(t, err)
+
 	os.Stdout = w
+
 	defer func() {
 		os.Stdout = originalStdout
+
 		if err := w.Close(); err != nil {
 			t.Logf("failed to close pipe: %v", err)
 		}
@@ -358,6 +374,7 @@ func TestDisplayWithProgressRawMarkdownWhenColorsDisabled(t *testing.T) {
 
 	// Run display with progress
 	done := make(chan error, 1)
+
 	go func() {
 		err := td.DisplayWithProgress(context.Background(), markdownContent, progressCh)
 		done <- err
@@ -365,6 +382,7 @@ func TestDisplayWithProgressRawMarkdownWhenColorsDisabled(t *testing.T) {
 
 	// Send progress event and close channel
 	progressCh <- ProgressEvent{Percent: 0.5, Message: "Processing..."}
+
 	close(progressCh)
 
 	// Wait for completion
@@ -375,9 +393,11 @@ func TestDisplayWithProgressRawMarkdownWhenColorsDisabled(t *testing.T) {
 	if err := w.Close(); err != nil {
 		t.Logf("failed to close pipe: %v", err)
 	}
+
 	output := make([]byte, 2048) // Increased buffer size
 	n, err := r.Read(output)
 	require.NoError(t, err)
+
 	outputStr := string(output[:n])
 
 	// Verify raw markdown is output
@@ -392,6 +412,7 @@ func TestDisplayWithProgressRawMarkdownWhenColorsDisabled(t *testing.T) {
 	if idx := strings.Index(outputStr, "# Test Header"); idx != -1 {
 		markdownSection = outputStr[idx:]
 	}
+
 	assert.Contains(t, markdownSection, "# Test Header")
 	assert.Contains(t, markdownSection, "**bold**")
 	assert.Contains(t, markdownSection, "*italic*")
@@ -420,9 +441,12 @@ func TestDisplayWithProgressANSIWhenColorsEnabled(t *testing.T) {
 	originalStdout := os.Stdout
 	r, w, err := os.Pipe()
 	require.NoError(t, err)
+
 	os.Stdout = w
+
 	defer func() {
 		os.Stdout = originalStdout
+
 		if err := w.Close(); err != nil {
 			t.Logf("failed to close pipe: %v", err)
 		}
@@ -430,6 +454,7 @@ func TestDisplayWithProgressANSIWhenColorsEnabled(t *testing.T) {
 
 	// Run display with progress
 	done := make(chan error, 1)
+
 	go func() {
 		err := td.DisplayWithProgress(context.Background(), markdownContent, progressCh)
 		done <- err
@@ -437,6 +462,7 @@ func TestDisplayWithProgressANSIWhenColorsEnabled(t *testing.T) {
 
 	// Send progress event and close channel
 	progressCh <- ProgressEvent{Percent: 0.5, Message: "Processing..."}
+
 	close(progressCh)
 
 	// Wait for completion
@@ -447,9 +473,11 @@ func TestDisplayWithProgressANSIWhenColorsEnabled(t *testing.T) {
 	if err := w.Close(); err != nil {
 		t.Logf("failed to close pipe: %v", err)
 	}
+
 	output := make([]byte, 4096) // Increased buffer size
 	n, err := r.Read(output)
 	require.NoError(t, err)
+
 	outputStr := string(output[:n])
 
 	// Verify ANSI escape sequences are present
@@ -469,7 +497,7 @@ func TestGlamourRendererWithDifferentColorSettings(t *testing.T) {
 		EnableColors: true,
 	}
 	renderer1, err1 := getGlamourRenderer(&opts1)
-	assert.NoError(t, err1)
+	require.NoError(t, err1)
 	assert.NotNil(t, renderer1)
 
 	// Test with colors disabled
@@ -499,10 +527,10 @@ func TestDetectTheme(t *testing.T) {
 
 	// Restore environment after tests
 	defer func() {
-		require.NoError(t, os.Setenv("COLORTERM", originalColorTerm))
-		require.NoError(t, os.Setenv("TERM", originalTerm))
-		require.NoError(t, os.Setenv("OPNFOCUS_THEME", originalTheme))
-		require.NoError(t, os.Setenv("TERM_PROGRAM", originalTermProgram))
+		t.Setenv("COLORTERM", originalColorTerm)
+		t.Setenv("TERM", originalTerm)
+		t.Setenv("OPNFOCUS_THEME", originalTheme)
+		t.Setenv("TERM_PROGRAM", originalTermProgram)
 	}()
 
 	tests := []struct {
@@ -515,7 +543,15 @@ func TestDetectTheme(t *testing.T) {
 		expected    string
 	}{
 		// Config theme takes highest priority
-		{"Config overrides all", constants.ThemeLight, constants.ThemeDark, "truecolor", "xterm-256color", "", constants.ThemeLight},
+		{
+			"Config overrides all",
+			constants.ThemeLight,
+			constants.ThemeDark,
+			"truecolor",
+			"xterm-256color",
+			"",
+			constants.ThemeLight,
+		},
 		{"Config dark theme", constants.ThemeDark, "", "", "", "", constants.ThemeDark},
 		{"Config custom theme", Custom, "", "", "", "", Custom},
 
@@ -542,10 +578,10 @@ func TestDetectTheme(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set environment variables for this test
-			require.NoError(t, os.Setenv("OPNFOCUS_THEME", tt.envTheme))
-			require.NoError(t, os.Setenv("COLORTERM", tt.colorTerm))
-			require.NoError(t, os.Setenv("TERM", tt.term))
-			require.NoError(t, os.Setenv("TERM_PROGRAM", tt.termProgram))
+			t.Setenv("OPNFOCUS_THEME", tt.envTheme)
+			t.Setenv("COLORTERM", tt.colorTerm)
+			t.Setenv("TERM", tt.term)
+			t.Setenv("TERM_PROGRAM", tt.termProgram)
 
 			theme := DetectTheme(tt.configTheme)
 			assert.Equal(t, tt.expected, theme.Name)
@@ -576,7 +612,7 @@ func TestThemeProperties(t *testing.T) {
 			if tt.colorExists {
 				color := tt.theme.GetColor(tt.colorKey)
 				assert.NotEmpty(t, color)
-				assert.True(t, color[0] == '#') // Should be a hex color
+				assert.Equal(t, '#', color[0]) // Should be a hex color
 			}
 
 			// Test Glamour style name
@@ -614,8 +650,8 @@ func TestTerminalCapabilityDetection(t *testing.T) {
 
 	// Restore environment after tests
 	defer func() {
-		require.NoError(t, os.Setenv("COLORTERM", originalColorTerm))
-		require.NoError(t, os.Setenv("TERM", originalTerm))
+		t.Setenv("COLORTERM", originalColorTerm)
+		t.Setenv("TERM", originalTerm)
 	}()
 
 	tests := []struct {
@@ -640,8 +676,8 @@ func TestTerminalCapabilityDetection(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			require.NoError(t, os.Setenv("COLORTERM", tt.colorTerm))
-			require.NoError(t, os.Setenv("TERM", tt.term))
+			t.Setenv("COLORTERM", tt.colorTerm)
+			t.Setenv("TERM", tt.term)
 
 			// In test environment, isTerminal() returns false, so we test the logic
 			// by checking if the terminal would be color capable if it were a terminal
@@ -689,9 +725,9 @@ func TestGlamourStyleDetermination(t *testing.T) {
 
 	// Restore environment after tests
 	defer func() {
-		require.NoError(t, os.Setenv("COLORTERM", originalColorTerm))
-		require.NoError(t, os.Setenv("TERM", originalTerm))
-		require.NoError(t, os.Setenv("OPNFOCUS_THEME", originalTheme))
+		t.Setenv("COLORTERM", originalColorTerm)
+		t.Setenv("TERM", originalTerm)
+		t.Setenv("OPNFOCUS_THEME", originalTheme)
 	}()
 
 	tests := []struct {
@@ -721,13 +757,14 @@ func TestGlamourStyleDetermination(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set environment variables for this test
-			require.NoError(t, os.Setenv("COLORTERM", tt.colorTerm))
-			require.NoError(t, os.Setenv("TERM", tt.term))
+			t.Setenv("COLORTERM", tt.colorTerm)
+			t.Setenv("TERM", tt.term)
 			// Clear OPNFOCUS_THEME to ensure theme detection works correctly
-			require.NoError(t, os.Setenv("OPNFOCUS_THEME", ""))
+			t.Setenv("OPNFOCUS_THEME", "")
 
 			// Create theme based on the theme name directly
 			var theme Theme
+
 			switch tt.themeName {
 			case constants.ThemeLight:
 				theme = LightTheme()
@@ -792,7 +829,7 @@ func TestDisplayOptions(t *testing.T) {
 	assert.NotNil(t, opts.Theme)
 	assert.True(t, opts.EnableColors)
 	assert.True(t, opts.EnableTables)
-	assert.Greater(t, opts.WrapWidth, 0)
+	assert.Positive(t, opts.WrapWidth)
 
 	// Test custom options
 	customTheme := LightTheme()

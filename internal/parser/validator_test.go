@@ -233,10 +233,7 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 				System: model.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
-					WebGUI: struct {
-						Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-						SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-					}{Protocol: "ftp"},
+					WebGUI:   model.WebGUIConfig{Protocol: "ftp"},
 				},
 			},
 			expectedErrors: 1,
@@ -444,8 +441,11 @@ func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 				},
 			},
 			expectedErrors: 2,
-			expectedFields: []string{"opnsense.interfaces.lan.track6-interface", "opnsense.interfaces.lan.track6-prefix-id"},
-			description:    "track6 IPv6 addressing requires track6-interface and track6-prefix-id",
+			expectedFields: []string{
+				"opnsense.interfaces.lan.track6-interface",
+				"opnsense.interfaces.lan.track6-prefix-id",
+			},
+			description: "track6 IPv6 addressing requires track6-interface and track6-prefix-id",
 		},
 		{
 			name: "DHCP range with invalid order",
@@ -710,11 +710,8 @@ func TestXMLParser_ValidateComplexScenarios(t *testing.T) {
 				System: model.System{
 					// Missing hostname (required field error)
 					Domain:       "example.com",
-					Optimization: "invalid-opt", // Invalid enum value
-					WebGUI: struct {
-						Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-						SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-					}{Protocol: "ftp"}, // Invalid enum value
+					Optimization: "invalid-opt",                       // Invalid enum value
+					WebGUI:       model.WebGUIConfig{Protocol: "ftp"}, // Invalid enum value
 					Group: []model.Group{
 						{
 							Name: "admin",
@@ -771,14 +768,11 @@ func TestXMLParser_ValidateComplexScenarios(t *testing.T) {
 func TestXMLParser_ValidateValidConfiguration(t *testing.T) {
 	validConfig := &model.OpnSenseDocument{
 		System: model.System{
-			Hostname:     "OPNsense",
-			Domain:       "localdomain",
-			Timezone:     "Etc/UTC",
-			Optimization: "normal",
-			WebGUI: struct {
-				Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-				SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-			}{Protocol: "https"},
+			Hostname:          "OPNsense",
+			Domain:            "localdomain",
+			Timezone:          "Etc/UTC",
+			Optimization:      "normal",
+			WebGUI:            model.WebGUIConfig{Protocol: "https"},
 			PowerdACMode:      "hadp",
 			PowerdBatteryMode: "hadp",
 			PowerdNormalMode:  "hadp",

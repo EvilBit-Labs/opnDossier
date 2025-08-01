@@ -35,6 +35,7 @@ func (e *Error) Error() string {
 	if e.Cause != nil {
 		return fmt.Sprintf("export %s failed for %s: %s (caused by: %v)", e.Operation, e.Path, e.Message, e.Cause)
 	}
+
 	return fmt.Sprintf("export %s failed for %s: %s", e.Operation, e.Path, e.Message)
 }
 
@@ -66,6 +67,7 @@ func (e *FileExporter) validateExportPath(path string) error {
 		// Check if the path contains suspicious traversal patterns
 		parts := strings.Split(path, string(filepath.Separator))
 		dotDotCount := 0
+
 		for _, part := range parts {
 			if part == ".." {
 				dotDotCount++
@@ -108,6 +110,7 @@ func (e *FileExporter) validateExportPath(path string) error {
 					Cause:     err,
 				}
 			}
+
 			return &Error{
 				Operation: "validate_path",
 				Path:      path,
@@ -173,6 +176,7 @@ func (e *FileExporter) checkDirectoryWritable(dir string) error {
 	if closeErr := tempFile.Close(); closeErr != nil {
 		return fmt.Errorf("failed to close test file: %w", closeErr)
 	}
+
 	if removeErr := os.Remove(tempPath); removeErr != nil {
 		// Log but don't fail for cleanup errors
 		_ = removeErr
@@ -194,6 +198,7 @@ func (e *FileExporter) checkFileWritable(path string, fileInfo os.FileInfo) erro
 	if err != nil {
 		return fmt.Errorf("file write test failed: %w", err)
 	}
+
 	if closeErr := file.Close(); closeErr != nil {
 		return fmt.Errorf("failed to close test file: %w", closeErr)
 	}
@@ -249,6 +254,7 @@ func (e *FileExporter) Export(ctx context.Context, content, path string) error {
 func (e *FileExporter) writeFileAtomic(path string, content []byte) error {
 	// Create a temporary file in the same directory
 	dir := filepath.Dir(path)
+
 	tempFile, err := os.CreateTemp(dir, filepath.Base(path)+".tmp_*")
 	if err != nil {
 		return fmt.Errorf("failed to create temporary file: %w", err)
@@ -285,6 +291,7 @@ func (e *FileExporter) writeFileAtomic(path string, content []byte) error {
 	if err := tempFile.Close(); err != nil {
 		return fmt.Errorf("failed to close temporary file: %w", err)
 	}
+
 	tempFile = nil // Prevent cleanup in defer
 
 	// Set proper permissions on the temporary file

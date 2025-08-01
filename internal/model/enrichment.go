@@ -320,6 +320,7 @@ func generateInterfaceStatistics(cfg *OpnSenseDocument, stats *Statistics) {
 func generateFirewallStatistics(cfg *OpnSenseDocument, stats *Statistics) {
 	// Firewall rule statistics
 	rules := cfg.FilterRules()
+
 	stats.TotalFirewallRules = len(rules)
 	for _, rule := range rules {
 		stats.RulesByInterface[rule.Interface]++
@@ -341,6 +342,7 @@ func generateDHCPStatistics(cfg *OpnSenseDocument, stats *Statistics) {
 	for _, dhcpIfaceName := range dhcpInterfaceNames {
 		if dhcpIface, exists := cfg.Dhcpd.Get(dhcpIfaceName); exists && dhcpIface.Enable != "" {
 			dhcpScopes++
+
 			stats.DHCPScopeDetails = append(stats.DHCPScopeDetails, DHCPScopeStatistics{
 				Interface: dhcpIfaceName,
 				Enabled:   true,
@@ -349,16 +351,19 @@ func generateDHCPStatistics(cfg *OpnSenseDocument, stats *Statistics) {
 			})
 		}
 	}
+
 	stats.DHCPScopes = dhcpScopes
 }
 
 // generateUserGroupStatistics extracts user and group statistics from the configuration.
 func generateUserGroupStatistics(cfg *OpnSenseDocument, stats *Statistics) {
 	stats.TotalUsers = len(cfg.System.User)
+
 	stats.TotalGroups = len(cfg.System.Group)
 	for _, user := range cfg.System.User {
 		stats.UsersByScope[user.Scope]++
 	}
+
 	for _, group := range cfg.System.Group {
 		stats.GroupsByScope[group.Scope]++
 	}
@@ -367,18 +372,22 @@ func generateUserGroupStatistics(cfg *OpnSenseDocument, stats *Statistics) {
 // generateServiceStatistics extracts service-related statistics from the configuration.
 func generateServiceStatistics(cfg *OpnSenseDocument, stats *Statistics) {
 	serviceCount := 0
+
 	if cfg.Unbound.Enable != "" {
 		stats.EnabledServices = append(stats.EnabledServices, "unbound")
 		serviceCount++
 	}
+
 	if cfg.Snmpd.ROCommunity != "" {
 		stats.EnabledServices = append(stats.EnabledServices, "snmpd")
 		serviceCount++
 	}
+
 	if cfg.Ntpd.Prefer != "" {
 		stats.EnabledServices = append(stats.EnabledServices, "ntpd")
 		serviceCount++
 	}
+
 	stats.TotalServices = serviceCount
 
 	// System configuration statistics
@@ -391,6 +400,7 @@ func generateSecurityFeatures(cfg *OpnSenseDocument, stats *Statistics) {
 	if cfg.System.WebGUI.Protocol == ProtocolHTTPS {
 		stats.SecurityFeatures = append(stats.SecurityFeatures, "https-web-gui")
 	}
+
 	if cfg.System.SSH.Group != "" {
 		stats.SecurityFeatures = append(stats.SecurityFeatures, "ssh-access")
 	}
@@ -428,6 +438,7 @@ func generateAnalysis(cfg *OpnSenseDocument) *Analysis {
 // It returns a slice of findings highlighting dead or potentially problematic rules with recommendations for remediation.
 func analyzeDeadRules(cfg *OpnSenseDocument) []DeadRuleFinding {
 	var findings []DeadRuleFinding
+
 	rules := cfg.FilterRules()
 
 	for i, rule := range rules {
@@ -436,9 +447,13 @@ func analyzeDeadRules(cfg *OpnSenseDocument) []DeadRuleFinding {
 			// If there are rules after this block-all rule, they're dead
 			if i < len(rules)-1 {
 				findings = append(findings, DeadRuleFinding{
-					RuleIndex:      i + 1,
-					Interface:      rule.Interface,
-					Description:    fmt.Sprintf("Rules after position %d on interface %s are unreachable due to preceding block-all rule", i+1, rule.Interface),
+					RuleIndex: i + 1,
+					Interface: rule.Interface,
+					Description: fmt.Sprintf(
+						"Rules after position %d on interface %s are unreachable due to preceding block-all rule",
+						i+1,
+						rule.Interface,
+					),
 					Recommendation: "Remove unreachable rules or reorder them before the block-all rule",
 				})
 			}
@@ -447,9 +462,13 @@ func analyzeDeadRules(cfg *OpnSenseDocument) []DeadRuleFinding {
 		// Check for overly broad rules that might be unintentional
 		if rule.Type == RuleTypePass && rule.Source.Network == NetworkAny && rule.Descr == "" {
 			findings = append(findings, DeadRuleFinding{
-				RuleIndex:      i + 1,
-				Interface:      rule.Interface,
-				Description:    fmt.Sprintf("Rule at position %d on interface %s allows all traffic without description", i+1, rule.Interface),
+				RuleIndex: i + 1,
+				Interface: rule.Interface,
+				Description: fmt.Sprintf(
+					"Rule at position %d on interface %s allows all traffic without description",
+					i+1,
+					rule.Interface,
+				),
 				Recommendation: "Add description and consider restricting source or destination",
 			})
 		}
@@ -512,10 +531,13 @@ func analyzeSecurityIssues(cfg *OpnSenseDocument) []SecurityFinding {
 	for i, rule := range rules {
 		if rule.Type == RuleTypePass && rule.Source.Network == NetworkAny && rule.Destination.Network == NetworkAny {
 			findings = append(findings, SecurityFinding{
-				Component:      fmt.Sprintf("filter.rule[%d]", i),
-				Issue:          "overly-permissive-rule",
-				Severity:       "medium",
-				Description:    fmt.Sprintf("Rule at position %d allows all traffic from any source to any destination", i+1),
+				Component: fmt.Sprintf("filter.rule[%d]", i),
+				Issue:     "overly-permissive-rule",
+				Severity:  "medium",
+				Description: fmt.Sprintf(
+					"Rule at position %d allows all traffic from any source to any destination",
+					i+1,
+				),
 				Recommendation: "Restrict source and destination to specific networks or hosts",
 			})
 		}
@@ -532,10 +554,13 @@ func analyzePerformanceIssues(cfg *OpnSenseDocument) []PerformanceFinding {
 	rules := cfg.FilterRules()
 	if len(rules) > MaxRulesThreshold {
 		findings = append(findings, PerformanceFinding{
-			Component:      "filter.rules",
-			Issue:          "too-many-rules",
-			Severity:       "medium",
-			Description:    fmt.Sprintf("Configuration has %d firewall rules, which may impact performance", len(rules)),
+			Component: "filter.rules",
+			Issue:     "too-many-rules",
+			Severity:  "medium",
+			Description: fmt.Sprintf(
+				"Configuration has %d firewall rules, which may impact performance",
+				len(rules),
+			),
 			Recommendation: "Consider consolidating or removing unnecessary rules",
 		})
 	}
@@ -660,7 +685,8 @@ func calculateSecurityScore(cfg *OpnSenseDocument, stats *Statistics) int {
 		// Check for overly permissive rules
 		rules := cfg.FilterRules()
 		for _, rule := range rules {
-			if rule.Type == RuleTypePass && rule.Source.Network == NetworkAny && rule.Destination.Network == NetworkAny {
+			if rule.Type == RuleTypePass && rule.Source.Network == NetworkAny &&
+				rule.Destination.Network == NetworkAny {
 				score -= 10
 			}
 		}
@@ -669,6 +695,7 @@ func calculateSecurityScore(cfg *OpnSenseDocument, stats *Statistics) int {
 	if score < 0 {
 		score = 0
 	}
+
 	if score > MaxSecurityScore {
 		score = MaxSecurityScore
 	}
@@ -686,9 +713,11 @@ func calculateSecurityScoreBase(cfg *OpnSenseDocument, stats *Statistics) int {
 	if cfg.System.WebGUI.Protocol == ProtocolHTTPS {
 		score += 25
 	}
+
 	if cfg.System.SSH.Group != "" {
 		score += 25
 	}
+
 	if stats != nil && len(stats.SecurityFeatures) > 0 {
 		score += 15
 	}
@@ -706,5 +735,6 @@ func calculateConfigComplexity(stats *Statistics) int {
 	if complexity > MaxComplexityScore {
 		return MaxComplexityScore
 	}
+
 	return complexity
 }

@@ -256,6 +256,7 @@ func (r *Report) ToJSON() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal report to JSON: %w", err)
 	}
+
 	return string(data), nil
 }
 
@@ -265,12 +266,14 @@ func (r *Report) ToYAML() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal report to YAML: %w", err)
 	}
+
 	return string(data), nil
 }
 
 // ToMarkdown returns the report formatted as Markdown using the markdown library.
 func (r *Report) ToMarkdown() string {
 	var buf strings.Builder
+
 	md := markdown.NewMarkdown(&buf)
 
 	// Title and generation info
@@ -280,6 +283,7 @@ func (r *Report) ToMarkdown() string {
 
 	// Configuration Information
 	md.H2("Configuration Information")
+
 	configItems := []string{
 		fmt.Sprintf("%s: %s", markdown.Bold("Hostname"), r.ConfigInfo.Hostname),
 		fmt.Sprintf("%s: %s", markdown.Bold("Domain"), r.ConfigInfo.Domain),
@@ -287,9 +291,11 @@ func (r *Report) ToMarkdown() string {
 	if r.ConfigInfo.Version != "" {
 		configItems = append(configItems, fmt.Sprintf("%s: %s", markdown.Bold("Version"), r.ConfigInfo.Version))
 	}
+
 	if r.ConfigInfo.Theme != "" {
 		configItems = append(configItems, fmt.Sprintf("%s: %s", markdown.Bold("Theme"), r.ConfigInfo.Theme))
 	}
+
 	md.BulletList(configItems...)
 	md.LF()
 
@@ -299,6 +305,7 @@ func (r *Report) ToMarkdown() string {
 
 		// Overview
 		md.H3("Overview")
+
 		overviewItems := []string{
 			fmt.Sprintf("%s: %d", markdown.Bold("Total Interfaces"), r.Statistics.TotalInterfaces),
 			fmt.Sprintf("%s: %d", markdown.Bold("Firewall Rules"), r.Statistics.TotalFirewallRules),
@@ -314,6 +321,7 @@ func (r *Report) ToMarkdown() string {
 
 		// Summary scores
 		md.H3("Summary Metrics")
+
 		summaryItems := []string{
 			fmt.Sprintf("%s: %d", markdown.Bold("Total Configuration Items"), r.Statistics.Summary.TotalConfigItems),
 			fmt.Sprintf("%s: %d/100", markdown.Bold("Security Score"), r.Statistics.Summary.SecurityScore),
@@ -326,9 +334,19 @@ func (r *Report) ToMarkdown() string {
 		// Interface details
 		if len(r.Statistics.InterfaceDetails) > 0 {
 			md.H3("Interface Details")
+
 			interfaceTable := markdown.TableSet{
-				Header: []string{"Interface", "Type", "Enabled", "IPv4", "IPv6", "DHCP", "Block Private", "Block Bogons"},
-				Rows:   [][]string{},
+				Header: []string{
+					"Interface",
+					"Type",
+					"Enabled",
+					"IPv4",
+					"IPv6",
+					"DHCP",
+					"Block Private",
+					"Block Bogons",
+				},
+				Rows: [][]string{},
 			}
 			for _, iface := range r.Statistics.InterfaceDetails {
 				interfaceTable.Rows = append(interfaceTable.Rows, []string{
@@ -342,6 +360,7 @@ func (r *Report) ToMarkdown() string {
 					strconv.FormatBool(iface.BlockBogons),
 				})
 			}
+
 			md.Table(interfaceTable)
 			md.LF()
 		}
@@ -349,10 +368,12 @@ func (r *Report) ToMarkdown() string {
 		// Rules by interface
 		if len(r.Statistics.RulesByInterface) > 0 {
 			md.H3("Firewall Rules by Interface")
+
 			rulesByIfaceItems := []string{}
 			for iface, count := range r.Statistics.RulesByInterface {
 				rulesByIfaceItems = append(rulesByIfaceItems, fmt.Sprintf("%s: %d rules", markdown.Bold(iface), count))
 			}
+
 			md.BulletList(rulesByIfaceItems...)
 			md.LF()
 		}
@@ -360,10 +381,12 @@ func (r *Report) ToMarkdown() string {
 		// Rules by type
 		if len(r.Statistics.RulesByType) > 0 {
 			md.H3("Firewall Rules by Type")
+
 			rulesByTypeItems := []string{}
 			for ruleType, count := range r.Statistics.RulesByType {
 				rulesByTypeItems = append(rulesByTypeItems, fmt.Sprintf("%s: %d rules", markdown.Bold(ruleType), count))
 			}
+
 			md.BulletList(rulesByTypeItems...)
 			md.LF()
 		}
@@ -371,6 +394,7 @@ func (r *Report) ToMarkdown() string {
 		// DHCP scope details
 		if len(r.Statistics.DHCPScopeDetails) > 0 {
 			md.H3("DHCP Scope Details")
+
 			dhcpTable := markdown.TableSet{
 				Header: []string{"Interface", "Enabled", "Range Start", "Range End"},
 				Rows:   [][]string{},
@@ -383,6 +407,7 @@ func (r *Report) ToMarkdown() string {
 					scope.To,
 				})
 			}
+
 			md.Table(dhcpTable)
 			md.LF()
 		}
@@ -390,10 +415,12 @@ func (r *Report) ToMarkdown() string {
 		// User statistics by scope
 		if len(r.Statistics.UsersByScope) > 0 {
 			md.H3("Users by Scope")
+
 			userItems := []string{}
 			for scope, count := range r.Statistics.UsersByScope {
 				userItems = append(userItems, fmt.Sprintf("%s: %d users", markdown.Bold(scope), count))
 			}
+
 			md.BulletList(userItems...)
 			md.LF()
 		}
@@ -401,10 +428,12 @@ func (r *Report) ToMarkdown() string {
 		// Group statistics by scope
 		if len(r.Statistics.GroupsByScope) > 0 {
 			md.H3("Groups by Scope")
+
 			groupItems := []string{}
 			for scope, count := range r.Statistics.GroupsByScope {
 				groupItems = append(groupItems, fmt.Sprintf("%s: %d groups", markdown.Bold(scope), count))
 			}
+
 			md.BulletList(groupItems...)
 			md.LF()
 		}
@@ -419,8 +448,10 @@ func (r *Report) ToMarkdown() string {
 		// Service details
 		if len(r.Statistics.ServiceDetails) > 0 {
 			md.H3("Service Details")
+
 			for _, service := range r.Statistics.ServiceDetails {
 				md.H4(service.Name)
+
 				serviceItems := []string{
 					fmt.Sprintf("%s: %t", markdown.Bold("Enabled"), service.Enabled),
 				}
@@ -429,6 +460,7 @@ func (r *Report) ToMarkdown() string {
 						serviceItems = append(serviceItems, fmt.Sprintf("%s: %s", markdown.Bold(key), value))
 					}
 				}
+
 				md.BulletList(serviceItems...)
 				md.LF()
 			}
@@ -444,6 +476,7 @@ func (r *Report) ToMarkdown() string {
 		// NAT information
 		if r.Statistics.NATMode != "" {
 			md.H3("NAT Configuration")
+
 			natItems := []string{
 				fmt.Sprintf("%s: %s", markdown.Bold("NAT Mode"), r.Statistics.NATMode),
 				fmt.Sprintf("%s: %d", markdown.Bold("NAT Entries"), r.Statistics.NATEntries),
@@ -455,6 +488,7 @@ func (r *Report) ToMarkdown() string {
 		// Load balancer information
 		if r.Statistics.LoadBalancerMonitors > 0 {
 			md.H3("Load Balancer")
+
 			lbItems := []string{
 				fmt.Sprintf("%s: %d", markdown.Bold("Monitors"), r.Statistics.LoadBalancerMonitors),
 			}
@@ -474,6 +508,7 @@ func (r *Report) ToMarkdown() string {
 			// If build fails, return basic markdown manually
 			return "# OPNsense Configuration Analysis Report\n\nNo findings to report.\n"
 		}
+
 		return buf.String()
 	}
 
@@ -491,6 +526,7 @@ func (r *Report) ToMarkdown() string {
 		// If build fails, return basic markdown manually
 		return "# OPNsense Configuration Analysis Report\n\nError generating report.\n"
 	}
+
 	return buf.String()
 }
 
@@ -499,15 +535,19 @@ func (r *Report) Summary() string {
 	var summary strings.Builder
 
 	summary.WriteString("OPNsense Configuration Report for " + r.ConfigInfo.Hostname)
+
 	if r.ConfigInfo.Domain != "" {
 		summary.WriteString("." + r.ConfigInfo.Domain)
 	}
+
 	summary.WriteString("\n")
 
 	if r.Statistics != nil {
-		summary.WriteString(fmt.Sprintf("Configuration contains %d interfaces, %d firewall rules, %d users, and %d groups.\n",
-			r.Statistics.TotalInterfaces, r.Statistics.TotalFirewallRules,
-			r.Statistics.TotalUsers, r.Statistics.TotalGroups))
+		summary.WriteString(
+			fmt.Sprintf("Configuration contains %d interfaces, %d firewall rules, %d users, and %d groups.\n",
+				r.Statistics.TotalInterfaces, r.Statistics.TotalFirewallRules,
+				r.Statistics.TotalUsers, r.Statistics.TotalGroups),
+		)
 	}
 
 	totalFindings := r.TotalFindings()
@@ -515,22 +555,28 @@ func (r *Report) Summary() string {
 		summary.WriteString("No issues found in the configuration.")
 	} else {
 		summary.WriteString(fmt.Sprintf("Analysis found %d findings: ", totalFindings))
+
 		parts := []string{}
 		if len(r.Findings.Critical) > 0 {
 			parts = append(parts, fmt.Sprintf("%d critical", len(r.Findings.Critical)))
 		}
+
 		if len(r.Findings.High) > 0 {
 			parts = append(parts, fmt.Sprintf("%d high", len(r.Findings.High)))
 		}
+
 		if len(r.Findings.Medium) > 0 {
 			parts = append(parts, fmt.Sprintf("%d medium", len(r.Findings.Medium)))
 		}
+
 		if len(r.Findings.Low) > 0 {
 			parts = append(parts, fmt.Sprintf("%d low", len(r.Findings.Low)))
 		}
+
 		if len(r.Findings.Info) > 0 {
 			parts = append(parts, fmt.Sprintf("%d info", len(r.Findings.Info)))
 		}
+
 		summary.WriteString(strings.Join(parts, ", "))
 		summary.WriteString(".")
 	}
@@ -560,7 +606,10 @@ func (r *Report) addFindingsSection(md *markdown.Markdown, title string, finding
 		findingItems = append(findingItems, fmt.Sprintf("%s: %s", markdown.Bold("Description"), finding.Description))
 
 		if finding.Recommendation != "" {
-			findingItems = append(findingItems, fmt.Sprintf("%s: %s", markdown.Bold("Recommendation"), finding.Recommendation))
+			findingItems = append(
+				findingItems,
+				fmt.Sprintf("%s: %s", markdown.Bold("Recommendation"), finding.Recommendation),
+			)
 		}
 
 		if finding.Reference != "" {
@@ -603,6 +652,7 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 	if wanDhcp, exists := cfg.Dhcpd.Wan(); exists {
 		wanStats.HasDHCP = wanDhcp.Enable != ""
 	}
+
 	if wan, ok := cfg.Interfaces.Wan(); ok {
 		wanStats.Enabled = wan.Enable != ""
 		wanStats.HasIPv4 = wan.IPAddr != ""
@@ -618,6 +668,7 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 	if lanDhcp, exists := cfg.Dhcpd.Lan(); exists {
 		lanStats.HasDHCP = lanDhcp.Enable != ""
 	}
+
 	if lan, ok := cfg.Interfaces.Lan(); ok {
 		lanStats.Enabled = lan.Enable != ""
 		lanStats.HasIPv4 = lan.IPAddr != ""
@@ -630,6 +681,7 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 
 	// Firewall rule statistics
 	rules := cfg.FilterRules()
+
 	stats.TotalFirewallRules = len(rules)
 	for _, rule := range rules {
 		stats.RulesByInterface[rule.Interface]++
@@ -646,6 +698,7 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 	dhcpScopes := 0
 	if lanDhcp, exists := cfg.Dhcpd.Lan(); exists && lanDhcp.Enable != "" {
 		dhcpScopes++
+
 		stats.DHCPScopeDetails = append(stats.DHCPScopeDetails, DHCPScopeStatistics{
 			Interface: "lan",
 			Enabled:   true,
@@ -653,8 +706,10 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 			To:        lanDhcp.Range.To,
 		})
 	}
+
 	if wanDhcp, exists := cfg.Dhcpd.Wan(); exists && wanDhcp.Enable != "" {
 		dhcpScopes++
+
 		stats.DHCPScopeDetails = append(stats.DHCPScopeDetails, DHCPScopeStatistics{
 			Interface: "wan",
 			Enabled:   true,
@@ -662,20 +717,24 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 			To:        wanDhcp.Range.To,
 		})
 	}
+
 	stats.DHCPScopes = dhcpScopes
 
 	// User and group statistics
 	stats.TotalUsers = len(cfg.System.User)
+
 	stats.TotalGroups = len(cfg.System.Group)
 	for _, user := range cfg.System.User {
 		stats.UsersByScope[user.Scope]++
 	}
+
 	for _, group := range cfg.System.Group {
 		stats.GroupsByScope[group.Scope]++
 	}
 
 	// Service statistics
 	serviceCount := 0
+
 	if lanDhcp, exists := cfg.Dhcpd.Lan(); exists && lanDhcp.Enable != "" {
 		stats.EnabledServices = append(stats.EnabledServices, "DHCP Server (LAN)")
 		stats.ServiceDetails = append(stats.ServiceDetails, ServiceStatistics{
@@ -689,6 +748,7 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 		})
 		serviceCount++
 	}
+
 	if wanDhcp, exists := cfg.Dhcpd.Wan(); exists && wanDhcp.Enable != "" {
 		stats.EnabledServices = append(stats.EnabledServices, "DHCP Server (WAN)")
 		stats.ServiceDetails = append(stats.ServiceDetails, ServiceStatistics{
@@ -702,6 +762,7 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 		})
 		serviceCount++
 	}
+
 	if cfg.Unbound.Enable != "" {
 		stats.EnabledServices = append(stats.EnabledServices, "Unbound DNS Resolver")
 		stats.ServiceDetails = append(stats.ServiceDetails, ServiceStatistics{
@@ -710,6 +771,7 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 		})
 		serviceCount++
 	}
+
 	if cfg.Snmpd.ROCommunity != "" {
 		stats.EnabledServices = append(stats.EnabledServices, "SNMP Daemon")
 		stats.ServiceDetails = append(stats.ServiceDetails, ServiceStatistics{
@@ -723,6 +785,7 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 		})
 		serviceCount++
 	}
+
 	if cfg.System.SSH.Group != "" {
 		stats.EnabledServices = append(stats.EnabledServices, "SSH Daemon")
 		stats.ServiceDetails = append(stats.ServiceDetails, ServiceStatistics{
@@ -734,6 +797,7 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 		})
 		serviceCount++
 	}
+
 	if cfg.Ntpd.Prefer != "" {
 		stats.EnabledServices = append(stats.EnabledServices, "NTP Daemon")
 		stats.ServiceDetails = append(stats.ServiceDetails, ServiceStatistics{
@@ -745,6 +809,7 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 		})
 		serviceCount++
 	}
+
 	stats.TotalServices = serviceCount
 
 	// System configuration statistics
@@ -756,13 +821,16 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 		if wan.BlockPriv != "" {
 			stats.SecurityFeatures = append(stats.SecurityFeatures, "Block Private Networks")
 		}
+
 		if wan.BlockBogons != "" {
 			stats.SecurityFeatures = append(stats.SecurityFeatures, "Block Bogon Networks")
 		}
 	}
+
 	if cfg.System.WebGUI.Protocol == constants.ProtocolHTTPS {
 		stats.SecurityFeatures = append(stats.SecurityFeatures, "HTTPS Web GUI")
 	}
+
 	if cfg.System.DisableNATReflection != "" {
 		stats.SecurityFeatures = append(stats.SecurityFeatures, "NAT Reflection Disabled")
 	}
@@ -830,7 +898,10 @@ func calculateConfigComplexity(stats *Statistics) int {
 	complexity += stats.LoadBalancerMonitors * constants.LoadBalancerComplexityWeight
 
 	// Normalize to 0-100 scale (assuming max reasonable config)
-	normalizedComplexity := min((complexity*constants.MaxComplexityScore)/constants.MaxReasonableComplexity, constants.MaxComplexityScore)
+	normalizedComplexity := min(
+		(complexity*constants.MaxComplexityScore)/constants.MaxReasonableComplexity,
+		constants.MaxComplexityScore,
+	)
 
 	return normalizedComplexity
 }
@@ -848,12 +919,14 @@ func BuildNetworkConfig(cfg *model.OpnSenseDocument) string {
 	}
 
 	netConfig := cfg.NetworkConfig()
+
 	var buf strings.Builder
 
 	buf.WriteString("## Network Configuration\n\n")
 
 	// Interfaces section
 	buf.WriteString("### Interfaces\n\n")
+
 	if len(netConfig.Interfaces.Items) == 0 {
 		buf.WriteString("*No interfaces configured*\n\n")
 	} else {
@@ -886,6 +959,7 @@ func BuildNetworkConfig(cfg *model.OpnSenseDocument) string {
 
 	// Interface security settings
 	buf.WriteString("### Interface Security\n\n")
+
 	securityHeaders := []string{"Interface", "Block Private", "Block Bogons", "DHCP Hostname"}
 	securityRows := [][]string{}
 
@@ -933,12 +1007,14 @@ func BuildSecurityConfig(cfg *model.OpnSenseDocument) string {
 	}
 
 	secConfig := cfg.SecurityConfig()
+
 	var buf strings.Builder
 
 	buf.WriteString("## Security Configuration\n\n")
 
 	// Firewall Rules section
 	buf.WriteString("### Firewall Rules\n\n")
+
 	if len(secConfig.Filter.Rule) == 0 {
 		buf.WriteString("*No firewall rules configured*\n\n")
 	} else {
@@ -975,6 +1051,7 @@ func BuildSecurityConfig(cfg *model.OpnSenseDocument) string {
 
 	// NAT Configuration section
 	buf.WriteString("### NAT Configuration\n\n")
+
 	if secConfig.Nat.Outbound.Mode != "" {
 		natItems := []string{
 			"**Outbound Mode**: " + secConfig.Nat.Outbound.Mode,
@@ -987,6 +1064,7 @@ func BuildSecurityConfig(cfg *model.OpnSenseDocument) string {
 
 	// Security features summary
 	buf.WriteString("### Security Features\n\n")
+
 	securityFeatures := []string{}
 
 	// Check for enabled security features
@@ -994,6 +1072,7 @@ func BuildSecurityConfig(cfg *model.OpnSenseDocument) string {
 		if wan.BlockPriv != "" {
 			securityFeatures = append(securityFeatures, "🔒 Block Private Networks (WAN)")
 		}
+
 		if wan.BlockBogons != "" {
 			securityFeatures = append(securityFeatures, "🔒 Block Bogon Networks (WAN)")
 		}
@@ -1004,13 +1083,17 @@ func BuildSecurityConfig(cfg *model.OpnSenseDocument) string {
 	}
 
 	if len(secConfig.Filter.Rule) > 0 {
-		securityFeatures = append(securityFeatures, fmt.Sprintf("🔥 %d Firewall Rules Configured", len(secConfig.Filter.Rule)))
+		securityFeatures = append(
+			securityFeatures,
+			fmt.Sprintf("🔥 %d Firewall Rules Configured", len(secConfig.Filter.Rule)),
+		)
 	}
 
 	if len(securityFeatures) > 0 {
 		for _, feature := range securityFeatures {
 			buf.WriteString(fmt.Sprintf("- %s\n", feature))
 		}
+
 		buf.WriteString("\n")
 	} else {
 		buf.WriteString("*No security features detected*\n\n")
@@ -1035,12 +1118,14 @@ func BuildServiceConfig(cfg *model.OpnSenseDocument) string {
 	}
 
 	svcConfig := cfg.ServiceConfig()
+
 	var buf strings.Builder
 
 	buf.WriteString("## Service Configuration\n\n")
 
 	// DHCP Services section
 	buf.WriteString("### DHCP Services\n\n")
+
 	if len(svcConfig.Dhcpd.Items) == 0 {
 		buf.WriteString("*No DHCP services configured*\n\n")
 	} else {
@@ -1069,6 +1154,7 @@ func BuildServiceConfig(cfg *model.OpnSenseDocument) string {
 
 	// DNS Resolver (Unbound) section
 	buf.WriteString("### DNS Resolver (Unbound)\n\n")
+
 	if svcConfig.Unbound.Enable != "" {
 		buf.WriteString("✅ **Status**: Enabled\n\n")
 	} else {
@@ -1077,6 +1163,7 @@ func BuildServiceConfig(cfg *model.OpnSenseDocument) string {
 
 	// SNMP Service section
 	buf.WriteString("### SNMP Service\n\n")
+
 	if svcConfig.Snmpd.ROCommunity != "" {
 		snmpItems := []string{
 			"✅ **Status**: Enabled",
@@ -1092,6 +1179,7 @@ func BuildServiceConfig(cfg *model.OpnSenseDocument) string {
 
 	// SSH Service section
 	buf.WriteString("### SSH Service\n\n")
+
 	if cfg.System.SSH.Group != "" {
 		sshItems := []string{
 			"✅ **Status**: Enabled",
@@ -1105,6 +1193,7 @@ func BuildServiceConfig(cfg *model.OpnSenseDocument) string {
 
 	// NTP Service section
 	buf.WriteString("### NTP Service\n\n")
+
 	if svcConfig.Ntpd.Prefer != "" {
 		ntpItems := []string{
 			"✅ **Status**: Enabled",
@@ -1118,6 +1207,7 @@ func BuildServiceConfig(cfg *model.OpnSenseDocument) string {
 
 	// Load Balancer section
 	buf.WriteString("### Load Balancer\n\n")
+
 	if len(svcConfig.LoadBalancer.MonitorType) == 0 {
 		buf.WriteString("*No load balancer monitors configured*\n\n")
 	} else {
@@ -1145,12 +1235,15 @@ func BuildServiceConfig(cfg *model.OpnSenseDocument) string {
 
 	// Service summary
 	buf.WriteString("### Service Summary\n\n")
+
 	enabledCount := 0
 	totalServices := 5 // Base services we check for
 
 	serviceStatus := []string{}
+
 	if svcConfig.Unbound.Enable != "" {
 		enabledCount++
+
 		serviceStatus = append(serviceStatus, "✅ DNS Resolver")
 	} else {
 		serviceStatus = append(serviceStatus, "❌ DNS Resolver")
@@ -1158,6 +1251,7 @@ func BuildServiceConfig(cfg *model.OpnSenseDocument) string {
 
 	if svcConfig.Snmpd.ROCommunity != "" {
 		enabledCount++
+
 		serviceStatus = append(serviceStatus, "✅ SNMP")
 	} else {
 		serviceStatus = append(serviceStatus, "❌ SNMP")
@@ -1165,6 +1259,7 @@ func BuildServiceConfig(cfg *model.OpnSenseDocument) string {
 
 	if cfg.System.SSH.Group != "" {
 		enabledCount++
+
 		serviceStatus = append(serviceStatus, "✅ SSH")
 	} else {
 		serviceStatus = append(serviceStatus, "❌ SSH")
@@ -1172,6 +1267,7 @@ func BuildServiceConfig(cfg *model.OpnSenseDocument) string {
 
 	if svcConfig.Ntpd.Prefer != "" {
 		enabledCount++
+
 		serviceStatus = append(serviceStatus, "✅ NTP")
 	} else {
 		serviceStatus = append(serviceStatus, "❌ NTP")
@@ -1179,11 +1275,13 @@ func BuildServiceConfig(cfg *model.OpnSenseDocument) string {
 
 	// Count DHCP services
 	dhcpEnabled := 0
+
 	for _, dhcp := range svcConfig.Dhcpd.Items {
 		if dhcp.Enable != "" {
 			dhcpEnabled++
 		}
 	}
+
 	enabledCount += dhcpEnabled
 	totalServices += len(svcConfig.Dhcpd.Items)
 
@@ -1194,9 +1292,11 @@ func BuildServiceConfig(cfg *model.OpnSenseDocument) string {
 	}
 
 	buf.WriteString(fmt.Sprintf("**Enabled Services**: %d/%d\n\n", enabledCount, totalServices))
+
 	for _, status := range serviceStatus {
 		buf.WriteString(fmt.Sprintf("- %s\n", status))
 	}
+
 	buf.WriteString("\n")
 
 	// TODO: Add sections for OpenVPN and other VPN services when model supports them

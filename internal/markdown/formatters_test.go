@@ -173,8 +173,10 @@ func TestCodeBlock(t *testing.T) {
 
 func TestRenderBadge(t *testing.T) {
 	badge := Badge{
-		Icon: "🔒",
-		Text: "SECURE",
+		Icon:    "🔒",
+		Text:    "SECURE",
+		Color:   "",
+		BGColor: "",
 	}
 
 	result := RenderBadge(badge)
@@ -220,12 +222,12 @@ func TestValidateMarkdown(t *testing.T) {
 	// Test valid markdown
 	validMarkdown := "# Hello World\n\nThis is **bold** text."
 	err := ValidateMarkdown(validMarkdown)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Test simple markdown
 	simpleMarkdown := "Just plain text"
 	err = ValidateMarkdown(simpleMarkdown)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestRenderMarkdown(t *testing.T) {
@@ -243,7 +245,10 @@ func TestGetStructFieldNames(t *testing.T) {
 		_            string // should be ignored
 	}
 
-	v := reflect.ValueOf(TestStruct{})
+	v := reflect.ValueOf(TestStruct{
+		PublicField:  "",
+		AnotherField: 0,
+	})
 	names := getStructFieldNames(v)
 
 	assert.Contains(t, names, "PublicField")

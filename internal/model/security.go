@@ -5,7 +5,7 @@ import "encoding/xml"
 
 // SecurityConfig groups security-related configuration.
 type SecurityConfig struct {
-	Nat    Nat    `json:"nat" yaml:"nat,omitempty"`
+	Nat    Nat    `json:"nat"    yaml:"nat,omitempty"`
 	Filter Filter `json:"filter" yaml:"filter,omitempty"`
 }
 
@@ -72,7 +72,7 @@ type Created struct {
 // Firewall represents firewall configuration.
 type Firewall struct {
 	XMLName    xml.Name `xml:"Firewall"`
-	Text       string   `xml:",chardata" json:"text,omitempty"`
+	Text       string   `xml:",chardata"  json:"text,omitempty"`
 	Lvtemplate struct {
 		Text      string `xml:",chardata" json:"text,omitempty"`
 		Version   string `xml:"version,attr" json:"version,omitempty"`
@@ -86,12 +86,12 @@ type Firewall struct {
 			URL  string `xml:"url"`
 		} `xml:"geoip" json:"geoip"`
 		Aliases string `xml:"aliases"`
-	} `xml:"Alias" json:"alias"`
+	} `xml:"Alias"      json:"alias"`
 	Category struct {
 		Text       string `xml:",chardata" json:"text,omitempty"`
 		Version    string `xml:"version,attr" json:"version,omitempty"`
 		Categories string `xml:"categories"`
-	} `xml:"Category" json:"category"`
+	} `xml:"Category"   json:"category"`
 	Filter struct {
 		Text      string `xml:",chardata" json:"text,omitempty"`
 		Version   string `xml:"version,attr" json:"version,omitempty"`
@@ -99,7 +99,7 @@ type Firewall struct {
 		Snatrules string `xml:"snatrules"`
 		Npt       string `xml:"npt"`
 		Onetoone  string `xml:"onetoone"`
-	} `xml:"Filter" json:"filter"`
+	} `xml:"Filter"     json:"filter"`
 }
 
 // IDS represents Intrusion Detection System configuration.
@@ -107,8 +107,8 @@ type Firewall struct {
 //revive:disable:var-naming
 type IDS struct {
 	XMLName          xml.Name `xml:"IDS"`
-	Text             string   `xml:",chardata" json:"text,omitempty"`
-	Version          string   `xml:"version,attr" json:"version,omitempty"`
+	Text             string   `xml:",chardata"        json:"text,omitempty"`
+	Version          string   `xml:"version,attr"     json:"version,omitempty"`
 	Rules            string   `xml:"rules"`
 	Policies         string   `xml:"policies"`
 	UserDefinedRules string   `xml:"userDefinedRules"`
@@ -152,21 +152,21 @@ type IDS struct {
 				Custom            string `xml:"custom"`
 			} `xml:"tls" json:"tls"`
 		} `xml:"eveLog" json:"evelog"`
-	} `xml:"general" json:"general"`
+	} `xml:"general"          json:"general"`
 }
 
 // IPsec represents IPsec configuration.
 type IPsec struct {
 	XMLName xml.Name `xml:"IPsec"`
-	Text    string   `xml:",chardata" json:"text,omitempty"`
-	Version string   `xml:"version,attr" json:"version,omitempty"`
+	Text    string   `xml:",chardata"     json:"text,omitempty"`
+	Version string   `xml:"version,attr"  json:"version,omitempty"`
 	General struct {
 		Text                string `xml:",chardata" json:"text,omitempty"`
 		Enabled             string `xml:"enabled"`
 		PreferredOldsa      string `xml:"preferred_oldsa"`
 		Disablevpnrules     string `xml:"disablevpnrules"`
 		PassthroughNetworks string `xml:"passthrough_networks"`
-	} `xml:"general" json:"general"`
+	} `xml:"general"       json:"general"`
 	Charon struct {
 		Text               string `xml:",chardata" json:"text,omitempty"`
 		MaxIkev1Exchanges  string `xml:"max_ikev1_exchanges"`
@@ -207,7 +207,7 @@ type IPsec struct {
 				Tnc      string `xml:"tnc"`
 			} `xml:"daemon" json:"daemon"`
 		} `xml:"syslog" json:"syslog"`
-	} `xml:"charon" json:"charon"`
+	} `xml:"charon"        json:"charon"`
 	KeyPairs      string `xml:"keyPairs"`
 	PreSharedKeys string `xml:"preSharedKeys"`
 }
@@ -215,7 +215,7 @@ type IPsec struct {
 // Swanctl represents StrongSwan configuration.
 type Swanctl struct {
 	XMLName     xml.Name `xml:"Swanctl"`
-	Text        string   `xml:",chardata" json:"text,omitempty"`
+	Text        string   `xml:",chardata"    json:"text,omitempty"`
 	Version     string   `xml:"version,attr" json:"version,omitempty"`
 	Connections string   `xml:"Connections"`
 	Locals      string   `xml:"locals"`

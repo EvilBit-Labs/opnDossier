@@ -12,7 +12,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 )
 
@@ -31,7 +30,7 @@ func TestExampleProcessor_Process_NilConfig(t *testing.T) {
 	ctx := context.Background()
 
 	report, err := processor.Process(ctx, nil)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Nil(t, report)
 	assert.Contains(t, err.Error(), "configuration cannot be nil")
 }
@@ -45,10 +44,7 @@ func TestExampleProcessor_Process_BasicAnalysis(t *testing.T) {
 		System: model.System{
 			Hostname: "test-firewall",
 			Domain:   "example.com",
-			WebGUI: struct {
-				Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-				SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-			}{Protocol: "https"},
+			WebGUI:   model.WebGUIConfig{Protocol: "https"},
 			SSH: struct {
 				Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
 			}{Group: "admins"},
@@ -78,10 +74,7 @@ func TestExampleProcessor_Process_WithOptions(t *testing.T) {
 		System: model.System{
 			Hostname: "test-firewall",
 			Domain:   "example.com",
-			WebGUI: struct {
-				Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-				SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-			}{Protocol: "http"}, // Insecure protocol
+			WebGUI:   model.WebGUIConfig{Protocol: "http"}, // Insecure protocol
 			SSH: struct {
 				Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
 			}{Group: "admins"}, // SSH enabled
@@ -104,19 +97,22 @@ func TestExampleProcessor_Process_WithOptions(t *testing.T) {
 	assert.True(t, report.ProcessorConfig.EnableComplianceCheck)
 
 	// Should have security findings due to HTTP and default SNMP community
-	assert.True(t, len(report.Findings.High) > 0, "Should have high severity findings")
+	assert.NotEmpty(t, report.Findings.High, "Should have high severity findings")
 
 	// Check for specific findings
 	foundInsecureWeb := false
 	foundDefaultSNMP := false
+
 	for _, finding := range report.Findings.High {
 		if strings.Contains(finding.Title, "Insecure Web GUI Protocol") {
 			foundInsecureWeb = true
 		}
+
 		if strings.Contains(finding.Title, "Default SNMP Community String") {
 			foundDefaultSNMP = true
 		}
 	}
+
 	assert.True(t, foundInsecureWeb, "Should find insecure web GUI protocol")
 	assert.True(t, foundDefaultSNMP, "Should find default SNMP community string")
 }
@@ -133,7 +129,7 @@ func TestExampleProcessor_Process_ContextCancellation(t *testing.T) {
 	}
 
 	report, err := processor.Process(ctx, cfg)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Nil(t, report)
 	assert.Contains(t, err.Error(), "context canceled")
 }
@@ -441,7 +437,7 @@ func TestCoreProcessor_NormalizationIdempotence(t *testing.T) {
 			if len(normalized1.System.User) > 0 {
 				// Users should remain sorted
 				for i := 1; i < len(normalized1.System.User); i++ {
-					assert.True(t, normalized1.System.User[i-1].Name <= normalized1.System.User[i].Name,
+					assert.LessOrEqual(t, normalized1.System.User[i-1].Name, normalized1.System.User[i].Name,
 						"Users should remain sorted after multiple normalizations")
 				}
 			}
@@ -449,7 +445,7 @@ func TestCoreProcessor_NormalizationIdempotence(t *testing.T) {
 			if len(normalized1.System.Group) > 0 {
 				// Groups should remain sorted
 				for i := 1; i < len(normalized1.System.Group); i++ {
-					assert.True(t, normalized1.System.Group[i-1].Name <= normalized1.System.Group[i].Name,
+					assert.LessOrEqual(t, normalized1.System.Group[i-1].Name, normalized1.System.Group[i].Name,
 						"Groups should remain sorted after multiple normalizations")
 				}
 			}
@@ -457,7 +453,7 @@ func TestCoreProcessor_NormalizationIdempotence(t *testing.T) {
 			if len(normalized1.Sysctl) > 0 {
 				// Sysctl items should remain sorted
 				for i := 1; i < len(normalized1.Sysctl); i++ {
-					assert.True(t, normalized1.Sysctl[i-1].Tunable <= normalized1.Sysctl[i].Tunable,
+					assert.LessOrEqual(t, normalized1.Sysctl[i-1].Tunable, normalized1.Sysctl[i].Tunable,
 						"Sysctl items should remain sorted after multiple normalizations")
 				}
 			}
@@ -476,6 +472,7 @@ func TestCoreProcessor_NormalizationIdempotence(t *testing.T) {
 func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 	processor, err := NewCoreProcessor()
 	require.NoError(t, err)
+
 	ctx := context.Background()
 
 	tests := []struct {
@@ -491,10 +488,7 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 				System: model.System{
 					Hostname: "insecure-firewall",
 					Domain:   "example.com",
-					WebGUI: struct {
-						Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-						SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-					}{Protocol: "http"}, // Insecure
+					WebGUI:   model.WebGUIConfig{Protocol: "http"}, // Insecure
 				},
 				Interfaces: model.Interfaces{
 					Items: map[string]model.Interface{
@@ -642,12 +636,9 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 			name: "All features combined",
 			config: &model.OpnSenseDocument{
 				System: model.System{
-					Hostname: "combined-firewall",
-					Domain:   "example.com",
-					WebGUI: struct {
-						Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-						SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-					}{Protocol: "http"},
+					Hostname:                  "combined-firewall",
+					Domain:                    "example.com",
+					WebGUI:                    model.WebGUIConfig{Protocol: "http"},
 					DisableChecksumOffloading: "1",
 				},
 				Interfaces: model.Interfaces{
@@ -689,6 +680,7 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 			// Check expected finding counts by severity
 			for severity, expectedCount := range tt.expectedFindings {
 				actualCount := 0
+
 				switch severity {
 				case SeverityCritical:
 					actualCount = len(report.Findings.Critical)
@@ -701,12 +693,14 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 				case SeverityInfo:
 					actualCount = len(report.Findings.Info)
 				}
+
 				assert.GreaterOrEqual(t, actualCount, expectedCount,
 					"Expected at least %d %s findings, got %d", expectedCount, severity, actualCount)
 			}
 
 			// Check expected finding types are present
 			var foundTypes []string
+
 			allFindings := append([]Finding{}, report.Findings.Critical...)
 			allFindings = append(allFindings, report.Findings.High...)
 			allFindings = append(allFindings, report.Findings.Medium...)
@@ -736,6 +730,7 @@ func generateManyRules(count int) []model.Rule {
 			Source:    model.Source{Network: fmt.Sprintf("192.168.%d.0/24", (i%254)+1)},
 		}
 	}
+
 	return rules
 }
 
@@ -745,10 +740,7 @@ func generateSmallConfig() *model.OpnSenseDocument {
 		System: model.System{
 			Hostname: "small-config",
 			Domain:   "example.com",
-			WebGUI: struct {
-				Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-				SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-			}{Protocol: "https"},
+			WebGUI:   model.WebGUIConfig{Protocol: "https"},
 			SSH: struct {
 				Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
 			}{Group: "admins"},
@@ -826,10 +818,7 @@ func generateLargeConfig() *model.OpnSenseDocument {
 		System: model.System{
 			Hostname: "large-config",
 			Domain:   "example.com",
-			WebGUI: struct {
-				Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-				SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-			}{Protocol: "https"},
+			WebGUI:   model.WebGUIConfig{Protocol: "https"},
 			SSH: struct {
 				Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
 			}{Group: "admins"},
@@ -888,6 +877,7 @@ func generateLargeConfig() *model.OpnSenseDocument {
 func BenchmarkCoreProcessor_ProcessSmallConfig(b *testing.B) {
 	processor, err := NewCoreProcessor()
 	require.NoError(b, err)
+
 	ctx := context.Background()
 	smallConfig := generateSmallConfig()
 
@@ -899,6 +889,7 @@ func BenchmarkCoreProcessor_ProcessSmallConfig(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
+
 		if report == nil {
 			b.Fatal("report is nil")
 		}
@@ -917,6 +908,7 @@ func BenchmarkCoreProcessor_ProcessSmallConfig(b *testing.B) {
 func BenchmarkCoreProcessor_ProcessLargeConfig(b *testing.B) {
 	processor, err := NewCoreProcessor()
 	require.NoError(b, err)
+
 	ctx := context.Background()
 	largeConfig := generateLargeConfig()
 
@@ -933,6 +925,7 @@ func BenchmarkCoreProcessor_ProcessLargeConfig(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
+
 		if report == nil {
 			b.Fatal("report is nil")
 		}
@@ -946,9 +939,11 @@ func BenchmarkCoreProcessor_ProcessLargeConfig(b *testing.B) {
 		if report.Statistics == nil {
 			b.Error("Statistics should not be nil")
 		}
+
 		if report.Statistics.TotalUsers != 100 {
 			b.Errorf("Expected 100 users, got %d", report.Statistics.TotalUsers)
 		}
+
 		if report.Statistics.TotalFirewallRules != 500 {
 			b.Errorf("Expected 500 firewall rules, got %d", report.Statistics.TotalFirewallRules)
 		}
@@ -988,6 +983,7 @@ func BenchmarkCoreProcessor_ProcessLargeConfig(b *testing.B) {
 	if memAfter.Alloc >= memBefore.Alloc {
 		memGrowthMB = float64(memAfter.Alloc-memBefore.Alloc) / (1024 * 1024)
 	}
+
 	peakMemMB := float64(memAfter.Alloc) / (1024 * 1024)
 
 	b.Logf("Final memory growth: %.2f MB", memGrowthMB)
@@ -1002,6 +998,7 @@ func BenchmarkCoreProcessor_ProcessLargeConfig(b *testing.B) {
 func BenchmarkCoreProcessor_ProcessConcurrent(b *testing.B) {
 	processor, err := NewCoreProcessor()
 	require.NoError(b, err)
+
 	ctx := context.Background()
 	smallConfig := generateSmallConfig()
 	largeConfig := generateLargeConfig()
@@ -1017,6 +1014,7 @@ func BenchmarkCoreProcessor_ProcessConcurrent(b *testing.B) {
 					b.Error(err)
 					return
 				}
+
 				if report == nil {
 					b.Error("report is nil")
 					return
@@ -1033,6 +1031,7 @@ func BenchmarkCoreProcessor_ProcessConcurrent(b *testing.B) {
 	b.Run("Concurrent Mixed Configs", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			i := 0
+
 			for pb.Next() {
 				// Alternate between small and large configs
 				var config *model.OpnSenseDocument
@@ -1041,6 +1040,7 @@ func BenchmarkCoreProcessor_ProcessConcurrent(b *testing.B) {
 				} else {
 					config = largeConfig
 				}
+
 				i++
 
 				start := time.Now()
@@ -1051,6 +1051,7 @@ func BenchmarkCoreProcessor_ProcessConcurrent(b *testing.B) {
 					b.Error(err)
 					return
 				}
+
 				if report == nil {
 					b.Error("report is nil")
 					return
@@ -1069,6 +1070,7 @@ func BenchmarkCoreProcessor_ProcessConcurrent(b *testing.B) {
 func BenchmarkCoreProcessor_NormalizationOnly(b *testing.B) {
 	processor, err := NewCoreProcessor()
 	require.NoError(b, err)
+
 	largeConfig := generateLargeConfig()
 
 	for b.Loop() {
@@ -1108,6 +1110,7 @@ func BenchmarkCoreProcessor_NormalizationOnly(b *testing.B) {
 func TestCoreProcessor_RaceConditions(t *testing.T) {
 	localProcessor, err := NewCoreProcessor()
 	require.NoError(t, err)
+
 	ctx := context.Background()
 	smallConfig := generateSmallConfig()
 	largeConfig := generateLargeConfig()
@@ -1115,17 +1118,21 @@ func TestCoreProcessor_RaceConditions(t *testing.T) {
 	// Test concurrent processing of the same config
 	t.Run("Concurrent Same Config", func(t *testing.T) {
 		var wg sync.WaitGroup
+
 		errorChan := make(chan error, 10)
 
 		for i := range 10 {
 			wg.Add(1)
+
 			go func(id int) {
 				defer wg.Done()
+
 				report, err := localProcessor.Process(ctx, smallConfig, WithAllFeatures())
 				if err != nil {
 					errorChan <- fmt.Errorf("goroutine %d: %w", id, err)
 					return
 				}
+
 				if report == nil {
 					errorChan <- NewTestError(id, "report is nil")
 					return
@@ -1149,14 +1156,20 @@ func TestCoreProcessor_RaceConditions(t *testing.T) {
 	// Test concurrent processing of different configs
 	t.Run("Concurrent Different Configs", func(t *testing.T) {
 		var wg sync.WaitGroup
+
 		errorChan := make(chan error, 10)
 
 		for i := range 10 {
 			wg.Add(1)
+
 			go func(id int) {
 				defer wg.Done()
-				var config *model.OpnSenseDocument
-				var expectedHostname string
+
+				var (
+					config           *model.OpnSenseDocument
+					expectedHostname string
+				)
+
 				if id%2 == 0 {
 					config = smallConfig
 					expectedHostname = "small-config"
@@ -1170,6 +1183,7 @@ func TestCoreProcessor_RaceConditions(t *testing.T) {
 					errorChan <- fmt.Errorf("goroutine %d: %w", id, err)
 					return
 				}
+
 				if report == nil {
 					errorChan <- NewTestError(id, "report is nil")
 					return
@@ -1193,12 +1207,15 @@ func TestCoreProcessor_RaceConditions(t *testing.T) {
 	// Test concurrent processor creation
 	t.Run("Concurrent Processor Creation", func(t *testing.T) {
 		var wg sync.WaitGroup
+
 		errorChan := make(chan error, 10)
 
 		for i := range 10 {
 			wg.Add(1)
+
 			go func(id int) {
 				defer wg.Done()
+
 				localProcessor, err := NewCoreProcessor()
 				if err != nil {
 					errorChan <- fmt.Errorf("goroutine %d: failed to create processor: %w", id, err)
@@ -1210,6 +1227,7 @@ func TestCoreProcessor_RaceConditions(t *testing.T) {
 					errorChan <- fmt.Errorf("goroutine %d: %w", id, err)
 					return
 				}
+
 				if report == nil {
 					errorChan <- NewTestError(id, "report is nil")
 				}
@@ -1230,6 +1248,7 @@ func TestCoreProcessor_RaceConditions(t *testing.T) {
 func TestCoreProcessor_StatisticsAccuracy(t *testing.T) {
 	processor, err := NewCoreProcessor()
 	require.NoError(t, err)
+
 	ctx := context.Background()
 
 	tests := []struct {
@@ -1254,10 +1273,7 @@ func TestCoreProcessor_StatisticsAccuracy(t *testing.T) {
 						{Name: "admins", Scope: "local", Gid: "1000"},
 						{Name: "users", Scope: "system", Gid: "1001"},
 					},
-					WebGUI: struct {
-						Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-						SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-					}{Protocol: "https"},
+					WebGUI: model.WebGUIConfig{Protocol: "https"},
 					SSH: struct {
 						Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
 					}{Group: "admins"},
@@ -1363,7 +1379,13 @@ func TestCoreProcessor_StatisticsAccuracy(t *testing.T) {
 				assert.Equal(t, 1, stats.GroupsByScope["system"], "Should have 1 system group")
 
 				// Service statistics
-				expectedServices := []string{"DHCP Server (LAN)", "Unbound DNS Resolver", "SNMP Daemon", "SSH Daemon", "NTP Daemon"}
+				expectedServices := []string{
+					"DHCP Server (LAN)",
+					"Unbound DNS Resolver",
+					"SNMP Daemon",
+					"SSH Daemon",
+					"NTP Daemon",
+				}
 				assert.Equal(t, len(expectedServices), stats.TotalServices, "Should count all enabled services")
 				for _, service := range expectedServices {
 					assert.Contains(t, stats.EnabledServices, service, "Should list %s as enabled", service)
@@ -1413,7 +1435,12 @@ func TestCoreProcessor_StatisticsAccuracy(t *testing.T) {
 				assert.Equal(t, 0, stats.TotalServices, "Should have no services enabled")
 				assert.Empty(t, stats.EnabledServices, "Should have no enabled services")
 				// After normalization, HTTPS is the default webgui protocol, so it's detected as a security feature
-				assert.Equal(t, []string{"HTTPS Web GUI"}, stats.SecurityFeatures, "Should detect HTTPS Web GUI from normalization default")
+				assert.Equal(
+					t,
+					[]string{"HTTPS Web GUI"},
+					stats.SecurityFeatures,
+					"Should detect HTTPS Web GUI from normalization default",
+				)
 				assert.True(t, stats.Summary.HasSecurityFeatures, "Should detect security features from normalization")
 			},
 		},

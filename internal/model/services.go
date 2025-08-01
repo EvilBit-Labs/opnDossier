@@ -5,18 +5,18 @@ import "encoding/xml"
 
 // ServiceConfig groups service-related configuration.
 type ServiceConfig struct {
-	Dhcpd        Dhcpd        `json:"dhcpd" yaml:"dhcpd,omitempty"`
-	Unbound      Unbound      `json:"unbound" yaml:"unbound,omitempty"`
-	Snmpd        Snmpd        `json:"snmpd" yaml:"snmpd,omitempty"`
-	Rrd          Rrd          `json:"rrd" yaml:"rrd,omitempty"`
+	Dhcpd        Dhcpd        `json:"dhcpd"        yaml:"dhcpd,omitempty"`
+	Unbound      Unbound      `json:"unbound"      yaml:"unbound,omitempty"`
+	Snmpd        Snmpd        `json:"snmpd"        yaml:"snmpd,omitempty"`
+	Rrd          Rrd          `json:"rrd"          yaml:"rrd,omitempty"`
 	LoadBalancer LoadBalancer `json:"loadBalancer" yaml:"loadBalancer,omitempty"`
-	Ntpd         Ntpd         `json:"ntpd" yaml:"ntpd,omitempty"`
+	Ntpd         Ntpd         `json:"ntpd"         yaml:"ntpd,omitempty"`
 }
 
 // Unbound represents the Unbound DNS resolver configuration.
 type Unbound struct {
-	Enable         string `xml:"enable" json:"enable" yaml:"enable"`
-	Dnssec         string `xml:"dnssec,omitempty" json:"dnssec,omitempty" yaml:"dnssec,omitempty"`
+	Enable         string `xml:"enable"                   json:"enable"                   yaml:"enable"`
+	Dnssec         string `xml:"dnssec,omitempty"         json:"dnssec,omitempty"         yaml:"dnssec,omitempty"`
 	Dnssecstripped string `xml:"dnssecstripped,omitempty" json:"dnssecstripped,omitempty" yaml:"dnssecstripped,omitempty"`
 }
 
@@ -127,7 +127,7 @@ type Syslog struct {
 // Monit represents system monitoring configuration.
 type Monit struct {
 	XMLName xml.Name `xml:"monit"`
-	Text    string   `xml:",chardata" json:"text,omitempty"`
+	Text    string   `xml:",chardata"    json:"text,omitempty"`
 	Version string   `xml:"version,attr" json:"version,omitempty"`
 	General struct {
 		Text                      string `xml:",chardata" json:"text,omitempty"`
@@ -153,7 +153,7 @@ type Monit struct {
 		MmonitURL                 string `xml:"mmonitUrl"`
 		MmonitTimeout             string `xml:"mmonitTimeout"`
 		MmonitRegisterCredentials string `xml:"mmonitRegisterCredentials"`
-	} `xml:"general" json:"general"`
+	} `xml:"general"      json:"general"`
 	Alert struct {
 		Text        string `xml:",chardata" json:"text,omitempty"`
 		UUID        string `xml:"uuid,attr" json:"uuid,omitempty"`
@@ -164,15 +164,15 @@ type Monit struct {
 		Format      string `xml:"format"`
 		Reminder    string `xml:"reminder"`
 		Description string `xml:"description"`
-	} `xml:"alert" json:"alert"`
-	Service []MonitService `xml:"service" json:"service,omitempty"`
-	Test    []MonitTest    `xml:"test" json:"test,omitempty"`
+	} `xml:"alert"        json:"alert"`
+	Service []MonitService `xml:"service"      json:"service,omitempty"`
+	Test    []MonitTest    `xml:"test"         json:"test,omitempty"`
 }
 
 // MonitService represents a monitored service.
 type MonitService struct {
-	Text         string `xml:",chardata" json:"text,omitempty"`
-	UUID         string `xml:"uuid,attr" json:"uuid,omitempty"`
+	Text         string `xml:",chardata"    json:"text,omitempty"`
+	UUID         string `xml:"uuid,attr"    json:"uuid,omitempty"`
 	Enabled      string `xml:"enabled"`
 	Name         string `xml:"name"`
 	Description  string `xml:"description"`

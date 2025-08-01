@@ -166,6 +166,7 @@ func TestCoreProcessor_GetDestinationString(t *testing.T) {
 func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
 	processor, err := NewCoreProcessor()
 	require.NoError(t, err)
+
 	testFiles := []string{
 		"../../testdata/sample.config.1.xml",
 		"../../testdata/sample.config.2.xml",
@@ -180,6 +181,7 @@ func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
 				t.Skipf("Skipping test due to file open error: %v", err)
 				return
 			}
+
 			defer func() {
 				if closeErr := file.Close(); closeErr != nil {
 					t.Logf("Warning: failed to close file: %v", closeErr)
@@ -188,6 +190,7 @@ func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
 
 			// Use the existing parser to handle XML encoding issues
 			xmlParser := parser.NewXMLParser()
+
 			config, err := xmlParser.Parse(context.Background(), file)
 			if err != nil {
 				t.Skipf("Skipping test due to parsing error: %v", err)
@@ -202,25 +205,43 @@ func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
 
 			// Test duplicate rule detection
 			duplicateCount := 0
+
 			for i, rule1 := range rules {
 				for j := i + 1; j < len(rules); j++ {
 					rule2 := rules[j]
 					if processor.rulesAreEquivalent(rule1, rule2) {
 						duplicateCount++
+
 						t.Logf("Found duplicate rules: rule[%d] and rule[%d]", i, j)
-						t.Logf("  Rule[%d]: %s %s on %s from %s", i, rule1.Type, rule1.IPProtocol, rule1.Interface, rule1.Source.Network)
-						t.Logf("  Rule[%d]: %s %s on %s from %s", j, rule2.Type, rule2.IPProtocol, rule2.Interface, rule2.Source.Network)
+						t.Logf(
+							"  Rule[%d]: %s %s on %s from %s",
+							i,
+							rule1.Type,
+							rule1.IPProtocol,
+							rule1.Interface,
+							rule1.Source.Network,
+						)
+						t.Logf(
+							"  Rule[%d]: %s %s on %s from %s",
+							j,
+							rule2.Type,
+							rule2.IPProtocol,
+							rule2.Interface,
+							rule2.Source.Network,
+						)
 					}
 				}
 			}
 
 			// Test dead rule detection
 			deadRuleCount := 0
+
 			for i, rule := range rules {
 				if rule.Type == "block" && rule.Source.Network == "any" {
 					// Check if there are rules after this block-all rule
 					if i < len(rules)-1 {
 						deadRuleCount++
+
 						t.Logf("Found potential dead rules after block-all rule at position %d", i+1)
 					}
 				}
@@ -228,9 +249,11 @@ func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
 
 			// Test security analysis
 			securityIssues := 0
+
 			for i, rule := range rules {
 				if rule.Type == "pass" && rule.Source.Network == "any" && rule.Descr == "" {
 					securityIssues++
+
 					t.Logf("Found overly broad pass rule at position %d without description", i+1)
 				}
 			}
@@ -277,7 +300,6 @@ func TestCoreProcessor_ModelLimitations(t *testing.T) {
 		// - type, ipprotocol, descr, interface
 		// - source.network (limited)
 		// - destination.any (struct{} only)
-
 		t.Log("Current model.Rule limitations:")
 		t.Log("  - Missing: statetype, direction, quick, protocol")
 		t.Log("  - Missing: source.port, destination.port")
@@ -286,7 +308,8 @@ func TestCoreProcessor_ModelLimitations(t *testing.T) {
 		t.Log("  - Limited: destination (only struct{} for 'any')")
 
 		// This is expected behavior for the current implementation
-		assert.True(t, true, "Documentation test should pass")
+		// This test documents current model limitations and should always pass
+		t.Log("Model limitations documented successfully")
 	})
 }
 

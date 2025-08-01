@@ -133,8 +133,12 @@ func validateSystem(system *model.System) []ValidationError {
 	validBogonsIntervals := []string{"monthly", "weekly", "daily", "never"}
 	if system.Bogons.Interval != "" && !contains(validBogonsIntervals, system.Bogons.Interval) {
 		errors = append(errors, ValidationError{
-			Field:   "system.bogons.interval",
-			Message: fmt.Sprintf("bogons interval '%s' must be one of: %v", system.Bogons.Interval, validBogonsIntervals),
+			Field: "system.bogons.interval",
+			Message: fmt.Sprintf(
+				"bogons interval '%s' must be one of: %v",
+				system.Bogons.Interval,
+				validBogonsIntervals,
+			),
 		})
 	}
 
@@ -171,8 +175,12 @@ func validateInterface(iface *model.Interface, name string, interfaces *model.In
 		validIPTypes := []string{"dhcp", "dhcp6", "track6", "none"}
 		if !contains(validIPTypes, iface.IPAddr) && !isValidIP(iface.IPAddr) {
 			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("interfaces.%s.ipaddr", name),
-				Message: fmt.Sprintf("IP address '%s' must be a valid IP address or one of: %v", iface.IPAddr, validIPTypes),
+				Field: fmt.Sprintf("interfaces.%s.ipaddr", name),
+				Message: fmt.Sprintf(
+					"IP address '%s' must be a valid IP address or one of: %v",
+					iface.IPAddr,
+					validIPTypes,
+				),
 			})
 		}
 	}
@@ -182,8 +190,12 @@ func validateInterface(iface *model.Interface, name string, interfaces *model.In
 		validIPv6Types := []string{"dhcp6", "slaac", "track6", "none"}
 		if !contains(validIPv6Types, iface.IPAddrv6) && !isValidIPv6(iface.IPAddrv6) {
 			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("interfaces.%s.ipaddrv6", name),
-				Message: fmt.Sprintf("IPv6 address '%s' must be a valid IPv6 address or one of: %v", iface.IPAddrv6, validIPv6Types),
+				Field: fmt.Sprintf("interfaces.%s.ipaddrv6", name),
+				Message: fmt.Sprintf(
+					"IPv6 address '%s' must be a valid IPv6 address or one of: %v",
+					iface.IPAddrv6,
+					validIPv6Types,
+				),
 			})
 		}
 	}
@@ -233,12 +245,14 @@ func validateInterface(iface *model.Interface, name string, interfaces *model.In
 				for interfaceName := range validInterfaceNames {
 					interfaceList = append(interfaceList, interfaceName)
 				}
+
 				errors = append(errors, ValidationError{
 					Field:   fmt.Sprintf("interfaces.%s.track6-interface", name),
 					Message: fmt.Sprintf("track6-interface '%s' must reference a configured interface: %v", iface.Track6Interface, interfaceList),
 				})
 			}
 		}
+
 		if iface.Track6PrefixID == "" {
 			errors = append(errors, ValidationError{
 				Field:   fmt.Sprintf("interfaces.%s.track6-prefix-id", name),
@@ -284,6 +298,7 @@ func validateDhcpdInterface(name string, cfg model.DhcpdInterface, ifaceSet map[
 		for interfaceName := range ifaceSet {
 			interfaceList = append(interfaceList, interfaceName)
 		}
+
 		errors = append(errors, ValidationError{
 			Field:   "dhcpd." + name,
 			Message: fmt.Sprintf("DHCP interface '%s' must reference a configured interface: %v", name, interfaceList),
@@ -298,6 +313,7 @@ func validateDhcpdInterface(name string, cfg model.DhcpdInterface, ifaceSet map[
 				Message: fmt.Sprintf("DHCP range 'from' address '%s' must be a valid IP address", cfg.Range.From),
 			})
 		}
+
 		if cfg.Range.To != "" && !isValidIP(cfg.Range.To) {
 			errors = append(errors, ValidationError{
 				Field:   fmt.Sprintf("dhcpd.%s.range.to", name),
@@ -308,15 +324,21 @@ func validateDhcpdInterface(name string, cfg model.DhcpdInterface, ifaceSet map[
 		// Cross-validation: from address should be less than to address
 		if isValidIP(cfg.Range.From) && isValidIP(cfg.Range.To) {
 			fromIP := net.ParseIP(cfg.Range.From).To4()
+
 			toIP := net.ParseIP(cfg.Range.To).To4()
 			if fromIP != nil && toIP != nil {
 				// Compare byte by byte
 				for i := range 4 {
 					if fromIP[i] > toIP[i] {
 						errors = append(errors, ValidationError{
-							Field:   fmt.Sprintf("dhcpd.%s.range", name),
-							Message: fmt.Sprintf("DHCP range 'from' address (%s) must be less than 'to' address (%s)", cfg.Range.From, cfg.Range.To),
+							Field: fmt.Sprintf("dhcpd.%s.range", name),
+							Message: fmt.Sprintf(
+								"DHCP range 'from' address (%s) must be less than 'to' address (%s)",
+								cfg.Range.From,
+								cfg.Range.To,
+							),
 						})
+
 						break
 					} else if fromIP[i] < toIP[i] {
 						break
@@ -332,11 +354,13 @@ func validateDhcpdInterface(name string, cfg model.DhcpdInterface, ifaceSet map[
 // collectInterfaceNames returns every key from the interfaces map as a set.
 func collectInterfaceNames(ifaces *model.Interfaces) map[string]struct{} {
 	interfaceNames := make(map[string]struct{})
+
 	if ifaces != nil && ifaces.Items != nil {
 		for name := range ifaces.Items {
 			interfaceNames[name] = struct{}{}
 		}
 	}
+
 	return interfaceNames
 }
 
@@ -346,6 +370,7 @@ func stripIPSuffix(network string) string {
 	if strings.HasSuffix(network, "ip") {
 		return strings.TrimSuffix(network, "ip")
 	}
+
 	return network
 }
 
@@ -390,9 +415,14 @@ func validateFilter(filter *model.Filter, interfaces *model.Interfaces) []Valida
 				for name := range validInterfaceNames {
 					interfaceList = append(interfaceList, name)
 				}
+
 				errors = append(errors, ValidationError{
-					Field:   fmt.Sprintf("filter.rule[%d].interface", i),
-					Message: fmt.Sprintf("interface '%s' must be one of the configured interfaces: %v", rule.Interface, interfaceList),
+					Field: fmt.Sprintf("filter.rule[%d].interface", i),
+					Message: fmt.Sprintf(
+						"interface '%s' must be one of the configured interfaces: %v",
+						rule.Interface,
+						interfaceList,
+					),
 				})
 			}
 		}
@@ -402,8 +432,11 @@ func validateFilter(filter *model.Filter, interfaces *model.Interfaces) []Valida
 		if rule.Source.Network != "" && !isReservedNetwork(network) && !isValidCIDR(rule.Source.Network) {
 			if _, exists := validInterfaceNames[network]; !exists {
 				errors = append(errors, ValidationError{
-					Field:   fmt.Sprintf("filter.rule[%d].source.network", i),
-					Message: fmt.Sprintf("source network '%s' must be a valid CIDR, reserved word, or an interface key followed by 'ip'", rule.Source.Network),
+					Field: fmt.Sprintf("filter.rule[%d].source.network", i),
+					Message: fmt.Sprintf(
+						"source network '%s' must be a valid CIDR, reserved word, or an interface key followed by 'ip'",
+						rule.Source.Network,
+					),
 				})
 			}
 		}
@@ -413,8 +446,11 @@ func validateFilter(filter *model.Filter, interfaces *model.Interfaces) []Valida
 		if rule.Destination.Network != "" && !isReservedNetwork(destNetwork) && !isValidCIDR(rule.Destination.Network) {
 			if _, exists := validInterfaceNames[destNetwork]; !exists {
 				errors = append(errors, ValidationError{
-					Field:   fmt.Sprintf("filter.rule[%d].destination.network", i),
-					Message: fmt.Sprintf("destination network '%s' must be a valid CIDR, reserved word, or an interface key followed by 'ip'", rule.Destination.Network),
+					Field: fmt.Sprintf("filter.rule[%d].destination.network", i),
+					Message: fmt.Sprintf(
+						"destination network '%s' must be a valid CIDR, reserved word, or an interface key followed by 'ip'",
+						rule.Destination.Network,
+					),
 				})
 			}
 		}
@@ -621,6 +657,7 @@ func isValidHostname(hostname string) bool {
 	if err != nil {
 		return false
 	}
+
 	return matched
 }
 
@@ -640,6 +677,7 @@ func isValidTimezone(timezone string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -667,5 +705,6 @@ func isValidSysctlName(name string) bool {
 	if err != nil {
 		return false
 	}
+
 	return matched && strings.Contains(name, ".")
 }

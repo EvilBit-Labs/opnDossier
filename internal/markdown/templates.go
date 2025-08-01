@@ -27,6 +27,7 @@ func (tm *TemplateManager) LoadTemplate(name string) (*template.Template, error)
 
 	// Try to load from embedded templates directory
 	templatePath := filepath.Join("templates", name)
+
 	tmpl, err := tm.loadFromEmbedded(templatePath)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrTemplateNotFound, name)
@@ -34,6 +35,7 @@ func (tm *TemplateManager) LoadTemplate(name string) (*template.Template, error)
 
 	// Cache the template
 	tm.templates[name] = tmpl
+
 	return tmpl, nil
 }
 

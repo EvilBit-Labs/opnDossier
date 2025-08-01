@@ -180,8 +180,11 @@ func (c *Config) Validate() error {
 	}
 	if !validLogLevels[c.LogLevel] {
 		validationErrors = append(validationErrors, ValidationError{
-			Field:   "log_level",
-			Message: fmt.Sprintf("invalid log level '%s', must be one of: debug, info, warn, warning, error", c.LogLevel),
+			Field: "log_level",
+			Message: fmt.Sprintf(
+				"invalid log level '%s', must be one of: debug, info, warn, warning, error",
+				c.LogLevel,
+			),
 		})
 	}
 
@@ -208,8 +211,11 @@ func (c *Config) Validate() error {
 	}
 	if !validThemes[c.Theme] {
 		validationErrors = append(validationErrors, ValidationError{
-			Field:   "theme",
-			Message: fmt.Sprintf("invalid theme '%s', must be one of: light, dark, custom, auto, none (or empty for auto-detect)", c.Theme),
+			Field: "theme",
+			Message: fmt.Sprintf(
+				"invalid theme '%s', must be one of: light, dark, custom, auto, none (or empty for auto-detect)",
+				c.Theme,
+			),
 		})
 	}
 
@@ -249,12 +255,15 @@ func (c *Config) Validate() error {
 	// Return combined validation errors
 	if len(validationErrors) > 0 {
 		var errMsg string
+
 		for i, err := range validationErrors {
 			if i > 0 {
 				errMsg += "; "
 			}
+
 			errMsg += err.Error()
 		}
+
 		return &ValidationError{
 			Field:   "config",
 			Message: errMsg,

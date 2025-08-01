@@ -7,21 +7,21 @@ import (
 
 // NetworkConfig groups network-related configuration.
 type NetworkConfig struct {
-	Interfaces Interfaces   `json:"interfaces" yaml:"interfaces,omitempty" validate:"required"`
-	VLANs      []VLANConfig `json:"vlans,omitempty" yaml:"vlans,omitempty"`
+	Interfaces Interfaces   `json:"interfaces"         yaml:"interfaces,omitempty" validate:"required"`
+	VLANs      []VLANConfig `json:"vlans,omitempty"    yaml:"vlans,omitempty"`
 	Gateways   []Gateway    `json:"gateways,omitempty" yaml:"gateways,omitempty"`
 }
 
 // DhcpOption represents a DHCP option.
 type DhcpOption struct {
 	Number string `xml:"number,omitempty" json:"number,omitempty" yaml:"number,omitempty"`
-	Value  string `xml:"value,omitempty" json:"value,omitempty" yaml:"value,omitempty"`
+	Value  string `xml:"value,omitempty"  json:"value,omitempty"  yaml:"value,omitempty"`
 }
 
 // DhcpRange represents a DHCP range.
 type DhcpRange struct {
 	From string `xml:"from,omitempty" json:"from,omitempty" yaml:"from,omitempty"`
-	To   string `xml:"to,omitempty" json:"to,omitempty" yaml:"to,omitempty"`
+	To   string `xml:"to,omitempty"   json:"to,omitempty"   yaml:"to,omitempty"`
 }
 
 // Vlans represents VLAN configuration.

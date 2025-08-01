@@ -247,7 +247,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Action**: Create template system using Go text/template with sections for interfaces, firewall rules, NAT rules, DHCP, certificates, VPN config, static routes, and high availability
   - **Acceptance**: Reports are generated using templates that are user-extensible and include all required sections (interfaces, firewall rules, NAT rules, DHCP, certificates, VPN config, static routes, and high availability)
 
-- [ ] **TASK-025a**: Support user template overrides
+- [x] **TASK-025a**: Support user template overrides
 
   - **Context**: Power users should be able to customize markdown templates
   - **Requirement**: F017 (Template-Driven Markdown Output), F016 (Multiple Modes), User Experience Specifications, F025 (Audit mode)

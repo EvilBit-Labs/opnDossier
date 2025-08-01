@@ -160,6 +160,7 @@ func (sp *Plugin) GetControlByID(id string) (*plugin.Control, error) {
 			return &control, nil
 		}
 	}
+
 	return nil, plugin.ErrControlNotFound
 }
 
@@ -168,6 +169,7 @@ func (sp *Plugin) ValidateConfiguration() error {
 	if len(sp.controls) == 0 {
 		return plugin.ErrNoControlsDefined
 	}
+
 	return nil
 }
 
@@ -184,6 +186,7 @@ func (sp *Plugin) hasDefaultDenyPolicy(config *model.OpnSenseDocument) bool {
 
 	// Look for explicit deny rules at the end of rule sets
 	hasExplicitDeny := false
+
 	for _, rule := range rules {
 		// Look for rules that explicitly deny traffic
 		if rule.Type == "block" || rule.Type == "reject" {
@@ -194,6 +197,7 @@ func (sp *Plugin) hasDefaultDenyPolicy(config *model.OpnSenseDocument) bool {
 
 	// Check if there are any "any/any" allow rules that would override default deny
 	hasAnyAnyAllow := false
+
 	for _, rule := range rules {
 		if rule.Type == "pass" {
 			// Check if source is "any"

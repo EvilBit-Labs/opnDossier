@@ -124,7 +124,15 @@ func FormatValue(key string, value any) string {
 		if v.IsNil() {
 			return CodeBlock("", "nil")
 		}
+
 		return FormatValue(key, v.Elem().Interface())
+	case reflect.Invalid:
+		return CodeBlock("", "invalid")
+	case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
+		reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128,
+		reflect.String, reflect.Chan, reflect.Func, reflect.Interface, reflect.UnsafePointer:
+		return formatScalarValue(key, value)
 	default:
 		return formatScalarValue(key, value)
 	}
@@ -143,7 +151,7 @@ func formatSliceValue(key string, v reflect.Value) string {
 
 	// For simple slices, format as list
 	items := make([]string, 0, v.Len())
-	for i := 0; i < v.Len(); i++ {
+	for i := range v.Len() {
 		item := fmt.Sprintf("%v", v.Index(i).Interface())
 		items = append(items, "- "+item)
 	}
@@ -163,7 +171,8 @@ func formatSliceAsTable(key string, v reflect.Value) string {
 
 	// Build rows
 	var rows [][]string
-	for i := 0; i < v.Len(); i++ {
+
+	for i := range v.Len() {
 		row := getStructFieldValues(v.Index(i))
 		rows = append(rows, row)
 	}
@@ -175,9 +184,10 @@ func formatSliceAsTable(key string, v reflect.Value) string {
 // If all exported fields are empty, it returns a markdown line indicating the struct is empty.
 func formatStructValue(key string, v reflect.Value) string {
 	t := v.Type()
+
 	var lines []string
 
-	for i := 0; i < v.NumField(); i++ {
+	for i := range v.NumField() {
 		field := t.Field(i)
 		fieldValue := v.Field(i)
 
@@ -211,6 +221,7 @@ func formatMapValue(key string, v reflect.Value) string {
 
 	mapKeys := v.MapKeys()
 	lines := make([]string, 0, len(mapKeys))
+
 	for _, mapKey := range v.MapKeys() {
 		mapValue := v.MapIndex(mapKey)
 		line := fmt.Sprintf("**%v**: %v", mapKey.Interface(), mapValue.Interface())
@@ -244,21 +255,26 @@ func Table(headers []string, rows [][]string) string {
 
 	// Write header row
 	builder.WriteString("|")
+
 	for _, header := range headers {
 		builder.WriteString(fmt.Sprintf(" %s |", header))
 	}
+
 	builder.WriteString("\n")
 
 	// Write separator row
 	builder.WriteString("|")
+
 	for range headers {
 		builder.WriteString(" --- |")
 	}
+
 	builder.WriteString("\n")
 
 	// Write data rows
 	for _, row := range rows {
 		builder.WriteString("|")
+
 		for i, cell := range row {
 			if i < len(headers) {
 				builder.WriteString(fmt.Sprintf(" %s |", cell))
@@ -268,6 +284,7 @@ func Table(headers []string, rows [][]string) string {
 		for i := len(row); i < len(headers); i++ {
 			builder.WriteString(" |")
 		}
+
 		builder.WriteString("\n")
 	}
 
@@ -279,6 +296,7 @@ func CodeBlock(language, content string) string {
 	if language == "" {
 		language = "text"
 	}
+
 	return fmt.Sprintf("```%s\n%s\n```", language, content)
 }
 
@@ -293,9 +311,11 @@ func SecurityBadge(secure, enhanced bool) Badge {
 	if enhanced {
 		return BadgeEnhanced()
 	}
+
 	if secure {
 		return BadgeSecure()
 	}
+
 	return BadgeInsecure()
 }
 
@@ -304,6 +324,7 @@ func StatusBadge(success bool) Badge {
 	if success {
 		return BadgeSuccess()
 	}
+
 	return BadgeFail()
 }
 
@@ -364,9 +385,10 @@ func RenderMarkdown(content string) (string, error) {
 // getStructFieldNames returns the names of all exported fields in the given struct value.
 func getStructFieldNames(v reflect.Value) []string {
 	t := v.Type()
+
 	var names []string
 
-	for i := 0; i < v.NumField(); i++ {
+	for i := range v.NumField() {
 		field := t.Field(i)
 		if field.IsExported() {
 			names = append(names, field.Name)
@@ -380,7 +402,7 @@ func getStructFieldNames(v reflect.Value) []string {
 func getStructFieldValues(v reflect.Value) []string {
 	var values []string
 
-	for i := 0; i < v.NumField(); i++ {
+	for i := range v.NumField() {
 		field := v.Type().Field(i)
 		if field.IsExported() {
 			fieldValue := v.Field(i)
@@ -406,8 +428,17 @@ func isEmptyValue(v reflect.Value) bool {
 		return v.Float() == 0
 	case reflect.Interface, reflect.Ptr:
 		return v.IsNil()
+	case reflect.Invalid,
+		reflect.Complex64,
+		reflect.Complex128,
+		reflect.Chan,
+		reflect.Func,
+		reflect.Struct,
+		reflect.UnsafePointer:
+		return false
+	default:
+		return false
 	}
-	return false
 }
 
 // isConfigContent returns true if the input string resembles configuration file content based on common syntax patterns such as key-value pairs, section headers, or comments.
@@ -435,6 +466,7 @@ func isConfigContent(s string) bool {
 
 	// Consider it config content if more than 30% of non-empty lines match config patterns
 	nonEmptyLines := 0
+
 	for _, line := range lines {
 		if strings.TrimSpace(line) != "" {
 			nonEmptyLines++

@@ -25,6 +25,7 @@ func TestXMLParser_SampleConfig2XMLValidation(t *testing.T) {
 	xmlParser := NewXMLParser()
 	file, err := os.Open(sampleFile)
 	require.NoError(t, err, "Failed to open sample.config.2.xml")
+
 	defer func() {
 		if closeErr := file.Close(); closeErr != nil {
 			t.Logf("Warning: failed to close file: %v", closeErr)
@@ -41,11 +42,13 @@ func TestXMLParser_SampleConfig2XMLValidation(t *testing.T) {
 	// Assert that there are no validation errors
 	if len(errors) > 0 {
 		t.Logf("Found %d validation errors in sample.config.2.xml:", len(errors))
+
 		for i, err := range errors {
 			t.Logf("  %d: %s", i+1, err.Error())
 		}
 	}
-	assert.Len(t, errors, 0, "sample.config.2.xml should produce zero validation errors")
+
+	assert.Empty(t, errors, "sample.config.2.xml should produce zero validation errors")
 
 	// Log some information about the parsed configuration for verification
 	t.Logf("Configuration loaded successfully:")
@@ -57,9 +60,11 @@ func TestXMLParser_SampleConfig2XMLValidation(t *testing.T) {
 
 	// Verify that opt interfaces are present and properly parsed
 	interfaceNames := config.Interfaces.Names()
+
 	expectedOptInterfaces := []string{"opt0", "opt1", "opt2"}
 	for _, expected := range expectedOptInterfaces {
 		assert.Contains(t, interfaceNames, expected, "Expected opt interface '%s' should be present", expected)
+
 		if iface, ok := config.Interfaces.Get(expected); ok {
 			t.Logf("  - %s: enabled=%s, if=%s", expected, iface.Enable, iface.If)
 		}

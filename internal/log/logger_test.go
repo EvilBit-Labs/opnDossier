@@ -77,6 +77,7 @@ func TestNew(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
+
 			tt.config.Output = &buf
 
 			logger, err := New(tt.config)
@@ -136,6 +137,7 @@ func TestLoggerFormats(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
+
 			config := Config{
 				Level:           "info",
 				Format:          tt.format,
@@ -146,10 +148,12 @@ func TestLoggerFormats(t *testing.T) {
 
 			logger, err := New(config)
 			if tt.format == "invalid" {
-				assert.Error(t, err)
+				require.Error(t, err)
 				assert.Contains(t, err.Error(), "invalid log format: invalid")
+
 				return
 			}
+
 			require.NoError(t, err)
 			logger.Info("test message")
 
@@ -163,9 +167,11 @@ func TestLoggerFormats(t *testing.T) {
 					if line == "" {
 						continue
 					}
+
 					var jsonData map[string]any
+
 					err := json.Unmarshal([]byte(line), &jsonData)
-					assert.NoError(t, err, "Output should be valid JSON")
+					require.NoError(t, err, "Output should be valid JSON")
 					assert.Equal(t, "info", jsonData["level"])
 					assert.Equal(t, "test message", jsonData["msg"])
 				}
@@ -198,6 +204,7 @@ func TestLoggerLevels(t *testing.T) {
 
 func TestLoggerWithContext(t *testing.T) {
 	var buf bytes.Buffer
+
 	config := Config{
 		Level:           "info",
 		Format:          "text",
@@ -208,19 +215,23 @@ func TestLoggerWithContext(t *testing.T) {
 
 	logger, err := New(config)
 	require.NoError(t, err)
+
 	type contextKey string
+
 	ctx := context.WithValue(context.Background(), contextKey("test"), "value")
 
 	contextLogger := logger.WithContext(ctx)
 	require.NotNil(t, contextLogger)
 
 	contextLogger.Info("test message")
+
 	output := buf.String()
 	assert.Contains(t, output, "test message")
 }
 
 func TestLoggerWithFields(t *testing.T) {
 	var buf bytes.Buffer
+
 	config := Config{
 		Level:           "info",
 		Format:          "json",
@@ -231,6 +242,7 @@ func TestLoggerWithFields(t *testing.T) {
 
 	logger, err := New(config)
 	require.NoError(t, err)
+
 	fieldLogger := logger.WithFields("key1", "value1", "key2", "value2")
 
 	fieldLogger.Info("test message")
@@ -245,6 +257,7 @@ func TestLoggerWithFields(t *testing.T) {
 
 func TestLoggerSub(t *testing.T) {
 	var buf bytes.Buffer
+
 	config := Config{
 		Level:           "info",
 		Format:          "json",
@@ -255,6 +268,7 @@ func TestLoggerSub(t *testing.T) {
 
 	logger, err := New(config)
 	require.NoError(t, err)
+
 	subLogger := logger.Sub("parser")
 
 	subLogger.Info("test message")
@@ -267,6 +281,7 @@ func TestLoggerSub(t *testing.T) {
 
 func TestLoggerWithPrefix(t *testing.T) {
 	var buf bytes.Buffer
+
 	config := Config{
 		Level:           "info",
 		Format:          "text",
@@ -277,6 +292,7 @@ func TestLoggerWithPrefix(t *testing.T) {
 
 	logger, err := New(config)
 	require.NoError(t, err)
+
 	prefixLogger := logger.WithPrefix("[TEST]")
 
 	prefixLogger.Info("test message")
@@ -289,6 +305,7 @@ func TestLoggerWithPrefix(t *testing.T) {
 func TestLevelFiltering(t *testing.T) {
 	// Test that higher log levels filter out lower level messages
 	var buf bytes.Buffer
+
 	config := Config{
 		Level:           "error",
 		Format:          "text",
@@ -362,11 +379,11 @@ func TestNewWithInvalidConfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			logger, err := New(tt.config)
 			if tt.expectError {
-				assert.Error(t, err)
+				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errorMsg)
 				assert.Nil(t, logger)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.NotNil(t, logger)
 			}
 		})
@@ -375,6 +392,7 @@ func TestNewWithInvalidConfig(t *testing.T) {
 
 func BenchmarkLogger(b *testing.B) {
 	var buf bytes.Buffer
+
 	config := Config{
 		Level:           "info",
 		Format:          "text",

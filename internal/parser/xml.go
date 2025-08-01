@@ -84,6 +84,7 @@ func (p *XMLParser) Parse(_ context.Context, r io.Reader) (*model.OpnSenseDocume
 	dec.AutoClose = xml.HTMLAutoClose
 
 	var doc model.OpnSenseDocument
+
 	inOPNsenseRoot := false
 	foundOpnSenseDocumentRoot := false
 
@@ -92,11 +93,13 @@ func (p *XMLParser) Parse(_ context.Context, r io.Reader) (*model.OpnSenseDocume
 		if errors.Is(err, io.EOF) {
 			break
 		}
+
 		if err != nil {
 			// Wrap XML syntax errors with location information and context
 			if wrappedErr := WrapXMLSyntaxErrorWithOffset(err, "opnsense", dec); wrappedErr != nil {
 				return nil, fmt.Errorf("failed to decode XML: %w", wrappedErr)
 			}
+
 			return nil, fmt.Errorf("failed to read token: %w", err)
 		}
 
@@ -107,6 +110,7 @@ func (p *XMLParser) Parse(_ context.Context, r io.Reader) (*model.OpnSenseDocume
 				foundOpnSenseDocumentRoot = true
 				// Set the XMLName field for compatibility with existing tests
 				doc.XMLName = se.Name
+
 				continue
 			}
 
@@ -133,6 +137,7 @@ func (p *XMLParser) Parse(_ context.Context, r io.Reader) (*model.OpnSenseDocume
 				if err := dec.DecodeElement(&system, &se); err != nil {
 					return nil, fmt.Errorf("failed to decode system: %w", err)
 				}
+
 				doc.System = system
 				// Trigger garbage collection after processing large sections
 				runtime.GC()
@@ -141,12 +146,14 @@ func (p *XMLParser) Parse(_ context.Context, r io.Reader) (*model.OpnSenseDocume
 				if err := dec.DecodeElement(&interfaces, &se); err != nil {
 					return nil, fmt.Errorf("failed to decode interfaces: %w", err)
 				}
+
 				doc.Interfaces = interfaces
 			case "dhcpd":
 				var dhcpd model.Dhcpd
 				if err := dec.DecodeElement(&dhcpd, &se); err != nil {
 					return nil, fmt.Errorf("failed to decode dhcpd: %w", err)
 				}
+
 				doc.Dhcpd = dhcpd
 			case "sysctl":
 				// Handle standard OPNsense sysctl format (container with <item> wrappers)
@@ -161,48 +168,56 @@ func (p *XMLParser) Parse(_ context.Context, r io.Reader) (*model.OpnSenseDocume
 						return nil, fmt.Errorf("failed to skip sysctl element: %w", err)
 					}
 				}
+
 				runtime.GC()
 			case "unbound":
 				var unbound model.Unbound
 				if err := dec.DecodeElement(&unbound, &se); err != nil {
 					return nil, fmt.Errorf("failed to decode unbound: %w", err)
 				}
+
 				doc.Unbound = unbound
 			case "snmpd":
 				var snmpd model.Snmpd
 				if err := dec.DecodeElement(&snmpd, &se); err != nil {
 					return nil, fmt.Errorf("failed to decode snmpd: %w", err)
 				}
+
 				doc.Snmpd = snmpd
 			case "nat":
 				var nat model.Nat
 				if err := dec.DecodeElement(&nat, &se); err != nil {
 					return nil, fmt.Errorf("failed to decode nat: %w", err)
 				}
+
 				doc.Nat = nat
 			case "filter":
 				var filter model.Filter
 				if err := dec.DecodeElement(&filter, &se); err != nil {
 					return nil, fmt.Errorf("failed to decode filter: %w", err)
 				}
+
 				doc.Filter = filter
 			case "rrd":
 				var rrd model.Rrd
 				if err := dec.DecodeElement(&rrd, &se); err != nil {
 					return nil, fmt.Errorf("failed to decode rrd: %w", err)
 				}
+
 				doc.Rrd = rrd
 			case "load_balancer":
 				var loadBalancer model.LoadBalancer
 				if err := dec.DecodeElement(&loadBalancer, &se); err != nil {
 					return nil, fmt.Errorf("failed to decode load_balancer: %w", err)
 				}
+
 				doc.LoadBalancer = loadBalancer
 			case "ntpd":
 				var ntpd model.Ntpd
 				if err := dec.DecodeElement(&ntpd, &se); err != nil {
 					return nil, fmt.Errorf("failed to decode ntpd: %w", err)
 				}
+
 				doc.Ntpd = ntpd
 			default:
 				// Skip unknown elements by consuming tokens until the end element
@@ -232,6 +247,7 @@ func (p *XMLParser) Validate(cfg *model.OpnSenseDocument) error {
 	if len(validationErrors) > 0 {
 		return NewAggregatedValidationError(convertValidatorToParserValidationErrors(validationErrors))
 	}
+
 	return nil
 }
 
@@ -242,9 +258,11 @@ func (p *XMLParser) ParseAndValidate(ctx context.Context, r io.Reader) (*model.O
 	if err != nil {
 		return nil, err
 	}
+
 	if err := p.Validate(cfg); err != nil {
 		return nil, err
 	}
+
 	return cfg, nil
 }
 
@@ -273,6 +291,7 @@ func skipElement(dec *xml.Decoder) error {
 		if err != nil {
 			return err
 		}
+
 		switch tok.(type) {
 		case xml.StartElement:
 			depth++
@@ -280,5 +299,6 @@ func skipElement(dec *xml.Decoder) error {
 			depth--
 		}
 	}
+
 	return nil
 }

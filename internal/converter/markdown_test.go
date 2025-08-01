@@ -8,11 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/unclesp1d3r/opnFocus/internal/model"
-	"github.com/unclesp1d3r/opnFocus/internal/parser"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/unclesp1d3r/opnFocus/internal/model"
+	"github.com/unclesp1d3r/opnFocus/internal/parser"
 )
 
 var ansiStripper = regexp.MustCompile(`\x1b\[[0-9;]*m`)
@@ -72,10 +71,10 @@ func TestMarkdownConverter_ToMarkdown(t *testing.T) {
 			md, err := c.ToMarkdown(context.Background(), tt.input)
 
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 				assert.Empty(t, md)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				actual := strings.TrimSpace(stripANSI(md))
 				assert.Contains(t, actual, "OPNsense Configuration")
@@ -175,14 +174,14 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 
 	t.Run("nil opnsense struct", func(t *testing.T) {
 		md, err := c.ToMarkdown(context.Background(), nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, ErrNilOpnSenseDocument, err)
 		assert.Empty(t, md)
 	})
 
 	t.Run("empty opnsense struct", func(t *testing.T) {
 		md, err := c.ToMarkdown(context.Background(), &model.OpnSenseDocument{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, md)
 		assert.Contains(t, stripANSI(md), "OPNsense Configuration")
 	})
@@ -192,17 +191,14 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 			System: model.System{
 				Hostname: "test-host",
 				Domain:   "test.local",
-				WebGUI: struct {
-					Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-					SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-				}{Protocol: "http"},
+				WebGUI:   model.WebGUIConfig{Protocol: "http"},
 				Bogons: struct {
 					Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
 				}{Interval: "monthly"},
 			},
 		}
 		md, err := c.ToMarkdown(context.Background(), opnsense)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, md)
 
 		cleanMd := stripANSI(md)
@@ -231,7 +227,7 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 			},
 		}
 		md, err := c.ToMarkdown(context.Background(), opnsense)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, md)
 
 		cleanMd := stripANSI(md)
@@ -265,7 +261,7 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 			},
 		}
 		md, err := c.ToMarkdown(context.Background(), opnsense)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, md)
 
 		cleanMd := stripANSI(md)
@@ -303,7 +299,7 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 			},
 		}
 		md, err := c.ToMarkdown(context.Background(), opnsense)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, md)
 
 		cleanMd := stripANSI(md)
@@ -336,7 +332,7 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 			},
 		}
 		md, err := c.ToMarkdown(context.Background(), opnsense)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, md)
 
 		cleanMd := stripANSI(md)
@@ -361,7 +357,7 @@ func TestMarkdownConverter_ThemeSelection(t *testing.T) {
 			},
 		}
 		md, err := c.ToMarkdown(context.Background(), opnsense)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, md)
 		// The markdown should be rendered without error regardless of theme
 		assert.Contains(t, stripANSI(md), "OPNsense Configuration")

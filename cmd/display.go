@@ -7,21 +7,21 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/spf13/cobra"
 	"github.com/unclesp1d3r/opnFocus/internal/config"
 	"github.com/unclesp1d3r/opnFocus/internal/display"
 	"github.com/unclesp1d3r/opnFocus/internal/markdown"
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 	"github.com/unclesp1d3r/opnFocus/internal/parser"
-
-	"github.com/spf13/cobra"
 )
 
 var (
-	noValidation     bool     //nolint:gochecknoglobals // Cobra flag variable
-	displayTheme     string   //nolint:gochecknoglobals // Theme for display
-	displayTemplate  string   //nolint:gochecknoglobals // Template name to use
-	displaySections  []string //nolint:gochecknoglobals // Sections to include
-	displayWrapWidth int      //nolint:gochecknoglobals // Text wrap width
+	noValidation       bool     //nolint:gochecknoglobals // Cobra flag variable
+	displayTheme       string   //nolint:gochecknoglobals // Theme for display
+	displayTemplate    string   //nolint:gochecknoglobals // Template name to use
+	displaySections    []string //nolint:gochecknoglobals // Sections to include
+	displayWrapWidth   int      //nolint:gochecknoglobals // Text wrap width
+	displayTemplateDir string   //nolint:gochecknoglobals // Custom template directory
 )
 
 const (
@@ -35,11 +35,14 @@ const (
 // init registers the display command with the root command and configures its CLI flags for validation, theming, template selection, section filtering, and text wrapping.
 func init() {
 	rootCmd.AddCommand(displayCmd)
-	displayCmd.Flags().BoolVar(&noValidation, "no-validate", false, "Skip validation and display potentially malformed configurations")
+	displayCmd.Flags().
+		BoolVar(&noValidation, "no-validate", false, "Skip validation and display potentially malformed configurations")
 	displayCmd.Flags().StringVar(&displayTheme, "theme", "", "Theme for display (light, dark, auto, none)")
 	displayCmd.Flags().StringVar(&displayTemplate, "template", "", "Template name to use for rendering")
 	displayCmd.Flags().StringSliceVar(&displaySections, "section", []string{}, "Sections to include (comma-separated)")
 	displayCmd.Flags().IntVar(&displayWrapWidth, "wrap", 0, "Text wrap width (0 = no wrapping)")
+	displayCmd.Flags().
+		StringVar(&displayTemplateDir, "template-dir", "", "Custom template directory for user overrides")
 }
 
 var displayCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
@@ -79,6 +82,9 @@ Examples:
 
   # Display with custom template and sections
   opnFocus display --template detailed --section system,network config.xml
+
+  # Display with custom template directory
+  opnFocus display --template-dir ~/.opnFocus/templates config.xml
 
   # Display with text wrapping
   opnFocus display --wrap 120 config.xml
@@ -156,14 +162,21 @@ Examples:
 		// Convert to markdown
 		ctxLogger.Debug("Converting to markdown")
 
-		g, err := markdown.NewMarkdownGenerator(nil)
+		g, err := markdown.NewMarkdownGeneratorWithTemplates(ctxLogger.Logger, displayTemplateDir)
 		if err != nil {
 			ctxLogger.Error("Failed to create markdown generator", "error", err)
 			return fmt.Errorf("failed to create markdown generator: %w", err)
 		}
 
 		// Create markdown options with comprehensive support
-		mdOpts := buildDisplayOptions(displayTheme, displayTemplate, displaySections, displayWrapWidth, Cfg)
+		mdOpts := buildDisplayOptions(
+			displayTheme,
+			displayTemplate,
+			displaySections,
+			displayWrapWidth,
+			displayTemplateDir,
+			Cfg,
+		)
 
 		md, err := g.Generate(ctx, opnsense, mdOpts)
 		if err != nil {
@@ -212,10 +225,16 @@ Examples:
 
 // buildDisplayOptions constructs markdown.Options for the display command, applying CLI flag values with precedence over configuration settings and defaults.
 //
-// CLI-provided values for theme, template, sections, and wrap width override corresponding configuration values. If neither is set, defaults are used.
+// CLI-provided values for theme, template, sections, wrap width, and template directory override corresponding configuration values. If neither is set, defaults are used.
 //
 // Returns the resulting markdown.Options struct for use in markdown generation.
-func buildDisplayOptions(theme, template string, sections []string, wrap int, cfg *config.Config) markdown.Options {
+func buildDisplayOptions(
+	theme, template string,
+	sections []string,
+	wrap int,
+	templateDir string,
+	cfg *config.Config,
+) markdown.Options {
 	// Start with defaults
 	opt := markdown.DefaultOptions()
 
@@ -245,6 +264,11 @@ func buildDisplayOptions(theme, template string, sections []string, wrap int, cf
 		opt.WrapWidth = wrap
 	} else if cfg != nil && cfg.GetWrapWidth() > 0 {
 		opt.WrapWidth = cfg.GetWrapWidth()
+	}
+
+	// Template directory: CLI flag only
+	if templateDir != "" {
+		opt.TemplateDir = templateDir
 	}
 
 	return opt

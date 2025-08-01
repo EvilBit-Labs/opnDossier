@@ -23,7 +23,11 @@ func NewAdapter() (*Adapter, error) {
 }
 
 // GenerateMarkdown generates markdown documentation from an OPNsense configuration.
-func (a *Adapter) GenerateMarkdown(ctx context.Context, cfg *model.OpnSenseDocument, comprehensive bool) (string, error) {
+func (a *Adapter) GenerateMarkdown(
+	ctx context.Context,
+	cfg *model.OpnSenseDocument,
+	comprehensive bool,
+) (string, error) {
 	opts := DefaultOptions().
 		WithFormat(FormatMarkdown).
 		WithComprehensive(comprehensive)

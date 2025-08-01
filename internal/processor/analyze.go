@@ -64,9 +64,13 @@ func (p *CoreProcessor) analyzeInterfaceRules(iface string, rules []model.Rule, 
 			// If there are rules after this block-all rule, they're dead
 			if i < len(rules)-1 {
 				report.AddFinding(SeverityMedium, Finding{
-					Type:           "dead-rule",
-					Title:          "Unreachable Rules After Block All",
-					Description:    fmt.Sprintf("Rules after position %d on interface %s are unreachable due to preceding block-all rule", i+1, iface),
+					Type:  "dead-rule",
+					Title: "Unreachable Rules After Block All",
+					Description: fmt.Sprintf(
+						"Rules after position %d on interface %s are unreachable due to preceding block-all rule",
+						i+1,
+						iface,
+					),
 					Component:      fmt.Sprintf("filter.rule[%d+]", i+1),
 					Recommendation: "Remove unreachable rules or reorder them before the block-all rule",
 				})
@@ -77,9 +81,14 @@ func (p *CoreProcessor) analyzeInterfaceRules(iface string, rules []model.Rule, 
 		for j := i + 1; j < len(rules); j++ {
 			if p.rulesAreEquivalent(rule, rules[j]) {
 				report.AddFinding(SeverityLow, Finding{
-					Type:           "duplicate-rule",
-					Title:          "Duplicate Firewall Rule",
-					Description:    fmt.Sprintf("Rule at position %d is duplicate of rule at position %d on interface %s", j+1, i+1, iface),
+					Type:  "duplicate-rule",
+					Title: "Duplicate Firewall Rule",
+					Description: fmt.Sprintf(
+						"Rule at position %d is duplicate of rule at position %d on interface %s",
+						j+1,
+						i+1,
+						iface,
+					),
 					Component:      fmt.Sprintf("filter.rule[%d]", j),
 					Recommendation: "Remove duplicate rule to simplify configuration",
 				})
@@ -89,9 +98,13 @@ func (p *CoreProcessor) analyzeInterfaceRules(iface string, rules []model.Rule, 
 		// Check for overly broad rules that might be unintentional
 		if rule.Type == RuleTypePass && rule.Source.Network == NetworkAny && rule.Descr == "" {
 			report.AddFinding(SeverityHigh, Finding{
-				Type:           FindingTypeSecurity,
-				Title:          "Overly Broad Pass Rule",
-				Description:    fmt.Sprintf("Rule at position %d on interface %s allows all traffic without description", i+1, iface),
+				Type:  FindingTypeSecurity,
+				Title: "Overly Broad Pass Rule",
+				Description: fmt.Sprintf(
+					"Rule at position %d on interface %s allows all traffic without description",
+					i+1,
+					iface,
+				),
 				Component:      fmt.Sprintf("filter.rule[%d]", i),
 				Recommendation: "Add description and consider restricting source or destination",
 			})
@@ -133,6 +146,7 @@ func (p *CoreProcessor) rulesAreEquivalent(rule1, rule2 model.Rule) bool {
 	// In real OPNsense configs, destinations can have network, port, and other specifications
 	dest1 := p.getDestinationString(rule1.Destination)
 	dest2 := p.getDestinationString(rule2.Destination)
+
 	return dest1 == dest2
 }
 
@@ -169,6 +183,7 @@ func (p *CoreProcessor) analyzeUnusedInterfaces(cfg *model.OpnSenseDocument, rep
 	if lanDhcp, exists := cfg.Dhcpd.Lan(); exists && lanDhcp.Enable != "" {
 		usedInterfaces["lan"] = true
 	}
+
 	if wanDhcp, exists := cfg.Dhcpd.Wan(); exists && wanDhcp.Enable != "" {
 		usedInterfaces["wan"] = true
 	}
@@ -179,6 +194,7 @@ func (p *CoreProcessor) analyzeUnusedInterfaces(cfg *model.OpnSenseDocument, rep
 	if wan, ok := cfg.Interfaces.Wan(); ok {
 		interfaces["wan"] = wan
 	}
+
 	if lan, ok := cfg.Interfaces.Lan(); ok {
 		interfaces["lan"] = lan
 	}
@@ -186,9 +202,12 @@ func (p *CoreProcessor) analyzeUnusedInterfaces(cfg *model.OpnSenseDocument, rep
 	for name, iface := range interfaces {
 		if iface.Enable != "" && !usedInterfaces[name] {
 			report.AddFinding(SeverityLow, Finding{
-				Type:           "unused-interface",
-				Title:          "Unused Network Interface",
-				Description:    fmt.Sprintf("Interface %s is enabled but not used in any rules or services", strings.ToUpper(name)),
+				Type:  "unused-interface",
+				Title: "Unused Network Interface",
+				Description: fmt.Sprintf(
+					"Interface %s is enabled but not used in any rules or services",
+					strings.ToUpper(name),
+				),
 				Component:      "interfaces." + name,
 				Recommendation: "Consider disabling unused interface or add appropriate rules",
 			})
@@ -215,6 +234,7 @@ func (p *CoreProcessor) checkGatewayConsistency(cfg *model.OpnSenseDocument, rep
 	if wan, ok := cfg.Interfaces.Wan(); ok {
 		interfaces["wan"] = wan
 	}
+
 	if lan, ok := cfg.Interfaces.Lan(); ok {
 		interfaces["lan"] = lan
 	}
@@ -225,9 +245,13 @@ func (p *CoreProcessor) checkGatewayConsistency(cfg *model.OpnSenseDocument, rep
 			// This is a simplified check; real implementation might be more complex
 			if !strings.Contains(iface.Gateway, ".") {
 				report.AddFinding(SeverityMedium, Finding{
-					Type:           "consistency",
-					Title:          "Invalid Gateway Format",
-					Description:    fmt.Sprintf("Gateway %s for interface %s appears to be invalid", iface.Gateway, name),
+					Type:  "consistency",
+					Title: "Invalid Gateway Format",
+					Description: fmt.Sprintf(
+						"Gateway %s for interface %s appears to be invalid",
+						iface.Gateway,
+						name,
+					),
 					Component:      fmt.Sprintf("interfaces.%s.gateway", name),
 					Recommendation: "Verify gateway IP address format and reachability",
 				})
@@ -239,7 +263,8 @@ func (p *CoreProcessor) checkGatewayConsistency(cfg *model.OpnSenseDocument, rep
 // checkDHCPConsistency verifies DHCP configuration consistency with interface settings.
 func (p *CoreProcessor) checkDHCPConsistency(cfg *model.OpnSenseDocument, report *Report) {
 	// Check LAN DHCP configuration
-	if lanDhcp, exists := cfg.Dhcpd.Lan(); exists && lanDhcp.Enable != "" && lanDhcp.Range.From != "" && lanDhcp.Range.To != "" {
+	if lanDhcp, exists := cfg.Dhcpd.Lan(); exists && lanDhcp.Enable != "" && lanDhcp.Range.From != "" &&
+		lanDhcp.Range.To != "" {
 		if lan, ok := cfg.Interfaces.Lan(); ok && lan.IPAddr == "" {
 			report.AddFinding(SeverityHigh, Finding{
 				Type:           "consistency",
@@ -264,9 +289,13 @@ func (p *CoreProcessor) checkUserGroupConsistency(cfg *model.OpnSenseDocument, r
 	for i, user := range cfg.System.User {
 		if user.Groupname != "" && !existingGroups[user.Groupname] {
 			report.AddFinding(SeverityMedium, Finding{
-				Type:           "consistency",
-				Title:          "User References Non-existent Group",
-				Description:    fmt.Sprintf("User %s references group %s which does not exist", user.Name, user.Groupname),
+				Type:  "consistency",
+				Title: "User References Non-existent Group",
+				Description: fmt.Sprintf(
+					"User %s references group %s which does not exist",
+					user.Name,
+					user.Groupname,
+				),
 				Component:      fmt.Sprintf("system.user[%d].groupname", i),
 				Recommendation: "Create the referenced group or update user's group assignment",
 			})
@@ -344,9 +373,12 @@ func (p *CoreProcessor) analyzePerformanceIssues(cfg *model.OpnSenseDocument, re
 	ruleCount := len(cfg.FilterRules())
 	if ruleCount > constants.LargeRuleCountThreshold {
 		report.AddFinding(SeverityMedium, Finding{
-			Type:           "performance",
-			Title:          "High Number of Firewall Rules",
-			Description:    fmt.Sprintf("Configuration contains %d firewall rules, which may impact performance", ruleCount),
+			Type:  "performance",
+			Title: "High Number of Firewall Rules",
+			Description: fmt.Sprintf(
+				"Configuration contains %d firewall rules, which may impact performance",
+				ruleCount,
+			),
 			Component:      "filter.rule",
 			Recommendation: "Consider consolidating rules or using aliases to reduce rule count",
 			Reference:      "Large numbers of firewall rules can impact packet processing performance",

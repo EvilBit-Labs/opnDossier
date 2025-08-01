@@ -35,9 +35,11 @@ func (p *CoreProcessor) fillDefaults(cfg *model.OpnSenseDocument) {
 	if cfg.System.WebGUI.Protocol == "" {
 		cfg.System.WebGUI.Protocol = "https"
 	}
+
 	if cfg.System.Timezone == "" {
 		cfg.System.Timezone = "UTC"
 	}
+
 	if cfg.System.Bogons.Interval == "" {
 		cfg.System.Bogons.Interval = "monthly"
 	}
@@ -116,9 +118,11 @@ func (p *CoreProcessor) sortSlices(cfg *model.OpnSenseDocument) {
 		if ruleA.Interface != ruleB.Interface {
 			return ruleA.Interface < ruleB.Interface
 		}
+
 		if ruleA.Type != ruleB.Type {
 			return ruleA.Type < ruleB.Type
 		}
+
 		return ruleA.Descr < ruleB.Descr
 	})
 
@@ -136,5 +140,6 @@ func isSpecialNetworkType(network string) bool {
 			return true
 		}
 	}
+
 	return false
 }

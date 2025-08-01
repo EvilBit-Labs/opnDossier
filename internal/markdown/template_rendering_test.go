@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 )
 
@@ -112,11 +111,11 @@ func TestTemplateRendering(t *testing.T) {
 			result, err := generator.Generate(context.Background(), testCfg, opts)
 
 			if tt.expectedError {
-				assert.Error(t, err, "Expected error but got none")
+				require.Error(t, err, "Expected error but got none")
 				return
 			}
 
-			assert.NoError(t, err, "Template rendering should not fail")
+			require.NoError(t, err, "Template rendering should not fail")
 			assert.NotEmpty(t, result, "Generated markdown should not be empty")
 			assert.Contains(t, result, "test-firewall", "Should contain hostname")
 			assert.Contains(t, result, "test.local", "Should contain domain")
@@ -161,11 +160,11 @@ func TestTemplateRenderingWithEmptyConfig(t *testing.T) {
 			result, err := generator.Generate(context.Background(), emptyCfg, opts)
 
 			if tt.expectedError {
-				assert.Error(t, err, "Expected error but got none")
+				require.Error(t, err, "Expected error but got none")
 				return
 			}
 
-			assert.NoError(t, err, "Template rendering should not fail even with empty config")
+			require.NoError(t, err, "Template rendering should not fail even with empty config")
 			assert.NotEmpty(t, result, "Generated markdown should not be empty even with empty config")
 		})
 	}

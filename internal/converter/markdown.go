@@ -11,10 +11,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/unclesp1d3r/opnFocus/internal/model"
-
 	"github.com/charmbracelet/glamour"
 	"github.com/nao1215/markdown"
+	"github.com/unclesp1d3r/opnFocus/internal/model"
 )
 
 // Constants for common values.
@@ -51,6 +50,7 @@ func (c *MarkdownConverter) ToMarkdown(_ context.Context, opnsense *model.OpnSen
 
 	// Create markdown using github.com/nao1215/markdown for structured output
 	var buf bytes.Buffer
+
 	md := markdown.NewMarkdown(&buf)
 
 	// Main title
@@ -73,6 +73,7 @@ func (c *MarkdownConverter) ToMarkdown(_ context.Context, opnsense *model.OpnSen
 
 	// Use glamour for terminal rendering with theme compatibility
 	theme := c.getTheme()
+
 	r, err := glamour.Render(rawMarkdown, theme)
 	if err != nil {
 		return "", fmt.Errorf("failed to render markdown: %w", err)
@@ -102,12 +103,14 @@ func (c *MarkdownConverter) getTheme() string {
 // buildSystemSection builds the system configuration section using helper methods.
 func (c *MarkdownConverter) buildSystemSection(md *markdown.Markdown, opnsense *model.OpnSenseDocument) {
 	sysConfig := opnsense.SystemConfig()
+
 	md.H2("System Configuration")
 
 	// Basic system information
 	md.H3("Basic Information")
 	md.PlainTextf("%s: %s", markdown.Bold("Hostname"), sysConfig.System.Hostname)
 	md.PlainTextf("%s: %s", markdown.Bold("Domain"), sysConfig.System.Domain)
+
 	if sysConfig.System.Timezone != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("Timezone"), sysConfig.System.Timezone)
 	}
@@ -125,11 +128,14 @@ func (c *MarkdownConverter) buildSystemSection(md *markdown.Markdown, opnsense *
 	// System tuning (sysctl)
 	if len(sysConfig.Sysctl) > 0 {
 		md.H3("System Tuning")
+
 		headers := []string{"Tunable", "Value", "Description"}
+
 		rows := make([][]string, 0, len(sysConfig.Sysctl))
 		for _, item := range sysConfig.Sysctl {
 			rows = append(rows, []string{item.Tunable, item.Value, item.Descr})
 		}
+
 		tableSet := markdown.TableSet{
 			Header: headers,
 			Rows:   rows,
@@ -140,11 +146,14 @@ func (c *MarkdownConverter) buildSystemSection(md *markdown.Markdown, opnsense *
 	// Users and groups
 	if len(sysConfig.System.User) > 0 {
 		md.H3("Users")
+
 		headers := []string{"Name", "Description", "Group", "Scope"}
+
 		rows := make([][]string, 0, len(sysConfig.System.User))
 		for _, user := range sysConfig.System.User {
 			rows = append(rows, []string{user.Name, user.Descr, user.Groupname, user.Scope})
 		}
+
 		tableSet := markdown.TableSet{
 			Header: headers,
 			Rows:   rows,
@@ -154,11 +163,14 @@ func (c *MarkdownConverter) buildSystemSection(md *markdown.Markdown, opnsense *
 
 	if len(sysConfig.System.Group) > 0 {
 		md.H3("Groups")
+
 		headers := []string{"Name", "Description", "Scope"}
+
 		rows := make([][]string, 0, len(sysConfig.System.Group))
 		for _, group := range sysConfig.System.Group {
 			rows = append(rows, []string{group.Name, group.Description, group.Scope})
 		}
+
 		tableSet := markdown.TableSet{
 			Header: headers,
 			Rows:   rows,
@@ -170,16 +182,19 @@ func (c *MarkdownConverter) buildSystemSection(md *markdown.Markdown, opnsense *
 // buildNetworkSection builds the network configuration section using helper methods.
 func (c *MarkdownConverter) buildNetworkSection(md *markdown.Markdown, opnsense *model.OpnSenseDocument) {
 	netConfig := opnsense.NetworkConfig()
+
 	md.H2("Network Configuration")
 
 	// WAN Interface
 	md.H3("WAN Interface")
+
 	if wan, ok := netConfig.Interfaces.Wan(); ok {
 		c.buildInterfaceDetails(md, wan)
 	}
 
 	// LAN Interface
 	md.H3("LAN Interface")
+
 	if lan, ok := netConfig.Interfaces.Lan(); ok {
 		c.buildInterfaceDetails(md, lan)
 	}
@@ -231,10 +246,12 @@ func (c *MarkdownConverter) buildInterfaceDetails(md *markdown.Markdown, iface m
 // buildSecuritySection builds the security configuration section using helper methods.
 func (c *MarkdownConverter) buildSecuritySection(md *markdown.Markdown, opnsense *model.OpnSenseDocument) {
 	secConfig := opnsense.SecurityConfig()
+
 	md.H2("Security Configuration")
 
 	// NAT Configuration
 	md.H3("NAT Configuration")
+
 	if secConfig.Nat.Outbound.Mode != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("Outbound NAT Mode"), secConfig.Nat.Outbound.Mode)
 	}
@@ -243,7 +260,9 @@ func (c *MarkdownConverter) buildSecuritySection(md *markdown.Markdown, opnsense
 	rules := opnsense.FilterRules()
 	if len(rules) > 0 {
 		md.H3("Firewall Rules")
+
 		headers := []string{"Type", "Interface", "Protocol", "Source", "Destination", "Description"}
+
 		rows := make([][]string, 0, len(rules))
 		for _, rule := range rules {
 			source := rule.Source.Network
@@ -268,6 +287,7 @@ func (c *MarkdownConverter) buildSecuritySection(md *markdown.Markdown, opnsense
 				rule.Descr,
 			})
 		}
+
 		tableSet := markdown.TableSet{
 			Header: headers,
 			Rows:   rows,
@@ -279,40 +299,49 @@ func (c *MarkdownConverter) buildSecuritySection(md *markdown.Markdown, opnsense
 // buildServiceSection builds the service configuration section using helper methods.
 func (c *MarkdownConverter) buildServiceSection(md *markdown.Markdown, opnsense *model.OpnSenseDocument) {
 	svcConfig := opnsense.ServiceConfig()
+
 	md.H2("Service Configuration")
 
 	// DHCP Server
 	md.H3("DHCP Server")
+
 	if lanDhcp, ok := svcConfig.Dhcpd.Get("lan"); ok && lanDhcp.Enable != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("LAN DHCP Enabled"), lanDhcp.Enable)
+
 		if lanDhcp.Range.From != "" && lanDhcp.Range.To != "" {
 			md.PlainTextf("%s: %s - %s", markdown.Bold("LAN DHCP Range"), lanDhcp.Range.From, lanDhcp.Range.To)
 		}
 	}
+
 	if wanDhcp, ok := svcConfig.Dhcpd.Get("wan"); ok && wanDhcp.Enable != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("WAN DHCP Enabled"), wanDhcp.Enable)
 	}
 
 	// DNS Resolver (Unbound)
 	md.H3("DNS Resolver (Unbound)")
+
 	if svcConfig.Unbound.Enable != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("Enabled"), svcConfig.Unbound.Enable)
 	}
 
 	// SNMP
 	md.H3("SNMP")
+
 	if svcConfig.Snmpd.SysLocation != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("System Location"), svcConfig.Snmpd.SysLocation)
 	}
+
 	if svcConfig.Snmpd.SysContact != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("System Contact"), svcConfig.Snmpd.SysContact)
 	}
+
 	if svcConfig.Snmpd.ROCommunity != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("Read-Only Community"), svcConfig.Snmpd.ROCommunity)
 	}
 
 	// NTP
 	md.H3("NTP")
+
 	if svcConfig.Ntpd.Prefer != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("Preferred Server"), svcConfig.Ntpd.Prefer)
 	}
@@ -320,11 +349,14 @@ func (c *MarkdownConverter) buildServiceSection(md *markdown.Markdown, opnsense 
 	// Load Balancer
 	if len(svcConfig.LoadBalancer.MonitorType) > 0 {
 		md.H3("Load Balancer Monitors")
+
 		headers := []string{"Name", "Type", "Description"}
+
 		rows := make([][]string, 0, len(svcConfig.LoadBalancer.MonitorType))
 		for _, monitor := range svcConfig.LoadBalancer.MonitorType {
 			rows = append(rows, []string{monitor.Name, monitor.Type, monitor.Descr})
 		}
+
 		tableSet := markdown.TableSet{
 			Header: headers,
 			Rows:   rows,

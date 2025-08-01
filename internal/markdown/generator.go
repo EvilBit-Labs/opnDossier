@@ -5,12 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
+	"os"
+	"path/filepath"
 	"strings"
 	"text/template"
 	"time"
 
 	"github.com/Masterminds/sprig/v3"
+	"github.com/charmbracelet/log"
 	"github.com/unclesp1d3r/opnFocus/internal/constants"
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 )
@@ -24,14 +26,23 @@ type Generator interface {
 // markdownGenerator is the default implementation that wraps the old Markdown logic.
 type markdownGenerator struct {
 	templates *template.Template
-	logger    *slog.Logger
+	logger    *log.Logger
 }
 
 // NewMarkdownGenerator creates a new Generator that produces documentation in Markdown, JSON, or YAML formats using predefined templates.
 // It attempts to load and parse templates from multiple possible filesystem paths and returns an error if none are found or parsing fails.
-func NewMarkdownGenerator(logger *slog.Logger) (Generator, error) {
+func NewMarkdownGenerator(logger *log.Logger) (Generator, error) {
 	if logger == nil {
-		logger = slog.Default()
+		logger = log.NewWithOptions(os.Stderr, log.Options{})
+	}
+	return NewMarkdownGeneratorWithTemplates(logger, "")
+}
+
+// NewMarkdownGeneratorWithTemplates creates a new Generator with custom template directory support.
+// If templateDir is provided, it will be used first for template overrides, falling back to built-in templates.
+func NewMarkdownGeneratorWithTemplates(logger *log.Logger, templateDir string) (Generator, error) {
+	if logger == nil {
+		logger = log.NewWithOptions(os.Stderr, log.Options{})
 	}
 
 	// Create template with sprig functions
@@ -68,15 +79,26 @@ func NewMarkdownGenerator(logger *slog.Logger) (Generator, error) {
 		return str
 	}
 
-	// Try multiple possible paths for templates
-	possiblePaths := []string{
+	// Build list of template paths
+	var possiblePaths []string
+
+	// Add custom template directory paths first if specified
+	if templateDir != "" {
+		possiblePaths = append(possiblePaths,
+			filepath.Join(templateDir, "*.tmpl"),
+			filepath.Join(templateDir, "reports", "*.tmpl"),
+		)
+	}
+
+	// Add default template paths
+	possiblePaths = append(possiblePaths,
 		"internal/templates/*.tmpl",               // When running from project root
 		"internal/templates/reports/*.tmpl",       // Audit mode templates
 		"../../internal/templates/*.tmpl",         // When running from test directory
 		"../../internal/templates/reports/*.tmpl", // Audit mode templates from test
 		"../templates/*.tmpl",                     // Alternative relative path
 		"../templates/reports/*.tmpl",             // Audit mode templates alternative path
-	}
+	)
 
 	templates := template.New("opnfocus").Funcs(funcMap)
 	var lastErr error
@@ -124,6 +146,7 @@ func (g *markdownGenerator) Generate(ctx context.Context, cfg *model.OpnSenseDoc
 	// Add metadata for template rendering
 	metadata := struct {
 		*model.EnrichedOpnSenseDocument
+
 		Generated   string
 		ToolVersion string
 	}{
@@ -187,10 +210,32 @@ func (g *markdownGenerator) selectTemplate(opts Options) string {
 }
 
 // generateJSON generates JSON output.
-func (g *markdownGenerator) generateJSON(_ context.Context, cfg *model.EnrichedOpnSenseDocument, _ Options) (string, error) {
-	// Use template data with GeneratedAt for JSON template
+func (g *markdownGenerator) generateJSON(
+	_ context.Context,
+	cfg *model.EnrichedOpnSenseDocument,
+	_ Options,
+) (string, error) {
+	return g.generateDataOutput("json_output.tmpl", cfg)
+}
+
+// generateYAML generates YAML output.
+func (g *markdownGenerator) generateYAML(
+	_ context.Context,
+	cfg *model.EnrichedOpnSenseDocument,
+	_ Options,
+) (string, error) {
+	return g.generateDataOutput("yaml_output.tmpl", cfg)
+}
+
+// generateDataOutput is a helper function that generates output for JSON/YAML using templates.
+func (g *markdownGenerator) generateDataOutput(
+	templateName string,
+	cfg *model.EnrichedOpnSenseDocument,
+) (string, error) {
+	// Use template data with GeneratedAt for template
 	metadata := struct {
 		*model.EnrichedOpnSenseDocument
+
 		GeneratedAt string
 		ToolVersion string
 	}{
@@ -199,50 +244,22 @@ func (g *markdownGenerator) generateJSON(_ context.Context, cfg *model.EnrichedO
 		ToolVersion:              constants.Version,
 	}
 
-	// Use JSON template
-	tmpl := g.templates.Lookup("json_output.tmpl")
+	// Use the specified template
+	tmpl := g.templates.Lookup(templateName)
 	if tmpl == nil {
-		// Fallback to simple JSON if template not found
+		// Fallback to simple JSON/YAML if template not found
 		configJSON, err := json.Marshal(cfg)
 		if err != nil {
 			return "", fmt.Errorf("failed to marshal configuration to JSON: %w", err)
 		}
-		return fmt.Sprintf(`{
+
+		// Determine fallback format based on template name
+		if strings.Contains(templateName, "json") {
+			return fmt.Sprintf(`{
 			"generated": "%s",
 			"tool_version": "%s",
 			"configuration": %s
 		}`, time.Now().Format(time.RFC3339), constants.Version, string(configJSON)), nil
-	}
-
-	var buf bytes.Buffer
-	err := tmpl.Execute(&buf, metadata)
-	if err != nil {
-		return "", fmt.Errorf("failed to execute JSON template: %w", err)
-	}
-
-	return buf.String(), nil
-}
-
-// generateYAML generates YAML output.
-func (g *markdownGenerator) generateYAML(_ context.Context, cfg *model.EnrichedOpnSenseDocument, _ Options) (string, error) {
-	// Use template data with GeneratedAt for YAML template
-	metadata := struct {
-		*model.EnrichedOpnSenseDocument
-		GeneratedAt string
-		ToolVersion string
-	}{
-		EnrichedOpnSenseDocument: cfg,
-		GeneratedAt:              time.Now().Format(time.RFC3339),
-		ToolVersion:              constants.Version,
-	}
-
-	// Use YAML template
-	tmpl := g.templates.Lookup("yaml_output.tmpl")
-	if tmpl == nil {
-		// Fallback to simple YAML if template not found
-		configJSON, err := json.Marshal(cfg)
-		if err != nil {
-			return "", fmt.Errorf("failed to marshal configuration to JSON: %w", err)
 		}
 		return fmt.Sprintf(`generated: %s
 tool_version: "%s"
@@ -253,7 +270,7 @@ configuration: %s
 	var buf bytes.Buffer
 	err := tmpl.Execute(&buf, metadata)
 	if err != nil {
-		return "", fmt.Errorf("failed to execute YAML template: %w", err)
+		return "", fmt.Errorf("failed to execute %s template: %w", templateName, err)
 	}
 
 	return buf.String(), nil

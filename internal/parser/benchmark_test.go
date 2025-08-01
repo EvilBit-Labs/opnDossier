@@ -47,6 +47,7 @@ func BenchmarkParseConfigSample(b *testing.B) {
 	if err != nil {
 		b.Skip("config.xml.sample not found")
 	}
+
 	defer func() {
 		if err := file.Close(); err != nil {
 			b.Logf("Warning: failed to close file: %v", err)
@@ -97,8 +98,14 @@ func generateLargeConfigStream(targetSizeMB int) *bytes.Buffer {
 		buffer.WriteString(`<item>`)
 		buffer.WriteString(fmt.Sprintf(`<tunable>net.inet.ip.forwarding.benchmark.test.item_%d</tunable>`, itemCount))
 		buffer.WriteString(fmt.Sprintf(`<value>%d</value>`, itemCount%2))
-		buffer.WriteString(fmt.Sprintf(`<descr><![CDATA[Large sysctl description for benchmarking memory usage item %d. This description contains additional text to increase the size of each XML element and test the streaming parser's memory efficiency compared to traditional DOM parsing approaches. The streaming approach should maintain constant memory usage regardless of file size.]]></descr>`, itemCount))
+		buffer.WriteString(
+			fmt.Sprintf(
+				`<descr><![CDATA[Large sysctl description for benchmarking memory usage item %d. This description contains additional text to increase the size of each XML element and test the streaming parser's memory efficiency compared to traditional DOM parsing approaches. The streaming approach should maintain constant memory usage regardless of file size.]]></descr>`,
+				itemCount,
+			),
+		)
 		buffer.WriteString(`</item>`)
+
 		itemCount++
 	}
 
@@ -147,6 +154,7 @@ func BenchmarkXMLParser_ParseLarge(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
+
 		runtime.GC() // Force GC to clean up between runs
 	})
 
@@ -206,6 +214,7 @@ func BenchmarkXMLParser_ParseLarge(b *testing.B) {
 		// Memory actually decreased (GC cleaned up)
 		memGrowthMB = 0
 	}
+
 	peakMemMB := float64(memAfter.Alloc) / (1024 * 1024)
 
 	b.Logf("Final memory growth: %.2f MB", memGrowthMB)

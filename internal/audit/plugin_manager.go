@@ -35,6 +35,7 @@ func (pm *PluginManager) InitializePlugins(ctx context.Context) error {
 	if err := pm.registry.RegisterPlugin(stigPlugin); err != nil {
 		return fmt.Errorf("failed to register STIG plugin: %w", err)
 	}
+
 	pm.logger.InfoContext(ctx, "Registered STIG plugin", "name", stigPlugin.Name(), "version", stigPlugin.Version())
 
 	// Register SANS plugin
@@ -42,6 +43,7 @@ func (pm *PluginManager) InitializePlugins(ctx context.Context) error {
 	if err := pm.registry.RegisterPlugin(sansPlugin); err != nil {
 		return fmt.Errorf("failed to register SANS plugin: %w", err)
 	}
+
 	pm.logger.InfoContext(ctx, "Registered SANS plugin", "name", sansPlugin.Name(), "version", sansPlugin.Version())
 
 	// Register Firewall plugin
@@ -49,9 +51,18 @@ func (pm *PluginManager) InitializePlugins(ctx context.Context) error {
 	if err := pm.registry.RegisterPlugin(firewallPlugin); err != nil {
 		return fmt.Errorf("failed to register Firewall plugin: %w", err)
 	}
-	pm.logger.InfoContext(ctx, "Registered Firewall plugin", "name", firewallPlugin.Name(), "version", firewallPlugin.Version())
+
+	pm.logger.InfoContext(
+		ctx,
+		"Registered Firewall plugin",
+		"name",
+		firewallPlugin.Name(),
+		"version",
+		firewallPlugin.Version(),
+	)
 
 	pm.logger.InfoContext(ctx, "Plugin initialization completed", "total_plugins", len(pm.registry.ListPlugins()))
+
 	return nil
 }
 
@@ -84,7 +95,11 @@ func (pm *PluginManager) ListAvailablePlugins(ctx context.Context) []PluginInfo 
 }
 
 // RunComplianceAudit runs compliance checks using specified plugins.
-func (pm *PluginManager) RunComplianceAudit(ctx context.Context, config *model.OpnSenseDocument, pluginNames []string) (*ComplianceResult, error) {
+func (pm *PluginManager) RunComplianceAudit(
+	ctx context.Context,
+	config *model.OpnSenseDocument,
+	pluginNames []string,
+) (*ComplianceResult, error) {
 	pm.logger.InfoContext(ctx, "Starting compliance audit", "plugins", pluginNames)
 
 	result, err := pm.registry.RunComplianceChecks(config, pluginNames)
@@ -134,13 +149,16 @@ func (pm *PluginManager) GetPluginStatistics() map[string]any {
 
 	// Get control counts per plugin
 	controlCounts := make(map[string]int)
+
 	for _, pluginName := range pluginNames {
 		p, err := pm.registry.GetPlugin(pluginName)
 		if err != nil {
 			continue
 		}
+
 		controlCounts[pluginName] = len(p.GetControls())
 	}
+
 	stats["control_counts"] = controlCounts
 
 	return stats

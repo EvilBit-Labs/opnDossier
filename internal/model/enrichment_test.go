@@ -24,10 +24,7 @@ func TestEnrichDocument(t *testing.T) {
 				System: System{
 					Hostname: "test-firewall",
 					Domain:   "example.com",
-					WebGUI: struct {
-						Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-						SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-					}{
+					WebGUI: WebGUIConfig{
 						Protocol: "https",
 					},
 					SSH: struct {
@@ -182,7 +179,11 @@ func TestEnrichDocument(t *testing.T) {
 
 			// Test security assessment
 			assert.Equal(t, tt.expected.SecurityAssessment.OverallScore, result.SecurityAssessment.OverallScore)
-			assert.Len(t, result.SecurityAssessment.SecurityFeatures, len(tt.expected.SecurityAssessment.SecurityFeatures))
+			assert.Len(
+				t,
+				result.SecurityAssessment.SecurityFeatures,
+				len(tt.expected.SecurityAssessment.SecurityFeatures),
+			)
 
 			// Test performance metrics
 			assert.Equal(t, tt.expected.PerformanceMetrics.ConfigComplexity, result.PerformanceMetrics.ConfigComplexity)
@@ -199,10 +200,7 @@ func TestGenerateStatistics(t *testing.T) {
 	cfg := &OpnSenseDocument{
 		System: System{
 			Hostname: "test-firewall",
-			WebGUI: struct {
-				Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-				SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-			}{
+			WebGUI: WebGUIConfig{
 				Protocol: "https",
 			},
 			SSH: struct {
@@ -264,10 +262,7 @@ func TestGenerateStatistics(t *testing.T) {
 func TestGenerateAnalysis(t *testing.T) {
 	cfg := &OpnSenseDocument{
 		System: System{
-			WebGUI: struct {
-				Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-				SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-			}{
+			WebGUI: WebGUIConfig{
 				Protocol: "http", // Insecure
 			},
 		},
@@ -311,10 +306,7 @@ func TestGenerateSecurityAssessment(t *testing.T) {
 			name: "secure configuration",
 			cfg: &OpnSenseDocument{
 				System: System{
-					WebGUI: struct {
-						Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-						SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-					}{Protocol: "https"},
+					WebGUI: WebGUIConfig{Protocol: "https"},
 					SSH: struct {
 						Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
 					}{Group: "admin"},
@@ -326,10 +318,7 @@ func TestGenerateSecurityAssessment(t *testing.T) {
 			name: "insecure configuration",
 			cfg: &OpnSenseDocument{
 				System: System{
-					WebGUI: struct {
-						Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-						SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-					}{Protocol: "http"},
+					WebGUI: WebGUIConfig{Protocol: "http"},
 					SSH: struct {
 						Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
 					}{Group: ""},
@@ -350,10 +339,7 @@ func TestGenerateSecurityAssessment(t *testing.T) {
 func TestCalculateSecurityScore(t *testing.T) {
 	cfg := &OpnSenseDocument{
 		System: System{
-			WebGUI: struct {
-				Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-				SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-			}{Protocol: "https"},
+			WebGUI: WebGUIConfig{Protocol: "https"},
 			SSH: struct {
 				Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
 			}{Group: "admin"},
@@ -472,18 +458,23 @@ func TestDynamicInterfaceCounting(t *testing.T) {
 			if !iface.Enabled {
 				t.Error("Expected WAN interface to be enabled")
 			}
+
 			if !iface.HasIPv4 {
 				t.Error("Expected WAN interface to have IPv4 (DHCP)")
 			}
+
 			if !iface.HasIPv6 {
 				t.Error("Expected WAN interface to have IPv6 (DHCP)")
 			}
+
 			if !iface.BlockPriv {
 				t.Error("Expected WAN interface to block private networks")
 			}
+
 			if !iface.BlockBogons {
 				t.Error("Expected WAN interface to block bogons")
 			}
+
 			if iface.HasDHCP {
 				t.Error("Expected WAN interface to not have DHCP server")
 			}
@@ -491,18 +482,23 @@ func TestDynamicInterfaceCounting(t *testing.T) {
 			if !iface.Enabled {
 				t.Error("Expected LAN interface to be enabled")
 			}
+
 			if !iface.HasIPv4 {
 				t.Error("Expected LAN interface to have IPv4")
 			}
+
 			if !iface.HasIPv6 {
 				t.Error("Expected LAN interface to have IPv6")
 			}
+
 			if iface.BlockPriv {
 				t.Error("Expected LAN interface to not block private networks")
 			}
+
 			if iface.BlockBogons {
 				t.Error("Expected LAN interface to not block bogons")
 			}
+
 			if !iface.HasDHCP {
 				t.Error("Expected LAN interface to have DHCP server")
 			}
@@ -510,18 +506,23 @@ func TestDynamicInterfaceCounting(t *testing.T) {
 			if !iface.Enabled {
 				t.Error("Expected OPT0 interface to be enabled")
 			}
+
 			if !iface.HasIPv4 {
 				t.Error("Expected OPT0 interface to have IPv4")
 			}
+
 			if iface.HasIPv6 {
 				t.Error("Expected OPT0 interface to not have IPv6")
 			}
+
 			if !iface.BlockPriv {
 				t.Error("Expected OPT0 interface to block private networks")
 			}
+
 			if iface.BlockBogons {
 				t.Error("Expected OPT0 interface to not block bogons")
 			}
+
 			if !iface.HasDHCP {
 				t.Error("Expected OPT0 interface to have DHCP server")
 			}

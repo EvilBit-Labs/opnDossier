@@ -65,6 +65,7 @@ func TestOpnSenseDocumentModel_XMLUnmarshalling(t *testing.T) {
 	</opnsense>`
 
 	var opnsense OpnSenseDocument
+
 	err := xml.Unmarshal([]byte(xmlData), &opnsense)
 	require.NoError(t, err)
 
@@ -183,6 +184,7 @@ func TestOpnSenseDocumentModel_ConfigGroupHelpers(t *testing.T) {
 	wan, wanExists := networkConfig.Interfaces.Get("wan")
 	assert.True(t, wanExists)
 	assert.Equal(t, "em0", wan.If)
+
 	lan, lanExists := networkConfig.Interfaces.Get("lan")
 	assert.True(t, lanExists)
 	assert.Equal(t, "em1", lan.If)
@@ -222,7 +224,7 @@ func TestOpnSenseDocumentModel_Validation(t *testing.T) {
 	}
 
 	err := validate.Struct(validConfig)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Test invalid configuration - missing required fields
 	invalidConfig := OpnSenseDocument{
@@ -232,7 +234,7 @@ func TestOpnSenseDocumentModel_Validation(t *testing.T) {
 	}
 
 	err = validate.Struct(invalidConfig)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestSysctlItem_Validation(t *testing.T) {
@@ -246,7 +248,7 @@ func TestSysctlItem_Validation(t *testing.T) {
 	}
 
 	err := validate.Struct(validItem)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Test invalid SysctlItem - missing required fields
 	invalidItem := SysctlItem{
@@ -256,7 +258,7 @@ func TestSysctlItem_Validation(t *testing.T) {
 	}
 
 	err = validate.Struct(invalidItem)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 // TestOpnSenseDocumentModel_XMLUnmarshalFromFile tests XML unmarshalling from the sample testdata file.
@@ -268,6 +270,7 @@ func TestOpnSenseDocumentModel_XMLUnmarshalFromFile(t *testing.T) {
 
 	// Unmarshal into struct
 	var opnsense OpnSenseDocument
+
 	err = xml.Unmarshal(xmlData, &opnsense)
 	require.NoError(t, err, "XML unmarshalling should succeed")
 
@@ -291,17 +294,18 @@ func TestOpnSenseDocumentModel_XMLUnmarshalFromFile(t *testing.T) {
 	assert.True(t, wanExists)
 	assert.Equal(t, "mismatch1", wan.If)
 	assert.Equal(t, "dhcp", wan.IPAddr)
+
 	lan, lanExists := opnsense.Interfaces.Get("lan")
 	assert.True(t, lanExists)
 	assert.Equal(t, "mismatch0", lan.If)
 	assert.Equal(t, "192.168.1.1", lan.IPAddr)
 
 	// Verify filter rules
-	assert.Greater(t, len(opnsense.Filter.Rule), 0)
+	assert.NotEmpty(t, opnsense.Filter.Rule)
 	assert.Equal(t, "pass", opnsense.Filter.Rule[0].Type)
 
 	// Verify load balancer monitors
-	assert.Greater(t, len(opnsense.LoadBalancer.MonitorType), 0)
+	assert.NotEmpty(t, opnsense.LoadBalancer.MonitorType)
 	assert.Equal(t, "ICMP", opnsense.LoadBalancer.MonitorType[0].Name)
 }
 
@@ -451,9 +455,9 @@ func TestOpnSenseDocumentModel_MissingRequiredFieldsValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			err := validate.Struct(tt.config)
 			if tt.wantErr {
-				assert.Error(t, err, "Expected validation error for %s", tt.name)
+				require.Error(t, err, "Expected validation error for %s", tt.name)
 			} else {
-				assert.NoError(t, err, "Expected no validation error for %s", tt.name)
+				require.NoError(t, err, "Expected no validation error for %s", tt.name)
 			}
 		})
 	}
@@ -486,11 +490,12 @@ func TestOpnSenseDocumentModel_XMLUnmarshalInvalid(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var opnsense OpnSenseDocument
+
 			err := xml.Unmarshal([]byte(tt.xmlData), &opnsense)
 			if tt.wantErr {
-				assert.Error(t, err, "Expected XML unmarshalling error for %s", tt.name)
+				require.Error(t, err, "Expected XML unmarshalling error for %s", tt.name)
 			} else {
-				assert.NoError(t, err, "Expected no XML unmarshalling error for %s", tt.name)
+				require.NoError(t, err, "Expected no XML unmarshalling error for %s", tt.name)
 			}
 		})
 	}
@@ -502,21 +507,21 @@ func TestOpnSenseDocumentModel_EdgeCases(t *testing.T) {
 		opnsense := OpnSenseDocument{}
 
 		// Should not panic and return empty values
-		assert.Equal(t, "", opnsense.Hostname())
+		assert.Empty(t, opnsense.Hostname())
 		assert.Nil(t, opnsense.InterfaceByName("any"))
-		assert.Len(t, opnsense.FilterRules(), 0)
+		assert.Empty(t, opnsense.FilterRules())
 
 		// Config helpers should return empty structs
 		sysConfig := opnsense.SystemConfig()
-		assert.Equal(t, "", sysConfig.System.Hostname)
-		assert.Len(t, sysConfig.Sysctl, 0)
+		assert.Empty(t, sysConfig.System.Hostname)
+		assert.Empty(t, sysConfig.Sysctl)
 
 		netConfig := opnsense.NetworkConfig()
 		_, wanExists := netConfig.Interfaces.Get("wan")
 		assert.False(t, wanExists)
 
 		secConfig := opnsense.SecurityConfig()
-		assert.Equal(t, "", secConfig.Nat.Outbound.Mode)
+		assert.Empty(t, secConfig.Nat.Outbound.Mode)
 
 		svcConfig := opnsense.ServiceConfig()
 		_, lanDhcpExists := svcConfig.Dhcpd.Get("lan")
@@ -568,12 +573,14 @@ func TestOpnSenseDocumentModel_EdgeCases(t *testing.T) {
 
 func TestOpnSenseDocumentModel_XMLCoverage(t *testing.T) {
 	testDir := "../../testdata"
+
 	files, err := os.ReadDir(testDir)
 	if err != nil {
 		t.Fatalf("failed to read testdata directory: %v", err)
 	}
 
 	var xmlFiles []string
+
 	for _, f := range files {
 		if !f.IsDir() && filepath.Ext(f.Name()) == ".xml" {
 			xmlFiles = append(xmlFiles, filepath.Join(testDir, f.Name()))
@@ -605,6 +612,7 @@ func TestOpnSenseDocumentModel_XMLCoverage(t *testing.T) {
 			}
 
 			var config OpnSenseDocument
+
 			err = decoder.Decode(&config)
 			if err != nil {
 				t.Errorf("failed to unmarshal %s: %v", file, err)

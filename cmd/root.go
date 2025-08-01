@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/cobra"
 	"github.com/unclesp1d3r/opnFocus/internal/config"
 	"github.com/unclesp1d3r/opnFocus/internal/log"
-
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -92,6 +91,7 @@ Examples:
 func init() {
 	// Initialize logger with default configuration before config is loaded
 	var loggerErr error
+
 	logger, loggerErr = log.New(log.Config{
 		Level:           "info",
 		Format:          "text",

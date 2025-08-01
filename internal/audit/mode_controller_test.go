@@ -77,6 +77,7 @@ func TestParseReportMode(t *testing.T) {
 				t.Errorf("ParseReportMode() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if got != tt.want {
 				t.Errorf("ParseReportMode() = %v, want %v", got, tt.want)
 			}
@@ -148,9 +149,11 @@ func TestModeController_ValidateModeConfig(t *testing.T) {
 	if err := registry.RegisterPlugin(stigPlugin); err != nil {
 		t.Fatalf("Failed to register STIG plugin: %v", err)
 	}
+
 	if err := registry.RegisterPlugin(sansPlugin); err != nil {
 		t.Fatalf("Failed to register SANS plugin: %v", err)
 	}
+
 	if err := registry.RegisterPlugin(firewallPlugin); err != nil {
 		t.Fatalf("Failed to register Firewall plugin: %v", err)
 	}
@@ -372,7 +375,11 @@ func TestModeController_GenerateReport(t *testing.T) {
 				}
 
 				if report.BlackhatMode != tt.config.BlackhatMode {
-					t.Errorf("GenerateReport() blackhat mode = %v, want %v", report.BlackhatMode, tt.config.BlackhatMode)
+					t.Errorf(
+						"GenerateReport() blackhat mode = %v, want %v",
+						report.BlackhatMode,
+						tt.config.BlackhatMode,
+					)
 				}
 
 				if report.Configuration != cfg {

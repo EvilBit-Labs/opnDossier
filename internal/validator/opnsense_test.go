@@ -10,14 +10,11 @@ import (
 func TestValidateOpnSenseDocument_ValidConfig(t *testing.T) {
 	config := &model.OpnSenseDocument{
 		System: model.System{
-			Hostname:     "test-host",
-			Domain:       "test.local",
-			Timezone:     "Etc/UTC",
-			Optimization: "normal",
-			WebGUI: struct {
-				Protocol   string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
-				SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
-			}{Protocol: "https"},
+			Hostname:          "test-host",
+			Domain:            "test.local",
+			Timezone:          "Etc/UTC",
+			Optimization:      "normal",
+			WebGUI:            model.WebGUIConfig{Protocol: "https"},
 			PowerdACMode:      "hadp",
 			PowerdBatteryMode: "hadp",
 			PowerdNormalMode:  "hadp",
@@ -273,6 +270,7 @@ func TestValidateFilter_NetworkValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			errors := validateFilter(&tt.filter, interfaces)
 			assert.Len(t, errors, tt.expectedErrors, "Expected number of errors")
+
 			if tt.expectedErrors > 0 && len(errors) > 0 {
 				assert.Equal(t, tt.errorField, errors[0].Field, "Expected error field")
 			}

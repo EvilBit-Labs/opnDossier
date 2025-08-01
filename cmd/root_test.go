@@ -12,22 +12,22 @@ import (
 )
 
 func TestGetRootCmd(t *testing.T) {
-	cmd := GetRootCmd()
-	require.NotNil(t, cmd)
-	assert.Equal(t, "opnFocus", cmd.Use)
-	assert.Contains(t, cmd.Short, "CLI tool for processing OPNsense configuration files")
+	rootCmd := GetRootCmd()
+	require.NotNil(t, rootCmd)
+	assert.Equal(t, "opnFocus", rootCmd.Use)
+	assert.Contains(t, rootCmd.Short, "CLI tool for processing OPNsense configuration files")
 }
 
 func TestRootCmdFlags(t *testing.T) {
-	cmd := GetRootCmd()
+	rootCmd := GetRootCmd()
 
 	// Test that persistent flags are defined
-	flags := cmd.PersistentFlags()
+	flags := rootCmd.PersistentFlags()
 
 	// Check config flag
 	configFlag := flags.Lookup("config")
 	require.NotNil(t, configFlag)
-	assert.Equal(t, "", configFlag.DefValue)
+	assert.Empty(t, configFlag.DefValue)
 
 	// Check verbose flag
 	verboseFlag := flags.Lookup("verbose")
@@ -52,19 +52,19 @@ func TestRootCmdFlags(t *testing.T) {
 	// Check theme flag
 	themeFlag := flags.Lookup("theme")
 	require.NotNil(t, themeFlag)
-	assert.Equal(t, "", themeFlag.DefValue)
+	assert.Empty(t, themeFlag.DefValue)
 }
 
 func TestRootCmdHelp(t *testing.T) {
-	cmd := GetRootCmd()
+	rootCmd := GetRootCmd()
 
 	// Capture help output
 	var buf bytes.Buffer
-	cmd.SetOut(&buf)
-	cmd.SetArgs([]string{"--help"})
+	rootCmd.SetOut(&buf)
+	rootCmd.SetArgs([]string{"--help"})
 
 	// Execute help command
-	err := cmd.Execute()
+	err := rootCmd.Execute()
 	require.NoError(t, err)
 
 	output := buf.String()
@@ -80,10 +80,10 @@ func TestRootCmdHelp(t *testing.T) {
 }
 
 func TestRootCmdSubcommands(t *testing.T) {
-	cmd := GetRootCmd()
+	rootCmd := GetRootCmd()
 
 	// Get all subcommands
-	subcommands := cmd.Commands()
+	subcommands := rootCmd.Commands()
 
 	// Verify we have the expected subcommands
 	commandNames := make([]string, 0, len(subcommands))
@@ -113,8 +113,9 @@ func TestGetConfig(_ *testing.T) {
 
 func TestRootCmdPersistentPreRunE(t *testing.T) {
 	// Create a temporary config file for testing
-	tmpFile, err := os.CreateTemp("", "opnfocus-test-*.yaml")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "opnfocus-test-*.yaml")
 	require.NoError(t, err)
+
 	defer func() {
 		err := os.Remove(tmpFile.Name())
 		require.NoError(t, err)
@@ -157,8 +158,9 @@ quiet: false
 
 func TestRootCmdInvalidConfig(t *testing.T) {
 	// Create a temporary invalid config file
-	tmpFile, err := os.CreateTemp("", "opnfocus-invalid-*.yaml")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "opnfocus-invalid-*.yaml")
 	require.NoError(t, err)
+
 	defer func() {
 		err := os.Remove(tmpFile.Name())
 		require.NoError(t, err)
@@ -184,14 +186,15 @@ func TestRootCmdInvalidConfig(t *testing.T) {
 
 	// Test PersistentPreRunE should return an error
 	err = rootCmd.PersistentPreRunE(testCmd, []string{})
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, strings.ToLower(err.Error()), "config")
 }
 
 func TestRootCmdVerboseQuietFlags(t *testing.T) {
 	// Create a temporary config file for testing
-	tmpFile, err := os.CreateTemp("", "opnfocus-test-*.yaml")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "opnfocus-test-*.yaml")
 	require.NoError(t, err)
+
 	defer func() {
 		err := os.Remove(tmpFile.Name())
 		require.NoError(t, err)

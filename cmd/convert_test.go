@@ -187,15 +187,19 @@ func TestBuildConversionOptions(t *testing.T) {
 			result := buildConversionOptions(tt.format, tt.template, tt.sections, tt.theme, tt.wrap, nil)
 
 			assert.Equal(t, tt.expected.format, result.Format)
+
 			if tt.expected.template != "" {
 				assert.Equal(t, tt.expected.template, result.TemplateName)
 			}
+
 			if len(tt.expected.sections) > 0 {
 				assert.Equal(t, tt.expected.sections, result.Sections)
 			}
+
 			if tt.expected.theme != "" {
 				assert.Equal(t, tt.expected.theme, result.Theme)
 			}
+
 			if tt.expected.wrap > 0 {
 				assert.Equal(t, tt.expected.wrap, result.WrapWidth)
 			}
@@ -205,12 +209,7 @@ func TestBuildConversionOptions(t *testing.T) {
 
 func TestConvertCmdWithInvalidFile(t *testing.T) {
 	// Create a temporary directory
-	tmpDir, err := os.MkdirTemp("", "opnfocus-convert-test")
-	require.NoError(t, err)
-	defer func() {
-		err := os.RemoveAll(tmpDir)
-		require.NoError(t, err)
-	}()
+	tmpDir := t.TempDir()
 
 	// Try to convert a non-existent file
 	nonExistentFile := filepath.Join(tmpDir, "nonexistent.xml")
@@ -221,19 +220,14 @@ func TestConvertCmdWithInvalidFile(t *testing.T) {
 	rootCmd.SetErr(&stderr)
 	rootCmd.SetArgs([]string{"convert", nonExistentFile})
 
-	err = rootCmd.Execute()
-	assert.Error(t, err)
+	err := rootCmd.Execute()
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to open file")
 }
 
 func TestConvertCmdWithValidXML(t *testing.T) {
 	// Create a temporary directory
-	tmpDir, err := os.MkdirTemp("", "opnfocus-convert-test")
-	require.NoError(t, err)
-	defer func() {
-		err := os.RemoveAll(tmpDir)
-		require.NoError(t, err)
-	}()
+	tmpDir := t.TempDir()
 
 	// Create a minimal valid OPNsense config file
 	configContent := `<?xml version="1.0"?>
@@ -246,7 +240,7 @@ func TestConvertCmdWithValidXML(t *testing.T) {
 </opnsense>`
 
 	configFile := filepath.Join(tmpDir, "test-config.xml")
-	err = os.WriteFile(configFile, []byte(configContent), 0o600)
+	err := os.WriteFile(configFile, []byte(configContent), 0o600)
 	require.NoError(t, err)
 
 	// Test conversion to stdout
@@ -347,7 +341,7 @@ func TestDetermineOutputPath(t *testing.T) {
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, tt.expectPath, path)
 			}
 		})
@@ -393,7 +387,7 @@ func TestDetermineOutputPath_OverwriteProtection(t *testing.T) {
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, tt.expectPath, path)
 			}
 		})
@@ -407,7 +401,7 @@ func TestDetermineOutputPath_NoDirectoryCreation(t *testing.T) {
 	path, err := determineOutputPath("config.xml", nonexistentDir, ".md", nil, false)
 
 	// Should not create directories, just return the path
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, nonexistentDir, path)
 
 	// Verify the directory doesn't exist
@@ -423,5 +417,6 @@ func findCommand(root *cobra.Command) *cobra.Command {
 			return cmd
 		}
 	}
+
 	return nil
 }

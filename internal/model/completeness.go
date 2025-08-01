@@ -116,7 +116,9 @@ func CheckModelCompleteness(filePath string) error {
 // It returns all XML element paths found in the file, all expected model paths derived from the Go struct, and a list of XML paths not represented in the model.
 // The function validates the file path, enforces strict ASCII charset parsing, and compares the XML structure to the model for completeness.
 // Returns an error if the file path is invalid or the XML cannot be read or parsed.
-func GetModelCompletenessDetails(filePath string) (xmlPaths, modelPaths map[string]bool, missingPaths []string, err error) {
+func GetModelCompletenessDetails(
+	filePath string,
+) (xmlPaths, modelPaths map[string]bool, missingPaths []string, err error) {
 	// Validate the filepath first
 	if err := validateFilePath(filePath); err != nil {
 		return nil, nil, nil, err
