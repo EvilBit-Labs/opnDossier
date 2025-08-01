@@ -71,21 +71,6 @@ source:
   enabled: true
 universal_binaries:
   - replace: true
-nfpms:
-  - id: opnfocus
-    package_name: "{{.ProjectName}}"
-    vendor: "unclesp1d3r"
-    homepage: "https://unclesp1d3r.github.io"
-    maintainer: "unclesp1d3r <unclespider@protonmail.com>"
-    license: Apache 2.0
-    formats:
-      - apk
-      - deb
-      - rpm
-      - termux.deb
-      - archlinux
-    priority: extra
-    changelog: changelog.yml
 
 dockers:
   - image_templates:
