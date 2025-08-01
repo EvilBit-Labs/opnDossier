@@ -161,22 +161,24 @@ Human-readable format suitable for terminal output:
 Structured format suitable for log aggregation systems:
 
 ```json
-{
-  "time": "2024-01-15T10:30:45Z",
-  "level": "INFO",
-  "msg": "Starting conversion process",
-  "input_file": "config.xml"
-}
-{
-  "time": "2024-01-15T10:30:45Z",
-  "level": "DEBUG",
-  "msg": "Parsing XML file"
-}
-{
-  "time": "2024-01-15T10:30:46Z",
-  "level": "INFO",
-  "msg": "Conversion completed successfully"
-}
+[
+  {
+    "time": "2024-01-15T10:30:45Z",
+    "level": "INFO",
+    "msg": "Starting conversion process",
+    "input_file": "config.xml"
+  },
+  {
+    "time": "2024-01-15T10:30:45Z",
+    "level": "DEBUG",
+    "msg": "Parsing XML file"
+  },
+  {
+    "time": "2024-01-15T10:30:46Z",
+    "level": "INFO",
+    "msg": "Conversion completed successfully"
+  }
+]
 ```
 
 ### Logging Examples

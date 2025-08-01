@@ -5,6 +5,9 @@ import "time"
 
 // Application constants.
 const (
+	// Version information.
+	Version = "1.0.0"
+
 	// Network constants.
 	NetworkAny = "any"
 

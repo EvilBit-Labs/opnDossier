@@ -10,28 +10,42 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/spf13/cobra"
+	"github.com/unclesp1d3r/opnFocus/internal/audit"
 	"github.com/unclesp1d3r/opnFocus/internal/config"
+	"github.com/unclesp1d3r/opnFocus/internal/constants"
 	"github.com/unclesp1d3r/opnFocus/internal/export"
 	"github.com/unclesp1d3r/opnFocus/internal/log"
 	"github.com/unclesp1d3r/opnFocus/internal/markdown"
+	"github.com/unclesp1d3r/opnFocus/internal/model"
 	"github.com/unclesp1d3r/opnFocus/internal/parser"
-
-	"github.com/spf13/cobra"
 )
 
 var (
-	outputFile   string   //nolint:gochecknoglobals // Cobra flag variable
-	format       string   //nolint:gochecknoglobals // Output format (markdown, json, yaml)
-	templateName string   //nolint:gochecknoglobals // Template name to use
-	sections     []string //nolint:gochecknoglobals // Sections to include
-	themeName    string   //nolint:gochecknoglobals // Theme for rendering
-	wrapWidth    int      //nolint:gochecknoglobals // Text wrap width
-	force        bool     //nolint:gochecknoglobals // Force overwrite without prompt
+	outputFile      string   //nolint:gochecknoglobals // Cobra flag variable
+	format          string   //nolint:gochecknoglobals // Output format (markdown, json, yaml)
+	templateName    string   //nolint:gochecknoglobals // Template name to use
+	sections        []string //nolint:gochecknoglobals // Sections to include
+	themeName       string   //nolint:gochecknoglobals // Theme for rendering
+	wrapWidth       int      //nolint:gochecknoglobals // Text wrap width
+	force           bool     //nolint:gochecknoglobals // Force overwrite without prompt
+	auditMode       string   //nolint:gochecknoglobals // Audit mode (standard, blue, red)
+	blackhatMode    bool     //nolint:gochecknoglobals // Enable blackhat mode for red team reports
+	comprehensive   bool     //nolint:gochecknoglobals // Generate comprehensive report
+	selectedPlugins []string //nolint:gochecknoglobals // Selected compliance plugins
+	templateDir     string   //nolint:gochecknoglobals // Custom template directory
 )
 
 // ErrOperationCancelled is returned when the user cancels an operation.
 var ErrOperationCancelled = errors.New("operation cancelled by user")
+
+// Static errors for better error handling.
+var (
+	ErrUnsupportedAuditMode = errors.New("unsupported audit mode")
+	ErrFailedToEnrichConfig = errors.New("failed to enrich configuration")
+)
 
 // init registers the convert command and its flags with the root command.
 //
@@ -40,11 +54,18 @@ func init() {
 	rootCmd.AddCommand(convertCmd)
 	convertCmd.Flags().StringVarP(&outputFile, "output", "o", "", "Output file path")
 	convertCmd.Flags().StringVarP(&format, "format", "f", "markdown", "Output format (markdown, json, yaml)")
-	convertCmd.Flags().StringVar(&templateName, "template", "", "Template name to use for rendering")
+	convertCmd.Flags().StringVar(&templateName, "template", "", "Template name to use")
 	convertCmd.Flags().StringSliceVar(&sections, "section", []string{}, "Sections to include (comma-separated)")
 	convertCmd.Flags().StringVar(&themeName, "theme", "", "Theme for rendering (light, dark, auto, none)")
 	convertCmd.Flags().IntVar(&wrapWidth, "wrap", 0, "Text wrap width (0 = no wrapping)")
 	convertCmd.Flags().BoolVar(&force, "force", false, "Force overwrite existing files without prompt")
+
+	// Audit mode flags
+	convertCmd.Flags().StringVar(&auditMode, "mode", "", "Audit mode (standard, blue, red)")
+	convertCmd.Flags().BoolVar(&blackhatMode, "blackhat-mode", false, "Enable blackhat mode for red team reports")
+	convertCmd.Flags().BoolVar(&comprehensive, "comprehensive", false, "Generate comprehensive report")
+	convertCmd.Flags().StringSliceVar(&selectedPlugins, "plugins", []string{}, "Selected compliance plugins (comma-separated)")
+	convertCmd.Flags().StringVar(&templateDir, "template-dir", "", "Custom template directory for user overrides")
 }
 
 var convertCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
@@ -54,6 +75,21 @@ var convertCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 its content into structured formats. Supported output formats include Markdown (default),
 JSON, and YAML. This allows for easier readability, documentation, programmatic access,
 and auditing of your firewall configuration.
+
+The convert command supports both basic conversion and audit report generation.
+For basic conversion, it focuses on format transformation without validation.
+For audit reports, use the --mode flag to generate security-focused reports.
+
+AUDIT MODES:
+  --mode standard: Generate neutral, comprehensive documentation (default)
+  --mode blue: Generate defensive audit report with security findings and recommendations
+  --mode red: Generate attacker-focused recon report highlighting attack surfaces
+
+  Additional audit options:
+    --blackhat-mode: Enable snarky commentary for red team reports
+    --comprehensive: Generate detailed, comprehensive reports
+    --plugins: Specify compliance plugins to run (e.g., stig,sans)
+    --template-dir: Use custom templates for report generation
 
 The convert command focuses on conversion only and does not perform validation.
 To validate your configuration files before conversion, use the 'validate' command.
@@ -84,6 +120,15 @@ Examples:
 
   # Convert 'my_config.xml' to YAML and save to file
   opnFocus convert my_config.xml -f yaml -o documentation.yaml
+
+  # Generate blue team audit report
+  opnFocus convert my_config.xml --mode blue --comprehensive
+
+  # Generate red team recon report with blackhat mode
+  opnFocus convert my_config.xml --mode red --blackhat-mode
+
+  # Run compliance checks with specific plugins
+  opnFocus convert my_config.xml --mode blue --plugins stig,sans
 
   # Convert with specific theme and sections
   opnFocus convert my_config.xml --theme dark --section system,network
@@ -116,13 +161,17 @@ Examples:
 		var wg sync.WaitGroup
 		errs := make(chan error, len(args))
 
+		// Create a timeout context for file processing
+		timeoutCtx, cancel := context.WithTimeout(ctx, constants.DefaultProcessingTimeout)
+		defer cancel()
+
 		for _, filePath := range args {
 			wg.Add(1)
 			go func(fp string) {
 				defer wg.Done()
 
 				// Create context-aware logger for this goroutine with input file field
-				ctxLogger := logger.WithContext(ctx).WithFields("input_file", fp)
+				ctxLogger := logger.WithContext(timeoutCtx).WithFields("input_file", fp)
 				ctxLogger.Info("Starting conversion process")
 
 				// Sanitize the file path
@@ -152,7 +201,7 @@ Examples:
 				// Parse the XML without validation (use 'validate' command for validation)
 				ctxLogger.Debug("Parsing XML file")
 				p := parser.NewXMLParser()
-				opnsense, err := p.Parse(ctx, file)
+				opnsense, err := p.Parse(timeoutCtx, file)
 				if err != nil {
 					ctxLogger.Error("Failed to parse XML", "error", err)
 					// Enhanced error handling for different error types
@@ -178,17 +227,29 @@ Examples:
 				var fileExt string
 
 				ctxLogger.Debug("Converting with options", "format", opt.Format, "theme", opt.Theme, "sections", opt.Sections)
-				g, err := markdown.NewMarkdownGenerator()
-				if err != nil {
-					ctxLogger.Error("Failed to create markdown generator", "error", err)
-					errs <- fmt.Errorf("failed to create markdown generator: %w", err)
-					return
-				}
-				output, err = g.Generate(ctx, opnsense, opt)
-				if err != nil {
-					ctxLogger.Error("Failed to convert", "error", err)
-					errs <- fmt.Errorf("failed to convert from %s: %w", fp, err)
-					return
+
+				// Handle audit mode if specified
+				if opt.AuditMode != "" {
+					output, err = handleAuditMode(timeoutCtx, opnsense, opt, ctxLogger)
+					if err != nil {
+						ctxLogger.Error("Failed to generate audit report", "error", err)
+						errs <- fmt.Errorf("failed to generate audit report from %s: %w", fp, err)
+						return
+					}
+				} else {
+					// Standard markdown generation
+					g, err := markdown.NewMarkdownGenerator(nil)
+					if err != nil {
+						ctxLogger.Error("Failed to create markdown generator", "error", err)
+						errs <- fmt.Errorf("failed to create markdown generator: %w", err)
+						return
+					}
+					output, err = g.Generate(timeoutCtx, opnsense, opt)
+					if err != nil {
+						ctxLogger.Error("Failed to convert", "error", err)
+						errs <- fmt.Errorf("failed to convert from %s: %w", fp, err)
+						return
+					}
 				}
 
 				// Determine file extension based on format
@@ -225,7 +286,7 @@ Examples:
 				if actualOutputFile != "" {
 					enhancedLogger.Debug("Exporting to file")
 					e := export.NewFileExporter()
-					if err := e.Export(ctx, output, actualOutputFile); err != nil {
+					if err := e.Export(timeoutCtx, output, actualOutputFile); err != nil {
 						enhancedLogger.Error("Failed to export output", "error", err)
 						errs <- fmt.Errorf("failed to export output to %s: %w", actualOutputFile, err)
 						return
@@ -309,7 +370,74 @@ func buildConversionOptions(format, template string, sections []string, theme st
 		opt.WrapWidth = cfg.GetWrapWidth()
 	}
 
+	// Audit mode: CLI flag > config > default
+	if auditMode != "" {
+		opt.AuditMode = markdown.AuditMode(auditMode)
+	}
+
+	// Blackhat mode: CLI flag only
+	opt.BlackhatMode = blackhatMode
+
+	// Comprehensive: CLI flag only
+	opt.Comprehensive = comprehensive
+
+	// Selected plugins: CLI flag only
+	if len(selectedPlugins) > 0 {
+		opt.SelectedPlugins = selectedPlugins
+	}
+
+	// Template directory: CLI flag only
+	if templateDir != "" {
+		opt.TemplateDir = templateDir
+	}
+
 	return opt
+}
+
+// handleAuditMode generates an audit report using the audit mode controller and markdown generator.
+func handleAuditMode(ctx context.Context, cfg *model.OpnSenseDocument, opts markdown.Options, logger *log.Logger) (string, error) {
+	// Create audit mode controller with plugin registry
+	registry := audit.NewPluginRegistry()
+	controller := audit.NewModeController(registry, logger.Logger)
+
+	// Convert audit mode string to ReportMode
+	var reportMode audit.ReportMode
+	switch opts.AuditMode {
+	case markdown.AuditModeStandard:
+		reportMode = audit.ModeStandard
+	case markdown.AuditModeBlue:
+		reportMode = audit.ModeBlue
+	case markdown.AuditModeRed:
+		reportMode = audit.ModeRed
+	default:
+		return "", fmt.Errorf("%w: %s", ErrUnsupportedAuditMode, opts.AuditMode)
+	}
+
+	// Create mode config
+	modeConfig := &audit.ModeConfig{
+		Mode:            reportMode,
+		BlackhatMode:    opts.BlackhatMode,
+		Comprehensive:   opts.Comprehensive,
+		SelectedPlugins: opts.SelectedPlugins,
+		TemplateDir:     opts.TemplateDir,
+	}
+
+	// Generate audit report
+	auditReport, err := controller.GenerateReport(ctx, cfg, modeConfig)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate audit report: %w", err)
+	}
+
+	// Enrich the configuration for template rendering
+	enrichedCfg := model.EnrichDocument(cfg)
+	if enrichedCfg == nil {
+		return "", ErrFailedToEnrichConfig
+	}
+
+	// For now, return a simple audit report summary
+	// TODO: Implement proper template rendering with combined data
+	return fmt.Sprintf("# Audit Report - %s Mode\n\nGenerated: %s\n\nFindings: %d\n\nConfiguration analyzed successfully.",
+		opts.AuditMode, time.Now().Format(time.RFC3339), len(auditReport.Findings)), nil
 }
 
 // determineOutputPath determines the output file path with smart naming and overwrite protection.

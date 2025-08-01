@@ -155,7 +155,8 @@ Examples:
 
 		// Convert to markdown
 		ctxLogger.Debug("Converting to markdown")
-		g, err := markdown.NewMarkdownGenerator()
+
+		g, err := markdown.NewMarkdownGenerator(nil)
 		if err != nil {
 			ctxLogger.Error("Failed to create markdown generator", "error", err)
 			return fmt.Errorf("failed to create markdown generator: %w", err)

@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/unclesp1d3r/opnFocus/internal/model"
 	"github.com/unclesp1d3r/opnFocus/internal/parser"
 )
 
@@ -181,7 +182,7 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 
 			// Test Markdown generation
 			t.Run("markdown_generation", func(t *testing.T) {
-				generator, err := NewMarkdownGenerator()
+				generator, err := NewMarkdownGenerator(nil)
 				require.NoError(t, err)
 				opts := DefaultOptions().WithFormat(FormatMarkdown)
 
@@ -236,7 +237,7 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 
 			// Test JSON generation
 			t.Run("json_generation", func(t *testing.T) {
-				generator, err := NewMarkdownGenerator()
+				generator, err := NewMarkdownGenerator(nil)
 				require.NoError(t, err)
 				opts := DefaultOptions().WithFormat(FormatJSON)
 
@@ -259,7 +260,7 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 
 			// Test YAML generation
 			t.Run("yaml_generation", func(t *testing.T) {
-				generator, err := NewMarkdownGenerator()
+				generator, err := NewMarkdownGenerator(nil)
 				require.NoError(t, err)
 				opts := DefaultOptions().WithFormat(FormatYAML)
 
@@ -402,7 +403,7 @@ func TestGenerateFromXMLFilesRobustness(t *testing.T) {
 			require.NoError(t, err, "Should successfully parse XML")
 			require.NotNil(t, cfg, "Configuration should not be nil")
 
-			generator, err := NewMarkdownGenerator()
+			generator, err := NewMarkdownGenerator(nil)
 			require.NoError(t, err)
 			opts := DefaultOptions().WithFormat(FormatMarkdown)
 
@@ -443,7 +444,7 @@ func TestDebugSysctlParsing(t *testing.T) {
 	}
 
 	// Generate markdown to see output
-	generator, err := NewMarkdownGenerator()
+	generator, err := NewMarkdownGenerator(nil)
 	require.NoError(t, err)
 	opts := DefaultOptions().WithFormat(FormatMarkdown)
 
@@ -480,7 +481,7 @@ func TestSysctlKeyValidation(t *testing.T) {
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")
 	require.NotNil(t, cfg, "Configuration should not be nil")
 
-	generator, err := NewMarkdownGenerator()
+	generator, err := NewMarkdownGenerator(nil)
 	require.NoError(t, err)
 	opts := DefaultOptions().WithFormat(FormatMarkdown)
 
@@ -543,7 +544,7 @@ func TestInterfaceConfigurationDetail(t *testing.T) {
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")
 	require.NotNil(t, cfg, "Configuration should not be nil")
 
-	generator, err := NewMarkdownGenerator()
+	generator, err := NewMarkdownGenerator(nil)
 	require.NoError(t, err)
 	opts := DefaultOptions().WithFormat(FormatMarkdown)
 
@@ -577,7 +578,7 @@ func TestFirewallRulesFormatting(t *testing.T) {
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")
 	require.NotNil(t, cfg, "Configuration should not be nil")
 
-	generator, err := NewMarkdownGenerator()
+	generator, err := NewMarkdownGenerator(nil)
 	require.NoError(t, err)
 	opts := DefaultOptions().WithFormat(FormatMarkdown)
 
@@ -599,4 +600,144 @@ func TestFirewallRulesFormatting(t *testing.T) {
 	assert.Contains(t, result, "Block bogon networks on", "Should contain specific rule description")
 	assert.Contains(t, result, "pass", "Should contain pass action")
 	assert.Contains(t, result, "block", "Should contain block action")
+}
+
+func TestMarkdownGenerator_Integration(t *testing.T) {
+	// Create a test configuration
+	cfg := &model.OpnSenseDocument{
+		System: model.System{
+			Hostname: "test-host",
+			Domain:   "test.local",
+		},
+		Interfaces: model.Interfaces{
+			Items: map[string]model.Interface{
+				"wan": {
+					Enable:  "1",
+					If:      "em0",
+					Descr:   "WAN Interface",
+					IPAddr:  "192.168.1.1",
+					Subnet:  "24",
+					Gateway: "192.168.1.254",
+				},
+			},
+		},
+	}
+
+	ctx := context.Background()
+
+	t.Run("markdown generation", func(t *testing.T) {
+		generator, err := NewMarkdownGenerator(nil)
+		require.NoError(t, err)
+
+		opts := DefaultOptions().WithFormat(FormatMarkdown)
+		result, err := generator.Generate(ctx, cfg, opts)
+
+		assert.NoError(t, err)
+		assert.NotEmpty(t, result)
+		assert.Contains(t, result, "test-host")
+		assert.Contains(t, result, "WAN Interface")
+	})
+
+	t.Run("comprehensive markdown generation", func(t *testing.T) {
+		generator, err := NewMarkdownGenerator(nil)
+		require.NoError(t, err)
+
+		opts := DefaultOptions().WithFormat(FormatMarkdown).WithComprehensive(true)
+		result, err := generator.Generate(ctx, cfg, opts)
+
+		assert.NoError(t, err)
+		assert.NotEmpty(t, result)
+		assert.Contains(t, result, "test-host")
+		assert.Contains(t, result, "WAN Interface")
+	})
+
+	t.Run("JSON generation", func(t *testing.T) {
+		generator, err := NewMarkdownGenerator(nil)
+		require.NoError(t, err)
+
+		opts := DefaultOptions().WithFormat(FormatJSON)
+		result, err := generator.Generate(ctx, cfg, opts)
+
+		assert.NoError(t, err)
+		assert.NotEmpty(t, result)
+		assert.Contains(t, result, "test-host")
+		assert.Contains(t, result, "WAN Interface")
+	})
+
+	t.Run("YAML generation", func(t *testing.T) {
+		generator, err := NewMarkdownGenerator(nil)
+		require.NoError(t, err)
+
+		opts := DefaultOptions().WithFormat(FormatYAML)
+		result, err := generator.Generate(ctx, cfg, opts)
+
+		assert.NoError(t, err)
+		assert.NotEmpty(t, result)
+		assert.Contains(t, result, "test-host")
+		assert.Contains(t, result, "WAN Interface")
+	})
+}
+
+func TestTemplateRendering_Integration(t *testing.T) {
+	cfg := &model.OpnSenseDocument{
+		System: model.System{
+			Hostname: "template-test",
+			Domain:   "test.local",
+		},
+	}
+
+	ctx := context.Background()
+
+	t.Run("standard template", func(t *testing.T) {
+		generator, err := NewMarkdownGenerator(nil)
+		require.NoError(t, err)
+
+		opts := DefaultOptions().WithFormat(FormatMarkdown)
+		result, err := generator.Generate(ctx, cfg, opts)
+
+		assert.NoError(t, err)
+		assert.Contains(t, result, "template-test")
+		assert.Contains(t, result, "test.local")
+	})
+
+	t.Run("comprehensive template", func(t *testing.T) {
+		generator, err := NewMarkdownGenerator(nil)
+		require.NoError(t, err)
+
+		opts := DefaultOptions().WithFormat(FormatMarkdown).WithComprehensive(true)
+		result, err := generator.Generate(ctx, cfg, opts)
+
+		assert.NoError(t, err)
+		assert.Contains(t, result, "template-test")
+		assert.Contains(t, result, "test.local")
+	})
+}
+
+func TestErrorHandling_Integration(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("nil configuration", func(t *testing.T) {
+		generator, err := NewMarkdownGenerator(nil)
+		require.NoError(t, err)
+
+		opts := DefaultOptions()
+		result, err := generator.Generate(ctx, nil, opts)
+
+		assert.Error(t, err)
+		assert.Equal(t, ErrNilConfiguration, err)
+		assert.Empty(t, result)
+	})
+
+	t.Run("invalid options", func(t *testing.T) {
+		generator, err := NewMarkdownGenerator(nil)
+		require.NoError(t, err)
+
+		cfg := &model.OpnSenseDocument{}
+		opts := Options{Format: Format("invalid")}
+		result, err := generator.Generate(ctx, cfg, opts)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid options")
+		assert.Empty(t, result)
+	})
 }

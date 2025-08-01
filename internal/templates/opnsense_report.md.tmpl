@@ -29,7 +29,7 @@
 | Name | Description | IP Address | CIDR | Enabled |
 |------|-------------|------------|------|---------|
 {{- range $name, $iface := .Interfaces.Items }}
-| `{{ $name }}` | `{{ $iface.If }}` | `{{ $iface.IPAddr }}` | /{{ $iface.Subnet }} | {{ if $iface.Enable }}[x]{{ else }}[ ]{{ end }} |
+| `{{ $name }}` | `{{ if $iface.Descr }}{{ $iface.Descr }}{{ else }}{{ $iface.If }}{{ end }}` | `{{ $iface.IPAddr }}` | /{{ $iface.Subnet }} | {{ if $iface.Enable }}[x]{{ else }}[ ]{{ end }} |
 {{- end }}
 
 ---

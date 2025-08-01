@@ -100,7 +100,7 @@ func TestTemplateRendering(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create generator
-			generator, err := NewMarkdownGenerator()
+			generator, err := NewMarkdownGenerator(nil)
 			require.NoError(t, err, "Failed to create markdown generator")
 
 			// Generate markdown
@@ -149,7 +149,7 @@ func TestTemplateRenderingWithEmptyConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create generator
-			generator, err := NewMarkdownGenerator()
+			generator, err := NewMarkdownGenerator(nil)
 			require.NoError(t, err, "Failed to create markdown generator")
 
 			// Generate markdown

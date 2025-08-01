@@ -2,55 +2,45 @@ package markdown
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 )
 
-// ConverterAdapter adapts the new markdown.Generator interface
-// to work with the existing converter.Converter interface, maintaining backward compatibility.
-type ConverterAdapter struct {
+// Adapter provides a simplified interface for generating documentation.
+type Adapter struct {
 	generator Generator
-	opts      Options
 }
 
-// NewConverterAdapter returns a new ConverterAdapter using a default Generator and default options.
-// It returns an error if the Generator cannot be created.
-func NewConverterAdapter() (*ConverterAdapter, error) {
-	generator, err := NewMarkdownGenerator()
+// NewAdapter creates a new adapter with the default markdown generator.
+func NewAdapter() (*Adapter, error) {
+	generator, err := NewMarkdownGenerator(nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create markdown generator: %w", err)
 	}
-	return &ConverterAdapter{
-		generator: generator,
-		opts:      DefaultOptions(),
-	}, nil
+
+	return &Adapter{generator: generator}, nil
 }
 
-// NewConverterAdapterWithOptions returns a new ConverterAdapter using the provided options.
-// It initializes the underlying markdown generator and returns an error if generator creation fails.
-func NewConverterAdapterWithOptions(opts Options) (*ConverterAdapter, error) {
-	generator, err := NewMarkdownGenerator()
-	if err != nil {
-		return nil, err
-	}
-	return &ConverterAdapter{
-		generator: generator,
-		opts:      opts,
-	}, nil
+// GenerateMarkdown generates markdown documentation from an OPNsense configuration.
+func (a *Adapter) GenerateMarkdown(ctx context.Context, cfg *model.OpnSenseDocument, comprehensive bool) (string, error) {
+	opts := DefaultOptions().
+		WithFormat(FormatMarkdown).
+		WithComprehensive(comprehensive)
+
+	return a.generator.Generate(ctx, cfg, opts)
 }
 
-// ToMarkdown converts an OPNsense configuration to markdown using the new Generator API.
-// This method implements the converter.Converter interface.
-func (a *ConverterAdapter) ToMarkdown(ctx context.Context, opnsense *model.OpnSenseDocument) (string, error) {
-	return a.generator.Generate(ctx, opnsense, a.opts)
+// GenerateJSON generates JSON documentation from an OPNsense configuration.
+func (a *Adapter) GenerateJSON(ctx context.Context, cfg *model.OpnSenseDocument) (string, error) {
+	opts := DefaultOptions().WithFormat(FormatJSON)
+
+	return a.generator.Generate(ctx, cfg, opts)
 }
 
-// SetOptions allows changing the options after creation.
-func (a *ConverterAdapter) SetOptions(opts Options) {
-	a.opts = opts
-}
+// GenerateYAML generates YAML documentation from an OPNsense configuration.
+func (a *Adapter) GenerateYAML(ctx context.Context, cfg *model.OpnSenseDocument) (string, error) {
+	opts := DefaultOptions().WithFormat(FormatYAML)
 
-// GetOptions returns the current options.
-func (a *ConverterAdapter) GetOptions() Options {
-	return a.opts
+	return a.generator.Generate(ctx, cfg, opts)
 }

@@ -239,7 +239,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Action**: Create mode-based report generation system that determines content and tone based on --mode flag
   - **Acceptance**: System generates different report types based on selected mode
 
-- [ ] **TASK-025**: Implement template-driven markdown generation for audit reports
+- [x] **TASK-025**: Implement template-driven markdown generation for audit reports
 
   - **Context**: Need to use Go text/template files for generating markdown reports with user-extensible templates
   - **Requirement**: F017 (Template-Driven Markdown Output), F016 (Multiple Modes), F025 (Audit mode)

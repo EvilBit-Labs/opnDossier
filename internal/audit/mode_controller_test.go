@@ -2,10 +2,10 @@ package audit
 
 import (
 	"context"
-	"log/slog"
 	"os"
 	"testing"
 
+	"github.com/charmbracelet/log"
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 	"github.com/unclesp1d3r/opnFocus/internal/plugins/firewall"
 	"github.com/unclesp1d3r/opnFocus/internal/plugins/sans"
@@ -118,7 +118,7 @@ func TestReportMode_String(t *testing.T) {
 
 func TestNewModeController(t *testing.T) {
 	registry := NewPluginRegistry()
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger := log.NewWithOptions(os.Stdout, log.Options{})
 
 	controller := NewModeController(registry, logger)
 
@@ -137,7 +137,7 @@ func TestNewModeController(t *testing.T) {
 
 func TestModeController_ValidateModeConfig(t *testing.T) {
 	registry := NewPluginRegistry()
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger := log.NewWithOptions(os.Stdout, log.Options{})
 	controller := NewModeController(registry, logger)
 
 	// Register test plugins to validate against
@@ -279,7 +279,7 @@ func TestModeController_ValidateModeConfig(t *testing.T) {
 
 func TestModeController_GenerateReport(t *testing.T) {
 	registry := NewPluginRegistry()
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger := log.NewWithOptions(os.Stdout, log.Options{})
 	controller := NewModeController(registry, logger)
 
 	// Create a minimal test configuration

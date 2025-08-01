@@ -13,14 +13,18 @@ import (
 )
 
 func TestNewMarkdownGenerator(t *testing.T) {
-	generator, err := NewMarkdownGenerator()
-	require.NoError(t, err)
-	assert.NotNil(t, generator)
-	assert.Implements(t, (*Generator)(nil), generator)
+	// Test with nil registry and modeController (should work for non-audit reports)
+	generator, err := NewMarkdownGenerator(nil)
+	if err != nil {
+		t.Fatalf("Failed to create markdown generator with nil registry: %v", err)
+	}
+	if generator == nil {
+		t.Fatal("Generator should not be nil")
+	}
 }
 
 func TestMarkdownGenerator_Generate(t *testing.T) {
-	generator, err := NewMarkdownGenerator()
+	generator, err := NewMarkdownGenerator(nil)
 	require.NoError(t, err)
 
 	ctx := context.Background()

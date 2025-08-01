@@ -6,11 +6,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"slices"
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/log"
 	"github.com/unclesp1d3r/opnFocus/internal/model"
 	"github.com/unclesp1d3r/opnFocus/internal/processor"
 )
@@ -39,11 +39,11 @@ const (
 // based on the selected mode and configuration.
 type ModeController struct {
 	registry *PluginRegistry
-	logger   *slog.Logger
+	logger   *log.Logger
 }
 
 // NewModeController creates a new mode controller with the given plugin registry and logger.
-func NewModeController(registry *PluginRegistry, logger *slog.Logger) *ModeController {
+func NewModeController(registry *PluginRegistry, logger *log.Logger) *ModeController {
 	return &ModeController{
 		registry: registry,
 		logger:   logger,
@@ -95,7 +95,7 @@ func (mc *ModeController) GenerateReport(ctx context.Context, cfg *model.OpnSens
 		return nil, ErrConfigurationNil
 	}
 
-	mc.logger.InfoContext(ctx, "Generating audit report", "mode", config.Mode, "comprehensive", config.Comprehensive)
+	mc.logger.Info("Generating audit report", "mode", config.Mode, "comprehensive", config.Comprehensive)
 
 	// Create base report structure
 	report := &Report{
@@ -122,8 +122,8 @@ func (mc *ModeController) GenerateReport(ctx context.Context, cfg *model.OpnSens
 }
 
 // generateStandardReport generates a neutral, comprehensive documentation report.
-func (mc *ModeController) generateStandardReport(ctx context.Context, report *Report) (*Report, error) {
-	mc.logger.DebugContext(ctx, "Generating standard report")
+func (mc *ModeController) generateStandardReport(_ context.Context, report *Report) (*Report, error) {
+	mc.logger.Debug("Generating standard report")
 
 	// Add system metadata
 	report.Metadata["report_type"] = "standard"
@@ -144,8 +144,8 @@ func (mc *ModeController) generateStandardReport(ctx context.Context, report *Re
 }
 
 // generateBlueReport generates a defensive audit report with security findings and recommendations.
-func (mc *ModeController) generateBlueReport(ctx context.Context, report *Report, config *ModeConfig) (*Report, error) {
-	mc.logger.DebugContext(ctx, "Generating blue team report")
+func (mc *ModeController) generateBlueReport(_ context.Context, report *Report, config *ModeConfig) (*Report, error) {
+	mc.logger.Debug("Generating blue team report")
 
 	// Add blue team specific metadata
 	report.Metadata["report_type"] = "blue_team"
@@ -155,7 +155,7 @@ func (mc *ModeController) generateBlueReport(ctx context.Context, report *Report
 	if len(config.SelectedPlugins) > 0 {
 		complianceResult, err := mc.registry.RunComplianceChecks(report.Configuration, config.SelectedPlugins)
 		if err != nil {
-			mc.logger.WarnContext(ctx, "Failed to run compliance checks", "error", err)
+			mc.logger.Warn("Failed to run compliance checks", "error", err)
 			// Add metadata to report indicating compliance check failure
 			report.Metadata["compliance_check_status"] = "failed"
 			report.Metadata["compliance_check_error"] = err.Error()
@@ -178,8 +178,8 @@ func (mc *ModeController) generateBlueReport(ctx context.Context, report *Report
 }
 
 // generateRedReport generates an attacker-focused recon report highlighting attack surfaces.
-func (mc *ModeController) generateRedReport(ctx context.Context, report *Report, config *ModeConfig) (*Report, error) {
-	mc.logger.DebugContext(ctx, "Generating red team report", "blackhat_mode", config.BlackhatMode)
+func (mc *ModeController) generateRedReport(_ context.Context, report *Report, config *ModeConfig) (*Report, error) {
+	mc.logger.Debug("Generating red team report", "blackhat_mode", config.BlackhatMode)
 
 	// Add red team specific metadata
 	report.Metadata["report_type"] = "red_team"
