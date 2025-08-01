@@ -217,6 +217,116 @@ func TestLoadConfigFromEnvWithNewFields(t *testing.T) {
 	assert.Equal(t, "json", cfg.LogFormat)
 }
 
+func TestLoadConfigFromEnvWithAllFields(t *testing.T) {
+	// Clear environment variables for this test
+	clearEnvironment(t)
+
+	// Create temporary directory and file for testing
+	tmpDir := t.TempDir()
+	inputFile := filepath.Join(tmpDir, "input.xml")
+	outputFile := filepath.Join(tmpDir, "output.md")
+	err := os.WriteFile(inputFile, []byte("<test/>"), 0o600)
+	require.NoError(t, err)
+
+	// Set environment variables for all configuration fields
+	t.Setenv("OPNFOCUS_INPUT_FILE", inputFile)
+	t.Setenv("OPNFOCUS_OUTPUT_FILE", outputFile)
+	t.Setenv("OPNFOCUS_VERBOSE", "true")
+	t.Setenv("OPNFOCUS_QUIET", "false")
+	t.Setenv("OPNFOCUS_LOG_LEVEL", "debug")
+	t.Setenv("OPNFOCUS_LOG_FORMAT", "json")
+	t.Setenv("OPNFOCUS_THEME", "dark")
+	t.Setenv("OPNFOCUS_FORMAT", "yaml")
+	t.Setenv("OPNFOCUS_TEMPLATE", "comprehensive")
+	t.Setenv("OPNFOCUS_SECTIONS", "system,network,firewall")
+	t.Setenv("OPNFOCUS_WRAP", "80")
+
+	cfg, err := LoadConfigWithViper("", viper.New())
+	require.NoError(t, err)
+	assert.NotNil(t, cfg)
+
+	// Verify all environment variables are properly loaded
+	assert.Equal(t, inputFile, cfg.InputFile)
+	assert.Equal(t, outputFile, cfg.OutputFile)
+	assert.True(t, cfg.Verbose)
+	assert.False(t, cfg.Quiet)
+	assert.Equal(t, "debug", cfg.LogLevel)
+	assert.Equal(t, "json", cfg.LogFormat)
+	assert.Equal(t, "dark", cfg.Theme)
+	assert.Equal(t, "yaml", cfg.Format)
+	assert.Equal(t, "comprehensive", cfg.Template)
+	assert.Equal(t, []string{"system", "network", "firewall"}, cfg.Sections)
+	assert.Equal(t, 80, cfg.WrapWidth)
+}
+
+func TestLoadConfigFromEnvWithBooleanValues(t *testing.T) {
+	// Clear environment variables for this test
+	clearEnvironment(t)
+
+	// Test various boolean representations
+	testCases := []struct {
+		name     string
+		value    string
+		expected bool
+	}{
+		{"true_string", "true", true},
+		{"false_string", "false", false},
+		{"true_uppercase", "TRUE", true},
+		{"false_uppercase", "FALSE", false},
+		{"true_mixed", "True", true},
+		{"false_mixed", "False", false},
+		{"one", "1", true},
+		{"zero", "0", false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			clearEnvironment(t)
+			t.Setenv("OPNFOCUS_VERBOSE", tc.value)
+
+			cfg, err := LoadConfigWithViper("", viper.New())
+			require.NoError(t, err)
+			assert.Equal(t, tc.expected, cfg.Verbose, "Failed for value: %s", tc.value)
+		})
+	}
+}
+
+func TestLoadConfigFromEnvWithIntegerValues(t *testing.T) {
+	// Clear environment variables for this test
+	clearEnvironment(t)
+
+	// Test integer environment variable
+	t.Setenv("OPNFOCUS_WRAP", "120")
+
+	cfg, err := LoadConfigWithViper("", viper.New())
+	require.NoError(t, err)
+	assert.Equal(t, 120, cfg.WrapWidth)
+}
+
+func TestLoadConfigFromEnvWithSliceValues(t *testing.T) {
+	// Clear environment variables for this test
+	clearEnvironment(t)
+
+	// Test slice environment variable (comma-separated)
+	t.Setenv("OPNFOCUS_SECTIONS", "system,network,firewall,dhcp")
+
+	cfg, err := LoadConfigWithViper("", viper.New())
+	require.NoError(t, err)
+	assert.Equal(t, []string{"system", "network", "firewall", "dhcp"}, cfg.Sections)
+}
+
+func TestLoadConfigFromEnvWithEmptySlice(t *testing.T) {
+	// Clear environment variables for this test
+	clearEnvironment(t)
+
+	// Test empty slice environment variable
+	t.Setenv("OPNFOCUS_SECTIONS", "")
+
+	cfg, err := LoadConfigWithViper("", viper.New())
+	require.NoError(t, err)
+	assert.Equal(t, []string{}, cfg.Sections) // Viper behavior for empty string
+}
+
 func TestValidationError_Error(t *testing.T) {
 	err := ValidationError{
 		Field:   "test_field",
@@ -236,6 +346,11 @@ func clearEnvironment(_ *testing.T) {
 		"OPNFOCUS_QUIET",
 		"OPNFOCUS_LOG_LEVEL",
 		"OPNFOCUS_LOG_FORMAT",
+		"OPNFOCUS_THEME",
+		"OPNFOCUS_FORMAT",
+		"OPNFOCUS_TEMPLATE",
+		"OPNFOCUS_SECTIONS",
+		"OPNFOCUS_WRAP",
 	}
 
 	for _, env := range envVars {

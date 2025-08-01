@@ -12,7 +12,7 @@
 - [x] **TASK-031**: Comprehensive help system
 - [x] **TASK-032**: Verbose/quiet output modes
 - [x] **TASK-035**: YAML configuration file support
-- [ ] **TASK-036**: Environment variable support (`OPNFOCUS_*`)
+- [x] **TASK-036**: Environment variable support (`OPNFOCUS_*`)
 - [ ] **TASK-037**: CLI flag override system
 - [ ] **TASK-044**: Achieve >80% test coverage
 - [ ] **TASK-047**: Automated quality checks
@@ -505,13 +505,14 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Tool loads settings from YAML configuration files
   - **Note**: Fully implemented with Viper integration, proper precedence handling, comprehensive validation, full test coverage, and complete documentation. All quality checks pass.
 
-- [ ] **TASK-036**: Add environment variable support
+- [x] **TASK-036**: Add environment variable support
 
   - **Context**: Need secure configuration for sensitive options
   - **Requirement**: US-013 (Environment variables), Security Requirements
   - **User Story**: US-013 (Environment variables)
   - **Action**: Implement OPNFOCUS\_ prefixed environment variables
   - **Acceptance**: Environment variables override configuration file settings (standard precedence)
+  - **Note**: Fully implemented with comprehensive environment variable support for all configuration fields, proper precedence handling (CLI flags > env vars > config file > defaults), extensive test coverage including boolean, integer, and slice value types, and complete documentation throughout the codebase.
 
 - [ ] **TASK-037**: Implement CLI flag override system
 
