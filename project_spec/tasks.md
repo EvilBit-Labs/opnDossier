@@ -13,7 +13,7 @@
 - [x] **TASK-032**: Verbose/quiet output modes
 - [x] **TASK-035**: YAML configuration file support
 - [x] **TASK-036**: Environment variable support (`OPNFOCUS_*`)
-- [ ] **TASK-037**: CLI flag override system
+- [x] **TASK-037**: CLI flag override system
 - [ ] **TASK-044**: Achieve >80% test coverage
 - [ ] **TASK-047**: Automated quality checks
 - [ ] **TASK-049**: Update README for v1.0
@@ -514,13 +514,14 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Environment variables override configuration file settings (standard precedence)
   - **Note**: Fully implemented with comprehensive environment variable support for all configuration fields, proper precedence handling (CLI flags > env vars > config file > defaults), extensive test coverage including boolean, integer, and slice value types, and complete documentation throughout the codebase.
 
-- [ ] **TASK-037**: Implement CLI flag override system
+- [x] **TASK-037**: Implement CLI flag override system
 
   - **Context**: Need runtime configuration override capability
   - **Requirement**: US-014 (CLI overrides), Configuration Management
   - **User Story**: US-014 (Command-line overrides)
   - **Action**: Ensure CLI flags take precedence over config file and env vars
   - **Acceptance**: Command-line flags override all other configuration sources (highest precedence)
+  - **Note**: Fully implemented with proper flag binding using viper.BindPFlags(), comprehensive precedence handling in all commands (buildEffectiveFormat, buildConversionOptions, buildDisplayOptions), extensive test coverage, and complete documentation. All quality checks pass.
 
 ### 6.2 Configuration Validation
 
