@@ -10,7 +10,7 @@
 
 - [x] **TASK-030**: Refactor CLI command structure (convert, display, validate commands)
 - [x] **TASK-031**: Comprehensive help system
-- [ ] **TASK-032**: Verbose/quiet output modes
+- [x] **TASK-032**: Verbose/quiet output modes
 - [ ] **TASK-035**: YAML configuration file support
 - [ ] **TASK-036**: Environment variable support (`OPNFOCUS_*`)
 - [ ] **TASK-037**: CLI flag override system
@@ -456,7 +456,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Acceptance**: Help system provides clear usage instructions and examples
   - **Note**: Enhanced root command help with comprehensive workflow examples, error handling guidance, and configuration file examples. Improved flag descriptions across all commands for better user guidance.
 
-- [ ] **TASK-032**: Add verbose and quiet output modes
+- [x] **TASK-032**: Add verbose and quiet output modes
 
   - **Context**: Need output level control
   - **Requirement**: US-011 (Output modes), User Experience Specifications
