@@ -1,5 +1,71 @@
 # opnFocus Implementation Tasks
 
+## Release Roadmap
+
+### v1.0 - Essential CLI Tool (Target: Tonight)
+
+**Core Value:** Robust OPNsense config.xml to documentation converter
+
+**Critical Tasks for v1.0 Release:**
+
+- [ ] **TASK-030**: Refactor CLI command structure (convert, display, validate commands)
+- [ ] **TASK-031**: Comprehensive help system
+- [ ] **TASK-032**: Verbose/quiet output modes
+- [ ] **TASK-035**: YAML configuration file support
+- [ ] **TASK-036**: Environment variable support (`OPNFOCUS_*`)
+- [ ] **TASK-037**: CLI flag override system
+- [ ] **TASK-044**: Achieve >80% test coverage
+- [ ] **TASK-047**: Automated quality checks
+- [ ] **TASK-049**: Update README for v1.0
+- [ ] **TASK-053**: Verify offline operation
+- [ ] **TASK-060**: GoReleaser configuration
+- [ ] **TASK-063**: Automated release process
+
+**v1.0 Features:**
+
+- Parse OPNsense config.xml files with validation
+- Convert to markdown, JSON, or YAML formats
+- Display in terminal with syntax highlighting and themes
+- Export to files with overwrite protection
+- Complete offline operation
+- Cross-platform binaries
+- Comprehensive error handling
+
+### v1.1 - Advanced Analysis & Audit Reports
+
+**Core Value:** Security-focused audit and compliance reporting
+
+**Major Features:**
+
+- [ ] **TASK-023-029**: Complete audit report generation system
+  - Red team recon reports (attack surfaces, WAN exposure)
+  - Blue team defensive reports (findings, recommendations)
+  - Standard neutral documentation reports
+- [ ] **TASK-027c**: Plugin-based compliance architecture
+- [ ] Multi-mode reporting (standard/blue/red)
+- [ ] STIG, SANS, CIS compliance checking
+- [ ] Blackhat commentary mode
+- [ ] Template-driven report customization
+
+### v1.2 - Performance & Enterprise Features
+
+**Core Value:** Production-ready enterprise deployment
+
+**Major Features:**
+
+- [ ] **TASK-039**: Concurrent processing for multiple files
+- [ ] **TASK-040**: CLI startup time optimization
+- [ ] **TASK-041**: Memory-efficient processing for large files
+- [ ] **TASK-033**: Progress indicators
+- [ ] **TASK-034**: Tab completion support
+- [ ] **TASK-042**: Performance benchmarking
+- [ ] **TASK-058**: Enhanced container support
+- [ ] Advanced plugin ecosystem
+- [ ] Batch processing capabilities
+- [ ] Configuration diff analysis
+
+---
+
 ## Overview
 
 This document provides a comprehensive task checklist for implementing the opnFocus CLI tool based on the requirements document and user stories. Each task includes specific references to relevant requirement items and user stories.
