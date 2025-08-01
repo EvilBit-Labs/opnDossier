@@ -100,9 +100,7 @@ func init() {
 	// Template and template-dir are mutually exclusive (template-dir overrides built-in templates)
 	convertCmd.MarkFlagsMutuallyExclusive("template", "template-dir")
 
-	// Mark flags that require audit mode
-	convertCmd.MarkFlagsRequiredTogether("blackhat-mode", "mode")
-	convertCmd.MarkFlagsRequiredTogether("plugins", "mode")
+	// Note: mode and template can be used together, so no mutual exclusivity needed
 
 	// Note: mode and template can be used together, so no mutual exclusivity needed
 }
