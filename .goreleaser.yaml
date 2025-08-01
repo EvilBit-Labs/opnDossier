@@ -13,13 +13,17 @@ builds:
     env:
       - CGO_ENABLED=0
     goos:
+      - freebsd
       - linux
       - darwin
       - windows
     goarch:
       - amd64
       - arm64
-    ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+    ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X github.com/unclesp1d3r/opnFocus/cmd.buildDate={{.Date}} -X github.com/unclesp1d3r/opnFocus/cmd.gitCommit={{.Commit}}
+    ignore:
+      - goos: freebsd
+        goarch: arm64
 
 archives:
   - formats: tar.gz
@@ -56,6 +60,7 @@ changelog:
       order: 999
 checksum:
   name_template: "{{ .ProjectName }}_checksums.txt"
+
 release:
   github:
     owner: "unclesp1d3r"
@@ -79,12 +84,44 @@ nfpms:
       - rpm
       - termux.deb
       - archlinux
-    dependencies:
-      - 7zip
-    recommends:
-      - hashcat
     priority: extra
     changelog: changelog.yml
+
+dockers:
+  - image_templates:
+      - "ghcr.io/unclesp1d3r/opnfocus:{{ .Tag }}"
+      - "ghcr.io/unclesp1d3r/opnfocus:v{{ .Major }}"
+      - "ghcr.io/unclesp1d3r/opnfocus:v{{ .Major }}.{{ .Minor }}"
+      - "ghcr.io/unclesp1d3r/opnfocus:latest"
+    use: buildx
+    dockerfile: Dockerfile.releaser
+    goarch: amd64
+    goos: linux
+    build_flag_templates:
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source = 'https://github.com/unclesp1d3r/opnfocus'"
+      - "--build-arg=branch=latest"
+      - "--platform=linux/amd64"
+  - image_templates:
+      - "ghcr.io/unclesp1d3r/opnfocus:{{ .Tag }}-pocl"
+      - "ghcr.io/unclesp1d3r/opnfocus:v{{ .Major }}-pocl"
+      - "ghcr.io/unclesp1d3r/opnfocus:v{{ .Major }}.{{ .Minor }}-pocl"
+      - "ghcr.io/unclesp1d3r/opnfocus:pocl"
+    use: buildx
+    dockerfile: Dockerfile.releaser
+    goarch: amd64
+    goos: linux
+    build_flag_templates:
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source = 'https://github.com/unclesp1d3r/opnfocus'"
+      - "--build-arg=branch=pocl"
+      - "--platform=linux/amd64"
 
 milestones:
   - repo:

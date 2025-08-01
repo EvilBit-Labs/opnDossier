@@ -3,11 +3,11 @@ package constants
 
 import "time"
 
+// Version information.
+var Version = "1.0.0"
+
 // Application constants.
 const (
-	// Version information.
-	Version = "1.0.0"
-
 	// Application metadata.
 	AppName = "opnFocus"
 

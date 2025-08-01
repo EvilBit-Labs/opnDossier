@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/unclesp1d3r/opnFocus/internal/config"
+	"github.com/unclesp1d3r/opnFocus/internal/constants"
 	"github.com/unclesp1d3r/opnFocus/internal/log"
 )
 
@@ -15,6 +16,10 @@ var (
 	// Cfg holds the application's configuration, loaded from file, environment, or flags.
 	Cfg    *config.Config //nolint:gochecknoglobals // Application configuration
 	logger *log.Logger    //nolint:gochecknoglobals // Application logger
+
+	// Build information injected by GoReleaser via ldflags.
+	buildDate = "unknown"
+	gitCommit = "unknown"
 )
 
 // rootCmd represents the base command when called without any subcommands.
@@ -132,6 +137,18 @@ func init() {
 	// Verbose and quiet are mutually exclusive
 	rootCmd.MarkFlagsMutuallyExclusive("verbose", "quiet")
 
+	// Add version command
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "version",
+		Short: "Display version information",
+		Long:  "Display the current version of opnFocus and build information.",
+		Run: func(_ *cobra.Command, _ []string) {
+			fmt.Printf("opnFocus version %s\n", constants.Version)
+			fmt.Printf("Build date: %s\n", getBuildDate())
+			fmt.Printf("Git commit: %s\n", getGitCommit())
+		},
+	})
+
 	// Add command groups for better organization
 	rootCmd.AddGroup(&cobra.Group{
 		ID:    "core",
@@ -187,4 +204,14 @@ func setFlagAnnotation(flags *pflag.FlagSet, flagName string, values []string) {
 		// This should never happen with valid flag names
 		logger.Error("failed to set flag annotation", "flag", flagName, "error", err)
 	}
+}
+
+// getBuildDate returns the build date from ldflags or a default value.
+func getBuildDate() string {
+	return buildDate
+}
+
+// getGitCommit returns the git commit from ldflags or a default value.
+func getGitCommit() string {
+	return gitCommit
 }

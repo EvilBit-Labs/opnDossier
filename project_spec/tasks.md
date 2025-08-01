@@ -18,7 +18,7 @@
 - [x] **TASK-047**: Automated quality checks
 - [x] **TASK-049**: Update README for v1.0
 - [x] **TASK-053**: Verify offline operation
-- [ ] **TASK-060**: GoReleaser configuration (ensure release requirements are met and add support to justfile)
+- [x] **TASK-060**: GoReleaser configuration (ensure release requirements are met and add support to justfile)
 - [ ] **TASK-063**: Automated release process
 
 **v1.0 Features:**
@@ -784,13 +784,14 @@ This document provides a comprehensive task checklist for implementing the opnFo
 
 ### 12.1 Build System
 
-- [ ] **TASK-060**: Configure GoReleaser for multi-platform builds
+- [x] **TASK-060**: Configure GoReleaser for multi-platform builds
 
   - **Context**: Need automated cross-platform builds
   - **Requirement**: Build and Distribution, CI/CD Pipeline Design
   - **User Story**: US-030-US-031 (Build and Distribution)
   - **Action**: Configure GoReleaser for Linux, macOS, Windows builds
   - **Acceptance**: Automated builds work for all target platforms
+  - **Note**: Fully implemented with comprehensive GoReleaser configuration supporting multi-platform builds (Linux, macOS, Windows for amd64 and arm64), version injection via ldflags, macOS notarization, package manager support (deb, rpm, apk, archlinux), SBOM generation, and complete justfile integration. All quality checks pass.
 
 - [ ] **TASK-061**: Implement package manager support
 

@@ -1,0 +1,3 @@
+FROM scratch
+COPY  opnfocus /
+ENTRYPOINT ["/opnfocus"]

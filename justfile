@@ -173,13 +173,33 @@ clean-build:
     just clean
     just build
 
-# Run all checks and tests, and build the agent
+# Build for release using GoReleaser
 build-for-release:
     @just install
     @go mod tidy
     @just check
     @just test
-    goreleaser build --clean --auto-snapshot --single-target
+    goreleaser build --clean --snapshot --single-target
+
+# Build snapshot release
+build-snapshot:
+    goreleaser build --clean --snapshot
+
+# Build full release (requires git tag)
+build-release:
+    goreleaser build --clean
+
+# Check GoReleaser configuration
+check-goreleaser:
+    goreleaser check --verbose
+
+# Release to GitHub (requires git tag and GITHUB_TOKEN)
+release:
+    goreleaser release --clean
+
+# Release snapshot to GitHub
+release-snapshot:
+    goreleaser release --clean --snapshot
 
 # -----------------------------
 # 📖 Documentation
