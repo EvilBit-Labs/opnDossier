@@ -117,6 +117,25 @@ alwaysApply: false
 - Handle large configurations with memory-efficient approaches
 - Use struct tags and custom validation functions
 
+## Configuration Management Guidelines
+
+**Important Note**: `viper` is used for managing the opnFocus application's own configuration (CLI settings, display preferences, etc.), not for parsing OPNsense config.xml files. The OPNsense configuration parsing is handled separately by the XML parser in `internal/parser/`.
+
+## Multi-Format Export Standards
+
+### Export Features
+
+- **Purpose**: Export OPNsense configurations to markdown, JSON, or YAML formats
+- **Usage**: `opnfocus convert config.xml --format [markdown|json|yaml]`
+- **File Quality**: Exported files must be valid and parseable by standard tools and libraries
+- **Output Control**: Smart file naming with overwrite protection and `-f` force option
+
+### Validation System
+
+- **Purpose**: Enhance configuration integrity by validating against rules and constraints
+- **Usage**: Automatically applied during parsing, or explicitly initiated via CLI
+- **Performance**: Handle large configurations using streamlined memory-efficient approaches
+
 ## Security Standards
 
 ### Secret Management

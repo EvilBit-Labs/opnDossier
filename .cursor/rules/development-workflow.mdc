@@ -4,6 +4,43 @@ alwaysApply: false
 ---
 # Development Workflow Guidelines
 
+## AI Agent Mandatory Practices
+
+When AI agents contribute to this project, they must:
+
+01. **Always run tests** after making changes: `just test`
+02. **Run linting** before committing: `just lint`
+03. **Follow the established patterns** shown in existing code
+04. **Use the preferred tooling commands** listed in AGENTS.md
+05. **Write comprehensive tests** for new functionality
+06. **Include proper error handling** with context
+07. **Add structured logging** for important operations
+08. **Validate all inputs** and handle edge cases
+09. **Document new functions and types** following Go conventions
+10. **Never commit secrets** or hardcoded credentials
+11. **Consult project documentation** - requirements.md, ARCHITECTURE.md, and DEVELOPMENT_STANDARDS.md for guidance
+12. When rendering reports, always prefer structured config data + audit overlays over flat summary tables
+13. Blue team output should favor clarity, grouping, and actionability. Red team output should favor target prioritization and pivot surface discovery
+14. Validate all generated markdown for formatting correctness using mdformat or markdownlint
+
+## AI Agent Code Review Checklist
+
+Before submitting code, AI agents must verify:
+
+- [ ] Code follows Go formatting standards (`gofmt`)
+- [ ] All linting issues resolved (`golangci-lint`)
+- [ ] Tests pass (`go test ./...`)
+- [ ] Error handling includes proper context
+- [ ] Logging uses structured format with appropriate levels
+- [ ] No hardcoded secrets or credentials
+- [ ] Input validation implemented where needed
+- [ ] Documentation updated for new features
+- [ ] Dependencies properly managed (`go mod tidy`)
+- [ ] Code follows established patterns and interfaces
+- [ ] Requirements compliance verified against requirements.md
+- [ ] Architecture patterns followed per ARCHITECTURE.md
+- [ ] Development standards adhered to per DEVELOPMENT_STANDARDS.md
+
 ## Pre-Development Checklist
 
 ### Requirements Review
@@ -126,6 +163,16 @@ just ci-check     # Run comprehensive checks
 ```bash
 just docs         # Serve documentation locally
 ```
+
+## Required Documentation References
+
+AI agents must familiarize themselves with:
+
+- **[requirements.md](project_spec/requirements.md)** - Complete functional and technical requirements
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System design, data flow, and component architecture
+- **[DEVELOPMENT_STANDARDS.md](DEVELOPMENT_STANDARDS.md)** - Go-specific coding standards and project structure
+
+These documents provide the complete context needed for effective development and decision-making within the opnFocus project.
 
 ## Key Documents
 
