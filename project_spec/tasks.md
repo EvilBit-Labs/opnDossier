@@ -11,7 +11,7 @@
 - [x] **TASK-030**: Refactor CLI command structure (convert, display, validate commands)
 - [x] **TASK-031**: Comprehensive help system
 - [x] **TASK-032**: Verbose/quiet output modes
-- [ ] **TASK-035**: YAML configuration file support
+- [x] **TASK-035**: YAML configuration file support
 - [ ] **TASK-036**: Environment variable support (`OPNFOCUS_*`)
 - [ ] **TASK-037**: CLI flag override system
 - [ ] **TASK-044**: Achieve >80% test coverage
