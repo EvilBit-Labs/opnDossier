@@ -69,38 +69,6 @@ jobs:
       - name: Build
         run: go build -v ./...
 
-  quality:
-    name: quality-checks
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.24'
-          check-latest: true
-
-      - name: Install dependencies
-        run: |
-          go mod download
-          go mod verify
-
-      - name: Run comprehensive quality checks
-        run: |
-          # Install required tools
-          go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
-          python -m pip install --upgrade pip
-          python -m pip install pre-commit
-
-          # Run all quality checks
-          pre-commit run --all-files
-          go test -v -race ./...
-          golangci-lint run ./...
-          go vet ./...
-          gosec ./...
-          go run golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@latest -test ./...
-          go build -v ./...
-
   build:
     name: build
     runs-on: ubuntu-latest

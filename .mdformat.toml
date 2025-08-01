@@ -1,12 +1,3 @@
-exclude = [
-    "venv/**",
-    "**/node_modules/**",
-    "**/*.txt",
-    "**/*.mdc",
-    "**/*.tpl.md",
-    "**/CHANGELOG.md",
-    "**/*.mdc",
-]
 validate = true
 number = true
 
