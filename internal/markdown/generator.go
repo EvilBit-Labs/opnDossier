@@ -312,8 +312,36 @@ func (g *markdownGenerator) generateMarkdown(_ context.Context, data any, opts O
 	return buf.String(), nil
 }
 
+// mapTemplateName converts logical template names to actual filenames.
+func mapTemplateName(logicalName string) string {
+	switch logicalName {
+	case "standard":
+		return "opnsense_report.md.tmpl"
+	case "comprehensive":
+		return "opnsense_report_comprehensive.md.tmpl"
+	case "json":
+		return "json_output.tmpl"
+	case "yaml":
+		return "yaml_output.tmpl"
+	case "blue":
+		return "blue.md.tmpl"
+	case "red":
+		return "red.md.tmpl"
+	case "blue-enhanced":
+		return "blue_enhanced.md.tmpl"
+	default:
+		// If it's not a known logical name, assume it's already a filename
+		return logicalName
+	}
+}
+
 // selectTemplate determines which template to use based on the options provided.
 func (g *markdownGenerator) selectTemplate(opts Options) string {
+	// If a custom template name is specified, use it
+	if opts.TemplateName != "" {
+		return mapTemplateName(opts.TemplateName)
+	}
+
 	// If audit mode is specified, use audit mode templates
 	if opts.AuditMode != "" {
 		switch opts.AuditMode {

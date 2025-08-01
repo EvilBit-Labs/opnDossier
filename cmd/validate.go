@@ -18,8 +18,9 @@ func init() {
 }
 
 var validateCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
-	Use:   "validate [file ...]",
-	Short: "Validate OPNsense configuration files",
+	Use:     "validate [file ...]",
+	Short:   "Validate OPNsense configuration files",
+	GroupID: "utility",
 	Long: `The 'validate' command checks one or more OPNsense config.xml files for
 structural and semantic correctness without performing any conversion.
 This is useful for verifying configuration integrity before processing
@@ -31,15 +32,6 @@ The validation includes:
 - Required field validation
 - Cross-field consistency checks
 - Enum value validation
-
-Exit codes:
-  0 - All files are valid
-  1 - One or more files have validation errors
-  2 - Command execution error (file not found, permissions, etc.)
-
-CONFIGURATION:
-  This command respects the global configuration precedence:
-  CLI flags > environment variables (OPNFOCUS_*) > config file > defaults
 
 Examples:
   # Validate a single configuration file

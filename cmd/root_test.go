@@ -57,26 +57,38 @@ func TestRootCmdFlags(t *testing.T) {
 
 func TestRootCmdHelp(t *testing.T) {
 	rootCmd := GetRootCmd()
-
-	// Capture help output
 	var buf bytes.Buffer
 	rootCmd.SetOut(&buf)
+	rootCmd.SetErr(&buf)
 	rootCmd.SetArgs([]string{"--help"})
-
-	// Execute help command
 	err := rootCmd.Execute()
 	require.NoError(t, err)
-
 	output := buf.String()
-
-	// Verify help contains key information
 	assert.Contains(t, output, "opnFocus")
 	assert.Contains(t, output, "OPNsense configuration files")
-	assert.Contains(t, output, "CONFIGURATION:")
-	assert.Contains(t, output, "Examples:")
+	assert.Contains(t, output, "EXAMPLES:")
 	assert.Contains(t, output, "--verbose")
 	assert.Contains(t, output, "--quiet")
 	assert.Contains(t, output, "--config")
+}
+
+func TestGetFlagsByCategory(t *testing.T) {
+	rootCmd := GetRootCmd()
+	categories := GetFlagsByCategory(rootCmd)
+
+	// Test that categories exist
+	assert.Contains(t, categories, "configuration")
+	assert.Contains(t, categories, "output")
+	assert.Contains(t, categories, "logging")
+	assert.Contains(t, categories, "display")
+
+	// Test specific flags in categories
+	assert.Contains(t, categories["configuration"], "config")
+	assert.Contains(t, categories["output"], "verbose")
+	assert.Contains(t, categories["output"], "quiet")
+	assert.Contains(t, categories["logging"], "log_level")
+	assert.Contains(t, categories["logging"], "log_format")
+	assert.Contains(t, categories["display"], "theme")
 }
 
 func TestRootCmdSubcommands(t *testing.T) {

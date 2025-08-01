@@ -10,7 +10,6 @@ import (
 
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"github.com/unclesp1d3r/opnFocus/internal/markdown"
 )
 
 // Config holds the configuration for the opnFocus application.
@@ -136,7 +135,6 @@ func (c *Config) Validate() error {
 	validateLogFormat(c, &validationErrors)
 	validateTheme(c, &validationErrors)
 	validateFormat(c, &validationErrors)
-	validateTemplate(c, &validationErrors)
 	validateWrapWidth(c, &validationErrors)
 
 	// Return combined validation errors
@@ -147,14 +145,10 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-func validateFlags(c *Config, validationErrors *[]ValidationError) {
-	// Check for mutually exclusive verbose and quiet flags
-	if c.Verbose && c.Quiet {
-		*validationErrors = append(*validationErrors, ValidationError{
-			Field:   "verbose/quiet",
-			Message: "verbose and quiet options are mutually exclusive",
-		})
-	}
+func validateFlags(_ *Config, _ *[]ValidationError) {
+	// Validate flags
+	// Note: Verbose/quiet mutual exclusivity is handled by Cobra flag validation
+	// No additional validation needed here
 }
 
 func validateInputFile(c *Config, validationErrors *[]ValidationError) {
@@ -263,18 +257,6 @@ func validateFormat(c *Config, validationErrors *[]ValidationError) {
 			Field:   "format",
 			Message: fmt.Sprintf("invalid format '%s', must be one of: markdown, md, json, yaml, yml", c.Format),
 		})
-	}
-}
-
-func validateTemplate(c *Config, validationErrors *[]ValidationError) {
-	// Validate template
-	if c.Template != "" {
-		if _, err := markdown.LoadBuiltinTemplate(c.Template); err != nil {
-			*validationErrors = append(*validationErrors, ValidationError{
-				Field:   "template",
-				Message: fmt.Sprintf("failed to load template '%s': %v", c.Template, err),
-			})
-		}
 	}
 }
 

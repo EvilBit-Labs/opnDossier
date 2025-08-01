@@ -51,26 +51,66 @@ var (
 // This function sets up command-line flags for output file path, format, template, sections, theme, and text wrap width, enabling users to customize the conversion of OPNsense configuration files.
 func init() {
 	rootCmd.AddCommand(convertCmd)
-	convertCmd.Flags().StringVarP(&outputFile, "output", "o", "", "Output file path")
-	convertCmd.Flags().StringVarP(&format, "format", "f", "markdown", "Output format (markdown, json, yaml)")
-	convertCmd.Flags().StringVar(&templateName, "template", "", "Template name to use")
-	convertCmd.Flags().StringSliceVar(&sections, "section", []string{}, "Sections to include (comma-separated)")
-	convertCmd.Flags().StringVar(&themeName, "theme", "", "Theme for rendering (light, dark, auto, none)")
-	convertCmd.Flags().IntVar(&wrapWidth, "wrap", 0, "Text wrap width (0 = no wrapping)")
-	convertCmd.Flags().BoolVar(&force, "force", false, "Force overwrite existing files without prompt")
+
+	// Output and format flags
+	convertCmd.Flags().
+		StringVarP(&outputFile, "output", "o", "", "Output file path for saving converted configuration (default: print to console)")
+	setFlagAnnotation(convertCmd.Flags(), "output", []string{"output"})
+	convertCmd.Flags().
+		StringVarP(&format, "format", "f", "markdown", "Output format for conversion (markdown, json, yaml)")
+	setFlagAnnotation(convertCmd.Flags(), "format", []string{"output"})
+	convertCmd.Flags().
+		BoolVar(&force, "force", false, "Force overwrite existing files without prompting for confirmation")
+	setFlagAnnotation(convertCmd.Flags(), "force", []string{"output"})
+
+	// Template and styling flags
+	convertCmd.Flags().
+		StringVar(&templateName, "template", "", "Template name to use for markdown generation (default: auto-selected). Available: standard, comprehensive, json, yaml, blue, red, blue-enhanced")
+	setFlagAnnotation(convertCmd.Flags(), "template", []string{"template"})
+	convertCmd.Flags().
+		StringSliceVar(&sections, "section", []string{}, "Specific sections to include in output (comma-separated, e.g., system,network,firewall)")
+	setFlagAnnotation(convertCmd.Flags(), "section", []string{"template"})
+	convertCmd.Flags().StringVar(&themeName, "theme", "", "Theme for rendering output (light, dark, auto, none)")
+	setFlagAnnotation(convertCmd.Flags(), "theme", []string{"template"})
+	convertCmd.Flags().
+		IntVar(&wrapWidth, "wrap", 0, "Text wrap width in characters (0 = no wrapping, recommended: 80-120)")
+	setFlagAnnotation(convertCmd.Flags(), "wrap", []string{"template"})
 
 	// Audit mode flags
-	convertCmd.Flags().StringVar(&auditMode, "mode", "", "Audit mode (standard, blue, red)")
-	convertCmd.Flags().BoolVar(&blackhatMode, "blackhat-mode", false, "Enable blackhat mode for red team reports")
-	convertCmd.Flags().BoolVar(&comprehensive, "comprehensive", false, "Generate comprehensive report")
 	convertCmd.Flags().
-		StringSliceVar(&selectedPlugins, "plugins", []string{}, "Selected compliance plugins (comma-separated)")
-	convertCmd.Flags().StringVar(&templateDir, "template-dir", "", "Custom template directory for user overrides")
+		StringVar(&auditMode, "mode", "", "Audit mode for security-focused reporting (standard, blue, red)")
+	setFlagAnnotation(convertCmd.Flags(), "mode", []string{"audit"})
+	convertCmd.Flags().
+		BoolVar(&blackhatMode, "blackhat-mode", false, "Enable blackhat commentary mode for red team reports (adds snarky commentary)")
+	setFlagAnnotation(convertCmd.Flags(), "blackhat-mode", []string{"audit"})
+	convertCmd.Flags().
+		BoolVar(&comprehensive, "comprehensive", false, "Generate comprehensive detailed reports with full configuration analysis")
+	setFlagAnnotation(convertCmd.Flags(), "comprehensive", []string{"audit"})
+	convertCmd.Flags().
+		StringSliceVar(&selectedPlugins, "plugins", []string{}, "Compliance plugins to run (comma-separated, e.g., stig,sans)")
+	setFlagAnnotation(convertCmd.Flags(), "plugins", []string{"audit"})
+	convertCmd.Flags().
+		StringVar(&templateDir, "template-dir", "", "Custom template directory for user-defined templates (overrides built-in templates)")
+	setFlagAnnotation(convertCmd.Flags(), "template-dir", []string{"template"})
+
+	// Flag groups for better organization
+	convertCmd.Flags().SortFlags = false
+
+	// Mark mutually exclusive flags
+	// Template and template-dir are mutually exclusive (template-dir overrides built-in templates)
+	convertCmd.MarkFlagsMutuallyExclusive("template", "template-dir")
+
+	// Mark flags that require audit mode
+	convertCmd.MarkFlagsRequiredTogether("blackhat-mode", "mode")
+	convertCmd.MarkFlagsRequiredTogether("plugins", "mode")
+
+	// Note: mode and template can be used together, so no mutual exclusivity needed
 }
 
 var convertCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
-	Use:   "convert [file ...]",
-	Short: "Convert OPNsense configuration files to various formats",
+	Use:     "convert [file ...]",
+	Short:   "Convert OPNsense configuration files to structured formats.",
+	GroupID: "core",
 	Long: `The 'convert' command processes one or more OPNsense config.xml files and transforms
 its content into structured formats. Supported output formats include Markdown (default),
 JSON, and YAML. This allows for easier readability, documentation, programmatic access,
@@ -91,6 +131,18 @@ AUDIT MODES:
     --plugins: Specify compliance plugins to run (e.g., stig,sans)
     --template-dir: Use custom templates for report generation
 
+TEMPLATES:
+  Main templates:
+    standard                    - Standard report (default)
+    comprehensive               - Comprehensive report
+    json                        - JSON format output
+    yaml                        - YAML format output
+
+  Audit mode templates:
+    blue                        - Blue team audit report
+    red                         - Red team audit report
+    blue-enhanced               - Enhanced blue team audit report
+
 The convert command focuses on conversion only and does not perform validation.
 To validate your configuration files before conversion, use the 'validate' command.
 
@@ -101,15 +153,6 @@ flag to specify the output format (markdown, json, or yaml).
 When processing multiple files, the --output flag will be ignored, and each output
 file will be named based on its input file with the appropriate extension
 (e.g., config.xml -> config.md, config.json, or config.yaml).
-
-CONFIGURATION:
-  This command respects the global configuration precedence:
-  CLI flags > environment variables (OPNFOCUS_*) > config file > defaults
-
-  Output file can be set via:
-    --output flag (highest priority)
-    OPNFOCUS_OUTPUT_FILE environment variable
-    output_file in ~/.opnFocus.yaml
 
 Examples:
   # Convert 'my_config.xml' and print markdown to console
@@ -149,8 +192,7 @@ Examples:
   opnFocus convert config.xml -o output.md --force
 
   # Validate before converting (recommended workflow)
-  opnFocus validate config.xml && opnFocus convert config.xml -f json -o output.json
-`,
+  opnFocus validate config.xml && opnFocus convert config.xml -f json -o output.json`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
@@ -172,7 +214,6 @@ Examples:
 
 				// Create context-aware logger for this goroutine with input file field
 				ctxLogger := logger.WithContext(timeoutCtx).WithFields("input_file", fp)
-				ctxLogger.Info("Starting conversion process")
 
 				// Sanitize the file path
 				cleanPath := filepath.Clean(fp)
@@ -307,13 +348,13 @@ Examples:
 						errs <- fmt.Errorf("failed to export output to %s: %w", actualOutputFile, err)
 						return
 					}
-					enhancedLogger.Info("Output exported successfully")
+					// Output exported successfully (no logging to avoid corrupting output)
 				} else {
 					enhancedLogger.Debug("Outputting to stdout")
 					fmt.Print(output)
 				}
 
-				ctxLogger.Info("Conversion process completed successfully")
+				// Conversion process completed successfully (no logging to avoid corrupting output)
 			}(filePath)
 		}
 

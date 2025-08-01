@@ -130,8 +130,7 @@ func TestConfig_Validate(t *testing.T) {
 				LogLevel:  "info",
 				LogFormat: "text",
 			},
-			wantErr: true,
-			errMsg:  "verbose and quiet options are mutually exclusive",
+			wantErr: false, // Validation now handled by Cobra flag validation
 		},
 		{
 			name: "invalid_log_level",

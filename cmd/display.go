@@ -35,19 +35,40 @@ const (
 // init registers the display command with the root command and configures its CLI flags for validation, theming, template selection, section filtering, and text wrapping.
 func init() {
 	rootCmd.AddCommand(displayCmd)
+
+	// Validation flags
 	displayCmd.Flags().
-		BoolVar(&noValidation, "no-validate", false, "Skip validation and display potentially malformed configurations")
-	displayCmd.Flags().StringVar(&displayTheme, "theme", "", "Theme for display (light, dark, auto, none)")
-	displayCmd.Flags().StringVar(&displayTemplate, "template", "", "Template name to use for rendering")
-	displayCmd.Flags().StringSliceVar(&displaySections, "section", []string{}, "Sections to include (comma-separated)")
-	displayCmd.Flags().IntVar(&displayWrapWidth, "wrap", 0, "Text wrap width (0 = no wrapping)")
+		BoolVar(&noValidation, "no-validate", false, "Skip validation and display potentially malformed configurations (use with caution)")
+	setFlagAnnotation(displayCmd.Flags(), "no-validate", []string{"validation"})
+
+	// Template and styling flags
+	displayCmd.Flags().StringVar(&displayTheme, "theme", "", "Theme for terminal display (light, dark, auto, none)")
+	setFlagAnnotation(displayCmd.Flags(), "theme", []string{"template"})
 	displayCmd.Flags().
-		StringVar(&displayTemplateDir, "template-dir", "", "Custom template directory for user overrides")
+		StringVar(&displayTemplate, "template", "", "Template name to use for markdown rendering (default: auto-selected). Available: standard, comprehensive, json, yaml, blue, red, blue-enhanced")
+	setFlagAnnotation(displayCmd.Flags(), "template", []string{"template"})
+	displayCmd.Flags().
+		StringSliceVar(&displaySections, "section", []string{}, "Specific sections to include in display (comma-separated, e.g., system,network,firewall)")
+	setFlagAnnotation(displayCmd.Flags(), "section", []string{"template"})
+	displayCmd.Flags().
+		IntVar(&displayWrapWidth, "wrap", 0, "Text wrap width in characters (0 = no wrapping, recommended: 80-120)")
+	setFlagAnnotation(displayCmd.Flags(), "wrap", []string{"template"})
+	displayCmd.Flags().
+		StringVar(&displayTemplateDir, "template-dir", "", "Custom template directory for user-defined templates (overrides built-in templates)")
+	setFlagAnnotation(displayCmd.Flags(), "template-dir", []string{"template"})
+
+	// Flag groups for better organization
+	displayCmd.Flags().SortFlags = false
+
+	// Mark mutually exclusive flags
+	// Template and template-dir are mutually exclusive (template-dir overrides built-in templates)
+	displayCmd.MarkFlagsMutuallyExclusive("template", "template-dir")
 }
 
 var displayCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
-	Use:   "display [file]",
-	Short: "Display OPNsense configuration as formatted markdown in terminal",
+	Use:     "display [file]",
+	Short:   "Display OPNsense configuration in formatted markdown.",
+	GroupID: "core",
 	Long: `The 'display' command converts an OPNsense config.xml file to markdown
 and displays it in the terminal with syntax highlighting and formatting.
 This provides an immediate, readable view of your firewall configuration
@@ -57,6 +78,18 @@ By default, the configuration is validated before display to ensure
 data integrity. Use --no-validate to skip validation if you need to
 display potentially malformed configurations.
 
+TEMPLATES:
+  Main templates:
+    standard                    - Standard report (default)
+    comprehensive               - Comprehensive report
+    json                        - JSON format output
+    yaml                        - YAML format output
+
+  Audit mode templates:
+    blue                        - Blue team audit report
+    red                         - Red team audit report
+    blue-enhanced               - Enhanced blue team audit report
+
 The output includes:
 - Syntax-highlighted markdown rendering
 - Proper formatting with headers, lists, and code blocks
@@ -64,10 +97,6 @@ The output includes:
 - Structured presentation of configuration hierarchy
 - Customizable templates and section filtering
 - Configurable text wrapping
-
-CONFIGURATION:
-  This command respects the global configuration precedence:
-  CLI flags > environment variables (OPNFOCUS_*) > config file > defaults
 
 Examples:
   # Display configuration with validation (default behavior)
@@ -93,8 +122,7 @@ Examples:
   opnFocus --verbose display config.xml
 
   # Display with quiet mode (suppress processing messages)
-  opnFocus --quiet display config.xml
-`,
+  opnFocus --quiet display config.xml`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()

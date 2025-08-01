@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/unclesp1d3r/opnFocus/internal/config"
 	"github.com/unclesp1d3r/opnFocus/internal/log"
 )
@@ -26,29 +27,24 @@ primarily Markdown. This tool is built to assist network administrators and
 security professionals in documenting, auditing, and understanding their
 OPNsense configurations more effectively.
 
-CONFIGURATION:
-  Configuration uses Viper for layered settings management with this precedence:
-  1. Command-line flags (highest priority)
-  2. Environment variables (OPNFOCUS_*)
-  3. Configuration file (~/.opnFocus.yaml)
-  4. Default values (lowest priority)
+WORKFLOW EXAMPLES:
+  # Basic conversion workflow
+  opnFocus convert config.xml -o documentation.md
 
-  The CLI is enhanced with Fang for improved user experience including
-  styled help, automatic version/completion commands, and error formatting.
+  # Audit workflow with compliance checks
+  opnFocus convert config.xml --mode blue --plugins stig,sans
 
-Examples:
-  # Convert an OPNsense config.xml to markdown and print to console
-  opnFocus convert config.xml
+  # Development workflow with verbose logging
+  opnFocus --verbose convert config.xml --format json
 
-  # Convert an OPNsense config.xml to markdown and save to a file
-  opnFocus convert config.xml -o output.md
+  # Configuration management workflow
+  OPNFOCUS_LOG_LEVEL=debug opnFocus convert config.xml --theme dark
 
-  # Use verbose logging with JSON format
-  opnFocus --verbose --log_format=json convert config.xml
+  # Template customization workflow
+  opnFocus convert config.xml --template-dir ~/.opnFocus/templates --template detailed
 
-  # Override config file settings with environment variables
-  OPNFOCUS_LOG_LEVEL=debug opnFocus convert config.xml
-`,
+  # Compliance workflow
+  opnFocus convert config.xml --mode blue --plugins stig,sans --comprehensive`,
 	PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 		var err error
 		// Load configuration with flag binding for proper precedence
@@ -105,12 +101,50 @@ func init() {
 		panic(fmt.Sprintf("failed to create default logger: %v", loggerErr))
 	}
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.opnFocus.yaml)")
-	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose output (debug logging)")
-	rootCmd.PersistentFlags().BoolP("quiet", "q", false, "Suppress all output except errors")
-	rootCmd.PersistentFlags().String("log_level", "info", "Set log level (debug, info, warn, error)")
-	rootCmd.PersistentFlags().String("log_format", "text", "Set log format (text, json)")
-	rootCmd.PersistentFlags().String("theme", "", "Set display theme (light, dark, custom, or empty for auto-detect)")
+	// Configuration flags
+	rootCmd.PersistentFlags().
+		StringVar(&cfgFile, "config", "", "Configuration file path (default: $HOME/.opnFocus.yaml)")
+	setFlagAnnotation(rootCmd.PersistentFlags(), "config", []string{"configuration"})
+
+	// Output control flags
+	rootCmd.PersistentFlags().
+		BoolP("verbose", "v", false, "Enable verbose output with debug-level logging for detailed troubleshooting")
+	setFlagAnnotation(rootCmd.PersistentFlags(), "verbose", []string{"output"})
+	rootCmd.PersistentFlags().BoolP("quiet", "q", false, "Suppress all output except errors and critical messages")
+	setFlagAnnotation(rootCmd.PersistentFlags(), "quiet", []string{"output"})
+
+	// Logging configuration flags
+	rootCmd.PersistentFlags().
+		String("log_level", "info", "Set logging level (debug, info, warn, error) for detailed output control")
+	setFlagAnnotation(rootCmd.PersistentFlags(), "log_level", []string{"logging"})
+	rootCmd.PersistentFlags().String("log_format", "text", "Set log output format (text, json) for structured logging")
+	setFlagAnnotation(rootCmd.PersistentFlags(), "log_format", []string{"logging"})
+
+	// Display configuration flags
+	rootCmd.PersistentFlags().
+		String("theme", "", "Set display theme (light, dark, auto, none) for terminal output styling")
+	setFlagAnnotation(rootCmd.PersistentFlags(), "theme", []string{"display"})
+
+	// Flag groups for better organization
+	rootCmd.PersistentFlags().SortFlags = false
+
+	// Mark mutually exclusive flags
+	// Verbose and quiet are mutually exclusive
+	rootCmd.MarkFlagsMutuallyExclusive("verbose", "quiet")
+
+	// Add command groups for better organization
+	rootCmd.AddGroup(&cobra.Group{
+		ID:    "core",
+		Title: "Core Commands",
+	})
+	rootCmd.AddGroup(&cobra.Group{
+		ID:    "audit",
+		Title: "Audit & Compliance",
+	})
+	rootCmd.AddGroup(&cobra.Group{
+		ID:    "utility",
+		Title: "Utility Commands",
+	})
 }
 
 // GetRootCmd returns the root Cobra command for the opnFocus CLI application.
@@ -129,4 +163,28 @@ func GetLogger() *log.Logger {
 // GetConfig returns the current application configuration instance for use by subcommands and other packages.
 func GetConfig() *config.Config {
 	return Cfg
+}
+
+// GetFlagsByCategory returns flags grouped by their category annotation.
+// This demonstrates how flag annotations can be used for programmatic flag management.
+func GetFlagsByCategory(cmd *cobra.Command) map[string][]string {
+	categories := make(map[string][]string)
+
+	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
+		if category, ok := flag.Annotations["category"]; ok && len(category) > 0 {
+			cat := category[0]
+			categories[cat] = append(categories[cat], flag.Name)
+		}
+	})
+
+	return categories
+}
+
+// setFlagAnnotation safely sets a flag annotation and logs any errors.
+func setFlagAnnotation(flags *pflag.FlagSet, flagName string, values []string) {
+	if err := flags.SetAnnotation(flagName, "category", values); err != nil {
+		// In init functions, we can't return errors, so we log them
+		// This should never happen with valid flag names
+		logger.Error("failed to set flag annotation", "flag", flagName, "error", err)
+	}
 }
