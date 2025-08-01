@@ -42,12 +42,49 @@ install:
     @{{venv-pip}} install mkdocs-material
     @pre-commit install --hook-type commit-msg
     @go mod tidy
+    @just install-git-cliff
 
 # Update dependencies
 update-deps:
     go get -u ./...
     go mod tidy
     go mod verify
+
+# Install git-cliff for changelog generation
+[unix]
+install-git-cliff:
+    @echo "Installing git-cliff..."
+    @if ! command -v git-cliff >/dev/null 2>&1; then \
+        if command -v cargo >/dev/null 2>&1; then \
+            cargo install git-cliff; \
+        elif command -v brew >/dev/null 2>&1; then \
+            brew install git-cliff; \
+        else \
+            echo "Error: git-cliff not found. Please install it manually:"; \
+            echo "  - Using Cargo: cargo install git-cliff"; \
+            echo "  - Using Homebrew: brew install git-cliff"; \
+            echo "  - Or download from: https://github.com/orhun/git-cliff/releases"; \
+            exit 1; \
+        fi; \
+    else \
+        echo "git-cliff is already installed"; \
+    fi
+
+[windows]
+install-git-cliff:
+    @echo "Installing git-cliff..."
+    @if ! where git-cliff >nul 2>&1; then \
+        if where cargo >nul 2>&1; then \
+            cargo install git-cliff; \
+        else \
+            echo "Error: git-cliff not found. Please install it manually:"; \
+            echo "  - Using Cargo: cargo install git-cliff"; \
+            echo "  - Or download from: https://github.com/orhun/git-cliff/releases"; \
+            exit 1; \
+        fi; \
+    else \
+        echo "git-cliff is already installed"; \
+    fi
 
 
 # -----------------------------
@@ -159,6 +196,36 @@ docs-test:
 # Build documentation
 docs-export:
     @{{venv-mkdocs}} build
+
+# Generate changelog using git-cliff
+changelog:
+    @just check-git-cliff
+    git-cliff --output CHANGELOG.md
+
+# Generate changelog for a specific version
+changelog-version *version:
+    @just check-git-cliff
+    git-cliff --tag {{version}} --output CHANGELOG.md
+
+# Generate changelog for unreleased changes
+changelog-unreleased:
+    @just check-git-cliff
+    git-cliff --unreleased --output CHANGELOG.md
+
+# Check if git-cliff is available
+[unix]
+check-git-cliff:
+    @if ! command -v git-cliff >/dev/null 2>&1; then \
+        echo "Error: git-cliff not found. Run 'just install' to install it."; \
+        exit 1; \
+    fi
+
+[windows]
+check-git-cliff:
+    @if ! where git-cliff >nul 2>&1; then \
+        echo "Error: git-cliff not found. Run 'just install' to install it."; \
+        exit 1; \
+    fi
 
 
 
