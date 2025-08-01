@@ -167,10 +167,24 @@ func validateInterfaces(interfaces *model.Interfaces) []ValidationError {
 func validateInterface(iface *model.Interface, name string, interfaces *model.Interfaces) []ValidationError {
 	var errors []ValidationError
 
-	// Get valid interface names for cross-field validation
+	if iface == nil {
+		return errors
+	}
+
 	validInterfaceNames := collectInterfaceNames(interfaces)
 
-	// Validate IP address configuration
+	errors = append(errors, validateIPAddress(iface, name)...)                   // IP Address Validation
+	errors = append(errors, validateIPv6Address(iface, name)...)                 // IPv6 Address Validation
+	errors = append(errors, validateSubnet(iface, name)...)                      // Subnet Mask Validation
+	errors = append(errors, validateMTU(iface, name)...)                         // MTU Validation
+	errors = append(errors, validateTrack6(iface, validInterfaceNames, name)...) // Track6 Specific Validation
+
+	return errors
+}
+
+// validateIPAddress validates the IP address of an interface.
+func validateIPAddress(iface *model.Interface, name string) []ValidationError {
+	var errors []ValidationError
 	if iface.IPAddr != "" {
 		validIPTypes := []string{"dhcp", "dhcp6", "track6", "none"}
 		if !contains(validIPTypes, iface.IPAddr) && !isValidIP(iface.IPAddr) {
@@ -184,8 +198,12 @@ func validateInterface(iface *model.Interface, name string, interfaces *model.In
 			})
 		}
 	}
+	return errors
+}
 
-	// Validate IPv6 address configuration
+// validateIPv6Address validates the IPv6 address of an interface.
+func validateIPv6Address(iface *model.Interface, name string) []ValidationError {
+	var errors []ValidationError
 	if iface.IPAddrv6 != "" {
 		validIPv6Types := []string{"dhcp6", "slaac", "track6", "none"}
 		if !contains(validIPv6Types, iface.IPAddrv6) && !isValidIPv6(iface.IPAddrv6) {
@@ -199,8 +217,12 @@ func validateInterface(iface *model.Interface, name string, interfaces *model.In
 			})
 		}
 	}
+	return errors
+}
 
-	// Validate subnet mask
+// validateSubnet validates the subnet mask of an interface.
+func validateSubnet(iface *model.Interface, name string) []ValidationError {
+	var errors []ValidationError
 	if iface.Subnet != "" {
 		if subnet, err := strconv.Atoi(iface.Subnet); err != nil || subnet < 0 || subnet > 32 {
 			errors = append(errors, ValidationError{
@@ -209,8 +231,6 @@ func validateInterface(iface *model.Interface, name string, interfaces *model.In
 			})
 		}
 	}
-
-	// Validate IPv6 subnet
 	if iface.Subnetv6 != "" {
 		if subnet, err := strconv.Atoi(iface.Subnetv6); err != nil || subnet < 0 || subnet > 128 {
 			errors = append(errors, ValidationError{
@@ -219,8 +239,12 @@ func validateInterface(iface *model.Interface, name string, interfaces *model.In
 			})
 		}
 	}
+	return errors
+}
 
-	// Validate MTU
+// validateMTU validates the MTU of an interface.
+func validateMTU(iface *model.Interface, name string) []ValidationError {
+	var errors []ValidationError
 	if iface.MTU != "" {
 		if mtu, err := strconv.Atoi(iface.MTU); err != nil || mtu < 68 || mtu > 9000 {
 			errors = append(errors, ValidationError{
@@ -229,8 +253,12 @@ func validateInterface(iface *model.Interface, name string, interfaces *model.In
 			})
 		}
 	}
+	return errors
+}
 
-	// Cross-field validation: track6 configuration
+// validateTrack6 performs cross-field validation for track6 configurations.
+func validateTrack6(iface *model.Interface, validInterfaceNames map[string]struct{}, name string) []ValidationError {
+	var errors []ValidationError
 	if iface.IPAddrv6 == "track6" {
 		if iface.Track6Interface == "" {
 			errors = append(errors, ValidationError{
@@ -260,11 +288,9 @@ func validateInterface(iface *model.Interface, name string, interfaces *model.In
 			})
 		}
 	}
-
 	return errors
 }
 
-// validateDhcpd checks the validity of the DHCP server configuration for all interfaces.
 // It iterates over the interface map and validates each DHCP block that exists in the dhcpd section.
 // Returns a slice of ValidationError for any invalid or inconsistent DHCP configuration fields.
 func validateDhcpd(dhcpd *model.Dhcpd, interfaces *model.Interfaces) []ValidationError {
@@ -485,112 +511,198 @@ func validateUsersAndGroups(system *model.System) []ValidationError {
 	groupNames := make(map[string]bool)
 	groupGIDs := make(map[string]bool)
 
-	// Validate groups
-	for i, group := range system.Group {
-		// Group name is required and must be unique
-		switch {
-		case group.Name == "":
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("system.group[%d].name", i),
-				Message: "group name is required",
-			})
-		case groupNames[group.Name]:
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("system.group[%d].name", i),
-				Message: fmt.Sprintf("group name '%s' must be unique", group.Name),
-			})
-		default:
-			groupNames[group.Name] = true
-		}
+	errors = append(errors, validateGroups(system.Group, groupNames, groupGIDs)...)
+	errors = append(errors, validateUsers(system.User, groupNames)...)
 
-		// Validate GID
-		if group.Gid == "" {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("system.group[%d].gid", i),
-				Message: "group GID is required",
-			})
-		} else if gid, err := strconv.Atoi(group.Gid); err != nil || gid < 0 {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("system.group[%d].gid", i),
-				Message: fmt.Sprintf("GID '%s' must be a positive integer", group.Gid),
-			})
-		} else if groupGIDs[group.Gid] {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("system.group[%d].gid", i),
-				Message: fmt.Sprintf("group GID '%s' must be unique", group.Gid),
-			})
-		} else {
-			groupGIDs[group.Gid] = true
-		}
+	return errors
+}
 
-		// Validate scope
-		validScopes := []string{"system", "local"}
-		if group.Scope != "" && !contains(validScopes, group.Scope) {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("system.group[%d].scope", i),
-				Message: fmt.Sprintf("group scope '%s' must be one of: %v", group.Scope, validScopes),
-			})
-		}
+// validateGroups validates all groups and tracks names and GIDs for uniqueness.
+func validateGroups(groups []model.Group, groupNames, groupGIDs map[string]bool) []ValidationError {
+	var errors []ValidationError
+
+	for i, group := range groups {
+		errors = append(errors, validateGroupName(group, i, groupNames)...)
+		errors = append(errors, validateGroupGID(group, i, groupGIDs)...)
+		errors = append(errors, validateGroupScope(group, i)...)
 	}
 
-	// Track user names and UIDs to ensure uniqueness
+	return errors
+}
+
+// validateGroupName validates group name requirements and uniqueness.
+func validateGroupName(group model.Group, index int, groupNames map[string]bool) []ValidationError {
+	var errors []ValidationError
+
+	switch {
+	case group.Name == "":
+		errors = append(errors, ValidationError{
+			Field:   fmt.Sprintf("system.group[%d].name", index),
+			Message: "group name is required",
+		})
+	case groupNames[group.Name]:
+		errors = append(errors, ValidationError{
+			Field:   fmt.Sprintf("system.group[%d].name", index),
+			Message: fmt.Sprintf("group name '%s' must be unique", group.Name),
+		})
+	default:
+		groupNames[group.Name] = true
+	}
+
+	return errors
+}
+
+// validateGroupGID validates group GID requirements and uniqueness.
+func validateGroupGID(group model.Group, index int, groupGIDs map[string]bool) []ValidationError {
+	var errors []ValidationError
+
+	if group.Gid == "" {
+		errors = append(errors, ValidationError{
+			Field:   fmt.Sprintf("system.group[%d].gid", index),
+			Message: "group GID is required",
+		})
+		return errors
+	}
+
+	gid, err := strconv.Atoi(group.Gid)
+	if err != nil || gid < 0 {
+		errors = append(errors, ValidationError{
+			Field:   fmt.Sprintf("system.group[%d].gid", index),
+			Message: fmt.Sprintf("GID '%s' must be a positive integer", group.Gid),
+		})
+		return errors
+	}
+
+	if groupGIDs[group.Gid] {
+		errors = append(errors, ValidationError{
+			Field:   fmt.Sprintf("system.group[%d].gid", index),
+			Message: fmt.Sprintf("group GID '%s' must be unique", group.Gid),
+		})
+		return errors
+	}
+
+	groupGIDs[group.Gid] = true
+	return errors
+}
+
+// validateGroupScope validates group scope requirements.
+func validateGroupScope(group model.Group, index int) []ValidationError {
+	var errors []ValidationError
+
+	if group.Scope == "" {
+		return errors
+	}
+
+	validScopes := []string{"system", "local"}
+	if !contains(validScopes, group.Scope) {
+		errors = append(errors, ValidationError{
+			Field:   fmt.Sprintf("system.group[%d].scope", index),
+			Message: fmt.Sprintf("group scope '%s' must be one of: %v", group.Scope, validScopes),
+		})
+	}
+
+	return errors
+}
+
+// validateUsers validates all users.
+func validateUsers(users []model.User, groupNames map[string]bool) []ValidationError {
+	var errors []ValidationError
 	userNames := make(map[string]bool)
 	userUIDs := make(map[string]bool)
 
-	// Validate users
-	for i, user := range system.User {
-		// User name is required and must be unique
-		switch {
-		case user.Name == "":
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("system.user[%d].name", i),
-				Message: "user name is required",
-			})
-		case userNames[user.Name]:
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("system.user[%d].name", i),
-				Message: fmt.Sprintf("user name '%s' must be unique", user.Name),
-			})
-		default:
-			userNames[user.Name] = true
-		}
+	for i, user := range users {
+		errors = append(errors, validateUserName(user, i, userNames)...)
+		errors = append(errors, validateUserUID(user, i, userUIDs)...)
+		errors = append(errors, validateUserGroupMembership(user, i, groupNames)...)
+		errors = append(errors, validateUserScope(user, i)...)
+	}
 
-		// Validate UID
-		if user.UID == "" {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("system.user[%d].uid", i),
-				Message: "user UID is required",
-			})
-		} else if uid, err := strconv.Atoi(user.UID); err != nil || uid < 0 {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("system.user[%d].uid", i),
-				Message: fmt.Sprintf("UID '%s' must be a positive integer", user.UID),
-			})
-		} else if userUIDs[user.UID] {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("system.user[%d].uid", i),
-				Message: fmt.Sprintf("user UID '%s' must be unique", user.UID),
-			})
-		} else {
-			userUIDs[user.UID] = true
-		}
+	return errors
+}
 
-		// Validate group membership - group must exist
-		if user.Groupname != "" && !groupNames[user.Groupname] {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("system.user[%d].groupname", i),
-				Message: fmt.Sprintf("referenced group '%s' does not exist", user.Groupname),
-			})
-		}
+// validateUserName validates user name requirements and uniqueness.
+func validateUserName(user model.User, index int, userNames map[string]bool) []ValidationError {
+	var errors []ValidationError
 
-		// Validate scope
-		validScopes := []string{"system", "local"}
-		if user.Scope != "" && !contains(validScopes, user.Scope) {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("system.user[%d].scope", i),
-				Message: fmt.Sprintf("user scope '%s' must be one of: %v", user.Scope, validScopes),
-			})
-		}
+	switch {
+	case user.Name == "":
+		errors = append(errors, ValidationError{
+			Field:   fmt.Sprintf("system.user[%d].name", index),
+			Message: "user name is required",
+		})
+	case userNames[user.Name]:
+		errors = append(errors, ValidationError{
+			Field:   fmt.Sprintf("system.user[%d].name", index),
+			Message: fmt.Sprintf("user name '%s' must be unique", user.Name),
+		})
+	default:
+		userNames[user.Name] = true
+	}
+
+	return errors
+}
+
+// validateUserUID validates user UID requirements and uniqueness.
+func validateUserUID(user model.User, index int, userUIDs map[string]bool) []ValidationError {
+	var errors []ValidationError
+
+	if user.UID == "" {
+		errors = append(errors, ValidationError{
+			Field:   fmt.Sprintf("system.user[%d].uid", index),
+			Message: "user UID is required",
+		})
+		return errors
+	}
+
+	uid, err := strconv.Atoi(user.UID)
+	if err != nil || uid < 0 {
+		errors = append(errors, ValidationError{
+			Field:   fmt.Sprintf("system.user[%d].uid", index),
+			Message: fmt.Sprintf("UID '%s' must be a positive integer", user.UID),
+		})
+		return errors
+	}
+
+	if userUIDs[user.UID] {
+		errors = append(errors, ValidationError{
+			Field:   fmt.Sprintf("system.user[%d].uid", index),
+			Message: fmt.Sprintf("user UID '%s' must be unique", user.UID),
+		})
+		return errors
+	}
+
+	userUIDs[user.UID] = true
+	return errors
+}
+
+// validateUserGroupMembership validates user group membership.
+func validateUserGroupMembership(user model.User, index int, groupNames map[string]bool) []ValidationError {
+	var errors []ValidationError
+
+	if user.Groupname != "" && !groupNames[user.Groupname] {
+		errors = append(errors, ValidationError{
+			Field:   fmt.Sprintf("system.user[%d].groupname", index),
+			Message: fmt.Sprintf("referenced group '%s' does not exist", user.Groupname),
+		})
+	}
+
+	return errors
+}
+
+// validateUserScope validates user scope requirements.
+func validateUserScope(user model.User, index int) []ValidationError {
+	var errors []ValidationError
+
+	if user.Scope == "" {
+		return errors
+	}
+
+	validScopes := []string{"system", "local"}
+	if !contains(validScopes, user.Scope) {
+		errors = append(errors, ValidationError{
+			Field:   fmt.Sprintf("system.user[%d].scope", index),
+			Message: fmt.Sprintf("user scope '%s' must be one of: %v", user.Scope, validScopes),
+		})
 	}
 
 	return errors

@@ -105,6 +105,8 @@ type Firewall struct {
 // IDS represents Intrusion Detection System configuration.
 //
 //revive:disable:var-naming
+
+// IDS represents the complete Intrusion Detection System configuration.
 type IDS struct {
 	XMLName          xml.Name `xml:"IDS"`
 	Text             string   `xml:",chardata"        json:"text,omitempty"`
@@ -174,7 +176,7 @@ type IPsec struct {
 		IkesaTableSize     string `xml:"ikesa_table_size"`
 		IkesaTableSegments string `xml:"ikesa_table_segments"`
 		InitLimitHalfOpen  string `xml:"init_limit_half_open"`
-		IgnoreAcquireTs    string `xml:"ignore_acquire_ts"`
+		IgnoreAcquireTs    string `xml:"ignore_acquire_ts"` //nolint:staticcheck // XML field name requires underscore
 		MakeBeforeBreak    string `xml:"make_before_break"`
 		RetransmitTries    string `xml:"retransmit_tries"`
 		RetransmitTimeout  string `xml:"retransmit_timeout"`

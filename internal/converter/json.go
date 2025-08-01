@@ -24,7 +24,7 @@ func (c *JSONConverter) ToJSON(_ context.Context, opnsense *model.OpnSenseDocume
 	}
 
 	// Marshal the OpnSenseDocument struct to JSON with indentation
-	jsonBytes, err := json.MarshalIndent(opnsense, "", "  ")
+	jsonBytes, err := json.MarshalIndent(opnsense, "", "  ") //nolint:musttag // OpnSenseDocument has proper json tags
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal to JSON: %w", err)
 	}

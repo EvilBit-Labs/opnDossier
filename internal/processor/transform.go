@@ -10,7 +10,7 @@ import (
 
 // toYAML converts a report to YAML format.
 func (p *CoreProcessor) toYAML(report *Report) (string, error) {
-	data, err := yaml.Marshal(report)
+	data, err := yaml.Marshal(report) //nolint:musttag // Report has proper yaml tags
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal report to YAML: %w", err)
 	}

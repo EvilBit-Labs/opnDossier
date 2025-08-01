@@ -8,6 +8,14 @@ const (
 	// Version information.
 	Version = "1.0.0"
 
+	// Application metadata.
+	AppName = "opnFocus"
+
+	// Default configuration values.
+	DefaultFormat  = "markdown"
+	DefaultMode    = "standard"
+	ConfigFileName = "opnfocus.yaml"
+
 	// Network constants.
 	NetworkAny = "any"
 

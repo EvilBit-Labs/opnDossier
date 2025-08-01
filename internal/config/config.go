@@ -129,47 +129,72 @@ func (e ValidationError) Error() string {
 func (c *Config) Validate() error {
 	var validationErrors []ValidationError
 
+	validateFlags(c, &validationErrors)
+	validateInputFile(c, &validationErrors)
+	validateOutputFile(c, &validationErrors)
+	validateLogLevel(c, &validationErrors)
+	validateLogFormat(c, &validationErrors)
+	validateTheme(c, &validationErrors)
+	validateFormat(c, &validationErrors)
+	validateTemplate(c, &validationErrors)
+	validateWrapWidth(c, &validationErrors)
+
+	// Return combined validation errors
+	if len(validationErrors) > 0 {
+		return combineValidationErrors(validationErrors)
+	}
+
+	return nil
+}
+
+func validateFlags(c *Config, validationErrors *[]ValidationError) {
 	// Check for mutually exclusive verbose and quiet flags
 	if c.Verbose && c.Quiet {
-		validationErrors = append(validationErrors, ValidationError{
+		*validationErrors = append(*validationErrors, ValidationError{
 			Field:   "verbose/quiet",
 			Message: "verbose and quiet options are mutually exclusive",
 		})
 	}
+}
 
+func validateInputFile(c *Config, validationErrors *[]ValidationError) {
 	// Validate input file exists if specified
 	if c.InputFile != "" {
 		if _, err := os.Stat(c.InputFile); os.IsNotExist(err) {
-			validationErrors = append(validationErrors, ValidationError{
+			*validationErrors = append(*validationErrors, ValidationError{
 				Field:   "input_file",
 				Message: "input file does not exist: " + c.InputFile,
 			})
 		} else if err != nil {
-			validationErrors = append(validationErrors, ValidationError{
+			*validationErrors = append(*validationErrors, ValidationError{
 				Field:   "input_file",
 				Message: fmt.Sprintf("failed to check input file: %v", err),
 			})
 		}
 	}
+}
 
+func validateOutputFile(c *Config, validationErrors *[]ValidationError) {
 	// Validate output file directory exists if specified
 	if c.OutputFile != "" {
 		dir := filepath.Dir(c.OutputFile)
 		if dir != "." && dir != "" {
 			if _, err := os.Stat(dir); os.IsNotExist(err) {
-				validationErrors = append(validationErrors, ValidationError{
+				*validationErrors = append(*validationErrors, ValidationError{
 					Field:   "output_file",
 					Message: "output directory does not exist: " + dir,
 				})
 			} else if err != nil {
-				validationErrors = append(validationErrors, ValidationError{
+				*validationErrors = append(*validationErrors, ValidationError{
 					Field:   "output_file",
 					Message: fmt.Sprintf("failed to check output directory: %v", err),
 				})
 			}
 		}
 	}
+}
 
+func validateLogLevel(c *Config, validationErrors *[]ValidationError) {
 	// Validate log level
 	validLogLevels := map[string]bool{
 		"debug":   true,
@@ -179,7 +204,7 @@ func (c *Config) Validate() error {
 		"error":   true,
 	}
 	if !validLogLevels[c.LogLevel] {
-		validationErrors = append(validationErrors, ValidationError{
+		*validationErrors = append(*validationErrors, ValidationError{
 			Field: "log_level",
 			Message: fmt.Sprintf(
 				"invalid log level '%s', must be one of: debug, info, warn, warning, error",
@@ -187,19 +212,23 @@ func (c *Config) Validate() error {
 			),
 		})
 	}
+}
 
+func validateLogFormat(c *Config, validationErrors *[]ValidationError) {
 	// Validate log format
 	validLogFormats := map[string]bool{
 		"text": true,
 		"json": true,
 	}
 	if !validLogFormats[c.LogFormat] {
-		validationErrors = append(validationErrors, ValidationError{
+		*validationErrors = append(*validationErrors, ValidationError{
 			Field:   "log_format",
 			Message: fmt.Sprintf("invalid log format '%s', must be one of: text, json", c.LogFormat),
 		})
 	}
+}
 
+func validateTheme(c *Config, validationErrors *[]ValidationError) {
 	// Validate theme
 	validThemes := map[string]bool{
 		"":       true, // Empty means auto-detect
@@ -210,7 +239,7 @@ func (c *Config) Validate() error {
 		"none":   true,
 	}
 	if !validThemes[c.Theme] {
-		validationErrors = append(validationErrors, ValidationError{
+		*validationErrors = append(*validationErrors, ValidationError{
 			Field: "theme",
 			Message: fmt.Sprintf(
 				"invalid theme '%s', must be one of: light, dark, custom, auto, none (or empty for auto-detect)",
@@ -218,7 +247,9 @@ func (c *Config) Validate() error {
 			),
 		})
 	}
+}
 
+func validateFormat(c *Config, validationErrors *[]ValidationError) {
 	// Validate format
 	validFormats := map[string]bool{
 		"markdown": true,
@@ -228,49 +259,50 @@ func (c *Config) Validate() error {
 		"yml":      true,
 	}
 	if c.Format != "" && !validFormats[c.Format] {
-		validationErrors = append(validationErrors, ValidationError{
+		*validationErrors = append(*validationErrors, ValidationError{
 			Field:   "format",
 			Message: fmt.Sprintf("invalid format '%s', must be one of: markdown, md, json, yaml, yml", c.Format),
 		})
 	}
+}
 
+func validateTemplate(c *Config, validationErrors *[]ValidationError) {
 	// Validate template
 	if c.Template != "" {
 		if _, err := markdown.LoadBuiltinTemplate(c.Template); err != nil {
-			validationErrors = append(validationErrors, ValidationError{
+			*validationErrors = append(*validationErrors, ValidationError{
 				Field:   "template",
 				Message: fmt.Sprintf("failed to load template '%s': %v", c.Template, err),
 			})
 		}
 	}
+}
 
+func validateWrapWidth(c *Config, validationErrors *[]ValidationError) {
 	// Validate wrap width
 	if c.WrapWidth < 0 {
-		validationErrors = append(validationErrors, ValidationError{
+		*validationErrors = append(*validationErrors, ValidationError{
 			Field:   "wrap",
 			Message: fmt.Sprintf("wrap width cannot be negative: %d", c.WrapWidth),
 		})
 	}
+}
 
-	// Return combined validation errors
-	if len(validationErrors) > 0 {
-		var errMsg string
+func combineValidationErrors(validationErrors []ValidationError) error {
+	var errMsg string
 
-		for i, err := range validationErrors {
-			if i > 0 {
-				errMsg += "; "
-			}
-
-			errMsg += err.Error()
+	for i, err := range validationErrors {
+		if i > 0 {
+			errMsg += "; "
 		}
 
-		return &ValidationError{
-			Field:   "config",
-			Message: errMsg,
-		}
+		errMsg += err.Error()
 	}
 
-	return nil
+	return &ValidationError{
+		Field:   "config",
+		Message: errMsg,
+	}
 }
 
 // GetLogLevel returns the configured log level.

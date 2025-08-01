@@ -106,6 +106,15 @@ func (c *MarkdownConverter) buildSystemSection(md *markdown.Markdown, opnsense *
 
 	md.H2("System Configuration")
 
+	c.buildBasicInfo(md, &sysConfig)
+	c.buildWebGUI(md, &sysConfig)
+	c.buildSysctl(md, &sysConfig)
+	c.buildUsers(md, &sysConfig)
+	c.buildGroups(md, &sysConfig)
+}
+
+// buildBasicInfo builds the basic system information section.
+func (c *MarkdownConverter) buildBasicInfo(md *markdown.Markdown, sysConfig *model.SystemConfig) {
 	// Basic system information
 	md.H3("Basic Information")
 	md.PlainTextf("%s: %s", markdown.Bold("Hostname"), sysConfig.System.Hostname)
@@ -118,14 +127,18 @@ func (c *MarkdownConverter) buildSystemSection(md *markdown.Markdown, opnsense *
 	if sysConfig.System.Optimization != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("Optimization"), sysConfig.System.Optimization)
 	}
+}
 
-	// WebGUI configuration
+// buildWebGUI builds the WebGUI configuration section.
+func (c *MarkdownConverter) buildWebGUI(md *markdown.Markdown, sysConfig *model.SystemConfig) {
 	if sysConfig.System.WebGUI.Protocol != "" {
 		md.H3("Web GUI")
 		md.PlainTextf("%s: %s", markdown.Bold("Protocol"), sysConfig.System.WebGUI.Protocol)
 	}
+}
 
-	// System tuning (sysctl)
+// buildSysctl builds the sysctl configuration as a table.
+func (c *MarkdownConverter) buildSysctl(md *markdown.Markdown, sysConfig *model.SystemConfig) {
 	if len(sysConfig.Sysctl) > 0 {
 		md.H3("System Tuning")
 
@@ -142,8 +155,10 @@ func (c *MarkdownConverter) buildSystemSection(md *markdown.Markdown, opnsense *
 		}
 		md.Table(tableSet)
 	}
+}
 
-	// Users and groups
+// buildUsers builds the users configuration as a table.
+func (c *MarkdownConverter) buildUsers(md *markdown.Markdown, sysConfig *model.SystemConfig) {
 	if len(sysConfig.System.User) > 0 {
 		md.H3("Users")
 
@@ -160,7 +175,10 @@ func (c *MarkdownConverter) buildSystemSection(md *markdown.Markdown, opnsense *
 		}
 		md.Table(tableSet)
 	}
+}
 
+// buildGroups builds the groups configuration as a table.
+func (c *MarkdownConverter) buildGroups(md *markdown.Markdown, sysConfig *model.SystemConfig) {
 	if len(sysConfig.System.Group) > 0 {
 		md.H3("Groups")
 

@@ -97,7 +97,7 @@ type Group struct {
 	Name        string `xml:"name"        json:"name"                  yaml:"name"                  validate:"required,alphanum"`
 	Description string `xml:"description" json:"description,omitempty" yaml:"description,omitempty"`
 	Scope       string `xml:"scope"       json:"scope"                 yaml:"scope"                 validate:"required,oneof=system local"`
-	Gid         string `xml:"gid"         json:"gid"                   yaml:"gid"                   validate:"required,numeric"`
+	Gid         string `xml:"gid"         json:"gid"                   yaml:"gid"                   validate:"required,numeric"` //nolint:staticcheck // Field name matches OPNsense schema
 	Member      string `xml:"member"      json:"member,omitempty"      yaml:"member,omitempty"`
 	Priv        string `xml:"priv"        json:"privileges,omitempty"  yaml:"privileges,omitempty"`
 }

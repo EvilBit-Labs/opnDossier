@@ -13,8 +13,8 @@ import (
 type BoolFlag bool
 
 // MarshalXML implements custom XML marshaling for boolean flags.
-func (bf BoolFlag) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	if bf {
+func (bf *BoolFlag) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	if *bf {
 		return e.EncodeElement("", start)
 	}
 
@@ -34,8 +34,8 @@ func (bf *BoolFlag) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 }
 
 // String returns string representation of the boolean flag.
-func (bf BoolFlag) String() string {
-	if bf {
+func (bf *BoolFlag) String() string {
+	if *bf {
 		return "true"
 	}
 
@@ -43,8 +43,8 @@ func (bf BoolFlag) String() string {
 }
 
 // Bool returns the underlying boolean value.
-func (bf BoolFlag) Bool() bool {
-	return bool(bf)
+func (bf *BoolFlag) Bool() bool {
+	return bool(*bf)
 }
 
 // Set sets the boolean flag value.

@@ -427,28 +427,13 @@ func handleAuditMode(
 	// Create audit mode controller with plugin registry
 	controller := audit.NewModeController(registry, logger.Logger)
 
-	// Convert audit mode string to ReportMode
-	var reportMode audit.ReportMode
-
-	switch opts.AuditMode {
-	case markdown.AuditModeStandard:
-		reportMode = audit.ModeStandard
-	case markdown.AuditModeBlue:
-		reportMode = audit.ModeBlue
-	case markdown.AuditModeRed:
-		reportMode = audit.ModeRed
-	default:
-		return "", fmt.Errorf("%w: %s", ErrUnsupportedAuditMode, opts.AuditMode)
+	// Convert audit mode and create config
+	reportMode, err := convertAuditModeToReportMode(opts.AuditMode)
+	if err != nil {
+		return "", err
 	}
 
-	// Create mode config
-	modeConfig := &audit.ModeConfig{
-		Mode:            reportMode,
-		BlackhatMode:    opts.BlackhatMode,
-		Comprehensive:   opts.Comprehensive,
-		SelectedPlugins: opts.SelectedPlugins,
-		TemplateDir:     opts.TemplateDir,
-	}
+	modeConfig := createModeConfig(reportMode, opts)
 
 	// Generate audit report
 	auditReport, err := controller.GenerateReport(ctx, cfg, modeConfig)
@@ -462,6 +447,50 @@ func handleAuditMode(
 		return "", ErrFailedToEnrichConfig
 	}
 
+	// Generate the base report
+	result, err := generateBaseAuditReport(ctx, cfg, opts, logger)
+	if err != nil {
+		return "", err
+	}
+
+	// Append audit findings
+	result = appendAuditFindings(result, auditReport)
+
+	return result, nil
+}
+
+// convertAuditModeToReportMode converts markdown audit mode to audit report mode.
+func convertAuditModeToReportMode(auditMode markdown.AuditMode) (audit.ReportMode, error) {
+	switch auditMode {
+	case markdown.AuditModeStandard:
+		return audit.ModeStandard, nil
+	case markdown.AuditModeBlue:
+		return audit.ModeBlue, nil
+	case markdown.AuditModeRed:
+		return audit.ModeRed, nil
+	default:
+		return "", fmt.Errorf("%w: %s", ErrUnsupportedAuditMode, auditMode)
+	}
+}
+
+// createModeConfig creates an audit mode configuration from options.
+func createModeConfig(reportMode audit.ReportMode, opts markdown.Options) *audit.ModeConfig {
+	return &audit.ModeConfig{
+		Mode:            reportMode,
+		BlackhatMode:    opts.BlackhatMode,
+		Comprehensive:   opts.Comprehensive,
+		SelectedPlugins: opts.SelectedPlugins,
+		TemplateDir:     opts.TemplateDir,
+	}
+}
+
+// generateBaseAuditReport generates the base audit report using template rendering.
+func generateBaseAuditReport(
+	ctx context.Context,
+	cfg *model.OpnSenseDocument,
+	opts markdown.Options,
+	logger *log.Logger,
+) (string, error) {
 	// Create markdown generator for template rendering
 	generator, err := markdown.NewMarkdownGeneratorWithTemplates(logger.Logger, opts.TemplateDir)
 	if err != nil {
@@ -469,7 +498,20 @@ func handleAuditMode(
 	}
 
 	// Build markdown options for audit mode
-	markdownOpts := markdown.Options{
+	markdownOpts := createAuditMarkdownOptions(opts)
+
+	// Generate the audit report using template rendering
+	result, err := generator.Generate(ctx, cfg, markdownOpts)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate audit report: %w", err)
+	}
+
+	return result, nil
+}
+
+// createAuditMarkdownOptions creates markdown options specifically for audit mode.
+func createAuditMarkdownOptions(opts markdown.Options) markdown.Options {
+	return markdown.Options{
 		Format:          markdown.FormatMarkdown,
 		Comprehensive:   opts.Comprehensive,
 		Template:        nil,
@@ -488,26 +530,24 @@ func handleAuditMode(
 		SelectedPlugins: nil,
 		TemplateDir:     "",
 	}
+}
 
-	// Generate the audit report using template rendering
-	result, err := generator.Generate(ctx, cfg, markdownOpts)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate audit report: %w", err)
+// appendAuditFindings appends audit findings summary to the report.
+func appendAuditFindings(result string, auditReport *audit.Report) string {
+	if len(auditReport.Findings) == 0 {
+		return result
 	}
 
-	// Append audit findings information to the generated report
-	if len(auditReport.Findings) > 0 {
-		result += fmt.Sprintf("\n\n## Audit Findings Summary\n\nTotal Findings: %d\n\n", len(auditReport.Findings))
-		for i, finding := range auditReport.Findings {
-			result += fmt.Sprintf("### %d. %s\n\n**Severity:** %s\n**Component:** %s\n**Description:** %s\n\n",
-				i+1, finding.Title, finding.Severity, finding.Component, finding.Description)
-			if finding.Recommendation != "" {
-				result += fmt.Sprintf("**Recommendation:** %s\n\n", finding.Recommendation)
-			}
+	result += fmt.Sprintf("\n\n## Audit Findings Summary\n\nTotal Findings: %d\n\n", len(auditReport.Findings))
+	for i, finding := range auditReport.Findings {
+		result += fmt.Sprintf("### %d. %s\n\n**Severity:** %s\n**Component:** %s\n**Description:** %s\n\n",
+			i+1, finding.Title, finding.Severity, finding.Component, finding.Description)
+		if finding.Recommendation != "" {
+			result += fmt.Sprintf("**Recommendation:** %s\n\n", finding.Recommendation)
 		}
 	}
 
-	return result, nil
+	return result
 }
 
 // determineOutputPath determines the output file path with smart naming and overwrite protection.

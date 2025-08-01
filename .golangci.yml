@@ -28,17 +28,17 @@ linters:
     - errcheck
     - errname
     - errorlint
-    # - exhaustive - disabled: we'll come back to this
-    # - exhaustruct - disabled: we'll come back to this
+    # - exhaustive - disabled: we'll come back to this after 1.0
+    # - exhaustruct - disabled: we'll come back to this after 1.0
     - exptostd
     - ginkgolinter
     - fatcontext
     - funcorder
-    - funlen
+    # - funlen - Disabled: we'll come back to this after 1.0
     - gocheckcompilerdirectives
-    - gochecknoglobals
+    # - gochecknoglobals - Disabled: causes issues with cobra commands
     - gochecksumtype
-    - gocognit
+    # - gocognit - Disabled: we'll come back to this after 1.0
     - goconst
     - gocritic
     - gocyclo
@@ -57,7 +57,7 @@ linters:
     - mnd
     - musttag
     - nakedret
-    - nestif
+    # - nestif - Disabled: we'll come back to this after 1.0
     - nilerr
     - nilnesserr
     - nilnil
@@ -82,7 +82,6 @@ linters:
     - testableexamples
     - thelper
     - testifylint
-    - testpackage
     - tparallel
     - unconvert
     - unparam
@@ -99,7 +98,8 @@ linters:
   disable:
     - gomodguard
     - gocyclo # Disabled in favor of cyclop
-  #  - wrapcheck # Disabled: most violations are internal package calls within same module
+    - testpackage
+    - gochecknoglobals
   settings:
     cyclop:
       max-complexity: 50

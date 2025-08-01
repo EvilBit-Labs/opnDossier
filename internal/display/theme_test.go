@@ -96,7 +96,7 @@ func TestThemeProperties(t *testing.T) {
 			if tt.colorExists {
 				color := tt.theme.GetColor(tt.colorKey)
 				assert.NotEmpty(t, color)
-				assert.Equal(t, '#', color[0]) // Should be a hex color
+				assert.Equal(t, byte('#'), color[0]) // Should be a hex color
 			}
 
 			// Test Glamour style name
@@ -116,7 +116,7 @@ func TestThemeColorPalette(t *testing.T) {
 		for _, colorKey := range requiredColors {
 			color := theme.GetColor(colorKey)
 			assert.NotEmpty(t, color, "Color %s should exist in light theme", colorKey)
-			assert.Equal(t, '#', color[0], "Color %s should be a hex color", colorKey)
+			assert.Equal(t, byte('#'), color[0], "Color %s should be a hex color", colorKey)
 		}
 	})
 
@@ -128,7 +128,7 @@ func TestThemeColorPalette(t *testing.T) {
 		for _, colorKey := range requiredColors {
 			color := theme.GetColor(colorKey)
 			assert.NotEmpty(t, color, "Color %s should exist in dark theme", colorKey)
-			assert.Equal(t, '#', color[0], "Color %s should be a hex color", colorKey)
+			assert.Equal(t, byte('#'), color[0], "Color %s should be a hex color", colorKey)
 		}
 	})
 

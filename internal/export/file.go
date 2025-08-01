@@ -61,6 +61,32 @@ func NewFileExporter() *FileExporter {
 // It checks for path traversal attacks, validates directory existence and permissions,
 // and ensures the path is safe for file operations.
 func (e *FileExporter) validateExportPath(path string) error {
+	// Check for path traversal attacks
+	if err := e.checkPathTraversal(path); err != nil {
+		return err
+	}
+
+	// Get clean absolute path
+	absPath, err := e.resolveAbsolutePath(path)
+	if err != nil {
+		return err
+	}
+
+	// Validate target directory
+	if err := e.validateTargetDirectory(absPath, path); err != nil {
+		return err
+	}
+
+	// Check existing file permissions
+	if err := e.checkExistingFilePermissions(absPath, path); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// checkPathTraversal checks for potentially malicious path traversal patterns.
+func (e *FileExporter) checkPathTraversal(path string) error {
 	// Check for path traversal attempts BEFORE cleaning the path
 	// This catches attempts like "../../../etc/passwd" or "test/../../../etc/passwd"
 	if strings.Contains(path, "..") {
@@ -82,21 +108,29 @@ func (e *FileExporter) validateExportPath(path string) error {
 			}
 		}
 	}
+	return nil
+}
 
+// resolveAbsolutePath normalizes and resolves the path to an absolute path.
+func (e *FileExporter) resolveAbsolutePath(path string) (string, error) {
 	// Normalize the path to handle any path separators and resolve relative paths
 	cleanPath := filepath.Clean(path)
 
 	// Get absolute path for further validation
 	absPath, err := filepath.Abs(cleanPath)
 	if err != nil {
-		return &Error{
+		return "", &Error{
 			Operation: "validate_path",
 			Path:      path,
 			Message:   "failed to resolve absolute path",
 			Cause:     err,
 		}
 	}
+	return absPath, nil
+}
 
+// validateTargetDirectory validates the target directory exists and is writable.
+func (e *FileExporter) validateTargetDirectory(absPath, originalPath string) error {
 	// Check if the target directory exists and is writable
 	dir := filepath.Dir(absPath)
 	if dir != "." && dir != "" {
@@ -105,7 +139,7 @@ func (e *FileExporter) validateExportPath(path string) error {
 			if os.IsNotExist(err) {
 				return &Error{
 					Operation: "validate_path",
-					Path:      path,
+					Path:      originalPath,
 					Message:   "target directory does not exist: " + dir,
 					Cause:     err,
 				}
@@ -113,7 +147,7 @@ func (e *FileExporter) validateExportPath(path string) error {
 
 			return &Error{
 				Operation: "validate_path",
-				Path:      path,
+				Path:      originalPath,
 				Message:   "failed to check target directory",
 				Cause:     err,
 			}
@@ -123,7 +157,7 @@ func (e *FileExporter) validateExportPath(path string) error {
 		if !dirInfo.IsDir() {
 			return &Error{
 				Operation: "validate_path",
-				Path:      path,
+				Path:      originalPath,
 				Message:   "target path is not a directory: " + dir,
 			}
 		}
@@ -132,20 +166,24 @@ func (e *FileExporter) validateExportPath(path string) error {
 		if err := e.checkDirectoryWritable(dir); err != nil {
 			return &Error{
 				Operation: "validate_path",
-				Path:      path,
+				Path:      originalPath,
 				Message:   "target directory is not writable",
 				Cause:     err,
 			}
 		}
 	}
+	return nil
+}
 
+// checkExistingFilePermissions checks if an existing file at the path is writable.
+func (e *FileExporter) checkExistingFilePermissions(absPath, originalPath string) error {
 	// Check if file already exists and is writable
 	if fileInfo, err := os.Stat(absPath); err == nil {
 		// File exists, check if it's writable
 		if err := e.checkFileWritable(absPath, fileInfo); err != nil {
 			return &Error{
 				Operation: "validate_path",
-				Path:      path,
+				Path:      originalPath,
 				Message:   "existing file is not writable",
 				Cause:     err,
 			}
@@ -154,12 +192,11 @@ func (e *FileExporter) validateExportPath(path string) error {
 		// Some other error occurred while checking file existence
 		return &Error{
 			Operation: "validate_path",
-			Path:      path,
+			Path:      originalPath,
 			Message:   "failed to check file existence",
 			Cause:     err,
 		}
 	}
-
 	return nil
 }
 

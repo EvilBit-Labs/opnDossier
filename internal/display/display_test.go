@@ -612,7 +612,7 @@ func TestThemeProperties(t *testing.T) {
 			if tt.colorExists {
 				color := tt.theme.GetColor(tt.colorKey)
 				assert.NotEmpty(t, color)
-				assert.Equal(t, '#', color[0]) // Should be a hex color
+				assert.Equal(t, byte('#'), color[0]) // Should be a hex color
 			}
 
 			// Test Glamour style name

@@ -67,177 +67,125 @@ func charsetReader(charset string, input io.Reader) (io.Reader, error) {
 // providing better memory efficiency for large configuration files while maintaining security protections
 // against XML bombs, XXE attacks, and excessive entity expansion.
 func (p *XMLParser) Parse(_ context.Context, r io.Reader) (*model.OpnSenseDocument, error) {
-	// Limit input size to prevent XML bombs
 	limitedReader := io.LimitReader(r, p.MaxInputSize)
-
-	// Create decoder with security configurations
 	dec := xml.NewDecoder(limitedReader)
-
-	// Add charset reader to handle encoding declarations
 	dec.CharsetReader = charsetReader
-
-	// Disable external entity loading to prevent XXE attacks
 	dec.Entity = map[string]string{}
-
-	// Disable DTD processing to prevent XXE attacks
 	dec.DefaultSpace = ""
 	dec.AutoClose = xml.HTMLAutoClose
 
 	var doc model.OpnSenseDocument
-
-	inOPNsenseRoot := false
-	foundOpnSenseDocumentRoot := false
-
 	for {
 		tok, err := dec.Token()
 		if errors.Is(err, io.EOF) {
 			break
 		}
-
 		if err != nil {
-			// Wrap XML syntax errors with location information and context
-			if wrappedErr := WrapXMLSyntaxErrorWithOffset(err, "opnsense", dec); wrappedErr != nil {
-				return nil, fmt.Errorf("failed to decode XML: %w", wrappedErr)
-			}
-
-			return nil, fmt.Errorf("failed to read token: %w", err)
+			return nil, handleXMLError(err, dec)
 		}
 
-		switch se := tok.(type) {
-		case xml.StartElement:
-			if se.Name.Local == "opnsense" {
-				inOPNsenseRoot = true
-				foundOpnSenseDocumentRoot = true
-				// Set the XMLName field for compatibility with existing tests
-				doc.XMLName = se.Name
-
-				continue
+		if startElem, ok := tok.(xml.StartElement); ok {
+			if err := handleStartElement(dec, &doc, startElem); err != nil {
+				return nil, err
 			}
+		}
 
-			if !inOPNsenseRoot {
-				continue
-			}
-
-			// Process each major section individually to avoid keeping entire tree in memory
-			switch se.Name.Local {
-			case "version":
-				if err := dec.DecodeElement(&doc.Version, &se); err != nil {
-					return nil, fmt.Errorf("failed to decode version: %w", err)
-				}
-			case "trigger_initial_wizard":
-				if err := dec.DecodeElement(&doc.TriggerInitialWizard, &se); err != nil {
-					return nil, fmt.Errorf("failed to decode trigger_initial_wizard: %w", err)
-				}
-			case "theme":
-				if err := dec.DecodeElement(&doc.Theme, &se); err != nil {
-					return nil, fmt.Errorf("failed to decode theme: %w", err)
-				}
-			case "system":
-				var system model.System
-				if err := dec.DecodeElement(&system, &se); err != nil {
-					return nil, fmt.Errorf("failed to decode system: %w", err)
-				}
-
-				doc.System = system
-				// Trigger garbage collection after processing large sections
-				runtime.GC()
-			case "interfaces":
-				var interfaces model.Interfaces
-				if err := dec.DecodeElement(&interfaces, &se); err != nil {
-					return nil, fmt.Errorf("failed to decode interfaces: %w", err)
-				}
-
-				doc.Interfaces = interfaces
-			case "dhcpd":
-				var dhcpd model.Dhcpd
-				if err := dec.DecodeElement(&dhcpd, &se); err != nil {
-					return nil, fmt.Errorf("failed to decode dhcpd: %w", err)
-				}
-
-				doc.Dhcpd = dhcpd
-			case "sysctl":
-				// Handle standard OPNsense sysctl format (container with <item> wrappers)
-				var container struct {
-					Items []model.SysctlItem `xml:"item"`
-				}
-				if err := dec.DecodeElement(&container, &se); err == nil {
-					doc.Sysctl = append(doc.Sysctl, container.Items...)
-				} else {
-					// Skip non-standard direct format to avoid decoder corruption
-					if err := skipElement(dec); err != nil {
-						return nil, fmt.Errorf("failed to skip sysctl element: %w", err)
-					}
-				}
-
-				runtime.GC()
-			case "unbound":
-				var unbound model.Unbound
-				if err := dec.DecodeElement(&unbound, &se); err != nil {
-					return nil, fmt.Errorf("failed to decode unbound: %w", err)
-				}
-
-				doc.Unbound = unbound
-			case "snmpd":
-				var snmpd model.Snmpd
-				if err := dec.DecodeElement(&snmpd, &se); err != nil {
-					return nil, fmt.Errorf("failed to decode snmpd: %w", err)
-				}
-
-				doc.Snmpd = snmpd
-			case "nat":
-				var nat model.Nat
-				if err := dec.DecodeElement(&nat, &se); err != nil {
-					return nil, fmt.Errorf("failed to decode nat: %w", err)
-				}
-
-				doc.Nat = nat
-			case "filter":
-				var filter model.Filter
-				if err := dec.DecodeElement(&filter, &se); err != nil {
-					return nil, fmt.Errorf("failed to decode filter: %w", err)
-				}
-
-				doc.Filter = filter
-			case "rrd":
-				var rrd model.Rrd
-				if err := dec.DecodeElement(&rrd, &se); err != nil {
-					return nil, fmt.Errorf("failed to decode rrd: %w", err)
-				}
-
-				doc.Rrd = rrd
-			case "load_balancer":
-				var loadBalancer model.LoadBalancer
-				if err := dec.DecodeElement(&loadBalancer, &se); err != nil {
-					return nil, fmt.Errorf("failed to decode load_balancer: %w", err)
-				}
-
-				doc.LoadBalancer = loadBalancer
-			case "ntpd":
-				var ntpd model.Ntpd
-				if err := dec.DecodeElement(&ntpd, &se); err != nil {
-					return nil, fmt.Errorf("failed to decode ntpd: %w", err)
-				}
-
-				doc.Ntpd = ntpd
-			default:
-				// Skip unknown elements by consuming tokens until the end element
-				if err := skipElement(dec); err != nil {
-					return nil, fmt.Errorf("failed to skip unknown element %s: %w", se.Name.Local, err)
-				}
-			}
-		case xml.EndElement:
-			if se.Name.Local == "opnsense" {
-				inOPNsenseRoot = false
+		if endElem, ok := tok.(xml.EndElement); ok {
+			if endElem.Name.Local == "opnsense" {
+				break
 			}
 		}
 	}
 
-	// Check if we found a valid opnsense root element
-	if !foundOpnSenseDocumentRoot {
+	if doc.XMLName.Local == "" {
 		return nil, ErrMissingOpnSenseDocumentRoot
 	}
 
 	return &doc, nil
+}
+
+// handleXMLError processes XML syntax errors.
+func handleXMLError(err error, dec *xml.Decoder) error {
+	if wrappedErr := WrapXMLSyntaxErrorWithOffset(err, "opnsense", dec); wrappedErr != nil {
+		return fmt.Errorf("failed to decode XML: %w", wrappedErr)
+	}
+	return fmt.Errorf("failed to read token: %w", err)
+}
+
+// handleStartElement processes XML StartElement tokens.
+func handleStartElement(dec *xml.Decoder, doc *model.OpnSenseDocument, se xml.StartElement) error {
+	if se.Name.Local == "opnsense" {
+		doc.XMLName = se.Name
+		return nil
+	}
+
+	if doc.XMLName.Local == "" {
+		return nil
+	}
+
+	switch se.Name.Local {
+	case "version":
+		return decodeElement(dec, &doc.Version, se)
+	case "trigger_initial_wizard":
+		return decodeElement(dec, &doc.TriggerInitialWizard, se)
+	case "theme":
+		return decodeElement(dec, &doc.Theme, se)
+	case "system":
+		return decodeSection(dec, &doc.System, se)
+	case "interfaces":
+		return decodeSection(dec, &doc.Interfaces, se)
+	case "dhcpd":
+		return decodeSection(dec, &doc.Dhcpd, se)
+	case "sysctl":
+		return decodeSysctl(dec, doc, se)
+	case "unbound":
+		return decodeSection(dec, &doc.Unbound, se)
+	case "snmpd":
+		return decodeSection(dec, &doc.Snmpd, se)
+	case "nat":
+		return decodeSection(dec, &doc.Nat, se)
+	case "filter":
+		return decodeSection(dec, &doc.Filter, se)
+	case "rrd":
+		return decodeSection(dec, &doc.Rrd, se)
+	case "load_balancer":
+		return decodeSection(dec, &doc.LoadBalancer, se)
+	case "ntpd":
+		return decodeSection(dec, &doc.Ntpd, se)
+	default:
+		return skipElement(dec)
+	}
+}
+
+// decodeElement decodes a simple element into the target.
+func decodeElement(dec *xml.Decoder, target any, se xml.StartElement) error {
+	return dec.DecodeElement(target, &se)
+}
+
+// decodeSection handles larger sections and triggers garbage collection.
+func decodeSection(dec *xml.Decoder, target any, se xml.StartElement) error {
+	if err := dec.DecodeElement(target, &se); err != nil {
+		return err
+	}
+	runtime.GC()
+	return nil
+}
+
+// decodeSysctl handles the special sysctl section format.
+func decodeSysctl(dec *xml.Decoder, doc *model.OpnSenseDocument, se xml.StartElement) error {
+	var container struct {
+		Items []model.SysctlItem `xml:"item"`
+	}
+	if err := dec.DecodeElement(&container, &se); err == nil {
+		doc.Sysctl = append(doc.Sysctl, container.Items...)
+	} else {
+		// Skip non-standard direct format
+		if err := skipElement(dec); err != nil {
+			return fmt.Errorf("failed to skip sysctl element: %w", err)
+		}
+	}
+	runtime.GC()
+	return nil
 }
 
 // Validate validates the given OPNsense configuration and returns an error if validation fails.

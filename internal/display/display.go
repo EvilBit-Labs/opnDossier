@@ -481,25 +481,58 @@ func (td *TerminalDisplay) DisplayWithProgress(
 	progressCh <-chan ProgressEvent,
 ) error {
 	// Check for context cancellation before starting
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	default:
+	if err := td.checkContext(ctx); err != nil {
+		return err
 	}
 
 	// Show initial progress
 	td.ShowProgress(0.0, "Starting display...")
 
-	// Use WaitGroup to synchronize with the progress goroutine
-	var wg sync.WaitGroup
-	wg.Add(1)
+	// Setup progress handling goroutine
+	wg, _ := td.setupProgressHandling(ctx, progressCh)
 
-	// Create a done channel to signal goroutine completion
+	// Check context cancellation before rendering
+	if err := td.checkContext(ctx); err != nil {
+		wg.Wait()
+		return err
+	}
+
+	// Simulate progress during rendering
+	td.ShowProgress(constants.ProgressRenderingMarkdown, "Rendering markdown...")
+
+	// Render content
+	err := td.renderContent(ctx, markdownContent, wg)
+
+	// Wait for progress goroutine to finish before returning
+	wg.Wait()
+
+	return err
+}
+
+// checkContext checks and handles context cancellation.
+func (td *TerminalDisplay) checkContext(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return nil
+	}
+}
+
+// setupProgressHandling sets up a goroutine for handling progress events.
+//
+//nolint:gocritic // Named returns not needed for this function
+func (td *TerminalDisplay) setupProgressHandling(
+	ctx context.Context,
+	progressCh <-chan ProgressEvent,
+) (*sync.WaitGroup, chan struct{}) {
+	var waitGroup sync.WaitGroup
+	waitGroup.Add(1)
+
 	done := make(chan struct{})
 
-	// Listen for progress events in a goroutine with proper context handling
 	go func() {
-		defer wg.Done()
+		defer waitGroup.Done()
 		defer close(done)
 
 		for {
@@ -509,77 +542,45 @@ func (td *TerminalDisplay) DisplayWithProgress(
 					return
 				}
 				// Check context before updating progress
-				select {
-				case <-ctx.Done():
+				if err := td.checkContext(ctx); err != nil {
 					return
-				default:
-					td.ShowProgress(event.Percent, event.Message)
 				}
+				td.ShowProgress(event.Percent, event.Message)
 			case <-ctx.Done():
 				return
 			}
 		}
 	}()
 
-	// Check for context cancellation before rendering
-	select {
-	case <-ctx.Done():
-		wg.Wait()
-		return ctx.Err()
-	default:
-	}
+	return &waitGroup, done
+}
 
-	// Simulate progress during rendering
-	td.ShowProgress(constants.ProgressRenderingMarkdown, "Rendering markdown...")
-
+// renderContent handles rendering the markdown content and manages progress.
+func (td *TerminalDisplay) renderContent(ctx context.Context, markdownContent string, wg *sync.WaitGroup) error {
 	// Get singleton renderer with current options
 	renderer, err := getGlamourRenderer(td.options)
 	if err != nil {
-		// Check if this is our sentinel error for raw markdown
-		if errors.Is(err, ErrRawMarkdown) {
-			td.ShowProgress(1.0, "Displaying raw markdown...")
-			td.ClearProgress()
-			fmt.Print(markdownContent)
-			// Wait for progress goroutine to finish before returning
-			wg.Wait()
-
-			return nil
-		}
-
-		td.ShowProgress(1.0, "Displaying raw markdown...")
-		td.ClearProgress()
-		// Fallback: print raw markdown if renderer creation fails
-		fmt.Print(markdownContent)
-		// Wait for progress goroutine to finish before returning
-		wg.Wait()
-
-		return fmt.Errorf("failed to create renderer, displaying raw markdown: %w", err)
+		return td.handleRendererError(err, markdownContent, wg)
 	}
 
 	// Check for context cancellation before rendering
-	select {
-	case <-ctx.Done():
+	if err := td.checkContext(ctx); err != nil {
 		wg.Wait()
-		return ctx.Err()
-	default:
+		return err
 	}
 
 	// Render markdown with Glamour
 	out, err := renderer.Render(markdownContent)
 	if err != nil {
 		td.ClearProgress()
-		// Wait for progress goroutine to finish before returning
 		wg.Wait()
-
 		return fmt.Errorf("failed to render markdown: %w", err)
 	}
 
 	// Check for context cancellation before output
-	select {
-	case <-ctx.Done():
+	if err := td.checkContext(ctx); err != nil {
 		wg.Wait()
-		return ctx.Err()
-	default:
+		return err
 	}
 
 	td.ShowProgress(1.0, "Display complete!")
@@ -592,10 +593,25 @@ func (td *TerminalDisplay) DisplayWithProgress(
 		td.showNavigationHints()
 	}
 
-	// Wait for progress goroutine to finish before returning
+	return nil
+}
+
+// handleRendererError handles errors during renderer creation or rendering.
+func (td *TerminalDisplay) handleRendererError(err error, markdownContent string, wg *sync.WaitGroup) error {
+	if errors.Is(err, ErrRawMarkdown) {
+		td.ShowProgress(1.0, "Displaying raw markdown...")
+		td.ClearProgress()
+		fmt.Print(markdownContent)
+		wg.Wait()
+		return nil
+	}
+
+	td.ShowProgress(1.0, "Displaying raw markdown...")
+	td.ClearProgress()
+	fmt.Print(markdownContent)
 	wg.Wait()
 
-	return nil
+	return fmt.Errorf("failed to create renderer, displaying raw markdown: %w", err)
 }
 
 // shouldShowNavigationHints determines if navigation hints should be displayed.

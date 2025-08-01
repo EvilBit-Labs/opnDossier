@@ -24,7 +24,7 @@ func (c *YAMLConverter) ToYAML(_ context.Context, opnsense *model.OpnSenseDocume
 	}
 
 	// Marshal the OpnSenseDocument struct to YAML
-	yamlBytes, err := yaml.Marshal(opnsense)
+	yamlBytes, err := yaml.Marshal(opnsense) //nolint:musttag // OpnSenseDocument has proper yaml tags
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal to YAML: %w", err)
 	}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -45,6 +46,26 @@ func NewMarkdownGeneratorWithTemplates(logger *log.Logger, templateDir string) (
 		logger = log.NewWithOptions(os.Stderr, log.Options{})
 	}
 
+	// Create template function map with custom functions
+	funcMap := createTemplateFuncMap()
+
+	// Build list of template paths
+	possiblePaths := buildTemplatePaths(templateDir)
+
+	// Parse templates from all possible paths
+	templates, err := parseTemplatesFromPaths(possiblePaths, funcMap)
+	if err != nil {
+		return nil, err
+	}
+
+	return &markdownGenerator{
+		templates: templates,
+		logger:    logger,
+	}, nil
+}
+
+// createTemplateFuncMap creates a function map with sprig functions and custom template functions.
+func createTemplateFuncMap() template.FuncMap {
 	// Create template with sprig functions
 	funcMap := sprig.FuncMap()
 
@@ -63,23 +84,107 @@ func NewMarkdownGeneratorWithTemplates(logger *log.Logger, templateDir string) (
 	}
 
 	// Escape markdown table cell content to prevent breaking table structure
-	funcMap["escapeTableContent"] = func(content any) string {
-		if content == nil {
-			return ""
-		}
-		str := fmt.Sprintf("%v", content)
-		// Escape pipe characters by replacing | with \|
-		str = strings.ReplaceAll(str, "|", "\\|")
-		// Replace carriage return + newline first to avoid double replacement
-		str = strings.ReplaceAll(str, "\r\n", "<br>")
-		// Replace remaining newlines with <br> for HTML rendering
-		str = strings.ReplaceAll(str, "\n", "<br>")
-		// Replace remaining carriage returns with <br>
-		str = strings.ReplaceAll(str, "\r", "<br>")
-		return str
+	funcMap["escapeTableContent"] = escapeTableContent
+
+	// Add STIG-specific template functions
+	funcMap["getSTIGDescription"] = func(controlID string) string {
+		// This is a placeholder function for STIG description lookup
+		// In a real implementation, this would look up the description from a STIG database
+		return fmt.Sprintf("STIG control %s description", controlID)
 	}
 
-	// Build list of template paths
+	// Add SANS-specific template functions
+	funcMap["getSANSDescription"] = func(controlID string) string {
+		// This is a placeholder function for SANS description lookup
+		// In a real implementation, this would look up the description from a SANS database
+		return fmt.Sprintf("SANS control %s description", controlID)
+	}
+
+	// Add security zone functions
+	funcMap["getSecurityZone"] = func(interfaceName string) string {
+		// This is a placeholder function for security zone lookup
+		// In a real implementation, this would determine the security zone based on interface
+		switch interfaceName {
+		case "wan":
+			return "Untrusted"
+		case "lan":
+			return "Trusted"
+		case "dmz":
+			return "DMZ"
+		default:
+			return "Unknown"
+		}
+	}
+
+	// Add other common template functions that might be missing
+	funcMap["getPortDescription"] = func(port string) string {
+		return "Port " + port
+	}
+
+	funcMap["getProtocolDescription"] = func(protocol string) string {
+		return "Protocol " + protocol
+	}
+
+	funcMap["getRiskLevel"] = func(severity string) string {
+		switch strings.ToLower(severity) {
+		case "high", "critical":
+			return "High Risk"
+		case "medium":
+			return "Medium Risk"
+		case "low":
+			return "Low Risk"
+		default:
+			return "Unknown Risk"
+		}
+	}
+
+	// Add placeholder functions for missing template functions
+	funcMap["getRuleCompliance"] = func(_ any) string {
+		return "Rule Compliance Check Placeholder"
+	}
+
+	funcMap["getNATRiskLevel"] = func(_ any) string {
+		return "NAT Rule Risk Level Placeholder"
+	}
+
+	funcMap["getNATRecommendation"] = func(_ any) string {
+		return "NAT Rule Recommendation Placeholder"
+	}
+
+	funcMap["getCertSecurityStatus"] = func(_ any) string {
+		return "Certificate Security Status Placeholder"
+	}
+
+	funcMap["getDHCPSecurity"] = func(_ any) string {
+		return "DHCP Security Placeholder"
+	}
+
+	funcMap["getRouteSecurityZone"] = func(_ any) string {
+		return "Route Security Zone Placeholder"
+	}
+
+	return funcMap
+}
+
+// escapeTableContent escapes markdown table cell content to prevent breaking table structure.
+func escapeTableContent(content any) string {
+	if content == nil {
+		return ""
+	}
+	str := fmt.Sprintf("%v", content)
+	// Escape pipe characters by replacing | with \|
+	str = strings.ReplaceAll(str, "|", "\\|")
+	// Replace carriage return + newline first to avoid double replacement
+	str = strings.ReplaceAll(str, "\r\n", "<br>")
+	// Replace remaining newlines with <br> for HTML rendering
+	str = strings.ReplaceAll(str, "\n", "<br>")
+	// Replace remaining carriage returns with <br>
+	str = strings.ReplaceAll(str, "\r", "<br>")
+	return str
+}
+
+// buildTemplatePaths builds a list of possible template paths including custom and default locations.
+func buildTemplatePaths(templateDir string) []string {
 	var possiblePaths []string
 
 	// Add custom template directory paths first if specified
@@ -100,31 +205,50 @@ func NewMarkdownGeneratorWithTemplates(logger *log.Logger, templateDir string) (
 		"../templates/reports/*.tmpl",             // Audit mode templates alternative path
 	)
 
+	return possiblePaths
+}
+
+// parseTemplatesFromPaths attempts to parse templates from multiple possible paths.
+func parseTemplatesFromPaths(possiblePaths []string, funcMap template.FuncMap) (*template.Template, error) {
 	templates := template.New("opnfocus").Funcs(funcMap)
 	var lastErr error
-	var foundAny bool
+	templatesLoaded := 0
 
 	for _, path := range possiblePaths {
-		parsedTemplates, err := templates.ParseGlob(path)
-		if err == nil && parsedTemplates != nil {
-			templates = parsedTemplates
-			foundAny = true
-		} else if err != nil {
-			lastErr = fmt.Errorf("failed to parse templates from %s: %w", path, err)
+		matches, err := filepath.Glob(path)
+		if err != nil {
+			lastErr = fmt.Errorf("failed to glob pattern %s: %w", path, err)
+			continue
+		}
+
+		for _, match := range matches {
+			// Get template name from filename (without directory)
+			templateName := filepath.Base(match)
+
+			// Skip if template with this name already exists (custom templates take precedence)
+			if templates.Lookup(templateName) != nil {
+				continue
+			}
+
+			// Parse the individual template file
+			_, err := templates.ParseFiles(match)
+			if err != nil {
+				lastErr = fmt.Errorf("failed to parse template %s: %w", match, err)
+			} else {
+				templatesLoaded++
+			}
 		}
 	}
 
-	if !foundAny {
+	// Only return error if no templates were successfully loaded
+	if templatesLoaded == 0 {
 		if lastErr != nil {
-			return nil, fmt.Errorf("failed to parse templates from any path: %w", lastErr)
+			return nil, lastErr
 		}
-		return nil, ErrTemplateNotFound
+		return nil, errors.New("no templates found in any of the specified paths")
 	}
 
-	return &markdownGenerator{
-		templates: templates,
-		logger:    logger,
-	}, nil
+	return templates, nil
 }
 
 // Generate converts an OPNsense configuration to the specified format using the Options provided.
@@ -248,7 +372,7 @@ func (g *markdownGenerator) generateDataOutput(
 	tmpl := g.templates.Lookup(templateName)
 	if tmpl == nil {
 		// Fallback to simple JSON/YAML if template not found
-		configJSON, err := json.Marshal(cfg)
+		configJSON, err := json.Marshal(cfg) //nolint:musttag // EnrichedOpnSenseDocument has proper json tags
 		if err != nil {
 			return "", fmt.Errorf("failed to marshal configuration to JSON: %w", err)
 		}

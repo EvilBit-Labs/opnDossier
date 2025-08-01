@@ -66,11 +66,11 @@ type DNSMasq struct {
 	Regdhcp            BoolFlag         `xml:"regdhcp,omitempty"`
 	Regdhcpstatic      BoolFlag         `xml:"regdhcpstatic,omitempty"`
 	Dhcpfirst          BoolFlag         `xml:"dhcpfirst,omitempty"`
-	Strict_order       BoolFlag         `xml:"strict_order,omitempty"`       //nolint:revive // XML field name requires underscore
-	Domain_needed      BoolFlag         `xml:"domain_needed,omitempty"`      //nolint:revive // XML field name requires underscore
-	No_private_reverse BoolFlag         `xml:"no_private_reverse,omitempty"` //nolint:revive // XML field name requires underscore
-	Port               string           `xml:"port,omitempty"`
-	Custom_options     string           `xml:"custom_options,omitempty"` //nolint:revive // XML field name requires underscore
+	Strict_order       BoolFlag         `xml:"strict_order,omitempty"`       //nolint:revive,staticcheck // XML field name requires underscore
+	Domain_needed      BoolFlag         `xml:"domain_needed,omitempty"`      //nolint:revive,staticcheck // XML field name requires underscore
+	No_private_reverse BoolFlag         `xml:"no_private_reverse,omitempty"` //nolint:revive,staticcheck // XML field name requires underscore
+	Forwarders         []ForwarderGroup `xml:"forwarders,omitempty"`
+	Custom_options     string           `xml:"custom_options,omitempty"` //nolint:revive,staticcheck // XML field name requires underscore
 	Hosts              []DNSMasqHost    `xml:"hosts>host,omitempty"`
 	DomainOverrides    []DomainOverride `xml:"domainoverrides>domainoverride,omitempty"`
 	Created            string           `xml:"created,omitempty"`
@@ -92,6 +92,14 @@ type DomainOverride struct {
 	XMLName xml.Name `xml:"domainoverride"`
 	Domain  string   `xml:"domain,omitempty"`
 	IP      string   `xml:"ip,omitempty"`
+	Descr   string   `xml:"descr,omitempty"`
+}
+
+// ForwarderGroup represents a DNS forwarder group configuration.
+type ForwarderGroup struct {
+	XMLName xml.Name `xml:"forwarder"`
+	IP      string   `xml:"ip,omitempty"`
+	Port    string   `xml:"port,omitempty"`
 	Descr   string   `xml:"descr,omitempty"`
 }
 
@@ -204,9 +212,10 @@ type MonitTest struct {
 
 // Constructor functions
 
-// NewDNSMasq returns a new DNSMasq configuration with initialized empty slices for hosts and domain overrides.
+// NewDNSMasq returns a new DNSMasq configuration with initialized empty slices for hosts, forwarders, and domain overrides.
 func NewDNSMasq() *DNSMasq {
 	return &DNSMasq{
+		Forwarders:      make([]ForwarderGroup, 0),
 		Hosts:           make([]DNSMasqHost, 0),
 		DomainOverrides: make([]DomainOverride, 0),
 	}
