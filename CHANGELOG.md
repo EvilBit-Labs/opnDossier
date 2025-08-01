@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [unreleased]
+## [1.0.0-rc1] - 2025-08-01
 
 ### 🚀 Features
 
@@ -481,6 +481,80 @@ All notable changes to this project will be documented in this file.
 
   Tested with `just test` and `just ci-check`, all checks passed successfully.
 
+- *(docs)* Add changelog and git-cliff configuration
+
+  - Introduced CHANGELOG.md to document all notable changes to the project.
+  - Added cliff.toml for git-cliff configuration to automate changelog generation.
+  - Updated justfile to include installation and usage instructions for git-cliff.
+
+  Tested with `just test` and `just ci-check`, all checks passed successfully.
+
+- *(docs)* Mark TASK-035 as complete for YAML configuration file support
+
+  - Updated tasks.md to reflect the completion of TASK-035, confirming the implementation of YAML configuration file support.
+  - Ensured all related documentation is accurate and up-to-date.
+
+  Tested with `just test` and `just ci-check`, all checks passed successfully.
+
+- *(tests)* Add comprehensive environment variable tests for configuration loading
+
+  - Introduced multiple test cases in `config_test.go` to validate loading of configuration from environment variables, covering all fields including boolean, integer, and slice types.
+  - Ensured proper handling of various representations for boolean values and tested empty slice scenarios.
+  - Updated tasks.md to mark TASK-036 as complete, confirming full implementation of environment variable support with extensive test coverage.
+
+  Tested with `just test` and `just ci-check`, all checks passed successfully.
+
+- *(docs)* Mark TASK-037 as complete for CLI flag override system
+
+  - Updated tasks.md to reflect the completion of TASK-037, confirming the implementation of the CLI flag override system.
+  - Added a note detailing the comprehensive precedence handling and extensive test coverage for the new feature.
+  - Ensured all quality checks pass successfully.
+
+  Tested with `just test` and `just ci-check`, all checks passed successfully.
+
+- *(tests)* Enhance audit mode tests and add plugin registry functionality
+
+  - Added comprehensive tests for converting audit modes to report modes and creating mode configurations in `convert_test.go`.
+  - Implemented mock compliance plugin for testing plugin registry functionalities in `mode_controller_test.go`.
+  - Enhanced report generation methods in `mode_controller.go` to include detailed metadata analysis.
+  - Updated `plugin.go` to prevent duplicate plugin registration.
+
+  Tested with `just test` and `just ci-check`, all checks passed successfully.
+
+- *(ci)* Add CI workflow for comprehensive checks and testing
+
+  - Introduced a new CI workflow (`ci-check.yml`) to automate checks on push and pull request events, including dependency installation, running tests, and uploading coverage reports.
+  - Updated existing CI workflow (`ci.yml`) to enhance testing and quality checks, including pre-commit checks, security scans, and modernize checks.
+  - Ensured compatibility with Go version 1.24 and added support for multiple operating systems.
+
+  Tested with `just test` and `just ci-check`, all checks passed successfully.
+
+- *(docs)* Update README and add comprehensive documentation examples
+
+  - Enhanced the README.md to include a v1.0 release section, detailing features and installation instructions.
+  - Added multiple documentation examples covering advanced configurations, audit and compliance workflows, automation, and troubleshooting.
+  - Created new example files for basic documentation, advanced configurations, audit compliance, and automation scripting.
+  - Updated existing documentation to improve clarity and usability, ensuring all examples are practical and immediately usable.
+
+  Tested with `just test` and `just ci-check`, all checks passed successfully.
+
+- *(goreleaser)* Enhance multi-platform build configuration and add Docker support
+
+  - Updated `.goreleaser.yaml` to include FreeBSD as a target OS and refined ldflags for versioning and commit information.
+  - Introduced Dockerfile for building the opnFocus image and added Docker support in GoReleaser configuration.
+  - Enhanced `justfile` with new commands for building and releasing snapshots and full releases.
+  - Updated `.gitignore` to exclude the `dist/` directory and marked TASK-060 as complete in `tasks.md`, confirming comprehensive GoReleaser configuration.
+
+  Tested with `just test` and `just ci-check`, all checks passed successfully.
+
+- *(release)* Enable automated release process on tag pushes
+
+  - Updated `.github/workflows/release.yml` to trigger the release workflow on git tag pushes matching 'v\*'.
+  - Marked TASK-063 as complete in `tasks.md`, confirming the implementation of the automated release process with GoReleaser.
+  - Added detailed notes on the release management features, including multi-platform builds and Docker support.
+
+  Tested with `just test` and `just ci-check`, all checks passed successfully.
+
 ### 🐛 Bug Fixes
 
 - Format markdown files to pass pre-commit checks
@@ -537,6 +611,14 @@ All notable changes to this project will be documented in this file.
   - Replace assert.Equal with assert.InDelta for float comparison in display_test.go
   - Remove useless assert.True(t, true, ...) in analyze_test.go and replace with proper documentation log
   - Ensure all error assertions use require when test must stop on error
+
+- *(cli)* Update command flag requirements and task status
+
+  - Removed mutual exclusivity between "mode" and "template" flags in `convert.go`, allowing them to be used together.
+  - Marked TASK-053 as complete in `tasks.md`, confirming verification of offline operation with no external dependencies.
+  - Added a note on the successful verification of complete offline operation through comprehensive testing.
+
+  Tested with `just test` and `just ci-check`, all checks passed successfully.
 
 ### 🚜 Refactor
 
@@ -945,6 +1027,21 @@ All notable changes to this project will be documented in this file.
   - Removed `gochecknoinits` and adjusted settings for `cyclop`, `funlen`, and `gocognit` to enhance linting effectiveness.
   - Disabled `gocyclo` in favor of `cyclop` and temporarily disabled `shadow` checks to prioritize other issues.
   - Updated `allow-no-explanation` formatting for consistency.
+
+  Tested with `just test` and `just ci-check`, all checks passed successfully.
+
+- *(cleanup)* Remove obsolete configuration and documentation files
+
+  - Deleted `.mdformat.toml` exclusions for markdown formatting, simplifying the configuration.
+  - Removed `config.xml.sample` and `TODO_IMPLEMENTATION_ISSUES.md` files as they are no longer relevant to the project.
+  - Updated CI workflow by removing the quality checks job to streamline the build process.
+
+  Tested with `just test` and `just ci-check`, all checks passed successfully.
+
+- *(cleanup)* Remove obsolete GoReleaser configuration and test file list
+
+  - Deleted unused `nfpms` configuration from `.goreleaser.yaml` to streamline the release process.
+  - Removed `files.txt` as it contained outdated test file references.
 
   Tested with `just test` and `just ci-check`, all checks passed successfully.
 
