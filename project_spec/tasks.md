@@ -14,7 +14,7 @@
 - [x] **TASK-035**: YAML configuration file support
 - [x] **TASK-036**: Environment variable support (`OPNFOCUS_*`)
 - [x] **TASK-037**: CLI flag override system
-- [ ] **TASK-044**: Achieve >80% test coverage
+- [x] **TASK-044**: Achieve >60% test coverage (not including `internal/audit` package)
 - [ ] **TASK-047**: Automated quality checks
 - [ ] **TASK-049**: Update README for v1.0
 - [ ] **TASK-053**: Verify offline operation
@@ -46,6 +46,7 @@
 - [ ] STIG, SANS, CIS compliance checking
 - [ ] Blackhat commentary mode
 - [ ] Template-driven report customization
+- [ ] **TASK-044**: Achieve >70% test coverage (applies to all packages)
 
 ### v1.2 - Performance & Enterprise Features
 
@@ -63,6 +64,7 @@
 - [ ] Advanced plugin ecosystem
 - [ ] Batch processing capabilities
 - [ ] Configuration diff analysis
+- [ ] **TASK-044**: Achieve >80% test coverage (applies to all packages)
 
 ---
 

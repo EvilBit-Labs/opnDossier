@@ -1241,3 +1241,143 @@ func TestFileExporter_CrossPlatformValidation(t *testing.T) {
 		})
 	}
 }
+
+// TestFileExporter_Error tests the Error method of the Error type.
+func TestFileExporter_Error(t *testing.T) {
+	// Create an error with all fields populated
+	exportErr := &Error{
+		Operation: "test_operation",
+		Message:   "test error message",
+		Path:      "/test/path",
+		Cause:     assert.AnError,
+	}
+
+	// Test the Error method
+	errorString := exportErr.Error()
+
+	// The error string should contain the operation and message
+	assert.Contains(t, errorString, "test_operation")
+	assert.Contains(t, errorString, "test error message")
+	assert.Contains(t, errorString, "/test/path")
+}
+
+// TestFileExporter_CheckFileWritable tests the checkFileWritable function.
+func TestFileExporter_CheckFileWritable(t *testing.T) {
+	e := NewFileExporter()
+
+	// Test with a writable file
+	tmpFile := filepath.Join(t.TempDir(), "writable_test.txt")
+	err := os.WriteFile(tmpFile, []byte("test content"), 0o600)
+	require.NoError(t, err)
+
+	fileInfo, err := os.Stat(tmpFile)
+	require.NoError(t, err)
+
+	err = e.checkFileWritable(tmpFile, fileInfo)
+	require.NoError(t, err)
+}
+
+// TestFileExporter_ValidateExportPathEdgeCases tests edge cases for validateExportPath.
+func TestFileExporter_ValidateExportPathEdgeCases(t *testing.T) {
+	e := NewFileExporter()
+
+	// Test path traversal detection
+	err := e.validateExportPath("../../../etc/passwd")
+	require.Error(t, err)
+	var exportErr *Error
+	require.ErrorAs(t, err, &exportErr)
+	assert.Equal(t, "validate_path", exportErr.Operation)
+}
+
+// TestFileExporter_ResolveAbsolutePathEdgeCases tests edge cases for resolveAbsolutePath.
+func TestFileExporter_ResolveAbsolutePathEdgeCases(t *testing.T) {
+	e := NewFileExporter()
+
+	// Test valid path resolution
+	absPath, err := e.resolveAbsolutePath("test/file.txt")
+	require.NoError(t, err)
+	assert.NotEmpty(t, absPath)
+}
+
+// TestFileExporter_ValidateTargetDirectoryEdgeCases tests edge cases for validateTargetDirectory.
+func TestFileExporter_ValidateTargetDirectoryEdgeCases(t *testing.T) {
+	e := NewFileExporter()
+
+	// Test with writable directory
+	tmpDir := t.TempDir()
+	err := e.validateTargetDirectory(tmpDir, tmpDir)
+	require.NoError(t, err)
+}
+
+// TestFileExporter_CheckDirectoryWritableEdgeCases tests edge cases for checkDirectoryWritable.
+func TestFileExporter_CheckDirectoryWritableEdgeCases(t *testing.T) {
+	e := NewFileExporter()
+
+	// Test with writable directory
+	tmpDir := t.TempDir()
+	err := e.checkDirectoryWritable(tmpDir)
+	require.NoError(t, err)
+}
+
+// TestFileExporter_CheckExistingFilePermissionsEdgeCases tests edge cases for checkExistingFilePermissions.
+func TestFileExporter_CheckExistingFilePermissionsEdgeCases(t *testing.T) {
+	e := NewFileExporter()
+
+	// Test with nonexistent file (should not error)
+	nonexistentFile := filepath.Join(t.TempDir(), "nonexistent.txt")
+	err := e.checkExistingFilePermissions(nonexistentFile, nonexistentFile)
+	require.NoError(t, err)
+}
+
+// TestFileExporter_WriteFileAtomicEdgeCases tests edge cases for writeFileAtomic.
+func TestFileExporter_WriteFileAtomicEdgeCases(t *testing.T) {
+	e := NewFileExporter()
+
+	tests := []struct {
+		name        string
+		content     string
+		path        string
+		expectError bool
+	}{
+		{
+			name:        "empty content",
+			content:     "",
+			path:        filepath.Join(t.TempDir(), "empty_test.txt"),
+			expectError: true,
+		},
+		{
+			name:        "valid content",
+			content:     "test content",
+			path:        filepath.Join(t.TempDir(), "valid_test.txt"),
+			expectError: false,
+		},
+		{
+			name:        "large content",
+			content:     strings.Repeat("test content ", 1000),
+			path:        filepath.Join(t.TempDir(), "large_test.txt"),
+			expectError: false,
+		},
+		{
+			name:        "unicode content",
+			content:     "test content with unicode: 🚀 🔥 💯",
+			path:        filepath.Join(t.TempDir(), "unicode_test.txt"),
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := e.writeFileAtomic(tt.path, []byte(tt.content))
+
+			if tt.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				// Verify file was written correctly
+				content, err := os.ReadFile(tt.path)
+				require.NoError(t, err)
+				assert.Equal(t, tt.content, string(content))
+			}
+		})
+	}
+}

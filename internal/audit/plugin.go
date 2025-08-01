@@ -37,6 +37,11 @@ func (pr *PluginRegistry) RegisterPlugin(p plugin.CompliancePlugin) error {
 		return fmt.Errorf("plugin validation failed for %s: %w", p.Name(), err)
 	}
 
+	// Check if plugin is already registered
+	if _, exists := pr.plugins[p.Name()]; exists {
+		return fmt.Errorf("plugin %s is already registered", p.Name())
+	}
+
 	pr.plugins[p.Name()] = p
 
 	return nil

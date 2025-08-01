@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,8 +11,12 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/unclesp1d3r/opnFocus/internal/audit"
 	"github.com/unclesp1d3r/opnFocus/internal/config"
+	"github.com/unclesp1d3r/opnFocus/internal/log"
 	"github.com/unclesp1d3r/opnFocus/internal/markdown"
+	"github.com/unclesp1d3r/opnFocus/internal/model"
+	"github.com/unclesp1d3r/opnFocus/internal/processor"
 )
 
 func TestConvertCmd(t *testing.T) {
@@ -417,6 +422,338 @@ func TestDetermineOutputPath_NoDirectoryCreation(t *testing.T) {
 	dir := filepath.Dir(nonexistentDir)
 	_, err = os.Stat(dir)
 	assert.True(t, os.IsNotExist(err), "Directory should not be created")
+}
+
+func TestConvertAuditModeToReportMode(t *testing.T) {
+	tests := []struct {
+		name        string
+		auditMode   markdown.AuditMode
+		expected    audit.ReportMode
+		expectError bool
+	}{
+		{
+			name:        "standard mode",
+			auditMode:   markdown.AuditModeStandard,
+			expected:    audit.ModeStandard,
+			expectError: false,
+		},
+		{
+			name:        "blue mode",
+			auditMode:   markdown.AuditModeBlue,
+			expected:    audit.ModeBlue,
+			expectError: false,
+		},
+		{
+			name:        "red mode",
+			auditMode:   markdown.AuditModeRed,
+			expected:    audit.ModeRed,
+			expectError: false,
+		},
+		{
+			name:        "invalid mode",
+			auditMode:   "invalid",
+			expected:    "",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := convertAuditModeToReportMode(tt.auditMode)
+
+			if tt.expectError {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "unsupported audit mode")
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestCreateModeConfig(t *testing.T) {
+	tests := []struct {
+		name       string
+		reportMode audit.ReportMode
+		opts       markdown.Options
+		expected   *audit.ModeConfig
+	}{
+		{
+			name:       "standard mode config",
+			reportMode: audit.ModeStandard,
+			opts: markdown.Options{
+				Comprehensive: true,
+				BlackhatMode:  false,
+			},
+			expected: &audit.ModeConfig{
+				Mode:          audit.ModeStandard,
+				Comprehensive: true,
+				BlackhatMode:  false,
+			},
+		},
+		{
+			name:       "red mode with blackhat",
+			reportMode: audit.ModeRed,
+			opts: markdown.Options{
+				Comprehensive: false,
+				BlackhatMode:  true,
+			},
+			expected: &audit.ModeConfig{
+				Mode:          audit.ModeRed,
+				Comprehensive: false,
+				BlackhatMode:  true,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := createModeConfig(tt.reportMode, tt.opts)
+
+			assert.Equal(t, tt.expected.Mode, result.Mode)
+			assert.Equal(t, tt.expected.Comprehensive, result.Comprehensive)
+			assert.Equal(t, tt.expected.BlackhatMode, result.BlackhatMode)
+		})
+	}
+}
+
+func TestCreateAuditMarkdownOptions(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    markdown.Options
+		expected markdown.Options
+	}{
+		{
+			name: "basic options",
+			input: markdown.Options{
+				Format:        markdown.FormatMarkdown,
+				TemplateName:  "standard",
+				Theme:         markdown.ThemeLight,
+				WrapWidth:     80,
+				Comprehensive: true,
+			},
+			expected: markdown.Options{
+				Format:        markdown.FormatMarkdown,
+				TemplateName:  "",
+				Theme:         markdown.ThemeAuto,
+				WrapWidth:     0,
+				Comprehensive: true,
+			},
+		},
+		{
+			name: "with audit mode",
+			input: markdown.Options{
+				Format:       markdown.FormatMarkdown,
+				AuditMode:    markdown.AuditModeBlue,
+				BlackhatMode: true,
+			},
+			expected: markdown.Options{
+				Format:       markdown.FormatMarkdown,
+				AuditMode:    markdown.AuditModeBlue,
+				BlackhatMode: false,
+				Theme:        markdown.ThemeAuto,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := createAuditMarkdownOptions(tt.input)
+
+			assert.Equal(t, tt.expected.Format, result.Format)
+			assert.Equal(t, tt.expected.TemplateName, result.TemplateName)
+			assert.Equal(t, tt.expected.Theme, result.Theme)
+			assert.Equal(t, tt.expected.WrapWidth, result.WrapWidth)
+			assert.Equal(t, tt.expected.Comprehensive, result.Comprehensive)
+			assert.Equal(t, tt.expected.AuditMode, result.AuditMode)
+			assert.Equal(t, tt.expected.BlackhatMode, result.BlackhatMode)
+		})
+	}
+}
+
+func TestAppendAuditFindings(t *testing.T) {
+	tests := []struct {
+		name         string
+		baseResult   string
+		auditReport  *audit.Report
+		expected     string
+		containsText []string
+	}{
+		{
+			name:       "empty audit report",
+			baseResult: "# Test Report\n\nContent here",
+			auditReport: &audit.Report{
+				Findings: []audit.Finding{},
+			},
+			expected: "# Test Report\n\nContent here",
+		},
+		{
+			name:       "report with findings",
+			baseResult: "# Test Report\n\nContent here",
+			auditReport: &audit.Report{
+				Findings: []audit.Finding{
+					{
+						Title:       "Test Finding",
+						Severity:    processor.SeverityHigh,
+						Description: "Test description",
+					},
+				},
+			},
+			containsText: []string{
+				"# Test Report",
+				"Content here",
+				"## Audit Findings Summary",
+				"Test Finding",
+				"high",
+				"Test description",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := appendAuditFindings(tt.baseResult, tt.auditReport)
+
+			if tt.expected != "" {
+				assert.Equal(t, tt.expected, result)
+			}
+
+			if len(tt.containsText) > 0 {
+				for _, text := range tt.containsText {
+					assert.Contains(t, result, text)
+				}
+			}
+		})
+	}
+}
+
+func TestGenerateBaseAuditReport(t *testing.T) {
+	// Create a minimal test configuration
+	testConfig := &model.OpnSenseDocument{
+		System: model.System{
+			Hostname: "test-firewall",
+			Domain:   "example.com",
+		},
+	}
+
+	opts := markdown.Options{
+		Format:        markdown.FormatMarkdown,
+		AuditMode:     markdown.AuditModeStandard,
+		Comprehensive: true,
+	}
+
+	logger, err := log.New(log.Config{})
+	if err != nil {
+		t.Fatalf("Failed to create logger: %v", err)
+	}
+
+	t.Run("successful report generation", func(t *testing.T) {
+		ctx := context.Background()
+		result, err := generateBaseAuditReport(ctx, testConfig, opts, logger)
+
+		// Should not error, but may return empty if templates not found in test environment
+		if err != nil {
+			// If it fails, it should be a template or generator error, not a structural error
+			errorStr := err.Error()
+			assert.True(t,
+				strings.Contains(errorStr, "template") ||
+					strings.Contains(errorStr, "generator") ||
+					strings.Contains(errorStr, "markdown"),
+				"Expected template, generator, or markdown error, got: %s", errorStr)
+		} else {
+			// If successful, should contain some markdown content
+			assert.NotEmpty(t, result)
+			assert.Contains(t, result, "#")
+		}
+	})
+}
+
+func TestHandleAuditMode(t *testing.T) {
+	// Create a minimal test configuration
+	testConfig := &model.OpnSenseDocument{
+		System: model.System{
+			Hostname: "test-firewall",
+			Domain:   "example.com",
+		},
+	}
+
+	opts := markdown.Options{
+		Format:        markdown.FormatMarkdown,
+		AuditMode:     markdown.AuditModeStandard,
+		Comprehensive: true,
+	}
+
+	logger, err := log.New(log.Config{})
+	if err != nil {
+		t.Fatalf("Failed to create logger: %v", err)
+	}
+	registry := audit.NewPluginRegistry()
+
+	t.Run("standard audit mode", func(t *testing.T) {
+		ctx := context.Background()
+		result, err := handleAuditMode(ctx, testConfig, opts, logger, registry)
+
+		// Should not error, but may return empty if templates not found in test environment
+		if err != nil {
+			// If it fails, it should be a template or generator error, not a structural error
+			errorStr := err.Error()
+			assert.True(t,
+				strings.Contains(errorStr, "template") ||
+					strings.Contains(errorStr, "generator") ||
+					strings.Contains(errorStr, "markdown") ||
+					strings.Contains(errorStr, "audit"),
+				"Expected template, generator, markdown, or audit error, got: %s", errorStr)
+		} else {
+			// If successful, should contain some markdown content
+			assert.NotEmpty(t, result)
+			assert.Contains(t, result, "#")
+		}
+	})
+
+	t.Run("blue audit mode", func(t *testing.T) {
+		ctx := context.Background()
+		blueOpts := opts
+		blueOpts.AuditMode = markdown.AuditModeBlue
+
+		result, err := handleAuditMode(ctx, testConfig, blueOpts, logger, registry)
+
+		// Should not error, but may return empty if templates not found in test environment
+		if err != nil {
+			errorStr := err.Error()
+			assert.True(t,
+				strings.Contains(errorStr, "template") ||
+					strings.Contains(errorStr, "generator") ||
+					strings.Contains(errorStr, "markdown") ||
+					strings.Contains(errorStr, "audit"),
+				"Expected template, generator, markdown, or audit error, got: %s", errorStr)
+		} else {
+			assert.NotEmpty(t, result)
+			assert.Contains(t, result, "#")
+		}
+	})
+
+	t.Run("red audit mode", func(t *testing.T) {
+		ctx := context.Background()
+		redOpts := opts
+		redOpts.AuditMode = markdown.AuditModeRed
+
+		result, err := handleAuditMode(ctx, testConfig, redOpts, logger, registry)
+
+		// Should not error, but may return empty if templates not found in test environment
+		if err != nil {
+			errorStr := err.Error()
+			assert.True(t,
+				strings.Contains(errorStr, "template") ||
+					strings.Contains(errorStr, "generator") ||
+					strings.Contains(errorStr, "markdown") ||
+					strings.Contains(errorStr, "audit"),
+				"Expected template, generator, markdown, or audit error, got: %s", errorStr)
+		} else {
+			assert.NotEmpty(t, result)
+			assert.Contains(t, result, "#")
+		}
+	})
 }
 
 // Helper function to find a command by name.

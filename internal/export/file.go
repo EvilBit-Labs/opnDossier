@@ -289,6 +289,11 @@ func (e *FileExporter) Export(ctx context.Context, content, path string) error {
 // writeFileAtomic writes content to a file using an atomic operation.
 // It creates a temporary file first, then renames it to the target location.
 func (e *FileExporter) writeFileAtomic(path string, content []byte) error {
+	// Check for empty content
+	if len(content) == 0 {
+		return ErrEmptyContent
+	}
+
 	// Create a temporary file in the same directory
 	dir := filepath.Dir(path)
 
