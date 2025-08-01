@@ -15,8 +15,8 @@
 - [x] **TASK-036**: Environment variable support (`OPNFOCUS_*`)
 - [x] **TASK-037**: CLI flag override system
 - [x] **TASK-044**: Achieve >60% test coverage (not including `internal/audit` package)
-- [ ] **TASK-047**: Automated quality checks
-- [ ] **TASK-049**: Update README for v1.0
+- [x] **TASK-047**: Automated quality checks
+- [x] **TASK-049**: Update README for v1.0
 - [ ] **TASK-053**: Verify offline operation
 - [ ] **TASK-060**: GoReleaser configuration
 - [ ] **TASK-063**: Automated release process
@@ -632,13 +632,14 @@ This document provides a comprehensive task checklist for implementing the opnFo
 
 ### 8.2 Quality Assurance
 
-- [ ] **TASK-047**: Implement automated quality checks
+- [x] **TASK-047**: Implement automated quality checks
 
   - **Context**: Need automated code quality enforcement
   - **Requirement**: US-033 (Quality checks), CI/CD Expectations
   - **User Story**: US-033 (Automated quality checks)
   - **Action**: Configure pre-commit hooks and CI quality gates
   - **Acceptance**: All quality checks pass automatically
+  - **Note**: Fully implemented with comprehensive pre-commit hooks, golangci-lint configuration with 50+ linters, security scanning with gosec, modernization checks, automated formatting, commit message validation, GitHub Actions workflow validation, and complete CI/CD pipeline integration. All quality checks pass automatically both locally and in GitHub Actions.
 
 - [ ] **TASK-048**: Add security scanning
 
@@ -654,13 +655,14 @@ This document provides a comprehensive task checklist for implementing the opnFo
 
 ### 9.1 Documentation Implementation
 
-- [ ] **TASK-049**: Create comprehensive README
+- [x] **TASK-049**: Create comprehensive README
 
   - **Context**: Need clear project documentation
   - **Requirement**: US-022 (Installation instructions), Documentation Standards
   - **User Story**: US-022-US-024 (Documentation and Help)
   - **Action**: Write clear installation and usage instructions
   - **Acceptance**: README provides clear project overview and quick start
+  - **Note**: Updated README for v1.0 release with comprehensive feature documentation, v1.0-specific information, installation instructions, development status, roadmap, and proper formatting. All quality checks pass.
 
 - [x] **TASK-049a**: Create plugin development documentation
 
@@ -680,7 +682,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
     - Plugin distribution documentation covers all scenarios
     - Plugin troubleshooting section addresses common issues
 
-- [ ] **TASK-050**: Implement usage examples
+- [x] **TASK-050**: Implement usage examples
 
   - **Context**: Need examples for common workflows
   - **Requirement**: US-023 (Usage examples), User Experience Specifications

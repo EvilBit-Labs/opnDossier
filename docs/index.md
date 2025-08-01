@@ -128,6 +128,14 @@ validation failed with 3 errors: hostname is required (and 2 more)
 
 Check out the [Installation Guide](user-guide/installation.md) to get started, or dive into the [Usage Guide](user-guide/usage.md) to learn how to use the tool effectively.
 
+## Documentation
+
+- **[User Guide](user-guide/)** - Installation, configuration, and usage instructions
+- **[Examples](examples/)** - Comprehensive usage examples and common workflows
+- **[Developer Guide](dev-guide/)** - API documentation, architecture, and development guidelines
+- **[Compliance Standards](compliance-standards.md)** - Security and compliance framework documentation
+- **[CIS-like Firewall Reference](cis-like-firewall-reference.md)** - Firewall configuration reference
+
 ## Contributing
 
 Interested in contributing? See our [Contributing Guide](dev-guide/contributing.md) for information on how to get involved with the project.

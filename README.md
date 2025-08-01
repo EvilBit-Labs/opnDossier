@@ -6,16 +6,30 @@
 [![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://github.com/unclesp1d3r/opnFocus/blob/main/docs/index.md)
 [![wakatime](https://wakatime.com/badge/user/2d2fbc27-e3f7-4ec1-b2a7-935e48bad498/project/018dae18-42c0-4e3e-8330-14d39f574bd5.svg)](https://wakatime.com/badge/user/2d2fbc27-e3f7-4ec1-b2a7-935e48bad498/project/018dae18-42c0-4e3e-8330-14d39f574bd5)
 
+> **v1.0 Release** - Essential CLI Tool for OPNsense Configuration Processing
+
 ## Overview
 
 A command-line tool designed specifically for network operators and administrators working with OPNsense firewalls. This tool transforms complex XML configuration files into clear, human-readable markdown documentation, making it easier to understand, document, and audit your network configurations.
 
 **Built for operators, by operators** - with a focus on offline operation, structured data, and intuitive workflows.
 
-## ✨ Features
+### v1.0 Release Features
+
+opnFocus v1.0 provides a robust foundation for OPNsense configuration processing:
+
+- **Core XML Processing**: Parse and validate OPNsense config.xml files
+- **Multi-Format Export**: Convert to markdown, JSON, or YAML formats
+- **Terminal Display**: Rich terminal output with syntax highlighting and themes
+- **File Export**: Save processed configurations with overwrite protection
+- **Offline Operation**: Complete offline functionality for airgapped environments
+- **Cross-Platform**: Native binaries for Linux, macOS, and Windows
+- **Comprehensive Error Handling**: Detailed validation and error reporting
+
+## Features
 
 - 🔧 **Parse OPNsense XML configurations** - Process complex configuration files with ease
-- ✅ **Configuration Validation** - Comprehensive validation with detailed error reporting
+- [x] **Configuration Validation** - Comprehensive validation with detailed error reporting
 - 📝 **Convert to Markdown** - Generate human-readable documentation from XML configs
 - 💾 **Export to Files** - Save processed configurations as markdown, JSON, or YAML files
 - 🔌 **Offline Operation** - Works completely offline, perfect for airgapped environments
@@ -28,11 +42,13 @@ A command-line tool designed specifically for network operators and administrato
 - 📈 **Performance Analysis** - Identifies configuration bottlenecks and optimization opportunities
 - 🖥️ **Terminal Display** - Rich terminal output with syntax highlighting and theme support
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 
 **Prerequisites:** Go 1.21 or later
+
+#### From Source (Recommended for v1.0)
 
 ```bash
 # Clone the repository
@@ -44,7 +60,7 @@ just install
 just build
 ```
 
-**Alternative installation methods:**
+#### Alternative Installation Methods
 
 ```bash
 # Direct Go installation
@@ -53,6 +69,10 @@ go install github.com/unclesp1d3r/opnFocus@latest
 # Or build from source
 go build -o opnfocus main.go
 ```
+
+#### Pre-built Binaries (Coming Soon)
+
+Pre-built binaries for Linux, macOS, and Windows will be available with the v1.0 release.
 
 ### Basic Usage
 
@@ -153,16 +173,17 @@ opnfocus --verbose --log_format=json convert config.xml
 
 **Note:** The CLI uses a layered architecture: **Cobra** provides command structure and argument parsing, **Viper** handles layered configuration management (files, env, flags), and **Fang** adds enhanced UX features like styled help, automatic version flags, and shell completion.
 
-## 🔍 Validation & Error Handling
+## Validation & Error Handling
 
-opnFocus includes comprehensive validation capabilities to ensure configuration integrity:
+opnFocus v1.0 includes comprehensive validation capabilities to ensure configuration integrity:
 
 ### Validation Features
 
 - **Configuration Structure Validation** - Validates required fields like hostname, domain, and network interfaces
 - **Data Type Validation** - Ensures IP addresses, subnet masks, and network configurations are valid
 - **Cross-Field Validation** - Checks relationships between configuration elements
-- **Streaming Limits** - Handles large files efficiently with memory-conscious processing
+- **Streaming Processing** - Handles large files efficiently with memory-conscious processing
+- **XML Schema Validation** - Validates against OPNsense configuration schema
 
 ### Typical Error Output Examples
 
@@ -195,7 +216,7 @@ validation failed with 3 errors: hostname is required (and 2 more)
 - **Garbage Collection**: Automatic memory cleanup after processing large sections
 - **Error Recovery**: Continues processing when possible, collecting all validation errors
 
-## 🏗️ Architecture
+## Architecture
 
 Built with modern Go practices and established libraries:
 
@@ -294,7 +315,7 @@ opnFocus provides comprehensive analysis of your OPNsense configurations:
 - **Performance Analysis**: Identifies disabled hardware offloading and excessive rule counts
 - **Compliance Checking**: Validates against security and operational best practices
 
-## 🛠️ Development
+## Development
 
 This project follows comprehensive development standards and uses modern Go tooling:
 
@@ -303,11 +324,22 @@ This project follows comprehensive development standards and uses modern Go tool
 just test      # Run tests
 just lint      # Run linters
 just check     # Run all pre-commit checks
+just ci-check  # Run comprehensive CI checks
 just dev       # Run in development mode
 just docs      # Serve documentation locally
 ```
 
-## 🤝 Contributing
+### v1.0 Development Status
+
+- [x] **Core Infrastructure**: Complete with proper error handling and logging
+- [x] **XML Processing**: Full parsing and validation capabilities
+- [x] **Multi-Format Export**: Markdown, JSON, and YAML conversion
+- [x] **Terminal Display**: Rich output with theme support
+- [x] **Configuration Management**: YAML files, environment variables, and CLI flags
+- [x] **Quality Assurance**: Comprehensive testing and linting with GitHub Actions CI/CD
+- [x] **Documentation**: Complete user and developer guides
+
+## Contributing
 
 We welcome contributions! This project follows strict coding standards and development practices.
 
@@ -334,13 +366,15 @@ We welcome contributions! This project follows strict coding standards and devel
 - Documentation updates for user-facing changes
 - Follow Go best practices and project conventions
 
-## 📖 Documentation
+## Documentation
 
 - **[Full Documentation](https://github.com/unclesp1d3r/opnFocus/blob/main/docs/index.md)** - Complete user and developer guides
 - **[Development Standards](DEVELOPMENT_STANDARDS.md)** - Coding standards and architectural principles
 - **[API Reference](docs/dev-guide/api.md)** - Detailed API documentation
+- **[Architecture Guide](ARCHITECTURE.md)** - System design and component architecture
+- **[Contributing Guidelines](CONTRIBUTING.md)** - How to contribute to the project
 
-## 🔒 Security
+## Security
 
 This tool is designed with security as a first-class concern:
 
@@ -351,21 +385,39 @@ This tool is designed with security as a first-class concern:
 
 For security issues, please see our security policy.
 
-## 📄 License
+## License
 
 This project is licensed under the Apache License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgements
+## Acknowledgements
 
 - Inspired by [TKCERT/pfFocus](https://github.com/TKCERT/pfFocus) for pfSense configurations
 - Built with [Charm](https://charm.sh/) libraries for beautiful terminal experiences
 - Follows [Google Go Style Guide](https://google.github.io/styleguide/go/) for code quality
 
-## 📞 Support
+## Support
 
 - **Issues:** [GitHub Issues](https://github.com/unclesp1d3r/opnFocus/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/unclesp1d3r/opnFocus/discussions)
 - **Documentation:** [Full Documentation](https://github.com/unclesp1d3r/opnFocus/blob/main/docs/index.md)
+
+## Roadmap
+
+### v1.1 - Advanced Analysis & Audit Reports
+
+- Security-focused audit and compliance reporting
+- Red team recon reports (attack surfaces, WAN exposure)
+- Blue team defensive reports (findings, recommendations)
+- Plugin-based compliance architecture
+- STIG, SANS, CIS compliance checking
+
+### v1.2 - Performance & Enterprise Features
+
+- Production-ready enterprise deployment
+- Concurrent processing for multiple files
+- Performance optimization and benchmarking
+- Advanced plugin ecosystem
+- Batch processing capabilities
 
 ---
 

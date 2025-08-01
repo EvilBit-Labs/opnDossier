@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/unclesp1d3r/opnFocus/internal/markdown"
@@ -27,6 +28,7 @@ type Processor interface {
 type CoreProcessor struct {
 	validator *validator.Validate
 	generator markdown.Generator
+	mu        sync.Mutex // Protects concurrent access to the processor
 }
 
 // NewCoreProcessor returns a new CoreProcessor instance with a validator and a markdown generator initialized.
@@ -48,6 +50,10 @@ func (p *CoreProcessor) Process(ctx context.Context, cfg *model.OpnSenseDocument
 	if cfg == nil {
 		return nil, ErrConfigurationNil
 	}
+
+	// Lock to prevent race conditions when multiple goroutines access the processor
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
 	// Apply options to get configuration
 	config := DefaultConfig()
