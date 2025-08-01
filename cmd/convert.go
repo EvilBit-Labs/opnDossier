@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/unclesp1d3r/opnFocus/internal/audit"
@@ -230,7 +229,9 @@ Examples:
 
 				// Handle audit mode if specified
 				if opt.AuditMode != "" {
-					output, err = handleAuditMode(timeoutCtx, opnsense, opt, ctxLogger)
+					// Create plugin registry for audit mode
+					registry := audit.NewPluginRegistry()
+					output, err = handleAuditMode(timeoutCtx, opnsense, opt, ctxLogger, registry)
 					if err != nil {
 						ctxLogger.Error("Failed to generate audit report", "error", err)
 						errs <- fmt.Errorf("failed to generate audit report from %s: %w", fp, err)
@@ -395,9 +396,8 @@ func buildConversionOptions(format, template string, sections []string, theme st
 }
 
 // handleAuditMode generates an audit report using the audit mode controller and markdown generator.
-func handleAuditMode(ctx context.Context, cfg *model.OpnSenseDocument, opts markdown.Options, logger *log.Logger) (string, error) {
+func handleAuditMode(ctx context.Context, cfg *model.OpnSenseDocument, opts markdown.Options, logger *log.Logger, registry *audit.PluginRegistry) (string, error) {
 	// Create audit mode controller with plugin registry
-	registry := audit.NewPluginRegistry()
 	controller := audit.NewModeController(registry, logger.Logger)
 
 	// Convert audit mode string to ReportMode
@@ -434,10 +434,38 @@ func handleAuditMode(ctx context.Context, cfg *model.OpnSenseDocument, opts mark
 		return "", ErrFailedToEnrichConfig
 	}
 
-	// For now, return a simple audit report summary
-	// TODO: Implement proper template rendering with combined data
-	return fmt.Sprintf("# Audit Report - %s Mode\n\nGenerated: %s\n\nFindings: %d\n\nConfiguration analyzed successfully.",
-		opts.AuditMode, time.Now().Format(time.RFC3339), len(auditReport.Findings)), nil
+	// Create markdown generator for template rendering
+	generator, err := markdown.NewMarkdownGenerator(nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create markdown generator: %w", err)
+	}
+
+	// Build markdown options for audit mode
+	markdownOpts := markdown.Options{
+		Format:        markdown.FormatMarkdown,
+		AuditMode:     opts.AuditMode,
+		Comprehensive: opts.Comprehensive,
+	}
+
+	// Generate the audit report using template rendering
+	result, err := generator.Generate(ctx, cfg, markdownOpts)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate audit report: %w", err)
+	}
+
+	// Append audit findings information to the generated report
+	if len(auditReport.Findings) > 0 {
+		result += fmt.Sprintf("\n\n## Audit Findings Summary\n\nTotal Findings: %d\n\n", len(auditReport.Findings))
+		for i, finding := range auditReport.Findings {
+			result += fmt.Sprintf("### %d. %s\n\n**Severity:** %s\n**Component:** %s\n**Description:** %s\n\n",
+				i+1, finding.Title, finding.Severity, finding.Component, finding.Description)
+			if finding.Recommendation != "" {
+				result += fmt.Sprintf("**Recommendation:** %s\n\n", finding.Recommendation)
+			}
+		}
+	}
+
+	return result, nil
 }
 
 // determineOutputPath determines the output file path with smart naming and overwrite protection.

@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"text/template"
+
+	"github.com/unclesp1d3r/opnFocus/internal/log"
 )
 
 // Format represents the output format type.
@@ -188,7 +190,10 @@ func (o Options) Validate() error {
 // WithFormat sets the output format.
 func (o Options) WithFormat(format Format) Options {
 	if err := format.Validate(); err != nil {
-		// Return unchanged options if validation fails
+		// Log warning about validation failure instead of silently ignoring
+		if logger, loggerErr := log.New(log.Config{Level: "warn"}); loggerErr == nil {
+			logger.Warn("format validation failed, returning unchanged options", "format", format, "error", err)
+		}
 		return o
 	}
 	o.Format = format
@@ -273,7 +278,10 @@ func (o Options) WithComprehensive(enabled bool) Options {
 // WithAuditMode sets the audit report mode.
 func (o Options) WithAuditMode(mode AuditMode) Options {
 	if err := mode.Validate(); err != nil {
-		// Return unchanged options if validation fails
+		// Log warning about validation failure instead of silently ignoring
+		if logger, loggerErr := log.New(log.Config{Level: "warn"}); loggerErr == nil {
+			logger.Warn("audit mode validation failed, returning unchanged options", "mode", mode, "error", err)
+		}
 		return o
 	}
 	o.AuditMode = mode
