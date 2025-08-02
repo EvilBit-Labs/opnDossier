@@ -38,7 +38,7 @@ func init() {
 
 	// Validation flags
 	displayCmd.Flags().
-		BoolVar(&noValidation, "no-validate", false, "Skip validation and display potentially malformed configurations (use with caution)")
+		BoolVar(&noValidation, "no-validate", false, "Skip basic XML parsing checks and display potentially malformed configurations (use with caution)")
 	setFlagAnnotation(displayCmd.Flags(), "no-validate", []string{"validation"})
 
 	// Template and styling flags
@@ -74,9 +74,11 @@ and displays it in the terminal with syntax highlighting and formatting.
 This provides an immediate, readable view of your firewall configuration
 without saving to a file.
 
-By default, the configuration is validated before display to ensure
-data integrity. Use --no-validate to skip validation if you need to
-display potentially malformed configurations.
+By default, the configuration is parsed without validation to ensure
+it can be displayed even with configuration inconsistencies that are
+common in production environments. Use --no-validate to skip even
+basic XML parsing checks if you need to display potentially malformed
+configurations.
 
 TEMPLATES:
   Main templates:
@@ -158,7 +160,8 @@ Examples:
 			}
 		}()
 
-		// Parse the XML with or without validation based on flag
+		// Parse the XML - display command only ensures XML can be unmarshalled
+		// Full validation should be done with the 'validate' command
 		ctxLogger.Debug("Parsing XML file")
 		p := parser.NewXMLParser()
 		var opnsense *model.OpnSenseDocument
@@ -167,9 +170,10 @@ Examples:
 			opnsense, err = p.Parse(ctx, file)
 			ctxLogger.Debug("Parsing without validation")
 		} else {
-			// Use ParseAndValidate for default behavior (with validation)
-			opnsense, err = p.ParseAndValidate(ctx, file)
-			ctxLogger.Debug("Parsing with validation")
+			// Use Parse for default behavior (no validation)
+			// Full configuration quality validation should only occur in the 'validate' command
+			opnsense, err = p.Parse(ctx, file)
+			ctxLogger.Debug("Parsing with basic XML validation only")
 		}
 
 		if err != nil {
