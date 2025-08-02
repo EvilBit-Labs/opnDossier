@@ -1,4 +1,4 @@
-name: CI Check
+name: CI
 
 on:
   push:
@@ -11,9 +11,13 @@ permissions:
   pull-requests: read
 
 jobs:
-  ci-check:
-    name: ci-check
-    runs-on: ubuntu-latest
+  test:
+    strategy:
+      matrix:
+        go: [1.24, stable]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    name: test
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -21,8 +25,11 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: ${{ matrix.go }}
           check-latest: true
+
+      - name: Install pre-commit
+        run: pip install pre-commit
 
       - name: Install Just
         uses: taiki-e/install-action@just
@@ -42,3 +49,24 @@ jobs:
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          check-latest: true
+
+      - name: Build for multiple platforms
+        run: |
+          # Build for current platform
+          go build -v -o opnfocus main.go
+
+          # Cross-compile for other platforms
+          GOOS=linux GOARCH=amd64 go build -v -o opnfocus-linux-amd64 main.go
+          GOOS=darwin GOARCH=amd64 go build -v -o opnfocus-darwin-amd64 main.go
+          GOOS=windows GOARCH=amd64 go build -v -o opnfocus-windows-amd64.exe main.go

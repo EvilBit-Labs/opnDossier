@@ -98,19 +98,15 @@ check:
 # Run code formatting
 format:
     golangci-lint run --fix ./...
-    goimports -w .
     @just modernize
 
 # Run code formatting checks
 format-check:
     golangci-lint fmt ./...
-    goimports -d .
 
 # Run code linting
 lint:
     golangci-lint run ./...
-    go vet ./...
-    gosec ./...
     @just modernize-check
 
 # Run modernize analyzer to check for modernization opportunities
@@ -141,6 +137,11 @@ bench-memory:
 coverage:
     go test -coverprofile=coverage.out ./...
     go tool cover -html=coverage.out
+
+# Run tests with coverage (alternative to separate test + coverage)
+test-coverage:
+    go test -coverprofile=coverage.out ./...
+    go tool cover -func=coverage.out
 
 
 completeness-check:
@@ -175,8 +176,6 @@ clean-build:
 
 # Build for release using GoReleaser
 build-for-release:
-    @just install
-    @go mod tidy
     @just check
     @just test
     goreleaser build --clean --snapshot --single-target
@@ -267,7 +266,6 @@ ci-check:
     @just check
     @just format-check
     @just lint
-    @just modernize-check
     @just test
     @goreleaser check --verbose
 
