@@ -15,10 +15,10 @@
 
    - The Go module path will need to be updated from `github.com/unclesp1d3r/opnFocus` to `github.com/EvilBit-Labs/opnDossier` in all `.go` files and the `go.mod` file.
 
-   - Update the `go.mod` file's module path specifically using a targeted sed command:
+   - Update the `go.mod` file's module path using Go's official `go mod edit` command (safer than sed):
 
      ```bash
-     sed -i 's|module github.com/unclesp1d3r/opnFocus|module github.com/EvilBit-Labs/opnDossier|' go.mod
+     go mod edit -module github.com/EvilBit-Labs/opnDossier
      ```
 
    - Update all Go import paths in `.go` files using a find command combined with sed:
