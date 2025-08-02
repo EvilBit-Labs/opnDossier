@@ -267,6 +267,11 @@ ci-check:
     @just format-check
     @just lint
     @just test
-    @goreleaser check --verbose
+
+# Run all checks, tests, and release validation
+full-checks:
+    @cd {{justfile_dir()}}
+    @just ci-check
+    @just check-goreleaser
 
 
