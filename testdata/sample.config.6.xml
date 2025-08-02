@@ -1,0 +1,4368 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<opnsense>
+  <trigger_initial_wizard/>
+  <theme>opnsense</theme>
+  <sysctl>
+    <item>
+      <descr>Increase UFS read-ahead speeds to match the state of hard drives and NCQ.</descr>
+      <tunable>vfs.read_max</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Set the ephemeral port range to be lower.</descr>
+      <tunable>net.inet.ip.portrange.first</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Drop packets to closed TCP ports without returning a RST</descr>
+      <tunable>net.inet.tcp.blackhole</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Do not send ICMP port unreachable messages for closed UDP ports</descr>
+      <tunable>net.inet.udp.blackhole</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Randomize the ID field in IP packets</descr>
+      <tunable>net.inet.ip.random_id</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>
+        Source routing is another way for an attacker to try to reach non-routable addresses behind your box.
+        It can also be used to probe for information about your internal networks. These functions come enabled
+        as part of the standard FreeBSD core system.
+      </descr>
+      <tunable>net.inet.ip.sourceroute</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>
+        Source routing is another way for an attacker to try to reach non-routable addresses behind your box.
+        It can also be used to probe for information about your internal networks. These functions come enabled
+        as part of the standard FreeBSD core system.
+      </descr>
+      <tunable>net.inet.ip.accept_sourceroute</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>
+        This option turns off the logging of redirect packets because there is no limit and this could fill
+        up your logs consuming your whole hard drive.
+      </descr>
+      <tunable>net.inet.icmp.log_redirect</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Drop SYN-FIN packets (breaks RFC1379, but nobody uses it anyway)</descr>
+      <tunable>net.inet.tcp.drop_synfin</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Enable sending IPv6 redirects</descr>
+      <tunable>net.inet6.ip6.redirect</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Enable privacy settings for IPv6 (RFC 4941)</descr>
+      <tunable>net.inet6.ip6.use_tempaddr</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Prefer privacy addresses and use them over the normal addresses</descr>
+      <tunable>net.inet6.ip6.prefer_tempaddr</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Generate SYN cookies for outbound SYN-ACK packets</descr>
+      <tunable>net.inet.tcp.syncookies</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Maximum incoming/outgoing TCP datagram size (receive)</descr>
+      <tunable>net.inet.tcp.recvspace</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Maximum incoming/outgoing TCP datagram size (send)</descr>
+      <tunable>net.inet.tcp.sendspace</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Do not delay ACK to try and piggyback it onto a data packet</descr>
+      <tunable>net.inet.tcp.delayed_ack</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Maximum outgoing UDP datagram size</descr>
+      <tunable>net.inet.udp.maxdgram</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Handling of non-IP packets which are not passed to pfil (see if_bridge(4))</descr>
+      <tunable>net.link.bridge.pfil_onlyip</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Set to 1 to additionally filter on the physical interface for locally destined packets</descr>
+      <tunable>net.link.bridge.pfil_local_phys</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Set to 0 to disable filtering on the incoming and outgoing member interfaces.</descr>
+      <tunable>net.link.bridge.pfil_member</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Set to 1 to enable filtering on the bridge interface</descr>
+      <tunable>net.link.bridge.pfil_bridge</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Allow unprivileged access to tap(4) device nodes</descr>
+      <tunable>net.link.tap.user_open</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Randomize PID's (see src/sys/kern/kern_fork.c: sysctl_kern_randompid())</descr>
+      <tunable>kern.randompid</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Disable CTRL+ALT+Delete reboot from keyboard.</descr>
+      <tunable>hw.syscons.kbd_reboot</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Enable TCP extended debugging</descr>
+      <tunable>net.inet.tcp.log_debug</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Set ICMP Limits</descr>
+      <tunable>net.inet.icmp.icmplim</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>TCP Offload Engine</descr>
+      <tunable>net.inet.tcp.tso</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>UDP Checksums</descr>
+      <tunable>net.inet.udp.checksum</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Maximum socket buffer size</descr>
+      <tunable>kern.ipc.maxsockbuf</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Page Table Isolation (Meltdown mitigation, requires reboot.)</descr>
+      <tunable>vm.pmap.pti</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Disable Indirect Branch Restricted Speculation (Spectre V2 mitigation)</descr>
+      <tunable>hw.ibrs_disable</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Hide processes running as other groups</descr>
+      <tunable>security.bsd.see_other_gids</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Hide processes running as other users</descr>
+      <tunable>security.bsd.see_other_uids</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>Enable/disable sending of ICMP redirects in response to IP packets for which a better,
+        and for the sender directly reachable, route and next hop is known.
+      </descr>
+      <tunable>net.inet.ip.redirect</tunable>
+      <value>default</value>
+    </item>
+    <item>
+      <descr>
+        Redirect attacks are the purposeful mass-issuing of ICMP type 5 packets. In a normal network, redirects
+        to the end stations should not be required. This option enables the NIC to drop all inbound ICMP redirect
+        packets without returning a response.
+      </descr>
+      <tunable>net.inet.icmp.drop_redirect</tunable>
+      <value>1</value>
+    </item>
+    <item>
+      <descr>Maximum outgoing UDP datagram size</descr>
+      <tunable>net.local.dgram.maxdgram</tunable>
+      <value>default</value>
+    </item>
+  </sysctl>
+  <system>
+    <optimization>normal</optimization>
+    <hostname>OPNsense</hostname>
+    <domain>localdomain</domain>
+    <dnsallowoverride>1</dnsallowoverride>
+    <group>
+      <name>admins</name>
+      <description>System Administrators</description>
+      <scope>system</scope>
+      <gid>1999</gid>
+      <member>0</member>
+      <priv>page-all</priv>
+    </group>
+    <user>
+      <name>root</name>
+      <descr>System Administrator</descr>
+      <scope>system</scope>
+      <groupname>admins</groupname>
+      <password>$2y$10$YRVoF4SgskIsrXOvOQjGieB9XqHPRra9R7d80B3BZdbY/j21TwBfS</password>
+      <uid>0</uid>
+    </user>
+    <nextuid>2000</nextuid>
+    <nextgid>2000</nextgid>
+    <timezone>Etc/UTC</timezone>
+    <timeservers>0.opnsense.pool.ntp.org 1.opnsense.pool.ntp.org 2.opnsense.pool.ntp.org 3.opnsense.pool.ntp.org</timeservers>
+    <webgui>
+      <protocol>https</protocol>
+    </webgui>
+    <disablenatreflection>yes</disablenatreflection>
+    <usevirtualterminal>1</usevirtualterminal>
+    <disableconsolemenu/>
+    <disablevlanhwfilter>1</disablevlanhwfilter>
+    <disablechecksumoffloading>1</disablechecksumoffloading>
+    <disablesegmentationoffloading>1</disablesegmentationoffloading>
+    <disablelargereceiveoffloading>1</disablelargereceiveoffloading>
+    <ipv6allow/>
+    <powerd_ac_mode>hadp</powerd_ac_mode>
+    <powerd_battery_mode>hadp</powerd_battery_mode>
+    <powerd_normal_mode>hadp</powerd_normal_mode>
+    <bogons>
+      <interval>monthly</interval>
+    </bogons>
+    <pf_share_forward>1</pf_share_forward>
+    <lb_use_sticky>1</lb_use_sticky>
+    <ssh>
+      <group>admins</group>
+    </ssh>
+    <rrdbackup>-1</rrdbackup>
+    <netflowbackup>-1</netflowbackup>
+  </system>
+  <interfaces>
+    <wan>
+      <if>ix0</if>
+      <descr>WAN</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <blockpriv>1</blockpriv>
+      <blockbogons>1</blockbogons>
+      <ipaddr>11.22.33.44</ipaddr>
+      <subnet>29</subnet>
+      <gateway>WAN_GWv4</gateway>
+    </wan>
+    <lan>
+      <enable>1</enable>
+      <if>lagg0</if>
+      <ipaddr>10.1.1.11</ipaddr>
+      <subnet>24</subnet>
+      <ipaddrv6/>
+      <subnetv6/>
+      <media/>
+      <mediaopt/>
+      <gateway/>
+      <gatewayv6/>
+      <descr>LAN</descr>
+    </lan>
+    <lo0>
+      <internal_dynamic>1</internal_dynamic>
+      <descr>Loopback</descr>
+      <enable>1</enable>
+      <if>lo0</if>
+      <ipaddr>127.0.0.1</ipaddr>
+      <ipaddrv6>::1</ipaddrv6>
+      <subnet>8</subnet>
+      <subnetv6>128</subnetv6>
+      <type>none</type>
+      <virtual>1</virtual>
+    </lo0>
+    <openvpn>
+      <internal_dynamic>1</internal_dynamic>
+      <enable>1</enable>
+      <if>openvpn</if>
+      <descr>OpenVPN</descr>
+      <type>group</type>
+      <virtual>1</virtual>
+      <networks/>
+    </openvpn>
+    <opt6>
+      <if>vlan0723</if>
+      <descr>V723_Engineering723</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>10.12.75.251</ipaddr>
+      <subnet>24</subnet>
+    </opt6>
+    <opt7>
+      <if>vlan01364</if>
+      <descr>V1364_Sales1364</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>172.19.22.251</ipaddr>
+      <subnet>24</subnet>
+    </opt7>
+    <opt8>
+      <if>vlan03530</if>
+      <descr>V3530_Guest3530</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>10.31.100.251</ipaddr>
+      <subnet>24</subnet>
+    </opt8>
+    <opt9>
+      <if>vlan01207</if>
+      <descr>V1207_Sales1207</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>192.168.66.251</ipaddr>
+      <subnet>24</subnet>
+    </opt9>
+    <opt10>
+      <if>vlan02818</if>
+      <descr>V2818_Admin2818</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>172.22.227.251</ipaddr>
+      <subnet>24</subnet>
+    </opt10>
+    <opt11>
+      <if>vlan02189</if>
+      <descr>V2189_Guest2189</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>192.168.106.251</ipaddr>
+      <subnet>24</subnet>
+    </opt11>
+    <opt12>
+      <if>vlan03613</if>
+      <descr>V3613_Guest3613</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>192.168.77.251</ipaddr>
+      <subnet>24</subnet>
+    </opt12>
+    <opt13>
+      <if>vlan0968</if>
+      <descr>V968_Engineering968</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>172.29.58.251</ipaddr>
+      <subnet>24</subnet>
+    </opt13>
+    <opt14>
+      <if>vlan02981</if>
+      <descr>V2981_Guest2981</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>10.159.230.251</ipaddr>
+      <subnet>24</subnet>
+    </opt14>
+    <opt15>
+      <if>vlan02087</if>
+      <descr>V2087_Sales2087</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>10.190.102.251</ipaddr>
+      <subnet>24</subnet>
+    </opt15>
+    <opt16>
+      <if>vlan0396</if>
+      <descr>V396_Admin396</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>192.168.161.251</ipaddr>
+      <subnet>24</subnet>
+    </opt16>
+    <opt17>
+      <if>vlan01859</if>
+      <descr>V1859_Operations1859</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>192.168.136.251</ipaddr>
+      <subnet>24</subnet>
+    </opt17>
+    <opt18>
+      <if>vlan02611</if>
+      <descr>V2611_Test2611</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>10.74.95.251</ipaddr>
+      <subnet>24</subnet>
+    </opt18>
+    <opt19>
+      <if>vlan03091</if>
+      <descr>V3091_Marketing3091</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>10.71.7.251</ipaddr>
+      <subnet>24</subnet>
+    </opt19>
+    <opt20>
+      <if>vlan01454</if>
+      <descr>V1454_Finance1454</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>10.31.243.251</ipaddr>
+      <subnet>24</subnet>
+    </opt20>
+    <opt21>
+      <if>vlan02576</if>
+      <descr>V2576_Admin2576</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>10.110.221.251</ipaddr>
+      <subnet>24</subnet>
+    </opt21>
+    <opt22>
+      <if>vlan02906</if>
+      <descr>V2906_Lab2906</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>172.24.56.251</ipaddr>
+      <subnet>24</subnet>
+    </opt22>
+    <opt23>
+      <if>vlan01662</if>
+      <descr>V1662_Guest1662</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>172.19.3.251</ipaddr>
+      <subnet>24</subnet>
+    </opt23>
+    <opt24>
+      <if>vlan03389</if>
+      <descr>V3389_Lab3389</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>10.173.173.251</ipaddr>
+      <subnet>24</subnet>
+    </opt24>
+    <opt25>
+      <if>vlan02801</if>
+      <descr>V2801_Operations2801</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>192.168.193.251</ipaddr>
+      <subnet>24</subnet>
+    </opt25>
+    <opt26>
+      <if>vlan03589</if>
+      <descr>V3589_Admin3589</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>10.95.123.251</ipaddr>
+      <subnet>24</subnet>
+    </opt26>
+    <opt27>
+      <if>vlan03509</if>
+      <descr>V3509_Marketing3509</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>172.21.169.251</ipaddr>
+      <subnet>24</subnet>
+    </opt27>
+    <opt28>
+      <if>vlan01340</if>
+      <descr>V1340_Sales1340</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>192.168.67.251</ipaddr>
+      <subnet>24</subnet>
+    </opt28>
+    <opt29>
+      <if>vlan0896</if>
+      <descr>V896_Operations896</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>192.168.110.251</ipaddr>
+      <subnet>24</subnet>
+    </opt29>
+    <opt30>
+      <if>vlan02360</if>
+      <descr>V2360_Support2360</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>172.30.215.251</ipaddr>
+      <subnet>24</subnet>
+    </opt30>
+    <opt31>
+      <if>vlan03547</if>
+      <descr>V3547_HR3547</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>192.168.57.251</ipaddr>
+      <subnet>24</subnet>
+    </opt31>
+    <opt32>
+      <if>vlan0979</if>
+      <descr>V979_Engineering979</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>10.189.128.251</ipaddr>
+      <subnet>24</subnet>
+    </opt32>
+    <opt33>
+      <if>vlan01152</if>
+      <descr>V1152_Finance1152</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>172.25.50.251</ipaddr>
+      <subnet>24</subnet>
+    </opt33>
+    <opt34>
+      <if>vlan01402</if>
+      <descr>V1402_Finance1402</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>172.23.68.251</ipaddr>
+      <subnet>24</subnet>
+    </opt34>
+    <opt35>
+      <if>vlan01916</if>
+      <descr>V1916_Operations1916</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>192.168.167.251</ipaddr>
+      <subnet>24</subnet>
+    </opt35>
+    <opt36>
+      <if>vlan04059</if>
+      <descr>V4059_Support4059</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>172.27.241.251</ipaddr>
+      <subnet>24</subnet>
+    </opt36>
+    <opt37>
+      <if>vlan0352</if>
+      <descr>V352_Finance352</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>10.42.127.251</ipaddr>
+      <subnet>24</subnet>
+    </opt37>
+    <opt38>
+      <if>vlan01263</if>
+      <descr>V1263_Marketing1263</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>192.168.184.251</ipaddr>
+      <subnet>24</subnet>
+    </opt38>
+    <opt39>
+      <if>vlan02499</if>
+      <descr>V2499_Operations2499</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>192.168.173.251</ipaddr>
+      <subnet>24</subnet>
+    </opt39>
+    <opt40>
+      <if>vlan027</if>
+      <descr>V27_HR27</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>10.208.131.251</ipaddr>
+      <subnet>24</subnet>
+    </opt40>
+    <opt41>
+      <if>vlan02932</if>
+      <descr>V2932_HR2932</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>10.248.39.251</ipaddr>
+      <subnet>24</subnet>
+    </opt41>
+    <opt42>
+      <if>vlan01692</if>
+      <descr>V1692_Support1692</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>10.233.61.251</ipaddr>
+      <subnet>24</subnet>
+    </opt42>
+    <opt43>
+      <if>vlan01886</if>
+      <descr>V1886_Sales1886</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>172.25.168.251</ipaddr>
+      <subnet>24</subnet>
+    </opt43>
+    <opt44>
+      <if>vlan02285</if>
+      <descr>V2285_Guest2285</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>172.29.93.251</ipaddr>
+      <subnet>24</subnet>
+    </opt44>
+    <opt45>
+      <if>vlan0980</if>
+      <descr>V980_Operations980</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>10.145.221.251</ipaddr>
+      <subnet>24</subnet>
+    </opt45>
+    <opt46>
+      <if>vlan03120</if>
+      <descr>V3120_Lab3120</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>192.168.214.251</ipaddr>
+      <subnet>24</subnet>
+    </opt46>
+    <opt47>
+      <if>vlan01272</if>
+      <descr>V1272_Finance1272</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>10.110.41.251</ipaddr>
+      <subnet>24</subnet>
+    </opt47>
+    <opt48>
+      <if>vlan01642</if>
+      <descr>V1642_Sales1642</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>172.26.134.251</ipaddr>
+      <subnet>24</subnet>
+    </opt48>
+    <opt49>
+      <if>vlan0541</if>
+      <descr>V541_IT541</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>192.168.122.251</ipaddr>
+      <subnet>24</subnet>
+    </opt49>
+    <opt50>
+      <if>vlan036</if>
+      <descr>V36_Admin36</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>10.184.36.251</ipaddr>
+      <subnet>24</subnet>
+    </opt50>
+    <opt51>
+      <if>vlan01915</if>
+      <descr>V1915_Support1915</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>10.139.114.251</ipaddr>
+      <subnet>24</subnet>
+    </opt51>
+    <opt52>
+      <if>vlan03768</if>
+      <descr>V3768_Engineering3768</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>172.19.138.251</ipaddr>
+      <subnet>24</subnet>
+    </opt52>
+    <opt53>
+      <if>vlan02024</if>
+      <descr>V2024_Finance2024</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>10.45.190.251</ipaddr>
+      <subnet>24</subnet>
+    </opt53>
+    <opt54>
+      <if>vlan0397</if>
+      <descr>V397_Guest397</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>192.168.160.251</ipaddr>
+      <subnet>24</subnet>
+    </opt54>
+    <opt55>
+      <if>vlan03927</if>
+      <descr>V3927_HR3927</descr>
+      <enable>1</enable>
+      <spoofmac/>
+      <ipaddr>10.1.120.251</ipaddr>
+      <subnet>24</subnet>
+    </opt55>
+  </interfaces>
+  <dhcpd>
+    <lan>
+      <enable>1</enable>
+      <failover_peerip>10.1.1.12</failover_peerip>
+      <gateway>10.1.1.1</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item>
+          <number>67</number>
+          <type>text</type>
+          <value>ztp_json_url http://10.1.1.50/ztp.json</value>
+        </item>
+      </numberoptions>
+      <range>
+        <from>10.1.1.100</from>
+        <to>10.1.1.199</to>
+      </range>
+      <winsserver/>
+      <dnsserver>10.1.1.1</dnsserver>
+      <ntpserver/>
+      <staticmap>
+        <mac>aa:bb:cc:dd:ee:ff</mac>
+        <ipaddr>10.1.1.100</ipaddr>
+        <hostname>myLaptop</hostname>
+        <winsserver/>
+        <dnsserver/>
+        <ntpserver/>
+      </staticmap>
+    </lan>
+    <opt2>
+      <enable>1</enable>
+      <failover_peerip>10.4.4.12</failover_peerip>
+      <gateway>10.4.4.1</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>10.4.4.100</from>
+        <to>10.4.4.150</to>
+      </range>
+      <winsserver/>
+      <dnsserver>10.4.4.1</dnsserver>
+      <ntpserver/>
+    </opt2>
+    <opt6>
+      <enable>1</enable>
+      <failover_peerip>10.12.75.252</failover_peerip>
+      <gateway>10.12.75.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>10.12.75.1</from>
+        <to>10.12.75.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>10.12.75.254</dnsserver>
+      <ntpserver/>
+    </opt6>
+    <opt7>
+      <enable>1</enable>
+      <failover_peerip>172.19.22.252</failover_peerip>
+      <gateway>172.19.22.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>172.19.22.1</from>
+        <to>172.19.22.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>172.19.22.254</dnsserver>
+      <ntpserver/>
+    </opt7>
+    <opt8>
+      <enable>1</enable>
+      <failover_peerip>10.31.100.252</failover_peerip>
+      <gateway>10.31.100.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>10.31.100.1</from>
+        <to>10.31.100.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>10.31.100.254</dnsserver>
+      <ntpserver/>
+    </opt8>
+    <opt9>
+      <enable>1</enable>
+      <failover_peerip>192.168.66.252</failover_peerip>
+      <gateway>192.168.66.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>192.168.66.1</from>
+        <to>192.168.66.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>192.168.66.254</dnsserver>
+      <ntpserver/>
+    </opt9>
+    <opt10>
+      <enable>1</enable>
+      <failover_peerip>172.22.227.252</failover_peerip>
+      <gateway>172.22.227.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>172.22.227.1</from>
+        <to>172.22.227.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>172.22.227.254</dnsserver>
+      <ntpserver/>
+    </opt10>
+    <opt11>
+      <enable>1</enable>
+      <failover_peerip>192.168.106.252</failover_peerip>
+      <gateway>192.168.106.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>192.168.106.1</from>
+        <to>192.168.106.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>192.168.106.254</dnsserver>
+      <ntpserver/>
+    </opt11>
+    <opt12>
+      <enable>1</enable>
+      <failover_peerip>192.168.77.252</failover_peerip>
+      <gateway>192.168.77.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>192.168.77.1</from>
+        <to>192.168.77.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>192.168.77.254</dnsserver>
+      <ntpserver/>
+    </opt12>
+    <opt13>
+      <enable>1</enable>
+      <failover_peerip>172.29.58.252</failover_peerip>
+      <gateway>172.29.58.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>172.29.58.1</from>
+        <to>172.29.58.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>172.29.58.254</dnsserver>
+      <ntpserver/>
+    </opt13>
+    <opt14>
+      <enable>1</enable>
+      <failover_peerip>10.159.230.252</failover_peerip>
+      <gateway>10.159.230.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>10.159.230.1</from>
+        <to>10.159.230.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>10.159.230.254</dnsserver>
+      <ntpserver/>
+    </opt14>
+    <opt15>
+      <enable>1</enable>
+      <failover_peerip>10.190.102.252</failover_peerip>
+      <gateway>10.190.102.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>10.190.102.1</from>
+        <to>10.190.102.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>10.190.102.254</dnsserver>
+      <ntpserver/>
+    </opt15>
+    <opt16>
+      <enable>1</enable>
+      <failover_peerip>192.168.161.252</failover_peerip>
+      <gateway>192.168.161.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>192.168.161.1</from>
+        <to>192.168.161.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>192.168.161.254</dnsserver>
+      <ntpserver/>
+    </opt16>
+    <opt17>
+      <enable>1</enable>
+      <failover_peerip>192.168.136.252</failover_peerip>
+      <gateway>192.168.136.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>192.168.136.1</from>
+        <to>192.168.136.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>192.168.136.254</dnsserver>
+      <ntpserver/>
+    </opt17>
+    <opt18>
+      <enable>1</enable>
+      <failover_peerip>10.74.95.252</failover_peerip>
+      <gateway>10.74.95.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>10.74.95.1</from>
+        <to>10.74.95.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>10.74.95.254</dnsserver>
+      <ntpserver/>
+    </opt18>
+    <opt19>
+      <enable>1</enable>
+      <failover_peerip>10.71.7.252</failover_peerip>
+      <gateway>10.71.7.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>10.71.7.1</from>
+        <to>10.71.7.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>10.71.7.254</dnsserver>
+      <ntpserver/>
+    </opt19>
+    <opt20>
+      <enable>1</enable>
+      <failover_peerip>10.31.243.252</failover_peerip>
+      <gateway>10.31.243.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>10.31.243.1</from>
+        <to>10.31.243.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>10.31.243.254</dnsserver>
+      <ntpserver/>
+    </opt20>
+    <opt21>
+      <enable>1</enable>
+      <failover_peerip>10.110.221.252</failover_peerip>
+      <gateway>10.110.221.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>10.110.221.1</from>
+        <to>10.110.221.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>10.110.221.254</dnsserver>
+      <ntpserver/>
+    </opt21>
+    <opt22>
+      <enable>1</enable>
+      <failover_peerip>172.24.56.252</failover_peerip>
+      <gateway>172.24.56.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>172.24.56.1</from>
+        <to>172.24.56.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>172.24.56.254</dnsserver>
+      <ntpserver/>
+    </opt22>
+    <opt23>
+      <enable>1</enable>
+      <failover_peerip>172.19.3.252</failover_peerip>
+      <gateway>172.19.3.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>172.19.3.1</from>
+        <to>172.19.3.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>172.19.3.254</dnsserver>
+      <ntpserver/>
+    </opt23>
+    <opt24>
+      <enable>1</enable>
+      <failover_peerip>10.173.173.252</failover_peerip>
+      <gateway>10.173.173.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>10.173.173.1</from>
+        <to>10.173.173.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>10.173.173.254</dnsserver>
+      <ntpserver/>
+    </opt24>
+    <opt25>
+      <enable>1</enable>
+      <failover_peerip>192.168.193.252</failover_peerip>
+      <gateway>192.168.193.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>192.168.193.1</from>
+        <to>192.168.193.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>192.168.193.254</dnsserver>
+      <ntpserver/>
+    </opt25>
+    <opt26>
+      <enable>1</enable>
+      <failover_peerip>10.95.123.252</failover_peerip>
+      <gateway>10.95.123.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>10.95.123.1</from>
+        <to>10.95.123.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>10.95.123.254</dnsserver>
+      <ntpserver/>
+    </opt26>
+    <opt27>
+      <enable>1</enable>
+      <failover_peerip>172.21.169.252</failover_peerip>
+      <gateway>172.21.169.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>172.21.169.1</from>
+        <to>172.21.169.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>172.21.169.254</dnsserver>
+      <ntpserver/>
+    </opt27>
+    <opt28>
+      <enable>1</enable>
+      <failover_peerip>192.168.67.252</failover_peerip>
+      <gateway>192.168.67.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>192.168.67.1</from>
+        <to>192.168.67.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>192.168.67.254</dnsserver>
+      <ntpserver/>
+    </opt28>
+    <opt29>
+      <enable>1</enable>
+      <failover_peerip>192.168.110.252</failover_peerip>
+      <gateway>192.168.110.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>192.168.110.1</from>
+        <to>192.168.110.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>192.168.110.254</dnsserver>
+      <ntpserver/>
+    </opt29>
+    <opt30>
+      <enable>1</enable>
+      <failover_peerip>172.30.215.252</failover_peerip>
+      <gateway>172.30.215.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>172.30.215.1</from>
+        <to>172.30.215.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>172.30.215.254</dnsserver>
+      <ntpserver/>
+    </opt30>
+    <opt31>
+      <enable>1</enable>
+      <failover_peerip>192.168.57.252</failover_peerip>
+      <gateway>192.168.57.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>192.168.57.1</from>
+        <to>192.168.57.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>192.168.57.254</dnsserver>
+      <ntpserver/>
+    </opt31>
+    <opt32>
+      <enable>1</enable>
+      <failover_peerip>10.189.128.252</failover_peerip>
+      <gateway>10.189.128.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>10.189.128.1</from>
+        <to>10.189.128.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>10.189.128.254</dnsserver>
+      <ntpserver/>
+    </opt32>
+    <opt33>
+      <enable>1</enable>
+      <failover_peerip>172.25.50.252</failover_peerip>
+      <gateway>172.25.50.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>172.25.50.1</from>
+        <to>172.25.50.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>172.25.50.254</dnsserver>
+      <ntpserver/>
+    </opt33>
+    <opt34>
+      <enable>1</enable>
+      <failover_peerip>172.23.68.252</failover_peerip>
+      <gateway>172.23.68.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>172.23.68.1</from>
+        <to>172.23.68.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>172.23.68.254</dnsserver>
+      <ntpserver/>
+    </opt34>
+    <opt35>
+      <enable>1</enable>
+      <failover_peerip>192.168.167.252</failover_peerip>
+      <gateway>192.168.167.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>192.168.167.1</from>
+        <to>192.168.167.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>192.168.167.254</dnsserver>
+      <ntpserver/>
+    </opt35>
+    <opt36>
+      <enable>1</enable>
+      <failover_peerip>172.27.241.252</failover_peerip>
+      <gateway>172.27.241.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>172.27.241.1</from>
+        <to>172.27.241.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>172.27.241.254</dnsserver>
+      <ntpserver/>
+    </opt36>
+    <opt37>
+      <enable>1</enable>
+      <failover_peerip>10.42.127.252</failover_peerip>
+      <gateway>10.42.127.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>10.42.127.1</from>
+        <to>10.42.127.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>10.42.127.254</dnsserver>
+      <ntpserver/>
+    </opt37>
+    <opt38>
+      <enable>1</enable>
+      <failover_peerip>192.168.184.252</failover_peerip>
+      <gateway>192.168.184.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>192.168.184.1</from>
+        <to>192.168.184.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>192.168.184.254</dnsserver>
+      <ntpserver/>
+    </opt38>
+    <opt39>
+      <enable>1</enable>
+      <failover_peerip>192.168.173.252</failover_peerip>
+      <gateway>192.168.173.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>192.168.173.1</from>
+        <to>192.168.173.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>192.168.173.254</dnsserver>
+      <ntpserver/>
+    </opt39>
+    <opt40>
+      <enable>1</enable>
+      <failover_peerip>10.208.131.252</failover_peerip>
+      <gateway>10.208.131.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>10.208.131.1</from>
+        <to>10.208.131.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>10.208.131.254</dnsserver>
+      <ntpserver/>
+    </opt40>
+    <opt41>
+      <enable>1</enable>
+      <failover_peerip>10.248.39.252</failover_peerip>
+      <gateway>10.248.39.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>10.248.39.1</from>
+        <to>10.248.39.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>10.248.39.254</dnsserver>
+      <ntpserver/>
+    </opt41>
+    <opt42>
+      <enable>1</enable>
+      <failover_peerip>10.233.61.252</failover_peerip>
+      <gateway>10.233.61.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>10.233.61.1</from>
+        <to>10.233.61.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>10.233.61.254</dnsserver>
+      <ntpserver/>
+    </opt42>
+    <opt43>
+      <enable>1</enable>
+      <failover_peerip>172.25.168.252</failover_peerip>
+      <gateway>172.25.168.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>172.25.168.1</from>
+        <to>172.25.168.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>172.25.168.254</dnsserver>
+      <ntpserver/>
+    </opt43>
+    <opt44>
+      <enable>1</enable>
+      <failover_peerip>172.29.93.252</failover_peerip>
+      <gateway>172.29.93.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>172.29.93.1</from>
+        <to>172.29.93.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>172.29.93.254</dnsserver>
+      <ntpserver/>
+    </opt44>
+    <opt45>
+      <enable>1</enable>
+      <failover_peerip>10.145.221.252</failover_peerip>
+      <gateway>10.145.221.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>10.145.221.1</from>
+        <to>10.145.221.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>10.145.221.254</dnsserver>
+      <ntpserver/>
+    </opt45>
+    <opt46>
+      <enable>1</enable>
+      <failover_peerip>192.168.214.252</failover_peerip>
+      <gateway>192.168.214.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>192.168.214.1</from>
+        <to>192.168.214.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>192.168.214.254</dnsserver>
+      <ntpserver/>
+    </opt46>
+    <opt47>
+      <enable>1</enable>
+      <failover_peerip>10.110.41.252</failover_peerip>
+      <gateway>10.110.41.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>10.110.41.1</from>
+        <to>10.110.41.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>10.110.41.254</dnsserver>
+      <ntpserver/>
+    </opt47>
+    <opt48>
+      <enable>1</enable>
+      <failover_peerip>172.26.134.252</failover_peerip>
+      <gateway>172.26.134.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>172.26.134.1</from>
+        <to>172.26.134.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>172.26.134.254</dnsserver>
+      <ntpserver/>
+    </opt48>
+    <opt49>
+      <enable>1</enable>
+      <failover_peerip>192.168.122.252</failover_peerip>
+      <gateway>192.168.122.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>192.168.122.1</from>
+        <to>192.168.122.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>192.168.122.254</dnsserver>
+      <ntpserver/>
+    </opt49>
+    <opt50>
+      <enable>1</enable>
+      <failover_peerip>10.184.36.252</failover_peerip>
+      <gateway>10.184.36.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>10.184.36.1</from>
+        <to>10.184.36.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>10.184.36.254</dnsserver>
+      <ntpserver/>
+    </opt50>
+    <opt51>
+      <enable>1</enable>
+      <failover_peerip>10.139.114.252</failover_peerip>
+      <gateway>10.139.114.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>10.139.114.1</from>
+        <to>10.139.114.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>10.139.114.254</dnsserver>
+      <ntpserver/>
+    </opt51>
+    <opt52>
+      <enable>1</enable>
+      <failover_peerip>172.19.138.252</failover_peerip>
+      <gateway>172.19.138.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>172.19.138.1</from>
+        <to>172.19.138.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>172.19.138.254</dnsserver>
+      <ntpserver/>
+    </opt52>
+    <opt53>
+      <enable>1</enable>
+      <failover_peerip>10.45.190.252</failover_peerip>
+      <gateway>10.45.190.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>10.45.190.1</from>
+        <to>10.45.190.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>10.45.190.254</dnsserver>
+      <ntpserver/>
+    </opt53>
+    <opt54>
+      <enable>1</enable>
+      <failover_peerip>192.168.160.252</failover_peerip>
+      <gateway>192.168.160.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>192.168.160.1</from>
+        <to>192.168.160.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>192.168.160.254</dnsserver>
+      <ntpserver/>
+    </opt54>
+    <opt55>
+      <enable>1</enable>
+      <failover_peerip>10.1.120.252</failover_peerip>
+      <gateway>10.1.120.254</gateway>
+      <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
+      <numberoptions>
+        <item/>
+      </numberoptions>
+      <range>
+        <from>10.1.120.1</from>
+        <to>10.1.120.100</to>
+      </range>
+      <winsserver/>
+      <dnsserver>10.1.120.254</dnsserver>
+      <ntpserver/>
+    </opt55>
+  </dhcpd>
+  <unbound>
+    <enable>1</enable>
+  </unbound>
+  <snmpd>
+    <syslocation/>
+    <syscontact/>
+    <rocommunity>public</rocommunity>
+  </snmpd>
+  <nat>
+    <outbound>
+      <mode>advanced</mode>
+      <rule>
+        <source>
+          <network>lan</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>NAT MGMT to WAN1</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.101</username>
+          <time>1693938353.2327</time>
+          <description>/firewall_nat_out_edit.php made changes</description>
+        </created>
+        <target>11.22.33.44</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.5.5.100</username>
+          <time>1694774817.8772</time>
+          <description>/firewall_nat_out_edit.php made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt6</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Engineering723</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8998</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.12</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8998</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt7</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Sales1364</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8998</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.13</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8998</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt8</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Guest3530</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8998</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.11</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8998</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt9</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Sales1207</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8998</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.13</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8998</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt10</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Admin2818</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8998</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.12</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8998</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt11</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Guest2189</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8998</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.11</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8998</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt12</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Guest3613</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8998</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.11</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8998</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt13</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Engineering968</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8998</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.12</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8998</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt14</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Guest2981</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8998</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.11</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8998</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt15</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Sales2087</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8998</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.13</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8998</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt16</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Admin396</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8998</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.12</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8998</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt17</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Operations1859</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8998</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.13</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8998</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt18</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Test2611</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.13</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt19</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Marketing3091</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.13</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt20</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Finance1454</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.12</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt21</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Admin2576</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.13</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt22</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Lab2906</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.11</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt23</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Guest1662</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.13</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt24</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Lab3389</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.11</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt25</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Operations2801</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.12</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt26</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Admin3589</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.11</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt27</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Marketing3509</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.12</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt28</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Sales1340</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.13</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt29</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Operations896</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.12</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt30</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Support2360</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.13</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt31</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>HR3547</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.11</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt32</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Engineering979</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.13</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt33</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Finance1152</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.12</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt34</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Finance1402</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.13</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt35</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Operations1916</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.11</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt36</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Support4059</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.11</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt37</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Finance352</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.11</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.8999</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt38</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Marketing1263</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.11</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt39</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Operations2499</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.12</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt40</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>HR27</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.12</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt41</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>HR2932</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.13</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt42</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Support1692</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.11</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt43</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Sales1886</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.11</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt44</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Guest2285</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.11</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt45</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Operations980</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.13</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt46</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Lab3120</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.13</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt47</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Finance1272</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.13</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt48</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Sales1642</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.12</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt49</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>IT541</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.11</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt50</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Admin36</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.11</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt51</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Support1915</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.13</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt52</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Engineering3768</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.12</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt53</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Finance2024</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.11</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt54</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>Guest397</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.13</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+      <rule>
+        <source>
+          <network>opt55</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>HR3927</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <created>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </created>
+        <target>10.11.12.11</target>
+        <sourceport/>
+        <updated>
+          <username>root@10.1.1.1</username>
+          <time>1754107154.9000</time>
+          <description>genNAT.py made changes</description>
+        </updated>
+      </rule>
+    </outbound>
+  </nat>
+  <filter>
+    <rule uuid="validUUID">
+      <type>pass</type>
+      <interface>wan</interface>
+      <ipprotocol>inet</ipprotocol>
+      <statetype>keep state</statetype>
+      <direction>in</direction>
+      <quick>1</quick>
+      <protocol>carp</protocol>
+      <source>
+        <any>1</any>
+      </source>
+      <destination>
+        <any>1</any>
+      </destination>
+      <updated>
+        <username>root@10.1.1.200</username>
+        <time>1692915066.9751</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </updated>
+      <created>
+        <username>root@10.1.1.200</username>
+        <time>1692915066.9751</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </created>
+      <disabled>1</disabled>
+    </rule><rule uuid="1251dc04-1c1c-4656-8ad8-ac9ccb25ed00">
+  <type>pass</type>
+  <interface>opt6</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_723 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="c3967958-c707-48ee-8f85-1d599a637bef">
+  <type>pass</type>
+  <interface>opt7</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_1364 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="037c0b67-4ce5-436e-9f3a-604a5c53977d">
+  <type>pass</type>
+  <interface>opt8</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_3530 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="38709fca-3548-47c0-afbd-5bf79cf7d920">
+  <type>pass</type>
+  <interface>opt9</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_1207 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="f261eed6-3454-41b8-b0b9-acbd10b457eb">
+  <type>pass</type>
+  <interface>opt10</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_2818 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="b2b64d0a-26e3-4c35-a849-7f1fdf4c2537">
+  <type>pass</type>
+  <interface>opt11</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_2189 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="137c5f32-d4d0-43ef-b4a6-29d59efdbb8e">
+  <type>pass</type>
+  <interface>opt12</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_3613 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="ae438fac-ce73-44fd-8923-2c4a41d50f41">
+  <type>pass</type>
+  <interface>opt13</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_968 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="c3dd5483-f1af-4f20-8c3c-18a629bf0f6f">
+  <type>pass</type>
+  <interface>opt14</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_2981 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="ef61b923-5f6d-4f17-9c8b-3907ee20f32e">
+  <type>pass</type>
+  <interface>opt15</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_2087 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="e6fc4b37-47b2-40ee-8bcb-1a549263cbd6">
+  <type>pass</type>
+  <interface>opt16</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_396 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="c41d530d-7022-4dcf-9f85-a91d15647286">
+  <type>pass</type>
+  <interface>opt17</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_1859 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="09ebbacd-812a-4049-8512-08c6b1f8a91f">
+  <type>pass</type>
+  <interface>opt18</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_2611 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="0f04f9dd-bcaa-4e19-b107-937b3a10bdc7">
+  <type>pass</type>
+  <interface>opt19</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_3091 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="4552e16c-0717-4a98-b902-fb9a4e183716">
+  <type>pass</type>
+  <interface>opt20</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_1454 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="060ae4cf-ef2b-4869-b48e-3cb7bc4295ec">
+  <type>pass</type>
+  <interface>opt21</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_2576 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9002</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="f4ca78aa-b09c-4294-af97-1fb413bcf5f0">
+  <type>pass</type>
+  <interface>opt22</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_2906 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="72d2a4b9-d172-428f-a5fa-06333b3a2670">
+  <type>pass</type>
+  <interface>opt23</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_1662 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="2e51c726-6726-4dd2-82a1-5807fe9130bb">
+  <type>pass</type>
+  <interface>opt24</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_3389 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="13e66f67-e7f8-450b-b2eb-4add7bfdfbe4">
+  <type>pass</type>
+  <interface>opt25</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_2801 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="890964be-9073-46a3-8f61-3f1ede7a6815">
+  <type>pass</type>
+  <interface>opt26</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_3589 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="10369a3d-038e-4ff9-a98b-205b524f9dd5">
+  <type>pass</type>
+  <interface>opt27</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_3509 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="0b616065-30d5-4603-b0e1-9332ddd0fec4">
+  <type>pass</type>
+  <interface>opt28</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_1340 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="ea8d9632-43ac-46be-bb48-46f71b82e448">
+  <type>pass</type>
+  <interface>opt29</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_896 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="106b5e6d-9f97-4ed1-a22d-ac5b0fb5ad5d">
+  <type>pass</type>
+  <interface>opt30</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_2360 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="1ad24268-d1bb-4ae8-bf99-aaf7eb576f96">
+  <type>pass</type>
+  <interface>opt31</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_3547 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="f8adc051-deaf-4e55-a38e-640e8b9bf67a">
+  <type>pass</type>
+  <interface>opt32</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_979 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="1cb6837e-6910-4bfe-9ec2-9e4ba1042af2">
+  <type>pass</type>
+  <interface>opt33</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_1152 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="4116ed97-674c-4fd5-9de9-9e3a8bcb4718">
+  <type>pass</type>
+  <interface>opt34</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_1402 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="bda9ac7b-4a52-4a0d-8254-2debd07681d8">
+  <type>pass</type>
+  <interface>opt35</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_1916 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="0bcf960c-1f70-4d6b-b286-18f1f8734699">
+  <type>pass</type>
+  <interface>opt36</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_4059 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="27da8b5d-a0e3-4a95-8e90-6e5c0a4931bd">
+  <type>pass</type>
+  <interface>opt37</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_352 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="665c1073-b902-4fad-a086-36ab6b5c4033">
+  <type>pass</type>
+  <interface>opt38</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_1263 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="e5f89d57-a5f8-46d1-bb73-14adcd0ab689">
+  <type>pass</type>
+  <interface>opt39</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_2499 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="31ed36d3-8c7e-4ca0-82c0-426ffdac053e">
+  <type>pass</type>
+  <interface>opt40</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_27 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="394445f7-9d6a-46f6-a24b-2f2406472239">
+  <type>pass</type>
+  <interface>opt41</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_2932 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="21a5b017-d0d6-4ac7-8aed-52379dda4d44">
+  <type>pass</type>
+  <interface>opt42</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_1692 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="ced01cf5-3e50-4445-8ad9-8d845e490f30">
+  <type>pass</type>
+  <interface>opt43</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_1886 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="aff0866b-fc9d-48f2-a731-112d93b680d2">
+  <type>pass</type>
+  <interface>opt44</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_2285 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="da36d357-7c64-4447-a057-8dd6913609f6">
+  <type>pass</type>
+  <interface>opt45</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_980 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="2334887c-04a9-4d85-ba42-6c23f04979a0">
+  <type>pass</type>
+  <interface>opt46</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_3120 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="f2985f69-b8ca-46e8-a257-46dd92b03008">
+  <type>pass</type>
+  <interface>opt47</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_1272 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9003</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="86567bbb-71da-4197-bdd3-72027e40cebf">
+  <type>pass</type>
+  <interface>opt48</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_1642 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9004</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9004</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="a564fb85-5269-461d-a707-bc297c13d8ce">
+  <type>pass</type>
+  <interface>opt49</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_541 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9004</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9004</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="fa6c6474-62f3-4393-9898-20d40063b89b">
+  <type>pass</type>
+  <interface>opt50</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_36 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9004</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9004</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="a9737620-8c3b-4ce2-802c-0d6ff1f72a7d">
+  <type>pass</type>
+  <interface>opt51</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_1915 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9004</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9004</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="3e809c0b-babc-4728-a6d3-1e4c3251e6bd">
+  <type>pass</type>
+  <interface>opt52</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_3768 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9004</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9004</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="50e6430b-4907-4f9c-8cf9-fca98732aa14">
+  <type>pass</type>
+  <interface>opt53</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_2024 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9004</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9004</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="c4fa8a2b-52e7-4a9f-b058-5447e9fd2575">
+  <type>pass</type>
+  <interface>opt54</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_397 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9004</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9004</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+<rule uuid="86ec7ce8-a44a-430a-a30d-961e66cc1d66">
+  <type>pass</type>
+  <interface>opt55</interface>
+  <ipprotocol>inet</ipprotocol>
+  <statetype>keep state</statetype>
+  <descr>default allow VLAN_3927 any</descr>
+  <direction>in</direction>
+  <quick>1</quick>
+  <source>
+    <any>1</any>
+  </source>
+  <destination>
+    <any>1</any>
+  </destination>
+  <updated>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9004</time>
+    <description>genRules.py made changes</description>
+  </updated>
+  <created>
+    <username>root@10.1.1.1</username>
+    <time>1754107154.9004</time>
+    <description>genRules.py made changes</description>
+  </created>
+</rule>
+
+</filter>
+  <rrd>
+    <enable/>
+  </rrd>
+  <load_balancer>
+    <monitor_type>
+      <name>ICMP</name>
+      <type>icmp</type>
+      <descr>ICMP</descr>
+      <options/>
+    </monitor_type>
+    <monitor_type>
+      <name>TCP</name>
+      <type>tcp</type>
+      <descr>Generic TCP</descr>
+      <options/>
+    </monitor_type>
+    <monitor_type>
+      <name>HTTP</name>
+      <type>http</type>
+      <descr>Generic HTTP</descr>
+      <options>
+        <path>/</path>
+        <host/>
+        <code>200</code>
+      </options>
+    </monitor_type>
+    <monitor_type>
+      <name>HTTPS</name>
+      <type>https</type>
+      <descr>Generic HTTPS</descr>
+      <options>
+        <path>/</path>
+        <host/>
+        <code>200</code>
+      </options>
+    </monitor_type>
+    <monitor_type>
+      <name>SMTP</name>
+      <type>send</type>
+      <descr>Generic SMTP</descr>
+      <options>
+        <send/>
+        <expect>220 *</expect>
+      </options>
+    </monitor_type>
+  </load_balancer>
+  <ntpd>
+    <prefer>0.opnsense.pool.ntp.org</prefer>
+  </ntpd>
+  <widgets>
+    <sequence>system_information-container:00000000-col3:show,services_status-container:00000001-col4:show,gateways-container:00000002-col4:show,interface_list-container:00000003-col4:show</sequence>
+    <column_count>2</column_count>
+  </widgets>
+</opnsense>
