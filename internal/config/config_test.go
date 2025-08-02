@@ -81,13 +81,14 @@ func TestLoadConfigPrecedence(t *testing.T) {
 	err = os.WriteFile(envInputFile, []byte("<test/>"), 0o600)
 	require.NoError(t, err)
 
-	// Create a temporary config file
+	// Create a temporary config file with a valid output path
+	outputFile := filepath.Join(tmpDir, "output.md")
 	cfgFilePath := filepath.Join(tmpDir, ".opnFocus.yaml")
 	content := fmt.Sprintf(`
 input_file: %s
-output_file: /tmp/output.md
+output_file: %s
 verbose: true
-`, fileInputFile)
+`, fileInputFile, outputFile)
 	err = os.WriteFile(cfgFilePath, []byte(content), 0o600)
 	require.NoError(t, err)
 
@@ -98,9 +99,9 @@ verbose: true
 	cfg, err := LoadConfigWithViper(cfgFilePath, viper.New())
 	require.NoError(t, err)
 	assert.NotNil(t, cfg)
-	assert.Equal(t, envInputFile, cfg.InputFile)      // Environment variable should win
-	assert.Equal(t, "/tmp/output.md", cfg.OutputFile) // Config file value (no env var set)
-	assert.False(t, cfg.Verbose)                      // Environment variable should win
+	assert.Equal(t, envInputFile, cfg.InputFile) // Environment variable should win
+	assert.Equal(t, outputFile, cfg.OutputFile)  // Config file value (no env var set)
+	assert.False(t, cfg.Verbose)                 // Environment variable should win
 }
 
 func TestConfig_Validate(t *testing.T) {
