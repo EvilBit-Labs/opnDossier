@@ -40,9 +40,7 @@ jobs:
           go mod verify
 
       - name: Setup golangci-lint
-        uses: golangci/golangci-lint-action@v4
-        with:
-          version: latest
+        uses: golangci/golangci-lint-action@v8.0.0
 
       - name: Run CI Check
         run: just ci-check
