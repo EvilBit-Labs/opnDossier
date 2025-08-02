@@ -25,7 +25,7 @@
 - **OS**: <!-- e.g., macOS 14.0, Ubuntu 22.04, Windows 11 -->
 - **Go Version**: <!-- e.g., go version go1.24.5 darwin/arm64 -->
 - **opnFocus Version**: <!-- e.g., v1.0.0 or commit hash -->
-- **Just Version**: <!-- e.g., just --version -->
+- **Just Version**: \<!-- e.g., just --version -->
 
 ### Additional Context
 
