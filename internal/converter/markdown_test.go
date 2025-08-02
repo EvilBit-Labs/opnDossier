@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -14,13 +13,10 @@ import (
 	"github.com/unclesp1d3r/opnFocus/internal/parser"
 )
 
-var ansiStripper = regexp.MustCompile(`\x1b\[[0-9;]*m`)
-
-func stripANSI(s string) string {
-	return ansiStripper.ReplaceAllString(s, "")
-}
-
 func TestMarkdownConverter_ToMarkdown(t *testing.T) {
+	// Set terminal to dumb for consistent test output
+	t.Setenv("TERM", "dumb")
+
 	tests := []struct {
 		name     string
 		input    *model.OpnSenseDocument
@@ -76,12 +72,14 @@ func TestMarkdownConverter_ToMarkdown(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 
-				actual := strings.TrimSpace(stripANSI(md))
-				assert.Contains(t, actual, "OPNsense Configuration")
-				assert.Contains(t, actual, "## System")
+				// With TERM=dumb, we get clean output without ANSI codes
+				assert.Contains(t, md, "OPNsense Configuration")
+				assert.Contains(t, md, "## System")
 
 				if tt.input != nil && tt.input.System.Hostname != "" && tt.input.System.Domain != "" {
-					assert.Contains(t, actual, "Hostname: "+tt.input.System.Hostname+" Domain: "+tt.input.System.Domain)
+					// Check for hostname and domain separately to be more flexible
+					assert.Contains(t, md, "**Hostname**: "+tt.input.System.Hostname)
+					assert.Contains(t, md, "**Domain**: "+tt.input.System.Domain)
 				}
 			}
 		})
@@ -90,6 +88,8 @@ func TestMarkdownConverter_ToMarkdown(t *testing.T) {
 
 // TestMarkdownConverter_ConvertFromTestdataFile tests conversion of the complete testdata file.
 func TestMarkdownConverter_ConvertFromTestdataFile(t *testing.T) {
+	// Set terminal to dumb for consistent test output
+	t.Setenv("TERM", "dumb")
 	// Read the sample XML file
 	xmlPath := filepath.Join("..", "..", "testdata", "sample.config.3.xml")
 	xmlData, err := os.ReadFile(xmlPath)
@@ -108,68 +108,69 @@ func TestMarkdownConverter_ConvertFromTestdataFile(t *testing.T) {
 	// Verify the markdown is not empty
 	assert.NotEmpty(t, markdown, "Markdown output should not be empty")
 
-	// Strip ANSI codes for easier testing
-	cleanMarkdown := stripANSI(markdown)
-
+	// With TERM=dumb, we get clean output without ANSI codes
 	// Verify main sections are present
-	assert.Contains(t, cleanMarkdown, "OPNsense Configuration")
-	assert.Contains(t, cleanMarkdown, "## System Configuration")
-	assert.Contains(t, cleanMarkdown, "## Network Configuration")
-	assert.Contains(t, cleanMarkdown, "## Security Configuration")
-	assert.Contains(t, cleanMarkdown, "## Service Configuration")
+	assert.Contains(t, markdown, "OPNsense Configuration")
+	assert.Contains(t, markdown, "## System Configuration")
+	assert.Contains(t, markdown, "## Network Configuration")
+	assert.Contains(t, markdown, "## Security Configuration")
+	assert.Contains(t, markdown, "## Service Configuration")
 
 	// Verify system information
-	assert.Contains(t, cleanMarkdown, "Hostname: OPNsense")
-	assert.Contains(t, cleanMarkdown, "Domain: localdomain")
-	assert.Contains(t, cleanMarkdown, "Optimization:")
-	assert.Contains(t, cleanMarkdown, "normal")
-	assert.Contains(t, cleanMarkdown, "Protocol: https")
+	assert.Contains(t, markdown, "**Hostname**: OPNsense")
+	assert.Contains(t, markdown, "**Domain**: localdomain")
+	assert.Contains(t, markdown, "**Optimization**:")
+	assert.Contains(t, markdown, "normal")
+	assert.Contains(t, markdown, "**Protocol**: https")
 
 	// Verify network interfaces
-	assert.Contains(t, cleanMarkdown, "## WAN Interface")
-	assert.Contains(t, cleanMarkdown, "## LAN Interface")
-	assert.Contains(t, cleanMarkdown, "Physical Interface: mismatch1")
-	assert.Contains(t, cleanMarkdown, "Physical Interface: mismatch0")
-	assert.Contains(t, cleanMarkdown, "IPv4 Address: dhcp")
-	assert.Contains(t, cleanMarkdown, "IPv4 Address: 192.168.1.1")
+	assert.Contains(t, markdown, "## WAN Interface")
+	assert.Contains(t, markdown, "## LAN Interface")
+	assert.Contains(t, markdown, "**Physical Interface**: mismatch1")
+	assert.Contains(t, markdown, "**Physical Interface**: mismatch0")
+	assert.Contains(t, markdown, "**IPv4 Address**: dhcp")
+	assert.Contains(t, markdown, "192.168.1.1")
 
 	// Verify security configuration
-	assert.Contains(t, cleanMarkdown, "NAT Configuration")
-	assert.Contains(t, cleanMarkdown, "Outbound NAT Mode: automatic")
-	assert.Contains(t, cleanMarkdown, "Firewall Rules")
+	assert.Contains(t, markdown, "NAT Configuration")
+	assert.Contains(t, markdown, "**Outbound NAT Mode**: automatic")
+	assert.Contains(t, markdown, "Firewall Rules")
 
 	// Verify service configuration
-	assert.Contains(t, cleanMarkdown, "DHCP Server")
-	assert.Contains(t, cleanMarkdown, "DNS Resolver (Unbound)")
-	assert.Contains(t, cleanMarkdown, "SNMP")
-	assert.Contains(t, cleanMarkdown, "Read-Only Community: public")
+	assert.Contains(t, markdown, "DHCP Server")
+	assert.Contains(t, markdown, "DNS Resolver (Unbound)")
+	assert.Contains(t, markdown, "SNMP")
+	assert.Contains(t, markdown, "**Read-Only Community**: public")
 
 	// Verify tables are rendered
-	assert.Contains(t, cleanMarkdown, "TUNABLE")
-	assert.Contains(t, cleanMarkdown, "VALUE")
-	assert.Contains(t, cleanMarkdown, "DESCRIPTION")
+	assert.Contains(t, markdown, "TUNABLE")
+	assert.Contains(t, markdown, "VALUE")
+	assert.Contains(t, markdown, "DESCRIPTION")
 
 	// Verify users and groups tables
-	assert.Contains(t, cleanMarkdown, "Users")
-	assert.Contains(t, cleanMarkdown, "Groups")
-	assert.Contains(t, cleanMarkdown, "root")
-	assert.Contains(t, cleanMarkdown, "admins")
+	assert.Contains(t, markdown, "Users")
+	assert.Contains(t, markdown, "Groups")
+	assert.Contains(t, markdown, "root")
+	assert.Contains(t, markdown, "admins")
 
 	// Verify firewall rules table
-	assert.Contains(t, cleanMarkdown, "TYPE")
-	assert.Contains(t, cleanMarkdown, "INT")
-	assert.Contains(t, cleanMarkdown, "PROTO")
-	assert.Contains(t, cleanMarkdown, "SOUR")
-	assert.Contains(t, cleanMarkdown, "DEST")
+	assert.Contains(t, markdown, "TYPE")
+	assert.Contains(t, markdown, "INT")
+	assert.Contains(t, markdown, "PROTO")
+	assert.Contains(t, markdown, "SOUR")
+	assert.Contains(t, markdown, "DEST")
 
 	// Verify load balancer monitors
-	assert.Contains(t, cleanMarkdown, "Load Balancer Monitors")
-	assert.Contains(t, cleanMarkdown, "ICMP")
-	assert.Contains(t, cleanMarkdown, "HTTP")
+	assert.Contains(t, markdown, "Load Balancer Monitors")
+	assert.Contains(t, markdown, "ICMP")
+	assert.Contains(t, markdown, "HTTP")
 }
 
 // TestMarkdownConverter_EdgeCases tests edge cases and error conditions.
 func TestMarkdownConverter_EdgeCases(t *testing.T) {
+	// Set terminal to dumb for consistent test output
+	t.Setenv("TERM", "dumb")
+
 	c := NewMarkdownConverter()
 
 	t.Run("nil opnsense struct", func(t *testing.T) {
@@ -183,7 +184,7 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 		md, err := c.ToMarkdown(context.Background(), &model.OpnSenseDocument{})
 		require.NoError(t, err)
 		assert.NotEmpty(t, md)
-		assert.Contains(t, stripANSI(md), "OPNsense Configuration")
+		assert.Contains(t, md, "OPNsense Configuration")
 	})
 
 	t.Run("opnsense with only system configuration", func(t *testing.T) {
@@ -201,10 +202,9 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotEmpty(t, md)
 
-		cleanMd := stripANSI(md)
-		assert.Contains(t, cleanMd, "Hostname: test-host")
-		assert.Contains(t, cleanMd, "Domain: test.local")
-		assert.Contains(t, cleanMd, "Protocol: http")
+		assert.Contains(t, md, "**Hostname**: test-host")
+		assert.Contains(t, md, "**Domain**: test.local")
+		assert.Contains(t, md, "**Protocol**: http")
 	})
 
 	t.Run("opnsense with complex sysctl configuration", func(t *testing.T) {
@@ -230,12 +230,11 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotEmpty(t, md)
 
-		cleanMd := stripANSI(md)
-		assert.Contains(t, cleanMd, "System Tuning")
-		assert.Contains(t, cleanMd, "net.inet.ip.forwarding")
-		assert.Contains(t, cleanMd, "kern.ipc.somaxconn")
-		assert.Contains(t, cleanMd, "Enable IP forwarding")
-		assert.Contains(t, cleanMd, "Maximum socket connections")
+		assert.Contains(t, md, "System Tuning")
+		assert.Contains(t, md, "net.inet.ip.forwarding")
+		assert.Contains(t, md, "kern.ipc.somaxconn")
+		assert.Contains(t, md, "Enable IP forwarding")
+		assert.Contains(t, md, "Maximum socket connections")
 	})
 
 	t.Run("opnsense with users and groups", func(t *testing.T) {
@@ -264,13 +263,12 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotEmpty(t, md)
 
-		cleanMd := stripANSI(md)
-		assert.Contains(t, cleanMd, "Users")
-		assert.Contains(t, cleanMd, "Groups")
-		assert.Contains(t, cleanMd, "admin")
-		assert.Contains(t, cleanMd, "wheel")
-		assert.Contains(t, cleanMd, "Administrator")
-		assert.Contains(t, cleanMd, "Wheel Group")
+		assert.Contains(t, md, "Users")
+		assert.Contains(t, md, "Groups")
+		assert.Contains(t, md, "admin")
+		assert.Contains(t, md, "wheel")
+		assert.Contains(t, md, "Administrator")
+		assert.Contains(t, md, "Wheel Group")
 	})
 
 	t.Run("opnsense with multiple firewall rules", func(t *testing.T) {
@@ -302,12 +300,11 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotEmpty(t, md)
 
-		cleanMd := stripANSI(md)
-		assert.Contains(t, cleanMd, "Firewall Rules")
-		assert.Contains(t, cleanMd, "Allow LAN")
-		assert.Contains(t, cleanMd, "Block external")
-		assert.Contains(t, cleanMd, "pass")
-		assert.Contains(t, cleanMd, "block")
+		assert.Contains(t, md, "Firewall Rules")
+		assert.Contains(t, md, "Allow LAN")
+		assert.Contains(t, md, "Block external")
+		assert.Contains(t, md, "pass")
+		assert.Contains(t, md, "block")
 	})
 
 	t.Run("opnsense with load balancer monitors", func(t *testing.T) {
@@ -335,17 +332,19 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotEmpty(t, md)
 
-		cleanMd := stripANSI(md)
-		assert.Contains(t, cleanMd, "Load Balancer Monitors")
-		assert.Contains(t, cleanMd, "TCP-80")
-		assert.Contains(t, cleanMd, "HTTPS-443")
-		assert.Contains(t, cleanMd, "TCP port 80 check")
-		assert.Contains(t, cleanMd, "HTTPS health check")
+		assert.Contains(t, md, "Load Balancer Monitors")
+		assert.Contains(t, md, "TCP-80")
+		assert.Contains(t, md, "HTTPS-443")
+		assert.Contains(t, md, "TCP port 80 check")
+		assert.Contains(t, md, "HTTPS health check")
 	})
 }
 
 // TestMarkdownConverter_ThemeSelection tests theme selection logic.
 func TestMarkdownConverter_ThemeSelection(t *testing.T) {
+	// Set terminal to dumb for consistent test output
+	t.Setenv("TERM", "dumb")
+
 	c := NewMarkdownConverter()
 
 	t.Run("default theme selection", func(t *testing.T) {
@@ -360,7 +359,7 @@ func TestMarkdownConverter_ThemeSelection(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotEmpty(t, md)
 		// The markdown should be rendered without error regardless of theme
-		assert.Contains(t, stripANSI(md), "OPNsense Configuration")
+		assert.Contains(t, md, "OPNsense Configuration")
 	})
 }
 
