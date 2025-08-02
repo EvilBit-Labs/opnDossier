@@ -32,7 +32,7 @@ const (
 	renderingPercent          = 0.9
 )
 
-// init registers the display command with the root command and configures its CLI flags for validation, theming, template selection, section filtering, and text wrapping.
+// init registers the display command with the root command and sets up its CLI flags for XML validation control, theming, template selection, section filtering, text wrapping, and custom template directories.
 func init() {
 	rootCmd.AddCommand(displayCmd)
 
