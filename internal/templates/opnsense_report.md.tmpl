@@ -161,14 +161,14 @@
 
 {{- if .System.Notes }}
 {{- range .System.Notes }}
-    ```
-    {{ . }}
-    ```
+```text
+{{ . }}
+```
 {{- end }}
 {{- else }}
-    ```
-    No system notes configured
-    ```
+```text
+No system notes configured
+```
 {{- end }}
 
 ---
