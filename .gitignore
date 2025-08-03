@@ -1,3 +1,4 @@
+# Go build artifacts
 *.exe
 *.exe~
 *.dll
@@ -6,6 +7,25 @@
 *.test
 *.out
 go.work
+
+# Go build directories
+dist/
+build/
+bin/
+
+# Go coverage and profiling
+coverage.txt
+*.cover
+*.prof
+coverage.html
+coverage.out
+*.coverprofile
+
+# Go module cache (optional - uncomment if needed)
+# go.sum
+
+# IDE and Editor files
+## IntelliJ IDEA
 .idea/**/workspace.xml
 .idea/**/tasks.xml
 .idea/**/usage.statistics.xml
@@ -22,20 +42,37 @@ go.work
 .idea/**/dbnavigator.xml
 .idea/**/gradle.xml
 .idea/**/libraries
-cmake-build-*/
 .idea/**/mongoSettings.xml
 *.iws
-out/
 .idea_modules/
 atlassian-ide-plugin.xml
 .idea/replstate.xml
 .idea/sonarlint/
-com_crashlytics_export_strings.xml
-crashlytics.properties
-crashlytics-build.properties
-fabric.properties
 .idea/httpRequests
 .idea/caches/build_file_checksums.ser
+cmake-build-*/
+out/
+
+## VS Code
+.vscode/
+*.code-workspace
+
+## Vim
+*.swp
+*.swo
+*~
+
+## Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# macOS system files
 .DS_Store
 .AppleDouble
 .LSOverride
@@ -53,8 +90,80 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# Windows system files
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.tmp
+*.temp
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux system files
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Node.js (for documentation tools)
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# Python (for development tools)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+.venv.bak/
+venv.bak/
+
+# Documentation build artifacts
 site/
-vendor/
+docs/_build/
+docs/.doctrees/
+docs/_static/
+docs/_templates/
+
+# Project-specific
 opnDossier
-dist/
+opndossier
+vendor/
+
+# Logs and reports
+*.log
+lint_report.json
+*.report
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Backup repositories
+*-backup.git/

@@ -134,14 +134,17 @@ bench:
 bench-memory:
     go test -bench=BenchmarkParse -benchmem ./internal/parser
 
+test-with-coverage:
+    go test -coverprofile=coverage.txt ./...
+
 coverage:
-    go test -coverprofile=coverage.out ./...
-    go tool cover -html=coverage.out
+    @just test-with-coverage
+    go tool cover -html=coverage.txt
 
 # Run tests with coverage (alternative to separate test + coverage)
 test-coverage:
-    go test -coverprofile=coverage.out ./...
-    go tool cover -func=coverage.out
+    @just test-with-coverage
+    go tool cover -func=coverage.txt
 
 
 completeness-check:
@@ -156,13 +159,13 @@ completeness-check:
 [unix]
 clean:
     go clean
-    rm -f coverage.out
+    rm -f coverage.txt
     rm -f opndossier
 
 [windows]
 clean:
     go clean
-    del /q coverage.out
+    del /q coverage.txt
     del /q opndossier.exe
 
 
@@ -266,12 +269,14 @@ ci-check:
     @just check
     @just format-check
     @just lint
-    @just test
+    @just test-with-coverage
 
 # Run all checks, tests, and release validation
 full-checks:
     @cd {{justfile_dir()}}
     @just ci-check
+    @just bench
+    @just bench-memory
     @just check-goreleaser
 
 

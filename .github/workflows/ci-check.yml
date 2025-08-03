@@ -46,12 +46,9 @@ jobs:
         run: just ci-check
 
       - name: Upload coverage report
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
-          file: ./coverage.out
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   build:
     name: build
