@@ -24,8 +24,6 @@ func TestEmbeddedTemplates(t *testing.T) {
 		expectedTemplates := []string{
 			"internal/templates/opnsense_report.md.tmpl",
 			"internal/templates/opnsense_report_comprehensive.md.tmpl",
-			"internal/templates/json_output.tmpl",
-			"internal/templates/yaml_output.tmpl",
 			"internal/templates/reports/blue.md.tmpl",
 			"internal/templates/reports/red.md.tmpl",
 			"internal/templates/reports/standard.md.tmpl",
@@ -93,7 +91,7 @@ func TestEmbeddedTemplates(t *testing.T) {
 		assert.NotEmpty(t, foundFiles, "should find template files when walking embedded FS")
 
 		// Verify we found expected number of templates
-		assert.GreaterOrEqual(t, len(foundFiles), 6, "should find at least 6 template files")
+		assert.GreaterOrEqual(t, len(foundFiles), 4, "should find at least 4 template files")
 	})
 
 	t.Run("embedded templates contain expected template syntax", func(t *testing.T) {
@@ -128,7 +126,7 @@ func TestEmbeddedTemplatesGlobbing(t *testing.T) {
 			pattern  string
 			minFiles int
 		}{
-			{"internal/templates/*.tmpl", 4},         // Main templates
+			{"internal/templates/*.tmpl", 2},         // Main templates
 			{"internal/templates/reports/*.tmpl", 4}, // Report templates
 		}
 

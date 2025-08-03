@@ -17,6 +17,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/Masterminds/sprig/v3"
 	"github.com/charmbracelet/log"
+	"gopkg.in/yaml.v3"
 )
 
 // Generator interface for creating documentation in various formats.
@@ -394,10 +395,6 @@ func mapTemplateName(logicalName string) string {
 		return "opnsense_report.md.tmpl"
 	case "comprehensive":
 		return "opnsense_report_comprehensive.md.tmpl"
-	case "json":
-		return "json_output.tmpl"
-	case "yaml":
-		return "yaml_output.tmpl"
 	case "blue":
 		return "blue.md.tmpl"
 	case "red":
@@ -436,69 +433,28 @@ func (g *markdownGenerator) selectTemplate(opts Options) string {
 	return "opnsense_report.md.tmpl"
 }
 
-// generateJSON generates JSON output.
+// generateJSON generates JSON output using direct marshaling.
 func (g *markdownGenerator) generateJSON(
 	_ context.Context,
 	cfg *model.EnrichedOpnSenseDocument,
 	_ Options,
 ) (string, error) {
-	return g.generateDataOutput("json_output.tmpl", cfg)
+	data, err := json.MarshalIndent(cfg, "", "  ") //nolint:musttag // EnrichedOpnSenseDocument has proper json tags
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal to JSON: %w", err)
+	}
+	return string(data), nil
 }
 
-// generateYAML generates YAML output.
+// generateYAML generates YAML output using direct marshaling.
 func (g *markdownGenerator) generateYAML(
 	_ context.Context,
 	cfg *model.EnrichedOpnSenseDocument,
 	_ Options,
 ) (string, error) {
-	return g.generateDataOutput("yaml_output.tmpl", cfg)
-}
-
-// generateDataOutput is a helper function that generates output for JSON/YAML using templates.
-func (g *markdownGenerator) generateDataOutput(
-	templateName string,
-	cfg *model.EnrichedOpnSenseDocument,
-) (string, error) {
-	// Use template data with GeneratedAt for template
-	metadata := struct {
-		*model.EnrichedOpnSenseDocument
-
-		GeneratedAt string
-		ToolVersion string
-	}{
-		EnrichedOpnSenseDocument: cfg,
-		GeneratedAt:              time.Now().Format(time.RFC3339),
-		ToolVersion:              constants.Version,
-	}
-
-	// Use the specified template
-	tmpl := g.templates.Lookup(templateName)
-	if tmpl == nil {
-		// Fallback to simple JSON/YAML if template not found
-		configJSON, err := json.Marshal(cfg) //nolint:musttag // EnrichedOpnSenseDocument has proper json tags
-		if err != nil {
-			return "", fmt.Errorf("failed to marshal configuration to JSON: %w", err)
-		}
-
-		// Determine fallback format based on template name
-		if strings.Contains(templateName, "json") {
-			return fmt.Sprintf(`{
-			"generated": "%s",
-			"tool_version": "%s",
-			"configuration": %s
-		}`, time.Now().Format(time.RFC3339), constants.Version, string(configJSON)), nil
-		}
-		return fmt.Sprintf(`generated: %s
-tool_version: "%s"
-configuration: %s
-`, time.Now().Format(time.RFC3339), constants.Version, string(configJSON)), nil
-	}
-
-	var buf bytes.Buffer
-	err := tmpl.Execute(&buf, metadata)
+	data, err := yaml.Marshal(cfg) //nolint:musttag // EnrichedOpnSenseDocument has proper yaml tags
 	if err != nil {
-		return "", fmt.Errorf("failed to execute %s template: %w", templateName, err)
+		return "", fmt.Errorf("failed to marshal to YAML: %w", err)
 	}
-
-	return buf.String(), nil
+	return string(data), nil
 }
