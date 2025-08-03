@@ -269,14 +269,12 @@ ci-check:
     @just check
     @just format-check
     @just lint
-    @just test-with-coverage
+    @just test
 
 # Run all checks, tests, and release validation
 full-checks:
     @cd {{justfile_dir()}}
     @just ci-check
-    @just bench
-    @just bench-memory
     @just check-goreleaser
 
 
