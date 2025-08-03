@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/nao1215/markdown"
-	"github.com/unclesp1d3r/opnFocus/internal/constants"
-	"github.com/unclesp1d3r/opnFocus/internal/model"
 	"gopkg.in/yaml.v3"
 )
 

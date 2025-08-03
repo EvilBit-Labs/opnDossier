@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/unclesp1d3r/opnFocus/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
 // ValidationError represents a configuration validation error.

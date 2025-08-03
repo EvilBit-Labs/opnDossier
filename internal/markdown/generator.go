@@ -12,10 +12,10 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/Masterminds/sprig/v3"
 	"github.com/charmbracelet/log"
-	"github.com/unclesp1d3r/opnFocus/internal/constants"
-	"github.com/unclesp1d3r/opnFocus/internal/model"
 )
 
 // Generator interface for creating documentation in various formats.
@@ -210,7 +210,7 @@ func buildTemplatePaths(templateDir string) []string {
 
 // parseTemplatesFromPaths attempts to parse templates from multiple possible paths.
 func parseTemplatesFromPaths(possiblePaths []string, funcMap template.FuncMap) (*template.Template, error) {
-	templates := template.New("opnfocus").Funcs(funcMap)
+	templates := template.New("opndossier").Funcs(funcMap)
 	var lastErr error
 	templatesLoaded := 0
 

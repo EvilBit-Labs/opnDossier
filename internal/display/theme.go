@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/unclesp1d3r/opnFocus/internal/constants"
 )
 
 // Theme represents a color theme with customizable palettes.
@@ -78,15 +78,15 @@ func CustomTheme() Theme {
 }
 
 // DetectTheme determines the theme based on configuration and environment.
-// DetectTheme determines the terminal color theme to use based on the provided configuration, the OPNFOCUS_THEME environment variable, or automatic detection if neither is set.
+// DetectTheme determines the terminal color theme to use based on the provided configuration, the OPNDOSSIER_THEME environment variable, or automatic detection if neither is set.
 func DetectTheme(configTheme string) Theme {
 	// Check if theme is explicitly set in config
 	if configTheme != "" {
 		return getThemeByName(configTheme)
 	}
 
-	// Check OPNFOCUS_THEME environment variable
-	envTheme := os.Getenv("OPNFOCUS_THEME")
+	// Check OPNDOSSIER_THEME environment variable
+	envTheme := os.Getenv("OPNDOSSIER_THEME")
 	if envTheme != "" {
 		return getThemeByName(envTheme)
 	}

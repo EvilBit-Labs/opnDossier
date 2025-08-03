@@ -10,11 +10,11 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
+	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/unclesp1d3r/opnFocus/internal/constants"
-	"github.com/unclesp1d3r/opnFocus/internal/markdown"
 )
 
 // Theme and terminal color constants used throughout the display package.

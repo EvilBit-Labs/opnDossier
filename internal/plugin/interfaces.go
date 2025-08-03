@@ -1,7 +1,7 @@
 package plugin
 
 import (
-	"github.com/unclesp1d3r/opnFocus/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
 // CompliancePlugin defines the interface that all compliance plugins must implement.

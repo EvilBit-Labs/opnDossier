@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/display"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/unclesp1d3r/opnFocus/internal/display"
 )
 
 // TestDetectTheme tests theme detection with various environment configurations.
@@ -14,14 +14,14 @@ func TestDetectTheme(t *testing.T) {
 	// Save original environment variables
 	originalColorTerm := os.Getenv("COLORTERM")
 	originalTerm := os.Getenv("TERM")
-	originalTheme := os.Getenv("OPNFOCUS_THEME")
+	originalTheme := os.Getenv("OPNDOSSIER_THEME")
 	originalTermProgram := os.Getenv("TERM_PROGRAM")
 
 	// Restore environment after tests
 	defer func() {
 		t.Setenv("COLORTERM", originalColorTerm)
 		t.Setenv("TERM", originalTerm)
-		t.Setenv("OPNFOCUS_THEME", originalTheme)
+		t.Setenv("OPNDOSSIER_THEME", originalTheme)
 		t.Setenv("TERM_PROGRAM", originalTermProgram)
 	}()
 
@@ -62,7 +62,7 @@ func TestDetectTheme(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set environment variables for this test
-			t.Setenv("OPNFOCUS_THEME", tt.envTheme)
+			t.Setenv("OPNDOSSIER_THEME", tt.envTheme)
 			t.Setenv("COLORTERM", tt.colorTerm)
 			t.Setenv("TERM", tt.term)
 			t.Setenv("TERM_PROGRAM", tt.termProgram)

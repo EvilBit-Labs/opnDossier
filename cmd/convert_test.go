@@ -8,15 +8,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/audit"
+	"github.com/EvilBit-Labs/opnDossier/internal/config"
+	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/processor"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/unclesp1d3r/opnFocus/internal/audit"
-	"github.com/unclesp1d3r/opnFocus/internal/config"
-	"github.com/unclesp1d3r/opnFocus/internal/log"
-	"github.com/unclesp1d3r/opnFocus/internal/markdown"
-	"github.com/unclesp1d3r/opnFocus/internal/model"
-	"github.com/unclesp1d3r/opnFocus/internal/processor"
 )
 
 func TestConvertCmd(t *testing.T) {

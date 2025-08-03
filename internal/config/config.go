@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Config holds the configuration for the opnFocus application.
+// Config holds the configuration for the opnDossier application.
 type Config struct {
 	InputFile  string   `mapstructure:"input_file"`
 	OutputFile string   `mapstructure:"output_file"`
@@ -53,7 +53,7 @@ func LoadConfigWithFlags(cfgFile string, flags *pflag.FlagSet) (*Config, error) 
 
 // LoadConfigWithViper loads the configuration using a provided Viper instance.
 // LoadConfigWithViper loads application configuration using the provided Viper instance, applying defaults, config file values, and environment variables with standard precedence.
-// LoadConfigWithViper loads application configuration using the provided Viper instance, merging values from a config file, environment variables with the "OPNFOCUS" prefix, and defaults.
+// LoadConfigWithViper loads application configuration using the provided Viper instance, merging values from a config file, environment variables with the "OPNDOSSIER" prefix, and defaults.
 // If a config file path is specified, it is used; otherwise, a default YAML file in the user's home directory is attempted. If the config file is missing, environment variables and defaults are used.
 // LoadConfigWithViper loads application configuration from a YAML file, environment variables, and defaults using the provided Viper instance.
 // It returns a validated Config struct or an error if loading or validation fails.
@@ -73,7 +73,7 @@ func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 	v.SetDefault("wrap", 0)
 
 	// Set up environment variable handling
-	v.SetEnvPrefix("OPNFOCUS")
+	v.SetEnvPrefix("OPNDOSSIER")
 	v.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	v.AutomaticEnv()
 
@@ -88,7 +88,7 @@ func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 
 		v.AddConfigPath(home)
 		v.SetConfigType("yaml")
-		v.SetConfigName(".opnFocus")
+		v.SetConfigName(".opnDossier")
 	}
 
 	// Read config file if it exists

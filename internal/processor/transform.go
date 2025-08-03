@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/unclesp1d3r/opnFocus/internal/markdown"
+	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
 	"gopkg.in/yaml.v3"
 )
 

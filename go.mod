@@ -1,4 +1,4 @@
-module github.com/unclesp1d3r/opnFocus
+module github.com/EvilBit-Labs/opnDossier
 
 go 1.24.0
 

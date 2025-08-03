@@ -1,4 +1,4 @@
-// Package log provides centralized logging functionality for the opnFocus application.
+// Package log provides centralized logging functionality for the opnDossier application.
 package log
 
 import (

@@ -2,8 +2,8 @@
 package firewall
 
 import (
-	"github.com/unclesp1d3r/opnFocus/internal/model"
-	"github.com/unclesp1d3r/opnFocus/internal/plugin"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/plugin"
 )
 
 // Plugin implements the CompliancePlugin interface for Firewall compliance.

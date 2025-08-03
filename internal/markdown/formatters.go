@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/unclesp1d3r/opnFocus/internal/constants"
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/yuin/goldmark"
 	goldmark_parser "github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"

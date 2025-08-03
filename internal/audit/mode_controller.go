@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/processor"
 	"github.com/charmbracelet/log"
-	"github.com/unclesp1d3r/opnFocus/internal/model"
-	"github.com/unclesp1d3r/opnFocus/internal/processor"
 )
 
 // Static errors for better error handling.

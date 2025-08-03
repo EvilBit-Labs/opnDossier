@@ -14,7 +14,7 @@ import (
 func TestGetRootCmd(t *testing.T) {
 	rootCmd := GetRootCmd()
 	require.NotNil(t, rootCmd)
-	assert.Equal(t, "opnFocus", rootCmd.Use)
+	assert.Equal(t, "opnDossier", rootCmd.Use)
 	assert.Contains(t, rootCmd.Short, "CLI tool for processing OPNsense configuration files")
 }
 
@@ -64,7 +64,7 @@ func TestRootCmdHelp(t *testing.T) {
 	err := rootCmd.Execute()
 	require.NoError(t, err)
 	output := buf.String()
-	assert.Contains(t, output, "opnFocus")
+	assert.Contains(t, output, "opnDossier")
 	assert.Contains(t, output, "OPNsense configuration files")
 	assert.Contains(t, output, "EXAMPLES:")
 	assert.Contains(t, output, "--verbose")
@@ -125,7 +125,7 @@ func TestGetConfig(_ *testing.T) {
 
 func TestRootCmdPersistentPreRunE(t *testing.T) {
 	// Create a temporary config file for testing
-	tmpFile, err := os.CreateTemp(t.TempDir(), "opnfocus-test-*.yaml")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "opndossier-test-*.yaml")
 	require.NoError(t, err)
 
 	defer func() {
@@ -170,7 +170,7 @@ quiet: false
 
 func TestRootCmdInvalidConfig(t *testing.T) {
 	// Create a temporary invalid config file
-	tmpFile, err := os.CreateTemp(t.TempDir(), "opnfocus-invalid-*.yaml")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "opndossier-invalid-*.yaml")
 	require.NoError(t, err)
 
 	defer func() {
@@ -204,7 +204,7 @@ func TestRootCmdInvalidConfig(t *testing.T) {
 
 func TestRootCmdVerboseQuietFlags(t *testing.T) {
 	// Create a temporary config file for testing
-	tmpFile, err := os.CreateTemp(t.TempDir(), "opnfocus-test-*.yaml")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "opndossier-test-*.yaml")
 	require.NoError(t, err)
 
 	defer func() {

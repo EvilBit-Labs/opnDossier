@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/stretchr/testify/require"
-	"github.com/unclesp1d3r/opnFocus/internal/model"
 )
 
 func TestJSONConverter_ToJSON(t *testing.T) {

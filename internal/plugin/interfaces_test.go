@@ -3,8 +3,8 @@ package plugin_test
 import (
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/plugin"
 	"github.com/stretchr/testify/assert"
-	"github.com/unclesp1d3r/opnFocus/internal/plugin"
 )
 
 func TestErrors(t *testing.T) {

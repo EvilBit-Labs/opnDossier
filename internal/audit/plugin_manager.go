@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/unclesp1d3r/opnFocus/internal/model"
-	"github.com/unclesp1d3r/opnFocus/internal/plugin"
-	"github.com/unclesp1d3r/opnFocus/internal/plugins/firewall"
-	"github.com/unclesp1d3r/opnFocus/internal/plugins/sans"
-	"github.com/unclesp1d3r/opnFocus/internal/plugins/stig"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/plugin"
+	"github.com/EvilBit-Labs/opnDossier/internal/plugins/firewall"
+	"github.com/EvilBit-Labs/opnDossier/internal/plugins/sans"
+	"github.com/EvilBit-Labs/opnDossier/internal/plugins/stig"
 )
 
 // PluginManager manages the lifecycle of compliance plugins.

@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/config"
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
+	"github.com/EvilBit-Labs/opnDossier/internal/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"github.com/unclesp1d3r/opnFocus/internal/config"
-	"github.com/unclesp1d3r/opnFocus/internal/constants"
-	"github.com/unclesp1d3r/opnFocus/internal/log"
 )
 
 var (
@@ -24,9 +24,9 @@ var (
 
 // rootCmd represents the base command when called without any subcommands.
 var rootCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra root command
-	Use:   "opnFocus",
-	Short: "opnFocus: A CLI tool for processing OPNsense configuration files.",
-	Long: `opnFocus is a command-line interface (CLI) tool designed to process OPNsense firewall
+	Use:   "opnDossier",
+	Short: "opnDossier: A CLI tool for processing OPNsense configuration files.",
+	Long: `opnDossier is a command-line interface (CLI) tool designed to process OPNsense firewall
 configuration files (config.xml) and convert them into human-readable formats,
 primarily Markdown. This tool is built to assist network administrators and
 security professionals in documenting, auditing, and understanding their
@@ -34,22 +34,22 @@ OPNsense configurations more effectively.
 
 WORKFLOW EXAMPLES:
   # Basic conversion workflow
-  opnFocus convert config.xml -o documentation.md
+  opnDossier convert config.xml -o documentation.md
 
   # Audit workflow with compliance checks
-  opnFocus convert config.xml --mode blue --plugins stig,sans
+  opnDossier convert config.xml --mode blue --plugins stig,sans
 
   # Development workflow with verbose logging
-  opnFocus --verbose convert config.xml --format json
+  opnDossier --verbose convert config.xml --format json
 
   # Configuration management workflow
-  OPNFOCUS_LOG_LEVEL=debug opnFocus convert config.xml --theme dark
+  OPNDOSSIER_LOG_LEVEL=debug opnDossier convert config.xml --theme dark
 
   # Template customization workflow
-  opnFocus convert config.xml --template-dir ~/.opnFocus/templates --template detailed
+  opnDossier convert config.xml --template-dir ~/.opnDossier/templates --template detailed
 
   # Compliance workflow
-  opnFocus convert config.xml --mode blue --plugins stig,sans --comprehensive`,
+  opnDossier convert config.xml --mode blue --plugins stig,sans --comprehensive`,
 	PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 		var err error
 		// Load configuration with flag binding for proper precedence
@@ -108,7 +108,7 @@ func init() {
 
 	// Configuration flags
 	rootCmd.PersistentFlags().
-		StringVar(&cfgFile, "config", "", "Configuration file path (default: $HOME/.opnFocus.yaml)")
+		StringVar(&cfgFile, "config", "", "Configuration file path (default: $HOME/.opnDossier.yaml)")
 	setFlagAnnotation(rootCmd.PersistentFlags(), "config", []string{"configuration"})
 
 	// Output control flags
@@ -141,9 +141,9 @@ func init() {
 	rootCmd.AddCommand(&cobra.Command{
 		Use:   "version",
 		Short: "Display version information",
-		Long:  "Display the current version of opnFocus and build information.",
+		Long:  "Display the current version of opnDossier and build information.",
 		Run: func(_ *cobra.Command, _ []string) {
-			fmt.Printf("opnFocus version %s\n", constants.Version)
+			fmt.Printf("opnDossier version %s\n", constants.Version)
 			fmt.Printf("Build date: %s\n", getBuildDate())
 			fmt.Printf("Git commit: %s\n", getGitCommit())
 		},
@@ -164,7 +164,7 @@ func init() {
 	})
 }
 
-// GetRootCmd returns the root Cobra command for the opnFocus CLI application.
+// GetRootCmd returns the root Cobra command for the opnDossier CLI application.
 // This provides access to the application's main command and its subcommands for integration or extension.
 func GetRootCmd() *cobra.Command {
 	return rootCmd

@@ -9,12 +9,12 @@ var Version = "1.0.0"
 // Application constants.
 const (
 	// Application metadata.
-	AppName = "opnFocus"
+	AppName = "opnDossier"
 
 	// Default configuration values.
 	DefaultFormat  = "markdown"
 	DefaultMode    = "standard"
-	ConfigFileName = "opnfocus.yaml"
+	ConfigFileName = "opndossier.yaml"
 
 	// Network constants.
 	NetworkAny = "any"

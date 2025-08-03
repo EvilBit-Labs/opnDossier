@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/unclesp1d3r/opnFocus/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
 // MDNode represents a Markdown node structure used to build hierarchical document representations.

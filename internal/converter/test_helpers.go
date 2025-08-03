@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/unclesp1d3r/opnFocus/internal/model"
 )
 
 // TestCase represents a test case for converter tests.

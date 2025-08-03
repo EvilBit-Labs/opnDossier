@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
+	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/unclesp1d3r/opnFocus/internal/constants"
-	"github.com/unclesp1d3r/opnFocus/internal/markdown"
 )
 
 func TestNewTerminalDisplay(t *testing.T) {
@@ -522,14 +522,14 @@ func TestDetectTheme(t *testing.T) {
 	// Save original environment variables
 	originalColorTerm := os.Getenv("COLORTERM")
 	originalTerm := os.Getenv("TERM")
-	originalTheme := os.Getenv("OPNFOCUS_THEME")
+	originalTheme := os.Getenv("OPNDOSSIER_THEME")
 	originalTermProgram := os.Getenv("TERM_PROGRAM")
 
 	// Restore environment after tests
 	defer func() {
 		t.Setenv("COLORTERM", originalColorTerm)
 		t.Setenv("TERM", originalTerm)
-		t.Setenv("OPNFOCUS_THEME", originalTheme)
+		t.Setenv("OPNDOSSIER_THEME", originalTheme)
 		t.Setenv("TERM_PROGRAM", originalTermProgram)
 	}()
 
@@ -578,7 +578,7 @@ func TestDetectTheme(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set environment variables for this test
-			t.Setenv("OPNFOCUS_THEME", tt.envTheme)
+			t.Setenv("OPNDOSSIER_THEME", tt.envTheme)
 			t.Setenv("COLORTERM", tt.colorTerm)
 			t.Setenv("TERM", tt.term)
 			t.Setenv("TERM_PROGRAM", tt.termProgram)
@@ -721,13 +721,13 @@ func TestGlamourStyleDetermination(t *testing.T) {
 	// Save original environment variables
 	originalColorTerm := os.Getenv("COLORTERM")
 	originalTerm := os.Getenv("TERM")
-	originalTheme := os.Getenv("OPNFOCUS_THEME")
+	originalTheme := os.Getenv("OPNDOSSIER_THEME")
 
 	// Restore environment after tests
 	defer func() {
 		t.Setenv("COLORTERM", originalColorTerm)
 		t.Setenv("TERM", originalTerm)
-		t.Setenv("OPNFOCUS_THEME", originalTheme)
+		t.Setenv("OPNDOSSIER_THEME", originalTheme)
 	}()
 
 	tests := []struct {
@@ -759,8 +759,8 @@ func TestGlamourStyleDetermination(t *testing.T) {
 			// Set environment variables for this test
 			t.Setenv("COLORTERM", tt.colorTerm)
 			t.Setenv("TERM", tt.term)
-			// Clear OPNFOCUS_THEME to ensure theme detection works correctly
-			t.Setenv("OPNFOCUS_THEME", "")
+			// Clear OPNDOSSIER_THEME to ensure theme detection works correctly
+			t.Setenv("OPNDOSSIER_THEME", "")
 
 			// Create theme based on the theme name directly
 			var theme Theme

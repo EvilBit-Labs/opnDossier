@@ -11,9 +11,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/charmbracelet/glamour"
 	"github.com/nao1215/markdown"
-	"github.com/unclesp1d3r/opnFocus/internal/model"
 )
 
 // Constants for common values.
@@ -85,7 +85,7 @@ func (c *MarkdownConverter) ToMarkdown(_ context.Context, opnsense *model.OpnSen
 // getTheme determines the appropriate theme based on environment variables and terminal settings.
 func (c *MarkdownConverter) getTheme() string {
 	// Check for explicit theme preference
-	if theme := os.Getenv("OPNFOCUS_THEME"); theme != "" {
+	if theme := os.Getenv("OPNDOSSIER_THEME"); theme != "" {
 		return theme
 	}
 

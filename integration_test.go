@@ -18,7 +18,7 @@ import (
 // TestEndToEndConversion performs an end-to-end integration test of the CLI
 func TestEndToEndConversion(t *testing.T) {
 	// Create a temporary directory for test files
-	tmpDir, err := os.MkdirTemp("", "opnfocus-integration-test")
+	tmpDir, err := os.MkdirTemp("", "opndossier-integration-test")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
@@ -65,15 +65,15 @@ func TestEndToEndConversion(t *testing.T) {
 	err = os.WriteFile(configFile, []byte(configContent), 0o644)
 	require.NoError(t, err)
 
-	// Build the opnFocus binary if it doesn't exist
-	binaryPath := filepath.Join(tmpDir, "opnfocus")
-	if _, err := os.Stat("./opnfocus"); os.IsNotExist(err) {
+	// Build the opnDossier binary if it doesn't exist
+	binaryPath := filepath.Join(tmpDir, "opndossier")
+	if _, err := os.Stat("./opndossier"); os.IsNotExist(err) {
 		buildCmd := exec.Command("go", "build", "-o", binaryPath, ".")
 		err = buildCmd.Run()
-		require.NoErrorf(t, err, "Failed to build opnFocus binary")
+		require.NoErrorf(t, err, "Failed to build opnDossier binary")
 	} else {
 		// Copy existing binary
-		binaryPath = "./opnfocus"
+		binaryPath = "./opndossier"
 	}
 
 	// Test cases for different CLI scenarios
@@ -140,7 +140,7 @@ func TestEndToEndConversion(t *testing.T) {
 // TestEndToEndValidation tests the validate command
 func TestEndToEndValidation(t *testing.T) {
 	// Create a temporary directory for test files
-	tmpDir, err := os.MkdirTemp("", "opnfocus-validation-test")
+	tmpDir, err := os.MkdirTemp("", "opndossier-validation-test")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
@@ -158,9 +158,9 @@ func TestEndToEndValidation(t *testing.T) {
 	require.NoError(t, err)
 
 	// Use the built binary or build it
-	binaryPath := "./opnfocus"
+	binaryPath := "./opndossier"
 	if _, err := os.Stat(binaryPath); os.IsNotExist(err) {
-		binaryPath = filepath.Join(tmpDir, "opnfocus")
+		binaryPath = filepath.Join(tmpDir, "opndossier")
 		buildCmd := exec.Command("go", "build", "-o", binaryPath, ".")
 		err = buildCmd.Run()
 		require.NoError(t, err)
@@ -190,7 +190,7 @@ func TestEndToEndValidation(t *testing.T) {
 // TestEndToEndDisplay tests the display command
 func TestEndToEndDisplay(t *testing.T) {
 	// Create a temporary directory for test files
-	tmpDir, err := os.MkdirTemp("", "opnfocus-display-test")
+	tmpDir, err := os.MkdirTemp("", "opndossier-display-test")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
@@ -208,9 +208,9 @@ func TestEndToEndDisplay(t *testing.T) {
 	require.NoError(t, err)
 
 	// Use the built binary or build it
-	binaryPath := "./opnfocus"
+	binaryPath := "./opndossier"
 	if _, err := os.Stat(binaryPath); os.IsNotExist(err) {
-		binaryPath = filepath.Join(tmpDir, "opnfocus")
+		binaryPath = filepath.Join(tmpDir, "opndossier")
 		buildCmd := exec.Command("go", "build", "-o", binaryPath, ".")
 		err = buildCmd.Run()
 		require.NoError(t, err)

@@ -10,9 +10,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/go-playground/validator/v10"
-	"github.com/unclesp1d3r/opnFocus/internal/markdown"
-	"github.com/unclesp1d3r/opnFocus/internal/model"
 )
 
 // Processor defines the interface for processing OPNsense configurations.

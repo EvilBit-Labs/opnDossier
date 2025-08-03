@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/unclesp1d3r/opnFocus/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
 // normalize normalizes the given OPNsense configuration by filling defaults, canonicalizing IP/CIDR, and sorting slices for determinism.

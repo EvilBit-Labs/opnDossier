@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/unclesp1d3r/opnFocus/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
 // LegacyXMLParser represents the old DOM-based parsing approach

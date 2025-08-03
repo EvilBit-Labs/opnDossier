@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/unclesp1d3r/opnFocus/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
 // ExampleProcessor provides a basic implementation of the Processor interface.

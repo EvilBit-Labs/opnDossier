@@ -10,8 +10,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/unclesp1d3r/opnFocus/internal/model"
-	"github.com/unclesp1d3r/opnFocus/internal/validator"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/validator"
 )
 
 const (

@@ -4,8 +4,8 @@ package stig
 import (
 	"slices"
 
-	"github.com/unclesp1d3r/opnFocus/internal/model"
-	"github.com/unclesp1d3r/opnFocus/internal/plugin"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/plugin"
 )
 
 const (

@@ -18,7 +18,7 @@ func TestLoadConfigFromFile(t *testing.T) {
 	// Create a temporary config file
 	tmpDir := t.TempDir()
 	inputFile := filepath.Join(tmpDir, "input.xml")
-	cfgFilePath := filepath.Join(tmpDir, ".opnFocus.yaml")
+	cfgFilePath := filepath.Join(tmpDir, ".opnDossier.yaml")
 	content := fmt.Sprintf(`
 input_file: %s
 output_file: %s
@@ -56,8 +56,8 @@ func TestLoadConfigFromEnv(t *testing.T) {
 	err := os.WriteFile(inputFile, []byte("<test/>"), 0o600)
 	require.NoError(t, err)
 
-	t.Setenv("OPNFOCUS_INPUT_FILE", inputFile)
-	t.Setenv("OPNFOCUS_VERBOSE", "false")
+	t.Setenv("OPNDOSSIER_INPUT_FILE", inputFile)
+	t.Setenv("OPNDOSSIER_VERBOSE", "false")
 
 	cfg, err := LoadConfigWithViper("", viper.New()) // Load without a specific file to pick up env vars
 	require.NoError(t, err)
@@ -83,7 +83,7 @@ func TestLoadConfigPrecedence(t *testing.T) {
 
 	// Create a temporary config file with a valid output path
 	outputFile := filepath.Join(tmpDir, "output.md")
-	cfgFilePath := filepath.Join(tmpDir, ".opnFocus.yaml")
+	cfgFilePath := filepath.Join(tmpDir, ".opnDossier.yaml")
 	content := fmt.Sprintf(`
 input_file: %s
 output_file: %s
@@ -92,8 +92,8 @@ verbose: true
 	err = os.WriteFile(cfgFilePath, []byte(content), 0o600)
 	require.NoError(t, err)
 
-	t.Setenv("OPNFOCUS_INPUT_FILE", envInputFile)
-	t.Setenv("OPNFOCUS_VERBOSE", "false")
+	t.Setenv("OPNDOSSIER_INPUT_FILE", envInputFile)
+	t.Setenv("OPNDOSSIER_VERBOSE", "false")
 
 	// Environment variables should override config file values (standard precedence)
 	cfg, err := LoadConfigWithViper(cfgFilePath, viper.New())
@@ -206,9 +206,9 @@ func TestLoadConfigFromEnvWithNewFields(t *testing.T) {
 	clearEnvironment(t)
 
 	// Set environment variables for new fields
-	t.Setenv("OPNFOCUS_QUIET", "true")
-	t.Setenv("OPNFOCUS_LOG_LEVEL", "warn")
-	t.Setenv("OPNFOCUS_LOG_FORMAT", "json")
+	t.Setenv("OPNDOSSIER_QUIET", "true")
+	t.Setenv("OPNDOSSIER_LOG_LEVEL", "warn")
+	t.Setenv("OPNDOSSIER_LOG_FORMAT", "json")
 
 	cfg, err := LoadConfigWithViper("", viper.New())
 	require.NoError(t, err)
@@ -230,17 +230,17 @@ func TestLoadConfigFromEnvWithAllFields(t *testing.T) {
 	require.NoError(t, err)
 
 	// Set environment variables for all configuration fields
-	t.Setenv("OPNFOCUS_INPUT_FILE", inputFile)
-	t.Setenv("OPNFOCUS_OUTPUT_FILE", outputFile)
-	t.Setenv("OPNFOCUS_VERBOSE", "true")
-	t.Setenv("OPNFOCUS_QUIET", "false")
-	t.Setenv("OPNFOCUS_LOG_LEVEL", "debug")
-	t.Setenv("OPNFOCUS_LOG_FORMAT", "json")
-	t.Setenv("OPNFOCUS_THEME", "dark")
-	t.Setenv("OPNFOCUS_FORMAT", "yaml")
-	t.Setenv("OPNFOCUS_TEMPLATE", "comprehensive")
-	t.Setenv("OPNFOCUS_SECTIONS", "system,network,firewall")
-	t.Setenv("OPNFOCUS_WRAP", "80")
+	t.Setenv("OPNDOSSIER_INPUT_FILE", inputFile)
+	t.Setenv("OPNDOSSIER_OUTPUT_FILE", outputFile)
+	t.Setenv("OPNDOSSIER_VERBOSE", "true")
+	t.Setenv("OPNDOSSIER_QUIET", "false")
+	t.Setenv("OPNDOSSIER_LOG_LEVEL", "debug")
+	t.Setenv("OPNDOSSIER_LOG_FORMAT", "json")
+	t.Setenv("OPNDOSSIER_THEME", "dark")
+	t.Setenv("OPNDOSSIER_FORMAT", "yaml")
+	t.Setenv("OPNDOSSIER_TEMPLATE", "comprehensive")
+	t.Setenv("OPNDOSSIER_SECTIONS", "system,network,firewall")
+	t.Setenv("OPNDOSSIER_WRAP", "80")
 
 	cfg, err := LoadConfigWithViper("", viper.New())
 	require.NoError(t, err)
@@ -283,7 +283,7 @@ func TestLoadConfigFromEnvWithBooleanValues(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			clearEnvironment(t)
-			t.Setenv("OPNFOCUS_VERBOSE", tc.value)
+			t.Setenv("OPNDOSSIER_VERBOSE", tc.value)
 
 			cfg, err := LoadConfigWithViper("", viper.New())
 			require.NoError(t, err)
@@ -297,7 +297,7 @@ func TestLoadConfigFromEnvWithIntegerValues(t *testing.T) {
 	clearEnvironment(t)
 
 	// Test integer environment variable
-	t.Setenv("OPNFOCUS_WRAP", "120")
+	t.Setenv("OPNDOSSIER_WRAP", "120")
 
 	cfg, err := LoadConfigWithViper("", viper.New())
 	require.NoError(t, err)
@@ -309,7 +309,7 @@ func TestLoadConfigFromEnvWithSliceValues(t *testing.T) {
 	clearEnvironment(t)
 
 	// Test slice environment variable (comma-separated)
-	t.Setenv("OPNFOCUS_SECTIONS", "system,network,firewall,dhcp")
+	t.Setenv("OPNDOSSIER_SECTIONS", "system,network,firewall,dhcp")
 
 	cfg, err := LoadConfigWithViper("", viper.New())
 	require.NoError(t, err)
@@ -321,7 +321,7 @@ func TestLoadConfigFromEnvWithEmptySlice(t *testing.T) {
 	clearEnvironment(t)
 
 	// Test empty slice environment variable
-	t.Setenv("OPNFOCUS_SECTIONS", "")
+	t.Setenv("OPNDOSSIER_SECTIONS", "")
 
 	cfg, err := LoadConfigWithViper("", viper.New())
 	require.NoError(t, err)
@@ -338,20 +338,20 @@ func TestValidationError_Error(t *testing.T) {
 	assert.Equal(t, expected, err.Error())
 }
 
-// clearEnvironment removes all OPNFOCUS_ environment variables for testing.
+// clearEnvironment removes all OPNDOSSIER_ environment variables for testing.
 func clearEnvironment(_ *testing.T) {
 	envVars := []string{
-		"OPNFOCUS_INPUT_FILE",
-		"OPNFOCUS_OUTPUT_FILE",
-		"OPNFOCUS_VERBOSE",
-		"OPNFOCUS_QUIET",
-		"OPNFOCUS_LOG_LEVEL",
-		"OPNFOCUS_LOG_FORMAT",
-		"OPNFOCUS_THEME",
-		"OPNFOCUS_FORMAT",
-		"OPNFOCUS_TEMPLATE",
-		"OPNFOCUS_SECTIONS",
-		"OPNFOCUS_WRAP",
+		"OPNDOSSIER_INPUT_FILE",
+		"OPNDOSSIER_OUTPUT_FILE",
+		"OPNDOSSIER_VERBOSE",
+		"OPNDOSSIER_QUIET",
+		"OPNDOSSIER_LOG_LEVEL",
+		"OPNDOSSIER_LOG_FORMAT",
+		"OPNDOSSIER_THEME",
+		"OPNDOSSIER_FORMAT",
+		"OPNDOSSIER_TEMPLATE",
+		"OPNDOSSIER_SECTIONS",
+		"OPNDOSSIER_WRAP",
 	}
 
 	for _, env := range envVars {

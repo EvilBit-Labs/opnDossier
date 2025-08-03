@@ -5,9 +5,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/validator"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/unclesp1d3r/opnFocus/internal/validator"
 )
 
 // TestXMLParser_SampleConfig2XMLValidation tests that sample.config.2.xml produces no validation errors.

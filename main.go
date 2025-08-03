@@ -1,13 +1,13 @@
-// Package main is the entry point for the opnFocus CLI tool.
+// Package main is the entry point for the opnDossier CLI tool.
 package main
 
 import (
 	"context"
 	"os"
 
+	"github.com/EvilBit-Labs/opnDossier/cmd"
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/charmbracelet/fang"
-	"github.com/unclesp1d3r/opnFocus/cmd"
-	"github.com/unclesp1d3r/opnFocus/internal/constants"
 )
 
 // Version information injected by GoReleaser via ldflags.
@@ -27,7 +27,7 @@ func init() {
 	}
 }
 
-// main starts the opnFocus CLI tool, executing the root command and exiting with status code 1 if an error occurs.
+// main starts the opnDossier CLI tool, executing the root command and exiting with status code 1 if an error occurs.
 func main() {
 	if err := fang.Execute(context.Background(), cmd.GetRootCmd()); err != nil {
 		// fang.Execute already handles error output, so we just need to exit

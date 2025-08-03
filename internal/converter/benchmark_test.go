@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/unclesp1d3r/opnFocus/internal/parser"
+	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 )
 
 func BenchmarkMarkdownConverter_ToMarkdown(b *testing.B) {

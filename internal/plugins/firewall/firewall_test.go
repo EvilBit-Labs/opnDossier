@@ -3,11 +3,11 @@ package firewall_test
 import (
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/plugin"
+	"github.com/EvilBit-Labs/opnDossier/internal/plugins/firewall"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/unclesp1d3r/opnFocus/internal/model"
-	"github.com/unclesp1d3r/opnFocus/internal/plugin"
-	"github.com/unclesp1d3r/opnFocus/internal/plugins/firewall"
 )
 
 func TestFirewallPlugin_RunChecks(t *testing.T) {

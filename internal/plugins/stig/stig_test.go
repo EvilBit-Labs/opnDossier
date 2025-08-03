@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/unclesp1d3r/opnFocus/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
 func TestPlugin_hasDefaultDenyPolicy(t *testing.T) {

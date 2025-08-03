@@ -1,4 +1,4 @@
-// Package cmd provides the command-line interface for opnFocus.
+// Package cmd provides the command-line interface for opnDossier.
 package cmd
 
 import (
@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 	"github.com/spf13/cobra"
-	"github.com/unclesp1d3r/opnFocus/internal/parser"
 )
 
 // init registers the validate command with the root command for the CLI.
@@ -35,16 +35,16 @@ The validation includes:
 
 Examples:
   # Validate a single configuration file
-  opnFocus validate config.xml
+  opnDossier validate config.xml
 
   # Validate multiple configuration files
-  opnFocus validate config1.xml config2.xml config3.xml
+  opnDossier validate config1.xml config2.xml config3.xml
 
   # Validate with verbose output to see detailed validation results
-  opnFocus --verbose validate config.xml
+  opnDossier --verbose validate config.xml
 
   # Validate with quiet mode (only show errors)
-  opnFocus --quiet validate config.xml
+  opnDossier --quiet validate config.xml
 `,
 	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {

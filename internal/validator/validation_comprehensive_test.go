@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/stretchr/testify/assert"
-	"github.com/unclesp1d3r/opnFocus/internal/model"
 )
 
 // TestInterfaceReferences_TableDriven provides explicit table-driven tests for

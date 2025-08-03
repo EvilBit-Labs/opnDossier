@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/unclesp1d3r/opnFocus/internal/model"
-	"github.com/unclesp1d3r/opnFocus/internal/parser"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 )
 
 func TestWalk_BasicStructure(t *testing.T) {

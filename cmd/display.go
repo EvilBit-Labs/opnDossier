@@ -1,4 +1,4 @@
-// Package cmd provides the command-line interface for opnFocus.
+// Package cmd provides the command-line interface for opnDossier.
 package cmd
 
 import (
@@ -7,12 +7,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/config"
+	"github.com/EvilBit-Labs/opnDossier/internal/display"
+	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 	"github.com/spf13/cobra"
-	"github.com/unclesp1d3r/opnFocus/internal/config"
-	"github.com/unclesp1d3r/opnFocus/internal/display"
-	"github.com/unclesp1d3r/opnFocus/internal/markdown"
-	"github.com/unclesp1d3r/opnFocus/internal/model"
-	"github.com/unclesp1d3r/opnFocus/internal/parser"
 )
 
 var (
@@ -102,29 +102,29 @@ The output includes:
 
 Examples:
   # Display configuration with validation (default behavior)
-  opnFocus display config.xml
+  opnDossier display config.xml
 
   # Display configuration without validation
-  opnFocus display --no-validate config.xml
+  opnDossier display --no-validate config.xml
 
   # Display with specific theme
-  opnFocus display --theme dark config.xml
-  opnFocus display --theme light config.xml
+  opnDossier display --theme dark config.xml
+  opnDossier display --theme light config.xml
 
   # Display with custom template and sections
-  opnFocus display --template detailed --section system,network config.xml
+  opnDossier display --template detailed --section system,network config.xml
 
   # Display with custom template directory
-  opnFocus display --template-dir ~/.opnFocus/templates config.xml
+  opnDossier display --template-dir ~/.opnDossier/templates config.xml
 
   # Display with text wrapping
-  opnFocus display --wrap 120 config.xml
+  opnDossier display --wrap 120 config.xml
 
   # Display with verbose logging to see processing details
-  opnFocus --verbose display config.xml
+  opnDossier --verbose display config.xml
 
   # Display with quiet mode (suppress processing messages)
-  opnFocus --quiet display config.xml`,
+  opnDossier --quiet display config.xml`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()

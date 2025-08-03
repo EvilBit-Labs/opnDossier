@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"text/template"
 
-	"github.com/unclesp1d3r/opnFocus/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/log"
 )
 
 // Format represents the output format type.

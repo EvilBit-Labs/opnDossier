@@ -1,4 +1,4 @@
-// Package cmd provides the command-line interface for opnFocus.
+// Package cmd provides the command-line interface for opnDossier.
 package cmd
 
 import (
@@ -11,15 +11,15 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/audit"
+	"github.com/EvilBit-Labs/opnDossier/internal/config"
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
+	"github.com/EvilBit-Labs/opnDossier/internal/export"
+	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 	"github.com/spf13/cobra"
-	"github.com/unclesp1d3r/opnFocus/internal/audit"
-	"github.com/unclesp1d3r/opnFocus/internal/config"
-	"github.com/unclesp1d3r/opnFocus/internal/constants"
-	"github.com/unclesp1d3r/opnFocus/internal/export"
-	"github.com/unclesp1d3r/opnFocus/internal/log"
-	"github.com/unclesp1d3r/opnFocus/internal/markdown"
-	"github.com/unclesp1d3r/opnFocus/internal/model"
-	"github.com/unclesp1d3r/opnFocus/internal/parser"
 )
 
 var (
@@ -154,43 +154,43 @@ file will be named based on its input file with the appropriate extension
 
 Examples:
   # Convert 'my_config.xml' and print markdown to console
-  opnFocus convert my_config.xml
+  opnDossier convert my_config.xml
 
   # Convert 'my_config.xml' to JSON format
-  opnFocus convert my_config.xml --format json
+  opnDossier convert my_config.xml --format json
 
   # Convert 'my_config.xml' to YAML and save to file
-  opnFocus convert my_config.xml -f yaml -o documentation.yaml
+  opnDossier convert my_config.xml -f yaml -o documentation.yaml
 
   # Generate blue team audit report
-  opnFocus convert my_config.xml --mode blue --comprehensive
+  opnDossier convert my_config.xml --mode blue --comprehensive
 
   # Generate red team recon report with blackhat mode
-  opnFocus convert my_config.xml --mode red --blackhat-mode
+  opnDossier convert my_config.xml --mode red --blackhat-mode
 
   # Run compliance checks with specific plugins
-  opnFocus convert my_config.xml --mode blue --plugins stig,sans
+  opnDossier convert my_config.xml --mode blue --plugins stig,sans
 
   # Convert with specific theme and sections
-  opnFocus convert my_config.xml --theme dark --section system,network
+  opnDossier convert my_config.xml --theme dark --section system,network
 
   # Convert with custom template and text wrapping
-  opnFocus convert my_config.xml --template detailed --wrap 120
+  opnDossier convert my_config.xml --template detailed --wrap 120
 
   # Convert multiple files to JSON format
-  opnFocus convert config1.xml config2.xml --format json
+  opnDossier convert config1.xml config2.xml --format json
 
   # Convert 'backup_config.xml' with verbose logging
-  opnFocus --verbose convert backup_config.xml -f json
+  opnDossier --verbose convert backup_config.xml -f json
 
   # Use environment variable to set default output location
-  OPNFOCUS_OUTPUT_FILE=./docs/network.md opnFocus convert config.xml
+  OPNDOSSIER_OUTPUT_FILE=./docs/network.md opnDossier convert config.xml
 
   # Force overwrite existing file without prompt
-  opnFocus convert config.xml -o output.md --force
+  opnDossier convert config.xml -o output.md --force
 
   # Validate before converting (recommended workflow)
-  opnFocus validate config.xml && opnFocus convert config.xml -f json -o output.json`,
+  opnDossier validate config.xml && opnDossier convert config.xml -f json -o output.json`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()

@@ -12,10 +12,10 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
 	"github.com/charmbracelet/glamour"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/unclesp1d3r/opnFocus/internal/markdown"
 	"github.com/yuin/goldmark"
 	goldmark_parser "github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"

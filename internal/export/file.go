@@ -203,7 +203,7 @@ func (e *FileExporter) checkExistingFilePermissions(absPath, originalPath string
 // checkDirectoryWritable checks if a directory is writable by attempting to create a temporary file.
 func (e *FileExporter) checkDirectoryWritable(dir string) error {
 	// Try to create a temporary file in the directory to test write permissions
-	tempFile, err := os.CreateTemp(dir, ".opnfocus_write_test_*")
+	tempFile, err := os.CreateTemp(dir, ".opndossier_write_test_*")
 	if err != nil {
 		return fmt.Errorf("directory write test failed: %w", err)
 	}

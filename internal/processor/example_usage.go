@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/unclesp1d3r/opnFocus/internal/constants"
-	"github.com/unclesp1d3r/opnFocus/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
 // ExampleUsage demonstrates various ways to process an OpnSense configuration document using the processor, including basic, security-focused, and comprehensive analyses, as well as handling custom timeouts and reporting in multiple formats.
