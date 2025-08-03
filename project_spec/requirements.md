@@ -10,7 +10,7 @@
 
 ### Project Overview
 
-- **Project Description and Purpose**: opnFocus is a CLI tool designed to convert OPNsense firewall configuration files (config.xml) into human-readable Markdown documentation. It provides operators with clear visibility into their firewall configurations for documentation, auditing, and troubleshooting purposes.
+- **Project Description and Purpose**: opnDossier is a CLI tool designed to convert OPNsense firewall configuration files (config.xml) into human-readable Markdown documentation. It provides operators with clear visibility into their firewall configurations for documentation, auditing, and troubleshooting purposes.
 
 - **Project Goals and Objectives**:
 
@@ -137,7 +137,7 @@
 
 - **User Stories and Use Cases**:
 
-  - **Primary Workflow**: User obtains OPNsense config.xml file → runs `opnFocus convert config.xml` → system parses XML, converts to markdown, displays in terminal → user optionally exports to file
+  - **Primary Workflow**: User obtains OPNsense config.xml file → runs `opnDossier convert config.xml` → system parses XML, converts to markdown, displays in terminal → user optionally exports to file
   - **Configuration Workflow**: User creates YAML config file with preferred settings → sets environment variables for sensitive options → runs commands with config automatically applied → overrides with CLI flags as needed
   - **Error Recovery Workflow**: System detects invalid XML → provides specific error message with line/column information → user corrects input file → re-runs command successfully
   - **Plugin Compliance Workflow**: User selects compliance plugins → system loads and validates plugins → runs compliance checks against configuration → generates comprehensive compliance report with findings and recommendations
@@ -819,7 +819,7 @@ just build      # Build application
 
 - **Project-specific Terms and Definitions**:
 
-  - **opnFocus**: CLI tool for OPNsense configuration documentation
+  - **opnDossier**: CLI tool for OPNsense configuration documentation
   - **OPNsense**: Open-source firewall and routing platform
   - **config.xml**: OPNsense configuration file format
   - **Airgap**: Isolated network environment without internet connectivity

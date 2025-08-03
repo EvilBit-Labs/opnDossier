@@ -1,4 +1,4 @@
-# opnFocus Implementation Tasks
+# opnDossier Implementation Tasks
 
 ## Release Roadmap
 
@@ -70,7 +70,7 @@
 
 ## Overview
 
-This document provides a comprehensive task checklist for implementing the opnFocus CLI tool based on the requirements document and user stories. Each task includes specific references to relevant requirement items and user stories.
+This document provides a comprehensive task checklist for implementing the opnDossier CLI tool based on the requirements document and user stories. Each task includes specific references to relevant requirement items and user stories.
 
 **Project Status**: Basic CLI structure exists with XML parsing capability, but core functionality needs implementation.
 
@@ -209,7 +209,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Action**: Implement template rendering system using templates in `internal/templates` for comprehensive and summary formats
   - **Acceptance**: Generated markdown string is well-formatted, structured, and uses appropriate templates with comprehensive and summary output styles
 
-### 3.2 Terminal Display Implementation (`opnfocus display`)
+### 3.2 Terminal Display Implementation (`opndossier display`)
 
 - [x] **TASK-014**: Implement terminal display with glamour
 
@@ -217,7 +217,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
   - **Requirement**: F003 (Terminal display), US-004 (Syntax highlighting), F012 (Terminal display), F024 (Display mode)
   - **User Story**: US-004 (Terminal output), US-043 (Theme support)
   - **Action**: Create `internal/display/` package that renders markdown string to terminal using `github.com/charmbracelet/glamour`
-  - **Acceptance**: `opnfocus display` command renders markdown string with colored, syntax-highlighted output and handles large configurations gracefully with pagination or scrolling
+  - **Acceptance**: `opndossier display` command renders markdown string with colored, syntax-highlighted output and handles large configurations gracefully with pagination or scrolling
 
 - [x] **TASK-015**: Add theme support (light/dark)
 
@@ -239,7 +239,7 @@ This document provides a comprehensive task checklist for implementing the opnFo
 
 ## Phase 4: File Export & Input Validation
 
-### 4.1 File Export Implementation (`opnfocus convert`)
+### 4.1 File Export Implementation (`opndossier convert`)
 
 - [x] **TASK-017**: Implement markdown file export
 

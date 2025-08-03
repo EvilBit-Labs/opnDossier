@@ -1,8 +1,8 @@
-# User Stories - opnFocus
+# User Stories - opnDossier
 
 ## Overview
 
-This document captures user stories for the opnFocus CLI tool in EARS (Easy Approach to Requirements Syntax) format. Each story follows the pattern:
+This document captures user stories for the opnDossier CLI tool in EARS (Easy Approach to Requirements Syntax) format. Each story follows the pattern:
 
 **As a** [user type]
 **I want** [capability]
@@ -28,7 +28,7 @@ This document captures user stories for the opnFocus CLI tool in EARS (Easy Appr
 **I want** to parse OPNsense XML configuration files
 **So that** I can analyze firewall configurations offline
 **Given** I have a valid OPNsense config.xml file
-**When** I run the opnFocus command with the XML file
+**When** I run the opnDossier command with the XML file
 **Then** the system should parse the XML structure and validate it against the OPNsense schema
 
 **US-002**
@@ -82,7 +82,7 @@ This document captures user stories for the opnFocus CLI tool in EARS (Easy Appr
 **I want** the tool to operate completely offline
 **So that** I can use it in isolated network environments
 **Given** I have no internet connectivity
-**When** I run any opnFocus command
+**When** I run any opnDossier command
 **Then** the system should function without external dependencies or network calls
 
 **US-008**
@@ -90,7 +90,7 @@ This document captures user stories for the opnFocus CLI tool in EARS (Easy Appr
 **I want** zero external dependencies
 **So that** I can trust the tool in high-security environments
 **Given** I'm working in a restricted environment
-**When** I deploy and run opnFocus
+**When** I deploy and run opnDossier
 **Then** the system should not require any external services or APIs
 
 ### CLI Interface
@@ -99,7 +99,7 @@ This document captures user stories for the opnFocus CLI tool in EARS (Easy Appr
 **As a** network administrator
 **I want** an intuitive command-line interface
 **So that** I can quickly process configuration files
-**Given** I have the opnFocus tool installed
+**Given** I have the opnDossier tool installed
 **When** I run the command with appropriate arguments
 **Then** the system should provide clear feedback and process my request
 
@@ -160,7 +160,7 @@ This document captures user stories for the opnFocus CLI tool in EARS (Easy Appr
 **I want** fast CLI startup times
 **So that** I can work efficiently in time-sensitive situations
 **Given** I need to process multiple configurations quickly
-**When** I start the opnFocus command
+**When** I start the opnDossier command
 **Then** the system should start up quickly for operator efficiency
 
 **US-017**
@@ -213,7 +213,7 @@ This document captures user stories for the opnFocus CLI tool in EARS (Easy Appr
 **As a** new user
 **I want** clear installation instructions
 **So that** I can quickly get started with the tool
-**Given** I want to install opnFocus
+**Given** I want to install opnDossier
 **When** I follow the installation instructions
 **Then** I should have a working installation
 
@@ -266,7 +266,7 @@ This document captures user stories for the opnFocus CLI tool in EARS (Easy Appr
 **I want** the tool to work on Linux, macOS, and Windows
 **So that** I can use it in any environment
 **Given** I'm working on different operating systems
-**When** I install and run opnFocus
+**When** I install and run opnDossier
 **Then** it should work consistently across all supported platforms
 
 **US-029**
@@ -274,7 +274,7 @@ This document captures user stories for the opnFocus CLI tool in EARS (Easy Appr
 **I want** the tool to work in containers
 **So that** I can integrate it into my deployment pipeline
 **Given** I'm running the tool in a container
-**When** I execute opnFocus commands
+**When** I execute opnDossier commands
 **Then** it should function properly in the containerized environment
 
 ### Build and Distribution
@@ -283,7 +283,7 @@ This document captures user stories for the opnFocus CLI tool in EARS (Easy Appr
 **As a** operator
 **I want** easy installation from package managers
 **So that** I can quickly deploy the tool
-**Given** I need to install opnFocus
+**Given** I need to install opnDossier
 **When** I use my system's package manager
 **Then** I should be able to install it easily
 
@@ -402,7 +402,7 @@ This document captures user stories for the opnFocus CLI tool in EARS (Easy Appr
 **I want** support for both light and dark terminal themes
 **So that** I can use the tool comfortably in any environment
 **Given** I'm using different terminal themes
-**When** I run opnFocus commands
+**When** I run opnDossier commands
 **Then** the output should be readable in both light and dark themes
 
 **US-044**
@@ -426,7 +426,7 @@ This document captures user stories for the opnFocus CLI tool in EARS (Easy Appr
 **I want** to generate a recon report from a config.xml file
 **So that** I can identify potential attack surfaces, misconfigurations, and pivot paths during an engagement
 **Given** I have a valid OPNsense config.xml file
-**When** I run the opnFocus command `analyze` with the `--mode=red` flag
+**When** I run the opnDossier command `analyze` with the `--mode=red` flag
 **Then** the system should generate a recon report highlighting WAN-exposed services, weak NAT rules, admin portals, and known attack surfaces
 
 **US-047**
@@ -434,7 +434,7 @@ This document captures user stories for the opnFocus CLI tool in EARS (Easy Appr
 **I want** to generate a defensive audit of an OPNsense config
 **So that** I can quickly identify misconfigurations, insecure defaults, and missed hygiene steps
 **Given** I have a valid OPNsense config.xml file
-**When** I run the opnFocus command `analyze` with the `--mode=blue` flag
+**When** I run the opnDossier command `analyze` with the `--mode=blue` flag
 **Then** the system should generate a defensive audit report with audit findings, structured configuration tables, and recommendations with severity ratings
 
 **US-048**
@@ -442,7 +442,7 @@ This document captures user stories for the opnFocus CLI tool in EARS (Easy Appr
 **I want** to generate a complete but neutral summary of a config file
 **So that** I can include it in documentation or audit records without red/blue-specific commentary
 **Given** I have a valid OPNsense config.xml file
-**When** I run the opnFocus command `analyze` with the `--mode=standard` flag
+**When** I run the opnDossier command `analyze` with the `--mode=standard` flag
 **Then** the system should generate a detailed but neutral config documentation report including system metadata, rule counts, interfaces, certs, DHCP, routes, and HA
 
 ---
