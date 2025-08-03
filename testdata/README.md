@@ -1,6 +1,6 @@
 # Test Data Files
 
-This directory contains OPNsense configuration files used for testing the parser and validation components of opnFocus.
+This directory contains OPNsense configuration files used for testing the parser and validation components of opnDossier.
 
 ## Contents
 
@@ -10,11 +10,13 @@ This directory contains OPNsense configuration files used for testing the parser
 - **`sample.config.3.xml`** - Sample configuration with security features
 - **`sample.config.4.xml`** - Sample configuration with services enabled
 - **`sample.config.5.xml`** - Comprehensive sample configuration
-- **`opnfocus-config.xsd`** - XML Schema Definition for validation
+- **`sample.config.6.xml`** - Large-scale sample configuration
+- **`sample.config.7.xml`** - Extended sample configuration
+- **`opnsense-config.xsd`** - XML Schema Definition for validation
 
 ## Sources
 
-These configuration files were collected from public repositories and open source projects for testing purposes. While some were generated manually, others were derived from existing sources. The `opnfocus-config.xsd` schema file was generated from these sample files and may not be comprehensive or perfect. All potentially sensitive data has been sanitized or altered to ensure privacy.
+These configuration files were collected from public repositories and open source projects for testing purposes. While some were generated manually, others were derived from existing sources. The `opnsense-config.xsd` schema file was generated from these sample files and may not be comprehensive or perfect. All potentially sensitive data has been sanitized or altered to ensure privacy.
 
 ## Usage
 

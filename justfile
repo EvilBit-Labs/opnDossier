@@ -1,4 +1,4 @@
-# Justfile for opnFocus
+# Justfile for opnDossier
 
 set shell := ["bash", "-cu"]
 set windows-powershell := true
@@ -157,18 +157,18 @@ completeness-check:
 clean:
     go clean
     rm -f coverage.out
-    rm -f opnfocus
+    rm -f opndossier
 
 [windows]
 clean:
     go clean
     del /q coverage.out
-    del /q opnfocus.exe
+    del /q opndossier.exe
 
 
 # Build the project
 build:
-    go build -o opnfocus main.go
+    go build -o opndossier main.go
 
 clean-build:
     just clean

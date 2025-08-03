@@ -11,7 +11,7 @@ Use this section to tell people about which versions of your project are current
 
 ## Reporting a Vulnerability
 
-We take the security of opnFocus seriously. If you believe you have found a security vulnerability, please report it to us as described below.
+We take the security of opnDossier seriously. If you believe you have found a security vulnerability, please report it to us as described below.
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
@@ -44,7 +44,7 @@ We ask that you:
 
 ### Security Best Practices
 
-When using opnFocus:
+When using opnDossier:
 
 - Keep your OPNsense configuration files secure
 - Regularly update to the latest version
@@ -53,7 +53,7 @@ When using opnFocus:
 
 ## Security Features
 
-opnFocus includes several security-focused features:
+opnDossier includes several security-focused features:
 
 - Secure parsing of OPNsense configuration files
 - Audit-oriented reporting for security assessments
@@ -66,4 +66,4 @@ For general security questions or concerns, please use GitHub Issues with the "S
 
 ---
 
-Thank you for helping keep opnFocus and its users secure!
+Thank you for helping keep opnDossier and its users secure!

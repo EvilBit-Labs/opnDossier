@@ -9,7 +9,7 @@ before:
     - go generate ./...
 
 builds:
-  - binary: opnfocus
+  - binary: opnDossier
     env:
       - CGO_ENABLED=0
     goos:
@@ -20,7 +20,7 @@ builds:
     goarch:
       - amd64
       - arm64
-    ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X github.com/unclesp1d3r/opnFocus/cmd.buildDate={{.Date}} -X github.com/unclesp1d3r/opnFocus/cmd.gitCommit={{.Commit}}
+    ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X github.com/EvilBit-Labs/opnDossier/cmd.buildDate={{.Date}} -X github.com/EvilBit-Labs/opnDossier/cmd.gitCommit={{.Commit}}
     ignore:
       - goos: freebsd
         goarch: arm64
@@ -63,8 +63,8 @@ checksum:
 
 release:
   github:
-    owner: "unclesp1d3r"
-    name: "opnfocus"
+    owner: "EvilBit-Labs"
+    name: "opnDossier"
   prerelease: auto
   include_meta: true
 source:
@@ -74,10 +74,10 @@ universal_binaries:
 
 dockers:
   - image_templates:
-      - "ghcr.io/unclesp1d3r/opnfocus:{{ .Tag }}"
-      - "ghcr.io/unclesp1d3r/opnfocus:v{{ .Major }}"
-      - "ghcr.io/unclesp1d3r/opnfocus:v{{ .Major }}.{{ .Minor }}"
-      - "ghcr.io/unclesp1d3r/opnfocus:latest"
+      - "ghcr.io/evilbit-labs/opndossier:{{ .Tag }}"
+      - "ghcr.io/evilbit-labs/opndossier:v{{ .Major }}"
+      - "ghcr.io/evilbit-labs/opndossier:v{{ .Major }}.{{ .Minor }}"
+      - "ghcr.io/evilbit-labs/opndossier:latest"
     use: buildx
     dockerfile: Dockerfile.releaser
     goarch: amd64
@@ -87,14 +87,14 @@ dockers:
       - "--label=org.opencontainers.image.title={{.ProjectName}}"
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
       - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--label=org.opencontainers.image.source = 'https://github.com/unclesp1d3r/opnfocus'"
+      - "--label=org.opencontainers.image.source = 'https://github.com/EvilBit-Labs/opnDossier'"
       - "--build-arg=branch=latest"
       - "--platform=linux/amd64"
   - image_templates:
-      - "ghcr.io/unclesp1d3r/opnfocus:{{ .Tag }}-pocl"
-      - "ghcr.io/unclesp1d3r/opnfocus:v{{ .Major }}-pocl"
-      - "ghcr.io/unclesp1d3r/opnfocus:v{{ .Major }}.{{ .Minor }}-pocl"
-      - "ghcr.io/unclesp1d3r/opnfocus:pocl"
+      - "ghcr.io/evilbit-labs/opndossier:{{ .Tag }}-pocl"
+      - "ghcr.io/evilbit-labs/opndossier:v{{ .Major }}-pocl"
+      - "ghcr.io/evilbit-labs/opndossier:v{{ .Major }}.{{ .Minor }}-pocl"
+      - "ghcr.io/evilbit-labs/opndossier:pocl"
     use: buildx
     dockerfile: Dockerfile.releaser
     goarch: amd64
@@ -104,14 +104,14 @@ dockers:
       - "--label=org.opencontainers.image.title={{.ProjectName}}"
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
       - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--label=org.opencontainers.image.source = 'https://github.com/unclesp1d3r/opnfocus'"
+      - "--label=org.opencontainers.image.source = 'https://github.com/EvilBit-Labs/opnDossier'"
       - "--build-arg=branch=pocl"
       - "--platform=linux/amd64"
 
 milestones:
   - repo:
-      owner: "unclesp1d3r"
-      name: opnfocus
+      owner: "EvilBit-Labs"
+      name: opnDossier
     close: true
     fail_on_error: false
 sboms:

@@ -1,10 +1,10 @@
-# opnFocus System Architecture
+# opnDossier System Architecture
 
 ## Overview
 
-opnFocus is a **CLI-based OPNsense configuration processor** designed with an **offline-first, operator-focused architecture**. The system transforms complex XML configuration files into human-readable markdown documentation, following security-first principles and air-gap compatibility.
+opnDossier is a **CLI-based OPNsense configuration processor** designed with an **offline-first, operator-focused architecture**. The system transforms complex XML configuration files into human-readable markdown documentation, following security-first principles and air-gap compatibility.
 
-![System Architecture](docs/dev-guide/opnFocus_System_Architecture.png)
+![System Architecture](docs/dev-guide/opnDossier_System_Architecture.png)
 
 ## High-Level Architecture
 
@@ -76,7 +76,7 @@ sequenceDiagram
     participant Renderer
     participant Output
 
-    User->>CLI: opnfocus convert config.xml
+    User->>CLI: opndossier convert config.xml
     CLI->>ConfigMgr: Load configuration
     ConfigMgr-->>CLI: Configuration object
     CLI->>Parser: Parse XML file
@@ -105,7 +105,7 @@ sequenceDiagram
 
 ### Local File System
 
-- **Configuration**: `~/.opnFocus.yaml` (user preferences)
+- **Configuration**: `~/.opnDossier.yaml` (user preferences)
 - **Input**: OPNsense XML files (any location)
 - **Output**: Markdown files (user-specified or current directory)
 
@@ -156,7 +156,7 @@ graph LR
             DOCS[Documentation Server]
         end
 
-        subgraph "opnFocus Application"
+        subgraph "opnDossier Application"
             BIN[Single Binary]
             CFG[Local Config]
             TEMP[Templates]

@@ -125,9 +125,9 @@ All notable changes to this project will be documented in this file.
 
   Tested with `just test` and `just ci-check`, all checks passed successfully.
 
-- *(testdata)* Replace config.xml with opnfocus-config.xsd and add sample configurations
+- *(testdata)* Replace config.xml with opndossier-config.xsd and add sample configurations
 
-  - Deleted the outdated `config.xml` file and replaced it with `opnfocus-config.xsd`, which defines the schema for OPNsense configurations.
+  - Deleted the outdated `config.xml` file and replaced it with `opndossier-config.xsd`, which defines the schema for OPNsense configurations.
   - Added multiple sample configuration files (`sample.config.1.xml`, `sample.config.4.xml`, `sample.config.5.xml`) to demonstrate various settings and features.
   - Introduced a README.md file to document the purpose and usage of the test data files.
 
@@ -440,9 +440,9 @@ All notable changes to this project will be documented in this file.
 
   Tested with `just test` and `just ci-check`, all checks passed successfully.
 
-- *(docs)* Expand tasks for opnFocus CLI tool implementation
+- *(docs)* Expand tasks for opnDossier CLI tool implementation
 
-  - Added a comprehensive release roadmap for the opnFocus CLI tool, detailing tasks and features for versions 1.0, 1.1, and 1.2.
+  - Added a comprehensive release roadmap for the opnDossier CLI tool, detailing tasks and features for versions 1.0, 1.1, and 1.2.
   - Included critical tasks for the v1.0 release, such as refactoring CLI command structure, implementing a help system, and ensuring test coverage.
   - Outlined major features for future versions, focusing on audit reports and performance enhancements.
 
@@ -541,7 +541,7 @@ All notable changes to this project will be documented in this file.
 - *(goreleaser)* Enhance multi-platform build configuration and add Docker support
 
   - Updated `.goreleaser.yaml` to include FreeBSD as a target OS and refined ldflags for versioning and commit information.
-  - Introduced Dockerfile for building the opnFocus image and added Docker support in GoReleaser configuration.
+  - Introduced Dockerfile for building the opnDossier image and added Docker support in GoReleaser configuration.
   - Enhanced `justfile` with new commands for building and releasing snapshots and full releases.
   - Updated `.gitignore` to exclude the `dist/` directory and marked TASK-060 as complete in `tasks.md`, confirming comprehensive GoReleaser configuration.
 
@@ -701,7 +701,7 @@ All notable changes to this project will be documented in this file.
 
   Tested with `just test` and `just ci-check`, all checks passed successfully.
 
-- Update project documentation and configuration files for opnFocus
+- Update project documentation and configuration files for opnDossier
 
   - Removed .cursorrules file as it was no longer needed.
   - Added node_modules/ to .gitignore to prevent tracking of dependencies.
@@ -712,7 +712,7 @@ All notable changes to this project will be documented in this file.
 
   Tested with `just test` and `just ci-check`, all checks passed successfully.
 
-- Enhance project documentation for opnFocus
+- Enhance project documentation for opnDossier
 
   - Added related documentation section in AGENTS.md, linking to requirements, architecture, and development standards.
   - Updated requirements.md to remove checkboxes and improve readability.
@@ -720,16 +720,16 @@ All notable changes to this project will be documented in this file.
 
   Tested with `just test` and `just ci-check`, all checks passed successfully.
 
-- Update project documentation and structure for opnFocus
+- Update project documentation and structure for opnDossier
 
   - Updated AGENTS.md to reflect the new path for the requirements document and improved project structure clarity.
-  - Added project_spec/requirements.md to serve as the comprehensive requirements document for the opnFocus CLI tool.
+  - Added project_spec/requirements.md to serve as the comprehensive requirements document for the opnDossier CLI tool.
   - Enhanced DEVELOPMENT_STANDARDS.md to reference the new requirements document location.
   - Created project_spec/tasks.md and project_spec/user_stories.md to outline implementation tasks and user stories.
 
   Tested with `just test` and `just ci-check`, all checks passed successfully.
 
-- Update documentation and formatting for opnFocus
+- Update documentation and formatting for opnDossier
 
   - Improved formatting in AGENTS.md and DEVELOPMENT_STANDARDS.md for better readability.
   - Updated README.md with correct documentation links and installation instructions.
@@ -755,7 +755,7 @@ All notable changes to this project will be documented in this file.
 
   Tested with `just test` and `just ci-check`, all checks passed successfully.
 
-- Add comprehensive Copilot instructions for opnFocus project
+- Add comprehensive Copilot instructions for opnDossier project
 
 - *(validator)* Clean up comment formatting in `demo.go`
 
@@ -865,7 +865,7 @@ All notable changes to this project will be documented in this file.
 
 ### ⚙️ Miscellaneous Tasks
 
-- Update golangci-lint configuration and justfile for opnFocus
+- Update golangci-lint configuration and justfile for opnDossier
 
   - Enhanced .golangci.yml with additional linters, settings, and configurations for improved code quality checks.
   - Modified justfile to update project name, streamline development commands, and improve formatting and linting processes.
@@ -873,7 +873,7 @@ All notable changes to this project will be documented in this file.
 
   Tested with `just test` and `just ci-check`, all checks passed successfully.
 
-- Update golangci-lint settings and enhance justfile for opnFocus
+- Update golangci-lint settings and enhance justfile for opnDossier
 
   - Added module path and extra rules to the golangci-lint configuration in .golangci.yml for improved linting.
   - Removed the check-ast hook from .pre-commit-config.yaml to streamline pre-commit checks.
@@ -881,7 +881,7 @@ All notable changes to this project will be documented in this file.
 
   Tested with `just test` and `just ci-check`, all checks passed successfully.
 
-- Update dependencies and refactor opnFocus CLI structure
+- Update dependencies and refactor opnDossier CLI structure
 
   - Upgraded Go version to 1.24.0 and updated toolchain to 1.24.5.
   - Replaced several dependencies with newer versions, including charmbracelet libraries for improved functionality.
@@ -891,15 +891,15 @@ All notable changes to this project will be documented in this file.
 
   Tested with `just test` and `just ci-check`, all checks passed successfully.
 
-- Update module path in go.mod for opnFocus
+- Update module path in go.mod for opnDossier
 
-  - Changed module path from `opnFocus` to `github.com/unclesp1d3r/opnFocus` for consistency with repository structure.
+  - Changed module path from `opnDossier` to `github.com/EvilBit-Labs/opnDossier` for consistency with repository structure.
 
   Tested with `just test` and `just ci-check`, all checks passed successfully.
 
 - Update import paths to use the new module structure
 
-  - Changed import paths from `opnFocus` to `github.com/unclesp1d3r/opnFocus` across multiple files for consistency with the updated module path.
+  - Changed import paths from `opnDossier` to `github.com/EvilBit-Labs/opnDossier` across multiple files for consistency with the updated module path.
   - Added additional test cases in `markdown_test.go` to handle nil input and empty struct scenarios.
 
   Tested with `just test` and `just ci-check`, all checks passed successfully.
@@ -965,7 +965,7 @@ All notable changes to this project will be documented in this file.
 
   - Revised documentation to reflect the transition from `charmbracelet/fang` to `spf13/viper` for configuration management.
   - Added details about `charmbracelet/fang` for enhanced CLI experience in multiple files.
-  - Updated `.gitignore` to include `opnFocus`.
+  - Updated `.gitignore` to include `opnDossier`.
 
   Tested with `just test` and `just ci-check`, all checks passed successfully.
 
@@ -986,8 +986,8 @@ All notable changes to this project will be documented in this file.
 - Add initial project configuration files for Go development
 
   - Created `.idea/golinter.xml` to configure Go linter settings with a custom config file.
-  - Added `.idea/modules.xml` to manage project modules, linking to the `opnFocus.iml` module file.
-  - Introduced `.idea/opnFocus.iml` for module configuration, enabling Go support and defining content roots.
+  - Added `.idea/modules.xml` to manage project modules, linking to the `opnDossier.iml` module file.
+  - Introduced `.idea/opnDossier.iml` for module configuration, enabling Go support and defining content roots.
   - Established `.idea/vcs.xml` for version control settings, mapping the project directory to Git.
 
   These files set up the development environment for Go projects within the IDE.

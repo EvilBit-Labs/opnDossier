@@ -1,6 +1,6 @@
 # Contributing Guide
 
-Thank you for your interest in contributing to opnFocus! This guide covers everything you need to know to contribute effectively.
+Thank you for your interest in contributing to opnDossier! This guide covers everything you need to know to contribute effectively.
 
 ## Getting Started
 
@@ -15,8 +15,8 @@ Thank you for your interest in contributing to opnFocus! This guide covers every
 
 ```bash
 # Clone the repository
-git clone https://github.com/unclesp1d3r/opnFocus.git
-cd opnFocus
+git clone https://github.com/EvilBit-Labs/opnDossier.git
+cd opnDossier
 
 # Install development dependencies
 just install-dev
@@ -30,7 +30,7 @@ just test
 
 ## Architecture Overview
 
-opnFocus uses a layered CLI architecture:
+opnDossier uses a layered CLI architecture:
 
 - **Cobra**: Command structure & argument parsing
 - **Viper**: Layered configuration (files, env, flags)
@@ -42,7 +42,7 @@ opnFocus uses a layered CLI architecture:
 ### Project Structure
 
 ```
-opnfocus/
+opndossier/
 ├── cmd/                 # CLI commands (Cobra)
 ├── internal/
 │   ├── config/         # Configuration management (Viper)
@@ -135,7 +135,7 @@ Follow the [Google Go Style Guide](https://google.github.io/styleguide/go/) and 
 
 ```go
 // Package documentation is required
-// Package cmd provides the command-line interface for opnFocus.
+// Package cmd provides the command-line interface for opnDossier.
 package cmd
 
 import (
@@ -147,7 +147,7 @@ import (
     "github.com/spf13/cobra"
 
     // Local packages last
-    "github.com/unclesp1d3r/opnFocus/internal/config"
+    "github.com/EvilBit-Labs/opnDossier/internal/config"
 )
 
 // Function documentation required for exported functions
@@ -258,7 +258,7 @@ The configuration system uses **Viper** for layered configuration management:
 
 1. **CLI flags** (highest priority) - Cobra integration
 2. **Environment variables** (`OPNFOCUS_*`) - Viper handling
-3. **Configuration file** (`~/.opnFocus.yaml`) - Viper loading
+3. **Configuration file** (`~/.opnDossier.yaml`) - Viper loading
 4. **Default values** (lowest priority) - Viper defaults
 
 ### Adding New Configuration Options
@@ -521,4 +521,4 @@ For development questions:
 
 ---
 
-Thank you for contributing to opnFocus! Your contributions help make network configuration management better for everyone.
+Thank you for contributing to opnDossier! Your contributions help make network configuration management better for everyone.

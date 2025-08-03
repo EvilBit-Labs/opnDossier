@@ -1,6 +1,6 @@
-# Development Standards for opnFocus
+# Development Standards for opnDossier
 
-This document provides coding standards, development workflows, and technical guidelines for contributors to the opnFocus CLI tool. It focuses on practical development tasks, code quality, and maintainability. It's like `AGENTS.md` but for humans.
+This document provides coding standards, development workflows, and technical guidelines for contributors to the opnDossier CLI tool. It focuses on practical development tasks, code quality, and maintainability. It's like `AGENTS.md` but for humans.
 
 ## Table of Contents
 
@@ -24,8 +24,8 @@ This document provides coding standards, development workflows, and technical gu
 
 ```bash
 # Clone and setup
-git clone https://github.com/unclesp1d3r/opnFocus.git
-cd opnFocus
+git clone https://github.com/EvilBit-Labs/opnDossier.git
+cd opnDossier
 
 # Install dependencies and tools
 just install
@@ -325,7 +325,7 @@ go tool pprof mem.prof
 ### Project Structure
 
 ```text
-opnFocus/
+opnDossier/
 ├── main.go                           # Application entry point
 ├── cmd/                              # CLI commands
 │   ├── root.go                       # Root command and CLI setup
@@ -449,4 +449,4 @@ func processConfig(filename string) error {
 
 ---
 
-This document serves as the development standards guide for the opnFocus CLI tool. All contributors should follow these standards to ensure code quality, maintainability, and security.
+This document serves as the development standards guide for the opnDossier CLI tool. All contributors should follow these standards to ensure code quality, maintainability, and security.

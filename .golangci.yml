@@ -231,7 +231,7 @@ formatters:
     - gci
   settings:
     gofumpt:
-      module-path: "github.com/unclesp1d3r/opnFocus"
+      module-path: "github.com/EvilBit-Labs/opnDossier"
       extra-rules: true
     golines:
       max-len: 120

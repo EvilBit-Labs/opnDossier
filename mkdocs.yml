@@ -1,11 +1,11 @@
-site_name: OPNsense Configuration Processor
+site_name: opnDossier - OPNsense Configuration Processor
 site_description: A CLI tool for processing OPNsense config.xml files and converting them to markdown
-site_author: OPNFocus Team
-site_url: https://opnfocus.local
+site_author: EvilBit Labs
+site_url: https://opndossier.evilbitlabs.io
 
 # Repository
-repo_name: opnFocus
-repo_url: https://github.com/user/opnFocus
+repo_name: opnDossier
+repo_url: https://github.com/EvilBit-Labs/opnDossier
 
 # Configuration
 theme:
@@ -91,6 +91,6 @@ markdown_extensions:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/user/opnFocus
+      link: https://github.com/EvilBit-Labs/opnDossier
   version:
     provider: mike

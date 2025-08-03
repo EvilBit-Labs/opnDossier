@@ -1,16 +1,10 @@
-# opnFocus - OPNsense Configuration Processor
+# opnDossier - OPNsense Configuration Processor
 
 [![Go Version](https://img.shields.io/badge/go-1.21+-blue.svg)](https://golang.org)
 [![License](https://img.shields.io/badge/license-Apache-green.svg)](LICENSE)
-[![Coverage](https://img.shields.io/badge/coverage-80%25-green.svg)](https://github.com/unclesp1d3r/opnFocus)
-[![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://github.com/unclesp1d3r/opnFocus/blob/main/docs/index.md)
+[![Coverage](https://img.shields.io/badge/coverage-80%25-green.svg)](https://github.com/EvilBit-Labs/opnDossier)
+[![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/index.md)
 [![wakatime](https://wakatime.com/badge/user/2d2fbc27-e3f7-4ec1-b2a7-935e48bad498/project/018dae18-42c0-4e3e-8330-14d39f574bd5.svg)](https://wakatime.com/badge/user/2d2fbc27-e3f7-4ec1-b2a7-935e48bad498/project/018dae18-42c0-4e3e-8330-14d39f574bd5)
-
-> ⚠️ **MIGRATION IN-PROGRESS** ⚠️  
-> This repository is currently undergoing migration. Development is temporarily frozen.  
-> Please avoid making changes until migration is complete.
-
-> **v1.0 Release** - Essential CLI Tool for OPNsense Configuration Processing
 
 ## Overview
 
@@ -20,7 +14,7 @@ A command-line tool designed specifically for network operators and administrato
 
 ### v1.0 Release Features
 
-opnFocus v1.0 provides a robust foundation for OPNsense configuration processing:
+opnDossier v1.0 provides a robust foundation for OPNsense configuration processing:
 
 - **Core XML Processing**: Parse and validate OPNsense config.xml files
 - **Multi-Format Export**: Convert to markdown, JSON, or YAML formats
@@ -32,19 +26,19 @@ opnFocus v1.0 provides a robust foundation for OPNsense configuration processing
 
 ## Features
 
-- 🔧 **Parse OPNsense XML configurations** - Process complex configuration files with ease
-- [x] **Configuration Validation** - Comprehensive validation with detailed error reporting
-- 📝 **Convert to Markdown** - Generate human-readable documentation from XML configs
-- 💾 **Export to Files** - Save processed configurations as markdown, JSON, or YAML files
-- 🔌 **Offline Operation** - Works completely offline, perfect for airgapped environments
-- 🛡️ **Security-First** - No external dependencies, no telemetry, secure by design
-- ⚡ **Fast & Lightweight** - Built with Go for performance and reliability
-- 🚀 **Streaming Processing** - Memory-efficient handling of large configuration files
-- 🔍 **Advanced Analysis** - Dead rule detection, unused interface analysis, and security scanning
-- 📊 **Compliance Checking** - Built-in compliance validation with detailed reporting
-- 🎨 **Template-Based Reports** - Customizable markdown templates for professional documentation
-- 📈 **Performance Analysis** - Identifies configuration bottlenecks and optimization opportunities
-- 🖥️ **Terminal Display** - Rich terminal output with syntax highlighting and theme support
+- **Parse OPNsense XML configurations** - Process complex configuration files with ease
+- **Configuration Validation** - Comprehensive validation with detailed error reporting
+- **Convert to Markdown** - Generate human-readable documentation from XML configs
+- **Export to Files** - Save processed configurations as markdown, JSON, or YAML files
+- **Offline Operation** - Works completely offline, perfect for airgapped environments
+- **Security-First** - No external dependencies, no telemetry, secure by design
+- **Fast & Lightweight** - Built with Go for performance and reliability
+- **Streaming Processing** - Memory-efficient handling of large configuration files
+- **Advanced Analysis** - Dead rule detection, unused interface analysis, and security scanning
+- **Compliance Checking** - Built-in compliance validation with detailed reporting
+- **Template-Based Reports** - Customizable markdown templates for professional documentation
+- **Performance Analysis** - Identifies configuration bottlenecks and optimization opportunities
+- **Terminal Display** - Rich terminal output with syntax highlighting and theme support
 
 ## Quick Start
 
@@ -56,8 +50,8 @@ opnFocus v1.0 provides a robust foundation for OPNsense configuration processing
 
 ```bash
 # Clone the repository
-git clone https://github.com/unclesp1d3r/opnFocus.git
-cd opnFocus
+git clone https://github.com/EvilBit-Labs/opnDossier.git
+cd opnDossier
 
 # Install dependencies and build
 just install
@@ -68,10 +62,10 @@ just build
 
 ```bash
 # Direct Go installation
-go install github.com/unclesp1d3r/opnFocus@latest
+go install github.com/EvilBit-Labs/opnDossier@latest
 
 # Or build from source
-go build -o opnfocus main.go
+go build -o opnDossier main.go
 ```
 
 #### Pre-built Binaries (Coming Soon)
@@ -82,46 +76,46 @@ Pre-built binaries for Linux, macOS, and Windows will be available with the v1.0
 
 ```bash
 # Convert OPNsense config to markdown (default format)
-opnFocus convert config.xml
+opnDossier convert config.xml
 
 # Convert to markdown and save to file
-opnFocus convert config.xml -o documentation.md
+opnDossier convert config.xml -o documentation.md
 
 # Convert to markdown format explicitly
-opnFocus convert -f markdown config.xml
+opnDossier convert -f markdown config.xml
 
 # Convert to JSON format
-opnFocus convert -f json config.xml -o output.json
+opnDossier convert -f json config.xml -o output.json
 
 # Convert to YAML format
-opnFocus convert -f yaml config.xml -o output.yaml
+opnDossier convert -f yaml config.xml -o output.yaml
 
 # Display configuration in terminal with syntax highlighting
-opnFocus display config.xml
+opnDossier display config.xml
 
 # Validate configuration file
-opnFocus validate config.xml
+opnDossier validate config.xml
 
 # Get help for any command
-opnFocus --help
-opnFocus convert --help
+opnDossier --help
+opnDossier convert --help
 ```
 
 ### Configuration
 
-opnFocus uses **Viper for layered configuration management** with a clear precedence order:
+opnDossier uses **Viper for layered configuration management** with a clear precedence order:
 
 1. **Command-line flags** (highest priority)
 2. **Environment variables** (`OPNFOCUS_*`)
-3. **Configuration file** (`~/.opnFocus.yaml`)
+3. **Configuration file** (`~/.opnDossier.yaml`)
 4. **Default values** (lowest priority)
 
 #### Configuration File Example
 
-Create `~/.opnFocus.yaml` with your preferred settings:
+Create `~/.opnDossier.yaml` with your preferred settings:
 
 ```yaml
-# ~/.opnFocus.yaml - opnFocus Configuration
+# ~/.opnDossier.yaml - opnDossier Configuration
 
 # Input/Output settings
 input_file: /path/to/default/config.xml
@@ -150,36 +144,36 @@ export OPNFOCUS_INPUT_FILE="/path/to/config.xml"
 export OPNFOCUS_OUTPUT_FILE="./documentation.md"
 
 # Run with environment configuration
-opnfocus convert config.xml
+opnDossier convert config.xml
 ```
 
 #### CLI Flag Examples
 
 ```bash
 # Basic conversion with verbose logging
-opnfocus --verbose convert config.xml -o output.md
+opnDossier --verbose convert config.xml -o output.md
 
 # JSON logging format for structured output
-opnfocus --log_format=json convert config.xml
+opnDossier --log_format=json convert config.xml
 
 # Quiet mode - only show errors
-opnfocus --quiet convert config.xml
+opnDossier --quiet convert config.xml
 
 # Custom log level
-opnfocus --log_level=debug convert config.xml
+opnDossier --log_level=debug convert config.xml
 
 # Enable validation during conversion
-opnfocus convert config.xml --validate
+opnDossier convert config.xml --validate
 
 # Configuration precedence: CLI flags override everything
-opnfocus --verbose --log_format=json convert config.xml
+opnDossier --verbose --log_format=json convert config.xml
 ```
 
 **Note:** The CLI uses a layered architecture: **Cobra** provides command structure and argument parsing, **Viper** handles layered configuration management (files, env, flags), and **Fang** adds enhanced UX features like styled help, automatic version flags, and shell completion.
 
 ## Validation & Error Handling
 
-opnFocus v1.0 includes comprehensive validation capabilities to ensure configuration integrity:
+opnDossier v1.0 includes comprehensive validation capabilities to ensure configuration integrity:
 
 ### Validation Features
 
@@ -236,7 +230,7 @@ Built with modern Go practices and established libraries:
 
 ### Data Model Architecture
 
-opnFocus uses a hierarchical model structure that mirrors the OPNsense XML configuration while organizing functionality into logical domains:
+opnDossier uses a hierarchical model structure that mirrors the OPNsense XML configuration while organizing functionality into logical domains:
 
 ```mermaid
 graph TB
@@ -310,7 +304,7 @@ This hierarchical structure provides:
 
 ### Analysis Capabilities
 
-opnFocus provides comprehensive analysis of your OPNsense configurations:
+opnDossier provides comprehensive analysis of your OPNsense configurations:
 
 - **Configuration Validation**: Ensures all required fields are present and valid
 - **Dead Rule Detection**: Identifies unreachable firewall rules that come after "block all" rules
@@ -372,7 +366,7 @@ We welcome contributions! This project follows strict coding standards and devel
 
 ## Documentation
 
-- **[Full Documentation](https://github.com/unclesp1d3r/opnFocus/blob/main/docs/index.md)** - Complete user and developer guides
+- **[Full Documentation](https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/index.md)** - Complete user and developer guides
 - **[Development Standards](DEVELOPMENT_STANDARDS.md)** - Coding standards and architectural principles
 - **[API Reference](docs/dev-guide/api.md)** - Detailed API documentation
 - **[Architecture Guide](ARCHITECTURE.md)** - System design and component architecture
@@ -401,9 +395,9 @@ This project is licensed under the Apache License - see the [LICENSE](LICENSE) f
 
 ## Support
 
-- **Issues:** [GitHub Issues](https://github.com/unclesp1d3r/opnFocus/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/unclesp1d3r/opnFocus/discussions)
-- **Documentation:** [Full Documentation](https://github.com/unclesp1d3r/opnFocus/blob/main/docs/index.md)
+- **Issues:** [GitHub Issues](https://github.com/EvilBit-Labs/opnDossier/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/EvilBit-Labs/opnDossier/discussions)
+- **Documentation:** [Full Documentation](https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/index.md)
 
 ## Roadmap
 
@@ -425,4 +419,4 @@ This project is licensed under the Apache License - see the [LICENSE](LICENSE) f
 
 ---
 
-*Built with ❤️ for network operators everywhere.*
+*Built with :heart: for network operators everywhere.*

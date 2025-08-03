@@ -1,6 +1,6 @@
 # AI Agent Coding Standards and Project Structure
 
-This document outlines the preferred coding standards, architectural principles, and development workflows for the opnFocus project.
+This document outlines the preferred coding standards, architectural principles, and development workflows for the opnDossier project.
 
 ## 📚 Related Documentation
 
@@ -19,7 +19,7 @@ The latest version introduces comprehensive multi-format export and validation f
 ### Multi-Format Export
 
 - **Purpose**: Export OPNsense configurations to markdown, JSON, or YAML formats
-- **Usage**: `opnfocus convert config.xml --format [markdown|json|yaml]`
+- **Usage**: `opndossier convert config.xml --format [markdown|json|yaml]`
 - **File Quality**: Exported files are valid and parseable by standard tools and libraries
 - **Output Control**: Smart file naming with overwrite protection and `-f` force option
 
@@ -143,7 +143,7 @@ Follow the [Conventional Commits](https://www.conventionalcommits.org) specifica
 ### 3.6. Project Structure
 
 ```text
-opnfocus/
+opndossier/
 ├── cmd/
 │   ├── convert.go                         # Convert command entry point
 │   ├── display.go                         # Display command entry point
@@ -211,7 +211,7 @@ opnfocus/
 
 #### Configuration Management
 
-**Note for AI Assistants**: `viper` is used for managing the opnFocus application's own configuration (CLI settings, display preferences, etc.), not for parsing OPNsense config.xml files. The OPNsense configuration parsing is handled separately by the XML parser in `internal/parser/`.
+**Note for AI Assistants**: `viper` is used for managing the opnDossier application's own configuration (CLI settings, display preferences, etc.), not for parsing OPNsense config.xml files. The OPNsense configuration parsing is handled separately by the XML parser in `internal/parser/`.
 
 **Pattern**: Use `spf13/viper` for configuration with precedence: CLI flags > Environment variables > Config file > Defaults
 
@@ -387,4 +387,4 @@ For comprehensive project understanding, AI agents should familiarize themselves
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - System design, data flow, and component architecture
 - **[DEVELOPMENT_STANDARDS.md](DEVELOPMENT_STANDARDS.md)** - Go-specific coding standards and project structure
 
-These documents provide the complete context needed for effective development and decision-making within the opnFocus project.
+These documents provide the complete context needed for effective development and decision-making within the opnDossier project.
