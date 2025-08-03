@@ -36,7 +36,6 @@ linters:
     - funcorder
     # - funlen - Disabled: we'll come back to this after 1.0
     - gocheckcompilerdirectives
-    # - gochecknoglobals - Disabled: causes issues with cobra commands
     - gochecksumtype
     # - gocognit - Disabled: we'll come back to this after 1.0
     - goconst
@@ -96,10 +95,10 @@ linters:
       - common-false-positives
       - std-error-handling
   disable:
-    - gomodguard
+    - gomodguard # Disabled: maybe someday, but not important right now
     - gocyclo # Disabled in favor of cyclop
     - testpackage
-    - gochecknoglobals
+    - gochecknoglobals # Disabled: causes issues with cobra commands
   settings:
     cyclop:
       max-complexity: 50
