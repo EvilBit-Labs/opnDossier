@@ -1,6 +1,6 @@
 # API Reference
 
-This document provides detailed information about the opnFocus API and its components.
+This document provides detailed information about the opnDossier API and its components.
 
 ## Migration Notice: New Validate Method
 
@@ -19,7 +19,7 @@ func (p *XMLParser) Validate(cfg *model.Opnsense) error
 
 #### For Library Users
 
-If you're using opnFocus as a library and have implemented custom parsers based on the `XMLParser` interface, you'll need to implement the new `Validate` method:
+If you're using opnDossier as a library and have implemented custom parsers based on the `XMLParser` interface, you'll need to implement the new `Validate` method:
 
 ```go
 // Before: Your custom parser only needed Parse method
@@ -61,12 +61,12 @@ Existing code using only the `Parse` method will continue to work without valida
 
 ## Overview
 
-opnFocus is structured with clear separation between CLI interface (cmd/) and internal implementation (internal/). This design ensures maintainable code while providing stable interfaces for future extensions.
+opnDossier is structured with clear separation between CLI interface (cmd/) and internal implementation (internal/). This design ensures maintainable code while providing stable interfaces for future extensions.
 
 ## Package Structure
 
 ```text
-opnfocus/
+opndossier/
 ├── cmd/                    # CLI commands (public interface)
 ├── internal/
 │   ├── config/            # Configuration management
@@ -88,7 +88,7 @@ The root command provides the main CLI interface with global configuration manag
 
 ##### `GetRootCmd() *cobra.Command`
 
-Returns the root Cobra command for the opnFocus CLI application.
+Returns the root Cobra command for the opnDossier CLI application.
 
 ```go
 rootCmd := cmd.GetRootCmd()
@@ -119,13 +119,13 @@ if cfg.IsVerbose() {
 
 All commands inherit these global flags:
 
-| Flag            | Type   | Default            | Description                          |
-| --------------- | ------ | ------------------ | ------------------------------------ |
-| `--config`      | string | `~/.opnFocus.yaml` | Configuration file path              |
-| `--verbose, -v` | bool   | false              | Enable debug logging                 |
-| `--quiet, -q`   | bool   | false              | Suppress non-error output            |
-| `--log_level`   | string | "info"             | Log level (debug, info, warn, error) |
-| `--log_format`  | string | "text"             | Log format (text, json)              |
+| Flag            | Type   | Default              | Description                          |
+| --------------- | ------ | -------------------- | ------------------------------------ |
+| `--config`      | string | `~/.opnDossier.yaml` | Configuration file path              |
+| `--verbose, -v` | bool   | false                | Enable debug logging                 |
+| `--quiet, -q`   | bool   | false                | Suppress non-error output            |
+| `--log_level`   | string | "info"               | Log level (debug, info, warn, error) |
+| `--log_format`  | string | "text"               | Log format (text, json)              |
 
 ### Convert Command
 
@@ -134,7 +134,7 @@ The convert command processes OPNsense configuration files.
 #### Usage
 
 ```bash
-opnfocus convert [file ...] [flags]
+opndossier convert [file ...] [flags]
 ```
 
 #### Flags
@@ -405,20 +405,20 @@ fileLogger.Info(\"Processing started\")
 The configuration system follows this precedence order (highest to lowest):
 
 1. **CLI Flags** - Immediate overrides via command-line
-2. **Environment Variables** - `OPNFOCUS_*` prefixed variables
-3. **Configuration File** - YAML file at `~/.opnFocus.yaml` or custom path
+2. **Environment Variables** - `OPNDOSSIER_*` prefixed variables
+3. **Configuration File** - YAML file at `~/.opnDossier.yaml` or custom path
 4. **Default Values** - Built-in defaults
 
 ### Environment Variable Mapping
 
-| Config Field  | Environment Variable   | Default |
-| ------------- | ---------------------- | ------- |
-| `input_file`  | `OPNFOCUS_INPUT_FILE`  | ""      |
-| `output_file` | `OPNFOCUS_OUTPUT_FILE` | ""      |
-| `verbose`     | `OPNFOCUS_VERBOSE`     | false   |
-| `quiet`       | `OPNFOCUS_QUIET`       | false   |
-| `log_level`   | `OPNFOCUS_LOG_LEVEL`   | "info"  |
-| `log_format`  | `OPNFOCUS_LOG_FORMAT`  | "text"  |
+| Config Field  | Environment Variable     | Default |
+| ------------- | ------------------------ | ------- |
+| `input_file`  | `OPNDOSSIER_INPUT_FILE`  | ""      |
+| `output_file` | `OPNDOSSIER_OUTPUT_FILE` | ""      |
+| `verbose`     | `OPNDOSSIER_VERBOSE`     | false   |
+| `quiet`       | `OPNDOSSIER_QUIET`       | false   |
+| `log_level`   | `OPNDOSSIER_LOG_LEVEL`   | "info"  |
+| `log_format`  | `OPNDOSSIER_LOG_FORMAT`  | "text"  |
 
 ## Error Handling
 
@@ -482,7 +482,7 @@ For testing configuration:
 ```go
 func TestConfigPrecedence(t *testing.T) {
     // Set environment variable
-    t.Setenv(\"OPNFOCUS_LOG_LEVEL\", \"debug\")
+    t.Setenv(\"OPNDOSSIER_LOG_LEVEL\", \"debug\")
 
     // Load config
     cfg, err := config.LoadConfig(\"\")

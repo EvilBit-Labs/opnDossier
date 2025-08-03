@@ -1,6 +1,6 @@
 # Usage Guide
 
-This guide covers common workflows and examples for using opnFocus effectively.
+This guide covers common workflows and examples for using opnDossier effectively.
 
 ## Basic Usage
 
@@ -10,25 +10,25 @@ The primary use case is converting OPNsense configuration files to markdown:
 
 ```bash
 # Convert to markdown (default format)
-opnFocus convert config.xml
+opnDossier convert config.xml
 
 # Convert to markdown and save to file
-opnFocus convert config.xml -o documentation.md
+opnDossier convert config.xml -o documentation.md
 
 # Convert to markdown format explicitly
-opnFocus convert -f markdown config.xml
+opnDossier convert -f markdown config.xml
 
 # Convert to JSON format
-opnFocus convert -f json config.xml -o output.json
+opnDossier convert -f json config.xml -o output.json
 
 # Convert to YAML format
-opnFocus convert -f yaml config.xml -o output.yaml
+opnDossier convert -f yaml config.xml -o output.yaml
 
 # Convert multiple files (each gets appropriate extension)
-opnFocus convert config1.xml config2.xml config3.xml
+opnDossier convert config1.xml config2.xml config3.xml
 
 # Convert multiple files to JSON format
-opnFocus convert -f json config1.xml config2.xml config3.xml
+opnDossier convert -f json config1.xml config2.xml config3.xml
 ```
 
 ### Display Options
@@ -37,23 +37,23 @@ Control how output is displayed:
 
 ```bash
 # Verbose output with debug information
-opnfocus --verbose convert config.xml
+opndossier --verbose convert config.xml
 
 # Quiet mode - only errors
-opnfocus --quiet convert config.xml
+opndossier --quiet convert config.xml
 
 # JSON logging format
-opnfocus --log_format=json convert config.xml
+opndossier --log_format=json convert config.xml
 
 # Enable validation with verbose output
-opnfocus --validate --verbose convert config.xml
+opndossier --validate --verbose convert config.xml
 ```
 
 ## Configuration Management
 
 ### Using Configuration Files
 
-Create `~/.opnFocus.yaml` for persistent settings:
+Create `~/.opnDossier.yaml` for persistent settings:
 
 ```yaml
 # Default settings for all operations
@@ -69,14 +69,14 @@ Use environment variables for deployment automation:
 
 ```bash
 # Set logging preferences
-export OPNFOCUS_LOG_LEVEL=debug
-export OPNFOCUS_LOG_FORMAT=json
+export OPNDOSSIER_LOG_LEVEL=debug
+export OPNDOSSIER_LOG_FORMAT=json
 
 # Set default output location
-export OPNFOCUS_OUTPUT_FILE="./documentation.md"
+export OPNDOSSIER_OUTPUT_FILE="./documentation.md"
 
 # Run with environment configuration
-opnfocus convert config.xml
+opndossier convert config.xml
 ```
 
 ### CLI Flag Overrides
@@ -85,13 +85,13 @@ CLI flags have the highest precedence:
 
 ```bash
 # Override config file settings
-opnfocus --log_level=debug --output=custom.md convert config.xml
+opndossier --log_level=debug --output=custom.md convert config.xml
 
 # Temporary verbose mode
-opnfocus --verbose convert config.xml
+opndossier --verbose convert config.xml
 
 # Use custom config file
-opnfocus --config ./project-config.yaml convert config.xml
+opndossier --config ./project-config.yaml convert config.xml
 ```
 
 ## Common Workflows
@@ -100,27 +100,27 @@ opnfocus --config ./project-config.yaml convert config.xml
 
 ```bash
 # Basic documentation workflow
-opnfocus convert /etc/opnsense/config.xml -o network-documentation.md
+opndossier convert /etc/opnsense/config.xml -o network-documentation.md
 
 # With verbose logging for troubleshooting
-opnfocus --verbose convert /etc/opnsense/config.xml -o network-docs.md
+opndossier --verbose convert /etc/opnsense/config.xml -o network-docs.md
 
 # Generate multiple formats
-opnfocus convert config.xml -o current-config.md
-opnfocus --log_format=json convert config.xml > config-log.json
+opndossier convert config.xml -o current-config.md
+opndossier --log_format=json convert config.xml > config-log.json
 ```
 
 ### 2. Batch Processing
 
 ```bash
 # Process multiple configuration files
-opnfocus convert *.xml
+opndossier convert *.xml
 
 # Process files in a directory
-find /path/to/configs -name "*.xml" -exec opnfocus convert {} \;
+find /path/to/configs -name "*.xml" -exec opndossier convert {} \;
 
 # Process with parallel execution (if multiple files)
-opnfocus convert config1.xml config2.xml config3.xml
+opndossier convert config1.xml config2.xml config3.xml
 ```
 
 ### 3. Automated Documentation Pipeline
@@ -130,11 +130,11 @@ opnfocus convert config1.xml config2.xml config3.xml
 # automation-script.sh
 
 # Set up environment
-export OPNFOCUS_LOG_FORMAT=json
-export OPNFOCUS_LOG_LEVEL=info
+export OPNDOSSIER_LOG_FORMAT=json
+export OPNDOSSIER_LOG_LEVEL=info
 
 # Process configuration
-opnfocus convert /etc/opnsense/config.xml -o ./docs/network-config.md
+opndossier convert /etc/opnsense/config.xml -o ./docs/network-config.md
 
 # Check if successful
 if [ $? -eq 0 ]; then
@@ -150,27 +150,27 @@ fi
 
 ```bash
 # Debug XML parsing issues
-opnfocus --verbose --log_level=debug convert problematic-config.xml
+opndossier --verbose --log_level=debug convert problematic-config.xml
 
 # Debug with validation enabled
-opnfocus --validate --verbose --log_level=debug convert config.xml
+opndossier --validate --verbose --log_level=debug convert config.xml
 
 # Capture detailed logs
-opnfocus --log_format=json --log_level=debug convert config.xml > debug.log 2>&1
+opndossier --log_format=json --log_level=debug convert config.xml > debug.log 2>&1
 
 # Test configuration loading
-opnfocus --verbose --config ./test-config.yaml convert --help
+opndossier --verbose --config ./test-config.yaml convert --help
 ```
 
 ## Validation and Error Handling
 
 ### Understanding Validation Output
 
-opnFocus provides comprehensive validation with detailed error reporting:
+opnDossier provides comprehensive validation with detailed error reporting:
 
 ```bash
 # Enable validation during conversion
-opnfocus convert config.xml --validate
+opndossier convert config.xml --validate
 
 # Example validation error output
 # validation error at opnsense.system.hostname: hostname is required
@@ -183,7 +183,7 @@ opnfocus convert config.xml --validate
 
 ```bash
 # Error: hostname is required
-opnfocus --validate convert incomplete-config.xml
+opndossier --validate convert incomplete-config.xml
 # Output: validation error at opnsense.system.hostname: hostname is required
 ```
 
@@ -191,7 +191,7 @@ opnfocus --validate convert incomplete-config.xml
 
 ```bash
 # Error: invalid IP address
-opnfocus --validate convert bad-network-config.xml
+opndossier --validate convert bad-network-config.xml
 # Output: validation error at opnsense.interfaces.lan.ipaddr: IP address '256.256.256.256' must be a valid IP address
 ```
 
@@ -199,7 +199,7 @@ opnfocus --validate convert bad-network-config.xml
 
 ```bash
 # Multiple validation errors
-opnfocus --validate convert multi-error-config.xml
+opndossier --validate convert multi-error-config.xml
 # Output: validation failed with 3 errors: hostname is required (and 2 more)
 #   - opnsense.system.hostname: hostname is required
 #   - opnsense.system.domain: domain is required
@@ -208,14 +208,14 @@ opnfocus --validate convert multi-error-config.xml
 
 ### Streaming Processing
 
-opnFocus handles large configuration files efficiently:
+opnDossier handles large configuration files efficiently:
 
 ```bash
 # Process large configuration files
-opnfocus convert large-config.xml  # Automatically uses streaming
+opndossier convert large-config.xml  # Automatically uses streaming
 
 # Monitor memory usage during processing
-opnfocus --verbose convert large-config.xml
+opndossier --verbose convert large-config.xml
 # Output shows memory cleanup after processing large sections
 ```
 
@@ -234,9 +234,9 @@ verbose: false
 EOF
 
 # Test precedence: config file < env vars < CLI flags
-opnfocus --config test-config.yaml convert config.xml  # Uses config file settings
-OPNFOCUS_LOG_LEVEL=info opnfocus --config test-config.yaml convert config.xml  # Env var overrides config
-opnfocus --config test-config.yaml --log_level=debug convert config.xml  # CLI flag overrides all
+opndossier --config test-config.yaml convert config.xml  # Uses config file settings
+OPNDOSSIER_LOG_LEVEL=info opndossier --config test-config.yaml convert config.xml  # Env var overrides config
+opndossier --config test-config.yaml --log_level=debug convert config.xml  # CLI flag overrides all
 ```
 
 ### Custom Output Locations
@@ -246,16 +246,16 @@ opnfocus --config test-config.yaml --log_level=debug convert config.xml  # CLI f
 mkdir -p docs/network/{current,archive}
 
 # Generate documentation with custom paths
-opnfocus convert config.xml -o docs/network/current/config.md
+opndossier convert config.xml -o docs/network/current/config.md
 
 # Use environment variables for paths
-export OPNFOCUS_OUTPUT_FILE="docs/network/current/config.md"
-opnfocus convert config.xml
+export OPNDOSSIER_OUTPUT_FILE="docs/network/current/config.md"
+opndossier convert config.xml
 
 # Batch process to different locations
 for config in configs/*.xml; do
     name=$(basename "$config" .xml)
-    opnfocus convert "$config" -o "docs/${name}.md"
+    opndossier convert "$config" -o "docs/${name}.md"
 done
 ```
 
@@ -265,7 +265,7 @@ done
 
 ```bash
 # Document configuration changes
-opnfocus convert config.xml -o current-config.md
+opndossier convert config.xml -o current-config.md
 git add current-config.md
 git commit -m "docs: update network configuration documentation"
 ```
@@ -287,14 +287,14 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: '1.21'
-      - name: Install opnFocus
-        run: go install github.com/unclesp1d3r/opnFocus@latest
+      - name: Install opnDossier
+        run: go install github.com/EvilBit-Labs/opnDossier@latest
 
       - name: Generate Documentation
         env:
-          OPNFOCUS_LOG_FORMAT: json
-          OPNFOCUS_LOG_LEVEL: info
-        run: opnfocus convert config.xml -o docs/network-config.md
+          OPNDOSSIER_LOG_FORMAT: json
+          OPNDOSSIER_LOG_LEVEL: info
+        run: opndossier convert config.xml -o docs/network-config.md
 
       - name: Commit Documentation
         if: github.event_name == 'push'
@@ -310,18 +310,18 @@ jobs:
 
 ```bash
 # Generate metrics for monitoring
-opnfocus --log_format=json convert config.xml 2> metrics.json
+opndossier --log_format=json convert config.xml 2> metrics.json
 
 # Parse logs for monitoring
 jq '.level' metrics.json | sort | uniq -c
 
 # Health check script
 #!/bin/bash
-if opnfocus convert config.xml -o /tmp/test.md > /dev/null 2>&1; then
-    echo "opnFocus: OK"
+if opndossier convert config.xml -o /tmp/test.md > /dev/null 2>&1; then
+    echo "opnDossier: OK"
     exit 0
 else
-    echo "opnFocus: FAILED"
+    echo "opnDossier: FAILED"
     exit 1
 fi
 ```
@@ -334,34 +334,34 @@ fi
 
 ```bash
 # Invalid XML structure
-opnfocus convert invalid-config.xml
+opndossier convert invalid-config.xml
 # Error: failed to parse XML from invalid-config.xml: XML syntax error on line 42
 
 # Debug XML issues
-opnfocus --verbose convert invalid-config.xml
+opndossier --verbose convert invalid-config.xml
 ```
 
 #### 2. File Permission Issues
 
 ```bash
 # Permission denied
-opnfocus convert /root/config.xml
+opndossier convert /root/config.xml
 # Error: failed to open file /root/config.xml: permission denied
 
 # Solution: copy file or adjust permissions
 sudo cp /root/config.xml ./config.xml
-opnfocus convert config.xml
+opndossier convert config.xml
 ```
 
 #### 3. Configuration Validation Errors
 
 ```bash
 # Conflicting flags
-opnfocus --verbose --quiet convert config.xml
+opndossier --verbose --quiet convert config.xml
 # Error: verbose and quiet options are mutually exclusive
 
 # Invalid log level
-opnfocus --log_level=trace convert config.xml
+opndossier --log_level=trace convert config.xml
 # Error: invalid log level 'trace', must be one of: debug, info, warn, error
 ```
 
@@ -370,26 +370,26 @@ opnfocus --log_level=trace convert config.xml
 1. **Use verbose mode for detailed information:**
 
    ```bash
-   opnfocus --verbose convert config.xml
+   opndossier --verbose convert config.xml
    ```
 
 2. **Check configuration precedence:**
 
    ```bash
-   opnfocus --verbose --config /path/to/config.yaml convert --help
+   opndossier --verbose --config /path/to/config.yaml convert --help
    ```
 
 3. **Validate configuration files:**
 
    ```bash
    # Test config file syntax
-   opnfocus --config test-config.yaml --help
+   opndossier --config test-config.yaml --help
    ```
 
 4. **Use JSON logging for automated analysis:**
 
    ```bash
-   opnfocus --log_format=json convert config.xml > output.log 2>&1
+   opndossier --log_format=json convert config.xml > output.log 2>&1
    jq '.' output.log  # Parse JSON logs
    ```
 
@@ -399,20 +399,20 @@ opnfocus --log_level=trace convert config.xml
 
 ```bash
 # Process large files efficiently
-opnfocus --log_level=warn convert large-config.xml
+opndossier --log_level=warn convert large-config.xml
 
 # Monitor memory usage
-/usr/bin/time -v opnfocus convert large-config.xml
+/usr/bin/time -v opndossier convert large-config.xml
 ```
 
 ### Batch Processing Optimization
 
 ```bash
 # Process multiple files concurrently (built-in)
-opnfocus convert config1.xml config2.xml config3.xml
+opndossier convert config1.xml config2.xml config3.xml
 
 # Custom parallel processing
-find /configs -name "*.xml" | xargs -P 4 -I {} opnfocus convert {} -o {}.md
+find /configs -name "*.xml" | xargs -P 4 -I {} opndossier convert {} -o {}.md
 ```
 
 ## Best Practices
@@ -427,7 +427,7 @@ find /configs -name "*.xml" | xargs -P 4 -I {} opnfocus convert {} -o {}.md
 
 ```bash
 # Organize output files logically
-opnfocus convert config.xml -o docs/network/$(date +%Y-%m-%d)-config.md
+opndossier convert config.xml -o docs/network/$(date +%Y-%m-%d)-config.md
 
 # Archive old documentation
 mkdir -p docs/network/archive/$(date +%Y/%m)

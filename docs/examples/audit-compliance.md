@@ -1,6 +1,6 @@
 # Audit and Compliance Examples
 
-This guide covers security auditing and compliance checking workflows using opnFocus.
+This guide covers security auditing and compliance checking workflows using opnDossier.
 
 ## Security Audit Reports
 
@@ -10,16 +10,16 @@ Generate defensive security audit reports with findings and recommendations:
 
 ```bash
 # Basic blue team audit
-opnFocus convert config.xml --mode blue
+opnDossier convert config.xml --mode blue
 
 # Comprehensive blue team audit
-opnFocus convert config.xml --mode blue --comprehensive -o blue-team-audit.md
+opnDossier convert config.xml --mode blue --comprehensive -o blue-team-audit.md
 
 # Blue team audit with specific plugins
-opnFocus convert config.xml --mode blue --plugins stig,sans -o compliance-audit.md
+opnDossier convert config.xml --mode blue --plugins stig,sans -o compliance-audit.md
 
 # Blue team audit with custom template
-opnFocus convert config.xml --mode blue --template-dir ./custom-templates -o custom-audit.md
+opnDossier convert config.xml --mode blue --template-dir ./custom-templates -o custom-audit.md
 ```
 
 **Example Blue Team Output:**
@@ -57,13 +57,13 @@ Generate attacker-focused reconnaissance reports highlighting attack surfaces:
 
 ```bash
 # Basic red team recon
-opnFocus convert config.xml --mode red
+opnDossier convert config.xml --mode red
 
 # Red team recon with blackhat commentary
-opnFocus convert config.xml --mode red --blackhat-mode -o red-team-recon.md
+opnDossier convert config.xml --mode red --blackhat-mode -o red-team-recon.md
 
 # Comprehensive red team analysis
-opnFocus convert config.xml --mode red --comprehensive --blackhat-mode -o attack-surface.md
+opnDossier convert config.xml --mode red --comprehensive --blackhat-mode -o attack-surface.md
 ```
 
 **Example Red Team Output:**
@@ -107,13 +107,13 @@ Check configurations against STIG (Security Technical Implementation Guide) stan
 
 ```bash
 # STIG compliance check
-opnFocus convert config.xml --mode blue --plugins stig -o stig-compliance.md
+opnDossier convert config.xml --mode blue --plugins stig -o stig-compliance.md
 
 # STIG compliance with comprehensive analysis
-opnFocus convert config.xml --mode blue --plugins stig --comprehensive -o stig-audit.md
+opnDossier convert config.xml --mode blue --plugins stig --comprehensive -o stig-audit.md
 
 # STIG compliance with custom template
-opnFocus convert config.xml --mode blue --plugins stig --template stig-report -o stig-report.md
+opnDossier convert config.xml --mode blue --plugins stig --template stig-report -o stig-report.md
 ```
 
 **Example STIG Output:**
@@ -148,13 +148,13 @@ Check configurations against SANS security controls:
 
 ```bash
 # SANS compliance check
-opnFocus convert config.xml --mode blue --plugins sans -o sans-compliance.md
+opnDossier convert config.xml --mode blue --plugins sans -o sans-compliance.md
 
 # SANS compliance with comprehensive analysis
-opnFocus convert config.xml --mode blue --plugins sans --comprehensive -o sans-audit.md
+opnDossier convert config.xml --mode blue --plugins sans --comprehensive -o sans-audit.md
 
 # Multiple compliance frameworks
-opnFocus convert config.xml --mode blue --plugins stig,sans -o multi-compliance.md
+opnDossier convert config.xml --mode blue --plugins stig,sans -o multi-compliance.md
 ```
 
 **Example SANS Output:**
@@ -186,8 +186,8 @@ opnFocus convert config.xml --mode blue --plugins stig,sans -o multi-compliance.
 # comprehensive-audit.sh
 
 # Set up environment
-export OPNFOCUS_LOG_FORMAT=json
-export OPNFOCUS_LOG_LEVEL=info
+export OPNDOSSIER_LOG_FORMAT=json
+export OPNDOSSIER_LOG_LEVEL=info
 
 # Create audit directory
 AUDIT_DIR="audits/$(date +%Y-%m-%d)"
@@ -195,19 +195,19 @@ mkdir -p "$AUDIT_DIR"
 
 # Generate blue team audit
 echo "Generating blue team audit..."
-opnFocus convert config.xml --mode blue --comprehensive \
+opnDossier convert config.xml --mode blue --comprehensive \
     --plugins stig,sans \
     -o "${AUDIT_DIR}/blue-team-audit.md"
 
 # Generate red team recon
 echo "Generating red team recon..."
-opnFocus convert config.xml --mode red --comprehensive \
+opnDossier convert config.xml --mode red --comprehensive \
     --blackhat-mode \
     -o "${AUDIT_DIR}/red-team-recon.md"
 
 # Generate compliance report
 echo "Generating compliance report..."
-opnFocus convert config.xml --mode blue \
+opnDossier convert config.xml --mode blue \
     --plugins stig,sans \
     --template compliance \
     -o "${AUDIT_DIR}/compliance-report.md"
@@ -233,14 +233,14 @@ mkdir -p "$COMPLIANCE_DIR"
 
 # Validate configuration first
 echo "Validating configuration..."
-if ! opnFocus validate "$CONFIG_FILE"; then
+if ! opnDossier validate "$CONFIG_FILE"; then
     echo "Configuration validation failed"
     exit 1
 fi
 
 # Generate STIG compliance report
 echo "Generating STIG compliance report..."
-opnFocus convert "$CONFIG_FILE" \
+opnDossier convert "$CONFIG_FILE" \
     --mode blue \
     --plugins stig \
     --comprehensive \
@@ -248,7 +248,7 @@ opnFocus convert "$CONFIG_FILE" \
 
 # Generate SANS compliance report
 echo "Generating SANS compliance report..."
-opnFocus convert "$CONFIG_FILE" \
+opnDossier convert "$CONFIG_FILE" \
     --mode blue \
     --plugins sans \
     --comprehensive \
@@ -256,7 +256,7 @@ opnFocus convert "$CONFIG_FILE" \
 
 # Generate combined compliance report
 echo "Generating combined compliance report..."
-opnFocus convert "$CONFIG_FILE" \
+opnDossier convert "$CONFIG_FILE" \
     --mode blue \
     --plugins stig,sans \
     --comprehensive \
@@ -264,7 +264,7 @@ opnFocus convert "$CONFIG_FILE" \
 
 # Generate executive summary
 echo "Generating executive summary..."
-opnFocus convert "$CONFIG_FILE" \
+opnDossier convert "$CONFIG_FILE" \
     --mode blue \
     --plugins stig,sans \
     --template executive \
@@ -331,7 +331,7 @@ extract_sans_score() {
 }
 
 # Generate audit report
-opnFocus convert config.xml --mode blue --comprehensive -o current-audit.md
+opnDossier convert config.xml --mode blue --comprehensive -o current-audit.md
 
 # Extract and log security score
 SCORE=$(extract_security_score current-audit.md)
@@ -349,7 +349,7 @@ fi
 
 ### Executive Summary Template
 
-Create `~/.opnFocus/templates/executive.md.tmpl`:
+Create `~/.opnDossier/templates/executive.md.tmpl`:
 
 ```markdown
 # Executive Security Summary
@@ -380,7 +380,7 @@ Create `~/.opnFocus/templates/executive.md.tmpl`:
 
 ### Technical Deep Dive Template
 
-Create `~/.opnFocus/templates/technical.md.tmpl`:
+Create `~/.opnDossier/templates/technical.md.tmpl`:
 
 ```markdown
 # Technical Security Analysis
@@ -434,12 +434,12 @@ jobs:
         with:
           go-version: '1.21'
 
-      - name: Install opnFocus
-        run: go install github.com/unclesp1d3r/opnFocus@latest
+      - name: Install opnDossier
+        run: go install github.com/EvilBit-Labs/opnDossier@latest
 
       - name: Run Security Audit
         run: |
-          opnFocus convert config.xml --mode blue --plugins stig,sans -o security-audit.md
+          opnDossier convert config.xml --mode blue --plugins stig,sans -o security-audit.md
 
       - name: Check Security Score
         run: |
@@ -463,8 +463,8 @@ jobs:
 # monthly-compliance-report.sh
 
 # Set up environment
-export OPNFOCUS_LOG_FORMAT=json
-export OPNFOCUS_LOG_LEVEL=info
+export OPNDOSSIER_LOG_FORMAT=json
+export OPNDOSSIER_LOG_LEVEL=info
 
 # Create monthly report directory
 MONTH=$(date +%Y-%m)
@@ -472,7 +472,7 @@ REPORT_DIR="reports/${MONTH}"
 mkdir -p "$REPORT_DIR"
 
 # Generate comprehensive compliance report
-opnFocus convert config.xml \
+opnDossier convert config.xml \
     --mode blue \
     --plugins stig,sans \
     --comprehensive \
@@ -480,7 +480,7 @@ opnFocus convert config.xml \
     -o "${REPORT_DIR}/compliance-report.md"
 
 # Generate executive summary
-opnFocus convert config.xml \
+opnDossier convert config.xml \
     --mode blue \
     --plugins stig,sans \
     --template executive \
@@ -558,7 +558,7 @@ TIMESTAMP=$(date +%Y-%m-%d)
 
 # Generate comprehensive audit report
 echo "Generating audit report..."
-opnFocus convert config.xml \
+opnDossier convert config.xml \
     --mode blue \
     --plugins stig,sans \
     --comprehensive \

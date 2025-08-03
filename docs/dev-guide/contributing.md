@@ -19,8 +19,8 @@ Thank you for your interest in contributing to the OPNsense Configuration Proces
 2. Clone your fork locally:
 
    ```bash
-   git clone https://github.com/yourusername/opnFocus.git
-   cd opnFocus
+   git clone https://github.com/yourusername/opnDossier.git
+   cd opnDossier
    ```
 
 3. Install dependencies:

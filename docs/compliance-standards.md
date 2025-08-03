@@ -2,13 +2,13 @@
 
 ## Overview
 
-opnFocus integrates industry-standard security compliance frameworks to provide comprehensive blue team audit reports. The system supports **STIG (Security Technical Implementation Guide)**, **SANS Firewall Checklist**, and **CIS-inspired Firewall Security Controls** standards for firewall security assessment.
+opnDossier integrates industry-standard security compliance frameworks to provide comprehensive blue team audit reports. The system supports **STIG (Security Technical Implementation Guide)**, **SANS Firewall Checklist**, and **CIS-inspired Firewall Security Controls** standards for firewall security assessment.
 
 ## Supported Standards
 
 ### STIG (Security Technical Implementation Guide)
 
-STIGs are cybersecurity methodologies for standardizing security configuration within networks, servers, computers, and logical designs to enhance overall security. opnFocus implements the **DISA Firewall Security Requirements Guide** which includes:
+STIGs are cybersecurity methodologies for standardizing security configuration within networks, servers, computers, and logical designs to enhance overall security. opnDossier implements the **DISA Firewall Security Requirements Guide** which includes:
 
 #### Key STIG Controls
 
@@ -220,10 +220,10 @@ To generate a compliance-focused blue team report:
 
 ```bash
 # Include all compliance standards
-opnFocus analyze config.xml --mode=blue --compliance=stig,sans,firewall
+opnDossier analyze config.xml --mode=blue --compliance=stig,sans,firewall
 
 # Include specific standards
-opnFocus analyze config.xml --mode=blue --compliance=firewall
+opnDossier analyze config.xml --mode=blue --compliance=firewall
 ```
 
 ### Enhanced Blue Team Template

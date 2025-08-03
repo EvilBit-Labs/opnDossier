@@ -12,7 +12,7 @@
 - [x] **TASK-031**: Comprehensive help system
 - [x] **TASK-032**: Verbose/quiet output modes
 - [x] **TASK-035**: YAML configuration file support
-- [x] **TASK-036**: Environment variable support (`OPNFOCUS_*`)
+- [x] **TASK-036**: Environment variable support (`OPNDOSSIER_*`)
 - [x] **TASK-037**: CLI flag override system
 - [x] **TASK-044**: Achieve >60% test coverage (not including `internal/audit` package)
 - [x] **TASK-047**: Automated quality checks
@@ -512,7 +512,7 @@ This document provides a comprehensive task checklist for implementing the opnDo
   - **Context**: Need secure configuration for sensitive options
   - **Requirement**: US-013 (Environment variables), Security Requirements
   - **User Story**: US-013 (Environment variables)
-  - **Action**: Implement OPNFOCUS\_ prefixed environment variables
+  - **Action**: Implement OPNDOSSIER\_ prefixed environment variables
   - **Acceptance**: Environment variables override configuration file settings (standard precedence)
   - **Note**: Fully implemented with comprehensive environment variable support for all configuration fields, proper precedence handling (CLI flags > env vars > config file > defaults), extensive test coverage including boolean, integer, and slice value types, and complete documentation throughout the codebase.
 

@@ -134,7 +134,7 @@ This document captures user stories for the opnDossier CLI tool in EARS (Easy Ap
 **I want** to use environment variables for sensitive options
 **So that** I can avoid hardcoding sensitive information
 **Given** I need to configure sensitive settings
-**When** I set environment variables with OPNFOCUS\_ prefix
+**When** I set environment variables with OPNDOSSIER\_ prefix
 **Then** the system should use those values while keeping them secure
 
 **US-014**

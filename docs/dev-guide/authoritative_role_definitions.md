@@ -1,6 +1,6 @@
 # Authoritative Role Definitions
 
-This document captures the single-sentence "official" purpose of each library used in the opnFocus project, compiled from `tasks.md` and `AGENTS.md`.
+This document captures the single-sentence "official" purpose of each library used in the opnDossier project, compiled from `tasks.md` and `AGENTS.md`.
 
 ## Library Role Definitions
 

@@ -1,14 +1,14 @@
 # Configuration Guide
 
-opnFocus provides flexible configuration management using **Viper** for layered configuration handling. This guide covers all configuration options and methods.
+opnDossier provides flexible configuration management using **Viper** for layered configuration handling. This guide covers all configuration options and methods.
 
 ## Configuration Precedence
 
 Configuration follows a clear precedence order:
 
 1. **Command-line flags** (highest priority)
-2. **Environment variables** (`OPNFOCUS_*`)
-3. **Configuration file** (`~/.opnFocus.yaml`)
+2. **Environment variables** (`OPNDOSSIER_*`)
+3. **Configuration file** (`~/.opnDossier.yaml`)
 4. **Default values** (lowest priority)
 
 This precedence ensures that CLI flags always override environment variables and config files, making it easy to temporarily override settings for specific runs.
@@ -17,10 +17,10 @@ This precedence ensures that CLI flags always override environment variables and
 
 ### Location
 
-The default configuration file location is `~/.opnFocus.yaml`. You can specify a custom location using the `--config` flag:
+The default configuration file location is `~/.opnDossier.yaml`. You can specify a custom location using the `--config` flag:
 
 ```bash
-opnfocus --config /path/to/custom/config.yaml convert config.xml
+opndossier --config /path/to/custom/config.yaml convert config.xml
 ```
 
 ### Format
@@ -28,7 +28,7 @@ opnfocus --config /path/to/custom/config.yaml convert config.xml
 The configuration file uses YAML format:
 
 ```yaml
-# ~/.opnFocus.yaml - opnFocus Configuration
+# ~/.opnDossier.yaml - opnDossier Configuration
 
 # Input/Output settings
 input_file: /path/to/default/config.xml
@@ -54,43 +54,43 @@ quiet: false          # Suppress all output except errors
 
 ## Environment Variables
 
-All configuration options can be set using environment variables with the `OPNFOCUS_` prefix:
+All configuration options can be set using environment variables with the `OPNDOSSIER_` prefix:
 
 ### Available Environment Variables
 
 ```bash
 # Logging configuration
-export OPNFOCUS_VERBOSE=true          # Enable verbose/debug logging
-export OPNFOCUS_QUIET=false           # Suppress non-error output
-export OPNFOCUS_LOG_LEVEL=debug       # Set log level (debug, info, warn, error)
-export OPNFOCUS_LOG_FORMAT=json       # Use JSON log format
+export OPNDOSSIER_VERBOSE=true          # Enable verbose/debug logging
+export OPNDOSSIER_QUIET=false           # Suppress non-error output
+export OPNDOSSIER_LOG_LEVEL=debug       # Set log level (debug, info, warn, error)
+export OPNDOSSIER_LOG_FORMAT=json       # Use JSON log format
 
 # File paths
-export OPNFOCUS_INPUT_FILE="/path/to/config.xml"
-export OPNFOCUS_OUTPUT_FILE="./documentation.md"
+export OPNDOSSIER_INPUT_FILE="/path/to/config.xml"
+export OPNDOSSIER_OUTPUT_FILE="./documentation.md"
 ```
 
 ### Examples
 
 ```bash
 # Set environment variables for a single run
-OPNFOCUS_VERBOSE=true OPNFOCUS_LOG_FORMAT=json opnfocus convert config.xml
+OPNDOSSIER_VERBOSE=true OPNDOSSIER_LOG_FORMAT=json opndossier convert config.xml
 
 # Export for multiple uses in the same session
-export OPNFOCUS_LOG_LEVEL=debug
-export OPNFOCUS_OUTPUT_FILE="./network-docs.md"
-opnfocus convert config.xml
+export OPNDOSSIER_LOG_LEVEL=debug
+export OPNDOSSIER_OUTPUT_FILE="./network-docs.md"
+opndossier convert config.xml
 ```
 
 ### Environment Variable Naming
 
 Environment variables follow this pattern:
 
-- Prefix: `OPNFOCUS_`
+- Prefix: `OPNDOSSIER_`
 - Key transformation: Convert config key to uppercase and replace `-` with `_`
 - Examples:
-  - `log_level` → `OPNFOCUS_LOG_LEVEL`
-  - `input_file` → `OPNFOCUS_INPUT_FILE`
+  - `log_level` → `OPNDOSSIER_LOG_LEVEL`
+  - `input_file` → `OPNDOSSIER_INPUT_FILE`
 
 ## Command-Line Flags
 
@@ -100,7 +100,7 @@ CLI flags have the highest precedence and override all other configuration sourc
 
 ```bash
 # Configuration file
---config string       # Custom config file path (default: ~/.opnFocus.yaml)
+--config string       # Custom config file path (default: ~/.opnDossier.yaml)
 
 # Logging options
 --verbose, -v         # Enable verbose output (debug logging)
@@ -121,16 +121,16 @@ The `convert` command has additional flags specific to file conversion:
 
 ```bash
 # Override log level for debugging
-opnfocus --log_level=debug convert config.xml
+opndossier --log_level=debug convert config.xml
 
 # Use JSON logging with quiet mode
-opnfocus --quiet --log_format=json convert config.xml
+opndossier --quiet --log_format=json convert config.xml
 
 # Verbose mode with custom output
-opnfocus --verbose convert config.xml --output detailed-output.md
+opndossier --verbose convert config.xml --output detailed-output.md
 
 # Use custom config file
-opnfocus --config ./project-config.yaml convert config.xml
+opndossier --config ./project-config.yaml convert config.xml
 ```
 
 ## Logging Configuration
@@ -185,21 +185,21 @@ Structured format suitable for log aggregation systems:
 
 ```bash
 # Debug logging with text format
-opnfocus --log_level=debug convert config.xml
+opndossier --log_level=debug convert config.xml
 
 # JSON logging for log aggregation
-opnfocus --log_format=json convert config.xml
+opndossier --log_format=json convert config.xml
 
 # Quiet mode - only errors
-opnfocus --quiet convert config.xml
+opndossier --quiet convert config.xml
 
 # Verbose mode (shorthand for debug level)
-opnfocus --verbose convert config.xml
+opndossier --verbose convert config.xml
 ```
 
 ## Configuration Validation
 
-opnFocus validates configuration settings and provides clear error messages for invalid configurations:
+opnDossier validates configuration settings and provides clear error messages for invalid configurations:
 
 ### Validation Rules
 
@@ -213,11 +213,11 @@ opnFocus validates configuration settings and provides clear error messages for 
 
 ```bash
 # This will fail - mutually exclusive options
-opnfocus --verbose --quiet convert config.xml
+opndossier --verbose --quiet convert config.xml
 # Error: verbose and quiet options are mutually exclusive
 
 # This will fail - invalid log level
-opnfocus --log_level=trace convert config.xml
+opndossier --log_level=trace convert config.xml
 # Error: invalid log level 'trace', must be one of: debug, info, warn, error
 ```
 
@@ -225,7 +225,7 @@ opnfocus --log_level=trace convert config.xml
 
 ### 1. Use Configuration Files for Persistent Settings
 
-Store frequently used settings in `~/.opnFocus.yaml`:
+Store frequently used settings in `~/.opnDossier.yaml`:
 
 ```yaml
 # Common settings for your environment
@@ -240,11 +240,11 @@ For automated scripts and CI/CD pipelines:
 
 ```bash
 #!/bin/bash
-export OPNFOCUS_LOG_FORMAT=json
-export OPNFOCUS_LOG_LEVEL=info
-export OPNFOCUS_OUTPUT_FILE="./build/network-docs.md"
+export OPNDOSSIER_LOG_FORMAT=json
+export OPNDOSSIER_LOG_LEVEL=info
+export OPNDOSSIER_OUTPUT_FILE="./build/network-docs.md"
 
-opnfocus convert config.xml
+opndossier convert config.xml
 ```
 
 ### 3. Use CLI Flags for One-off Overrides
@@ -253,10 +253,10 @@ For temporary debugging or testing:
 
 ```bash
 # Debug a specific run
-opnfocus --verbose convert problematic-config.xml
+opndossier --verbose convert problematic-config.xml
 
 # Generate output to a different location
-opnfocus convert config.xml --output ./debug/output.md
+opndossier convert config.xml --output ./debug/output.md
 ```
 
 ### 4. Airgapped Environment Configuration
@@ -264,7 +264,7 @@ opnfocus convert config.xml --output ./debug/output.md
 For secure, offline environments:
 
 ```yaml
-# ~/.opnFocus.yaml for airgapped systems
+# ~/.opnDossier.yaml for airgapped systems
 log_level: warn          # Minimal logging
 log_format: text         # Human-readable
 verbose: false
@@ -277,12 +277,12 @@ quiet: false
 
 1. **Configuration file not found**
 
-   - Verify file exists at `~/.opnFocus.yaml`
+   - Verify file exists at `~/.opnDossier.yaml`
    - Use `--config` flag to specify custom location
 
 2. **Environment variables not working**
 
-   - Ensure correct `OPNFOCUS_` prefix
+   - Ensure correct `OPNDOSSIER_` prefix
    - Check variable names match expected format
 
 3. **CLI flags not overriding config**
@@ -295,7 +295,7 @@ quiet: false
 Use verbose mode to see configuration loading details:
 
 ```bash
-opnfocus --verbose --config /path/to/config.yaml convert config.xml
+opndossier --verbose --config /path/to/config.yaml convert config.xml
 ```
 
 This will show:

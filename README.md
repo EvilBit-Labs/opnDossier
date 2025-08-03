@@ -106,7 +106,7 @@ opnDossier convert --help
 opnDossier uses **Viper for layered configuration management** with a clear precedence order:
 
 1. **Command-line flags** (highest priority)
-2. **Environment variables** (`OPNFOCUS_*`)
+2. **Environment variables** (`OPNDOSSIER_*`)
 3. **Configuration file** (`~/.opnDossier.yaml`)
 4. **Default values** (lowest priority)
 
@@ -134,14 +134,14 @@ All configuration options can be set via environment variables:
 
 ```bash
 # Logging options
-export OPNFOCUS_VERBOSE=true          # Enable verbose/debug logging
-export OPNFOCUS_QUIET=false           # Suppress non-error output
-export OPNFOCUS_LOG_LEVEL=debug       # Set log level
-export OPNFOCUS_LOG_FORMAT=json       # Use JSON log format
+export OPNDOSSIER_VERBOSE=true          # Enable verbose/debug logging
+export OPNDOSSIER_QUIET=false           # Suppress non-error output
+export OPNDOSSIER_LOG_LEVEL=debug       # Set log level
+export OPNDOSSIER_LOG_FORMAT=json       # Use JSON log format
 
 # File paths
-export OPNFOCUS_INPUT_FILE="/path/to/config.xml"
-export OPNFOCUS_OUTPUT_FILE="./documentation.md"
+export OPNDOSSIER_INPUT_FILE="/path/to/config.xml"
+export OPNDOSSIER_OUTPUT_FILE="./documentation.md"
 
 # Run with environment configuration
 opnDossier convert config.xml

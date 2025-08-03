@@ -1,6 +1,6 @@
 # Usage Examples
 
-This section provides comprehensive examples for common workflows and use cases with opnFocus. Each example is designed to be practical and immediately usable.
+This section provides comprehensive examples for common workflows and use cases with opnDossier. Each example is designed to be practical and immediately usable.
 
 ## Quick Start Examples
 
@@ -8,39 +8,39 @@ This section provides comprehensive examples for common workflows and use cases 
 
 ```bash
 # Convert OPNsense config to markdown
-opnFocus convert config.xml
+opnDossier convert config.xml
 
 # Convert to JSON format
-opnFocus convert config.xml -f json
+opnDossier convert config.xml -f json
 
 # Convert to YAML format
-opnFocus convert config.xml -f yaml
+opnDossier convert config.xml -f yaml
 ```
 
 ### Display Configuration in Terminal
 
 ```bash
 # Display with syntax highlighting
-opnFocus display config.xml
+opnDossier display config.xml
 
 # Display with dark theme
-opnFocus display --theme dark config.xml
+opnDossier display --theme dark config.xml
 
 # Display without validation
-opnFocus display --no-validate config.xml
+opnDossier display --no-validate config.xml
 ```
 
 ### Validate Configuration
 
 ```bash
 # Validate single file
-opnFocus validate config.xml
+opnDossier validate config.xml
 
 # Validate multiple files
-opnFocus validate config1.xml config2.xml config3.xml
+opnDossier validate config1.xml config2.xml config3.xml
 
 # Validate with verbose output
-opnFocus --verbose validate config.xml
+opnDossier --verbose validate config.xml
 ```
 
 ## Common Workflows
@@ -100,9 +100,9 @@ opnFocus --verbose validate config.xml
 
 ## Getting Started
 
-1. **Install opnFocus**: Follow the [installation guide](../user-guide/installation.md)
+1. **Install opnDossier**: Follow the [installation guide](../user-guide/installation.md)
 2. **Get a sample config**: Use one of the sample files in `testdata/`
-3. **Try basic conversion**: `opnFocus convert testdata/sample.config.1.xml`
+3. **Try basic conversion**: `opnDossier convert testdata/sample.config.1.xml`
 4. **Explore examples**: Browse the examples below for your specific use case
 
 ## Sample Files
@@ -114,9 +114,9 @@ The project includes sample configuration files for testing:
 ls testdata/*.xml
 
 # Use a sample file for testing
-opnFocus convert testdata/sample.config.1.xml
-opnFocus display testdata/sample.config.2.xml
-opnFocus validate testdata/sample.config.3.xml
+opnDossier convert testdata/sample.config.1.xml
+opnDossier display testdata/sample.config.2.xml
+opnDossier validate testdata/sample.config.3.xml
 ```
 
 ## Next Steps

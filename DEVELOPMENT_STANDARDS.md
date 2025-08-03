@@ -54,11 +54,11 @@ just lint
 
 ```bash
 # Development environment
-export OPNFOCUS_LOG_LEVEL=debug
-export OPNFOCUS_LOG_FORMAT=text
+export OPNDOSSIER_LOG_LEVEL=debug
+export OPNDOSSIER_LOG_FORMAT=text
 
 # For testing
-export OPNFOCUS_TEST_MODE=true
+export OPNDOSSIER_TEST_MODE=true
 ```
 
 ## Code Quality Standards
@@ -275,7 +275,7 @@ just test                         # Verify tests still pass
 just dev --verbose convert testdata/config.xml
 
 # Debug with specific log level
-OPNFOCUS_LOG_LEVEL=debug just dev convert testdata/config.xml
+OPNDOSSIER_LOG_LEVEL=debug just dev convert testdata/config.xml
 
 # Profile performance
 go test -bench=. -cpuprofile=cpu.prof ./internal/parser
@@ -392,7 +392,7 @@ type Config struct {
 ### General Security Principles
 
 1. **No Secrets in Code:** Never hardcode API keys, passwords, or sensitive data
-2. **Environment Variables:** Use environment variables with `OPNFOCUS_` prefix for configuration
+2. **Environment Variables:** Use environment variables with `OPNDOSSIER_` prefix for configuration
 3. **Input Validation:** Always validate and sanitize XML input files
 4. **Secure Defaults:** Default to secure configurations
 5. **Error Messages:** Avoid exposing sensitive information in error messages

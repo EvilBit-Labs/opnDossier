@@ -205,7 +205,7 @@ if err != nil {
 
 **ALWAYS do these:**
 
-- Use environment variables with `OPNFOCUS_` prefix for config
+- Use environment variables with `OPNDOSSIER_` prefix for config
 - Validate and sanitize XML input files
 - Use secure defaults
 - Handle errors gracefully with context

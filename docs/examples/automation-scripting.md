@@ -1,6 +1,6 @@
 # Automation and Scripting Examples
 
-This guide covers automation workflows and scripting examples for integrating opnFocus into CI/CD pipelines and automated processes.
+This guide covers automation workflows and scripting examples for integrating opnDossier into CI/CD pipelines and automated processes.
 
 ## CI/CD Integration
 
@@ -26,19 +26,19 @@ jobs:
         with:
           go-version: '1.24'
 
-      - name: Install opnFocus
-        run: go install github.com/unclesp1d3r/opnFocus@latest
+      - name: Install opnDossier
+        run: go install github.com/EvilBit-Labs/opnDossier@latest
 
       - name: Generate Documentation
         env:
-          OPNFOCUS_LOG_FORMAT: json
-          OPNFOCUS_LOG_LEVEL: info
+          OPNDOSSIER_LOG_FORMAT: json
+          OPNDOSSIER_LOG_LEVEL: info
         run: |
-          opnFocus convert config.xml -o docs/network-config.md
+          opnDossier convert config.xml -o docs/network-config.md
 
       - name: Generate Security Audit
         run: |
-          opnFocus convert config.xml --mode blue --comprehensive -o docs/security-audit.md
+          opnDossier convert config.xml --mode blue --comprehensive -o docs/security-audit.md
 
       - name: Commit Documentation
         if: github.event_name == 'push'
@@ -59,18 +59,18 @@ stages:
   - security
 
 variables:
-  OPNFOCUS_LOG_FORMAT: json
-  OPNFOCUS_LOG_LEVEL: info
+  OPNDOSSIER_LOG_FORMAT: json
+  OPNDOSSIER_LOG_LEVEL: info
 
 documentation:
   stage: documentation
   image: golang:1.24
   before_script:
-    - go install github.com/unclesp1d3r/opnFocus@latest
+    - go install github.com/EvilBit-Labs/opnDossier@latest
   script:
-    - opnFocus validate config.xml
-    - opnFocus convert config.xml -o docs/network-config.md
-    - opnFocus convert config.xml -f json -o docs/network-config.json
+    - opnDossier validate config.xml
+    - opnDossier convert config.xml -o docs/network-config.md
+    - opnDossier convert config.xml -f json -o docs/network-config.json
   artifacts:
     paths:
       - docs/network-config.md
@@ -81,11 +81,11 @@ security-audit:
   stage: security
   image: golang:1.24
   before_script:
-    - go install github.com/unclesp1d3r/opnFocus@latest
+    - go install github.com/EvilBit-Labs/opnDossier@latest
   script:
-    - opnFocus convert config.xml --mode blue --comprehensive -o 
+    - opnDossier convert config.xml --mode blue --comprehensive -o 
       docs/security-audit.md
-    - opnFocus convert config.xml --mode red --blackhat-mode -o 
+    - opnDossier convert config.xml --mode red --blackhat-mode -o 
       docs/attack-surface.md
   artifacts:
     paths:
@@ -102,33 +102,33 @@ pipeline {
     agent any
 
     environment {
-        OPNFOCUS_LOG_FORMAT = 'json'
-        OPNFOCUS_LOG_LEVEL = 'info'
+        OPNDOSSIER_LOG_FORMAT = 'json'
+        OPNDOSSIER_LOG_LEVEL = 'info'
     }
 
     stages {
         stage('Setup') {
             steps {
-                sh 'go install github.com/unclesp1d3r/opnFocus@latest'
+                sh 'go install github.com/EvilBit-Labs/opnDossier@latest'
             }
         }
 
         stage('Validate') {
             steps {
-                sh 'opnFocus validate config.xml'
+                sh 'opnDossier validate config.xml'
             }
         }
 
         stage('Generate Documentation') {
             steps {
-                sh 'opnFocus convert config.xml -o docs/network-config.md'
-                sh 'opnFocus convert config.xml -f json -o docs/network-config.json'
+                sh 'opnDossier convert config.xml -o docs/network-config.md'
+                sh 'opnDossier convert config.xml -f json -o docs/network-config.json'
             }
         }
 
         stage('Security Audit') {
             steps {
-                sh 'opnFocus convert config.xml --mode blue --comprehensive -o docs/security-audit.md'
+                sh 'opnDossier convert config.xml --mode blue --comprehensive -o docs/security-audit.md'
             }
         }
 
@@ -175,9 +175,9 @@ for config_file in "$INPUT_DIR"/*.xml; do
         echo "Processing $filename..." | tee -a "$LOG_FILE"
 
         # Validate configuration
-        if opnFocus validate "$config_file" >> "$LOG_FILE" 2>&1; then
+        if opnDossier validate "$config_file" >> "$LOG_FILE" 2>&1; then
             # Generate documentation
-            opnFocus convert "$config_file" -o "$OUTPUT_DIR/${filename}.md" >> "$LOG_FILE" 2>&1
+            opnDossier convert "$config_file" -o "$OUTPUT_DIR/${filename}.md" >> "$LOG_FILE" 2>&1
             echo "✓ $filename processed successfully" | tee -a "$LOG_FILE"
         else
             echo "✗ $filename validation failed" | tee -a "$LOG_FILE"
@@ -206,8 +206,8 @@ process_file() {
 
     echo "Processing $filename..."
 
-    if opnFocus validate "$config_file" > /dev/null 2>&1; then
-        opnFocus convert "$config_file" -o "$OUTPUT_DIR/${filename}.md" > /dev/null 2>&1
+    if opnDossier validate "$config_file" > /dev/null 2>&1; then
+        opnDossier convert "$config_file" -o "$OUTPUT_DIR/${filename}.md" > /dev/null 2>&1
         echo "✓ $filename completed"
     else
         echo "✗ $filename failed validation"
@@ -247,10 +247,10 @@ TIMESTAMP=$(date +%Y-%m-%d_%H-%M-%S)
 cp "$CONFIG_DIR/config.xml" "$BACKUP_DIR/config-${TIMESTAMP}.xml"
 
 # Generate documentation
-opnFocus convert "$CONFIG_DIR/config.xml" -o "$DOCS_DIR/current-config.md"
+opnDossier convert "$CONFIG_DIR/config.xml" -o "$DOCS_DIR/current-config.md"
 
 # Generate security audit
-opnFocus convert "$CONFIG_DIR/config.xml" \
+opnDossier convert "$CONFIG_DIR/config.xml" \
     --mode blue --comprehensive \
     -o "$DOCS_DIR/security-audit.md"
 
@@ -274,8 +274,8 @@ DOCS_DIR="/var/www/network-docs"
 WEBHOOK_URL="https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
 
 # Set up environment
-export OPNFOCUS_LOG_FORMAT=json
-export OPNFOCUS_LOG_LEVEL=info
+export OPNDOSSIER_LOG_FORMAT=json
+export OPNDOSSIER_LOG_LEVEL=info
 
 # Create documentation directory
 mkdir -p "$DOCS_DIR"
@@ -284,7 +284,7 @@ mkdir -p "$DOCS_DIR"
 DATE=$(date +%Y-%m-%d)
 
 # Validate configuration
-if ! opnFocus validate "$CONFIG_FILE"; then
+if ! opnDossier validate "$CONFIG_FILE"; then
     echo "Configuration validation failed"
     curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"❌ Daily documentation update failed: Configuration validation error\"}" \
@@ -293,7 +293,7 @@ if ! opnFocus validate "$CONFIG_FILE"; then
 fi
 
 # Generate documentation
-if opnFocus convert "$CONFIG_FILE" -o "$DOCS_DIR/network-config-${DATE}.md"; then
+if opnDossier convert "$CONFIG_FILE" -o "$DOCS_DIR/network-config-${DATE}.md"; then
     echo "Documentation generated successfully"
 
     # Send success notification
@@ -334,10 +334,10 @@ if [ -f "$PREVIOUS_HASH_FILE" ]; then
         echo "Configuration change detected"
 
         # Generate updated documentation
-        opnFocus convert "$CONFIG_FILE" -o "/var/www/network-docs/network-config-$(date +%Y-%m-%d_%H-%M-%S).md"
+        opnDossier convert "$CONFIG_FILE" -o "/var/www/network-docs/network-config-$(date +%Y-%m-%d_%H-%M-%S).md"
 
         # Generate diff report
-        opnFocus convert "$CONFIG_FILE" -f json -o "/tmp/current-config.json"
+        opnDossier convert "$CONFIG_FILE" -f json -o "/tmp/current-config.json"
 
         # Send notification
         curl -X POST -H 'Content-type: application/json' \
@@ -361,13 +361,13 @@ echo "$CURRENT_HASH" > "$PREVIOUS_HASH_FILE"
 # Configuration
 CONFIG_FILE="/etc/opnsense/config.xml"
 ALERT_EMAIL="admin@example.com"
-LOG_FILE="/var/log/opnfocus-health.log"
+LOG_FILE="/var/log/opndossier-health.log"
 
 # Function to send alert
 send_alert() {
     local message="$1"
     echo "$(date): $message" >> "$LOG_FILE"
-    echo "$message" | mail -s "opnFocus Health Alert" "$ALERT_EMAIL"
+    echo "$message" | mail -s "opnDossier Health Alert" "$ALERT_EMAIL"
 }
 
 # Check if configuration file exists
@@ -377,13 +377,13 @@ if [ ! -f "$CONFIG_FILE" ]; then
 fi
 
 # Validate configuration
-if ! opnFocus validate "$CONFIG_FILE" > /dev/null 2>&1; then
+if ! opnDossier validate "$CONFIG_FILE" > /dev/null 2>&1; then
     send_alert "Configuration validation failed"
     exit 1
 fi
 
 # Test documentation generation
-if ! opnFocus convert "$CONFIG_FILE" -o /tmp/test.md > /dev/null 2>&1; then
+if ! opnDossier convert "$CONFIG_FILE" -o /tmp/test.md > /dev/null 2>&1; then
     send_alert "Documentation generation failed"
     exit 1
 fi
@@ -402,7 +402,7 @@ echo "$(date): Health check passed" >> "$LOG_FILE"
 
 # Configuration
 CONFIG_FILE="/etc/opnsense/config.xml"
-METRICS_FILE="/var/log/opnfocus-metrics.log"
+METRICS_FILE="/var/log/opndossier-metrics.log"
 
 # Function to measure execution time
 measure_time() {
@@ -413,10 +413,10 @@ measure_time() {
 }
 
 # Measure validation time
-VALIDATION_TIME=$(measure_time opnFocus validate "$CONFIG_FILE")
+VALIDATION_TIME=$(measure_time opnDossier validate "$CONFIG_FILE")
 
 # Measure conversion time
-CONVERSION_TIME=$(measure_time opnFocus convert "$CONFIG_FILE" -o /tmp/test.md)
+CONVERSION_TIME=$(measure_time opnDossier convert "$CONFIG_FILE" -o /tmp/test.md)
 
 # Get file size
 FILE_SIZE=$(stat -c%s "$CONFIG_FILE")
@@ -435,7 +435,7 @@ echo "Metrics logged: File size: ${FILE_SIZE} bytes, Validation: ${VALIDATION_TI
 ### Ansible Playbook
 
 ```yaml
-  - name: Generate opnFocus Documentation
+  - name: Generate opnDossier Documentation
     hosts: firewalls
     become: yes
     tasks:
@@ -444,8 +444,8 @@ echo "Metrics logged: File size: ${FILE_SIZE} bytes, Validation: ${VALIDATION_TI
           name: golang
           state: present
 
-      - name: Install opnFocus
-        shell: go install github.com/unclesp1d3r/opnFocus@latest
+      - name: Install opnDossier
+        shell: go install github.com/EvilBit-Labs/opnDossier@latest
         environment:
           PATH: '{{ ansible_env.PATH }}:/root/go/bin'
 
@@ -456,13 +456,13 @@ echo "Metrics logged: File size: ${FILE_SIZE} bytes, Validation: ${VALIDATION_TI
           mode: '0755'
 
       - name: Generate documentation
-        shell: opnFocus convert /etc/opnsense/config.xml -o 
+        shell: opnDossier convert /etc/opnsense/config.xml -o 
           /var/www/network-docs/network-config.md
         environment:
           PATH: '{{ ansible_env.PATH }}:/root/go/bin'
 
       - name: Generate security audit
-        shell: opnFocus convert /etc/opnsense/config.xml --mode blue 
+        shell: opnDossier convert /etc/opnsense/config.xml --mode blue 
           --comprehensive -o /var/www/network-docs/security-audit.md
         environment:
           PATH: '{{ ansible_env.PATH }}:/root/go/bin'
@@ -481,8 +481,8 @@ echo "Metrics logged: File size: ${FILE_SIZE} bytes, Validation: ${VALIDATION_TI
 # Dockerfile
 FROM golang:1.24-alpine
 
-# Install opnFocus
-RUN go install github.com/unclesp1d3r/opnFocus@latest
+# Install opnDossier
+RUN go install github.com/EvilBit-Labs/opnDossier@latest
 
 # Create working directory
 WORKDIR /app
@@ -494,7 +494,7 @@ COPY configs/ ./configs/
 RUN mkdir -p ./docs
 
 # Generate documentation
-RUN opnFocus convert ./configs/config.xml -o ./docs/network-config.md
+RUN opnDossier convert ./configs/config.xml -o ./docs/network-config.md
 
 # Expose documentation
 EXPOSE 8080
@@ -506,24 +506,24 @@ CMD ["python3", "-m", "http.server", "8080"]
 ### Kubernetes Job
 
 ```yaml
-# opnfocus-job.yaml
+# opndossier-job.yaml
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: opnfocus-docs
+  name: opndossier-docs
 spec:
   template:
     spec:
       containers:
-        - name: opnfocus
+        - name: opndossier
           image: golang:1.24
           command:
             - /bin/bash
             - -c
             - |
-              go install github.com/unclesp1d3r/opnFocus@latest
-              opnFocus convert /configs/config.xml -o /docs/network-config.md
-              opnFocus convert /configs/config.xml --mode blue --comprehensive -o /docs/security-audit.md
+              go install github.com/EvilBit-Labs/opnDossier@latest
+              opnDossier convert /configs/config.xml -o /docs/network-config.md
+              opnDossier convert /configs/config.xml --mode blue --comprehensive -o /docs/security-audit.md
           volumeMounts:
             - name: configs
               mountPath: /configs
@@ -562,8 +562,8 @@ error_handler() {
 trap 'error_handler $LINENO' ERR
 
 # Your automation logic here
-opnFocus validate config.xml
-opnFocus convert config.xml -o docs/network-config.md
+opnDossier validate config.xml
+opnDossier convert config.xml -o docs/network-config.md
 ```
 
 ### 2. Logging and Monitoring
@@ -573,8 +573,8 @@ opnFocus convert config.xml -o docs/network-config.md
 # monitored-automation.sh
 
 # Configuration
-LOG_FILE="/var/log/opnfocus-automation.log"
-METRICS_FILE="/var/log/opnfocus-metrics.log"
+LOG_FILE="/var/log/opndossier-automation.log"
+METRICS_FILE="/var/log/opndossier-metrics.log"
 
 # Function to log with timestamp
 log() {
@@ -595,7 +595,7 @@ log "Starting automation process"
 START_TIME=$(date +%s)
 
 # Process configuration
-if opnFocus validate config.xml; then
+if opnDossier validate config.xml; then
     log "Configuration validation successful"
     record_metric "validation_success" 1
 else
@@ -605,7 +605,7 @@ else
 fi
 
 # Generate documentation
-if opnFocus convert config.xml -o docs/network-config.md; then
+if opnDossier convert config.xml -o docs/network-config.md; then
     log "Documentation generation successful"
     record_metric "conversion_success" 1
 else
@@ -644,21 +644,21 @@ monitor_resources() {
 }
 
 # Start resource monitoring
-opnFocus convert config.xml -o docs/network-config.md &
-OPNFOCUS_PID=$!
+opnDossier convert config.xml -o docs/network-config.md &
+OPNDOSSIER_PID=$!
 
 # Monitor resources
-monitor_resources "$OPNFOCUS_PID" &
+monitor_resources "$OPNDOSSIER_PID" &
 MONITOR_PID=$!
 
-# Wait for opnFocus to complete
-wait "$OPNFOCUS_PID"
-OPNFOCUS_EXIT_CODE=$?
+# Wait for opnDossier to complete
+wait "$OPNDOSSIER_PID"
+OPNDOSSIER_EXIT_CODE=$?
 
 # Stop monitoring
 kill "$MONITOR_PID" 2>/dev/null || true
 
-exit "$OPNFOCUS_EXIT_CODE"
+exit "$OPNDOSSIER_EXIT_CODE"
 ```
 
 ---

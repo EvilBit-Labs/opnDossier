@@ -1,6 +1,6 @@
 # Installation Guide
 
-This guide covers various methods to install opnFocus on your system.
+This guide covers various methods to install opnDossier on your system.
 
 ## Prerequisites
 
@@ -11,10 +11,10 @@ This guide covers various methods to install opnFocus on your system.
 
 ### 1. Go Install (Recommended)
 
-The simplest way to install opnFocus if you have Go installed:
+The simplest way to install opnDossier if you have Go installed:
 
 ```bash
-go install github.com/unclesp1d3r/opnFocus@latest
+go install github.com/EvilBit-Labs/opnDossier@latest
 ```
 
 This will install the latest release to your `$GOPATH/bin` directory.
@@ -25,15 +25,15 @@ This will install the latest release to your `$GOPATH/bin` directory.
 
 ```bash
 # Clone the repository
-git clone https://github.com/unclesp1d3r/opnFocus.git
-cd opnFocus
+git clone https://github.com/EvilBit-Labs/opnDossier.git
+cd opnDossier
 
 # Install dependencies and build
 just install
 just build
 
 # Or build manually
-go build -o opnfocus main.go
+go build -o opnDossier main.go
 ```
 
 #### Using Just (Task Runner)
@@ -66,19 +66,19 @@ Pre-built binaries are available for multiple platforms:
 
 ```bash
 # Download the latest release for your platform
-curl -L https://github.com/unclesp1d3r/opnFocus/releases/latest/download/opnfocus-linux-amd64 -o opnfocus
+curl -L https://github.com/EvilBit-Labs/opnDossier/releases/latest/download/opnDossier-linux-amd64 -o opnDossier
 
 # Download the SHA-256 checksum file for verification
-curl -L https://github.com/unclesp1d3r/opnFocus/releases/latest/download/checksums.txt -o checksums.txt
+curl -L https://github.com/EvilBit-Labs/opnDossier/releases/latest/download/checksums.txt -o checksums.txt
 
 # Verify the binary integrity
-sha256sum -c checksums.txt 2>/dev/null | grep opnfocus-linux-amd64 || \
-shasum -a 256 -c checksums.txt 2>/dev/null | grep opnfocus-linux-amd64 || \
+sha256sum -c checksums.txt 2>/dev/null | grep opnDossier-linux-amd64 || \
+shasum -a 256 -c checksums.txt 2>/dev/null | grep opnDossier-linux-amd64 || \
 echo "Warning: Could not verify checksum. Proceed with caution."
 
 # Make executable and install (only if verification passed)
-chmod +x opnfocus
-sudo mv opnfocus /usr/local/bin/
+chmod +x opnDossier
+sudo mv opnDossier /usr/local/bin/
 
 # Clean up checksum file
 rm checksums.txt
@@ -98,13 +98,13 @@ Verify your installation:
 
 ```bash
 # Check version
-opnfocus --version
+opnDossier --version
 
 # Test basic functionality
-opnfocus --help
+opnDossier --help
 
 # Verify Fang enhancements are working
-opnfocus completion bash  # Should show bash completion script
+opnDossier completion bash  # Should show bash completion script
 ```
 
 ## Configuration Setup
@@ -113,8 +113,8 @@ opnfocus completion bash  # Should show bash completion script
 
 ```bash
 # Configuration file location (following XDG Base Directory Specification)
-mkdir -p ~/.config/opnFocus
-touch ~/.config/opnFocus/config.yaml
+mkdir -p ~/.config/opnDossier
+touch ~/.config/opnDossier/config.yaml
 ```
 
 ### 2. Basic Configuration
@@ -122,7 +122,7 @@ touch ~/.config/opnFocus/config.yaml
 Create a basic configuration file:
 
 ```yaml
-# ~/.config/opnFocus/config.yaml
+# ~/.config/opnDossier/config.yaml
 log_level: info
 log_format: text
 verbose: false
@@ -135,48 +135,48 @@ Set up environment variables for your shell:
 
 ```bash
 # Add to ~/.bashrc, ~/.zshrc, etc.
-export OPNFOCUS_LOG_LEVEL=info
-export OPNFOCUS_LOG_FORMAT=text
+export OPNDOSSIER_LOG_LEVEL=info
+export OPNDOSSIER_LOG_FORMAT=text
 ```
 
 ## Shell Completion
 
-opnFocus includes shell completion support via Fang:
+opnDossier includes shell completion support via Fang:
 
 ### Bash
 
 ```bash
 # Add to ~/.bashrc
-source <(opnfocus completion bash)
+source <(opnDossier completion bash)
 
 # Or install globally
-opnfocus completion bash > /etc/bash_completion.d/opnfocus
+opnDossier completion bash > /etc/bash_completion.d/opnDossier
 ```
 
 ### Zsh
 
 ```bash
 # Add to ~/.zshrc
-source <(opnfocus completion zsh)
+source <(opnDossier completion zsh)
 
 # Or for oh-my-zsh
-opnfocus completion zsh > ~/.oh-my-zsh/completions/_opnfocus
+opnDossier completion zsh > ~/.oh-my-zsh/completions/_opnDossier
 ```
 
 ### Fish
 
 ```bash
-opnfocus completion fish | source
+opnDossier completion fish | source
 
 # Or save to file
-opnfocus completion fish > ~/.config/fish/completions/opnfocus.fish
+opnDossier completion fish > ~/.config/fish/completions/opnDossier.fish
 ```
 
 ### PowerShell
 
 ```powershell
 # Add to PowerShell profile
-opnfocus completion powershell | Out-String | Invoke-Expression
+opnDossier completion powershell | Out-String | Invoke-Expression
 ```
 
 ## Troubleshooting
@@ -195,17 +195,17 @@ opnfocus completion powershell | Out-String | Invoke-Expression
 
    ```bash
    # Make binary executable
-   chmod +x opnfocus
+   chmod +x opnDossier
    ```
 
 3. **Config file not found**
 
    ```bash
    # Verify config file location
-   ls -la ~/.config/opnFocus/config.yaml
+   ls -la ~/.config/opnDossier/config.yaml
 
    # Use custom config location
-   opnfocus --config /path/to/config.yaml convert config.xml
+   opndossier --config /path/to/config.yaml convert config.xml
    ```
 
 ### Debugging Installation
@@ -219,7 +219,7 @@ go version
 go build -v .
 
 # Test with verbose output
-opnfocus --verbose --help
+opndossier --verbose --help
 ```
 
 ## Development Installation
@@ -228,8 +228,8 @@ For development and contributing:
 
 ```bash
 # Clone with development setup
-git clone https://github.com/unclesp1d3r/opnFocus.git
-cd opnFocus
+git clone https://github.com/EvilBit-Labs/opnDossier.git
+cd opnDossier
 
 # Install development dependencies
 just install-dev
@@ -247,15 +247,15 @@ just setup-hooks
 
 ```bash
 # Build container image
-docker build -t opnfocus .
+docker build -t opndossier .
 
 # Run in container
-docker run --rm -v $(pwd):/data opnfocus convert /data/config.xml
+docker run --rm -v $(pwd):/data opndossier convert /data/config.xml
 ```
 
 ### Kubernetes
 
-The following example mounts the configuration file to `/app/config/config.yaml` and uses the `--config` flag to specify its location. Alternatively, you can mount the config to `/etc/opnfocus/config.yaml` or use environment variables for configuration.
+The following example mounts the configuration file to `/app/config/config.yaml` and uses the `--config` flag to specify its location. Alternatively, you can mount the config to `/etc/opndossier/config.yaml` or use environment variables for configuration.
 
 **ConfigMap:**
 
@@ -263,7 +263,7 @@ The following example mounts the configuration file to `/app/config/config.yaml`
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: opnfocus-config
+  name: opndossier-config
 data:
   config.yaml: |
     log_level: "info"
@@ -276,13 +276,13 @@ data:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: opnfocus-job
+  name: opndossier-job
 spec:
   template:
     spec:
       containers:
-        - name: opnfocus
-          image: opnfocus:latest
+        - name: opndossier
+          image: opndossier:latest
           args: [convert, /data/config.xml, --config, /app/config/config.yaml]
           volumeMounts:
             - name: config
@@ -293,10 +293,10 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: opnfocus-config
+            name: opndossier-config
         - name: data
           persistentVolumeClaim:
-            claimName: opnfocus-data
+            claimName: opndossier-data
       restartPolicy: Never
 ```
 
@@ -314,7 +314,7 @@ After installation:
 
 ```bash
 # Update to latest version
-go install github.com/unclesp1d3r/opnFocus@latest
+go install github.com/EvilBit-Labs/opnDossier@latest
 ```
 
 ### Source Build Method

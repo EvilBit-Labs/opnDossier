@@ -1,13 +1,13 @@
 # Theme System Usage
 
-This document describes how to use the comprehensive theme system in opnFocus.
+This document describes how to use the comprehensive theme system in opnDossier.
 
 ## Theme Configuration
 
 The theme system supports multiple configuration methods with the following precedence:
 
 1. **CLI flag** (highest priority): `--theme light|dark|custom`
-2. **Environment variable**: `OPNFOCUS_THEME=light|dark|custom`
+2. **Environment variable**: `OPNDOSSIER_THEME=light|dark|custom`
 3. **YAML configuration file**: `theme: light|dark|custom`
 4. **Auto-detection** (lowest priority): Based on terminal capabilities
 
@@ -17,30 +17,30 @@ The theme system supports multiple configuration methods with the following prec
 
 ```bash
 # Force light theme
-opnFocus --theme light convert config.xml
+opnDossier --theme light convert config.xml
 
 # Force dark theme
-opnFocus --theme dark convert config.xml
+opnDossier --theme dark convert config.xml
 
 # Use custom theme
-opnFocus --theme custom convert config.xml
+opnDossier --theme custom convert config.xml
 ```
 
 ### Environment Variable
 
 ```bash
 # Set theme via environment variable
-export OPNFOCUS_THEME=dark
-opnFocus convert config.xml
+export OPNDOSSIER_THEME=dark
+opnDossier convert config.xml
 
 # One-time override
-OPNFOCUS_THEME=light opnFocus convert config.xml
+OPNDOSSIER_THEME=light opnDossier convert config.xml
 ```
 
 ### YAML Configuration
 
 ```yaml
-# ~/.opnFocus.yaml
+# ~/.opnDossier.yaml
 theme: dark
 log_level: info
 log_format: text

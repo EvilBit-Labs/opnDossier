@@ -224,7 +224,7 @@ func TestConfigLoad(t *testing.T) {
         {
             name:       \"env var override\",
             configFile: \"\",
-            envVars:    map[string]string{\"OPNFOCUS_LOG_LEVEL\": \"debug\"},
+            envVars:    map[string]string{\"OPNDOSSIER_LOG_LEVEL\": \"debug\"},
             want:       &Config{LogLevel: \"debug\"},
             wantErr:    false,
         },
@@ -257,7 +257,7 @@ func TestConfigLoad(t *testing.T) {
 The configuration system uses **Viper** for layered configuration management:
 
 1. **CLI flags** (highest priority) - Cobra integration
-2. **Environment variables** (`OPNFOCUS_*`) - Viper handling
+2. **Environment variables** (`OPNDOSSIER_*`) - Viper handling
 3. **Configuration file** (`~/.opnDossier.yaml`) - Viper loading
 4. **Default values** (lowest priority) - Viper defaults
 
@@ -336,7 +336,7 @@ var newCmd = &cobra.Command{
 
 CONFIGURATION:
   This command respects the global configuration precedence:
-  CLI flags > environment variables (OPNFOCUS_*) > config file > defaults`,
+  CLI flags > environment variables (OPNDOSSIER_*) > config file > defaults`,
 
     RunE: func(cmd *cobra.Command, args []string) error {
         // Get config and logger from root command

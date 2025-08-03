@@ -1,6 +1,6 @@
 # System Architecture
 
-This document provides a comprehensive overview of the opnFocus system architecture, including high-level design, data flow, storage patterns, and external integrations.
+This document provides a comprehensive overview of the opnDossier system architecture, including high-level design, data flow, storage patterns, and external integrations.
 
 ## Table of Contents
 
@@ -16,7 +16,7 @@ This document provides a comprehensive overview of the opnFocus system architect
 
 ## High-Level Architecture
 
-opnFocus follows a **monolithic CLI architecture** with clear separation of concerns, designed for operator-centric workflows in offline environments.
+opnDossier follows a **monolithic CLI architecture** with clear separation of concerns, designed for operator-centric workflows in offline environments.
 
 ```mermaid
 graph TB
@@ -27,7 +27,7 @@ graph TB
         TERM[Terminal Display]
     end
 
-    subgraph "opnFocus CLI Application"
+    subgraph "opnDossier CLI Application"
         CLI[CLI Interface<br/>Cobra Framework]
 
         subgraph "Core Processing Engine"
@@ -114,8 +114,8 @@ graph TB
 **Configuration Sources** (in order of precedence):
 
 1. **Command-line flags** (highest priority)
-2. **Environment variables** (`OPNFOCUS_*`)
-3. **Configuration file** (`~/.opnFocus.yaml`)
+2. **Environment variables** (`OPNDOSSIER_*`)
+3. **Configuration file** (`~/.opnDossier.yaml`)
 4. **Default values** (lowest priority)
 
 This follows the standard precedence order used by most CLI tools, where environment variables can override configuration file settings for deployment flexibility and security.
@@ -194,7 +194,7 @@ sequenceDiagram
     participant R as Renderer
     participant O as Output System
 
-    U->>CLI: opnfocus convert config.xml
+    U->>CLI: opndossier convert config.xml
     CLI->>CFG: Load configuration
     CFG-->>CLI: Configuration object
     CLI->>P: Parse XML file
@@ -259,7 +259,7 @@ sequenceDiagram
 
 **Configuration Storage**:
 
-- Default location: `~/.opnFocus.yaml`
+- Default location: `~/.opnDossier.yaml`
 - Format: YAML
 - Scope: User-specific preferences
 
@@ -365,7 +365,7 @@ graph LR
             DOCS[Documentation Server]
         end
 
-        subgraph "opnFocus Application"
+        subgraph "opnDossier Application"
             BIN[Single Binary]
             CFG[Local Config]
             TEMP[Templates]
@@ -657,4 +657,4 @@ graph TB
 
 ---
 
-This architecture documentation provides a comprehensive overview of the opnFocus system design, emphasizing its offline-first, operator-focused approach while maintaining security and reliability for network infrastructure management tasks.
+This architecture documentation provides a comprehensive overview of the opnDossier system design, emphasizing its offline-first, operator-focused approach while maintaining security and reliability for network infrastructure management tasks.

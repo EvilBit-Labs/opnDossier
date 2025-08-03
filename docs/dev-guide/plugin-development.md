@@ -2,7 +2,7 @@
 
 ## Overview
 
-opnFocus uses a plugin-based architecture for compliance standards, allowing developers to create custom compliance plugins that integrate seamlessly with the core audit engine. Plugins can be either statically registered (baked into the binary) or dynamically loaded at runtime as Go plugins (`.so` files). This guide explains how to create, implement, and integrate new compliance plugins.
+opnDossier uses a plugin-based architecture for compliance standards, allowing developers to create custom compliance plugins that integrate seamlessly with the core audit engine. Plugins can be either statically registered (baked into the binary) or dynamically loaded at runtime as Go plugins (`.so` files). This guide explains how to create, implement, and integrate new compliance plugins.
 
 ## Plugin Architecture
 
@@ -18,7 +18,7 @@ opnFocus uses a plugin-based architecture for compliance standards, allowing dev
 All plugins must implement the `CompliancePlugin` interface:
 
 ```go
-import "github.com/unclesp1d3r/opnFocus/internal/plugin"
+import "github.com/EvilBit-Labs/opnDossier/internal/plugin"
 
 type CompliancePlugin interface {
     Name() string                    // Unique plugin identifier
@@ -75,8 +75,8 @@ package plugins
 
 import (
     "fmt"
-    "github.com/unclesp1d3r/opnFocus/internal/plugin"
-    "github.com/unclesp1d3r/opnFocus/internal/model"
+    "github.com/EvilBit-Labs/opnDossier/internal/plugin"
+    "github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
 type CustomPlugin struct {
@@ -142,8 +142,8 @@ func (cp *CustomPlugin) RunChecks(config *model.OpnSenseDocument) []plugin.Findi
 package main
 
 import (
-    "github.com/unclesp1d3r/opnFocus/internal/plugin"
-    "github.com/unclesp1d3r/opnFocus/internal/model"
+    "github.com/EvilBit-Labs/opnDossier/internal/plugin"
+    "github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
 type MyDynamicPlugin struct{}
@@ -191,4 +191,4 @@ go build -buildmode=plugin -o myplugin.so main.go
 
 ## Conclusion
 
-The opnFocus plugin system is flexible: you can extend compliance coverage by adding new plugins statically or dynamically, with a simple, generic interface and robust integration with the audit engine.
+The opnDossier plugin system is flexible: you can extend compliance coverage by adding new plugins statically or dynamically, with a simple, generic interface and robust integration with the audit engine.

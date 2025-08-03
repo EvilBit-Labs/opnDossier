@@ -448,7 +448,7 @@ just build      # Build application
 
 - **Configuration Management**:
 
-  - Environment variables with `OPNFOCUS_` prefix
+  - Environment variables with `OPNDOSSIER_` prefix
   - YAML configuration files for persistent settings
   - Command-line flags for runtime overrides
   - **Precedence Order**: CLI flags > Environment variables > Config file > Defaults

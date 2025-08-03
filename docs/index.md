@@ -16,13 +16,13 @@ Welcome to the **OPNsense Configuration Processor** documentation! This CLI tool
 
 ```bash
 # Convert a configuration file to markdown
-opnfocus convert config.xml -o output.md
+opndossier convert config.xml -o output.md
 
 # Display the result in terminal with syntax highlighting
-opnfocus display config.xml
+opndossier display config.xml
 
 # Get help for any command
-opnfocus --help
+opndossier --help
 ```
 
 ## Project Philosophy
@@ -50,7 +50,7 @@ The tool uses a layered CLI architecture built with modern Go libraries:
 
 ### Data Model Architecture
 
-opnFocus uses a hierarchical model structure that organizes OPNsense configuration into logical domains:
+opnDossier uses a hierarchical model structure that organizes OPNsense configuration into logical domains:
 
 - **System Domain**: Core system settings, users, groups, system services
 - **Network Domain**: Interfaces, routing, VLANs, network addressing
@@ -72,13 +72,13 @@ See the [Sample Report](sample-report.md) for an example of the comprehensive an
 
 ### Configuration Management
 
-opnFocus implements comprehensive configuration management with Viper:
+opnDossier implements comprehensive configuration management with Viper:
 
 **Precedence Order (highest to lowest):**
 
 1. Command-line flags
-2. Environment variables (`OPNFOCUS_*`)
-3. Configuration file (`~/.opnFocus.yaml`)
+2. Environment variables (`OPNDOSSIER_*`)
+3. Configuration file (`~/.opnDossier.yaml`)
 4. Default values
 
 **Configuration Options:**
@@ -92,7 +92,7 @@ opnFocus implements comprehensive configuration management with Viper:
 
 ## Validation & Error Handling
 
-opnFocus includes comprehensive validation capabilities:
+opnDossier includes comprehensive validation capabilities:
 
 ### Validation Features
 
