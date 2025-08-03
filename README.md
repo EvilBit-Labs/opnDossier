@@ -6,6 +6,10 @@
 [![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://github.com/unclesp1d3r/opnFocus/blob/main/docs/index.md)
 [![wakatime](https://wakatime.com/badge/user/2d2fbc27-e3f7-4ec1-b2a7-935e48bad498/project/018dae18-42c0-4e3e-8330-14d39f574bd5.svg)](https://wakatime.com/badge/user/2d2fbc27-e3f7-4ec1-b2a7-935e48bad498/project/018dae18-42c0-4e3e-8330-14d39f574bd5)
 
+> ⚠️ **MIGRATION IN-PROGRESS** ⚠️  
+> This repository is currently undergoing migration. Development is temporarily frozen.  
+> Please avoid making changes until migration is complete.
+
 > **v1.0 Release** - Essential CLI Tool for OPNsense Configuration Processing
 
 ## Overview
