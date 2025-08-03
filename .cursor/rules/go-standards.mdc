@@ -119,14 +119,14 @@ alwaysApply: false
 
 ## Configuration Management Guidelines
 
-**Important Note**: `viper` is used for managing the opnFocus application's own configuration (CLI settings, display preferences, etc.), not for parsing OPNsense config.xml files. The OPNsense configuration parsing is handled separately by the XML parser in `internal/parser/`.
+**Important Note**: `viper` is used for managing the opnDossier application's own configuration (CLI settings, display preferences, etc.), not for parsing OPNsense config.xml files. The OPNsense configuration parsing is handled separately by the XML parser in `internal/parser/`.
 
 ## Multi-Format Export Standards
 
 ### Export Features
 
 - **Purpose**: Export OPNsense configurations to markdown, JSON, or YAML formats
-- **Usage**: `opnfocus convert config.xml --format [markdown|json|yaml]`
+- **Usage**: `opndossier convert config.xml --format [markdown|json|yaml]`
 - **File Quality**: Exported files must be valid and parseable by standard tools and libraries
 - **Output Control**: Smart file naming with overwrite protection and `-f` force option
 

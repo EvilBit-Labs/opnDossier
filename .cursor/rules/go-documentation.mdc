@@ -1,12 +1,13 @@
 ---
 description: Go documentation standards following Google best practices
-globs: ["**/*.go", "**/*.md", "**/README*"]
+globs: **/*.go,**/*.md,**/README*
 alwaysApply: false
 ---
 
 # 📚 Go Documentation Best Practices (Google Standards)
 
 ## Package Documentation
+
 - Every package should have a package comment
 - Start with `Package packagename` followed by a description
 - Use complete sentences and proper grammar
@@ -21,6 +22,7 @@ package parser
 ```
 
 ## Function Documentation
+
 - Document all exported functions and types
 - Use complete sentences starting with the function name
 - Describe parameters, return values, and error conditions
@@ -40,6 +42,7 @@ func ParseConfig(filename string) (*Config, error) {
 ```
 
 ## Type Documentation
+
 - Document all exported types and interfaces
 - Explain the purpose and usage of each type
 - Include field descriptions for structs
@@ -66,6 +69,7 @@ type Config struct {
 ```
 
 ## README Files
+
 - Create comprehensive README.md files
 - Include installation and usage instructions
 - Provide examples and code snippets
@@ -73,83 +77,8 @@ type Config struct {
 - Include troubleshooting section
 - Follow standard README structure
 
-```markdown
-# OPNsense Configuration Processor
-
-A CLI tool for processing OPNsense config.xml files and converting them to markdown format.
-
-## Features
-
-- Parse OPNsense XML configuration files
-- Convert configurations to human-readable markdown
-- Display results in terminal with syntax highlighting
-- Export to markdown files
-- Support for offline operation
-
-## Installation
-
-```bash
-go install github.com/user/opnfocus@latest
-```
-
-## Usage
-
-```bash
-# Convert config file to markdown
-opnfocus convert config.xml -o output.md
-
-# Display result in terminal
-opnfocus convert config.xml --display
-
-# Show help
-opnfocus --help
-```
-
-## Configuration
-
-The tool supports the following configuration options:
-
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--input, -i` | Input XML file path | Required |
-| `--output, -o` | Output markdown file path | stdout |
-| `--display, -d` | Display result in terminal | false |
-
-## Examples
-
-### Basic Usage
-```bash
-opnfocus convert /etc/config.xml
-```
-
-### Save to File
-```bash
-opnfocus convert config.xml -o documentation.md
-```
-
-### Display in Terminal
-```bash
-opnfocus convert config.xml --display
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **File not found**: Ensure the XML file exists and is readable
-2. **Invalid XML**: Check that the configuration file is valid XML
-3. **Permission denied**: Ensure you have read access to the input file
-
-## Contributing
-
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-```
-
 ## Code Comments
+
 - Use comments to explain "why" not "what"
 - Comment complex algorithms and business logic
 - Use TODO, FIXME, and NOTE comments appropriately
@@ -164,6 +93,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ```
 
 ## API Documentation
+
 - Document all public APIs thoroughly
 - Include parameter validation rules
 - Document error conditions and codes
@@ -189,6 +119,7 @@ func ConvertToMarkdown(config *Config) string {
 ```
 
 ## Example Code
+
 - Include example code in `*_example_test.go` files
 - Provide complete, runnable examples
 - Show common usage patterns
@@ -220,6 +151,7 @@ func Example_convertToMarkdown() {
 ```
 
 ## Documentation Standards
+
 - Use consistent formatting and style
 - Follow Go documentation conventions
 - Use proper markdown formatting
@@ -227,6 +159,7 @@ func Example_convertToMarkdown() {
 - Maintain documentation alongside code changes
 
 ## Version Documentation
+
 - Document breaking changes clearly
 - Maintain changelog or release notes
 - Include migration guides for major versions
@@ -234,6 +167,7 @@ func Example_convertToMarkdown() {
 - Use semantic versioning
 
 ## Command Documentation
+
 - Document all CLI commands and flags
 - Provide usage examples
 - Explain configuration options
@@ -256,15 +190,16 @@ The output includes:
 - DHCP and DNS settings
 
 Examples:
-  opnfocus convert config.xml
-  opnfocus convert config.xml -o output.md
-  opnfocus convert config.xml --display`,
+  opndossier convert config.xml
+  opndossier convert config.xml -o output.md
+  opndossier convert config.xml --display`,
     Args:  cobra.ExactArgs(1),
     RunE:  runConvert,
 }
 ```
 
 ## Error Documentation
+
 - Document all error types and codes
 - Explain error conditions and causes
 - Provide guidance on error resolution
@@ -272,9 +207,9 @@ Examples:
 - Use consistent error documentation
 
 ## Performance Documentation
+
 - Document performance characteristics
 - Include memory usage information
 - Document concurrency limitations
 - Provide optimization guidelines
 - Include benchmark results when relevant
-
