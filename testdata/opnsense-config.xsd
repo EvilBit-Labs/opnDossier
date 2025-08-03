@@ -91,7 +91,6 @@
     </xs:complexType>
   </xs:element>
   <xs:element name="optimization" type="xs:NCName"/>
-  <xs:element name="hostname" type="xs:NCName"/>
   <xs:element name="domain" type="xs:NCName"/>
   <xs:element name="dnsallowoverride" type="xs:integer"/>
   <xs:element name="user">
@@ -211,9 +210,61 @@
     <xs:complexType>
       <xs:sequence>
         <xs:element ref="lan"/>
+        <xs:element minOccurs="0" ref="opt1"/>
+        <xs:element minOccurs="0" ref="opt2"/>
         <xs:sequence minOccurs="0">
-          <xs:element ref="opt1"/>
-          <xs:element ref="opt2"/>
+          <xs:element ref="opt6"/>
+          <xs:element ref="opt7"/>
+          <xs:element ref="opt8"/>
+          <xs:element ref="opt9"/>
+          <xs:element ref="opt10"/>
+          <xs:element ref="opt11"/>
+          <xs:element ref="opt12"/>
+          <xs:element ref="opt13"/>
+          <xs:element ref="opt14"/>
+          <xs:element ref="opt15"/>
+        </xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="opt16"/>
+          <xs:element ref="opt17"/>
+          <xs:element ref="opt18"/>
+          <xs:element ref="opt19"/>
+          <xs:element ref="opt20"/>
+          <xs:element ref="opt21"/>
+          <xs:element ref="opt22"/>
+          <xs:element ref="opt23"/>
+          <xs:element ref="opt24"/>
+          <xs:element ref="opt25"/>
+          <xs:element ref="opt26"/>
+          <xs:element ref="opt27"/>
+          <xs:element ref="opt28"/>
+          <xs:element ref="opt29"/>
+          <xs:element ref="opt30"/>
+          <xs:element ref="opt31"/>
+          <xs:element ref="opt32"/>
+          <xs:element ref="opt33"/>
+          <xs:element ref="opt34"/>
+          <xs:element ref="opt35"/>
+          <xs:element ref="opt36"/>
+          <xs:element ref="opt37"/>
+          <xs:element ref="opt38"/>
+          <xs:element ref="opt39"/>
+          <xs:element ref="opt40"/>
+          <xs:element ref="opt41"/>
+          <xs:element ref="opt42"/>
+          <xs:element ref="opt43"/>
+          <xs:element ref="opt44"/>
+          <xs:element ref="opt45"/>
+          <xs:element ref="opt46"/>
+          <xs:element ref="opt47"/>
+          <xs:element ref="opt48"/>
+          <xs:element ref="opt49"/>
+          <xs:element ref="opt50"/>
+          <xs:element ref="opt51"/>
+          <xs:element ref="opt52"/>
+          <xs:element ref="opt53"/>
+          <xs:element ref="opt54"/>
+          <xs:element ref="opt55"/>
         </xs:sequence>
       </xs:sequence>
     </xs:complexType>
@@ -256,6 +307,7 @@
     <xs:complexType>
       <xs:sequence>
         <xs:element ref="mode"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="rule"/>
       </xs:sequence>
     </xs:complexType>
   </xs:element>
@@ -264,71 +316,6 @@
     <xs:complexType>
       <xs:sequence>
         <xs:element maxOccurs="unbounded" ref="rule"/>
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name="rule">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element ref="type"/>
-        <xs:choice maxOccurs="unbounded">
-          <xs:element ref="descr"/>
-          <xs:element ref="interface"/>
-          <xs:element ref="ipprotocol"/>
-        </xs:choice>
-        <xs:sequence minOccurs="0">
-          <xs:element ref="statetype"/>
-          <xs:element ref="direction"/>
-          <xs:element ref="quick"/>
-          <xs:element ref="protocol"/>
-        </xs:sequence>
-        <xs:element ref="source"/>
-        <xs:element ref="destination"/>
-        <xs:sequence minOccurs="0">
-          <xs:element ref="updated"/>
-          <xs:element ref="created"/>
-        </xs:sequence>
-      </xs:sequence>
-      <xs:attribute name="uuid"/>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name="statetype" type="xs:string"/>
-  <xs:element name="direction" type="xs:NCName"/>
-  <xs:element name="quick" type="xs:integer"/>
-  <xs:element name="source">
-    <xs:complexType>
-      <xs:choice>
-        <xs:element ref="any"/>
-        <xs:element ref="network"/>
-      </xs:choice>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name="destination">
-    <xs:complexType>
-      <xs:choice>
-        <xs:element ref="any"/>
-        <xs:sequence>
-          <xs:element ref="network"/>
-          <xs:element ref="port"/>
-        </xs:sequence>
-      </xs:choice>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name="updated">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element ref="username"/>
-        <xs:element ref="time"/>
-        <xs:element ref="description"/>
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name="created">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element ref="username"/>
-        <xs:element ref="time"/>
-        <xs:element ref="description"/>
       </xs:sequence>
     </xs:complexType>
   </xs:element>
@@ -1261,9 +1248,6 @@
   <xs:element name="vlan">
     <xs:complexType/>
   </xs:element>
-  <xs:element name="openvpn">
-    <xs:complexType/>
-  </xs:element>
   <xs:element name="staticroutes">
     <xs:complexType>
       <xs:sequence>
@@ -1326,23 +1310,33 @@
   <xs:element name="prv" type="xs:base64Binary"/>
   <xs:element name="item">
     <xs:complexType>
-      <xs:choice minOccurs="0">
-        <xs:sequence>
-          <xs:element ref="descr"/>
-          <xs:element ref="tunable"/>
+      <xs:sequence>
+        <xs:choice minOccurs="0">
+          <xs:sequence>
+            <xs:element ref="descr"/>
+            <xs:element ref="tunable"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="number"/>
+            <xs:element ref="type"/>
+          </xs:sequence>
+        </xs:choice>
+        <xs:choice minOccurs="0">
           <xs:element ref="value"/>
-        </xs:sequence>
-        <xs:sequence>
-          <xs:element ref="key"/>
-          <xs:element ref="secret"/>
-        </xs:sequence>
-      </xs:choice>
+          <xs:sequence>
+            <xs:element ref="key"/>
+            <xs:element ref="secret"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
     </xs:complexType>
   </xs:element>
   <xs:element name="tunable" type="xs:NCName"/>
-  <xs:element name="value" type="xs:NMTOKEN"/>
+  <xs:element name="number" type="xs:integer"/>
+  <xs:element name="value" type="xs:string"/>
   <xs:element name="key" type="xs:string"/>
   <xs:element name="secret" type="xs:string"/>
+  <xs:element name="hostname" type="xs:NCName"/>
   <xs:element name="group">
     <xs:complexType mixed="true">
       <xs:choice minOccurs="0" maxOccurs="unbounded">
@@ -1370,8 +1364,59 @@
     <xs:complexType mixed="true">
       <xs:choice minOccurs="0" maxOccurs="unbounded">
         <xs:element ref="lan"/>
+        <xs:element ref="openvpn"/>
         <xs:element ref="opt1"/>
+        <xs:element ref="opt10"/>
+        <xs:element ref="opt11"/>
+        <xs:element ref="opt12"/>
+        <xs:element ref="opt13"/>
+        <xs:element ref="opt14"/>
+        <xs:element ref="opt15"/>
+        <xs:element ref="opt16"/>
+        <xs:element ref="opt17"/>
+        <xs:element ref="opt18"/>
+        <xs:element ref="opt19"/>
         <xs:element ref="opt2"/>
+        <xs:element ref="opt20"/>
+        <xs:element ref="opt21"/>
+        <xs:element ref="opt22"/>
+        <xs:element ref="opt23"/>
+        <xs:element ref="opt24"/>
+        <xs:element ref="opt25"/>
+        <xs:element ref="opt26"/>
+        <xs:element ref="opt27"/>
+        <xs:element ref="opt28"/>
+        <xs:element ref="opt29"/>
+        <xs:element ref="opt30"/>
+        <xs:element ref="opt31"/>
+        <xs:element ref="opt32"/>
+        <xs:element ref="opt33"/>
+        <xs:element ref="opt34"/>
+        <xs:element ref="opt35"/>
+        <xs:element ref="opt36"/>
+        <xs:element ref="opt37"/>
+        <xs:element ref="opt38"/>
+        <xs:element ref="opt39"/>
+        <xs:element ref="opt40"/>
+        <xs:element ref="opt41"/>
+        <xs:element ref="opt42"/>
+        <xs:element ref="opt43"/>
+        <xs:element ref="opt44"/>
+        <xs:element ref="opt45"/>
+        <xs:element ref="opt46"/>
+        <xs:element ref="opt47"/>
+        <xs:element ref="opt48"/>
+        <xs:element ref="opt49"/>
+        <xs:element ref="opt50"/>
+        <xs:element ref="opt51"/>
+        <xs:element ref="opt52"/>
+        <xs:element ref="opt53"/>
+        <xs:element ref="opt54"/>
+        <xs:element ref="opt55"/>
+        <xs:element ref="opt6"/>
+        <xs:element ref="opt7"/>
+        <xs:element ref="opt8"/>
+        <xs:element ref="opt9"/>
         <xs:element ref="wireguard"/>
         <xs:element ref="lo0"/>
         <xs:element ref="opt0"/>
@@ -1410,19 +1455,29 @@
   <xs:element name="wan">
     <xs:complexType>
       <xs:sequence>
-        <xs:element ref="enable"/>
-        <xs:element ref="if"/>
-        <xs:element minOccurs="0" ref="mtu"/>
-        <xs:element ref="ipaddr"/>
-        <xs:element ref="ipaddrv6"/>
-        <xs:element ref="subnet"/>
-        <xs:element ref="gateway"/>
-        <xs:element ref="blockpriv"/>
-        <xs:element ref="blockbogons"/>
+        <xs:choice maxOccurs="unbounded">
+          <xs:element ref="descr"/>
+          <xs:element ref="enable"/>
+          <xs:element ref="if"/>
+        </xs:choice>
+        <xs:choice minOccurs="0">
+          <xs:element ref="mtu"/>
+          <xs:element ref="spoofmac"/>
+        </xs:choice>
+        <xs:choice maxOccurs="unbounded">
+          <xs:element ref="gateway"/>
+          <xs:element ref="ipaddr"/>
+          <xs:element ref="ipaddrv6"/>
+          <xs:element ref="subnet"/>
+          <xs:element ref="blockbogons"/>
+          <xs:element ref="blockpriv"/>
+        </xs:choice>
         <xs:element minOccurs="0" ref="dhcphostname"/>
-        <xs:element ref="media"/>
-        <xs:element ref="mediaopt"/>
-        <xs:element ref="dhcp6-ia-pd-len"/>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="media"/>
+          <xs:element ref="mediaopt"/>
+          <xs:element ref="dhcp6-ia-pd-len"/>
+        </xs:sequence>
         <xs:sequence minOccurs="0">
           <xs:element ref="subnetv6"/>
           <xs:element ref="gatewayv6"/>
@@ -1430,64 +1485,45 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  <xs:element name="blockpriv" type="xs:NMTOKEN"/>
   <xs:element name="blockbogons" type="xs:NMTOKEN"/>
-  <xs:element name="gatewayv6">
-    <xs:complexType/>
-  </xs:element>
+  <xs:element name="blockpriv" type="xs:NMTOKEN"/>
   <xs:element name="lan">
     <xs:complexType>
       <xs:sequence>
         <xs:choice minOccurs="0" maxOccurs="unbounded">
           <xs:element ref="descr"/>
+          <xs:element ref="dhcphostname"/>
           <xs:element ref="enable"/>
+          <xs:element ref="failover_peerip"/>
+          <xs:element ref="gateway"/>
+          <xs:element ref="gatewayv6"/>
           <xs:element ref="if"/>
-        </xs:choice>
-        <xs:element minOccurs="0" ref="gateway"/>
-        <xs:sequence minOccurs="0">
-          <xs:element ref="ddnsdomainalgorithm"/>
-          <xs:element ref="numberoptions"/>
-        </xs:sequence>
-        <xs:element minOccurs="0" ref="range"/>
-        <xs:sequence minOccurs="0">
-          <xs:element ref="winsserver"/>
-          <xs:element ref="dnsserver"/>
-          <xs:element ref="ntpserver"/>
-        </xs:sequence>
-        <xs:element minOccurs="0" ref="spoofmac"/>
-        <xs:element minOccurs="0" ref="ipaddr"/>
-        <xs:choice minOccurs="0">
+          <xs:element ref="ipaddr"/>
+          <xs:element ref="ipaddrv6"/>
+          <xs:element ref="media"/>
+          <xs:element ref="mediaopt"/>
+          <xs:element ref="spoofmac"/>
           <xs:element ref="subnet"/>
-          <xs:sequence>
-            <xs:element ref="dhcphostname"/>
-            <xs:element ref="alias-address"/>
-            <xs:element ref="alias-subnet"/>
-            <xs:element ref="dhcprejectfrom"/>
-            <xs:element ref="adv_dhcp_pt_timeout"/>
-            <xs:element ref="adv_dhcp_pt_retry"/>
-            <xs:element ref="adv_dhcp_pt_select_timeout"/>
-            <xs:element ref="adv_dhcp_pt_reboot"/>
-            <xs:element ref="adv_dhcp_pt_backoff_cutoff"/>
-            <xs:element ref="adv_dhcp_pt_initial_interval"/>
-            <xs:element ref="adv_dhcp_pt_values"/>
-            <xs:element ref="adv_dhcp_send_options"/>
-            <xs:element ref="adv_dhcp_request_options"/>
-            <xs:element ref="adv_dhcp_required_options"/>
-            <xs:element ref="adv_dhcp_option_modifiers"/>
-            <xs:element ref="adv_dhcp_config_advanced"/>
-            <xs:element ref="adv_dhcp_config_file_override"/>
-            <xs:element ref="adv_dhcp_config_file_override_path"/>
-          </xs:sequence>
+          <xs:element ref="subnetv6"/>
+          <xs:element ref="adv_dhcp_config_advanced"/>
+          <xs:element ref="adv_dhcp_config_file_override"/>
+          <xs:element ref="adv_dhcp_config_file_override_path"/>
+          <xs:element ref="adv_dhcp_option_modifiers"/>
+          <xs:element ref="adv_dhcp_pt_backoff_cutoff"/>
+          <xs:element ref="adv_dhcp_pt_initial_interval"/>
+          <xs:element ref="adv_dhcp_pt_reboot"/>
+          <xs:element ref="adv_dhcp_pt_retry"/>
+          <xs:element ref="adv_dhcp_pt_select_timeout"/>
+          <xs:element ref="adv_dhcp_pt_timeout"/>
+          <xs:element ref="adv_dhcp_pt_values"/>
+          <xs:element ref="adv_dhcp_request_options"/>
+          <xs:element ref="adv_dhcp_required_options"/>
+          <xs:element ref="adv_dhcp_send_options"/>
+          <xs:element ref="alias-address"/>
+          <xs:element ref="alias-subnet"/>
+          <xs:element ref="dhcprejectfrom"/>
         </xs:choice>
-        <xs:element minOccurs="0" ref="ipaddrv6"/>
         <xs:choice minOccurs="0">
-          <xs:sequence>
-            <xs:element ref="subnetv6"/>
-            <xs:element ref="media"/>
-            <xs:element ref="mediaopt"/>
-            <xs:element ref="track6-interface"/>
-            <xs:element ref="track6-prefix-id"/>
-          </xs:sequence>
           <xs:sequence>
             <xs:element ref="dhcp6-ia-pd-len"/>
             <xs:element ref="adv_dhcp6_interface_statement_send_options"/>
@@ -1518,47 +1554,24 @@
             <xs:element ref="adv_dhcp6_config_file_override"/>
             <xs:element ref="adv_dhcp6_config_file_override_path"/>
           </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="track6-interface"/>
+            <xs:element ref="track6-prefix-id"/>
+          </xs:sequence>
         </xs:choice>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="ddnsdomainalgorithm"/>
+          <xs:element ref="numberoptions"/>
+        </xs:sequence>
+        <xs:element minOccurs="0" ref="range"/>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="winsserver"/>
+          <xs:element ref="dnsserver"/>
+          <xs:element ref="ntpserver"/>
+        </xs:sequence>
+        <xs:element minOccurs="0" ref="staticmap"/>
       </xs:sequence>
     </xs:complexType>
-  </xs:element>
-  <xs:element name="alias-address">
-    <xs:complexType/>
-  </xs:element>
-  <xs:element name="alias-subnet" type="xs:integer"/>
-  <xs:element name="dhcprejectfrom">
-    <xs:complexType/>
-  </xs:element>
-  <xs:element name="adv_dhcp_pt_timeout">
-    <xs:complexType/>
-  </xs:element>
-  <xs:element name="adv_dhcp_pt_retry">
-    <xs:complexType/>
-  </xs:element>
-  <xs:element name="adv_dhcp_pt_select_timeout">
-    <xs:complexType/>
-  </xs:element>
-  <xs:element name="adv_dhcp_pt_reboot">
-    <xs:complexType/>
-  </xs:element>
-  <xs:element name="adv_dhcp_pt_backoff_cutoff">
-    <xs:complexType/>
-  </xs:element>
-  <xs:element name="adv_dhcp_pt_initial_interval">
-    <xs:complexType/>
-  </xs:element>
-  <xs:element name="adv_dhcp_pt_values" type="xs:NCName"/>
-  <xs:element name="adv_dhcp_send_options">
-    <xs:complexType/>
-  </xs:element>
-  <xs:element name="adv_dhcp_request_options">
-    <xs:complexType/>
-  </xs:element>
-  <xs:element name="adv_dhcp_required_options">
-    <xs:complexType/>
-  </xs:element>
-  <xs:element name="adv_dhcp_option_modifiers">
-    <xs:complexType/>
   </xs:element>
   <xs:element name="adv_dhcp_config_advanced">
     <xs:complexType/>
@@ -1569,8 +1582,44 @@
   <xs:element name="adv_dhcp_config_file_override_path">
     <xs:complexType/>
   </xs:element>
-  <xs:element name="track6-interface" type="xs:NCName"/>
-  <xs:element name="track6-prefix-id" type="xs:integer"/>
+  <xs:element name="adv_dhcp_option_modifiers">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp_pt_backoff_cutoff">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp_pt_initial_interval">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp_pt_reboot">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp_pt_retry">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp_pt_select_timeout">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp_pt_timeout">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp_pt_values" type="xs:NCName"/>
+  <xs:element name="adv_dhcp_request_options">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp_required_options">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="adv_dhcp_send_options">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="alias-address">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="alias-subnet" type="xs:integer"/>
+  <xs:element name="dhcprejectfrom">
+    <xs:complexType/>
+  </xs:element>
   <xs:element name="adv_dhcp6_interface_statement_send_options">
     <xs:complexType/>
   </xs:element>
@@ -1652,6 +1701,21 @@
   <xs:element name="adv_dhcp6_config_file_override_path">
     <xs:complexType/>
   </xs:element>
+  <xs:element name="track6-interface" type="xs:NCName"/>
+  <xs:element name="track6-prefix-id" type="xs:integer"/>
+  <xs:element name="staticmap">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="mac"/>
+        <xs:element ref="ipaddr"/>
+        <xs:element ref="hostname"/>
+        <xs:element ref="winsserver"/>
+        <xs:element ref="dnsserver"/>
+        <xs:element ref="ntpserver"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="mac" type="xs:NMTOKEN"/>
   <xs:element name="opt1">
     <xs:complexType>
       <xs:sequence>
@@ -1687,6 +1751,60 @@
           <xs:element ref="descr"/>
         </xs:sequence>
         <xs:element ref="enable"/>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="spoofmac"/>
+          <xs:element ref="ipaddr"/>
+          <xs:element ref="subnet"/>
+        </xs:sequence>
+        <xs:element minOccurs="0" ref="failover_peerip"/>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="gateway"/>
+          <xs:element ref="ddnsdomainalgorithm"/>
+          <xs:element ref="numberoptions"/>
+          <xs:element ref="range"/>
+          <xs:element ref="winsserver"/>
+          <xs:element ref="dnsserver"/>
+          <xs:element ref="ntpserver"/>
+        </xs:sequence>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt6">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt7">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
         <xs:choice>
           <xs:sequence>
             <xs:element ref="spoofmac"/>
@@ -1694,6 +1812,1351 @@
             <xs:element ref="subnet"/>
           </xs:sequence>
           <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt8">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt9">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt10">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt11">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt12">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt13">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt14">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt15">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt16">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt17">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt18">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt19">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt20">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt21">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt22">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt23">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt24">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt25">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt26">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt27">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt28">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt29">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt30">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt31">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt32">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt33">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt34">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt35">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt36">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt37">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt38">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt39">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt40">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt41">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt42">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt43">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt44">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt45">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt46">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt47">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt48">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt49">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt50">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt51">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt52">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt53">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt54">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
+            <xs:element ref="gateway"/>
+            <xs:element ref="ddnsdomainalgorithm"/>
+            <xs:element ref="numberoptions"/>
+            <xs:element ref="range"/>
+            <xs:element ref="winsserver"/>
+            <xs:element ref="dnsserver"/>
+            <xs:element ref="ntpserver"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="opt55">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="if"/>
+          <xs:element ref="descr"/>
+        </xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:choice>
+          <xs:sequence>
+            <xs:element ref="spoofmac"/>
+            <xs:element ref="ipaddr"/>
+            <xs:element ref="subnet"/>
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="failover_peerip"/>
             <xs:element ref="gateway"/>
             <xs:element ref="ddnsdomainalgorithm"/>
             <xs:element ref="numberoptions"/>
@@ -1709,15 +3172,103 @@
   <xs:element name="enable" type="xs:string"/>
   <xs:element name="dnssec" type="xs:string"/>
   <xs:element name="dnssecstripped" type="xs:string"/>
-  <xs:element name="interface" type="xs:string"/>
-  <xs:element name="ipprotocol" type="xs:NCName"/>
-  <xs:element name="network" type="xs:string"/>
-  <xs:element name="any" type="xs:string"/>
-  <xs:element name="port" type="xs:integer"/>
+  <xs:element name="rule">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="type"/>
+        <xs:choice maxOccurs="unbounded">
+          <xs:element ref="descr"/>
+          <xs:element ref="interface"/>
+          <xs:element ref="ipprotocol"/>
+          <xs:element ref="protocol"/>
+          <xs:element ref="category"/>
+          <xs:element ref="destination"/>
+          <xs:element ref="direction"/>
+          <xs:element ref="poolopts"/>
+          <xs:element ref="poolopts_sourcehashkey"/>
+          <xs:element ref="quick"/>
+          <xs:element ref="source"/>
+          <xs:element ref="statetype"/>
+          <xs:element ref="tag"/>
+          <xs:element ref="tagged"/>
+        </xs:choice>
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+          <xs:element ref="created"/>
+          <xs:element ref="sourceport"/>
+          <xs:element ref="target"/>
+          <xs:element ref="updated"/>
+        </xs:choice>
+        <xs:element minOccurs="0" ref="disabled"/>
+      </xs:sequence>
+      <xs:attribute name="uuid" type="xs:NMTOKEN"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="category">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="destination">
+    <xs:complexType>
+      <xs:choice>
+        <xs:element ref="any"/>
+        <xs:sequence>
+          <xs:element ref="network"/>
+          <xs:element ref="port"/>
+        </xs:sequence>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="direction" type="xs:NCName"/>
+  <xs:element name="poolopts">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="poolopts_sourcehashkey">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="quick" type="xs:integer"/>
+  <xs:element name="source">
+    <xs:complexType>
+      <xs:choice>
+        <xs:element ref="any"/>
+        <xs:element ref="network"/>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="statetype" type="xs:string"/>
+  <xs:element name="tag">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="tagged">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="created">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="username"/>
+        <xs:element ref="time"/>
+        <xs:element ref="description"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sourceport">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="target" type="xs:NMTOKEN"/>
+  <xs:element name="updated">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="username"/>
+        <xs:element ref="time"/>
+        <xs:element ref="description"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="disabled" type="xs:integer"/>
+  <xs:element name="path" type="xs:string"/>
   <xs:element name="username" type="xs:string"/>
   <xs:element name="time" type="xs:decimal"/>
   <xs:element name="description" type="xs:string"/>
-  <xs:element name="path" type="xs:string"/>
+  <xs:element name="ipprotocol" type="xs:NCName"/>
+  <xs:element name="interface" type="xs:string"/>
   <xs:element name="gateway" type="xs:string"/>
   <xs:element name="templates">
     <xs:complexType/>
@@ -1745,26 +3296,51 @@
         </xs:sequence>
         <xs:element minOccurs="0" ref="enabled"/>
         <xs:sequence minOccurs="0">
-          <xs:element ref="interval"/>
-          <xs:element ref="startdelay"/>
-          <xs:element ref="mailserver"/>
+          <xs:element ref="http_host"/>
+          <xs:element ref="http_port"/>
         </xs:sequence>
-        <xs:element minOccurs="0" ref="port"/>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="ips"/>
+          <xs:element ref="promisc"/>
+        </xs:sequence>
+        <xs:element minOccurs="0" ref="interfaces"/>
         <xs:choice minOccurs="0">
+          <xs:sequence>
+            <xs:element ref="preferred_oldsa"/>
+            <xs:element ref="disablevpnrules"/>
+            <xs:element ref="passthrough_networks"/>
+          </xs:sequence>
           <xs:sequence>
             <xs:element ref="loglocal"/>
             <xs:element ref="maxpreserve"/>
             <xs:element ref="maxfilesize"/>
           </xs:sequence>
           <xs:sequence>
-            <xs:element ref="http_host"/>
-            <xs:element ref="http_port"/>
+            <xs:element ref="homenet"/>
+            <xs:element ref="defaultPacketSize"/>
+            <xs:element ref="UpdateCron"/>
+            <xs:element ref="AlertLogrotate"/>
+            <xs:element ref="AlertSaveLogs"/>
+            <xs:element ref="MPMAlgo"/>
+            <xs:element ref="detect"/>
+            <xs:element ref="syslog"/>
+            <xs:element ref="syslog_eve"/>
+            <xs:element ref="LogPayload"/>
+            <xs:element ref="verbosity"/>
+            <xs:element ref="eveLog"/>
           </xs:sequence>
           <xs:sequence>
-            <xs:element ref="preferred_oldsa"/>
-            <xs:element ref="disablevpnrules"/>
-            <xs:element ref="passthrough_networks"/>
+            <xs:element ref="valid_lifetime"/>
+            <xs:element ref="fwrules"/>
           </xs:sequence>
+        </xs:choice>
+        <xs:sequence minOccurs="0">
+          <xs:element ref="interval"/>
+          <xs:element ref="startdelay"/>
+          <xs:element ref="mailserver"/>
+        </xs:sequence>
+        <xs:element minOccurs="0" ref="port"/>
+        <xs:choice minOccurs="0">
           <xs:sequence>
             <xs:element ref="username"/>
             <xs:element ref="password"/>
@@ -1803,31 +3379,6 @@
             <xs:element ref="enable_wpad"/>
           </xs:sequence>
         </xs:choice>
-        <xs:sequence minOccurs="0">
-          <xs:element ref="ips"/>
-          <xs:element ref="promisc"/>
-        </xs:sequence>
-        <xs:element minOccurs="0" ref="interfaces"/>
-        <xs:choice minOccurs="0">
-          <xs:sequence>
-            <xs:element ref="valid_lifetime"/>
-            <xs:element ref="fwrules"/>
-          </xs:sequence>
-          <xs:sequence>
-            <xs:element ref="homenet"/>
-            <xs:element ref="defaultPacketSize"/>
-            <xs:element ref="UpdateCron"/>
-            <xs:element ref="AlertLogrotate"/>
-            <xs:element ref="AlertSaveLogs"/>
-            <xs:element ref="MPMAlgo"/>
-            <xs:element ref="detect"/>
-            <xs:element ref="syslog"/>
-            <xs:element ref="syslog_eve"/>
-            <xs:element ref="LogPayload"/>
-            <xs:element ref="verbosity"/>
-            <xs:element ref="eveLog"/>
-          </xs:sequence>
-        </xs:choice>
       </xs:sequence>
       <xs:attribute name="version" type="xs:NMTOKEN"/>
     </xs:complexType>
@@ -1852,20 +3403,79 @@
   <xs:element name="MinProtocol_DTLS">
     <xs:complexType/>
   </xs:element>
-  <xs:element name="startdelay" type="xs:integer"/>
-  <xs:element name="mailserver" type="xs:NMTOKEN"/>
-  <xs:element name="loglocal" type="xs:integer"/>
-  <xs:element name="maxpreserve" type="xs:integer"/>
-  <xs:element name="maxfilesize">
-    <xs:complexType/>
-  </xs:element>
   <xs:element name="http_host" type="xs:NMTOKEN"/>
   <xs:element name="http_port" type="xs:integer"/>
+  <xs:element name="ips" type="xs:integer"/>
+  <xs:element name="promisc" type="xs:integer"/>
   <xs:element name="preferred_oldsa" type="xs:integer"/>
   <xs:element name="disablevpnrules" type="xs:integer"/>
   <xs:element name="passthrough_networks">
     <xs:complexType/>
   </xs:element>
+  <xs:element name="loglocal" type="xs:integer"/>
+  <xs:element name="maxpreserve" type="xs:integer"/>
+  <xs:element name="maxfilesize">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="homenet" type="xs:string"/>
+  <xs:element name="defaultPacketSize">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="UpdateCron">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="AlertLogrotate" type="xs:NCName"/>
+  <xs:element name="AlertSaveLogs" type="xs:integer"/>
+  <xs:element name="MPMAlgo">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="detect">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="Profile"/>
+        <xs:element ref="toclient_groups"/>
+        <xs:element ref="toserver_groups"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="Profile">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="toclient_groups">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="toserver_groups">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="syslog_eve" type="xs:integer"/>
+  <xs:element name="LogPayload" type="xs:integer"/>
+  <xs:element name="verbosity">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="eveLog">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="http"/>
+        <xs:element ref="tls"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="http">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="enable"/>
+        <xs:element ref="extended"/>
+        <xs:element ref="dumpAllHeaders"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="dumpAllHeaders">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="valid_lifetime" type="xs:integer"/>
+  <xs:element name="fwrules" type="xs:integer"/>
+  <xs:element name="startdelay" type="xs:integer"/>
+  <xs:element name="mailserver" type="xs:NMTOKEN"/>
   <xs:element name="ssl" type="xs:integer"/>
   <xs:element name="sslversion" type="xs:NCName"/>
   <xs:element name="sslverify" type="xs:integer"/>
@@ -1936,65 +3546,6 @@
     <xs:complexType/>
   </xs:element>
   <xs:element name="enable_wpad">
-    <xs:complexType/>
-  </xs:element>
-  <xs:element name="ips" type="xs:integer"/>
-  <xs:element name="promisc" type="xs:integer"/>
-  <xs:element name="valid_lifetime" type="xs:integer"/>
-  <xs:element name="fwrules" type="xs:integer"/>
-  <xs:element name="homenet" type="xs:string"/>
-  <xs:element name="defaultPacketSize">
-    <xs:complexType/>
-  </xs:element>
-  <xs:element name="UpdateCron">
-    <xs:complexType/>
-  </xs:element>
-  <xs:element name="AlertLogrotate" type="xs:NCName"/>
-  <xs:element name="AlertSaveLogs" type="xs:integer"/>
-  <xs:element name="MPMAlgo">
-    <xs:complexType/>
-  </xs:element>
-  <xs:element name="detect">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element ref="Profile"/>
-        <xs:element ref="toclient_groups"/>
-        <xs:element ref="toserver_groups"/>
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name="Profile">
-    <xs:complexType/>
-  </xs:element>
-  <xs:element name="toclient_groups">
-    <xs:complexType/>
-  </xs:element>
-  <xs:element name="toserver_groups">
-    <xs:complexType/>
-  </xs:element>
-  <xs:element name="syslog_eve" type="xs:integer"/>
-  <xs:element name="LogPayload" type="xs:integer"/>
-  <xs:element name="verbosity">
-    <xs:complexType/>
-  </xs:element>
-  <xs:element name="eveLog">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element ref="http"/>
-        <xs:element ref="tls"/>
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name="http">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element ref="enable"/>
-        <xs:element ref="extended"/>
-        <xs:element ref="dumpAllHeaders"/>
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name="dumpAllHeaders">
     <xs:complexType/>
   </xs:element>
   <xs:element name="syslog">
@@ -2079,13 +3630,35 @@
       </xs:choice>
     </xs:complexType>
   </xs:element>
-  <xs:element name="if" type="xs:NCName"/>
-  <xs:element name="mtu">
+  <xs:element name="openvpn">
+    <xs:complexType>
+      <xs:sequence minOccurs="0">
+        <xs:element ref="internal_dynamic"/>
+        <xs:element ref="enable"/>
+        <xs:element ref="if"/>
+        <xs:element ref="descr"/>
+        <xs:element ref="type"/>
+        <xs:element ref="virtual"/>
+        <xs:element ref="networks"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="networks">
     <xs:complexType/>
   </xs:element>
+  <xs:element name="internal_dynamic" type="xs:integer"/>
+  <xs:element name="if" type="xs:NCName"/>
   <xs:element name="ipaddr" type="xs:NMTOKEN"/>
   <xs:element name="ipaddrv6" type="xs:string"/>
   <xs:element name="subnet" type="xs:string"/>
+  <xs:element name="subnetv6" type="xs:string"/>
+  <xs:element name="virtual" type="xs:integer"/>
+  <xs:element name="mtu">
+    <xs:complexType/>
+  </xs:element>
+  <xs:element name="spoofmac">
+    <xs:complexType/>
+  </xs:element>
   <xs:element name="dhcphostname">
     <xs:complexType/>
   </xs:element>
@@ -2096,12 +3669,10 @@
     <xs:complexType/>
   </xs:element>
   <xs:element name="dhcp6-ia-pd-len" type="xs:integer"/>
-  <xs:element name="subnetv6" type="xs:string"/>
-  <xs:element name="spoofmac">
+  <xs:element name="gatewayv6">
     <xs:complexType/>
   </xs:element>
-  <xs:element name="internal_dynamic" type="xs:integer"/>
-  <xs:element name="virtual" type="xs:integer"/>
+  <xs:element name="failover_peerip" type="xs:NMTOKEN"/>
   <xs:element name="ddnsdomainalgorithm" type="xs:NCName"/>
   <xs:element name="numberoptions">
     <xs:complexType>
@@ -2126,6 +3697,9 @@
   <xs:element name="ntpserver">
     <xs:complexType/>
   </xs:element>
+  <xs:element name="any" type="xs:string"/>
+  <xs:element name="network" type="xs:string"/>
+  <xs:element name="port" type="xs:integer"/>
   <xs:element name="extended" type="xs:integer"/>
   <xs:element name="tls">
     <xs:complexType mixed="true">

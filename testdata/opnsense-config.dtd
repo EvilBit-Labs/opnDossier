@@ -1,0 +1,2592 @@
+<?xml encoding="UTF-8"?>
+
+<!ELEMENT opnsense (trigger_initial_wizard?,theme,sysctl,system,
+                    interfaces,dhcpd,unbound?,snmpd,nat,filter,rrd,
+                    load_balancer?,ntpd,widgets?,revision?,gateways?,
+                    OPNsense?,
+                    (hasync,ifgroups,gifs,gres,laggs,virtualip,vlans,
+                     openvpn,staticroutes,bridges,ppps,wireless,ca,
+                     dhcpdv6,cert)?)>
+<!ATTLIST opnsense
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT trigger_initial_wizard EMPTY>
+<!ATTLIST trigger_initial_wizard
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT theme (#PCDATA)>
+<!ATTLIST theme
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT sysctl (item)+>
+<!ATTLIST sysctl
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT system (optimization,hostname,domain,dnsallowoverride?,group,
+                  user,nextuid,nextgid,timezone,timeservers,webgui,
+                  disablenatreflection,usevirtualterminal,
+                  disableconsolemenu,disablevlanhwfilter,
+                  disablechecksumoffloading,
+                  disablesegmentationoffloading,
+                  disablelargereceiveoffloading,ipv6allow,
+                  powerd_ac_mode,powerd_battery_mode,powerd_normal_mode,
+                  bogons,pf_share_forward,lb_use_sticky,ssh,rrdbackup,
+                  netflowbackup,firmware?,(dnsserver,language)?)>
+<!ATTLIST system
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT dhcpd (lan,opt1?,opt2?,
+                 (opt6,opt7,opt8,opt9,opt10,opt11,opt12,opt13,opt14,
+                  opt15)?,
+                 (opt16,opt17,opt18,opt19,opt20,opt21,opt22,opt23,opt24,
+                  opt25,opt26,opt27,opt28,opt29,opt30,opt31,opt32,opt33,
+                  opt34,opt35,opt36,opt37,opt38,opt39,opt40,opt41,opt42,
+                  opt43,opt44,opt45,opt46,opt47,opt48,opt49,opt50,opt51,
+                  opt52,opt53,opt54,opt55)?)>
+<!ATTLIST dhcpd
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT unbound (enable,(dnssec,dnssecstripped)?)>
+<!ATTLIST unbound
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT snmpd (syslocation,syscontact,rocommunity)>
+<!ATTLIST snmpd
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT nat (outbound)>
+<!ATTLIST nat
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT filter (rule)+>
+<!ATTLIST filter
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT rrd (enable)>
+<!ATTLIST rrd
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT load_balancer (monitor_type)+>
+<!ATTLIST load_balancer
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT ntpd (prefer)>
+<!ATTLIST ntpd
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT widgets (sequence,column_count)>
+<!ATTLIST widgets
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT revision (username,time,description)>
+<!ATTLIST revision
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT gateways (gateway_item)>
+<!ATTLIST gateways
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT OPNsense ((captiveportal,cron,DHCRelay,Firewall,Netflow,IDS,
+                     IPsec,Swanctl,Interfaces,Kea,monit,OpenVPNExport,
+                     OpenVPN,Gateways,Syslog,TrafficShaper,trust,
+                     unboundplus)?,
+                    wireguard)>
+<!ATTLIST OPNsense
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT hasync (disablepreempt,disconnectppps,pfsyncinterface,
+                  pfsyncpeerip,pfsyncversion,synchronizetoip,username,
+                  password,syncitems)>
+<!ATTLIST hasync
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT ifgroups EMPTY>
+<!ATTLIST ifgroups
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT gifs (gif)>
+<!ATTLIST gifs
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT gres (gre)>
+<!ATTLIST gres
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT laggs (lagg)>
+<!ATTLIST laggs
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT virtualip (vip)>
+<!ATTLIST virtualip
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT vlans (vlan)>
+<!ATTLIST vlans
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT staticroutes (route)>
+<!ATTLIST staticroutes
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT bridges (bridged)>
+<!ATTLIST bridges
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT ppps (ppp)>
+<!ATTLIST ppps
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT wireless (clone)>
+<!ATTLIST wireless
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT ca EMPTY>
+<!ATTLIST ca
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT dhcpdv6 EMPTY>
+<!ATTLIST dhcpdv6
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT cert (refid,descr,crt,prv)>
+<!ATTLIST cert
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT optimization (#PCDATA)>
+<!ATTLIST optimization
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT domain (#PCDATA)>
+<!ATTLIST domain
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT dnsallowoverride (#PCDATA)>
+<!ATTLIST dnsallowoverride
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT user (name,descr,scope,groupname,password,uid,
+                (apikeys,expires,authorizedkeys,ipsecpsk,otp_seed)?)>
+<!ATTLIST user
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT nextuid (#PCDATA)>
+<!ATTLIST nextuid
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT nextgid (#PCDATA)>
+<!ATTLIST nextgid
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT timezone (#PCDATA)>
+<!ATTLIST timezone
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT timeservers (#PCDATA)>
+<!ATTLIST timeservers
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT webgui (protocol,ssl-certref?)>
+<!ATTLIST webgui
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT disablenatreflection (#PCDATA)>
+<!ATTLIST disablenatreflection
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT usevirtualterminal (#PCDATA)>
+<!ATTLIST usevirtualterminal
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT disableconsolemenu EMPTY>
+<!ATTLIST disableconsolemenu
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT disablevlanhwfilter (#PCDATA)>
+<!ATTLIST disablevlanhwfilter
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT disablechecksumoffloading (#PCDATA)>
+<!ATTLIST disablechecksumoffloading
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT disablesegmentationoffloading (#PCDATA)>
+<!ATTLIST disablesegmentationoffloading
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT disablelargereceiveoffloading (#PCDATA)>
+<!ATTLIST disablelargereceiveoffloading
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT ipv6allow (#PCDATA)>
+<!ATTLIST ipv6allow
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT powerd_ac_mode (#PCDATA)>
+<!ATTLIST powerd_ac_mode
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT powerd_battery_mode (#PCDATA)>
+<!ATTLIST powerd_battery_mode
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT powerd_normal_mode (#PCDATA)>
+<!ATTLIST powerd_normal_mode
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT bogons (interval)>
+<!ATTLIST bogons
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT pf_share_forward (#PCDATA)>
+<!ATTLIST pf_share_forward
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT lb_use_sticky (#PCDATA)>
+<!ATTLIST lb_use_sticky
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT ssh (group)>
+<!ATTLIST ssh
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT rrdbackup (#PCDATA)>
+<!ATTLIST rrdbackup
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT netflowbackup (#PCDATA)>
+<!ATTLIST netflowbackup
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT firmware (mirror,flavour,plugins,(type,subscription,reboot)?)>
+<!ATTLIST firmware
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT language (#PCDATA)>
+<!ATTLIST language
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT syslocation EMPTY>
+<!ATTLIST syslocation
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT syscontact EMPTY>
+<!ATTLIST syscontact
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT rocommunity (#PCDATA)>
+<!ATTLIST rocommunity
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT outbound (mode,rule*)>
+<!ATTLIST outbound
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT monitor_type (name,type,descr,options)>
+<!ATTLIST monitor_type
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT prefer (#PCDATA)>
+<!ATTLIST prefer
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT sequence (#PCDATA)>
+<!ATTLIST sequence
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT column_count (#PCDATA)>
+<!ATTLIST column_count
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT gateway_item (descr,defaultgw,ipprotocol,interface,gateway,
+                        monitor_disable,name,interval,weight,fargw)>
+<!ATTLIST gateway_item
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT captiveportal (zones,templates)>
+<!ATTLIST captiveportal
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT cron (jobs)>
+<!ATTLIST cron
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT DHCRelay EMPTY>
+<!ATTLIST DHCRelay
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT Firewall (Lvtemplate,Alias,Category,Filter)>
+<!ATTLIST Firewall
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT Netflow (capture,collect,activeTimeout,inactiveTimeout)>
+<!ATTLIST Netflow
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT IDS (rules,policies,userDefinedRules,files,fileTags,general)>
+<!ATTLIST IDS
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT IPsec (general,charon,keyPairs,preSharedKeys)>
+<!ATTLIST IPsec
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT Swanctl (Connections,locals,remotes,children,Pools,VTIs,SPDs)>
+<!ATTLIST Swanctl
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT Interfaces (loopbacks,neighbors,vxlans)>
+<!ATTLIST Interfaces
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT Kea (ctrl_agent,dhcp4)>
+<!ATTLIST Kea
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT monit (general,alert,service+,test+)>
+<!ATTLIST monit
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT OpenVPNExport (servers)>
+<!ATTLIST OpenVPNExport
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT OpenVPN (Overwrites,Instances,StaticKeys)>
+<!ATTLIST OpenVPN
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT Gateways EMPTY>
+<!ATTLIST Gateways
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT Syslog (general,destinations)>
+<!ATTLIST Syslog
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT TrafficShaper (pipes,queues,rules)>
+<!ATTLIST TrafficShaper
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT trust (general)>
+<!ATTLIST trust
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT unboundplus (general,advanced,acls,dnsbl,forwarding,dots,
+                       hosts,aliases,domains)>
+<!ATTLIST unboundplus
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT disablepreempt (#PCDATA)>
+<!ATTLIST disablepreempt
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT disconnectppps (#PCDATA)>
+<!ATTLIST disconnectppps
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT pfsyncinterface EMPTY>
+<!ATTLIST pfsyncinterface
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT pfsyncpeerip EMPTY>
+<!ATTLIST pfsyncpeerip
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT pfsyncversion (#PCDATA)>
+<!ATTLIST pfsyncversion
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT synchronizetoip EMPTY>
+<!ATTLIST synchronizetoip
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT syncitems EMPTY>
+<!ATTLIST syncitems
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT gif EMPTY>
+<!ATTLIST gif
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT gre EMPTY>
+<!ATTLIST gre
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT lagg EMPTY>
+<!ATTLIST lagg
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT vip EMPTY>
+<!ATTLIST vip
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT vlan EMPTY>
+<!ATTLIST vlan
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT route EMPTY>
+<!ATTLIST route
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT bridged EMPTY>
+<!ATTLIST bridged
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT ppp EMPTY>
+<!ATTLIST ppp
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT clone EMPTY>
+<!ATTLIST clone
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT refid (#PCDATA)>
+<!ATTLIST refid
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT crt (#PCDATA)>
+<!ATTLIST crt
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT prv (#PCDATA)>
+<!ATTLIST prv
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT groupname (#PCDATA)>
+<!ATTLIST groupname
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT uid (#PCDATA)>
+<!ATTLIST uid
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT apikeys (item)>
+<!ATTLIST apikeys
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT expires EMPTY>
+<!ATTLIST expires
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT authorizedkeys EMPTY>
+<!ATTLIST authorizedkeys
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT ipsecpsk EMPTY>
+<!ATTLIST ipsecpsk
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT otp_seed EMPTY>
+<!ATTLIST otp_seed
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT ssl-certref (#PCDATA)>
+<!ATTLIST ssl-certref
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT mirror EMPTY>
+<!ATTLIST mirror
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT flavour EMPTY>
+<!ATTLIST flavour
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT plugins (#PCDATA)>
+<!ATTLIST plugins
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT subscription EMPTY>
+<!ATTLIST subscription
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT reboot EMPTY>
+<!ATTLIST reboot
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT mode (#PCDATA)>
+<!ATTLIST mode
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT options ((path,host,code)|(send,expect))?>
+<!ATTLIST options
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT defaultgw (#PCDATA)>
+<!ATTLIST defaultgw
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT monitor_disable (#PCDATA)>
+<!ATTLIST monitor_disable
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT weight (#PCDATA)>
+<!ATTLIST weight
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT fargw (#PCDATA)>
+<!ATTLIST fargw
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT zones EMPTY>
+<!ATTLIST zones
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT jobs EMPTY>
+<!ATTLIST jobs
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT Lvtemplate (templates)>
+<!ATTLIST Lvtemplate
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT Alias (geoip,aliases)>
+<!ATTLIST Alias
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT Category (categories)>
+<!ATTLIST Category
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT Filter (rules,snatrules,npt,onetoone)>
+<!ATTLIST Filter
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT capture (interfaces,egress_only,version,targets)>
+<!ATTLIST capture
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT collect (enable)>
+<!ATTLIST collect
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT activeTimeout (#PCDATA)>
+<!ATTLIST activeTimeout
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT inactiveTimeout (#PCDATA)>
+<!ATTLIST inactiveTimeout
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT policies EMPTY>
+<!ATTLIST policies
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT userDefinedRules EMPTY>
+<!ATTLIST userDefinedRules
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT files EMPTY>
+<!ATTLIST files
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT fileTags EMPTY>
+<!ATTLIST fileTags
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT charon (max_ikev1_exchanges,threads,ikesa_table_size,
+                  ikesa_table_segments,init_limit_half_open,
+                  ignore_acquire_ts,make_before_break,retransmit_tries,
+                  retransmit_timeout,retransmit_base,retransmit_jitter,
+                  retransmit_limit,syslog)>
+<!ATTLIST charon
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT keyPairs EMPTY>
+<!ATTLIST keyPairs
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT preSharedKeys EMPTY>
+<!ATTLIST preSharedKeys
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT Connections EMPTY>
+<!ATTLIST Connections
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT locals EMPTY>
+<!ATTLIST locals
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT remotes EMPTY>
+<!ATTLIST remotes
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT children EMPTY>
+<!ATTLIST children
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT Pools EMPTY>
+<!ATTLIST Pools
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT VTIs EMPTY>
+<!ATTLIST VTIs
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT SPDs EMPTY>
+<!ATTLIST SPDs
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT loopbacks EMPTY>
+<!ATTLIST loopbacks
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT neighbors EMPTY>
+<!ATTLIST neighbors
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT vxlans EMPTY>
+<!ATTLIST vxlans
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT ctrl_agent (general)>
+<!ATTLIST ctrl_agent
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT dhcp4 (general,ha,subnets,reservations,ha_peers)>
+<!ATTLIST dhcp4
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #REQUIRED>
+
+<!ELEMENT alert (enabled,recipient,noton,events,format,reminder,
+                 description)>
+<!ATTLIST alert
+  xmlns CDATA #FIXED ''
+  uuid CDATA #REQUIRED>
+
+<!ELEMENT service (enabled,name,description,type,pidfile,match,path,
+                   timeout,starttimeout,address,interface,start,stop,
+                   tests,depends,polltime)>
+<!ATTLIST service
+  xmlns CDATA #FIXED ''
+  uuid CDATA #REQUIRED>
+
+<!ELEMENT test (name,type,condition,action,path)>
+<!ATTLIST test
+  xmlns CDATA #FIXED ''
+  uuid CDATA #REQUIRED>
+
+<!ELEMENT Overwrites EMPTY>
+<!ATTLIST Overwrites
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT Instances EMPTY>
+<!ATTLIST Instances
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT StaticKeys EMPTY>
+<!ATTLIST StaticKeys
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT destinations EMPTY>
+<!ATTLIST destinations
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT pipes EMPTY>
+<!ATTLIST pipes
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT queues EMPTY>
+<!ATTLIST queues
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT advanced (hideidentity,hideversion,prefetch,prefetchkey,
+                    dnssecstripped,aggressivensec,serveexpired,
+                    serveexpiredreplyttl,serveexpiredttl,
+                    serveexpiredttlreset,serveexpiredclienttimeout,
+                    qnameminstrict,extendedstatistics,logqueries,
+                    logreplies,logtagqueryreply,logservfail,
+                    loglocalactions,logverbosity,valloglevel,
+                    privatedomain,privateaddress,insecuredomain,
+                    msgcachesize,rrsetcachesize,outgoingnumtcp,
+                    incomingnumtcp,numqueriesperthread,outgoingrange,
+                    jostletimeout,discardtimeout,cachemaxttl,
+                    cachemaxnegativettl,cacheminttl,infrahostttl,
+                    infrakeepprobing,infracachenumhosts,
+                    unwantedreplythreshold)>
+<!ATTLIST advanced
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT acls (default_action)>
+<!ATTLIST acls
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT dnsbl (enabled,safesearch,type,lists,whitelists,blocklists,
+                 wildcards,address,nxdomain)>
+<!ATTLIST dnsbl
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT forwarding (enabled)>
+<!ATTLIST forwarding
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT dots EMPTY>
+<!ATTLIST dots
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT hosts EMPTY>
+<!ATTLIST hosts
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT domains EMPTY>
+<!ATTLIST domains
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT host EMPTY>
+<!ATTLIST host
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT code (#PCDATA)>
+<!ATTLIST code
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT send EMPTY>
+<!ATTLIST send
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT expect (#PCDATA)>
+<!ATTLIST expect
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT geoip (url)>
+<!ATTLIST geoip
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT categories EMPTY>
+<!ATTLIST categories
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT snatrules EMPTY>
+<!ATTLIST snatrules
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT npt EMPTY>
+<!ATTLIST npt
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT onetoone EMPTY>
+<!ATTLIST onetoone
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT egress_only EMPTY>
+<!ATTLIST egress_only
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT version (#PCDATA)>
+<!ATTLIST version
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT targets EMPTY>
+<!ATTLIST targets
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT max_ikev1_exchanges EMPTY>
+<!ATTLIST max_ikev1_exchanges
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT threads (#PCDATA)>
+<!ATTLIST threads
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT ikesa_table_size (#PCDATA)>
+<!ATTLIST ikesa_table_size
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT ikesa_table_segments (#PCDATA)>
+<!ATTLIST ikesa_table_segments
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT init_limit_half_open (#PCDATA)>
+<!ATTLIST init_limit_half_open
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT ignore_acquire_ts (#PCDATA)>
+<!ATTLIST ignore_acquire_ts
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT make_before_break EMPTY>
+<!ATTLIST make_before_break
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT retransmit_tries EMPTY>
+<!ATTLIST retransmit_tries
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT retransmit_timeout EMPTY>
+<!ATTLIST retransmit_timeout
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT retransmit_base EMPTY>
+<!ATTLIST retransmit_base
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT retransmit_jitter EMPTY>
+<!ATTLIST retransmit_jitter
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT retransmit_limit EMPTY>
+<!ATTLIST retransmit_limit
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT ha (enabled,this_server_name,max_unacked_clients)>
+<!ATTLIST ha
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT subnets EMPTY>
+<!ATTLIST subnets
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT reservations EMPTY>
+<!ATTLIST reservations
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT ha_peers EMPTY>
+<!ATTLIST ha_peers
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT recipient (#PCDATA)>
+<!ATTLIST recipient
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT noton (#PCDATA)>
+<!ATTLIST noton
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT events EMPTY>
+<!ATTLIST events
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT format EMPTY>
+<!ATTLIST format
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT reminder EMPTY>
+<!ATTLIST reminder
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT pidfile EMPTY>
+<!ATTLIST pidfile
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT match EMPTY>
+<!ATTLIST match
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT timeout (#PCDATA)>
+<!ATTLIST timeout
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT starttimeout (#PCDATA)>
+<!ATTLIST starttimeout
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT start EMPTY>
+<!ATTLIST start
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT stop EMPTY>
+<!ATTLIST stop
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT tests (#PCDATA)>
+<!ATTLIST tests
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT depends EMPTY>
+<!ATTLIST depends
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT polltime EMPTY>
+<!ATTLIST polltime
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT condition (#PCDATA)>
+<!ATTLIST condition
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT action (#PCDATA)>
+<!ATTLIST action
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT hideidentity EMPTY>
+<!ATTLIST hideidentity
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT hideversion EMPTY>
+<!ATTLIST hideversion
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT prefetch EMPTY>
+<!ATTLIST prefetch
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT prefetchkey EMPTY>
+<!ATTLIST prefetchkey
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT aggressivensec (#PCDATA)>
+<!ATTLIST aggressivensec
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT serveexpired EMPTY>
+<!ATTLIST serveexpired
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT serveexpiredreplyttl EMPTY>
+<!ATTLIST serveexpiredreplyttl
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT serveexpiredttl EMPTY>
+<!ATTLIST serveexpiredttl
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT serveexpiredttlreset EMPTY>
+<!ATTLIST serveexpiredttlreset
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT serveexpiredclienttimeout EMPTY>
+<!ATTLIST serveexpiredclienttimeout
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT qnameminstrict EMPTY>
+<!ATTLIST qnameminstrict
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT extendedstatistics EMPTY>
+<!ATTLIST extendedstatistics
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT logqueries EMPTY>
+<!ATTLIST logqueries
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT logreplies EMPTY>
+<!ATTLIST logreplies
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT logtagqueryreply EMPTY>
+<!ATTLIST logtagqueryreply
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT logservfail EMPTY>
+<!ATTLIST logservfail
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT loglocalactions EMPTY>
+<!ATTLIST loglocalactions
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT logverbosity (#PCDATA)>
+<!ATTLIST logverbosity
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT valloglevel (#PCDATA)>
+<!ATTLIST valloglevel
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT privatedomain EMPTY>
+<!ATTLIST privatedomain
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT privateaddress (#PCDATA)>
+<!ATTLIST privateaddress
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT insecuredomain EMPTY>
+<!ATTLIST insecuredomain
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT msgcachesize EMPTY>
+<!ATTLIST msgcachesize
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT rrsetcachesize EMPTY>
+<!ATTLIST rrsetcachesize
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT outgoingnumtcp EMPTY>
+<!ATTLIST outgoingnumtcp
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT incomingnumtcp EMPTY>
+<!ATTLIST incomingnumtcp
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT numqueriesperthread EMPTY>
+<!ATTLIST numqueriesperthread
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT outgoingrange EMPTY>
+<!ATTLIST outgoingrange
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT jostletimeout EMPTY>
+<!ATTLIST jostletimeout
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT discardtimeout EMPTY>
+<!ATTLIST discardtimeout
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT cachemaxttl EMPTY>
+<!ATTLIST cachemaxttl
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT cachemaxnegativettl EMPTY>
+<!ATTLIST cachemaxnegativettl
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT cacheminttl EMPTY>
+<!ATTLIST cacheminttl
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT infrahostttl EMPTY>
+<!ATTLIST infrahostttl
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT infrakeepprobing EMPTY>
+<!ATTLIST infrakeepprobing
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT infracachenumhosts EMPTY>
+<!ATTLIST infracachenumhosts
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT unwantedreplythreshold EMPTY>
+<!ATTLIST unwantedreplythreshold
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT default_action (#PCDATA)>
+<!ATTLIST default_action
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT safesearch EMPTY>
+<!ATTLIST safesearch
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT lists EMPTY>
+<!ATTLIST lists
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT whitelists EMPTY>
+<!ATTLIST whitelists
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT blocklists EMPTY>
+<!ATTLIST blocklists
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT wildcards EMPTY>
+<!ATTLIST wildcards
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT nxdomain EMPTY>
+<!ATTLIST nxdomain
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT url EMPTY>
+<!ATTLIST url
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT this_server_name EMPTY>
+<!ATTLIST this_server_name
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT max_unacked_clients (#PCDATA)>
+<!ATTLIST max_unacked_clients
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT item (((number,type)|(descr,tunable))?,(value|(key,secret))?)>
+<!ATTLIST item
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT number (#PCDATA)>
+<!ATTLIST number
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT tunable (#PCDATA)>
+<!ATTLIST tunable
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT value (#PCDATA)>
+<!ATTLIST value
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT key (#PCDATA)>
+<!ATTLIST key
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT secret (#PCDATA)>
+<!ATTLIST secret
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT hostname (#PCDATA)>
+<!ATTLIST hostname
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT group (#PCDATA|description|name|scope|gid|member|priv)*>
+<!ATTLIST group
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT gid (#PCDATA)>
+<!ATTLIST gid
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT member (#PCDATA)>
+<!ATTLIST member
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT priv (#PCDATA)>
+<!ATTLIST priv
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT name (#PCDATA)>
+<!ATTLIST name
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT descr (#PCDATA)>
+<!ATTLIST descr
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT scope (#PCDATA)>
+<!ATTLIST scope
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT password (#PCDATA)>
+<!ATTLIST password
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT protocol (#PCDATA)>
+<!ATTLIST protocol
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT interval (#PCDATA)>
+<!ATTLIST interval
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT type (#PCDATA)>
+<!ATTLIST type
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT dnsserver (#PCDATA)>
+<!ATTLIST dnsserver
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT interfaces (#PCDATA|lan|openvpn|opt1|opt10|opt11|opt12|opt13
+                      |opt14|opt15|opt16|opt17|opt18|opt19|opt2|opt20
+                      |opt21|opt22|opt23|opt24|opt25|opt26|opt27|opt28
+                      |opt29|opt30|opt31|opt32|opt33|opt34|opt35|opt36
+                      |opt37|opt38|opt39|opt40|opt41|opt42|opt43|opt44
+                      |opt45|opt46|opt47|opt48|opt49|opt50|opt51|opt52
+                      |opt53|opt54|opt55|opt6|opt7|opt8|opt9|wireguard
+                      |lo0|opt0|wan)*>
+<!ATTLIST interfaces
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT lo0 (internal_dynamic,descr,enable,if,ipaddr,ipaddrv6,subnet,
+               subnetv6,type,virtual)>
+<!ATTLIST lo0
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt0 (if,descr,enable,lock,spoofmac)>
+<!ATTLIST opt0
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT wan ((descr|enable|if)+,(mtu|spoofmac)?,
+               (gateway|ipaddr|ipaddrv6|subnet|blockbogons|blockpriv)+,
+               dhcphostname?,(media,mediaopt,dhcp6-ia-pd-len)?,
+               (subnetv6,gatewayv6)?)>
+<!ATTLIST wan
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT lock (#PCDATA)>
+<!ATTLIST lock
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT blockbogons (#PCDATA)>
+<!ATTLIST blockbogons
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT blockpriv (#PCDATA)>
+<!ATTLIST blockpriv
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT lan ((descr|dhcphostname|enable|failover_peerip|gateway
+                |gatewayv6|if|ipaddr|ipaddrv6|media|mediaopt|spoofmac
+                |subnet|subnetv6|adv_dhcp_config_advanced
+                |adv_dhcp_config_file_override
+                |adv_dhcp_config_file_override_path
+                |adv_dhcp_option_modifiers|adv_dhcp_pt_backoff_cutoff
+                |adv_dhcp_pt_initial_interval|adv_dhcp_pt_reboot
+                |adv_dhcp_pt_retry|adv_dhcp_pt_select_timeout
+                |adv_dhcp_pt_timeout|adv_dhcp_pt_values
+                |adv_dhcp_request_options|adv_dhcp_required_options
+                |adv_dhcp_send_options|alias-address|alias-subnet
+                |dhcprejectfrom)*,
+               ((track6-interface,track6-prefix-id)
+                |(dhcp6-ia-pd-len,
+                  adv_dhcp6_interface_statement_send_options,
+                  adv_dhcp6_interface_statement_request_options,
+                  adv_dhcp6_interface_statement_information_only_enable,
+                  adv_dhcp6_interface_statement_script,
+                  adv_dhcp6_id_assoc_statement_address_enable,
+                  adv_dhcp6_id_assoc_statement_address,
+                  adv_dhcp6_id_assoc_statement_address_id,
+                  adv_dhcp6_id_assoc_statement_address_pltime,
+                  adv_dhcp6_id_assoc_statement_address_vltime,
+                  adv_dhcp6_id_assoc_statement_prefix_enable,
+                  adv_dhcp6_id_assoc_statement_prefix,
+                  adv_dhcp6_id_assoc_statement_prefix_id,
+                  adv_dhcp6_id_assoc_statement_prefix_pltime,
+                  adv_dhcp6_id_assoc_statement_prefix_vltime,
+                  adv_dhcp6_prefix_interface_statement_sla_len,
+                  adv_dhcp6_authentication_statement_authname,
+                  adv_dhcp6_authentication_statement_protocol,
+                  adv_dhcp6_authentication_statement_algorithm,
+                  adv_dhcp6_authentication_statement_rdm,
+                  adv_dhcp6_key_info_statement_keyname,
+                  adv_dhcp6_key_info_statement_realm,
+                  adv_dhcp6_key_info_statement_keyid,
+                  adv_dhcp6_key_info_statement_secret,
+                  adv_dhcp6_key_info_statement_expire,
+                  adv_dhcp6_config_advanced,
+                  adv_dhcp6_config_file_override,
+                  adv_dhcp6_config_file_override_path))?,
+               (ddnsdomainalgorithm,numberoptions)?,range?,
+               (winsserver,dnsserver,ntpserver)?,staticmap?)>
+<!ATTLIST lan
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp_config_advanced EMPTY>
+<!ATTLIST adv_dhcp_config_advanced
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp_config_file_override EMPTY>
+<!ATTLIST adv_dhcp_config_file_override
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp_config_file_override_path EMPTY>
+<!ATTLIST adv_dhcp_config_file_override_path
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp_option_modifiers EMPTY>
+<!ATTLIST adv_dhcp_option_modifiers
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp_pt_backoff_cutoff EMPTY>
+<!ATTLIST adv_dhcp_pt_backoff_cutoff
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp_pt_initial_interval EMPTY>
+<!ATTLIST adv_dhcp_pt_initial_interval
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp_pt_reboot EMPTY>
+<!ATTLIST adv_dhcp_pt_reboot
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp_pt_retry EMPTY>
+<!ATTLIST adv_dhcp_pt_retry
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp_pt_select_timeout EMPTY>
+<!ATTLIST adv_dhcp_pt_select_timeout
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp_pt_timeout EMPTY>
+<!ATTLIST adv_dhcp_pt_timeout
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp_pt_values (#PCDATA)>
+<!ATTLIST adv_dhcp_pt_values
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp_request_options EMPTY>
+<!ATTLIST adv_dhcp_request_options
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp_required_options EMPTY>
+<!ATTLIST adv_dhcp_required_options
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp_send_options EMPTY>
+<!ATTLIST adv_dhcp_send_options
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT alias-address EMPTY>
+<!ATTLIST alias-address
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT alias-subnet (#PCDATA)>
+<!ATTLIST alias-subnet
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT dhcprejectfrom EMPTY>
+<!ATTLIST dhcprejectfrom
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT track6-interface (#PCDATA)>
+<!ATTLIST track6-interface
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT track6-prefix-id (#PCDATA)>
+<!ATTLIST track6-prefix-id
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_interface_statement_send_options EMPTY>
+<!ATTLIST adv_dhcp6_interface_statement_send_options
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_interface_statement_request_options EMPTY>
+<!ATTLIST adv_dhcp6_interface_statement_request_options
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_interface_statement_information_only_enable EMPTY>
+<!ATTLIST adv_dhcp6_interface_statement_information_only_enable
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_interface_statement_script EMPTY>
+<!ATTLIST adv_dhcp6_interface_statement_script
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_id_assoc_statement_address_enable EMPTY>
+<!ATTLIST adv_dhcp6_id_assoc_statement_address_enable
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_id_assoc_statement_address EMPTY>
+<!ATTLIST adv_dhcp6_id_assoc_statement_address
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_id_assoc_statement_address_id EMPTY>
+<!ATTLIST adv_dhcp6_id_assoc_statement_address_id
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_id_assoc_statement_address_pltime EMPTY>
+<!ATTLIST adv_dhcp6_id_assoc_statement_address_pltime
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_id_assoc_statement_address_vltime EMPTY>
+<!ATTLIST adv_dhcp6_id_assoc_statement_address_vltime
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_id_assoc_statement_prefix_enable EMPTY>
+<!ATTLIST adv_dhcp6_id_assoc_statement_prefix_enable
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_id_assoc_statement_prefix EMPTY>
+<!ATTLIST adv_dhcp6_id_assoc_statement_prefix
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_id_assoc_statement_prefix_id EMPTY>
+<!ATTLIST adv_dhcp6_id_assoc_statement_prefix_id
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_id_assoc_statement_prefix_pltime EMPTY>
+<!ATTLIST adv_dhcp6_id_assoc_statement_prefix_pltime
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_id_assoc_statement_prefix_vltime EMPTY>
+<!ATTLIST adv_dhcp6_id_assoc_statement_prefix_vltime
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_prefix_interface_statement_sla_len EMPTY>
+<!ATTLIST adv_dhcp6_prefix_interface_statement_sla_len
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_authentication_statement_authname EMPTY>
+<!ATTLIST adv_dhcp6_authentication_statement_authname
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_authentication_statement_protocol EMPTY>
+<!ATTLIST adv_dhcp6_authentication_statement_protocol
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_authentication_statement_algorithm EMPTY>
+<!ATTLIST adv_dhcp6_authentication_statement_algorithm
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_authentication_statement_rdm EMPTY>
+<!ATTLIST adv_dhcp6_authentication_statement_rdm
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_key_info_statement_keyname EMPTY>
+<!ATTLIST adv_dhcp6_key_info_statement_keyname
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_key_info_statement_realm EMPTY>
+<!ATTLIST adv_dhcp6_key_info_statement_realm
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_key_info_statement_keyid EMPTY>
+<!ATTLIST adv_dhcp6_key_info_statement_keyid
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_key_info_statement_secret EMPTY>
+<!ATTLIST adv_dhcp6_key_info_statement_secret
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_key_info_statement_expire EMPTY>
+<!ATTLIST adv_dhcp6_key_info_statement_expire
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_config_advanced EMPTY>
+<!ATTLIST adv_dhcp6_config_advanced
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_config_file_override EMPTY>
+<!ATTLIST adv_dhcp6_config_file_override
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT adv_dhcp6_config_file_override_path EMPTY>
+<!ATTLIST adv_dhcp6_config_file_override_path
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT staticmap (mac,ipaddr,hostname,winsserver,dnsserver,
+                     ntpserver)>
+<!ATTLIST staticmap
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT mac (#PCDATA)>
+<!ATTLIST mac
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt1 ((if,descr)?,enable,
+                ((gateway,ddnsdomainalgorithm,numberoptions,range,
+                  winsserver,dnsserver,ntpserver)
+                 |(spoofmac,ipaddr,subnet)))>
+<!ATTLIST opt1
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt2 ((if,descr)?,enable,(spoofmac,ipaddr,subnet)?,
+                failover_peerip?,
+                (gateway,ddnsdomainalgorithm,numberoptions,range,
+                 winsserver,dnsserver,ntpserver)?)>
+<!ATTLIST opt2
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt6 ((if,descr)?,enable,
+                ((failover_peerip,gateway,ddnsdomainalgorithm,
+                  numberoptions,range,winsserver,dnsserver,ntpserver)
+                 |(spoofmac,ipaddr,subnet)))>
+<!ATTLIST opt6
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt7 ((if,descr)?,enable,
+                ((spoofmac,ipaddr,subnet)
+                 |(failover_peerip,gateway,ddnsdomainalgorithm,
+                   numberoptions,range,winsserver,dnsserver,
+                   ntpserver)))>
+<!ATTLIST opt7
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt8 ((if,descr)?,enable,
+                ((spoofmac,ipaddr,subnet)
+                 |(failover_peerip,gateway,ddnsdomainalgorithm,
+                   numberoptions,range,winsserver,dnsserver,
+                   ntpserver)))>
+<!ATTLIST opt8
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt9 ((if,descr)?,enable,
+                ((spoofmac,ipaddr,subnet)
+                 |(failover_peerip,gateway,ddnsdomainalgorithm,
+                   numberoptions,range,winsserver,dnsserver,
+                   ntpserver)))>
+<!ATTLIST opt9
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt10 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt10
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt11 ((if,descr)?,enable,
+                 ((failover_peerip,gateway,ddnsdomainalgorithm,
+                   numberoptions,range,winsserver,dnsserver,ntpserver)
+                  |(spoofmac,ipaddr,subnet)))>
+<!ATTLIST opt11
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt12 ((if,descr)?,enable,
+                 ((failover_peerip,gateway,ddnsdomainalgorithm,
+                   numberoptions,range,winsserver,dnsserver,ntpserver)
+                  |(spoofmac,ipaddr,subnet)))>
+<!ATTLIST opt12
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt13 ((if,descr)?,enable,
+                 ((failover_peerip,gateway,ddnsdomainalgorithm,
+                   numberoptions,range,winsserver,dnsserver,ntpserver)
+                  |(spoofmac,ipaddr,subnet)))>
+<!ATTLIST opt13
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt14 ((if,descr)?,enable,
+                 ((failover_peerip,gateway,ddnsdomainalgorithm,
+                   numberoptions,range,winsserver,dnsserver,ntpserver)
+                  |(spoofmac,ipaddr,subnet)))>
+<!ATTLIST opt14
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt15 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt15
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt16 ((if,descr)?,enable,
+                 ((failover_peerip,gateway,ddnsdomainalgorithm,
+                   numberoptions,range,winsserver,dnsserver,ntpserver)
+                  |(spoofmac,ipaddr,subnet)))>
+<!ATTLIST opt16
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt17 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt17
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt18 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt18
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt19 ((if,descr)?,enable,
+                 ((failover_peerip,gateway,ddnsdomainalgorithm,
+                   numberoptions,range,winsserver,dnsserver,ntpserver)
+                  |(spoofmac,ipaddr,subnet)))>
+<!ATTLIST opt19
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt20 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt20
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt21 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt21
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt22 ((if,descr)?,enable,
+                 ((failover_peerip,gateway,ddnsdomainalgorithm,
+                   numberoptions,range,winsserver,dnsserver,ntpserver)
+                  |(spoofmac,ipaddr,subnet)))>
+<!ATTLIST opt22
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt23 ((if,descr)?,enable,
+                 ((failover_peerip,gateway,ddnsdomainalgorithm,
+                   numberoptions,range,winsserver,dnsserver,ntpserver)
+                  |(spoofmac,ipaddr,subnet)))>
+<!ATTLIST opt23
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt24 ((if,descr)?,enable,
+                 ((failover_peerip,gateway,ddnsdomainalgorithm,
+                   numberoptions,range,winsserver,dnsserver,ntpserver)
+                  |(spoofmac,ipaddr,subnet)))>
+<!ATTLIST opt24
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt25 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt25
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt26 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt26
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt27 ((if,descr)?,enable,
+                 ((failover_peerip,gateway,ddnsdomainalgorithm,
+                   numberoptions,range,winsserver,dnsserver,ntpserver)
+                  |(spoofmac,ipaddr,subnet)))>
+<!ATTLIST opt27
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt28 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt28
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt29 ((if,descr)?,enable,
+                 ((failover_peerip,gateway,ddnsdomainalgorithm,
+                   numberoptions,range,winsserver,dnsserver,ntpserver)
+                  |(spoofmac,ipaddr,subnet)))>
+<!ATTLIST opt29
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt30 ((if,descr)?,enable,
+                 ((failover_peerip,gateway,ddnsdomainalgorithm,
+                   numberoptions,range,winsserver,dnsserver,ntpserver)
+                  |(spoofmac,ipaddr,subnet)))>
+<!ATTLIST opt30
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt31 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt31
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt32 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt32
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt33 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt33
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt34 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt34
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt35 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt35
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt36 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt36
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt37 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt37
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt38 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt38
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt39 ((if,descr)?,enable,
+                 ((failover_peerip,gateway,ddnsdomainalgorithm,
+                   numberoptions,range,winsserver,dnsserver,ntpserver)
+                  |(spoofmac,ipaddr,subnet)))>
+<!ATTLIST opt39
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt40 ((if,descr)?,enable,
+                 ((failover_peerip,gateway,ddnsdomainalgorithm,
+                   numberoptions,range,winsserver,dnsserver,ntpserver)
+                  |(spoofmac,ipaddr,subnet)))>
+<!ATTLIST opt40
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt41 ((if,descr)?,enable,
+                 ((failover_peerip,gateway,ddnsdomainalgorithm,
+                   numberoptions,range,winsserver,dnsserver,ntpserver)
+                  |(spoofmac,ipaddr,subnet)))>
+<!ATTLIST opt41
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt42 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt42
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt43 ((if,descr)?,enable,
+                 ((failover_peerip,gateway,ddnsdomainalgorithm,
+                   numberoptions,range,winsserver,dnsserver,ntpserver)
+                  |(spoofmac,ipaddr,subnet)))>
+<!ATTLIST opt43
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt44 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt44
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt45 ((if,descr)?,enable,
+                 ((failover_peerip,gateway,ddnsdomainalgorithm,
+                   numberoptions,range,winsserver,dnsserver,ntpserver)
+                  |(spoofmac,ipaddr,subnet)))>
+<!ATTLIST opt45
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt46 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt46
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt47 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt47
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt48 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt48
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt49 ((if,descr)?,enable,
+                 ((failover_peerip,gateway,ddnsdomainalgorithm,
+                   numberoptions,range,winsserver,dnsserver,ntpserver)
+                  |(spoofmac,ipaddr,subnet)))>
+<!ATTLIST opt49
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt50 ((if,descr)?,enable,
+                 ((failover_peerip,gateway,ddnsdomainalgorithm,
+                   numberoptions,range,winsserver,dnsserver,ntpserver)
+                  |(spoofmac,ipaddr,subnet)))>
+<!ATTLIST opt50
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt51 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt51
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt52 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt52
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt53 ((if,descr)?,enable,
+                 ((spoofmac,ipaddr,subnet)
+                  |(failover_peerip,gateway,ddnsdomainalgorithm,
+                    numberoptions,range,winsserver,dnsserver,
+                    ntpserver)))>
+<!ATTLIST opt53
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt54 ((if,descr)?,enable,
+                 ((failover_peerip,gateway,ddnsdomainalgorithm,
+                   numberoptions,range,winsserver,dnsserver,ntpserver)
+                  |(spoofmac,ipaddr,subnet)))>
+<!ATTLIST opt54
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT opt55 ((if,descr)?,enable,
+                 ((failover_peerip,gateway,ddnsdomainalgorithm,
+                   numberoptions,range,winsserver,dnsserver,ntpserver)
+                  |(spoofmac,ipaddr,subnet)))>
+<!ATTLIST opt55
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT enable (#PCDATA)>
+<!ATTLIST enable
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT dnssec (#PCDATA)>
+<!ATTLIST dnssec
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT dnssecstripped (#PCDATA)>
+<!ATTLIST dnssecstripped
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT rule (type?,
+                (descr|interface|ipprotocol|protocol|category
+                 |destination|direction|poolopts|poolopts_sourcehashkey
+                 |quick|source|statetype|tag|tagged)+,
+                (created|sourceport|target|updated)*,disabled?)>
+<!ATTLIST rule
+  xmlns CDATA #FIXED ''
+  uuid NMTOKEN #IMPLIED>
+
+<!ELEMENT category EMPTY>
+<!ATTLIST category
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT destination (any|(network,port))>
+<!ATTLIST destination
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT direction (#PCDATA)>
+<!ATTLIST direction
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT poolopts EMPTY>
+<!ATTLIST poolopts
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT poolopts_sourcehashkey EMPTY>
+<!ATTLIST poolopts_sourcehashkey
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT quick (#PCDATA)>
+<!ATTLIST quick
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT source (any|network)>
+<!ATTLIST source
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT statetype (#PCDATA)>
+<!ATTLIST statetype
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT tag EMPTY>
+<!ATTLIST tag
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT tagged EMPTY>
+<!ATTLIST tagged
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT created (username,time,description)>
+<!ATTLIST created
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT sourceport EMPTY>
+<!ATTLIST sourceport
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT target (#PCDATA)>
+<!ATTLIST target
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT updated (username,time,description)>
+<!ATTLIST updated
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT disabled (#PCDATA)>
+<!ATTLIST disabled
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT path (#PCDATA)>
+<!ATTLIST path
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT username (#PCDATA)>
+<!ATTLIST username
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT time (#PCDATA)>
+<!ATTLIST time
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT description (#PCDATA)>
+<!ATTLIST description
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT ipprotocol (#PCDATA)>
+<!ATTLIST ipprotocol
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT interface (#PCDATA)>
+<!ATTLIST interface
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT gateway (#PCDATA)>
+<!ATTLIST gateway
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT templates EMPTY>
+<!ATTLIST templates
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT aliases EMPTY>
+<!ATTLIST aliases
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT rules EMPTY>
+<!ATTLIST rules
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT general (enabled?,(interval,startdelay,mailserver)?,port?,
+                   ((loglocal,maxpreserve,maxfilesize)
+                    |(preferred_oldsa,disablevpnrules,
+                      passthrough_networks)
+                    |(stats,active_interface,dnssec,dns64,dns64prefix,
+                      noarecords,regdhcp,regdhcpdomain,regdhcpstatic,
+                      noreglladdr6,noregrecords,txtsupport,cacheflush,
+                      local_zone_type,outgoing_interface,enable_wpad)
+                    |(username,password,ssl,sslversion,sslverify,
+                      logfile,statefile,eventqueuePath,eventqueueSlots,
+                      httpdEnabled,httpdUsername,httpdPassword,
+                      httpdPort,httpdAllow,mmonitUrl,mmonitTimeout,
+                      mmonitRegisterCredentials))?,
+                   (ips,promisc)?,interfaces?,
+                   ((store_intermediate_certs,install_crls,fetch_crls,
+                     enable_legacy_sect,enable_config_constraints,
+                     CipherString,Ciphersuites,groups,MinProtocol,
+                     MinProtocol_DTLS)
+                    |(http_host,http_port)|(valid_lifetime,fwrules)
+                    |(homenet,defaultPacketSize,UpdateCron,
+                      AlertLogrotate,AlertSaveLogs,MPMAlgo,detect,
+                      syslog,syslog_eve,LogPayload,verbosity,eveLog))?)>
+<!ATTLIST general
+  xmlns CDATA #FIXED ''
+  version NMTOKEN #IMPLIED>
+
+<!ELEMENT startdelay (#PCDATA)>
+<!ATTLIST startdelay
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT mailserver (#PCDATA)>
+<!ATTLIST mailserver
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT loglocal (#PCDATA)>
+<!ATTLIST loglocal
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT maxpreserve (#PCDATA)>
+<!ATTLIST maxpreserve
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT maxfilesize EMPTY>
+<!ATTLIST maxfilesize
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT preferred_oldsa (#PCDATA)>
+<!ATTLIST preferred_oldsa
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT disablevpnrules (#PCDATA)>
+<!ATTLIST disablevpnrules
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT passthrough_networks EMPTY>
+<!ATTLIST passthrough_networks
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT stats EMPTY>
+<!ATTLIST stats
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT active_interface EMPTY>
+<!ATTLIST active_interface
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT dns64 EMPTY>
+<!ATTLIST dns64
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT dns64prefix EMPTY>
+<!ATTLIST dns64prefix
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT noarecords EMPTY>
+<!ATTLIST noarecords
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT regdhcp EMPTY>
+<!ATTLIST regdhcp
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT regdhcpdomain EMPTY>
+<!ATTLIST regdhcpdomain
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT regdhcpstatic EMPTY>
+<!ATTLIST regdhcpstatic
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT noreglladdr6 EMPTY>
+<!ATTLIST noreglladdr6
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT noregrecords EMPTY>
+<!ATTLIST noregrecords
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT txtsupport EMPTY>
+<!ATTLIST txtsupport
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT cacheflush EMPTY>
+<!ATTLIST cacheflush
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT local_zone_type (#PCDATA)>
+<!ATTLIST local_zone_type
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT outgoing_interface EMPTY>
+<!ATTLIST outgoing_interface
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT enable_wpad EMPTY>
+<!ATTLIST enable_wpad
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT ssl (#PCDATA)>
+<!ATTLIST ssl
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT sslversion (#PCDATA)>
+<!ATTLIST sslversion
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT sslverify (#PCDATA)>
+<!ATTLIST sslverify
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT logfile EMPTY>
+<!ATTLIST logfile
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT statefile EMPTY>
+<!ATTLIST statefile
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT eventqueuePath EMPTY>
+<!ATTLIST eventqueuePath
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT eventqueueSlots EMPTY>
+<!ATTLIST eventqueueSlots
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT httpdEnabled (#PCDATA)>
+<!ATTLIST httpdEnabled
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT httpdUsername (#PCDATA)>
+<!ATTLIST httpdUsername
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT httpdPassword EMPTY>
+<!ATTLIST httpdPassword
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT httpdPort (#PCDATA)>
+<!ATTLIST httpdPort
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT httpdAllow EMPTY>
+<!ATTLIST httpdAllow
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT mmonitUrl EMPTY>
+<!ATTLIST mmonitUrl
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT mmonitTimeout (#PCDATA)>
+<!ATTLIST mmonitTimeout
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT mmonitRegisterCredentials (#PCDATA)>
+<!ATTLIST mmonitRegisterCredentials
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT ips (#PCDATA)>
+<!ATTLIST ips
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT promisc (#PCDATA)>
+<!ATTLIST promisc
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT store_intermediate_certs (#PCDATA)>
+<!ATTLIST store_intermediate_certs
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT install_crls (#PCDATA)>
+<!ATTLIST install_crls
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT fetch_crls (#PCDATA)>
+<!ATTLIST fetch_crls
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT enable_legacy_sect (#PCDATA)>
+<!ATTLIST enable_legacy_sect
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT enable_config_constraints (#PCDATA)>
+<!ATTLIST enable_config_constraints
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT CipherString EMPTY>
+<!ATTLIST CipherString
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT Ciphersuites EMPTY>
+<!ATTLIST Ciphersuites
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT groups EMPTY>
+<!ATTLIST groups
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT MinProtocol EMPTY>
+<!ATTLIST MinProtocol
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT MinProtocol_DTLS EMPTY>
+<!ATTLIST MinProtocol_DTLS
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT http_host (#PCDATA)>
+<!ATTLIST http_host
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT http_port (#PCDATA)>
+<!ATTLIST http_port
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT valid_lifetime (#PCDATA)>
+<!ATTLIST valid_lifetime
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT fwrules (#PCDATA)>
+<!ATTLIST fwrules
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT homenet (#PCDATA)>
+<!ATTLIST homenet
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT defaultPacketSize EMPTY>
+<!ATTLIST defaultPacketSize
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT UpdateCron EMPTY>
+<!ATTLIST UpdateCron
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT AlertLogrotate (#PCDATA)>
+<!ATTLIST AlertLogrotate
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT AlertSaveLogs (#PCDATA)>
+<!ATTLIST AlertSaveLogs
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT MPMAlgo EMPTY>
+<!ATTLIST MPMAlgo
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT detect (Profile,toclient_groups,toserver_groups)>
+<!ATTLIST detect
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT syslog_eve (#PCDATA)>
+<!ATTLIST syslog_eve
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT LogPayload (#PCDATA)>
+<!ATTLIST LogPayload
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT verbosity EMPTY>
+<!ATTLIST verbosity
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT eveLog (http,tls)>
+<!ATTLIST eveLog
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT Profile EMPTY>
+<!ATTLIST Profile
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT toclient_groups EMPTY>
+<!ATTLIST toclient_groups
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT toserver_groups EMPTY>
+<!ATTLIST toserver_groups
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT http (enable,extended,dumpAllHeaders)>
+<!ATTLIST http
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT dumpAllHeaders EMPTY>
+<!ATTLIST dumpAllHeaders
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT syslog (#PCDATA|daemon)*>
+<!ATTLIST syslog
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT daemon (ike_name,log_level,app,asn,cfg,chd,dmn,enc,esp,ike,
+                  imc,imv,job,knl,lib,mgr,net,pts,tls,tnc)>
+<!ATTLIST daemon
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT ike_name (#PCDATA)>
+<!ATTLIST ike_name
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT log_level (#PCDATA)>
+<!ATTLIST log_level
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT app (#PCDATA)>
+<!ATTLIST app
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT asn (#PCDATA)>
+<!ATTLIST asn
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT cfg (#PCDATA)>
+<!ATTLIST cfg
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT chd (#PCDATA)>
+<!ATTLIST chd
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT dmn (#PCDATA)>
+<!ATTLIST dmn
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT enc (#PCDATA)>
+<!ATTLIST enc
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT esp (#PCDATA)>
+<!ATTLIST esp
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT ike (#PCDATA)>
+<!ATTLIST ike
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT imc (#PCDATA)>
+<!ATTLIST imc
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT imv (#PCDATA)>
+<!ATTLIST imv
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT job (#PCDATA)>
+<!ATTLIST job
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT knl (#PCDATA)>
+<!ATTLIST knl
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT lib (#PCDATA)>
+<!ATTLIST lib
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT mgr (#PCDATA)>
+<!ATTLIST mgr
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT net (#PCDATA)>
+<!ATTLIST net
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT pts (#PCDATA)>
+<!ATTLIST pts
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT tnc (#PCDATA)>
+<!ATTLIST tnc
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT enabled (#PCDATA)>
+<!ATTLIST enabled
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT address EMPTY>
+<!ATTLIST address
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT servers (server)?>
+<!ATTLIST servers
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT wireguard ((client|general|server)+
+                     |(internal_dynamic,enable,if,descr,type,virtual))>
+<!ATTLIST wireguard
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT openvpn (internal_dynamic,enable,if,descr,type,virtual,
+                   networks)?>
+<!ATTLIST openvpn
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT networks EMPTY>
+<!ATTLIST networks
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT internal_dynamic (#PCDATA)>
+<!ATTLIST internal_dynamic
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT if (#PCDATA)>
+<!ATTLIST if
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT ipaddr (#PCDATA)>
+<!ATTLIST ipaddr
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT ipaddrv6 (#PCDATA)>
+<!ATTLIST ipaddrv6
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT subnet (#PCDATA)>
+<!ATTLIST subnet
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT subnetv6 (#PCDATA)>
+<!ATTLIST subnetv6
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT virtual (#PCDATA)>
+<!ATTLIST virtual
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT spoofmac EMPTY>
+<!ATTLIST spoofmac
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT mtu EMPTY>
+<!ATTLIST mtu
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT dhcphostname EMPTY>
+<!ATTLIST dhcphostname
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT media EMPTY>
+<!ATTLIST media
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT mediaopt EMPTY>
+<!ATTLIST mediaopt
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT dhcp6-ia-pd-len (#PCDATA)>
+<!ATTLIST dhcp6-ia-pd-len
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT gatewayv6 EMPTY>
+<!ATTLIST gatewayv6
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT failover_peerip (#PCDATA)>
+<!ATTLIST failover_peerip
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT ddnsdomainalgorithm (#PCDATA)>
+<!ATTLIST ddnsdomainalgorithm
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT numberoptions (item)>
+<!ATTLIST numberoptions
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT range (from,to)>
+<!ATTLIST range
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT from (#PCDATA)>
+<!ATTLIST from
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT to (#PCDATA)>
+<!ATTLIST to
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT winsserver EMPTY>
+<!ATTLIST winsserver
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT ntpserver EMPTY>
+<!ATTLIST ntpserver
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT network (#PCDATA)>
+<!ATTLIST network
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT any (#PCDATA)>
+<!ATTLIST any
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT port (#PCDATA)>
+<!ATTLIST port
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT extended (#PCDATA)>
+<!ATTLIST extended
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT tls (#PCDATA|enable|extended|custom|sessionResumption)*>
+<!ATTLIST tls
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT custom EMPTY>
+<!ATTLIST custom
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT sessionResumption (#PCDATA)>
+<!ATTLIST sessionResumption
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT server (servers?,
+                  (enabled,name,instance,pubkey,privkey,port,mtu,dns,
+                   tunneladdress,disableroutes,gateway,peers)?)>
+<!ATTLIST server
+  xmlns CDATA #FIXED ''
+  uuid CDATA #IMPLIED
+  version NMTOKEN #IMPLIED>
+
+<!ELEMENT instance (#PCDATA)>
+<!ATTLIST instance
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT privkey (#PCDATA)>
+<!ATTLIST privkey
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT dns EMPTY>
+<!ATTLIST dns
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT disableroutes (#PCDATA)>
+<!ATTLIST disableroutes
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT peers (#PCDATA)>
+<!ATTLIST peers
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT client (clients?,
+                  (enabled,name,pubkey,psk,tunneladdress,serveraddress,
+                   serverport,keepalive)?)>
+<!ATTLIST client
+  xmlns CDATA #FIXED ''
+  uuid CDATA #IMPLIED
+  version NMTOKEN #IMPLIED>
+
+<!ELEMENT clients (client)?>
+<!ATTLIST clients
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT psk EMPTY>
+<!ATTLIST psk
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT serveraddress EMPTY>
+<!ATTLIST serveraddress
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT serverport EMPTY>
+<!ATTLIST serverport
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT keepalive EMPTY>
+<!ATTLIST keepalive
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT pubkey (#PCDATA)>
+<!ATTLIST pubkey
+  xmlns CDATA #FIXED ''>
+
+<!ELEMENT tunneladdress (#PCDATA)>
+<!ATTLIST tunneladdress
+  xmlns CDATA #FIXED ''>
