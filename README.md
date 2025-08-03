@@ -6,6 +6,7 @@
 [![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/index.md)
 [![CI](https://github.com/EvilBit-Labs/opnDossier/actions/workflows/ci-check.yml/badge.svg)](https://github.com/EvilBit-Labs/opnDossier/actions/workflows/ci-check.yml)
 [![CodeQL](https://github.com/EvilBit-Labs/opnDossier/actions/workflows/codeql.yml/badge.svg)](https://github.com/EvilBit-Labs/opnDossier/actions/workflows/codeql.yml)
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/EvilBit-Labs/opnDossier?utm_source=oss&utm_medium=github&utm_campaign=EvilBit-Labs%2FopnDossier&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 [![wakatime](https://wakatime.com/badge/user/2d2fbc27-e3f7-4ec1-b2a7-935e48bad498/project/018dae18-42c0-4e3e-8330-14d39f574bd5.svg)](https://wakatime.com/badge/user/2d2fbc27-e3f7-4ec1-b2a7-935e48bad498/project/018dae18-42c0-4e3e-8330-14d39f574bd5)
 
 ## Overview
