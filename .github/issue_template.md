@@ -24,7 +24,7 @@
 
 - **OS**: <!-- e.g., macOS 14.0, Ubuntu 22.04, Windows 11 -->
 - **Go Version**: <!-- e.g., go version go1.24.5 darwin/arm64 -->
-- **opnFocus Version**: <!-- e.g., v1.0.0 or commit hash -->
+- **opnDossier Version**: <!-- e.g., v1.0.0 or commit hash -->
 - **Just Version**: \<!-- e.g., just --version -->
 
 ### Additional Context
@@ -102,7 +102,7 @@
 - [ ] I have searched existing issues to avoid duplicates
 - [ ] I have provided all requested information
 - [ ] I have included relevant error messages or logs
-- [ ] I have tested with the latest version of opnFocus
+- [ ] I have tested with the latest version of opnDossier
 - [ ] I have followed the [Contributing Guide](CONTRIBUTING.md)
 
 ## Labels
