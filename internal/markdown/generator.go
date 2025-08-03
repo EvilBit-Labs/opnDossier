@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -53,7 +54,7 @@ func NewMarkdownGeneratorWithTemplates(logger *log.Logger, templateDir string) (
 	possiblePaths := buildTemplatePaths(templateDir)
 
 	// Parse templates from all possible paths
-	templates, err := parseTemplatesFromPaths(possiblePaths, funcMap)
+	templates, err := parseTemplatesWithEmbeddedFallback(possiblePaths, funcMap)
 	if err != nil {
 		return nil, err
 	}
@@ -249,12 +250,13 @@ func buildTemplatePaths(templateDir string) []string {
 	return possiblePaths
 }
 
-// parseTemplatesFromPaths attempts to parse templates from multiple possible paths.
-func parseTemplatesFromPaths(possiblePaths []string, funcMap template.FuncMap) (*template.Template, error) {
+// Add this function to use embedded templates when filesystem templates aren't found.
+func parseTemplatesWithEmbeddedFallback(possiblePaths []string, funcMap template.FuncMap) (*template.Template, error) {
 	templates := template.New("opndossier").Funcs(funcMap)
 	var lastErr error
 	templatesLoaded := 0
 
+	// First try filesystem paths (for custom templates)
 	for _, path := range possiblePaths {
 		matches, err := filepath.Glob(path)
 		if err != nil {
@@ -263,15 +265,11 @@ func parseTemplatesFromPaths(possiblePaths []string, funcMap template.FuncMap) (
 		}
 
 		for _, match := range matches {
-			// Get template name from filename (without directory)
 			templateName := filepath.Base(match)
-
-			// Skip if template with this name already exists (custom templates take precedence)
 			if templates.Lookup(templateName) != nil {
 				continue
 			}
 
-			// Parse the individual template file
 			_, err := templates.ParseFiles(match)
 			if err != nil {
 				lastErr = fmt.Errorf("failed to parse template %s: %w", match, err)
@@ -281,12 +279,46 @@ func parseTemplatesFromPaths(possiblePaths []string, funcMap template.FuncMap) (
 		}
 	}
 
-	// Only return error if no templates were successfully loaded
+	// If no filesystem templates found, load from embedded
+	if templatesLoaded == 0 {
+		embeddedPaths := []string{
+			"internal/templates/*.tmpl",
+			"internal/templates/reports/*.tmpl",
+		}
+
+		for _, pattern := range embeddedPaths {
+			matches, err := fs.Glob(embeddedTemplates, pattern)
+			if err != nil {
+				continue
+			}
+
+			for _, match := range matches {
+				templateName := filepath.Base(match)
+				if templates.Lookup(templateName) != nil {
+					continue
+				}
+
+				content, err := embeddedTemplates.ReadFile(match)
+				if err != nil {
+					lastErr = fmt.Errorf("failed to read embedded template %s: %w", match, err)
+					continue
+				}
+
+				_, err = templates.New(templateName).Funcs(funcMap).Parse(string(content))
+				if err != nil {
+					lastErr = fmt.Errorf("failed to parse embedded template %s: %w", match, err)
+				} else {
+					templatesLoaded++
+				}
+			}
+		}
+	}
+
 	if templatesLoaded == 0 {
 		if lastErr != nil {
 			return nil, lastErr
 		}
-		return nil, errors.New("no templates found in any of the specified paths")
+		return nil, errors.New("no templates found in filesystem or embedded templates")
 	}
 
 	return templates, nil

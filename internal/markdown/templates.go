@@ -1,11 +1,21 @@
 package markdown
 
 import (
+	"embed"
 	"errors"
 	"fmt"
 	"path/filepath"
 	"text/template"
 )
+
+// embeddedTemplates will be set to reference the main package's embedded templates.
+var embeddedTemplates embed.FS
+
+// SetEmbeddedTemplates allows external packages to set the embedded templates filesystem.
+// This is typically called during initialization to provide access to the main package's embedded templates.
+func SetEmbeddedTemplates(fs embed.FS) {
+	embeddedTemplates = fs
+}
 
 // TemplateManager manages built-in and custom templates.
 type TemplateManager struct {
@@ -54,12 +64,20 @@ func (tm *TemplateManager) GetTemplate(name string) (*template.Template, bool) {
 var ErrTemplateNotImplemented = errors.New("embedded template loading not yet implemented")
 
 // loadFromEmbedded loads a template from the embedded filesystem.
-// This is a placeholder for now - we'll implement the actual embedded loading
-// when we move the templates.
-func (tm *TemplateManager) loadFromEmbedded(_ string) (*template.Template, error) {
-	// For now, return an error - this will be implemented when we integrate
-	// with the existing templates in internal/templates/
-	return nil, ErrTemplateNotImplemented
+func (tm *TemplateManager) loadFromEmbedded(templatePath string) (*template.Template, error) {
+	// Read the template content from embedded filesystem
+	content, err := embeddedTemplates.ReadFile(templatePath)
+	if err != nil {
+		return nil, fmt.Errorf("template not found in embedded filesystem: %w", err)
+	}
+
+	// Parse the template content
+	tmpl, err := template.New(filepath.Base(templatePath)).Parse(string(content))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse embedded template: %w", err)
+	}
+
+	return tmpl, nil
 }
 
 // GetDefaultTemplateManager creates and returns a new default TemplateManager instance.
