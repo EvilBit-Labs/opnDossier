@@ -157,7 +157,9 @@ func DefaultOptions() Options {
 		EnableEmojis:    true,
 		Compact:         false,
 		IncludeMetadata: true,
-		CustomFields:    make(map[string]any),
+		CustomFields: map[string]any{
+			"IncludeTunables": false, // Default to hiding tunables with "default" values
+		},
 		AuditMode:       "", // No audit mode by default
 		BlackhatMode:    false,
 		SelectedPlugins: nil,

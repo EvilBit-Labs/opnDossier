@@ -163,6 +163,47 @@ func createTemplateFuncMap() template.FuncMap {
 		return "Route Security Zone Placeholder"
 	}
 
+	// Add tunable filtering function
+	funcMap["filterTunables"] = func(tunables []model.SysctlItem, includeTunables bool) []model.SysctlItem {
+		if includeTunables {
+			return tunables // Include all tunables if flag is set
+		}
+
+		// Filter out tunables with "default" values
+		filtered := make([]model.SysctlItem, 0)
+		for _, tunable := range tunables {
+			if strings.ToLower(strings.TrimSpace(tunable.Value)) != "default" {
+				filtered = append(filtered, tunable)
+			}
+		}
+		return filtered
+	}
+
+	// Add description truncation function
+	funcMap["truncateDescription"] = func(description string, maxLength int) string {
+		if maxLength <= 0 {
+			maxLength = 80 // Default length
+		}
+
+		// Remove newlines and extra whitespace first
+		description = strings.ReplaceAll(description, "\n", " ")
+		description = strings.ReplaceAll(description, "\r", " ")
+		description = strings.Join(strings.Fields(description), " ")
+
+		if len(description) <= maxLength {
+			return description
+		}
+
+		// Find the last space before the limit to avoid cutting words
+		truncated := description[:maxLength]
+		lastSpace := strings.LastIndex(truncated, " ")
+		if lastSpace > maxLength/2 { // Only break at word boundary if it's not too early
+			truncated = description[:lastSpace]
+		}
+
+		return truncated + "..."
+	}
+
 	return funcMap
 }
 
@@ -271,12 +312,14 @@ func (g *markdownGenerator) Generate(ctx context.Context, cfg *model.OpnSenseDoc
 	metadata := struct {
 		*model.EnrichedOpnSenseDocument
 
-		Generated   string
-		ToolVersion string
+		Generated    string
+		ToolVersion  string
+		CustomFields map[string]any
 	}{
 		EnrichedOpnSenseDocument: enrichedCfg,
 		Generated:                time.Now().Format(time.RFC3339),
 		ToolVersion:              constants.Version,
+		CustomFields:             opts.CustomFields,
 	}
 
 	switch opts.Format {

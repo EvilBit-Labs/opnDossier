@@ -35,6 +35,7 @@ var (
 	comprehensive   bool     //nolint:gochecknoglobals // Generate comprehensive report
 	selectedPlugins []string //nolint:gochecknoglobals // Selected compliance plugins
 	templateDir     string   //nolint:gochecknoglobals // Custom template directory
+	includeTunables bool     //nolint:gochecknoglobals // Include system tunables in output
 )
 
 // ErrOperationCancelled is returned when the user cancels an operation.
@@ -67,6 +68,9 @@ func init() {
 	convertCmd.Flags().
 		StringVar(&templateName, "template", "", "Template name to use for markdown generation (default: auto-selected). Available: standard, comprehensive, json, yaml, blue, red, blue-enhanced")
 	setFlagAnnotation(convertCmd.Flags(), "template", []string{"template"})
+	convertCmd.Flags().
+		BoolVar(&includeTunables, "include-tunables", false, "Include system tunables in the output report")
+	setFlagAnnotation(convertCmd.Flags(), "include-tunables", []string{"template"})
 	convertCmd.Flags().
 		StringSliceVar(&sections, "section", []string{}, "Specific sections to include in output (comma-separated, e.g., system,network,firewall)")
 	setFlagAnnotation(convertCmd.Flags(), "section", []string{"template"})
@@ -188,6 +192,9 @@ Examples:
 
   # Force overwrite existing file without prompt
   opnDossier convert config.xml -o output.md --force
+
+  # Include all system tunables (including defaults) in the report
+  opnDossier convert config.xml --include-tunables
 
   # Validate before converting (recommended workflow)
   opnDossier validate config.xml && opnDossier convert config.xml -f json -o output.json`,
@@ -451,6 +458,9 @@ func buildConversionOptions(
 	if templateDir != "" {
 		opt.TemplateDir = templateDir
 	}
+
+	// Include tunables: CLI flag only
+	opt.CustomFields["IncludeTunables"] = includeTunables
 
 	return opt
 }

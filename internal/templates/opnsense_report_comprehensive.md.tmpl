@@ -204,10 +204,15 @@
 
 ## System Tunables
 
+{{- $filteredTunables := filterTunables .Sysctl (index .CustomFields "IncludeTunables") }}
+{{- if $filteredTunables }}
 | Name | Value | Description |
 |------|--------|-------------|
-{{- range .Sysctl }}
-| `{{ .Tunable }}` | `{{ .Value }}` | `{{ .Descr }}` |
+{{- range $filteredTunables }}
+| `{{ .Tunable }}` | `{{ .Value }}` | `{{ truncateDescription .Descr 80 }}` |
+{{- end }}
+{{- else }}
+*No customized system tunables found.*
 {{- end }}
 
 ---

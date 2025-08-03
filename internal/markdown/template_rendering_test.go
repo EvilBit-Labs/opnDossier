@@ -103,10 +103,7 @@ func TestTemplateRendering(t *testing.T) {
 			require.NoError(t, err, "Failed to create markdown generator")
 
 			// Generate markdown
-			opts := Options{
-				Format:        FormatMarkdown,
-				Comprehensive: tt.comprehensive,
-			}
+			opts := DefaultOptions().WithComprehensive(tt.comprehensive)
 
 			result, err := generator.Generate(context.Background(), testCfg, opts)
 
@@ -152,10 +149,7 @@ func TestTemplateRenderingWithEmptyConfig(t *testing.T) {
 			require.NoError(t, err, "Failed to create markdown generator")
 
 			// Generate markdown
-			opts := Options{
-				Format:        FormatMarkdown,
-				Comprehensive: tt.comprehensive,
-			}
+			opts := DefaultOptions().WithComprehensive(tt.comprehensive)
 
 			result, err := generator.Generate(context.Background(), emptyCfg, opts)
 
