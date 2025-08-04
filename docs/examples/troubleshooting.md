@@ -1,5 +1,9 @@
 # Troubleshooting and Debugging Examples
 
+> **⚠️ Note: Some examples in this guide reference audit functionality that is not yet implemented in opnDossier v1.0.**
+>
+> Examples using `--mode`, `--blackhat-mode`, and `--plugins` flags are for future releases. These flags are currently disabled and not available in the current version.
+
 This guide covers common issues, error handling, and debugging techniques for opnDossier.
 
 ## Common Error Scenarios

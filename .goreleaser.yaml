@@ -7,9 +7,23 @@ before:
   hooks:
     - go mod tidy
     - go generate ./...
+    - git-cliff --output CHANGELOG.md
+    # Build binary first for generating documentation
+    - go build -o ./opndossier-temp ./main.go
+    # Generate shell completions
+    - mkdir -p ./packaging/completions
+    - bash -c './opndossier-temp completion bash > ./packaging/completions/opndossier.bash'
+    - bash -c './opndossier-temp completion zsh > ./packaging/completions/opndossier.zsh'
+    - bash -c './opndossier-temp completion fish > ./packaging/completions/opndossier.fish'
+    - bash -c './opndossier-temp completion powershell > ./packaging/completions/opndossier.ps1'
+    # Generate man pages
+    - ./opndossier-temp man ./packaging/
+    # Clean up temporary binary
+    - rm ./opndossier-temp
 
 builds:
-  - binary: opnDossier
+  - binary: opndossier
+    main: ./main.go
     env:
       - CGO_ENABLED=0
     goos:
@@ -20,10 +34,14 @@ builds:
     goarch:
       - amd64
       - arm64
-    ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X github.com/EvilBit-Labs/opnDossier/cmd.buildDate={{.Date}} -X github.com/EvilBit-Labs/opnDossier/cmd.gitCommit={{.Commit}}
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X github.com/EvilBit-Labs/opnDossier/cmd.buildDate={{.Date}} -X github.com/EvilBit-Labs/opnDossier/cmd.gitCommit={{.Commit}}
     ignore:
       - goos: freebsd
         goarch: arm64
+    flags:
+      - -trimpath
+    mod_timestamp: "{{ .CommitTimestamp }}"
 
 archives:
   - formats: tar.gz
@@ -43,21 +61,7 @@ archives:
       - CHANGELOG.md
 
 changelog:
-  sort: asc
-  use: github
-  filters:
-    exclude:
-      - "^docs:"
-      - "^test:"
-  groups:
-    - title: Features
-      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
-      order: 0
-    - title: "Bug fixes"
-      regexp: '^.*?bug(\([[:word:]]+\))??!?:.+$'
-      order: 1
-    - title: Others
-      order: 999
+  disable: true
 checksum:
   name_template: "{{ .ProjectName }}_checksums.txt"
 
@@ -67,8 +71,56 @@ release:
     name: "opnDossier"
   prerelease: auto
   include_meta: true
+  header: |
+    ## Release {{.Tag}}
+
+    This release was built with Go {{.Env.GO_VERSION}} and includes the following changes:
+  footer: |
+
+    **Full Changelog**: https://github.com/EvilBit-Labs/opnDossier/compare/{{.PreviousTag}}...{{.Tag}}
+
+    ## Installation
+
+    ### Package Managers
+
+    **Debian/Ubuntu (.deb)**:
+    ```bash
+    wget https://github.com/EvilBit-Labs/opnDossier/releases/download/{{.Tag}}/opndossier_{{.Version}}_linux_amd64.deb
+    sudo dpkg -i opndossier_{{.Version}}_linux_amd64.deb
+    ```
+
+    **Red Hat/CentOS/Fedora (.rpm)**:
+    ```bash
+    wget https://github.com/EvilBit-Labs/opnDossier/releases/download/{{.Tag}}/opndossier_{{.Version}}_linux_amd64.rpm
+    sudo rpm -i opndossier_{{.Version}}_linux_amd64.rpm
+    ```
+
+    **Alpine (.apk)**:
+    ```bash
+    wget https://github.com/EvilBit-Labs/opnDossier/releases/download/{{.Tag}}/opndossier_{{.Version}}_linux_amd64.apk
+    sudo apk add --allow-untrusted opndossier_{{.Version}}_linux_amd64.apk
+    ```
+
+    **Arch Linux**:
+    ```bash
+    wget https://github.com/EvilBit-Labs/opnDossier/releases/download/{{.Tag}}/opndossier_{{.Version}}_linux_amd64.pkg.tar.xz
+    sudo pacman -U opndossier_{{.Version}}_linux_amd64.pkg.tar.xz
+    ```
+
+    ### Download Binary
+    Download the appropriate binary for your platform from the assets below.
+
+    ### Docker
+    ```bash
+    docker pull ghcr.io/evilbit-labs/opndossier:{{.Tag}}
+    ```
+
+    ### Verify Checksums
+    ```bash
+    sha256sum -c opnDossier_checksums.txt
+    ```
 source:
-  enabled: true
+  enabled: false
 universal_binaries:
   - replace: true
 
@@ -90,23 +142,6 @@ dockers:
       - "--label=org.opencontainers.image.source = 'https://github.com/EvilBit-Labs/opnDossier'"
       - "--build-arg=branch=latest"
       - "--platform=linux/amd64"
-  - image_templates:
-      - "ghcr.io/evilbit-labs/opndossier:{{ .Tag }}-pocl"
-      - "ghcr.io/evilbit-labs/opndossier:v{{ .Major }}-pocl"
-      - "ghcr.io/evilbit-labs/opndossier:v{{ .Major }}.{{ .Minor }}-pocl"
-      - "ghcr.io/evilbit-labs/opndossier:pocl"
-    use: buildx
-    dockerfile: Dockerfile.releaser
-    goarch: amd64
-    goos: linux
-    build_flag_templates:
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--label=org.opencontainers.image.source = 'https://github.com/EvilBit-Labs/opnDossier'"
-      - "--build-arg=branch=pocl"
-      - "--platform=linux/amd64"
 
 milestones:
   - repo:
@@ -114,8 +149,89 @@ milestones:
       name: opnDossier
     close: true
     fail_on_error: false
+nfpms:
+  - id: packages
+    package_name: opndossier
+    file_name_template: "{{ .ConventionalFileName }}"
+    vendor: EvilBit Labs
+    homepage: https://github.com/EvilBit-Labs/opnDossier
+    maintainer: EvilBit Labs <contact@evilbitlabs.io>
+    description: |
+      opnDossier is a command-line interface (CLI) tool designed to process OPNsense
+      firewall configuration files (config.xml) and convert them into human-readable
+      formats, primarily Markdown. This tool assists network administrators and
+      security professionals in documenting, auditing, and understanding their
+      OPNsense configurations more effectively.
+    license: MIT
+    section: utils
+    priority: optional
+    formats:
+      - deb
+      - rpm
+      - apk
+      - archlinux
+    dependencies:
+      - ca-certificates
+    recommends:
+      - git
+      - curl
+    suggests:
+      - bash-completion
+    bindir: /usr/bin
+    contents:
+      # Binary is automatically included by nfpm from the build output
+      # Documentation
+      - src: ./LICENSE
+        dst: /usr/share/doc/opndossier/LICENSE
+        file_info:
+          mode: 0644
+      - src: ./README.md
+        dst: /usr/share/doc/opndossier/README.md
+        file_info:
+          mode: 0644
+      - src: ./CHANGELOG.md
+        dst: /usr/share/doc/opndossier/CHANGELOG.md
+        file_info:
+          mode: 0644
+      # Man page
+      - src: ./packaging/opnDossier.1
+        dst: /usr/share/man/man1/opndossier.1
+        file_info:
+          mode: 0644
+      # Shell completions
+      - src: ./packaging/completions/opndossier.bash
+        dst: /usr/share/bash-completion/completions/opndossier
+        file_info:
+          mode: 0644
+      - src: ./packaging/completions/opndossier.zsh
+        dst: /usr/share/zsh/site-functions/_opndossier
+        file_info:
+          mode: 0644
+      - src: ./packaging/completions/opndossier.fish
+        dst: /usr/share/fish/vendor_completions.d/opndossier.fish
+        file_info:
+          mode: 0644
+    rpm:
+      group: Applications/System
+      compression: lzma
+      signature:
+        key_file: '{{ if index .Env "RPM_SIGNING_KEY_FILE" }}{{ .Env.RPM_SIGNING_KEY_FILE }}{{ end }}'
+    deb:
+      compression: xz
+      signature:
+        key_file: '{{ if index .Env "DEB_SIGNING_KEY_FILE" }}{{ .Env.DEB_SIGNING_KEY_FILE }}{{ end }}'
+    apk:
+      signature:
+        key_file: '{{ if index .Env "APK_SIGNING_KEY_FILE" }}{{ .Env.APK_SIGNING_KEY_FILE }}{{ end }}'
+    archlinux:
+      pkgbase: opndossier
+      packager: EvilBit Labs <contact@evilbitlabs.io>
+
 sboms:
-  - artifacts: archive
+  - id: archive-sbom
+    artifacts: archive
+  - id: package-sbom
+    artifacts: package
 notarize:
   macos:
     - enabled: '{{ isEnvSet "MACOS_SIGN_P12" }}'

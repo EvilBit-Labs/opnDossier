@@ -36,9 +36,6 @@ WORKFLOW EXAMPLES:
   # Basic conversion workflow
   opnDossier convert config.xml -o documentation.md
 
-  # Audit workflow with compliance checks
-  opnDossier convert config.xml --mode blue --plugins stig,sans
-
   # Development workflow with verbose logging
   opnDossier --verbose convert config.xml --format json
 
@@ -48,8 +45,8 @@ WORKFLOW EXAMPLES:
   # Template customization workflow
   opnDossier convert config.xml --custom-template /path/to/my-template.tmpl
 
-  # Compliance workflow
-  opnDossier convert config.xml --mode blue --plugins stig,sans --comprehensive`,
+  # Validation workflow
+  opnDossier validate config.xml && opnDossier convert config.xml -o documentation.md`,
 	PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 		var err error
 		// Load configuration with flag binding for proper precedence

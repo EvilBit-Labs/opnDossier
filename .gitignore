@@ -13,6 +13,11 @@ dist/
 build/
 bin/
 
+# GoReleaser and packaging artifacts
+packaging/completions/
+packaging/*.1
+opndossier-temp
+
 # Go coverage and profiling
 coverage.txt
 *.cover

@@ -1,6 +1,12 @@
 # Audit and Compliance Examples
 
-This guide covers security auditing and compliance checking workflows using opnDossier.
+> **⚠️ Note: Audit and compliance functionality is not yet implemented in opnDossier v1.0.**
+>
+> This documentation describes planned features for future releases. The audit mode flags (`--mode`, `--blackhat-mode`, `--plugins`) are currently disabled and not available in the current version.
+>
+> For current functionality, see the [Basic Usage](../user-guide/usage.md) and [Advanced Configuration](advanced-configuration.md) guides.
+
+This guide covers security auditing and compliance checking workflows using opnDossier (planned for future releases).
 
 ## Security Audit Reports
 
