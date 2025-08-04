@@ -324,7 +324,7 @@
 
 | Username | Time | Description |
 |----------|------|-------------|
-| `{{ .Revision.Username }}` | {{ formatUnixTimestamp .Revision.Time }} | `{{ .Revision.Description }}` |
+| `{{ if .Revision.Username }}{{ .Revision.Username }}{{ else }}-{{ end }}` | {{ if .Revision.Time }}{{ formatUnixTimestamp .Revision.Time }}{{ else }}-{{ end }} | `{{ if .Revision.Description }}{{ .Revision.Description }}{{ else }}-{{ end }}` |
 {{- else }}
 ## Revision History
 

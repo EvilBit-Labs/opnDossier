@@ -599,8 +599,7 @@ func FormatUnixTimestamp(timestamp string) string {
 	}
 
 	// Convert to time.Time
-	const nanosecondsPerSecond = 1e9
-	t := time.Unix(int64(ts), int64((ts-float64(int64(ts)))*nanosecondsPerSecond))
+	t := time.Unix(int64(ts), int64((ts-float64(int64(ts)))*float64(time.Second)))
 
 	// Format as ISO 8601
 	return t.Format("2006-01-02T15:04:05Z07:00")

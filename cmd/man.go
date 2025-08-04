@@ -29,7 +29,7 @@ Example:
 		}
 
 		// Ensure the output directory exists
-		if err := os.MkdirAll(outputDir, 0o750); err != nil {
+		if err := os.MkdirAll(outputDir, 0o755); err != nil {
 			return fmt.Errorf("failed to create output directory %s: %w", outputDir, err)
 		}
 
