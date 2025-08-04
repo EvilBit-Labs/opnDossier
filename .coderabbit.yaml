@@ -1,5 +1,5 @@
 language: en-US
-tone_instructions: ""
+tone_instructions: "Focus on Go best practices, security for CLI tools, and operator-focused design. Emphasize offline-first capabilities and structured data handling."
 early_access: true
 enable_free_tier: true
 reviews:
@@ -9,7 +9,7 @@ reviews:
   high_level_summary_placeholder: "@coderabbitai summary"
   high_level_summary_in_walkthrough: true
   auto_title_placeholder: "@coderabbitai"
-  auto_title_instructions: ""
+  auto_title_instructions: "Use conventional commit format: <type>(<scope>): <description>"
   review_status: true
   commit_status: true
   fail_commit_status: false
@@ -48,7 +48,7 @@ reviews:
       threshold: 80
     title:
       mode: warning
-      requirements: ""
+      requirements: "Must follow conventional commit format"
     description:
       mode: warning
     issue_assessment:
@@ -62,11 +62,11 @@ reviews:
     shellcheck:
       enabled: true
     ruff:
-      enabled: true
+      enabled: false
     markdownlint:
       enabled: true
     github-checks:
-      enabled: true
+      enabled: false
       timeout_ms: 90000
     languagetool:
       enabled: true
@@ -77,18 +77,18 @@ reviews:
       enabled_only: false
       level: default
     biome:
-      enabled: true
+      enabled: false
     hadolint:
       enabled: true
     swiftlint:
-      enabled: true
+      enabled: false
     phpstan:
-      enabled: true
+      enabled: false
       level: default
     phpmd:
-      enabled: true
+      enabled: false
     phpcs:
-      enabled: true
+      enabled: false
     golangci-lint:
       enabled: true
     yamllint:
@@ -98,56 +98,56 @@ reviews:
     checkov:
       enabled: true
     detekt:
-      enabled: true
+      enabled: false
     eslint:
-      enabled: true
+      enabled: false
     flake8:
-      enabled: true
+      enabled: false
     rubocop:
-      enabled: true
+      enabled: false
     buf:
-      enabled: true
+      enabled: false
     regal:
-      enabled: true
+      enabled: false
     actionlint:
       enabled: true
     pmd:
-      enabled: true
+      enabled: false
     cppcheck:
-      enabled: true
+      enabled: false
     semgrep:
       enabled: true
     circleci:
       enabled: true
     clippy:
-      enabled: true
+      enabled: false
     sqlfluff:
-      enabled: true
+      enabled: false
     prismaLint:
-      enabled: true
+      enabled: false
     pylint:
-      enabled: true
+      enabled: false
     oxc:
-      enabled: true
+      enabled: false
     shopifyThemeCheck:
-      enabled: true
+      enabled: false
     luacheck:
-      enabled: true
+      enabled: false
     brakeman:
-      enabled: true
+      enabled: false
     dotenvLint:
       enabled: true
     htmlhint:
-      enabled: true
+      enabled: false
     checkmake:
       enabled: true
 chat:
   auto_reply: true
   integrations:
     jira:
-      usage: auto
+      usage: disabled
     linear:
-      usage: auto
+      usage: disabled
 knowledge_base:
   opt_out: false
   web_search:
@@ -160,10 +160,10 @@ knowledge_base:
   issues:
     scope: auto
   jira:
-    usage: auto
+    usage: disabled
     project_keys: []
   linear:
-    usage: auto
+    usage: disabled
     team_keys: []
   pull_requests:
     scope: auto
