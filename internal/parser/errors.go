@@ -192,8 +192,15 @@ func (r *AggregatedValidationError) Error() string {
 		return r.Errors[0].Error()
 	}
 
-	return fmt.Sprintf("validation failed with %d errors: %s (and %d more)",
-		len(r.Errors), r.Errors[0].Message, len(r.Errors)-1)
+	// Build a comprehensive error message showing all validation errors
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("validation failed with %d errors:\n", len(r.Errors)))
+
+	for i, err := range r.Errors {
+		sb.WriteString(fmt.Sprintf("  %d. %s\n", i+1, err.Error()))
+	}
+
+	return strings.TrimSpace(sb.String())
 }
 
 // Is implements error matching for AggregatedValidationError.

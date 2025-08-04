@@ -109,13 +109,17 @@ Examples:
 								parseErr.Message,
 							)
 						}
+						// For parse errors, report and continue to next file
+						fmt.Fprintf(os.Stderr, "❌ %s: %v\n", fp, err)
+						return
 					}
+
+					// Handle validation errors - display all validation issues
 					if parser.IsValidationError(err) {
 						ctxLogger.Error("Configuration validation failed")
-						// Log validation error details without failing the command
-						fmt.Fprintf(os.Stderr, "❌ %s: %v\n", fp, err)
+						fmt.Fprintf(os.Stderr, "❌ %s:\n%s\n", fp, err)
 					} else {
-						// For parse errors, still report but continue
+						// For other errors, still report but continue
 						fmt.Fprintf(os.Stderr, "❌ %s: %v\n", fp, err)
 					}
 					return

@@ -247,7 +247,9 @@ func TestAggregatedValidationError(t *testing.T) {
 		})
 		assert.Contains(t, multiErr.Error(), "validation failed with 2 errors")
 		assert.Contains(t, multiErr.Error(), "error1")
-		assert.Contains(t, multiErr.Error(), "and 1 more")
+		assert.Contains(t, multiErr.Error(), "error2")
+		assert.Contains(t, multiErr.Error(), "1. validation error at path1: error1")
+		assert.Contains(t, multiErr.Error(), "2. validation error at path2: error2")
 	})
 
 	t.Run("Is method works correctly", func(t *testing.T) {
