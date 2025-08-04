@@ -57,16 +57,10 @@ WORKFLOW EXAMPLES:
 		}
 
 		// Initialize logger after config load with proper verbose/quiet handling
+		// GetLogLevel() and GetLogFormat() are deprecated but still functional
+		// They now handle the verbose/quiet logic internally
 		logLevel := Cfg.GetLogLevel()
 		logFormat := Cfg.GetLogFormat()
-
-		// Honor --verbose/--quiet overrides with proper precedence
-		// CLI flags > env vars > config file > defaults
-		if Cfg.IsQuiet() {
-			logLevel = "error"
-		} else if Cfg.IsVerbose() {
-			logLevel = "debug"
-		}
 
 		// Create new logger with centralized configuration
 		var loggerErr error

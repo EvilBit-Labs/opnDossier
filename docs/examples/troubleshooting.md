@@ -64,10 +64,6 @@ sudo opnDossier convert /root/config.xml
 opnDossier --verbose --quiet convert config.xml
 # Output: verbose and quiet options are mutually exclusive
 
-# Error: Invalid log level
-opnDossier --log_level=trace convert config.xml
-# Output: invalid log level 'trace', must be one of: debug, info, warn, error
-
 # Error: Invalid output format
 opnDossier convert config.xml -f txt
 # Output: unsupported format: txt
@@ -81,27 +77,8 @@ opnDossier convert config.xml -f txt
 # Enable verbose output for detailed debugging
 opnDossier --verbose convert config.xml
 
-# Enable debug logging
-opnDossier --log_level=debug convert config.xml
-
-# Combine verbose and debug
-opnDossier --verbose --log_level=debug convert config.xml
-```
-
-### JSON Logging for Analysis
-
-```bash
-# Capture detailed logs in JSON format
-opnDossier --log_format=json --log_level=debug convert config.xml > debug.log 2>&1
-
-# Analyze logs with jq
-jq '.level' debug.log | sort | uniq -c
-
-# Extract error messages
-jq 'select(.level == "error") | .msg' debug.log
-
-# Extract timing information
-jq 'select(.msg | contains("duration"))' debug.log
+# Combine verbose with other flags
+opnDossier --verbose convert config.xml --format json
 ```
 
 ### Step-by-Step Debugging
@@ -120,7 +97,7 @@ opnDossier convert config.xml -f json
 opnDossier convert config.xml --section system
 
 # 5. Test with custom template
-opnDossier convert config.xml --template-dir ./custom-templates
+opnDossier convert config.xml --custom-template ./custom-template.tmpl
 ```
 
 ## Common Issues and Solutions
@@ -136,7 +113,7 @@ opnDossier convert config.xml --template-dir ./custom-templates
 **Solutions:**
 
 ```bash
-# Use streaming mode (built-in)
+# Use built-in optimization
 opnDossier convert large-config.xml
 
 # Monitor memory usage
@@ -158,42 +135,17 @@ opnDossier convert large-config.xml --section firewall,nat
 **Solutions:**
 
 ```bash
-# Check template directory
-ls -la ~/.opnDossier/templates/
+# Use built-in templates (default)
+opnDossier convert config.xml
 
-# Use built-in templates
-opnDossier convert config.xml --template standard
+# Use custom template
+opnDossier convert config.xml --custom-template ./custom-template.tmpl
 
 # Debug template rendering
-opnDossier --verbose convert config.xml --template-dir ./custom-templates
-
-# Check template syntax
-opnDossier convert config.xml --template-dir ./custom-templates --log_level=debug
+opnDossier --verbose convert config.xml --custom-template ./custom-template.tmpl
 ```
 
-### Issue 3: Plugin Loading Issues
-
-**Symptoms:**
-
-- Plugin not found errors
-- Plugin execution failures
-- Missing compliance checks
-
-**Solutions:**
-
-```bash
-# Check available plugins
-opnDossier convert config.xml --plugins stig,sans
-
-# Test individual plugins
-opnDossier convert config.xml --plugins stig
-opnDossier convert config.xml --plugins sans
-
-# Debug plugin loading
-opnDossier --verbose convert config.xml --plugins stig,sans
-```
-
-### Issue 4: Output File Issues
+### Issue 3: Output File Issues
 
 **Symptoms:**
 
@@ -240,7 +192,7 @@ time opnDossier convert config.xml
 go tool pprof -http=:8080 $(which opnDossier) cpu.prof
 
 # Analyze specific operations
-opnDossier --log_level=debug convert config.xml 2>&1 | grep "duration"
+opnDossier --verbose convert config.xml 2>&1 | grep "duration"
 ```
 
 ### Network Debugging (if applicable)
@@ -282,35 +234,19 @@ opnDossier convert config.xml
 
 ```bash
 # 1. Check template syntax
-opnDossier convert config.xml --template-dir ./templates --log_level=debug
+opnDossier convert config.xml --custom-template ./templates/custom.tmpl --verbose
 
-# 2. Use fallback template
-opnDossier convert config.xml --template standard
+# 2. Use built-in template (default)
+opnDossier convert config.xml
 
 # 3. Create minimal template
-cat > minimal-template.md.tmpl << EOF
+cat > minimal-template.tmpl << EOF
 # Configuration Report
 {{.System.Hostname}}
 EOF
 
 # 4. Test with minimal template
-opnDossier convert config.xml --template-dir ./templates
-```
-
-### Recovering from Plugin Errors
-
-```bash
-# 1. Check plugin availability
-opnDossier convert config.xml --plugins stig
-
-# 2. Run without plugins
-opnDossier convert config.xml
-
-# 3. Run with specific plugins only
-opnDossier convert config.xml --plugins stig
-
-# 4. Debug plugin execution
-opnDossier --verbose convert config.xml --plugins stig --log_level=debug
+opnDossier convert config.xml --custom-template ./minimal-template.tmpl
 ```
 
 ## Diagnostic Scripts
@@ -445,23 +381,11 @@ opnDossier convert config.xml
 
 # Add complexity gradually
 opnDossier convert config.xml -f json
-opnDossier convert config.xml --mode blue
-opnDossier convert config.xml --plugins stig
+opnDossier convert config.xml --comprehensive
+opnDossier convert config.xml --section system,interfaces
 ```
 
-### 2. Logging Strategy
-
-```bash
-# Use appropriate log levels
-opnDossier --log_level=info convert config.xml      # Normal operation
-opnDossier --log_level=debug convert config.xml     # Detailed debugging
-opnDossier --log_level=warn convert config.xml      # Warnings only
-
-# Use structured logging for automation
-opnDossier --log_format=json convert config.xml > logs.json
-```
-
-### 3. Error Handling in Scripts
+### 2. Error Handling in Scripts
 
 ```bash
 #!/bin/bash
@@ -493,7 +417,7 @@ opnDossier validate config.xml
 opnDossier convert config.xml -o output.md
 ```
 
-### 4. Environment Isolation
+### 3. Environment Isolation
 
 ```bash
 # Test in clean environment
@@ -503,7 +427,66 @@ env -i PATH=/usr/bin:/bin opnDossier convert config.xml
 opnDossier --config /dev/null convert config.xml
 
 # Test with specific environment variables
-OPNDOSSIER_LOG_LEVEL=debug opnDossier convert config.xml
+OPNDOSSIER_OUTPUT_FILE=./docs/network.md opnDossier convert config.xml
+```
+
+## Future Features (Not Available in v1.0)
+
+> **⚠️ The following examples reference functionality that is planned for future releases but is not currently available in opnDossier v1.0.**
+
+### Audit Mode Examples (Future Release)
+
+```bash
+# TODO: These flags are not available in v1.0
+# Generate blue team audit report
+# opnDossier convert config.xml --mode blue --comprehensive
+
+# Generate red team recon report with blackhat mode
+# opnDossier convert config.xml --mode red --blackhat-mode
+
+# Run compliance checks with specific plugins
+# opnDossier convert config.xml --mode blue --plugins stig,sans
+```
+
+### Plugin System Examples (Future Release)
+
+```bash
+# TODO: These flags are not available in v1.0
+# Check available plugins
+# opnDossier convert config.xml --plugins stig,sans
+
+# Test individual plugins
+# opnDossier convert config.xml --plugins stig
+# opnDossier convert config.xml --plugins sans
+
+# Debug plugin loading
+# opnDossier --verbose convert config.xml --plugins stig,sans
+```
+
+### Advanced Logging Examples (Future Release)
+
+```bash
+# TODO: These flags are not available in v1.0
+# Enable debug logging
+# opnDossier --log_level=debug convert config.xml
+
+# Capture detailed logs in JSON format
+# opnDossier --log_format=json --log_level=debug convert config.xml > debug.log 2>&1
+
+# Analyze logs with jq
+# jq '.level' debug.log | sort | uniq -c
+# jq 'select(.level == "error") | .msg' debug.log
+```
+
+### Template Directory Examples (Future Release)
+
+```bash
+# TODO: This flag is not available in v1.0
+# Use template directory (use --custom-template instead)
+# opnDossier convert config.xml --template-dir ./custom-templates
+
+# Debug template directory
+# opnDossier --verbose convert config.xml --template-dir ./custom-templates
 ```
 
 ---

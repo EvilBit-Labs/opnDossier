@@ -29,6 +29,7 @@ Example:
 		}
 
 		// Ensure the output directory exists
+		//nolint:gosec // Man pages require 755 permissions for public access
 		if err := os.MkdirAll(outputDir, 0o755); err != nil {
 			return fmt.Errorf("failed to create output directory %s: %w", outputDir, err)
 		}
