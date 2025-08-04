@@ -381,3 +381,124 @@ func TestDetectConfigLanguage(t *testing.T) {
 		})
 	}
 }
+
+func TestIsTruthy(t *testing.T) {
+	tests := []struct {
+		name     string
+		value    any
+		expected bool
+	}{
+		// Truthy values
+		{"true string", "true", true},
+		{"1 string", "1", true},
+		{"yes string", "yes", true},
+		{"on string", "on", true},
+		{"enabled string", "enabled", true},
+		{"active string", "active", true},
+		{"true bool", true, true},
+		{"1 int", 1, true},
+		{"positive int", 42, true},
+
+		// Falsy values
+		{"false string", "false", false},
+		{"0 string", "0", false},
+		{"no string", "no", false},
+		{"off string", "off", false},
+		{"disabled string", "disabled", false},
+		{"inactive string", "inactive", false},
+		{"empty string", "", false},
+		{"-1 string", "-1", false},
+		{"false bool", false, false},
+		{"0 int", 0, false},
+		{"-1 int", -1, false},
+		{"nil", nil, false},
+
+		// Edge cases
+		{"whitespace", "   ", false},
+		{"mixed case TRUE", "TRUE", true},
+		{"mixed case FALSE", "FALSE", false},
+		{"zero float", 0.0, false},
+		{"positive float", 1.5, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := IsTruthy(tt.value)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestFormatBoolean(t *testing.T) {
+	tests := []struct {
+		name     string
+		value    any
+		expected string
+	}{
+		// Truthy values should return checked checkbox
+		{"true string", "true", "[x]"},
+		{"1 string", "1", "[x]"},
+		{"yes string", "yes", "[x]"},
+		{"on string", "on", "[x]"},
+		{"enabled string", "enabled", "[x]"},
+		{"active string", "active", "[x]"},
+		{"true bool", true, "[x]"},
+		{"1 int", 1, "[x]"},
+		{"positive int", 42, "[x]"},
+
+		// Falsy values should return unchecked checkbox
+		{"false string", "false", "[ ]"},
+		{"0 string", "0", "[ ]"},
+		{"no string", "no", "[ ]"},
+		{"off string", "off", "[ ]"},
+		{"disabled string", "disabled", "[ ]"},
+		{"inactive string", "inactive", "[ ]"},
+		{"empty string", "", "[ ]"},
+		{"-1 string", "-1", "[ ]"},
+		{"false bool", false, "[ ]"},
+		{"0 int", 0, "[ ]"},
+		{"-1 int", -1, "[ ]"},
+		{"nil", nil, "[ ]"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := FormatBoolean(tt.value)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestFormatBooleanWithUnset(t *testing.T) {
+	tests := []struct {
+		name     string
+		value    any
+		expected string
+	}{
+		// Truthy values should return checked checkbox
+		{"true string", "true", "[x]"},
+		{"1 string", "1", "[x]"},
+		{"yes string", "yes", "[x]"},
+		{"true bool", true, "[x]"},
+		{"1 int", 1, "[x]"},
+
+		// Falsy values should return unchecked checkbox
+		{"false string", "false", "[ ]"},
+		{"0 string", "0", "[ ]"},
+		{"no string", "no", "[ ]"},
+		{"false bool", false, "[ ]"},
+		{"0 int", 0, "[ ]"},
+		{"nil", nil, "[ ]"},
+
+		// Special case: -1 should return "unset"
+		{"-1 string", "-1", "unset"},
+		{"-1 int", -1, "unset"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := FormatBooleanWithUnset(tt.value)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}

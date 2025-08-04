@@ -552,9 +552,13 @@ func IsTruthy(value any) bool {
 	case "0", "no", "false", "off", "disabled", "inactive", "", "-1":
 		return false
 	default:
-		// Try to parse as number
+		// Try to parse as number (integer or float)
 		if num, err := strconv.Atoi(str); err == nil {
 			return num > 0 // Only positive numbers are truthy, -1 is falsy
+		}
+		// Try to parse as float
+		if num, err := strconv.ParseFloat(str, 64); err == nil {
+			return num > 0 // Only positive numbers are truthy
 		}
 		return false
 	}
