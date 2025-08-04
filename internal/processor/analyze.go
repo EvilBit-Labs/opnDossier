@@ -347,7 +347,7 @@ func (p *CoreProcessor) analyzeSecurityIssues(cfg *model.OpnSenseDocument, repor
 // analyzePerformanceIssues performs performance-focused analysis.
 func (p *CoreProcessor) analyzePerformanceIssues(cfg *model.OpnSenseDocument, report *Report) {
 	// Check for suboptimal hardware settings
-	if cfg.System.DisableChecksumOffloading != "" {
+	if cfg.System.DisableChecksumOffloading != 0 {
 		report.AddFinding(SeverityLow, Finding{
 			Type:           "performance",
 			Title:          "Checksum Offloading Disabled",
@@ -358,7 +358,7 @@ func (p *CoreProcessor) analyzePerformanceIssues(cfg *model.OpnSenseDocument, re
 		})
 	}
 
-	if cfg.System.DisableSegmentationOffloading != "" {
+	if cfg.System.DisableSegmentationOffloading != 0 {
 		report.AddFinding(SeverityLow, Finding{
 			Type:           "performance",
 			Title:          "Segmentation Offloading Disabled",

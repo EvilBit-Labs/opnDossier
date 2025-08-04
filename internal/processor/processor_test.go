@@ -564,8 +564,8 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 				System: model.System{
 					Hostname:                      "perf-firewall",
 					Domain:                        "example.com",
-					DisableChecksumOffloading:     "1",
-					DisableSegmentationOffloading: "1",
+					DisableChecksumOffloading:     1,
+					DisableSegmentationOffloading: 1,
 				},
 				Interfaces: model.Interfaces{
 					Items: map[string]model.Interface{
@@ -639,7 +639,7 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 					Hostname:                  "combined-firewall",
 					Domain:                    "example.com",
 					WebGUI:                    model.WebGUIConfig{Protocol: "http"},
-					DisableChecksumOffloading: "1",
+					DisableChecksumOffloading: 1,
 				},
 				Interfaces: model.Interfaces{
 					Items: map[string]model.Interface{

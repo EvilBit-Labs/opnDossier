@@ -158,10 +158,10 @@ type Interface struct {
 	If                  string       `xml:"if,omitempty"                  json:"if,omitempty"                  yaml:"if,omitempty"`
 	Descr               string       `xml:"descr,omitempty"               json:"descr,omitempty"               yaml:"descr,omitempty"`
 	Spoofmac            string       `xml:"spoofmac,omitempty"            json:"spoofmac,omitempty"            yaml:"spoofmac,omitempty"`
-	InternalDynamic     string       `xml:"internal_dynamic,omitempty"    json:"internalDynamic,omitempty"     yaml:"internalDynamic,omitempty"`
+	InternalDynamic     int          `xml:"internal_dynamic,omitempty"    json:"internalDynamic,omitempty"     yaml:"internalDynamic,omitempty"`
 	Type                string       `xml:"type,omitempty"                json:"type,omitempty"                yaml:"type,omitempty"`
-	Virtual             string       `xml:"virtual,omitempty"             json:"virtual,omitempty"             yaml:"virtual,omitempty"`
-	Lock                string       `xml:"lock,omitempty"                json:"lock,omitempty"                yaml:"lock,omitempty"`
+	Virtual             int          `xml:"virtual,omitempty"             json:"virtual,omitempty"             yaml:"virtual,omitempty"`
+	Lock                int          `xml:"lock,omitempty"                json:"lock,omitempty"                yaml:"lock,omitempty"`
 	MTU                 string       `xml:"mtu,omitempty"                 json:"mtu,omitempty"                 yaml:"mtu,omitempty"`
 	IPAddr              string       `xml:"ipaddr,omitempty"              json:"ipaddr,omitempty"              yaml:"ipaddr,omitempty"`
 	IPAddrv6            string       `xml:"ipaddrv6,omitempty"            json:"ipaddrv6,omitempty"            yaml:"ipaddrv6,omitempty"`
@@ -174,7 +174,7 @@ type Interface struct {
 	DHCPHostname        string       `xml:"dhcphostname,omitempty"        json:"dhcphostname,omitempty"        yaml:"dhcphostname,omitempty"`
 	Media               string       `xml:"media,omitempty"               json:"media,omitempty"               yaml:"media,omitempty"`
 	MediaOpt            string       `xml:"mediaopt,omitempty"            json:"mediaopt,omitempty"            yaml:"mediaopt,omitempty"`
-	DHCP6IaPdLen        string       `xml:"dhcp6-ia-pd-len,omitempty"     json:"dhcp6IaPdLen,omitempty"        yaml:"dhcp6IaPdLen,omitempty"`
+	DHCP6IaPdLen        int          `xml:"dhcp6-ia-pd-len,omitempty"     json:"dhcp6IaPdLen,omitempty"        yaml:"dhcp6IaPdLen,omitempty"`
 	Track6Interface     string       `xml:"track6-interface,omitempty"    json:"track6Interface,omitempty"     yaml:"track6Interface,omitempty"`
 	Track6PrefixID      string       `xml:"track6-prefix-id,omitempty"    json:"track6PrefixId,omitempty"      yaml:"track6PrefixId,omitempty"`
 	AliasAddress        string       `xml:"alias-address,omitempty"       json:"aliasAddress,omitempty"        yaml:"aliasAddress,omitempty"`

@@ -32,10 +32,10 @@ _No exploitable findings identified. Time to dig deeper._
 
 ## Firewall Recon
 
-| Iface | Action | Src → Dst | Port | Comment |
-|-------|--------|-----------|------|---------|
+| Iface | Action | Src → Dst | Target | Source Port | Comment |
+|-------|--------|-----------|--------|-------------|---------|
 {{- range .FirewallRules }}
-| {{ .Interface }} | {{ .Action }} | {{ .Source }} → {{ .Destination }} | {{ .Port }} | {{ escapeTableContent .Description }} |
+| {{ .Interface }} | {{ .Action }} | {{ .Source }} → {{ .Destination }} | {{ .Target }} | {{ .SourcePort }} | {{ escapeTableContent .Description }} |
 {{- end }}
 
 ---

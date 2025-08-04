@@ -233,7 +233,7 @@ func (p *ExampleProcessor) performPerformanceAnalysis(
 	}
 
 	// Check for hardware offloading settings
-	if cfg.System.DisableChecksumOffloading != "" {
+	if cfg.System.DisableChecksumOffloading != 0 {
 		report.AddFinding(SeverityInfo, Finding{
 			Type:           "performance",
 			Title:          "Checksum Offloading Disabled",

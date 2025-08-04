@@ -152,6 +152,48 @@ func handleStartElement(dec *xml.Decoder, doc *model.OpnSenseDocument, se xml.St
 		return decodeSection(dec, &doc.LoadBalancer, se)
 	case "ntpd":
 		return decodeSection(dec, &doc.Ntpd, se)
+	case "widgets":
+		return decodeSection(dec, &doc.Widgets, se)
+	case "revision":
+		return decodeSection(dec, &doc.Revision, se)
+	case "gateways":
+		return decodeSection(dec, &doc.Gateways, se)
+	case "hasync":
+		return decodeSection(dec, &doc.HighAvailabilitySync, se)
+	case "ifgroups":
+		return decodeSection(dec, &doc.InterfaceGroups, se)
+	case "gifs":
+		return decodeSection(dec, &doc.GIFInterfaces, se)
+	case "gres":
+		return decodeSection(dec, &doc.GREInterfaces, se)
+	case "laggs":
+		return decodeSection(dec, &doc.LAGGInterfaces, se)
+	case "virtualip":
+		return decodeSection(dec, &doc.VirtualIP, se)
+	case "vlans":
+		return decodeSection(dec, &doc.VLANs, se)
+	case "openvpn":
+		return decodeSection(dec, &doc.OpenVPN, se)
+	case "staticroutes":
+		return decodeSection(dec, &doc.StaticRoutes, se)
+	case "bridges":
+		return decodeSection(dec, &doc.Bridges, se)
+	case "ppps":
+		return decodeSection(dec, &doc.PPPInterfaces, se)
+	case "wireless":
+		return decodeSection(dec, &doc.Wireless, se)
+	case "ca":
+		return decodeSection(dec, &doc.CertificateAuthority, se)
+	case "dhcpdv6":
+		return decodeSection(dec, &doc.DHCPv6Server, se)
+	case "cert":
+		return decodeSection(dec, &doc.Cert, se)
+	case "dnsmasq":
+		return decodeSection(dec, &doc.DNSMasquerade, se)
+	case "syslog":
+		return decodeSection(dec, &doc.Syslog, se)
+	case "OPNsense":
+		return decodeSection(dec, &doc.OPNsense, se)
 	default:
 		return skipElement(dec)
 	}

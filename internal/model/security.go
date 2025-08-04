@@ -17,6 +17,7 @@ type Nat struct {
 // Outbound represents outbound NAT configuration.
 type Outbound struct {
 	Mode string `xml:"mode"`
+	Rule []Rule `xml:"rule"`
 }
 
 // Filter represents firewall filter configuration.
@@ -37,6 +38,9 @@ type Rule struct {
 	Protocol    string      `xml:"protocol,omitempty"`
 	Source      Source      `xml:"source"`
 	Destination Destination `xml:"destination"`
+	Target      string      `xml:"target,omitempty"`
+	SourcePort  string      `xml:"sourceport,omitempty"`
+	Disabled    string      `xml:"disabled,omitempty"`
 	Updated     *Updated    `xml:"updated,omitempty"`
 	Created     *Created    `xml:"created,omitempty"`
 	UUID        string      `xml:"uuid,attr,omitempty"`

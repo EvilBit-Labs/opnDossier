@@ -5,12 +5,18 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/yuin/goldmark"
 	goldmark_parser "github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
+)
+
+const (
+	checkboxChecked   = "[x]"
+	checkboxUnchecked = "[ ]"
 )
 
 // Pre-compiled regex patterns for configuration content detection.
@@ -510,4 +516,71 @@ func detectConfigLanguage(content string) string {
 
 	// Default to text for tunables and simple key-value pairs
 	return "ini"
+}
+
+// GetPowerModeDescription converts power management mode acronyms to their full descriptions.
+func GetPowerModeDescription(mode string) string {
+	switch mode {
+	case "hadp":
+		return "High Performance with Dynamic Power Management"
+	case "hiadp":
+		return "High Performance with Adaptive Dynamic Power Management"
+	case "adaptive":
+		return "Adaptive Power Management"
+	case "minimum":
+		return "Minimum Power Consumption"
+	case "maximum":
+		return "Maximum Performance"
+	default:
+		return mode // Return original if unknown
+	}
+}
+
+// IsTruthy determines if a value represents a "true" or "enabled" state.
+// Handles various formats: "1", "yes", "true", "on", "enabled", etc.
+// Treats -1 as "unset" and returns false for it.
+func IsTruthy(value any) bool {
+	if value == nil {
+		return false
+	}
+
+	str := strings.ToLower(strings.TrimSpace(fmt.Sprintf("%v", value)))
+
+	switch str {
+	case "1", "yes", "true", "on", "enabled", "active":
+		return true
+	case "0", "no", "false", "off", "disabled", "inactive", "", "-1":
+		return false
+	default:
+		// Try to parse as number
+		if num, err := strconv.Atoi(str); err == nil {
+			return num > 0 // Only positive numbers are truthy, -1 is falsy
+		}
+		return false
+	}
+}
+
+// FormatBoolean formats a boolean value consistently using markdown checkboxes.
+func FormatBoolean(value any) string {
+	if IsTruthy(value) {
+		return checkboxChecked
+	}
+	return checkboxUnchecked
+}
+
+// FormatBooleanWithUnset formats a boolean value, showing "unset" for -1 values.
+func FormatBooleanWithUnset(value any) string {
+	if value == nil {
+		return checkboxUnchecked
+	}
+
+	str := strings.TrimSpace(fmt.Sprintf("%v", value))
+	if str == "-1" {
+		return "unset"
+	}
+
+	if IsTruthy(value) {
+		return checkboxChecked
+	}
+	return checkboxUnchecked
 }

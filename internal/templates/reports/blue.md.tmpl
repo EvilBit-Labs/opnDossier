@@ -62,10 +62,10 @@ _No audit issues detected._
 
 ## Firewall Rule Audit
 
-| Iface | Action | Proto | Src → Dst | Port | Comment |
-|-------|--------|-------|------------|------|---------|
+| Iface | Action | Proto | Src → Dst | Target | Source Port | Comment |
+|-------|--------|-------|------------|--------|-------------|---------|
 {{- range .FirewallRules }}
-| {{ .Interface }} | {{ .Action }} | {{ .Protocol }} | {{ .Source }} → {{ .Destination }} | {{ .Port }} | {{ escapeTableContent .Description }} |
+| {{ .Interface }} | {{ .Action }} | {{ .Protocol }} | {{ .Source }} → {{ .Destination }} | {{ .Target }} | {{ .SourcePort }} | {{ escapeTableContent .Description }} |
 {{- end }}
 
 ---

@@ -75,7 +75,7 @@ type OPNsense struct {
 
 	// VPN components - now using references
 	OpenVPNExport *OpenVPNExport `xml:"OpenVPNExport,omitempty" json:"openvpnexport,omitempty"`
-	OpenVPN       *OpenVPNSystem `xml:"OpenVPN,omitempty"       json:"openvpn,omitempty"`
+	OpenVPN       *OpenVPNSystem `xml:"OpenVPN,omitempty"       json:"openvpn_system,omitempty"`
 	Wireguard     *WireGuard     `xml:"wireguard,omitempty"     json:"wireguard,omitempty"`
 
 	// Monitoring components - now using references
@@ -138,7 +138,7 @@ type OPNsense struct {
 	Gateways struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Version string `xml:"version,attr" json:"version,omitempty"`
-	} `xml:"Gateways" json:"gateways"`
+	} `xml:"Gateways" json:"gateways_internal"`
 
 	Netflow struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
@@ -169,7 +169,7 @@ type OPNsense struct {
 			Maxfilesize string `xml:"maxfilesize"`
 		} `xml:"general" json:"general"`
 		Destinations string `xml:"destinations"`
-	} `xml:"Syslog" json:"syslog"`
+	} `xml:"Syslog" json:"syslog_internal"`
 
 	TrafficShaper struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
@@ -288,76 +288,11 @@ type OPNsense struct {
 		Domains string `xml:"domains"`
 	} `xml:"unboundplus" json:"unboundplus"`
 
-	// Legacy components (keeping as embedded for now)
-	HighAvailabilitySync struct {
-		Text            string `xml:",chardata" json:"text,omitempty"`
-		Version         string `xml:"version,attr" json:"version,omitempty"`
-		Disablepreempt  string `xml:"disablepreempt"`
-		Disconnectppps  string `xml:"disconnectppps"`
-		Pfsyncinterface string `xml:"pfsyncinterface"`
-		Pfsyncpeerip    string `xml:"pfsyncpeerip"`
-		Pfsyncversion   string `xml:"pfsyncversion"`
-		Synchronizetoip string `xml:"synchronizetoip"`
-		Username        string `xml:"username"`
-		Password        string `xml:"password"`
-		Syncitems       string `xml:"syncitems"`
-	} `xml:"hasync"            json:"hasync"`
-	InterfaceGroups struct {
-		Text    string `xml:",chardata" json:"text,omitempty"`
-		Version string `xml:"version,attr" json:"version,omitempty"`
-	} `xml:"ifgroups"          json:"ifgroups"`
-	GIFInterfaces struct {
-		Text    string `xml:",chardata" json:"text,omitempty"`
-		Version string `xml:"version,attr" json:"version,omitempty"`
-		Gif     string `xml:"gif"`
-	} `xml:"gifs"              json:"gifs"`
-	GREInterfaces struct {
-		Text    string `xml:",chardata" json:"text,omitempty"`
-		Version string `xml:"version,attr" json:"version,omitempty"`
-		Gre     string `xml:"gre"`
-	} `xml:"gres"              json:"gres"`
-	LAGGInterfaces struct {
-		Text    string `xml:",chardata" json:"text,omitempty"`
-		Version string `xml:"version,attr" json:"version,omitempty"`
-		Lagg    string `xml:"lagg"`
-	} `xml:"laggs"             json:"laggs"`
-	VirtualIP struct {
-		Text    string `xml:",chardata" json:"text,omitempty"`
-		Version string `xml:"version,attr" json:"version,omitempty"`
-		Vip     string `xml:"vip"`
-	} `xml:"virtualip"         json:"virtualip"`
-	VLANs struct {
-		Text    string `xml:",chardata" json:"text,omitempty"`
-		Version string `xml:"version,attr" json:"version,omitempty"`
-		VLAN    string `xml:"vlan"`
-	} `xml:"vlans"             json:"vlans"`
-	Openvpn      string `xml:"openvpn"`
-	Staticroutes struct {
-		Text    string `xml:",chardata" json:"text,omitempty"`
-		Version string `xml:"version,attr" json:"version,omitempty"`
-		Route   string `xml:"route"`
-	} `xml:"staticroutes"      json:"staticroutes"`
-	Bridges struct {
-		Text    string `xml:",chardata" json:"text,omitempty"`
-		Bridged string `xml:"bridged"`
-	} `xml:"bridges"           json:"bridges"`
-	PPPInterfaces struct {
-		Text string `xml:",chardata" json:"text,omitempty"`
-		Ppp  string `xml:"ppp"`
-	} `xml:"ppps"              json:"ppps"`
-	Wireless struct {
-		Text  string `xml:",chardata" json:"text,omitempty"`
-		Clone string `xml:"clone"`
-	} `xml:"wireless"          json:"wireless"`
-	CertificateAuthority string `xml:"ca"`
-	DHCPv6Server         string `xml:"dhcpdv6"`
-	Cert                 struct {
-		Text  string `xml:",chardata" json:"text,omitempty"`
-		Refid string `xml:"refid"`
-		Descr string `xml:"descr"`
-		Crt   string `xml:"crt"`
-		Prv   string `xml:"prv"`
-	} `xml:"cert"              json:"cert"`
+	// Legacy components removed - use dedicated structs from interfaces.go instead
+	// Openvpn field removed - not present in actual XML files
+	// Additional legacy components removed - use dedicated structs instead
+	// CertificateAuthority and DHCPv6Server fields removed - not present in actual XML files
+	// Cert struct removed - use dedicated struct from certificates.go instead
 	Routes struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Version string `xml:"version,attr" json:"version,omitempty"`
@@ -367,7 +302,7 @@ type OPNsense struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Version string `xml:"version,attr" json:"version,omitempty"`
 		Unbound string `xml:"unbound"`
-	} `xml:"unbound"           json:"unbound"`
+	} `xml:"unbound"           json:"unbound_internal"`
 	Created string `xml:"created,omitempty"`
 	Updated string `xml:"updated,omitempty"`
 }

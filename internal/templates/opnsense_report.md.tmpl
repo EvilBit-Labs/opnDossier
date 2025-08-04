@@ -17,6 +17,7 @@
 - [DHCP Services](#dhcp-services)
 - [DNS Resolver](#dns-resolver)
 - [OpenVPN](#openvpn)
+- [Gateways](#gateways)
 - [System Users](#system-users)
 - [Services & Daemons](#services--daemons)
 - [Tunables](#tunables)
@@ -29,41 +30,31 @@
 | Name | Description | IP Address | CIDR | Enabled |
 |------|-------------|------------|------|---------|
 {{- range $name, $iface := .Interfaces.Items }}
-| `{{ $name }}` | `{{ if $iface.Descr }}{{ $iface.Descr }}{{ else }}{{ $iface.If }}{{ end }}` | `{{ $iface.IPAddr }}` | /{{ $iface.Subnet }} | {{ if $iface.Enable }}[x]{{ else }}[ ]{{ end }} |
+| `{{ $name }}` | `{{ if $iface.Descr }}{{ $iface.Descr }}{{ else }}{{ $iface.If }}{{ end }}` | `{{ $iface.IPAddr }}` | /{{ $iface.Subnet }} | {{ formatBoolean $iface.Enable }} |
 {{- end }}
 
 ---
 
 ## Firewall Rules
 
-### WAN
-
-| # | Action | Proto | Source | Destination | Description |
-|---|--------|-------|--------|-------------|-------------|
+| # | Interface | Action | Proto | Source | Destination | Target | Source Port | Enabled | Description |
+|---|-----------|--------|-------|--------|-------------|--------|-------------|---------|-------------|
 {{- range $index, $rule := .Filter.Rule }}
-{{- if eq $rule.Interface "wan" }}
-| {{ add $index 1 }} | {{ $rule.Type }} | {{ $rule.IPProtocol }} | {{ $rule.Source.Network }} | {{ $rule.Destination.Network }} | `{{ $rule.Descr }}` |
-{{- end }}
-{{- end }}
-
-### LAN
-
-| # | Action | Proto | Source | Destination | Description |
-|---|--------|-------|--------|-------------|-------------|
-{{- range $index, $rule := .Filter.Rule }}
-{{- if eq $rule.Interface "lan" }}
-| {{ add $index 1 }} | {{ $rule.Type }} | {{ $rule.IPProtocol }} | {{ $rule.Source.Network }} | {{ $rule.Destination.Network }} | `{{ $rule.Descr }}` |
-{{- end }}
+| {{ add $index 1 }} | {{ $rule.Interface }} | {{ $rule.Type }} | {{ $rule.IPProtocol }} | {{ $rule.Source.Network }} | {{ $rule.Destination.Network }} | {{ if $rule.Target }}{{ $rule.Target }}{{ else }}-{{ end }} | {{ if $rule.SourcePort }}{{ $rule.SourcePort }}{{ else }}-{{ end }} | {{ formatBoolean (not $rule.Disabled) }} | {{ if $rule.Descr }}{{ $rule.Descr }}{{ else }}-{{ end }} |
 {{- end }}
 
 ---
 
 ## NAT Rules
 
-| Interface | Protocol | Source | Destination | NAT IP | Description |
-|-----------|----------|--------|-------------|--------|-------------|
 {{- if .Nat.Outbound.Mode }}
-| Outbound | All | Any | Any | {{ .Nat.Outbound.Mode }} | Outbound NAT |
+**Mode:** {{ .Nat.Outbound.Mode }}
+
+{{- end }}
+| Interface | Protocol | Source | Destination | Target | Source Port | Enabled | Description |
+|-----------|----------|--------|-------------|--------|-------------|---------|-------------|
+{{- range $index, $rule := .Nat.Outbound.Rule }}
+| {{ $rule.Interface }} | {{ $rule.IPProtocol }} | {{ $rule.Source.Network }} | {{ if $rule.Destination.Any }}any{{ else }}{{ $rule.Destination.Network }}{{ end }} | {{ $rule.Target }} | {{ $rule.SourcePort }} | {{ formatBoolean (not $rule.Disabled) }} | {{ if $rule.Descr }}{{ $rule.Descr }}{{ else }}-{{ end }} |
 {{- end }}
 
 ---
@@ -97,12 +88,12 @@
 
 ## DNS Resolver
 
-- **Enabled**: {{ if .Unbound.Enable }}[x]{{ else }}[ ]{{ end }}
+- **Enabled**: {{ formatBoolean .Unbound.Enable }}
 {{- if .Unbound.Dnssec }}
-- **DNSSEC**: {{ if .Unbound.Dnssec }}[x]{{ else }}[ ]{{ end }}
+- **DNSSEC**: {{ formatBoolean .Unbound.Dnssec }}
 {{- end }}
 {{- if .Unbound.Dnssecstripped }}
-- **DNSSEC Stripped**: {{ if .Unbound.Dnssecstripped }}[x]{{ else }}[ ]{{ end }}
+- **DNSSEC Stripped**: {{ formatBoolean .Unbound.Dnssecstripped }}
 {{- end }}
 
 ---
@@ -113,16 +104,30 @@
 |------|------|----------|------------|---------|
 {{- if .OpenVPN.Servers }}
 {{- range .OpenVPN.Servers }}
-| `{{ .Description }}` | {{ .Mode }} | {{ .Local_port }} | {{ .Remote_network }} | [x] |
+| `{{ .Description }}` | {{ .Mode }} | {{ .Local_port }} | {{ .Remote_network }} | {{ formatBoolean true }} |
 {{- end }}
 {{- end }}
 {{- if .OpenVPN.Clients }}
 {{- range .OpenVPN.Clients }}
-| `{{ .Description }}` | {{ .Mode }} | {{ .Server_addr }}:{{ .Server_port }} | - | [x] |
+| `{{ .Description }}` | {{ .Mode }} | {{ .Server_addr }}:{{ .Server_port }} | - | {{ formatBoolean true }} |
 {{- end }}
 {{- end }}
 {{- if and (not .OpenVPN.Servers) (not .OpenVPN.Clients) }}
-| No OpenVPN configured | - | - | - | [ ] |
+| No OpenVPN configured | - | - | - | {{ formatBoolean false }} |
+{{- end }}
+
+---
+
+## Gateways
+
+| Name | Description | Interface | Gateway | Protocol | Default | Monitor Disable | Interval | Weight | Far Gateway |
+|------|-------------|-----------|---------|----------|---------|-----------------|----------|--------|-------------|
+{{- if .Gateways.Gateway }}
+{{- range .Gateways.Gateway }}
+| `{{ .Name }}` | `{{ .Descr }}` | {{ .Interface }} | `{{ .Gateway }}` | {{ .IPProtocol }} | {{ formatBoolean .DefaultGW }} | {{ formatBoolean .MonitorDisable }} | {{ .Interval }} | {{ .Weight }} | {{ formatBoolean .FarGW }} |
+{{- end }}
+{{- else }}
+| No gateways configured | - | - | - | - | - | - | - | - | - |
 {{- end }}
 
 ---
@@ -132,7 +137,7 @@
 | Username | UID | Group | Shell | Disabled |
 |----------|-----|-------|--------|----------|
 {{- range .System.User }}
-| `{{ .Name }}` | {{ .UID }} | {{ .Groupname }} | - | {{ if .Disabled }}[x]{{ else }}[ ]{{ end }} |
+| `{{ .Name }}` | {{ .UID }} | {{ .Groupname }} | - | {{ formatBoolean .Disabled }} |
 {{- end }}
 
 ---
@@ -141,9 +146,9 @@
 
 | Service | Enabled | Notes |
 |---------|---------|-------|
-| SNMP | {{ if .Snmpd.ROCommunity }}[x]{{ else }}[ ]{{ end }} | Community: {{ .Snmpd.ROCommunity }} |
-| Unbound DNS | {{ if .Unbound.Enable }}[x]{{ else }}[ ]{{ end }} | {{ if .Unbound.Dnssec }}DNSSEC: [x]{{ if .Unbound.Dnssecstripped }}, Stripped: [x]{{ end }}{{ else }}DNSSEC: [ ]{{ end }} |
-| NTP | {{ if .Ntpd.Prefer }}[x]{{ else }}[ ]{{ end }} | Prefer: {{ .Ntpd.Prefer }} |
+| SNMP | {{ formatBoolean .Snmpd.ROCommunity }} | Community: {{ .Snmpd.ROCommunity }} |
+| Unbound DNS | {{ formatBoolean .Unbound.Enable }} | {{ if .Unbound.Dnssec }}DNSSEC: {{ formatBoolean .Unbound.Dnssec }}{{ if .Unbound.Dnssecstripped }}, Stripped: {{ formatBoolean .Unbound.Dnssecstripped }}{{ end }}{{ else }}DNSSEC: {{ formatBoolean false }}{{ end }} |
+| NTP | {{ formatBoolean .Ntpd.Prefer }} | Prefer: {{ .Ntpd.Prefer }} |
 
 ---
 

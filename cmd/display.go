@@ -279,7 +279,15 @@ func buildDisplayOptions(
 
 	// Template: CLI flag > config > default
 	if template != "" {
-		opt.TemplateName = template
+		// Handle special formats (json, yaml) by setting the format instead of template name
+		switch template {
+		case "json":
+			opt.Format = markdown.FormatJSON
+		case "yaml":
+			opt.Format = markdown.FormatYAML
+		default:
+			opt.TemplateName = template
+		}
 	} else if cfg != nil && cfg.GetTemplate() != "" {
 		opt.TemplateName = cfg.GetTemplate()
 	}

@@ -206,6 +206,14 @@ func createTemplateFuncMap() template.FuncMap {
 		return truncated + "..."
 	}
 
+	// Add power mode description function
+	funcMap["getPowerModeDescription"] = GetPowerModeDescription
+
+	// Add boolean formatting functions
+	funcMap["isTruthy"] = IsTruthy
+	funcMap["formatBoolean"] = FormatBoolean
+	funcMap["formatBooleanWithUnset"] = FormatBooleanWithUnset
+
 	return funcMap
 }
 

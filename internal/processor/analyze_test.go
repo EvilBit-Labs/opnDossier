@@ -296,16 +296,18 @@ func TestCoreProcessor_ModelLimitations(t *testing.T) {
 		// - destination.network: "wanip", "opt0ip"
 		// - source.any: "1" (with value)
 
-		// Current model only supports:
+		// Current model supports:
 		// - type, ipprotocol, descr, interface
 		// - source.network (limited)
 		// - destination.any (struct{} only)
+		// - target, sourceport (recently added)
 		t.Log("Current model.Rule limitations:")
 		t.Log("  - Missing: statetype, direction, quick, protocol")
 		t.Log("  - Missing: source.port, destination.port")
 		t.Log("  - Missing: destination.network (only supports 'any')")
 		t.Log("  - Limited: source.network (no port support)")
 		t.Log("  - Limited: destination (only struct{} for 'any')")
+		t.Log("  - Added: target, sourceport fields")
 
 		// This is expected behavior for the current implementation
 		// This test documents current model limitations and should always pass

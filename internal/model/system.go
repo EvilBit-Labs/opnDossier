@@ -34,7 +34,7 @@ type System struct {
 	Optimization                  string       `xml:"optimization"                  json:"optimization,omitempty"                  yaml:"optimization,omitempty"                  validate:"omitempty,oneof=normal high-latency conservative aggressive"`
 	Hostname                      string       `xml:"hostname"                      json:"hostname"                                yaml:"hostname"                                validate:"required,hostname"`
 	Domain                        string       `xml:"domain"                        json:"domain"                                  yaml:"domain"                                  validate:"required,fqdn"`
-	DNSAllowOverride              string       `xml:"dnsallowoverride"              json:"dnsAllowOverride,omitempty"              yaml:"dnsAllowOverride,omitempty"`
+	DNSAllowOverride              int          `xml:"dnsallowoverride"              json:"dnsAllowOverride,omitempty"              yaml:"dnsAllowOverride,omitempty"`
 	DNSServer                     string       `xml:"dnsserver"                     json:"dnsServer,omitempty"                     yaml:"dnsServer,omitempty"`
 	Language                      string       `xml:"language"                      json:"language,omitempty"                      yaml:"language,omitempty"`
 	Firmware                      Firmware     `xml:"firmware"                      json:"firmware"                                yaml:"firmware,omitempty"`
@@ -44,26 +44,26 @@ type System struct {
 	SSH                           SSHConfig    `xml:"ssh"                           json:"ssh"                                     yaml:"ssh,omitempty"`
 	Timezone                      string       `xml:"timezone"                      json:"timezone,omitempty"                      yaml:"timezone,omitempty"`
 	TimeServers                   string       `xml:"timeservers"                   json:"timeServers,omitempty"                   yaml:"timeServers,omitempty"`
-	UseVirtualTerminal            string       `xml:"usevirtualterminal"            json:"useVirtualTerminal,omitempty"            yaml:"useVirtualTerminal,omitempty"`
-	DisableVLANHWFilter           string       `xml:"disablevlanhwfilter"           json:"disableVlanHwFilter,omitempty"           yaml:"disableVlanHwFilter,omitempty"`
-	DisableChecksumOffloading     string       `xml:"disablechecksumoffloading"     json:"disableChecksumOffloading,omitempty"     yaml:"disableChecksumOffloading,omitempty"`
-	DisableSegmentationOffloading string       `xml:"disablesegmentationoffloading" json:"disableSegmentationOffloading,omitempty" yaml:"disableSegmentationOffloading,omitempty"`
-	DisableLargeReceiveOffloading string       `xml:"disablelargereceiveoffloading" json:"disableLargeReceiveOffloading,omitempty" yaml:"disableLargeReceiveOffloading,omitempty"`
+	UseVirtualTerminal            int          `xml:"usevirtualterminal"            json:"useVirtualTerminal,omitempty"            yaml:"useVirtualTerminal,omitempty"`
+	DisableVLANHWFilter           int          `xml:"disablevlanhwfilter"           json:"disableVlanHwFilter,omitempty"           yaml:"disableVlanHwFilter,omitempty"`
+	DisableChecksumOffloading     int          `xml:"disablechecksumoffloading"     json:"disableChecksumOffloading,omitempty"     yaml:"disableChecksumOffloading,omitempty"`
+	DisableSegmentationOffloading int          `xml:"disablesegmentationoffloading" json:"disableSegmentationOffloading,omitempty" yaml:"disableSegmentationOffloading,omitempty"`
+	DisableLargeReceiveOffloading int          `xml:"disablelargereceiveoffloading" json:"disableLargeReceiveOffloading,omitempty" yaml:"disableLargeReceiveOffloading,omitempty"`
 	IPv6Allow                     string       `xml:"ipv6allow"                     json:"ipv6Allow,omitempty"                     yaml:"ipv6Allow,omitempty"`
 	DisableNATReflection          string       `xml:"disablenatreflection"          json:"disableNatReflection,omitempty"          yaml:"disableNatReflection,omitempty"`
 	DisableConsoleMenu            struct{}     `xml:"disableconsolemenu"            json:"disableConsoleMenu"                      yaml:"disableConsoleMenu,omitempty"`
-	NextUID                       string       `xml:"nextuid"                       json:"nextUid,omitempty"                       yaml:"nextUid,omitempty"`
-	NextGID                       string       `xml:"nextgid"                       json:"nextGid,omitempty"                       yaml:"nextGid,omitempty"`
+	NextUID                       int          `xml:"nextuid"                       json:"nextUid,omitempty"                       yaml:"nextUid,omitempty"`
+	NextGID                       int          `xml:"nextgid"                       json:"nextGid,omitempty"                       yaml:"nextGid,omitempty"`
 	PowerdACMode                  string       `xml:"powerd_ac_mode"                json:"powerdAcMode,omitempty"                  yaml:"powerdAcMode,omitempty"                  validate:"omitempty,oneof=hadp hiadp adaptive minimum maximum"`
 	PowerdBatteryMode             string       `xml:"powerd_battery_mode"           json:"powerdBatteryMode,omitempty"             yaml:"powerdBatteryMode,omitempty"             validate:"omitempty,oneof=hadp hiadp adaptive minimum maximum"`
 	PowerdNormalMode              string       `xml:"powerd_normal_mode"            json:"powerdNormalMode,omitempty"              yaml:"powerdNormalMode,omitempty"              validate:"omitempty,oneof=hadp hiadp adaptive minimum maximum"`
 	Bogons                        struct {
 		Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
 	} `xml:"bogons"                        json:"bogons"                                  yaml:"bogons,omitempty"`
-	PfShareForward string `xml:"pf_share_forward"              json:"pfShareForward,omitempty"                yaml:"pfShareForward,omitempty"`
-	LbUseSticky    string `xml:"lb_use_sticky"                 json:"lbUseSticky,omitempty"                   yaml:"lbUseSticky,omitempty"`
-	RrdBackup      string `xml:"rrdbackup"                     json:"rrdBackup,omitempty"                     yaml:"rrdBackup,omitempty"`
-	NetflowBackup  string `xml:"netflowbackup"                 json:"netflowBackup,omitempty"                 yaml:"netflowBackup,omitempty"`
+	PfShareForward int `xml:"pf_share_forward"              json:"pfShareForward,omitempty"                yaml:"pfShareForward,omitempty"`
+	LbUseSticky    int `xml:"lb_use_sticky"                 json:"lbUseSticky,omitempty"                   yaml:"lbUseSticky,omitempty"`
+	RrdBackup      int `xml:"rrdbackup"                     json:"rrdBackup,omitempty"                     yaml:"rrdBackup,omitempty"`
+	NetflowBackup  int `xml:"netflowbackup"                 json:"netflowBackup,omitempty"                 yaml:"netflowBackup,omitempty"`
 
 	// Missing service configurations
 	NTPD struct {

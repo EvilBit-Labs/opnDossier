@@ -45,7 +45,7 @@
 ### System Settings
 | Property | Value |
 |----------|-------|
-| **DNS Allow Override** | {{ .System.DNSAllowOverride }} |
+| **DNS Allow Override** | {{ formatBoolean .System.DNSAllowOverride }} |
 | **Next UID** | {{ .System.NextUID }} |
 | **Next GID** | {{ .System.NextGID }} |
 | **Time Servers** | {{ .System.TimeServers }} |
@@ -54,29 +54,29 @@
 ### Hardware Offloading
 | Property | Value |
 |----------|-------|
-| **Disable NAT Reflection** | {{ .System.DisableNATReflection }} |
-| **Use Virtual Terminal** | {{ .System.UseVirtualTerminal }} |
-| **Disable Console Menu** | {{ if .System.DisableConsoleMenu }}[x]{{ else }}[ ]{{ end }} |
-| **Disable VLAN HW Filter** | {{ .System.DisableVLANHWFilter }} |
-| **Disable Checksum Offloading** | {{ .System.DisableChecksumOffloading }} |
-| **Disable Segmentation Offloading** | {{ .System.DisableSegmentationOffloading }} |
-| **Disable Large Receive Offloading** | {{ .System.DisableLargeReceiveOffloading }} |
-| **IPv6 Allow** | {{ if .System.IPv6Allow }}[x]{{ else }}[ ]{{ end }} |
+| **Disable NAT Reflection** | {{ formatBoolean .System.DisableNATReflection }} |
+| **Use Virtual Terminal** | {{ formatBoolean .System.UseVirtualTerminal }} |
+| **Disable Console Menu** | {{ formatBoolean .System.DisableConsoleMenu }} |
+| **Disable VLAN HW Filter** | {{ formatBoolean .System.DisableVLANHWFilter }} |
+| **Disable Checksum Offloading** | {{ formatBoolean .System.DisableChecksumOffloading }} |
+| **Disable Segmentation Offloading** | {{ formatBoolean .System.DisableSegmentationOffloading }} |
+| **Disable Large Receive Offloading** | {{ formatBoolean .System.DisableLargeReceiveOffloading }} |
+| **IPv6 Allow** | {{ formatBoolean .System.IPv6Allow }} |
 
 ### Power Management
 | Property | Value |
 |----------|-------|
-| **Powerd AC Mode** | {{ .System.PowerdACMode }} |
-| **Powerd Battery Mode** | {{ .System.PowerdBatteryMode }} |
-| **Powerd Normal Mode** | {{ .System.PowerdNormalMode }} |
+| **Powerd AC Mode** | {{ getPowerModeDescription .System.PowerdACMode }} |
+| **Powerd Battery Mode** | {{ getPowerModeDescription .System.PowerdBatteryMode }} |
+| **Powerd Normal Mode** | {{ getPowerModeDescription .System.PowerdNormalMode }} |
 
 ### System Features
 | Property | Value |
 |----------|-------|
-| **PF Share Forward** | {{ .System.PfShareForward }} |
-| **LB Use Sticky** | {{ .System.LbUseSticky }} |
-| **RRD Backup** | {{ .System.RrdBackup }} |
-| **Netflow Backup** | {{ .System.NetflowBackup }} |
+| **PF Share Forward** | {{ formatBoolean .System.PfShareForward }} |
+| **LB Use Sticky** | {{ formatBoolean .System.LbUseSticky }} |
+| **RRD Backup** | {{ formatBooleanWithUnset .System.RrdBackup }} |
+| **Netflow Backup** | {{ formatBooleanWithUnset .System.NetflowBackup }} |
 
 ### Bogons Configuration
 | Property | Value |
@@ -103,20 +103,20 @@
 | Name | Description | Physical Interface | IP Address | CIDR | IPv6 Address | IPv6 CIDR | Gateway | IPv6 Gateway | Enabled | Type | Virtual | Locked |
 |------|-------------|-------------------|------------|------|--------------|-----------|---------|--------------|---------|------|---------|--------|
 {{- range $name, $iface := .Interfaces.Items }}
-| `{{ $name }}` | `{{ $iface.Descr }}` | `{{ $iface.If }}` | `{{ $iface.IPAddr }}` | /{{ $iface.Subnet }} | `{{ $iface.IPAddrv6 }}` | /{{ $iface.Subnetv6 }} | `{{ $iface.Gateway }}` | `{{ $iface.Gatewayv6 }}` | {{ if $iface.Enable }}[x]{{ else }}[ ]{{ end }} | `{{ $iface.Type }}` | {{ if $iface.Virtual }}[x]{{ else }}[ ]{{ end }} | {{ if $iface.Lock }}[x]{{ else }}[ ]{{ end }} |
+| `{{ $name }}` | `{{ $iface.Descr }}` | `{{ $iface.If }}` | `{{ $iface.IPAddr }}` | /{{ $iface.Subnet }} | `{{ $iface.IPAddrv6 }}` | /{{ $iface.Subnetv6 }} | `{{ $iface.Gateway }}` | `{{ $iface.Gatewayv6 }}` | {{ formatBoolean $iface.Enable }} | `{{ $iface.Type }}` | {{ formatBoolean $iface.Virtual }} | {{ formatBoolean $iface.Lock }} |
 {{- end }}
 
 ### Interface Details
 {{- range $name, $iface := .Interfaces.Items }}
 #### {{ $name | title }} Interface
 - **Spoof MAC**: `{{ $iface.Spoofmac }}`
-- **Internal Dynamic**: {{ if $iface.InternalDynamic }}[x]{{ else }}[ ]{{ end }}
+- **Internal Dynamic**: {{ formatBoolean $iface.InternalDynamic }}
 - **MTU**: `{{ $iface.MTU }}`
 - **Media**: `{{ $iface.Media }}`
 - **Media Options**: `{{ $iface.MediaOpt }}`
 - **DHCP Hostname**: `{{ $iface.DHCPHostname }}`
-- **Block Private**: {{ if $iface.BlockPriv }}[x]{{ else }}[ ]{{ end }}
-- **Block Bogons**: {{ if $iface.BlockBogons }}[x]{{ else }}[ ]{{ end }}
+- **Block Private**: {{ formatBoolean $iface.BlockPriv }}
+- **Block Bogons**: {{ formatBoolean $iface.BlockBogons }}
 - **DHCP6 IA-PD Length**: `{{ $iface.DHCP6IaPdLen }}`
 - **Track6 Interface**: `{{ $iface.Track6Interface }}`
 - **Track6 Prefix ID**: `{{ $iface.Track6PrefixID }}`
@@ -127,10 +127,10 @@
 
 ## Firewall Rules
 
-| # | Action | Proto | Interface | Direction | State Type | Quick | Source | Destination | Dest Port | Description |
-|---|--------|-------|-----------|-----------|------------|-------|--------|-------------|-----------|-------------|
+| # | Action | Proto | Interface | Direction | State Type | Quick | Source | Destination | Dest Port | Target | Source Port | Enabled | Description |
+|---|--------|-------|-----------|-----------|------------|-------|--------|-------------|-----------|--------|-------------|---------|-------------|
 {{- range $index, $rule := .Filter.Rule }}
-| {{ add $index 1 }} | {{ $rule.Type }} | {{ $rule.IPProtocol }} | {{ $rule.Interface }} | {{ $rule.Direction }} | {{ $rule.StateType }} | {{ if $rule.Quick }}[x]{{ else }}[ ]{{ end }} | {{ $rule.Source.Network }}{{ if $rule.Source.Any }} (any){{ end }} | {{ $rule.Destination.Network }}{{ if $rule.Destination.Any }} (any){{ end }} | {{ $rule.Destination.Port }} | `{{ $rule.Descr }}` |
+| {{ add $index 1 }} | {{ $rule.Type }} | {{ $rule.IPProtocol }} | {{ $rule.Interface }} | {{ $rule.Direction }} | {{ $rule.StateType }} | {{ formatBoolean $rule.Quick }} | {{ $rule.Source.Network }}{{ if $rule.Source.Any }} (any){{ end }} | {{ $rule.Destination.Network }}{{ if $rule.Destination.Any }} (any){{ end }} | {{ $rule.Destination.Port }} | {{ if $rule.Target }}{{ $rule.Target }}{{ else }}-{{ end }} | {{ if $rule.SourcePort }}{{ $rule.SourcePort }}{{ else }}-{{ end }} | {{ formatBoolean (not $rule.Disabled) }} | {{ if $rule.Descr }}{{ $rule.Descr }}{{ else }}-{{ end }} |
 {{- end }}
 
 ---
@@ -141,6 +141,14 @@
 |------|
 | {{ .Nat.Outbound.Mode }} |
 
+### NAT Rules
+
+| # | Interface | Protocol | Source | Destination | Target | Source Port | Enabled | Description |
+|---|-----------|----------|--------|-------------|--------|-------------|---------|-------------|
+{{- range $index, $rule := .Nat.Outbound.Rule }}
+| {{ add $index 1 }} | {{ $rule.Interface }} | {{ $rule.IPProtocol }} | {{ $rule.Source.Network }} | {{ if $rule.Destination.Any }}any{{ else }}{{ $rule.Destination.Network }}{{ end }} | {{ $rule.Target }} | {{ $rule.SourcePort }} | {{ formatBoolean (not $rule.Disabled) }} | {{ if $rule.Descr }}{{ $rule.Descr }}{{ else }}-{{ end }} |
+{{- end }}
+
 ---
 
 ## DHCP Services
@@ -148,7 +156,7 @@
 | Interface | Enabled | Gateway | Range Start | Range End | DNS Server | WINS Server | NTP Server | DDNS Algorithm |
 |-----------|---------|---------|-------------|-----------|------------|-------------|------------|----------------|
 {{- range $name, $dhcp := .Dhcpd.Items }}
-| {{ $name }} | {{ if $dhcp.Enable }}[x]{{ else }}[ ]{{ end }} | `{{ $dhcp.Gateway }}` | {{ $dhcp.Range.From }} | {{ $dhcp.Range.To }} | `{{ $dhcp.Dnsserver }}` | `{{ $dhcp.Winsserver }}` | `{{ $dhcp.Ntpserver }}` | `{{ $dhcp.DdnsDomainAlgorithm }}` |
+| {{ $name }} | {{ formatBoolean $dhcp.Enable }} | `{{ $dhcp.Gateway }}` | {{ $dhcp.Range.From }} | {{ $dhcp.Range.To }} | `{{ $dhcp.Dnsserver }}` | `{{ $dhcp.Winsserver }}` | `{{ $dhcp.Ntpserver }}` | `{{ $dhcp.DdnsDomainAlgorithm }}` |
 {{- end }}
 
 ### DHCP Options
@@ -176,7 +184,7 @@
 | Username | UID | Group | Description | Scope | Expires | API Keys | SSH Keys | IPsec PSK | OTP Seed |
 |----------|-----|-------|-------------|-------|---------|----------|----------|-----------|----------|
 {{- range .System.User }}
-| `{{ .Name }}` | {{ .UID }} | {{ .Groupname }} | `{{ .Descr }}` | {{ .Scope }} | - | {{ if .APIKeys }}[x]{{ else }}[ ]{{ end }} | {{ if .AuthorizedKeys }}[x]{{ else }}[ ]{{ end }} | {{ if .IPSecPSK }}[x]{{ else }}[ ]{{ end }} | {{ if .OTPSeed }}[x]{{ else }}[ ]{{ end }} |
+| `{{ .Name }}` | {{ .UID }} | {{ .Groupname }} | `{{ .Descr }}` | {{ .Scope }} | - | {{ formatBoolean .APIKeys }} | {{ formatBoolean .AuthorizedKeys }} | {{ formatBoolean .IPSecPSK }} | {{ formatBoolean .OTPSeed }} |
 {{- end }}
 
 ### User API Keys
@@ -222,17 +230,24 @@
 | Name | Description | Interface | Gateway | Protocol | Default | Monitor Disable | Interval | Weight | Far Gateway |
 |------|-------------|-----------|---------|----------|---------|-----------------|----------|--------|-------------|
 {{- range .Gateways.Gateway }}
-| `{{ .Name }}` | `{{ .Descr }}` | {{ .Interface }} | `{{ .Gateway }}` | {{ .IPProtocol }} | {{ if .DefaultGW }}[x]{{ else }}[ ]{{ end }} | {{ if .MonitorDisable }}[x]{{ else }}[ ]{{ end }} | {{ .Interval }} | {{ .Weight }} | {{ if .FarGW }}[x]{{ else }}[ ]{{ end }} |
+| `{{ .Name }}` | `{{ .Descr }}` | {{ .Interface }} | `{{ .Gateway }}` | {{ .IPProtocol }} | {{ formatBoolean .DefaultGW }} | {{ formatBoolean .MonitorDisable }} | {{ .Interval }} | {{ .Weight }} | {{ formatBoolean .FarGW }} |
 {{- end }}
 
 ---
 
 ## WireGuard VPN
 
+### Debug Information
+| Property | Value |
+|----------|-------|
+| **OPNsense Field Exists** | {{ if .OPNsense }}Yes{{ else }}No{{ end }} |
+| **OPNsense Type** | {{ printf "%T" .OPNsense }} |
+| **WireGuard Field Exists** | {{ if .OPNsense.Wireguard }}Yes{{ else }}No{{ end }} |
+
 ### General Configuration
 | Property | Value |
 |----------|-------|
-| **Enabled** | {{ if .OPNsense.Wireguard }}{{ if .OPNsense.Wireguard.General }}{{ .OPNsense.Wireguard.General.Enabled }}{{ else }}Not configured{{ end }}{{ else }}Not configured{{ end }} |
+| **Enabled** | {{ if .OPNsense.Wireguard }}{{ if .OPNsense.Wireguard.General }}{{ formatBoolean .OPNsense.Wireguard.General.Enabled }}{{ else }}Not configured{{ end }}{{ else }}Not configured{{ end }} |
 | **Version** | {{ if .OPNsense.Wireguard }}{{ if .OPNsense.Wireguard.General }}{{ .OPNsense.Wireguard.General.Version }}{{ else }}Not configured{{ end }}{{ else }}Not configured{{ end }} |
 
 ### Servers
@@ -242,13 +257,13 @@
 | Property | Value |
 |----------|-------|
 | **UUID** | `{{ .UUID }}` |
-| **Enabled** | {{ if .Enabled }}[x]{{ else }}[ ]{{ end }} |
+| **Enabled** | {{ formatBoolean .Enabled }} |
 | **Instance** | {{ .Instance }} |
 | **Port** | {{ .Port }} |
-| **MTU** | {{ .MTU }} |
+| **MTU** | {{ .Mtu }} |
 | **DNS** | `{{ .DNS }}` |
 | **Tunnel Address** | `{{ .Tunneladdress }}` |
-| **Disable Routes** | {{ if .Disableroutes }}[x]{{ else }}[ ]{{ end }} |
+| **Disable Routes** | {{ formatBoolean .Disableroutes }} |
 | **Gateway** | `{{ .Gateway }}` |
 | **Peers** | `{{ .Peers }}` |
 
@@ -267,14 +282,14 @@ No WireGuard servers configured.
 | Property | Value |
 |----------|-------|
 | **UUID** | `{{ .UUID }}` |
-| **Enabled** | {{ if .Enabled }}[x]{{ else }}[ ]{{ end }} |
+| **Enabled** | {{ formatBoolean .Enabled }} |
 | **Tunnel Address** | `{{ .Tunneladdress }}` |
 | **Server Address** | `{{ .Serveraddress }}` |
 | **Server Port** | `{{ .Serverport }}` |
 | **Keepalive** | `{{ .Keepalive }}` |
 
 **Public Key**: `{{ .Pubkey }}`
-**PSK**: `{{ .PSK }}`
+**PSK**: `{{ .Psk }}`
 
 {{- end }}
 {{- else }}

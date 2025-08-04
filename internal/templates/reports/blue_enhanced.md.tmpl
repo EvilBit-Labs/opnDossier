@@ -145,7 +145,7 @@ _No medium severity findings identified._
 | STIG Control | Status | Description |
 |--------------|--------|-------------|
 {{- range $control, $compliant := .AuditResult.STIGCompliance }}
-| {{ $control }} | {{ if $compliant }}✅ Compliant{{ else }}❌ Non-Compliant{{ end }} | {{ getSTIGDescription $control }} |
+| {{ $control }} | {{ if $compliant }}[x] Compliant{{ else }}[ ] Non-Compliant{{ end }} | {{ getSTIGDescription $control }} |
 {{- end }}
 {{- else }}
 _No STIG compliance data available._
@@ -159,7 +159,7 @@ _No STIG compliance data available._
 | SANS Control | Status | Description |
 |--------------|--------|-------------|
 {{- range $control, $compliant := .AuditResult.SANSCompliance }}
-| {{ $control }} | {{ if $compliant }}✅ Compliant{{ else }}❌ Non-Compliant{{ end }} | {{ getSANSDescription $control }} |
+| {{ $control }} | {{ if $compliant }}[x] Compliant{{ else }}[ ] Non-Compliant{{ end }} | {{ getSANSDescription $control }} |
 {{- end }}
 {{- else }}
 _No SANS compliance data available._
@@ -179,10 +179,10 @@ _No SANS compliance data available._
 
 ### Firewall Rules Analysis
 
-| Interface | Action | Protocol | Source → Destination | Port | Logging | Compliance |
-|-----------|--------|----------|---------------------|------|---------|------------|
+| Interface | Action | Protocol | Source → Destination | Target | Source Port | Logging | Compliance |
+|-----------|--------|----------|---------------------|--------|-------------|---------|------------|
 {{- range .FirewallRules }}
-| {{ .Interface }} | {{ .Action }} | {{ .Protocol }} | {{ .Source }} → {{ .Destination }} | {{ .Port }} | {{ if .Logging }}✅{{ else }}❌{{ end }} | {{ getRuleCompliance . }} |
+| {{ .Interface }} | {{ .Action }} | {{ .Protocol }} | {{ .Source }} → {{ .Destination }} | {{ .Target }} | {{ .SourcePort }} | {{ formatBoolean .Logging }} | {{ getRuleCompliance . }} |
 {{- end }}
 
 ### NAT Rules Security Review
