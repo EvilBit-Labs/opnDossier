@@ -7,62 +7,28 @@ import (
 	"os"
 	"path/filepath"
 
+	// TODO: Audit mode functionality is not yet complete - disabled for now
+	// "github.com/EvilBit-Labs/opnDossier/internal/audit".
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/display"
 	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 	"github.com/spf13/cobra"
-)
-
-var (
-	noValidation       bool     //nolint:gochecknoglobals // Cobra flag variable
-	displayTheme       string   //nolint:gochecknoglobals // Theme for display
-	displayTemplate    string   //nolint:gochecknoglobals // Template name to use
-	displaySections    []string //nolint:gochecknoglobals // Sections to include
-	displayWrapWidth   int      //nolint:gochecknoglobals // Text wrap width
-	displayTemplateDir string   //nolint:gochecknoglobals // Custom template directory
-)
-
-const (
-	progressChannelBufferSize = 10
-	parsingCompletePercent    = 0.1
-	markdownCompletePercent   = 0.3
-	preparingDisplayPercent   = 0.7
-	renderingPercent          = 0.9
 )
 
 // init registers the display command with the root command and sets up its CLI flags for XML validation control, theming, template selection, section filtering, text wrapping, and custom template directories.
 func init() {
 	rootCmd.AddCommand(displayCmd)
 
-	// Validation flags
-	displayCmd.Flags().
-		BoolVar(&noValidation, "no-validate", false, "Skip basic XML parsing checks and display potentially malformed configurations (use with caution)")
-	setFlagAnnotation(displayCmd.Flags(), "no-validate", []string{"validation"})
-
-	// Template and styling flags
-	displayCmd.Flags().StringVar(&displayTheme, "theme", "", "Theme for terminal display (light, dark, auto, none)")
-	setFlagAnnotation(displayCmd.Flags(), "theme", []string{"template"})
-	displayCmd.Flags().
-		StringVar(&displayTemplate, "template", "", "Template name to use for markdown rendering (default: auto-selected). Available: standard, comprehensive, json, yaml, blue, red, blue-enhanced")
-	setFlagAnnotation(displayCmd.Flags(), "template", []string{"template"})
-	displayCmd.Flags().
-		StringSliceVar(&displaySections, "section", []string{}, "Specific sections to include in display (comma-separated, e.g., system,network,firewall)")
-	setFlagAnnotation(displayCmd.Flags(), "section", []string{"template"})
-	displayCmd.Flags().
-		IntVar(&displayWrapWidth, "wrap", 0, "Text wrap width in characters (0 = no wrapping, recommended: 80-120)")
-	setFlagAnnotation(displayCmd.Flags(), "wrap", []string{"template"})
-	displayCmd.Flags().
-		StringVar(&displayTemplateDir, "template-dir", "", "Custom template directory for user-defined templates (overrides built-in templates)")
-	setFlagAnnotation(displayCmd.Flags(), "template-dir", []string{"template"})
+	// Add shared template flags
+	addSharedTemplateFlags(displayCmd)
+	// Add display-specific flags
+	addDisplayFlags(displayCmd)
+	// Add audit flags (same as convert command)
+	addSharedAuditFlags(displayCmd)
 
 	// Flag groups for better organization
 	displayCmd.Flags().SortFlags = false
-
-	// Mark mutually exclusive flags
-	// Template and template-dir are mutually exclusive (template-dir overrides built-in templates)
-	displayCmd.MarkFlagsMutuallyExclusive("template", "template-dir")
 }
 
 var displayCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
@@ -74,23 +40,14 @@ and displays it in the terminal with syntax highlighting and formatting.
 This provides an immediate, readable view of your firewall configuration
 without saving to a file.
 
-By default, the configuration is parsed without validation to ensure
+The configuration is parsed without validation to ensure
 it can be displayed even with configuration inconsistencies that are
-common in production environments. Use --no-validate to skip even
-basic XML parsing checks if you need to display potentially malformed
-configurations.
+common in production environments.
 
-TEMPLATES:
-  Main templates:
-    standard                    - Standard report (default)
-    comprehensive               - Comprehensive report
-    json                        - JSON format output
-    yaml                        - YAML format output
+  OUTPUT FORMATS:
+  The display command renders markdown with syntax highlighting and formatting.
 
-  Audit mode templates:
-    blue                        - Blue team audit report
-    red                         - Red team audit report
-    blue-enhanced               - Enhanced blue team audit report
+  The output is always displayed in the terminal using glamour rendering.
 
 The output includes:
 - Syntax-highlighted markdown rendering
@@ -101,21 +58,18 @@ The output includes:
 - Configurable text wrapping
 
 Examples:
-  # Display configuration with validation (default behavior)
+  # Display configuration
   opnDossier display config.xml
-
-  # Display configuration without validation
-  opnDossier display --no-validate config.xml
 
   # Display with specific theme
   opnDossier display --theme dark config.xml
   opnDossier display --theme light config.xml
 
-  # Display with custom template and sections
-  opnDossier display --template detailed --section system,network config.xml
+  # Display with sections
+  opnDossier display --section system,network config.xml
 
-  # Display with custom template directory
-  opnDossier display --template-dir ~/.opnDossier/templates config.xml
+  # Display with custom template file
+  opnDossier display --custom-template /path/to/my-template.tmpl config.xml
 
   # Display with text wrapping
   opnDossier display --wrap 120 config.xml
@@ -136,7 +90,6 @@ Examples:
 
 		// Create context-aware logger with input file field
 		ctxLogger := logger.WithContext(ctx).WithFields("input_file", filePath)
-		ctxLogger.Info("Starting display process")
 
 		// Sanitize the file path
 		cleanPath := filepath.Clean(filePath)
@@ -162,20 +115,8 @@ Examples:
 
 		// Parse the XML - display command only ensures XML can be unmarshalled
 		// Full validation should be done with the 'validate' command
-		ctxLogger.Debug("Parsing XML file")
 		p := parser.NewXMLParser()
-		var opnsense *model.OpnSenseDocument
-		if noValidation {
-			// Use Parse when validation is explicitly disabled
-			opnsense, err = p.Parse(ctx, file)
-			ctxLogger.Debug("Parsing without validation")
-		} else {
-			// Use Parse for default behavior (no validation)
-			// Full configuration quality validation should only occur in the 'validate' command
-			opnsense, err = p.Parse(ctx, file)
-			ctxLogger.Debug("Parsing with basic XML validation only")
-		}
-
+		opnsense, err := p.Parse(ctx, file)
 		if err != nil {
 			ctxLogger.Error("Failed to parse XML", "error", err)
 			// Enhanced error handling for different error types
@@ -189,42 +130,42 @@ Examples:
 			}
 			return fmt.Errorf("failed to parse XML from %s: %w", filePath, err)
 		}
-		ctxLogger.Debug("XML parsing completed successfully")
 
-		// Convert to markdown
-		ctxLogger.Debug("Converting to markdown")
-
-		g, err := markdown.NewMarkdownGeneratorWithTemplates(ctxLogger.Logger, displayTemplateDir)
+		templateDir := getSharedTemplateDir()
+		g, err := markdown.NewMarkdownGeneratorWithTemplates(ctxLogger.Logger, templateDir)
 		if err != nil {
 			ctxLogger.Error("Failed to create markdown generator", "error", err)
 			return fmt.Errorf("failed to create markdown generator: %w", err)
 		}
 
 		// Create markdown options with comprehensive support
-		mdOpts := buildDisplayOptions(
-			displayTheme,
-			displayTemplate,
-			displaySections,
-			displayWrapWidth,
-			displayTemplateDir,
-			Cfg,
-		)
+		mdOpts := buildDisplayOptions(Cfg)
 
+		// TODO: Audit mode functionality is not yet complete - disabled for now
+		// Handle audit mode if specified
+		// var md string
+		// if mdOpts.AuditMode != "" {
+		// 	// Create plugin registry for audit mode
+		// 	registry := audit.NewPluginRegistry()
+		// 	md, err = handleAuditMode(ctx, opnsense, mdOpts, ctxLogger, registry)
+		// 	if err != nil {
+		// 		ctxLogger.Error("Failed to generate audit report", "error", err)
+		// 		return fmt.Errorf("failed to generate audit report from %s: %w", filePath, err)
+		// 	}
+		// } else {
+		// Standard markdown generation
 		md, err := g.Generate(ctx, opnsense, mdOpts)
+		// }
 		if err != nil {
 			ctxLogger.Error("Failed to convert to markdown", "error", err)
 			return fmt.Errorf("failed to convert to markdown from %s: %w", filePath, err)
 		}
-		ctxLogger.Debug("Markdown conversion completed successfully")
-
-		// Display the markdown in terminal with progress indication
-		ctxLogger.Debug("Displaying markdown in terminal")
 
 		// Create terminal display with theme support
 		var displayer *display.TerminalDisplay
-		if displayTheme != "" {
+		if sharedTheme != "" {
 			// Use explicit theme
-			theme := display.DetectTheme(displayTheme)
+			theme := display.DetectTheme(sharedTheme)
 			opts := display.DefaultOptions()
 			opts.Theme = theme
 			displayer = display.NewTerminalDisplayWithOptions(opts)
@@ -233,24 +174,10 @@ Examples:
 			displayer = display.NewTerminalDisplay()
 		}
 
-		// Create a progress channel to stream progress events
-		progressCh := make(chan display.ProgressEvent, progressChannelBufferSize)
-
-		// Start displaying with progress in a goroutine
-		go func() {
-			defer close(progressCh)
-			progressCh <- display.ProgressEvent{Percent: parsingCompletePercent, Message: "Parsing complete"}
-			progressCh <- display.ProgressEvent{Percent: markdownCompletePercent, Message: "Markdown conversion complete"}
-			progressCh <- display.ProgressEvent{Percent: preparingDisplayPercent, Message: "Preparing display..."}
-			progressCh <- display.ProgressEvent{Percent: renderingPercent, Message: "Rendering..."}
-		}()
-
-		if err := displayer.DisplayWithProgress(ctx, md, progressCh); err != nil {
+		if err := displayer.Display(ctx, md); err != nil {
 			ctxLogger.Error("Failed to display markdown", "error", err)
 			return fmt.Errorf("failed to display markdown: %w", err)
 		}
-
-		ctxLogger.Info("Display process completed successfully")
 		return nil
 	},
 }
@@ -260,56 +187,50 @@ Examples:
 // CLI-provided values for theme, template, sections, wrap width, and template directory override corresponding configuration values. If neither is set, defaults are used.
 //
 // Returns the resulting markdown.Options struct for use in markdown generation.
-func buildDisplayOptions(
-	theme, template string,
-	sections []string,
-	wrap int,
-	templateDir string,
-	cfg *config.Config,
-) markdown.Options {
+func buildDisplayOptions(cfg *config.Config) markdown.Options {
 	// Start with defaults
 	opt := markdown.DefaultOptions()
 
 	// Theme: CLI flag > config > default
-	if theme != "" {
-		opt.Theme = markdown.Theme(theme)
+	if sharedTheme != "" {
+		opt.Theme = markdown.Theme(sharedTheme)
 	} else if cfg != nil && cfg.GetTheme() != "" {
 		opt.Theme = markdown.Theme(cfg.GetTheme())
 	}
 
-	// Template: CLI flag > config > default
-	if template != "" {
-		// Handle special formats (json, yaml) by setting the format instead of template name
-		switch template {
-		case "json":
-			opt.Format = markdown.FormatJSON
-		case "yaml":
-			opt.Format = markdown.FormatYAML
-		default:
-			opt.TemplateName = template
-		}
-	} else if cfg != nil && cfg.GetTemplate() != "" {
+	// Template: config > default (no CLI flag for template)
+	if cfg != nil && cfg.GetTemplate() != "" {
 		opt.TemplateName = cfg.GetTemplate()
 	}
 
 	// Sections: CLI flag > config > default
-	if len(sections) > 0 {
-		opt.Sections = sections
+	if len(sharedSections) > 0 {
+		opt.Sections = sharedSections
 	} else if cfg != nil && len(cfg.GetSections()) > 0 {
 		opt.Sections = cfg.GetSections()
 	}
 
 	// Wrap width: CLI flag > config > default
-	if wrap > 0 {
-		opt.WrapWidth = wrap
+	if sharedWrapWidth > 0 {
+		opt.WrapWidth = sharedWrapWidth
 	} else if cfg != nil && cfg.GetWrapWidth() > 0 {
 		opt.WrapWidth = cfg.GetWrapWidth()
 	}
 
 	// Template directory: CLI flag only
+	templateDir := getSharedTemplateDir()
 	if templateDir != "" {
 		opt.TemplateDir = templateDir
 	}
+
+	// TODO: Audit mode functionality is not yet complete - disabled for now
+	// Audit mode flags: CLI flag only
+	// if sharedAuditMode != "" {
+	// 	opt.AuditMode = markdown.AuditMode(sharedAuditMode)
+	// }
+	// opt.BlackhatMode = sharedBlackhatMode
+	opt.Comprehensive = sharedComprehensive
+	// Selected plugins are disabled until audit functionality is complete
 
 	return opt
 }

@@ -42,8 +42,6 @@ log_format: json
 	assert.Equal(t, filepath.Join(tmpDir, "output.md"), cfg.OutputFile)
 	assert.True(t, cfg.Verbose)
 	assert.False(t, cfg.Quiet)
-	assert.Equal(t, "debug", cfg.LogLevel)
-	assert.Equal(t, "json", cfg.LogFormat)
 }
 
 func TestLoadConfigFromEnv(t *testing.T) {
@@ -118,45 +116,21 @@ func TestConfig_Validate(t *testing.T) {
 				OutputFile: "",
 				Verbose:    false,
 				Quiet:      false,
-				LogLevel:   "info",
-				LogFormat:  "text",
 			},
 			wantErr: false,
 		},
 		{
 			name: "mutually_exclusive_verbose_quiet",
 			config: Config{
-				Verbose:   true,
-				Quiet:     true,
-				LogLevel:  "info",
-				LogFormat: "text",
+				Verbose: true,
+				Quiet:   true,
 			},
 			wantErr: false, // Validation now handled by Cobra flag validation
-		},
-		{
-			name: "invalid_log_level",
-			config: Config{
-				LogLevel:  "invalid",
-				LogFormat: "text",
-			},
-			wantErr: true,
-			errMsg:  "invalid log level 'invalid'",
-		},
-		{
-			name: "invalid_log_format",
-			config: Config{
-				LogLevel:  "info",
-				LogFormat: "invalid",
-			},
-			wantErr: true,
-			errMsg:  "invalid log format 'invalid'",
 		},
 		{
 			name: "nonexistent_input_file",
 			config: Config{
 				InputFile: "/nonexistent/file.xml",
-				LogLevel:  "info",
-				LogFormat: "text",
 			},
 			wantErr: true,
 			errMsg:  "input file does not exist",
@@ -165,8 +139,6 @@ func TestConfig_Validate(t *testing.T) {
 			name: "nonexistent_output_directory",
 			config: Config{
 				OutputFile: "/nonexistent/dir/output.md",
-				LogLevel:   "info",
-				LogFormat:  "text",
 			},
 			wantErr: true,
 			errMsg:  "output directory does not exist",
@@ -189,16 +161,12 @@ func TestConfig_Validate(t *testing.T) {
 
 func TestConfig_HelperMethods(t *testing.T) {
 	cfg := &Config{
-		Verbose:   true,
-		Quiet:     false,
-		LogLevel:  "debug",
-		LogFormat: "json",
+		Verbose: true,
+		Quiet:   false,
 	}
 
 	assert.True(t, cfg.IsVerbose())
 	assert.False(t, cfg.IsQuiet())
-	assert.Equal(t, "debug", cfg.GetLogLevel())
-	assert.Equal(t, "json", cfg.GetLogFormat())
 }
 
 func TestLoadConfigFromEnvWithNewFields(t *testing.T) {
@@ -207,15 +175,11 @@ func TestLoadConfigFromEnvWithNewFields(t *testing.T) {
 
 	// Set environment variables for new fields
 	t.Setenv("OPNDOSSIER_QUIET", "true")
-	t.Setenv("OPNDOSSIER_LOG_LEVEL", "warn")
-	t.Setenv("OPNDOSSIER_LOG_FORMAT", "json")
 
 	cfg, err := LoadConfigWithViper("", viper.New())
 	require.NoError(t, err)
 	assert.NotNil(t, cfg)
 	assert.True(t, cfg.Quiet)
-	assert.Equal(t, "warn", cfg.LogLevel)
-	assert.Equal(t, "json", cfg.LogFormat)
 }
 
 func TestLoadConfigFromEnvWithAllFields(t *testing.T) {
@@ -234,8 +198,6 @@ func TestLoadConfigFromEnvWithAllFields(t *testing.T) {
 	t.Setenv("OPNDOSSIER_OUTPUT_FILE", outputFile)
 	t.Setenv("OPNDOSSIER_VERBOSE", "true")
 	t.Setenv("OPNDOSSIER_QUIET", "false")
-	t.Setenv("OPNDOSSIER_LOG_LEVEL", "debug")
-	t.Setenv("OPNDOSSIER_LOG_FORMAT", "json")
 	t.Setenv("OPNDOSSIER_THEME", "dark")
 	t.Setenv("OPNDOSSIER_FORMAT", "yaml")
 	t.Setenv("OPNDOSSIER_TEMPLATE", "comprehensive")
@@ -251,8 +213,6 @@ func TestLoadConfigFromEnvWithAllFields(t *testing.T) {
 	assert.Equal(t, outputFile, cfg.OutputFile)
 	assert.True(t, cfg.Verbose)
 	assert.False(t, cfg.Quiet)
-	assert.Equal(t, "debug", cfg.LogLevel)
-	assert.Equal(t, "json", cfg.LogFormat)
 	assert.Equal(t, "dark", cfg.Theme)
 	assert.Equal(t, "yaml", cfg.Format)
 	assert.Equal(t, "comprehensive", cfg.Template)

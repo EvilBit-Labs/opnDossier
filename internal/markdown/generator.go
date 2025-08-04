@@ -213,6 +213,7 @@ func createTemplateFuncMap() template.FuncMap {
 	funcMap["isTruthy"] = IsTruthy
 	funcMap["formatBoolean"] = FormatBoolean
 	funcMap["formatBooleanWithUnset"] = FormatBooleanWithUnset
+	funcMap["formatUnixTimestamp"] = FormatUnixTimestamp
 
 	return funcMap
 }

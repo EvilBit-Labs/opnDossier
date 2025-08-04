@@ -38,21 +38,6 @@ func TestRootCmdFlags(t *testing.T) {
 	quietFlag := flags.Lookup("quiet")
 	require.NotNil(t, quietFlag)
 	assert.Equal(t, "false", quietFlag.DefValue)
-
-	// Check log_level flag
-	logLevelFlag := flags.Lookup("log_level")
-	require.NotNil(t, logLevelFlag)
-	assert.Equal(t, "info", logLevelFlag.DefValue)
-
-	// Check log_format flag
-	logFormatFlag := flags.Lookup("log_format")
-	require.NotNil(t, logFormatFlag)
-	assert.Equal(t, "text", logFormatFlag.DefValue)
-
-	// Check theme flag
-	themeFlag := flags.Lookup("theme")
-	require.NotNil(t, themeFlag)
-	assert.Empty(t, themeFlag.DefValue)
 }
 
 func TestRootCmdHelp(t *testing.T) {
@@ -79,16 +64,11 @@ func TestGetFlagsByCategory(t *testing.T) {
 	// Test that categories exist
 	assert.Contains(t, categories, "configuration")
 	assert.Contains(t, categories, "output")
-	assert.Contains(t, categories, "logging")
-	assert.Contains(t, categories, "display")
 
 	// Test specific flags in categories
 	assert.Contains(t, categories["configuration"], "config")
 	assert.Contains(t, categories["output"], "verbose")
 	assert.Contains(t, categories["output"], "quiet")
-	assert.Contains(t, categories["logging"], "log_level")
-	assert.Contains(t, categories["logging"], "log_format")
-	assert.Contains(t, categories["display"], "theme")
 }
 
 func TestRootCmdSubcommands(t *testing.T) {

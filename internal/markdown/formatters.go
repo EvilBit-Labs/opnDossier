@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/yuin/goldmark"
@@ -583,4 +584,24 @@ func FormatBooleanWithUnset(value any) string {
 		return checkboxChecked
 	}
 	return checkboxUnchecked
+}
+
+// FormatUnixTimestamp converts a Unix timestamp string to an ISO 8601 formatted date.
+func FormatUnixTimestamp(timestamp string) string {
+	if timestamp == "" {
+		return "-"
+	}
+
+	// Try to parse as float64 (handles both integer and decimal timestamps)
+	ts, err := strconv.ParseFloat(timestamp, 64)
+	if err != nil {
+		return timestamp // Return original if parsing fails
+	}
+
+	// Convert to time.Time
+	const nanosecondsPerSecond = 1e9
+	t := time.Unix(int64(ts), int64((ts-float64(int64(ts)))*nanosecondsPerSecond))
+
+	// Format as ISO 8601
+	return t.Format("2006-01-02T15:04:05Z07:00")
 }

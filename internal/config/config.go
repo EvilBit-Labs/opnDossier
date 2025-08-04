@@ -18,8 +18,6 @@ type Config struct {
 	OutputFile string   `mapstructure:"output_file"`
 	Verbose    bool     `mapstructure:"verbose"`
 	Quiet      bool     `mapstructure:"quiet"`
-	LogLevel   string   `mapstructure:"log_level"`
-	LogFormat  string   `mapstructure:"log_format"`
 	Theme      string   `mapstructure:"theme"`
 	Format     string   `mapstructure:"format"`
 	Template   string   `mapstructure:"template"`
@@ -64,8 +62,6 @@ func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 	v.SetDefault("output_file", "")
 	v.SetDefault("verbose", false)
 	v.SetDefault("quiet", false)
-	v.SetDefault("log_level", "info")
-	v.SetDefault("log_format", "text")
 	v.SetDefault("theme", "")
 	v.SetDefault("format", "markdown")
 	v.SetDefault("template", "")
@@ -131,8 +127,6 @@ func (c *Config) Validate() error {
 	validateFlags(c, &validationErrors)
 	validateInputFile(c, &validationErrors)
 	validateOutputFile(c, &validationErrors)
-	validateLogLevel(c, &validationErrors)
-	validateLogFormat(c, &validationErrors)
 	validateTheme(c, &validationErrors)
 	validateFormat(c, &validationErrors)
 	validateWrapWidth(c, &validationErrors)
@@ -185,40 +179,6 @@ func validateOutputFile(c *Config, validationErrors *[]ValidationError) {
 				})
 			}
 		}
-	}
-}
-
-func validateLogLevel(c *Config, validationErrors *[]ValidationError) {
-	// Validate log level
-	validLogLevels := map[string]bool{
-		"debug":   true,
-		"info":    true,
-		"warn":    true,
-		"warning": true,
-		"error":   true,
-	}
-	if !validLogLevels[c.LogLevel] {
-		*validationErrors = append(*validationErrors, ValidationError{
-			Field: "log_level",
-			Message: fmt.Sprintf(
-				"invalid log level '%s', must be one of: debug, info, warn, warning, error",
-				c.LogLevel,
-			),
-		})
-	}
-}
-
-func validateLogFormat(c *Config, validationErrors *[]ValidationError) {
-	// Validate log format
-	validLogFormats := map[string]bool{
-		"text": true,
-		"json": true,
-	}
-	if !validLogFormats[c.LogFormat] {
-		*validationErrors = append(*validationErrors, ValidationError{
-			Field:   "log_format",
-			Message: fmt.Sprintf("invalid log format '%s', must be one of: text, json", c.LogFormat),
-		})
 	}
 }
 
@@ -289,12 +249,12 @@ func combineValidationErrors(validationErrors []ValidationError) error {
 
 // GetLogLevel returns the configured log level.
 func (c *Config) GetLogLevel() string {
-	return c.LogLevel
+	return "" // No longer available
 }
 
 // GetLogFormat returns the configured log format.
 func (c *Config) GetLogFormat() string {
-	return c.LogFormat
+	return "" // No longer available
 }
 
 // IsVerbose returns true if verbose logging is enabled.

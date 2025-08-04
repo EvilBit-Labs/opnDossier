@@ -43,10 +43,10 @@ WORKFLOW EXAMPLES:
   opnDossier --verbose convert config.xml --format json
 
   # Configuration management workflow
-  OPNDOSSIER_LOG_LEVEL=debug opnDossier convert config.xml --theme dark
+  opnDossier --verbose convert config.xml --theme dark
 
   # Template customization workflow
-  opnDossier convert config.xml --template-dir ~/.opnDossier/templates --template detailed
+  opnDossier convert config.xml --custom-template /path/to/my-template.tmpl
 
   # Compliance workflow
   opnDossier convert config.xml --mode blue --plugins stig,sans --comprehensive`,
@@ -117,18 +117,6 @@ func init() {
 	setFlagAnnotation(rootCmd.PersistentFlags(), "verbose", []string{"output"})
 	rootCmd.PersistentFlags().BoolP("quiet", "q", false, "Suppress all output except errors and critical messages")
 	setFlagAnnotation(rootCmd.PersistentFlags(), "quiet", []string{"output"})
-
-	// Logging configuration flags
-	rootCmd.PersistentFlags().
-		String("log_level", "info", "Set logging level (debug, info, warn, error) for detailed output control")
-	setFlagAnnotation(rootCmd.PersistentFlags(), "log_level", []string{"logging"})
-	rootCmd.PersistentFlags().String("log_format", "text", "Set log output format (text, json) for structured logging")
-	setFlagAnnotation(rootCmd.PersistentFlags(), "log_format", []string{"logging"})
-
-	// Display configuration flags
-	rootCmd.PersistentFlags().
-		String("theme", "", "Set display theme (light, dark, auto, none) for terminal output styling")
-	setFlagAnnotation(rootCmd.PersistentFlags(), "theme", []string{"display"})
 
 	// Flag groups for better organization
 	rootCmd.PersistentFlags().SortFlags = false

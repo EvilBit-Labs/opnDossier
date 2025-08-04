@@ -11,31 +11,21 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/audit"
+	// TODO: Audit mode functionality is not yet complete - disabled for now
+	// "github.com/EvilBit-Labs/opnDossier/internal/audit".
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/export"
 	"github.com/EvilBit-Labs/opnDossier/internal/log"
 	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 	"github.com/spf13/cobra"
 )
 
 var (
-	outputFile      string   //nolint:gochecknoglobals // Cobra flag variable
-	format          string   //nolint:gochecknoglobals // Output format (markdown, json, yaml)
-	templateName    string   //nolint:gochecknoglobals // Template name to use
-	sections        []string //nolint:gochecknoglobals // Sections to include
-	themeName       string   //nolint:gochecknoglobals // Theme for rendering
-	wrapWidth       int      //nolint:gochecknoglobals // Text wrap width
-	force           bool     //nolint:gochecknoglobals // Force overwrite without prompt
-	auditMode       string   //nolint:gochecknoglobals // Audit mode (standard, blue, red)
-	blackhatMode    bool     //nolint:gochecknoglobals // Enable blackhat mode for red team reports
-	comprehensive   bool     //nolint:gochecknoglobals // Generate comprehensive report
-	selectedPlugins []string //nolint:gochecknoglobals // Selected compliance plugins
-	templateDir     string   //nolint:gochecknoglobals // Custom template directory
-	includeTunables bool     //nolint:gochecknoglobals // Include system tunables in output
+	outputFile string //nolint:gochecknoglobals // Cobra flag variable
+	format     string //nolint:gochecknoglobals // Output format (markdown, json, yaml)
+	force      bool   //nolint:gochecknoglobals // Force overwrite without prompt
 )
 
 // ErrOperationCancelled is returned when the user cancels an operation.
@@ -64,49 +54,12 @@ func init() {
 		BoolVar(&force, "force", false, "Force overwrite existing files without prompting for confirmation")
 	setFlagAnnotation(convertCmd.Flags(), "force", []string{"output"})
 
-	// Template and styling flags
-	convertCmd.Flags().
-		StringVar(&templateName, "template", "", "Template name to use for markdown generation (default: auto-selected). Available: standard, comprehensive, json, yaml, blue, red, blue-enhanced")
-	setFlagAnnotation(convertCmd.Flags(), "template", []string{"template"})
-	convertCmd.Flags().
-		BoolVar(&includeTunables, "include-tunables", false, "Include system tunables in the output report")
-	setFlagAnnotation(convertCmd.Flags(), "include-tunables", []string{"template"})
-	convertCmd.Flags().
-		StringSliceVar(&sections, "section", []string{}, "Specific sections to include in output (comma-separated, e.g., system,network,firewall)")
-	setFlagAnnotation(convertCmd.Flags(), "section", []string{"template"})
-	convertCmd.Flags().StringVar(&themeName, "theme", "", "Theme for rendering output (light, dark, auto, none)")
-	setFlagAnnotation(convertCmd.Flags(), "theme", []string{"template"})
-	convertCmd.Flags().
-		IntVar(&wrapWidth, "wrap", 0, "Text wrap width in characters (0 = no wrapping, recommended: 80-120)")
-	setFlagAnnotation(convertCmd.Flags(), "wrap", []string{"template"})
-
-	// Audit mode flags
-	convertCmd.Flags().
-		StringVar(&auditMode, "mode", "", "Audit mode for security-focused reporting (standard, blue, red)")
-	setFlagAnnotation(convertCmd.Flags(), "mode", []string{"audit"})
-	convertCmd.Flags().
-		BoolVar(&blackhatMode, "blackhat-mode", false, "Enable blackhat commentary mode for red team reports (adds snarky commentary)")
-	setFlagAnnotation(convertCmd.Flags(), "blackhat-mode", []string{"audit"})
-	convertCmd.Flags().
-		BoolVar(&comprehensive, "comprehensive", false, "Generate comprehensive detailed reports with full configuration analysis")
-	setFlagAnnotation(convertCmd.Flags(), "comprehensive", []string{"audit"})
-	convertCmd.Flags().
-		StringSliceVar(&selectedPlugins, "plugins", []string{}, "Compliance plugins to run (comma-separated, e.g., stig,sans)")
-	setFlagAnnotation(convertCmd.Flags(), "plugins", []string{"audit"})
-	convertCmd.Flags().
-		StringVar(&templateDir, "template-dir", "", "Custom template directory for user-defined templates (overrides built-in templates)")
-	setFlagAnnotation(convertCmd.Flags(), "template-dir", []string{"template"})
+	// Add shared template flags
+	addSharedTemplateFlags(convertCmd)
+	addSharedAuditFlags(convertCmd)
 
 	// Flag groups for better organization
 	convertCmd.Flags().SortFlags = false
-
-	// Mark mutually exclusive flags
-	// Template and template-dir are mutually exclusive (template-dir overrides built-in templates)
-	convertCmd.MarkFlagsMutuallyExclusive("template", "template-dir")
-
-	// Note: mode and template can be used together, so no mutual exclusivity needed
-
-	// Note: mode and template can be used together, so no mutual exclusivity needed
 }
 
 var convertCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
@@ -118,32 +71,21 @@ its content into structured formats. Supported output formats include Markdown (
 JSON, and YAML. This allows for easier readability, documentation, programmatic access,
 and auditing of your firewall configuration.
 
-The convert command supports both basic conversion and audit report generation.
-For basic conversion, it focuses on format transformation without validation.
-For audit reports, use the --mode flag to generate security-focused reports.
+  The convert command focuses on format transformation without validation.
+  TODO: Audit mode functionality is not yet complete and has been disabled.
+  --comprehensive: Generate detailed, comprehensive reports
+  --custom-template: Use custom template file for report generation
 
-AUDIT MODES:
-  --mode standard: Generate neutral, comprehensive documentation (default)
-  --mode blue: Generate defensive audit report with security findings and recommendations
-  --mode red: Generate attacker-focused recon report highlighting attack surfaces
+  OUTPUT FORMATS:
+  The convert command supports multiple output formats:
 
-  Additional audit options:
-    --blackhat-mode: Enable snarky commentary for red team reports
-    --comprehensive: Generate detailed, comprehensive reports
-    --plugins: Specify compliance plugins to run (e.g., stig,sans)
-    --template-dir: Use custom templates for report generation
-
-TEMPLATES:
-  Main templates:
-    standard                    - Standard report (default)
-    comprehensive               - Comprehensive report
+  Basic formats (use --format flag):
+    markdown                    - Standard markdown report (default)
     json                        - JSON format output
     yaml                        - YAML format output
 
-  Audit mode templates:
-    blue                        - Blue team audit report
-    red                         - Red team audit report
-    blue-enhanced               - Enhanced blue team audit report
+  TODO: Audit mode functionality is not yet complete and has been disabled.
+  Use --format for basic output formats (markdown, json, yaml).
 
 The convert command focuses on conversion only and does not perform validation.
 To validate your configuration files before conversion, use the 'validate' command.
@@ -166,20 +108,27 @@ Examples:
   # Convert 'my_config.xml' to YAML and save to file
   opnDossier convert my_config.xml -f yaml -o documentation.yaml
 
-  # Generate blue team audit report
-  opnDossier convert my_config.xml --mode blue --comprehensive
+  # Generate comprehensive report
+  opnDossier convert my_config.xml --comprehensive
 
-  # Generate red team recon report with blackhat mode
-  opnDossier convert my_config.xml --mode red --blackhat-mode
+  # TODO: Audit mode functionality is not yet complete and has been disabled
+  # # Generate blue team audit report
+  # opnDossier convert my_config.xml --mode blue --comprehensive
 
-  # Run compliance checks with specific plugins
-  opnDossier convert my_config.xml --mode blue --plugins stig,sans
+  # # Generate red team recon report with blackhat mode
+  # opnDossier convert my_config.xml --mode red --blackhat-mode
 
-  # Convert with specific theme and sections
-  opnDossier convert my_config.xml --theme dark --section system,network
+  # # Run compliance checks with specific plugins
+  # opnDossier convert my_config.xml --mode blue --plugins stig,sans
 
-  # Convert with custom template and text wrapping
-  opnDossier convert my_config.xml --template detailed --wrap 120
+  # Convert with specific sections
+  opnDossier convert my_config.xml --section system,network
+
+  # Convert with format and text wrapping
+  opnDossier convert my_config.xml --format json --wrap 120
+
+  # Convert with custom template file
+  opnDossier convert my_config.xml --custom-template /path/to/my-template.tmpl
 
   # Convert multiple files to JSON format
   opnDossier convert config1.xml config2.xml --format json
@@ -272,7 +221,7 @@ Examples:
 
 				// Build options for conversion with precedence: CLI flags > env vars > config > defaults
 				eff := buildEffectiveFormat(format, Cfg)
-				opt := buildConversionOptions(eff, templateName, sections, themeName, wrapWidth, Cfg)
+				opt := buildConversionOptions(eff, Cfg)
 
 				// Convert using the new markdown generator
 				var output string
@@ -288,31 +237,32 @@ Examples:
 					opt.Sections,
 				)
 
+				// TODO: Audit mode functionality is not yet complete - disabled for now
 				// Handle audit mode if specified
-				if opt.AuditMode != "" {
-					// Create plugin registry for audit mode
-					registry := audit.NewPluginRegistry()
-					output, err = handleAuditMode(timeoutCtx, opnsense, opt, ctxLogger, registry)
-					if err != nil {
-						ctxLogger.Error("Failed to generate audit report", "error", err)
-						errs <- fmt.Errorf("failed to generate audit report from %s: %w", fp, err)
-						return
-					}
-				} else {
-					// Standard markdown generation
-					g, err := markdown.NewMarkdownGeneratorWithTemplates(ctxLogger.Logger, opt.TemplateDir)
-					if err != nil {
-						ctxLogger.Error("Failed to create markdown generator", "error", err)
-						errs <- fmt.Errorf("failed to create markdown generator: %w", err)
-						return
-					}
-					output, err = g.Generate(timeoutCtx, opnsense, opt)
-					if err != nil {
-						ctxLogger.Error("Failed to convert", "error", err)
-						errs <- fmt.Errorf("failed to convert from %s: %w", fp, err)
-						return
-					}
+				// if opt.AuditMode != "" {
+				// 	// Create plugin registry for audit mode
+				// 	registry := audit.NewPluginRegistry()
+				// 	output, err = handleAuditMode(timeoutCtx, opnsense, opt, ctxLogger, registry)
+				// 	if err != nil {
+				// 		ctxLogger.Error("Failed to generate audit report", "error", err)
+				// 		errs <- fmt.Errorf("failed to generate audit report from %s: %w", fp, err)
+				// 		return
+				// 	}
+				// } else {
+				// Standard markdown generation
+				g, err := markdown.NewMarkdownGeneratorWithTemplates(ctxLogger.Logger, opt.TemplateDir)
+				if err != nil {
+					ctxLogger.Error("Failed to create markdown generator", "error", err)
+					errs <- fmt.Errorf("failed to create markdown generator: %w", err)
+					return
 				}
+				output, err = g.Generate(timeoutCtx, opnsense, opt)
+				if err != nil {
+					ctxLogger.Error("Failed to convert", "error", err)
+					errs <- fmt.Errorf("failed to convert from %s: %w", fp, err)
+					return
+				}
+				// }
 
 				// Determine file extension based on format
 				switch strings.ToLower(string(opt.Format)) {
@@ -398,10 +348,7 @@ func buildEffectiveFormat(flagFormat string, cfg *config.Config) string {
 // buildConversionOptions constructs a markdown.Options struct by merging CLI arguments and configuration values with defined precedence.
 // CLI arguments take priority over configuration file values, which in turn override defaults. The resulting options control output format, template, section filtering, theme, and text wrapping for the conversion process.
 func buildConversionOptions(
-	format, template string,
-	sections []string,
-	theme string,
-	wrap int,
+	format string,
 	cfg *config.Config,
 ) markdown.Options {
 	// Start with defaults
@@ -410,193 +357,59 @@ func buildConversionOptions(
 	// Set format
 	opt.Format = markdown.Format(format)
 
-	// Template: CLI flag > config > default
-	if template != "" {
-		opt.TemplateName = template
-	} else if cfg != nil && cfg.GetTemplate() != "" {
+	// Template: config > default (no CLI flag for template)
+	if cfg != nil && cfg.GetTemplate() != "" {
 		opt.TemplateName = cfg.GetTemplate()
 	}
 
 	// Sections: CLI flag > config > default
-	if len(sections) > 0 {
-		opt.Sections = sections
+	if len(sharedSections) > 0 {
+		opt.Sections = sharedSections
 	} else if cfg != nil && len(cfg.GetSections()) > 0 {
 		opt.Sections = cfg.GetSections()
 	}
 
-	// Theme: CLI flag > config > default
-	if theme != "" {
-		opt.Theme = markdown.Theme(theme)
-	} else if cfg != nil && cfg.GetTheme() != "" {
+	// Theme: config > default (no CLI flag for theme in convert command)
+	if cfg != nil && cfg.GetTheme() != "" {
 		opt.Theme = markdown.Theme(cfg.GetTheme())
 	}
 
 	// Wrap width: CLI flag > config > default
-	if wrap > 0 {
-		opt.WrapWidth = wrap
+	if sharedWrapWidth > 0 {
+		opt.WrapWidth = sharedWrapWidth
 	} else if cfg != nil && cfg.GetWrapWidth() > 0 {
 		opt.WrapWidth = cfg.GetWrapWidth()
 	}
 
+	// TODO: Audit mode functionality is not yet complete - disabled for now
 	// Audit mode: CLI flag > config > default
-	if auditMode != "" {
-		opt.AuditMode = markdown.AuditMode(auditMode)
-	}
+	// if sharedAuditMode != "" {
+	// 	opt.AuditMode = markdown.AuditMode(sharedAuditMode)
+	// }
 
+	// TODO: Audit mode functionality is not yet complete - disabled for now
 	// Blackhat mode: CLI flag only
-	opt.BlackhatMode = blackhatMode
+	// opt.BlackhatMode = sharedBlackhatMode
 
 	// Comprehensive: CLI flag only
-	opt.Comprehensive = comprehensive
+	opt.Comprehensive = sharedComprehensive
 
+	// TODO: Audit mode functionality is not yet complete - disabled for now
 	// Selected plugins: CLI flag only
-	if len(selectedPlugins) > 0 {
-		opt.SelectedPlugins = selectedPlugins
-	}
+	// if len(sharedSelectedPlugins) > 0 {
+	// 	opt.SelectedPlugins = sharedSelectedPlugins
+	// }
 
 	// Template directory: CLI flag only
+	templateDir := getSharedTemplateDir()
 	if templateDir != "" {
 		opt.TemplateDir = templateDir
 	}
 
 	// Include tunables: CLI flag only
-	opt.CustomFields["IncludeTunables"] = includeTunables
+	opt.CustomFields["IncludeTunables"] = sharedIncludeTunables
 
 	return opt
-}
-
-// handleAuditMode generates an audit report using the audit mode controller and markdown generator.
-func handleAuditMode(
-	ctx context.Context,
-	cfg *model.OpnSenseDocument,
-	opts markdown.Options,
-	logger *log.Logger,
-	registry *audit.PluginRegistry,
-) (string, error) {
-	// Create audit mode controller with plugin registry
-	controller := audit.NewModeController(registry, logger.Logger)
-
-	// Convert audit mode and create config
-	reportMode, err := convertAuditModeToReportMode(opts.AuditMode)
-	if err != nil {
-		return "", err
-	}
-
-	modeConfig := createModeConfig(reportMode, opts)
-
-	// Generate audit report
-	auditReport, err := controller.GenerateReport(ctx, cfg, modeConfig)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate audit report: %w", err)
-	}
-
-	// Enrich the configuration for template rendering
-	enrichedCfg := model.EnrichDocument(cfg)
-	if enrichedCfg == nil {
-		return "", ErrFailedToEnrichConfig
-	}
-
-	// Generate the base report
-	result, err := generateBaseAuditReport(ctx, cfg, opts, logger)
-	if err != nil {
-		return "", err
-	}
-
-	// Append audit findings
-	result = appendAuditFindings(result, auditReport)
-
-	return result, nil
-}
-
-// convertAuditModeToReportMode converts markdown audit mode to audit report mode.
-func convertAuditModeToReportMode(auditMode markdown.AuditMode) (audit.ReportMode, error) {
-	switch auditMode {
-	case markdown.AuditModeStandard:
-		return audit.ModeStandard, nil
-	case markdown.AuditModeBlue:
-		return audit.ModeBlue, nil
-	case markdown.AuditModeRed:
-		return audit.ModeRed, nil
-	default:
-		return "", fmt.Errorf("%w: %s", ErrUnsupportedAuditMode, auditMode)
-	}
-}
-
-// createModeConfig creates an audit mode configuration from options.
-func createModeConfig(reportMode audit.ReportMode, opts markdown.Options) *audit.ModeConfig {
-	return &audit.ModeConfig{
-		Mode:            reportMode,
-		BlackhatMode:    opts.BlackhatMode,
-		Comprehensive:   opts.Comprehensive,
-		SelectedPlugins: opts.SelectedPlugins,
-		TemplateDir:     opts.TemplateDir,
-	}
-}
-
-// generateBaseAuditReport generates the base audit report using template rendering.
-func generateBaseAuditReport(
-	ctx context.Context,
-	cfg *model.OpnSenseDocument,
-	opts markdown.Options,
-	logger *log.Logger,
-) (string, error) {
-	// Create markdown generator for template rendering
-	generator, err := markdown.NewMarkdownGeneratorWithTemplates(logger.Logger, opts.TemplateDir)
-	if err != nil {
-		return "", fmt.Errorf("failed to create markdown generator: %w", err)
-	}
-
-	// Build markdown options for audit mode
-	markdownOpts := createAuditMarkdownOptions(opts)
-
-	// Generate the audit report using template rendering
-	result, err := generator.Generate(ctx, cfg, markdownOpts)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate audit report: %w", err)
-	}
-
-	return result, nil
-}
-
-// createAuditMarkdownOptions creates markdown options specifically for audit mode.
-func createAuditMarkdownOptions(opts markdown.Options) markdown.Options {
-	return markdown.Options{
-		Format:          markdown.FormatMarkdown,
-		Comprehensive:   opts.Comprehensive,
-		Template:        nil,
-		TemplateName:    "",
-		Sections:        nil,
-		Theme:           markdown.ThemeAuto,
-		WrapWidth:       0,
-		EnableTables:    true,
-		EnableColors:    true,
-		EnableEmojis:    true,
-		Compact:         false,
-		IncludeMetadata: true,
-		CustomFields:    make(map[string]any),
-		AuditMode:       opts.AuditMode,
-		BlackhatMode:    false,
-		SelectedPlugins: nil,
-		TemplateDir:     "",
-	}
-}
-
-// appendAuditFindings appends audit findings summary to the report.
-func appendAuditFindings(result string, auditReport *audit.Report) string {
-	if len(auditReport.Findings) == 0 {
-		return result
-	}
-
-	result += fmt.Sprintf("\n\n## Audit Findings Summary\n\nTotal Findings: %d\n\n", len(auditReport.Findings))
-	for i, finding := range auditReport.Findings {
-		result += fmt.Sprintf("### %d. %s\n\n**Severity:** %s\n**Component:** %s\n**Description:** %s\n\n",
-			i+1, finding.Title, finding.Severity, finding.Component, finding.Description)
-		if finding.Recommendation != "" {
-			result += fmt.Sprintf("**Recommendation:** %s\n\n", finding.Recommendation)
-		}
-	}
-
-	return result
 }
 
 // determineOutputPath determines the output file path with smart naming and overwrite protection.

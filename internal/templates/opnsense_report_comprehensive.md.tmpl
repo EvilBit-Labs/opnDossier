@@ -21,7 +21,9 @@
 - [System Groups](#system-groups)
 - [System Tunables](#system-tunables)
 - [Gateways](#gateways)
+{{- if or (and .OPNsense.Wireguard .OPNsense.Wireguard.General) (and .OPNsense.Wireguard .OPNsense.Wireguard.Server .OPNsense.Wireguard.Server.Servers .OPNsense.Wireguard.Server.Servers.Server) (and .OPNsense.Wireguard .OPNsense.Wireguard.Client .OPNsense.Wireguard.Client.Clients .OPNsense.Wireguard.Client.Clients.Client) }}
 - [WireGuard VPN](#wireguard-vpn)
+{{- end }}
 - [Revision History](#revision-history)
 
 ---
@@ -159,11 +161,38 @@
 | {{ $name }} | {{ formatBoolean $dhcp.Enable }} | `{{ $dhcp.Gateway }}` | {{ $dhcp.Range.From }} | {{ $dhcp.Range.To }} | `{{ $dhcp.Dnsserver }}` | `{{ $dhcp.Winsserver }}` | `{{ $dhcp.Ntpserver }}` | `{{ $dhcp.DdnsDomainAlgorithm }}` |
 {{- end }}
 
+{{- $hasOptions := false }}
+{{- range $name, $dhcp := .Dhcpd.Items }}
+{{- if $dhcp.NumberOptions }}
+{{- range $dhcp.NumberOptions }}
+{{- if or .Number .Type .Value }}
+{{- $hasOptions = true }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if $hasOptions }}
 ### DHCP Options
 {{- range $name, $dhcp := .Dhcpd.Items }}
-#### {{ $name | title }} DHCP Options
 {{- if $dhcp.NumberOptions }}
-- **Number Options**: {{ len $dhcp.NumberOptions }} configured
+{{- $hasValidOptions := false }}
+{{- range $dhcp.NumberOptions }}
+{{- if or .Number .Type .Value }}
+{{- $hasValidOptions = true }}
+{{- end }}
+{{- end }}
+{{- if $hasValidOptions }}
+#### {{ $name | title }} DHCP Options
+| Option Number | Type | Value |
+|---------------|------|-------|
+{{- range $dhcp.NumberOptions }}
+{{- if or .Number .Type .Value }}
+| {{ .Number }} | {{ if .Type }}{{ .Type }}{{ else }}-{{ end }} | `{{ .Value }}` |
+{{- end }}
+{{- end }}
+
+{{- end }}
+{{- end }}
 {{- end }}
 {{- end }}
 
@@ -235,23 +264,19 @@
 
 ---
 
+{{- if or (and .OPNsense.Wireguard .OPNsense.Wireguard.General) (and .OPNsense.Wireguard .OPNsense.Wireguard.Server .OPNsense.Wireguard.Server.Servers .OPNsense.Wireguard.Server.Servers.Server) (and .OPNsense.Wireguard .OPNsense.Wireguard.Client .OPNsense.Wireguard.Client.Clients .OPNsense.Wireguard.Client.Clients.Client) }}
 ## WireGuard VPN
 
-### Debug Information
-| Property | Value |
-|----------|-------|
-| **OPNsense Field Exists** | {{ if .OPNsense }}Yes{{ else }}No{{ end }} |
-| **OPNsense Type** | {{ printf "%T" .OPNsense }} |
-| **WireGuard Field Exists** | {{ if .OPNsense.Wireguard }}Yes{{ else }}No{{ end }} |
-
+{{- if and .OPNsense.Wireguard .OPNsense.Wireguard.General }}
 ### General Configuration
 | Property | Value |
 |----------|-------|
-| **Enabled** | {{ if .OPNsense.Wireguard }}{{ if .OPNsense.Wireguard.General }}{{ formatBoolean .OPNsense.Wireguard.General.Enabled }}{{ else }}Not configured{{ end }}{{ else }}Not configured{{ end }} |
-| **Version** | {{ if .OPNsense.Wireguard }}{{ if .OPNsense.Wireguard.General }}{{ .OPNsense.Wireguard.General.Version }}{{ else }}Not configured{{ end }}{{ else }}Not configured{{ end }} |
+| **Enabled** | {{ formatBoolean .OPNsense.Wireguard.General.Enabled }} |
+| **Version** | {{ .OPNsense.Wireguard.General.Version }} |
 
-### Servers
+{{- end }}
 {{- if and .OPNsense.Wireguard .OPNsense.Wireguard.Server .OPNsense.Wireguard.Server.Servers .OPNsense.Wireguard.Server.Servers.Server }}
+### Servers
 {{- range .OPNsense.Wireguard.Server.Servers.Server }}
 #### Server: {{ .Name }}
 | Property | Value |
@@ -271,12 +296,9 @@
 **Private Key**: `{{ .Privkey }}`
 
 {{- end }}
-{{- else }}
-No WireGuard servers configured.
 {{- end }}
-
-### Clients
 {{- if and .OPNsense.Wireguard .OPNsense.Wireguard.Client .OPNsense.Wireguard.Client.Clients .OPNsense.Wireguard.Client.Clients.Client }}
+### Clients
 {{- range .OPNsense.Wireguard.Client.Clients.Client }}
 #### Client: {{ .Name }}
 | Property | Value |
@@ -292,20 +314,21 @@ No WireGuard servers configured.
 **PSK**: `{{ .PSK }}`
 
 {{- end }}
-{{- else }}
-No WireGuard clients configured.
 {{- end }}
 
 ---
+{{- end }}
 
+{{- if and .Revision (or .Revision.Username .Revision.Time .Revision.Description) }}
 ## Revision History
 
 | Username | Time | Description |
 |----------|------|-------------|
-{{- if .Revision }}
-| `{{ .Revision.Username }}` | {{ .Revision.Time }} | `{{ .Revision.Description }}` |
+| `{{ .Revision.Username }}` | {{ formatUnixTimestamp .Revision.Time }} | `{{ .Revision.Description }}` |
 {{- else }}
-| No revision history available | - | - |
+## Revision History
+
+*No revision history available for this configuration.*
 {{- end }}
 
 ---
@@ -320,8 +343,10 @@ No WireGuard clients configured.
 - **Total Sysctl Tunables**: {{ len .Sysctl }}
 - **Total DHCP Scopes**: {{ len .Dhcpd.Items }}
 - **Total Gateways**: {{ len .Gateways.Gateway }}
+{{- if or (and .OPNsense.Wireguard .OPNsense.Wireguard.General) (and .OPNsense.Wireguard .OPNsense.Wireguard.Server .OPNsense.Wireguard.Server.Servers .OPNsense.Wireguard.Server.Servers.Server) (and .OPNsense.Wireguard .OPNsense.Wireguard.Client .OPNsense.Wireguard.Client.Clients .OPNsense.Wireguard.Client.Clients.Client) }}
 - **WireGuard Servers**: {{ if and .OPNsense.Wireguard .OPNsense.Wireguard.Server .OPNsense.Wireguard.Server.Servers .OPNsense.Wireguard.Server.Servers.Server }}{{ len .OPNsense.Wireguard.Server.Servers.Server }}{{ else }}0{{ end }}
 - **WireGuard Clients**: {{ if and .OPNsense.Wireguard .OPNsense.Wireguard.Client .OPNsense.Wireguard.Client.Clients .OPNsense.Wireguard.Client.Clients.Client }}{{ len .OPNsense.Wireguard.Client.Clients.Client }}{{ else }}0{{ end }}
+{{- end }}
 
 ### Security Assessment
 - **Web GUI Protocol**: {{ if eq .System.WebGUI.Protocol "https" }}Secure{{ else }}Insecure{{ end }}
