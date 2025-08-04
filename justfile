@@ -277,4 +277,30 @@ full-checks:
     @just ci-check
     @just check-goreleaser
 
+# Test specific GitHub Actions workflow
+[unix]
+act-workflow *workflow:
+    @echo "Testing GitHub Actions workflow: {{workflow}}"
+    @if ! command -v act >/dev/null 2>&1; then \
+        echo "Error: act not found. Please install it:"; \
+        echo "  - Using Homebrew: brew install act"; \
+        echo "  - Using Go: go install github.com/nektos/act@latest"; \
+        echo "  - Or download from: https://github.com/nektos/act/releases"; \
+        exit 1; \
+    fi
+    act --workflows .github/workflows/{{workflow}}.yml --list --container-architecture linux/amd64
+
+[windows]
+act-workflow *workflow:
+    @echo "Testing GitHub Actions workflow: {{workflow}}"
+    @if (-not (Get-Command act -ErrorAction SilentlyContinue)) { \
+        echo "Error: act not found. Please install it:"; \
+        echo "  - Using Go: go install github.com/nektos/act@latest"; \
+        echo "  - Or download from: https://github.com/nektos/act/releases"; \
+        exit 1; \
+    }
+    act --workflows .github/workflows/{{workflow}}.yml --list --container-architecture linux/amd64
+
+
+
 
