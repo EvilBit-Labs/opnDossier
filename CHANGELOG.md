@@ -200,6 +200,8 @@ All notable changes to this project will be documented in this file.
 
   Tested with `just test` and `just ci-check`, all checks passed successfully.
 
+- *(release)* Remove GO_VERSION dependency and add mdformat to changelog generation
+
 ### 🚜 Refactor
 
 - Remove JSON and YAML template files and update related functionality
@@ -222,6 +224,7 @@ All notable changes to this project will be documented in this file.
 
 - Fix changelog format for v1.0.0 release
 - Finalize changelog for v1.0.0 release
+- Format changelog for v1.0.0 release
 
 ### ⚙️ Miscellaneous Tasks
 
