@@ -14,7 +14,6 @@ jobs:
   test:
     strategy:
       matrix:
-        go: [1.21, stable]
         os: [ubuntu-latest, macos-latest, windows-latest]
     name: test
     runs-on: ${{ matrix.os }}
@@ -25,7 +24,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go }}
+          go-version: stable
           check-latest: true
 
       - name: Install pre-commit
