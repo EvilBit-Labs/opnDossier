@@ -192,7 +192,7 @@ type WireGuardClientItem struct {
 	Enabled       string `xml:"enabled"       json:"enabled,omitempty"`
 	Name          string `xml:"name"          json:"name,omitempty"`
 	Pubkey        string `xml:"pubkey"        json:"pubkey,omitempty"`
-	Psk           string `xml:"psk"           json:"psk,omitempty"`
+	PSK           string `xml:"psk"           json:"psk,omitempty"`
 	Tunneladdress string `xml:"tunneladdress" json:"tunneladdress,omitempty"`
 	Serveraddress string `xml:"serveraddress" json:"serveraddress,omitempty"`
 	Serverport    string `xml:"serverport"    json:"serverport,omitempty"`
