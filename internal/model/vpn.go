@@ -176,7 +176,7 @@ type WireGuardServerItem struct {
 	Pubkey        string `xml:"pubkey"        json:"pubkey,omitempty"`
 	Privkey       string `xml:"privkey"       json:"privkey,omitempty"`
 	Port          string `xml:"port"          json:"port,omitempty"`
-	Mtu           string `xml:"mtu"           json:"mtu,omitempty"`
+	MTU           string `xml:"mtu"           json:"mtu,omitempty"`
 	DNS           string `xml:"dns"           json:"dns,omitempty"`
 	Tunneladdress string `xml:"tunneladdress" json:"tunneladdress,omitempty"`
 	Disableroutes string `xml:"disableroutes" json:"disableroutes,omitempty"`
