@@ -4,7 +4,7 @@
 
 - **Hostname**: {{ .System.Hostname }}
 - **Domain**: {{ .System.Domain }}
-- **Platform**: OPNsense {{ .System.Firmware.Version }}
+- **Platform**: OPNsense {{ if .System.Firmware.Version }}{{ .System.Firmware.Version }}{{ else }}Unknown{{ end }}
 - **Generated On**: {{ .Generated }}
 - **Parsed By**: opnDossier v{{ .ToolVersion }}
 
@@ -333,9 +333,9 @@
 
 | Service | Enabled | Notes |
 |---------|---------|-------|
-| SNMP | {{ formatBoolean .Snmpd.ROCommunity }} | Community: {{ .Snmpd.ROCommunity }} |
+| SNMP | {{ formatBoolean (ne .Snmpd.ROCommunity "") }} | Community: {{ .Snmpd.ROCommunity }} |
 | Unbound DNS | {{ formatBoolean .Unbound.Enable }} | {{ if .Unbound.Dnssec }}DNSSEC: {{ formatBoolean .Unbound.Dnssec }}{{ if .Unbound.Dnssecstripped }}, Stripped: {{ formatBoolean .Unbound.Dnssecstripped }}{{ end }}{{ else }}DNSSEC: {{ formatBoolean false }}{{ end }} |
-| NTP | {{ formatBoolean .Ntpd.Prefer }} | Prefer: {{ .Ntpd.Prefer }} |
+| NTP | {{ formatBoolean (or (eq .Ntpd.Prefer "yes") (eq .Ntpd.Prefer "on") (eq .Ntpd.Prefer true)) }} | Prefer: {{ .Ntpd.Prefer }} |
 
 ---
 
