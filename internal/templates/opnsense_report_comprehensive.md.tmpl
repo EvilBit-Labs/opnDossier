@@ -3,7 +3,8 @@
 ## System Information
 
 - **Hostname**: {{ .System.Hostname }}
-- **Platform**: OPNsense {{ .Version }}
+- **Domain**: {{ .System.Domain }}
+- **Platform**: OPNsense {{ .System.Firmware.Version }}
 - **Generated On**: {{ .Generated }}
 - **Parsed By**: opnDossier v{{ .ToolVersion }}
 
@@ -14,13 +15,16 @@
 - [System Configuration](#system-configuration)
 - [Interfaces](#interfaces)
 - [Firewall Rules](#firewall-rules)
-- [NAT Configuration](#nat-configuration)
+- [NAT Rules](#nat-rules)
 - [DHCP Services](#dhcp-services)
 - [DNS Resolver](#dns-resolver)
+- [OpenVPN](#openvpn)
+- [Gateways](#gateways)
 - [System Users](#system-users)
 - [System Groups](#system-groups)
+- [Services & Daemons](#services--daemons)
 - [System Tunables](#system-tunables)
-- [Gateways](#gateways)
+- [System Notes](#system-notes)
 {{- if or (and .OPNsense.Wireguard .OPNsense.Wireguard.General) (and .OPNsense.Wireguard .OPNsense.Wireguard.Server .OPNsense.Wireguard.Server.Servers .OPNsense.Wireguard.Server.Servers.Server) (and .OPNsense.Wireguard .OPNsense.Wireguard.Client .OPNsense.Wireguard.Client.Clients .OPNsense.Wireguard.Client.Clients.Client) }}
 - [WireGuard VPN](#wireguard-vpn)
 {{- end }}
@@ -102,6 +106,13 @@
 
 ## Interfaces
 
+| Name | Description | IP Address | CIDR | Enabled |
+|------|-------------|------------|------|---------|
+{{- range $name, $iface := .Interfaces.Items }}
+| `{{ $name }}` | `{{ if $iface.Descr }}{{ $iface.Descr }}{{ else }}{{ $iface.If }}{{ end }}` | `{{ $iface.IPAddr }}` | /{{ $iface.Subnet }} | {{ formatBoolean $iface.Enable }} |
+{{- end }}
+
+### Detailed Interface Information
 | Name | Description | Physical Interface | IP Address | CIDR | IPv6 Address | IPv6 CIDR | Gateway | IPv6 Gateway | Enabled | Type | Virtual | Locked |
 |------|-------------|-------------------|------------|------|--------------|-----------|---------|--------------|---------|------|---------|--------|
 {{- range $name, $iface := .Interfaces.Items }}
@@ -129,6 +140,13 @@
 
 ## Firewall Rules
 
+| # | Interface | Action | IP Ver | Proto | Source | Destination | Target | Source Port | Enabled | Description |
+|---|-----------|--------|--------|-------|--------|-------------|--------|-------------|---------|-------------|
+{{- range $index, $rule := .Filter.Rule }}
+| {{ add $index 1 }} | {{ $rule.Interface }} | {{ $rule.Type }} | {{ $rule.IPProtocol }} | {{ $rule.Protocol }} | {{ $rule.Source.Network }} | {{ $rule.Destination.Network }} | {{ if $rule.Target }}{{ $rule.Target }}{{ else }}-{{ end }} | {{ if $rule.SourcePort }}{{ $rule.SourcePort }}{{ else }}-{{ end }} | {{ formatBoolean (not $rule.Disabled) }} | {{ if $rule.Descr }}{{ $rule.Descr }}{{ else }}-{{ end }} |
+{{- end }}
+
+### Detailed Firewall Rules
 | # | Action | IP Ver | Proto | Interface | Direction | State Type | Quick | Source | Destination | Dest Port | Target | Source Port | Enabled | Description |
 |---|--------|--------|-------|-----------|-----------|------------|-------|--------|-------------|-----------|--------|-------------|---------|-------------|
 {{- range $index, $rule := .Filter.Rule }}
@@ -137,28 +155,50 @@
 
 ---
 
-## NAT Configuration
+## NAT Rules
 
-| Mode |
-|------|
-| {{ .Nat.Outbound.Mode }} |
+{{- if .Nat.Outbound.Mode }}
+**Mode:** {{ .Nat.Outbound.Mode }}
 
-### NAT Rules
-
-| # | Interface | IP Ver | Protocol | Source | Destination | Target | Source Port | Enabled | Description |
-|---|-----------|--------|----------|--------|-------------|--------|-------------|---------|-------------|
+{{- end }}
+| Interface | IP Ver | Protocol | Source | Destination | Target | Source Port | Enabled | Description |
+|-----------|--------|----------|--------|-------------|--------|-------------|---------|-------------|
 {{- range $index, $rule := .Nat.Outbound.Rule }}
-| {{ add $index 1 }} | {{ $rule.Interface }} | {{ $rule.IPProtocol }} | {{ $rule.Protocol }} | {{ $rule.Source.Network }} | {{ if $rule.Destination.Any }}any{{ else }}{{ $rule.Destination.Network }}{{ end }} | {{ $rule.Target }} | {{ $rule.SourcePort }} | {{ formatBoolean (not $rule.Disabled) }} | {{ if $rule.Descr }}{{ $rule.Descr }}{{ else }}-{{ end }} |
+| {{ $rule.Interface }} | {{ $rule.IPProtocol }} | {{ $rule.Protocol }} | {{ $rule.Source.Network }} | {{ if $rule.Destination.Any }}any{{ else }}{{ $rule.Destination.Network }}{{ end }} | {{ $rule.Target }} | {{ $rule.SourcePort }} | {{ formatBoolean (not $rule.Disabled) }} | {{ if $rule.Descr }}{{ $rule.Descr }}{{ else }}-{{ end }} |
 {{- end }}
 
 ---
 
 ## DHCP Services
 
+| Interface | Start IP | End IP | Domain | DNS Servers |
+|-----------|----------|--------|--------|--------------|
+{{- range $name, $dhcp := .Dhcpd.Items }}
+| {{ $name }} | {{ $dhcp.Range.From }} | {{ $dhcp.Range.To }} | - | - |
+{{- end }}
+
+### Detailed DHCP Configuration
 | Interface | Enabled | Gateway | Range Start | Range End | DNS Server | WINS Server | NTP Server | DDNS Algorithm |
 |-----------|---------|---------|-------------|-----------|------------|-------------|------------|----------------|
 {{- range $name, $dhcp := .Dhcpd.Items }}
 | {{ $name }} | {{ formatBoolean $dhcp.Enable }} | `{{ $dhcp.Gateway }}` | {{ $dhcp.Range.From }} | {{ $dhcp.Range.To }} | `{{ $dhcp.Dnsserver }}` | `{{ $dhcp.Winsserver }}` | `{{ $dhcp.Ntpserver }}` | `{{ $dhcp.DdnsDomainAlgorithm }}` |
+{{- end }}
+
+### Static Leases
+
+| Hostname | MAC Address | IP | Description |
+|----------|-------------|----|-------------|
+{{- $hasStaticLeases := false }}
+{{- range $name, $dhcp := .Dhcpd.Items }}
+{{- if $dhcp.Staticmap }}
+{{- $hasStaticLeases = true }}
+{{- range $dhcp.Staticmap }}
+| `{{ .Hostname }}` | `{{ .Mac }}` | `{{ .IPAddr }}` | `{{ .Descr }}` |
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if not $hasStaticLeases }}
+| No static leases configured | - | - | - |
 {{- end }}
 
 {{- $hasOptions := false }}
@@ -200,6 +240,15 @@
 
 ## DNS Resolver
 
+- **Enabled**: {{ formatBoolean .Unbound.Enable }}
+{{- if .Unbound.Dnssec }}
+- **DNSSEC**: {{ formatBoolean .Unbound.Dnssec }}
+{{- end }}
+{{- if .Unbound.Dnssecstripped }}
+- **DNSSEC Stripped**: {{ formatBoolean .Unbound.Dnssecstripped }}
+{{- end }}
+
+### DNS Resolver Details
 | Property | Value |
 |----------|-------|
 | **Enabled** | {{ .Unbound.Enable }} |
@@ -208,8 +257,49 @@
 
 ---
 
+## OpenVPN
+
+| Name | Mode | Local IP | Remote Net | Enabled |
+|------|------|----------|------------|---------|
+{{- if .OpenVPN.Servers }}
+{{- range .OpenVPN.Servers }}
+| `{{ .Description }}` | {{ .Mode }} | {{ .Local_port }} | {{ .Remote_network }} | {{ formatBoolean true }} |
+{{- end }}
+{{- end }}
+{{- if .OpenVPN.Clients }}
+{{- range .OpenVPN.Clients }}
+| `{{ .Description }}` | {{ .Mode }} | {{ .Server_addr }}:{{ .Server_port }} | - | {{ formatBoolean true }} |
+{{- end }}
+{{- end }}
+{{- if and (not .OpenVPN.Servers) (not .OpenVPN.Clients) }}
+| No OpenVPN configured | - | - | - | {{ formatBoolean false }} |
+{{- end }}
+
+---
+
+## Gateways
+
+| Name | Description | Interface | Gateway | Protocol | Default | Monitor Disable | Interval | Weight | Far Gateway |
+|------|-------------|-----------|---------|----------|---------|-----------------|----------|--------|-------------|
+{{- if .Gateways.Gateway }}
+{{- range .Gateways.Gateway }}
+| `{{ .Name }}` | `{{ .Descr }}` | {{ .Interface }} | `{{ .Gateway }}` | {{ .IPProtocol }} | {{ formatBoolean .DefaultGW }} | {{ formatBoolean .MonitorDisable }} | {{ .Interval }} | {{ .Weight }} | {{ formatBoolean .FarGW }} |
+{{- end }}
+{{- else }}
+| No gateways configured | - | - | - | - | - | - | - | - | - |
+{{- end }}
+
+---
+
 ## System Users
 
+| Username | UID | Group | Shell | Disabled |
+|----------|-----|-------|--------|----------|
+{{- range .System.User }}
+| `{{ .Name }}` | {{ .UID }} | {{ .Groupname }} | - | {{ formatBoolean .Disabled }} |
+{{- end }}
+
+### Detailed User Information
 | Username | UID | Group | Description | Scope | Expires | API Keys | SSH Keys | IPsec PSK | OTP Seed |
 |----------|-----|-------|-------------|-------|---------|----------|----------|-----------|----------|
 {{- range .System.User }}
@@ -239,6 +329,16 @@
 
 ---
 
+## Services & Daemons
+
+| Service | Enabled | Notes |
+|---------|---------|-------|
+| SNMP | {{ formatBoolean .Snmpd.ROCommunity }} | Community: {{ .Snmpd.ROCommunity }} |
+| Unbound DNS | {{ formatBoolean .Unbound.Enable }} | {{ if .Unbound.Dnssec }}DNSSEC: {{ formatBoolean .Unbound.Dnssec }}{{ if .Unbound.Dnssecstripped }}, Stripped: {{ formatBoolean .Unbound.Dnssecstripped }}{{ end }}{{ else }}DNSSEC: {{ formatBoolean false }}{{ end }} |
+| NTP | {{ formatBoolean .Ntpd.Prefer }} | Prefer: {{ .Ntpd.Prefer }} |
+
+---
+
 ## System Tunables
 
 {{- $filteredTunables := filterTunables .Sysctl (index .CustomFields "IncludeTunables") }}
@@ -254,12 +354,18 @@
 
 ---
 
-## Gateways
+## System Notes
 
-| Name | Description | Interface | Gateway | Protocol | Default | Monitor Disable | Interval | Weight | Far Gateway |
-|------|-------------|-----------|---------|----------|---------|-----------------|----------|--------|-------------|
-{{- range .Gateways.Gateway }}
-| `{{ .Name }}` | `{{ .Descr }}` | {{ .Interface }} | `{{ .Gateway }}` | {{ .IPProtocol }} | {{ formatBoolean .DefaultGW }} | {{ formatBoolean .MonitorDisable }} | {{ .Interval }} | {{ .Weight }} | {{ formatBoolean .FarGW }} |
+{{- if .System.Notes }}
+{{- range .System.Notes }}
+```text
+{{ . }}
+```
+{{- end }}
+{{- else }}
+```text
+No system notes configured
+```
 {{- end }}
 
 ---
