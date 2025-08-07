@@ -40,7 +40,7 @@
 | # | Interface | Action | Proto | Source | Destination | Target | Source Port | Enabled | Description |
 |---|-----------|--------|-------|--------|-------------|--------|-------------|---------|-------------|
 {{- range $index, $rule := .Filter.Rule }}
-| {{ add $index 1 }} | {{ $rule.Interface }} | {{ $rule.Type }} | {{ $rule.IPProtocol }} | {{ $rule.Source.Network }} | {{ $rule.Destination.Network }} | {{ if $rule.Target }}{{ $rule.Target }}{{ else }}-{{ end }} | {{ if $rule.SourcePort }}{{ $rule.SourcePort }}{{ else }}-{{ end }} | {{ formatBoolean (not $rule.Disabled) }} | {{ if $rule.Descr }}{{ $rule.Descr }}{{ else }}-{{ end }} |
+| {{ add $index 1 }} | {{ $rule.Interface }} | {{ $rule.Type }} | {{ $rule.Protocol }} | {{ $rule.Source.Network }} | {{ $rule.Destination.Network }} | {{ if $rule.Target }}{{ $rule.Target }}{{ else }}-{{ end }} | {{ if $rule.SourcePort }}{{ $rule.SourcePort }}{{ else }}-{{ end }} | {{ formatBoolean (not $rule.Disabled) }} | {{ if $rule.Descr }}{{ $rule.Descr }}{{ else }}-{{ end }} |
 {{- end }}
 
 ---
@@ -54,7 +54,7 @@
 | Interface | Protocol | Source | Destination | Target | Source Port | Enabled | Description |
 |-----------|----------|--------|-------------|--------|-------------|---------|-------------|
 {{- range $index, $rule := .Nat.Outbound.Rule }}
-| {{ $rule.Interface }} | {{ $rule.IPProtocol }} | {{ $rule.Source.Network }} | {{ if $rule.Destination.Any }}any{{ else }}{{ $rule.Destination.Network }}{{ end }} | {{ $rule.Target }} | {{ $rule.SourcePort }} | {{ formatBoolean (not $rule.Disabled) }} | {{ if $rule.Descr }}{{ $rule.Descr }}{{ else }}-{{ end }} |
+| {{ $rule.Interface }} | {{ $rule.Protocol }} | {{ $rule.Source.Network }} | {{ if $rule.Destination.Any }}any{{ else }}{{ $rule.Destination.Network }}{{ end }} | {{ $rule.Target }} | {{ $rule.SourcePort }} | {{ formatBoolean (not $rule.Disabled) }} | {{ if $rule.Descr }}{{ $rule.Descr }}{{ else }}-{{ end }} |
 {{- end }}
 
 ---

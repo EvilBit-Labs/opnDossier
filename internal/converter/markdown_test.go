@@ -156,7 +156,7 @@ func TestMarkdownConverter_ConvertFromTestdataFile(t *testing.T) {
 	// Verify firewall rules table
 	assert.Contains(t, markdown, "TYPE")
 	assert.Contains(t, markdown, "INT")
-	assert.Contains(t, markdown, "PROTO")
+	assert.Contains(t, markdown, "Protocol")
 	assert.Contains(t, markdown, "SOUR")
 	assert.Contains(t, markdown, "DEST")
 
@@ -305,6 +305,58 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 		assert.Contains(t, md, "Block external")
 		assert.Contains(t, md, "pass")
 		assert.Contains(t, md, "block")
+	})
+
+	t.Run("firewall rules with actual protocol data", func(t *testing.T) {
+		opnsense := &model.OpnSenseDocument{
+			System: model.System{
+				Hostname: "protocol-test",
+				Domain:   "test.local",
+			},
+			Filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:        "pass",
+						Interface:   model.InterfaceList{"lan"},
+						IPProtocol:  "inet",
+						Protocol:    "tcp",
+						Descr:       "Allow TCP",
+						Source:      model.Source{Network: "lan"},
+						Destination: model.Destination{Port: "80"},
+					},
+					{
+						Type:        "pass",
+						Interface:   model.InterfaceList{"lan"},
+						IPProtocol:  "inet",
+						Protocol:    "udp",
+						Descr:       "Allow UDP",
+						Source:      model.Source{Network: "lan"},
+						Destination: model.Destination{Port: "53"},
+					},
+					{
+						Type:        "pass",
+						Interface:   model.InterfaceList{"wan"},
+						IPProtocol:  "inet",
+						Protocol:    "tcp/udp",
+						Descr:       "Allow compound protocol",
+						Source:      model.Source{Network: "any"},
+						Destination: model.Destination{Port: "443"},
+					},
+				},
+			},
+		}
+		md, err := c.ToMarkdown(context.Background(), opnsense)
+		require.NoError(t, err)
+		assert.NotEmpty(t, md)
+
+		assert.Contains(t, md, "Firewall Rules")
+		// Verify the fix - protocol information should now be displayed
+		assert.Contains(t, md, "tcp")
+		assert.Contains(t, md, "udp")
+		assert.Contains(t, md, "tcp/udp")
+		assert.Contains(t, md, "Allow TCP")
+		assert.Contains(t, md, "Allow UDP")
+		assert.Contains(t, md, "Allow compound protoco")
 	})
 
 	t.Run("opnsense with load balancer monitors", func(t *testing.T) {
