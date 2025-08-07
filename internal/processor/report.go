@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
@@ -16,6 +17,7 @@ import (
 // Report contains the results of processing an OPNsense configuration.
 // It includes the normalized configuration, analysis findings, and statistics.
 type Report struct {
+	mu sync.RWMutex `json:"-"           yaml:"-"` // protects Findings for concurrent access
 	// GeneratedAt contains the timestamp when the report was generated
 	GeneratedAt time.Time `json:"generatedAt"`
 
@@ -198,6 +200,8 @@ func NewReport(cfg *model.OpnSenseDocument, processorConfig Config) *Report {
 
 // AddFinding adds a finding to the report with the specified severity.
 func (r *Report) AddFinding(severity Severity, finding Finding) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	switch severity {
 	case SeverityCritical:
 		r.Findings.Critical = append(r.Findings.Critical, finding)
@@ -251,6 +255,8 @@ func (r *Report) ToFormat(format OutputFormat) (string, error) {
 
 // ToJSON returns the report as a JSON string.
 func (r *Report) ToJSON() (string, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	data, err := json.MarshalIndent(r, "", "  ") //nolint:musttag // Report has proper json tags
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal report to JSON: %w", err)

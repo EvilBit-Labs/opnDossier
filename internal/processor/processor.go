@@ -47,6 +47,12 @@ func NewCoreProcessor() (*CoreProcessor, error) {
 
 // Process analyzes the given OPNsense configuration and returns a comprehensive report.
 func (p *CoreProcessor) Process(ctx context.Context, cfg *model.OpnSenseDocument, opts ...Option) (*Report, error) {
+	// Check for context cancellation before starting
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
 	if cfg == nil {
 		return nil, ErrConfigurationNil
 	}
@@ -62,8 +68,22 @@ func (p *CoreProcessor) Process(ctx context.Context, cfg *model.OpnSenseDocument
 	// Phase 1: Normalize the configuration
 	normalizedCfg := p.normalize(cfg)
 
+	// Check for context cancellation
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
 	// Phase 2: Validate the configuration
 	validationErrors := p.validate(normalizedCfg)
+
+	// Check for context cancellation
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
 
 	// Create the report
 	report := NewReport(normalizedCfg, *config)
@@ -78,8 +98,22 @@ func (p *CoreProcessor) Process(ctx context.Context, cfg *model.OpnSenseDocument
 		})
 	}
 
+	// Check for context cancellation
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
 	// Phase 3: Analyze the configuration
 	p.analyze(ctx, normalizedCfg, config, report)
+
+	// Check for context cancellation
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
 
 	return report, nil
 }

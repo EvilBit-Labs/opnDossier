@@ -3,6 +3,7 @@ package processor
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
@@ -11,12 +12,7 @@ import (
 
 // interfaceListContains returns true if the interface list contains the given interface name exactly.
 func interfaceListContains(list model.InterfaceList, name string) bool {
-	for _, iface := range list {
-		if iface == name {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(list, name)
 }
 
 // analyze performs comprehensive analysis of the OPNsense configuration based on enabled options.
