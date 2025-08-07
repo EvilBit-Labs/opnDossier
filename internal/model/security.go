@@ -40,11 +40,10 @@ func (il *InterfaceList) UnmarshalXML(d *xml.Decoder, start xml.StartElement) er
 
 // MarshalXML implements custom XML marshaling for comma-separated interface lists.
 func (il *InterfaceList) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	if len(*il) == 0 {
-		return nil
+	content := ""
+	if len(*il) > 0 {
+		content = strings.Join([]string(*il), ",")
 	}
-
-	content := strings.Join([]string(*il), ",")
 	return e.EncodeElement(content, start)
 }
 

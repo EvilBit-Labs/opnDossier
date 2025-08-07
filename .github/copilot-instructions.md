@@ -1,6 +1,4 @@
----
-applyTo: '**'
----
+## applyTo: '.github/copilot\*'
 
 # opnDossier AI Coding Agent Instructions
 
@@ -33,7 +31,7 @@ Audit overlays: `processor` → `audit` → `plugins`
 
 ## Project-Specific Conventions
 
-- **Rule Precedence**: Project rules (`AGENTS.md`, `.cursor/rules/`) > `DEVELOPMENT_STANDARDS.md` > Go style guide.
+- **Rule Precedence**: See [AGENTS.md](../AGENTS.md) for canonical rule precedence and always defer to the project root for authoritative standards.
 - **Error Handling**: Always wrap errors with context using `fmt.Errorf("context: %w", err)`.
 - **Logging**: Use `charmbracelet/log` for all logging; include context fields (e.g., filename, operation).
 - **Config Management**: Use `internal/config` and `spf13/viper` for CLI/app config (not for OPNsense XML).

@@ -9,6 +9,16 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
+// interfaceListContains returns true if the interface list contains the given interface name exactly.
+func interfaceListContains(list model.InterfaceList, name string) bool {
+	for _, iface := range list {
+		if iface == name {
+			return true
+		}
+	}
+	return false
+}
+
 // analyze performs comprehensive analysis of the OPNsense configuration based on enabled options.
 func (p *CoreProcessor) analyze(_ context.Context, cfg *model.OpnSenseDocument, config *Config, report *Report) {
 	// Dead rule detection
@@ -337,7 +347,8 @@ func (p *CoreProcessor) analyzeSecurityIssues(cfg *model.OpnSenseDocument, repor
 
 	// Check for overly permissive firewall rules
 	for i, rule := range cfg.FilterRules() {
-		if rule.Type == RuleTypePass && rule.Source.Network == NetworkAny && rule.Interface.Contains("wan") {
+		if rule.Type == RuleTypePass && rule.Source.Network == NetworkAny &&
+			interfaceListContains(rule.Interface, "wan") {
 			report.AddFinding(SeverityHigh, Finding{
 				Type:           FindingTypeSecurity,
 				Title:          "Overly Permissive WAN Rule",

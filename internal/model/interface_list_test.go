@@ -22,8 +22,10 @@ func TestInterfaceList_MarshalXML(t *testing.T) {
 		{
 			name:  "multiple interfaces",
 			input: InterfaceList{"lan", "wan", "opt1"},
-			// Note: Go's XML marshaler creates separate elements for slice items
-			// This is the actual behavior, not comma-separated content
+			// Note: Go's XML marshaler creates separate elements for slice items.
+			// In contrast, the unmarshaling logic can handle both multiple <interface> elements
+			// and a single <interface> element with comma-separated values. Marshaling, however,
+			// always produces separate elements for each item in the slice.
 			expected: `<test><interface>lan</interface><interface>wan</interface><interface>opt1</interface></test>`,
 		},
 		{

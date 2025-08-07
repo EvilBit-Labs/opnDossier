@@ -1,6 +1,4 @@
----
-applyTo: project_spec/*.md,**/*.md,**/*.mdc
----
+## applyTo: project_spec/*.md,docs/spec/*.md,\*\*/\*.mdc
 
 # Project Specification Management Guidelines
 
@@ -156,12 +154,25 @@ just format
 # Run comprehensive checks
 just ci-check
 
-# Validate requirements consistency
-grep -n "F0[0-9][0-9]" project_spec/requirements.md
 
-# Check task-requirement alignment
-grep -n "TASK-" project_spec/tasks.md
-grep -n "F0[0-9][0-9]" project_spec/tasks.md
+# Validate requirements and task cross-references (robust, future-proof, offline-first)
+go run scripts/lint_requirements.go
+
+# The linter script should:
+# - Parse all requirement IDs (e.g., F001, F100, F123, etc.) from project_spec/requirements.md
+# - Parse all requirement references from project_spec/tasks.md
+# - Assert every requirement is referenced by at least one task
+# - Assert every requirement reference in tasks.md exists in requirements.md
+# - Report any missing or orphaned links
+
+# Example Go linter (scripts/lint_requirements.go):
+# (Place this script in scripts/lint_requirements.go and make it runnable with `go run`)
+#
+# package main
+# import (...)
+# func main() {
+#   // Parse requirements.md and tasks.md, check bidirectional links, print errors if any
+# }
 ```
 
 ## Key Documents

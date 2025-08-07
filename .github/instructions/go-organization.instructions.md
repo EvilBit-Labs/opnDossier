@@ -44,8 +44,8 @@ opndossier/
 
 - Use `camelCase` for variables and functions
 - Use `PascalCase` for exported types and functions
-- Use `snake_case` for package names
-- Use `ALL_CAPS` for constants
+- Use lower-case, single-word names for packages (no snake_case)
+- Use `PascalCase` or `camelCase` for constants (avoid ALL_CAPS)
 - Use descriptive, self-documenting names
 - Avoid abbreviations unless widely understood
 

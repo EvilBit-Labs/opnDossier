@@ -1,5 +1,5 @@
 ---
-applyTo: internal/audit/**/*.go,internal/plugin/**/*.go
+applyTo: internal/audit/**/*.go,internal/plugins/**/*.go
 ---
 
 # Audit Engine Guidelines
@@ -10,7 +10,7 @@ The audit engine is defined in the following files:
 
 - `internal/audit/plugin.go` - Plugin registry and compliance checking logic
 - `internal/audit/plugin_manager.go` - Plugin lifecycle management
-- `internal/plugin/interfaces.go` - Plugin interfaces and data structures
+- `internal/plugins/interfaces.go` - Plugin interfaces and data structures
 
 ## Audit Engine Standards
 
@@ -57,11 +57,18 @@ The audit engine is defined in the following files:
 ## Integration with Plugins
 
 - The audit engine supports both static (baked-in) and dynamic (runtime-loaded) plugins
+
 - Use the plugin registry for dynamic compliance checking
+
 - Support multiple compliance standards simultaneously
+
 - Maintain backward compatibility with existing functionality
+
 - Plugins are loosely coupled and only depend on the OpnSenseDocument model and the generic plugin interface
+
 - Use `PluginManager` for plugin lifecycle management
+
+- Cache reference data locally and handle network unavailability gracefully; always accept and return structured data formats (e.g., JSON, YAML) to support offline-first operation and data portability
 
 ## Plugin Development
 
@@ -98,7 +105,6 @@ func (p *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
 - Create comprehensive tests for all compliance checks
 - Use table-driven tests for multiple scenarios
 - Test with various configuration types and sizes
-- Ensure proper error handling and edge cases
 - Test plugin registration and lifecycle management
 - Validate plugin interface compliance
 - Ensure proper error handling and edge cases

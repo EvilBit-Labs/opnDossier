@@ -6,6 +6,34 @@ applyTo: '**'
 
 ## Core Project Files
 
+### Security-Focused Build Configuration
+
+To support secure and reproducible operator distribution, follow these build practices:
+
+- **Reproducible Builds:** Use pinned dependencies (`go.mod`, `go.sum`) and deterministic build flags.
+- **Go Build Hardening:**
+  - Use `-trimpath` to remove local paths from binaries: `go build -trimpath ...`
+  - Use `-buildmode=pie` for position-independent executables (where supported).
+  - Set `GOVERSION` and `CGO_ENABLED=0` for static, portable builds: `CGO_ENABLED=0 go build ...`
+  - Use `-ldflags="-s -w"` to strip debug info from release binaries.
+- **Build Integrity:**
+  - Use `go mod verify` to check dependency integrity.
+  - Use checksums and signatures for release artifacts.
+  - Integrate tools like `goreleaser` for automated, signed, and reproducible releases.
+
+**Example secure build command:**
+
+```sh
+CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o opnDossier ./main.go
+```
+
+**Recommended tools:**
+
+- [goreleaser](https://goreleaser.com/) for reproducible, signed releases
+- [cosign](https://github.com/sigstore/cosign) for artifact signing (optional, if supply chain security is required)
+
+---
+
 ### Configuration and Build
 
 ```text

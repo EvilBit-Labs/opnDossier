@@ -20,7 +20,7 @@ One of: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci
 
 ### Scope
 
-Use a noun in parentheses (e.g., `(cli)`, `(api)`, `(deps)`). Required for all commits.
+Use a noun in parentheses (e.g., `(cli)`, `(api)`, `(deps)`). **Scope is required for all commits.**
 
 ### Description
 

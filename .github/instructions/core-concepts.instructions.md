@@ -52,8 +52,8 @@ When rules conflict, always follow the rule with higher precedence.
 
 - Use `gofmt` formatting with tabs for indentation (Go standard)
 - Follow Go naming conventions: `camelCase` for variables/functions, `PascalCase` for types
-- Always check errors and provide meaningful context using `fmt.Errorf` or `errors.Wrap`
-- Use structured logging with `log/slog` instead of `fmt.Printf`
+- Always check errors and provide meaningful context using `fmt.Errorf("context: %w", err)` or Go 1.20+'s `errors.Join` (avoid external dependencies)
+- Use structured logging with `charmbracelet/log` instead of `fmt.Printf`
 - Implement proper error handling with context preservation
 - Reuse existing utilities and structures; avoid new dependencies unless necessary
 

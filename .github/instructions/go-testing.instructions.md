@@ -45,8 +45,10 @@ func TestParseConfig_ValidXML_ReturnsConfig(t *testing.T) {
                 t.Errorf("ParseConfig() error = %v, wantErr %v", err, tt.wantErr)
                 return
             }
-            if !reflect.DeepEqual(result, tt.expected) {
-                t.Errorf("ParseConfig() = %v, want %v", result, tt.expected)
+            // Use cmp.Equal for robust struct comparison
+            // import "github.com/google/go-cmp/cmp"
+            if !cmp.Equal(result, tt.expected) {
+                t.Errorf("ParseConfig() diff (-got +want):\n%s", cmp.Diff(result, tt.expected))
             }
         })
     }
