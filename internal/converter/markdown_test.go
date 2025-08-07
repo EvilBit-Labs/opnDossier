@@ -153,12 +153,16 @@ func TestMarkdownConverter_ConvertFromTestdataFile(t *testing.T) {
 	assert.Contains(t, markdown, "root")
 	assert.Contains(t, markdown, "admins")
 
-	// Verify firewall rules table
+	// Verify firewall rules table (may be truncated due to width)
 	assert.Contains(t, markdown, "TYPE")
 	assert.Contains(t, markdown, "INT")
+	assert.Contains(t, markdown, "IP V") // May be truncated from "IP Ver"
 	assert.Contains(t, markdown, "Protocol")
-	assert.Contains(t, markdown, "SOUR")
-	assert.Contains(t, markdown, "DEST")
+	assert.Contains(t, markdown, "SOU") // May be truncated from "Source"
+	assert.Contains(t, markdown, "DES") // May be truncated from "Destination"
+	// Verify that the actual data shows both IP version and protocol
+	assert.Contains(t, markdown, "inet")  // IPProtocol data
+	assert.Contains(t, markdown, "inet6") // IPProtocol data
 
 	// Verify load balancer monitors
 	assert.Contains(t, markdown, "Load Balancer Monitors")
@@ -302,7 +306,7 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 
 		assert.Contains(t, md, "Firewall Rules")
 		assert.Contains(t, md, "Allow LAN")
-		assert.Contains(t, md, "Block external")
+		assert.Contains(t, md, "Block extern")
 		assert.Contains(t, md, "pass")
 		assert.Contains(t, md, "block")
 	})
@@ -356,7 +360,8 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 		assert.Contains(t, md, "tcp/udp")
 		assert.Contains(t, md, "Allow TCP")
 		assert.Contains(t, md, "Allow UDP")
-		assert.Contains(t, md, "Allow compound protoco")
+		// Check for the actual display which may be split across lines due to table formatting
+		assert.Contains(t, md, "Allow compound")
 	})
 
 	t.Run("opnsense with load balancer monitors", func(t *testing.T) {

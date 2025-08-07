@@ -279,7 +279,7 @@ func (c *MarkdownConverter) buildSecuritySection(md *markdown.Markdown, opnsense
 	if len(rules) > 0 {
 		md.H3("Firewall Rules")
 
-		headers := []string{"Type", "Interface", "Protocol", "Source", "Destination", "Description"}
+		headers := []string{"Type", "Interface", "IP Ver", "Protocol", "Source", "Destination", "Description"}
 
 		rows := make([][]string, 0, len(rules))
 		for _, rule := range rules {
@@ -299,6 +299,7 @@ func (c *MarkdownConverter) buildSecuritySection(md *markdown.Markdown, opnsense
 			rows = append(rows, []string{
 				rule.Type,
 				rule.Interface.String(),
+				rule.IPProtocol,
 				rule.Protocol,
 				source,
 				dest,
