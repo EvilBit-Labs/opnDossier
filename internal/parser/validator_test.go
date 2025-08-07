@@ -281,7 +281,7 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 						{
 							Type:       "invalid-type",
 							IPProtocol: "inet",
-							Interface:  "lan",
+							Interface:  model.InterfaceList{"lan"},
 						},
 					},
 				},
@@ -302,7 +302,7 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 						{
 							Type:       "pass",
 							IPProtocol: "invalid-protocol",
-							Interface:  "lan",
+							Interface:  model.InterfaceList{"lan"},
 						},
 					},
 				},
@@ -323,7 +323,7 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 						{
 							Type:       "pass",
 							IPProtocol: "inet",
-							Interface:  "invalid-interface",
+							Interface:  model.InterfaceList{"invalid-interface"},
 						},
 					},
 				},
@@ -735,7 +735,7 @@ func TestXMLParser_ValidateComplexScenarios(t *testing.T) {
 						{
 							Type:       "invalid-type", // Invalid enum value
 							IPProtocol: "inet",
-							Interface:  "lan",
+							Interface:  model.InterfaceList{"lan"},
 						},
 					},
 				},
@@ -826,7 +826,7 @@ func TestXMLParser_ValidateValidConfiguration(t *testing.T) {
 				{
 					Type:       "pass",
 					IPProtocol: "inet",
-					Interface:  "lan",
+					Interface:  model.InterfaceList{"lan"},
 					Source: model.Source{
 						Network: "lan",
 					},

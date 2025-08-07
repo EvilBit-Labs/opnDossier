@@ -72,7 +72,7 @@ func TestValidateOpnSenseDocument_ValidConfig(t *testing.T) {
 				{
 					Type:       "pass",
 					IPProtocol: "inet",
-					Interface:  "lan",
+					Interface:  model.InterfaceList{"lan"},
 					Source: model.Source{
 						Network: "lan",
 					},
@@ -156,7 +156,7 @@ func TestValidateFilter_NetworkValidation(t *testing.T) {
 			filter: model.Filter{
 				Rule: []model.Rule{
 					{
-						Interface: "lan",
+						Interface: model.InterfaceList{"lan"},
 						Source: model.Source{
 							Network: "any",
 						},
@@ -173,7 +173,7 @@ func TestValidateFilter_NetworkValidation(t *testing.T) {
 			filter: model.Filter{
 				Rule: []model.Rule{
 					{
-						Interface: "wan",
+						Interface: model.InterfaceList{"wan"},
 						Source: model.Source{
 							Network: "any",
 						},
@@ -190,7 +190,7 @@ func TestValidateFilter_NetworkValidation(t *testing.T) {
 			filter: model.Filter{
 				Rule: []model.Rule{
 					{
-						Interface: "lan",
+						Interface: model.InterfaceList{"lan"},
 						Source: model.Source{
 							Network: "opt0ip",
 						},
@@ -207,7 +207,7 @@ func TestValidateFilter_NetworkValidation(t *testing.T) {
 			filter: model.Filter{
 				Rule: []model.Rule{
 					{
-						Interface: "lan",
+						Interface: model.InterfaceList{"lan"},
 						Source: model.Source{
 							Network: "192.168.1.0/24",
 						},
@@ -224,7 +224,7 @@ func TestValidateFilter_NetworkValidation(t *testing.T) {
 			filter: model.Filter{
 				Rule: []model.Rule{
 					{
-						Interface: "lan",
+						Interface: model.InterfaceList{"lan"},
 						Source: model.Source{
 							Network: "nonexistent",
 						},
@@ -239,7 +239,7 @@ func TestValidateFilter_NetworkValidation(t *testing.T) {
 			filter: model.Filter{
 				Rule: []model.Rule{
 					{
-						Interface: "lan",
+						Interface: model.InterfaceList{"lan"},
 						Destination: model.Destination{
 							Network: "nonexistent",
 						},
@@ -254,7 +254,7 @@ func TestValidateFilter_NetworkValidation(t *testing.T) {
 			filter: model.Filter{
 				Rule: []model.Rule{
 					{
-						Interface: "nonexistent",
+						Interface: model.InterfaceList{"nonexistent"},
 						Source: model.Source{
 							Network: "any",
 						},
@@ -435,7 +435,7 @@ func TestValidateFilter_RuleValidation(t *testing.T) {
 					{
 						Type:       "pass",
 						IPProtocol: "inet",
-						Interface:  "lan",
+						Interface:  model.InterfaceList{"lan"},
 						Source: model.Source{
 							Network: "lan",
 						},
@@ -443,7 +443,7 @@ func TestValidateFilter_RuleValidation(t *testing.T) {
 					{
 						Type:       "block",
 						IPProtocol: "inet6",
-						Interface:  "wan",
+						Interface:  model.InterfaceList{"wan"},
 						Source: model.Source{
 							Network: "any",
 						},
@@ -459,7 +459,7 @@ func TestValidateFilter_RuleValidation(t *testing.T) {
 					{
 						Type:       "invalid",
 						IPProtocol: "inet",
-						Interface:  "lan",
+						Interface:  model.InterfaceList{"lan"},
 					},
 				},
 			},
@@ -472,7 +472,7 @@ func TestValidateFilter_RuleValidation(t *testing.T) {
 					{
 						Type:       "pass",
 						IPProtocol: "invalid",
-						Interface:  "lan",
+						Interface:  model.InterfaceList{"lan"},
 					},
 				},
 			},
@@ -485,7 +485,7 @@ func TestValidateFilter_RuleValidation(t *testing.T) {
 					{
 						Type:       "pass",
 						IPProtocol: "inet",
-						Interface:  "invalid",
+						Interface:  model.InterfaceList{"invalid"},
 					},
 				},
 			},
@@ -983,7 +983,7 @@ func TestValidateFilter_SourceNetworkValidation(t *testing.T) {
 					{
 						Type:       "pass",
 						IPProtocol: "inet",
-						Interface:  "lan",
+						Interface:  model.InterfaceList{"lan"},
 						Source: model.Source{
 							Network: "192.168.1.0/24",
 						},
@@ -999,7 +999,7 @@ func TestValidateFilter_SourceNetworkValidation(t *testing.T) {
 					{
 						Type:       "pass",
 						IPProtocol: "inet6",
-						Interface:  "lan",
+						Interface:  model.InterfaceList{"lan"},
 						Source: model.Source{
 							Network: "2001:db8::/32",
 						},
@@ -1015,7 +1015,7 @@ func TestValidateFilter_SourceNetworkValidation(t *testing.T) {
 					{
 						Type:       "pass",
 						IPProtocol: "inet",
-						Interface:  "lan",
+						Interface:  model.InterfaceList{"lan"},
 						Source: model.Source{
 							Network: "invalid-cidr",
 						},

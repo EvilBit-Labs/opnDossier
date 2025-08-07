@@ -28,14 +28,14 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 			rule1: model.Rule{
 				Type:       "pass",
 				IPProtocol: "inet",
-				Interface:  "lan",
+				Interface:  model.InterfaceList{"lan"},
 				Descr:      "Allow traffic",
 				Source:     model.Source{Network: "any"},
 			},
 			rule2: model.Rule{
 				Type:       "pass",
 				IPProtocol: "inet",
-				Interface:  "lan",
+				Interface:  model.InterfaceList{"lan"},
 				Descr:      "Allow traffic",
 				Source:     model.Source{Network: "any"},
 			},
@@ -46,14 +46,14 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 			rule1: model.Rule{
 				Type:       "pass",
 				IPProtocol: "inet",
-				Interface:  "lan",
+				Interface:  model.InterfaceList{"lan"},
 				Descr:      "Allow traffic",
 				Source:     model.Source{Network: "any"},
 			},
 			rule2: model.Rule{
 				Type:       "pass",
 				IPProtocol: "inet",
-				Interface:  "lan",
+				Interface:  model.InterfaceList{"lan"},
 				Descr:      "Different description",
 				Source:     model.Source{Network: "any"},
 			},
@@ -64,13 +64,13 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 			rule1: model.Rule{
 				Type:       "pass",
 				IPProtocol: "inet",
-				Interface:  "lan",
+				Interface:  model.InterfaceList{"lan"},
 				Source:     model.Source{Network: "any"},
 			},
 			rule2: model.Rule{
 				Type:       "block",
 				IPProtocol: "inet",
-				Interface:  "lan",
+				Interface:  model.InterfaceList{"lan"},
 				Source:     model.Source{Network: "any"},
 			},
 			expected: false,
@@ -80,13 +80,13 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 			rule1: model.Rule{
 				Type:       "pass",
 				IPProtocol: "inet",
-				Interface:  "lan",
+				Interface:  model.InterfaceList{"lan"},
 				Source:     model.Source{Network: "any"},
 			},
 			rule2: model.Rule{
 				Type:       "pass",
 				IPProtocol: "inet6",
-				Interface:  "lan",
+				Interface:  model.InterfaceList{"lan"},
 				Source:     model.Source{Network: "any"},
 			},
 			expected: false,
@@ -96,13 +96,13 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 			rule1: model.Rule{
 				Type:       "pass",
 				IPProtocol: "inet",
-				Interface:  "lan",
+				Interface:  model.InterfaceList{"lan"},
 				Source:     model.Source{Network: "any"},
 			},
 			rule2: model.Rule{
 				Type:       "pass",
 				IPProtocol: "inet",
-				Interface:  "wan",
+				Interface:  model.InterfaceList{"wan"},
 				Source:     model.Source{Network: "any"},
 			},
 			expected: false,
@@ -112,13 +112,13 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 			rule1: model.Rule{
 				Type:       "pass",
 				IPProtocol: "inet",
-				Interface:  "lan",
+				Interface:  model.InterfaceList{"lan"},
 				Source:     model.Source{Network: "any"},
 			},
 			rule2: model.Rule{
 				Type:       "pass",
 				IPProtocol: "inet",
-				Interface:  "lan",
+				Interface:  model.InterfaceList{"lan"},
 				Source:     model.Source{Network: "192.168.1.0/24"},
 			},
 			expected: false,
@@ -128,14 +128,14 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 			rule1: model.Rule{
 				Type:       "pass",
 				IPProtocol: "inet",
-				Interface:  "wan",
+				Interface:  model.InterfaceList{"wan"},
 				Descr:      "Allow web traffic",
 				Source:     model.Source{Network: "10.0.0.0/8"},
 			},
 			rule2: model.Rule{
 				Type:       "pass",
 				IPProtocol: "inet",
-				Interface:  "wan",
+				Interface:  model.InterfaceList{"wan"},
 				Descr:      "Allow web traffic (duplicate)",
 				Source:     model.Source{Network: "10.0.0.0/8"},
 			},
@@ -344,13 +344,13 @@ func TestCoreProcessor_EdgeCases(t *testing.T) {
 		rule1 := model.Rule{
 			Type:       "PASS",
 			IPProtocol: "INET",
-			Interface:  "LAN",
+			Interface:  model.InterfaceList{"LAN"},
 			Source:     model.Source{Network: "ANY"},
 		}
 		rule2 := model.Rule{
 			Type:       "pass",
 			IPProtocol: "inet",
-			Interface:  "lan",
+			Interface:  model.InterfaceList{"lan"},
 			Source:     model.Source{Network: "any"},
 		}
 

@@ -47,7 +47,10 @@ func (p *CoreProcessor) analyzeDeadRules(cfg *model.OpnSenseDocument, report *Re
 	// Track rules by interface to detect unreachable rules
 	interfaceRules := make(map[string][]model.Rule)
 	for _, rule := range rules {
-		interfaceRules[rule.Interface] = append(interfaceRules[rule.Interface], rule)
+		// Add the rule to each interface it applies to
+		for _, iface := range rule.Interface {
+			interfaceRules[iface] = append(interfaceRules[iface], rule)
+		}
 	}
 
 	// Analyze each interface's rules
@@ -131,7 +134,7 @@ func (p *CoreProcessor) rulesAreEquivalent(rule1, rule2 model.Rule) bool {
 	// Compare core rule properties (excluding description as it doesn't affect functionality)
 	if rule1.Type != rule2.Type ||
 		rule1.IPProtocol != rule2.IPProtocol ||
-		rule1.Interface != rule2.Interface {
+		rule1.Interface.String() != rule2.Interface.String() {
 		return false
 	}
 
@@ -168,8 +171,11 @@ func (p *CoreProcessor) analyzeUnusedInterfaces(cfg *model.OpnSenseDocument, rep
 
 	// Mark interfaces used in firewall rules
 	for _, rule := range cfg.FilterRules() {
-		if rule.Interface != "" {
-			usedInterfaces[rule.Interface] = true
+		if !rule.Interface.IsEmpty() {
+			// Mark all interfaces used by this rule
+			for _, iface := range rule.Interface {
+				usedInterfaces[iface] = true
+			}
 		}
 	}
 
@@ -331,7 +337,7 @@ func (p *CoreProcessor) analyzeSecurityIssues(cfg *model.OpnSenseDocument, repor
 
 	// Check for overly permissive firewall rules
 	for i, rule := range cfg.FilterRules() {
-		if rule.Type == RuleTypePass && rule.Source.Network == NetworkAny && rule.Interface == "wan" {
+		if rule.Type == RuleTypePass && rule.Source.Network == NetworkAny && rule.Interface.Contains("wan") {
 			report.AddFinding(SeverityHigh, Finding{
 				Type:           FindingTypeSecurity,
 				Title:          "Overly Permissive WAN Rule",

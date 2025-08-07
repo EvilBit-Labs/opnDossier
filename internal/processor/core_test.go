@@ -43,7 +43,7 @@ func TestCoreProcessor_Process(t *testing.T) {
 			Rule: []model.Rule{
 				{
 					Type:      "pass",
-					Interface: "wan",
+					Interface: model.InterfaceList{"wan"},
 					Source:    model.Source{Network: "any"},
 					Descr:     "",
 				},
@@ -331,13 +331,13 @@ func TestCoreProcessor_Analysis(t *testing.T) {
 				Rule: []model.Rule{
 					{
 						Type:      "block",
-						Interface: "wan",
+						Interface: model.InterfaceList{"wan"},
 						Source:    model.Source{Network: "any"},
 						Descr:     "Block all traffic",
 					},
 					{
 						Type:      "pass",
-						Interface: "wan",
+						Interface: model.InterfaceList{"wan"},
 						Source:    model.Source{Network: "192.168.1.0/24"},
 						Descr:     "Allow LAN traffic",
 					},
@@ -377,14 +377,14 @@ func TestCoreProcessor_Analysis(t *testing.T) {
 				Rule: []model.Rule{
 					{
 						Type:       "pass",
-						Interface:  "lan",
+						Interface:  model.InterfaceList{"lan"},
 						IPProtocol: "inet",
 						Source:     model.Source{Network: "any"},
 						Descr:      "Allow traffic",
 					},
 					{
 						Type:       "pass",
-						Interface:  "lan",
+						Interface:  model.InterfaceList{"lan"},
 						IPProtocol: "inet",
 						Source:     model.Source{Network: "any"},
 						Descr:      "Duplicate rule",

@@ -304,8 +304,8 @@ func validateOPNsenseConfig(t *testing.T, config *model.OpnSenseDocument, _ stri
 				assert.Contains(t, []string{"inet", "inet6"}, rule.IPProtocol, "Rule %d IP protocol should be valid", i)
 			}
 
-			if rule.Interface != "" {
-				assert.NotEmpty(t, rule.Interface, "Rule %d interface should not be empty if specified", i)
+			if !rule.Interface.IsEmpty() {
+				assert.NotEmpty(t, rule.Interface.String(), "Rule %d interface should not be empty if specified", i)
 			}
 		}
 	})

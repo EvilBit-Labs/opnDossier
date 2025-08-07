@@ -281,14 +281,14 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 				Rule: []model.Rule{
 					{
 						Type:       "pass",
-						Interface:  "lan",
+						Interface:  model.InterfaceList{"lan"},
 						IPProtocol: "inet",
 						Descr:      "Allow LAN",
 						Source:     model.Source{Network: "lan"},
 					},
 					{
 						Type:       "block",
-						Interface:  "wan",
+						Interface:  model.InterfaceList{"wan"},
 						IPProtocol: "inet",
 						Descr:      "Block external",
 						Source:     model.Source{Network: "any"},

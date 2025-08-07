@@ -96,7 +96,7 @@ func TestOpnSenseDocumentModel_XMLUnmarshalling(t *testing.T) {
 	assert.Equal(t, "pass", rule.Type)
 	assert.Equal(t, "inet", rule.IPProtocol)
 	assert.Equal(t, "Test rule", rule.Descr)
-	assert.Equal(t, "lan", rule.Interface)
+	assert.Equal(t, "lan", rule.Interface.String())
 	assert.Equal(t, "lan", rule.Source.Network)
 
 	// Test sysctl

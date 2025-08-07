@@ -47,7 +47,7 @@ func TestTemplateRendering(t *testing.T) {
 				{
 					Type:       "pass",
 					IPProtocol: "inet",
-					Interface:  "lan",
+					Interface:  model.InterfaceList{"lan"},
 					Source: model.Source{
 						Network: "lan",
 					},

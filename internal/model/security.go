@@ -1,7 +1,67 @@
 // Package model defines the data structures for OPNsense configurations.
 package model
 
-import "encoding/xml"
+import (
+	"encoding/xml"
+	"slices"
+	"strings"
+)
+
+// InterfaceList represents a comma-separated list of interfaces that can be unmarshaled from XML.
+type InterfaceList []string
+
+// UnmarshalXML implements custom XML unmarshaling for comma-separated interface lists.
+func (il *InterfaceList) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	var content string
+	if err := d.DecodeElement(&content, &start); err != nil {
+		return err
+	}
+
+	// Handle empty content
+	if content == "" {
+		*il = InterfaceList{}
+		return nil
+	}
+
+	// Split by comma and trim whitespace
+	parts := strings.Split(content, ",")
+	interfaces := make([]string, 0, len(parts))
+
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			interfaces = append(interfaces, trimmed)
+		}
+	}
+
+	*il = InterfaceList(interfaces)
+	return nil
+}
+
+// MarshalXML implements custom XML marshaling for comma-separated interface lists.
+func (il *InterfaceList) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	if len(*il) == 0 {
+		return nil
+	}
+
+	content := strings.Join([]string(*il), ",")
+	return e.EncodeElement(content, start)
+}
+
+// String returns the comma-separated string representation.
+func (il *InterfaceList) String() string {
+	return strings.Join([]string(*il), ",")
+}
+
+// Contains checks if the interface list contains a specific interface.
+func (il *InterfaceList) Contains(iface string) bool {
+	return slices.Contains(*il, iface)
+}
+
+// IsEmpty returns true if the interface list is empty.
+func (il *InterfaceList) IsEmpty() bool {
+	return len(*il) == 0
+}
 
 // SecurityConfig groups security-related configuration.
 type SecurityConfig struct {
@@ -27,23 +87,23 @@ type Filter struct {
 
 // Rule represents a firewall rule.
 type Rule struct {
-	XMLName     xml.Name    `xml:"rule"`
-	Type        string      `xml:"type"`
-	Descr       string      `xml:"descr,omitempty"`
-	Interface   string      `xml:"interface,omitempty"`
-	IPProtocol  string      `xml:"ipprotocol,omitempty"`
-	StateType   string      `xml:"statetype,omitempty"`
-	Direction   string      `xml:"direction,omitempty"`
-	Quick       string      `xml:"quick,omitempty"`
-	Protocol    string      `xml:"protocol,omitempty"`
-	Source      Source      `xml:"source"`
-	Destination Destination `xml:"destination"`
-	Target      string      `xml:"target,omitempty"`
-	SourcePort  string      `xml:"sourceport,omitempty"`
-	Disabled    string      `xml:"disabled,omitempty"`
-	Updated     *Updated    `xml:"updated,omitempty"`
-	Created     *Created    `xml:"created,omitempty"`
-	UUID        string      `xml:"uuid,attr,omitempty"`
+	XMLName     xml.Name      `xml:"rule"`
+	Type        string        `xml:"type"`
+	Descr       string        `xml:"descr,omitempty"`
+	Interface   InterfaceList `xml:"interface,omitempty"`
+	IPProtocol  string        `xml:"ipprotocol,omitempty"`
+	StateType   string        `xml:"statetype,omitempty"`
+	Direction   string        `xml:"direction,omitempty"`
+	Quick       string        `xml:"quick,omitempty"`
+	Protocol    string        `xml:"protocol,omitempty"`
+	Source      Source        `xml:"source"`
+	Destination Destination   `xml:"destination"`
+	Target      string        `xml:"target,omitempty"`
+	SourcePort  string        `xml:"sourceport,omitempty"`
+	Disabled    string        `xml:"disabled,omitempty"`
+	Updated     *Updated      `xml:"updated,omitempty"`
+	Created     *Created      `xml:"created,omitempty"`
+	UUID        string        `xml:"uuid,attr,omitempty"`
 }
 
 // Source represents a firewall rule source.

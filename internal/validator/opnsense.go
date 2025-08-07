@@ -434,22 +434,24 @@ func validateFilter(filter *model.Filter, interfaces *model.Interfaces) []Valida
 		}
 
 		// Validate interface against configured interfaces
-		if rule.Interface != "" {
-			if _, exists := validInterfaceNames[rule.Interface]; !exists {
-				// Create a sorted slice of interface names for error message
-				interfaceList := make([]string, 0, len(validInterfaceNames))
-				for name := range validInterfaceNames {
-					interfaceList = append(interfaceList, name)
-				}
+		if !rule.Interface.IsEmpty() {
+			for _, iface := range rule.Interface {
+				if _, exists := validInterfaceNames[iface]; !exists {
+					// Create a sorted slice of interface names for error message
+					interfaceList := make([]string, 0, len(validInterfaceNames))
+					for name := range validInterfaceNames {
+						interfaceList = append(interfaceList, name)
+					}
 
-				errors = append(errors, ValidationError{
-					Field: fmt.Sprintf("filter.rule[%d].interface", i),
-					Message: fmt.Sprintf(
-						"interface '%s' must be one of the configured interfaces: %v",
-						rule.Interface,
-						interfaceList,
-					),
-				})
+					errors = append(errors, ValidationError{
+						Field: fmt.Sprintf("filter.rule[%d].interface", i),
+						Message: fmt.Sprintf(
+							"interface '%s' must be one of the configured interfaces: %v",
+							iface,
+							interfaceList,
+						),
+					})
+				}
 			}
 		}
 

@@ -402,13 +402,13 @@ func TestCoreProcessor_NormalizationIdempotence(t *testing.T) {
 					Rule: []model.Rule{
 						{
 							Type:      "pass",
-							Interface: "wan",
+							Interface: model.InterfaceList{"wan"},
 							Source:    model.Source{Network: "192.168.1.100"},
 							Descr:     "Allow specific host",
 						},
 						{
 							Type:      "block",
-							Interface: "lan",
+							Interface: model.InterfaceList{"lan"},
 							Source:    model.Source{Network: "10.0.0.0/8"},
 							Descr:     "Block private range",
 						},
@@ -524,26 +524,26 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 					Rule: []model.Rule{
 						{
 							Type:      "block",
-							Interface: "wan",
+							Interface: model.InterfaceList{"wan"},
 							Source:    model.Source{Network: "any"},
 							Descr:     "Block all",
 						},
 						{
 							Type:      "pass",
-							Interface: "wan",
+							Interface: model.InterfaceList{"wan"},
 							Source:    model.Source{Network: "192.168.1.0/24"},
 							Descr:     "Allow LAN (unreachable)",
 						},
 						{
 							Type:       "pass",
-							Interface:  "lan",
+							Interface:  model.InterfaceList{"lan"},
 							IPProtocol: "inet",
 							Source:     model.Source{Network: "10.0.0.0/8"},
 							Descr:      "Allow private",
 						},
 						{
 							Type:       "pass",
-							Interface:  "lan",
+							Interface:  model.InterfaceList{"lan"},
 							IPProtocol: "inet",
 							Source:     model.Source{Network: "10.0.0.0/8"},
 							Descr:      "Duplicate rule",
@@ -654,7 +654,7 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 					Rule: []model.Rule{
 						{
 							Type:      "pass",
-							Interface: "wan",
+							Interface: model.InterfaceList{"wan"},
 							Source:    model.Source{Network: "any"},
 							Descr:     "", // Overly broad rule
 						},
@@ -725,7 +725,7 @@ func generateManyRules(count int) []model.Rule {
 	for i := range count {
 		rules[i] = model.Rule{
 			Type:      "pass",
-			Interface: "lan",
+			Interface: model.InterfaceList{"lan"},
 			Descr:     fmt.Sprintf("Rule %d", i+1),
 			Source:    model.Source{Network: fmt.Sprintf("192.168.%d.0/24", (i%254)+1)},
 		}
@@ -771,8 +771,8 @@ func generateSmallConfig() *model.OpnSenseDocument {
 		},
 		Filter: model.Filter{
 			Rule: []model.Rule{
-				{Type: "pass", Interface: "lan", Descr: "Allow LAN"},
-				{Type: "block", Interface: "wan", Descr: "Block WAN"},
+				{Type: "pass", Interface: model.InterfaceList{"lan"}, Descr: "Allow LAN"},
+				{Type: "block", Interface: model.InterfaceList{"wan"}, Descr: "Block WAN"},
 			},
 		},
 		Sysctl: []model.SysctlItem{
@@ -1299,9 +1299,9 @@ func TestCoreProcessor_StatisticsAccuracy(t *testing.T) {
 				},
 				Filter: model.Filter{
 					Rule: []model.Rule{
-						{Type: "pass", Interface: "lan", Descr: "Allow LAN to WAN"},
-						{Type: "block", Interface: "wan", Descr: "Block external access"},
-						{Type: "pass", Interface: "wan", Descr: "Allow specific service"},
+						{Type: "pass", Interface: model.InterfaceList{"lan"}, Descr: "Allow LAN to WAN"},
+						{Type: "block", Interface: model.InterfaceList{"wan"}, Descr: "Block external access"},
+						{Type: "pass", Interface: model.InterfaceList{"wan"}, Descr: "Allow specific service"},
 					},
 				},
 				Dhcpd: model.Dhcpd{

@@ -115,8 +115,8 @@ func (p *CoreProcessor) sortSlices(cfg *model.OpnSenseDocument) {
 	// Sort firewall rules by interface, then by type, then by description for determinism
 	sort.Slice(cfg.Filter.Rule, func(i, j int) bool {
 		ruleA, ruleB := &cfg.Filter.Rule[i], &cfg.Filter.Rule[j]
-		if ruleA.Interface != ruleB.Interface {
-			return ruleA.Interface < ruleB.Interface
+		if ruleA.Interface.String() != ruleB.Interface.String() {
+			return ruleA.Interface.String() < ruleB.Interface.String()
 		}
 
 		if ruleA.Type != ruleB.Type {

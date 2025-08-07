@@ -625,7 +625,10 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 
 	stats.TotalFirewallRules = len(rules)
 	for _, rule := range rules {
-		stats.RulesByInterface[rule.Interface]++
+		// Count each interface in the rule separately
+		for _, iface := range rule.Interface {
+			stats.RulesByInterface[iface]++
+		}
 		stats.RulesByType[rule.Type]++
 	}
 

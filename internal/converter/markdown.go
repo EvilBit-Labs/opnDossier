@@ -298,7 +298,7 @@ func (c *MarkdownConverter) buildSecuritySection(md *markdown.Markdown, opnsense
 
 			rows = append(rows, []string{
 				rule.Type,
-				rule.Interface,
+				rule.Interface.String(),
 				rule.IPProtocol,
 				source,
 				dest,

@@ -72,7 +72,7 @@ func TestEnrichDocument(t *testing.T) {
 					Rule: []Rule{
 						{
 							Type:        "pass",
-							Interface:   "wan",
+							Interface:   InterfaceList{"wan"},
 							IPProtocol:  "tcp",
 							Source:      Source{Network: "any"},
 							Destination: Destination{Network: "any"},
@@ -229,7 +229,7 @@ func TestGenerateStatistics(t *testing.T) {
 			Rule: []Rule{
 				{
 					Type:        "pass",
-					Interface:   "wan",
+					Interface:   InterfaceList{"wan"},
 					IPProtocol:  "tcp",
 					Source:      Source{Network: "any"},
 					Destination: Destination{Network: "any"},
@@ -237,7 +237,7 @@ func TestGenerateStatistics(t *testing.T) {
 				},
 				{
 					Type:        "block",
-					Interface:   "lan",
+					Interface:   InterfaceList{"lan"},
 					IPProtocol:  "tcp",
 					Source:      Source{Network: "any"},
 					Destination: Destination{Network: "any"},
@@ -270,13 +270,13 @@ func TestGenerateAnalysis(t *testing.T) {
 			Rule: []Rule{
 				{
 					Type:        "block",
-					Interface:   "wan",
+					Interface:   InterfaceList{"wan"},
 					Source:      Source{Network: "any"},
 					Destination: Destination{Network: "any"},
 				},
 				{
 					Type:        "pass",
-					Interface:   "wan",
+					Interface:   InterfaceList{"wan"},
 					Source:      Source{Network: "any"},
 					Destination: Destination{Network: "any"},
 					Descr:       "", // Missing description
@@ -551,11 +551,11 @@ func TestDynamicInterfaceAnalysis(t *testing.T) {
 		Filter: Filter{
 			Rule: []Rule{
 				{
-					Interface: "wan",
+					Interface: InterfaceList{"wan"},
 					Type:      "pass",
 				},
 				{
-					Interface: "lan",
+					Interface: InterfaceList{"lan"},
 					Type:      "pass",
 				},
 				// Note: opt0 is not used in any rules
@@ -589,11 +589,11 @@ func TestDynamicInterfaceAnalysis(t *testing.T) {
 		Filter: Filter{
 			Rule: []Rule{
 				{
-					Interface: "wan",
+					Interface: InterfaceList{"wan"},
 					Type:      "pass",
 				},
 				{
-					Interface: "lan",
+					Interface: InterfaceList{"lan"},
 					Type:      "pass",
 				},
 			},
@@ -619,7 +619,7 @@ func TestDynamicInterfaceAnalysis(t *testing.T) {
 		Filter: Filter{
 			Rule: []Rule{
 				{
-					Interface: "wan",
+					Interface: InterfaceList{"wan"},
 					Type:      "pass",
 				},
 			},

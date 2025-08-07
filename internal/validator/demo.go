@@ -31,7 +31,7 @@ func DemoValidation() {
 		},
 		Filter: model.Filter{
 			Rule: []model.Rule{
-				{Type: "pass", IPProtocol: "inet", Interface: "lan"},
+				{Type: "pass", IPProtocol: "inet", Interface: model.InterfaceList{"lan"}},
 			},
 		},
 	}
@@ -87,7 +87,7 @@ func DemoValidation() {
 		},
 		Filter: model.Filter{
 			Rule: []model.Rule{
-				{Type: "invalid", IPProtocol: "ipv4", Interface: "invalid"}, // All invalid
+				{Type: "invalid", IPProtocol: "ipv4", Interface: model.InterfaceList{"invalid"}}, // All invalid
 			},
 		},
 	}

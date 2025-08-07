@@ -323,7 +323,10 @@ func generateFirewallStatistics(cfg *OpnSenseDocument, stats *Statistics) {
 
 	stats.TotalFirewallRules = len(rules)
 	for _, rule := range rules {
-		stats.RulesByInterface[rule.Interface]++
+		// Count each interface in the rule separately
+		for _, iface := range rule.Interface {
+			stats.RulesByInterface[iface]++
+		}
 		stats.RulesByType[rule.Type]++
 	}
 
@@ -448,11 +451,11 @@ func analyzeDeadRules(cfg *OpnSenseDocument) []DeadRuleFinding {
 			if i < len(rules)-1 {
 				findings = append(findings, DeadRuleFinding{
 					RuleIndex: i + 1,
-					Interface: rule.Interface,
+					Interface: rule.Interface.String(),
 					Description: fmt.Sprintf(
 						"Rules after position %d on interface %s are unreachable due to preceding block-all rule",
 						i+1,
-						rule.Interface,
+						rule.Interface.String(),
 					),
 					Recommendation: "Remove unreachable rules or reorder them before the block-all rule",
 				})
@@ -463,11 +466,11 @@ func analyzeDeadRules(cfg *OpnSenseDocument) []DeadRuleFinding {
 		if rule.Type == RuleTypePass && rule.Source.Network == NetworkAny && rule.Descr == "" {
 			findings = append(findings, DeadRuleFinding{
 				RuleIndex: i + 1,
-				Interface: rule.Interface,
+				Interface: rule.Interface.String(),
 				Description: fmt.Sprintf(
 					"Rule at position %d on interface %s allows all traffic without description",
 					i+1,
-					rule.Interface,
+					rule.Interface.String(),
 				),
 				Recommendation: "Add description and consider restricting source or destination",
 			})
@@ -493,7 +496,10 @@ func analyzeUnusedInterfaces(cfg *OpnSenseDocument) []UnusedInterfaceFinding {
 	usedInterfaces := make(map[string]bool)
 
 	for _, rule := range rules {
-		usedInterfaces[rule.Interface] = true
+		// Mark all interfaces in the rule as used
+		for _, iface := range rule.Interface {
+			usedInterfaces[iface] = true
+		}
 	}
 
 	for _, iface := range interfaces {

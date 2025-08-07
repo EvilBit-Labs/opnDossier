@@ -31,17 +31,17 @@ func TestInterfaceReferences_TableDriven(t *testing.T) {
 			filterRules: []model.Rule{
 				{
 					Type:      "pass",
-					Interface: "opt0",
+					Interface: model.InterfaceList{"opt0"},
 					Source:    model.Source{Network: "opt0"},
 				},
 				{
 					Type:        "pass",
-					Interface:   "opt1",
+					Interface:   model.InterfaceList{"opt1"},
 					Destination: model.Destination{Network: "opt1ip"},
 				},
 				{
 					Type:      "pass",
-					Interface: "opt2",
+					Interface: model.InterfaceList{"opt2"},
 					Source:    model.Source{Network: "opt2ip"},
 				},
 			},
@@ -61,17 +61,17 @@ func TestInterfaceReferences_TableDriven(t *testing.T) {
 			filterRules: []model.Rule{
 				{
 					Type:      "pass",
-					Interface: "opt99", // Unknown interface
+					Interface: model.InterfaceList{"opt99"}, // Unknown interface
 					Source:    model.Source{Network: "any"},
 				},
 				{
 					Type:      "pass",
-					Interface: "lan",
+					Interface: model.InterfaceList{"lan"},
 					Source:    model.Source{Network: "nonexistent"}, // Unknown source network
 				},
 				{
 					Type:        "pass",
-					Interface:   "wan",
+					Interface:   model.InterfaceList{"wan"},
 					Destination: model.Destination{Network: "opt5ip"}, // Unknown destination
 				},
 			},
@@ -96,17 +96,17 @@ func TestInterfaceReferences_TableDriven(t *testing.T) {
 			filterRules: []model.Rule{
 				{
 					Type:      "pass",
-					Interface: "opt0",                          // Known - should pass
+					Interface: model.InterfaceList{"opt0"},     // Known - should pass
 					Source:    model.Source{Network: "opt0ip"}, // Known - should pass
 				},
 				{
 					Type:      "pass",
-					Interface: "opt1", // Unknown - should fail
+					Interface: model.InterfaceList{"opt1"}, // Unknown - should fail
 					Source:    model.Source{Network: "any"},
 				},
 				{
 					Type:        "pass",
-					Interface:   "lan",                                // Known
+					Interface:   model.InterfaceList{"lan"},           // Known
 					Destination: model.Destination{Network: "opt0ip"}, // Known - should pass
 				},
 			},
@@ -129,17 +129,17 @@ func TestInterfaceReferences_TableDriven(t *testing.T) {
 			filterRules: []model.Rule{
 				{
 					Type:      "pass",
-					Interface: "lan",
+					Interface: model.InterfaceList{"lan"},
 					Source:    model.Source{Network: "wanip"}, // Should resolve to "wan" and pass
 				},
 				{
 					Type:        "pass",
-					Interface:   "opt0",
+					Interface:   model.InterfaceList{"opt0"},
 					Destination: model.Destination{Network: "opt1ip"}, // Should resolve to "opt1" and pass
 				},
 				{
 					Type:      "pass",
-					Interface: "opt1",
+					Interface: model.InterfaceList{"opt1"},
 					Source:    model.Source{Network: "opt99ip"}, // Should resolve to "opt99" and fail
 				},
 			},
@@ -189,26 +189,26 @@ func TestInterfaceReferences_TableDriven(t *testing.T) {
 				// WAN rule referencing wanip
 				{
 					Type:        "pass",
-					Interface:   "wan",
+					Interface:   model.InterfaceList{"wan"},
 					Destination: model.Destination{Network: "wanip"},
 				},
 				// LAN rule with standard network reference
 				{
 					Type:      "pass",
-					Interface: "lan",
+					Interface: model.InterfaceList{"lan"},
 					Source:    model.Source{Network: "lan"},
 				},
 				// OPT0 (WireGuard) rule
 				{
 					Type:        "pass",
-					Interface:   "opt0",
+					Interface:   model.InterfaceList{"opt0"},
 					Source:      model.Source{Network: "opt0"},
 					Destination: model.Destination{Network: "opt0ip"},
 				},
 				// OPT1 to OPT2 communication
 				{
 					Type:        "pass",
-					Interface:   "opt1",
+					Interface:   model.InterfaceList{"opt1"},
 					Source:      model.Source{Network: "opt1ip"},
 					Destination: model.Destination{Network: "opt2ip"},
 				},
@@ -400,7 +400,7 @@ func TestValidation_RealWorldScenarios(t *testing.T) {
 					// WAN UDP rule for WireGuard
 					{
 						Type:        "pass",
-						Interface:   "wan",
+						Interface:   model.InterfaceList{"wan"},
 						IPProtocol:  "inet",
 						Source:      model.Source{Network: "any"},
 						Destination: model.Destination{Network: "wanip"},
@@ -408,21 +408,21 @@ func TestValidation_RealWorldScenarios(t *testing.T) {
 					// LAN to any
 					{
 						Type:       "pass",
-						Interface:  "lan",
+						Interface:  model.InterfaceList{"lan"},
 						IPProtocol: "inet",
 						Source:     model.Source{Network: "lan"},
 					},
 					// LAN IPv6 to any
 					{
 						Type:       "pass",
-						Interface:  "lan",
+						Interface:  model.InterfaceList{"lan"},
 						IPProtocol: "inet6",
 						Source:     model.Source{Network: "lan"},
 					},
 					// OPT0 WireGuard rule
 					{
 						Type:        "pass",
-						Interface:   "opt0",
+						Interface:   model.InterfaceList{"opt0"},
 						IPProtocol:  "inet",
 						Source:      model.Source{Network: "opt0"},
 						Destination: model.Destination{Network: "opt0ip"},
@@ -544,21 +544,21 @@ func TestSampleConfig2_ZeroValidationErrors(t *testing.T) {
 				// Sample rules that reference opt interfaces
 				{
 					Type:        "pass",
-					Interface:   "opt0",
+					Interface:   model.InterfaceList{"opt0"},
 					IPProtocol:  "inet",
 					Source:      model.Source{Network: "opt0"},
 					Destination: model.Destination{Network: "any"},
 				},
 				{
 					Type:        "pass",
-					Interface:   "opt1",
+					Interface:   model.InterfaceList{"opt1"},
 					IPProtocol:  "inet",
 					Source:      model.Source{Network: "opt1ip"},
 					Destination: model.Destination{Network: "opt2ip"},
 				},
 				{
 					Type:        "pass",
-					Interface:   "opt2",
+					Interface:   model.InterfaceList{"opt2"},
 					IPProtocol:  "inet",
 					Source:      model.Source{Network: "any"},
 					Destination: model.Destination{Network: "opt2ip"},

@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<opnsense>
+  <version>24.7</version>
+  <system>
+    <hostname>test</hostname>
+    <domain>local</domain>
+  </system>
+  <interfaces>
+    <wan>
+      <enable>1</enable>
+      <if>vtnet0</if>
+    </wan>
+    <lan>
+      <enable>1</enable>
+      <if>vtnet1</if>
+    </lan>
+    <dmz>
+      <enable>1</enable>
+      <if>vtnet2</if>
+    </dmz>
+  </interfaces>
+  <filter>
+    <rule>
+      <type>pass</type>
+      <interface>wan,lan,dmz</interface>
+      <ipprotocol>inet</ipprotocol>
+      <source>
+        <network>any</network>
+      </source>
+      <destination>
+        <network>any</network>
+      </destination>
+      <descr>Final validation test</descr>
+    </rule>
+  </filter>
+</opnsense>
