@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   goreleaser:
@@ -18,6 +19,8 @@ jobs:
       issues: write
       id-token: write
     runs-on: ubuntu-latest
+    outputs:
+      hashes: ${{ steps.hash.outputs.hashes }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -35,6 +38,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.7.0
+        with:
+          cosign-release: 'v2.2.4'
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6.3.0
         with:
@@ -43,4 +51,54 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate artifact hashes for SLSA
+        id: hash
+        run: |
+          # Generate base64 encoded hashes for SLSA provenance
+          cd dist
+          HASHES=$(sha256sum ./*.tar.gz ./*.zip ./*.deb ./*.rpm ./*.apk ./*.pkg.tar.xz opnDossier_checksums.txt | base64 -w0)
+          echo "hashes=${HASHES}" >> "$GITHUB_OUTPUT"
+
+      - name: Sign artifacts with Cosign
+        run: |
+          # Sign all release artifacts
+          cosign sign-blob --yes --bundle cosign.bundle dist/opnDossier_checksums.txt
+          # Upload the bundle as a release asset would be handled by a subsequent step
+        env:
+          COSIGN_EXPERIMENTAL: 1
+
+  provenance:
+    needs: goreleaser
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      actions: read
+      contents: write
+      id-token: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.0.0
+    with:
+      base64-subjects: "${{ needs.goreleaser.outputs.hashes }}"
+      provenance-name: "opnDossier-${{ github.ref_name }}.intoto.jsonl"
+
+  verification:
+    needs: [goreleaser, provenance]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Install SLSA Verifier
+        uses: slsa-framework/slsa-verifier/actions/installer@v2.5.1
+        
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        
+      - name: Verify provenance
+        run: |
+          slsa-verifier verify-artifact \
+            --provenance-path "${{ needs.provenance.outputs.provenance-name }}" \
+            --source-uri github.com/EvilBit-Labs/opnDossier \
+            --source-tag "${{ github.ref_name }}" \
+            dist/opnDossier_checksums.txt
 

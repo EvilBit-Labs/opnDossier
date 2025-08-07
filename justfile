@@ -260,6 +260,50 @@ dev *args="":
     go run main.go {{args}}
 
 # -----------------------------
+# 🔒 Security & Vulnerability Scanning
+# -----------------------------
+
+# Run Grype vulnerability scanner locally
+scan-vulnerabilities:
+    @echo "Running Grype vulnerability scan..."
+    @if ! command -v grype >/dev/null 2>&1; then \
+        echo "Error: grype not found. Install with:"; \
+        echo "  - Using Homebrew: brew tap anchore/grype && brew install grype"; \
+        echo "  - Using Go: go install github.com/anchore/grype@latest"; \
+        exit 1; \
+    fi
+    grype .
+
+# Generate SBOM with Syft
+generate-sbom:
+    @echo "Generating SBOM with Syft..."
+    @if ! command -v syft >/dev/null 2>&1; then \
+        echo "Error: syft not found. Install with:"; \
+        echo "  - Using Homebrew: brew tap anchore/syft && brew install syft"; \
+        echo "  - Using Go: go install github.com/anchore/syft@latest"; \
+        exit 1; \
+    fi
+    syft . -o spdx-json=sbom.spdx.json
+    @echo "SBOM generated: sbom.spdx.json"
+
+# Run FOSSA analysis locally (requires FOSSA CLI)
+fossa-scan:
+    @echo "Running FOSSA license scan..."
+    @if ! command -v fossa >/dev/null 2>&1; then \
+        echo "Error: fossa CLI not found. Install from: https://github.com/fossas/fossa-cli"; \
+        exit 1; \
+    fi
+    fossa analyze
+    fossa test
+
+# Run all security scans locally
+security-scan:
+    @echo "Running comprehensive security scan..."
+    just generate-sbom
+    just scan-vulnerabilities
+    @echo "Security scan complete. Check results above."
+
+# -----------------------------
 # 🤖 CI Workflow
 # -----------------------------
 

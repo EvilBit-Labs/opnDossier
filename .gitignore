@@ -172,3 +172,11 @@ lint_report.json
 
 # Backup repositories
 *-backup.git/
+
+# Security scanning artifacts
+sbom.spdx.json
+*.sarif
+cosign.bundle
+snyk.sarif
+snyk-code.sarif
+results.sarif

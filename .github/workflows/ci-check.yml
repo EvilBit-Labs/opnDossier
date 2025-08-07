@@ -9,6 +9,7 @@ on:
 permissions:
   contents: read
   pull-requests: read
+  security-events: write
 
 jobs:
   test:
@@ -68,6 +69,27 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: EvilBit-Labs/opnDossier
+
+  vulnerability-scan:
+    name: Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Grype vulnerability scanner
+        uses: anchore/scan-action@v4
+        id: scan
+        with:
+          path: "."
+          fail-build: true
+          severity-cutoff: high
+
+      - name: Upload vulnerability scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}
 
 
   build:

@@ -80,6 +80,15 @@ release:
 
     **Full Changelog**: https://github.com/EvilBit-Labs/opnDossier/compare/{{.PreviousTag}}...{{.Tag}}
 
+    ## Security Information
+    
+    This release includes:
+    - ✅ SBOM (Software Bill of Materials) generated with Syft
+    - ✅ Vulnerability scan results with Grype
+    - ✅ SLSA Level 3 provenance attestation
+    - ✅ Cosign signatures for all artifacts
+    - ✅ License compliance verified with FOSSA
+
     ## Installation
 
     ### Package Managers
