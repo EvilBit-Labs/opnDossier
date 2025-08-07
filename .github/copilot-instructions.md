@@ -1,3 +1,7 @@
+---
+applyTo: '**'
+---
+
 # GitHub Copilot Instructions for opnDossier
 
 ## AI Assistant Guidelines
@@ -103,7 +107,7 @@ doc := &model.OpnSenseDocument{}
 opndossier/
 ├── cmd/
 │   ├── convert.go           # Convert command entry point
-│   ├── display.go           # Display command entry point  
+│   ├── display.go           # Display command entry point
 │   ├── validate.go          # Validate command entry point
 │   └── root.go              # Root command and main entry point
 ├── internal/
@@ -210,12 +214,12 @@ import "github.com/charmbracelet/log"
 func processConfig(filename string) error {
     logger := log.With("filename", filename, "operation", "process")
     logger.Info("starting configuration processing")
-    
+
     if err := validateConfig(filename); err != nil {
         logger.Error("validation failed", "error", err)
         return fmt.Errorf("validation failed: %w", err)
     }
-    
+
     logger.Info("configuration processed successfully")
     return nil
 }
@@ -275,7 +279,7 @@ var convertCmd = &cobra.Command{
     Use:   "convert [file]",
     Short: "Convert OPNsense config to multiple formats",
     Long: `Convert an OPNsense configuration file to markdown, JSON, or YAML format.
-    
+
 The convert command reads an XML configuration file and generates
 a structured output with all configuration details.
 
