@@ -66,6 +66,23 @@
 - [ ] Configuration diff analysis
 - [ ] **TASK-044**: Achieve >80% test coverage (applies to all packages)
 
+### v2.0 - Major Architectural Changes & Breaking Improvements
+
+**Core Value:** Modernized architecture with programmatic generation and enhanced performance
+
+**Major Features:**
+
+- [ ] **TASK-068**: Implement programmatic markdown generation system
+  - Replace template-based generation with Go code-based generation
+  - Provide better performance, maintainability, and consistency
+  - Maintain backward compatibility with existing functionality
+  - Improve testability and separation of concerns
+- [ ] **TASK-069**: Remove deprecated code paths and cleanup technical debt
+- [ ] **TASK-070**: Enhanced configuration analysis and dead rule detection
+- [ ] **TASK-071**: Multi-format output system (JSON, YAML, Markdown)
+- [ ] **TASK-072**: Performance optimization and concurrent processing
+- [ ] **TASK-044**: Achieve >85% test coverage (applies to all packages)
+
 ---
 
 ## Overview
@@ -1003,6 +1020,119 @@ This document provides a comprehensive task checklist for implementing the opnDo
 - Implement concurrent processing incrementally
 - Test on each platform during development
 - Use GoReleaser's built-in multi-platform support
+
+---
+
+## Phase 14: Programmatic Markdown Generation (v2.0)
+
+### 14.1 Core Programmatic Generation Implementation
+
+- [ ] **TASK-068**: Implement programmatic markdown generation system
+
+  - **Context**: Replace template-based generation with Go code-based generation for better performance and maintainability
+  - **Requirement**: F026 (Programmatic markdown generation system), F002 (Markdown conversion), F011 (Markdown generation)
+  - **User Story**: US-003-US-004 (Markdown Conversion), US-015-US-017 (Performance Requirements)
+  - **Action**:
+    - Create `internal/markdown/programmatic/` package for code-based generation
+    - Implement `ProgrammaticGenerator` struct implementing `markdown.Generator` interface
+    - Create section builders for system, network, firewall, NAT, DHCP, certificates, etc.
+    - Implement structured markdown builders using Go code instead of templates
+    - Maintain backward compatibility with existing template functionality
+    - Add performance benchmarking to compare with template-based approach
+    - Create migration utilities for transitioning from templates to programmatic generation
+  - **Acceptance**:
+    - Programmatic generation produces identical output to template-based generation
+    - Performance improvements are measurable (target: 30-50% faster)
+    - Memory usage is reduced compared to template rendering
+    - Code is more maintainable and testable than template approach
+    - Backward compatibility is maintained for existing functionality
+    - Unit tests have better coverage and are easier to write
+    - Documentation generation is consistent and structured
+  - **Dependencies**: TASK-011, TASK-012, TASK-013 (existing markdown generation foundation)
+  - **Breaking Changes**: This is a v2.0 feature and may introduce API changes in the markdown generation interface
+
+- [ ] **TASK-068a**: Implement programmatic section builders
+
+  - **Context**: Create modular section builders for different configuration areas
+  - **Requirement**: F026 (Programmatic markdown generation), System Architecture (modular components)
+  - **User Story**: US-003 (Structured markdown output)
+  - **Action**:
+    - Create `SystemSectionBuilder` for system configuration sections
+    - Create `NetworkSectionBuilder` for interface and network configuration
+    - Create `FirewallSectionBuilder` for firewall rules and policies
+    - Create `NATSectionBuilder` for NAT rules and configuration
+    - Create `DHCPSectionBuilder` for DHCP scopes and static assignments
+    - Create `CertificateSectionBuilder` for certificate information
+    - Create `ServiceSectionBuilder` for various services (DNS, NTP, SNMP, etc.)
+    - Implement consistent interface across all section builders
+    - Add section-specific formatting and styling logic
+  - **Acceptance**:
+    - Each section builder is self-contained and testable
+    - Section builders use consistent interfaces and patterns
+    - Generated sections match existing template output format
+    - Section builders support both comprehensive and summary modes
+    - Code is well-documented and follows Go best practices
+
+- [ ] **TASK-068b**: Add programmatic generation performance optimization
+
+  - **Context**: Optimize programmatic generation for better performance than templates
+  - **Requirement**: F026 (Programmatic generation performance), Performance Requirements
+  - **User Story**: US-015-US-017 (Performance Requirements)
+  - **Action**:
+    - Implement efficient string building using `strings.Builder`
+    - Add object pooling for frequently allocated structures
+    - Optimize memory allocations in section builders
+    - Implement concurrent generation for independent sections
+    - Add performance benchmarks comparing template vs programmatic approaches
+    - Profile memory usage and optimize hot paths
+    - Implement caching for expensive calculations
+  - **Acceptance**:
+    - Programmatic generation is 30-50% faster than template-based generation
+    - Memory usage is reduced by 20-40% compared to templates
+    - Large configuration files (>10MB) process efficiently
+    - Benchmark tests demonstrate consistent performance improvements
+    - Memory profiling shows reduced allocations and garbage collection pressure
+
+- [ ] **TASK-068c**: Implement backward compatibility layer
+
+  - **Context**: Ensure existing template functionality continues to work during transition
+  - **Requirement**: F026 (Backward compatibility), System Architecture (non-destructive updates)
+  - **User Story**: US-003 (Existing functionality preservation)
+  - **Action**:
+    - Create compatibility wrapper that delegates to template or programmatic generation
+    - Add configuration option to select generation method
+    - Implement feature flag system for gradual rollout
+    - Create migration utilities for custom templates
+    - Add validation to ensure output parity between approaches
+    - Document migration path for users with custom templates
+  - **Acceptance**:
+    - Existing CLI commands work without changes
+    - Template-based generation remains available as fallback
+    - Configuration option allows selection of generation method
+    - Migration utilities successfully convert common template customizations
+    - Output validation confirms identical results between approaches
+    - Documentation provides clear migration guidance
+
+- [ ] **TASK-068d**: Enhanced testing for programmatic generation
+
+  - **Context**: Comprehensive testing framework for programmatic markdown generation
+  - **Requirement**: F026 (Testing), Testing Standards
+  - **User Story**: US-020-US-021 (Testing and Validation)
+  - **Action**:
+    - Create comprehensive unit tests for each section builder
+    - Implement integration tests comparing template vs programmatic output
+    - Add property-based testing for edge cases
+    - Create performance regression tests
+    - Implement golden file testing for output validation
+    - Add memory leak detection tests
+    - Create stress tests with large configuration files
+  - **Acceptance**:
+    - Test coverage for programmatic generation exceeds 90%
+    - Integration tests validate output parity with templates
+    - Performance tests catch regressions automatically
+    - Golden file tests ensure consistent output format
+    - Memory tests detect potential leaks or excessive allocations
+    - Stress tests validate performance with realistic workloads
 
 ---
 
