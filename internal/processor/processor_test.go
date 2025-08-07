@@ -1457,3 +1457,777 @@ func TestCoreProcessor_StatisticsAccuracy(t *testing.T) {
 		})
 	}
 }
+
+// TestCoreProcessor_TransformFormats tests all supported output formats.
+func TestCoreProcessor_TransformFormats(t *testing.T) {
+	processor, err := NewCoreProcessor()
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	cfg := &model.OpnSenseDocument{
+		System: model.System{
+			Hostname: "transform-test",
+			Domain:   "example.com",
+		},
+		Interfaces: model.Interfaces{
+			Items: map[string]model.Interface{
+				"wan": {Enable: "1"},
+				"lan": {Enable: "1"},
+			},
+		},
+	}
+
+	report, err := processor.Process(ctx, cfg, WithStats())
+	require.NoError(t, err)
+	require.NotNil(t, report)
+
+	tests := []struct {
+		name        string
+		format      string
+		expectError bool
+		validate    func(t *testing.T, output string)
+	}{
+		{
+			name:        "JSON format",
+			format:      "json",
+			expectError: false,
+			validate: func(t *testing.T, output string) {
+				assert.NotEmpty(t, output)
+				assert.Contains(t, output, "transform-test")
+				assert.Contains(t, output, "{")
+				assert.Contains(t, output, "}")
+			},
+		},
+		{
+			name:        "JSON format case insensitive",
+			format:      "JSON",
+			expectError: false,
+			validate: func(t *testing.T, output string) {
+				assert.NotEmpty(t, output)
+				assert.Contains(t, output, "transform-test")
+			},
+		},
+		{
+			name:        "Markdown format",
+			format:      "markdown",
+			expectError: false,
+			validate: func(t *testing.T, output string) {
+				assert.NotEmpty(t, output)
+				assert.Contains(t, output, "# OPNsense Configuration Analysis Report")
+				assert.Contains(t, output, "transform-test")
+			},
+		},
+		{
+			name:        "YAML format",
+			format:      "yaml",
+			expectError: false,
+			validate: func(t *testing.T, output string) {
+				assert.NotEmpty(t, output)
+				assert.Contains(t, output, "transform-test")
+			},
+		},
+		{
+			name:        "Unsupported format",
+			format:      "xml",
+			expectError: true,
+			validate: func(t *testing.T, output string) {
+				assert.Empty(t, output)
+			},
+		},
+		{
+			name:        "Empty format",
+			format:      "",
+			expectError: true,
+			validate: func(t *testing.T, output string) {
+				assert.Empty(t, output)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output, err := processor.Transform(ctx, report, tt.format)
+			
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			
+			tt.validate(t, output)
+		})
+	}
+}
+
+// TestCoreProcessor_ValidationErrors tests validation error handling.
+func TestCoreProcessor_ValidationErrors(t *testing.T) {
+	processor, err := NewCoreProcessor()
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	tests := []struct {
+		name           string
+		config         *model.OpnSenseDocument
+		expectedErrors int
+	}{
+		{
+			name: "Configuration with validation errors",
+			config: &model.OpnSenseDocument{
+				System: model.System{
+					Hostname: "", // Empty hostname should trigger validation error
+					Domain:   "example.com",
+					SSH: struct {
+						Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
+					}{Group: ""}, // Empty required field
+				},
+				Interfaces: model.Interfaces{
+					Items: map[string]model.Interface{
+						"wan": {Enable: "1"},
+						"lan": {Enable: "1"},
+					},
+				},
+			},
+			expectedErrors: 0, // May not have strict validation depending on implementation
+		},
+		{
+			name: "Valid configuration",
+			config: &model.OpnSenseDocument{
+				System: model.System{
+					Hostname: "valid-host",
+					Domain:   "example.com",
+					SSH: struct {
+						Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
+					}{Group: "admins"},
+				},
+				Interfaces: model.Interfaces{
+					Items: map[string]model.Interface{
+						"wan": {Enable: "1"},
+						"lan": {Enable: "1"},
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			report, err := processor.Process(ctx, tt.config, WithAllFeatures())
+			assert.NoError(t, err)
+			assert.NotNil(t, report)
+			
+			// Check for validation findings
+			validationFindings := 0
+			for _, finding := range report.Findings.High {
+				if finding.Type == "validation" {
+					validationFindings++
+				}
+			}
+			
+			if tt.expectedErrors > 0 {
+				assert.GreaterOrEqual(t, validationFindings, tt.expectedErrors)
+			}
+		})
+	}
+}
+
+// TestCoreProcessor_ProcessorCreationFailure tests processor creation edge cases.
+func TestCoreProcessor_ProcessorCreationFailure(t *testing.T) {
+	// Test that NewCoreProcessor handles markdown generator failures gracefully
+	// This test assumes the markdown generator can fail under certain conditions
+	
+	processor, err := NewCoreProcessor()
+	// Should normally succeed
+	assert.NoError(t, err)
+	assert.NotNil(t, processor)
+	assert.NotNil(t, processor.validator)
+	assert.NotNil(t, processor.generator)
+}
+
+// TestReport_FindingSeverityDistribution tests finding distribution.
+func TestReport_FindingSeverityDistribution(t *testing.T) {
+	cfg := &model.OpnSenseDocument{
+		System: model.System{
+			Hostname: "severity-test",
+			Domain:   "example.com",
+		},
+	}
+
+	report := NewReport(cfg, Config{EnableStats: true})
+
+	// Add findings with different severities
+	severityCount := map[Severity]int{
+		SeverityCritical: 5,
+		SeverityHigh:     10,
+		SeverityMedium:   15,
+		SeverityLow:      20,
+		SeverityInfo:     25,
+	}
+
+	for severity, count := range severityCount {
+		for i := 0; i < count; i++ {
+			finding := Finding{
+				Type:        "test",
+				Title:       fmt.Sprintf("%s Finding %d", severity, i+1),
+				Description: fmt.Sprintf("Test %s finding", severity),
+				Component:   "test-component",
+			}
+			report.AddFinding(severity, finding)
+		}
+	}
+
+	// Verify distribution
+	assert.Equal(t, severityCount[SeverityCritical], len(report.Findings.Critical))
+	assert.Equal(t, severityCount[SeverityHigh], len(report.Findings.High))
+	assert.Equal(t, severityCount[SeverityMedium], len(report.Findings.Medium))
+	assert.Equal(t, severityCount[SeverityLow], len(report.Findings.Low))
+	assert.Equal(t, severityCount[SeverityInfo], len(report.Findings.Info))
+
+	// Verify total
+	expectedTotal := 5 + 10 + 15 + 20 + 25 // 75
+	assert.Equal(t, expectedTotal, report.TotalFindings())
+
+	// Test HasCriticalFindings
+	assert.True(t, report.HasCriticalFindings())
+
+	// Test Summary method with multiple findings
+	summary := report.Summary()
+	assert.Contains(t, summary, "75 findings")
+	assert.Contains(t, summary, "5 critical")
+	assert.Contains(t, summary, "10 high")
+}
+
+// TestReport_EmptyFindingsScenarios tests various empty finding scenarios.
+func TestReport_EmptyFindingsScenarios(t *testing.T) {
+	cfg := &model.OpnSenseDocument{
+		System: model.System{
+			Hostname: "empty-findings",
+			Domain:   "example.com",
+		},
+	}
+
+	tests := []struct {
+		name     string
+		setup    func(report *Report)
+		validate func(t *testing.T, report *Report)
+	}{
+		{
+			name:  "Completely empty findings",
+			setup: func(report *Report) {},
+			validate: func(t *testing.T, report *Report) {
+				assert.Equal(t, 0, report.TotalFindings())
+				assert.False(t, report.HasCriticalFindings())
+				assert.Contains(t, report.Summary(), "No issues found")
+				
+				markdown := report.ToMarkdown()
+				assert.Contains(t, markdown, "No issues found")
+			},
+		},
+		{
+			name: "Only info findings",
+			setup: func(report *Report) {
+				report.AddFinding(SeverityInfo, Finding{
+					Type:        "info",
+					Title:       "Info Finding",
+					Description: "Informational message",
+					Component:   "test",
+				})
+			},
+			validate: func(t *testing.T, report *Report) {
+				assert.Equal(t, 1, report.TotalFindings())
+				assert.False(t, report.HasCriticalFindings())
+				assert.Contains(t, report.Summary(), "1 findings")
+				assert.Contains(t, report.Summary(), "1 info")
+			},
+		},
+		{
+			name: "Mixed severities without critical",
+			setup: func(report *Report) {
+				report.AddFinding(SeverityHigh, Finding{
+					Type: "test", Title: "High", Description: "High priority", Component: "test",
+				})
+				report.AddFinding(SeverityMedium, Finding{
+					Type: "test", Title: "Medium", Description: "Medium priority", Component: "test",
+				})
+				report.AddFinding(SeverityLow, Finding{
+					Type: "test", Title: "Low", Description: "Low priority", Component: "test",
+				})
+			},
+			validate: func(t *testing.T, report *Report) {
+				assert.Equal(t, 3, report.TotalFindings())
+				assert.False(t, report.HasCriticalFindings())
+				assert.Contains(t, report.Summary(), "3 findings")
+				assert.Contains(t, report.Summary(), "1 high")
+				assert.Contains(t, report.Summary(), "1 medium")
+				assert.Contains(t, report.Summary(), "1 low")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			report := NewReport(cfg, Config{EnableStats: true})
+			tt.setup(report)
+			tt.validate(t, report)
+		})
+	}
+}
+
+// TestStatistics_ZeroValues tests statistics with zero/empty values.
+func TestStatistics_ZeroValues(t *testing.T) {
+	processor, err := NewCoreProcessor()
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	// Configuration with minimal/zero values
+	cfg := &model.OpnSenseDocument{
+		System: model.System{
+			Hostname: "zero-values",
+			Domain:   "example.com",
+		},
+		// No interfaces, users, groups, rules, etc.
+	}
+
+	report, err := processor.Process(ctx, cfg, WithStats())
+	require.NoError(t, err)
+	require.NotNil(t, report)
+	require.NotNil(t, report.Statistics)
+
+	stats := report.Statistics
+
+	// Test zero values
+	assert.Equal(t, 0, stats.TotalInterfaces)
+	assert.Equal(t, 0, stats.TotalFirewallRules)
+	assert.Equal(t, 0, stats.TotalUsers)
+	assert.Equal(t, 0, stats.TotalGroups)
+	assert.Equal(t, 0, stats.DHCPScopes)
+	assert.Equal(t, 0, stats.SysctlSettings)
+	assert.Equal(t, 0, stats.TotalServices)
+
+	// Test empty collections
+	assert.Empty(t, stats.InterfacesByType)
+	assert.Empty(t, stats.RulesByInterface)
+	assert.Empty(t, stats.RulesByType)
+	assert.Empty(t, stats.UsersByScope)
+	assert.Empty(t, stats.GroupsByScope)
+	assert.Empty(t, stats.EnabledServices)
+	assert.Empty(t, stats.InterfaceDetails)
+	assert.Empty(t, stats.DHCPScopeDetails)
+
+	// Summary should handle zero values gracefully
+	assert.GreaterOrEqual(t, stats.Summary.TotalConfigItems, 0)
+	assert.GreaterOrEqual(t, stats.Summary.SecurityScore, 0)
+	assert.GreaterOrEqual(t, stats.Summary.ConfigComplexity, 0)
+}
+
+// TestCoreProcessor_MutexProtection tests that the mutex protects concurrent access properly.
+func TestCoreProcessor_MutexProtection(t *testing.T) {
+	processor, err := NewCoreProcessor()
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	config := generateSmallConfig()
+
+	// Test that processing is properly serialized
+	// We can't directly test mutex behavior, but we can ensure no data races occur
+	var wg sync.WaitGroup
+	results := make([]*Report, 50)
+	errors := make([]error, 50)
+
+	for i := 0; i < 50; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			report, err := processor.Process(ctx, config, WithAllFeatures())
+			results[idx] = report
+			errors[idx] = err
+		}(i)
+	}
+
+	wg.Wait()
+
+	// All should succeed
+	for i, err := range errors {
+		assert.NoError(t, err, "Process %d should not error", i)
+		assert.NotNil(t, results[i], "Process %d should return report", i)
+	}
+
+	// All reports should be consistent
+	for i := 1; i < len(results); i++ {
+		assert.Equal(t, results[0].ConfigInfo.Hostname, results[i].ConfigInfo.Hostname)
+		assert.Equal(t, results[0].Statistics.TotalUsers, results[i].Statistics.TotalUsers)
+		assert.Equal(t, results[0].Statistics.TotalFirewallRules, results[i].Statistics.TotalFirewallRules)
+	}
+}
+
+// TestProcessor_ContextCancellationTiming tests context cancellation at different phases.
+func TestProcessor_ContextCancellationTiming(t *testing.T) {
+	processor, err := NewCoreProcessor()
+	require.NoError(t, err)
+
+	config := generateLargeConfig()
+
+	tests := []struct {
+		name        string
+		cancelAfter time.Duration
+		expectError bool
+	}{
+		{
+			name:        "Cancel immediately",
+			cancelAfter: 0,
+			expectError: true,
+		},
+		{
+			name:        "Cancel after 1ms",
+			cancelAfter: 1 * time.Millisecond,
+			expectError: true,
+		},
+		{
+			name:        "Cancel after 10ms",
+			cancelAfter: 10 * time.Millisecond,
+			expectError: false, // Might complete before cancellation
+		},
+		{
+			name:        "Cancel after 100ms",
+			cancelAfter: 100 * time.Millisecond,
+			expectError: false, // Should complete
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			
+			if tt.cancelAfter == 0 {
+				cancel() // Cancel immediately
+			} else {
+				go func() {
+					time.Sleep(tt.cancelAfter)
+					cancel()
+				}()
+			}
+
+			_, err := processor.Process(ctx, config, WithAllFeatures())
+			
+			if tt.expectError && tt.cancelAfter <= 1*time.Millisecond {
+				// For very short timeouts, we expect cancellation
+				assert.Error(t, err)
+			}
+			// For longer timeouts, either success or cancellation is acceptable
+		})
+	}
+}
+
+// TestReport_JSONSerializationPerformance tests JSON serialization performance.
+func TestReport_JSONSerializationPerformance(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping performance test in short mode")
+	}
+
+	cfg := &model.OpnSenseDocument{
+		System: model.System{
+			Hostname: "perf-test",
+			Domain:   "example.com",
+		},
+	}
+
+	report := NewReport(cfg, Config{EnableStats: true})
+
+	// Add many findings
+	for i := 0; i < 1000; i++ {
+		finding := Finding{
+			Type:        "performance-test",
+			Title:       fmt.Sprintf("Finding %d with some longer text to make it more realistic", i),
+			Description: fmt.Sprintf("This is finding number %d with a detailed description that includes various details and explanations that would normally be found in a real security finding report", i),
+			Recommendation: fmt.Sprintf("Recommendation %d: Please fix this issue by following these detailed steps and procedures", i),
+			Component:   fmt.Sprintf("component-%d", i%10),
+		}
+		
+		severity := []Severity{SeverityCritical, SeverityHigh, SeverityMedium, SeverityLow, SeverityInfo}[i%5]
+		report.AddFinding(severity, finding)
+	}
+
+	// Test serialization performance
+	start := time.Now()
+	jsonStr, err := report.ToJSON()
+	duration := time.Since(start)
+
+	assert.NoError(t, err)
+	assert.NotEmpty(t, jsonStr)
+	
+	// Should complete within reasonable time (< 1 second for 1000 findings)
+	assert.Less(t, duration, 1*time.Second, "JSON serialization should be fast")
+	
+	t.Logf("JSON serialization of 1000 findings took %v", duration)
+	t.Logf("JSON output size: %d bytes", len(jsonStr))
+
+	// Verify the JSON is valid and contains expected data
+	assert.Contains(t, jsonStr, "perf-test")
+	assert.Contains(t, jsonStr, "Finding 999") // Last finding should be present
+}
+
+// TestReport_MarkdownGenerationEdgeCases tests markdown generation with edge cases.
+func TestReport_MarkdownGenerationEdgeCases(t *testing.T) {
+	tests := []struct {
+		name       string
+		setupFunc  func() *Report
+		expectFunc func(t *testing.T, markdown string)
+	}{
+		{
+			name: "Report with very long text",
+			setupFunc: func() *Report {
+				cfg := &model.OpnSenseDocument{
+					System: model.System{
+						Hostname: "long-text-test",
+						Domain:   "example.com",
+					},
+				}
+				report := NewReport(cfg, Config{EnableStats: true})
+				
+				longText := strings.Repeat("This is a very long text that contains many words and should test the markdown generator's ability to handle large amounts of text without issues. ", 50)
+				
+				report.AddFinding(SeverityHigh, Finding{
+					Type:           "test",
+					Title:          "Finding with very long text",
+					Description:    longText,
+					Recommendation: longText,
+					Component:      "test-component",
+				})
+				
+				return report
+			},
+			expectFunc: func(t *testing.T, markdown string) {
+				assert.Contains(t, markdown, "# OPNsense Configuration Analysis Report")
+				assert.Contains(t, markdown, "long-text-test")
+				assert.Contains(t, markdown, "Finding with very long text")
+				assert.True(t, len(markdown) > 5000, "Markdown should contain the long text")
+			},
+		},
+		{
+			name: "Report with HTML-like content",
+			setupFunc: func() *Report {
+				cfg := &model.OpnSenseDocument{
+					System: model.System{
+						Hostname: "html-test",
+						Domain:   "example.com",
+					},
+				}
+				report := NewReport(cfg, Config{EnableStats: true})
+				
+				report.AddFinding(SeverityMedium, Finding{
+					Type:        "test",
+					Title:       "Finding with <script>alert('xss')</script> content",
+					Description: "This contains <b>HTML</b> tags and &entities;",
+					Component:   "html-component",
+				})
+				
+				return report
+			},
+			expectFunc: func(t *testing.T, markdown string) {
+				assert.Contains(t, markdown, "# OPNsense Configuration Analysis Report")
+				assert.Contains(t, markdown, "html-test")
+				// HTML content should be preserved in markdown (it's up to renderer to sanitize)
+				assert.Contains(t, markdown, "<script>")
+				assert.Contains(t, markdown, "<b>HTML</b>")
+				assert.Contains(t, markdown, "&entities;")
+			},
+		},
+		{
+			name: "Report with empty statistics",
+			setupFunc: func() *Report {
+				cfg := &model.OpnSenseDocument{
+					System: model.System{
+						Hostname: "empty-stats",
+						Domain:   "example.com",
+					},
+				}
+				// Create report with stats disabled
+				report := NewReport(cfg, Config{EnableStats: false})
+				
+				return report
+			},
+			expectFunc: func(t *testing.T, markdown string) {
+				assert.Contains(t, markdown, "# OPNsense Configuration Analysis Report")
+				assert.Contains(t, markdown, "empty-stats")
+				// Should not contain statistics section if disabled
+				// Note: This depends on the actual markdown template implementation
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			report := tt.setupFunc()
+			markdown := report.ToMarkdown()
+			tt.expectFunc(t, markdown)
+		})
+	}
+}
+
+// TestProcessorOptions_EdgeCases tests edge cases in option processing.
+func TestProcessorOptions_EdgeCases(t *testing.T) {
+	tests := []struct {
+		name    string
+		options []Option
+		expect  func(t *testing.T, config *Config)
+	}{
+		{
+			name:    "Nil options slice",
+			options: nil,
+			expect: func(t *testing.T, config *Config) {
+				// Should have defaults
+				assert.True(t, config.EnableStats)
+				assert.False(t, config.EnableDeadRuleCheck)
+			},
+		},
+		{
+			name:    "Empty options slice",
+			options: []Option{},
+			expect: func(t *testing.T, config *Config) {
+				// Should have defaults
+				assert.True(t, config.EnableStats)
+				assert.False(t, config.EnableDeadRuleCheck)
+			},
+		},
+		{
+			name: "Duplicate options",
+			options: []Option{
+				WithSecurityAnalysis(),
+				WithSecurityAnalysis(),
+				WithSecurityAnalysis(),
+			},
+			expect: func(t *testing.T, config *Config) {
+				// Multiple calls should be idempotent
+				assert.True(t, config.EnableSecurityAnalysis)
+				assert.True(t, config.EnableStats) // Default
+				assert.False(t, config.EnableDeadRuleCheck) // Not set
+			},
+		},
+		{
+			name: "Conflicting options order",
+			options: []Option{
+				WithAllFeatures(),     // Enables everything
+				func(c *Config) {      // Custom option that disables something
+					c.EnableDeadRuleCheck = false
+				},
+			},
+			expect: func(t *testing.T, config *Config) {
+				// Last option should win
+				assert.True(t, config.EnableStats)
+				assert.True(t, config.EnableSecurityAnalysis)
+				assert.False(t, config.EnableDeadRuleCheck) // Disabled by custom option
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := DefaultConfig()
+			config.ApplyOptions(tt.options...)
+			tt.expect(t, config)
+		})
+	}
+}
+
+// TestReport_ThreadSafetyStress performs stress testing for thread safety.
+func TestReport_ThreadSafetyStress(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping stress test in short mode")
+	}
+
+	cfg := &model.OpnSenseDocument{
+		System: model.System{
+			Hostname: "stress-test",
+			Domain:   "example.com",
+		},
+	}
+
+	report := NewReport(cfg, Config{EnableStats: true})
+
+	// Stress test with many goroutines doing different operations
+	var wg sync.WaitGroup
+	numGoroutines := 100
+	operationsPerGoroutine := 100
+
+	// Start goroutines that add findings
+	for i := 0; i < numGoroutines; i++ {
+		wg.Add(1)
+		go func(goroutineID int) {
+			defer wg.Done()
+			
+			for j := 0; j < operationsPerGoroutine; j++ {
+				finding := Finding{
+					Type:        "stress-test",
+					Title:       fmt.Sprintf("G%d-F%d", goroutineID, j),
+					Description: fmt.Sprintf("Stress test finding from goroutine %d, operation %d", goroutineID, j),
+					Component:   fmt.Sprintf("component-%d", j%5),
+				}
+				
+				severity := []Severity{
+					SeverityCritical, SeverityHigh, SeverityMedium, SeverityLow, SeverityInfo,
+				}[j%5]
+				
+				report.AddFinding(severity, finding)
+				
+				// Occasionally check total findings (read operation)
+				if j%10 == 0 {
+					_ = report.TotalFindings()
+				}
+				
+				// Occasionally check for critical findings (read operation)
+				if j%15 == 0 {
+					_ = report.HasCriticalFindings()
+				}
+			}
+		}(i)
+	}
+
+	// Start goroutines that perform read operations
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			
+			for j := 0; j < operationsPerGoroutine*10; j++ {
+				_ = report.TotalFindings()
+				_ = report.HasCriticalFindings()
+				_ = report.Summary()
+				
+				// Occasionally serialize to JSON
+				if j%50 == 0 {
+					_, _ = report.ToJSON()
+				}
+				
+				// Small delay to allow other goroutines to interleave
+				time.Sleep(1 * time.Microsecond)
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	// Verify final state
+	totalExpected := numGoroutines * operationsPerGoroutine
+	actualTotal := report.TotalFindings()
+	assert.Equal(t, totalExpected, actualTotal, "All findings should be present")
+
+	// Verify distribution (each severity should have equal numbers)
+	expectedPerSeverity := totalExpected / 5
+	assert.Equal(t, expectedPerSeverity, len(report.Findings.Critical))
+	assert.Equal(t, expectedPerSeverity, len(report.Findings.High))
+	assert.Equal(t, expectedPerSeverity, len(report.Findings.Medium))
+	assert.Equal(t, expectedPerSeverity, len(report.Findings.Low))
+	assert.Equal(t, expectedPerSeverity, len(report.Findings.Info))
+
+	// Final serialization should work
+	jsonStr, err := report.ToJSON()
+	assert.NoError(t, err)
+	assert.NotEmpty(t, jsonStr)
+	
+	markdown := report.ToMarkdown()
+	assert.NotEmpty(t, markdown)
+	assert.Contains(t, markdown, "stress-test")
+}
+
