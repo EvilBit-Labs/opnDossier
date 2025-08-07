@@ -1,0 +1,152 @@
+---
+applyTo: '**/*.go'
+---
+
+# Go Development Standards
+
+## Go Version Requirements
+
+- **Minimum Go Version:** 1.21.6+
+- **Recommended Go Version:** 1.24.5+
+- **Module Support:** Required (Go modules only)
+
+## Code Organization
+
+### Package Structure
+
+- Follow Google Go Style Guide for package organization
+- Use `internal/` for private application logic
+- Use `pkg/` for public packages that can be reused
+- Use `cmd/` for CLI command definitions
+
+### File Naming
+
+- Use snake_case for file names
+- Use descriptive names that indicate functionality
+- Group related functionality in the same package
+
+## Coding Standards
+
+### Naming Conventions
+
+- Use `camelCase` for variables and functions
+- Use `PascalCase` for exported types and functions
+- Use descriptive names that clearly indicate purpose
+- Avoid abbreviations unless they are widely understood
+
+### Error Handling
+
+- Always check errors and provide meaningful context
+- Use `fmt.Errorf` or `errors.Wrap` for error context
+- Don't use `log.Fatal` in library code
+- Return errors rather than panicking
+
+### Documentation
+
+- Include package comments for all packages
+- Document all exported functions and types
+- Use clear, concise descriptions
+- Include examples for complex functionality
+
+## Testing Standards
+
+### Test Organization
+
+- Use table-driven tests for multiple scenarios
+- Use `t.Run()` for subtests
+- Aim for >80% test coverage
+- Test both success and failure cases
+
+### Test Naming
+
+- Use descriptive test names that indicate what is being tested
+- Use `TestFunctionName` pattern for test functions
+- Use `TestFunctionName_Scenario` for specific test cases
+
+## Performance Guidelines
+
+### Memory Management
+
+- Minimize memory allocations
+- Use efficient data structures
+- Consider using object pools for frequently allocated objects
+- Profile memory usage for large operations
+
+### Concurrency
+
+- Use goroutines and channels appropriately
+- Avoid race conditions with proper synchronization
+- Use `go test -race` to detect race conditions
+- Consider context cancellation for long-running operations
+
+## Dependencies
+
+### Dependency Management
+
+- Use Go modules for dependency management
+- Pin dependency versions for stability
+- Regularly update dependencies for security
+- Minimize external dependencies
+
+### Import Organization
+
+- Use `goimports` for import organization
+- Group imports: standard library, third-party, internal
+- Use absolute import paths for clarity
+
+## Data Processing Standards
+
+### Data Models
+
+- **OpnSenseDocument:** Core data model representing entire OPNsense configuration
+- **XML Tags:** Must strictly follow OPNsense configuration file structure
+- **JSON/YAML Tags:** Follow recommended best practices for each format
+- **Audit Models:** Create separate structs (`Finding`, `Target`, `Exposure`) for audit concepts
+
+### Multi-Format Export
+
+- Support export to markdown, JSON, and YAML formats
+- Validate exported files are parseable by standard tools
+- Implement smart file naming with overwrite protection
+- Use `-f` flag for force overwrite operations
+
+### Validation System
+
+- Apply validation automatically during parsing
+- Provide explicit validation via CLI commands
+- Handle large configurations with memory-efficient approaches
+- Use struct tags and custom validation functions
+
+## Configuration Management Guidelines
+
+**Important Note**: `viper` is used for managing the opnDossier application's own configuration (CLI settings, display preferences, etc.), not for parsing OPNsense config.xml files. The OPNsense configuration parsing is handled separately by the XML parser in `internal/parser/`.
+
+## Multi-Format Export Standards
+
+### Export Features
+
+- **Purpose**: Export OPNsense configurations to markdown, JSON, or YAML formats
+- **Usage**: `opndossier convert config.xml --format [markdown|json|yaml]`
+- **File Quality**: Exported files must be valid and parseable by standard tools and libraries
+- **Output Control**: Smart file naming with overwrite protection and `-f` force option
+
+### Validation System
+
+- **Purpose**: Enhance configuration integrity by validating against rules and constraints
+- **Usage**: Automatically applied during parsing, or explicitly initiated via CLI
+- **Performance**: Handle large configurations using streamlined memory-efficient approaches
+
+## Security Standards
+
+### Secret Management
+
+- Never hardcode secrets in source code
+- Use environment variables for sensitive configuration
+- Implement secure file permissions (0600 for config files)
+- Avoid exposing sensitive data in error messages
+
+### Input Validation
+
+- Validate all user inputs and sanitize file paths
+- Handle file size limits and malformed data gracefully
+- Use secure defaults for all configuration options

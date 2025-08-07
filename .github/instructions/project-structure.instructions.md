@@ -1,0 +1,105 @@
+---
+applyTo: '**'
+---
+
+# Project Structure Guidelines
+
+## Core Project Files
+
+### Configuration and Build
+
+```text
+opnDossier/
+├── go.mod                    # Go module definition and dependencies
+├── go.sum                    # Dependency checksums
+├── justfile                  # Task runner for development commands
+└── main.go                   # Application entry point
+```
+
+### Documentation
+
+```text
+opnDossier/
+├── README.md                 # Project overview and quick start
+├── AGENTS.md                 # Development standards and AI agent protocols
+├── ARCHITECTURE.md           # System architecture documentation
+├── DEVELOPMENT_STANDARDS.md  # Coding standards and practices
+└── docs/                     # Comprehensive documentation directory
+```
+
+### Project Specification
+
+```text
+opnDossier/
+└── project_spec/
+    ├── requirements.md       # Detailed requirements specification
+    ├── tasks.md              # Implementation task checklist
+    └── user_stories.md       # User stories and use cases
+```
+
+## Directory Structure
+
+### Source Code Organization
+
+```text
+opndossier/
+├── cmd/
+│   ├── convert.go                         # Convert command entry point
+│   ├── display.go                         # Display command entry point
+│   ├── validate.go                        # Validate command entry point
+│   └── root.go                            # Root command and main entry point
+├── internal/                              # Private application logic and business rules
+├── pkg/                                   # Public packages (if any)
+├── testdata/                              # Test data and fixtures
+└── docs/                                  # Documentation
+```
+
+### Internal Package Structure
+
+```text
+opnDossier/internal/
+├── audit/                    # Audit engine and compliance checking
+│   ├── plugin.go             # Plugin registry and compliance logic
+│   └── plugin_manager.go     # Plugin lifecycle management
+├── config/                   # Configuration management
+├── converter/                # Data conversion utilities
+├── display/                  # Terminal display and formatting
+├── export/                   # File export functionality
+├── log/                      # Logging utilities
+├── markdown/                 # Markdown generation
+├── model/                    # Data models and structures
+├── parser/                   # XML parsing and validation
+├── plugin/                   # Plugin interfaces and errors
+├── plugins/                  # Compliance plugins
+│   ├── firewall/             # Firewall compliance plugin
+│   ├── sans/                 # SANS compliance plugin
+│   └── stig/                 # STIG compliance plugin
+├── processor/                # Data processing and analysis
+├── templates/                # Template files for output generation
+├── validator/                # Data validation
+├── constants/                # Application constants
+└── walker.go                 # File system walker utilities
+```
+
+## Development Workflow
+
+### Task Management
+
+- Use `just` commands for development tasks
+- Follow the task checklist in `project_spec/tasks.md`
+- Update task status as work progresses
+- Reference requirements in `project_spec/requirements.md`
+
+### Quality Assurance
+
+- Run `just ci-check` before committing
+- Ensure all tests pass with `just test`
+- Maintain >80% test coverage
+- Follow linting standards with `golangci-lint`
+
+### Documentation Updates
+
+- Update relevant documentation when making changes
+- Keep `README.md` current with installation and usage
+- Update `docs/` directory for new features
+- Maintain consistency across all documentation files
