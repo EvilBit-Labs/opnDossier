@@ -2,7 +2,7 @@
 
 [![Go Version](https://img.shields.io/badge/go-1.21+-blue.svg)](https://golang.org)
 [![License](https://img.shields.io/badge/license-Apache-green.svg)](LICENSE)
-[![Coverage](https://img.shields.io/badge/coverage-80%25-green.svg)](https://github.com/EvilBit-Labs/opnDossier)
+[![codecov](https://codecov.io/gh/EvilBit-Labs/opnDossier/graph/badge.svg?token=WD1QD9ITZF)](https://codecov.io/gh/EvilBit-Labs/opnDossier)
 [![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/index.md)
 [![CI](https://github.com/EvilBit-Labs/opnDossier/actions/workflows/ci-check.yml/badge.svg)](https://github.com/EvilBit-Labs/opnDossier/actions/workflows/ci-check.yml)
 [![CodeQL](https://github.com/EvilBit-Labs/opnDossier/actions/workflows/codeql.yml/badge.svg)](https://github.com/EvilBit-Labs/opnDossier/actions/workflows/codeql.yml)
