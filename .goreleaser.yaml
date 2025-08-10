@@ -81,7 +81,7 @@ release:
     **Full Changelog**: https://github.com/EvilBit-Labs/opnDossier/compare/{{.PreviousTag}}...{{.Tag}}
 
     ## Security Information
-    
+
     This release includes:
     - ✅ SBOM (Software Bill of Materials) generated with Syft
     - ✅ Vulnerability scan results with Grype
@@ -242,6 +242,21 @@ sboms:
     artifacts: archive
   - id: package-sbom
     artifacts: package
+
+# Cosign signing configuration
+signs:
+  - artifacts: all
+    args:
+      - "--yes"
+      - "--bundle"
+      - "cosign.bundle"
+    env:
+      - COSIGN_EXPERIMENTAL=1
+
+# SLSA provenance generation
+# Note: GoReleaser doesn't have native SLSA support yet, so this is handled via GitHub Actions
+# for automated releases, or manually for local releases
+
 notarize:
   macos:
     - enabled: '{{ isEnvSet "MACOS_SIGN_P12" }}'

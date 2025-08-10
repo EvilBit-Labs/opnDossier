@@ -36,7 +36,7 @@ venv-pip := if os_family() == "windows" { ".venv\\Scripts\\pip.exe" } else { ".v
 venv-mkdocs := if os_family() == "windows" { ".venv\\Scripts\\mkdocs.exe" } else { ".venv/bin/mkdocs" }
 
 
-# Install dev dependencies (Pipeline v2 standard: setup)
+# Install dev dependencies
 setup: install
 
 # Install dependencies
@@ -136,6 +136,108 @@ install-git-cliff:
         echo "git-cliff is already installed"; \
     fi
 
+# Install Grype for vulnerability scanning
+[unix]
+install-grype:
+    @echo "Installing Grype..."
+    @if ! command -v grype >/dev/null 2>&1; then \
+        if command -v brew >/dev/null 2>&1; then \
+            brew tap anchore/grype && brew install grype; \
+        elif command -v go >/dev/null 2>&1; then \
+            go install github.com/anchore/grype@latest; \
+        else \
+            echo "Error: Grype not found. Please install it manually:"; \
+            echo "  - Using Homebrew: brew tap anchore/grype && brew install grype"; \
+            echo "  - Using Go: go install github.com/anchore/grype@latest"; \
+            exit 1; \
+        fi; \
+    else \
+        echo "Grype is already installed"; \
+    fi
+
+[windows]
+install-grype:
+    @echo "Installing Grype..."
+    @if ! where grype >nul 2>&1; then \
+        if where go >nul 2>&1; then \
+            go install github.com/anchore/grype@latest; \
+        else \
+            echo "Error: Grype not found. Please install it manually:"; \
+            echo "  - Using Go: go install github.com/anchore/grype@latest"; \
+            exit 1; \
+        fi; \
+    else \
+        echo "Grype is already installed"; \
+    fi
+
+# Install Syft for SBOM generation
+[unix]
+install-syft:
+    @echo "Installing Syft..."
+    @if ! command -v syft >/dev/null 2>&1; then \
+        if command -v brew >/dev/null 2>&1; then \
+            brew tap anchore/syft && brew install syft; \
+        elif command -v go >/dev/null 2>&1; then \
+            go install github.com/anchore/syft@latest; \
+        else \
+            echo "Error: Syft not found. Please install it manually:"; \
+            echo "  - Using Homebrew: brew tap anchore/syft && brew install syft"; \
+            echo "  - Using Go: go install github.com/anchore/syft@latest"; \
+            exit 1; \
+        fi; \
+    else \
+        echo "Syft is already installed"; \
+    fi
+
+[windows]
+install-syft:
+    @echo "Installing Syft..."
+    @if ! where syft >nul 2>&1; then \
+        if where go >nul 2>&1; then \
+            go install github.com/anchore/syft@latest; \
+        else \
+            echo "Error: Syft not found. Please install it manually:"; \
+            echo "  - Using Go: go install github.com/anchore/syft@latest"; \
+            exit 1; \
+        fi; \
+    else \
+        echo "Syft is already installed"; \
+    fi
+
+# Install Cosign for artifact signing
+[unix]
+install-cosign:
+    @echo "Installing Cosign..."
+    @if ! command -v cosign >/dev/null 2>&1; then \
+        if command -v brew >/dev/null 2>&1; then \
+            brew install cosign; \
+        elif command -v go >/dev/null 2>&1; then \
+            go install github.com/sigstore/cosign/v2/cmd/cosign@latest; \
+        else \
+            echo "Error: Cosign not found. Please install it manually:"; \
+            echo "  - Using Homebrew: brew install cosign"; \
+            echo "  - Using Go: go install github.com/sigstore/cosign/v2/cmd/cosign@latest"; \
+            exit 1; \
+        fi; \
+    else \
+        echo "Cosign is already installed"; \
+    fi
+
+[windows]
+install-cosign:
+    @echo "Installing Cosign..."
+    @if ! where cosign >nul 2>&1; then \
+        if where go >nul 2>&1; then \
+            go install github.com/sigstore/cosign/v2/cmd/cosign@latest; \
+        else \
+            echo "Error: Cosign not found. Please install it manually:"; \
+            echo "  - Using Go: go install github.com/sigstore/cosign/v2/cmd/cosign@latest"; \
+            exit 1; \
+        fi; \
+    else \
+        echo "Cosign is already installed"; \
+    fi
+
 
 # -----------------------------
 # 🧹 Linting, Typing, Dep Check
@@ -145,7 +247,7 @@ install-git-cliff:
 check:
     pre-commit run --all-files
 
-# Run code formatting (Pipeline v2 standard: fmt)
+# Run code formatting
 fmt: format
 
 # Run code formatting
@@ -199,7 +301,7 @@ test-coverage:
     @just test-with-coverage
     go tool cover -func=coverage.txt
 
-# Generate coverage artifacts (Pipeline v2 standard: cover)
+# Generate coverage artifacts
 cover: test-with-coverage
 
 
@@ -243,7 +345,7 @@ build-for-release:
 build-snapshot:
     goreleaser build --clean --snapshot
 
-# GoReleaser dry run (Pipeline v2 standard: release-dry)
+# GoReleaser dry run
 release-dry: build-snapshot
 
 # Build full release (requires git tag)
@@ -266,7 +368,7 @@ release-snapshot:
 # 📖 Documentation
 # -----------------------------
 
-# Serve documentation locally (Pipeline v2 standard: site)
+# Serve documentation locally
 site: docs
 
 # Serve documentation locally
@@ -336,7 +438,7 @@ scan-vulnerabilities:
     fi
     grype .
 
-# Generate SBOM with Syft (Pipeline v2 standard: sbom)
+# Generate SBOM with Syft
 sbom: generate-sbom
 
 # Generate SBOM with Syft

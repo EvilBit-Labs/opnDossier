@@ -1,6 +1,6 @@
 # Releasing opnDossier
 
-This document outlines the complete process for preparing and releasing a new version of opnDossier. The project uses GoReleaser for automated releases, git-cliff for changelog generation, and follows semantic versioning principles.
+This document outlines the complete process for preparing and releasing a new version of opnDossier. The project uses GoReleaser for automated releases, git-cliff for changelog generation, and follows semantic versioning principles with comprehensive security compliance.
 
 ## Overview
 
@@ -9,7 +9,8 @@ The opnDossier release process is designed to be:
 - **Local-First**: All commands run locally using the justfile and GoReleaser
 - **Consistent**: Following conventional commits and semantic versioning
 - **Comprehensive**: Includes binaries, Docker images, checksums, and SBOMs
-- **Secure**: Includes macOS notarization and code signing when configured
+- **Secure**: Includes SLSA Level 3 provenance, Cosign signatures, and comprehensive security scanning
+- **Security Compliant**: Full compliance with industry security standards
 
 ## Prerequisites
 
@@ -19,6 +20,11 @@ Before starting a release, ensure you have:
 
    - `git-cliff` installed (run `just install-git-cliff` if needed)
    - `goreleaser` installed
+   - `cosign` for artifact signing (run `just install-cosign` if needed)
+   - `grype` for vulnerability scanning (run `just install-grype` if needed)
+   - `syft` for SBOM generation (run `just install-syft` if needed)
+   - `snyk` CLI for additional vulnerability scanning (optional)
+   - `fossa` CLI for license analysis (optional)
    - Proper GitHub permissions for the repository
 
 2. **Environment Setup**:
@@ -30,6 +36,9 @@ Before starting a release, ensure you have:
      - `MACOS_NOTARY_ISSUER_ID`
      - `MACOS_NOTARY_KEY_ID`
      - `MACOS_NOTARY_KEY`
+   - For enhanced security scanning (optional):
+     - `SNYK_TOKEN` for Snyk vulnerability scanning
+     - `FOSSA_API_KEY` for FOSSA license analysis
 
 3. **Clean Working Directory**:
 
@@ -58,8 +67,16 @@ Before starting a release, ensure you have:
 
    - Code formatting checks (`just format-check`)
    - Linting (`just lint`)
-   - All tests (`just test`)
+   - All tests with race detection (`just test`)
+   - Security scanning (`just security-scan`)
    - GoReleaser configuration validation (`just check-goreleaser`)
+
+   The `full-checks` command includes:
+
+   - **Vulnerability Scanning**: Grype for dependency vulnerabilities
+   - **SBOM Generation**: Syft for Software Bill of Materials
+   - **License Analysis**: FOSSA for license compliance
+   - **Additional Security**: Snyk for enhanced vulnerability scanning
 
 2. **Test Release Build** (Optional but Recommended):
 
@@ -68,6 +85,19 @@ Before starting a release, ensure you have:
    ```
 
    This creates a snapshot build without publishing to verify everything works.
+
+3. **Security Validation**:
+
+   ```bash
+   # Run comprehensive security scan
+   just security-scan
+
+   # Or run individual security checks
+   just scan-vulnerabilities  # Grype vulnerability scan
+   just generate-sbom         # Generate SBOM with Syft
+   just snyk-scan            # Snyk vulnerability scan (requires SNYK_TOKEN)
+   just fossa-scan           # FOSSA license analysis (requires FOSSA_API_KEY)
+   ```
 
 ### Step 2: Update Changelog
 
@@ -144,6 +174,7 @@ All releases are performed locally using the justfile commands:
      - Complete documentation
    - Generates checksums file (`opnDossier_checksums.txt`)
    - Creates Software Bill of Materials (SBOM) for archives and packages
+   - Signs all artifacts with Cosign (keyless signing)
    - Builds and pushes Docker images to GitHub Container Registry
    - Creates the GitHub release with all artifacts attached
    - Uses git-cliff generated changelog for release notes
@@ -163,6 +194,56 @@ just release-snapshot
 ```
 
 This creates all artifacts locally but doesn't publish to GitHub or push Docker images.
+
+## Security Features
+
+### Automated Security Scanning
+
+The release process includes comprehensive security scanning:
+
+1. **Vulnerability Scanning**: Grype scans all dependencies for known vulnerabilities
+2. **SBOM Generation**: Syft generates Software Bill of Materials in SPDX format
+3. **License Analysis**: FOSSA verifies license compliance
+4. **Additional Security**: Snyk provides enhanced vulnerability scanning
+
+### SLSA Level 3 Provenance
+
+Every release includes SLSA Level 3 provenance attestation:
+
+- **Build Integrity**: Cryptographic proof of build process integrity
+- **Source Verification**: Links artifacts to exact source code versions
+- **Build Environment**: Documents the build environment and tools used
+- **Automated Generation**: Generated automatically via GitHub Actions
+
+### Cosign Signatures
+
+All release artifacts are signed using Cosign:
+
+- **Keyless Signing**: Uses OIDC-based keyless signing
+- **Artifact Verification**: Users can verify artifact authenticity
+- **Bundle Format**: Signatures include in-toto attestation bundles
+- **Automated Process**: Integrated into the release workflow
+
+### Verification Commands
+
+Users can verify releases using:
+
+```bash
+# Verify checksums
+sha256sum -c opnDossier_checksums.txt
+
+# Verify Cosign signatures (requires cosign)
+cosign verify-blob \
+  --bundle cosign.bundle \
+  opnDossier_checksums.txt
+
+# Verify individual artifacts with Cosign
+cosign verify-blob \
+  --bundle cosign.bundle \
+  opnDossier_Linux_x86_64.tar.gz
+```
+
+**Note**: SLSA provenance is generated via GitHub Actions for automated releases. For manual releases, SLSA provenance can be generated separately using the SLSA framework tools.
 
 ## GoReleaser Configuration
 
@@ -200,7 +281,7 @@ Two Docker image variants are built:
 ### Additional Artifacts
 
 - **Checksums**: `opnDossier_checksums.txt`
-- **SBOM**: Software Bill of Materials for archives
+- **SBOM**: Software Bill of Materials for archives and packages
 - **Source Code**: Automatically included
 - **Universal Binaries**: For macOS (replaces individual arch binaries)
 
@@ -321,18 +402,31 @@ Examples:
    just install-git-cliff
    ```
 
-3. **Build Failures**:
+3. **Missing Security Tools**:
+
+   ```bash
+   just install-grype    # Install Grype vulnerability scanner
+   just install-syft     # Install Syft SBOM generator
+   ```
+
+4. **Build Failures**:
 
    - Check Go version compatibility (requires Go 1.24+)
    - Ensure all tests pass: `just test`
    - Verify dependencies: `go mod tidy`
 
-4. **Docker Login Issues**:
+5. **Docker Login Issues**:
 
    - Verify GITHUB_TOKEN permissions
    - Check container registry access
    - Ensure you're logged in: `docker login ghcr.io`
    - Test Docker access: `docker pull ghcr.io/evilbit-labs/opndossier:latest`
+
+6. **Security Scan Failures**:
+
+   - Check for high-severity vulnerabilities in dependencies
+   - Review SBOM for unexpected dependencies
+   - Verify license compliance with FOSSA
 
 ### Release Validation
 
@@ -343,6 +437,8 @@ After a release, verify:
    - Release notes are generated correctly
    - All binary artifacts are attached
    - Checksums file is present
+   - SBOM files are included
+   - SLSA provenance attestation is attached
 
 2. **Docker Images**:
 
@@ -355,6 +451,19 @@ After a release, verify:
 
    - Test download and execution of binaries for your platform
    - Verify version information is correct
+
+4. **Security Verification**:
+
+   ```bash
+   # Verify checksums
+   sha256sum -c opnDossier_checksums.txt
+
+   # Verify SLSA provenance
+   slsa-verifier verify-artifact \
+     --provenance-path opnDossier-v1.0.0.intoto.jsonl \
+     --source-uri github.com/EvilBit-Labs/opnDossier \
+     opnDossier_checksums.txt
+   ```
 
 ## Release Schedule
 
@@ -372,6 +481,10 @@ opnDossier follows these release practices:
 - macOS binaries can be notarized when certificates are configured
 - Dependencies are automatically updated via Dependabot
 - CodeQL analysis runs on all releases
+- SLSA Level 3 provenance provides build integrity verification
+- Cosign signatures ensure artifact authenticity
+- Comprehensive vulnerability scanning with Grype and Snyk
+- License compliance verified with FOSSA
 
 ## Post-Release Tasks
 
@@ -381,6 +494,7 @@ After a successful release:
 2. **Close Milestones**: Close the GitHub milestone for the release
 3. **Announce Release**: Update relevant channels about the new version
 4. **Monitor Issues**: Watch for any issues reported with the new release
+5. **Security Monitoring**: Monitor for any security issues in dependencies
 
 ## Rollback Procedure
 
@@ -390,6 +504,7 @@ If a release has critical issues:
 2. **Update GitHub Release**: Mark problematic release as pre-release if needed
 3. **Docker Images**: Latest tag will point to the new fixed version
 4. **Communication**: Notify users about the issue and fix
+5. **Security Assessment**: Re-run security scans to ensure no new vulnerabilities
 
 ---
 

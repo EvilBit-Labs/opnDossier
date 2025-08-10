@@ -76,6 +76,20 @@ jobs:
         env:
           COSIGN_EXPERIMENTAL: 1
 
+      - name: Upload Cosign bundle to release
+        run: |
+          # Get the release ID and upload URL
+          RELEASE_ID=$(gh api repos/${{ github.repository }}/releases/tags/${{ github.ref_name }} --jq '.id')
+          UPLOAD_URL="https://uploads.github.com/repos/${{ github.repository }}/releases/${RELEASE_ID}/assets"
+
+          # Upload the Cosign bundle
+          gh api "${UPLOAD_URL}" \
+            --field name=cosign.bundle \
+            --field content_type=application/octet-stream \
+            --upload-file ./cosign.bundle
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   provenance:
     needs: goreleaser
     if: startsWith(github.ref, 'refs/tags/')
@@ -112,6 +126,33 @@ jobs:
       base64-subjects: ${{ needs.provenance.outputs.base64-subjects }}
       provenance-name: "opnDossier-${{ github.ref_name }}.intoto.jsonl"
 
+  upload-slsa:
+    needs: [goreleaser, slsa-provenance]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download SLSA provenance
+        uses: actions/download-artifact@v4
+        with:
+          name: slsa-provenance
+          path: .
+
+      - name: Upload SLSA provenance to release
+        run: |
+          # Get the release ID and upload URL
+          RELEASE_ID=$(gh api repos/${{ github.repository }}/releases/tags/${{ github.ref_name }} --jq '.id')
+          UPLOAD_URL="https://uploads.github.com/repos/${{ github.repository }}/releases/${RELEASE_ID}/assets"
+
+          # Upload the SLSA provenance file
+          gh api "${UPLOAD_URL}" \
+            --field name=opnDossier-${{ github.ref_name }}.intoto.jsonl \
+            --field content_type=application/json \
+            --upload-file ./opnDossier-${{ github.ref_name }}.intoto.jsonl
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   verification:
     needs: [goreleaser, slsa-provenance]
     if: startsWith(github.ref, 'refs/tags/')
@@ -123,10 +164,15 @@ jobs:
       - name: Install SLSA Verifier
         uses: slsa-framework/slsa-verifier/actions/installer@v2.5.1
 
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.7.0
+        with:
+          cosign-release: 'v2.2.4'
+
       - name: Download artifacts
         uses: actions/download-artifact@v4
 
-      - name: Verify provenance
+      - name: Verify SLSA provenance
         run: |
           slsa-verifier verify-artifact \
             --provenance-path "${{ needs.slsa-provenance.outputs.provenance-name }}" \
@@ -134,3 +180,14 @@ jobs:
             --source-tag "${{ github.ref_name }}" \
             dist/opnDossier_checksums.txt
 
+      - name: Verify Cosign signature
+        run: |
+          # Download the Cosign bundle from the release
+          gh release download ${{ github.ref_name }} --pattern "cosign.bundle"
+
+          # Verify the signature
+          cosign verify-blob \
+            --bundle cosign.bundle \
+            dist/opnDossier_checksums.txt
+        env:
+          COSIGN_EXPERIMENTAL: 1
