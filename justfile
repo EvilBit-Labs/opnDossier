@@ -49,9 +49,56 @@ install:
 
 # Update dependencies
 update-deps:
+    @just update-go-deps
+    @just update-python-deps
+    @just update-pnpm-deps
+    @just update-pre-commit
+    @just update-dev-tools
+    @echo "Dependency updates complete!"
+
+# Update Go dependencies
+update-go-deps:
+    @echo "Updating Go dependencies..."
     go get -u ./...
     go mod tidy
     go mod verify
+
+# Update Python virtual environment dependencies
+update-python-deps:
+    @echo "Updating Python virtual environment dependencies..."
+    @{{venv-pip}} install --upgrade mkdocs-material
+
+# Update pre-commit hooks
+update-pre-commit:
+    @echo "Updating pre-commit hooks..."
+    pre-commit autoupdate
+
+# Update development tools
+update-dev-tools:
+    @echo "Updating development tools..."
+    @if command -v go >/dev/null 2>&1; then \
+        go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
+    fi
+
+# Update pnpm dependencies (Unix)
+[unix]
+update-pnpm-deps:
+    @echo "Updating npm dependencies..."
+    @if command -v pnpm >/dev/null 2>&1; then \
+        pnpm update; \
+    else \
+        echo "Warning: pnpm not found, skipping pnpm dependency updates"; \
+    fi
+
+# Update pnpm dependencies (Windows)
+[windows]
+update-pnpm-deps:
+    @echo "Updating npm dependencies..."
+    @if where pnpm >nul 2>&1; then \
+        pnpm update; \
+    else \
+        echo "Warning: pnpm not found, skipping pnpm dependency updates"; \
+    fi
 
 # Install git-cliff for changelog generation
 [unix]
@@ -310,7 +357,7 @@ snyk-scan:
     @if ! command -v snyk >/dev/null 2>&1; then \
         echo "Error: snyk CLI not found. Install with:"; \
         echo "  - Using npm: npm install -g snyk"; \
-        echo "  - Using Homebrew: brew install snyk"; \
+        echo "  - Using Homebrew: brew install snyk-cli"; \
         echo "  - Or download from: https://github.com/snyk/cli/releases"; \
         exit 1; \
     fi
@@ -360,6 +407,7 @@ ci-check:
 full-checks:
     @cd {{justfile_dir()}}
     @just ci-check
+    @just security-scan
     @just check-goreleaser
 
 # Test specific GitHub Actions workflow

@@ -6,7 +6,6 @@ version: 3
 project:
   id: github.com/EvilBit-Labs/opnDossier
   name: opnDossier
-  team: EvilBit-Labs
   policy: default
   link: https://github.com/EvilBit-Labs/opnDossier
 
