@@ -44,15 +44,16 @@ var ErrUnsupportedFormat = errors.New("unsupported format. Supported formats: ma
 
 // formatInterfacesAsLinks formats a list of interfaces as markdown links pointing to their respective sections.
 // Each interface name is converted to a clickable link that references the corresponding interface configuration section.
-// For table display, this returns the interface names with reference numbers that will be defined at the bottom.
+// The function returns inline markdown links (e.g., [wan](#wan-interface)), which the nao1215/markdown package
+// automatically converts to reference-style links when used in table cells.
 func formatInterfacesAsLinks(interfaces model.InterfaceList) string {
 	if interfaces.IsEmpty() {
 		return ""
 	}
 
-	// For table display, we return the interface names as-is
-	// The nao1215/markdown package will automatically create reference-style links
-	// when the markdown.Link function is used in table cells
+	// Create inline markdown links for each interface
+	// The nao1215/markdown package will automatically convert these to reference-style links
+	// when used in table cells (e.g., wan[1] with [1]: wan #wan-interface at the bottom)
 	links := make([]string, 0, len(interfaces))
 	for _, iface := range interfaces {
 		// Create anchor link to the interface section
