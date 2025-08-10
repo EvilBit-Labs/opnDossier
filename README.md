@@ -387,21 +387,6 @@ This tool is designed with security as a first-class concern:
 
 For security issues, please see our security policy.
 
-### Pipeline v2 Compliance
-
-This project follows the [EvilBit Labs Pipeline v2 Specification](https://github.com/EvilBit-Labs/Standards/blob/main/pipeline_v_2_spec.md) for OSS project quality gates and tooling:
-
-- ✅ **Security Scanning**: GitHub CodeQL, Grype vulnerability scanning, Snyk integration
-- ✅ **License Compliance**: FOSSA license scanning and policy enforcement
-- ✅ **Supply Chain Security**: SLSA Level 3 provenance, Cosign artifact signing, SBOM generation
-- ✅ **Code Quality**: golangci-lint, comprehensive testing with coverage reporting
-- ✅ **Repository Hygiene**: OSSF Scorecard, automated dependency updates
-- ✅ **CI/CD Standards**: GitHub Actions with local/CI parity via `just` commands
-
-### Exceptions
-
-Currently no exceptions to the Pipeline v2 specification are required for this project.
-
 ## License
 
 This project is licensed under the Apache License - see the [LICENSE](LICENSE) file for details.

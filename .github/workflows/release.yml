@@ -18,6 +18,7 @@ jobs:
       id-token: write
     runs-on: ubuntu-latest
 
+
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -53,7 +54,21 @@ jobs:
         id: hash
         run: |
           # Generate hashes for SLSA provenance
+          # Generate hashes for SLSA provenance
           cd dist
+          # Enable nullglob to handle missing file types gracefully
+          shopt -s nullglob
+          # Collect all artifact files into an array
+          ARTIFACTS=(*.tar.gz *.zip *.deb *.rpm *.apk *.pkg.tar.xz opnDossier_checksums.txt)
+          # Generate hashes for all existing files
+          sha256sum "${ARTIFACTS[@]}" > opnDossier_checksums.txt
+
+      - name: Upload checksum file as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: checksums
+          path: dist/opnDossier_checksums.txt
+          retention-days: 1
           # Enable nullglob to handle missing file types gracefully
           shopt -s nullglob
           # Collect all artifact files into an array
@@ -121,8 +136,33 @@ jobs:
       actions: read
       contents: write
       id-token: write
+    runs-on: ubuntu-latest
+    outputs:
+      base64-subjects: ${{ steps.generate-subjects.outputs.base64-subjects }}
+    steps:
+      - name: Download checksum artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: checksums
+          path: .
+
+      - name: Generate base64 subjects
+        id: generate-subjects
+        run: |
+          # Generate base64 encoded hash for the checksum file
+          HASHES=$(sha256sum opnDossier_checksums.txt | base64 -w0)
+          echo "base64-subjects=${HASHES}" >> "$GITHUB_OUTPUT"
+
+  slsa-provenance:
+    needs: provenance
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      actions: read
+      contents: write
+      id-token: write
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.0.0
     with:
+      base64-subjects: ${{ needs.provenance.outputs.base64-subjects }}
       base64-subjects: ${{ needs.provenance.outputs.base64-subjects }}
       provenance-name: "opnDossier-${{ github.ref_name }}.intoto.jsonl"
 
@@ -155,6 +195,7 @@ jobs:
 
   verification:
     needs: [goreleaser, slsa-provenance]
+    needs: [goreleaser, slsa-provenance]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
@@ -164,17 +205,13 @@ jobs:
       - name: Install SLSA Verifier
         uses: slsa-framework/slsa-verifier/actions/installer@v2.5.1
 
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@v3.7.0
-        with:
-          cosign-release: 'v2.2.4'
-
       - name: Download artifacts
         uses: actions/download-artifact@v4
 
-      - name: Verify SLSA provenance
+      - name: Verify provenance
         run: |
           slsa-verifier verify-artifact \
+            --provenance-path "${{ needs.slsa-provenance.outputs.provenance-name }}" \
             --provenance-path "${{ needs.slsa-provenance.outputs.provenance-name }}" \
             --source-uri github.com/EvilBit-Labs/opnDossier \
             --source-tag "${{ github.ref_name }}" \
