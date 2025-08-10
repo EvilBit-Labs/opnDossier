@@ -37,7 +37,7 @@ repos:
       hooks:
         - id: commitlint
           name: commitlint
-          entry: npx --no-install commitlint --edit
+          entry: pnpm exec commitlint --edit
           language: node
           stages: [commit-msg]
 

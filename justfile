@@ -520,10 +520,13 @@ full-checks:
     @just security-scan
     @just check-goreleaser
 
-# Test specific GitHub Actions workflow
+# Act configuration variables
+act-arch := "linux/amd64"
+act-base-cmd := "act --container-architecture " + act-arch
+
+# Act installation check (Unix)
 [unix]
-act-workflow *workflow:
-    @echo "Testing GitHub Actions workflow: {{workflow}}"
+_check-act:
     @if ! command -v act >/dev/null 2>&1; then \
         echo "Error: act not found. Please install it:"; \
         echo "  - Using Homebrew: brew install act"; \
@@ -531,18 +534,94 @@ act-workflow *workflow:
         echo "  - Or download from: https://github.com/nektos/act/releases"; \
         exit 1; \
     fi
-    act --workflows .github/workflows/{{workflow}}.yml --list --container-architecture linux/amd64
 
+# Act installation check (Windows)
 [windows]
-act-workflow *workflow:
-    @echo "Testing GitHub Actions workflow: {{workflow}}"
+_check-act:
     @if (-not (Get-Command act -ErrorAction SilentlyContinue)) { \
         echo "Error: act not found. Please install it:"; \
         echo "  - Using Go: go install github.com/nektos/act@latest"; \
         echo "  - Or download from: https://github.com/nektos/act/releases"; \
         exit 1; \
     }
-    act --workflows .github/workflows/{{workflow}}.yml --list --container-architecture linux/amd64
+
+# Test specific GitHub Actions workflow
+act-workflow *workflow:
+    @just _check-act
+    @echo "Testing GitHub Actions workflow: {{workflow}}"
+    {{act-base-cmd}} --workflows .github/workflows/{{workflow}}.yml --list
+
+# Run GitHub Actions workflow locally using act
+act-run *workflow:
+    @just _check-act
+    @echo "Running GitHub Actions workflow: {{workflow}}"
+    {{act-base-cmd}} --workflows .github/workflows/{{workflow}}.yml --verbose
+
+# Test Copilot setup steps workflow
+test-copilot-setup:
+    @just _check-act
+    @echo "Testing Copilot setup steps workflow..."
+    {{act-base-cmd}} --workflows .github/workflows/copilot-setup-steps.yml --verbose
+
+# Test PR workflow (simulate pull_request event)
+test-pr-workflow:
+    @just _check-act
+    @echo "Testing PR workflow..."
+    {{act-base-cmd}} pull_request --verbose
+
+# Test push workflow (simulate push event)
+test-push-workflow:
+    @just _check-act
+    @echo "Testing push workflow..."
+    {{act-base-cmd}} push --verbose
+
+# Test workflow dispatch (manual trigger)
+test-workflow-dispatch:
+    @just _check-act
+    @echo "Testing workflow dispatch..."
+    {{act-base-cmd}} workflow_dispatch --verbose
+
+# List all available workflows
+list-workflows:
+    @just _check-act
+    @echo "Available GitHub Actions workflows:"
+    {{act-base-cmd}} --list
+
+# Dry run workflow (list steps without executing)
+act-dry-run *workflow:
+    @just _check-act
+    @echo "Dry running GitHub Actions workflow: {{workflow}}"
+    {{act-base-cmd}} --workflows .github/workflows/{{workflow}}.yml --list
+
+# Test all PR-related workflows (actual execution)
+test-all-pr-workflows:
+    @echo "Testing all PR-related workflows..."
+    @echo "=== Testing CI workflow ==="
+    @just act-run ci
+    @echo ""
+    @echo "=== Testing Copilot setup workflow ==="
+    @just test-copilot-setup
+    @echo ""
+    @echo "=== Testing CodeQL workflow ==="
+    @just act-run codeql
+    @echo ""
+    @echo "=== Testing Scorecard workflow ==="
+    @just act-run scorecard
+
+# Test all PR-related workflows (dry run only)
+test-all-pr-workflows-dry:
+    @echo "Testing all PR-related workflows (dry run)..."
+    @echo "=== Testing CI workflow ==="
+    @just act-dry-run ci
+    @echo ""
+    @echo "=== Testing Copilot setup workflow ==="
+    @just act-dry-run copilot-setup-steps
+    @echo ""
+    @echo "=== Testing CodeQL workflow ==="
+    @just act-dry-run codeql
+    @echo ""
+    @echo "=== Testing Scorecard workflow ==="
+    @just act-dry-run scorecard
 
 
 
