@@ -503,6 +503,48 @@ func TestOpnSenseDocumentModel_XMLUnmarshalInvalid(t *testing.T) {
 }
 
 // TestOpnSenseDocumentModel_EdgeCases tests edge cases in the model.
+func TestNATSummary_NilSafety(t *testing.T) {
+	// Test NATSummary with minimal document (no NAT configuration)
+	doc := &OpnSenseDocument{
+		System: System{
+			Hostname: "test-host",
+			Domain:   "test.local",
+		},
+		// Nat field is zero-valued (empty struct)
+	}
+
+	summary := doc.NATSummary()
+
+	// Should return safe defaults without panicking
+	assert.Empty(t, summary.Mode)
+	assert.False(t, summary.ReflectionDisabled)
+	assert.False(t, summary.PfShareForward)
+	assert.Nil(t, summary.OutboundRules)
+	assert.Nil(t, summary.InboundRules)
+
+	// Test with partial NAT configuration
+	doc.Nat.Outbound.Mode = "manual"
+	doc.Nat.Outbound.Rule = []NATRule{
+		{
+			Descr: "Test rule",
+		},
+	}
+
+	summary = doc.NATSummary()
+	assert.Equal(t, "manual", summary.Mode)
+	assert.NotNil(t, summary.OutboundRules)
+	assert.Len(t, summary.OutboundRules, 1)
+	assert.Equal(t, "Test rule", summary.OutboundRules[0].Descr)
+
+	// Test with NAT reflection disabled
+	doc.System.DisableNATReflection = "yes"
+	doc.System.PfShareForward = 1
+
+	summary = doc.NATSummary()
+	assert.True(t, summary.ReflectionDisabled)
+	assert.True(t, summary.PfShareForward)
+}
+
 func TestOpnSenseDocumentModel_EdgeCases(t *testing.T) {
 	t.Run("Empty opnsense struct", func(t *testing.T) {
 		opnsense := OpnSenseDocument{}

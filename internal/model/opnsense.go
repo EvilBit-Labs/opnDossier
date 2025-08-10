@@ -490,11 +490,33 @@ func (o *OpnSenseDocument) ServiceConfig() ServiceConfig {
 //	fmt.Printf("NAT Reflection Disabled: %v\n", natSummary.ReflectionDisabled)
 //	fmt.Printf("Outbound Rules: %d\n", len(natSummary.OutboundRules))
 func (o *OpnSenseDocument) NATSummary() NATSummary {
-	return NATSummary{
-		Mode:               o.Nat.Outbound.Mode,
-		ReflectionDisabled: o.System.DisableNATReflection == "yes",
-		PfShareForward:     o.System.PfShareForward == 1,
-		OutboundRules:      o.Nat.Outbound.Rule,
-		InboundRules:       o.Nat.Inbound,
+	// Initialize with safe defaults
+	summary := NATSummary{
+		Mode:               "",
+		ReflectionDisabled: false,
+		PfShareForward:     false,
+		OutboundRules:      nil,
+		InboundRules:       nil,
 	}
+
+	// Safely access System fields
+	if o.System.DisableNATReflection == "yes" {
+		summary.ReflectionDisabled = true
+	}
+	if o.System.PfShareForward == 1 {
+		summary.PfShareForward = true
+	}
+
+	// Safely access NAT fields with nil checks
+	if o.Nat.Outbound.Mode != "" {
+		summary.Mode = o.Nat.Outbound.Mode
+	}
+	if o.Nat.Outbound.Rule != nil {
+		summary.OutboundRules = o.Nat.Outbound.Rule
+	}
+	if o.Nat.Inbound != nil {
+		summary.InboundRules = o.Nat.Inbound
+	}
+
+	return summary
 }
