@@ -36,6 +36,9 @@ venv-pip := if os_family() == "windows" { ".venv\\Scripts\\pip.exe" } else { ".v
 venv-mkdocs := if os_family() == "windows" { ".venv\\Scripts\\mkdocs.exe" } else { ".venv/bin/mkdocs" }
 
 
+# Install dev dependencies (Pipeline v2 standard: setup)
+setup: install
+
 # Install dependencies
 install:
     @just setup-env
@@ -95,6 +98,9 @@ install-git-cliff:
 check:
     pre-commit run --all-files
 
+# Run code formatting (Pipeline v2 standard: fmt)
+fmt: format
+
 # Run code formatting
 format:
     golangci-lint run --fix ./...
@@ -146,6 +152,9 @@ test-coverage:
     @just test-with-coverage
     go tool cover -func=coverage.txt
 
+# Generate coverage artifacts (Pipeline v2 standard: cover)
+cover: test-with-coverage
+
 
 completeness-check:
     go test -tags=completeness ./internal/model -run TestModelCompleteness
@@ -187,6 +196,9 @@ build-for-release:
 build-snapshot:
     goreleaser build --clean --snapshot
 
+# GoReleaser dry run (Pipeline v2 standard: release-dry)
+release-dry: build-snapshot
+
 # Build full release (requires git tag)
 build-release:
     goreleaser build --clean
@@ -206,6 +218,9 @@ release-snapshot:
 # -----------------------------
 # 📖 Documentation
 # -----------------------------
+
+# Serve documentation locally (Pipeline v2 standard: site)
+site: docs
 
 # Serve documentation locally
 @docs:
@@ -273,6 +288,9 @@ scan-vulnerabilities:
         exit 1; \
     fi
     grype .
+
+# Generate SBOM with Syft (Pipeline v2 standard: sbom)
+sbom: generate-sbom
 
 # Generate SBOM with Syft
 generate-sbom:
