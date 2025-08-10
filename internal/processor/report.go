@@ -63,6 +63,10 @@ type Statistics struct {
 	NATEntries         int            `json:"natEntries"`
 	NATMode            string         `json:"natMode"`
 
+	// Gateway statistics
+	TotalGateways      int `json:"totalGateways"`
+	TotalGatewayGroups int `json:"totalGatewayGroups"`
+
 	// DHCP statistics
 	DHCPScopes       int                   `json:"dhcpScopes"`
 	DHCPScopeDetails []DHCPScopeStatistics `json:"dhcpScopeDetails"`
@@ -644,6 +648,10 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 		stats.NATEntries = 1 // Count NAT configuration as present
 	}
 
+	// Gateway statistics
+	stats.TotalGateways = len(cfg.Gateways.Gateway)
+	stats.TotalGatewayGroups = len(cfg.Gateways.Groups)
+
 	// DHCP statistics
 	dhcpScopes := 0
 	if lanDhcp, exists := cfg.Dhcpd.Lan(); exists && lanDhcp.Enable != "" {
@@ -788,7 +796,8 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 	// Calculate summary statistics
 	totalConfigItems := stats.TotalInterfaces + stats.TotalFirewallRules +
 		stats.TotalUsers + stats.TotalGroups + stats.SysctlSettings +
-		stats.TotalServices + stats.DHCPScopes + stats.LoadBalancerMonitors
+		stats.TotalServices + stats.DHCPScopes + stats.LoadBalancerMonitors +
+		stats.TotalGateways + stats.TotalGatewayGroups
 
 	securityScore := calculateSecurityScore(cfg, stats)
 	configComplexity := calculateConfigComplexity(stats)
@@ -846,6 +855,8 @@ func calculateConfigComplexity(stats *Statistics) int {
 	complexity += stats.TotalServices * constants.ServiceComplexityWeight
 	complexity += stats.DHCPScopes * constants.DHCPComplexityWeight
 	complexity += stats.LoadBalancerMonitors * constants.LoadBalancerComplexityWeight
+	complexity += stats.TotalGateways * constants.GatewayComplexityWeight
+	complexity += stats.TotalGatewayGroups * constants.GatewayGroupComplexityWeight
 
 	// Normalize to 0-100 scale (assuming max reasonable config)
 	normalizedComplexity := min(

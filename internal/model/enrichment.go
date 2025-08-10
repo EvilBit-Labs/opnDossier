@@ -27,6 +27,10 @@ const (
 	RuleComplexityWeight = 2
 	// ServiceComplexityWeight is the weight for service complexity calculation.
 	ServiceComplexityWeight = 3
+	// GatewayComplexityWeight is the weight for gateway complexity calculation.
+	GatewayComplexityWeight = 3
+	// GatewayGroupComplexityWeight is the weight for gateway group complexity calculation.
+	GatewayGroupComplexityWeight = 5
 	// MaxRulesThreshold is the threshold for too many rules.
 	MaxRulesThreshold = 100
 
@@ -72,6 +76,10 @@ type Statistics struct {
 	RulesByType        map[string]int `json:"rulesByType"`
 	NATEntries         int            `json:"natEntries"`
 	NATMode            string         `json:"natMode"`
+
+	// Gateway statistics
+	TotalGateways      int `json:"totalGateways"`
+	TotalGatewayGroups int `json:"totalGatewayGroups"`
 
 	// DHCP statistics
 	DHCPScopes       int                   `json:"dhcpScopes"`
@@ -260,6 +268,9 @@ func generateStatistics(cfg *OpnSenseDocument) *Statistics {
 	// Generate firewall rule statistics
 	generateFirewallStatistics(cfg, stats)
 
+	// Generate gateway statistics
+	generateGatewayStatistics(cfg, stats)
+
 	// Generate DHCP statistics
 	generateDHCPStatistics(cfg, stats)
 
@@ -274,7 +285,7 @@ func generateStatistics(cfg *OpnSenseDocument) *Statistics {
 
 	// Calculate summary statistics
 	stats.Summary = StatisticsSummary{
-		TotalConfigItems:    stats.TotalInterfaces + stats.TotalFirewallRules + stats.TotalUsers + stats.TotalGroups + stats.TotalServices,
+		TotalConfigItems:    stats.TotalInterfaces + stats.TotalFirewallRules + stats.TotalUsers + stats.TotalGroups + stats.TotalServices + stats.TotalGateways + stats.TotalGatewayGroups,
 		SecurityScore:       calculateSecurityScore(cfg, stats),
 		ConfigComplexity:    calculateConfigComplexity(stats),
 		HasSecurityFeatures: len(stats.SecurityFeatures) > 0,
@@ -340,6 +351,13 @@ func generateFirewallStatistics(cfg *OpnSenseDocument, stats *Statistics) {
 	if cfg.Nat.Outbound.Mode != "" {
 		stats.NATEntries = 1 // Count NAT configuration as present
 	}
+}
+
+// generateGatewayStatistics extracts gateway-related statistics from the configuration.
+func generateGatewayStatistics(cfg *OpnSenseDocument, stats *Statistics) {
+	// Gateway statistics
+	stats.TotalGateways = len(cfg.Gateways.Gateway)
+	stats.TotalGatewayGroups = len(cfg.Gateways.Groups)
 }
 
 // generateDHCPStatistics extracts DHCP-related statistics from the configuration.
@@ -736,12 +754,14 @@ func calculateSecurityScoreBase(cfg *OpnSenseDocument, stats *Statistics) int {
 	return score
 }
 
-// calculateConfigComplexity returns a configuration complexity score based on the weighted sum of firewall rules, users, groups, and services, capped at the maximum allowed complexity score.
+// calculateConfigComplexity returns a configuration complexity score based on the weighted sum of firewall rules, users, groups, services, gateways, and gateway groups, capped at the maximum allowed complexity score.
 func calculateConfigComplexity(stats *Statistics) int {
 	complexity := stats.TotalFirewallRules * RuleComplexityWeight
 	complexity += stats.TotalUsers * 1
 	complexity += stats.TotalGroups * 1
 	complexity += stats.TotalServices * ServiceComplexityWeight
+	complexity += stats.TotalGateways * GatewayComplexityWeight
+	complexity += stats.TotalGatewayGroups * GatewayGroupComplexityWeight
 
 	if complexity > MaxComplexityScore {
 		return MaxComplexityScore

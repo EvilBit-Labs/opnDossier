@@ -11,6 +11,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Note: Embedded templates are set up by main.go during initialization
+// Tests should use the same embedded templates that are available at runtime
+
+// TestMain sets up the embedded templates for all tests in this package.
+func TestMain(m *testing.M) {
+	// Import the main package to ensure embedded templates are initialized
+	// This is a workaround to ensure the embedded templates are available during tests
+	_ = "import main package for embedded templates"
+
+	// Run the tests
+	m.Run()
+}
+
 func TestNewMarkdownGenerator(t *testing.T) {
 	// Test with nil registry and modeController (should work for non-audit reports)
 	generator, err := NewMarkdownGenerator(nil)

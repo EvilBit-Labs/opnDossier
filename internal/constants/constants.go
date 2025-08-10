@@ -71,11 +71,11 @@ const (
 	MaxReasonableComplexity = 1000
 
 	// Template file paths - relative to internal/templates/
-	// Main templates - used by convert/display commands (standard templates)
+	// Main templates - used by convert/display commands (standard templates).
 	TemplateOpnSenseReportComprehensive = "opnsense_report_comprehensive.md.tmpl" // Used with --comprehensive flag
 	TemplateOpnSenseReport              = "opnsense_report.md.tmpl"               // Default template for convert/display
 
-	// Report templates in reports/ subdirectory - used by audit function
+	// Report templates in reports/ subdirectory - used by audit function.
 	TemplateStandardReport     = "reports/standard.md.tmpl"      // Audit mode: standard
 	TemplateBlueReport         = "reports/blue.md.tmpl"          // Audit mode: blue
 	TemplateRedReport          = "reports/red.md.tmpl"           // Audit mode: red

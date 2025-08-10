@@ -338,6 +338,18 @@
 | No gateways configured | - | - | - | - | - | - | - | - | - |
 {{- end }}
 
+## Gateway Groups
+
+{{- if .Gateways.Groups }}
+| Name | Description | Members | Trigger Level |
+|------|-------------|---------|---------------|
+{{- range .Gateways.Groups }}
+| `{{ .Name }}` | {{ .Descr }} | {{ range $i, $item := .Item }}{{if $i}}, {{end}}`{{ $item }}`{{end}} | {{ .Trigger }} |
+{{- end }}
+{{- else }}
+| No gateway groups configured | - | - | - |
+{{- end }}
+
 ---
 
 ## System Users
