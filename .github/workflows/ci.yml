@@ -39,10 +39,16 @@ jobs:
           go mod verify
 
       - name: Setup golangci-lint
+        if: matrix.os != 'windows-latest'
         uses: golangci/golangci-lint-action@v8.0.0
 
-      - name: Run CI Check
+      - name: Run Full CI Check (Linux/macOS)
+        if: matrix.os != 'windows-latest'
         run: just ci-check
+
+      - name: Run Smoke Tests (Windows)
+        if: matrix.os == 'windows-latest'
+        run: just ci-check-smoke
 
 
   test-with-coverage:

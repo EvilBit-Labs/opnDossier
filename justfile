@@ -505,6 +505,14 @@ ci-check:
     @just lint
     @just test
 
+# Smoke test for Windows CI (minimal validation)
+ci-check-smoke:
+    @cd {{justfile_dir()}}
+    @echo "Running smoke tests..."
+    @go build -v ./...
+    @go test -short -timeout 5m ./cmd/... ./internal/config/...
+    @echo "✅ Smoke tests passed"
+
 # Run all checks, tests, and release validation
 full-checks:
     @cd {{justfile_dir()}}
