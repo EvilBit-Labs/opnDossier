@@ -245,8 +245,21 @@ sboms:
 
 # Cosign signing configuration
 signs:
-  - artifacts: all
+  - id: artifacts
+    artifacts: all
+    cmd: cosign
     args:
+      - "sign-blob"
+      - "--yes"
+      - "--bundle"
+      - "cosign.bundle"
+    env:
+      - COSIGN_EXPERIMENTAL=1
+  - id: checksums
+    artifacts: checksum
+    cmd: cosign
+    args:
+      - "sign-blob"
       - "--yes"
       - "--bundle"
       - "cosign.bundle"

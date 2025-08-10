@@ -36,10 +36,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@v3.7.0
-        with:
-          cosign-release: 'v2.2.4'
+
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6.3.0
@@ -50,47 +47,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate artifact hashes for SLSA
-        id: hash
-        run: |
-          # Generate hashes for SLSA provenance
-          # Generate hashes for SLSA provenance
-          cd dist
-          # Enable nullglob to handle missing file types gracefully
-          shopt -s nullglob
-          # Collect all artifact files into an array
-          ARTIFACTS=(*.tar.gz *.zip *.deb *.rpm *.apk *.pkg.tar.xz opnDossier_checksums.txt)
-          # Generate hashes for all existing files
-          sha256sum "${ARTIFACTS[@]}" > opnDossier_checksums.txt
-
-      - name: Upload checksum file as artifact
+      - name: Upload GoReleaser checksums for SLSA
         uses: actions/upload-artifact@v4
         with:
           name: checksums
           path: dist/opnDossier_checksums.txt
           retention-days: 1
-
-      - name: Sign artifacts with Cosign
-        run: |
-          # Sign all release artifacts
-          cosign sign-blob --yes --bundle cosign.bundle dist/opnDossier_checksums.txt
-          # Upload the bundle as a release asset would be handled by a subsequent step
-        env:
-          COSIGN_EXPERIMENTAL: 1
-
-      - name: Upload Cosign bundle to release
-        run: |
-          # Get the release ID and upload URL
-          RELEASE_ID=$(gh api repos/${{ github.repository }}/releases/tags/${{ github.ref_name }} --jq '.id')
-          UPLOAD_URL="https://uploads.github.com/repos/${{ github.repository }}/releases/${RELEASE_ID}/assets"
-
-          # Upload the Cosign bundle
-          gh api "${UPLOAD_URL}" \
-            --field name=cosign.bundle \
-            --field content_type=application/octet-stream \
-            --upload-file ./cosign.bundle
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   provenance:
     needs: goreleaser
@@ -173,19 +135,8 @@ jobs:
         run: |
           slsa-verifier verify-artifact \
             --provenance-path "${{ needs.slsa-provenance.outputs.provenance-name }}" \
-            --provenance-path "${{ needs.slsa-provenance.outputs.provenance-name }}" \
             --source-uri github.com/EvilBit-Labs/opnDossier \
             --source-tag "${{ github.ref_name }}" \
             dist/opnDossier_checksums.txt
 
-      - name: Verify Cosign signature
-        run: |
-          # Download the Cosign bundle from the release
-          gh release download ${{ github.ref_name }} --pattern "cosign.bundle"
 
-          # Verify the signature
-          cosign verify-blob \
-            --bundle cosign.bundle \
-            dist/opnDossier_checksums.txt
-        env:
-          COSIGN_EXPERIMENTAL: 1
