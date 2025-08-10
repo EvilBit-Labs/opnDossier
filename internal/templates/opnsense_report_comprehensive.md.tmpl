@@ -166,13 +166,13 @@
 - **Port Forward State Sharing**: {{ if eq .System.PfShareForward 1 }}**Enabled**{{- else }}**Disabled**{{- end }}
 
 - **Outbound Rules**: {{ len .Nat.Outbound.Rule }} configured
-- **Inbound Rules**: 0 configured
+- **Inbound Rules**: {{ len .Nat.Inbound }} configured
 {{- else }}
 - **NAT Mode**: Not configured
 - **NAT Reflection**: Unknown
 - **Port Forward State Sharing**: Unknown
 - **Outbound Rules**: 0 configured
-- **Inbound Rules**: 0 configured
+- **Inbound Rules**: {{ len .Nat.Inbound }} configured
 {{- end }}
 
 {{- if eq .System.DisableNATReflection "yes" }}

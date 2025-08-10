@@ -79,8 +79,8 @@ type NATSummary struct {
 
 // Nat represents NAT configuration.
 type Nat struct {
-	Outbound Outbound      `xml:"outbound" json:"outbound"          yaml:"outbound"`
-	Inbound  []InboundRule `xml:"inbound"  json:"inbound,omitempty" yaml:"inbound,omitempty"`
+	Outbound Outbound      `xml:"outbound"     json:"outbound"          yaml:"outbound"`
+	Inbound  []InboundRule `xml:"inbound>rule" json:"inbound,omitempty" yaml:"inbound,omitempty"`
 }
 
 // Outbound represents outbound NAT configuration.

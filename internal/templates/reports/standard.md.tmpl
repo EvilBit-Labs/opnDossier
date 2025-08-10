@@ -40,7 +40,7 @@
 - **Port Forward State Sharing**: {{ if eq .System.PfShareForward 1 }}**Enabled**{{- else }}**Disabled**{{- end }}
 
 - **Outbound Rules**: {{ len .Nat.Outbound.Rule }} configured
-- **Inbound Rules**: 0 configured
+- **Inbound Rules**: {{ len .Nat.Inbound }} configured
 
 {{- if eq .System.DisableNATReflection "yes" }}
 **Security Note**: NAT reflection is properly disabled, preventing potential security issues.
