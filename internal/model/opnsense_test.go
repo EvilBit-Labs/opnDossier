@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/go-playground/validator/v10"
@@ -593,6 +594,20 @@ func TestOpnSenseDocumentModel_XMLCoverage(t *testing.T) {
 
 	for _, file := range xmlFiles {
 		t.Run(filepath.Base(file), func(t *testing.T) {
+			// Validate file path is within testdata directory
+			absFile, err := filepath.Abs(file)
+			if err != nil {
+				t.Fatalf("failed to get absolute path for %s: %v", file, err)
+			}
+			absTestDir, err := filepath.Abs(testDir)
+			if err != nil {
+				t.Fatalf("failed to get absolute path for testdir: %v", err)
+			}
+			if !strings.HasPrefix(absFile, absTestDir) {
+				t.Fatalf("file path %s is outside testdata directory", file)
+			}
+
+			// deepcode ignore PT/test: This is not a web application or even part of the application that is deployed. Its a test that runs in the test environment.
 			data, err := os.ReadFile(file)
 			if err != nil {
 				t.Fatalf("failed to read %s: %v", file, err)

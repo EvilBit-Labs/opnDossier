@@ -17,6 +17,7 @@ func TestMainFunction(t *testing.T) {
 	if os.Getenv("TEST_MAIN_FUNCTION") != "1" {
 		// This test is run in a subprocess to test main() function
 		// #nosec G204 - This is a test file executing a controlled test binary
+		// deepcode ignore CommandInjection/test: This is a test file executing a controlled test binary, it does not deploy in production
 		cmd := exec.CommandContext(context.Background(), os.Args[0], "-test.run=TestMainFunction")
 		cmd.Env = append(os.Environ(), "TEST_MAIN_FUNCTION=1")
 
