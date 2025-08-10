@@ -304,12 +304,33 @@ generate-sbom:
     syft . -o spdx-json=sbom.spdx.json
     @echo "SBOM generated: sbom.spdx.json"
 
+# Run Snyk vulnerability scanner locally (requires Snyk CLI)
+snyk-scan:
+    @echo "Running Snyk vulnerability scan..."
+    @if ! command -v snyk >/dev/null 2>&1; then \
+        echo "Error: snyk CLI not found. Install with:"; \
+        echo "  - Using npm: npm install -g snyk"; \
+        echo "  - Using Homebrew: brew install snyk"; \
+        echo "  - Or download from: https://github.com/snyk/cli/releases"; \
+        exit 1; \
+    fi
+    @if [ -z "$$SNYK_TOKEN" ]; then \
+        echo "Warning: SNYK_TOKEN not set. Some features may be limited."; \
+        echo "Set SNYK_TOKEN environment variable for full functionality."; \
+    fi
+    snyk test --severity-threshold=high
+    snyk monitor --severity-threshold=high
+
 # Run FOSSA analysis locally (requires FOSSA CLI)
 fossa-scan:
     @echo "Running FOSSA license scan..."
     @if ! command -v fossa >/dev/null 2>&1; then \
         echo "Error: fossa CLI not found. Install from: https://github.com/fossas/fossa-cli"; \
         exit 1; \
+    fi
+    @if [ -z "$$FOSSA_API_KEY" ]; then \
+        echo "Warning: FOSSA_API_KEY not set. Some features may be limited."; \
+        echo "Set FOSSA_API_KEY environment variable for full functionality."; \
     fi
     fossa analyze
     fossa test
@@ -319,6 +340,8 @@ security-scan:
     @echo "Running comprehensive security scan..."
     just generate-sbom
     just scan-vulnerabilities
+    just snyk-scan
+    just fossa-scan
     @echo "Security scan complete. Check results above."
 
 # -----------------------------

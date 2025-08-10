@@ -51,7 +51,7 @@ Pipeline v2 defines mandatory tooling and quality gates for all EvilBit Labs pub
 | **Security Analysis**      | GitHub CodeQL                                    | ✅ Complete |
 | **SBOM Generation**        | Syft (SPDX JSON) via GoReleaser                  | ✅ Complete |
 | **Vulnerability Scanning** | Grype via GitHub Actions                         | ✅ Complete |
-| **License Scanning**       | FOSSA integration                                | ✅ Complete |
+| **License Scanning**       | FOSSA integration (GitHub App)                   | ✅ Complete |
 | **Signing & Attestation**  | Cosign + SLSA Level 3                            | ✅ Complete |
 | **Coverage Reporting**     | Codecov integration                              | ✅ Complete |
 | **AI-Assisted Review**     | CodeRabbit.ai                                    | ✅ Complete |
@@ -60,23 +60,32 @@ Pipeline v2 defines mandatory tooling and quality gates for all EvilBit Labs pub
 
 - [`.github/workflows/ci-check.yml`](../.github/workflows/ci-check.yml) - Grype vulnerability scanning
 - [`.github/workflows/codeql.yml`](../.github/workflows/codeql.yml) - GitHub CodeQL
-- [`.github/workflows/fossa-scan.yml`](../.github/workflows/fossa-scan.yml) - FOSSA license scanning
+- FOSSA license scanning (GitHub App integration)
 - [`.github/workflows/release.yml`](../.github/workflows/release.yml) - SLSA + Cosign signing
 - [`.coderabbit.yaml`](../.coderabbit.yaml) - CodeRabbit configuration
 
 ### ✅ **Enhanced SaaS Tools**
 
-| Tool               | Implementation                                                   | Status      |
-| ------------------ | ---------------------------------------------------------------- | ----------- |
-| **OSSF Scorecard** | Weekly repository hygiene scoring                                | ✅ Complete |
-| **Snyk**           | Additional dependency + code vulnerability scanning (GitHub App) | ✅ Complete |
-| **Dependabot**     | Automated dependency updates                                     | ✅ Complete |
+| Tool               | Implementation                                                         | Status      |
+| ------------------ | ---------------------------------------------------------------------- | ----------- |
+| **OSSF Scorecard** | Weekly repository hygiene scoring                                      | ✅ Complete |
+| **Snyk**           | Additional dependency + code vulnerability scanning (GitHub App + CLI) | ✅ Complete |
+| **Dependabot**     | Automated dependency updates                                           | ✅ Complete |
 
 **Files:**
 
 - [`.github/workflows/scorecard.yml`](../.github/workflows/scorecard.yml) - OSSF Scorecard
-- Snyk scanning (GitHub App integration)
+- Snyk scanning (GitHub App integration + local CLI)
 - [`.github/dependabot.yml`](../.github/dependabot.yml) - Dependabot configuration
+
+### Local CLI Tools
+
+Both Snyk and FOSSA provide local CLI tools for development:
+
+- **Snyk CLI**: `just snyk-scan` - Local vulnerability scanning with `snyk test` and `snyk monitor`
+- **FOSSA CLI**: `just fossa-scan` - Local license analysis with `fossa analyze` and `fossa test`
+
+These CLI tools complement the GitHub App integrations and provide local/CI parity for security scanning.
 
 ## Local Development Workflow
 
@@ -92,7 +101,8 @@ just ci-check          # Full CI validation locally
 # Security scanning
 just scan-vulnerabilities  # Grype vulnerability scan
 just generate-sbom          # Generate SBOM with Syft
-just fossa-scan            # FOSSA license analysis
+just snyk-scan             # Snyk vulnerability scan (CLI)
+just fossa-scan            # FOSSA license analysis (CLI)
 just security-scan         # Comprehensive security scan
 
 # Release workflow
@@ -111,7 +121,7 @@ Every PR must:
 3. ✅ Pass all tests with race detection (`-race` flag) and minimum 85% coverage
 4. ✅ Upload coverage to Codecov
 5. ✅ Pass security gates (CodeQL, Grype)
-6. ✅ Pass license compliance (FOSSA)
+6. ✅ Pass license compliance (FOSSA GitHub App)
 7. ✅ Use valid Conventional Commits
 8. ✅ Acknowledge CodeRabbit.ai findings
 
@@ -169,7 +179,7 @@ cosign verify-blob \
 
 - **Pull Request Gates**: All security and quality checks on every PR
 - **Commit Validation**: Conventional commits enforced
-- **License Policy**: FOSSA license policy enforcement
+- **License Policy**: FOSSA license policy enforcement (GitHub App)
 - **Code Review**: CodeRabbit.ai advisory feedback
 
 ## Exceptions
@@ -185,7 +195,7 @@ Required secrets for full functionality:
 | Secret            | Purpose                             | Required For |
 | ----------------- | ----------------------------------- | ------------ |
 | `CODECOV_TOKEN`   | Coverage reporting                  | CI           |
-| `FOSSA_API_KEY`   | License scanning                    | CI + Local   |
+| `FOSSA_API_KEY`   | License scanning (GitHub App)       | CI + Local   |
 | `SNYK_TOKEN`      | Vulnerability scanning (GitHub App) | N/A          |
 | `SCORECARD_TOKEN` | OSSF Scorecard (optional)           | CI           |
 
