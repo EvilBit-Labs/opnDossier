@@ -42,6 +42,30 @@ var ErrNilOpnSenseDocument = errors.New("input OpnSenseDocument struct is nil")
 // ErrUnsupportedFormat is returned when an unsupported output format is requested.
 var ErrUnsupportedFormat = errors.New("unsupported format. Supported formats: markdown, json, yaml")
 
+// formatInterfacesAsLinks formats a list of interfaces as markdown links pointing to their respective sections.
+// Each interface name is converted to a clickable link that references the corresponding interface configuration section.
+// For table display, this returns the interface names with reference numbers that will be defined at the bottom.
+func formatInterfacesAsLinks(interfaces model.InterfaceList) string {
+	if interfaces.IsEmpty() {
+		return ""
+	}
+
+	// For table display, we return the interface names as-is
+	// The nao1215/markdown package will automatically create reference-style links
+	// when the markdown.Link function is used in table cells
+	links := make([]string, 0, len(interfaces))
+	for _, iface := range interfaces {
+		// Create anchor link to the interface section
+		anchor := "#" + strings.ToLower(iface) + "-interface"
+
+		// Use markdown.Link to create the hyperlink
+		links = append(links, markdown.Link(iface, anchor))
+	}
+
+	// Join links with comma and space for inline display in table
+	return strings.Join(links, ", ")
+}
+
 // ToMarkdown converts an OPNsense configuration to markdown.
 func (c *MarkdownConverter) ToMarkdown(_ context.Context, opnsense *model.OpnSenseDocument) (string, error) {
 	if opnsense == nil {
@@ -203,18 +227,29 @@ func (c *MarkdownConverter) buildNetworkSection(md *markdown.Markdown, opnsense 
 
 	md.H2("Network Configuration")
 
-	// WAN Interface
+	// WAN Interface - the H3 creates an implicit anchor #wan-interface
 	md.H3("WAN Interface")
 
 	if wan, ok := netConfig.Interfaces.Wan(); ok {
 		c.buildInterfaceDetails(md, wan)
 	}
 
-	// LAN Interface
+	// LAN Interface - the H3 creates an implicit anchor #lan-interface
 	md.H3("LAN Interface")
 
 	if lan, ok := netConfig.Interfaces.Lan(); ok {
 		c.buildInterfaceDetails(md, lan)
+	}
+
+	// Add other interfaces dynamically if they exist
+	for name, iface := range netConfig.Interfaces.Items {
+		if name != "wan" && name != "lan" {
+			// Create consistent section names for other interfaces
+			// Use proper case conversion for interface names
+			sectionName := strings.ToUpper(name[:1]) + strings.ToLower(name[1:]) + " Interface"
+			md.H3(sectionName)
+			c.buildInterfaceDetails(md, iface)
+		}
 	}
 }
 
@@ -296,9 +331,12 @@ func (c *MarkdownConverter) buildSecuritySection(md *markdown.Markdown, opnsense
 				dest = destinationAny
 			}
 
+			// Format interfaces as hyperlinks instead of plain text
+			interfaceLinks := formatInterfacesAsLinks(rule.Interface)
+
 			rows = append(rows, []string{
 				rule.Type,
-				rule.Interface.String(),
+				interfaceLinks,
 				rule.IPProtocol,
 				rule.Protocol,
 				source,

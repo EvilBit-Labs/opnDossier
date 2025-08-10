@@ -40,7 +40,7 @@
 | # | Interface | Action | IP Ver | Proto | Source | Destination | Target | Source Port | Enabled | Description |
 |---|-----------|--------|--------|-------|--------|-------------|--------|-------------|---------|-------------|
 {{- range $index, $rule := .Filter.Rule }}
-| {{ add $index 1 }} | {{ $rule.Interface }} | {{ $rule.Type }} | {{ $rule.IPProtocol }} | {{ $rule.Protocol }} | {{ $rule.Source.Network }} | {{ $rule.Destination.Network }} | {{ if $rule.Target }}{{ $rule.Target }}{{ else }}-{{ end }} | {{ if $rule.SourcePort }}{{ $rule.SourcePort }}{{ else }}-{{ end }} | {{ formatBoolean (not $rule.Disabled) }} | {{ if $rule.Descr }}{{ $rule.Descr }}{{ else }}-{{ end }} |
+| {{ add $index 1 }} | {{ formatInterfacesAsLinks $rule.Interface }} | {{ $rule.Type }} | {{ $rule.IPProtocol }} | {{ $rule.Protocol }} | {{ $rule.Source.Network }} | {{ $rule.Destination.Network }} | {{ if $rule.Target }}{{ $rule.Target }}{{ else }}-{{ end }} | {{ if $rule.SourcePort }}{{ $rule.SourcePort }}{{ else }}-{{ end }} | {{ formatBoolean (not $rule.Disabled) }} | {{ if $rule.Descr }}{{ $rule.Descr }}{{ else }}-{{ end }} |
 {{- end }}
 
 ---

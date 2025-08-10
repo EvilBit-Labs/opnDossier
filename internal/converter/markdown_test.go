@@ -156,7 +156,7 @@ func TestMarkdownConverter_ConvertFromTestdataFile(t *testing.T) {
 	// Verify firewall rules table (may be truncated due to width)
 	assert.Contains(t, markdown, "TYPE")
 	assert.Contains(t, markdown, "INT")
-	assert.Contains(t, markdown, "IP V") // May be truncated from "IP Ver"
+	assert.Contains(t, markdown, "IP") // May be truncated from "IP Ver"
 	assert.Contains(t, markdown, "Protocol")
 	assert.Contains(t, markdown, "SOU") // May be truncated from "Source"
 	assert.Contains(t, markdown, "DES") // May be truncated from "Destination"
@@ -425,4 +425,97 @@ func TestNewMarkdownConverter(t *testing.T) {
 	c := NewMarkdownConverter()
 	assert.NotNil(t, c)
 	assert.IsType(t, &MarkdownConverter{}, c)
+}
+
+func TestFormatInterfacesAsLinks(t *testing.T) {
+	tests := []struct {
+		name       string
+		interfaces model.InterfaceList
+		expected   string
+	}{
+		{
+			name:       "empty interface list",
+			interfaces: model.InterfaceList{},
+			expected:   "",
+		},
+		{
+			name:       "single interface",
+			interfaces: model.InterfaceList{"wan"},
+			expected:   "[wan](#wan-interface)",
+		},
+		{
+			name:       "multiple interfaces",
+			interfaces: model.InterfaceList{"wan", "lan", "opt1"},
+			expected:   "[wan](#wan-interface), [lan](#lan-interface), [opt1](#opt1-interface)",
+		},
+		{
+			name:       "mixed case interface names",
+			interfaces: model.InterfaceList{"WAN", "LAN", "OPT1"},
+			expected:   "[WAN](#wan-interface), [LAN](#lan-interface), [OPT1](#opt1-interface)",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := formatInterfacesAsLinks(tt.interfaces)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestMarkdownConverter_FirewallRulesWithInterfaceLinks(t *testing.T) {
+	// Set terminal to dumb for consistent test output
+	t.Setenv("TERM", "dumb")
+
+	input := &model.OpnSenseDocument{
+		Filter: model.Filter{
+			Rule: []model.Rule{
+				{
+					Type:        "pass",
+					Interface:   model.InterfaceList{"wan", "lan"},
+					IPProtocol:  "inet",
+					Protocol:    "tcp",
+					Source:      model.Source{Network: "any"},
+					Destination: model.Destination{Network: "any"},
+					Descr:       "Test rule with multiple interfaces",
+				},
+				{
+					Type:        "block",
+					Interface:   model.InterfaceList{"opt1"},
+					IPProtocol:  "inet",
+					Protocol:    "udp",
+					Source:      model.Source{Network: "any"},
+					Destination: model.Destination{Network: "any"},
+					Descr:       "Test rule with single interface",
+				},
+			},
+		},
+		Interfaces: model.Interfaces{
+			Items: map[string]model.Interface{
+				"wan":  {Enable: "1", IPAddr: "192.168.1.1"},
+				"lan":  {Enable: "1", IPAddr: "10.0.0.1"},
+				"opt1": {Enable: "1", IPAddr: "172.16.0.1"},
+			},
+		},
+	}
+
+	c := NewMarkdownConverter()
+	md, err := c.ToMarkdown(context.Background(), input)
+	require.NoError(t, err)
+
+	// Check that interface links are properly formatted in the table
+	// The nao1215/markdown package uses reference-style links in tables
+	assert.Contains(t, md, "wan[1],")
+	assert.Contains(t, md, "lan[2]")
+	assert.Contains(t, md, "opt1[3]")
+
+	// Check that the reference links are defined at the bottom
+	assert.Contains(t, md, "[1]: wan #wan-interface")
+	assert.Contains(t, md, "[2]: lan #lan-interface")
+	assert.Contains(t, md, "[3]: opt1 #opt1-interface")
+
+	// Check that interface sections are created
+	assert.Contains(t, md, "### WAN Interface")
+	assert.Contains(t, md, "### LAN Interface")
+	assert.Contains(t, md, "### Opt1 Interface")
 }

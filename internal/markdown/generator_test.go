@@ -300,3 +300,79 @@ func TestEscapeTableContent(t *testing.T) {
 		})
 	}
 }
+
+func TestFormatInterfacesAsLinksTemplateFunction(t *testing.T) {
+	// Create a test configuration with multiple interfaces
+	cfg := &model.OpnSenseDocument{
+		System: model.System{
+			Hostname: "test-host",
+			Domain:   "test.local",
+		},
+		Filter: model.Filter{
+			Rule: []model.Rule{
+				{
+					Type:        "pass",
+					Interface:   model.InterfaceList{"wan", "lan"},
+					IPProtocol:  "inet",
+					Protocol:    "tcp",
+					Source:      model.Source{Network: "any"},
+					Destination: model.Destination{Network: "any"},
+					Descr:       "Test rule with multiple interfaces",
+				},
+				{
+					Type:        "block",
+					Interface:   model.InterfaceList{"opt1"},
+					IPProtocol:  "inet",
+					Protocol:    "udp",
+					Source:      model.Source{Network: "any"},
+					Destination: model.Destination{Network: "any"},
+					Descr:       "Test rule with single interface",
+				},
+			},
+		},
+		Interfaces: model.Interfaces{
+			Items: map[string]model.Interface{
+				"wan":  {Enable: "1", IPAddr: "192.168.1.1"},
+				"lan":  {Enable: "1", IPAddr: "10.0.0.1"},
+				"opt1": {Enable: "1", IPAddr: "172.16.0.1"},
+			},
+		},
+	}
+
+	ctx := context.Background()
+
+	t.Run("comprehensive template with interface links", func(t *testing.T) {
+		generator, err := NewMarkdownGenerator(nil)
+		require.NoError(t, err)
+
+		opts := DefaultOptions().WithFormat(FormatMarkdown).WithComprehensive(true)
+		result, err := generator.Generate(ctx, cfg, opts)
+
+		require.NoError(t, err)
+		assert.NotEmpty(t, result)
+
+		// Check that interface links are properly formatted
+		assert.Contains(t, result, "[wan](#wan-interface), [lan](#lan-interface)")
+		assert.Contains(t, result, "[opt1](#opt1-interface)")
+
+		// Check that interface sections are created
+		assert.Contains(t, result, "### Wan Interface")
+		assert.Contains(t, result, "### Lan Interface")
+		assert.Contains(t, result, "### Opt1 Interface")
+	})
+
+	t.Run("standard template with interface links", func(t *testing.T) {
+		generator, err := NewMarkdownGenerator(nil)
+		require.NoError(t, err)
+
+		opts := DefaultOptions().WithFormat(FormatMarkdown)
+		result, err := generator.Generate(ctx, cfg, opts)
+
+		require.NoError(t, err)
+		assert.NotEmpty(t, result)
+
+		// Check that interface links are properly formatted
+		assert.Contains(t, result, "[wan](#wan-interface), [lan](#lan-interface)")
+		assert.Contains(t, result, "[opt1](#opt1-interface)")
+	})
+}

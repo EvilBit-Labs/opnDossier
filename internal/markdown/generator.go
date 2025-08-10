@@ -215,6 +215,25 @@ func createTemplateFuncMap() template.FuncMap {
 	funcMap["formatBooleanWithUnset"] = FormatBooleanWithUnset
 	funcMap["formatUnixTimestamp"] = FormatUnixTimestamp
 
+	// Add interface link formatting function
+	funcMap["formatInterfacesAsLinks"] = func(interfaces model.InterfaceList) string {
+		if interfaces.IsEmpty() {
+			return ""
+		}
+
+		links := make([]string, 0, len(interfaces))
+		for _, iface := range interfaces {
+			// Create anchor link to the interface section
+			anchor := "#" + strings.ToLower(iface) + "-interface"
+
+			// Use markdown link format
+			links = append(links, fmt.Sprintf("[%s](%s)", iface, anchor))
+		}
+
+		// Join links with comma and space for inline display in table
+		return strings.Join(links, ", ")
+	}
+
 	return funcMap
 }
 

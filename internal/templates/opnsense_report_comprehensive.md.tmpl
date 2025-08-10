@@ -143,14 +143,14 @@
 | # | Interface | Action | IP Ver | Proto | Source | Destination | Target | Source Port | Enabled | Description |
 |---|-----------|--------|--------|-------|--------|-------------|--------|-------------|---------|-------------|
 {{- range $index, $rule := .Filter.Rule }}
-| {{ add $index 1 }} | {{ $rule.Interface }} | {{ $rule.Type }} | {{ $rule.IPProtocol }} | {{ $rule.Protocol }} | {{ $rule.Source.Network }} | {{ $rule.Destination.Network }} | {{ if $rule.Target }}{{ $rule.Target }}{{ else }}-{{ end }} | {{ if $rule.SourcePort }}{{ $rule.SourcePort }}{{ else }}-{{ end }} | {{ formatBoolean (not $rule.Disabled) }} | {{ if $rule.Descr }}{{ $rule.Descr }}{{ else }}-{{ end }} |
+| {{ add $index 1 }} | {{ formatInterfacesAsLinks $rule.Interface }} | {{ $rule.Type }} | {{ $rule.IPProtocol }} | {{ $rule.Protocol }} | {{ $rule.Source.Network }} | {{ $rule.Destination.Network }} | {{ if $rule.Target }}{{ $rule.Target }}{{ else }}-{{ end }} | {{ if $rule.SourcePort }}{{ $rule.SourcePort }}{{ else }}-{{ end }} | {{ formatBoolean (not $rule.Disabled) }} | {{ if $rule.Descr }}{{ $rule.Descr }}{{ else }}-{{ end }} |
 {{- end }}
 
 ### Detailed Firewall Rules
 | # | Action | IP Ver | Proto | Interface | Direction | State Type | Quick | Source | Destination | Dest Port | Target | Source Port | Enabled | Description |
 |---|--------|--------|-------|-----------|-----------|------------|-------|--------|-------------|-----------|--------|-------------|---------|-------------|
 {{- range $index, $rule := .Filter.Rule }}
-| {{ add $index 1 }} | {{ $rule.Type }} | {{ $rule.IPProtocol }} | {{ $rule.Protocol }} | {{ $rule.Interface }} | {{ $rule.Direction }} | {{ $rule.StateType }} | {{ formatBoolean $rule.Quick }} | {{ $rule.Source.Network }}{{ if $rule.Source.Any }} (any){{ end }} | {{ $rule.Destination.Network }}{{ if $rule.Destination.Any }} (any){{ end }} | {{ $rule.Destination.Port }} | {{ if $rule.Target }}{{ $rule.Target }}{{ else }}-{{ end }} | {{ if $rule.SourcePort }}{{ $rule.SourcePort }}{{ else }}-{{ end }} | {{ formatBoolean (not $rule.Disabled) }} | {{ if $rule.Descr }}{{ $rule.Descr }}{{ else }}-{{ end }} |
+| {{ add $index 1 }} | {{ $rule.Type }} | {{ $rule.IPProtocol }} | {{ $rule.Protocol }} | {{ formatInterfacesAsLinks $rule.Interface }} | {{ $rule.Direction }} | {{ $rule.StateType }} | {{ formatBoolean $rule.Quick }} | {{ $rule.Source.Network }}{{ if $rule.Source.Any }} (any){{ end }} | {{ $rule.Destination.Network }}{{ if $rule.Destination.Any }} (any){{ end }} | {{ $rule.Destination.Port }} | {{ if $rule.Target }}{{ $rule.Target }}{{ else }}-{{ end }} | {{ if $rule.SourcePort }}{{ $rule.SourcePort }}{{ else }}-{{ end }} | {{ formatBoolean (not $rule.Disabled) }} | {{ if $rule.Descr }}{{ $rule.Descr }}{{ else }}-{{ end }} |
 {{- end }}
 
 ---
