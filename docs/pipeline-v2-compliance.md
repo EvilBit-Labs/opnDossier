@@ -16,17 +16,32 @@ Pipeline v2 defines mandatory tooling and quality gates for all EvilBit Labs pub
 
 ### ✅ **Go Language Tooling (Section 3.1)**
 
-| Requirement       | Implementation                                   | Status      |
-| ----------------- | ------------------------------------------------ | ----------- |
-| **Build/Release** | GoReleaser with homebrew, nfpm, archives, Docker | ✅ Complete |
-| **Lint**          | `golangci-lint` with comprehensive configuration | ✅ Complete |
-| **Test/Coverage** | `go test ./... -cover -race`                     | ✅ Complete |
+| Requirement        | Implementation                                         | Status      |
+| ------------------ | ------------------------------------------------------ | ----------- |
+| **Build/Release**  | GoReleaser with homebrew, nfpm, archives, Docker       | ✅ Complete |
+| **Lint**           | `golangci-lint` with comprehensive configuration       | ✅ Complete |
+| **Test/Coverage**  | `go test ./... -cover -race` with 85% minimum coverage | ✅ Complete |
+| **Race Detection** | Mandatory `-race` flag in all test commands            | ✅ Complete |
+| **Airgap Builds**  | GOMODCACHE + vendor directory for offline builds       | ✅ Complete |
 
 **Files:**
 
 - [`.goreleaser.yaml`](../.goreleaser.yaml) - Complete GoReleaser configuration
 - [`.golangci.yml`](../.golangci.yml) - Comprehensive linting rules
 - [`justfile`](../justfile) - Local testing commands
+
+**Go Tooling Details:**
+
+- **Test Coverage**: Minimum 85% coverage threshold enforced via `go test -coverprofile=coverage.out` and coverage analysis
+- **Race Detection**: All test commands include `-race` flag for concurrent code safety
+- **Airgap Support**: Module caching via `GOMODCACHE` and vendor directory for reproducible offline builds
+
+**Airgap Build Strategy:**
+
+- **Module Caching**: Use `GOMODCACHE` environment variable to specify module cache location
+- **Vendor Directory**: Maintain `vendor/` directory with `go mod vendor` for offline builds
+- **Reproducible Builds**: All builds use locked dependency versions via `go.sum`
+- **Offline Verification**: Build process validates all dependencies are available locally
 
 ### ✅ **Cross-Cutting Tools (Section 4)**
 
@@ -67,4 +82,131 @@ Pipeline v2 defines mandatory tooling and quality gates for all EvilBit Labs pub
 
 Pipeline v2 requires local/CI parity. All CI steps can be run locally:
 
-`bash\n# Core development workflow\njust test              # Run tests locally\njust lint              # Run linters locally\njust check             # Run pre-commit checks\njust ci-check          # Full CI validation locally\n\n# Security scanning\njust scan-vulnerabilities  # Grype vulnerability scan\njust generate-sbom          # Generate SBOM with Syft\njust fossa-scan            # FOSSA license analysis\njust security-scan         # Comprehensive security scan\n\n# Release workflow\njust build-for-release     # Test release build\njust check-goreleaser      # Validate GoReleaser config\n`\\n\\n## Quality Gates\\n\\n### PR Merge Criteria (Section 5.1)\\n\\nEvery PR must:\\n1. ✅ Pass all linters (`golangci-lint`)\\n2. ✅ Pass format checks (`gofumpt`, `goimports`)\\n3. ✅ Pass all tests with coverage reporting\\n4. ✅ Upload coverage to Codecov\\n5. ✅ Pass security gates (CodeQL, Grype)\\n6. ✅ Pass license compliance (FOSSA)\\n7. ✅ Use valid Conventional Commits\\n8. ✅ Acknowledge CodeRabbit.ai findings\\n\\n### Release Criteria (Section 5.2)\\n\\nEvery release must:\\n1. ✅ Be created via automated GoReleaser flow\\n2. ✅ Include signed artifacts with checksums\\n3. ✅ Include SBOM (Syft-generated SPDX)\\n4. ✅ Include vulnerability scan reports\\n5. ✅ Include SLSA Level 3 provenance attestation\\n6. ✅ Include Cosign signatures\\n7. ✅ Pass all PR criteria above\\n\\n## Security Features\\n\\n### Supply Chain Security\\n\\n- **SLSA Level 3 Provenance**: Every release includes cryptographic proof of build integrity\\n- **Cosign Signatures**: All artifacts signed using keyless OIDC signing\\n- **SBOM Generation**: Complete software bill of materials in SPDX format\\n- **Vulnerability Scanning**: Comprehensive scanning with Grype and Snyk\\n\\n### Verification\\n\\nUsers can verify releases:\\n\\n`bash\n# Verify checksums\nsha256sum -c opnDossier_checksums.txt\n\n# Verify SLSA provenance (requires slsa-verifier)\nslsa-verifier verify-artifact \\\n  --provenance-path opnDossier-v1.0.0.intoto.jsonl \\\n  --source-uri github.com/EvilBit-Labs/opnDossier \\\n  opnDossier_checksums.txt\n\n# Verify Cosign signatures (requires cosign)\ncosign verify-blob \\\n  --bundle cosign.bundle \\\n  opnDossier_checksums.txt\n`\\n\\n## Continuous Monitoring\\n\\n### Scheduled Scans\\n\\n- **OSSF Scorecard**: Weekly repository hygiene assessment\\n- **Snyk Vulnerability Scan**: Weekly dependency vulnerability scanning\\n- **CodeQL Analysis**: Weekly code security analysis\\n- **Dependabot Updates**: Weekly dependency updates\\n\\n### Real-time Monitoring\\n\\n- **Pull Request Gates**: All security and quality checks on every PR\\n- **Commit Validation**: Conventional commits enforced\\n- **License Policy**: FOSSA license policy enforcement\\n- **Code Review**: CodeRabbit.ai advisory feedback\\n\\n## Exceptions\\n\\nPer Pipeline v2 specification, any deviations must be documented in the README under **Exceptions**.\\n\\n**Current Status**: No exceptions required - full compliance achieved.\\n\\n## Secret Management\\n\\nRequired secrets for full functionality:\\n\\n| Secret | Purpose | Required For |\\n|--------|---------|------|\\n| `CODECOV_TOKEN` | Coverage reporting | CI |\\n| `FOSSA_API_KEY` | License scanning | CI + Local |\\n| `SNYK_TOKEN` | Vulnerability scanning | CI |\\n| `SCORECARD_TOKEN` | OSSF Scorecard (optional) | CI |\\n\\n## Compliance Verification\\n\\nTo verify Pipeline v2 compliance:\\n\\n`bash\n# Run full compliance check\njust full-checks\n\n# Check individual components\njust ci-check          # Core quality gates\njust security-scan     # Security compliance\njust check-goreleaser  # Release compliance\n`\\n\\n## Resources\\n\\n- [EvilBit Labs Pipeline v2 Specification](https://github.com/EvilBit-Labs/Standards/blob/main/pipeline_v_2_spec.md)\\n- [SLSA Framework](https://slsa.dev/)\\n- [OpenSSF Scorecard](https://securityscorecards.dev/)\\n- [Sigstore Cosign](https://docs.sigstore.dev/cosign/overview/)\\n- [SPDX SBOM Standard](https://spdx.dev/)
+```bash
+# Core development workflow
+just test              # Run tests locally
+just lint              # Run linters locally
+just check             # Run pre-commit checks
+just ci-check          # Full CI validation locally
+
+# Security scanning
+just scan-vulnerabilities  # Grype vulnerability scan
+just generate-sbom          # Generate SBOM with Syft
+just fossa-scan            # FOSSA license analysis
+just security-scan         # Comprehensive security scan
+
+# Release workflow
+just build-for-release     # Test release build
+just check-goreleaser      # Validate GoReleaser config
+```
+
+## Quality Gates
+
+### PR Merge Criteria (Section 5.1)
+
+Every PR must:
+
+1. ✅ Pass all linters (`golangci-lint`)
+2. ✅ Pass format checks (`gofumpt`, `goimports`)
+3. ✅ Pass all tests with race detection (`-race` flag) and minimum 85% coverage
+4. ✅ Upload coverage to Codecov
+5. ✅ Pass security gates (CodeQL, Grype)
+6. ✅ Pass license compliance (FOSSA)
+7. ✅ Use valid Conventional Commits
+8. ✅ Acknowledge CodeRabbit.ai findings
+
+### Release Criteria (Section 5.2)
+
+Every release must:
+
+1. ✅ Be created via automated GoReleaser flow
+2. ✅ Include signed artifacts with checksums
+3. ✅ Include SBOM (Syft-generated SPDX)
+4. ✅ Include vulnerability scan reports
+5. ✅ Include SLSA Level 3 provenance attestation
+6. ✅ Include Cosign signatures
+7. ✅ Pass all PR criteria above
+
+## Security Features
+
+### Supply Chain Security
+
+- **SLSA Level 3 Provenance**: Every release includes cryptographic proof of build integrity
+- **Cosign Signatures**: All artifacts signed using keyless OIDC signing
+- **SBOM Generation**: Complete software bill of materials in SPDX format
+- **Vulnerability Scanning**: Comprehensive scanning with Grype and Snyk
+
+### Verification
+
+Users can verify releases:
+
+```bash
+# Verify checksums
+sha256sum -c opnDossier_checksums.txt
+
+# Verify SLSA provenance (requires slsa-verifier)
+slsa-verifier verify-artifact \
+  --provenance-path opnDossier-v1.0.0.intoto.jsonl \
+  --source-uri github.com/EvilBit-Labs/opnDossier \
+  opnDossier_checksums.txt
+
+# Verify Cosign signatures (requires cosign)
+cosign verify-blob \
+  --bundle cosign.bundle \
+  opnDossier_checksums.txt
+```
+
+## Continuous Monitoring
+
+### Scheduled Scans
+
+- **OSSF Scorecard**: Weekly repository hygiene assessment
+- **Snyk Vulnerability Scan**: Weekly dependency vulnerability scanning
+- **CodeQL Analysis**: Weekly code security analysis
+- **Dependabot Updates**: Weekly dependency updates
+
+### Real-time Monitoring
+
+- **Pull Request Gates**: All security and quality checks on every PR
+- **Commit Validation**: Conventional commits enforced
+- **License Policy**: FOSSA license policy enforcement
+- **Code Review**: CodeRabbit.ai advisory feedback
+
+## Exceptions
+
+Per Pipeline v2 specification, any deviations must be documented in the README under **Exceptions**.
+
+**Current Status**: No exceptions required - full compliance achieved.
+
+## Secret Management
+
+Required secrets for full functionality:
+
+| Secret            | Purpose                   | Required For |
+| ----------------- | ------------------------- | ------------ |
+| `CODECOV_TOKEN`   | Coverage reporting        | CI           |
+| `FOSSA_API_KEY`   | License scanning          | CI + Local   |
+| `SNYK_TOKEN`      | Vulnerability scanning    | CI           |
+| `SCORECARD_TOKEN` | OSSF Scorecard (optional) | CI           |
+
+## Compliance Verification
+
+To verify Pipeline v2 compliance:
+
+```bash
+# Run full compliance check
+just full-checks
+
+# Check individual components
+just ci-check          # Core quality gates
+just security-scan     # Security compliance
+just check-goreleaser  # Release compliance
+```
+
+## Resources
+
+- [EvilBit Labs Pipeline v2 Specification](https://github.com/EvilBit-Labs/Standards/blob/main/pipeline_v_2_spec.md)
+- [SLSA Framework](https://slsa.dev/)
+- [OpenSSF Scorecard](https://securityscorecards.dev/)
+- [Sigstore Cosign](https://docs.sigstore.dev/cosign/overview/)
+- [SPDX SBOM Standard](https://spdx.dev/)

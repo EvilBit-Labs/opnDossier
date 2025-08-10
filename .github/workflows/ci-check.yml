@@ -9,7 +9,6 @@ on:
 permissions:
   contents: read
   pull-requests: read
-  security-events: write
 
 jobs:
   test:
@@ -73,6 +72,8 @@ jobs:
   vulnerability-scan:
     name: Vulnerability Scan
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
