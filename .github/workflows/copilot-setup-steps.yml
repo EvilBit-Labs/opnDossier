@@ -1,0 +1,141 @@
+name: "Copilot Setup Steps"
+
+# Automatically run the setup steps when they are changed to allow for easy validation, and
+# allow manual testing through the repository's "Actions" tab
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  # The job MUST be called `copilot-setup-steps` or it will not be picked up by Copilot.
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+
+    # Set the permissions to the lowest permissions possible needed for your steps.
+    # Copilot will be given its own token for its operations.
+    permissions:
+      # If you want to clone the repository as part of your setup steps, for example to install dependencies, you'll need the `contents: read` permission. If you don't clone the repository in your setup steps, Copilot will do this for you automatically after the steps complete.
+      contents: read
+
+    # You can define any steps you want, and they will run before the agent starts.
+    # If you do not check out your code, Copilot will do this for you.
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          check-latest: true
+
+      - name: Install Just
+        uses: taiki-e/install-action@just
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Install dependencies
+        run: |
+          go mod download
+          go mod tidy
+          go mod verify
+
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v8.0.0
+        with:
+          version: latest
+
+      - name: Install goimports
+        run: go install golang.org/x/tools/cmd/goimports@latest
+
+      - name: Install development tools
+        run: |
+          # Install git-cliff for changelog generation
+          if ! command -v git-cliff >/dev/null 2>&1; then
+            if command -v cargo >/dev/null 2>&1; then
+              cargo install git-cliff
+            elif command -v brew >/dev/null 2>&1; then
+              brew install git-cliff
+            fi
+          fi
+
+          # Install Grype for vulnerability scanning
+          if ! command -v grype >/dev/null 2>&1; then
+            if command -v brew >/dev/null 2>&1; then
+              brew tap anchore/grype && brew install grype
+            elif command -v go >/dev/null 2>&1; then
+              go install github.com/anchore/grype@latest
+            fi
+          fi
+
+          # Install Syft for SBOM generation
+          if ! command -v syft >/dev/null 2>&1; then
+            if command -v brew >/dev/null 2>&1; then
+              brew tap anchore/syft && brew install syft
+            elif command -v go >/dev/null 2>&1; then
+              go install github.com/anchore/syft@latest
+            fi
+          fi
+
+          # Install markdown linting tools
+          npm install -g markdownlint-cli2
+
+      - name: Setup Python virtual environment
+        run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
+          pip install mkdocs-material
+
+      - name: Install pre-commit hooks
+        run: |
+          pre-commit install --hook-type commit-msg
+
+      - name: Verify setup
+        run: |
+          # Verify Go installation
+          go version
+
+          # Verify Just installation
+          just --version
+
+          # Verify golangci-lint installation
+          golangci-lint version
+
+          # Verify pre-commit installation
+          pre-commit --version
+
+          # Verify Python environment
+          source .venv/bin/activate
+          python --version
+          pip list | grep mkdocs-material
+
+      - name: Run project validation
+        run: |
+          # Run complete CI check to validate setup
+          just ci-check
+
+          # Run tests to ensure everything works
+          just test
+
+          # Check code formatting compliance
+          just format-check
+
+          # Validate documentation structure
+          just docs-test
+
+      - name: Generate documentation
+        run: |
+          # Generate API documentation
+          go doc -all ./...
+
+          # Update project documentation
+          just docs-export
+
+          # Validate markdown formatting
+          markdownlint-cli2 "docs/**/*.md" "*.md"
