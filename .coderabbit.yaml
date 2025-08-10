@@ -1,15 +1,17 @@
 language: en-US
-tone_instructions: "Focus on Go best practices, security for CLI tools, and operator-focused design. Emphasize offline-first capabilities and structured data handling."
+tone_instructions: >-
+  Focus on Go best practices, security for CLI tools, and operator-focused
+  design. Emphasize offline-first capabilities and structured data handling.
 early_access: true
 enable_free_tier: true
 reviews:
   profile: chill
   request_changes_workflow: true
   high_level_summary: true
-  high_level_summary_placeholder: "@coderabbitai summary"
+  high_level_summary_placeholder: '@coderabbitai summary'
   high_level_summary_in_walkthrough: true
-  auto_title_placeholder: "@coderabbitai"
-  auto_title_instructions: "Use conventional commit format: <type>(<scope>): <description>"
+  auto_title_placeholder: '@coderabbitai'
+  auto_title_instructions: 'Use conventional commit format: <type>(<scope>): <description>'
   review_status: true
   commit_status: true
   fail_commit_status: false
@@ -48,7 +50,7 @@ reviews:
       threshold: 80
     title:
       mode: warning
-      requirements: "Must follow conventional commit format"
+      requirements: Must follow conventional commit format
     description:
       mode: warning
     issue_assessment:
@@ -67,7 +69,7 @@ reviews:
       enabled: true
     github-checks:
       enabled: true
-      timeout_ms: 90000
+      timeout_ms: 300000
     languagetool:
       enabled: true
       enabled_rules: []
