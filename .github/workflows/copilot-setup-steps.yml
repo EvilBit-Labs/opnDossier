@@ -4,12 +4,6 @@ name: "Copilot Setup Steps"
 # allow manual testing through the repository's "Actions" tab
 on:
   workflow_dispatch:
-    inputs:
-      install_extra_tools:
-        description: 'Install additional development tools (git-cliff, grype, syft)'
-        required: false
-        default: false
-        type: boolean
   push:
     paths:
       - .github/workflows/copilot-setup-steps.yml
@@ -33,6 +27,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Ensure bash is installed
+        run: |
+          if ! command -v bash > /dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y bash
+          fi
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -83,7 +83,6 @@ jobs:
           go install golang.org/x/tools/cmd/goimports@latest
 
       - name: Install development tools
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.install_extra_tools == 'true'
         run: |
           set -euo pipefail
 
@@ -164,13 +163,11 @@ jobs:
           pip list | grep mkdocs-material
           pip list | grep pre-commit
 
-          # Verify extra tools if installed
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ "${{ github.event.inputs.install_extra_tools }}" == "true" ]; then
-            echo "Verifying extra tools installation..."
-            git-cliff --version
-            grype version
-            syft version
-          fi
+          # Verify extra tools installation
+          echo "Verifying extra tools installation..."
+          git-cliff --version
+          grype version
+          syft version
 
       - name: Run project validation
         run: |
