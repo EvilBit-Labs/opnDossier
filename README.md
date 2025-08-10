@@ -391,7 +391,6 @@ For security issues, please see our security policy.
 
 This project is licensed under the Apache License - see the [LICENSE](LICENSE) file for details.
 
-
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FEvilBit-Labs%2FopnDossier.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FEvilBit-Labs%2FopnDossier?ref=badge_large)
 
 ## Acknowledgements
