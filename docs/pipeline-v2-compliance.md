@@ -66,16 +66,16 @@ Pipeline v2 defines mandatory tooling and quality gates for all EvilBit Labs pub
 
 ### ✅ **Enhanced SaaS Tools**
 
-| Tool               | Implementation                                      | Status      |
-| ------------------ | --------------------------------------------------- | ----------- |
-| **OSSF Scorecard** | Weekly repository hygiene scoring                   | ✅ Complete |
-| **Snyk**           | Additional dependency + code vulnerability scanning | ✅ Complete |
-| **Dependabot**     | Automated dependency updates                        | ✅ Complete |
+| Tool               | Implementation                                                   | Status      |
+| ------------------ | ---------------------------------------------------------------- | ----------- |
+| **OSSF Scorecard** | Weekly repository hygiene scoring                                | ✅ Complete |
+| **Snyk**           | Additional dependency + code vulnerability scanning (GitHub App) | ✅ Complete |
+| **Dependabot**     | Automated dependency updates                                     | ✅ Complete |
 
 **Files:**
 
 - [`.github/workflows/scorecard.yml`](../.github/workflows/scorecard.yml) - OSSF Scorecard
-- [`.github/workflows/snyk.yml`](../.github/workflows/snyk.yml) - Snyk scanning
+- Snyk scanning (GitHub App integration)
 - [`.github/dependabot.yml`](../.github/dependabot.yml) - Dependabot configuration
 
 ## Local Development Workflow
@@ -134,7 +134,7 @@ Every release must:
 - **SLSA Level 3 Provenance**: Every release includes cryptographic proof of build integrity
 - **Cosign Signatures**: All artifacts signed using keyless OIDC signing
 - **SBOM Generation**: Complete software bill of materials in SPDX format
-- **Vulnerability Scanning**: Comprehensive scanning with Grype and Snyk
+- **Vulnerability Scanning**: Comprehensive scanning with Grype and Snyk (GitHub App)
 
 ### Verification
 
@@ -161,7 +161,7 @@ cosign verify-blob \
 ### Scheduled Scans
 
 - **OSSF Scorecard**: Weekly repository hygiene assessment
-- **Snyk Vulnerability Scan**: Weekly dependency vulnerability scanning
+- **Snyk Vulnerability Scan**: Weekly dependency vulnerability scanning (GitHub App)
 - **CodeQL Analysis**: Weekly code security analysis
 - **Dependabot Updates**: Weekly dependency updates
 
@@ -182,12 +182,12 @@ Per Pipeline v2 specification, any deviations must be documented in the README u
 
 Required secrets for full functionality:
 
-| Secret            | Purpose                   | Required For |
-| ----------------- | ------------------------- | ------------ |
-| `CODECOV_TOKEN`   | Coverage reporting        | CI           |
-| `FOSSA_API_KEY`   | License scanning          | CI + Local   |
-| `SNYK_TOKEN`      | Vulnerability scanning    | CI           |
-| `SCORECARD_TOKEN` | OSSF Scorecard (optional) | CI           |
+| Secret            | Purpose                             | Required For |
+| ----------------- | ----------------------------------- | ------------ |
+| `CODECOV_TOKEN`   | Coverage reporting                  | CI           |
+| `FOSSA_API_KEY`   | License scanning                    | CI + Local   |
+| `SNYK_TOKEN`      | Vulnerability scanning (GitHub App) | N/A          |
+| `SCORECARD_TOKEN` | OSSF Scorecard (optional)           | CI           |
 
 ## Compliance Verification
 
