@@ -15,7 +15,7 @@
 - [System Configuration](#system-configuration)
 - [Interfaces](#interfaces)
 - [Firewall Rules](#firewall-rules)
-- [NAT Rules](#nat-rules)
+- [NAT Configuration](#nat-configuration)
 - [DHCP Services](#dhcp-services)
 - [DNS Resolver](#dns-resolver)
 - [OpenVPN](#openvpn)
@@ -155,8 +155,57 @@
 
 ---
 
-## NAT Rules
+## NAT Configuration
 
+### NAT Summary
+{{- if .Nat.Outbound.Mode }}
+- **NAT Mode**: `{{ .Nat.Outbound.Mode }}`{{- if eq .Nat.Outbound.Mode "automatic" }} *(Automatic outbound NAT generation)*{{- else if eq .Nat.Outbound.Mode "manual" }} *(Manual outbound NAT rules)*{{- else if eq .Nat.Outbound.Mode "advanced" }} *(Advanced outbound NAT rules)*{{- else if eq .Nat.Outbound.Mode "hybrid" }} *(Hybrid automatic/manual outbound NAT)*{{- else if eq .Nat.Outbound.Mode "disabled" }} *(Outbound NAT disabled)*{{- end }}
+
+- **NAT Reflection**: {{ if eq .System.DisableNATReflection "yes" }}**Disabled** ✓{{- else }}**Enabled** ⚠️{{- end }}
+
+- **Port Forward State Sharing**: {{ if eq .System.PfShareForward 1 }}**Enabled**{{- else }}**Disabled**{{- end }}
+
+- **Outbound Rules**: {{ len .Nat.Outbound.Rule }} configured
+- **Inbound Rules**: 0 configured
+{{- else }}
+- **NAT Mode**: Not configured
+- **NAT Reflection**: Unknown
+- **Port Forward State Sharing**: Unknown
+- **Outbound Rules**: 0 configured
+- **Inbound Rules**: 0 configured
+{{- end }}
+
+{{- if eq .System.DisableNATReflection "yes" }}
+
+**Security Note**: NAT reflection is properly disabled, preventing potential security issues where internal clients can access internal services via external IP addresses.
+
+{{- else if .Nat.Outbound.Mode }}
+
+**⚠️ Security Warning**: NAT reflection is enabled, which may allow internal clients to access internal services via external IP addresses. Consider disabling if not needed.
+
+{{- end }}
+
+### Outbound NAT Rules
+
+{{- if .Nat.Outbound.Rule }}
+| # | Interface | Source | Destination | Target | Protocol | Description | Created By | Status |
+|---|-----------|--------|-------------|--------|----------|-------------|------------|--------|
+{{- range $index, $rule := .Nat.Outbound.Rule }}
+| {{ add $index 1 }} | {{ $rule.Interface }} | {{ if $rule.Source.Network }}{{ $rule.Source.Network }}{{ else if $rule.Source.Any }}any{{ else }}-{{ end }} | {{ if $rule.Destination.Any }}any{{ else }}{{ $rule.Destination.Network }}{{ end }} | `{{ $rule.Target }}` | {{ if $rule.Protocol }}{{ $rule.Protocol }}{{ else }}any{{ end }} | {{ if $rule.Descr }}{{ $rule.Descr }}{{ else }}-{{ end }} | {{ if $rule.Created }}{{ $rule.Created.Username }}{{ else }}-{{ end }} | {{ if $rule.Disabled }}**Disabled**{{ else }}**Active**{{ end }} |
+{{- end }}
+{{- else }}
+| # | Interface | Source | Destination | Target | Protocol | Description | Created By | Status |
+|---|-----------|--------|-------------|--------|----------|-------------|------------|--------|
+| - | - | - | - | - | - | No outbound NAT rules configured | - | - |
+{{- end }}
+
+### Inbound NAT Rules (Port Forwarding)
+
+| # | Interface | External Port | Internal IP | Internal Port | Protocol | Description | Priority | Status |
+|---|-----------|---------------|-------------|---------------|----------|-------------|----------|--------|
+| - | - | - | - | - | - | No inbound NAT rules configured | - | - |
+
+### Legacy NAT Rules Table
 {{- if .Nat.Outbound.Mode }}
 **Mode:** {{ .Nat.Outbound.Mode }}
 

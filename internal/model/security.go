@@ -70,20 +70,22 @@ type SecurityConfig struct {
 
 // NATSummary provides comprehensive NAT configuration for security analysis.
 type NATSummary struct {
-	Mode               string    `json:"mode" yaml:"mode"`
-	ReflectionDisabled bool      `json:"reflectionDisabled" yaml:"reflectionDisabled"`
-	PfShareForward     bool      `json:"pfShareForward" yaml:"pfShareForward"`
-	OutboundRules      []NATRule `json:"outboundRules,omitempty" yaml:"outboundRules,omitempty"`
+	Mode               string        `json:"mode"                    yaml:"mode"`
+	ReflectionDisabled bool          `json:"reflectionDisabled"      yaml:"reflectionDisabled"`
+	PfShareForward     bool          `json:"pfShareForward"          yaml:"pfShareForward"`
+	OutboundRules      []NATRule     `json:"outboundRules,omitempty" yaml:"outboundRules,omitempty"`
+	InboundRules       []InboundRule `json:"inboundRules,omitempty"  yaml:"inboundRules,omitempty"`
 }
 
 // Nat represents NAT configuration.
 type Nat struct {
-	Outbound Outbound `xml:"outbound" json:"outbound" yaml:"outbound"`
+	Outbound Outbound      `xml:"outbound" json:"outbound"          yaml:"outbound"`
+	Inbound  []InboundRule `xml:"inbound"  json:"inbound,omitempty" yaml:"inbound,omitempty"`
 }
 
 // Outbound represents outbound NAT configuration.
 type Outbound struct {
-	Mode string    `xml:"mode" json:"mode" yaml:"mode"`
+	Mode string    `xml:"mode" json:"mode"            yaml:"mode"`
 	Rule []NATRule `xml:"rule" json:"rules,omitempty" yaml:"rules,omitempty"`
 }
 
@@ -95,22 +97,42 @@ type Filter struct {
 // NATRule represents a NAT rule with enhanced fields for security analysis.
 type NATRule struct {
 	XMLName     xml.Name      `xml:"rule"`
-	Interface   InterfaceList `xml:"interface,omitempty" json:"interface,omitempty" yaml:"interface,omitempty"`
-	IPProtocol  string        `xml:"ipprotocol,omitempty" json:"ipProtocol,omitempty" yaml:"ipProtocol,omitempty"`
-	Protocol    string        `xml:"protocol,omitempty" json:"protocol,omitempty" yaml:"protocol,omitempty"`
-	Source      Source        `xml:"source" json:"source" yaml:"source"`
-	Destination Destination   `xml:"destination" json:"destination" yaml:"destination"`
-	Target      string        `xml:"target,omitempty" json:"target,omitempty" yaml:"target,omitempty"`
-	SourcePort  string        `xml:"sourceport,omitempty" json:"sourcePort,omitempty" yaml:"sourcePort,omitempty"`
-	Disabled    string        `xml:"disabled,omitempty" json:"disabled,omitempty" yaml:"disabled,omitempty"`
-	Descr       string        `xml:"descr,omitempty" json:"description,omitempty" yaml:"description,omitempty"`
-	Category    string        `xml:"category,omitempty" json:"category,omitempty" yaml:"category,omitempty"`
-	Tag         string        `xml:"tag,omitempty" json:"tag,omitempty" yaml:"tag,omitempty"`
-	Tagged      string        `xml:"tagged,omitempty" json:"tagged,omitempty" yaml:"tagged,omitempty"`
-	PoolOpts    string        `xml:"poolopts,omitempty" json:"poolOpts,omitempty" yaml:"poolOpts,omitempty"`
-	Updated     *Updated      `xml:"updated,omitempty" json:"updated,omitempty" yaml:"updated,omitempty"`
-	Created     *Created      `xml:"created,omitempty" json:"created,omitempty" yaml:"created,omitempty"`
-	UUID        string        `xml:"uuid,attr,omitempty" json:"uuid,omitempty" yaml:"uuid,omitempty"`
+	Interface   InterfaceList `xml:"interface,omitempty"  json:"interface,omitempty"   yaml:"interface,omitempty"`
+	IPProtocol  string        `xml:"ipprotocol,omitempty" json:"ipProtocol,omitempty"  yaml:"ipProtocol,omitempty"`
+	Protocol    string        `xml:"protocol,omitempty"   json:"protocol,omitempty"    yaml:"protocol,omitempty"`
+	Source      Source        `xml:"source"               json:"source"                yaml:"source"`
+	Destination Destination   `xml:"destination"          json:"destination"           yaml:"destination"`
+	Target      string        `xml:"target,omitempty"     json:"target,omitempty"      yaml:"target,omitempty"`
+	SourcePort  string        `xml:"sourceport,omitempty" json:"sourcePort,omitempty"  yaml:"sourcePort,omitempty"`
+	Disabled    string        `xml:"disabled,omitempty"   json:"disabled,omitempty"    yaml:"disabled,omitempty"`
+	Descr       string        `xml:"descr,omitempty"      json:"description,omitempty" yaml:"description,omitempty"`
+	Category    string        `xml:"category,omitempty"   json:"category,omitempty"    yaml:"category,omitempty"`
+	Tag         string        `xml:"tag,omitempty"        json:"tag,omitempty"         yaml:"tag,omitempty"`
+	Tagged      string        `xml:"tagged,omitempty"     json:"tagged,omitempty"      yaml:"tagged,omitempty"`
+	PoolOpts    string        `xml:"poolopts,omitempty"   json:"poolOpts,omitempty"    yaml:"poolOpts,omitempty"`
+	Updated     *Updated      `xml:"updated,omitempty"    json:"updated,omitempty"     yaml:"updated,omitempty"`
+	Created     *Created      `xml:"created,omitempty"    json:"created,omitempty"     yaml:"created,omitempty"`
+	UUID        string        `xml:"uuid,attr,omitempty"  json:"uuid,omitempty"        yaml:"uuid,omitempty"`
+}
+
+// InboundRule represents an inbound NAT rule (port forwarding) with enhanced fields for security analysis.
+type InboundRule struct {
+	XMLName      xml.Name      `xml:"rule"`
+	Interface    InterfaceList `xml:"interface,omitempty"    json:"interface,omitempty"    yaml:"interface,omitempty"`
+	IPProtocol   string        `xml:"ipprotocol,omitempty"   json:"ipProtocol,omitempty"   yaml:"ipProtocol,omitempty"`
+	Protocol     string        `xml:"protocol,omitempty"     json:"protocol,omitempty"     yaml:"protocol,omitempty"`
+	Source       Source        `xml:"source"                 json:"source"                 yaml:"source"`
+	Destination  Destination   `xml:"destination"            json:"destination"            yaml:"destination"`
+	ExternalPort string        `xml:"externalport,omitempty" json:"externalPort,omitempty" yaml:"externalPort,omitempty"`
+	InternalIP   string        `xml:"internalip,omitempty"   json:"internalIP,omitempty"   yaml:"internalIP,omitempty"`
+	InternalPort string        `xml:"internalport,omitempty" json:"internalPort,omitempty" yaml:"internalPort,omitempty"`
+	Reflection   string        `xml:"reflection,omitempty"   json:"reflection,omitempty"   yaml:"reflection,omitempty"`
+	Priority     int           `xml:"priority,omitempty"     json:"priority,omitempty"     yaml:"priority,omitempty"`
+	Disabled     string        `xml:"disabled,omitempty"     json:"disabled,omitempty"     yaml:"disabled,omitempty"`
+	Descr        string        `xml:"descr,omitempty"        json:"description,omitempty"  yaml:"description,omitempty"`
+	Updated      *Updated      `xml:"updated,omitempty"      json:"updated,omitempty"      yaml:"updated,omitempty"`
+	Created      *Created      `xml:"created,omitempty"      json:"created,omitempty"      yaml:"created,omitempty"`
+	UUID         string        `xml:"uuid,attr,omitempty"    json:"uuid,omitempty"         yaml:"uuid,omitempty"`
 }
 
 // Rule represents a firewall rule.

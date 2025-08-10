@@ -495,5 +495,6 @@ func (o *OpnSenseDocument) NATSummary() NATSummary {
 		ReflectionDisabled: o.System.DisableNATReflection == "yes",
 		PfShareForward:     o.System.PfShareForward == 1,
 		OutboundRules:      o.Nat.Outbound.Rule,
+		InboundRules:       o.Nat.Inbound,
 	}
 }

@@ -761,6 +761,7 @@ func generateNATSummary(cfg *OpnSenseDocument) *NATSummary {
 		ReflectionDisabled: cfg.System.DisableNATReflection == "yes",
 		PfShareForward:     cfg.System.PfShareForward == 1,
 		OutboundRules:      cfg.Nat.Outbound.Rule,
+		InboundRules:       cfg.Nat.Inbound,
 	}
 
 	return summary
