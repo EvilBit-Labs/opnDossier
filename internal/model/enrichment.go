@@ -54,6 +54,9 @@ type EnrichedOpnSenseDocument struct {
 
 	// Compliance checks
 	ComplianceChecks *ComplianceChecks `json:"complianceChecks,omitempty"`
+
+	// NAT Summary for prominent display
+	NATSummary *NATSummary `json:"natSummary,omitempty"`
 }
 
 // Statistics contains calculated statistics about the configuration.
@@ -225,6 +228,7 @@ func EnrichDocument(cfg *OpnSenseDocument) *EnrichedOpnSenseDocument {
 		SecurityAssessment: generateSecurityAssessment(cfg),
 		PerformanceMetrics: generatePerformanceMetrics(cfg),
 		ComplianceChecks:   generateComplianceChecks(cfg),
+		NATSummary:         generateNATSummary(cfg),
 	}
 
 	return enriched
@@ -743,4 +747,21 @@ func calculateConfigComplexity(stats *Statistics) int {
 	}
 
 	return complexity
+}
+
+// generateNATSummary creates a comprehensive NAT summary for security analysis.
+// This includes NAT mode, reflection settings, outbound rules, and port forwarding information.
+func generateNATSummary(cfg *OpnSenseDocument) *NATSummary {
+	if cfg == nil {
+		return nil
+	}
+
+	summary := &NATSummary{
+		Mode:               cfg.Nat.Outbound.Mode,
+		ReflectionDisabled: cfg.System.DisableNATReflection == "yes",
+		PfShareForward:     cfg.System.PfShareForward == 1,
+		OutboundRules:      cfg.Nat.Outbound.Rule,
+	}
+
+	return summary
 }

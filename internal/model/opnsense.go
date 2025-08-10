@@ -476,3 +476,24 @@ func (o *OpnSenseDocument) ServiceConfig() ServiceConfig {
 		Ntpd:         o.Ntpd,
 	}
 }
+
+// NATSummary provides comprehensive NAT configuration information for security analysis.
+// This includes NAT mode, reflection settings, outbound rules, and port forwarding information.
+//
+// Returns:
+//   - NATSummary: Comprehensive NAT configuration including mode, reflection, and rules
+//
+// Example:
+//
+//	natSummary := config.NATSummary()
+//	fmt.Printf("NAT Mode: %s\n", natSummary.Mode)
+//	fmt.Printf("NAT Reflection Disabled: %v\n", natSummary.ReflectionDisabled)
+//	fmt.Printf("Outbound Rules: %d\n", len(natSummary.OutboundRules))
+func (o *OpnSenseDocument) NATSummary() NATSummary {
+	return NATSummary{
+		Mode:               o.Nat.Outbound.Mode,
+		ReflectionDisabled: o.System.DisableNATReflection == "yes",
+		PfShareForward:     o.System.PfShareForward == 1,
+		OutboundRules:      o.Nat.Outbound.Rule,
+	}
+}

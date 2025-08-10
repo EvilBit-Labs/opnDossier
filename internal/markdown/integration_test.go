@@ -70,7 +70,7 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 				"# OPNsense Configuration Summary",
 				"## Interfaces",
 				"## Firewall Rules",
-				"## NAT Rules",
+				"## NAT Configuration",
 				"## DHCP Services",
 			},
 			expectedSystemMarkers: []string{
@@ -83,7 +83,7 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 				"lan",
 			},
 			expectedSecurityMarkers: []string{
-				"## NAT Rules",
+				"## NAT Configuration",
 				"automatic",
 			},
 			expectedServiceMarkers: []string{
@@ -101,7 +101,7 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 				"# OPNsense Configuration Summary",
 				"## Interfaces",
 				"## Firewall Rules",
-				"## NAT Rules",
+				"## NAT Configuration",
 				"## DHCP Services",
 			},
 			expectedSystemMarkers: []string{
@@ -115,7 +115,7 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 				"192.168.1.1",
 			},
 			expectedSecurityMarkers: []string{
-				"## NAT Rules",
+				"## NAT Configuration",
 				"automatic",
 				"Default allow LAN to any rule",
 			},
@@ -136,7 +136,7 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 				"# OPNsense Configuration Summary",
 				"## Interfaces",
 				"## Firewall Rules",
-				"## NAT Rules",
+				"## NAT Configuration",
 				"## DHCP Services",
 			},
 			expectedSystemMarkers: []string{
@@ -148,7 +148,7 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 				"lan",
 			},
 			expectedSecurityMarkers: []string{
-				"## NAT Rules",
+				"## NAT Configuration",
 			},
 			expectedServiceMarkers: []string{
 				"## DHCP Services",
@@ -164,7 +164,7 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 				"# OPNsense Configuration Summary",
 				"## Interfaces",
 				"## Firewall Rules",
-				"## NAT Rules",
+				"## NAT Configuration",
 				"## DHCP Services",
 			},
 			expectedSystemMarkers: []string{
@@ -176,7 +176,7 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 				"lan",
 			},
 			expectedSecurityMarkers: []string{
-				"## NAT Rules",
+				"## NAT Configuration",
 			},
 			expectedServiceMarkers: []string{
 				"## DHCP Services",
