@@ -17,17 +17,9 @@ jobs:
         uses: googleapis/release-please-action@v4
         id: release
         with:
-          # Release type should be 'go' for Go projects
           release-type: go
-          # Customize the package name
-          package-name: opndossier
-          # Include component in the tag name
-          include-component-in-tag: false
-          # Token for creating releases and PRs
           token: ${{ secrets.GITHUB_TOKEN }}
-          # Changelog sections to include
-          changelog-types: '[{"type":"feat","section":"Features","hidden":false},{"type":"fix","section":"Bug Fixes","hidden":false},{"type":"perf","section":"Performance Improvements","hidden":false},{"type":"refactor","section":"Code Refactoring","hidden":false},{"type":"docs","section":"Documentation","hidden":false},{"type":"build","section":"Build System","hidden":false},{"type":"ci","section":"Continuous Integration","hidden":false},{"type":"chore","section":"Other Changes","hidden":true}]'
-          
+
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
