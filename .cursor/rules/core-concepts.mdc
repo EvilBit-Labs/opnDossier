@@ -2,6 +2,8 @@
 alwaysApply: true
 ---
 
+This project is opnDossier, located at <https://github.com/EvilBit-Labs/opnDossier>. The project is a tool for auditing and reporting on OPNsense configurations, with the primary goal of generating a markdown view derived from the OPNsense config.xml file.
+
 ## Rule Precedence
 
 **CRITICAL - Rules are applied in the following order of precedence:**
