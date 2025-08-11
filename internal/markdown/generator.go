@@ -128,15 +128,20 @@ func createTemplateFuncMap() template.FuncMap {
 	}
 
 	funcMap["getRiskLevel"] = func(severity string) string {
-		switch strings.ToLower(severity) {
-		case "high", "critical":
-			return "High Risk"
+		// Use consistent mapping with MarkdownBuilder.AssessRiskLevel
+		switch strings.ToLower(strings.TrimSpace(severity)) {
+		case "critical":
+			return "🔴 Critical Risk"
+		case "high":
+			return "🟠 High Risk"
 		case "medium":
-			return "Medium Risk"
+			return "🟡 Medium Risk"
 		case "low":
-			return "Low Risk"
+			return "🟢 Low Risk"
+		case "info", "informational":
+			return "ℹ️ Informational"
 		default:
-			return "Unknown Risk"
+			return "⚪ Unknown Risk"
 		}
 	}
 
