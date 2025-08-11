@@ -47,6 +47,14 @@ When rules conflict, always follow the rule with higher precedence.
 - **Structured Data:** Data should be structured, versioned, and portable. This enables auditable, actionable, and reliable systems.
 - **Framework-First:** Leverage the built-in functionality of established frameworks and libraries. Avoid custom solutions when a well-established, predictable one already exists.
 
+### 1.1. EvilBit Labs Brand Principles
+
+- **Trust the Operator:** Full control, no black boxes
+- **Polish Over Scale:** Quality over feature-bloat
+- **Offline First:** Built for where the internet isn't
+- **Sane Defaults:** Clean outputs, CLI help that's actually helpful
+- **Ethical Constraints:** No dark patterns, spyware, or telemetry
+
 ## 2. Shared Development Standards
 
 ### 2.1. Security Principles
@@ -63,17 +71,27 @@ When rules conflict, always follow the rule with higher precedence.
 - **Local Processing:** All operations should work locally
 - **Airgap Compatible:** Full functionality in isolated environments
 
-### 2.3. Commit Message Standards
+### 2.3. CI/CD Integration Standards
 
-Follow the [Conventional Commits](https://www.conventionalcommits.org) specification:
+#### Conventional Commits
 
-- **Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `build`, `ci`, `chore`, `perf`
-- **Format:** `type(scope): description`
-- **Breaking Changes:** Use `!` in the type/scope (e.g., `feat(cli)!:`) or a `BREAKING CHANGE:` footer
+All commit messages must follow the [Conventional Commits](https://www.conventionalcommits.org) specification:
+
+- **Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`
+- **Scopes:** `(parser)`, `(converter)`, `(audit)`, `(cli)`, `(model)`, `(plugin)`, `(templates)`, etc.
+- **Format:** `<type>(<scope>): <description>`
+- **Breaking Changes:** Indicated with `!` in the header (e.g., `feat(api)!: redesign plugin interface`)
 - **Examples:**
-  - `feat(auth): add OAuth2 support`
-  - `fix(parser): handle malformed XML gracefully`
-  - `docs: update API documentation`
+  - `feat(parser): add support for OPNsense 24.1 config format`
+  - `fix(converter): handle empty VLAN configurations gracefully`
+  - `docs(readme): update installation instructions`
+
+#### Quality Gates
+
+- **Branch Protection:** Strict linting, testing, and security gates
+- **Pre-commit Hooks:** Automated formatting, linting, and basic validation
+- **CI Pipeline:** Comprehensive testing across multiple Go versions and platforms
+- **Security Scanning:** Regular dependency auditing and vulnerability assessment
 
 ### 2.4. Data Processing
 
@@ -338,9 +356,80 @@ The project implements a three-tier testing strategy:
 - **File Operations:** Use secure file permissions and validate file sizes
 - **Configuration Security:** Separate sensitive and non-sensitive configuration
 
-### 4.7. AI Agent Guidelines
+### 4.7. AI Assistant Guidelines
 
-When AI agents contribute to this project, they should:
+#### Development Rules of Engagement
+
+- **TERM=dumb Support**: Ensure terminal output respects `TERM="dumb"` environment variable for CI/automation
+- **CodeRabbit.ai Integration**: Prefer coderabbit.ai for code review over GitHub Copilot auto-reviews
+- **Single Maintainer Workflow**: Configure for single maintainer (UncleSp1d3r) with no second reviewer requirement
+- **No Auto-commits**: Never commit code on behalf of maintainer without explicit permission
+
+#### Assistant Behavior Rules
+
+- **Clarity and Precision**: Be direct, professional, and context-aware in all interactions
+- **Adherence to Standards**: Strictly follow the defined rules for code style and project structure
+- **Tool Usage**: Use `just` for task execution, `go` commands for Go development
+- **Focus on Value**: Enhance the project's unique value proposition as an OPNsense configuration auditing tool
+- **Respect Documentation**: Always consult and follow project documentation before making changes
+
+#### Code Generation Requirements
+
+- Generated code must conform to all established patterns
+- Include comprehensive error handling with context preservation
+- Follow architectural patterns (Command, Strategy, Builder where appropriate)
+- Include appropriate documentation and testing
+- Use proper type safety through Go's type system
+
+### 4.8. Common Commands and Workflows
+
+#### Development Commands
+
+```bash
+# Primary development workflow
+just dev                 # Run in development mode
+just install            # Install dependencies and setup environment
+just build              # Complete build with all checks
+
+# Code quality
+just format             # Format code and documentation
+just lint               # Run linting and static analysis
+just check              # Run pre-commit hooks and comprehensive checks
+just ci-check           # Run CI-equivalent checks locally
+
+# Testing
+just test               # Run the full test suite
+go test ./...           # Run tests directly
+go test -race ./...     # Run tests with race detection
+go test -cover ./...    # Run tests with coverage
+
+# Maintenance
+go mod tidy             # Clean up dependencies
+go mod verify           # Verify dependencies
+just docs               # Serve documentation locally (if available)
+```
+
+#### Usage Examples
+
+```bash
+# Primary use cases - Convert OPNsense configurations
+./opndossier convert config.xml --format markdown
+./opndossier convert config.xml --format json -o output.json
+./opndossier convert config.xml --format yaml --force
+
+# Display configuration information
+./opndossier display config.xml
+
+# Validate configuration
+./opndossier validate config.xml
+
+# Run with audit plugins
+./opndossier convert config.xml --audit stig,sans
+```
+
+### 4.9. AI Agent Mandatory Practices
+
+When AI agents contribute to this project, they **MUST**:
 
 01. **Always run tests** after making changes: `just test`
 02. **Run linting** before committing: `just lint`
@@ -353,9 +442,9 @@ When AI agents contribute to this project, they should:
 09. **Document new functions and types** following Go conventions
 10. **Never commit secrets** or hardcoded credentials
 11. **Consult project documentation** - [requirements.md](project_spec/requirements.md), [ARCHITECTURE.md](ARCHITECTURE.md), and [DEVELOPMENT_STANDARDS.md](DEVELOPMENT_STANDARDS.md) for guidance
-12. When rendering reports, always prefer structured config data + audit overlays over flat summary tables.
-13. Blue team output should favor clarity, grouping, and actionability. Red team output should favor target prioritization and pivot surface discovery.
-14. Validate all generated markdown for formatting correctness using mdformat or markdownlint.
+12. When rendering reports, always prefer structured config data + audit overlays over flat summary tables
+13. Blue team output should favor clarity, grouping, and actionability. Red team output should favor target prioritization and pivot surface discovery
+14. Validate all generated markdown for formatting correctness using mdformat for formatting and markdownlint-cli2 for validation
 
 #### AI Agent Code Review Checklist
 
@@ -379,7 +468,7 @@ These implementation guidelines ensure that all contributors, whether human or A
 
 ---
 
-## 📖 Additional Resources
+## Additional Resources
 
 For comprehensive project understanding, AI agents should familiarize themselves with:
 
