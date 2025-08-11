@@ -88,6 +88,67 @@ func TestMarkdownBuilder_FilterSystemTunables_EmptyInput(t *testing.T) {
 	assert.Empty(t, result)
 }
 
+func TestMarkdownBuilder_FilterSystemTunables_EdgeCases(t *testing.T) {
+	builder := NewMarkdownBuilder()
+
+	tests := []struct {
+		name            string
+		input           []model.SysctlItem
+		includeTunables bool
+		expected        []model.SysctlItem
+	}{
+		{
+			name:            "Nil input",
+			input:           nil,
+			includeTunables: false,
+			expected:        nil,
+		},
+		{
+			name:            "Nil input with include all",
+			input:           nil,
+			includeTunables: true,
+			expected:        nil,
+		},
+		{
+			name: "Empty tunable names",
+			input: []model.SysctlItem{
+				{Tunable: "", Value: "0", Descr: "Empty tunable"},
+				{Tunable: "net.inet.ip.forwarding", Value: "1", Descr: "Valid tunable"},
+			},
+			includeTunables: false,
+			expected: []model.SysctlItem{
+				{Tunable: "net.inet.ip.forwarding", Value: "1", Descr: "Valid tunable"},
+			},
+		},
+		{
+			name: "Include all returns copy",
+			input: []model.SysctlItem{
+				{Tunable: "test", Value: "1", Descr: "Test"},
+			},
+			includeTunables: true,
+			expected: []model.SysctlItem{
+				{Tunable: "test", Value: "1", Descr: "Test"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := builder.FilterSystemTunables(tt.input, tt.includeTunables)
+			assert.Equal(t, tt.expected, result)
+
+			// Verify it's a copy when include all is true
+			if tt.includeTunables && tt.input != nil && len(tt.input) > 0 {
+				// Modify original to ensure it's a copy
+				originalValue := tt.input[0].Value
+				tt.input[0].Value = "modified"
+				assert.NotEqual(t, "modified", result[0].Value, "Should be a copy, not reference")
+				tt.input[0].Value = originalValue // restore
+			}
+		})
+	}
+}
+
 func TestMarkdownBuilder_GroupServicesByStatus(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
@@ -132,7 +193,90 @@ func TestMarkdownBuilder_GroupServicesByStatus_EmptyInput(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
 	result := builder.GroupServicesByStatus([]model.Service{})
-	assert.Empty(t, result)
+	require.NotNil(t, result)
+	assert.Contains(t, result, "running")
+	assert.Contains(t, result, "stopped")
+	assert.Empty(t, result["running"])
+	assert.Empty(t, result["stopped"])
+}
+
+func TestMarkdownBuilder_GroupServicesByStatus_EdgeCases(t *testing.T) {
+	builder := NewMarkdownBuilder()
+
+	tests := []struct {
+		name            string
+		input           []model.Service
+		expectedRunning int
+		expectedStopped int
+		shouldBeNil     bool
+	}{
+		{
+			name:        "Nil input",
+			input:       nil,
+			shouldBeNil: true,
+		},
+		{
+			name: "Services with empty names",
+			input: []model.Service{
+				{Name: "", Status: "running", Description: "Empty name"},
+				{Name: "valid", Status: "running", Description: "Valid service"},
+			},
+			expectedRunning: 1,
+			expectedStopped: 0,
+		},
+		{
+			name: "Services with invalid status",
+			input: []model.Service{
+				{Name: "service1", Status: "unknown", Description: "Unknown status"},
+				{Name: "service2", Status: "disabled", Description: "Disabled status"},
+				{Name: "service3", Status: "running", Description: "Running status"},
+			},
+			expectedRunning: 1,
+			expectedStopped: 2,
+		},
+		{
+			name: "All running services",
+			input: []model.Service{
+				{Name: "service1", Status: "running"},
+				{Name: "service2", Status: "running"},
+			},
+			expectedRunning: 2,
+			expectedStopped: 0,
+		},
+		{
+			name: "All stopped services",
+			input: []model.Service{
+				{Name: "service1", Status: "stopped"},
+				{Name: "service2", Status: "disabled"},
+			},
+			expectedRunning: 0,
+			expectedStopped: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := builder.GroupServicesByStatus(tt.input)
+
+			if tt.shouldBeNil {
+				assert.Nil(t, result)
+				return
+			}
+
+			require.NotNil(t, result)
+			assert.Contains(t, result, "running")
+			assert.Contains(t, result, "stopped")
+			assert.Len(t, result["running"], tt.expectedRunning)
+			assert.Len(t, result["stopped"], tt.expectedStopped)
+
+			// Verify sorting
+			for _, services := range result {
+				for i := 1; i < len(services); i++ {
+					assert.LessOrEqual(t, services[i-1].Name, services[i].Name, "Services should be sorted by name")
+				}
+			}
+		})
+	}
 }
 
 func TestMarkdownBuilder_AggregatePackageStats(t *testing.T) {
@@ -180,6 +324,72 @@ func TestMarkdownBuilder_AggregatePackageStats_AllFalse(t *testing.T) {
 	assert.Equal(t, 0, result["installed"])
 	assert.Equal(t, 0, result["locked"])
 	assert.Equal(t, 0, result["automatic"])
+}
+
+func TestMarkdownBuilder_AggregatePackageStats_EdgeCases(t *testing.T) {
+	builder := NewMarkdownBuilder()
+
+	tests := []struct {
+		name     string
+		input    []model.Package
+		expected map[string]int
+		isNil    bool
+	}{
+		{
+			name:  "Nil input",
+			input: nil,
+			isNil: true,
+		},
+		{
+			name:  "Empty input",
+			input: []model.Package{},
+			expected: map[string]int{
+				"total":     0,
+				"installed": 0,
+				"locked":    0,
+				"automatic": 0,
+			},
+		},
+		{
+			name: "Packages with empty names",
+			input: []model.Package{
+				{Name: "", Installed: true, Locked: true, Automatic: true},
+				{Name: "valid", Installed: true, Locked: false, Automatic: false},
+			},
+			expected: map[string]int{
+				"total":     2,
+				"installed": 1,
+				"locked":    0,
+				"automatic": 0,
+			},
+		},
+		{
+			name: "All flags true",
+			input: []model.Package{
+				{Name: "pkg1", Installed: true, Locked: true, Automatic: true},
+				{Name: "pkg2", Installed: true, Locked: true, Automatic: true},
+			},
+			expected: map[string]int{
+				"total":     2,
+				"installed": 2,
+				"locked":    2,
+				"automatic": 2,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := builder.AggregatePackageStats(tt.input)
+
+			if tt.isNil {
+				assert.Nil(t, result)
+				return
+			}
+
+			assert.Equal(t, tt.expected, result)
+		})
+	}
 }
 
 func TestMarkdownBuilder_FilterRulesByType(t *testing.T) {
@@ -267,6 +477,85 @@ func TestMarkdownBuilder_FilterRulesByType_EmptyInput(t *testing.T) {
 	assert.Empty(t, result)
 }
 
+func TestMarkdownBuilder_FilterRulesByType_EdgeCases(t *testing.T) {
+	builder := NewMarkdownBuilder()
+
+	tests := []struct {
+		name         string
+		input        []model.Rule
+		ruleType     string
+		expected     []model.Rule
+		shouldBeNil  bool
+		shouldBeCopy bool
+	}{
+		{
+			name:        "Nil input",
+			input:       nil,
+			ruleType:    "pass",
+			shouldBeNil: true,
+		},
+		{
+			name:     "Empty input",
+			input:    []model.Rule{},
+			ruleType: "pass",
+			expected: []model.Rule{},
+		},
+		{
+			name: "Rules with empty types",
+			input: []model.Rule{
+				{Type: "", Descr: "Rule with empty type"},
+				{Type: "pass", Descr: "Valid rule"},
+			},
+			ruleType: "pass",
+			expected: []model.Rule{
+				{Type: "pass", Descr: "Valid rule"},
+			},
+		},
+		{
+			name: "Empty rule type returns copy",
+			input: []model.Rule{
+				{Type: "pass", Descr: "Test rule"},
+			},
+			ruleType:     "",
+			shouldBeCopy: true,
+			expected: []model.Rule{
+				{Type: "pass", Descr: "Test rule"},
+			},
+		},
+		{
+			name: "No matching rules",
+			input: []model.Rule{
+				{Type: "block", Descr: "Block rule"},
+				{Type: "reject", Descr: "Reject rule"},
+			},
+			ruleType: "allow",
+			expected: []model.Rule{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := builder.FilterRulesByType(tt.input, tt.ruleType)
+
+			if tt.shouldBeNil {
+				assert.Nil(t, result)
+				return
+			}
+
+			assert.Equal(t, tt.expected, result)
+
+			// Verify it's a copy when returning all rules
+			if tt.shouldBeCopy && tt.input != nil && len(tt.input) > 0 {
+				// Modify original to ensure it's a copy
+				originalDescr := tt.input[0].Descr
+				tt.input[0].Descr = "modified"
+				assert.NotEqual(t, "modified", result[0].Descr, "Should be a copy, not reference")
+				tt.input[0].Descr = originalDescr // restore
+			}
+		})
+	}
+}
+
 func TestMarkdownBuilder_ExtractUniqueValues(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
@@ -315,6 +604,71 @@ func TestMarkdownBuilder_ExtractUniqueValues(t *testing.T) {
 	}
 }
 
+func TestMarkdownBuilder_ExtractUniqueValues_EdgeCases(t *testing.T) {
+	builder := NewMarkdownBuilder()
+
+	tests := []struct {
+		name        string
+		input       []string
+		expected    []string
+		shouldBeNil bool
+	}{
+		{
+			name:        "Nil input",
+			input:       nil,
+			shouldBeNil: true,
+		},
+		{
+			name:     "Empty input",
+			input:    []string{},
+			expected: []string{},
+		},
+		{
+			name:     "Single item",
+			input:    []string{"apple"},
+			expected: []string{"apple"},
+		},
+		{
+			name:     "Single empty string",
+			input:    []string{""},
+			expected: []string{},
+		},
+		{
+			name:     "Multiple empty strings",
+			input:    []string{"", "", ""},
+			expected: []string{},
+		},
+		{
+			name:     "Mixed empty and valid strings",
+			input:    []string{"", "apple", "", "banana", ""},
+			expected: []string{"apple", "banana"},
+		},
+		{
+			name:     "Empty strings with duplicates",
+			input:    []string{"apple", "", "apple", "", "banana"},
+			expected: []string{"apple", "banana"},
+		},
+		{
+			name:     "Whitespace strings",
+			input:    []string{" ", "  ", "\t", "\n"},
+			expected: []string{"\t", "\n", " ", "  "},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := builder.ExtractUniqueValues(tt.input)
+
+			if tt.shouldBeNil {
+				assert.Nil(t, result)
+				return
+			}
+
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
 func TestMarkdownBuilder_ExtractUniqueValues_PreservesOrder(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
@@ -332,5 +686,103 @@ func TestMarkdownBuilder_ExtractUniqueValues_PreservesOrder(t *testing.T) {
 			result := builder.ExtractUniqueValues(input)
 			assert.Equal(t, expected, result)
 		})
+	}
+}
+
+// Performance tests for large datasets
+
+func BenchmarkFilterSystemTunables(b *testing.B) {
+	builder := NewMarkdownBuilder()
+
+	// Generate large dataset
+	tunables := make([]model.SysctlItem, 10000)
+	for i := range 10000 {
+		if i%3 == 0 {
+			tunables[i] = model.SysctlItem{Tunable: fmt.Sprintf("security.test.%d", i), Value: "1"}
+		} else {
+			tunables[i] = model.SysctlItem{Tunable: fmt.Sprintf("other.test.%d", i), Value: "1"}
+		}
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		builder.FilterSystemTunables(tunables, false)
+	}
+}
+
+func BenchmarkGroupServicesByStatus(b *testing.B) {
+	builder := NewMarkdownBuilder()
+
+	// Generate large dataset
+	services := make([]model.Service, 5000)
+	for i := range 5000 {
+		status := "running"
+		if i%2 == 0 {
+			status = "stopped"
+		}
+		services[i] = model.Service{
+			Name:   fmt.Sprintf("service-%d", i),
+			Status: status,
+		}
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		builder.GroupServicesByStatus(services)
+	}
+}
+
+func BenchmarkAggregatePackageStats(b *testing.B) {
+	builder := NewMarkdownBuilder()
+
+	// Generate large dataset
+	packages := make([]model.Package, 20000)
+	for i := range 20000 {
+		packages[i] = model.Package{
+			Name:      fmt.Sprintf("package-%d", i),
+			Installed: i%2 == 0,
+			Locked:    i%3 == 0,
+			Automatic: i%4 == 0,
+		}
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		builder.AggregatePackageStats(packages)
+	}
+}
+
+func BenchmarkFilterRulesByType(b *testing.B) {
+	builder := NewMarkdownBuilder()
+
+	// Generate large dataset
+	rules := make([]model.Rule, 10000)
+	types := []string{"pass", "block", "reject", "match"}
+	for i := range 10000 {
+		rules[i] = model.Rule{
+			Type:  types[i%len(types)],
+			Descr: fmt.Sprintf("Rule %d", i),
+		}
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		builder.FilterRulesByType(rules, "pass")
+	}
+}
+
+func BenchmarkExtractUniqueValues(b *testing.B) {
+	builder := NewMarkdownBuilder()
+
+	// Generate large dataset with duplicates
+	items := make([]string, 50000)
+	for i := range 50000 {
+		// Create duplicates by using modulo
+		items[i] = fmt.Sprintf("item-%d", i%1000)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		builder.ExtractUniqueValues(items)
 	}
 }
