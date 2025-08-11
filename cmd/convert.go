@@ -22,6 +22,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/EvilBit-Labs/opnDossier/internal/parser"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/spf13/cobra"
 )
 
@@ -31,12 +32,87 @@ var (
 	force      bool   //nolint:gochecknoglobals // Force overwrite without prompt
 )
 
-// Template cache for avoiding redundant IO/CPU operations.
-var (
-	cachedTemplate     *template.Template
-	cachedTemplatePath string
-	templateCacheMutex sync.RWMutex
-)
+// TemplateCache provides thread-safe LRU caching for template instances.
+// It caches templates by path to avoid redundant file I/O and parsing operations.
+// The cache uses LRU eviction with a configurable maximum size to prevent memory growth.
+//
+// Cache Behavior and Limits:
+// - Thread-safe: All operations are safe for concurrent access
+// - LRU Eviction: When the cache reaches its maximum size, the least recently used template is automatically evicted
+// - Configurable Size: Default is 10 templates, can be configured via --template-cache-size flag
+// - Memory Management: Templates are automatically evicted to prevent unbounded memory growth
+// - Batch Operations: Cache is cleared after each batch operation to free memory
+//
+// Usage:
+// - For single file operations: Cache size of 1-5 is sufficient
+// - For batch operations: Cache size of 10-20 provides good performance
+// - For memory-constrained environments: Use smaller cache sizes (1-5)
+// - For high-performance scenarios: Use larger cache sizes (20-50).
+type TemplateCache struct {
+	cache *lru.Cache[string, *template.Template]
+}
+
+// NewTemplateCache creates a new template cache instance with LRU eviction.
+// The cache will automatically evict least recently used templates when the max size is reached.
+// Default max size is 10 templates to balance memory usage with performance.
+func NewTemplateCache() *TemplateCache {
+	return NewTemplateCacheWithSize(DefaultTemplateCacheSize)
+}
+
+// NewTemplateCacheWithSize creates a new template cache instance with a specified maximum size.
+// The cache will automatically evict least recently used templates when the max size is reached.
+// Size must be greater than 0.
+func NewTemplateCacheWithSize(size int) *TemplateCache {
+	if size <= 0 {
+		size = 10 // Default to 10 if invalid size provided
+	}
+
+	// Create LRU cache with specified max size
+	cache, err := lru.New[string, *template.Template](size)
+	if err != nil {
+		// This should never happen with valid parameters, but handle gracefully
+		panic(fmt.Sprintf("failed to create template cache: %v", err))
+	}
+
+	return &TemplateCache{
+		cache: cache,
+	}
+}
+
+// Get retrieves a template from the cache, loading it if not present.
+// Returns the cached template or an error if loading fails.
+// Thread-safe and uses LRU eviction when cache is full.
+func (tc *TemplateCache) Get(templatePath string) (*template.Template, error) {
+	if templatePath == "" {
+		return nil, ErrNoTemplateSpecified
+	}
+
+	// Check cache first
+	if tmpl, exists := tc.cache.Get(templatePath); exists {
+		return tmpl, nil
+	}
+
+	// Load template if not in cache
+	tmpl, err := loadCustomTemplate(templatePath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache the template (LRU will handle eviction if needed)
+	tc.cache.Add(templatePath, tmpl)
+	return tmpl, nil
+}
+
+// Clear removes all cached templates, freeing memory.
+// This is useful between batch operations to prevent memory growth.
+func (tc *TemplateCache) Clear() {
+	tc.cache.Purge()
+}
+
+// Size returns the number of cached templates.
+func (tc *TemplateCache) Size() int {
+	return tc.cache.Len()
+}
 
 // ErrOperationCancelled is returned when the user cancels an operation.
 var ErrOperationCancelled = errors.New("operation cancelled by user")
@@ -55,41 +131,9 @@ const (
 	FormatYAML     = "yaml"
 )
 
-// getCachedTemplate returns a cached template instance, loading it once if needed.
-// This avoids redundant IO/CPU operations when processing multiple files.
-func getCachedTemplate(templatePath string) (*template.Template, error) {
-	if templatePath == "" {
-		return nil, ErrNoTemplateSpecified
-	}
-
-	templateCacheMutex.RLock()
-	if cachedTemplate != nil && cachedTemplatePath == templatePath {
-		tmpl := cachedTemplate
-		templateCacheMutex.RUnlock()
-		return tmpl, nil
-	}
-	templateCacheMutex.RUnlock()
-
-	templateCacheMutex.Lock()
-	defer templateCacheMutex.Unlock()
-
-	// Double-check after acquiring write lock
-	if cachedTemplate != nil && cachedTemplatePath == templatePath {
-		return cachedTemplate, nil
-	}
-
-	// Load and parse the template
-	tmpl, err := loadCustomTemplate(templatePath)
-	if err != nil {
-		return nil, err
-	}
-
-	// Cache the template
-	cachedTemplate = tmpl
-	cachedTemplatePath = templatePath
-
-	return tmpl, nil
-}
+// DefaultTemplateCacheSize is the default maximum number of templates to cache in memory.
+// This provides a good balance between memory usage and performance for most use cases.
+const DefaultTemplateCacheSize = 10
 
 // init registers the convert command and its flags with the root command.
 //
@@ -215,11 +259,15 @@ Examples:
 		timeoutCtx, cancel := context.WithTimeout(ctx, constants.DefaultProcessingTimeout)
 		defer cancel()
 
+		// Create template cache for batch processing with configurable size
+		templateCache := NewTemplateCacheWithSize(sharedTemplateCacheSize)
+		defer templateCache.Clear() // Clean up cache after processing
+
 		// Preload the custom template if specified
 		var cachedTemplate *template.Template
 		if sharedCustomTemplate != "" {
 			var err error
-			cachedTemplate, err = getCachedTemplate(sharedCustomTemplate)
+			cachedTemplate, err = templateCache.Get(sharedCustomTemplate)
 			if err != nil && !errors.Is(err, ErrNoTemplateSpecified) {
 				return fmt.Errorf("failed to preload custom template: %w", err)
 			}
@@ -587,24 +635,9 @@ func generateWithHybridGenerator(
 		return "", fmt.Errorf("failed to create hybrid generator: %w", err)
 	}
 
-	// If a custom template is specified, use the pre-parsed template or load it
-	if sharedCustomTemplate != "" {
-		var tmpl *template.Template
-		var err error
-
-		if preParsedTemplate != nil {
-			tmpl = preParsedTemplate
-		} else {
-			// Fallback to loading the template (should not happen with proper usage)
-			tmpl, err = getCachedTemplate(sharedCustomTemplate)
-			if err != nil && !errors.Is(err, ErrNoTemplateSpecified) {
-				return "", fmt.Errorf("failed to load custom template: %w", err)
-			}
-		}
-
-		if tmpl != nil {
-			hybridGen.SetTemplate(tmpl)
-		}
+	// If a custom template is specified, use the pre-parsed template
+	if sharedCustomTemplate != "" && preParsedTemplate != nil {
+		hybridGen.SetTemplate(preParsedTemplate)
 	}
 
 	// Generate the output

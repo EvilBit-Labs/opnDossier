@@ -17,11 +17,12 @@ import (
 // Shared flag variables for convert and display commands.
 var (
 	// Template and styling flags.
-	sharedSections        []string //nolint:gochecknoglobals // Sections to include
-	sharedTheme           string   //nolint:gochecknoglobals // Theme for rendering
-	sharedWrapWidth       int      //nolint:gochecknoglobals // Text wrap width
-	sharedCustomTemplate  string   //nolint:gochecknoglobals // Custom template file path
-	sharedIncludeTunables bool     //nolint:gochecknoglobals // Include system tunables in output
+	sharedSections          []string //nolint:gochecknoglobals // Sections to include
+	sharedTheme             string   //nolint:gochecknoglobals // Theme for rendering
+	sharedWrapWidth         int      //nolint:gochecknoglobals // Text wrap width
+	sharedCustomTemplate    string   //nolint:gochecknoglobals // Custom template file path
+	sharedIncludeTunables   bool     //nolint:gochecknoglobals // Include system tunables in output
+	sharedTemplateCacheSize int      //nolint:gochecknoglobals // Template cache size (LRU max entries)
 
 	// TODO: Audit mode functionality is not yet complete - disabled for now
 	// sharedAuditMode       string   //nolint:gochecknoglobals // Audit mode (standard, blue, red)
@@ -69,6 +70,10 @@ func addSharedTemplateFlags(cmd *cobra.Command) {
 	cmd.Flags().
 		IntVar(&sharedWrapWidth, "wrap", 0, "Text wrap width in characters (0 = no wrapping, recommended: 80-120)")
 	setFlagAnnotation(cmd.Flags(), "wrap", []string{"template"})
+
+	cmd.Flags().
+		IntVar(&sharedTemplateCacheSize, "template-cache-size", DefaultTemplateCacheSize, "Maximum number of templates to cache in memory (LRU eviction, default: 10)")
+	setFlagAnnotation(cmd.Flags(), "template-cache-size", []string{"template"})
 }
 
 // addDisplayFlags adds display-specific flags (theme for glamour rendering).

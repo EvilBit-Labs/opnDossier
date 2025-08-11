@@ -13,6 +13,7 @@ require (
 	github.com/charmbracelet/log v0.4.2
 	github.com/clbanning/mxj v1.8.4
 	github.com/go-playground/validator/v10 v10.27.0
+	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/nao1215/markdown v0.8.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.7

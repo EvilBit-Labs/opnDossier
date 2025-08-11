@@ -100,10 +100,10 @@ func compareOutputs(t *testing.T, programmatic, templateOutput string, comprehen
 	}
 
 	// Check that both outputs have reasonable length
-	if len(strings.Split(progNorm, "\n")) < 10 {
+	if strings.Count(progNorm, "\n")+1 < 10 {
 		t.Error("Programmatic output too short")
 	}
-	if len(strings.Split(tmplNorm, "\n")) < 10 {
+	if strings.Count(tmplNorm, "\n")+1 < 10 {
 		t.Error("Template output too short")
 	}
 
