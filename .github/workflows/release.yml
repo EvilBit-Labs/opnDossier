@@ -126,7 +126,7 @@ jobs:
       id-token: write
     steps:
       - name: Install SLSA Verifier
-        uses: slsa-framework/slsa-verifier/actions/installer@v2.5.1
+        uses: slsa-framework/slsa-verifier/actions/installer@v2.7.1
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
