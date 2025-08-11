@@ -6,7 +6,7 @@ alwaysApply: false
 
 ## AI Agent Mandatory Practices
 
-When AI agents contribute to this project, they must:
+When AI agents contribute to this project, they **MUST**:
 
 01. **Always run tests** after making changes: `just test`
 02. **Run linting** before committing: `just lint`

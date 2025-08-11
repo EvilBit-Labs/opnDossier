@@ -1,3 +1,7 @@
+---
+globs: internal/plugins/**/*,internal/plugin/**/*
+alwaysApply: false
+---
 # Plugin Architecture Guidelines
 
 ## Core Plugin Components
@@ -53,10 +57,6 @@ The `Finding` struct is generic and uses `References`, `Tags`, and `Metadata` fi
 - Ensure >80% test coverage
 
 ## Documentation
-
-- Reference [docs/dev-guide/plugin-development.md](mdc:docs/dev-guide/plugin-development.md) for detailed development guide
-- Document all controls with rationale and implementation details
-- Include usage examples and troubleshooting information
 
 - Reference [docs/dev-guide/plugin-development.md](mdc:docs/dev-guide/plugin-development.md) for detailed development guide
 - Document all controls with rationale and implementation details

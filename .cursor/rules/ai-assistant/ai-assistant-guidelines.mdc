@@ -1,0 +1,129 @@
+---
+alwaysApply: true
+---
+
+# AI Assistant Guidelines for opnDossier
+
+## Development Rules of Engagement
+
+- **TERM=dumb Support**: Ensure terminal output respects `TERM="dumb"` environment variable for CI/automation
+- **CodeRabbit.ai Integration**: Prefer coderabbit.ai for code review over GitHub Copilot auto-reviews
+- **Single Maintainer Workflow**: Configure for single maintainer (UncleSp1d3r) with no second reviewer requirement
+- **No Auto-commits**: Never commit code on behalf of maintainer without explicit permission
+
+## Assistant Behavior Rules
+
+- **Clarity and Precision**: Be direct, professional, and context-aware in all interactions
+- **Adherence to Standards**: Strictly follow the defined rules for code style and project structure
+- **Tool Usage**: Use `just` for task execution, `go` commands for Go development
+- **Focus on Value**: Enhance the project's unique value proposition as an OPNsense configuration auditing tool
+- **Respect Documentation**: Always consult and follow project documentation before making changes
+
+## Code Generation Requirements
+
+- Generated code must conform to all established patterns
+- Include comprehensive error handling with context preservation
+- Follow architectural patterns (Command, Strategy, Builder where appropriate)
+- Include appropriate documentation and testing
+- Use proper type safety through Go's type system
+
+## AI Agent Mandatory Practices
+
+When AI agents contribute to this project, they **MUST**:
+
+01. **Always run tests** after making changes: `just test`
+02. **Run linting** before committing: `just lint`
+03. **Follow the established patterns** shown in existing code
+04. **Use the preferred tooling commands** (see justfile)
+05. **Write comprehensive tests** for new functionality
+06. **Include proper error handling** with context
+07. **Add structured logging** for important operations
+08. **Validate all inputs** and handle edge cases
+09. **Document new functions and types** following Go conventions
+10. **Never commit secrets** or hardcoded credentials
+11. **Consult project documentation** - requirements.md, ARCHITECTURE.md, and DEVELOPMENT_STANDARDS.md for guidance
+12. When rendering reports, always prefer structured config data + audit overlays over flat summary tables
+13. Blue team output should favor clarity, grouping, and actionability. Red team output should favor target prioritization and pivot surface discovery
+14. Validate all generated markdown for formatting correctness using mdformat for formatting and markdownlint-cli2 for validation
+
+## Common Commands and Workflows
+
+### Development Commands
+
+```bash
+# Primary development workflow
+just dev                 # Run in development mode
+just install            # Install dependencies and setup environment
+just build              # Complete build with all checks
+
+# Code quality
+just format             # Format code and documentation
+just lint               # Run linting and static analysis
+just check              # Run pre-commit hooks and comprehensive checks
+just ci-check           # Run CI-equivalent checks locally
+
+# Testing
+just test               # Run the full test suite
+go test ./...           # Run tests directly
+go test -race ./...     # Run tests with race detection
+go test -cover ./...    # Run tests with coverage
+
+# Maintenance
+go mod tidy             # Clean up dependencies
+go mod verify           # Verify dependencies
+```
+
+### Usage Examples
+
+```bash
+# Primary use cases - Convert OPNsense configurations
+./opndossier convert config.xml --format markdown
+./opndossier convert config.xml --format json -o output.json
+./opndossier convert config.xml --format yaml --force
+
+# Display configuration information
+./opndossier display config.xml
+
+# Validate configuration
+./opndossier validate config.xml
+
+# Run with audit plugins
+./opndossier convert config.xml --audit stig,sans
+```
+
+## Development Process
+
+### Pre-Development
+
+1. **Review Requirements**: Understand specific requirements being implemented
+2. **Check Existing Code**: Review similar implementations for patterns
+3. **Verify Architecture**: Ensure changes follow ARCHITECTURE.md patterns
+
+### Implementation
+
+1. **Implement Changes**: Follow established patterns and conventions
+2. **Write Tests**: Create comprehensive test coverage
+3. **Update Documentation**: Update relevant documentation files
+
+### Quality Assurance
+
+```bash
+# Format and lint
+just format
+just lint
+
+# Run tests
+just test
+
+# Comprehensive validation
+just ci-check
+```
+
+## Issue Resolution
+
+When encountering problems:
+
+- Identify the specific issue clearly
+- Explain the problem in ≤ 5 lines
+- Propose a concrete path forward
+- Don't proceed without resolving blockers

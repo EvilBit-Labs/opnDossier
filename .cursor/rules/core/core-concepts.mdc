@@ -21,6 +21,14 @@ When rules conflict, always follow the rule with higher precedence.
 - **Structured Data:** Data should be structured, versioned, and portable for auditable, actionable, and reliable systems
 - **Framework-First:** Leverage built-in functionality of established frameworks. Avoid custom solutions when established ones exist
 
+### EvilBit Labs Brand Principles
+
+- **Trust the Operator:** Full control, no black boxes
+- **Polish Over Scale:** Quality over feature-bloat
+- **Offline First:** Built for where the internet isn't
+- **Sane Defaults:** Clean outputs, CLI help that's actually helpful
+- **Ethical Constraints:** No dark patterns, spyware, or telemetry
+
 ---
 
 ## 🔧 Technology Stack
@@ -57,7 +65,7 @@ When rules conflict, always follow the rule with higher precedence.
 - Use `gofmt` formatting with tabs for indentation (Go standard)
 - Follow Go naming conventions: `camelCase` for variables/functions, `PascalCase` for types
 - Always check errors and provide meaningful context using `fmt.Errorf` or `errors.Wrap`
-- Use structured logging with `log/slog` instead of `fmt.Printf`
+- Use structured logging with `charmbracelet/log` instead of `fmt.Printf`
 - Implement proper error handling with context preservation
 - Reuse existing utilities and structures; avoid new dependencies unless necessary
 

@@ -1,0 +1,59 @@
+---
+alwaysApply: true
+---
+
+# CI/CD Integration Standards
+
+## Quality Gates
+
+- **Branch Protection**: Strict linting, testing, and security gates
+- **Pre-commit Hooks**: Automated formatting, linting, and basic validation
+- **CI Pipeline**: Comprehensive testing across multiple Go versions and platforms
+- **Security Scanning**: Regular dependency auditing and vulnerability assessment
+
+## Mandatory Checks Before Commit
+
+All code changes must pass these validation steps:
+
+```bash
+# Format and lint
+just format
+just lint
+
+# Run tests
+just test
+
+# Comprehensive validation (REQUIRED before reporting success)
+just ci-check
+```
+
+## Testing Requirements
+
+- **Coverage Target**: >80% for critical business logic
+- **Test Types**: Unit tests, integration tests (with `//go:build integration` tag), table-driven tests
+- **Performance**: Keep tests fast (<100ms), use `t.Parallel()` when safe
+- **Race Detection**: Use `go test -race ./...` to detect race conditions
+
+## Deployment Standards
+
+- **Release Management**: Use GoReleaser v2 for cross-platform builds and releases
+- **Cross-platform**: Support macOS, Windows, and Linux
+- **Dependency Management**: Use Go modules (`go.mod`) for dependency management
+- **Security**: Regular dependency auditing with `go mod verify` and vulnerability scanning
+
+## Documentation Requirements
+
+- Update relevant documentation when making changes
+- Keep `README.md` current with installation and usage
+- Update `docs/` directory for new features
+- Maintain consistency across all documentation files
+- Validate all generated markdown using `mdformat` and `markdownlint-cli2`
+
+## Breaking Changes
+
+When introducing breaking changes:
+
+- Add `!` after type/scope in commit message (e.g., `feat(api)!: redesign plugin interface`)
+- Use `BREAKING CHANGE:` in commit footer
+- Update major version following semantic versioning
+- Document migration path for users

@@ -1,12 +1,13 @@
 ---
 description: Go testing best practices following Google standards
-globs: ["**/*_test.go", "**/*.go"]
+globs: **/*.go
 alwaysApply: false
 ---
 
 # 🧪 Go Testing Best Practices (Google Standards)
 
 ## Test Organization
+
 - Place tests in the same package as the code being tested
 - Use `*_test.go` files with descriptive names
 - Group related tests using `t.Run()` for subtests
@@ -14,6 +15,7 @@ alwaysApply: false
 - Keep test files focused and well-organized
 
 ## Test Structure and Naming
+
 ```go
 // Test function names should be descriptive and follow the pattern:
 // TestFunctionName_Scenario_ExpectedResult
@@ -54,6 +56,7 @@ func TestParseConfig_ValidXML_ReturnsConfig(t *testing.T) {
 ```
 
 ## Test Coverage
+
 - Aim for >80% test coverage
 - Use `go test -cover` to measure coverage
 - Use `go test -coverprofile=coverage.out` for detailed reports
@@ -61,6 +64,7 @@ func TestParseConfig_ValidXML_ReturnsConfig(t *testing.T) {
 - Test both success and failure cases
 
 ## Benchmarking
+
 ```go
 func BenchmarkParseConfig(b *testing.B) {
     input := "<opnsense>...</opnsense>"
@@ -75,6 +79,7 @@ func BenchmarkParseConfig(b *testing.B) {
 ```
 
 ## Test Utilities and Helpers
+
 - Create test helpers in `*_test.go` files
 - Use `testing.TB` interface for shared helpers
 - Create test fixtures and mock data
@@ -109,6 +114,7 @@ func createTempFile(t *testing.T, content string) string {
 ```
 
 ## Integration Tests
+
 - Use `//go:build integration` build tags
 - Test component interactions
 - Use real dependencies when possible
@@ -126,6 +132,7 @@ func TestParseConfig_Integration(t *testing.T) {
 ```
 
 ## Error Testing
+
 - Always test error conditions
 - Verify error messages contain useful information
 - Test both expected and unexpected errors
@@ -151,6 +158,7 @@ func TestParseConfig_InvalidInput_ReturnsError(t *testing.T) {
 ```
 
 ## Test Data Management
+
 - Use constants for test data
 - Create realistic test scenarios
 - Avoid hardcoded magic numbers
@@ -158,6 +166,7 @@ func TestParseConfig_InvalidInput_ReturnsError(t *testing.T) {
 - Use `testdata/` directory for test files
 
 ## Test Performance
+
 - Keep tests fast (<100ms per test)
 - Use `testing.Short()` for expensive tests
 - Parallelize tests when safe with `t.Parallel()`
@@ -165,6 +174,7 @@ func TestParseConfig_InvalidInput_ReturnsError(t *testing.T) {
 - Use `b.ResetTimer()` in benchmarks
 
 ## Mocking and Stubbing
+
 - Use interfaces for testability
 - Create mock implementations for external dependencies
 - Use `gomock` or similar tools for complex mocking
@@ -187,6 +197,7 @@ func (m *mockParser) Parse(data []byte) (*Config, error) {
 ```
 
 ## Test Documentation
+
 - Write clear test descriptions
 - Document test setup and teardown
 - Explain complex test scenarios
@@ -194,6 +205,7 @@ func (m *mockParser) Parse(data []byte) (*Config, error) {
 - Keep test names self-documenting
 
 ## Test Execution Commands
+
 ```bash
 # Run all tests
 go test ./...
@@ -219,6 +231,7 @@ just ci-check          # Run CI-equivalent checks locally
 ```
 
 ## Test File Organization
+
 - Group related tests together
 - Use consistent test file naming
 - Keep test files focused on a single package
