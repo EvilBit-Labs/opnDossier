@@ -1,11 +1,12 @@
 language: en-US
 tone_instructions: >-
-  Focus on Go best practices, security for CLI tools, and operator-focused
-  design. Emphasize offline-first capabilities and structured data handling.
+  Focus on OPNsense XML parsing accuracy, markdown generation quality, and audit compliance.
+  Prioritize CLI usability, offline functionality, and clear documentation.
+  Red team tool - output obfuscation may not apply. Security-first design.
 early_access: true
-enable_free_tier: true
+enable_free_tier: false
 reviews:
-  profile: chill
+  profile: assertive
   request_changes_workflow: true
   high_level_summary: true
   high_level_summary_placeholder: '@coderabbitai summary'
@@ -27,7 +28,33 @@ reviews:
   suggested_reviewers: true
   auto_assign_reviewers: true
   poem: true
-  labeling_instructions: []
+  labeling_instructions:
+    - label: "type:feature"
+      instructions: "Use for new functionality and enhancements"
+    - label: "type:bug"
+      instructions: "Use for bug fixes and defect corrections"
+    - label: "priority:critical"
+      instructions: "Use for critical issues and urgent fixes"
+    - label: "priority:high"
+      instructions: "Use for high priority issues and important features"
+    - label: "priority:normal"
+      instructions: "Use for standard work and regular features"
+    - label: "go"
+      instructions: "Use for Go code changes and modifications"
+    - label: "dependencies"
+      instructions: "Use for dependency updates and package changes"
+    - label: "documentation"
+      instructions: "Use for documentation improvements and updates"
+    - label: "testing"
+      instructions: "Use for test-related changes and test infrastructure"
+    - label: "performance"
+      instructions: "Use for performance optimizations and improvements"
+    - label: "ci"
+      instructions: "Use for CI/CD and GitHub Actions changes"
+    - label: "breaking_change"
+      instructions: "Use for incompatible changes and major updates"
+    - label: "audit"
+      instructions: "Use for audit compliance and report generation work"
   path_filters: []
   path_instructions: []
   abort_on_close: true
