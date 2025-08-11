@@ -33,7 +33,7 @@ var (
 func addSharedTemplateFlags(cmd *cobra.Command) {
 	// Template flags
 	cmd.Flags().
-		StringVar(&sharedCustomTemplate, "custom-template", "", "Path to custom GoTemplate file (overrides built-in templates)")
+		StringVar(&sharedCustomTemplate, "custom-template", "", "Path to custom GoTemplate file (overrides built-in templates and enables template mode)")
 	setFlagAnnotation(cmd.Flags(), "custom-template", []string{"template"})
 
 	cmd.Flags().

@@ -10,14 +10,17 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"text/template"
 
 	// TODO: Audit mode functionality is not yet complete - disabled for now
 	// "github.com/EvilBit-Labs/opnDossier/internal/audit".
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
+	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/export"
 	"github.com/EvilBit-Labs/opnDossier/internal/log"
 	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 	"github.com/spf13/cobra"
 )
@@ -249,14 +252,8 @@ Examples:
 				// 		return
 				// 	}
 				// } else {
-				// Standard markdown generation
-				g, err := markdown.NewMarkdownGeneratorWithTemplates(ctxLogger.Logger, opt.TemplateDir)
-				if err != nil {
-					ctxLogger.Error("Failed to create markdown generator", "error", err)
-					errs <- fmt.Errorf("failed to create markdown generator: %w", err)
-					return
-				}
-				output, err = g.Generate(timeoutCtx, opnsense, opt)
+				// Use hybrid generator for progressive migration
+				output, err = generateWithHybridGenerator(timeoutCtx, opnsense, opt, ctxLogger)
 				if err != nil {
 					ctxLogger.Error("Failed to convert", "error", err)
 					errs <- fmt.Errorf("failed to convert from %s: %w", fp, err)
@@ -475,4 +472,49 @@ func determineOutputPath(inputFile, outputFile, fileExt string, cfg *config.Conf
 	}
 
 	return actualOutputFile, nil
+}
+
+// generateWithHybridGenerator creates a hybrid generator and generates output using either
+// programmatic generation (default) or template generation based on options.
+func generateWithHybridGenerator(
+	ctx context.Context,
+	opnsense *model.OpnSenseDocument,
+	opt markdown.Options,
+	logger *log.Logger,
+) (string, error) {
+	// Create the programmatic builder
+	builder := converter.NewMarkdownBuilder()
+
+	// Create hybrid generator
+	hybridGen := markdown.NewHybridGenerator(builder, logger)
+
+	// If a custom template is specified, load it and set it on the hybrid generator
+	if sharedCustomTemplate != "" {
+		// Load the custom template file
+		tmpl, err := loadCustomTemplate(sharedCustomTemplate)
+		if err != nil {
+			return "", fmt.Errorf("failed to load custom template: %w", err)
+		}
+		hybridGen.SetTemplate(tmpl)
+	}
+
+	// Generate the output
+	return hybridGen.Generate(ctx, opnsense, opt)
+}
+
+// loadCustomTemplate loads a custom template from a file.
+func loadCustomTemplate(templatePath string) (*template.Template, error) {
+	// Read the template file
+	content, err := os.ReadFile(templatePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read template file: %w", err)
+	}
+
+	// Parse the template
+	tmpl, err := template.New("custom").Parse(string(content))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse template: %w", err)
+	}
+
+	return tmpl, nil
 }
