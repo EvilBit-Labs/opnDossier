@@ -705,7 +705,7 @@ func BenchmarkFilterSystemTunables(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		builder.FilterSystemTunables(tunables, false)
 	}
 }
@@ -727,7 +727,7 @@ func BenchmarkGroupServicesByStatus(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		builder.GroupServicesByStatus(services)
 	}
 }
@@ -747,7 +747,7 @@ func BenchmarkAggregatePackageStats(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		builder.AggregatePackageStats(packages)
 	}
 }
@@ -766,7 +766,7 @@ func BenchmarkFilterRulesByType(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		builder.FilterRulesByType(rules, "pass")
 	}
 }
@@ -782,7 +782,7 @@ func BenchmarkExtractUniqueValues(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		builder.ExtractUniqueValues(items)
 	}
 }
