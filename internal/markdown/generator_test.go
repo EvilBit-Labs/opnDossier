@@ -3,6 +3,7 @@ package markdown
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -16,12 +17,8 @@ import (
 
 // TestMain sets up the embedded templates for all tests in this package.
 func TestMain(m *testing.M) {
-	// Import the main package to ensure embedded templates are initialized
-	// This is a workaround to ensure the embedded templates are available during tests
-	_ = "import main package for embedded templates"
-
-	// Run the tests
-	m.Run()
+	// Run the tests and exit with the appropriate code
+	os.Exit(m.Run())
 }
 
 func TestNewMarkdownGenerator(t *testing.T) {

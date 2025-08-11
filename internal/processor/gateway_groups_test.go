@@ -2,6 +2,7 @@ package processor
 
 import (
 	"context"
+	"os"
 	"strings"
 	"testing"
 
@@ -10,91 +11,12 @@ import (
 )
 
 func TestGatewayGroupsInReports(t *testing.T) {
-	// Test configuration with gateway groups
-	xmlConfig := `<?xml version="1.0"?>
-<opnsense>
-  <version>24.1.3</version>
-  <system>
-    <hostname>test-firewall</hostname>
-    <domain>example.com</domain>
-    <timezone>UTC</timezone>
-    <webgui>
-      <protocol>https</protocol>
-    </webgui>
-  </system>
-  <interfaces>
-    <wan>
-      <enable>1</enable>
-      <if>em0</if>
-      <ipaddr>192.0.2.1</ipaddr>
-      <subnet>24</subnet>
-      <gateway>192.0.2.254</gateway>
-    </wan>
-    <lan>
-      <enable>1</enable>
-      <if>em1</if>
-      <ipaddr>10.0.1.1</ipaddr>
-      <subnet>24</subnet>
-    </lan>
-  </interfaces>
-  <gateways>
-    <gateway_item>
-      <name>WAN_GW</name>
-      <descr>WAN Gateway</descr>
-      <interface>wan</interface>
-      <gateway>192.0.2.254</gateway>
-      <ipprotocol>inet</ipprotocol>
-      <defaultgw>1</defaultgw>
-      <monitor_disable>0</monitor_disable>
-      <interval>1</interval>
-      <weight>1</weight>
-      <fargw>0</fargw>
-    </gateway_item>
-    <gateway_item>
-      <name>WAN_GW2</name>
-      <descr>WAN Gateway 2</descr>
-      <interface>wan</interface>
-      <gateway>192.0.2.253</gateway>
-      <ipprotocol>inet</ipprotocol>
-      <defaultgw>0</defaultgw>
-      <monitor_disable>0</monitor_disable>
-      <interval>1</interval>
-      <weight>1</weight>
-      <fargw>0</fargw>
-    </gateway_item>
-    <gateway_group>
-      <name>WAN_FAILOVER</name>
-      <descr>WAN Failover Group</descr>
-      <item>WAN_GW</item>
-      <item>WAN_GW2</item>
-      <trigger>member</trigger>
-    </gateway_group>
-    <gateway_group>
-      <name>WAN_LOADBALANCE</name>
-      <descr>WAN Load Balancing Group</descr>
-      <item>WAN_GW</item>
-      <item>WAN_GW2</item>
-      <trigger>down</trigger>
-    </gateway_group>
-  </gateways>
-  <filter>
-    <rule>
-      <type>pass</type>
-      <interface>wan</interface>
-      <ipprotocol>inet</ipprotocol>
-      <descr>Allow WAN traffic</descr>
-    </rule>
-  </filter>
-  <nat>
-    <outbound>
-      <mode>automatic</mode>
-    </outbound>
-  </nat>
-  <revision>
-    <time>1753586994.3946</time>
-    <description>Test configuration with gateway groups</description>
-  </revision>
-</opnsense>`
+	// Load test configuration from external file
+	xmlData, err := os.ReadFile("testdata/gateway_groups_basic.xml")
+	if err != nil {
+		t.Fatalf("Failed to read test data file: %v", err)
+	}
+	xmlConfig := string(xmlData)
 
 	// Parse the configuration
 	xmlParser := parser.NewXMLParser()
@@ -178,71 +100,12 @@ func TestGatewayGroupsInReports(t *testing.T) {
 }
 
 func TestGatewayGroupsInEnrichedDocument(t *testing.T) {
-	// Test configuration with gateway groups
-	xmlConfig := `<?xml version="1.0"?>
-<opnsense>
-  <version>24.1.3</version>
-  <system>
-    <hostname>test-firewall</hostname>
-    <domain>example.com</domain>
-    <timezone>UTC</timezone>
-    <webgui>
-      <protocol>https</protocol>
-    </webgui>
-  </system>
-  <interfaces>
-    <wan>
-      <enable>1</enable>
-      <if>em0</if>
-      <ipaddr>192.0.2.1</ipaddr>
-      <subnet>24</subnet>
-      <gateway>192.0.2.254</gateway>
-    </wan>
-    <lan>
-      <enable>1</enable>
-      <if>em1</if>
-      <ipaddr>10.0.1.1</ipaddr>
-      <subnet>24</subnet>
-    </lan>
-  </interfaces>
-  <gateways>
-    <gateway_item>
-      <name>WAN_GW</name>
-      <descr>WAN Gateway</descr>
-      <interface>wan</interface>
-      <gateway>192.0.2.254</gateway>
-      <ipprotocol>inet</ipprotocol>
-      <defaultgw>1</defaultgw>
-      <monitor_disable>0</monitor_disable>
-      <interval>1</interval>
-      <weight>1</weight>
-      <fargw>0</fargw>
-    </gateway_item>
-    <gateway_group>
-      <name>WAN_FAILOVER</name>
-      <descr>WAN Failover Group</descr>
-      <item>WAN_GW</item>
-      <trigger>member</trigger>
-    </gateway_group>
-  </gateways>
-  <filter>
-    <rule>
-      <type>pass</type>
-      <interface>wan</interface>
-      <ipprotocol>inet</ipprotocol>
-      <descr>Allow WAN traffic</descr>
-    </rule>
-  </filter>
-  <nat>
-    <outbound>
-      <mode>automatic</mode>
-    </outbound>
-  </nat>
-  <revision>
-    <time>1753586994.3946</time>
-    <description>Test configuration with gateway groups</description>
-  </revision>
-</opnsense>`
+	// Load test configuration from external file
+	xmlData, err := os.ReadFile("testdata/gateway_groups_enriched.xml")
+	if err != nil {
+		t.Fatalf("Failed to read test data file: %v", err)
+	}
+	xmlConfig := string(xmlData)
 
 	// Parse the configuration
 	xmlParser := parser.NewXMLParser()

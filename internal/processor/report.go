@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
+	"github.com/EvilBit-Labs/opnDossier/internal/metrics"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/nao1215/markdown"
 	"gopkg.in/yaml.v3"
@@ -794,16 +795,22 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 	}
 
 	// Calculate summary statistics
-	totalConfigItems := stats.TotalInterfaces + stats.TotalFirewallRules +
-		stats.TotalUsers + stats.TotalGroups + stats.SysctlSettings +
-		stats.TotalServices + stats.DHCPScopes + stats.LoadBalancerMonitors +
-		stats.TotalGateways + stats.TotalGatewayGroups
-
 	securityScore := calculateSecurityScore(cfg, stats)
 	configComplexity := calculateConfigComplexity(stats)
 
 	stats.Summary = StatisticsSummary{
-		TotalConfigItems:    totalConfigItems,
+		TotalConfigItems: metrics.CalculateTotalConfigItems(
+			stats.TotalInterfaces,
+			stats.TotalFirewallRules,
+			stats.TotalUsers,
+			stats.TotalGroups,
+			stats.TotalServices,
+			stats.TotalGateways,
+			stats.TotalGatewayGroups,
+			stats.SysctlSettings,
+			stats.DHCPScopes,
+			stats.LoadBalancerMonitors,
+		),
 		SecurityScore:       securityScore,
 		ConfigComplexity:    configComplexity,
 		HasSecurityFeatures: len(stats.SecurityFeatures) > 0,

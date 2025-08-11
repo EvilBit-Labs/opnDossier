@@ -3,6 +3,9 @@ package model
 
 import (
 	"fmt"
+
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
+	"github.com/EvilBit-Labs/opnDossier/internal/metrics"
 )
 
 const (
@@ -27,10 +30,7 @@ const (
 	RuleComplexityWeight = 2
 	// ServiceComplexityWeight is the weight for service complexity calculation.
 	ServiceComplexityWeight = 3
-	// GatewayComplexityWeight is the weight for gateway complexity calculation.
-	GatewayComplexityWeight = 3
-	// GatewayGroupComplexityWeight is the weight for gateway group complexity calculation.
-	GatewayGroupComplexityWeight = 5
+
 	// MaxRulesThreshold is the threshold for too many rules.
 	MaxRulesThreshold = 100
 
@@ -285,7 +285,18 @@ func generateStatistics(cfg *OpnSenseDocument) *Statistics {
 
 	// Calculate summary statistics
 	stats.Summary = StatisticsSummary{
-		TotalConfigItems:    stats.TotalInterfaces + stats.TotalFirewallRules + stats.TotalUsers + stats.TotalGroups + stats.TotalServices + stats.TotalGateways + stats.TotalGatewayGroups,
+		TotalConfigItems: metrics.CalculateTotalConfigItems(
+			stats.TotalInterfaces,
+			stats.TotalFirewallRules,
+			stats.TotalUsers,
+			stats.TotalGroups,
+			stats.TotalServices,
+			stats.TotalGateways,
+			stats.TotalGatewayGroups,
+			stats.SysctlSettings,
+			stats.DHCPScopes,
+			stats.LoadBalancerMonitors,
+		),
 		SecurityScore:       calculateSecurityScore(cfg, stats),
 		ConfigComplexity:    calculateConfigComplexity(stats),
 		HasSecurityFeatures: len(stats.SecurityFeatures) > 0,
@@ -651,7 +662,7 @@ func generateSecurityAssessment(cfg *OpnSenseDocument) *SecurityAssessment {
 
 // generatePerformanceMetrics calculates performance metrics for an OPNsense configuration, including configuration complexity, rule efficiency, and resource usage.
 func generatePerformanceMetrics(cfg *OpnSenseDocument) *PerformanceMetrics {
-	metrics := &PerformanceMetrics{}
+	perfMetrics := &PerformanceMetrics{}
 
 	// Calculate config complexity based on number of rules, interfaces, etc.
 	rules := cfg.FilterRules()
@@ -659,19 +670,19 @@ func generatePerformanceMetrics(cfg *OpnSenseDocument) *PerformanceMetrics {
 	complexity += len(cfg.System.User) * 1
 	complexity += len(cfg.System.Group) * 1
 
-	metrics.ConfigComplexity = min(complexity, MaxComplexityScore)
+	perfMetrics.ConfigComplexity = min(complexity, MaxComplexityScore)
 
 	// Calculate rule efficiency (simplified)
 	if len(rules) > 0 {
-		metrics.RuleEfficiency = max(MaxComplexityScore-(len(rules)*RuleComplexityWeight), 0)
+		perfMetrics.RuleEfficiency = max(MaxComplexityScore-(len(rules)*RuleComplexityWeight), 0)
 	} else {
-		metrics.RuleEfficiency = MaxComplexityScore
+		perfMetrics.RuleEfficiency = MaxComplexityScore
 	}
 
 	// Calculate resource usage (simplified)
-	metrics.ResourceUsage = BaseResourceUsage // Base usage
+	perfMetrics.ResourceUsage = BaseResourceUsage // Base usage
 
-	return metrics
+	return perfMetrics
 }
 
 // generateComplianceChecks evaluates the configuration for compliance with key security requirements.
@@ -760,8 +771,8 @@ func calculateConfigComplexity(stats *Statistics) int {
 	complexity += stats.TotalUsers * 1
 	complexity += stats.TotalGroups * 1
 	complexity += stats.TotalServices * ServiceComplexityWeight
-	complexity += stats.TotalGateways * GatewayComplexityWeight
-	complexity += stats.TotalGatewayGroups * GatewayGroupComplexityWeight
+	complexity += stats.TotalGateways * constants.GatewayComplexityWeight
+	complexity += stats.TotalGatewayGroups * constants.GatewayGroupComplexityWeight
 
 	if complexity > MaxComplexityScore {
 		return MaxComplexityScore
