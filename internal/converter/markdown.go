@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
+	"github.com/EvilBit-Labs/opnDossier/internal/log"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/charmbracelet/glamour"
 	"github.com/nao1215/markdown"
@@ -53,13 +54,61 @@ type ReportBuilder interface {
 // MarkdownBuilder implements the ReportBuilder interface with comprehensive
 // programmatic markdown generation capabilities.
 type MarkdownBuilder struct {
+	config      *model.OpnSenseDocument
+	opts        Options
+	logger      *log.Logger
 	generated   time.Time
 	toolVersion string
 }
 
+// Options contains basic configuration options for markdown generation.
+type Options struct {
+	// EnableEmojis controls whether to include emoji icons in output.
+	EnableEmojis bool
+	// Compact controls whether to use a more compact output format.
+	Compact bool
+	// IncludeMetadata controls whether to include generation metadata.
+	IncludeMetadata bool
+}
+
+// DefaultOptions returns an Options struct initialized with default settings.
+func DefaultOptions() Options {
+	return Options{
+		EnableEmojis:    true,
+		Compact:         false,
+		IncludeMetadata: true,
+	}
+}
+
 // NewMarkdownBuilder creates a new MarkdownBuilder instance.
 func NewMarkdownBuilder() *MarkdownBuilder {
+	logger, err := log.New(log.Config{Level: "info"})
+	if err != nil {
+		// Fallback to a basic logger if creation fails
+		logger = &log.Logger{}
+	}
 	return &MarkdownBuilder{
+		generated:   time.Now(),
+		toolVersion: constants.Version,
+		opts:        DefaultOptions(),
+		logger:      logger,
+	}
+}
+
+// NewMarkdownBuilderWithOptions creates a new MarkdownBuilder instance with custom options.
+func NewMarkdownBuilderWithOptions(config *model.OpnSenseDocument, opts Options, logger *log.Logger) *MarkdownBuilder {
+	if logger == nil {
+		var err error
+		logger, err = log.New(log.Config{Level: "info"})
+		if err != nil {
+			// Fallback to a basic logger if creation fails
+			logger = &log.Logger{}
+		}
+	}
+	return &MarkdownBuilder{
+		config:      config,
+		opts:        opts,
+		logger:      logger,
 		generated:   time.Now(),
 		toolVersion: constants.Version,
 	}
