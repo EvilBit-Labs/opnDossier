@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -692,4 +693,86 @@ func findCommand(root *cobra.Command) *cobra.Command {
 	}
 
 	return nil
+}
+
+func TestGetCachedTemplate(t *testing.T) {
+	// Create a temporary template file
+	tmpDir := t.TempDir()
+	templatePath := filepath.Join(tmpDir, "test.tmpl")
+	templateContent := `{{.Hostname}}`
+
+	err := os.WriteFile(templatePath, []byte(templateContent), 0o600)
+	if err != nil {
+		t.Fatalf("Failed to create test template file: %v", err)
+	}
+
+	// Test 1: Load template for the first time
+	tmpl1, err := getCachedTemplate(templatePath)
+	if err != nil {
+		t.Fatalf("Failed to load template: %v", err)
+	}
+	if tmpl1 == nil {
+		t.Fatal("Template should not be nil")
+	}
+
+	// Test 2: Load the same template again - should return cached version
+	tmpl2, err := getCachedTemplate(templatePath)
+	if err != nil {
+		t.Fatalf("Failed to load cached template: %v", err)
+	}
+	if tmpl2 == nil {
+		t.Fatal("Cached template should not be nil")
+	}
+
+	// Test 3: Verify both templates are the same instance (cached)
+	if tmpl1 != tmpl2 {
+		t.Fatal("Templates should be the same instance when cached")
+	}
+
+	// Test 4: Test with empty path
+	_, err = getCachedTemplate("")
+	if !errors.Is(err, ErrNoTemplateSpecified) {
+		t.Fatalf("Expected ErrNoTemplateSpecified, got: %v", err)
+	}
+
+	// Test 5: Test with non-existent file
+	_, err = getCachedTemplate("/non/existent/path.tmpl")
+	if err == nil {
+		t.Fatal("Expected error for non-existent template file")
+	}
+}
+
+func TestTemplateCacheConcurrency(t *testing.T) {
+	// Create a temporary template file
+	tmpDir := t.TempDir()
+	templatePath := filepath.Join(tmpDir, "concurrent.tmpl")
+	templateContent := `{{.Hostname}}`
+
+	err := os.WriteFile(templatePath, []byte(templateContent), 0o600)
+	if err != nil {
+		t.Fatalf("Failed to create test template file: %v", err)
+	}
+
+	// Test concurrent access to the same template
+	done := make(chan bool, 10)
+	for range 10 {
+		go func() {
+			defer func() { done <- true }()
+
+			tmpl, err := getCachedTemplate(templatePath)
+			if err != nil {
+				t.Errorf("Failed to load template in goroutine: %v", err)
+				return
+			}
+			if tmpl == nil {
+				t.Error("Template should not be nil in goroutine")
+				return
+			}
+		}()
+	}
+
+	// Wait for all goroutines to complete
+	for range 10 {
+		<-done
+	}
 }

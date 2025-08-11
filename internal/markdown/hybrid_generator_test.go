@@ -3,6 +3,7 @@ package markdown
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"text/template"
 
@@ -19,7 +20,10 @@ func TestNewHybridGenerator(t *testing.T) {
 	}
 
 	// Test with nil logger
-	gen := NewHybridGenerator(builder, nil)
+	gen, err := NewHybridGenerator(builder, nil)
+	if err != nil {
+		t.Fatalf("NewHybridGenerator failed: %v", err)
+	}
 	if gen == nil {
 		t.Fatal("NewHybridGenerator returned nil")
 	}
@@ -28,7 +32,10 @@ func TestNewHybridGenerator(t *testing.T) {
 	}
 
 	// Test with logger
-	gen = NewHybridGenerator(builder, logger)
+	gen, err = NewHybridGenerator(builder, logger)
+	if err != nil {
+		t.Fatalf("NewHybridGenerator failed: %v", err)
+	}
 	if gen == nil {
 		t.Fatal("NewHybridGenerator returned nil")
 	}
@@ -49,7 +56,10 @@ func TestNewHybridGeneratorWithTemplate(t *testing.T) {
 	tmpl := template.New("test")
 
 	// Test with nil logger
-	gen := NewHybridGeneratorWithTemplate(builder, tmpl, nil)
+	gen, err := NewHybridGeneratorWithTemplate(builder, tmpl, nil)
+	if err != nil {
+		t.Fatalf("NewHybridGeneratorWithTemplate failed: %v", err)
+	}
 	if gen == nil {
 		t.Fatal("NewHybridGeneratorWithTemplate returned nil")
 	}
@@ -61,7 +71,10 @@ func TestNewHybridGeneratorWithTemplate(t *testing.T) {
 	}
 
 	// Test with logger
-	gen = NewHybridGeneratorWithTemplate(builder, tmpl, logger)
+	gen, err = NewHybridGeneratorWithTemplate(builder, tmpl, logger)
+	if err != nil {
+		t.Fatalf("NewHybridGeneratorWithTemplate failed: %v", err)
+	}
 	if gen == nil {
 		t.Fatal("NewHybridGeneratorWithTemplate returned nil")
 	}
@@ -82,7 +95,10 @@ func TestHybridGenerator_Generate_Programmatic(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	gen := NewHybridGenerator(builder, logger)
+	gen, err := NewHybridGenerator(builder, logger)
+	if err != nil {
+		t.Fatalf("Failed to create hybrid generator: %v", err)
+	}
 
 	// Create test data
 	data := &model.OpnSenseDocument{
@@ -105,10 +121,10 @@ func TestHybridGenerator_Generate_Programmatic(t *testing.T) {
 	}
 
 	// Verify it contains expected content
-	if !contains(output, "test-firewall") {
+	if !strings.Contains(output, "test-firewall") {
 		t.Error("Generated output does not contain hostname")
 	}
-	if !contains(output, "example.com") {
+	if !strings.Contains(output, "example.com") {
 		t.Error("Generated output does not contain domain")
 	}
 }
@@ -132,7 +148,10 @@ ToolVersion: {{.ToolVersion}}`
 		t.Fatalf("Failed to parse template: %v", err)
 	}
 
-	gen := NewHybridGeneratorWithTemplate(builder, tmpl, logger)
+	gen, err := NewHybridGeneratorWithTemplate(builder, tmpl, logger)
+	if err != nil {
+		t.Fatalf("Failed to create hybrid generator with template: %v", err)
+	}
 
 	// Create test data
 	data := &model.OpnSenseDocument{
@@ -157,13 +176,13 @@ ToolVersion: {{.ToolVersion}}`
 	}
 
 	// Verify it contains expected template content
-	if !contains(output, "# Test Report") {
+	if !strings.Contains(output, "# Test Report") {
 		t.Error("Generated output does not contain template title")
 	}
-	if !contains(output, "Hostname: test-firewall") {
+	if !strings.Contains(output, "Hostname: test-firewall") {
 		t.Error("Generated output does not contain hostname from template")
 	}
-	if !contains(output, "Domain: example.com") {
+	if !strings.Contains(output, "Domain: example.com") {
 		t.Error("Generated output does not contain domain from template")
 	}
 }
@@ -174,7 +193,10 @@ func TestHybridGenerator_Generate_Comprehensive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	gen := NewHybridGenerator(builder, logger)
+	gen, err := NewHybridGenerator(builder, logger)
+	if err != nil {
+		t.Fatalf("Failed to create hybrid generator: %v", err)
+	}
 
 	// Create test data
 	data := &model.OpnSenseDocument{
@@ -198,10 +220,10 @@ func TestHybridGenerator_Generate_Comprehensive(t *testing.T) {
 	}
 
 	// Verify it contains expected content
-	if !contains(output, "test-firewall") {
+	if !strings.Contains(output, "test-firewall") {
 		t.Error("Generated output does not contain hostname")
 	}
-	if !contains(output, "example.com") {
+	if !strings.Contains(output, "example.com") {
 		t.Error("Generated output does not contain domain")
 	}
 }
@@ -212,7 +234,10 @@ func TestHybridGenerator_shouldUseTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	gen := NewHybridGenerator(builder, logger)
+	gen, err := NewHybridGenerator(builder, logger)
+	if err != nil {
+		t.Fatalf("Failed to create hybrid generator: %v", err)
+	}
 
 	tests := []struct {
 		name     string
@@ -244,6 +269,42 @@ func TestHybridGenerator_shouldUseTemplate(t *testing.T) {
 			opts:     DefaultOptions().WithTemplateDir("/tmp/templates"),
 			expected: true,
 		},
+		{
+			name:     "markdown format - should allow template usage",
+			template: nil,
+			opts:     DefaultOptions().WithFormat(FormatMarkdown),
+			expected: false, // No template options, so programmatic
+		},
+		{
+			name:     "markdown format with template name - should use template",
+			template: nil,
+			opts:     DefaultOptions().WithFormat(FormatMarkdown).WithTemplateName("standard"),
+			expected: true,
+		},
+		{
+			name:     "json format - should force programmatic generation",
+			template: template.New("test"), // Even with template
+			opts:     DefaultOptions().WithFormat(FormatJSON),
+			expected: false,
+		},
+		{
+			name:     "yaml format - should force programmatic generation",
+			template: template.New("test"), // Even with template
+			opts:     DefaultOptions().WithFormat(FormatYAML),
+			expected: false,
+		},
+		{
+			name:     "empty format - should default to markdown behavior",
+			template: nil,
+			opts:     Options{}, // Empty options, format is empty string
+			expected: false,     // No template options, so programmatic
+		},
+		{
+			name:     "empty format with template - should use template",
+			template: template.New("test"),
+			opts:     Options{}, // Empty options, format is empty string
+			expected: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -263,17 +324,20 @@ func TestHybridGenerator_Generate_NilData(t *testing.T) {
 	if loggerErr != nil {
 		t.Fatalf("Failed to create logger: %v", loggerErr)
 	}
-	gen := NewHybridGenerator(builder, logger)
+	gen, err := NewHybridGenerator(builder, logger)
+	if err != nil {
+		t.Fatalf("Failed to create hybrid generator: %v", err)
+	}
 
 	opts := DefaultOptions()
 
 	// Test with nil data
-	_, err := gen.Generate(context.Background(), nil, opts)
-	if err == nil {
+	_, generateErr := gen.Generate(context.Background(), nil, opts)
+	if generateErr == nil {
 		t.Error("Expected error for nil data")
 	}
-	if !errors.Is(err, converter.ErrNilOpnSenseDocument) {
-		t.Errorf("Expected ErrNilOpnSenseDocument, got %v", err)
+	if !errors.Is(generateErr, converter.ErrNilOpnSenseDocument) {
+		t.Errorf("Expected ErrNilOpnSenseDocument, got %v", generateErr)
 	}
 }
 
@@ -282,7 +346,10 @@ func TestHybridGenerator_Generate_NoBuilder(t *testing.T) {
 	if loggerErr != nil {
 		t.Fatalf("Failed to create logger: %v", loggerErr)
 	}
-	gen := NewHybridGenerator(nil, logger)
+	gen, genErr := NewHybridGenerator(nil, logger)
+	if genErr != nil {
+		t.Fatalf("Failed to create hybrid generator: %v", genErr)
+	}
 
 	data := &model.OpnSenseDocument{
 		System: model.System{
@@ -297,7 +364,7 @@ func TestHybridGenerator_Generate_NoBuilder(t *testing.T) {
 	if err == nil {
 		t.Error("Expected error for no builder")
 	}
-	if !contains(err.Error(), "no report builder available") {
+	if !strings.Contains(err.Error(), "no report builder available") {
 		t.Errorf("Expected error about missing builder, got %v", err)
 	}
 }
@@ -308,7 +375,10 @@ func TestHybridGenerator_SetAndGetTemplate(t *testing.T) {
 	if loggerErr != nil {
 		t.Fatalf("Failed to create logger: %v", loggerErr)
 	}
-	gen := NewHybridGenerator(builder, logger)
+	gen, genErr := NewHybridGenerator(builder, logger)
+	if genErr != nil {
+		t.Fatalf("Failed to create hybrid generator: %v", genErr)
+	}
 
 	// Test initial state
 	if gen.GetTemplate() != nil {
@@ -331,7 +401,10 @@ func TestHybridGenerator_SetAndGetBuilder(t *testing.T) {
 	if loggerErr != nil {
 		t.Fatalf("Failed to create logger: %v", loggerErr)
 	}
-	gen := NewHybridGenerator(nil, logger)
+	gen, genErr := NewHybridGenerator(nil, logger)
+	if genErr != nil {
+		t.Fatalf("Failed to create hybrid generator: %v", genErr)
+	}
 
 	// Test initial state
 	if gen.GetBuilder() != nil {
@@ -345,20 +418,4 @@ func TestHybridGenerator_SetAndGetBuilder(t *testing.T) {
 	if gen.GetBuilder() != builder {
 		t.Error("Builder not set correctly")
 	}
-}
-
-// Helper function to check if a string contains a substring.
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) &&
-		(s == substr || substr == "" || len(s) > len(substr) && (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || containsSubstring(s, substr)))
-}
-
-// Helper function to check if a string contains a substring (case-sensitive).
-func containsSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }

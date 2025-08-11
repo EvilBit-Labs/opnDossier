@@ -31,6 +31,13 @@ var (
 	force      bool   //nolint:gochecknoglobals // Force overwrite without prompt
 )
 
+// Template cache for avoiding redundant IO/CPU operations.
+var (
+	cachedTemplate     *template.Template
+	cachedTemplatePath string
+	templateCacheMutex sync.RWMutex
+)
+
 // ErrOperationCancelled is returned when the user cancels an operation.
 var ErrOperationCancelled = errors.New("operation cancelled by user")
 
@@ -38,7 +45,51 @@ var ErrOperationCancelled = errors.New("operation cancelled by user")
 var (
 	ErrUnsupportedAuditMode = errors.New("unsupported audit mode")
 	ErrFailedToEnrichConfig = errors.New("failed to enrich configuration")
+	ErrNoTemplateSpecified  = errors.New("no template specified")
 )
+
+// Format constants for output formats.
+const (
+	FormatMarkdown = "markdown"
+	FormatJSON     = "json"
+	FormatYAML     = "yaml"
+)
+
+// getCachedTemplate returns a cached template instance, loading it once if needed.
+// This avoids redundant IO/CPU operations when processing multiple files.
+func getCachedTemplate(templatePath string) (*template.Template, error) {
+	if templatePath == "" {
+		return nil, ErrNoTemplateSpecified
+	}
+
+	templateCacheMutex.RLock()
+	if cachedTemplate != nil && cachedTemplatePath == templatePath {
+		tmpl := cachedTemplate
+		templateCacheMutex.RUnlock()
+		return tmpl, nil
+	}
+	templateCacheMutex.RUnlock()
+
+	templateCacheMutex.Lock()
+	defer templateCacheMutex.Unlock()
+
+	// Double-check after acquiring write lock
+	if cachedTemplate != nil && cachedTemplatePath == templatePath {
+		return cachedTemplate, nil
+	}
+
+	// Load and parse the template
+	tmpl, err := loadCustomTemplate(templatePath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache the template
+	cachedTemplate = tmpl
+	cachedTemplatePath = templatePath
+
+	return tmpl, nil
+}
 
 // init registers the convert command and its flags with the root command.
 //
@@ -164,6 +215,16 @@ Examples:
 		timeoutCtx, cancel := context.WithTimeout(ctx, constants.DefaultProcessingTimeout)
 		defer cancel()
 
+		// Preload the custom template if specified
+		var cachedTemplate *template.Template
+		if sharedCustomTemplate != "" {
+			var err error
+			cachedTemplate, err = getCachedTemplate(sharedCustomTemplate)
+			if err != nil && !errors.Is(err, ErrNoTemplateSpecified) {
+				return fmt.Errorf("failed to preload custom template: %w", err)
+			}
+		}
+
 		for _, filePath := range args {
 			wg.Add(1)
 			go func(fp string) {
@@ -252,8 +313,8 @@ Examples:
 				// 		return
 				// 	}
 				// } else {
-				// Use hybrid generator for progressive migration
-				output, err = generateWithHybridGenerator(timeoutCtx, opnsense, opt, ctxLogger)
+				// Generate output based on format using the cached template
+				output, err = generateOutputByFormat(timeoutCtx, opnsense, opt, ctxLogger, cachedTemplate)
 				if err != nil {
 					ctxLogger.Error("Failed to convert", "error", err)
 					errs <- fmt.Errorf("failed to convert from %s: %w", fp, err)
@@ -474,28 +535,76 @@ func determineOutputPath(inputFile, outputFile, fileExt string, cfg *config.Conf
 	return actualOutputFile, nil
 }
 
+// generateOutputByFormat generates output using the appropriate generator based on the format.
+func generateOutputByFormat(
+	ctx context.Context,
+	opnsense *model.OpnSenseDocument,
+	opt markdown.Options,
+	logger *log.Logger,
+	preParsedTemplate *template.Template,
+) (string, error) {
+	// Determine the format to use
+	format := strings.ToLower(string(opt.Format))
+
+	switch format {
+	case FormatMarkdown, "md":
+		// Use hybrid generator for markdown output
+		return generateWithHybridGenerator(ctx, opnsense, opt, logger, preParsedTemplate)
+	case FormatJSON, FormatYAML, "yml":
+		// Use markdown generator for JSON and YAML output
+		// The markdown generator supports JSON and YAML formats natively
+		generator, err := markdown.NewMarkdownGenerator(logger.Logger)
+		if err != nil {
+			return "", fmt.Errorf("failed to create markdown generator: %w", err)
+		}
+
+		// Set the format in options
+		opt.Format = markdown.Format(format)
+		return generator.Generate(ctx, opnsense, opt)
+	default:
+		// Default to markdown for unknown formats
+		logger.Warn("Unknown format, defaulting to markdown", "format", format)
+		return generateWithHybridGenerator(ctx, opnsense, opt, logger, preParsedTemplate)
+	}
+}
+
 // generateWithHybridGenerator creates a hybrid generator and generates output using either
 // programmatic generation (default) or template generation based on options.
+// If a pre-parsed template is provided, it will be used instead of loading from file.
 func generateWithHybridGenerator(
 	ctx context.Context,
 	opnsense *model.OpnSenseDocument,
 	opt markdown.Options,
 	logger *log.Logger,
+	preParsedTemplate *template.Template,
 ) (string, error) {
 	// Create the programmatic builder
 	builder := converter.NewMarkdownBuilder()
 
 	// Create hybrid generator
-	hybridGen := markdown.NewHybridGenerator(builder, logger)
+	hybridGen, err := markdown.NewHybridGenerator(builder, logger)
+	if err != nil {
+		return "", fmt.Errorf("failed to create hybrid generator: %w", err)
+	}
 
-	// If a custom template is specified, load it and set it on the hybrid generator
+	// If a custom template is specified, use the pre-parsed template or load it
 	if sharedCustomTemplate != "" {
-		// Load the custom template file
-		tmpl, err := loadCustomTemplate(sharedCustomTemplate)
-		if err != nil {
-			return "", fmt.Errorf("failed to load custom template: %w", err)
+		var tmpl *template.Template
+		var err error
+
+		if preParsedTemplate != nil {
+			tmpl = preParsedTemplate
+		} else {
+			// Fallback to loading the template (should not happen with proper usage)
+			tmpl, err = getCachedTemplate(sharedCustomTemplate)
+			if err != nil && !errors.Is(err, ErrNoTemplateSpecified) {
+				return "", fmt.Errorf("failed to load custom template: %w", err)
+			}
 		}
-		hybridGen.SetTemplate(tmpl)
+
+		if tmpl != nil {
+			hybridGen.SetTemplate(tmpl)
+		}
 	}
 
 	// Generate the output

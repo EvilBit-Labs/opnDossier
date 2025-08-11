@@ -39,7 +39,10 @@ func compareGenerationModes(t *testing.T, data *model.OpnSenseDocument, opts Opt
 	builder := converter.NewMarkdownBuilder()
 
 	// Generate using programmatic mode
-	programmaticGen := NewHybridGenerator(builder, logger)
+	programmaticGen, err := NewHybridGenerator(builder, logger)
+	if err != nil {
+		t.Fatalf("Failed to create programmatic generator: %v", err)
+	}
 	programmaticOutput, err := programmaticGen.Generate(context.Background(), data, opts)
 	if err != nil {
 		t.Fatalf("Programmatic generation failed: %v", err)
@@ -53,7 +56,10 @@ func compareGenerationModes(t *testing.T, data *model.OpnSenseDocument, opts Opt
 	}
 
 	// Generate using template mode
-	templateGen := NewHybridGeneratorWithTemplate(builder, tmpl, logger)
+	templateGen, err := NewHybridGeneratorWithTemplate(builder, tmpl, logger)
+	if err != nil {
+		t.Fatalf("Failed to create template generator: %v", err)
+	}
 	templateOutput, err := templateGen.Generate(context.Background(), data, opts)
 	if err != nil {
 		t.Fatalf("Template generation failed: %v", err)
@@ -93,15 +99,11 @@ func compareOutputs(t *testing.T, programmatic, templateOutput string, comprehen
 		}
 	}
 
-	// Check that both outputs have similar structure
-	progLines := strings.Split(progNorm, "\n")
-	tmplLines := strings.Split(tmplNorm, "\n")
-
-	// Both should have reasonable length
-	if len(progLines) < 10 {
+	// Check that both outputs have reasonable length
+	if len(strings.Split(progNorm, "\n")) < 10 {
 		t.Error("Programmatic output too short")
 	}
-	if len(tmplLines) < 10 {
+	if len(strings.Split(tmplNorm, "\n")) < 10 {
 		t.Error("Template output too short")
 	}
 
@@ -246,9 +248,10 @@ func normalizeOutput(output string) string {
 	output = strings.ReplaceAll(output, "\r\n", "\n")
 
 	// Remove extra whitespace
-	lines := strings.Split(output, "\n")
 	var normalizedLines []string
-
+	lines := strings.FieldsFunc(output, func(r rune) bool {
+		return r == '\n'
+	})
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		if trimmed != "" {
@@ -262,8 +265,9 @@ func normalizeOutput(output string) string {
 // countHeaders counts the number of markdown headers in the output.
 func countHeaders(output string) int {
 	count := 0
-	lines := strings.Split(output, "\n")
-
+	lines := strings.FieldsFunc(output, func(r rune) bool {
+		return r == '\n'
+	})
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		if strings.HasPrefix(trimmed, "#") {
@@ -317,7 +321,10 @@ func TestHybridGenerator_FeatureFlags(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gen := NewHybridGenerator(builder, logger)
+			gen, err := NewHybridGenerator(builder, logger)
+			if err != nil {
+				t.Fatalf("Failed to create hybrid generator: %v", err)
+			}
 
 			// Determine which mode would be used
 			useTemplate := gen.shouldUseTemplate(tt.opts)
@@ -356,7 +363,10 @@ func TestHybridGenerator_FallbackMechanism(t *testing.T) {
 
 	// Test with invalid template directory
 	opts := DefaultOptions().WithTemplateDir("/nonexistent/directory")
-	gen := NewHybridGenerator(builder, logger)
+	gen, err := NewHybridGenerator(builder, logger)
+	if err != nil {
+		t.Fatalf("Failed to create hybrid generator: %v", err)
+	}
 
 	// This should fall back to programmatic generation
 	output, err := gen.Generate(context.Background(), data, opts)

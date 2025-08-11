@@ -1,6 +1,4 @@
 // Package converter provides functionality to convert OPNsense configurations to markdown.
-//
-// Deprecated: Use the markdown.Generator interface instead.
 package converter
 
 import (
@@ -68,8 +66,6 @@ func NewMarkdownBuilder() *MarkdownBuilder {
 }
 
 // MarkdownConverter is a markdown converter for OPNsense configurations.
-//
-// Deprecated: Use the markdown.Generator interface instead.
 type MarkdownConverter struct{}
 
 // NewMarkdownConverter creates and returns a new MarkdownConverter for converting OPNsense configuration data to markdown format.

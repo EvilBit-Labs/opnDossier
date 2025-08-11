@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"text/template"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
@@ -24,14 +25,18 @@ type HybridGenerator struct {
 }
 
 // NewHybridGenerator creates a new HybridGenerator with the specified builder and optional template.
-func NewHybridGenerator(builder converter.ReportBuilder, logger *log.Logger) *HybridGenerator {
+func NewHybridGenerator(builder converter.ReportBuilder, logger *log.Logger) (*HybridGenerator, error) {
 	if logger == nil {
-		logger, _ = log.New(log.Config{}) //nolint:errcheck // Default logger creation, error is acceptable
+		var err error
+		logger, err = log.New(log.Config{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create default logger: %w", err)
+		}
 	}
 	return &HybridGenerator{
 		builder: builder,
 		logger:  logger,
-	}
+	}, nil
 }
 
 // NewHybridGeneratorWithTemplate creates a new HybridGenerator with a custom template override.
@@ -39,15 +44,19 @@ func NewHybridGeneratorWithTemplate(
 	builder converter.ReportBuilder,
 	tmpl *template.Template,
 	logger *log.Logger,
-) *HybridGenerator {
+) (*HybridGenerator, error) {
 	if logger == nil {
-		logger, _ = log.New(log.Config{}) //nolint:errcheck // Default logger creation, error is acceptable
+		var err error
+		logger, err = log.New(log.Config{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create default logger: %w", err)
+		}
 	}
 	return &HybridGenerator{
 		builder:  builder,
 		template: tmpl,
 		logger:   logger,
-	}
+	}, nil
 }
 
 // getStringFromMap safely extracts a string value from a map with a default fallback.
@@ -80,7 +89,14 @@ func (g *HybridGenerator) Generate(ctx context.Context, data *model.OpnSenseDocu
 }
 
 // shouldUseTemplate determines whether to use template generation based on options and available templates.
+// Template generation is only used for markdown format; other formats use programmatic generation.
 func (g *HybridGenerator) shouldUseTemplate(opts Options) bool {
+	// Format-aware routing: only use templates for markdown format
+	// Empty format defaults to markdown (as per DefaultOptions())
+	if opts.Format != "" && !strings.EqualFold(string(opts.Format), string(FormatMarkdown)) {
+		return false
+	}
+
 	// If a custom template is explicitly provided, use it
 	if g.template != nil {
 		return true
@@ -108,17 +124,17 @@ func (g *HybridGenerator) generateFromTemplate(
 ) (string, error) {
 	g.logger.Debug("Using template-based generation")
 
-	// Create a template generator for template-based generation
-	templateGen, err := NewMarkdownGeneratorWithTemplates(g.logger.Logger, opts.TemplateDir)
-	if err != nil {
-		return "", fmt.Errorf("failed to create template generator: %w", err)
-	}
-
-	// If we have a custom template, we need to create a custom generator
+	// If we have a custom template, use the custom generator
 	if g.template != nil {
 		// Create a custom template generator with our template
 		customGen := g.createCustomTemplateGenerator(opts)
 		return customGen.Generate(ctx, data, opts)
+	}
+
+	// Create a template generator for standard template-based generation
+	templateGen, err := NewMarkdownGeneratorWithTemplates(g.logger.Logger, opts.TemplateDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to create template generator: %w", err)
 	}
 
 	// Use the standard template generator

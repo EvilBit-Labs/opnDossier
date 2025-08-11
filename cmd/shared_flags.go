@@ -4,6 +4,7 @@ package cmd
 import (
 	"context"
 	"errors"
+	"os"
 	"path/filepath"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/audit"
@@ -33,8 +34,29 @@ var (
 func addSharedTemplateFlags(cmd *cobra.Command) {
 	// Template flags
 	cmd.Flags().
-		StringVar(&sharedCustomTemplate, "custom-template", "", "Path to custom GoTemplate file (overrides built-in templates and enables template mode)")
+		StringVar(&sharedCustomTemplate, "custom-template", "", "Path to custom Go text/template file (overrides built-in templates and enables template mode)")
 	setFlagAnnotation(cmd.Flags(), "custom-template", []string{"template"})
+
+	// Register filename completion for custom-template flag
+	if err := cmd.RegisterFlagCompletionFunc("custom-template", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+		// Get files with .tmpl extension in the current directory and subdirectories
+		var completions []string
+		entries, err := os.ReadDir(".")
+		if err != nil {
+			return nil, cobra.ShellCompDirectiveError
+		}
+
+		for _, entry := range entries {
+			if !entry.IsDir() && filepath.Ext(entry.Name()) == ".tmpl" {
+				completions = append(completions, entry.Name())
+			}
+		}
+
+		return completions, cobra.ShellCompDirectiveDefault
+	}); err != nil {
+		// Log error but don't fail - completion is optional
+		logger.Error("failed to register completion for custom-template flag", "error", err)
+	}
 
 	cmd.Flags().
 		BoolVar(&sharedIncludeTunables, "include-tunables", false, "Include system tunables in the output report")
