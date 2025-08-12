@@ -310,9 +310,13 @@ func loadBenchmarkData(b *testing.B) *model.OpnSenseDocument {
 	return &doc
 }
 
-func generateLargeBenchmarkData(b *testing.B) *model.OpnSenseDocument {
-	b.Helper()
-
+// makeLargeDataset creates a large synthetic dataset for testing and benchmarking.
+// This helper function generates consistent test data with:
+// - 50 interfaces with IP addresses in 10.x.x.x range
+// - 1000 firewall rules with varied configurations
+// - 50 users with different groups and scopes
+// - 200 sysctl items with tunable values.
+func makeLargeDataset() *model.OpnSenseDocument {
 	doc := &model.OpnSenseDocument{
 		System: model.System{
 			Hostname: "benchmark-host",
@@ -382,6 +386,11 @@ func generateLargeBenchmarkData(b *testing.B) *model.OpnSenseDocument {
 	}
 
 	return doc
+}
+
+func generateLargeBenchmarkData(b *testing.B) *model.OpnSenseDocument {
+	b.Helper()
+	return makeLargeDataset()
 }
 
 // TestPerformanceBaselines validates that all operations meet the established performance baselines.
@@ -522,77 +531,8 @@ func loadTestDataForPerformance(t *testing.T) *model.OpnSenseDocument {
 	return createLargeTestDataset(t)
 }
 
-// createLargeTestDataset creates a large dataset for performance testing (alias for generateLargeBenchmarkData).
+// createLargeTestDataset creates a large dataset for performance testing.
 func createLargeTestDataset(t *testing.T) *model.OpnSenseDocument {
 	t.Helper()
-
-	// Create a synthetic large dataset without needing *testing.B
-	doc := &model.OpnSenseDocument{
-		System: model.System{
-			Hostname: "benchmark-host",
-			Domain:   "benchmark.local",
-			Firmware: model.Firmware{
-				Version: "24.1.2",
-			},
-		},
-		Interfaces: model.Interfaces{
-			Items: make(map[string]model.Interface),
-		},
-		Filter: model.Filter{
-			Rule: make([]model.Rule, 0, 1000),
-		},
-		Sysctl: make([]model.SysctlItem, 0, 200),
-	}
-
-	// Generate interfaces
-	for i := range 50 {
-		iface := model.Interface{
-			Descr:  fmt.Sprintf("Interface %d", i),
-			If:     fmt.Sprintf("igb%d", i),
-			IPAddr: fmt.Sprintf("192.168.%d.1", i%256),
-			Subnet: "24",
-			Enable: "1",
-		}
-		doc.Interfaces.Items[fmt.Sprintf("lan%d", i)] = iface
-	}
-
-	// Generate firewall rules
-	for i := range 1000 {
-		rule := model.Rule{
-			Type:       []string{"pass", "block", "reject"}[i%3],
-			Interface:  model.InterfaceList{fmt.Sprintf("if%d", i%50)},
-			IPProtocol: []string{"inet", "inet6"}[i%2],
-			Protocol:   []string{"tcp", "udp", "any"}[i%3],
-			Source: model.Source{
-				Network: []string{"any", "lan", "wan"}[i%3],
-			},
-			Destination: model.Destination{
-				Network: []string{"any", "lan", "wan"}[i%3],
-			},
-		}
-		doc.Filter.Rule = append(doc.Filter.Rule, rule)
-	}
-
-	// Generate users
-	for i := range 50 {
-		user := model.User{
-			Name:      fmt.Sprintf("benchuser%d", i),
-			Descr:     fmt.Sprintf("Benchmark User %d", i),
-			Groupname: []string{"wheel", "users", "admin"}[i%3],
-			Scope:     []string{"system", "local"}[i%2],
-		}
-		doc.System.User = append(doc.System.User, user)
-	}
-
-	// Generate sysctl items
-	for i := range 200 {
-		sysctl := model.SysctlItem{
-			Tunable: fmt.Sprintf("benchmark.sysctl.item%d", i),
-			Value:   strconv.Itoa(i % 10),
-			Descr:   fmt.Sprintf("Benchmark sysctl item %d", i),
-		}
-		doc.Sysctl = append(doc.Sysctl, sysctl)
-	}
-
-	return doc
+	return makeLargeDataset()
 }

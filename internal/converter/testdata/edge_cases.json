@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "system": {
     "hostname": "edge-case-test!@#$%^&*()",
-    "domain": "",
+    "domain": "domain*with*asterisks",
     "timezone": "GMT+12:45",
     "language": "invalid_locale",
     "dnsServer": "",
@@ -19,6 +19,18 @@
         "descr": "User\nwith\nnewlines\nand\ttabs",
         "groupname": "group|with|pipes",
         "scope": "unknown"
+      },
+      {
+        "name": "user_with_underscores",
+        "descr": "User with *bold* and _italic_ text",
+        "groupname": "group[with]brackets",
+        "scope": "scope<with>angles"
+      },
+      {
+        "name": "user`with`backticks",
+        "descr": "User with `code` and \\backslash\\ characters",
+        "groupname": "group\\with\\backslashes",
+        "scope": "scope|with|pipes"
       }
     ],
     "group": [
@@ -26,6 +38,11 @@
         "name": "",
         "description": "",
         "scope": ""
+      },
+      {
+        "name": "group*with*asterisks",
+        "description": "Group with _underscores_ and `backticks`",
+        "scope": "scope[with]brackets"
       }
     ]
   },
@@ -44,6 +61,20 @@
         "ipaddr": "999.999.999.999",
         "subnet": "999",
         "descr": "Interface with | pipes | and \n newlines"
+      },
+      "interface*with*chars": {
+        "if": "eth0",
+        "enable": "1",
+        "ipaddr": "192.168.1.100",
+        "subnet": "24",
+        "descr": "Interface with *asterisks* and _underscores_"
+      },
+      "interface`with`backticks": {
+        "if": "eth1",
+        "enable": "1",
+        "ipaddr": "192.168.2.100",
+        "subnet": "24",
+        "descr": "Interface with `code` and \\backslashes\\"
       }
     }
   },
@@ -74,6 +105,36 @@
         "destination": {
           "network": "another|invalid|network"
         }
+      },
+      {
+        "type": "pass",
+        "descr": "Rule with *bold* and _italic_ text",
+        "interface": [
+          "wan"
+        ],
+        "ipprotocol": "inet",
+        "protocol": "tcp",
+        "source": {
+          "network": "source[with]brackets"
+        },
+        "destination": {
+          "network": "dest<with>angles"
+        }
+      },
+      {
+        "type": "block",
+        "descr": "Rule with `code` and \\backslash\\ characters",
+        "interface": [
+          "lan"
+        ],
+        "ipprotocol": "inet",
+        "protocol": "udp",
+        "source": {
+          "network": "source\\with\\backslashes"
+        },
+        "destination": {
+          "network": "dest`with`backticks"
+        }
       }
     ]
   },
@@ -90,6 +151,21 @@
       "tunable": "invalid.tunable.with.pipes|and|newlines",
       "value": "value\nwith\nnewlines",
       "descr": "Description with | pipes | and \n newlines \t tabs"
+    },
+    {
+      "tunable": "tunable*with*asterisks",
+      "value": "value_with_underscores",
+      "descr": "Description with *bold* and _italic_ text"
+    },
+    {
+      "tunable": "tunable[with]brackets",
+      "value": "value<with>angles",
+      "descr": "Description with [brackets] and <angles>"
+    },
+    {
+      "tunable": "tunable`with`backticks",
+      "value": "value\\with\\backslashes",
+      "descr": "Description with `code` and \\backslash\\ characters"
     }
   ]
 }

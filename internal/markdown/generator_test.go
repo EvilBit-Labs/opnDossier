@@ -253,6 +253,36 @@ func TestEscapeTableContent(t *testing.T) {
 			expected: "text \\| with \\| multiple \\| pipes",
 		},
 		{
+			name:     "asterisk character",
+			input:    "text with *bold* text",
+			expected: "text with \\*bold\\* text",
+		},
+		{
+			name:     "underscore character",
+			input:    "text with _italic_ text",
+			expected: "text with \\_italic\\_ text",
+		},
+		{
+			name:     "backtick character",
+			input:    "text with `code` text",
+			expected: "text with \\`code\\` text",
+		},
+		{
+			name:     "square brackets",
+			input:    "text with [link] text",
+			expected: "text with \\[link\\] text",
+		},
+		{
+			name:     "angle brackets",
+			input:    "text with <tag> text",
+			expected: "text with \\<tag\\> text",
+		},
+		{
+			name:     "backslash character",
+			input:    "text with \\backslash\\ text",
+			expected: "text with \\\\backslash\\\\ text",
+		},
+		{
 			name:     "newline character",
 			input:    "line1\nline2",
 			expected: "line1<br>line2",
@@ -269,8 +299,8 @@ func TestEscapeTableContent(t *testing.T) {
 		},
 		{
 			name:     "mixed special characters",
-			input:    "text | with\nnewlines\r\nand\rreturns",
-			expected: "text \\| with<br>newlines<br>and<br>returns",
+			input:    "text | with\nnewlines\r\nand\rreturns *bold* _italic_ `code` [link] <tag> \\backslash\\",
+			expected: "text \\| with<br>newlines<br>and<br>returns \\*bold\\* \\_italic\\_ \\`code\\` \\[link\\] \\<tag\\> \\\\backslash\\\\",
 		},
 		{
 			name:     "non-string type",
@@ -287,15 +317,41 @@ func TestEscapeTableContent(t *testing.T) {
 					if content == nil {
 						return ""
 					}
+
 					str := fmt.Sprintf("%v", content)
-					// Escape pipe characters by replacing | with \|
+
+					// Escape Markdown special characters in order of precedence
+					// Backslashes must be escaped first to avoid double-escaping
+					str = strings.ReplaceAll(str, "\\", "\\\\")
+
+					// Escape asterisks (used for bold/italic)
+					str = strings.ReplaceAll(str, "*", "\\*")
+
+					// Escape underscores (used for italic/underline)
+					str = strings.ReplaceAll(str, "_", "\\_")
+
+					// Escape backticks (used for inline code)
+					str = strings.ReplaceAll(str, "`", "\\`")
+
+					// Escape square brackets (used for links)
+					str = strings.ReplaceAll(str, "[", "\\[")
+					str = strings.ReplaceAll(str, "]", "\\]")
+
+					// Escape angle brackets (used for HTML tags)
+					str = strings.ReplaceAll(str, "<", "\\<")
+					str = strings.ReplaceAll(str, ">", "\\>")
+
+					// Escape pipe characters (used for table separators)
 					str = strings.ReplaceAll(str, "|", "\\|")
+
+					// Handle newlines and carriage returns
 					// Replace carriage return + newline first to avoid double replacement
 					str = strings.ReplaceAll(str, "\r\n", "<br>")
 					// Replace remaining newlines with <br> for HTML rendering
 					str = strings.ReplaceAll(str, "\n", "<br>")
 					// Replace remaining carriage returns with <br>
 					str = strings.ReplaceAll(str, "\r", "<br>")
+
 					return str
 				},
 			}

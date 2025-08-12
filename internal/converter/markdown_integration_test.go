@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/nao1215/markdown"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -80,6 +82,65 @@ func TestMarkdownBuilder_TemplateParityValidation(t *testing.T) {
 				// Should still produce valid markdown
 				assert.Contains(t, output, "OPNsense Configuration Summary")
 				assert.Contains(t, output, "edge-case-test")
+
+				// Test Markdown character escaping in Description fields (which use escapeTableContent)
+				// These fields should have proper escaping applied
+				assert.Contains(
+					t,
+					output,
+					"Rule with \\*bold\\* and \\_italic\\_ text",
+					"Asterisks and underscores should be escaped in description fields",
+				)
+				assert.Contains(
+					t,
+					output,
+					"Rule with \\`code\\` and \\\\backslash\\\\ characters",
+					"Backticks and backslashes should be escaped in description fields",
+				)
+				assert.Contains(
+					t,
+					output,
+					"Rule with \\| pipes \\| and",
+					"Pipes should be escaped in description fields",
+				)
+
+				// Test that special characters in all table fields are properly escaped
+				// All table content should be escaped for safety
+				assert.Contains(t, output, "tunable\\*with\\*asterisks", "Asterisks should be escaped in table content")
+				assert.Contains(
+					t,
+					output,
+					"value\\_with\\_underscores",
+					"Underscores should be escaped in table content",
+				)
+				assert.Contains(
+					t,
+					output,
+					"value\\\\with\\\\backslashes",
+					"Backslashes should be escaped in table content",
+				)
+				assert.Contains(t, output, "tunable\\`with\\`backticks", "Backticks should be escaped in table content")
+				assert.Contains(
+					t,
+					output,
+					"tunable\\[with\\]brackets",
+					"Square brackets should be escaped in table content",
+				)
+				assert.Contains(t, output, "value\\<with\\>angles", "Angle brackets should be escaped in table content")
+				assert.Contains(
+					t,
+					output,
+					"invalid.tunable.with.pipes\\|and\\|newlines",
+					"Pipes should be escaped in table content",
+				)
+
+				// Verify that table structure is preserved (pipes for table separators should remain unescaped)
+				assert.Contains(t, output, "|", "Table structure should be preserved")
+				assert.Contains(t, output, "---", "Table headers should be preserved")
+
+				// Verify that escaped characters don't break table structure
+				assert.Contains(t, output, "|", "Table structure should be preserved")
+				assert.Contains(t, output, "---", "Table headers should be preserved")
 			},
 		},
 	}
@@ -295,10 +356,43 @@ func loadTestDataFromFile(t *testing.T, filename string) *model.OpnSenseDocument
 func validateTableStructure(t *testing.T, table any, tableName string) {
 	t.Helper()
 
-	// Basic validation that table is not nil and has expected structure
+	// Basic validation that table is not nil
 	assert.NotNil(t, table, "%s table should not be nil", tableName)
 
-	// Additional table-specific validations could be added here
+	// Type assertion to verify concrete TableSet structure
+	tableSet, ok := table.(*markdown.TableSet)
+	assert.True(t, ok, "%s table should be of type *markdown.TableSet, got %T", tableName, table)
+
+	// Validate headers exist and are non-empty
+	assert.NotNil(t, tableSet.Header, "%s table headers should not be nil", tableName)
+	assert.NotEmpty(t, tableSet.Header, "%s table should have at least one header column", tableName)
+
+	// Check for empty header entries
+	for i, header := range tableSet.Header {
+		assert.NotEmpty(t, strings.TrimSpace(header),
+			"%s table header at index %d should not be empty or whitespace-only", tableName, i)
+	}
+
+	// Validate rows structure
+	assert.NotNil(t, tableSet.Rows, "%s table rows should not be nil", tableName)
+
+	// Check each row has the same number of columns as headers
+	expectedColumns := len(tableSet.Header)
+	for i, row := range tableSet.Rows {
+		assert.NotNil(t, row, "%s table row %d should not be nil", tableName, i)
+		assert.Len(t, row, expectedColumns,
+			"%s table row %d should have %d columns to match headers, got %d",
+			tableName, i, expectedColumns, len(row))
+
+		// Check each cell value is not nil (since it's already a string)
+		// Note: Empty cells are allowed as they may be legitimate for optional data
+		for j, cell := range row {
+			// Cell should be a valid string (can be empty, but not nil)
+			assert.NotNil(t, cell,
+				"%s table cell at row %d, column %d should not be nil",
+				tableName, i, j)
+		}
+	}
 }
 
 func validateMarkdownStructure(t *testing.T, content string) {
@@ -322,6 +416,91 @@ func validateMarkdownStructure(t *testing.T, content string) {
 	}
 }
 
+// splitOnUnescapedPipes splits a string on unescaped pipe characters.
+// It handles escaped pipes (\\|) by treating them as literal characters.
+func splitOnUnescapedPipes(line string) []string {
+	var cells []string
+	var current strings.Builder
+
+	for i := 0; i < len(line); i++ {
+		char := line[i]
+
+		if char == '\\' && i+1 < len(line) && line[i+1] == '|' {
+			// This is an escaped pipe, write both characters and skip the pipe
+			current.WriteByte(char)
+			current.WriteByte(line[i+1])
+			i++ // Skip the next character (the pipe)
+			continue
+		}
+
+		if char == '|' {
+			cells = append(cells, strings.TrimSpace(current.String()))
+			current.Reset()
+			continue
+		}
+
+		current.WriteByte(char)
+	}
+
+	// Add the last cell
+	cells = append(cells, strings.TrimSpace(current.String()))
+
+	return cells
+}
+
+func TestSplitOnUnescapedPipes(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected []string
+	}{
+		{
+			name:     "simple table row",
+			input:    "cell1|cell2|cell3",
+			expected: []string{"cell1", "cell2", "cell3"},
+		},
+		{
+			name:     "table with escaped pipes",
+			input:    "cell1\\|with pipe|cell2|cell3",
+			expected: []string{"cell1\\|with pipe", "cell2", "cell3"},
+		},
+		{
+			name:     "table with multiple escaped pipes",
+			input:    "cell1\\|pipe1\\|pipe2|cell2|cell3",
+			expected: []string{"cell1\\|pipe1\\|pipe2", "cell2", "cell3"},
+		},
+		{
+			name:     "table with backslash not followed by pipe",
+			input:    "cell1\\n|cell2|cell3",
+			expected: []string{"cell1\\n", "cell2", "cell3"},
+		},
+		{
+			name:     "single cell with escaped pipe",
+			input:    "cell1\\|with pipe",
+			expected: []string{"cell1\\|with pipe"},
+		},
+		{
+			name:     "empty cells",
+			input:    "||",
+			expected: []string{"", "", ""},
+		},
+		{
+			name:     "cells with spaces",
+			input:    " cell1 | cell2 | cell3 ",
+			expected: []string{"cell1", "cell2", "cell3"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := splitOnUnescapedPipes(tt.input)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("splitOnUnescapedPipes(%q) = %v, want %v", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
 func validateMarkdownSyntax(t *testing.T, content string) {
 	t.Helper()
 
@@ -332,11 +511,11 @@ func validateMarkdownSyntax(t *testing.T, content string) {
 			// This should be a table line
 			if !strings.HasPrefix(strings.TrimSpace(line), "|") &&
 				!strings.HasSuffix(strings.TrimSpace(line), "|") {
-				// Count pipes to ensure even number (proper table structure)
-				pipeCount := strings.Count(line, "|")
-				if pipeCount%2 != 0 {
-					t.Errorf("Line %d has odd number of pipes, may indicate malformed table: %s",
-						i+1, line)
+				// Split on unescaped pipes and validate table structure
+				cells := splitOnUnescapedPipes(line)
+				if len(cells) < 2 {
+					t.Errorf("Line %d has insufficient cells for table structure (found %d, need at least 2): %s",
+						i+1, len(cells), line)
 				}
 			}
 		}

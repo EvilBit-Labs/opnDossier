@@ -9,13 +9,46 @@ import (
 )
 
 // EscapeTableContent escapes content for safe display in markdown tables.
-// This function ensures that pipe characters and newlines don't break table formatting.
+// This function ensures that special Markdown characters don't break table formatting or rendering.
 func (b *MarkdownBuilder) EscapeTableContent(content any) string {
+	if content == nil {
+		return ""
+	}
+
 	str := fmt.Sprintf("%v", content)
-	// Escape pipe characters for markdown tables
+
+	// Escape Markdown special characters in order of precedence
+	// Backslashes must be escaped first to avoid double-escaping
+	str = strings.ReplaceAll(str, "\\", "\\\\")
+
+	// Escape asterisks (used for bold/italic)
+	str = strings.ReplaceAll(str, "*", "\\*")
+
+	// Escape underscores (used for italic/underline)
+	str = strings.ReplaceAll(str, "_", "\\_")
+
+	// Escape backticks (used for inline code)
+	str = strings.ReplaceAll(str, "`", "\\`")
+
+	// Escape square brackets (used for links)
+	str = strings.ReplaceAll(str, "[", "\\[")
+	str = strings.ReplaceAll(str, "]", "\\]")
+
+	// Escape angle brackets (used for HTML tags)
+	str = strings.ReplaceAll(str, "<", "\\<")
+	str = strings.ReplaceAll(str, ">", "\\>")
+
+	// Escape pipe characters (used for table separators)
 	str = strings.ReplaceAll(str, "|", "\\|")
-	// Escape newlines to prevent table structure breaking
+
+	// Handle newlines and carriage returns
+	// Replace carriage return + newline first to avoid double replacement
+	str = strings.ReplaceAll(str, "\r\n", " ")
+	// Replace remaining newlines with spaces
 	str = strings.ReplaceAll(str, "\n", " ")
+	// Replace remaining carriage returns with spaces
+	str = strings.ReplaceAll(str, "\r", " ")
+
 	return strings.TrimSpace(str)
 }
 

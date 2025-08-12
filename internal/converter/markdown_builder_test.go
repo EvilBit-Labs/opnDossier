@@ -1252,7 +1252,7 @@ func TestMarkdownBuilder_BuildStandardReport_WithUsersAndSysctl(t *testing.T) {
 	assert.Contains(t, result, "admin")
 	assert.Contains(t, result, "user1")
 	assert.Contains(t, result, "net.inet.ip.forwarding")
-	assert.Contains(t, result, "net.inet.tcp.always_keepalive")
+	assert.Contains(t, result, "net.inet.tcp.always\\_keepalive")
 }
 
 func TestMarkdownBuilder_BuildComprehensiveReport_WithGroups(t *testing.T) {

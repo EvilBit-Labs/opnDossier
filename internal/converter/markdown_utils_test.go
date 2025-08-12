@@ -34,12 +34,37 @@ func TestMarkdownBuilder_EscapeTableContent(t *testing.T) {
 		{
 			name:     "string with backslash",
 			input:    "hello\\world",
-			expected: "hello\\world",
+			expected: "hello\\\\world",
+		},
+		{
+			name:     "string with asterisks",
+			input:    "hello *bold* world",
+			expected: "hello \\*bold\\* world",
+		},
+		{
+			name:     "string with underscores",
+			input:    "hello _italic_ world",
+			expected: "hello \\_italic\\_ world",
+		},
+		{
+			name:     "string with backticks",
+			input:    "hello `code` world",
+			expected: "hello \\`code\\` world",
+		},
+		{
+			name:     "string with square brackets",
+			input:    "hello [link] world",
+			expected: "hello \\[link\\] world",
+		},
+		{
+			name:     "string with angle brackets",
+			input:    "hello <tag> world",
+			expected: "hello \\<tag\\> world",
 		},
 		{
 			name:     "string with multiple special chars",
-			input:    "hello | world\ntest\\data",
-			expected: "hello \\| world test\\data",
+			input:    "hello | world\ntest\\data *bold* _italic_ `code` [link] <tag>",
+			expected: "hello \\| world test\\\\data \\*bold\\* \\_italic\\_ \\`code\\` \\[link\\] \\<tag\\>",
 		},
 		{
 			name:     "integer",
@@ -54,7 +79,7 @@ func TestMarkdownBuilder_EscapeTableContent(t *testing.T) {
 		{
 			name:     "nil",
 			input:    nil,
-			expected: "<nil>",
+			expected: "",
 		},
 		{
 			name:     "empty string",
@@ -65,6 +90,16 @@ func TestMarkdownBuilder_EscapeTableContent(t *testing.T) {
 			name:     "whitespace only",
 			input:    "   \t\n  ",
 			expected: "",
+		},
+		{
+			name:     "carriage return and newline",
+			input:    "hello\r\nworld",
+			expected: "hello world",
+		},
+		{
+			name:     "carriage return only",
+			input:    "hello\rworld",
+			expected: "hello world",
 		},
 	}
 

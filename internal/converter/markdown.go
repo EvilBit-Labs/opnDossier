@@ -593,7 +593,7 @@ func (b *MarkdownBuilder) BuildFirewallRulesTable(rules []model.Rule) *markdown.
 			rule.Target,
 			rule.SourcePort,
 			formatBooleanInverted(rule.Disabled),
-			rule.Descr,
+			b.EscapeTableContent(rule.Descr),
 		})
 	}
 
@@ -621,7 +621,7 @@ func (b *MarkdownBuilder) BuildInterfaceTable(interfaces model.Interfaces) *mark
 
 		rows = append(rows, []string{
 			fmt.Sprintf("`%s`", name),
-			fmt.Sprintf("`%s`", description),
+			fmt.Sprintf("`%s`", b.EscapeTableContent(description)),
 			fmt.Sprintf("`%s`", iface.IPAddr),
 			cidr,
 			formatBoolean(iface.Enable),
@@ -640,7 +640,12 @@ func (b *MarkdownBuilder) BuildUserTable(users []model.User) *markdown.TableSet 
 
 	rows := make([][]string, 0, len(users))
 	for _, user := range users {
-		rows = append(rows, []string{user.Name, user.Descr, user.Groupname, user.Scope})
+		rows = append(rows, []string{
+			b.EscapeTableContent(user.Name),
+			b.EscapeTableContent(user.Descr),
+			b.EscapeTableContent(user.Groupname),
+			b.EscapeTableContent(user.Scope),
+		})
 	}
 
 	return &markdown.TableSet{
@@ -655,7 +660,11 @@ func (b *MarkdownBuilder) BuildGroupTable(groups []model.Group) *markdown.TableS
 
 	rows := make([][]string, 0, len(groups))
 	for _, group := range groups {
-		rows = append(rows, []string{group.Name, group.Description, group.Scope})
+		rows = append(rows, []string{
+			b.EscapeTableContent(group.Name),
+			b.EscapeTableContent(group.Description),
+			b.EscapeTableContent(group.Scope),
+		})
 	}
 
 	return &markdown.TableSet{
@@ -670,7 +679,11 @@ func (b *MarkdownBuilder) BuildSysctlTable(sysctl []model.SysctlItem) *markdown.
 
 	rows := make([][]string, 0, len(sysctl))
 	for _, item := range sysctl {
-		rows = append(rows, []string{item.Tunable, item.Value, item.Descr})
+		rows = append(rows, []string{
+			b.EscapeTableContent(item.Tunable),
+			b.EscapeTableContent(item.Value),
+			b.EscapeTableContent(item.Descr),
+		})
 	}
 
 	return &markdown.TableSet{
