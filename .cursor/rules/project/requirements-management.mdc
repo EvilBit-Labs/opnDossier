@@ -8,7 +8,7 @@ alwaysApply: false
 
 ## Overview
 
-This document provides comprehensive guidelines for managing requirements, tasks, and user stories in the opnDossier project. It ensures consistency across all specification documents and maintains proper alignment between requirements and implementation.
+This document provides comprehensive guidelines for managing requirements, tasks, and user stories in the project. It ensures consistency across all specification documents and maintains proper alignment between requirements and implementation.
 
 ## Project Specification Files
 
@@ -21,6 +21,13 @@ The `project_spec/` directory contains three essential documents that work toget
   - Defines system capabilities, constraints, and implementation details
   - Serves as the authoritative source for what the system must do
   - Includes document metadata for version control and change tracking
+  - This document is the source of truth for the project and should be updated as the project evolves
+  - Requirements should be written using **EARS notation** (Easy Approach to Requirements Syntax)
+    - **Ubiquitous**: Always-occurring fundamental system properties (e.g., "The software shall be written in Go")
+    - **Event-driven**: Triggered by specific events (e.g., "When the convert command is executed, then the system shall parse the XML file")
+    - **Unwanted behaviors**: Error handling and failure management (e.g., "If the XML file is invalid, then the system shall display an error message")
+    - **State-driven**: Behavior while in specific states (e.g., "When in validation mode, then the system shall check all configuration elements")
+    - **Optional features**: Conditional functionality (e.g., "Where audit plugins are enabled, then the system shall run compliance checks")
 
 - **[tasks.md](project_spec/tasks.md)** - **Implementation task checklist**
   - Breaks down requirements into actionable development tasks
@@ -56,6 +63,13 @@ The `project_spec/` directory contains three essential documents that work toget
 - **Reference Pattern**: Use format `F### (key details)` for functional requirements
 - **Cross-References**: Include relevant requirement numbers in parentheses when referencing other requirements
 - **Balance**: Strike balance between conciseness and comprehensiveness - avoid verbose multi-bullet requirements
+- **Acceptance Criteria**: Every requirement must include clear, testable acceptance criteria that define when the requirement is satisfied
+- **RFC Compliance**: Requirements must comply with RFC 2119 and RFC 8174 for key words and requirement language
+  - **MUST/SHALL**: Absolute requirement (RFC 2119)
+  - **MUST NOT/SHALL NOT**: Absolute prohibition (RFC 2119)
+  - **SHOULD/SHOULD NOT**: Recommended but not mandatory (RFC 2119)
+  - **MAY/OPTIONAL**: Truly optional (RFC 2119)
+  - **Implementation Level**: Use RFC 8174 for implementation-specific requirements
 
 ### Maintenance Guidelines
 
