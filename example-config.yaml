@@ -1,0 +1,53 @@
+# opnDossier Configuration File
+# This file demonstrates the new engine configuration options introduced in Phase 3.7
+
+# Generation Engine Configuration
+# The engine setting controls whether to use programmatic or template-based generation
+# Valid options: "programmatic" (default), "template"
+engine: "template"
+
+# Alternative: explicitly enable template mode
+# use_template: true
+
+# Output configuration
+format: "markdown"
+output_file: ""
+
+# Template configuration (only used when engine is set to "template")
+template: ""
+
+# Content filtering
+sections: []
+
+# Text formatting
+wrap: 0
+
+# Theme (for display command)
+theme: "auto"
+
+# Logging
+verbose: false
+quiet: false
+
+# Example configurations for different use cases:
+
+# 1. For programmatic mode (default, fastest and most secure):
+# engine: "programmatic"
+# format: "markdown"
+
+# 2. For template mode with built-in templates:
+# engine: "template"
+# template: "default"
+
+# 3. For custom template usage:
+# engine: "template"
+# template: "custom"
+# Note: Use --custom-template flag for custom template files
+
+# 4. Migration from v1.x template-based setups:
+# use_template: true
+# template: "comprehensive"
+
+# Security Note:
+# When using template mode, custom template files are validated for security.
+# Path traversal attempts will be blocked automatically.
