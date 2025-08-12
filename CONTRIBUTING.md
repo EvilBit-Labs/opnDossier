@@ -48,12 +48,202 @@ opndossier/
 │   ├── config/         # Configuration management (Viper)
 │   ├── parser/         # XML parsing logic
 │   ├── converter/      # Data conversion logic
-│   ├── display/        # Output formatting (Lipgloss)
-│   ├── export/         # File export logic
-│   └── log/            # Logging utilities
-├── docs/               # Documentation
-└── tests/              # Test files
+│   ├── markdown/       # Markdown generation
+│   ├── display/        # Terminal display (Lipgloss)
+│   ├── log/           # Logging utilities
+│   └── model/         # Data structures
+├── docs/              # Documentation
+└── testdata/          # Test files
 ```
+
+### Programmatic Generation Architecture (v2.0+)
+
+opnDossier v2.0 introduces programmatic markdown generation, replacing the template-based approach with direct Go method calls. This architecture delivers significant performance improvements and enhanced developer experience.
+
+#### Key Components
+
+**MarkdownBuilder Interface**
+
+```go
+// ReportBuilder interface for programmatic generation
+type ReportBuilder interface {
+    BuildStandardReport(data *model.OpnSenseDocument) (string, error)
+    BuildCustomReport(data *model.OpnSenseDocument, options BuildOptions) (string, error)
+    
+    // Section builders
+    BuildSystemSection(data *model.OpnSenseDocument) string
+    BuildNetworkSection(data *model.OpnSenseDocument) string
+    BuildSecuritySection(data *model.OpnSenseDocument) string
+    BuildServicesSection(data *model.OpnSenseDocument) string
+    
+    // Component builders
+    BuildFirewallRulesTable(rules []model.Rule) *markdown.TableSet
+    BuildInterfaceTable(interfaces model.Interfaces) *markdown.TableSet
+}
+```
+
+**Performance-Optimized Methods**
+
+- **Security Assessment**: `CalculateSecurityScore`, `AssessRiskLevel`, `AssessServiceRisk`
+- **Data Transformation**: `FilterSystemTunables`, `GroupServicesByStatus`, `FormatSystemStats`
+- **String Utilities**: `EscapeMarkdownSpecialChars`, `FormatTimestamp`, `TruncateDescription`
+
+#### Development Guidelines for New Methods
+
+1. **Method Naming**: Use descriptive names that indicate functionality
+
+   ```go
+   // Good
+   func (b *MarkdownBuilder) FilterSystemTunables(tunables []model.SysctlItem, securityOnly bool) []model.SysctlItem
+
+   // Avoid
+   func (b *MarkdownBuilder) Filter(items []any, flag bool) []any
+   ```
+
+2. **Error Handling**: Return explicit errors with context
+
+   ```go
+   func (b *MarkdownBuilder) BuildSection(data *model.OpnSenseDocument) (string, error) {
+       if data == nil {
+           return "", fmt.Errorf("configuration data cannot be nil")
+       }
+       
+       // Implementation...
+       if err := someOperation(); err != nil {
+           return "", fmt.Errorf("failed to build section: %w", err)
+       }
+       
+       return result, nil
+   }
+   ```
+
+3. **Performance Optimization**: Use pre-allocated slices and efficient string building
+
+   ```go
+   func (b *MarkdownBuilder) ProcessLargeDataset(items []model.Item) []ProcessedItem {
+       // Pre-allocate with estimated capacity
+       result := make([]ProcessedItem, 0, len(items))
+       
+       // Use strings.Builder for efficient string concatenation
+       var builder strings.Builder
+       builder.Grow(1024) // Pre-allocate capacity
+       
+       // Process items...
+       return result
+   }
+   ```
+
+4. **Type Safety**: Use specific types rather than `any` or `interface{}`
+
+   ```go
+   // Good
+   func (b *MarkdownBuilder) FormatServices(services []model.Service) string
+
+   // Avoid
+   func (b *MarkdownBuilder) FormatItems(items any) string
+   ```
+
+#### Testing Programmatic Generation
+
+**Unit Tests for Methods**
+
+```go
+func TestMarkdownBuilder_FilterSystemTunables(t *testing.T) {
+    tests := []struct {
+        name         string
+        tunables     []model.SysctlItem
+        securityOnly bool
+        expected     int
+    }{
+        {
+            name: "filter security tunables",
+            tunables: []model.SysctlItem{
+                {Tunable: "security.test", Value: "1"},
+                {Tunable: "net.other", Value: "0"},
+            },
+            securityOnly: true,
+            expected:     1,
+        },
+    }
+    
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            builder := converter.NewMarkdownBuilder()
+            result := builder.FilterSystemTunables(tt.tunables, tt.securityOnly)
+            assert.Len(t, result, tt.expected)
+        })
+    }
+}
+```
+
+**Performance Benchmarks**
+
+```go
+func BenchmarkMarkdownBuilder_CalculateSecurityScore(b *testing.B) {
+    builder := converter.NewMarkdownBuilder()
+    config := loadTestConfig()
+    
+    b.ResetTimer()
+    for i := 0; i < b.N; i++ {
+        _ = builder.CalculateSecurityScore(config)
+    }
+}
+```
+
+**Integration Tests**
+
+```go
+func TestMarkdownBuilder_BuildStandardReport(t *testing.T) {
+    // Load test configuration
+    config := loadTestConfig("testdata/sample-config.xml")
+    
+    // Generate report
+    builder := converter.NewMarkdownBuilder()
+    report, err := builder.BuildStandardReport(config)
+    
+    // Validate results
+    require.NoError(t, err)
+    assert.Contains(t, report, "# OPNsense Configuration")
+    assert.Contains(t, report, "## System Information")
+    
+    // Validate markdown syntax
+    err = validateMarkdownSyntax(report)
+    assert.NoError(t, err)
+}
+```
+
+### Template to Programmatic Migration
+
+When migrating template functions to Go methods:
+
+1. **Analyze Template Function**: Understand input parameters and expected output
+2. **Create Go Method**: Implement with proper types and error handling
+3. **Add Unit Tests**: Test various input scenarios and edge cases
+4. **Benchmark Performance**: Ensure performance meets expectations
+5. **Update Documentation**: Add method to API documentation
+
+**Example Migration:**
+
+```go
+// Template function (old)
+{{ define "formatUptime" }}{{ div .Seconds 3600 }} hours{{ end }}
+
+// Go method (new)
+func (b *MarkdownBuilder) FormatUptime(seconds int) string {
+    hours := seconds / 3600
+    return fmt.Sprintf("%d hours", hours)
+}
+```
+
+## Project Structure
+
+│ ├── display/ # Output formatting (Lipgloss)
+│ ├── export/ # File export logic
+│ └── log/ # Logging utilities
+├── docs/ # Documentation
+└── tests/ # Test files
+
+````
 
 ## Development Workflow
 
@@ -65,7 +255,7 @@ git checkout -b feat/your-feature-name
 
 # Or for bug fixes
 git checkout -b fix/issue-description
-```
+````
 
 ### 2. Development Commands
 

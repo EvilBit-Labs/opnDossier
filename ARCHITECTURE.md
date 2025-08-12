@@ -101,6 +101,331 @@ sequenceDiagram
     end
 ```
 
+## Programmatic Generation Architecture (v2.0+)
+
+### Evolution from Template-Based to Programmatic Generation
+
+opnDossier v2.0 introduces a major architectural shift from template-based markdown generation to programmatic generation, delivering significant performance improvements and enhanced developer experience.
+
+#### Previous Architecture (v1.x)
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant CLI
+    participant Parser as XML Parser
+    participant TmplEngine as Template Engine
+    participant TmplFiles as Template Files
+    participant Renderer
+    participant Output
+
+    User->>CLI: opndossier convert config.xml
+    CLI->>Parser: Parse XML file
+    Parser-->>CLI: Structured data
+    CLI->>TmplEngine: Load templates
+    TmplEngine->>TmplFiles: Read template files
+    TmplFiles-->>TmplEngine: Template content
+    TmplEngine->>TmplEngine: Parse templates
+    TmplEngine->>TmplEngine: Execute with data
+    TmplEngine-->>CLI: Rendered content
+    CLI->>Renderer: Format output
+    Renderer->>Output: Final markdown
+    Output-->>User: Generated report
+```
+
+#### New Architecture (v2.0+)
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant CLI
+    participant Parser as XML Parser
+    participant Builder as MarkdownBuilder
+    participant Methods as Go Methods
+    participant Renderer
+    participant Output
+
+    User->>CLI: opndossier convert config.xml
+    CLI->>Parser: Parse XML file
+    Parser-->>CLI: Structured data
+    CLI->>Builder: Create builder instance
+    Builder->>Methods: Direct method calls
+    Methods->>Methods: Type-safe operations
+    Methods-->>Builder: Structured content
+    Builder->>Renderer: Optimized string building
+    Renderer->>Output: Final markdown
+    Output-->>User: Generated report
+```
+
+### Key Architectural Improvements
+
+#### 1. Elimination of Template Overhead
+
+- **Before**: Parse templates → String interpolation → Variable resolution → Output generation
+- **After**: Direct method calls → Structured building → Optimized output
+
+#### 2. Performance Optimizations
+
+- **Memory Usage**: 78% reduction through direct string building
+- **Generation Speed**: 74% improvement via method-based approach
+- **Throughput**: 3.8x increase (643 vs 170 reports/sec)
+- **Scalability**: Consistent performance across all dataset sizes
+
+#### 3. Enhanced Type Safety
+
+```mermaid
+graph TB
+    subgraph "Template Mode (v1.x)"
+        T1[Template String] --> T2[Runtime Parsing]
+        T2 --> T3[Variable Resolution]
+        T3 --> T4[Silent Failures]
+        T4 --> T5[Runtime Errors]
+    end
+    
+    subgraph "Programmatic Mode (v2.0+)"
+        P1[Go Methods] --> P2[Compile-time Validation]
+        P2 --> P3[Type-safe Operations]
+        P3 --> P4[Explicit Error Handling]
+        P4 --> P5[Structured Results]
+    end
+    
+    style T4 fill:#ff9999
+    style T5 fill:#ff9999
+    style P2 fill:#99ff99
+    style P3 fill:#99ff99
+    style P4 fill:#99ff99
+```
+
+#### 4. Security Enhancements (Red Team Focus)
+
+- **Output Obfuscation**: Built-in capabilities for sensitive data handling
+- **Complete Offline Support**: No external template dependencies
+- **Memory Safety**: Improved handling of large configurations
+- **Error Isolation**: Structured error handling prevents information leakage
+
+### MarkdownBuilder Component Architecture
+
+```mermaid
+classDiagram
+    class ReportBuilder {
+        <<interface>>
+        +BuildStandardReport(data) string
+        +BuildCustomReport(data, options) string
+        +BuildSystemSection(data) string
+        +BuildNetworkSection(data) string
+        +BuildSecuritySection(data) string
+        +BuildServicesSection(data) string
+    }
+    
+    class MarkdownBuilder {
+        -config *OpnSenseDocument
+        -options BuildOptions
+        -logger *Logger
+        +CalculateSecurityScore(data) int
+        +AssessRiskLevel(severity) string
+        +FilterSystemTunables(tunables, filter) []SysctlItem
+        +GroupServicesByStatus(services) map[string][]Service
+        +FormatInterfaceLinks(interfaces) string
+        +EscapeMarkdownSpecialChars(input) string
+    }
+    
+    class SecurityAssessor {
+        +CalculateSecurityScore(data) int
+        +AssessRiskLevel(severity) string
+        +AssessServiceRisk(service) string
+        +DetermineSecurityZone(interface) string
+    }
+    
+    class DataTransformer {
+        +FilterSystemTunables(tunables, filter) []SysctlItem
+        +GroupServicesByStatus(services) map[string][]Service
+        +FormatSystemStats(data) map[string]interface{}
+    }
+    
+    class StringFormatter {
+        +EscapeMarkdownSpecialChars(input) string
+        +FormatTimestamp(timestamp) string
+        +TruncateDescription(text, length) string
+        +FormatBoolean(value) string
+    }
+    
+    ReportBuilder <|.. MarkdownBuilder
+    MarkdownBuilder o-- SecurityAssessor
+    MarkdownBuilder o-- DataTransformer
+    MarkdownBuilder o-- StringFormatter
+```
+
+### Data Flow Pipeline (Programmatic Mode)
+
+```mermaid
+graph TD
+    subgraph "Input Processing"
+        XML[OPNsense XML] --> Parser[Enhanced Parser]
+        Parser --> Model[Structured Model]
+    end
+    
+    subgraph "Programmatic Generation Engine"
+        Model --> Builder[MarkdownBuilder]
+        Builder --> Security[SecurityAssessor]
+        Builder --> Transform[DataTransformer]
+        Builder --> Format[StringFormatter]
+        
+        Security --> Methods[Method-Based Generation]
+        Transform --> Methods
+        Format --> Methods
+    end
+    
+    subgraph "Output Optimization"
+        Methods --> StringBuild[Optimized String Building]
+        StringBuild --> Render[Direct Rendering]
+        Render --> Output[Markdown Output]
+    end
+    
+    subgraph "Performance Characteristics"
+        Metrics[Performance Metrics<br/>• 74% faster generation<br/>• 78% less memory<br/>• 3.8x throughput<br/>• Type-safe operations]
+    end
+    
+    Output -.-> Metrics
+    
+    style Builder fill:#99ff99,stroke:#333,stroke-width:4px
+    style Methods fill:#99ff99,stroke:#333,stroke-width:2px
+    style StringBuild fill:#99ff99,stroke:#333,stroke-width:2px
+```
+
+### Hybrid Architecture Support
+
+To ensure smooth migration, v2.0 supports both template and programmatic modes:
+
+```mermaid
+graph TB
+    subgraph "Hybrid Architecture"
+        Input[User Input] --> Decision{Generation Mode?}
+        
+        Decision -->|--use-template| TemplatePath[Template Mode]
+        Decision -->|Default| ProgPath[Programmatic Mode]
+        
+        TemplatePath --> TemplateEngine[Template Engine]
+        ProgPath --> MarkdownBuilder[MarkdownBuilder]
+        
+        TemplateEngine --> Output[Markdown Output]
+        MarkdownBuilder --> Output
+    end
+    
+    subgraph "Migration Support"
+        Compare[Output Comparison]
+        Validate[Validation Engine]
+        Fallback[Fallback Mechanism]
+    end
+    
+    Output --> Compare
+    Compare --> Validate
+    Validate --> Fallback
+    
+    style ProgPath fill:#99ff99,stroke:#333,stroke-width:2px
+    style MarkdownBuilder fill:#99ff99,stroke:#333,stroke-width:2px
+```
+
+### Method Categories and Performance
+
+#### Security Assessment Methods
+
+- **CalculateSecurityScore**: 1.59M operations/sec
+- **AssessRiskLevel**: 92M operations/sec
+- **AssessServiceRisk**: High-frequency assessment capability
+
+#### Data Transformation Methods
+
+- **FilterSystemTunables**: 797K operations/sec
+- **GroupServicesByStatus**: 1.01M operations/sec
+- **FormatSystemStats**: Optimized for large datasets
+
+#### String Utility Methods
+
+- **EscapeMarkdownSpecialChars**: Ultra-fast character processing
+- **FormatTimestamp**: Efficient time formatting
+- **TruncateDescription**: Word-boundary aware truncation
+
+#### Section Builders
+
+- **BuildSystemSection**: 1.7K operations/sec (comprehensive sections)
+- **BuildNetworkSection**: 6.7K operations/sec
+- **BuildSecuritySection**: 5.1K operations/sec
+- **BuildServicesSection**: 13K operations/sec
+
+### Memory Management Architecture
+
+```mermaid
+graph LR
+    subgraph "Template Mode (v1.x)"
+        T1[Template Files] --> T2[Template Parsing]
+        T2 --> T3[Variable Context]
+        T3 --> T4[String Interpolation]
+        T4 --> T5[8.80MB Memory]
+        T5 --> T6[93,984 Allocations]
+    end
+    
+    subgraph "Programmatic Mode (v2.0+)"
+        P1[Direct Methods] --> P2[Structured Building]
+        P2 --> P3[Pre-allocated Buffers]
+        P3 --> P4[Optimized Strings]
+        P4 --> P5[1.97MB Memory]
+        P5 --> P6[39,585 Allocations]
+    end
+    
+    style T5 fill:#ff9999
+    style T6 fill:#ff9999
+    style P5 fill:#99ff99
+    style P6 fill:#99ff99
+```
+
+### Error Handling Architecture
+
+#### Template Mode Error Handling
+
+- Silent failures with default values
+- Runtime template parsing errors
+- Difficult debugging and troubleshooting
+- Generic error messages
+
+#### Programmatic Mode Error Handling
+
+```go
+// Structured error types
+type ValidationError struct {
+    Field   string
+    Value   any
+    Message string
+}
+
+type GenerationError struct {
+    Component string
+    Operation string
+    Cause     error
+}
+
+// Context-aware error handling
+func (b *MarkdownBuilder) BuildSection(data *model.OpnSenseDocument) (string, error) {
+    if err := b.validateInput(data); err != nil {
+        return "", &ValidationError{
+            Field:   "input_data",
+            Value:   data,
+            Message: fmt.Sprintf("invalid input: %v", err),
+        }
+    }
+    
+    result, err := b.generateContent(data)
+    if err != nil {
+        return "", &GenerationError{
+            Component: "section_builder",
+            Operation: "content_generation",
+            Cause:     err,
+        }
+    }
+    
+    return result, nil
+}
+```
+
 ## Data Storage Strategy
 
 ### Local File System
