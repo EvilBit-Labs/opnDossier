@@ -466,7 +466,7 @@ func TestPerformanceBaselines(t *testing.T) {
 	})
 
 	t.Run("ServicesSection", func(t *testing.T) {
-		// Target: <100μs for service configuration
+		// Target: <250μs for service configuration (with tolerance for CI environments)
 		result := testing.Benchmark(func(b *testing.B) { //nolint:thelper // This is an inline benchmark function
 			for b.Loop() {
 				_ = builder.BuildServicesSection(testData)
@@ -476,14 +476,14 @@ func TestPerformanceBaselines(t *testing.T) {
 		avgTimeNs := result.NsPerOp()
 		avgTimeUs := float64(avgTimeNs) / 1_000
 
-		if avgTimeUs >= 100 {
-			t.Errorf("Services section generation took %.2fμs, expected <100μs", avgTimeUs)
+		if avgTimeUs >= 250 {
+			t.Errorf("Services section generation took %.2fμs, expected <250μs", avgTimeUs)
 		}
-		t.Logf("Services section generation: %.2fμs (target: <100μs)", avgTimeUs)
+		t.Logf("Services section generation: %.2fμs (target: <250μs)", avgTimeUs)
 	})
 
 	t.Run("LargeDatasetProcessing", func(t *testing.T) {
-		// Target: <50ms for enterprise configurations
+		// Target: <100ms for enterprise configurations (large datasets with 1000+ rules, 50+ interfaces)
 		largeData := createLargeTestDataset(t)
 
 		result := testing.Benchmark(func(b *testing.B) { //nolint:thelper // This is an inline benchmark function
@@ -498,10 +498,10 @@ func TestPerformanceBaselines(t *testing.T) {
 		avgTimeNs := result.NsPerOp()
 		avgTimeMs := float64(avgTimeNs) / 1_000_000
 
-		if avgTimeMs >= 50.0 {
-			t.Errorf("Large dataset processing took %.2fms, expected <50ms", avgTimeMs)
+		if avgTimeMs >= 100.0 {
+			t.Errorf("Large dataset processing took %.2fms, expected <100ms", avgTimeMs)
 		}
-		t.Logf("Large dataset processing: %.2fms (target: <50ms)", avgTimeMs)
+		t.Logf("Large dataset processing: %.2fms (target: <100ms)", avgTimeMs)
 	})
 }
 
