@@ -383,3 +383,216 @@ func generateLargeBenchmarkData(b *testing.B) *model.OpnSenseDocument {
 
 	return doc
 }
+
+// TestPerformanceBaselines validates that all operations meet the established performance baselines.
+func TestPerformanceBaselines(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping performance baseline tests in short mode")
+	}
+
+	// Load test data
+	testData := loadTestDataForPerformance(t)
+	builder := NewMarkdownBuilder()
+
+	t.Run("StandardReportGeneration", func(t *testing.T) {
+		// Target: <1ms for standard configurations
+		result := testing.Benchmark(func(b *testing.B) { //nolint:thelper // This is an inline benchmark function
+			for b.Loop() {
+				_, err := builder.BuildStandardReport(testData)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+
+		avgTimeNs := result.NsPerOp()
+		avgTimeMs := float64(avgTimeNs) / 1_000_000
+
+		if avgTimeMs >= 1.0 {
+			t.Errorf("Standard report generation took %.2fms, expected <1ms", avgTimeMs)
+		}
+		t.Logf("Standard report generation: %.2fμs (target: <1000μs)", float64(avgTimeNs)/1_000)
+	})
+
+	t.Run("SystemSectionGeneration", func(t *testing.T) {
+		// Target: <200μs for system information
+		result := testing.Benchmark(func(b *testing.B) { //nolint:thelper // This is an inline benchmark function
+			for b.Loop() {
+				_ = builder.BuildSystemSection(testData)
+			}
+		})
+
+		avgTimeNs := result.NsPerOp()
+		avgTimeUs := float64(avgTimeNs) / 1_000
+
+		if avgTimeUs >= 200 {
+			t.Errorf("System section generation took %.2fμs, expected <200μs", avgTimeUs)
+		}
+		t.Logf("System section generation: %.2fμs (target: <200μs)", avgTimeUs)
+	})
+
+	t.Run("NetworkSectionGeneration", func(t *testing.T) {
+		// Target: <50μs for network configuration
+		result := testing.Benchmark(func(b *testing.B) { //nolint:thelper // This is an inline benchmark function
+			for b.Loop() {
+				_ = builder.BuildNetworkSection(testData)
+			}
+		})
+
+		avgTimeNs := result.NsPerOp()
+		avgTimeUs := float64(avgTimeNs) / 1_000
+
+		if avgTimeUs >= 50 {
+			t.Errorf("Network section generation took %.2fμs, expected <50μs", avgTimeUs)
+		}
+		t.Logf("Network section generation: %.2fμs (target: <50μs)", avgTimeUs)
+	})
+
+	t.Run("SecuritySectionGeneration", func(t *testing.T) {
+		// Target: <300μs for security assessment
+		result := testing.Benchmark(func(b *testing.B) { //nolint:thelper // This is an inline benchmark function
+			for b.Loop() {
+				_ = builder.BuildSecuritySection(testData)
+			}
+		})
+
+		avgTimeNs := result.NsPerOp()
+		avgTimeUs := float64(avgTimeNs) / 1_000
+
+		if avgTimeUs >= 300 {
+			t.Errorf("Security section generation took %.2fμs, expected <300μs", avgTimeUs)
+		}
+		t.Logf("Security section generation: %.2fμs (target: <300μs)", avgTimeUs)
+	})
+
+	t.Run("ServicesSection", func(t *testing.T) {
+		// Target: <100μs for service configuration
+		result := testing.Benchmark(func(b *testing.B) { //nolint:thelper // This is an inline benchmark function
+			for b.Loop() {
+				_ = builder.BuildServicesSection(testData)
+			}
+		})
+
+		avgTimeNs := result.NsPerOp()
+		avgTimeUs := float64(avgTimeNs) / 1_000
+
+		if avgTimeUs >= 100 {
+			t.Errorf("Services section generation took %.2fμs, expected <100μs", avgTimeUs)
+		}
+		t.Logf("Services section generation: %.2fμs (target: <100μs)", avgTimeUs)
+	})
+
+	t.Run("LargeDatasetProcessing", func(t *testing.T) {
+		// Target: <50ms for enterprise configurations
+		largeData := createLargeTestDataset(t)
+
+		result := testing.Benchmark(func(b *testing.B) { //nolint:thelper // This is an inline benchmark function
+			for b.Loop() {
+				_, err := builder.BuildComprehensiveReport(largeData)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+
+		avgTimeNs := result.NsPerOp()
+		avgTimeMs := float64(avgTimeNs) / 1_000_000
+
+		if avgTimeMs >= 50.0 {
+			t.Errorf("Large dataset processing took %.2fms, expected <50ms", avgTimeMs)
+		}
+		t.Logf("Large dataset processing: %.2fms (target: <50ms)", avgTimeMs)
+	})
+}
+
+// loadTestDataForPerformance loads data appropriate for performance testing.
+func loadTestDataForPerformance(t *testing.T) *model.OpnSenseDocument {
+	t.Helper()
+
+	// Try to load from testdata first
+	testdataPath := filepath.Join("testdata", "complete.json")
+	if data, err := os.ReadFile(testdataPath); err == nil {
+		var doc model.OpnSenseDocument
+		if err := json.Unmarshal(data, &doc); err == nil { //nolint:musttag // JSON tags not required for test data
+			return &doc
+		}
+	}
+
+	// Fall back to creating synthetic data
+	return createLargeTestDataset(t)
+}
+
+// createLargeTestDataset creates a large dataset for performance testing (alias for generateLargeBenchmarkData).
+func createLargeTestDataset(t *testing.T) *model.OpnSenseDocument {
+	t.Helper()
+
+	// Create a synthetic large dataset without needing *testing.B
+	doc := &model.OpnSenseDocument{
+		System: model.System{
+			Hostname: "benchmark-host",
+			Domain:   "benchmark.local",
+			Firmware: model.Firmware{
+				Version: "24.1.2",
+			},
+		},
+		Interfaces: model.Interfaces{
+			Items: make(map[string]model.Interface),
+		},
+		Filter: model.Filter{
+			Rule: make([]model.Rule, 0, 1000),
+		},
+		Sysctl: make([]model.SysctlItem, 0, 200),
+	}
+
+	// Generate interfaces
+	for i := range 50 {
+		iface := model.Interface{
+			Descr:  fmt.Sprintf("Interface %d", i),
+			If:     fmt.Sprintf("igb%d", i),
+			IPAddr: fmt.Sprintf("192.168.%d.1", i%256),
+			Subnet: "24",
+			Enable: "1",
+		}
+		doc.Interfaces.Items[fmt.Sprintf("lan%d", i)] = iface
+	}
+
+	// Generate firewall rules
+	for i := range 1000 {
+		rule := model.Rule{
+			Type:       []string{"pass", "block", "reject"}[i%3],
+			Interface:  model.InterfaceList{fmt.Sprintf("if%d", i%50)},
+			IPProtocol: []string{"inet", "inet6"}[i%2],
+			Protocol:   []string{"tcp", "udp", "any"}[i%3],
+			Source: model.Source{
+				Network: []string{"any", "lan", "wan"}[i%3],
+			},
+			Destination: model.Destination{
+				Network: []string{"any", "lan", "wan"}[i%3],
+			},
+		}
+		doc.Filter.Rule = append(doc.Filter.Rule, rule)
+	}
+
+	// Generate users
+	for i := range 50 {
+		user := model.User{
+			Name:      fmt.Sprintf("benchuser%d", i),
+			Descr:     fmt.Sprintf("Benchmark User %d", i),
+			Groupname: []string{"wheel", "users", "admin"}[i%3],
+			Scope:     []string{"system", "local"}[i%2],
+		}
+		doc.System.User = append(doc.System.User, user)
+	}
+
+	// Generate sysctl items
+	for i := range 200 {
+		sysctl := model.SysctlItem{
+			Tunable: fmt.Sprintf("benchmark.sysctl.item%d", i),
+			Value:   strconv.Itoa(i % 10),
+			Descr:   fmt.Sprintf("Benchmark sysctl item %d", i),
+		}
+		doc.Sysctl = append(doc.Sysctl, sysctl)
+	}
+
+	return doc
+}

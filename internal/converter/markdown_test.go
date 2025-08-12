@@ -63,6 +63,9 @@ func TestMarkdownConverter_ToMarkdown(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Ensure consistent terminal output for testing
+			t.Setenv("TERM", "dumb")
+
 			c := NewMarkdownConverter()
 			md, err := c.ToMarkdown(context.Background(), tt.input)
 

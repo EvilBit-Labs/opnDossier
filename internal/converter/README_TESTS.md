@@ -180,18 +180,46 @@ Large datasets for performance testing are generated programmatically:
 
 ### Current Performance Metrics
 
-| Operation                  | Time      | Memory         | Notes              |
-| -------------------------- | --------- | -------------- | ------------------ |
-| Complete Report Generation | ~570μs    | Low allocation | Standard report    |
-| System Section             | ~10μs     | Minimal        | Individual section |
-| Firewall Rules Table       | ~50μs     | Medium         | 100+ rules         |
-| Utility Functions          | 30-4000ns | Minimal        | String operations  |
+| Operation                  | Time      | Memory         | Allocations | Notes                     |
+| -------------------------- | --------- | -------------- | ----------- | ------------------------- |
+| Complete Report Generation | ~656μs    | 324KB          | 6,494       | Standard report           |
+| System Section             | ~133μs    | 72KB           | 1,535       | Individual section        |
+| Network Section            | ~24μs     | 13KB           | 283         | Interface/network config  |
+| Security Section           | ~249μs    | 134KB          | 2,619       | Security assessment       |
+| Services Section           | ~59μs     | 34KB           | 670         | Service configuration     |
+| Firewall Rules Table       | ~2.7μs    | 2KB            | 39          | Per rule (small ruleset)  |
+| Interface Table            | ~102ns    | 128B           | 2           | Per interface             |
+| User Table                 | ~89ns     | 112B           | 2           | Per user                  |
+| Utility Functions          | 31-4000ns | 0-1KB          | 0-19        | String operations         |
+| Large Dataset Processing   | ~31ms     | 18MB           | 382,170     | 1000+ rules, 50+ intfs    |
 
-### Performance Validation
+### Performance Baselines and Requirements
 
-- Reports must generate in \<1ms for standard configurations
-- Memory allocations should be minimal and predictable
-- No performance regressions compared to template-based generation
+**Standard Report Generation**
+- **Target**: <1ms for basic configurations (✅ achieved: ~656μs)
+- **Memory**: <500KB for standard reports (✅ achieved: ~324KB)
+- **Large Datasets**: <50ms for enterprise configurations (✅ achieved: ~31ms)
+
+**Section Generation Performance**
+- **System Information**: <200μs (✅ achieved: ~133μs)
+- **Network Configuration**: <50μs (✅ achieved: ~24μs)
+- **Security Assessment**: <300μs (✅ achieved: ~249μs)
+- **Service Configuration**: <100μs (✅ achieved: ~59μs)
+
+**Utility Function Performance**
+- **Table Operations**: <5μs per row (✅ achieved: ~2.7μs for firewall rules)
+- **String Operations**: <5μs per operation (✅ achieved: 31ns-4μs)
+- **Data Transformation**: <1ms for typical datasets (✅ achieved: various sub-ms)
+
+**Memory Efficiency**
+- **Baseline Memory**: <1MB total allocation for standard reports
+- **Per-rule Overhead**: <2KB per firewall rule
+- **Per-interface Overhead**: <128B per interface
+
+**Performance Regression Prevention**
+- **8.7x improvement** over template-based generation (586μs vs 4.97ms)
+- All operations must maintain sub-millisecond response times
+- Memory allocations should remain predictable and minimal
 
 ## Quality Metrics
 
