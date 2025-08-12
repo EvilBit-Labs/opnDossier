@@ -141,6 +141,7 @@ func TestOptions(t *testing.T) {
 		assert.False(t, opts.Compact)
 		assert.True(t, opts.IncludeMetadata)
 		assert.NotNil(t, opts.CustomFields)
+		assert.False(t, opts.UseTemplateEngine)
 	})
 
 	t.Run("options validation", func(t *testing.T) {
@@ -156,6 +157,18 @@ func TestOptions(t *testing.T) {
 		opts = DefaultOptions()
 		opts.WrapWidth = -1
 		require.Error(t, opts.Validate())
+
+		// Invalid template engine with non-markdown format
+		opts = DefaultOptions()
+		opts.Format = FormatJSON
+		opts.UseTemplateEngine = true
+		require.Error(t, opts.Validate())
+
+		// Valid template engine with markdown format
+		opts = DefaultOptions()
+		opts.Format = FormatMarkdown
+		opts.UseTemplateEngine = true
+		require.NoError(t, opts.Validate())
 	})
 
 	t.Run("options fluent interface", func(t *testing.T) {
@@ -168,7 +181,8 @@ func TestOptions(t *testing.T) {
 			WithEmojis(false).
 			WithCompact(true).
 			WithMetadata(false).
-			WithCustomField("test", "value")
+			WithCustomField("test", "value").
+			WithUseTemplateEngine(true)
 
 		assert.Equal(t, FormatJSON, opts.Format)
 		assert.Equal(t, ThemeDark, opts.Theme)
@@ -179,6 +193,7 @@ func TestOptions(t *testing.T) {
 		assert.True(t, opts.Compact)
 		assert.False(t, opts.IncludeMetadata)
 		assert.Equal(t, "value", opts.CustomFields["test"])
+		assert.True(t, opts.UseTemplateEngine)
 	})
 
 	t.Run("validation logging on invalid inputs", func(t *testing.T) {
@@ -194,6 +209,28 @@ func TestOptions(t *testing.T) {
 
 		// Should return unchanged options when validation fails
 		assert.Equal(t, originalOpts.AuditMode, opts.AuditMode)
+	})
+
+	t.Run("UseTemplateEngine field", func(t *testing.T) {
+		// Test default value
+		opts := DefaultOptions()
+		assert.False(t, opts.UseTemplateEngine)
+
+		// Test setting to true
+		opts = opts.WithUseTemplateEngine(true)
+		assert.True(t, opts.UseTemplateEngine)
+
+		// Test setting to false
+		opts = opts.WithUseTemplateEngine(false)
+		assert.False(t, opts.UseTemplateEngine)
+
+		// Test validation with markdown format
+		opts = DefaultOptions().WithFormat(FormatMarkdown).WithUseTemplateEngine(true)
+		require.NoError(t, opts.Validate())
+
+		// Test validation with non-markdown format
+		opts = DefaultOptions().WithFormat(FormatJSON).WithUseTemplateEngine(true)
+		require.Error(t, opts.Validate())
 	})
 }
 

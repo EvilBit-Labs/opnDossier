@@ -99,11 +99,9 @@ func (g *HybridGenerator) shouldUseTemplate(opts Options) bool {
 		return false
 	}
 
-	// Check for explicit CLI-based engine selection first
-	if useTemplateFromCLI, exists := opts.CustomFields["UseTemplateEngine"]; exists {
-		if useTemplate, ok := useTemplateFromCLI.(bool); ok && useTemplate {
-			return true
-		}
+	// Check for explicit engine selection first
+	if opts.UseTemplateEngine {
+		return true
 	}
 
 	// If a custom template is explicitly provided via SetTemplate(), use it

@@ -34,11 +34,8 @@ func TestLoadConfig(t *testing.T) {
 			name:        "valid config file",
 			expectError: false,
 			setup: func() string {
-				tmpDir, err := os.MkdirTemp("", "config-test-*")
-				if err != nil {
-					t.Fatalf("Failed to create temp dir: %v", err)
-				}
-				
+				tmpDir := t.TempDir()
+
 				cfgPath := filepath.Join(tmpDir, "config.yaml")
 				content := `
 input_file: ""
@@ -46,14 +43,15 @@ output_file: ""
 verbose: false
 engine: "programmatic"
 `
-				err = os.WriteFile(cfgPath, []byte(content), 0644)
-				if err != nil {
+				if err := os.WriteFile(cfgPath, []byte(content), 0o600); err != nil {
 					t.Fatalf("Failed to create config file: %v", err)
 				}
 				return cfgPath
 			},
 			cleanup: func(path string) {
-				os.RemoveAll(filepath.Dir(path))
+				if err := os.RemoveAll(filepath.Dir(path)); err != nil {
+					t.Logf("Failed to cleanup temp dir: %v", err)
+				}
 			},
 		},
 	}
@@ -114,16 +112,23 @@ func TestLoadConfigWithFlags(t *testing.T) {
 				fs.Bool("verbose", true, "verbose mode")
 				fs.String("theme", "dark", "theme")
 				fs.Int("wrap", 100, "wrap width")
-				
+
 				// Set flag values
-				fs.Set("verbose", "true")
-				fs.Set("theme", "dark")
-				fs.Set("wrap", "100")
-				
+				if err := fs.Set("verbose", "true"); err != nil {
+					t.Fatal(err)
+				}
+				if err := fs.Set("theme", "dark"); err != nil {
+					t.Fatal(err)
+				}
+				if err := fs.Set("wrap", "100"); err != nil {
+					t.Fatal(err)
+				}
+
 				return fs
 			},
 			expectError: false,
 			validate: func(t *testing.T, cfg *Config) {
+				t.Helper()
 				assert.True(t, cfg.Verbose)
 				assert.Equal(t, "dark", cfg.Theme)
 				assert.Equal(t, 100, cfg.WrapWidth)
@@ -134,7 +139,7 @@ func TestLoadConfigWithFlags(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			flags := tt.setupFlags()
-			
+
 			cfg, err := LoadConfigWithFlags(tt.cfgFile, flags)
 
 			if tt.expectError {
@@ -142,7 +147,7 @@ func TestLoadConfigWithFlags(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.NotNil(t, cfg)
-				
+
 				if tt.validate != nil {
 					tt.validate(t, cfg)
 				}
@@ -189,10 +194,12 @@ func TestValidationFunctionsIndirectly(t *testing.T) {
 // TestInputFileValidationIndirectly tests input file validation through the main Validate method.
 func TestInputFileValidationIndirectly(t *testing.T) {
 	// Create a temporary file for testing
-	tempFile, err := os.CreateTemp("", "test-input-*.xml")
+	tempFile, err := os.CreateTemp(t.TempDir(), "test-input-*.xml")
 	require.NoError(t, err)
 	defer os.Remove(tempFile.Name())
-	tempFile.Close()
+	if err := tempFile.Close(); err != nil {
+		t.Fatalf("Failed to close temp file: %v", err)
+	}
 
 	tests := []struct {
 		name        string
@@ -233,9 +240,7 @@ func TestInputFileValidationIndirectly(t *testing.T) {
 // TestOutputFileValidationIndirectly tests output file validation through the main Validate method.
 func TestOutputFileValidationIndirectly(t *testing.T) {
 	// Create temporary directory
-	tempDir, err := os.MkdirTemp("", "test-output-*")
-	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	tempDir := t.TempDir()
 
 	validOutputFile := filepath.Join(tempDir, "output.md")
 
@@ -467,14 +472,14 @@ func TestCombineValidationErrorsIndirectly(t *testing.T) {
 	// Test by creating a config with multiple validation errors
 	config := Config{
 		Engine:    "invalid",
-		Format:    "badformat", 
+		Format:    "badformat",
 		Theme:     "badtheme",
 		WrapWidth: -1,
 	}
 
 	err := config.Validate()
 	require.Error(t, err)
-	
+
 	// The error should contain multiple validation messages combined
 	errStr := err.Error()
 	assert.Contains(t, errStr, "invalid")
@@ -529,12 +534,12 @@ func TestConfigGetterMethodsWithDefaults(t *testing.T) {
 	// Test defaults
 	assert.Equal(t, "info", cfg.GetLogLevel())
 	assert.Equal(t, "text", cfg.GetLogFormat())
-	assert.Equal(t, "", cfg.GetTheme())
-	assert.Equal(t, "", cfg.GetFormat())
-	assert.Equal(t, "", cfg.GetTemplate())
+	assert.Empty(t, cfg.GetTheme())
+	assert.Empty(t, cfg.GetFormat())
+	assert.Empty(t, cfg.GetTemplate())
 	assert.Nil(t, cfg.GetSections())
 	assert.Equal(t, 0, cfg.GetWrapWidth())
-	assert.Equal(t, "", cfg.GetEngine())
+	assert.Empty(t, cfg.GetEngine())
 	assert.False(t, cfg.IsUseTemplate())
 }
 
@@ -549,18 +554,18 @@ func TestLoadConfigWithViperErrors(t *testing.T) {
 		{
 			name: "invalid yaml syntax",
 			setup: func() (string, *viper.Viper) {
-				tmpDir, err := os.MkdirTemp("", "config-error-test-*")
-				require.NoError(t, err)
-				
+				tmpDir := t.TempDir()
+
 				cfgPath := filepath.Join(tmpDir, "config.yaml")
 				content := `
 invalid: yaml: syntax:
   - missing
     bracket
 `
-				err = os.WriteFile(cfgPath, []byte(content), 0644)
-				require.NoError(t, err)
-				
+				if err := os.WriteFile(cfgPath, []byte(content), 0o600); err != nil {
+					t.Fatalf("Failed to create config file: %v", err)
+				}
+
 				return cfgPath, viper.New()
 			},
 			expectError: true,
@@ -568,9 +573,8 @@ invalid: yaml: syntax:
 		{
 			name: "validation errors in config",
 			setup: func() (string, *viper.Viper) {
-				tmpDir, err := os.MkdirTemp("", "config-validation-test-*")
-				require.NoError(t, err)
-				
+				tmpDir := t.TempDir()
+
 				cfgPath := filepath.Join(tmpDir, "config.yaml")
 				content := `
 verbose: true
@@ -580,9 +584,10 @@ engine: "invalid"
 theme: "badtheme"
 format: "badformat"
 `
-				err = os.WriteFile(cfgPath, []byte(content), 0644)
-				require.NoError(t, err)
-				
+				if err := os.WriteFile(cfgPath, []byte(content), 0o600); err != nil {
+					t.Fatalf("Failed to create config file: %v", err)
+				}
+
 				return cfgPath, viper.New()
 			},
 			expectError: true,
@@ -650,6 +655,20 @@ func TestEngineValidationNew(t *testing.T) {
 				Engine: "TEMPLATE",
 			},
 			expectErr: false,
+		},
+		{
+			name: "whitespace trimming engine validation",
+			cfg: &Config{
+				Engine: " template ",
+			},
+			expectErr: false,
+		},
+		{
+			name: "whitespace trimming with invalid engine shows trimmed value in error",
+			cfg: &Config{
+				Engine: " invalid ",
+			},
+			expectErr: true,
 		},
 	}
 

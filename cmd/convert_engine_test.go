@@ -245,7 +245,7 @@ func TestBuildConversionOptionsWithEngine(t *testing.T) {
 	}
 
 	// Check that engine determination is included
-	if useTemplate, ok := opts.CustomFields["UseTemplateEngine"].(bool); !ok || !useTemplate {
+	if !opts.UseTemplateEngine {
 		t.Errorf("Expected UseTemplateEngine to be true based on config")
 	}
 }

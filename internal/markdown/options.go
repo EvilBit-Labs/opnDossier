@@ -140,6 +140,11 @@ type Options struct {
 
 	// TemplateDir specifies a custom directory for user template overrides.
 	TemplateDir string
+
+	// UseTemplateEngine specifies whether to use template-based generation instead of programmatic generation.
+	// When true, the system will use Go text/template rendering for markdown output.
+	// When false, the system will use programmatic markdown generation.
+	UseTemplateEngine bool
 }
 
 // DefaultOptions returns an Options struct initialized with default settings for markdown generation.
@@ -160,10 +165,11 @@ func DefaultOptions() Options {
 		CustomFields: map[string]any{
 			"IncludeTunables": false, // Default to hiding tunables with "default" values
 		},
-		AuditMode:       "", // No audit mode by default
-		BlackhatMode:    false,
-		SelectedPlugins: nil,
-		TemplateDir:     "",
+		AuditMode:         "", // No audit mode by default
+		BlackhatMode:      false,
+		SelectedPlugins:   nil,
+		TemplateDir:       "",
+		UseTemplateEngine: false,
 	}
 }
 
@@ -185,6 +191,11 @@ func (o Options) Validate() error {
 
 	if o.WrapWidth < 0 {
 		return fmt.Errorf("%w: %d", ErrInvalidWrapWidth, o.WrapWidth)
+	}
+
+	// Validate that template engine selection is consistent
+	if o.UseTemplateEngine && o.Format != FormatMarkdown {
+		return fmt.Errorf("template engine can only be used with markdown format, got: %s", o.Format)
 	}
 
 	return nil
@@ -314,5 +325,11 @@ func (o Options) WithSelectedPlugins(plugins []string) Options {
 // WithTemplateDir sets the custom template directory for user overrides.
 func (o Options) WithTemplateDir(dir string) Options {
 	o.TemplateDir = dir
+	return o
+}
+
+// WithUseTemplateEngine sets whether to use template-based generation.
+func (o Options) WithUseTemplateEngine(useTemplate bool) Options {
+	o.UseTemplateEngine = useTemplate
 	return o
 }

@@ -27,7 +27,7 @@ just test
 just ci-check
 ```
 
-**CRITICAL: Tasks are NOT considered completed until `just ci-check` is run and fully passes.**
+**CRITICAL: Tasks are NOT considered completed until `just ci-check` has been run and fully passed.**
 
 ## Testing Requirements
 

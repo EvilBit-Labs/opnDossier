@@ -7,14 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/spf13/cobra"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/log"
 	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestAddSharedTemplateFlagsComprehensive tests comprehensive flag addition scenarios.
@@ -116,9 +115,9 @@ func TestHandleAuditModeComprehensive(t *testing.T) {
 	ctx := context.Background()
 	opnsense := &model.OpnSenseDocument{}
 	opt := markdown.Options{}
-	
+
 	_, err = handleAuditMode(ctx, opnsense, opt, logger, nil)
-	
+
 	// Should return error since audit mode is not implemented
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not yet implemented")
@@ -127,41 +126,32 @@ func TestHandleAuditModeComprehensive(t *testing.T) {
 // TestValidateTemplatePathEdgeCases tests edge cases for template path validation.
 func TestValidateTemplatePathEdgeCases(t *testing.T) {
 	// Create temporary directory structure for testing
-	tempDir, err := os.MkdirTemp("", "template-edge-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
+	tempDir := t.TempDir()
 
 	// Create various test files
 	validTemplate := filepath.Join(tempDir, "valid.tmpl")
-	err = os.WriteFile(validTemplate, []byte("template content"), 0644)
-	if err != nil {
+	if err := os.WriteFile(validTemplate, []byte("template content"), 0o600); err != nil {
 		t.Fatalf("Failed to create valid template: %v", err)
 	}
 
 	upperCaseTemplate := filepath.Join(tempDir, "UPPER.TMPL")
-	err = os.WriteFile(upperCaseTemplate, []byte("template content"), 0644)
-	if err != nil {
+	if err := os.WriteFile(upperCaseTemplate, []byte("template content"), 0o600); err != nil {
 		t.Fatalf("Failed to create uppercase template: %v", err)
 	}
 
 	htmlTemplate := filepath.Join(tempDir, "template.gohtml")
-	err = os.WriteFile(htmlTemplate, []byte("template content"), 0644)
-	if err != nil {
+	if err := os.WriteFile(htmlTemplate, []byte("template content"), 0o600); err != nil {
 		t.Fatalf("Failed to create html template: %v", err)
 	}
 
 	noExtension := filepath.Join(tempDir, "noext")
-	err = os.WriteFile(noExtension, []byte("template content"), 0644)
-	if err != nil {
+	if err := os.WriteFile(noExtension, []byte("template content"), 0o600); err != nil {
 		t.Fatalf("Failed to create no extension file: %v", err)
 	}
 
 	// Create a read-only file (permission test)
 	readOnlyFile := filepath.Join(tempDir, "readonly.tmpl")
-	err = os.WriteFile(readOnlyFile, []byte("template content"), 0444)
-	if err != nil {
+	if err := os.WriteFile(readOnlyFile, []byte("template content"), 0o400); err != nil {
 		t.Fatalf("Failed to create readonly file: %v", err)
 	}
 
@@ -245,11 +235,11 @@ func TestDetermineGenerationEngineWithConfig(t *testing.T) {
 	}
 
 	tests := []struct {
-		name           string
-		setupFlags     func()
-		config         *config.Config
-		expected       bool
-		description    string
+		name        string
+		setupFlags  func()
+		config      *config.Config
+		expected    bool
+		description string
 	}{
 		{
 			name: "config engine=template with no flags",
@@ -363,7 +353,8 @@ func TestTemplatePathValidationSecurity(t *testing.T) {
 // TestGlobalFlagReset tests that global flag reset works correctly.
 func TestGlobalFlagReset(t *testing.T) {
 	// Set all global flags to non-default values
-	sharedEngine = "template"
+	const testTemplateEngine = "template"
+	sharedEngine = testTemplateEngine
 	sharedLegacy = true
 	sharedCustomTemplate = "/path/to/template.tmpl"
 	sharedUseTemplate = true
@@ -439,7 +430,7 @@ func TestBuildEffectiveFormatCoverage(t *testing.T) {
 			expected: "JSON", // Adjusted expectation based on actual behavior
 		},
 		{
-			name:     "mixed case format - note: buildEffectiveFormat may not lowercase", 
+			name:     "mixed case format - note: buildEffectiveFormat may not lowercase",
 			input:    "YaML",
 			expected: "YaML", // Adjusted expectation based on actual behavior
 		},

@@ -12,6 +12,8 @@ Phase 3.7 introduces programmatic generation as the default mode for improved pe
 - **After**: Programmatic generation is the default
 - **Benefits**: Faster execution, enhanced security, deterministic output
 
+Note: the template engine is Markdown-only — JSON and YAML outputs are always produced programmatically.
+
 ### 🎛️ **New CLI Flags**
 
 - `--engine {programmatic|template}` - Explicit engine selection (highest precedence)
@@ -23,6 +25,55 @@ Phase 3.7 introduces programmatic generation as the default mode for improved pe
 - `engine: "programmatic"` - Set default engine in config file
 - `use_template: true` - Enable template mode in config file
 
+### 🔧 **Environment Variables**
+
+All configuration options support environment variables with `OPNDOSSIER_` prefix for CI/offline usage:
+
+#### New Configuration Keys
+
+| Config Key     | Environment Variable      | Type    | Default          | Description                                      |
+| -------------- | ------------------------- | ------- | ---------------- | ------------------------------------------------ |
+| `engine`       | `OPNDOSSIER_ENGINE`       | string  | `"programmatic"` | Generation engine (`programmatic` or `template`) |
+| `use_template` | `OPNDOSSIER_USE_TEMPLATE` | boolean | `false`          | Enable template mode                             |
+
+#### Environment Variable Usage
+
+**String Values:**
+
+```bash
+export OPNDOSSIER_ENGINE=template
+export OPNDOSSIER_ENGINE="programmatic"
+```
+
+**Boolean Values:**
+
+```bash
+export OPNDOSSIER_USE_TEMPLATE=true
+export OPNDOSSIER_USE_TEMPLATE=false
+```
+
+**CI/Offline Examples:**
+
+```bash
+# Set engine for CI pipeline
+OPNDOSSIER_ENGINE=template opndossier convert config.xml
+
+# Enable template mode in offline environment
+OPNDOSSIER_USE_TEMPLATE=true opndossier convert config.xml --comprehensive
+
+# Override multiple settings
+OPNDOSSIER_ENGINE=template OPNDOSSIER_USE_TEMPLATE=true opndossier convert config.xml
+```
+
+**Precedence Order:**
+
+1. Command-line flags (highest priority)
+2. Environment variables (`OPNDOSSIER_*`)
+3. Configuration file (`~/.opnDossier.yaml`)
+4. Default values (lowest priority)
+
+Environment variables override configuration file settings, making them ideal for CI/CD pipelines and offline deployments where file-based configuration may not be available.
+
 ## Migration Examples
 
 ### For Existing Template Users
@@ -30,13 +81,13 @@ Phase 3.7 introduces programmatic generation as the default mode for improved pe
 **Old command:**
 
 ```bash
-opnDossier convert config.xml --comprehensive
+./opndossier convert config.xml --comprehensive
 ```
 
 **New command (to maintain template behavior):**
 
 ```bash
-opnDossier convert config.xml --use-template --comprehensive
+./opndossier convert config.xml --use-template --comprehensive
 ```
 
 ### For Custom Template Users
@@ -44,13 +95,13 @@ opnDossier convert config.xml --use-template --comprehensive
 **Old command:**
 
 ```bash
-opnDossier convert config.xml --custom-template my-template.tmpl
+./opndossier convert config.xml --custom-template my-template.tmpl
 ```
 
 **New command (unchanged - automatically enables template mode):**
 
 ```bash
-opnDossier convert config.xml --custom-template my-template.tmpl
+./opndossier convert config.xml --custom-template my-template.tmpl
 ```
 
 ### For New Users (Recommended)
@@ -58,7 +109,7 @@ opnDossier convert config.xml --custom-template my-template.tmpl
 **Use default programmatic mode:**
 
 ```bash
-opnDossier convert config.xml --comprehensive
+./opndossier convert config.xml --comprehensive
 ```
 
 ## Flag Precedence Order
@@ -109,8 +160,8 @@ template: comprehensive
 
 ```bash
 # These will be blocked:
-opnDossier convert config.xml --custom-template "../../../etc/passwd"
-opnDossier convert config.xml --custom-template "../../sensitive/file"
+./opndossier convert config.xml --custom-template "../../../etc/passwd"
+./opndossier convert config.xml --custom-template "../../sensitive/file"
 ```
 
 ## Performance Comparison
@@ -126,7 +177,7 @@ opnDossier convert config.xml --custom-template "../../sensitive/file"
 
 ```bash
 # Should use programmatic mode by default
-opnDossier convert config.xml --verbose
+./opndossier convert config.xml --verbose
 # Look for: "Using programmatic engine (default)"
 ```
 
@@ -134,7 +185,7 @@ opnDossier convert config.xml --verbose
 
 ```bash
 # Should use template mode
-opnDossier convert config.xml --use-template --verbose
+./opndossier convert config.xml --use-template --verbose
 # Look for: "Using template engine (explicit --use-template flag)"
 ```
 
@@ -142,7 +193,7 @@ opnDossier convert config.xml --use-template --verbose
 
 ```bash
 # Should show deprecation warning
-opnDossier convert config.xml --legacy --verbose
+./opndossier convert config.xml --legacy --verbose
 # Look for: "Legacy mode is deprecated and will be removed in v3.0"
 ```
 
@@ -156,7 +207,7 @@ If you see "template not found" errors when using template mode, this is expecte
 
 ```bash
 # Test your configuration file
-opnDossier --config your-config.yaml convert --help
+./opndossier --config your-config.yaml convert --help
 ```
 
 ### Verbose Logging
@@ -164,14 +215,14 @@ opnDossier --config your-config.yaml convert --help
 Add `--verbose` to any command to see detailed engine selection logging:
 
 ```bash
-opnDossier convert config.xml --verbose
+./opndossier convert config.xml --verbose
 ```
 
 ## Support
 
 For questions about migration:
 
-1. Check the built-in help: `opnDossier convert --help`
+1. Check the built-in help: `./opndossier convert --help`
 2. Review the examples in the help output
 3. Use `--verbose` flag to understand engine selection
 4. Refer to this migration guide

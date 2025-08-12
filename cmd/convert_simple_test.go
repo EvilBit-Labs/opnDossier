@@ -42,12 +42,14 @@ func TestDetermineOutputPathSimple(t *testing.T) {
 	}
 
 	// Test with forced overwrite of existing file
-	tempFile, err := os.CreateTemp("", "test-*.md")
+	tempFile, err := os.CreateTemp(t.TempDir(), "test-*.md")
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %v", err)
 	}
 	defer os.Remove(tempFile.Name())
-	tempFile.Close()
+	if err := tempFile.Close(); err != nil {
+		t.Fatalf("Failed to close temp file: %v", err)
+	}
 
 	result, err = determineOutputPath("config.xml", tempFile.Name(), ".md", nil, true)
 	if err != nil {
@@ -89,7 +91,7 @@ func TestGenerateOutputByFormatSimple(t *testing.T) {
 
 	// Test JSON format - but it may fail due to missing templates, so we'll just check it doesn't panic
 	opt.Format = markdown.FormatJSON
-	result, err = generateOutputByFormat(ctx, opnsense, opt, logger, nil)
+	_, err = generateOutputByFormat(ctx, opnsense, opt, logger, nil)
 	// JSON format might fail due to missing templates - that's expected
 	if err != nil {
 		t.Logf("JSON format failed as expected: %v", err)
@@ -138,7 +140,7 @@ func TestGenerateWithHybridGeneratorSimple(t *testing.T) {
 
 	// Test template mode - may fail due to missing templates
 	sharedUseTemplate = true
-	result, err = generateWithHybridGenerator(ctx, opnsense, opt, logger, nil)
+	_, err = generateWithHybridGenerator(ctx, opnsense, opt, logger, nil)
 	// Template mode might fail due to missing templates - that's expected
 	if err != nil {
 		t.Logf("Template mode failed as expected: %v", err)
@@ -157,7 +159,7 @@ func TestLoadCustomTemplateSimple(t *testing.T) {
 	}
 
 	// Test with valid template file
-	tempFile, err := os.CreateTemp("", "template-*.tmpl")
+	tempFile, err := os.CreateTemp(t.TempDir(), "template-*.tmpl")
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %v", err)
 	}
@@ -167,7 +169,9 @@ func TestLoadCustomTemplateSimple(t *testing.T) {
 	if _, err := tempFile.WriteString(content); err != nil {
 		t.Fatalf("Failed to write template content: %v", err)
 	}
-	tempFile.Close()
+	if err := tempFile.Close(); err != nil {
+		t.Fatalf("Failed to close temp file: %v", err)
+	}
 
 	tmpl, err := loadCustomTemplate(tempFile.Name())
 	if err != nil {
@@ -199,12 +203,14 @@ func TestValidateTemplatePathSimple(t *testing.T) {
 	}
 
 	// Test valid file
-	tempFile, err := os.CreateTemp("", "valid-*.tmpl")
+	tempFile, err := os.CreateTemp(t.TempDir(), "valid-*.tmpl")
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %v", err)
 	}
 	defer os.Remove(tempFile.Name())
-	tempFile.Close()
+	if err := tempFile.Close(); err != nil {
+		t.Fatalf("Failed to close temp file: %v", err)
+	}
 
 	err = validateTemplatePath(tempFile.Name())
 	if err != nil {

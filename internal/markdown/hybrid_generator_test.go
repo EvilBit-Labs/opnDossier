@@ -305,6 +305,18 @@ func TestHybridGenerator_shouldUseTemplate(t *testing.T) {
 			opts:     Options{}, // Empty options, format is empty string
 			expected: true,
 		},
+		{
+			name:     "UseTemplateEngine explicitly set to true - should use template",
+			template: nil,
+			opts:     DefaultOptions().WithUseTemplateEngine(true),
+			expected: true,
+		},
+		{
+			name:     "UseTemplateEngine explicitly set to false but template provided - should still use template",
+			template: template.New("test"), // Template takes precedence
+			opts:     DefaultOptions().WithUseTemplateEngine(false),
+			expected: true,
+		},
 	}
 
 	for _, tt := range tests {

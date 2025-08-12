@@ -106,6 +106,14 @@ func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
+	// Normalize engine value after loading
+	if cfg.Engine != "" {
+		normalizedEngine := strings.ToLower(strings.TrimSpace(cfg.Engine))
+		cfg.Engine = normalizedEngine
+		// Update the viper instance to reflect the normalized value
+		v.Set("engine", normalizedEngine)
+	}
+
 	// Validate the configuration
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("configuration validation failed: %w", err)
@@ -126,6 +134,11 @@ func (e ValidationError) Error() string {
 
 // Validate validates the configuration for consistency and correctness.
 func (c *Config) Validate() error {
+	// Normalize engine value before validation
+	if c.Engine != "" {
+		c.Engine = strings.ToLower(strings.TrimSpace(c.Engine))
+	}
+
 	var validationErrors []ValidationError
 
 	validateFlags(c, &validationErrors)
@@ -242,7 +255,8 @@ func validateEngine(c *Config, validationErrors *[]ValidationError) {
 		"programmatic": true,
 		"template":     true,
 	}
-	if c.Engine != "" && !validEngines[strings.ToLower(c.Engine)] {
+
+	if c.Engine != "" && !validEngines[c.Engine] {
 		*validationErrors = append(*validationErrors, ValidationError{
 			Field: "engine",
 			Message: fmt.Sprintf(

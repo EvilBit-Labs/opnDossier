@@ -294,6 +294,13 @@ Examples:
 		templateCache := NewTemplateCacheWithSize(sharedTemplateCacheSize)
 		defer templateCache.Clear() // Clean up cache after processing
 
+		// Validate custom template path if specified (early validation)
+		if sharedCustomTemplate != "" {
+			if err := validateTemplatePath(sharedCustomTemplate); err != nil {
+				return fmt.Errorf("template validation failed: %w", err)
+			}
+		}
+
 		// Preload the custom template if specified
 		var cachedTemplate *template.Template
 		if sharedCustomTemplate != "" {
@@ -547,8 +554,7 @@ func buildConversionOptions(
 	opt.CustomFields["IncludeTunables"] = sharedIncludeTunables
 
 	// Engine selection: CLI flags > config > default
-	// This is handled separately in the generator selection logic
-	opt.CustomFields["UseTemplateEngine"] = determineUseTemplateFromConfig(cfg)
+	opt.UseTemplateEngine = determineUseTemplateFromConfig(cfg)
 
 	return opt
 }
@@ -682,13 +688,6 @@ func generateWithHybridGenerator(
 	logger *log.Logger,
 	preParsedTemplate *template.Template,
 ) (string, error) {
-	// Validate custom template path if specified
-	if sharedCustomTemplate != "" {
-		if err := validateTemplatePath(sharedCustomTemplate); err != nil {
-			return "", fmt.Errorf("template validation failed: %w", err)
-		}
-	}
-
 	// Determine generation engine based on CLI flags and configuration
 	useTemplateEngine := determineGenerationEngine(logger)
 
@@ -708,6 +707,9 @@ func generateWithHybridGenerator(
 
 	// Override the hybrid generator's shouldUseTemplate logic by modifying options
 	// This ensures our CLI-based engine selection takes precedence
+	// We intentionally override the generator's hybrid-mode detection by setting TemplateName/TemplateDir
+	// to force either template mode (using shared custom or built-in default) or programmatic mode (clearing both),
+	// so the hybrid generator doesn't auto-select the wrong mode based on useTemplateEngine and sharedCustomTemplate conditions.
 	if useTemplateEngine {
 		// Force template mode if CLI flags indicate template usage
 		if sharedCustomTemplate != "" {
