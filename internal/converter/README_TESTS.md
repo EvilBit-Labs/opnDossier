@@ -19,34 +19,36 @@ The test suite achieves **97.5% code coverage** across all converter methods, wi
 
 ### Test Files
 
-| File | Purpose | Coverage |
-|------|---------|----------|
-| `markdown_utils_test.go` | Utility function tests | String manipulation, formatting, validation |
-| `markdown_security_test.go` | Security assessment tests | Risk calculation, service assessment |
-| `markdown_transformers_test.go` | Data transformation tests | Filtering, grouping, processing |
-| `markdown_builder_test.go` | Report builder tests | Section generation, table building |
-| `markdown_integration_test.go` | Integration tests | End-to-end workflows, cross-method interaction |
-| `markdown_formatters_test.go` | Performance benchmarks | Baseline performance measurements |
+| File                            | Purpose                   | Coverage                                       |
+| ------------------------------- | ------------------------- | ---------------------------------------------- |
+| `markdown_utils_test.go`        | Utility function tests    | String manipulation, formatting, validation    |
+| `markdown_security_test.go`     | Security assessment tests | Risk calculation, service assessment           |
+| `markdown_transformers_test.go` | Data transformation tests | Filtering, grouping, processing                |
+| `markdown_builder_test.go`      | Report builder tests      | Section generation, table building             |
+| `markdown_integration_test.go`  | Integration tests         | End-to-end workflows, cross-method interaction |
+| `markdown_formatters_test.go`   | Performance benchmarks    | Baseline performance measurements              |
 
 ### Test Data
 
-| File | Purpose | Content |
-|------|---------|---------|
-| `testdata/minimal.json` | Minimal valid configuration | Basic system information only |
-| `testdata/complete.json` | Full-featured configuration | All sections with realistic data |
-| `testdata/edge_cases.json` | Edge case scenarios | Special characters, empty values, edge conditions |
+| File                       | Purpose                     | Content                                           |
+| -------------------------- | --------------------------- | ------------------------------------------------- |
+| `testdata/minimal.json`    | Minimal valid configuration | Basic system information only                     |
+| `testdata/complete.json`   | Full-featured configuration | All sections with realistic data                  |
+| `testdata/edge_cases.json` | Edge case scenarios         | Special characters, empty values, edge conditions |
 
 ## Test Categories
 
 ### 1. Unit Tests
 
 **Utility Functions**
+
 - String escaping and sanitization
 - Content truncation and formatting
 - Boolean conversion and validation
 - ID sanitization and generation
 
 **Data Transformers**
+
 - System tunable filtering
 - Service grouping by status
 - Package statistics aggregation
@@ -54,6 +56,7 @@ The test suite achieves **97.5% code coverage** across all converter methods, wi
 - Unique value extraction
 
 **Security Assessment**
+
 - Risk level assessment
 - Service security evaluation
 - Security score calculation
@@ -62,16 +65,19 @@ The test suite achieves **97.5% code coverage** across all converter methods, wi
 ### 2. Integration Tests
 
 **Template Parity Validation**
+
 - Compares programmatic output with expected template behavior
 - Validates markdown structure and content
 - Ensures consistent formatting across different data types
 
 **Cross-Method Interaction**
+
 - Tests that section builders work independently
 - Validates table generation consistency
 - Ensures proper data flow between components
 
 **Error Handling**
+
 - Nil document handling
 - Empty configuration processing
 - Invalid data structure handling
@@ -79,12 +85,14 @@ The test suite achieves **97.5% code coverage** across all converter methods, wi
 ### 3. Performance Tests
 
 **Benchmarks**
+
 - Complete report generation: ~570μs
 - Individual section generation: 10-50μs
 - Utility functions: 30-4000ns
 - Memory allocation tracking
 
 **Load Testing**
+
 - Large dataset handling (1000+ rules, 50+ interfaces)
 - Memory usage validation
 - Performance regression detection
@@ -92,16 +100,19 @@ The test suite achieves **97.5% code coverage** across all converter methods, wi
 ### 4. Edge Case Testing
 
 **Special Characters**
+
 - Markdown table pipe escaping
 - Newline and tab handling
 - Unicode character support
 
 **Empty/Null Values**
+
 - Empty arrays and maps
 - Null pointer handling
 - Missing configuration sections
 
 **Boundary Conditions**
+
 - Very large configurations
 - Deeply nested structures
 - Maximum length strings
@@ -159,6 +170,7 @@ Test data is organized to cover different scenarios:
 ### Data Generation
 
 Large datasets for performance testing are generated programmatically:
+
 - 50 interfaces
 - 1000 firewall rules
 - 50 users
@@ -168,16 +180,16 @@ Large datasets for performance testing are generated programmatically:
 
 ### Current Performance Metrics
 
-| Operation | Time | Memory | Notes |
-|-----------|------|---------|-------|
-| Complete Report Generation | ~570μs | Low allocation | Standard report |
-| System Section | ~10μs | Minimal | Individual section |
-| Firewall Rules Table | ~50μs | Medium | 100+ rules |
-| Utility Functions | 30-4000ns | Minimal | String operations |
+| Operation                  | Time      | Memory         | Notes              |
+| -------------------------- | --------- | -------------- | ------------------ |
+| Complete Report Generation | ~570μs    | Low allocation | Standard report    |
+| System Section             | ~10μs     | Minimal        | Individual section |
+| Firewall Rules Table       | ~50μs     | Medium         | 100+ rules         |
+| Utility Functions          | 30-4000ns | Minimal        | String operations  |
 
 ### Performance Validation
 
-- Reports must generate in <1ms for standard configurations
+- Reports must generate in \<1ms for standard configurations
 - Memory allocations should be minimal and predictable
 - No performance regressions compared to template-based generation
 
@@ -210,6 +222,7 @@ Large datasets for performance testing are generated programmatically:
 ### Test Data Updates
 
 When updating test data:
+
 1. Ensure backward compatibility
 2. Add new scenarios without breaking existing tests
 3. Validate that edge cases are still covered
