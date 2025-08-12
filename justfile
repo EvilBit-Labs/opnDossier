@@ -289,6 +289,14 @@ bench:
 bench-memory:
     go test -bench=BenchmarkParse -benchmem ./internal/parser
 
+# Run performance benchmarks for template vs programmatic comparison
+bench-performance:
+    go test -bench=BenchmarkReportGeneration -run=^$ -benchtime=1s -count=3 ./internal/converter
+
+# Run comprehensive performance benchmarks
+bench-comprehensive:
+    go test -bench=. -run=^$ -benchtime=1s -count=3 ./internal/converter
+
 test-with-coverage:
     go test -coverprofile=coverage.txt ./...
 
