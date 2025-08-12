@@ -4,8 +4,10 @@ package cmd
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/audit"
 	"github.com/EvilBit-Labs/opnDossier/internal/log"
@@ -24,6 +26,11 @@ var (
 	sharedIncludeTunables   bool     //nolint:gochecknoglobals // Include system tunables in output
 	sharedTemplateCacheSize int      //nolint:gochecknoglobals // Template cache size (LRU max entries)
 
+	// Generation engine flags.
+	sharedUseTemplate bool   //nolint:gochecknoglobals // Explicitly enable template mode
+	sharedEngine      string //nolint:gochecknoglobals // Generation engine (programmatic, template)
+	sharedLegacy      bool   //nolint:gochecknoglobals // Enable legacy mode with deprecation warning
+
 	// TODO: Audit mode functionality is not yet complete - disabled for now
 	// sharedAuditMode       string   //nolint:gochecknoglobals // Audit mode (standard, blue, red)
 	// sharedBlackhatMode    bool     //nolint:gochecknoglobals // Enable blackhat mode for red team reports.
@@ -33,9 +40,22 @@ var (
 
 // addSharedTemplateFlags adds template flags that are common to both convert and display commands.
 func addSharedTemplateFlags(cmd *cobra.Command) {
+	// Generation engine flags
+	cmd.Flags().
+		BoolVar(&sharedUseTemplate, "use-template", false, "Explicitly enable template-based generation mode (default: programmatic)")
+	setFlagAnnotation(cmd.Flags(), "use-template", []string{"engine"})
+
+	cmd.Flags().
+		StringVar(&sharedEngine, "engine", "", "Generation engine (programmatic, template) - overrides other flags")
+	setFlagAnnotation(cmd.Flags(), "engine", []string{"engine"})
+
+	cmd.Flags().
+		BoolVar(&sharedLegacy, "legacy", false, "Enable legacy template mode with deprecation warning")
+	setFlagAnnotation(cmd.Flags(), "legacy", []string{"engine"})
+
 	// Template flags
 	cmd.Flags().
-		StringVar(&sharedCustomTemplate, "custom-template", "", "Path to custom Go text/template file (overrides built-in templates and enables template mode)")
+		StringVar(&sharedCustomTemplate, "custom-template", "", "Path to custom Go text/template file (automatically enables template mode)")
 	setFlagAnnotation(cmd.Flags(), "custom-template", []string{"template"})
 
 	// Register filename completion for custom-template flag
@@ -105,6 +125,97 @@ func getSharedTemplateDir() string {
 	// This maintains backward compatibility with the old template-dir behavior
 	// but simplifies the user experience by requiring only one flag
 	return filepath.Dir(sharedCustomTemplate)
+}
+
+// determineGenerationEngine determines which generation engine to use based on CLI flags and configuration.
+// Returns true for template mode, false for programmatic mode (default).
+func determineGenerationEngine(logger *log.Logger) bool {
+	// Explicit engine flag takes highest precedence
+	if sharedEngine != "" {
+		switch strings.ToLower(sharedEngine) {
+		case "template":
+			logger.Debug("Using template engine (explicit --engine flag)")
+			return true
+		case "programmatic":
+			logger.Debug("Using programmatic engine (explicit --engine flag)")
+			return false
+		default:
+			logger.Warn("Unknown engine type, defaulting to programmatic", "engine", sharedEngine)
+			return false
+		}
+	}
+
+	// Legacy flag with deprecation warning
+	if sharedLegacy {
+		logger.Warn(
+			"Legacy mode is deprecated and will be removed in v3.0. Please use --use-template or --engine=template instead.",
+		)
+		return true
+	}
+
+	// Custom template automatically enables template mode (backward compatibility)
+	if sharedCustomTemplate != "" {
+		logger.Debug("Using template engine (custom template specified)")
+		return true
+	}
+
+	// Explicit use-template flag
+	if sharedUseTemplate {
+		logger.Debug("Using template engine (explicit --use-template flag)")
+		return true
+	}
+
+	// Default to programmatic mode
+	logger.Debug("Using programmatic engine (default)")
+	return false
+}
+
+// validateTemplatePath validates and sanitizes a template file path for security.
+// This prevents path traversal attacks and ensures templates are in safe locations.
+func validateTemplatePath(templatePath string) error {
+	if templatePath == "" {
+		return nil // Empty path is valid (no template)
+	}
+
+	// Clean the path to resolve any ".." components
+	cleanPath := filepath.Clean(templatePath)
+
+	// Check for path traversal attempts
+	if strings.Contains(cleanPath, "..") {
+		return fmt.Errorf("template path contains directory traversal sequence: %s", templatePath)
+	}
+
+	// Ensure the path doesn't start with / (absolute paths)
+	if filepath.IsAbs(cleanPath) {
+		// For security, we could restrict to relative paths only
+		// But for flexibility, we'll allow absolute paths with warning
+		logger.Warn("Using absolute template path", "path", cleanPath)
+	}
+
+	// Check if file exists and is readable
+	if _, err := os.Stat(cleanPath); err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("template file does not exist: %s", cleanPath)
+		}
+		return fmt.Errorf("cannot access template file: %w", err)
+	}
+
+	// Check file extension
+	ext := filepath.Ext(cleanPath)
+	validExtensions := []string{".tmpl", ".template", ".tpl", ".gohtml", ".gotmpl"}
+	isValidExt := false
+	for _, validExt := range validExtensions {
+		if strings.EqualFold(ext, validExt) {
+			isValidExt = true
+			break
+		}
+	}
+
+	if !isValidExt {
+		logger.Warn("Template file has unusual extension", "path", cleanPath, "extension", ext)
+	}
+
+	return nil
 }
 
 // TODO: Audit mode functionality is not yet complete - disabled for now

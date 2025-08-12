@@ -169,10 +169,27 @@ its content into structured formats. Supported output formats include Markdown (
 JSON, and YAML. This allows for easier readability, documentation, programmatic access,
 and auditing of your firewall configuration.
 
+  NEW in Phase 3.7: The convert command now uses programmatic generation by default for
+  improved performance and security. Template-based generation is available via explicit flags.
+
+  GENERATION MODES:
+  The convert command supports two generation modes:
+
+  Programmatic mode (default):
+    - Fast, secure, and deterministic output generation
+    - No template file I/O operations required  
+    - Enhanced error handling and validation
+    - Recommended for most use cases
+
+  Template mode (explicit):
+    --use-template                  - Use built-in template generation
+    --custom-template FILE          - Use custom template file (auto-enables template mode)
+    --engine template               - Explicitly select template engine
+    --legacy                        - Enable legacy template mode (deprecated)
+
   The convert command focuses on format transformation without validation.
   TODO: Audit mode functionality is not yet complete and has been disabled.
   --comprehensive: Generate detailed, comprehensive reports
-  --custom-template: Use custom template file for report generation
 
   OUTPUT FORMATS:
   The convert command supports multiple output formats:
@@ -197,8 +214,12 @@ file will be named based on its input file with the appropriate extension
 (e.g., config.xml -> config.md, config.json, or config.yaml).
 
 Examples:
-  # Convert 'my_config.xml' and print markdown to console
+  # Convert using programmatic mode (default, fastest)
   opnDossier convert my_config.xml
+  
+  # Convert with explicit engine selection
+  opnDossier convert my_config.xml --engine programmatic
+  opnDossier convert my_config.xml --engine template
 
   # Convert 'my_config.xml' to JSON format
   opnDossier convert my_config.xml --format json
@@ -206,8 +227,17 @@ Examples:
   # Convert 'my_config.xml' to YAML and save to file
   opnDossier convert my_config.xml -f yaml -o documentation.yaml
 
-  # Generate comprehensive report
+  # Generate comprehensive report (programmatic mode)
   opnDossier convert my_config.xml --comprehensive
+
+  # Use template mode explicitly
+  opnDossier convert my_config.xml --use-template
+
+  # Use custom template (automatically enables template mode)
+  opnDossier convert my_config.xml --custom-template /path/to/my-template.tmpl
+
+  # Legacy template mode (deprecated, will show warning)
+  opnDossier convert my_config.xml --legacy
 
   # TODO: Audit mode functionality is not yet complete and has been disabled
   # # Generate blue team audit report
@@ -225,9 +255,6 @@ Examples:
   # Convert with format and text wrapping
   opnDossier convert my_config.xml --format json --wrap 120
 
-  # Convert with custom template file
-  opnDossier convert my_config.xml --custom-template /path/to/my-template.tmpl
-
   # Convert multiple files to JSON format
   opnDossier convert config1.xml config2.xml --format json
 
@@ -244,7 +271,11 @@ Examples:
   opnDossier convert config.xml --include-tunables
 
   # Validate before converting (recommended workflow)
-  opnDossier validate config.xml && opnDossier convert config.xml -f json -o output.json`,
+  opnDossier validate config.xml && opnDossier convert config.xml -f json -o output.json
+
+  MIGRATION GUIDE:
+  If you were using template mode previously, add --use-template to maintain compatibility:
+  opnDossier convert config.xml --use-template --comprehensive`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
@@ -515,7 +546,32 @@ func buildConversionOptions(
 	// Include tunables: CLI flag only
 	opt.CustomFields["IncludeTunables"] = sharedIncludeTunables
 
+	// Engine selection: CLI flags > config > default
+	// This is handled separately in the generator selection logic
+	opt.CustomFields["UseTemplateEngine"] = determineUseTemplateFromConfig(cfg)
+
 	return opt
+}
+
+// determineUseTemplateFromConfig determines if template mode should be used based on configuration.
+// This provides a fallback for configuration-based engine selection when CLI flags aren't used.
+func determineUseTemplateFromConfig(cfg *config.Config) bool {
+	if cfg == nil {
+		return false
+	}
+
+	// Check configuration engine setting
+	if cfg.GetEngine() != "" {
+		return strings.EqualFold(cfg.GetEngine(), "template")
+	}
+
+	// Check configuration use_template setting
+	if cfg.IsUseTemplate() {
+		return true
+	}
+
+	// Default to programmatic mode
+	return false
 }
 
 // determineOutputPath determines the output file path with smart naming and overwrite protection.
@@ -626,6 +682,16 @@ func generateWithHybridGenerator(
 	logger *log.Logger,
 	preParsedTemplate *template.Template,
 ) (string, error) {
+	// Validate custom template path if specified
+	if sharedCustomTemplate != "" {
+		if err := validateTemplatePath(sharedCustomTemplate); err != nil {
+			return "", fmt.Errorf("template validation failed: %w", err)
+		}
+	}
+
+	// Determine generation engine based on CLI flags and configuration
+	useTemplateEngine := determineGenerationEngine(logger)
+
 	// Create the programmatic builder
 	builder := converter.NewMarkdownBuilder()
 
@@ -635,9 +701,25 @@ func generateWithHybridGenerator(
 		return "", fmt.Errorf("failed to create hybrid generator: %w", err)
 	}
 
-	// If a custom template is specified, use the pre-parsed template
-	if sharedCustomTemplate != "" && preParsedTemplate != nil {
+	// Set template if using template engine and a pre-parsed template is available
+	if useTemplateEngine && preParsedTemplate != nil {
 		hybridGen.SetTemplate(preParsedTemplate)
+	}
+
+	// Override the hybrid generator's shouldUseTemplate logic by modifying options
+	// This ensures our CLI-based engine selection takes precedence
+	if useTemplateEngine {
+		// Force template mode if CLI flags indicate template usage
+		if sharedCustomTemplate != "" {
+			opt.TemplateDir = getSharedTemplateDir()
+		} else {
+			// Use built-in templates for legacy/use-template modes
+			opt.TemplateName = "default"
+		}
+	} else {
+		// Force programmatic mode by clearing template-related options
+		opt.TemplateName = ""
+		opt.TemplateDir = ""
 	}
 
 	// Generate the output

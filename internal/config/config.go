@@ -14,15 +14,17 @@ import (
 
 // Config holds the configuration for the opnDossier application.
 type Config struct {
-	InputFile  string   `mapstructure:"input_file"`
-	OutputFile string   `mapstructure:"output_file"`
-	Verbose    bool     `mapstructure:"verbose"`
-	Quiet      bool     `mapstructure:"quiet"`
-	Theme      string   `mapstructure:"theme"`
-	Format     string   `mapstructure:"format"`
-	Template   string   `mapstructure:"template"`
-	Sections   []string `mapstructure:"sections"`
-	WrapWidth  int      `mapstructure:"wrap"`
+	InputFile   string   `mapstructure:"input_file"`
+	OutputFile  string   `mapstructure:"output_file"`
+	Verbose     bool     `mapstructure:"verbose"`
+	Quiet       bool     `mapstructure:"quiet"`
+	Theme       string   `mapstructure:"theme"`
+	Format      string   `mapstructure:"format"`
+	Template    string   `mapstructure:"template"`
+	Sections    []string `mapstructure:"sections"`
+	WrapWidth   int      `mapstructure:"wrap"`
+	Engine      string   `mapstructure:"engine"`       // Generation engine (programmatic, template)
+	UseTemplate bool     `mapstructure:"use_template"` // Explicitly enable template mode
 }
 
 // LoadConfig loads application configuration from the specified YAML file, environment variables, and defaults.
@@ -67,6 +69,8 @@ func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 	v.SetDefault("template", "")
 	v.SetDefault("sections", []string{})
 	v.SetDefault("wrap", 0)
+	v.SetDefault("engine", "programmatic") // Default to programmatic mode
+	v.SetDefault("use_template", false)
 
 	// Set up environment variable handling
 	v.SetEnvPrefix("OPNDOSSIER")
@@ -130,6 +134,7 @@ func (c *Config) Validate() error {
 	validateTheme(c, &validationErrors)
 	validateFormat(c, &validationErrors)
 	validateWrapWidth(c, &validationErrors)
+	validateEngine(c, &validationErrors)
 
 	// Return combined validation errors
 	if len(validationErrors) > 0 {
@@ -230,6 +235,24 @@ func validateWrapWidth(c *Config, validationErrors *[]ValidationError) {
 	}
 }
 
+func validateEngine(c *Config, validationErrors *[]ValidationError) {
+	// Validate generation engine
+	validEngines := map[string]bool{
+		"":             true, // Empty means default (programmatic)
+		"programmatic": true,
+		"template":     true,
+	}
+	if c.Engine != "" && !validEngines[strings.ToLower(c.Engine)] {
+		*validationErrors = append(*validationErrors, ValidationError{
+			Field: "engine",
+			Message: fmt.Sprintf(
+				"invalid engine '%s', must be one of: programmatic, template (or empty for default)",
+				c.Engine,
+			),
+		})
+	}
+}
+
 func combineValidationErrors(validationErrors []ValidationError) error {
 	var errMsg string
 
@@ -307,4 +330,14 @@ func (c *Config) GetSections() []string {
 // GetWrapWidth returns the configured wrap width.
 func (c *Config) GetWrapWidth() int {
 	return c.WrapWidth
+}
+
+// GetEngine returns the configured generation engine.
+func (c *Config) GetEngine() string {
+	return c.Engine
+}
+
+// IsUseTemplate returns true if template mode is explicitly enabled.
+func (c *Config) IsUseTemplate() bool {
+	return c.UseTemplate
 }

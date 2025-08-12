@@ -90,6 +90,8 @@ func (g *HybridGenerator) Generate(ctx context.Context, data *model.OpnSenseDocu
 
 // shouldUseTemplate determines whether to use template generation based on options and available templates.
 // Template generation is only used for markdown format; other formats use programmatic generation.
+//
+// Updated for Phase 3.7: Now defaults to programmatic generation unless explicitly enabled.
 func (g *HybridGenerator) shouldUseTemplate(opts Options) bool {
 	// Format-aware routing: only use templates for markdown format
 	// Empty format defaults to markdown (as per DefaultOptions())
@@ -97,7 +99,14 @@ func (g *HybridGenerator) shouldUseTemplate(opts Options) bool {
 		return false
 	}
 
-	// If a custom template is explicitly provided, use it
+	// Check for explicit CLI-based engine selection first
+	if useTemplateFromCLI, exists := opts.CustomFields["UseTemplateEngine"]; exists {
+		if useTemplate, ok := useTemplateFromCLI.(bool); ok && useTemplate {
+			return true
+		}
+	}
+
+	// If a custom template is explicitly provided via SetTemplate(), use it
 	if g.template != nil {
 		return true
 	}
@@ -112,7 +121,7 @@ func (g *HybridGenerator) shouldUseTemplate(opts Options) bool {
 		return true
 	}
 
-	// Default to programmatic generation
+	// Default to programmatic generation (new behavior for Phase 3.7)
 	return false
 }
 
