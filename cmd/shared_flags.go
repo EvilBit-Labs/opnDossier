@@ -124,7 +124,8 @@ func getSharedTemplateDir() string {
 	// Extract directory from custom template file path
 	// This maintains backward compatibility with the old template-dir behavior
 	// but simplifies the user experience by requiring only one flag
-	return filepath.Dir(sharedCustomTemplate)
+	// Use ToSlash to ensure consistent path separators across platforms
+	return filepath.ToSlash(filepath.Dir(sharedCustomTemplate))
 }
 
 // determineGenerationEngine determines which generation engine to use based on CLI flags and configuration.
