@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "system": {
+    "hostname": "minimal-host",
+    "domain": "minimal.local",
+    "firmware": {
+      "version": "23.1.1"
+    }
+  }
+}

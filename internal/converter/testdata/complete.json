@@ -1,0 +1,495 @@
+{
+  "version": "1.0.0",
+  "system": {
+    "hostname": "comprehensive-firewall",
+    "domain": "security.local",
+    "optimization": "aggressive",
+    "timezone": "America/New_York",
+    "language": "en_US",
+    "dnsAllowOverride": 1,
+    "nextUID": 2000,
+    "nextGID": 2000,
+    "timeServers": "time.nist.gov pool.ntp.org",
+    "dnsServer": "1.1.1.1 8.8.8.8",
+    "useVirtualTerminal": 1,
+    "disableVLANHWFilter": 0,
+    "disableChecksumOffloading": 0,
+    "disableSegmentationOffloading": 0,
+    "disableLargeReceiveOffloading": 0,
+    "ipv6Allow": "1",
+    "disableNATReflection": "1",
+    "powerdACMode": "maximum",
+    "powerdBatteryMode": "adaptive",
+    "powerdNormalMode": "maximum",
+    "pfShareForward": 1,
+    "lbUseSticky": 1,
+    "rrdBackup": 1,
+    "netflowBackup": 1,
+    "webGUI": {
+      "protocol": "https",
+      "port": "8443",
+      "max_procs": "2",
+      "ssl-certref": "5f7d1a8e9b2c4",
+      "disableconsolemenu": "0",
+      "noantilockout": "0",
+      "nodnsrebindcheck": "0",
+      "nohttpreferercheck": "0",
+      "pagenamefirst": "0",
+      "loginautocomplete": "0",
+      "althostnames": "",
+      "enableserial": "1",
+      "serialspeed": "115200",
+      "primaryconsole": "video"
+    },
+    "ssh": {
+      "group": "wheel",
+      "port": "22",
+      "enabled": "1"
+    },
+    "firmware": {
+      "version": "24.1.2",
+      "product": "OPNsense",
+      "base": "FreeBSD 14.0-RELEASE",
+      "kernel": "SMP"
+    },
+    "bogons": {
+      "interval": "weekly"
+    },
+    "user": [
+      {
+        "name": "admin",
+        "descr": "System Administrator",
+        "groupname": "wheel",
+        "scope": "system",
+        "password": "$2b$10$...",
+        "uid": "0",
+        "expires": ""
+      },
+      {
+        "name": "operator",
+        "descr": "Network Operator",
+        "groupname": "admins",
+        "scope": "local",
+        "password": "$2b$10$...",
+        "uid": "1001",
+        "expires": ""
+      },
+      {
+        "name": "auditor",
+        "descr": "Security Auditor",
+        "groupname": "readonly",
+        "scope": "local",
+        "password": "$2b$10$...",
+        "uid": "1002",
+        "expires": "2024-12-31"
+      }
+    ],
+    "group": [
+      {
+        "name": "wheel",
+        "description": "System Administrators",
+        "scope": "system",
+        "gid": "0"
+      },
+      {
+        "name": "admins",
+        "description": "Network Administrators",
+        "scope": "local",
+        "gid": "1001"
+      },
+      {
+        "name": "readonly",
+        "description": "Read-only Users",
+        "scope": "local",
+        "gid": "1002"
+      }
+    ]
+  },
+  "interfaces": {
+    "items": {
+      "wan": {
+        "if": "igb0",
+        "enable": "1",
+        "ipaddr": "203.0.113.10",
+        "subnet": "28",
+        "gateway": "203.0.113.1",
+        "mtu": "1500",
+        "blockpriv": "1",
+        "blockbogons": "1",
+        "descr": "WAN (Internet)",
+        "spoofmac": "",
+        "media": "autoselect",
+        "mediaopt": ""
+      },
+      "lan": {
+        "if": "igb1",
+        "enable": "1",
+        "ipaddr": "192.168.100.1",
+        "subnet": "24",
+        "gateway": "",
+        "mtu": "1500",
+        "blockpriv": "0",
+        "blockbogons": "0",
+        "descr": "LAN (Internal)",
+        "spoofmac": "",
+        "media": "autoselect",
+        "mediaopt": ""
+      },
+      "dmz": {
+        "if": "igb2",
+        "enable": "1",
+        "ipaddr": "10.0.100.1",
+        "subnet": "24",
+        "gateway": "",
+        "mtu": "1500",
+        "blockpriv": "1",
+        "blockbogons": "1",
+        "descr": "DMZ (Servers)",
+        "spoofmac": "",
+        "media": "autoselect",
+        "mediaopt": ""
+      },
+      "guest": {
+        "if": "igb3",
+        "enable": "1",
+        "ipaddr": "172.16.1.1",
+        "subnet": "24",
+        "gateway": "",
+        "mtu": "1500",
+        "blockpriv": "1",
+        "blockbogons": "1",
+        "descr": "Guest Network",
+        "spoofmac": "",
+        "media": "autoselect",
+        "mediaopt": ""
+      }
+    }
+  },
+  "nat": {
+    "outbound": {
+      "mode": "automatic",
+      "rule": [
+        {
+          "descr": "Auto NAT for LAN",
+          "interface": "wan",
+          "source": {
+            "network": "lan"
+          },
+          "destination": {
+            "network": "any"
+          },
+          "target": "wan"
+        }
+      ]
+    },
+    "rule": [
+      {
+        "descr": "HTTP to Web Server",
+        "interface": "wan",
+        "protocol": "tcp",
+        "source": {
+          "network": "any"
+        },
+        "destination": {
+          "network": "wan",
+          "port": "80"
+        },
+        "target": "10.0.100.10",
+        "local-port": "80"
+      },
+      {
+        "descr": "HTTPS to Web Server",
+        "interface": "wan",
+        "protocol": "tcp",
+        "source": {
+          "network": "any"
+        },
+        "destination": {
+          "network": "wan",
+          "port": "443"
+        },
+        "target": "10.0.100.10",
+        "local-port": "443"
+      }
+    ]
+  },
+  "filter": {
+    "rule": [
+      {
+        "type": "block",
+        "descr": "Default deny all",
+        "interface": ["wan"],
+        "ipprotocol": "inet",
+        "protocol": "any",
+        "source": {
+          "network": "any"
+        },
+        "destination": {
+          "network": "any"
+        },
+        "target": "",
+        "sourceport": "",
+        "disabled": ""
+      },
+      {
+        "type": "pass",
+        "descr": "Allow HTTP/HTTPS",
+        "interface": ["wan"],
+        "ipprotocol": "inet",
+        "protocol": "tcp",
+        "source": {
+          "network": "any"
+        },
+        "destination": {
+          "network": "wan",
+          "port": "80,443"
+        },
+        "target": "",
+        "sourceport": "",
+        "disabled": ""
+      },
+      {
+        "type": "pass",
+        "descr": "Allow LAN to any",
+        "interface": ["lan"],
+        "ipprotocol": "inet",
+        "protocol": "any",
+        "source": {
+          "network": "lan"
+        },
+        "destination": {
+          "network": "any"
+        },
+        "target": "",
+        "sourceport": "",
+        "disabled": ""
+      },
+      {
+        "type": "pass",
+        "descr": "Allow DMZ to Internet",
+        "interface": ["dmz"],
+        "ipprotocol": "inet",
+        "protocol": "tcp",
+        "source": {
+          "network": "dmz"
+        },
+        "destination": {
+          "network": "!lan,!dmz,!guest"
+        },
+        "target": "",
+        "sourceport": "",
+        "disabled": ""
+      },
+      {
+        "type": "block",
+        "descr": "Block Guest to LAN",
+        "interface": ["guest"],
+        "ipprotocol": "inet",
+        "protocol": "any",
+        "source": {
+          "network": "guest"
+        },
+        "destination": {
+          "network": "lan,dmz"
+        },
+        "target": "",
+        "sourceport": "",
+        "disabled": ""
+      },
+      {
+        "type": "pass",
+        "descr": "Allow Guest Internet",
+        "interface": ["guest"],
+        "ipprotocol": "inet",
+        "protocol": "tcp",
+        "source": {
+          "network": "guest"
+        },
+        "destination": {
+          "network": "!lan,!dmz,!guest"
+        },
+        "target": "",
+        "sourceport": "80,443,53",
+        "disabled": ""
+      }
+    ]
+  },
+  "dhcpd": {
+    "items": {
+      "lan": {
+        "enable": "1",
+        "range": {
+          "from": "192.168.100.50",
+          "to": "192.168.100.199"
+        },
+        "gateway": "192.168.100.1",
+        "domain": "lan.security.local",
+        "dnsserver": "192.168.100.1",
+        "defaultleasetime": "7200",
+        "maxleasetime": "86400"
+      },
+      "guest": {
+        "enable": "1",
+        "range": {
+          "from": "172.16.1.50",
+          "to": "172.16.1.199"
+        },
+        "gateway": "172.16.1.1",
+        "domain": "guest.security.local",
+        "dnsserver": "1.1.1.1",
+        "defaultleasetime": "3600",
+        "maxleasetime": "7200"
+      }
+    }
+  },
+  "unbound": {
+    "enable": "1",
+    "port": "53",
+    "dnssec": "1",
+    "forwarding": "1",
+    "regdhcp": "1",
+    "regdhcpstatic": "1",
+    "noreglladdr6": "1",
+    "noregrecords": "0",
+    "txtsupport": "0",
+    "cacheflush": "0",
+    "local_zone_type": "transparent",
+    "outgoing_interface": "wan",
+    "regdhcpdomain": "lan.security.local"
+  },
+  "snmpd": {
+    "syslocation": "Primary Data Center - Rack 42",
+    "syscontact": "security-team@company.com",
+    "rocommunity": "public_readonly_v3",
+    "enable": "1",
+    "bindlan": "1",
+    "bindwanv6": "0"
+  },
+  "ntpd": {
+    "prefer": "time.nist.gov",
+    "orphan": "12",
+    "interface": ["lan", "dmz"],
+    "gps": {
+      "type": "",
+      "port": "",
+      "speed": "",
+      "nmea": ""
+    }
+  },
+  "loadBalancer": {
+    "monitorType": [
+      {
+        "name": "http-health",
+        "type": "http",
+        "descr": "HTTP Health Check",
+        "options": {
+          "path": "/health",
+          "host": "",
+          "code": "200"
+        }
+      },
+      {
+        "name": "tcp-connect",
+        "type": "tcp",
+        "descr": "TCP Connection Check",
+        "options": {
+          "port": "443"
+        }
+      },
+      {
+        "name": "icmp-ping",
+        "type": "icmp",
+        "descr": "ICMP Ping Check",
+        "options": {}
+      }
+    ],
+    "virtualServer": [
+      {
+        "name": "web-cluster",
+        "descr": "Web Server Cluster",
+        "ipaddr": "203.0.113.10",
+        "port": "80",
+        "mode": "redirect",
+        "relay_protocol": "tcp",
+        "pool": "web-pool",
+        "fall": "3",
+        "rise": "2",
+        "timeout": "1000"
+      }
+    ],
+    "pool": [
+      {
+        "name": "web-pool",
+        "descr": "Web Server Pool",
+        "port": "80",
+        "retry": "5",
+        "servers": [
+          {
+            "name": "web1",
+            "address": "10.0.100.10",
+            "port": "80",
+            "weight": "1"
+          },
+          {
+            "name": "web2", 
+            "address": "10.0.100.11",
+            "port": "80",
+            "weight": "1"
+          }
+        ]
+      }
+    ]
+  },
+  "sysctl": [
+    {
+      "tunable": "net.inet.ip.forwarding",
+      "value": "1",
+      "descr": "Enable IP forwarding for routing"
+    },
+    {
+      "tunable": "net.inet6.ip6.forwarding",
+      "value": "1",
+      "descr": "Enable IPv6 forwarding"
+    },
+    {
+      "tunable": "net.inet.tcp.blackhole",
+      "value": "2",
+      "descr": "Drop TCP packets to closed ports"
+    },
+    {
+      "tunable": "net.inet.udp.blackhole",
+      "value": "1",
+      "descr": "Drop UDP packets to closed ports"
+    },
+    {
+      "tunable": "security.bsd.see_other_uids",
+      "value": "0",
+      "descr": "Hide processes from other users"
+    },
+    {
+      "tunable": "security.bsd.see_other_gids",
+      "value": "0",
+      "descr": "Hide processes from other groups"
+    },
+    {
+      "tunable": "kern.securelevel",
+      "value": "1",
+      "descr": "Enable secure level 1"
+    },
+    {
+      "tunable": "net.inet.tcp.syncookies",
+      "value": "1",
+      "descr": "Enable SYN cookies for DDoS protection"
+    },
+    {
+      "tunable": "net.inet.icmp.icmplim",
+      "value": "50",
+      "descr": "Limit ICMP response rate"
+    },
+    {
+      "tunable": "net.inet.tcp.always_keepalive",
+      "value": "1",
+      "descr": "Enable TCP keepalive"
+    }
+  ]
+}

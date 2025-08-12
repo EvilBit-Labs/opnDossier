@@ -1,0 +1,95 @@
+{
+  "version": "1.0.0",
+  "system": {
+    "hostname": "edge-case-test!@#$%^&*()",
+    "domain": "",
+    "timezone": "GMT+12:45",
+    "language": "invalid_locale",
+    "dnsServer": "",
+    "timeServers": "",
+    "user": [
+      {
+        "name": "",
+        "descr": "User with empty name",
+        "groupname": "",
+        "scope": ""
+      },
+      {
+        "name": "user-with-special-chars!@#",
+        "descr": "User\nwith\nnewlines\nand\ttabs",
+        "groupname": "group|with|pipes",
+        "scope": "unknown"
+      }
+    ],
+    "group": [
+      {
+        "name": "",
+        "description": "",
+        "scope": ""
+      }
+    ]
+  },
+  "interfaces": {
+    "items": {
+      "": {
+        "if": "",
+        "enable": "",
+        "ipaddr": "",
+        "subnet": "",
+        "descr": ""
+      },
+      "invalid-interface": {
+        "if": "nonexistent0",
+        "enable": "2",
+        "ipaddr": "999.999.999.999",
+        "subnet": "999",
+        "descr": "Interface with | pipes | and \n newlines"
+      }
+    }
+  },
+  "filter": {
+    "rule": [
+      {
+        "type": "",
+        "descr": "",
+        "interface": [],
+        "ipprotocol": "",
+        "protocol": "",
+        "source": {
+          "network": ""
+        },
+        "destination": {
+          "network": ""
+        }
+      },
+      {
+        "type": "unknown",
+        "descr": "Rule with | pipes | and \n newlines \t tabs",
+        "interface": null,
+        "ipprotocol": "invalid",
+        "protocol": "unknown",
+        "source": {
+          "network": "invalid-network"
+        },
+        "destination": {
+          "network": "another|invalid|network"
+        }
+      }
+    ]
+  },
+  "dhcpd": {
+    "items": {}
+  },
+  "sysctl": [
+    {
+      "tunable": "",
+      "value": "",
+      "descr": ""
+    },
+    {
+      "tunable": "invalid.tunable.with.pipes|and|newlines",
+      "value": "value\nwith\nnewlines",
+      "descr": "Description with | pipes | and \n newlines \t tabs"
+    }
+  ]
+}
