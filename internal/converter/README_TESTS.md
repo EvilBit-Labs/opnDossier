@@ -197,16 +197,16 @@ Large datasets for performance testing are generated programmatically:
 
 **Standard Report Generation**
 
-- **Target**: \<1ms for basic configurations (✅ achieved: ~656μs)
+- **Target**: \<3ms for basic configurations (✅ achieved: ~590μs, CI-tolerant threshold)
 - **Memory**: \<500KB for standard reports (✅ achieved: ~324KB)
-- **Large Datasets**: \<100ms for enterprise configurations (✅ achieved: ~78ms)
+- **Large Datasets**: \<100ms for enterprise configurations (✅ achieved: ~28ms)
 
 **Section Generation Performance**
 
-- **System Information**: \<200μs (✅ achieved: ~133μs)
-- **Network Configuration**: \<50μs (✅ achieved: ~24μs)
-- **Security Assessment**: \<300μs (✅ achieved: ~249μs)
-- **Service Configuration**: \<250μs (✅ achieved: ~177μs)
+- **System Information**: \<500μs (✅ achieved: ~126μs, CI-tolerant threshold)
+- **Network Configuration**: \<100μs (✅ achieved: ~24μs, CI-tolerant threshold)
+- **Security Assessment**: \<1000μs (✅ achieved: ~240μs, CI-tolerant threshold)
+- **Service Configuration**: \<250μs (✅ achieved: ~57μs)
 
 **Utility Function Performance**
 
