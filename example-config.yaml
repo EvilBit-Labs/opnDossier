@@ -28,7 +28,6 @@ theme: "auto"
 # Logging
 verbose: false
 quiet: false
-
 # Example configurations for different use cases:
 
 # 1. For programmatic mode (default, fastest and most secure):

@@ -293,6 +293,7 @@ When AI agents contribute to this project, they **MUST**:
 12. When rendering reports, always prefer structured config data + audit overlays over flat summary tables
 13. Blue team output should favor clarity, grouping, and actionability. Red team output should favor target prioritization and pivot surface discovery
 14. Validate all generated markdown for formatting correctness using mdformat for formatting and markdownlint-cli2 for validation
+15. **CRITICAL: Tasks are NOT considered completed until `just ci-check` is run and fully passes**
 
 ## AI Agent Code Review Checklist
 

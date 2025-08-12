@@ -177,7 +177,7 @@ and auditing of your firewall configuration.
 
   Programmatic mode (default):
     - Fast, secure, and deterministic output generation
-    - No template file I/O operations required  
+    - No template file I/O operations required
     - Enhanced error handling and validation
     - Recommended for most use cases
 
@@ -216,7 +216,7 @@ file will be named based on its input file with the appropriate extension
 Examples:
   # Convert using programmatic mode (default, fastest)
   opnDossier convert my_config.xml
-  
+
   # Convert with explicit engine selection
   opnDossier convert my_config.xml --engine programmatic
   opnDossier convert my_config.xml --engine template

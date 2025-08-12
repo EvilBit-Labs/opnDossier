@@ -15,12 +15,12 @@ func TestDetermineGenerationEngine(t *testing.T) {
 	}
 
 	tests := []struct {
-		name                string
-		sharedEngine        string
-		sharedLegacy        bool
+		name                 string
+		sharedEngine         string
+		sharedLegacy         bool
 		sharedCustomTemplate string
-		sharedUseTemplate   bool
-		expected            bool // true = template mode, false = programmatic mode
+		sharedUseTemplate    bool
+		expected             bool // true = template mode, false = programmatic mode
 	}{
 		{
 			name:     "default should use programmatic mode",
@@ -64,7 +64,7 @@ func TestDetermineGenerationEngine(t *testing.T) {
 		},
 		{
 			name:                 "engine flag overrides custom template",
-			sharedEngine:         "programmatic", 
+			sharedEngine:         "programmatic",
 			sharedCustomTemplate: "/path/to/template.tmpl",
 			expected:             false,
 		},
@@ -133,8 +133,8 @@ func TestDetermineUseTemplateFromConfig(t *testing.T) {
 			expected: true,
 		},
 		{
-			name: "empty config defaults to false",
-			config: &config.Config{},
+			name:     "empty config defaults to false",
+			config:   &config.Config{},
 			expected: false,
 		},
 	}
@@ -151,29 +151,29 @@ func TestDetermineUseTemplateFromConfig(t *testing.T) {
 
 func TestValidateTemplatePath(t *testing.T) {
 	tests := []struct {
-		name        string
+		name         string
 		templatePath string
-		expectError bool
+		expectError  bool
 	}{
 		{
-			name:        "empty path is valid",
+			name:         "empty path is valid",
 			templatePath: "",
-			expectError: false,
+			expectError:  false,
 		},
 		{
-			name:        "path with directory traversal should fail",
+			name:         "path with directory traversal should fail",
 			templatePath: "../../../etc/passwd",
-			expectError: true,
+			expectError:  true,
 		},
 		{
-			name:        "path with directory traversal in middle should fail",
+			name:         "path with directory traversal in middle should fail",
 			templatePath: "templates/../../../etc/passwd",
-			expectError: true,
+			expectError:  true,
 		},
 		{
-			name:        "non-existent file should fail",
+			name:         "non-existent file should fail",
 			templatePath: "non-existent-file.tmpl",
-			expectError: true,
+			expectError:  true,
 		},
 	}
 

@@ -27,6 +27,8 @@ just test
 just ci-check
 ```
 
+**CRITICAL: Tasks are NOT considered completed until `just ci-check` is run and fully passes.**
+
 ## Testing Requirements
 
 - **Coverage Target**: >80% for critical business logic

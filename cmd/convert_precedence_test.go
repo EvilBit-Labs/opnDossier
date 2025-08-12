@@ -7,7 +7,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/log"
 )
 
-// TestEngineValidation tests the new config validation for the engine field
+// TestEngineValidation tests the new config validation for the engine field.
 func TestEngineValidation(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -66,7 +66,7 @@ func TestEngineValidation(t *testing.T) {
 	}
 }
 
-// TestConfigGetters tests the new config getter methods
+// TestConfigGetters tests the new config getter methods.
 func TestConfigGetters(t *testing.T) {
 	cfg := &config.Config{
 		Engine:      "template",
@@ -92,7 +92,7 @@ func TestConfigGetters(t *testing.T) {
 	}
 }
 
-// TestFlagPrecedence tests the complete precedence order for all generation flags
+// TestFlagPrecedence tests the complete precedence order for all generation flags.
 func TestFlagPrecedence(t *testing.T) {
 	tests := []struct {
 		name                 string
@@ -104,22 +104,22 @@ func TestFlagPrecedence(t *testing.T) {
 		description          string
 	}{
 		{
-			name:        "engine=programmatic overrides everything",
-			sharedEngine: "programmatic",
-			sharedLegacy: true,
+			name:                 "engine=programmatic overrides everything",
+			sharedEngine:         "programmatic",
+			sharedLegacy:         true,
 			sharedCustomTemplate: "/path/to/template.tmpl",
-			sharedUseTemplate: true,
-			expected:     false,
-			description:  "engine flag should override all other settings",
+			sharedUseTemplate:    true,
+			expected:             false,
+			description:          "engine flag should override all other settings",
 		},
 		{
-			name:        "engine=template overrides everything",
-			sharedEngine: "template",
-			sharedLegacy: false,
+			name:                 "engine=template overrides everything",
+			sharedEngine:         "template",
+			sharedLegacy:         false,
 			sharedCustomTemplate: "",
-			sharedUseTemplate: false,
-			expected:     true,
-			description:  "engine flag should enable template mode regardless of other flags",
+			sharedUseTemplate:    false,
+			expected:             true,
+			description:          "engine flag should enable template mode regardless of other flags",
 		},
 		{
 			name:                 "custom template without engine enables template mode",
@@ -163,7 +163,7 @@ func TestFlagPrecedence(t *testing.T) {
 
 			result := determineGenerationEngine(logger)
 			if result != tt.expected {
-				t.Errorf("%s: determineGenerationEngine() = %v, expected %v", 
+				t.Errorf("%s: determineGenerationEngine() = %v, expected %v",
 					tt.description, result, tt.expected)
 			}
 		})
@@ -173,7 +173,7 @@ func TestFlagPrecedence(t *testing.T) {
 	resetGlobalFlags()
 }
 
-// resetGlobalFlags resets all global flag variables to their default state
+// resetGlobalFlags resets all global flag variables to their default state.
 func resetGlobalFlags() {
 	sharedEngine = ""
 	sharedLegacy = false
@@ -181,7 +181,7 @@ func resetGlobalFlags() {
 	sharedUseTemplate = false
 }
 
-// createTestLogger creates a logger for testing
+// createTestLogger creates a logger for testing.
 func createTestLogger() (*log.Logger, error) {
 	return log.New(log.Config{})
 }
