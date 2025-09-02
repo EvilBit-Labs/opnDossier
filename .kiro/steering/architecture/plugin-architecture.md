@@ -1,9 +1,9 @@
 ---
 inclusion: fileMatch
 fileMatchPattern:
-  - 'internal/plugins/**/*'
-  - 'internal/plugin/**/*'
-  - 'internal/audit/**/*'
+  - internal/plugins/**/*
+  - internal/plugin/**/*
+  - internal/audit/**/*
 ---
 
 # Plugin Architecture Guidelines
