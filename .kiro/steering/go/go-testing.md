@@ -1,17 +1,18 @@
 ---
 inclusion: fileMatch
 fileMatchPattern:
-  - "**/*.go"
+  - "**/*_test.go"
+  - "**/testdata/**"
 ---
 
 # Go Testing Standards for opnDossier
 
-## Critical Quality Gates (MANDATORY)
+## Test Coverage Requirements
 
-- **ALWAYS run `just ci-check`** before completing any task
 - **>80% test coverage** required for all packages
-- **All tests must pass** including race detection
-- **Use table-driven tests** for comprehensive scenario coverage
+- **Race detection**: All tests must pass with `go test -race`
+- **Table-driven tests**: Use for comprehensive scenario coverage
+- **Parallel execution**: Use `t.Parallel()` when safe for performance
 
 ## Test Structure and Naming
 
@@ -220,20 +221,16 @@ func BenchmarkParseConfig_LargeFile(b *testing.B) {
 }
 ```
 
-## Test Execution Commands
+## Test Execution Patterns
 
 ```bash
-# REQUIRED workflow
-just test              # Run full test suite with race detection
-just ci-check          # Comprehensive validation (MANDATORY)
-
-# Development testing
+# Core test commands (quality gates handled by go-standards.md)
 go test ./...                    # All tests
-go test -cover ./...             # With coverage
-go test -race ./...              # Race detection
-go test -short ./...             # Skip slow tests
+go test -cover ./...             # With coverage reporting
+go test -race ./...              # Race condition detection
+go test -short ./...             # Skip slow/integration tests
 go test -tags=integration ./...  # Integration tests only
-go test -bench=. ./...           # Benchmarks
+go test -bench=. ./...           # Performance benchmarks
 ```
 
 ## Test Data Management
