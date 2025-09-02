@@ -74,11 +74,17 @@ update-pre-commit:
     pre-commit autoupdate
 
 # Update development tools
+[unix]
 update-dev-tools:
     @echo "Updating development tools..."
     @if command -v go >/dev/null 2>&1; then \
         go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
     fi
+
+[windows]
+update-dev-tools:
+    @echo "Updating development tools..."
+    @powershell -Command "try { go version | Out-Null; go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest } catch { Write-Host 'Warning: go not found, skipping golangci-lint installation' }"
 
 # Update pnpm dependencies (Unix)
 [unix]
