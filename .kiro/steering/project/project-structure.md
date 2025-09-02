@@ -106,7 +106,7 @@ internal/model ↔ internal/parser  // Avoid this!
 
 1. **Map requirement to package** - F001-F005 (convert) → cmd/convert.go + internal/converter/
 2. **Identify data structures needed** - Add to internal/model/ with proper XML tags
-3. **Plan testing strategy** - Create corresponding *_test.go files
+3. **Plan testing strategy** - Create corresponding \*\_test.go files
 4. **Consider error handling** - Add to appropriate errors.go file
 
 ### Quality Validation Commands
