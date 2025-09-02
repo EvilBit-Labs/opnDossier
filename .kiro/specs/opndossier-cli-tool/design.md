@@ -10,7 +10,7 @@ opnDossier v2.0 is architected as a high-performance, security-focused CLI tool 
 
 The v2.0 system follows a layered architecture pattern with programmatic generation at its core:
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                    CLI Interface Layer                      │
 │  (Cobra Framework + Fang Enhancement + Configuration)      │
@@ -39,7 +39,7 @@ The v2.0 system follows a layered architecture pattern with programmatic generat
 
 ### Data Flow Pipeline
 
-```
+```text
 XML Input → Validation → Parsing → Enrichment → Processing → Audit Analysis → Programmatic Generation → Output
 ```
 
