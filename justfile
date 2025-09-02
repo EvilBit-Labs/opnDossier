@@ -94,11 +94,7 @@ update-pnpm-deps:
 [windows]
 update-pnpm-deps:
     @echo "Updating npm dependencies..."
-    @if where pnpm >nul 2>&1; then \
-        pnpm update; \
-    else \
-        echo "Warning: pnpm not found, skipping pnpm dependency updates"; \
-    fi
+    @powershell -Command "try { pnpm --version | Out-Null; pnpm update } catch { Write-Host 'Warning: pnpm not found, skipping pnpm dependency updates' }"
 
 # Install git-cliff for changelog generation
 [unix]
@@ -123,18 +119,7 @@ install-git-cliff:
 [windows]
 install-git-cliff:
     @echo "Installing git-cliff..."
-    @if ! where git-cliff >nul 2>&1; then \
-        if where cargo >nul 2>&1; then \
-            cargo install git-cliff; \
-        else \
-            echo "Error: git-cliff not found. Please install it manually:"; \
-            echo "  - Using Cargo: cargo install git-cliff"; \
-            echo "  - Or download from: https://github.com/orhun/git-cliff/releases"; \
-            exit 1; \
-        fi; \
-    else \
-        echo "git-cliff is already installed"; \
-    fi
+    @powershell -Command "try { git-cliff --version | Out-Null; Write-Host 'git-cliff is already installed' } catch { try { cargo --version | Out-Null; cargo install git-cliff } catch { Write-Host 'Error: git-cliff not found. Please install it manually:'; Write-Host '  - Using Cargo: cargo install git-cliff'; Write-Host '  - Or download from: https://github.com/orhun/git-cliff/releases'; exit 1 } }"
 
 # Install Grype for vulnerability scanning
 [unix]
@@ -158,17 +143,7 @@ install-grype:
 [windows]
 install-grype:
     @echo "Installing Grype..."
-    @if ! where grype >nul 2>&1; then \
-        if where go >nul 2>&1; then \
-            go install github.com/anchore/grype@latest; \
-        else \
-            echo "Error: Grype not found. Please install it manually:"; \
-            echo "  - Using Go: go install github.com/anchore/grype@latest"; \
-            exit 1; \
-        fi; \
-    else \
-        echo "Grype is already installed"; \
-    fi
+    @powershell -Command "try { grype version | Out-Null; Write-Host 'Grype is already installed' } catch { try { go version | Out-Null; go install github.com/anchore/grype@latest } catch { Write-Host 'Error: Grype not found. Please install it manually:'; Write-Host '  - Using Go: go install github.com/anchore/grype@latest'; exit 1 } }"
 
 # Install Syft for SBOM generation
 [unix]
@@ -192,17 +167,7 @@ install-syft:
 [windows]
 install-syft:
     @echo "Installing Syft..."
-    @if ! where syft >nul 2>&1; then \
-        if where go >nul 2>&1; then \
-            go install github.com/anchore/syft@latest; \
-        else \
-            echo "Error: Syft not found. Please install it manually:"; \
-            echo "  - Using Go: go install github.com/anchore/syft@latest"; \
-            exit 1; \
-        fi; \
-    else \
-        echo "Syft is already installed"; \
-    fi
+    @powershell -Command "try { syft version | Out-Null; Write-Host 'Syft is already installed' } catch { try { go version | Out-Null; go install github.com/anchore/syft@latest } catch { Write-Host 'Error: Syft not found. Please install it manually:'; Write-Host '  - Using Go: go install github.com/anchore/syft@latest'; exit 1 } }"
 
 # Install Cosign for artifact signing
 [unix]
@@ -226,17 +191,7 @@ install-cosign:
 [windows]
 install-cosign:
     @echo "Installing Cosign..."
-    @if ! where cosign >nul 2>&1; then \
-        if where go >nul 2>&1; then \
-            go install github.com/sigstore/cosign/v2/cmd/cosign@latest; \
-        else \
-            echo "Error: Cosign not found. Please install it manually:"; \
-            echo "  - Using Go: go install github.com/sigstore/cosign/v2/cmd/cosign@latest"; \
-            exit 1; \
-        fi; \
-    else \
-        echo "Cosign is already installed"; \
-    fi
+    @powershell -Command "try { cosign version | Out-Null; Write-Host 'Cosign is already installed' } catch { try { go version | Out-Null; go install github.com/sigstore/cosign/v2/cmd/cosign@latest } catch { Write-Host 'Error: Cosign not found. Please install it manually:'; Write-Host '  - Using Go: go install github.com/sigstore/cosign/v2/cmd/cosign@latest'; exit 1 } }"
 
 
 # -----------------------------
@@ -416,10 +371,7 @@ check-git-cliff:
 
 [windows]
 check-git-cliff:
-    @if ! where git-cliff >nul 2>&1; then \
-        echo "Error: git-cliff not found. Run 'just install' to install it."; \
-        exit 1; \
-    fi
+    @powershell -Command "try { git-cliff --version | Out-Null } catch { Write-Host 'Error: git-cliff not found. Run `just install` to install it.'; exit 1 }"
 
 
 
