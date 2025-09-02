@@ -36,12 +36,12 @@ theme:
 nav:
   - Home: index.md
   - User Guide:
-    - Installation: user-guide/installation.md
-    - Usage: user-guide/usage.md
-    - Configuration: user-guide/configuration.md
+      - Installation: user-guide/installation.md
+      - Usage: user-guide/usage.md
+      - Configuration: user-guide/configuration.md
   - Developer Guide:
-    - Architecture: dev-guide/architecture.md
-    - API Reference: dev-guide/api.md
+      - Architecture: dev-guide/architecture.md
+      - API Reference: dev-guide/api.md
   - About: about.md
 
 # Extensions

@@ -228,6 +228,12 @@ modernize-check:
     go run golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@latest -test ./...
 
 
+megalint:
+  npx mega-linter-runner --flavor go
+
+megalint-fix:
+  npx mega-linter-runner --flavor go --fix
+
 # -----------------------------
 # 🧪 Testing & Coverage
 # -----------------------------

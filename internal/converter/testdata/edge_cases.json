@@ -109,9 +109,7 @@
       {
         "type": "pass",
         "descr": "Rule with *bold* and _italic_ text",
-        "interface": [
-          "wan"
-        ],
+        "interface": ["wan"],
         "ipprotocol": "inet",
         "protocol": "tcp",
         "source": {
@@ -124,9 +122,7 @@
       {
         "type": "block",
         "descr": "Rule with `code` and \\backslash\\ characters",
-        "interface": [
-          "lan"
-        ],
+        "interface": ["lan"],
         "ipprotocol": "inet",
         "protocol": "udp",
         "source": {
