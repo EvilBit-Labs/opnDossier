@@ -1,9 +1,9 @@
 ---
 inclusion: fileMatch
 fileMatchPattern:
-  - **/*.go
-  - **/*.md
-  - **/README*
+  - '**/*.go'
+  - '**/*.md'
+  - '**/README*'
 ---
 
 # Go Documentation Standards for opnDossier

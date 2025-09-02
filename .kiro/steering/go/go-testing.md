@@ -1,8 +1,8 @@
 ---
 inclusion: fileMatch
 fileMatchPattern:
-  - "**/*_test.go"
-  - "**/testdata/**"
+  - '**/*_test.go'
+  - '**/testdata/**'
 ---
 
 # Go Testing Standards for opnDossier

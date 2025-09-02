@@ -1,9 +1,9 @@
 ---
 inclusion: fileMatch
 fileMatchPattern:
-  - "**/*.go"
-  - "**/go.mod"
-  - "**/go.sum"
+  - '**/*.go'
+  - '**/go.mod'
+  - '**/go.sum'
 ---
 
 # Go Project Organization for opnDossier
@@ -167,7 +167,7 @@ import (
 
 - Group related functionality in appropriately named files
 - Use descriptive names that indicate the file's purpose
-- Keep files focused and reasonably sized (<500 lines)
+- Keep files focused and reasonably sized (\<500 lines)
 
 ## Plugin Architecture Organization
 

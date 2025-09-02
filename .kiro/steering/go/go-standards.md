@@ -1,9 +1,9 @@
 ---
 inclusion: fileMatch
 fileMatchPattern:
-  - **/*.go
-  - **/go.mod
-  - **/go.sum
+  - '**/*.go'
+  - '**/go.mod'
+  - '**/go.sum'
 ---
 
 # Go Standards for opnDossier
@@ -90,9 +90,9 @@ fmt.Printf("Parsing %s\n", filename)
 ### Performance Requirements
 
 - Handle 100MB configuration files
-- Process 10,000+ rules in <30 seconds
-- Memory usage <500MB for typical configs
-- Startup time <1 second
+- Process 10,000+ rules in \<30 seconds
+- Memory usage \<500MB for typical configs
+- Startup time \<1 second
 
 ## Multi-Format Export Standards
 
