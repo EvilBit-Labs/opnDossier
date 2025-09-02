@@ -139,7 +139,7 @@ type Processor interface {
 
 - **Plugin Manager** (`internal/audit/plugin_manager.go`): Plugin lifecycle management
 - **Mode Controller** (`internal/audit/mode_controller.go`): Multi-mode report coordination
-- **Compliance Plugins** (`internal/plugins/`): STIG, SANS, CIS implementations
+- **Compliance Plugins** (`internal/plugins/`): STIG, SANS, security benchmark implementations
 
 **Key Interfaces:**
 
@@ -273,7 +273,7 @@ type PluginMetadata struct {
     Version      string            `json:"version"`
     Description  string            `json:"description"`
     Author       string            `json:"author"`
-    Framework    string            `json:"framework"` // STIG, SANS, CIS, etc.
+    Framework    string            `json:"framework"` // STIG, SANS, security benchmarks, etc.
     Dependencies []string          `json:"dependencies"`
     Configuration map[string]interface{} `json:"configuration"`
 }

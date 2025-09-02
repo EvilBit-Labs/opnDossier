@@ -44,14 +44,14 @@ opnDossier is a specialized CLI tool designed for cybersecurity professionals to
 
 ### Requirement 4: Plugin-Based Compliance Architecture
 
-**User Story:** As a security auditor, I want to use extensible compliance plugins for different security frameworks, so that I can perform standardized compliance checking against STIG, SANS, CIS, and custom frameworks.
+**User Story:** As a security auditor, I want to use extensible compliance plugins for different security frameworks, so that I can perform standardized compliance checking against STIG, SANS, security benchmarks, and custom frameworks.
 
 #### Acceptance Criteria
 
 1. WHEN compliance plugins are loaded THEN the system SHALL support standardized interfaces with dynamic registration and lifecycle management
 2. WHEN plugins are registered THEN the system SHALL track metadata, support configuration, and manage dependencies
 3. WHEN compliance checks run THEN the system SHALL provide statistics reporting for both internal and external plugins
-4. WHEN plugin architecture is used THEN the system SHALL support extensibility for custom compliance rules and frameworks
+4. WHEN plugin architecture is used THEN the system SHALL support extensibility for custom compliance rules and security frameworks
 5. WHEN plugins execute THEN the system SHALL integrate findings into template-driven reporting system
 
 ### Requirement 5: Comprehensive CLI Interface and Configuration Management
