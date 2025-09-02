@@ -180,3 +180,5 @@ cosign.bundle
 snyk.sarif
 snyk-code.sarif
 results.sarif
+
+megalinter-reports/
