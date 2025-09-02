@@ -1,0 +1,25 @@
+{
+  "enabled": true,
+  "name": "Go Documentation Sync",
+  "description": "Monitors all Go source files, configuration files, and project metadata for changes and automatically updates documentation in README.md and docs folder to keep them synchronized with code changes",
+  "version": "1",
+  "when": {
+    "type": "userTriggered",
+    "patterns": [
+      "src/*.go",
+      "tests/*.go",
+      "go.mod",
+      "go.sum",
+      "golangci.yml",
+      "justfile",
+      ".pre-commit-config.yaml",
+      "project_spec/*.md",
+      ".kiro/steering/**/*.md",
+      "README.md"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Source code or configuration files have been modified in this Go project. Please review the changes and update the documentation accordingly:\n\n1. Update README.md to reflect any changes in:\n   - CLI interface and command-line options\n   - Environment variables and configuration\n   - Feature flags and build options\n   - Installation and usage instructions\n   - Examples and code snippets\n\n2. If there is a /docs folder, update relevant documentation files there as well\n\n3. Ensure documentation accurately reflects:\n   - New or modified functions and modules\n   - Changed dependencies or build requirements\n   - Updated security considerations\n   - Modified error handling or exit codes\n   - Changes to output formats\n\nFocus on keeping the documentation synchronized with the actual code implementation, especially for user-facing features and API changes."
+  }
+}

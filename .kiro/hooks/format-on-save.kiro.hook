@@ -1,0 +1,20 @@
+{
+  "enabled": true,
+  "name": "Format on Save",
+  "description": "Automatically runs `just format` when any file is saved to ensure consistent code formatting across the project",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "**/*.md",
+      "**/*.go",
+      "**/*.toml",
+      "**/*.yaml",
+      "**/*.yml"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A file has been saved. Please run `just format` to automatically format the code and maintain consistent styling across the project."
+  }
+}

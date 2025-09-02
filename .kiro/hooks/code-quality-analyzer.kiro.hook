@@ -1,0 +1,16 @@
+{
+    "enabled": true,
+    "name": "Code Quality Analyzer",
+    "description": "Monitors Go source files for changes and analyzes modified code for potential improvements including code smells, design patterns, best practices, readability, maintainability, and performance optimizations while maintaining existing functionality",
+    "version": "1",
+    "when": {
+        "type": "fileEdited",
+        "patterns": [
+            "**/*.go"
+        ]
+    },
+    "then": {
+        "type": "askAgent",
+        "prompt": "Analyze the modified Go code in the repository for potential improvements. Focus on:\n\n1. **Code Smells & Anti-patterns**: Identify problematic patterns, especially the dangerous `from_value::<String>()` usage that can panic on NULL values\n2. **Type Safety**: Look for unsafe type conversions, missing NULL handling, and recommend SQL CAST operations where needed\n3. **Error Handling**: Check for proper use of `anyhow::Result<T>`, error propagation with `?`, and avoiding panics\n4. **Security Issues**: Ensure no credential logging, proper redaction of sensitive data like DATABASE_URL\n5. **Performance**: Identify memory inefficiencies, unnecessary allocations, and opportunities for optimization\n6. **Go Best Practices**: Check for proper use of iterators, pattern matching, feature gates, and module organization\n7. **Code Style**: Verify adherence to go fmt (100-char lines), compiler warnings, naming conventions\n8. **Architecture Patterns**: Ensure proper separation of concerns, consistent interfaces across modules\n9. **Database Safety**: Validate safe handling of mysql::Value types and proper connection management\n\nProvide specific, actionable suggestions with code examples where helpful. Prioritize fixes that prevent runtime panics and improve type safety. Consider the project's constraints around memory usage, CLI-first design, and feature-gated compilation."
+    }
+}

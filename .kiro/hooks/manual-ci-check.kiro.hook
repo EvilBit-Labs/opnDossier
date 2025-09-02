@@ -1,0 +1,13 @@
+{
+    "enabled": true,
+    "name": "Manual CI Check",
+    "description": "Manually run `just ci-check` and resolve any failures, repeating this process until the CI checks complete without any failures or warnings",
+    "version": "1",
+    "when": {
+        "type": "userTriggered"
+    },
+    "then": {
+        "type": "askAgent",
+        "prompt": "Run `just ci-check` and analyze any failures or warnings. If there are any issues, fix them and run the command again. Continue this process until `just ci-check` passes completely without any failures or warnings. Focus on:\n\n1. Formatting issues (golangci-lint run --fix ./...)\n2. Linting errors (golangci-lint run ./...)\n3. Test failures (go test ./...)\n4. Coverage issues (if applicable)\n5. Security issues (go mod verify)\n6. Pre-commit hooks (if applicable)\n\nAfter each fix, re-run `just ci-check` to verify the changes resolved the issues. Only stop when all checks pass successfully."
+    }
+}

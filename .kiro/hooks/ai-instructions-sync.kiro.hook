@@ -1,0 +1,21 @@
+{
+  "enabled": true,
+  "name": "AI Instructions Sync",
+  "description": "Monitors changes to AI coding assistant instruction files (.github/copilot-instructions.md, WARP.md, AGENTS.md, GEMINI.md, .kiro/steering, .cursor/rules) and automatically updates other AI assistant files to capture the intent of the original modification while maintaining each file's tone and purpose",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      ".github/copilot-instructions.md",
+      "WARP.md",
+      "AGENTS.md",
+      "GEMINI.md",
+      ".kiro/steering/**",
+      ".cursor/rules/**"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "An AI coding assistant instruction file has been modified. Please analyze the changes and update the other AI assistant instruction files to capture the intent of the original modification. Ensure that updates to each file maintain their specific tone and purpose:\n\n- .github/copilot-instructions.md: GitHub Copilot specific instructions\n- WARP.md: Warp terminal AI assistant instructions  \n- AGENTS.md: General AI agent instructions\n- GEMINI.md: Google Gemini specific instructions\n- .kiro/steering: Kiro AI assistant configuration\n- .cursor/rules: Cursor IDE rules and guidelines\n\nWhen updating files, preserve each tool's unique format and style while incorporating the relevant changes from the modified file. Focus on capturing the intent and knowledge rather than copying exact text."
+  }
+}
