@@ -1,9 +1,9 @@
 ---
 inclusion: fileMatch
 fileMatchPattern:
-  - '**/*.go'
-  - '**/go.mod'
-  - '**/go.sum'
+  - **/*.go
+  - **/go.mod
+  - **/go.sum
 ---
 
 # Go Standards for opnDossier
@@ -45,28 +45,9 @@ gopkg.in/yaml.v3
 - **Recommended**: Go 1.24.5+
 - **Module Support**: Required (Go modules only)
 
-## opnDossier-Specific Patterns
+## Code Standards (ENFORCED)
 
-### Data Model Standards
-
-```go
-// REQUIRED: Strict XML tag mapping for OPNsense compatibility
-type OpnSenseDocument struct {
-    System     SystemConfig    `xml:"system" json:"system" yaml:"system"`
-    Interfaces InterfaceConfig `xml:"interfaces" json:"interfaces" yaml:"interfaces"`
-    Filter     FilterConfig    `xml:"filter" json:"filter" yaml:"filter"`
-}
-
-// REQUIRED: Audit-specific models with severity levels
-type Finding struct {
-    Severity     string `json:"severity"`     // CRITICAL, HIGH, MEDIUM, LOW
-    Message      string `json:"message"`
-    Element      string `json:"element"`
-    Remediation  string `json:"remediation"`
-}
-```
-
-### Error Handling (ENFORCED)
+### Error Handling Pattern
 
 ```go
 // REQUIRED: Always provide context
@@ -80,7 +61,7 @@ if err != nil {
 }
 ```
 
-### Logging (ENFORCED)
+### Logging Pattern
 
 ```go
 // REQUIRED: Structured logging with charmbracelet/log
@@ -89,6 +70,13 @@ log.Info("parsing configuration", "file", filename, "size", fileSize)
 // FORBIDDEN: Printf-style logging
 fmt.Printf("Parsing %s\n", filename)
 ```
+
+### Naming Conventions
+
+- Use `camelCase` for variables and functions
+- Use `PascalCase` for exported types and functions
+- Use descriptive names that clearly indicate purpose
+- Avoid abbreviations unless widely understood
 
 ## XML Processing Standards
 
@@ -114,16 +102,12 @@ fmt.Printf("Parsing %s\n", filename)
 - **JSON/YAML**: Standard library with proper struct tags
 - **File handling**: Smart naming with overwrite protection (`-f` flag)
 
-### Plugin Architecture
+### Plugin Interface Standards
 
-```go
-// REQUIRED: Plugin interface for compliance frameworks
-type CompliancePlugin interface {
-    Name() string
-    Check(config *model.OpnSenseDocument) []Finding
-    Metadata() PluginMetadata
-}
-```
+- Use interfaces for extensibility and testability
+- Keep interfaces small and focused
+- Document interface contracts clearly
+- Use registry pattern for plugin discovery
 
 ## Security Standards (CRITICAL)
 
