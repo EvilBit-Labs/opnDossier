@@ -19,10 +19,11 @@ go.sum text eol=lf
 # Scripts
 *.sh text eol=lf
 *.ps1 text eol=lf
-*.bat text eol=lf
+*.bat text eol=crlf
 
 # Justfile
 justfile text eol=lf
+Justfile text eol=lf
 
 # Git files
 .gitignore text eol=lf
@@ -39,6 +40,8 @@ justfile text eol=lf
 *.zip binary
 *.tar.gz binary
 *.tar binary
+*.tgz binary
+*.gz binary
 
 # Images
 *.png binary

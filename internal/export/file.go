@@ -273,8 +273,11 @@ func (e *FileExporter) Export(ctx context.Context, content, path string) error {
 		}
 	}
 
+	// Normalize line endings to Unix format for cross-platform consistency
+	normalizedContent := normalizeLineEndings(content)
+
 	// Write the file with atomic operation for better safety
-	if err := e.writeFileAtomic(path, []byte(content)); err != nil {
+	if err := e.writeFileAtomic(path, []byte(normalizedContent)); err != nil {
 		return &Error{
 			Operation: "write_file",
 			Path:      path,
@@ -347,4 +350,13 @@ func (e *FileExporter) writeFileAtomic(path string, content []byte) error {
 	}
 
 	return nil
+}
+
+// normalizeLineEndings converts all line endings to Unix format (\n) for cross-platform consistency.
+func normalizeLineEndings(content string) string {
+	// Replace Windows line endings (\r\n) with Unix line endings (\n)
+	content = strings.ReplaceAll(content, "\r\n", "\n")
+	// Replace Mac line endings (\r) with Unix line endings (\n)
+	content = strings.ReplaceAll(content, "\r", "\n")
+	return content
 }
