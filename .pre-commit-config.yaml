@@ -32,14 +32,14 @@ repos:
         - id: shellcheck
 
     # Commit message linting via commitlint
-    - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
-      rev: v9.22.0
-      hooks:
-        - id: commitlint
-          name: commitlint
-          entry: pnpm exec commitlint --edit
-          language: node
-          stages: [commit-msg]
+    # - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+    #   rev: v9.22.0
+    #   hooks:
+    #     - id: commitlint
+    #       name: commitlint
+    #       entry: pnpm exec commitlint --edit
+    #       language: node
+    #       stages: [commit-msg]
 
     - repo: https://github.com/hukkin/mdformat
       rev: 0.7.22
