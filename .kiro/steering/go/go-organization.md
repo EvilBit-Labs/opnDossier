@@ -6,257 +6,190 @@ fileMatchPattern:
   - "**/go.sum"
 ---
 
-# Go Development Standards for opnDossier
+# Go Project Organization for opnDossier
 
-## Critical Quality Gates
-
-**MANDATORY before task completion:**
-
-- Run `just ci-check` and ensure it passes completely
-- All Go code formatted with `gofmt`
-- No linting errors from `golangci-lint`
-- Tests pass with >80% coverage
-
-## Project Architecture
-
-### Package Structure (REQUIRED)
+## Package Structure (REQUIRED)
 
 ```text
 opnDossier/
 ├── cmd/                        # CLI commands (Cobra)
+│   ├── root.go                 # Root command and global flags
+│   ├── convert.go              # Configuration conversion command
+│   ├── display.go              # Configuration display command
+│   └── validate.go             # Configuration validation command
 ├── internal/                   # Private application logic
 │   ├── model/                  # Core data structures with XML tags
 │   ├── parser/                 # XML parsing (encoding/xml)
 │   ├── audit/                  # Plugin management & compliance
 │   ├── plugins/                # Compliance implementations
+│   │   ├── firewall/           # Firewall-specific compliance rules
+│   │   ├── sans/               # SANS framework compliance
+│   │   └── stig/               # STIG compliance checking
 │   ├── converter/              # Format conversion utilities
 │   ├── display/                # Terminal output (lipgloss)
-│   └── templates/              # Output templates
+│   ├── export/                 # File export functionality
+│   ├── templates/              # Output templates
+│   └── validator/              # Data validation utilities
 ├── testdata/                   # Test fixtures and sample configs
+├── docs/                       # Project documentation
 ├── go.mod                      # Dependencies
 └── main.go                     # Entry point
 ```
 
-### Technology Stack (REQUIRED)
+## File Organization Standards
 
-- **CLI**: `cobra` v1.8.0 for commands
-- **Config**: `charmbracelet/fang` + `viper` for configuration
-- **Terminal**: `charmbracelet/lipgloss` for styling, `charmbracelet/log` for logging
-- **XML**: `encoding/xml` (standard library) for OPNsense parsing
-- **Markdown**: `github.com/nao1215/markdown` for programmatic generation
+### Naming Conventions
 
-## Code Standards
+- Use descriptive file names that indicate functionality
+- Group related functionality in the same package
+- Use `snake_case` for file names (Go convention)
+- Separate concerns into focused packages
 
-### Error Handling (MANDATORY)
+### Package Responsibilities
 
-```go
-// Always wrap errors with context
-func parseConfig(data []byte) (*Config, error) {
-    var config Config
-    if err := xml.Unmarshal(data, &config); err != nil {
-        return nil, fmt.Errorf("failed to unmarshal config: %w", err)
-    }
-    return &config, nil
-}
+#### `cmd/` - CLI Interface
 
-// Custom error types for domain-specific errors
-type ParseError struct {
-    File    string
-    Line    int
-    Element string
-    Cause   error
-}
+- Command definitions using Cobra framework
+- User interaction and input validation
+- Command-line argument parsing
+- Integration with business logic layer
 
-func (e *ParseError) Error() string {
-    return fmt.Sprintf("parse error in %s at line %d, element <%s>: %v",
-        e.File, e.Line, e.Element, e.Cause)
-}
-```
+#### `internal/model/` - Data Structures
 
-### Logging (MANDATORY)
+- Core data types with XML/JSON/YAML tags
+- Validation methods and business rules
+- Serialization support for multiple formats
 
-```go
-// Use charmbracelet/log for structured logging
-import "github.com/charmbracelet/log"
+#### `internal/parser/` - Configuration Parsing
 
-func processConfig(config *Config) error {
-    log.Info("processing configuration",
-        "input_file", config.InputFile,
-        "output_file", config.OutputFile)
+- XML parsing with `encoding/xml`
+- Schema validation and error handling
+- Data transformation from XML to internal models
 
-    if err := validateConfig(config); err != nil {
-        log.Error("validation failed", "error", err)
-        return fmt.Errorf("config validation failed: %w", err)
-    }
+#### `internal/audit/` - Compliance Engine
 
-    log.Info("configuration processed successfully")
-    return nil
-}
-```
+- Plugin management and orchestration
+- Compliance rule execution
+- Finding aggregation and reporting
 
-### Data Models (REQUIRED Pattern)
+#### `internal/plugins/` - Compliance Implementations
 
-```go
-// Core data structures with strict XML tag mapping
-type OpnSenseDocument struct {
-    System     SystemConfig    `xml:"system" json:"system" yaml:"system"`
-    Interfaces InterfaceConfig `xml:"interfaces" json:"interfaces" yaml:"interfaces"`
-    Filter     FilterConfig    `xml:"filter" json:"filter" yaml:"filter"`
-}
+- Framework-specific compliance rules (STIG, SANS, CIS)
+- Custom finding types and severity mappings
+- Configuration validation for each framework
 
-// Audit findings with severity levels
-type Finding struct {
-    ID          string `json:"id"`
-    Severity    string `json:"severity"`    // CRITICAL, HIGH, MEDIUM, LOW
-    Title       string `json:"title"`
-    Description string `json:"description"`
-    Element     string `json:"element"`
-    Remediation string `json:"remediation"`
-}
-```
+#### `internal/converter/` - Format Conversion
 
-### CLI Commands (REQUIRED Pattern)
+- Multi-format export (markdown, JSON, YAML)
+- Template-based output generation
+- Data filtering and transformation
+
+#### `internal/display/` - Terminal Output
+
+- Styled terminal output with lipgloss
+- Progress indicators and user feedback
+- Interactive elements and prompts
+
+## Import Organization
+
+### Import Groups (in order)
+
+1. **Standard Library**: Go standard library packages
+2. **Third-Party**: External dependencies
+3. **Internal**: Project internal packages
+
+### Example Import Block
 
 ```go
-var convertCmd = &cobra.Command{
-    Use:   "convert [config.xml]",
-    Short: "Convert OPNsense configuration to structured formats",
-    Long: `Convert an OPNsense XML configuration file to markdown, JSON, or YAML.
+import (
+    // Standard library
+    "encoding/json"
+    "fmt"
+    "os"
 
-Examples:
-  opndossier convert config.xml
-  opndossier convert config.xml --output report.md --audit`,
-    Args: cobra.ExactArgs(1),
-    RunE: runConvert,
-}
+    // Third-party dependencies
+    "github.com/spf13/cobra"
+    "github.com/charmbracelet/lipgloss"
 
-func runConvert(cmd *cobra.Command, args []string) error {
-    // Implementation with proper error handling
-    return processConfig(args[0])
-}
+    // Internal packages
+    "github.com/EvilBit-Labs/opnDossier/internal/model"
+    "github.com/EvilBit-Labs/opnDossier/internal/parser"
+)
 ```
 
-## Testing Standards
+## Dependency Management
 
-### Table-Driven Tests (REQUIRED)
+### Module Structure
 
-```go
-func TestParseConfig(t *testing.T) {
-    tests := []struct {
-        name    string
-        input   string
-        want    *Config
-        wantErr bool
-    }{
-        {
-            name:    "valid config",
-            input:   "testdata/valid.xml",
-            want:    &Config{System: SystemConfig{Hostname: "test"}},
-            wantErr: false,
-        },
-        {
-            name:    "invalid xml",
-            input:   "testdata/invalid.xml",
-            want:    nil,
-            wantErr: true,
-        },
-    }
+- Use Go modules for dependency management
+- Pin dependency versions for stability
+- Regularly update dependencies for security
+- Minimize external dependencies
 
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            t.Parallel()
-            got, err := ParseConfig(tt.input)
-            if (err != nil) != tt.wantErr {
-                t.Errorf("ParseConfig() error = %v, wantErr %v", err, tt.wantErr)
-                return
-            }
-            if !reflect.DeepEqual(got, tt.want) {
-                t.Errorf("ParseConfig() = %v, want %v", got, tt.want)
-            }
-        })
-    }
-}
-```
+### Dependency Categories
 
-### Test Helpers (REQUIRED)
+- **CLI Framework**: Cobra for command structure
+- **Terminal UI**: Charm libraries for styling
+- **Configuration**: Viper for app configuration
+- **Standard Library**: Prefer standard library when possible
 
-```go
-func setupTestConfig(t *testing.T) *Config {
-    t.Helper()
-    return &Config{
-        InputFile:  "testdata/config.xml",
-        OutputFile: "testdata/output.md",
-    }
-}
+## Code Organization Principles
 
-func createTempFile(t *testing.T, content string) string {
-    t.Helper()
-    tmpfile, err := os.CreateTemp("", "test-*.xml")
-    require.NoError(t, err)
-    t.Cleanup(func() { os.Remove(tmpfile.Name()) })
+### Single Responsibility
 
-    _, err = tmpfile.WriteString(content)
-    require.NoError(t, err)
-    require.NoError(t, tmpfile.Close())
+- Each package has a clear, focused purpose
+- Functions and types serve a single responsibility
+- Avoid mixing concerns within packages
 
-    return tmpfile.Name()
-}
-```
+### Dependency Direction
 
-## Plugin Architecture (REQUIRED)
+- Dependencies flow inward (no circular dependencies)
+- Higher-level packages depend on lower-level ones
+- Business logic doesn't depend on UI concerns
 
-### Plugin Interface
+### Interface Segregation
 
-```go
-// CompliancePlugin defines the interface for security compliance plugins
-type CompliancePlugin interface {
-    Name() string
-    Check(config *model.OpnSenseDocument) []Finding
-    Metadata() PluginMetadata
-}
+- Small, focused interfaces for testability
+- Separate interfaces for different concerns
+- Use interfaces to define contracts between packages
 
-// Plugin implementation example
-type STIGPlugin struct{}
+## File Structure Within Packages
 
-func (p *STIGPlugin) Name() string {
-    return "stig"
-}
+### Standard Files
 
-func (p *STIGPlugin) Check(config *model.OpnSenseDocument) []Finding {
-    var findings []Finding
-    // Implementation with specific STIG compliance checks
-    return findings
-}
-```
+- `doc.go` - Package documentation
+- `types.go` - Type definitions
+- `errors.go` - Error definitions
+- `interface.go` - Interface definitions
+- `*_test.go` - Test files
 
-## Performance Requirements
+### Naming Patterns
 
-- Handle configuration files up to 100MB
-- Process 10,000+ rules in <30 seconds
-- Memory usage <500MB for typical configs
-- Startup time <1 second
+- Group related functionality in appropriately named files
+- Use descriptive names that indicate the file's purpose
+- Keep files focused and reasonably sized (<500 lines)
 
-## Security Requirements
+## Plugin Architecture Organization
 
-- Validate all input data
-- Use restrictive file permissions (0600 for configs)
-- No hardcoded secrets or credentials
-- Sanitize user inputs and file paths
-- Handle sensitive data appropriately
+### Plugin Discovery
 
-## Forbidden Patterns
+- Registry pattern for plugin management
+- Interface-based design for extensibility
+- Clear separation between plugin interface and implementations
 
-- No `fmt.Printf` for logging (use `charmbracelet/log`)
-- No external network dependencies
-- No custom XML parsing (use `encoding/xml`)
-- No hardcoded file paths or credentials
+### Plugin Structure
 
-## Development Workflow
-
-```bash
-# Essential commands (run before committing)
-just format    # Format code and docs
-just lint      # Static analysis
-just test      # Run test suite
-just ci-check  # Comprehensive validation (MANDATORY)
+```text
+internal/plugins/
+├── plugin.go              # Plugin interface definition
+├── registry.go            # Plugin registry and management
+├── firewall/
+│   ├── firewall.go         # Firewall compliance plugin
+│   └── rules.go            # Firewall-specific rules
+├── sans/
+│   ├── sans.go             # SANS compliance plugin
+│   └── framework.go        # SANS framework implementation
+└── stig/
+    ├── stig.go             # STIG compliance plugin
+    └── controls.go         # STIG control implementations
 ```
