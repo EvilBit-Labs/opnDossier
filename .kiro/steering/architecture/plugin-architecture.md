@@ -46,8 +46,9 @@ type Finding struct {
     Description    string            // Detailed description of the issue
     Recommendation string            // Actionable remediation steps
     Component      string            // Affected component (e.g., "firewall-rules")
-    Reference      string            // Primary reference (e.g., "STIG V-206694")
+    Severity       string            // "Critical", "High", "Medium", "Low", "Info"
     References     []string          // All applicable control IDs
+    Evidence       []string          // Artifact paths, URLs, or evidence details
     Tags           []string          // Categorization tags
     Metadata       map[string]string // Optional additional data
 }
@@ -59,16 +60,37 @@ Define controls with complete metadata:
 
 ```go
 type Control struct {
-    ID          string            // Unique control ID (e.g., "V-206694")
-    Title       string            // Control title
-    Description string            // Detailed description
-    Category    string            // Control category
-    Severity    string            // "critical", "high", "medium", "low"
-    Rationale   string            // Why this control is important
-    Remediation string            // How to fix compliance issues
-    References  []string          // External references (optional)
-    Tags        []string          // Categorization tags (optional)
-    Metadata    map[string]string // Additional metadata (optional)
+    ID              string            // Unique control ID (e.g., "V-206694")
+    Title           string            // Control title
+    Description     string            // Detailed description
+    Category        string            // Control category
+    Framework       string            // Framework name (e.g., "STIG", "SANS", "CIS")
+    FrameworkVersion string           // Framework version (e.g., "V2R1", "2023.1")
+    Severity        SeverityLevel     // Typed severity level
+    Rationale       string            // Why this control is important
+    Remediation     string            // How to fix compliance issues
+    References      []string          // External references (optional)
+    Tags            []string          // Categorization tags (optional)
+    Metadata        map[string]string // Additional metadata (optional)
+}
+
+type SeverityLevel string
+
+const (
+    SeverityCritical SeverityLevel = "Critical"
+    SeverityHigh     SeverityLevel = "High"
+    SeverityMedium   SeverityLevel = "Medium"
+    SeverityLow      SeverityLevel = "Low"
+    SeverityInfo     SeverityLevel = "Info"
+)
+
+func (s SeverityLevel) IsValid() bool {
+    switch s {
+    case SeverityCritical, SeverityHigh, SeverityMedium, SeverityLow, SeverityInfo:
+        return true
+    default:
+        return false
+    }
 }
 ```
 
@@ -82,12 +104,12 @@ Create plugins in `internal/plugins/{name}/` with this pattern:
 package pluginname
 
 type Plugin struct {
-    controls []plugin.Control
+    controls []Control
 }
 
-func NewPlugin() *Plugin {
+func NewPlugin() CompliancePlugin {
     return &Plugin{
-        controls: []plugin.Control{
+        controls: []Control{
             // Define controls here
         },
     }
@@ -119,21 +141,82 @@ Register in `PluginManager.InitializePlugins()`:
 
 ```go
 func (pm *PluginManager) InitializePlugins(ctx context.Context) error {
-    // Register your plugin
+    // Create and validate your plugin
     yourPlugin := yourplugin.NewPlugin()
-    if err := pm.registry.RegisterPlugin(yourPlugin); err != nil {
-        return fmt.Errorf("failed to register your plugin: %w", err)
+
+    // Validate plugin configuration
+    if err := yourPlugin.ValidateConfiguration(); err != nil {
+        return fmt.Errorf("validation failed for %s plugin: %w", yourPlugin.Name(), err)
     }
+
+    // Check for duplicate registration
+    existingPlugin, exists := pm.registry.GetPlugin(yourPlugin.Name(), yourPlugin.Version())
+    if exists {
+        return fmt.Errorf("duplicate plugin: %s version %s already registered", yourPlugin.Name(), yourPlugin.Version())
+    }
+
+    // Register the plugin
+    if err := pm.registry.RegisterPlugin(yourPlugin); err != nil {
+        return fmt.Errorf("failed to register %s plugin: %w", yourPlugin.Name(), err)
+    }
+
     return nil
 }
 ```
 
 ### Dynamic Plugin Support
 
-- Build with `go build -buildmode=plugin`
-- Export `var Plugin plugin.CompliancePlugin`
-- Place `.so` files in plugin directory
-- Ensure Go version compatibility
+**Important Constraints and Limitations:**
+
+- **Build Mode Support**: `go build -buildmode=plugin` is only supported on specific OS/architecture combinations:
+  - Linux: amd64, arm64, 386, arm
+  - FreeBSD: amd64, arm64
+  - macOS: amd64, arm64
+  - Windows: amd64, 386
+- **Toolchain Requirements**: The plugin must be built with the exact same Go version, GOOS, GOARCH, and build flags as the host binary
+- **Runtime Limitations**: Go cannot unload plugins once loaded - they remain in memory for the lifetime of the process
+- **Version Compatibility**: Plugin and host must use identical Go toolchain versions
+
+**Recommended Pattern:**
+
+```go
+// Use build tags to produce plugin vs static builds
+//go:build plugin
+// +build plugin
+
+package main
+
+import "github.com/yourorg/opndossier/internal/plugin"
+
+// Plugin variable must be exported for dynamic loading
+var Plugin plugin.CompliancePlugin = &YourPlugin{}
+
+//go:build !plugin
+// +build !plugin
+
+package main
+
+import "github.com/yourorg/opndossier/internal/plugin"
+
+// Static registration fallback
+func init() {
+    // Register plugin statically when dynamic loading unavailable
+}
+```
+
+**Toolchain Version Matching:**
+
+```bash
+# Ensure plugin and host use identical Go version
+go version  # Both must match exactly
+
+# Build plugin with same flags as host
+go build -buildmode=plugin -ldflags="-s -w" -o plugin.so ./plugin
+
+# Verify compatibility
+file plugin.so  # Check architecture
+strings plugin.so | grep "go1."  # Check Go version
+```
 
 ## Testing Standards
 
@@ -159,9 +242,16 @@ func TestPluginName_RunChecks(t *testing.T) {
 
     plugin := NewPlugin()
     for _, tt := range tests {
+        tt := tt // Capture loop variable for safe parallelization
         t.Run(tt.name, func(t *testing.T) {
+            t.Parallel() // Enable safe concurrent execution
+
             findings := plugin.RunChecks(tt.config)
-            // Assertions
+
+            // Use cmp.Diff for stable, readable comparison
+            if diff := cmp.Diff(tt.expected, findings); diff != "" {
+                t.Errorf("RunChecks() mismatch (-expected +got):\n%s", diff)
+            }
         })
     }
 }
