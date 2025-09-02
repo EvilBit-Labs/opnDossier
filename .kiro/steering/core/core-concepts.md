@@ -141,9 +141,9 @@ Follow conventional commits: `<type>(<scope>): <description>`
 ## Performance Targets
 
 - Handle 100MB configuration files
-- Process 10,000+ rules in <30 seconds
-- Memory usage <500MB for typical configs
-- Startup time <1 second
+- Process 10,000+ rules in \<30 seconds
+- Memory usage \<500MB for typical configs
+- Startup time \<1 second
 
 ## Testing Strategy
 
