@@ -28,10 +28,10 @@ opnDossier --verbose convert config.xml -o network-docs.md
 - **Theme**: opnsense
 
 ## Interfaces
-| Name | IP Address | Subnet | Description |
-|------|------------|--------|-------------|
-| WAN | 192.168.1.1 | /24 | Internet connection |
-| LAN | 10.0.0.1 | /24 | Internal network |
+| Name | IP Address  | Subnet | Description         |
+|------|-------------|--------|---------------------|
+| WAN  | 192.168.1.1 | /24    | Internet connection |
+| LAN  | 10.0.0.1    | /24    | Internal network    |
 
 ## Firewall Rules
 ...

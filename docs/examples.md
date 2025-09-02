@@ -386,9 +386,9 @@ This report provides a comprehensive security assessment of the OPNsense configu
 {{ if .SecurityTunables }}
 The following security-related system tunables are configured:
 
-| Tunable | Value | 
-|---------|-------|
-{{ range .SecurityTunables }}| ` + "`{{ .Tunable }}`" + ` | ` + "`{{ .Value }}`" + ` |
+                              | Tunable                    | Value
+------------------------------|----------------------------|-------------------------
+{{ range .SecurityTunables }} | ` + "`{{ .Tunable }}`" + ` | ` + "`{{ .Value }}`" + `
 {{ end }}
 {{ else }}
 *No security-related tunables configured.*
