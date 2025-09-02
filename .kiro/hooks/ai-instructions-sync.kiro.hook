@@ -10,8 +10,10 @@
       "WARP.md",
       "AGENTS.md",
       "GEMINI.md",
-      ".kiro/steering/**",
       ".cursor/rules/**"
+    ],
+    "excludePatterns": [
+      ".kiro/steering/**"
     ]
   },
   "then": {
