@@ -89,9 +89,9 @@ Uses `github.com/nao1215/markdown` for **programmatic markdown generation** with
 ### Scalability Targets
 
 - Handle configuration files up to 100MB
-- Process complex rulesets (10,000+ rules) in <30 seconds
-- Memory usage <500MB for typical configurations
-- Startup time <1 second for CLI responsiveness
+- Process complex rulesets (10,000+ rules) in \<30 seconds
+- Memory usage \<500MB for typical configurations
+- Startup time \<1 second for CLI responsiveness
 
 ### Optimization Strategies
 
