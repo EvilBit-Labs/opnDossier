@@ -125,7 +125,7 @@ All commit messages must follow the [Conventional Commits](https://www.conventio
 - **Configuration:** Use `spf13/viper` for configuration management with support for environment variables, config files, and command-line flags
 - **CLI Enhancement:** Use `charmbracelet/fang` for enhanced CLI experience with styled help, errors, automatic version/completion, and manpage generation
 - **Output Formatting:** Use `charmbracelet/lipgloss` for styled terminal output and `charmbracelet/glamour` for markdown rendering
-- **Error Handling:** Use Go's error handling patterns with `fmt.Errorf` and `errors.Wrap` for context preservation
+- **Error Handling:** Use Go's error handling patterns with `fmt.Errorf` and `errors.Join` for context preservation
 
 ### 3.4. Data Processing
 

@@ -15,8 +15,8 @@ inclusion: always
 
 ### Code Standards
 
-- **Error Handling**: Always use `fmt.Errorf` or `errors.Wrap` with context
-- **Logging**: Use `charmbracelet/log` for structured logging, never `fmt.Printf`
+- **Error Handling**: Always use `fmt.Errorf` with `%w` verb and `errors.Join` for wrapping, prefer standard library error handling
+- **Logging**: Use standard library `log` or `slog` for structured logging, never `fmt.Printf`, only use external logging libraries when absolutely necessary and behind an abstraction
 - **Testing**: Write table-driven tests, aim for >80% coverage
 - **Documentation**: Follow Go doc conventions for all public APIs
 
@@ -84,7 +84,7 @@ OPNsense configuration auditing tool for cybersecurity professionals, supporting
 ### Technology Stack
 
 - **CLI**: Cobra v1.8.0 with Charm libraries for styling
-- **Config**: Viper + Fang for configuration management
+- **Config**: Viper + pflag for configuration management
 - **XML**: Native `encoding/xml` for OPNsense parsing
 - **Output**: Lipgloss for terminal, Glamour for markdown rendering
 

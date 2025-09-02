@@ -119,7 +119,7 @@ go test ./internal/package -v
 golangci-lint run ./internal/package
 
 # Validate markdown
-markdownlint project_spec/*.md
+markdownlint-cli2 project_spec/*.md
 ```
 
 ## Integration Guidelines

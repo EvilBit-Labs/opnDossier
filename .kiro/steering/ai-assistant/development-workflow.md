@@ -15,7 +15,7 @@ inclusion: always
 
 ### Code Standards
 
-- **Error Handling**: Always use `fmt.Errorf` or `errors.Wrap` with context
+- **Error Handling**: Always use `fmt.Errorf` with `%w` verb and `errors.Join` for wrapping, prefer standard library error handling
 - **Logging**: Use `charmbracelet/log` for structured logging, never `fmt.Printf`
 - **Testing**: Write table-driven tests, aim for >80% coverage
 - **Documentation**: Follow Go doc conventions for all public APIs

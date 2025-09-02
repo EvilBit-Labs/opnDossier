@@ -33,7 +33,7 @@ fileMatchPattern:
 
 ```bash
 just format              # Format all markdown
-markdownlint **/*.md     # Validate syntax
+markdownlint-cli2 **/*.md     # Validate syntax
 markdown-link-check **/*.md  # Check links
 just ci-check           # Comprehensive validation
 ```

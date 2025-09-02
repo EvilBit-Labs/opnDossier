@@ -52,7 +52,7 @@ just ci-check  # Comprehensive pipeline validation
 ### Essential Linters
 
 - **Go**: golangci-lint with project-specific configuration
-- **Markdown**: markdownlint for documentation consistency
+- **Markdown**: markdownlint-cli2 for documentation consistency
 - **YAML/JSON**: Syntax and formatting validation
 - **Security**: Gitleaks for secrets, Trivy for vulnerabilities
 - **Exclusions**: Ignore `.git/`, `testdata/*.xml`, and vendor directories

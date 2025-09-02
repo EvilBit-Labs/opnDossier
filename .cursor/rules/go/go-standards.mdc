@@ -37,7 +37,7 @@ alwaysApply: false
 ### Error Handling
 
 - Always check errors and provide meaningful context
-- Use `fmt.Errorf` or `errors.Wrap` for error context
+- Use `fmt.Errorf` with `%w` verb and `errors.Join` for error context
 - Don't use `log.Fatal` in library code
 - Return errors rather than panicking
 

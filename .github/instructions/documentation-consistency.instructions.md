@@ -64,7 +64,7 @@ just format
 markdown-link-check **/*.md
 
 # Validate markdown syntax
-markdownlint **/*.md
+markdownlint-cli2 **/*.md
 
 # Run comprehensive checks
 just ci-check
