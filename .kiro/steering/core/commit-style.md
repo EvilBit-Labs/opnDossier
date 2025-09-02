@@ -8,7 +8,7 @@ inclusion: always
 
 All commits MUST follow [Conventional Commits](https://www.conventionalcommits.org) specification:
 
-```
+```text
 <type>(<scope>): <description>
 
 [optional body]
@@ -85,7 +85,7 @@ Mark breaking changes using either:
 
 ### Feature Addition
 
-```
+```text
 feat(parser): add support for OPNsense 24.1 config format
 
 - Parse new VLAN configuration structure
@@ -97,7 +97,7 @@ Closes #142
 
 ### Bug Fix
 
-```
+```text
 fix(converter): handle empty VLAN configurations gracefully
 
 Previously crashed when VLAN section was empty or missing.
@@ -108,8 +108,8 @@ Fixes #156
 
 ### Documentation
 
-```
-docs(readme): update installation instructions
+```text
+docs(cli): update installation instructions
 
 Add Windows-specific installation steps and troubleshooting
 section for common dependency issues.
@@ -117,7 +117,7 @@ section for common dependency issues.
 
 ### Breaking Change
 
-```
+```text
 feat(model)!: redesign OpnSenseDocument structure
 
 BREAKING CHANGE: OpnSenseDocument.Interfaces is now a map
@@ -132,7 +132,7 @@ Closes #178
 
 ### Refactoring
 
-```
+```text
 refactor(audit): extract plugin registry to separate package
 
 Move plugin management logic to internal/registry for better
