@@ -37,14 +37,14 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
+          go-version-file: "go.mod"
           cache: true
           check-latest: false
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install Just
         uses: taiki-e/install-action@just
@@ -124,7 +124,6 @@ jobs:
           # Clean up temporary files
           rm -f /tmp/*.tar.gz
 
-
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -133,8 +132,8 @@ jobs:
       - name: Setup pnpm cache
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install markdown linting tools
         run: |
