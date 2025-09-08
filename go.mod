@@ -15,8 +15,8 @@ require (
 	github.com/go-playground/validator/v10 v10.27.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/nao1215/markdown v0.8.0
-	github.com/spf13/cobra v1.9.1
-	github.com/spf13/pflag v1.0.7
+	github.com/spf13/cobra v1.10.1
+	github.com/spf13/pflag v1.0.9
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.11.0
 	github.com/yuin/goldmark v1.7.13
