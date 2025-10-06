@@ -14,7 +14,7 @@ require (
 	github.com/clbanning/mxj v1.8.4
 	github.com/go-playground/validator/v10 v10.27.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
-	github.com/nao1215/markdown v0.8.0
+	github.com/nao1215/markdown v0.8.3
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.7
 	github.com/spf13/viper v1.20.1
@@ -75,7 +75,7 @@ require (
 	github.com/muesli/termenv v0.16.0 // indirect
 	github.com/olekukonko/errors v1.1.0 // indirect
 	github.com/olekukonko/ll v0.0.9 // indirect
-	github.com/olekukonko/tablewriter v1.0.9 // indirect
+	github.com/olekukonko/tablewriter v1.1.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
