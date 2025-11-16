@@ -691,6 +691,10 @@ func generateWithHybridGenerator(
 	// Determine generation engine based on CLI flags and configuration
 	useTemplateEngine := determineGenerationEngine(logger)
 
+	// Update opt.UseTemplateEngine to reflect CLI flag precedence
+	// This ensures CLI flags take precedence over config file settings
+	opt.UseTemplateEngine = useTemplateEngine
+
 	// Create the programmatic builder
 	builder := converter.NewMarkdownBuilder()
 
