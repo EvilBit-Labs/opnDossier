@@ -1,5 +1,4 @@
 //go:build !legacy_bench
-// +build !legacy_bench
 
 // Package parser provides functionality to parse OPNsense configuration files.
 package parser
