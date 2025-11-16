@@ -1,15 +1,18 @@
 #!/bin/bash
-# Validate migration from template to programmatic
+# opnDossier Migration Validation Tool v2.0
+# Validates migration from template-based to programmatic markdown generation
 
 set -e  # Exit on any error
 
-echo "Migration Validation Tool"
-echo "========================"
+# Default values
+TEMPLATE_DIR="${1:-.}"
+SAMPLE_CONFIG="${2:-sample.xml}"
 
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Function to print colored output
@@ -19,168 +22,211 @@ print_status() {
     echo -e "${color}${message}${NC}"
 }
 
-# Check if opndossier binary exists
-if ! command -v opndossier &> /dev/null; then
-    if [ -f "./main.go" ]; then
-        print_status $YELLOW "Using 'go run main.go' instead of opndossier binary"
-        OPNDOSSIER_CMD="go run main.go"
-    else
-        print_status $RED "✗ opndossier binary not found and main.go not available"
-        exit 1
-    fi
-else
-    OPNDOSSIER_CMD="opndossier"
-fi
+# Function to print error to stderr
+print_error() {
+    print_status "$RED" "$1" >&2
+}
 
-# Check for custom templates
-if [ -d "./templates" ]; then
-    print_status $GREEN "✓ Custom templates found"
-    
-    # List template functions used
-    echo ""
-    echo "Template functions in use:"
-    if find ./templates -name "*.tmpl" -o -name "*.tpl" 2>/dev/null | grep -q .; then
-        find ./templates -name "*.tmpl" -o -name "*.tpl" -exec grep -h -o '{{ [a-zA-Z][a-zA-Z0-9_]* ' {} \; | sort -u | sed 's/{{/  -/'
-    else
-        print_status $YELLOW "  No .tmpl or .tpl files found"
-    fi
-    
-    echo ""
-    echo "Verifying programmatic equivalents..."
-    # Check if equivalent methods exist by looking at the source
-    if [ -d "./internal/converter" ]; then
-        echo "Available MarkdownBuilder methods:"
-        grep -h "func (b \*MarkdownBuilder)" ./internal/converter/*.go | grep -v "_test.go" | sed 's/func (b \*MarkdownBuilder) /  - /' | sed 's/(.*$/()/' | sort
-    fi
-else
-    print_status $YELLOW "⚠ No custom templates directory found (./templates)"
-fi
+# Function to display usage
+usage() {
+    cat << EOF
+Usage: $0 [TEMPLATE_DIR] [SAMPLE_CONFIG]
 
-# Check for sample configuration files
-SAMPLE_CONFIG=""
-if [ -f "testdata/config.xml" ]; then
-    SAMPLE_CONFIG="testdata/config.xml"
-elif [ -f "sample.xml" ]; then
-    SAMPLE_CONFIG="sample.xml"
-elif [ -f "config.xml" ]; then
-    SAMPLE_CONFIG="config.xml"
-elif [ -f "final_test.xml" ]; then
-    SAMPLE_CONFIG="final_test.xml"
-else
-    print_status $YELLOW "⚠ No sample configuration file found. Creating minimal test config..."
-    cat > sample.xml << 'EOF'
-<?xml version="1.0"?>
-<opnsense>
-    <system>
-        <hostname>test-firewall</hostname>
-        <domain>example.com</domain>
-        <version>24.1</version>
-    </system>
-</opnsense>
+Arguments:
+  TEMPLATE_DIR    Directory containing custom templates (default: current directory)
+  SAMPLE_CONFIG   Path to sample OPNsense config.xml file (default: sample.xml)
+
+Options:
+  --help          Display this help message
+
+Examples:
+  $0
+  $0 ./custom-templates
+  $0 ./custom-templates ./testdata/config.xml
+
 EOF
-    SAMPLE_CONFIG="sample.xml"
+}
+
+# Check for help flag
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    usage
+    exit 0
 fi
 
-print_status $GREEN "✓ Using sample config: $SAMPLE_CONFIG"
+# Banner display
+cat << "EOF"
+  ___  _ __  _   _  ____            _       _   _
+ / _ \| '_ \| | | |/ ___|  ___   __| | ___ | |_(_) ___  _ __
+| | | | |_) | |_| | |  _  / _ \ / _` |/ _ \| __| |/ _ \| '_ \
+| |_| | .__/ \__, | |_| || (_) | (_| |  __/| |_| | (_) | | | |
+ \___/|_|    |___/ \____| \___/ \__,_|\___| \__|_|\___/|_| |_|
 
-# Generate comparison reports
+        Migration Validation Tool v2.0
+EOF
+
 echo ""
-echo "Generating comparison reports..."
+print_status "$BLUE" "Purpose: Validate migration from template-based to programmatic generation"
+echo ""
 
-# Test programmatic mode (default)
-print_status $YELLOW "→ Generating programmatic report..."
-if $OPNDOSSIER_CMD convert "$SAMPLE_CONFIG" -o report-programmatic.md --format markdown; then
-    print_status $GREEN "✓ Programmatic report generated"
-else
-    print_status $RED "✗ Failed to generate programmatic report"
+# Prerequisites check
+print_status "$YELLOW" "Checking prerequisites..."
+
+if ! command -v opndossier &> /dev/null; then
+    print_error "✗ opndossier command not found in PATH"
+    echo ""
+    print_status "$YELLOW" "Installation instructions:"
+    echo "  go install github.com/EvilBit-Labs/opnDossier@latest"
+    echo ""
+    print_status "$YELLOW" "Or build from source:"
+    echo "  git clone https://github.com/EvilBit-Labs/opnDossier.git"
+    echo "  cd opnDossier"
+    echo "  just install"
+    echo "  just build"
+    echo ""
     exit 1
 fi
 
-# Test template mode (if templates exist)
-if [ -d "./templates" ]; then
-    print_status $YELLOW "→ Generating template report..."
-    if $OPNDOSSIER_CMD convert "$SAMPLE_CONFIG" -o report-template.md --use-template --format markdown; then
-        print_status $GREEN "✓ Template report generated"
-        
-        # Compare outputs
-        echo ""
-        echo "Comparing outputs..."
-        if diff -u report-template.md report-programmatic.md > migration-diff.txt 2>/dev/null; then
-            print_status $GREEN "✓ Reports are identical"
-            rm -f migration-diff.txt
-        else
-            print_status $YELLOW "⚠ Reports differ - see migration-diff.txt for details"
-            echo "Difference summary:"
-            head -20 migration-diff.txt
-            if [ $(wc -l < migration-diff.txt) -gt 20 ]; then
-                echo "... (output truncated, see migration-diff.txt for full diff)"
+print_status "$GREEN" "✓ opndossier command found"
+echo ""
+
+# Custom template detection
+print_status "$YELLOW" "Detecting custom templates..."
+
+TEMPLATES_DIR="${TEMPLATE_DIR}/templates"
+if [ -d "$TEMPLATES_DIR" ]; then
+    print_status "$GREEN" "✓ Custom templates directory found: $TEMPLATES_DIR"
+    echo ""
+
+    # Extract template functions
+    print_status "$YELLOW" "Extracting template functions..."
+
+    # Find all template files
+    TEMPLATE_FILES=$(find "$TEMPLATES_DIR" -type f \( -name "*.tmpl" -o -name "*.tpl" -o -name "*.html" \) 2>/dev/null || true)
+
+    if [ -n "$TEMPLATE_FILES" ]; then
+        # Extract function patterns: {{ function( or {{ function | or {{ function.
+        # Also detect Sprig-style pipeline functions: {{ .Value | upper }}
+        # Filter out Go template keywords
+        DIRECT_FUNCTIONS=$(echo "$TEMPLATE_FILES" | xargs grep -h -oE '\{\{ *[a-zA-Z_][a-zA-Z0-9_]*' 2>/dev/null | \
+            sed 's/{{ *//' || true)
+        PIPELINE_FUNCTIONS=$(echo "$TEMPLATE_FILES" | xargs grep -h -oE '\| *[a-zA-Z_][a-zA-Z0-9_]*' 2>/dev/null | \
+            sed 's/| *//' || true)
+        # Combine both lists and filter out template keywords
+        FUNCTIONS=$(printf '%s\n%s\n' "$DIRECT_FUNCTIONS" "$PIPELINE_FUNCTIONS" | \
+            grep -vE '^(if|range|end|define|template|with|block|else|eq|ne|lt|le|gt|ge|and|or|not)$' | \
+            sort -u || true)
+
+        if [ -n "$FUNCTIONS" ]; then
+            echo "Detected template functions:"
+            while IFS= read -r func; do
+                echo "  - $func"
+            done <<< "$FUNCTIONS"
+            echo ""
+
+            # Check for unmigrated functions
+            print_status "$YELLOW" "Checking for unmigrated functions..."
+            UNMIGRATED_COUNT=0
+
+            while IFS= read -r func; do
+                # Check if function has Go equivalent (simplified check)
+                # In a real implementation, this would cross-reference with markdown-function-migration.md
+                # Capitalize first character for Go method name (portable for Bash 3.2+)
+                func_cap="$(printf '%s' "$func" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')"
+                if ! grep -q "func (b \*MarkdownBuilder) ${func_cap}" internal/converter/*.go 2>/dev/null; then
+                    print_status "$YELLOW" "  ⚠ Function '$func' may not have a Go equivalent"
+                    UNMIGRATED_COUNT=$((UNMIGRATED_COUNT + 1))
+                fi
+            done <<< "$FUNCTIONS"
+
+            if [ $UNMIGRATED_COUNT -gt 0 ]; then
+                echo ""
+                print_status "$YELLOW" "⚠ $UNMIGRATED_COUNT function(s) may need migration"
+                print_status "$BLUE" "  Reference: docs/template-function-migration.md for mapping details"
+            else
+                print_status "$GREEN" "✓ All detected functions appear to have Go equivalents"
             fi
+        else
+            print_status "$YELLOW" "  No template functions detected in template files"
         fi
     else
-        print_status $YELLOW "⚠ Template report generation failed (may be expected if no built-in templates)"
+        print_status "$YELLOW" "  No template files found in $TEMPLATES_DIR"
     fi
 else
-    print_status $YELLOW "⚠ Skipping template comparison - no custom templates found"
+    print_status "$YELLOW" "⚠ No custom templates directory found at: $TEMPLATES_DIR"
+    print_status "$BLUE" "  This is expected if you're not using custom templates"
 fi
 
-# Test different output formats
 echo ""
-echo "Testing output formats..."
 
-for format in json yaml; do
-    print_status $YELLOW "→ Testing $format format..."
-    if $OPNDOSSIER_CMD convert "$SAMPLE_CONFIG" -o "report-test.$format" --format "$format"; then
-        print_status $GREEN "✓ $format format generated successfully"
-        rm -f "report-test.$format"
-    else
-        print_status $RED "✗ Failed to generate $format format"
-    fi
-done
-
-# Validate markdown output
-echo ""
-echo "Validating markdown output..."
-if command -v markdownlint-cli2 &> /dev/null; then
-    if markdownlint-cli2 report-programmatic.md; then
-        print_status $GREEN "✓ Markdown validation passed"
-    else
-        print_status $YELLOW "⚠ Markdown validation warnings (see above)"
-    fi
-else
-    print_status $YELLOW "⚠ markdownlint-cli2 not available, skipping markdown validation"
-fi
-
-# Performance comparison (if both reports exist)
-if [ -f "report-template.md" ] && [ -f "report-programmatic.md" ]; then
+# Comparison report generation (if sample config provided)
+if [ -f "$SAMPLE_CONFIG" ]; then
+    print_status "$YELLOW" "Generating comparison reports..."
     echo ""
-    echo "Performance comparison:"
-    echo "Template report size:     $(wc -c < report-template.md) bytes"
-    echo "Programmatic report size: $(wc -c < report-programmatic.md) bytes"
-    
-    # Simple timing test
-    print_status $YELLOW "→ Running simple performance test..."
-    echo "Template mode timing:"
-    time $OPNDOSSIER_CMD convert "$SAMPLE_CONFIG" --use-template --format markdown > /dev/null 2>&1 || true
-    
-    echo "Programmatic mode timing:"
-    time $OPNDOSSIER_CMD convert "$SAMPLE_CONFIG" --format markdown > /dev/null 2>&1 || true
+
+    # Generate template mode report
+    print_status "$YELLOW" "→ Generating template mode report..."
+    if opndossier convert "$SAMPLE_CONFIG" -o /tmp/report-template.md --use-template 2>/dev/null; then
+        TEMPLATE_LINES=$(wc -l < /tmp/report-template.md)
+        print_status "$GREEN" "✓ Template report generated ($TEMPLATE_LINES lines)"
+    else
+        print_status "$YELLOW" "⚠ Template report generation failed (expected if no templates exist)"
+    fi
+
+    # Generate programmatic mode report
+    print_status "$YELLOW" "→ Generating programmatic mode report..."
+    if opndossier convert "$SAMPLE_CONFIG" -o /tmp/report-programmatic.md 2>/dev/null; then
+        PROGRAMMATIC_LINES=$(wc -l < /tmp/report-programmatic.md)
+        print_status "$GREEN" "✓ Programmatic report generated ($PROGRAMMATIC_LINES lines)"
+    else
+        print_error "✗ Programmatic report generation failed"
+        exit 1
+    fi
+
+    echo ""
+
+    # Compare outputs if both reports generated
+    if [ -f "/tmp/report-template.md" ] && [ -f "/tmp/report-programmatic.md" ]; then
+        print_status "$YELLOW" "Comparing outputs..."
+
+        # Count lines
+        TEMPLATE_LINES=$(wc -l < /tmp/report-template.md)
+        PROGRAMMATIC_LINES=$(wc -l < /tmp/report-programmatic.md)
+        LINE_DIFF=$((PROGRAMMATIC_LINES - TEMPLATE_LINES))
+
+        echo "  Template report:     $TEMPLATE_LINES lines"
+        echo "  Programmatic report: $PROGRAMMATIC_LINES lines"
+        echo "  Difference:          $LINE_DIFF lines"
+        echo ""
+
+        # Generate detailed diff
+        if diff -u /tmp/report-template.md /tmp/report-programmatic.md > /tmp/migration-diff.txt 2>/dev/null; then
+            print_status "$GREEN" "✓ Reports are identical"
+            rm -f /tmp/migration-diff.txt
+        else
+            print_status "$YELLOW" "⚠ Reports differ - see /tmp/migration-diff.txt for details"
+            DIFF_LINES=$(wc -l < /tmp/migration-diff.txt)
+            echo "  Diff file: /tmp/migration-diff.txt ($DIFF_LINES lines)"
+        fi
+    fi
+else
+    print_status "$YELLOW" "⚠ Sample config file not found: $SAMPLE_CONFIG"
+    print_status "$BLUE" "  Skipping comparison report generation"
+    print_status "$BLUE" "  Provide a sample config.xml file to enable comparison"
 fi
 
-# Cleanup temporary files
-if [ "$SAMPLE_CONFIG" = "sample.xml" ] && [ -f "sample.xml" ]; then
-    rm -f sample.xml
-fi
+echo ""
 
+# Summary and next steps
+print_status "$GREEN" "Migration validation complete!"
 echo ""
-print_status $GREEN "Migration validation complete!"
+print_status "$BLUE" "Next Steps:"
+echo "  1. Review function mappings in docs/template-function-migration.md"
+if [ -f "/tmp/migration-diff.txt" ]; then
+    echo "  2. Check detailed diff at /tmp/migration-diff.txt"
+fi
+echo "  3. Follow migration guide at docs/migration.md"
+echo "  4. Test your custom functions with programmatic mode"
+echo "  5. Consider contributing useful custom functions back to the project"
 echo ""
-echo "Summary:"
-echo "- Programmatic report: report-programmatic.md"
-[ -f "report-template.md" ] && echo "- Template report: report-template.md"
-[ -f "migration-diff.txt" ] && echo "- Differences: migration-diff.txt"
-echo ""
-echo "Next steps:"
-echo "1. Review any differences in migration-diff.txt"
-echo "2. Test your custom functions with programmatic generation"
-echo "3. Update your CI/CD pipelines to use programmatic mode"
-echo "4. Consider contributing useful custom functions back to the project"
+
+exit 0
