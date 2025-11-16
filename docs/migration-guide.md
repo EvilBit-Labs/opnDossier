@@ -22,18 +22,18 @@ opndossier convert -i config.xml -o report.md --use-template --custom-template .
 
 ## Custom Template Function Mapping
 
-| Template Function | Programmatic Method | Notes |
-|------------------|-------------------|--------|
-| `{{ getRiskLevel .severity }}` | `builder.AssessRiskLevel(severity)` | Returns emoji + text |
-| `{{ filterTunables .tunables true }}` | `builder.FilterSystemTunables(tunables, true)` | Same filtering logic |
-| `{{ .data \| formatInterfacesAsLinks }}` | `formatInterfacesAsLinks(data)` | Internal function, use in custom builders |
-| `{{ default .value "N/A" }}` | `builder.DefaultValue(value, "N/A")` | Sprig replacement |
-| `{{ truncate 50 .text }}` | `builder.TruncateDescription(text, 50)` | Sprig replacement |
-| `{{ .value \| upper }}` | `builder.ToUpper(value)` | String case conversion |
-| `{{ .value \| lower }}` | `builder.ToLower(value)` | String case conversion |
-| `{{ escapeTableContent .content }}` | `builder.EscapeTableContent(content)` | Safe table content |
-| `{{ formatBoolean .value }}` | `markdown.FormatBoolean(value)` | Boolean formatting |
-| `{{ formatUnixTimestamp .timestamp }}` | `markdown.FormatUnixTimestamp(timestamp)` | Time formatting |
+| Template Function                        | Programmatic Method                            | Notes                                     |
+| ---------------------------------------- | ---------------------------------------------- | ----------------------------------------- |
+| `{{ getRiskLevel .severity }}`           | `builder.AssessRiskLevel(severity)`            | Returns emoji + text                      |
+| `{{ filterTunables .tunables true }}`    | `builder.FilterSystemTunables(tunables, true)` | Same filtering logic                      |
+| `{{ .data \| formatInterfacesAsLinks }}` | `formatInterfacesAsLinks(data)`                | Internal function, use in custom builders |
+| `{{ default .value "N/A" }}`             | `builder.DefaultValue(value, "N/A")`           | Sprig replacement                         |
+| `{{ truncate 50 .text }}`                | `builder.TruncateDescription(text, 50)`        | Sprig replacement                         |
+| `{{ .value \| upper }}`                  | `builder.ToUpper(value)`                       | String case conversion                    |
+| `{{ .value \| lower }}`                  | `builder.ToLower(value)`                       | String case conversion                    |
+| `{{ escapeTableContent .content }}`      | `builder.EscapeTableContent(content)`          | Safe table content                        |
+| `{{ formatBoolean .value }}`             | `markdown.FormatBoolean(value)`                | Boolean formatting                        |
+| `{{ formatUnixTimestamp .timestamp }}`   | `markdown.FormatUnixTimestamp(timestamp)`      | Time formatting                           |
 
 ## Creating Custom Reports
 
