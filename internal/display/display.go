@@ -320,6 +320,7 @@ func Title(s string) {
 
 // Error prints the input string to the terminal using a bold red error style.
 // Error prints the given string as an error message using the global StyleSheet.
+//
 // Deprecated: Use StyleSheet.ErrorPrint instead.
 func Error(s string) {
 	globalStyleSheet.ErrorPrint(s)
