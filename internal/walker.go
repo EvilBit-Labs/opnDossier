@@ -178,18 +178,20 @@ func formatFieldName(name string) string {
 	// Simple camelCase to space-separated conversion
 	result := ""
 
+	var resultSb181 strings.Builder
 	for i, r := range name {
 		// Add space before uppercase letters, but not at the beginning
 		// and not if the previous character was also uppercase (to handle acronyms)
 		if i > 0 && r >= 'A' && r <= 'Z' {
 			prevRune := rune(name[i-1])
 			if prevRune < 'A' || prevRune > 'Z' {
-				result += " "
+				resultSb181.WriteString(" ")
 			}
 		}
 
-		result += string(r)
+		resultSb181.WriteRune(r)
 	}
+	result += resultSb181.String()
 
 	return result
 }

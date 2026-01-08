@@ -64,4 +64,4 @@ We welcome contributions! Please see our [Contributing Guide](dev-guide/contribu
 
 ---
 
-*Built with ❤️ for network operators everywhere.*
+*Built with care for network operators everywhere.*

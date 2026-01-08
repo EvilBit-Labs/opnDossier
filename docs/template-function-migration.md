@@ -29,64 +29,66 @@ type MarkdownBuilder struct {
 
 ### Phase 1: Core Utility Functions
 
-| Template Function        | Go Method                                                       | Status       | Notes                           |
-| ------------------------ | --------------------------------------------------------------- | ------------ | ------------------------------- |
-| `escapeTableContent`     | `EscapeTableContent(content any) string`                        | Pending      | Critical for table generation   |
-| `isLast`                 | `IsLastInSlice(index int, slice any) bool`                      | Pending      | Used in template loops          |
-| `formatBoolean`          | `FormatBoolean(value any) string`                               | **Migrated** | Already exists in formatters.go |
-| `formatBooleanWithUnset` | `FormatBooleanWithUnset(value any) string`                      | **Migrated** | Already exists in formatters.go |
-| `formatUnixTimestamp`    | `FormatUnixTimestamp(timestamp string) string`                  | **Migrated** | Already exists in formatters.go |
-| `isTruthy`               | `IsTruthy(value any) bool`                                      | **Migrated** | Already exists in formatters.go |
-| `truncateDescription`    | `TruncateDescription(description string, maxLength int) string` | Pending      | Word boundary handling required |
+| Template Function        | Go Method                                                       | Status       | Notes                                      |
+| ------------------------ | --------------------------------------------------------------- | ------------ | ------------------------------------------ |
+| `escapeTableContent`     | `EscapeTableContent(content any) string`                        | **Migrated** | Implemented in `markdown_utils.go` line 13 |
+| `isLast`                 | `IsLastInSlice(index int, slice any) bool`                      | **Migrated** | Implemented in `markdown_utils.go` line 79 |
+| `formatBoolean`          | `FormatBoolean(value any) string`                               | **Migrated** | Already exists in formatters.go            |
+| `formatBooleanWithUnset` | `FormatBooleanWithUnset(value any) string`                      | **Migrated** | Already exists in formatters.go            |
+| `formatUnixTimestamp`    | `FormatUnixTimestamp(timestamp string) string`                  | **Migrated** | Already exists in formatters.go            |
+| `isTruthy`               | `IsTruthy(value any) bool`                                      | **Migrated** | Already exists in formatters.go            |
+| `truncateDescription`    | `TruncateDescription(description string, maxLength int) string` | **Migrated** | Implemented in `markdown_utils.go` line 57 |
 
 ### Phase 2: Data Transformation Functions
 
-| Template Function         | Go Method                                                                            | Status       | Notes                           |
-| ------------------------- | ------------------------------------------------------------------------------------ | ------------ | ------------------------------- |
-| `formatInterfacesAsLinks` | `FormatInterfaceLinks(interfaces model.InterfaceList) string`                        | Pending      | Generates markdown anchor links |
-| `filterTunables`          | `FilterSystemTunables(tunables []model.SysctlItem, include bool) []model.SysctlItem` | Pending      | Security-focused filtering      |
-| `getPowerModeDescription` | `GetPowerModeDescription(mode string) string`                                        | **Migrated** | Already exists in formatters.go |
-| `getPortDescription`      | `GetPortDescription(port string) string`                                             | Pending      | Simple string formatting        |
-| `getProtocolDescription`  | `GetProtocolDescription(protocol string) string`                                     | Pending      | Simple string formatting        |
+| Template Function         | Go Method                                                                            | Status       | Notes                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------------ | ------------ | ------------------------------------------------------------------------------------- |
+| `formatInterfacesAsLinks` | `FormatInterfaceLinks(interfaces model.InterfaceList) string`                        | Pending      | Generates markdown anchor links                                                       |
+| `filterTunables`          | `FilterSystemTunables(tunables []model.SysctlItem, include bool) []model.SysctlItem` | **Migrated** | Implemented in `markdown_transformers.go` line 26, includes security prefix filtering |
+| `getPowerModeDescription` | `GetPowerModeDescription(mode string) string`                                        | **Migrated** | Already exists in formatters.go                                                       |
+| `getPortDescription`      | `GetPortDescription(port string) string`                                             | Pending      | Simple string formatting                                                              |
+| `getProtocolDescription`  | `GetProtocolDescription(protocol string) string`                                     | Pending      | Simple string formatting                                                              |
 
 ### Phase 3: Security and Compliance Functions
 
-| Template Function       | Go Method                                            | Status  | Notes                                  |
-| ----------------------- | ---------------------------------------------------- | ------- | -------------------------------------- |
-| `getRiskLevel`          | `AssessRiskLevel(severity string) string`            | Pending | Returns emoji + risk text              |
-| `getSecurityZone`       | `DetermineSecurityZone(interfaceName string) string` | Pending | Zone classification logic              |
-| `getSTIGDescription`    | `GetSTIGControlDescription(controlID string) string` | Pending | **Placeholder** - needs STIG database  |
-| `getSANSDescription`    | `GetSANSControlDescription(controlID string) string` | Pending | **Placeholder** - needs SANS database  |
-| `getRuleCompliance`     | `AssessFirewallRuleCompliance(rule any) string`      | Pending | **Placeholder** - complex analysis     |
-| `getNATRiskLevel`       | `AssessNATRuleRisk(rule any) string`                 | Pending | **Placeholder** - security assessment  |
-| `getNATRecommendation`  | `GenerateNATRecommendation(rule any) string`         | Pending | **Placeholder** - remediation advice   |
-| `getCertSecurityStatus` | `AssessCertificateSecurityStatus(cert any) string`   | Pending | **Placeholder** - certificate analysis |
-| `getDHCPSecurity`       | `AssessDHCPSecurity(dhcp any) string`                | Pending | **Placeholder** - DHCP security check  |
-| `getRouteSecurityZone`  | `DetermineRouteSecurityZone(route any) string`       | Pending | **Placeholder** - route analysis       |
+| Template Function        | Go Method                                                  | Status       | Notes                                         |
+| ------------------------ | ---------------------------------------------------------- | ------------ | --------------------------------------------- |
+| `getRiskLevel`           | `AssessRiskLevel(severity string) string`                  | **Migrated** | Implemented in `markdown_security.go` line 20 |
+| `calculateSecurityScore` | `CalculateSecurityScore(data *model.OpnSenseDocument) int` | **Migrated** | Implemented in `markdown_security.go` line 42 |
+| `assessServiceRisk`      | `AssessServiceRisk(service model.Service) string`          | **Migrated** | Implemented in `markdown_security.go` line 91 |
+| `getSecurityZone`        | `DetermineSecurityZone(interfaceName string) string`       | Pending      | Zone classification logic                     |
+| `getSTIGDescription`     | `GetSTIGControlDescription(controlID string) string`       | Pending      | **Placeholder** - needs STIG database         |
+| `getSANSDescription`     | `GetSANSControlDescription(controlID string) string`       | Pending      | **Placeholder** - needs SANS database         |
+| `getRuleCompliance`      | `AssessFirewallRuleCompliance(rule any) string`            | Pending      | **Placeholder** - complex analysis            |
+| `getNATRiskLevel`        | `AssessNATRuleRisk(rule any) string`                       | Pending      | **Placeholder** - security assessment         |
+| `getNATRecommendation`   | `GenerateNATRecommendation(rule any) string`               | Pending      | **Placeholder** - remediation advice          |
+| `getCertSecurityStatus`  | `AssessCertificateSecurityStatus(cert any) string`         | Pending      | **Placeholder** - certificate analysis        |
+| `getDHCPSecurity`        | `AssessDHCPSecurity(dhcp any) string`                      | Pending      | **Placeholder** - DHCP security check         |
+| `getRouteSecurityZone`   | `DetermineRouteSecurityZone(route any) string`             | Pending      | **Placeholder** - route analysis              |
 
 ### Phase 4: Sprig Function Replacements (High Priority)
 
-| Sprig Function | Go Method                                            | Status  | Notes                     |
-| -------------- | ---------------------------------------------------- | ------- | ------------------------- |
-| `upper`        | `ToUpper(s string) string`                           | Pending | String case conversion    |
-| `lower`        | `ToLower(s string) string`                           | Pending | String case conversion    |
-| `title`        | `ToTitle(s string) string`                           | Pending | Title case conversion     |
-| `trim`         | `TrimSpace(s string) string`                         | Pending | Whitespace removal        |
-| `trimPrefix`   | `TrimPrefix(s, prefix string) string`                | Pending | Prefix removal            |
-| `trimSuffix`   | `TrimSuffix(s, suffix string) string`                | Pending | Suffix removal            |
-| `replace`      | `ReplaceString(s, old, new string) string`           | Pending | String replacement        |
-| `split`        | `SplitString(s, sep string) []string`                | Pending | String splitting          |
-| `join`         | `JoinStrings(elems []string, sep string) string`     | Pending | String joining            |
-| `contains`     | `ContainsString(s, substr string) bool`              | Pending | Substring check           |
-| `hasPrefix`    | `HasPrefix(s, prefix string) bool`                   | Pending | Prefix check              |
-| `hasSuffix`    | `HasSuffix(s, suffix string) bool`                   | Pending | Suffix check              |
-| `default`      | `DefaultValue(value, defaultVal any) any`            | Pending | Default value handling    |
-| `empty`        | `IsEmpty(value any) bool`                            | Pending | Empty value check         |
-| `coalesce`     | `Coalesce(values ...any) any`                        | Pending | First non-empty value     |
-| `ternary`      | `Ternary(condition bool, trueVal, falseVal any) any` | Pending | Conditional selection     |
-| `toJson`       | `ToJSON(obj any) (string, error)`                    | Pending | JSON serialization        |
-| `toPrettyJson` | `ToPrettyJSON(obj any) (string, error)`              | Pending | Pretty JSON serialization |
-| `toYaml`       | `ToYAML(obj any) (string, error)`                    | Pending | YAML serialization        |
+| Sprig Function | Go Method                                            | Status       | Notes                                       |
+| -------------- | ---------------------------------------------------- | ------------ | ------------------------------------------- |
+| `upper`        | `ToUpper(s string) string`                           | **Migrated** | Implemented in `markdown_utils.go` line 130 |
+| `lower`        | `ToLower(s string) string`                           | **Migrated** | Implemented in `markdown_utils.go` line 135 |
+| `title`        | `ToTitle(s string) string`                           | Pending      | Title case conversion                       |
+| `trim`         | `TrimSpace(s string) string`                         | **Migrated** | Implemented in `markdown_utils.go` line 140 |
+| `trimPrefix`   | `TrimPrefix(s, prefix string) string`                | Pending      | Prefix removal                              |
+| `trimSuffix`   | `TrimSuffix(s, suffix string) string`                | Pending      | Suffix removal                              |
+| `replace`      | `ReplaceString(s, old, new string) string`           | Pending      | String replacement                          |
+| `split`        | `SplitString(s, sep string) []string`                | Pending      | String splitting                            |
+| `join`         | `JoinStrings(elems []string, sep string) string`     | Pending      | String joining                              |
+| `contains`     | `ContainsString(s, substr string) bool`              | Pending      | Substring check                             |
+| `hasPrefix`    | `HasPrefix(s, prefix string) bool`                   | Pending      | Prefix check                                |
+| `hasSuffix`    | `HasSuffix(s, suffix string) bool`                   | Pending      | Suffix check                                |
+| `default`      | `DefaultValue(value, defaultVal any) any`            | **Migrated** | Implemented in `markdown_utils.go` line 93  |
+| `empty`        | `IsEmpty(value any) bool`                            | **Migrated** | Implemented in `markdown_utils.go` line 101 |
+| `coalesce`     | `Coalesce(values ...any) any`                        | Pending      | First non-empty value                       |
+| `ternary`      | `Ternary(condition bool, trueVal, falseVal any) any` | Pending      | Conditional selection                       |
+| `toJson`       | `ToJSON(obj any) (string, error)`                    | Pending      | JSON serialization                          |
+| `toPrettyJson` | `ToPrettyJSON(obj any) (string, error)`              | Pending      | Pretty JSON serialization                   |
+| `toYaml`       | `ToYAML(obj any) (string, error)`                    | Pending      | YAML serialization                          |
 
 ### Phase 4: Sprig Function Replacements (Medium Priority)
 
@@ -121,25 +123,77 @@ type MarkdownBuilder struct {
 | `urlEscape`    | `URLEscape(s string) string`                         | Pending | URL escaping      |
 | `urlUnescape`  | `URLUnescape(s string) (string, error)`              | Pending | URL unescaping    |
 
+### Phase 5: Advanced Data Operations
+
+| Template Function       | Go Method                                                                    | Status       | Notes                                              |
+| ----------------------- | ---------------------------------------------------------------------------- | ------------ | -------------------------------------------------- |
+| `groupServicesByStatus` | `GroupServicesByStatus(services []model.Service) map[string][]model.Service` | **Migrated** | Implemented in `markdown_transformers.go` line 77  |
+| `aggregatePackageStats` | `AggregatePackageStats(packages []model.Package) map[string]int`             | **Migrated** | Implemented in `markdown_transformers.go` line 120 |
+| `filterRulesByType`     | `FilterRulesByType(rules []model.Rule, ruleType string) []model.Rule`        | **Migrated** | Implemented in `markdown_transformers.go` line 164 |
+| `extractUniqueValues`   | `ExtractUniqueValues(items []string) []string`                               | **Migrated** | Implemented in `markdown_transformers.go` line 203 |
+
+### Phase 6: Report Building Methods
+
+| Template Function          | Go Method                                                                | Status       | Notes                                 |
+| -------------------------- | ------------------------------------------------------------------------ | ------------ | ------------------------------------- |
+| `buildSystemSection`       | `BuildSystemSection(data *model.OpnSenseDocument) string`                | **Migrated** | Implemented in `markdown.go` line 222 |
+| `buildNetworkSection`      | `BuildNetworkSection(data *model.OpnSenseDocument) string`               | **Migrated** | Implemented in `markdown.go` line 369 |
+| `buildSecuritySection`     | `BuildSecuritySection(data *model.OpnSenseDocument) string`              | **Migrated** | Implemented in `markdown.go` line 436 |
+| `buildServicesSection`     | `BuildServicesSection(data *model.OpnSenseDocument) string`              | **Migrated** | Implemented in `markdown.go` line 481 |
+| `buildStandardReport`      | `BuildStandardReport(data *model.OpnSenseDocument) (string, error)`      | **Migrated** | Implemented in `markdown.go` line 695 |
+| `buildComprehensiveReport` | `BuildComprehensiveReport(data *model.OpnSenseDocument) (string, error)` | **Migrated** | Implemented in `markdown.go` line 751 |
+
 ## Implementation Priority
 
-### Priority 1: Critical Functions (Must implement first)
+### Completed Functions
 
-1. `EscapeTableContent` - Essential for table generation
-2. `IsLastInSlice` - Required for template loop logic
-3. `TruncateDescription` - Used extensively in reports
-4. `ToUpper`, `ToLower` - Basic string operations
-5. `TrimSpace` - Data cleanup
+The following functions have been successfully migrated and are available for use:
 
-### Priority 2: Core Data Functions
+**Phase 1: Core Utility Functions**
+
+- `EscapeTableContent` - Essential for table generation
+- `IsLastInSlice` - Required for template loop logic
+- `TruncateDescription` - Used extensively in reports
+- `ToUpper`, `ToLower` - Basic string operations
+- `TrimSpace` - Data cleanup
+- `DefaultValue` - Default value handling
+- `IsEmpty` - Empty value check
+
+**Phase 2: Data Transformation Functions**
+
+- `FilterSystemTunables` - Security-focused filtering
+
+**Phase 3: Security and Compliance Functions**
+
+- `AssessRiskLevel` - Security assessment display
+- `CalculateSecurityScore` - Overall security scoring
+- `AssessServiceRisk` - Service risk assessment
+
+**Phase 5: Advanced Data Operations**
+
+- `GroupServicesByStatus` - Service grouping
+- `AggregatePackageStats` - Package statistics
+- `FilterRulesByType` - Rule filtering
+- `ExtractUniqueValues` - Unique value extraction
+
+**Phase 6: Report Building Methods**
+
+- `BuildSystemSection` - System section generation
+- `BuildNetworkSection` - Network section generation
+- `BuildSecuritySection` - Security section generation
+- `BuildServicesSection` - Services section generation
+- `BuildStandardReport` - Standard report generation
+- `BuildComprehensiveReport` - Comprehensive report generation
+
+**Total**: 30+ methods now available for programmatic generation.
+
+### Priority 2: Core Data Functions (Remaining)
 
 1. `FormatInterfaceLinks` - Important for navigation
-2. `FilterSystemTunables` - Security-focused filtering
-3. `AssessRiskLevel` - Security assessment display
-4. `DetermineSecurityZone` - Network categorization
-5. String manipulation functions (`ReplaceString`, `SplitString`, `JoinStrings`)
+2. `DetermineSecurityZone` - Network categorization
+3. String manipulation functions (`ReplaceString`, `SplitString`, `JoinStrings`)
 
-### Priority 3: Advanced Functions
+### Priority 3: Advanced Functions (Remaining)
 
 1. Placeholder security functions (when data sources available)
 2. JSON/YAML serialization functions
@@ -174,27 +228,48 @@ type MarkdownBuilder struct {
 
 ## Migration Complexity Assessment
 
-### Low Complexity (1-2 days each)
+### Completed (30+ Functions)
+
+The following functions have been successfully migrated and are production-ready:
+
+**Low Complexity (Completed)**
 
 - Simple string operations (`ToUpper`, `ToLower`, `TrimSpace`)
-- Basic formatting functions (`GetPortDescription`, `GetProtocolDescription`)
-- Already implemented functions (just need integration)
+- Basic utility functions (`EscapeTableContent`, `IsLastInSlice`, `TruncateDescription`)
+- Default value handling (`DefaultValue`, `IsEmpty`)
 
-### Medium Complexity (3-5 days each)
+**Medium Complexity (Completed)**
 
-- Collection operations (`FilterSystemTunables`, `IsLastInSlice`)
-- Link generation (`FormatInterfaceLinks`)
+- Collection operations (`FilterSystemTunables`, `GroupServicesByStatus`)
 - Complex string operations (`TruncateDescription`)
-- Risk assessment (`AssessRiskLevel`, `DetermineSecurityZone`)
+- Risk assessment (`AssessRiskLevel`, `CalculateSecurityScore`, `AssessServiceRisk`)
+- Data aggregation (`AggregatePackageStats`, `FilterRulesByType`, `ExtractUniqueValues`)
 
-### High Complexity (1-2 weeks each)
+**High Complexity (Completed)**
+
+- Report building methods (`BuildSystemSection`, `BuildNetworkSection`, `BuildSecuritySection`, `BuildServicesSection`)
+- Complete report generation (`BuildStandardReport`, `BuildComprehensiveReport`)
+
+### Remaining Work
+
+**Low Complexity (1-2 days each)**
+
+- Basic formatting functions (`GetPortDescription`, `GetProtocolDescription`)
+- Additional string operations (`TrimPrefix`, `TrimSuffix`)
+
+**Medium Complexity (3-5 days each)**
+
+- Link generation (`FormatInterfaceLinks`)
+- Network categorization (`DetermineSecurityZone`)
+- String manipulation (`ReplaceString`, `SplitString`, `JoinStrings`)
+
+**High Complexity (1-2 weeks each)**
 
 - Security analysis placeholders (requires external data sources)
 - JSON/YAML serialization with proper error handling
 - Complex collection manipulations
-- Template escape sequence handling
 
-### Very High Complexity (2-4 weeks each)
+**Very High Complexity (2-4 weeks each)**
 
 - Complete Sprig replacement (100+ functions)
 - Template-to-Go code generation tooling
