@@ -116,12 +116,12 @@ opnDossier convert config.xml -o report.md --template-override
 
 | Feature          | Template Mode (v1.x) | Programmatic Mode (v2.0+) |
 | ---------------- | -------------------- | ------------------------- |
-| Generation Speed | Baseline             | ⚡ **74% faster**         |
-| Memory Usage     | Baseline             | 💾 **78% less**           |
-| Type Safety      | Runtime errors       | 🛡️ **Compile-time**       |
-| IDE Support      | Limited              | 🔧 **Full IntelliSense**  |
-| Offline Support  | Partial              | 🔒 **Complete**           |
-| Throughput       | 170 reports/sec      | ⚡ **643 reports/sec**    |
+| Generation Speed | Baseline             | **74% faster**            |
+| Memory Usage     | Baseline             | **78% less**              |
+| Type Safety      | Runtime errors       | **Compile-time**          |
+| IDE Support      | Limited              | **Full IntelliSense**     |
+| Offline Support  | Partial              | **Complete**              |
+| Throughput       | 170 reports/sec      | **643 reports/sec**       |
 
 > **Migration Guide**: See our [detailed migration guide](docs/migration.md) for step-by-step instructions to transition from template mode to programmatic generation.
 

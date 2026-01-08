@@ -1184,7 +1184,7 @@ All notable changes to this project will be documented in this file.
 
   Tested with `just test` and `just ci-check`, all checks passed successfully.
 
-- Update mapping table with issue #26 for Phase 4.3 tasks (TASK-023–TASK-029)
+- Update mapping table with issue #26 for Phase 4.3 tasks (TASK-023-TASK-029)
 
 - Update AGENTS.md and add migration.md for project transition
 
