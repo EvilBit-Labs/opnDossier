@@ -53,17 +53,17 @@ Interfaces: {{ .interfaces | formatInterfacesAsLinks }}
 func (b *CustomBuilder) WriteCustomSection(data *model.OpnSenseDocument) {
     var section strings.Builder
     section.WriteString("## Custom Analysis\n")
-    
+
     // Risk assessment using MarkdownBuilder method
-    risk := b.AssessRiskLevel("high") 
+    risk := b.AssessRiskLevel("high")
     section.WriteString(fmt.Sprintf("Risk Level: %s\n", risk))
-    
+
     // Interface links using internal function
     if !data.Interfaces.IsEmpty() {
         interfaceLinks := formatInterfacesAsLinks(data.Interfaces.Wan) // Use internal function
         section.WriteString(fmt.Sprintf("Interfaces: %s\n", interfaceLinks))
     }
-    
+
     return section.String()
 }
 ```
@@ -165,6 +165,7 @@ section.WriteString(fmt.Sprintf("Security Rules: %d\n", securityRules))
 ### Migrating Template Functions to Methods
 
 **Step 1: Identify Template Functions**
+
 Review your custom templates for functions like:
 
 - `{{ myCustomFunction .data }}`
@@ -226,12 +227,12 @@ func (b *MyCustomBuilder) BuildLargeReport(data *model.OpnSenseDocument) string 
     // Pre-allocate with estimated capacity
     var section strings.Builder
     section.Grow(8192) // Pre-allocate 8KB
-    
+
     // Build content efficiently
     b.writeSystemInfo(&section, data)
     b.writeNetworkInfo(&section, data)
     b.writeSecurityInfo(&section, data)
-    
+
     return section.String()
 }
 ```
@@ -248,7 +249,7 @@ func (b *CustomBuilder) GetCachedSecurityScore(key string, data *model.OpnSenseD
     if score, exists := b.securityScoreCache[key]; exists {
         return score
     }
-    
+
     score := b.CalculateSecurityScore(data)
     b.securityScoreCache[key] = score
     return score
@@ -262,7 +263,7 @@ func (b *CustomBuilder) GetCachedSecurityScore(key string, data *model.OpnSenseD
 ```go
 func TestCustomBuilder_StatusBadge(t *testing.T) {
     builder := NewCustomBuilder()
-    
+
     tests := []struct {
         name     string
         status   string
@@ -272,7 +273,7 @@ func TestCustomBuilder_StatusBadge(t *testing.T) {
         {"inactive status", "inactive", "🔴 inactive"},
         {"unknown status", "unknown", "🔴 unknown"},
     }
-    
+
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
             result := builder.StatusBadge(tt.status)
@@ -288,11 +289,11 @@ func TestCustomBuilder_StatusBadge(t *testing.T) {
 func TestMigrationCompatibility(t *testing.T) {
     // Load test configuration
     config := loadTestConfig(t)
-    
+
     // Generate with programmatic approach
     builder := NewCustomBuilder()
     programmaticcOutput := builder.BuildReport(config)
-    
+
     // Verify key content is present
     assert.Contains(t, programmaticcOutput, "System Information")
     assert.Contains(t, programmaticcOutput, "Security Assessment")
@@ -366,26 +367,19 @@ func (b *MyCustomBuilder) SafeStringConvert(value interface{}) string {
 
 ## FAQ
 
-**Q: Will my custom templates stop working?**
-A: No, they'll continue to work with the `--use-template` flag through v2.x and v3.x, but template mode may be removed in v4.0. We recommend migrating to programmatic generation for better performance and maintainability.
+**Q: Will my custom templates stop working?** A: No, they'll continue to work with the `--use-template` flag through v2.x and v3.x, but template mode may be removed in v4.0. We recommend migrating to programmatic generation for better performance and maintainability.
 
-**Q: Can I mix programmatic and template approaches?**
-A: Yes, during migration you can use hybrid approaches, but it's not recommended for production. Choose one approach for consistency.
+**Q: Can I mix programmatic and template approaches?** A: Yes, during migration you can use hybrid approaches, but it's not recommended for production. Choose one approach for consistency.
 
-**Q: How do I contribute my custom functions?**
-A: Submit a PR adding your functions to the MarkdownBuilder. We welcome contributions! Follow the existing patterns in `internal/converter/markdown_*.go` files.
+**Q: How do I contribute my custom functions?** A: Submit a PR adding your functions to the MarkdownBuilder. We welcome contributions! Follow the existing patterns in `internal/converter/markdown_*.go` files.
 
-**Q: Is the programmatic approach faster?**
-A: Yes, programmatic generation is significantly faster than template processing. You'll see 40-70% performance improvements for most reports.
+**Q: Is the programmatic approach faster?** A: Yes, programmatic generation is significantly faster than template processing. You'll see 40-70% performance improvements for most reports.
 
-**Q: Can I still customize the output format?**
-A: Yes, programmatic generation gives you more control over output formatting. You can create custom builders that extend the base MarkdownBuilder.
+**Q: Can I still customize the output format?** A: Yes, programmatic generation gives you more control over output formatting. You can create custom builders that extend the base MarkdownBuilder.
 
-**Q: What if I need template-like conditional logic?**
-A: Use standard Go conditional statements (if/else, switch) and loops (for, range). This provides better type safety and IDE support.
+**Q: What if I need template-like conditional logic?** A: Use standard Go conditional statements (if/else, switch) and loops (for, range). This provides better type safety and IDE support.
 
-**Q: How do I handle errors in programmatic generation?**
-A: Programmatic generation provides explicit error handling. Methods can return errors that you handle appropriately:
+**Q: How do I handle errors in programmatic generation?** A: Programmatic generation provides explicit error handling. Methods can return errors that you handle appropriately:
 
 ```go
 report, err := builder.BuildReport(config)
@@ -394,14 +388,11 @@ if err != nil {
 }
 ```
 
-**Q: Can I reuse my existing template data processing logic?**
-A: Yes, convert your template logic to Go functions. Many template patterns translate directly to Go code with better performance.
+**Q: Can I reuse my existing template data processing logic?** A: Yes, convert your template logic to Go functions. Many template patterns translate directly to Go code with better performance.
 
-**Q: Where can I find examples of programmatic generation?**
-A: Check the `internal/converter/markdown*.go` files for extensive examples of programmatic report generation.
+**Q: Where can I find examples of programmatic generation?** A: Check the `internal/converter/markdown*.go` files for extensive examples of programmatic report generation.
 
-**Q: How do I validate that my migration is correct?**
-A: Use the migration validation script (`scripts/validate-migration.sh`) to compare template and programmatic outputs. Write unit tests for your custom functions.
+**Q: How do I validate that my migration is correct?** A: Use the migration validation script (`scripts/validate-migration.sh`) to compare template and programmatic outputs. Write unit tests for your custom functions.
 
 ## Contributing Custom Functions
 
@@ -435,7 +426,7 @@ func (b *MarkdownBuilder) FormatNetworkPort(port string) string {
 ```go
 func TestMarkdownBuilder_FormatNetworkPort(t *testing.T) {
     builder := NewMarkdownBuilder()
-    
+
     tests := []struct {
         name     string
         port     string
@@ -445,7 +436,7 @@ func TestMarkdownBuilder_FormatNetworkPort(t *testing.T) {
         {"ssh port", "22", "22 (SSH)"},
         {"custom port", "8080", "8080"},
     }
-    
+
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
             result := builder.FormatNetworkPort(tt.port)
