@@ -6,41 +6,29 @@ This document captures the single-sentence "official" purpose of each library us
 
 ### Cobra
 
-**Purpose**: Command structure & argument parsing
-**Introduced in**: TASK-001 (Update Go dependencies to match requirements)
-**Context**: Use `cobra` for CLI command organization with consistent verb patterns (`create`, `list`, `get`, `update`, `delete`)
+**Purpose**: Command structure & argument parsing **Introduced in**: TASK-001 (Update Go dependencies to match requirements) **Context**: Use `cobra` for CLI command organization with consistent verb patterns (`create`, `list`, `get`, `update`, `delete`)
 
 ### Fang (charmbracelet/fang)
 
-**Purpose**: Enhanced UX layer on top of Cobra (styled help, version, completion)
-**Introduced in**: TASK-003a (Implement CLI enhancement with fang)
-**Context**: Add fang for enhanced CLI experience with styled help, errors, and automatic features including styled help/usage pages, styled error messages, automatic `--version` flag, hidden `man` command for manpage generation, `completion` command for shell completions, and themeable appearance
+**Purpose**: Enhanced UX layer on top of Cobra (styled help, version, completion) **Introduced in**: TASK-003a (Implement CLI enhancement with fang) **Context**: Add fang for enhanced CLI experience with styled help, errors, and automatic features including styled help/usage pages, styled error messages, automatic `--version` flag, hidden `man` command for manpage generation, `completion` command for shell completions, and themeable appearance
 
 ### Viper (spf13/viper)
 
-**Purpose**: Layered configuration (files, env, flags)
-**Introduced in**: TASK-003 (Set up configuration management with viper)
-**Context**: Implement YAML config files, environment variables, CLI overrides using viper with standard precedence (CLI flags > env vars > config file > defaults)
+**Purpose**: Layered configuration (files, env, flags) **Introduced in**: TASK-003 (Set up configuration management with viper) **Context**: Implement YAML config files, environment variables, CLI overrides using viper with standard precedence (CLI flags > env vars > config file > defaults)
 
 ### charmbracelet/log
 
-**Purpose**: Structured, leveled logging
-**Introduced in**: TASK-002 (Implement structured logging with `charmbracelet/log`)
-**Context**: Replace current `log` usage with structured logging throughout application using charmbracelet/log with proper levels (Debug, Info, Warn, Error)
+**Purpose**: Structured, leveled logging **Introduced in**: TASK-002 (Implement structured logging with `charmbracelet/log`) **Context**: Replace current `log` usage with structured logging throughout application using charmbracelet/log with proper levels (Debug, Info, Warn, Error)
 
 ## Supporting Libraries
 
 ### charmbracelet/lipgloss
 
-**Purpose**: Styled terminal output formatting
-**Introduced in**: TASK-014 (Implement terminal display with lipgloss)
-**Context**: Create styled terminal output with colored, syntax-highlighted markdown
+**Purpose**: Styled terminal output formatting **Introduced in**: TASK-014 (Implement terminal display with lipgloss) **Context**: Create styled terminal output with colored, syntax-highlighted markdown
 
 ### charmbracelet/glamour
 
-**Purpose**: Markdown rendering in terminal
-**Introduced in**: TASK-016 (Implement markdown rendering with glamour)
-**Context**: Integrate glamour for markdown rendering in terminal with syntax highlighting
+**Purpose**: Markdown rendering in terminal **Introduced in**: TASK-016 (Implement markdown rendering with glamour) **Context**: Integrate glamour for markdown rendering in terminal with syntax highlighting
 
 ## Task Reference Summary
 

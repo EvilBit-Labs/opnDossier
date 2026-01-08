@@ -41,7 +41,7 @@ opnDossier uses a layered CLI architecture:
 
 ### Project Structure
 
-```
+```text
 opndossier/
 ├── cmd/                 # CLI commands (Cobra)
 ├── internal/
@@ -69,13 +69,13 @@ opnDossier v2.0 introduces programmatic markdown generation, replacing the templ
 type ReportBuilder interface {
     BuildStandardReport(data *model.OpnSenseDocument) (string, error)
     BuildCustomReport(data *model.OpnSenseDocument, options BuildOptions) (string, error)
-    
+
     // Section builders
     BuildSystemSection(data *model.OpnSenseDocument) string
     BuildNetworkSection(data *model.OpnSenseDocument) string
     BuildSecuritySection(data *model.OpnSenseDocument) string
     BuildServicesSection(data *model.OpnSenseDocument) string
-    
+
     // Component builders
     BuildFirewallRulesTable(rules []model.Rule) *markdown.TableSet
     BuildInterfaceTable(interfaces model.Interfaces) *markdown.TableSet
@@ -107,12 +107,12 @@ type ReportBuilder interface {
        if data == nil {
            return "", fmt.Errorf("configuration data cannot be nil")
        }
-       
+
        // Implementation...
        if err := someOperation(); err != nil {
            return "", fmt.Errorf("failed to build section: %w", err)
        }
-       
+
        return result, nil
    }
    ```
@@ -123,11 +123,11 @@ type ReportBuilder interface {
    func (b *MarkdownBuilder) ProcessLargeDataset(items []model.Item) []ProcessedItem {
        // Pre-allocate with estimated capacity
        result := make([]ProcessedItem, 0, len(items))
-       
+
        // Use strings.Builder for efficient string concatenation
        var builder strings.Builder
        builder.Grow(1024) // Pre-allocate capacity
-       
+
        // Process items...
        return result
    }
@@ -165,7 +165,7 @@ func TestMarkdownBuilder_FilterSystemTunables(t *testing.T) {
             expected:     1,
         },
     }
-    
+
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
             builder := converter.NewMarkdownBuilder()
@@ -182,7 +182,7 @@ func TestMarkdownBuilder_FilterSystemTunables(t *testing.T) {
 func BenchmarkMarkdownBuilder_CalculateSecurityScore(b *testing.B) {
     builder := converter.NewMarkdownBuilder()
     config := loadTestConfig()
-    
+
     b.ResetTimer()
     for i := 0; i < b.N; i++ {
         _ = builder.CalculateSecurityScore(config)
@@ -196,16 +196,16 @@ func BenchmarkMarkdownBuilder_CalculateSecurityScore(b *testing.B) {
 func TestMarkdownBuilder_BuildStandardReport(t *testing.T) {
     // Load test configuration
     config := loadTestConfig("testdata/sample-config.xml")
-    
+
     // Generate report
     builder := converter.NewMarkdownBuilder()
     report, err := builder.BuildStandardReport(config)
-    
+
     // Validate results
     require.NoError(t, err)
     assert.Contains(t, report, "# OPNsense Configuration")
     assert.Contains(t, report, "## System Information")
-    
+
     // Validate markdown syntax
     err = validateMarkdownSyntax(report)
     assert.NoError(t, err)
@@ -237,13 +237,14 @@ func (b *MarkdownBuilder) FormatUptime(seconds int) string {
 
 ## Project Structure
 
+```text
+opndossier/
 │ ├── display/ # Output formatting (Lipgloss)
 │ ├── export/ # File export logic
 │ └── log/ # Logging utilities
 ├── docs/ # Documentation
 └── tests/ # Test files
-
-````
+```
 
 ## Development Workflow
 
@@ -255,7 +256,7 @@ git checkout -b feat/your-feature-name
 
 # Or for bug fixes
 git checkout -b fix/issue-description
-````
+```
 
 ### 2. Development Commands
 
@@ -357,13 +358,13 @@ Use proper error wrapping and context:
 func processFile(path string) error {
     file, err := os.Open(path)
     if err != nil {
-        return fmt.Errorf(\"failed to open file %s: %w\", path, err)
+        return fmt.Errorf("failed to open file %s: %w", path, err)
     }
     defer file.Close()
 
     // Process file...
     if err := someOperation(); err != nil {
-        return fmt.Errorf(\"failed to process file %s: %w\", path, err)
+        return fmt.Errorf("failed to process file %s: %w", path, err)
     }
 
     return nil
@@ -371,7 +372,7 @@ func processFile(path string) error {
 
 // Bad: Don't use log.Fatal or panic in library code
 func badExample() {
-    log.Fatal(\"This terminates the program\") // Never do this
+    log.Fatal("This terminates the program") // Never do this
 }
 ```
 
@@ -383,12 +384,12 @@ Use structured logging with charmbracelet/log:
 // Good: Structured logging with context
 logger := log.New()
 
-logger.Info(\"Starting conversion\", \"input_file\", inputPath)
-logger.Debug(\"Processing section\", \"section\", sectionName, \"count\", itemCount)
+logger.Info("Starting conversion", "input_file", inputPath)
+logger.Debug("Processing section", "section", sectionName, "count", itemCount)
 
 // With fields for additional context
-ctxLogger := logger.With(\"operation\", \"convert\")
-ctxLogger.Error(\"Conversion failed\", \"error\", err)
+ctxLogger := logger.With("operation", "convert")
+ctxLogger.Error("Conversion failed", "error", err)
 ```
 
 ### Testing Standards
@@ -405,17 +406,17 @@ func TestConfigLoad(t *testing.T) {
         wantErr     bool
     }{
         {
-            name:       \"default config\",
-            configFile: \"\",
+            name:       "default config",
+            configFile: "",
             envVars:    nil,
-            want:       &Config{LogLevel: \"info\"},
+            want:       &Config{LogLevel: "info"},
             wantErr:    false,
         },
         {
-            name:       \"env var override\",
-            configFile: \"\",
-            envVars:    map[string]string{\"OPNDOSSIER_LOG_LEVEL\": \"debug\"},
-            want:       &Config{LogLevel: \"debug\"},
+            name:       "env var override",
+            configFile: "",
+            envVars:    map[string]string{"OPNDOSSIER_LOG_LEVEL": "debug"},
+            want:       &Config{LogLevel: "debug"},
             wantErr:    false,
         },
     }
@@ -429,11 +430,11 @@ func TestConfigLoad(t *testing.T) {
 
             got, err := LoadConfig(tt.configFile)
             if (err != nil) != tt.wantErr {
-                t.Errorf(\"LoadConfig() error = %v, wantErr %v\", err, tt.wantErr)
+                t.Errorf("LoadConfig() error = %v, wantErr %v", err, tt.wantErr)
                 return
             }
             if !reflect.DeepEqual(got, tt.want) {
-                t.Errorf(\"LoadConfig() = %v, want %v\", got, tt.want)
+                t.Errorf("LoadConfig() = %v, want %v", got, tt.want)
             }
         })
     }
@@ -468,7 +469,7 @@ type Config struct {
 ```go
 func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
     // Existing defaults...
-    v.SetDefault(\"new_option\", \"default_value\")
+    v.SetDefault("new_option", "default_value")
     // ...
 }
 ```
@@ -488,10 +489,10 @@ func init() {
 ```go
 func (c *Config) Validate() error {
     // Existing validation...
-    if c.NewOption == \"\" {
+    if c.NewOption == "" {
         validationErrors = append(validationErrors, ValidationError{
-            Field:   \"new_option\",
-            Message: \"new_option cannot be empty\",
+            Field:   "new_option",
+            Message: "new_option cannot be empty",
         })
     }
     // ...
@@ -520,8 +521,8 @@ func (c *Config) Validate() error {
 ```go
 // cmd/newcommand.go
 var newCmd = &cobra.Command{
-    Use:   \"new [args]\",
-    Short: \"Brief description\",
+    Use:   "new [args]",
+    Short: "Brief description",
     Long: `Detailed description with configuration info:
 
 CONFIGURATION:
@@ -573,7 +574,7 @@ go test -v ./...
 
 ### Test File Organization
 
-```
+```text
 internal/config/
 ├── config.go
 ├── config_test.go          # Unit tests

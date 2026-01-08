@@ -6,26 +6,26 @@ Phase 3.7 introduces programmatic generation as the default mode for improved pe
 
 ## Key Changes
 
-### 🚀 **New Default: Programmatic Mode**
+### New Default: Programmatic Mode
 
 - **Before**: Template-based generation was the default
 - **After**: Programmatic generation is the default
 - **Benefits**: Faster execution, enhanced security, deterministic output
 
-Note: the template engine is Markdown-only — JSON and YAML outputs are always produced programmatically.
+Note: the template engine is Markdown-only - JSON and YAML outputs are always produced programmatically.
 
-### 🎛️ **New CLI Flags**
+### New CLI Flags
 
 - `--engine {programmatic|template}` - Explicit engine selection (highest precedence)
 - `--use-template` - Enable built-in template mode
 - `--legacy` - Enable legacy template mode (deprecated, shows warning)
 
-### ⚙️ **Enhanced Configuration**
+### Enhanced Configuration
 
 - `engine: "programmatic"` - Set default engine in config file
 - `use_template: true` - Enable template mode in config file
 
-### 🔧 **Environment Variables**
+### Environment Variables
 
 All configuration options support environment variables with `OPNDOSSIER_` prefix for CI/offline usage:
 
@@ -166,10 +166,10 @@ template: comprehensive
 
 ## Performance Comparison
 
-| Mode                   | Performance | Security   | Features         |
-| ---------------------- | ----------- | ---------- | ---------------- |
-| Programmatic (default) | ⭐⭐⭐⭐⭐  | ⭐⭐⭐⭐⭐ | Full feature set |
-| Template               | ⭐⭐⭐      | ⭐⭐⭐⭐   | Full feature set |
+| Mode                   | Performance | Security | Features         |
+| ---------------------- | ----------- | -------- | ---------------- |
+| Programmatic (default) | 5/5         | 5/5      | Full feature set |
+| Template               | 3/5         | 4/5      | Full feature set |
 
 ## Testing Your Migration
 
