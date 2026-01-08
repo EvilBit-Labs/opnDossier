@@ -6,7 +6,7 @@ This document outlines the major architectural improvements, feature enhancement
 
 ## Core Architectural Changes
 
-### 1. **Programmatic Markdown Generation Completion** 🎯
+### 1. **Programmatic Markdown Generation Completion**
 
 - **Status**: Already planned in [issue #73](https://github.com/EvilBit-Labs/opnDossier/issues/73)
 - **Priority**: High
@@ -26,7 +26,7 @@ This document outlines the major architectural improvements, feature enhancement
   - `config.GetLogLevel()` and `config.GetLogFormat()` - deprecated methods
   - Old template rendering paths after programmatic generation is complete
 
-### 3. **Audit Mode Implementation** 🛡️
+### 3. **Audit Mode Implementation**
 
 - **Status**: Already planned in [Issue #26](https://github.com/EvilBit-Labs/opnDossier/issues/26) for v1.1 milestone
 - **Priority**: High (but scheduled for v1.1, not v2.0)
@@ -41,7 +41,7 @@ This document outlines the major architectural improvements, feature enhancement
 
 ## Feature Enhancements
 
-### 4. **Enhanced Configuration Analysis** 📊
+### 4. **Enhanced Configuration Analysis**
 
 - **Priority**: Medium
 - **Description**: Expand the analysis capabilities
@@ -54,7 +54,7 @@ This document outlines the major architectural improvements, feature enhancement
   - `internal/processor/analyze.go` (lines 130, 189, 202)
   - `internal/model/enrichment.go` (line 398)
 
-### 5. **Template System Redesign** 🔧
+### 5. **Template System Redesign**
 
 - **Priority**: Medium
 - **Description**: Rethink template and plugin architecture
@@ -64,7 +64,7 @@ This document outlines the major architectural improvements, feature enhancement
   - Cleaner separation between built-in and custom functionality
   - More intuitive user experience for customization
 
-### 6. **Enhanced Configuration Validation & Enrichment** ✅
+### 6. **Enhanced Configuration Validation & Enrichment**
 
 - **Priority**: Medium
 - **Description**: Improve configuration validation and data enrichment
@@ -87,7 +87,7 @@ This document outlines the major architectural improvements, feature enhancement
 
 ## User Experience Improvements
 
-### 8. **CLI and UX Polish** 🎨
+### 8. **CLI and UX Polish**
 
 - **Priority**: Medium
 - **Description**: Improve command-line interface and user experience
@@ -111,7 +111,7 @@ This document outlines the major architectural improvements, feature enhancement
 
 ## Technical Debt and Maintenance
 
-### 10. **Code Quality and Documentation** 📚
+### 10. **Code Quality and Documentation**
 
 - **Priority**: Medium
 - **Description**: Improve code maintainability and documentation
@@ -122,7 +122,7 @@ This document outlines the major architectural improvements, feature enhancement
   - Consistent logging practices
   - Security best practices audit
 
-### 11. **Performance Optimization** ⚡
+### 11. **Performance Optimization**
 
 - **Priority**: Low-Medium
 - **Description**: Optimize for better performance with large configurations

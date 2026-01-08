@@ -1,14 +1,6 @@
 # opnDossier - OPNsense Configuration Processor
 
-[![Go Version](https://img.shields.io/badge/go-1.21+-blue.svg)](https://golang.org)
-[![License](https://img.shields.io/badge/license-Apache-green.svg)](LICENSE)
-[![codecov](https://codecov.io/gh/EvilBit-Labs/opnDossier/graph/badge.svg?token=WD1QD9ITZF)](https://codecov.io/gh/EvilBit-Labs/opnDossier)
-[![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/index.md)
-[![CI](https://github.com/EvilBit-Labs/opnDossier/actions/workflows/ci-check.yml/badge.svg)](https://github.com/EvilBit-Labs/opnDossier/actions/workflows/ci-check.yml)
-[![CodeQL](https://github.com/EvilBit-Labs/opnDossier/actions/workflows/codeql.yml/badge.svg)](https://github.com/EvilBit-Labs/opnDossier/actions/workflows/codeql.yml)
-![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/EvilBit-Labs/opnDossier?utm_source=oss&utm_medium=github&utm_campaign=EvilBit-Labs%2FopnDossier&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
-[![wakatime](https://wakatime.com/badge/user/2d2fbc27-e3f7-4ec1-b2a7-935e48bad498/project/018dae18-42c0-4e3e-8330-14d39f574bd5.svg)](https://wakatime.com/badge/user/2d2fbc27-e3f7-4ec1-b2a7-935e48bad498/project/018dae18-42c0-4e3e-8330-14d39f574bd5)
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FEvilBit-Labs%2FopnDossier.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FEvilBit-Labs%2FopnDossier?ref=badge_shield)
+[![Go Version](https://img.shields.io/badge/go-1.21+-blue.svg)](https://golang.org) [![License](https://img.shields.io/badge/license-Apache-green.svg)](LICENSE) [![codecov](https://codecov.io/gh/EvilBit-Labs/opnDossier/graph/badge.svg?token=WD1QD9ITZF)](https://codecov.io/gh/EvilBit-Labs/opnDossier) [![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/index.md) [![CI](https://github.com/EvilBit-Labs/opnDossier/actions/workflows/ci-check.yml/badge.svg)](https://github.com/EvilBit-Labs/opnDossier/actions/workflows/ci-check.yml) [![CodeQL](https://github.com/EvilBit-Labs/opnDossier/actions/workflows/codeql.yml/badge.svg)](https://github.com/EvilBit-Labs/opnDossier/actions/workflows/codeql.yml) ![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/EvilBit-Labs/opnDossier?utm_source=oss&utm_medium=github&utm_campaign=EvilBit-Labs%2FopnDossier&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews) [![wakatime](https://wakatime.com/badge/user/2d2fbc27-e3f7-4ec1-b2a7-935e48bad498/project/018dae18-42c0-4e3e-8330-14d39f574bd5.svg)](https://wakatime.com/badge/user/2d2fbc27-e3f7-4ec1-b2a7-935e48bad498/project/018dae18-42c0-4e3e-8330-14d39f574bd5) [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FEvilBit-Labs%2FopnDossier.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FEvilBit-Labs%2FopnDossier?ref=badge_shield)
 
 ## Overview
 
@@ -124,12 +116,12 @@ opnDossier convert config.xml -o report.md --template-override
 
 | Feature          | Template Mode (v1.x) | Programmatic Mode (v2.0+) |
 | ---------------- | -------------------- | ------------------------- |
-| Generation Speed | Baseline             | ⚡ **74% faster**         |
-| Memory Usage     | Baseline             | 💾 **78% less**           |
-| Type Safety      | Runtime errors       | 🛡️ **Compile-time**       |
-| IDE Support      | Limited              | 🔧 **Full IntelliSense**  |
-| Offline Support  | Partial              | 🔒 **Complete**           |
-| Throughput       | 170 reports/sec      | ⚡ **643 reports/sec**    |
+| Generation Speed | Baseline             | **74% faster**            |
+| Memory Usage     | Baseline             | **78% less**              |
+| Type Safety      | Runtime errors       | **Compile-time**          |
+| IDE Support      | Limited              | **Full IntelliSense**     |
+| Offline Support  | Partial              | **Complete**              |
+| Throughput       | 170 reports/sec      | **643 reports/sec**       |
 
 > **Migration Guide**: See our [detailed migration guide](docs/migration.md) for step-by-step instructions to transition from template mode to programmatic generation.
 
@@ -154,10 +146,10 @@ input_file: /path/to/default/config.xml
 output_file: ./output.md
 
 # Logging configuration
-log_level: info       # debug, info, warn, error
-log_format: text      # text, json
-verbose: false        # Enable debug logging
-quiet: false          # Suppress all output except errors
+log_level: info # debug, info, warn, error
+log_format: text # text, json
+verbose: false # Enable debug logging
+quiet: false # Suppress all output except errors
 ```
 
 #### Environment Variables
@@ -419,12 +411,12 @@ For security issues, please see our security policy.
 
 This project follows the [EvilBit Labs Pipeline v2 Specification](https://github.com/EvilBit-Labs/Standards/blob/main/pipeline_v_2_spec.md) for OSS project quality gates and tooling:
 
-- ✅ **Security Scanning**: GitHub CodeQL, Grype vulnerability scanning, Snyk integration
-- ✅ **License Compliance**: FOSSA license scanning and policy enforcement
-- ✅ **Supply Chain Security**: SLSA Level 3 provenance, Cosign artifact signing, SBOM generation
-- ✅ **Code Quality**: golangci-lint, comprehensive testing with coverage reporting
-- ✅ **Repository Hygiene**: OSSF Scorecard, automated dependency updates
-- ✅ **CI/CD Standards**: GitHub Actions with local/CI parity via `just` commands
+- **Security Scanning**: GitHub CodeQL, Grype vulnerability scanning, Snyk integration
+- **License Compliance**: FOSSA license scanning and policy enforcement
+- **Supply Chain Security**: SLSA Level 3 provenance, Cosign artifact signing, SBOM generation
+- **Code Quality**: golangci-lint, comprehensive testing with coverage reporting
+- **Repository Hygiene**: OSSF Scorecard, automated dependency updates
+- **CI/CD Standards**: GitHub Actions with local/CI parity via `just` commands
 
 ### Exceptions
 
@@ -468,4 +460,4 @@ This project is licensed under the Apache License - see the [LICENSE](LICENSE) f
 
 ---
 
-*Built with :heart: for network operators everywhere.*
+_Built with :heart: for network operators everywhere._

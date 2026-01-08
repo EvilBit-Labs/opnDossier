@@ -270,13 +270,15 @@ func validateEngine(c *Config, validationErrors *[]ValidationError) {
 func combineValidationErrors(validationErrors []ValidationError) error {
 	var errMsg string
 
+	var errMsgSb273 strings.Builder
 	for i, err := range validationErrors {
 		if i > 0 {
-			errMsg += "; "
+			errMsgSb273.WriteString("; ")
 		}
 
-		errMsg += err.Error()
+		errMsgSb273.WriteString(err.Error())
 	}
+	errMsg += errMsgSb273.String()
 
 	return &ValidationError{
 		Field:   "config",
@@ -285,6 +287,7 @@ func combineValidationErrors(validationErrors []ValidationError) error {
 }
 
 // GetLogLevel returns the configured log level.
+//
 // Deprecated: This method is deprecated and will be removed in a future version.
 // Use IsVerbose() and IsQuiet() methods instead for logging control.
 // The log level is now determined by the Verbose and Quiet flags:
@@ -304,6 +307,7 @@ func (c *Config) GetLogLevel() string {
 }
 
 // GetLogFormat returns the configured log format.
+//
 // Deprecated: This method is deprecated and will be removed in a future version.
 // Log format is now hardcoded to "text" format for consistency.
 func (c *Config) GetLogFormat() string {
