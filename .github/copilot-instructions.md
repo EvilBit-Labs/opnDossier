@@ -35,7 +35,7 @@ opnDossier is a tool for auditing and reporting on OPNsense configurations, with
 
 ## Project Architecture & Data Flow
 
-- **Monolithic Go CLI**: Converts OPNsense `config.xml` to Markdown, JSON, or YAML. No external network calls—offline-first.
+- **Monolithic Go CLI**: Converts OPNsense `config.xml` to Markdown, JSON, or YAML. No external network calls - offline-first.
 
 - **Major Components**:
 
@@ -67,13 +67,13 @@ opnDossier is a tool for auditing and reporting on OPNsense configurations, with
 ## Critical Workflows
 
 - **All development tasks use `just`** (see `justfile`):
-  - `just install` – install dependencies
-  - `just build` – build binary
-  - `just test` – run all tests
-  - `just lint` – run golangci-lint
-  - `just ci-check` – run full CI-equivalent checks (must pass before reporting success)
-  - `just format` – format code and documentation
-  - `just dev` – run in development mode
+  - `just install` - install dependencies
+  - `just build` - build binary
+  - `just test` - run all tests
+  - `just lint` - run golangci-lint
+  - `just ci-check` - run full CI-equivalent checks (must pass before reporting success)
+  - `just format` - format code and documentation
+  - `just dev` - run in development mode
 - **No external dependencies**: All code must run fully offline.
 - **Never commit code without explicit user permission.**
 
@@ -221,7 +221,7 @@ All commit messages must follow the [Conventional Commits](https://www.conventio
 ## Integration & Plugin Patterns
 
 - **Audit Plugins**: Implement `CompliancePlugin` interface (`internal/plugin/interfaces.go`). Register in `internal/audit/plugin_manager.go`.
-- **Plugin Structure**: Place in `internal/plugins/{standard}/`. Use generic `Finding` struct—no compliance-specific fields.
+- **Plugin Structure**: Place in `internal/plugins/{standard}/`. Use generic `Finding` struct - no compliance-specific fields.
 - **Multi-Format Export**: Add new formats in `internal/converter/` and templates in `internal/templates/`.
 
 ## Project Structure
