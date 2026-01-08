@@ -57,16 +57,19 @@ WORKFLOW EXAMPLES:
 		}
 
 		// Initialize logger after config load with proper verbose/quiet handling
-		// GetLogLevel() and GetLogFormat() are deprecated but still functional
-		// They now handle the verbose/quiet logic internally
-		logLevel := Cfg.GetLogLevel()
-		logFormat := Cfg.GetLogFormat()
+		// Determine log level based on verbose/quiet flags
+		logLevel := "info"
+		if Cfg.IsQuiet() {
+			logLevel = "error"
+		} else if Cfg.IsVerbose() {
+			logLevel = "debug"
+		}
 
 		// Create new logger with centralized configuration
 		var loggerErr error
 		logger, loggerErr = log.New(log.Config{
 			Level:           logLevel,
-			Format:          logFormat,
+			Format:          "text", // Log format is hardcoded to "text" for consistency
 			Output:          os.Stderr,
 			ReportCaller:    true,
 			ReportTimestamp: true,

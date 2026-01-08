@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
@@ -21,6 +22,7 @@ func TestDetermineGenerationEngine(t *testing.T) {
 		sharedCustomTemplate string
 		sharedUseTemplate    bool
 		expected             bool // true = template mode, false = programmatic mode
+		expectError          bool // true if error is expected
 	}{
 		{
 			name:     "default should use programmatic mode",
@@ -37,9 +39,9 @@ func TestDetermineGenerationEngine(t *testing.T) {
 			expected:     true,
 		},
 		{
-			name:         "unknown engine defaults to programmatic",
+			name:         "unknown engine returns error",
 			sharedEngine: "unknown",
-			expected:     false,
+			expectError:  true,
 		},
 		{
 			name:         "legacy flag enables template mode",
@@ -78,7 +80,21 @@ func TestDetermineGenerationEngine(t *testing.T) {
 			sharedCustomTemplate = tt.sharedCustomTemplate
 			sharedUseTemplate = tt.sharedUseTemplate
 
-			result := determineGenerationEngine(logger)
+			result, err := determineGenerationEngine(logger)
+
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("determineGenerationEngine() expected error, got nil")
+				} else if !errors.Is(err, ErrUnknownEngineType) {
+					t.Errorf("determineGenerationEngine() expected ErrUnknownEngineType, got %v", err)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("determineGenerationEngine() unexpected error: %v", err)
+				return
+			}
 			if result != tt.expected {
 				t.Errorf("determineGenerationEngine() = %v, expected %v", result, tt.expected)
 			}

@@ -6,23 +6,23 @@ This document details how opnDossier implements the [EvilBit Labs Pipeline v2 Sp
 
 Pipeline v2 defines mandatory tooling and quality gates for all EvilBit Labs public OSS projects, focusing on:
 
-- **Consistency** – Same core tools and gates across all projects
-- **Local/CI parity** – All CI steps runnable locally via `just`
-- **Fail fast** – Blocking gates for linting, testing, security, and licensing
-- **Trustworthiness** – Signed releases with SBOM and provenance
-- **Airgap-ready** – Offline-capable artifacts with verification metadata
+- **Consistency** - Same core tools and gates across all projects
+- **Local/CI parity** - All CI steps runnable locally via `just`
+- **Fail fast** - Blocking gates for linting, testing, security, and licensing
+- **Trustworthiness** - Signed releases with SBOM and provenance
+- **Airgap-ready** - Offline-capable artifacts with verification metadata
 
 ## Implementation Status
 
-### ✅ **Go Language Tooling (Section 3.1)**
+### Go Language Tooling (Section 3.1)
 
-| Requirement        | Implementation                                         | Status      |
-| ------------------ | ------------------------------------------------------ | ----------- |
-| **Build/Release**  | GoReleaser with homebrew, nfpm, archives, Docker       | ✅ Complete |
-| **Lint**           | `golangci-lint` with comprehensive configuration       | ✅ Complete |
-| **Test/Coverage**  | `go test ./... -cover -race` with 85% minimum coverage | ✅ Complete |
-| **Race Detection** | Mandatory `-race` flag in all test commands            | ✅ Complete |
-| **Airgap Builds**  | GOMODCACHE + vendor directory for offline builds       | ✅ Complete |
+| Requirement        | Implementation                                         | Status   |
+| ------------------ | ------------------------------------------------------ | -------- |
+| **Build/Release**  | GoReleaser with homebrew, nfpm, archives, Docker       | Complete |
+| **Lint**           | `golangci-lint` with comprehensive configuration       | Complete |
+| **Test/Coverage**  | `go test ./... -cover -race` with 85% minimum coverage | Complete |
+| **Race Detection** | Mandatory `-race` flag in all test commands            | Complete |
+| **Airgap Builds**  | GOMODCACHE + vendor directory for offline builds       | Complete |
 
 **Files:**
 
@@ -43,18 +43,18 @@ Pipeline v2 defines mandatory tooling and quality gates for all EvilBit Labs pub
 - **Reproducible Builds**: All builds use locked dependency versions via `go.sum`
 - **Offline Verification**: Build process validates all dependencies are available locally
 
-### ✅ **Cross-Cutting Tools (Section 4)**
+### Cross-Cutting Tools (Section 4)
 
-| Tool                       | Implementation                                   | Status      |
-| -------------------------- | ------------------------------------------------ | ----------- |
-| **Commit Discipline**      | Conventional Commits via pre-commit + CodeRabbit | ✅ Complete |
-| **Security Analysis**      | GitHub CodeQL                                    | ✅ Complete |
-| **SBOM Generation**        | Syft (SPDX JSON) via GoReleaser                  | ✅ Complete |
-| **Vulnerability Scanning** | Grype via GitHub Actions                         | ✅ Complete |
-| **License Scanning**       | FOSSA integration (GitHub App)                   | ✅ Complete |
-| **Signing & Attestation**  | Cosign + SLSA Level 3                            | ✅ Complete |
-| **Coverage Reporting**     | Codecov integration                              | ✅ Complete |
-| **AI-Assisted Review**     | CodeRabbit.ai                                    | ✅ Complete |
+| Tool                       | Implementation                                   | Status   |
+| -------------------------- | ------------------------------------------------ | -------- |
+| **Commit Discipline**      | Conventional Commits via pre-commit + CodeRabbit | Complete |
+| **Security Analysis**      | GitHub CodeQL                                    | Complete |
+| **SBOM Generation**        | Syft (SPDX JSON) via GoReleaser                  | Complete |
+| **Vulnerability Scanning** | Grype via GitHub Actions                         | Complete |
+| **License Scanning**       | FOSSA integration (GitHub App)                   | Complete |
+| **Signing & Attestation**  | Cosign + SLSA Level 3                            | Complete |
+| **Coverage Reporting**     | Codecov integration                              | Complete |
+| **AI-Assisted Review**     | CodeRabbit.ai                                    | Complete |
 
 **Files:**
 
