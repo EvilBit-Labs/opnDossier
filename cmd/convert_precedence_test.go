@@ -161,7 +161,12 @@ func TestFlagPrecedence(t *testing.T) {
 			sharedCustomTemplate = tt.sharedCustomTemplate
 			sharedUseTemplate = tt.sharedUseTemplate
 
-			result := determineGenerationEngine(logger)
+			result, err := determineGenerationEngine(logger)
+			if err != nil {
+				t.Errorf("%s: determineGenerationEngine() unexpected error: %v",
+					tt.description, err)
+				return
+			}
 			if result != tt.expected {
 				t.Errorf("%s: determineGenerationEngine() = %v, expected %v",
 					tt.description, result, tt.expected)

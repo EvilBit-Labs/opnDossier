@@ -1,5 +1,4 @@
 //go:build completeness
-// +build completeness
 
 package model
 
