@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"os"
 	"testing"
 
@@ -97,14 +98,13 @@ func TestGenerateOutputByFormatSimple(t *testing.T) {
 		t.Logf("JSON format failed as expected: %v", err)
 	}
 
-	// Test unknown format (should default to markdown)
+	// Test unknown format (should return an error)
 	opt.Format = markdown.Format("unknown")
-	result, err = generateOutputByFormat(ctx, opnsense, opt, logger, nil)
-	if err != nil {
-		t.Errorf("Unexpected error for unknown format: %v", err)
-	}
-	if result == "" {
-		t.Errorf("Expected non-empty result for unknown format")
+	_, err = generateOutputByFormat(ctx, opnsense, opt, logger, nil)
+	if err == nil {
+		t.Errorf("Expected error for unknown format, got nil")
+	} else if !errors.Is(err, ErrUnsupportedOutputFormat) {
+		t.Errorf("Expected ErrUnsupportedOutputFormat, got: %v", err)
 	}
 }
 

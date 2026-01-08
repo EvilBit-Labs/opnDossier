@@ -275,8 +275,12 @@ func validateTrack6(iface *model.Interface, validInterfaceNames map[string]struc
 				}
 
 				errors = append(errors, ValidationError{
-					Field:   fmt.Sprintf("interfaces.%s.track6-interface", name),
-					Message: fmt.Sprintf("track6-interface '%s' must reference a configured interface: %v", iface.Track6Interface, interfaceList),
+					Field: fmt.Sprintf("interfaces.%s.track6-interface", name),
+					Message: fmt.Sprintf(
+						"track6-interface '%s' must reference a configured interface: %v",
+						iface.Track6Interface,
+						interfaceList,
+					),
 				})
 			}
 		}
@@ -393,11 +397,8 @@ func collectInterfaceNames(ifaces *model.Interfaces) map[string]struct{} {
 // validateFilter checks each firewall filter rule for valid type, IP protocol, interface, and source network values.
 // stripIPSuffix removes the trailing "ip" suffix from a network string, if present.
 func stripIPSuffix(network string) string {
-	if strings.HasSuffix(network, "ip") {
-		return strings.TrimSuffix(network, "ip")
-	}
-
-	return network
+	result, _ := strings.CutSuffix(network, "ip")
+	return result
 }
 
 // isReservedNetwork returns true if the provided network string is a reserved keyword such as "any", "lan", "wan", "localhost", "loopback", or "(self)".
