@@ -128,5 +128,4 @@ opnDossier validate testdata/sample.config.3.xml
 
 ---
 
-For detailed command reference, see the [Usage Guide](../user-guide/usage.md).
-For installation instructions, see the [Installation Guide](../user-guide/installation.md).
+For detailed command reference, see the [Usage Guide](../user-guide/usage.md). For installation instructions, see the [Installation Guide](../user-guide/installation.md).
