@@ -1,4 +1,4 @@
-{{/* blue_enhanced.md.tmpl — Enhanced Blue Team Defensive Report with STIG/SANS Compliance */}}
+{{/* blue_enhanced.md.tmpl - Enhanced Blue Team Defensive Report with STIG/SANS Compliance */}}
 
 # OpnDossier - Enhanced Defensive Audit Report
 
@@ -272,7 +272,7 @@ _No medium-term improvements identified._
 | Interface | Enabled | Scope | DNS | Lease Time | Security |
 |-----------|---------|-------|-----|------------|----------|
 {{- range .DHCP }}
-| {{ .Interface }} | {{ .Enabled }} | {{ .RangeStart }}–{{ .RangeEnd }} | {{ .DNS }} | {{ .LeaseTime }} | {{ getDHCPSecurity . }} |
+| {{ .Interface }} | {{ .Enabled }} | {{ .RangeStart }}-{{ .RangeEnd }} | {{ .DNS }} | {{ .LeaseTime }} | {{ getDHCPSecurity . }} |
 {{- end }}
 
 ### Routing Configuration
