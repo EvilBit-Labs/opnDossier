@@ -2,7 +2,7 @@
 # opnDossier Migration Validation Tool v2.0
 # Validates migration from template-based to programmatic markdown generation
 
-set -e  # Exit on any error
+set -euo pipefail  # Exit on error/unset vars; catch pipeline failures
 
 # Default values
 TEMPLATE_DIR="${1:-.}"
@@ -25,6 +25,11 @@ print_status() {
 # Function to print error to stderr
 print_error() {
     print_status "$RED" "$1" >&2
+}
+
+# Function to print warnings in a consistent, dumb-terminal-safe way
+print_warning() {
+    print_status "$YELLOW" "[WARNING] $1"
 }
 
 # Function to display usage
@@ -133,14 +138,14 @@ if [ -d "$TEMPLATES_DIR" ]; then
                 # Capitalize first character for Go method name (portable for Bash 3.2+)
                 func_cap="$(printf '%s' "$func" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')"
                 if ! grep -q "func (b \*MarkdownBuilder) ${func_cap}" internal/converter/*.go 2>/dev/null; then
-                    print_status "$YELLOW" "  ⚠ Function '$func' may not have a Go equivalent"
+                    print_warning "  Function '$func' may not have a Go equivalent"
                     UNMIGRATED_COUNT=$((UNMIGRATED_COUNT + 1))
                 fi
             done <<< "$FUNCTIONS"
 
             if [ $UNMIGRATED_COUNT -gt 0 ]; then
                 echo ""
-                print_status "$YELLOW" "⚠ $UNMIGRATED_COUNT function(s) may need migration"
+                print_warning "$UNMIGRATED_COUNT function(s) may need migration"
                 print_status "$BLUE" "  Reference: docs/template-function-migration.md for mapping details"
             else
                 print_status "$GREEN" "✓ All detected functions appear to have Go equivalents"
@@ -152,7 +157,7 @@ if [ -d "$TEMPLATES_DIR" ]; then
         print_status "$YELLOW" "  No template files found in $TEMPLATES_DIR"
     fi
 else
-    print_status "$YELLOW" "⚠ No custom templates directory found at: $TEMPLATES_DIR"
+    print_warning "No custom templates directory found at: $TEMPLATES_DIR"
     print_status "$BLUE" "  This is expected if you're not using custom templates"
 fi
 
@@ -169,7 +174,7 @@ if [ -f "$SAMPLE_CONFIG" ]; then
         TEMPLATE_LINES=$(wc -l < /tmp/report-template.md)
         print_status "$GREEN" "✓ Template report generated ($TEMPLATE_LINES lines)"
     else
-        print_status "$YELLOW" "⚠ Template report generation failed (expected if no templates exist)"
+        print_warning "Template report generation failed (expected if no templates exist)"
     fi
 
     # Generate programmatic mode report
@@ -203,13 +208,13 @@ if [ -f "$SAMPLE_CONFIG" ]; then
             print_status "$GREEN" "✓ Reports are identical"
             rm -f /tmp/migration-diff.txt
         else
-            print_status "$YELLOW" "⚠ Reports differ - see /tmp/migration-diff.txt for details"
+            print_warning "Reports differ - see /tmp/migration-diff.txt for details"
             DIFF_LINES=$(wc -l < /tmp/migration-diff.txt)
             echo "  Diff file: /tmp/migration-diff.txt ($DIFF_LINES lines)"
         fi
     fi
 else
-    print_status "$YELLOW" "⚠ Sample config file not found: $SAMPLE_CONFIG"
+    print_warning "Sample config file not found: $SAMPLE_CONFIG"
     print_status "$BLUE" "  Skipping comparison report generation"
     print_status "$BLUE" "  Provide a sample config.xml file to enable comparison"
 fi
