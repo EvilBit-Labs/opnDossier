@@ -146,10 +146,10 @@ input_file: /path/to/default/config.xml
 output_file: ./output.md
 
 # Logging configuration
-log_level: info       # debug, info, warn, error
-log_format: text      # text, json
-verbose: false        # Enable debug logging
-quiet: false          # Suppress all output except errors
+log_level: info # debug, info, warn, error
+log_format: text # text, json
+verbose: false # Enable debug logging
+quiet: false # Suppress all output except errors
 ```
 
 #### Environment Variables
@@ -411,12 +411,12 @@ For security issues, please see our security policy.
 
 This project follows the [EvilBit Labs Pipeline v2 Specification](https://github.com/EvilBit-Labs/Standards/blob/main/pipeline_v_2_spec.md) for OSS project quality gates and tooling:
 
-- ✅ **Security Scanning**: GitHub CodeQL, Grype vulnerability scanning, Snyk integration
-- ✅ **License Compliance**: FOSSA license scanning and policy enforcement
-- ✅ **Supply Chain Security**: SLSA Level 3 provenance, Cosign artifact signing, SBOM generation
-- ✅ **Code Quality**: golangci-lint, comprehensive testing with coverage reporting
-- ✅ **Repository Hygiene**: OSSF Scorecard, automated dependency updates
-- ✅ **CI/CD Standards**: GitHub Actions with local/CI parity via `just` commands
+- **Security Scanning**: GitHub CodeQL, Grype vulnerability scanning, Snyk integration
+- **License Compliance**: FOSSA license scanning and policy enforcement
+- **Supply Chain Security**: SLSA Level 3 provenance, Cosign artifact signing, SBOM generation
+- **Code Quality**: golangci-lint, comprehensive testing with coverage reporting
+- **Repository Hygiene**: OSSF Scorecard, automated dependency updates
+- **CI/CD Standards**: GitHub Actions with local/CI parity via `just` commands
 
 ### Exceptions
 
@@ -460,4 +460,4 @@ This project is licensed under the Apache License - see the [LICENSE](LICENSE) f
 
 ---
 
-*Built with :heart: for network operators everywhere.*
+_Built with :heart: for network operators everywhere._
