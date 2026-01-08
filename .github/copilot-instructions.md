@@ -36,7 +36,9 @@ opnDossier is a tool for auditing and reporting on OPNsense configurations, with
 ## Project Architecture & Data Flow
 
 - **Monolithic Go CLI**: Converts OPNsense `config.xml` to Markdown, JSON, or YAML. No external network calls—offline-first.
+
 - **Major Components**:
+
   - `cmd/`: CLI entrypoints (`convert`, `display`, `validate`). See `cmd/root.go` for command registration.
   - `internal/parser/`: XML parsing to Go structs (`OpnSenseDocument` in `internal/model/opnsense.go`).
   - `internal/model/`: Strict data models mirroring OPNsense config structure.
@@ -45,9 +47,9 @@ opnDossier is a tool for auditing and reporting on OPNsense configurations, with
   - `internal/audit/`, `internal/plugin/`, `internal/plugins/`: Compliance audit engine and plugin system (STIG, SANS, firewall).
   - `internal/display/`, `internal/log/`: Terminal output and structured logging.
 
-**Data Flow**:
-`parser` → `model` → `processor` → `converter`/`markdown` → `export`
-Audit overlays: `processor` → `audit` → `plugins`
+- **Data Flow**: `parser` → `model` → `processor` → `converter`/`markdown` → `export`
+
+- **Audit overlays**: `processor` → `audit` → `plugins`
 
 ## Technology Stack
 
