@@ -19,9 +19,9 @@
 
 <!-- Link to any related issues using keywords like "Closes #123", "Fixes #456", "Addresses #789" -->
 
-Closes #
-Fixes #
-Addresses #
+- Closes #
+- Fixes #
+- Addresses #
 
 ## Testing
 

@@ -282,7 +282,12 @@ func TestDetermineGenerationEngineWithConfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.setupFlags()
 
-			result := determineGenerationEngine(logger)
+			result, err := determineGenerationEngine(logger)
+			if err != nil {
+				t.Errorf("%s: unexpected error: %v", tt.description, err)
+				resetGlobalFlags()
+				return
+			}
 
 			if result != tt.expected {
 				t.Errorf("%s: got %v, expected %v", tt.description, result, tt.expected)

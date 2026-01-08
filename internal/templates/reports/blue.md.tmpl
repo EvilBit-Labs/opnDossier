@@ -1,4 +1,4 @@
-{{/* blue.md.tmpl — Blue Team Defensive Report */}}
+{{/* blue.md.tmpl - Blue Team Defensive Report */}}
 
 # OpnDossier - Defensive Audit Report
 
@@ -85,7 +85,7 @@ _No audit issues detected._
 | Iface | Enabled | Scope | DNS | Lease Time |
 |-------|---------|-------|-----|------------|
 {{- range .DHCP }}
-| {{ .Interface }} | {{ .Enabled }} | {{ .RangeStart }}–{{ .RangeEnd }} | {{ .DNS }} | {{ .LeaseTime }} |
+| {{ .Interface }} | {{ .Enabled }} | {{ .RangeStart }}-{{ .RangeEnd }} | {{ .DNS }} | {{ .LeaseTime }} |
 {{- end }}
 
 ---

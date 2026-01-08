@@ -2,87 +2,124 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
 
 permissions:
   contents: read
   pull-requests: read
 
+env:
+  GO_VERSION: "1.24"
+
 jobs:
-  test:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    name: test
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version: stable
-          check-latest: true
-
-      - name: Install pre-commit
-        run: pip install pre-commit
-
-      - name: Install Just
-        uses: taiki-e/install-action@just
-
-      - name: Install dependencies
-        run: |
-          go mod download
-          go mod verify
-
-      - name: Setup golangci-lint
-        if: runner.os != 'Windows'
-        uses: golangci/golangci-lint-action@v8.0.0
-
-      - name: Run Full CI Check (Linux/macOS)
-        if: runner.os != 'Windows'
-        run: just ci-check
-
-      - name: Run Smoke Tests (Windows)
-        if: runner.os == 'Windows'
-        run: just ci-check-smoke
-
-
-  test-with-coverage:
-    name: Run tests and collect coverage
+  # ─────────────────────────────────────────────────────────────────────────
+  # Lint - Fast feedback on code quality
+  # ─────────────────────────────────────────────────────────────────────────
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
         with:
-          fetch-depth: 2
+          go-version: ${{ env.GO_VERSION }}
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.8
 
-      - name: Install dependencies
-        run: go mod download
+  # ─────────────────────────────────────────────────────────────────────────
+  # Test - Run tests across platforms
+  # ─────────────────────────────────────────────────────────────────────────
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v6
 
-      - name: Run tests
-        run: go test -coverprofile=coverage.txt ./...
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
 
-      - name: Upload results to Codecov
+      - uses: extractions/setup-just@v3
+
+      - name: Run tests (Unix)
+        if: runner.os != 'Windows'
+        run: just test
+
+      - name: Run tests (Windows)
+        if: runner.os == 'Windows'
+        run: just ci-smoke
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Coverage - Generate and upload coverage report
+  # ─────────────────────────────────────────────────────────────────────────
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - uses: extractions/setup-just@v3
+
+      - name: Run tests with coverage
+        run: just test-coverage
+
+      - name: Upload to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          slug: EvilBit-Labs/opnDossier
+          files: ./coverage.txt
+          fail_ci_if_error: false
 
-  vulnerability-scan:
-    name: Vulnerability Scan
+  # ─────────────────────────────────────────────────────────────────────────
+  # Build - Verify builds across platforms
+  # ─────────────────────────────────────────────────────────────────────────
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - uses: extractions/setup-just@v3
+
+      - name: Build release binary
+        run: just build-release
+
+      - name: Verify binary
+        run: ./opndossier --version || ./opndossier --help
+
+      - name: Cross-compile check
+        run: |
+          GOOS=linux GOARCH=amd64 go build -o /dev/null main.go
+          GOOS=darwin GOARCH=amd64 go build -o /dev/null main.go
+          GOOS=darwin GOARCH=arm64 go build -o /dev/null main.go
+          GOOS=windows GOARCH=amd64 go build -o /dev/null main.go
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Security - Vulnerability scanning
+  # ─────────────────────────────────────────────────────────────────────────
+  security:
+    name: Security Scan
     runs-on: ubuntu-latest
     permissions:
       security-events: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Run Grype vulnerability scanner
         uses: anchore/scan-action@v7
@@ -92,30 +129,29 @@ jobs:
           fail-build: true
           severity-cutoff: high
 
-      - name: Upload vulnerability scan results
+      - name: Upload SARIF results
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: ${{ steps.scan.outputs.sarif }}
 
-
-  build:
-    name: build
+  # ─────────────────────────────────────────────────────────────────────────
+  # CI Gate - All checks must pass
+  # ─────────────────────────────────────────────────────────────────────────
+  ci-pass:
+    name: CI Pass
+    needs: [lint, test, coverage, build, security]
     runs-on: ubuntu-latest
+    if: always()
     steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.24'
-          check-latest: true
-
-      - name: Build for multiple platforms
+      - name: Check all jobs passed
         run: |
-          # Build for current platform
-          go build -v -o opndossier main.go
-
-          # Cross-compile for other platforms
-          GOOS=linux GOARCH=amd64 go build -v -o opndossier-linux-amd64 main.go
-          GOOS=darwin GOARCH=amd64 go build -v -o opndossier-darwin-amd64 main.go
-          GOOS=windows GOARCH=amd64 go build -v -o opndossier-windows-amd64.exe main.go
+          if [[ "${{ needs.lint.result }}" != "success" ]] || \
+             [[ "${{ needs.test.result }}" != "success" ]] || \
+             [[ "${{ needs.coverage.result }}" != "success" ]] || \
+             [[ "${{ needs.build.result }}" != "success" ]] || \
+             [[ "${{ needs.security.result }}" != "success" ]]; then
+            echo "One or more jobs failed"
+            exit 1
+          fi
+          echo "All CI checks passed"
