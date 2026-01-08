@@ -336,7 +336,7 @@ func (p *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
 
 ### 9.1 Conventional Commits
 
-```
+```text
 <type>(<scope>): <description>
 ```
 
@@ -346,7 +346,7 @@ func (p *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
 
 ### 9.2 Examples
 
-```
+```text
 feat(parser): add support for OPNsense 24.1 config format
 fix(converter): handle empty VLAN configurations gracefully
 docs(readme): update installation instructions
