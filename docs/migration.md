@@ -28,16 +28,16 @@ This guide provides step-by-step instructions for migrating from template-based 
 
 ## Deprecation Timeline
 
-> **⚠️ Action Required**: Template support will be completely removed in v3.0. Plan your migration now.
+> **Action Required**: Template support will be completely removed in v3.0. Plan your migration now.
 
 ### Version Roadmap
 
-| Version            | Status                | Template Support                    | Action Required                   |
-| ------------------ | --------------------- | ----------------------------------- | --------------------------------- |
-| **v2.0** (Current) | ✅ Active             | Available via `--use-template` flag | None - templates still supported  |
-| **v2.1 - v2.4**    | 🔄 Planned            | Deprecated with warnings            | Migrate to programmatic mode      |
-| **v2.5**           | ⚠️ Migration Deadline | Deprecated, removal imminent        | **Complete migration by Q2 2025** |
-| **v3.0**           | 🚫 Removal            | **Complete removal**                | Templates will no longer work     |
+| Version            | Status             | Template Support                    | Action Required                   |
+| ------------------ | ------------------ | ----------------------------------- | --------------------------------- |
+| **v2.0** (Current) | Active             | Available via `--use-template` flag | None - templates still supported  |
+| **v2.1 - v2.4**    | Planned            | Deprecated with warnings            | Migrate to programmatic mode      |
+| **v2.5**           | Migration Deadline | Deprecated, removal imminent        | **Complete migration by Q2 2025** |
+| **v3.0**           | Removal            | **Complete removal**                | Templates will no longer work     |
 
 ### Migration Deadlines
 
@@ -91,9 +91,9 @@ The validator will:
 
 Review the [function mapping table](template-function-migration.md) to identify:
 
-- ✅ Functions already migrated (ready to use)
-- ⏳ Functions pending migration (plan workaround)
-- ❌ Functions without equivalents (requires custom implementation)
+- Functions already migrated (ready to use)
+- Functions pending migration (plan workaround)
+- Functions without equivalents (requires custom implementation)
 
 ### Step 3: Choose Migration Path
 
@@ -491,9 +491,9 @@ riskSection := builder.BuildRiskAssessmentSection(config)
 {{ $rules := .Filter.Rule }}
 {{ range $rules }}
   {{ if eq .Type "pass" }}
-    - ✅ Rule #{{ .Number }}: {{ .Descr }}
+    - [PASS] Rule #{{ .Number }}: {{ .Descr }}
   {{ else }}
-    - ❌ Rule #{{ .Number }}: {{ .Descr }} (Non-compliant)
+    - [FAIL] Rule #{{ .Number }}: {{ .Descr }} (Non-compliant)
   {{ end }}
 {{ end }}
 {{- end -}}
@@ -513,13 +513,13 @@ func (b *MarkdownBuilder) BuildComplianceReport(data *model.OpnSenseDocument) st
 
     report.WriteString("### Compliant Rules (Pass)\n\n")
     for i, rule := range passRules {
-        report.WriteString(fmt.Sprintf("- ✅ Rule #%d: %s\n",
+        report.WriteString(fmt.Sprintf("- [PASS] Rule #%d: %s\n",
             i+1, b.EscapeTableContent(rule.Descr)))
     }
 
     report.WriteString("\n### Non-Compliant Rules (Block)\n\n")
     for i, rule := range blockRules {
-        report.WriteString(fmt.Sprintf("- ❌ Rule #%d: %s\n",
+        report.WriteString(fmt.Sprintf("- [FAIL] Rule #%d: %s\n",
             i+1, b.EscapeTableContent(rule.Descr)))
     }
 
