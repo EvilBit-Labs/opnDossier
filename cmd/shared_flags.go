@@ -59,22 +59,25 @@ func addSharedTemplateFlags(cmd *cobra.Command) {
 	setFlagAnnotation(cmd.Flags(), "custom-template", []string{"template"})
 
 	// Register filename completion for custom-template flag
-	if err := cmd.RegisterFlagCompletionFunc("custom-template", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
-		// Get files with .tmpl extension in the current directory and subdirectories
-		var completions []string
-		entries, err := os.ReadDir(".")
-		if err != nil {
-			return nil, cobra.ShellCompDirectiveError
-		}
-
-		for _, entry := range entries {
-			if !entry.IsDir() && filepath.Ext(entry.Name()) == ".tmpl" {
-				completions = append(completions, entry.Name())
+	if err := cmd.RegisterFlagCompletionFunc(
+		"custom-template",
+		func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+			// Get files with .tmpl extension in the current directory and subdirectories
+			var completions []string
+			entries, err := os.ReadDir(".")
+			if err != nil {
+				return nil, cobra.ShellCompDirectiveError
 			}
-		}
 
-		return completions, cobra.ShellCompDirectiveDefault
-	}); err != nil {
+			for _, entry := range entries {
+				if !entry.IsDir() && filepath.Ext(entry.Name()) == ".tmpl" {
+					completions = append(completions, entry.Name())
+				}
+			}
+
+			return completions, cobra.ShellCompDirectiveDefault
+		},
+	); err != nil {
 		// Log error but don't fail - completion is optional
 		logger.Error("failed to register completion for custom-template flag", "error", err)
 	}
@@ -130,19 +133,23 @@ func getSharedTemplateDir() string {
 
 // determineGenerationEngine determines which generation engine to use based on CLI flags and configuration.
 // Returns true for template mode, false for programmatic mode (default).
-func determineGenerationEngine(logger *log.Logger) bool {
+// Returns ErrUnknownEngineType if an invalid engine type is specified.
+func determineGenerationEngine(logger *log.Logger) (bool, error) {
 	// Explicit engine flag takes highest precedence
 	if sharedEngine != "" {
 		switch strings.ToLower(sharedEngine) {
 		case "template":
 			logger.Debug("Using template engine (explicit --engine flag)")
-			return true
+			return true, nil
 		case "programmatic":
 			logger.Debug("Using programmatic engine (explicit --engine flag)")
-			return false
+			return false, nil
 		default:
-			logger.Warn("Unknown engine type, defaulting to programmatic", "engine", sharedEngine)
-			return false
+			return false, fmt.Errorf(
+				"%w: %q (valid options: programmatic, template)",
+				ErrUnknownEngineType,
+				sharedEngine,
+			)
 		}
 	}
 
@@ -151,24 +158,24 @@ func determineGenerationEngine(logger *log.Logger) bool {
 		logger.Warn(
 			"Legacy mode is deprecated and will be removed in v3.0. Please use --use-template or --engine=template instead.",
 		)
-		return true
+		return true, nil
 	}
 
 	// Custom template automatically enables template mode (backward compatibility)
 	if sharedCustomTemplate != "" {
 		logger.Debug("Using template engine (custom template specified)")
-		return true
+		return true, nil
 	}
 
 	// Explicit use-template flag
 	if sharedUseTemplate {
 		logger.Debug("Using template engine (explicit --use-template flag)")
-		return true
+		return true, nil
 	}
 
 	// Default to programmatic mode
 	logger.Debug("Using programmatic engine (default)")
-	return false
+	return false, nil
 }
 
 // validateTemplatePath validates and sanitizes a template file path for security.
