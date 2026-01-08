@@ -463,7 +463,9 @@ func (b *MarkdownBuilder) BuildSecuritySection(data *model.OpnSenseDocument) str
 				"**Security Note**: NAT reflection is properly disabled, preventing potential security issues where internal clients can access internal services via external IP addresses.",
 			)
 		} else {
-			md.PlainText("**⚠️ Security Warning**: NAT reflection is enabled, which may allow internal clients to access internal services via external IP addresses. Consider disabling if not needed.")
+			md.PlainText(
+				"**⚠️ Security Warning**: NAT reflection is enabled, which may allow internal clients to access internal services via external IP addresses. Consider disabling if not needed.",
+			)
 		}
 	}
 

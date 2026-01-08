@@ -55,28 +55,33 @@ type TemplateCache struct {
 // NewTemplateCache creates a new template cache instance with LRU eviction.
 // The cache will automatically evict least recently used templates when the max size is reached.
 // Default max size is 10 templates to balance memory usage with performance.
+// This function panics if the default cache size is invalid (which should never happen).
 func NewTemplateCache() *TemplateCache {
-	return NewTemplateCacheWithSize(DefaultTemplateCacheSize)
+	cache, err := NewTemplateCacheWithSize(DefaultTemplateCacheSize)
+	if err != nil {
+		// This should never happen with the default constant
+		panic(fmt.Sprintf("failed to create template cache with default size: %v", err))
+	}
+	return cache
 }
 
 // NewTemplateCacheWithSize creates a new template cache instance with a specified maximum size.
 // The cache will automatically evict least recently used templates when the max size is reached.
-// Size must be greater than 0.
-func NewTemplateCacheWithSize(size int) *TemplateCache {
+// Size must be greater than 0; returns ErrInvalidCacheSize if size is invalid.
+func NewTemplateCacheWithSize(size int) (*TemplateCache, error) {
 	if size <= 0 {
-		size = 10 // Default to 10 if invalid size provided
+		return nil, fmt.Errorf("%w: got %d", ErrInvalidCacheSize, size)
 	}
 
 	// Create LRU cache with specified max size
 	cache, err := lru.New[string, *template.Template](size)
 	if err != nil {
-		// This should never happen with valid parameters, but handle gracefully
-		panic(fmt.Sprintf("failed to create template cache: %v", err))
+		return nil, fmt.Errorf("failed to create LRU cache: %w", err)
 	}
 
 	return &TemplateCache{
 		cache: cache,
-	}
+	}, nil
 }
 
 // Get retrieves a template from the cache, loading it if not present.
@@ -119,9 +124,12 @@ var ErrOperationCancelled = errors.New("operation cancelled by user")
 
 // Static errors for better error handling.
 var (
-	ErrUnsupportedAuditMode = errors.New("unsupported audit mode")
-	ErrFailedToEnrichConfig = errors.New("failed to enrich configuration")
-	ErrNoTemplateSpecified  = errors.New("no template specified")
+	ErrUnsupportedAuditMode    = errors.New("unsupported audit mode")
+	ErrFailedToEnrichConfig    = errors.New("failed to enrich configuration")
+	ErrNoTemplateSpecified     = errors.New("no template specified")
+	ErrInvalidCacheSize        = errors.New("template cache size must be greater than 0")
+	ErrUnsupportedOutputFormat = errors.New("unsupported output format")
+	ErrUnknownEngineType       = errors.New("unknown engine type")
 )
 
 // Format constants for output formats.
@@ -291,7 +299,10 @@ Examples:
 		defer cancel()
 
 		// Create template cache for batch processing with configurable size
-		templateCache := NewTemplateCacheWithSize(sharedTemplateCacheSize)
+		templateCache, err := NewTemplateCacheWithSize(sharedTemplateCacheSize)
+		if err != nil {
+			return fmt.Errorf("failed to create template cache: %w", err)
+		}
 		defer templateCache.Clear() // Clean up cache after processing
 
 		// Validate custom template path if specified (early validation)
@@ -672,9 +683,7 @@ func generateOutputByFormat(
 		opt.Format = markdown.Format(format)
 		return generator.Generate(ctx, opnsense, opt)
 	default:
-		// Default to markdown for unknown formats
-		logger.Warn("Unknown format, defaulting to markdown", "format", format)
-		return generateWithHybridGenerator(ctx, opnsense, opt, logger, preParsedTemplate)
+		return "", fmt.Errorf("%w: %q (supported: markdown, md, json, yaml, yml)", ErrUnsupportedOutputFormat, format)
 	}
 }
 
@@ -689,7 +698,10 @@ func generateWithHybridGenerator(
 	preParsedTemplate *template.Template,
 ) (string, error) {
 	// Determine generation engine based on CLI flags and configuration
-	useTemplateEngine := determineGenerationEngine(logger)
+	useTemplateEngine, err := determineGenerationEngine(logger)
+	if err != nil {
+		return "", fmt.Errorf("failed to determine generation engine: %w", err)
+	}
 
 	// Update opt.UseTemplateEngine to reflect CLI flag precedence
 	// This ensures CLI flags take precedence over config file settings
