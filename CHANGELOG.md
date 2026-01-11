@@ -2,6 +2,81 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0](https://github.com/EvilBit-Labs/opnDossier/compare/v1.0.0...v1.1.0) (2026-01-11)
+
+
+### Features
+
+* add release-please configuration and clean up CI workflows ([30dd4b0](https://github.com/EvilBit-Labs/opnDossier/commit/30dd4b00fd1adbcf6c6774c85c2d9faf60366128))
+* **benchmarks:** add comprehensive performance benchmarking suite ([2a0d33e](https://github.com/EvilBit-Labs/opnDossier/commit/2a0d33e9e5ba402ea7640d71b804a4cb8cd17082))
+* **ci:** add Copilot setup steps workflow for automated environment configuration ([a022334](https://github.com/EvilBit-Labs/opnDossier/commit/a022334aed12dc6e54172a45a0900015a237077d))
+* **ci:** enhance Copilot setup workflow with additional tools and validation steps ([18e4114](https://github.com/EvilBit-Labs/opnDossier/commit/18e41149267844e9586bc487a7a3ff3b693f2ee2))
+* **ci:** enhance smoke test commands and CI workflow conditions ([0c398cc](https://github.com/EvilBit-Labs/opnDossier/commit/0c398cc328a50eb16dd19cc3d853ff6002dae279))
+* **ci:** implement Windows smoke-only testing strategy ([2804359](https://github.com/EvilBit-Labs/opnDossier/commit/280435991c7420ef63badcc71b1b6ef9fd4c30c1))
+* **ci:** simplify Copilot setup workflow by removing options and adding bash  check ([a02bb4b](https://github.com/EvilBit-Labs/opnDossier/commit/a02bb4b0fe665edebb1fa259ca95210484d316a5))
+* **ci:** update pre-commit configuration and enhance Copilot setup workflow ([bd53171](https://github.com/EvilBit-Labs/opnDossier/commit/bd5317171113524a8eb0babb51fcbdc1b4d07bde))
+* **cli:** add comprehensive tests, config support, and migration guide ([59fc9c1](https://github.com/EvilBit-Labs/opnDossier/commit/59fc9c12a57d96626b23c54779daa9874df518ca))
+* **cli:** implement programmatic mode by default with engine selection ([82347df](https://github.com/EvilBit-Labs/opnDossier/commit/82347df7e0797510fc3e3e5f6ffac84327ccef30))
+* **compliance:** complete Pipeline v2 standards implementation ([09144b8](https://github.com/EvilBit-Labs/opnDossier/commit/09144b806c5834dc1813c51d0b7dab7a43911c83))
+* **constants:** add gateway complexity weights and report template paths ([8e8ac44](https://github.com/EvilBit-Labs/opnDossier/commit/8e8ac44297e027f859e24e5e7e07616b468460e3))
+* **converter:** implement data transformation functions for markdown generation ([94de54f](https://github.com/EvilBit-Labs/opnDossier/commit/94de54f3552158a7021c5e716f098fc4908c5057))
+* **converter:** implement Phase 3.4 security assessment functions ([0fd2867](https://github.com/EvilBit-Labs/opnDossier/commit/0fd286710d2838d1324a9f0da5bf7003278acc76))
+* **converter:** implement utility functions for template migration Phase 3.2 ([1810732](https://github.com/EvilBit-Labs/opnDossier/commit/18107329395988b61b36a4929a54eca0b4cbca09))
+* **docs:** add comprehensive migration guide for custom template users ([64708d9](https://github.com/EvilBit-Labs/opnDossier/commit/64708d9a065076313f75fbc5a111eb1385bb6d1b))
+* **docs:** enhance requirements management documentation ([600e6ce](https://github.com/EvilBit-Labs/opnDossier/commit/600e6ce88a30df8f1cad76b7be1a694e5f01b015))
+* **docs:** refine requirements management guidelines ([f327dce](https://github.com/EvilBit-Labs/opnDossier/commit/f327dcef0e45285acd23be33fae5f5022bfc0912))
+* **docs:** update agent practices and migration guide with critical task completion note ([51115c8](https://github.com/EvilBit-Labs/opnDossier/commit/51115c8c2cd1baffc18e603c8f92047bdcbb1d6f))
+* enhance CI workflows and documentation for compliance ([82690f1](https://github.com/EvilBit-Labs/opnDossier/commit/82690f12518e37650f439ef0b3090a271349a343))
+* enhance CI workflows and documentation for compliance ([2dbd0f0](https://github.com/EvilBit-Labs/opnDossier/commit/2dbd0f04f8a5364829d3dec35817871a71125291))
+* enhance CI workflows and documentation for compliance ([16c313d](https://github.com/EvilBit-Labs/opnDossier/commit/16c313d1b772cb71d2c7bcd1f596b3560e1707fa))
+* enhance CI workflows and documentation for compliance ([02f35fd](https://github.com/EvilBit-Labs/opnDossier/commit/02f35fdb153354276568e1f7c0e9f9ac96835efe))
+* enhance release process with security features and tooling ([8f33955](https://github.com/EvilBit-Labs/opnDossier/commit/8f33955d9b3522827207c51476b31f87dc48e8bb))
+* integrate local Snyk and FOSSA scanning into the justfile ([1643b96](https://github.com/EvilBit-Labs/opnDossier/commit/1643b9694257c13098ad06cb624744dd25844981))
+* **markdown:** enhance interface link formatting in markdown reports ([e060bfb](https://github.com/EvilBit-Labs/opnDossier/commit/e060bfb1fef5622d42c322dfa0446693d507e1b4))
+* **markdown:** implement hybrid markdown generator for flexible output ([8a76a3e](https://github.com/EvilBit-Labs/opnDossier/commit/8a76a3ec24eba856965e3d609eed6cb53f30a815))
+* **markdown:** improve inline link formatting for interfaces in markdown ([0f16799](https://github.com/EvilBit-Labs/opnDossier/commit/0f16799ec808c02a68b0b11d908474a36836a92c))
+* **metrics:** add configuration metrics calculations and tests ([082a456](https://github.com/EvilBit-Labs/opnDossier/commit/082a45693013ab88d8e6b1fb53713cb8dbd16b03))
+* **NAT:** add inbound rules to NAT summary and enhance report templates ([2f4668a](https://github.com/EvilBit-Labs/opnDossier/commit/2f4668a453ae6607e6be6f80a75db589f408ef21))
+* **NAT:** prominently display NAT mode and forwarding rules with enhanced security information ([29303b4](https://github.com/EvilBit-Labs/opnDossier/commit/29303b452d506dfd0d5ce3feb90f9c6e0387f13e))
+* **NAT:** prominently display NAT mode and forwarding rules with enhanced security information ([97791a2](https://github.com/EvilBit-Labs/opnDossier/commit/97791a281e143bfd1ffa1967ae805ecc5457ad80))
+* **NAT:** refactor NATSummary method for safety and clarity ([210bb4e](https://github.com/EvilBit-Labs/opnDossier/commit/210bb4e2561330d581c8ffd0a2b6381baeb7bfe7))
+* **NAT:** update inbound rules representation in NAT struct and report templates ([0e9f369](https://github.com/EvilBit-Labs/opnDossier/commit/0e9f3696e8caafaea4c4fc5b51fb74ee66be40cb))
+* **reports:** implement gateway groups in reports for GitHub Issue 65 ([57c5023](https://github.com/EvilBit-Labs/opnDossier/commit/57c5023d60616b80ad35e104271e0454542041de)), closes [#65](https://github.com/EvilBit-Labs/opnDossier/issues/65)
+* **template:** implement caching for template loading and enhance test coverage ([2eecd0b](https://github.com/EvilBit-Labs/opnDossier/commit/2eecd0b786c448c65c6393fd3faae9957ae578ab))
+* **template:** integrate LRU caching for template management and enhance test coverage ([5a6c9b2](https://github.com/EvilBit-Labs/opnDossier/commit/5a6c9b2b2fde35bc53f3d1b3e8480d6588611ac9))
+* **test:** add performance baseline validation and fix TERM environment issues ([2ee3b7f](https://github.com/EvilBit-Labs/opnDossier/commit/2ee3b7fff448716380e90fa228a80684e81e0b8b))
+* **test:** complete comprehensive test suite for ported methods ([bb48afe](https://github.com/EvilBit-Labs/opnDossier/commit/bb48afe16588bd2f40316346189a691ee3b77491))
+* **tests:** add comprehensive tests for MarkdownBuilder functionality ([9eca3ab](https://github.com/EvilBit-Labs/opnDossier/commit/9eca3ab4fb69429e5d0086ba2f1cb04b4b9a136d))
+* update GoReleaser and CI workflows for enhanced artifact signing ([742c965](https://github.com/EvilBit-Labs/opnDossier/commit/742c9654208f49731959853923170739fd704d74))
+
+
+### Bug Fixes
+
+* **ci:** update git-cliff installation path in Copilot setup workflow ([4bbc39e](https://github.com/EvilBit-Labs/opnDossier/commit/4bbc39eb994433eec497683b3a32818fd879c42c))
+* **cmd:** ensure consistent path separators in getSharedTemplateDir ([212dda2](https://github.com/EvilBit-Labs/opnDossier/commit/212dda28b21c0396fb43c36b612d9f70ef0fca7e))
+* **cmd:** update UseTemplateEngine to prioritize CLI flags over config settings ([3473acf](https://github.com/EvilBit-Labs/opnDossier/commit/3473acfa349941935231637a3d1fbe3b78e42fba))
+* **converter:** update protocol references in markdown templates ([1be7428](https://github.com/EvilBit-Labs/opnDossier/commit/1be7428becd6c2359a901691da2b298acc584144))
+* correct minor formatting issues in templates ([08ff761](https://github.com/EvilBit-Labs/opnDossier/commit/08ff761fd957ae879dc1efc0a30a276febf482aa))
+* **docs:** apply mdformat corrections to README_TESTS.md ([ba1b892](https://github.com/EvilBit-Labs/opnDossier/commit/ba1b892fe166ce85dad79e4d8ce0ae676cec9232))
+* **docs:** apply mdformat table formatting to README_TESTS.md ([706bf70](https://github.com/EvilBit-Labs/opnDossier/commit/706bf7061aecd2139801c16901c0bcbb485672f3))
+* **docs:** clarify task completion requirements and enhance migration guide ([b4a9903](https://github.com/EvilBit-Labs/opnDossier/commit/b4a9903e9da54dd1558a9d5a54399cfe2ae85f8d))
+* **docs:** remove unnecessary newline in README.md ([d183978](https://github.com/EvilBit-Labs/opnDossier/commit/d183978664ad995d5ccd557637b436e01ffcfc16))
+* refactor firewall rule interface handling to support multiple interfaces ([fed6173](https://github.com/EvilBit-Labs/opnDossier/commit/fed6173c61350000d0bd05b1ee671b739561e2d2))
+* **release:** remove GO_VERSION dependency and add mdformat to changelog generation ([81fedbf](https://github.com/EvilBit-Labs/opnDossier/commit/81fedbffef1c7ed0f6e53e47c4446c66aa176ec5))
+* **templates:** correct boolean formatting in OPNsense report templates ([333d4ac](https://github.com/EvilBit-Labs/opnDossier/commit/333d4ac4eda9581508076c442950e6a05608214d))
+* **templates:** correct boolean formatting in OPNsense report templates ([22f7789](https://github.com/EvilBit-Labs/opnDossier/commit/22f77892a600112eeb2e44c6650a8cc708db374a))
+* **templates:** correct boolean formatting in OPNsense report templates ([b1c8931](https://github.com/EvilBit-Labs/opnDossier/commit/b1c893124dda291fe9743f1534512841606b2837))
+* **templates:** correct boolean formatting in OPNsense report templates ([1f4f3eb](https://github.com/EvilBit-Labs/opnDossier/commit/1f4f3ebd7ec56b7ccdac9e91c4691825b586e10c))
+* **templates:** correct boolean formatting in OPNsense report templates ([ff15a7b](https://github.com/EvilBit-Labs/opnDossier/commit/ff15a7b1c6c75b4b4fece15aa02d856485dfa28d))
+* **templates:** correct boolean formatting in OPNsense report templates ([d5acfa9](https://github.com/EvilBit-Labs/opnDossier/commit/d5acfa987302b2428ba06b804a4ac8b3e6ab1125))
+* **templates:** resolve comprehensive report structural inconsistencies with summary report ([13967c5](https://github.com/EvilBit-Labs/opnDossier/commit/13967c51debd9c5463ae1ade4af2b2f9dce5591e)), closes [#66](https://github.com/EvilBit-Labs/opnDossier/issues/66)
+* **test:** adjust performance baseline thresholds for CI environment stability ([07a411f](https://github.com/EvilBit-Labs/opnDossier/commit/07a411fe58d909633dbb50f74ba138da8e796e33))
+* **test:** adjust performance baseline thresholds to realistic values ([1785e97](https://github.com/EvilBit-Labs/opnDossier/commit/1785e9777161107ef23d0bbfcbbf2aca83e58277))
+* **test:** modernize benchmark loops using b.Loop() for Go 1.24+ compatibility ([e1dc148](https://github.com/EvilBit-Labs/opnDossier/commit/e1dc1485dfd8e5b8f2cb96f05d1ff42ed6a44c64))
+* **tests:** enhance markdown escaping and improve test coverage ([d1f9a21](https://github.com/EvilBit-Labs/opnDossier/commit/d1f9a21a6312b83646ecead2245f0c70422e56db))
+* **tests:** enhance test coverage and validation checks ([e61851d](https://github.com/EvilBit-Labs/opnDossier/commit/e61851d8f48f7d02a5a8ece684b9b8d16071e199))
+* **tests:** update test assertions for markdown library v0.10.0 ([9d6c819](https://github.com/EvilBit-Labs/opnDossier/commit/9d6c819e9f67f1c45e437ab536a11a3985837837))
+
 ## [1.0.0] - 2025-08-04
 
 ### 🚀 Features
