@@ -512,6 +512,11 @@ func buildConversionOptions(
 	// Set format
 	opt.Format = markdown.Format(format)
 
+	// Propagate quiet flag to suppress deprecation warnings
+	if cfg != nil && cfg.IsQuiet() {
+		opt.SuppressWarnings = true
+	}
+
 	// Template: config > default (no CLI flag for template)
 	if cfg != nil && cfg.GetTemplate() != "" {
 		opt.TemplateName = cfg.GetTemplate()
@@ -674,13 +679,12 @@ func generateOutputByFormat(
 	case FormatJSON, FormatYAML, "yml":
 		// Use markdown generator for JSON and YAML output
 		// The markdown generator supports JSON and YAML formats natively
-		generator, err := markdown.NewMarkdownGenerator(logger.Logger)
+		// Set the format in options
+		opt.Format = markdown.Format(format)
+		generator, err := markdown.NewMarkdownGenerator(logger, opt)
 		if err != nil {
 			return "", fmt.Errorf("failed to create markdown generator: %w", err)
 		}
-
-		// Set the format in options
-		opt.Format = markdown.Format(format)
 		return generator.Generate(ctx, opnsense, opt)
 	default:
 		return "", fmt.Errorf("%w: %q (supported: markdown, md, json, yaml, yml)", ErrUnsupportedOutputFormat, format)

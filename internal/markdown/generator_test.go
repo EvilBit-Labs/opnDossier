@@ -23,7 +23,8 @@ func TestMain(m *testing.M) {
 
 func TestNewMarkdownGenerator(t *testing.T) {
 	// Test with nil registry and modeController (should work for non-audit reports)
-	generator, err := NewMarkdownGenerator(nil)
+	opts := DefaultOptions()
+	generator, err := NewMarkdownGenerator(nil, opts)
 	if err != nil {
 		t.Fatalf("Failed to create markdown generator with nil registry: %v", err)
 	}
@@ -34,7 +35,8 @@ func TestNewMarkdownGenerator(t *testing.T) {
 }
 
 func TestMarkdownGenerator_Generate(t *testing.T) {
-	generator, err := NewMarkdownGenerator(nil)
+	opts := DefaultOptions()
+	generator, err := NewMarkdownGenerator(nil, opts)
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -66,7 +68,7 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 				Domain:   "test.local",
 			},
 		}
-		opts := DefaultOptions().WithFormat(FormatMarkdown)
+		opts = DefaultOptions().WithFormat(FormatMarkdown)
 		result, err := generator.Generate(ctx, cfg, opts)
 
 		require.NoError(t, err)
@@ -81,7 +83,7 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 				Domain:   "test.local",
 			},
 		}
-		opts := DefaultOptions().WithFormat(FormatMarkdown).WithComprehensive(true)
+		opts = DefaultOptions().WithFormat(FormatMarkdown).WithComprehensive(true)
 		result, err := generator.Generate(ctx, cfg, opts)
 
 		require.NoError(t, err)
@@ -445,10 +447,11 @@ func TestFormatInterfacesAsLinksTemplateFunction(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("comprehensive template with interface links", func(t *testing.T) {
-		generator, err := NewMarkdownGenerator(nil)
+		opts := DefaultOptions()
+		generator, err := NewMarkdownGenerator(nil, opts)
 		require.NoError(t, err)
 
-		opts := DefaultOptions().WithFormat(FormatMarkdown).WithComprehensive(true)
+		opts = DefaultOptions().WithFormat(FormatMarkdown).WithComprehensive(true)
 		result, err := generator.Generate(ctx, cfg, opts)
 
 		require.NoError(t, err)
@@ -465,10 +468,11 @@ func TestFormatInterfacesAsLinksTemplateFunction(t *testing.T) {
 	})
 
 	t.Run("standard template with interface links", func(t *testing.T) {
-		generator, err := NewMarkdownGenerator(nil)
+		opts := DefaultOptions()
+		generator, err := NewMarkdownGenerator(nil, opts)
 		require.NoError(t, err)
 
-		opts := DefaultOptions().WithFormat(FormatMarkdown)
+		opts = DefaultOptions().WithFormat(FormatMarkdown)
 		result, err := generator.Generate(ctx, cfg, opts)
 
 		require.NoError(t, err)

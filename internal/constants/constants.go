@@ -10,6 +10,14 @@ var Version = "1.0.0"
 const (
 	// Application metadata.
 	AppName = "opnDossier"
+	// TemplateDeprecationVersion is the version where template-mode deprecation started.
+	TemplateDeprecationVersion = "v2.0"
+	// TemplateRemovalVersion is the target version where template mode will be removed.
+	TemplateRemovalVersion = "v3.0"
+	// MigrationGuideURL is the canonical location of the migration guide.
+	MigrationGuideURL = "https://github.com/EvilBit-Labs/opnDossier/docs/migration.md"
+	// DeprecationWarningEnabled globally enables deprecation warnings.
+	DeprecationWarningEnabled = true
 
 	// Default configuration values.
 	DefaultFormat  = "markdown"

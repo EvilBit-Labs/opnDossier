@@ -145,6 +145,10 @@ type Options struct {
 	// When true, the system will use Go text/template rendering for markdown output.
 	// When false, the system will use programmatic markdown generation.
 	UseTemplateEngine bool
+
+	// SuppressWarnings suppresses deprecation and other non-critical warnings.
+	// This is typically set when running with the global --quiet flag.
+	SuppressWarnings bool
 }
 
 // DefaultOptions returns an Options struct initialized with default settings for markdown generation.
@@ -170,6 +174,7 @@ func DefaultOptions() Options {
 		SelectedPlugins:   nil,
 		TemplateDir:       "",
 		UseTemplateEngine: false,
+		SuppressWarnings:  false,
 	}
 }
 

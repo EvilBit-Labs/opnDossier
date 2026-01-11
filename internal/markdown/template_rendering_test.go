@@ -99,11 +99,12 @@ func TestTemplateRendering(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create generator
-			generator, err := NewMarkdownGenerator(nil)
+			opts := DefaultOptions()
+			generator, err := NewMarkdownGenerator(nil, opts)
 			require.NoError(t, err, "Failed to create markdown generator")
 
 			// Generate markdown
-			opts := DefaultOptions().WithComprehensive(tt.comprehensive)
+			opts = DefaultOptions().WithComprehensive(tt.comprehensive)
 
 			result, err := generator.Generate(context.Background(), testCfg, opts)
 
@@ -145,11 +146,12 @@ func TestTemplateRenderingWithEmptyConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create generator
-			generator, err := NewMarkdownGenerator(nil)
+			opts := DefaultOptions()
+			generator, err := NewMarkdownGenerator(nil, opts)
 			require.NoError(t, err, "Failed to create markdown generator")
 
 			// Generate markdown
-			opts := DefaultOptions().WithComprehensive(tt.comprehensive)
+			opts = DefaultOptions().WithComprehensive(tt.comprehensive)
 
 			result, err := generator.Generate(context.Background(), emptyCfg, opts)
 
