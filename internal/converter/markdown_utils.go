@@ -8,6 +8,10 @@ import (
 	"strings"
 )
 
+// Pre-compiled regex for SanitizeID to avoid repeated compilation.
+// This pattern matches any sequence of non-alphanumeric characters.
+var sanitizeIDRegex = regexp.MustCompile(`[^a-zA-Z0-9]+`)
+
 // EscapeTableContent escapes content for safe display in markdown tables.
 // This function ensures that special Markdown characters don't break table formatting or rendering.
 func (b *MarkdownBuilder) EscapeTableContent(content any) string {
@@ -168,9 +172,8 @@ func (b *MarkdownBuilder) FormatBytes(bytes int64) string {
 // SanitizeID converts a string to a valid HTML/markdown anchor ID by removing
 // or replacing invalid characters and converting to lowercase.
 func (b *MarkdownBuilder) SanitizeID(s string) string {
-	// Convert to lowercase and replace non-alphanumeric characters with hyphens
-	reg := regexp.MustCompile(`[^a-zA-Z0-9]+`)
-	sanitized := reg.ReplaceAllString(s, "-")
+	// Replace non-alphanumeric characters with hyphens using pre-compiled regex
+	sanitized := sanitizeIDRegex.ReplaceAllString(s, "-")
 	sanitized = strings.ToLower(sanitized)
 
 	// Remove leading/trailing hyphens

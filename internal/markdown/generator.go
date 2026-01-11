@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
+	"github.com/EvilBit-Labs/opnDossier/internal/log"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/Masterminds/sprig/v3"
-	"github.com/charmbracelet/log"
 	"gopkg.in/yaml.v3"
 )
 
@@ -34,19 +34,34 @@ type markdownGenerator struct {
 
 // NewMarkdownGenerator creates a new Generator that produces documentation in Markdown, JSON, or YAML formats using predefined templates.
 // It attempts to load and parse templates from multiple possible filesystem paths and returns an error if none are found or parsing fails.
-func NewMarkdownGenerator(logger *log.Logger) (Generator, error) {
+func NewMarkdownGenerator(logger *log.Logger, opts Options) (Generator, error) {
 	if logger == nil {
-		logger = log.NewWithOptions(os.Stderr, log.Options{})
+		var err error
+		logger, err = log.New(log.Config{Output: os.Stderr})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create default logger: %w", err)
+		}
 	}
-	return NewMarkdownGeneratorWithTemplates(logger, "")
+
+	// Show deprecation warning if template mode is being used
+	showTemplateDeprecationWarning(logger, opts)
+
+	return NewMarkdownGeneratorWithTemplates(logger, "", opts)
 }
 
 // NewMarkdownGeneratorWithTemplates creates a new Generator with custom template directory support.
 // If templateDir is provided, it will be used first for template overrides, falling back to built-in templates.
-func NewMarkdownGeneratorWithTemplates(logger *log.Logger, templateDir string) (Generator, error) {
+func NewMarkdownGeneratorWithTemplates(logger *log.Logger, templateDir string, opts Options) (Generator, error) {
 	if logger == nil {
-		logger = log.NewWithOptions(os.Stderr, log.Options{})
+		var err error
+		logger, err = log.New(log.Config{Output: os.Stderr})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create default logger: %w", err)
+		}
 	}
+
+	// Show deprecation warning if template mode is being used
+	showTemplateDeprecationWarning(logger, opts)
 
 	// Create template function map with custom functions
 	funcMap := createTemplateFuncMap()
