@@ -122,7 +122,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Run Grype vulnerability scanner
-        uses: anchore/scan-action@v6
+        uses: anchore/scan-action@v7
         id: scan
         with:
           path: "."
