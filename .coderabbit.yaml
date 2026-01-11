@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 language: en-US
 tone_instructions: >-
   Focus on OPNsense XML parsing accuracy, markdown generation quality, and audit compliance.
@@ -9,10 +10,10 @@ reviews:
   profile: assertive
   request_changes_workflow: true
   high_level_summary: true
-  high_level_summary_placeholder: '@coderabbitai summary'
+  high_level_summary_placeholder: "@coderabbitai summary"
   high_level_summary_in_walkthrough: true
-  auto_title_placeholder: '@coderabbitai'
-  auto_title_instructions: 'Use conventional commit format: <type>(<scope>): <description>'
+  auto_title_placeholder: "@coderabbitai"
+  auto_title_instructions: "Use conventional commit format: <type>(<scope>): <description>"
   review_status: true
   commit_status: true
   fail_commit_status: false
