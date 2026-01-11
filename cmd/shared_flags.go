@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/audit"
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/log"
 	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
@@ -52,6 +53,12 @@ func addSharedTemplateFlags(cmd *cobra.Command) {
 	cmd.Flags().
 		BoolVar(&sharedLegacy, "legacy", false, "Enable legacy template mode with deprecation warning")
 	setFlagAnnotation(cmd.Flags(), "legacy", []string{"engine"})
+	// Mark --legacy as deprecated with migration guidance
+	if err := cmd.Flags().MarkDeprecated("legacy",
+		fmt.Sprintf("template mode will be removed in %s. Use programmatic generation (default) instead. "+
+			"Migration guide: %s", constants.TemplateRemovalVersion, constants.MigrationGuideURL)); err != nil {
+		logger.Error("failed to mark legacy flag as deprecated", "error", err)
+	}
 
 	// Template flags
 	cmd.Flags().
@@ -134,12 +141,24 @@ func getSharedTemplateDir() string {
 // determineGenerationEngine determines which generation engine to use based on CLI flags and configuration.
 // Returns true for template mode, false for programmatic mode (default).
 // Returns ErrUnknownEngineType if an invalid engine type is specified.
+// Emits structured deprecation warnings to stderr when template mode is selected.
 func determineGenerationEngine(logger *log.Logger) (bool, error) {
+	// Helper to emit structured deprecation warning to stderr
+	emitTemplateDeprecationWarning := func(source string) {
+		// Emit structured warning to stderr for CLI visibility
+		fmt.Fprintf(os.Stderr,
+			"WARNING: Template-based generation (%s) is deprecated and will be removed in %s.\n"+
+				"         Please migrate to programmatic generation (default).\n"+
+				"         Migration guide: %s\n\n",
+			source, constants.TemplateRemovalVersion, constants.MigrationGuideURL)
+	}
+
 	// Explicit engine flag takes highest precedence
 	if sharedEngine != "" {
 		switch strings.ToLower(sharedEngine) {
 		case "template":
 			logger.Debug("Using template engine (explicit --engine flag)")
+			emitTemplateDeprecationWarning("--engine=template")
 			return true, nil
 		case "programmatic":
 			logger.Debug("Using programmatic engine (explicit --engine flag)")
@@ -154,22 +173,24 @@ func determineGenerationEngine(logger *log.Logger) (bool, error) {
 	}
 
 	// Legacy flag with deprecation warning
+	// Note: Cobra's MarkDeprecated already emits a warning, but we add structured details
 	if sharedLegacy {
-		logger.Warn(
-			"Legacy mode is deprecated and will be removed in v3.0. Please use --use-template or --engine=template instead.",
-		)
+		logger.Debug("Using template engine (--legacy flag)")
+		emitTemplateDeprecationWarning("--legacy")
 		return true, nil
 	}
 
 	// Custom template automatically enables template mode (backward compatibility)
 	if sharedCustomTemplate != "" {
 		logger.Debug("Using template engine (custom template specified)")
+		emitTemplateDeprecationWarning("--custom-template")
 		return true, nil
 	}
 
 	// Explicit use-template flag
 	if sharedUseTemplate {
 		logger.Debug("Using template engine (explicit --use-template flag)")
+		emitTemplateDeprecationWarning("--use-template")
 		return true, nil
 	}
 

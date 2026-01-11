@@ -213,10 +213,11 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 
 			// Test Markdown generation
 			t.Run("markdown_generation", func(t *testing.T) {
-				generator, err := NewMarkdownGenerator(nil)
+				opts := DefaultOptions()
+				generator, err := NewMarkdownGenerator(nil, opts)
 				require.NoError(t, err)
 
-				opts := DefaultOptions().WithFormat(FormatMarkdown)
+				opts = DefaultOptions().WithFormat(FormatMarkdown)
 
 				result, err := generator.Generate(ctx, cfg, opts)
 				require.NoError(t, err, "Markdown generation should not fail")
@@ -270,10 +271,11 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 
 			// Test JSON generation
 			t.Run("json_generation", func(t *testing.T) {
-				generator, err := NewMarkdownGenerator(nil)
+				opts := DefaultOptions()
+				generator, err := NewMarkdownGenerator(nil, opts)
 				require.NoError(t, err)
 
-				opts := DefaultOptions().WithFormat(FormatJSON)
+				opts = DefaultOptions().WithFormat(FormatJSON)
 
 				result, err := generator.Generate(ctx, cfg, opts)
 				require.NoError(t, err, "JSON generation should not fail")
@@ -295,10 +297,11 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 
 			// Test YAML generation
 			t.Run("yaml_generation", func(t *testing.T) {
-				generator, err := NewMarkdownGenerator(nil)
+				opts := DefaultOptions()
+				generator, err := NewMarkdownGenerator(nil, opts)
 				require.NoError(t, err)
 
-				opts := DefaultOptions().WithFormat(FormatYAML)
+				opts = DefaultOptions().WithFormat(FormatYAML)
 
 				result, err := generator.Generate(ctx, cfg, opts)
 				require.NoError(t, err, "YAML generation should not fail")
@@ -396,10 +399,11 @@ func TestGenerateFromXMLFilesRobustness(t *testing.T) {
 			require.NoError(t, err, "Should successfully parse XML")
 			require.NotNil(t, cfg, "Configuration should not be nil")
 
-			generator, err := NewMarkdownGenerator(nil)
+			opts := DefaultOptions()
+			generator, err := NewMarkdownGenerator(nil, opts)
 			require.NoError(t, err)
 
-			opts := DefaultOptions().WithFormat(FormatMarkdown)
+			opts = DefaultOptions().WithFormat(FormatMarkdown)
 
 			result, err := generator.Generate(ctx, cfg, opts)
 			require.NoError(t, err, "Generation should not fail with valid config")
@@ -441,10 +445,11 @@ func TestDebugSysctlParsing(t *testing.T) {
 	}
 
 	// Generate markdown to see output
-	generator, err := NewMarkdownGenerator(nil)
+	opts := DefaultOptions()
+	generator, err := NewMarkdownGenerator(nil, opts)
 	require.NoError(t, err)
 
-	opts := DefaultOptions().WithFormat(FormatMarkdown)
+	opts = DefaultOptions().WithFormat(FormatMarkdown)
 
 	result, err := generator.Generate(ctx, cfg, opts)
 	require.NoError(t, err, "Markdown generation should not fail")
@@ -482,10 +487,11 @@ func TestSysctlKeyValidation(t *testing.T) {
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")
 	require.NotNil(t, cfg, "Configuration should not be nil")
 
-	generator, err := NewMarkdownGenerator(nil)
+	opts := DefaultOptions()
+	generator, err := NewMarkdownGenerator(nil, opts)
 	require.NoError(t, err)
 
-	opts := DefaultOptions().WithFormat(FormatMarkdown)
+	opts = DefaultOptions().WithFormat(FormatMarkdown)
 
 	result, err := generator.Generate(ctx, cfg, opts)
 	require.NoError(t, err, "Markdown generation should not fail")
@@ -547,10 +553,11 @@ func TestInterfaceConfigurationDetail(t *testing.T) {
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")
 	require.NotNil(t, cfg, "Configuration should not be nil")
 
-	generator, err := NewMarkdownGenerator(nil)
+	opts := DefaultOptions()
+	generator, err := NewMarkdownGenerator(nil, opts)
 	require.NoError(t, err)
 
-	opts := DefaultOptions().WithFormat(FormatMarkdown)
+	opts = DefaultOptions().WithFormat(FormatMarkdown)
 
 	result, err := generator.Generate(ctx, cfg, opts)
 	require.NoError(t, err, "Markdown generation should not fail")
@@ -583,10 +590,11 @@ func TestFirewallRulesFormatting(t *testing.T) {
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")
 	require.NotNil(t, cfg, "Configuration should not be nil")
 
-	generator, err := NewMarkdownGenerator(nil)
+	opts := DefaultOptions()
+	generator, err := NewMarkdownGenerator(nil, opts)
 	require.NoError(t, err)
 
-	opts := DefaultOptions().WithFormat(FormatMarkdown)
+	opts = DefaultOptions().WithFormat(FormatMarkdown)
 
 	result, err := generator.Generate(ctx, cfg, opts)
 	require.NoError(t, err, "Markdown generation should not fail")
@@ -632,10 +640,11 @@ func TestMarkdownGenerator_Integration(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("markdown generation", func(t *testing.T) {
-		generator, err := NewMarkdownGenerator(nil)
+		opts := DefaultOptions()
+		generator, err := NewMarkdownGenerator(nil, opts)
 		require.NoError(t, err)
 
-		opts := DefaultOptions().WithFormat(FormatMarkdown)
+		opts = DefaultOptions().WithFormat(FormatMarkdown)
 		result, err := generator.Generate(ctx, cfg, opts)
 
 		require.NoError(t, err)
@@ -645,10 +654,11 @@ func TestMarkdownGenerator_Integration(t *testing.T) {
 	})
 
 	t.Run("comprehensive markdown generation", func(t *testing.T) {
-		generator, err := NewMarkdownGenerator(nil)
+		opts := DefaultOptions()
+		generator, err := NewMarkdownGenerator(nil, opts)
 		require.NoError(t, err)
 
-		opts := DefaultOptions().WithFormat(FormatMarkdown).WithComprehensive(true)
+		opts = DefaultOptions().WithFormat(FormatMarkdown).WithComprehensive(true)
 		result, err := generator.Generate(ctx, cfg, opts)
 
 		require.NoError(t, err)
@@ -658,10 +668,11 @@ func TestMarkdownGenerator_Integration(t *testing.T) {
 	})
 
 	t.Run("JSON generation", func(t *testing.T) {
-		generator, err := NewMarkdownGenerator(nil)
+		opts := DefaultOptions()
+		generator, err := NewMarkdownGenerator(nil, opts)
 		require.NoError(t, err)
 
-		opts := DefaultOptions().WithFormat(FormatJSON)
+		opts = DefaultOptions().WithFormat(FormatJSON)
 		result, err := generator.Generate(ctx, cfg, opts)
 
 		require.NoError(t, err)
@@ -671,10 +682,11 @@ func TestMarkdownGenerator_Integration(t *testing.T) {
 	})
 
 	t.Run("YAML generation", func(t *testing.T) {
-		generator, err := NewMarkdownGenerator(nil)
+		opts := DefaultOptions()
+		generator, err := NewMarkdownGenerator(nil, opts)
 		require.NoError(t, err)
 
-		opts := DefaultOptions().WithFormat(FormatYAML)
+		opts = DefaultOptions().WithFormat(FormatYAML)
 		result, err := generator.Generate(ctx, cfg, opts)
 
 		require.NoError(t, err)
@@ -695,10 +707,11 @@ func TestTemplateRendering_Integration(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("standard template", func(t *testing.T) {
-		generator, err := NewMarkdownGenerator(nil)
+		opts := DefaultOptions()
+		generator, err := NewMarkdownGenerator(nil, opts)
 		require.NoError(t, err)
 
-		opts := DefaultOptions().WithFormat(FormatMarkdown)
+		opts = DefaultOptions().WithFormat(FormatMarkdown)
 		result, err := generator.Generate(ctx, cfg, opts)
 
 		require.NoError(t, err)
@@ -707,10 +720,11 @@ func TestTemplateRendering_Integration(t *testing.T) {
 	})
 
 	t.Run("comprehensive template", func(t *testing.T) {
-		generator, err := NewMarkdownGenerator(nil)
+		opts := DefaultOptions()
+		generator, err := NewMarkdownGenerator(nil, opts)
 		require.NoError(t, err)
 
-		opts := DefaultOptions().WithFormat(FormatMarkdown).WithComprehensive(true)
+		opts = DefaultOptions().WithFormat(FormatMarkdown).WithComprehensive(true)
 		result, err := generator.Generate(ctx, cfg, opts)
 
 		require.NoError(t, err)
@@ -723,10 +737,11 @@ func TestErrorHandling_Integration(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("nil configuration", func(t *testing.T) {
-		generator, err := NewMarkdownGenerator(nil)
+		opts := DefaultOptions()
+		generator, err := NewMarkdownGenerator(nil, opts)
 		require.NoError(t, err)
 
-		opts := DefaultOptions()
+		opts = DefaultOptions()
 		result, err := generator.Generate(ctx, nil, opts)
 
 		require.Error(t, err)
@@ -735,11 +750,12 @@ func TestErrorHandling_Integration(t *testing.T) {
 	})
 
 	t.Run("invalid options", func(t *testing.T) {
-		generator, err := NewMarkdownGenerator(nil)
+		opts := DefaultOptions()
+		generator, err := NewMarkdownGenerator(nil, opts)
 		require.NoError(t, err)
 
 		cfg := &model.OpnSenseDocument{}
-		opts := Options{Format: Format("invalid")}
+		opts = Options{Format: Format("invalid")}
 		result, err := generator.Generate(ctx, cfg, opts)
 
 		require.Error(t, err)

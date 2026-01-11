@@ -132,7 +132,8 @@ Examples:
 		}
 
 		templateDir := getSharedTemplateDir()
-		g, err := markdown.NewMarkdownGeneratorWithTemplates(ctxLogger.Logger, templateDir)
+		opts := buildDisplayOptions(Cfg)
+		g, err := markdown.NewMarkdownGeneratorWithTemplates(ctxLogger, templateDir, opts)
 		if err != nil {
 			ctxLogger.Error("Failed to create markdown generator", "error", err)
 			return fmt.Errorf("failed to create markdown generator: %w", err)
@@ -190,6 +191,11 @@ Examples:
 func buildDisplayOptions(cfg *config.Config) markdown.Options {
 	// Start with defaults
 	opt := markdown.DefaultOptions()
+
+	// Propagate quiet flag to suppress deprecation warnings
+	if cfg != nil && cfg.IsQuiet() {
+		opt.SuppressWarnings = true
+	}
 
 	// Theme: CLI flag > config > default
 	if sharedTheme != "" {

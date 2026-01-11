@@ -46,12 +46,26 @@ This guide provides step-by-step instructions for migrating from template-based 
 
 ### What This Means
 
-- **v2.0 (Current)**: Continue using templates with `--use-template` flag if needed
-- **v2.1-v2.4**: Deprecation warnings will appear when using template mode
-- **v2.5**: Last version with template support (deprecated)
-- **v3.0+**: Template mode will fail - programmatic mode only
+- **v2.0 (Current)**: Continue using templates with `--use-template` flag if needed.
+- **v2.1-v2.4**: Deprecation warnings will appear when using template mode.
+- **v2.5**: Last version with template support (deprecated).
+- **v3.0+**: Template mode will fail - programmatic mode only.
 
-**Recommendation**: Begin migration now to avoid last-minute issues. Use the [migration validator script](../scripts/validate-migration.sh) to assess your current setup.
+## Suppressing Warnings
+
+If you need to suppress deprecation warnings (not recommended), you can use the `--quiet` flag:
+
+```bash
+opnDossier convert config.xml --use-template --quiet
+```
+
+Or set it in your configuration file:
+
+```yaml
+quiet: true
+```
+
+**Recommendation**: Begin migration now to avoid last-minute issues. Use the existing opnDossier tools with template mode to test your configurations.
 
 ## Migration Checklist
 
@@ -67,25 +81,20 @@ This guide provides step-by-step instructions for migrating from template-based 
 
 If you're using custom templates, follow this three-step assessment process:
 
-### Step 1: Run Migration Validator
+### Step 1: Test Your Current Setup
 
-Use the provided validation script to assess your current setup:
+Test your current template-based setup and compare with programmatic mode:
 
 ```bash
-# Run from project root
-./scripts/validate-migration.sh [TEMPLATE_DIR] [SAMPLE_CONFIG]
+# Test template mode (with deprecation warning)
+opnDossier convert config.xml --use-template -o template-report.md
 
-# Example with custom template directory
-./scripts/validate-migration.sh ./custom-templates ./testdata/config.xml
+# Test programmatic mode
+opnDossier convert config.xml -o programmatic-report.md
+
+# Compare outputs manually or with diff
+diff template-report.md programmatic-report.md
 ```
-
-The validator will:
-
-- Detect custom templates in your directory
-- Extract template functions in use
-- Cross-reference with available MarkdownBuilder methods
-- Generate comparison reports (template vs programmatic)
-- Provide actionable next steps
 
 ### Step 2: Map Template Functions
 
@@ -951,7 +960,7 @@ This allows you to continue using templates while fixing programmatic implementa
 
 **Issue**: Output differs between template and programmatic modes
 
-**Solution**: Run the migration validator script to generate a diff report. Review differences and adjust your programmatic implementation accordingly.
+**Solution**: Compare outputs manually and adjust your programmatic implementation to match the expected template output.
 
 **Issue**: Performance is worse after migration
 

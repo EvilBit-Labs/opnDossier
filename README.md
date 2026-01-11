@@ -97,12 +97,16 @@ opnDossier --help
 opnDossier convert --help
 ```
 
-### Legacy Template Mode (v1.x Compatibility)
+### Legacy Template Mode (Deprecated)
+
+> [!WARNING]
+> Template-based generation is deprecated and will be removed in v3.0. Please migrate to programmatic generation. See the [Migration Guide](docs/migration.md).
 
 For users migrating from v1.x or requiring custom templates:
 
 ```bash
 # Use template-based generation (legacy mode)
+# This will display a deprecation warning
 opnDossier convert config.xml --use-template
 
 # Use custom templates directory
