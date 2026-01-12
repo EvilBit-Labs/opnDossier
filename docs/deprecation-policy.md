@@ -32,7 +32,7 @@ Features and APIs go through a three-stage lifecycle:
 
 ### Template-Based Generation
 
-**Status:** Deprecated (Warning Phase) **Since:** v2.0 **Removal Target:** v3.0 (Estimated Q3 2025)
+**Status:** Deprecated (Warning Phase) **Since:** v2.0 **Removal Target:** TBD
 
 Template-based generation (using `text/template`) is being replaced by a programmatic generation approach for improved performance, type safety, and maintainability.
 
