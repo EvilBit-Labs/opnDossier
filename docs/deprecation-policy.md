@@ -44,7 +44,6 @@ Template-based generation (using `text/template`) is being replaced by a program
 **Migration:**
 
 - See the [Migration Guide](migration.md) for detailed instructions on moving to programmatic generation.
-- Use the `scripts/validate-migration.sh` script to verify your migration.
 
 ## Suppressing Warnings
 

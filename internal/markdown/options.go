@@ -84,7 +84,6 @@ func (a AuditMode) Validate() error {
 }
 
 // Options contains configuration options for markdown generation.
-// Options contains configuration options for markdown generation.
 type Options struct {
 	// Format specifies the output format (markdown, json, yaml).
 	Format Format

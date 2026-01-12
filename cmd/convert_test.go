@@ -206,7 +206,7 @@ func TestConvertCmdWithInvalidFile(t *testing.T) {
 
 	err := rootCmd.Execute()
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to open file")
+	assert.Contains(t, err.Error(), "no such file or directory")
 }
 
 func TestConvertCmdWithValidXML(t *testing.T) {
