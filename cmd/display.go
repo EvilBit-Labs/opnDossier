@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	// TODO: Audit mode functionality is not yet complete - disabled for now
@@ -254,7 +255,7 @@ func validateDisplayFlags(_ *pflag.FlagSet) error {
 	// Validate theme values
 	if sharedTheme != "" {
 		validThemes := []string{"light", "dark", "auto", "none"}
-		if !contains(validThemes, strings.ToLower(sharedTheme)) {
+		if !slices.Contains(validThemes, strings.ToLower(sharedTheme)) {
 			return fmt.Errorf("invalid theme %q, must be one of: %s", sharedTheme, strings.Join(validThemes, ", "))
 		}
 	}
@@ -281,7 +282,7 @@ func validateDisplayFlags(_ *pflag.FlagSet) error {
 
 	// Validate wrap width if specified
 	if sharedWrapWidth > 0 && (sharedWrapWidth < MinWrapWidth || sharedWrapWidth > MaxWrapWidth) {
-		return fmt.Errorf("wrap width %d out of recommended range [%d, %d]",
+		fmt.Fprintf(os.Stderr, "Warning: wrap width %d is outside recommended range [%d, %d]\n",
 			sharedWrapWidth, MinWrapWidth, MaxWrapWidth)
 	}
 

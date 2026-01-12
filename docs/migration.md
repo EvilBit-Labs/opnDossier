@@ -46,10 +46,10 @@ This guide provides step-by-step instructions for migrating from template-based 
 
 ### What This Means
 
-- **v2.0 (Current)**: Continue using templates with `--use-template` flag if needed.
-- **v2.1-v2.4**: Deprecation warnings will appear when using template mode.
-- **v2.5**: Last version with template support (deprecated).
-- **v3.0+**: Template mode will fail - programmatic mode only.
+- **Currently**: v2.0 continues supporting templates with `--use-template` flag if needed.
+- **Deprecation warnings appear**: Starting with v2.1-v2.4 when using template mode.
+- **By v2.5**: This becomes the last version with template support (deprecated).
+- **From v3.0 onward**: Template mode fails - programmatic mode only.
 
 ## Suppressing Warnings
 

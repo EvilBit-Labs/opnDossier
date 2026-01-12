@@ -213,11 +213,9 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 
 			// Test Markdown generation
 			t.Run("markdown_generation", func(t *testing.T) {
-				opts := DefaultOptions()
+				opts := DefaultOptions().WithFormat(FormatMarkdown)
 				generator, err := NewMarkdownGenerator(nil, opts)
 				require.NoError(t, err)
-
-				opts = DefaultOptions().WithFormat(FormatMarkdown)
 
 				result, err := generator.Generate(ctx, cfg, opts)
 				require.NoError(t, err, "Markdown generation should not fail")

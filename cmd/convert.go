@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"text/template"
@@ -806,7 +807,7 @@ func validateConvertFlags(_ *pflag.FlagSet) error {
 	// Validate format values
 	if format != "" {
 		validFormats := []string{"markdown", "md", "json", "yaml", "yml"}
-		if !contains(validFormats, strings.ToLower(format)) {
+		if !slices.Contains(validFormats, strings.ToLower(format)) {
 			return fmt.Errorf("invalid format %q, must be one of: %s", format, strings.Join(validFormats, ", "))
 		}
 	}

@@ -337,3 +337,9 @@ func (o Options) WithUseTemplateEngine(useTemplate bool) Options {
 	o.UseTemplateEngine = useTemplate
 	return o
 }
+
+// WithSuppressWarnings enables or disables warning suppression.
+func (o Options) WithSuppressWarnings(suppress bool) Options {
+	o.SuppressWarnings = suppress
+	return o
+}
