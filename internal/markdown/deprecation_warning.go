@@ -125,26 +125,14 @@ func showTemplateDeprecationWarning(logger *log.Logger, opts Options) {
 			// Report the logger creation failure before attempting to show the warning
 			templateDeprecationWarningOnce.Do(func() {
 				// Attempt to write both the logger failure and the warning
-				if _, writeErr := fmt.Fprintf(
+				// Best effort - ignore errors since we can't create logger or write to stderr
+				fmt.Fprintf(
 					os.Stderr,
 					"WARNING: Failed to create logger for deprecation warning: %v\n\n",
 					err,
-				); writeErr != nil {
-					// Truly catastrophic - can't create logger AND can't write to stderr
-					// This should be extremely rare (stderr closed/redirected to invalid target)
-					panic(
-						fmt.Sprintf(
-							"FATAL: Cannot display deprecation warning (logger creation failed: %v, stderr write failed: %v)",
-							err,
-							writeErr,
-						),
-					)
-				}
+				)
 				// Now attempt to write the actual warning box
-				if _, writeErr := fmt.Fprintln(os.Stderr, formatTemplateDeprecationWarningBox()); writeErr != nil {
-					// If we got here, we at least warned about logger failure
-					fmt.Fprintf(os.Stderr, "ERROR: Failed to write deprecation warning box to stderr: %v\n", writeErr)
-				}
+				fmt.Fprintln(os.Stderr, formatTemplateDeprecationWarningBox())
 			})
 			return
 		}

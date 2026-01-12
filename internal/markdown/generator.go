@@ -32,6 +32,19 @@ type markdownGenerator struct {
 	logger    *log.Logger
 }
 
+// ensureLogger creates a default logger if the provided logger is nil.
+// Returns the provided logger if non-nil, or creates a new logger with stderr output.
+func ensureLogger(logger *log.Logger) (*log.Logger, error) {
+	if logger == nil {
+		var err error
+		logger, err = log.New(log.Config{Output: os.Stderr})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create default logger: %w", err)
+		}
+	}
+	return logger, nil
+}
+
 // NewMarkdownGenerator creates a new Generator that produces documentation in Markdown, JSON, or YAML formats using predefined templates.
 // It attempts to load and parse templates from multiple possible filesystem paths and returns an error if none are found or parsing fails.
 //
@@ -39,12 +52,10 @@ type markdownGenerator struct {
 // only when template mode signals are present (UseTemplateEngine, TemplateName, TemplateDir, or Template).
 // For programmatic generation (the default since v2.0), use HybridGenerator instead.
 func NewMarkdownGenerator(logger *log.Logger, opts Options) (Generator, error) {
-	if logger == nil {
-		var err error
-		logger, err = log.New(log.Config{Output: os.Stderr})
-		if err != nil {
-			return nil, fmt.Errorf("failed to create default logger: %w", err)
-		}
+	var err error
+	logger, err = ensureLogger(logger)
+	if err != nil {
+		return nil, err
 	}
 
 	// Show deprecation warning if template mode is being used
@@ -60,12 +71,10 @@ func NewMarkdownGenerator(logger *log.Logger, opts Options) (Generator, error) {
 // NOTE: This generator is specifically for template-based generation. The deprecation warning is shown
 // only when template mode signals are present, indicating explicit template usage.
 func NewMarkdownGeneratorWithTemplates(logger *log.Logger, templateDir string, opts Options) (Generator, error) {
-	if logger == nil {
-		var err error
-		logger, err = log.New(log.Config{Output: os.Stderr})
-		if err != nil {
-			return nil, fmt.Errorf("failed to create default logger: %w", err)
-		}
+	var err error
+	logger, err = ensureLogger(logger)
+	if err != nil {
+		return nil, err
 	}
 
 	// If templateDir is specified via parameter, set it in opts for consistent warning detection

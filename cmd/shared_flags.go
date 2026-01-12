@@ -27,6 +27,9 @@ var (
 	sharedIncludeTunables   bool     //nolint:gochecknoglobals // Include system tunables in output
 	sharedTemplateCacheSize int      //nolint:gochecknoglobals // Template cache size (LRU max entries)
 
+	// Warning flags to prevent repeated warnings.
+	warnedAboutAbsoluteTemplatePath bool //nolint:gochecknoglobals // Gate absolute path warning
+
 	// Generation engine flags.
 	sharedUseTemplate bool   //nolint:gochecknoglobals // Explicitly enable template mode
 	sharedEngine      string //nolint:gochecknoglobals // Generation engine (programmatic, template)
@@ -238,10 +241,11 @@ func validateTemplatePath(templatePath string) error {
 	// In template mode (deprecated), users need flexibility to specify custom templates
 	// anywhere on their system. The risk is acceptable since template execution doesn't
 	// allow arbitrary code execution beyond Go template syntax.
-	if filepath.IsAbs(cleanPath) {
+	if filepath.IsAbs(cleanPath) && !warnedAboutAbsoluteTemplatePath {
 		logger.Warn("Using absolute template path",
 			"path", cleanPath,
 			"security_note", "ensure template source is trusted")
+		warnedAboutAbsoluteTemplatePath = true
 	}
 
 	// Check if file exists and is readable

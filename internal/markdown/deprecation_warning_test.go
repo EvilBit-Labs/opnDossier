@@ -16,13 +16,16 @@ import (
 // TODO(v3.0): Remove this entire file when template mode is removed
 
 func TestShouldShowTemplateDeprecationWarning(t *testing.T) {
+	t.Parallel()
 	t.Run("suppressed when SuppressWarnings is true", func(t *testing.T) {
+		t.Parallel()
 		opts := DefaultOptions()
 		opts.SuppressWarnings = true
 		assert.False(t, shouldShowTemplateDeprecationWarning(opts))
 	})
 
 	t.Run("suppressed for non-markdown formats", func(t *testing.T) {
+		t.Parallel()
 		opts := DefaultOptions()
 		opts.Format = FormatJSON
 		assert.False(t, shouldShowTemplateDeprecationWarning(opts))
@@ -30,36 +33,42 @@ func TestShouldShowTemplateDeprecationWarning(t *testing.T) {
 
 	// Template mode detection tests
 	t.Run("shows warning when UseTemplateEngine is true", func(t *testing.T) {
+		t.Parallel()
 		opts := DefaultOptions()
 		opts.UseTemplateEngine = true
 		assert.True(t, shouldShowTemplateDeprecationWarning(opts))
 	})
 
 	t.Run("shows warning when custom Template is provided", func(t *testing.T) {
+		t.Parallel()
 		opts := DefaultOptions()
 		opts.Template = template.New("custom")
 		assert.True(t, shouldShowTemplateDeprecationWarning(opts))
 	})
 
 	t.Run("shows warning when TemplateName is specified", func(t *testing.T) {
+		t.Parallel()
 		opts := DefaultOptions()
 		opts.TemplateName = "comprehensive"
 		assert.True(t, shouldShowTemplateDeprecationWarning(opts))
 	})
 
 	t.Run("shows warning when TemplateDir is specified", func(t *testing.T) {
+		t.Parallel()
 		opts := DefaultOptions()
 		opts.TemplateDir = "/custom/templates"
 		assert.True(t, shouldShowTemplateDeprecationWarning(opts))
 	})
 
 	t.Run("does not show warning for programmatic mode (default)", func(t *testing.T) {
+		t.Parallel()
 		opts := DefaultOptions()
 		// All template mode signals are false/empty
 		assert.False(t, shouldShowTemplateDeprecationWarning(opts))
 	})
 
 	t.Run("empty format is treated as markdown for warning purposes", func(t *testing.T) {
+		t.Parallel()
 		opts := DefaultOptions()
 		opts.Format = "" // Empty format
 		opts.UseTemplateEngine = true

@@ -80,6 +80,11 @@ WORKFLOW EXAMPLES:
 			return fmt.Errorf("failed to create logger: %w", loggerErr)
 		}
 
+		// Validate global flags after config is loaded
+		if err := validateGlobalFlags(cmd.Flags()); err != nil {
+			return fmt.Errorf("invalid flag configuration: %w", err)
+		}
+
 		return nil
 	},
 }
@@ -148,11 +153,6 @@ func init() {
 	// Log level overrides verbose/quiet
 	rootCmd.MarkFlagsMutuallyExclusive("log-level", "verbose")
 	rootCmd.MarkFlagsMutuallyExclusive("log-level", "quiet")
-
-	// Validate flag combinations
-	if err := validateGlobalFlags(rootCmd.Flags()); err != nil {
-		panic(fmt.Sprintf("Invalid flag configuration: %v", err))
-	}
 
 	// Add version command
 	versionCmd := &cobra.Command{
@@ -260,7 +260,7 @@ func validateGlobalFlags(flags *pflag.FlagSet) error {
 	// Check log-level values
 	if logLevel, err := flags.GetString("log-level"); err == nil && logLevel != "" {
 		validLevels := []string{"debug", "info", "warn", "error"}
-		if !contains(validLevels, logLevel) {
+		if !slices.Contains(validLevels, logLevel) {
 			return fmt.Errorf("invalid log-level %q, must be one of: %s", logLevel, strings.Join(validLevels, ", "))
 		}
 	}
@@ -268,7 +268,7 @@ func validateGlobalFlags(flags *pflag.FlagSet) error {
 	// Check log-format values
 	if logFormat, err := flags.GetString("log-format"); err == nil && logFormat != "" {
 		validFormats := []string{"text", "json"}
-		if !contains(validFormats, logFormat) {
+		if !slices.Contains(validFormats, logFormat) {
 			return fmt.Errorf("invalid log-format %q, must be one of: %s", logFormat, strings.Join(validFormats, ", "))
 		}
 	}
@@ -276,15 +276,10 @@ func validateGlobalFlags(flags *pflag.FlagSet) error {
 	// Check color values
 	if color, err := flags.GetString("color"); err == nil && color != "" {
 		validColors := []string{"auto", "always", "never"}
-		if !contains(validColors, color) {
+		if !slices.Contains(validColors, color) {
 			return fmt.Errorf("invalid color %q, must be one of: %s", color, strings.Join(validColors, ", "))
 		}
 	}
 
 	return nil
-}
-
-// contains checks if a slice contains a string value.
-func contains(slice []string, item string) bool {
-	return slices.Contains(slice, item)
 }
