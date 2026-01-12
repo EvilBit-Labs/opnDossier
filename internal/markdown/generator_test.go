@@ -144,6 +144,7 @@ func TestOptions(t *testing.T) {
 		assert.True(t, opts.IncludeMetadata)
 		assert.NotNil(t, opts.CustomFields)
 		assert.False(t, opts.UseTemplateEngine)
+		assert.False(t, opts.SuppressWarnings, "SuppressWarnings should default to false")
 	})
 
 	t.Run("options validation", func(t *testing.T) {

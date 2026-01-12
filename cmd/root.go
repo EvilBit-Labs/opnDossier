@@ -3,6 +3,8 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"slices"
+	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
@@ -112,15 +114,48 @@ func init() {
 	rootCmd.PersistentFlags().BoolP("quiet", "q", false, "Suppress all output except errors and critical messages")
 	setFlagAnnotation(rootCmd.PersistentFlags(), "quiet", []string{"output"})
 
+	// Logging control flags
+	rootCmd.PersistentFlags().
+		String("log-level", "", "Set log level (debug, info, warn, error) - overrides verbose/quiet")
+	setFlagAnnotation(rootCmd.PersistentFlags(), "log-level", []string{"logging"})
+	rootCmd.PersistentFlags().
+		String("log-format", "text", "Log format (text, json)")
+	setFlagAnnotation(rootCmd.PersistentFlags(), "log-format", []string{"logging"})
+	rootCmd.PersistentFlags().
+		Bool("timestamps", false, "Include timestamps in log output")
+	setFlagAnnotation(rootCmd.PersistentFlags(), "timestamps", []string{"logging"})
+
+	// Progress and display control flags
+	rootCmd.PersistentFlags().
+		Bool("no-progress", false, "Disable progress indicators")
+	setFlagAnnotation(rootCmd.PersistentFlags(), "no-progress", []string{"progress"})
+	rootCmd.PersistentFlags().
+		String("color", "auto", "Color output mode (auto, always, never)")
+	setFlagAnnotation(rootCmd.PersistentFlags(), "color", []string{"display"})
+	rootCmd.PersistentFlags().
+		Bool("minimal", false, "Minimal output mode (suppresses progress and verbose messages)")
+	setFlagAnnotation(rootCmd.PersistentFlags(), "minimal", []string{"output"})
+	rootCmd.PersistentFlags().
+		Bool("json-output", false, "Output errors in JSON format (for machine consumption)")
+	setFlagAnnotation(rootCmd.PersistentFlags(), "json-output", []string{"output"})
+
 	// Flag groups for better organization
 	rootCmd.PersistentFlags().SortFlags = false
 
 	// Mark mutually exclusive flags
 	// Verbose and quiet are mutually exclusive
 	rootCmd.MarkFlagsMutuallyExclusive("verbose", "quiet")
+	// Log level overrides verbose/quiet
+	rootCmd.MarkFlagsMutuallyExclusive("log-level", "verbose")
+	rootCmd.MarkFlagsMutuallyExclusive("log-level", "quiet")
+
+	// Validate flag combinations
+	if err := validateGlobalFlags(rootCmd.Flags()); err != nil {
+		panic(fmt.Sprintf("Invalid flag configuration: %v", err))
+	}
 
 	// Add version command
-	rootCmd.AddCommand(&cobra.Command{
+	versionCmd := &cobra.Command{
 		Use:   "version",
 		Short: "Display version information",
 		Long:  "Display the current version of opnDossier and build information.",
@@ -129,7 +164,23 @@ func init() {
 			fmt.Printf("Build date: %s\n", getBuildDate())
 			fmt.Printf("Git commit: %s\n", getGitCommit())
 		},
-	})
+	}
+	rootCmd.AddCommand(versionCmd)
+
+	// Add command aliases for common workflows
+	// Note: Cobra doesn't directly support command aliases, but we can create wrapper commands
+	convCmd := &cobra.Command{
+		Use:     "conv [file ...]",
+		Short:   "Alias for 'convert' command",
+		Long:    "Alias for the 'convert' command. Converts OPNsense configuration files to structured formats.",
+		GroupID: "core",
+		RunE:    convertCmd.RunE,
+		Args:    convertCmd.Args,
+		PreRunE: convertCmd.PreRunE,
+	}
+	// Copy flags from convert command
+	convCmd.Flags().AddFlagSet(convertCmd.Flags())
+	rootCmd.AddCommand(convCmd)
 
 	// Add command groups for better organization
 	rootCmd.AddGroup(&cobra.Group{
@@ -143,6 +194,12 @@ func init() {
 	rootCmd.AddGroup(&cobra.Group{
 		ID:    "utility",
 		Title: "Utility Commands",
+	})
+
+	// Define flag groups for better help organization
+	rootCmd.PersistentFlags().SetNormalizeFunc(func(_ *pflag.FlagSet, name string) pflag.NormalizedName {
+		// Normalize kebab-case consistently
+		return pflag.NormalizedName(strings.ReplaceAll(name, "_", "-"))
 	})
 }
 
@@ -196,4 +253,38 @@ func getBuildDate() string {
 // getGitCommit returns the git commit from ldflags or a default value.
 func getGitCommit() string {
 	return gitCommit
+}
+
+// validateGlobalFlags validates global flag combinations for consistency.
+func validateGlobalFlags(flags *pflag.FlagSet) error {
+	// Check log-level values
+	if logLevel, err := flags.GetString("log-level"); err == nil && logLevel != "" {
+		validLevels := []string{"debug", "info", "warn", "error"}
+		if !contains(validLevels, logLevel) {
+			return fmt.Errorf("invalid log-level %q, must be one of: %s", logLevel, strings.Join(validLevels, ", "))
+		}
+	}
+
+	// Check log-format values
+	if logFormat, err := flags.GetString("log-format"); err == nil && logFormat != "" {
+		validFormats := []string{"text", "json"}
+		if !contains(validFormats, logFormat) {
+			return fmt.Errorf("invalid log-format %q, must be one of: %s", logFormat, strings.Join(validFormats, ", "))
+		}
+	}
+
+	// Check color values
+	if color, err := flags.GetString("color"); err == nil && color != "" {
+		validColors := []string{"auto", "always", "never"}
+		if !contains(validColors, color) {
+			return fmt.Errorf("invalid color %q, must be one of: %s", color, strings.Join(validColors, ", "))
+		}
+	}
+
+	return nil
+}
+
+// contains checks if a slice contains a string value.
+func contains(slice []string, item string) bool {
+	return slices.Contains(slice, item)
 }
