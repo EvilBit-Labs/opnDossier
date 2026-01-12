@@ -15,7 +15,7 @@ const (
 	// TemplateRemovalVersion is the target version where template mode will be removed.
 	TemplateRemovalVersion = "v3.0"
 	// MigrationGuideURL is the canonical location of the migration guide.
-	MigrationGuideURL = "https://github.com/EvilBit-Labs/opnDossier/docs/migration.md"
+	MigrationGuideURL = "https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/migration-guide.md"
 	// DeprecationWarningEnabled globally enables deprecation warnings.
 	DeprecationWarningEnabled = true
 

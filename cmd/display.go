@@ -3,9 +3,11 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	// TODO: Audit mode functionality is not yet complete - disabled for now
 	// "github.com/EvilBit-Labs/opnDossier/internal/audit".
@@ -14,6 +16,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
 	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 // init registers the display command with the root command and sets up its CLI flags for XML validation control, theming, template selection, section filtering, text wrapping, and custom template directories.
@@ -35,6 +38,14 @@ var displayCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 	Use:     "display [file]",
 	Short:   "Display OPNsense configuration in formatted markdown.",
 	GroupID: "core",
+	PreRunE: func(cmd *cobra.Command, _ []string) error {
+		// Validate flag combinations specific to display command
+		if err := validateDisplayFlags(cmd.Flags()); err != nil {
+			return fmt.Errorf("display command validation failed: %w", err)
+		}
+
+		return nil
+	},
 	Long: `The 'display' command converts an OPNsense config.xml file to markdown
 and displays it in the terminal with syntax highlighting and formatting.
 This provides an immediate, readable view of your firewall configuration
@@ -132,15 +143,12 @@ Examples:
 		}
 
 		templateDir := getSharedTemplateDir()
-		opts := buildDisplayOptions(Cfg)
-		g, err := markdown.NewMarkdownGeneratorWithTemplates(ctxLogger, templateDir, opts)
+		mdOpts := buildDisplayOptions(Cfg)
+		g, err := markdown.NewMarkdownGeneratorWithTemplates(ctxLogger, templateDir, mdOpts)
 		if err != nil {
 			ctxLogger.Error("Failed to create markdown generator", "error", err)
 			return fmt.Errorf("failed to create markdown generator: %w", err)
 		}
-
-		// Create markdown options with comprehensive support
-		mdOpts := buildDisplayOptions(Cfg)
 
 		// TODO: Audit mode functionality is not yet complete - disabled for now
 		// Handle audit mode if specified
@@ -239,4 +247,49 @@ func buildDisplayOptions(cfg *config.Config) markdown.Options {
 	// Selected plugins are disabled until audit functionality is complete
 
 	return opt
+}
+
+// validateDisplayFlags validates flag combinations specific to the display command.
+func validateDisplayFlags(_ *pflag.FlagSet) error {
+	// Validate theme values
+	if sharedTheme != "" {
+		validThemes := []string{"light", "dark", "auto", "none"}
+		if !contains(validThemes, strings.ToLower(sharedTheme)) {
+			return fmt.Errorf("invalid theme %q, must be one of: %s", sharedTheme, strings.Join(validThemes, ", "))
+		}
+	}
+
+	// Validate engine flag combinations
+	if sharedEngine != "" {
+		if sharedUseTemplate {
+			return errors.New("--use-template and --engine flags are mutually exclusive")
+		}
+		if sharedLegacy {
+			return errors.New("--legacy and --engine flags are mutually exclusive")
+		}
+		if sharedCustomTemplate != "" {
+			return errors.New(
+				"--custom-template and --engine flags are mutually exclusive when engine is explicitly set",
+			)
+		}
+	}
+
+	// Validate template-related flags
+	if sharedCustomTemplate != "" && sharedUseTemplate {
+		return errors.New("--custom-template automatically enables template mode, --use-template is redundant")
+	}
+
+	// Validate wrap width if specified
+	if sharedWrapWidth > 0 && (sharedWrapWidth < MinWrapWidth || sharedWrapWidth > MaxWrapWidth) {
+		return fmt.Errorf("wrap width %d out of recommended range [%d, %d]",
+			sharedWrapWidth, MinWrapWidth, MaxWrapWidth)
+	}
+
+	// Validate template cache size if specified
+	if sharedTemplateCacheSize > MaxTemplateCacheSize {
+		return fmt.Errorf("template cache size %d exceeds maximum recommended size %d",
+			sharedTemplateCacheSize, MaxTemplateCacheSize)
+	}
+
+	return nil
 }

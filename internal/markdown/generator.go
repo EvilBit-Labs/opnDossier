@@ -34,6 +34,10 @@ type markdownGenerator struct {
 
 // NewMarkdownGenerator creates a new Generator that produces documentation in Markdown, JSON, or YAML formats using predefined templates.
 // It attempts to load and parse templates from multiple possible filesystem paths and returns an error if none are found or parsing fails.
+//
+// NOTE: This generator is specifically for template-based generation. The deprecation warning is shown
+// only when template mode signals are present (UseTemplateEngine, TemplateName, TemplateDir, or Template).
+// For programmatic generation (the default since v2.0), use HybridGenerator instead.
 func NewMarkdownGenerator(logger *log.Logger, opts Options) (Generator, error) {
 	if logger == nil {
 		var err error
@@ -44,6 +48,7 @@ func NewMarkdownGenerator(logger *log.Logger, opts Options) (Generator, error) {
 	}
 
 	// Show deprecation warning if template mode is being used
+	// The showTemplateDeprecationWarning function checks for template mode signals
 	showTemplateDeprecationWarning(logger, opts)
 
 	return NewMarkdownGeneratorWithTemplates(logger, "", opts)
@@ -51,6 +56,9 @@ func NewMarkdownGenerator(logger *log.Logger, opts Options) (Generator, error) {
 
 // NewMarkdownGeneratorWithTemplates creates a new Generator with custom template directory support.
 // If templateDir is provided, it will be used first for template overrides, falling back to built-in templates.
+//
+// NOTE: This generator is specifically for template-based generation. The deprecation warning is shown
+// only when template mode signals are present, indicating explicit template usage.
 func NewMarkdownGeneratorWithTemplates(logger *log.Logger, templateDir string, opts Options) (Generator, error) {
 	if logger == nil {
 		var err error
@@ -60,7 +68,13 @@ func NewMarkdownGeneratorWithTemplates(logger *log.Logger, templateDir string, o
 		}
 	}
 
+	// If templateDir is specified via parameter, set it in opts for consistent warning detection
+	if templateDir != "" && opts.TemplateDir == "" {
+		opts.TemplateDir = templateDir
+	}
+
 	// Show deprecation warning if template mode is being used
+	// The showTemplateDeprecationWarning function checks for template mode signals
 	showTemplateDeprecationWarning(logger, opts)
 
 	// Create template function map with custom functions
