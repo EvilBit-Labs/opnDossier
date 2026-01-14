@@ -30,13 +30,16 @@ jobs:
       - name: Build binary for scanning
         run: just build-release
 
+      - name: Install Grype CLI
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin v0.78.1
+
       - name: Scan compiled binary (primary)
-        uses: anchore/scan-action@v6
-        id: scan_binary
-        with:
-          path: "./opndossier"
-          fail-build: false
-          severity-cutoff: medium
+        if: always()
+        run: |
+          grype ./opndossier -o sarif --file binary-scan.sarif || true
+          grype ./opndossier -o table > vulnerability-report-binary.txt || true
+          grype ./opndossier -o json > vulnerability-report-binary.json || true
 
       - name: Scan source directory (informational)
         uses: anchore/scan-action@v6
@@ -46,11 +49,6 @@ jobs:
           path: "."
           fail-build: false
           severity-cutoff: medium
-
-      - name: Install Grype CLI for reports
-        if: always()
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin v0.78.1
 
       - name: Generate SBOM (SPDX)
         if: always()
@@ -78,11 +76,9 @@ jobs:
             sbom.cyclonedx.json
           retention-days: 30
 
-      - name: Generate vulnerability reports (table + JSON)
+      - name: Generate source vulnerability reports
         if: always()
         run: |
-          grype ./opndossier -o table > vulnerability-report-binary.txt || true
-          grype ./opndossier -o json > vulnerability-report-binary.json || true
           grype . -o table > vulnerability-report-source.txt || true
           grype . -o json > vulnerability-report-source.json || true
 
@@ -100,7 +96,7 @@ jobs:
         uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
-          sarif_file: ${{ steps.scan_binary.outputs.sarif }}
+          sarif_file: binary-scan.sarif
           category: binary-scan
 
       - name: Upload SARIF results (source scan)
