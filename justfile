@@ -78,7 +78,7 @@ _update-go:
 [private]
 _update-python:
     @echo "Updating Python dependencies..."
-    @uv pip install --quiet --upgrade mkdocs-material pre-commit
+    @uv pip install --system --quiet --upgrade mkdocs-material pre-commit
 
 [private]
 _update-bun:
