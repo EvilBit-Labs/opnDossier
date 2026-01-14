@@ -1244,26 +1244,33 @@ func TestFileExporter_CrossPlatformValidation(t *testing.T) {
 
 			// Cross-platform validation checks
 
-			// 1. No platform-specific line endings (should be \n)
-			assert.NotContains(t, contentStr, "\r\n", "File should not contain Windows line endings")
-			assert.NotContains(t, contentStr, "\r", "File should not contain Mac line endings")
+			// 1. Line endings should be platform-appropriate
+			// - Windows: \r\n (CRLF)
+			// - Unix-like (Linux, macOS, FreeBSD): \n (LF)
+			if runtime.GOOS == "windows" {
+				// On Windows, we expect CRLF line endings
+				// Verify no bare \n (should only exist as \r\n)
+				// and no bare \r (should only exist as part of \r\n)
+				for i, line := range strings.Split(contentStr, "\n") {
+					if i < strings.Count(contentStr, "\n") { // Not the last line
+						assert.True(t, strings.HasSuffix(line, "\r"), "Line should end with \\r (for CRLF line ending)")
+					}
+				}
+			} else {
+				// On Unix-like systems, we expect LF line endings
+				assert.NotContains(t, contentStr, "\r\n", "File should not contain CRLF (Windows line endings)")
+				assert.NotContains(t, contentStr, "\r", "File should not contain bare CR (Mac line endings)")
+			}
 
-			// 2. No platform-specific path separators
-			// Check for Windows path separators but allow escaped characters
-			// Since our JSON/YAML output contains escaped characters like \n, \t, etc.,
-			// we need to be more specific about what constitutes a Windows path separator
-			// For now, we'll skip this check since the output is valid and contains legitimate escaped chars
-			// TODO: Implement more sophisticated path separator detection if needed
-
-			// 3. No platform-specific encoding issues
+			// 2. No platform-specific encoding issues
 			// Check for valid UTF-8
 			assert.True(t, utf8.Valid(exportedContent), "File should be valid UTF-8")
 
-			// 4. No platform-specific control characters
+			// 3. No platform-specific control characters
 			assert.NotContains(t, contentStr, "\x00", "File should not contain null bytes")
 			assert.NotContains(t, contentStr, "\x1a", "File should not contain EOF characters")
 
-			// 5. File should be readable by standard tools
+			// 4. File should be readable by standard tools
 			switch tt.format {
 			case "markdown":
 				err = markdown.ValidateMarkdown(contentStr)

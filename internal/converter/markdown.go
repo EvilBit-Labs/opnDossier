@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -24,6 +25,22 @@ const (
 	checkmark      = "✓"
 	xMark          = "✗"
 )
+
+// normalizeLineEndings converts line endings to the platform-appropriate format.
+// - Windows: \r\n (CRLF)
+// - Unix-like (Linux, macOS, FreeBSD): \n (LF).
+func normalizeLineEndings(content string) string {
+	// First, normalize all line endings to \n (LF)
+	content = strings.ReplaceAll(content, "\r\n", "\n")
+	content = strings.ReplaceAll(content, "\r", "\n")
+
+	// Then, convert to platform-specific line endings if on Windows
+	if runtime.GOOS == "windows" {
+		content = strings.ReplaceAll(content, "\n", "\r\n")
+	}
+
+	return content
+}
 
 // Converter is the interface for converting OPNsense configurations to markdown.
 type Converter interface {
@@ -747,7 +764,9 @@ func (b *MarkdownBuilder) BuildStandardReport(data *model.OpnSenseDocument) (str
 		md.Table(*tableSet)
 	}
 
-	return md.String(), nil
+	// Normalize line endings to platform-specific format
+	result := md.String()
+	return normalizeLineEndings(result), nil
 }
 
 // BuildComprehensiveReport builds a comprehensive markdown report.
@@ -789,7 +808,9 @@ func (b *MarkdownBuilder) BuildComprehensiveReport(data *model.OpnSenseDocument)
 	md.PlainText(b.BuildSecuritySection(data))
 	md.PlainText(b.BuildServicesSection(data))
 
-	return md.String(), nil
+	// Normalize line endings to platform-specific format
+	result := md.String()
+	return normalizeLineEndings(result), nil
 }
 
 // ToMarkdown converts an OPNsense configuration to markdown.
@@ -829,7 +850,8 @@ func (c *MarkdownConverter) ToMarkdown(_ context.Context, opnsense *model.OpnSen
 		return "", fmt.Errorf("failed to render markdown: %w", err)
 	}
 
-	return r, nil
+	// Normalize line endings to platform-specific format
+	return normalizeLineEndings(r), nil
 }
 
 // getTheme determines the appropriate theme based on environment variables and terminal settings.
