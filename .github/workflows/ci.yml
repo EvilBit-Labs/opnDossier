@@ -151,10 +151,16 @@ jobs:
         run: just build-release
 
       - name: Generate SBOM from binary (CycloneDX)
-        run: cyclonedx-gomod bin -output sbom-binary.cyclonedx.json ./opndossier
+        uses: CycloneDX/gh-gomod-generate-sbom@v2
+        with:
+          version: v1.9.0
+          args: bin -output sbom-binary.cyclonedx.json ./opndossier
 
       - name: Generate SBOM from modules (CycloneDX)
-        run: cyclonedx-gomod app -output sbom-modules.cyclonedx.json -json .
+        uses: CycloneDX/gh-gomod-generate-sbom@v2
+        with:
+          version: v1.9.0
+          args: app -output sbom-modules.cyclonedx.json -json .
 
       - name: Generate SBOM (SPDX)
         uses: anchore/sbom-action@v0
