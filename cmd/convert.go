@@ -478,7 +478,7 @@ Examples:
 				// Export or print the output
 				if actualOutputFile != "" {
 					enhancedLogger.Debug("Exporting to file")
-					e := export.NewFileExporter()
+					e := export.NewFileExporter(ctxLogger)
 					if err := e.Export(timeoutCtx, output, actualOutputFile); err != nil {
 						enhancedLogger.Error("Failed to export output", "error", err)
 						errs <- fmt.Errorf("failed to export output to %s: %w", actualOutputFile, err)
