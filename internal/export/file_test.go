@@ -22,6 +22,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const (
+	windowsOS = "windows"
+)
+
 // ValidationTestCase represents a test case for validation tests.
 type ValidationTestCase struct {
 	Name       string
@@ -337,7 +341,7 @@ func TestFileExporter_AtomicWrite(t *testing.T) {
 	// The actual permissions may vary, so we just check that the file exists and is readable
 	assert.True(t, info.Mode().IsRegular())
 	// On Unix systems, check the actual permissions
-	if runtime.GOOS != "windows" {
+	if runtime.GOOS != windowsOS {
 		assert.Equal(t, os.FileMode(DefaultFilePermissions), info.Mode().Perm())
 	}
 
@@ -1249,7 +1253,7 @@ func TestFileExporter_CrossPlatformValidation(t *testing.T) {
 			// 1. Line endings should be platform-appropriate
 			// - Windows: \r\n (CRLF)
 			// - Unix-like (Linux, macOS, FreeBSD): \n (LF)
-			if runtime.GOOS == "windows" {
+			if runtime.GOOS == windowsOS {
 				// On Windows, we expect CRLF line endings
 				// More robust CRLF verification
 				assert.NotContains(t, contentStr, "\n\n", "Should not have bare LF sequences")
@@ -1267,13 +1271,6 @@ func TestFileExporter_CrossPlatformValidation(t *testing.T) {
 				assert.NotContains(t, contentStr, "\r\n", "File should not contain CRLF (Windows line endings)")
 				assert.NotContains(t, contentStr, "\r", "File should not contain bare CR (Mac line endings)")
 			}
-
-			// Verify content integrity - count lines to ensure preservation
-			inputLineCount := strings.Count(string(exportedContent), "\n")
-			if len(exportedContent) > 0 && exportedContent[len(exportedContent)-1] != '\n' {
-				inputLineCount++ // Add 1 if file doesn't end with newline
-			}
-			// This verifies that logical line breaks are maintained correctly
 
 			// 2. No platform-specific encoding issues
 			// Check for valid UTF-8
