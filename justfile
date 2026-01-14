@@ -61,7 +61,7 @@ setup: install
 
 # Update all dependencies
 [group('setup')]
-update-deps: _update-go _update-python _update-pnpm _update-precommit _update-tools
+update-deps: _update-go _update-python _update-bun _update-precommit _update-tools
     @echo "✅ All dependencies updated"
 
 [private]
@@ -81,12 +81,9 @@ _update-python:
     @uv pip install --quiet --upgrade mkdocs-material pre-commit
 
 [private]
-_update-pnpm:
+_update-bun:
     #!/usr/bin/env bash
-    if command -v pnpm >/dev/null 2>&1; then
-        echo "Updating pnpm dependencies..."
-        pnpm update
-    fi
+    {{ _cmd_exists }} bun >{{ _null }} 2>&1 && echo "Updating bun dependencies..." && bun update || true
 
 [private]
 _update-precommit:

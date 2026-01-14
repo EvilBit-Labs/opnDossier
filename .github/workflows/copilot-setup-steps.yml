@@ -1,7 +1,5 @@
 name: "Copilot Setup Steps"
 
-# Automatically run the setup steps when they are changed to allow for easy validation, and
-# allow manual testing through the repository's "Actions" tab
 on:
   workflow_dispatch:
   push:
@@ -12,18 +10,11 @@ on:
       - .github/workflows/copilot-setup-steps.yml
 
 jobs:
-  # The job MUST be called `copilot-setup-steps` or it will not be picked up by Copilot.
   copilot-setup-steps:
     runs-on: ubuntu-latest
-
-    # Set the permissions to the lowest permissions possible needed for your steps.
-    # Copilot will be given its own token for its operations.
     permissions:
-      # If you want to clone the repository as part of your setup steps, for example to install dependencies, you'll need the `contents: read` permission. If you don't clone the repository in your setup steps, Copilot will do this for you automatically after the steps complete.
       contents: read
 
-    # You can define any steps you want, and they will run before the agent starts.
-    # If you do not check out your code, Copilot will do this for you.
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -60,97 +51,29 @@ jobs:
       - name: Install dependencies
         run: just install
 
-      - name: Install development tools
-        run: |
-          set -euo pipefail
-
-          # Create tools directory
-          mkdir -p /usr/local/bin
-
-          # Install git-cliff for changelog generation (v2.10.0)
-          echo "Installing git-cliff v2.10.0..."
-          GIT_CLIFF_URL="https://github.com/orhun/git-cliff/releases/download/v2.10.0/git-cliff-2.10.0-x86_64-unknown-linux-gnu.tar.gz"
-          GIT_CLIFF_SHA256="26b33340c253c567e40a79a5cfab176d682dc3bfdb40136c7ba2d7321796c8b3"
-
-          curl -L -s "$GIT_CLIFF_URL" -o /tmp/git-cliff.tar.gz
-          echo "$GIT_CLIFF_SHA256 /tmp/git-cliff.tar.gz" | sha256sum -c
-          tar -xzf /tmp/git-cliff.tar.gz -C /tmp
-          mv /tmp/git-cliff-2.10.0/git-cliff /usr/local/bin/
-          chmod +x /usr/local/bin/git-cliff
-
-          # Install cyclonedx-gomod for SBOM generation
-          echo "Installing cyclonedx-gomod..."
-          go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
-
-          # Install gosec for security scanning
-          echo "Installing gosec..."
-          go install github.com/securego/gosec/v2/cmd/gosec@latest
-
-          # Clean up temporary files
-          rm -f /tmp/*.tar.gz
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      - name: Install bun
+        uses: oven-sh/setup-bun@v2
         with:
-          version: 8
-
-      - name: Setup pnpm cache
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "pnpm"
+          bun-version: latest
 
       - name: Install markdown linting tools
         run: |
           set -euo pipefail
-          pnpm add -g markdownlint-cli2@0.7.0
+          bun add -g markdownlint-cli2@0.7.0
 
-          # Install pre-commit using Python pip instead of pnpm
+          # Install pre-commit using Python pip
           python3 -m pip install --user pre-commit
 
-      - name: Install pnpm dependencies
+      - name: Install bun dependencies
         run: |
           set -euo pipefail
 
-          # Install pnpm dependencies for commitlint
+          # Install bun dependencies for commitlint
           if [ -f "package.json" ]; then
-            # Try frozen lockfile first, fall back to regular install if incompatible
-            pnpm install --frozen-lockfile || {
-              echo "Frozen lockfile failed, trying regular install..."
-              pnpm install
-            }
+            bun install
           else
-            echo "package.json not found, skipping pnpm dependencies"
+            echo "package.json not found, skipping bun dependencies"
           fi
-
-      - name: Install pre-commit hooks
-        run: |
-          set -euo pipefail
-
-          # Add Python user bin to PATH for pre-commit
-          export PATH="/root/.local/bin:$PATH"
-
-          # Check if pre-commit is available
-          if ! command -v pre-commit >/dev/null 2>&1; then
-            echo "pre-commit not found in PATH, checking alternative locations..."
-            echo "PATH: $PATH"
-            find /root -name "pre-commit" -type f 2>/dev/null || true
-            echo "pre-commit installation failed, skipping pre-commit hooks setup"
-            exit 0
-          fi
-
-          # Install pre-commit hooks with better error reporting
-          echo "Installing pre-commit hooks..."
-          pre-commit install --hook-type commit-msg || {
-            echo "Failed to install pre-commit hooks"
-            echo "Checking pre-commit configuration..."
-            pre-commit --version || echo "pre-commit command not found"
-            echo "Available hooks:"
-            pre-commit run --all-files --verbose || true
-            exit 1
-          }
-
-          echo "Pre-commit hooks installed successfully"
 
       - name: Verify tool installations
         run: |
@@ -174,7 +97,7 @@ jobs:
           # Verify commitlint is available
           if [ -f "package.json" ]; then
             echo "Verifying commitlint installation..."
-            pnpm exec commitlint --version || echo "commitlint not available via pnpm"
+            bun run commitlint --version || echo "commitlint not available via bun"
           fi
 
           # Verify Python environment and mkdocs-material
