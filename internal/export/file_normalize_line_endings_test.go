@@ -3,10 +3,15 @@ package export
 import (
 	"os"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/log"
 	"github.com/stretchr/testify/assert"
+)
+
+const (
+	testLineContent = "line1\nline2\nline3\n"
 )
 
 // TestNormalizeLineEndings tests the normalizeLineEndings function comprehensively.
@@ -102,20 +107,9 @@ func TestNormalizeLineEndings(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Setup environment
-			oldEnv := os.Getenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS")
-			defer func() {
-				if oldEnv == "" {
-					os.Unsetenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS")
-				} else {
-					os.Setenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS", oldEnv)
-				}
-			}()
-
+			// Setup environment using t.Setenv for automatic cleanup
 			if tt.envVar != "" {
-				os.Setenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS", tt.envVar)
-			} else {
-				os.Unsetenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS")
+				t.Setenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS", tt.envVar)
 			}
 
 			result := normalizeLineEndings(logger, tt.input)
@@ -162,9 +156,11 @@ func TestNormalizeLineEndings_Performance(t *testing.T) {
 
 	// Test with large content (10MB of text)
 	largeContent := ""
-	for i := 0; i < 100000; i++ {
-		largeContent += "line content\nmore content\r\neven more\r"
+	var largeContentSb165 strings.Builder
+	for range 100000 {
+		largeContentSb165.WriteString("line content\nmore content\r\neven more\r")
 	}
+	largeContent += largeContentSb165.String()
 
 	oldEnv := os.Getenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS")
 	os.Setenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS", "1")
@@ -258,11 +254,13 @@ func TestNormalizeLineEndings_ContentPreservation(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		// On Windows, remove \r to count only \n
 		normalizedForCount = ""
+		var normalizedForCountSb261 strings.Builder
 		for _, r := range result {
 			if r != '\r' {
-				normalizedForCount += string(r)
+				normalizedForCountSb261.WriteString(string(r))
 			}
 		}
+		normalizedForCount += normalizedForCountSb261.String()
 	}
 
 	// Count lines (number of \n plus 1 for the last line)

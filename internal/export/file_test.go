@@ -1256,9 +1256,9 @@ func TestFileExporter_CrossPlatformValidation(t *testing.T) {
 				assert.NotContains(t, contentStr, "\r\r", "Should not have double CR")
 
 				// Verify all \n are preceded by \r
-				for i := 0; i < len(contentStr); i++ {
+				for i := range len(contentStr) {
 					if contentStr[i] == '\n' {
-						assert.Greater(t, i, 0, "Newline should not be at start")
+						assert.Positive(t, i, "Newline should not be at start")
 						assert.Equal(t, byte('\r'), contentStr[i-1], "Every LF should be preceded by CR")
 					}
 				}
