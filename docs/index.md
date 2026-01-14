@@ -135,6 +135,7 @@ Check out the [Installation Guide](user-guide/installation.md) to get started, o
 - **[Developer Guide](dev-guide/)** - API documentation, architecture, and development guidelines
 - **[Compliance Standards](compliance-standards.md)** - Security and compliance framework documentation
 - **[CIS-like Firewall Reference](cis-like-firewall-reference.md)** - Firewall configuration reference
+- **[Charmbracelet Ecosystem Compatibility Research](charmbracelet-compatibility-research.md)** - Dependency analysis, version matrix, breaking changes, and upgrade recommendations for the Charmbracelet package ecosystem
 
 ## Contributing
 
