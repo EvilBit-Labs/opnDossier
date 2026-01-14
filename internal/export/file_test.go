@@ -1225,6 +1225,8 @@ func TestFileExporter_CrossPlatformValidation(t *testing.T) {
 				outputFile,
 			)
 			cmd.Dir = projectRoot
+			// Enable platform-specific line endings for this test
+			cmd.Env = append(os.Environ(), "OPNDOSSIER_PLATFORM_LINE_ENDINGS=1")
 
 			var stdout, stderr bytes.Buffer
 
