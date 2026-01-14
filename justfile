@@ -51,7 +51,7 @@ alias i := install
 # Install all dependencies and setup environment
 [group('setup')]
 install: _update-python
-    @pre-commit install --hook-type commit-msg
+    @uv run pre-commit install --hook-type commit-msg
     @go mod tidy
     @just _install-tool git-cliff
 
