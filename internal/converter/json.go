@@ -29,5 +29,5 @@ func (c *JSONConverter) ToJSON(_ context.Context, opnsense *model.OpnSenseDocume
 		return "", fmt.Errorf("failed to marshal to JSON: %w", err)
 	}
 
-	return normalizeLineEndings(string(jsonBytes)), nil
+	return string(jsonBytes), nil
 }

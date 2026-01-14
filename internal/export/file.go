@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -14,6 +15,34 @@ const (
 	// DefaultFilePermissions defines the default file permissions for exported files.
 	DefaultFilePermissions = 0o600
 )
+
+// normalizeLineEndings converts line endings to the platform-appropriate format
+// for file exports, but only if explicitly enabled via the OPNDOSSIER_PLATFORM_LINE_ENDINGS
+// environment variable. This keeps outputs deterministic (LF-normalized) by default.
+//
+// To enable platform-specific line endings for file exports, set:
+//   OPNDOSSIER_PLATFORM_LINE_ENDINGS=1
+//
+// When enabled:
+// - Windows: \r\n (CRLF)
+// - Unix-like (Linux, macOS, FreeBSD): \n (LF)
+func normalizeLineEndings(content string) string {
+	// Only normalize if explicitly enabled via environment variable
+	if os.Getenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS") != "1" {
+		return content
+	}
+
+	// First, normalize all line endings to \n (LF)
+	content = strings.ReplaceAll(content, "\r\n", "\n")
+	content = strings.ReplaceAll(content, "\r", "\n")
+
+	// Then, convert to platform-specific line endings if on Windows
+	if runtime.GOOS == "windows" {
+		content = strings.ReplaceAll(content, "\n", "\r\n")
+	}
+
+	return content
+}
 
 // Define static errors for better error handling.
 var (
@@ -273,8 +302,11 @@ func (e *FileExporter) Export(ctx context.Context, content, path string) error {
 		}
 	}
 
+	// Normalize line endings for the target platform before writing
+	normalizedContent := normalizeLineEndings(content)
+
 	// Write the file with atomic operation for better safety
-	if err := e.writeFileAtomic(path, []byte(content)); err != nil {
+	if err := e.writeFileAtomic(path, []byte(normalizedContent)); err != nil {
 		return &Error{
 			Operation: "write_file",
 			Path:      path,

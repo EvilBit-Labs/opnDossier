@@ -764,9 +764,7 @@ func (b *MarkdownBuilder) BuildStandardReport(data *model.OpnSenseDocument) (str
 		md.Table(*tableSet)
 	}
 
-	// Normalize line endings to platform-specific format
-	result := md.String()
-	return normalizeLineEndings(result), nil
+	return md.String(), nil
 }
 
 // BuildComprehensiveReport builds a comprehensive markdown report.
@@ -808,9 +806,7 @@ func (b *MarkdownBuilder) BuildComprehensiveReport(data *model.OpnSenseDocument)
 	md.PlainText(b.BuildSecuritySection(data))
 	md.PlainText(b.BuildServicesSection(data))
 
-	// Normalize line endings to platform-specific format
-	result := md.String()
-	return normalizeLineEndings(result), nil
+	return md.String(), nil
 }
 
 // ToMarkdown converts an OPNsense configuration to markdown.
@@ -850,8 +846,7 @@ func (c *MarkdownConverter) ToMarkdown(_ context.Context, opnsense *model.OpnSen
 		return "", fmt.Errorf("failed to render markdown: %w", err)
 	}
 
-	// Normalize line endings to platform-specific format
-	return normalizeLineEndings(r), nil
+	return r, nil
 }
 
 // getTheme determines the appropriate theme based on environment variables and terminal settings.
