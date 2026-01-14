@@ -127,13 +127,76 @@ jobs:
         with:
           path: "."
           fail-build: true
-          severity-cutoff: high
+          severity-cutoff: ${{ github.ref == 'refs/heads/main' && 'medium' || 'high' }}
+
+      - name: Run Grype Go module dependency scan
+        uses: anchore/scan-action@v6
+        id: scan_go_mod
+        with:
+          path: "go.mod"
+          fail-build: true
+          severity-cutoff: critical
+
+      - name: Install Grype CLI
+        if: always()
+        uses: anchore/grype-action@v3
+        with:
+          grype-version: v0.78.1
+          cmd: version
+
+      - name: Generate SBOM (SPDX)
+        if: always()
+        uses: anchore/sbom-action@v0
+        with:
+          path: "."
+          format: spdx-json
+          output-file: sbom.spdx.json
+
+      - name: Generate SBOM (CycloneDX)
+        if: always()
+        uses: anchore/sbom-action@v0
+        with:
+          path: "."
+          format: cyclonedx-json
+          output-file: sbom.cyclonedx.json
+
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sbom-reports
+          path: |
+            sbom.spdx.json
+            sbom.cyclonedx.json
+          retention-days: 30
+
+      - name: Generate vulnerability reports (table + JSON)
+        if: always()
+        run: |
+          grype . -o table > vulnerability-report.txt
+          grype . -o json > vulnerability-report.json
+
+      - name: Upload vulnerability reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vulnerability-reports
+          path: |
+            vulnerability-report.txt
+            vulnerability-report.json
+          retention-days: 30
 
       - name: Upload SARIF results
         uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: ${{ steps.scan.outputs.sarif }}
+
+      - name: Upload SARIF results (Go module scan)
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: ${{ steps.scan_go_mod.outputs.sarif }}
 
   # ─────────────────────────────────────────────────────────────────────────
   # CI Gate - All checks must pass
