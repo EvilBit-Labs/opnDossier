@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -25,22 +24,6 @@ const (
 	checkmark      = "✓"
 	xMark          = "✗"
 )
-
-// normalizeLineEndings converts line endings to the platform-appropriate format.
-// - Windows: \r\n (CRLF)
-// - Unix-like (Linux, macOS, FreeBSD): \n (LF).
-func normalizeLineEndings(content string) string {
-	// First, normalize all line endings to \n (LF)
-	content = strings.ReplaceAll(content, "\r\n", "\n")
-	content = strings.ReplaceAll(content, "\r", "\n")
-
-	// Then, convert to platform-specific line endings if on Windows
-	if runtime.GOOS == "windows" {
-		content = strings.ReplaceAll(content, "\n", "\r\n")
-	}
-
-	return content
-}
 
 // Converter is the interface for converting OPNsense configurations to markdown.
 type Converter interface {
