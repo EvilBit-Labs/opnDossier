@@ -45,7 +45,7 @@ func TestNormalizeLineEndings(t *testing.T) {
 			input:  "line1\r\nline2\rline3\n",
 			envVar: "1",
 			expected: func() string {
-				if runtime.GOOS == "windows" {
+				if runtime.GOOS == windowsOS {
 					return "line1\r\nline2\r\nline3\r\n"
 				}
 				return "line1\nline2\nline3\n"
@@ -56,7 +56,7 @@ func TestNormalizeLineEndings(t *testing.T) {
 			input:  "line1\nline2\rline3\r\n",
 			envVar: "1",
 			expected: func() string {
-				if runtime.GOOS == "windows" {
+				if runtime.GOOS == windowsOS {
 					return "line1\r\nline2\r\nline3\r\n"
 				}
 				return "line1\nline2\nline3\n"
@@ -79,7 +79,7 @@ func TestNormalizeLineEndings(t *testing.T) {
 			input:  "\n\r\n\r",
 			envVar: "1",
 			expected: func() string {
-				if runtime.GOOS == "windows" {
+				if runtime.GOOS == windowsOS {
 					return "\r\n\r\n\r\n"
 				}
 				return "\n\n\n"
@@ -177,7 +177,7 @@ func TestNormalizeLineEndings_WithNilLogger(t *testing.T) {
 			input:  "line1\nline2\n",
 			envVar: "1",
 			expected: func() string {
-				if runtime.GOOS == "windows" {
+				if runtime.GOOS == windowsOS {
 					return "line1\r\nline2\r\n"
 				}
 				return "line1\nline2\n"
@@ -213,13 +213,13 @@ func TestNormalizeLineEndings_ContentPreservation(t *testing.T) {
 
 	// Count logical lines by normalizing all line endings to \n and counting
 	normalizedForCount := result
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == windowsOS {
 		// On Windows, remove \r to count only \n
 		normalizedForCount = ""
 		var normalizedForCountSb261 strings.Builder
 		for _, r := range result {
 			if r != '\r' {
-				normalizedForCountSb261.WriteString(string(r))
+				normalizedForCountSb261.WriteRune(r)
 			}
 		}
 		normalizedForCount += normalizedForCountSb261.String()
