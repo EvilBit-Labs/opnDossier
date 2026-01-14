@@ -26,7 +26,7 @@ jobs:
     # If you do not check out your code, Copilot will do this for you.
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Ensure bash is installed
         run: |
@@ -37,38 +37,17 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: 'go.mod'
-          cache: true
-          check-latest: false
+          go-version-file: "go.mod"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
-      - name: Install Just
-        uses: taiki-e/install-action@just
+      - uses: extractions/setup-just@v3
 
-      - name: Setup Python virtual environment
-        run: |
-          set -euo pipefail
-
-          python3 -m venv .venv
-          source .venv/bin/activate
-          pip install mkdocs-material
-
-      - name: Install dependencies
-        run: |
-          set -euo pipefail
-
-          # Only run Go module commands if go.mod exists
-          if [ -f "go.mod" ]; then
-            go mod download
-            go mod tidy
-            go mod verify
-          else
-            echo "go.mod not found, skipping Go module commands"
-          fi
+      - uses: actions/setup-python@v6
+      - uses: astral-sh/setup-uv@v7
 
       - name: Install golangci-lint
         uses: golangci/golangci-lint-action@v8.0.0
@@ -76,10 +55,10 @@ jobs:
           version: v2.3.1
 
       - name: Install goimports
-        run: |
-          set -euo pipefail
+        run: go install golang.org/x/tools/cmd/goimports@latest
 
-          go install golang.org/x/tools/cmd/goimports@latest
+      - name: Install dependencies
+        run: just install
 
       - name: Install development tools
         run: |
@@ -99,31 +78,16 @@ jobs:
           mv /tmp/git-cliff-2.10.0/git-cliff /usr/local/bin/
           chmod +x /usr/local/bin/git-cliff
 
-          # Install Grype for vulnerability scanning (v0.97.2)
-          echo "Installing grype v0.97.2..."
-          GRYPE_URL="https://github.com/anchore/grype/releases/download/v0.97.2/grype_0.97.2_linux_amd64.tar.gz"
-          GRYPE_SHA256="9db8daad914906aae9a2d99c75ed2bde19fb33e5ea3e14e5b814c6029e1034a9"
+          # Install cyclonedx-gomod for SBOM generation
+          echo "Installing cyclonedx-gomod..."
+          go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
 
-          curl -L -s "$GRYPE_URL" -o /tmp/grype.tar.gz
-          echo "$GRYPE_SHA256 /tmp/grype.tar.gz" | sha256sum -c
-          tar -xzf /tmp/grype.tar.gz -C /tmp
-          mv /tmp/grype /usr/local/bin/
-          chmod +x /usr/local/bin/grype
-
-          # Install Syft for SBOM generation (v1.30.0)
-          echo "Installing syft v1.30.0..."
-          SYFT_URL="https://github.com/anchore/syft/releases/download/v1.30.0/syft_1.30.0_linux_amd64.tar.gz"
-          SYFT_SHA256="f0cdcba0b6ce4c7a87050d524f732ba9fa2e711835f993a4ef108cfbf928ec13"
-
-          curl -L -s "$SYFT_URL" -o /tmp/syft.tar.gz
-          echo "$SYFT_SHA256 /tmp/syft.tar.gz" | sha256sum -c
-          tar -xzf /tmp/syft.tar.gz -C /tmp
-          mv /tmp/syft /usr/local/bin/
-          chmod +x /usr/local/bin/syft
+          # Install gosec for security scanning
+          echo "Installing gosec..."
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
 
           # Clean up temporary files
           rm -f /tmp/*.tar.gz
-
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -133,8 +97,8 @@ jobs:
       - name: Setup pnpm cache
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install markdown linting tools
         run: |
@@ -228,7 +192,7 @@ jobs:
           # Verify extra tools installation
           echo "Verifying extra tools installation..."
           git-cliff --version
-          grype version
-          syft version
+          cyclonedx-gomod version
+          gosec version
 
           echo "All tools installed successfully"
