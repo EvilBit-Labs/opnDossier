@@ -127,8 +127,18 @@ jobs:
         with:
           args: "-no-fail -fmt sarif -out results.sarif ./..."
 
+      - name: Fix SARIF output
+        if: always()
+        run: |
+          # Fix gosec SARIF output: ensure artifactChanges is always an array
+          if [ -f results.sarif ]; then
+            jq 'walk(if type == "object" and has("artifactChanges") and (.artifactChanges | type != "array") then .artifactChanges = [] else . end)' results.sarif > results-fixed.sarif
+            mv results-fixed.sarif results.sarif
+          fi
+
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v4
+        if: always()
         with:
           sarif_file: results.sarif
 
