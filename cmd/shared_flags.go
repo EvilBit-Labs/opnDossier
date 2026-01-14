@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/audit"
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/log"
 	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
@@ -25,6 +26,9 @@ var (
 	sharedCustomTemplate    string   //nolint:gochecknoglobals // Custom template file path
 	sharedIncludeTunables   bool     //nolint:gochecknoglobals // Include system tunables in output
 	sharedTemplateCacheSize int      //nolint:gochecknoglobals // Template cache size (LRU max entries)
+
+	// Warning flags to prevent repeated warnings.
+	warnedAboutAbsoluteTemplatePath bool //nolint:gochecknoglobals // Gate absolute path warning
 
 	// Generation engine flags.
 	sharedUseTemplate bool   //nolint:gochecknoglobals // Explicitly enable template mode
@@ -52,6 +56,16 @@ func addSharedTemplateFlags(cmd *cobra.Command) {
 	cmd.Flags().
 		BoolVar(&sharedLegacy, "legacy", false, "Enable legacy template mode with deprecation warning")
 	setFlagAnnotation(cmd.Flags(), "legacy", []string{"engine"})
+	// Mark --legacy as deprecated with migration guidance
+	// CRITICAL ERROR HANDLING: MarkDeprecated failure is a programming error that must be caught
+	// in development. If this fails, it means the flag name is wrong or Cobra is misconfigured.
+	// This is NOT a runtime error - it happens during initialization before any user interaction.
+	if err := cmd.Flags().MarkDeprecated("legacy",
+		fmt.Sprintf("template mode will be removed in %s. Use programmatic generation (default) instead. "+
+			"Migration guide: %s", constants.TemplateRemovalVersion, constants.MigrationGuideURL)); err != nil {
+		// This indicates a programming error - the flag name should always exist
+		panic(fmt.Sprintf("BUG: failed to mark legacy flag as deprecated: %v", err))
+	}
 
 	// Template flags
 	cmd.Flags().
@@ -59,6 +73,9 @@ func addSharedTemplateFlags(cmd *cobra.Command) {
 	setFlagAnnotation(cmd.Flags(), "custom-template", []string{"template"})
 
 	// Register filename completion for custom-template flag
+	// NON-CRITICAL ERROR HANDLING: Shell completion is optional - degrade gracefully if it fails.
+	// Unlike MarkDeprecated (which MUST work), shell completion is a user convenience feature.
+	// If registration fails, the flag still works but users lose autocomplete functionality.
 	if err := cmd.RegisterFlagCompletionFunc(
 		"custom-template",
 		func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
@@ -78,8 +95,10 @@ func addSharedTemplateFlags(cmd *cobra.Command) {
 			return completions, cobra.ShellCompDirectiveDefault
 		},
 	); err != nil {
-		// Log error but don't fail - completion is optional
-		logger.Error("failed to register completion for custom-template flag", "error", err)
+		// Shell completion is optional - log warning but don't panic
+		logger.Warn("shell completion unavailable for custom-template flag",
+			"error", err,
+			"impact", "users must type full paths manually")
 	}
 
 	cmd.Flags().
@@ -105,6 +124,13 @@ func addDisplayFlags(cmd *cobra.Command) {
 		StringVar(&sharedTheme, "theme", "", "Theme for rendering output (light, dark, auto, none)")
 	setFlagAnnotation(cmd.Flags(), "theme", []string{"template"})
 }
+
+// Constants for flag validation.
+const (
+	MaxTemplateCacheSize = 100 // Maximum recommended template cache size
+	MinWrapWidth         = 40  // Minimum recommended wrap width
+	MaxWrapWidth         = 200 // Maximum recommended wrap width
+)
 
 // TODO: Audit mode functionality is not yet complete - disabled for now
 // addSharedAuditFlags adds the shared audit mode flags to a command.
@@ -134,6 +160,16 @@ func getSharedTemplateDir() string {
 // determineGenerationEngine determines which generation engine to use based on CLI flags and configuration.
 // Returns true for template mode, false for programmatic mode (default).
 // Returns ErrUnknownEngineType if an invalid engine type is specified.
+//
+// Flag precedence (highest to lowest):
+// 1. --engine flag (explicit choice: "template" or "programmatic")
+// 2. --legacy flag (deprecated, auto-enables template mode)
+// 3. --custom-template flag (auto-enables template mode for backward compatibility)
+// 4. --use-template flag (explicit template mode selection)
+// 5. Default (programmatic mode)
+//
+// Emits structured deprecation warnings to stderr when template mode is selected,
+// unless quiet mode is enabled via the global Cfg configuration.
 func determineGenerationEngine(logger *log.Logger) (bool, error) {
 	// Explicit engine flag takes highest precedence
 	if sharedEngine != "" {
@@ -154,10 +190,9 @@ func determineGenerationEngine(logger *log.Logger) (bool, error) {
 	}
 
 	// Legacy flag with deprecation warning
+	// Note: Cobra's MarkDeprecated already emits a warning, but we add structured details
 	if sharedLegacy {
-		logger.Warn(
-			"Legacy mode is deprecated and will be removed in v3.0. Please use --use-template or --engine=template instead.",
-		)
+		logger.Debug("Using template engine (--legacy flag)")
 		return true, nil
 	}
 
@@ -180,24 +215,37 @@ func determineGenerationEngine(logger *log.Logger) (bool, error) {
 
 // validateTemplatePath validates and sanitizes a template file path for security.
 // This prevents path traversal attacks and ensures templates are in safe locations.
+//
+// Security Note: This validation checks for ".." before cleaning to detect path traversal
+// attempts. While this approach has limitations (e.g., encoded paths, symbolic links),
+// it provides reasonable protection for user-provided template paths. Templates are
+// executed in a controlled environment with no arbitrary code execution, so the risk
+// is limited to reading files the user already has access to.
 func validateTemplatePath(templatePath string) error {
 	if templatePath == "" {
 		return nil // Empty path is valid (no template)
 	}
 
-	// Clean the path to resolve any ".." components
-	cleanPath := filepath.Clean(templatePath)
-
-	// Check for path traversal attempts
-	if strings.Contains(cleanPath, "..") {
+	// Check for path traversal attempts BEFORE cleaning
+	// (filepath.Clean resolves ".." so checking after is ineffective)
+	// Note: This doesn't catch all edge cases (encoded paths, symlinks) but provides
+	// reasonable protection for the threat model
+	if strings.Contains(templatePath, "..") {
 		return fmt.Errorf("template path contains directory traversal sequence: %s", templatePath)
 	}
 
-	// Ensure the path doesn't start with / (absolute paths)
-	if filepath.IsAbs(cleanPath) {
-		// For security, we could restrict to relative paths only
-		// But for flexibility, we'll allow absolute paths with warning
-		logger.Warn("Using absolute template path", "path", cleanPath)
+	// Clean the path to normalize separators and resolve redundant elements
+	cleanPath := filepath.Clean(templatePath)
+
+	// Allow absolute paths with security warning
+	// In template mode (deprecated), users need flexibility to specify custom templates
+	// anywhere on their system. The risk is acceptable since template execution doesn't
+	// allow arbitrary code execution beyond Go template syntax.
+	if filepath.IsAbs(cleanPath) && !warnedAboutAbsoluteTemplatePath {
+		logger.Warn("Using absolute template path",
+			"path", cleanPath,
+			"security_note", "ensure template source is trusted")
+		warnedAboutAbsoluteTemplatePath = true
 	}
 
 	// Check if file exists and is readable

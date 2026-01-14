@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
+	"github.com/EvilBit-Labs/opnDossier/internal/log"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/Masterminds/sprig/v3"
-	"github.com/charmbracelet/log"
 	"gopkg.in/yaml.v3"
 )
 
@@ -32,21 +32,59 @@ type markdownGenerator struct {
 	logger    *log.Logger
 }
 
+// ensureLogger creates a default logger if the provided logger is nil.
+// Returns the provided logger if non-nil, or creates a new logger with stderr output.
+func ensureLogger(logger *log.Logger) (*log.Logger, error) {
+	if logger == nil {
+		var err error
+		logger, err = log.New(log.Config{Output: os.Stderr})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create default logger: %w", err)
+		}
+	}
+	return logger, nil
+}
+
 // NewMarkdownGenerator creates a new Generator that produces documentation in Markdown, JSON, or YAML formats using predefined templates.
 // It attempts to load and parse templates from multiple possible filesystem paths and returns an error if none are found or parsing fails.
-func NewMarkdownGenerator(logger *log.Logger) (Generator, error) {
-	if logger == nil {
-		logger = log.NewWithOptions(os.Stderr, log.Options{})
+//
+// NOTE: This generator is specifically for template-based generation. The deprecation warning is shown
+// only when template mode signals are present (UseTemplateEngine, TemplateName, TemplateDir, or Template).
+// For programmatic generation (the default since v2.0), use HybridGenerator instead.
+func NewMarkdownGenerator(logger *log.Logger, opts Options) (Generator, error) {
+	var err error
+	logger, err = ensureLogger(logger)
+	if err != nil {
+		return nil, err
 	}
-	return NewMarkdownGeneratorWithTemplates(logger, "")
+
+	// Show deprecation warning if template mode is being used
+	// The showTemplateDeprecationWarning function checks for template mode signals
+	showTemplateDeprecationWarning(logger, opts)
+
+	return NewMarkdownGeneratorWithTemplates(logger, "", opts)
 }
 
 // NewMarkdownGeneratorWithTemplates creates a new Generator with custom template directory support.
 // If templateDir is provided, it will be used first for template overrides, falling back to built-in templates.
-func NewMarkdownGeneratorWithTemplates(logger *log.Logger, templateDir string) (Generator, error) {
-	if logger == nil {
-		logger = log.NewWithOptions(os.Stderr, log.Options{})
+//
+// NOTE: This generator is specifically for template-based generation. The deprecation warning is shown
+// only when template mode signals are present, indicating explicit template usage.
+func NewMarkdownGeneratorWithTemplates(logger *log.Logger, templateDir string, opts Options) (Generator, error) {
+	var err error
+	logger, err = ensureLogger(logger)
+	if err != nil {
+		return nil, err
 	}
+
+	// If templateDir is specified via parameter, set it in opts for consistent warning detection
+	if templateDir != "" && opts.TemplateDir == "" {
+		opts.TemplateDir = templateDir
+	}
+
+	// Show deprecation warning if template mode is being used
+	// The showTemplateDeprecationWarning function checks for template mode signals
+	showTemplateDeprecationWarning(logger, opts)
 
 	// Create template function map with custom functions
 	funcMap := createTemplateFuncMap()
