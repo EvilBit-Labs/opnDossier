@@ -98,43 +98,38 @@ _update-tools:
     @echo "Updating development tools..."
     @go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest 2>{{ _null }} || true
 
-# Install a specific tool (git-cliff, grype, syft, cosign)
+# Install a specific tool (git-cliff, cyclonedx-gomod, gosec, cosign)
 [group('setup')]
 [private]
 _install-tool tool:
     #!/usr/bin/env bash
     set -euo pipefail
-    if command -v {{ tool }} >/dev/null 2>&1; then
-        echo "{{ tool }} is already installed"
-        exit 0
-    fi
+    {{ _cmd_exists }} {{ tool }} >{{ _null }} 2>&1 && echo "{{ tool }} is already installed" && exit 0
     echo "Installing {{ tool }}..."
     case "{{ tool }}" in
         git-cliff)
-            command -v cargo >/dev/null 2>&1 && cargo install git-cliff && exit 0
-            command -v brew >/dev/null 2>&1 && brew install git-cliff && exit 0
+            cargo install git-cliff 2>{{ _null }} || brew install git-cliff
             ;;
-        grype)
-            command -v brew >/dev/null 2>&1 && brew tap anchore/grype && brew install grype && exit 0
-            command -v go >/dev/null 2>&1 && go install github.com/anchore/grype@latest && exit 0
+        cyclonedx-gomod)
+            go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
             ;;
-        syft)
-            command -v brew >/dev/null 2>&1 && brew tap anchore/syft && brew install syft && exit 0
-            command -v go >/dev/null 2>&1 && go install github.com/anchore/syft@latest && exit 0
+        gosec)
+            go install github.com/securego/gosec/v2/cmd/gosec@latest 2>{{ _null }} || brew install gosec
             ;;
         cosign)
-            command -v brew >/dev/null 2>&1 && brew install cosign && exit 0
-            command -v go >/dev/null 2>&1 && go install github.com/sigstore/cosign/v2/cmd/cosign@latest && exit 0
+            brew install cosign 2>{{ _null }} || go install github.com/sigstore/cosign/v2/cmd/cosign@latest
+            ;;
+        *)
+            echo "Error: Unknown tool {{ tool }}"
+            exit 1
             ;;
     esac
-    echo "Error: Could not install {{ tool }}. Please install manually."
-    exit 1
 
-# Install security tools (grype, syft, cosign)
+# Install security and SBOM tools (cyclonedx-gomod, gosec, cosign)
 [group('setup')]
 install-security-tools:
-    @just _install-tool grype
-    @just _install-tool syft
+    @just _install-tool cyclonedx-gomod
+    @just _install-tool gosec
     @just _install-tool cosign
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -352,57 +347,25 @@ _require-git-cliff:
 # Security
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Run Grype vulnerability scanner
+# Run gosec security scanner
 [group('security')]
 scan:
-    #!/usr/bin/env bash
-    if ! command -v grype >/dev/null 2>&1; then
-        echo "Error: grype not found. Run 'just install-security-tools'"
-        exit 1
-    fi
-    echo "Running vulnerability scan..."
-    grype .
+    @echo "Running security scan..."
+    @gosec ./...
 
-# Generate SBOM with Syft
+# Generate SBOM with cyclonedx-gomod
 [group('security')]
 sbom:
-    #!/usr/bin/env bash
-    if ! command -v syft >/dev/null 2>&1; then
-        echo "Error: syft not found. Run 'just install-security-tools'"
-        exit 1
-    fi
-    echo "Generating SBOM..."
-    syft . -o spdx-json=sbom.spdx.json
-    echo "✅ SBOM generated: sbom.spdx.json"
+    @echo "Generating SBOM..."
+    @just build-release
+    @cyclonedx-gomod bin -output sbom-binary.cyclonedx.json ./{{ binary_name }}{{ if os_family() == "windows" { ".exe" } else { "" } }}
+    @cyclonedx-gomod app -output sbom-modules.cyclonedx.json -json .
+    @echo "✅ SBOM generated: sbom-binary.cyclonedx.json, sbom-modules.cyclonedx.json"
 
-# Run Snyk vulnerability scanner
+# Run all security checks (SBOM + security scan)
 [group('security')]
-snyk-scan:
-    #!/usr/bin/env bash
-    if ! command -v snyk >/dev/null 2>&1; then
-        echo "Error: snyk not found. Install: npm install -g snyk"
-        exit 1
-    fi
-    [[ -z "${SNYK_TOKEN:-}" ]] && echo "Warning: SNYK_TOKEN not set"
-    snyk test --severity-threshold=high
-    snyk monitor --severity-threshold=high
-
-# Run FOSSA license scanner
-[group('security')]
-fossa-scan:
-    #!/usr/bin/env bash
-    if ! command -v fossa >/dev/null 2>&1; then
-        echo "Error: fossa not found. See: https://github.com/fossas/fossa-cli"
-        exit 1
-    fi
-    [[ -z "${FOSSA_API_KEY:-}" ]] && echo "Warning: FOSSA_API_KEY not set"
-    fossa analyze
-    fossa test
-
-# Run all security scans
-[group('security')]
-security-all: sbom scan snyk-scan fossa-scan
-    @echo "✅ All security scans complete"
+security-all: sbom scan
+    @echo "✅ All security checks complete"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CI
