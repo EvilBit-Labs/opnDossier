@@ -383,7 +383,7 @@ ci-smoke:
 
 # Run full checks including security and release validation
 [group('ci')]
-ci-full: ci-check security-all release-check
+ci-full: ci-check security-all release-check docs-test
     @echo "✅ All checks passed"
 
 # ─────────────────────────────────────────────────────────────────────────────
