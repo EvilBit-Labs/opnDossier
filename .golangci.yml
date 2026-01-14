@@ -172,6 +172,10 @@ linters:
     gocognit:
       min-complexity: 30
 
+    gosec:
+      excludes:
+        - G301 # Man pages require 755 permissions for public access
+        - G304 # Loading user-specified templates is expected CLI behavior
     govet:
       enable-all: true
       disable:
