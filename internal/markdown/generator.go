@@ -9,7 +9,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"text/template"
 	"time"
@@ -25,20 +24,6 @@ import (
 type Generator interface {
 	// Generate creates documentation in a specified format from the provided OPNsense configuration.
 	Generate(ctx context.Context, cfg *model.OpnSenseDocument, opts Options) (string, error)
-}
-
-// normalizeLineEndings converts line endings to platform-appropriate format.
-// On Windows, line endings are converted to CRLF (\r\n).
-// On other platforms, line endings are converted to LF (\n).
-func normalizeLineEndings(content string) string {
-	// First normalize all line endings to LF
-	content = strings.ReplaceAll(content, "\r\n", "\n")
-	content = strings.ReplaceAll(content, "\r", "\n")
-	// Then apply platform-specific line endings
-	if runtime.GOOS == "windows" {
-		content = strings.ReplaceAll(content, "\n", "\r\n")
-	}
-	return content
 }
 
 // markdownGenerator is the default implementation that wraps the old Markdown logic.
