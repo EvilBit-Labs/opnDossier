@@ -13,11 +13,6 @@ set ignore-comments := true
 project_dir := justfile_directory()
 binary_name := "opndossier"
 
-# Virtual environment paths (cross-platform)
-venv_python := if os_family() == "windows" { ".venv\\Scripts\\python.exe" } else { ".venv/bin/python" }
-venv_pip := if os_family() == "windows" { ".venv\\Scripts\\pip.exe" } else { ".venv/bin/pip" }
-venv_mkdocs := if os_family() == "windows" { ".venv\\Scripts\\mkdocs.exe" } else { ".venv/bin/mkdocs" }
-
 # Platform-specific commands
 _cmd_exists := if os_family() == "windows" { "where" } else { "command -v" }
 _null := if os_family() == "windows" { "nul" } else { "/dev/null" }
@@ -55,8 +50,7 @@ alias i := install
 
 # Install all dependencies and setup environment
 [group('setup')]
-install: _setup-venv
-    @{{ venv_pip }} install --quiet mkdocs-material
+install: _update-python
     @pre-commit install --hook-type commit-msg
     @go mod tidy
     @just _install-tool git-cliff
@@ -84,7 +78,7 @@ _update-go:
 [private]
 _update-python:
     @echo "Updating Python dependencies..."
-    @{{ venv_pip }} install --quiet --upgrade mkdocs-material
+    @uv pip install --quiet --upgrade mkdocs-material pre-commit
 
 [private]
 _update-pnpm:
@@ -311,7 +305,7 @@ alias d := docs
 # Serve documentation locally
 [group('docs')]
 docs:
-    @{{ venv_mkdocs }} serve
+    @uv run mkdocs serve
 
 # Alias for docs
 [group('docs')]
@@ -320,12 +314,12 @@ site: docs
 # Build documentation
 [group('docs')]
 docs-build:
-    @{{ venv_mkdocs }} build
+    @uv run mkdocs build
 
 # Build documentation with verbose output
 [group('docs')]
 docs-test:
-    @{{ venv_mkdocs }} build --verbose
+    @uv run mkdocs build --verbose
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Changelog
