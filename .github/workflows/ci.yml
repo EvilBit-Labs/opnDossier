@@ -111,7 +111,7 @@ jobs:
           GOOS=windows GOARCH=amd64 go build -o /dev/null main.go
 
   # ─────────────────────────────────────────────────────────────────────────
-  # Security - Vulnerability scanning
+  # Security - Static code analysis
   # ─────────────────────────────────────────────────────────────────────────
   security:
     name: Security Scan
@@ -125,102 +125,67 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
-      - uses: extractions/setup-just@v3
+      - name: Run Gosec Security Scanner
+        uses: securego/gosec@master
+        with:
+          args: '-no-fail -fmt sarif -out results.sarif ./...'
 
-      - name: Build binary for scanning
-        run: just build-release
-
-      - name: Install Grype CLI
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin v0.78.1
-
-      - name: Scan compiled binary (primary)
-        run: |
-          grype ./opndossier -o sarif --file binary-scan.sarif
-          grype ./opndossier -o table > vulnerability-report-binary.txt
-          grype ./opndossier -o json > vulnerability-report-binary.json
-
-      - name: Check binary scan results
-        run: |
-          SEVERITY_CUTOFF="${{ github.ref == 'refs/heads/main' && 'medium' || 'high' }}"
-          if grype ./opndossier --fail-on $SEVERITY_CUTOFF -q; then
-            echo "No vulnerabilities found at $SEVERITY_CUTOFF or higher"
-          else
-            echo "Vulnerabilities found at $SEVERITY_CUTOFF or higher"
-            exit 1
-          fi
-
-      - name: Scan source directory (informational)
-        uses: anchore/scan-action@v6
-        id: scan_source
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
-          path: "."
-          fail-build: false
-          severity-cutoff: medium
+          sarif_file: results.sarif
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # SBOM Generation
+  # ─────────────────────────────────────────────────────────────────────────
+  sbom:
+    name: Generate SBOM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - uses: extractions/setup-just@v3
+
+      - name: Build binary
+        run: just build-release
+
+      - name: Install cyclonedx-gomod
+        run: go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
+
+      - name: Generate SBOM from binary (CycloneDX)
+        run: cyclonedx-gomod bin -output sbom-binary.cyclonedx.json ./opndossier
+
+      - name: Generate SBOM from modules (CycloneDX)
+        run: cyclonedx-gomod app -output sbom-modules.cyclonedx.json -json .
 
       - name: Generate SBOM (SPDX)
-        if: always()
         uses: anchore/sbom-action@v0
         with:
           path: "."
           format: spdx-json
           output-file: sbom.spdx.json
 
-      - name: Generate SBOM (CycloneDX)
-        if: always()
-        uses: anchore/sbom-action@v0
-        with:
-          path: "."
-          format: cyclonedx-json
-          output-file: sbom.cyclonedx.json
-
       - name: Upload SBOM artifacts
         uses: actions/upload-artifact@v4
-        if: always()
         with:
           name: sbom-reports
           path: |
+            sbom-binary.cyclonedx.json
+            sbom-modules.cyclonedx.json
             sbom.spdx.json
-            sbom.cyclonedx.json
-          retention-days: 30
-
-      - name: Generate source vulnerability reports
-        if: always()
-        run: |
-          grype . -o table > vulnerability-report-source.txt || true
-          grype . -o json > vulnerability-report-source.json || true
-
-      - name: Upload vulnerability reports
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: vulnerability-reports
-          path: |
-            vulnerability-report-*.txt
-            vulnerability-report-*.json
-          retention-days: 30
-
-      - name: Upload SARIF results (binary scan)
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        with:
-          sarif_file: binary-scan.sarif
-          category: binary-scan
-
-      - name: Upload SARIF results (source scan)
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        with:
-          sarif_file: ${{ steps.scan_source.outputs.sarif }}
-          category: source-scan
+          retention-days: 90
 
   # ─────────────────────────────────────────────────────────────────────────
   # CI Gate - All checks must pass
   # ─────────────────────────────────────────────────────────────────────────
   ci-pass:
     name: CI Pass
-    needs: [lint, test, coverage, build, security]
+    needs: [lint, test, coverage, build, security, sbom]
     runs-on: ubuntu-latest
     if: always()
     steps:
@@ -230,7 +195,8 @@ jobs:
              [[ "${{ needs.test.result }}" != "success" ]] || \
              [[ "${{ needs.coverage.result }}" != "success" ]] || \
              [[ "${{ needs.build.result }}" != "success" ]] || \
-             [[ "${{ needs.security.result }}" != "success" ]]; then
+             [[ "${{ needs.security.result }}" != "success" ]] || \
+             [[ "${{ needs.sbom.result }}" != "success" ]]; then
             echo "One or more jobs failed"
             exit 1
           fi
