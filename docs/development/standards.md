@@ -1,6 +1,6 @@
 # Development Standards for opnDossier
 
-This document provides coding standards, development workflows, and technical guidelines for contributors to the opnDossier CLI tool. It focuses on practical development tasks, code quality, and maintainability. It's like `AGENTS.md` but for humans.
+This document provides coding standards, development workflows, and technical guidelines for contributors to the opnDossier CLI tool. It focuses on practical development tasks, code quality, and maintainability. It complements the AI agent guidelines in [AGENTS.md](../../AGENTS.md).
 
 ## Table of Contents
 

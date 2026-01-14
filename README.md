@@ -371,7 +371,7 @@ We welcome contributions! This project follows strict coding standards and devel
 
 **Before contributing:**
 
-1. Read our [development standards](DEVELOPMENT_STANDARDS.md)
+1. Read our [development standards](docs/development/standards.md)
 2. Check existing issues and pull requests
 3. Follow our Git workflow and commit message standards
 
@@ -379,7 +379,7 @@ We welcome contributions! This project follows strict coding standards and devel
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feat/your-feature`
-3. Follow our coding standards (see [DEVELOPMENT_STANDARDS.md](DEVELOPMENT_STANDARDS.md))
+3. Follow our coding standards (see [docs/development/standards.md](docs/development/standards.md))
 4. Write tests and ensure >80% coverage: `just test`
 5. Run all checks: `just ci-check`
 6. Commit using [Conventional Commits](https://www.conventionalcommits.org/)
@@ -395,9 +395,9 @@ We welcome contributions! This project follows strict coding standards and devel
 ## Documentation
 
 - **[Full Documentation](https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/index.md)** - Complete user and developer guides
-- **[Development Standards](DEVELOPMENT_STANDARDS.md)** - Coding standards and architectural principles
+- **[Development Standards](docs/development/standards.md)** - Coding standards and architectural principles
 - **[API Reference](docs/dev-guide/api.md)** - Detailed API documentation
-- **[Architecture Guide](ARCHITECTURE.md)** - System design and component architecture
+- **[Architecture Guide](docs/development/architecture.md)** - System design and component architecture
 - **[Contributing Guidelines](CONTRIBUTING.md)** - How to contribute to the project
 
 ## Security

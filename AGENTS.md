@@ -4,9 +4,9 @@ This document consolidates all development standards, architectural principles, 
 
 ## Related Documentation
 
-- **[Requirements](project_spec/requirements.md)** - Complete project requirements and specifications
-- **[Architecture](ARCHITECTURE.md)** - System design, component interactions, and deployment patterns
-- **[Development Standards](DEVELOPMENT_STANDARDS.md)** - Go-specific coding standards and project structure
+- **[Requirements](../project_spec/requirements.md)** - Complete project requirements and specifications
+- **[Architecture](architecture.md)** - System design, component interactions, and deployment patterns
+- **[Development Standards](standards.md)** - Go-specific coding standards and project structure
 
 ---
 
@@ -14,8 +14,8 @@ This document consolidates all development standards, architectural principles, 
 
 **CRITICAL - Rules are applied in the following order:**
 
-1. **Project-specific rules** (AGENTS.md, .cursor/rules/)
-2. **General development standards** (this document)
+1. **Project-specific rules** (this document, .cursor/rules/)
+2. **General development standards** (docs/development/standards.md)
 3. **Language-specific style guides** (Go conventions)
 
 When rules conflict, follow the higher precedence rule.
