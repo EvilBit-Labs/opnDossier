@@ -125,19 +125,9 @@ func TestNormalizeLineEndings_Idempotent(t *testing.T) {
 		t.Fatalf("failed to create logger: %v", err)
 	}
 
-	content := "line1\nline2\nline3\n"
+	t.Setenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS", "1")
 
-	oldEnv := os.Getenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS")
-	os.Setenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS", "1")
-	defer func() {
-		if oldEnv == "" {
-			os.Unsetenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS")
-		} else {
-			os.Setenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS", oldEnv)
-		}
-	}()
-
-	first := normalizeLineEndings(logger, content)
+	first := normalizeLineEndings(logger, testLineContent)
 	second := normalizeLineEndings(logger, first)
 
 	assert.Equal(t, first, second, "Function should be idempotent")
@@ -155,22 +145,13 @@ func TestNormalizeLineEndings_Performance(t *testing.T) {
 	}
 
 	// Test with large content (10MB of text)
-	largeContent := ""
-	var largeContentSb165 strings.Builder
+	var largeContentSb strings.Builder
 	for range 100000 {
-		largeContentSb165.WriteString("line content\nmore content\r\neven more\r")
+		largeContentSb.WriteString("line content\nmore content\r\neven more\r")
 	}
-	largeContent += largeContentSb165.String()
+	largeContent := largeContentSb.String()
 
-	oldEnv := os.Getenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS")
-	os.Setenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS", "1")
-	defer func() {
-		if oldEnv == "" {
-			os.Unsetenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS")
-		} else {
-			os.Setenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS", oldEnv)
-		}
-	}()
+	t.Setenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS", "1")
 
 	result := normalizeLineEndings(logger, largeContent)
 
@@ -206,19 +187,8 @@ func TestNormalizeLineEndings_WithNilLogger(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			oldEnv := os.Getenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS")
-			defer func() {
-				if oldEnv == "" {
-					os.Unsetenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS")
-				} else {
-					os.Setenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS", oldEnv)
-				}
-			}()
-
 			if tt.envVar != "" {
-				os.Setenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS", tt.envVar)
-			} else {
-				os.Unsetenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS")
+				t.Setenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS", tt.envVar)
 			}
 
 			// Pass nil logger - should not panic
@@ -237,15 +207,7 @@ func TestNormalizeLineEndings_ContentPreservation(t *testing.T) {
 
 	input := "line1\r\nline2\nline3\rline4\nline5"
 
-	oldEnv := os.Getenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS")
-	os.Setenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS", "1")
-	defer func() {
-		if oldEnv == "" {
-			os.Unsetenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS")
-		} else {
-			os.Setenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS", oldEnv)
-		}
-	}()
+	t.Setenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS", "1")
 
 	result := normalizeLineEndings(logger, input)
 
