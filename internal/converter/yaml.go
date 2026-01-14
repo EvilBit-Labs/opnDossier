@@ -29,5 +29,5 @@ func (c *YAMLConverter) ToYAML(_ context.Context, opnsense *model.OpnSenseDocume
 		return "", fmt.Errorf("failed to marshal to YAML: %w", err)
 	}
 
-	return normalizeLineEndings(string(yamlBytes)), nil
+	return string(yamlBytes), nil
 }

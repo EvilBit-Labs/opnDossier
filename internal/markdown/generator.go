@@ -555,7 +555,7 @@ func (g *markdownGenerator) generateJSON(
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal to JSON: %w", err)
 	}
-	return normalizeLineEndings(string(data)), nil
+	return string(data), nil
 }
 
 // generateYAML generates YAML output using direct marshaling.
@@ -568,5 +568,5 @@ func (g *markdownGenerator) generateYAML(
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal to YAML: %w", err)
 	}
-	return normalizeLineEndings(string(data)), nil
+	return string(data), nil
 }
