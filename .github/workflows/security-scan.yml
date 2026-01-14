@@ -25,28 +25,32 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
-      - name: Run Grype filesystem vulnerability scan
+      - uses: extractions/setup-just@v3
+
+      - name: Build binary for scanning
+        run: just build-release
+
+      - name: Scan compiled binary (primary)
         uses: anchore/scan-action@v6
-        id: scan
+        id: scan_binary
+        with:
+          path: "./opndossier"
+          fail-build: false
+          severity-cutoff: medium
+
+      - name: Scan source directory (informational)
+        uses: anchore/scan-action@v6
+        id: scan_source
+        if: always()
         with:
           path: "."
           fail-build: false
           severity-cutoff: medium
 
-      - name: Run Grype Go module dependency scan
-        uses: anchore/scan-action@v6
-        id: scan_go_mod
-        with:
-          path: "go.mod"
-          fail-build: false
-          severity-cutoff: critical
-
-      - name: Install Grype CLI
+      - name: Install Grype CLI for reports
         if: always()
-        uses: anchore/grype-action@v3
-        with:
-          grype-version: v0.78.1
-          cmd: version
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin v0.78.1
 
       - name: Generate SBOM (SPDX)
         if: always()
@@ -77,8 +81,10 @@ jobs:
       - name: Generate vulnerability reports (table + JSON)
         if: always()
         run: |
-          grype . -o table > vulnerability-report.txt
-          grype . -o json > vulnerability-report.json
+          grype ./opndossier -o table > vulnerability-report-binary.txt || true
+          grype ./opndossier -o json > vulnerability-report-binary.json || true
+          grype . -o table > vulnerability-report-source.txt || true
+          grype . -o json > vulnerability-report-source.json || true
 
       - name: Upload vulnerability reports
         uses: actions/upload-artifact@v4
@@ -86,18 +92,20 @@ jobs:
         with:
           name: vulnerability-reports
           path: |
-            vulnerability-report.txt
-            vulnerability-report.json
+            vulnerability-report-*.txt
+            vulnerability-report-*.json
           retention-days: 30
 
-      - name: Upload SARIF results
+      - name: Upload SARIF results (binary scan)
         uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
-          sarif_file: ${{ steps.scan.outputs.sarif }}
+          sarif_file: ${{ steps.scan_binary.outputs.sarif }}
+          category: binary-scan
 
-      - name: Upload SARIF results (Go module scan)
+      - name: Upload SARIF results (source scan)
         uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
-          sarif_file: ${{ steps.scan_go_mod.outputs.sarif }}
+          sarif_file: ${{ steps.scan_source.outputs.sarif }}
+          category: source-scan
