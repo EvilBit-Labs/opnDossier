@@ -225,10 +225,13 @@ func buildDisplayOptions(cfg *config.Config) markdown.Options {
 
 	// Wrap width: CLI flag > config > default
 	// -1 means auto-detect (not provided), 0 means no wrapping, >0 means specific width
-	if sharedWrapWidth >= 0 {
+	switch {
+	case sharedWrapWidth >= 0:
 		opt.WrapWidth = sharedWrapWidth
-	} else if cfg != nil && cfg.GetWrapWidth() >= 0 {
+	case cfg != nil && cfg.GetWrapWidth() >= 0:
 		opt.WrapWidth = cfg.GetWrapWidth()
+	default:
+		opt.WrapWidth = -1
 	}
 
 	// Template directory: CLI flag only

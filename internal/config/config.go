@@ -68,7 +68,7 @@ func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 	v.SetDefault("format", "markdown")
 	v.SetDefault("template", "")
 	v.SetDefault("sections", []string{})
-	v.SetDefault("wrap", 0)
+	v.SetDefault("wrap", -1)
 	v.SetDefault("engine", "programmatic") // Default to programmatic mode
 	v.SetDefault("use_template", false)
 
@@ -239,11 +239,11 @@ func validateFormat(c *Config, validationErrors *[]ValidationError) {
 }
 
 func validateWrapWidth(c *Config, validationErrors *[]ValidationError) {
-	// Validate wrap width
-	if c.WrapWidth < 0 {
+	// Validate wrap width (-1 means auto-detect)
+	if c.WrapWidth < -1 {
 		*validationErrors = append(*validationErrors, ValidationError{
 			Field:   "wrap",
-			Message: fmt.Sprintf("wrap width cannot be negative: %d", c.WrapWidth),
+			Message: fmt.Sprintf("wrap width must be -1 (auto-detect), 0 (no wrapping), or positive: %d", c.WrapWidth),
 		})
 	}
 }

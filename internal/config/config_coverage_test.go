@@ -384,6 +384,11 @@ func TestWrapWidthValidationIndirectly(t *testing.T) {
 			expectError: false,
 		},
 		{
+			name:        "auto-detect wrap width",
+			wrapWidth:   -1,
+			expectError: false,
+		},
+		{
 			name:        "valid wrap width",
 			wrapWidth:   80,
 			expectError: false,
@@ -395,7 +400,7 @@ func TestWrapWidthValidationIndirectly(t *testing.T) {
 		},
 		{
 			name:        "negative wrap width",
-			wrapWidth:   -1,
+			wrapWidth:   -2,
 			expectError: true,
 		},
 	}
@@ -474,7 +479,7 @@ func TestCombineValidationErrorsIndirectly(t *testing.T) {
 		Engine:    "invalid",
 		Format:    "badformat",
 		Theme:     "badtheme",
-		WrapWidth: -1,
+		WrapWidth: -2,
 	}
 
 	err := config.Validate()

@@ -84,7 +84,7 @@ func TestBuildDisplayOptionsWrapWidthPrecedence(t *testing.T) {
 			name:       "Default when neither set",
 			flagWrap:   -1,
 			configWrap: -1,
-			expected:   0,
+			expected:   -1,
 		},
 		{
 			name:       "Explicit wrap zero keeps no wrapping",
