@@ -409,6 +409,19 @@ This tool is designed with security as a first-class concern:
 - **Secure by default** - Follows security best practices
 - **Input validation** - All inputs are validated and sanitized
 
+In addition to the design-time protections above, opnDossier ships with automated vulnerability scanning and SBOM generation via GitHub Actions:
+
+- **Enhanced vulnerability scanning (CI)**: The CI workflow runs Grype scans against the repository filesystem and explicitly scans Go module dependencies (`go.mod`).
+- **Branch-specific severity thresholds**: On `main`, the filesystem scan enforces a stricter cutoff ($\\ge$ medium). On non-main branches, the cutoff is $\\ge$ high.
+- **Scheduled daily scans**: A daily scheduled workflow runs the same scans to catch newly disclosed CVEs between code changes.
+- **SBOM artifacts**: Each run generates SPDX JSON and CycloneDX JSON SBOM artifacts (`sbom.spdx.json`, `sbom.cyclonedx.json`).
+- **Vulnerability report artifacts**: Each run also generates a human-readable table report and a machine-readable JSON report for audit trails.
+
+Where to find results:
+
+- **GitHub Security tab**: SARIF uploads appear under Code Scanning.
+- **Workflow run artifacts**: SBOMs and vulnerability reports are downloadable from the workflow run summary.
+
 For security issues, please see our security policy.
 
 ### Pipeline v2 Compliance
