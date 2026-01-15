@@ -55,7 +55,7 @@ func TestConvertCmdFlags(t *testing.T) {
 	// Check wrap flag
 	wrapFlag := flags.Lookup("wrap")
 	require.NotNil(t, wrapFlag)
-	assert.Equal(t, "0", wrapFlag.DefValue)
+	assert.Equal(t, "-1", wrapFlag.DefValue)
 }
 
 func TestConvertCmdHelp(t *testing.T) {

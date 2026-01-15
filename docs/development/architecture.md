@@ -23,6 +23,22 @@ opnDossier is a **CLI-based OPNsense configuration processor** designed with an 
 - **Local Processing Only** - no external network calls
 - **Streaming Data Pipeline** from XML input to various output formats
 
+### Technology Stack
+
+Built with modern Go practices and established libraries:
+
+| Component          | Technology                                                  |
+| ------------------ | ----------------------------------------------------------- |
+| CLI Framework      | [Cobra](https://github.com/spf13/cobra)                     |
+| Configuration      | [Viper](https://github.com/spf13/viper)                     |
+| CLI Enhancement    | [Charm Fang](https://github.com/charmbracelet/fang)         |
+| Terminal Styling   | [Charm Lipgloss](https://github.com/charmbracelet/lipgloss) |
+| Markdown Rendering | [Charm Glamour](https://github.com/charmbracelet/glamour)   |
+| XML Processing     | Go's built-in `encoding/xml`                                |
+| Structured Logging | [Charm Log](https://github.com/charmbracelet/log)           |
+
+The CLI uses a layered architecture: **Cobra** provides command structure and argument parsing, **Viper** handles layered configuration management (files, env, flags), and **Fang** adds enhanced UX features like styled help, automatic version flags, and shell completion.
+
 ## Services and Components
 
 ### 1. CLI Interface Layer
@@ -63,6 +79,80 @@ opnDossier is a **CLI-based OPNsense configuration processor** designed with an 
 - **Terminal Display**: Syntax-highlighted, styled terminal output
 - **File Export**: Markdown file generation with metadata
 - **Future**: HTML, JSON, and other structured formats
+
+## Data Model Architecture
+
+opnDossier uses a hierarchical model structure that mirrors the OPNsense XML configuration while organizing functionality into logical domains:
+
+```mermaid
+graph TB
+    subgraph "Root Configuration"
+        ROOT[Opnsense Root]
+        META[Metadata & Global Settings]
+    end
+
+    subgraph "System Domain"
+        SYS[System Configuration]
+        USERS[User Management]
+        GROUPS[Group Management]
+        SYSCFG[System Services Config]
+    end
+
+    subgraph "Network Domain"
+        NET[Network Configuration]
+        IFACES[Interface Management]
+        ROUTING[Routing & Gateways]
+        VLAN[VLAN Configuration]
+    end
+
+    subgraph "Security Domain"
+        SEC[Security Configuration]
+        FIREWALL[Firewall Rules]
+        NAT[NAT Configuration]
+        VPN[VPN Services]
+        CERTS[Certificate Management]
+    end
+
+    subgraph "Services Domain"
+        SVC[Services Configuration]
+        DNS[DNS Services]
+        DHCP[DHCP Services]
+        MONITOR[Monitoring Services]
+        WEB[Web Services]
+    end
+
+    ROOT --> META
+    ROOT --> SYS
+    ROOT --> NET
+    ROOT --> SEC
+    ROOT --> SVC
+
+    SYS --> USERS
+    SYS --> GROUPS
+    SYS --> SYSCFG
+
+    NET --> IFACES
+    NET --> ROUTING
+    NET --> VLAN
+
+    SEC --> FIREWALL
+    SEC --> NAT
+    SEC --> VPN
+    SEC --> CERTS
+
+    SVC --> DNS
+    SVC --> DHCP
+    SVC --> MONITOR
+    SVC --> WEB
+```
+
+This hierarchical structure provides:
+
+- **Logical Organization**: Related configuration grouped by functional domain
+- **Maintainability**: Easier to locate and modify specific configuration types
+- **Extensibility**: New features can be added to appropriate domains
+- **Validation**: Domain-specific validation rules improve data integrity
+- **API Evolution**: JSON tags enable better REST API integration
 
 ## Data Flow Architecture
 
@@ -181,14 +271,14 @@ graph TB
         T3 --> T4[Silent Failures]
         T4 --> T5[Runtime Errors]
     end
-    
+
     subgraph "Programmatic Mode (v2.0+)"
         P1[Go Methods] --> P2[Compile-time Validation]
         P2 --> P3[Type-safe Operations]
         P3 --> P4[Explicit Error Handling]
         P4 --> P5[Structured Results]
     end
-    
+
     style T4 fill:#ff9999
     style T5 fill:#ff9999
     style P2 fill:#99ff99
@@ -216,7 +306,7 @@ classDiagram
         +BuildSecuritySection(data) string
         +BuildServicesSection(data) string
     }
-    
+
     class MarkdownBuilder {
         -config *OpnSenseDocument
         -options BuildOptions
@@ -228,27 +318,27 @@ classDiagram
         +FormatInterfaceLinks(interfaces) string
         +EscapeMarkdownSpecialChars(input) string
     }
-    
+
     class SecurityAssessor {
         +CalculateSecurityScore(data) int
         +AssessRiskLevel(severity) string
         +AssessServiceRisk(service) string
         +DetermineSecurityZone(interface) string
     }
-    
+
     class DataTransformer {
         +FilterSystemTunables(tunables, filter) []SysctlItem
         +GroupServicesByStatus(services) map[string][]Service
         +FormatSystemStats(data) map[string]interface{}
     }
-    
+
     class StringFormatter {
         +EscapeMarkdownSpecialChars(input) string
         +FormatTimestamp(timestamp) string
         +TruncateDescription(text, length) string
         +FormatBoolean(value) string
     }
-    
+
     ReportBuilder <|.. MarkdownBuilder
     MarkdownBuilder o-- SecurityAssessor
     MarkdownBuilder o-- DataTransformer
@@ -263,30 +353,30 @@ graph TD
         XML[OPNsense XML] --> Parser[Enhanced Parser]
         Parser --> Model[Structured Model]
     end
-    
+
     subgraph "Programmatic Generation Engine"
         Model --> Builder[MarkdownBuilder]
         Builder --> Security[SecurityAssessor]
         Builder --> Transform[DataTransformer]
         Builder --> Format[StringFormatter]
-        
+
         Security --> Methods[Method-Based Generation]
         Transform --> Methods
         Format --> Methods
     end
-    
+
     subgraph "Output Optimization"
         Methods --> StringBuild[Optimized String Building]
         StringBuild --> Render[Direct Rendering]
         Render --> Output[Markdown Output]
     end
-    
+
     subgraph "Performance Characteristics"
         Metrics[Performance Metrics<br/>• 74% faster generation<br/>• 78% less memory<br/>• 3.8x throughput<br/>• Type-safe operations]
     end
-    
+
     Output -.-> Metrics
-    
+
     style Builder fill:#99ff99,stroke:#333,stroke-width:4px
     style Methods fill:#99ff99,stroke:#333,stroke-width:2px
     style StringBuild fill:#99ff99,stroke:#333,stroke-width:2px
@@ -300,27 +390,27 @@ To ensure smooth migration, v2.0 supports both template and programmatic modes:
 graph TB
     subgraph "Hybrid Architecture"
         Input[User Input] --> Decision{Generation Mode?}
-        
+
         Decision -->|--use-template| TemplatePath[Template Mode]
         Decision -->|Default| ProgPath[Programmatic Mode]
-        
+
         TemplatePath --> TemplateEngine[Template Engine]
         ProgPath --> MarkdownBuilder[MarkdownBuilder]
-        
+
         TemplateEngine --> Output[Markdown Output]
         MarkdownBuilder --> Output
     end
-    
+
     subgraph "Migration Support"
         Compare[Output Comparison]
         Validate[Validation Engine]
         Fallback[Fallback Mechanism]
     end
-    
+
     Output --> Compare
     Compare --> Validate
     Validate --> Fallback
-    
+
     style ProgPath fill:#99ff99,stroke:#333,stroke-width:2px
     style MarkdownBuilder fill:#99ff99,stroke:#333,stroke-width:2px
 ```
@@ -363,7 +453,7 @@ graph LR
         T4 --> T5[8.80MB Memory]
         T5 --> T6[93,984 Allocations]
     end
-    
+
     subgraph "Programmatic Mode (v2.0+)"
         P1[Direct Methods] --> P2[Structured Building]
         P2 --> P3[Pre-allocated Buffers]
@@ -371,7 +461,7 @@ graph LR
         P4 --> P5[1.97MB Memory]
         P5 --> P6[39,585 Allocations]
     end
-    
+
     style T5 fill:#ff9999
     style T6 fill:#ff9999
     style P5 fill:#99ff99
@@ -412,7 +502,7 @@ func (b *MarkdownBuilder) BuildSection(data *model.OpnSenseDocument) (string, er
             Message: fmt.Sprintf("invalid input: %v", err),
         }
     }
-    
+
     result, err := b.generateContent(data)
     if err != nil {
         return "", &GenerationError{
@@ -421,7 +511,7 @@ func (b *MarkdownBuilder) BuildSection(data *model.OpnSenseDocument) (string, er
             Cause:     err,
         }
     }
-    
+
     return result, nil
 }
 ```

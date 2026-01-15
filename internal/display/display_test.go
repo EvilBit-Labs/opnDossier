@@ -488,6 +488,31 @@ func TestDisplayWithProgressANSIWhenColorsEnabled(t *testing.T) {
 		"Expected to find 'Test' or 'Header' in output")
 }
 
+func TestWrapMarkdownContentBreaksLongWords(t *testing.T) {
+	longValue := strings.Repeat("a", 60)
+	input := "**Hostname**: " + longValue
+	width := 20
+
+	output := wrapMarkdownContent(input, width)
+
+	for line := range strings.SplitSeq(output, "\n") {
+		trimmed := strings.TrimSpace(strings.TrimSuffix(line, `\`))
+		if trimmed == "" {
+			continue
+		}
+		assert.LessOrEqual(t, len(trimmed), width)
+	}
+}
+
+func TestWrapMarkdownContentSkipsCodeBlocks(t *testing.T) {
+	longValue := strings.Repeat("b", 40)
+	input := "```text\n" + longValue + "\n```"
+
+	output := wrapMarkdownContent(input, 10)
+
+	assert.Equal(t, input, output)
+}
+
 func TestGlamourRendererWithDifferentColorSettings(t *testing.T) {
 	// Test with colors enabled
 	opts1 := Options{
