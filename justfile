@@ -65,10 +65,6 @@ update-deps: _update-go _update-python _update-bun _update-precommit _update-too
     @echo "✅ All dependencies updated"
 
 [private]
-_setup-venv:
-    @cd {{ project_dir }} && {{ if os_family() == "windows" { "python" } else { "python3" } }} -m venv .venv 2>{{ _null }} || true
-
-[private]
 _update-go:
     @echo "Updating Go dependencies..."
     @go get -u ./...
@@ -78,17 +74,17 @@ _update-go:
 [private]
 _update-python:
     @echo "Updating Python dependencies..."
-    @uv pip install --system --quiet --upgrade mkdocs-material pre-commit
+    @uv pip install --quiet --upgrade mkdocs-material pre-commit
 
 [private]
 _update-bun:
-    #!/usr/bin/env bash
-    {{ _cmd_exists }} bun >{{ _null }} 2>&1 && echo "Updating bun dependencies..." && bun update || true
+    @echo "Updating Bun packages..."
+    @bun update
 
 [private]
 _update-precommit:
     @echo "Updating pre-commit hooks..."
-    @pre-commit autoupdate
+    @uv run pre-commit autoupdate
 
 [private]
 _update-tools:
