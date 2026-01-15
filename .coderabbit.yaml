@@ -147,10 +147,10 @@ reviews:
   auto_review:
     enabled: true
     auto_incremental_review: true
-    ignore_title_keywords: []
+    ignore_title_keywords: ["WIP"]
     labels: []
     drafts: false
-    base_branches: []
+    base_branches: ["main"]
   finishing_touches:
     docstrings:
       enabled: true
