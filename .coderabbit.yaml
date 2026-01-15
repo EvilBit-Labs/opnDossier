@@ -298,7 +298,7 @@ code_generation:
           - Explain error conditions users might encounter
           - Keep it concise - avoid implementation details
           - Follow Go doc comment conventions
-      - path: "internal/*/**.go"
+      - path: "internal/**/*.go"
         instructions: |
           Internal package documentation should explain purpose and usage.
           - Focus on package-level documentation explaining domain
