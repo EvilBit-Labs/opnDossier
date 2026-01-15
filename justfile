@@ -51,7 +51,7 @@ alias i := install
 # Install all dependencies and setup environment
 [group('setup')]
 install: _update-python
-    @uv run pre-commit install --hook-type commit-msg
+    @pre-commit install --hook-type commit-msg
     @go mod tidy
     @just _install-tool git-cliff
 
@@ -72,9 +72,10 @@ _update-go:
     @go mod verify
 
 [private]
+[no-exit-message]
 _update-python:
     @echo "Updating Python dependencies..."
-    @uv pip install --quiet --upgrade mkdocs-material pre-commit
+    @uv tool install pre-commit 2>{{ _null }} || true
 
 [private]
 _update-bun:
@@ -82,9 +83,9 @@ _update-bun:
     @bun update
 
 [private]
-_update-precommit:
+_update-precommit: _update-python
     @echo "Updating pre-commit hooks..."
-    @uv run pre-commit autoupdate
+    @pre-commit autoupdate
 
 [private]
 _update-tools:
