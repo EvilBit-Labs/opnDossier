@@ -85,6 +85,14 @@ Examples:
 
   # Display with text wrapping
   opnDossier display --wrap 120 config.xml
+  # When --wrap is not specified, terminal width is auto-detected (COLUMNS or default 120)
+  # Recommended wrap range: 80-120 columns
+
+  # Display with narrow terminal wrapping
+  opnDossier display --wrap 80 config.xml
+
+  # Display without text wrapping
+  opnDossier display --wrap 0 config.xml
 
   # Display with verbose logging to see processing details
   opnDossier --verbose display config.xml
@@ -171,18 +179,8 @@ Examples:
 			return fmt.Errorf("failed to convert to markdown from %s: %w", filePath, err)
 		}
 
-		// Create terminal display with theme support
-		var displayer *display.TerminalDisplay
-		if sharedTheme != "" {
-			// Use explicit theme
-			theme := display.DetectTheme(sharedTheme)
-			opts := display.DefaultOptions()
-			opts.Theme = theme
-			displayer = display.NewTerminalDisplayWithOptions(opts)
-		} else {
-			// Use auto-detection
-			displayer = display.NewTerminalDisplay()
-		}
+		// Create terminal display with full markdown options
+		displayer := display.NewTerminalDisplayWithMarkdownOptions(mdOpts)
 
 		if err := displayer.Display(ctx, md); err != nil {
 			ctxLogger.Error("Failed to display markdown", "error", err)
@@ -226,9 +224,10 @@ func buildDisplayOptions(cfg *config.Config) markdown.Options {
 	}
 
 	// Wrap width: CLI flag > config > default
-	if sharedWrapWidth > 0 {
+	// -1 means auto-detect (not provided), 0 means no wrapping, >0 means specific width
+	if sharedWrapWidth >= 0 {
 		opt.WrapWidth = sharedWrapWidth
-	} else if cfg != nil && cfg.GetWrapWidth() > 0 {
+	} else if cfg != nil && cfg.GetWrapWidth() >= 0 {
 		opt.WrapWidth = cfg.GetWrapWidth()
 	}
 
@@ -284,6 +283,10 @@ func validateDisplayFlags(_ *pflag.FlagSet) error {
 	if sharedWrapWidth > 0 && (sharedWrapWidth < MinWrapWidth || sharedWrapWidth > MaxWrapWidth) {
 		fmt.Fprintf(os.Stderr, "Warning: wrap width %d is outside recommended range [%d, %d]\n",
 			sharedWrapWidth, MinWrapWidth, MaxWrapWidth)
+	}
+	if sharedWrapWidth < -1 {
+		return fmt.Errorf("invalid wrap width %d: must be -1 (auto-detect), 0 (no wrapping), or positive",
+			sharedWrapWidth)
 	}
 
 	// Validate template cache size if specified

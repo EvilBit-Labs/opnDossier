@@ -352,8 +352,9 @@ func NewTerminalDisplayWithTheme(theme Theme) *TerminalDisplay {
 
 // NewTerminalDisplayWithOptions returns a TerminalDisplay configured with the provided options, initializing the progress bar with theme-based colors and setting the wrap width if not specified.
 func NewTerminalDisplayWithOptions(opts Options) *TerminalDisplay {
-	// Set default wrap width if not specified
-	if opts.WrapWidth == 0 {
+	// Set default wrap width if not specified (-1 or negative values)
+	// Preserve 0 (no wrapping) and positive values (explicit width)
+	if opts.WrapWidth < 0 {
 		opts.WrapWidth = getTerminalWidth()
 	}
 

@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -227,4 +228,134 @@ func TestEndToEndDisplay(t *testing.T) {
 
 	// The display command should run and provide some output
 	assert.NotEmpty(t, output, "Display command should produce output")
+}
+
+func TestEndToEndDisplayWrapWidth(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "opndossier-display-wrap-test")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	longHostname := "display-wrap-" + strings.Repeat("a", 140)
+	configContent := `<?xml version="1.0"?>
+<opnsense>
+  <version>24.1</version>
+  <system>
+    <hostname>` + longHostname + `</hostname>
+  </system>
+</opnsense>`
+
+	configFile := filepath.Join(tmpDir, "test-config.xml")
+	err = os.WriteFile(configFile, []byte(configContent), 0o644)
+	require.NoError(t, err)
+
+	binaryPath := "./opndossier"
+	if _, err := os.Stat(binaryPath); os.IsNotExist(err) {
+		binaryPath = filepath.Join(tmpDir, "opndossier")
+		buildCmd := exec.Command("go", "build", "-o", binaryPath, ".")
+		err = buildCmd.Run()
+		require.NoError(t, err)
+	}
+
+	t.Run("Explicit wrap widths", func(t *testing.T) {
+		tests := []struct {
+			name      string
+			wrapWidth int
+			args      []string
+		}{
+			{
+				name:      "Wrap 80",
+				wrapWidth: 80,
+				args:      []string{"display", "--wrap", "80", configFile},
+			},
+			{
+				name:      "Wrap 100",
+				wrapWidth: 100,
+				args:      []string{"display", "--wrap", "100", configFile},
+			},
+			{
+				name:      "Wrap 120",
+				wrapWidth: 120,
+				args:      []string{"display", "--wrap", "120", configFile},
+			},
+			{
+				name:      "Wrap 80 with comprehensive output",
+				wrapWidth: 80,
+				args:      []string{"display", "--wrap", "80", "--comprehensive", configFile},
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				cmd := exec.Command(binaryPath, tt.args...)
+				var stdout, stderr bytes.Buffer
+				cmd.Stdout = &stdout
+				cmd.Stderr = &stderr
+
+				err := cmd.Run()
+				require.NoError(t, err)
+
+				output := stdout.String() + stderr.String()
+				assert.NotEmpty(t, output, "Display output should not be empty")
+
+				maxLen := maxVisibleLineLength(stripANSI(output))
+				assert.LessOrEqual(t, maxLen, tt.wrapWidth)
+			})
+		}
+	})
+
+	t.Run("Auto-detected wrap width via COLUMNS", func(t *testing.T) {
+		cmd := exec.Command(binaryPath, "display", configFile)
+		cmd.Env = append(os.Environ(), "COLUMNS=100")
+
+		var stdout, stderr bytes.Buffer
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+
+		err := cmd.Run()
+		require.NoError(t, err)
+
+		output := stdout.String() + stderr.String()
+		assert.NotEmpty(t, output, "Display output should not be empty")
+
+		maxLen := maxVisibleLineLength(stripANSI(output))
+		assert.LessOrEqual(t, maxLen, 100)
+	})
+}
+
+func stripANSI(input string) string {
+	re := regexp.MustCompile(`\x1b\[[0-9;]*[A-Za-z]`)
+	return re.ReplaceAllString(input, "")
+}
+
+func maxVisibleLineLength(output string) int {
+	maxLen := 0
+	inCodeBlock := false
+
+	for _, line := range strings.Split(output, "\n") {
+		trimmed := strings.TrimSpace(line)
+
+		if strings.HasPrefix(trimmed, "```") {
+			inCodeBlock = !inCodeBlock
+			continue
+		}
+		if inCodeBlock {
+			continue
+		}
+		if strings.HasPrefix(trimmed, "|") {
+			continue
+		}
+		if strings.HasPrefix(trimmed, "---") {
+			continue
+		}
+		if trimmed == "" {
+			continue
+		}
+
+		visible := strings.TrimRightFunc(trimmed, func(r rune) bool { return r == '\r' })
+		if len(visible) > maxLen {
+			maxLen = len(visible)
+		}
+	}
+
+	return maxLen
 }

@@ -89,6 +89,9 @@ opnDossier convert -f yaml config.xml -o output.yaml
 # Display configuration in terminal with syntax highlighting
 opnDossier display config.xml
 
+# Display with explicit wrap width (recommended: 80-120 columns)
+opnDossier display --wrap 100 config.xml
+
 # Validate configuration file
 opnDossier validate config.xml
 
@@ -96,6 +99,8 @@ opnDossier validate config.xml
 opnDossier --help
 opnDossier convert --help
 ```
+
+When `--wrap` is not specified, terminal width is auto-detected using `COLUMNS` with a default of 120.
 
 ### Legacy Template Mode (Deprecated)
 

@@ -110,7 +110,7 @@ func addSharedTemplateFlags(cmd *cobra.Command) {
 	setFlagAnnotation(cmd.Flags(), "section", []string{"template"})
 
 	cmd.Flags().
-		IntVar(&sharedWrapWidth, "wrap", 0, "Text wrap width in characters (0 = no wrapping, recommended: 80-120)")
+		IntVar(&sharedWrapWidth, "wrap", -1, "Text wrap width in characters (-1 = auto-detect terminal width, 0 = no wrapping, recommended: 80-120)")
 	setFlagAnnotation(cmd.Flags(), "wrap", []string{"template"})
 
 	cmd.Flags().
