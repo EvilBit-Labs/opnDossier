@@ -258,6 +258,20 @@ git checkout -b feat/your-feature-name
 git checkout -b fix/issue-description
 ```
 
+### Security Scanning
+
+opnDossier treats vulnerability management as a first-class workflow concern.
+
+- **Run scans locally**:
+  - `just scan` - run vulnerability scanning
+  - `just sbom` - generate SBOM artifacts
+- **CI requirements**:
+  - CI runs Grype scans for both the repository filesystem and Go module dependencies (`go.mod`).
+  - Severity thresholds are stricter on `main` (filesystem cutoff is $\\ge$ medium) than on feature branches (filesystem cutoff is $\\ge$ high).
+- **Where results live**:
+  - SARIF uploads appear in the GitHub Security tab (Code Scanning).
+  - SBOM and vulnerability report artifacts are attached to workflow runs.
+
 ### 2. Development Commands
 
 ```bash
