@@ -3,6 +3,7 @@ package cmd
 import (
 	"io"
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
@@ -46,16 +47,44 @@ func captureStderr(t *testing.T, fn func()) string {
 
 	os.Stderr = writer
 
+	var (
+		output string
+		once   sync.Once
+	)
+	cleanup := func() {
+		once.Do(func() {
+			os.Stderr = originalStderr
+			require.NoError(t, writer.Close())
+
+			captured, readErr := io.ReadAll(reader)
+			require.NoError(t, readErr)
+			output = string(captured)
+
+			require.NoError(t, reader.Close())
+		})
+	}
+	defer cleanup()
+
 	fn()
+	cleanup()
 
-	require.NoError(t, writer.Close())
-	os.Stderr = originalStderr
+	return output
+}
 
-	output, err := io.ReadAll(reader)
-	require.NoError(t, err)
-	require.NoError(t, reader.Close())
+func TestCaptureStderrRestoresOnPanic(t *testing.T) {
+	originalStderr := os.Stderr
+	defer func() {
+		os.Stderr = originalStderr
+	}()
+	defer func() {
+		recovered := recover()
+		require.NotNil(t, recovered)
+		assert.Equal(t, originalStderr, os.Stderr)
+	}()
 
-	return string(output)
+	_ = captureStderr(t, func() {
+		panic("boom")
+	})
 }
 
 func TestBuildDisplayOptionsWrapWidthPrecedence(t *testing.T) {
@@ -143,6 +172,11 @@ func TestValidateDisplayFlagsWrapWidthWarning(t *testing.T) {
 		wrap     int
 		wantWarn bool
 	}{
+		{
+			name:     "Auto-detect wrap width sentinel",
+			wrap:     -1,
+			wantWarn: false,
+		},
 		{
 			name:     "Below minimum recommended wrap width",
 			wrap:     MinWrapWidth - 1,

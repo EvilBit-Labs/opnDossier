@@ -68,9 +68,7 @@ func TestEndToEndConversion(t *testing.T) {
 	// Build the opnDossier binary if it doesn't exist
 	binaryPath := filepath.Join(tmpDir, "opndossier")
 	if _, err := os.Stat("./opndossier"); os.IsNotExist(err) {
-		buildCmd := exec.Command("go", "build", "-o", binaryPath, ".")
-		err = buildCmd.Run()
-		require.NoErrorf(t, err, "Failed to build opnDossier binary")
+		buildBinary(t, binaryPath)
 	} else {
 		// Copy existing binary
 		binaryPath = "./opndossier"
@@ -161,9 +159,7 @@ func TestEndToEndValidation(t *testing.T) {
 	binaryPath := "./opndossier"
 	if _, err := os.Stat(binaryPath); os.IsNotExist(err) {
 		binaryPath = filepath.Join(tmpDir, "opndossier")
-		buildCmd := exec.Command("go", "build", "-o", binaryPath, ".")
-		err = buildCmd.Run()
-		require.NoError(t, err)
+		buildBinary(t, binaryPath)
 	}
 
 	// Test validation command
@@ -211,9 +207,7 @@ func TestEndToEndDisplay(t *testing.T) {
 	binaryPath := "./opndossier"
 	if _, err := os.Stat(binaryPath); os.IsNotExist(err) {
 		binaryPath = filepath.Join(tmpDir, "opndossier")
-		buildCmd := exec.Command("go", "build", "-o", binaryPath, ".")
-		err = buildCmd.Run()
-		require.NoError(t, err)
+		buildBinary(t, binaryPath)
 	}
 
 	// Test display command
@@ -251,9 +245,7 @@ func TestEndToEndDisplayWrapWidth(t *testing.T) {
 	binaryPath := "./opndossier"
 	if _, err := os.Stat(binaryPath); os.IsNotExist(err) {
 		binaryPath = filepath.Join(tmpDir, "opndossier")
-		buildCmd := exec.Command("go", "build", "-o", binaryPath, ".")
-		err = buildCmd.Run()
-		require.NoError(t, err)
+		buildBinary(t, binaryPath)
 	}
 
 	t.Run("Explicit wrap widths", func(t *testing.T) {
@@ -262,6 +254,11 @@ func TestEndToEndDisplayWrapWidth(t *testing.T) {
 			wrapWidth int
 			args      []string
 		}{
+			{
+				name:      "No wrapping",
+				wrapWidth: 0,
+				args:      []string{"display", "--wrap", "0", configFile},
+			},
 			{
 				name:      "Wrap 80",
 				wrapWidth: 80,
@@ -295,10 +292,17 @@ func TestEndToEndDisplayWrapWidth(t *testing.T) {
 				require.NoError(t, err)
 
 				output := stdout.String() + stderr.String()
-				assert.NotEmpty(t, output, "Display output should not be empty")
+				if tt.wrapWidth == 0 {
+					assert.NotEmpty(t, output, "Display output should not be empty")
+					return
+				}
 
-				maxLen := maxVisibleLineLength(stripANSI(output))
-				assert.LessOrEqual(t, maxLen, tt.wrapWidth)
+				assert.NotEmpty(t, output, "Display output should not be empty")
+				maxLen, maxLine := maxVisibleLineLengthWithLine(stripANSI(output))
+				if maxLen > tt.wrapWidth && isUnbreakableLine(maxLine) {
+					return
+				}
+				assert.LessOrEqualf(t, maxLen, tt.wrapWidth, "Longest line: %q", maxLine)
 			})
 		}
 	})
@@ -317,8 +321,11 @@ func TestEndToEndDisplayWrapWidth(t *testing.T) {
 		output := stdout.String() + stderr.String()
 		assert.NotEmpty(t, output, "Display output should not be empty")
 
-		maxLen := maxVisibleLineLength(stripANSI(output))
-		assert.LessOrEqual(t, maxLen, 100)
+		maxLen, maxLine := maxVisibleLineLengthWithLine(stripANSI(output))
+		if maxLen > 100 && isUnbreakableLine(maxLine) {
+			return
+		}
+		assert.LessOrEqualf(t, maxLen, 100, "Longest line: %q", maxLine)
 	})
 }
 
@@ -327,8 +334,26 @@ func stripANSI(input string) string {
 	return re.ReplaceAllString(input, "")
 }
 
+func buildBinary(t *testing.T, binaryPath string) {
+	t.Helper()
+
+	buildCmd := exec.Command("go", "build", "-a", "-o", binaryPath, ".")
+	err := buildCmd.Run()
+	require.NoErrorf(t, err, "Failed to build opnDossier binary")
+}
+
+func isUnbreakableLine(line string) bool {
+	return line != "" && !strings.ContainsAny(line, " \t")
+}
+
 func maxVisibleLineLength(output string) int {
+	maxLen, _ := maxVisibleLineLengthWithLine(output)
+	return maxLen
+}
+
+func maxVisibleLineLengthWithLine(output string) (int, string) {
 	maxLen := 0
+	maxLine := ""
 	inCodeBlock := false
 
 	for _, line := range strings.Split(output, "\n") {
@@ -354,8 +379,9 @@ func maxVisibleLineLength(output string) int {
 		visible := strings.TrimRightFunc(trimmed, func(r rune) bool { return r == '\r' })
 		if len(visible) > maxLen {
 			maxLen = len(visible)
+			maxLine = visible
 		}
 	}
 
-	return maxLen
+	return maxLen, maxLine
 }

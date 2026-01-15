@@ -22,7 +22,7 @@ var (
 	// Template and styling flags.
 	sharedSections          []string //nolint:gochecknoglobals // Sections to include
 	sharedTheme             string   //nolint:gochecknoglobals // Theme for rendering
-	sharedWrapWidth         int      //nolint:gochecknoglobals // Text wrap width
+	sharedWrapWidth         = -1     //nolint:gochecknoglobals // Text wrap width
 	sharedCustomTemplate    string   //nolint:gochecknoglobals // Custom template file path
 	sharedIncludeTunables   bool     //nolint:gochecknoglobals // Include system tunables in output
 	sharedTemplateCacheSize int      //nolint:gochecknoglobals // Template cache size (LRU max entries)
