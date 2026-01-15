@@ -17,7 +17,7 @@ reviews:
   review_status: true
   commit_status: true
   fail_commit_status: false
-  collapse_walkthrough: false
+  collapse_walkthrough: true
   changed_files_summary: true
   sequence_diagrams: true
   estimate_code_review_effort: true
@@ -57,7 +57,91 @@ reviews:
     - label: "audit"
       instructions: "Use for audit compliance and report generation work"
   path_filters: []
-  path_instructions: []
+  path_instructions:
+    - path: "cmd/**/*.go"
+      instructions: |
+        CLI command files: Focus on user experience, clear error messages, and proper flag handling.
+        - Verify cobra command structure and flag definitions are correct
+        - Ensure error messages are actionable and user-friendly
+        - Check that viper configuration binding is consistent
+        - Validate terminal output uses lipgloss styling appropriately
+        - Confirm help text is clear and follows CLI conventions
+    - path: "internal/parser/**/*.go"
+      instructions: |
+        XML parsing logic: Critical path for OPNsense configuration accuracy.
+        - Verify XML unmarshaling handles all OPNsense schema variations
+        - Check streaming parser implementation for memory efficiency
+        - Ensure error messages include line/column information
+        - Validate handling of malformed XML and edge cases
+        - Confirm proper cleanup of resources and error propagation
+    - path: "internal/validator/**/*.go"
+      instructions: |
+        Configuration validation: Ensure comprehensive validation without over-engineering.
+        - Check validation rules are meaningful and catch real errors
+        - Verify IP address, subnet, and network validation accuracy
+        - Ensure cross-field validation logic is correct
+        - Validate error messages are specific and helpful
+        - Avoid trivial validations that add complexity without value
+    - path: "internal/model/**/*.go"
+      instructions: |
+        Data models: Ensure accurate representation of OPNsense configuration structure.
+        - Verify struct tags (xml, json, yaml) are correct and complete
+        - Check field types match OPNsense XML schema requirements
+        - Ensure nested structures properly represent XML hierarchy
+        - Validate omitempty usage is appropriate for optional fields
+        - Confirm exported fields have clear, descriptive names
+    - path: "internal/converter/**/*.go"
+      instructions: |
+        Format conversion logic: Focus on programmatic generation quality and correctness.
+        - Verify markdown generation follows conventions and is readable
+        - Check JSON/YAML output is properly structured and valid
+        - Ensure conversion preserves all relevant configuration data
+        - Validate streaming conversion handles large files efficiently
+        - Confirm output formatting is consistent and well-organized
+    - path: "internal/display/**/*.go"
+      instructions: |
+        Terminal display: Ensure beautiful, readable terminal output.
+        - Verify glamour markdown rendering is correct
+        - Check lipgloss styling is consistent with theme
+        - Ensure text wrapping respects terminal width
+        - Validate syntax highlighting works for all output types
+        - Confirm output is readable in both light and dark terminals
+    - path: "internal/audit/**/*.go"
+      instructions: |
+        Audit and compliance: Focus on accurate security analysis.
+        - Verify security checks detect real vulnerabilities
+        - Check compliance rules match stated standards (STIG, CIS, etc.)
+        - Ensure recommendations are actionable and specific
+        - Validate findings include severity and remediation guidance
+        - Avoid false positives that reduce trust in audit results
+    - path: "**/*_test.go"
+      instructions: |
+        Test files: Follow test proportionality principles - meaningful tests only.
+        - Verify tests cover critical functionality and real edge cases
+        - Check table-driven tests are well-organized and clear
+        - Ensure test names clearly describe what is being tested
+        - Validate mocks/fixtures are necessary and not over-engineered
+        - Remove tests for trivial operations or framework behavior
+        - Confirm tests are shorter and simpler than implementation
+        - Check error cases are tested but not every possible variation
+    - path: "docs/**/*.md"
+      instructions: |
+        Documentation: Ensure clarity, accuracy, and completeness.
+        - Verify examples are correct and runnable
+        - Check documentation matches current CLI behavior
+        - Ensure technical accuracy for OPNsense concepts
+        - Validate links and references are current
+        - Confirm language is clear and accessible to operators
+    - path: "*.go"
+      instructions: |
+        General Go code: Apply simplicity principles and Go idioms.
+        - Prefer simple, straightforward implementations over abstractions
+        - Use standard library patterns over custom frameworks
+        - Keep functions focused and single-purpose
+        - Ensure exported APIs have clear documentation
+        - Validate error handling is appropriate (not defensive programming)
+        - Check for unnecessary complexity or premature optimization
+        - Confirm code follows Go conventions and idioms
   abort_on_close: true
   disable_cache: false
   auto_review:
@@ -184,7 +268,12 @@ knowledge_base:
     enabled: true
   code_guidelines:
     enabled: true
-    filePatterns: []
+    filePatterns:
+      - "**/*.go"
+      - "**/*.md"
+      - "**/justfile"
+      - "**/*.yaml"
+      - "**/*.yml"
   learnings:
     scope: auto
   issues:
@@ -200,6 +289,115 @@ knowledge_base:
 code_generation:
   docstrings:
     language: en-US
-    path_instructions: []
+    path_instructions:
+      - path: "cmd/**/*.go"
+        instructions: |
+          CLI commands require clear, user-focused documentation.
+          - Document what the command does from user perspective
+          - Include usage examples with common flags
+          - Explain error conditions users might encounter
+          - Keep it concise - avoid implementation details
+          - Follow Go doc comment conventions
+      - path: "internal/*/**.go"
+        instructions: |
+          Internal package documentation should explain purpose and usage.
+          - Focus on package-level documentation explaining domain
+          - Document exported functions/types with purpose and usage
+          - Include examples for complex APIs
+          - Explain non-obvious behavior or edge cases
+          - Avoid documenting trivial getters/setters
+          - Keep implementation details in code comments, not godoc
+      - path: "internal/model/**/*.go"
+        instructions: |
+          Model structs need field-level documentation for clarity.
+          - Document each exported struct with its purpose
+          - Explain struct tag meanings when non-obvious
+          - Note required vs optional fields
+          - Document validation rules or constraints
+          - Include examples of typical model usage
+      - path: "internal/parser/**/*.go"
+        instructions: |
+          Parser documentation must explain XML mapping and error handling.
+          - Document what OPNsense elements are parsed
+          - Explain streaming behavior and memory characteristics
+          - Note error recovery strategies
+          - Include examples of expected XML input
+          - Document performance characteristics for large files
+      - path: "**/*_test.go"
+        instructions: |
+          Test documentation should explain what is being validated.
+          - Use descriptive test function names instead of excessive comments
+          - Document table-driven test structure when complex
+          - Explain test fixtures or mock setup when non-obvious
+          - Avoid redundant documentation for self-explanatory tests
+          - Focus on documenting test rationale, not mechanics
   unit_tests:
-    path_instructions: []
+    path_instructions:
+      - path: "cmd/**/*.go"
+        instructions: |
+          CLI command tests: Focus on integration scenarios and error handling.
+          - Test flag parsing and validation
+          - Verify error messages for invalid inputs
+          - Test integration with viper configuration
+          - Use table-driven tests for multiple input scenarios
+          - Mock file I/O and external dependencies
+          - Avoid testing cobra/viper framework behavior
+          - Keep tests simpler than implementation
+      - path: "internal/parser/**/*.go"
+        instructions: |
+          Parser tests: Critical for correctness - comprehensive but focused.
+          - Test valid OPNsense XML parsing with real examples
+          - Test malformed XML error handling
+          - Test streaming behavior with large files
+          - Verify line/column error reporting
+          - Use testdata fixtures for XML samples
+          - Avoid testing XML library behavior
+          - Focus on opnDossier-specific parsing logic
+      - path: "internal/validator/**/*.go"
+        instructions: |
+          Validator tests: Verify meaningful validation rules only.
+          - Test validation rules catch real configuration errors
+          - Use table-driven tests for different error scenarios
+          - Test cross-field validation logic
+          - Verify error messages are specific and helpful
+          - Avoid testing trivial field presence checks
+          - Don't test standard library validation (e.g., net.ParseIP)
+          - Keep test count proportional to complexity
+      - path: "internal/model/**/*.go"
+        instructions: |
+          Model tests: Test serialization and complex behaviors only.
+          - Test XML/JSON/YAML marshaling for non-trivial structures
+          - Verify struct tag behavior when complex
+          - Test custom Marshal/Unmarshal methods
+          - Skip testing simple struct definitions
+          - Avoid testing standard library encoding behavior
+          - Focus on opnDossier-specific model logic
+      - path: "internal/converter/**/*.go"
+        instructions: |
+          Converter tests: Verify output correctness and format compliance.
+          - Test markdown generation produces valid output
+          - Verify JSON/YAML output is properly structured
+          - Test data preservation during conversion
+          - Use snapshot testing or golden files for complex output
+          - Test error handling for edge cases
+          - Avoid testing template library behavior
+          - Focus on conversion logic correctness
+      - path: "internal/display/**/*.go"
+        instructions: |
+          Display tests: Test rendering logic without terminal dependency.
+          - Test text wrapping logic with various widths
+          - Verify styling application is correct
+          - Test theme handling and color schemes
+          - Mock terminal interactions
+          - Avoid testing charm library behavior
+          - Focus on display-specific formatting logic
+      - path: "internal/audit/**/*.go"
+        instructions: |
+          Audit tests: Verify security checks and compliance rules.
+          - Test security vulnerability detection
+          - Verify compliance rule evaluation
+          - Test finding severity assignment
+          - Use realistic configuration examples
+          - Test recommendation generation
+          - Avoid testing every possible configuration permutation
+          - Focus on critical security scenarios
