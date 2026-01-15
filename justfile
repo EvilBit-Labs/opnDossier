@@ -203,6 +203,11 @@ test-coverage:
     @go test -coverprofile=coverage.txt ./...
     @go tool cover -func=coverage.txt
 
+# Run integration tests (build tag)
+[group('test')]
+test-integration:
+    @go test -tags=integration ./...
+
 # Run tests and open coverage in browser
 [group('test')]
 coverage:
@@ -367,7 +372,7 @@ security-all: sbom scan
 
 # Run full CI checks (pre-commit, format, lint, test)
 [group('ci')]
-ci-check: check format-check lint test
+ci-check: check format-check lint test test-integration
     @echo "✅ All CI checks passed"
 
 # Run smoke tests (fast, minimal validation)
