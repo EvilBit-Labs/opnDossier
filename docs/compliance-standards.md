@@ -114,103 +114,103 @@ The audit engine performs the following types of checks:
 
 1. **Default Deny Policy (V-206694)**
 
-   - Verifies firewall implements deny-by-default approach
-   - Checks for explicit allow rules only
+- Verifies firewall implements deny-by-default approach
+- Checks for explicit allow rules only
 
 2. **DoS Protection (V-206701)**
 
-   - Validates DoS protection mechanisms
-   - Checks flood protection and rate limiting
+- Validates DoS protection mechanisms
+- Checks flood protection and rate limiting
 
 3. **Packet Filtering (V-206674)**
 
-   - Analyzes rule specificity
-   - Identifies overly permissive rules
+- Analyzes rule specificity
+- Identifies overly permissive rules
 
 4. **Service Hardening (V-206690)**
 
-   - Checks for unnecessary services
-   - Validates service configuration
+- Checks for unnecessary services
+- Validates service configuration
 
 5. **Logging Configuration (V-206682, V-206680, V-206679, V-206678, V-206681)**
 
-   - Verifies comprehensive logging
-   - Checks log content and format
+- Verifies comprehensive logging
+- Checks log content and format
 
 #### SANS Compliance Checks
 
 1. **Access Control (SANS-FW-001)**
 
-   - Validates default deny implementation
-   - Checks explicit allow rules
+- Validates default deny implementation
+- Checks explicit allow rules
 
 2. **Rule Management (SANS-FW-002)**
 
-   - Analyzes rule documentation
-   - Checks rule specificity
+- Analyzes rule documentation
+- Checks rule specificity
 
 3. **Network Segmentation (SANS-FW-003)**
 
-   - Validates zone separation
-   - Checks access controls between zones
+- Validates zone separation
+- Checks access controls between zones
 
 4. **Logging and Monitoring (SANS-FW-004)**
 
-   - Verifies comprehensive logging
-   - Checks monitoring configuration
+- Verifies comprehensive logging
+- Checks monitoring configuration
 
 #### Firewall Security Compliance Checks
 
 1. **System Configuration (FIREWALL-001, FIREWALL-002, FIREWALL-003, FIREWALL-004)**
 
-   - Validates SSH warning banner configuration
-   - Checks auto configuration backup settings
-   - Verifies MOTD customization
-   - Validates hostname configuration
+- Validates SSH warning banner configuration
+- Checks auto configuration backup settings
+- Verifies MOTD customization
+- Validates hostname configuration
 
 2. **Network Configuration (FIREWALL-005, FIREWALL-006, FIREWALL-007)**
 
-   - Verifies DNS server configuration
-   - Checks IPv6 disablement settings
-   - Validates DNS rebind check configuration
+- Verifies DNS server configuration
+- Checks IPv6 disablement settings
+- Validates DNS rebind check configuration
 
 3. **Management Access (FIREWALL-008)**
 
-   - Verifies HTTPS web management configuration
-   - Checks management access encryption
+- Verifies HTTPS web management configuration
+- Checks management access encryption
 
 4. **High Availability (FIREWALL-009)**
 
-   - Validates HA peer configuration
-   - Checks synchronization settings
+- Validates HA peer configuration
+- Checks synchronization settings
 
 5. **User Management (FIREWALL-010, FIREWALL-013, FIREWALL-014)**
 
-   - Verifies session timeout configuration
-   - Checks default account management
-   - Validates local account status
+- Verifies session timeout configuration
+- Checks default account management
+- Validates local account status
 
 6. **Authentication (FIREWALL-011)**
 
-   - Validates central authentication configuration
-   - Checks LDAP/RADIUS setup
+- Validates central authentication configuration
+- Checks LDAP/RADIUS setup
 
 7. **Access Control (FIREWALL-012)**
 
-   - Verifies console menu protection
-   - Checks access control settings
+- Verifies console menu protection
+- Checks access control settings
 
 8. **Security Policy (FIREWALL-015, FIREWALL-016, FIREWALL-017)**
 
-   - Validates login protection threshold
-   - Checks access block time configuration
-   - Verifies default password change
+- Validates login protection threshold
+- Checks access block time configuration
+- Verifies default password change
 
 9. **Firewall Rules (FIREWALL-018, FIREWALL-019, FIREWALL-020)**
 
-   - Validates destination field restrictions
-   - Checks source field restrictions
-   - Verifies service field restrictions
+- Validates destination field restrictions
+- Checks source field restrictions
+- Verifies service field restrictions
 
 ## Usage
 
@@ -338,7 +338,7 @@ result.FirewallCompliance["FIREWALL-018"] = false // Non-compliant
 
 - [DISA STIG Library](https://public.cyber.mil/stigs/)
 - [SANS Firewall Checklist](https://www.sans.org/media/score/checklists/FirewallChecklist.pdf)
-- [CIS-Inspired Firewall Security Controls Reference](docs/cis-like-firewall-reference.md)
+- [CIS-Inspired Firewall Security Controls Reference](cis-like-firewall-reference.md)
 - [STIG Viewer](https://stigviewer.com/stigs/firewall_security_requirements_guide)
 - [NIST Cybersecurity Framework](https://www.nist.gov/cyberframework)
 

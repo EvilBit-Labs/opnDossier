@@ -508,4 +508,4 @@ If a release has critical issues:
 
 ---
 
-For questions about the release process, please refer to the project's [CONTRIBUTING.md](CONTRIBUTING.md) or open an issue.
+For questions about the release process, please refer to the project's [https://github.com/EvilBit-Labs/opnDossier/blob/main/CONTRIBUTING.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/CONTRIBUTING.md) or open an issue.

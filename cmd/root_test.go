@@ -6,10 +6,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/log"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+const rootTestConfigContent = `verbose: false
+quiet: false
+`
 
 func TestGetRootCmd(t *testing.T) {
 	rootCmd := GetRootCmd()
@@ -114,12 +119,7 @@ func TestRootCmdPersistentPreRunE(t *testing.T) {
 	}()
 
 	// Write a minimal config
-	configContent := `log_level: info
-log_format: text
-verbose: false
-quiet: false
-`
-	_, err = tmpFile.WriteString(configContent)
+	_, err = tmpFile.WriteString(rootTestConfigContent)
 	require.NoError(t, err)
 	err = tmpFile.Close()
 	require.NoError(t, err)
@@ -193,12 +193,7 @@ func TestRootCmdVerboseQuietFlags(t *testing.T) {
 	}()
 
 	// Write a minimal config
-	configContent := `log_level: info
-log_format: text
-verbose: false
-quiet: false
-`
-	_, err = tmpFile.WriteString(configContent)
+	_, err = tmpFile.WriteString(rootTestConfigContent)
 	require.NoError(t, err)
 	err = tmpFile.Close()
 	require.NoError(t, err)
@@ -223,4 +218,90 @@ quiet: false
 	require.NoError(t, testCmd2.PersistentFlags().Set("quiet", "true"))
 	err = rootCmd.PersistentPreRunE(testCmd2, []string{})
 	require.NoError(t, err)
+}
+
+func TestInitializeDefaultLogger_NoPanicOnInvalidConfig(t *testing.T) {
+	originalConfig := defaultLoggerConfig
+	t.Cleanup(func() {
+		defaultLoggerConfig = originalConfig
+		initializeDefaultLogger()
+	})
+
+	defaultLoggerConfig = log.Config{
+		Level:  "invalid",
+		Format: "text",
+		Output: os.Stderr,
+	}
+
+	require.NotPanics(t, func() {
+		initializeDefaultLogger()
+	})
+}
+
+func TestInitializeDefaultLoggerFallbackWritesToStderr(t *testing.T) {
+	originalConfig := defaultLoggerConfig
+	t.Cleanup(func() {
+		defaultLoggerConfig = originalConfig
+		initializeDefaultLogger()
+	})
+
+	defaultLoggerConfig = log.Config{
+		Level:  "invalid",
+		Format: "text",
+		Output: os.Stderr,
+	}
+
+	output := captureStderr(t, func() {
+		initializeDefaultLogger()
+	})
+
+	assert.Contains(t, output, "unable to initialize logging")
+	assert.NotNil(t, GetLogger())
+}
+
+func TestRootCmdPersistentPreRunERecoversFromFallback(t *testing.T) {
+	originalConfig := defaultLoggerConfig
+	t.Cleanup(func() {
+		defaultLoggerConfig = originalConfig
+		initializeDefaultLogger()
+	})
+
+	defaultLoggerConfig = log.Config{
+		Level:  "invalid",
+		Format: "text",
+		Output: os.Stderr,
+	}
+	initializeDefaultLogger()
+
+	// Create a temporary config file for testing
+	tmpFile, err := os.CreateTemp(t.TempDir(), "opndossier-test-*.yaml")
+	require.NoError(t, err)
+
+	defer func() {
+		err := os.Remove(tmpFile.Name())
+		require.NoError(t, err)
+	}()
+
+	// Write a minimal config
+	_, err = tmpFile.WriteString(rootTestConfigContent)
+	require.NoError(t, err)
+	err = tmpFile.Close()
+	require.NoError(t, err)
+
+	// Create a fresh command for testing
+	testCmd := &cobra.Command{
+		Use: "test",
+	}
+
+	// Copy flags from root command
+	rootCmd := GetRootCmd()
+	testCmd.PersistentFlags().AddFlagSet(rootCmd.PersistentFlags())
+
+	// Set the config file flag
+	require.NoError(t, testCmd.PersistentFlags().Set("config", tmpFile.Name()))
+
+	// Test PersistentPreRunE should succeed and reinitialize logger
+	err = rootCmd.PersistentPreRunE(testCmd, []string{})
+	require.NoError(t, err)
+	assert.NotNil(t, GetLogger())
 }

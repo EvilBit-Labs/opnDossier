@@ -92,8 +92,8 @@ For comprehensive project information, also refer to:
 
 - **[AGENTS.md](../../AGENTS.md)** - Complete AI agent development guidelines
 - **[.github/copilot-instructions.md](../../.github/copilot-instructions.md)** - GitHub Copilot specific instructions
-- **[DEVELOPMENT_STANDARDS.md](../../DEVELOPMENT_STANDARDS.md)** - Go-specific coding standards
-- **[ARCHITECTURE.md](../../ARCHITECTURE.md)** - System architecture documentation
+- **[DEVELOPMENT_STANDARDS.md](../../docs/development/standards.md)** - Go-specific coding standards
+- **[ARCHITECTURE.md](../../docs/development/architecture.md)** - System architecture documentation
 
 ## 🔧 Maintenance
 

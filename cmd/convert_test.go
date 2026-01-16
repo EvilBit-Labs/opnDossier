@@ -55,7 +55,7 @@ func TestConvertCmdFlags(t *testing.T) {
 	// Check wrap flag
 	wrapFlag := flags.Lookup("wrap")
 	require.NotNil(t, wrapFlag)
-	assert.Equal(t, "0", wrapFlag.DefValue)
+	assert.Equal(t, "-1", wrapFlag.DefValue)
 }
 
 func TestConvertCmdHelp(t *testing.T) {
@@ -206,7 +206,10 @@ func TestConvertCmdWithInvalidFile(t *testing.T) {
 
 	err := rootCmd.Execute()
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to open file")
+	assert.True(t,
+		strings.Contains(err.Error(), "no such file or directory") ||
+			strings.Contains(err.Error(), "The system cannot find the file specified"),
+		"error message should indicate missing file, got: %s", err.Error())
 }
 
 func TestConvertCmdWithValidXML(t *testing.T) {
@@ -251,6 +254,21 @@ func TestConvertCmdWithValidXML(t *testing.T) {
 				strings.Contains(errorStr, "generator"),
 			"Expected parsing, template, or generator error, got: %s", errorStr)
 	}
+}
+
+func TestConvertCmdWithCacheError(t *testing.T) {
+	originalCacheSize := sharedTemplateCacheSize
+	t.Cleanup(func() {
+		sharedTemplateCacheSize = originalCacheSize
+	})
+	sharedTemplateCacheSize = 0
+
+	rootCmd := GetRootCmd()
+	rootCmd.SetArgs([]string{"convert", "/tmp/does-not-matter.xml"})
+
+	err := rootCmd.Execute()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to create template cache with size 0")
 }
 
 func TestDetermineOutputPath(t *testing.T) {
@@ -708,7 +726,8 @@ func TestTemplateCache(t *testing.T) {
 	}
 
 	// Create a new template cache
-	cache := NewTemplateCache()
+	cache, err := NewTemplateCache()
+	require.NoError(t, err)
 
 	// Test 1: Load template for the first time
 	tmpl1, err := cache.Get(templatePath)
@@ -769,7 +788,8 @@ func TestTemplateCacheConcurrency(t *testing.T) {
 	}
 
 	// Create a new template cache
-	cache := NewTemplateCache()
+	cache, err := NewTemplateCache()
+	require.NoError(t, err)
 
 	// Store template pointers to verify they're all valid
 	templates := make([]*template.Template, 10)
@@ -824,4 +844,17 @@ func TestTemplateCacheConcurrency(t *testing.T) {
 	if tmpl1 != tmpl2 {
 		t.Error("Subsequent calls should return the same template instance")
 	}
+}
+
+func TestNewTemplateCacheError(t *testing.T) {
+	originalDefaultSize := defaultTemplateCacheSize
+	t.Cleanup(func() {
+		defaultTemplateCacheSize = originalDefaultSize
+	})
+	defaultTemplateCacheSize = 0
+
+	cache, err := NewTemplateCache()
+	require.Error(t, err)
+	assert.Nil(t, cache)
+	assert.Contains(t, err.Error(), "failed to create template cache with default size 0")
 }

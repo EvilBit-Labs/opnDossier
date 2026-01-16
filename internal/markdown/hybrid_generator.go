@@ -101,21 +101,25 @@ func (g *HybridGenerator) shouldUseTemplate(opts Options) bool {
 
 	// Check for explicit engine selection first
 	if opts.UseTemplateEngine {
+		g.logger.Debug("Template mode selected (opts.UseTemplateEngine=true)")
 		return true
 	}
 
 	// If a custom template is explicitly provided via SetTemplate(), use it
 	if g.template != nil {
+		g.logger.Debug("Template mode selected (custom template override)")
 		return true
 	}
 
 	// If template name is specified and we have a template generator, use it
 	if opts.TemplateName != "" {
+		g.logger.Debug("Template mode selected (opts.TemplateName set)", "template_name", opts.TemplateName)
 		return true
 	}
 
 	// If custom template directory is specified, use template generation
 	if opts.TemplateDir != "" {
+		g.logger.Debug("Template mode selected (opts.TemplateDir set)", "template_dir", opts.TemplateDir)
 		return true
 	}
 
@@ -129,7 +133,7 @@ func (g *HybridGenerator) generateFromTemplate(
 	data *model.OpnSenseDocument,
 	opts Options,
 ) (string, error) {
-	g.logger.Debug("Using template-based generation")
+	showTemplateDeprecationWarning(g.logger, opts)
 
 	// If we have a custom template, use the custom generator
 	if g.template != nil {
@@ -139,7 +143,7 @@ func (g *HybridGenerator) generateFromTemplate(
 	}
 
 	// Create a template generator for standard template-based generation
-	templateGen, err := NewMarkdownGeneratorWithTemplates(g.logger.Logger, opts.TemplateDir)
+	templateGen, err := NewMarkdownGeneratorWithTemplates(g.logger, opts.TemplateDir, opts)
 	if err != nil {
 		return "", fmt.Errorf("failed to create template generator: %w", err)
 	}

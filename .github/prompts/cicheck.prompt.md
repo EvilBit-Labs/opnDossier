@@ -2,7 +2,7 @@
 agent: agent
 name: Continuous Integration Check
 description: This prompt is used to run and fix issues identified by the continuous integration check command.
-model: Claude Sonnet 4.5 (copilot)
+model: OpenAI GPT-5.2-Codex (copilot)
 ---
 
 Run `just ci-check` and analyze any failures or warnings. If there are any issues, fix them and run the command again. Continue this process until `just ci-check` passes completely without any failures or warnings. Focus on:

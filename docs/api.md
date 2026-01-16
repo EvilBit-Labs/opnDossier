@@ -4,7 +4,7 @@
 
 The MarkdownBuilder provides a programmatic interface for generating security audit reports from OPNsense configurations. All methods are designed with red team operations in mind, supporting offline usage and output obfuscation.
 
-The programmatic API delivers **74% faster** generation and **78% less** memory usage compared to template-based generation, with full compile-time type safety.
+The programmatic API is designed to deliver significantly faster generation with reduced memory usage compared to template-based generation, while providing full compile-time type safety. Performance characteristics can be measured using the comparative benchmarks in `internal/converter/markdown_bench_test.go`.
 
 ## Core Interface
 
@@ -16,14 +16,14 @@ type ReportBuilder interface {
     BuildNetworkSection(data *model.OpnSenseDocument) string
     BuildSecuritySection(data *model.OpnSenseDocument) string
     BuildServicesSection(data *model.OpnSenseDocument) string
-    
+
     // Component builders
     BuildFirewallRulesTable(rules []model.Rule) *markdown.TableSet
     BuildInterfaceTable(interfaces model.Interfaces) *markdown.TableSet
     BuildUserTable(users []model.User) *markdown.TableSet
     BuildGroupTable(groups []model.Group) *markdown.TableSet
     BuildSysctlTable(sysctl []model.SysctlItem) *markdown.TableSet
-    
+
     // Report generation
     BuildStandardReport(data *model.OpnSenseDocument) (string, error)
     BuildCustomReport(data *model.OpnSenseDocument, options BuildOptions) (string, error)
@@ -106,16 +106,16 @@ func main() {
     if err != nil {
         log.Fatal(err)
     }
-    
+
     // Create markdown builder
     builder := converter.NewMarkdownBuilder()
-    
+
     // Generate standard report
     report, err := builder.BuildStandardReport(config)
     if err != nil {
         log.Fatal(err)
     }
-    
+
     fmt.Println(report)
 }
 ```
@@ -125,17 +125,17 @@ func main() {
 ```go
 func generateCustomSecurityReport(config *model.OpnSenseDocument) string {
     builder := converter.NewMarkdownBuilder()
-    
+
     // Calculate security metrics
     score := builder.CalculateSecurityScore(config)
     riskLevel := builder.AssessRiskLevel("high")
-    
+
     // Build custom report sections
     var report strings.Builder
-    
+
     report.WriteString("# Security Assessment Report\n\n")
     report.WriteString(fmt.Sprintf("**Overall Security Score:** %d/100 (%s)\n\n", score, riskLevel))
-    
+
     // Add filtered security tunables
     if config.Sysctl != nil {
         securityTunables := builder.FilterSystemTunables(config.Sysctl.Item, true)
@@ -144,16 +144,16 @@ func generateCustomSecurityReport(config *model.OpnSenseDocument) string {
             // Add table generation logic here
         }
     }
-    
+
     // Add grouped services analysis
     if len(config.Installedpackages.Services) > 0 {
         serviceGroups := builder.GroupServicesByStatus(config.Installedpackages.Services)
-        
+
         report.WriteString("## Service Status Analysis\n\n")
         report.WriteString(fmt.Sprintf("- **Running Services:** %d\n", len(serviceGroups["running"])))
         report.WriteString(fmt.Sprintf("- **Stopped Services:** %d\n", len(serviceGroups["stopped"])))
     }
-    
+
     return report.String()
 }
 ```
@@ -163,19 +163,19 @@ func generateCustomSecurityReport(config *model.OpnSenseDocument) string {
 ```go
 func generateFirewallAudit(config *model.OpnSenseDocument) string {
     builder := converter.NewMarkdownBuilder()
-    
+
     // Extract firewall rules
     var allRules []model.Rule
     if config.Filter != nil {
         allRules = append(allRules, config.Filter.Rule...)
     }
-    
+
     // Build firewall rules table
     rulesTable := builder.BuildFirewallRulesTable(allRules)
-    
+
     // Build interface table
     interfaceTable := builder.BuildInterfaceTable(config.Interfaces)
-    
+
     // Combine into comprehensive report
     var report strings.Builder
     report.WriteString("# Firewall Configuration Audit\n\n")
@@ -183,7 +183,7 @@ func generateFirewallAudit(config *model.OpnSenseDocument) string {
     report.WriteString(rulesTable.String())
     report.WriteString("\n## Network Interfaces\n\n")
     report.WriteString(interfaceTable.String())
-    
+
     return report.String()
 }
 ```
@@ -195,14 +195,14 @@ func generateFirewallAudit(config *model.OpnSenseDocument) string {
 ```go
 func processConfigSafely(filename string) error {
     builder := converter.NewMarkdownBuilder()
-    
+
     // Parse configuration
     parser := parser.NewXMLParser()
     config, err := parser.ParseFile(filename)
     if err != nil {
         return fmt.Errorf("failed to parse config: %w", err)
     }
-    
+
     // Generate report with error handling
     report, err := builder.BuildStandardReport(config)
     if err != nil {
@@ -218,7 +218,7 @@ func processConfigSafely(filename string) error {
             return fmt.Errorf("unexpected generation error: %w", err)
         }
     }
-    
+
     // Process successful report
     fmt.Println(report)
     return nil
@@ -230,9 +230,9 @@ func processConfigSafely(filename string) error {
 ```go
 func safeSecurityAssessment(config *model.OpnSenseDocument) map[string]interface{} {
     builder := converter.NewMarkdownBuilder()
-    
+
     results := make(map[string]interface{})
-    
+
     // Safe security score calculation
     if config != nil {
         results["security_score"] = builder.CalculateSecurityScore(config)
@@ -240,7 +240,7 @@ func safeSecurityAssessment(config *model.OpnSenseDocument) map[string]interface
         results["security_score"] = 0
         results["error"] = "Invalid configuration"
     }
-    
+
     // Safe tunable filtering
     if config != nil && config.Sysctl != nil {
         securityTunables := builder.FilterSystemTunables(config.Sysctl.Item, true)
@@ -248,7 +248,7 @@ func safeSecurityAssessment(config *model.OpnSenseDocument) map[string]interface
     } else {
         results["security_tunables_count"] = 0
     }
-    
+
     // Safe service grouping
     if config != nil && len(config.Installedpackages.Services) > 0 {
         serviceGroups := builder.GroupServicesByStatus(config.Installedpackages.Services)
@@ -258,7 +258,7 @@ func safeSecurityAssessment(config *model.OpnSenseDocument) map[string]interface
         results["running_services"] = 0
         results["stopped_services"] = 0
     }
-    
+
     return results
 }
 ```
@@ -303,10 +303,10 @@ func safeSecurityAssessment(config *model.OpnSenseDocument) map[string]interface
 ```go
 func efficientReportGeneration(configs []*model.OpnSenseDocument) []string {
     builder := converter.NewMarkdownBuilder()
-    
+
     // Pre-allocate results slice
     reports := make([]string, 0, len(configs))
-    
+
     // Process in batches to manage memory
     batchSize := 10
     for i := 0; i < len(configs); i += batchSize {
@@ -314,18 +314,18 @@ func efficientReportGeneration(configs []*model.OpnSenseDocument) []string {
         if end > len(configs) {
             end = len(configs)
         }
-        
+
         // Process batch
         for j := i; j < end; j++ {
             if report, err := builder.BuildStandardReport(configs[j]); err == nil {
                 reports = append(reports, report)
             }
         }
-        
+
         // Optional: Force garbage collection between batches for large datasets
         // runtime.GC()
     }
-    
+
     return reports
 }
 ```
@@ -337,22 +337,22 @@ The MarkdownBuilder is **thread-safe** for read operations but requires synchron
 ```go
 func concurrentReportGeneration(configs []*model.OpnSenseDocument) []string {
     builder := converter.NewMarkdownBuilder()
-    
+
     var wg sync.WaitGroup
     results := make([]string, len(configs))
-    
+
     // Process configurations concurrently
     for i, config := range configs {
         wg.Add(1)
         go func(index int, cfg *model.OpnSenseDocument) {
             defer wg.Done()
-            
+
             if report, err := builder.BuildStandardReport(cfg); err == nil {
                 results[index] = report
             }
         }(i, config)
     }
-    
+
     wg.Wait()
     return results
 }
@@ -393,5 +393,5 @@ See the [complete migration guide](migration.md) for detailed step-by-step instr
 
 - [Migration Guide](migration.md) - Step-by-step migration from template mode
 - [Examples](examples.md) - Real-world usage scenarios and patterns
-- [Architecture](../ARCHITECTURE.md) - System architecture and design decisions
-- [Contributing](../CONTRIBUTING.md) - Development guidelines for API extensions
+- [Architecture](https://github.com/EvilBit-Labs/opnDossier/blob/main/ARCHITECTURE.md) - System architecture and design decisions
+- [Contributing](https://github.com/EvilBit-Labs/opnDossier/blob/main/CONTRIBUTING.md) - Development guidelines for API extensions
