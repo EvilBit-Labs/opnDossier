@@ -180,6 +180,6 @@ just test
 ## Related Documentation
 
 - [Vulnerability Scanning](vulnerability-scanning.md)
-- [Security Policy](../../SECURITY.md)
-- [Contributing Guidelines](../../CONTRIBUTING.md)
+- [Security Policy](https://github.com/EvilBit-Labs/opnDossier/blob/main/SECURITY.md)
+- [Contributing Guidelines](https://github.com/EvilBit-Labs/opnDossier/blob/main/CONTRIBUTING.md)
 - [Pipeline v2 Specification](https://github.com/EvilBit-Labs/Standards/blob/main/pipeline_v_2_spec.md)

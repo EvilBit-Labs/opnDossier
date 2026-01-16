@@ -357,4 +357,4 @@ opnDossier convert --help
 - [User Guide](./usage.md)
 - [Configuration Guide](./configuration.md)
 - [Examples](../examples.md)
-- [Contributing Guide](../../CONTRIBUTING.md)
+- [Contributing Guide](https://github.com/EvilBit-Labs/opnDossier/blob/main/CONTRIBUTING.md)

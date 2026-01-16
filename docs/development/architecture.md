@@ -4,7 +4,7 @@
 
 opnDossier is a **CLI-based OPNsense configuration processor** designed with an **offline-first, operator-focused architecture**. The system transforms complex XML configuration files into human-readable markdown documentation, following security-first principles and air-gap compatibility.
 
-![System Architecture](../dev-guide/opnDossier_System_Architecture.png)
+![System Architecture](../dev-guide/opnFocus_System_Architecture.png)
 
 ## High-Level Architecture
 
@@ -709,4 +709,4 @@ graph TB
 
 **Key Benefits**: Offline operation, security-first design, operator-focused workflows, cross-platform compatibility, and comprehensive documentation generation from complex network configurations.
 
-For detailed architecture information, see the [complete architecture documentation](docs/dev-guide/architecture.md).
+For detailed architecture information, see the [complete architecture documentation](../dev-guide/architecture.md).

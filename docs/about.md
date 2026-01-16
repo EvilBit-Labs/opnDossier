@@ -46,7 +46,7 @@ Built with modern Go practices and established libraries:
 
 ## Development Standards
 
-The project follows comprehensive coding standards outlined in our [AGENTS.md](../AGENTS.md) file, including:
+The project follows comprehensive coding standards outlined in our [AGENTS.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/AGENTS.md) file, including:
 
 - Google Go Style Guide compliance
 - Comprehensive testing with >80% coverage

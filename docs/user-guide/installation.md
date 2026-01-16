@@ -331,4 +331,4 @@ Download and replace the binary with the latest release.
 
 ---
 
-For installation issues, see our [troubleshooting guide](../troubleshooting.md) or open an issue on GitHub.
+For installation issues, see our [troubleshooting guide](../examples/troubleshooting.md) or open an issue on GitHub.
