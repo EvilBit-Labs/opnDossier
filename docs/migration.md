@@ -2,16 +2,31 @@
 
 ## Overview
 
-This guide provides step-by-step instructions for migrating from template-based markdown generation (v1.x) to the new programmatic generation approach (v2.0+). The migration delivers **74% faster** generation, **78% less** memory usage, and compile-time type safety.
+This guide provides step-by-step instructions for migrating from template-based markdown generation (v1.x) to the new programmatic generation approach (v2.0+). The migration is designed to deliver significantly faster generation with reduced memory usage and compile-time type safety. Performance characteristics can be measured using the comparative benchmarks in `internal/converter/markdown_bench_test.go`.
 
 ## Why Migrate?
 
 ### Performance Improvements
 
-- **Generation Speed**: 74% faster report generation
-- **Memory Usage**: 78% reduction in memory allocations
-- **Throughput**: 3.8x improvement (643 vs 170 reports/sec)
-- **Scalability**: Consistent performance gains across all dataset sizes
+The programmatic approach is designed for improved performance across all metrics:
+
+- **Generation Speed**: Faster report generation
+- **Memory Usage**: Reduced memory allocations
+- **Throughput**: Improved reports per second
+- **Scalability**: Consistent performance across all dataset sizes
+
+To measure actual performance gains for your use case, run the comparative benchmarks:
+
+```bash
+# Run markdown generation benchmarks
+go test -bench=BenchmarkReportGeneration ./internal/converter -benchmem
+
+# Run memory usage benchmarks
+go test -bench=BenchmarkMemoryUsage ./internal/converter -benchmem
+
+# Run throughput benchmarks
+go test -bench=BenchmarkThroughput ./internal/converter -benchmem
+```
 
 ### Development Experience
 
@@ -46,12 +61,26 @@ This guide provides step-by-step instructions for migrating from template-based 
 
 ### What This Means
 
-- **v2.0 (Current)**: Continue using templates with `--use-template` flag if needed
-- **v2.1-v2.4**: Deprecation warnings will appear when using template mode
-- **v2.5**: Last version with template support (deprecated)
-- **v3.0+**: Template mode will fail - programmatic mode only
+- **Currently**: v2.0 continues supporting templates with `--use-template` flag if needed.
+- **Deprecation warnings appear**: Starting with v2.1-v2.4 when using template mode.
+- **By v2.5**: This becomes the last version with template support (deprecated).
+- **From v3.0 onward**: Template mode fails - programmatic mode only.
 
-**Recommendation**: Begin migration now to avoid last-minute issues. Use the [migration validator script](../scripts/validate-migration.sh) to assess your current setup.
+## Suppressing Warnings
+
+If you need to suppress deprecation warnings (not recommended), you can use the `--quiet` flag:
+
+```bash
+opnDossier convert config.xml --use-template --quiet
+```
+
+Or set it in your configuration file:
+
+```yaml
+quiet: true
+```
+
+**Recommendation**: Begin migration now to avoid last-minute issues. Use the existing opnDossier tools with template mode to test your configurations.
 
 ## Migration Checklist
 
@@ -67,25 +96,20 @@ This guide provides step-by-step instructions for migrating from template-based 
 
 If you're using custom templates, follow this three-step assessment process:
 
-### Step 1: Run Migration Validator
+### Step 1: Test Your Current Setup
 
-Use the provided validation script to assess your current setup:
+Test your current template-based setup and compare with programmatic mode:
 
 ```bash
-# Run from project root
-./scripts/validate-migration.sh [TEMPLATE_DIR] [SAMPLE_CONFIG]
+# Test template mode (with deprecation warning)
+opnDossier convert config.xml --use-template -o template-report.md
 
-# Example with custom template directory
-./scripts/validate-migration.sh ./custom-templates ./testdata/config.xml
+# Test programmatic mode
+opnDossier convert config.xml -o programmatic-report.md
+
+# Compare outputs manually or with diff
+diff template-report.md programmatic-report.md
 ```
-
-The validator will:
-
-- Detect custom templates in your directory
-- Extract template functions in use
-- Cross-reference with available MarkdownBuilder methods
-- Generate comparison reports (template vs programmatic)
-- Provide actionable next steps
 
 ### Step 2: Map Template Functions
 
@@ -921,11 +945,16 @@ Yes! The HybridGenerator supports both modes. Use `--use-template` for template 
 
 ### What performance improvements can I expect?
 
-Based on benchmarks:
+The programmatic approach is designed to deliver significant performance improvements over template-based generation. Actual results depend on your configuration size and system characteristics.
 
-- **74% faster** report generation
-- **78% less** memory usage
-- **3.8x improvement** in throughput (643 vs 170 reports/sec)
+To measure performance for your use case:
+
+```bash
+# Run comparative benchmarks
+go test -bench=BenchmarkReportGeneration ./internal/converter -benchmem
+go test -bench=BenchmarkMemoryUsage ./internal/converter -benchmem
+go test -bench=BenchmarkThroughput ./internal/converter -benchmem
+```
 
 ### How do I rollback if migration causes issues?
 
@@ -951,7 +980,7 @@ This allows you to continue using templates while fixing programmatic implementa
 
 **Issue**: Output differs between template and programmatic modes
 
-**Solution**: Run the migration validator script to generate a diff report. Review differences and adjust your programmatic implementation accordingly.
+**Solution**: Compare outputs manually and adjust your programmatic implementation to match the expected template output.
 
 **Issue**: Performance is worse after migration
 
@@ -1008,19 +1037,19 @@ If you've implemented custom MarkdownBuilder methods that would benefit the comm
 
    Update `docs/template-function-migration.md` with your function mapping:
 
-   - Add to appropriate phase table
-   - Mark status as **Migrated**
-   - Include implementation file reference
+- Add to appropriate phase table
+- Mark status as **Migrated**
+- Include implementation file reference
 
 4. **Submit Pull Request**
 
    PR requirements:
 
-   - Clear use case description
-   - Before/after examples (template → Go method)
-   - Test coverage report (>80% for new code)
-   - Documentation updates
-   - Link to related issues (if any)
+- Clear use case description
+- Before/after examples (template → Go method)
+- Test coverage report (>80% for new code)
+- Documentation updates
+- Link to related issues (if any)
 
 ### Code Structure Guidelines
 
@@ -1065,5 +1094,5 @@ For additional support and examples:
 
 - [API Documentation](api.md) - Complete method reference
 - [Examples](examples.md) - Real-world usage patterns
-- [Architecture](../ARCHITECTURE.md) - System design overview
+- [Architecture](https://github.com/EvilBit-Labs/opnDossier/blob/main/ARCHITECTURE.md) - System design overview
 - [Function Migration Guide](template-function-migration.md) - Complete function mapping

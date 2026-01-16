@@ -77,7 +77,8 @@ func TestEmbeddedTemplatesIntegration(t *testing.T) {
 		// because it will fall back to embedded templates
 
 		// This should not panic or fail due to missing embedded templates
-		generator, err := NewMarkdownGeneratorWithTemplates(nil, "/nonexistent/template/dir")
+		opts := DefaultOptions()
+		generator, err := NewMarkdownGeneratorWithTemplates(nil, "/nonexistent/template/dir", opts)
 
 		// The generator creation might still fail due to no templates being found,
 		// but it shouldn't fail due to embedding issues

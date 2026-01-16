@@ -57,7 +57,7 @@ The project follows standard Go conventions:
    git checkout -b feature/your-feature-name
    ```
 
-2. Make your changes following our [development standards](../DEVELOPMENT_STANDARDS.md)
+2. Make your changes following our [development standards](https://github.com/EvilBit-Labs/opnDossier/blob/main/DEVELOPMENT_STANDARDS.md)
 
 3. Add tests for new functionality:
 
@@ -85,7 +85,7 @@ When working on configuration validation:
 - Add comprehensive test cases covering both valid and invalid inputs
 - Use the `ValidationError` type for reporting validation issues
 - Include field paths and descriptive error messages
-- See [Validator Patterns](../DEVELOPMENT_STANDARDS.md#validator-patterns) for detailed guidance
+- See [Validator Patterns](https://github.com/EvilBit-Labs/opnDossier/blob/main/DEVELOPMENT_STANDARDS.md#validator-patterns) for detailed guidance
 
 ### Parser Development
 
@@ -147,7 +147,7 @@ go test -cover ./...
 
 ## Coding Standards
 
-Please follow our [Development Standards](../DEVELOPMENT_STANDARDS.md) which cover:
+Please follow our [Development Standards](https://github.com/EvilBit-Labs/opnDossier/blob/main/DEVELOPMENT_STANDARDS.md) which cover:
 
 - Go coding conventions
 - Error handling patterns
