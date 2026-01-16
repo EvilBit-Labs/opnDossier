@@ -1,0 +1,9 @@
+# MkDocs and Material theme
+mkdocs>=1.6.1
+mkdocs-material>=9.7.1
+
+# Required for pymdownx extensions
+pymdown-extensions>=10.20
+
+# Mike for versioning support
+mike>=2.1.3

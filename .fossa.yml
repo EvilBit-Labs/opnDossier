@@ -11,7 +11,7 @@ project:
 
 targets:
   only:
-    - type: go
+    - type: godep
       path: .
 
 analyze:
@@ -23,5 +23,5 @@ analyze:
 
 experimental:
   gradle:
-    configurations-only: [ ]
+    configurations-only: []
     only-configuration-deps: false

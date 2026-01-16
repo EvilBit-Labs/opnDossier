@@ -192,8 +192,7 @@ opnDossier convert config.xml --mode blue --plugins stig,sans -o multi-complianc
 # comprehensive-audit.sh
 
 # Set up environment
-export OPNDOSSIER_LOG_FORMAT=json
-export OPNDOSSIER_LOG_LEVEL=info
+export OPNDOSSIER_VERBOSE=true
 
 # Create audit directory
 AUDIT_DIR="audits/$(date +%Y-%m-%d)"
@@ -469,8 +468,7 @@ jobs:
 # monthly-compliance-report.sh
 
 # Set up environment
-export OPNDOSSIER_LOG_FORMAT=json
-export OPNDOSSIER_LOG_LEVEL=info
+export OPNDOSSIER_VERBOSE=true
 
 # Create monthly report directory
 MONTH=$(date +%Y-%m)

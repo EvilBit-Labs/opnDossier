@@ -443,8 +443,8 @@ func TestConfigLoad(t *testing.T) {
         {
             name:       "env var override",
             configFile: "",
-            envVars:    map[string]string{"OPNDOSSIER_LOG_LEVEL": "debug"},
-            want:       &Config{LogLevel: "debug"},
+            envVars:    map[string]string{"OPNDOSSIER_VERBOSE": "true"},
+            want:       &Config{Verbose: true},
             wantErr:    false,
         },
     }

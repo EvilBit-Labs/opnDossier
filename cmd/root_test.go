@@ -12,9 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const rootTestConfigContent = `log_level: info
-log_format: text
-verbose: false
+const rootTestConfigContent = `verbose: false
 quiet: false
 `
 

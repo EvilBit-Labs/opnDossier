@@ -502,13 +502,16 @@ func TestConfigGetterMethods(t *testing.T) {
 		UseTemplate: true,
 	}
 
-	// Test GetLogLevel
-	logLevel := cfg.GetLogLevel()
-	assert.Equal(t, "info", logLevel) // Default value
-
-	// Test GetLogFormat
-	logFormat := cfg.GetLogFormat()
-	assert.Equal(t, "text", logFormat) // Default value
+	// Test IsVerbose and IsQuiet
+	verboseCfg := &Config{Verbose: true}
+	quietCfg := &Config{Quiet: true}
+	defaultCfg := &Config{}
+	assert.True(t, verboseCfg.IsVerbose())
+	assert.False(t, verboseCfg.IsQuiet())
+	assert.True(t, quietCfg.IsQuiet())
+	assert.False(t, quietCfg.IsVerbose())
+	assert.False(t, defaultCfg.IsVerbose())
+	assert.False(t, defaultCfg.IsQuiet())
 
 	// Test GetTheme
 	assert.Equal(t, "dark", cfg.GetTheme())
@@ -537,8 +540,8 @@ func TestConfigGetterMethodsWithDefaults(t *testing.T) {
 	cfg := &Config{} // Empty config to test defaults
 
 	// Test defaults
-	assert.Equal(t, "info", cfg.GetLogLevel())
-	assert.Equal(t, "text", cfg.GetLogFormat())
+	assert.False(t, cfg.IsVerbose())
+	assert.False(t, cfg.IsQuiet())
 	assert.Empty(t, cfg.GetTheme())
 	assert.Empty(t, cfg.GetFormat())
 	assert.Empty(t, cfg.GetTemplate())

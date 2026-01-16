@@ -1094,5 +1094,5 @@ For additional support and examples:
 
 - [API Documentation](api.md) - Complete method reference
 - [Examples](examples.md) - Real-world usage patterns
-- [Architecture](../ARCHITECTURE.md) - System design overview
+- [Architecture](https://github.com/EvilBit-Labs/opnDossier/blob/main/ARCHITECTURE.md) - System design overview
 - [Function Migration Guide](template-function-migration.md) - Complete function mapping

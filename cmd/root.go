@@ -119,12 +119,6 @@ func init() {
 
 	// Logging control flags
 	rootCmd.PersistentFlags().
-		String("log-level", "", "Set log level (debug, info, warn, error) - overrides verbose/quiet")
-	setFlagAnnotation(rootCmd.PersistentFlags(), "log-level", []string{"logging"})
-	rootCmd.PersistentFlags().
-		String("log-format", "text", "Log format (text, json)")
-	setFlagAnnotation(rootCmd.PersistentFlags(), "log-format", []string{"logging"})
-	rootCmd.PersistentFlags().
 		Bool("timestamps", false, "Include timestamps in log output")
 	setFlagAnnotation(rootCmd.PersistentFlags(), "timestamps", []string{"logging"})
 
@@ -148,9 +142,6 @@ func init() {
 	// Mark mutually exclusive flags
 	// Verbose and quiet are mutually exclusive
 	rootCmd.MarkFlagsMutuallyExclusive("verbose", "quiet")
-	// Log level overrides verbose/quiet
-	rootCmd.MarkFlagsMutuallyExclusive("log-level", "verbose")
-	rootCmd.MarkFlagsMutuallyExclusive("log-level", "quiet")
 
 	// Add version command
 	versionCmd := &cobra.Command{
@@ -285,22 +276,6 @@ func getGitCommit() string {
 
 // validateGlobalFlags validates global flag combinations for consistency.
 func validateGlobalFlags(flags *pflag.FlagSet) error {
-	// Check log-level values
-	if logLevel, err := flags.GetString("log-level"); err == nil && logLevel != "" {
-		validLevels := []string{"debug", "info", "warn", "error"}
-		if !slices.Contains(validLevels, logLevel) {
-			return fmt.Errorf("invalid log-level %q, must be one of: %s", logLevel, strings.Join(validLevels, ", "))
-		}
-	}
-
-	// Check log-format values
-	if logFormat, err := flags.GetString("log-format"); err == nil && logFormat != "" {
-		validFormats := []string{"text", "json"}
-		if !slices.Contains(validFormats, logFormat) {
-			return fmt.Errorf("invalid log-format %q, must be one of: %s", logFormat, strings.Join(validFormats, ", "))
-		}
-	}
-
 	// Check color values
 	if color, err := flags.GetString("color"); err == nil && color != "" {
 		validColors := []string{"auto", "always", "never"}
