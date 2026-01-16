@@ -1,0 +1,1492 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A CLI tool for processing OPNsense config.xml files and converting them to markdown">
+      
+      
+        <meta name="author" content="EvilBit Labs">
+      
+      
+        <link rel="canonical" href="https://opndossier.evilbitlabs.io/architecture-review/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>opnDossier Architecture Review - opnDossier - OPNsense Configuration Processor</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#opndossier-architecture-review" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="opnDossier - OPNsense Configuration Processor" class="md-header__button md-logo" aria-label="opnDossier - OPNsense Configuration Processor" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            opnDossier - OPNsense Configuration Processor
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              opnDossier Architecture Review
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="purple"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/EvilBit-Labs/opnDossier" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    opnDossier
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../user-guide/installation/" class="md-tabs__link">
+          
+  
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../dev-guide/architecture/" class="md-tabs__link">
+          
+  
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../about/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  About
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="opnDossier - OPNsense Configuration Processor" class="md-nav__button md-logo" aria-label="opnDossier - OPNsense Configuration Processor" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    opnDossier - OPNsense Configuration Processor
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/EvilBit-Labs/opnDossier" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    opnDossier
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dev-guide/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dev-guide/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../about/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    About
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="opndossier-architecture-review">opnDossier Architecture Review<a class="headerlink" href="#opndossier-architecture-review" title="Permanent link">&para;</a></h1>
+<p><strong>Generated:</strong> 2026-01-14 <strong>Reviewer:</strong> Architecture Analysis <strong>Codebase Size:</strong> ~40,000 lines of Go code <strong>Test Files:</strong> 61 test files</p>
+<hr />
+<h2 id="executive-summary">Executive Summary<a class="headerlink" href="#executive-summary" title="Permanent link">&para;</a></h2>
+<p>opnDossier demonstrates <strong>strong architectural foundations</strong> with excellent separation of concerns, comprehensive error handling, and modern Go idioms. The codebase is well-structured for maintainability and follows industry best practices. Key strengths include a clean plugin architecture, streaming XML processing, and comprehensive testing. Areas for improvement include reducing global state, consolidating redundant converter patterns, and addressing technical debt from the template-to-programmatic migration.</p>
+<p><strong>Overall Grade: A-</strong> (Strong architecture with minor improvement opportunities)</p>
+<hr />
+<h2 id="1-overall-structure-and-patterns">1. Overall Structure and Patterns<a class="headerlink" href="#1-overall-structure-and-patterns" title="Permanent link">&para;</a></h2>
+<h3 id="11-package-organization">1.1 Package Organization<a class="headerlink" href="#11-package-organization" title="Permanent link">&para;</a></h3>
+<p><strong>STRENGTHS:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>internal/
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├── audit/           # Security audit plugins (excellent separation)
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>├── config/          # Configuration management
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>├── converter/       # Format converters (JSON/YAML/Markdown)
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>├── display/         # Terminal display logic
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>├── log/             # Centralized logging
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>├── markdown/        # Markdown generation (hybrid approach)
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>├── metrics/         # Performance metrics
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>├── model/           # Data models (well-defined domain)
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>├── parser/          # XML parsing with security
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>├── plugin/          # Plugin interfaces
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>├── plugins/         # Compliance plugins (firewall/SANS/STIG)
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>├── processor/       # Core processing and analysis
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>└── validator/       # Configuration validation
+</code></pre></div>
+<p><strong>Evaluation:</strong></p>
+<ul>
+<li>Clean separation by responsibility</li>
+<li>No circular dependencies observed</li>
+<li>Clear boundaries between parsing, processing, conversion, and output</li>
+<li>Plugin architecture allows extensibility</li>
+</ul>
+<p><strong>RECOMMENDATION:</strong> Excellent structure. No changes needed.</p>
+<hr />
+<h3 id="12-dependency-management">1.2 Dependency Management<a class="headerlink" href="#12-dependency-management" title="Permanent link">&para;</a></h3>
+<p><strong>Dependencies Analysis (go.mod):</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nx">Core</span><span class="w"> </span><span class="nx">Framework</span><span class="p">:</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="o">-</span><span class="w"> </span><span class="nx">cobra</span><span class="w"> </span><span class="nx">v1</span><span class="mf">.10.2</span><span class="w">         </span><span class="err">#</span><span class="w"> </span><span class="nx">CLI</span><span class="w"> </span><span class="nx">framework</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="o">-</span><span class="w"> </span><span class="nx">viper</span><span class="w"> </span><span class="nx">v1</span><span class="mf">.21.0</span><span class="w">         </span><span class="err">#</span><span class="w"> </span><span class="nx">Configuration</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="o">-</span><span class="w"> </span><span class="nx">fang</span><span class="w"> </span><span class="nx">v0</span><span class="mf">.4.4</span><span class="w">           </span><span class="err">#</span><span class="w"> </span><span class="nx">CLI</span><span class="w"> </span><span class="nx">enhancement</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="nx">Formatting</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="nx">Display</span><span class="p">:</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="o">-</span><span class="w"> </span><span class="nx">lipgloss</span><span class="w"> </span><span class="nx">v1</span><span class="mf">.1.1</span><span class="w">       </span><span class="err">#</span><span class="w"> </span><span class="nx">Terminal</span><span class="w"> </span><span class="nx">styling</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="o">-</span><span class="w"> </span><span class="nx">glamour</span><span class="w"> </span><span class="nx">v0</span><span class="mf">.10.0</span><span class="w">       </span><span class="err">#</span><span class="w"> </span><span class="nx">Markdown</span><span class="w"> </span><span class="nx">rendering</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="o">-</span><span class="w"> </span><span class="nx">log</span><span class="w"> </span><span class="nx">v0</span><span class="mf">.4.2</span><span class="w">            </span><span class="err">#</span><span class="w"> </span><span class="nx">Structured</span><span class="w"> </span><span class="nx">logging</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="nx">Data</span><span class="w"> </span><span class="nx">Processing</span><span class="p">:</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="o">-</span><span class="w"> </span><span class="nx">mxj</span><span class="w"> </span><span class="nx">v1</span><span class="mf">.8.4</span><span class="w">            </span><span class="err">#</span><span class="w"> </span><span class="nx">XML</span><span class="w"> </span><span class="nx">processing</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="o">-</span><span class="w"> </span><span class="nx">validator</span><span class="w"> </span><span class="nx">v10</span><span class="mf">.30.1</span><span class="w">    </span><span class="err">#</span><span class="w"> </span><span class="nx">Validation</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="o">-</span><span class="w"> </span><span class="nx">goldmark</span><span class="w"> </span><span class="nx">v1</span><span class="mf">.7.16</span><span class="w">      </span><span class="err">#</span><span class="w"> </span><span class="nx">Markdown</span><span class="w"> </span><span class="nx">parsing</span>
+</code></pre></div>
+<p><strong>ISSUES:</strong></p>
+<ol>
+<li><strong>Charm library version spread</strong> - Multiple versions of related libraries</li>
+<li><strong>LRU cache</strong> (<code>hashicorp/golang-lru/v2</code>) - Used but purpose unclear without deeper inspection</li>
+</ol>
+<p><strong>RECOMMENDATION:</strong></p>
+<ul>
+<li>Consolidate Charm library versions to latest stable</li>
+<li>Document cache usage and tune size parameters</li>
+</ul>
+<hr />
+<h2 id="2-architecture-patterns">2. Architecture Patterns<a class="headerlink" href="#2-architecture-patterns" title="Permanent link">&para;</a></h2>
+<h3 id="21-plugin-architecture-excellent">2.1 Plugin Architecture (EXCELLENT)<a class="headerlink" href="#21-plugin-architecture-excellent" title="Permanent link">&para;</a></h3>
+<p><strong>Design:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1">// Clean interface definition</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kd">type</span><span class="w"> </span><span class="nx">CompliancePlugin</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nx">Name</span><span class="p">()</span><span class="w"> </span><span class="kt">string</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="nx">Version</span><span class="p">()</span><span class="w"> </span><span class="kt">string</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="nx">Description</span><span class="p">()</span><span class="w"> </span><span class="kt">string</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="nx">RunChecks</span><span class="p">(</span><span class="nx">config</span><span class="w"> </span><span class="o">*</span><span class="nx">model</span><span class="p">.</span><span class="nx">OpnSenseDocument</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">Finding</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="nx">GetControls</span><span class="p">()</span><span class="w"> </span><span class="p">[]</span><span class="nx">Control</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="nx">GetControlByID</span><span class="p">(</span><span class="nx">id</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Control</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="nx">ValidateConfiguration</span><span class="p">()</span><span class="w"> </span><span class="kt">error</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="p">}</span>
+</code></pre></div>
+<p><strong>Strengths:</strong></p>
+<ul>
+<li>Loose coupling - only depends on <code>model.OpnSenseDocument</code></li>
+<li>Standardized <code>Finding</code> and <code>Control</code> structures</li>
+<li>Support for both built-in and dynamic (.so) plugins</li>
+<li>Thread-safe registry with <code>sync.RWMutex</code></li>
+<li>Validation at registration time</li>
+</ul>
+<p><strong>Example Usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1">// internal/audit/plugin.go</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nx">registry</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">NewPluginRegistry</span><span class="p">()</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nx">registry</span><span class="p">.</span><span class="nx">RegisterPlugin</span><span class="p">(</span><span class="nx">firewallPlugin</span><span class="p">)</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="nx">registry</span><span class="p">.</span><span class="nx">LoadDynamicPlugins</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;/path/to/plugins&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">logger</span><span class="p">)</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="nx">results</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">registry</span><span class="p">.</span><span class="nx">RunComplianceChecks</span><span class="p">(</span><span class="nx">config</span><span class="p">,</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">&quot;firewall&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;STIG&quot;</span><span class="p">})</span>
+</code></pre></div>
+<p><strong>RECOMMENDATION:</strong> This is a <strong>best practice example</strong>. Consider documenting this as a reference architecture for other projects.</p>
+<hr />
+<h3 id="22-parser-architecture-secure-efficient">2.2 Parser Architecture (SECURE &amp; EFFICIENT)<a class="headerlink" href="#22-parser-architecture-secure-efficient" title="Permanent link">&para;</a></h3>
+<p><strong>Design:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Parser</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span><span class="nx">Parse</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">r</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Reader</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">model</span><span class="p">.</span><span class="nx">OpnSenseDocument</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="nx">Validate</span><span class="p">(</span><span class="nx">cfg</span><span class="w"> </span><span class="o">*</span><span class="nx">model</span><span class="p">.</span><span class="nx">OpnSenseDocument</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="p">}</span>
+</code></pre></div>
+<p><strong>Security Features:</strong></p>
+<ul>
+<li><strong>XML bomb protection</strong> - 10MB default limit (<code>DefaultMaxInputSize</code>)</li>
+<li><strong>XXE attack prevention</strong> - Empty entity map</li>
+<li><strong>Streaming processing</strong> - Minimal memory footprint</li>
+<li><strong>Charset handling</strong> - Safe fallbacks</li>
+</ul>
+<p><strong>Implementation:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1">// Streaming approach for large files</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nx">limitedReader</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">LimitReader</span><span class="p">(</span><span class="nx">r</span><span class="p">,</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">MaxInputSize</span><span class="p">)</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="nx">dec</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">xml</span><span class="p">.</span><span class="nx">NewDecoder</span><span class="p">(</span><span class="nx">limitedReader</span><span class="p">)</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="nx">dec</span><span class="p">.</span><span class="nx">CharsetReader</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">charsetReader</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="nx">dec</span><span class="p">.</span><span class="nx">Entity</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">string</span><span class="p">{}</span><span class="w">  </span><span class="c1">// Prevent XXE</span>
+</code></pre></div>
+<p><strong>STRENGTHS:</strong></p>
+<ul>
+<li>Security-first design</li>
+<li>Memory-efficient for large configs</li>
+<li>Clear error handling with context</li>
+</ul>
+<p><strong>MINOR CONCERN:</strong></p>
+<ul>
+<li>Charset reader comment: "TODO: use golang.org/x/text/encoding"</li>
+<li>Currently treats ISO-8859-1 as UTF-8 (simplification)</li>
+</ul>
+<p><strong>RECOMMENDATION:</strong></p>
+<ul>
+<li>Track the charset TODO in backlog</li>
+<li>For now, acceptable - most OPNsense configs are UTF-8</li>
+</ul>
+<hr />
+<h3 id="23-converter-pattern-needs-consolidation">2.3 Converter Pattern (NEEDS CONSOLIDATION)<a class="headerlink" href="#23-converter-pattern-needs-consolidation" title="Permanent link">&para;</a></h3>
+<p><strong>ISSUE: Multiple Converter Implementations</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>converter/
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>├── json.go           # JSONConverter
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>├── yaml.go           # YAMLConverter
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>├── markdown.go       # MarkdownConverter
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>├── adapter.go        # Adapter interface
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>└── markdown_*.go     # Various markdown helpers
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>markdown/
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>├── generator.go      # markdownGenerator
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>├── hybrid_generator.go # HybridGenerator
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>├── adapter.go        # Converter adapter
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>└── templates.go      # Template-based generation
+</code></pre></div>
+<p><strong>Analysis:</strong></p>
+<ol>
+<li>
+<p><strong>Two Markdown Generation Approaches:</strong></p>
+</li>
+<li>
+<p><code>converter/markdown.go</code> - Direct conversion</p>
+</li>
+<li>
+<p><code>markdown/hybrid_generator.go</code> - Template + programmatic</p>
+</li>
+<li>
+<p><strong>Adapter Pattern Duplication:</strong></p>
+</li>
+<li>
+<p><code>converter/adapter.go</code> - Empty (moved to markdown package)</p>
+</li>
+<li>
+<p><code>markdown/adapter.go</code> - Actual implementation</p>
+</li>
+<li>
+<p><strong>Unclear Boundary:</strong></p>
+</li>
+<li>
+<p>When to use <code>converter.MarkdownConverter</code> vs <code>markdown.HybridGenerator</code>?</p>
+</li>
+</ol>
+<p><strong>TECHNICAL DEBT:</strong> From README migration comments, this appears to be mid-transition from template-based to programmatic generation.</p>
+<p><strong>RECOMMENDATION:</strong></p>
+<p><strong>Priority: Medium</strong></p>
+<ol>
+<li><strong>Consolidate converters:</strong></li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1">// Single entry point</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Converter</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="nx">Convert</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">doc</span><span class="w"> </span><span class="o">*</span><span class="nx">model</span><span class="p">.</span><span class="nx">OpnSenseDocument</span><span class="p">,</span><span class="w"> </span><span class="nx">format</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="p">}</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="c1">// Internal implementation detail</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="kd">type</span><span class="w"> </span><span class="nx">converter</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">    </span><span class="nx">jsonGen</span><span class="w">   </span><span class="o">*</span><span class="nx">JSONGenerator</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">    </span><span class="nx">yamlGen</span><span class="w">   </span><span class="o">*</span><span class="nx">YAMLGenerator</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">    </span><span class="nx">mdGen</span><span class="w">     </span><span class="o">*</span><span class="nx">MarkdownGenerator</span><span class="w">  </span><span class="c1">// delegates to markdown package</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="p">}</span>
+</code></pre></div>
+<ol>
+<li>
+<p><strong>Remove adapter.go or document purpose clearly</strong></p>
+</li>
+<li>
+<p><strong>Deprecate template-based generation in v2.x</strong></p>
+</li>
+</ol>
+<hr />
+<h3 id="24-error-handling-comprehensive">2.4 Error Handling (COMPREHENSIVE)<a class="headerlink" href="#24-error-handling-comprehensive" title="Permanent link">&para;</a></h3>
+<p><strong>Strengths:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1">// Centralized error definitions</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="c1">// internal/parser/errors.go (290 lines)</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="kd">var</span><span class="w"> </span><span class="p">(</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">    </span><span class="nx">ErrInvalidXML</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">errors</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="s">&quot;invalid XML&quot;</span><span class="p">)</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">    </span><span class="nx">ErrMissingOpnSenseDocumentRoot</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">errors</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="s">&quot;missing opnsense root element&quot;</span><span class="p">)</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">    </span><span class="c1">// ... comprehensive error catalog</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="p">)</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="c1">// Wrapped errors with context</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="k">return</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">&quot;failed to parse configuration: %w&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span>
+</code></pre></div>
+<p><strong>Error Files:</strong></p>
+<ul>
+<li><code>parser/errors.go</code> - 290 lines (most comprehensive)</li>
+<li><code>processor/errors.go</code> - 55 lines</li>
+<li><code>markdown/errors.go</code> - 20 lines</li>
+<li><code>plugin/errors.go</code> - 22 lines</li>
+</ul>
+<p><strong>Pattern:</strong></p>
+<ul>
+<li>Sentinel errors for expected conditions</li>
+<li>Wrapped errors with context</li>
+<li>Validation errors collected and aggregated</li>
+</ul>
+<p><strong>RECOMMENDATION:</strong></p>
+<ul>
+<li>Excellent approach</li>
+<li>Consider error codes for machine-readable diagnostics (future enhancement)</li>
+</ul>
+<hr />
+<h3 id="25-context-usage-inconsistent">2.5 Context Usage (INCONSISTENT)<a class="headerlink" href="#25-context-usage-inconsistent" title="Permanent link">&para;</a></h3>
+<p><strong>ISSUE: Underutilized Context</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1">// Many functions accept but don&#39;t use context</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">MarkdownConverter</span><span class="p">)</span><span class="w"> </span><span class="nx">ToMarkdown</span><span class="p">(</span><span class="nx">_</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">opnsense</span><span class="w"> </span><span class="o">*</span><span class="nx">model</span><span class="p">.</span><span class="nx">OpnSenseDocument</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="o">*</span><span class="nx">CoreProcessor</span><span class="p">)</span><span class="w"> </span><span class="nx">analyze</span><span class="p">(</span><span class="nx">_</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">cfg</span><span class="w"> </span><span class="o">*</span><span class="nx">model</span><span class="p">.</span><span class="nx">OpnSenseDocument</span><span class="p">,</span><span class="w"> </span><span class="nx">config</span><span class="w"> </span><span class="o">*</span><span class="nx">Config</span><span class="p">,</span><span class="w"> </span><span class="nx">report</span><span class="w"> </span><span class="o">*</span><span class="nx">Report</span><span class="p">)</span>
+</code></pre></div>
+<p><strong>Analysis:</strong></p>
+<ul>
+<li>Context accepted for future cancellation support</li>
+<li>Currently not checked or propagated</li>
+<li>Named <code>_</code> to indicate intentional non-use</li>
+</ul>
+<p><strong>CONCERN:</strong></p>
+<ul>
+<li>Long-running operations (analysis, large file parsing) cannot be cancelled</li>
+<li>No timeout support</li>
+</ul>
+<p><strong>RECOMMENDATION:</strong></p>
+<p><strong>Priority: Low-Medium</strong></p>
+<ol>
+<li><strong>Add context checks to long-running operations:</strong></li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="o">*</span><span class="nx">CoreProcessor</span><span class="p">)</span><span class="w"> </span><span class="nx">analyze</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">cfg</span><span class="w"> </span><span class="o">*</span><span class="nx">model</span><span class="p">.</span><span class="nx">OpnSenseDocument</span><span class="p">,</span><span class="w"> </span><span class="nx">config</span><span class="w"> </span><span class="o">*</span><span class="nx">Config</span><span class="p">,</span><span class="w"> </span><span class="nx">report</span><span class="w"> </span><span class="o">*</span><span class="nx">Report</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">    </span><span class="k">select</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">ctx</span><span class="p">.</span><span class="nx">Done</span><span class="p">():</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">ctx</span><span class="p">.</span><span class="nx">Err</span><span class="p">()</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span><span class="k">default</span><span class="p">:</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w">    </span><span class="c1">// Continue processing...</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="p">}</span>
+</code></pre></div>
+<ol>
+<li>
+<p><strong>Document context policy:</strong></p>
+</li>
+<li>
+<p>When to check <code>ctx.Done()</code></p>
+</li>
+<li>Timeout recommendations</li>
+</ol>
+<hr />
+<h2 id="3-potential-architectural-issues">3. Potential Architectural Issues<a class="headerlink" href="#3-potential-architectural-issues" title="Permanent link">&para;</a></h2>
+<h3 id="31-global-state-moderate-concern">3.1 Global State (MODERATE CONCERN)<a class="headerlink" href="#31-global-state-moderate-concern" title="Permanent link">&para;</a></h3>
+<p><strong>Issue: Global Variables in Multiple Packages</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1">// cmd/root.go</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kd">var</span><span class="w"> </span><span class="p">(</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span><span class="nx">cfgFile</span><span class="w"> </span><span class="kt">string</span><span class="w">          </span><span class="c1">// CLI config file path</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span><span class="nx">Cfg</span><span class="w">    </span><span class="o">*</span><span class="nx">config</span><span class="p">.</span><span class="nx">Config</span><span class="w">   </span><span class="c1">// Application configuration</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span><span class="nx">logger</span><span class="w"> </span><span class="o">*</span><span class="nx">log</span><span class="p">.</span><span class="nx">Logger</span><span class="w">      </span><span class="c1">// Application logger</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="p">)</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="c1">// internal/audit/plugin.go</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="kd">var</span><span class="w"> </span><span class="nx">GlobalRegistry</span><span class="w"> </span><span class="o">*</span><span class="nx">PluginRegistry</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="kd">func</span><span class="w"> </span><span class="nx">init</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="w">    </span><span class="nx">GlobalRegistry</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">NewPluginRegistry</span><span class="p">()</span>
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="p">}</span>
+</code></pre></div>
+<p><strong>Impact:</strong></p>
+<ul>
+<li><strong>Testing complexity</strong> - Global state requires careful setup/teardown</li>
+<li><strong>Concurrency risk</strong> - Shared mutable state</li>
+<li><strong>Package coupling</strong> - Implicit dependencies</li>
+</ul>
+<p><strong>MITIGATION OBSERVED:</strong></p>
+<ul>
+<li>Plugin registry uses <code>sync.RWMutex</code> for thread safety</li>
+<li>CLI globals are acceptable for Cobra convention</li>
+<li>No evidence of mutation races</li>
+</ul>
+<p><strong>RECOMMENDATION:</strong></p>
+<p><strong>Priority: Medium</strong></p>
+<ol>
+<li><strong>Refactor GlobalRegistry to dependency injection:</strong></li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1">// Before</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nx">audit</span><span class="p">.</span><span class="nx">RegisterGlobalPlugin</span><span class="p">(</span><span class="nx">plugin</span><span class="p">)</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="c1">// After</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="nx">registry</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">audit</span><span class="p">.</span><span class="nx">NewPluginRegistry</span><span class="p">()</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="nx">registry</span><span class="p">.</span><span class="nx">RegisterPlugin</span><span class="p">(</span><span class="nx">plugin</span><span class="p">)</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="c1">// Pass registry to processors that need it</span>
+</code></pre></div>
+<ol>
+<li>
+<p><strong>Keep CLI globals (acceptable for main package)</strong></p>
+</li>
+<li>
+<p><strong>Add tests demonstrating thread safety</strong></p>
+</li>
+</ol>
+<hr />
+<h3 id="32-interface-count-low-concern">3.2 Interface Count (LOW CONCERN)<a class="headerlink" href="#32-interface-count-low-concern" title="Permanent link">&para;</a></h3>
+<p><strong>Finding:</strong> 11 interface definitions across internal packages</p>
+<p><strong>Analysis:</strong></p>
+<ul>
+<li>Appropriate for Go - favor small, focused interfaces</li>
+<li>Main interfaces:</li>
+<li><code>Parser</code> (2 methods)</li>
+<li><code>CompliancePlugin</code> (7 methods)</li>
+<li><code>Converter</code> (varied by format)</li>
+<li><code>Processor</code> (2-3 methods)</li>
+</ul>
+<p><strong>RECOMMENDATION:</strong></p>
+<ul>
+<li>Current interface count is healthy</li>
+<li>No over-abstraction detected</li>
+</ul>
+<hr />
+<h3 id="33-model-coupling-architectural-strength">3.3 Model Coupling (ARCHITECTURAL STRENGTH)<a class="headerlink" href="#33-model-coupling-architectural-strength" title="Permanent link">&para;</a></h3>
+<p><strong>Design:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1">// internal/model/opnsense.go</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="kd">type</span><span class="w"> </span><span class="nx">OpnSenseDocument</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">    </span><span class="nx">XMLName</span><span class="w">    </span><span class="nx">xml</span><span class="p">.</span><span class="nx">Name</span><span class="w"> </span><span class="s">`xml:&quot;opnsense&quot;`</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">    </span><span class="nx">System</span><span class="w">     </span><span class="nx">System</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">    </span><span class="nx">Interfaces</span><span class="w"> </span><span class="nx">Interfaces</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="w">    </span><span class="nx">Filter</span><span class="w">     </span><span class="nx">Filter</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="w">    </span><span class="c1">// ... comprehensive OPNsense config model</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="p">}</span>
+</code></pre></div>
+<p><strong>Strengths:</strong></p>
+<ul>
+<li>Single source of truth for OPNsense schema</li>
+<li>Comprehensive XML/JSON/YAML tags</li>
+<li>Validation tags for go-playground/validator</li>
+</ul>
+<p><strong>Potential Issue:</strong></p>
+<ul>
+<li>Large struct (46+ fields in <code>OpnSenseDocument</code>)</li>
+<li>Nested complexity</li>
+</ul>
+<p><strong>MITIGATION:</strong></p>
+<ul>
+<li>Well-organized into logical sub-structs (System, Network, Security, Services)</li>
+<li>Clear domain separation</li>
+</ul>
+<p><strong>RECOMMENDATION:</strong></p>
+<ul>
+<li>Current approach is appropriate for configuration modeling</li>
+<li>Monitor for excessive nesting depth (currently acceptable)</li>
+</ul>
+<hr />
+<h2 id="4-scalability-considerations">4. Scalability Considerations<a class="headerlink" href="#4-scalability-considerations" title="Permanent link">&para;</a></h2>
+<h3 id="41-memory-efficiency-excellent">4.1 Memory Efficiency (EXCELLENT)<a class="headerlink" href="#41-memory-efficiency-excellent" title="Permanent link">&para;</a></h3>
+<p><strong>Streaming XML Parser:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1">// Processes XML tokens without loading full document</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="k">for</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">    </span><span class="nx">tok</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">dec</span><span class="p">.</span><span class="nx">Token</span><span class="p">()</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">errors</span><span class="p">.</span><span class="nx">Is</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">EOF</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="w">        </span><span class="k">break</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="w">    </span><span class="c1">// Process token...</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="p">}</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="c1">// Garbage collection optimization</span>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="nx">runtime</span><span class="p">.</span><span class="nx">GC</span><span class="p">()</span>
+</code></pre></div>
+<p><strong>Analysis:</strong></p>
+<ul>
+<li>10MB default limit prevents XML bombs</li>
+<li>Streaming reduces memory footprint</li>
+<li>Explicit GC after large sections</li>
+</ul>
+<p><strong>RECOMMENDATION:</strong></p>
+<ul>
+<li>Add configurable memory limits via config</li>
+<li>Document performance characteristics by file size</li>
+</ul>
+<hr />
+<h3 id="42-concurrency-underutilized">4.2 Concurrency (UNDERUTILIZED)<a class="headerlink" href="#42-concurrency-underutilized" title="Permanent link">&para;</a></h3>
+<p><strong>Observation:</strong></p>
+<ul>
+<li>Plugin checks run sequentially</li>
+<li>Analysis phases run sequentially</li>
+<li>No obvious parallelization</li>
+</ul>
+<p><strong>Potential Optimization:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1">// Current: Sequential</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">pluginName</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">pluginNames</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">    </span><span class="nx">findings</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">RunChecks</span><span class="p">(</span><span class="nx">config</span><span class="p">)</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="w">    </span><span class="nx">result</span><span class="p">.</span><span class="nx">Findings</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">result</span><span class="p">.</span><span class="nx">Findings</span><span class="p">,</span><span class="w"> </span><span class="nx">findings</span><span class="o">...</span><span class="p">)</span>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="p">}</span>
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="c1">// Potential: Parallel</span>
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="kd">var</span><span class="w"> </span><span class="nx">wg</span><span class="w"> </span><span class="nx">sync</span><span class="p">.</span><span class="nx">WaitGroup</span>
+<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="nx">findingsChan</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="p">[]</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">Finding</span><span class="p">,</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">pluginNames</span><span class="p">))</span>
+<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>
+<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">pluginName</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">pluginNames</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a><span class="w">    </span><span class="nx">wg</span><span class="p">.</span><span class="nx">Add</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a><span class="w">    </span><span class="k">go</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">name</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a><span class="w">        </span><span class="k">defer</span><span class="w"> </span><span class="nx">wg</span><span class="p">.</span><span class="nx">Done</span><span class="p">()</span>
+<a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a><span class="w">        </span><span class="nx">p</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">getPlugin</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span>
+<a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a><span class="w">        </span><span class="nx">findingsChan</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">RunChecks</span><span class="p">(</span><span class="nx">config</span><span class="p">)</span>
+<a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a><span class="w">    </span><span class="p">}(</span><span class="nx">pluginName</span><span class="p">)</span>
+<a id="__codelineno-15-18" name="__codelineno-15-18" href="#__codelineno-15-18"></a><span class="p">}</span>
+</code></pre></div>
+<p><strong>RECOMMENDATION:</strong></p>
+<p><strong>Priority: Low</strong> (Optimization, not architecture fix)</p>
+<ul>
+<li>Current approach is correct for typical config sizes</li>
+<li>Add parallel processing for large-scale batch operations</li>
+<li>Use worker pools to limit concurrency</li>
+</ul>
+<hr />
+<h3 id="43-caching-strategy-unclear">4.3 Caching Strategy (UNCLEAR)<a class="headerlink" href="#43-caching-strategy-unclear" title="Permanent link">&para;</a></h3>
+<p><strong>Observation:</strong></p>
+<ul>
+<li><code>hashicorp/golang-lru/v2</code> dependency</li>
+<li>No obvious cache usage in scanned files</li>
+</ul>
+<p><strong>RECOMMENDATION:</strong></p>
+<ul>
+<li>Audit where LRU cache is used</li>
+<li>Document cache sizing and eviction policy</li>
+<li>Consider removing if unused</li>
+</ul>
+<hr />
+<h2 id="5-maintainability-and-modularity">5. Maintainability and Modularity<a class="headerlink" href="#5-maintainability-and-modularity" title="Permanent link">&para;</a></h2>
+<h3 id="51-testing-structure-excellent">5.1 Testing Structure (EXCELLENT)<a class="headerlink" href="#51-testing-structure-excellent" title="Permanent link">&para;</a></h3>
+<p><strong>Coverage:</strong></p>
+<ul>
+<li>61 test files</li>
+<li>Comprehensive test types:</li>
+<li>Unit tests (<code>*_test.go</code>)</li>
+<li>Benchmark tests (<code>*_bench_test.go</code>)</li>
+<li>Integration tests (<code>*_integration_test.go</code>)</li>
+</ul>
+<p><strong>Patterns Observed:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1">// Benchmark tests for performance tracking</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="kd">func</span><span class="w"> </span><span class="nx">BenchmarkConvert</span><span class="p">(</span><span class="nx">b</span><span class="w"> </span><span class="o">*</span><span class="nx">testing</span><span class="p">.</span><span class="nx">B</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="o">...</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="c1">// Validation comprehensive tests</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="nx">validation_comprehensive_test</span><span class="p">.</span><span class="k">go</span>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="c1">// Legacy comparison tests</span>
+<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="nx">benchmark_legacy_test</span><span class="p">.</span><span class="k">go</span>
+</code></pre></div>
+<p><strong>RECOMMENDATION:</strong></p>
+<ul>
+<li>Strong testing culture</li>
+<li>Add coverage reporting to CI</li>
+<li>Target &gt;80% coverage (appears achievable)</li>
+</ul>
+<hr />
+<h3 id="52-documentation-good">5.2 Documentation (GOOD)<a class="headerlink" href="#52-documentation-good" title="Permanent link">&para;</a></h3>
+<p><strong>Strengths:</strong></p>
+<ul>
+<li>Package-level documentation</li>
+<li>Function documentation follows godoc conventions</li>
+<li>Comprehensive README and docs/ folder</li>
+</ul>
+<p><strong>Gaps:</strong></p>
+<ul>
+<li>Architecture diagrams would enhance understanding</li>
+<li>Plugin development guide needed</li>
+<li>Converter consolidation should be documented</li>
+</ul>
+<p><strong>RECOMMENDATION:</strong></p>
+<ul>
+<li>Add architecture diagrams (mermaid)</li>
+<li>Document converter strategy and deprecation timeline</li>
+<li>Create plugin development guide</li>
+</ul>
+<hr />
+<h3 id="53-code-organization-excellent">5.3 Code Organization (EXCELLENT)<a class="headerlink" href="#53-code-organization-excellent" title="Permanent link">&para;</a></h3>
+<p><strong>Patterns:</strong></p>
+<ul>
+<li>Clear separation of concerns</li>
+<li>Single Responsibility Principle followed</li>
+<li>No God objects detected</li>
+<li>Appropriate use of constructors (<code>New*</code>)</li>
+</ul>
+<p><strong>Example:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="c1">// Clear factory pattern</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewPluginRegistry</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="nx">PluginRegistry</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">PluginRegistry</span><span class="p">{</span>
+<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="w">        </span><span class="nx">plugins</span><span class="p">:</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">CompliancePlugin</span><span class="p">),</span>
+<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a><span class="p">}</span>
+</code></pre></div>
+<hr />
+<h2 id="6-security-and-best-practices">6. Security and Best Practices<a class="headerlink" href="#6-security-and-best-practices" title="Permanent link">&para;</a></h2>
+<h3 id="61-security-features-strong">6.1 Security Features (STRONG)<a class="headerlink" href="#61-security-features-strong" title="Permanent link">&para;</a></h3>
+<p><strong>XML Parsing:</strong></p>
+<ul>
+<li>XXE attack prevention</li>
+<li>XML bomb protection</li>
+<li>Size limits</li>
+<li>Entity expansion disabled</li>
+</ul>
+<p><strong>Input Validation:</strong></p>
+<ul>
+<li>go-playground/validator integration</li>
+<li>Comprehensive validation rules</li>
+<li>Error aggregation</li>
+</ul>
+<p><strong>RECOMMENDATION:</strong></p>
+<ul>
+<li>Document security features in security.md</li>
+<li>Add fuzzing tests for parser</li>
+<li>Consider static analysis integration (gosec)</li>
+</ul>
+<hr />
+<h3 id="62-go-best-practices-mostly-followed">6.2 Go Best Practices (MOSTLY FOLLOWED)<a class="headerlink" href="#62-go-best-practices-mostly-followed" title="Permanent link">&para;</a></h3>
+<p><strong>Strengths:</strong></p>
+<ul>
+<li>Proper error wrapping (<code>fmt.Errorf("...: %w", err)</code>)</li>
+<li>Context propagation</li>
+<li>Interface segregation</li>
+<li>Clear package boundaries</li>
+</ul>
+<p><strong>Minor Issues:</strong></p>
+<ul>
+<li>Some <code>//nolint</code> directives (acceptable with justification)</li>
+<li>Global variables (discussed above)</li>
+<li>Context underutilization (discussed above)</li>
+</ul>
+<hr />
+<h2 id="7-recommendations-summary">7. Recommendations Summary<a class="headerlink" href="#7-recommendations-summary" title="Permanent link">&para;</a></h2>
+<h3 id="71-high-priority-architectural">7.1 High Priority (Architectural)<a class="headerlink" href="#71-high-priority-architectural" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p><strong>Consolidate Converter Pattern</strong></p>
+</li>
+<li>
+<p><strong>Effort:</strong> Medium</p>
+</li>
+<li><strong>Impact:</strong> High (reduces confusion, improves maintainability)</li>
+<li>
+<p><strong>Action:</strong> Create unified converter interface, deprecate template mode</p>
+</li>
+<li>
+<p><strong>Reduce Global State</strong></p>
+</li>
+<li>
+<p><strong>Effort:</strong> Low-Medium</p>
+</li>
+<li><strong>Impact:</strong> Medium (improves testability, reduces coupling)</li>
+<li><strong>Action:</strong> Inject PluginRegistry instead of using global</li>
+</ol>
+<h3 id="72-medium-priority-quality">7.2 Medium Priority (Quality)<a class="headerlink" href="#72-medium-priority-quality" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p><strong>Improve Context Usage</strong></p>
+</li>
+<li>
+<p><strong>Effort:</strong> Low</p>
+</li>
+<li><strong>Impact:</strong> Medium (enables cancellation, timeouts)</li>
+<li>
+<p><strong>Action:</strong> Add context checks to long-running operations</p>
+</li>
+<li>
+<p><strong>Document Technical Debt</strong></p>
+</li>
+<li>
+<p><strong>Effort:</strong> Low</p>
+</li>
+<li><strong>Impact:</strong> Medium (team awareness)</li>
+<li><strong>Action:</strong> Create TECHNICAL_DEBT.md tracking template migration</li>
+</ol>
+<h3 id="73-low-priority-enhancement">7.3 Low Priority (Enhancement)<a class="headerlink" href="#73-low-priority-enhancement" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p><strong>Add Architecture Diagrams</strong></p>
+</li>
+<li>
+<p><strong>Effort:</strong> Low</p>
+</li>
+<li><strong>Impact:</strong> High (documentation quality)</li>
+<li>
+<p><strong>Action:</strong> Create mermaid diagrams for data flow, plugin architecture</p>
+</li>
+<li>
+<p><strong>Optimize Parallelization</strong></p>
+</li>
+<li>
+<p><strong>Effort:</strong> Medium</p>
+</li>
+<li><strong>Impact:</strong> Low (performance optimization)</li>
+<li>
+<p><strong>Action:</strong> Add concurrent plugin execution for large-scale ops</p>
+</li>
+<li>
+<p><strong>Audit Cache Usage</strong></p>
+</li>
+<li>
+<p><strong>Effort:</strong> Low</p>
+</li>
+<li><strong>Impact:</strong> Low (code clarity)</li>
+<li><strong>Action:</strong> Find or remove LRU cache dependency</li>
+</ol>
+<hr />
+<h2 id="8-areas-following-best-practices">8. Areas Following Best Practices<a class="headerlink" href="#8-areas-following-best-practices" title="Permanent link">&para;</a></h2>
+<h3 id="81-exceptional-examples">8.1 Exceptional Examples<a class="headerlink" href="#81-exceptional-examples" title="Permanent link">&para;</a></h3>
+<p><strong>Plugin Architecture:</strong></p>
+<ul>
+<li>Clean interfaces</li>
+<li>Thread-safe registry</li>
+<li>Extensible design</li>
+<li>Standardized data structures</li>
+</ul>
+<p><strong>Parser Security:</strong></p>
+<ul>
+<li>Defense in depth</li>
+<li>Resource limits</li>
+<li>Streaming processing</li>
+<li>Clear error handling</li>
+</ul>
+<p><strong>Testing Strategy:</strong></p>
+<ul>
+<li>Comprehensive coverage</li>
+<li>Benchmarks for performance tracking</li>
+<li>Integration and unit tests</li>
+<li>Legacy comparison tests</li>
+</ul>
+<h3 id="82-modern-go-patterns">8.2 Modern Go Patterns<a class="headerlink" href="#82-modern-go-patterns" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Functional options pattern (processor options)</li>
+<li>Context propagation</li>
+<li>Error wrapping with <code>%w</code></li>
+<li>Interface-based design</li>
+<li>Constructor functions</li>
+</ul>
+<hr />
+<h2 id="9-technical-debt-tracking">9. Technical Debt Tracking<a class="headerlink" href="#9-technical-debt-tracking" title="Permanent link">&para;</a></h2>
+<h3 id="91-known-issues">9.1 Known Issues<a class="headerlink" href="#91-known-issues" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p><strong>Template-to-Programmatic Migration</strong></p>
+</li>
+<li>
+<p>Status: In progress</p>
+</li>
+<li>Files: <code>markdown/*</code>, <code>converter/*</code></li>
+<li>
+<p>Impact: Code duplication, confusion</p>
+</li>
+<li>
+<p><strong>Charset Reader TODO</strong></p>
+</li>
+<li>
+<p>Location: <code>parser/xml.go:57</code></p>
+</li>
+<li>Impact: Limited encoding support</li>
+<li>
+<p>Workaround: Most configs are UTF-8</p>
+</li>
+<li>
+<p><strong>Context Underutilization</strong></p>
+</li>
+<li>
+<p>Locations: Multiple functions</p>
+</li>
+<li>Impact: No cancellation support</li>
+<li>Risk: Low for current use cases</li>
+</ol>
+<hr />
+<h2 id="10-conclusion">10. Conclusion<a class="headerlink" href="#10-conclusion" title="Permanent link">&para;</a></h2>
+<h3 id="101-overall-assessment">10.1 Overall Assessment<a class="headerlink" href="#101-overall-assessment" title="Permanent link">&para;</a></h3>
+<p>opnDossier demonstrates <strong>mature software architecture</strong> with:</p>
+<ul>
+<li>Strong separation of concerns</li>
+<li>Extensible plugin system</li>
+<li>Secure-by-default XML parsing</li>
+<li>Comprehensive testing</li>
+<li>Modern Go idioms</li>
+</ul>
+<h3 id="102-key-strengths">10.2 Key Strengths<a class="headerlink" href="#102-key-strengths" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Plugin architecture (best practice)</li>
+<li>Security-first parser design</li>
+<li>Clean package organization</li>
+<li>Comprehensive error handling</li>
+<li>Strong testing culture</li>
+</ol>
+<h3 id="103-key-improvement-areas">10.3 Key Improvement Areas<a class="headerlink" href="#103-key-improvement-areas" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Consolidate converter pattern</li>
+<li>Reduce global state</li>
+<li>Improve context usage</li>
+<li>Complete technical debt (template migration)</li>
+</ol>
+<h3 id="104-recommendation">10.4 Recommendation<a class="headerlink" href="#104-recommendation" title="Permanent link">&para;</a></h3>
+<p><strong>No major architectural changes required.</strong> The codebase is well-designed for long-term maintainability. Focus on:</p>
+<ul>
+<li><strong>Short term:</strong> Consolidate converters, document technical debt</li>
+<li><strong>Medium term:</strong> Improve context usage, reduce globals</li>
+<li><strong>Long term:</strong> Add architecture diagrams, performance optimization</li>
+</ul>
+<p><strong>The simplest approach that will work for the long term:</strong> Continue current architecture, execute tactical improvements from recommendations above.</p>
+<hr />
+<p><strong>Review Status:</strong> Complete <strong>Next Review:</strong> After converter consolidation (Q2 2026)</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/EvilBit-Labs/opnDossier" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.highlight", "search.share", "toc.integrate"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
