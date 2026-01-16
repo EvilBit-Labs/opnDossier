@@ -3,9 +3,12 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 
 	// TODO: Audit mode functionality is not yet complete - disabled for now
 	// "github.com/EvilBit-Labs/opnDossier/internal/audit".
@@ -14,6 +17,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
 	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 // init registers the display command with the root command and sets up its CLI flags for XML validation control, theming, template selection, section filtering, text wrapping, and custom template directories.
@@ -35,6 +39,14 @@ var displayCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 	Use:     "display [file]",
 	Short:   "Display OPNsense configuration in formatted markdown.",
 	GroupID: "core",
+	PreRunE: func(cmd *cobra.Command, _ []string) error {
+		// Validate flag combinations specific to display command
+		if err := validateDisplayFlags(cmd.Flags()); err != nil {
+			return fmt.Errorf("display command validation failed: %w", err)
+		}
+
+		return nil
+	},
 	Long: `The 'display' command converts an OPNsense config.xml file to markdown
 and displays it in the terminal with syntax highlighting and formatting.
 This provides an immediate, readable view of your firewall configuration
@@ -73,6 +85,14 @@ Examples:
 
   # Display with text wrapping
   opnDossier display --wrap 120 config.xml
+  # When --wrap is not specified, terminal width is auto-detected (COLUMNS or default 120)
+  # Recommended wrap range: 80-120 columns
+
+  # Display with narrow terminal wrapping
+  opnDossier display --wrap 80 config.xml
+
+  # Display without text wrapping
+  opnDossier display --wrap 0 config.xml
 
   # Display with verbose logging to see processing details
   opnDossier --verbose display config.xml
@@ -132,14 +152,12 @@ Examples:
 		}
 
 		templateDir := getSharedTemplateDir()
-		g, err := markdown.NewMarkdownGeneratorWithTemplates(ctxLogger.Logger, templateDir)
+		mdOpts := buildDisplayOptions(Cfg)
+		g, err := markdown.NewMarkdownGeneratorWithTemplates(ctxLogger, templateDir, mdOpts)
 		if err != nil {
 			ctxLogger.Error("Failed to create markdown generator", "error", err)
 			return fmt.Errorf("failed to create markdown generator: %w", err)
 		}
-
-		// Create markdown options with comprehensive support
-		mdOpts := buildDisplayOptions(Cfg)
 
 		// TODO: Audit mode functionality is not yet complete - disabled for now
 		// Handle audit mode if specified
@@ -161,18 +179,8 @@ Examples:
 			return fmt.Errorf("failed to convert to markdown from %s: %w", filePath, err)
 		}
 
-		// Create terminal display with theme support
-		var displayer *display.TerminalDisplay
-		if sharedTheme != "" {
-			// Use explicit theme
-			theme := display.DetectTheme(sharedTheme)
-			opts := display.DefaultOptions()
-			opts.Theme = theme
-			displayer = display.NewTerminalDisplayWithOptions(opts)
-		} else {
-			// Use auto-detection
-			displayer = display.NewTerminalDisplay()
-		}
+		// Create terminal display with full markdown options
+		displayer := display.NewTerminalDisplayWithMarkdownOptions(mdOpts)
 
 		if err := displayer.Display(ctx, md); err != nil {
 			ctxLogger.Error("Failed to display markdown", "error", err)
@@ -190,6 +198,11 @@ Examples:
 func buildDisplayOptions(cfg *config.Config) markdown.Options {
 	// Start with defaults
 	opt := markdown.DefaultOptions()
+
+	// Propagate quiet flag to suppress deprecation warnings
+	if cfg != nil && cfg.IsQuiet() {
+		opt.SuppressWarnings = true
+	}
 
 	// Theme: CLI flag > config > default
 	if sharedTheme != "" {
@@ -211,10 +224,14 @@ func buildDisplayOptions(cfg *config.Config) markdown.Options {
 	}
 
 	// Wrap width: CLI flag > config > default
-	if sharedWrapWidth > 0 {
+	// -1 means auto-detect (not provided), 0 means no wrapping, >0 means specific width
+	switch {
+	case sharedWrapWidth >= 0:
 		opt.WrapWidth = sharedWrapWidth
-	} else if cfg != nil && cfg.GetWrapWidth() > 0 {
+	case cfg != nil && cfg.GetWrapWidth() >= 0:
 		opt.WrapWidth = cfg.GetWrapWidth()
+	default:
+		opt.WrapWidth = -1
 	}
 
 	// Template directory: CLI flag only
@@ -233,4 +250,53 @@ func buildDisplayOptions(cfg *config.Config) markdown.Options {
 	// Selected plugins are disabled until audit functionality is complete
 
 	return opt
+}
+
+// validateDisplayFlags validates flag combinations specific to the display command.
+func validateDisplayFlags(_ *pflag.FlagSet) error {
+	// Validate theme values
+	if sharedTheme != "" {
+		validThemes := []string{"light", "dark", "auto", "none"}
+		if !slices.Contains(validThemes, strings.ToLower(sharedTheme)) {
+			return fmt.Errorf("invalid theme %q, must be one of: %s", sharedTheme, strings.Join(validThemes, ", "))
+		}
+	}
+
+	// Validate engine flag combinations
+	if sharedEngine != "" {
+		if sharedUseTemplate {
+			return errors.New("--use-template and --engine flags are mutually exclusive")
+		}
+		if sharedLegacy {
+			return errors.New("--legacy and --engine flags are mutually exclusive")
+		}
+		if sharedCustomTemplate != "" {
+			return errors.New(
+				"--custom-template and --engine flags are mutually exclusive when engine is explicitly set",
+			)
+		}
+	}
+
+	// Validate template-related flags
+	if sharedCustomTemplate != "" && sharedUseTemplate {
+		return errors.New("--custom-template automatically enables template mode, --use-template is redundant")
+	}
+
+	// Validate wrap width if specified
+	if sharedWrapWidth > 0 && (sharedWrapWidth < MinWrapWidth || sharedWrapWidth > MaxWrapWidth) {
+		fmt.Fprintf(os.Stderr, "Warning: wrap width %d is outside recommended range [%d, %d]\n",
+			sharedWrapWidth, MinWrapWidth, MaxWrapWidth)
+	}
+	if sharedWrapWidth < -1 {
+		return fmt.Errorf("invalid wrap width %d: must be -1 (auto-detect), 0 (no wrapping), or positive",
+			sharedWrapWidth)
+	}
+
+	// Validate template cache size if specified
+	if sharedTemplateCacheSize > MaxTemplateCacheSize {
+		return fmt.Errorf("template cache size %d exceeds maximum recommended size %d",
+			sharedTemplateCacheSize, MaxTemplateCacheSize)
+	}
+
+	return nil
 }

@@ -7,13 +7,58 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+
+	"github.com/EvilBit-Labs/opnDossier/internal/log"
 )
 
 const (
 	// DefaultFilePermissions defines the default file permissions for exported files.
 	DefaultFilePermissions = 0o600
 )
+
+// normalizeLineEndings converts line endings to the platform-appropriate format
+// for file exports, but only if explicitly enabled via the OPNDOSSIER_PLATFORM_LINE_ENDINGS
+// environment variable.
+//
+// By default, exports use LF line endings for deterministic cross-platform builds.
+// To enable platform-specific line endings, set OPNDOSSIER_PLATFORM_LINE_ENDINGS=1
+//
+// When enabled:
+//   - Windows: \r\n (CRLF)
+//   - Unix-like: \n (LF)
+//
+// Only the value "1" enables this feature. Other values ("true", "yes", etc.) are ignored.
+func normalizeLineEndings(logger *log.Logger, content string) string {
+	envValue := os.Getenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS")
+
+	// Warn if environment variable is set to an invalid value
+	if envValue != "" && envValue != "1" {
+		if logger != nil {
+			logger.Warn("Invalid value for OPNDOSSIER_PLATFORM_LINE_ENDINGS environment variable",
+				"value", envValue,
+				"expected", "1",
+				"note", "line endings will remain LF-normalized")
+		}
+	}
+
+	// Only normalize if explicitly enabled
+	if envValue != "1" {
+		return content
+	}
+
+	// First, normalize all line endings to \n (LF)
+	content = strings.ReplaceAll(content, "\r\n", "\n")
+	content = strings.ReplaceAll(content, "\r", "\n")
+
+	// When platform normalization is enabled and on Windows, convert to CRLF
+	if runtime.GOOS == "windows" {
+		content = strings.ReplaceAll(content, "\n", "\r\n")
+	}
+
+	return content
+}
 
 // Define static errors for better error handling.
 var (
@@ -50,11 +95,16 @@ type Exporter interface {
 }
 
 // FileExporter is a file exporter for OPNsense configurations.
-type FileExporter struct{}
+type FileExporter struct {
+	logger *log.Logger
+}
 
 // NewFileExporter creates and returns a new FileExporter for writing data to files.
-func NewFileExporter() *FileExporter {
-	return &FileExporter{}
+// If logger is nil, operations will continue without logging (graceful degradation).
+func NewFileExporter(logger *log.Logger) *FileExporter {
+	return &FileExporter{
+		logger: logger,
+	}
 }
 
 // validateExportPath performs comprehensive validation of the export path.
@@ -273,8 +323,11 @@ func (e *FileExporter) Export(ctx context.Context, content, path string) error {
 		}
 	}
 
+	// Normalize line endings for the target platform before writing
+	normalizedContent := normalizeLineEndings(e.logger, content)
+
 	// Write the file with atomic operation for better safety
-	if err := e.writeFileAtomic(path, []byte(content)); err != nil {
+	if err := e.writeFileAtomic(path, []byte(normalizedContent)); err != nil {
 		return &Error{
 			Operation: "write_file",
 			Path:      path,
@@ -308,13 +361,23 @@ func (e *FileExporter) writeFileAtomic(path string, content []byte) error {
 	defer func() {
 		if tempFile != nil {
 			if closeErr := tempFile.Close(); closeErr != nil {
-				_ = closeErr // Best effort cleanup
+				// Log cleanup failure but don't fail the overall operation
+				if e.logger != nil {
+					e.logger.Warn("Failed to close temporary file during cleanup",
+						"path", tempPath,
+						"error", closeErr)
+				}
 			}
 		}
 		// Only remove temp file if we haven't successfully renamed it
 		if _, statErr := os.Stat(tempPath); statErr == nil {
 			if removeErr := os.Remove(tempPath); removeErr != nil {
-				_ = removeErr // Best effort cleanup
+				// Log cleanup failure but don't fail the overall operation
+				if e.logger != nil {
+					e.logger.Warn("Failed to remove temporary file during cleanup",
+						"path", tempPath,
+						"error", removeErr)
+				}
 			}
 		}
 	}()

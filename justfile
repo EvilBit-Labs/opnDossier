@@ -1,636 +1,439 @@
-# Justfile for opnDossier
+# opnDossier Justfile
+# Run `just` or `just --list` to see available recipes
 
 set shell := ["bash", "-cu"]
 set windows-powershell := true
 set dotenv-load := true
 set ignore-comments := true
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Variables
+# ─────────────────────────────────────────────────────────────────────────────
 
+project_dir := justfile_directory()
+binary_name := "opndossier"
+
+# Platform-specific commands
+_cmd_exists := if os_family() == "windows" { "where" } else { "command -v" }
+_null := if os_family() == "windows" { "nul" } else { "/dev/null" }
+
+# Act configuration
+act_arch := "linux/amd64"
+act_cmd := "act --container-architecture " + act_arch
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Default & Help
+# ─────────────────────────────────────────────────────────────────────────────
+
+[private]
 default:
-    just --summary
+    @just --list --unsorted
 
 alias h := help
+alias l := list
+
+# Show available recipes
+[group('help')]
 help:
-    just --summary
+    @just --list
 
-# -----------------------------
-# 🔧 Setup & Installation
-# -----------------------------
+# Show recipes in a specific group
+[group('help')]
+list group="":
+    @just --list --unsorted {{ if group != "" { "--list-heading='' --list-prefix='  ' | grep -A999 '" + group + "'" } else { "" } }}
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Setup & Installation
+# ─────────────────────────────────────────────────────────────────────────────
 
-# Setup the environment for windows
-[windows]
-setup-env:
-    @cd {{justfile_dir()}}
-    python -m venv .venv
+alias i := install
 
-# Setup the environment for unix
-[unix]
-setup-env:
-    @cd {{justfile_dir()}}
-    python3 -m venv .venv
-
-# Virtual environment paths
-venv-python := if os_family() == "windows" { ".venv\\Scripts\\python.exe" } else { ".venv/bin/python" }
-venv-pip := if os_family() == "windows" { ".venv\\Scripts\\pip.exe" } else { ".venv/bin/pip" }
-venv-mkdocs := if os_family() == "windows" { ".venv\\Scripts\\mkdocs.exe" } else { ".venv/bin/mkdocs" }
-
-
-# Install dev dependencies
-setup: install
-
-# Install dependencies
-install:
-    @just setup-env
-    @{{venv-pip}} install mkdocs-material
+# Install all dependencies and setup environment
+[group('setup')]
+install: _update-python
     @pre-commit install --hook-type commit-msg
     @go mod tidy
-    @just install-git-cliff
+    @just _install-tool git-cliff
 
-# Update dependencies
-update-deps:
-    @just update-go-deps
-    @just update-python-deps
-    @just update-pnpm-deps
-    @just update-pre-commit
-    @just update-dev-tools
-    @echo "Dependency updates complete!"
+# Alias for install
+[group('setup')]
+setup: install
 
-# Update Go dependencies
-update-go-deps:
+# Update all dependencies
+[group('setup')]
+update-deps: _update-go _update-python _update-bun _update-precommit _update-tools
+    @echo "✅ All dependencies updated"
+
+[private]
+_update-go:
     @echo "Updating Go dependencies..."
-    go get -u ./...
-    go mod tidy
-    go mod verify
+    @go get -u ./...
+    @go mod tidy
+    @go mod verify
 
-# Update Python virtual environment dependencies
-update-python-deps:
-    @echo "Updating Python virtual environment dependencies..."
-    @{{venv-pip}} install --upgrade mkdocs-material
+[private]
+[no-exit-message]
+_update-python:
+    @echo "Updating Python dependencies..."
+    @uv tool install pre-commit 2>{{ _null }} || true
 
-# Update pre-commit hooks
-update-pre-commit:
+[private]
+_update-bun:
+    @echo "Updating Bun packages..."
+    @bun update
+
+[private]
+_update-precommit: _update-python
     @echo "Updating pre-commit hooks..."
-    pre-commit autoupdate
+    @pre-commit autoupdate
 
-# Update development tools
-update-dev-tools:
+[private]
+_update-tools:
     @echo "Updating development tools..."
-    @if command -v go >/dev/null 2>&1; then \
-        go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
-    fi
+    @go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest 2>{{ _null }} || true
 
-# Update pnpm dependencies (Unix)
-[unix]
-update-pnpm-deps:
-    @echo "Updating npm dependencies..."
-    @if command -v pnpm >/dev/null 2>&1; then \
-        pnpm update; \
-    else \
-        echo "Warning: pnpm not found, skipping pnpm dependency updates"; \
-    fi
+# Install a specific tool (git-cliff, cyclonedx-gomod, gosec, cosign)
+[group('setup')]
+[private]
+_install-tool tool:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    {{ _cmd_exists }} {{ tool }} >{{ _null }} 2>&1 && echo "{{ tool }} is already installed" && exit 0
+    echo "Installing {{ tool }}..."
+    case "{{ tool }}" in
+        git-cliff)
+            cargo install git-cliff 2>{{ _null }} || brew install git-cliff
+            ;;
+        cyclonedx-gomod)
+            go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
+            ;;
+        gosec)
+            go install github.com/securego/gosec/v2/cmd/gosec@latest 2>{{ _null }} || brew install gosec
+            ;;
+        cosign)
+            brew install cosign 2>{{ _null }} || go install github.com/sigstore/cosign/v2/cmd/cosign@latest
+            ;;
+        *)
+            echo "Error: Unknown tool {{ tool }}"
+            exit 1
+            ;;
+    esac
 
-# Update pnpm dependencies (Windows)
-[windows]
-update-pnpm-deps:
-    @echo "Updating npm dependencies..."
-    @if where pnpm >nul 2>&1; then \
-        pnpm update; \
-    else \
-        echo "Warning: pnpm not found, skipping pnpm dependency updates"; \
-    fi
+# Install security and SBOM tools (cyclonedx-gomod, gosec, cosign)
+[group('setup')]
+install-security-tools:
+    @just _install-tool cyclonedx-gomod
+    @just _install-tool gosec
+    @just _install-tool cosign
 
-# Install git-cliff for changelog generation
-[unix]
-install-git-cliff:
-    @echo "Installing git-cliff..."
-    @if ! command -v git-cliff >/dev/null 2>&1; then \
-        if command -v cargo >/dev/null 2>&1; then \
-            cargo install git-cliff; \
-        elif command -v brew >/dev/null 2>&1; then \
-            brew install git-cliff; \
-        else \
-            echo "Error: git-cliff not found. Please install it manually:"; \
-            echo "  - Using Cargo: cargo install git-cliff"; \
-            echo "  - Using Homebrew: brew install git-cliff"; \
-            echo "  - Or download from: https://github.com/orhun/git-cliff/releases"; \
-            exit 1; \
-        fi; \
-    else \
-        echo "git-cliff is already installed"; \
-    fi
+# ─────────────────────────────────────────────────────────────────────────────
+# Development
+# ─────────────────────────────────────────────────────────────────────────────
 
-[windows]
-install-git-cliff:
-    @echo "Installing git-cliff..."
-    @if ! where git-cliff >nul 2>&1; then \
-        if where cargo >nul 2>&1; then \
-            cargo install git-cliff; \
-        else \
-            echo "Error: git-cliff not found. Please install it manually:"; \
-            echo "  - Using Cargo: cargo install git-cliff"; \
-            echo "  - Or download from: https://github.com/orhun/git-cliff/releases"; \
-            exit 1; \
-        fi; \
-    else \
-        echo "git-cliff is already installed"; \
-    fi
+alias r := run
 
-# Install Grype for vulnerability scanning
-[unix]
-install-grype:
-    @echo "Installing Grype..."
-    @if ! command -v grype >/dev/null 2>&1; then \
-        if command -v brew >/dev/null 2>&1; then \
-            brew tap anchore/grype && brew install grype; \
-        elif command -v go >/dev/null 2>&1; then \
-            go install github.com/anchore/grype@latest; \
-        else \
-            echo "Error: Grype not found. Please install it manually:"; \
-            echo "  - Using Homebrew: brew tap anchore/grype && brew install grype"; \
-            echo "  - Using Go: go install github.com/anchore/grype@latest"; \
-            exit 1; \
-        fi; \
-    else \
-        echo "Grype is already installed"; \
-    fi
+# Run the application with optional arguments
+[group('dev')]
+run *args:
+    @go run main.go {{ args }}
 
-[windows]
-install-grype:
-    @echo "Installing Grype..."
-    @if ! where grype >nul 2>&1; then \
-        if where go >nul 2>&1; then \
-            go install github.com/anchore/grype@latest; \
-        else \
-            echo "Error: Grype not found. Please install it manually:"; \
-            echo "  - Using Go: go install github.com/anchore/grype@latest"; \
-            exit 1; \
-        fi; \
-    else \
-        echo "Grype is already installed"; \
-    fi
+# Run in development mode (alias for run)
+[group('dev')]
+dev *args:
+    @go run main.go {{ args }}
 
-# Install Syft for SBOM generation
-[unix]
-install-syft:
-    @echo "Installing Syft..."
-    @if ! command -v syft >/dev/null 2>&1; then \
-        if command -v brew >/dev/null 2>&1; then \
-            brew tap anchore/syft && brew install syft; \
-        elif command -v go >/dev/null 2>&1; then \
-            go install github.com/anchore/syft@latest; \
-        else \
-            echo "Error: Syft not found. Please install it manually:"; \
-            echo "  - Using Homebrew: brew tap anchore/syft && brew install syft"; \
-            echo "  - Using Go: go install github.com/anchore/syft@latest"; \
-            exit 1; \
-        fi; \
-    else \
-        echo "Syft is already installed"; \
-    fi
+# ─────────────────────────────────────────────────────────────────────────────
+# Code Quality
+# ─────────────────────────────────────────────────────────────────────────────
 
-[windows]
-install-syft:
-    @echo "Installing Syft..."
-    @if ! where syft >nul 2>&1; then \
-        if where go >nul 2>&1; then \
-            go install github.com/anchore/syft@latest; \
-        else \
-            echo "Error: Syft not found. Please install it manually:"; \
-            echo "  - Using Go: go install github.com/anchore/syft@latest"; \
-            exit 1; \
-        fi; \
-    else \
-        echo "Syft is already installed"; \
-    fi
+alias f := format
+alias fmt := format
 
-# Install Cosign for artifact signing
-[unix]
-install-cosign:
-    @echo "Installing Cosign..."
-    @if ! command -v cosign >/dev/null 2>&1; then \
-        if command -v brew >/dev/null 2>&1; then \
-            brew install cosign; \
-        elif command -v go >/dev/null 2>&1; then \
-            go install github.com/sigstore/cosign/v2/cmd/cosign@latest; \
-        else \
-            echo "Error: Cosign not found. Please install it manually:"; \
-            echo "  - Using Homebrew: brew install cosign"; \
-            echo "  - Using Go: go install github.com/sigstore/cosign/v2/cmd/cosign@latest"; \
-            exit 1; \
-        fi; \
-    else \
-        echo "Cosign is already installed"; \
-    fi
-
-[windows]
-install-cosign:
-    @echo "Installing Cosign..."
-    @if ! where cosign >nul 2>&1; then \
-        if where go >nul 2>&1; then \
-            go install github.com/sigstore/cosign/v2/cmd/cosign@latest; \
-        else \
-            echo "Error: Cosign not found. Please install it manually:"; \
-            echo "  - Using Go: go install github.com/sigstore/cosign/v2/cmd/cosign@latest"; \
-            exit 1; \
-        fi; \
-    else \
-        echo "Cosign is already installed"; \
-    fi
-
-
-# -----------------------------
-# 🧹 Linting, Typing, Dep Check
-# -----------------------------
-
-# Run pre-commit checks
-check:
-    pre-commit run --all-files
-
-# Run code formatting
-fmt: format
-
-# Run code formatting
+# Format code and apply fixes
+[group('quality')]
 format:
-    golangci-lint run --fix ./...
+    @golangci-lint run --fix ./...
     @just modernize
 
-# Run code formatting checks
+# Check formatting without making changes
+[group('quality')]
 format-check:
-    golangci-lint fmt ./...
+    @golangci-lint fmt ./...
 
-# Run code linting
+# Run linter
+[group('quality')]
 lint:
-    golangci-lint run ./...
+    @golangci-lint run ./...
     @just modernize-check
 
-# Run modernize analyzer to check for modernization opportunities
+# Run pre-commit checks on all files
+[group('quality')]
+check:
+    @pre-commit run --all-files
+
+# Apply Go modernization fixes
+[group('quality')]
 modernize:
-    go run golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@latest -fix -test ./...
+    @go run golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@latest -fix -test ./...
 
-# Run modernize analyzer in dry-run mode (no fixes applied)
+# Check for modernization opportunities (dry-run)
+[group('quality')]
 modernize-check:
-    go run golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@latest -test ./...
+    @go run golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@latest -test ./...
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Testing
+# ─────────────────────────────────────────────────────────────────────────────
 
-# -----------------------------
-# 🧪 Testing & Coverage
-# -----------------------------
+alias t := test
 
-# Run tests
+# Run all tests
+[group('test')]
 test:
-    go test ./...
+    @go test ./...
+
+# Run tests with verbose output
+[group('test')]
+test-v:
+    @go test -v ./...
+
+# Run tests with coverage report
+[group('test')]
+test-coverage:
+    @go test -coverprofile=coverage.txt ./...
+    @go tool cover -func=coverage.txt
+
+# Run integration tests (build tag)
+[group('test')]
+test-integration:
+    @go test -tags=integration ./...
+
+# Run tests and open coverage in browser
+[group('test')]
+coverage:
+    @go test -coverprofile=coverage.txt ./...
+    @go tool cover -html=coverage.txt
+
+# Generate coverage artifact
+[group('test')]
+cover: test-coverage
 
 # Run benchmarks
+[group('test')]
 bench:
-    go test -bench=. ./...
+    @go test -bench=. ./...
 
-# Run memory benchmark
-bench-memory:
-    go test -bench=BenchmarkParse -benchmem ./internal/parser
-
-# Run performance benchmarks for template vs programmatic comparison
-bench-performance:
-    go test -bench=BenchmarkReportGeneration -run=^$ -benchtime=1s -count=3 ./internal/converter
+# Run memory benchmarks for parser
+[group('test')]
+bench-mem:
+    @go test -bench=BenchmarkParse -benchmem ./internal/parser
 
 # Run comprehensive performance benchmarks
-bench-comprehensive:
-    go test -bench=. -run=^$ -benchtime=1s -count=3 ./internal/converter
+[group('test')]
+bench-perf:
+    @go test -bench=. -run=^$ -benchtime=1s -count=3 ./internal/converter
 
-test-with-coverage:
-    go test -coverprofile=coverage.txt ./...
-
-coverage:
-    @just test-with-coverage
-    go tool cover -html=coverage.txt
-
-# Run tests with coverage (alternative to separate test + coverage)
-test-coverage:
-    @just test-with-coverage
-    go tool cover -func=coverage.txt
-
-# Generate coverage artifacts
-cover: test-with-coverage
-
-
+# Run model completeness check
+[group('test')]
 completeness-check:
-    go test -tags=completeness ./internal/model -run TestModelCompleteness
+    @go test -tags=completeness ./internal/model -run TestModelCompleteness
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Build
+# ─────────────────────────────────────────────────────────────────────────────
 
+alias b := build
 
-# -----------------------------
-# 📦 Build & Clean
-# -----------------------------
-
-[unix]
-clean:
-    go clean
-    rm -f coverage.txt
-    rm -f opndossier
-
-[windows]
-clean:
-    go clean
-    del /q coverage.txt
-    del /q opndossier.exe
-
-
-# Build the project
+# Build the binary
+[group('build')]
 build:
-    go build -o opndossier main.go
+    @go build -o {{ binary_name }}{{ if os_family() == "windows" { ".exe" } else { "" } }} main.go
 
-clean-build:
-    just clean
-    just build
-
-# Build for release using GoReleaser
-build-for-release:
-    @just check
-    @just test
-    goreleaser build --clean --snapshot --single-target
-
-# Build snapshot release
-build-snapshot:
-    goreleaser build --clean --snapshot
-
-# GoReleaser dry run
-release-dry: build-snapshot
-
-# Build full release (requires git tag)
+# Build with optimizations for release
+[group('build')]
 build-release:
-    goreleaser build --clean
+    @CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o {{ binary_name }}{{ if os_family() == "windows" { ".exe" } else { "" } }} main.go
+
+# Clean build artifacts
+[group('build')]
+[confirm("This will remove build artifacts. Continue?")]
+clean:
+    @go clean
+    @rm -f coverage.txt {{ binary_name }} {{ binary_name }}.exe 2>{{ _null }} || true
+
+# Clean and rebuild
+[group('build')]
+rebuild: clean build
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Release (GoReleaser)
+# ─────────────────────────────────────────────────────────────────────────────
 
 # Check GoReleaser configuration
-check-goreleaser:
-    goreleaser check --verbose
+[group('release')]
+release-check:
+    @goreleaser check --verbose
 
-# Release to GitHub (requires git tag and GITHUB_TOKEN)
-release:
-    goreleaser release --clean
-
-# Release snapshot to GitHub
+# Build snapshot (no tag required)
+[group('release')]
 release-snapshot:
-    goreleaser release --clean --snapshot
+    @goreleaser build --clean --snapshot
 
-# -----------------------------
-# 📖 Documentation
-# -----------------------------
+# Build for current platform only
+[group('release')]
+release-local:
+    @goreleaser build --clean --snapshot --single-target
+
+# Full release (requires git tag and GITHUB_TOKEN)
+[group('release')]
+[confirm("This will create a GitHub release. Continue?")]
+release: check test
+    @goreleaser release --clean
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Documentation
+# ─────────────────────────────────────────────────────────────────────────────
+
+alias d := docs
 
 # Serve documentation locally
+[group('docs')]
+docs:
+    @uv run mkdocs serve
+
+# Alias for docs
+[group('docs')]
 site: docs
 
-# Serve documentation locally
-@docs:
-    @{{venv-mkdocs}} serve
-
-# Test documentation build
-docs-test:
-    @{{venv-mkdocs}} build --verbose
-
 # Build documentation
-docs-export:
-    @{{venv-mkdocs}} build
+[group('docs')]
+docs-build:
+    @uv run mkdocs build
 
-# Generate changelog using git-cliff
-changelog:
-    @just check-git-cliff
-    git-cliff --output CHANGELOG.md
+# Build documentation with verbose output
+[group('docs')]
+docs-test:
+    @uv run mkdocs build --verbose
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Changelog
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Generate changelog
+[group('docs')]
+changelog: _require-git-cliff
+    @git-cliff --output CHANGELOG.md
 
 # Generate changelog for a specific version
-changelog-version *version:
-    @just check-git-cliff
-    git-cliff --tag {{version}} --output CHANGELOG.md
+[group('docs')]
+changelog-version version: _require-git-cliff
+    @git-cliff --tag {{ version }} --output CHANGELOG.md
 
-# Generate changelog for unreleased changes
-changelog-unreleased:
-    @just check-git-cliff
-    git-cliff --unreleased --output CHANGELOG.md
+# Generate changelog for unreleased changes only
+[group('docs')]
+changelog-unreleased: _require-git-cliff
+    @git-cliff --unreleased --output CHANGELOG.md
 
-# Check if git-cliff is available
-[unix]
-check-git-cliff:
-    @if ! command -v git-cliff >/dev/null 2>&1; then \
-        echo "Error: git-cliff not found. Run 'just install' to install it."; \
-        exit 1; \
+[private]
+_require-git-cliff:
+    #!/usr/bin/env bash
+    if ! command -v git-cliff >/dev/null 2>&1; then
+        echo "Error: git-cliff not found. Run 'just install' to install it."
+        exit 1
     fi
 
-[windows]
-check-git-cliff:
-    @if ! where git-cliff >nul 2>&1; then \
-        echo "Error: git-cliff not found. Run 'just install' to install it."; \
-        exit 1; \
-    fi
+# ─────────────────────────────────────────────────────────────────────────────
+# Security
+# ─────────────────────────────────────────────────────────────────────────────
 
+# Run gosec security scanner
+[group('security')]
+scan:
+    @echo "Running security scan..."
+    @gosec ./...
 
+# Generate SBOM with cyclonedx-gomod
+[group('security')]
+sbom:
+    @echo "Generating SBOM..."
+    @just build-release
+    @cyclonedx-gomod bin -output sbom-binary.cyclonedx.json ./{{ binary_name }}{{ if os_family() == "windows" { ".exe" } else { "" } }}
+    @cyclonedx-gomod app -output sbom-modules.cyclonedx.json -json .
+    @echo "✅ SBOM generated: sbom-binary.cyclonedx.json, sbom-modules.cyclonedx.json"
 
-# -----------------------------
-# 🚀 Development Environment
-# -----------------------------
+# Run all security checks (SBOM + security scan)
+[group('security')]
+security-all: sbom scan
+    @echo "✅ All security checks complete"
 
-# Run the agent (development)
-dev *args="":
-    go run main.go {{args}}
+# ─────────────────────────────────────────────────────────────────────────────
+# CI
+# ─────────────────────────────────────────────────────────────────────────────
 
-# -----------------------------
-# 🔒 Security & Vulnerability Scanning
-# -----------------------------
+# Run full CI checks (pre-commit, format, lint, test)
+[group('ci')]
+ci-check: check format-check lint test test-integration
+    @echo "✅ All CI checks passed"
 
-# Run Grype vulnerability scanner locally
-scan-vulnerabilities:
-    @echo "Running Grype vulnerability scan..."
-    @if ! command -v grype >/dev/null 2>&1; then \
-        echo "Error: grype not found. Install with:"; \
-        echo "  - Using Homebrew: brew tap anchore/grype && brew install grype"; \
-        echo "  - Using Go: go install github.com/anchore/grype@latest"; \
-        exit 1; \
-    fi
-    grype .
-
-# Generate SBOM with Syft
-sbom: generate-sbom
-
-# Generate SBOM with Syft
-generate-sbom:
-    @echo "Generating SBOM with Syft..."
-    @if ! command -v syft >/dev/null 2>&1; then \
-        echo "Error: syft not found. Install with:"; \
-        echo "  - Using Homebrew: brew tap anchore/syft && brew install syft"; \
-        echo "  - Using Go: go install github.com/anchore/syft@latest"; \
-        exit 1; \
-    fi
-    syft . -o spdx-json=sbom.spdx.json
-    @echo "SBOM generated: sbom.spdx.json"
-
-# Run Snyk vulnerability scanner locally (requires Snyk CLI)
-snyk-scan:
-    @echo "Running Snyk vulnerability scan..."
-    @if ! command -v snyk >/dev/null 2>&1; then \
-        echo "Error: snyk CLI not found. Install with:"; \
-        echo "  - Using npm: npm install -g snyk"; \
-        echo "  - Using Homebrew: brew install snyk-cli"; \
-        echo "  - Or download from: https://github.com/snyk/cli/releases"; \
-        exit 1; \
-    fi
-    @if [ -z "$$SNYK_TOKEN" ]; then \
-        echo "Warning: SNYK_TOKEN not set. Some features may be limited."; \
-        echo "Set SNYK_TOKEN environment variable for full functionality."; \
-    fi
-    snyk test --severity-threshold=high
-    snyk monitor --severity-threshold=high
-
-# Run FOSSA analysis locally (requires FOSSA CLI)
-fossa-scan:
-    @echo "Running FOSSA license scan..."
-    @if ! command -v fossa >/dev/null 2>&1; then \
-        echo "Error: fossa CLI not found. Install from: https://github.com/fossas/fossa-cli"; \
-        exit 1; \
-    fi
-    @if [ -z "$$FOSSA_API_KEY" ]; then \
-        echo "Warning: FOSSA_API_KEY not set. Some features may be limited."; \
-        echo "Set FOSSA_API_KEY environment variable for full functionality."; \
-    fi
-    fossa analyze
-    fossa test
-
-# Run all security scans locally
-security-scan:
-    @echo "Running comprehensive security scan..."
-    just generate-sbom
-    just scan-vulnerabilities
-    just snyk-scan
-    just fossa-scan
-    @echo "Security scan complete. Check results above."
-
-# -----------------------------
-# 🤖 CI Workflow
-# -----------------------------
-
-# Run all checks and tests (CI)
-ci-check:
-    @cd {{justfile_dir()}}
-    @just check
-    @just format-check
-    @just lint
-    @just test
-
-# Smoke test for Windows CI (minimal validation)
-ci-check-smoke:
-    @cd {{justfile_dir()}}
+# Run smoke tests (fast, minimal validation)
+[group('ci')]
+ci-smoke:
     @echo "Running smoke tests..."
-    @go build -trimpath -ldflags="-s -w -X main.version=dev -X main.commit=unknown -X main.date=unknown" -v ./...
-    @go test -mod=readonly -count=1 -failfast -short -timeout 5m ./cmd/... ./internal/config/...
+    @go build -trimpath -ldflags="-s -w -X main.version=dev" -v ./...
+    @go test -count=1 -failfast -short -timeout 5m ./cmd/... ./internal/config/...
     @echo "✅ Smoke tests passed"
 
-# Run all checks, tests, and release validation
-full-checks:
-    @cd {{justfile_dir()}}
-    @just ci-check
-    @just security-scan
-    @just check-goreleaser
+# Run full checks including security and release validation
+[group('ci')]
+ci-full: ci-check security-all release-check docs-test
+    @echo "✅ All checks passed"
 
-# Act configuration variables
-act-arch := "linux/amd64"
-act-base-cmd := "act --container-architecture " + act-arch
+# ─────────────────────────────────────────────────────────────────────────────
+# GitHub Actions (act)
+# ─────────────────────────────────────────────────────────────────────────────
 
-# Act installation check (Unix)
-[unix]
-_check-act:
-    @if ! command -v act >/dev/null 2>&1; then \
-        echo "Error: act not found. Please install it:"; \
-        echo "  - Using Homebrew: brew install act"; \
-        echo "  - Using Go: go install github.com/nektos/act@latest"; \
-        echo "  - Or download from: https://github.com/nektos/act/releases"; \
-        exit 1; \
+[private]
+_require-act:
+    #!/usr/bin/env bash
+    if ! command -v act >/dev/null 2>&1; then
+        echo "Error: act not found. Install: brew install act"
+        exit 1
     fi
 
-# Act installation check (Windows)
-[windows]
-_check-act:
-    @if (-not (Get-Command act -ErrorAction SilentlyContinue)) { \
-        echo "Error: act not found. Please install it:"; \
-        echo "  - Using Go: go install github.com/nektos/act@latest"; \
-        echo "  - Or download from: https://github.com/nektos/act/releases"; \
-        exit 1; \
-    }
+# List available GitHub Actions workflows
+[group('act')]
+act-list: _require-act
+    @{{ act_cmd }} --list
 
-# Test specific GitHub Actions workflow
-act-workflow *workflow:
-    @just _check-act
-    @echo "Testing GitHub Actions workflow: {{workflow}}"
-    {{act-base-cmd}} --workflows .github/workflows/{{workflow}}.yml --list
+# Run a specific workflow
+[group('act')]
+act-run workflow: _require-act
+    @echo "Running workflow: {{ workflow }}"
+    @{{ act_cmd }} --workflows .github/workflows/{{ workflow }}.yml --verbose
 
-# Run GitHub Actions workflow locally using act
-act-run *workflow:
-    @just _check-act
-    @echo "Running GitHub Actions workflow: {{workflow}}"
-    {{act-base-cmd}} --workflows .github/workflows/{{workflow}}.yml --verbose
+# Dry-run a workflow (list steps only)
+[group('act')]
+act-dry workflow: _require-act
+    @{{ act_cmd }} --workflows .github/workflows/{{ workflow }}.yml --list
 
-# Test Copilot setup steps workflow
-test-copilot-setup:
-    @just _check-act
-    @echo "Testing Copilot setup steps workflow..."
-    {{act-base-cmd}} --workflows .github/workflows/copilot-setup-steps.yml --verbose
+# Test PR workflow locally
+[group('act')]
+act-pr: _require-act
+    @{{ act_cmd }} pull_request --verbose
 
-# Test PR workflow (simulate pull_request event)
-test-pr-workflow:
-    @just _check-act
-    @echo "Testing PR workflow..."
-    {{act-base-cmd}} pull_request --verbose
+# Test push workflow locally
+[group('act')]
+act-push: _require-act
+    @{{ act_cmd }} push --verbose
 
-# Test push workflow (simulate push event)
-test-push-workflow:
-    @just _check-act
-    @echo "Testing push workflow..."
-    {{act-base-cmd}} push --verbose
-
-# Test workflow dispatch (manual trigger)
-test-workflow-dispatch:
-    @just _check-act
-    @echo "Testing workflow dispatch..."
-    {{act-base-cmd}} workflow_dispatch --verbose
-
-# List all available workflows
-list-workflows:
-    @just _check-act
-    @echo "Available GitHub Actions workflows:"
-    {{act-base-cmd}} --list
-
-# Dry run workflow (list steps without executing)
-act-dry-run *workflow:
-    @just _check-act
-    @echo "Dry running GitHub Actions workflow: {{workflow}}"
-    {{act-base-cmd}} --workflows .github/workflows/{{workflow}}.yml --list
-
-# Test all PR-related workflows (actual execution)
-test-all-pr-workflows:
-    @echo "Testing all PR-related workflows..."
-    @echo "=== Testing CI workflow ==="
-    @just act-run ci
+# Test all PR workflows (dry-run)
+[group('act')]
+act-test-all: _require-act
+    @echo "Testing CI workflow..."
+    @just act-dry ci
     @echo ""
-    @echo "=== Testing Copilot setup workflow ==="
-    @just test-copilot-setup
+    @echo "Testing CodeQL workflow..."
+    @just act-dry codeql
     @echo ""
-    @echo "=== Testing CodeQL workflow ==="
-    @just act-run codeql
-    @echo ""
-    @echo "=== Testing Scorecard workflow ==="
-    @just act-run scorecard
-
-# Test all PR-related workflows (dry run only)
-test-all-pr-workflows-dry:
-    @echo "Testing all PR-related workflows (dry run)..."
-    @echo "=== Testing CI workflow ==="
-    @just act-dry-run ci
-    @echo ""
-    @echo "=== Testing Copilot setup workflow ==="
-    @just act-dry-run copilot-setup-steps
-    @echo ""
-    @echo "=== Testing CodeQL workflow ==="
-    @just act-dry-run codeql
-    @echo ""
-    @echo "=== Testing Scorecard workflow ==="
-    @just act-dry-run scorecard
-
-
-
-
+    @echo "Testing Scorecard workflow..."
+    @just act-dry scorecard

@@ -886,8 +886,8 @@ just build      # Build application
 
   - `README.md`: Project overview and quick start
   - `AGENTS.md`: Development standards and AI agent protocols
-  - `ARCHITECTURE.md`: System architecture documentation
-  - `DEVELOPMENT_STANDARDS.md`: Coding standards and practices
+  - `docs/development/architecture.md`: System architecture documentation
+  - `docs/development/standards.md`: Coding standards and practices
 
 - **Architecture Decision Records**:
 

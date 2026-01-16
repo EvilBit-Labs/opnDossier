@@ -1,5 +1,9 @@
 # GitHub Copilot Instructions for opnDossier
 
+This file provides guidance to GitHub Copilot when working with code in this repository.
+
+**AGENTS.md is the single source of truth** for AI assistant behavior, development workflows, and architecture. This file provides Copilot-specific guidance derived from AGENTS.md.
+
 ## Rule Precedence (CRITICAL)
 
 **Rules are applied in the following order of precedence:**
@@ -31,8 +35,10 @@ opnDossier is a tool for auditing and reporting on OPNsense configurations, with
 
 ## Project Architecture & Data Flow
 
-- **Monolithic Go CLI**: Converts OPNsense `config.xml` to Markdown, JSON, or YAML. No external network calls—offline-first.
+- **Monolithic Go CLI**: Converts OPNsense `config.xml` to Markdown, JSON, or YAML. No external network calls - offline-first.
+
 - **Major Components**:
+
   - `cmd/`: CLI entrypoints (`convert`, `display`, `validate`). See `cmd/root.go` for command registration.
   - `internal/parser/`: XML parsing to Go structs (`OpnSenseDocument` in `internal/model/opnsense.go`).
   - `internal/model/`: Strict data models mirroring OPNsense config structure.
@@ -41,9 +47,9 @@ opnDossier is a tool for auditing and reporting on OPNsense configurations, with
   - `internal/audit/`, `internal/plugin/`, `internal/plugins/`: Compliance audit engine and plugin system (STIG, SANS, firewall).
   - `internal/display/`, `internal/log/`: Terminal output and structured logging.
 
-**Data Flow**:
-`parser` → `model` → `processor` → `converter`/`markdown` → `export`
-Audit overlays: `processor` → `audit` → `plugins`
+- **Data Flow**: `parser` → `model` → `processor` → `converter`/`markdown` → `export`
+
+- **Audit overlays**: `processor` → `audit` → `plugins`
 
 ## Technology Stack
 
@@ -61,13 +67,13 @@ Audit overlays: `processor` → `audit` → `plugins`
 ## Critical Workflows
 
 - **All development tasks use `just`** (see `justfile`):
-  - `just install` – install dependencies
-  - `just build` – build binary
-  - `just test` – run all tests
-  - `just lint` – run golangci-lint
-  - `just ci-check` – run full CI-equivalent checks (must pass before reporting success)
-  - `just format` – format code and documentation
-  - `just dev` – run in development mode
+  - `just install` - install dependencies
+  - `just build` - build binary
+  - `just test` - run all tests
+  - `just lint` - run golangci-lint
+  - `just ci-check` - run full CI-equivalent checks (must pass before reporting success)
+  - `just format` - format code and documentation
+  - `just dev` - run in development mode
 - **No external dependencies**: All code must run fully offline.
 - **Never commit code without explicit user permission.**
 
@@ -91,6 +97,22 @@ Audit overlays: `processor` → `audit` → `plugins`
 - Use `errors.Is()` and `errors.As()` for error type checking
 - Handle errors gracefully in CLI commands with user-friendly messages
 
+**Example Pattern**:
+
+```go
+// Always wrap errors with context
+if err != nil {
+    return fmt.Errorf("failed to parse config: %w", err)
+}
+
+// Use domain-specific error types
+type ValidationError struct {
+    Field string
+    Value interface{}
+    Err   error
+}
+```
+
 ### Testing Standards
 
 - **Framework**: Go's built-in `testing` package
@@ -100,6 +122,31 @@ Audit overlays: `processor` → `audit` → `plugins`
 - **Types**: Unit tests, integration tests (with `//go:build integration` tag), table-driven tests
 - **Performance**: Keep tests fast (\<100ms), use `t.Parallel()` when safe
 - **Helpers**: Use `t.Helper()` in helper functions
+- Use table-driven tests for multiple scenarios
+- Test both success and error conditions
+
+### Structured Logging
+
+**Pattern**: Use `charmbracelet/log` for structured logging with appropriate levels
+
+```go
+// Use charmbracelet/log with context
+logger.Info("parsing configuration", "filename", filename, "size", size)
+logger.Error("parse failed", "error", err, "filename", filename)
+```
+
+**Guidelines**:
+
+- Include context in log messages (filename, operation, duration, counts)
+- Use debug level for troubleshooting, info for operations, warn for issues, error for failures
+- Avoid logging sensitive information from configuration
+- For CI / `TERM=dumb` environments, keep logs readable and avoid over-styled output
+
+### Configuration Management
+
+**Note for AI Assistants**: `viper` is used for managing the opnDossier application's own configuration (CLI settings, display preferences, etc.), not for parsing OPNsense config.xml files. The OPNsense configuration parsing is handled separately by the XML parser in `internal/parser/`.
+
+**Pattern**: Use `spf13/viper` for configuration with precedence: CLI flags > Environment variables > Config file > Defaults
 
 ## Data Model Standards
 
@@ -174,12 +221,31 @@ All commit messages must follow the [Conventional Commits](https://www.conventio
 ## Integration & Plugin Patterns
 
 - **Audit Plugins**: Implement `CompliancePlugin` interface (`internal/plugin/interfaces.go`). Register in `internal/audit/plugin_manager.go`.
-- **Plugin Structure**: Place in `internal/plugins/{standard}/`. Use generic `Finding` struct—no compliance-specific fields.
+- **Plugin Structure**: Place in `internal/plugins/{standard}/`. Use generic `Finding` struct - no compliance-specific fields.
 - **Multi-Format Export**: Add new formats in `internal/converter/` and templates in `internal/templates/`.
+
+## Project Structure
+
+```text
+opndossier/
+├── cmd/              # Command entry points (convert, display, validate, root)
+├── internal/         # Private application logic
+│   ├── parser/       # XML parsing logic
+│   ├── model/        # Data models and structures
+│   ├── processor/    # Data processing and analysis
+│   ├── converter/    # Data conversion utilities
+│   ├── markdown/     # Markdown generation
+│   ├── display/      # Terminal display formatting
+│   ├── export/       # File export functionality
+│   ├── audit/        # Audit engine and compliance checking
+│   └── validator/    # Configuration validation
+├── project_spec/     # Requirements, tasks, user stories
+└── docs/             # Documentation
+```
 
 ## Key Files & References
 
-- `AGENTS.md`, `DEVELOPMENT_STANDARDS.md`, `ARCHITECTURE.md`, `project_spec/requirements.md`
+- `AGENTS.md`, `docs/development/standards.md`, `docs/development/architecture.md`, `project_spec/requirements.md`
 - `cmd/convert.go`, `internal/model/opnsense.go`, `internal/parser/xml.go`, `internal/processor/README.md`
 
 ## Example Patterns
@@ -289,7 +355,7 @@ When AI agents contribute to this project, they **MUST**:
 08. **Validate all inputs** and handle edge cases
 09. **Document new functions and types** following Go conventions
 10. **Never commit secrets** or hardcoded credentials
-11. **Consult project documentation** - requirements.md, ARCHITECTURE.md, and DEVELOPMENT_STANDARDS.md for guidance
+11. **Consult project documentation** - requirements.md, docs/development/architecture.md, and docs/development/standards.md for guidance
 12. When rendering reports, always prefer structured config data + audit overlays over flat summary tables
 13. Blue team output should favor clarity, grouping, and actionability. Red team output should favor target prioritization and pivot surface discovery
 14. Validate all generated markdown for formatting correctness using mdformat for formatting and markdownlint-cli2 for validation
@@ -297,26 +363,26 @@ When AI agents contribute to this project, they **MUST**:
 
 ## AI Agent Code Review Checklist
 
-Before submitting code, AI agents **MUST** verify:
+Before suggesting code completion or marking a task complete, AI agents **MUST** verify:
 
-- [ ] Code follows Go formatting standards (`gofmt`)
+- [ ] Code follows Go formatting standards (`gofmt`, `goimports`)
 - [ ] All linting issues resolved (`golangci-lint`)
-- [ ] Tests pass (`go test ./...`)
-- [ ] Error handling includes proper context
-- [ ] Logging uses structured format with appropriate levels
+- [ ] Tests pass (`go test ./...` or `just test`)
+- [ ] Error handling includes proper context with `%w` wrapping
+- [ ] Logging uses structured format with `charmbracelet/log` and appropriate levels
 - [ ] No hardcoded secrets or credentials
-- [ ] Input validation implemented where needed
-- [ ] Documentation updated for new features
-- [ ] Dependencies properly managed (`go mod tidy`)
-- [ ] Code follows established patterns and interfaces
-- [ ] Requirements compliance verified against requirements.md
-- [ ] Architecture patterns followed per ARCHITECTURE.md
-- [ ] Development standards adhered to per DEVELOPMENT_STANDARDS.md
+- [ ] Input validation implemented where needed (especially file paths and XML input)
+- [ ] Documentation updated for new features or changed behavior
+- [ ] Dependencies properly managed (`go mod tidy`, `go mod verify`)
+- [ ] Code follows established patterns and interfaces (parser/model/processor/audit/converter layering)
+- [ ] Requirements compliance verified against `project_spec/requirements.md`
+- [ ] Architecture patterns followed per `docs/development/architecture.md` and related docs
+- [ ] Development standards adhered to per `docs/development/standards.md`
 - [ ] Use `just` for all dev tasks
-- [ ] Run `just ci-check` before reporting success
+- [ ] Run `just ci-check` before reporting success (CRITICAL)
 - [ ] Follow established code/data patterns
 - [ ] Never add external dependencies
-- [ ] Reference and update documentation as needed
+- [ ] Tests included for new functionality
 
 ## Development Process
 
@@ -324,7 +390,7 @@ Before submitting code, AI agents **MUST** verify:
 
 1. **Review Requirements**: Understand specific requirements being implemented
 2. **Check Existing Code**: Review similar implementations for patterns
-3. **Verify Architecture**: Ensure changes follow ARCHITECTURE.md patterns
+3. **Verify Architecture**: Ensure changes follow docs/development/architecture.md patterns
 
 ### Implementation
 
@@ -360,6 +426,8 @@ When encountering problems:
 AI agents **MUST** familiarize themselves with:
 
 - **[requirements.md](project_spec/requirements.md)** - Complete functional and technical requirements
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System design, data flow, and component architecture
-- **[DEVELOPMENT_STANDARDS.md](DEVELOPMENT_STANDARDS.md)** - Go-specific coding standards and project structure
-- **[AGENTS.md](AGENTS.md)** - Complete AI agent development guidelines
+- **[docs/development/architecture.md](docs/development/architecture.md)** - System design, data flow, and component architecture
+- **[docs/development/standards.md](docs/development/standards.md)** - Go-specific coding standards and project structure
+- **[AGENTS.md](../AGENTS.md)** - Complete AI agent development guidelines (single source of truth)
+
+**Remember**: When in doubt, refer to AGENTS.md for the complete authoritative guidance. This file provides Copilot-specific quick reference derived from that source.

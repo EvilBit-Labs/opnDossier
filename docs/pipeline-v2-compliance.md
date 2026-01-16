@@ -6,28 +6,28 @@ This document details how opnDossier implements the [EvilBit Labs Pipeline v2 Sp
 
 Pipeline v2 defines mandatory tooling and quality gates for all EvilBit Labs public OSS projects, focusing on:
 
-- **Consistency** – Same core tools and gates across all projects
-- **Local/CI parity** – All CI steps runnable locally via `just`
-- **Fail fast** – Blocking gates for linting, testing, security, and licensing
-- **Trustworthiness** – Signed releases with SBOM and provenance
-- **Airgap-ready** – Offline-capable artifacts with verification metadata
+- **Consistency** - Same core tools and gates across all projects
+- **Local/CI parity** - All CI steps runnable locally via `just`
+- **Fail fast** - Blocking gates for linting, testing, security, and licensing
+- **Trustworthiness** - Signed releases with SBOM and provenance
+- **Airgap-ready** - Offline-capable artifacts with verification metadata
 
 ## Implementation Status
 
-### ✅ **Go Language Tooling (Section 3.1)**
+### Go Language Tooling (Section 3.1)
 
-| Requirement        | Implementation                                         | Status      |
-| ------------------ | ------------------------------------------------------ | ----------- |
-| **Build/Release**  | GoReleaser with homebrew, nfpm, archives, Docker       | ✅ Complete |
-| **Lint**           | `golangci-lint` with comprehensive configuration       | ✅ Complete |
-| **Test/Coverage**  | `go test ./... -cover -race` with 85% minimum coverage | ✅ Complete |
-| **Race Detection** | Mandatory `-race` flag in all test commands            | ✅ Complete |
-| **Airgap Builds**  | GOMODCACHE + vendor directory for offline builds       | ✅ Complete |
+| Requirement        | Implementation                                         | Status   |
+| ------------------ | ------------------------------------------------------ | -------- |
+| **Build/Release**  | GoReleaser with homebrew, nfpm, archives, Docker       | Complete |
+| **Lint**           | `golangci-lint` with comprehensive configuration       | Complete |
+| **Test/Coverage**  | `go test ./... -cover -race` with 85% minimum coverage | Complete |
+| **Race Detection** | Mandatory `-race` flag in all test commands            | Complete |
+| **Airgap Builds**  | GOMODCACHE + vendor directory for offline builds       | Complete |
 
 **Files:**
 
-- [`.goreleaser.yaml`](../.goreleaser.yaml) - Complete GoReleaser configuration
-- [`.golangci.yml`](../.golangci.yml) - Comprehensive linting rules
+- [`.goreleaser.yaml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.goreleaser.yaml) - Complete GoReleaser configuration
+- [`.golangci.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.golangci.yml) - Comprehensive linting rules
 - [`justfile`](../justfile) - Local testing commands
 
 **Go Tooling Details:**
@@ -43,26 +43,26 @@ Pipeline v2 defines mandatory tooling and quality gates for all EvilBit Labs pub
 - **Reproducible Builds**: All builds use locked dependency versions via `go.sum`
 - **Offline Verification**: Build process validates all dependencies are available locally
 
-### ✅ **Cross-Cutting Tools (Section 4)**
+### Cross-Cutting Tools (Section 4)
 
-| Tool                       | Implementation                                   | Status      |
-| -------------------------- | ------------------------------------------------ | ----------- |
-| **Commit Discipline**      | Conventional Commits via pre-commit + CodeRabbit | ✅ Complete |
-| **Security Analysis**      | GitHub CodeQL                                    | ✅ Complete |
-| **SBOM Generation**        | Syft (SPDX JSON) via GoReleaser                  | ✅ Complete |
-| **Vulnerability Scanning** | Grype via GitHub Actions                         | ✅ Complete |
-| **License Scanning**       | FOSSA integration (GitHub App)                   | ✅ Complete |
-| **Signing & Attestation**  | Cosign + SLSA Level 3                            | ✅ Complete |
-| **Coverage Reporting**     | Codecov integration                              | ✅ Complete |
-| **AI-Assisted Review**     | CodeRabbit.ai                                    | ✅ Complete |
+| Tool                       | Implementation                                   | Status   |
+| -------------------------- | ------------------------------------------------ | -------- |
+| **Commit Discipline**      | Conventional Commits via pre-commit + CodeRabbit | Complete |
+| **Security Analysis**      | GitHub CodeQL                                    | Complete |
+| **SBOM Generation**        | Syft (SPDX JSON) via GoReleaser                  | Complete |
+| **Vulnerability Scanning** | Grype via GitHub Actions                         | Complete |
+| **License Scanning**       | FOSSA integration (GitHub App)                   | Complete |
+| **Signing & Attestation**  | Cosign + SLSA Level 3                            | Complete |
+| **Coverage Reporting**     | Codecov integration                              | Complete |
+| **AI-Assisted Review**     | CodeRabbit.ai                                    | Complete |
 
 **Files:**
 
-- [`.github/workflows/ci-check.yml`](../.github/workflows/ci-check.yml) - Grype vulnerability scanning
-- [`.github/workflows/codeql.yml`](../.github/workflows/codeql.yml) - GitHub CodeQL
+- [`.github/workflows/ci-check.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/ci-check.yml) - Grype vulnerability scanning
+- [`.github/workflows/codeql.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/codeql.yml) - GitHub CodeQL
 - FOSSA license scanning (GitHub App integration)
-- [`.github/workflows/release.yml`](../.github/workflows/release.yml) - SLSA + Cosign signing
-- [`.coderabbit.yaml`](../.coderabbit.yaml) - CodeRabbit configuration
+- [`.github/workflows/release.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/release.yml) - SLSA + Cosign signing
+- [`.coderabbit.yaml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.coderabbit.yaml) - CodeRabbit configuration
 
 ### ✅ **Enhanced SaaS Tools**
 
@@ -74,9 +74,9 @@ Pipeline v2 defines mandatory tooling and quality gates for all EvilBit Labs pub
 
 **Files:**
 
-- [`.github/workflows/scorecard.yml`](../.github/workflows/scorecard.yml) - OSSF Scorecard
+- [`.github/workflows/scorecard.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/scorecard.yml) - OSSF Scorecard
 - Snyk scanning (GitHub App integration + local CLI)
-- [`.github/dependabot.yml`](../.github/dependabot.yml) - Dependabot configuration
+- [`.github/dependabot.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/dependabot.yml) - Dependabot configuration
 
 ### Local CLI Tools
 

@@ -68,7 +68,7 @@ func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 	v.SetDefault("format", "markdown")
 	v.SetDefault("template", "")
 	v.SetDefault("sections", []string{})
-	v.SetDefault("wrap", 0)
+	v.SetDefault("wrap", -1)
 	v.SetDefault("engine", "programmatic") // Default to programmatic mode
 	v.SetDefault("use_template", false)
 
@@ -239,11 +239,11 @@ func validateFormat(c *Config, validationErrors *[]ValidationError) {
 }
 
 func validateWrapWidth(c *Config, validationErrors *[]ValidationError) {
-	// Validate wrap width
-	if c.WrapWidth < 0 {
+	// Validate wrap width (-1 means auto-detect)
+	if c.WrapWidth < -1 {
 		*validationErrors = append(*validationErrors, ValidationError{
 			Field:   "wrap",
-			Message: fmt.Sprintf("wrap width cannot be negative: %d", c.WrapWidth),
+			Message: fmt.Sprintf("wrap width must be -1 (auto-detect), 0 (no wrapping), or positive: %d", c.WrapWidth),
 		})
 	}
 }
@@ -270,45 +270,20 @@ func validateEngine(c *Config, validationErrors *[]ValidationError) {
 func combineValidationErrors(validationErrors []ValidationError) error {
 	var errMsg string
 
+	var errMsgSb273 strings.Builder
 	for i, err := range validationErrors {
 		if i > 0 {
-			errMsg += "; "
+			errMsgSb273.WriteString("; ")
 		}
 
-		errMsg += err.Error()
+		errMsgSb273.WriteString(err.Error())
 	}
+	errMsg += errMsgSb273.String()
 
 	return &ValidationError{
 		Field:   "config",
 		Message: errMsg,
 	}
-}
-
-// GetLogLevel returns the configured log level.
-// Deprecated: This method is deprecated and will be removed in a future version.
-// Use IsVerbose() and IsQuiet() methods instead for logging control.
-// The log level is now determined by the Verbose and Quiet flags:
-// - Quiet mode: "error"
-// - Verbose mode: "debug"
-// - Default: "info".
-func (c *Config) GetLogLevel() string {
-	// TODO: Remove this method in next major version
-	// For now, return appropriate level based on current config
-	if c.IsQuiet() {
-		return "error"
-	}
-	if c.IsVerbose() {
-		return "debug"
-	}
-	return "info"
-}
-
-// GetLogFormat returns the configured log format.
-// Deprecated: This method is deprecated and will be removed in a future version.
-// Log format is now hardcoded to "text" format for consistency.
-func (c *Config) GetLogFormat() string {
-	// TODO: Remove this method in next major version
-	return "text"
 }
 
 // IsVerbose returns true if verbose logging is enabled.

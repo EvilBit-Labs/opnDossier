@@ -22,6 +22,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const (
+	windowsOS = "windows"
+)
+
 // ValidationTestCase represents a test case for validation tests.
 type ValidationTestCase struct {
 	Name       string
@@ -35,7 +39,7 @@ func runValidationTests(t *testing.T, tests []ValidationTestCase) {
 	t.Helper()
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
-			e := NewFileExporter()
+			e := NewFileExporter(nil)
 			path := filepath.Join(t.TempDir(), tt.FileName)
 
 			// Export the content
@@ -112,7 +116,7 @@ func TestFileExporter_Export(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := NewFileExporter()
+			e := NewFileExporter(nil)
 			err := e.Export(context.Background(), tt.content, tt.path)
 
 			if tt.wantErr {
@@ -204,7 +208,7 @@ func TestFileExporter_ExportErrorTypes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := NewFileExporter()
+			e := NewFileExporter(nil)
 
 			// For context cancellation test, create a cancelled context
 			ctx := context.Background()
@@ -295,7 +299,7 @@ func TestFileExporter_PathValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := NewFileExporter()
+			e := NewFileExporter(nil)
 			err := e.validateExportPath(tt.path)
 
 			if tt.expectError {
@@ -319,7 +323,7 @@ func TestFileExporter_AtomicWrite(t *testing.T) {
 	testPath := filepath.Join(tmpDir, "atomic_test.md")
 	testContent := "test content for atomic write"
 
-	e := NewFileExporter()
+	e := NewFileExporter(nil)
 
 	// Test atomic write
 	err := e.Export(context.Background(), testContent, testPath)
@@ -337,7 +341,7 @@ func TestFileExporter_AtomicWrite(t *testing.T) {
 	// The actual permissions may vary, so we just check that the file exists and is readable
 	assert.True(t, info.Mode().IsRegular())
 	// On Unix systems, check the actual permissions
-	if runtime.GOOS != "windows" {
+	if runtime.GOOS != windowsOS {
 		assert.Equal(t, os.FileMode(DefaultFilePermissions), info.Mode().Perm())
 	}
 
@@ -349,7 +353,7 @@ func TestFileExporter_AtomicWrite(t *testing.T) {
 
 // TestFileExporter_ExportErrorUnwrap tests that Error properly unwraps underlying errors.
 func TestFileExporter_ExportErrorUnwrap(t *testing.T) {
-	e := NewFileExporter()
+	e := NewFileExporter(nil)
 
 	// Test with a path that will cause an underlying error
 	err := e.Export(context.Background(), "test content", "/nonexistent/dir/test.md")
@@ -412,7 +416,7 @@ Just plain text with a heading.
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := NewFileExporter()
+			e := NewFileExporter(nil)
 
 			// Export the markdown content
 			err := e.Export(context.Background(), tt.content, tt.path)
@@ -451,7 +455,7 @@ This text should be plain markdown without any ANSI escape codes or terminal con
 `
 
 	path := filepath.Join(t.TempDir(), "test_no_control_chars.md")
-	e := NewFileExporter()
+	e := NewFileExporter(nil)
 
 	err := e.Export(context.Background(), testContent, path)
 	require.NoError(t, err)
@@ -627,7 +631,7 @@ func TestFileExporter_NoTerminalControlCharactersJSON(t *testing.T) {
 }`
 
 	path := filepath.Join(t.TempDir(), "test_no_control_chars_json.json")
-	e := NewFileExporter()
+	e := NewFileExporter(nil)
 
 	err := e.Export(context.Background(), testContent, path)
 	require.NoError(t, err)
@@ -785,7 +789,7 @@ statistics:
 `
 
 	path := filepath.Join(t.TempDir(), "test_no_control_chars_yaml.yaml")
-	e := NewFileExporter()
+	e := NewFileExporter(nil)
 
 	err := e.Export(context.Background(), testContent, path)
 	require.NoError(t, err)
@@ -1225,6 +1229,8 @@ func TestFileExporter_CrossPlatformValidation(t *testing.T) {
 				outputFile,
 			)
 			cmd.Dir = projectRoot
+			// Enable platform-specific line endings for this test
+			cmd.Env = append(os.Environ(), "OPNDOSSIER_PLATFORM_LINE_ENDINGS=1")
 
 			var stdout, stderr bytes.Buffer
 
@@ -1244,26 +1250,37 @@ func TestFileExporter_CrossPlatformValidation(t *testing.T) {
 
 			// Cross-platform validation checks
 
-			// 1. No platform-specific line endings (should be \n)
-			assert.NotContains(t, contentStr, "\r\n", "File should not contain Windows line endings")
-			assert.NotContains(t, contentStr, "\r", "File should not contain Mac line endings")
+			// 1. Line endings should be platform-appropriate
+			// - Windows: \r\n (CRLF)
+			// - Unix-like (Linux, macOS, FreeBSD): \n (LF)
+			if runtime.GOOS == windowsOS {
+				// On Windows, we expect CRLF line endings
+				// More robust CRLF verification
+				assert.NotContains(t, contentStr, "\n\n", "Should not have bare LF sequences")
+				assert.NotContains(t, contentStr, "\r\r", "Should not have double CR")
 
-			// 2. No platform-specific path separators
-			// Check for Windows path separators but allow escaped characters
-			// Since our JSON/YAML output contains escaped characters like \n, \t, etc.,
-			// we need to be more specific about what constitutes a Windows path separator
-			// For now, we'll skip this check since the output is valid and contains legitimate escaped chars
-			// TODO: Implement more sophisticated path separator detection if needed
+				// Verify all \n are preceded by \r
+				for i := range len(contentStr) {
+					if contentStr[i] == '\n' {
+						assert.Positive(t, i, "Newline should not be at start")
+						assert.Equal(t, byte('\r'), contentStr[i-1], "Every LF should be preceded by CR")
+					}
+				}
+			} else {
+				// On Unix-like systems, we expect LF line endings
+				assert.NotContains(t, contentStr, "\r\n", "File should not contain CRLF (Windows line endings)")
+				assert.NotContains(t, contentStr, "\r", "File should not contain bare CR (Mac line endings)")
+			}
 
-			// 3. No platform-specific encoding issues
+			// 2. No platform-specific encoding issues
 			// Check for valid UTF-8
 			assert.True(t, utf8.Valid(exportedContent), "File should be valid UTF-8")
 
-			// 4. No platform-specific control characters
+			// 3. No platform-specific control characters
 			assert.NotContains(t, contentStr, "\x00", "File should not contain null bytes")
 			assert.NotContains(t, contentStr, "\x1a", "File should not contain EOF characters")
 
-			// 5. File should be readable by standard tools
+			// 4. File should be readable by standard tools
 			switch tt.format {
 			case "markdown":
 				err = markdown.ValidateMarkdown(contentStr)
@@ -1301,7 +1318,7 @@ func TestFileExporter_Error(t *testing.T) {
 
 // TestFileExporter_CheckFileWritable tests the checkFileWritable function.
 func TestFileExporter_CheckFileWritable(t *testing.T) {
-	e := NewFileExporter()
+	e := NewFileExporter(nil)
 
 	// Test with a writable file
 	tmpFile := filepath.Join(t.TempDir(), "writable_test.txt")
@@ -1317,7 +1334,7 @@ func TestFileExporter_CheckFileWritable(t *testing.T) {
 
 // TestFileExporter_ValidateExportPathEdgeCases tests edge cases for validateExportPath.
 func TestFileExporter_ValidateExportPathEdgeCases(t *testing.T) {
-	e := NewFileExporter()
+	e := NewFileExporter(nil)
 
 	// Test path traversal detection
 	err := e.validateExportPath("../../../etc/passwd")
@@ -1329,7 +1346,7 @@ func TestFileExporter_ValidateExportPathEdgeCases(t *testing.T) {
 
 // TestFileExporter_ResolveAbsolutePathEdgeCases tests edge cases for resolveAbsolutePath.
 func TestFileExporter_ResolveAbsolutePathEdgeCases(t *testing.T) {
-	e := NewFileExporter()
+	e := NewFileExporter(nil)
 
 	// Test valid path resolution
 	absPath, err := e.resolveAbsolutePath("test/file.txt")
@@ -1339,7 +1356,7 @@ func TestFileExporter_ResolveAbsolutePathEdgeCases(t *testing.T) {
 
 // TestFileExporter_ValidateTargetDirectoryEdgeCases tests edge cases for validateTargetDirectory.
 func TestFileExporter_ValidateTargetDirectoryEdgeCases(t *testing.T) {
-	e := NewFileExporter()
+	e := NewFileExporter(nil)
 
 	// Test with writable directory
 	tmpDir := t.TempDir()
@@ -1349,7 +1366,7 @@ func TestFileExporter_ValidateTargetDirectoryEdgeCases(t *testing.T) {
 
 // TestFileExporter_CheckDirectoryWritableEdgeCases tests edge cases for checkDirectoryWritable.
 func TestFileExporter_CheckDirectoryWritableEdgeCases(t *testing.T) {
-	e := NewFileExporter()
+	e := NewFileExporter(nil)
 
 	// Test with writable directory
 	tmpDir := t.TempDir()
@@ -1359,7 +1376,7 @@ func TestFileExporter_CheckDirectoryWritableEdgeCases(t *testing.T) {
 
 // TestFileExporter_CheckExistingFilePermissionsEdgeCases tests edge cases for checkExistingFilePermissions.
 func TestFileExporter_CheckExistingFilePermissionsEdgeCases(t *testing.T) {
-	e := NewFileExporter()
+	e := NewFileExporter(nil)
 
 	// Test with nonexistent file (should not error)
 	nonexistentFile := filepath.Join(t.TempDir(), "nonexistent.txt")
@@ -1369,7 +1386,7 @@ func TestFileExporter_CheckExistingFilePermissionsEdgeCases(t *testing.T) {
 
 // TestFileExporter_WriteFileAtomicEdgeCases tests edge cases for writeFileAtomic.
 func TestFileExporter_WriteFileAtomicEdgeCases(t *testing.T) {
-	e := NewFileExporter()
+	e := NewFileExporter(nil)
 
 	tests := []struct {
 		name        string

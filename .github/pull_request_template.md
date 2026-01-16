@@ -19,9 +19,9 @@
 
 <!-- Link to any related issues using keywords like "Closes #123", "Fixes #456", "Addresses #789" -->
 
-Closes #
-Fixes #
-Addresses #
+- Closes #
+- Fixes #
+- Addresses #
 
 ## Testing
 
@@ -93,8 +93,8 @@ just ci-check
 
 - [ ] README.md
 - [ ] CONTRIBUTING.md
-- [ ] DEVELOPMENT_STANDARDS.md
-- [ ] ARCHITECTURE.md
+- [ ] docs/development/standards.md
+- [ ] docs/development/architecture.md
 - [ ] Project specification files
 
 ### API Changes
@@ -143,7 +143,7 @@ just ci-check
 **By submitting this pull request, I confirm that:**
 
 - [ ] I have read and followed the [Contributing Guide](CONTRIBUTING.md)
-- [ ] I have read and followed the [Development Standards](DEVELOPMENT_STANDARDS.md)
+- [ ] I have read and followed the [Development Standards](docs/development/standards.md)
 - [ ] My code follows the project's coding standards
 - [ ] I have added tests that prove my fix is effective or that my feature works
 - [ ] I have updated the documentation accordingly
