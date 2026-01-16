@@ -346,6 +346,7 @@ func isUnbreakableLine(line string) bool {
 	return line != "" && !strings.ContainsAny(line, " \t")
 }
 
+//nolint:unused // Helper function retained for future test coverage
 func maxVisibleLineLength(output string) int {
 	maxLen, _ := maxVisibleLineLengthWithLine(output)
 	return maxLen

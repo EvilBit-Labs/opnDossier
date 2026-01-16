@@ -2,16 +2,31 @@
 
 ## Overview
 
-This guide provides step-by-step instructions for migrating from template-based markdown generation (v1.x) to the new programmatic generation approach (v2.0+). The migration delivers **74% faster** generation, **78% less** memory usage, and compile-time type safety.
+This guide provides step-by-step instructions for migrating from template-based markdown generation (v1.x) to the new programmatic generation approach (v2.0+). The migration is designed to deliver significantly faster generation with reduced memory usage and compile-time type safety. Performance characteristics can be measured using the comparative benchmarks in `internal/converter/markdown_bench_test.go`.
 
 ## Why Migrate?
 
 ### Performance Improvements
 
-- **Generation Speed**: 74% faster report generation
-- **Memory Usage**: 78% reduction in memory allocations
-- **Throughput**: 3.8x improvement (643 vs 170 reports/sec)
-- **Scalability**: Consistent performance gains across all dataset sizes
+The programmatic approach is designed for improved performance across all metrics:
+
+- **Generation Speed**: Faster report generation
+- **Memory Usage**: Reduced memory allocations
+- **Throughput**: Improved reports per second
+- **Scalability**: Consistent performance across all dataset sizes
+
+To measure actual performance gains for your use case, run the comparative benchmarks:
+
+```bash
+# Run markdown generation benchmarks
+go test -bench=BenchmarkReportGeneration ./internal/converter -benchmem
+
+# Run memory usage benchmarks
+go test -bench=BenchmarkMemoryUsage ./internal/converter -benchmem
+
+# Run throughput benchmarks
+go test -bench=BenchmarkThroughput ./internal/converter -benchmem
+```
 
 ### Development Experience
 
@@ -930,11 +945,16 @@ Yes! The HybridGenerator supports both modes. Use `--use-template` for template 
 
 ### What performance improvements can I expect?
 
-Based on benchmarks:
+The programmatic approach is designed to deliver significant performance improvements over template-based generation. Actual results depend on your configuration size and system characteristics.
 
-- **74% faster** report generation
-- **78% less** memory usage
-- **3.8x improvement** in throughput (643 vs 170 reports/sec)
+To measure performance for your use case:
+
+```bash
+# Run comparative benchmarks
+go test -bench=BenchmarkReportGeneration ./internal/converter -benchmem
+go test -bench=BenchmarkMemoryUsage ./internal/converter -benchmem
+go test -bench=BenchmarkThroughput ./internal/converter -benchmem
+```
 
 ### How do I rollback if migration causes issues?
 
@@ -1017,19 +1037,19 @@ If you've implemented custom MarkdownBuilder methods that would benefit the comm
 
    Update `docs/template-function-migration.md` with your function mapping:
 
-   - Add to appropriate phase table
-   - Mark status as **Migrated**
-   - Include implementation file reference
+- Add to appropriate phase table
+- Mark status as **Migrated**
+- Include implementation file reference
 
 4. **Submit Pull Request**
 
    PR requirements:
 
-   - Clear use case description
-   - Before/after examples (template → Go method)
-   - Test coverage report (>80% for new code)
-   - Documentation updates
-   - Link to related issues (if any)
+- Clear use case description
+- Before/after examples (template → Go method)
+- Test coverage report (>80% for new code)
+- Documentation updates
+- Link to related issues (if any)
 
 ### Code Structure Guidelines
 

@@ -256,10 +256,14 @@ sequenceDiagram
 
 #### 2. Performance Optimizations
 
-- **Memory Usage**: 78% reduction through direct string building
-- **Generation Speed**: 74% improvement via method-based approach
-- **Throughput**: 3.8x increase (643 vs 170 reports/sec)
+The programmatic approach is designed for significant performance improvements:
+
+- **Memory Usage**: Reduced allocations through direct string building
+- **Generation Speed**: Faster generation via method-based approach
+- **Throughput**: Increased reports per second
 - **Scalability**: Consistent performance across all dataset sizes
+
+Actual performance can be measured using comparative benchmarks in `internal/converter/markdown_bench_test.go`.
 
 #### 3. Enhanced Type Safety
 
@@ -372,7 +376,7 @@ graph TD
     end
 
     subgraph "Performance Characteristics"
-        Metrics[Performance Metrics<br/>• 74% faster generation<br/>• 78% less memory<br/>• 3.8x throughput<br/>• Type-safe operations]
+        Metrics[Performance Metrics<br/>• Faster generation<br/>• Reduced memory<br/>• Increased throughput<br/>• Type-safe operations]
     end
 
     Output -.-> Metrics

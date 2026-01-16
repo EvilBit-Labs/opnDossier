@@ -12,6 +12,28 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// sharedFlagSnapshot captures a subset of shared flags for test isolation.
+// This snapshot is used to save and restore flag state between tests to prevent
+// test pollution when flags are modified during test execution.
+//
+// Included flags (affect output/display behavior):
+//   - theme: Terminal rendering theme (light, dark, auto)
+//   - wrapWidth: Text wrapping width for display
+//   - sections: Which sections to include in output
+//   - customTemplate: Path to custom template file
+//   - comprehensive: Whether to generate comprehensive reports
+//
+// Excluded flags (affect generation engine selection or internal state):
+//   - sharedIncludeTunables: Content flag, but rarely modified in tests
+//   - sharedTemplateCacheSize: Performance tuning, not modified in display tests
+//   - sharedUseTemplate: Engine selection flag, not relevant for display tests
+//   - sharedEngine: Engine selection flag, not relevant for display tests
+//   - sharedLegacy: Engine selection flag, not relevant for display tests
+//   - warnedAboutAbsoluteTemplatePath: Internal warning gate, should not be reset between tests
+//
+// Rationale: The snapshot focuses on flags that directly affect display output
+// and are commonly modified in display tests. Engine selection flags are excluded
+// because display tests typically work with already-generated content.
 type sharedFlagSnapshot struct {
 	theme          string
 	wrapWidth      int
@@ -208,6 +230,50 @@ func TestValidateDisplayFlagsWrapWidthWarning(t *testing.T) {
 			} else {
 				assert.Empty(t, output)
 			}
+		})
+	}
+}
+
+// TestValidateDisplayFlagsInvalidWrapWidth tests that wrap widths < -1 are rejected with errors.
+func TestValidateDisplayFlagsInvalidWrapWidth(t *testing.T) {
+	snapshot := captureSharedFlags()
+	t.Cleanup(snapshot.restore)
+
+	tests := []struct {
+		name      string
+		wrap      int
+		wantError string
+	}{
+		{
+			name:      "Negative two",
+			wrap:      -2,
+			wantError: "invalid wrap width -2: must be -1 (auto-detect), 0 (no wrapping), or positive",
+		},
+		{
+			name:      "Negative hundred",
+			wrap:      -100,
+			wantError: "invalid wrap width -100: must be -1 (auto-detect), 0 (no wrapping), or positive",
+		},
+		{
+			name:      "Math.MinInt equivalent",
+			wrap:      -9223372036854775808, // math.MinInt64
+			wantError: "invalid wrap width -9223372036854775808: must be -1 (auto-detect), 0 (no wrapping), or positive",
+		},
+		{
+			name:      "Negative ten",
+			wrap:      -10,
+			wantError: "invalid wrap width -10: must be -1 (auto-detect), 0 (no wrapping), or positive",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sharedWrapWidth = tt.wrap
+
+			err := validateDisplayFlags(pflag.NewFlagSet("test", pflag.ContinueOnError))
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.wantError)
 		})
 	}
 }
