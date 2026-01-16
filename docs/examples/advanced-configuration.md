@@ -292,8 +292,6 @@ Create `~/.opnDossier.yaml`:
 
 ```yaml
 # Global configuration
-log_level: info
-log_format: text
 verbose: false
 theme: auto
 
@@ -325,8 +323,6 @@ Create `~/.opnDossier/production.yaml`:
 
 ```yaml
 # Production environment settings
-log_level: warn
-log_format: json
 output_file: /var/www/docs/network-config.md
 
 # Security-focused settings
@@ -343,8 +339,6 @@ Create `~/.opnDossier/development.yaml`:
 
 ```yaml
 # Development environment settings
-log_level: debug
-log_format: text
 verbose: true
 output_file: ./dev-docs.md
 
@@ -368,7 +362,7 @@ opnDossier --config ~/.opnDossier/production.yaml convert config.xml
 opnDossier --config ~/.opnDossier/development.yaml convert config.xml
 
 # Override specific settings
-opnDossier --config ~/.opnDossier/production.yaml --log_level=debug convert config.xml
+opnDossier --config ~/.opnDossier/production.yaml --verbose convert config.xml
 ```
 
 ## Plugin Configuration

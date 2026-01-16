@@ -238,14 +238,12 @@ opnDossier can be configured via command-line flags, environment variables, or a
 
 ### Configuration Options
 
-| Setting         | CLI Flag       | Environment Variable     | Config File         | Description                              |
-| --------------- | -------------- | ------------------------ | ------------------- | ---------------------------------------- |
-| Verbose logging | `--verbose`    | `OPNDOSSIER_VERBOSE`     | `verbose: true`     | Enable debug/verbose output              |
-| Quiet mode      | `--quiet`      | `OPNDOSSIER_QUIET`       | `quiet: true`       | Suppress all non-error output            |
-| Log level       | `--log_level`  | `OPNDOSSIER_LOG_LEVEL`   | `log_level: debug`  | Set log level (debug, info, warn, error) |
-| Log format      | `--log_format` | `OPNDOSSIER_LOG_FORMAT`  | `log_format: json`  | Output format (text, json)               |
-| Input file      | (positional)   | `OPNDOSSIER_INPUT_FILE`  | `input_file: path`  | Default input configuration file         |
-| Output file     | `-o, --output` | `OPNDOSSIER_OUTPUT_FILE` | `output_file: path` | Default output file path                 |
+| Setting         | CLI Flag       | Environment Variable     | Config File         | Description                      |
+| --------------- | -------------- | ------------------------ | ------------------- | -------------------------------- |
+| Verbose logging | `--verbose`    | `OPNDOSSIER_VERBOSE`     | `verbose: true`     | Enable debug/verbose output      |
+| Quiet mode      | `--quiet`      | `OPNDOSSIER_QUIET`       | `quiet: true`       | Suppress all non-error output    |
+| Input file      | (positional)   | `OPNDOSSIER_INPUT_FILE`  | `input_file: path`  | Default input configuration file |
+| Output file     | `-o, --output` | `OPNDOSSIER_OUTPUT_FILE` | `output_file: path` | Default output file path         |
 
 For a complete list of all configuration options, see the [Configuration Reference](docs/user-guide/configuration-reference.md).
 
@@ -255,8 +253,6 @@ Create `~/.opnDossier.yaml`:
 
 ```yaml
 # Logging
-log_level: info
-log_format: text
 verbose: false
 quiet: false
 
@@ -269,11 +265,10 @@ output_file: ./output.md
 
 ```bash
 # Using CLI flags
-opnDossier --verbose --log_format=json convert config.xml
+opnDossier --verbose convert config.xml
 
 # Using environment variables
 export OPNDOSSIER_VERBOSE=true
-export OPNDOSSIER_LOG_LEVEL=debug
 opnDossier convert config.xml
 
 # Using config file (automatically loaded from ~/.opnDossier.yaml)

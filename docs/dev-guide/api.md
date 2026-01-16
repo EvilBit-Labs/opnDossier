@@ -119,13 +119,11 @@ if cfg.IsVerbose() {
 
 All commands inherit these global flags:
 
-| Flag            | Type   | Default              | Description                          |
-| --------------- | ------ | -------------------- | ------------------------------------ |
-| `--config`      | string | `~/.opnDossier.yaml` | Configuration file path              |
-| `--verbose, -v` | bool   | false                | Enable debug logging                 |
-| `--quiet, -q`   | bool   | false                | Suppress non-error output            |
-| `--log_level`   | string | "info"               | Log level (debug, info, warn, error) |
-| `--log_format`  | string | "text"               | Log format (text, json)              |
+| Flag            | Type   | Default              | Description               |
+| --------------- | ------ | -------------------- | ------------------------- |
+| `--config`      | string | `~/.opnDossier.yaml` | Configuration file path   |
+| `--verbose, -v` | bool   | false                | Enable debug logging      |
+| `--quiet, -q`   | bool   | false                | Suppress non-error output |
 
 ### Convert Command
 
@@ -164,8 +162,6 @@ type Config struct {
     OutputFile string `mapstructure:\"output_file\"`
     Verbose    bool   `mapstructure:\"verbose\"`
     Quiet      bool   `mapstructure:\"quiet\"`
-    LogLevel   string `mapstructure:\"log_level\"`
-    LogFormat  string `mapstructure:\"log_format\"`
 }
 ```
 
@@ -210,17 +206,9 @@ Validates configuration for consistency and correctness.
 
 ```go
 if err := cfg.Validate(); err != nil {
-    log.Fatalf(\"Invalid configuration: %v\", err)
+    log.Fatalf("Invalid configuration: %v", err)
 }
 ```
-
-#### `(*Config).GetLogLevel() string`
-
-Returns the configured log level.
-
-#### `(*Config).GetLogFormat() string`
-
-Returns the configured log format.
 
 #### `(*Config).IsVerbose() bool`
 
@@ -417,8 +405,6 @@ The configuration system follows this precedence order (highest to lowest):
 | `output_file` | `OPNDOSSIER_OUTPUT_FILE` | ""      |
 | `verbose`     | `OPNDOSSIER_VERBOSE`     | false   |
 | `quiet`       | `OPNDOSSIER_QUIET`       | false   |
-| `log_level`   | `OPNDOSSIER_LOG_LEVEL`   | "info"  |
-| `log_format`  | `OPNDOSSIER_LOG_FORMAT`  | "text"  |
 
 ## Error Handling
 
@@ -482,14 +468,14 @@ For testing configuration:
 ```go
 func TestConfigPrecedence(t *testing.T) {
     // Set environment variable
-    t.Setenv(\"OPNDOSSIER_LOG_LEVEL\", \"debug\")
+    t.Setenv(\"OPNDOSSIER_VERBOSE\", \"true\")
 
     // Load config
     cfg, err := config.LoadConfig(\"\")
     require.NoError(t, err)
 
     // Verify precedence
-    assert.Equal(t, \"debug\", cfg.LogLevel)
+    assert.True(t, cfg.Verbose)
 }
 ```
 

@@ -24,8 +24,6 @@ input_file: %s
 output_file: %s
 verbose: true
 quiet: false
-log_level: debug
-log_format: json
 `, inputFile, filepath.Join(tmpDir, "output.md"))
 	err := os.WriteFile(cfgFilePath, []byte(content), 0o600)
 	require.NoError(t, err)
@@ -305,8 +303,6 @@ func clearEnvironment(_ *testing.T) {
 		"OPNDOSSIER_OUTPUT_FILE",
 		"OPNDOSSIER_VERBOSE",
 		"OPNDOSSIER_QUIET",
-		"OPNDOSSIER_LOG_LEVEL",
-		"OPNDOSSIER_LOG_FORMAT",
 		"OPNDOSSIER_THEME",
 		"OPNDOSSIER_FORMAT",
 		"OPNDOSSIER_TEMPLATE",

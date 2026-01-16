@@ -54,8 +54,7 @@ just lint
 
 ```bash
 # Development environment
-export OPNDOSSIER_LOG_LEVEL=debug
-export OPNDOSSIER_LOG_FORMAT=text
+export OPNDOSSIER_VERBOSE=true
 
 # For testing
 export OPNDOSSIER_TEST_MODE=true
@@ -275,7 +274,7 @@ just test                         # Verify tests still pass
 just dev --verbose convert testdata/config.xml
 
 # Debug with specific log level
-OPNDOSSIER_LOG_LEVEL=debug just dev convert testdata/config.xml
+OPNDOSSIER_VERBOSE=true just dev convert testdata/config.xml
 
 # Profile performance
 go test -bench=. -cpuprofile=cpu.prof ./internal/parser
