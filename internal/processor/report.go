@@ -18,7 +18,7 @@ import (
 // Report contains the results of processing an OPNsense configuration.
 // It includes the normalized configuration, analysis findings, and statistics.
 type Report struct {
-	mu sync.RWMutex `json:"-" yaml:"-"` // protects Findings for concurrent access
+	mu sync.RWMutex `json:"-"           yaml:"-"` // protects Findings for concurrent access
 	// GeneratedAt contains the timestamp when the report was generated
 	GeneratedAt time.Time `json:"generatedAt"`
 
