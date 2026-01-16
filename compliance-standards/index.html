@@ -1,0 +1,1397 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A CLI tool for processing OPNsense config.xml files and converting them to markdown">
+      
+      
+        <meta name="author" content="EvilBit Labs">
+      
+      
+        <link rel="canonical" href="https://opndossier.evilbitlabs.io/compliance-standards/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>Compliance Standards Integration - opnDossier - OPNsense Configuration Processor</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#compliance-standards-integration" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="opnDossier - OPNsense Configuration Processor" class="md-header__button md-logo" aria-label="opnDossier - OPNsense Configuration Processor" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            opnDossier - OPNsense Configuration Processor
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Compliance Standards Integration
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="purple"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/EvilBit-Labs/opnDossier" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    opnDossier
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../user-guide/installation/" class="md-tabs__link">
+          
+  
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../dev-guide/architecture/" class="md-tabs__link">
+          
+  
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../about/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  About
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="opnDossier - OPNsense Configuration Processor" class="md-nav__button md-logo" aria-label="opnDossier - OPNsense Configuration Processor" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    opnDossier - OPNsense Configuration Processor
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/EvilBit-Labs/opnDossier" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    opnDossier
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dev-guide/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dev-guide/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../about/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    About
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="compliance-standards-integration">Compliance Standards Integration<a class="headerlink" href="#compliance-standards-integration" title="Permanent link">&para;</a></h1>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>opnDossier integrates industry-standard security compliance frameworks to provide comprehensive blue team audit reports. The system supports <strong>STIG (Security Technical Implementation Guide)</strong>, <strong>SANS Firewall Checklist</strong>, and <strong>CIS-inspired Firewall Security Controls</strong> standards for firewall security assessment.</p>
+<h2 id="supported-standards">Supported Standards<a class="headerlink" href="#supported-standards" title="Permanent link">&para;</a></h2>
+<h3 id="stig-security-technical-implementation-guide">STIG (Security Technical Implementation Guide)<a class="headerlink" href="#stig-security-technical-implementation-guide" title="Permanent link">&para;</a></h3>
+<p>STIGs are cybersecurity methodologies for standardizing security configuration within networks, servers, computers, and logical designs to enhance overall security. opnDossier implements the <strong>DISA Firewall Security Requirements Guide</strong> which includes:</p>
+<h4 id="key-stig-controls">Key STIG Controls<a class="headerlink" href="#key-stig-controls" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Control ID</th>
+<th>Title</th>
+<th>Severity</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V-206694</td>
+<td>Firewall must deny network communications traffic by default</td>
+<td>High</td>
+<td>Default Deny Policy</td>
+</tr>
+<tr>
+<td>V-206701</td>
+<td>Firewall must employ filters that prevent DoS attacks</td>
+<td>High</td>
+<td>DoS Protection</td>
+</tr>
+<tr>
+<td>V-206674</td>
+<td>Firewall must use packet headers and attributes for filtering</td>
+<td>High</td>
+<td>Packet Filtering</td>
+</tr>
+<tr>
+<td>V-206690</td>
+<td>Firewall must disable unnecessary network services</td>
+<td>Medium</td>
+<td>Service Hardening</td>
+</tr>
+<tr>
+<td>V-206682</td>
+<td>Firewall must generate comprehensive traffic logs</td>
+<td>Medium</td>
+<td>Logging</td>
+</tr>
+<tr>
+<td>V-206680</td>
+<td>Firewall must log network location information</td>
+<td>Medium</td>
+<td>Logging</td>
+</tr>
+<tr>
+<td>V-206679</td>
+<td>Firewall must log event timestamps</td>
+<td>Medium</td>
+<td>Logging</td>
+</tr>
+<tr>
+<td>V-206678</td>
+<td>Firewall must log event types</td>
+<td>Medium</td>
+<td>Logging</td>
+</tr>
+<tr>
+<td>V-206681</td>
+<td>Firewall must log source information</td>
+<td>Low</td>
+<td>Logging</td>
+</tr>
+<tr>
+<td>V-206711</td>
+<td>Firewall must alert on DoS incidents</td>
+<td>Low</td>
+<td>Alerting</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sans-firewall-checklist">SANS Firewall Checklist<a class="headerlink" href="#sans-firewall-checklist" title="Permanent link">&para;</a></h3>
+<p>The SANS Firewall Checklist provides practical security controls for firewall configuration and management:</p>
+<h4 id="key-sans-controls">Key SANS Controls<a class="headerlink" href="#key-sans-controls" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Control ID</th>
+<th>Category</th>
+<th>Title</th>
+<th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SANS-FW-001</td>
+<td>Access Control</td>
+<td>Default Deny Policy</td>
+<td>High</td>
+</tr>
+<tr>
+<td>SANS-FW-002</td>
+<td>Rule Management</td>
+<td>Explicit Rule Configuration</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>SANS-FW-003</td>
+<td>Network Segmentation</td>
+<td>Network Zone Separation</td>
+<td>High</td>
+</tr>
+<tr>
+<td>SANS-FW-004</td>
+<td>Logging and Monitoring</td>
+<td>Comprehensive Logging</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>SANS-FW-005</td>
+<td>Service Hardening</td>
+<td>Unnecessary Services Disabled</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>SANS-FW-006</td>
+<td>Authentication</td>
+<td>Strong Authentication</td>
+<td>High</td>
+</tr>
+<tr>
+<td>SANS-FW-007</td>
+<td>Encryption</td>
+<td>Encrypted Management</td>
+<td>High</td>
+</tr>
+<tr>
+<td>SANS-FW-008</td>
+<td>Backup and Recovery</td>
+<td>Configuration Backup</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>SANS-FW-009</td>
+<td>Vulnerability Management</td>
+<td>Regular Updates</td>
+<td>High</td>
+</tr>
+<tr>
+<td>SANS-FW-010</td>
+<td>Incident Response</td>
+<td>Alert Configuration</td>
+<td>Medium</td>
+</tr>
+</tbody>
+</table>
+<h3 id="cis-inspired-firewall-security-controls">CIS-Inspired Firewall Security Controls<a class="headerlink" href="#cis-inspired-firewall-security-controls" title="Permanent link">&para;</a></h3>
+<p>Our CIS-inspired firewall security controls provide comprehensive security guidance designed for OPNsense firewalls, based on general industry best practices for network firewall security:</p>
+<h4 id="key-firewall-security-controls">Key Firewall Security Controls<a class="headerlink" href="#key-firewall-security-controls" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Control ID</th>
+<th>Category</th>
+<th>Title</th>
+<th>Severity</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FIREWALL-001</td>
+<td>System Configuration</td>
+<td>SSH Warning Banner</td>
+<td>High</td>
+<td>Configure SSH warning banner</td>
+</tr>
+<tr>
+<td>FIREWALL-002</td>
+<td>System Configuration</td>
+<td>Auto Configuration Backup</td>
+<td>Medium</td>
+<td>Enable automatic configuration backup</td>
+</tr>
+<tr>
+<td>FIREWALL-003</td>
+<td>System Configuration</td>
+<td>Message of the Day</td>
+<td>Medium</td>
+<td>Set appropriate MOTD message</td>
+</tr>
+<tr>
+<td>FIREWALL-004</td>
+<td>System Configuration</td>
+<td>Hostname Configuration</td>
+<td>Low</td>
+<td>Set device hostname</td>
+</tr>
+<tr>
+<td>FIREWALL-005</td>
+<td>Network Configuration</td>
+<td>DNS Server Configuration</td>
+<td>Medium</td>
+<td>Configure DNS servers</td>
+</tr>
+<tr>
+<td>FIREWALL-006</td>
+<td>Network Configuration</td>
+<td>IPv6 Disablement</td>
+<td>Medium</td>
+<td>Disable IPv6 if not used</td>
+</tr>
+<tr>
+<td>FIREWALL-007</td>
+<td>Network Configuration</td>
+<td>DNS Rebind Check</td>
+<td>Medium</td>
+<td>Disable DNS rebind check</td>
+</tr>
+<tr>
+<td>FIREWALL-008</td>
+<td>Management Access</td>
+<td>HTTPS Web Management</td>
+<td>High</td>
+<td>Use HTTPS for web management</td>
+</tr>
+<tr>
+<td>FIREWALL-009</td>
+<td>High Availability</td>
+<td>HA Configuration</td>
+<td>Medium</td>
+<td>Configure synchronized HA peer</td>
+</tr>
+<tr>
+<td>FIREWALL-010</td>
+<td>User Management</td>
+<td>Session Timeout</td>
+<td>High</td>
+<td>Set session timeout to ≤10 minutes</td>
+</tr>
+<tr>
+<td>FIREWALL-011</td>
+<td>Authentication</td>
+<td>Central Authentication</td>
+<td>High</td>
+<td>Configure LDAP/RADIUS authentication</td>
+</tr>
+<tr>
+<td>FIREWALL-012</td>
+<td>Access Control</td>
+<td>Console Menu Protection</td>
+<td>Medium</td>
+<td>Password protect console menu</td>
+</tr>
+<tr>
+<td>FIREWALL-013</td>
+<td>User Management</td>
+<td>Default Account Management</td>
+<td>High</td>
+<td>Secure default accounts</td>
+</tr>
+<tr>
+<td>FIREWALL-014</td>
+<td>User Management</td>
+<td>Local Account Status</td>
+<td>Medium</td>
+<td>Disable local accounts except admin</td>
+</tr>
+<tr>
+<td>FIREWALL-015</td>
+<td>Security Policy</td>
+<td>Login Protection Threshold</td>
+<td>High</td>
+<td>Set threshold to ≤30</td>
+</tr>
+<tr>
+<td>FIREWALL-016</td>
+<td>Security Policy</td>
+<td>Access Block Time</td>
+<td>High</td>
+<td>Set block time to ≥300 seconds</td>
+</tr>
+<tr>
+<td>FIREWALL-017</td>
+<td>Security Policy</td>
+<td>Default Password Change</td>
+<td>High</td>
+<td>Change default admin password</td>
+</tr>
+<tr>
+<td>FIREWALL-018</td>
+<td>Firewall Rules</td>
+<td>Destination Restrictions</td>
+<td>High</td>
+<td>No "Any" in destination field</td>
+</tr>
+<tr>
+<td>FIREWALL-019</td>
+<td>Firewall Rules</td>
+<td>Source Restrictions</td>
+<td>High</td>
+<td>No "Any" in source field</td>
+</tr>
+<tr>
+<td>FIREWALL-020</td>
+<td>Firewall Rules</td>
+<td>Service Restrictions</td>
+<td>High</td>
+<td>No "Any" in service field</td>
+</tr>
+</tbody>
+</table>
+<h2 id="implementation-details">Implementation Details<a class="headerlink" href="#implementation-details" title="Permanent link">&para;</a></h2>
+<h3 id="audit-engine">Audit Engine<a class="headerlink" href="#audit-engine" title="Permanent link">&para;</a></h3>
+<p>The compliance analysis is performed by the <code>internal/audit/engine.go</code> module, which:</p>
+<ol>
+<li><strong>Analyzes OPNsense configurations</strong> against defined security controls</li>
+<li><strong>Maps findings to compliance standards</strong> with specific control references</li>
+<li><strong>Generates compliance reports</strong> with detailed remediation guidance</li>
+<li><strong>Provides risk assessment</strong> based on control compliance status</li>
+</ol>
+<h3 id="data-structures">Data Structures<a class="headerlink" href="#data-structures" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1">// AuditFinding represents a finding with compliance mappings</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kd">type</span><span class="w"> </span><span class="nx">AuditFinding</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="nx">processor</span><span class="p">.</span><span class="nx">Finding</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="nx">STIGReferences</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;stigReferences,omitempty&quot;`</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="nx">SANSReferences</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;sansReferences,omitempty&quot;`</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="nx">FirewallReferences</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;firewallReferences,omitempty&quot;`</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="nx">ComplianceTags</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&quot;complianceTags,omitempty&quot;`</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">}</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1">// AuditResult contains the complete audit results</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="kd">type</span><span class="w"> </span><span class="nx">AuditResult</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">    </span><span class="nx">Findings</span><span class="w">       </span><span class="p">[]</span><span class="nx">AuditFinding</span><span class="w"> </span><span class="s">`json:&quot;findings&quot;`</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">    </span><span class="nx">STIGCompliance</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">bool</span><span class="w"> </span><span class="s">`json:&quot;stigCompliance&quot;`</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">    </span><span class="nx">SANSCompliance</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">bool</span><span class="w"> </span><span class="s">`json:&quot;sansCompliance&quot;`</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">    </span><span class="nx">FirewallCompliance</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">bool</span><span class="w"> </span><span class="s">`json:&quot;firewallCompliance&quot;`</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">    </span><span class="nx">Summary</span><span class="w">        </span><span class="nx">AuditSummary</span><span class="w">   </span><span class="s">`json:&quot;summary&quot;`</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="p">}</span>
+</code></pre></div>
+<h3 id="compliance-checks">Compliance Checks<a class="headerlink" href="#compliance-checks" title="Permanent link">&para;</a></h3>
+<p>The audit engine performs the following types of checks:</p>
+<h4 id="stig-compliance-checks">STIG Compliance Checks<a class="headerlink" href="#stig-compliance-checks" title="Permanent link">&para;</a></h4>
+<ol>
+<li>
+<p><strong>Default Deny Policy (V-206694)</strong></p>
+</li>
+<li>
+<p>Verifies firewall implements deny-by-default approach</p>
+</li>
+<li>
+<p>Checks for explicit allow rules only</p>
+</li>
+<li>
+<p><strong>DoS Protection (V-206701)</strong></p>
+</li>
+<li>
+<p>Validates DoS protection mechanisms</p>
+</li>
+<li>
+<p>Checks flood protection and rate limiting</p>
+</li>
+<li>
+<p><strong>Packet Filtering (V-206674)</strong></p>
+</li>
+<li>
+<p>Analyzes rule specificity</p>
+</li>
+<li>
+<p>Identifies overly permissive rules</p>
+</li>
+<li>
+<p><strong>Service Hardening (V-206690)</strong></p>
+</li>
+<li>
+<p>Checks for unnecessary services</p>
+</li>
+<li>
+<p>Validates service configuration</p>
+</li>
+<li>
+<p><strong>Logging Configuration (V-206682, V-206680, V-206679, V-206678, V-206681)</strong></p>
+</li>
+<li>
+<p>Verifies comprehensive logging</p>
+</li>
+<li>Checks log content and format</li>
+</ol>
+<h4 id="sans-compliance-checks">SANS Compliance Checks<a class="headerlink" href="#sans-compliance-checks" title="Permanent link">&para;</a></h4>
+<ol>
+<li>
+<p><strong>Access Control (SANS-FW-001)</strong></p>
+</li>
+<li>
+<p>Validates default deny implementation</p>
+</li>
+<li>
+<p>Checks explicit allow rules</p>
+</li>
+<li>
+<p><strong>Rule Management (SANS-FW-002)</strong></p>
+</li>
+<li>
+<p>Analyzes rule documentation</p>
+</li>
+<li>
+<p>Checks rule specificity</p>
+</li>
+<li>
+<p><strong>Network Segmentation (SANS-FW-003)</strong></p>
+</li>
+<li>
+<p>Validates zone separation</p>
+</li>
+<li>
+<p>Checks access controls between zones</p>
+</li>
+<li>
+<p><strong>Logging and Monitoring (SANS-FW-004)</strong></p>
+</li>
+<li>
+<p>Verifies comprehensive logging</p>
+</li>
+<li>Checks monitoring configuration</li>
+</ol>
+<h4 id="firewall-security-compliance-checks">Firewall Security Compliance Checks<a class="headerlink" href="#firewall-security-compliance-checks" title="Permanent link">&para;</a></h4>
+<ol>
+<li>
+<p><strong>System Configuration (FIREWALL-001, FIREWALL-002, FIREWALL-003, FIREWALL-004)</strong></p>
+</li>
+<li>
+<p>Validates SSH warning banner configuration</p>
+</li>
+<li>Checks auto configuration backup settings</li>
+<li>Verifies MOTD customization</li>
+<li>
+<p>Validates hostname configuration</p>
+</li>
+<li>
+<p><strong>Network Configuration (FIREWALL-005, FIREWALL-006, FIREWALL-007)</strong></p>
+</li>
+<li>
+<p>Verifies DNS server configuration</p>
+</li>
+<li>Checks IPv6 disablement settings</li>
+<li>
+<p>Validates DNS rebind check configuration</p>
+</li>
+<li>
+<p><strong>Management Access (FIREWALL-008)</strong></p>
+</li>
+<li>
+<p>Verifies HTTPS web management configuration</p>
+</li>
+<li>
+<p>Checks management access encryption</p>
+</li>
+<li>
+<p><strong>High Availability (FIREWALL-009)</strong></p>
+</li>
+<li>
+<p>Validates HA peer configuration</p>
+</li>
+<li>
+<p>Checks synchronization settings</p>
+</li>
+<li>
+<p><strong>User Management (FIREWALL-010, FIREWALL-013, FIREWALL-014)</strong></p>
+</li>
+<li>
+<p>Verifies session timeout configuration</p>
+</li>
+<li>Checks default account management</li>
+<li>
+<p>Validates local account status</p>
+</li>
+<li>
+<p><strong>Authentication (FIREWALL-011)</strong></p>
+</li>
+<li>
+<p>Validates central authentication configuration</p>
+</li>
+<li>
+<p>Checks LDAP/RADIUS setup</p>
+</li>
+<li>
+<p><strong>Access Control (FIREWALL-012)</strong></p>
+</li>
+<li>
+<p>Verifies console menu protection</p>
+</li>
+<li>
+<p>Checks access control settings</p>
+</li>
+<li>
+<p><strong>Security Policy (FIREWALL-015, FIREWALL-016, FIREWALL-017)</strong></p>
+</li>
+<li>
+<p>Validates login protection threshold</p>
+</li>
+<li>Checks access block time configuration</li>
+<li>
+<p>Verifies default password change</p>
+</li>
+<li>
+<p><strong>Firewall Rules (FIREWALL-018, FIREWALL-019, FIREWALL-020)</strong></p>
+</li>
+<li>
+<p>Validates destination field restrictions</p>
+</li>
+<li>Checks source field restrictions</li>
+<li>Verifies service field restrictions</li>
+</ol>
+<h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h2>
+<h3 id="blue-team-mode">Blue Team Mode<a class="headerlink" href="#blue-team-mode" title="Permanent link">&para;</a></h3>
+<p>To generate a compliance-focused blue team report:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Include all compliance standards</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>opnDossier<span class="w"> </span>analyze<span class="w"> </span>config.xml<span class="w"> </span>--mode<span class="o">=</span>blue<span class="w"> </span>--compliance<span class="o">=</span>stig,sans,firewall
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Include specific standards</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>opnDossier<span class="w"> </span>analyze<span class="w"> </span>config.xml<span class="w"> </span>--mode<span class="o">=</span>blue<span class="w"> </span>--compliance<span class="o">=</span>firewall
+</code></pre></div>
+<h3 id="enhanced-blue-team-template">Enhanced Blue Team Template<a class="headerlink" href="#enhanced-blue-team-template" title="Permanent link">&para;</a></h3>
+<p>The enhanced blue team template (<code>blue_enhanced.md.tmpl</code>) provides:</p>
+<ul>
+<li><strong>Executive Summary</strong> with compliance metrics</li>
+<li><strong>Findings by Severity</strong> with control references</li>
+<li><strong>STIG Compliance Details</strong> with status matrix</li>
+<li><strong>SANS Compliance Details</strong> with status matrix</li>
+<li><strong>Firewall Security Compliance Details</strong> with status matrix</li>
+<li><strong>Security Recommendations</strong> mapped to controls</li>
+<li><strong>Compliance Roadmap</strong> for remediation</li>
+<li><strong>Risk Assessment</strong> based on findings</li>
+</ul>
+<h3 id="report-sections">Report Sections<a class="headerlink" href="#report-sections" title="Permanent link">&para;</a></h3>
+<h4 id="executive-summary">Executive Summary<a class="headerlink" href="#executive-summary" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Total findings count</li>
+<li>Severity breakdown</li>
+<li>Compliance status summary across all standards</li>
+</ul>
+<h4 id="criticalhigh-findings">Critical/High Findings<a class="headerlink" href="#criticalhigh-findings" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Detailed findings with control references</li>
+<li>Specific remediation guidance</li>
+<li>STIG/SANS/Firewall control mappings</li>
+</ul>
+<h4 id="compliance-details">Compliance Details<a class="headerlink" href="#compliance-details" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Control-by-control status for each standard</li>
+<li>Compliance matrices</li>
+<li>Risk assessments</li>
+</ul>
+<h4 id="recommendations">Recommendations<a class="headerlink" href="#recommendations" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Prioritized action items</li>
+<li>Control-specific guidance</li>
+<li>Implementation roadmap</li>
+</ul>
+<h2 id="compliance-mapping">Compliance Mapping<a class="headerlink" href="#compliance-mapping" title="Permanent link">&para;</a></h2>
+<h3 id="finding-to-control-mapping">Finding to Control Mapping<a class="headerlink" href="#finding-to-control-mapping" title="Permanent link">&para;</a></h3>
+<p>Each audit finding is mapped to relevant controls:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nx">finding</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">AuditFinding</span><span class="p">{</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="nx">Finding</span><span class="p">:</span><span class="w"> </span><span class="nx">processor</span><span class="p">.</span><span class="nx">Finding</span><span class="p">{</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">        </span><span class="nx">Type</span><span class="p">:</span><span class="w">        </span><span class="s">&quot;compliance&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">        </span><span class="nx">Title</span><span class="p">:</span><span class="w">       </span><span class="s">&quot;Missing Default Deny Policy&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">        </span><span class="nx">Description</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Firewall does not implement a default deny policy&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">        </span><span class="nx">Recommendation</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Configure firewall to deny all traffic by default&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">        </span><span class="nx">Component</span><span class="p">:</span><span class="w">   </span><span class="s">&quot;firewall-rules&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">        </span><span class="nx">Reference</span><span class="p">:</span><span class="w">   </span><span class="s">&quot;FIREWALL-003, STIG V-206694&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span><span class="nx">STIGReferences</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">&quot;V-206694&quot;</span><span class="p">},</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">    </span><span class="nx">SANSReferences</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">&quot;SANS-FW-001&quot;</span><span class="p">},</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">    </span><span class="nx">FirewallReferences</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">&quot;FIREWALL-018&quot;</span><span class="p">},</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">    </span><span class="nx">ComplianceTags</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">&quot;default-deny&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;firewall-rules&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;security-posture&quot;</span><span class="p">},</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="p">}</span>
+</code></pre></div>
+<h3 id="control-status-tracking">Control Status Tracking<a class="headerlink" href="#control-status-tracking" title="Permanent link">&para;</a></h3>
+<p>The system tracks compliance status for each control:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nx">result</span><span class="p">.</span><span class="nx">STIGCompliance</span><span class="p">[</span><span class="s">&quot;V-206694&quot;</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">false</span><span class="w">   </span><span class="c1">// Non-compliant</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nx">result</span><span class="p">.</span><span class="nx">SANSCompliance</span><span class="p">[</span><span class="s">&quot;SANS-FW-001&quot;</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">false</span><span class="w"> </span><span class="c1">// Non-compliant</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nx">result</span><span class="p">.</span><span class="nx">FirewallCompliance</span><span class="p">[</span><span class="s">&quot;FIREWALL-018&quot;</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">false</span><span class="w"> </span><span class="c1">// Non-compliant</span>
+</code></pre></div>
+<h2 id="benefits">Benefits<a class="headerlink" href="#benefits" title="Permanent link">&para;</a></h2>
+<h3 id="for-blue-teams">For Blue Teams<a class="headerlink" href="#for-blue-teams" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Standardized Assessment</strong>: Use industry-recognized security controls</li>
+<li><strong>Compliance Reporting</strong>: Generate reports for regulatory requirements</li>
+<li><strong>Risk Prioritization</strong>: Focus on high-impact security issues</li>
+<li><strong>Remediation Guidance</strong>: Get specific action items for each finding</li>
+<li><strong>Framework Alignment</strong>: Align with STIG, SANS, and industry best practices</li>
+</ol>
+<h3 id="for-organizations">For Organizations<a class="headerlink" href="#for-organizations" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Regulatory Compliance</strong>: Meet STIG, SANS, and industry security requirements</li>
+<li><strong>Security Posture</strong>: Understand current security state</li>
+<li><strong>Improvement Roadmap</strong>: Plan security enhancements</li>
+<li><strong>Audit Readiness</strong>: Prepare for security assessments</li>
+<li><strong>Industry Standards</strong>: Follow recognized best practices</li>
+</ol>
+<h2 id="future-enhancements">Future Enhancements<a class="headerlink" href="#future-enhancements" title="Permanent link">&para;</a></h2>
+<h3 id="planned-features">Planned Features<a class="headerlink" href="#planned-features" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Additional Standards</strong>: NIST Cybersecurity Framework, ISO 27001</li>
+<li><strong>Custom Controls</strong>: Organization-specific security requirements</li>
+<li><strong>Automated Remediation</strong>: Generate configuration fixes</li>
+<li><strong>Compliance Monitoring</strong>: Track compliance over time</li>
+<li><strong>Integration</strong>: SIEM and ticketing system integration</li>
+</ol>
+<h3 id="control-expansion">Control Expansion<a class="headerlink" href="#control-expansion" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>More STIG Controls</strong>: Additional DISA security requirements</li>
+<li><strong>Industry-Specific</strong>: Healthcare, finance, government controls</li>
+<li><strong>Regional Standards</strong>: EU, APAC, and other regional requirements</li>
+<li><strong>Framework Mapping</strong>: Cross-reference between standards</li>
+<li><strong>Additional Controls</strong>: Expand firewall security control coverage</li>
+</ol>
+<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="https://public.cyber.mil/stigs/">DISA STIG Library</a></li>
+<li><a href="https://www.sans.org/media/score/checklists/FirewallChecklist.pdf">SANS Firewall Checklist</a></li>
+<li><a href="docs/cis-like-firewall-reference.md">CIS-Inspired Firewall Security Controls Reference</a></li>
+<li><a href="https://stigviewer.com/stigs/firewall_security_requirements_guide">STIG Viewer</a></li>
+<li><a href="https://www.nist.gov/cyberframework">NIST Cybersecurity Framework</a></li>
+</ul>
+<h2 id="support">Support<a class="headerlink" href="#support" title="Permanent link">&para;</a></h2>
+<p>For questions about compliance standards integration:</p>
+<ol>
+<li><strong>Documentation</strong>: Review this guide and API documentation</li>
+<li><strong>Issues</strong>: Report bugs or feature requests via GitHub</li>
+<li><strong>Contributions</strong>: Submit improvements to compliance mappings</li>
+<li><strong>Standards</strong>: Suggest additional security frameworks to support</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/EvilBit-Labs/opnDossier" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.highlight", "search.share", "toc.integrate"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
