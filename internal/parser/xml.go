@@ -12,6 +12,8 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/EvilBit-Labs/opnDossier/internal/validator"
+	"golang.org/x/text/encoding/charmap"
+	"golang.org/x/text/transform"
 )
 
 const (
@@ -43,22 +45,29 @@ func NewXMLParser() *XMLParser {
 }
 
 // charsetReader creates a reader for the specified charset.
-// This is a simple implementation that handles common encodings.
+// Supported encodings: UTF-8, US-ASCII, ISO-8859-1 (Latin1), and Windows-1252.
 func charsetReader(charset string, input io.Reader) (io.Reader, error) {
-	switch strings.ToLower(charset) {
+	normalizedCharset := strings.ToLower(strings.TrimSpace(charset))
+	normalizedCharset = strings.ReplaceAll(normalizedCharset, "_", "-")
+	normalizedCharset = strings.TrimSuffix(normalizedCharset, ":1987")
+
+	switch normalizedCharset {
 	case "us-ascii", "ascii":
 		// us-ascii is a subset of UTF-8, so we can use the input as-is
 		return input, nil
 	case "utf-8", "utf8":
 		// UTF-8 is the default, use input as-is
 		return input, nil
-	case "iso-8859-1", "latin1":
-		// For now, treat as UTF-8 (this is a simplification)
-		// TODO: use golang.org/x/text/encoding
-		return input, nil
+	case "iso-8859-1", "iso8859-1", "latin1", "latin-1":
+		// Convert ISO-8859-1 to UTF-8 for internal parsing.
+		decoder := charmap.ISO8859_1.NewDecoder()
+		return transform.NewReader(input, decoder), nil
+	case "windows-1252", "windows1252", "cp1252":
+		// Convert Windows-1252 to UTF-8 for internal parsing.
+		decoder := charmap.Windows1252.NewDecoder()
+		return transform.NewReader(input, decoder), nil
 	default:
-		// For unknown encodings, try to use as-is (common fallback)
-		return input, nil
+		return nil, fmt.Errorf("unsupported charset: %s", charset)
 	}
 }
 

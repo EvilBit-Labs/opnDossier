@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<opnsense>
+  <version>24.1</version>
+  <system>
+    <hostname>München-fw</hostname>
+    <domain>corp.local</domain>
+    <descr>Auditación de configuración - Größe ß</descr>
+    <timezone>Europe/Berlin</timezone>
+    <group>
+      <name>admins</name>
+      <description>Administración</description>
+      <gid>1999</gid>
+    </group>
+    <user>
+      <name>operador</name>
+      <descr>Operación rápida</descr>
+      <groupname>admins</groupname>
+      <uid>1001</uid>
+    </user>
+  </system>
+  <interfaces>
+    <lan>
+      <enable>1</enable>
+      <if>em0</if>
+      <ipaddr>192.168.10.1</ipaddr>
+      <subnet>24</subnet>
+      <descr>LAN Büro – München</descr>
+    </lan>
+  </interfaces>
+  <filter>
+    <rule>
+      <type>pass</type>
+      <ipprotocol>inet</ipprotocol>
+      <interface>lan</interface>
+      <descr>Permitir tráfico estándar – café</descr>
+      <source>
+        <network>lan</network>
+      </source>
+      <destination>
+        <any/>
+      </destination>
+    </rule>
+  </filter>
+</opnsense>

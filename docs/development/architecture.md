@@ -61,7 +61,7 @@ The CLI uses a layered architecture: **Cobra** provides command structure and ar
 - **Technology**: Go's built-in `encoding/xml`
 - **Input**: OPNsense config.xml files
 - **Output**: Structured Go data types
-- **Features**: Schema validation, error reporting
+- **Features**: Schema validation, error reporting, automatic charset conversion (UTF-8, US-ASCII, ISO-8859-1, Windows-1252)
 
 #### Data Converter Component
 

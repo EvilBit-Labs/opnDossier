@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<opnsense>
+  <version>24.1</version>
+  <system>
+    <hostname>Configuración</hostname>
+    <domain>español.local</domain>
+    <descr>Prüfung Größe Über ÄÖÜ ß ñ é</descr>
+  </system>
+</opnsense>
