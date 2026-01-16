@@ -40,8 +40,8 @@ func TestDisplayCommandParserErrors(t *testing.T) {
 			expectInLog:    "Failed to parse XML",
 		},
 		{
-			name: "Empty file",
-			xmlContent: "",
+			name:           "Empty file",
+			xmlContent:     "",
 			expectParseErr: true,
 			expectInLog:    "Failed to parse XML",
 		},
@@ -63,7 +63,7 @@ func TestDisplayCommandParserErrors(t *testing.T) {
 			// Create temporary XML file
 			tmpDir := t.TempDir()
 			tmpFile := filepath.Join(tmpDir, "test-config.xml")
-			err := os.WriteFile(tmpFile, []byte(tt.xmlContent), 0644)
+			err := os.WriteFile(tmpFile, []byte(tt.xmlContent), 0o600)
 			require.NoError(t, err)
 
 			// Execute display command via root command
@@ -76,7 +76,7 @@ func TestDisplayCommandParserErrors(t *testing.T) {
 			err = rootCmd.Execute()
 
 			if tt.expectParseErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 				assert.Contains(t, err.Error(), "failed to parse XML")
 			} else {
 				assert.NoError(t, err)
@@ -127,7 +127,7 @@ func TestDisplayCommandValidationErrors(t *testing.T) {
 			// Create temporary XML file
 			tmpDir := t.TempDir()
 			tmpFile := filepath.Join(tmpDir, "test-config.xml")
-			err := os.WriteFile(tmpFile, []byte(tt.xmlContent), 0644)
+			err := os.WriteFile(tmpFile, []byte(tt.xmlContent), 0o600)
 			require.NoError(t, err)
 
 			// Execute display command via root command
@@ -139,12 +139,10 @@ func TestDisplayCommandValidationErrors(t *testing.T) {
 
 			if tt.expectError {
 				assert.Error(t, err)
-			} else {
+			} else if err != nil {
 				// For valid configs, we expect either success or a different error
 				// (not a validation error)
-				if err != nil {
-					assert.NotContains(t, err.Error(), "validation failed")
-				}
+				assert.NotContains(t, err.Error(), "validation failed")
 			}
 		})
 	}
@@ -158,8 +156,8 @@ func TestDisplayCommandEnhancedErrorMessages(t *testing.T) {
 		expectedErrMsg string
 	}{
 		{
-			name: "File does not exist",
-			xmlContent: "", // Will use non-existent file path
+			name:           "File does not exist",
+			xmlContent:     "", // Will use non-existent file path
 			expectedErrMsg: "no such file or directory",
 		},
 	}
@@ -176,7 +174,7 @@ func TestDisplayCommandEnhancedErrorMessages(t *testing.T) {
 			// Execute command
 			err := rootCmd.Execute()
 
-			assert.Error(t, err)
+			require.Error(t, err)
 			assert.Contains(t, err.Error(), tt.expectedErrMsg)
 		})
 	}

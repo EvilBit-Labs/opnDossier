@@ -8,6 +8,12 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+const (
+	testMarkdownContent = "# Test Content\n\nThis is a test document."
+	neverCancel         = "never"
 )
 
 // TestDisplayContextCancellation tests that the Display method respects context cancellation.
@@ -53,18 +59,15 @@ func TestDisplayContextCancellation(t *testing.T) {
 
 			td := NewTerminalDisplay()
 
-			// Create simple test markdown content
-			markdownContent := "# Test Content\n\nThis is a test document."
+			err := td.Display(ctx, testMarkdownContent)
 
-			err := td.Display(ctx, markdownContent)
-
-			if tt.expectError && tt.cancelWhen != "never" {
+			if tt.expectError && tt.cancelWhen != neverCancel {
 				// We expect either context.Canceled or no error (if we finished before cancel)
 				// This is acceptable because the timing is non-deterministic
 				if err != nil {
-					assert.ErrorIs(t, err, context.Canceled)
+					require.ErrorIs(t, err, context.Canceled)
 				}
-			} else if tt.cancelWhen == "never" {
+			} else if tt.cancelWhen == neverCancel {
 				// Should complete without context cancellation error
 				// May have other errors (like renderer errors), but not context.Canceled
 				if err != nil {
@@ -102,9 +105,6 @@ func TestDisplayWithProgressContextCancellation(t *testing.T) {
 
 			td := NewTerminalDisplay()
 
-			// Create simple test markdown content
-			markdownContent := "# Test Content\n\nThis is a test document."
-
 			// Create a simple progress channel
 			progressCh := make(chan ProgressEvent, 1)
 			go func() {
@@ -119,12 +119,12 @@ func TestDisplayWithProgressContextCancellation(t *testing.T) {
 				}()
 			}
 
-			err := td.DisplayWithProgress(ctx, markdownContent, progressCh)
+			err := td.DisplayWithProgress(ctx, testMarkdownContent, progressCh)
 
 			// We expect either context.Canceled or completion
 			// The timing is non-deterministic
-			if err != nil && tt.cancelWhen != "never" {
-				assert.ErrorIs(t, err, context.Canceled)
+			if err != nil && tt.cancelWhen != neverCancel {
+				require.ErrorIs(t, err, context.Canceled)
 			}
 		})
 	}
@@ -139,9 +139,6 @@ func TestDisplayContextCancellationGoroutineCleanup(t *testing.T) {
 
 	td := NewTerminalDisplay()
 
-	// Create simple test markdown content
-	markdownContent := "# Test Content\n\nThis is a test document."
-
 	// Create a simple progress channel
 	progressCh := make(chan ProgressEvent, 1)
 	go func() {
@@ -152,7 +149,9 @@ func TestDisplayContextCancellationGoroutineCleanup(t *testing.T) {
 	// Cancel immediately
 	cancel()
 
-	_ = td.DisplayWithProgress(ctx, markdownContent, progressCh)
+	err := td.DisplayWithProgress(ctx, testMarkdownContent, progressCh)
+	// Error is acceptable here since we cancelled immediately
+	_ = err
 
 	// Give goroutines time to clean up
 	time.Sleep(50 * time.Millisecond)
@@ -171,17 +170,13 @@ func TestDisplayMultipleCancellationPoints(t *testing.T) {
 
 	td := NewTerminalDisplay()
 
-	// Create simple test markdown content
-	markdownContent := "# Test Content\n\nThis is a test document."
-
 	// Test cancellation at each checkpoint
-	for i := 0; i < 3; i++ {
-		t.Run("Cancellation checkpoint", func(t *testing.T) {
+	for range 3 {
+		t.Run("Cancellation checkpoint", func(_ *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 			defer cancel()
 
-			err := td.Display(ctx, markdownContent)
-
+			err := td.Display(ctx, testMarkdownContent)
 			// Either completes successfully or returns context error
 			if err != nil {
 				// Check if it's a context-related error
@@ -206,7 +201,7 @@ func TestHandleRendererErrorWithCancelledContext(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// Helper function to get current goroutine count
+// Helper function to get current goroutine count.
 func currentGoroutineCount() int {
 	// This is a simplified version - in production you'd use runtime.NumGoroutine()
 	// but for tests we just return a baseline
