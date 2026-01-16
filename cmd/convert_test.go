@@ -17,6 +17,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/EvilBit-Labs/opnDossier/internal/processor"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -56,6 +57,10 @@ func TestConvertCmdFlags(t *testing.T) {
 	wrapFlag := flags.Lookup("wrap")
 	require.NotNil(t, wrapFlag)
 	assert.Equal(t, "-1", wrapFlag.DefValue)
+
+	// Check no-wrap flag
+	noWrapFlag := flags.Lookup("no-wrap")
+	require.NotNil(t, noWrapFlag)
 }
 
 func TestConvertCmdHelp(t *testing.T) {
@@ -187,6 +192,173 @@ func TestBuildConversionOptions(t *testing.T) {
 			if tt.expected.wrap > 0 {
 				assert.Equal(t, tt.expected.wrap, result.WrapWidth)
 			}
+		})
+	}
+}
+
+func TestBuildConversionOptionsWrapWidthPrecedence(t *testing.T) {
+	originalWrap := sharedWrapWidth
+	originalNoWrap := sharedNoWrap
+	originalSections := sharedSections
+	t.Cleanup(func() {
+		sharedWrapWidth = originalWrap
+		sharedNoWrap = originalNoWrap
+		sharedSections = originalSections
+	})
+
+	makeConfig := func(wrap int) *config.Config {
+		return &config.Config{WrapWidth: wrap}
+	}
+
+	applyNoWrap := func(t *testing.T) {
+		t.Helper()
+		flags := pflag.NewFlagSet("test", pflag.ContinueOnError)
+		flags.Bool("no-wrap", false, "")
+		flags.Int("wrap", -1, "")
+		require.NoError(t, flags.Set("no-wrap", "true"))
+		sharedNoWrap = true
+		sharedWrapWidth = -1
+		require.NoError(t, validateConvertFlags(flags))
+	}
+
+	tests := []struct {
+		name       string
+		setupFlags func(t *testing.T)
+		wrapFlag   int
+		configWrap int
+		expected   int
+	}{
+		{
+			name:       "No-wrap overrides config",
+			setupFlags: applyNoWrap,
+			wrapFlag:   -1,
+			configWrap: 80,
+			expected:   0,
+		},
+		{
+			name:       "Wrap zero overrides config",
+			setupFlags: nil,
+			wrapFlag:   0,
+			configWrap: 80,
+			expected:   0,
+		},
+		{
+			name:       "Wrap 120 overrides config",
+			setupFlags: nil,
+			wrapFlag:   120,
+			configWrap: 80,
+			expected:   120,
+		},
+		{
+			name:       "No CLI flag uses config",
+			setupFlags: nil,
+			wrapFlag:   -1,
+			configWrap: 100,
+			expected:   100,
+		},
+		{
+			name:       "Config auto-detect honored",
+			setupFlags: nil,
+			wrapFlag:   -1,
+			configWrap: -1,
+			expected:   -1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sharedSections = nil
+			sharedNoWrap = false
+			sharedWrapWidth = tt.wrapFlag
+			if tt.setupFlags != nil {
+				tt.setupFlags(t)
+			}
+
+			result := buildConversionOptions("markdown", makeConfig(tt.configWrap))
+			assert.Equal(t, tt.expected, result.WrapWidth)
+		})
+	}
+}
+
+func TestValidateConvertFlagsNoWrapMutualExclusivity(t *testing.T) {
+	originalWrap := sharedWrapWidth
+	originalNoWrap := sharedNoWrap
+	t.Cleanup(func() {
+		sharedWrapWidth = originalWrap
+		sharedNoWrap = originalNoWrap
+	})
+
+	baseFlags := func() *pflag.FlagSet {
+		flags := pflag.NewFlagSet("test", pflag.ContinueOnError)
+		flags.Bool("no-wrap", false, "")
+		flags.Int("wrap", -1, "")
+		return flags
+	}
+
+	tests := []struct {
+		name          string
+		noWrap        bool
+		wrapValue     string
+		setWrapFlag   bool
+		wantErr       bool
+		wantErrSubstr string
+	}{
+		{
+			name:        "No-wrap alone is valid",
+			noWrap:      true,
+			setWrapFlag: false,
+			wantErr:     false,
+		},
+		{
+			name:          "No-wrap with wrap auto-detect",
+			noWrap:        true,
+			setWrapFlag:   true,
+			wrapValue:     "-1",
+			wantErr:       true,
+			wantErrSubstr: "--no-wrap and --wrap flags are mutually exclusive",
+		},
+		{
+			name:          "No-wrap with wrap zero",
+			noWrap:        true,
+			setWrapFlag:   true,
+			wrapValue:     "0",
+			wantErr:       true,
+			wantErrSubstr: "--no-wrap and --wrap flags are mutually exclusive",
+		},
+		{
+			name:          "No-wrap with wrap 80",
+			noWrap:        true,
+			setWrapFlag:   true,
+			wrapValue:     "80",
+			wantErr:       true,
+			wantErrSubstr: "--no-wrap and --wrap flags are mutually exclusive",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			flags := baseFlags()
+			sharedNoWrap = tt.noWrap
+			sharedWrapWidth = -1
+
+			if tt.noWrap {
+				require.NoError(t, flags.Set("no-wrap", "true"))
+			}
+			if tt.setWrapFlag {
+				require.NoError(t, flags.Set("wrap", tt.wrapValue))
+				wrapVal, err := flags.GetInt("wrap")
+				require.NoError(t, err)
+				sharedWrapWidth = wrapVal
+			}
+
+			err := validateConvertFlags(flags)
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErrSubstr)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, 0, sharedWrapWidth)
 		})
 	}
 }
