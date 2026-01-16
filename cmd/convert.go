@@ -568,6 +568,7 @@ func buildConversionOptions(
 
 	// Wrap width: CLI flag > config > default
 	// -1 means auto-detect (not provided), 0 means no wrapping, >0 means specific width
+	// Config values of -1 are treated as "not set" and fall through to default
 	switch {
 	case sharedWrapWidth >= 0:
 		opt.WrapWidth = sharedWrapWidth
