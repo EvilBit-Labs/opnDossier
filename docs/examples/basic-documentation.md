@@ -160,8 +160,6 @@ Create `~/.opnDossier.yaml` for persistent settings:
 
 ```yaml
 # Default settings
-log_level: info
-log_format: text
 output_file: ./network-docs.md
 verbose: false
 theme: auto
@@ -174,8 +172,7 @@ theme: auto
 export OPNDOSSIER_OUTPUT_FILE="./documentation.md"
 
 # Set logging preferences
-export OPNDOSSIER_LOG_LEVEL=debug
-export OPNDOSSIER_LOG_FORMAT=json
+export OPNDOSSIER_VERBOSE=true
 
 # Run with environment configuration
 opnDossier convert config.xml
@@ -185,7 +182,7 @@ opnDossier convert config.xml
 
 ```bash
 # Override config file settings
-opnDossier --log_level=debug --output=custom.md convert config.xml
+opnDossier --verbose --output=custom.md convert config.xml
 
 # Temporary verbose mode
 opnDossier --verbose convert config.xml
@@ -266,8 +263,7 @@ fi
 # daily-docs.sh
 
 # Set up environment
-export OPNDOSSIER_LOG_FORMAT=json
-export OPNDOSSIER_LOG_LEVEL=info
+export OPNDOSSIER_VERBOSE=true
 
 # Create timestamp
 TIMESTAMP=$(date +%Y-%m-%d_%H-%M-%S)
@@ -359,8 +355,7 @@ opnDossier convert config.xml -f json -o docs/exports/config.json
 
 ```bash
 # Set up environment
-export OPNDOSSIER_LOG_FORMAT=json
-export OPNDOSSIER_LOG_LEVEL=info
+export OPNDOSSIER_VERBOSE=true
 export OPNDOSSIER_OUTPUT_FILE="./docs/network-config.md"
 
 # Run commands

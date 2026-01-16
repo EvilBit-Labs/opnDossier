@@ -9,6 +9,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	charmLog "github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -23,6 +24,16 @@ var (
 	buildDate = "unknown"
 	gitCommit = "unknown"
 )
+
+// defaultLoggerConfig provides the initial logger configuration used during init.
+// It is defined as a variable to allow fault injection in tests.
+var defaultLoggerConfig = log.Config{ //nolint:gochecknoglobals // test override hook
+	Level:           "info",
+	Format:          "text",
+	Output:          os.Stderr,
+	ReportCaller:    true,
+	ReportTimestamp: true,
+}
 
 // rootCmd represents the base command when called without any subcommands.
 var rootCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra root command
@@ -89,23 +100,10 @@ WORKFLOW EXAMPLES:
 	},
 }
 
-// init initializes the global logger with default settings and registers persistent CLI flags for configuration file path, verbosity, log level, log format, and display theme. Panics if logger initialization fails.
+// init initializes the global logger with default settings and registers persistent CLI flags for configuration file path, verbosity, log level, log format, and display theme.
+// If logger initialization fails, a stderr-based fallback logger is used to keep the CLI operational.
 func init() {
-	// Initialize logger with default configuration before config is loaded
-	var loggerErr error
-
-	logger, loggerErr = log.New(log.Config{
-		Level:           "info",
-		Format:          "text",
-		Output:          os.Stderr,
-		ReportCaller:    true,
-		ReportTimestamp: true,
-	})
-	if loggerErr != nil {
-		// In init function, we can't return an error, so we'll panic
-		// This should never happen with valid default config
-		panic(fmt.Sprintf("failed to create default logger: %v", loggerErr))
-	}
+	initializeDefaultLogger()
 
 	// Configuration flags
 	rootCmd.PersistentFlags().
@@ -120,12 +118,6 @@ func init() {
 	setFlagAnnotation(rootCmd.PersistentFlags(), "quiet", []string{"output"})
 
 	// Logging control flags
-	rootCmd.PersistentFlags().
-		String("log-level", "", "Set log level (debug, info, warn, error) - overrides verbose/quiet")
-	setFlagAnnotation(rootCmd.PersistentFlags(), "log-level", []string{"logging"})
-	rootCmd.PersistentFlags().
-		String("log-format", "text", "Log format (text, json)")
-	setFlagAnnotation(rootCmd.PersistentFlags(), "log-format", []string{"logging"})
 	rootCmd.PersistentFlags().
 		Bool("timestamps", false, "Include timestamps in log output")
 	setFlagAnnotation(rootCmd.PersistentFlags(), "timestamps", []string{"logging"})
@@ -150,9 +142,6 @@ func init() {
 	// Mark mutually exclusive flags
 	// Verbose and quiet are mutually exclusive
 	rootCmd.MarkFlagsMutuallyExclusive("verbose", "quiet")
-	// Log level overrides verbose/quiet
-	rootCmd.MarkFlagsMutuallyExclusive("log-level", "verbose")
-	rootCmd.MarkFlagsMutuallyExclusive("log-level", "quiet")
 
 	// Add version command
 	versionCmd := &cobra.Command{
@@ -201,6 +190,36 @@ func init() {
 		// Normalize kebab-case consistently
 		return pflag.NormalizedName(strings.ReplaceAll(name, "_", "-"))
 	})
+}
+
+func initializeDefaultLogger() {
+	// Initialize logger with default configuration before config is loaded.
+	// If it fails, fall back to a minimal stderr logger to avoid breaking startup.
+	var loggerErr error
+	logger, loggerErr = log.New(defaultLoggerConfig)
+	if loggerErr != nil {
+		logger = createFallbackLogger(loggerErr)
+	}
+}
+
+// createFallbackLogger returns a minimal stderr-backed logger and reports the failure.
+// This avoids panicking during init while still providing basic error visibility.
+func createFallbackLogger(reason error) *log.Logger {
+	fmt.Fprintf(os.Stderr, "warning: unable to initialize logging (%v). Falling back to stderr output.\n", reason)
+
+	fallback, err := log.New(log.Config{
+		Level:           "error",
+		Format:          "text",
+		Output:          os.Stderr,
+		ReportCaller:    false,
+		ReportTimestamp: false,
+	})
+	if err == nil {
+		return fallback
+	}
+
+	fmt.Fprintf(os.Stderr, "warning: unable to initialize fallback logger (%v). Using minimal stderr output.\n", err)
+	return &log.Logger{Logger: charmLog.NewWithOptions(os.Stderr, charmLog.Options{})}
 }
 
 // GetRootCmd returns the root Cobra command for the opnDossier CLI application.
@@ -257,22 +276,6 @@ func getGitCommit() string {
 
 // validateGlobalFlags validates global flag combinations for consistency.
 func validateGlobalFlags(flags *pflag.FlagSet) error {
-	// Check log-level values
-	if logLevel, err := flags.GetString("log-level"); err == nil && logLevel != "" {
-		validLevels := []string{"debug", "info", "warn", "error"}
-		if !slices.Contains(validLevels, logLevel) {
-			return fmt.Errorf("invalid log-level %q, must be one of: %s", logLevel, strings.Join(validLevels, ", "))
-		}
-	}
-
-	// Check log-format values
-	if logFormat, err := flags.GetString("log-format"); err == nil && logFormat != "" {
-		validFormats := []string{"text", "json"}
-		if !slices.Contains(validFormats, logFormat) {
-			return fmt.Errorf("invalid log-format %q, must be one of: %s", logFormat, strings.Join(validFormats, ", "))
-		}
-	}
-
 	// Check color values
 	if color, err := flags.GetString("color"); err == nil && color != "" {
 		validColors := []string{"auto", "always", "never"}

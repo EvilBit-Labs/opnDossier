@@ -202,7 +202,7 @@ linters:
     nakedret:
       max-func-lines: 1
     nolintlint:
-      allow-no-explanation: [funlen, gocognit, golines]
+      allow-no-explanation: [ funlen, gocognit, golines ]
       require-explanation: true
       require-specific: true
     rowserrcheck:

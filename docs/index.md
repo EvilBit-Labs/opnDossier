@@ -57,7 +57,7 @@ opnDossier uses a hierarchical model structure that organizes OPNsense configura
 - **Security Domain**: Firewall rules, NAT, VPN, certificates
 - **Services Domain**: DNS, DHCP, monitoring, web services
 
-This hierarchical approach provides logical organization, improved maintainability, domain-specific validation, and better extensibility. See the [Model Refactor Documentation](model_refactor.md) for detailed information.
+This hierarchical approach provides logical organization, improved maintainability, domain-specific validation, and better extensibility.
 
 ### Processor Workflow
 
@@ -68,7 +68,7 @@ The processor implements a comprehensive four-phase pipeline:
 3. **Analyze**: Dead rule detection, security analysis, performance checks
 4. **Transform**: Multi-format output (Markdown, JSON, YAML)
 
-See the [Sample Report](sample-report.md) for an example of the comprehensive analysis output.
+<!-- Sample report coming soon -->
 
 ### Configuration Management
 
@@ -85,8 +85,6 @@ opnDossier implements comprehensive configuration management with Viper:
 
 - `verbose`: Enable debug logging
 - `quiet`: Suppress all output except errors
-- `log_level`: Set log level (debug, info, warn, error)
-- `log_format`: Set log format (text, json)
 - `input_file`: Default input file path
 - `output_file`: Default output file path
 
@@ -144,7 +142,7 @@ Check out the [Installation Guide](user-guide/installation.md) to get started, o
 - **[Release Process](development/releasing.md)** - How to prepare and release new versions
 - **[Developer Guide](dev-guide/)** - Additional development resources
 
-For AI agent coding standards and workflows, see [AGENTS.md](../AGENTS.md) in the root directory.
+For AI agent coding standards and workflows, see [AGENTS.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/AGENTS.md) in the root directory.
 
 ### Migration & Compliance
 

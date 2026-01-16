@@ -189,7 +189,8 @@
     <item>
       <descr>
         Redirect attacks are the purposeful mass-issuing of ICMP type 5 packets. In a normal network, redirects
-        to the end stations should not be required. This option enables the NIC to drop all inbound ICMP redirect
+        to the end stations should not be required. This option enables the NIC to drop all inbound ICMP
+        redirect
         packets without returning a response.
       </descr>
       <tunable>net.inet.icmp.drop_redirect</tunable>
@@ -225,7 +226,8 @@
     <nextuid>2000</nextuid>
     <nextgid>2000</nextgid>
     <timezone>Etc/UTC</timezone>
-    <timeservers>0.opnsense.pool.ntp.org 1.opnsense.pool.ntp.org 2.opnsense.pool.ntp.org 3.opnsense.pool.ntp.org</timeservers>
+    <timeservers>0.opnsense.pool.ntp.org 1.opnsense.pool.ntp.org 2.opnsense.pool.ntp.org 3.opnsense.pool.ntp.org
+    </timeservers>
     <webgui>
       <protocol>https</protocol>
     </webgui>
@@ -931,267 +933,268 @@
         <description>/firewall_rules_edit.php made changes</description>
       </created>
       <disabled>1</disabled>
-    </rule><rule uuid="e0a9fdb4-6496-47ee-a6b3-5e6e3bc60067">
-  <type>pass</type>
-  <interface>opt6</interface>
-  <ipprotocol>inet</ipprotocol>
-  <statetype>keep state</statetype>
-  <descr>default allow VLAN_2582 any</descr>
-  <direction>in</direction>
-  <quick>1</quick>
-  <source>
-    <any>1</any>
-  </source>
-  <destination>
-    <any>1</any>
-  </destination>
-  <updated>
-    <username>root@10.1.1.1</username>
-    <time>1754107254.5408</time>
-    <description>genRules.py made changes</description>
-  </updated>
-  <created>
-    <username>root@10.1.1.1</username>
-    <time>1754107254.5408</time>
-    <description>genRules.py made changes</description>
-  </created>
-</rule>
+    </rule>
+    <rule uuid="e0a9fdb4-6496-47ee-a6b3-5e6e3bc60067">
+      <type>pass</type>
+      <interface>opt6</interface>
+      <ipprotocol>inet</ipprotocol>
+      <statetype>keep state</statetype>
+      <descr>default allow VLAN_2582 any</descr>
+      <direction>in</direction>
+      <quick>1</quick>
+      <source>
+        <any>1</any>
+      </source>
+      <destination>
+        <any>1</any>
+      </destination>
+      <updated>
+        <username>root@10.1.1.1</username>
+        <time>1754107254.5408</time>
+        <description>genRules.py made changes</description>
+      </updated>
+      <created>
+        <username>root@10.1.1.1</username>
+        <time>1754107254.5408</time>
+        <description>genRules.py made changes</description>
+      </created>
+    </rule>
 
-<rule uuid="9f53dfcf-3959-4fd4-a253-87632db784ec">
-  <type>pass</type>
-  <interface>opt7</interface>
-  <ipprotocol>inet</ipprotocol>
-  <statetype>keep state</statetype>
-  <descr>default allow VLAN_3790 any</descr>
-  <direction>in</direction>
-  <quick>1</quick>
-  <source>
-    <any>1</any>
-  </source>
-  <destination>
-    <any>1</any>
-  </destination>
-  <updated>
-    <username>root@10.1.1.1</username>
-    <time>1754107254.5408</time>
-    <description>genRules.py made changes</description>
-  </updated>
-  <created>
-    <username>root@10.1.1.1</username>
-    <time>1754107254.5408</time>
-    <description>genRules.py made changes</description>
-  </created>
-</rule>
+    <rule uuid="9f53dfcf-3959-4fd4-a253-87632db784ec">
+      <type>pass</type>
+      <interface>opt7</interface>
+      <ipprotocol>inet</ipprotocol>
+      <statetype>keep state</statetype>
+      <descr>default allow VLAN_3790 any</descr>
+      <direction>in</direction>
+      <quick>1</quick>
+      <source>
+        <any>1</any>
+      </source>
+      <destination>
+        <any>1</any>
+      </destination>
+      <updated>
+        <username>root@10.1.1.1</username>
+        <time>1754107254.5408</time>
+        <description>genRules.py made changes</description>
+      </updated>
+      <created>
+        <username>root@10.1.1.1</username>
+        <time>1754107254.5408</time>
+        <description>genRules.py made changes</description>
+      </created>
+    </rule>
 
-<rule uuid="7eaf4988-055e-4755-b6ac-a80759250586">
-  <type>pass</type>
-  <interface>opt8</interface>
-  <ipprotocol>inet</ipprotocol>
-  <statetype>keep state</statetype>
-  <descr>default allow VLAN_933 any</descr>
-  <direction>in</direction>
-  <quick>1</quick>
-  <source>
-    <any>1</any>
-  </source>
-  <destination>
-    <any>1</any>
-  </destination>
-  <updated>
-    <username>root@10.1.1.1</username>
-    <time>1754107254.5408</time>
-    <description>genRules.py made changes</description>
-  </updated>
-  <created>
-    <username>root@10.1.1.1</username>
-    <time>1754107254.5408</time>
-    <description>genRules.py made changes</description>
-  </created>
-</rule>
+    <rule uuid="7eaf4988-055e-4755-b6ac-a80759250586">
+      <type>pass</type>
+      <interface>opt8</interface>
+      <ipprotocol>inet</ipprotocol>
+      <statetype>keep state</statetype>
+      <descr>default allow VLAN_933 any</descr>
+      <direction>in</direction>
+      <quick>1</quick>
+      <source>
+        <any>1</any>
+      </source>
+      <destination>
+        <any>1</any>
+      </destination>
+      <updated>
+        <username>root@10.1.1.1</username>
+        <time>1754107254.5408</time>
+        <description>genRules.py made changes</description>
+      </updated>
+      <created>
+        <username>root@10.1.1.1</username>
+        <time>1754107254.5408</time>
+        <description>genRules.py made changes</description>
+      </created>
+    </rule>
 
-<rule uuid="46c029c4-0d38-45dd-9496-26d48b3b43eb">
-  <type>pass</type>
-  <interface>opt9</interface>
-  <ipprotocol>inet</ipprotocol>
-  <statetype>keep state</statetype>
-  <descr>default allow VLAN_2206 any</descr>
-  <direction>in</direction>
-  <quick>1</quick>
-  <source>
-    <any>1</any>
-  </source>
-  <destination>
-    <any>1</any>
-  </destination>
-  <updated>
-    <username>root@10.1.1.1</username>
-    <time>1754107254.5408</time>
-    <description>genRules.py made changes</description>
-  </updated>
-  <created>
-    <username>root@10.1.1.1</username>
-    <time>1754107254.5408</time>
-    <description>genRules.py made changes</description>
-  </created>
-</rule>
+    <rule uuid="46c029c4-0d38-45dd-9496-26d48b3b43eb">
+      <type>pass</type>
+      <interface>opt9</interface>
+      <ipprotocol>inet</ipprotocol>
+      <statetype>keep state</statetype>
+      <descr>default allow VLAN_2206 any</descr>
+      <direction>in</direction>
+      <quick>1</quick>
+      <source>
+        <any>1</any>
+      </source>
+      <destination>
+        <any>1</any>
+      </destination>
+      <updated>
+        <username>root@10.1.1.1</username>
+        <time>1754107254.5408</time>
+        <description>genRules.py made changes</description>
+      </updated>
+      <created>
+        <username>root@10.1.1.1</username>
+        <time>1754107254.5408</time>
+        <description>genRules.py made changes</description>
+      </created>
+    </rule>
 
-<rule uuid="a8b93686-a058-4dac-9e75-47acb79aed87">
-  <type>pass</type>
-  <interface>opt10</interface>
-  <ipprotocol>inet</ipprotocol>
-  <statetype>keep state</statetype>
-  <descr>default allow VLAN_1446 any</descr>
-  <direction>in</direction>
-  <quick>1</quick>
-  <source>
-    <any>1</any>
-  </source>
-  <destination>
-    <any>1</any>
-  </destination>
-  <updated>
-    <username>root@10.1.1.1</username>
-    <time>1754107254.5408</time>
-    <description>genRules.py made changes</description>
-  </updated>
-  <created>
-    <username>root@10.1.1.1</username>
-    <time>1754107254.5408</time>
-    <description>genRules.py made changes</description>
-  </created>
-</rule>
+    <rule uuid="a8b93686-a058-4dac-9e75-47acb79aed87">
+      <type>pass</type>
+      <interface>opt10</interface>
+      <ipprotocol>inet</ipprotocol>
+      <statetype>keep state</statetype>
+      <descr>default allow VLAN_1446 any</descr>
+      <direction>in</direction>
+      <quick>1</quick>
+      <source>
+        <any>1</any>
+      </source>
+      <destination>
+        <any>1</any>
+      </destination>
+      <updated>
+        <username>root@10.1.1.1</username>
+        <time>1754107254.5408</time>
+        <description>genRules.py made changes</description>
+      </updated>
+      <created>
+        <username>root@10.1.1.1</username>
+        <time>1754107254.5408</time>
+        <description>genRules.py made changes</description>
+      </created>
+    </rule>
 
-<rule uuid="cbd01ce4-ec1b-4a7d-b515-b6014a8057c7">
-  <type>pass</type>
-  <interface>opt11</interface>
-  <ipprotocol>inet</ipprotocol>
-  <statetype>keep state</statetype>
-  <descr>default allow VLAN_554 any</descr>
-  <direction>in</direction>
-  <quick>1</quick>
-  <source>
-    <any>1</any>
-  </source>
-  <destination>
-    <any>1</any>
-  </destination>
-  <updated>
-    <username>root@10.1.1.1</username>
-    <time>1754107254.5408</time>
-    <description>genRules.py made changes</description>
-  </updated>
-  <created>
-    <username>root@10.1.1.1</username>
-    <time>1754107254.5408</time>
-    <description>genRules.py made changes</description>
-  </created>
-</rule>
+    <rule uuid="cbd01ce4-ec1b-4a7d-b515-b6014a8057c7">
+      <type>pass</type>
+      <interface>opt11</interface>
+      <ipprotocol>inet</ipprotocol>
+      <statetype>keep state</statetype>
+      <descr>default allow VLAN_554 any</descr>
+      <direction>in</direction>
+      <quick>1</quick>
+      <source>
+        <any>1</any>
+      </source>
+      <destination>
+        <any>1</any>
+      </destination>
+      <updated>
+        <username>root@10.1.1.1</username>
+        <time>1754107254.5408</time>
+        <description>genRules.py made changes</description>
+      </updated>
+      <created>
+        <username>root@10.1.1.1</username>
+        <time>1754107254.5408</time>
+        <description>genRules.py made changes</description>
+      </created>
+    </rule>
 
-<rule uuid="6736a78e-7e33-4ef7-a44a-5e3aa271b746">
-  <type>pass</type>
-  <interface>opt12</interface>
-  <ipprotocol>inet</ipprotocol>
-  <statetype>keep state</statetype>
-  <descr>default allow VLAN_3354 any</descr>
-  <direction>in</direction>
-  <quick>1</quick>
-  <source>
-    <any>1</any>
-  </source>
-  <destination>
-    <any>1</any>
-  </destination>
-  <updated>
-    <username>root@10.1.1.1</username>
-    <time>1754107254.5409</time>
-    <description>genRules.py made changes</description>
-  </updated>
-  <created>
-    <username>root@10.1.1.1</username>
-    <time>1754107254.5409</time>
-    <description>genRules.py made changes</description>
-  </created>
-</rule>
+    <rule uuid="6736a78e-7e33-4ef7-a44a-5e3aa271b746">
+      <type>pass</type>
+      <interface>opt12</interface>
+      <ipprotocol>inet</ipprotocol>
+      <statetype>keep state</statetype>
+      <descr>default allow VLAN_3354 any</descr>
+      <direction>in</direction>
+      <quick>1</quick>
+      <source>
+        <any>1</any>
+      </source>
+      <destination>
+        <any>1</any>
+      </destination>
+      <updated>
+        <username>root@10.1.1.1</username>
+        <time>1754107254.5409</time>
+        <description>genRules.py made changes</description>
+      </updated>
+      <created>
+        <username>root@10.1.1.1</username>
+        <time>1754107254.5409</time>
+        <description>genRules.py made changes</description>
+      </created>
+    </rule>
 
-<rule uuid="e36a0b70-dd1a-40fe-9fba-091113008595">
-  <type>pass</type>
-  <interface>opt13</interface>
-  <ipprotocol>inet</ipprotocol>
-  <statetype>keep state</statetype>
-  <descr>default allow VLAN_813 any</descr>
-  <direction>in</direction>
-  <quick>1</quick>
-  <source>
-    <any>1</any>
-  </source>
-  <destination>
-    <any>1</any>
-  </destination>
-  <updated>
-    <username>root@10.1.1.1</username>
-    <time>1754107254.5409</time>
-    <description>genRules.py made changes</description>
-  </updated>
-  <created>
-    <username>root@10.1.1.1</username>
-    <time>1754107254.5409</time>
-    <description>genRules.py made changes</description>
-  </created>
-</rule>
+    <rule uuid="e36a0b70-dd1a-40fe-9fba-091113008595">
+      <type>pass</type>
+      <interface>opt13</interface>
+      <ipprotocol>inet</ipprotocol>
+      <statetype>keep state</statetype>
+      <descr>default allow VLAN_813 any</descr>
+      <direction>in</direction>
+      <quick>1</quick>
+      <source>
+        <any>1</any>
+      </source>
+      <destination>
+        <any>1</any>
+      </destination>
+      <updated>
+        <username>root@10.1.1.1</username>
+        <time>1754107254.5409</time>
+        <description>genRules.py made changes</description>
+      </updated>
+      <created>
+        <username>root@10.1.1.1</username>
+        <time>1754107254.5409</time>
+        <description>genRules.py made changes</description>
+      </created>
+    </rule>
 
-<rule uuid="c9ed1e80-11f2-4566-aa05-94f4cdf5966e">
-  <type>pass</type>
-  <interface>opt14</interface>
-  <ipprotocol>inet</ipprotocol>
-  <statetype>keep state</statetype>
-  <descr>default allow VLAN_215 any</descr>
-  <direction>in</direction>
-  <quick>1</quick>
-  <source>
-    <any>1</any>
-  </source>
-  <destination>
-    <any>1</any>
-  </destination>
-  <updated>
-    <username>root@10.1.1.1</username>
-    <time>1754107254.5409</time>
-    <description>genRules.py made changes</description>
-  </updated>
-  <created>
-    <username>root@10.1.1.1</username>
-    <time>1754107254.5409</time>
-    <description>genRules.py made changes</description>
-  </created>
-</rule>
+    <rule uuid="c9ed1e80-11f2-4566-aa05-94f4cdf5966e">
+      <type>pass</type>
+      <interface>opt14</interface>
+      <ipprotocol>inet</ipprotocol>
+      <statetype>keep state</statetype>
+      <descr>default allow VLAN_215 any</descr>
+      <direction>in</direction>
+      <quick>1</quick>
+      <source>
+        <any>1</any>
+      </source>
+      <destination>
+        <any>1</any>
+      </destination>
+      <updated>
+        <username>root@10.1.1.1</username>
+        <time>1754107254.5409</time>
+        <description>genRules.py made changes</description>
+      </updated>
+      <created>
+        <username>root@10.1.1.1</username>
+        <time>1754107254.5409</time>
+        <description>genRules.py made changes</description>
+      </created>
+    </rule>
 
-<rule uuid="db7d8a84-c58d-41c2-8275-2197a8da1ce0">
-  <type>pass</type>
-  <interface>opt15</interface>
-  <ipprotocol>inet</ipprotocol>
-  <statetype>keep state</statetype>
-  <descr>default allow VLAN_1640 any</descr>
-  <direction>in</direction>
-  <quick>1</quick>
-  <source>
-    <any>1</any>
-  </source>
-  <destination>
-    <any>1</any>
-  </destination>
-  <updated>
-    <username>root@10.1.1.1</username>
-    <time>1754107254.5409</time>
-    <description>genRules.py made changes</description>
-  </updated>
-  <created>
-    <username>root@10.1.1.1</username>
-    <time>1754107254.5409</time>
-    <description>genRules.py made changes</description>
-  </created>
-</rule>
+    <rule uuid="db7d8a84-c58d-41c2-8275-2197a8da1ce0">
+      <type>pass</type>
+      <interface>opt15</interface>
+      <ipprotocol>inet</ipprotocol>
+      <statetype>keep state</statetype>
+      <descr>default allow VLAN_1640 any</descr>
+      <direction>in</direction>
+      <quick>1</quick>
+      <source>
+        <any>1</any>
+      </source>
+      <destination>
+        <any>1</any>
+      </destination>
+      <updated>
+        <username>root@10.1.1.1</username>
+        <time>1754107254.5409</time>
+        <description>genRules.py made changes</description>
+      </updated>
+      <created>
+        <username>root@10.1.1.1</username>
+        <time>1754107254.5409</time>
+        <description>genRules.py made changes</description>
+      </created>
+    </rule>
 
-</filter>
+  </filter>
   <rrd>
     <enable/>
   </rrd>
@@ -1242,7 +1245,9 @@
     <prefer>0.opnsense.pool.ntp.org</prefer>
   </ntpd>
   <widgets>
-    <sequence>system_information-container:00000000-col3:show,services_status-container:00000001-col4:show,gateways-container:00000002-col4:show,interface_list-container:00000003-col4:show</sequence>
+    <sequence>
+      system_information-container:00000000-col3:show,services_status-container:00000001-col4:show,gateways-container:00000002-col4:show,interface_list-container:00000003-col4:show
+    </sequence>
     <column_count>2</column_count>
   </widgets>
 </opnsense>

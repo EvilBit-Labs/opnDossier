@@ -15,6 +15,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 // Shared flag variables for convert and display commands.
@@ -22,7 +23,7 @@ var (
 	// Template and styling flags.
 	sharedSections          []string //nolint:gochecknoglobals // Sections to include
 	sharedTheme             string   //nolint:gochecknoglobals // Theme for rendering
-	sharedWrapWidth         int      //nolint:gochecknoglobals // Text wrap width
+	sharedWrapWidth         = -1     //nolint:gochecknoglobals // Text wrap width
 	sharedCustomTemplate    string   //nolint:gochecknoglobals // Custom template file path
 	sharedIncludeTunables   bool     //nolint:gochecknoglobals // Include system tunables in output
 	sharedTemplateCacheSize int      //nolint:gochecknoglobals // Template cache size (LRU max entries)
@@ -42,6 +43,12 @@ var (
 	// sharedSelectedPlugins []string //nolint:gochecknoglobals // Selected compliance plugins.
 )
 
+// markDeprecated is a helper to mark flags as deprecated.
+// It is defined as a variable to enable fault injection in tests.
+var markDeprecated = func(flags *pflag.FlagSet, name, message string) error { //nolint:gochecknoglobals // test override hook
+	return flags.MarkDeprecated(name, message)
+}
+
 // addSharedTemplateFlags adds template flags that are common to both convert and display commands.
 func addSharedTemplateFlags(cmd *cobra.Command) {
 	// Generation engine flags
@@ -57,14 +64,14 @@ func addSharedTemplateFlags(cmd *cobra.Command) {
 		BoolVar(&sharedLegacy, "legacy", false, "Enable legacy template mode with deprecation warning")
 	setFlagAnnotation(cmd.Flags(), "legacy", []string{"engine"})
 	// Mark --legacy as deprecated with migration guidance
-	// CRITICAL ERROR HANDLING: MarkDeprecated failure is a programming error that must be caught
-	// in development. If this fails, it means the flag name is wrong or Cobra is misconfigured.
-	// This is NOT a runtime error - it happens during initialization before any user interaction.
-	if err := cmd.Flags().MarkDeprecated("legacy",
+	// GRACEFUL DEGRADATION: Flag deprecation is a non-critical UX feature.
+	// If marking fails, we warn and continue to avoid breaking CLI startup.
+	if err := markDeprecated(cmd.Flags(), "legacy",
 		fmt.Sprintf("template mode will be removed in %s. Use programmatic generation (default) instead. "+
 			"Migration guide: %s", constants.TemplateRemovalVersion, constants.MigrationGuideURL)); err != nil {
-		// This indicates a programming error - the flag name should always exist
-		panic(fmt.Sprintf("BUG: failed to mark legacy flag as deprecated: %v", err))
+		logger.Warn("Could not mark --legacy as deprecated",
+			"error", err,
+			"impact", "deprecation warning will not be shown; command behavior is unchanged")
 	}
 
 	// Template flags
@@ -96,9 +103,9 @@ func addSharedTemplateFlags(cmd *cobra.Command) {
 		},
 	); err != nil {
 		// Shell completion is optional - log warning but don't panic
-		logger.Warn("shell completion unavailable for custom-template flag",
+		logger.Warn("Shell completion for --custom-template is unavailable",
 			"error", err,
-			"impact", "users must type full paths manually")
+			"impact", "you can still type the full path manually")
 	}
 
 	cmd.Flags().
@@ -110,7 +117,7 @@ func addSharedTemplateFlags(cmd *cobra.Command) {
 	setFlagAnnotation(cmd.Flags(), "section", []string{"template"})
 
 	cmd.Flags().
-		IntVar(&sharedWrapWidth, "wrap", 0, "Text wrap width in characters (0 = no wrapping, recommended: 80-120)")
+		IntVar(&sharedWrapWidth, "wrap", -1, "Text wrap width in characters (-1 = auto-detect terminal width, 0 = no wrapping, recommended: 80-120)")
 	setFlagAnnotation(cmd.Flags(), "wrap", []string{"template"})
 
 	cmd.Flags().
