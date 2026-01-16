@@ -158,7 +158,7 @@ func TestDisplayCommandEnhancedErrorMessages(t *testing.T) {
 		{
 			name:           "File does not exist",
 			xmlContent:     "", // Will use non-existent file path
-			expectedErrMsg: "no such file or directory",
+			expectedErrMsg: "does-not-exist.xml", // Check filename instead of OS-specific message
 		},
 	}
 
@@ -175,6 +175,9 @@ func TestDisplayCommandEnhancedErrorMessages(t *testing.T) {
 			err := rootCmd.Execute()
 
 			require.Error(t, err)
+			// Check for filename in error message (works across platforms)
+			// instead of OS-specific error messages like "no such file or directory" (Unix)
+			// or "The system cannot find the file specified" (Windows)
 			assert.Contains(t, err.Error(), tt.expectedErrMsg)
 		})
 	}
