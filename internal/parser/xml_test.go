@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -14,7 +15,25 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/text/encoding"
+	"golang.org/x/text/encoding/charmap"
 )
+
+func loadEncodedFixtureBytes(tb testing.TB, fixturePath string, encoder *encoding.Encoder) []byte {
+	tb.Helper()
+
+	content, err := os.ReadFile(fixturePath)
+	require.NoError(tb, err, "Failed to read fixture: %s", fixturePath)
+
+	if encoder == nil {
+		return content
+	}
+
+	encoded, err := encoder.Bytes(content)
+	require.NoError(tb, err, "Failed to encode fixture: %s", fixturePath)
+
+	return encoded
+}
 
 func TestXMLParser_Parse(t *testing.T) {
 	tests := []struct {
@@ -65,6 +84,70 @@ func TestXMLParser_Parse(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestXMLParser_ISO8859_1Encoding(t *testing.T) {
+	parser := NewXMLParser()
+	fixturePath := filepath.Join("testdata", "iso8859-1-basic.xml")
+	encoded := loadEncodedFixtureBytes(t, fixturePath, charmap.ISO8859_1.NewEncoder())
+
+	opnsense, err := parser.Parse(context.Background(), bytes.NewReader(encoded))
+	require.NoError(t, err)
+	require.NotNil(t, opnsense)
+	assert.Equal(t, "Configuración", opnsense.System.Hostname)
+	assert.Equal(t, "español.local", opnsense.System.Domain)
+}
+
+func TestXMLParser_Windows1252Encoding(t *testing.T) {
+	parser := NewXMLParser()
+	fixturePath := filepath.Join("testdata", "windows-1252.xml")
+	encoded := loadEncodedFixtureBytes(t, fixturePath, charmap.Windows1252.NewEncoder())
+
+	opnsense, err := parser.Parse(context.Background(), bytes.NewReader(encoded))
+	require.NoError(t, err)
+	require.NotNil(t, opnsense)
+	require.NotEmpty(t, opnsense.System.User)
+	assert.Equal(t, "Cost €100 – “quoted” ‘single’", opnsense.System.User[0].Descr)
+}
+
+func TestXMLParser_MixedEncodings(t *testing.T) {
+	parser := NewXMLParser()
+
+	isoFixture := filepath.Join("testdata", "iso8859-1-basic.xml")
+	isoBytes := loadEncodedFixtureBytes(t, isoFixture, charmap.ISO8859_1.NewEncoder())
+	opnsenseISO, err := parser.Parse(context.Background(), bytes.NewReader(isoBytes))
+	require.NoError(t, err)
+	require.NotNil(t, opnsenseISO)
+	assert.Equal(t, "Configuración", opnsenseISO.System.Hostname)
+
+	utf8Input := `<?xml version="1.0" encoding="UTF-8"?>
+<opnsense>
+  <version>24.1</version>
+  <system>
+    <hostname>utf8-host</hostname>
+    <domain>utf8.local</domain>
+  </system>
+</opnsense>`
+	opnsenseUTF8, err := parser.Parse(context.Background(), strings.NewReader(utf8Input))
+	require.NoError(t, err)
+	require.NotNil(t, opnsenseUTF8)
+	assert.Equal(t, "utf8-host", opnsenseUTF8.System.Hostname)
+}
+
+func TestXMLParser_UnsupportedEncoding(t *testing.T) {
+	parser := NewXMLParser()
+	input := `<?xml version="1.0" encoding="KOI8-R"?>
+<opnsense>
+  <version>24.1</version>
+  <system>
+    <hostname>koi8-test</hostname>
+    <domain>example.local</domain>
+  </system>
+</opnsense>`
+
+	_, err := parser.Parse(context.Background(), strings.NewReader(input))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported charset")
 }
 
 // TestXMLParser_ParseSampleFiles tests parsing of real config.xml sample files.
@@ -347,6 +430,32 @@ func BenchmarkXMLParser_Parse(b *testing.B) {
 		}
 
 		_ = file.Close()
+	}
+}
+
+func BenchmarkXMLParser_ISO8859_1Encoding(b *testing.B) {
+	parser := NewXMLParser()
+	fixturePath := filepath.Join("testdata", "iso8859-1-basic.xml")
+	encoded := loadEncodedFixtureBytes(b, fixturePath, charmap.ISO8859_1.NewEncoder())
+
+	for b.Loop() {
+		_, err := parser.Parse(context.Background(), bytes.NewReader(encoded))
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkXMLParser_Windows1252Encoding(b *testing.B) {
+	parser := NewXMLParser()
+	fixturePath := filepath.Join("testdata", "windows-1252.xml")
+	encoded := loadEncodedFixtureBytes(b, fixturePath, charmap.Windows1252.NewEncoder())
+
+	for b.Loop() {
+		_, err := parser.Parse(context.Background(), bytes.NewReader(encoded))
+		if err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 
