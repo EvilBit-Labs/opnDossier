@@ -10,23 +10,23 @@ Features and APIs go through a three-stage lifecycle:
 
 1. **Deprecated (Warning Phase)**
 
-   - The feature is still fully functional.
-   - Usage triggers a warning message (log output, CLI warning).
-   - Documentation is updated to reflect deprecation.
-   - A migration path is provided.
-   - Lasts for at least one minor version (e.g., v2.1 to v2.5).
+- The feature is still fully functional.
+- Usage triggers a warning message (log output, CLI warning).
+- Documentation is updated to reflect deprecation.
+- A migration path is provided.
+- Lasts for at least one minor version (e.g., v2.1 to v2.5).
 
 2. **Frozen (Final Phase)**
 
-   - The feature is frozen and will receive no further updates or bug fixes.
-   - Warnings become more prominent.
-   - Lasts for one minor version before removal.
+- The feature is frozen and will receive no further updates or bug fixes.
+- Warnings become more prominent.
+- Lasts for one minor version before removal.
 
 3. **Removed**
 
-   - The feature is removed from the codebase.
-   - Usage results in an error.
-   - Occurs in a major version bump (e.g., v3.0).
+- The feature is removed from the codebase.
+- Usage results in an error.
+- Occurs in a major version bump (e.g., v3.0).
 
 ## Current Deprecations
 

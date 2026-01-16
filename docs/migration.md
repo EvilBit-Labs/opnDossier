@@ -1017,19 +1017,19 @@ If you've implemented custom MarkdownBuilder methods that would benefit the comm
 
    Update `docs/template-function-migration.md` with your function mapping:
 
-   - Add to appropriate phase table
-   - Mark status as **Migrated**
-   - Include implementation file reference
+- Add to appropriate phase table
+- Mark status as **Migrated**
+- Include implementation file reference
 
 4. **Submit Pull Request**
 
    PR requirements:
 
-   - Clear use case description
-   - Before/after examples (template → Go method)
-   - Test coverage report (>80% for new code)
-   - Documentation updates
-   - Link to related issues (if any)
+- Clear use case description
+- Before/after examples (template → Go method)
+- Test coverage report (>80% for new code)
+- Documentation updates
+- Link to related issues (if any)
 
 ### Code Structure Guidelines
 
