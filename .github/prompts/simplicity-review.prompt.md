@@ -2,7 +2,7 @@
 agent: agent
 name: Simplicity Review
 description: This prompt is used to review and simplify code changes by applying principles of simplicity, idiomatic coding, and test proportionality.
-model: GPT-5.2
+model: OpenAI GPT-5.2-Codex
 ---
 
 CODE SIMPLIFICATION REVIEW
