@@ -1,22 +1,23 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 language: en-US
 tone_instructions: >-
   Focus on OPNsense XML parsing accuracy, markdown generation quality, and audit compliance.
   Prioritize CLI usability, offline functionality, and clear documentation.
   Red team tool - output obfuscation may not apply. Security-first design.
 early_access: true
-enable_free_tier: false
+enable_free_tier: true
 reviews:
   profile: assertive
   request_changes_workflow: true
   high_level_summary: true
-  high_level_summary_placeholder: '@coderabbitai summary'
+  high_level_summary_placeholder: "@coderabbitai summary"
   high_level_summary_in_walkthrough: true
-  auto_title_placeholder: '@coderabbitai'
-  auto_title_instructions: 'Use conventional commit format: <type>(<scope>): <description>'
+  auto_title_placeholder: "@coderabbitai"
+  auto_title_instructions: "Use conventional commit format: <type>(<scope>): <description>"
   review_status: true
   commit_status: true
   fail_commit_status: false
-  collapse_walkthrough: false
+  collapse_walkthrough: true
   changed_files_summary: true
   sequence_diagrams: true
   estimate_code_review_effort: true
@@ -56,16 +57,100 @@ reviews:
     - label: "audit"
       instructions: "Use for audit compliance and report generation work"
   path_filters: []
-  path_instructions: []
+  path_instructions:
+    - path: "cmd/**/*.go"
+      instructions: |
+        CLI command files: Focus on user experience, clear error messages, and proper flag handling.
+        - Verify cobra command structure and flag definitions are correct
+        - Ensure error messages are actionable and user-friendly
+        - Check that viper configuration binding is consistent
+        - Validate terminal output uses lipgloss styling appropriately
+        - Confirm help text is clear and follows CLI conventions
+    - path: "internal/parser/**/*.go"
+      instructions: |
+        XML parsing logic: Critical path for OPNsense configuration accuracy.
+        - Verify XML unmarshaling handles all OPNsense schema variations
+        - Check streaming parser implementation for memory efficiency
+        - Ensure error messages include line/column information
+        - Validate handling of malformed XML and edge cases
+        - Confirm proper cleanup of resources and error propagation
+    - path: "internal/validator/**/*.go"
+      instructions: |
+        Configuration validation: Ensure comprehensive validation without over-engineering.
+        - Check validation rules are meaningful and catch real errors
+        - Verify IP address, subnet, and network validation accuracy
+        - Ensure cross-field validation logic is correct
+        - Validate error messages are specific and helpful
+        - Avoid trivial validations that add complexity without value
+    - path: "internal/model/**/*.go"
+      instructions: |
+        Data models: Ensure accurate representation of OPNsense configuration structure.
+        - Verify struct tags (xml, json, yaml) are correct and complete
+        - Check field types match OPNsense XML schema requirements
+        - Ensure nested structures properly represent XML hierarchy
+        - Validate omitempty usage is appropriate for optional fields
+        - Confirm exported fields have clear, descriptive names
+    - path: "internal/converter/**/*.go"
+      instructions: |
+        Format conversion logic: Focus on programmatic generation quality and correctness.
+        - Verify markdown generation follows conventions and is readable
+        - Check JSON/YAML output is properly structured and valid
+        - Ensure conversion preserves all relevant configuration data
+        - Validate streaming conversion handles large files efficiently
+        - Confirm output formatting is consistent and well-organized
+    - path: "internal/display/**/*.go"
+      instructions: |
+        Terminal display: Ensure beautiful, readable terminal output.
+        - Verify glamour markdown rendering is correct
+        - Check lipgloss styling is consistent with theme
+        - Ensure text wrapping respects terminal width
+        - Validate syntax highlighting works for all output types
+        - Confirm output is readable in both light and dark terminals
+    - path: "internal/audit/**/*.go"
+      instructions: |
+        Audit and compliance: Focus on accurate security analysis.
+        - Verify security checks detect real vulnerabilities
+        - Check compliance rules match stated standards (STIG, CIS, etc.)
+        - Ensure recommendations are actionable and specific
+        - Validate findings include severity and remediation guidance
+        - Avoid false positives that reduce trust in audit results
+    - path: "**/*_test.go"
+      instructions: |
+        Test files: Follow test proportionality principles - meaningful tests only.
+        - Verify tests cover critical functionality and real edge cases
+        - Check table-driven tests are well-organized and clear
+        - Ensure test names clearly describe what is being tested
+        - Validate mocks/fixtures are necessary and not over-engineered
+        - Remove tests for trivial operations or framework behavior
+        - Confirm tests are shorter and simpler than implementation
+        - Check error cases are tested but not every possible variation
+    - path: "docs/**/*.md"
+      instructions: |
+        Documentation: Ensure clarity, accuracy, and completeness.
+        - Verify examples are correct and runnable
+        - Check documentation matches current CLI behavior
+        - Ensure technical accuracy for OPNsense concepts
+        - Validate links and references are current
+        - Confirm language is clear and accessible to operators
+    - path: "*.go"
+      instructions: |
+        General Go code: Apply simplicity principles and Go idioms.
+        - Prefer simple, straightforward implementations over abstractions
+        - Use standard library patterns over custom frameworks
+        - Keep functions focused and single-purpose
+        - Ensure exported APIs have clear documentation
+        - Validate error handling is appropriate (not defensive programming)
+        - Check for unnecessary complexity or premature optimization
+        - Confirm code follows Go conventions and idioms
   abort_on_close: true
   disable_cache: false
   auto_review:
     enabled: true
     auto_incremental_review: true
-    ignore_title_keywords: []
+    ignore_title_keywords: ["WIP"]
     labels: []
     drafts: false
-    base_branches: []
+    base_branches: ["main"]
   finishing_touches:
     docstrings:
       enabled: true
@@ -183,7 +268,12 @@ knowledge_base:
     enabled: true
   code_guidelines:
     enabled: true
-    filePatterns: []
+    filePatterns:
+      - "**/*.go"
+      - "**/*.md"
+      - "**/justfile"
+      - "**/*.yaml"
+      - "**/*.yml"
   learnings:
     scope: auto
   issues:
@@ -199,6 +289,227 @@ knowledge_base:
 code_generation:
   docstrings:
     language: en-US
-    path_instructions: []
+    path_instructions:
+      - path: "cmd/**/*.go"
+        instructions: |
+          CLI commands require clear, user-focused documentation.
+          - Document what the command does from user perspective
+          - Include usage examples with common flags
+          - Explain error conditions users might encounter
+          - Keep it concise - avoid implementation details
+          - Follow Go doc comment conventions
+      - path: "internal/**/*.go"
+        instructions: |
+          Internal package documentation should explain purpose and usage.
+          - Focus on package-level documentation explaining domain
+          - Document exported functions/types with purpose and usage
+          - Include examples for complex APIs
+          - Explain non-obvious behavior or edge cases
+          - Avoid documenting trivial getters/setters
+          - Keep implementation details in code comments, not godoc
+      - path: "internal/model/**/*.go"
+        instructions: |
+          Model structs need field-level documentation for clarity.
+          - Document each exported struct with its purpose
+          - Explain struct tag meanings when non-obvious
+          - Note required vs optional fields
+          - Document validation rules or constraints
+          - Include examples of typical model usage
+      - path: "internal/parser/**/*.go"
+        instructions: |
+          Parser documentation must explain XML mapping and error handling.
+          - Document what OPNsense elements are parsed
+          - Explain streaming behavior and memory characteristics
+          - Note error recovery strategies
+          - Include examples of expected XML input
+          - Document performance characteristics for large files
+      - path: "**/*_test.go"
+        instructions: |
+          Test documentation should explain what is being validated.
+          - Use descriptive test function names instead of excessive comments
+          - Document table-driven test structure when complex
+          - Explain test fixtures or mock setup when non-obvious
+          - Avoid redundant documentation for self-explanatory tests
+          - Focus on documenting test rationale, not mechanics
   unit_tests:
-    path_instructions: []
+    path_instructions:
+      - path: "cmd/**/*.go"
+        instructions: |
+          CLI command tests: Focus on integration scenarios and error handling.
+          - Test flag parsing and validation
+          - Verify error messages for invalid inputs
+          - Test integration with viper configuration
+          - Use table-driven tests for multiple input scenarios
+          - Mock file I/O and external dependencies
+          - Avoid testing cobra/viper framework behavior
+          - Keep tests simpler than implementation
+      - path: "internal/parser/**/*.go"
+        instructions: |
+          Parser tests: Critical for correctness - comprehensive but focused.
+          - Test valid OPNsense XML parsing with real examples
+          - Test malformed XML error handling
+          - Test streaming behavior with large files
+          - Verify line/column error reporting
+          - Use testdata fixtures for XML samples
+          - Avoid testing XML library behavior
+          - Focus on opnDossier-specific parsing logic
+      - path: "internal/validator/**/*.go"
+        instructions: |
+          Validator tests: Verify meaningful validation rules only.
+          - Test validation rules catch real configuration errors
+          - Use table-driven tests for different error scenarios
+          - Test cross-field validation logic
+          - Verify error messages are specific and helpful
+          - Avoid testing trivial field presence checks
+          - Don't test standard library validation (e.g., net.ParseIP)
+          - Keep test count proportional to complexity
+      - path: "internal/model/**/*.go"
+        instructions: |
+          Model tests: Test serialization and complex behaviors only.
+          - Test XML/JSON/YAML marshaling for non-trivial structures
+          - Verify struct tag behavior when complex
+          - Test custom Marshal/Unmarshal methods
+          - Skip testing simple struct definitions
+          - Avoid testing standard library encoding behavior
+          - Focus on opnDossier-specific model logic
+      - path: "internal/converter/**/*.go"
+        instructions: |
+          Converter tests: Verify output correctness and format compliance.
+          - Test markdown generation produces valid output
+          - Verify JSON/YAML output is properly structured
+          - Test data preservation during conversion
+          - Use snapshot testing or golden files for complex output
+          - Test error handling for edge cases
+          - Avoid testing template library behavior
+          - Focus on conversion logic correctness
+      - path: "internal/display/**/*.go"
+        instructions: |
+          Display tests: Test rendering logic without terminal dependency.
+          - Test text wrapping logic with various widths
+          - Verify styling application is correct
+          - Test theme handling and color schemes
+          - Mock terminal interactions
+          - Avoid testing charm library behavior
+          - Focus on display-specific formatting logic
+      - path: "internal/audit/**/*.go"
+        instructions: |
+          Audit tests: Verify security checks and compliance rules.
+          - Test security vulnerability detection
+          - Verify compliance rule evaluation
+          - Test finding severity assignment
+          - Use realistic configuration examples
+          - Test recommendation generation
+          - Avoid testing every possible configuration permutation
+          - Focus on critical security scenarios
+issue_enrichment:
+  auto_enrich:
+    enabled: true
+  planning:
+    enabled: true
+    auto_planning:
+      enabled: false
+      labels: []
+  labeling:
+    labeling_instructions:
+      # Type Labels
+      - label: "type:feature"
+        instructions: "Use for new functionality, feature requests, and enhancements that add capabilities to the tool"
+      - label: "type:bug"
+        instructions: "Use for bug fixes, defect corrections, and issues where something isn't working as expected"
+      - label: "enhancement"
+        instructions: "Use for improvements to existing features, optimizations, or incremental enhancements"
+
+      # Priority Labels
+      - label: "priority:critical"
+        instructions: "Use for critical issues requiring immediate attention, security vulnerabilities, data loss risks, or blocking production issues"
+      - label: "priority:high"
+        instructions: "Use for high priority issues that significantly impact functionality, user experience, or project goals"
+      - label: "priority:normal"
+        instructions: "Use for standard work items, regular features, and routine bug fixes with normal urgency"
+
+      # Standard GitHub Labels
+      - label: "bug"
+        instructions: "Use when something isn't working correctly - parsing errors, crashes, incorrect output, or unexpected behavior"
+      - label: "documentation"
+        instructions: "Use for improvements to documentation, README updates, code comments, API docs, or usage examples"
+      - label: "duplicate"
+        instructions: "Use when this issue or pull request already exists - reference the original issue number"
+      - label: "invalid"
+        instructions: "Use when the issue doesn't seem right, is not applicable, or contains incorrect information"
+      - label: "question"
+        instructions: "Use when further information is requested or clarification is needed about functionality"
+      - label: "wontfix"
+        instructions: "Use when this issue will not be worked on - explain reasoning in comments"
+      - label: "good first issue"
+        instructions: "Use for issues that are well-defined, relatively simple, and good for newcomers to the project"
+      - label: "help wanted"
+        instructions: "Use when extra attention is needed or community contributions are especially welcome"
+
+      # Technology & Language Labels
+      - label: "go"
+        instructions: "Use for Go code changes, Go-specific issues, or modifications to .go files"
+      - label: "javascript"
+        instructions: "Use for JavaScript code updates in documentation site or related tooling"
+
+      # Component Labels
+      - label: "component:display"
+        instructions: "Use for issues related to the display command, terminal output rendering, markdown formatting, or text wrapping"
+      - label: "cli"
+        instructions: "Use for command-line interface improvements, flag handling, or user experience enhancements"
+      - label: "dependencies"
+        instructions: "Use for dependency updates, package upgrades, go.mod changes, or third-party library modifications"
+
+      # Infrastructure & Workflow Labels
+      - label: "ci"
+        instructions: "Use for CI/CD pipeline changes, GitHub Actions workflows, automated testing, or build process modifications"
+      - label: "github_actions"
+        instructions: "Use specifically for GitHub Actions workflow files, action configurations, or runner-related issues"
+
+      # Feature Category Labels
+      - label: "audit"
+        instructions: "Use for audit report generation, compliance checking, or Phase 4.3 audit-related tasks"
+      - label: "audit-mode"
+        instructions: "Use for issues related to audit mode functionality, compliance scanning, or audit feature enhancements"
+      - label: "compliance"
+        instructions: "Use for compliance scanning features, security standards (STIG, CIS), or regulatory requirements"
+      - label: "security"
+        instructions: "Use for security-related features, vulnerability fixes, or security analysis capabilities"
+      - label: "blue-team"
+        instructions: "Use for defensive security features, monitoring capabilities, or blue team operational tooling"
+      - label: "configuration"
+        instructions: "Use for configuration management, settings handling, or config file parsing improvements"
+
+      # Development Process Labels
+      - label: "architecture"
+        instructions: "Use for architectural changes, design decisions, major refactoring, or structural improvements"
+      - label: "refactoring"
+        instructions: "Use for code refactoring, restructuring existing code without changing functionality"
+      - label: "refactor"
+        instructions: "Use for code cleanup, simplification, or improving code quality without adding features"
+      - label: "cleanup"
+        instructions: "Use for code cleanup tasks, removing dead code, or tidying up technical debt"
+      - label: "technical-debt"
+        instructions: "Use for technical debt that needs to be addressed, legacy code improvements, or modernization efforts"
+      - label: "performance"
+        instructions: "Use for performance optimizations, speed improvements, memory usage reductions, or efficiency enhancements"
+      - label: "testing"
+        instructions: "Use for test infrastructure, test coverage improvements, or test-related changes"
+
+      # Release & Planning Labels
+      - label: "breaking_change"
+        instructions: "Use for significant changes that disrupt backward compatibility, require migration, or change public APIs"
+      - label: "epic"
+        instructions: "Use for large initiatives spanning multiple issues, major features, or multi-phase project work"
+      - label: "requirements"
+        instructions: "Use for gathering requirements, specification work, or defining feature scope"
+      - label: "review"
+        instructions: "Use for code review discussions, review feedback items, or issues requiring team review"
+      - label: "v2.0"
+        instructions: "Use for issues specifically targeted for the v2.0 release milestone"
+
+      # Special Feature Labels
+      - label: "premium"
+        instructions: "Use for premium tier features requiring licensing, advanced functionality, or enterprise-only capabilities"
+      - label: "windows"
+        instructions: "Use for Windows platform-specific issues, Windows compatibility, or Windows-only bugs"
+    auto_apply_labels: true

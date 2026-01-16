@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"text/template"
@@ -24,6 +25,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -52,17 +54,20 @@ type TemplateCache struct {
 	cache *lru.Cache[string, *template.Template]
 }
 
-// NewTemplateCache creates a new template cache instance with LRU eviction.
+// NewTemplateCache creates a new template cache instance with LRU eviction using hashicorp/golang-lru/v2.
 // The cache will automatically evict least recently used templates when the max size is reached.
 // Default max size is 10 templates to balance memory usage with performance.
-// This function panics if the default cache size is invalid (which should never happen).
-func NewTemplateCache() *TemplateCache {
-	cache, err := NewTemplateCacheWithSize(DefaultTemplateCacheSize)
+// Errors are returned to allow callers to handle invalid configuration gracefully.
+func NewTemplateCache() (*TemplateCache, error) {
+	cache, err := NewTemplateCacheWithSize(defaultTemplateCacheSize)
 	if err != nil {
-		// This should never happen with the default constant
-		panic(fmt.Sprintf("failed to create template cache with default size: %v", err))
+		return nil, fmt.Errorf(
+			"failed to create template cache with default size %d: %w",
+			defaultTemplateCacheSize,
+			err,
+		)
 	}
-	return cache
+	return cache, nil
 }
 
 // NewTemplateCacheWithSize creates a new template cache instance with a specified maximum size.
@@ -143,6 +148,9 @@ const (
 // This provides a good balance between memory usage and performance for most use cases.
 const DefaultTemplateCacheSize = 10
 
+// defaultTemplateCacheSize allows tests to simulate invalid defaults.
+var defaultTemplateCacheSize = DefaultTemplateCacheSize //nolint:gochecknoglobals // test override hook
+
 // init registers the convert command and its flags with the root command.
 //
 // This function sets up command-line flags for output file path, format, template, sections, theme, and text wrap width, enabling users to customize the conversion of OPNsense configuration files.
@@ -172,6 +180,14 @@ var convertCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 	Use:     "convert [file ...]",
 	Short:   "Convert OPNsense configuration files to structured formats.",
 	GroupID: "core",
+	PreRunE: func(cmd *cobra.Command, _ []string) error {
+		// Validate flag combinations specific to convert command
+		if err := validateConvertFlags(cmd.Flags()); err != nil {
+			return fmt.Errorf("convert command validation failed: %w", err)
+		}
+
+		return nil
+	},
 	Long: `The 'convert' command processes one or more OPNsense config.xml files and transforms
 its content into structured formats. Supported output formats include Markdown (default),
 JSON, and YAML. This allows for easier readability, documentation, programmatic access,
@@ -298,10 +314,13 @@ Examples:
 		timeoutCtx, cancel := context.WithTimeout(ctx, constants.DefaultProcessingTimeout)
 		defer cancel()
 
-		// Create template cache for batch processing with configurable size
+		// Create template cache for batch processing with configurable size.
+		// If cache creation fails, return the error to allow CLI-level reporting.
 		templateCache, err := NewTemplateCacheWithSize(sharedTemplateCacheSize)
 		if err != nil {
-			return fmt.Errorf("failed to create template cache: %w", err)
+			return fmt.Errorf(
+				"failed to create template cache with size %d (must be > 0, recommended: %d-%d): %w",
+				sharedTemplateCacheSize, 1, MaxTemplateCacheSize, err)
 		}
 		defer templateCache.Clear() // Clean up cache after processing
 
@@ -317,8 +336,18 @@ Examples:
 		if sharedCustomTemplate != "" {
 			var err error
 			cachedTemplate, err = templateCache.Get(sharedCustomTemplate)
-			if err != nil && !errors.Is(err, ErrNoTemplateSpecified) {
-				return fmt.Errorf("failed to preload custom template: %w", err)
+			if err != nil {
+				// ErrNoTemplateSpecified shouldn't occur here since sharedCustomTemplate is not empty,
+				// but we check defensively. Any other error is a real problem.
+				if !errors.Is(err, ErrNoTemplateSpecified) {
+					return fmt.Errorf("failed to preload custom template %q: %w "+
+						"(check that the file exists, is readable, and contains valid template syntax)",
+						sharedCustomTemplate, err)
+				}
+				// If we somehow get ErrNoTemplateSpecified when sharedCustomTemplate is set,
+				// this indicates a programming error in templateCache.Get
+				logger.Warn("unexpected ErrNoTemplateSpecified when template path is set",
+					"template", sharedCustomTemplate)
 			}
 		}
 
@@ -452,7 +481,7 @@ Examples:
 				// Export or print the output
 				if actualOutputFile != "" {
 					enhancedLogger.Debug("Exporting to file")
-					e := export.NewFileExporter()
+					e := export.NewFileExporter(ctxLogger)
 					if err := e.Export(timeoutCtx, output, actualOutputFile); err != nil {
 						enhancedLogger.Error("Failed to export output", "error", err)
 						errs <- fmt.Errorf("failed to export output to %s: %w", actualOutputFile, err)
@@ -511,6 +540,11 @@ func buildConversionOptions(
 
 	// Set format
 	opt.Format = markdown.Format(format)
+
+	// Propagate quiet flag to suppress deprecation warnings
+	if cfg != nil && cfg.IsQuiet() {
+		opt.SuppressWarnings = true
+	}
 
 	// Template: config > default (no CLI flag for template)
 	if cfg != nil && cfg.GetTemplate() != "" {
@@ -674,13 +708,12 @@ func generateOutputByFormat(
 	case FormatJSON, FormatYAML, "yml":
 		// Use markdown generator for JSON and YAML output
 		// The markdown generator supports JSON and YAML formats natively
-		generator, err := markdown.NewMarkdownGenerator(logger.Logger)
+		// Set the format in options
+		opt.Format = markdown.Format(format)
+		generator, err := markdown.NewMarkdownGenerator(logger, opt)
 		if err != nil {
 			return "", fmt.Errorf("failed to create markdown generator: %w", err)
 		}
-
-		// Set the format in options
-		opt.Format = markdown.Format(format)
 		return generator.Generate(ctx, opnsense, opt)
 	default:
 		return "", fmt.Errorf("%w: %q (supported: markdown, md, json, yaml, yml)", ErrUnsupportedOutputFormat, format)
@@ -749,14 +782,78 @@ func loadCustomTemplate(templatePath string) (*template.Template, error) {
 	// Read the template file
 	content, err := os.ReadFile(templatePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read template file: %w", err)
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("template file not found: %s. "+
+				"Check that the path is correct and the file exists", templatePath)
+		}
+		if os.IsPermission(err) {
+			return nil, fmt.Errorf("permission denied reading template file: %s. "+
+				"Check file permissions", templatePath)
+		}
+		return nil, fmt.Errorf("failed to read template file %s: %w. "+
+			"Check that the file is accessible and not corrupted", templatePath, err)
 	}
 
 	// Parse the template
 	tmpl, err := template.New("custom").Parse(string(content))
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse template: %w", err)
+		return nil, fmt.Errorf("failed to parse template %s: %w. "+
+			"Check template syntax - see https://pkg.go.dev/text/template for syntax reference",
+			templatePath, err)
 	}
 
 	return tmpl, nil
+}
+
+// validateConvertFlags validates flag combinations specific to the convert command.
+func validateConvertFlags(_ *pflag.FlagSet) error {
+	// Validate format values
+	if format != "" {
+		validFormats := []string{"markdown", "md", "json", "yaml", "yml"}
+		if !slices.Contains(validFormats, strings.ToLower(format)) {
+			return fmt.Errorf("invalid format %q, must be one of: %s", format, strings.Join(validFormats, ", "))
+		}
+	}
+
+	// Validate engine flag combinations
+	if sharedEngine != "" {
+		if sharedUseTemplate {
+			return errors.New("--use-template and --engine flags are mutually exclusive")
+		}
+		if sharedLegacy {
+			return errors.New("--legacy and --engine flags are mutually exclusive")
+		}
+		if sharedCustomTemplate != "" {
+			return errors.New(
+				"--custom-template and --engine flags are mutually exclusive when engine is explicitly set",
+			)
+		}
+	}
+
+	// Validate template-related flags
+	if sharedCustomTemplate != "" && sharedUseTemplate {
+		return errors.New("--custom-template automatically enables template mode, --use-template is redundant")
+	}
+
+	// Validate output format compatibility
+	if strings.EqualFold(format, "json") && len(sharedSections) > 0 {
+		logger.Warn("section filtering not supported with JSON format, sections will be ignored")
+	}
+	if strings.EqualFold(format, "yaml") && len(sharedSections) > 0 {
+		logger.Warn("section filtering not supported with YAML format, sections will be ignored")
+	}
+
+	// Validate wrap width if specified
+	if sharedWrapWidth > 0 && (sharedWrapWidth < MinWrapWidth || sharedWrapWidth > MaxWrapWidth) {
+		return fmt.Errorf("wrap width %d out of recommended range [%d, %d]",
+			sharedWrapWidth, MinWrapWidth, MaxWrapWidth)
+	}
+
+	// Validate template cache size if specified
+	if sharedTemplateCacheSize > MaxTemplateCacheSize {
+		return fmt.Errorf("template cache size %d exceeds maximum recommended size %d",
+			sharedTemplateCacheSize, MaxTemplateCacheSize)
+	}
+
+	return nil
 }

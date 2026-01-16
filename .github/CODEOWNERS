@@ -1,10 +1,7 @@
 # Code Owners for opnDossier
-# 
+#
 # This file defines who should be automatically requested for review
 # when PRs are opened to different parts of the codebase.
 #
 # Primary maintainer and owner
 * @UncleSp1d3r
-
-# AI Code Review Tool: CodeRabbit.ai provides automated code reviews
-# See .coderabbit.yaml for configuration

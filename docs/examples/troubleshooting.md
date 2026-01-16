@@ -468,10 +468,10 @@ OPNDOSSIER_OUTPUT_FILE=./docs/network.md opnDossier convert config.xml
 ```bash
 # TODO: These flags are not available in v1.0
 # Enable debug logging
-# opnDossier --log_level=debug convert config.xml
+# opnDossier --verbose convert config.xml
 
 # Capture detailed logs in JSON format
-# opnDossier --log_format=json --log_level=debug convert config.xml > debug.log 2>&1
+# opnDossier --verbose convert config.xml > debug.log 2>&1
 
 # Analyze logs with jq
 # jq '.level' debug.log | sort | uniq -c

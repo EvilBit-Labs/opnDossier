@@ -1,7 +1,5 @@
 name: "Copilot Setup Steps"
 
-# Automatically run the setup steps when they are changed to allow for easy validation, and
-# allow manual testing through the repository's "Actions" tab
 on:
   workflow_dispatch:
   push:
@@ -12,223 +10,44 @@ on:
       - .github/workflows/copilot-setup-steps.yml
 
 jobs:
-  # The job MUST be called `copilot-setup-steps` or it will not be picked up by Copilot.
   copilot-setup-steps:
     runs-on: ubuntu-latest
-
-    # Set the permissions to the lowest permissions possible needed for your steps.
-    # Copilot will be given its own token for its operations.
     permissions:
-      # If you want to clone the repository as part of your setup steps, for example to install dependencies, you'll need the `contents: read` permission. If you don't clone the repository in your setup steps, Copilot will do this for you automatically after the steps complete.
       contents: read
 
-    # You can define any steps you want, and they will run before the agent starts.
-    # If you do not check out your code, Copilot will do this for you.
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Ensure bash is installed
-        run: |
-          if ! command -v bash > /dev/null 2>&1; then
-            sudo apt-get update && sudo apt-get install -y bash
-          fi
+        uses: actions/checkout@v6
 
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: 'go.mod'
-          cache: true
-          check-latest: false
+          go-version-file: "go.mod"
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: "20"
 
-      - name: Install Just
-        uses: taiki-e/install-action@just
+      - uses: extractions/setup-just@v3
 
-      - name: Setup Python virtual environment
-        run: |
-          set -euo pipefail
+      - uses: actions/setup-python@v6
+      - uses: astral-sh/setup-uv@v7
 
-          python3 -m venv .venv
-          source .venv/bin/activate
-          pip install mkdocs-material
-
-      - name: Install dependencies
-        run: |
-          set -euo pipefail
-
-          # Only run Go module commands if go.mod exists
-          if [ -f "go.mod" ]; then
-            go mod download
-            go mod tidy
-            go mod verify
-          else
-            echo "go.mod not found, skipping Go module commands"
-          fi
-
-      - name: Install golangci-lint
-        uses: golangci/golangci-lint-action@v8.0.0
+      - uses: golangci/golangci-lint-action@v8.0.0
         with:
           version: v2.3.1
 
       - name: Install goimports
-        run: |
-          set -euo pipefail
+        run: go install golang.org/x/tools/cmd/goimports@latest
 
-          go install golang.org/x/tools/cmd/goimports@latest
-
-      - name: Install development tools
-        run: |
-          set -euo pipefail
-
-          # Create tools directory
-          mkdir -p /usr/local/bin
-
-          # Install git-cliff for changelog generation (v2.10.0)
-          echo "Installing git-cliff v2.10.0..."
-          GIT_CLIFF_URL="https://github.com/orhun/git-cliff/releases/download/v2.10.0/git-cliff-2.10.0-x86_64-unknown-linux-gnu.tar.gz"
-          GIT_CLIFF_SHA256="26b33340c253c567e40a79a5cfab176d682dc3bfdb40136c7ba2d7321796c8b3"
-
-          curl -L -s "$GIT_CLIFF_URL" -o /tmp/git-cliff.tar.gz
-          echo "$GIT_CLIFF_SHA256 /tmp/git-cliff.tar.gz" | sha256sum -c
-          tar -xzf /tmp/git-cliff.tar.gz -C /tmp
-          mv /tmp/git-cliff-2.10.0/git-cliff /usr/local/bin/
-          chmod +x /usr/local/bin/git-cliff
-
-          # Install Grype for vulnerability scanning (v0.97.2)
-          echo "Installing grype v0.97.2..."
-          GRYPE_URL="https://github.com/anchore/grype/releases/download/v0.97.2/grype_0.97.2_linux_amd64.tar.gz"
-          GRYPE_SHA256="9db8daad914906aae9a2d99c75ed2bde19fb33e5ea3e14e5b814c6029e1034a9"
-
-          curl -L -s "$GRYPE_URL" -o /tmp/grype.tar.gz
-          echo "$GRYPE_SHA256 /tmp/grype.tar.gz" | sha256sum -c
-          tar -xzf /tmp/grype.tar.gz -C /tmp
-          mv /tmp/grype /usr/local/bin/
-          chmod +x /usr/local/bin/grype
-
-          # Install Syft for SBOM generation (v1.30.0)
-          echo "Installing syft v1.30.0..."
-          SYFT_URL="https://github.com/anchore/syft/releases/download/v1.30.0/syft_1.30.0_linux_amd64.tar.gz"
-          SYFT_SHA256="f0cdcba0b6ce4c7a87050d524f732ba9fa2e711835f993a4ef108cfbf928ec13"
-
-          curl -L -s "$SYFT_URL" -o /tmp/syft.tar.gz
-          echo "$SYFT_SHA256 /tmp/syft.tar.gz" | sha256sum -c
-          tar -xzf /tmp/syft.tar.gz -C /tmp
-          mv /tmp/syft /usr/local/bin/
-          chmod +x /usr/local/bin/syft
-
-          # Clean up temporary files
-          rm -f /tmp/*.tar.gz
-
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      - name: Install bun
+        uses: oven-sh/setup-bun@v2
         with:
-          version: 8
+          bun-version: latest
 
-      - name: Setup pnpm cache
-        uses: actions/setup-node@v6
-        with:
-          node-version: '20'
-          cache: 'pnpm'
+      - run: bun add -g markdownlint-cli2@0.7.0
+      - run: uv tool install pre-commit
 
-      - name: Install markdown linting tools
-        run: |
-          set -euo pipefail
-          pnpm add -g markdownlint-cli2@0.7.0
-
-          # Install pre-commit using Python pip instead of pnpm
-          python3 -m pip install --user pre-commit
-
-      - name: Install pnpm dependencies
-        run: |
-          set -euo pipefail
-
-          # Install pnpm dependencies for commitlint
-          if [ -f "package.json" ]; then
-            # Try frozen lockfile first, fall back to regular install if incompatible
-            pnpm install --frozen-lockfile || {
-              echo "Frozen lockfile failed, trying regular install..."
-              pnpm install
-            }
-          else
-            echo "package.json not found, skipping pnpm dependencies"
-          fi
-
-      - name: Install pre-commit hooks
-        run: |
-          set -euo pipefail
-
-          # Add Python user bin to PATH for pre-commit
-          export PATH="/root/.local/bin:$PATH"
-
-          # Check if pre-commit is available
-          if ! command -v pre-commit >/dev/null 2>&1; then
-            echo "pre-commit not found in PATH, checking alternative locations..."
-            echo "PATH: $PATH"
-            find /root -name "pre-commit" -type f 2>/dev/null || true
-            echo "pre-commit installation failed, skipping pre-commit hooks setup"
-            exit 0
-          fi
-
-          # Install pre-commit hooks with better error reporting
-          echo "Installing pre-commit hooks..."
-          pre-commit install --hook-type commit-msg || {
-            echo "Failed to install pre-commit hooks"
-            echo "Checking pre-commit configuration..."
-            pre-commit --version || echo "pre-commit command not found"
-            echo "Available hooks:"
-            pre-commit run --all-files --verbose || true
-            exit 1
-          }
-
-          echo "Pre-commit hooks installed successfully"
-
-      - name: Verify tool installations
-        run: |
-          set -euo pipefail
-
-          # Add Python user bin to PATH for pre-commit
-          export PATH="/root/.local/bin:$PATH"
-
-          # Verify Go installation
-          go version
-
-          # Verify Just installation
-          just --version
-
-          # Verify golangci-lint installation
-          golangci-lint version
-
-          # Verify pre-commit installation
-          pre-commit --version
-
-          # Verify commitlint is available
-          if [ -f "package.json" ]; then
-            echo "Verifying commitlint installation..."
-            pnpm exec commitlint --version || echo "commitlint not available via pnpm"
-          fi
-
-          # Verify Python environment and mkdocs-material
-          source .venv/bin/activate
-          python --version
-          pip list | grep mkdocs-material || echo "mkdocs-material not found in pip"
-
-          # Verify pre-commit is available globally
-          if command -v pre-commit >/dev/null 2>&1; then
-            echo "pre-commit found in PATH"
-          else
-            echo "pre-commit not found in PATH"
-          fi
-
-          # Verify extra tools installation
-          echo "Verifying extra tools installation..."
-          git-cliff --version
-          grype version
-          syft version
-
-          echo "All tools installed successfully"
+      - name: Install dependencies
+        run: just install

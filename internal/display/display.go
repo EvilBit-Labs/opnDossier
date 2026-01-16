@@ -352,8 +352,9 @@ func NewTerminalDisplayWithTheme(theme Theme) *TerminalDisplay {
 
 // NewTerminalDisplayWithOptions returns a TerminalDisplay configured with the provided options, initializing the progress bar with theme-based colors and setting the wrap width if not specified.
 func NewTerminalDisplayWithOptions(opts Options) *TerminalDisplay {
-	// Set default wrap width if not specified
-	if opts.WrapWidth == 0 {
+	// Set default wrap width if not specified (-1 or negative values)
+	// Preserve 0 (no wrapping) and positive values (explicit width)
+	if opts.WrapWidth < 0 {
 		opts.WrapWidth = getTerminalWidth()
 	}
 
@@ -431,18 +432,25 @@ func (td *TerminalDisplay) Display(ctx context.Context, markdownContent string) 
 	default:
 	}
 
+	markdownContent = wrapMarkdownContent(markdownContent, td.options.WrapWidth)
+
 	// Get singleton renderer with current options
 	renderer, err := getGlamourRenderer(td.options)
 	if err != nil {
 		// Check if this is our sentinel error for raw markdown
 		if errors.Is(err, ErrRawMarkdown) {
-			fmt.Print(markdownContent)
+			// Expected: colors are disabled or terminal doesn't support colors
+			fmt.Print(wrapRenderedOutput(markdownContent, td.options.WrapWidth))
 			return nil
 		}
-		// Fallback: print raw markdown if renderer creation fails
-		fmt.Print(markdownContent)
+		// Unexpected renderer failure - notify user
+		fmt.Fprintf(os.Stderr, "Warning: Failed to create markdown renderer (error: %v), displaying raw output\n", err)
 
-		return fmt.Errorf("failed to create renderer, displaying raw markdown: %w", err)
+		// Fallback: print raw markdown if renderer creation fails
+		fmt.Print(wrapRenderedOutput(markdownContent, td.options.WrapWidth))
+
+		// Don't return error since we've handled it by displaying raw markdown
+		return nil
 	}
 
 	// Check for context cancellation before rendering
@@ -465,7 +473,7 @@ func (td *TerminalDisplay) Display(ctx context.Context, markdownContent string) 
 	default:
 	}
 
-	fmt.Print(out)
+	fmt.Print(wrapRenderedOutput(out, td.options.WrapWidth))
 
 	// Add navigation hints placeholder for future paging support
 	if td.shouldShowNavigationHints() {
@@ -558,6 +566,8 @@ func (td *TerminalDisplay) setupProgressHandling(
 
 // renderContent handles rendering the markdown content and manages progress.
 func (td *TerminalDisplay) renderContent(ctx context.Context, markdownContent string, wg *sync.WaitGroup) error {
+	markdownContent = wrapMarkdownContent(markdownContent, td.options.WrapWidth)
+
 	// Get singleton renderer with current options
 	renderer, err := getGlamourRenderer(td.options)
 	if err != nil {
@@ -587,7 +597,7 @@ func (td *TerminalDisplay) renderContent(ctx context.Context, markdownContent st
 	td.ShowProgress(1.0, "Display complete!")
 	td.ClearProgress()
 
-	fmt.Print(out)
+	fmt.Print(wrapRenderedOutput(out, td.options.WrapWidth))
 
 	// Add navigation hints placeholder for future paging support
 	if td.shouldShowNavigationHints() {
@@ -600,19 +610,24 @@ func (td *TerminalDisplay) renderContent(ctx context.Context, markdownContent st
 // handleRendererError handles errors during renderer creation or rendering.
 func (td *TerminalDisplay) handleRendererError(err error, markdownContent string, wg *sync.WaitGroup) error {
 	if errors.Is(err, ErrRawMarkdown) {
-		td.ShowProgress(1.0, "Displaying raw markdown...")
+		// Expected: colors are disabled or terminal doesn't support colors
+		td.ShowProgress(1.0, "Displaying raw markdown (colors disabled)...")
 		td.ClearProgress()
-		fmt.Print(markdownContent)
+		fmt.Print(wrapRenderedOutput(markdownContent, td.options.WrapWidth))
 		wg.Wait()
 		return nil
 	}
 
-	td.ShowProgress(1.0, "Displaying raw markdown...")
+	// Unexpected renderer failure - notify user
+	td.ShowProgress(1.0, "Renderer failed, displaying raw markdown...")
 	td.ClearProgress()
-	fmt.Print(markdownContent)
+
+	fmt.Fprintf(os.Stderr, "Warning: Failed to create markdown renderer (error: %v), displaying raw output\n", err)
+	fmt.Print(wrapRenderedOutput(markdownContent, td.options.WrapWidth))
 	wg.Wait()
 
-	return fmt.Errorf("failed to create renderer, displaying raw markdown: %w", err)
+	// Return nil since we've handled the error by displaying raw markdown
+	return nil
 }
 
 // shouldShowNavigationHints determines if navigation hints should be displayed.
@@ -635,4 +650,173 @@ func (td *TerminalDisplay) showNavigationHints() {
 
 	hints := "Navigation: ↑/↓ to scroll, q to quit, h for help"
 	fmt.Println(style.Render(hints))
+}
+
+func wrapMarkdownContent(content string, width int) string {
+	if width <= 0 {
+		return content
+	}
+
+	lines := strings.Split(content, "\n")
+	wrapped := make([]string, 0, len(lines))
+	inCodeBlock := false
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "```") {
+			inCodeBlock = !inCodeBlock
+			wrapped = append(wrapped, line)
+			continue
+		}
+		if inCodeBlock {
+			wrapped = append(wrapped, line)
+			continue
+		}
+		if len(line) <= width {
+			wrapped = append(wrapped, line)
+			continue
+		}
+
+		wrapped = append(wrapped, wrapMarkdownLine(line, width)...)
+	}
+
+	return strings.Join(wrapped, "\n")
+}
+
+func wrapMarkdownLine(line string, width int) []string {
+	if width <= 0 || len(line) <= width {
+		return []string{line}
+	}
+
+	prefixLen := 0
+	for i, r := range line {
+		if r != ' ' && r != '\t' {
+			prefixLen = i
+			break
+		}
+		if i == len(line)-1 {
+			return []string{line}
+		}
+	}
+	prefix := line[:prefixLen]
+	text := strings.TrimSpace(line[prefixLen:])
+	if text == "" {
+		return []string{line}
+	}
+
+	words := strings.Fields(text)
+	lines := make([]string, 0, len(words))
+	current := prefix
+	currentLen := len(prefix)
+	prefixLength := len(prefix)
+
+	appendLine := func(value string, hardBreak bool) {
+		if hardBreak {
+			value += `\`
+		}
+		lines = append(lines, value)
+	}
+
+	for _, word := range words {
+		for word != "" {
+			needsSpace := currentLen > prefixLength
+			remaining := width - currentLen
+			if needsSpace {
+				remaining--
+			}
+			if remaining <= 0 {
+				appendLine(current, true)
+				current = prefix
+				currentLen = prefixLength
+				continue
+			}
+
+			if len(word) > remaining {
+				part := word[:remaining]
+				if needsSpace {
+					current += " " + part
+				} else {
+					current += part
+				}
+				appendLine(current, true)
+				current = prefix
+				currentLen = prefixLength
+				word = word[remaining:]
+				continue
+			}
+
+			if needsSpace {
+				current += " " + word
+			} else {
+				current += word
+			}
+			currentLen = len(current)
+			word = ""
+		}
+	}
+
+	if strings.TrimSpace(current) != "" {
+		lines = append(lines, current)
+	}
+
+	return lines
+}
+
+func wrapRenderedOutput(output string, width int) string {
+	if width <= 0 {
+		return output
+	}
+
+	lines := strings.Split(output, "\n")
+	wrapped := make([]string, 0, len(lines))
+
+	for _, line := range lines {
+		wrapped = append(wrapped, wrapRenderedLine(line, width)...)
+	}
+
+	return strings.Join(wrapped, "\n")
+}
+
+func wrapRenderedLine(line string, width int) []string {
+	if width <= 0 {
+		return []string{line}
+	}
+
+	visible := 0
+	var segments []string
+	var builder strings.Builder
+
+	for i := 0; i < len(line); {
+		if line[i] == '\x1b' && i+1 < len(line) && line[i+1] == '[' {
+			const ansiCSIStartOffset = 2
+			end := i + ansiCSIStartOffset
+			for end < len(line) {
+				b := line[end]
+				if (b >= '0' && b <= '9') || b == ';' {
+					end++
+					continue
+				}
+				end++
+				break
+			}
+			builder.WriteString(line[i:end])
+			i = end
+			continue
+		}
+
+		builder.WriteByte(line[i])
+		visible++
+		if visible >= width {
+			segments = append(segments, builder.String())
+			builder.Reset()
+			visible = 0
+		}
+		i++
+	}
+
+	if builder.Len() > 0 || len(segments) == 0 {
+		segments = append(segments, builder.String())
+	}
+
+	return segments
 }
