@@ -57,18 +57,17 @@ type TemplateCache struct {
 // NewTemplateCache creates a new template cache instance with LRU eviction using hashicorp/golang-lru/v2.
 // The cache will automatically evict least recently used templates when the max size is reached.
 // Default max size is 10 templates to balance memory usage with performance.
-// This function panics if the default cache size (DefaultTemplateCacheSize) is <= 0,
-// which indicates a programming error in the constant definition.
-func NewTemplateCache() *TemplateCache {
-	cache, err := NewTemplateCacheWithSize(DefaultTemplateCacheSize)
+// Errors are returned to allow callers to handle invalid configuration gracefully.
+func NewTemplateCache() (*TemplateCache, error) {
+	cache, err := NewTemplateCacheWithSize(defaultTemplateCacheSize)
 	if err != nil {
-		// This indicates a programming error or memory corruption
-		panic(fmt.Sprintf(
-			"BUG: failed to create template cache with default size %d: %v. "+
-				"This indicates a programming error - please report this issue.",
-			DefaultTemplateCacheSize, err))
+		return nil, fmt.Errorf(
+			"failed to create template cache with default size %d: %w",
+			defaultTemplateCacheSize,
+			err,
+		)
 	}
-	return cache
+	return cache, nil
 }
 
 // NewTemplateCacheWithSize creates a new template cache instance with a specified maximum size.
@@ -148,6 +147,9 @@ const (
 // DefaultTemplateCacheSize is the default maximum number of templates to cache in memory.
 // This provides a good balance between memory usage and performance for most use cases.
 const DefaultTemplateCacheSize = 10
+
+// defaultTemplateCacheSize allows tests to simulate invalid defaults.
+var defaultTemplateCacheSize = DefaultTemplateCacheSize //nolint:gochecknoglobals // test override hook
 
 // init registers the convert command and its flags with the root command.
 //
@@ -312,7 +314,8 @@ Examples:
 		timeoutCtx, cancel := context.WithTimeout(ctx, constants.DefaultProcessingTimeout)
 		defer cancel()
 
-		// Create template cache for batch processing with configurable size
+		// Create template cache for batch processing with configurable size.
+		// If cache creation fails, return the error to allow CLI-level reporting.
 		templateCache, err := NewTemplateCacheWithSize(sharedTemplateCacheSize)
 		if err != nil {
 			return fmt.Errorf(

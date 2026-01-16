@@ -439,13 +439,18 @@ func (td *TerminalDisplay) Display(ctx context.Context, markdownContent string) 
 	if err != nil {
 		// Check if this is our sentinel error for raw markdown
 		if errors.Is(err, ErrRawMarkdown) {
+			// Expected: colors are disabled or terminal doesn't support colors
 			fmt.Print(wrapRenderedOutput(markdownContent, td.options.WrapWidth))
 			return nil
 		}
+		// Unexpected renderer failure - notify user
+		fmt.Fprintf(os.Stderr, "Warning: Failed to create markdown renderer (error: %v), displaying raw output\n", err)
+
 		// Fallback: print raw markdown if renderer creation fails
 		fmt.Print(wrapRenderedOutput(markdownContent, td.options.WrapWidth))
 
-		return fmt.Errorf("failed to create renderer, displaying raw markdown: %w", err)
+		// Don't return error since we've handled it by displaying raw markdown
+		return nil
 	}
 
 	// Check for context cancellation before rendering
@@ -605,19 +610,24 @@ func (td *TerminalDisplay) renderContent(ctx context.Context, markdownContent st
 // handleRendererError handles errors during renderer creation or rendering.
 func (td *TerminalDisplay) handleRendererError(err error, markdownContent string, wg *sync.WaitGroup) error {
 	if errors.Is(err, ErrRawMarkdown) {
-		td.ShowProgress(1.0, "Displaying raw markdown...")
+		// Expected: colors are disabled or terminal doesn't support colors
+		td.ShowProgress(1.0, "Displaying raw markdown (colors disabled)...")
 		td.ClearProgress()
 		fmt.Print(wrapRenderedOutput(markdownContent, td.options.WrapWidth))
 		wg.Wait()
 		return nil
 	}
 
-	td.ShowProgress(1.0, "Displaying raw markdown...")
+	// Unexpected renderer failure - notify user
+	td.ShowProgress(1.0, "Renderer failed, displaying raw markdown...")
 	td.ClearProgress()
+
+	fmt.Fprintf(os.Stderr, "Warning: Failed to create markdown renderer (error: %v), displaying raw output\n", err)
 	fmt.Print(wrapRenderedOutput(markdownContent, td.options.WrapWidth))
 	wg.Wait()
 
-	return fmt.Errorf("failed to create renderer, displaying raw markdown: %w", err)
+	// Return nil since we've handled the error by displaying raw markdown
+	return nil
 }
 
 // shouldShowNavigationHints determines if navigation hints should be displayed.

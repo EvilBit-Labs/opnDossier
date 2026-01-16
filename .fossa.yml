@@ -23,5 +23,5 @@ analyze:
 
 experimental:
   gradle:
-    configurations-only: []
+    configurations-only: [ ]
     only-configuration-deps: false
