@@ -18,7 +18,7 @@ opnDossier convert config.xml --use-template -o report.md
 **After (Programmatic Mode v2.0+):**
 
 ```bash
-# Programmatic generation (74% faster, 78% less memory)
+# Programmatic generation (designed for better performance and memory efficiency)
 opnDossier convert config.xml -o report.md
 ```
 

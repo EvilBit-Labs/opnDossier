@@ -4,7 +4,7 @@
 
 The MarkdownBuilder provides a programmatic interface for generating security audit reports from OPNsense configurations. All methods are designed with red team operations in mind, supporting offline usage and output obfuscation.
 
-The programmatic API delivers **74% faster** generation and **78% less** memory usage compared to template-based generation, with full compile-time type safety.
+The programmatic API is designed to deliver significantly faster generation with reduced memory usage compared to template-based generation, while providing full compile-time type safety. Performance characteristics can be measured using the comparative benchmarks in `internal/converter/markdown_bench_test.go`.
 
 ## Core Interface
 
