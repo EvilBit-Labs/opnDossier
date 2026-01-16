@@ -157,7 +157,7 @@ func TestDisplayCommandEnhancedErrorMessages(t *testing.T) {
 	}{
 		{
 			name:           "File does not exist",
-			xmlContent:     "", // Will use non-existent file path
+			xmlContent:     "",                   // Will use non-existent file path
 			expectedErrMsg: "does-not-exist.xml", // Check filename instead of OS-specific message
 		},
 	}
