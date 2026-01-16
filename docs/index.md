@@ -85,8 +85,6 @@ opnDossier implements comprehensive configuration management with Viper:
 
 - `verbose`: Enable debug logging
 - `quiet`: Suppress all output except errors
-- `log_level`: Set log level (debug, info, warn, error)
-- `log_format`: Set log format (text, json)
 - `input_file`: Default input file path
 - `output_file`: Default output file path
 
