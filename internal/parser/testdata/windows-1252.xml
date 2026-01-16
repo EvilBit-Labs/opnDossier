@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<opnsense>
+  <version>24.1</version>
+  <system>
+    <hostname>Ops-Desk</hostname>
+    <domain>example.local</domain>
+    <user>
+      <name>operator</name>
+      <descr>Cost €100 – “quoted” ‘single’</descr>
+      <groupname>admins</groupname>
+      <uid>1002</uid>
+    </user>
+  </system>
+</opnsense>

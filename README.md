@@ -131,6 +131,7 @@ Built-in validation against security and operational best practices:
 - **Terminal display** - Rich terminal output with syntax highlighting and theme support
 - **File export** - Save processed configurations with overwrite protection
 - **Template-based reports** - Customizable markdown templates (legacy, deprecated v3.0)
+- **International character support** - UTF-8, US-ASCII, ISO-8859-1, and Windows-1252 input encodings
 
 ### Performance & Architecture
 
@@ -311,6 +312,11 @@ For developers:
 - **Discussions** - [GitHub Discussions](https://github.com/EvilBit-Labs/opnDossier/discussions)
 - **Documentation** - [Full Documentation](docs/index.md)
 - **Contributing** - [Contributing Guide](CONTRIBUTING.md)
+
+## Troubleshooting
+
+- If you see garbled characters, confirm the XML declaration encoding matches the file's actual encoding.
+- Supported input encodings include UTF-8, US-ASCII, ISO-8859-1, and Windows-1252; convert legacy files to UTF-8 if needed.
 
 ## Security
 

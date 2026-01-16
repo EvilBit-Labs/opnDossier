@@ -132,6 +132,7 @@ This follows the standard precedence order used by most CLI tools, where environ
 - Schema validation and error reporting
 - Structured data extraction
 - Malformed input handling
+- Automatic charset detection and conversion (UTF-8, US-ASCII, ISO-8859-1, Windows-1252)
 
 **Data Structures**:
 
