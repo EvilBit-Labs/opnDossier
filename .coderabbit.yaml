@@ -5,7 +5,7 @@ tone_instructions: >-
   Prioritize CLI usability, offline functionality, and clear documentation.
   Red team tool - output obfuscation may not apply. Security-first design.
 early_access: true
-enable_free_tier: false
+enable_free_tier: true
 reviews:
   profile: assertive
   request_changes_workflow: true
@@ -56,7 +56,7 @@ reviews:
       instructions: "Use for incompatible changes and major updates"
     - label: "audit"
       instructions: "Use for audit compliance and report generation work"
-  path_filters: [ ]
+  path_filters: []
   path_instructions:
     - path: "cmd/**/*.go"
       instructions: |
@@ -147,10 +147,10 @@ reviews:
   auto_review:
     enabled: true
     auto_incremental_review: true
-    ignore_title_keywords: [ "WIP" ]
-    labels: [ ]
+    ignore_title_keywords: ["WIP"]
+    labels: []
     drafts: false
-    base_branches: [ "main" ]
+    base_branches: ["main"]
   finishing_touches:
     docstrings:
       enabled: true
@@ -169,10 +169,10 @@ reviews:
       mode: warning
   tools:
     ast-grep:
-      rule_dirs: [ ]
-      util_dirs: [ ]
+      rule_dirs: []
+      util_dirs: []
       essential_rules: true
-      packages: [ ]
+      packages: []
     shellcheck:
       enabled: true
     ruff:
@@ -184,10 +184,10 @@ reviews:
       timeout_ms: 300000
     languagetool:
       enabled: true
-      enabled_rules: [ ]
-      disabled_rules: [ ]
-      enabled_categories: [ ]
-      disabled_categories: [ ]
+      enabled_rules: []
+      disabled_rules: []
+      enabled_categories: []
+      disabled_categories: []
       enabled_only: false
       level: default
     biome:
@@ -280,10 +280,10 @@ knowledge_base:
     scope: auto
   jira:
     usage: disabled
-    project_keys: [ ]
+    project_keys: []
   linear:
     usage: disabled
-    team_keys: [ ]
+    team_keys: []
   pull_requests:
     scope: auto
 code_generation:
@@ -401,3 +401,115 @@ code_generation:
           - Test recommendation generation
           - Avoid testing every possible configuration permutation
           - Focus on critical security scenarios
+issue_enrichment:
+  auto_enrich:
+    enabled: true
+  planning:
+    enabled: true
+    auto_planning:
+      enabled: false
+      labels: []
+  labeling:
+    labeling_instructions:
+      # Type Labels
+      - label: "type:feature"
+        instructions: "Use for new functionality, feature requests, and enhancements that add capabilities to the tool"
+      - label: "type:bug"
+        instructions: "Use for bug fixes, defect corrections, and issues where something isn't working as expected"
+      - label: "enhancement"
+        instructions: "Use for improvements to existing features, optimizations, or incremental enhancements"
+
+      # Priority Labels
+      - label: "priority:critical"
+        instructions: "Use for critical issues requiring immediate attention, security vulnerabilities, data loss risks, or blocking production issues"
+      - label: "priority:high"
+        instructions: "Use for high priority issues that significantly impact functionality, user experience, or project goals"
+      - label: "priority:normal"
+        instructions: "Use for standard work items, regular features, and routine bug fixes with normal urgency"
+
+      # Standard GitHub Labels
+      - label: "bug"
+        instructions: "Use when something isn't working correctly - parsing errors, crashes, incorrect output, or unexpected behavior"
+      - label: "documentation"
+        instructions: "Use for improvements to documentation, README updates, code comments, API docs, or usage examples"
+      - label: "duplicate"
+        instructions: "Use when this issue or pull request already exists - reference the original issue number"
+      - label: "invalid"
+        instructions: "Use when the issue doesn't seem right, is not applicable, or contains incorrect information"
+      - label: "question"
+        instructions: "Use when further information is requested or clarification is needed about functionality"
+      - label: "wontfix"
+        instructions: "Use when this issue will not be worked on - explain reasoning in comments"
+      - label: "good first issue"
+        instructions: "Use for issues that are well-defined, relatively simple, and good for newcomers to the project"
+      - label: "help wanted"
+        instructions: "Use when extra attention is needed or community contributions are especially welcome"
+
+      # Technology & Language Labels
+      - label: "go"
+        instructions: "Use for Go code changes, Go-specific issues, or modifications to .go files"
+      - label: "javascript"
+        instructions: "Use for JavaScript code updates in documentation site or related tooling"
+
+      # Component Labels
+      - label: "component:display"
+        instructions: "Use for issues related to the display command, terminal output rendering, markdown formatting, or text wrapping"
+      - label: "cli"
+        instructions: "Use for command-line interface improvements, flag handling, or user experience enhancements"
+      - label: "dependencies"
+        instructions: "Use for dependency updates, package upgrades, go.mod changes, or third-party library modifications"
+
+      # Infrastructure & Workflow Labels
+      - label: "ci"
+        instructions: "Use for CI/CD pipeline changes, GitHub Actions workflows, automated testing, or build process modifications"
+      - label: "github_actions"
+        instructions: "Use specifically for GitHub Actions workflow files, action configurations, or runner-related issues"
+
+      # Feature Category Labels
+      - label: "audit"
+        instructions: "Use for audit report generation, compliance checking, or Phase 4.3 audit-related tasks"
+      - label: "audit-mode"
+        instructions: "Use for issues related to audit mode functionality, compliance scanning, or audit feature enhancements"
+      - label: "compliance"
+        instructions: "Use for compliance scanning features, security standards (STIG, CIS), or regulatory requirements"
+      - label: "security"
+        instructions: "Use for security-related features, vulnerability fixes, or security analysis capabilities"
+      - label: "blue-team"
+        instructions: "Use for defensive security features, monitoring capabilities, or blue team operational tooling"
+      - label: "configuration"
+        instructions: "Use for configuration management, settings handling, or config file parsing improvements"
+
+      # Development Process Labels
+      - label: "architecture"
+        instructions: "Use for architectural changes, design decisions, major refactoring, or structural improvements"
+      - label: "refactoring"
+        instructions: "Use for code refactoring, restructuring existing code without changing functionality"
+      - label: "refactor"
+        instructions: "Use for code cleanup, simplification, or improving code quality without adding features"
+      - label: "cleanup"
+        instructions: "Use for code cleanup tasks, removing dead code, or tidying up technical debt"
+      - label: "technical-debt"
+        instructions: "Use for technical debt that needs to be addressed, legacy code improvements, or modernization efforts"
+      - label: "performance"
+        instructions: "Use for performance optimizations, speed improvements, memory usage reductions, or efficiency enhancements"
+      - label: "testing"
+        instructions: "Use for test infrastructure, test coverage improvements, or test-related changes"
+
+      # Release & Planning Labels
+      - label: "breaking_change"
+        instructions: "Use for significant changes that disrupt backward compatibility, require migration, or change public APIs"
+      - label: "epic"
+        instructions: "Use for large initiatives spanning multiple issues, major features, or multi-phase project work"
+      - label: "requirements"
+        instructions: "Use for gathering requirements, specification work, or defining feature scope"
+      - label: "review"
+        instructions: "Use for code review discussions, review feedback items, or issues requiring team review"
+      - label: "v2.0"
+        instructions: "Use for issues specifically targeted for the v2.0 release milestone"
+
+      # Special Feature Labels
+      - label: "premium"
+        instructions: "Use for premium tier features requiring licensing, advanced functionality, or enterprise-only capabilities"
+      - label: "windows"
+        instructions: "Use for Windows platform-specific issues, Windows compatibility, or Windows-only bugs"
+    auto_apply_labels: true

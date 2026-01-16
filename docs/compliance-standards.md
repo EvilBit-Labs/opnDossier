@@ -338,7 +338,7 @@ result.FirewallCompliance["FIREWALL-018"] = false // Non-compliant
 
 - [DISA STIG Library](https://public.cyber.mil/stigs/)
 - [SANS Firewall Checklist](https://www.sans.org/media/score/checklists/FirewallChecklist.pdf)
-- [CIS-Inspired Firewall Security Controls Reference](docs/cis-like-firewall-reference.md)
+- [CIS-Inspired Firewall Security Controls Reference](cis-like-firewall-reference.md)
 - [STIG Viewer](https://stigviewer.com/stigs/firewall_security_requirements_guide)
 - [NIST Cybersecurity Framework](https://www.nist.gov/cyberframework)
 

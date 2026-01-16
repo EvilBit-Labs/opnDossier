@@ -42,8 +42,6 @@ OPNDOSSIER_THEME=light opnDossier convert config.xml
 ```yaml
 # ~/.opnDossier.yaml
 theme: dark
-log_level: info
-log_format: text
 ```
 
 ### Auto-Detection

@@ -286,35 +286,6 @@ func combineValidationErrors(validationErrors []ValidationError) error {
 	}
 }
 
-// GetLogLevel returns the configured log level.
-//
-// Deprecated: This method is deprecated and will be removed in a future version.
-// Use IsVerbose() and IsQuiet() methods instead for logging control.
-// The log level is now determined by the Verbose and Quiet flags:
-// - Quiet mode: "error"
-// - Verbose mode: "debug"
-// - Default: "info".
-func (c *Config) GetLogLevel() string {
-	// TODO: Remove this method in next major version
-	// For now, return appropriate level based on current config
-	if c.IsQuiet() {
-		return "error"
-	}
-	if c.IsVerbose() {
-		return "debug"
-	}
-	return "info"
-}
-
-// GetLogFormat returns the configured log format.
-//
-// Deprecated: This method is deprecated and will be removed in a future version.
-// Log format is now hardcoded to "text" format for consistency.
-func (c *Config) GetLogFormat() string {
-	// TODO: Remove this method in next major version
-	return "text"
-}
-
 // IsVerbose returns true if verbose logging is enabled.
 func (c *Config) IsVerbose() bool {
 	return c.Verbose

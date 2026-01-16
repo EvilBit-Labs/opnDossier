@@ -15,12 +15,10 @@ Configuration sources are applied in this order (highest to lowest priority):
 
 ### Logging & Output
 
-| Setting         | CLI Flag       | Environment Variable    | Config File  | Type    | Default | Description                                           |
-| --------------- | -------------- | ----------------------- | ------------ | ------- | ------- | ----------------------------------------------------- |
-| Verbose logging | `--verbose`    | `OPNDOSSIER_VERBOSE`    | `verbose`    | boolean | `false` | Enable debug/verbose output with detailed information |
-| Quiet mode      | `--quiet`      | `OPNDOSSIER_QUIET`      | `quiet`      | boolean | `false` | Suppress all non-error output                         |
-| Log level       | `--log_level`  | `OPNDOSSIER_LOG_LEVEL`  | `log_level`  | string  | `info`  | Logging level: debug, info, warn, error               |
-| Log format      | `--log_format` | `OPNDOSSIER_LOG_FORMAT` | `log_format` | string  | `text`  | Log output format: text, json                         |
+| Setting         | CLI Flag    | Environment Variable | Config File | Type    | Default | Description                                           |
+| --------------- | ----------- | -------------------- | ----------- | ------- | ------- | ----------------------------------------------------- |
+| Verbose logging | `--verbose` | `OPNDOSSIER_VERBOSE` | `verbose`   | boolean | `false` | Enable debug/verbose output with detailed information |
+| Quiet mode      | `--quiet`   | `OPNDOSSIER_QUIET`   | `quiet`     | boolean | `false` | Suppress all non-error output                         |
 
 ### Input & Output Files
 
@@ -71,8 +69,6 @@ Create `~/.opnDossier.yaml` with your preferred settings:
 
 ```yaml
 # Logging Configuration
-log_level: info # debug, info, warn, error
-log_format: text # text, json
 verbose: false # Enable verbose output
 quiet: false # Suppress non-error output
 
@@ -104,8 +100,6 @@ opnDossier also supports JSON format:
 
 ```json
 {
-  "log_level": "info",
-  "log_format": "text",
   "verbose": false,
   "quiet": false,
   "input_file": "/path/to/default/config.xml",
@@ -132,8 +126,6 @@ All configuration options can be set via environment variables with the `OPNDOSS
 # Logging
 export OPNDOSSIER_VERBOSE=true
 export OPNDOSSIER_QUIET=false
-export OPNDOSSIER_LOG_LEVEL=debug
-export OPNDOSSIER_LOG_FORMAT=json
 
 # File Paths
 export OPNDOSSIER_INPUT_FILE="/path/to/config.xml"
@@ -180,12 +172,6 @@ opnDossier --verbose convert config.xml
 
 # Quiet mode (errors only)
 opnDossier --quiet convert config.xml
-
-# Custom log level
-opnDossier --log_level=debug convert config.xml
-
-# JSON logging for structured output
-opnDossier --log_format=json convert config.xml
 ```
 
 ### Display Options
@@ -241,10 +227,6 @@ opnDossier convert --include-tunables config.xml -o full-report.md
 opnDossier validates configuration values on startup. Invalid values will result in clear error messages:
 
 ```bash
-# Invalid log level
-$ opnDossier --log_level=invalid convert config.xml
-Error: invalid log level 'invalid', must be one of: debug, info, warn, error
-
 # Invalid format
 $ opnDossier convert -f invalid config.xml
 Error: invalid format 'invalid', must be one of: markdown, json, yaml
@@ -267,7 +249,6 @@ Use configuration file for consistent local settings:
 ```yaml
 # ~/.opnDossier.yaml
 verbose: true
-log_level: debug
 wrap: 100
 theme: dark
 ```
@@ -277,7 +258,6 @@ theme: dark
 Use environment variables for flexibility:
 
 ```bash
-export OPNDOSSIER_LOG_FORMAT=json
 export OPNDOSSIER_VALIDATE=true
 export OPNDOSSIER_QUIET=true
 ```
@@ -290,7 +270,6 @@ Use explicit CLI flags for clarity:
 #!/bin/bash
 opnDossier convert \
   --validate \
-  --log_format=json \
   --timeout=300 \
   config.xml -o report.md
 ```
@@ -332,9 +311,6 @@ Verify environment variable names and values:
 # List all opnDossier environment variables
 env | grep OPNDOSSIER
 
-# Test specific variable
-echo $OPNDOSSIER_LOG_LEVEL
-
 # Verify boolean values (use true/false, not 1/0)
 export OPNDOSSIER_VERBOSE=true  # Correct
 export OPNDOSSIER_VERBOSE=1     # Incorrect
@@ -345,8 +321,8 @@ export OPNDOSSIER_VERBOSE=1     # Incorrect
 Remember precedence order - CLI flags should override everything:
 
 ```bash
-# This should use debug level (CLI flag)
-OPNDOSSIER_LOG_LEVEL=info opnDossier --log_level=debug convert config.xml
+# This should enable verbose output (CLI flag)
+OPNDOSSIER_VERBOSE=false opnDossier --verbose convert config.xml
 
 # Verify flag is being parsed
 opnDossier convert --help
@@ -357,4 +333,4 @@ opnDossier convert --help
 - [User Guide](./usage.md)
 - [Configuration Guide](./configuration.md)
 - [Examples](../examples.md)
-- [Contributing Guide](../../CONTRIBUTING.md)
+- [Contributing Guide](https://github.com/EvilBit-Labs/opnDossier/blob/main/CONTRIBUTING.md)

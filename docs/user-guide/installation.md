@@ -123,8 +123,6 @@ Create a basic configuration file:
 
 ```yaml
 # ~/.config/opnDossier/config.yaml
-log_level: info
-log_format: text
 verbose: false
 quiet: false
 ```
@@ -135,8 +133,7 @@ Set up environment variables for your shell:
 
 ```bash
 # Add to ~/.bashrc, ~/.zshrc, etc.
-export OPNDOSSIER_LOG_LEVEL=info
-export OPNDOSSIER_LOG_FORMAT=text
+export OPNDOSSIER_VERBOSE=false
 ```
 
 ## Shell Completion
@@ -266,8 +263,7 @@ metadata:
   name: opndossier-config
 data:
   config.yaml: |
-    log_level: "info"
-    log_format: "json"
+    verbose: "false"
 ```
 
 **Job:**
@@ -331,4 +327,4 @@ Download and replace the binary with the latest release.
 
 ---
 
-For installation issues, see our [troubleshooting guide](../troubleshooting.md) or open an issue on GitHub.
+For installation issues, see our [troubleshooting guide](../examples/troubleshooting.md) or open an issue on GitHub.

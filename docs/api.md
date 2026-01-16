@@ -393,5 +393,5 @@ See the [complete migration guide](migration.md) for detailed step-by-step instr
 
 - [Migration Guide](migration.md) - Step-by-step migration from template mode
 - [Examples](examples.md) - Real-world usage scenarios and patterns
-- [Architecture](../ARCHITECTURE.md) - System architecture and design decisions
-- [Contributing](../CONTRIBUTING.md) - Development guidelines for API extensions
+- [Architecture](https://github.com/EvilBit-Labs/opnDossier/blob/main/ARCHITECTURE.md) - System architecture and design decisions
+- [Contributing](https://github.com/EvilBit-Labs/opnDossier/blob/main/CONTRIBUTING.md) - Development guidelines for API extensions

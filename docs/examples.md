@@ -680,4 +680,4 @@ For more examples and detailed migration guidance, see:
 
 - [API Documentation](api.md)
 - [Migration Guide](migration.md)
-- [Architecture Overview](../ARCHITECTURE.md)
+- [Architecture Overview](https://github.com/EvilBit-Labs/opnDossier/blob/main/ARCHITECTURE.md)
