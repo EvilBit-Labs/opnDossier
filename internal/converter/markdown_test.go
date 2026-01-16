@@ -144,10 +144,10 @@ func TestMarkdownConverter_ConvertFromTestdataFile(t *testing.T) {
 	assert.Contains(t, markdown, "SNMP")
 	assert.Contains(t, markdown, "**Read-Only Community**: public")
 
-	// Verify tables are rendered
-	assert.Contains(t, markdown, "TUNABLE")
-	assert.Contains(t, markdown, "VALUE")
-	assert.Contains(t, markdown, "DESCRIPTION")
+	// Verify tables are rendered (headers are title case after markdown library v0.10.0)
+	assert.Contains(t, markdown, "Tunable")
+	assert.Contains(t, markdown, "Value")
+	assert.Contains(t, markdown, "Description")
 
 	// Verify users and groups tables
 	assert.Contains(t, markdown, "Users")
@@ -155,13 +155,13 @@ func TestMarkdownConverter_ConvertFromTestdataFile(t *testing.T) {
 	assert.Contains(t, markdown, "root")
 	assert.Contains(t, markdown, "admins")
 
-	// Verify firewall rules table (may be truncated due to width)
-	assert.Contains(t, markdown, "TYPE")
-	assert.Contains(t, markdown, "INT")
-	assert.Contains(t, markdown, "IP") // May be truncated from "IP Ver"
+	// Verify firewall rules table (may be truncated due to width, headers are title case after markdown library v0.10.0)
+	assert.Contains(t, markdown, "Type")
+	assert.Contains(t, markdown, "Inter") // May be truncated from "Interface"
+	assert.Contains(t, markdown, "IP")    // May be truncated from "IP Ver"
 	assert.Contains(t, markdown, "Protocol")
-	assert.Contains(t, markdown, "SOU") // May be truncated from "Source"
-	assert.Contains(t, markdown, "DES") // May be truncated from "Destination"
+	assert.Contains(t, markdown, "Sou") // May be truncated from "Source"
+	assert.Contains(t, markdown, "Des") // May be truncated from "Destination"
 	// Verify that the actual data shows both IP version and protocol
 	assert.Contains(t, markdown, "inet")  // IPProtocol data
 	assert.Contains(t, markdown, "inet6") // IPProtocol data

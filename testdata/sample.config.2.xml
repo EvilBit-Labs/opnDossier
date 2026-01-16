@@ -225,26 +225,27 @@
           <secret>$6$$AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIC</secret>
         </item>
       </apikeys>
-      <expires />
-      <authorizedkeys />
-      <ipsecpsk />
-      <otp_seed />
+      <expires/>
+      <authorizedkeys/>
+      <ipsecpsk/>
+      <otp_seed/>
     </user>
     <nextuid>2000</nextuid>
     <nextgid>2000</nextgid>
     <timezone>Etc/UTC</timezone>
-    <timeservers>0.opnsense.pool.ntp.org 1.opnsense.pool.ntp.org 2.opnsense.pool.ntp.org 3.opnsense.pool.ntp.org</timeservers>
+    <timeservers>0.opnsense.pool.ntp.org 1.opnsense.pool.ntp.org 2.opnsense.pool.ntp.org 3.opnsense.pool.ntp.org
+    </timeservers>
     <webgui>
       <protocol>https</protocol>
     </webgui>
     <disablenatreflection>yes</disablenatreflection>
     <usevirtualterminal>1</usevirtualterminal>
-    <disableconsolemenu />
+    <disableconsolemenu/>
     <disablevlanhwfilter>1</disablevlanhwfilter>
     <disablechecksumoffloading>1</disablechecksumoffloading>
     <disablesegmentationoffloading>1</disablesegmentationoffloading>
     <disablelargereceiveoffloading>1</disablelargereceiveoffloading>
-    <ipv6allow />
+    <ipv6allow/>
     <powerd_ac_mode>hadp</powerd_ac_mode>
     <powerd_battery_mode>hadp</powerd_battery_mode>
     <powerd_normal_mode>hadp</powerd_normal_mode>
@@ -259,8 +260,8 @@
     <rrdbackup>-1</rrdbackup>
     <netflowbackup>-1</netflowbackup>
     <firmware version="1.0.0">
-      <mirror />
-      <flavour />
+      <mirror/>
+      <flavour/>
       <plugins>os-wireguard</plugins>
     </firmware>
     <dnsserver>198.51.100.100</dnsserver>
@@ -271,22 +272,22 @@
       <enable>1</enable>
       <if>vtnet0</if>
       <ipaddr>192.0.2.10</ipaddr>
-      <ipaddrv6 />
+      <ipaddrv6/>
       <subnet>24</subnet>
       <gateway>WAN_GW</gateway>
       <blockpriv>on</blockpriv>
       <blockbogons>on</blockbogons>
-      <media />
-      <mediaopt />
+      <media/>
+      <mediaopt/>
       <dhcp6-ia-pd-len>0</dhcp6-ia-pd-len>
-      <subnetv6 />
-      <gatewayv6 />
+      <subnetv6/>
+      <gatewayv6/>
     </wan>
     <lan>
       <if>vtnet1</if>
       <descr>Workstations</descr>
       <enable>1</enable>
-      <spoofmac />
+      <spoofmac/>
       <ipaddr>172.16.0.1</ipaddr>
       <subnet>24</subnet>
     </lan>
@@ -315,13 +316,13 @@
       <descr>WGB</descr>
       <enable>1</enable>
       <lock>1</lock>
-      <spoofmac />
+      <spoofmac/>
     </opt0>
     <opt1>
       <if>vtnet2</if>
       <descr>Servers</descr>
       <enable>1</enable>
-      <spoofmac />
+      <spoofmac/>
       <ipaddr>172.17.0.1</ipaddr>
       <subnet>24</subnet>
     </opt1>
@@ -329,7 +330,7 @@
       <if>vtnet3</if>
       <descr>DMZ</descr>
       <enable>1</enable>
-      <spoofmac />
+      <spoofmac/>
       <ipaddr>172.18.0.1</ipaddr>
       <subnet>24</subnet>
     </opt2>
@@ -340,45 +341,45 @@
       <gateway>172.16.0.1</gateway>
       <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
       <numberoptions>
-        <item />
+        <item/>
       </numberoptions>
       <range>
         <from>172.16.0.10</from>
         <to>172.16.0.250</to>
       </range>
-      <winsserver />
+      <winsserver/>
       <dnsserver>172.16.0.1</dnsserver>
-      <ntpserver />
+      <ntpserver/>
     </lan>
     <opt1>
       <enable>1</enable>
       <gateway>172.17.0.1</gateway>
       <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
       <numberoptions>
-        <item />
+        <item/>
       </numberoptions>
       <range>
         <from>172.17.0.10</from>
         <to>172.17.0.250</to>
       </range>
-      <winsserver />
+      <winsserver/>
       <dnsserver>172.17.0.1</dnsserver>
-      <ntpserver />
+      <ntpserver/>
     </opt1>
     <opt2>
       <enable>1</enable>
       <gateway>172.18.0.1</gateway>
       <ddnsdomainalgorithm>hmac-md5</ddnsdomainalgorithm>
       <numberoptions>
-        <item />
+        <item/>
       </numberoptions>
       <range>
         <from>172.18.0.10</from>
         <to>172.18.0.250</to>
       </range>
-      <winsserver />
+      <winsserver/>
       <dnsserver>172.18.0.1</dnsserver>
-      <ntpserver />
+      <ntpserver/>
     </opt2>
   </dhcpd>
   <unbound>
@@ -387,8 +388,8 @@
     <dnssecstripped>on</dnssecstripped>
   </unbound>
   <snmpd>
-    <syslocation />
-    <syscontact />
+    <syslocation/>
+    <syscontact/>
     <rocommunity>public</rocommunity>
   </snmpd>
   <nat>
@@ -422,7 +423,7 @@
         <network>lan</network>
       </source>
       <destination>
-        <any />
+        <any/>
       </destination>
     </rule>
     <rule>
@@ -434,7 +435,7 @@
         <network>lan</network>
       </source>
       <destination>
-        <any />
+        <any/>
       </destination>
     </rule>
     <rule>
@@ -455,20 +456,20 @@
     </rule>
   </filter>
   <rrd>
-    <enable />
+    <enable/>
   </rrd>
   <load_balancer>
     <monitor_type>
       <name>ICMP</name>
       <type>icmp</type>
       <descr>ICMP</descr>
-      <options />
+      <options/>
     </monitor_type>
     <monitor_type>
       <name>TCP</name>
       <type>tcp</type>
       <descr>Generic TCP</descr>
-      <options />
+      <options/>
     </monitor_type>
     <monitor_type>
       <name>HTTP</name>
@@ -476,7 +477,7 @@
       <descr>Generic HTTP</descr>
       <options>
         <path>/</path>
-        <host />
+        <host/>
         <code>200</code>
       </options>
     </monitor_type>
@@ -486,7 +487,7 @@
       <descr>Generic HTTPS</descr>
       <options>
         <path>/</path>
-        <host />
+        <host/>
         <code>200</code>
       </options>
     </monitor_type>
@@ -495,7 +496,7 @@
       <type>send</type>
       <descr>Generic SMTP</descr>
       <options>
-        <send />
+        <send/>
         <expect>220 *</expect>
       </options>
     </monitor_type>
@@ -504,7 +505,9 @@
     <prefer>0.opnsense.pool.ntp.org</prefer>
   </ntpd>
   <widgets>
-    <sequence>system_information-container:00000000-col3:show,services_status-container:00000001-col4:show,gateways-container:00000002-col4:show,interface_list-container:00000003-col4:show</sequence>
+    <sequence>
+      system_information-container:00000000-col3:show,services_status-container:00000001-col4:show,gateways-container:00000002-col4:show,interface_list-container:00000003-col4:show
+    </sequence>
     <column_count>2</column_count>
   </widgets>
   <revision>
@@ -540,11 +543,11 @@
             <pubkey>cycoXogW3HFdogG8qSO0GMju3I0hrHYAJhmKnKgWsw0=</pubkey>
             <privkey>mA9fgOTTm6JogJ54MndQuTw4FWDwuO3TuflKK2L7OhI=</privkey>
             <port>51821</port>
-            <mtu />
-            <dns />
+            <mtu/>
+            <dns/>
             <tunneladdress>172.19.0.1/24</tunneladdress>
             <disableroutes>0</disableroutes>
-            <gateway />
+            <gateway/>
             <peers>9aa359e8-e831-4a55-afb4-d402c81885d5</peers>
           </server>
         </servers>
@@ -555,11 +558,11 @@
             <enabled>1</enabled>
             <name>WGBootstrap</name>
             <pubkey>Nsn+T8a6qUyR1SP1dHW63cVYpGRhG4di/dDISSyUGT4=</pubkey>
-            <psk />
+            <psk/>
             <tunneladdress>172.19.0.2/32</tunneladdress>
-            <serveraddress />
-            <serverport />
-            <keepalive />
+            <serveraddress/>
+            <serverport/>
+            <keepalive/>
           </client>
         </clients>
       </client>

@@ -354,20 +354,20 @@ func (b *MyCustomBuilder) SafeStringConvert(value interface{}) string {
 
 ### Current Support Status
 
-- **v2.0+**: Programmatic generation is default, templates available via `--use-template`
-- **v2.x**: Both modes fully supported
-- **v3.0**: Legacy template mode will be deprecated (warnings shown)
-- **v4.0**: Template mode may become optional or removed
+- **v2.0+**: Programmatic generation is default, template mode deprecated with warnings
+- **v2.x**: Both modes fully supported (template mode shows deprecation warnings)
+- **v3.0**: Template mode will be removed (planned)
+- **Migration Timeline**: Users have the entire v2.x series to migrate before removal in v3.0
 
 ### Preparing for Future Versions
 
 1. **Immediate (v2.x)**: Migrate custom templates to programmatic approach
 2. **Before v3.0**: Test all custom functionality with programmatic generation
-3. **Before v4.0**: Complete migration and remove template dependencies
+3. **Before v3.0**: Complete migration and remove template dependencies
 
 ## FAQ
 
-**Q: Will my custom templates stop working?** A: No, they'll continue to work with the `--use-template` flag through v2.x and v3.x, but template mode may be removed in v4.0. We recommend migrating to programmatic generation for better performance and maintainability.
+**Q: Will my custom templates stop working?** A: They'll continue to work with the `--use-template` flag throughout v2.x (with deprecation warnings), but template mode will be removed in v3.0. We recommend migrating to programmatic generation for better performance and maintainability.
 
 **Q: Can I mix programmatic and template approaches?** A: Yes, during migration you can use hybrid approaches, but it's not recommended for production. Choose one approach for consistency.
 
@@ -392,7 +392,7 @@ if err != nil {
 
 **Q: Where can I find examples of programmatic generation?** A: Check the `internal/converter/markdown*.go` files for extensive examples of programmatic report generation.
 
-**Q: How do I validate that my migration is correct?** A: Use the migration validation script (`scripts/validate-migration.sh`) to compare template and programmatic outputs. Write unit tests for your custom functions.
+**Q: How do I validate that my migration is correct?** A: Compare template and programmatic outputs using the CLI. Run `opnDossier convert config.xml --use-template -o template-output.md` and `opnDossier convert config.xml -o programmatic-output.md`, then use `diff` to compare. Write unit tests for your custom functions.
 
 ## Contributing Custom Functions
 
@@ -457,5 +457,5 @@ If you need assistance with migration:
 1. **Documentation**: Review this guide and the API documentation
 2. **Examples**: Check `internal/converter/` for working examples
 3. **Issues**: Open a GitHub issue with the `migration` label
-4. **Testing**: Use `scripts/validate-migration.sh` to verify your migration
+4. **Testing**: Compare outputs with `opnDossier convert config.xml --use-template` vs `opnDossier convert config.xml`
 5. **Community**: Ask questions in GitHub Discussions

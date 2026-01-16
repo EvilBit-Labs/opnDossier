@@ -9,7 +9,8 @@ import (
 	"github.com/spf13/cobra/doc"
 )
 
-// manCmd represents the man command.
+// manCmd represents the man command that generates world-readable man pages
+// per POSIX FHS conventions for standard man directories.
 var manCmd = &cobra.Command{
 	Use:   "man [output-directory]",
 	Short: "Generate man pages",
@@ -29,7 +30,7 @@ Example:
 		}
 
 		// Ensure the output directory exists
-		//nolint:gosec // Man pages require 755 permissions for public access
+
 		if err := os.MkdirAll(outputDir, 0o755); err != nil {
 			return fmt.Errorf("failed to create output directory %s: %w", outputDir, err)
 		}

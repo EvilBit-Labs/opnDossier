@@ -14,7 +14,8 @@ type Adapter struct {
 
 // NewAdapter creates a new adapter with the default markdown generator.
 func NewAdapter() (*Adapter, error) {
-	generator, err := NewMarkdownGenerator(nil)
+	opts := DefaultOptions()
+	generator, err := NewMarkdownGenerator(nil, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create markdown generator: %w", err)
 	}

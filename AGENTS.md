@@ -4,9 +4,9 @@ This document consolidates all development standards, architectural principles, 
 
 ## Related Documentation
 
-- **[Requirements](project_spec/requirements.md)** - Complete project requirements and specifications
-- **[Architecture](ARCHITECTURE.md)** - System design, component interactions, and deployment patterns
-- **[Development Standards](DEVELOPMENT_STANDARDS.md)** - Go-specific coding standards and project structure
+- **[Requirements](../project_spec/requirements.md)** - Complete project requirements and specifications
+- **[Architecture](architecture.md)** - System design, component interactions, and deployment patterns
+- **[Development Standards](standards.md)** - Go-specific coding standards and project structure
 
 ---
 
@@ -14,8 +14,8 @@ This document consolidates all development standards, architectural principles, 
 
 **CRITICAL - Rules are applied in the following order:**
 
-1. **Project-specific rules** (AGENTS.md, .cursor/rules/)
-2. **General development standards** (this document)
+1. **Project-specific rules** (this document, .cursor/rules/)
+2. **General development standards** (docs/development/standards.md)
 3. **Language-specific style guides** (Go conventions)
 
 When rules conflict, follow the higher precedence rule.
@@ -122,23 +122,23 @@ opndossier/
 ```go
 // Always wrap errors with context using %w
 if err := validateConfig(config); err != nil {
-    return nil, fmt.Errorf("config validation failed: %w", err)
+return nil, fmt.Errorf("config validation failed: %w", err)
 }
 
 // Use errors.Is() and errors.As() for checking
 var parseErr *ParseError
 if errors.As(err, &parseErr) {
-    // Handle parse-specific error
+// Handle parse-specific error
 }
 
 // Create domain-specific error types
 type ParseError struct {
-    Message string
-    Line    int
+Message string
+Line    int
 }
 
 func (e *ParseError) Error() string {
-    return fmt.Sprintf("parse error at line %d: %s", e.Line, e.Message)
+return fmt.Sprintf("parse error at line %d: %s", e.Line, e.Message)
 }
 ```
 
@@ -163,7 +163,7 @@ package parser
 // ParseConfig reads and parses an OPNsense configuration file.
 // It returns a structured representation or an error if parsing fails.
 func ParseConfig(filename string) (*Config, error) {
-    // implementation
+  // implementation
 }
 ```
 
@@ -175,15 +175,15 @@ func ParseConfig(filename string) (*Config, error) {
 
 ```go
 import (
-    // Standard library
-    "fmt"
-    "os"
+// Standard library
+"fmt"
+"os"
 
-    // Third-party
-    "github.com/spf13/cobra"
+// Third-party
+"github.com/spf13/cobra"
 
-    // Internal
-    "github.com/project/internal/parser"
+// Internal
+"github.com/project/internal/parser"
 )
 ```
 
@@ -225,28 +225,28 @@ opndossier convert config.xml --format yaml --force
 
 ```go
 func TestParseConfig_ValidXML_ReturnsConfig(t *testing.T) {
-    tests := []struct {
-        name    string
-        input   string
-        want    *Config
-        wantErr bool
-    }{
-        {
-            name:    "valid config",
-            input:   "<opnsense>...</opnsense>",
-            want:    &Config{},
-            wantErr: false,
-        },
-    }
+tests := []struct {
+name    string
+input   string
+want    *Config
+wantErr bool
+}{
+{
+name:    "valid config",
+input:   "<opnsense>...</opnsense>",
+want:    &Config{},
+wantErr: false,
+},
+}
 
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            got, err := ParseConfig(tt.input)
-            if (err != nil) != tt.wantErr {
-                t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
-            }
-        })
-    }
+for _, tt := range tests {
+t.Run(tt.name, func (t *testing.T) {
+got, err := ParseConfig(tt.input)
+if (err != nil) != tt.wantErr {
+t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
+}
+})
+}
 }
 ```
 
@@ -263,13 +263,13 @@ func TestParseConfig_ValidXML_ReturnsConfig(t *testing.T) {
 
 ```go
 func setupTestConfig(t *testing.T) *Config {
-    t.Helper()
-    return &Config{InputFile: "testdata/config.xml"}
+t.Helper()
+return &Config{InputFile: "testdata/config.xml"}
 }
 
 func createTempFile(t *testing.T, content string) string {
-    t.Helper()
-    // implementation with t.Cleanup()
+t.Helper()
+// implementation with t.Cleanup()
 }
 ```
 
@@ -292,13 +292,13 @@ All plugins must implement `CompliancePlugin`:
 
 ```go
 type CompliancePlugin interface {
-    Name() string
-    Version() string
-    Description() string
-    RunChecks(config *model.OpnSenseDocument) []Finding
-    GetControls() []Control
-    GetControlByID(id string) (*Control, error)
-    ValidateConfiguration() error
+Name() string
+Version() string
+Description() string
+RunChecks(config *model.OpnSenseDocument) []Finding
+GetControls() []Control
+GetControlByID(id string) (*Control, error)
+ValidateConfiguration() error
 }
 ```
 
@@ -306,15 +306,15 @@ type CompliancePlugin interface {
 
 ```go
 type Plugin struct {
-    controls []plugin.Control
+controls []plugin.Control
 }
 
 func NewPlugin() *Plugin {
-    return &Plugin{controls: initControls()}
+return &Plugin{controls: initControls()}
 }
 
 func (p *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
-    // Implement compliance checks
+// Implement compliance checks
 }
 ```
 

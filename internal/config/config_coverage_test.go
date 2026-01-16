@@ -384,6 +384,11 @@ func TestWrapWidthValidationIndirectly(t *testing.T) {
 			expectError: false,
 		},
 		{
+			name:        "auto-detect wrap width",
+			wrapWidth:   -1,
+			expectError: false,
+		},
+		{
 			name:        "valid wrap width",
 			wrapWidth:   80,
 			expectError: false,
@@ -395,7 +400,7 @@ func TestWrapWidthValidationIndirectly(t *testing.T) {
 		},
 		{
 			name:        "negative wrap width",
-			wrapWidth:   -1,
+			wrapWidth:   -2,
 			expectError: true,
 		},
 	}
@@ -474,7 +479,7 @@ func TestCombineValidationErrorsIndirectly(t *testing.T) {
 		Engine:    "invalid",
 		Format:    "badformat",
 		Theme:     "badtheme",
-		WrapWidth: -1,
+		WrapWidth: -2,
 	}
 
 	err := config.Validate()
@@ -497,13 +502,16 @@ func TestConfigGetterMethods(t *testing.T) {
 		UseTemplate: true,
 	}
 
-	// Test GetLogLevel
-	logLevel := cfg.GetLogLevel()
-	assert.Equal(t, "info", logLevel) // Default value
-
-	// Test GetLogFormat
-	logFormat := cfg.GetLogFormat()
-	assert.Equal(t, "text", logFormat) // Default value
+	// Test IsVerbose and IsQuiet
+	verboseCfg := &Config{Verbose: true}
+	quietCfg := &Config{Quiet: true}
+	defaultCfg := &Config{}
+	assert.True(t, verboseCfg.IsVerbose())
+	assert.False(t, verboseCfg.IsQuiet())
+	assert.True(t, quietCfg.IsQuiet())
+	assert.False(t, quietCfg.IsVerbose())
+	assert.False(t, defaultCfg.IsVerbose())
+	assert.False(t, defaultCfg.IsQuiet())
 
 	// Test GetTheme
 	assert.Equal(t, "dark", cfg.GetTheme())
@@ -532,8 +540,8 @@ func TestConfigGetterMethodsWithDefaults(t *testing.T) {
 	cfg := &Config{} // Empty config to test defaults
 
 	// Test defaults
-	assert.Equal(t, "info", cfg.GetLogLevel())
-	assert.Equal(t, "text", cfg.GetLogFormat())
+	assert.False(t, cfg.IsVerbose())
+	assert.False(t, cfg.IsQuiet())
 	assert.Empty(t, cfg.GetTheme())
 	assert.Empty(t, cfg.GetFormat())
 	assert.Empty(t, cfg.GetTemplate())

@@ -180,3 +180,6 @@ cosign.bundle
 snyk.sarif
 snyk-code.sarif
 results.sarif
+coverage
+test-dumb.md
+test-output.md

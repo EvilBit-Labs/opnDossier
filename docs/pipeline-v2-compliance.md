@@ -26,8 +26,8 @@ Pipeline v2 defines mandatory tooling and quality gates for all EvilBit Labs pub
 
 **Files:**
 
-- [`.goreleaser.yaml`](../.goreleaser.yaml) - Complete GoReleaser configuration
-- [`.golangci.yml`](../.golangci.yml) - Comprehensive linting rules
+- [`.goreleaser.yaml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.goreleaser.yaml) - Complete GoReleaser configuration
+- [`.golangci.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.golangci.yml) - Comprehensive linting rules
 - [`justfile`](../justfile) - Local testing commands
 
 **Go Tooling Details:**
@@ -58,11 +58,11 @@ Pipeline v2 defines mandatory tooling and quality gates for all EvilBit Labs pub
 
 **Files:**
 
-- [`.github/workflows/ci-check.yml`](../.github/workflows/ci-check.yml) - Grype vulnerability scanning
-- [`.github/workflows/codeql.yml`](../.github/workflows/codeql.yml) - GitHub CodeQL
+- [`.github/workflows/ci-check.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/ci-check.yml) - Grype vulnerability scanning
+- [`.github/workflows/codeql.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/codeql.yml) - GitHub CodeQL
 - FOSSA license scanning (GitHub App integration)
-- [`.github/workflows/release.yml`](../.github/workflows/release.yml) - SLSA + Cosign signing
-- [`.coderabbit.yaml`](../.coderabbit.yaml) - CodeRabbit configuration
+- [`.github/workflows/release.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/release.yml) - SLSA + Cosign signing
+- [`.coderabbit.yaml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.coderabbit.yaml) - CodeRabbit configuration
 
 ### ✅ **Enhanced SaaS Tools**
 
@@ -74,9 +74,9 @@ Pipeline v2 defines mandatory tooling and quality gates for all EvilBit Labs pub
 
 **Files:**
 
-- [`.github/workflows/scorecard.yml`](../.github/workflows/scorecard.yml) - OSSF Scorecard
+- [`.github/workflows/scorecard.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/scorecard.yml) - OSSF Scorecard
 - Snyk scanning (GitHub App integration + local CLI)
-- [`.github/dependabot.yml`](../.github/dependabot.yml) - Dependabot configuration
+- [`.github/dependabot.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/dependabot.yml) - Dependabot configuration
 
 ### Local CLI Tools
 

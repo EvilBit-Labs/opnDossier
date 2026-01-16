@@ -35,8 +35,7 @@ jobs:
 
       - name: Generate Documentation
         env:
-          OPNDOSSIER_LOG_FORMAT: json
-          OPNDOSSIER_LOG_LEVEL: info
+          OPNDOSSIER_VERBOSE: true
         run: |
           opnDossier convert config.xml -o docs/network-config.md
 
@@ -63,8 +62,7 @@ stages:
   - security
 
 variables:
-  OPNDOSSIER_LOG_FORMAT: json
-  OPNDOSSIER_LOG_LEVEL: info
+  OPNDOSSIER_VERBOSE: true
 
 documentation:
   stage: documentation
@@ -106,8 +104,7 @@ pipeline {
     agent any
 
     environment {
-        OPNDOSSIER_LOG_FORMAT = 'json'
-        OPNDOSSIER_LOG_LEVEL = 'info'
+      OPNDOSSIER_VERBOSE = 'true'
     }
 
     stages {
@@ -278,8 +275,7 @@ DOCS_DIR="/var/www/network-docs"
 WEBHOOK_URL="https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
 
 # Set up environment
-export OPNDOSSIER_LOG_FORMAT=json
-export OPNDOSSIER_LOG_LEVEL=info
+export OPNDOSSIER_VERBOSE=true
 
 # Create documentation directory
 mkdir -p "$DOCS_DIR"

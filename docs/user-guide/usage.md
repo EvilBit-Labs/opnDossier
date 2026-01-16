@@ -42,9 +42,6 @@ opndossier --verbose convert config.xml
 # Quiet mode - only errors
 opndossier --quiet convert config.xml
 
-# JSON logging format
-opndossier --log_format=json convert config.xml
-
 # Enable validation with verbose output
 opndossier --validate --verbose convert config.xml
 ```
@@ -57,8 +54,6 @@ Create `~/.opnDossier.yaml` for persistent settings:
 
 ```yaml
 # Default settings for all operations
-log_level: info
-log_format: text
 output_file: ./network-docs.md
 verbose: false
 ```
@@ -69,8 +64,7 @@ Use environment variables for deployment automation:
 
 ```bash
 # Set logging preferences
-export OPNDOSSIER_LOG_LEVEL=debug
-export OPNDOSSIER_LOG_FORMAT=json
+export OPNDOSSIER_VERBOSE=true
 
 # Set default output location
 export OPNDOSSIER_OUTPUT_FILE="./documentation.md"
@@ -85,7 +79,7 @@ CLI flags have the highest precedence:
 
 ```bash
 # Override config file settings
-opndossier --log_level=debug --output=custom.md convert config.xml
+opndossier --verbose --output=custom.md convert config.xml
 
 # Temporary verbose mode
 opndossier --verbose convert config.xml
@@ -107,7 +101,7 @@ opndossier --verbose convert /etc/opnsense/config.xml -o network-docs.md
 
 # Generate multiple formats
 opndossier convert config.xml -o current-config.md
-opndossier --log_format=json convert config.xml > config-log.json
+opndossier --verbose convert config.xml > config.log
 ```
 
 ### 2. Batch Processing
@@ -130,8 +124,7 @@ opndossier convert config1.xml config2.xml config3.xml
 # automation-script.sh
 
 # Set up environment
-export OPNDOSSIER_LOG_FORMAT=json
-export OPNDOSSIER_LOG_LEVEL=info
+export OPNDOSSIER_VERBOSE=true
 
 # Process configuration
 opndossier convert /etc/opnsense/config.xml -o ./docs/network-config.md
@@ -150,13 +143,13 @@ fi
 
 ```bash
 # Debug XML parsing issues
-opndossier --verbose --log_level=debug convert problematic-config.xml
+opndossier --verbose convert problematic-config.xml
 
 # Debug with validation enabled
-opndossier --validate --verbose --log_level=debug convert config.xml
+opndossier --validate --verbose convert config.xml
 
 # Capture detailed logs
-opndossier --log_format=json --log_level=debug convert config.xml > debug.log 2>&1
+opndossier --verbose convert config.xml > debug.log 2>&1
 
 # Test configuration loading
 opndossier --verbose --config ./test-config.yaml convert --help
@@ -228,15 +221,14 @@ Test how configuration precedence works:
 ```bash
 # Create test config file
 cat > test-config.yaml << EOF
-log_level: "warn"
-log_format: "json"
 verbose: false
+quiet: false
 EOF
 
 # Test precedence: config file < env vars < CLI flags
 opndossier --config test-config.yaml convert config.xml  # Uses config file settings
-OPNDOSSIER_LOG_LEVEL=info opndossier --config test-config.yaml convert config.xml  # Env var overrides config
-opndossier --config test-config.yaml --log_level=debug convert config.xml  # CLI flag overrides all
+OPNDOSSIER_VERBOSE=true opndossier --config test-config.yaml convert config.xml  # Env var overrides config
+opndossier --config test-config.yaml --quiet convert config.xml  # CLI flag overrides all
 ```
 
 ### Custom Output Locations
@@ -292,8 +284,7 @@ jobs:
 
       - name: Generate Documentation
         env:
-          OPNDOSSIER_LOG_FORMAT: json
-          OPNDOSSIER_LOG_LEVEL: info
+          OPNDOSSIER_VERBOSE: true
         run: opndossier convert config.xml -o docs/network-config.md
 
       - name: Commit Documentation
@@ -310,10 +301,10 @@ jobs:
 
 ```bash
 # Generate metrics for monitoring
-opndossier --log_format=json convert config.xml 2> metrics.json
+opndossier --verbose convert config.xml > metrics.log 2>&1
 
 # Parse logs for monitoring
-jq '.level' metrics.json | sort | uniq -c
+grep -i "error" metrics.log | wc -l
 
 # Health check script
 #!/bin/bash
@@ -360,9 +351,6 @@ opndossier convert config.xml
 opndossier --verbose --quiet convert config.xml
 # Error: verbose and quiet options are mutually exclusive
 
-# Invalid log level
-opndossier --log_level=trace convert config.xml
-# Error: invalid log level 'trace', must be one of: debug, info, warn, error
 ```
 
 ### Debugging Tips
@@ -386,12 +374,11 @@ opndossier --log_level=trace convert config.xml
    opndossier --config test-config.yaml --help
    ```
 
-4. **Use JSON logging for automated analysis:**
+4. **Capture verbose logs for automated analysis:**
 
-   ```bash
-   opndossier --log_format=json convert config.xml > output.log 2>&1
-   jq '.' output.log  # Parse JSON logs
-   ```
+```bash
+opndossier --verbose convert config.xml > output.log 2>&1
+```
 
 ## Performance Optimization
 
@@ -399,7 +386,7 @@ opndossier --log_level=trace convert config.xml
 
 ```bash
 # Process large files efficiently
-opndossier --log_level=warn convert large-config.xml
+opndossier --quiet convert large-config.xml
 
 # Monitor memory usage
 /usr/bin/time -v opndossier convert large-config.xml

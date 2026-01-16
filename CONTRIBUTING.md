@@ -4,6 +4,16 @@ Thank you for your interest in contributing to opnDossier! This guide covers eve
 
 ## Getting Started
 
+### Quality Standards
+
+opnDossier follows strict coding standards and development practices:
+
+- All code must pass `golangci-lint`
+- Tests required for new functionality (>80% coverage)
+- Documentation updates for user-facing changes
+- Follow Go best practices and project conventions
+- All pre-commit checks must pass before submitting PR
+
 ### Prerequisites
 
 - **Go 1.21+** - Latest stable version recommended
@@ -258,18 +268,36 @@ git checkout -b feat/your-feature-name
 git checkout -b fix/issue-description
 ```
 
+### Security Scanning
+
+opnDossier treats vulnerability management as a first-class workflow concern.
+
+- **Run scans locally**:
+  - `just scan` - run vulnerability scanning
+  - `just sbom` - generate SBOM artifacts
+- **CI requirements**:
+  - CI runs Grype scans for both the repository filesystem and Go module dependencies (`go.mod`).
+  - Severity thresholds are stricter on `main` (filesystem cutoff is $\\ge$ medium) than on feature branches (filesystem cutoff is $\\ge$ high).
+- **Where results live**:
+  - SARIF uploads appear in the GitHub Security tab (Code Scanning).
+  - SBOM and vulnerability report artifacts are attached to workflow runs.
+
 ### 2. Development Commands
 
+This project follows comprehensive development standards and uses modern Go tooling:
+
 ```bash
-# Run during development
-just dev           # Run in development mode
-just test          # Run tests
-just lint          # Run linters
-just check         # Run all pre-commit checks
+# Development workflow using Just
+just test      # Run tests
+just lint      # Run linters
+just check     # Run all pre-commit checks
+just ci-check  # Run comprehensive CI checks
+just dev       # Run in development mode
+just docs      # Serve documentation locally
 
 # Build and test
-just build         # Build the application
-just install       # Install locally
+just build     # Build the application
+just install   # Install locally
 ```
 
 ### 3. Code Quality Standards
@@ -415,8 +443,8 @@ func TestConfigLoad(t *testing.T) {
         {
             name:       "env var override",
             configFile: "",
-            envVars:    map[string]string{"OPNDOSSIER_LOG_LEVEL": "debug"},
-            want:       &Config{LogLevel: "debug"},
+            envVars:    map[string]string{"OPNDOSSIER_VERBOSE": "true"},
+            want:       &Config{Verbose: true},
             wantErr:    false,
         },
     }
@@ -633,25 +661,31 @@ When adding features:
 
 ```markdown
 ## Description
+
 Brief description of changes
 
 ## Type of Change
+
 - [ ] Bug fix (non-breaking change)
 - [ ] New feature (non-breaking change)
-- [ ] Breaking change (fix or feature that would cause existing functionality to change)
+- [ ] Breaking change (fix or feature that would cause existing functionality to
+      change)
 - [ ] Documentation update
 
 ## Testing
+
 - [ ] Unit tests pass
 - [ ] Integration tests pass
 - [ ] Manual testing completed
 
 ## Configuration Changes
+
 - [ ] New configuration options documented
 - [ ] CLI help updated
 - [ ] Examples provided
 
 ## Checklist
+
 - [ ] Code follows project standards
 - [ ] Self-review completed
 - [ ] Documentation updated

@@ -84,7 +84,6 @@ func (a AuditMode) Validate() error {
 }
 
 // Options contains configuration options for markdown generation.
-// Options contains configuration options for markdown generation.
 type Options struct {
 	// Format specifies the output format (markdown, json, yaml).
 	Format Format
@@ -145,6 +144,10 @@ type Options struct {
 	// When true, the system will use Go text/template rendering for markdown output.
 	// When false, the system will use programmatic markdown generation.
 	UseTemplateEngine bool
+
+	// SuppressWarnings suppresses deprecation and other non-critical warnings.
+	// This is typically set when running with the global --quiet flag.
+	SuppressWarnings bool
 }
 
 // DefaultOptions returns an Options struct initialized with default settings for markdown generation.
@@ -170,6 +173,7 @@ func DefaultOptions() Options {
 		SelectedPlugins:   nil,
 		TemplateDir:       "",
 		UseTemplateEngine: false,
+		SuppressWarnings:  false,
 	}
 }
 
@@ -331,5 +335,11 @@ func (o Options) WithTemplateDir(dir string) Options {
 // WithUseTemplateEngine sets whether to use template-based generation.
 func (o Options) WithUseTemplateEngine(useTemplate bool) Options {
 	o.UseTemplateEngine = useTemplate
+	return o
+}
+
+// WithSuppressWarnings enables or disables warning suppression.
+func (o Options) WithSuppressWarnings(suppress bool) Options {
+	o.SuppressWarnings = suppress
 	return o
 }

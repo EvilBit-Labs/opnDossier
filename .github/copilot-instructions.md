@@ -245,7 +245,7 @@ opndossier/
 
 ## Key Files & References
 
-- `AGENTS.md`, `DEVELOPMENT_STANDARDS.md`, `ARCHITECTURE.md`, `project_spec/requirements.md`
+- `AGENTS.md`, `docs/development/standards.md`, `docs/development/architecture.md`, `project_spec/requirements.md`
 - `cmd/convert.go`, `internal/model/opnsense.go`, `internal/parser/xml.go`, `internal/processor/README.md`
 
 ## Example Patterns
@@ -355,7 +355,7 @@ When AI agents contribute to this project, they **MUST**:
 08. **Validate all inputs** and handle edge cases
 09. **Document new functions and types** following Go conventions
 10. **Never commit secrets** or hardcoded credentials
-11. **Consult project documentation** - requirements.md, ARCHITECTURE.md, and DEVELOPMENT_STANDARDS.md for guidance
+11. **Consult project documentation** - requirements.md, docs/development/architecture.md, and docs/development/standards.md for guidance
 12. When rendering reports, always prefer structured config data + audit overlays over flat summary tables
 13. Blue team output should favor clarity, grouping, and actionability. Red team output should favor target prioritization and pivot surface discovery
 14. Validate all generated markdown for formatting correctness using mdformat for formatting and markdownlint-cli2 for validation
@@ -376,8 +376,8 @@ Before suggesting code completion or marking a task complete, AI agents **MUST**
 - [ ] Dependencies properly managed (`go mod tidy`, `go mod verify`)
 - [ ] Code follows established patterns and interfaces (parser/model/processor/audit/converter layering)
 - [ ] Requirements compliance verified against `project_spec/requirements.md`
-- [ ] Architecture patterns followed per `ARCHITECTURE.md` and related docs
-- [ ] Development standards adhered to per `DEVELOPMENT_STANDARDS.md`
+- [ ] Architecture patterns followed per `docs/development/architecture.md` and related docs
+- [ ] Development standards adhered to per `docs/development/standards.md`
 - [ ] Use `just` for all dev tasks
 - [ ] Run `just ci-check` before reporting success (CRITICAL)
 - [ ] Follow established code/data patterns
@@ -390,7 +390,7 @@ Before suggesting code completion or marking a task complete, AI agents **MUST**
 
 1. **Review Requirements**: Understand specific requirements being implemented
 2. **Check Existing Code**: Review similar implementations for patterns
-3. **Verify Architecture**: Ensure changes follow ARCHITECTURE.md patterns
+3. **Verify Architecture**: Ensure changes follow docs/development/architecture.md patterns
 
 ### Implementation
 
@@ -426,8 +426,8 @@ When encountering problems:
 AI agents **MUST** familiarize themselves with:
 
 - **[requirements.md](project_spec/requirements.md)** - Complete functional and technical requirements
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System design, data flow, and component architecture
-- **[DEVELOPMENT_STANDARDS.md](DEVELOPMENT_STANDARDS.md)** - Go-specific coding standards and project structure
+- **[docs/development/architecture.md](docs/development/architecture.md)** - System design, data flow, and component architecture
+- **[docs/development/standards.md](docs/development/standards.md)** - Go-specific coding standards and project structure
 - **[AGENTS.md](../AGENTS.md)** - Complete AI agent development guidelines (single source of truth)
 
 **Remember**: When in doubt, refer to AGENTS.md for the complete authoritative guidance. This file provides Copilot-specific quick reference derived from that source.

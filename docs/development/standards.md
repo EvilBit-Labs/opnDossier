@@ -1,6 +1,6 @@
 # Development Standards for opnDossier
 
-This document provides coding standards, development workflows, and technical guidelines for contributors to the opnDossier CLI tool. It focuses on practical development tasks, code quality, and maintainability. It's like `AGENTS.md` but for humans.
+This document provides coding standards, development workflows, and technical guidelines for contributors to the opnDossier CLI tool. It focuses on practical development tasks, code quality, and maintainability. It complements the AI agent guidelines in [AGENTS.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/AGENTS.md).
 
 ## Table of Contents
 
@@ -54,8 +54,7 @@ just lint
 
 ```bash
 # Development environment
-export OPNDOSSIER_LOG_LEVEL=debug
-export OPNDOSSIER_LOG_FORMAT=text
+export OPNDOSSIER_VERBOSE=true
 
 # For testing
 export OPNDOSSIER_TEST_MODE=true
@@ -275,7 +274,7 @@ just test                         # Verify tests still pass
 just dev --verbose convert testdata/config.xml
 
 # Debug with specific log level
-OPNDOSSIER_LOG_LEVEL=debug just dev convert testdata/config.xml
+OPNDOSSIER_VERBOSE=true just dev convert testdata/config.xml
 
 # Profile performance
 go test -bench=. -cpuprofile=cpu.prof ./internal/parser
