@@ -206,10 +206,17 @@ func TestEndToEndDisplay(t *testing.T) {
 	binaryPath := filepath.Join(tmpDir, "opndossier")
 	buildBinary(t, binaryPath)
 
-	helpCmd := exec.Command(binaryPath, "display", "--help")
-	helpOutput, helpErr := helpCmd.CombinedOutput()
-	require.NoError(t, helpErr, "display --help failed: %s", string(helpOutput))
-	require.Contains(t, string(helpOutput), "--no-wrap", "built binary missing --no-wrap flag")
+	// Verify --no-wrap flag is available in display command help
+	displayHelpCmd := exec.Command(binaryPath, "display", "--help")
+	displayHelpOutput, displayHelpErr := displayHelpCmd.CombinedOutput()
+	require.NoError(t, displayHelpErr, "display --help failed: %s", string(displayHelpOutput))
+	require.Contains(t, string(displayHelpOutput), "--no-wrap", "built binary missing --no-wrap flag in display command")
+
+	// Verify --no-wrap flag is available in convert command help
+	convertHelpCmd := exec.Command(binaryPath, "convert", "--help")
+	convertHelpOutput, convertHelpErr := convertHelpCmd.CombinedOutput()
+	require.NoError(t, convertHelpErr, "convert --help failed: %s", string(convertHelpOutput))
+	require.Contains(t, string(convertHelpOutput), "--no-wrap", "built binary missing --no-wrap flag in convert command")
 
 	// Test display command
 	cmd := exec.Command(binaryPath, "display", configFile)
@@ -372,9 +379,7 @@ func findModuleRoot(start string) (string, error) {
 	current := start
 	for {
 		if _, err := os.Stat(filepath.Join(current, "go.mod")); err == nil {
-			if _, gitErr := os.Stat(filepath.Join(current, ".git")); gitErr == nil {
-				return current, nil
-			}
+			return current, nil
 		}
 		parent := filepath.Dir(current)
 		if parent == current {

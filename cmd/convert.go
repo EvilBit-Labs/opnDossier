@@ -567,10 +567,15 @@ func buildConversionOptions(
 	}
 
 	// Wrap width: CLI flag > config > default
-	if sharedWrapWidth >= 0 {
+	// -1 means auto-detect (not provided), 0 means no wrapping, >0 means specific width
+	// Config values of -1 are treated as "not set" and fall through to default
+	switch {
+	case sharedWrapWidth >= 0:
 		opt.WrapWidth = sharedWrapWidth
-	} else if cfg != nil && cfg.GetWrapWidth() >= -1 {
+	case cfg != nil && cfg.GetWrapWidth() >= 0:
 		opt.WrapWidth = cfg.GetWrapWidth()
+	default:
+		opt.WrapWidth = -1
 	}
 
 	// TODO: Audit mode functionality is not yet complete - disabled for now

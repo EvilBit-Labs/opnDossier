@@ -3,6 +3,7 @@ package cmd
 import (
 	"io"
 	"os"
+	"strconv"
 	"sync"
 	"testing"
 
@@ -170,6 +171,9 @@ func TestBuildDisplayOptionsWrapWidthPrecedence(t *testing.T) {
 			flags.Int("wrap", -1, "")
 			if tt.flagNoWrap {
 				require.NoError(t, flags.Set("no-wrap", "true"))
+			} else if tt.flagWrap != -1 {
+				// Only set wrap flag if no-wrap is not set (mutual exclusivity)
+				require.NoError(t, flags.Set("wrap", strconv.Itoa(tt.flagWrap)))
 			}
 
 			cfg := &config.Config{
