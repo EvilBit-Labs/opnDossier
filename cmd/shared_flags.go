@@ -24,6 +24,7 @@ var (
 	sharedSections          []string //nolint:gochecknoglobals // Sections to include
 	sharedTheme             string   //nolint:gochecknoglobals // Theme for rendering
 	sharedWrapWidth         = -1     //nolint:gochecknoglobals // Text wrap width
+	sharedNoWrap            bool     //nolint:gochecknoglobals // Disable text wrapping
 	sharedCustomTemplate    string   //nolint:gochecknoglobals // Custom template file path
 	sharedIncludeTunables   bool     //nolint:gochecknoglobals // Include system tunables in output
 	sharedTemplateCacheSize int      //nolint:gochecknoglobals // Template cache size (LRU max entries)
@@ -119,6 +120,10 @@ func addSharedTemplateFlags(cmd *cobra.Command) {
 	cmd.Flags().
 		IntVar(&sharedWrapWidth, "wrap", -1, "Text wrap width in characters (-1 = auto-detect terminal width, 0 = no wrapping, recommended: 80-120)")
 	setFlagAnnotation(cmd.Flags(), "wrap", []string{"template"})
+
+	cmd.Flags().
+		BoolVar(&sharedNoWrap, "no-wrap", false, "Disable text wrapping (alias for --wrap 0)")
+	setFlagAnnotation(cmd.Flags(), "no-wrap", []string{"template"})
 
 	cmd.Flags().
 		IntVar(&sharedTemplateCacheSize, "template-cache-size", DefaultTemplateCacheSize, "Maximum number of templates to cache in memory (LRU eviction, default: 10)")

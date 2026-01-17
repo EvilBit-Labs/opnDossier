@@ -158,7 +158,7 @@ func TestOptions(t *testing.T) {
 
 		// Invalid wrap width
 		opts = DefaultOptions()
-		opts.WrapWidth = -1
+		opts.WrapWidth = -2
 		require.Error(t, opts.Validate())
 
 		// Invalid template engine with non-markdown format
