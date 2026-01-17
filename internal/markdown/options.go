@@ -179,7 +179,7 @@ func DefaultOptions() Options {
 
 // ErrInvalidWrapWidth indicates that the wrap width setting is invalid.
 var (
-	ErrInvalidWrapWidth     = errors.New("wrap width cannot be negative")
+	ErrInvalidWrapWidth     = errors.New("wrap width must be -1 (auto-detect), 0 (no wrapping), or positive")
 	ErrUnsupportedAuditMode = errors.New("unsupported audit mode")
 )
 
@@ -193,7 +193,7 @@ func (o Options) Validate() error {
 		return fmt.Errorf("invalid audit mode: %w", err)
 	}
 
-	if o.WrapWidth < 0 {
+	if o.WrapWidth < -1 {
 		return fmt.Errorf("%w: %d", ErrInvalidWrapWidth, o.WrapWidth)
 	}
 

@@ -92,6 +92,9 @@ Examples:
   opnDossier display --wrap 80 config.xml
 
   # Display without text wrapping
+	opnDossier display --no-wrap config.xml
+
+	# Display without text wrapping (using --wrap 0)
   opnDossier display --wrap 0 config.xml
 
   # Display with verbose logging to see processing details
@@ -253,7 +256,20 @@ func buildDisplayOptions(cfg *config.Config) markdown.Options {
 }
 
 // validateDisplayFlags validates flag combinations specific to the display command.
-func validateDisplayFlags(_ *pflag.FlagSet) error {
+func validateDisplayFlags(flags *pflag.FlagSet) error {
+	// Validate mutual exclusivity for wrap flags before other checks
+	if flags != nil {
+		noWrapFlag := flags.Lookup("no-wrap")
+		wrapFlag := flags.Lookup("wrap")
+		if noWrapFlag != nil && wrapFlag != nil && noWrapFlag.Changed && wrapFlag.Changed {
+			return errors.New("--no-wrap and --wrap flags are mutually exclusive")
+		}
+	}
+
+	if sharedNoWrap {
+		sharedWrapWidth = 0
+	}
+
 	// Validate theme values
 	if sharedTheme != "" {
 		validThemes := []string{"light", "dark", "auto", "none"}

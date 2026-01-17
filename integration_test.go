@@ -4,6 +4,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -157,10 +158,8 @@ func TestEndToEndValidation(t *testing.T) {
 
 	// Use the built binary or build it
 	binaryPath := "./opndossier"
-	if _, err := os.Stat(binaryPath); os.IsNotExist(err) {
-		binaryPath = filepath.Join(tmpDir, "opndossier")
-		buildBinary(t, binaryPath)
-	}
+	binaryPath = filepath.Join(tmpDir, "opndossier")
+	buildBinary(t, binaryPath)
 
 	// Test validation command
 	cmd := exec.Command(binaryPath, "validate", configFile)
@@ -204,11 +203,20 @@ func TestEndToEndDisplay(t *testing.T) {
 	require.NoError(t, err)
 
 	// Use the built binary or build it
-	binaryPath := "./opndossier"
-	if _, err := os.Stat(binaryPath); os.IsNotExist(err) {
-		binaryPath = filepath.Join(tmpDir, "opndossier")
-		buildBinary(t, binaryPath)
-	}
+	binaryPath := filepath.Join(tmpDir, "opndossier")
+	buildBinary(t, binaryPath)
+
+	// Verify --no-wrap flag is available in display command help
+	displayHelpCmd := exec.Command(binaryPath, "display", "--help")
+	displayHelpOutput, displayHelpErr := displayHelpCmd.CombinedOutput()
+	require.NoError(t, displayHelpErr, "display --help failed: %s", string(displayHelpOutput))
+	require.Contains(t, string(displayHelpOutput), "--no-wrap", "built binary missing --no-wrap flag in display command")
+
+	// Verify --no-wrap flag is available in convert command help
+	convertHelpCmd := exec.Command(binaryPath, "convert", "--help")
+	convertHelpOutput, convertHelpErr := convertHelpCmd.CombinedOutput()
+	require.NoError(t, convertHelpErr, "convert --help failed: %s", string(convertHelpOutput))
+	require.Contains(t, string(convertHelpOutput), "--no-wrap", "built binary missing --no-wrap flag in convert command")
 
 	// Test display command
 	cmd := exec.Command(binaryPath, "display", configFile)
@@ -242,22 +250,25 @@ func TestEndToEndDisplayWrapWidth(t *testing.T) {
 	err = os.WriteFile(configFile, []byte(configContent), 0o644)
 	require.NoError(t, err)
 
-	binaryPath := "./opndossier"
-	if _, err := os.Stat(binaryPath); os.IsNotExist(err) {
-		binaryPath = filepath.Join(tmpDir, "opndossier")
-		buildBinary(t, binaryPath)
-	}
+	binaryPath := filepath.Join(tmpDir, "opndossier")
+	buildBinary(t, binaryPath)
 
 	t.Run("Explicit wrap widths", func(t *testing.T) {
 		tests := []struct {
 			name      string
 			wrapWidth int
 			args      []string
+			expectErr bool
 		}{
 			{
 				name:      "No wrapping",
 				wrapWidth: 0,
 				args:      []string{"display", "--wrap", "0", configFile},
+			},
+			{
+				name:      "No wrapping with --no-wrap",
+				wrapWidth: 0,
+				args:      []string{"display", "--no-wrap", configFile},
 			},
 			{
 				name:      "Wrap 80",
@@ -279,6 +290,12 @@ func TestEndToEndDisplayWrapWidth(t *testing.T) {
 				wrapWidth: 80,
 				args:      []string{"display", "--wrap", "80", "--comprehensive", configFile},
 			},
+			{
+				name:      "Error on --no-wrap with --wrap conflict",
+				wrapWidth: 0,
+				args:      []string{"display", "--no-wrap", "--wrap", "80", configFile},
+				expectErr: true,
+			},
 		}
 
 		for _, tt := range tests {
@@ -289,6 +306,13 @@ func TestEndToEndDisplayWrapWidth(t *testing.T) {
 				cmd.Stderr = &stderr
 
 				err := cmd.Run()
+				if tt.expectErr {
+					require.Error(t, err)
+					return
+				}
+				if err != nil {
+					t.Logf("display command stderr: %s", stderr.String())
+				}
 				require.NoError(t, err)
 
 				output := stdout.String() + stderr.String()
@@ -316,6 +340,9 @@ func TestEndToEndDisplayWrapWidth(t *testing.T) {
 		cmd.Stderr = &stderr
 
 		err := cmd.Run()
+		if err != nil {
+			t.Logf("display command stderr (auto-detect): %s", stderr.String())
+		}
 		require.NoError(t, err)
 
 		output := stdout.String() + stderr.String()
@@ -337,9 +364,29 @@ func stripANSI(input string) string {
 func buildBinary(t *testing.T, binaryPath string) {
 	t.Helper()
 
+	workingDir, err := os.Getwd()
+	require.NoError(t, err, "Failed to determine working directory for build")
+
+	moduleDir, err := findModuleRoot(workingDir)
+	require.NoError(t, err, "Failed to locate module root for build")
 	buildCmd := exec.Command("go", "build", "-a", "-o", binaryPath, ".")
-	err := buildCmd.Run()
+	buildCmd.Dir = moduleDir
+	err = buildCmd.Run()
 	require.NoErrorf(t, err, "Failed to build opnDossier binary")
+}
+
+func findModuleRoot(start string) (string, error) {
+	current := start
+	for {
+		if _, err := os.Stat(filepath.Join(current, "go.mod")); err == nil {
+			return current, nil
+		}
+		parent := filepath.Dir(current)
+		if parent == current {
+			return "", fmt.Errorf("go.mod not found starting from %s", start)
+		}
+		current = parent
+	}
 }
 
 func isUnbreakableLine(line string) bool {

@@ -279,6 +279,9 @@ Examples:
   # Convert with format and text wrapping
   opnDossier convert my_config.xml --format json --wrap 120
 
+	# Convert without text wrapping
+	opnDossier convert my_config.xml --no-wrap
+
   # Convert multiple files to JSON format
   opnDossier convert config1.xml config2.xml --format json
 
@@ -564,10 +567,15 @@ func buildConversionOptions(
 	}
 
 	// Wrap width: CLI flag > config > default
-	if sharedWrapWidth > 0 {
+	// -1 means auto-detect (not provided), 0 means no wrapping, >0 means specific width
+	// Config values of -1 are treated as "not set" and fall through to default
+	switch {
+	case sharedWrapWidth >= 0:
 		opt.WrapWidth = sharedWrapWidth
-	} else if cfg != nil && cfg.GetWrapWidth() > 0 {
+	case cfg != nil && cfg.GetWrapWidth() >= 0:
 		opt.WrapWidth = cfg.GetWrapWidth()
+	default:
+		opt.WrapWidth = -1
 	}
 
 	// TODO: Audit mode functionality is not yet complete - disabled for now
@@ -806,7 +814,20 @@ func loadCustomTemplate(templatePath string) (*template.Template, error) {
 }
 
 // validateConvertFlags validates flag combinations specific to the convert command.
-func validateConvertFlags(_ *pflag.FlagSet) error {
+func validateConvertFlags(flags *pflag.FlagSet) error {
+	// Validate mutual exclusivity for wrap flags before other checks
+	if flags != nil {
+		noWrapFlag := flags.Lookup("no-wrap")
+		wrapFlag := flags.Lookup("wrap")
+		if noWrapFlag != nil && wrapFlag != nil && noWrapFlag.Changed && wrapFlag.Changed {
+			return errors.New("--no-wrap and --wrap flags are mutually exclusive")
+		}
+	}
+
+	if sharedNoWrap {
+		sharedWrapWidth = 0
+	}
+
 	// Validate format values
 	if format != "" {
 		validFormats := []string{"markdown", "md", "json", "yaml", "yml"}
