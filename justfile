@@ -7,7 +7,7 @@ set dotenv-load := true
 set ignore-comments := true
 
 # Use mise to manage all dev tools (ruby, bun, pre-commit, etc.)
-# See .mise.toml for tool versions
+# See mise.toml for tool versions
 mise_exec := "mise exec --"
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -325,8 +325,8 @@ scan:
 [group('security')]
 sbom: build-release
     @echo "Generating SBOM..."
-    @cyclonedx-gomod bin -output sbom-binary.cyclonedx.json ./{{ binary_name }}{{ if os_family() == "windows" { ".exe" } else { "" } }}
-    @cyclonedx-gomod app -output sbom-modules.cyclonedx.json -json .
+    @{{ mise_exec }} cyclonedx-gomod bin -output sbom-binary.cyclonedx.json ./{{ binary_name }}{{ if os_family() == "windows" { ".exe" } else { "" } }}
+    @{{ mise_exec }} cyclonedx-gomod app -output sbom-modules.cyclonedx.json -json .
     @echo "✅ SBOM generated: sbom-binary.cyclonedx.json, sbom-modules.cyclonedx.json"
 
 # Run all security checks (SBOM + security scan)
