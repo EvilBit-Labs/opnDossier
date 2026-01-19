@@ -1,9 +1,5 @@
 # Troubleshooting and Debugging Examples
 
-> **⚠️ Note: Some examples in this guide reference audit functionality that is not yet implemented in opnDossier v1.0.**
->
-> Examples using `--mode`, `--blackhat-mode`, and `--plugins` flags are for future releases. These flags are currently disabled and not available in the current version.
-
 This guide covers common issues, error handling, and debugging techniques for opnDossier.
 
 ## Common Error Scenarios
@@ -429,67 +425,6 @@ opnDossier --config /dev/null convert config.xml
 # Test with specific environment variables
 OPNDOSSIER_OUTPUT_FILE=./docs/network.md opnDossier convert config.xml
 ```
-
-## Future Features (Not Available in v1.0)
-
-> **⚠️ The following examples reference functionality that is planned for future releases but is not currently available in opnDossier v1.0.**
-
-### Audit Mode Examples (Future Release)
-
-```bash
-# TODO: These flags are not available in v1.0
-# Generate blue team audit report
-# opnDossier convert config.xml --mode blue --comprehensive
-
-# Generate red team recon report with blackhat mode
-# opnDossier convert config.xml --mode red --blackhat-mode
-
-# Run compliance checks with specific plugins
-# opnDossier convert config.xml --mode blue --plugins stig,sans
-```
-
-### Plugin System Examples (Future Release)
-
-```bash
-# TODO: These flags are not available in v1.0
-# Check available plugins
-# opnDossier convert config.xml --plugins stig,sans
-
-# Test individual plugins
-# opnDossier convert config.xml --plugins stig
-# opnDossier convert config.xml --plugins sans
-
-# Debug plugin loading
-# opnDossier --verbose convert config.xml --plugins stig,sans
-```
-
-### Advanced Logging Examples (Future Release)
-
-```bash
-# TODO: These flags are not available in v1.0
-# Enable debug logging
-# opnDossier --verbose convert config.xml
-
-# Capture detailed logs in JSON format
-# opnDossier --verbose convert config.xml > debug.log 2>&1
-
-# Analyze logs with jq
-# jq '.level' debug.log | sort | uniq -c
-# jq 'select(.level == "error") | .msg' debug.log
-```
-
-### Template Directory Examples (Future Release)
-
-```bash
-# TODO: This flag is not available in v1.0
-# Use template directory (use --custom-template instead)
-# opnDossier convert config.xml --template-dir ./custom-templates
-
-# Debug template directory
-# opnDossier --verbose convert config.xml --template-dir ./custom-templates
-```
-
----
 
 **Next Steps:**
 

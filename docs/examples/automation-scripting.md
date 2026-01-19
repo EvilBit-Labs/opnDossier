@@ -1,9 +1,5 @@
 # Automation and Scripting Examples
 
-> **⚠️ Note: Some examples in this guide reference audit functionality that is not yet implemented in opnDossier v1.0.**
->
-> Examples using `--mode`, `--blackhat-mode`, and `--plugins` flags are for future releases. These flags are currently disabled and not available in the current version.
-
 This guide covers automation workflows and scripting examples for integrating opnDossier into CI/CD pipelines and automated processes.
 
 ## CI/CD Integration
@@ -39,17 +35,13 @@ jobs:
         run: |
           opnDossier convert config.xml -o docs/network-config.md
 
-      - name: Generate Security Audit
-        run: |
-          opnDossier convert config.xml --mode blue --comprehensive -o docs/security-audit.md
-
       - name: Commit Documentation
         if: github.event_name == 'push'
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add docs/network-config.md docs/security-audit.md
-          git commit -m "docs: update network configuration and security audit" || exit 0
+          git add docs/network-config.md
+          git commit -m "docs: update network configuration" || exit 0
           git push
 ```
 
@@ -79,21 +71,6 @@ documentation:
       - docs/network-config.json
     expire_in: 30 days
 
-security-audit:
-  stage: security
-  image: golang:1.24
-  before_script:
-    - go install github.com/EvilBit-Labs/opnDossier@latest
-  script:
-    - opnDossier convert config.xml --mode blue --comprehensive -o 
-      docs/security-audit.md
-    - opnDossier convert config.xml --mode red --blackhat-mode -o 
-      docs/attack-surface.md
-  artifacts:
-    paths:
-      - docs/security-audit.md
-      - docs/attack-surface.md
-    expire_in: 30 days
 ```
 
 ### Jenkins Pipeline
@@ -124,12 +101,6 @@ pipeline {
             steps {
                 sh 'opnDossier convert config.xml -o docs/network-config.md'
                 sh 'opnDossier convert config.xml -f json -o docs/network-config.json'
-            }
-        }
-
-        stage('Security Audit') {
-            steps {
-                sh 'opnDossier convert config.xml --mode blue --comprehensive -o docs/security-audit.md'
             }
         }
 
@@ -249,11 +220,6 @@ cp "$CONFIG_DIR/config.xml" "$BACKUP_DIR/config-${TIMESTAMP}.xml"
 
 # Generate documentation
 opnDossier convert "$CONFIG_DIR/config.xml" -o "$DOCS_DIR/current-config.md"
-
-# Generate security audit
-opnDossier convert "$CONFIG_DIR/config.xml" \
-    --mode blue --comprehensive \
-    -o "$DOCS_DIR/security-audit.md"
 
 # Clean up old backups
 find "$BACKUP_DIR" -name "config-*.xml" -mtime +$RETENTION_DAYS -delete
@@ -461,12 +427,6 @@ echo "Metrics logged: File size: ${FILE_SIZE} bytes, Validation: ${VALIDATION_TI
         environment:
           PATH: '{{ ansible_env.PATH }}:/root/go/bin'
 
-      - name: Generate security audit
-        shell: opnDossier convert /etc/opnsense/config.xml --mode blue 
-          --comprehensive -o /var/www/network-docs/security-audit.md
-        environment:
-          PATH: '{{ ansible_env.PATH }}:/root/go/bin'
-
       - name: Set file permissions
         file:
           path: /var/www/network-docs
@@ -523,7 +483,6 @@ spec:
             - |
               go install github.com/EvilBit-Labs/opnDossier@latest
               opnDossier convert /configs/config.xml -o /docs/network-config.md
-              opnDossier convert /configs/config.xml --mode blue --comprehensive -o /docs/security-audit.md
           volumeMounts:
             - name: configs
               mountPath: /configs

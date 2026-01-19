@@ -12,7 +12,7 @@ Built for offline operation in secure environments - no external dependencies, n
 
 - **Security Analysis** - Automatically detect vulnerabilities, insecure protocols, weak configurations
 - **Dead Rule Detection** - Find unreachable firewall rules and unused interfaces
-- **Configuration Validation** - Comprehensive checks for misconfigurations and compliance violations
+- **Configuration Validation** - Comprehensive checks for misconfigurations and best-practice issues
 - **Multi-Format Export** - Convert to markdown documentation, JSON, or YAML for integration
 - **Offline Operation** - Works completely offline, perfect for airgapped networks
 
@@ -108,12 +108,12 @@ Finds enabled resources not actively used:
 
 ### Compliance Checking
 
-Built-in validation against security and operational best practices:
+Built-in validation against security and operational best practices (planned v2.1). Tracking: [#174](https://github.com/EvilBit-Labs/opnDossier/issues/174).
 
-- STIG compliance checks (planned v1.1)
-- Industry-standard security baselines (planned v1.1)
-- SANS security guidelines (planned v1.1)
-- Custom compliance profiles (planned v1.2)
+- STIG compliance checks (planned v2.1)
+- Industry-standard security baselines (planned v2.1)
+- SANS security guidelines (planned v2.1)
+- Custom compliance profiles (planned v2.1)
 
 ## Features
 
@@ -123,7 +123,7 @@ Built-in validation against security and operational best practices:
 - **Dead rule detection** - Find unreachable firewall rules and duplicate rules
 - **Unused resource analysis** - Detect unused interfaces, aliases, and services
 - **Configuration validation** - Comprehensive structural and logical validation
-- **Compliance checking** - Industry-standard security baselines and best practices
+- **Compliance checking (planned v2.1)** - Industry-standard security baselines and best practices
 
 ### Output & Export
 
@@ -210,7 +210,7 @@ opnDossier convert -f yaml config.xml -o config.yaml
 opnDossier display --wrap 100 config.xml
 ```
 
-### Validation & Auditing
+### Validation
 
 ```bash
 # Validate configuration file

@@ -4,6 +4,10 @@
 
 opnDossier integrates industry-standard security compliance frameworks to provide comprehensive blue team audit reports. The system supports **STIG (Security Technical Implementation Guide)**, **SANS Firewall Checklist**, and **CIS-inspired Firewall Security Controls** standards for firewall security assessment.
 
+## Status
+
+Audit mode CLI integration is deferred to v2.1. Track progress in [#174](https://github.com/EvilBit-Labs/opnDossier/issues/174).
+
 ## Supported Standards
 
 ### STIG (Security Technical Implementation Guide)
@@ -212,21 +216,9 @@ The audit engine performs the following types of checks:
 - Checks source field restrictions
 - Verifies service field restrictions
 
-## Usage
-
-### Blue Team Mode
-
-To generate a compliance-focused blue team report:
-
-```bash
-# Include all compliance standards
-opnDossier analyze config.xml --mode=blue --compliance=stig,sans,firewall
-
-# Include specific standards
-opnDossier analyze config.xml --mode=blue --compliance=firewall
-```
-
 ### Enhanced Blue Team Template
+
+Planned for v2.1 alongside audit mode CLI integration.
 
 The enhanced blue team template (`blue_enhanced.md.tmpl`) provides:
 
