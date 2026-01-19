@@ -207,8 +207,8 @@ to your firewall configuration.
     --engine template               - Explicitly select template engine
     --legacy                        - Enable legacy template mode (deprecated)
 
-	The convert command focuses on format transformation without validation.
-	--comprehensive: Generate detailed, comprehensive reports
+  Additional options:
+    --comprehensive                 - Generate detailed, comprehensive reports
 
   OUTPUT FORMATS:
   The convert command supports multiple output formats:
@@ -218,7 +218,7 @@ to your firewall configuration.
     json                        - JSON format output
     yaml                        - YAML format output
 
-	Use --format for basic output formats (markdown, json, yaml).
+  Use --format for basic output formats (markdown, json, yaml).
 
 The convert command focuses on conversion only and does not perform validation.
 To validate your configuration files before conversion, use the 'validate' command.

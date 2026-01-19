@@ -494,20 +494,18 @@ func mapTemplateName(logicalName string) string {
 		return "opnsense_report.md.tmpl"
 	case "comprehensive":
 		return "opnsense_report_comprehensive.md.tmpl"
-	case "blue", "red", "blue-enhanced":
-		// These require audit mode which is deferred to v2.1
-		// Validation should block these before we get here, but return the mapping anyway
-		switch logicalName {
-		case "blue":
-			return "blue.md.tmpl"
-		case "red":
-			return "red.md.tmpl"
-		case "blue-enhanced":
-			return "blue_enhanced.md.tmpl"
-		}
+	// NOTE: These require audit mode (deferred to v2.1).
+	// Validation should block these before we get here, but return the mapping anyway.
+	case "blue":
+		return "blue.md.tmpl"
+	case "red":
+		return "red.md.tmpl"
+	case "blue-enhanced":
+		return "blue_enhanced.md.tmpl"
+	default:
+		// If it's not a known logical name, assume it's already a filename
+		return logicalName
 	}
-	// If it's not a known logical name, assume it's already a filename
-	return logicalName
 }
 
 // selectTemplate determines which template to use based on the options provided.
