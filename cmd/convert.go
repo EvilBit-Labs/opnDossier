@@ -263,8 +263,8 @@ Examples:
   # Convert with format and text wrapping
   opnDossier convert my_config.xml --format json --wrap 120
 
-	# Convert without text wrapping
-	opnDossier convert my_config.xml --no-wrap
+  # Convert without text wrapping
+  opnDossier convert my_config.xml --no-wrap
 
   # Convert multiple files to JSON format
   opnDossier convert config1.xml config2.xml --format json
