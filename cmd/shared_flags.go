@@ -2,18 +2,13 @@
 package cmd
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/audit"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/log"
-	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -37,11 +32,7 @@ var (
 	sharedEngine      string //nolint:gochecknoglobals // Generation engine (programmatic, template)
 	sharedLegacy      bool   //nolint:gochecknoglobals // Enable legacy mode with deprecation warning
 
-	// TODO: Audit mode functionality is not yet complete - disabled for now
-	// sharedAuditMode       string   //nolint:gochecknoglobals // Audit mode (standard, blue, red)
-	// sharedBlackhatMode    bool     //nolint:gochecknoglobals // Enable blackhat mode for red team reports.
 	sharedComprehensive bool //nolint:gochecknoglobals // Generate comprehensive report
-	// sharedSelectedPlugins []string //nolint:gochecknoglobals // Selected compliance plugins.
 )
 
 // markDeprecated is a helper to mark flags as deprecated.
@@ -128,6 +119,10 @@ func addSharedTemplateFlags(cmd *cobra.Command) {
 	cmd.Flags().
 		IntVar(&sharedTemplateCacheSize, "template-cache-size", DefaultTemplateCacheSize, "Maximum number of templates to cache in memory (LRU eviction, default: 10)")
 	setFlagAnnotation(cmd.Flags(), "template-cache-size", []string{"template"})
+
+	cmd.Flags().
+		BoolVar(&sharedComprehensive, "comprehensive", false, "Generate comprehensive detailed reports with full configuration analysis")
+	setFlagAnnotation(cmd.Flags(), "comprehensive", []string{"audit"})
 }
 
 // addDisplayFlags adds display-specific flags (theme for glamour rendering).
@@ -143,18 +138,6 @@ const (
 	MinWrapWidth         = 40  // Minimum recommended wrap width
 	MaxWrapWidth         = 200 // Maximum recommended wrap width
 )
-
-// TODO: Audit mode functionality is not yet complete - disabled for now
-// addSharedAuditFlags adds the shared audit mode flags to a command.
-// These flags are used by the convert command for audit report generation.
-func addSharedAuditFlags(cmd *cobra.Command) {
-	// TODO: Audit mode flags are disabled until audit functionality is complete
-	// Audit mode flags are commented out until audit functionality is complete
-
-	cmd.Flags().
-		BoolVar(&sharedComprehensive, "comprehensive", false, "Generate comprehensive detailed reports with full configuration analysis")
-	setFlagAnnotation(cmd.Flags(), "comprehensive", []string{"audit"})
-}
 
 // getSharedTemplateDir returns the template directory path from the custom template flag.
 // If custom-template is set, it extracts the directory path from the file path.
@@ -284,57 +267,4 @@ func validateTemplatePath(templatePath string) error {
 	}
 
 	return nil
-}
-
-// TODO: Audit mode functionality is not yet complete - disabled for now
-// handleAuditMode generates an audit report using the audit mode controller and markdown generator.
-func handleAuditMode(
-	_ context.Context,
-	_ *model.OpnSenseDocument,
-	_ markdown.Options,
-	_ *log.Logger,
-	_ *audit.PluginRegistry,
-) (string, error) {
-	// TODO: Audit mode is disabled until audit functionality is complete
-	return "", errors.New("audit mode functionality is not yet implemented")
-}
-
-// TODO: Audit mode functionality is not yet complete - disabled for now
-// convertAuditModeToReportMode converts markdown audit mode to audit report mode.
-func convertAuditModeToReportMode(_ markdown.AuditMode) (audit.ReportMode, error) {
-	// TODO: Audit mode is disabled until audit functionality is complete
-	return audit.ModeStandard, errors.New("audit mode functionality is not yet implemented")
-}
-
-// TODO: Audit mode functionality is not yet complete - disabled for now
-// createModeConfig creates an audit mode configuration from options.
-func createModeConfig(_ audit.ReportMode, _ markdown.Options) *audit.ModeConfig {
-	// TODO: Audit mode is disabled until audit functionality is complete
-	return &audit.ModeConfig{}
-}
-
-// TODO: Audit mode functionality is not yet complete - disabled for now
-// generateBaseAuditReport generates the base audit report using template rendering.
-func generateBaseAuditReport(
-	_ context.Context,
-	_ *model.OpnSenseDocument,
-	_ markdown.Options,
-	_ *log.Logger,
-) (string, error) {
-	// TODO: Audit mode is disabled until audit functionality is complete
-	return "", errors.New("audit mode functionality is not yet implemented")
-}
-
-// TODO: Audit mode functionality is not yet complete - disabled for now
-// createAuditMarkdownOptions creates markdown options specifically for audit mode.
-func createAuditMarkdownOptions(_ markdown.Options) markdown.Options {
-	// TODO: Audit mode is disabled until audit functionality is complete
-	return markdown.Options{}
-}
-
-// TODO: Audit mode functionality is not yet complete - disabled for now
-// appendAuditFindings appends audit findings summary to the report.
-func appendAuditFindings(result string, _ *audit.Report) string {
-	// TODO: Audit mode is disabled until audit functionality is complete
-	return result
 }

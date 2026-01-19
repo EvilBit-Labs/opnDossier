@@ -316,21 +316,23 @@ This document provides a comprehensive task checklist for implementing the opnDo
   - **Action**: Create `internal/audit/` package with audit finding structs including Title, Severity, Description, Recommendation, Tags, and optional AttackSurface/ExploitNotes for red mode
   - **Acceptance**: Audit engine uses consistent internal structure for all findings
 
-- [x] **TASK-024**: Implement multi-mode report controller
+- [ ] **TASK-024**: Implement multi-mode report controller
 
   - **Context**: Need to support standard, blue, and red report modes with different content and tone
   - **Requirement**: F016 (Multiple Modes), F020 (Standard Summary Report), F025 (Audit mode)
   - **User Story**: US-046-US-048 (Audit Report Generation)
   - **Action**: Create mode-based report generation system that determines content and tone based on --mode flag
   - **Acceptance**: System generates different report types based on selected mode
+  - **Status**: Deferred to v2.1 (see [#174](https://github.com/EvilBit-Labs/opnDossier/issues/174))
 
-- [x] **TASK-025**: Implement template-driven markdown generation for audit reports
+- [ ] **TASK-025**: Implement template-driven markdown generation for audit reports
 
   - **Context**: Need to use Go text/template files for generating markdown reports with user-extensible templates
   - **Requirement**: F017 (Template-Driven Markdown Output), F016 (Multiple Modes), F025 (Audit mode)
   - **User Story**: US-046-US-048 (Audit Report Generation)
   - **Action**: Create template system using Go text/template with sections for interfaces, firewall rules, NAT rules, DHCP, certificates, VPN config, static routes, and high availability
   - **Acceptance**: Reports are generated using templates that are user-extensible and include all required sections (interfaces, firewall rules, NAT rules, DHCP, certificates, VPN config, static routes, and high availability)
+  - **Status**: Deferred to v2.1 (see [#174](https://github.com/EvilBit-Labs/opnDossier/issues/174))
 
 - [x] **TASK-025a**: Support user template overrides
 
@@ -358,6 +360,7 @@ This document provides a comprehensive task checklist for implementing the opnDo
     - `Interesting ports` (`22`, `80`, `443`, `3389`, etc.)
     - `Unfiltered/Shadowed rules`
   - **Acceptance**: Red reports tag findings and NAT rules with targetable characteristics
+  - **Status**: Deferred to v2.1 (see [#174](https://github.com/EvilBit-Labs/opnDossier/issues/174))
 
 - [ ] **TASK-027**: Build blue team audit module
 
@@ -442,6 +445,7 @@ This document provides a comprehensive task checklist for implementing the opnDo
     - Users can list and inspect available plugins
     - Plugin configuration can be specified via CLI
     - Plugin selection integrates with existing audit report modes
+  - **Status**: Deferred to v2.1 (see [#174](https://github.com/EvilBit-Labs/opnDossier/issues/174))
 
 ---
 

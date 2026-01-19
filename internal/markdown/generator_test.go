@@ -172,6 +172,31 @@ func TestOptions(t *testing.T) {
 		opts.Format = FormatMarkdown
 		opts.UseTemplateEngine = true
 		require.NoError(t, opts.Validate())
+
+		// Deferred audit templates should be blocked (v2.1)
+		deferredTemplates := []string{"blue", "red", "blue-enhanced"}
+		for _, tmpl := range deferredTemplates {
+			opts = DefaultOptions()
+			opts.TemplateName = tmpl
+			err := opts.Validate()
+			require.Error(t, err, "template %q should be blocked", tmpl)
+			require.ErrorIs(
+				t,
+				err,
+				ErrAuditTemplateDeferred,
+				"template %q should return ErrAuditTemplateDeferred",
+				tmpl,
+			)
+			assert.Contains(t, err.Error(), "deferred to v2.1", "error message should mention v2.1 deferral")
+		}
+
+		// Valid template names should pass
+		validTemplates := []string{"", "standard", "comprehensive"}
+		for _, tmpl := range validTemplates {
+			opts = DefaultOptions()
+			opts.TemplateName = tmpl
+			require.NoError(t, opts.Validate(), "template %q should be allowed", tmpl)
+		}
 	})
 
 	t.Run("options fluent interface", func(t *testing.T) {
@@ -206,12 +231,6 @@ func TestOptions(t *testing.T) {
 
 		// Should return unchanged options when validation fails
 		assert.Equal(t, originalOpts.Format, opts.Format)
-
-		// Test that WithAuditMode logs warning and returns unchanged options on invalid mode
-		opts = originalOpts.WithAuditMode("invalid_mode")
-
-		// Should return unchanged options when validation fails
-		assert.Equal(t, originalOpts.AuditMode, opts.AuditMode)
 	})
 
 	t.Run("UseTemplateEngine field", func(t *testing.T) {

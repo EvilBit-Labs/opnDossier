@@ -10,8 +10,6 @@ import (
 	"slices"
 	"strings"
 
-	// TODO: Audit mode functionality is not yet complete - disabled for now
-	// "github.com/EvilBit-Labs/opnDossier/internal/audit".
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/display"
 	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
@@ -28,8 +26,6 @@ func init() {
 	addSharedTemplateFlags(displayCmd)
 	// Add display-specific flags
 	addDisplayFlags(displayCmd)
-	// Add audit flags (same as convert command)
-	addSharedAuditFlags(displayCmd)
 
 	// Flag groups for better organization
 	displayCmd.Flags().SortFlags = false
@@ -162,21 +158,8 @@ Examples:
 			return fmt.Errorf("failed to create markdown generator: %w", err)
 		}
 
-		// TODO: Audit mode functionality is not yet complete - disabled for now
-		// Handle audit mode if specified
-		// var md string
-		// if mdOpts.AuditMode != "" {
-		// 	// Create plugin registry for audit mode
-		// 	registry := audit.NewPluginRegistry()
-		// 	md, err = handleAuditMode(ctx, opnsense, mdOpts, ctxLogger, registry)
-		// 	if err != nil {
-		// 		ctxLogger.Error("Failed to generate audit report", "error", err)
-		// 		return fmt.Errorf("failed to generate audit report from %s: %w", filePath, err)
-		// 	}
-		// } else {
 		// Standard markdown generation
 		md, err := g.Generate(ctx, opnsense, mdOpts)
-		// }
 		if err != nil {
 			ctxLogger.Error("Failed to convert to markdown", "error", err)
 			return fmt.Errorf("failed to convert to markdown from %s: %w", filePath, err)
@@ -243,14 +226,7 @@ func buildDisplayOptions(cfg *config.Config) markdown.Options {
 		opt.TemplateDir = templateDir
 	}
 
-	// TODO: Audit mode functionality is not yet complete - disabled for now
-	// Audit mode flags: CLI flag only
-	// if sharedAuditMode != "" {
-	// 	opt.AuditMode = markdown.AuditMode(sharedAuditMode)
-	// }
-	// opt.BlackhatMode = sharedBlackhatMode
 	opt.Comprehensive = sharedComprehensive
-	// Selected plugins are disabled until audit functionality is complete
 
 	return opt
 }
