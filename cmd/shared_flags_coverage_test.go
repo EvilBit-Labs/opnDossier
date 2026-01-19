@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,11 +8,7 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/log"
-	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/spf13/cobra"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // TestAddSharedTemplateFlagsComprehensive tests comprehensive flag addition scenarios.
@@ -61,7 +56,7 @@ func TestAddSharedTemplateFlagsComprehensive(t *testing.T) {
 			addSharedTemplateFlags(cmd)
 
 			// Verify flags were added
-			flags := []string{"engine", "legacy", "custom-template", "use-template"}
+			flags := []string{"engine", "legacy", "custom-template", "use-template", "comprehensive"}
 			for _, flag := range flags {
 				if cmd.Flags().Lookup(flag) == nil {
 					t.Errorf("Expected flag %s to be added", flag)
@@ -83,44 +78,6 @@ func TestAddDisplayFlagsComprehensive(t *testing.T) {
 	// Note: addDisplayFlags may not add a "display" flag, but might add other display-related flags
 	// Let's just verify the function runs without error
 	t.Logf("addDisplayFlags completed successfully")
-}
-
-// TestAddSharedAuditFlagsComprehensive tests audit flag addition.
-func TestAddSharedAuditFlagsComprehensive(t *testing.T) {
-	cmd := &cobra.Command{
-		Use:   "test",
-		Short: "test command",
-	}
-
-	addSharedAuditFlags(cmd)
-
-	// Verify audit flags were added
-	auditFlags := []string{"comprehensive"}
-	for _, flag := range auditFlags {
-		if cmd.Flags().Lookup(flag) == nil {
-			t.Errorf("Expected flag %s to be added", flag)
-		}
-	}
-}
-
-// TestHandleAuditModeComprehensive tests audit mode handling - currently disabled.
-func TestHandleAuditModeComprehensive(t *testing.T) {
-	logger, err := log.New(log.Config{})
-	if err != nil {
-		t.Fatalf("Failed to create logger: %v", err)
-	}
-
-	// Since audit mode is currently disabled, just test that the function exists
-	// and returns an error indicating it's not implemented
-	ctx := context.Background()
-	opnsense := &model.OpnSenseDocument{}
-	opt := markdown.Options{}
-
-	_, err = handleAuditMode(ctx, opnsense, opt, logger, nil)
-
-	// Should return error since audit mode is not implemented
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "not yet implemented")
 }
 
 // TestValidateTemplatePathEdgeCases tests edge cases for template path validation.

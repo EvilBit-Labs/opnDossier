@@ -486,22 +486,28 @@ func (g *markdownGenerator) generateMarkdown(_ context.Context, data any, opts O
 }
 
 // mapTemplateName converts logical template names to actual filenames.
+// NOTE: Templates "blue", "red", and "blue-enhanced" are deferred to v2.1 (audit mode required).
+// These are blocked at validation time in Options.Validate() to provide a clear user-facing error.
 func mapTemplateName(logicalName string) string {
 	switch logicalName {
 	case "standard":
 		return "opnsense_report.md.tmpl"
 	case "comprehensive":
 		return "opnsense_report_comprehensive.md.tmpl"
-	case "blue":
-		return "blue.md.tmpl"
-	case "red":
-		return "red.md.tmpl"
-	case "blue-enhanced":
-		return "blue_enhanced.md.tmpl"
-	default:
-		// If it's not a known logical name, assume it's already a filename
-		return logicalName
+	case "blue", "red", "blue-enhanced":
+		// These require audit mode which is deferred to v2.1
+		// Validation should block these before we get here, but return the mapping anyway
+		switch logicalName {
+		case "blue":
+			return "blue.md.tmpl"
+		case "red":
+			return "red.md.tmpl"
+		case "blue-enhanced":
+			return "blue_enhanced.md.tmpl"
+		}
 	}
+	// If it's not a known logical name, assume it's already a filename
+	return logicalName
 }
 
 // selectTemplate determines which template to use based on the options provided.
@@ -509,18 +515,6 @@ func (g *markdownGenerator) selectTemplate(opts Options) string {
 	// If a custom template name is specified, use it
 	if opts.TemplateName != "" {
 		return mapTemplateName(opts.TemplateName)
-	}
-
-	// If audit mode is specified, use audit mode templates
-	if opts.AuditMode != "" {
-		switch opts.AuditMode {
-		case AuditModeStandard:
-			return "standard.md.tmpl"
-		case AuditModeBlue:
-			return "blue.md.tmpl"
-		case AuditModeRed:
-			return "red.md.tmpl"
-		}
 	}
 
 	// Fall back to comprehensive or standard templates

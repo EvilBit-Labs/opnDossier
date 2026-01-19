@@ -2,6 +2,10 @@
 globs: internal/audit/**/*.go,internal/plugin/**/*.go
 alwaysApply: false
 ---
+## Note
+
+Audit mode CLI integration is planned for v2.1 and deferred from v2.0. Track progress in [#174](https://github.com/EvilBit-Labs/opnDossier/issues/174).
+
 # Audit Engine Guidelines
 
 ## Core Audit Components

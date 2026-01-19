@@ -1,9 +1,5 @@
 # Advanced Configuration Examples
 
-> **⚠️ Note: Some examples in this guide reference audit functionality that is not yet implemented in opnDossier v1.0.**
->
-> Examples using `--mode`, `--blackhat-mode`, and `--plugins` flags are for future releases. These flags are currently disabled and not available in the current version.
-
 This guide covers advanced configuration options and customization techniques for opnDossier.
 
 ## Custom Templates
@@ -303,11 +299,6 @@ wrap_width: 120
 template_dir: ~/.opnDossier/templates
 default_template: comprehensive
 
-# Security settings
-security_mode: blue
-comprehensive_reports: true
-plugins: [stig, sans]
-
 # Display settings
 sections: [system, interfaces, firewall, nat]
 exclude_sections: [certificates, vpn]
@@ -325,11 +316,6 @@ Create `~/.opnDossier/production.yaml`:
 # Production environment settings
 output_file: /var/www/docs/network-config.md
 
-# Security-focused settings
-security_mode: blue
-comprehensive_reports: true
-plugins: [stig, sans, firewall]
-
 # Performance settings
 max_memory: 1GB
 timeout: 600s
@@ -341,11 +327,6 @@ Create `~/.opnDossier/development.yaml`:
 # Development environment settings
 verbose: true
 output_file: ./dev-docs.md
-
-# Debug settings
-security_mode: standard
-comprehensive_reports: false
-plugins: []
 
 # Performance settings
 max_memory: 256MB
@@ -363,50 +344,6 @@ opnDossier --config ~/.opnDossier/development.yaml convert config.xml
 
 # Override specific settings
 opnDossier --config ~/.opnDossier/production.yaml --verbose convert config.xml
-```
-
-## Plugin Configuration
-
-### Custom Plugin Configuration
-
-Create plugin configuration:
-
-```yaml
-# ~/.opnDossier/plugins.yaml
-plugins:
-  stig:
-    enabled: true
-    strict_mode: true
-    custom_controls:
-      - id: STIG-CUSTOM-001
-        title: Custom SSH Configuration
-        description: Custom SSH security requirements
-        severity: high
-        check: ssh_config_check
-
-  sans:
-    enabled: true
-    controls:
-      - CIS-1.1
-      - CIS-1.2
-      - CIS-2.1
-
-  firewall:
-    enabled: true
-    custom_rules:
-      - name: Custom Rule Check
-        description: Check for custom security rules
-        severity: medium
-```
-
-### Using Custom Plugin Configuration
-
-```bash
-# Use custom plugin configuration
-opnDossier convert config.xml \
-    --plugins stig,sans \
-    --plugin-config ~/.opnDossier/plugins.yaml \
-    -o compliance-report.md
 ```
 
 ## Advanced Workflows
@@ -427,16 +364,6 @@ mkdir -p "$OUTPUT_DIR"
 opnDossier convert "$CONFIG_FILE" -o "$OUTPUT_DIR/network-config.md"
 opnDossier convert "$CONFIG_FILE" -f json -o "$OUTPUT_DIR/network-config.json"
 opnDossier convert "$CONFIG_FILE" -f yaml -o "$OUTPUT_DIR/network-config.yaml"
-
-# Generate security reports
-opnDossier convert "$CONFIG_FILE" \
-    --mode blue --comprehensive \
-    --plugins stig,sans \
-    -o "$OUTPUT_DIR/security-audit.md"
-
-opnDossier convert "$CONFIG_FILE" \
-    --mode red --blackhat-mode \
-    -o "$OUTPUT_DIR/attack-surface.md"
 
 echo "Multi-format generation completed in $OUTPUT_DIR"
 ```
@@ -462,12 +389,6 @@ opnDossier convert "$CONFIG_FILE" \
     --template-dir "$TEMPLATE_DIR" \
     -o technical-report.md
 
-# Generate compliance report
-opnDossier convert "$CONFIG_FILE" \
-    --template compliance \
-    --template-dir "$TEMPLATE_DIR" \
-    --plugins stig,sans \
-    -o compliance-report.md
 ```
 
 ### Conditional Processing
@@ -490,9 +411,8 @@ if [ "$FILE_SIZE" -gt 1048576 ]; then
 else
     # Small file - use standard settings
     opnDossier convert "$CONFIG_FILE" \
-        --comprehensive \
-        --plugins stig,sans \
-        -o standard-report.md
+      --comprehensive \
+      -o standard-report.md
 fi
 ```
 

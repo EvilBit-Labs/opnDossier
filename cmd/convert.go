@@ -13,8 +13,6 @@ import (
 	"sync"
 	"text/template"
 
-	// TODO: Audit mode functionality is not yet complete - disabled for now
-	// "github.com/EvilBit-Labs/opnDossier/internal/audit".
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
@@ -129,7 +127,6 @@ var ErrOperationCancelled = errors.New("operation cancelled by user")
 
 // Static errors for better error handling.
 var (
-	ErrUnsupportedAuditMode    = errors.New("unsupported audit mode")
 	ErrFailedToEnrichConfig    = errors.New("failed to enrich configuration")
 	ErrNoTemplateSpecified     = errors.New("no template specified")
 	ErrInvalidCacheSize        = errors.New("template cache size must be greater than 0")
@@ -170,7 +167,6 @@ func init() {
 
 	// Add shared template flags
 	addSharedTemplateFlags(convertCmd)
-	addSharedAuditFlags(convertCmd)
 
 	// Flag groups for better organization
 	convertCmd.Flags().SortFlags = false
@@ -190,8 +186,8 @@ var convertCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 	},
 	Long: `The 'convert' command processes one or more OPNsense config.xml files and transforms
 its content into structured formats. Supported output formats include Markdown (default),
-JSON, and YAML. This allows for easier readability, documentation, programmatic access,
-and auditing of your firewall configuration.
+JSON, and YAML. This allows for easier readability, documentation, and programmatic access
+to your firewall configuration.
 
   NEW in Phase 3.7: The convert command now uses programmatic generation by default for
   improved performance and security. Template-based generation is available via explicit flags.
@@ -211,9 +207,8 @@ and auditing of your firewall configuration.
     --engine template               - Explicitly select template engine
     --legacy                        - Enable legacy template mode (deprecated)
 
-  The convert command focuses on format transformation without validation.
-  TODO: Audit mode functionality is not yet complete and has been disabled.
-  --comprehensive: Generate detailed, comprehensive reports
+	The convert command focuses on format transformation without validation.
+	--comprehensive: Generate detailed, comprehensive reports
 
   OUTPUT FORMATS:
   The convert command supports multiple output formats:
@@ -223,8 +218,7 @@ and auditing of your firewall configuration.
     json                        - JSON format output
     yaml                        - YAML format output
 
-  TODO: Audit mode functionality is not yet complete and has been disabled.
-  Use --format for basic output formats (markdown, json, yaml).
+	Use --format for basic output formats (markdown, json, yaml).
 
 The convert command focuses on conversion only and does not perform validation.
 To validate your configuration files before conversion, use the 'validate' command.
@@ -262,16 +256,6 @@ Examples:
 
   # Legacy template mode (deprecated, will show warning)
   opnDossier convert my_config.xml --legacy
-
-  # TODO: Audit mode functionality is not yet complete and has been disabled
-  # # Generate blue team audit report
-  # opnDossier convert my_config.xml --mode blue --comprehensive
-
-  # # Generate red team recon report with blackhat mode
-  # opnDossier convert my_config.xml --mode red --blackhat-mode
-
-  # # Run compliance checks with specific plugins
-  # opnDossier convert my_config.xml --mode blue --plugins stig,sans
 
   # Convert with specific sections
   opnDossier convert my_config.xml --section system,network
@@ -430,18 +414,6 @@ Examples:
 					opt.Sections,
 				)
 
-				// TODO: Audit mode functionality is not yet complete - disabled for now
-				// Handle audit mode if specified
-				// if opt.AuditMode != "" {
-				// 	// Create plugin registry for audit mode
-				// 	registry := audit.NewPluginRegistry()
-				// 	output, err = handleAuditMode(timeoutCtx, opnsense, opt, ctxLogger, registry)
-				// 	if err != nil {
-				// 		ctxLogger.Error("Failed to generate audit report", "error", err)
-				// 		errs <- fmt.Errorf("failed to generate audit report from %s: %w", fp, err)
-				// 		return
-				// 	}
-				// } else {
 				// Generate output based on format using the cached template
 				output, err = generateOutputByFormat(timeoutCtx, opnsense, opt, ctxLogger, cachedTemplate)
 				if err != nil {
@@ -449,7 +421,6 @@ Examples:
 					errs <- fmt.Errorf("failed to convert from %s: %w", fp, err)
 					return
 				}
-				// }
 
 				// Determine file extension based on format
 				switch strings.ToLower(string(opt.Format)) {
@@ -578,24 +549,8 @@ func buildConversionOptions(
 		opt.WrapWidth = -1
 	}
 
-	// TODO: Audit mode functionality is not yet complete - disabled for now
-	// Audit mode: CLI flag > config > default
-	// if sharedAuditMode != "" {
-	// 	opt.AuditMode = markdown.AuditMode(sharedAuditMode)
-	// }
-
-	// TODO: Audit mode functionality is not yet complete - disabled for now
-	// Blackhat mode: CLI flag only
-	// opt.BlackhatMode = sharedBlackhatMode
-
 	// Comprehensive: CLI flag only
 	opt.Comprehensive = sharedComprehensive
-
-	// TODO: Audit mode functionality is not yet complete - disabled for now
-	// Selected plugins: CLI flag only
-	// if len(sharedSelectedPlugins) > 0 {
-	// 	opt.SelectedPlugins = sharedSelectedPlugins
-	// }
 
 	// Template directory: CLI flag only
 	templateDir := getSharedTemplateDir()
