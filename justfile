@@ -6,7 +6,7 @@ set windows-powershell := true
 set dotenv-load := true
 set ignore-comments := true
 
-# Use mise to manage all dev tools (ruby, bun, pre-commit, etc.)
+# Use mise to manage all dev tools (go, pre-commit, uv, etc.)
 # See mise.toml for tool versions
 mise_exec := "mise exec --"
 
