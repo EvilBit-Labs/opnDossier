@@ -40,7 +40,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-go@v6
       - uses: jdx/mise-action@v2
         with:
           install: true
@@ -90,7 +89,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-go@v6
       - uses: jdx/mise-action@v2
         with:
           install: true
