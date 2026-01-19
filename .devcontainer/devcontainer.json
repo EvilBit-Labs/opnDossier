@@ -1,0 +1,57 @@
+{
+  "name": "Go",
+  "image": "mcr.microsoft.com/devcontainers/go:2-1.25-trixie",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "configureZshAsDefaultShell": true,
+      "installOhMyZsh": true,
+      "installOhMyZshConfig": true,
+      "upgradePackages": true,
+      "installSsl": true,
+      "username": "automatic",
+      "userUid": "automatic",
+      "userGid": "automatic"
+    },
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      "installDockerBuildx": true,
+      "version": "latest",
+      "dockerDashComposeVersion": "v2",
+      "moby": false
+    },
+    "ghcr.io/devcontainers/features/go:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers-extra/features/mise:1": {
+      "version": "latest"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode-remote.remote-containers",
+        "ms-azuretools.vscode-docker",
+        "mikestead.dotenv",
+        "EditorConfig.EditorConfig",
+        "tamasfe.even-better-toml",
+        "github.vscode-github-actions",
+        "GitHub.codespaces",
+        "bierner.github-markdown-preview",
+        "GitHub.vscode-pull-request-github",
+        "codezombiech.gitignore",
+        "golang.go",
+        "skellock.just",
+        "yzhang.markdown-all-in-one",
+        "bierner.markdown-checkbox",
+        "bierner.markdown-emoji",
+        "bierner.markdown-footnotes",
+        "bierner.markdown-preview-github-styles",
+        "bierner.markdown-mermaid",
+        "bierner.markdown-yaml-preamble",
+        "DavidAnson.vscode-markdownlint",
+        "foxundermoon.shell-format",
+        "redhat.vscode-yaml"
+      ]
+    }
+  }
+}
