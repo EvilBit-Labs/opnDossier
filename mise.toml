@@ -1,0 +1,10 @@
+[tools]
+cosign = "latest"
+git-cliff = "latest"
+go                = "latest"
+golangci-lint     = "2.8.0"
+goreleaser        = "latest"
+just              = "latest"
+markdownlint-cli2 = "latest"
+pre-commit        = "latest"
+uv = "latest"
