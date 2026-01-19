@@ -8,6 +8,7 @@
       "installOhMyZsh": true,
       "installOhMyZshConfig": true,
       "upgradePackages": true,
+      "nonFreePackages": true,
       "installSsl": true,
       "username": "automatic",
       "userUid": "automatic",
@@ -24,7 +25,8 @@
     },
     "ghcr.io/devcontainers-extra/features/mise:1": {
       "version": "latest"
-    }
+    },
+    "ghcr.io/stu-bell/devcontainer-features/claude-code:0": {}
   },
   "customizations": {
     "vscode": {
