@@ -534,7 +534,4 @@ just ci-check                  # Comprehensive checks
 
 # Validate configuration
 ./opndossier validate config.xml
-
-# Run with audit plugins
-./opndossier convert config.xml --audit stig,sans
 ```

@@ -56,33 +56,6 @@ func (t Theme) String() string {
 	return string(t)
 }
 
-// AuditMode represents the type of audit report to generate.
-type AuditMode string
-
-const (
-	// AuditModeStandard represents a neutral, comprehensive documentation report.
-	AuditModeStandard AuditMode = "standard"
-	// AuditModeBlue represents a defensive audit report with security findings and recommendations.
-	AuditModeBlue AuditMode = "blue"
-	// AuditModeRed represents an attacker-focused recon report highlighting attack surfaces.
-	AuditModeRed AuditMode = "red"
-)
-
-// String returns the string representation of the audit mode.
-func (a AuditMode) String() string {
-	return string(a)
-}
-
-// Validate checks if the audit mode is supported.
-func (a AuditMode) Validate() error {
-	switch a {
-	case AuditModeStandard, AuditModeBlue, AuditModeRed, "":
-		return nil
-	default:
-		return fmt.Errorf("%w: %s", ErrUnsupportedAuditMode, a)
-	}
-}
-
 // Options contains configuration options for markdown generation.
 type Options struct {
 	// Format specifies the output format (markdown, json, yaml).
@@ -128,15 +101,6 @@ type Options struct {
 	// CustomFields allows for additional custom fields to be passed to templates.
 	CustomFields map[string]any
 
-	// AuditMode specifies the type of audit report to generate (standard, blue, red).
-	AuditMode AuditMode
-
-	// BlackhatMode enables snarky or attacker-focused commentary for red team reports.
-	BlackhatMode bool
-
-	// SelectedPlugins specifies which compliance plugins to run for blue team reports.
-	SelectedPlugins []string
-
 	// TemplateDir specifies a custom directory for user template overrides.
 	TemplateDir string
 
@@ -168,9 +132,6 @@ func DefaultOptions() Options {
 		CustomFields: map[string]any{
 			"IncludeTunables": false, // Default to hiding tunables with "default" values
 		},
-		AuditMode:         "", // No audit mode by default
-		BlackhatMode:      false,
-		SelectedPlugins:   nil,
 		TemplateDir:       "",
 		UseTemplateEngine: false,
 		SuppressWarnings:  false,
@@ -178,10 +139,18 @@ func DefaultOptions() Options {
 }
 
 // ErrInvalidWrapWidth indicates that the wrap width setting is invalid.
+// ErrAuditTemplateDeferred indicates that an audit-related template was requested but audit mode is not available.
 var (
-	ErrInvalidWrapWidth     = errors.New("wrap width must be -1 (auto-detect), 0 (no wrapping), or positive")
-	ErrUnsupportedAuditMode = errors.New("unsupported audit mode")
+	ErrInvalidWrapWidth      = errors.New("wrap width must be -1 (auto-detect), 0 (no wrapping), or positive")
+	ErrAuditTemplateDeferred = errors.New("audit templates (blue, red, blue-enhanced) are deferred to v2.1")
 )
+
+// deferredAuditTemplates contains template names that require audit mode (deferred to v2.1).
+var deferredAuditTemplates = map[string]bool{
+	"blue":          true,
+	"red":           true,
+	"blue-enhanced": true,
+}
 
 // Validate checks if the options are valid.
 func (o Options) Validate() error {
@@ -189,12 +158,19 @@ func (o Options) Validate() error {
 		return fmt.Errorf("invalid format: %w", err)
 	}
 
-	if err := o.AuditMode.Validate(); err != nil {
-		return fmt.Errorf("invalid audit mode: %w", err)
-	}
-
 	if o.WrapWidth < -1 {
 		return fmt.Errorf("%w: %d", ErrInvalidWrapWidth, o.WrapWidth)
+	}
+
+	// Block audit-related templates (deferred to v2.1)
+	if o.TemplateName != "" {
+		if deferredAuditTemplates[o.TemplateName] {
+			return fmt.Errorf(
+				"%w: template %q requires audit mode which is not yet available",
+				ErrAuditTemplateDeferred,
+				o.TemplateName,
+			)
+		}
 	}
 
 	// Validate that template engine selection is consistent
@@ -295,34 +271,6 @@ func (o Options) WithCustomField(key string, value any) Options {
 // WithComprehensive enables or disables comprehensive report generation.
 func (o Options) WithComprehensive(enabled bool) Options {
 	o.Comprehensive = enabled
-	return o
-}
-
-// WithAuditMode sets the audit report mode.
-func (o Options) WithAuditMode(mode AuditMode) Options {
-	if err := mode.Validate(); err != nil {
-		// Log warning about validation failure instead of silently ignoring
-		if logger, loggerErr := log.New(log.Config{Level: "warn"}); loggerErr == nil {
-			logger.Warn("audit mode validation failed, returning unchanged options", "mode", mode, "error", err)
-		}
-
-		return o
-	}
-
-	o.AuditMode = mode
-
-	return o
-}
-
-// WithBlackhatMode enables or disables blackhat mode for red team reports.
-func (o Options) WithBlackhatMode(enabled bool) Options {
-	o.BlackhatMode = enabled
-	return o
-}
-
-// WithSelectedPlugins sets the compliance plugins to run for blue team reports.
-func (o Options) WithSelectedPlugins(plugins []string) Options {
-	o.SelectedPlugins = plugins
 	return o
 }
 

@@ -210,13 +210,23 @@ func TestEndToEndDisplay(t *testing.T) {
 	displayHelpCmd := exec.Command(binaryPath, "display", "--help")
 	displayHelpOutput, displayHelpErr := displayHelpCmd.CombinedOutput()
 	require.NoError(t, displayHelpErr, "display --help failed: %s", string(displayHelpOutput))
-	require.Contains(t, string(displayHelpOutput), "--no-wrap", "built binary missing --no-wrap flag in display command")
+	require.Contains(
+		t,
+		string(displayHelpOutput),
+		"--no-wrap",
+		"built binary missing --no-wrap flag in display command",
+	)
 
 	// Verify --no-wrap flag is available in convert command help
 	convertHelpCmd := exec.Command(binaryPath, "convert", "--help")
 	convertHelpOutput, convertHelpErr := convertHelpCmd.CombinedOutput()
 	require.NoError(t, convertHelpErr, "convert --help failed: %s", string(convertHelpOutput))
-	require.Contains(t, string(convertHelpOutput), "--no-wrap", "built binary missing --no-wrap flag in convert command")
+	require.Contains(
+		t,
+		string(convertHelpOutput),
+		"--no-wrap",
+		"built binary missing --no-wrap flag in convert command",
+	)
 
 	// Test display command
 	cmd := exec.Command(binaryPath, "display", configFile)

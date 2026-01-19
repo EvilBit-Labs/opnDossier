@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### 🧹 Cleanup
+
+- Remove stubbed audit mode CLI code and documentation (deferred to v2.1; see [#174](https://github.com/EvilBit-Labs/opnDossier/issues/174))
+
 ## [1.0.0] - 2025-08-04
 
 ### 🚀 Features
