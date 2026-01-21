@@ -3,6 +3,7 @@ package processor
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
@@ -248,15 +249,13 @@ func (p *ExampleProcessor) performPerformanceAnalysis(
 
 // performComplianceCheck performs compliance-related checks of the configuration.
 // TODO: Extended Compliance Rules - Add additional compliance checks for:
-//   - Password policy enforcement (complexity, expiration)
-//   - Audit logging configuration requirements
 //   - Certificate management and expiration monitoring
 //   - Backup and disaster recovery configuration
 //   - Network segmentation best practices
 //   - Security framework compliance (CIS, NIST, etc.)
 //   - Regulatory compliance requirements (PCI-DSS, HIPAA, etc.)
 //
-// This would provide comprehensive compliance monitoring capabilities.
+// Note: Password policy and audit logging compliance checks are implemented below.
 func (p *ExampleProcessor) performComplianceCheck(
 	ctx context.Context,
 	cfg *model.OpnSenseDocument,
@@ -288,6 +287,136 @@ func (p *ExampleProcessor) performComplianceCheck(
 			Recommendation: "Configure time synchronization to ensure accurate timestamps for logging and security.",
 			Component:      "ntp",
 		})
+	}
+
+	// Check password policy enforcement
+	if len(cfg.System.User) > 0 {
+		var usersWithoutPasswords []string
+		var disabledAdminUsers []string
+		enabledAdminFound := false
+
+		isAdminUser := func(user model.User) bool {
+			if strings.EqualFold(user.Name, "admin") {
+				return true
+			}
+			if strings.EqualFold(user.Groupname, "admins") || strings.EqualFold(user.Groupname, "admin") {
+				return true
+			}
+			return false
+		}
+
+		for _, user := range cfg.System.User {
+			name := user.Name
+			if name == "" {
+				name = user.UID
+			}
+
+			isAdmin := isAdminUser(user)
+			isEnabled := !bool(user.Disabled)
+			isLocal := strings.EqualFold(user.Scope, "local")
+
+			if isAdmin && isEnabled {
+				enabledAdminFound = true
+			}
+
+			if isLocal && isAdmin && isEnabled && strings.TrimSpace(user.Password) == "" {
+				usersWithoutPasswords = append(usersWithoutPasswords, name)
+			}
+
+			if !isEnabled && isAdmin {
+				disabledAdminUsers = append(disabledAdminUsers, name)
+			}
+		}
+
+		if !enabledAdminFound {
+			report.AddFinding(SeverityCritical, Finding{
+				Type:           "compliance",
+				Title:          "No Administrative Users Configured",
+				Description:    "No enabled administrative users are configured in the system.",
+				Recommendation: "Ensure at least one enabled administrative user account is available for system management.",
+				Component:      "users",
+				Reference:      "https://docs.opnsense.org/manual/users.html",
+			})
+		}
+
+		if len(usersWithoutPasswords) > 0 {
+			report.AddFinding(SeverityHigh, Finding{
+				Type:  "compliance",
+				Title: "Password Policy Not Enforced",
+				Description: fmt.Sprintf(
+					"The following local administrative users are missing password configuration: %s.",
+					strings.Join(usersWithoutPasswords, ", "),
+				),
+				Recommendation: "Ensure all administrative users have strong passwords configured and enforce password complexity requirements.",
+				Component:      "users",
+				Reference:      "https://docs.opnsense.org/manual/users.html",
+			})
+		}
+
+		if len(disabledAdminUsers) > 0 {
+			report.AddFinding(SeverityMedium, Finding{
+				Type:  "compliance",
+				Title: "Weak User Account Configuration",
+				Description: fmt.Sprintf(
+					"Administrative users are disabled: %s.",
+					strings.Join(disabledAdminUsers, ", "),
+				),
+				Recommendation: "Review administrative account status and ensure only authorized, active users retain administrative privileges.",
+				Component:      "users",
+				Reference:      "https://docs.opnsense.org/manual/users.html",
+			})
+		}
+	}
+
+	// Check audit logging configuration
+	syslogEnabled := bool(cfg.Syslog.Enable)
+	if !syslogEnabled {
+		report.AddFinding(SeverityHigh, Finding{
+			Type:           "compliance",
+			Title:          "Audit Logging Not Configured",
+			Description:    "Syslog is disabled, preventing audit events from being recorded.",
+			Recommendation: "Enable comprehensive audit logging including system, authentication, and firewall events. Configure remote syslog server for compliance and forensic analysis.",
+			Component:      "syslog",
+			Reference:      "https://docs.opnsense.org/manual/syslog.html",
+		})
+	} else {
+		missingCategories := []string{}
+		if !bool(cfg.Syslog.System) {
+			missingCategories = append(missingCategories, "system")
+		}
+		if !bool(cfg.Syslog.Auth) {
+			missingCategories = append(missingCategories, "auth")
+		}
+		if !bool(cfg.Syslog.Filter) {
+			missingCategories = append(missingCategories, "filter")
+		}
+
+		if len(missingCategories) > 0 {
+			report.AddFinding(SeverityMedium, Finding{
+				Type:  "compliance",
+				Title: "Incomplete Audit Logging",
+				Description: fmt.Sprintf(
+					"Syslog is enabled but missing critical categories: %s.",
+					strings.Join(missingCategories, ", "),
+				),
+				Recommendation: "Enable comprehensive audit logging including system, authentication, and firewall events. Configure remote syslog server for compliance and forensic analysis.",
+				Component:      "syslog",
+				Reference:      "https://docs.opnsense.org/manual/syslog.html",
+			})
+		}
+
+		remoteConfigured := cfg.Syslog.Remoteserver != "" || cfg.Syslog.Remoteserver2 != "" ||
+			cfg.Syslog.Remoteserver3 != ""
+		if !remoteConfigured {
+			report.AddFinding(SeverityLow, Finding{
+				Type:           "compliance",
+				Title:          "Remote Audit Logging Not Configured",
+				Description:    "Syslog is enabled locally, but no remote syslog server is configured for log retention and monitoring.",
+				Recommendation: "Enable comprehensive audit logging including system, authentication, and firewall events. Configure remote syslog server for compliance and forensic analysis.",
+				Component:      "syslog",
+				Reference:      "https://docs.opnsense.org/manual/syslog.html",
+			})
+		}
 	}
 
 	return nil

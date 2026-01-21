@@ -280,6 +280,15 @@ finding := AuditFinding{
 }
 ```
 
+#### Baseline Processor Compliance Checks
+
+The `ExampleProcessor` includes baseline compliance checks that run when compliance analysis is enabled. These checks are intended to flag common configuration gaps before advanced audit mappings are applied:
+
+- **Password Policy Enforcement** (component: `users`): High severity when users are missing password configuration; medium severity when administrative accounts are disabled.
+- **Audit Logging Configuration** (component: `syslog`): High severity when syslog is disabled; medium severity when critical categories (system, auth, filter) are missing; low severity when no remote syslog server is configured.
+
+These findings use the `compliance` type and include remediation guidance aligned with OPNsense best practices.
+
 ### Control Status Tracking
 
 The system tracks compliance status for each control:
