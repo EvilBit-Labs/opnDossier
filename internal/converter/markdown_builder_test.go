@@ -1650,3 +1650,335 @@ func TestMarkdownBuilder_BuildNetworkSection_WithComplexInterfaces(t *testing.T)
 	assert.Contains(t, result, "1500")          // MTU
 	assert.Contains(t, result, "9000")          // MTU for opt1
 }
+
+// =============================================================================
+// NAT Table Builder Tests (Issue #60)
+// =============================================================================
+
+func TestMarkdownBuilder_BuildOutboundNATTable_WithRules(t *testing.T) {
+	builder := NewMarkdownBuilder()
+
+	rules := []model.NATRule{
+		{
+			Interface: model.InterfaceList{"wan"},
+			Protocol:  "tcp",
+			Source: model.Source{
+				Network: "lan",
+			},
+			Destination: model.Destination{
+				Any: "any",
+			},
+			Target:   "wan_ip",
+			Disabled: "",
+			Descr:    "LAN to WAN NAT",
+		},
+		{
+			Interface: model.InterfaceList{"wan"},
+			Protocol:  "",
+			Source: model.Source{
+				Network: "dmz",
+			},
+			Destination: model.Destination{
+				Network: "any",
+			},
+			Target:   "wan_ip",
+			Disabled: "1",
+			Descr:    "DMZ NAT (disabled)",
+		},
+	}
+
+	tableSet := builder.BuildOutboundNATTable(rules)
+
+	assert.NotNil(t, tableSet)
+	assert.Len(
+		t,
+		tableSet.Header,
+		9,
+	) // #, Direction, Interface, Source, Destination, Target, Protocol, Description, Status
+	assert.Len(t, tableSet.Rows, 2)
+
+	// Verify headers
+	expectedHeaders := []string{
+		"#",
+		"Direction",
+		"Interface",
+		"Source",
+		"Destination",
+		"Target",
+		"Protocol",
+		"Description",
+		"Status",
+	}
+	assert.Equal(t, expectedHeaders, tableSet.Header)
+
+	// Verify first row (active rule)
+	row := tableSet.Rows[0]
+	assert.Equal(t, "1", row[0])              // #
+	assert.Equal(t, "⬆️ Outbound", row[1])    // Direction
+	assert.Contains(t, row[2], "wan")         // Interface (with link)
+	assert.Equal(t, "lan", row[3])            // Source
+	assert.Equal(t, "any", row[4])            // Destination
+	assert.Equal(t, "`wan_ip`", row[5])       // Target
+	assert.Equal(t, "tcp", row[6])            // Protocol
+	assert.Equal(t, "LAN to WAN NAT", row[7]) // Description
+	assert.Equal(t, "**Active**", row[8])     // Status
+
+	// Verify second row (disabled rule)
+	row2 := tableSet.Rows[1]
+	assert.Equal(t, "2", row2[0])                  // #
+	assert.Equal(t, "⬆️ Outbound", row2[1])        // Direction
+	assert.Equal(t, "dmz", row2[3])                // Source
+	assert.Equal(t, "any", row2[6])                // Protocol (default when empty)
+	assert.Equal(t, "**Disabled**", row2[8])       // Status
+	assert.Equal(t, "DMZ NAT (disabled)", row2[7]) // Description
+}
+
+func TestMarkdownBuilder_BuildOutboundNATTable_EmptyRules(t *testing.T) {
+	builder := NewMarkdownBuilder()
+
+	rules := []model.NATRule{}
+
+	tableSet := builder.BuildOutboundNATTable(rules)
+
+	assert.NotNil(t, tableSet)
+	assert.Len(t, tableSet.Header, 9)
+	assert.Len(t, tableSet.Rows, 1) // One row with "No rules configured" message
+
+	// Verify the placeholder row
+	row := tableSet.Rows[0]
+	assert.Equal(t, "-", row[0])                                // #
+	assert.Equal(t, "-", row[1])                                // Direction
+	assert.Equal(t, "No outbound NAT rules configured", row[7]) // Description placeholder
+}
+
+func TestMarkdownBuilder_BuildOutboundNATTable_SpecialCharacters(t *testing.T) {
+	builder := NewMarkdownBuilder()
+
+	rules := []model.NATRule{
+		{
+			Interface: model.InterfaceList{"wan"},
+			Protocol:  "tcp",
+			Source: model.Source{
+				Network: "lan",
+			},
+			Destination: model.Destination{
+				Any: "any",
+			},
+			Target:   "wan_ip",
+			Disabled: "",
+			Descr:    "Rule with | pipe and `backticks`",
+		},
+	}
+
+	tableSet := builder.BuildOutboundNATTable(rules)
+
+	assert.NotNil(t, tableSet)
+	// Description should be escaped for markdown tables
+	row := tableSet.Rows[0]
+	assert.Contains(t, row[7], "\\|") // Pipe should be escaped with backslash
+	assert.Contains(t, row[7], "\\`") // Backticks should be escaped with backslash
+}
+
+func TestMarkdownBuilder_BuildInboundNATTable_WithRules(t *testing.T) {
+	builder := NewMarkdownBuilder()
+
+	rules := []model.InboundRule{
+		{
+			Interface:    model.InterfaceList{"wan"},
+			Protocol:     "tcp",
+			ExternalPort: "443",
+			InternalIP:   "192.168.1.10",
+			InternalPort: "443",
+			Priority:     10,
+			Disabled:     "",
+			Descr:        "Web server forwarding",
+		},
+		{
+			Interface:    model.InterfaceList{"wan"},
+			Protocol:     "tcp/udp",
+			ExternalPort: "8080",
+			InternalIP:   "192.168.1.20",
+			InternalPort: "80",
+			Priority:     20,
+			Disabled:     "1",
+			Descr:        "HTTP forward (disabled)",
+		},
+	}
+
+	tableSet := builder.BuildInboundNATTable(rules)
+
+	assert.NotNil(t, tableSet)
+	assert.Len(
+		t,
+		tableSet.Header,
+		10,
+	) // #, Direction, Interface, External Port, Target IP, Target Port, Protocol, Description, Priority, Status
+	assert.Len(t, tableSet.Rows, 2)
+
+	// Verify headers
+	expectedHeaders := []string{
+		"#",
+		"Direction",
+		"Interface",
+		"External Port",
+		"Target IP",
+		"Target Port",
+		"Protocol",
+		"Description",
+		"Priority",
+		"Status",
+	}
+	assert.Equal(t, expectedHeaders, tableSet.Header)
+
+	// Verify first row (active rule)
+	row := tableSet.Rows[0]
+	assert.Equal(t, "1", row[0])                     // #
+	assert.Equal(t, "⬇️ Inbound", row[1])            // Direction
+	assert.Contains(t, row[2], "wan")                // Interface (with link)
+	assert.Equal(t, "443", row[3])                   // External Port
+	assert.Equal(t, "`192.168.1.10`", row[4])        // Target IP
+	assert.Equal(t, "443", row[5])                   // Target Port
+	assert.Equal(t, "tcp", row[6])                   // Protocol
+	assert.Equal(t, "Web server forwarding", row[7]) // Description
+	assert.Equal(t, "10", row[8])                    // Priority
+	assert.Equal(t, "**Active**", row[9])            // Status
+
+	// Verify second row (disabled rule)
+	row2 := tableSet.Rows[1]
+	assert.Equal(t, "2", row2[0])              // #
+	assert.Equal(t, "⬇️ Inbound", row2[1])     // Direction
+	assert.Equal(t, "8080", row2[3])           // External Port
+	assert.Equal(t, "`192.168.1.20`", row2[4]) // Target IP
+	assert.Equal(t, "80", row2[5])             // Target Port
+	assert.Equal(t, "**Disabled**", row2[9])   // Status
+}
+
+func TestMarkdownBuilder_BuildInboundNATTable_EmptyRules(t *testing.T) {
+	builder := NewMarkdownBuilder()
+
+	rules := []model.InboundRule{}
+
+	tableSet := builder.BuildInboundNATTable(rules)
+
+	assert.NotNil(t, tableSet)
+	assert.Len(t, tableSet.Header, 10)
+	assert.Len(t, tableSet.Rows, 1) // One row with "No rules configured" message
+
+	// Verify the placeholder row
+	row := tableSet.Rows[0]
+	assert.Equal(t, "-", row[0])                               // #
+	assert.Equal(t, "-", row[1])                               // Direction
+	assert.Equal(t, "No inbound NAT rules configured", row[7]) // Description placeholder
+}
+
+func TestMarkdownBuilder_BuildInboundNATTable_SpecialCharacters(t *testing.T) {
+	builder := NewMarkdownBuilder()
+
+	rules := []model.InboundRule{
+		{
+			Interface:    model.InterfaceList{"wan"},
+			Protocol:     "tcp",
+			ExternalPort: "443",
+			InternalIP:   "192.168.1.10",
+			InternalPort: "443",
+			Priority:     10,
+			Disabled:     "",
+			Descr:        "Rule with | pipe and `backticks`",
+		},
+	}
+
+	tableSet := builder.BuildInboundNATTable(rules)
+
+	assert.NotNil(t, tableSet)
+	// Description should be escaped for markdown tables
+	row := tableSet.Rows[0]
+	assert.Contains(t, row[7], "\\|") // Pipe should be escaped with backslash
+	assert.Contains(t, row[7], "\\`") // Backticks should be escaped with backslash
+}
+
+func TestMarkdownBuilder_BuildSecuritySection_WithBothNATTypes(t *testing.T) {
+	builder := NewMarkdownBuilder()
+
+	data := &model.OpnSenseDocument{
+		System: model.System{
+			DisableNATReflection: "yes",
+			PfShareForward:       1,
+		},
+		Nat: model.Nat{
+			Outbound: model.Outbound{
+				Mode: "automatic",
+				Rule: []model.NATRule{
+					{
+						Interface:   model.InterfaceList{"wan"},
+						Protocol:    "tcp",
+						Source:      model.Source{Network: "lan"},
+						Destination: model.Destination{Any: "any"},
+						Target:      "wan_ip",
+						Descr:       "LAN NAT",
+					},
+				},
+			},
+			Inbound: []model.InboundRule{
+				{
+					Interface:    model.InterfaceList{"wan"},
+					Protocol:     "tcp",
+					ExternalPort: "443",
+					InternalIP:   "192.168.1.10",
+					InternalPort: "443",
+					Descr:        "HTTPS forward",
+				},
+			},
+		},
+	}
+
+	result := builder.BuildSecuritySection(data)
+
+	// Verify outbound section exists
+	assert.Contains(t, result, "Outbound NAT")
+	assert.Contains(t, result, "Source Translation")
+	assert.Contains(t, result, "⬆️ Outbound")
+	assert.Contains(t, result, "LAN NAT")
+
+	// Verify inbound section exists
+	assert.Contains(t, result, "Inbound NAT")
+	assert.Contains(t, result, "Port Forwarding")
+	assert.Contains(t, result, "⬇️ Inbound")
+	assert.Contains(t, result, "HTTPS forward")
+	assert.Contains(t, result, "192.168.1.10")
+
+	// Verify security warning for inbound NAT
+	assert.Contains(t, result, "Security Warning")
+	assert.Contains(t, result, "port forwarding")
+}
+
+func TestMarkdownBuilder_BuildSecuritySection_InboundSecurityWarning(t *testing.T) {
+	builder := NewMarkdownBuilder()
+
+	data := &model.OpnSenseDocument{
+		System: model.System{
+			DisableNATReflection: "yes",
+		},
+		Nat: model.Nat{
+			Outbound: model.Outbound{
+				Mode: "automatic",
+			},
+			Inbound: []model.InboundRule{
+				{
+					Interface:    model.InterfaceList{"wan"},
+					Protocol:     "tcp",
+					ExternalPort: "22",
+					InternalIP:   "192.168.1.5",
+					InternalPort: "22",
+					Descr:        "SSH forward",
+				},
+			},
+		},
+	}
+
+	result := builder.BuildSecuritySection(data)
+
+	// Verify security warning is present when inbound rules exist
+	assert.Contains(t, result, "⚠️")
+	assert.Contains(t, result, "port forwarding")
+	assert.Contains(t, result, "attack surface")
+}
