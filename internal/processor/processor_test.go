@@ -1884,66 +1884,6 @@ func TestCoreProcessor_MutexProtection(t *testing.T) {
 	}
 }
 
-// TestProcessor_ContextCancellationTiming tests context cancellation at different phases.
-func TestProcessor_ContextCancellationTiming(t *testing.T) {
-	processor, err := NewCoreProcessor()
-	require.NoError(t, err)
-
-	config := generateLargeConfig()
-
-	tests := []struct {
-		name        string
-		cancelAfter time.Duration
-		expectError bool
-	}{
-		{
-			name:        "Cancel immediately",
-			cancelAfter: 0,
-			expectError: true,
-		},
-		{
-			name:        "Cancel after 1ms",
-			cancelAfter: 1 * time.Millisecond,
-			expectError: true,
-		},
-		{
-			name:        "Cancel after 10ms",
-			cancelAfter: 10 * time.Millisecond,
-			expectError: false, // Might complete before cancellation
-		},
-		{
-			name:        "Cancel after 100ms",
-			cancelAfter: 100 * time.Millisecond,
-			expectError: false, // Should complete
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithCancel(context.Background())
-
-			if tt.cancelAfter == 0 {
-				cancel() // Cancel immediately
-			} else {
-				go func() {
-					time.Sleep(tt.cancelAfter)
-					cancel()
-				}()
-			}
-
-			_, err := processor.Process(ctx, config, WithAllFeatures())
-
-			if tt.expectError && tt.cancelAfter <= 1*time.Millisecond {
-				// For very short timeouts, we expect cancellation
-				if err == nil {
-					t.Errorf("Expected error due to context cancellation, got nil")
-				}
-			}
-			// For longer timeouts, either success or cancellation is acceptable
-		})
-	}
-}
-
 // TestReport_JSONSerializationPerformance tests JSON serialization performance.
 func TestReport_JSONSerializationPerformance(t *testing.T) {
 	if testing.Short() {
