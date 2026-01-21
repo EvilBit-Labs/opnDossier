@@ -60,6 +60,417 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 			expected: true, // Should be equivalent despite different descriptions
 		},
 		{
+			name: "same state type",
+			rule1: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				StateType:  "keep state",
+				Source:     model.Source{Network: "any"},
+			},
+			rule2: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				StateType:  "keep state",
+				Source:     model.Source{Network: "any"},
+			},
+			expected: true,
+		},
+		{
+			name: "different state types",
+			rule1: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				StateType:  "keep state",
+				Source:     model.Source{Network: "any"},
+			},
+			rule2: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				StateType:  "sloppy state",
+				Source:     model.Source{Network: "any"},
+			},
+			expected: false,
+		},
+		{
+			name: "state type vs empty",
+			rule1: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				StateType:  "synproxy state",
+				Source:     model.Source{Network: "any"},
+			},
+			rule2: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Source:     model.Source{Network: "any"},
+			},
+			expected: false,
+		},
+		{
+			name: "same direction",
+			rule1: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Direction:  "in",
+				Source:     model.Source{Network: "any"},
+			},
+			rule2: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Direction:  "in",
+				Source:     model.Source{Network: "any"},
+			},
+			expected: true,
+		},
+		{
+			name: "different directions",
+			rule1: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Direction:  "in",
+				Source:     model.Source{Network: "any"},
+			},
+			rule2: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Direction:  "out",
+				Source:     model.Source{Network: "any"},
+			},
+			expected: false,
+		},
+		{
+			name: "direction vs empty",
+			rule1: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Direction:  "out",
+				Source:     model.Source{Network: "any"},
+			},
+			rule2: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Source:     model.Source{Network: "any"},
+			},
+			expected: false,
+		},
+		{
+			name: "same protocol",
+			rule1: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Protocol:   "tcp",
+				Source:     model.Source{Network: "any"},
+			},
+			rule2: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Protocol:   "tcp",
+				Source:     model.Source{Network: "any"},
+			},
+			expected: true,
+		},
+		{
+			name: "different protocols",
+			rule1: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Protocol:   "udp",
+				Source:     model.Source{Network: "any"},
+			},
+			rule2: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Protocol:   "icmp",
+				Source:     model.Source{Network: "any"},
+			},
+			expected: false,
+		},
+		{
+			name: "protocol vs empty",
+			rule1: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Protocol:   "tcp",
+				Source:     model.Source{Network: "any"},
+			},
+			rule2: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Source:     model.Source{Network: "any"},
+			},
+			expected: false,
+		},
+		{
+			name: "any protocol handling",
+			rule1: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Protocol:   "any",
+				Source:     model.Source{Network: "any"},
+			},
+			rule2: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Protocol:   "any",
+				Source:     model.Source{Network: "any"},
+			},
+			expected: true,
+		},
+		{
+			name: "quick flag matches",
+			rule1: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Quick:      "1",
+				Source:     model.Source{Network: "any"},
+			},
+			rule2: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Quick:      "1",
+				Source:     model.Source{Network: "any"},
+			},
+			expected: true,
+		},
+		{
+			name: "quick flag differs",
+			rule1: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Quick:      "1",
+				Source:     model.Source{Network: "any"},
+			},
+			rule2: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Quick:      "0",
+				Source:     model.Source{Network: "any"},
+			},
+			expected: false,
+		},
+		{
+			name: "same source port",
+			rule1: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				SourcePort: "443",
+				Source:     model.Source{Network: "any"},
+			},
+			rule2: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				SourcePort: "443",
+				Source:     model.Source{Network: "any"},
+			},
+			expected: true,
+		},
+		{
+			name: "different source ports",
+			rule1: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				SourcePort: "80",
+				Source:     model.Source{Network: "any"},
+			},
+			rule2: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				SourcePort: "443",
+				Source:     model.Source{Network: "any"},
+			},
+			expected: false,
+		},
+		{
+			name: "source port range comparison",
+			rule1: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				SourcePort: "20:25",
+				Source:     model.Source{Network: "any"},
+			},
+			rule2: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				SourcePort: "20:25",
+				Source:     model.Source{Network: "any"},
+			},
+			expected: true,
+		},
+		{
+			name: "source port range vs single port",
+			rule1: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				SourcePort: "50000:60000",
+				Source:     model.Source{Network: "any"},
+			},
+			rule2: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				SourcePort: "50000",
+				Source:     model.Source{Network: "any"},
+			},
+			expected: false,
+		},
+		{
+			name: "same destination port",
+			rule1: model.Rule{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Interface:   model.InterfaceList{"lan"},
+				Destination: model.Destination{Port: "443"},
+				Source:      model.Source{Network: "any"},
+			},
+			rule2: model.Rule{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Interface:   model.InterfaceList{"lan"},
+				Destination: model.Destination{Port: "443"},
+				Source:      model.Source{Network: "any"},
+			},
+			expected: true,
+		},
+		{
+			name: "different destination ports",
+			rule1: model.Rule{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Interface:   model.InterfaceList{"lan"},
+				Destination: model.Destination{Port: "80"},
+				Source:      model.Source{Network: "any"},
+			},
+			rule2: model.Rule{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Interface:   model.InterfaceList{"lan"},
+				Destination: model.Destination{Port: "443"},
+				Source:      model.Source{Network: "any"},
+			},
+			expected: false,
+		},
+		{
+			name: "destination port range comparison",
+			rule1: model.Rule{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Interface:   model.InterfaceList{"lan"},
+				Destination: model.Destination{Port: "20:25"},
+				Source:      model.Source{Network: "any"},
+			},
+			rule2: model.Rule{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Interface:   model.InterfaceList{"lan"},
+				Destination: model.Destination{Port: "20:25"},
+				Source:      model.Source{Network: "any"},
+			},
+			expected: true,
+		},
+		{
+			name: "destination port range vs single port",
+			rule1: model.Rule{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Interface:   model.InterfaceList{"lan"},
+				Destination: model.Destination{Port: "50000:60000"},
+				Source:      model.Source{Network: "any"},
+			},
+			rule2: model.Rule{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Interface:   model.InterfaceList{"lan"},
+				Destination: model.Destination{Port: "50000"},
+				Source:      model.Source{Network: "any"},
+			},
+			expected: false,
+		},
+		{
+			name: "same destination network",
+			rule1: model.Rule{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Interface:   model.InterfaceList{"lan"},
+				Destination: model.Destination{Network: "192.168.1.0/24"},
+				Source:      model.Source{Network: "any"},
+			},
+			rule2: model.Rule{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Interface:   model.InterfaceList{"lan"},
+				Destination: model.Destination{Network: "192.168.1.0/24"},
+				Source:      model.Source{Network: "any"},
+			},
+			expected: true,
+		},
+		{
+			name: "different destination networks",
+			rule1: model.Rule{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Interface:   model.InterfaceList{"lan"},
+				Destination: model.Destination{Network: "192.168.1.0/24"},
+				Source:      model.Source{Network: "any"},
+			},
+			rule2: model.Rule{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Interface:   model.InterfaceList{"lan"},
+				Destination: model.Destination{Network: "10.0.0.0/8"},
+				Source:      model.Source{Network: "any"},
+			},
+			expected: false,
+		},
+		{
+			name: "any destination vs specific network",
+			rule1: model.Rule{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Interface:   model.InterfaceList{"lan"},
+				Destination: model.Destination{Any: "1"},
+				Source:      model.Source{Network: "any"},
+			},
+			rule2: model.Rule{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Interface:   model.InterfaceList{"lan"},
+				Destination: model.Destination{Network: "10.0.0.0/8"},
+				Source:      model.Source{Network: "any"},
+			},
+			expected: false,
+		},
+		{
 			name: "different types",
 			rule1: model.Rule{
 				Type:       "pass",
@@ -124,22 +535,104 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 			expected: false,
 		},
 		{
+			name: "empty destination equals explicit any",
+			rule1: model.Rule{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Interface:   model.InterfaceList{"lan"},
+				Source:      model.Source{Network: "any"},
+				Destination: model.Destination{},
+			},
+			rule2: model.Rule{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Interface:   model.InterfaceList{"lan"},
+				Source:      model.Source{Network: "any"},
+				Destination: model.Destination{Any: "1"},
+			},
+			expected: true,
+		},
+		{
+			name: "empty destination with port vs any destination with same port",
+			rule1: model.Rule{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Interface:   model.InterfaceList{"lan"},
+				Source:      model.Source{Network: "any"},
+				Destination: model.Destination{Port: "443"},
+			},
+			rule2: model.Rule{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Interface:   model.InterfaceList{"lan"},
+				Source:      model.Source{Network: "any"},
+				Destination: model.Destination{Any: "1", Port: "443"},
+			},
+			expected: false, // One has explicit network, one doesn't
+		},
+		{
 			name: "complex rules with all fields",
 			rule1: model.Rule{
 				Type:       "pass",
 				IPProtocol: "inet",
 				Interface:  model.InterfaceList{"wan"},
 				Descr:      "Allow web traffic",
+				StateType:  "keep state",
+				Direction:  "in",
+				Protocol:   "tcp",
+				Quick:      "1",
+				SourcePort: "1024:65535",
 				Source:     model.Source{Network: "10.0.0.0/8"},
+				Destination: model.Destination{
+					Network: "192.168.1.0/24",
+					Port:    "443",
+				},
 			},
 			rule2: model.Rule{
 				Type:       "pass",
 				IPProtocol: "inet",
 				Interface:  model.InterfaceList{"wan"},
 				Descr:      "Allow web traffic (duplicate)",
+				StateType:  "keep state",
+				Direction:  "in",
+				Protocol:   "tcp",
+				Quick:      "1",
+				SourcePort: "1024:65535",
 				Source:     model.Source{Network: "10.0.0.0/8"},
+				Destination: model.Destination{
+					Network: "192.168.1.0/24",
+					Port:    "443",
+				},
 			},
 			expected: true, // Should be equivalent despite different descriptions
+		},
+		{
+			name: "different single functional field",
+			rule1: model.Rule{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Interface:   model.InterfaceList{"wan"},
+				StateType:   "keep state",
+				Direction:   "in",
+				Protocol:    "tcp",
+				Quick:       "1",
+				SourcePort:  "1024:65535",
+				Source:      model.Source{Network: "10.0.0.0/8"},
+				Destination: model.Destination{Network: "192.168.1.0/24", Port: "443"},
+			},
+			rule2: model.Rule{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Interface:   model.InterfaceList{"wan"},
+				StateType:   "keep state",
+				Direction:   "in",
+				Protocol:    "tcp",
+				Quick:       "1",
+				SourcePort:  "1024:65535",
+				Source:      model.Source{Network: "10.0.0.0/8"},
+				Destination: model.Destination{Network: "192.168.1.0/24", Port: "8443"},
+			},
+			expected: false,
 		},
 	}
 
@@ -156,10 +649,41 @@ func TestCoreProcessor_GetDestinationString(t *testing.T) {
 	processor, err := NewCoreProcessor()
 	require.NoError(t, err)
 
-	// Test that the function returns "any" for any destination
-	dest := model.Destination{}
-	result := processor.getDestinationString(dest)
-	assert.Equal(t, "any", result, "getDestinationString should return 'any' for any destination")
+	// Test that the function returns a composite key
+	destAny := model.Destination{Any: "1"}
+	resultAny := processor.getDestinationString(destAny)
+	assert.Equal(t, "network:any|port:", resultAny, "getDestinationString should encode any destination")
+
+	destNetwork := model.Destination{Network: "192.168.1.0/24"}
+	resultNetwork := processor.getDestinationString(destNetwork)
+	assert.Equal(t, "network:192.168.1.0/24|port:", resultNetwork, "getDestinationString should encode network")
+
+	destNetworkPort := model.Destination{Network: "192.168.1.0/24", Port: "443"}
+	resultNetworkPort := processor.getDestinationString(destNetworkPort)
+	assert.Equal(
+		t,
+		"network:192.168.1.0/24|port:443",
+		resultNetworkPort,
+		"getDestinationString should encode network and port",
+	)
+
+	// Test empty destination is treated as "any"
+	destEmpty := model.Destination{}
+	resultEmpty := processor.getDestinationString(destEmpty)
+	assert.Equal(t, "network:any|port:", resultEmpty, "getDestinationString should treat empty destination as any")
+
+	// Test that empty destination and explicit Any destination produce the same result
+	assert.Equal(t, resultAny, resultEmpty, "Empty destination should equal explicit Any destination")
+
+	// Test destination with only port (no network, no any) is NOT treated as "any"
+	destPortOnly := model.Destination{Port: "443"}
+	resultPortOnly := processor.getDestinationString(destPortOnly)
+	assert.Equal(
+		t,
+		"network:|port:443",
+		resultPortOnly,
+		"getDestinationString should not treat port-only destination as any",
+	)
 }
 
 // TestCoreProcessor_RealWorldConfigurations tests the implementation with actual OPNsense configuration files.
@@ -288,26 +812,21 @@ func TestCoreProcessor_ModelLimitations(t *testing.T) {
 		// compared to actual OPNsense configurations
 
 		// From sample.config.2.xml, we can see these fields are missing from our model:
-		// - statetype: "keep state"
-		// - direction: "in"
-		// - quick: "1"
-		// - protocol: "udp", "tcp"
-		// - destination.port: "51821", "443"
-		// - destination.network: "wanip", "opt0ip"
 		// - source.any: "1" (with value)
+		// - rule flags and advanced options
+		// - detailed source/destination port objects beyond string values
 
 		// Current model supports:
 		// - type, ipprotocol, descr, interface
-		// - source.network (limited)
-		// - destination.any (struct{} only)
-		// - target, sourceport (recently added)
+		// - statetype, direction, quick, protocol
+		// - source.network, sourceport
+		// - destination.any, destination.network, destination.port
+		// - target
 		t.Log("Current model.Rule limitations:")
-		t.Log("  - Missing: statetype, direction, quick, protocol")
-		t.Log("  - Missing: source.port, destination.port")
-		t.Log("  - Missing: destination.network (only supports 'any')")
-		t.Log("  - Limited: source.network (no port support)")
-		t.Log("  - Limited: destination (only struct{} for 'any')")
-		t.Log("  - Added: target, sourceport fields")
+		t.Log("  - Missing: rule flags and advanced options")
+		t.Log("  - Limited: source.any handling is not part of equivalence check")
+		t.Log("  - Limited: port semantics are compared as raw strings")
+		t.Log("  - Supported comparisons: statetype, direction, protocol, quick, ports, destination network")
 
 		// This is expected behavior for the current implementation
 		// This test documents current model limitations and should always pass
