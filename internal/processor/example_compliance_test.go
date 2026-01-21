@@ -59,6 +59,25 @@ func TestExampleProcessor_ComplianceChecks(t *testing.T) {
 			},
 		},
 		{
+			name: "Users with whitespace-only passwords",
+			config: func() *model.OpnSenseDocument {
+				cfg := baseComplianceConfig()
+				cfg.System.User = []model.User{
+					buildUser("operator", "   ", "admins", "local", false),
+				}
+				return cfg
+			}(),
+			expectedBySeverity: map[Severity]int{
+				SeverityHigh: 1,
+			},
+			expectedTitles: []string{
+				"Password Policy Not Enforced",
+			},
+			expectedComponents: map[string]string{
+				"Password Policy Not Enforced": "users",
+			},
+		},
+		{
 			name: "Disabled administrative users",
 			config: func() *model.OpnSenseDocument {
 				cfg := baseComplianceConfig()
@@ -279,6 +298,22 @@ func buildSyslogConfig(enabled, system, auth, filter, remote bool) model.Syslog 
 	return syslog
 }
 
+func allFindingsBySeverity(report *Report) []struct {
+	severity Severity
+	findings []Finding
+} {
+	return []struct {
+		severity Severity
+		findings []Finding
+	}{
+		{SeverityCritical, report.Findings.Critical},
+		{SeverityHigh, report.Findings.High},
+		{SeverityMedium, report.Findings.Medium},
+		{SeverityLow, report.Findings.Low},
+		{SeverityInfo, report.Findings.Info},
+	}
+}
+
 func complianceFindingsBySeverity(report *Report) map[Severity]int {
 	counts := map[Severity]int{
 		SeverityCritical: 0,
@@ -288,29 +323,11 @@ func complianceFindingsBySeverity(report *Report) map[Severity]int {
 		SeverityInfo:     0,
 	}
 
-	for _, finding := range report.Findings.Critical {
-		if finding.Type == complianceFindingType {
-			counts[SeverityCritical]++
-		}
-	}
-	for _, finding := range report.Findings.High {
-		if finding.Type == complianceFindingType {
-			counts[SeverityHigh]++
-		}
-	}
-	for _, finding := range report.Findings.Medium {
-		if finding.Type == complianceFindingType {
-			counts[SeverityMedium]++
-		}
-	}
-	for _, finding := range report.Findings.Low {
-		if finding.Type == complianceFindingType {
-			counts[SeverityLow]++
-		}
-	}
-	for _, finding := range report.Findings.Info {
-		if finding.Type == complianceFindingType {
-			counts[SeverityInfo]++
+	for _, sf := range allFindingsBySeverity(report) {
+		for _, finding := range sf.findings {
+			if finding.Type == complianceFindingType {
+				counts[sf.severity]++
+			}
 		}
 	}
 
@@ -318,29 +335,11 @@ func complianceFindingsBySeverity(report *Report) map[Severity]int {
 }
 
 func findComplianceFinding(report *Report, title string) (Finding, bool) {
-	for _, finding := range report.Findings.Critical {
-		if finding.Type == complianceFindingType && finding.Title == title {
-			return finding, true
-		}
-	}
-	for _, finding := range report.Findings.High {
-		if finding.Type == complianceFindingType && finding.Title == title {
-			return finding, true
-		}
-	}
-	for _, finding := range report.Findings.Medium {
-		if finding.Type == complianceFindingType && finding.Title == title {
-			return finding, true
-		}
-	}
-	for _, finding := range report.Findings.Low {
-		if finding.Type == complianceFindingType && finding.Title == title {
-			return finding, true
-		}
-	}
-	for _, finding := range report.Findings.Info {
-		if finding.Type == complianceFindingType && finding.Title == title {
-			return finding, true
+	for _, sf := range allFindingsBySeverity(report) {
+		for _, finding := range sf.findings {
+			if finding.Type == complianceFindingType && finding.Title == title {
+				return finding, true
+			}
 		}
 	}
 

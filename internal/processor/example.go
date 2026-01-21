@@ -399,9 +399,12 @@ func (p *ExampleProcessor) performComplianceCheck(
 					"Syslog is enabled but missing critical categories: %s.",
 					strings.Join(missingCategories, ", "),
 				),
-				Recommendation: "Enable comprehensive audit logging including system, authentication, and firewall events. Configure remote syslog server for compliance and forensic analysis.",
-				Component:      "syslog",
-				Reference:      "https://docs.opnsense.org/manual/syslog.html",
+				Recommendation: fmt.Sprintf(
+					"Enable the missing syslog categories (%s) to ensure comprehensive audit logging for security monitoring and compliance.",
+					strings.Join(missingCategories, ", "),
+				),
+				Component: "syslog",
+				Reference: "https://docs.opnsense.org/manual/syslog.html",
 			})
 		}
 
@@ -412,7 +415,7 @@ func (p *ExampleProcessor) performComplianceCheck(
 				Type:           "compliance",
 				Title:          "Remote Audit Logging Not Configured",
 				Description:    "Syslog is enabled locally, but no remote syslog server is configured for log retention and monitoring.",
-				Recommendation: "Enable comprehensive audit logging including system, authentication, and firewall events. Configure remote syslog server for compliance and forensic analysis.",
+				Recommendation: "Configure a remote syslog server to ensure logs are preserved off-device for compliance requirements, forensic analysis, and protection against log tampering.",
 				Component:      "syslog",
 				Reference:      "https://docs.opnsense.org/manual/syslog.html",
 			})
