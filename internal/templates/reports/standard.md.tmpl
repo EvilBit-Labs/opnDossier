@@ -49,12 +49,35 @@
 {{- end }}
 {{- end }}
 
-### Outbound NAT Rules
+### Outbound NAT (Source Translation)
 
-### Inbound NAT Rules (Port Forwarding)
-| # | Interface | External Port | Internal IP | Internal Port | Protocol | Description | Priority | Status |
-|---|-----------|---------------|-------------|---------------|----------|-------------|----------|--------|
-| - | - | - | - | - | - | No inbound NAT rules configured | - | - |
+{{- if .Nat.Outbound.Rule }}
+| # | Direction | Interface | Source | Destination | Target | Protocol | Description | Status |
+|---|-----------|-----------|--------|-------------|--------|----------|-------------|--------|
+{{- range $index, $rule := .Nat.Outbound.Rule }}
+| {{ add $index 1 }} | ⬆️ Outbound | {{ $rule.Interface }} | {{ if $rule.Source.Network }}{{ $rule.Source.Network }}{{ else if $rule.Source.Any }}any{{ else }}-{{ end }} | {{ if $rule.Destination.Any }}any{{ else }}{{ $rule.Destination.Network }}{{ end }} | `{{ $rule.Target }}` | {{ if $rule.Protocol }}{{ $rule.Protocol }}{{ else }}any{{ end }} | {{ if $rule.Descr }}{{ $rule.Descr }}{{ else }}-{{ end }} | {{ if $rule.Disabled }}**Disabled**{{ else }}**Active**{{ end }} |
+{{- end }}
+{{- else }}
+| # | Direction | Interface | Source | Destination | Target | Protocol | Description | Status |
+|---|-----------|-----------|--------|-------------|--------|----------|-------------|--------|
+| - | - | - | - | - | - | - | No outbound NAT rules configured | - |
+{{- end }}
+
+### Inbound NAT (Port Forwarding)
+
+{{- if .Nat.Inbound }}
+| # | Direction | Interface | External Port | Target IP | Target Port | Protocol | Description | Priority | Status |
+|---|-----------|-----------|---------------|-----------|-------------|----------|-------------|----------|--------|
+{{- range $index, $rule := .Nat.Inbound }}
+| {{ add $index 1 }} | ⬇️ Inbound | {{ $rule.Interface }} | {{ $rule.ExternalPort }} | `{{ $rule.InternalIP }}` | {{ $rule.InternalPort }} | {{ if $rule.Protocol }}{{ $rule.Protocol }}{{ else }}any{{ end }} | {{ if $rule.Descr }}{{ $rule.Descr }}{{ else }}-{{ end }} | {{ $rule.Priority }} | {{ if $rule.Disabled }}**Disabled**{{ else }}**Active**{{ end }} |
+{{- end }}
+
+**⚠️ Security Warning**: Inbound NAT rules (port forwarding) increase the attack surface by exposing internal services to external networks. Ensure these rules are necessary and properly secured.
+{{- else }}
+| # | Direction | Interface | External Port | Target IP | Target Port | Protocol | Description | Priority | Status |
+|---|-----------|-----------|---------------|-----------|-------------|----------|-------------|----------|--------|
+| - | - | - | - | - | - | - | No inbound NAT rules configured | - | - |
+{{- end }}
 
 ### Legacy NAT Rules
 

@@ -445,18 +445,19 @@ func (b *MarkdownBuilder) BuildSecuritySection(data *model.OpnSenseDocument) str
 	// NAT Configuration
 	md.H3("NAT Configuration")
 
-	if secConfig.Nat.Outbound.Mode != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Outbound NAT Mode"), secConfig.Nat.Outbound.Mode)
-	}
-
 	// NAT Summary
 	natSummary := data.NATSummary()
-	if natSummary.Mode != "" {
+	if natSummary.Mode != "" || secConfig.Nat.Outbound.Mode != "" {
 		md.H4("NAT Summary")
-		md.PlainTextf("%s: %s", markdown.Bold("NAT Mode"), natSummary.Mode)
+		mode := natSummary.Mode
+		if mode == "" {
+			mode = secConfig.Nat.Outbound.Mode
+		}
+		md.PlainTextf("%s: %s", markdown.Bold("NAT Mode"), mode)
 		md.PlainTextf("%s: %s", markdown.Bold("NAT Reflection"), formatBool(natSummary.ReflectionDisabled))
 		md.PlainTextf("%s: %s", markdown.Bold("Port Forward State Sharing"), formatBool(natSummary.PfShareForward))
 		md.PlainTextf("%s: %d", markdown.Bold("Outbound Rules"), len(natSummary.OutboundRules))
+		md.PlainTextf("%s: %d", markdown.Bold("Inbound Rules"), len(natSummary.InboundRules))
 
 		if natSummary.ReflectionDisabled {
 			md.PlainText(
@@ -467,6 +468,23 @@ func (b *MarkdownBuilder) BuildSecuritySection(data *model.OpnSenseDocument) str
 				"**⚠️ Security Warning**: NAT reflection is enabled, which may allow internal clients to access internal services via external IP addresses. Consider disabling if not needed.",
 			)
 		}
+	}
+
+	// Outbound NAT Rules (Source Translation)
+	md.H4("Outbound NAT (Source Translation)")
+	outboundTableSet := b.BuildOutboundNATTable(natSummary.OutboundRules)
+	md.Table(*outboundTableSet)
+
+	// Inbound NAT Rules (Port Forwarding)
+	md.H4("Inbound NAT (Port Forwarding)")
+	inboundTableSet := b.BuildInboundNATTable(natSummary.InboundRules)
+	md.Table(*inboundTableSet)
+
+	// Security warning for inbound NAT (port forwarding)
+	if len(natSummary.InboundRules) > 0 {
+		md.PlainText(
+			"**⚠️ Security Warning**: Inbound NAT rules (port forwarding) increase the attack surface by exposing internal services to external networks. Ensure these rules are necessary and properly secured.",
+		)
 	}
 
 	// Firewall Rules
@@ -597,6 +615,142 @@ func (b *MarkdownBuilder) BuildFirewallRulesTable(rules []model.Rule) *markdown.
 			formatBooleanInverted(rule.Disabled),
 			b.EscapeTableContent(rule.Descr),
 		})
+	}
+
+	return &markdown.TableSet{
+		Header: headers,
+		Rows:   rows,
+	}
+}
+
+// BuildOutboundNATTable builds a table of outbound NAT rules (source translation/masquerading).
+func (b *MarkdownBuilder) BuildOutboundNATTable(rules []model.NATRule) *markdown.TableSet {
+	headers := []string{
+		"#",
+		"Direction",
+		"Interface",
+		"Source",
+		"Destination",
+		"Target",
+		"Protocol",
+		"Description",
+		"Status",
+	}
+
+	rows := make([][]string, 0, len(rules))
+
+	if len(rules) == 0 {
+		// Add placeholder row for empty rules
+		rows = append(rows, []string{
+			"-", "-", "-", "-", "-", "-", "-",
+			"No outbound NAT rules configured",
+			"-",
+		})
+	} else {
+		for i, rule := range rules {
+			source := rule.Source.Network
+			if source == "" {
+				source = destinationAny
+			}
+
+			dest := rule.Destination.Network
+			if dest == "" && rule.Destination.Any != "" {
+				dest = destinationAny
+			}
+
+			protocol := rule.Protocol
+			if protocol == "" {
+				protocol = "any"
+			}
+
+			target := rule.Target
+			if target != "" {
+				target = fmt.Sprintf("`%s`", target)
+			}
+
+			status := "**Active**"
+			if rule.Disabled != "" {
+				status = "**Disabled**"
+			}
+
+			interfaceLinks := formatInterfacesAsLinks(rule.Interface)
+
+			rows = append(rows, []string{
+				strconv.Itoa(i + 1),
+				"⬆️ Outbound",
+				interfaceLinks,
+				source,
+				dest,
+				target,
+				protocol,
+				b.EscapeTableContent(rule.Descr),
+				status,
+			})
+		}
+	}
+
+	return &markdown.TableSet{
+		Header: headers,
+		Rows:   rows,
+	}
+}
+
+// BuildInboundNATTable builds a table of inbound NAT rules (port forwarding/destination NAT).
+func (b *MarkdownBuilder) BuildInboundNATTable(rules []model.InboundRule) *markdown.TableSet {
+	headers := []string{
+		"#",
+		"Direction",
+		"Interface",
+		"External Port",
+		"Target IP",
+		"Target Port",
+		"Protocol",
+		"Description",
+		"Priority",
+		"Status",
+	}
+
+	rows := make([][]string, 0, len(rules))
+
+	if len(rules) == 0 {
+		// Add placeholder row for empty rules
+		rows = append(rows, []string{
+			"-", "-", "-", "-", "-", "-", "-",
+			"No inbound NAT rules configured",
+			"-", "-",
+		})
+	} else {
+		for i, rule := range rules {
+			protocol := rule.Protocol
+			if protocol == "" {
+				protocol = "any"
+			}
+
+			targetIP := rule.InternalIP
+			if targetIP != "" {
+				targetIP = fmt.Sprintf("`%s`", targetIP)
+			}
+
+			status := "**Active**"
+			if rule.Disabled != "" {
+				status = "**Disabled**"
+			}
+
+			interfaceLinks := formatInterfacesAsLinks(rule.Interface)
+
+			rows = append(rows, []string{
+				strconv.Itoa(i + 1),
+				"⬇️ Inbound",
+				interfaceLinks,
+				rule.ExternalPort,
+				targetIP,
+				rule.InternalPort,
+				protocol,
+				b.EscapeTableContent(rule.Descr),
+				strconv.Itoa(rule.Priority),
+				status,
+			})
+		}
 	}
 
 	return &markdown.TableSet{
