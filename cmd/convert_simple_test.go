@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
+	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/log"
-	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
@@ -77,9 +77,9 @@ func TestGenerateOutputByFormatSimple(t *testing.T) {
 	ctx := context.Background()
 
 	// Test markdown format
-	opt := markdown.Options{
-		Format: markdown.FormatMarkdown,
-		Theme:  markdown.ThemeAuto,
+	opt := converter.Options{
+		Format: converter.FormatMarkdown,
+		Theme:  converter.ThemeAuto,
 	}
 
 	result, err := generateOutputByFormat(ctx, opnsense, opt, logger, nil)
@@ -91,7 +91,7 @@ func TestGenerateOutputByFormatSimple(t *testing.T) {
 	}
 
 	// Test JSON format - but it may fail due to missing templates, so we'll just check it doesn't panic
-	opt.Format = markdown.FormatJSON
+	opt.Format = converter.FormatJSON
 	_, err = generateOutputByFormat(ctx, opnsense, opt, logger, nil)
 	// JSON format might fail due to missing templates - that's expected
 	if err != nil {
@@ -99,7 +99,7 @@ func TestGenerateOutputByFormatSimple(t *testing.T) {
 	}
 
 	// Test unknown format (should return an error)
-	opt.Format = markdown.Format("unknown")
+	opt.Format = converter.Format("unknown")
 	_, err = generateOutputByFormat(ctx, opnsense, opt, logger, nil)
 	if err == nil {
 		t.Errorf("Expected error for unknown format, got nil")
@@ -125,9 +125,9 @@ func TestGenerateWithHybridGeneratorSimple(t *testing.T) {
 
 	// Test programmatic mode (default)
 	resetGlobalFlags()
-	opt := markdown.Options{
-		Format: markdown.FormatMarkdown,
-		Theme:  markdown.ThemeAuto,
+	opt := converter.Options{
+		Format: converter.FormatMarkdown,
+		Theme:  converter.ThemeAuto,
 	}
 
 	result, err := generateWithHybridGenerator(ctx, opnsense, opt, logger, nil)

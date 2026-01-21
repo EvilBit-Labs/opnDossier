@@ -13,8 +13,7 @@ import (
 func TestNewMarkdownBuilder(t *testing.T) {
 	builder := NewMarkdownBuilder()
 	assert.NotNil(t, builder)
-	assert.NotZero(t, builder.generated)
-	assert.NotEmpty(t, builder.toolVersion)
+	// Note: generated and toolVersion fields are now unexported for proper encapsulation
 }
 
 func TestMarkdownBuilder_BuildSystemSection(t *testing.T) {

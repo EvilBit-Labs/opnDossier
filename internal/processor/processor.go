@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
+	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/go-playground/validator/v10"
 )
@@ -27,15 +27,15 @@ type Processor interface {
 // CoreProcessor implements the Processor interface with normalize, validate, analyze, and transform capabilities.
 type CoreProcessor struct {
 	validator *validator.Validate
-	generator markdown.Generator
+	generator converter.Generator
 	mu        sync.Mutex // Protects concurrent access to the processor
 }
 
 // NewCoreProcessor returns a new CoreProcessor instance with a validator and a markdown generator initialized.
 // Returns an error if the markdown generator cannot be created.
 func NewCoreProcessor() (*CoreProcessor, error) {
-	opts := markdown.DefaultOptions()
-	generator, err := markdown.NewMarkdownGenerator(nil, opts)
+	opts := converter.DefaultOptions()
+	generator, err := converter.NewMarkdownGenerator(nil, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create markdown generator: %w", err)
 	}
