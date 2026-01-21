@@ -62,8 +62,8 @@ func NewMarkdownBuilder() *MarkdownBuilder {
 	}
 }
 
-// NewMarkdownBuilderWithOptions creates a new MarkdownBuilder instance with custom options.
-func NewMarkdownBuilderWithOptions(config *model.OpnSenseDocument, _ Options, logger *log.Logger) *MarkdownBuilder {
+// NewMarkdownBuilderWithConfig creates a new MarkdownBuilder instance with configuration.
+func NewMarkdownBuilderWithConfig(config *model.OpnSenseDocument, logger *log.Logger) *MarkdownBuilder {
 	if logger == nil {
 		var err error
 		logger, err = log.New(log.Config{Level: "info"})
