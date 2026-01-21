@@ -123,24 +123,22 @@ func (p *CoreProcessor) analyzeInterfaceRules(iface string, rules []model.Rule, 
 
 // rulesAreEquivalent checks if two firewall rules are functionally equivalent.
 // This function compares all relevant fields that determine rule behavior.
-// Note: The current model.Rule struct is limited compared to actual OPNsense configurations.
-// Future model enhancements should include additional fields like statetype, direction,
-// quick, protocol, port, and more detailed source/destination specifications.
-//
-// TODO: Enhanced Rule Comparison - Expand model.Rule struct to include:
-//   - statetype (keep state, no state, etc.)
-//   - direction (in, out)
-//   - quick (quick rule processing)
-//   - port specifications for source/destination
-//   - more detailed protocol options
-//   - rule flags and advanced options
-//
-// This would enable more accurate duplicate detection and dead rule analysis.
+// Note: The model.Rule struct is still limited compared to actual OPNsense configurations,
+// but comparisons now include state, direction, protocol, quick, and port details where available.
 func (p *CoreProcessor) rulesAreEquivalent(rule1, rule2 model.Rule) bool {
 	// Compare core rule properties (excluding description as it doesn't affect functionality)
 	if rule1.Type != rule2.Type ||
 		rule1.IPProtocol != rule2.IPProtocol ||
 		rule1.Interface.String() != rule2.Interface.String() {
+		return false
+	}
+
+	// Compare additional rule behavior fields
+	if rule1.StateType != rule2.StateType ||
+		rule1.Direction != rule2.Direction ||
+		rule1.Protocol != rule2.Protocol ||
+		rule1.Quick != rule2.Quick ||
+		rule1.SourcePort != rule2.SourcePort {
 		return false
 	}
 
@@ -150,24 +148,28 @@ func (p *CoreProcessor) rulesAreEquivalent(rule1, rule2 model.Rule) bool {
 	}
 
 	// Compare destination configuration
-	// Note: Current model only supports "any" destination via struct{} field
-	// This is a limitation of the current model structure
-	// In real OPNsense configs, destinations can have network, port, and other specifications
 	dest1 := p.getDestinationString(rule1.Destination)
 	dest2 := p.getDestinationString(rule2.Destination)
 
 	return dest1 == dest2
 }
 
-// getDestinationString converts the destination struct to a string for comparison.
-// This is a workaround for the current model limitation where Destination only has an Any field.
-// Future model enhancements should include proper destination fields like Network, Port, etc.
-func (p *CoreProcessor) getDestinationString(_ model.Destination) string {
-	// Check if the Any field is set (indicating "any" destination)
-	// Since struct{} is zero-sized, we can't distinguish between "not set" and "set to empty"
-	// This is a limitation of the current model structure
-	// For now, we'll assume all destinations are "any" since that's what the model supports
-	return NetworkAny
+// getDestinationString converts the destination struct to a composite string for comparison.
+// This preserves "any" vs explicit network/port values while treating empty fields as equivalent.
+// Empty destinations (no Any, no Network, no Port) are treated as "any" for backward compatibility.
+func (p *CoreProcessor) getDestinationString(destination model.Destination) string {
+	network := ""
+	switch {
+	case destination.Any != "":
+		network = NetworkAny
+	case destination.Network != "":
+		network = destination.Network
+	case destination.Port == "":
+		// Empty destination with no explicit fields is treated as "any"
+		network = NetworkAny
+	}
+
+	return fmt.Sprintf("network:%s|port:%s", network, destination.Port)
 }
 
 // analyzeUnusedInterfaces detects interfaces that are defined but not used in rules or services.

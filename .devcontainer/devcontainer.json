@@ -20,9 +20,6 @@
       "dockerDashComposeVersion": "v2",
       "moby": false
     },
-    "ghcr.io/devcontainers/features/go:1": {
-      "version": "latest"
-    },
     "ghcr.io/devcontainers-extra/features/mise:1": {
       "version": "latest"
     },

@@ -183,3 +183,4 @@ results.sarif
 coverage
 test-dumb.md
 test-output.md
+.devcontainer/.devpod-internal/
