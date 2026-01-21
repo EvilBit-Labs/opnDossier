@@ -54,11 +54,13 @@
 - **NAT Reflection**: {{ if .NATSummary.ReflectionDisabled }}**Disabled** ✓{{- else }}**Enabled** ⚠️{{- end }}
 - **Port Forward State Sharing**: {{ if .NATSummary.PfShareForward }}**Enabled**{{- else }}**Disabled**{{- end }}
 - **Outbound Rules**: {{ len .NATSummary.OutboundRules }} configured
+- **Inbound Rules**: {{ len .NATSummary.InboundRules }} configured
 {{- else }}
 - **NAT Mode**: Not configured
 - **NAT Reflection**: Unknown
 - **Port Forward State Sharing**: Unknown
 - **Outbound Rules**: 0 configured
+- **Inbound Rules**: 0 configured
 {{- end }}
 
 {{- if and .NATSummary .NATSummary.ReflectionDisabled }}
@@ -69,18 +71,34 @@
 **⚠️ Security Warning**: NAT reflection is enabled, which may allow internal clients to access internal services via external IP addresses. Consider disabling if not needed.
 {{- end }}
 
-### Outbound NAT Rules
+### Outbound NAT (Source Translation)
 
 {{- if and .NATSummary .NATSummary.OutboundRules }}
-| # | Interface | Source | Destination | Target | Protocol | Description | Created By | Status |
-|---|-----------|--------|-------------|--------|----------|-------------|------------|--------|
+| # | Direction | Interface | Source | Destination | Target | Protocol | Description | Status |
+|---|-----------|-----------|--------|-------------|--------|----------|-------------|--------|
 {{- range $index, $rule := .NATSummary.OutboundRules }}
-| {{ add $index 1 }} | {{ $rule.Interface }} | {{ if $rule.Source.Network }}{{ $rule.Source.Network }}{{ else if $rule.Source.Any }}any{{ else }}-{{ end }} | {{ if $rule.Destination.Any }}any{{ else }}{{ $rule.Destination.Network }}{{ end }} | `{{ $rule.Target }}` | {{ if $rule.Protocol }}{{ $rule.Protocol }}{{ else }}any{{ end }} | {{ if $rule.Descr }}{{ $rule.Descr }}{{ else }}-{{ end }} | {{ if $rule.Created }}{{ $rule.Created.Username }}{{ else }}-{{ end }} | {{ if $rule.Disabled }}**Disabled**{{ else }}**Active**{{ end }} |
+| {{ add $index 1 }} | ⬆️ Outbound | {{ $rule.Interface }} | {{ if $rule.Source.Network }}{{ $rule.Source.Network }}{{ else if $rule.Source.Any }}any{{ else }}-{{ end }} | {{ if $rule.Destination.Any }}any{{ else }}{{ $rule.Destination.Network }}{{ end }} | `{{ $rule.Target }}` | {{ if $rule.Protocol }}{{ $rule.Protocol }}{{ else }}any{{ end }} | {{ if $rule.Descr }}{{ $rule.Descr }}{{ else }}-{{ end }} | {{ if $rule.Disabled }}**Disabled**{{ else }}**Active**{{ end }} |
 {{- end }}
 {{- else }}
-| # | Interface | Source | Destination | Target | Protocol | Description | Created By | Status |
-|---|-----------|--------|-------------|--------|----------|-------------|------------|--------|
-| - | - | - | - | - | - | No outbound NAT rules configured | - | - |
+| # | Direction | Interface | Source | Destination | Target | Protocol | Description | Status |
+|---|-----------|-----------|--------|-------------|--------|----------|-------------|--------|
+| - | - | - | - | - | - | - | No outbound NAT rules configured | - |
+{{- end }}
+
+### Inbound NAT (Port Forwarding)
+
+{{- if and .NATSummary .NATSummary.InboundRules }}
+| # | Direction | Interface | External Port | Target IP | Target Port | Protocol | Description | Priority | Status |
+|---|-----------|-----------|---------------|-----------|-------------|----------|-------------|----------|--------|
+{{- range $index, $rule := .NATSummary.InboundRules }}
+| {{ add $index 1 }} | ⬇️ Inbound | {{ $rule.Interface }} | {{ $rule.ExternalPort }} | `{{ $rule.InternalIP }}` | {{ $rule.InternalPort }} | {{ if $rule.Protocol }}{{ $rule.Protocol }}{{ else }}any{{ end }} | {{ if $rule.Descr }}{{ $rule.Descr }}{{ else }}-{{ end }} | {{ $rule.Priority }} | {{ if $rule.Disabled }}**Disabled**{{ else }}**Active**{{ end }} |
+{{- end }}
+
+**⚠️ Security Warning**: Inbound NAT rules (port forwarding) increase the attack surface by exposing internal services to external networks. Ensure these rules are necessary and properly secured.
+{{- else }}
+| # | Direction | Interface | External Port | Target IP | Target Port | Protocol | Description | Priority | Status |
+|---|-----------|-----------|---------------|-----------|-------------|----------|-------------|----------|--------|
+| - | - | - | - | - | - | - | No inbound NAT rules configured | - | - |
 {{- end }}
 
 ### Legacy NAT Rules Table
