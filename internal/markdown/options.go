@@ -33,7 +33,8 @@ const (
 // Options contains configuration options for markdown generation.
 type Options = converter.Options
 
-// DefaultOptions returns an Options struct initialized with default settings for markdown generation.
+// DefaultOptions returns an Options value initialized with package defaults for markdown generation.
+// The returned Options contains sensible defaults for formatting, wrap width, and theme selection used by the markdown package.
 func DefaultOptions() Options {
 	return converter.DefaultOptions()
 }

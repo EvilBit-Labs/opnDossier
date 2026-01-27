@@ -27,7 +27,8 @@ type HybridGenerator struct {
 	logger  *log.Logger
 }
 
-// NewHybridGenerator creates a new HybridGenerator with the specified builder.
+// NewHybridGenerator creates a HybridGenerator that uses the provided ReportBuilder and logger.
+// If logger is nil, NewHybridGenerator creates a default logger and returns an error if logger creation fails.
 func NewHybridGenerator(reportBuilder builder.ReportBuilder, logger *log.Logger) (*HybridGenerator, error) {
 	if logger == nil {
 		var err error
@@ -43,7 +44,7 @@ func NewHybridGenerator(reportBuilder builder.ReportBuilder, logger *log.Logger)
 }
 
 // ensureLogger creates a default logger if the provided logger is nil.
-// Returns the provided logger if non-nil, or creates a new logger with stderr output.
+// ensureLogger returns the provided logger if non-nil; otherwise it creates and returns a new logger configured to write to stderr. It returns an error only if creating the default logger fails.
 func ensureLogger(logger *log.Logger) (*log.Logger, error) {
 	if logger == nil {
 		var err error
@@ -56,7 +57,10 @@ func ensureLogger(logger *log.Logger) (*log.Logger, error) {
 }
 
 // NewMarkdownGenerator creates a new Generator that produces documentation in Markdown, JSON, or YAML formats.
-// This function provides backward compatibility with the old API while using programmatic generation internally.
+// NewMarkdownGenerator creates a Generator that produces Markdown output using the programmatic report builder.
+// It ensures a usable logger (creating a default logger if nil) and constructs a Markdown report builder.
+// The provided Options parameter is ignored and exists only for backward compatibility.
+// Returns a Generator configured for Markdown or an error if logger creation fails.
 func NewMarkdownGenerator(logger *log.Logger, _ Options) (Generator, error) {
 	var err error
 	logger, err = ensureLogger(logger)

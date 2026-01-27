@@ -92,7 +92,10 @@ type Options struct {
 	SuppressWarnings bool
 }
 
-// DefaultOptions returns an Options struct initialized with default settings for report generation.
+// DefaultOptions returns an Options initialized with the package's default settings for report generation.
+// Defaults: Format=markdown, Theme=auto, WrapWidth=0, EnableTables=true, EnableColors=true, EnableEmojis=true,
+// IncludeMetadata=true, CustomFields["IncludeTunables"]=false, Comprehensive and Compact set to false, and
+// SuppressWarnings set to false.
 func DefaultOptions() Options {
 	return Options{
 		Format:          FormatMarkdown,
