@@ -11,7 +11,7 @@ import (
 	"sync"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
-	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
+	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
@@ -126,17 +126,17 @@ func DefaultOptions() Options {
 }
 
 // convertMarkdownOptions creates a display.Options struct from the provided markdown.Options, mapping theme and display settings accordingly.
-func convertMarkdownOptions(mdOpts markdown.Options) Options {
+func convertMarkdownOptions(mdOpts converter.Options) Options {
 	// Convert theme
 	var theme Theme
 	switch mdOpts.Theme {
-	case constants.ThemeLight:
+	case converter.ThemeLight:
 		theme = LightTheme()
-	case constants.ThemeDark:
+	case converter.ThemeDark:
 		theme = DarkTheme()
-	case markdown.ThemeAuto:
+	case converter.ThemeAuto:
 		theme = DetectTheme("")
-	case markdown.ThemeNone:
+	case converter.ThemeNone:
 		theme = DetectTheme("") // Use detected theme but disable colors elsewhere
 	default:
 		theme = DetectTheme("")
@@ -376,7 +376,7 @@ func NewTerminalDisplayWithOptions(opts Options) *TerminalDisplay {
 
 // NewTerminalDisplayWithMarkdownOptions creates a TerminalDisplay with markdown options.
 // This provides compatibility with the markdown package options.
-func NewTerminalDisplayWithMarkdownOptions(mdOpts markdown.Options) *TerminalDisplay {
+func NewTerminalDisplayWithMarkdownOptions(mdOpts converter.Options) *TerminalDisplay {
 	return NewTerminalDisplayWithOptions(convertMarkdownOptions(mdOpts))
 }
 

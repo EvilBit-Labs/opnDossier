@@ -1,20 +1,20 @@
-package markdown
+package converter
 
-import "github.com/EvilBit-Labs/opnDossier/internal/converter"
+import "errors"
 
 var (
 	// ErrUnsupportedFormat is returned when an unsupported output format is requested.
-	ErrUnsupportedFormat = converter.ErrUnsupportedFormat
+	ErrUnsupportedFormat = errors.New("unsupported format")
 
 	// ErrNilConfiguration is returned when the input OPNsense configuration is nil.
-	ErrNilConfiguration = converter.ErrNilConfiguration
+	ErrNilConfiguration = errors.New("configuration cannot be nil")
 
 	// ErrTemplateNotFound is returned when a requested template is not found.
-	ErrTemplateNotFound = converter.ErrTemplateNotFound
+	ErrTemplateNotFound = errors.New("template not found")
 
 	// ErrTemplateExecution is returned when template execution fails.
-	ErrTemplateExecution = converter.ErrTemplateExecution
+	ErrTemplateExecution = errors.New("template execution failed")
 
 	// ErrUnsupportedDataType is returned when the data type for markdown generation is unsupported.
-	ErrUnsupportedDataType = converter.ErrUnsupportedDataType
+	ErrUnsupportedDataType = errors.New("unsupported data type for markdown generation")
 )

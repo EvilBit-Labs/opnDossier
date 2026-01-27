@@ -2,96 +2,48 @@ package markdown
 
 import (
 	"embed"
-	"errors"
-	"fmt"
-	"path/filepath"
 	"text/template"
+
+	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 )
 
-// embeddedTemplates will be set to reference the main package's embedded templates.
-var embeddedTemplates embed.FS
+// TemplateManager manages built-in and custom templates.
+type TemplateManager = converter.TemplateManager
+
+// ErrTemplateNotImplemented indicates that embedded template loading is not yet implemented.
+var ErrTemplateNotImplemented = converter.ErrTemplateNotImplemented
 
 // SetEmbeddedTemplates allows external packages to set the embedded templates filesystem.
-// This is typically called during initialization to provide access to the main package's embedded templates.
+//
+// Deprecated: use converter.SetEmbeddedTemplates instead.
 func SetEmbeddedTemplates(fs embed.FS) {
-	embeddedTemplates = fs
-}
-
-// TemplateManager manages built-in and custom templates.
-type TemplateManager struct {
-	templates map[string]*template.Template
+	converter.SetEmbeddedTemplates(fs)
 }
 
 // NewTemplateManager returns a new TemplateManager with an initialized empty template map.
+//
+// Deprecated: use converter.NewTemplateManager instead.
 func NewTemplateManager() *TemplateManager {
-	return &TemplateManager{
-		templates: make(map[string]*template.Template),
-	}
-}
-
-// LoadTemplate loads a template by name from the built-in templates.
-func (tm *TemplateManager) LoadTemplate(name string) (*template.Template, error) {
-	if tmpl, exists := tm.templates[name]; exists {
-		return tmpl, nil
-	}
-
-	// Try to load from embedded templates directory
-	templatePath := filepath.Join("templates", name)
-
-	tmpl, err := tm.loadFromEmbedded(templatePath)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrTemplateNotFound, name)
-	}
-
-	// Cache the template
-	tm.templates[name] = tmpl
-
-	return tmpl, nil
-}
-
-// RegisterTemplate registers a custom template with the given name.
-func (tm *TemplateManager) RegisterTemplate(name string, tmpl *template.Template) {
-	tm.templates[name] = tmpl
-}
-
-// GetTemplate retrieves a template by name.
-func (tm *TemplateManager) GetTemplate(name string) (*template.Template, bool) {
-	tmpl, exists := tm.templates[name]
-	return tmpl, exists
-}
-
-// ErrTemplateNotImplemented indicates that embedded template loading is not yet implemented.
-var ErrTemplateNotImplemented = errors.New("embedded template loading not yet implemented")
-
-// loadFromEmbedded loads a template from the embedded filesystem.
-func (tm *TemplateManager) loadFromEmbedded(templatePath string) (*template.Template, error) {
-	// Read the template content from embedded filesystem
-	content, err := embeddedTemplates.ReadFile(templatePath)
-	if err != nil {
-		return nil, fmt.Errorf("template not found in embedded filesystem: %w", err)
-	}
-
-	// Parse the template content
-	tmpl, err := template.New(filepath.Base(templatePath)).Parse(string(content))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse embedded template: %w", err)
-	}
-
-	return tmpl, nil
+	return converter.NewTemplateManager()
 }
 
 // GetDefaultTemplateManager creates and returns a new default TemplateManager instance.
+//
+// Deprecated: use converter.GetDefaultTemplateManager instead.
 func GetDefaultTemplateManager() *TemplateManager {
-	return NewTemplateManager()
+	return converter.GetDefaultTemplateManager()
 }
 
 // LoadBuiltinTemplate retrieves a built-in template by name using the default template manager.
-// Returns the template if found, or an error if the template does not exist or cannot be loaded.
+//
+// Deprecated: use converter.LoadBuiltinTemplate instead.
 func LoadBuiltinTemplate(name string) (*template.Template, error) {
-	return GetDefaultTemplateManager().LoadTemplate(name)
+	return converter.LoadBuiltinTemplate(name)
 }
 
 // RegisterCustomTemplate registers a custom template with the default template manager, making it available globally by name.
+//
+// Deprecated: use converter.RegisterCustomTemplate instead.
 func RegisterCustomTemplate(name string, tmpl *template.Template) {
-	GetDefaultTemplateManager().RegisterTemplate(name, tmpl)
+	converter.RegisterCustomTemplate(name, tmpl)
 }

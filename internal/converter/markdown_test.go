@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 	"github.com/stretchr/testify/assert"
@@ -459,7 +460,7 @@ func TestFormatInterfacesAsLinks(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := formatInterfacesAsLinks(tt.interfaces)
+			result := formatters.FormatInterfacesAsLinks(tt.interfaces)
 			assert.Equal(t, tt.expected, result)
 		})
 	}

@@ -8,7 +8,7 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/cmd"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
-	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
+	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/charmbracelet/fang"
 )
 
@@ -36,7 +36,7 @@ func init() {
 	}
 
 	// Initialize embedded templates for the markdown package
-	markdown.SetEmbeddedTemplates(EmbeddedTemplates)
+	converter.SetEmbeddedTemplates(EmbeddedTemplates)
 }
 
 // main starts the opnDossier CLI tool, executing the root command and exiting with status code 1 if an error occurs.

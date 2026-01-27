@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
-	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
+	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -70,8 +70,8 @@ func TestDefaultOptions(t *testing.T) {
 
 func TestConvertMarkdownOptions(t *testing.T) {
 	// Create mock markdown options
-	mdOpts := markdown.Options{
-		Theme:        markdown.ThemeLight,
+	mdOpts := converter.Options{
+		Theme:        converter.ThemeLight,
 		WrapWidth:    100,
 		EnableTables: true,
 		EnableColors: false,
@@ -101,8 +101,8 @@ func TestNewTerminalDisplayWithOptions(t *testing.T) {
 }
 
 func TestNewTerminalDisplayWithMarkdownOptions(t *testing.T) {
-	mdOpts := markdown.Options{
-		Theme:        markdown.ThemeDark,
+	mdOpts := converter.Options{
+		Theme:        converter.ThemeDark,
 		WrapWidth:    90,
 		EnableTables: false,
 		EnableColors: true,
