@@ -16,7 +16,9 @@ type HybridGenerator = converter.HybridGenerator
 
 // NewHybridGenerator creates a new HybridGenerator with the specified builder.
 //
+// NewHybridGenerator creates a new HybridGenerator configured with the given ReportBuilder and logger.
 // Deprecated: use converter.NewHybridGenerator instead.
+// Returns the created HybridGenerator or an error encountered during construction.
 func NewHybridGenerator(reportBuilder builder.ReportBuilder, logger *log.Logger) (*HybridGenerator, error) {
 	return converter.NewHybridGenerator(reportBuilder, logger)
 }

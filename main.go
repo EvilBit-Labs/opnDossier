@@ -19,7 +19,7 @@ var (
 	_ = "unknown" // date
 )
 
-// init updates the version variable with injected values from GoReleaser.
+// init updates the package version with the build-time injected value when it is not the default "dev".
 func init() {
 	// Update the version variable with injected values if they're not the defaults
 	if version != "dev" {

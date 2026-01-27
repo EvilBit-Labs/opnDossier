@@ -12,6 +12,7 @@ type Generator = converter.Generator
 
 // NewMarkdownGenerator creates a new Generator that produces documentation in Markdown, JSON, or YAML formats.
 //
+// NewMarkdownGenerator creates a Generator that produces documentation in Markdown, JSON, or YAML formats.
 // Deprecated: use converter.NewMarkdownGenerator instead.
 func NewMarkdownGenerator(logger *log.Logger, opts Options) (Generator, error) {
 	return converter.NewMarkdownGenerator(logger, opts)

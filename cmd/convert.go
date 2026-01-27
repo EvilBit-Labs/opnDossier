@@ -48,7 +48,22 @@ const (
 
 // init registers the convert command and its flags with the root command.
 //
-// This function sets up command-line flags for output file path, format, sections, theme, and text wrap width, enabling users to customize the conversion of OPNsense configuration files.
+// init registers the `convert` command with the root command and configures its command-line flags.
+//
+// It defines the primary flags used to control conversion output:
+//  - `--output, -o` : file path to write the converted output (omitted to print to stdout).
+//  - `--format, -f` : output format to produce; supported values are `markdown`, `json`, and `yaml` (default: `markdown`).
+//  - `--force`      : overwrite existing output files without prompting.
+//
+// It also adds shared styling and content flags (sections, theme, wrap width, etc.) via addSharedTemplateFlags and
+// disables automatic flag sorting to preserve logical flag grouping in help output.
+//
+// Examples:
+//  opndossier convert input.xml                # prints markdown to stdout
+//  opndossier convert -o out.md input.xml      # write markdown to out.md
+//  opndossier convert -f json --force in.xml   # write JSON, overwriting any existing file
+//
+// Note: flag validation and conversion behavior are implemented separately; this function only wires up flags and help text.
 func init() {
 	rootCmd.AddCommand(convertCmd)
 
@@ -311,7 +326,7 @@ Examples:
 	},
 }
 
-// buildEffectiveFormat returns the output format to use, giving precedence to the CLI flag, then the configuration file, and defaulting to "markdown" if neither is set.
+// buildEffectiveFormat determines the output format to use, giving precedence to the CLI flag, then the configuration file, and defaulting to "markdown" if neither is set.
 func buildEffectiveFormat(flagFormat string, cfg *config.Config) string {
 	// CLI flag takes precedence
 	if flagFormat != "" {
@@ -328,7 +343,22 @@ func buildEffectiveFormat(flagFormat string, cfg *config.Config) string {
 }
 
 // buildConversionOptions constructs a converter.Options struct by merging CLI arguments and configuration values with defined precedence.
-// CLI arguments take priority over configuration file values, which in turn override defaults. The resulting options control output format, section filtering, theme, and text wrapping for the conversion process.
+// buildConversionOptions constructs a converter.Options value for the given output
+// format by combining CLI-provided flags, the provided configuration, and defaults.
+// CLI flags take precedence over configuration values, which in turn override defaults.
+//
+// The resulting options set:
+// - Format: based on the provided format argument.
+// - SuppressWarnings: enabled if cfg indicates quiet mode.
+// - Sections: uses CLI-provided sections if present, otherwise uses cfg sections.
+// - Theme: uses the theme from cfg when set.
+// - WrapWidth: CLI wrap width if specified (>=0), otherwise cfg wrap width if >=0,
+//   otherwise -1 to indicate automatic behavior; 0 disables wrapping.
+// - Comprehensive: controlled by the CLI-only comprehensive flag.
+// - CustomFields["IncludeTunables"]: set from the CLI-only include-tunables flag.
+//
+// The function returns a fully populated converter.Options ready for use by the
+// programmatic generator.
 func buildConversionOptions(
 	format string,
 	cfg *config.Config,
@@ -442,7 +472,9 @@ func determineOutputPath(inputFile, outputFile, fileExt string, cfg *config.Conf
 	return actualOutputFile, nil
 }
 
-// generateOutputByFormat generates output using the appropriate generator based on the format.
+// generateOutputByFormat generates the document output in the requested format using the programmatic generator.
+// Supported formats are "markdown" (or "md"), "json", and "yaml" (or "yml").
+// It returns the rendered output string, or an error if the format is unsupported or generation fails.
 func generateOutputByFormat(
 	ctx context.Context,
 	opnsense *model.OpnSenseDocument,
@@ -462,7 +494,8 @@ func generateOutputByFormat(
 	}
 }
 
-// generateWithProgrammaticGenerator creates a hybrid generator configured for programmatic-only generation.
+// generateWithProgrammaticGenerator creates and uses a generator that produces output using the programmatic Markdown builder.
+// It returns the generated document content according to the provided conversion options, or an error if generation fails.
 func generateWithProgrammaticGenerator(
 	ctx context.Context,
 	opnsense *model.OpnSenseDocument,
@@ -482,7 +515,11 @@ func generateWithProgrammaticGenerator(
 	return hybridGen.Generate(ctx, opnsense, opt)
 }
 
-// validateConvertFlags validates flag combinations specific to the convert command.
+// validateConvertFlags validates flag combinations and CLI options for the convert command.
+// It ensures mutually exclusive wrap flags are not both set, checks that the chosen output
+// format is one of markdown/md/json/yaml/yml, warns when section filtering is used with
+// JSON or YAML (sections will be ignored), and enforces that an explicit wrap width falls
+// within the supported range. Returns an error when flag combinations or values are invalid.
 func validateConvertFlags(flags *pflag.FlagSet) error {
 	// Validate mutual exclusivity for wrap flags before other checks
 	if flags != nil {
