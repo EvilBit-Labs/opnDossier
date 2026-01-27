@@ -223,12 +223,21 @@ func (r *Report) AddFinding(severity Severity, finding Finding) {
 
 // TotalFindings returns the total number of findings across all severities.
 func (r *Report) TotalFindings() int {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.totalFindingsUnsafe()
+}
+
+// totalFindingsUnsafe returns total findings without locking. Caller must hold mu.
+func (r *Report) totalFindingsUnsafe() int {
 	return len(r.Findings.Critical) + len(r.Findings.High) +
 		len(r.Findings.Medium) + len(r.Findings.Low) + len(r.Findings.Info)
 }
 
 // HasCriticalFindings returns true if the report contains critical findings.
 func (r *Report) HasCriticalFindings() bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	return len(r.Findings.Critical) > 0
 }
 
@@ -272,6 +281,8 @@ func (r *Report) ToJSON() (string, error) {
 
 // ToYAML returns the report as a YAML string.
 func (r *Report) ToYAML() (string, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	data, err := yaml.Marshal(r) //nolint:musttag // Report has proper yaml tags
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal report to YAML: %w", err)
@@ -282,6 +293,9 @@ func (r *Report) ToYAML() (string, error) {
 
 // ToMarkdown returns the report formatted as Markdown using the markdown library.
 func (r *Report) ToMarkdown() string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
 	var buf strings.Builder
 	md := markdown.NewMarkdown(&buf)
 
@@ -292,7 +306,7 @@ func (r *Report) ToMarkdown() string {
 		r.addStatistics(md)
 	}
 
-	r.addFindings(md)
+	r.addFindingsUnsafe(md)
 
 	if err := md.Build(); err != nil {
 		return "# OPNsense Configuration Analysis Report\n\nError generating report.\n"
@@ -405,15 +419,16 @@ func (r *Report) addStatistics(md *markdown.Markdown) {
 	}
 }
 
-func (r *Report) addFindings(md *markdown.Markdown) {
+// addFindingsUnsafe adds findings to markdown. Caller must hold mu.
+func (r *Report) addFindingsUnsafe(md *markdown.Markdown) {
 	md.H2("Analysis Findings")
-	if r.TotalFindings() == 0 {
+	if r.totalFindingsUnsafe() == 0 {
 		md.PlainText("No findings to report.")
 		md.LF()
 		return
 	}
 
-	md.PlainText(fmt.Sprintf("Total findings: %d", r.TotalFindings()))
+	md.PlainText(fmt.Sprintf("Total findings: %d", r.totalFindingsUnsafe()))
 	md.LF()
 
 	r.addFindingsSection(md, "Critical", r.Findings.Critical)
@@ -484,6 +499,9 @@ func addDHCPScopeDetails(md *markdown.Markdown, title string, details []DHCPScop
 
 // Summary returns a brief summary of the report.
 func (r *Report) Summary() string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
 	var summary strings.Builder
 
 	summary.WriteString("OPNsense Configuration Report for " + r.ConfigInfo.Hostname)
@@ -502,7 +520,7 @@ func (r *Report) Summary() string {
 		)
 	}
 
-	totalFindings := r.TotalFindings()
+	totalFindings := r.totalFindingsUnsafe()
 	if totalFindings == 0 {
 		summary.WriteString("No issues found in the configuration.")
 	} else {
