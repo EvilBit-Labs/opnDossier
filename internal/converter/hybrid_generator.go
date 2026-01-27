@@ -123,15 +123,16 @@ func (g *HybridGenerator) generateJSON(data *model.OpnSenseDocument) (string, er
 		return "", ErrNilConfiguration
 	}
 
-	jsonData, err := json.MarshalIndent(
+	//nolint:musttag // EnrichedOpnSenseDocument has proper json tags
+	jsonBytes, err := json.MarshalIndent(
 		enrichedCfg,
 		"",
 		"  ",
-	) //nolint:musttag // EnrichedOpnSenseDocument has proper json tags
+	)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal to JSON: %w", err)
 	}
-	return string(jsonData), nil
+	return string(jsonBytes), nil
 }
 
 // generateYAML generates YAML output by serializing the enriched model.

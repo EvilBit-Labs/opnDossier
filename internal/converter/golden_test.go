@@ -330,10 +330,7 @@ func findDifferenceLocation(expected, actual string) (int, int) {
 	expectedLines := strings.Split(expected, "\n")
 	actualLines := strings.Split(actual, "\n")
 
-	maxLines := len(expectedLines)
-	if len(actualLines) > maxLines {
-		maxLines = len(actualLines)
-	}
+	maxLines := max(len(expectedLines), len(actualLines))
 
 	for i := range maxLines {
 		expectedLine := ""
@@ -358,15 +355,8 @@ func findDifferenceLocation(expected, actual string) (int, int) {
 func getSnippetAroundLine(content string, lineNum, contextLines int) string {
 	lines := strings.Split(content, "\n")
 
-	start := lineNum - contextLines - 1
-	if start < 0 {
-		start = 0
-	}
-
-	end := lineNum + contextLines
-	if end > len(lines) {
-		end = len(lines)
-	}
+	start := max(lineNum-contextLines-1, 0)
+	end := min(lineNum+contextLines, len(lines))
 
 	var snippet []string
 	for i := start; i < end; i++ {
