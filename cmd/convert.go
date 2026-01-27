@@ -11,7 +11,6 @@ import (
 	"slices"
 	"strings"
 	"sync"
-	"text/template"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
@@ -21,7 +20,6 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/log"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/EvilBit-Labs/opnDossier/internal/parser"
-	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -32,106 +30,13 @@ var (
 	force      bool   //nolint:gochecknoglobals // Force overwrite without prompt
 )
 
-// TemplateCache provides thread-safe LRU caching for template instances.
-// It caches templates by path to avoid redundant file I/O and parsing operations.
-// The cache uses LRU eviction with a configurable maximum size to prevent memory growth.
-//
-// Cache Behavior and Limits:
-// - Thread-safe: All operations are safe for concurrent access
-// - LRU Eviction: When the cache reaches its maximum size, the least recently used template is automatically evicted
-// - Configurable Size: Default is 10 templates, can be configured via --template-cache-size flag
-// - Memory Management: Templates are automatically evicted to prevent unbounded memory growth
-// - Batch Operations: Cache is cleared after each batch operation to free memory
-//
-// Usage:
-// - For single file operations: Cache size of 1-5 is sufficient
-// - For batch operations: Cache size of 10-20 provides good performance
-// - For memory-constrained environments: Use smaller cache sizes (1-5)
-// - For high-performance scenarios: Use larger cache sizes (20-50).
-type TemplateCache struct {
-	cache *lru.Cache[string, *template.Template]
-}
-
-// NewTemplateCache creates a new template cache instance with LRU eviction using hashicorp/golang-lru/v2.
-// The cache will automatically evict least recently used templates when the max size is reached.
-// Default max size is 10 templates to balance memory usage with performance.
-// Errors are returned to allow callers to handle invalid configuration gracefully.
-func NewTemplateCache() (*TemplateCache, error) {
-	cache, err := NewTemplateCacheWithSize(defaultTemplateCacheSize)
-	if err != nil {
-		return nil, fmt.Errorf(
-			"failed to create template cache with default size %d: %w",
-			defaultTemplateCacheSize,
-			err,
-		)
-	}
-	return cache, nil
-}
-
-// NewTemplateCacheWithSize creates a new template cache instance with a specified maximum size.
-// The cache will automatically evict least recently used templates when the max size is reached.
-// Size must be greater than 0; returns ErrInvalidCacheSize if size is invalid.
-func NewTemplateCacheWithSize(size int) (*TemplateCache, error) {
-	if size <= 0 {
-		return nil, fmt.Errorf("%w: got %d", ErrInvalidCacheSize, size)
-	}
-
-	// Create LRU cache with specified max size
-	cache, err := lru.New[string, *template.Template](size)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create LRU cache: %w", err)
-	}
-
-	return &TemplateCache{
-		cache: cache,
-	}, nil
-}
-
-// Get retrieves a template from the cache, loading it if not present.
-// Returns the cached template or an error if loading fails.
-// Thread-safe and uses LRU eviction when cache is full.
-func (tc *TemplateCache) Get(templatePath string) (*template.Template, error) {
-	if templatePath == "" {
-		return nil, ErrNoTemplateSpecified
-	}
-
-	// Check cache first
-	if tmpl, exists := tc.cache.Get(templatePath); exists {
-		return tmpl, nil
-	}
-
-	// Load template if not in cache
-	tmpl, err := loadCustomTemplate(templatePath)
-	if err != nil {
-		return nil, err
-	}
-
-	// Cache the template (LRU will handle eviction if needed)
-	tc.cache.Add(templatePath, tmpl)
-	return tmpl, nil
-}
-
-// Clear removes all cached templates, freeing memory.
-// This is useful between batch operations to prevent memory growth.
-func (tc *TemplateCache) Clear() {
-	tc.cache.Purge()
-}
-
-// Size returns the number of cached templates.
-func (tc *TemplateCache) Size() int {
-	return tc.cache.Len()
-}
-
 // ErrOperationCancelled is returned when the user cancels an operation.
 var ErrOperationCancelled = errors.New("operation cancelled by user")
 
 // Static errors for better error handling.
 var (
 	ErrFailedToEnrichConfig    = errors.New("failed to enrich configuration")
-	ErrNoTemplateSpecified     = errors.New("no template specified")
-	ErrInvalidCacheSize        = errors.New("template cache size must be greater than 0")
 	ErrUnsupportedOutputFormat = errors.New("unsupported output format")
-	ErrUnknownEngineType       = errors.New("unknown engine type")
 )
 
 // Format constants for output formats.
@@ -141,16 +46,9 @@ const (
 	FormatYAML     = "yaml"
 )
 
-// DefaultTemplateCacheSize is the default maximum number of templates to cache in memory.
-// This provides a good balance between memory usage and performance for most use cases.
-const DefaultTemplateCacheSize = 10
-
-// defaultTemplateCacheSize allows tests to simulate invalid defaults.
-var defaultTemplateCacheSize = DefaultTemplateCacheSize //nolint:gochecknoglobals // test override hook
-
 // init registers the convert command and its flags with the root command.
 //
-// This function sets up command-line flags for output file path, format, template, sections, theme, and text wrap width, enabling users to customize the conversion of OPNsense configuration files.
+// This function sets up command-line flags for output file path, format, sections, theme, and text wrap width, enabling users to customize the conversion of OPNsense configuration files.
 func init() {
 	rootCmd.AddCommand(convertCmd)
 
@@ -165,7 +63,7 @@ func init() {
 		BoolVar(&force, "force", false, "Force overwrite existing files without prompting for confirmation")
 	setFlagAnnotation(convertCmd.Flags(), "force", []string{"output"})
 
-	// Add shared template flags
+	// Add shared styling and content flags
 	addSharedTemplateFlags(convertCmd)
 
 	// Flag groups for better organization
@@ -189,27 +87,6 @@ its content into structured formats. Supported output formats include Markdown (
 JSON, and YAML. This allows for easier readability, documentation, and programmatic access
 to your firewall configuration.
 
-  NEW in Phase 3.7: The convert command now uses programmatic generation by default for
-  improved performance and security. Template-based generation is available via explicit flags.
-
-  GENERATION MODES:
-  The convert command supports two generation modes:
-
-  Programmatic mode (default):
-    - Fast, secure, and deterministic output generation
-    - No template file I/O operations required
-    - Enhanced error handling and validation
-    - Recommended for most use cases
-
-  Template mode (explicit):
-    --use-template                  - Use built-in template generation
-    --custom-template FILE          - Use custom template file (auto-enables template mode)
-    --engine template               - Explicitly select template engine
-    --legacy                        - Enable legacy template mode (deprecated)
-
-  Additional options:
-    --comprehensive                 - Generate detailed, comprehensive reports
-
   OUTPUT FORMATS:
   The convert command supports multiple output formats:
 
@@ -218,7 +95,8 @@ to your firewall configuration.
     json                        - JSON format output
     yaml                        - YAML format output
 
-  Use --format for basic output formats (markdown, json, yaml).
+  Additional options:
+    --comprehensive             - Generate detailed, comprehensive reports
 
 The convert command focuses on conversion only and does not perform validation.
 To validate your configuration files before conversion, use the 'validate' command.
@@ -232,12 +110,8 @@ file will be named based on its input file with the appropriate extension
 (e.g., config.xml -> config.md, config.json, or config.yaml).
 
 Examples:
-  # Convert using programmatic mode (default, fastest)
+  # Convert configuration to markdown (default)
   opnDossier convert my_config.xml
-
-  # Convert with explicit engine selection
-  opnDossier convert my_config.xml --engine programmatic
-  opnDossier convert my_config.xml --engine template
 
   # Convert 'my_config.xml' to JSON format
   opnDossier convert my_config.xml --format json
@@ -245,17 +119,8 @@ Examples:
   # Convert 'my_config.xml' to YAML and save to file
   opnDossier convert my_config.xml -f yaml -o documentation.yaml
 
-  # Generate comprehensive report (programmatic mode)
+  # Generate comprehensive report
   opnDossier convert my_config.xml --comprehensive
-
-  # Use template mode explicitly
-  opnDossier convert my_config.xml --use-template
-
-  # Use custom template (automatically enables template mode)
-  opnDossier convert my_config.xml --custom-template /path/to/my-template.tmpl
-
-  # Legacy template mode (deprecated, will show warning)
-  opnDossier convert my_config.xml --legacy
 
   # Convert with specific sections
   opnDossier convert my_config.xml --section system,network
@@ -282,11 +147,7 @@ Examples:
   opnDossier convert config.xml --include-tunables
 
   # Validate before converting (recommended workflow)
-  opnDossier validate config.xml && opnDossier convert config.xml -f json -o output.json
-
-  MIGRATION GUIDE:
-  If you were using template mode previously, add --use-template to maintain compatibility:
-  opnDossier convert config.xml --use-template --comprehensive`,
+  opnDossier validate config.xml && opnDossier convert config.xml -f json -o output.json`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
@@ -300,43 +161,6 @@ Examples:
 		// Create a timeout context for file processing
 		timeoutCtx, cancel := context.WithTimeout(ctx, constants.DefaultProcessingTimeout)
 		defer cancel()
-
-		// Create template cache for batch processing with configurable size.
-		// If cache creation fails, return the error to allow CLI-level reporting.
-		templateCache, err := NewTemplateCacheWithSize(sharedTemplateCacheSize)
-		if err != nil {
-			return fmt.Errorf(
-				"failed to create template cache with size %d (must be > 0, recommended: %d-%d): %w",
-				sharedTemplateCacheSize, 1, MaxTemplateCacheSize, err)
-		}
-		defer templateCache.Clear() // Clean up cache after processing
-
-		// Validate custom template path if specified (early validation)
-		if sharedCustomTemplate != "" {
-			if err := validateTemplatePath(sharedCustomTemplate); err != nil {
-				return fmt.Errorf("template validation failed: %w", err)
-			}
-		}
-
-		// Preload the custom template if specified
-		var cachedTemplate *template.Template
-		if sharedCustomTemplate != "" {
-			var err error
-			cachedTemplate, err = templateCache.Get(sharedCustomTemplate)
-			if err != nil {
-				// ErrNoTemplateSpecified shouldn't occur here since sharedCustomTemplate is not empty,
-				// but we check defensively. Any other error is a real problem.
-				if !errors.Is(err, ErrNoTemplateSpecified) {
-					return fmt.Errorf("failed to preload custom template %q: %w "+
-						"(check that the file exists, is readable, and contains valid template syntax)",
-						sharedCustomTemplate, err)
-				}
-				// If we somehow get ErrNoTemplateSpecified when sharedCustomTemplate is set,
-				// this indicates a programming error in templateCache.Get
-				logger.Warn("unexpected ErrNoTemplateSpecified when template path is set",
-					"template", sharedCustomTemplate)
-			}
-		}
 
 		for _, filePath := range args {
 			wg.Add(1)
@@ -414,8 +238,8 @@ Examples:
 					opt.Sections,
 				)
 
-				// Generate output based on format using the cached template
-				output, err = generateOutputByFormat(timeoutCtx, opnsense, opt, ctxLogger, cachedTemplate)
+				// Generate output based on format
+				output, err = generateOutputByFormat(timeoutCtx, opnsense, opt, ctxLogger)
 				if err != nil {
 					ctxLogger.Error("Failed to convert", "error", err)
 					errs <- fmt.Errorf("failed to convert from %s: %w", fp, err)
@@ -503,8 +327,8 @@ func buildEffectiveFormat(flagFormat string, cfg *config.Config) string {
 	return "markdown"
 }
 
-// buildConversionOptions constructs a markdown.Options struct by merging CLI arguments and configuration values with defined precedence.
-// CLI arguments take priority over configuration file values, which in turn override defaults. The resulting options control output format, template, section filtering, theme, and text wrapping for the conversion process.
+// buildConversionOptions constructs a converter.Options struct by merging CLI arguments and configuration values with defined precedence.
+// CLI arguments take priority over configuration file values, which in turn override defaults. The resulting options control output format, section filtering, theme, and text wrapping for the conversion process.
 func buildConversionOptions(
 	format string,
 	cfg *config.Config,
@@ -515,14 +339,9 @@ func buildConversionOptions(
 	// Set format
 	opt.Format = converter.Format(format)
 
-	// Propagate quiet flag to suppress deprecation warnings
+	// Propagate quiet flag to suppress warnings
 	if cfg != nil && cfg.IsQuiet() {
 		opt.SuppressWarnings = true
-	}
-
-	// Template: config > default (no CLI flag for template)
-	if cfg != nil && cfg.GetTemplate() != "" {
-		opt.TemplateName = cfg.GetTemplate()
 	}
 
 	// Sections: CLI flag > config > default
@@ -552,40 +371,10 @@ func buildConversionOptions(
 	// Comprehensive: CLI flag only
 	opt.Comprehensive = sharedComprehensive
 
-	// Template directory: CLI flag only
-	templateDir := getSharedTemplateDir()
-	if templateDir != "" {
-		opt.TemplateDir = templateDir
-	}
-
 	// Include tunables: CLI flag only
 	opt.CustomFields["IncludeTunables"] = sharedIncludeTunables
 
-	// Engine selection: CLI flags > config > default
-	opt.UseTemplateEngine = determineUseTemplateFromConfig(cfg)
-
 	return opt
-}
-
-// determineUseTemplateFromConfig determines if template mode should be used based on configuration.
-// This provides a fallback for configuration-based engine selection when CLI flags aren't used.
-func determineUseTemplateFromConfig(cfg *config.Config) bool {
-	if cfg == nil {
-		return false
-	}
-
-	// Check configuration engine setting
-	if cfg.GetEngine() != "" {
-		return strings.EqualFold(cfg.GetEngine(), "template")
-	}
-
-	// Check configuration use_template setting
-	if cfg.IsUseTemplate() {
-		return true
-	}
-
-	// Default to programmatic mode
-	return false
 }
 
 // determineOutputPath determines the output file path with smart naming and overwrite protection.
@@ -659,15 +448,14 @@ func generateOutputByFormat(
 	opnsense *model.OpnSenseDocument,
 	opt converter.Options,
 	logger *log.Logger,
-	preParsedTemplate *template.Template,
 ) (string, error) {
 	// Determine the format to use
 	format := strings.ToLower(string(opt.Format))
 
 	switch format {
 	case FormatMarkdown, "md":
-		// Use hybrid generator for markdown output
-		return generateWithHybridGenerator(ctx, opnsense, opt, logger, preParsedTemplate)
+		// Use programmatic generator for markdown output
+		return generateWithProgrammaticGenerator(ctx, opnsense, opt, logger)
 	case FormatJSON, FormatYAML, "yml":
 		// Use markdown generator for JSON and YAML output
 		// The markdown generator supports JSON and YAML formats natively
@@ -683,89 +471,29 @@ func generateOutputByFormat(
 	}
 }
 
-// generateWithHybridGenerator creates a hybrid generator and generates output using either
-// programmatic generation (default) or template generation based on options.
-// If a pre-parsed template is provided, it will be used instead of loading from file.
-func generateWithHybridGenerator(
+// generateWithProgrammaticGenerator creates a hybrid generator configured for programmatic-only generation.
+func generateWithProgrammaticGenerator(
 	ctx context.Context,
 	opnsense *model.OpnSenseDocument,
 	opt converter.Options,
 	logger *log.Logger,
-	preParsedTemplate *template.Template,
 ) (string, error) {
-	// Determine generation engine based on CLI flags and configuration
-	useTemplateEngine, err := determineGenerationEngine(logger)
-	if err != nil {
-		return "", fmt.Errorf("failed to determine generation engine: %w", err)
-	}
-
-	// Update opt.UseTemplateEngine to reflect CLI flag precedence
-	// This ensures CLI flags take precedence over config file settings
-	opt.UseTemplateEngine = useTemplateEngine
-
 	// Create the programmatic builder
 	reportBuilder := builder.NewMarkdownBuilder()
 
-	// Create hybrid generator
+	// Create hybrid generator (configured for programmatic mode)
 	hybridGen, err := converter.NewHybridGenerator(reportBuilder, logger)
 	if err != nil {
 		return "", fmt.Errorf("failed to create hybrid generator: %w", err)
 	}
 
-	// Set template if using template engine and a pre-parsed template is available
-	if useTemplateEngine && preParsedTemplate != nil {
-		hybridGen.SetTemplate(preParsedTemplate)
-	}
-
-	// Override the hybrid generator's shouldUseTemplate logic by modifying options
-	// This ensures our CLI-based engine selection takes precedence
-	// We intentionally override the generator's hybrid-mode detection by setting TemplateName/TemplateDir
-	// to force either template mode (using shared custom or built-in default) or programmatic mode (clearing both),
-	// so the hybrid generator doesn't auto-select the wrong mode based on useTemplateEngine and sharedCustomTemplate conditions.
-	if useTemplateEngine {
-		// Force template mode if CLI flags indicate template usage
-		if sharedCustomTemplate != "" {
-			opt.TemplateDir = getSharedTemplateDir()
-		} else {
-			// Use built-in templates for legacy/use-template modes
-			opt.TemplateName = "default"
-		}
-	} else {
-		// Force programmatic mode by clearing template-related options
-		opt.TemplateName = ""
-		opt.TemplateDir = ""
-	}
+	// Force programmatic mode by clearing template-related options
+	opt.UseTemplateEngine = false
+	opt.TemplateName = ""
+	opt.TemplateDir = ""
 
 	// Generate the output
 	return hybridGen.Generate(ctx, opnsense, opt)
-}
-
-// loadCustomTemplate loads a custom template from a file.
-func loadCustomTemplate(templatePath string) (*template.Template, error) {
-	// Read the template file
-	content, err := os.ReadFile(templatePath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("template file not found: %s. "+
-				"Check that the path is correct and the file exists", templatePath)
-		}
-		if os.IsPermission(err) {
-			return nil, fmt.Errorf("permission denied reading template file: %s. "+
-				"Check file permissions", templatePath)
-		}
-		return nil, fmt.Errorf("failed to read template file %s: %w. "+
-			"Check that the file is accessible and not corrupted", templatePath, err)
-	}
-
-	// Parse the template
-	tmpl, err := template.New("custom").Parse(string(content))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse template %s: %w. "+
-			"Check template syntax - see https://pkg.go.dev/text/template for syntax reference",
-			templatePath, err)
-	}
-
-	return tmpl, nil
 }
 
 // validateConvertFlags validates flag combinations specific to the convert command.
@@ -791,26 +519,6 @@ func validateConvertFlags(flags *pflag.FlagSet) error {
 		}
 	}
 
-	// Validate engine flag combinations
-	if sharedEngine != "" {
-		if sharedUseTemplate {
-			return errors.New("--use-template and --engine flags are mutually exclusive")
-		}
-		if sharedLegacy {
-			return errors.New("--legacy and --engine flags are mutually exclusive")
-		}
-		if sharedCustomTemplate != "" {
-			return errors.New(
-				"--custom-template and --engine flags are mutually exclusive when engine is explicitly set",
-			)
-		}
-	}
-
-	// Validate template-related flags
-	if sharedCustomTemplate != "" && sharedUseTemplate {
-		return errors.New("--custom-template automatically enables template mode, --use-template is redundant")
-	}
-
 	// Validate output format compatibility
 	if strings.EqualFold(format, "json") && len(sharedSections) > 0 {
 		logger.Warn("section filtering not supported with JSON format, sections will be ignored")
@@ -823,12 +531,6 @@ func validateConvertFlags(flags *pflag.FlagSet) error {
 	if sharedWrapWidth > 0 && (sharedWrapWidth < MinWrapWidth || sharedWrapWidth > MaxWrapWidth) {
 		return fmt.Errorf("wrap width %d out of recommended range [%d, %d]",
 			sharedWrapWidth, MinWrapWidth, MaxWrapWidth)
-	}
-
-	// Validate template cache size if specified
-	if sharedTemplateCacheSize > MaxTemplateCacheSize {
-		return fmt.Errorf("template cache size %d exceeds maximum recommended size %d",
-			sharedTemplateCacheSize, MaxTemplateCacheSize)
 	}
 
 	return nil

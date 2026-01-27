@@ -82,7 +82,7 @@ func TestGenerateOutputByFormatSimple(t *testing.T) {
 		Theme:  converter.ThemeAuto,
 	}
 
-	result, err := generateOutputByFormat(ctx, opnsense, opt, logger, nil)
+	result, err := generateOutputByFormat(ctx, opnsense, opt, logger)
 	if err != nil {
 		t.Errorf("Unexpected error for markdown: %v", err)
 	}
@@ -92,7 +92,7 @@ func TestGenerateOutputByFormatSimple(t *testing.T) {
 
 	// Test JSON format - but it may fail due to missing templates, so we'll just check it doesn't panic
 	opt.Format = converter.FormatJSON
-	_, err = generateOutputByFormat(ctx, opnsense, opt, logger, nil)
+	_, err = generateOutputByFormat(ctx, opnsense, opt, logger)
 	// JSON format might fail due to missing templates - that's expected
 	if err != nil {
 		t.Logf("JSON format failed as expected: %v", err)
@@ -100,7 +100,7 @@ func TestGenerateOutputByFormatSimple(t *testing.T) {
 
 	// Test unknown format (should return an error)
 	opt.Format = converter.Format("unknown")
-	_, err = generateOutputByFormat(ctx, opnsense, opt, logger, nil)
+	_, err = generateOutputByFormat(ctx, opnsense, opt, logger)
 	if err == nil {
 		t.Errorf("Expected error for unknown format, got nil")
 	} else if !errors.Is(err, ErrUnsupportedOutputFormat) {
@@ -108,8 +108,8 @@ func TestGenerateOutputByFormatSimple(t *testing.T) {
 	}
 }
 
-// TestGenerateWithHybridGeneratorSimple tests the hybrid generator function.
-func TestGenerateWithHybridGeneratorSimple(t *testing.T) {
+// TestGenerateWithProgrammaticGeneratorSimple tests the programmatic generator function.
+func TestGenerateWithProgrammaticGeneratorSimple(t *testing.T) {
 	logger, err := log.New(log.Config{})
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
@@ -124,134 +124,41 @@ func TestGenerateWithHybridGeneratorSimple(t *testing.T) {
 	ctx := context.Background()
 
 	// Test programmatic mode (default)
-	resetGlobalFlags()
 	opt := converter.Options{
 		Format: converter.FormatMarkdown,
 		Theme:  converter.ThemeAuto,
 	}
 
-	result, err := generateWithHybridGenerator(ctx, opnsense, opt, logger, nil)
+	result, err := generateWithProgrammaticGenerator(ctx, opnsense, opt, logger)
 	if err != nil {
 		t.Errorf("Unexpected error for programmatic mode: %v", err)
 	}
 	if result == "" {
 		t.Errorf("Expected non-empty result for programmatic mode")
 	}
-
-	// Test template mode - may fail due to missing templates
-	sharedUseTemplate = true
-	_, err = generateWithHybridGenerator(ctx, opnsense, opt, logger, nil)
-	// Template mode might fail due to missing templates - that's expected
-	if err != nil {
-		t.Logf("Template mode failed as expected: %v", err)
-	}
-
-	// Clean up
-	resetGlobalFlags()
-}
-
-// TestLoadCustomTemplateSimple tests template loading.
-func TestLoadCustomTemplateSimple(t *testing.T) {
-	// Test with non-existent file
-	_, err := loadCustomTemplate("non-existent-template.tmpl")
-	if err == nil {
-		t.Errorf("Expected error for non-existent file")
-	}
-
-	// Test with valid template file
-	tempFile, err := os.CreateTemp(t.TempDir(), "template-*.tmpl")
-	if err != nil {
-		t.Fatalf("Failed to create temp file: %v", err)
-	}
-	defer os.Remove(tempFile.Name())
-
-	content := "# {{ .System.Hostname }}\n"
-	if _, err := tempFile.WriteString(content); err != nil {
-		t.Fatalf("Failed to write template content: %v", err)
-	}
-	if err := tempFile.Close(); err != nil {
-		t.Fatalf("Failed to close temp file: %v", err)
-	}
-
-	tmpl, err := loadCustomTemplate(tempFile.Name())
-	if err != nil {
-		t.Errorf("Unexpected error for valid template: %v", err)
-	}
-	if tmpl == nil {
-		t.Errorf("Expected template but got nil")
-	}
-}
-
-// TestValidateTemplatePathSimple tests template path validation.
-func TestValidateTemplatePathSimple(t *testing.T) {
-	// Test empty path (should be valid)
-	err := validateTemplatePath("")
-	if err != nil {
-		t.Errorf("Unexpected error for empty path: %v", err)
-	}
-
-	// Test path traversal (should fail)
-	err = validateTemplatePath("../../../etc/passwd")
-	if err == nil {
-		t.Errorf("Expected error for path traversal")
-	}
-
-	// Test non-existent file (should fail)
-	err = validateTemplatePath("non-existent-file.tmpl")
-	if err == nil {
-		t.Errorf("Expected error for non-existent file")
-	}
-
-	// Test valid file
-	tempFile, err := os.CreateTemp(t.TempDir(), "valid-*.tmpl")
-	if err != nil {
-		t.Fatalf("Failed to create temp file: %v", err)
-	}
-	defer os.Remove(tempFile.Name())
-	if err := tempFile.Close(); err != nil {
-		t.Fatalf("Failed to close temp file: %v", err)
-	}
-
-	err = validateTemplatePath(tempFile.Name())
-	if err != nil {
-		t.Errorf("Unexpected error for valid file: %v", err)
-	}
-}
-
-// TestGetSharedTemplateDirSimple tests template directory retrieval.
-func TestGetSharedTemplateDirSimple(t *testing.T) {
-	// Reset global variable
-	originalCustomTemplate := sharedCustomTemplate
-	defer func() { sharedCustomTemplate = originalCustomTemplate }()
-
-	// Test with empty custom template
-	sharedCustomTemplate = ""
-	result := getSharedTemplateDir()
-	if result != "" {
-		t.Errorf("Expected empty result for empty custom template, got: %s", result)
-	}
-
-	// Test with custom template path
-	sharedCustomTemplate = "/path/to/template.tmpl"
-	result = getSharedTemplateDir()
-	expected := "/path/to"
-	if result != expected {
-		t.Errorf("Expected %s, got: %s", expected, result)
-	}
-
-	// Test with just filename
-	sharedCustomTemplate = "template.tmpl"
-	result = getSharedTemplateDir()
-	expected = "."
-	if result != expected {
-		t.Errorf("Expected %s, got: %s", expected, result)
-	}
 }
 
 // TestBuildConversionOptionsSimple tests option building.
 func TestBuildConversionOptionsSimple(t *testing.T) {
+	// Save original values
+	origSections := sharedSections
+	origWrapWidth := sharedWrapWidth
+	origComprehensive := sharedComprehensive
+	origIncludeTunables := sharedIncludeTunables
+
+	defer func() {
+		sharedSections = origSections
+		sharedWrapWidth = origWrapWidth
+		sharedComprehensive = origComprehensive
+		sharedIncludeTunables = origIncludeTunables
+	}()
+
 	// Test with nil config
-	resetGlobalFlags()
+	sharedSections = nil
+	sharedWrapWidth = -1
+	sharedComprehensive = false
+	sharedIncludeTunables = false
+
 	opts := buildConversionOptions("markdown", nil)
 	if opts.Format == "" {
 		t.Errorf("Expected format to be set")
@@ -259,17 +166,10 @@ func TestBuildConversionOptionsSimple(t *testing.T) {
 
 	// Test with config
 	cfg := &config.Config{
-		Theme:    "dark",
-		Template: "custom",
+		Theme: "dark",
 	}
 	opts = buildConversionOptions("json", cfg)
 	if string(opts.Theme) != "dark" {
 		t.Errorf("Expected theme 'dark', got %s", opts.Theme)
 	}
-	if opts.TemplateName != "custom" {
-		t.Errorf("Expected template name 'custom', got %s", opts.TemplateName)
-	}
-
-	// Clean up
-	resetGlobalFlags()
 }

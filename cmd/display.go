@@ -18,11 +18,11 @@ import (
 	"github.com/spf13/pflag"
 )
 
-// init registers the display command with the root command and sets up its CLI flags for XML validation control, theming, template selection, section filtering, text wrapping, and custom template directories.
+// init registers the display command with the root command and sets up its CLI flags for XML validation control, theming, section filtering, and text wrapping.
 func init() {
 	rootCmd.AddCommand(displayCmd)
 
-	// Add shared template flags
+	// Add shared styling and content flags
 	addSharedTemplateFlags(displayCmd)
 	// Add display-specific flags
 	addDisplayFlags(displayCmd)
@@ -62,7 +62,7 @@ The output includes:
 - Proper formatting with headers, lists, and code blocks
 - Theme-aware colors (adapts to light/dark terminal themes)
 - Structured presentation of configuration hierarchy
-- Customizable templates and section filtering
+- Section filtering
 - Configurable text wrapping
 
 Examples:
@@ -76,9 +76,6 @@ Examples:
   # Display with sections
   opnDossier display --section system,network config.xml
 
-  # Display with custom template file
-  opnDossier display --custom-template /path/to/my-template.tmpl config.xml
-
   # Display with text wrapping
   opnDossier display --wrap 120 config.xml
   # When --wrap is not specified, terminal width is auto-detected (COLUMNS or default 120)
@@ -88,9 +85,9 @@ Examples:
   opnDossier display --wrap 80 config.xml
 
   # Display without text wrapping
-	opnDossier display --no-wrap config.xml
+  opnDossier display --no-wrap config.xml
 
-	# Display without text wrapping (using --wrap 0)
+  # Display without text wrapping (using --wrap 0)
   opnDossier display --wrap 0 config.xml
 
   # Display with verbose logging to see processing details
@@ -150,9 +147,8 @@ Examples:
 			return fmt.Errorf("failed to parse XML from %s: %w", filePath, err)
 		}
 
-		templateDir := getSharedTemplateDir()
 		mdOpts := buildDisplayOptions(Cfg)
-		g, err := converter.NewMarkdownGeneratorWithTemplates(ctxLogger, templateDir, mdOpts)
+		g, err := converter.NewMarkdownGenerator(ctxLogger, mdOpts)
 		if err != nil {
 			ctxLogger.Error("Failed to create markdown generator", "error", err)
 			return fmt.Errorf("failed to create markdown generator: %w", err)
@@ -176,16 +172,16 @@ Examples:
 	},
 }
 
-// buildDisplayOptions constructs markdown.Options for the display command, applying CLI flag values with precedence over configuration settings and defaults.
+// buildDisplayOptions constructs converter.Options for the display command, applying CLI flag values with precedence over configuration settings and defaults.
 //
-// CLI-provided values for theme, template, sections, wrap width, and template directory override corresponding configuration values. If neither is set, defaults are used.
+// CLI-provided values for theme, sections, and wrap width override corresponding configuration values. If neither is set, defaults are used.
 //
-// Returns the resulting markdown.Options struct for use in markdown generation.
+// Returns the resulting converter.Options struct for use in markdown generation.
 func buildDisplayOptions(cfg *config.Config) converter.Options {
 	// Start with defaults
 	opt := converter.DefaultOptions()
 
-	// Propagate quiet flag to suppress deprecation warnings
+	// Propagate quiet flag to suppress warnings
 	if cfg != nil && cfg.IsQuiet() {
 		opt.SuppressWarnings = true
 	}
@@ -195,11 +191,6 @@ func buildDisplayOptions(cfg *config.Config) converter.Options {
 		opt.Theme = converter.Theme(sharedTheme)
 	} else if cfg != nil && cfg.GetTheme() != "" {
 		opt.Theme = converter.Theme(cfg.GetTheme())
-	}
-
-	// Template: config > default (no CLI flag for template)
-	if cfg != nil && cfg.GetTemplate() != "" {
-		opt.TemplateName = cfg.GetTemplate()
 	}
 
 	// Sections: CLI flag > config > default
@@ -218,12 +209,6 @@ func buildDisplayOptions(cfg *config.Config) converter.Options {
 		opt.WrapWidth = cfg.GetWrapWidth()
 	default:
 		opt.WrapWidth = -1
-	}
-
-	// Template directory: CLI flag only
-	templateDir := getSharedTemplateDir()
-	if templateDir != "" {
-		opt.TemplateDir = templateDir
 	}
 
 	opt.Comprehensive = sharedComprehensive
@@ -254,26 +239,6 @@ func validateDisplayFlags(flags *pflag.FlagSet) error {
 		}
 	}
 
-	// Validate engine flag combinations
-	if sharedEngine != "" {
-		if sharedUseTemplate {
-			return errors.New("--use-template and --engine flags are mutually exclusive")
-		}
-		if sharedLegacy {
-			return errors.New("--legacy and --engine flags are mutually exclusive")
-		}
-		if sharedCustomTemplate != "" {
-			return errors.New(
-				"--custom-template and --engine flags are mutually exclusive when engine is explicitly set",
-			)
-		}
-	}
-
-	// Validate template-related flags
-	if sharedCustomTemplate != "" && sharedUseTemplate {
-		return errors.New("--custom-template automatically enables template mode, --use-template is redundant")
-	}
-
 	// Validate wrap width if specified
 	if sharedWrapWidth > 0 && (sharedWrapWidth < MinWrapWidth || sharedWrapWidth > MaxWrapWidth) {
 		fmt.Fprintf(os.Stderr, "Warning: wrap width %d is outside recommended range [%d, %d]\n",
@@ -282,12 +247,6 @@ func validateDisplayFlags(flags *pflag.FlagSet) error {
 	if sharedWrapWidth < -1 {
 		return fmt.Errorf("invalid wrap width %d: must be -1 (auto-detect), 0 (no wrapping), or positive",
 			sharedWrapWidth)
-	}
-
-	// Validate template cache size if specified
-	if sharedTemplateCacheSize > MaxTemplateCacheSize {
-		return fmt.Errorf("template cache size %d exceeds maximum recommended size %d",
-			sharedTemplateCacheSize, MaxTemplateCacheSize)
 	}
 
 	return nil
