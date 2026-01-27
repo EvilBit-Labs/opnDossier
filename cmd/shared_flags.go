@@ -22,14 +22,16 @@ var (
 // compatibility but it no longer introduces template-specific flags.
 //
 // Flags added:
-//   --include-tunables    Include system tunables in the output report.
-//   --section             Comma-separated list of specific sections to include (e.g., system,network,firewall).
-//   --wrap                Text wrap width in characters (-1 = auto-detect terminal width, 0 = no wrapping).
-//   --no-wrap             Disable text wrapping (alias for --wrap 0).
-//   --comprehensive       Generate comprehensive detailed reports with full configuration analysis.
+//
+//	--include-tunables    Include system tunables in the output report.
+//	--section             Comma-separated list of specific sections to include (e.g., system,network,firewall).
+//	--wrap                Text wrap width in characters (-1 = auto-detect terminal width, 0 = no wrapping).
+//	--no-wrap             Disable text wrapping (alias for --wrap 0).
+//	--comprehensive       Generate comprehensive detailed reports with full configuration analysis.
 //
 // Example:
-//   mycmd --section system,network --wrap 100 --include-tunables --comprehensive
+//
+//	mycmd --section system,network --wrap 100 --include-tunables --comprehensive
 //
 // cmd must be a non-nil *cobra.Command.
 func addSharedTemplateFlags(cmd *cobra.Command) {

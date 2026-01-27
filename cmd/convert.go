@@ -51,17 +51,18 @@ const (
 // init registers the `convert` command with the root command and configures its command-line flags.
 //
 // It defines the primary flags used to control conversion output:
-//  - `--output, -o` : file path to write the converted output (omitted to print to stdout).
-//  - `--format, -f` : output format to produce; supported values are `markdown`, `json`, and `yaml` (default: `markdown`).
-//  - `--force`      : overwrite existing output files without prompting.
+//   - `--output, -o` : file path to write the converted output (omitted to print to stdout).
+//   - `--format, -f` : output format to produce; supported values are `markdown`, `json`, and `yaml` (default: `markdown`).
+//   - `--force`      : overwrite existing output files without prompting.
 //
 // It also adds shared styling and content flags (sections, theme, wrap width, etc.) via addSharedTemplateFlags and
 // disables automatic flag sorting to preserve logical flag grouping in help output.
 //
 // Examples:
-//  opndossier convert input.xml                # prints markdown to stdout
-//  opndossier convert -o out.md input.xml      # write markdown to out.md
-//  opndossier convert -f json --force in.xml   # write JSON, overwriting any existing file
+//
+//	opndossier convert input.xml                # prints markdown to stdout
+//	opndossier convert -o out.md input.xml      # write markdown to out.md
+//	opndossier convert -f json --force in.xml   # write JSON, overwriting any existing file
 //
 // Note: flag validation and conversion behavior are implemented separately; this function only wires up flags and help text.
 func init() {
@@ -348,14 +349,14 @@ func buildEffectiveFormat(flagFormat string, cfg *config.Config) string {
 // CLI flags take precedence over configuration values, which in turn override defaults.
 //
 // The resulting options set:
-// - Format: based on the provided format argument.
-// - SuppressWarnings: enabled if cfg indicates quiet mode.
-// - Sections: uses CLI-provided sections if present, otherwise uses cfg sections.
-// - Theme: uses the theme from cfg when set.
-// - WrapWidth: CLI wrap width if specified (>=0), otherwise cfg wrap width if >=0,
-//   otherwise -1 to indicate automatic behavior; 0 disables wrapping.
-// - Comprehensive: controlled by the CLI-only comprehensive flag.
-// - CustomFields["IncludeTunables"]: set from the CLI-only include-tunables flag.
+//   - Format: based on the provided format argument.
+//   - SuppressWarnings: enabled if cfg indicates quiet mode.
+//   - Sections: uses CLI-provided sections if present, otherwise uses cfg sections.
+//   - Theme: uses the theme from cfg when set.
+//   - WrapWidth: CLI wrap width if specified (>=0), otherwise cfg wrap width if >=0,
+//     otherwise -1 to indicate automatic behavior; 0 disables wrapping.
+//   - Comprehensive: controlled by the CLI-only comprehensive flag.
+//   - CustomFields["IncludeTunables"]: set from the CLI-only include-tunables flag.
 //
 // The function returns a fully populated converter.Options ready for use by the
 // programmatic generator.

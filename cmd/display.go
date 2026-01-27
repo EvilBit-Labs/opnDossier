@@ -178,14 +178,14 @@ Examples:
 //
 // buildDisplayOptions constructs converter.Options for markdown generation using
 // default values, global CLI flags, and values from cfg when present.
-// 
+//
 // The precedence for each option is: CLI flag > cfg value > package default.
-// - SuppressWarnings is enabled when cfg.IsQuiet() is true.
-// - Theme and Sections are taken from CLI flags when set, otherwise from cfg.
-// - WrapWidth uses CLI flag if >= 0, otherwise cfg value if >= 0, otherwise -1
-//   (auto-detect). A WrapWidth of 0 disables wrapping; positive values set a
-//   specific column width.
-// - Comprehensive is taken from the corresponding CLI flag.
+//   - SuppressWarnings is enabled when cfg.IsQuiet() is true.
+//   - Theme and Sections are taken from CLI flags when set, otherwise from cfg.
+//   - WrapWidth uses CLI flag if >= 0, otherwise cfg value if >= 0, otherwise -1
+//     (auto-detect). A WrapWidth of 0 disables wrapping; positive values set a
+//     specific column width.
+//   - Comprehensive is taken from the corresponding CLI flag.
 func buildDisplayOptions(cfg *config.Config) converter.Options {
 	// Start with defaults
 	opt := converter.DefaultOptions()
@@ -226,7 +226,7 @@ func buildDisplayOptions(cfg *config.Config) converter.Options {
 }
 
 // validateDisplayFlags checks display command flag combinations and value constraints.
-// 
+//
 // It inspects the provided FlagSet to detect flags that were explicitly set and enforces:
 // - Mutual exclusivity of `--no-wrap` and `--wrap` (returns an error if both were set).
 // - Normalizes `sharedWrapWidth` to 0 when `sharedNoWrap` is true.
@@ -235,7 +235,8 @@ func buildDisplayOptions(cfg *config.Config) converter.Options {
 // - Returns an error if `sharedWrapWidth` is less than -1.
 //
 // Parameters:
-//   flags: the command FlagSet used to determine whether `--no-wrap` or `--wrap` were explicitly changed.
+//
+//	flags: the command FlagSet used to determine whether `--no-wrap` or `--wrap` were explicitly changed.
 //
 // Returns an error when flag combinations or values are invalid; nil otherwise.
 func validateDisplayFlags(flags *pflag.FlagSet) error {

@@ -90,12 +90,14 @@ func TestGenerateOutputByFormatSimple(t *testing.T) {
 		t.Errorf("Expected non-empty result for markdown")
 	}
 
-	// Test JSON format - but it may fail due to missing templates, so we'll just check it doesn't panic
+	// Test JSON format - programmatic generation should succeed
 	opt.Format = converter.FormatJSON
-	_, err = generateOutputByFormat(ctx, opnsense, opt, logger)
-	// JSON format might fail due to missing templates - that's expected
+	jsonResult, err := generateOutputByFormat(ctx, opnsense, opt, logger)
 	if err != nil {
-		t.Logf("JSON format failed as expected: %v", err)
+		t.Errorf("JSON format should succeed with programmatic generator: %v", err)
+	}
+	if jsonResult == "" {
+		t.Errorf("Expected non-empty result for JSON format")
 	}
 
 	// Test unknown format (should return an error)
