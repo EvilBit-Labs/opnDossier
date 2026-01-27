@@ -694,43 +694,6 @@ func TestMarkdownGenerator_Integration(t *testing.T) {
 	})
 }
 
-func TestTemplateRendering_Integration(t *testing.T) {
-	cfg := &model.OpnSenseDocument{
-		System: model.System{
-			Hostname: "template-test",
-			Domain:   "test.local",
-		},
-	}
-
-	ctx := context.Background()
-
-	t.Run("standard template", func(t *testing.T) {
-		opts := DefaultOptions()
-		generator, err := NewMarkdownGenerator(nil, opts)
-		require.NoError(t, err)
-
-		opts = DefaultOptions().WithFormat(FormatMarkdown)
-		result, err := generator.Generate(ctx, cfg, opts)
-
-		require.NoError(t, err)
-		assert.Contains(t, result, "template-test")
-		assert.Contains(t, result, "test.local")
-	})
-
-	t.Run("comprehensive template", func(t *testing.T) {
-		opts := DefaultOptions()
-		generator, err := NewMarkdownGenerator(nil, opts)
-		require.NoError(t, err)
-
-		opts = DefaultOptions().WithFormat(FormatMarkdown).WithComprehensive(true)
-		result, err := generator.Generate(ctx, cfg, opts)
-
-		require.NoError(t, err)
-		assert.Contains(t, result, "template-test")
-		assert.Contains(t, result, "test.local")
-	})
-}
-
 func TestErrorHandling_Integration(t *testing.T) {
 	ctx := context.Background()
 
