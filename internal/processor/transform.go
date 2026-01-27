@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
+	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"gopkg.in/yaml.v3"
 )
 
@@ -25,7 +25,7 @@ func (p *CoreProcessor) toMarkdown(ctx context.Context, report *Report) (string,
 	}
 
 	// Use the existing markdown generator to convert the configuration
-	configMarkdown, err := p.generator.Generate(ctx, report.NormalizedConfig, markdown.DefaultOptions())
+	configMarkdown, err := p.generator.Generate(ctx, report.NormalizedConfig, converter.DefaultOptions())
 	if err != nil {
 		return "", fmt.Errorf("failed to convert configuration to markdown: %w", err)
 	}

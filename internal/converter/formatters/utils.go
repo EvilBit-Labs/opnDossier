@@ -1,5 +1,4 @@
-// Package converter provides utility functions for markdown generation.
-package converter
+package formatters
 
 import (
 	"fmt"
@@ -14,43 +13,25 @@ var sanitizeIDRegex = regexp.MustCompile(`[^a-zA-Z0-9]+`)
 
 // EscapeTableContent escapes content for safe display in markdown tables.
 // This function ensures that special Markdown characters don't break table formatting or rendering.
-func (b *MarkdownBuilder) EscapeTableContent(content any) string {
+func EscapeTableContent(content any) string {
 	if content == nil {
 		return ""
 	}
 
 	str := fmt.Sprintf("%v", content)
 
-	// Escape Markdown special characters in order of precedence
-	// Backslashes must be escaped first to avoid double-escaping
 	str = strings.ReplaceAll(str, "\\", "\\\\")
-
-	// Escape asterisks (used for bold/italic)
 	str = strings.ReplaceAll(str, "*", "\\*")
-
-	// Escape underscores (used for italic/underline)
 	str = strings.ReplaceAll(str, "_", "\\_")
-
-	// Escape backticks (used for inline code)
 	str = strings.ReplaceAll(str, "`", "\\`")
-
-	// Escape square brackets (used for links)
 	str = strings.ReplaceAll(str, "[", "\\[")
 	str = strings.ReplaceAll(str, "]", "\\]")
-
-	// Escape angle brackets (used for HTML tags)
 	str = strings.ReplaceAll(str, "<", "\\<")
 	str = strings.ReplaceAll(str, ">", "\\>")
-
-	// Escape pipe characters (used for table separators)
 	str = strings.ReplaceAll(str, "|", "\\|")
 
-	// Handle newlines and carriage returns
-	// Replace carriage return + newline first to avoid double replacement
 	str = strings.ReplaceAll(str, "\r\n", " ")
-	// Replace remaining newlines with spaces
 	str = strings.ReplaceAll(str, "\n", " ")
-	// Replace remaining carriage returns with spaces
 	str = strings.ReplaceAll(str, "\r", " ")
 
 	return strings.TrimSpace(str)
@@ -58,7 +39,7 @@ func (b *MarkdownBuilder) EscapeTableContent(content any) string {
 
 // TruncateDescription truncates a description to the specified maximum length,
 // ensuring word boundaries are respected when possible.
-func (b *MarkdownBuilder) TruncateDescription(description string, maxLength int) string {
+func TruncateDescription(description string, maxLength int) string {
 	if maxLength <= 0 {
 		return ""
 	}
@@ -67,11 +48,9 @@ func (b *MarkdownBuilder) TruncateDescription(description string, maxLength int)
 		return description
 	}
 
-	// Handle word boundaries properly
 	truncated := description[:maxLength]
 	lastSpace := strings.LastIndex(truncated, " ")
 
-	// Only break at word boundary if it's not too far back (within 20 chars of limit)
 	if lastSpace > 0 && lastSpace > maxLength-20 {
 		truncated = truncated[:lastSpace]
 	}
@@ -80,7 +59,7 @@ func (b *MarkdownBuilder) TruncateDescription(description string, maxLength int)
 }
 
 // IsLastInSlice checks if the given index is the last element in a slice or array.
-func (b *MarkdownBuilder) IsLastInSlice(index int, slice any) bool {
+func IsLastInSlice(index int, slice any) bool {
 	if slice == nil {
 		return false
 	}
@@ -94,15 +73,15 @@ func (b *MarkdownBuilder) IsLastInSlice(index int, slice any) bool {
 }
 
 // DefaultValue returns the default value if the primary value is empty, otherwise returns the primary value.
-func (b *MarkdownBuilder) DefaultValue(value, defaultVal any) any {
-	if b.IsEmpty(value) {
+func DefaultValue(value, defaultVal any) any {
+	if IsEmpty(value) {
 		return defaultVal
 	}
 	return value
 }
 
 // IsEmpty checks if a value is considered empty according to Go conventions.
-func (b *MarkdownBuilder) IsEmpty(value any) bool {
+func IsEmpty(value any) bool {
 	if value == nil {
 		return true
 	}
@@ -131,22 +110,22 @@ func (b *MarkdownBuilder) IsEmpty(value any) bool {
 }
 
 // ToUpper converts a string to uppercase.
-func (b *MarkdownBuilder) ToUpper(s string) string {
+func ToUpper(s string) string {
 	return strings.ToUpper(s)
 }
 
 // ToLower converts a string to lowercase.
-func (b *MarkdownBuilder) ToLower(s string) string {
+func ToLower(s string) string {
 	return strings.ToLower(s)
 }
 
 // TrimSpace removes leading and trailing whitespace from a string.
-func (b *MarkdownBuilder) TrimSpace(s string) string {
+func TrimSpace(s string) string {
 	return strings.TrimSpace(s)
 }
 
 // BoolToString converts a boolean value to a standardized string representation with emojis.
-func (b *MarkdownBuilder) BoolToString(val bool) string {
+func BoolToString(val bool) string {
 	if val {
 		return "✅ Enabled"
 	}
@@ -154,7 +133,7 @@ func (b *MarkdownBuilder) BoolToString(val bool) string {
 }
 
 // FormatBytes formats a byte count as a human-readable string using binary prefixes (1024-based).
-func (b *MarkdownBuilder) FormatBytes(bytes int64) string {
+func FormatBytes(bytes int64) string {
 	const unit = 1024
 	if bytes < unit {
 		return fmt.Sprintf("%d B", bytes)
@@ -171,15 +150,12 @@ func (b *MarkdownBuilder) FormatBytes(bytes int64) string {
 
 // SanitizeID converts a string to a valid HTML/markdown anchor ID by removing
 // or replacing invalid characters and converting to lowercase.
-func (b *MarkdownBuilder) SanitizeID(s string) string {
-	// Replace non-alphanumeric characters with hyphens using pre-compiled regex
+func SanitizeID(s string) string {
 	sanitized := sanitizeIDRegex.ReplaceAllString(s, "-")
 	sanitized = strings.ToLower(sanitized)
 
-	// Remove leading/trailing hyphens
 	sanitized = strings.Trim(sanitized, "-")
 
-	// Handle empty result
 	if sanitized == "" {
 		return "unnamed"
 	}

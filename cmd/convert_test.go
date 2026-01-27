@@ -10,7 +10,7 @@ import (
 	"text/template"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
-	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
+	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
@@ -136,7 +136,7 @@ func TestBuildConversionOptions(t *testing.T) {
 		sections []string
 		wrap     int
 		expected struct {
-			format   markdown.Format
+			format   converter.Format
 			sections []string
 			wrap     int
 		}
@@ -147,11 +147,11 @@ func TestBuildConversionOptions(t *testing.T) {
 			sections: []string{"system", "network"},
 			wrap:     120,
 			expected: struct {
-				format   markdown.Format
+				format   converter.Format
 				sections []string
 				wrap     int
 			}{
-				format:   markdown.Format("json"),
+				format:   converter.Format("json"),
 				sections: []string{"system", "network"},
 				wrap:     120,
 			},
@@ -160,11 +160,11 @@ func TestBuildConversionOptions(t *testing.T) {
 			name:   "Default options",
 			format: "markdown",
 			expected: struct {
-				format   markdown.Format
+				format   converter.Format
 				sections []string
 				wrap     int
 			}{
-				format: markdown.Format("markdown"),
+				format: converter.Format("markdown"),
 				wrap:   0,
 			},
 		},

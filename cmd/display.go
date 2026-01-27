@@ -11,8 +11,8 @@ import (
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
+	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/display"
-	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
 	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -152,7 +152,7 @@ Examples:
 
 		templateDir := getSharedTemplateDir()
 		mdOpts := buildDisplayOptions(Cfg)
-		g, err := markdown.NewMarkdownGeneratorWithTemplates(ctxLogger, templateDir, mdOpts)
+		g, err := converter.NewMarkdownGeneratorWithTemplates(ctxLogger, templateDir, mdOpts)
 		if err != nil {
 			ctxLogger.Error("Failed to create markdown generator", "error", err)
 			return fmt.Errorf("failed to create markdown generator: %w", err)
@@ -181,9 +181,9 @@ Examples:
 // CLI-provided values for theme, template, sections, wrap width, and template directory override corresponding configuration values. If neither is set, defaults are used.
 //
 // Returns the resulting markdown.Options struct for use in markdown generation.
-func buildDisplayOptions(cfg *config.Config) markdown.Options {
+func buildDisplayOptions(cfg *config.Config) converter.Options {
 	// Start with defaults
-	opt := markdown.DefaultOptions()
+	opt := converter.DefaultOptions()
 
 	// Propagate quiet flag to suppress deprecation warnings
 	if cfg != nil && cfg.IsQuiet() {
@@ -192,9 +192,9 @@ func buildDisplayOptions(cfg *config.Config) markdown.Options {
 
 	// Theme: CLI flag > config > default
 	if sharedTheme != "" {
-		opt.Theme = markdown.Theme(sharedTheme)
+		opt.Theme = converter.Theme(sharedTheme)
 	} else if cfg != nil && cfg.GetTheme() != "" {
-		opt.Theme = markdown.Theme(cfg.GetTheme())
+		opt.Theme = converter.Theme(cfg.GetTheme())
 	}
 
 	// Template: config > default (no CLI flag for template)

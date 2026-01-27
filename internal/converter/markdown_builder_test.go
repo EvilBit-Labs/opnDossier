@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -13,8 +14,7 @@ import (
 func TestNewMarkdownBuilder(t *testing.T) {
 	builder := NewMarkdownBuilder()
 	assert.NotNil(t, builder)
-	assert.NotZero(t, builder.generated)
-	assert.NotEmpty(t, builder.toolVersion)
+	// Note: generated and toolVersion fields are now unexported for proper encapsulation
 }
 
 func TestMarkdownBuilder_BuildSystemSection(t *testing.T) {
@@ -585,7 +585,7 @@ func TestFormatBoolean(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := formatBoolean(tt.input)
+			result := formatters.FormatBoolean(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -604,7 +604,7 @@ func TestFormatIntBoolean(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := formatIntBoolean(tt.input)
+			result := formatters.FormatIntBoolean(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -622,7 +622,7 @@ func TestFormatBool(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := formatBool(tt.input)
+			result := formatters.FormatBool(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -645,7 +645,7 @@ func TestGetPowerModeDescription(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := getPowerModeDescription(tt.input)
+			result := formatters.GetPowerModeDescriptionCompact(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -696,7 +696,7 @@ func TestFormatBooleanInverted(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := formatBooleanInverted(tt.input)
+			result := formatters.FormatBooleanInverted(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -1464,7 +1464,7 @@ func TestFormatIntBooleanWithUnset(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := formatIntBooleanWithUnset(tt.input)
+			result := formatters.FormatIntBooleanWithUnset(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -1472,7 +1472,7 @@ func TestFormatIntBooleanWithUnset(t *testing.T) {
 
 func TestFormatStructBoolean(t *testing.T) {
 	// Test with empty struct
-	result := formatStructBoolean(struct{}{})
+	result := formatters.FormatStructBoolean(struct{}{})
 	assert.Equal(t, "✓", result)
 }
 

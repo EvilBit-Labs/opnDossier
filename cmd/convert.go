@@ -16,9 +16,9 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
+	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	"github.com/EvilBit-Labs/opnDossier/internal/export"
 	"github.com/EvilBit-Labs/opnDossier/internal/log"
-	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -508,12 +508,12 @@ func buildEffectiveFormat(flagFormat string, cfg *config.Config) string {
 func buildConversionOptions(
 	format string,
 	cfg *config.Config,
-) markdown.Options {
+) converter.Options {
 	// Start with defaults
-	opt := markdown.DefaultOptions()
+	opt := converter.DefaultOptions()
 
 	// Set format
-	opt.Format = markdown.Format(format)
+	opt.Format = converter.Format(format)
 
 	// Propagate quiet flag to suppress deprecation warnings
 	if cfg != nil && cfg.IsQuiet() {
@@ -534,7 +534,7 @@ func buildConversionOptions(
 
 	// Theme: config > default (no CLI flag for theme in convert command)
 	if cfg != nil && cfg.GetTheme() != "" {
-		opt.Theme = markdown.Theme(cfg.GetTheme())
+		opt.Theme = converter.Theme(cfg.GetTheme())
 	}
 
 	// Wrap width: CLI flag > config > default
@@ -657,7 +657,7 @@ func determineOutputPath(inputFile, outputFile, fileExt string, cfg *config.Conf
 func generateOutputByFormat(
 	ctx context.Context,
 	opnsense *model.OpnSenseDocument,
-	opt markdown.Options,
+	opt converter.Options,
 	logger *log.Logger,
 	preParsedTemplate *template.Template,
 ) (string, error) {
@@ -672,8 +672,8 @@ func generateOutputByFormat(
 		// Use markdown generator for JSON and YAML output
 		// The markdown generator supports JSON and YAML formats natively
 		// Set the format in options
-		opt.Format = markdown.Format(format)
-		generator, err := markdown.NewMarkdownGenerator(logger, opt)
+		opt.Format = converter.Format(format)
+		generator, err := converter.NewMarkdownGenerator(logger, opt)
 		if err != nil {
 			return "", fmt.Errorf("failed to create markdown generator: %w", err)
 		}
@@ -689,7 +689,7 @@ func generateOutputByFormat(
 func generateWithHybridGenerator(
 	ctx context.Context,
 	opnsense *model.OpnSenseDocument,
-	opt markdown.Options,
+	opt converter.Options,
 	logger *log.Logger,
 	preParsedTemplate *template.Template,
 ) (string, error) {
@@ -704,10 +704,10 @@ func generateWithHybridGenerator(
 	opt.UseTemplateEngine = useTemplateEngine
 
 	// Create the programmatic builder
-	builder := converter.NewMarkdownBuilder()
+	reportBuilder := builder.NewMarkdownBuilder()
 
 	// Create hybrid generator
-	hybridGen, err := markdown.NewHybridGenerator(builder, logger)
+	hybridGen, err := converter.NewHybridGenerator(reportBuilder, logger)
 	if err != nil {
 		return "", fmt.Errorf("failed to create hybrid generator: %w", err)
 	}
