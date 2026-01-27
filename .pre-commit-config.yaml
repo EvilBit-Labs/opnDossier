@@ -43,3 +43,4 @@ repos:
           - mdformat-toc
           - mdformat-front-matters
         types: [markdown]
+        exclude: \.golden\.md$
