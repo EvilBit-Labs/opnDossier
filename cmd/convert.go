@@ -453,19 +453,10 @@ func generateOutputByFormat(
 	format := strings.ToLower(string(opt.Format))
 
 	switch format {
-	case FormatMarkdown, "md":
-		// Use programmatic generator for markdown output
+	case FormatMarkdown, "md", FormatJSON, FormatYAML, "yml":
+		// Use programmatic generator for all formats
+		// The HybridGenerator handles markdown (via builder), JSON, and YAML natively
 		return generateWithProgrammaticGenerator(ctx, opnsense, opt, logger)
-	case FormatJSON, FormatYAML, "yml":
-		// Use markdown generator for JSON and YAML output
-		// The markdown generator supports JSON and YAML formats natively
-		// Set the format in options
-		opt.Format = converter.Format(format)
-		generator, err := converter.NewMarkdownGenerator(logger, opt)
-		if err != nil {
-			return "", fmt.Errorf("failed to create markdown generator: %w", err)
-		}
-		return generator.Generate(ctx, opnsense, opt)
 	default:
 		return "", fmt.Errorf("%w: %q (supported: markdown, md, json, yaml, yml)", ErrUnsupportedOutputFormat, format)
 	}
@@ -486,11 +477,6 @@ func generateWithProgrammaticGenerator(
 	if err != nil {
 		return "", fmt.Errorf("failed to create hybrid generator: %w", err)
 	}
-
-	// Force programmatic mode by clearing template-related options
-	opt.UseTemplateEngine = false
-	opt.TemplateName = ""
-	opt.TemplateDir = ""
 
 	// Generate the output
 	return hybridGen.Generate(ctx, opnsense, opt)

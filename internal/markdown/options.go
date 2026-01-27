@@ -1,5 +1,5 @@
 // Package markdown provides an extended API for generating markdown documentation
-// from OPNsense configurations with configurable options and pluggable templates.
+// from OPNsense configurations with configurable options.
 package markdown
 
 import "github.com/EvilBit-Labs/opnDossier/internal/converter"
@@ -39,8 +39,4 @@ func DefaultOptions() Options {
 }
 
 // ErrInvalidWrapWidth indicates that the wrap width setting is invalid.
-// ErrAuditTemplateDeferred indicates that an audit-related template was requested but audit mode is not available.
-var (
-	ErrInvalidWrapWidth      = converter.ErrInvalidWrapWidth
-	ErrAuditTemplateDeferred = converter.ErrAuditTemplateDeferred
-)
+var ErrInvalidWrapWidth = converter.ErrInvalidWrapWidth

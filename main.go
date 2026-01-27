@@ -3,21 +3,12 @@ package main
 
 import (
 	"context"
-	"embed"
 	"os"
 
 	"github.com/EvilBit-Labs/opnDossier/cmd"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
-	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/charmbracelet/fang"
 )
-
-// EmbeddedTemplates contains all template files embedded from internal/templates.
-// This variable is initialized at compile time with all .tmpl files from the templates directory.
-// It is passed to other packages during initialization via SetEmbeddedTemplates calls.
-//
-//go:embed internal/templates/*.tmpl internal/templates/reports/*.tmpl
-var EmbeddedTemplates embed.FS
 
 // Version information injected by GoReleaser via ldflags.
 var (
@@ -34,9 +25,6 @@ func init() {
 	if version != "dev" {
 		constants.Version = version
 	}
-
-	// Initialize embedded templates for the markdown package
-	converter.SetEmbeddedTemplates(EmbeddedTemplates)
 }
 
 // main starts the opnDossier CLI tool, executing the root command and exiting with status code 1 if an error occurs.

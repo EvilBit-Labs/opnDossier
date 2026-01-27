@@ -3,7 +3,6 @@ package converter
 import (
 	"errors"
 	"fmt"
-	"text/template"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/log"
 )
@@ -54,19 +53,13 @@ func (t Theme) String() string {
 	return string(t)
 }
 
-// Options contains configuration options for markdown generation.
+// Options contains configuration options for report generation.
 type Options struct {
 	// Format specifies the output format (markdown, json, yaml).
 	Format Format
 
 	// Comprehensive specifies whether to generate a comprehensive report.
 	Comprehensive bool
-
-	// Template specifies a custom Go text/template to use for rendering.
-	Template *template.Template
-
-	// TemplateName specifies the name of a built-in template to use.
-	TemplateName string
 
 	// Sections specifies which configuration sections to include.
 	Sections []string
@@ -92,26 +85,18 @@ type Options struct {
 	// IncludeMetadata controls whether to include generation metadata.
 	IncludeMetadata bool
 
-	// CustomFields allows for additional custom fields to be passed to templates.
+	// CustomFields allows for additional custom fields to be passed to generation.
 	CustomFields map[string]any
 
-	// TemplateDir specifies a custom directory for user template overrides.
-	TemplateDir string
-
-	// UseTemplateEngine specifies whether to use template-based generation instead of programmatic generation.
-	UseTemplateEngine bool
-
-	// SuppressWarnings suppresses deprecation and other non-critical warnings.
+	// SuppressWarnings suppresses non-critical warnings.
 	SuppressWarnings bool
 }
 
-// DefaultOptions returns an Options struct initialized with default settings for markdown generation.
+// DefaultOptions returns an Options struct initialized with default settings for report generation.
 func DefaultOptions() Options {
 	return Options{
 		Format:          FormatMarkdown,
 		Comprehensive:   false,
-		Template:        nil,
-		TemplateName:    "",
 		Sections:        nil,
 		Theme:           ThemeAuto,
 		WrapWidth:       0,
@@ -123,24 +108,14 @@ func DefaultOptions() Options {
 		CustomFields: map[string]any{
 			"IncludeTunables": false,
 		},
-		TemplateDir:       "",
-		UseTemplateEngine: false,
-		SuppressWarnings:  false,
+		SuppressWarnings: false,
 	}
 }
 
 var (
 	// ErrInvalidWrapWidth indicates that the wrap width setting is invalid.
 	ErrInvalidWrapWidth = errors.New("wrap width must be -1 (auto-detect), 0 (no wrapping), or positive")
-	// ErrAuditTemplateDeferred indicates that an audit-related template was requested but audit mode is not available.
-	ErrAuditTemplateDeferred = errors.New("audit templates (blue, red, blue-enhanced) are deferred to v2.1")
 )
-
-var deferredAuditTemplates = map[string]bool{
-	"blue":          true,
-	"red":           true,
-	"blue-enhanced": true,
-}
 
 // Validate checks if the options are valid.
 func (o Options) Validate() error {
@@ -150,20 +125,6 @@ func (o Options) Validate() error {
 
 	if o.WrapWidth < -1 {
 		return fmt.Errorf("%w: %d", ErrInvalidWrapWidth, o.WrapWidth)
-	}
-
-	if o.TemplateName != "" {
-		if deferredAuditTemplates[o.TemplateName] {
-			return fmt.Errorf(
-				"%w: template %q requires audit mode which is not yet available",
-				ErrAuditTemplateDeferred,
-				o.TemplateName,
-			)
-		}
-	}
-
-	if o.UseTemplateEngine && o.Format != FormatMarkdown {
-		return fmt.Errorf("template engine can only be used with markdown format, got: %s", o.Format)
 	}
 
 	return nil
@@ -184,17 +145,6 @@ func (o Options) WithFormat(format Format) Options {
 	return o
 }
 
-// WithTemplate sets a custom template.
-func (o Options) WithTemplate(tmpl *template.Template) Options {
-	o.Template = tmpl
-	return o
-}
-
-// WithTemplateName sets the name of a built-in template to use.
-func (o Options) WithTemplateName(name string) Options {
-	o.TemplateName = name
-	return o
-}
 
 // WithSections sets the sections to include in output.
 func (o Options) WithSections(sections ...string) Options {
@@ -261,17 +211,6 @@ func (o Options) WithComprehensive(enabled bool) Options {
 	return o
 }
 
-// WithTemplateDir sets the custom template directory for user overrides.
-func (o Options) WithTemplateDir(dir string) Options {
-	o.TemplateDir = dir
-	return o
-}
-
-// WithUseTemplateEngine sets whether to use template-based generation.
-func (o Options) WithUseTemplateEngine(useTemplate bool) Options {
-	o.UseTemplateEngine = useTemplate
-	return o
-}
 
 // WithSuppressWarnings enables or disables warning suppression.
 func (o Options) WithSuppressWarnings(suppress bool) Options {
