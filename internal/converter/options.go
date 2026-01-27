@@ -112,10 +112,8 @@ func DefaultOptions() Options {
 	}
 }
 
-var (
-	// ErrInvalidWrapWidth indicates that the wrap width setting is invalid.
-	ErrInvalidWrapWidth = errors.New("wrap width must be -1 (auto-detect), 0 (no wrapping), or positive")
-)
+// ErrInvalidWrapWidth indicates that the wrap width setting is invalid.
+var ErrInvalidWrapWidth = errors.New("wrap width must be -1 (auto-detect), 0 (no wrapping), or positive")
 
 // Validate checks if the options are valid.
 func (o Options) Validate() error {
@@ -144,7 +142,6 @@ func (o Options) WithFormat(format Format) Options {
 
 	return o
 }
-
 
 // WithSections sets the sections to include in output.
 func (o Options) WithSections(sections ...string) Options {
@@ -210,7 +207,6 @@ func (o Options) WithComprehensive(enabled bool) Options {
 	o.Comprehensive = enabled
 	return o
 }
-
 
 // WithSuppressWarnings enables or disables warning suppression.
 func (o Options) WithSuppressWarnings(suppress bool) Options {

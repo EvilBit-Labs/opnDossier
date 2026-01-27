@@ -68,7 +68,6 @@ func NewMarkdownGenerator(logger *log.Logger, _ Options) (Generator, error) {
 	return NewHybridGenerator(reportBuilder, logger)
 }
 
-
 // Generate creates documentation in the specified format from the provided OPNsense configuration.
 // Supported formats: markdown (default), json, yaml.
 func (g *HybridGenerator) Generate(_ context.Context, data *model.OpnSenseDocument, opts Options) (string, error) {
@@ -124,7 +123,11 @@ func (g *HybridGenerator) generateJSON(data *model.OpnSenseDocument) (string, er
 		return "", ErrNilConfiguration
 	}
 
-	jsonData, err := json.MarshalIndent(enrichedCfg, "", "  ") //nolint:musttag // EnrichedOpnSenseDocument has proper json tags
+	jsonData, err := json.MarshalIndent(
+		enrichedCfg,
+		"",
+		"  ",
+	) //nolint:musttag // EnrichedOpnSenseDocument has proper json tags
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal to JSON: %w", err)
 	}
