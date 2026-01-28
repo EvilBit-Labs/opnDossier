@@ -10,14 +10,6 @@ var Version = "1.0.0"
 const (
 	// Application metadata.
 	AppName = "opnDossier"
-	// TemplateDeprecationVersion is the version where template-mode deprecation started.
-	TemplateDeprecationVersion = "v2.0"
-	// TemplateRemovalVersion is the target version where template mode will be removed.
-	TemplateRemovalVersion = "v3.0"
-	// MigrationGuideURL is the canonical location of the migration guide.
-	MigrationGuideURL = "https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/migration-guide.md"
-	// DeprecationWarningEnabled globally enables deprecation warnings.
-	DeprecationWarningEnabled = true
 
 	// Default configuration values.
 	DefaultFormat  = "markdown"
@@ -77,15 +69,4 @@ const (
 	// Thresholds.
 	LargeRuleCountThreshold = 100
 	MaxReasonableComplexity = 1000
-
-	// Template file paths - relative to internal/templates/
-	// Main templates - used by convert/display commands (standard templates).
-	TemplateOpnSenseReportComprehensive = "opnsense_report_comprehensive.md.tmpl" // Used with --comprehensive flag
-	TemplateOpnSenseReport              = "opnsense_report.md.tmpl"               // Default template for convert/display
-
-	// Report templates in reports/ subdirectory - used by audit function.
-	TemplateStandardReport     = "reports/standard.md.tmpl"      // Audit mode: standard
-	TemplateBlueReport         = "reports/blue.md.tmpl"          // Audit mode: blue
-	TemplateRedReport          = "reports/red.md.tmpl"           // Audit mode: red
-	TemplateBlueEnhancedReport = "reports/blue_enhanced.md.tmpl" // Audit mode: blue-enhanced
 )

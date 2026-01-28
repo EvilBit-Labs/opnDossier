@@ -1,5 +1,5 @@
 // Package markdown provides an extended API for generating markdown documentation
-// from OPNsense configurations with configurable options and pluggable templates.
+// from OPNsense configurations with configurable options.
 package markdown
 
 import (
@@ -15,11 +15,4 @@ type Generator = converter.Generator
 // Deprecated: use converter.NewMarkdownGenerator instead.
 func NewMarkdownGenerator(logger *log.Logger, opts Options) (Generator, error) {
 	return converter.NewMarkdownGenerator(logger, opts)
-}
-
-// NewMarkdownGeneratorWithTemplates creates a new Generator with custom template directory support.
-//
-// Deprecated: use converter.NewMarkdownGeneratorWithTemplates instead.
-func NewMarkdownGeneratorWithTemplates(logger *log.Logger, templateDir string, opts Options) (Generator, error) {
-	return converter.NewMarkdownGeneratorWithTemplates(logger, templateDir, opts)
 }

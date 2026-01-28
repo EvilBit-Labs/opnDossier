@@ -20,38 +20,27 @@ import (
 // Included flags (affect output/display behavior):
 //   - theme: Terminal rendering theme (light, dark, auto)
 //   - wrapWidth: Text wrapping width for display
+//   - noWrap: Disable text wrapping
 //   - sections: Which sections to include in output
-//   - customTemplate: Path to custom template file
 //   - comprehensive: Whether to generate comprehensive reports
 //
-// Excluded flags (affect generation engine selection or internal state):
-//   - sharedIncludeTunables: Content flag, but rarely modified in tests
-//   - sharedTemplateCacheSize: Performance tuning, not modified in display tests
-//   - sharedUseTemplate: Engine selection flag, not relevant for display tests
-//   - sharedEngine: Engine selection flag, not relevant for display tests
-//   - sharedLegacy: Engine selection flag, not relevant for display tests
-//   - warnedAboutAbsoluteTemplatePath: Internal warning gate, should not be reset between tests
-//
 // Rationale: The snapshot focuses on flags that directly affect display output
-// and are commonly modified in display tests. Engine selection flags are excluded
-// because display tests typically work with already-generated content.
+// and are commonly modified in display tests.
 type sharedFlagSnapshot struct {
-	theme          string
-	wrapWidth      int
-	noWrap         bool
-	sections       []string
-	customTemplate string
-	comprehensive  bool
+	theme         string
+	wrapWidth     int
+	noWrap        bool
+	sections      []string
+	comprehensive bool
 }
 
 func captureSharedFlags() sharedFlagSnapshot {
 	return sharedFlagSnapshot{
-		theme:          sharedTheme,
-		wrapWidth:      sharedWrapWidth,
-		noWrap:         sharedNoWrap,
-		sections:       sharedSections,
-		customTemplate: sharedCustomTemplate,
-		comprehensive:  sharedComprehensive,
+		theme:         sharedTheme,
+		wrapWidth:     sharedWrapWidth,
+		noWrap:        sharedNoWrap,
+		sections:      sharedSections,
+		comprehensive: sharedComprehensive,
 	}
 }
 
@@ -60,7 +49,6 @@ func (s sharedFlagSnapshot) restore() {
 	sharedWrapWidth = s.wrapWidth
 	sharedNoWrap = s.noWrap
 	sharedSections = s.sections
-	sharedCustomTemplate = s.customTemplate
 	sharedComprehensive = s.comprehensive
 }
 

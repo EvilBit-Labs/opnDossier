@@ -52,11 +52,8 @@ WORKFLOW EXAMPLES:
   # Development workflow with verbose logging
   opnDossier --verbose convert config.xml --format json
 
-  # Configuration management workflow
-  opnDossier --verbose convert config.xml --theme dark
-
-  # Template customization workflow
-  opnDossier convert config.xml --custom-template /path/to/my-template.tmpl
+  # Generate comprehensive report
+  opnDossier convert config.xml --comprehensive
 
   # Validation workflow
   opnDossier validate config.xml && opnDossier convert config.xml -o documentation.md`,

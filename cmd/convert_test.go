@@ -2,12 +2,10 @@ package cmd
 
 import (
 	"bytes"
-	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-	"text/template"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
@@ -423,21 +421,6 @@ func TestConvertCmdWithValidXML(t *testing.T) {
 	}
 }
 
-func TestConvertCmdWithCacheError(t *testing.T) {
-	originalCacheSize := sharedTemplateCacheSize
-	t.Cleanup(func() {
-		sharedTemplateCacheSize = originalCacheSize
-	})
-	sharedTemplateCacheSize = 0
-
-	rootCmd := GetRootCmd()
-	rootCmd.SetArgs([]string{"convert", "/tmp/does-not-matter.xml"})
-
-	err := rootCmd.Execute()
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to create template cache with size 0")
-}
-
 func TestDetermineOutputPath(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -596,149 +579,4 @@ func findCommand(root *cobra.Command) *cobra.Command {
 	}
 
 	return nil
-}
-
-func TestTemplateCache(t *testing.T) {
-	// Create a temporary template file
-	tmpDir := t.TempDir()
-	templatePath := filepath.Join(tmpDir, "test.tmpl")
-	templateContent := `{{.Hostname}}`
-
-	err := os.WriteFile(templatePath, []byte(templateContent), 0o600)
-	if err != nil {
-		t.Fatalf("Failed to create test template file: %v", err)
-	}
-
-	// Create a new template cache
-	cache, err := NewTemplateCache()
-	require.NoError(t, err)
-
-	// Test 1: Load template for the first time
-	tmpl1, err := cache.Get(templatePath)
-	if err != nil {
-		t.Fatalf("Failed to load template: %v", err)
-	}
-	if tmpl1 == nil {
-		t.Fatal("Template should not be nil")
-	}
-
-	// Test 2: Load the same template again - should return cached version
-	tmpl2, err := cache.Get(templatePath)
-	if err != nil {
-		t.Fatalf("Failed to load cached template: %v", err)
-	}
-	if tmpl2 == nil {
-		t.Fatal("Cached template should not be nil")
-	}
-
-	// Test 3: Verify both templates are the same instance (cached)
-	if tmpl1 != tmpl2 {
-		t.Fatal("Templates should be the same instance when cached")
-	}
-
-	// Test 4: Test with empty path
-	_, err = cache.Get("")
-	if !errors.Is(err, ErrNoTemplateSpecified) {
-		t.Fatalf("Expected ErrNoTemplateSpecified, got: %v", err)
-	}
-
-	// Test 5: Test with non-existent file
-	_, err = cache.Get("/non/existent/path.tmpl")
-	if err == nil {
-		t.Fatal("Expected error for non-existent template file")
-	}
-
-	// Test 6: Verify cache size
-	if cache.Size() != 1 {
-		t.Fatalf("Expected cache size 1, got: %d", cache.Size())
-	}
-
-	// Test 7: Test cache clear
-	cache.Clear()
-	if cache.Size() != 0 {
-		t.Fatalf("Expected cache size 0 after clear, got: %d", cache.Size())
-	}
-}
-
-func TestTemplateCacheConcurrency(t *testing.T) {
-	// Create a temporary template file
-	tmpDir := t.TempDir()
-	templatePath := filepath.Join(tmpDir, "concurrent.tmpl")
-	templateContent := `{{.Hostname}}`
-
-	err := os.WriteFile(templatePath, []byte(templateContent), 0o600)
-	if err != nil {
-		t.Fatalf("Failed to create test template file: %v", err)
-	}
-
-	// Create a new template cache
-	cache, err := NewTemplateCache()
-	require.NoError(t, err)
-
-	// Store template pointers to verify they're all valid
-	templates := make([]*template.Template, 10)
-	errs := make([]error, 10)
-
-	// Test concurrent access to the same template
-	done := make(chan bool, 10)
-	for i := range 10 {
-		idx := i
-		go func() {
-			defer func() { done <- true }()
-
-			tmpl, err := cache.Get(templatePath)
-			templates[idx] = tmpl
-			errs[idx] = err
-		}()
-	}
-
-	// Wait for all goroutines to complete
-	for range 10 {
-		<-done
-	}
-
-	// Check results after all goroutines complete
-	for i, err := range errs {
-		if err != nil {
-			t.Errorf("Goroutine %d failed: %v", i, err)
-			continue
-		}
-		if templates[i] == nil {
-			t.Errorf("Goroutine %d returned nil template", i)
-			continue
-		}
-	}
-
-	// Verify cache size is 1 (only one template cached)
-	if cache.Size() != 1 {
-		t.Errorf("Expected cache size 1, got: %d", cache.Size())
-	}
-
-	// Test that subsequent calls return the same cached template
-	tmpl1, err := cache.Get(templatePath)
-	if err != nil {
-		t.Fatalf("Failed to get template after concurrent access: %v", err)
-	}
-	tmpl2, err := cache.Get(templatePath)
-	if err != nil {
-		t.Fatalf("Failed to get template after concurrent access: %v", err)
-	}
-
-	// With LRU cache, we should get the same template instance for subsequent calls
-	if tmpl1 != tmpl2 {
-		t.Error("Subsequent calls should return the same template instance")
-	}
-}
-
-func TestNewTemplateCacheError(t *testing.T) {
-	originalDefaultSize := defaultTemplateCacheSize
-	t.Cleanup(func() {
-		defaultTemplateCacheSize = originalDefaultSize
-	})
-	defaultTemplateCacheSize = 0
-
-	cache, err := NewTemplateCache()
-	require.Error(t, err)
-	assert.Nil(t, cache)
-	assert.Contains(t, err.Error(), "failed to create template cache with default size 0")
 }
