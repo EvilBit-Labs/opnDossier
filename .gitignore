@@ -62,6 +62,9 @@ out/
 .vscode/
 *.code-workspace
 
+## Claude Code
+.claude/settings.local.json
+
 ## Vim
 *.swp
 *.swo
