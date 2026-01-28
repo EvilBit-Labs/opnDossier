@@ -347,7 +347,7 @@ func loadTestDataFromFile(t *testing.T, filename string) *model.OpnSenseDocument
 	require.NoError(t, err, "Failed to read test data file: %s", filename)
 
 	var doc model.OpnSenseDocument
-	err = json.Unmarshal(data, &doc) //nolint:musttag // JSON tags not required for test data
+	err = json.Unmarshal(data, &doc)
 	require.NoError(t, err, "Failed to unmarshal test data: %s", filename)
 
 	return &doc
