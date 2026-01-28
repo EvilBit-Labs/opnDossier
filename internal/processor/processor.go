@@ -32,10 +32,10 @@ type CoreProcessor struct {
 }
 
 // NewCoreProcessor returns a new CoreProcessor instance with a validator and a markdown generator initialized.
-// Returns an error if the markdown generator cannot be created.
+// NewCoreProcessor creates and returns a CoreProcessor configured with a markdown generator (using converter.DefaultOptions) and a new validator.
+// It returns an error if the markdown generator cannot be created.
 func NewCoreProcessor() (*CoreProcessor, error) {
-	opts := converter.DefaultOptions()
-	generator, err := converter.NewMarkdownGenerator(nil, opts)
+	generator, err := converter.NewMarkdownGenerator(nil, converter.DefaultOptions())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create markdown generator: %w", err)
 	}

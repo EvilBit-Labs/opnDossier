@@ -12,12 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Note: Embedded templates are set up by main.go during initialization
-// Tests should use the same embedded templates that are available at runtime
-
-// TestMain sets up the embedded templates for all tests in this package.
+// TestMain is the test entry point for the markdown package.
 func TestMain(m *testing.M) {
-	// Run the tests and exit with the appropriate code
 	os.Exit(m.Run())
 }
 
@@ -143,8 +139,6 @@ func TestOptions(t *testing.T) {
 		assert.False(t, opts.Compact)
 		assert.True(t, opts.IncludeMetadata)
 		assert.NotNil(t, opts.CustomFields)
-		assert.False(t, opts.UseTemplateEngine)
-		assert.False(t, opts.SuppressWarnings, "SuppressWarnings should default to false")
 	})
 
 	t.Run("options validation", func(t *testing.T) {
@@ -160,43 +154,6 @@ func TestOptions(t *testing.T) {
 		opts = DefaultOptions()
 		opts.WrapWidth = -2
 		require.Error(t, opts.Validate())
-
-		// Invalid template engine with non-markdown format
-		opts = DefaultOptions()
-		opts.Format = FormatJSON
-		opts.UseTemplateEngine = true
-		require.Error(t, opts.Validate())
-
-		// Valid template engine with markdown format
-		opts = DefaultOptions()
-		opts.Format = FormatMarkdown
-		opts.UseTemplateEngine = true
-		require.NoError(t, opts.Validate())
-
-		// Deferred audit templates should be blocked (v2.1)
-		deferredTemplates := []string{"blue", "red", "blue-enhanced"}
-		for _, tmpl := range deferredTemplates {
-			opts = DefaultOptions()
-			opts.TemplateName = tmpl
-			err := opts.Validate()
-			require.Error(t, err, "template %q should be blocked", tmpl)
-			require.ErrorIs(
-				t,
-				err,
-				ErrAuditTemplateDeferred,
-				"template %q should return ErrAuditTemplateDeferred",
-				tmpl,
-			)
-			assert.Contains(t, err.Error(), "deferred to v2.1", "error message should mention v2.1 deferral")
-		}
-
-		// Valid template names should pass
-		validTemplates := []string{"", "standard", "comprehensive"}
-		for _, tmpl := range validTemplates {
-			opts = DefaultOptions()
-			opts.TemplateName = tmpl
-			require.NoError(t, opts.Validate(), "template %q should be allowed", tmpl)
-		}
 	})
 
 	t.Run("options fluent interface", func(t *testing.T) {
@@ -209,8 +166,7 @@ func TestOptions(t *testing.T) {
 			WithEmojis(false).
 			WithCompact(true).
 			WithMetadata(false).
-			WithCustomField("test", "value").
-			WithUseTemplateEngine(true)
+			WithCustomField("test", "value")
 
 		assert.Equal(t, FormatJSON, opts.Format)
 		assert.Equal(t, ThemeDark, opts.Theme)
@@ -221,7 +177,6 @@ func TestOptions(t *testing.T) {
 		assert.True(t, opts.Compact)
 		assert.False(t, opts.IncludeMetadata)
 		assert.Equal(t, "value", opts.CustomFields["test"])
-		assert.True(t, opts.UseTemplateEngine)
 	})
 
 	t.Run("validation logging on invalid inputs", func(t *testing.T) {
@@ -231,28 +186,6 @@ func TestOptions(t *testing.T) {
 
 		// Should return unchanged options when validation fails
 		assert.Equal(t, originalOpts.Format, opts.Format)
-	})
-
-	t.Run("UseTemplateEngine field", func(t *testing.T) {
-		// Test default value
-		opts := DefaultOptions()
-		assert.False(t, opts.UseTemplateEngine)
-
-		// Test setting to true
-		opts = opts.WithUseTemplateEngine(true)
-		assert.True(t, opts.UseTemplateEngine)
-
-		// Test setting to false
-		opts = opts.WithUseTemplateEngine(false)
-		assert.False(t, opts.UseTemplateEngine)
-
-		// Test validation with markdown format
-		opts = DefaultOptions().WithFormat(FormatMarkdown).WithUseTemplateEngine(true)
-		require.NoError(t, opts.Validate())
-
-		// Test validation with non-markdown format
-		opts = DefaultOptions().WithFormat(FormatJSON).WithUseTemplateEngine(true)
-		require.Error(t, opts.Validate())
 	})
 }
 

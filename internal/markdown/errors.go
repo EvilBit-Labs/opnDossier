@@ -8,13 +8,4 @@ var (
 
 	// ErrNilConfiguration is returned when the input OPNsense configuration is nil.
 	ErrNilConfiguration = converter.ErrNilConfiguration
-
-	// ErrTemplateNotFound is returned when a requested template is not found.
-	ErrTemplateNotFound = converter.ErrTemplateNotFound
-
-	// ErrTemplateExecution is returned when template execution fails.
-	ErrTemplateExecution = converter.ErrTemplateExecution
-
-	// ErrUnsupportedDataType is returned when the data type for markdown generation is unsupported.
-	ErrUnsupportedDataType = converter.ErrUnsupportedDataType
 )

@@ -68,26 +68,26 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 			xmlFile: "testdata/config.xml",
 			expectedSections: []string{
 				"# OPNsense Configuration Summary",
-				"## Interfaces",
-				"## Firewall Rules",
-				"## NAT Configuration",
-				"## DHCP Services",
+				"## System Configuration",
+				"## Network Configuration",
+				"## Security Configuration",
+				"## Service Configuration",
 			},
 			expectedSystemMarkers: []string{
 				"**Hostname**: TestHost",
 				"**Platform**: OPNsense",
 			},
 			expectedNetworkMarkers: []string{
-				"## Interfaces",
+				"## System Configuration",
 				"wan",
 				"lan",
 			},
 			expectedSecurityMarkers: []string{
-				"## NAT Configuration",
+				"## Security Configuration",
 				"automatic",
 			},
 			expectedServiceMarkers: []string{
-				"## DHCP Services",
+				"## Service Configuration",
 				"## DNS Resolver",
 			},
 			expectedSysctlKeys: []string{
@@ -99,28 +99,28 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 			xmlFile: "testdata/sample.config.1.xml",
 			expectedSections: []string{
 				"# OPNsense Configuration Summary",
-				"## Interfaces",
-				"## Firewall Rules",
-				"## NAT Configuration",
-				"## DHCP Services",
+				"## System Configuration",
+				"## Network Configuration",
+				"## Security Configuration",
+				"## Service Configuration",
 			},
 			expectedSystemMarkers: []string{
 				"**Hostname**: TestHost",
 				"**Platform**: OPNsense",
 			},
 			expectedNetworkMarkers: []string{
-				"## Interfaces",
+				"## System Configuration",
 				"wan",
 				"lan",
 				"192.168.1.1",
 			},
 			expectedSecurityMarkers: []string{
-				"## NAT Configuration",
+				"## Security Configuration",
 				"automatic",
 				"Default allow LAN to any rule",
 			},
 			expectedServiceMarkers: []string{
-				"## DHCP Services",
+				"## Service Configuration",
 				"## DNS Resolver",
 				"192.168.1.100",
 			},
@@ -134,24 +134,24 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 			xmlFile: "testdata/sample.config.2.xml",
 			expectedSections: []string{
 				"# OPNsense Configuration Summary",
-				"## Interfaces",
-				"## Firewall Rules",
-				"## NAT Configuration",
-				"## DHCP Services",
+				"## System Configuration",
+				"## Network Configuration",
+				"## Security Configuration",
+				"## Service Configuration",
 			},
 			expectedSystemMarkers: []string{
 				"**Platform**: OPNsense",
 			},
 			expectedNetworkMarkers: []string{
-				"## Interfaces",
+				"## System Configuration",
 				"wan",
 				"lan",
 			},
 			expectedSecurityMarkers: []string{
-				"## NAT Configuration",
+				"## Security Configuration",
 			},
 			expectedServiceMarkers: []string{
-				"## DHCP Services",
+				"## Service Configuration",
 			},
 			expectedSysctlKeys: []string{
 				// Will be populated based on actual content
@@ -162,24 +162,24 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 			xmlFile: "testdata/sample.config.3.xml",
 			expectedSections: []string{
 				"# OPNsense Configuration Summary",
-				"## Interfaces",
-				"## Firewall Rules",
-				"## NAT Configuration",
-				"## DHCP Services",
+				"## System Configuration",
+				"## Network Configuration",
+				"## Security Configuration",
+				"## Service Configuration",
 			},
 			expectedSystemMarkers: []string{
 				"**Platform**: OPNsense",
 			},
 			expectedNetworkMarkers: []string{
-				"## Interfaces",
+				"## System Configuration",
 				"wan",
 				"lan",
 			},
 			expectedSecurityMarkers: []string{
-				"## NAT Configuration",
+				"## Security Configuration",
 			},
 			expectedServiceMarkers: []string{
-				"## DHCP Services",
+				"## Service Configuration",
 			},
 			expectedSysctlKeys: []string{
 				// Will be populated based on actual content
@@ -562,7 +562,7 @@ func TestInterfaceConfigurationDetail(t *testing.T) {
 	require.NotEmpty(t, result, "Generated markdown should not be empty")
 
 	// Test interfaces table format (table-based instead of individual sections)
-	assert.Contains(t, result, "## Interfaces", "Should contain interfaces section")
+	assert.Contains(t, result, "## System Configuration", "Should contain interfaces section")
 	assert.Contains(t, result, "em0", "Should show WAN physical interface")
 	assert.Contains(t, result, "em1", "Should show LAN physical interface")
 	assert.Contains(t, result, "192.168.1.1", "Should show LAN IPv4 address")
@@ -599,7 +599,7 @@ func TestFirewallRulesFormatting(t *testing.T) {
 	require.NotEmpty(t, result, "Generated markdown should not be empty")
 
 	// Test firewall rules section
-	assert.Contains(t, result, "## Firewall Rules", "Should contain firewall rules section")
+	assert.Contains(t, result, "## Network Configuration", "Should contain firewall rules section")
 
 	// Test table headers based on actual template output
 	expectedHeaders := []string{"Action", "Proto", "Source", "Destination", "Description"}
@@ -691,43 +691,6 @@ func TestMarkdownGenerator_Integration(t *testing.T) {
 		assert.NotEmpty(t, result)
 		assert.Contains(t, result, "test-host")
 		assert.Contains(t, result, "WAN Interface")
-	})
-}
-
-func TestTemplateRendering_Integration(t *testing.T) {
-	cfg := &model.OpnSenseDocument{
-		System: model.System{
-			Hostname: "template-test",
-			Domain:   "test.local",
-		},
-	}
-
-	ctx := context.Background()
-
-	t.Run("standard template", func(t *testing.T) {
-		opts := DefaultOptions()
-		generator, err := NewMarkdownGenerator(nil, opts)
-		require.NoError(t, err)
-
-		opts = DefaultOptions().WithFormat(FormatMarkdown)
-		result, err := generator.Generate(ctx, cfg, opts)
-
-		require.NoError(t, err)
-		assert.Contains(t, result, "template-test")
-		assert.Contains(t, result, "test.local")
-	})
-
-	t.Run("comprehensive template", func(t *testing.T) {
-		opts := DefaultOptions()
-		generator, err := NewMarkdownGenerator(nil, opts)
-		require.NoError(t, err)
-
-		opts = DefaultOptions().WithFormat(FormatMarkdown).WithComprehensive(true)
-		result, err := generator.Generate(ctx, cfg, opts)
-
-		require.NoError(t, err)
-		assert.Contains(t, result, "template-test")
-		assert.Contains(t, result, "test.local")
 	})
 }
 

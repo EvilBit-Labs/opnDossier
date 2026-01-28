@@ -87,8 +87,7 @@ opndossier/
 │   │   ├── firewall/                 # Firewall compliance
 │   │   ├── sans/                     # SANS compliance
 │   │   └── stig/                     # STIG compliance
-│   ├── processor/                    # Data processing
-│   ├── templates/                    # Output templates
+│   ├── processor/                    # Data processing and report generation
 │   └── validator/                    # Data validation
 ├── pkg/                              # Public packages (if any)
 ├── testdata/                         # Test data and fixtures
@@ -187,6 +186,22 @@ import (
 )
 ```
 
+### 5.6 Thread Safety
+
+When using `sync.RWMutex` to protect struct fields:
+
+- ALL read methods need `RLock()`, not just write methods
+- Go's `sync.RWMutex` is NOT reentrant - create internal `*Unsafe()` helpers
+- Example pattern from `internal/processor/report.go`:
+
+```go
+func (r *Report) TotalFindings() int {
+    r.mu.RLock()
+    defer r.mu.RUnlock()
+    return r.totalFindingsUnsafe()  // Internal helper, no lock
+}
+```
+
 ---
 
 ## 6. Data Processing Standards
@@ -216,6 +231,8 @@ opndossier convert config.xml --format yaml --force
 | Standard (ops)  | Operations | General configuration overview        |
 | Blue (defense)  | Blue Team  | Clarity, grouping, actionability      |
 | Red (adversary) | Red Team   | Target prioritization, pivot surfaces |
+
+All report generation uses programmatic Go code via `builder.MarkdownBuilder` (no template system).
 
 ---
 
@@ -430,6 +447,7 @@ CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o opnDossier ./main.go
 11. Prefer structured config data + audit overlays over flat summary tables
 12. Validate markdown with `mdformat` and `markdownlint-cli2`
 13. **CRITICAL: Tasks are NOT complete until `just ci-check` passes**
+14. Place `//nolint:` directives on SEPARATE LINE above call (inline gets stripped by gofumpt)
 
 ### 12.2 Code Review Checklist
 
