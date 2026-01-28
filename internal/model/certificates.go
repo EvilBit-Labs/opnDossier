@@ -1,16 +1,12 @@
-// Package model defines the data structures for OPNsense configurations.
+// Package model re-exports types from internal/schema for backward compatibility.
 package model
 
 import (
-	"encoding/xml"
+	"github.com/EvilBit-Labs/opnDossier/internal/schema"
 )
 
 // CertificateAuthority represents certificate authority configuration.
-type CertificateAuthority struct {
-	XMLName xml.Name `xml:"ca" json:"-" yaml:"-"`
-}
+type CertificateAuthority = schema.CertificateAuthority
 
 // DHCPv6Server represents DHCPv6 server configuration.
-type DHCPv6Server struct {
-	XMLName xml.Name `xml:"dhcpdv6" json:"-" yaml:"-"`
-}
+type DHCPv6Server = schema.DHCPv6Server

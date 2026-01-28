@@ -1,6 +1,8 @@
 //go:build completeness
 
-package model
+// Package modeltest provides testing utilities for verifying model completeness
+// against OPNsense XML configuration files.
+package modeltest
 
 import (
 	"errors"
@@ -11,6 +13,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/clbanning/mxj"
 )
 
@@ -23,6 +26,8 @@ var (
 	ErrIncompleteModel = errors.New("XML contains fields not represented in model")
 	// ErrInvalidFilePath is returned when the filepath is invalid or contains path traversal
 	ErrInvalidFilePath = errors.New("invalid filepath")
+	// ErrUnsupportedCharset is returned when an unsupported charset is encountered
+	ErrUnsupportedCharset = errors.New("unsupported charset")
 )
 
 // validateFilePath checks that the provided file path is safe, does not contain unsafe path traversal, resolves to an absolute path, and points to an existing regular file. Returns an error if validation fails.
@@ -56,7 +61,8 @@ func CheckModelCompleteness(filePath string) error {
 	}
 
 	// Read the XML file
-	data, err := os.ReadFile(filePath) //nolint:gosec // filePath is validated by validateFilePath
+	//nolint:gosec // filePath is validated by validateFilePath
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("%w: %s: %v", ErrFailedToReadFile, filePath, err)
 	}
@@ -99,7 +105,7 @@ func CheckModelCompleteness(filePath string) error {
 	}
 
 	// Get all expected paths from our Go model
-	modelPaths := getModelPaths(reflect.TypeOf(OpnSenseDocument{}), "")
+	modelPaths := GetModelPaths(reflect.TypeOf(model.OpnSenseDocument{}), "")
 
 	// Find missing paths (XML paths not in our model)
 	missingPaths := findMissingPaths(strippedXMLPaths, modelPaths)
@@ -124,7 +130,8 @@ func GetModelCompletenessDetails(
 	}
 
 	// Read the XML file
-	data, err := os.ReadFile(filePath) //nolint:gosec // filePath is validated by validateFilePath
+	//nolint:gosec // filePath is validated by validateFilePath
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("%w: %s: %v", ErrFailedToReadFile, filePath, err)
 	}
@@ -167,7 +174,7 @@ func GetModelCompletenessDetails(
 	}
 
 	// Get all expected paths from our Go model
-	modelPaths = getModelPaths(reflect.TypeOf(OpnSenseDocument{}), "")
+	modelPaths = GetModelPaths(reflect.TypeOf(model.OpnSenseDocument{}), "")
 
 	// Find missing paths (XML paths not in our model)
 	missingPaths = findMissingPaths(strippedXMLPaths, modelPaths)
@@ -200,9 +207,9 @@ func getAllXMLPaths(data map[string]interface{}, prefix string) map[string]bool 
 	return paths
 }
 
-// getModelPaths returns all expected XML element and attribute paths represented by a Go struct type.
+// GetModelPaths returns all expected XML element and attribute paths represented by a Go struct type.
 // It recursively traverses the struct, interpreting XML tags (including wildcards, attributes, and nested elements) to build a set of dot-separated paths that describe the model's structure.
-func getModelPaths(t reflect.Type, prefix string) map[string]bool {
+func GetModelPaths(t reflect.Type, prefix string) map[string]bool {
 	paths := make(map[string]bool)
 
 	// Handle pointer types
@@ -246,7 +253,7 @@ func getModelPaths(t reflect.Type, prefix string) map[string]bool {
 			if field.Type.Kind() == reflect.Map {
 				// For map[string]Interface, process the Interface type
 				valueType := field.Type.Elem()
-				nestedPaths := getModelPaths(valueType, currentPath)
+				nestedPaths := GetModelPaths(valueType, currentPath)
 				for path := range nestedPaths {
 					paths[path] = true
 				}
@@ -281,7 +288,7 @@ func getModelPaths(t reflect.Type, prefix string) map[string]bool {
 				// For slices, process the element type with the child path
 				if field.Type.Kind() == reflect.Slice || field.Type.Kind() == reflect.Array {
 					elementType := field.Type.Elem()
-					nestedPaths := getModelPaths(elementType, childPath)
+					nestedPaths := GetModelPaths(elementType, childPath)
 					for path := range nestedPaths {
 						paths[path] = true
 					}
@@ -308,14 +315,14 @@ func getModelPaths(t reflect.Type, prefix string) map[string]bool {
 
 		// Recursively process nested structs, pointers, and slices
 		if field.Type.Kind() == reflect.Struct || field.Type.Kind() == reflect.Ptr {
-			nestedPaths := getModelPaths(field.Type, currentPath)
+			nestedPaths := GetModelPaths(field.Type, currentPath)
 			for path := range nestedPaths {
 				paths[path] = true
 			}
 		} else if field.Type.Kind() == reflect.Slice || field.Type.Kind() == reflect.Array {
 			// For slices/arrays, process the element type
 			elementType := field.Type.Elem()
-			nestedPaths := getModelPaths(elementType, currentPath)
+			nestedPaths := GetModelPaths(elementType, currentPath)
 			for path := range nestedPaths {
 				paths[path] = true
 			}

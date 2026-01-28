@@ -302,7 +302,7 @@ func loadBenchmarkData(b *testing.B) *model.OpnSenseDocument {
 	}
 
 	var doc model.OpnSenseDocument
-	err = json.Unmarshal(data, &doc) //nolint:musttag // JSON tags not required for test data
+	err = json.Unmarshal(data, &doc)
 	if err != nil {
 		b.Fatalf("Failed to unmarshal benchmark data: %v", err)
 	}
@@ -522,7 +522,7 @@ func loadTestDataForPerformance(t *testing.T) *model.OpnSenseDocument {
 	testdataPath := filepath.Join("testdata", "complete.json")
 	if data, err := os.ReadFile(testdataPath); err == nil {
 		var doc model.OpnSenseDocument
-		if err := json.Unmarshal(data, &doc); err == nil { //nolint:musttag // JSON tags not required for test data
+		if err := json.Unmarshal(data, &doc); err == nil {
 			return &doc
 		}
 	}
