@@ -1,8 +1,9 @@
-package model
+package enrichment
 
 import (
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/schema"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -10,7 +11,7 @@ import (
 func TestEnrichDocument(t *testing.T) {
 	tests := []struct {
 		name     string
-		cfg      *OpnSenseDocument
+		cfg      *schema.OpnSenseDocument
 		expected *EnrichedOpnSenseDocument
 	}{
 		{
@@ -20,11 +21,11 @@ func TestEnrichDocument(t *testing.T) {
 		},
 		{
 			name: "basic configuration",
-			cfg: &OpnSenseDocument{
-				System: System{
+			cfg: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "test-firewall",
 					Domain:   "example.com",
-					WebGUI: WebGUIConfig{
+					WebGUI: schema.WebGUIConfig{
 						Protocol: "https",
 					},
 					SSH: struct {
@@ -32,7 +33,7 @@ func TestEnrichDocument(t *testing.T) {
 					}{
 						Group: "admin",
 					},
-					User: []User{
+					User: []schema.User{
 						{
 							Name:      "admin",
 							UID:       "1000",
@@ -41,7 +42,7 @@ func TestEnrichDocument(t *testing.T) {
 							Descr:     "Administrator",
 						},
 					},
-					Group: []Group{
+					Group: []schema.Group{
 						{
 							Name:        "admin",
 							Gid:         "1000",
@@ -52,8 +53,8 @@ func TestEnrichDocument(t *testing.T) {
 						},
 					},
 				},
-				Interfaces: Interfaces{
-					Items: map[string]Interface{
+				Interfaces: schema.Interfaces{
+					Items: map[string]schema.Interface{
 						"wan": {
 							Enable:      "1",
 							IPAddr:      "192.168.1.1",
@@ -68,39 +69,39 @@ func TestEnrichDocument(t *testing.T) {
 						},
 					},
 				},
-				Filter: Filter{
-					Rule: []Rule{
+				Filter: schema.Filter{
+					Rule: []schema.Rule{
 						{
 							Type:        "pass",
-							Interface:   InterfaceList{"wan"},
+							Interface:   schema.InterfaceList{"wan"},
 							IPProtocol:  "tcp",
-							Source:      Source{Network: "any"},
-							Destination: Destination{Network: "any"},
+							Source:      schema.Source{Network: "any"},
+							Destination: schema.Destination{Network: "any"},
 							Descr:       "Test rule",
 						},
 					},
 				},
-				Dhcpd: Dhcpd{
-					Items: map[string]DhcpdInterface{
+				Dhcpd: schema.Dhcpd{
+					Items: map[string]schema.DhcpdInterface{
 						"lan": {
 							Enable: "1",
-							Range: Range{
+							Range: schema.Range{
 								From: "10.0.0.100",
 								To:   "10.0.0.200",
 							},
 						},
 					},
 				},
-				Unbound: Unbound{
+				Unbound: schema.Unbound{
 					Enable: "1",
 				},
-				Snmpd: Snmpd{
+				Snmpd: schema.Snmpd{
 					ROCommunity: "public",
 				},
-				Ntpd: Ntpd{
+				Ntpd: schema.Ntpd{
 					Prefer: "pool.ntp.org",
 				},
-				Sysctl: []SysctlItem{
+				Sysctl: []schema.SysctlItem{
 					{
 						Tunable: "net.inet.ip.forwarding",
 						Value:   "1",
@@ -109,7 +110,7 @@ func TestEnrichDocument(t *testing.T) {
 				},
 			},
 			expected: &EnrichedOpnSenseDocument{
-				OpnSenseDocument: &OpnSenseDocument{},
+				OpnSenseDocument: &schema.OpnSenseDocument{},
 				Statistics: &Statistics{
 					TotalInterfaces:    2,
 					InterfacesByType:   map[string]int{"wan": 1, "lan": 1},
@@ -197,10 +198,10 @@ func TestEnrichDocument(t *testing.T) {
 }
 
 func TestGenerateStatistics(t *testing.T) {
-	cfg := &OpnSenseDocument{
-		System: System{
+	cfg := &schema.OpnSenseDocument{
+		System: schema.System{
 			Hostname: "test-firewall",
-			WebGUI: WebGUIConfig{
+			WebGUI: schema.WebGUIConfig{
 				Protocol: "https",
 			},
 			SSH: struct {
@@ -209,8 +210,8 @@ func TestGenerateStatistics(t *testing.T) {
 				Group: "admin",
 			},
 		},
-		Interfaces: Interfaces{
-			Items: map[string]Interface{
+		Interfaces: schema.Interfaces{
+			Items: map[string]schema.Interface{
 				"wan": {
 					Enable:      "1",
 					IPAddr:      "192.168.1.1",
@@ -225,22 +226,22 @@ func TestGenerateStatistics(t *testing.T) {
 				},
 			},
 		},
-		Filter: Filter{
-			Rule: []Rule{
+		Filter: schema.Filter{
+			Rule: []schema.Rule{
 				{
 					Type:        "pass",
-					Interface:   InterfaceList{"wan"},
+					Interface:   schema.InterfaceList{"wan"},
 					IPProtocol:  "tcp",
-					Source:      Source{Network: "any"},
-					Destination: Destination{Network: "any"},
+					Source:      schema.Source{Network: "any"},
+					Destination: schema.Destination{Network: "any"},
 					Descr:       "Test rule",
 				},
 				{
 					Type:        "block",
-					Interface:   InterfaceList{"lan"},
+					Interface:   schema.InterfaceList{"lan"},
 					IPProtocol:  "tcp",
-					Source:      Source{Network: "any"},
-					Destination: Destination{Network: "any"},
+					Source:      schema.Source{Network: "any"},
+					Destination: schema.Destination{Network: "any"},
 					Descr:       "Block rule",
 				},
 			},
@@ -260,25 +261,25 @@ func TestGenerateStatistics(t *testing.T) {
 }
 
 func TestGenerateAnalysis(t *testing.T) {
-	cfg := &OpnSenseDocument{
-		System: System{
-			WebGUI: WebGUIConfig{
+	cfg := &schema.OpnSenseDocument{
+		System: schema.System{
+			WebGUI: schema.WebGUIConfig{
 				Protocol: "http", // Insecure
 			},
 		},
-		Filter: Filter{
-			Rule: []Rule{
+		Filter: schema.Filter{
+			Rule: []schema.Rule{
 				{
 					Type:        "block",
-					Interface:   InterfaceList{"wan"},
-					Source:      Source{Network: "any"},
-					Destination: Destination{Network: "any"},
+					Interface:   schema.InterfaceList{"wan"},
+					Source:      schema.Source{Network: "any"},
+					Destination: schema.Destination{Network: "any"},
 				},
 				{
 					Type:        "pass",
-					Interface:   InterfaceList{"wan"},
-					Source:      Source{Network: "any"},
-					Destination: Destination{Network: "any"},
+					Interface:   schema.InterfaceList{"wan"},
+					Source:      schema.Source{Network: "any"},
+					Destination: schema.Destination{Network: "any"},
 					Descr:       "", // Missing description
 				},
 			},
@@ -299,14 +300,14 @@ func TestGenerateAnalysis(t *testing.T) {
 func TestGenerateSecurityAssessment(t *testing.T) {
 	tests := []struct {
 		name     string
-		cfg      *OpnSenseDocument
+		cfg      *schema.OpnSenseDocument
 		expected int
 	}{
 		{
 			name: "secure configuration",
-			cfg: &OpnSenseDocument{
-				System: System{
-					WebGUI: WebGUIConfig{Protocol: "https"},
+			cfg: &schema.OpnSenseDocument{
+				System: schema.System{
+					WebGUI: schema.WebGUIConfig{Protocol: "https"},
 					SSH: struct {
 						Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
 					}{Group: "admin"},
@@ -316,9 +317,9 @@ func TestGenerateSecurityAssessment(t *testing.T) {
 		},
 		{
 			name: "insecure configuration",
-			cfg: &OpnSenseDocument{
-				System: System{
-					WebGUI: WebGUIConfig{Protocol: "http"},
+			cfg: &schema.OpnSenseDocument{
+				System: schema.System{
+					WebGUI: schema.WebGUIConfig{Protocol: "http"},
 					SSH: struct {
 						Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
 					}{Group: ""},
@@ -337,9 +338,9 @@ func TestGenerateSecurityAssessment(t *testing.T) {
 }
 
 func TestCalculateSecurityScore(t *testing.T) {
-	cfg := &OpnSenseDocument{
-		System: System{
-			WebGUI: WebGUIConfig{Protocol: "https"},
+	cfg := &schema.OpnSenseDocument{
+		System: schema.System{
+			WebGUI: schema.WebGUIConfig{Protocol: "https"},
 			SSH: struct {
 				Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
 			}{Group: "admin"},
@@ -369,9 +370,9 @@ func TestCalculateConfigComplexity(t *testing.T) {
 
 func TestDynamicInterfaceCounting(t *testing.T) {
 	// Test with a configuration that has wan and lan interfaces
-	cfg := &OpnSenseDocument{
-		Interfaces: Interfaces{
-			Items: map[string]Interface{
+	cfg := &schema.OpnSenseDocument{
+		Interfaces: schema.Interfaces{
+			Items: map[string]schema.Interface{
 				"wan": {
 					Enable:      "1",
 					IPAddr:      "dhcp",
@@ -397,18 +398,18 @@ func TestDynamicInterfaceCounting(t *testing.T) {
 				},
 			},
 		},
-		Dhcpd: Dhcpd{
-			Items: map[string]DhcpdInterface{
+		Dhcpd: schema.Dhcpd{
+			Items: map[string]schema.DhcpdInterface{
 				"lan": {
 					Enable: "1",
-					Range: Range{
+					Range: schema.Range{
 						From: "192.168.1.100",
 						To:   "192.168.1.199",
 					},
 				},
 				"opt0": {
 					Enable: "1",
-					Range: Range{
+					Range: schema.Range{
 						From: "10.0.0.100",
 						To:   "10.0.0.199",
 					},
@@ -534,9 +535,9 @@ func TestDynamicInterfaceCounting(t *testing.T) {
 
 func TestDynamicInterfaceAnalysis(t *testing.T) {
 	// Test with a configuration that has wan, lan, and opt0 interfaces
-	cfg := &OpnSenseDocument{
-		Interfaces: Interfaces{
-			Items: map[string]Interface{
+	cfg := &schema.OpnSenseDocument{
+		Interfaces: schema.Interfaces{
+			Items: map[string]schema.Interface{
 				"wan": {
 					Enable: "1",
 				},
@@ -548,14 +549,14 @@ func TestDynamicInterfaceAnalysis(t *testing.T) {
 				},
 			},
 		},
-		Filter: Filter{
-			Rule: []Rule{
+		Filter: schema.Filter{
+			Rule: []schema.Rule{
 				{
-					Interface: InterfaceList{"wan"},
+					Interface: schema.InterfaceList{"wan"},
 					Type:      "pass",
 				},
 				{
-					Interface: InterfaceList{"lan"},
+					Interface: schema.InterfaceList{"lan"},
 					Type:      "pass",
 				},
 				// Note: opt0 is not used in any rules
@@ -575,9 +576,9 @@ func TestDynamicInterfaceAnalysis(t *testing.T) {
 	}
 
 	// Test with a configuration that has no unused interfaces
-	cfg2 := &OpnSenseDocument{
-		Interfaces: Interfaces{
-			Items: map[string]Interface{
+	cfg2 := &schema.OpnSenseDocument{
+		Interfaces: schema.Interfaces{
+			Items: map[string]schema.Interface{
 				"wan": {
 					Enable: "1",
 				},
@@ -586,14 +587,14 @@ func TestDynamicInterfaceAnalysis(t *testing.T) {
 				},
 			},
 		},
-		Filter: Filter{
-			Rule: []Rule{
+		Filter: schema.Filter{
+			Rule: []schema.Rule{
 				{
-					Interface: InterfaceList{"wan"},
+					Interface: schema.InterfaceList{"wan"},
 					Type:      "pass",
 				},
 				{
-					Interface: InterfaceList{"lan"},
+					Interface: schema.InterfaceList{"lan"},
 					Type:      "pass",
 				},
 			},
@@ -608,18 +609,18 @@ func TestDynamicInterfaceAnalysis(t *testing.T) {
 	}
 
 	// Test with a configuration that has only wan interface
-	cfg3 := &OpnSenseDocument{
-		Interfaces: Interfaces{
-			Items: map[string]Interface{
+	cfg3 := &schema.OpnSenseDocument{
+		Interfaces: schema.Interfaces{
+			Items: map[string]schema.Interface{
 				"wan": {
 					Enable: "1",
 				},
 			},
 		},
-		Filter: Filter{
-			Rule: []Rule{
+		Filter: schema.Filter{
+			Rule: []schema.Rule{
 				{
-					Interface: InterfaceList{"wan"},
+					Interface: schema.InterfaceList{"wan"},
 					Type:      "pass",
 				},
 			},

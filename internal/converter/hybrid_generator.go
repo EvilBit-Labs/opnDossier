@@ -127,7 +127,6 @@ func (g *HybridGenerator) generateJSON(data *model.OpnSenseDocument) (string, er
 		return "", ErrNilConfiguration
 	}
 
-	//nolint:musttag // EnrichedOpnSenseDocument has proper json tags
 	jsonBytes, err := json.MarshalIndent(
 		enrichedCfg,
 		"",
@@ -149,7 +148,7 @@ func (g *HybridGenerator) generateYAML(data *model.OpnSenseDocument) (string, er
 		return "", ErrNilConfiguration
 	}
 
-	yamlData, err := yaml.Marshal(enrichedCfg) //nolint:musttag // EnrichedOpnSenseDocument has proper yaml tags
+	yamlData, err := yaml.Marshal(enrichedCfg)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal to YAML: %w", err)
 	}
