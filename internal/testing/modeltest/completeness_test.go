@@ -1,21 +1,23 @@
 //go:build completeness
 
-package model
+package modeltest
 
 import (
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
 // TestModelCompleteness tests that our OpnSenseDocument model can fully represent
 // all XML elements and attributes found in the test configuration files.
 // This test will fail if any XML field is not represented in our Go model.
 //
-// To run this test: go test -tags=completeness ./internal/model
+// To run this test: go test -tags=completeness ./internal/testing/modeltest
 func TestModelCompleteness(t *testing.T) {
-	testDir := "../../testdata"
+	testDir := "../../../testdata"
 	files, err := os.ReadDir(testDir)
 	if err != nil {
 		t.Fatalf("failed to read testdata directory: %v", err)
@@ -58,7 +60,7 @@ func TestModelCompleteness(t *testing.T) {
 
 func TestDebugModelPaths(t *testing.T) {
 	// Get all expected paths from our Go model
-	modelPaths := getModelPaths(reflect.TypeOf(OpnSenseDocument{}), "")
+	modelPaths := GetModelPaths(reflect.TypeOf(model.OpnSenseDocument{}), "")
 
 	// Print all model paths for debugging
 	t.Log("Model paths:")
