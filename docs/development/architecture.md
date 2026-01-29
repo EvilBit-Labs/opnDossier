@@ -191,39 +191,11 @@ sequenceDiagram
     end
 ```
 
-## Programmatic Generation Architecture (v2.0+)
+## Programmatic Generation Architecture
 
-### Evolution from Template-Based to Programmatic Generation
+### Core Architecture
 
-opnDossier v2.0 introduces a major architectural shift from template-based markdown generation to programmatic generation, delivering significant performance improvements and enhanced developer experience.
-
-#### Previous Architecture (v1.x)
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant CLI
-    participant Parser as XML Parser
-    participant TmplEngine as Template Engine
-    participant TmplFiles as Template Files
-    participant Renderer
-    participant Output
-
-    User->>CLI: opndossier convert config.xml
-    CLI->>Parser: Parse XML file
-    Parser-->>CLI: Structured data
-    CLI->>TmplEngine: Load templates
-    TmplEngine->>TmplFiles: Read template files
-    TmplFiles-->>TmplEngine: Template content
-    TmplEngine->>TmplEngine: Parse templates
-    TmplEngine->>TmplEngine: Execute with data
-    TmplEngine-->>CLI: Rendered content
-    CLI->>Renderer: Format output
-    Renderer->>Output: Final markdown
-    Output-->>User: Generated report
-```
-
-#### New Architecture (v2.0+)
+opnDossier uses programmatic markdown generation via the `MarkdownBuilder` component, delivering high performance, type safety, and enhanced developer experience.
 
 ```mermaid
 sequenceDiagram
@@ -247,53 +219,39 @@ sequenceDiagram
     Output-->>User: Generated report
 ```
 
-### Key Architectural Improvements
+### Key Architectural Features
 
-#### 1. Elimination of Template Overhead
+#### 1. Performance Optimizations
 
-- **Before**: Parse templates → String interpolation → Variable resolution → Output generation
-- **After**: Direct method calls → Structured building → Optimized output
-
-#### 2. Performance Optimizations
-
-The programmatic approach is designed for significant performance improvements:
+The programmatic approach delivers significant performance improvements:
 
 - **Memory Usage**: Reduced allocations through direct string building
-- **Generation Speed**: Faster generation via method-based approach
-- **Throughput**: Increased reports per second
+- **Generation Speed**: Fast generation via method-based approach
+- **Throughput**: High reports per second
 - **Scalability**: Consistent performance across all dataset sizes
 
-Actual performance can be measured using comparative benchmarks in `internal/converter/markdown_bench_test.go`.
+Performance can be measured using benchmarks in `internal/converter/markdown_bench_test.go`.
 
-#### 3. Enhanced Type Safety
+#### 2. Type Safety
 
 ```mermaid
 graph TB
-    subgraph "Template Mode (v1.x)"
-        T1[Template String] --> T2[Runtime Parsing]
-        T2 --> T3[Variable Resolution]
-        T3 --> T4[Silent Failures]
-        T4 --> T5[Runtime Errors]
-    end
-
-    subgraph "Programmatic Mode (v2.0+)"
+    subgraph "Programmatic Generation"
         P1[Go Methods] --> P2[Compile-time Validation]
         P2 --> P3[Type-safe Operations]
         P3 --> P4[Explicit Error Handling]
         P4 --> P5[Structured Results]
     end
 
-    style T4 fill:#ff9999
-    style T5 fill:#ff9999
     style P2 fill:#99ff99
     style P3 fill:#99ff99
     style P4 fill:#99ff99
 ```
 
-#### 4. Security Enhancements (Red Team Focus)
+#### 3. Security Enhancements (Red Team Focus)
 
 - **Output Obfuscation**: Built-in capabilities for sensitive data handling
-- **Complete Offline Support**: No external template dependencies
+- **Complete Offline Support**: No external dependencies
 - **Memory Safety**: Improved handling of large configurations
 - **Error Isolation**: Structured error handling prevents information leakage
 
@@ -386,39 +344,6 @@ graph TD
     style StringBuild fill:#99ff99,stroke:#333,stroke-width:2px
 ```
 
-### Hybrid Architecture Support
-
-To ensure smooth migration, v2.0 supports both template and programmatic modes:
-
-```mermaid
-graph TB
-    subgraph "Hybrid Architecture"
-        Input[User Input] --> Decision{Generation Mode?}
-
-        Decision -->|--use-template| TemplatePath[Template Mode]
-        Decision -->|Default| ProgPath[Programmatic Mode]
-
-        TemplatePath --> TemplateEngine[Template Engine]
-        ProgPath --> MarkdownBuilder[MarkdownBuilder]
-
-        TemplateEngine --> Output[Markdown Output]
-        MarkdownBuilder --> Output
-    end
-
-    subgraph "Migration Support"
-        Compare[Output Comparison]
-        Validate[Validation Engine]
-        Fallback[Fallback Mechanism]
-    end
-
-    Output --> Compare
-    Compare --> Validate
-    Validate --> Fallback
-
-    style ProgPath fill:#99ff99,stroke:#333,stroke-width:2px
-    style MarkdownBuilder fill:#99ff99,stroke:#333,stroke-width:2px
-```
-
 ### Method Categories and Performance
 
 #### Security Assessment Methods
@@ -450,38 +375,19 @@ graph TB
 
 ```mermaid
 graph LR
-    subgraph "Template Mode (v1.x)"
-        T1[Template Files] --> T2[Template Parsing]
-        T2 --> T3[Variable Context]
-        T3 --> T4[String Interpolation]
-        T4 --> T5[8.80MB Memory]
-        T5 --> T6[93,984 Allocations]
-    end
-
-    subgraph "Programmatic Mode (v2.0+)"
+    subgraph "Programmatic Generation"
         P1[Direct Methods] --> P2[Structured Building]
         P2 --> P3[Pre-allocated Buffers]
         P3 --> P4[Optimized Strings]
-        P4 --> P5[1.97MB Memory]
-        P5 --> P6[39,585 Allocations]
+        P4 --> P5[Efficient Memory]
+        P5 --> P6[Minimal Allocations]
     end
 
-    style T5 fill:#ff9999
-    style T6 fill:#ff9999
     style P5 fill:#99ff99
     style P6 fill:#99ff99
 ```
 
 ### Error Handling Architecture
-
-#### Template Mode Error Handling
-
-- Silent failures with default values
-- Runtime template parsing errors
-- Difficult debugging and troubleshooting
-- Generic error messages
-
-#### Programmatic Mode Error Handling
 
 ```go
 // Structured error types
@@ -519,6 +425,127 @@ func (b *MarkdownBuilder) BuildSection(data *model.OpnSenseDocument) (string, er
     return result, nil
 }
 ```
+
+## Modular Report Generator Architecture
+
+### Design Principles
+
+Report generators in opnDossier follow a **modular, self-contained architecture** designed to support:
+
+1. **Build-time feature selection** via Go build flags
+2. **Pro-level features** through optional modules
+3. **Independent development** of report types
+4. **Clean separation** between shared infrastructure and report-specific logic
+
+### Module Structure
+
+Each report generator should be a self-contained module with its own:
+
+- **Generation logic** - All markdown/output construction
+- **Calculation logic** - Security scoring, risk assessment, statistics
+- **Data transformations** - Report-specific data processing
+- **Constants and mappings** - Report-specific configuration
+
+```mermaid
+graph TB
+    subgraph "Shared Infrastructure"
+        Model[model.OpnSenseDocument]
+        Helpers[Shared Helpers<br/>• String formatting<br/>• Markdown escaping<br/>• Table building]
+    end
+
+    subgraph "Report Generator Modules"
+        Standard[Standard Report<br/>• Generation logic<br/>• Calculations<br/>• Transformations]
+        Blue[Blue Team Report<br/>• Compliance checks<br/>• Security findings<br/>• Risk assessment]
+        Red[Red Team Report<br/>• Attack surface<br/>• Enumeration data<br/>• Pivot analysis]
+        Pro[Pro Reports<br/>• Advanced analytics<br/>• Custom formats<br/>• Enterprise features]
+    end
+
+    Model --> Standard
+    Model --> Blue
+    Model --> Red
+    Model --> Pro
+
+    Helpers --> Standard
+    Helpers --> Blue
+    Helpers --> Red
+    Helpers --> Pro
+
+    style Pro fill:#ffd700,stroke:#333,stroke-width:2px
+```
+
+### Build Flag Integration
+
+Report generators can be conditionally included using Go build tags:
+
+```go
+//go:build pro
+
+package reports
+
+// Pro-level report generators included only with -tags=pro
+```
+
+This enables:
+
+- **Standard builds** with core report types
+- **Pro builds** with additional enterprise features
+- **Custom builds** with specific report combinations
+
+### Implementation Guidelines
+
+#### What Each Report Module Should Contain
+
+```
+internal/reports/<report-type>/
+├── generator.go       # Main generation logic
+├── calculations.go    # Report-specific calculations
+├── transformers.go    # Data transformation functions
+├── constants.go       # Report-specific constants
+└── <report-type>_test.go
+```
+
+#### What Should Remain Shared
+
+- **`model.OpnSenseDocument`** - The parsed configuration model
+- **String helpers** - Markdown escaping, formatting utilities
+- **Table builders** - Generic markdown table construction
+- **Common interfaces** - `ReportBuilder`, `Generator` interfaces
+
+#### Example Module Structure
+
+```go
+// internal/reports/blueteam/generator.go
+package blueteam
+
+import (
+    "github.com/EvilBit-Labs/opnDossier/internal/model"
+    "github.com/EvilBit-Labs/opnDossier/internal/converter/helpers"
+)
+
+type BlueTeamGenerator struct {
+    // All state and configuration for blue team reports
+}
+
+func (g *BlueTeamGenerator) Generate(doc *model.OpnSenseDocument) (string, error) {
+    // Self-contained generation using only model and helpers
+    score := g.calculateSecurityScore(doc)
+    findings := g.analyzeCompliance(doc)
+    return g.buildReport(doc, score, findings)
+}
+
+// All calculation logic is internal to this module
+func (g *BlueTeamGenerator) calculateSecurityScore(doc *model.OpnSenseDocument) int {
+    // Blue team specific scoring algorithm
+}
+```
+
+### Benefits
+
+1. **Independent Testing** - Each report module can be tested in isolation
+2. **Feature Gating** - Pro features excluded from standard builds
+3. **Reduced Coupling** - Changes to one report type don't affect others
+4. **Clear Ownership** - Each module has defined boundaries
+5. **Extensibility** - New report types added without modifying core
 
 ## Data Storage Strategy
 
@@ -578,14 +605,12 @@ graph LR
         subgraph "opnDossier Application"
             BIN[Single Binary]
             CFG[Local Config]
-            TEMP[Templates]
         end
     end
 
     FW -->|config.xml| OPS
     OPS -->|Executes| BIN
     BIN -->|Uses| CFG
-    BIN -->|Uses| TEMP
     BIN -->|Generates| DOCS
 ```
 

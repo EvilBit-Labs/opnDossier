@@ -4,7 +4,7 @@
 
 The MarkdownBuilder provides a programmatic interface for generating security audit reports from OPNsense configurations. All methods are designed with red team operations in mind, supporting offline usage and output obfuscation.
 
-The programmatic API is designed to deliver significantly faster generation with reduced memory usage compared to template-based generation, while providing full compile-time type safety. Performance characteristics can be measured using the comparative benchmarks in `internal/converter/markdown_bench_test.go`.
+The programmatic API provides fast generation with efficient memory usage and full compile-time type safety. Performance characteristics can be measured using the benchmarks in `internal/converter/markdown_bench_test.go`.
 
 ## Core Interface
 
@@ -358,27 +358,6 @@ func concurrentReportGeneration(configs []*model.OpnSenseDocument) []string {
 }
 ```
 
-## Migration from Template Mode
-
-### Key Differences
-
-| Template Mode                  | Programmatic Mode                        |
-| ------------------------------ | ---------------------------------------- |
-| `{{ getRiskLevel .Severity }}` | `builder.AssessRiskLevel(item.Severity)` |
-| `{{ .Value \| upper }}`        | `strings.ToUpper(item.Value)`            |
-| `{{ if .IsSecure }}`           | `if item.IsSecure {`                     |
-| Silent failures                | Explicit error handling                  |
-| Runtime template parsing       | Compile-time validation                  |
-
-### Migration Strategy
-
-1. **Replace template calls** with method calls
-2. **Add explicit error handling** for all operations
-3. **Use type-safe parameters** instead of template variables
-4. **Implement defensive programming** for edge cases
-
-See the [complete migration guide](migration.md) for detailed step-by-step instructions.
-
 ## Best Practices
 
 1. **Always handle errors** explicitly - don't ignore return values
@@ -391,7 +370,6 @@ See the [complete migration guide](migration.md) for detailed step-by-step instr
 
 ## Related Documentation
 
-- [Migration Guide](migration.md) - Step-by-step migration from template mode
 - [Examples](examples.md) - Real-world usage scenarios and patterns
 - [Architecture](https://github.com/EvilBit-Labs/opnDossier/blob/main/ARCHITECTURE.md) - System architecture and design decisions
 - [Contributing](https://github.com/EvilBit-Labs/opnDossier/blob/main/CONTRIBUTING.md) - Development guidelines for API extensions

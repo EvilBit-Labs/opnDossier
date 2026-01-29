@@ -64,13 +64,6 @@ nav:
     - Development Standards: development/standards.md
     - Releasing: development/releasing.md
 
-  - Migration & Upgrades:
-    - Migration Guide: migration.md
-    - Migration Guide (3.7): migration-guide-3.7.md
-    - Legacy Migration Guide: migration-guide.md
-    - Template Function Migration: template-function-migration.md
-    - Deprecation Policy: deprecation-policy.md
-
   - Security:
     - Compliance: security/compliance.md
     - Validation: security/validation.md
@@ -86,9 +79,6 @@ nav:
     - Architecture Review: architecture-review.md
     - Charmbracelet Compatibility: charmbracelet-compatibility-research.md
     - Theme Usage: theme-usage.md
-
-  - Release Notes:
-    - v2.0 Template: release-notes/v2.0-template.md
 
   - About: about.md
 

@@ -71,9 +71,9 @@ opnDossier --verbose validate config.xml
 
 ### 5. [Advanced Configuration](advanced-configuration.md)
 
-- Custom templates
 - Theme customization
 - Section filtering
+- Performance optimization
 
 ## Example Categories
 

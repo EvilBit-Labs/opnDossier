@@ -91,9 +91,6 @@ opnDossier convert config.xml -f json
 
 # 4. Test with specific sections
 opnDossier convert config.xml --section system
-
-# 5. Test with custom template
-opnDossier convert config.xml --custom-template ./custom-template.tmpl
 ```
 
 ## Common Issues and Solutions
@@ -120,28 +117,7 @@ opnDossier convert large-config.xml --section system,interfaces
 opnDossier convert large-config.xml --section firewall,nat
 ```
 
-### Issue 2: Template Rendering Problems
-
-**Symptoms:**
-
-- Template not found errors
-- Incorrect output formatting
-- Missing sections
-
-**Solutions:**
-
-```bash
-# Use built-in templates (default)
-opnDossier convert config.xml
-
-# Use custom template
-opnDossier convert config.xml --custom-template ./custom-template.tmpl
-
-# Debug template rendering
-opnDossier --verbose convert config.xml --custom-template ./custom-template.tmpl
-```
-
-### Issue 3: Output File Issues
+### Issue 2: Output File Issues
 
 **Symptoms:**
 
@@ -224,25 +200,6 @@ opnDossier validate config.xml
 
 # 4. Convert if valid
 opnDossier convert config.xml
-```
-
-### Recovering from Template Errors
-
-```bash
-# 1. Check template syntax
-opnDossier convert config.xml --custom-template ./templates/custom.tmpl --verbose
-
-# 2. Use built-in template (default)
-opnDossier convert config.xml
-
-# 3. Create minimal template
-cat > minimal-template.tmpl << EOF
-# Configuration Report
-{{.System.Hostname}}
-EOF
-
-# 4. Test with minimal template
-opnDossier convert config.xml --custom-template ./minimal-template.tmpl
 ```
 
 ## Diagnostic Scripts

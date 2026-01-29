@@ -44,14 +44,6 @@ Configuration sources are applied in this order (highest to lowest priority):
 | Include tunables | `--include-tunables` | `OPNDOSSIER_INCLUDE_TUNABLES` | `include_tunables` | boolean | `false`  | Include system tunables in output            |
 | Streaming mode   | `--streaming`        | `OPNDOSSIER_STREAMING`        | `streaming`        | boolean | `false`  | Enable streaming for large files             |
 
-### Template Options (Deprecated)
-
-| Setting            | CLI Flag              | Environment Variable           | Config File         | Type    | Default | Description                                |
-| ------------------ | --------------------- | ------------------------------ | ------------------- | ------- | ------- | ------------------------------------------ |
-| Use template       | `--use-template`      | `OPNDOSSIER_USE_TEMPLATE`      | `use_template`      | boolean | `false` | Use template-based generation (deprecated) |
-| Template directory | `--template-dir`      | `OPNDOSSIER_TEMPLATE_DIR`      | `template_dir`      | string  | -       | Custom template directory path             |
-| Template override  | `--template-override` | `OPNDOSSIER_TEMPLATE_OVERRIDE` | `template_override` | boolean | `false` | Force template mode                        |
-
 ### Advanced Options
 
 | Setting       | CLI Flag          | Environment Variable       | Config File     | Type    | Default | Description                           |

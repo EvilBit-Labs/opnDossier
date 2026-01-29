@@ -21,7 +21,6 @@ The security assessment uses consistent emoji + text risk labels across all outp
 
 Risk labels are used consistently across:
 
-- Template-based markdown generation (`getRiskLevel` function)
 - Programmatic markdown generation (`AssessRiskLevel` method)
 - Service risk assessment (`AssessServiceRisk` method)
 

@@ -215,9 +215,6 @@ opnDossier display --section system config.xml
 
 # Display network and firewall sections
 opnDossier display --section network,firewall config.xml
-
-# Display with custom template
-opnDossier display --template detailed config.xml
 ```
 
 ## Validation Examples
