@@ -91,8 +91,15 @@ var convertCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 	Short:   "Convert OPNsense configuration files to structured formats.",
 	GroupID: "core",
 	PreRunE: func(cmd *cobra.Command, _ []string) error {
+		// Get logger from CommandContext for validation warnings
+		cmdCtx := GetCommandContext(cmd)
+		var cmdLogger *log.Logger
+		if cmdCtx != nil {
+			cmdLogger = cmdCtx.Logger
+		}
+
 		// Validate flag combinations specific to convert command
-		if err := validateConvertFlags(cmd.Flags()); err != nil {
+		if err := validateConvertFlags(cmd.Flags(), cmdLogger); err != nil {
 			return fmt.Errorf("convert command validation failed: %w", err)
 		}
 
@@ -171,6 +178,14 @@ Examples:
 			ctx = context.Background()
 		}
 
+		// Get configuration and logger from CommandContext
+		cmdCtx := GetCommandContext(cmd)
+		if cmdCtx == nil {
+			return errors.New("command context not initialized")
+		}
+		cmdLogger := cmdCtx.Logger
+		cmdConfig := cmdCtx.Config
+
 		var wg sync.WaitGroup
 		errs := make(chan error, len(args))
 
@@ -184,7 +199,7 @@ Examples:
 				defer wg.Done()
 
 				// Create context-aware logger for this goroutine with input file field
-				ctxLogger := logger.WithContext(timeoutCtx).WithFields("input_file", fp)
+				ctxLogger := cmdLogger.WithContext(timeoutCtx).WithFields("input_file", fp)
 
 				// Sanitize the file path
 				cleanPath := filepath.Clean(fp)
@@ -237,8 +252,8 @@ Examples:
 				ctxLogger.Debug("XML parsing completed successfully")
 
 				// Build options for conversion with precedence: CLI flags > env vars > config > defaults
-				eff := buildEffectiveFormat(format, Cfg)
-				opt := buildConversionOptions(eff, Cfg)
+				eff := buildEffectiveFormat(format, cmdConfig)
+				opt := buildConversionOptions(eff, cmdConfig)
 
 				// Convert using the new markdown generator
 				var output string
@@ -277,7 +292,7 @@ Examples:
 				ctxLogger.Debug("Conversion completed successfully")
 
 				// Determine output path with smart naming and overwrite protection
-				actualOutputFile, err := determineOutputPath(fp, outputFile, fileExt, Cfg, force)
+				actualOutputFile, err := determineOutputPath(fp, outputFile, fileExt, cmdConfig, force)
 				if err != nil {
 					ctxLogger.Error("Failed to determine output path", "error", err)
 					errs <- fmt.Errorf("failed to determine output path for %s: %w", fp, err)
@@ -521,7 +536,9 @@ func generateWithProgrammaticGenerator(
 // format is one of markdown/md/json/yaml/yml, warns when section filtering is used with
 // JSON or YAML (sections will be ignored), and enforces that an explicit wrap width falls
 // within the supported range. Returns an error when flag combinations or values are invalid.
-func validateConvertFlags(flags *pflag.FlagSet) error {
+//
+// The cmdLogger parameter is used for warnings; if nil, warnings are skipped.
+func validateConvertFlags(flags *pflag.FlagSet, cmdLogger *log.Logger) error {
 	// Validate mutual exclusivity for wrap flags before other checks
 	if flags != nil {
 		noWrapFlag := flags.Lookup("no-wrap")
@@ -543,12 +560,14 @@ func validateConvertFlags(flags *pflag.FlagSet) error {
 		}
 	}
 
-	// Validate output format compatibility
-	if strings.EqualFold(format, "json") && len(sharedSections) > 0 {
-		logger.Warn("section filtering not supported with JSON format, sections will be ignored")
-	}
-	if strings.EqualFold(format, "yaml") && len(sharedSections) > 0 {
-		logger.Warn("section filtering not supported with YAML format, sections will be ignored")
+	// Validate output format compatibility (warn if logger available)
+	if cmdLogger != nil {
+		if strings.EqualFold(format, "json") && len(sharedSections) > 0 {
+			cmdLogger.Warn("section filtering not supported with JSON format, sections will be ignored")
+		}
+		if strings.EqualFold(format, "yaml") && len(sharedSections) > 0 {
+			cmdLogger.Warn("section filtering not supported with YAML format, sections will be ignored")
+		}
 	}
 
 	// Validate wrap width if specified

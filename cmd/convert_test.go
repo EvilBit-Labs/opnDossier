@@ -211,7 +211,7 @@ func TestBuildConversionOptionsWrapWidthPrecedence(t *testing.T) {
 		require.NoError(t, flags.Set("no-wrap", "true"))
 		sharedNoWrap = true
 		sharedWrapWidth = -1
-		require.NoError(t, validateConvertFlags(flags))
+		require.NoError(t, validateConvertFlags(flags, nil))
 	}
 
 	tests := []struct {
@@ -344,7 +344,7 @@ func TestValidateConvertFlagsNoWrapMutualExclusivity(t *testing.T) {
 				sharedWrapWidth = wrapVal
 			}
 
-			err := validateConvertFlags(flags)
+			err := validateConvertFlags(flags, nil)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.wantErrSubstr)

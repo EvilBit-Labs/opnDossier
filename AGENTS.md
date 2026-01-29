@@ -66,7 +66,8 @@ When rules conflict, follow the higher precedence rule.
 ```text
 opndossier/
 ├── cmd/                              # CLI command entry points
-│   ├── root.go                       # Root command
+│   ├── root.go                       # Root command and PersistentPreRunE setup
+│   ├── context.go                    # CommandContext for dependency injection
 │   ├── convert.go                    # Convert command
 │   ├── display.go                    # Display command
 │   └── validate.go                   # Validate command
@@ -200,6 +201,53 @@ func (r *Report) TotalFindings() int {
     defer r.mu.RUnlock()
     return r.totalFindingsUnsafe()  // Internal helper, no lock
 }
+```
+
+### 5.7 CommandContext Pattern (CLI Dependency Injection)
+
+The `cmd` package uses `CommandContext` to inject dependencies into subcommands:
+
+```go
+// cmd/context.go - CommandContext encapsulates command dependencies
+type CommandContext struct {
+    Config *config.Config
+    Logger *log.Logger
+}
+
+// Access in subcommands via:
+cmdCtx := GetCommandContext(cmd)
+if cmdCtx == nil {
+    return errors.New("command context not initialized")
+}
+logger := cmdCtx.Logger
+config := cmdCtx.Config
+```
+
+**Key points:**
+
+- `PersistentPreRunE` in `root.go` creates and sets the context after config loading
+- Flag variables remain package-level (required by Cobra's binding mechanism)
+- Config and logger are unexported (`cfg`, `logger`) - accessed only via `CommandContext`
+- Use `GetCommandContext()` for safe access, `MustGetCommandContext()` when context is required
+
+**Pattern benefits:**
+
+- Explicit dependency injection (not hidden global state)
+- Testable: create mock `CommandContext` in tests
+- Type-safe context key avoids collisions
+
+### 5.8 Context Key Types
+
+Always use typed context keys to avoid `revive` linter `context-keys-type` warnings:
+
+```go
+// Good - typed key
+type contextKey string
+const myKey contextKey = "myValue"
+ctx = context.WithValue(ctx, myKey, value)
+
+// Bad - raw string (linter warning)
+ctx = context.WithValue(ctx, "myKey", value)
 ```
 
 ---
