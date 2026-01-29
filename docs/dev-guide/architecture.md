@@ -147,14 +147,13 @@ This follows the standard precedence order used by most CLI tools, where environ
 - XML-to-Markdown transformation
 - Configuration hierarchy preservation
 - Metadata injection (timestamps, versions)
-- Template-based output generation
+- Programmatic output generation
 
 #### Output Renderer Component
 
 **Responsibilities**:
 
 - Markdown formatting and styling
-- Template processing
 - Output format selection
 - Content structuring
 
@@ -244,7 +243,6 @@ sequenceDiagram
 
 4. **Rendering Phase**
 
-   - Template application
    - Format-specific rendering
    - Output optimization
 
@@ -369,20 +367,18 @@ graph LR
         subgraph "opnDossier Application"
             BIN[Single Binary]
             CFG[Local Config]
-            TEMP[Templates]
         end
     end
 
     FW -->|config.xml| OPS
     OPS -->|Executes| BIN
     BIN -->|Reads| CFG
-    BIN -->|Uses| TEMP
     BIN -->|Generates| DOCS
 
     classDef secure fill:#ffebee
     classDef app fill:#e8f5e8
     class FW,OPS,DOCS secure
-    class BIN,CFG,TEMP app
+    class BIN,CFG app
 ```
 
 ### Data Exchange Patterns
@@ -481,7 +477,6 @@ graph TB
 **Output Versioning**:
 
 - Markdown format versioning
-- Template evolution management
 - Metadata version tracking
 - Change documentation
 

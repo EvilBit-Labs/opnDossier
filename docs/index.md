@@ -144,12 +144,8 @@ Check out the [Installation Guide](user-guide/installation.md) to get started, o
 
 For AI agent coding standards and workflows, see [AGENTS.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/AGENTS.md) in the root directory.
 
-### Migration & Compliance
+### Compliance & Reference
 
-- **[Migration Guide](migration-guide.md)** - General migration instructions
-- **[Migration](migration.md)** - Version-specific migration details
-- **[Migration Guide v3.7](migration-guide-3.7.md)** - Migration guide for v3.7 release
-- **[Template Function Migration](template-function-migration.md)** - Template engine migration
 - **[Compliance Standards](compliance-standards.md)** - Security and compliance framework documentation
 - **[CIS-like Firewall Reference](cis-like-firewall-reference.md)** - Firewall configuration reference
 

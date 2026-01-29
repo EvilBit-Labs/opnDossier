@@ -216,11 +216,11 @@ The audit engine performs the following types of checks:
 - Checks source field restrictions
 - Verifies service field restrictions
 
-### Enhanced Blue Team Template
+### Enhanced Blue Team Reports
 
 Planned for v2.1 alongside audit mode CLI integration.
 
-The enhanced blue team template (`blue_enhanced.md.tmpl`) provides:
+The enhanced blue team report provides:
 
 - **Executive Summary** with compliance metrics
 - **Findings by Severity** with control references
