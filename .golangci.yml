@@ -40,7 +40,7 @@ linters:
     # - gocognit - Disabled: we'll come back to this after 1.0
     - goconst
     - gocritic
-    - gocyclo
+    # - gocyclo - Disabled in favor of cyclop (see disable section)
     - godot
     - gomoddirectives
     - goprintffuncname
