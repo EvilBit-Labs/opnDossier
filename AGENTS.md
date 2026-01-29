@@ -70,6 +70,8 @@ opndossier/
 │   ├── context.go                    # CommandContext for dependency injection
 │   ├── convert.go                    # Convert command
 │   ├── display.go                    # Display command
+│   ├── exitcodes.go                  # Structured exit codes and JSON errors
+│   ├── help.go                       # Custom help templates and suggestions
 │   └── validate.go                   # Validate command
 ├── internal/                         # Private application logic
 │   ├── audit/                        # Audit engine and compliance checking
@@ -89,6 +91,7 @@ opndossier/
 │   │   ├── sans/                     # SANS compliance
 │   │   └── stig/                     # STIG compliance
 │   ├── processor/                    # Data processing and report generation
+│   ├── progress/                     # CLI progress indicators (spinner, bar)
 │   └── validator/                    # Data validation
 ├── pkg/                              # Public packages (if any)
 ├── testdata/                         # Test data and fixtures
@@ -258,6 +261,17 @@ When adding `io.Writer` support alongside string-based APIs:
 - Add a `Streaming*` interface that embeds the base interface (e.g., `StreamingGenerator` embeds `Generator`)
 - Keep string-based methods for cases needing further processing (HTML conversion)
 - See `internal/converter/builder/writer.go` and `internal/converter/hybrid_generator.go`
+
+### 5.10 Common Linter Patterns
+
+Frequently encountered linter issues and fixes:
+
+| Linter                     | Issue                         | Fix                                             |
+| -------------------------- | ----------------------------- | ----------------------------------------------- |
+| `gocritic emptyStringTest` | `len(s) == 0`                 | Use `s == ""`                                   |
+| `gosec G115`               | Integer overflow on int→int32 | Add `//nolint:gosec` with bounded value comment |
+| `mnd`                      | Magic numbers                 | Create named constants                          |
+| `minmax`                   | Manual min/max comparisons    | Use `min()`/`max()` builtins                    |
 
 ---
 
