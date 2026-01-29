@@ -405,7 +405,7 @@ func (p *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
 
 **Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`
 
-**Scopes:** `(parser)`, `(converter)`, `(audit)`, `(cli)`, `(model)`, `(plugin)`, `(templates)`
+**Scopes:** `(parser)`, `(converter)`, `(audit)`, `(cli)`, `(model)`, `(plugin)`, `(builder)`
 
 ### 9.2 Examples
 

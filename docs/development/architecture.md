@@ -495,8 +495,10 @@ This enables:
 
 #### What Each Report Module Should Contain
 
+Report modules are self-contained packages. Currently, report generation lives in `internal/converter/builder/` and `internal/converter/formatters/`. As the system evolves to support Pro-level features, each report type may be extracted to its own package following this structure:
+
 ```
-internal/reports/<report-type>/
+internal/converter/<report-type>/
 ├── generator.go       # Main generation logic
 ├── calculations.go    # Report-specific calculations
 ├── transformers.go    # Data transformation functions
@@ -519,7 +521,7 @@ package blueteam
 
 import (
     "github.com/EvilBit-Labs/opnDossier/internal/model"
-    "github.com/EvilBit-Labs/opnDossier/internal/converter/helpers"
+    "github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
 )
 
 type BlueTeamGenerator struct {

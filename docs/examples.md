@@ -487,8 +487,7 @@ func benchmarkReportGeneration(config *model.OpnSenseDocument) {
 6. **Leverage type safety** - Compile-time checks prevent runtime errors
 7. **Follow Go conventions** - Use standard Go patterns and idioms
 
-For more examples and detailed migration guidance, see:
+For more examples and detailed guidance, see:
 
 - [API Documentation](api.md)
-- [Migration Guide](migration.md)
 - [Architecture Overview](https://github.com/EvilBit-Labs/opnDossier/blob/main/ARCHITECTURE.md)

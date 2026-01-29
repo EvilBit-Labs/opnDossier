@@ -297,7 +297,6 @@ opnDossier convert -f markdown config.xml -o output.md  # default
 
 - **[User Guide](docs/user-guide/)** - Installation, usage, and configuration
 - **[Security Documentation](docs/security/)** - Vulnerability scanning and security features
-- **[Migration Guide](docs/migration.md)** - Upgrading from v1.x to v2.0+
 - **[API Reference](docs/api.md)** - Detailed API documentation
 - **[Examples](docs/examples/)** - Real-world usage examples
 
