@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"slices"
@@ -15,10 +16,9 @@ import (
 )
 
 var (
-	cfgFile string //nolint:gochecknoglobals // CLI config file path
-	// Cfg holds the application's configuration, loaded from file, environment, or flags.
-	Cfg    *config.Config //nolint:gochecknoglobals // Application configuration
-	logger *log.Logger    //nolint:gochecknoglobals // Application logger
+	cfgFile string         //nolint:gochecknoglobals // CLI config file path
+	cfg     *config.Config //nolint:gochecknoglobals // Application configuration (internal)
+	logger  *log.Logger    //nolint:gochecknoglobals // Application logger (internal)
 
 	// Build information injected by GoReleaser via ldflags.
 	buildDate = "unknown"
@@ -61,7 +61,7 @@ WORKFLOW EXAMPLES:
 		var err error
 		// Load configuration with flag binding for proper precedence
 		// Note: Fang complements Cobra for CLI enhancement
-		Cfg, err = config.LoadConfigWithFlags(cfgFile, cmd.Flags())
+		cfg, err = config.LoadConfigWithFlags(cfgFile, cmd.Flags())
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
@@ -69,9 +69,9 @@ WORKFLOW EXAMPLES:
 		// Initialize logger after config load with proper verbose/quiet handling
 		// Determine log level based on verbose/quiet flags
 		logLevel := "info"
-		if Cfg.IsQuiet() {
+		if cfg.IsQuiet() {
 			logLevel = "error"
-		} else if Cfg.IsVerbose() {
+		} else if cfg.IsVerbose() {
 			logLevel = "debug"
 		}
 
@@ -92,6 +92,19 @@ WORKFLOW EXAMPLES:
 		if err := validateGlobalFlags(cmd.Flags()); err != nil {
 			return fmt.Errorf("invalid flag configuration: %w", err)
 		}
+
+		// Set up CommandContext for explicit dependency injection
+		// This makes config and logger available to all subcommands via context
+		cmdCtx := &CommandContext{
+			Config: cfg,
+			Logger: logger,
+		}
+
+		// Ensure the command has a base context
+		if cmd.Context() == nil {
+			cmd.SetContext(context.Background())
+		}
+		SetCommandContext(cmd, cmdCtx)
 
 		return nil
 	},
@@ -223,18 +236,6 @@ func createFallbackLogger(reason error) *log.Logger {
 // This provides access to the application's main command and its subcommands for integration or extension.
 func GetRootCmd() *cobra.Command {
 	return rootCmd
-}
-
-// GetLogger returns the current application logger instance.
-// GetLogger returns the centrally configured logger instance for use by other packages.
-func GetLogger() *log.Logger {
-	return logger
-}
-
-// GetConfig returns the current application configuration instance.
-// GetConfig returns the current application configuration instance for use by subcommands and other packages.
-func GetConfig() *config.Config {
-	return Cfg
 }
 
 // GetFlagsByCategory returns flags grouped by their category annotation.
