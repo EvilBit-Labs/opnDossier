@@ -19,9 +19,10 @@ func init() {
 }
 
 var validateCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
-	Use:     "validate [file ...]",
-	Short:   "Validate OPNsense configuration files",
-	GroupID: "utility",
+	Use:               "validate [file ...]",
+	Short:             "Validate OPNsense configuration files",
+	GroupID:           "utility",
+	ValidArgsFunction: ValidXMLFiles,
 	Long: `The 'validate' command checks one or more OPNsense config.xml files for
 structural and semantic correctness without performing any conversion.
 This is useful for verifying configuration integrity before processing

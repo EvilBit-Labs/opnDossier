@@ -12,8 +12,9 @@ import (
 // manCmd represents the man command that generates world-readable man pages
 // per POSIX FHS conventions for standard man directories.
 var manCmd = &cobra.Command{
-	Use:   "man [output-directory]",
-	Short: "Generate man pages",
+	Use:     "man [output-directory]",
+	Short:   "Generate man pages",
+	GroupID: "utility",
 	Long: `Generate man pages for opnDossier and all of its commands.
 
 If no output directory is specified, man pages will be written to './man/'.

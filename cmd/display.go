@@ -32,9 +32,10 @@ func init() {
 }
 
 var displayCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
-	Use:     "display [file]",
-	Short:   "Display OPNsense configuration in formatted markdown.",
-	GroupID: "core",
+	Use:               "display [file]",
+	Short:             "Display OPNsense configuration in formatted markdown.",
+	GroupID:           "core",
+	ValidArgsFunction: ValidXMLFiles,
 	PreRunE: func(cmd *cobra.Command, _ []string) error {
 		// Validate flag combinations specific to display command
 		if err := validateDisplayFlags(cmd.Flags()); err != nil {

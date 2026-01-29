@@ -88,9 +88,10 @@ func init() {
 }
 
 var convertCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
-	Use:     "convert [file ...]",
-	Short:   "Convert OPNsense configuration files to structured formats.",
-	GroupID: "core",
+	Use:               "convert [file ...]",
+	Short:             "Convert OPNsense configuration files to structured formats.",
+	GroupID:           "core",
+	ValidArgsFunction: ValidXMLFiles,
 	PreRunE: func(cmd *cobra.Command, _ []string) error {
 		// Get logger from CommandContext for validation warnings
 		cmdCtx := GetCommandContext(cmd)

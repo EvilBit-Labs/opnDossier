@@ -155,9 +155,10 @@ func init() {
 
 	// Add version command
 	versionCmd := &cobra.Command{
-		Use:   "version",
-		Short: "Display version information",
-		Long:  "Display the current version of opnDossier and build information.",
+		Use:     "version",
+		Short:   "Display version information",
+		Long:    "Display the current version of opnDossier and build information.",
+		GroupID: "utility",
 		Run: func(_ *cobra.Command, _ []string) {
 			fmt.Printf("opnDossier version %s\n", constants.Version)
 			fmt.Printf("Build date: %s\n", getBuildDate())
@@ -169,13 +170,14 @@ func init() {
 	// Add command aliases for common workflows
 	// Note: Cobra doesn't directly support command aliases, but we can create wrapper commands
 	convCmd := &cobra.Command{
-		Use:     "conv [file ...]",
-		Short:   "Alias for 'convert' command",
-		Long:    "Alias for the 'convert' command. Converts OPNsense configuration files to structured formats.",
-		GroupID: "core",
-		RunE:    convertCmd.RunE,
-		Args:    convertCmd.Args,
-		PreRunE: convertCmd.PreRunE,
+		Use:               "conv [file ...]",
+		Short:             "Alias for 'convert' command",
+		Long:              "Alias for the 'convert' command. Converts OPNsense configuration files to structured formats.",
+		GroupID:           "core",
+		ValidArgsFunction: ValidXMLFiles,
+		RunE:              convertCmd.RunE,
+		Args:              convertCmd.Args,
+		PreRunE:           convertCmd.PreRunE,
 	}
 	// Copy flags from convert command
 	convCmd.Flags().AddFlagSet(convertCmd.Flags())
