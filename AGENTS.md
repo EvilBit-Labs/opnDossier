@@ -250,6 +250,15 @@ ctx = context.WithValue(ctx, myKey, value)
 ctx = context.WithValue(ctx, "myKey", value)
 ```
 
+### 5.9 Streaming Interface Pattern
+
+When adding `io.Writer` support alongside string-based APIs:
+
+- Create a separate interface (e.g., `SectionWriter`) that the builder implements
+- Add a `Streaming*` interface that embeds the base interface (e.g., `StreamingGenerator` embeds `Generator`)
+- Keep string-based methods for cases needing further processing (HTML conversion)
+- See `internal/converter/builder/writer.go` and `internal/converter/hybrid_generator.go`
+
 ---
 
 ## 6. Data Processing Standards
@@ -383,6 +392,14 @@ t.Helper()
 // implementation with t.Cleanup()
 }
 ```
+
+### 7.4 Map Iteration in Tests
+
+When testing output that involves map iteration:
+
+- **Don't** compare exact string equality (map iteration order is non-deterministic)
+- **Do** test for presence of expected content using `strings.Contains()`
+- **Do** use `slices.Sorted(maps.Keys())` in production code for deterministic output
 
 ---
 
