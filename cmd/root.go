@@ -203,8 +203,20 @@ func init() {
 		return pflag.NormalizedName(strings.ReplaceAll(name, "_", "-"))
 	})
 
+	// Register global flag completion functions
+	registerRootFlagCompletions(rootCmd)
+
 	// Initialize enhanced help system with suggestions and custom templates
 	InitHelp(rootCmd)
+}
+
+// registerRootFlagCompletions registers completion functions for root command persistent flags.
+func registerRootFlagCompletions(cmd *cobra.Command) {
+	// Color flag completion
+	if err := cmd.RegisterFlagCompletionFunc("color", ValidColorModes); err != nil {
+		// Log error but don't fail - completion is optional
+		logger.Debug("failed to register color completion", "error", err)
+	}
 }
 
 func initializeDefaultLogger() {

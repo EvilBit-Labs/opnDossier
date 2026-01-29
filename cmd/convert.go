@@ -83,8 +83,25 @@ func init() {
 	// Add shared styling and content flags
 	addSharedTemplateFlags(convertCmd)
 
+	// Register flag completion functions for better tab completion
+	registerConvertFlagCompletions(convertCmd)
+
 	// Flag groups for better organization
 	convertCmd.Flags().SortFlags = false
+}
+
+// registerConvertFlagCompletions registers completion functions for convert command flags.
+func registerConvertFlagCompletions(cmd *cobra.Command) {
+	// Format flag completion
+	if err := cmd.RegisterFlagCompletionFunc("format", ValidFormats); err != nil {
+		// Log error but don't fail - completion is optional
+		logger.Debug("failed to register format completion", "error", err)
+	}
+
+	// Section flag completion
+	if err := cmd.RegisterFlagCompletionFunc("section", ValidSections); err != nil {
+		logger.Debug("failed to register section completion", "error", err)
+	}
 }
 
 var convertCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
