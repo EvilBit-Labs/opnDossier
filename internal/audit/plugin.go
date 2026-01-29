@@ -258,27 +258,35 @@ type PluginInfo struct {
 	Controls    []plugin.Control `json:"controls"`
 }
 
-// GlobalRegistry is the global plugin registry instance.
+// globalRegistry holds the singleton plugin registry instance.
+// Access via GetGlobalRegistry() to ensure proper initialization.
 //
 //nolint:gochecknoglobals // Global registry for convenience functions
-var GlobalRegistry *PluginRegistry
+var (
+	globalRegistry     *PluginRegistry
+	globalRegistryOnce sync.Once
+)
 
-// Initialize the global registry.
-func init() {
-	GlobalRegistry = NewPluginRegistry()
+// GetGlobalRegistry returns the global plugin registry instance,
+// initializing it on first access using sync.Once for thread safety.
+func GetGlobalRegistry() *PluginRegistry {
+	globalRegistryOnce.Do(func() {
+		globalRegistry = NewPluginRegistry()
+	})
+	return globalRegistry
 }
 
 // RegisterGlobalPlugin registers a plugin with the global registry.
 func RegisterGlobalPlugin(p plugin.CompliancePlugin) error {
-	return GlobalRegistry.RegisterPlugin(p)
+	return GetGlobalRegistry().RegisterPlugin(p)
 }
 
 // GetGlobalPlugin retrieves a plugin from the global registry.
 func GetGlobalPlugin(name string) (plugin.CompliancePlugin, error) {
-	return GlobalRegistry.GetPlugin(name)
+	return GetGlobalRegistry().GetPlugin(name)
 }
 
 // ListGlobalPlugins returns all plugins in the global registry.
 func ListGlobalPlugins() []string {
-	return GlobalRegistry.ListPlugins()
+	return GetGlobalRegistry().ListPlugins()
 }

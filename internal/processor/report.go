@@ -3,6 +3,8 @@ package processor
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -385,8 +387,10 @@ func (r *Report) addStatistics(md *markdown.Markdown) {
 			serviceItems := []string{
 				fmt.Sprintf("%s: %t", markdown.Bold("Enabled"), service.Enabled),
 			}
-			for k, v := range service.Details {
-				serviceItems = append(serviceItems, fmt.Sprintf("%s: %s", markdown.Bold(k), v))
+			// Sort detail keys for deterministic output
+			detailKeys := slices.Sorted(maps.Keys(service.Details))
+			for _, k := range detailKeys {
+				serviceItems = append(serviceItems, fmt.Sprintf("%s: %s", markdown.Bold(k), service.Details[k]))
 			}
 			md.BulletList(serviceItems...)
 			md.LF()
@@ -443,9 +447,11 @@ func addStatisticsList(md *markdown.Markdown, title string, stats map[string]int
 		return
 	}
 	md.H3(title)
-	items := []string{}
-	for k, v := range stats {
-		items = append(items, fmt.Sprintf("%s: %d%s", markdown.Bold(k), v, suffix))
+	// Sort keys for deterministic output
+	keys := slices.Sorted(maps.Keys(stats))
+	items := make([]string, 0, len(keys))
+	for _, k := range keys {
+		items = append(items, fmt.Sprintf("%s: %d%s", markdown.Bold(k), stats[k], suffix))
 	}
 	md.BulletList(items...)
 	md.LF()

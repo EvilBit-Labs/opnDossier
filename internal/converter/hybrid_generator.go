@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -17,15 +18,36 @@ import (
 // Generator interface for creating documentation in various formats.
 type Generator interface {
 	// Generate creates documentation in a specified format from the provided OPNsense configuration.
+	// This method returns the complete output as a string, which is useful when the output
+	// needs further processing (e.g., HTML conversion).
 	Generate(ctx context.Context, cfg *model.OpnSenseDocument, opts Options) (string, error)
+}
+
+// StreamingGenerator extends Generator with io.Writer-based output support.
+// This interface enables memory-efficient generation by writing directly to
+// the destination without accumulating the entire output in memory first.
+type StreamingGenerator interface {
+	Generator
+
+	// GenerateToWriter writes documentation directly to the provided io.Writer.
+	// This is more memory-efficient than Generate() for large configurations
+	// as it streams output section-by-section.
+	GenerateToWriter(ctx context.Context, w io.Writer, cfg *model.OpnSenseDocument, opts Options) error
 }
 
 // HybridGenerator provides programmatic markdown, JSON, and YAML generation.
 // It uses the builder pattern for markdown output and direct serialization for JSON/YAML.
+//
+// HybridGenerator implements both Generator (string-based) and StreamingGenerator
+// (io.Writer-based) interfaces. Use GenerateToWriter for memory-efficient streaming
+// output, or Generate when you need the output as a string for further processing.
 type HybridGenerator struct {
 	builder builder.ReportBuilder
 	logger  *log.Logger
 }
+
+// Ensure HybridGenerator implements StreamingGenerator.
+var _ StreamingGenerator = (*HybridGenerator)(nil)
 
 // NewHybridGenerator creates a HybridGenerator that uses the provided ReportBuilder and logger.
 // If logger is nil, NewHybridGenerator creates a default logger and returns an error if logger creation fails.
@@ -74,6 +96,10 @@ func NewMarkdownGenerator(logger *log.Logger, _ Options) (Generator, error) {
 
 // Generate creates documentation in the specified format from the provided OPNsense configuration.
 // Supported formats: markdown (default), json, yaml.
+//
+// For memory-efficient streaming output, use GenerateToWriter instead.
+// Generate is preferred when you need the output as a string for further processing
+// (e.g., converting markdown to HTML).
 func (g *HybridGenerator) Generate(_ context.Context, data *model.OpnSenseDocument, opts Options) (string, error) {
 	if data == nil {
 		return "", ErrNilConfiguration
@@ -101,6 +127,48 @@ func (g *HybridGenerator) Generate(_ context.Context, data *model.OpnSenseDocume
 	}
 }
 
+// GenerateToWriter writes documentation directly to the provided io.Writer.
+// This is more memory-efficient than Generate() as it streams output section-by-section
+// without accumulating the entire output in memory first.
+//
+// For markdown format, sections are written incrementally as they are generated.
+// For JSON and YAML formats, the full output is generated then written (these formats
+// require complete document serialization).
+//
+// Use Generate() instead when you need the output as a string for further processing
+// (e.g., converting markdown to HTML before writing).
+func (g *HybridGenerator) GenerateToWriter(
+	_ context.Context,
+	w io.Writer,
+	data *model.OpnSenseDocument,
+	opts Options,
+) error {
+	if data == nil {
+		return ErrNilConfiguration
+	}
+
+	if err := opts.Validate(); err != nil {
+		return fmt.Errorf("invalid options: %w", err)
+	}
+
+	// Determine format and generate accordingly
+	format := strings.ToLower(string(opts.Format))
+	if format == "" {
+		format = string(FormatMarkdown)
+	}
+
+	switch format {
+	case string(FormatMarkdown), "md":
+		return g.generateMarkdownToWriter(w, data, opts)
+	case string(FormatJSON):
+		return g.generateJSONToWriter(w, data)
+	case string(FormatYAML), "yml":
+		return g.generateYAMLToWriter(w, data)
+	default:
+		return fmt.Errorf("%w: %s", ErrUnsupportedFormat, opts.Format)
+	}
+}
+
 // generateMarkdown generates markdown output using the programmatic builder.
 func (g *HybridGenerator) generateMarkdown(data *model.OpnSenseDocument, opts Options) (string, error) {
 	g.logger.Debug("Using programmatic markdown generation")
@@ -114,6 +182,40 @@ func (g *HybridGenerator) generateMarkdown(data *model.OpnSenseDocument, opts Op
 		return g.builder.BuildComprehensiveReport(data)
 	default:
 		return g.builder.BuildStandardReport(data)
+	}
+}
+
+// generateMarkdownToWriter writes markdown output directly to the writer.
+func (g *HybridGenerator) generateMarkdownToWriter(
+	w io.Writer,
+	data *model.OpnSenseDocument,
+	opts Options,
+) error {
+	g.logger.Debug("Using streaming markdown generation")
+
+	if g.builder == nil {
+		return errors.New("no report builder available for programmatic generation")
+	}
+
+	// Check if builder supports SectionWriter interface for streaming
+	sectionWriter, ok := g.builder.(builder.SectionWriter)
+	if !ok {
+		// Fallback to string-based generation if builder doesn't support streaming
+		g.logger.Debug("Builder does not support SectionWriter, falling back to string generation")
+		output, err := g.generateMarkdown(data, opts)
+		if err != nil {
+			return err
+		}
+		_, err = io.WriteString(w, output)
+		return err
+	}
+
+	// Use streaming writer
+	switch {
+	case opts.Comprehensive:
+		return sectionWriter.WriteComprehensiveReport(w, data)
+	default:
+		return sectionWriter.WriteStandardReport(w, data)
 	}
 }
 
@@ -138,6 +240,26 @@ func (g *HybridGenerator) generateJSON(data *model.OpnSenseDocument) (string, er
 	return string(jsonBytes), nil
 }
 
+// generateJSONToWriter writes JSON output directly to the writer.
+// Note: JSON marshaling requires the full document, so this doesn't provide
+// the same streaming benefits as markdown generation.
+func (g *HybridGenerator) generateJSONToWriter(w io.Writer, data *model.OpnSenseDocument) error {
+	g.logger.Debug("Generating JSON output to writer")
+
+	// Enrich the model with calculated fields and analysis data
+	enrichedCfg := model.EnrichDocument(data)
+	if enrichedCfg == nil {
+		return ErrNilConfiguration
+	}
+
+	encoder := json.NewEncoder(w)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(enrichedCfg); err != nil {
+		return fmt.Errorf("failed to encode JSON to writer: %w", err)
+	}
+	return nil
+}
+
 // generateYAML generates YAML output by serializing the enriched model.
 func (g *HybridGenerator) generateYAML(data *model.OpnSenseDocument) (string, error) {
 	g.logger.Debug("Generating YAML output")
@@ -153,6 +275,26 @@ func (g *HybridGenerator) generateYAML(data *model.OpnSenseDocument) (string, er
 		return "", fmt.Errorf("failed to marshal to YAML: %w", err)
 	}
 	return string(yamlData), nil
+}
+
+// generateYAMLToWriter writes YAML output directly to the writer.
+// Note: YAML marshaling requires the full document, so this doesn't provide
+// the same streaming benefits as markdown generation.
+func (g *HybridGenerator) generateYAMLToWriter(w io.Writer, data *model.OpnSenseDocument) error {
+	g.logger.Debug("Generating YAML output to writer")
+
+	// Enrich the model with calculated fields and analysis data
+	enrichedCfg := model.EnrichDocument(data)
+	if enrichedCfg == nil {
+		return ErrNilConfiguration
+	}
+
+	encoder := yaml.NewEncoder(w)
+	encoder.SetIndent(2) //nolint:mnd // Standard YAML indentation
+	if err := encoder.Encode(enrichedCfg); err != nil {
+		return fmt.Errorf("failed to encode YAML to writer: %w", err)
+	}
+	return encoder.Close()
 }
 
 // SetBuilder sets the report builder for programmatic generation.

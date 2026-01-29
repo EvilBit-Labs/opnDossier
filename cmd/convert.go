@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -329,16 +330,13 @@ Examples:
 		wg.Wait()
 		close(errs)
 
-		var allErrors error
+		// Collect all errors and join them using errors.Join for proper unwrapping
+		var allErrors []error
 		for err := range errs {
-			if allErrors == nil {
-				allErrors = err
-			} else {
-				allErrors = fmt.Errorf("%w; %w", allErrors, err)
-			}
+			allErrors = append(allErrors, err)
 		}
 
-		return allErrors
+		return errors.Join(allErrors...)
 	},
 }
 
@@ -512,6 +510,10 @@ func generateOutputByFormat(
 
 // generateWithProgrammaticGenerator creates and uses a generator that produces output using the programmatic Markdown builder.
 // It returns the generated document content according to the provided conversion options, or an error if generation fails.
+//
+// Use this function when you need the output as a string for further processing
+// (e.g., converting markdown to HTML). For direct file/stdout output, consider
+// using generateToWriter for better memory efficiency.
 func generateWithProgrammaticGenerator(
 	ctx context.Context,
 	opnsense *model.OpnSenseDocument,
@@ -529,6 +531,35 @@ func generateWithProgrammaticGenerator(
 
 	// Generate the output
 	return hybridGen.Generate(ctx, opnsense, opt)
+}
+
+// generateToWriter writes output directly to the provided io.Writer.
+// This is more memory-efficient than generateWithProgrammaticGenerator as it
+// streams markdown output section-by-section without accumulating the entire
+// output in memory first.
+//
+// This function is currently unused but provides infrastructure for future
+// streaming output support (e.g., direct file streaming, pipe support).
+//
+//nolint:unused // Infrastructure for future streaming output support
+func generateToWriter(
+	ctx context.Context,
+	w io.Writer,
+	opnsense *model.OpnSenseDocument,
+	opt converter.Options,
+	logger *log.Logger,
+) error {
+	// Create the programmatic builder
+	reportBuilder := builder.NewMarkdownBuilder()
+
+	// Create hybrid generator (configured for programmatic mode)
+	hybridGen, err := converter.NewHybridGenerator(reportBuilder, logger)
+	if err != nil {
+		return fmt.Errorf("failed to create hybrid generator: %w", err)
+	}
+
+	// Generate directly to writer
+	return hybridGen.GenerateToWriter(ctx, w, opnsense, opt)
 }
 
 // validateConvertFlags validates flag combinations and CLI options for the convert command.

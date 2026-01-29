@@ -268,21 +268,17 @@ func validateEngine(c *Config, validationErrors *[]ValidationError) {
 }
 
 func combineValidationErrors(validationErrors []ValidationError) error {
-	var errMsg string
-
-	var errMsgSb273 strings.Builder
+	var sb strings.Builder
 	for i, err := range validationErrors {
 		if i > 0 {
-			errMsgSb273.WriteString("; ")
+			sb.WriteString("; ")
 		}
-
-		errMsgSb273.WriteString(err.Error())
+		sb.WriteString(err.Error())
 	}
-	errMsg += errMsgSb273.String()
 
 	return &ValidationError{
 		Field:   "config",
-		Message: errMsg,
+		Message: sb.String(),
 	}
 }
 
