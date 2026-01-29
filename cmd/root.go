@@ -202,6 +202,9 @@ func init() {
 		// Normalize kebab-case consistently
 		return pflag.NormalizedName(strings.ReplaceAll(name, "_", "-"))
 	})
+
+	// Initialize enhanced help system with suggestions and custom templates
+	InitHelp(rootCmd)
 }
 
 func initializeDefaultLogger() {
