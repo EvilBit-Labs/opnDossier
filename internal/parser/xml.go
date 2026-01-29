@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"runtime"
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
@@ -75,7 +74,8 @@ func charsetReader(charset string, input io.Reader) (io.Reader, error) {
 // The streaming approach processes XML tokens individually rather than loading the entire document into memory,
 // providing better memory efficiency for large configuration files while maintaining security protections
 // against XML bombs, XXE attacks, and excessive entity expansion.
-func (p *XMLParser) Parse(_ context.Context, r io.Reader) (*model.OpnSenseDocument, error) {
+// The context is checked periodically to support cancellation of long-running parse operations.
+func (p *XMLParser) Parse(ctx context.Context, r io.Reader) (*model.OpnSenseDocument, error) {
 	limitedReader := io.LimitReader(r, p.MaxInputSize)
 	dec := xml.NewDecoder(limitedReader)
 	dec.CharsetReader = charsetReader
@@ -85,6 +85,13 @@ func (p *XMLParser) Parse(_ context.Context, r io.Reader) (*model.OpnSenseDocume
 
 	var doc model.OpnSenseDocument
 	for {
+		// Check for context cancellation to support timeouts and cancellation
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
+
 		tok, err := dec.Token()
 		if errors.Is(err, io.EOF) {
 			break
@@ -213,13 +220,9 @@ func decodeElement(dec *xml.Decoder, target any, se xml.StartElement) error {
 	return dec.DecodeElement(target, &se)
 }
 
-// decodeSection handles larger sections and triggers garbage collection.
+// decodeSection handles larger sections.
 func decodeSection(dec *xml.Decoder, target any, se xml.StartElement) error {
-	if err := dec.DecodeElement(target, &se); err != nil {
-		return err
-	}
-	runtime.GC()
-	return nil
+	return dec.DecodeElement(target, &se)
 }
 
 // decodeSysctl handles the special sysctl section format.
@@ -235,7 +238,6 @@ func decodeSysctl(dec *xml.Decoder, doc *model.OpnSenseDocument, se xml.StartEle
 			return fmt.Errorf("failed to skip sysctl element: %w", err)
 		}
 	}
-	runtime.GC()
 	return nil
 }
 

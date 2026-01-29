@@ -329,16 +329,13 @@ Examples:
 		wg.Wait()
 		close(errs)
 
-		var allErrors error
+		// Collect all errors and join them using errors.Join for proper unwrapping
+		var allErrors []error
 		for err := range errs {
-			if allErrors == nil {
-				allErrors = err
-			} else {
-				allErrors = fmt.Errorf("%w; %w", allErrors, err)
-			}
+			allErrors = append(allErrors, err)
 		}
 
-		return allErrors
+		return errors.Join(allErrors...)
 	},
 }
 
