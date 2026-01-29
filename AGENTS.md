@@ -234,6 +234,52 @@ opndossier convert config.xml --format yaml --force
 
 All report generation uses programmatic Go code via `builder.MarkdownBuilder` (no template system).
 
+### 6.4 Modular Report Generator Architecture
+
+Each report generator should be a **self-contained Go module** that can be included or excluded via build flags. This architecture enables Pro-level features and independent development of report types.
+
+**What Each Report Module Should Contain:**
+
+- All generation logic (markdown construction, section building)
+- All calculation logic (security scoring, risk assessment, statistics)
+- All data transformations specific to that report type
+- Report-specific constants and mappings
+
+**What Should Remain Shared:**
+
+- `model.OpnSenseDocument` - The parsed configuration model
+- Shared helpers (string formatting, markdown escaping, table building)
+- Common interfaces (`ReportBuilder`, `Generator`)
+
+**Build Flag Integration:**
+
+```go
+//go:build pro
+
+package reports
+
+// Pro-level report generators included only with -tags=pro
+```
+
+**Implementation Pattern:**
+
+```go
+// Each report module is self-contained
+type BlueTeamGenerator struct {
+    // All state for blue team reports
+}
+
+func (g *BlueTeamGenerator) Generate(doc *model.OpnSenseDocument) (string, error) {
+    // Uses only model and shared helpers
+    // All calculations are internal to this module
+    score := g.calculateSecurityScore(doc)  // Internal method
+    findings := g.analyzeCompliance(doc)    // Internal method
+    return g.buildReport(doc, score, findings)
+}
+```
+
+See [Architecture Documentation](docs/development/architecture.md#modular-report-generator-architecture) for detailed design.
+
 ---
 
 ## 7. Testing Standards
@@ -359,7 +405,7 @@ func (p *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
 
 **Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`
 
-**Scopes:** `(parser)`, `(converter)`, `(audit)`, `(cli)`, `(model)`, `(plugin)`, `(templates)`
+**Scopes:** `(parser)`, `(converter)`, `(audit)`, `(cli)`, `(model)`, `(plugin)`, `(builder)`
 
 ### 9.2 Examples
 

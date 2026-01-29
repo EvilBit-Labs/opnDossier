@@ -343,7 +343,7 @@ opnDossier/
 │   ├── model/                        # Data models
 │   ├── validator/                    # Validation logic
 │   ├── log/                          # Structured logging
-│   ├── templates/                    # Report templates
+│   ├── metrics/                      # Performance metrics
 │   ├── walker.go                     # XML walker utilities
 │   └── *_test.go                     # Package tests
 ├── docs/                             # Documentation
