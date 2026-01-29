@@ -102,10 +102,18 @@ Examples:
 			ctx = context.Background()
 		}
 
+		// Get configuration and logger from CommandContext
+		cmdCtx := GetCommandContext(cmd)
+		if cmdCtx == nil {
+			return errors.New("command context not initialized")
+		}
+		cmdLogger := cmdCtx.Logger
+		cmdConfig := cmdCtx.Config
+
 		filePath := args[0]
 
 		// Create context-aware logger with input file field
-		ctxLogger := logger.WithContext(ctx).WithFields("input_file", filePath)
+		ctxLogger := cmdLogger.WithContext(ctx).WithFields("input_file", filePath)
 
 		// Sanitize the file path
 		cleanPath := filepath.Clean(filePath)
@@ -147,7 +155,7 @@ Examples:
 			return fmt.Errorf("failed to parse XML from %s: %w", filePath, err)
 		}
 
-		mdOpts := buildDisplayOptions(Cfg)
+		mdOpts := buildDisplayOptions(cmdConfig)
 		g, err := converter.NewMarkdownGenerator(ctxLogger, mdOpts)
 		if err != nil {
 			ctxLogger.Error("Failed to create markdown generator", "error", err)

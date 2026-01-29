@@ -94,20 +94,6 @@ func TestRootCmdSubcommands(t *testing.T) {
 	assert.Contains(t, commandNames, "validate")
 }
 
-func TestGetLogger(t *testing.T) {
-	// Test that GetLogger returns a logger instance
-	logger := GetLogger()
-	require.NotNil(t, logger)
-}
-
-func TestGetConfig(_ *testing.T) {
-	// Initially, config should be nil until initialized
-	config := GetConfig()
-	// Config is initialized during PersistentPreRunE, so it may be nil initially
-	// This is expected behavior
-	_ = config // Just verify the function doesn't panic
-}
-
 func TestRootCmdPersistentPreRunE(t *testing.T) {
 	// Create a temporary config file for testing
 	tmpFile, err := os.CreateTemp(t.TempDir(), "opndossier-test-*.yaml")
@@ -143,9 +129,11 @@ func TestRootCmdPersistentPreRunE(t *testing.T) {
 	err = rootCmd.PersistentPreRunE(testCmd, []string{})
 	require.NoError(t, err)
 
-	// Verify config and logger are initialized
-	assert.NotNil(t, GetConfig())
-	assert.NotNil(t, GetLogger())
+	// Verify CommandContext is set and accessible
+	cmdCtx := GetCommandContext(testCmd)
+	require.NotNil(t, cmdCtx, "CommandContext should be set after PersistentPreRunE")
+	assert.NotNil(t, cmdCtx.Config, "CommandContext.Config should be set")
+	assert.NotNil(t, cmdCtx.Logger, "CommandContext.Logger should be set")
 }
 
 func TestRootCmdInvalidConfig(t *testing.T) {
@@ -256,7 +244,7 @@ func TestInitializeDefaultLoggerFallbackWritesToStderr(t *testing.T) {
 	})
 
 	assert.Contains(t, output, "unable to initialize logging")
-	assert.NotNil(t, GetLogger())
+	// Fallback logger is created but unexported - verify it doesn't panic
 }
 
 func TestRootCmdPersistentPreRunERecoversFromFallback(t *testing.T) {
@@ -303,5 +291,9 @@ func TestRootCmdPersistentPreRunERecoversFromFallback(t *testing.T) {
 	// Test PersistentPreRunE should succeed and reinitialize logger
 	err = rootCmd.PersistentPreRunE(testCmd, []string{})
 	require.NoError(t, err)
-	assert.NotNil(t, GetLogger())
+
+	// Verify logger is available through CommandContext
+	cmdCtx := GetCommandContext(testCmd)
+	require.NotNil(t, cmdCtx, "CommandContext should be set after PersistentPreRunE")
+	assert.NotNil(t, cmdCtx.Logger, "Logger should be reinitialized after fallback")
 }

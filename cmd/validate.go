@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -53,6 +54,13 @@ Examples:
 			ctx = context.Background()
 		}
 
+		// Get logger from CommandContext
+		cmdCtx := GetCommandContext(cmd)
+		if cmdCtx == nil {
+			return errors.New("command context not initialized")
+		}
+		cmdLogger := cmdCtx.Logger
+
 		var wg sync.WaitGroup
 		errs := make(chan error, len(args))
 		validationFailed := false
@@ -63,7 +71,7 @@ Examples:
 				defer wg.Done()
 
 				// Create context-aware logger for this goroutine with input file field
-				ctxLogger := logger.WithContext(ctx).WithFields("input_file", fp)
+				ctxLogger := cmdLogger.WithContext(ctx).WithFields("input_file", fp)
 				ctxLogger.Info("Starting validation process")
 
 				// Sanitize the file path
