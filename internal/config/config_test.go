@@ -308,9 +308,251 @@ func clearEnvironment(_ *testing.T) {
 		"OPNDOSSIER_TEMPLATE",
 		"OPNDOSSIER_SECTIONS",
 		"OPNDOSSIER_WRAP",
+		// Nested config env vars
+		"OPNDOSSIER_DISPLAY_WIDTH",
+		"OPNDOSSIER_DISPLAY_PAGER",
+		"OPNDOSSIER_DISPLAY_SYNTAX_HIGHLIGHTING",
+		"OPNDOSSIER_EXPORT_FORMAT",
+		"OPNDOSSIER_EXPORT_DIRECTORY",
+		"OPNDOSSIER_EXPORT_TEMPLATE",
+		"OPNDOSSIER_EXPORT_BACKUP",
+		"OPNDOSSIER_LOGGING_LEVEL",
+		"OPNDOSSIER_LOGGING_FORMAT",
+		"OPNDOSSIER_VALIDATION_STRICT",
+		"OPNDOSSIER_VALIDATION_SCHEMA_VALIDATION",
 	}
 
 	for _, env := range envVars {
 		_ = os.Unsetenv(env)
 	}
+}
+
+// TestNestedConfigFromYAML tests loading nested configuration from YAML file.
+func TestNestedConfigFromYAML(t *testing.T) {
+	clearEnvironment(t)
+
+	tmpDir := t.TempDir()
+	cfgFilePath := filepath.Join(tmpDir, ".opnDossier.yaml")
+	content := `
+display:
+  width: 120
+  pager: true
+  syntax_highlighting: true
+export:
+  format: json
+  directory: ./output
+  template: comprehensive
+  backup: true
+logging:
+  level: debug
+  format: json
+validation:
+  strict: true
+  schema_validation: true
+`
+	err := os.WriteFile(cfgFilePath, []byte(content), 0o600)
+	require.NoError(t, err)
+
+	cfg, err := LoadConfigWithViper(cfgFilePath, viper.New())
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	// Verify nested display config
+	assert.Equal(t, 120, cfg.Display.Width)
+	assert.True(t, cfg.Display.Pager)
+	assert.True(t, cfg.Display.SyntaxHighlighting)
+
+	// Verify nested export config
+	assert.Equal(t, "json", cfg.Export.Format)
+	assert.Equal(t, "./output", cfg.Export.Directory)
+	assert.Equal(t, "comprehensive", cfg.Export.Template)
+	assert.True(t, cfg.Export.Backup)
+
+	// Verify nested logging config
+	assert.Equal(t, "debug", cfg.Logging.Level)
+	assert.Equal(t, "json", cfg.Logging.Format)
+
+	// Verify nested validation config
+	assert.True(t, cfg.Validation.Strict)
+	assert.True(t, cfg.Validation.SchemaValidation)
+}
+
+// TestNestedConfigDefaults tests that nested config has proper defaults.
+func TestNestedConfigDefaults(t *testing.T) {
+	clearEnvironment(t)
+
+	cfg, err := LoadConfigWithViper("", viper.New())
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	// Verify display defaults
+	assert.Equal(t, -1, cfg.Display.Width) // -1 means auto-detect
+	assert.False(t, cfg.Display.Pager)
+	assert.True(t, cfg.Display.SyntaxHighlighting)
+
+	// Verify export defaults
+	assert.Equal(t, "markdown", cfg.Export.Format)
+	assert.Empty(t, cfg.Export.Directory)
+	assert.Empty(t, cfg.Export.Template)
+	assert.False(t, cfg.Export.Backup)
+
+	// Verify logging defaults
+	assert.Equal(t, "info", cfg.Logging.Level)
+	assert.Equal(t, "text", cfg.Logging.Format)
+
+	// Verify validation defaults
+	assert.False(t, cfg.Validation.Strict)
+	assert.False(t, cfg.Validation.SchemaValidation)
+}
+
+// TestNestedConfigFromEnv tests loading nested configuration from environment variables.
+func TestNestedConfigFromEnv(t *testing.T) {
+	clearEnvironment(t)
+
+	t.Setenv("OPNDOSSIER_DISPLAY_WIDTH", "100")
+	t.Setenv("OPNDOSSIER_DISPLAY_PAGER", "true")
+	t.Setenv("OPNDOSSIER_DISPLAY_SYNTAX_HIGHLIGHTING", "false")
+	t.Setenv("OPNDOSSIER_EXPORT_FORMAT", "yaml")
+	t.Setenv("OPNDOSSIER_EXPORT_DIRECTORY", "/tmp/export")
+	t.Setenv("OPNDOSSIER_LOGGING_LEVEL", "warn")
+	t.Setenv("OPNDOSSIER_VALIDATION_STRICT", "true")
+
+	cfg, err := LoadConfigWithViper("", viper.New())
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	// Verify nested display config from env
+	assert.Equal(t, 100, cfg.Display.Width)
+	assert.True(t, cfg.Display.Pager)
+	assert.False(t, cfg.Display.SyntaxHighlighting)
+
+	// Verify nested export config from env
+	assert.Equal(t, "yaml", cfg.Export.Format)
+	assert.Equal(t, "/tmp/export", cfg.Export.Directory)
+
+	// Verify nested logging config from env
+	assert.Equal(t, "warn", cfg.Logging.Level)
+
+	// Verify nested validation config from env
+	assert.True(t, cfg.Validation.Strict)
+}
+
+// TestBackwardCompatibilityFlatConfig tests that flat config still works for backward compatibility.
+func TestBackwardCompatibilityFlatConfig(t *testing.T) {
+	clearEnvironment(t)
+
+	tmpDir := t.TempDir()
+	inputFile := filepath.Join(tmpDir, "input.xml")
+	err := os.WriteFile(inputFile, []byte("<test/>"), 0o600)
+	require.NoError(t, err)
+
+	cfgFilePath := filepath.Join(tmpDir, ".opnDossier.yaml")
+	// This is the OLD flat config format - should still work
+	content := fmt.Sprintf(`
+input_file: %s
+output_file: %s
+verbose: true
+quiet: false
+theme: dark
+format: json
+wrap: 80
+`, inputFile, filepath.Join(tmpDir, "output.md"))
+	err = os.WriteFile(cfgFilePath, []byte(content), 0o600)
+	require.NoError(t, err)
+
+	cfg, err := LoadConfigWithViper(cfgFilePath, viper.New())
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	// Flat config should still work
+	assert.Equal(t, inputFile, cfg.InputFile)
+	assert.Equal(t, filepath.Join(tmpDir, "output.md"), cfg.OutputFile)
+	assert.True(t, cfg.Verbose)
+	assert.False(t, cfg.Quiet)
+	assert.Equal(t, "dark", cfg.Theme)
+	assert.Equal(t, "json", cfg.Format)
+	assert.Equal(t, 80, cfg.WrapWidth)
+}
+
+// TestNestedConfigGetters tests the getter methods for nested config.
+func TestNestedConfigGetters(t *testing.T) {
+	cfg := &Config{
+		Display: DisplayConfig{
+			Width:              100,
+			Pager:              true,
+			SyntaxHighlighting: true,
+		},
+		Export: ExportConfig{
+			Format:    "yaml",
+			Directory: "/output",
+			Template:  "full",
+			Backup:    true,
+		},
+		Logging: LoggingConfig{
+			Level:  "debug",
+			Format: "json",
+		},
+		Validation: ValidationConfig{
+			Strict:           true,
+			SchemaValidation: true,
+		},
+	}
+
+	// Test Display getters
+	assert.Equal(t, 100, cfg.GetDisplayWidth())
+	assert.True(t, cfg.IsDisplayPager())
+	assert.True(t, cfg.IsDisplaySyntaxHighlighting())
+
+	// Test Export getters
+	assert.Equal(t, "yaml", cfg.GetExportFormat())
+	assert.Equal(t, "/output", cfg.GetExportDirectory())
+	assert.Equal(t, "full", cfg.GetExportTemplate())
+	assert.True(t, cfg.IsExportBackup())
+
+	// Test Logging getters
+	assert.Equal(t, "debug", cfg.GetLoggingLevel())
+	assert.Equal(t, "json", cfg.GetLoggingFormat())
+
+	// Test Validation getters
+	assert.True(t, cfg.IsValidationStrict())
+	assert.True(t, cfg.IsValidationSchemaValidation())
+}
+
+// TestMixedFlatAndNestedConfig tests that flat and nested configs can be mixed.
+func TestMixedFlatAndNestedConfig(t *testing.T) {
+	clearEnvironment(t)
+
+	tmpDir := t.TempDir()
+	inputFile := filepath.Join(tmpDir, "input.xml")
+	err := os.WriteFile(inputFile, []byte("<test/>"), 0o600)
+	require.NoError(t, err)
+
+	cfgFilePath := filepath.Join(tmpDir, ".opnDossier.yaml")
+	// Mix of flat and nested config
+	content := fmt.Sprintf(`
+input_file: %s
+verbose: true
+display:
+  width: 120
+logging:
+  level: debug
+`, inputFile)
+	err = os.WriteFile(cfgFilePath, []byte(content), 0o600)
+	require.NoError(t, err)
+
+	cfg, err := LoadConfigWithViper(cfgFilePath, viper.New())
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	// Flat config
+	assert.Equal(t, inputFile, cfg.InputFile)
+	assert.True(t, cfg.Verbose)
+
+	// Nested config
+	assert.Equal(t, 120, cfg.Display.Width)
+	assert.Equal(t, "debug", cfg.Logging.Level)
+
+	// Defaults should still apply for unset nested fields
+	assert.False(t, cfg.Display.Pager)
+	assert.True(t, cfg.Display.SyntaxHighlighting)
 }
