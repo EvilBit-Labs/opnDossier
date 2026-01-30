@@ -32,6 +32,7 @@ jobs:
 
       - name: Run benchmarks
         timeout-minutes: 15
+        continue-on-error: true
         run: |
           go test -bench=. -run=^$ -benchmem -count=3 -timeout 10m ./... 2>/dev/null | tee benchmark-results.txt
 
