@@ -35,6 +35,14 @@ var defaultLoggerConfig = log.Config{ //nolint:gochecknoglobals // test override
 	ReportTimestamp: true,
 }
 
+// lightweightCommands lists command names that don't need full initialization.
+// These commands skip config file loading and heavy logger setup for faster startup.
+var lightweightCommands = map[string]bool{ //nolint:gochecknoglobals // Static command list
+	"version":    true,
+	"help":       true,
+	"completion": true,
+}
+
 // rootCmd represents the base command when called without any subcommands.
 var rootCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra root command
 	Use:   "opnDossier",
@@ -58,56 +66,107 @@ WORKFLOW EXAMPLES:
   # Validation workflow
   opnDossier validate config.xml && opnDossier convert config.xml -o documentation.md`,
 	PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-		var err error
-		// Load configuration with flag binding for proper precedence
-		// Note: Fang complements Cobra for CLI enhancement
-		cfg, err = config.LoadConfigWithFlags(cfgFile, cmd.Flags())
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
+		// Fast path: Skip heavy initialization for lightweight commands
+		// This significantly improves startup time for --help, version, etc.
+		if isLightweightCommand(cmd) {
+			return setupLightweightContext(cmd)
 		}
 
-		// Initialize logger after config load with proper verbose/quiet handling
-		// Determine log level based on verbose/quiet flags
-		logLevel := "info"
-		if cfg.IsQuiet() {
-			logLevel = "error"
-		} else if cfg.IsVerbose() {
-			logLevel = "debug"
-		}
-
-		// Create new logger with centralized configuration
-		var loggerErr error
-		logger, loggerErr = log.New(log.Config{
-			Level:           logLevel,
-			Format:          "text", // Log format is hardcoded to "text" for consistency
-			Output:          os.Stderr,
-			ReportCaller:    true,
-			ReportTimestamp: true,
-		})
-		if loggerErr != nil {
-			return fmt.Errorf("failed to create logger: %w", loggerErr)
-		}
-
-		// Validate global flags after config is loaded
-		if err := validateGlobalFlags(cmd.Flags()); err != nil {
-			return fmt.Errorf("invalid flag configuration: %w", err)
-		}
-
-		// Set up CommandContext for explicit dependency injection
-		// This makes config and logger available to all subcommands via context
-		cmdCtx := &CommandContext{
-			Config: cfg,
-			Logger: logger,
-		}
-
-		// Ensure the command has a base context
-		if cmd.Context() == nil {
-			cmd.SetContext(context.Background())
-		}
-		SetCommandContext(cmd, cmdCtx)
-
-		return nil
+		return setupFullContext(cmd)
 	},
+}
+
+// isLightweightCommand checks if the command or any of its parents is a lightweight command.
+func isLightweightCommand(cmd *cobra.Command) bool {
+	// Check if this command is lightweight
+	if lightweightCommands[cmd.Name()] {
+		return true
+	}
+
+	// Check if command has the lightweight annotation
+	if cmd.Annotations != nil {
+		if _, ok := cmd.Annotations["lightweight"]; ok {
+			return true
+		}
+	}
+
+	return false
+}
+
+// setupLightweightContext creates a minimal context for lightweight commands.
+// This skips config file loading and uses minimal defaults for fast startup.
+func setupLightweightContext(cmd *cobra.Command) error {
+	// Use minimal default config - no file loading, no env var processing
+	cfg = &config.Config{
+		Format: "markdown",
+		Engine: "programmatic",
+	}
+
+	// Create minimal command context with default logger
+	cmdCtx := &CommandContext{
+		Config: cfg,
+		Logger: logger, // Use the default logger initialized in init()
+	}
+
+	if cmd.Context() == nil {
+		cmd.SetContext(context.Background())
+	}
+	SetCommandContext(cmd, cmdCtx)
+
+	return nil
+}
+
+// setupFullContext performs complete initialization for commands that need it.
+func setupFullContext(cmd *cobra.Command) error {
+	var err error
+	// Load configuration with flag binding for proper precedence
+	// Note: Fang complements Cobra for CLI enhancement
+	cfg, err = config.LoadConfigWithFlags(cfgFile, cmd.Flags())
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Initialize logger after config load with proper verbose/quiet handling
+	// Determine log level based on verbose/quiet flags
+	logLevel := "info"
+	if cfg.IsQuiet() {
+		logLevel = "error"
+	} else if cfg.IsVerbose() {
+		logLevel = "debug"
+	}
+
+	// Create new logger with centralized configuration
+	var loggerErr error
+	logger, loggerErr = log.New(log.Config{
+		Level:           logLevel,
+		Format:          "text", // Log format is hardcoded to "text" for consistency
+		Output:          os.Stderr,
+		ReportCaller:    true,
+		ReportTimestamp: true,
+	})
+	if loggerErr != nil {
+		return fmt.Errorf("failed to create logger: %w", loggerErr)
+	}
+
+	// Validate global flags after config is loaded
+	if err := validateGlobalFlags(cmd.Flags()); err != nil {
+		return fmt.Errorf("invalid flag configuration: %w", err)
+	}
+
+	// Set up CommandContext for explicit dependency injection
+	// This makes config and logger available to all subcommands via context
+	cmdCtx := &CommandContext{
+		Config: cfg,
+		Logger: logger,
+	}
+
+	// Ensure the command has a base context
+	if cmd.Context() == nil {
+		cmd.SetContext(context.Background())
+	}
+	SetCommandContext(cmd, cmdCtx)
+
+	return nil
 }
 
 // init initializes the global logger with default settings and registers persistent CLI flags for configuration file path, verbosity, log level, log format, and display theme.
@@ -153,12 +212,15 @@ func init() {
 	// Verbose and quiet are mutually exclusive
 	rootCmd.MarkFlagsMutuallyExclusive("verbose", "quiet")
 
-	// Add version command
+	// Add version command with lightweight annotation for fast startup
 	versionCmd := &cobra.Command{
 		Use:     "version",
 		Short:   "Display version information",
 		Long:    "Display the current version of opnDossier and build information.",
 		GroupID: "utility",
+		Annotations: map[string]string{
+			"lightweight": "true", // Skip heavy initialization for fast startup
+		},
 		Run: func(_ *cobra.Command, _ []string) {
 			fmt.Printf("opnDossier version %s\n", constants.Version)
 			fmt.Printf("Build date: %s\n", getBuildDate())

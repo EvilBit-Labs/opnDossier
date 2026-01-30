@@ -1,0 +1,194 @@
+name: Benchmarks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "**.go"
+      - "go.mod"
+      - "go.sum"
+      - ".github/workflows/benchmarks.yml"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Benchmark - Run performance benchmarks with regression detection
+  # ─────────────────────────────────────────────────────────────────────────
+  benchmark:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: jdx/mise-action@v2
+        with:
+          install: true
+          cache: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run benchmarks
+        timeout-minutes: 15
+        continue-on-error: true
+        run: |
+          go test -bench=. -run=^$ -benchmem -count=3 -timeout 10m ./... 2>/dev/null | tee benchmark-results.txt
+
+      - name: Download baseline (main branch)
+        if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@v4
+        with:
+          path: baseline-benchmark.txt
+          key: benchmark-baseline-${{ github.base_ref }}
+          restore-keys: |
+            benchmark-baseline-main
+
+      - name: Compare benchmarks
+        if: github.event_name == 'pull_request' && hashFiles('baseline-benchmark.txt') != ''
+        id: benchmark-compare
+        run: |
+          # Install benchstat for comparison
+          go install golang.org/x/perf/cmd/benchstat@latest
+
+          # Run comparison and write to file
+          {
+            echo "## Benchmark Comparison"
+            echo ""
+            echo "Comparing PR benchmarks against baseline (main branch):"
+            echo ""
+            echo '```'
+            benchstat baseline-benchmark.txt benchmark-results.txt 2>&1 || true
+            echo '```'
+          } > comparison.md
+
+          # Check for significant regressions (>20% slower)
+          if benchstat baseline-benchmark.txt benchmark-results.txt 2>/dev/null | grep -E '\+[2-9][0-9]\.[0-9]+%|\+[1-9][0-9][0-9]+\.[0-9]+%' > /dev/null; then
+            {
+              echo ""
+              echo "⚠️ **Warning**: Some benchmarks show >20% regression. Please review."
+            } >> comparison.md
+            echo "regression=true" >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo ""
+              echo "✅ No significant performance regressions detected."
+            } >> comparison.md
+            echo "regression=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post benchmark comparison as PR comment
+        if: github.event_name == 'pull_request' && hashFiles('comparison.md') != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const comparison = fs.readFileSync('comparison.md', 'utf8');
+
+            // Find existing benchmark comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('## Benchmark Comparison')
+            );
+
+            const body = comparison;
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body,
+              });
+            }
+
+      - name: Save baseline (main branch only)
+        if: github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v4
+        with:
+          path: benchmark-results.txt
+          key: benchmark-baseline-main-${{ github.sha }}
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: |
+            benchmark-results.txt
+            comparison.md
+          retention-days: 30
+          if-no-files-found: ignore
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Startup Time - Verify CLI startup performance
+  # ─────────────────────────────────────────────────────────────────────────
+  startup-time:
+    name: Startup Time Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: jdx/mise-action@v2
+        with:
+          install: true
+          cache: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build release binary
+        run: |
+          CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o opndossier main.go
+
+      - name: Measure startup time
+        run: |
+          # Warm up (use _ to indicate unused variable)
+          for _ in {1..5}; do ./opndossier version > /dev/null 2>&1; done
+
+          # Capture version command time
+          version_time=$( { time ./opndossier version > /dev/null 2>&1; } 2>&1 )
+
+          # Capture help command time
+          help_time=$( { time ./opndossier --help > /dev/null 2>&1; } 2>&1 )
+
+          # Capture startup benchmarks
+          bench_output=$(go test -bench=BenchmarkStartup -run=^$ -benchmem ./cmd/... 2>&1)
+
+          # Write all results to file
+          {
+            echo "## Startup Time Measurements"
+            echo ""
+            echo "### Version Command"
+            echo '```'
+            echo "$version_time"
+            echo '```'
+            echo ""
+            echo "### Help Command"
+            echo '```'
+            echo "$help_time"
+            echo '```'
+            echo ""
+            echo "### Startup Benchmarks"
+            echo '```'
+            echo "$bench_output"
+            echo '```'
+          } > startup-results.md
+
+      - name: Upload startup results
+        uses: actions/upload-artifact@v4
+        with:
+          name: startup-results
+          path: startup-results.md
+          retention-days: 30

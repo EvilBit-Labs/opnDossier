@@ -155,7 +155,7 @@ Examples:
 				if jsonOutput {
 					JSONSuccess("Valid", fp)
 				} else {
-					fmt.Printf("✅ %s: Valid\n", fp)
+					fmt.Fprintf(cmd.OutOrStdout(), "✅ %s: Valid\n", fp)
 				}
 			}(filePath)
 		}
