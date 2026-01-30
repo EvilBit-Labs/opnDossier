@@ -518,6 +518,78 @@ func TestNestedConfigGetters(t *testing.T) {
 	assert.True(t, cfg.IsValidationSchemaValidation())
 }
 
+// TestNestedConfigPrecedence tests that env vars take precedence over file config for nested fields.
+func TestNestedConfigPrecedence(t *testing.T) {
+	clearEnvironment(t)
+
+	// Create a config file with nested values
+	tmpDir := t.TempDir()
+	cfgFilePath := filepath.Join(tmpDir, ".opnDossier.yaml")
+	content := `
+display:
+  width: 80
+  pager: false
+  syntax_highlighting: true
+export:
+  format: markdown
+  directory: /file/export
+  template: default
+  backup: false
+logging:
+  level: info
+  format: text
+validation:
+  strict: false
+  schema_validation: false
+`
+	err := os.WriteFile(cfgFilePath, []byte(content), 0o600)
+	require.NoError(t, err)
+
+	// Set env vars that should override the file values
+	t.Setenv("OPNDOSSIER_DISPLAY_WIDTH", "120")
+	t.Setenv("OPNDOSSIER_DISPLAY_PAGER", "true")
+	t.Setenv("OPNDOSSIER_DISPLAY_SYNTAX_HIGHLIGHTING", "false")
+	t.Setenv("OPNDOSSIER_EXPORT_FORMAT", "json")
+	t.Setenv("OPNDOSSIER_EXPORT_DIRECTORY", "/env/export")
+	t.Setenv("OPNDOSSIER_EXPORT_TEMPLATE", "comprehensive")
+	t.Setenv("OPNDOSSIER_EXPORT_BACKUP", "true")
+	t.Setenv("OPNDOSSIER_LOGGING_LEVEL", "debug")
+	t.Setenv("OPNDOSSIER_LOGGING_FORMAT", "json")
+	t.Setenv("OPNDOSSIER_VALIDATION_STRICT", "true")
+	t.Setenv("OPNDOSSIER_VALIDATION_SCHEMA_VALIDATION", "true")
+
+	cfg, err := LoadConfigWithViper(cfgFilePath, viper.New())
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	// Verify env vars override file config for display
+	assert.Equal(t, 120, cfg.Display.Width, "OPNDOSSIER_DISPLAY_WIDTH should override file config")
+	assert.True(t, cfg.Display.Pager, "OPNDOSSIER_DISPLAY_PAGER should override file config")
+	assert.False(
+		t,
+		cfg.Display.SyntaxHighlighting,
+		"OPNDOSSIER_DISPLAY_SYNTAX_HIGHLIGHTING should override file config",
+	)
+
+	// Verify env vars override file config for export
+	assert.Equal(t, "json", cfg.Export.Format, "OPNDOSSIER_EXPORT_FORMAT should override file config")
+	assert.Equal(t, "/env/export", cfg.Export.Directory, "OPNDOSSIER_EXPORT_DIRECTORY should override file config")
+	assert.Equal(t, "comprehensive", cfg.Export.Template, "OPNDOSSIER_EXPORT_TEMPLATE should override file config")
+	assert.True(t, cfg.Export.Backup, "OPNDOSSIER_EXPORT_BACKUP should override file config")
+
+	// Verify env vars override file config for logging
+	assert.Equal(t, "debug", cfg.Logging.Level, "OPNDOSSIER_LOGGING_LEVEL should override file config")
+	assert.Equal(t, "json", cfg.Logging.Format, "OPNDOSSIER_LOGGING_FORMAT should override file config")
+
+	// Verify env vars override file config for validation
+	assert.True(t, cfg.Validation.Strict, "OPNDOSSIER_VALIDATION_STRICT should override file config")
+	assert.True(
+		t,
+		cfg.Validation.SchemaValidation,
+		"OPNDOSSIER_VALIDATION_SCHEMA_VALIDATION should override file config",
+	)
+}
+
 // TestMixedFlatAndNestedConfig tests that flat and nested configs can be mixed.
 func TestMixedFlatAndNestedConfig(t *testing.T) {
 	clearEnvironment(t)
