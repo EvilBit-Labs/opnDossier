@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -308,9 +309,502 @@ func clearEnvironment(_ *testing.T) {
 		"OPNDOSSIER_TEMPLATE",
 		"OPNDOSSIER_SECTIONS",
 		"OPNDOSSIER_WRAP",
+		// Nested config env vars
+		"OPNDOSSIER_DISPLAY_WIDTH",
+		"OPNDOSSIER_DISPLAY_PAGER",
+		"OPNDOSSIER_DISPLAY_SYNTAX_HIGHLIGHTING",
+		"OPNDOSSIER_EXPORT_FORMAT",
+		"OPNDOSSIER_EXPORT_DIRECTORY",
+		"OPNDOSSIER_EXPORT_TEMPLATE",
+		"OPNDOSSIER_EXPORT_BACKUP",
+		"OPNDOSSIER_LOGGING_LEVEL",
+		"OPNDOSSIER_LOGGING_FORMAT",
+		"OPNDOSSIER_VALIDATION_STRICT",
+		"OPNDOSSIER_VALIDATION_SCHEMA_VALIDATION",
 	}
 
 	for _, env := range envVars {
 		_ = os.Unsetenv(env)
+	}
+}
+
+// TestNestedConfigFromYAML tests loading nested configuration from YAML file.
+func TestNestedConfigFromYAML(t *testing.T) {
+	clearEnvironment(t)
+
+	tmpDir := t.TempDir()
+	cfgFilePath := filepath.Join(tmpDir, ".opnDossier.yaml")
+	content := `
+display:
+  width: 120
+  pager: true
+  syntax_highlighting: true
+export:
+  format: json
+  directory: ./output
+  template: comprehensive
+  backup: true
+logging:
+  level: debug
+  format: json
+validation:
+  strict: true
+  schema_validation: true
+`
+	err := os.WriteFile(cfgFilePath, []byte(content), 0o600)
+	require.NoError(t, err)
+
+	cfg, err := LoadConfigWithViper(cfgFilePath, viper.New())
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	// Verify nested display config
+	assert.Equal(t, 120, cfg.Display.Width)
+	assert.True(t, cfg.Display.Pager)
+	assert.True(t, cfg.Display.SyntaxHighlighting)
+
+	// Verify nested export config
+	assert.Equal(t, "json", cfg.Export.Format)
+	assert.Equal(t, "./output", cfg.Export.Directory)
+	assert.Equal(t, "comprehensive", cfg.Export.Template)
+	assert.True(t, cfg.Export.Backup)
+
+	// Verify nested logging config
+	assert.Equal(t, "debug", cfg.Logging.Level)
+	assert.Equal(t, "json", cfg.Logging.Format)
+
+	// Verify nested validation config
+	assert.True(t, cfg.Validation.Strict)
+	assert.True(t, cfg.Validation.SchemaValidation)
+}
+
+// TestNestedConfigDefaults tests that nested config has proper defaults.
+func TestNestedConfigDefaults(t *testing.T) {
+	clearEnvironment(t)
+
+	cfg, err := LoadConfigWithViper("", viper.New())
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	// Verify display defaults
+	assert.Equal(t, -1, cfg.Display.Width) // -1 means auto-detect
+	assert.False(t, cfg.Display.Pager)
+	assert.True(t, cfg.Display.SyntaxHighlighting)
+
+	// Verify export defaults
+	assert.Equal(t, "markdown", cfg.Export.Format)
+	assert.Empty(t, cfg.Export.Directory)
+	assert.Empty(t, cfg.Export.Template)
+	assert.False(t, cfg.Export.Backup)
+
+	// Verify logging defaults
+	assert.Equal(t, "info", cfg.Logging.Level)
+	assert.Equal(t, "text", cfg.Logging.Format)
+
+	// Verify validation defaults
+	assert.False(t, cfg.Validation.Strict)
+	assert.False(t, cfg.Validation.SchemaValidation)
+}
+
+// TestNestedConfigFromEnv tests loading nested configuration from environment variables.
+func TestNestedConfigFromEnv(t *testing.T) {
+	clearEnvironment(t)
+
+	// Create a temp directory for export directory testing
+	tmpExportDir := t.TempDir()
+
+	t.Setenv("OPNDOSSIER_DISPLAY_WIDTH", "100")
+	t.Setenv("OPNDOSSIER_DISPLAY_PAGER", "true")
+	t.Setenv("OPNDOSSIER_DISPLAY_SYNTAX_HIGHLIGHTING", "false")
+	t.Setenv("OPNDOSSIER_EXPORT_FORMAT", "yaml")
+	t.Setenv("OPNDOSSIER_EXPORT_DIRECTORY", tmpExportDir)
+	t.Setenv("OPNDOSSIER_LOGGING_LEVEL", "warn")
+	t.Setenv("OPNDOSSIER_VALIDATION_STRICT", "true")
+
+	cfg, err := LoadConfigWithViper("", viper.New())
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	// Verify nested display config from env
+	assert.Equal(t, 100, cfg.Display.Width)
+	assert.True(t, cfg.Display.Pager)
+	assert.False(t, cfg.Display.SyntaxHighlighting)
+
+	// Verify nested export config from env
+	assert.Equal(t, "yaml", cfg.Export.Format)
+	assert.Equal(t, tmpExportDir, cfg.Export.Directory)
+
+	// Verify nested logging config from env
+	assert.Equal(t, "warn", cfg.Logging.Level)
+
+	// Verify nested validation config from env
+	assert.True(t, cfg.Validation.Strict)
+}
+
+// TestBackwardCompatibilityFlatConfig tests that flat config still works for backward compatibility.
+func TestBackwardCompatibilityFlatConfig(t *testing.T) {
+	clearEnvironment(t)
+
+	tmpDir := t.TempDir()
+	inputFile := filepath.Join(tmpDir, "input.xml")
+	err := os.WriteFile(inputFile, []byte("<test/>"), 0o600)
+	require.NoError(t, err)
+
+	cfgFilePath := filepath.Join(tmpDir, ".opnDossier.yaml")
+	// This is the OLD flat config format - should still work
+	content := fmt.Sprintf(`
+input_file: %s
+output_file: %s
+verbose: true
+quiet: false
+theme: dark
+format: json
+wrap: 80
+`, inputFile, filepath.Join(tmpDir, "output.md"))
+	err = os.WriteFile(cfgFilePath, []byte(content), 0o600)
+	require.NoError(t, err)
+
+	cfg, err := LoadConfigWithViper(cfgFilePath, viper.New())
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	// Flat config should still work
+	assert.Equal(t, inputFile, cfg.InputFile)
+	assert.Equal(t, filepath.Join(tmpDir, "output.md"), cfg.OutputFile)
+	assert.True(t, cfg.Verbose)
+	assert.False(t, cfg.Quiet)
+	assert.Equal(t, "dark", cfg.Theme)
+	assert.Equal(t, "json", cfg.Format)
+	assert.Equal(t, 80, cfg.WrapWidth)
+}
+
+// TestNestedConfigGetters tests the getter methods for nested config.
+func TestNestedConfigGetters(t *testing.T) {
+	cfg := &Config{
+		Display: DisplayConfig{
+			Width:              100,
+			Pager:              true,
+			SyntaxHighlighting: true,
+		},
+		Export: ExportConfig{
+			Format:    "yaml",
+			Directory: "/output",
+			Template:  "full",
+			Backup:    true,
+		},
+		Logging: LoggingConfig{
+			Level:  "debug",
+			Format: "json",
+		},
+		Validation: ValidationConfig{
+			Strict:           true,
+			SchemaValidation: true,
+		},
+	}
+
+	// Test Display getters
+	assert.Equal(t, 100, cfg.GetDisplayWidth())
+	assert.True(t, cfg.IsDisplayPager())
+	assert.True(t, cfg.IsDisplaySyntaxHighlighting())
+
+	// Test Export getters
+	assert.Equal(t, "yaml", cfg.GetExportFormat())
+	assert.Equal(t, "/output", cfg.GetExportDirectory())
+	assert.Equal(t, "full", cfg.GetExportTemplate())
+	assert.True(t, cfg.IsExportBackup())
+
+	// Test Logging getters
+	assert.Equal(t, "debug", cfg.GetLoggingLevel())
+	assert.Equal(t, "json", cfg.GetLoggingFormat())
+
+	// Test Validation getters
+	assert.True(t, cfg.IsValidationStrict())
+	assert.True(t, cfg.IsValidationSchemaValidation())
+}
+
+// TestNestedConfigPrecedence tests that env vars take precedence over file config for nested fields.
+func TestNestedConfigPrecedence(t *testing.T) {
+	clearEnvironment(t)
+
+	// Create temp directories for export directories
+	tmpDir := t.TempDir()
+	fileExportDir := filepath.Join(tmpDir, "file_export")
+	envExportDir := filepath.Join(tmpDir, "env_export")
+	err := os.MkdirAll(fileExportDir, 0o755)
+	require.NoError(t, err)
+	err = os.MkdirAll(envExportDir, 0o755)
+	require.NoError(t, err)
+
+	// Create a config file with nested values
+	cfgFilePath := filepath.Join(tmpDir, ".opnDossier.yaml")
+	content := fmt.Sprintf(`
+display:
+  width: 80
+  pager: false
+  syntax_highlighting: true
+export:
+  format: markdown
+  directory: %s
+  template: default
+  backup: false
+logging:
+  level: info
+  format: text
+validation:
+  strict: false
+  schema_validation: false
+`, fileExportDir)
+	err = os.WriteFile(cfgFilePath, []byte(content), 0o600)
+	require.NoError(t, err)
+
+	// Set env vars that should override the file values
+	t.Setenv("OPNDOSSIER_DISPLAY_WIDTH", "120")
+	t.Setenv("OPNDOSSIER_DISPLAY_PAGER", "true")
+	t.Setenv("OPNDOSSIER_DISPLAY_SYNTAX_HIGHLIGHTING", "false")
+	t.Setenv("OPNDOSSIER_EXPORT_FORMAT", "json")
+	t.Setenv("OPNDOSSIER_EXPORT_DIRECTORY", envExportDir)
+	t.Setenv("OPNDOSSIER_EXPORT_TEMPLATE", "comprehensive")
+	t.Setenv("OPNDOSSIER_EXPORT_BACKUP", "true")
+	t.Setenv("OPNDOSSIER_LOGGING_LEVEL", "debug")
+	t.Setenv("OPNDOSSIER_LOGGING_FORMAT", "json")
+	t.Setenv("OPNDOSSIER_VALIDATION_STRICT", "true")
+	t.Setenv("OPNDOSSIER_VALIDATION_SCHEMA_VALIDATION", "true")
+
+	cfg, err := LoadConfigWithViper(cfgFilePath, viper.New())
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	// Verify env vars override file config for display
+	assert.Equal(t, 120, cfg.Display.Width, "OPNDOSSIER_DISPLAY_WIDTH should override file config")
+	assert.True(t, cfg.Display.Pager, "OPNDOSSIER_DISPLAY_PAGER should override file config")
+	assert.False(
+		t,
+		cfg.Display.SyntaxHighlighting,
+		"OPNDOSSIER_DISPLAY_SYNTAX_HIGHLIGHTING should override file config",
+	)
+
+	// Verify env vars override file config for export
+	assert.Equal(t, "json", cfg.Export.Format, "OPNDOSSIER_EXPORT_FORMAT should override file config")
+	assert.Equal(t, envExportDir, cfg.Export.Directory, "OPNDOSSIER_EXPORT_DIRECTORY should override file config")
+	assert.Equal(t, "comprehensive", cfg.Export.Template, "OPNDOSSIER_EXPORT_TEMPLATE should override file config")
+	assert.True(t, cfg.Export.Backup, "OPNDOSSIER_EXPORT_BACKUP should override file config")
+
+	// Verify env vars override file config for logging
+	assert.Equal(t, "debug", cfg.Logging.Level, "OPNDOSSIER_LOGGING_LEVEL should override file config")
+	assert.Equal(t, "json", cfg.Logging.Format, "OPNDOSSIER_LOGGING_FORMAT should override file config")
+
+	// Verify env vars override file config for validation
+	assert.True(t, cfg.Validation.Strict, "OPNDOSSIER_VALIDATION_STRICT should override file config")
+	assert.True(
+		t,
+		cfg.Validation.SchemaValidation,
+		"OPNDOSSIER_VALIDATION_SCHEMA_VALIDATION should override file config",
+	)
+}
+
+// TestMixedFlatAndNestedConfig tests that flat and nested configs can be mixed.
+func TestMixedFlatAndNestedConfig(t *testing.T) {
+	clearEnvironment(t)
+
+	tmpDir := t.TempDir()
+	inputFile := filepath.Join(tmpDir, "input.xml")
+	err := os.WriteFile(inputFile, []byte("<test/>"), 0o600)
+	require.NoError(t, err)
+
+	cfgFilePath := filepath.Join(tmpDir, ".opnDossier.yaml")
+	// Mix of flat and nested config
+	content := fmt.Sprintf(`
+input_file: %s
+verbose: true
+display:
+  width: 120
+logging:
+  level: debug
+`, inputFile)
+	err = os.WriteFile(cfgFilePath, []byte(content), 0o600)
+	require.NoError(t, err)
+
+	cfg, err := LoadConfigWithViper(cfgFilePath, viper.New())
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	// Flat config
+	assert.Equal(t, inputFile, cfg.InputFile)
+	assert.True(t, cfg.Verbose)
+
+	// Nested config
+	assert.Equal(t, 120, cfg.Display.Width)
+	assert.Equal(t, "debug", cfg.Logging.Level)
+
+	// Defaults should still apply for unset nested fields
+	assert.False(t, cfg.Display.Pager)
+	assert.True(t, cfg.Display.SyntaxHighlighting)
+}
+
+// TestConfigLoadingPerformance verifies config loading completes within acceptable time limits.
+// This is a practical test that ensures config loading doesn't regress.
+func TestConfigLoadingPerformance(t *testing.T) {
+	// Create a temporary config file with all settings
+	tmpDir := t.TempDir()
+	cfgFilePath := filepath.Join(tmpDir, ".opnDossier.yaml")
+	content := `
+verbose: false
+quiet: false
+format: markdown
+theme: auto
+wrap: 120
+engine: programmatic
+display:
+  width: 120
+  pager: false
+  syntax_highlighting: true
+export:
+  format: markdown
+  backup: false
+logging:
+  level: info
+  format: text
+validation:
+  strict: false
+  schema_validation: false
+`
+	err := os.WriteFile(cfgFilePath, []byte(content), 0o600)
+	require.NoError(t, err)
+
+	// Warm up - prime file system cache
+	warmupCfg, warmupErr := LoadConfigWithViper(cfgFilePath, viper.New())
+	require.NoError(t, warmupErr)
+	require.NotNil(t, warmupCfg)
+
+	// Measure average time over multiple iterations
+	const iterations = 10
+	var totalDuration int64
+
+	for range iterations {
+		start := time.Now()
+		cfg, err := LoadConfigWithViper(cfgFilePath, viper.New())
+		elapsed := time.Since(start)
+		totalDuration += elapsed.Nanoseconds()
+
+		require.NoError(t, err)
+		require.NotNil(t, cfg)
+	}
+
+	avgDuration := time.Duration(totalDuration / iterations)
+
+	// Config loading should complete within 100ms on average (generous for CI environments)
+	// The 50ms target is for optimized production environments; CI may be slower
+	maxDuration := 100 * time.Millisecond
+	if avgDuration > maxDuration {
+		t.Errorf("Config loading too slow: avg %v (max %v)", avgDuration, maxDuration)
+	}
+
+	t.Logf("Config loading average time: %v", avgDuration)
+}
+
+// BenchmarkLoadConfig benchmarks the configuration loading performance.
+// Target: <50ms for complete config loading including file read, env parsing, and validation.
+func BenchmarkLoadConfig(b *testing.B) {
+	// Create a temporary config file with all settings
+	tmpDir := b.TempDir()
+	cfgFilePath := filepath.Join(tmpDir, ".opnDossier.yaml")
+	content := `
+verbose: false
+quiet: false
+format: markdown
+theme: auto
+wrap: 120
+engine: programmatic
+display:
+  width: 120
+  pager: false
+  syntax_highlighting: true
+export:
+  format: markdown
+  directory: ""
+  backup: false
+logging:
+  level: info
+  format: text
+validation:
+  strict: false
+  schema_validation: false
+`
+	err := os.WriteFile(cfgFilePath, []byte(content), 0o600)
+	require.NoError(b, err)
+
+	// Reset timer after setup
+	b.ResetTimer()
+
+	for b.Loop() {
+		cfg, err := LoadConfigWithViper(cfgFilePath, viper.New())
+		if err != nil {
+			b.Fatalf("Failed to load config: %v", err)
+		}
+		if cfg == nil {
+			b.Fatal("Config is nil")
+		}
+	}
+}
+
+// BenchmarkLoadConfigWithEnv benchmarks config loading with environment variables.
+func BenchmarkLoadConfigWithEnv(b *testing.B) {
+	// Set up environment variables
+	b.Setenv("OPNDOSSIER_VERBOSE", "true")
+	b.Setenv("OPNDOSSIER_FORMAT", "json")
+	b.Setenv("OPNDOSSIER_THEME", "dark")
+	b.Setenv("OPNDOSSIER_WRAP", "100")
+	b.Setenv("OPNDOSSIER_DISPLAY_WIDTH", "120")
+	b.Setenv("OPNDOSSIER_LOGGING_LEVEL", "debug")
+
+	b.ResetTimer()
+
+	for b.Loop() {
+		cfg, err := LoadConfigWithViper("", viper.New())
+		if err != nil {
+			b.Fatalf("Failed to load config: %v", err)
+		}
+		if cfg == nil {
+			b.Fatal("Config is nil")
+		}
+	}
+}
+
+// BenchmarkConfigValidation benchmarks the configuration validation step.
+func BenchmarkConfigValidation(b *testing.B) {
+	cfg := &Config{
+		Verbose:   true,
+		Quiet:     false,
+		Format:    "markdown",
+		Theme:     "dark",
+		WrapWidth: 120,
+		Engine:    "programmatic",
+		Display: DisplayConfig{
+			Width:              120,
+			Pager:              false,
+			SyntaxHighlighting: true,
+		},
+		Export: ExportConfig{
+			Format:    "markdown",
+			Directory: "",
+			Backup:    false,
+		},
+		Logging: LoggingConfig{
+			Level:  "info",
+			Format: "text",
+		},
+		Validation: ValidationConfig{
+			Strict:           false,
+			SchemaValidation: false,
+		},
+	}
+
+	b.ResetTimer()
+
+	for b.Loop() {
+		err := cfg.Validate()
+		if err != nil {
+			b.Fatalf("Validation failed: %v", err)
+		}
 	}
 }
