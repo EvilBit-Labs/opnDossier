@@ -83,14 +83,32 @@ func init() {
 	// Add shared styling and content flags
 	addSharedTemplateFlags(convertCmd)
 
+	// Register flag completion functions for better tab completion
+	registerConvertFlagCompletions(convertCmd)
+
 	// Flag groups for better organization
 	convertCmd.Flags().SortFlags = false
 }
 
+// registerConvertFlagCompletions registers completion functions for convert command flags.
+func registerConvertFlagCompletions(cmd *cobra.Command) {
+	// Format flag completion
+	if err := cmd.RegisterFlagCompletionFunc("format", ValidFormats); err != nil {
+		// Log error but don't fail - completion is optional
+		logger.Debug("failed to register format completion", "error", err)
+	}
+
+	// Section flag completion
+	if err := cmd.RegisterFlagCompletionFunc("section", ValidSections); err != nil {
+		logger.Debug("failed to register section completion", "error", err)
+	}
+}
+
 var convertCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
-	Use:     "convert [file ...]",
-	Short:   "Convert OPNsense configuration files to structured formats.",
-	GroupID: "core",
+	Use:               "convert [file ...]",
+	Short:             "Convert OPNsense configuration files to structured formats.",
+	GroupID:           "core",
+	ValidArgsFunction: ValidXMLFiles,
 	PreRunE: func(cmd *cobra.Command, _ []string) error {
 		// Get logger from CommandContext for validation warnings
 		cmdCtx := GetCommandContext(cmd)

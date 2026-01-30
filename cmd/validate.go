@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 	"github.com/spf13/cobra"
@@ -19,9 +20,10 @@ func init() {
 }
 
 var validateCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
-	Use:     "validate [file ...]",
-	Short:   "Validate OPNsense configuration files",
-	GroupID: "utility",
+	Use:               "validate [file ...]",
+	Short:             "Validate OPNsense configuration files",
+	GroupID:           "utility",
+	ValidArgsFunction: ValidXMLFiles,
 	Long: `The 'validate' command checks one or more OPNsense config.xml files for
 structural and semantic correctness without performing any conversion.
 This is useful for verifying configuration integrity before processing
@@ -54,16 +56,26 @@ Examples:
 			ctx = context.Background()
 		}
 
-		// Get logger from CommandContext
+		// Get configuration and logger from CommandContext
 		cmdCtx := GetCommandContext(cmd)
 		if cmdCtx == nil {
 			return errors.New("command context not initialized")
 		}
 		cmdLogger := cmdCtx.Logger
+		cmdConfig := cmdCtx.Config
+
+		// Check if JSON output is enabled
+		jsonOutput := false
+		if cmdConfig != nil {
+			jsonOutput = cmdConfig.JSONOutput
+		}
 
 		var wg sync.WaitGroup
 		errs := make(chan error, len(args))
-		validationFailed := false
+
+		// Use atomic for thread-safe exit code tracking
+		var maxExitCode atomic.Int32
+		maxExitCode.Store(ExitSuccess)
 
 		for _, filePath := range args {
 			wg.Add(1)
@@ -89,6 +101,13 @@ Examples:
 				// Read the file
 				file, err := os.Open(cleanPath)
 				if err != nil {
+					exitCode := DetermineExitCode(err)
+					updateMaxExitCode(&maxExitCode, exitCode)
+					if jsonOutput {
+						OutputJSONError(err, fp, exitCode)
+					} else {
+						fmt.Fprintf(os.Stderr, "❌ %s: %v\n", fp, err)
+					}
 					errs <- fmt.Errorf("failed to open file %s: %w", fp, err)
 					return
 				}
@@ -103,38 +122,41 @@ Examples:
 				p := parser.NewXMLParser()
 				_, err = p.ParseAndValidate(ctx, file)
 				if err != nil {
-					validationFailed = true
+					exitCode := DetermineExitCode(err)
+					updateMaxExitCode(&maxExitCode, exitCode)
 					ctxLogger.Error("Validation failed", "error", err)
 
-					// Enhanced error handling for different error types
-					if parser.IsParseError(err) {
-						if parseErr := parser.GetParseError(err); parseErr != nil {
-							ctxLogger.Error(
-								"XML syntax error detected",
-								"line",
-								parseErr.Line,
-								"message",
-								parseErr.Message,
-							)
-						}
-						// For parse errors, report and continue to next file
-						fmt.Fprintf(os.Stderr, "❌ %s: %v\n", fp, err)
-						return
-					}
-
-					// Handle validation errors - display all validation issues
-					if parser.IsValidationError(err) {
-						ctxLogger.Error("Configuration validation failed")
-						fmt.Fprintf(os.Stderr, "❌ %s:\n%s\n", fp, err)
+					if jsonOutput {
+						OutputJSONError(err, fp, exitCode)
 					} else {
-						// For other errors, still report but continue
-						fmt.Fprintf(os.Stderr, "❌ %s: %v\n", fp, err)
+						// Enhanced error handling for different error types
+						if parser.IsParseError(err) {
+							if parseErr := parser.GetParseError(err); parseErr != nil {
+								ctxLogger.Error(
+									"XML syntax error detected",
+									"line",
+									parseErr.Line,
+									"message",
+									parseErr.Message,
+								)
+							}
+							fmt.Fprintf(os.Stderr, "❌ %s: %v\n", fp, err)
+						} else if parser.IsValidationError(err) {
+							ctxLogger.Error("Configuration validation failed")
+							fmt.Fprintf(os.Stderr, "❌ %s:\n%s\n", fp, err)
+						} else {
+							fmt.Fprintf(os.Stderr, "❌ %s: %v\n", fp, err)
+						}
 					}
 					return
 				}
 
 				ctxLogger.Info("Validation completed successfully")
-				fmt.Printf("✅ %s: Valid\n", fp)
+				if jsonOutput {
+					JSONSuccess("Valid", fp)
+				} else {
+					fmt.Printf("✅ %s: Valid\n", fp)
+				}
 			}(filePath)
 		}
 
@@ -156,11 +178,28 @@ Examples:
 			return allErrors
 		}
 
-		// Exit with code 1 if validation failed for any files
-		if validationFailed {
-			os.Exit(1)
+		// Exit with appropriate code based on highest severity error encountered
+		finalExitCode := int(maxExitCode.Load())
+		if finalExitCode != ExitSuccess {
+			ExitWithCode(finalExitCode)
 		}
 
 		return nil
 	},
+}
+
+// updateMaxExitCode atomically updates the max exit code if the new code is higher.
+// Exit codes are small positive integers (0-127), so int32 conversion is safe.
+func updateMaxExitCode(maxCode *atomic.Int32, newCode int) {
+	// Exit codes are bounded [0, 127] by convention, so conversion is safe
+	newCode32 := int32(newCode) //nolint:gosec // Exit codes are bounded [0, 127]
+	for {
+		current := maxCode.Load()
+		if newCode32 <= current {
+			return
+		}
+		if maxCode.CompareAndSwap(current, newCode32) {
+			return
+		}
+	}
 }

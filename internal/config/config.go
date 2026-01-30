@@ -25,6 +25,9 @@ type Config struct {
 	WrapWidth   int      `mapstructure:"wrap"`
 	Engine      string   `mapstructure:"engine"`       // Generation engine (programmatic, template)
 	UseTemplate bool     `mapstructure:"use_template"` // Explicitly enable template mode
+	JSONOutput  bool     `mapstructure:"json_output"`  // Output errors in JSON format
+	Minimal     bool     `mapstructure:"minimal"`      // Minimal output mode
+	NoProgress  bool     `mapstructure:"no_progress"`  // Disable progress indicators
 }
 
 // LoadConfig loads application configuration from the specified YAML file, environment variables, and defaults.
@@ -71,6 +74,9 @@ func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 	v.SetDefault("wrap", -1)
 	v.SetDefault("engine", "programmatic") // Default to programmatic mode
 	v.SetDefault("use_template", false)
+	v.SetDefault("json_output", false)
+	v.SetDefault("minimal", false)
+	v.SetDefault("no_progress", false)
 
 	// Set up environment variable handling
 	v.SetEnvPrefix("OPNDOSSIER")
@@ -325,4 +331,19 @@ func (c *Config) GetEngine() string {
 // IsUseTemplate returns true if template mode is explicitly enabled.
 func (c *Config) IsUseTemplate() bool {
 	return c.UseTemplate
+}
+
+// IsJSONOutput returns true if JSON output mode is enabled.
+func (c *Config) IsJSONOutput() bool {
+	return c.JSONOutput
+}
+
+// IsMinimal returns true if minimal output mode is enabled.
+func (c *Config) IsMinimal() bool {
+	return c.Minimal
+}
+
+// IsNoProgress returns true if progress indicators should be disabled.
+func (c *Config) IsNoProgress() bool {
+	return c.NoProgress
 }
