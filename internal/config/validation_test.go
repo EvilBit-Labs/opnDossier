@@ -371,6 +371,10 @@ func TestValidator_ValidateExportDirectory(t *testing.T) {
 	err := os.WriteFile(notADir, []byte("test"), 0o600)
 	require.NoError(t, err)
 
+	// Create a cross-platform absolute path that doesn't exist
+	// Using tmpDir as base ensures it's absolute on all platforms
+	nonExistentAbsDir := filepath.Join(tmpDir, "nonexistent", "subdir")
+
 	tests := []struct {
 		name        string
 		directory   string
@@ -379,7 +383,7 @@ func TestValidator_ValidateExportDirectory(t *testing.T) {
 		{"empty directory is valid", "", false},
 		{"existing directory is valid", tmpDir, false},
 		{"relative directory skipped", "./output", false}, // Relative paths are not validated
-		{"non-existent absolute directory", "/nonexistent/dir", true},
+		{"non-existent absolute directory", nonExistentAbsDir, true},
 		{"path is a file not directory", notADir, true},
 	}
 
