@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -638,4 +639,172 @@ logging:
 	// Defaults should still apply for unset nested fields
 	assert.False(t, cfg.Display.Pager)
 	assert.True(t, cfg.Display.SyntaxHighlighting)
+}
+
+// TestConfigLoadingPerformance verifies config loading completes within acceptable time limits.
+// This is a practical test that ensures config loading doesn't regress.
+func TestConfigLoadingPerformance(t *testing.T) {
+	// Create a temporary config file with all settings
+	tmpDir := t.TempDir()
+	cfgFilePath := filepath.Join(tmpDir, ".opnDossier.yaml")
+	content := `
+verbose: false
+quiet: false
+format: markdown
+theme: auto
+wrap: 120
+engine: programmatic
+display:
+  width: 120
+  pager: false
+  syntax_highlighting: true
+export:
+  format: markdown
+  backup: false
+logging:
+  level: info
+  format: text
+validation:
+  strict: false
+  schema_validation: false
+`
+	err := os.WriteFile(cfgFilePath, []byte(content), 0o600)
+	require.NoError(t, err)
+
+	// Warm up - prime file system cache
+	warmupCfg, warmupErr := LoadConfigWithViper(cfgFilePath, viper.New())
+	require.NoError(t, warmupErr)
+	require.NotNil(t, warmupCfg)
+
+	// Measure average time over multiple iterations
+	const iterations = 10
+	var totalDuration int64
+
+	for range iterations {
+		start := time.Now()
+		cfg, err := LoadConfigWithViper(cfgFilePath, viper.New())
+		elapsed := time.Since(start)
+		totalDuration += elapsed.Nanoseconds()
+
+		require.NoError(t, err)
+		require.NotNil(t, cfg)
+	}
+
+	avgDuration := time.Duration(totalDuration / iterations)
+
+	// Config loading should complete within 100ms on average (generous for CI environments)
+	// The 50ms target is for optimized production environments; CI may be slower
+	maxDuration := 100 * time.Millisecond
+	if avgDuration > maxDuration {
+		t.Errorf("Config loading too slow: avg %v (max %v)", avgDuration, maxDuration)
+	}
+
+	t.Logf("Config loading average time: %v", avgDuration)
+}
+
+// BenchmarkLoadConfig benchmarks the configuration loading performance.
+// Target: <50ms for complete config loading including file read, env parsing, and validation.
+func BenchmarkLoadConfig(b *testing.B) {
+	// Create a temporary config file with all settings
+	tmpDir := b.TempDir()
+	cfgFilePath := filepath.Join(tmpDir, ".opnDossier.yaml")
+	content := `
+verbose: false
+quiet: false
+format: markdown
+theme: auto
+wrap: 120
+engine: programmatic
+display:
+  width: 120
+  pager: false
+  syntax_highlighting: true
+export:
+  format: markdown
+  directory: ""
+  backup: false
+logging:
+  level: info
+  format: text
+validation:
+  strict: false
+  schema_validation: false
+`
+	err := os.WriteFile(cfgFilePath, []byte(content), 0o600)
+	require.NoError(b, err)
+
+	// Reset timer after setup
+	b.ResetTimer()
+
+	for b.Loop() {
+		cfg, err := LoadConfigWithViper(cfgFilePath, viper.New())
+		if err != nil {
+			b.Fatalf("Failed to load config: %v", err)
+		}
+		if cfg == nil {
+			b.Fatal("Config is nil")
+		}
+	}
+}
+
+// BenchmarkLoadConfigWithEnv benchmarks config loading with environment variables.
+func BenchmarkLoadConfigWithEnv(b *testing.B) {
+	// Set up environment variables
+	b.Setenv("OPNDOSSIER_VERBOSE", "true")
+	b.Setenv("OPNDOSSIER_FORMAT", "json")
+	b.Setenv("OPNDOSSIER_THEME", "dark")
+	b.Setenv("OPNDOSSIER_WRAP", "100")
+	b.Setenv("OPNDOSSIER_DISPLAY_WIDTH", "120")
+	b.Setenv("OPNDOSSIER_LOGGING_LEVEL", "debug")
+
+	b.ResetTimer()
+
+	for b.Loop() {
+		cfg, err := LoadConfigWithViper("", viper.New())
+		if err != nil {
+			b.Fatalf("Failed to load config: %v", err)
+		}
+		if cfg == nil {
+			b.Fatal("Config is nil")
+		}
+	}
+}
+
+// BenchmarkConfigValidation benchmarks the configuration validation step.
+func BenchmarkConfigValidation(b *testing.B) {
+	cfg := &Config{
+		Verbose:   true,
+		Quiet:     false,
+		Format:    "markdown",
+		Theme:     "dark",
+		WrapWidth: 120,
+		Engine:    "programmatic",
+		Display: DisplayConfig{
+			Width:              120,
+			Pager:              false,
+			SyntaxHighlighting: true,
+		},
+		Export: ExportConfig{
+			Format:    "markdown",
+			Directory: "",
+			Backup:    false,
+		},
+		Logging: LoggingConfig{
+			Level:  "info",
+			Format: "text",
+		},
+		Validation: ValidationConfig{
+			Strict:           false,
+			SchemaValidation: false,
+		},
+	}
+
+	b.ResetTimer()
+
+	for b.Loop() {
+		err := cfg.Validate()
+		if err != nil {
+			b.Fatalf("Validation failed: %v", err)
+		}
+	}
 }
