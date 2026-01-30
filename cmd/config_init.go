@@ -216,32 +216,40 @@ func runConfigInit(cmd *cobra.Command, _ []string) error {
 		}
 	}
 
-	// Write the configuration file
-	//nolint:gosec // Config files should be readable by the user
-	if err := os.WriteFile(outputPath, []byte(configTemplate), 0o644); err != nil {
+	// Write the configuration file with restrictive permissions (owner-only)
+	if err := os.WriteFile(outputPath, []byte(configTemplate), 0o600); err != nil {
 		return fmt.Errorf("failed to write configuration file: %w", err)
 	}
 
-	// Output success message with styling
-	successStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("10")). // Green
-		Bold(true)
+	// Check if styling should be applied (respect TERM=dumb and NO_COLOR)
+	useStyles := os.Getenv("TERM") != "dumb" && os.Getenv("NO_COLOR") == ""
 
-	pathStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("14")). // Cyan
-		Underline(true)
+	if useStyles {
+		// Output success message with styling
+		successStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("10")). // Green
+			Bold(true)
 
-	fmt.Printf("%s %s\n",
-		successStyle.Render("Created configuration file:"),
-		pathStyle.Render(outputPath),
-	)
+		pathStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("14")). // Cyan
+			Underline(true)
 
-	tipStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("8")). // Gray
-		Italic(true)
+		fmt.Printf("%s %s\n",
+			successStyle.Render("Created configuration file:"),
+			pathStyle.Render(outputPath),
+		)
 
-	fmt.Println()
-	fmt.Println(tipStyle.Render("Tip: Edit the file and uncomment options you want to customize."))
+		tipStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("8")). // Gray
+			Italic(true)
+
+		fmt.Println()
+		fmt.Println(tipStyle.Render("Tip: Edit the file and uncomment options you want to customize."))
+	} else {
+		// Plain output for dumb terminals / CI environments
+		fmt.Printf("Created configuration file: %s\n", outputPath)
+		fmt.Println("\nTip: Edit the file and uncomment options you want to customize.")
+	}
 
 	return nil
 }

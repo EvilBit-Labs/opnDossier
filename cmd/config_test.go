@@ -61,6 +61,3 @@ func TestConfigCmdGroupID(t *testing.T) {
 	require.NotNil(t, configCmd, "config command should exist")
 	assert.Equal(t, "utility", configCmd.GroupID)
 }
-
-// cobraCmd is a type alias for cobra.Command for cleaner test code.
-var _ *cobra.Command // ensure import is used
