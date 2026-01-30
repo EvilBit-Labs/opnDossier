@@ -1,52 +1,241 @@
 # opnDossier Configuration File
-# This file demonstrates the new engine configuration options introduced in Phase 3.7
+# ================================
+# This file demonstrates all available configuration options for opnDossier.
+# Place this file at ~/.opnDossier.yaml or specify with --config flag.
+#
+# Configuration precedence (highest to lowest):
+#   1. Command-line flags
+#   2. Environment variables (OPNDOSSIER_*)
+#   3. Configuration file
+#   4. Built-in defaults
+#
+# Generate a fresh template with: opnDossier config init
 
-# Generation Engine Configuration
-# The engine setting controls whether to use programmatic or template-based generation
-# Valid options: "programmatic" (default), "template"
-engine: "template"
+# ==============================================================================
+# BASIC SETTINGS
+# ==============================================================================
 
-# Alternative: explicitly enable template mode
-# use_template: true
+# Default input file path
+# Usually not set - pass via CLI argument instead
+# input_file: ""
 
-# Output configuration
-format: "markdown"
-output_file: ""
+# Default output file path
+# Empty means stdout
+# output_file: ""
 
-# Template configuration (only used when engine is set to "template")
-template: ""
+# Enable verbose logging (debug level)
+# Mutually exclusive with 'quiet'
+# Default: false
+verbose: false
 
-# Content filtering
-sections: []
+# Enable quiet mode (suppress all except errors)
+# Mutually exclusive with 'verbose'
+# Default: false
+quiet: false
 
-# Text formatting
-wrap: 0
+# Output format for conversion
+# Valid values: markdown, md, json, yaml, yml
+# Default: markdown
+format: markdown
 
-# Theme (for display command)
+# Theme for terminal display
+# Valid values: light, dark, auto, none, custom
+# Default: "" (auto-detect)
 theme: "auto"
 
-# Logging
-verbose: false
-quiet: false
-# Example configurations for different use cases:
+# Template name for report generation
+# Default: ""
+template: ""
 
-# 1. For programmatic mode (default, fastest and most secure):
-# engine: "programmatic"
-# format: "markdown"
+# Sections to include in output
+# Empty array = all sections
+# Example: [system, network, firewall, dhcp]
+# Default: []
+sections: []
 
-# 2. For template mode with built-in templates:
-# engine: "template"
-# template: "default"
+# Text wrap width for display command
+# Values:
+#   -1 = auto-detect terminal width
+#    0 = no wrapping
+#   >0 = specific character width
+# Default: -1
+wrap: -1
 
-# 3. For custom template usage:
-# engine: "template"
-# template: "custom"
-# Note: Use --custom-template flag for custom template files
+# Report generation engine
+# Valid values:
+#   programmatic - Fast, secure, recommended (default)
+#   template     - Template-based generation
+# Default: programmatic
+engine: programmatic
 
-# 4. Migration from v1.x template-based setups:
-# use_template: true
-# template: "comprehensive"
+# Explicitly enable template mode
+# Default: false
+use_template: false
 
-# Security Note:
-# When using template mode, custom template files are validated for security.
-# Path traversal attempts will be blocked automatically.
+# Output errors in JSON format (for automation/CI)
+# Default: false
+json_output: false
+
+# Minimal output mode (suppress progress and verbose messages)
+# Default: false
+minimal: false
+
+# Disable progress indicators
+# Useful for CI/CD pipelines and non-interactive environments
+# Default: false
+no_progress: false
+
+# ==============================================================================
+# DISPLAY SETTINGS
+# ==============================================================================
+# Configure terminal display behavior
+
+display:
+  # Terminal width for display command
+  # Values:
+  #   -1 = auto-detect terminal width
+  #   >0 = specific character width
+  # Default: -1
+  width: -1
+
+  # Enable pager for long output (e.g., less, more)
+  # Default: false
+  pager: false
+
+  # Enable syntax highlighting for code blocks
+  # Default: true
+  syntax_highlighting: true
+
+# ==============================================================================
+# EXPORT SETTINGS
+# ==============================================================================
+# Configure file export behavior
+
+export:
+  # Default export format
+  # Valid values: markdown, md, json, yaml, yml
+  # Default: markdown
+  format: markdown
+
+  # Default export directory
+  # Empty = current directory
+  # Default: ""
+  directory: ""
+
+  # Default export template name
+  # Default: ""
+  template: ""
+
+  # Create backup before overwriting existing files
+  # Default: false
+  backup: false
+
+# ==============================================================================
+# LOGGING SETTINGS
+# ==============================================================================
+# Configure logging behavior
+
+logging:
+  # Log level
+  # Valid values:
+  #   debug - Most verbose, includes debug information
+  #   info  - Normal operation messages (default)
+  #   warn  - Warnings and errors only
+  #   error - Errors only
+  # Default: info
+  level: info
+
+  # Log format
+  # Valid values:
+  #   text - Human-readable format (default)
+  #   json - Machine-parseable JSON format
+  # Default: text
+  format: text
+
+# ==============================================================================
+# VALIDATION SETTINGS
+# ==============================================================================
+# Configure validation behavior
+
+validation:
+  # Enable strict validation
+  # When true, warnings are treated as errors
+  # Default: false
+  strict: false
+
+  # Enable XML schema validation
+  # Validates OPNsense config.xml against schema
+  # Default: false
+  schema_validation: false
+
+# ==============================================================================
+# ENVIRONMENT VARIABLES
+# ==============================================================================
+# All settings can be overridden via environment variables with OPNDOSSIER_ prefix.
+#
+# Flat settings:
+#   OPNDOSSIER_VERBOSE=true
+#   OPNDOSSIER_FORMAT=json
+#   OPNDOSSIER_THEME=dark
+#   OPNDOSSIER_WRAP=120
+#   OPNDOSSIER_ENGINE=programmatic
+#   OPNDOSSIER_JSON_OUTPUT=true
+#   OPNDOSSIER_MINIMAL=true
+#   OPNDOSSIER_NO_PROGRESS=true
+#
+# Nested settings (use underscore for dots):
+#   OPNDOSSIER_DISPLAY_WIDTH=100
+#   OPNDOSSIER_DISPLAY_PAGER=true
+#   OPNDOSSIER_DISPLAY_SYNTAX_HIGHLIGHTING=false
+#   OPNDOSSIER_EXPORT_FORMAT=json
+#   OPNDOSSIER_EXPORT_DIRECTORY=/output
+#   OPNDOSSIER_EXPORT_BACKUP=true
+#   OPNDOSSIER_LOGGING_LEVEL=debug
+#   OPNDOSSIER_LOGGING_FORMAT=json
+#   OPNDOSSIER_VALIDATION_STRICT=true
+#   OPNDOSSIER_VALIDATION_SCHEMA_VALIDATION=true
+
+# ==============================================================================
+# EXAMPLE CONFIGURATIONS
+# ==============================================================================
+
+# Example 1: Development/Debugging
+# --------------------------------
+# verbose: true
+# logging:
+#   level: debug
+#   format: text
+# display:
+#   syntax_highlighting: true
+#   width: 120
+# validation:
+#   strict: true
+
+# Example 2: CI/CD Pipeline
+# -------------------------
+# quiet: true
+# json_output: true
+# no_progress: true
+# logging:
+#   format: json
+# validation:
+#   strict: true
+
+# Example 3: Production Reports
+# -----------------------------
+# verbose: false
+# minimal: true
+# format: markdown
+# export:
+#   backup: true
+#   directory: /var/reports/opnsense
+# logging:
+#   level: warn
+#   format: json
+
+# Example 4: Airgapped Environment
+# --------------------------------
+# engine: programmatic
+# no_progress: false
+# export:
+#   backup: true

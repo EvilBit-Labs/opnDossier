@@ -5,15 +5,42 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
+// DisplayConfig holds display-related settings.
+type DisplayConfig struct {
+	Width              int  `mapstructure:"width"`               // Terminal width (-1 = auto-detect)
+	Pager              bool `mapstructure:"pager"`               // Enable pager for output
+	SyntaxHighlighting bool `mapstructure:"syntax_highlighting"` // Enable syntax highlighting
+}
+
+// ExportConfig holds export-related settings.
+type ExportConfig struct {
+	Format    string `mapstructure:"format"`    // Output format (markdown, json, yaml)
+	Directory string `mapstructure:"directory"` // Output directory
+	Template  string `mapstructure:"template"`  // Template name
+	Backup    bool   `mapstructure:"backup"`    // Create backups before overwriting
+}
+
+// LoggingConfig holds logging-related settings.
+type LoggingConfig struct {
+	Level  string `mapstructure:"level"`  // Log level (debug, info, warn, error)
+	Format string `mapstructure:"format"` // Log format (text, json)
+}
+
+// ValidationConfig holds validation-related settings.
+type ValidationConfig struct {
+	Strict           bool `mapstructure:"strict"`            // Enable strict validation
+	SchemaValidation bool `mapstructure:"schema_validation"` // Enable XML schema validation
+}
+
 // Config holds the configuration for the opnDossier application.
 type Config struct {
+	// Flat fields (backward compatible)
 	InputFile   string   `mapstructure:"input_file"`
 	OutputFile  string   `mapstructure:"output_file"`
 	Verbose     bool     `mapstructure:"verbose"`
@@ -28,6 +55,12 @@ type Config struct {
 	JSONOutput  bool     `mapstructure:"json_output"`  // Output errors in JSON format
 	Minimal     bool     `mapstructure:"minimal"`      // Minimal output mode
 	NoProgress  bool     `mapstructure:"no_progress"`  // Disable progress indicators
+
+	// Nested configuration sections
+	Display    DisplayConfig    `mapstructure:"display"`
+	Export     ExportConfig     `mapstructure:"export"`
+	Logging    LoggingConfig    `mapstructure:"logging"`
+	Validation ValidationConfig `mapstructure:"validation"`
 }
 
 // LoadConfig loads application configuration from the specified YAML file, environment variables, and defaults.
@@ -54,15 +87,14 @@ func LoadConfigWithFlags(cfgFile string, flags *pflag.FlagSet) (*Config, error) 
 	return LoadConfigWithViper(cfgFile, v)
 }
 
-// LoadConfigWithViper loads the configuration using a provided Viper instance.
-// LoadConfigWithViper loads application configuration using the provided Viper instance, applying defaults, config file values, and environment variables with standard precedence.
-// LoadConfigWithViper loads application configuration using the provided Viper instance, merging values from a config file, environment variables with the "OPNDOSSIER" prefix, and defaults.
-// If a config file path is specified, it is used; otherwise, a default YAML file in the user's home directory is attempted. If the config file is missing, environment variables and defaults are used.
-// LoadConfigWithViper loads application configuration from a YAML file, environment variables, and defaults using the provided Viper instance.
-// It returns a validated Config struct or an error if loading or validation fails.
-// If the specified config file is missing, environment variables and defaults are used instead.
+// LoadConfigWithViper loads application configuration using the provided Viper instance.
+// It merges values from a config file, environment variables with the "OPNDOSSIER" prefix, and defaults.
+// Precedence order: CLI flags > environment variables > config file > defaults.
+// If cfgFile is specified, that file is used; otherwise, .opnDossier.yaml in the home directory is attempted.
+// If the config file is missing, environment variables and defaults are used instead.
+// Returns a validated Config struct or an error if loading or validation fails.
 func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
-	// Set defaults
+	// Set defaults for flat fields
 	v.SetDefault("input_file", "")
 	v.SetDefault("output_file", "")
 	v.SetDefault("verbose", false)
@@ -78,10 +110,51 @@ func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 	v.SetDefault("minimal", false)
 	v.SetDefault("no_progress", false)
 
+	// Set defaults for nested display config
+	v.SetDefault("display.width", -1) // -1 means auto-detect
+	v.SetDefault("display.pager", false)
+	v.SetDefault("display.syntax_highlighting", true)
+
+	// Set defaults for nested export config
+	v.SetDefault("export.format", "markdown")
+	v.SetDefault("export.directory", "")
+	v.SetDefault("export.template", "")
+	v.SetDefault("export.backup", false)
+
+	// Set defaults for nested logging config
+	v.SetDefault("logging.level", "info")
+	v.SetDefault("logging.format", "text")
+
+	// Set defaults for nested validation config
+	v.SetDefault("validation.strict", false)
+	v.SetDefault("validation.schema_validation", false)
+
 	// Set up environment variable handling
 	v.SetEnvPrefix("OPNDOSSIER")
-	v.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	v.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 	v.AutomaticEnv()
+
+	// Bind environment variables for nested configuration keys.
+	// Viper's AutomaticEnv() doesn't automatically resolve nested keys when using "_"
+	// as separator in env vars, so we need to bind them explicitly.
+	nestedEnvBindings := map[string]string{
+		"display.width":                "DISPLAY_WIDTH",
+		"display.pager":                "DISPLAY_PAGER",
+		"display.syntax_highlighting":  "DISPLAY_SYNTAX_HIGHLIGHTING",
+		"export.format":                "EXPORT_FORMAT",
+		"export.directory":             "EXPORT_DIRECTORY",
+		"export.template":              "EXPORT_TEMPLATE",
+		"export.backup":                "EXPORT_BACKUP",
+		"logging.level":                "LOGGING_LEVEL",
+		"logging.format":               "LOGGING_FORMAT",
+		"validation.strict":            "VALIDATION_STRICT",
+		"validation.schema_validation": "VALIDATION_SCHEMA_VALIDATION",
+	}
+	for key, envSuffix := range nestedEnvBindings {
+		if err := v.BindEnv(key, "OPNDOSSIER_"+envSuffix); err != nil {
+			return nil, fmt.Errorf("failed to bind env var for %s: %w", key, err)
+		}
+	}
 
 	// Configure config file settings
 	if cfgFile != "" {
@@ -139,139 +212,44 @@ func (e ValidationError) Error() string {
 }
 
 // Validate validates the configuration for consistency and correctness.
+// It uses the comprehensive Validator for all validation checks including
+// nested configuration sections.
 func (c *Config) Validate() error {
-	// Normalize engine value before validation
-	if c.Engine != "" {
-		c.Engine = strings.ToLower(strings.TrimSpace(c.Engine))
+	validator := NewValidator(c)
+	if errs := validator.Validate(); errs != nil {
+		// Convert to legacy format for backward compatibility
+		return convertToLegacyError(errs)
 	}
-
-	var validationErrors []ValidationError
-
-	validateFlags(c, &validationErrors)
-	validateInputFile(c, &validationErrors)
-	validateOutputFile(c, &validationErrors)
-	validateTheme(c, &validationErrors)
-	validateFormat(c, &validationErrors)
-	validateWrapWidth(c, &validationErrors)
-	validateEngine(c, &validationErrors)
-
-	// Return combined validation errors
-	if len(validationErrors) > 0 {
-		return combineValidationErrors(validationErrors)
-	}
-
 	return nil
 }
 
-func validateFlags(_ *Config, _ *[]ValidationError) {
-	// Validate flags
-	// Note: Verbose/quiet mutual exclusivity is handled by Cobra flag validation
-	// No additional validation needed here
+// ValidateV2 validates the configuration and returns detailed MultiValidationError
+// with suggestions and context for better error reporting.
+func (c *Config) ValidateV2() *MultiValidationError {
+	validator := NewValidator(c)
+	return validator.Validate()
 }
 
-func validateInputFile(c *Config, validationErrors *[]ValidationError) {
-	// Validate input file exists if specified
-	if c.InputFile != "" {
-		if _, err := os.Stat(c.InputFile); os.IsNotExist(err) {
-			*validationErrors = append(*validationErrors, ValidationError{
-				Field:   "input_file",
-				Message: "input file does not exist: " + c.InputFile,
-			})
-		} else if err != nil {
-			*validationErrors = append(*validationErrors, ValidationError{
-				Field:   "input_file",
-				Message: fmt.Sprintf("failed to check input file: %v", err),
-			})
+// convertToLegacyError converts MultiValidationError to a legacy ValidationError format.
+func convertToLegacyError(errs *MultiValidationError) error {
+	if errs == nil || !errs.HasErrors() {
+		return nil
+	}
+
+	// Convert V2 errors to legacy format
+	legacyErrors := make([]ValidationError, len(errs.Errors))
+	for i, e := range errs.Errors {
+		legacyErrors[i] = ValidationError{
+			Field:   e.Field,
+			Message: e.Message,
 		}
 	}
+
+	return combineValidationErrors(legacyErrors)
 }
 
-func validateOutputFile(c *Config, validationErrors *[]ValidationError) {
-	// Validate output file directory exists if specified
-	if c.OutputFile != "" {
-		dir := filepath.Dir(c.OutputFile)
-		if dir != "." && dir != "" {
-			if _, err := os.Stat(dir); os.IsNotExist(err) {
-				*validationErrors = append(*validationErrors, ValidationError{
-					Field:   "output_file",
-					Message: "output directory does not exist: " + dir,
-				})
-			} else if err != nil {
-				*validationErrors = append(*validationErrors, ValidationError{
-					Field:   "output_file",
-					Message: fmt.Sprintf("failed to check output directory: %v", err),
-				})
-			}
-		}
-	}
-}
-
-func validateTheme(c *Config, validationErrors *[]ValidationError) {
-	// Validate theme
-	validThemes := map[string]bool{
-		"":       true, // Empty means auto-detect
-		"light":  true,
-		"dark":   true,
-		"custom": true,
-		"auto":   true,
-		"none":   true,
-	}
-	if !validThemes[c.Theme] {
-		*validationErrors = append(*validationErrors, ValidationError{
-			Field: "theme",
-			Message: fmt.Sprintf(
-				"invalid theme '%s', must be one of: light, dark, custom, auto, none (or empty for auto-detect)",
-				c.Theme,
-			),
-		})
-	}
-}
-
-func validateFormat(c *Config, validationErrors *[]ValidationError) {
-	// Validate format
-	validFormats := map[string]bool{
-		"markdown": true,
-		"md":       true,
-		"json":     true,
-		"yaml":     true,
-		"yml":      true,
-	}
-	if c.Format != "" && !validFormats[c.Format] {
-		*validationErrors = append(*validationErrors, ValidationError{
-			Field:   "format",
-			Message: fmt.Sprintf("invalid format '%s', must be one of: markdown, md, json, yaml, yml", c.Format),
-		})
-	}
-}
-
-func validateWrapWidth(c *Config, validationErrors *[]ValidationError) {
-	// Validate wrap width (-1 means auto-detect)
-	if c.WrapWidth < -1 {
-		*validationErrors = append(*validationErrors, ValidationError{
-			Field:   "wrap",
-			Message: fmt.Sprintf("wrap width must be -1 (auto-detect), 0 (no wrapping), or positive: %d", c.WrapWidth),
-		})
-	}
-}
-
-func validateEngine(c *Config, validationErrors *[]ValidationError) {
-	// Validate generation engine
-	validEngines := map[string]bool{
-		"":             true, // Empty means default (programmatic)
-		"programmatic": true,
-		"template":     true,
-	}
-
-	if c.Engine != "" && !validEngines[c.Engine] {
-		*validationErrors = append(*validationErrors, ValidationError{
-			Field: "engine",
-			Message: fmt.Sprintf(
-				"invalid engine '%s', must be one of: programmatic, template (or empty for default)",
-				c.Engine,
-			),
-		})
-	}
-}
+// Legacy validation functions are now handled by the Validator in validation.go
+// These are kept as no-ops for backward compatibility with any code that might reference them.
 
 func combineValidationErrors(validationErrors []ValidationError) error {
 	var sb strings.Builder
@@ -346,4 +324,59 @@ func (c *Config) IsMinimal() bool {
 // IsNoProgress returns true if progress indicators should be disabled.
 func (c *Config) IsNoProgress() bool {
 	return c.NoProgress
+}
+
+// GetDisplayWidth returns the configured display width.
+func (c *Config) GetDisplayWidth() int {
+	return c.Display.Width
+}
+
+// IsDisplayPager returns true if pager is enabled.
+func (c *Config) IsDisplayPager() bool {
+	return c.Display.Pager
+}
+
+// IsDisplaySyntaxHighlighting returns true if syntax highlighting is enabled.
+func (c *Config) IsDisplaySyntaxHighlighting() bool {
+	return c.Display.SyntaxHighlighting
+}
+
+// GetExportFormat returns the configured export format.
+func (c *Config) GetExportFormat() string {
+	return c.Export.Format
+}
+
+// GetExportDirectory returns the configured export directory.
+func (c *Config) GetExportDirectory() string {
+	return c.Export.Directory
+}
+
+// GetExportTemplate returns the configured export template.
+func (c *Config) GetExportTemplate() string {
+	return c.Export.Template
+}
+
+// IsExportBackup returns true if backup is enabled for exports.
+func (c *Config) IsExportBackup() bool {
+	return c.Export.Backup
+}
+
+// GetLoggingLevel returns the configured logging level.
+func (c *Config) GetLoggingLevel() string {
+	return c.Logging.Level
+}
+
+// GetLoggingFormat returns the configured logging format.
+func (c *Config) GetLoggingFormat() string {
+	return c.Logging.Format
+}
+
+// IsValidationStrict returns true if strict validation is enabled.
+func (c *Config) IsValidationStrict() bool {
+	return c.Validation.Strict
+}
+
+// IsValidationSchemaValidation returns true if schema validation is enabled.
+func (c *Config) IsValidationSchemaValidation() bool {
+	return c.Validation.SchemaValidation
 }
