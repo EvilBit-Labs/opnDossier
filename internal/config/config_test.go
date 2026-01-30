@@ -409,11 +409,14 @@ func TestNestedConfigDefaults(t *testing.T) {
 func TestNestedConfigFromEnv(t *testing.T) {
 	clearEnvironment(t)
 
+	// Create a temp directory for export directory testing
+	tmpExportDir := t.TempDir()
+
 	t.Setenv("OPNDOSSIER_DISPLAY_WIDTH", "100")
 	t.Setenv("OPNDOSSIER_DISPLAY_PAGER", "true")
 	t.Setenv("OPNDOSSIER_DISPLAY_SYNTAX_HIGHLIGHTING", "false")
 	t.Setenv("OPNDOSSIER_EXPORT_FORMAT", "yaml")
-	t.Setenv("OPNDOSSIER_EXPORT_DIRECTORY", "/tmp/export")
+	t.Setenv("OPNDOSSIER_EXPORT_DIRECTORY", tmpExportDir)
 	t.Setenv("OPNDOSSIER_LOGGING_LEVEL", "warn")
 	t.Setenv("OPNDOSSIER_VALIDATION_STRICT", "true")
 
@@ -428,7 +431,7 @@ func TestNestedConfigFromEnv(t *testing.T) {
 
 	// Verify nested export config from env
 	assert.Equal(t, "yaml", cfg.Export.Format)
-	assert.Equal(t, "/tmp/export", cfg.Export.Directory)
+	assert.Equal(t, tmpExportDir, cfg.Export.Directory)
 
 	// Verify nested logging config from env
 	assert.Equal(t, "warn", cfg.Logging.Level)
@@ -522,17 +525,25 @@ func TestNestedConfigGetters(t *testing.T) {
 func TestNestedConfigPrecedence(t *testing.T) {
 	clearEnvironment(t)
 
-	// Create a config file with nested values
+	// Create temp directories for export directories
 	tmpDir := t.TempDir()
+	fileExportDir := filepath.Join(tmpDir, "file_export")
+	envExportDir := filepath.Join(tmpDir, "env_export")
+	err := os.MkdirAll(fileExportDir, 0o755)
+	require.NoError(t, err)
+	err = os.MkdirAll(envExportDir, 0o755)
+	require.NoError(t, err)
+
+	// Create a config file with nested values
 	cfgFilePath := filepath.Join(tmpDir, ".opnDossier.yaml")
-	content := `
+	content := fmt.Sprintf(`
 display:
   width: 80
   pager: false
   syntax_highlighting: true
 export:
   format: markdown
-  directory: /file/export
+  directory: %s
   template: default
   backup: false
 logging:
@@ -541,8 +552,8 @@ logging:
 validation:
   strict: false
   schema_validation: false
-`
-	err := os.WriteFile(cfgFilePath, []byte(content), 0o600)
+`, fileExportDir)
+	err = os.WriteFile(cfgFilePath, []byte(content), 0o600)
 	require.NoError(t, err)
 
 	// Set env vars that should override the file values
@@ -550,7 +561,7 @@ validation:
 	t.Setenv("OPNDOSSIER_DISPLAY_PAGER", "true")
 	t.Setenv("OPNDOSSIER_DISPLAY_SYNTAX_HIGHLIGHTING", "false")
 	t.Setenv("OPNDOSSIER_EXPORT_FORMAT", "json")
-	t.Setenv("OPNDOSSIER_EXPORT_DIRECTORY", "/env/export")
+	t.Setenv("OPNDOSSIER_EXPORT_DIRECTORY", envExportDir)
 	t.Setenv("OPNDOSSIER_EXPORT_TEMPLATE", "comprehensive")
 	t.Setenv("OPNDOSSIER_EXPORT_BACKUP", "true")
 	t.Setenv("OPNDOSSIER_LOGGING_LEVEL", "debug")
@@ -573,7 +584,7 @@ validation:
 
 	// Verify env vars override file config for export
 	assert.Equal(t, "json", cfg.Export.Format, "OPNDOSSIER_EXPORT_FORMAT should override file config")
-	assert.Equal(t, "/env/export", cfg.Export.Directory, "OPNDOSSIER_EXPORT_DIRECTORY should override file config")
+	assert.Equal(t, envExportDir, cfg.Export.Directory, "OPNDOSSIER_EXPORT_DIRECTORY should override file config")
 	assert.Equal(t, "comprehensive", cfg.Export.Template, "OPNDOSSIER_EXPORT_TEMPLATE should override file config")
 	assert.True(t, cfg.Export.Backup, "OPNDOSSIER_EXPORT_BACKUP should override file config")
 

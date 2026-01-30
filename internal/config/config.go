@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/spf13/pflag"
@@ -213,139 +212,44 @@ func (e ValidationError) Error() string {
 }
 
 // Validate validates the configuration for consistency and correctness.
+// It uses the comprehensive Validator for all validation checks including
+// nested configuration sections.
 func (c *Config) Validate() error {
-	// Normalize engine value before validation
-	if c.Engine != "" {
-		c.Engine = strings.ToLower(strings.TrimSpace(c.Engine))
+	validator := NewValidator(c)
+	if errs := validator.Validate(); errs != nil {
+		// Convert to legacy format for backward compatibility
+		return convertToLegacyError(errs)
 	}
-
-	var validationErrors []ValidationError
-
-	validateFlags(c, &validationErrors)
-	validateInputFile(c, &validationErrors)
-	validateOutputFile(c, &validationErrors)
-	validateTheme(c, &validationErrors)
-	validateFormat(c, &validationErrors)
-	validateWrapWidth(c, &validationErrors)
-	validateEngine(c, &validationErrors)
-
-	// Return combined validation errors
-	if len(validationErrors) > 0 {
-		return combineValidationErrors(validationErrors)
-	}
-
 	return nil
 }
 
-func validateFlags(_ *Config, _ *[]ValidationError) {
-	// Validate flags
-	// Note: Verbose/quiet mutual exclusivity is handled by Cobra flag validation
-	// No additional validation needed here
+// ValidateV2 validates the configuration and returns detailed MultiValidationError
+// with suggestions and context for better error reporting.
+func (c *Config) ValidateV2() *MultiValidationError {
+	validator := NewValidator(c)
+	return validator.Validate()
 }
 
-func validateInputFile(c *Config, validationErrors *[]ValidationError) {
-	// Validate input file exists if specified
-	if c.InputFile != "" {
-		if _, err := os.Stat(c.InputFile); os.IsNotExist(err) {
-			*validationErrors = append(*validationErrors, ValidationError{
-				Field:   "input_file",
-				Message: "input file does not exist: " + c.InputFile,
-			})
-		} else if err != nil {
-			*validationErrors = append(*validationErrors, ValidationError{
-				Field:   "input_file",
-				Message: fmt.Sprintf("failed to check input file: %v", err),
-			})
+// convertToLegacyError converts MultiValidationError to a legacy ValidationError format.
+func convertToLegacyError(errs *MultiValidationError) error {
+	if errs == nil || !errs.HasErrors() {
+		return nil
+	}
+
+	// Convert V2 errors to legacy format
+	legacyErrors := make([]ValidationError, len(errs.Errors))
+	for i, e := range errs.Errors {
+		legacyErrors[i] = ValidationError{
+			Field:   e.Field,
+			Message: e.Message,
 		}
 	}
+
+	return combineValidationErrors(legacyErrors)
 }
 
-func validateOutputFile(c *Config, validationErrors *[]ValidationError) {
-	// Validate output file directory exists if specified
-	if c.OutputFile != "" {
-		dir := filepath.Dir(c.OutputFile)
-		if dir != "." && dir != "" {
-			if _, err := os.Stat(dir); os.IsNotExist(err) {
-				*validationErrors = append(*validationErrors, ValidationError{
-					Field:   "output_file",
-					Message: "output directory does not exist: " + dir,
-				})
-			} else if err != nil {
-				*validationErrors = append(*validationErrors, ValidationError{
-					Field:   "output_file",
-					Message: fmt.Sprintf("failed to check output directory: %v", err),
-				})
-			}
-		}
-	}
-}
-
-func validateTheme(c *Config, validationErrors *[]ValidationError) {
-	// Validate theme
-	validThemes := map[string]bool{
-		"":       true, // Empty means auto-detect
-		"light":  true,
-		"dark":   true,
-		"custom": true,
-		"auto":   true,
-		"none":   true,
-	}
-	if !validThemes[c.Theme] {
-		*validationErrors = append(*validationErrors, ValidationError{
-			Field: "theme",
-			Message: fmt.Sprintf(
-				"invalid theme '%s', must be one of: light, dark, custom, auto, none (or empty for auto-detect)",
-				c.Theme,
-			),
-		})
-	}
-}
-
-func validateFormat(c *Config, validationErrors *[]ValidationError) {
-	// Validate format
-	validFormats := map[string]bool{
-		"markdown": true,
-		"md":       true,
-		"json":     true,
-		"yaml":     true,
-		"yml":      true,
-	}
-	if c.Format != "" && !validFormats[c.Format] {
-		*validationErrors = append(*validationErrors, ValidationError{
-			Field:   "format",
-			Message: fmt.Sprintf("invalid format '%s', must be one of: markdown, md, json, yaml, yml", c.Format),
-		})
-	}
-}
-
-func validateWrapWidth(c *Config, validationErrors *[]ValidationError) {
-	// Validate wrap width (-1 means auto-detect)
-	if c.WrapWidth < -1 {
-		*validationErrors = append(*validationErrors, ValidationError{
-			Field:   "wrap",
-			Message: fmt.Sprintf("wrap width must be -1 (auto-detect), 0 (no wrapping), or positive: %d", c.WrapWidth),
-		})
-	}
-}
-
-func validateEngine(c *Config, validationErrors *[]ValidationError) {
-	// Validate generation engine
-	validEngines := map[string]bool{
-		"":             true, // Empty means default (programmatic)
-		"programmatic": true,
-		"template":     true,
-	}
-
-	if c.Engine != "" && !validEngines[c.Engine] {
-		*validationErrors = append(*validationErrors, ValidationError{
-			Field: "engine",
-			Message: fmt.Sprintf(
-				"invalid engine '%s', must be one of: programmatic, template (or empty for default)",
-				c.Engine,
-			),
-		})
-	}
-}
+// Legacy validation functions are now handled by the Validator in validation.go
+// These are kept as no-ops for backward compatibility with any code that might reference them.
 
 func combineValidationErrors(validationErrors []ValidationError) error {
 	var sb strings.Builder
