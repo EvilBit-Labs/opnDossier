@@ -177,6 +177,16 @@ test-coverage:
 test-integration:
     @{{ mise_exec }} go test -tags=integration ./...
 
+# Run tests with race detector
+[group('test')]
+test-race:
+    @{{ mise_exec }} go test -race -timeout 10m ./...
+
+# Run stress tests (heavy load testing)
+[group('test')]
+test-stress:
+    @{{ mise_exec }} go test -tags=stress -timeout 5m ./...
+
 # Run tests and open coverage in browser
 [group('test')]
 coverage:

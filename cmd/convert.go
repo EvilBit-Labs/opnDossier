@@ -338,7 +338,8 @@ Examples:
 					// Output exported successfully (no logging to avoid corrupting output)
 				} else {
 					enhancedLogger.Debug("Outputting to stdout")
-					fmt.Print(output)
+
+					fmt.Fprint(cmd.OutOrStdout(), output)
 				}
 
 				// Conversion process completed successfully (no logging to avoid corrupting output)
