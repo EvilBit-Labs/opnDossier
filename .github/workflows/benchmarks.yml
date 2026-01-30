@@ -31,8 +31,9 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run benchmarks
+        timeout-minutes: 15
         run: |
-          go test -bench=. -run=^$ -benchmem -count=5 ./... 2>/dev/null | tee benchmark-results.txt
+          go test -bench=. -run=^$ -benchmem -count=3 -timeout 10m ./... 2>/dev/null | tee benchmark-results.txt
 
       - name: Download baseline (main branch)
         if: github.event_name == 'pull_request'
