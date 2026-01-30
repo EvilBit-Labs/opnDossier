@@ -27,14 +27,32 @@ func init() {
 	// Add display-specific flags
 	addDisplayFlags(displayCmd)
 
+	// Register flag completion functions for better tab completion
+	registerDisplayFlagCompletions(displayCmd)
+
 	// Flag groups for better organization
 	displayCmd.Flags().SortFlags = false
 }
 
+// registerDisplayFlagCompletions registers completion functions for display command flags.
+func registerDisplayFlagCompletions(cmd *cobra.Command) {
+	// Theme flag completion
+	if err := cmd.RegisterFlagCompletionFunc("theme", ValidThemes); err != nil {
+		// Log error but don't fail - completion is optional
+		logger.Debug("failed to register theme completion", "error", err)
+	}
+
+	// Section flag completion
+	if err := cmd.RegisterFlagCompletionFunc("section", ValidSections); err != nil {
+		logger.Debug("failed to register section completion", "error", err)
+	}
+}
+
 var displayCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
-	Use:     "display [file]",
-	Short:   "Display OPNsense configuration in formatted markdown.",
-	GroupID: "core",
+	Use:               "display [file]",
+	Short:             "Display OPNsense configuration in formatted markdown.",
+	GroupID:           "core",
+	ValidArgsFunction: ValidXMLFiles,
 	PreRunE: func(cmd *cobra.Command, _ []string) error {
 		// Validate flag combinations specific to display command
 		if err := validateDisplayFlags(cmd.Flags()); err != nil {
