@@ -272,6 +272,35 @@ Frequently encountered linter issues and fixes:
 | `gosec G115`               | Integer overflow on int→int32 | Add `//nolint:gosec` with bounded value comment |
 | `mnd`                      | Magic numbers                 | Create named constants                          |
 | `minmax`                   | Manual min/max comparisons    | Use `min()`/`max()` builtins                    |
+| `goconst`                  | Repeated string literals      | Extract to package-level constants              |
+
+### 5.11 Terminal Output Styling
+
+When using Lipgloss/charmbracelet styling in CLI commands:
+
+- Create a shared `useStylesCheck()` helper that checks `TERM != "dumb"` and `NO_COLOR == ""`
+- Define terminal constants (`termEnvVar`, `noColorEnvVar`, `termDumb`) to avoid goconst issues
+- Provide plain text fallback functions (e.g., `outputConfigPlain()`) for CI/automation
+- Use `sort.Strings()` on map-derived slices for deterministic CLI output in audit logs
+
+Example pattern:
+
+```go
+const (
+    termEnvVar    = "TERM"
+    noColorEnvVar = "NO_COLOR"
+    termDumb      = "dumb"
+)
+
+func useStylesCheck() bool {
+    return os.Getenv(termEnvVar) != termDumb && os.Getenv(noColorEnvVar) == ""
+}
+```
+
+### 5.12 String Comparison Patterns
+
+- `strings.EqualFold(a, b)` - Case-insensitive comparison, no need to call `strings.ToLower()` first
+- For case-insensitive enum validation, iterate with `EqualFold` directly on original value
 
 ---
 
