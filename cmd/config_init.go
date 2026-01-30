@@ -222,9 +222,7 @@ func runConfigInit(cmd *cobra.Command, _ []string) error {
 	}
 
 	// Check if styling should be applied (respect TERM=dumb and NO_COLOR)
-	useStyles := os.Getenv("TERM") != "dumb" && os.Getenv("NO_COLOR") == ""
-
-	if useStyles {
+	if useStylesCheck() {
 		// Output success message with styling
 		successStyle := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("10")). // Green

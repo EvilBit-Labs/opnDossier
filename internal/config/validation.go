@@ -283,9 +283,8 @@ func (v *Validator) validateValidationConfig() {
 
 // isValidEnum checks if a value is in the list of valid options (case-insensitive).
 func isValidEnum(value string, validOptions []string) bool {
-	lower := strings.ToLower(value)
 	for _, opt := range validOptions {
-		if strings.EqualFold(opt, lower) {
+		if strings.EqualFold(opt, value) {
 			return true
 		}
 	}

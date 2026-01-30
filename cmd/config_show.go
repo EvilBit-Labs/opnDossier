@@ -204,6 +204,11 @@ func outputConfigJSON(values []ConfigValue) error {
 
 // outputConfigStyled outputs configuration values with Lipgloss styling.
 func outputConfigStyled(values []ConfigValue) error {
+	// Check if styling should be applied (respect TERM=dumb and NO_COLOR)
+	if !useStylesCheck() {
+		return outputConfigPlain(values)
+	}
+
 	// Define styles
 	titleStyle := lipgloss.NewStyle().
 		Bold(true).
@@ -267,6 +272,37 @@ func outputConfigStyled(values []ConfigValue) error {
 			valueStyle.Render(valueStr),
 			sourceStyled,
 		)
+	}
+
+	return nil
+}
+
+// outputConfigPlain outputs configuration values without styling for dumb terminals.
+func outputConfigPlain(values []ConfigValue) error {
+	fmt.Println("opnDossier Effective Configuration")
+	fmt.Println()
+
+	// Group values by section
+	currentSection := ""
+	for _, v := range values {
+		// Determine section from key
+		section := ""
+		if strings.Contains(v.Key, ".") {
+			section = strings.Split(v.Key, ".")[0]
+		}
+
+		// Print section header if changed
+		if section != currentSection && section != "" {
+			fmt.Println()
+			fmt.Println("[" + section + "]")
+			currentSection = section
+		}
+
+		// Format value for display
+		valueStr := formatValueForDisplay(v.Value)
+
+		// Print the configuration line
+		fmt.Printf("  %-35s %-25s (%s)\n", v.Key+":", valueStr, v.Source)
 	}
 
 	return nil

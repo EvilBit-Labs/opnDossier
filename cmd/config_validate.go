@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
@@ -20,6 +21,19 @@ const ExitConfigValidationError = 5
 
 // Line number display width for context output.
 const lineNumberWidth = 6
+
+// Terminal environment constants.
+const (
+	termEnvVar    = "TERM"
+	noColorEnvVar = "NO_COLOR"
+	termDumb      = "dumb"
+)
+
+// useStylesCheck returns true if terminal styling should be applied.
+// Respects TERM=dumb and NO_COLOR environment variables.
+func useStylesCheck() bool {
+	return os.Getenv(termEnvVar) != termDumb && os.Getenv(noColorEnvVar) == ""
+}
 
 // configValidateCmd validates a configuration file.
 var configValidateCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
@@ -103,25 +117,33 @@ func runConfigValidate(cmd *cobra.Command, args []string) error {
 	}
 
 	// Success
-	successStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("10")). // Green
-		Bold(true)
+	if useStylesCheck() {
+		successStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("10")). // Green
+			Bold(true)
 
-	pathStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("14")). // Cyan
-		Underline(true)
+		pathStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("14")). // Cyan
+			Underline(true)
 
-	fmt.Printf("%s %s\n",
-		successStyle.Render("Valid:"),
-		pathStyle.Render(configPath),
-	)
+		fmt.Printf("%s %s\n",
+			successStyle.Render("Valid:"),
+			pathStyle.Render(configPath),
+		)
 
-	if len(unknownKeys) > 0 {
-		warnStyle := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("11")). // Yellow
-			Italic(true)
-		fmt.Println()
-		fmt.Println(warnStyle.Render("Note: Unknown keys were found but ignored."))
+		if len(unknownKeys) > 0 {
+			warnStyle := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("11")). // Yellow
+				Italic(true)
+			fmt.Println()
+			fmt.Println(warnStyle.Render("Note: Unknown keys were found but ignored."))
+		}
+	} else {
+		fmt.Printf("Valid: %s\n", configPath)
+		if len(unknownKeys) > 0 {
+			fmt.Println()
+			fmt.Println("Note: Unknown keys were found but ignored.")
+		}
 	}
 
 	return nil
@@ -129,39 +151,46 @@ func runConfigValidate(cmd *cobra.Command, args []string) error {
 
 // reportYAMLError reports a YAML parsing error with line number if available.
 func reportYAMLError(configPath string, content []byte, err error) error {
-	errorStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("9")). // Red
-		Bold(true)
-
-	pathStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("14")). // Cyan
-		Underline(true)
-
-	lineStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("11")). // Yellow
-		Bold(true)
-
-	fmt.Fprintf(os.Stderr, "%s %s\n",
-		errorStyle.Render("YAML syntax error in:"),
-		pathStyle.Render(configPath),
-	)
-
-	// Try to extract line number from yaml error
 	lineNum := extractYAMLLineNumber(err)
-	if lineNum > 0 {
-		fmt.Fprintf(os.Stderr, "%s %d\n",
-			lineStyle.Render("Line:"),
-			lineNum,
+
+	if useStylesCheck() {
+		errorStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("9")). // Red
+			Bold(true)
+
+		pathStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("14")). // Cyan
+			Underline(true)
+
+		lineStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("11")). // Yellow
+			Bold(true)
+
+		fmt.Fprintf(os.Stderr, "%s %s\n",
+			errorStyle.Render("YAML syntax error in:"),
+			pathStyle.Render(configPath),
 		)
 
-		// Show context around the error line
-		showLineContext(content, lineNum)
-	}
+		if lineNum > 0 {
+			fmt.Fprintf(os.Stderr, "%s %d\n",
+				lineStyle.Render("Line:"),
+				lineNum,
+			)
+			showLineContext(content, lineNum)
+		}
 
-	fmt.Fprintf(os.Stderr, "\n%s %s\n",
-		errorStyle.Render("Error:"),
-		err.Error(),
-	)
+		fmt.Fprintf(os.Stderr, "\n%s %s\n",
+			errorStyle.Render("Error:"),
+			err.Error(),
+		)
+	} else {
+		fmt.Fprintf(os.Stderr, "YAML syntax error in: %s\n", configPath)
+		if lineNum > 0 {
+			fmt.Fprintf(os.Stderr, "Line: %d\n", lineNum)
+			showLineContextPlain(content, lineNum)
+		}
+		fmt.Fprintf(os.Stderr, "\nError: %s\n", err.Error())
+	}
 
 	ExitWithCode(ExitConfigValidationError)
 	return nil // unreachable, but satisfies return
@@ -184,7 +213,7 @@ func extractYAMLLineNumber(err error) int {
 	return 0
 }
 
-// showLineContext displays the lines around the error.
+// showLineContext displays the lines around the error with styling.
 func showLineContext(content []byte, lineNum int) {
 	scanner := bufio.NewScanner(strings.NewReader(string(content)))
 	currentLine := 0
@@ -223,6 +252,29 @@ func showLineContext(content []byte, lineNum int) {
 					lineNumStr,
 					contextStyle.Render(scanner.Text()),
 				)
+			}
+		}
+		if currentLine > lineNum+contextLines {
+			break
+		}
+	}
+}
+
+// showLineContextPlain displays the lines around the error without styling.
+func showLineContextPlain(content []byte, lineNum int) {
+	scanner := bufio.NewScanner(strings.NewReader(string(content)))
+	currentLine := 0
+	contextLines := 2 // Show 2 lines before and after
+
+	fmt.Fprintln(os.Stderr)
+
+	for scanner.Scan() {
+		currentLine++
+		if currentLine >= lineNum-contextLines && currentLine <= lineNum+contextLines {
+			if currentLine == lineNum {
+				fmt.Fprintf(os.Stderr, ">>> %4d | %s\n", currentLine, scanner.Text())
+			} else {
+				fmt.Fprintf(os.Stderr, "    %4d | %s\n", currentLine, scanner.Text())
 			}
 		}
 		if currentLine > lineNum+contextLines {
@@ -296,26 +348,36 @@ func findUnknownKeys(raw map[string]any) []string {
 		}
 	}
 
+	// Sort for deterministic output
+	sort.Strings(unknown)
+
 	return unknown
 }
 
 // reportUnknownKeys reports unknown configuration keys as warnings.
 func reportUnknownKeys(configPath string, keys []string) {
-	warnStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("11")). // Yellow
-		Bold(true)
+	if useStylesCheck() {
+		warnStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("11")). // Yellow
+			Bold(true)
 
-	keyStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("14")). // Cyan
-		Italic(true)
+		keyStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("14")). // Cyan
+			Italic(true)
 
-	fmt.Fprintf(os.Stderr, "%s %s\n",
-		warnStyle.Render("Warning: Unknown configuration keys in"),
-		configPath,
-	)
+		fmt.Fprintf(os.Stderr, "%s %s\n",
+			warnStyle.Render("Warning: Unknown configuration keys in"),
+			configPath,
+		)
 
-	for _, key := range keys {
-		fmt.Fprintf(os.Stderr, "  - %s\n", keyStyle.Render(key))
+		for _, key := range keys {
+			fmt.Fprintf(os.Stderr, "  - %s\n", keyStyle.Render(key))
+		}
+	} else {
+		fmt.Fprintf(os.Stderr, "Warning: Unknown configuration keys in %s\n", configPath)
+		for _, key := range keys {
+			fmt.Fprintf(os.Stderr, "  - %s\n", key)
+		}
 	}
 
 	fmt.Fprintln(os.Stderr)
@@ -323,23 +385,28 @@ func reportUnknownKeys(configPath string, keys []string) {
 
 // reportConfigError reports a configuration validation error.
 func reportConfigError(configPath string, err error) error {
-	errorStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("9")). // Red
-		Bold(true)
+	if useStylesCheck() {
+		errorStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("9")). // Red
+			Bold(true)
 
-	pathStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("14")). // Cyan
-		Underline(true)
+		pathStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("14")). // Cyan
+			Underline(true)
 
-	fmt.Fprintf(os.Stderr, "%s %s\n",
-		errorStyle.Render("Configuration error in:"),
-		pathStyle.Render(configPath),
-	)
+		fmt.Fprintf(os.Stderr, "%s %s\n",
+			errorStyle.Render("Configuration error in:"),
+			pathStyle.Render(configPath),
+		)
 
-	fmt.Fprintf(os.Stderr, "\n%s %s\n",
-		errorStyle.Render("Error:"),
-		err.Error(),
-	)
+		fmt.Fprintf(os.Stderr, "\n%s %s\n",
+			errorStyle.Render("Error:"),
+			err.Error(),
+		)
+	} else {
+		fmt.Fprintf(os.Stderr, "Configuration error in: %s\n", configPath)
+		fmt.Fprintf(os.Stderr, "\nError: %s\n", err.Error())
+	}
 
 	ExitWithCode(ExitConfigValidationError)
 	return nil // unreachable, but satisfies return
