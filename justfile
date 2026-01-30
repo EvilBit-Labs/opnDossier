@@ -177,6 +177,16 @@ test-coverage:
 test-integration:
     @{{ mise_exec }} go test -tags=integration ./...
 
+# Run tests with race detector
+[group('test')]
+test-race:
+    @{{ mise_exec }} go test -race -timeout 10m ./...
+
+# Run stress tests (heavy load testing)
+[group('test')]
+test-stress:
+    @{{ mise_exec }} go test -tags=stress -timeout 5m ./...
+
 # Run tests and open coverage in browser
 [group('test')]
 coverage:
@@ -201,6 +211,37 @@ bench-mem:
 [group('test')]
 bench-perf:
     @{{ mise_exec }} go test -bench=. -run=^$ -benchtime=1s -count=3 ./internal/converter
+
+# Save benchmark baseline for comparison
+[group('test')]
+bench-save:
+    @echo "Saving benchmark baseline..."
+    @{{ mise_exec }} go test -bench=. -run=^$ -benchmem -count=5 ./... 2>/dev/null | tee .benchmark-baseline.txt
+    @echo "✅ Baseline saved to .benchmark-baseline.txt"
+
+# Compare current benchmarks against baseline
+[group('test')]
+bench-compare:
+    @if [ ! -f .benchmark-baseline.txt ]; then \
+        echo "No baseline found. Run 'just bench-save' first."; \
+        exit 1; \
+    fi
+    @echo "Running current benchmarks..."
+    @{{ mise_exec }} go test -bench=. -run=^$ -benchmem -count=5 ./... 2>/dev/null | tee .benchmark-current.txt
+    @echo ""
+    @echo "Comparing benchmarks..."
+    @{{ mise_exec }} go install golang.org/x/perf/cmd/benchstat@latest
+    @{{ mise_exec }} benchstat .benchmark-baseline.txt .benchmark-current.txt
+
+# Run startup time benchmarks
+[group('test')]
+bench-startup:
+    @{{ mise_exec }} go test -bench=BenchmarkStartup -run=^$ -benchmem ./cmd/...
+
+# Run pool benchmarks
+[group('test')]
+bench-pool:
+    @{{ mise_exec }} go test -bench=. -run=^$ -benchmem ./internal/pool/...
 
 # Run model completeness check
 [group('test')]

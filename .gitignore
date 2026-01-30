@@ -160,6 +160,9 @@ vendor/
 lint_report.json
 *.report
 
+# Benchmark comparison files
+.benchmark-*.txt
+
 # Temporary files
 *.tmp
 *.temp
