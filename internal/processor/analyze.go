@@ -201,6 +201,17 @@ func markDNSInterfaces(cfg *model.OpnSenseDocument, used map[string]bool) {
 	}
 }
 
+// markLoadBalancerInterfaces marks interfaces as used when load balancer is configured.
+// Load balancers in OPNsense work through virtual servers (VIPs) and when monitors are configured,
+// it indicates active load balancing services which typically serve internal networks.
+func markLoadBalancerInterfaces(cfg *model.OpnSenseDocument, used map[string]bool) {
+	// Check if load balancer has any monitor types configured
+	// Presence of monitors indicates an active load balancer configuration
+	if len(cfg.LoadBalancer.MonitorType) > 0 {
+		used["lan"] = true
+	}
+}
+
 // markVPNInterfaces marks interfaces as used when VPN services (OpenVPN or WireGuard) are configured.
 // It iterates through OpenVPN servers and clients to mark their bound interfaces,
 // and checks if WireGuard is enabled (marking "lan" as the default service interface).
@@ -244,13 +255,13 @@ func (p *CoreProcessor) analyzeUnusedInterfaces(cfg *model.OpnSenseDocument, rep
 
 	// Mark interfaces used in services
 	// TODO: Additional Service Integration - Expand service usage detection to:
-	//   - Include load balancer interface usage
 	//   - Detect interface usage in routing, VLAN, and bridge configurations
 	//   - Check for interface references in monitoring and logging services
 	// This would provide more comprehensive unused interface detection.
 	markDHCPInterfaces(cfg, usedInterfaces)
 	markDNSInterfaces(cfg, usedInterfaces)
 	markVPNInterfaces(cfg, usedInterfaces)
+	markLoadBalancerInterfaces(cfg, usedInterfaces)
 
 	// Check WAN and LAN interfaces
 	interfaces := map[string]model.Interface{}

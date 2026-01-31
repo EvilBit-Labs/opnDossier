@@ -1387,6 +1387,146 @@ func TestMarkVPNInterfaces_NilConfig(t *testing.T) {
 	})
 }
 
+// TestMarkLoadBalancerInterfaces_WithMonitors tests that load balancer interfaces are marked as used
+// when monitor types are configured.
+func TestMarkLoadBalancerInterfaces_WithMonitors(t *testing.T) {
+	t.Run("SingleMonitor", func(t *testing.T) {
+		cfg := &model.OpnSenseDocument{
+			LoadBalancer: model.LoadBalancer{
+				MonitorType: []model.MonitorType{
+					{Name: "ICMP", Type: "icmp"},
+				},
+			},
+		}
+
+		used := make(map[string]bool)
+		markLoadBalancerInterfaces(cfg, used)
+
+		assert.True(t, used["lan"], "lan should be marked as used when load balancer monitors are configured")
+		assert.Len(t, used, 1, "should have exactly 1 interface marked")
+	})
+
+	t.Run("MultipleMonitors", func(t *testing.T) {
+		cfg := &model.OpnSenseDocument{
+			LoadBalancer: model.LoadBalancer{
+				MonitorType: []model.MonitorType{
+					{Name: "ICMP", Type: "icmp"},
+					{Name: "HTTP", Type: "http"},
+					{Name: "TCP", Type: "tcp"},
+				},
+			},
+		}
+
+		used := make(map[string]bool)
+		markLoadBalancerInterfaces(cfg, used)
+
+		assert.True(t, used["lan"], "lan should be marked as used when multiple monitors are configured")
+		assert.Len(t, used, 1, "should have exactly 1 interface marked (lan only)")
+	})
+
+	t.Run("PreservesExistingEntries", func(t *testing.T) {
+		cfg := &model.OpnSenseDocument{
+			LoadBalancer: model.LoadBalancer{
+				MonitorType: []model.MonitorType{
+					{Name: "ICMP", Type: "icmp"},
+				},
+			},
+		}
+
+		used := map[string]bool{
+			"wan":  true,
+			"opt0": true,
+		}
+		markLoadBalancerInterfaces(cfg, used)
+
+		assert.True(t, used["wan"], "pre-existing wan entry should be preserved")
+		assert.True(t, used["opt0"], "pre-existing opt0 entry should be preserved")
+		assert.True(t, used["lan"], "lan should be marked as used")
+		assert.Len(t, used, 3, "should have 3 interfaces marked")
+	})
+}
+
+// TestMarkLoadBalancerInterfaces_EmptyMonitors tests that no interfaces are marked
+// when no load balancer monitors are configured.
+func TestMarkLoadBalancerInterfaces_EmptyMonitors(t *testing.T) {
+	t.Run("EmptySlice", func(t *testing.T) {
+		cfg := &model.OpnSenseDocument{
+			LoadBalancer: model.LoadBalancer{
+				MonitorType: []model.MonitorType{},
+			},
+		}
+
+		used := make(map[string]bool)
+		markLoadBalancerInterfaces(cfg, used)
+
+		assert.Empty(t, used, "no interfaces should be marked when MonitorType slice is empty")
+	})
+
+	t.Run("PreservesExistingEntries", func(t *testing.T) {
+		cfg := &model.OpnSenseDocument{
+			LoadBalancer: model.LoadBalancer{
+				MonitorType: []model.MonitorType{},
+			},
+		}
+
+		used := map[string]bool{
+			"wan": true,
+			"lan": true,
+		}
+		markLoadBalancerInterfaces(cfg, used)
+
+		assert.True(t, used["wan"], "pre-existing wan entry should be preserved")
+		assert.True(t, used["lan"], "pre-existing lan entry should be preserved")
+		assert.Len(t, used, 2, "should still have 2 interfaces marked")
+	})
+}
+
+// TestMarkLoadBalancerInterfaces_NilSlice tests safe handling of nil MonitorType slice.
+func TestMarkLoadBalancerInterfaces_NilSlice(t *testing.T) {
+	t.Run("NilMonitorTypeSlice", func(t *testing.T) {
+		cfg := &model.OpnSenseDocument{
+			LoadBalancer: model.LoadBalancer{
+				MonitorType: nil,
+			},
+		}
+
+		used := make(map[string]bool)
+		// Should not panic
+		markLoadBalancerInterfaces(cfg, used)
+
+		assert.Empty(t, used, "no interfaces should be marked when MonitorType is nil")
+	})
+
+	t.Run("DefaultLoadBalancer", func(t *testing.T) {
+		// Test with default/zero-value LoadBalancer struct
+		cfg := &model.OpnSenseDocument{}
+
+		used := make(map[string]bool)
+		// Should not panic
+		markLoadBalancerInterfaces(cfg, used)
+
+		assert.Empty(t, used, "no interfaces should be marked with default LoadBalancer")
+	})
+
+	t.Run("PreservesExistingEntriesWithNil", func(t *testing.T) {
+		cfg := &model.OpnSenseDocument{
+			LoadBalancer: model.LoadBalancer{
+				MonitorType: nil,
+			},
+		}
+
+		used := map[string]bool{
+			"wan":  true,
+			"opt1": true,
+		}
+		markLoadBalancerInterfaces(cfg, used)
+
+		assert.True(t, used["wan"], "pre-existing wan entry should be preserved")
+		assert.True(t, used["opt1"], "pre-existing opt1 entry should be preserved")
+		assert.Len(t, used, 2, "should still have 2 interfaces marked")
+	})
+}
+
 // TestCoreProcessor_EdgeCases tests edge cases and boundary conditions.
 func TestCoreProcessor_EdgeCases(t *testing.T) {
 	processor, err := NewCoreProcessor()
