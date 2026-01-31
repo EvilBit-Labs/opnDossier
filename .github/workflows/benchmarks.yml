@@ -134,7 +134,7 @@ jobs:
           key: benchmark-baseline-main-${{ github.sha }}
 
       - name: Upload benchmark results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: benchmark-results
           path: |
@@ -197,7 +197,7 @@ jobs:
           } > startup-results.md
 
       - name: Upload startup results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: startup-results
           path: startup-results.md
