@@ -834,6 +834,776 @@ func TestCoreProcessor_ModelLimitations(t *testing.T) {
 	})
 }
 
+// TestMarkDHCPInterfaces tests the markDHCPInterfaces helper function.
+func TestMarkDHCPInterfaces(t *testing.T) {
+	t.Run("AllItems", func(t *testing.T) {
+		// Test that all enabled DHCP interfaces in Items map are marked as used
+		cfg := &model.OpnSenseDocument{
+			Dhcpd: model.Dhcpd{
+				Items: map[string]model.DhcpdInterface{
+					"lan":  {Enable: "1"},
+					"wan":  {Enable: "1"},
+					"opt0": {Enable: "1"},
+					"opt1": {Enable: "1"},
+				},
+			},
+		}
+
+		used := make(map[string]bool)
+		markDHCPInterfaces(cfg, used)
+
+		assert.True(t, used["lan"], "lan should be marked as used")
+		assert.True(t, used["wan"], "wan should be marked as used")
+		assert.True(t, used["opt0"], "opt0 should be marked as used")
+		assert.True(t, used["opt1"], "opt1 should be marked as used")
+		assert.Len(t, used, 4, "should have exactly 4 interfaces marked")
+	})
+
+	t.Run("EmptyMap", func(t *testing.T) {
+		// Test handling of nil Items map
+		cfg := &model.OpnSenseDocument{
+			Dhcpd: model.Dhcpd{
+				Items: nil,
+			},
+		}
+
+		used := make(map[string]bool)
+		markDHCPInterfaces(cfg, used)
+
+		assert.Empty(t, used, "no interfaces should be marked when Items is nil")
+	})
+
+	t.Run("EmptyItemsMap", func(t *testing.T) {
+		// Test handling of empty Items map
+		cfg := &model.OpnSenseDocument{
+			Dhcpd: model.Dhcpd{
+				Items: map[string]model.DhcpdInterface{},
+			},
+		}
+
+		used := make(map[string]bool)
+		markDHCPInterfaces(cfg, used)
+
+		assert.Empty(t, used, "no interfaces should be marked when Items is empty")
+	})
+
+	t.Run("DisabledInterface", func(t *testing.T) {
+		// Test that disabled interfaces (Enable != "1") are not marked
+		// OPNsense convention: Enable="1" means enabled, anything else means disabled
+		cfg := &model.OpnSenseDocument{
+			Dhcpd: model.Dhcpd{
+				Items: map[string]model.DhcpdInterface{
+					"lan":  {Enable: "1"},    // enabled
+					"wan":  {Enable: ""},     // disabled (empty string)
+					"opt0": {Enable: "1"},    // enabled
+					"opt1": {},               // disabled (zero value)
+					"opt2": {Enable: "true"}, // disabled (not "1")
+					"opt3": {Enable: "0"},    // disabled (explicitly disabled)
+				},
+			},
+		}
+
+		used := make(map[string]bool)
+		markDHCPInterfaces(cfg, used)
+
+		assert.True(t, used["lan"], "lan should be marked as used (enabled)")
+		assert.False(t, used["wan"], "wan should NOT be marked (empty Enable)")
+		assert.True(t, used["opt0"], "opt0 should be marked as used (enabled)")
+		assert.False(t, used["opt1"], "opt1 should NOT be marked (zero value)")
+		assert.False(t, used["opt2"], "opt2 should NOT be marked (Enable='true' is not '1')")
+		assert.False(t, used["opt3"], "opt3 should NOT be marked (Enable='0' means disabled)")
+	})
+
+	t.Run("PreservesExistingEntries", func(t *testing.T) {
+		// Test that existing entries in the used map are preserved
+		cfg := &model.OpnSenseDocument{
+			Dhcpd: model.Dhcpd{
+				Items: map[string]model.DhcpdInterface{
+					"opt0": {Enable: "1"},
+				},
+			},
+		}
+
+		used := map[string]bool{
+			"lan": true,
+			"wan": true,
+		}
+		markDHCPInterfaces(cfg, used)
+
+		assert.True(t, used["lan"], "pre-existing lan entry should be preserved")
+		assert.True(t, used["wan"], "pre-existing wan entry should be preserved")
+		assert.True(t, used["opt0"], "opt0 should be marked as used")
+		assert.Len(t, used, 3, "should have 3 interfaces marked")
+	})
+}
+
+// TestMarkDNSInterfaces tests the markDNSInterfaces helper function.
+func TestMarkDNSInterfaces(t *testing.T) {
+	t.Run("UnboundEnabled", func(t *testing.T) {
+		// Test that when Unbound DNS is enabled, "lan" is marked as used
+		cfg := &model.OpnSenseDocument{
+			Unbound: model.Unbound{
+				Enable: "1",
+			},
+		}
+
+		used := make(map[string]bool)
+		markDNSInterfaces(cfg, used)
+
+		assert.True(t, used["lan"], "lan should be marked as used when Unbound is enabled")
+	})
+
+	t.Run("DNSMasqEnabled", func(t *testing.T) {
+		// Test that when DNSMasq is enabled, "lan" is marked as used
+		cfg := &model.OpnSenseDocument{
+			DNSMasquerade: model.DNSMasq{
+				Enable: true,
+			},
+		}
+
+		used := make(map[string]bool)
+		markDNSInterfaces(cfg, used)
+
+		assert.True(t, used["lan"], "lan should be marked as used when DNSMasq is enabled")
+	})
+
+	t.Run("BothDisabled", func(t *testing.T) {
+		// Test that when both DNS services are disabled, no interfaces are marked
+		cfg := &model.OpnSenseDocument{
+			Unbound: model.Unbound{
+				Enable: "", // disabled (empty string)
+			},
+			DNSMasquerade: model.DNSMasq{
+				Enable: false, // disabled
+			},
+		}
+
+		used := make(map[string]bool)
+		markDNSInterfaces(cfg, used)
+
+		assert.Empty(t, used, "no interfaces should be marked when both DNS services are disabled")
+	})
+
+	t.Run("BothEnabled", func(t *testing.T) {
+		// Test that when both DNS services are enabled, "lan" is still only marked once
+		cfg := &model.OpnSenseDocument{
+			Unbound: model.Unbound{
+				Enable: "1",
+			},
+			DNSMasquerade: model.DNSMasq{
+				Enable: true,
+			},
+		}
+
+		used := make(map[string]bool)
+		markDNSInterfaces(cfg, used)
+
+		assert.True(t, used["lan"], "lan should be marked as used when both DNS services are enabled")
+		assert.Len(t, used, 1, "should only have one interface marked (lan)")
+	})
+
+	t.Run("PreservesExistingEntries", func(t *testing.T) {
+		// Test that existing entries in the used map are preserved
+		cfg := &model.OpnSenseDocument{
+			Unbound: model.Unbound{
+				Enable: "1",
+			},
+		}
+
+		used := map[string]bool{
+			"wan":  true,
+			"opt0": true,
+		}
+		markDNSInterfaces(cfg, used)
+
+		assert.True(t, used["wan"], "pre-existing wan entry should be preserved")
+		assert.True(t, used["opt0"], "pre-existing opt0 entry should be preserved")
+		assert.True(t, used["lan"], "lan should be marked as used")
+		assert.Len(t, used, 3, "should have 3 interfaces marked")
+	})
+
+	t.Run("UnboundEnabledVariousValues", func(t *testing.T) {
+		// Test various Enable values for Unbound
+		// OPNsense convention: only "1" means enabled
+		testCases := []struct {
+			enableValue string
+			shouldMark  bool
+		}{
+			{"1", true},
+			{"true", false}, // not "1", so disabled
+			{"yes", false},  // not "1", so disabled
+			{"0", false},    // explicitly disabled
+			{"", false},     // empty string means disabled
+		}
+
+		for _, tc := range testCases {
+			t.Run(fmt.Sprintf("Enable=%q", tc.enableValue), func(t *testing.T) {
+				cfg := &model.OpnSenseDocument{
+					Unbound: model.Unbound{
+						Enable: tc.enableValue,
+					},
+				}
+
+				used := make(map[string]bool)
+				markDNSInterfaces(cfg, used)
+
+				if tc.shouldMark {
+					assert.True(t, used["lan"], "lan should be marked as used")
+				} else {
+					assert.False(t, used["lan"], "lan should NOT be marked as used")
+				}
+			})
+		}
+	})
+}
+
+// TestMarkVPNInterfaces_OpenVPNServers tests that OpenVPN server interfaces are marked as used.
+func TestMarkVPNInterfaces_OpenVPNServers(t *testing.T) {
+	t.Run("SingleServer", func(t *testing.T) {
+		cfg := &model.OpnSenseDocument{
+			OpenVPN: model.OpenVPN{
+				Servers: []model.OpenVPNServer{
+					{Interface: "wan"},
+				},
+			},
+		}
+
+		used := make(map[string]bool)
+		markVPNInterfaces(cfg, used)
+
+		assert.True(t, used["wan"], "wan should be marked as used from OpenVPN server")
+		assert.Len(t, used, 1, "should have exactly 1 interface marked")
+	})
+
+	t.Run("MultipleServers", func(t *testing.T) {
+		cfg := &model.OpnSenseDocument{
+			OpenVPN: model.OpenVPN{
+				Servers: []model.OpenVPNServer{
+					{Interface: "wan"},
+					{Interface: "opt1"},
+					{Interface: "lan"},
+				},
+			},
+		}
+
+		used := make(map[string]bool)
+		markVPNInterfaces(cfg, used)
+
+		assert.True(t, used["wan"], "wan should be marked as used")
+		assert.True(t, used["opt1"], "opt1 should be marked as used")
+		assert.True(t, used["lan"], "lan should be marked as used")
+		assert.Len(t, used, 3, "should have exactly 3 interfaces marked")
+	})
+
+	t.Run("EmptyInterface", func(t *testing.T) {
+		// Servers with empty interface field should not mark anything
+		cfg := &model.OpnSenseDocument{
+			OpenVPN: model.OpenVPN{
+				Servers: []model.OpenVPNServer{
+					{Interface: ""},
+					{Interface: "wan"},
+				},
+			},
+		}
+
+		used := make(map[string]bool)
+		markVPNInterfaces(cfg, used)
+
+		assert.True(t, used["wan"], "wan should be marked as used")
+		assert.False(t, used[""], "empty interface should not be marked")
+		assert.Len(t, used, 1, "should have exactly 1 interface marked")
+	})
+
+	t.Run("NoServers", func(t *testing.T) {
+		cfg := &model.OpnSenseDocument{
+			OpenVPN: model.OpenVPN{
+				Servers: []model.OpenVPNServer{},
+			},
+		}
+
+		used := make(map[string]bool)
+		markVPNInterfaces(cfg, used)
+
+		assert.Empty(t, used, "no interfaces should be marked when no servers exist")
+	})
+}
+
+// TestMarkVPNInterfaces_OpenVPNClients tests that OpenVPN client interfaces are marked as used.
+func TestMarkVPNInterfaces_OpenVPNClients(t *testing.T) {
+	t.Run("SingleClient", func(t *testing.T) {
+		cfg := &model.OpnSenseDocument{
+			OpenVPN: model.OpenVPN{
+				Clients: []model.OpenVPNClient{
+					{Interface: "wan"},
+				},
+			},
+		}
+
+		used := make(map[string]bool)
+		markVPNInterfaces(cfg, used)
+
+		assert.True(t, used["wan"], "wan should be marked as used from OpenVPN client")
+		assert.Len(t, used, 1, "should have exactly 1 interface marked")
+	})
+
+	t.Run("MultipleClients", func(t *testing.T) {
+		cfg := &model.OpnSenseDocument{
+			OpenVPN: model.OpenVPN{
+				Clients: []model.OpenVPNClient{
+					{Interface: "wan"},
+					{Interface: "opt2"},
+				},
+			},
+		}
+
+		used := make(map[string]bool)
+		markVPNInterfaces(cfg, used)
+
+		assert.True(t, used["wan"], "wan should be marked as used")
+		assert.True(t, used["opt2"], "opt2 should be marked as used")
+		assert.Len(t, used, 2, "should have exactly 2 interfaces marked")
+	})
+
+	t.Run("EmptyInterface", func(t *testing.T) {
+		cfg := &model.OpnSenseDocument{
+			OpenVPN: model.OpenVPN{
+				Clients: []model.OpenVPNClient{
+					{Interface: ""},
+					{Interface: "lan"},
+				},
+			},
+		}
+
+		used := make(map[string]bool)
+		markVPNInterfaces(cfg, used)
+
+		assert.True(t, used["lan"], "lan should be marked as used")
+		assert.False(t, used[""], "empty interface should not be marked")
+		assert.Len(t, used, 1, "should have exactly 1 interface marked")
+	})
+
+	t.Run("MixedServersAndClients", func(t *testing.T) {
+		cfg := &model.OpnSenseDocument{
+			OpenVPN: model.OpenVPN{
+				Servers: []model.OpenVPNServer{
+					{Interface: "wan"},
+				},
+				Clients: []model.OpenVPNClient{
+					{Interface: "opt1"},
+				},
+			},
+		}
+
+		used := make(map[string]bool)
+		markVPNInterfaces(cfg, used)
+
+		assert.True(t, used["wan"], "wan should be marked as used from server")
+		assert.True(t, used["opt1"], "opt1 should be marked as used from client")
+		assert.Len(t, used, 2, "should have exactly 2 interfaces marked")
+	})
+}
+
+// TestMarkVPNInterfaces_WireGuard tests that WireGuard interfaces are marked as used.
+func TestMarkVPNInterfaces_WireGuard(t *testing.T) {
+	t.Run("WireGuardEnabled", func(t *testing.T) {
+		wg := &model.WireGuard{}
+		wg.General.Enabled = "1"
+
+		cfg := &model.OpnSenseDocument{
+			OPNsense: model.OPNsense{
+				Wireguard: wg,
+			},
+		}
+
+		used := make(map[string]bool)
+		markVPNInterfaces(cfg, used)
+
+		assert.True(t, used["lan"], "lan should be marked as used when WireGuard is enabled")
+	})
+
+	t.Run("WireGuardDisabled", func(t *testing.T) {
+		wg := &model.WireGuard{}
+		wg.General.Enabled = ""
+
+		cfg := &model.OpnSenseDocument{
+			OPNsense: model.OPNsense{
+				Wireguard: wg,
+			},
+		}
+
+		used := make(map[string]bool)
+		markVPNInterfaces(cfg, used)
+
+		assert.False(t, used["lan"], "lan should NOT be marked when WireGuard is disabled")
+	})
+
+	t.Run("WireGuardEnabledVariousValues", func(t *testing.T) {
+		// OPNsense convention: only "1" means enabled
+		testCases := []struct {
+			enableValue string
+			shouldMark  bool
+		}{
+			{"1", true},
+			{"true", false}, // not "1", so disabled
+			{"yes", false},  // not "1", so disabled
+			{"0", false},    // explicitly disabled
+			{"", false},     // empty string means disabled
+		}
+
+		for _, tc := range testCases {
+			t.Run(fmt.Sprintf("Enabled=%q", tc.enableValue), func(t *testing.T) {
+				wg := &model.WireGuard{}
+				wg.General.Enabled = tc.enableValue
+
+				cfg := &model.OpnSenseDocument{
+					OPNsense: model.OPNsense{
+						Wireguard: wg,
+					},
+				}
+
+				used := make(map[string]bool)
+				markVPNInterfaces(cfg, used)
+
+				if tc.shouldMark {
+					assert.True(t, used["lan"], "lan should be marked as used")
+				} else {
+					assert.False(t, used["lan"], "lan should NOT be marked as used")
+				}
+			})
+		}
+	})
+
+	t.Run("WireGuardWithOpenVPN", func(t *testing.T) {
+		// Test that WireGuard and OpenVPN interfaces are all marked
+		wg := &model.WireGuard{}
+		wg.General.Enabled = "1"
+
+		cfg := &model.OpnSenseDocument{
+			OpenVPN: model.OpenVPN{
+				Servers: []model.OpenVPNServer{
+					{Interface: "wan"},
+				},
+			},
+			OPNsense: model.OPNsense{
+				Wireguard: wg,
+			},
+		}
+
+		used := make(map[string]bool)
+		markVPNInterfaces(cfg, used)
+
+		assert.True(t, used["wan"], "wan should be marked from OpenVPN server")
+		assert.True(t, used["lan"], "lan should be marked from WireGuard")
+		assert.Len(t, used, 2, "should have exactly 2 interfaces marked")
+	})
+}
+
+// TestMarkVPNInterfaces_NilConfig tests safe handling of nil VPN configurations.
+func TestMarkVPNInterfaces_NilConfig(t *testing.T) {
+	t.Run("NilWireGuard", func(t *testing.T) {
+		// WireGuard pointer is nil
+		cfg := &model.OpnSenseDocument{
+			OPNsense: model.OPNsense{
+				Wireguard: nil,
+			},
+		}
+
+		used := make(map[string]bool)
+		// Should not panic
+		markVPNInterfaces(cfg, used)
+
+		assert.Empty(t, used, "no interfaces should be marked when WireGuard is nil")
+	})
+
+	t.Run("NilServersSlice", func(t *testing.T) {
+		cfg := &model.OpnSenseDocument{
+			OpenVPN: model.OpenVPN{
+				Servers: nil,
+			},
+		}
+
+		used := make(map[string]bool)
+		// Should not panic
+		markVPNInterfaces(cfg, used)
+
+		assert.Empty(t, used, "no interfaces should be marked when Servers is nil")
+	})
+
+	t.Run("NilClientsSlice", func(t *testing.T) {
+		cfg := &model.OpnSenseDocument{
+			OpenVPN: model.OpenVPN{
+				Clients: nil,
+			},
+		}
+
+		used := make(map[string]bool)
+		// Should not panic
+		markVPNInterfaces(cfg, used)
+
+		assert.Empty(t, used, "no interfaces should be marked when Clients is nil")
+	})
+
+	t.Run("AllNil", func(t *testing.T) {
+		cfg := &model.OpnSenseDocument{
+			OpenVPN: model.OpenVPN{
+				Servers: nil,
+				Clients: nil,
+			},
+			OPNsense: model.OPNsense{
+				Wireguard: nil,
+			},
+		}
+
+		used := make(map[string]bool)
+		// Should not panic
+		markVPNInterfaces(cfg, used)
+
+		assert.Empty(t, used, "no interfaces should be marked when all VPN configs are nil")
+	})
+
+	t.Run("PreservesExistingEntries", func(t *testing.T) {
+		wg := &model.WireGuard{}
+		wg.General.Enabled = "1"
+
+		cfg := &model.OpnSenseDocument{
+			OpenVPN: model.OpenVPN{
+				Servers: []model.OpenVPNServer{
+					{Interface: "opt1"},
+				},
+			},
+			OPNsense: model.OPNsense{
+				Wireguard: wg,
+			},
+		}
+
+		used := map[string]bool{
+			"wan":  true,
+			"opt0": true,
+		}
+		markVPNInterfaces(cfg, used)
+
+		assert.True(t, used["wan"], "pre-existing wan entry should be preserved")
+		assert.True(t, used["opt0"], "pre-existing opt0 entry should be preserved")
+		assert.True(t, used["opt1"], "opt1 should be marked from OpenVPN server")
+		assert.True(t, used["lan"], "lan should be marked from WireGuard")
+		assert.Len(t, used, 4, "should have 4 interfaces marked")
+	})
+}
+
+// TestMarkLoadBalancerInterfaces_WithMonitors tests that load balancer interfaces are marked as used
+// when monitor types are configured.
+func TestMarkLoadBalancerInterfaces_WithMonitors(t *testing.T) {
+	t.Run("SingleMonitor", func(t *testing.T) {
+		cfg := &model.OpnSenseDocument{
+			LoadBalancer: model.LoadBalancer{
+				MonitorType: []model.MonitorType{
+					{Name: "ICMP", Type: "icmp"},
+				},
+			},
+		}
+
+		used := make(map[string]bool)
+		markLoadBalancerInterfaces(cfg, used)
+
+		assert.True(t, used["lan"], "lan should be marked as used when load balancer monitors are configured")
+		assert.Len(t, used, 1, "should have exactly 1 interface marked")
+	})
+
+	t.Run("MultipleMonitors", func(t *testing.T) {
+		cfg := &model.OpnSenseDocument{
+			LoadBalancer: model.LoadBalancer{
+				MonitorType: []model.MonitorType{
+					{Name: "ICMP", Type: "icmp"},
+					{Name: "HTTP", Type: "http"},
+					{Name: "TCP", Type: "tcp"},
+				},
+			},
+		}
+
+		used := make(map[string]bool)
+		markLoadBalancerInterfaces(cfg, used)
+
+		assert.True(t, used["lan"], "lan should be marked as used when multiple monitors are configured")
+		assert.Len(t, used, 1, "should have exactly 1 interface marked (lan only)")
+	})
+
+	t.Run("PreservesExistingEntries", func(t *testing.T) {
+		cfg := &model.OpnSenseDocument{
+			LoadBalancer: model.LoadBalancer{
+				MonitorType: []model.MonitorType{
+					{Name: "ICMP", Type: "icmp"},
+				},
+			},
+		}
+
+		used := map[string]bool{
+			"wan":  true,
+			"opt0": true,
+		}
+		markLoadBalancerInterfaces(cfg, used)
+
+		assert.True(t, used["wan"], "pre-existing wan entry should be preserved")
+		assert.True(t, used["opt0"], "pre-existing opt0 entry should be preserved")
+		assert.True(t, used["lan"], "lan should be marked as used")
+		assert.Len(t, used, 3, "should have 3 interfaces marked")
+	})
+}
+
+// TestMarkLoadBalancerInterfaces_EmptyMonitors tests that no interfaces are marked
+// when no load balancer monitors are configured.
+func TestMarkLoadBalancerInterfaces_EmptyMonitors(t *testing.T) {
+	t.Run("EmptySlice", func(t *testing.T) {
+		cfg := &model.OpnSenseDocument{
+			LoadBalancer: model.LoadBalancer{
+				MonitorType: []model.MonitorType{},
+			},
+		}
+
+		used := make(map[string]bool)
+		markLoadBalancerInterfaces(cfg, used)
+
+		assert.Empty(t, used, "no interfaces should be marked when MonitorType slice is empty")
+	})
+
+	t.Run("PreservesExistingEntries", func(t *testing.T) {
+		cfg := &model.OpnSenseDocument{
+			LoadBalancer: model.LoadBalancer{
+				MonitorType: []model.MonitorType{},
+			},
+		}
+
+		used := map[string]bool{
+			"wan": true,
+			"lan": true,
+		}
+		markLoadBalancerInterfaces(cfg, used)
+
+		assert.True(t, used["wan"], "pre-existing wan entry should be preserved")
+		assert.True(t, used["lan"], "pre-existing lan entry should be preserved")
+		assert.Len(t, used, 2, "should still have 2 interfaces marked")
+	})
+}
+
+// TestMarkLoadBalancerInterfaces_NilSlice tests safe handling of nil MonitorType slice.
+func TestMarkLoadBalancerInterfaces_NilSlice(t *testing.T) {
+	t.Run("NilMonitorTypeSlice", func(t *testing.T) {
+		cfg := &model.OpnSenseDocument{
+			LoadBalancer: model.LoadBalancer{
+				MonitorType: nil,
+			},
+		}
+
+		used := make(map[string]bool)
+		// Should not panic
+		markLoadBalancerInterfaces(cfg, used)
+
+		assert.Empty(t, used, "no interfaces should be marked when MonitorType is nil")
+	})
+
+	t.Run("DefaultLoadBalancer", func(t *testing.T) {
+		// Test with default/zero-value LoadBalancer struct
+		cfg := &model.OpnSenseDocument{}
+
+		used := make(map[string]bool)
+		// Should not panic
+		markLoadBalancerInterfaces(cfg, used)
+
+		assert.Empty(t, used, "no interfaces should be marked with default LoadBalancer")
+	})
+
+	t.Run("PreservesExistingEntriesWithNil", func(t *testing.T) {
+		cfg := &model.OpnSenseDocument{
+			LoadBalancer: model.LoadBalancer{
+				MonitorType: nil,
+			},
+		}
+
+		used := map[string]bool{
+			"wan":  true,
+			"opt1": true,
+		}
+		markLoadBalancerInterfaces(cfg, used)
+
+		assert.True(t, used["wan"], "pre-existing wan entry should be preserved")
+		assert.True(t, used["opt1"], "pre-existing opt1 entry should be preserved")
+		assert.Len(t, used, 2, "should still have 2 interfaces marked")
+	})
+}
+
+// TestServiceDetection_Integration tests that all service detection helpers work together
+// in the analyzeUnusedInterfaces function.
+func TestServiceDetection_Integration(t *testing.T) {
+	t.Run("MultipleServicesMarkingSameInterface", func(t *testing.T) {
+		// Test that multiple services can mark the same interface (idempotent)
+		cfg := &model.OpnSenseDocument{
+			Dhcpd: model.Dhcpd{
+				Items: map[string]model.DhcpdInterface{
+					"lan": {Enable: "1"},
+				},
+			},
+			Unbound: model.Unbound{Enable: "1"}, // Also marks "lan"
+			LoadBalancer: model.LoadBalancer{
+				MonitorType: []model.MonitorType{{Name: "ICMP"}}, // Also marks "lan"
+			},
+		}
+
+		used := make(map[string]bool)
+		markDHCPInterfaces(cfg, used)
+		markDNSInterfaces(cfg, used)
+		markLoadBalancerInterfaces(cfg, used)
+
+		assert.True(t, used["lan"])
+		assert.Len(t, used, 1, "should only have one entry despite multiple services marking 'lan'")
+	})
+
+	t.Run("AllServiceTypesDetection", func(t *testing.T) {
+		// Test that interfaces from all service types are correctly accumulated
+		wg := &model.WireGuard{}
+		wg.General.Enabled = "1"
+
+		cfg := &model.OpnSenseDocument{
+			Interfaces: model.Interfaces{
+				Items: map[string]model.Interface{
+					"lan":  {Enable: "1"},
+					"wan":  {Enable: "1"},
+					"opt0": {Enable: "1"}, // Should be detected as unused
+					"opt1": {Enable: "1"},
+					"opt2": {Enable: "1"},
+				},
+			},
+			Dhcpd: model.Dhcpd{
+				Items: map[string]model.DhcpdInterface{
+					"opt1": {Enable: "1"}, // Marks opt1 via DHCP
+				},
+			},
+			OpenVPN: model.OpenVPN{
+				Servers: []model.OpenVPNServer{
+					{Interface: "wan"}, // Marks wan via OpenVPN
+				},
+				Clients: []model.OpenVPNClient{
+					{Interface: "opt2"}, // Marks opt2 via OpenVPN
+				},
+			},
+			OPNsense: model.OPNsense{
+				Wireguard: wg, // Marks lan via WireGuard
+			},
+		}
+
+		used := make(map[string]bool)
+		markDHCPInterfaces(cfg, used)
+		markDNSInterfaces(cfg, used)
+		markVPNInterfaces(cfg, used)
+		markLoadBalancerInterfaces(cfg, used)
+
+		// Verify all services marked their interfaces
+		assert.True(t, used["lan"], "lan should be marked from WireGuard")
+		assert.True(t, used["wan"], "wan should be marked from OpenVPN server")
+		assert.True(t, used["opt1"], "opt1 should be marked from DHCP")
+		assert.True(t, used["opt2"], "opt2 should be marked from OpenVPN client")
+		assert.False(t, used["opt0"], "opt0 should NOT be marked (unused)")
+	})
+}
+
 // TestCoreProcessor_EdgeCases tests edge cases and boundary conditions.
 func TestCoreProcessor_EdgeCases(t *testing.T) {
 	processor, err := NewCoreProcessor()

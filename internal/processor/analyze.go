@@ -172,6 +172,76 @@ func (p *CoreProcessor) getDestinationString(destination model.Destination) stri
 	return fmt.Sprintf("network:%s|port:%s", network, destination.Port)
 }
 
+// markDHCPInterfaces iterates through all DHCP interfaces and marks enabled ones as used.
+// An interface is considered enabled if its Enable field is "1" (OPNsense convention:
+// Enable="1" means enabled, Enable="" or Enable="0" means disabled).
+func markDHCPInterfaces(cfg *model.OpnSenseDocument, used map[string]bool) {
+	if cfg.Dhcpd.Items == nil {
+		return
+	}
+
+	for name, dhcpIface := range cfg.Dhcpd.Items {
+		if dhcpIface.Enable == "1" {
+			used[name] = true
+		}
+	}
+}
+
+// markDNSInterfaces marks interfaces as used when DNS services are enabled.
+// DNS services (Unbound and DNSMasquerade) typically bind to the LAN interface by default,
+// so "lan" is marked as used when either service is enabled.
+// Note: This is a conservative heuristic; actual interface bindings may vary in custom configurations.
+func markDNSInterfaces(cfg *model.OpnSenseDocument, used map[string]bool) {
+	// Check if Unbound DNS is enabled (Enable="1" means enabled per OPNsense convention)
+	if cfg.Unbound.Enable == "1" {
+		used["lan"] = true
+	}
+
+	// Check if DNSMasquerade is enabled (Enable is a BoolFlag type, which is bool)
+	if cfg.DNSMasquerade.Enable {
+		used["lan"] = true
+	}
+}
+
+// markLoadBalancerInterfaces marks interfaces as used when load balancer is configured.
+// Load balancers in OPNsense work through virtual servers (VIPs) and when monitors are configured,
+// it indicates active load balancing services which typically serve internal networks.
+// Note: Marks "lan" as a conservative heuristic since actual interface bindings depend on VIP configuration.
+func markLoadBalancerInterfaces(cfg *model.OpnSenseDocument, used map[string]bool) {
+	// Check if load balancer has any monitor types configured
+	// Presence of monitors indicates an active load balancer configuration
+	if len(cfg.LoadBalancer.MonitorType) > 0 {
+		used["lan"] = true
+	}
+}
+
+// markVPNInterfaces marks interfaces as used when VPN services (OpenVPN or WireGuard) are configured.
+// It iterates through OpenVPN servers and clients to mark their bound interfaces,
+// and checks if WireGuard is enabled (marking "lan" as the default service interface).
+func markVPNInterfaces(cfg *model.OpnSenseDocument, used map[string]bool) {
+	// Mark interfaces from OpenVPN servers
+	for _, server := range cfg.OpenVPN.Servers {
+		if server.Interface != "" {
+			used[server.Interface] = true
+		}
+	}
+
+	// Mark interfaces from OpenVPN clients
+	for _, client := range cfg.OpenVPN.Clients {
+		if client.Interface != "" {
+			used[client.Interface] = true
+		}
+	}
+
+	// Check WireGuard - if enabled, mark "lan" as the default service interface
+	// WireGuard creates virtual tunnel interfaces (wgX), but we mark "lan" because
+	// the WireGuard service daemon typically runs on the LAN for management/control.
+	// Enabled="1" means enabled per OPNsense convention.
+	if cfg.OPNsense.Wireguard != nil && cfg.OPNsense.Wireguard.General.Enabled == "1" {
+		used["lan"] = true
+	}
+}
+
 // analyzeUnusedInterfaces detects interfaces that are defined but not used in rules or services.
 func (p *CoreProcessor) analyzeUnusedInterfaces(cfg *model.OpnSenseDocument, report *Report) {
 	// Track which interfaces are used
@@ -187,21 +257,12 @@ func (p *CoreProcessor) analyzeUnusedInterfaces(cfg *model.OpnSenseDocument, rep
 		}
 	}
 
-	// Mark interfaces used in services
-	// TODO: Additional Service Integration - Expand service usage detection to:
-	//   - Check all DHCP interfaces in cfg.Dhcpd.Items map (not just lan/wan)
-	//   - Include other services like DNS, VPN, load balancer interface usage
-	//   - Detect interface usage in routing, VLAN, and bridge configurations
-	//   - Check for interface references in monitoring and logging services
-	// This would provide more comprehensive unused interface detection.
-	if lanDhcp, exists := cfg.Dhcpd.Lan(); exists && lanDhcp.Enable != "" {
-		usedInterfaces["lan"] = true
-	}
-
-	if wanDhcp, exists := cfg.Dhcpd.Wan(); exists && wanDhcp.Enable != "" {
-		usedInterfaces["wan"] = true
-	}
-	// TODO: Iterate through all DHCP interfaces in cfg.Dhcpd.Items map
+	// Mark interfaces used in services (DHCP, DNS, VPN, Load Balancer)
+	// Note: Future enhancement could include routing, VLAN, bridge, monitoring, and logging services.
+	markDHCPInterfaces(cfg, usedInterfaces)
+	markDNSInterfaces(cfg, usedInterfaces)
+	markVPNInterfaces(cfg, usedInterfaces)
+	markLoadBalancerInterfaces(cfg, usedInterfaces)
 
 	// Check WAN and LAN interfaces
 	interfaces := map[string]model.Interface{}

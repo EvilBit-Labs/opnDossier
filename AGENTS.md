@@ -569,6 +569,21 @@ CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o opnDossier ./main.go
 - `-ldflags="-s -w"`: Strip debug info
 - `CGO_ENABLED=0`: Static, portable builds
 
+### 10.3 CI Debugging Commands
+
+| Command                                            | Purpose                                                           |
+| -------------------------------------------------- | ----------------------------------------------------------------- |
+| `gh pr checks <PR#>`                               | List all CI check statuses for a PR                               |
+| `gh run view <run-id> --json jobs \| jq '.jobs[]'` | Get detailed job/step status                                      |
+| `just test-race`                                   | Run race detection locally (not in CI - can have false positives) |
+| `just test-stress`                                 | Run stress tests (build tag `stress`)                             |
+
+**CI Gotchas:**
+
+- Race detection can fail on async test infrastructure (spinners/progress bars) - not production bugs
+- Benchmarks with large files can hang for hours; use `timeout-minutes` and `continue-on-error: true`
+- The `Performance Benchmarks` job is non-blocking (continue-on-error) to prevent PR merge delays
+
 ---
 
 ## 11. Security Standards
