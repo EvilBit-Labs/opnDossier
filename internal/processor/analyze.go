@@ -173,29 +173,31 @@ func (p *CoreProcessor) getDestinationString(destination model.Destination) stri
 }
 
 // markDHCPInterfaces iterates through all DHCP interfaces and marks enabled ones as used.
-// An interface is considered used if its Enable field is non-empty.
+// An interface is considered enabled if its Enable field is "1" (OPNsense convention:
+// Enable="1" means enabled, Enable="" or Enable="0" means disabled).
 func markDHCPInterfaces(cfg *model.OpnSenseDocument, used map[string]bool) {
 	if cfg.Dhcpd.Items == nil {
 		return
 	}
 
 	for name, dhcpIface := range cfg.Dhcpd.Items {
-		if dhcpIface.Enable != "" {
+		if dhcpIface.Enable == "1" {
 			used[name] = true
 		}
 	}
 }
 
 // markDNSInterfaces marks interfaces as used when DNS services are enabled.
-// DNS services (Unbound and DNSMasq) typically serve the LAN, so "lan" is marked as used
-// when either service is enabled.
+// DNS services (Unbound and DNSMasquerade) typically bind to the LAN interface by default,
+// so "lan" is marked as used when either service is enabled.
+// Note: This is a conservative heuristic; actual interface bindings may vary in custom configurations.
 func markDNSInterfaces(cfg *model.OpnSenseDocument, used map[string]bool) {
-	// Check if Unbound DNS is enabled (Enable is a string, non-empty means enabled)
-	if cfg.Unbound.Enable != "" {
+	// Check if Unbound DNS is enabled (Enable="1" means enabled per OPNsense convention)
+	if cfg.Unbound.Enable == "1" {
 		used["lan"] = true
 	}
 
-	// Check if DNSMasq is enabled (Enable is a BoolFlag type, which is bool)
+	// Check if DNSMasquerade is enabled (Enable is a BoolFlag type, which is bool)
 	if cfg.DNSMasquerade.Enable {
 		used["lan"] = true
 	}
@@ -204,6 +206,7 @@ func markDNSInterfaces(cfg *model.OpnSenseDocument, used map[string]bool) {
 // markLoadBalancerInterfaces marks interfaces as used when load balancer is configured.
 // Load balancers in OPNsense work through virtual servers (VIPs) and when monitors are configured,
 // it indicates active load balancing services which typically serve internal networks.
+// Note: Marks "lan" as a conservative heuristic since actual interface bindings depend on VIP configuration.
 func markLoadBalancerInterfaces(cfg *model.OpnSenseDocument, used map[string]bool) {
 	// Check if load balancer has any monitor types configured
 	// Presence of monitors indicates an active load balancer configuration
@@ -231,9 +234,10 @@ func markVPNInterfaces(cfg *model.OpnSenseDocument, used map[string]bool) {
 	}
 
 	// Check WireGuard - if enabled, mark "lan" as the default service interface
-	// WireGuard in OPNsense typically creates virtual interfaces (wgX) but the service
-	// configuration resides within the OPNsense configuration structure
-	if cfg.OPNsense.Wireguard != nil && cfg.OPNsense.Wireguard.General.Enabled != "" {
+	// WireGuard creates virtual tunnel interfaces (wgX), but we mark "lan" because
+	// the WireGuard service daemon typically runs on the LAN for management/control.
+	// Enabled="1" means enabled per OPNsense convention.
+	if cfg.OPNsense.Wireguard != nil && cfg.OPNsense.Wireguard.General.Enabled == "1" {
 		used["lan"] = true
 	}
 }
