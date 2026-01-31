@@ -936,6 +936,125 @@ func TestMarkDHCPInterfaces(t *testing.T) {
 	})
 }
 
+// TestMarkDNSInterfaces tests the markDNSInterfaces helper function.
+func TestMarkDNSInterfaces(t *testing.T) {
+	t.Run("UnboundEnabled", func(t *testing.T) {
+		// Test that when Unbound DNS is enabled, "lan" is marked as used
+		cfg := &model.OpnSenseDocument{
+			Unbound: model.Unbound{
+				Enable: "1",
+			},
+		}
+
+		used := make(map[string]bool)
+		markDNSInterfaces(cfg, used)
+
+		assert.True(t, used["lan"], "lan should be marked as used when Unbound is enabled")
+	})
+
+	t.Run("DNSMasqEnabled", func(t *testing.T) {
+		// Test that when DNSMasq is enabled, "lan" is marked as used
+		cfg := &model.OpnSenseDocument{
+			DNSMasquerade: model.DNSMasq{
+				Enable: true,
+			},
+		}
+
+		used := make(map[string]bool)
+		markDNSInterfaces(cfg, used)
+
+		assert.True(t, used["lan"], "lan should be marked as used when DNSMasq is enabled")
+	})
+
+	t.Run("BothDisabled", func(t *testing.T) {
+		// Test that when both DNS services are disabled, no interfaces are marked
+		cfg := &model.OpnSenseDocument{
+			Unbound: model.Unbound{
+				Enable: "", // disabled (empty string)
+			},
+			DNSMasquerade: model.DNSMasq{
+				Enable: false, // disabled
+			},
+		}
+
+		used := make(map[string]bool)
+		markDNSInterfaces(cfg, used)
+
+		assert.Empty(t, used, "no interfaces should be marked when both DNS services are disabled")
+	})
+
+	t.Run("BothEnabled", func(t *testing.T) {
+		// Test that when both DNS services are enabled, "lan" is still only marked once
+		cfg := &model.OpnSenseDocument{
+			Unbound: model.Unbound{
+				Enable: "1",
+			},
+			DNSMasquerade: model.DNSMasq{
+				Enable: true,
+			},
+		}
+
+		used := make(map[string]bool)
+		markDNSInterfaces(cfg, used)
+
+		assert.True(t, used["lan"], "lan should be marked as used when both DNS services are enabled")
+		assert.Len(t, used, 1, "should only have one interface marked (lan)")
+	})
+
+	t.Run("PreservesExistingEntries", func(t *testing.T) {
+		// Test that existing entries in the used map are preserved
+		cfg := &model.OpnSenseDocument{
+			Unbound: model.Unbound{
+				Enable: "1",
+			},
+		}
+
+		used := map[string]bool{
+			"wan":  true,
+			"opt0": true,
+		}
+		markDNSInterfaces(cfg, used)
+
+		assert.True(t, used["wan"], "pre-existing wan entry should be preserved")
+		assert.True(t, used["opt0"], "pre-existing opt0 entry should be preserved")
+		assert.True(t, used["lan"], "lan should be marked as used")
+		assert.Len(t, used, 3, "should have 3 interfaces marked")
+	})
+
+	t.Run("UnboundEnabledVariousValues", func(t *testing.T) {
+		// Test various non-empty Enable values for Unbound
+		testCases := []struct {
+			enableValue string
+			shouldMark  bool
+		}{
+			{"1", true},
+			{"true", true},
+			{"yes", true},
+			{"0", true}, // any non-empty string counts as enabled
+			{"", false}, // empty string means disabled
+		}
+
+		for _, tc := range testCases {
+			t.Run(fmt.Sprintf("Enable=%q", tc.enableValue), func(t *testing.T) {
+				cfg := &model.OpnSenseDocument{
+					Unbound: model.Unbound{
+						Enable: tc.enableValue,
+					},
+				}
+
+				used := make(map[string]bool)
+				markDNSInterfaces(cfg, used)
+
+				if tc.shouldMark {
+					assert.True(t, used["lan"], "lan should be marked as used")
+				} else {
+					assert.False(t, used["lan"], "lan should NOT be marked as used")
+				}
+			})
+		}
+	})
+}
+
 // TestCoreProcessor_EdgeCases tests edge cases and boundary conditions.
 func TestCoreProcessor_EdgeCases(t *testing.T) {
 	processor, err := NewCoreProcessor()

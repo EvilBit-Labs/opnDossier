@@ -186,6 +186,21 @@ func markDHCPInterfaces(cfg *model.OpnSenseDocument, used map[string]bool) {
 	}
 }
 
+// markDNSInterfaces marks interfaces as used when DNS services are enabled.
+// DNS services (Unbound and DNSMasq) typically serve the LAN, so "lan" is marked as used
+// when either service is enabled.
+func markDNSInterfaces(cfg *model.OpnSenseDocument, used map[string]bool) {
+	// Check if Unbound DNS is enabled (Enable is a string, non-empty means enabled)
+	if cfg.Unbound.Enable != "" {
+		used["lan"] = true
+	}
+
+	// Check if DNSMasq is enabled (Enable is a BoolFlag type, which is bool)
+	if cfg.DNSMasquerade.Enable {
+		used["lan"] = true
+	}
+}
+
 // analyzeUnusedInterfaces detects interfaces that are defined but not used in rules or services.
 func (p *CoreProcessor) analyzeUnusedInterfaces(cfg *model.OpnSenseDocument, report *Report) {
 	// Track which interfaces are used
@@ -203,11 +218,12 @@ func (p *CoreProcessor) analyzeUnusedInterfaces(cfg *model.OpnSenseDocument, rep
 
 	// Mark interfaces used in services
 	// TODO: Additional Service Integration - Expand service usage detection to:
-	//   - Include other services like DNS, VPN, load balancer interface usage
+	//   - Include VPN, load balancer interface usage
 	//   - Detect interface usage in routing, VLAN, and bridge configurations
 	//   - Check for interface references in monitoring and logging services
 	// This would provide more comprehensive unused interface detection.
 	markDHCPInterfaces(cfg, usedInterfaces)
+	markDNSInterfaces(cfg, usedInterfaces)
 
 	// Check WAN and LAN interfaces
 	interfaces := map[string]model.Interface{}
