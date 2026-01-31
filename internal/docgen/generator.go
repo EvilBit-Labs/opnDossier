@@ -28,20 +28,12 @@ type FieldInfo struct {
 	Description string
 }
 
-// DefaultMaxDepth is the default recursion depth limit for nested struct documentation.
-// TODO(#50): Implement recursive nested struct expansion using this depth limit.
-const DefaultMaxDepth = 3
-
 // Generator creates documentation from Go types using reflection.
-type Generator struct {
-	maxDepth int
-}
+type Generator struct{}
 
 // NewGenerator creates a new documentation generator.
 func NewGenerator() *Generator {
-	return &Generator{
-		maxDepth: DefaultMaxDepth,
-	}
+	return &Generator{}
 }
 
 // GenerateReference generates markdown documentation for the given value's type.
@@ -56,12 +48,12 @@ func (g *Generator) GenerateReferenceWithPrefix(v any, prefix string) string {
 		t = t.Elem()
 	}
 
-	fields := g.extractFields(t, prefix, 0)
+	fields := g.extractFields(t, prefix)
 	return g.formatMarkdown(t.Name(), fields)
 }
 
-// extractFields recursively extracts field information from a struct type.
-func (g *Generator) extractFields(t reflect.Type, prefix string, depth int) []FieldInfo {
+// extractFields extracts field information from a struct type.
+func (g *Generator) extractFields(t reflect.Type, prefix string) []FieldInfo {
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
@@ -80,7 +72,7 @@ func (g *Generator) extractFields(t reflect.Type, prefix string, depth int) []Fi
 			continue
 		}
 
-		info := g.buildFieldInfo(field, prefix, depth)
+		info := g.buildFieldInfo(field, prefix)
 		fields = append(fields, info)
 	}
 
@@ -88,9 +80,7 @@ func (g *Generator) extractFields(t reflect.Type, prefix string, depth int) []Fi
 }
 
 // buildFieldInfo creates FieldInfo for a single struct field.
-// The depth parameter tracks recursion level for future nested documentation expansion.
-func (g *Generator) buildFieldInfo(field reflect.StructField, prefix string, depth int) FieldInfo {
-	_ = depth // Reserved for future recursive documentation expansion
+func (g *Generator) buildFieldInfo(field reflect.StructField, prefix string) FieldInfo {
 	tags := g.extractTags(string(field.Tag))
 
 	path := field.Name
