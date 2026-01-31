@@ -212,6 +212,27 @@ func TestGenerator_GenerateReference_EmptyStruct(t *testing.T) {
 	}
 }
 
+func TestGenerator_FormatType_UnnamedTypes(t *testing.T) {
+	t.Parallel()
+
+	type structWithInterface struct {
+		Data any `json:"data"`
+	}
+
+	g := NewGenerator()
+	result := g.GenerateReference(structWithInterface{})
+
+	// Should contain interface{} for unnamed interface type
+	if !strings.Contains(result, "interface{}") {
+		t.Error("result should contain 'interface{}' for any/interface{} type")
+	}
+
+	// Should not have empty type cells
+	if strings.Contains(result, "| `` |") {
+		t.Error("result should not contain empty type cells")
+	}
+}
+
 func TestGenerator_ExtractTags(t *testing.T) {
 	t.Parallel()
 
@@ -241,6 +262,27 @@ func TestGenerator_ExtractTags(t *testing.T) {
 			tagValue: `json:"-"`,
 			wantJSON: "-",
 			wantYAML: "",
+			wantXML:  "",
+		},
+		{
+			name:     "empty tags",
+			tagValue: "",
+			wantJSON: "",
+			wantYAML: "",
+			wantXML:  "",
+		},
+		{
+			name:     "malformed json tag",
+			tagValue: `json:`,
+			wantJSON: "",
+			wantYAML: "",
+			wantXML:  "",
+		},
+		{
+			name:     "special characters in value",
+			tagValue: `json:"field_name" yaml:"field-name"`,
+			wantJSON: "field_name",
+			wantYAML: "field-name",
 			wantXML:  "",
 		},
 	}

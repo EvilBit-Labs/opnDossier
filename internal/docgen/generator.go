@@ -29,6 +29,7 @@ type FieldInfo struct {
 }
 
 // DefaultMaxDepth is the default recursion depth limit for nested struct documentation.
+// TODO(#50): Implement recursive nested struct expansion using this depth limit.
 const DefaultMaxDepth = 3
 
 // Generator creates documentation from Go types using reflection.
@@ -135,15 +136,15 @@ func (g *Generator) buildFieldInfo(field reflect.StructField, prefix string, dep
 func (g *Generator) extractTags(tagString string) FieldTags {
 	tags := FieldTags{}
 
-	tags.JSON = extractTagValue(tagString, "json")
-	tags.YAML = extractTagValue(tagString, "yaml")
-	tags.XML = extractTagValue(tagString, "xml")
+	tags.JSON = g.extractTagValue(tagString, "json")
+	tags.YAML = g.extractTagValue(tagString, "yaml")
+	tags.XML = g.extractTagValue(tagString, "xml")
 
 	return tags
 }
 
 // extractTagValue extracts the value for a specific tag key from a tag string.
-func extractTagValue(tagString, key string) string {
+func (g *Generator) extractTagValue(tagString, key string) string {
 	tag := reflect.StructTag(tagString)
 	value := tag.Get(key)
 	if value == "" {
@@ -159,6 +160,7 @@ func extractTagValue(tagString, key string) string {
 }
 
 // formatType returns a human-readable type name.
+// Handles unnamed types by falling back to kind string representation.
 func (g *Generator) formatType(t reflect.Type) string {
 	switch t.Kind() {
 	case reflect.Ptr:
@@ -166,14 +168,27 @@ func (g *Generator) formatType(t reflect.Type) string {
 	case reflect.Slice:
 		return "[]" + g.formatType(t.Elem())
 	case reflect.Map:
-		return fmt.Sprintf("map[%s]%s", t.Key().Name(), g.formatType(t.Elem()))
+		keyName := t.Key().Name()
+		if keyName == "" {
+			keyName = t.Key().Kind().String()
+		}
+		return fmt.Sprintf("map[%s]%s", keyName, g.formatType(t.Elem()))
 	case reflect.Struct:
 		if t.Name() != "" {
 			return t.Name()
 		}
 		return "struct"
+	case reflect.Interface:
+		if t.Name() != "" {
+			return t.Name()
+		}
+		return "interface{}"
 	default:
-		return t.Name()
+		name := t.Name()
+		if name == "" {
+			return t.Kind().String()
+		}
+		return name
 	}
 }
 

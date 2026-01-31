@@ -22,9 +22,10 @@ const (
 
 func main() {
 	outputFile := flag.String("output", defaultOutputFile, "Output file path")
+	timestamp := flag.String("timestamp", "", "Override timestamp (use 'none' to omit, empty for current time)")
 	flag.Parse()
 
-	content := generateModelReference()
+	content := generateModelReference(*timestamp)
 
 	// Ensure output directory exists
 	dir := filepath.Dir(*outputFile)
@@ -41,13 +42,20 @@ func main() {
 	fmt.Printf("Generated model reference: %s\n", *outputFile)
 }
 
-func generateModelReference() string {
+func generateModelReference(timestamp string) string {
 	var sb strings.Builder
 
 	// Header
 	sb.WriteString("# Model Reference\n\n")
 	sb.WriteString("> **Auto-generated documentation** - Do not edit manually.\n")
-	fmt.Fprintf(&sb, "> Generated: %s\n\n", time.Now().Format("2006-01-02 15:04:05"))
+	if timestamp != "none" {
+		if timestamp == "" {
+			timestamp = time.Now().Format("2006-01-02 15:04:05")
+		}
+		fmt.Fprintf(&sb, "> Generated: %s\n\n", timestamp)
+	} else {
+		sb.WriteString("\n")
+	}
 
 	sb.WriteString("This document provides a complete reference of all data fields ")
 	sb.WriteString("available in the opnDossier configuration model. Use this reference ")
@@ -217,11 +225,21 @@ func formatTypeName(t reflect.Type) string {
 	case reflect.Slice:
 		return "[]" + formatTypeName(t.Elem())
 	case reflect.Map:
-		return fmt.Sprintf("map[%s]%s", t.Key().Name(), formatTypeName(t.Elem()))
+		keyName := t.Key().Name()
+		if keyName == "" {
+			keyName = t.Key().Kind().String()
+		}
+		return fmt.Sprintf("map[%s]%s", keyName, formatTypeName(t.Elem()))
 	case reflect.Struct:
 		name := t.Name()
 		if name == "" {
 			return "struct"
+		}
+		return name
+	case reflect.Interface:
+		name := t.Name()
+		if name == "" {
+			return "interface{}"
 		}
 		return name
 	default:
@@ -234,11 +252,13 @@ func formatTypeName(t reflect.Type) string {
 }
 
 func extractDescription(field reflect.StructField) string {
+	var parts []string
+
 	// Check for validate tag to infer constraints
 	validate := field.Tag.Get("validate")
 	if validate != "" {
 		if strings.Contains(validate, "required") {
-			return "Required"
+			parts = append(parts, "Required")
 		}
 		if strings.Contains(validate, "oneof=") {
 			start := strings.Index(validate, "oneof=") + 6
@@ -247,8 +267,25 @@ func extractDescription(field reflect.StructField) string {
 				end = len(validate) - start
 			}
 			options := validate[start : start+end]
-			return fmt.Sprintf("Options: %s", strings.ReplaceAll(options, " ", ", "))
+			parts = append(parts, fmt.Sprintf("Options: %s", strings.ReplaceAll(options, " ", ", ")))
 		}
+		// Additional validation constraints
+		if strings.Contains(validate, "ip") {
+			parts = append(parts, "IP address")
+		}
+		if strings.Contains(validate, "cidr") {
+			parts = append(parts, "CIDR notation")
+		}
+		if strings.Contains(validate, "url") {
+			parts = append(parts, "URL")
+		}
+		if strings.Contains(validate, "email") {
+			parts = append(parts, "Email")
+		}
+	}
+
+	if len(parts) > 0 {
+		return strings.Join(parts, "; ")
 	}
 
 	// Check for omitempty
