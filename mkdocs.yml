@@ -52,6 +52,12 @@ nav:
     - Troubleshooting: examples/troubleshooting.md
     - All Examples: examples.md
 
+  - Data Model & Integration:
+    - Overview: templates/index.md
+    - Model Reference: templates/model-reference.md
+    - JSON Export Examples: templates/examples/json-export.md
+    - YAML Processing Examples: templates/examples/yaml-processing.md
+
   - Developer Guide:
     - Architecture: dev-guide/architecture.md
     - API Reference: dev-guide/api.md

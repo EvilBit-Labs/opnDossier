@@ -31,10 +31,20 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run benchmarks
-        timeout-minutes: 15
+        timeout-minutes: 5
         continue-on-error: true
         run: |
-          go test -bench=. -run=^$ -benchmem -count=3 -timeout 10m ./... 2>/dev/null | tee benchmark-results.txt
+          # Run focused benchmarks excluding slow parser tests that generate large files
+          # Use -count=1 for CI speed, -benchtime=1s for consistent results
+          go test -bench=. -run=^$ -benchmem -count=1 -benchtime=1s -timeout 4m \
+            ./internal/converter/... \
+            ./internal/pool/... \
+            ./internal/log/... \
+            ./cmd/... \
+            2>&1 | grep -v "^opnDossier version" | tee benchmark-results.txt
+
+          echo ""
+          echo "Note: Parser and processor benchmarks excluded from CI (run locally with 'just bench')"
 
       - name: Download baseline (main branch)
         if: github.event_name == 'pull_request'

@@ -325,6 +325,13 @@ docs-build:
 docs-test:
     @{{ mise_exec }} uv run mkdocs build --verbose
 
+# Generate model reference documentation
+[group('docs')]
+generate-docs:
+    @echo "Generating model reference documentation..."
+    @{{ mise_exec }} go run tools/docgen/main.go
+    @echo "✅ Documentation generated"
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Changelog
 # ─────────────────────────────────────────────────────────────────────────────
