@@ -253,11 +253,8 @@ func (p *CoreProcessor) analyzeUnusedInterfaces(cfg *model.OpnSenseDocument, rep
 		}
 	}
 
-	// Mark interfaces used in services
-	// TODO: Additional Service Integration - Expand service usage detection to:
-	//   - Detect interface usage in routing, VLAN, and bridge configurations
-	//   - Check for interface references in monitoring and logging services
-	// This would provide more comprehensive unused interface detection.
+	// Mark interfaces used in services (DHCP, DNS, VPN, Load Balancer)
+	// Note: Future enhancement could include routing, VLAN, bridge, monitoring, and logging services.
 	markDHCPInterfaces(cfg, usedInterfaces)
 	markDNSInterfaces(cfg, usedInterfaces)
 	markVPNInterfaces(cfg, usedInterfaces)
