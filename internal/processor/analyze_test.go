@@ -834,6 +834,108 @@ func TestCoreProcessor_ModelLimitations(t *testing.T) {
 	})
 }
 
+// TestMarkDHCPInterfaces tests the markDHCPInterfaces helper function.
+func TestMarkDHCPInterfaces(t *testing.T) {
+	t.Run("AllItems", func(t *testing.T) {
+		// Test that all enabled DHCP interfaces in Items map are marked as used
+		cfg := &model.OpnSenseDocument{
+			Dhcpd: model.Dhcpd{
+				Items: map[string]model.DhcpdInterface{
+					"lan":  {Enable: "1"},
+					"wan":  {Enable: "1"},
+					"opt0": {Enable: "1"},
+					"opt1": {Enable: "1"},
+				},
+			},
+		}
+
+		used := make(map[string]bool)
+		markDHCPInterfaces(cfg, used)
+
+		assert.True(t, used["lan"], "lan should be marked as used")
+		assert.True(t, used["wan"], "wan should be marked as used")
+		assert.True(t, used["opt0"], "opt0 should be marked as used")
+		assert.True(t, used["opt1"], "opt1 should be marked as used")
+		assert.Len(t, used, 4, "should have exactly 4 interfaces marked")
+	})
+
+	t.Run("EmptyMap", func(t *testing.T) {
+		// Test handling of nil Items map
+		cfg := &model.OpnSenseDocument{
+			Dhcpd: model.Dhcpd{
+				Items: nil,
+			},
+		}
+
+		used := make(map[string]bool)
+		markDHCPInterfaces(cfg, used)
+
+		assert.Empty(t, used, "no interfaces should be marked when Items is nil")
+	})
+
+	t.Run("EmptyItemsMap", func(t *testing.T) {
+		// Test handling of empty Items map
+		cfg := &model.OpnSenseDocument{
+			Dhcpd: model.Dhcpd{
+				Items: map[string]model.DhcpdInterface{},
+			},
+		}
+
+		used := make(map[string]bool)
+		markDHCPInterfaces(cfg, used)
+
+		assert.Empty(t, used, "no interfaces should be marked when Items is empty")
+	})
+
+	t.Run("DisabledInterface", func(t *testing.T) {
+		// Test that disabled interfaces (Enable == "") are not marked
+		cfg := &model.OpnSenseDocument{
+			Dhcpd: model.Dhcpd{
+				Items: map[string]model.DhcpdInterface{
+					"lan":  {Enable: "1"},    // enabled
+					"wan":  {Enable: ""},     // disabled (empty string)
+					"opt0": {Enable: "1"},    // enabled
+					"opt1": {},               // disabled (zero value)
+					"opt2": {Enable: "true"}, // enabled (non-empty)
+					"opt3": {Enable: "0"},    // enabled (any non-empty string counts)
+				},
+			},
+		}
+
+		used := make(map[string]bool)
+		markDHCPInterfaces(cfg, used)
+
+		assert.True(t, used["lan"], "lan should be marked as used (enabled)")
+		assert.False(t, used["wan"], "wan should NOT be marked (empty Enable)")
+		assert.True(t, used["opt0"], "opt0 should be marked as used (enabled)")
+		assert.False(t, used["opt1"], "opt1 should NOT be marked (zero value)")
+		assert.True(t, used["opt2"], "opt2 should be marked as used (Enable='true')")
+		assert.True(t, used["opt3"], "opt3 should be marked as used (Enable='0' is non-empty)")
+	})
+
+	t.Run("PreservesExistingEntries", func(t *testing.T) {
+		// Test that existing entries in the used map are preserved
+		cfg := &model.OpnSenseDocument{
+			Dhcpd: model.Dhcpd{
+				Items: map[string]model.DhcpdInterface{
+					"opt0": {Enable: "1"},
+				},
+			},
+		}
+
+		used := map[string]bool{
+			"lan": true,
+			"wan": true,
+		}
+		markDHCPInterfaces(cfg, used)
+
+		assert.True(t, used["lan"], "pre-existing lan entry should be preserved")
+		assert.True(t, used["wan"], "pre-existing wan entry should be preserved")
+		assert.True(t, used["opt0"], "opt0 should be marked as used")
+		assert.Len(t, used, 3, "should have 3 interfaces marked")
+	})
+}
+
 // TestCoreProcessor_EdgeCases tests edge cases and boundary conditions.
 func TestCoreProcessor_EdgeCases(t *testing.T) {
 	processor, err := NewCoreProcessor()

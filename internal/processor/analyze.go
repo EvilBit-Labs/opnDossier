@@ -172,6 +172,20 @@ func (p *CoreProcessor) getDestinationString(destination model.Destination) stri
 	return fmt.Sprintf("network:%s|port:%s", network, destination.Port)
 }
 
+// markDHCPInterfaces iterates through all DHCP interfaces and marks enabled ones as used.
+// An interface is considered used if its Enable field is non-empty.
+func markDHCPInterfaces(cfg *model.OpnSenseDocument, used map[string]bool) {
+	if cfg.Dhcpd.Items == nil {
+		return
+	}
+
+	for name, dhcpIface := range cfg.Dhcpd.Items {
+		if dhcpIface.Enable != "" {
+			used[name] = true
+		}
+	}
+}
+
 // analyzeUnusedInterfaces detects interfaces that are defined but not used in rules or services.
 func (p *CoreProcessor) analyzeUnusedInterfaces(cfg *model.OpnSenseDocument, report *Report) {
 	// Track which interfaces are used
@@ -189,19 +203,11 @@ func (p *CoreProcessor) analyzeUnusedInterfaces(cfg *model.OpnSenseDocument, rep
 
 	// Mark interfaces used in services
 	// TODO: Additional Service Integration - Expand service usage detection to:
-	//   - Check all DHCP interfaces in cfg.Dhcpd.Items map (not just lan/wan)
 	//   - Include other services like DNS, VPN, load balancer interface usage
 	//   - Detect interface usage in routing, VLAN, and bridge configurations
 	//   - Check for interface references in monitoring and logging services
 	// This would provide more comprehensive unused interface detection.
-	if lanDhcp, exists := cfg.Dhcpd.Lan(); exists && lanDhcp.Enable != "" {
-		usedInterfaces["lan"] = true
-	}
-
-	if wanDhcp, exists := cfg.Dhcpd.Wan(); exists && wanDhcp.Enable != "" {
-		usedInterfaces["wan"] = true
-	}
-	// TODO: Iterate through all DHCP interfaces in cfg.Dhcpd.Items map
+	markDHCPInterfaces(cfg, usedInterfaces)
 
 	// Check WAN and LAN interfaces
 	interfaces := map[string]model.Interface{}
