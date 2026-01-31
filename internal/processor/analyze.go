@@ -201,6 +201,32 @@ func markDNSInterfaces(cfg *model.OpnSenseDocument, used map[string]bool) {
 	}
 }
 
+// markVPNInterfaces marks interfaces as used when VPN services (OpenVPN or WireGuard) are configured.
+// It iterates through OpenVPN servers and clients to mark their bound interfaces,
+// and checks if WireGuard is enabled (marking "lan" as the default service interface).
+func markVPNInterfaces(cfg *model.OpnSenseDocument, used map[string]bool) {
+	// Mark interfaces from OpenVPN servers
+	for _, server := range cfg.OpenVPN.Servers {
+		if server.Interface != "" {
+			used[server.Interface] = true
+		}
+	}
+
+	// Mark interfaces from OpenVPN clients
+	for _, client := range cfg.OpenVPN.Clients {
+		if client.Interface != "" {
+			used[client.Interface] = true
+		}
+	}
+
+	// Check WireGuard - if enabled, mark "lan" as the default service interface
+	// WireGuard in OPNsense typically creates virtual interfaces (wgX) but the service
+	// configuration resides within the OPNsense configuration structure
+	if cfg.OPNsense.Wireguard != nil && cfg.OPNsense.Wireguard.General.Enabled != "" {
+		used["lan"] = true
+	}
+}
+
 // analyzeUnusedInterfaces detects interfaces that are defined but not used in rules or services.
 func (p *CoreProcessor) analyzeUnusedInterfaces(cfg *model.OpnSenseDocument, report *Report) {
 	// Track which interfaces are used
@@ -218,12 +244,13 @@ func (p *CoreProcessor) analyzeUnusedInterfaces(cfg *model.OpnSenseDocument, rep
 
 	// Mark interfaces used in services
 	// TODO: Additional Service Integration - Expand service usage detection to:
-	//   - Include VPN, load balancer interface usage
+	//   - Include load balancer interface usage
 	//   - Detect interface usage in routing, VLAN, and bridge configurations
 	//   - Check for interface references in monitoring and logging services
 	// This would provide more comprehensive unused interface detection.
 	markDHCPInterfaces(cfg, usedInterfaces)
 	markDNSInterfaces(cfg, usedInterfaces)
+	markVPNInterfaces(cfg, usedInterfaces)
 
 	// Check WAN and LAN interfaces
 	interfaces := map[string]model.Interface{}
