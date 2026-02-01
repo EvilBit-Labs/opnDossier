@@ -1982,3 +1982,112 @@ func TestMarkdownBuilder_BuildSecuritySection_InboundSecurityWarning(t *testing.
 	assert.Contains(t, result, "port forwarding")
 	assert.Contains(t, result, "attack surface")
 }
+
+// TestMarkdownBuilder_NATRulesWithInterfaceLinks verifies NAT rules render interface names
+// as clickable markdown links pointing to interface sections (Issue #61).
+func TestMarkdownBuilder_NATRulesWithInterfaceLinks(t *testing.T) {
+	builder := NewMarkdownBuilder()
+
+	// Test outbound NAT with multiple interfaces
+	outboundRules := []model.NATRule{
+		{
+			Interface:   model.InterfaceList{"wan", "lan"},
+			Protocol:    "tcp",
+			Source:      model.Source{Network: "dmz"},
+			Destination: model.Destination{Any: "any"},
+			Target:      "wan_ip",
+			Descr:       "Multi-interface NAT",
+		},
+		{
+			Interface:   model.InterfaceList{"opt1"},
+			Protocol:    "udp",
+			Source:      model.Source{Network: "lan"},
+			Destination: model.Destination{Network: "any"},
+			Target:      "opt1_ip",
+			Descr:       "Single interface NAT",
+		},
+	}
+
+	tableSet := builder.BuildOutboundNATTable(outboundRules)
+
+	// Verify first row has multiple interface links
+	row1 := tableSet.Rows[0]
+	interfaceCell := row1[2]
+
+	// Check that interface names are formatted as links
+	// FormatInterfacesAsLinks produces: [wan](#wan-interface), [lan](#lan-interface)
+	assert.Contains(t, interfaceCell, "[wan]")
+	assert.Contains(t, interfaceCell, "#wan-interface")
+	assert.Contains(t, interfaceCell, "[lan]")
+	assert.Contains(t, interfaceCell, "#lan-interface")
+	assert.Contains(t, interfaceCell, ", ") // Comma separator between links
+
+	// Verify second row has single interface link
+	row2 := tableSet.Rows[1]
+	interfaceCell2 := row2[2]
+	assert.Contains(t, interfaceCell2, "[opt1]")
+	assert.Contains(t, interfaceCell2, "#opt1-interface")
+	assert.NotContains(t, interfaceCell2, ", ") // No comma for single interface
+
+	// Test inbound NAT with interface links
+	inboundRules := []model.InboundRule{
+		{
+			Interface:    model.InterfaceList{"wan"},
+			Protocol:     "tcp",
+			ExternalPort: "443",
+			InternalIP:   "192.168.1.10",
+			InternalPort: "443",
+			Descr:        "HTTPS forward",
+		},
+		{
+			Interface:    model.InterfaceList{"wan", "opt2"},
+			Protocol:     "tcp",
+			ExternalPort: "8080",
+			InternalIP:   "192.168.1.20",
+			InternalPort: "80",
+			Descr:        "HTTP multi-interface",
+		},
+	}
+
+	inboundTableSet := builder.BuildInboundNATTable(inboundRules)
+
+	// Verify inbound rule interface links
+	inRow1 := inboundTableSet.Rows[0]
+	inInterfaceCell := inRow1[2]
+	assert.Contains(t, inInterfaceCell, "[wan]")
+	assert.Contains(t, inInterfaceCell, "#wan-interface")
+
+	// Verify multi-interface inbound rule
+	inRow2 := inboundTableSet.Rows[1]
+	inInterfaceCell2 := inRow2[2]
+	assert.Contains(t, inInterfaceCell2, "[wan]")
+	assert.Contains(t, inInterfaceCell2, "#wan-interface")
+	assert.Contains(t, inInterfaceCell2, "[opt2]")
+	assert.Contains(t, inInterfaceCell2, "#opt2-interface")
+	assert.Contains(t, inInterfaceCell2, ", ") // Comma separator between links
+}
+
+// TestMarkdownBuilder_NATRulesEmptyInterfaceList verifies NAT rules with empty
+// interface lists render gracefully (Issue #61 edge case).
+func TestMarkdownBuilder_NATRulesEmptyInterfaceList(t *testing.T) {
+	builder := NewMarkdownBuilder()
+
+	// NAT rule with empty interface list
+	rules := []model.NATRule{
+		{
+			Interface:   model.InterfaceList{},
+			Protocol:    "tcp",
+			Source:      model.Source{Network: "lan"},
+			Destination: model.Destination{Any: "any"},
+			Target:      "wan_ip",
+			Descr:       "NAT without interface",
+		},
+	}
+
+	tableSet := builder.BuildOutboundNATTable(rules)
+
+	// Empty interface list should render as empty string, not cause panic
+	row := tableSet.Rows[0]
+	assert.Empty(t, row[2]) // Interface column should be empty
+	assert.Equal(t, "NAT without interface", row[7])
+}
