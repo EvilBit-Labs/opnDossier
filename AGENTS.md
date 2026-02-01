@@ -540,7 +540,7 @@ When testing output that involves map iteration:
 
 ### 7.5 Test Assertion Specificity
 
-When testing formatted output (markdown links, tables), verify the actual format, not just content presence:
+When testing formatted output (Markdown links, tables), verify the actual format, not just content presence:
 
 ```go
 // Bad - only verifies content exists

@@ -940,7 +940,7 @@ func (b *MarkdownBuilder) BuildIPsecSection(data *model.OpnSenseDocument) string
 		{"**IKE SA Table Size**", ipsec.Charon.IkesaTableSize},
 		{"**Max IKEv1 Exchanges**", ipsec.Charon.MaxIkev1Exchanges},
 		{"**Retransmit Tries**", ipsec.Charon.RetransmitTries},
-		{"**Retransmit Timeout**", ipsec.Charon.RetransmitTimeout + "s"},
+		{"**Retransmit Timeout**", formatters.FormatWithSuffix(ipsec.Charon.RetransmitTimeout, "s")},
 		{"**Make Before Break**", formatters.FormatBoolean(ipsec.Charon.MakeBeforeBreak)},
 	}
 	md.Table(markdown.TableSet{Header: charonHeaders, Rows: charonRows})
