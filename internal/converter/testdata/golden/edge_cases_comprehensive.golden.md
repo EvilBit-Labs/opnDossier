@@ -8,8 +8,13 @@
 ## Table of Contents
 - [System Configuration](#system-configuration)
 - [Interfaces](#interfaces)
+- [VLANs](#vlan-configuration)
+- [Static Routes](#static-routes)
 - [Firewall Rules](#firewall-rules)
 - [NAT Configuration](#nat-configuration)
+- [IPsec VPN](#ipsec-vpn-configuration)
+- [OpenVPN](#openvpn-configuration)
+- [High Availability](#high-availability--carp)
 - [DHCP Services](#dhcp-services)
 - [DNS Resolver](#dns-resolver)
 - [System Users](#system-users)
@@ -58,6 +63,16 @@
 | Name | Description | IP Address | CIDR | Enabled |
 |---------|---------|---------|---------|---------|
 
+### VLAN Configuration
+| VLAN Interface | Physical Interface | VLAN Tag | Description | Created | Updated |
+|---------|---------|---------|---------|---------|---------|
+| - | - | - | No VLANs configured | - | - |
+
+### Static Routes
+| Destination Network | Gateway | Description | Status | Created | Updated |
+|---------|---------|---------|---------|---------|---------|
+| - | - | No static routes configured | - | - | - |
+
 ## Security Configuration
 ### NAT Configuration
 #### Outbound NAT (Source Translation)
@@ -78,6 +93,20 @@
 | 3 | [wan](#wan-interface) | pass | inet | tcp | source[with]brackets | dest<with>angles |  |  | ✓ | Rule with \*bold\* and \_italic\_ text |
 | 4 | [lan](#lan-interface) | block | inet | udp | source\with\backslashes | dest`with`backticks |  |  | ✓ | Rule with \`code\` and \\backslash\\ characters |
 
+### IPsec VPN Configuration
+*No IPsec configuration present*
+### OpenVPN Configuration
+#### OpenVPN Servers
+*No OpenVPN servers configured*
+#### OpenVPN Clients
+*No OpenVPN clients configured*
+#### Client-Specific Overrides
+*No client-specific overrides configured*
+### High Availability & CARP
+#### Virtual IP Addresses (CARP)
+*No virtual IPs configured*
+#### HA Synchronization Settings
+*No HA synchronization configured*
 ## Service Configuration
 ### DHCP Server
 ### DNS Resolver (Unbound)
