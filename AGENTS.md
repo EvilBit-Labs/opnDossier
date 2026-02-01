@@ -302,6 +302,15 @@ func useStylesCheck() bool {
 - `strings.EqualFold(a, b)` - Case-insensitive comparison, no need to call `strings.ToLower()` first
 - For case-insensitive enum validation, iterate with `EqualFold` directly on original value
 
+### 5.13 Standalone Tools Pattern
+
+Place standalone development tools in `tools/<name>/main.go` with `//go:build ignore`:
+
+- Tools are independent from main build (won't break if dependencies differ)
+- Some code duplication is acceptable for tool independence
+- Run via `go run tools/<name>/main.go` or justfile targets
+- Example: `tools/docgen/main.go` generates model documentation
+
 ---
 
 ## 6. Data Processing Standards
