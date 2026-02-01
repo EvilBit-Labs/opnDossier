@@ -42,7 +42,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.2
 
-      - uses: jdx/mise-action@v2
+      - uses: jdx/mise-action@v3
         with:
           install: true
           cache: true
