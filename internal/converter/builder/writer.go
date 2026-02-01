@@ -179,16 +179,16 @@ func (b *MarkdownBuilder) WriteComprehensiveReport(w io.Writer, data *model.OpnS
 // writeReportHeader writes the report header (title, system info) to the writer.
 func (b *MarkdownBuilder) writeReportHeader(w io.Writer, data *model.OpnSenseDocument) error {
 	var buf bytes.Buffer
-	md := markdown.NewMarkdown(&buf)
-
-	md.H1("OPNsense Configuration Summary")
-
-	md.H2("System Information")
-	md.PlainTextf("- **Hostname**: %s", data.System.Hostname)
-	md.PlainTextf("- **Domain**: %s", data.System.Domain)
-	md.PlainTextf("- **Platform**: OPNsense %s", data.System.Firmware.Version)
-	md.PlainTextf("- **Generated On**: %s", b.getGeneratedTime().Format(time.RFC3339))
-	md.PlainTextf("- **Parsed By**: opnDossier v%s", b.getToolVersion())
+	md := markdown.NewMarkdown(&buf).
+		H1("OPNsense Configuration Summary").
+		H2("System Information").
+		BulletList(
+			markdown.Bold("Hostname")+": "+data.System.Hostname,
+			markdown.Bold("Domain")+": "+data.System.Domain,
+			markdown.Bold("Platform")+": OPNsense "+data.System.Firmware.Version,
+			markdown.Bold("Generated On")+": "+b.getGeneratedTime().Format(time.RFC3339),
+			markdown.Bold("Parsed By")+": opnDossier v"+b.getToolVersion(),
+		)
 
 	_, err := io.WriteString(w, md.String())
 	return err
@@ -197,36 +197,51 @@ func (b *MarkdownBuilder) writeReportHeader(w io.Writer, data *model.OpnSenseDoc
 // writeTableOfContents writes the table of contents to the writer.
 func (b *MarkdownBuilder) writeTableOfContents(w io.Writer, comprehensive bool) error {
 	var buf bytes.Buffer
-	md := markdown.NewMarkdown(&buf)
 
-	md.H2("Table of Contents")
-	md.PlainText("- [System Configuration](#system-configuration)")
-	md.PlainText("- [Interfaces](#interfaces)")
-
-	if comprehensive {
-		md.PlainText("- [VLANs](#vlan-configuration)")
-		md.PlainText("- [Static Routes](#static-routes)")
+	// Build ToC items dynamically based on report type
+	tocItems := []string{
+		markdown.Link("System Configuration", "#system-configuration"),
+		markdown.Link("Interfaces", "#interfaces"),
 	}
 
-	md.PlainText("- [Firewall Rules](#firewall-rules)")
-	md.PlainText("- [NAT Configuration](#nat-configuration)")
-
 	if comprehensive {
-		md.PlainText("- [IPsec VPN](#ipsec-vpn-configuration)")
-		md.PlainText("- [OpenVPN](#openvpn-configuration)")
-		md.PlainText("- [High Availability](#high-availability--carp)")
+		tocItems = append(tocItems,
+			markdown.Link("VLANs", "#vlan-configuration"),
+			markdown.Link("Static Routes", "#static-routes"),
+		)
 	}
 
-	md.PlainText("- [DHCP Services](#dhcp-services)")
-	md.PlainText("- [DNS Resolver](#dns-resolver)")
-	md.PlainText("- [System Users](#system-users)")
+	tocItems = append(tocItems,
+		markdown.Link("Firewall Rules", "#firewall-rules"),
+		markdown.Link("NAT Configuration", "#nat-configuration"),
+	)
 
 	if comprehensive {
-		md.PlainText("- [System Groups](#system-groups)")
+		tocItems = append(tocItems,
+			markdown.Link("IPsec VPN", "#ipsec-vpn-configuration"),
+			markdown.Link("OpenVPN", "#openvpn-configuration"),
+			markdown.Link("High Availability", "#high-availability--carp"),
+		)
 	}
 
-	md.PlainText("- [Services & Daemons](#services--daemons)")
-	md.PlainText("- [System Tunables](#system-tunables)")
+	tocItems = append(tocItems,
+		markdown.Link("DHCP Services", "#dhcp-services"),
+		markdown.Link("DNS Resolver", "#dns-resolver"),
+		markdown.Link("System Users", "#system-users"),
+	)
+
+	if comprehensive {
+		tocItems = append(tocItems, markdown.Link("System Groups", "#system-groups"))
+	}
+
+	tocItems = append(tocItems,
+		markdown.Link("Services & Daemons", "#services--daemons"),
+		markdown.Link("System Tunables", "#system-tunables"),
+	)
+
+	md := markdown.NewMarkdown(&buf).
+		H2("Table of Contents").
+		BulletList(tocItems...)
 
 	_, err := io.WriteString(w, md.String())
 	return err

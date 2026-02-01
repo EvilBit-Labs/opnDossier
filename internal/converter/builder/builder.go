@@ -100,11 +100,8 @@ func NewMarkdownBuilderWithConfig(config *model.OpnSenseDocument, logger *log.Lo
 	}
 }
 
-// BuildSystemSection builds the system configuration section.
-func (b *MarkdownBuilder) BuildSystemSection(data *model.OpnSenseDocument) string {
-	var buf bytes.Buffer
-	md := markdown.NewMarkdown(&buf)
-
+// writeSystemSection writes the system configuration section to the markdown instance.
+func (b *MarkdownBuilder) writeSystemSection(md *markdown.Markdown, data *model.OpnSenseDocument) {
 	sysConfig := data.SystemConfig()
 
 	md.H2("System Configuration")
@@ -252,15 +249,18 @@ func (b *MarkdownBuilder) BuildSystemSection(data *model.OpnSenseDocument) strin
 		tableSet := b.BuildGroupTable(sysConfig.System.Group)
 		md.Table(*tableSet)
 	}
+}
 
+// BuildSystemSection builds the system configuration section.
+func (b *MarkdownBuilder) BuildSystemSection(data *model.OpnSenseDocument) string {
+	var buf bytes.Buffer
+	md := markdown.NewMarkdown(&buf)
+	b.writeSystemSection(md, data)
 	return md.String()
 }
 
-// BuildNetworkSection builds the network configuration section.
-func (b *MarkdownBuilder) BuildNetworkSection(data *model.OpnSenseDocument) string {
-	var buf bytes.Buffer
-	md := markdown.NewMarkdown(&buf)
-
+// writeNetworkSection writes the network configuration section to the markdown instance.
+func (b *MarkdownBuilder) writeNetworkSection(md *markdown.Markdown, data *model.OpnSenseDocument) {
 	netConfig := data.NetworkConfig()
 
 	md.H2("Network Configuration")
@@ -274,15 +274,18 @@ func (b *MarkdownBuilder) BuildNetworkSection(data *model.OpnSenseDocument) stri
 		md.H3(sectionName)
 		buildInterfaceDetails(md, iface)
 	}
+}
 
+// BuildNetworkSection builds the network configuration section.
+func (b *MarkdownBuilder) BuildNetworkSection(data *model.OpnSenseDocument) string {
+	var buf bytes.Buffer
+	md := markdown.NewMarkdown(&buf)
+	b.writeNetworkSection(md, data)
 	return md.String()
 }
 
-// BuildSecuritySection builds the security configuration section.
-func (b *MarkdownBuilder) BuildSecuritySection(data *model.OpnSenseDocument) string {
-	var buf bytes.Buffer
-	md := markdown.NewMarkdown(&buf)
-
+// writeSecuritySection writes the security configuration section to the markdown instance.
+func (b *MarkdownBuilder) writeSecuritySection(md *markdown.Markdown, data *model.OpnSenseDocument) {
 	secConfig := data.SecurityConfig()
 
 	md.H2("Security Configuration")
@@ -307,12 +310,12 @@ func (b *MarkdownBuilder) BuildSecuritySection(data *model.OpnSenseDocument) str
 		md.PlainTextf("%s: %d", markdown.Bold("Inbound Rules"), len(natSummary.InboundRules))
 
 		if natSummary.ReflectionDisabled {
-			md.PlainText(
-				"**Security Note**: NAT reflection is properly disabled, preventing potential security issues where internal clients can access internal services via external IP addresses.",
+			md.Note(
+				"NAT reflection is properly disabled, preventing potential security issues where internal clients can access internal services via external IP addresses.",
 			)
 		} else {
-			md.PlainText(
-				"**⚠️ Security Warning**: NAT reflection is enabled, which may allow internal clients to access internal services via external IP addresses. Consider disabling if not needed.",
+			md.Warning(
+				"NAT reflection is enabled, which may allow internal clients to access internal services via external IP addresses. Consider disabling if not needed.",
 			)
 		}
 	}
@@ -326,8 +329,8 @@ func (b *MarkdownBuilder) BuildSecuritySection(data *model.OpnSenseDocument) str
 	md.Table(*inboundTableSet)
 
 	if len(natSummary.InboundRules) > 0 {
-		md.PlainText(
-			"**⚠️ Security Warning**: Inbound NAT rules (port forwarding) increase the attack surface by exposing internal services to external networks. Ensure these rules are necessary and properly secured.",
+		md.Warning(
+			"Inbound NAT rules (port forwarding) increase the attack surface by exposing internal services to external networks. Ensure these rules are necessary and properly secured.",
 		)
 	}
 
@@ -337,15 +340,19 @@ func (b *MarkdownBuilder) BuildSecuritySection(data *model.OpnSenseDocument) str
 		tableSet := b.BuildFirewallRulesTable(rules)
 		md.Table(*tableSet)
 	}
+}
 
+// BuildSecuritySection builds the security configuration section.
+func (b *MarkdownBuilder) BuildSecuritySection(data *model.OpnSenseDocument) string {
+	var buf bytes.Buffer
+	md := markdown.NewMarkdown(&buf)
+	b.writeSecuritySection(md, data)
 	return md.String()
 }
 
 // BuildServicesSection builds the service configuration section.
-func (b *MarkdownBuilder) BuildServicesSection(data *model.OpnSenseDocument) string {
-	var buf bytes.Buffer
-	md := markdown.NewMarkdown(&buf)
-
+// writeServicesSection writes the service configuration section to the markdown instance.
+func (b *MarkdownBuilder) writeServicesSection(md *markdown.Markdown, data *model.OpnSenseDocument) {
 	svcConfig := data.ServiceConfig()
 
 	md.H2("Service Configuration")
@@ -406,7 +413,13 @@ func (b *MarkdownBuilder) BuildServicesSection(data *model.OpnSenseDocument) str
 		}
 		md.Table(tableSet)
 	}
+}
 
+// BuildServicesSection builds the service configuration section.
+func (b *MarkdownBuilder) BuildServicesSection(data *model.OpnSenseDocument) string {
+	var buf bytes.Buffer
+	md := markdown.NewMarkdown(&buf)
+	b.writeServicesSection(md, data)
 	return md.String()
 }
 
@@ -691,45 +704,42 @@ func (b *MarkdownBuilder) BuildStandardReport(data *model.OpnSenseDocument) (str
 	}
 
 	var buf bytes.Buffer
-	md := markdown.NewMarkdown(&buf)
+	md := markdown.NewMarkdown(&buf).
+		H1("OPNsense Configuration Summary").
+		H2("System Information").
+		BulletList(
+			markdown.Bold("Hostname")+": "+data.System.Hostname,
+			markdown.Bold("Domain")+": "+data.System.Domain,
+			markdown.Bold("Platform")+": OPNsense "+data.System.Firmware.Version,
+			markdown.Bold("Generated On")+": "+b.generated.Format("2006-01-02 15:04:05"),
+			markdown.Bold("Parsed By")+": opnDossier v"+b.toolVersion,
+		).
+		H2("Table of Contents").
+		BulletList(
+			markdown.Link("System Configuration", "#system-configuration"),
+			markdown.Link("Interfaces", "#interfaces"),
+			markdown.Link("Firewall Rules", "#firewall-rules"),
+			markdown.Link("NAT Configuration", "#nat-configuration"),
+			markdown.Link("DHCP Services", "#dhcp-services"),
+			markdown.Link("DNS Resolver", "#dns-resolver"),
+			markdown.Link("System Users", "#system-users"),
+			markdown.Link("Services & Daemons", "#services--daemons"),
+			markdown.Link("System Tunables", "#system-tunables"),
+		)
 
-	md.H1("OPNsense Configuration Summary")
-
-	md.H2("System Information")
-	md.PlainTextf("- **Hostname**: %s", data.System.Hostname)
-	md.PlainTextf("- **Domain**: %s", data.System.Domain)
-	md.PlainTextf("- **Platform**: OPNsense %s", data.System.Firmware.Version)
-	md.PlainTextf("- **Generated On**: %s", b.generated.Format("2006-01-02 15:04:05"))
-	md.PlainTextf("- **Parsed By**: opnDossier v%s", b.toolVersion)
-
-	md.H2("Table of Contents")
-	md.PlainText("- [System Configuration](#system-configuration)")
-	md.PlainText("- [Interfaces](#interfaces)")
-	md.PlainText("- [Firewall Rules](#firewall-rules)")
-	md.PlainText("- [NAT Configuration](#nat-configuration)")
-	md.PlainText("- [DHCP Services](#dhcp-services)")
-	md.PlainText("- [DNS Resolver](#dns-resolver)")
-	md.PlainText("- [System Users](#system-users)")
-	md.PlainText("- [Services & Daemons](#services--daemons)")
-	md.PlainText("- [System Tunables](#system-tunables)")
-
-	md.PlainText(b.BuildSystemSection(data))
-	md.PlainText(b.BuildNetworkSection(data))
-	md.PlainText(b.BuildSecuritySection(data))
-	md.PlainText(b.BuildServicesSection(data))
+	b.writeSystemSection(md, data)
+	b.writeNetworkSection(md, data)
+	b.writeSecuritySection(md, data)
+	b.writeServicesSection(md, data)
 
 	sysConfig := data.SystemConfig()
 
 	if len(sysConfig.System.User) > 0 {
-		md.H2("System Users")
-		tableSet := b.BuildUserTable(sysConfig.System.User)
-		md.Table(*tableSet)
+		md.H2("System Users").Table(*b.BuildUserTable(sysConfig.System.User))
 	}
 
 	if len(sysConfig.Sysctl) > 0 {
-		md.H2("System Tunables")
-		tableSet := b.BuildSysctlTable(sysConfig.Sysctl)
-		md.Table(*tableSet)
+		md.H2("System Tunables").Table(*b.BuildSysctlTable(sysConfig.Sysctl))
 	}
 
 	return md.String(), nil
@@ -742,43 +752,44 @@ func (b *MarkdownBuilder) BuildComprehensiveReport(data *model.OpnSenseDocument)
 	}
 
 	var buf bytes.Buffer
-	md := markdown.NewMarkdown(&buf)
+	md := markdown.NewMarkdown(&buf).
+		H1("OPNsense Configuration Summary").
+		H2("System Information").
+		BulletList(
+			markdown.Bold("Hostname")+": "+data.System.Hostname,
+			markdown.Bold("Domain")+": "+data.System.Domain,
+			markdown.Bold("Platform")+": OPNsense "+data.System.Firmware.Version,
+			markdown.Bold("Generated On")+": "+b.generated.Format("2006-01-02 15:04:05"),
+			markdown.Bold("Parsed By")+": opnDossier v"+b.toolVersion,
+		).
+		H2("Table of Contents").
+		BulletList(
+			markdown.Link("System Configuration", "#system-configuration"),
+			markdown.Link("Interfaces", "#interfaces"),
+			markdown.Link("VLANs", "#vlan-configuration"),
+			markdown.Link("Static Routes", "#static-routes"),
+			markdown.Link("Firewall Rules", "#firewall-rules"),
+			markdown.Link("NAT Configuration", "#nat-configuration"),
+			markdown.Link("IPsec VPN", "#ipsec-vpn-configuration"),
+			markdown.Link("OpenVPN", "#openvpn-configuration"),
+			markdown.Link("High Availability", "#high-availability--carp"),
+			markdown.Link("DHCP Services", "#dhcp-services"),
+			markdown.Link("DNS Resolver", "#dns-resolver"),
+			markdown.Link("System Users", "#system-users"),
+			markdown.Link("System Groups", "#system-groups"),
+			markdown.Link("Services & Daemons", "#services--daemons"),
+			markdown.Link("System Tunables", "#system-tunables"),
+		)
 
-	md.H1("OPNsense Configuration Summary")
-
-	md.H2("System Information")
-	md.PlainTextf("- **Hostname**: %s", data.System.Hostname)
-	md.PlainTextf("- **Domain**: %s", data.System.Domain)
-	md.PlainTextf("- **Platform**: OPNsense %s", data.System.Firmware.Version)
-	md.PlainTextf("- **Generated On**: %s", b.generated.Format("2006-01-02 15:04:05"))
-	md.PlainTextf("- **Parsed By**: opnDossier v%s", b.toolVersion)
-
-	md.H2("Table of Contents")
-	md.PlainText("- [System Configuration](#system-configuration)")
-	md.PlainText("- [Interfaces](#interfaces)")
-	md.PlainText("- [VLANs](#vlan-configuration)")
-	md.PlainText("- [Static Routes](#static-routes)")
-	md.PlainText("- [Firewall Rules](#firewall-rules)")
-	md.PlainText("- [NAT Configuration](#nat-configuration)")
-	md.PlainText("- [IPsec VPN](#ipsec-vpn-configuration)")
-	md.PlainText("- [OpenVPN](#openvpn-configuration)")
-	md.PlainText("- [High Availability](#high-availability--carp)")
-	md.PlainText("- [DHCP Services](#dhcp-services)")
-	md.PlainText("- [DNS Resolver](#dns-resolver)")
-	md.PlainText("- [System Users](#system-users)")
-	md.PlainText("- [System Groups](#system-groups)")
-	md.PlainText("- [Services & Daemons](#services--daemons)")
-	md.PlainText("- [System Tunables](#system-tunables)")
-
-	md.PlainText(b.BuildSystemSection(data))
-	md.PlainText(b.BuildNetworkSection(data))
-	md.PlainText(b.buildVLANSection(data))
-	md.PlainText(b.buildStaticRoutesSection(data))
-	md.PlainText(b.BuildSecuritySection(data))
-	md.PlainText(b.BuildIPsecSection(data))
-	md.PlainText(b.BuildOpenVPNSection(data))
-	md.PlainText(b.BuildHASection(data))
-	md.PlainText(b.BuildServicesSection(data))
+	b.writeSystemSection(md, data)
+	b.writeNetworkSection(md, data)
+	b.writeVLANSection(md, data)
+	b.writeStaticRoutesSection(md, data)
+	b.writeSecuritySection(md, data)
+	b.writeIPsecSection(md, data)
+	b.writeOpenVPNSection(md, data)
+	b.writeHASection(md, data)
+	b.writeServicesSection(md, data)
 
 	return md.String(), nil
 }
@@ -907,16 +918,14 @@ func (b *MarkdownBuilder) BuildStaticRoutesTable(routes []model.StaticRoute) *ma
 }
 
 // BuildIPsecSection builds the IPsec VPN configuration section.
-func (b *MarkdownBuilder) BuildIPsecSection(data *model.OpnSenseDocument) string {
-	var buf bytes.Buffer
-	md := markdown.NewMarkdown(&buf)
-
+// writeIPsecSection writes the IPsec VPN configuration section to the markdown instance.
+func (b *MarkdownBuilder) writeIPsecSection(md *markdown.Markdown, data *model.OpnSenseDocument) {
 	md.H3("IPsec VPN Configuration")
 
 	ipsec := data.OPNsense.IPsec
 	if ipsec == nil {
 		md.PlainText(markdown.Italic("No IPsec configuration present"))
-		return md.String()
+		return
 	}
 
 	// General Configuration
@@ -946,15 +955,18 @@ func (b *MarkdownBuilder) BuildIPsecSection(data *model.OpnSenseDocument) string
 	md.Table(markdown.TableSet{Header: charonHeaders, Rows: charonRows})
 
 	md.Note("Phase 1/Phase 2 tunnel configurations require additional parser implementation")
+}
 
+// BuildIPsecSection builds the IPsec VPN configuration section.
+func (b *MarkdownBuilder) BuildIPsecSection(data *model.OpnSenseDocument) string {
+	var buf bytes.Buffer
+	md := markdown.NewMarkdown(&buf)
+	b.writeIPsecSection(md, data)
 	return md.String()
 }
 
-// BuildOpenVPNSection builds the OpenVPN configuration section with servers, clients, and CSC.
-func (b *MarkdownBuilder) BuildOpenVPNSection(data *model.OpnSenseDocument) string {
-	var buf bytes.Buffer
-	md := markdown.NewMarkdown(&buf)
-
+// writeOpenVPNSection writes the OpenVPN configuration section to the markdown instance.
+func (b *MarkdownBuilder) writeOpenVPNSection(md *markdown.Markdown, data *model.OpnSenseDocument) {
 	md.H3("OpenVPN Configuration")
 
 	openvpn := data.OpenVPN
@@ -1041,39 +1053,48 @@ func (b *MarkdownBuilder) BuildOpenVPNSection(data *model.OpnSenseDocument) stri
 		}
 		md.Table(markdown.TableSet{Header: cscHeaders, Rows: cscRows})
 	}
+}
 
+// BuildOpenVPNSection builds the OpenVPN configuration section with servers, clients, and CSC.
+func (b *MarkdownBuilder) BuildOpenVPNSection(data *model.OpnSenseDocument) string {
+	var buf bytes.Buffer
+	md := markdown.NewMarkdown(&buf)
+	b.writeOpenVPNSection(md, data)
 	return md.String()
+}
+
+// writeVLANSection writes the VLAN configuration section to the markdown instance.
+func (b *MarkdownBuilder) writeVLANSection(md *markdown.Markdown, data *model.OpnSenseDocument) {
+	md.H3("VLAN Configuration")
+	tableSet := b.BuildVLANTable(data.VLANs.VLAN)
+	md.Table(*tableSet)
 }
 
 // buildVLANSection builds the VLAN configuration section wrapper.
 func (b *MarkdownBuilder) buildVLANSection(data *model.OpnSenseDocument) string {
 	var buf bytes.Buffer
 	md := markdown.NewMarkdown(&buf)
-
-	md.H3("VLAN Configuration")
-	tableSet := b.BuildVLANTable(data.VLANs.VLAN)
-	md.Table(*tableSet)
-
+	b.writeVLANSection(md, data)
 	return md.String()
+}
+
+// writeStaticRoutesSection writes the static routes section to the markdown instance.
+func (b *MarkdownBuilder) writeStaticRoutesSection(md *markdown.Markdown, data *model.OpnSenseDocument) {
+	md.H3("Static Routes")
+	tableSet := b.BuildStaticRoutesTable(data.StaticRoutes.Route)
+	md.Table(*tableSet)
 }
 
 // buildStaticRoutesSection builds the static routes section wrapper.
 func (b *MarkdownBuilder) buildStaticRoutesSection(data *model.OpnSenseDocument) string {
 	var buf bytes.Buffer
 	md := markdown.NewMarkdown(&buf)
-
-	md.H3("Static Routes")
-	tableSet := b.BuildStaticRoutesTable(data.StaticRoutes.Route)
-	md.Table(*tableSet)
-
+	b.writeStaticRoutesSection(md, data)
 	return md.String()
 }
 
-// BuildHASection builds the High Availability and CARP configuration section.
-func (b *MarkdownBuilder) BuildHASection(data *model.OpnSenseDocument) string {
-	var buf bytes.Buffer
-	md := markdown.NewMarkdown(&buf)
-
+// writeHASection writes the High Availability and CARP configuration section to the markdown instance.
+func (b *MarkdownBuilder) writeHASection(md *markdown.Markdown, data *model.OpnSenseDocument) {
 	md.H3("High Availability & CARP")
 
 	// Virtual IP Addresses
@@ -1106,6 +1127,12 @@ func (b *MarkdownBuilder) BuildHASection(data *model.OpnSenseDocument) string {
 		}
 		md.Table(markdown.TableSet{Header: haHeaders, Rows: haRows})
 	}
+}
 
+// BuildHASection builds the High Availability and CARP configuration section.
+func (b *MarkdownBuilder) BuildHASection(data *model.OpnSenseDocument) string {
+	var buf bytes.Buffer
+	md := markdown.NewMarkdown(&buf)
+	b.writeHASection(md, data)
 	return md.String()
 }

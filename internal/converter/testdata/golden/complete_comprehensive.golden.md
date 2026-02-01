@@ -97,7 +97,8 @@
 **Port Forward State Sharing**: ✓
 **Outbound Rules**: 0
 **Inbound Rules**: 0
-**⚠️ Security Warning**: NAT reflection is enabled, which may allow internal clients to access internal services via external IP addresses. Consider disabling if not needed.
+> [!WARNING]  
+> NAT reflection is enabled, which may allow internal clients to access internal services via external IP addresses. Consider disabling if not needed.
 #### Outbound NAT (Source Translation)
 | # | Direction | Interface | Source | Destination | Target | Protocol | Description | Status |
 |---------|---------|---------|---------|---------|---------|---------|---------|---------|

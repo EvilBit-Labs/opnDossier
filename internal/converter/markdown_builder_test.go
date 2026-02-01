@@ -1168,8 +1168,8 @@ func TestMarkdownBuilder_BuildSecuritySection_WithNATReflection(t *testing.T) {
 
 	result := builder.BuildSecuritySection(data)
 
-	// Verify NAT reflection warning is present when enabled
-	assert.Contains(t, result, "Security Warning")
+	// Verify NAT reflection warning is present when enabled (GitHub-flavored alert)
+	assert.Contains(t, result, "[!WARNING]")
 	assert.Contains(t, result, "NAT reflection is enabled")
 }
 
@@ -1946,8 +1946,8 @@ func TestMarkdownBuilder_BuildSecuritySection_WithBothNATTypes(t *testing.T) {
 	assert.Contains(t, result, "HTTPS forward")
 	assert.Contains(t, result, "192.168.1.10")
 
-	// Verify security warning for inbound NAT
-	assert.Contains(t, result, "Security Warning")
+	// Verify security warning for inbound NAT (GitHub-flavored alert)
+	assert.Contains(t, result, "[!WARNING]")
 	assert.Contains(t, result, "port forwarding")
 }
 
@@ -1977,8 +1977,8 @@ func TestMarkdownBuilder_BuildSecuritySection_InboundSecurityWarning(t *testing.
 
 	result := builder.BuildSecuritySection(data)
 
-	// Verify security warning is present when inbound rules exist
-	assert.Contains(t, result, "⚠️")
+	// Verify security warning is present when inbound rules exist (GitHub-flavored alert)
+	assert.Contains(t, result, "[!WARNING]")
 	assert.Contains(t, result, "port forwarding")
 	assert.Contains(t, result, "attack surface")
 }
