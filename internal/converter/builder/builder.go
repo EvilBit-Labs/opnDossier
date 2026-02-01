@@ -20,23 +20,44 @@ const destinationAny = "any"
 // ReportBuilder interface defines the contract for programmatic report generation.
 // This provides type-safe, compile-time guaranteed markdown generation.
 type ReportBuilder interface {
-	// Core section builders
+	// BuildSystemSection builds the system configuration section.
 	BuildSystemSection(data *model.OpnSenseDocument) string
+	// BuildNetworkSection builds the network configuration section.
 	BuildNetworkSection(data *model.OpnSenseDocument) string
+	// BuildSecuritySection builds the security configuration section.
 	BuildSecuritySection(data *model.OpnSenseDocument) string
+	// BuildServicesSection builds the services configuration section.
 	BuildServicesSection(data *model.OpnSenseDocument) string
 
-	// Shared component builders
+	// BuildFirewallRulesTable builds a table of firewall rules.
 	BuildFirewallRulesTable(rules []model.Rule) *markdown.TableSet
+	// BuildInterfaceTable builds a table of network interfaces.
 	BuildInterfaceTable(interfaces model.Interfaces) *markdown.TableSet
+	// BuildUserTable builds a table of system users.
 	BuildUserTable(users []model.User) *markdown.TableSet
+	// BuildGroupTable builds a table of system groups.
 	BuildGroupTable(groups []model.Group) *markdown.TableSet
+	// BuildSysctlTable builds a table of sysctl tunables.
 	BuildSysctlTable(sysctl []model.SysctlItem) *markdown.TableSet
+	// BuildOutboundNATTable builds a table of outbound NAT rules.
 	BuildOutboundNATTable(rules []model.NATRule) *markdown.TableSet
+	// BuildInboundNATTable builds a table of inbound NAT/port forward rules.
 	BuildInboundNATTable(rules []model.InboundRule) *markdown.TableSet
 
-	// Report generation
+	// BuildVLANTable builds a table of VLAN configurations.
+	BuildVLANTable(vlans []model.VLAN) *markdown.TableSet
+	// BuildStaticRoutesTable builds a table of static route configurations.
+	BuildStaticRoutesTable(routes []model.StaticRoute) *markdown.TableSet
+	// BuildIPsecSection builds the IPsec VPN configuration section.
+	BuildIPsecSection(data *model.OpnSenseDocument) string
+	// BuildOpenVPNSection builds the OpenVPN configuration section.
+	BuildOpenVPNSection(data *model.OpnSenseDocument) string
+	// BuildHASection builds the High Availability and CARP configuration section.
+	BuildHASection(data *model.OpnSenseDocument) string
+
+	// BuildStandardReport generates a standard configuration report.
 	BuildStandardReport(data *model.OpnSenseDocument) (string, error)
+	// BuildComprehensiveReport generates a comprehensive configuration report.
 	BuildComprehensiveReport(data *model.OpnSenseDocument) (string, error)
 }
 
@@ -735,8 +756,13 @@ func (b *MarkdownBuilder) BuildComprehensiveReport(data *model.OpnSenseDocument)
 	md.H2("Table of Contents")
 	md.PlainText("- [System Configuration](#system-configuration)")
 	md.PlainText("- [Interfaces](#interfaces)")
+	md.PlainText("- [VLANs](#vlan-configuration)")
+	md.PlainText("- [Static Routes](#static-routes)")
 	md.PlainText("- [Firewall Rules](#firewall-rules)")
 	md.PlainText("- [NAT Configuration](#nat-configuration)")
+	md.PlainText("- [IPsec VPN](#ipsec-vpn-configuration)")
+	md.PlainText("- [OpenVPN](#openvpn-configuration)")
+	md.PlainText("- [High Availability](#high-availability--carp)")
 	md.PlainText("- [DHCP Services](#dhcp-services)")
 	md.PlainText("- [DNS Resolver](#dns-resolver)")
 	md.PlainText("- [System Users](#system-users)")
@@ -746,7 +772,12 @@ func (b *MarkdownBuilder) BuildComprehensiveReport(data *model.OpnSenseDocument)
 
 	md.PlainText(b.BuildSystemSection(data))
 	md.PlainText(b.BuildNetworkSection(data))
+	md.PlainText(b.buildVLANSection(data))
+	md.PlainText(b.buildStaticRoutesSection(data))
 	md.PlainText(b.BuildSecuritySection(data))
+	md.PlainText(b.BuildIPsecSection(data))
+	md.PlainText(b.BuildOpenVPNSection(data))
+	md.PlainText(b.BuildHASection(data))
 	md.PlainText(b.BuildServicesSection(data))
 
 	return md.String(), nil
@@ -796,4 +827,285 @@ func buildInterfaceDetails(md *markdown.Markdown, iface model.Interface) {
 	if iface.BlockBogons != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("Block Bogon Networks"), iface.BlockBogons)
 	}
+}
+
+// BuildVLANTable builds a table of VLAN configurations.
+func (b *MarkdownBuilder) BuildVLANTable(vlans []model.VLAN) *markdown.TableSet {
+	headers := []string{
+		"VLAN Interface",
+		"Physical Interface",
+		"VLAN Tag",
+		"Description",
+		"Created",
+		"Updated",
+	}
+
+	rows := make([][]string, 0, len(vlans))
+
+	if len(vlans) == 0 {
+		rows = append(rows, []string{
+			"-", "-", "-", "No VLANs configured", "-", "-",
+		})
+	} else {
+		for _, vlan := range vlans {
+			rows = append(rows, []string{
+				formatters.EscapeTableContent(vlan.Vlanif),
+				formatters.EscapeTableContent(vlan.If),
+				vlan.Tag,
+				formatters.EscapeTableContent(vlan.Descr),
+				vlan.Created,
+				vlan.Updated,
+			})
+		}
+	}
+
+	return &markdown.TableSet{
+		Header: headers,
+		Rows:   rows,
+	}
+}
+
+// BuildStaticRoutesTable builds a table of static route configurations.
+func (b *MarkdownBuilder) BuildStaticRoutesTable(routes []model.StaticRoute) *markdown.TableSet {
+	headers := []string{
+		"Destination Network",
+		"Gateway",
+		"Description",
+		"Status",
+		"Created",
+		"Updated",
+	}
+
+	rows := make([][]string, 0, len(routes))
+
+	if len(routes) == 0 {
+		rows = append(rows, []string{
+			"-", "-", "No static routes configured", "-", "-", "-",
+		})
+	} else {
+		for _, route := range routes {
+			status := "**Enabled**"
+			if route.Disabled {
+				status = "Disabled"
+			}
+
+			rows = append(rows, []string{
+				formatters.EscapeTableContent(route.Network),
+				formatters.EscapeTableContent(route.Gateway),
+				formatters.EscapeTableContent(route.Descr),
+				status,
+				route.Created,
+				route.Updated,
+			})
+		}
+	}
+
+	return &markdown.TableSet{
+		Header: headers,
+		Rows:   rows,
+	}
+}
+
+// BuildIPsecSection builds the IPsec VPN configuration section.
+func (b *MarkdownBuilder) BuildIPsecSection(data *model.OpnSenseDocument) string {
+	var buf bytes.Buffer
+	md := markdown.NewMarkdown(&buf)
+
+	md.H3("IPsec VPN Configuration")
+
+	ipsec := data.OPNsense.IPsec
+	if ipsec == nil {
+		md.PlainText(markdown.Italic("No IPsec configuration present"))
+		return md.String()
+	}
+
+	// General Configuration
+	md.H4("General Configuration")
+
+	generalHeaders := []string{"Setting", "Value"}
+	generalRows := [][]string{
+		{"**Enabled**", formatters.FormatBoolean(ipsec.General.Enabled)},
+		{"**Prefer Old SA**", formatters.FormatBoolean(ipsec.General.PreferredOldsa)},
+		{"**Disable VPN Rules**", formatters.FormatBoolean(ipsec.General.Disablevpnrules)},
+		{"**Passthrough Networks**", formatters.EscapeTableContent(ipsec.General.PassthroughNetworks)},
+	}
+	md.Table(markdown.TableSet{Header: generalHeaders, Rows: generalRows})
+
+	// Charon IKE Daemon Configuration
+	md.H4("Charon IKE Daemon Configuration")
+
+	charonHeaders := []string{"Parameter", "Value"}
+	charonRows := [][]string{
+		{"**Threads**", ipsec.Charon.Threads},
+		{"**IKE SA Table Size**", ipsec.Charon.IkesaTableSize},
+		{"**Max IKEv1 Exchanges**", ipsec.Charon.MaxIkev1Exchanges},
+		{"**Retransmit Tries**", ipsec.Charon.RetransmitTries},
+		{"**Retransmit Timeout**", formatters.FormatWithSuffix(ipsec.Charon.RetransmitTimeout, "s")},
+		{"**Make Before Break**", formatters.FormatBoolean(ipsec.Charon.MakeBeforeBreak)},
+	}
+	md.Table(markdown.TableSet{Header: charonHeaders, Rows: charonRows})
+
+	md.Note("Phase 1/Phase 2 tunnel configurations require additional parser implementation")
+
+	return md.String()
+}
+
+// BuildOpenVPNSection builds the OpenVPN configuration section with servers, clients, and CSC.
+func (b *MarkdownBuilder) BuildOpenVPNSection(data *model.OpnSenseDocument) string {
+	var buf bytes.Buffer
+	md := markdown.NewMarkdown(&buf)
+
+	md.H3("OpenVPN Configuration")
+
+	openvpn := data.OpenVPN
+
+	// OpenVPN Servers
+	md.H4("OpenVPN Servers")
+	if len(openvpn.Servers) == 0 {
+		md.PlainText(markdown.Italic("No OpenVPN servers configured"))
+	} else {
+		serverHeaders := []string{
+			"Description",
+			"Mode",
+			"Protocol",
+			"Interface",
+			"Port",
+			"Tunnel Network",
+			"Remote Network",
+			"Certificate",
+		}
+		serverRows := make([][]string, 0, len(openvpn.Servers))
+		for _, server := range openvpn.Servers {
+			serverRows = append(serverRows, []string{
+				formatters.EscapeTableContent(server.Description),
+				server.Mode,
+				server.Protocol,
+				server.Interface,
+				server.Local_port,
+				formatters.EscapeTableContent(server.Tunnel_network),
+				formatters.EscapeTableContent(server.Remote_network),
+				formatters.EscapeTableContent(server.Cert_ref),
+			})
+		}
+		md.Table(markdown.TableSet{Header: serverHeaders, Rows: serverRows})
+	}
+
+	// OpenVPN Clients
+	md.H4("OpenVPN Clients")
+	if len(openvpn.Clients) == 0 {
+		md.PlainText(markdown.Italic("No OpenVPN clients configured"))
+	} else {
+		clientHeaders := []string{
+			"Description",
+			"Server Address",
+			"Port",
+			"Mode",
+			"Protocol",
+			"Certificate",
+		}
+		clientRows := make([][]string, 0, len(openvpn.Clients))
+		for _, client := range openvpn.Clients {
+			clientRows = append(clientRows, []string{
+				formatters.EscapeTableContent(client.Description),
+				formatters.EscapeTableContent(client.Server_addr),
+				client.Server_port,
+				client.Mode,
+				client.Protocol,
+				formatters.EscapeTableContent(client.Cert_ref),
+			})
+		}
+		md.Table(markdown.TableSet{Header: clientHeaders, Rows: clientRows})
+	}
+
+	// Client-Specific Overrides (CSC)
+	md.H4("Client-Specific Overrides")
+	if len(openvpn.CSC) == 0 {
+		md.PlainText(markdown.Italic("No client-specific overrides configured"))
+	} else {
+		cscHeaders := []string{
+			"Common Name",
+			"Tunnel Network",
+			"Local Network",
+			"Remote Network",
+			"DNS Domain",
+		}
+		cscRows := make([][]string, 0, len(openvpn.CSC))
+		for _, csc := range openvpn.CSC {
+			cscRows = append(cscRows, []string{
+				formatters.EscapeTableContent(csc.Common_name),
+				formatters.EscapeTableContent(csc.Tunnel_network),
+				formatters.EscapeTableContent(csc.Local_network),
+				formatters.EscapeTableContent(csc.Remote_network),
+				formatters.EscapeTableContent(csc.DNS_domain),
+			})
+		}
+		md.Table(markdown.TableSet{Header: cscHeaders, Rows: cscRows})
+	}
+
+	return md.String()
+}
+
+// buildVLANSection builds the VLAN configuration section wrapper.
+func (b *MarkdownBuilder) buildVLANSection(data *model.OpnSenseDocument) string {
+	var buf bytes.Buffer
+	md := markdown.NewMarkdown(&buf)
+
+	md.H3("VLAN Configuration")
+	tableSet := b.BuildVLANTable(data.VLANs.VLAN)
+	md.Table(*tableSet)
+
+	return md.String()
+}
+
+// buildStaticRoutesSection builds the static routes section wrapper.
+func (b *MarkdownBuilder) buildStaticRoutesSection(data *model.OpnSenseDocument) string {
+	var buf bytes.Buffer
+	md := markdown.NewMarkdown(&buf)
+
+	md.H3("Static Routes")
+	tableSet := b.BuildStaticRoutesTable(data.StaticRoutes.Route)
+	md.Table(*tableSet)
+
+	return md.String()
+}
+
+// BuildHASection builds the High Availability and CARP configuration section.
+func (b *MarkdownBuilder) BuildHASection(data *model.OpnSenseDocument) string {
+	var buf bytes.Buffer
+	md := markdown.NewMarkdown(&buf)
+
+	md.H3("High Availability & CARP")
+
+	// Virtual IP Addresses
+	md.H4("Virtual IP Addresses (CARP)")
+	if data.VirtualIP.Vip == "" {
+		md.PlainText(markdown.Italic("No virtual IPs configured"))
+	} else {
+		vipHeaders := []string{"VIP Address", "Type"}
+		vipRows := [][]string{
+			{formatters.EscapeTableContent(data.VirtualIP.Vip), "CARP"},
+		}
+		md.Table(markdown.TableSet{Header: vipHeaders, Rows: vipRows})
+	}
+
+	// HA Synchronization Settings
+	md.H4("HA Synchronization Settings")
+	hasync := data.HighAvailabilitySync
+
+	if hasync.Pfsyncinterface == "" && hasync.Synchronizetoip == "" {
+		md.PlainText(markdown.Italic("No HA synchronization configured"))
+	} else {
+		haHeaders := []string{"Setting", "Value"}
+		haRows := [][]string{
+			{"**pfSync Interface**", formatters.EscapeTableContent(hasync.Pfsyncinterface)},
+			{"**pfSync Peer IP**", formatters.EscapeTableContent(hasync.Pfsyncpeerip)},
+			{"**Configuration Sync IP**", formatters.EscapeTableContent(hasync.Synchronizetoip)},
+			{"**Sync Username**", formatters.EscapeTableContent(hasync.Username)},
+			{"**Disable Preempt**", formatters.FormatBoolean(hasync.Disablepreempt)},
+			{"**pfSync Version**", hasync.Pfsyncversion},
+		}
+		md.Table(markdown.TableSet{Header: haHeaders, Rows: haRows})
+	}
+
+	return md.String()
 }

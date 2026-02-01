@@ -140,8 +140,33 @@ func (b *MarkdownBuilder) WriteComprehensiveReport(w io.Writer, data *model.OpnS
 		return fmt.Errorf("failed to write network section: %w", err)
 	}
 
+	// Write VLAN section (Issue #67)
+	if _, err := io.WriteString(w, b.buildVLANSection(data)); err != nil {
+		return fmt.Errorf("failed to write VLAN section: %w", err)
+	}
+
+	// Write Static Routes section (Issue #67)
+	if _, err := io.WriteString(w, b.buildStaticRoutesSection(data)); err != nil {
+		return fmt.Errorf("failed to write static routes section: %w", err)
+	}
+
 	if err := b.WriteSecuritySection(w, data); err != nil {
 		return fmt.Errorf("failed to write security section: %w", err)
+	}
+
+	// Write IPsec section (Issue #67)
+	if _, err := io.WriteString(w, b.BuildIPsecSection(data)); err != nil {
+		return fmt.Errorf("failed to write IPsec section: %w", err)
+	}
+
+	// Write OpenVPN section (Issue #67)
+	if _, err := io.WriteString(w, b.BuildOpenVPNSection(data)); err != nil {
+		return fmt.Errorf("failed to write OpenVPN section: %w", err)
+	}
+
+	// Write High Availability section (Issue #67)
+	if _, err := io.WriteString(w, b.BuildHASection(data)); err != nil {
+		return fmt.Errorf("failed to write HA section: %w", err)
 	}
 
 	if err := b.WriteServicesSection(w, data); err != nil {
@@ -177,8 +202,21 @@ func (b *MarkdownBuilder) writeTableOfContents(w io.Writer, comprehensive bool) 
 	md.H2("Table of Contents")
 	md.PlainText("- [System Configuration](#system-configuration)")
 	md.PlainText("- [Interfaces](#interfaces)")
+
+	if comprehensive {
+		md.PlainText("- [VLANs](#vlan-configuration)")
+		md.PlainText("- [Static Routes](#static-routes)")
+	}
+
 	md.PlainText("- [Firewall Rules](#firewall-rules)")
 	md.PlainText("- [NAT Configuration](#nat-configuration)")
+
+	if comprehensive {
+		md.PlainText("- [IPsec VPN](#ipsec-vpn-configuration)")
+		md.PlainText("- [OpenVPN](#openvpn-configuration)")
+		md.PlainText("- [High Availability](#high-availability--carp)")
+	}
+
 	md.PlainText("- [DHCP Services](#dhcp-services)")
 	md.PlainText("- [DNS Resolver](#dns-resolver)")
 	md.PlainText("- [System Users](#system-users)")

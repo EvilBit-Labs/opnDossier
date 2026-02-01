@@ -184,3 +184,11 @@ func FormatUnixTimestamp(timestamp string) string {
 
 	return timeValue.Format("2006-01-02T15:04:05Z07:00")
 }
+
+// FormatWithSuffix appends a suffix to a value, returning "N/A" if the value is empty.
+func FormatWithSuffix(value, suffix string) string {
+	if value == "" {
+		return "N/A"
+	}
+	return value + suffix
+}
