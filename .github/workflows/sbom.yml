@@ -13,8 +13,8 @@ jobs:
     name: Generate SBOM (Scheduled)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: jdx/mise-action@v2
+      - uses: actions/checkout@v6.0.2
+      - uses: jdx/mise-action@v3
         with:
           install: true
           cache: true
@@ -39,7 +39,7 @@ jobs:
           output-file: sbom.spdx.json
 
       - name: Upload SBOM artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: sbom-reports-scheduled
           path: |
