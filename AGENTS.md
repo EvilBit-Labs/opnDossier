@@ -453,6 +453,20 @@ When testing output that involves map iteration:
 - **Do** test for presence of expected content using `strings.Contains()`
 - **Do** use `slices.Sorted(maps.Keys())` in production code for deterministic output
 
+### 7.5 Test Assertion Specificity
+
+When testing formatted output (markdown links, tables), verify the actual format, not just content presence:
+
+```go
+// Bad - only verifies content exists
+assert.Contains(t, row[2], "wan")
+
+// Good - verifies link format
+assert.Contains(t, interfaceCell, "[wan]")
+assert.Contains(t, interfaceCell, "#wan-interface")
+assert.Contains(t, interfaceCell, ", ") // Multi-value separator
+```
+
 ---
 
 ## 8. Plugin Architecture
