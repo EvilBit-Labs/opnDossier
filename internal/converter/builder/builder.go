@@ -901,7 +901,7 @@ func (b *MarkdownBuilder) BuildIPsecSection(data *model.OpnSenseDocument) string
 
 	ipsec := data.OPNsense.IPsec
 	if ipsec == nil {
-		md.PlainText("*No IPsec configuration present*")
+		md.PlainText(markdown.Italic("No IPsec configuration present"))
 		return md.String()
 	}
 
@@ -931,7 +931,7 @@ func (b *MarkdownBuilder) BuildIPsecSection(data *model.OpnSenseDocument) string
 	}
 	md.Table(markdown.TableSet{Header: charonHeaders, Rows: charonRows})
 
-	md.PlainText("*Note: Phase 1/Phase 2 tunnel configurations require additional parser implementation*")
+	md.Note("Phase 1/Phase 2 tunnel configurations require additional parser implementation")
 
 	return md.String()
 }
@@ -948,7 +948,7 @@ func (b *MarkdownBuilder) BuildOpenVPNSection(data *model.OpnSenseDocument) stri
 	// OpenVPN Servers
 	md.H4("OpenVPN Servers")
 	if len(openvpn.Servers) == 0 {
-		md.PlainText("*No OpenVPN servers configured*")
+		md.PlainText(markdown.Italic("No OpenVPN servers configured"))
 	} else {
 		serverHeaders := []string{
 			"Description",
@@ -979,7 +979,7 @@ func (b *MarkdownBuilder) BuildOpenVPNSection(data *model.OpnSenseDocument) stri
 	// OpenVPN Clients
 	md.H4("OpenVPN Clients")
 	if len(openvpn.Clients) == 0 {
-		md.PlainText("*No OpenVPN clients configured*")
+		md.PlainText(markdown.Italic("No OpenVPN clients configured"))
 	} else {
 		clientHeaders := []string{
 			"Description",
@@ -1006,7 +1006,7 @@ func (b *MarkdownBuilder) BuildOpenVPNSection(data *model.OpnSenseDocument) stri
 	// Client-Specific Overrides (CSC)
 	md.H4("Client-Specific Overrides")
 	if len(openvpn.CSC) == 0 {
-		md.PlainText("*No client-specific overrides configured*")
+		md.PlainText(markdown.Italic("No client-specific overrides configured"))
 	} else {
 		cscHeaders := []string{
 			"Common Name",
@@ -1065,7 +1065,7 @@ func (b *MarkdownBuilder) BuildHASection(data *model.OpnSenseDocument) string {
 	// Virtual IP Addresses
 	md.H4("Virtual IP Addresses (CARP)")
 	if data.VirtualIP.Vip == "" {
-		md.PlainText("*No virtual IPs configured*")
+		md.PlainText(markdown.Italic("No virtual IPs configured"))
 	} else {
 		vipHeaders := []string{"VIP Address", "Type"}
 		vipRows := [][]string{
@@ -1079,7 +1079,7 @@ func (b *MarkdownBuilder) BuildHASection(data *model.OpnSenseDocument) string {
 	hasync := data.HighAvailabilitySync
 
 	if hasync.Pfsyncinterface == "" && hasync.Synchronizetoip == "" {
-		md.PlainText("*No HA synchronization configured*")
+		md.PlainText(markdown.Italic("No HA synchronization configured"))
 	} else {
 		haHeaders := []string{"Setting", "Value"}
 		haRows := [][]string{

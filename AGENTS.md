@@ -314,7 +314,28 @@ Place standalone development tools in `tools/<name>/main.go` with `//go:build ig
 
 ### 5.14 Markdown Generation (`nao1215/markdown`)
 
-Use `nao1215/markdown` for programmatic markdown generation in `internal/converter/builder/`. Prefer library methods over manual string construction:
+Use `nao1215/markdown` for programmatic markdown generation in `internal/converter/builder/`. Prefer library methods over manual string construction.
+
+**Method chaining - Use fluent builder pattern:**
+
+```go
+// Idiomatic - chain methods and terminate with Build()
+md.NewMarkdown(os.Stdout).
+    H1("Report Title").
+    PlainText("Introduction paragraph").
+    H2("Section").
+    BulletList("Item 1", "Item 2").
+    Table(tableSet).
+    Build()
+
+// Alternative - use String() when capturing output
+var buf bytes.Buffer
+md := markdown.NewMarkdown(&buf)
+md.H1("Title").
+    PlainText(markdown.Italic("subtitle")).
+    Table(data)
+return md.String()
+```
 
 **Lists - Use `BulletList()` with `Link()` helper:**
 
