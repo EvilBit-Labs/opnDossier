@@ -237,7 +237,7 @@ jobs:
           done
 
       - name: Upload Reports
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v6
         with:
           name: security-reports
           path: reports/
