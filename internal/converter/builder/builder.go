@@ -20,19 +20,28 @@ const destinationAny = "any"
 // ReportBuilder interface defines the contract for programmatic report generation.
 // This provides type-safe, compile-time guaranteed markdown generation.
 type ReportBuilder interface {
-	// Core section builders
+	// BuildSystemSection builds the system configuration section.
 	BuildSystemSection(data *model.OpnSenseDocument) string
+	// BuildNetworkSection builds the network configuration section.
 	BuildNetworkSection(data *model.OpnSenseDocument) string
+	// BuildSecuritySection builds the security configuration section.
 	BuildSecuritySection(data *model.OpnSenseDocument) string
+	// BuildServicesSection builds the services configuration section.
 	BuildServicesSection(data *model.OpnSenseDocument) string
 
-	// Shared component builders
+	// BuildFirewallRulesTable builds a table of firewall rules.
 	BuildFirewallRulesTable(rules []model.Rule) *markdown.TableSet
+	// BuildInterfaceTable builds a table of network interfaces.
 	BuildInterfaceTable(interfaces model.Interfaces) *markdown.TableSet
+	// BuildUserTable builds a table of system users.
 	BuildUserTable(users []model.User) *markdown.TableSet
+	// BuildGroupTable builds a table of system groups.
 	BuildGroupTable(groups []model.Group) *markdown.TableSet
+	// BuildSysctlTable builds a table of sysctl tunables.
 	BuildSysctlTable(sysctl []model.SysctlItem) *markdown.TableSet
+	// BuildOutboundNATTable builds a table of outbound NAT rules.
 	BuildOutboundNATTable(rules []model.NATRule) *markdown.TableSet
+	// BuildInboundNATTable builds a table of inbound NAT/port forward rules.
 	BuildInboundNATTable(rules []model.InboundRule) *markdown.TableSet
 
 	// BuildVLANTable builds a table of VLAN configurations.
@@ -46,8 +55,9 @@ type ReportBuilder interface {
 	// BuildHASection builds the High Availability and CARP configuration section.
 	BuildHASection(data *model.OpnSenseDocument) string
 
-	// Report generation
+	// BuildStandardReport generates a standard configuration report.
 	BuildStandardReport(data *model.OpnSenseDocument) (string, error)
+	// BuildComprehensiveReport generates a comprehensive configuration report.
 	BuildComprehensiveReport(data *model.OpnSenseDocument) (string, error)
 }
 
