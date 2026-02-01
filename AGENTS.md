@@ -43,16 +43,17 @@ When rules conflict, follow the higher precedence rule.
 
 ## 3. Technology Stack
 
-| Layer              | Technology                                             |
-| ------------------ | ------------------------------------------------------ |
-| CLI Framework      | `cobra` v1.8.0                                         |
-| CLI Enhancement    | `charmbracelet/fang` for styled help, errors, features |
-| Configuration      | `spf13/viper` for config parsing                       |
-| Terminal Styling   | `charmbracelet/lipgloss`                               |
-| Markdown Rendering | `charmbracelet/glamour`                                |
-| Logging            | `charmbracelet/log`                                    |
-| Data Formats       | `encoding/xml`, `encoding/json`, `gopkg.in/yaml.v3`    |
-| Testing            | Go's built-in `testing` package                        |
+| Layer               | Technology                                             |
+| ------------------- | ------------------------------------------------------ |
+| CLI Framework       | `cobra` v1.8.0                                         |
+| CLI Enhancement     | `charmbracelet/fang` for styled help, errors, features |
+| Configuration       | `spf13/viper` for config parsing                       |
+| Terminal Styling    | `charmbracelet/lipgloss`                               |
+| Markdown Rendering  | `charmbracelet/glamour`                                |
+| Markdown Generation | `nao1215/markdown` for programmatic report building    |
+| Logging             | `charmbracelet/log`                                    |
+| Data Formats        | `encoding/xml`, `encoding/json`, `gopkg.in/yaml.v3`    |
+| Testing             | Go's built-in `testing` package                        |
 
 **Go Version:** 1.21.6+ (minimum), 1.24.5+ (recommended)
 
@@ -310,6 +311,69 @@ Place standalone development tools in `tools/<name>/main.go` with `//go:build ig
 - Some code duplication is acceptable for tool independence
 - Run via `go run tools/<name>/main.go` or justfile targets
 - Example: `tools/docgen/main.go` generates model documentation
+
+### 5.14 Markdown Generation (`nao1215/markdown`)
+
+Use `nao1215/markdown` for programmatic markdown generation in `internal/converter/builder/`. Prefer library methods over manual string construction:
+
+**Lists - Use `BulletList()` with `Link()` helper:**
+
+```go
+// Good - idiomatic
+md.BulletList(
+    markdown.Link("System Configuration", "#system-configuration"),
+    markdown.Link("Interfaces", "#interfaces"),
+)
+
+// Bad - manual construction
+md.PlainText("- [System Configuration](#system-configuration)")
+md.PlainText("- [Interfaces](#interfaces)")
+```
+
+**Alerts - Use semantic alert methods:**
+
+```go
+// Good - renders as GitHub-flavored markdown alert
+md.Warning("NAT reflection is enabled, which may expose internal services.")
+md.Note("Phase 1/Phase 2 tunnels require additional configuration.")
+md.Tip("Consider enabling hardware offloading for better performance.")
+md.Caution("This action cannot be undone.")
+
+// Bad - manual formatting
+md.PlainText("**⚠️ Warning**: NAT reflection is enabled...")
+md.PlainText("*Note: Phase 1/Phase 2 tunnels require...*")
+```
+
+**Text formatting - Use helper functions:**
+
+```go
+// Good
+md.PlainText(markdown.Italic("No VLANs configured"))
+md.PlainTextf("Status: %s", markdown.Bold("Active"))
+linkText := markdown.Link("documentation", "https://example.com")
+
+// Bad
+md.PlainText("*No VLANs configured*")
+md.PlainText("Status: **Active**")
+```
+
+**Available methods reference:**
+
+| Method                     | Purpose         | Output           |
+| -------------------------- | --------------- | ---------------- |
+| `BulletList(items...)`     | Unordered list  | `- item`         |
+| `OrderedList(items...)`    | Numbered list   | `1. item`        |
+| `Warning(text)`            | Warning alert   | `> [!WARNING]`   |
+| `Note(text)`               | Note alert      | `> [!NOTE]`      |
+| `Tip(text)`                | Tip alert       | `> [!TIP]`       |
+| `Caution(text)`            | Caution alert   | `> [!CAUTION]`   |
+| `Important(text)`          | Important alert | `> [!IMPORTANT]` |
+| `Details(summary, text)`   | Collapsible     | `<details>`      |
+| `HorizontalRule()`         | Separator       | `---`            |
+| `markdown.Link(text, url)` | Hyperlink       | `[text](url)`    |
+| `markdown.Bold(text)`      | Bold text       | `**text**`       |
+| `markdown.Italic(text)`    | Italic text     | `*text*`         |
+| `markdown.Code(text)`      | Inline code     | `` `text` ``     |
 
 ---
 
