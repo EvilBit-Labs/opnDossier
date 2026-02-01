@@ -35,11 +35,15 @@ type ReportBuilder interface {
 	BuildOutboundNATTable(rules []model.NATRule) *markdown.TableSet
 	BuildInboundNATTable(rules []model.InboundRule) *markdown.TableSet
 
-	// Network component builders (Issue #67)
+	// BuildVLANTable builds a table of VLAN configurations.
 	BuildVLANTable(vlans []model.VLAN) *markdown.TableSet
+	// BuildStaticRoutesTable builds a table of static route configurations.
 	BuildStaticRoutesTable(routes []model.StaticRoute) *markdown.TableSet
+	// BuildIPsecSection builds the IPsec VPN configuration section.
 	BuildIPsecSection(data *model.OpnSenseDocument) string
+	// BuildOpenVPNSection builds the OpenVPN configuration section.
 	BuildOpenVPNSection(data *model.OpnSenseDocument) string
+	// BuildHASection builds the High Availability and CARP configuration section.
 	BuildHASection(data *model.OpnSenseDocument) string
 
 	// Report generation
