@@ -2061,8 +2061,10 @@ func TestMarkdownBuilder_NATRulesWithInterfaceLinks(t *testing.T) {
 	inRow2 := inboundTableSet.Rows[1]
 	inInterfaceCell2 := inRow2[2]
 	assert.Contains(t, inInterfaceCell2, "[wan]")
+	assert.Contains(t, inInterfaceCell2, "#wan-interface")
 	assert.Contains(t, inInterfaceCell2, "[opt2]")
 	assert.Contains(t, inInterfaceCell2, "#opt2-interface")
+	assert.Contains(t, inInterfaceCell2, ", ") // Comma separator between links
 }
 
 // TestMarkdownBuilder_NATRulesEmptyInterfaceList verifies NAT rules with empty
