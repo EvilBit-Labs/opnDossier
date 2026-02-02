@@ -372,15 +372,15 @@ func (b *MarkdownBuilder) writeServicesSection(md *markdown.Markdown, data *mode
 	}
 
 	if len(svcConfig.LoadBalancer.MonitorType) > 0 {
-		md.H3("Load Balancer Monitors")
 		rows := make([][]string, 0, len(svcConfig.LoadBalancer.MonitorType))
 		for _, monitor := range svcConfig.LoadBalancer.MonitorType {
 			rows = append(rows, []string{monitor.Name, monitor.Type, monitor.Descr})
 		}
-		md.Table(markdown.TableSet{
-			Header: []string{"Name", "Type", "Description"},
-			Rows:   rows,
-		})
+		md.H3("Load Balancer Monitors").
+			Table(markdown.TableSet{
+				Header: []string{"Name", "Type", "Description"},
+				Rows:   rows,
+			})
 	}
 }
 
@@ -931,30 +931,30 @@ func (b *MarkdownBuilder) writeIPsecSection(md *markdown.Markdown, data *model.O
 	}
 
 	// General Configuration
-	md.H4("General Configuration")
-
-	generalHeaders := []string{"Setting", "Value"}
-	generalRows := [][]string{
-		{"**Enabled**", formatters.FormatBoolean(ipsec.General.Enabled)},
-		{"**Prefer Old SA**", formatters.FormatBoolean(ipsec.General.PreferredOldsa)},
-		{"**Disable VPN Rules**", formatters.FormatBoolean(ipsec.General.Disablevpnrules)},
-		{"**Passthrough Networks**", formatters.EscapeTableContent(ipsec.General.PassthroughNetworks)},
-	}
-	md.Table(markdown.TableSet{Header: generalHeaders, Rows: generalRows})
+	md.H4("General Configuration").
+		Table(markdown.TableSet{
+			Header: []string{"Setting", "Value"},
+			Rows: [][]string{
+				{"**Enabled**", formatters.FormatBoolean(ipsec.General.Enabled)},
+				{"**Prefer Old SA**", formatters.FormatBoolean(ipsec.General.PreferredOldsa)},
+				{"**Disable VPN Rules**", formatters.FormatBoolean(ipsec.General.Disablevpnrules)},
+				{"**Passthrough Networks**", formatters.EscapeTableContent(ipsec.General.PassthroughNetworks)},
+			},
+		})
 
 	// Charon IKE Daemon Configuration
-	md.H4("Charon IKE Daemon Configuration")
-
-	charonHeaders := []string{"Parameter", "Value"}
-	charonRows := [][]string{
-		{"**Threads**", ipsec.Charon.Threads},
-		{"**IKE SA Table Size**", ipsec.Charon.IkesaTableSize},
-		{"**Max IKEv1 Exchanges**", ipsec.Charon.MaxIkev1Exchanges},
-		{"**Retransmit Tries**", ipsec.Charon.RetransmitTries},
-		{"**Retransmit Timeout**", formatters.FormatWithSuffix(ipsec.Charon.RetransmitTimeout, "s")},
-		{"**Make Before Break**", formatters.FormatBoolean(ipsec.Charon.MakeBeforeBreak)},
-	}
-	md.Table(markdown.TableSet{Header: charonHeaders, Rows: charonRows})
+	md.H4("Charon IKE Daemon Configuration").
+		Table(markdown.TableSet{
+			Header: []string{"Parameter", "Value"},
+			Rows: [][]string{
+				{"**Threads**", ipsec.Charon.Threads},
+				{"**IKE SA Table Size**", ipsec.Charon.IkesaTableSize},
+				{"**Max IKEv1 Exchanges**", ipsec.Charon.MaxIkev1Exchanges},
+				{"**Retransmit Tries**", ipsec.Charon.RetransmitTries},
+				{"**Retransmit Timeout**", formatters.FormatWithSuffix(ipsec.Charon.RetransmitTimeout, "s")},
+				{"**Make Before Break**", formatters.FormatBoolean(ipsec.Charon.MakeBeforeBreak)},
+			},
+		})
 
 	md.Note("Phase 1/Phase 2 tunnel configurations require additional parser implementation")
 }
@@ -974,20 +974,10 @@ func (b *MarkdownBuilder) writeOpenVPNSection(md *markdown.Markdown, data *model
 	openvpn := data.OpenVPN
 
 	// OpenVPN Servers
-	md.H4("OpenVPN Servers")
 	if len(openvpn.Servers) == 0 {
-		md.PlainText(markdown.Italic("No OpenVPN servers configured"))
+		md.H4("OpenVPN Servers").
+			PlainText(markdown.Italic("No OpenVPN servers configured"))
 	} else {
-		serverHeaders := []string{
-			"Description",
-			"Mode",
-			"Protocol",
-			"Interface",
-			"Port",
-			"Tunnel Network",
-			"Remote Network",
-			"Certificate",
-		}
 		serverRows := make([][]string, 0, len(openvpn.Servers))
 		for _, server := range openvpn.Servers {
 			serverRows = append(serverRows, []string{
@@ -1001,22 +991,27 @@ func (b *MarkdownBuilder) writeOpenVPNSection(md *markdown.Markdown, data *model
 				formatters.EscapeTableContent(server.Cert_ref),
 			})
 		}
-		md.Table(markdown.TableSet{Header: serverHeaders, Rows: serverRows})
+		md.H4("OpenVPN Servers").
+			Table(markdown.TableSet{
+				Header: []string{
+					"Description",
+					"Mode",
+					"Protocol",
+					"Interface",
+					"Port",
+					"Tunnel Network",
+					"Remote Network",
+					"Certificate",
+				},
+				Rows: serverRows,
+			})
 	}
 
 	// OpenVPN Clients
-	md.H4("OpenVPN Clients")
 	if len(openvpn.Clients) == 0 {
-		md.PlainText(markdown.Italic("No OpenVPN clients configured"))
+		md.H4("OpenVPN Clients").
+			PlainText(markdown.Italic("No OpenVPN clients configured"))
 	} else {
-		clientHeaders := []string{
-			"Description",
-			"Server Address",
-			"Port",
-			"Mode",
-			"Protocol",
-			"Certificate",
-		}
 		clientRows := make([][]string, 0, len(openvpn.Clients))
 		for _, client := range openvpn.Clients {
 			clientRows = append(clientRows, []string{
@@ -1028,21 +1023,25 @@ func (b *MarkdownBuilder) writeOpenVPNSection(md *markdown.Markdown, data *model
 				formatters.EscapeTableContent(client.Cert_ref),
 			})
 		}
-		md.Table(markdown.TableSet{Header: clientHeaders, Rows: clientRows})
+		md.H4("OpenVPN Clients").
+			Table(markdown.TableSet{
+				Header: []string{
+					"Description",
+					"Server Address",
+					"Port",
+					"Mode",
+					"Protocol",
+					"Certificate",
+				},
+				Rows: clientRows,
+			})
 	}
 
 	// Client-Specific Overrides (CSC)
-	md.H4("Client-Specific Overrides")
 	if len(openvpn.CSC) == 0 {
-		md.PlainText(markdown.Italic("No client-specific overrides configured"))
+		md.H4("Client-Specific Overrides").
+			PlainText(markdown.Italic("No client-specific overrides configured"))
 	} else {
-		cscHeaders := []string{
-			"Common Name",
-			"Tunnel Network",
-			"Local Network",
-			"Remote Network",
-			"DNS Domain",
-		}
 		cscRows := make([][]string, 0, len(openvpn.CSC))
 		for _, csc := range openvpn.CSC {
 			cscRows = append(cscRows, []string{
@@ -1053,7 +1052,17 @@ func (b *MarkdownBuilder) writeOpenVPNSection(md *markdown.Markdown, data *model
 				formatters.EscapeTableContent(csc.DNS_domain),
 			})
 		}
-		md.Table(markdown.TableSet{Header: cscHeaders, Rows: cscRows})
+		md.H4("Client-Specific Overrides").
+			Table(markdown.TableSet{
+				Header: []string{
+					"Common Name",
+					"Tunnel Network",
+					"Local Network",
+					"Remote Network",
+					"DNS Domain",
+				},
+				Rows: cscRows,
+			})
 	}
 }
 
@@ -1096,34 +1105,38 @@ func (b *MarkdownBuilder) writeHASection(md *markdown.Markdown, data *model.OpnS
 	md.H3("High Availability & CARP")
 
 	// Virtual IP Addresses
-	md.H4("Virtual IP Addresses (CARP)")
 	if data.VirtualIP.Vip == "" {
-		md.PlainText(markdown.Italic("No virtual IPs configured"))
+		md.H4("Virtual IP Addresses (CARP)").
+			PlainText(markdown.Italic("No virtual IPs configured"))
 	} else {
-		vipHeaders := []string{"VIP Address", "Type"}
-		vipRows := [][]string{
-			{formatters.EscapeTableContent(data.VirtualIP.Vip), "CARP"},
-		}
-		md.Table(markdown.TableSet{Header: vipHeaders, Rows: vipRows})
+		md.H4("Virtual IP Addresses (CARP)").
+			Table(markdown.TableSet{
+				Header: []string{"VIP Address", "Type"},
+				Rows: [][]string{
+					{formatters.EscapeTableContent(data.VirtualIP.Vip), "CARP"},
+				},
+			})
 	}
 
 	// HA Synchronization Settings
-	md.H4("HA Synchronization Settings")
 	hasync := data.HighAvailabilitySync
 
 	if hasync.Pfsyncinterface == "" && hasync.Synchronizetoip == "" {
-		md.PlainText(markdown.Italic("No HA synchronization configured"))
+		md.H4("HA Synchronization Settings").
+			PlainText(markdown.Italic("No HA synchronization configured"))
 	} else {
-		haHeaders := []string{"Setting", "Value"}
-		haRows := [][]string{
-			{"**pfSync Interface**", formatters.EscapeTableContent(hasync.Pfsyncinterface)},
-			{"**pfSync Peer IP**", formatters.EscapeTableContent(hasync.Pfsyncpeerip)},
-			{"**Configuration Sync IP**", formatters.EscapeTableContent(hasync.Synchronizetoip)},
-			{"**Sync Username**", formatters.EscapeTableContent(hasync.Username)},
-			{"**Disable Preempt**", formatters.FormatBoolean(hasync.Disablepreempt)},
-			{"**pfSync Version**", hasync.Pfsyncversion},
-		}
-		md.Table(markdown.TableSet{Header: haHeaders, Rows: haRows})
+		md.H4("HA Synchronization Settings").
+			Table(markdown.TableSet{
+				Header: []string{"Setting", "Value"},
+				Rows: [][]string{
+					{"**pfSync Interface**", formatters.EscapeTableContent(hasync.Pfsyncinterface)},
+					{"**pfSync Peer IP**", formatters.EscapeTableContent(hasync.Pfsyncpeerip)},
+					{"**Configuration Sync IP**", formatters.EscapeTableContent(hasync.Synchronizetoip)},
+					{"**Sync Username**", formatters.EscapeTableContent(hasync.Username)},
+					{"**Disable Preempt**", formatters.FormatBoolean(hasync.Disablepreempt)},
+					{"**pfSync Version**", hasync.Pfsyncversion},
+				},
+			})
 	}
 }
 
