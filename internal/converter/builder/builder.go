@@ -4,6 +4,8 @@ package builder
 import (
 	"bytes"
 	"fmt"
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -909,6 +911,107 @@ func BuildStaticRoutesTableSet(routes []model.StaticRoute) *markdown.TableSet {
 				status,
 				route.Created,
 				route.Updated,
+			})
+		}
+	}
+
+	return &markdown.TableSet{
+		Header: headers,
+		Rows:   rows,
+	}
+}
+
+// WriteDHCPSummaryTable writes a DHCP scope summary table and returns md for chaining.
+func (b *MarkdownBuilder) WriteDHCPSummaryTable(md *markdown.Markdown, dhcpd model.Dhcpd) *markdown.Markdown {
+	return md.Table(*BuildDHCPSummaryTableSet(dhcpd))
+}
+
+// BuildDHCPSummaryTableSet builds the table data for DHCP scope summary.
+func BuildDHCPSummaryTableSet(dhcpd model.Dhcpd) *markdown.TableSet {
+	headers := []string{
+		"Interface",
+		"Enabled",
+		"Gateway",
+		"Range Start",
+		"Range End",
+		"DNS",
+		"WINS",
+		"NTP",
+		"DDNS Algorithm",
+	}
+
+	rows := make([][]string, 0, len(dhcpd.Items))
+
+	if len(dhcpd.Items) == 0 {
+		rows = append(rows, []string{
+			"-", "-", "-", "-", "-", "-", "-", "-",
+			"No DHCP scopes configured",
+		})
+	} else {
+		// Use sorted keys for deterministic ordering
+		for _, ifaceName := range slices.Sorted(maps.Keys(dhcpd.Items)) {
+			iface := dhcpd.Items[ifaceName]
+			rows = append(rows, []string{
+				formatters.EscapeTableContent(ifaceName),
+				formatters.FormatBoolean(iface.Enable),
+				formatters.EscapeTableContent(iface.Gateway),
+				formatters.EscapeTableContent(iface.Range.From),
+				formatters.EscapeTableContent(iface.Range.To),
+				formatters.EscapeTableContent(iface.Dnsserver),
+				formatters.EscapeTableContent(iface.Winsserver),
+				formatters.EscapeTableContent(iface.Ntpserver),
+				formatters.EscapeTableContent(iface.DdnsDomainAlgorithm),
+			})
+		}
+	}
+
+	return &markdown.TableSet{
+		Header: headers,
+		Rows:   rows,
+	}
+}
+
+// WriteDHCPStaticLeasesTable writes a static DHCP leases table and returns md for chaining.
+func (b *MarkdownBuilder) WriteDHCPStaticLeasesTable(
+	md *markdown.Markdown,
+	leases []model.DHCPStaticLease,
+) *markdown.Markdown {
+	return md.Table(*BuildDHCPStaticLeasesTableSet(leases))
+}
+
+// BuildDHCPStaticLeasesTableSet builds the table data for static DHCP leases.
+func BuildDHCPStaticLeasesTableSet(leases []model.DHCPStaticLease) *markdown.TableSet {
+	headers := []string{
+		"Hostname",
+		"MAC",
+		"IP",
+		"CID",
+		"Filename",
+		"Rootpath",
+		"Default Lease",
+		"Max Lease",
+		"Description",
+	}
+
+	rows := make([][]string, 0, len(leases))
+
+	if len(leases) == 0 {
+		rows = append(rows, []string{
+			"-", "-", "-", "-", "-", "-", "-", "-",
+			"No static leases configured",
+		})
+	} else {
+		for _, lease := range leases {
+			rows = append(rows, []string{
+				formatters.EscapeTableContent(lease.Hostname),
+				formatters.EscapeTableContent(lease.Mac),
+				formatters.EscapeTableContent(lease.IPAddr),
+				formatters.EscapeTableContent(lease.Cid),
+				formatters.EscapeTableContent(lease.Filename),
+				formatters.EscapeTableContent(lease.Rootpath),
+				FormatLeaseTime(lease.Defaultleasetime),
+				FormatLeaseTime(lease.Maxleasetime),
+				formatters.EscapeTableContent(lease.Descr),
 			})
 		}
 	}
