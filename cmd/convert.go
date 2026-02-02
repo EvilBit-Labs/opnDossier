@@ -105,6 +105,14 @@ func registerConvertFlagCompletions(cmd *cobra.Command) {
 	if err := cmd.RegisterFlagCompletionFunc("section", ValidSections); err != nil {
 		logger.Debug("failed to register section completion", "error", err)
 	}
+
+	// Audit flag completions
+	if err := cmd.RegisterFlagCompletionFunc("audit-mode", ValidAuditModes); err != nil {
+		logger.Debug("failed to register audit-mode completion", "error", err)
+	}
+	if err := cmd.RegisterFlagCompletionFunc("audit-plugins", ValidAuditPlugins); err != nil {
+		logger.Debug("failed to register audit-plugins completion", "error", err)
+	}
 }
 
 var convertCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command

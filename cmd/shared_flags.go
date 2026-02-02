@@ -203,3 +203,21 @@ func ValidColorModes(_ *cobra.Command, _ []string, _ string) ([]string, cobra.Sh
 		"never\tNever use colors",
 	}, cobra.ShellCompDirectiveNoFileComp
 }
+
+// ValidAuditModes provides shell completion for audit mode values.
+func ValidAuditModes(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	return []string{
+		"standard\tNeutral, comprehensive documentation report",
+		"blue\tDefensive audit with security findings",
+		"red\tAttacker-focused recon report",
+	}, cobra.ShellCompDirectiveNoFileComp
+}
+
+// ValidAuditPlugins provides shell completion for audit plugin values.
+func ValidAuditPlugins(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	return []string{
+		"stig\tSecurity Technical Implementation Guide",
+		"sans\tSANS Firewall Baseline",
+		"firewall\tCustom firewall compliance checks",
+	}, cobra.ShellCompDirectiveNoFileComp
+}
