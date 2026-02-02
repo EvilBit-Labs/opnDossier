@@ -155,7 +155,7 @@ func appendAuditFindings(baseReport string, report *audit.Report) string {
 
 // formatPluginFindings formats plugin findings for display.
 //
-//nolint:unused // Reserved for future enhanced formatting
+
 func formatPluginFindings(findings []plugin.Finding) string {
 	if len(findings) == 0 {
 		return "No findings"
