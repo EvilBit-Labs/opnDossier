@@ -411,6 +411,12 @@ md.H4("Section Title")
 md.Table(markdown.TableSet{...})
 ```
 
+### 5.15 Slice Pre-allocation
+
+- Use `make([]T, 0)` without capacity hints for small, variable-length slices
+- Only add capacity hints when the capacity value is reused elsewhere or performance-critical
+- Avoid creating constants solely for capacity hints (adds maintenance burden)
+
 ---
 
 ## 6. Data Processing Standards
