@@ -29,25 +29,25 @@ type ReportBuilder interface {
 	// BuildServicesSection builds the services configuration section.
 	BuildServicesSection(data *model.OpnSenseDocument) string
 
-	// BuildFirewallRulesTable builds a table of firewall rules.
-	BuildFirewallRulesTable(rules []model.Rule) *markdown.TableSet
-	// BuildInterfaceTable builds a table of network interfaces.
-	BuildInterfaceTable(interfaces model.Interfaces) *markdown.TableSet
-	// BuildUserTable builds a table of system users.
-	BuildUserTable(users []model.User) *markdown.TableSet
-	// BuildGroupTable builds a table of system groups.
-	BuildGroupTable(groups []model.Group) *markdown.TableSet
-	// BuildSysctlTable builds a table of sysctl tunables.
-	BuildSysctlTable(sysctl []model.SysctlItem) *markdown.TableSet
-	// BuildOutboundNATTable builds a table of outbound NAT rules.
-	BuildOutboundNATTable(rules []model.NATRule) *markdown.TableSet
-	// BuildInboundNATTable builds a table of inbound NAT/port forward rules.
-	BuildInboundNATTable(rules []model.InboundRule) *markdown.TableSet
+	// WriteFirewallRulesTable writes a firewall rules table and returns md for chaining.
+	WriteFirewallRulesTable(md *markdown.Markdown, rules []model.Rule) *markdown.Markdown
+	// WriteInterfaceTable writes an interfaces table and returns md for chaining.
+	WriteInterfaceTable(md *markdown.Markdown, interfaces model.Interfaces) *markdown.Markdown
+	// WriteUserTable writes a users table and returns md for chaining.
+	WriteUserTable(md *markdown.Markdown, users []model.User) *markdown.Markdown
+	// WriteGroupTable writes a groups table and returns md for chaining.
+	WriteGroupTable(md *markdown.Markdown, groups []model.Group) *markdown.Markdown
+	// WriteSysctlTable writes a sysctl tunables table and returns md for chaining.
+	WriteSysctlTable(md *markdown.Markdown, sysctl []model.SysctlItem) *markdown.Markdown
+	// WriteOutboundNATTable writes an outbound NAT rules table and returns md for chaining.
+	WriteOutboundNATTable(md *markdown.Markdown, rules []model.NATRule) *markdown.Markdown
+	// WriteInboundNATTable writes an inbound NAT/port forward rules table and returns md for chaining.
+	WriteInboundNATTable(md *markdown.Markdown, rules []model.InboundRule) *markdown.Markdown
+	// WriteVLANTable writes a VLAN configurations table and returns md for chaining.
+	WriteVLANTable(md *markdown.Markdown, vlans []model.VLAN) *markdown.Markdown
+	// WriteStaticRoutesTable writes a static routes table and returns md for chaining.
+	WriteStaticRoutesTable(md *markdown.Markdown, routes []model.StaticRoute) *markdown.Markdown
 
-	// BuildVLANTable builds a table of VLAN configurations.
-	BuildVLANTable(vlans []model.VLAN) *markdown.TableSet
-	// BuildStaticRoutesTable builds a table of static route configurations.
-	BuildStaticRoutesTable(routes []model.StaticRoute) *markdown.TableSet
 	// BuildIPsecSection builds the IPsec VPN configuration section.
 	BuildIPsecSection(data *model.OpnSenseDocument) string
 	// BuildOpenVPNSection builds the OpenVPN configuration section.
@@ -100,18 +100,14 @@ func NewMarkdownBuilderWithConfig(config *model.OpnSenseDocument, logger *log.Lo
 	}
 }
 
-// BuildSystemSection builds the system configuration section.
-func (b *MarkdownBuilder) BuildSystemSection(data *model.OpnSenseDocument) string {
-	var buf bytes.Buffer
-	md := markdown.NewMarkdown(&buf)
-
+// writeSystemSection writes the system configuration section to the markdown instance.
+func (b *MarkdownBuilder) writeSystemSection(md *markdown.Markdown, data *model.OpnSenseDocument) {
 	sysConfig := data.SystemConfig()
 
-	md.H2("System Configuration")
-
-	md.H3("Basic Information")
-	md.PlainTextf("%s: %s", markdown.Bold("Hostname"), sysConfig.System.Hostname)
-	md.PlainTextf("%s: %s", markdown.Bold("Domain"), sysConfig.System.Domain)
+	md.H2("System Configuration").
+		H3("Basic Information").
+		PlainTextf("%s: %s", markdown.Bold("Hostname"), sysConfig.System.Hostname).LF().
+		PlainTextf("%s: %s", markdown.Bold("Domain"), sysConfig.System.Domain).LF()
 
 	if sysConfig.System.Optimization != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("Optimization"), sysConfig.System.Optimization)
@@ -130,14 +126,14 @@ func (b *MarkdownBuilder) BuildSystemSection(data *model.OpnSenseDocument) strin
 		md.PlainTextf("%s: %s", markdown.Bold("Protocol"), sysConfig.System.WebGUI.Protocol)
 	}
 
-	md.H3("System Settings")
-	md.PlainTextf(
-		"%s: %s",
-		markdown.Bold("DNS Allow Override"),
-		formatters.FormatIntBoolean(sysConfig.System.DNSAllowOverride),
-	)
-	md.PlainTextf("%s: %d", markdown.Bold("Next UID"), sysConfig.System.NextUID)
-	md.PlainTextf("%s: %d", markdown.Bold("Next GID"), sysConfig.System.NextGID)
+	md.H3("System Settings").
+		PlainTextf(
+			"%s: %s",
+			markdown.Bold("DNS Allow Override"),
+			formatters.FormatIntBoolean(sysConfig.System.DNSAllowOverride),
+		).LF().
+		PlainTextf("%s: %d", markdown.Bold("Next UID"), sysConfig.System.NextUID).LF().
+		PlainTextf("%s: %d", markdown.Bold("Next GID"), sysConfig.System.NextGID).LF()
 
 	if sysConfig.System.TimeServers != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("Time Servers"), sysConfig.System.TimeServers)
@@ -147,147 +143,142 @@ func (b *MarkdownBuilder) BuildSystemSection(data *model.OpnSenseDocument) strin
 		md.PlainTextf("%s: %s", markdown.Bold("DNS Server"), sysConfig.System.DNSServer)
 	}
 
-	md.H3("Hardware Offloading")
-	md.PlainTextf(
-		"%s: %s",
-		markdown.Bold("Disable NAT Reflection"),
-		formatters.FormatBoolean(sysConfig.System.DisableNATReflection),
-	)
-	md.PlainTextf(
-		"%s: %s",
-		markdown.Bold("Use Virtual Terminal"),
-		formatters.FormatIntBoolean(sysConfig.System.UseVirtualTerminal),
-	)
-	md.PlainTextf(
-		"%s: %s",
-		markdown.Bold("Disable Console Menu"),
-		formatters.FormatStructBoolean(sysConfig.System.DisableConsoleMenu),
-	)
-	md.PlainTextf(
-		"%s: %s",
-		markdown.Bold("Disable VLAN HW Filter"),
-		formatters.FormatIntBoolean(sysConfig.System.DisableVLANHWFilter),
-	)
-	md.PlainTextf(
-		"%s: %s",
-		markdown.Bold("Disable Checksum Offloading"),
-		formatters.FormatIntBoolean(sysConfig.System.DisableChecksumOffloading),
-	)
-	md.PlainTextf(
-		"%s: %s",
-		markdown.Bold("Disable Segmentation Offloading"),
-		formatters.FormatIntBoolean(sysConfig.System.DisableSegmentationOffloading),
-	)
-	md.PlainTextf(
-		"%s: %s",
-		markdown.Bold("Disable Large Receive Offloading"),
-		formatters.FormatIntBoolean(sysConfig.System.DisableLargeReceiveOffloading),
-	)
-	md.PlainTextf("%s: %s", markdown.Bold("IPv6 Allow"), formatters.FormatBoolean(sysConfig.System.IPv6Allow))
+	md.H3("Hardware Offloading").
+		PlainTextf(
+			"%s: %s",
+			markdown.Bold("Disable NAT Reflection"),
+			formatters.FormatBoolean(sysConfig.System.DisableNATReflection),
+		).LF().
+		PlainTextf(
+			"%s: %s",
+			markdown.Bold("Use Virtual Terminal"),
+			formatters.FormatIntBoolean(sysConfig.System.UseVirtualTerminal),
+		).LF().
+		PlainTextf(
+			"%s: %s",
+			markdown.Bold("Disable Console Menu"),
+			formatters.FormatStructBoolean(sysConfig.System.DisableConsoleMenu),
+		).LF().
+		PlainTextf(
+			"%s: %s",
+			markdown.Bold("Disable VLAN HW Filter"),
+			formatters.FormatIntBoolean(sysConfig.System.DisableVLANHWFilter),
+		).LF().
+		PlainTextf(
+			"%s: %s",
+			markdown.Bold("Disable Checksum Offloading"),
+			formatters.FormatIntBoolean(sysConfig.System.DisableChecksumOffloading),
+		).LF().
+		PlainTextf(
+			"%s: %s",
+			markdown.Bold("Disable Segmentation Offloading"),
+			formatters.FormatIntBoolean(sysConfig.System.DisableSegmentationOffloading),
+		).LF().
+		PlainTextf(
+			"%s: %s",
+			markdown.Bold("Disable Large Receive Offloading"),
+			formatters.FormatIntBoolean(sysConfig.System.DisableLargeReceiveOffloading),
+		).LF().
+		PlainTextf("%s: %s", markdown.Bold("IPv6 Allow"), formatters.FormatBoolean(sysConfig.System.IPv6Allow)).LF()
 
-	md.H3("Power Management")
-	md.PlainTextf(
-		"%s: %s",
-		markdown.Bold("Powerd AC Mode"),
-		formatters.GetPowerModeDescriptionCompact(sysConfig.System.PowerdACMode),
-	)
-	md.PlainTextf(
-		"%s: %s",
-		markdown.Bold("Powerd Battery Mode"),
-		formatters.GetPowerModeDescriptionCompact(sysConfig.System.PowerdBatteryMode),
-	)
-	md.PlainTextf(
-		"%s: %s",
-		markdown.Bold("Powerd Normal Mode"),
-		formatters.GetPowerModeDescriptionCompact(sysConfig.System.PowerdNormalMode),
-	)
+	md.H3("Power Management").
+		PlainTextf(
+			"%s: %s",
+			markdown.Bold("Powerd AC Mode"),
+			formatters.GetPowerModeDescriptionCompact(sysConfig.System.PowerdACMode),
+		).LF().
+		PlainTextf(
+			"%s: %s",
+			markdown.Bold("Powerd Battery Mode"),
+			formatters.GetPowerModeDescriptionCompact(sysConfig.System.PowerdBatteryMode),
+		).LF().
+		PlainTextf(
+			"%s: %s",
+			markdown.Bold("Powerd Normal Mode"),
+			formatters.GetPowerModeDescriptionCompact(sysConfig.System.PowerdNormalMode),
+		).LF()
 
-	md.H3("System Features")
-	md.PlainTextf(
-		"%s: %s",
-		markdown.Bold("PF Share Forward"),
-		formatters.FormatIntBoolean(sysConfig.System.PfShareForward),
-	)
-	md.PlainTextf("%s: %s", markdown.Bold("LB Use Sticky"), formatters.FormatIntBoolean(sysConfig.System.LbUseSticky))
-	md.PlainTextf(
-		"%s: %s",
-		markdown.Bold("RRD Backup"),
-		formatters.FormatIntBooleanWithUnset(sysConfig.System.RrdBackup),
-	)
-	md.PlainTextf(
-		"%s: %s",
-		markdown.Bold("Netflow Backup"),
-		formatters.FormatIntBooleanWithUnset(sysConfig.System.NetflowBackup),
-	)
+	md.H3("System Features").
+		PlainTextf(
+			"%s: %s",
+			markdown.Bold("PF Share Forward"),
+			formatters.FormatIntBoolean(sysConfig.System.PfShareForward),
+		).LF().
+		PlainTextf("%s: %s", markdown.Bold("LB Use Sticky"), formatters.FormatIntBoolean(sysConfig.System.LbUseSticky)).
+		LF().
+		PlainTextf(
+			"%s: %s",
+			markdown.Bold("RRD Backup"),
+			formatters.FormatIntBooleanWithUnset(sysConfig.System.RrdBackup),
+		).LF().
+		PlainTextf(
+			"%s: %s",
+			markdown.Bold("Netflow Backup"),
+			formatters.FormatIntBooleanWithUnset(sysConfig.System.NetflowBackup),
+		)
 
 	if sysConfig.System.Bogons.Interval != "" {
-		md.H3("Bogons Configuration")
-		md.PlainTextf("%s: %s", markdown.Bold("Interval"), sysConfig.System.Bogons.Interval)
+		md.H3("Bogons Configuration").
+			PlainTextf("%s: %s", markdown.Bold("Interval"), sysConfig.System.Bogons.Interval)
 	}
 
 	if sysConfig.System.SSH.Group != "" {
-		md.H3("SSH Configuration")
-		md.PlainTextf("%s: %s", markdown.Bold("Group"), sysConfig.System.SSH.Group)
+		md.H3("SSH Configuration").
+			PlainTextf("%s: %s", markdown.Bold("Group"), sysConfig.System.SSH.Group)
 	}
 
 	if sysConfig.System.Firmware.Version != "" {
-		md.H3("Firmware Information")
-		md.PlainTextf("%s: %s", markdown.Bold("Version"), sysConfig.System.Firmware.Version)
-	}
-
-	if len(sysConfig.Sysctl) > 0 {
-		md.H3("System Tunables")
-		tableSet := b.BuildSysctlTable(sysConfig.Sysctl)
-		md.Table(*tableSet)
+		md.H3("Firmware Information").
+			PlainTextf("%s: %s", markdown.Bold("Version"), sysConfig.System.Firmware.Version)
 	}
 
 	if len(sysConfig.System.User) > 0 {
-		md.H3("System Users")
-		tableSet := b.BuildUserTable(sysConfig.System.User)
-		md.Table(*tableSet)
+		b.WriteUserTable(md.H3("System Users"), sysConfig.System.User)
 	}
 
 	if len(sysConfig.System.Group) > 0 {
-		md.H3("System Groups")
-		tableSet := b.BuildGroupTable(sysConfig.System.Group)
-		md.Table(*tableSet)
+		b.WriteGroupTable(md.H3("System Groups"), sysConfig.System.Group)
 	}
+}
 
+// BuildSystemSection builds the system configuration section.
+func (b *MarkdownBuilder) BuildSystemSection(data *model.OpnSenseDocument) string {
+	var buf bytes.Buffer
+	md := markdown.NewMarkdown(&buf)
+	b.writeSystemSection(md, data)
 	return md.String()
 }
 
-// BuildNetworkSection builds the network configuration section.
-func (b *MarkdownBuilder) BuildNetworkSection(data *model.OpnSenseDocument) string {
-	var buf bytes.Buffer
-	md := markdown.NewMarkdown(&buf)
-
+// writeNetworkSection writes the network configuration section to the markdown instance.
+func (b *MarkdownBuilder) writeNetworkSection(md *markdown.Markdown, data *model.OpnSenseDocument) {
 	netConfig := data.NetworkConfig()
 
-	md.H2("Network Configuration")
-
-	md.H3("Interfaces")
-	tableSet := b.BuildInterfaceTable(netConfig.Interfaces)
-	md.Table(*tableSet)
+	b.WriteInterfaceTable(
+		md.H2("Network Configuration").H3("Interfaces"),
+		netConfig.Interfaces,
+	)
 
 	for name, iface := range netConfig.Interfaces.Items {
 		sectionName := strings.ToUpper(name[:1]) + strings.ToLower(name[1:]) + " Interface"
 		md.H3(sectionName)
 		buildInterfaceDetails(md, iface)
 	}
+}
 
+// BuildNetworkSection builds the network configuration section.
+func (b *MarkdownBuilder) BuildNetworkSection(data *model.OpnSenseDocument) string {
+	var buf bytes.Buffer
+	md := markdown.NewMarkdown(&buf)
+	b.writeNetworkSection(md, data)
 	return md.String()
 }
 
-// BuildSecuritySection builds the security configuration section.
-func (b *MarkdownBuilder) BuildSecuritySection(data *model.OpnSenseDocument) string {
-	var buf bytes.Buffer
-	md := markdown.NewMarkdown(&buf)
-
+// writeSecuritySection writes the security configuration section to the markdown instance.
+func (b *MarkdownBuilder) writeSecuritySection(md *markdown.Markdown, data *model.OpnSenseDocument) {
 	secConfig := data.SecurityConfig()
 
-	md.H2("Security Configuration")
-
-	md.H3("NAT Configuration")
+	md.H2("Security Configuration").
+		H3("NAT Configuration")
 
 	natSummary := data.NATSummary()
 	if natSummary.Mode != "" || secConfig.Nat.Outbound.Mode != "" {
@@ -296,122 +287,118 @@ func (b *MarkdownBuilder) BuildSecuritySection(data *model.OpnSenseDocument) str
 		if mode == "" {
 			mode = secConfig.Nat.Outbound.Mode
 		}
-		md.PlainTextf("%s: %s", markdown.Bold("NAT Mode"), mode)
-		md.PlainTextf("%s: %s", markdown.Bold("NAT Reflection"), formatters.FormatBool(natSummary.ReflectionDisabled))
-		md.PlainTextf(
-			"%s: %s",
-			markdown.Bold("Port Forward State Sharing"),
-			formatters.FormatBool(natSummary.PfShareForward),
-		)
-		md.PlainTextf("%s: %d", markdown.Bold("Outbound Rules"), len(natSummary.OutboundRules))
-		md.PlainTextf("%s: %d", markdown.Bold("Inbound Rules"), len(natSummary.InboundRules))
+		md.PlainTextf("%s: %s", markdown.Bold("NAT Mode"), mode).LF().
+			PlainTextf("%s: %s", markdown.Bold("NAT Reflection"), formatters.FormatBool(natSummary.ReflectionDisabled)).
+			LF().
+			PlainTextf(
+				"%s: %s",
+				markdown.Bold("Port Forward State Sharing"),
+				formatters.FormatBool(natSummary.PfShareForward),
+			).LF().
+			PlainTextf("%s: %d", markdown.Bold("Outbound Rules"), len(natSummary.OutboundRules)).LF().
+			PlainTextf("%s: %d", markdown.Bold("Inbound Rules"), len(natSummary.InboundRules))
 
 		if natSummary.ReflectionDisabled {
-			md.PlainText(
-				"**Security Note**: NAT reflection is properly disabled, preventing potential security issues where internal clients can access internal services via external IP addresses.",
+			md.Note(
+				"NAT reflection is properly disabled, preventing potential security issues where internal clients can access internal services via external IP addresses.",
 			)
 		} else {
-			md.PlainText(
-				"**⚠️ Security Warning**: NAT reflection is enabled, which may allow internal clients to access internal services via external IP addresses. Consider disabling if not needed.",
+			md.Warning(
+				"NAT reflection is enabled, which may allow internal clients to access internal services via external IP addresses. Consider disabling if not needed.",
 			)
 		}
 	}
 
-	md.H4("Outbound NAT (Source Translation)")
-	outboundTableSet := b.BuildOutboundNATTable(natSummary.OutboundRules)
-	md.Table(*outboundTableSet)
-
-	md.H4("Inbound NAT (Port Forwarding)")
-	inboundTableSet := b.BuildInboundNATTable(natSummary.InboundRules)
-	md.Table(*inboundTableSet)
+	b.WriteOutboundNATTable(md.H4("Outbound NAT (Source Translation)"), natSummary.OutboundRules)
+	b.WriteInboundNATTable(md.H4("Inbound NAT (Port Forwarding)"), natSummary.InboundRules)
 
 	if len(natSummary.InboundRules) > 0 {
-		md.PlainText(
-			"**⚠️ Security Warning**: Inbound NAT rules (port forwarding) increase the attack surface by exposing internal services to external networks. Ensure these rules are necessary and properly secured.",
+		md.Warning(
+			"Inbound NAT rules (port forwarding) increase the attack surface by exposing internal services to external networks. Ensure these rules are necessary and properly secured.",
 		)
 	}
 
 	rules := data.FilterRules()
 	if len(rules) > 0 {
-		md.H3("Firewall Rules")
-		tableSet := b.BuildFirewallRulesTable(rules)
-		md.Table(*tableSet)
+		b.WriteFirewallRulesTable(md.H3("Firewall Rules"), rules)
+	}
+}
+
+// BuildSecuritySection builds the security configuration section.
+func (b *MarkdownBuilder) BuildSecuritySection(data *model.OpnSenseDocument) string {
+	var buf bytes.Buffer
+	md := markdown.NewMarkdown(&buf)
+	b.writeSecuritySection(md, data)
+	return md.String()
+}
+
+// writeServicesSection writes the service configuration section to the markdown instance.
+func (b *MarkdownBuilder) writeServicesSection(md *markdown.Markdown, data *model.OpnSenseDocument) {
+	svcConfig := data.ServiceConfig()
+
+	md.H2("Service Configuration").
+		H3("DHCP Server")
+
+	if lanDhcp, ok := svcConfig.Dhcpd.Get("lan"); ok && lanDhcp.Enable != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("LAN DHCP Enabled"), formatters.FormatBoolean(lanDhcp.Enable)).LF()
+		if lanDhcp.Range.From != "" && lanDhcp.Range.To != "" {
+			md.PlainTextf("%s: %s - %s", markdown.Bold("LAN DHCP Range"), lanDhcp.Range.From, lanDhcp.Range.To).LF()
+		}
 	}
 
-	return md.String()
+	if wanDhcp, ok := svcConfig.Dhcpd.Get("wan"); ok && wanDhcp.Enable != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("WAN DHCP Enabled"), formatters.FormatBoolean(wanDhcp.Enable)).LF()
+	}
+
+	md.H3("DNS Resolver (Unbound)")
+	if svcConfig.Unbound.Enable != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("Enabled"), formatters.FormatBoolean(svcConfig.Unbound.Enable)).LF()
+	}
+
+	md.H3("SNMP")
+	if svcConfig.Snmpd.SysLocation != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("System Location"), svcConfig.Snmpd.SysLocation).LF()
+	}
+	if svcConfig.Snmpd.SysContact != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("System Contact"), svcConfig.Snmpd.SysContact).LF()
+	}
+	if svcConfig.Snmpd.ROCommunity != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("Read-Only Community"), svcConfig.Snmpd.ROCommunity).LF()
+	}
+
+	md.H3("NTP")
+	if svcConfig.Ntpd.Prefer != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("Preferred Server"), svcConfig.Ntpd.Prefer).LF()
+	}
+
+	if len(svcConfig.LoadBalancer.MonitorType) > 0 {
+		rows := make([][]string, 0, len(svcConfig.LoadBalancer.MonitorType))
+		for _, monitor := range svcConfig.LoadBalancer.MonitorType {
+			rows = append(rows, []string{monitor.Name, monitor.Type, monitor.Descr})
+		}
+		md.H3("Load Balancer Monitors").
+			Table(markdown.TableSet{
+				Header: []string{"Name", "Type", "Description"},
+				Rows:   rows,
+			})
+	}
 }
 
 // BuildServicesSection builds the service configuration section.
 func (b *MarkdownBuilder) BuildServicesSection(data *model.OpnSenseDocument) string {
 	var buf bytes.Buffer
 	md := markdown.NewMarkdown(&buf)
-
-	svcConfig := data.ServiceConfig()
-
-	md.H2("Service Configuration")
-
-	md.H3("DHCP Server")
-
-	if lanDhcp, ok := svcConfig.Dhcpd.Get("lan"); ok && lanDhcp.Enable != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("LAN DHCP Enabled"), formatters.FormatBoolean(lanDhcp.Enable))
-
-		if lanDhcp.Range.From != "" && lanDhcp.Range.To != "" {
-			md.PlainTextf("%s: %s - %s", markdown.Bold("LAN DHCP Range"), lanDhcp.Range.From, lanDhcp.Range.To)
-		}
-	}
-
-	if wanDhcp, ok := svcConfig.Dhcpd.Get("wan"); ok && wanDhcp.Enable != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("WAN DHCP Enabled"), formatters.FormatBoolean(wanDhcp.Enable))
-	}
-
-	md.H3("DNS Resolver (Unbound)")
-
-	if svcConfig.Unbound.Enable != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Enabled"), formatters.FormatBoolean(svcConfig.Unbound.Enable))
-	}
-
-	md.H3("SNMP")
-
-	if svcConfig.Snmpd.SysLocation != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("System Location"), svcConfig.Snmpd.SysLocation)
-	}
-
-	if svcConfig.Snmpd.SysContact != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("System Contact"), svcConfig.Snmpd.SysContact)
-	}
-
-	if svcConfig.Snmpd.ROCommunity != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Read-Only Community"), svcConfig.Snmpd.ROCommunity)
-	}
-
-	md.H3("NTP")
-
-	if svcConfig.Ntpd.Prefer != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Preferred Server"), svcConfig.Ntpd.Prefer)
-	}
-
-	if len(svcConfig.LoadBalancer.MonitorType) > 0 {
-		md.H3("Load Balancer Monitors")
-
-		headers := []string{"Name", "Type", "Description"}
-		rows := make([][]string, 0, len(svcConfig.LoadBalancer.MonitorType))
-
-		for _, monitor := range svcConfig.LoadBalancer.MonitorType {
-			rows = append(rows, []string{monitor.Name, monitor.Type, monitor.Descr})
-		}
-
-		tableSet := markdown.TableSet{
-			Header: headers,
-			Rows:   rows,
-		}
-		md.Table(tableSet)
-	}
-
+	b.writeServicesSection(md, data)
 	return md.String()
 }
 
-// BuildFirewallRulesTable builds a table of firewall rules.
-func (b *MarkdownBuilder) BuildFirewallRulesTable(rules []model.Rule) *markdown.TableSet {
+// WriteFirewallRulesTable writes a firewall rules table and returns md for chaining.
+func (b *MarkdownBuilder) WriteFirewallRulesTable(md *markdown.Markdown, rules []model.Rule) *markdown.Markdown {
+	return md.Table(*BuildFirewallRulesTableSet(rules))
+}
+
+// BuildFirewallRulesTableSet builds the table data for firewall rules.
+func BuildFirewallRulesTableSet(rules []model.Rule) *markdown.TableSet {
 	headers := []string{
 		"#",
 		"Interface",
@@ -461,8 +448,13 @@ func (b *MarkdownBuilder) BuildFirewallRulesTable(rules []model.Rule) *markdown.
 	}
 }
 
-// BuildOutboundNATTable builds a table of outbound NAT rules (source translation/masquerading).
-func (b *MarkdownBuilder) BuildOutboundNATTable(rules []model.NATRule) *markdown.TableSet {
+// WriteOutboundNATTable writes an outbound NAT rules table and returns md for chaining.
+func (b *MarkdownBuilder) WriteOutboundNATTable(md *markdown.Markdown, rules []model.NATRule) *markdown.Markdown {
+	return md.Table(*BuildOutboundNATTableSet(rules))
+}
+
+// BuildOutboundNATTableSet builds the table data for outbound NAT rules.
+func BuildOutboundNATTableSet(rules []model.NATRule) *markdown.TableSet {
 	headers := []string{
 		"#",
 		"Direction",
@@ -532,8 +524,13 @@ func (b *MarkdownBuilder) BuildOutboundNATTable(rules []model.NATRule) *markdown
 	}
 }
 
-// BuildInboundNATTable builds a table of inbound NAT rules (port forwarding/destination NAT).
-func (b *MarkdownBuilder) BuildInboundNATTable(rules []model.InboundRule) *markdown.TableSet {
+// WriteInboundNATTable writes an inbound NAT rules table and returns md for chaining.
+func (b *MarkdownBuilder) WriteInboundNATTable(md *markdown.Markdown, rules []model.InboundRule) *markdown.Markdown {
+	return md.Table(*BuildInboundNATTableSet(rules))
+}
+
+// BuildInboundNATTableSet builds the table data for inbound NAT rules.
+func BuildInboundNATTableSet(rules []model.InboundRule) *markdown.TableSet {
 	headers := []string{
 		"#",
 		"Direction",
@@ -595,8 +592,13 @@ func (b *MarkdownBuilder) BuildInboundNATTable(rules []model.InboundRule) *markd
 	}
 }
 
-// BuildInterfaceTable builds a table of network interfaces.
-func (b *MarkdownBuilder) BuildInterfaceTable(interfaces model.Interfaces) *markdown.TableSet {
+// WriteInterfaceTable writes an interfaces table and returns md for chaining.
+func (b *MarkdownBuilder) WriteInterfaceTable(md *markdown.Markdown, interfaces model.Interfaces) *markdown.Markdown {
+	return md.Table(*BuildInterfaceTableSet(interfaces))
+}
+
+// BuildInterfaceTableSet builds the table data for network interfaces.
+func BuildInterfaceTableSet(interfaces model.Interfaces) *markdown.TableSet {
 	headers := []string{"Name", "Description", "IP Address", "CIDR", "Enabled"}
 
 	rows := make([][]string, 0, len(interfaces.Items))
@@ -626,8 +628,13 @@ func (b *MarkdownBuilder) BuildInterfaceTable(interfaces model.Interfaces) *mark
 	}
 }
 
-// BuildUserTable builds a table of system users.
-func (b *MarkdownBuilder) BuildUserTable(users []model.User) *markdown.TableSet {
+// WriteUserTable writes a users table and returns md for chaining.
+func (b *MarkdownBuilder) WriteUserTable(md *markdown.Markdown, users []model.User) *markdown.Markdown {
+	return md.Table(*BuildUserTableSet(users))
+}
+
+// BuildUserTableSet builds the table data for system users.
+func BuildUserTableSet(users []model.User) *markdown.TableSet {
 	headers := []string{"Name", "Description", "Group", "Scope"}
 
 	rows := make([][]string, 0, len(users))
@@ -646,8 +653,13 @@ func (b *MarkdownBuilder) BuildUserTable(users []model.User) *markdown.TableSet 
 	}
 }
 
-// BuildGroupTable builds a table of system groups.
-func (b *MarkdownBuilder) BuildGroupTable(groups []model.Group) *markdown.TableSet {
+// WriteGroupTable writes a groups table and returns md for chaining.
+func (b *MarkdownBuilder) WriteGroupTable(md *markdown.Markdown, groups []model.Group) *markdown.Markdown {
+	return md.Table(*BuildGroupTableSet(groups))
+}
+
+// BuildGroupTableSet builds the table data for system groups.
+func BuildGroupTableSet(groups []model.Group) *markdown.TableSet {
 	headers := []string{"Name", "Description", "Scope"}
 
 	rows := make([][]string, 0, len(groups))
@@ -665,8 +677,13 @@ func (b *MarkdownBuilder) BuildGroupTable(groups []model.Group) *markdown.TableS
 	}
 }
 
-// BuildSysctlTable builds a table of system tunables.
-func (b *MarkdownBuilder) BuildSysctlTable(sysctl []model.SysctlItem) *markdown.TableSet {
+// WriteSysctlTable writes a sysctl tunables table and returns md for chaining.
+func (b *MarkdownBuilder) WriteSysctlTable(md *markdown.Markdown, sysctl []model.SysctlItem) *markdown.Markdown {
+	return md.Table(*BuildSysctlTableSet(sysctl))
+}
+
+// BuildSysctlTableSet builds the table data for system tunables.
+func BuildSysctlTableSet(sysctl []model.SysctlItem) *markdown.TableSet {
 	headers := []string{"Tunable", "Value", "Description"}
 
 	rows := make([][]string, 0, len(sysctl))
@@ -691,45 +708,37 @@ func (b *MarkdownBuilder) BuildStandardReport(data *model.OpnSenseDocument) (str
 	}
 
 	var buf bytes.Buffer
-	md := markdown.NewMarkdown(&buf)
+	md := markdown.NewMarkdown(&buf).
+		H1("OPNsense Configuration Summary").
+		H2("System Information").
+		BulletList(
+			markdown.Bold("Hostname")+": "+data.System.Hostname,
+			markdown.Bold("Domain")+": "+data.System.Domain,
+			markdown.Bold("Platform")+": OPNsense "+data.System.Firmware.Version,
+			markdown.Bold("Generated On")+": "+b.generated.Format(time.RFC3339),
+			markdown.Bold("Parsed By")+": opnDossier v"+b.toolVersion,
+		).
+		H2("Table of Contents").
+		BulletList(
+			markdown.Link("System Configuration", "#system-configuration"),
+			markdown.Link("Interfaces", "#interfaces"),
+			markdown.Link("Firewall Rules", "#firewall-rules"),
+			markdown.Link("NAT Configuration", "#nat-configuration"),
+			markdown.Link("DHCP Services", "#dhcp-services"),
+			markdown.Link("DNS Resolver", "#dns-resolver"),
+			markdown.Link("System Users", "#system-users"),
+			markdown.Link("Services & Daemons", "#services--daemons"),
+			markdown.Link("System Tunables", "#system-tunables"),
+		)
 
-	md.H1("OPNsense Configuration Summary")
-
-	md.H2("System Information")
-	md.PlainTextf("- **Hostname**: %s", data.System.Hostname)
-	md.PlainTextf("- **Domain**: %s", data.System.Domain)
-	md.PlainTextf("- **Platform**: OPNsense %s", data.System.Firmware.Version)
-	md.PlainTextf("- **Generated On**: %s", b.generated.Format("2006-01-02 15:04:05"))
-	md.PlainTextf("- **Parsed By**: opnDossier v%s", b.toolVersion)
-
-	md.H2("Table of Contents")
-	md.PlainText("- [System Configuration](#system-configuration)")
-	md.PlainText("- [Interfaces](#interfaces)")
-	md.PlainText("- [Firewall Rules](#firewall-rules)")
-	md.PlainText("- [NAT Configuration](#nat-configuration)")
-	md.PlainText("- [DHCP Services](#dhcp-services)")
-	md.PlainText("- [DNS Resolver](#dns-resolver)")
-	md.PlainText("- [System Users](#system-users)")
-	md.PlainText("- [Services & Daemons](#services--daemons)")
-	md.PlainText("- [System Tunables](#system-tunables)")
-
-	md.PlainText(b.BuildSystemSection(data))
-	md.PlainText(b.BuildNetworkSection(data))
-	md.PlainText(b.BuildSecuritySection(data))
-	md.PlainText(b.BuildServicesSection(data))
+	b.writeSystemSection(md, data)
+	b.writeNetworkSection(md, data)
+	b.writeSecuritySection(md, data)
+	b.writeServicesSection(md, data)
 
 	sysConfig := data.SystemConfig()
-
-	if len(sysConfig.System.User) > 0 {
-		md.H2("System Users")
-		tableSet := b.BuildUserTable(sysConfig.System.User)
-		md.Table(*tableSet)
-	}
-
 	if len(sysConfig.Sysctl) > 0 {
-		md.H2("System Tunables")
-		tableSet := b.BuildSysctlTable(sysConfig.Sysctl)
-		md.Table(*tableSet)
+		b.WriteSysctlTable(md.H2("System Tunables"), sysConfig.Sysctl)
 	}
 
 	return md.String(), nil
@@ -742,95 +751,94 @@ func (b *MarkdownBuilder) BuildComprehensiveReport(data *model.OpnSenseDocument)
 	}
 
 	var buf bytes.Buffer
-	md := markdown.NewMarkdown(&buf)
+	md := markdown.NewMarkdown(&buf).
+		H1("OPNsense Configuration Summary").
+		H2("System Information").
+		BulletList(
+			markdown.Bold("Hostname")+": "+data.System.Hostname,
+			markdown.Bold("Domain")+": "+data.System.Domain,
+			markdown.Bold("Platform")+": OPNsense "+data.System.Firmware.Version,
+			markdown.Bold("Generated On")+": "+b.generated.Format(time.RFC3339),
+			markdown.Bold("Parsed By")+": opnDossier v"+b.toolVersion,
+		).
+		H2("Table of Contents").
+		BulletList(
+			markdown.Link("System Configuration", "#system-configuration"),
+			markdown.Link("Interfaces", "#interfaces"),
+			markdown.Link("VLANs", "#vlan-configuration"),
+			markdown.Link("Static Routes", "#static-routes"),
+			markdown.Link("Firewall Rules", "#firewall-rules"),
+			markdown.Link("NAT Configuration", "#nat-configuration"),
+			markdown.Link("IPsec VPN", "#ipsec-vpn-configuration"),
+			markdown.Link("OpenVPN", "#openvpn-configuration"),
+			markdown.Link("High Availability", "#high-availability--carp"),
+			markdown.Link("DHCP Services", "#dhcp-services"),
+			markdown.Link("DNS Resolver", "#dns-resolver"),
+			markdown.Link("System Users", "#system-users"),
+			markdown.Link("System Groups", "#system-groups"),
+			markdown.Link("Services & Daemons", "#services--daemons"),
+			markdown.Link("System Tunables", "#system-tunables"),
+		)
 
-	md.H1("OPNsense Configuration Summary")
+	b.writeSystemSection(md, data)
+	b.writeNetworkSection(md, data)
+	b.writeVLANSection(md, data)
+	b.writeStaticRoutesSection(md, data)
+	b.writeSecuritySection(md, data)
+	b.writeIPsecSection(md, data)
+	b.writeOpenVPNSection(md, data)
+	b.writeHASection(md, data)
+	b.writeServicesSection(md, data)
 
-	md.H2("System Information")
-	md.PlainTextf("- **Hostname**: %s", data.System.Hostname)
-	md.PlainTextf("- **Domain**: %s", data.System.Domain)
-	md.PlainTextf("- **Platform**: OPNsense %s", data.System.Firmware.Version)
-	md.PlainTextf("- **Generated On**: %s", b.generated.Format("2006-01-02 15:04:05"))
-	md.PlainTextf("- **Parsed By**: opnDossier v%s", b.toolVersion)
-
-	md.H2("Table of Contents")
-	md.PlainText("- [System Configuration](#system-configuration)")
-	md.PlainText("- [Interfaces](#interfaces)")
-	md.PlainText("- [VLANs](#vlan-configuration)")
-	md.PlainText("- [Static Routes](#static-routes)")
-	md.PlainText("- [Firewall Rules](#firewall-rules)")
-	md.PlainText("- [NAT Configuration](#nat-configuration)")
-	md.PlainText("- [IPsec VPN](#ipsec-vpn-configuration)")
-	md.PlainText("- [OpenVPN](#openvpn-configuration)")
-	md.PlainText("- [High Availability](#high-availability--carp)")
-	md.PlainText("- [DHCP Services](#dhcp-services)")
-	md.PlainText("- [DNS Resolver](#dns-resolver)")
-	md.PlainText("- [System Users](#system-users)")
-	md.PlainText("- [System Groups](#system-groups)")
-	md.PlainText("- [Services & Daemons](#services--daemons)")
-	md.PlainText("- [System Tunables](#system-tunables)")
-
-	md.PlainText(b.BuildSystemSection(data))
-	md.PlainText(b.BuildNetworkSection(data))
-	md.PlainText(b.buildVLANSection(data))
-	md.PlainText(b.buildStaticRoutesSection(data))
-	md.PlainText(b.BuildSecuritySection(data))
-	md.PlainText(b.BuildIPsecSection(data))
-	md.PlainText(b.BuildOpenVPNSection(data))
-	md.PlainText(b.BuildHASection(data))
-	md.PlainText(b.BuildServicesSection(data))
+	sysConfig := data.SystemConfig()
+	if len(sysConfig.Sysctl) > 0 {
+		b.WriteSysctlTable(md.H2("System Tunables"), sysConfig.Sysctl)
+	}
 
 	return md.String(), nil
 }
 
 func buildInterfaceDetails(md *markdown.Markdown, iface model.Interface) {
+	// Build a list of interface properties that are set
 	if iface.If != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Physical Interface"), iface.If)
+		md.PlainTextf("%s: %s", markdown.Bold("Physical Interface"), iface.If).LF()
 	}
-
 	if iface.Enable != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Enabled"), iface.Enable)
+		md.PlainTextf("%s: %s", markdown.Bold("Enabled"), iface.Enable).LF()
 	}
-
 	if iface.IPAddr != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("IPv4 Address"), iface.IPAddr)
+		md.PlainTextf("%s: %s", markdown.Bold("IPv4 Address"), iface.IPAddr).LF()
 	}
-
 	if iface.Subnet != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("IPv4 Subnet"), iface.Subnet)
+		md.PlainTextf("%s: %s", markdown.Bold("IPv4 Subnet"), iface.Subnet).LF()
 	}
-
 	if iface.IPAddrv6 != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("IPv6 Address"), iface.IPAddrv6)
+		md.PlainTextf("%s: %s", markdown.Bold("IPv6 Address"), iface.IPAddrv6).LF()
 	}
-
 	if iface.Subnetv6 != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("IPv6 Subnet"), iface.Subnetv6)
+		md.PlainTextf("%s: %s", markdown.Bold("IPv6 Subnet"), iface.Subnetv6).LF()
 	}
-
 	if iface.Gateway != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Gateway"), iface.Gateway)
+		md.PlainTextf("%s: %s", markdown.Bold("Gateway"), iface.Gateway).LF()
 	}
-
 	if iface.MTU != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("MTU"), iface.MTU)
+		md.PlainTextf("%s: %s", markdown.Bold("MTU"), iface.MTU).LF()
 	}
-
-	if iface.MTU != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("MTU"), iface.MTU)
-	}
-
 	if iface.BlockPriv != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Block Private Networks"), iface.BlockPriv)
+		md.PlainTextf("%s: %s", markdown.Bold("Block Private Networks"), iface.BlockPriv).LF()
 	}
-
 	if iface.BlockBogons != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("Block Bogon Networks"), iface.BlockBogons)
 	}
 }
 
-// BuildVLANTable builds a table of VLAN configurations.
-func (b *MarkdownBuilder) BuildVLANTable(vlans []model.VLAN) *markdown.TableSet {
+// WriteVLANTable writes a VLAN configurations table and returns md for chaining.
+func (b *MarkdownBuilder) WriteVLANTable(md *markdown.Markdown, vlans []model.VLAN) *markdown.Markdown {
+	return md.Table(*BuildVLANTableSet(vlans))
+}
+
+// BuildVLANTableSet builds the table data for VLAN configurations.
+func BuildVLANTableSet(vlans []model.VLAN) *markdown.TableSet {
 	headers := []string{
 		"VLAN Interface",
 		"Physical Interface",
@@ -865,8 +873,13 @@ func (b *MarkdownBuilder) BuildVLANTable(vlans []model.VLAN) *markdown.TableSet 
 	}
 }
 
-// BuildStaticRoutesTable builds a table of static route configurations.
-func (b *MarkdownBuilder) BuildStaticRoutesTable(routes []model.StaticRoute) *markdown.TableSet {
+// WriteStaticRoutesTable writes a static routes table and returns md for chaining.
+func (b *MarkdownBuilder) WriteStaticRoutesTable(md *markdown.Markdown, routes []model.StaticRoute) *markdown.Markdown {
+	return md.Table(*BuildStaticRoutesTableSet(routes))
+}
+
+// BuildStaticRoutesTableSet builds the table data for static routes.
+func BuildStaticRoutesTableSet(routes []model.StaticRoute) *markdown.TableSet {
 	headers := []string{
 		"Destination Network",
 		"Gateway",
@@ -907,73 +920,64 @@ func (b *MarkdownBuilder) BuildStaticRoutesTable(routes []model.StaticRoute) *ma
 }
 
 // BuildIPsecSection builds the IPsec VPN configuration section.
-func (b *MarkdownBuilder) BuildIPsecSection(data *model.OpnSenseDocument) string {
-	var buf bytes.Buffer
-	md := markdown.NewMarkdown(&buf)
-
+// writeIPsecSection writes the IPsec VPN configuration section to the markdown instance.
+func (b *MarkdownBuilder) writeIPsecSection(md *markdown.Markdown, data *model.OpnSenseDocument) {
 	md.H3("IPsec VPN Configuration")
 
 	ipsec := data.OPNsense.IPsec
 	if ipsec == nil {
 		md.PlainText(markdown.Italic("No IPsec configuration present"))
-		return md.String()
+		return
 	}
 
 	// General Configuration
-	md.H4("General Configuration")
-
-	generalHeaders := []string{"Setting", "Value"}
-	generalRows := [][]string{
-		{"**Enabled**", formatters.FormatBoolean(ipsec.General.Enabled)},
-		{"**Prefer Old SA**", formatters.FormatBoolean(ipsec.General.PreferredOldsa)},
-		{"**Disable VPN Rules**", formatters.FormatBoolean(ipsec.General.Disablevpnrules)},
-		{"**Passthrough Networks**", formatters.EscapeTableContent(ipsec.General.PassthroughNetworks)},
-	}
-	md.Table(markdown.TableSet{Header: generalHeaders, Rows: generalRows})
+	md.H4("General Configuration").
+		Table(markdown.TableSet{
+			Header: []string{"Setting", "Value"},
+			Rows: [][]string{
+				{"**Enabled**", formatters.FormatBoolean(ipsec.General.Enabled)},
+				{"**Prefer Old SA**", formatters.FormatBoolean(ipsec.General.PreferredOldsa)},
+				{"**Disable VPN Rules**", formatters.FormatBoolean(ipsec.General.Disablevpnrules)},
+				{"**Passthrough Networks**", formatters.EscapeTableContent(ipsec.General.PassthroughNetworks)},
+			},
+		})
 
 	// Charon IKE Daemon Configuration
-	md.H4("Charon IKE Daemon Configuration")
-
-	charonHeaders := []string{"Parameter", "Value"}
-	charonRows := [][]string{
-		{"**Threads**", ipsec.Charon.Threads},
-		{"**IKE SA Table Size**", ipsec.Charon.IkesaTableSize},
-		{"**Max IKEv1 Exchanges**", ipsec.Charon.MaxIkev1Exchanges},
-		{"**Retransmit Tries**", ipsec.Charon.RetransmitTries},
-		{"**Retransmit Timeout**", formatters.FormatWithSuffix(ipsec.Charon.RetransmitTimeout, "s")},
-		{"**Make Before Break**", formatters.FormatBoolean(ipsec.Charon.MakeBeforeBreak)},
-	}
-	md.Table(markdown.TableSet{Header: charonHeaders, Rows: charonRows})
+	md.H4("Charon IKE Daemon Configuration").
+		Table(markdown.TableSet{
+			Header: []string{"Parameter", "Value"},
+			Rows: [][]string{
+				{"**Threads**", ipsec.Charon.Threads},
+				{"**IKE SA Table Size**", ipsec.Charon.IkesaTableSize},
+				{"**Max IKEv1 Exchanges**", ipsec.Charon.MaxIkev1Exchanges},
+				{"**Retransmit Tries**", ipsec.Charon.RetransmitTries},
+				{"**Retransmit Timeout**", formatters.FormatWithSuffix(ipsec.Charon.RetransmitTimeout, "s")},
+				{"**Make Before Break**", formatters.FormatBoolean(ipsec.Charon.MakeBeforeBreak)},
+			},
+		})
 
 	md.Note("Phase 1/Phase 2 tunnel configurations require additional parser implementation")
+}
 
+// BuildIPsecSection builds the IPsec VPN configuration section.
+func (b *MarkdownBuilder) BuildIPsecSection(data *model.OpnSenseDocument) string {
+	var buf bytes.Buffer
+	md := markdown.NewMarkdown(&buf)
+	b.writeIPsecSection(md, data)
 	return md.String()
 }
 
-// BuildOpenVPNSection builds the OpenVPN configuration section with servers, clients, and CSC.
-func (b *MarkdownBuilder) BuildOpenVPNSection(data *model.OpnSenseDocument) string {
-	var buf bytes.Buffer
-	md := markdown.NewMarkdown(&buf)
-
+// writeOpenVPNSection writes the OpenVPN configuration section to the markdown instance.
+func (b *MarkdownBuilder) writeOpenVPNSection(md *markdown.Markdown, data *model.OpnSenseDocument) {
 	md.H3("OpenVPN Configuration")
 
 	openvpn := data.OpenVPN
 
 	// OpenVPN Servers
-	md.H4("OpenVPN Servers")
 	if len(openvpn.Servers) == 0 {
-		md.PlainText(markdown.Italic("No OpenVPN servers configured"))
+		md.H4("OpenVPN Servers").
+			PlainText(markdown.Italic("No OpenVPN servers configured"))
 	} else {
-		serverHeaders := []string{
-			"Description",
-			"Mode",
-			"Protocol",
-			"Interface",
-			"Port",
-			"Tunnel Network",
-			"Remote Network",
-			"Certificate",
-		}
 		serverRows := make([][]string, 0, len(openvpn.Servers))
 		for _, server := range openvpn.Servers {
 			serverRows = append(serverRows, []string{
@@ -987,22 +991,27 @@ func (b *MarkdownBuilder) BuildOpenVPNSection(data *model.OpnSenseDocument) stri
 				formatters.EscapeTableContent(server.Cert_ref),
 			})
 		}
-		md.Table(markdown.TableSet{Header: serverHeaders, Rows: serverRows})
+		md.H4("OpenVPN Servers").
+			Table(markdown.TableSet{
+				Header: []string{
+					"Description",
+					"Mode",
+					"Protocol",
+					"Interface",
+					"Port",
+					"Tunnel Network",
+					"Remote Network",
+					"Certificate",
+				},
+				Rows: serverRows,
+			})
 	}
 
 	// OpenVPN Clients
-	md.H4("OpenVPN Clients")
 	if len(openvpn.Clients) == 0 {
-		md.PlainText(markdown.Italic("No OpenVPN clients configured"))
+		md.H4("OpenVPN Clients").
+			PlainText(markdown.Italic("No OpenVPN clients configured"))
 	} else {
-		clientHeaders := []string{
-			"Description",
-			"Server Address",
-			"Port",
-			"Mode",
-			"Protocol",
-			"Certificate",
-		}
 		clientRows := make([][]string, 0, len(openvpn.Clients))
 		for _, client := range openvpn.Clients {
 			clientRows = append(clientRows, []string{
@@ -1014,21 +1023,25 @@ func (b *MarkdownBuilder) BuildOpenVPNSection(data *model.OpnSenseDocument) stri
 				formatters.EscapeTableContent(client.Cert_ref),
 			})
 		}
-		md.Table(markdown.TableSet{Header: clientHeaders, Rows: clientRows})
+		md.H4("OpenVPN Clients").
+			Table(markdown.TableSet{
+				Header: []string{
+					"Description",
+					"Server Address",
+					"Port",
+					"Mode",
+					"Protocol",
+					"Certificate",
+				},
+				Rows: clientRows,
+			})
 	}
 
 	// Client-Specific Overrides (CSC)
-	md.H4("Client-Specific Overrides")
 	if len(openvpn.CSC) == 0 {
-		md.PlainText(markdown.Italic("No client-specific overrides configured"))
+		md.H4("Client-Specific Overrides").
+			PlainText(markdown.Italic("No client-specific overrides configured"))
 	} else {
-		cscHeaders := []string{
-			"Common Name",
-			"Tunnel Network",
-			"Local Network",
-			"Remote Network",
-			"DNS Domain",
-		}
 		cscRows := make([][]string, 0, len(openvpn.CSC))
 		for _, csc := range openvpn.CSC {
 			cscRows = append(cscRows, []string{
@@ -1039,73 +1052,98 @@ func (b *MarkdownBuilder) BuildOpenVPNSection(data *model.OpnSenseDocument) stri
 				formatters.EscapeTableContent(csc.DNS_domain),
 			})
 		}
-		md.Table(markdown.TableSet{Header: cscHeaders, Rows: cscRows})
+		md.H4("Client-Specific Overrides").
+			Table(markdown.TableSet{
+				Header: []string{
+					"Common Name",
+					"Tunnel Network",
+					"Local Network",
+					"Remote Network",
+					"DNS Domain",
+				},
+				Rows: cscRows,
+			})
 	}
+}
 
+// BuildOpenVPNSection builds the OpenVPN configuration section with servers, clients, and CSC.
+func (b *MarkdownBuilder) BuildOpenVPNSection(data *model.OpnSenseDocument) string {
+	var buf bytes.Buffer
+	md := markdown.NewMarkdown(&buf)
+	b.writeOpenVPNSection(md, data)
 	return md.String()
+}
+
+// writeVLANSection writes the VLAN configuration section to the markdown instance.
+func (b *MarkdownBuilder) writeVLANSection(md *markdown.Markdown, data *model.OpnSenseDocument) {
+	b.WriteVLANTable(md.H3("VLAN Configuration"), data.VLANs.VLAN)
 }
 
 // buildVLANSection builds the VLAN configuration section wrapper.
 func (b *MarkdownBuilder) buildVLANSection(data *model.OpnSenseDocument) string {
 	var buf bytes.Buffer
 	md := markdown.NewMarkdown(&buf)
-
-	md.H3("VLAN Configuration")
-	tableSet := b.BuildVLANTable(data.VLANs.VLAN)
-	md.Table(*tableSet)
-
+	b.writeVLANSection(md, data)
 	return md.String()
+}
+
+// writeStaticRoutesSection writes the static routes section to the markdown instance.
+func (b *MarkdownBuilder) writeStaticRoutesSection(md *markdown.Markdown, data *model.OpnSenseDocument) {
+	b.WriteStaticRoutesTable(md.H3("Static Routes"), data.StaticRoutes.Route)
 }
 
 // buildStaticRoutesSection builds the static routes section wrapper.
 func (b *MarkdownBuilder) buildStaticRoutesSection(data *model.OpnSenseDocument) string {
 	var buf bytes.Buffer
 	md := markdown.NewMarkdown(&buf)
-
-	md.H3("Static Routes")
-	tableSet := b.BuildStaticRoutesTable(data.StaticRoutes.Route)
-	md.Table(*tableSet)
-
+	b.writeStaticRoutesSection(md, data)
 	return md.String()
+}
+
+// writeHASection writes the High Availability and CARP configuration section to the markdown instance.
+func (b *MarkdownBuilder) writeHASection(md *markdown.Markdown, data *model.OpnSenseDocument) {
+	md.H3("High Availability & CARP")
+
+	// Virtual IP Addresses
+	if data.VirtualIP.Vip == "" {
+		md.H4("Virtual IP Addresses (CARP)").
+			PlainText(markdown.Italic("No virtual IPs configured"))
+	} else {
+		md.H4("Virtual IP Addresses (CARP)").
+			Table(markdown.TableSet{
+				Header: []string{"VIP Address", "Type"},
+				Rows: [][]string{
+					{formatters.EscapeTableContent(data.VirtualIP.Vip), "CARP"},
+				},
+			})
+	}
+
+	// HA Synchronization Settings
+	hasync := data.HighAvailabilitySync
+
+	if hasync.Pfsyncinterface == "" && hasync.Synchronizetoip == "" {
+		md.H4("HA Synchronization Settings").
+			PlainText(markdown.Italic("No HA synchronization configured"))
+	} else {
+		md.H4("HA Synchronization Settings").
+			Table(markdown.TableSet{
+				Header: []string{"Setting", "Value"},
+				Rows: [][]string{
+					{"**pfSync Interface**", formatters.EscapeTableContent(hasync.Pfsyncinterface)},
+					{"**pfSync Peer IP**", formatters.EscapeTableContent(hasync.Pfsyncpeerip)},
+					{"**Configuration Sync IP**", formatters.EscapeTableContent(hasync.Synchronizetoip)},
+					{"**Sync Username**", formatters.EscapeTableContent(hasync.Username)},
+					{"**Disable Preempt**", formatters.FormatBoolean(hasync.Disablepreempt)},
+					{"**pfSync Version**", hasync.Pfsyncversion},
+				},
+			})
+	}
 }
 
 // BuildHASection builds the High Availability and CARP configuration section.
 func (b *MarkdownBuilder) BuildHASection(data *model.OpnSenseDocument) string {
 	var buf bytes.Buffer
 	md := markdown.NewMarkdown(&buf)
-
-	md.H3("High Availability & CARP")
-
-	// Virtual IP Addresses
-	md.H4("Virtual IP Addresses (CARP)")
-	if data.VirtualIP.Vip == "" {
-		md.PlainText(markdown.Italic("No virtual IPs configured"))
-	} else {
-		vipHeaders := []string{"VIP Address", "Type"}
-		vipRows := [][]string{
-			{formatters.EscapeTableContent(data.VirtualIP.Vip), "CARP"},
-		}
-		md.Table(markdown.TableSet{Header: vipHeaders, Rows: vipRows})
-	}
-
-	// HA Synchronization Settings
-	md.H4("HA Synchronization Settings")
-	hasync := data.HighAvailabilitySync
-
-	if hasync.Pfsyncinterface == "" && hasync.Synchronizetoip == "" {
-		md.PlainText(markdown.Italic("No HA synchronization configured"))
-	} else {
-		haHeaders := []string{"Setting", "Value"}
-		haRows := [][]string{
-			{"**pfSync Interface**", formatters.EscapeTableContent(hasync.Pfsyncinterface)},
-			{"**pfSync Peer IP**", formatters.EscapeTableContent(hasync.Pfsyncpeerip)},
-			{"**Configuration Sync IP**", formatters.EscapeTableContent(hasync.Synchronizetoip)},
-			{"**Sync Username**", formatters.EscapeTableContent(hasync.Username)},
-			{"**Disable Preempt**", formatters.FormatBoolean(hasync.Disablepreempt)},
-			{"**pfSync Version**", hasync.Pfsyncversion},
-		}
-		md.Table(markdown.TableSet{Header: haHeaders, Rows: haRows})
-	}
-
+	b.writeHASection(md, data)
 	return md.String()
 }
