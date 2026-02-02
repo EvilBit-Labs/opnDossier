@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"testing"
 
+	builderPkg "github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
@@ -87,44 +88,40 @@ func BenchmarkMarkdownBuilder_ServicesSection(b *testing.B) {
 // BenchmarkMarkdownBuilder_FirewallRulesTable benchmarks firewall rules table generation.
 func BenchmarkMarkdownBuilder_FirewallRulesTable(b *testing.B) {
 	testData := loadBenchmarkData(b)
-	builder := NewMarkdownBuilder()
 
 	b.ResetTimer()
 	for b.Loop() {
-		_ = builder.BuildFirewallRulesTable(testData.Filter.Rule)
+		_ = builderPkg.BuildFirewallRulesTableSet(testData.Filter.Rule)
 	}
 }
 
 // BenchmarkMarkdownBuilder_InterfaceTable benchmarks interface table generation.
 func BenchmarkMarkdownBuilder_InterfaceTable(b *testing.B) {
 	testData := loadBenchmarkData(b)
-	builder := NewMarkdownBuilder()
 
 	b.ResetTimer()
 	for b.Loop() {
-		_ = builder.BuildInterfaceTable(testData.Interfaces)
+		_ = builderPkg.BuildInterfaceTableSet(testData.Interfaces)
 	}
 }
 
 // BenchmarkMarkdownBuilder_UserTable benchmarks user table generation.
 func BenchmarkMarkdownBuilder_UserTable(b *testing.B) {
 	testData := loadBenchmarkData(b)
-	builder := NewMarkdownBuilder()
 
 	b.ResetTimer()
 	for b.Loop() {
-		_ = builder.BuildUserTable(testData.System.User)
+		_ = builderPkg.BuildUserTableSet(testData.System.User)
 	}
 }
 
 // BenchmarkMarkdownBuilder_SysctlTable benchmarks sysctl table generation.
 func BenchmarkMarkdownBuilder_SysctlTable(b *testing.B) {
 	testData := loadBenchmarkData(b)
-	builder := NewMarkdownBuilder()
 
 	b.ResetTimer()
 	for b.Loop() {
-		_ = builder.BuildSysctlTable(testData.Sysctl)
+		_ = builderPkg.BuildSysctlTableSet(testData.Sysctl)
 	}
 }
 

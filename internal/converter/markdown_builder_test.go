@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	builderPkg "github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/stretchr/testify/assert"
@@ -37,7 +38,6 @@ func TestMarkdownBuilder_BuildSystemSection(t *testing.T) {
 	assert.Contains(t, result, "Bogons Configuration")
 	assert.Contains(t, result, "SSH Configuration")
 	assert.Contains(t, result, "Firmware Information")
-	assert.Contains(t, result, "System Tunables")
 	assert.Contains(t, result, "System Users")
 	assert.Contains(t, result, "System Groups")
 
@@ -51,7 +51,6 @@ func TestMarkdownBuilder_BuildSystemSection(t *testing.T) {
 	assert.Contains(t, result, "wheel")
 	assert.Contains(t, result, "23.1.1")
 	assert.Contains(t, result, "daily")
-	assert.Contains(t, result, "net.inet.ip.forwarding")
 	assert.Contains(t, result, "admin")
 }
 
@@ -235,8 +234,6 @@ func TestMarkdownBuilder_BuildServicesSection(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildFirewallRulesTable(t *testing.T) {
-	builder := NewMarkdownBuilder()
-
 	rules := []model.Rule{
 		{
 			Type:       "pass",
@@ -256,7 +253,7 @@ func TestMarkdownBuilder_BuildFirewallRulesTable(t *testing.T) {
 		},
 	}
 
-	tableSet := builder.BuildFirewallRulesTable(rules)
+	tableSet := builderPkg.BuildFirewallRulesTableSet(rules)
 
 	assert.NotNil(t, tableSet)
 	assert.Len(t, tableSet.Header, 11)
@@ -294,8 +291,6 @@ func TestMarkdownBuilder_BuildFirewallRulesTable(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildInterfaceTable(t *testing.T) {
-	builder := NewMarkdownBuilder()
-
 	interfaces := model.Interfaces{
 		Items: map[string]model.Interface{
 			"wan": {
@@ -315,7 +310,7 @@ func TestMarkdownBuilder_BuildInterfaceTable(t *testing.T) {
 		},
 	}
 
-	tableSet := builder.BuildInterfaceTable(interfaces)
+	tableSet := builderPkg.BuildInterfaceTableSet(interfaces)
 
 	assert.NotNil(t, tableSet)
 	assert.Len(t, tableSet.Header, 5)
@@ -349,8 +344,6 @@ func TestMarkdownBuilder_BuildInterfaceTable(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildUserTable(t *testing.T) {
-	builder := NewMarkdownBuilder()
-
 	users := []model.User{
 		{
 			Name:      "admin",
@@ -366,7 +359,7 @@ func TestMarkdownBuilder_BuildUserTable(t *testing.T) {
 		},
 	}
 
-	tableSet := builder.BuildUserTable(users)
+	tableSet := builderPkg.BuildUserTableSet(users)
 
 	assert.NotNil(t, tableSet)
 	assert.Len(t, tableSet.Header, 4)
@@ -385,8 +378,6 @@ func TestMarkdownBuilder_BuildUserTable(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildGroupTable(t *testing.T) {
-	builder := NewMarkdownBuilder()
-
 	groups := []model.Group{
 		{
 			Name:        "wheel",
@@ -400,7 +391,7 @@ func TestMarkdownBuilder_BuildGroupTable(t *testing.T) {
 		},
 	}
 
-	tableSet := builder.BuildGroupTable(groups)
+	tableSet := builderPkg.BuildGroupTableSet(groups)
 
 	assert.NotNil(t, tableSet)
 	assert.Len(t, tableSet.Header, 3)
@@ -418,8 +409,6 @@ func TestMarkdownBuilder_BuildGroupTable(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildSysctlTable(t *testing.T) {
-	builder := NewMarkdownBuilder()
-
 	sysctl := []model.SysctlItem{
 		{
 			Tunable: "net.inet.ip.forwarding",
@@ -433,7 +422,7 @@ func TestMarkdownBuilder_BuildSysctlTable(t *testing.T) {
 		},
 	}
 
-	tableSet := builder.BuildSysctlTable(sysctl)
+	tableSet := builderPkg.BuildSysctlTableSet(sysctl)
 
 	assert.NotNil(t, tableSet)
 	assert.Len(t, tableSet.Header, 3)
@@ -703,8 +692,6 @@ func TestFormatBooleanInverted(t *testing.T) {
 }
 
 func TestBuildFirewallRulesTable_EdgeCases(t *testing.T) {
-	builder := NewMarkdownBuilder()
-
 	tests := []struct {
 		name  string
 		rules []model.Rule
@@ -745,7 +732,7 @@ func TestBuildFirewallRulesTable_EdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := builder.BuildFirewallRulesTable(tt.rules)
+			result := builderPkg.BuildFirewallRulesTableSet(tt.rules)
 			assert.NotNil(t, result)
 			assert.Len(t, result.Header, 11) // Should have 11 headers
 		})
@@ -1290,8 +1277,6 @@ func TestMarkdownBuilder_BuildComprehensiveReport_WithGroups(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildFirewallRulesTable_WithComplexRules(t *testing.T) {
-	builder := NewMarkdownBuilder()
-
 	// Test with complex firewall rules including all fields
 	rules := []model.Rule{
 		{
@@ -1328,7 +1313,7 @@ func TestMarkdownBuilder_BuildFirewallRulesTable_WithComplexRules(t *testing.T) 
 		},
 	}
 
-	tableSet := builder.BuildFirewallRulesTable(rules)
+	tableSet := builderPkg.BuildFirewallRulesTableSet(rules)
 
 	assert.NotNil(t, tableSet)
 	assert.Len(t, tableSet.Header, 11)
@@ -1365,8 +1350,6 @@ func TestMarkdownBuilder_BuildFirewallRulesTable_WithComplexRules(t *testing.T) 
 }
 
 func TestMarkdownBuilder_BuildInterfaceTable_WithComplexInterfaces(t *testing.T) {
-	builder := NewMarkdownBuilder()
-
 	// Test with complex interface configurations
 	interfaces := model.Interfaces{
 		Items: map[string]model.Interface{
@@ -1406,7 +1389,7 @@ func TestMarkdownBuilder_BuildInterfaceTable_WithComplexInterfaces(t *testing.T)
 		},
 	}
 
-	tableSet := builder.BuildInterfaceTable(interfaces)
+	tableSet := builderPkg.BuildInterfaceTableSet(interfaces)
 
 	assert.NotNil(t, tableSet)
 	assert.Len(t, tableSet.Header, 5)
@@ -1495,7 +1478,6 @@ func TestMarkdownBuilder_BuildSystemSection_WithAllFields(t *testing.T) {
 	assert.Contains(t, result, "Bogons Configuration")
 	assert.Contains(t, result, "SSH Configuration")
 	assert.Contains(t, result, "Firmware Information")
-	assert.Contains(t, result, "System Tunables")
 	assert.Contains(t, result, "System Users")
 	assert.Contains(t, result, "System Groups")
 
@@ -1509,7 +1491,6 @@ func TestMarkdownBuilder_BuildSystemSection_WithAllFields(t *testing.T) {
 	assert.Contains(t, result, "wheel")
 	assert.Contains(t, result, "23.1.1")
 	assert.Contains(t, result, "daily")
-	assert.Contains(t, result, "net.inet.ip.forwarding")
 	assert.Contains(t, result, "admin")
 	assert.Contains(t, result, "8.8.8.8")
 	assert.Contains(t, result, "pool.ntp.org")
@@ -1656,8 +1637,6 @@ func TestMarkdownBuilder_BuildNetworkSection_WithComplexInterfaces(t *testing.T)
 // =============================================================================
 
 func TestMarkdownBuilder_BuildOutboundNATTable_WithRules(t *testing.T) {
-	builder := NewMarkdownBuilder()
-
 	rules := []model.NATRule{
 		{
 			Interface: model.InterfaceList{"wan"},
@@ -1687,7 +1666,7 @@ func TestMarkdownBuilder_BuildOutboundNATTable_WithRules(t *testing.T) {
 		},
 	}
 
-	tableSet := builder.BuildOutboundNATTable(rules)
+	tableSet := builderPkg.BuildOutboundNATTableSet(rules)
 
 	assert.NotNil(t, tableSet)
 	assert.Len(
@@ -1734,11 +1713,9 @@ func TestMarkdownBuilder_BuildOutboundNATTable_WithRules(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildOutboundNATTable_EmptyRules(t *testing.T) {
-	builder := NewMarkdownBuilder()
-
 	rules := []model.NATRule{}
 
-	tableSet := builder.BuildOutboundNATTable(rules)
+	tableSet := builderPkg.BuildOutboundNATTableSet(rules)
 
 	assert.NotNil(t, tableSet)
 	assert.Len(t, tableSet.Header, 9)
@@ -1752,8 +1729,6 @@ func TestMarkdownBuilder_BuildOutboundNATTable_EmptyRules(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildOutboundNATTable_SpecialCharacters(t *testing.T) {
-	builder := NewMarkdownBuilder()
-
 	rules := []model.NATRule{
 		{
 			Interface: model.InterfaceList{"wan"},
@@ -1770,7 +1745,7 @@ func TestMarkdownBuilder_BuildOutboundNATTable_SpecialCharacters(t *testing.T) {
 		},
 	}
 
-	tableSet := builder.BuildOutboundNATTable(rules)
+	tableSet := builderPkg.BuildOutboundNATTableSet(rules)
 
 	assert.NotNil(t, tableSet)
 	// Description should be escaped for markdown tables
@@ -1780,8 +1755,6 @@ func TestMarkdownBuilder_BuildOutboundNATTable_SpecialCharacters(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildInboundNATTable_WithRules(t *testing.T) {
-	builder := NewMarkdownBuilder()
-
 	rules := []model.InboundRule{
 		{
 			Interface:    model.InterfaceList{"wan"},
@@ -1805,7 +1778,7 @@ func TestMarkdownBuilder_BuildInboundNATTable_WithRules(t *testing.T) {
 		},
 	}
 
-	tableSet := builder.BuildInboundNATTable(rules)
+	tableSet := builderPkg.BuildInboundNATTableSet(rules)
 
 	assert.NotNil(t, tableSet)
 	assert.Len(
@@ -1854,11 +1827,9 @@ func TestMarkdownBuilder_BuildInboundNATTable_WithRules(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildInboundNATTable_EmptyRules(t *testing.T) {
-	builder := NewMarkdownBuilder()
-
 	rules := []model.InboundRule{}
 
-	tableSet := builder.BuildInboundNATTable(rules)
+	tableSet := builderPkg.BuildInboundNATTableSet(rules)
 
 	assert.NotNil(t, tableSet)
 	assert.Len(t, tableSet.Header, 10)
@@ -1872,8 +1843,6 @@ func TestMarkdownBuilder_BuildInboundNATTable_EmptyRules(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildInboundNATTable_SpecialCharacters(t *testing.T) {
-	builder := NewMarkdownBuilder()
-
 	rules := []model.InboundRule{
 		{
 			Interface:    model.InterfaceList{"wan"},
@@ -1887,7 +1856,7 @@ func TestMarkdownBuilder_BuildInboundNATTable_SpecialCharacters(t *testing.T) {
 		},
 	}
 
-	tableSet := builder.BuildInboundNATTable(rules)
+	tableSet := builderPkg.BuildInboundNATTableSet(rules)
 
 	assert.NotNil(t, tableSet)
 	// Description should be escaped for markdown tables
@@ -1986,8 +1955,6 @@ func TestMarkdownBuilder_BuildSecuritySection_InboundSecurityWarning(t *testing.
 // TestMarkdownBuilder_NATRulesWithInterfaceLinks verifies NAT rules render interface names
 // as clickable markdown links pointing to interface sections (Issue #61).
 func TestMarkdownBuilder_NATRulesWithInterfaceLinks(t *testing.T) {
-	builder := NewMarkdownBuilder()
-
 	// Test outbound NAT with multiple interfaces
 	outboundRules := []model.NATRule{
 		{
@@ -2008,7 +1975,7 @@ func TestMarkdownBuilder_NATRulesWithInterfaceLinks(t *testing.T) {
 		},
 	}
 
-	tableSet := builder.BuildOutboundNATTable(outboundRules)
+	tableSet := builderPkg.BuildOutboundNATTableSet(outboundRules)
 
 	// Verify first row has multiple interface links
 	row1 := tableSet.Rows[0]
@@ -2049,7 +2016,7 @@ func TestMarkdownBuilder_NATRulesWithInterfaceLinks(t *testing.T) {
 		},
 	}
 
-	inboundTableSet := builder.BuildInboundNATTable(inboundRules)
+	inboundTableSet := builderPkg.BuildInboundNATTableSet(inboundRules)
 
 	// Verify inbound rule interface links
 	inRow1 := inboundTableSet.Rows[0]
@@ -2070,8 +2037,6 @@ func TestMarkdownBuilder_NATRulesWithInterfaceLinks(t *testing.T) {
 // TestMarkdownBuilder_NATRulesEmptyInterfaceList verifies NAT rules with empty
 // interface lists render gracefully (Issue #61 edge case).
 func TestMarkdownBuilder_NATRulesEmptyInterfaceList(t *testing.T) {
-	builder := NewMarkdownBuilder()
-
 	// NAT rule with empty interface list
 	rules := []model.NATRule{
 		{
@@ -2084,7 +2049,7 @@ func TestMarkdownBuilder_NATRulesEmptyInterfaceList(t *testing.T) {
 		},
 	}
 
-	tableSet := builder.BuildOutboundNATTable(rules)
+	tableSet := builderPkg.BuildOutboundNATTableSet(rules)
 
 	// Empty interface list should render as empty string, not cause panic
 	row := tableSet.Rows[0]

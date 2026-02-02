@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	builderPkg "github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/nao1215/markdown"
 	"github.com/stretchr/testify/assert"
@@ -190,11 +191,11 @@ func TestMarkdownBuilder_CrossMethodInteraction(t *testing.T) {
 	assert.Contains(t, servicesSection, "Service Configuration")
 
 	// Test that tables can be generated independently
-	interfaceTable := builder.BuildInterfaceTable(testData.Interfaces)
-	rulesTable := builder.BuildFirewallRulesTable(testData.Filter.Rule)
-	userTable := builder.BuildUserTable(testData.System.User)
-	groupTable := builder.BuildGroupTable(testData.System.Group)
-	sysctlTable := builder.BuildSysctlTable(testData.Sysctl)
+	interfaceTable := builderPkg.BuildInterfaceTableSet(testData.Interfaces)
+	rulesTable := builderPkg.BuildFirewallRulesTableSet(testData.Filter.Rule)
+	userTable := builderPkg.BuildUserTableSet(testData.System.User)
+	groupTable := builderPkg.BuildGroupTableSet(testData.System.Group)
+	sysctlTable := builderPkg.BuildSysctlTableSet(testData.Sysctl)
 
 	// All tables should have proper structure
 	validateTableStructure(t, interfaceTable, "Interfaces")

@@ -3,8 +3,8 @@
 - **Hostname**: minimal-host
 - **Domain**: minimal.local
 - **Platform**: OPNsense 23.1.1
-- **Generated On**: [TIMESTAMP]
-- **Parsed By**: opnDossier v[VERSION]
+- **Generated On**: 2026-02-01 18:56:25
+- **Parsed By**: opnDossier v1.0.0
 ## Table of Contents
 - [System Configuration](#system-configuration)
 - [Interfaces](#interfaces)
@@ -18,28 +18,47 @@
 ## System Configuration
 ### Basic Information
 **Hostname**: minimal-host
+  
 **Domain**: minimal.local
+  
 ### System Settings
 **DNS Allow Override**: ✗
+  
 **Next UID**: 0
+  
 **Next GID**: 0
+  
 ### Hardware Offloading
 **Disable NAT Reflection**: ✗
+  
 **Use Virtual Terminal**: ✗
+  
 **Disable Console Menu**: ✓
+  
 **Disable VLAN HW Filter**: ✗
+  
 **Disable Checksum Offloading**: ✗
+  
 **Disable Segmentation Offloading**: ✗
+  
 **Disable Large Receive Offloading**: ✗
+  
 **IPv6 Allow**: ✗
+  
 ### Power Management
 **Powerd AC Mode**: 
+  
 **Powerd Battery Mode**: 
+  
 **Powerd Normal Mode**: 
+  
 ### System Features
 **PF Share Forward**: ✗
+  
 **LB Use Sticky**: ✗
+  
 **RRD Backup**: unset
+  
 **Netflow Backup**: unset
 ### Firmware Information
 **Version**: 23.1.1

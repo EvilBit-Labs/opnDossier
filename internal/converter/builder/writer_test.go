@@ -7,6 +7,7 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/nao1215/markdown"
 )
 
 func TestMarkdownBuilder_WriteSystemSection(t *testing.T) {
@@ -217,30 +218,22 @@ func TestSectionWriter_Interface(t *testing.T) {
 // VLAN Table Tests (Issue #67)
 // ─────────────────────────────────────────────────────────────────────────────
 
-func TestMarkdownBuilder_BuildVLANTable_Empty(t *testing.T) {
+func TestMarkdownBuilder_WriteVLANTable_Empty(t *testing.T) {
 	t.Parallel()
 
 	b := builder.NewMarkdownBuilder()
-	tableSet := b.BuildVLANTable(nil)
-
-	if len(tableSet.Rows) != 1 {
-		t.Fatalf("Expected 1 row for empty VLAN, got %d", len(tableSet.Rows))
-	}
+	var buf bytes.Buffer
+	md := markdown.NewMarkdown(&buf)
+	b.WriteVLANTable(md, nil)
+	output := md.String()
 
 	// Verify "No VLANs configured" message
-	found := false
-	for _, cell := range tableSet.Rows[0] {
-		if strings.Contains(cell, "No VLANs configured") {
-			found = true
-			break
-		}
-	}
-	if !found {
+	if !strings.Contains(output, "No VLANs configured") {
 		t.Error("Expected 'No VLANs configured' message in empty VLAN table")
 	}
 }
 
-func TestMarkdownBuilder_BuildVLANTable_SingleVLAN(t *testing.T) {
+func TestMarkdownBuilder_WriteVLANTable_SingleVLAN(t *testing.T) {
 	t.Parallel()
 
 	b := builder.NewMarkdownBuilder()
@@ -254,28 +247,26 @@ func TestMarkdownBuilder_BuildVLANTable_SingleVLAN(t *testing.T) {
 			Updated: "2024-01-02",
 		},
 	}
-	tableSet := b.BuildVLANTable(vlans)
+	var buf bytes.Buffer
+	md := markdown.NewMarkdown(&buf)
+	b.WriteVLANTable(md, vlans)
+	output := md.String()
 
-	if len(tableSet.Rows) != 1 {
-		t.Fatalf("Expected 1 row, got %d", len(tableSet.Rows))
+	if !strings.Contains(output, "vlan10") {
+		t.Error("Expected VLAN interface 'vlan10' in output")
 	}
-
-	row := tableSet.Rows[0]
-	if row[0] != "vlan10" {
-		t.Errorf("Expected VLAN interface 'vlan10', got '%s'", row[0])
+	if !strings.Contains(output, "em0") {
+		t.Error("Expected physical interface 'em0' in output")
 	}
-	if row[1] != "em0" {
-		t.Errorf("Expected physical interface 'em0', got '%s'", row[1])
+	if !strings.Contains(output, "10") {
+		t.Error("Expected VLAN tag '10' in output")
 	}
-	if row[2] != "10" {
-		t.Errorf("Expected VLAN tag '10', got '%s'", row[2])
-	}
-	if row[3] != "Management VLAN" {
-		t.Errorf("Expected description 'Management VLAN', got '%s'", row[3])
+	if !strings.Contains(output, "Management VLAN") {
+		t.Error("Expected description 'Management VLAN' in output")
 	}
 }
 
-func TestMarkdownBuilder_BuildVLANTable_MultipleVLANs(t *testing.T) {
+func TestMarkdownBuilder_WriteVLANTable_MultipleVLANs(t *testing.T) {
 	t.Parallel()
 
 	b := builder.NewMarkdownBuilder()
@@ -284,10 +275,15 @@ func TestMarkdownBuilder_BuildVLANTable_MultipleVLANs(t *testing.T) {
 		{Vlanif: "vlan20", If: "em0", Tag: "20", Descr: "DMZ"},
 		{Vlanif: "vlan30", If: "em1", Tag: "30", Descr: "Guest"},
 	}
-	tableSet := b.BuildVLANTable(vlans)
+	var buf bytes.Buffer
+	md := markdown.NewMarkdown(&buf)
+	b.WriteVLANTable(md, vlans)
+	output := md.String()
 
-	if len(tableSet.Rows) != 3 {
-		t.Fatalf("Expected 3 rows, got %d", len(tableSet.Rows))
+	// Verify all VLANs are present
+	if !strings.Contains(output, "vlan10") || !strings.Contains(output, "vlan20") ||
+		!strings.Contains(output, "vlan30") {
+		t.Error("Expected all VLAN interfaces in output")
 	}
 }
 
@@ -295,29 +291,21 @@ func TestMarkdownBuilder_BuildVLANTable_MultipleVLANs(t *testing.T) {
 // Static Routes Table Tests (Issue #67)
 // ─────────────────────────────────────────────────────────────────────────────
 
-func TestMarkdownBuilder_BuildStaticRoutesTable_Empty(t *testing.T) {
+func TestMarkdownBuilder_WriteStaticRoutesTable_Empty(t *testing.T) {
 	t.Parallel()
 
 	b := builder.NewMarkdownBuilder()
-	tableSet := b.BuildStaticRoutesTable(nil)
+	var buf bytes.Buffer
+	md := markdown.NewMarkdown(&buf)
+	b.WriteStaticRoutesTable(md, nil)
+	output := md.String()
 
-	if len(tableSet.Rows) != 1 {
-		t.Fatalf("Expected 1 row for empty routes, got %d", len(tableSet.Rows))
-	}
-
-	found := false
-	for _, cell := range tableSet.Rows[0] {
-		if strings.Contains(cell, "No static routes configured") {
-			found = true
-			break
-		}
-	}
-	if !found {
+	if !strings.Contains(output, "No static routes configured") {
 		t.Error("Expected 'No static routes configured' message")
 	}
 }
 
-func TestMarkdownBuilder_BuildStaticRoutesTable_WithRoutes(t *testing.T) {
+func TestMarkdownBuilder_WriteStaticRoutesTable_WithRoutes(t *testing.T) {
 	t.Parallel()
 
 	b := builder.NewMarkdownBuilder()
@@ -339,20 +327,25 @@ func TestMarkdownBuilder_BuildStaticRoutesTable_WithRoutes(t *testing.T) {
 			Updated:  "2024-01-02",
 		},
 	}
-	tableSet := b.BuildStaticRoutesTable(routes)
+	var buf bytes.Buffer
+	md := markdown.NewMarkdown(&buf)
+	b.WriteStaticRoutesTable(md, routes)
+	output := md.String()
 
-	if len(tableSet.Rows) != 2 {
-		t.Fatalf("Expected 2 rows, got %d", len(tableSet.Rows))
+	// Verify routes are present
+	if !strings.Contains(output, "10.0.0.0/8") {
+		t.Error("Expected first route network in output")
+	}
+	if !strings.Contains(output, "172.16.0.0/12") {
+		t.Error("Expected second route network in output")
 	}
 
-	// First route should be enabled
-	if !strings.Contains(tableSet.Rows[0][3], "Enabled") {
-		t.Errorf("Expected first route to be Enabled, got '%s'", tableSet.Rows[0][3])
+	// First route should be enabled, second disabled
+	if !strings.Contains(output, "Enabled") {
+		t.Error("Expected 'Enabled' status in output")
 	}
-
-	// Second route should be disabled
-	if tableSet.Rows[1][3] != "Disabled" {
-		t.Errorf("Expected second route to be Disabled, got '%s'", tableSet.Rows[1][3])
+	if !strings.Contains(output, "Disabled") {
+		t.Error("Expected 'Disabled' status in output")
 	}
 }
 

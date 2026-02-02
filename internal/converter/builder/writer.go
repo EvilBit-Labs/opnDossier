@@ -255,15 +255,11 @@ func (b *MarkdownBuilder) writeStandardReportFooter(w io.Writer, data *model.Opn
 	md := markdown.NewMarkdown(&buf)
 
 	if len(sysConfig.System.User) > 0 {
-		md.H2("System Users")
-		tableSet := b.BuildUserTable(sysConfig.System.User)
-		md.Table(*tableSet)
+		b.WriteUserTable(md.H2("System Users"), sysConfig.System.User)
 	}
 
 	if len(sysConfig.Sysctl) > 0 {
-		md.H2("System Tunables")
-		tableSet := b.BuildSysctlTable(sysConfig.Sysctl)
-		md.Table(*tableSet)
+		b.WriteSysctlTable(md.H2("System Tunables"), sysConfig.Sysctl)
 	}
 
 	_, err := io.WriteString(w, md.String())

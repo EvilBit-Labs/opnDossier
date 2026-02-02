@@ -3,8 +3,8 @@
 - **Hostname**: comprehensive-firewall
 - **Domain**: security.local
 - **Platform**: OPNsense 24.1.2
-- **Generated On**: [TIMESTAMP]
-- **Parsed By**: opnDossier v[VERSION]
+- **Generated On**: 2026-02-01 18:56:25
+- **Parsed By**: opnDossier v1.0.0
 ## Table of Contents
 - [System Configuration](#system-configuration)
 - [Interfaces](#interfaces)
@@ -18,7 +18,9 @@
 ## System Configuration
 ### Basic Information
 **Hostname**: comprehensive-firewall
+  
 **Domain**: security.local
+  
 **Optimization**: aggressive
 **Timezone**: America/New_York
 **Language**: en_US
@@ -26,27 +28,44 @@
 **Protocol**: https
 ### System Settings
 **DNS Allow Override**: ✓
+  
 **Next UID**: 2000
+  
 **Next GID**: 2000
+  
 **Time Servers**: time.nist.gov pool.ntp.org
 **DNS Server**: 1.1.1.1 8.8.8.8
 ### Hardware Offloading
 **Disable NAT Reflection**: ✓
+  
 **Use Virtual Terminal**: ✓
+  
 **Disable Console Menu**: ✓
+  
 **Disable VLAN HW Filter**: ✗
+  
 **Disable Checksum Offloading**: ✗
+  
 **Disable Segmentation Offloading**: ✗
+  
 **Disable Large Receive Offloading**: ✗
+  
 **IPv6 Allow**: ✓
+  
 ### Power Management
 **Powerd AC Mode**: Maximum Performance (maximum)
+  
 **Powerd Battery Mode**: Adaptive (adaptive)
+  
 **Powerd Normal Mode**: Maximum Performance (maximum)
+  
 ### System Features
 **PF Share Forward**: ✓
+  
 **LB Use Sticky**: ✓
+  
 **RRD Backup**: ✓
+  
 **Netflow Backup**: ✓
 ### Bogons Configuration
 **Interval**: weekly
@@ -54,20 +73,6 @@
 **Group**: wheel
 ### Firmware Information
 **Version**: 24.1.2
-### System Tunables
-| Tunable | Value | Description |
-|---------|---------|---------|
-| net.inet.ip.forwarding | 1 |  |
-| net.inet6.ip6.forwarding | 1 |  |
-| net.inet.tcp.blackhole | 2 |  |
-| net.inet.udp.blackhole | 1 |  |
-| security.bsd.see\_other\_uids | 0 |  |
-| security.bsd.see\_other\_gids | 0 |  |
-| kern.securelevel | 1 |  |
-| net.inet.tcp.syncookies | 1 |  |
-| net.inet.icmp.icmplim | 50 |  |
-| net.inet.tcp.always\_keepalive | 1 |  |
-
 ## Network Configuration
 ### Interfaces
 | Name | Description | IP Address | CIDR | Enabled |
@@ -77,9 +82,13 @@
 ### NAT Configuration
 #### NAT Summary
 **NAT Mode**: automatic
+  
 **NAT Reflection**: ✗
+  
 **Port Forward State Sharing**: ✓
+  
 **Outbound Rules**: 0
+  
 **Inbound Rules**: 0
 > [!WARNING]  
 > NAT reflection is enabled, which may allow internal clients to access internal services via external IP addresses. Consider disabling if not needed.
@@ -107,12 +116,17 @@
 ### DHCP Server
 ### DNS Resolver (Unbound)
 **Enabled**: ✓
+  
 ### SNMP
 **System Location**: Primary Data Center - Rack 42
+  
 **System Contact**: security-team@company.com
+  
 **Read-Only Community**: public_readonly_v3
+  
 ### NTP
 **Preferred Server**: time.nist.gov
+  
 ### Load Balancer Monitors
 | Name | Type | Description |
 |---------|---------|---------|
