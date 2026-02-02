@@ -18,6 +18,11 @@ var (
 	sharedNoWrap          bool     //nolint:gochecknoglobals // Disable text wrapping
 	sharedIncludeTunables bool     //nolint:gochecknoglobals // Include system tunables in output
 	sharedComprehensive   bool     //nolint:gochecknoglobals // Generate comprehensive report
+
+	// Audit flags.
+	sharedAuditMode       string   //nolint:gochecknoglobals // Audit mode (standard, blue, red)
+	sharedBlackhatMode    bool     //nolint:gochecknoglobals // Enable blackhat mode for red team reports
+	sharedSelectedPlugins []string //nolint:gochecknoglobals // Selected compliance plugins
 )
 
 // addSharedTemplateFlags adds shared flags that are common to both convert and display commands.
@@ -67,6 +72,31 @@ func addDisplayFlags(cmd *cobra.Command) {
 	cmd.Flags().
 		StringVar(&sharedTheme, "theme", "", "Theme for rendering output (light, dark, auto, none)")
 	setFlagAnnotation(cmd.Flags(), "theme", []string{"display"})
+}
+
+// addSharedAuditFlags adds shared flags for audit and compliance functionality.
+//
+// Flags added:
+//
+//	--audit-mode       Audit mode (standard|blue|red) for security-focused reports.
+//	--audit-blackhat   Enable blackhat mode for red team commentary.
+//	--audit-plugins    Comma-separated list of compliance plugins to run (stig,sans,firewall).
+//
+// Example:
+//
+//	mycmd --audit-mode blue --audit-plugins stig,sans
+func addSharedAuditFlags(cmd *cobra.Command) {
+	cmd.Flags().
+		StringVar(&sharedAuditMode, "audit-mode", "", "Enable audit mode (standard|blue|red)")
+	setFlagAnnotation(cmd.Flags(), "audit-mode", []string{"audit"})
+
+	cmd.Flags().
+		BoolVar(&sharedBlackhatMode, "audit-blackhat", false, "Enable blackhat mode for red team commentary")
+	setFlagAnnotation(cmd.Flags(), "audit-blackhat", []string{"audit"})
+
+	cmd.Flags().
+		StringSliceVar(&sharedSelectedPlugins, "audit-plugins", []string{}, "Compliance plugins to run (stig,sans,firewall)")
+	setFlagAnnotation(cmd.Flags(), "audit-plugins", []string{"audit"})
 }
 
 // Constants for flag validation.
