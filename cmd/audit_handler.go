@@ -12,7 +12,6 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/log"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/plugin"
 	charmlog "github.com/charmbracelet/log"
 )
 
@@ -150,24 +149,6 @@ func appendAuditFindings(baseReport string, report *audit.Report) string {
 		}
 	}
 
-	return sb.String()
-}
-
-// formatPluginFindings formats plugin findings for display.
-//
-
-func formatPluginFindings(findings []plugin.Finding) string {
-	if len(findings) == 0 {
-		return "No findings"
-	}
-
-	var sb strings.Builder
-	for i, f := range findings {
-		if i > 0 {
-			sb.WriteString("; ")
-		}
-		sb.WriteString(fmt.Sprintf("%s: %s", f.Type, f.Title))
-	}
 	return sb.String()
 }
 

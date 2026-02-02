@@ -502,42 +502,6 @@ func TestAppendAuditFindings_PipeEscapingInTables(t *testing.T) {
 	assert.Contains(t, result, "Fix the \\| issue")
 }
 
-func TestFormatPluginFindings(t *testing.T) {
-	tests := []struct {
-		name     string
-		findings []plugin.Finding
-		want     string
-	}{
-		{
-			name:     "empty findings",
-			findings: []plugin.Finding{},
-			want:     "No findings",
-		},
-		{
-			name: "single finding",
-			findings: []plugin.Finding{
-				{Type: "high", Title: "Test Finding"},
-			},
-			want: "high: Test Finding",
-		},
-		{
-			name: "multiple findings",
-			findings: []plugin.Finding{
-				{Type: "high", Title: "First"},
-				{Type: "medium", Title: "Second"},
-			},
-			want: "high: First; medium: Second",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := formatPluginFindings(tt.findings)
-			assert.Equal(t, tt.want, result)
-		})
-	}
-}
-
 func TestAddSharedAuditFlagsRegistersFlags(t *testing.T) {
 	// Create a fresh command for testing
 	cmd := &cobra.Command{Use: "test"}
