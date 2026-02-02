@@ -715,7 +715,7 @@ func (b *MarkdownBuilder) BuildStandardReport(data *model.OpnSenseDocument) (str
 			markdown.Bold("Hostname")+": "+data.System.Hostname,
 			markdown.Bold("Domain")+": "+data.System.Domain,
 			markdown.Bold("Platform")+": OPNsense "+data.System.Firmware.Version,
-			markdown.Bold("Generated On")+": "+b.generated.Format("2006-01-02 15:04:05"),
+			markdown.Bold("Generated On")+": "+b.generated.Format(time.RFC3339),
 			markdown.Bold("Parsed By")+": opnDossier v"+b.toolVersion,
 		).
 		H2("Table of Contents").
@@ -758,7 +758,7 @@ func (b *MarkdownBuilder) BuildComprehensiveReport(data *model.OpnSenseDocument)
 			markdown.Bold("Hostname")+": "+data.System.Hostname,
 			markdown.Bold("Domain")+": "+data.System.Domain,
 			markdown.Bold("Platform")+": OPNsense "+data.System.Firmware.Version,
-			markdown.Bold("Generated On")+": "+b.generated.Format("2006-01-02 15:04:05"),
+			markdown.Bold("Generated On")+": "+b.generated.Format(time.RFC3339),
 			markdown.Bold("Parsed By")+": opnDossier v"+b.toolVersion,
 		).
 		H2("Table of Contents").
