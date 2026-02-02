@@ -83,6 +83,9 @@ func init() {
 	// Add shared styling and content flags
 	addSharedTemplateFlags(convertCmd)
 
+	// Add shared audit flags
+	addSharedAuditFlags(convertCmd)
+
 	// Register flag completion functions for better tab completion
 	registerConvertFlagCompletions(convertCmd)
 
@@ -437,6 +440,15 @@ func buildConversionOptions(
 	// Include tunables: CLI flag only
 	opt.CustomFields["IncludeTunables"] = sharedIncludeTunables
 
+	// Audit mode options
+	if sharedAuditMode != "" {
+		opt.AuditMode = sharedAuditMode
+	}
+	opt.BlackhatMode = sharedBlackhatMode
+	if len(sharedSelectedPlugins) > 0 {
+		opt.SelectedPlugins = sharedSelectedPlugins
+	}
+
 	return opt
 }
 
@@ -624,6 +636,26 @@ func validateConvertFlags(flags *pflag.FlagSet, cmdLogger *log.Logger) error {
 	if sharedWrapWidth > 0 && (sharedWrapWidth < MinWrapWidth || sharedWrapWidth > MaxWrapWidth) {
 		return fmt.Errorf("wrap width %d out of recommended range [%d, %d]",
 			sharedWrapWidth, MinWrapWidth, MaxWrapWidth)
+	}
+
+	// Validate audit mode if provided
+	if sharedAuditMode != "" {
+		validModes := []string{"standard", "blue", "red"}
+		if !slices.Contains(validModes, strings.ToLower(sharedAuditMode)) {
+			return fmt.Errorf("invalid audit mode %q, must be one of: %s",
+				sharedAuditMode, strings.Join(validModes, ", "))
+		}
+	}
+
+	// Validate audit plugins if provided
+	if len(sharedSelectedPlugins) > 0 {
+		validPlugins := []string{"stig", "sans", "firewall"}
+		for _, p := range sharedSelectedPlugins {
+			if !slices.Contains(validPlugins, strings.ToLower(p)) {
+				return fmt.Errorf("invalid audit plugin %q, must be one of: %s",
+					p, strings.Join(validPlugins, ", "))
+			}
+		}
 	}
 
 	return nil
