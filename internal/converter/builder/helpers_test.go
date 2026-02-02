@@ -1,9 +1,11 @@
 package builder
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/nao1215/markdown"
 )
 
 func TestFormatLeaseTime(t *testing.T) {
@@ -366,4 +368,367 @@ func TestHasDHCPv6Config(t *testing.T) {
 			}
 		})
 	}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DHCP Table Tests (Issue #68)
+// ─────────────────────────────────────────────────────────────────────────────
+
+func TestBuildDHCPSummaryTableSet(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		dhcpd        model.Dhcpd
+		wantContains []string
+		wantRows     int
+	}{
+		{
+			name:         "empty dhcpd returns placeholder",
+			dhcpd:        model.Dhcpd{Items: nil},
+			wantContains: []string{"No DHCP scopes configured"},
+			wantRows:     1,
+		},
+		{
+			name: "empty items map returns placeholder",
+			dhcpd: model.Dhcpd{
+				Items: map[string]model.DhcpdInterface{},
+			},
+			wantContains: []string{"No DHCP scopes configured"},
+			wantRows:     1,
+		},
+		{
+			name: "single interface with basic config",
+			dhcpd: model.Dhcpd{
+				Items: map[string]model.DhcpdInterface{
+					"lan": {
+						Enable:    "1",
+						Gateway:   "192.168.1.1",
+						Range:     model.Range{From: "192.168.1.100", To: "192.168.1.200"},
+						Dnsserver: "8.8.8.8",
+					},
+				},
+			},
+			wantContains: []string{"lan", "192.168.1.1", "192.168.1.100", "192.168.1.200", "8.8.8.8"},
+			wantRows:     1,
+		},
+		{
+			name: "multiple interfaces with deterministic ordering",
+			dhcpd: model.Dhcpd{
+				Items: map[string]model.DhcpdInterface{
+					"wan": {
+						Enable: "0",
+					},
+					"lan": {
+						Enable:  "1",
+						Gateway: "192.168.1.1",
+						Range:   model.Range{From: "192.168.1.100", To: "192.168.1.200"},
+					},
+					"opt0": {
+						Enable:  "1",
+						Gateway: "10.0.0.1",
+						Range:   model.Range{From: "10.0.0.50", To: "10.0.0.100"},
+					},
+				},
+			},
+			wantContains: []string{"lan", "wan", "opt0", "192.168.1.1", "10.0.0.1"},
+			wantRows:     3,
+		},
+		{
+			name: "interface with all fields populated",
+			dhcpd: model.Dhcpd{
+				Items: map[string]model.DhcpdInterface{
+					"lan": {
+						Enable:              "1",
+						Gateway:             "192.168.1.1",
+						Range:               model.Range{From: "192.168.1.100", To: "192.168.1.200"},
+						Dnsserver:           "8.8.8.8",
+						Winsserver:          "192.168.1.5",
+						Ntpserver:           "pool.ntp.org",
+						DdnsDomainAlgorithm: "hmac-md5",
+					},
+				},
+			},
+			wantContains: []string{"lan", "192.168.1.1", "8.8.8.8", "192.168.1.5", "pool.ntp.org", "hmac-md5"},
+			wantRows:     1,
+		},
+	}
+
+	dhcpSummaryHeaders := []string{
+		"Interface", "Enabled", "Gateway", "Range Start", "Range End",
+		"DNS", "WINS", "NTP", "DDNS Algorithm",
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			tableSet := BuildDHCPSummaryTableSet(tt.dhcpd)
+			verifyTableSet(t, tableSet, dhcpSummaryHeaders, tt.wantRows, tt.wantContains)
+		})
+	}
+}
+
+func TestBuildDHCPStaticLeasesTableSet(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		leases       []model.DHCPStaticLease
+		wantContains []string
+		wantRows     int
+	}{
+		{
+			name:         "empty leases returns placeholder",
+			leases:       nil,
+			wantContains: []string{"No static leases configured"},
+			wantRows:     1,
+		},
+		{
+			name:         "empty slice returns placeholder",
+			leases:       []model.DHCPStaticLease{},
+			wantContains: []string{"No static leases configured"},
+			wantRows:     1,
+		},
+		{
+			name: "basic lease with MAC IP and Hostname",
+			leases: []model.DHCPStaticLease{
+				{
+					Mac:      "00:11:22:33:44:55",
+					IPAddr:   "192.168.1.50",
+					Hostname: "server1",
+				},
+			},
+			wantContains: []string{"00:11:22:33:44:55", "192.168.1.50", "server1"},
+			wantRows:     1,
+		},
+		{
+			name: "multiple leases",
+			leases: []model.DHCPStaticLease{
+				{Mac: "00:11:22:33:44:55", IPAddr: "192.168.1.50", Hostname: "server1"},
+				{Mac: "AA:BB:CC:DD:EE:FF", IPAddr: "192.168.1.51", Hostname: "server2"},
+				{Mac: "11:22:33:44:55:66", IPAddr: "192.168.1.52", Hostname: "printer"},
+			},
+			wantContains: []string{
+				"00:11:22:33:44:55", "192.168.1.50", "server1",
+				"AA:BB:CC:DD:EE:FF", "192.168.1.51", "server2",
+				"11:22:33:44:55:66", "192.168.1.52", "printer",
+			},
+			wantRows: 3,
+		},
+		{
+			name: "full lease with all fields",
+			leases: []model.DHCPStaticLease{
+				{
+					Mac:              "00:11:22:33:44:55",
+					IPAddr:           "192.168.1.50",
+					Hostname:         "pxe-server",
+					Cid:              "client-id-123",
+					Filename:         "pxelinux.0",
+					Rootpath:         "/tftpboot",
+					Defaultleasetime: "3600",
+					Maxleasetime:     "7200",
+					Descr:            "PXE boot server",
+				},
+			},
+			wantContains: []string{
+				"00:11:22:33:44:55", "192.168.1.50", "pxe-server",
+				"client-id-123", "pxelinux.0", "/tftpboot",
+				"1 hour", "2 hours", "PXE boot server",
+			},
+			wantRows: 1,
+		},
+	}
+
+	staticLeasesHeaders := []string{
+		"Hostname", "MAC", "IP", "CID", "Filename", "Rootpath",
+		"Default Lease", "Max Lease", "Description",
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			tableSet := BuildDHCPStaticLeasesTableSet(tt.leases)
+			verifyTableSet(t, tableSet, staticLeasesHeaders, tt.wantRows, tt.wantContains)
+		})
+	}
+}
+
+func TestBuildAdvancedDHCPItems(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		dhcp         model.DhcpdInterface
+		wantContains []string
+		wantLen      int
+	}{
+		{
+			name:         "empty config returns empty slice",
+			dhcp:         model.DhcpdInterface{},
+			wantContains: nil,
+			wantLen:      0,
+		},
+		{
+			name: "alias fields populated",
+			dhcp: model.DhcpdInterface{
+				AliasAddress:   "192.168.1.254",
+				AliasSubnet:    "24",
+				DHCPRejectFrom: "192.168.1.100",
+			},
+			wantContains: []string{
+				"Alias Address: 192.168.1.254",
+				"Alias Subnet: 24",
+				"DHCP Reject From: 192.168.1.100",
+			},
+			wantLen: 3,
+		},
+		{
+			name: "advanced protocol timing fields",
+			dhcp: model.DhcpdInterface{
+				AdvDHCPPTTimeout:         "60",
+				AdvDHCPPTRetry:           "5",
+				AdvDHCPPTSelectTimeout:   "10",
+				AdvDHCPPTReboot:          "30",
+				AdvDHCPPTBackoffCutoff:   "120",
+				AdvDHCPPTInitialInterval: "3",
+			},
+			wantContains: []string{
+				"Protocol Timeout: 60", "Protocol Retry: 5", "Select Timeout: 10",
+				"Reboot: 30", "Backoff Cutoff: 120", "Initial Interval: 3",
+			},
+			wantLen: 6,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			items := buildAdvancedDHCPItems(tt.dhcp)
+
+			if len(items) != tt.wantLen {
+				t.Errorf("Item count = %d, want %d", len(items), tt.wantLen)
+			}
+
+			for _, want := range tt.wantContains {
+				if !slices.Contains(items, want) {
+					t.Errorf("Items missing expected content: %q", want)
+				}
+			}
+		})
+	}
+}
+
+func TestBuildDHCPv6Items(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		dhcp         model.DhcpdInterface
+		wantContains []string
+		wantLen      int
+	}{
+		{
+			name:         "empty config returns empty slice",
+			dhcp:         model.DhcpdInterface{},
+			wantContains: nil,
+			wantLen:      0,
+		},
+		{
+			name: "track6 fields populated",
+			dhcp: model.DhcpdInterface{
+				Track6Interface: "wan",
+				Track6PrefixID:  "0",
+			},
+			wantContains: []string{"Track6 Interface: wan", "Track6 Prefix ID: 0"},
+			wantLen:      2,
+		},
+		{
+			name: "id assoc and prefix fields",
+			dhcp: model.DhcpdInterface{
+				AdvDHCP6IDAssocStatementAddressEnable: "1",
+				AdvDHCP6IDAssocStatementAddress:       "2001:db8::1",
+				AdvDHCP6IDAssocStatementAddressID:     "1",
+				AdvDHCP6IDAssocStatementPrefixEnable:  "1",
+				AdvDHCP6IDAssocStatementPrefix:        "2001:db8::/48",
+			},
+			wantContains: []string{
+				"ID Assoc Address: Enabled", "Address: 2001:db8::1", "Address ID: 1",
+				"ID Assoc Prefix: Enabled", "Prefix: 2001:db8::/48",
+			},
+			wantLen: 5,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			items := buildDHCPv6Items(tt.dhcp)
+
+			if len(items) != tt.wantLen {
+				t.Errorf("Item count = %d, want %d", len(items), tt.wantLen)
+			}
+
+			for _, want := range tt.wantContains {
+				if !slices.Contains(items, want) {
+					t.Errorf("Items missing expected content: %q", want)
+				}
+			}
+		})
+	}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+// verifyTableSet validates a TableSet against expected headers, row count, and content.
+func verifyTableSet(
+	t *testing.T,
+	tableSet *markdown.TableSet,
+	expectedHeaders []string,
+	wantRows int,
+	wantContains []string,
+) {
+	t.Helper()
+
+	// Verify header structure
+	if len(tableSet.Header) != len(expectedHeaders) {
+		t.Errorf("Header count = %d, want %d", len(tableSet.Header), len(expectedHeaders))
+	}
+	for i, hdr := range expectedHeaders {
+		if i < len(tableSet.Header) && tableSet.Header[i] != hdr {
+			t.Errorf("Header[%d] = %q, want %q", i, tableSet.Header[i], hdr)
+		}
+	}
+
+	// Verify row count
+	if len(tableSet.Rows) != wantRows {
+		t.Errorf("Row count = %d, want %d", len(tableSet.Rows), wantRows)
+	}
+
+	// Verify expected content is present
+	tableContent := flattenTableSet(tableSet)
+	for _, want := range wantContains {
+		if !containsString(tableContent, want) {
+			t.Errorf("Table missing expected content: %q", want)
+		}
+	}
+}
+
+// flattenTableSet converts a TableSet into a flat string slice for easier content verification.
+func flattenTableSet(ts *markdown.TableSet) []string {
+	result := append([]string{}, ts.Header...)
+	for _, row := range ts.Rows {
+		result = append(result, row...)
+	}
+	return result
+}
+
+// containsString checks if a slice contains a specific string.
+func containsString(slice []string, s string) bool {
+	return slices.Contains(slice, s)
 }

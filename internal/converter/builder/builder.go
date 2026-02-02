@@ -49,6 +49,10 @@ type ReportBuilder interface {
 	WriteVLANTable(md *markdown.Markdown, vlans []model.VLAN) *markdown.Markdown
 	// WriteStaticRoutesTable writes a static routes table and returns md for chaining.
 	WriteStaticRoutesTable(md *markdown.Markdown, routes []model.StaticRoute) *markdown.Markdown
+	// WriteDHCPSummaryTable writes a DHCP summary table and returns md for chaining.
+	WriteDHCPSummaryTable(md *markdown.Markdown, dhcpd model.Dhcpd) *markdown.Markdown
+	// WriteDHCPStaticLeasesTable writes a static leases table and returns md for chaining.
+	WriteDHCPStaticLeasesTable(md *markdown.Markdown, leases []model.DHCPStaticLease) *markdown.Markdown
 
 	// BuildIPsecSection builds the IPsec VPN configuration section.
 	BuildIPsecSection(data *model.OpnSenseDocument) string
@@ -341,15 +345,63 @@ func (b *MarkdownBuilder) writeServicesSection(md *markdown.Markdown, data *mode
 	md.H2("Service Configuration").
 		H3("DHCP Server")
 
-	if lanDhcp, ok := svcConfig.Dhcpd.Get("lan"); ok && lanDhcp.Enable != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("LAN DHCP Enabled"), formatters.FormatBoolean(lanDhcp.Enable)).LF()
-		if lanDhcp.Range.From != "" && lanDhcp.Range.To != "" {
-			md.PlainTextf("%s: %s - %s", markdown.Bold("LAN DHCP Range"), lanDhcp.Range.From, lanDhcp.Range.To).LF()
-		}
-	}
+	// DHCP Summary Table
+	b.WriteDHCPSummaryTable(md, svcConfig.Dhcpd)
 
-	if wanDhcp, ok := svcConfig.Dhcpd.Get("wan"); ok && wanDhcp.Enable != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("WAN DHCP Enabled"), formatters.FormatBoolean(wanDhcp.Enable)).LF()
+	// Per-interface detailed sections (only for interfaces with additional config)
+	for _, ifaceName := range slices.Sorted(maps.Keys(svcConfig.Dhcpd.Items)) {
+		dhcp := svcConfig.Dhcpd.Items[ifaceName]
+
+		// Check if this interface has content worth showing in a detail section
+		hasStaticLeases := len(dhcp.Staticmap) > 0
+		hasNumberOptions := len(dhcp.NumberOptions) > 0
+		hasAdvanced := HasAdvancedDHCPConfig(dhcp)
+		hasIPv6 := HasDHCPv6Config(dhcp)
+
+		if !hasStaticLeases && !hasNumberOptions && !hasAdvanced && !hasIPv6 {
+			continue
+		}
+
+		// Capitalize interface name for header
+		headerName := strings.ToUpper(ifaceName[:1]) + strings.ToLower(ifaceName[1:])
+		md.H4(headerName + " DHCP Details")
+
+		// Static leases table
+		if hasStaticLeases {
+			md.PlainTextf("%s:", markdown.Bold("Static Leases")).LF()
+			b.WriteDHCPStaticLeasesTable(md, dhcp.Staticmap)
+		}
+
+		// Number options table
+		if hasNumberOptions {
+			md.PlainTextf("%s:", markdown.Bold("DHCP Number Options")).LF()
+			numOptRows := make([][]string, 0, len(dhcp.NumberOptions))
+			for _, opt := range dhcp.NumberOptions {
+				numOptRows = append(numOptRows, []string{
+					formatters.EscapeTableContent(opt.Number),
+					formatters.EscapeTableContent(opt.Type),
+					formatters.EscapeTableContent(opt.Value),
+				})
+			}
+			md.Table(markdown.TableSet{
+				Header: []string{"Option Number", "Type", "Value"},
+				Rows:   numOptRows,
+			})
+		}
+
+		// Advanced options section
+		if hasAdvanced {
+			md.PlainTextf("%s:", markdown.Bold("Advanced DHCP Options")).LF()
+			advItems := buildAdvancedDHCPItems(dhcp)
+			md.BulletList(advItems...)
+		}
+
+		// DHCPv6 options section
+		if hasIPv6 {
+			md.PlainTextf("%s:", markdown.Bold("DHCPv6 Options")).LF()
+			v6Items := buildDHCPv6Items(dhcp)
+			md.BulletList(v6Items...)
+		}
 	}
 
 	md.H3("DNS Resolver (Unbound)")
