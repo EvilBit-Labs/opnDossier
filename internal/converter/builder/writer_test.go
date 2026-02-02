@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
+	internalMarkdown "github.com/EvilBit-Labs/opnDossier/internal/markdown"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/nao1215/markdown"
 )
@@ -591,6 +592,367 @@ func TestMarkdownBuilder_WriteComprehensiveReport_NewSections(t *testing.T) {
 		if !strings.Contains(output, section) {
 			t.Errorf("Comprehensive report missing section: %s", section)
 		}
+	}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Markdown Syntax Validation Tests (goldmark round-trip)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// TestMarkdownBuilder_ValidateMarkdownSyntax validates that all generated markdown
+// passes goldmark parsing. This is a round-trip validation test that generates
+// markdown and then verifies it can be parsed by a standards-compliant parser.
+func TestMarkdownBuilder_ValidateMarkdownSyntax(t *testing.T) {
+	t.Parallel()
+
+	b := builder.NewMarkdownBuilder()
+	data := createTestDocumentWithAllFeatures()
+
+	tests := []struct {
+		name     string
+		generate func() string
+	}{
+		{
+			name: "SystemSection",
+			generate: func() string {
+				return b.BuildSystemSection(data)
+			},
+		},
+		{
+			name: "NetworkSection",
+			generate: func() string {
+				return b.BuildNetworkSection(data)
+			},
+		},
+		{
+			name: "SecuritySection",
+			generate: func() string {
+				return b.BuildSecuritySection(data)
+			},
+		},
+		{
+			name: "ServicesSection",
+			generate: func() string {
+				return b.BuildServicesSection(data)
+			},
+		},
+		{
+			name: "IPsecSection",
+			generate: func() string {
+				return b.BuildIPsecSection(data)
+			},
+		},
+		{
+			name: "OpenVPNSection",
+			generate: func() string {
+				return b.BuildOpenVPNSection(data)
+			},
+		},
+		{
+			name: "HASection",
+			generate: func() string {
+				return b.BuildHASection(data)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			output := tt.generate()
+			if output == "" {
+				t.Fatalf("%s produced empty output", tt.name)
+			}
+
+			err := internalMarkdown.ValidateMarkdown(output)
+			if err != nil {
+				t.Errorf("%s produced invalid markdown: %v\nOutput:\n%s", tt.name, err, output)
+			}
+		})
+	}
+}
+
+// TestMarkdownBuilder_ValidateStandardReport validates that the standard report
+// produces valid markdown that passes goldmark parsing.
+func TestMarkdownBuilder_ValidateStandardReport(t *testing.T) {
+	t.Parallel()
+
+	b := builder.NewMarkdownBuilder()
+	data := createTestDocumentWithAllFeatures()
+
+	report, err := b.BuildStandardReport(data)
+	if err != nil {
+		t.Fatalf("BuildStandardReport returned error: %v", err)
+	}
+
+	if report == "" {
+		t.Fatal("BuildStandardReport produced empty output")
+	}
+
+	err = internalMarkdown.ValidateMarkdown(report)
+	if err != nil {
+		t.Errorf("Standard report produced invalid markdown: %v", err)
+	}
+}
+
+// TestMarkdownBuilder_ValidateComprehensiveReport validates that the comprehensive
+// report produces valid markdown that passes goldmark parsing.
+func TestMarkdownBuilder_ValidateComprehensiveReport(t *testing.T) {
+	t.Parallel()
+
+	b := builder.NewMarkdownBuilder()
+	data := createTestDocumentWithAllFeatures()
+
+	report, err := b.BuildComprehensiveReport(data)
+	if err != nil {
+		t.Fatalf("BuildComprehensiveReport returned error: %v", err)
+	}
+
+	if report == "" {
+		t.Fatal("BuildComprehensiveReport produced empty output")
+	}
+
+	err = internalMarkdown.ValidateMarkdown(report)
+	if err != nil {
+		t.Errorf("Comprehensive report produced invalid markdown: %v", err)
+	}
+}
+
+// TestMarkdownBuilder_ValidateWriteMethods validates that the streaming Write*
+// methods produce valid markdown that passes goldmark parsing.
+func TestMarkdownBuilder_ValidateWriteMethods(t *testing.T) {
+	t.Parallel()
+
+	b := builder.NewMarkdownBuilder()
+	data := createTestDocumentWithAllFeatures()
+
+	tests := []struct {
+		name  string
+		write func(buf *bytes.Buffer) error
+	}{
+		{
+			name: "WriteSystemSection",
+			write: func(buf *bytes.Buffer) error {
+				return b.WriteSystemSection(buf, data)
+			},
+		},
+		{
+			name: "WriteNetworkSection",
+			write: func(buf *bytes.Buffer) error {
+				return b.WriteNetworkSection(buf, data)
+			},
+		},
+		{
+			name: "WriteSecuritySection",
+			write: func(buf *bytes.Buffer) error {
+				return b.WriteSecuritySection(buf, data)
+			},
+		},
+		{
+			name: "WriteServicesSection",
+			write: func(buf *bytes.Buffer) error {
+				return b.WriteServicesSection(buf, data)
+			},
+		},
+		{
+			name: "WriteStandardReport",
+			write: func(buf *bytes.Buffer) error {
+				return b.WriteStandardReport(buf, data)
+			},
+		},
+		{
+			name: "WriteComprehensiveReport",
+			write: func(buf *bytes.Buffer) error {
+				return b.WriteComprehensiveReport(buf, data)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var buf bytes.Buffer
+			err := tt.write(&buf)
+			if err != nil {
+				t.Fatalf("%s returned error: %v", tt.name, err)
+			}
+
+			output := buf.String()
+			if output == "" {
+				t.Fatalf("%s produced empty output", tt.name)
+			}
+
+			err = internalMarkdown.ValidateMarkdown(output)
+			if err != nil {
+				t.Errorf("%s produced invalid markdown: %v", tt.name, err)
+			}
+		})
+	}
+}
+
+// TestMarkdownBuilder_ValidateTableMethods validates that the Write*Table methods
+// produce valid markdown tables that pass goldmark parsing.
+func TestMarkdownBuilder_ValidateTableMethods(t *testing.T) {
+	t.Parallel()
+
+	b := builder.NewMarkdownBuilder()
+	data := createTestDocumentWithAllFeatures()
+
+	tests := []struct {
+		name  string
+		write func(md *markdown.Markdown)
+	}{
+		{
+			name: "WriteFirewallRulesTable",
+			write: func(md *markdown.Markdown) {
+				b.WriteFirewallRulesTable(md, data.Filter.Rule)
+			},
+		},
+		{
+			name: "WriteInterfaceTable",
+			write: func(md *markdown.Markdown) {
+				b.WriteInterfaceTable(md, data.Interfaces)
+			},
+		},
+		{
+			name: "WriteUserTable",
+			write: func(md *markdown.Markdown) {
+				b.WriteUserTable(md, data.System.User)
+			},
+		},
+		{
+			name: "WriteGroupTable",
+			write: func(md *markdown.Markdown) {
+				b.WriteGroupTable(md, data.System.Group)
+			},
+		},
+		{
+			name: "WriteVLANTable",
+			write: func(md *markdown.Markdown) {
+				b.WriteVLANTable(md, data.VLANs.VLAN)
+			},
+		},
+		{
+			name: "WriteStaticRoutesTable",
+			write: func(md *markdown.Markdown) {
+				b.WriteStaticRoutesTable(md, data.StaticRoutes.Route)
+			},
+		},
+		{
+			name: "WriteOutboundNATTable_Empty",
+			write: func(md *markdown.Markdown) {
+				b.WriteOutboundNATTable(md, nil)
+			},
+		},
+		{
+			name: "WriteInboundNATTable_Empty",
+			write: func(md *markdown.Markdown) {
+				b.WriteInboundNATTable(md, nil)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var buf bytes.Buffer
+			md := markdown.NewMarkdown(&buf)
+			tt.write(md)
+			output := md.String()
+
+			if output == "" {
+				t.Fatalf("%s produced empty output", tt.name)
+			}
+
+			err := internalMarkdown.ValidateMarkdown(output)
+			if err != nil {
+				t.Errorf("%s produced invalid markdown: %v\nOutput:\n%s", tt.name, err, output)
+			}
+		})
+	}
+}
+
+// TestMarkdownBuilder_ValidateEmptyData validates that the builder handles empty
+// data gracefully and still produces valid markdown.
+func TestMarkdownBuilder_ValidateEmptyData(t *testing.T) {
+	t.Parallel()
+
+	b := builder.NewMarkdownBuilder()
+	// Minimal document with mostly empty fields
+	data := &model.OpnSenseDocument{
+		Version: "1.0",
+		System: model.System{
+			Hostname: "empty-test",
+			Domain:   "test.local",
+			Firmware: model.Firmware{Version: "24.1"},
+		},
+		Interfaces: model.Interfaces{
+			Items: map[string]model.Interface{},
+		},
+	}
+
+	tests := []struct {
+		name     string
+		generate func() string
+	}{
+		{
+			name: "SystemSection_Empty",
+			generate: func() string {
+				return b.BuildSystemSection(data)
+			},
+		},
+		{
+			name: "NetworkSection_Empty",
+			generate: func() string {
+				return b.BuildNetworkSection(data)
+			},
+		},
+		{
+			name: "SecuritySection_Empty",
+			generate: func() string {
+				return b.BuildSecuritySection(data)
+			},
+		},
+		{
+			name: "ServicesSection_Empty",
+			generate: func() string {
+				return b.BuildServicesSection(data)
+			},
+		},
+		{
+			name: "IPsecSection_Empty",
+			generate: func() string {
+				return b.BuildIPsecSection(data)
+			},
+		},
+		{
+			name: "OpenVPNSection_Empty",
+			generate: func() string {
+				return b.BuildOpenVPNSection(data)
+			},
+		},
+		{
+			name: "HASection_Empty",
+			generate: func() string {
+				return b.BuildHASection(data)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			output := tt.generate()
+			// Empty sections may produce minimal but valid markdown
+			err := internalMarkdown.ValidateMarkdown(output)
+			if err != nil {
+				t.Errorf("%s produced invalid markdown: %v\nOutput:\n%s", tt.name, err, output)
+			}
+		})
 	}
 }
 
