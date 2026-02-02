@@ -526,6 +526,11 @@ func generateOutputByFormat(
 	opt converter.Options,
 	logger *log.Logger,
 ) (string, error) {
+	// Check if audit mode is enabled - route to audit handler
+	if opt.AuditMode != "" {
+		return handleAuditMode(ctx, opnsense, opt, logger)
+	}
+
 	// Determine the format to use
 	format := strings.ToLower(string(opt.Format))
 
