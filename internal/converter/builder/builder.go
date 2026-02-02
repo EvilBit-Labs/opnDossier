@@ -362,8 +362,11 @@ func (b *MarkdownBuilder) writeServicesSection(md *markdown.Markdown, data *mode
 			continue
 		}
 
-		// Capitalize interface name for header
-		headerName := strings.ToUpper(ifaceName[:1]) + strings.ToLower(ifaceName[1:])
+		// Capitalize interface name for header (defensive check for empty string)
+		headerName := ifaceName
+		if ifaceName != "" {
+			headerName = strings.ToUpper(ifaceName[:1]) + strings.ToLower(ifaceName[1:])
+		}
 		md.H4(headerName + " DHCP Details")
 
 		// Static leases table
