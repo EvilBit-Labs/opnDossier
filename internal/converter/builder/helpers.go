@@ -1,8 +1,18 @@
 package builder
 
 import (
+	"strconv"
+
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
+)
+
+// Time unit constants for lease time formatting.
+const (
+	secondsPerMinute = 60
+	secondsPerHour   = 3600
+	secondsPerDay    = 86400
+	secondsPerWeek   = 604800
 )
 
 // EscapeTableContent escapes content for safe display in markdown tables.
@@ -98,4 +108,146 @@ func (b *MarkdownBuilder) FilterRulesByType(rules []model.Rule, ruleType string)
 // ExtractUniqueValues extracts unique values from a slice of strings.
 func (b *MarkdownBuilder) ExtractUniqueValues(items []string) []string {
 	return formatters.ExtractUniqueValues(items)
+}
+
+// FormatLeaseTime converts DHCP lease time seconds to human-readable format.
+// Empty string or "0" returns "-".
+// Invalid input returns the original string.
+// Examples:
+//   - "" → "-"
+//   - "0" → "-"
+//   - "3600" → "1 hour"
+//   - "7200" → "2 hours"
+//   - "86400" → "1 day"
+//   - "172800" → "2 days"
+//   - "604800" → "1 week"
+//   - "1209600" → "2 weeks"
+//   - "5400" → "1 hour, 30 minutes"
+func FormatLeaseTime(seconds string) string {
+	if seconds == "" || seconds == "0" {
+		return "-"
+	}
+
+	secs, err := strconv.Atoi(seconds)
+	if err != nil {
+		return seconds
+	}
+
+	if secs <= 0 {
+		return "-"
+	}
+
+	return formatDuration(secs)
+}
+
+// formatDuration converts seconds to a human-readable duration string.
+func formatDuration(totalSeconds int) string {
+	if totalSeconds >= secondsPerWeek {
+		weeks := totalSeconds / secondsPerWeek
+		remainder := totalSeconds % secondsPerWeek
+		if remainder == 0 {
+			return pluralize(weeks, "week")
+		}
+		return pluralize(weeks, "week") + ", " + formatDuration(remainder)
+	}
+
+	if totalSeconds >= secondsPerDay {
+		days := totalSeconds / secondsPerDay
+		remainder := totalSeconds % secondsPerDay
+		if remainder == 0 {
+			return pluralize(days, "day")
+		}
+		return pluralize(days, "day") + ", " + formatDuration(remainder)
+	}
+
+	if totalSeconds >= secondsPerHour {
+		hours := totalSeconds / secondsPerHour
+		remainder := totalSeconds % secondsPerHour
+		if remainder == 0 {
+			return pluralize(hours, "hour")
+		}
+		return pluralize(hours, "hour") + ", " + formatDuration(remainder)
+	}
+
+	if totalSeconds >= secondsPerMinute {
+		minutes := totalSeconds / secondsPerMinute
+		remainder := totalSeconds % secondsPerMinute
+		if remainder == 0 {
+			return pluralize(minutes, "minute")
+		}
+		return pluralize(minutes, "minute") + ", " + pluralize(remainder, "second")
+	}
+
+	return pluralize(totalSeconds, "second")
+}
+
+// pluralize returns the singular or plural form of a unit based on the count.
+func pluralize(count int, unit string) string {
+	if count == 1 {
+		return "1 " + unit
+	}
+	return strconv.Itoa(count) + " " + unit + "s"
+}
+
+// HasAdvancedDHCPConfig checks if any AdvDHCP* fields are populated in a DhcpdInterface.
+// This includes: AliasAddress, AliasSubnet, DHCPRejectFrom, and all AdvDHCP* fields.
+func HasAdvancedDHCPConfig(dhcp model.DhcpdInterface) bool {
+	// Check alias fields
+	if dhcp.AliasAddress != "" || dhcp.AliasSubnet != "" || dhcp.DHCPRejectFrom != "" {
+		return true
+	}
+
+	// Check all AdvDHCP* fields (14 total)
+	return dhcp.AdvDHCPPTTimeout != "" ||
+		dhcp.AdvDHCPPTRetry != "" ||
+		dhcp.AdvDHCPPTSelectTimeout != "" ||
+		dhcp.AdvDHCPPTReboot != "" ||
+		dhcp.AdvDHCPPTBackoffCutoff != "" ||
+		dhcp.AdvDHCPPTInitialInterval != "" ||
+		dhcp.AdvDHCPPTValues != "" ||
+		dhcp.AdvDHCPSendOptions != "" ||
+		dhcp.AdvDHCPRequestOptions != "" ||
+		dhcp.AdvDHCPRequiredOptions != "" ||
+		dhcp.AdvDHCPOptionModifiers != "" ||
+		dhcp.AdvDHCPConfigAdvanced != "" ||
+		dhcp.AdvDHCPConfigFileOverride != "" ||
+		dhcp.AdvDHCPConfigFileOverridePath != ""
+}
+
+// HasDHCPv6Config checks if any DHCPv6 fields are populated in a DhcpdInterface.
+// This includes: Track6Interface, Track6PrefixID, and all AdvDHCP6* fields.
+func HasDHCPv6Config(dhcp model.DhcpdInterface) bool {
+	// Check Track6 fields
+	if dhcp.Track6Interface != "" || dhcp.Track6PrefixID != "" {
+		return true
+	}
+
+	// Check all AdvDHCP6* fields (26 total)
+	return dhcp.AdvDHCP6InterfaceStatementSendOptions != "" ||
+		dhcp.AdvDHCP6InterfaceStatementRequestOptions != "" ||
+		dhcp.AdvDHCP6InterfaceStatementInformationOnlyEnable != "" ||
+		dhcp.AdvDHCP6InterfaceStatementScript != "" ||
+		dhcp.AdvDHCP6IDAssocStatementAddressEnable != "" ||
+		dhcp.AdvDHCP6IDAssocStatementAddress != "" ||
+		dhcp.AdvDHCP6IDAssocStatementAddressID != "" ||
+		dhcp.AdvDHCP6IDAssocStatementAddressPLTime != "" ||
+		dhcp.AdvDHCP6IDAssocStatementAddressVLTime != "" ||
+		dhcp.AdvDHCP6IDAssocStatementPrefixEnable != "" ||
+		dhcp.AdvDHCP6IDAssocStatementPrefix != "" ||
+		dhcp.AdvDHCP6IDAssocStatementPrefixID != "" ||
+		dhcp.AdvDHCP6IDAssocStatementPrefixPLTime != "" ||
+		dhcp.AdvDHCP6IDAssocStatementPrefixVLTime != "" ||
+		dhcp.AdvDHCP6PrefixInterfaceStatementSLALen != "" ||
+		dhcp.AdvDHCP6AuthenticationStatementAuthName != "" ||
+		dhcp.AdvDHCP6AuthenticationStatementProtocol != "" ||
+		dhcp.AdvDHCP6AuthenticationStatementAlgorithm != "" ||
+		dhcp.AdvDHCP6AuthenticationStatementRDM != "" ||
+		dhcp.AdvDHCP6KeyInfoStatementKeyName != "" ||
+		dhcp.AdvDHCP6KeyInfoStatementRealm != "" ||
+		dhcp.AdvDHCP6KeyInfoStatementKeyID != "" ||
+		dhcp.AdvDHCP6KeyInfoStatementSecret != "" ||
+		dhcp.AdvDHCP6KeyInfoStatementExpire != "" ||
+		dhcp.AdvDHCP6ConfigAdvanced != "" ||
+		dhcp.AdvDHCP6ConfigFileOverride != "" ||
+		dhcp.AdvDHCP6ConfigFileOverridePath != ""
 }
