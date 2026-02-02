@@ -396,6 +396,21 @@ md.PlainText("Status: **Active**")
 | `markdown.Italic(text)`    | Italic text     | `*text*`         |
 | `markdown.Code(text)`      | Inline code     | `` `text` ``     |
 
+**Inline tables - Chain with headers:**
+
+```go
+// Good - chain table with header
+md.H4("Section Title").
+    Table(markdown.TableSet{
+        Header: []string{"Col1", "Col2"},
+        Rows:   rows,
+    })
+
+// Bad - separate calls break the chain
+md.H4("Section Title")
+md.Table(markdown.TableSet{...})
+```
+
 ---
 
 ## 6. Data Processing Standards
@@ -551,6 +566,17 @@ assert.Contains(t, interfaceCell, "[wan]")
 assert.Contains(t, interfaceCell, "#wan-interface")
 assert.Contains(t, interfaceCell, ", ") // Multi-value separator
 ```
+
+### 7.6 Golden File Testing
+
+Use `sebdah/goldie/v2` for snapshot testing. Key patterns:
+
+- Golden files contain **actual** values (timestamps, versions), not placeholders
+- Use a `normalizeGoldenOutput` function to normalize dynamic content before comparison
+- Update golden files: `go test ./path -run TestGolden -update`
+- Use `time.RFC3339` for timestamps (standard format, consistent across codebase)
+- Clean trailing whitespace: `sed -i '' 's/[[:space:]]*$//' *.golden.md`
+- Markdown validation: `internal/markdown.ValidateMarkdown()` uses goldmark for round-trip validation
 
 ---
 

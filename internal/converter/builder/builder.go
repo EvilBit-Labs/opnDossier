@@ -4,6 +4,8 @@ package builder
 import (
 	"bytes"
 	"fmt"
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -47,6 +49,10 @@ type ReportBuilder interface {
 	WriteVLANTable(md *markdown.Markdown, vlans []model.VLAN) *markdown.Markdown
 	// WriteStaticRoutesTable writes a static routes table and returns md for chaining.
 	WriteStaticRoutesTable(md *markdown.Markdown, routes []model.StaticRoute) *markdown.Markdown
+	// WriteDHCPSummaryTable writes a DHCP summary table and returns md for chaining.
+	WriteDHCPSummaryTable(md *markdown.Markdown, dhcpd model.Dhcpd) *markdown.Markdown
+	// WriteDHCPStaticLeasesTable writes a static leases table and returns md for chaining.
+	WriteDHCPStaticLeasesTable(md *markdown.Markdown, leases []model.DHCPStaticLease) *markdown.Markdown
 
 	// BuildIPsecSection builds the IPsec VPN configuration section.
 	BuildIPsecSection(data *model.OpnSenseDocument) string
@@ -339,15 +345,66 @@ func (b *MarkdownBuilder) writeServicesSection(md *markdown.Markdown, data *mode
 	md.H2("Service Configuration").
 		H3("DHCP Server")
 
-	if lanDhcp, ok := svcConfig.Dhcpd.Get("lan"); ok && lanDhcp.Enable != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("LAN DHCP Enabled"), formatters.FormatBoolean(lanDhcp.Enable)).LF()
-		if lanDhcp.Range.From != "" && lanDhcp.Range.To != "" {
-			md.PlainTextf("%s: %s - %s", markdown.Bold("LAN DHCP Range"), lanDhcp.Range.From, lanDhcp.Range.To).LF()
-		}
-	}
+	// DHCP Summary Table
+	b.WriteDHCPSummaryTable(md, svcConfig.Dhcpd)
 
-	if wanDhcp, ok := svcConfig.Dhcpd.Get("wan"); ok && wanDhcp.Enable != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("WAN DHCP Enabled"), formatters.FormatBoolean(wanDhcp.Enable)).LF()
+	// Per-interface detailed sections (only for interfaces with additional config)
+	for _, ifaceName := range slices.Sorted(maps.Keys(svcConfig.Dhcpd.Items)) {
+		dhcp := svcConfig.Dhcpd.Items[ifaceName]
+
+		// Check if this interface has content worth showing in a detail section
+		hasStaticLeases := len(dhcp.Staticmap) > 0
+		hasNumberOptions := len(dhcp.NumberOptions) > 0
+		hasAdvanced := HasAdvancedDHCPConfig(dhcp)
+		hasIPv6 := HasDHCPv6Config(dhcp)
+
+		if !hasStaticLeases && !hasNumberOptions && !hasAdvanced && !hasIPv6 {
+			continue
+		}
+
+		// Capitalize interface name for header (defensive check for empty string)
+		headerName := ifaceName
+		if ifaceName != "" {
+			headerName = strings.ToUpper(ifaceName[:1]) + strings.ToLower(ifaceName[1:])
+		}
+		md.H4(headerName + " DHCP Details")
+
+		// Static leases table
+		if hasStaticLeases {
+			md.PlainTextf("%s:", markdown.Bold("Static Leases")).LF()
+			b.WriteDHCPStaticLeasesTable(md, dhcp.Staticmap)
+		}
+
+		// Number options table
+		if hasNumberOptions {
+			md.PlainTextf("%s:", markdown.Bold("DHCP Number Options")).LF()
+			numOptRows := make([][]string, 0, len(dhcp.NumberOptions))
+			for _, opt := range dhcp.NumberOptions {
+				numOptRows = append(numOptRows, []string{
+					formatters.EscapeTableContent(opt.Number),
+					formatters.EscapeTableContent(opt.Type),
+					formatters.EscapeTableContent(opt.Value),
+				})
+			}
+			md.Table(markdown.TableSet{
+				Header: []string{"Option Number", "Type", "Value"},
+				Rows:   numOptRows,
+			})
+		}
+
+		// Advanced options section
+		if hasAdvanced {
+			md.PlainTextf("%s:", markdown.Bold("Advanced DHCP Options")).LF()
+			advItems := buildAdvancedDHCPItems(dhcp)
+			md.BulletList(advItems...)
+		}
+
+		// DHCPv6 options section
+		if hasIPv6 {
+			md.PlainTextf("%s:", markdown.Bold("DHCPv6 Options")).LF()
+			v6Items := buildDHCPv6Items(dhcp)
+			md.BulletList(v6Items...)
+		}
 	}
 
 	md.H3("DNS Resolver (Unbound)")
@@ -909,6 +966,107 @@ func BuildStaticRoutesTableSet(routes []model.StaticRoute) *markdown.TableSet {
 				status,
 				route.Created,
 				route.Updated,
+			})
+		}
+	}
+
+	return &markdown.TableSet{
+		Header: headers,
+		Rows:   rows,
+	}
+}
+
+// WriteDHCPSummaryTable writes a DHCP scope summary table and returns md for chaining.
+func (b *MarkdownBuilder) WriteDHCPSummaryTable(md *markdown.Markdown, dhcpd model.Dhcpd) *markdown.Markdown {
+	return md.Table(*BuildDHCPSummaryTableSet(dhcpd))
+}
+
+// BuildDHCPSummaryTableSet builds the table data for DHCP scope summary.
+func BuildDHCPSummaryTableSet(dhcpd model.Dhcpd) *markdown.TableSet {
+	headers := []string{
+		"Interface",
+		"Enabled",
+		"Gateway",
+		"Range Start",
+		"Range End",
+		"DNS",
+		"WINS",
+		"NTP",
+		"DDNS Algorithm",
+	}
+
+	rows := make([][]string, 0, len(dhcpd.Items))
+
+	if len(dhcpd.Items) == 0 {
+		rows = append(rows, []string{
+			"-", "-", "-", "-", "-", "-", "-", "-",
+			"No DHCP scopes configured",
+		})
+	} else {
+		// Use sorted keys for deterministic ordering
+		for _, ifaceName := range slices.Sorted(maps.Keys(dhcpd.Items)) {
+			iface := dhcpd.Items[ifaceName]
+			rows = append(rows, []string{
+				formatters.EscapeTableContent(ifaceName),
+				formatters.FormatBoolean(iface.Enable),
+				formatters.EscapeTableContent(iface.Gateway),
+				formatters.EscapeTableContent(iface.Range.From),
+				formatters.EscapeTableContent(iface.Range.To),
+				formatters.EscapeTableContent(iface.Dnsserver),
+				formatters.EscapeTableContent(iface.Winsserver),
+				formatters.EscapeTableContent(iface.Ntpserver),
+				formatters.EscapeTableContent(iface.DdnsDomainAlgorithm),
+			})
+		}
+	}
+
+	return &markdown.TableSet{
+		Header: headers,
+		Rows:   rows,
+	}
+}
+
+// WriteDHCPStaticLeasesTable writes a static DHCP leases table and returns md for chaining.
+func (b *MarkdownBuilder) WriteDHCPStaticLeasesTable(
+	md *markdown.Markdown,
+	leases []model.DHCPStaticLease,
+) *markdown.Markdown {
+	return md.Table(*BuildDHCPStaticLeasesTableSet(leases))
+}
+
+// BuildDHCPStaticLeasesTableSet builds the table data for static DHCP leases.
+func BuildDHCPStaticLeasesTableSet(leases []model.DHCPStaticLease) *markdown.TableSet {
+	headers := []string{
+		"Hostname",
+		"MAC",
+		"IP",
+		"CID",
+		"Filename",
+		"Rootpath",
+		"Default Lease",
+		"Max Lease",
+		"Description",
+	}
+
+	rows := make([][]string, 0, len(leases))
+
+	if len(leases) == 0 {
+		rows = append(rows, []string{
+			"-", "-", "-", "-", "-", "-", "-", "-",
+			"No static leases configured",
+		})
+	} else {
+		for _, lease := range leases {
+			rows = append(rows, []string{
+				formatters.EscapeTableContent(lease.Hostname),
+				formatters.EscapeTableContent(lease.Mac),
+				formatters.EscapeTableContent(lease.IPAddr),
+				formatters.EscapeTableContent(lease.Cid),
+				formatters.EscapeTableContent(lease.Filename),
+				formatters.EscapeTableContent(lease.Rootpath),
+				FormatLeaseTime(lease.Defaultleasetime),
+				FormatLeaseTime(lease.Maxleasetime),
+				formatters.EscapeTableContent(lease.Descr),
 			})
 		}
 	}
