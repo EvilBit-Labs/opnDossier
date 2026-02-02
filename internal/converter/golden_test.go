@@ -85,6 +85,18 @@ func normalizedEqual(actual, expected []byte) bool {
 
 // normalizeGoldenOutput removes or normalizes dynamic content from the output
 // to ensure deterministic comparisons.
+//
+// GOLDEN FILE MAINTENANCE NOTE:
+// Golden files should contain ACTUAL timestamp and version values (e.g., "2026-02-01 18:56:25"
+// and "v1.0.0"), NOT placeholder strings like "[TIMESTAMP]" or "[VERSION]".
+// This function normalizes both actual output AND golden file content before comparison,
+// converting dynamic values to placeholders. This approach allows:
+//   - Golden files to be human-readable with real example values
+//   - Tests to pass regardless of when they run or what version is installed
+//   - Easy manual inspection of golden files
+//
+// When updating golden files with `go test -update`, the test framework writes
+// the actual generated output (with real timestamps/versions), which is correct.
 func normalizeGoldenOutput(output []byte) []byte {
 	lines := strings.Split(string(output), "\n")
 	var normalized []string
