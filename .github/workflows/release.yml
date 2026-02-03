@@ -31,6 +31,9 @@ permissions:
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
+    env:
+      # Ensure mise trusts config in all subprocesses (goreleaser -> cyclonedx-gomod -> go)
+      MISE_YES: "1"
     outputs:
       artifacts: ${{ steps.goreleaser.outputs.artifacts }}
       metadata: ${{ steps.goreleaser.outputs.metadata }}
