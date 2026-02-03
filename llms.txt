@@ -10,7 +10,7 @@ opnDossier is a command-line tool for network operators and security professiona
 - **No Telemetry**: Zero data collection or external communication
 - **Multi-Format Export**: Markdown, JSON, YAML output formats
 - **Security Analysis**: Detects vulnerabilities, dead rules, unused resources
-- **Go-based**: Built with Go 1.21+ for performance and reliability
+- **Go-based**: Built with Go 1.24+ for performance and reliability
 
 ## Project Structure
 

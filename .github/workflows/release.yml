@@ -41,7 +41,7 @@ jobs:
           fetch-depth: 0 # needed for git-cliff changelog generation
 
       - name: Setup mise
-        uses: jdx/mise-action@v2
+        uses: jdx/mise-action@6d1e696aa24c1aa1bcc1adea0212707c71ab78a8 # v3.6.1
         with:
           install: true
           cache: true
@@ -50,13 +50,16 @@ jobs:
         uses: sigstore/cosign-installer@d7d6bc7722e3daa8354c50bcb52f4837da5e9b6a # v3.8.1
 
       - name: Import GPG key
-        if: env.GPG_PRIVATE_KEY != ''
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         run: |
-          echo "${GPG_PRIVATE_KEY}" | base64 --decode | gpg --batch --import
-          # Trust the key ultimately
-          echo "138BFA788F377661EA482C1DEFC6F4CABED22E8E:6:" | gpg --import-ownertrust
+          if [ -n "${GPG_PRIVATE_KEY}" ]; then
+            echo "${GPG_PRIVATE_KEY}" | base64 --decode | gpg --batch --import
+            # Trust the signing key ultimately (fingerprint from keys/software-signing.asc)
+            echo "138BFA788F377661EA482C1DEFC6F4CABED22E8E:6:" | gpg --import-ownertrust
+          else
+            echo "GPG_PRIVATE_KEY not set, skipping GPG key import"
+          fi
 
       - name: Run GoReleaser
         id: goreleaser
@@ -156,9 +159,12 @@ jobs:
               --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
               --bundle "$SIGNATURE" \
               "$CHECKSUMS"
-            echo "✅ Signature verification passed"
+            echo "Signature verification passed"
           else
-            echo "⚠️ Checksums or signature file not found, skipping verification"
+            echo "ERROR: Checksums or signature file not found"
+            echo "CHECKSUMS=$CHECKSUMS SIGNATURE=$SIGNATURE"
+            ls -la
+            exit 1
           fi
 
       - name: Verify checksums
@@ -167,8 +173,11 @@ jobs:
           CHECKSUMS=$(find . -maxdepth 1 -name '*checksums*.txt' -print -quit | sed 's|^\./||')
           if [[ -n "$CHECKSUMS" && -f "$CHECKSUMS" ]]; then
             echo "Verifying file checksums..."
-            sha256sum -c "$CHECKSUMS" --ignore-missing || true
-            echo "✅ Checksum verification complete"
+            sha256sum -c "$CHECKSUMS" --ignore-missing
+            echo "Checksum verification complete"
+          else
+            echo "ERROR: Checksums file not found"
+            exit 1
           fi
 
       - name: Verify attestations
@@ -179,6 +188,6 @@ jobs:
           for file in ./*.tar.gz ./*.zip; do
             if [[ -f "$file" ]]; then
               echo "Verifying attestation for $file"
-              gh attestation verify "$file" --owner "${GITHUB_REPOSITORY_OWNER}" || echo "⚠️ Attestation not found for $file"
+              gh attestation verify "$file" --owner "${GITHUB_REPOSITORY_OWNER}" || echo "WARNING: Attestation not found for $file"
             fi
           done
