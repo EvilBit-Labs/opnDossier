@@ -336,38 +336,5 @@ signs:
     artifacts: checksum
     output: true
 
-  # GPG signing for archives and binaries (traditional verification)
-  # Requires GPG_PRIVATE_KEY and GPG_PASSPHRASE secrets (optional - skipped if not set)
-  - id: gpg-archives
-    cmd: bash
-    signature: "${artifact}.sig"
-    args:
-      - "-c"
-      - |
-        if [ -n "${GPG_PASSPHRASE:-}" ]; then
-          gpg --batch --pinentry-mode loopback --passphrase "${GPG_PASSPHRASE}" \
-            --local-user software@evilbitlabs.io --output "${signature}" --detach-sign "${artifact}"
-        else
-          echo "GPG_PASSPHRASE not set, skipping GPG signature for ${artifact}"
-          touch "${signature}"
-        fi
-    artifacts: archive
-    output: true
-
-  # GPG signing for packages (deb, rpm, apk)
-  # Requires GPG_PRIVATE_KEY and GPG_PASSPHRASE secrets (optional - skipped if not set)
-  - id: gpg-packages
-    cmd: bash
-    signature: "${artifact}.sig"
-    args:
-      - "-c"
-      - |
-        if [ -n "${GPG_PASSPHRASE:-}" ]; then
-          gpg --batch --pinentry-mode loopback --passphrase "${GPG_PASSPHRASE}" \
-            --local-user software@evilbitlabs.io --output "${signature}" --detach-sign "${artifact}"
-        else
-          echo "GPG_PASSPHRASE not set, skipping GPG signature for ${artifact}"
-          touch "${signature}"
-        fi
-    artifacts: package
-    output: true
+  # GPG signing disabled for now - re-enable when secrets are properly configured
+  # See RELEASING.md for GPG setup instructions

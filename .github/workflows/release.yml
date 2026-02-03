@@ -109,7 +109,6 @@ jobs:
             dist/*.pkg.tar.xz
             dist/*checksums*
             dist/*.sigstore.json
-            dist/*.sig
             dist/*.bom.json
           retention-days: 5
 
