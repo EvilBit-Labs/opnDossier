@@ -275,6 +275,9 @@ Frequently encountered linter issues and fixes:
 | `minmax`                   | Manual min/max comparisons    | Use `min()`/`max()` builtins                    |
 | `goconst`                  | Repeated string literals      | Extract to package-level constants              |
 
+> [!NOTE]
+> IDE diagnostics (marked with ★ in some editors) are suggestions, not errors. The authoritative source is `just lint` - if it reports "0 issues", the code is correct regardless of IDE warnings.
+
 ### 5.11 Terminal Output Styling
 
 When using Lipgloss/charmbracelet styling in CLI commands:
@@ -416,6 +419,15 @@ md.Table(markdown.TableSet{...})
 - Use `make([]T, 0)` without capacity hints for small, variable-length slices
 - Only add capacity hints when the capacity value is reused elsewhere or performance-critical
 - Avoid creating constants solely for capacity hints (adds maintenance burden)
+
+### 5.16 Unused Code Guidance
+
+When code becomes unused during refactoring:
+
+- **Remove it** rather than suppressing linter warnings with `//nolint:unused`
+- Unused code adds maintenance burden and confuses future readers
+- If the code might be needed later, rely on version control history
+- This includes helper functions, test utilities, and constants
 
 ---
 
@@ -583,6 +595,31 @@ Use `sebdah/goldie/v2` for snapshot testing. Key patterns:
 - Use `time.RFC3339` for timestamps (standard format, consistent across codebase)
 - Clean trailing whitespace: `sed -i '' 's/[[:space:]]*$//' *.golden.md`
 - Markdown validation: `internal/markdown.ValidateMarkdown()` uses goldmark for round-trip validation
+
+### 7.7 Testing Global Flag Variables
+
+When testing CLI commands with package-level flag variables (required by Cobra), use `t.Cleanup()` to restore original values:
+
+```go
+func TestValidateFlags(t *testing.T) {
+    // Save original values
+    origMode := sharedAuditMode
+    origPlugins := sharedSelectedPlugins
+
+    // Restore after test
+    t.Cleanup(func() {
+        sharedAuditMode = origMode
+        sharedSelectedPlugins = origPlugins
+    })
+
+    // Test with modified values
+    sharedAuditMode = "invalid"
+    err := validateConvertFlags()
+    require.Error(t, err)
+}
+```
+
+This pattern ensures test isolation when multiple tests modify the same global state.
 
 ---
 
