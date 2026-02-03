@@ -54,16 +54,17 @@ jobs:
           # git-cliff for changelog generation
           curl -sSfL https://github.com/orhun/git-cliff/releases/download/v2.7.0/git-cliff-2.7.0-x86_64-unknown-linux-gnu.tar.gz | tar xz
           sudo mv git-cliff-2.7.0/git-cliff /usr/local/bin/
+          rm -rf git-cliff-2.7.0
 
           # mdformat for markdown formatting
-          pip install mdformat mdformat-gfm mdformat-frontmatter mdformat-footnote mdformat-tables
+          pip install --quiet mdformat mdformat-gfm mdformat-frontmatter mdformat-footnote mdformat-tables
 
           # cyclonedx-gomod for SBOM generation
           go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
 
           # quill for macOS code signing (optional)
-          curl -sSfL https://github.com/anchore/quill/releases/download/v0.5.1/quill_0.5.1_linux_amd64.tar.gz | tar xz
-          sudo mv quill /usr/local/bin/
+          curl -sSfL https://github.com/anchore/quill/releases/download/v0.5.1/quill_0.5.1_linux_amd64.tar.gz | tar xz -C /tmp
+          sudo mv /tmp/quill /usr/local/bin/
 
       - name: Import GPG key
         env:
