@@ -49,6 +49,9 @@ jobs:
       - name: Trust mise config
         run: mise trust
 
+      - name: Install cyclonedx-gomod directly
+        run: go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
+
       - name: Import GPG key
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
