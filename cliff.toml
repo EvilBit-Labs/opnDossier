@@ -22,13 +22,9 @@ body = """
 {% for group, commits in commits | group_by(attribute="group") %}
     ### {{ group | striptags | trim | upper_first }}
     {% for commit in commits %}
-        - {% if commit.scope %}*({{ commit.scope }})* {% endif %}\
+        - {% if commit.scope %}**{{ commit.scope }}**: {% endif %}\
             {% if commit.breaking %}[**breaking**] {% endif %}\
-            {{ commit.message | upper_first }}\
-            {% if commit.body %}
-                {% for line in commit.body | split(pat="\n") %}    {{ line }}
-                {% endfor %}{% endif %}\
-            {% if commit.footer %}\n  {{ commit.footer }}{% endif %}\
+            {{ commit.message | upper_first }}
     {% endfor %}
 {% endfor %}\n
 """
@@ -56,8 +52,8 @@ filter_unconventional = true
 split_commits = false
 # regex for preprocessing the commit messages
 commit_preprocessors = [
-    # Replace issue numbers
-    #{ pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${2}](<REPO>/issues/${2}))"},
+    # Replace issue/PR numbers with links
+    { pattern = '\(#([0-9]+)\)', replace = "([#${1}](https://github.com/EvilBit-Labs/opnDossier/pull/${1}))" },
     # Check spelling of the commit with https://github.com/crate-ci/typos
     # If the spelling is incorrect, it will be automatically fixed.
     { pattern = '.*', replace_command = 'typos --write-changes -' },
