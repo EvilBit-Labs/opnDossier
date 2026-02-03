@@ -335,14 +335,13 @@ sboms:
     cmd: cyclonedx-gomod
     args: ["mod", "-licenses", "-std", "-json", "-output", "$document", "../"]
 
-# Cosign v3 keyless signing configuration
-# Signs the checksum file (which covers all artifacts)
+# Artifact signing configuration
 # https://goreleaser.com/customization/sign/
-# https://goreleaser.com/blog/cosign-v3/
 signs:
-  - id: checksum-keyless
+  # Cosign v3 keyless signing for checksums (Sigstore transparency log)
+  # https://goreleaser.com/blog/cosign-v3/
+  - id: checksum-cosign
     cmd: cosign
-    # Output file uses .sigstore.json extension (Cosign v3 bundle format)
     signature: "${artifact}.sigstore.json"
     args:
       - "sign-blob"
@@ -351,3 +350,47 @@ signs:
       - "--yes"
     artifacts: checksum
     output: true
+
+  # GPG signing for archives and binaries (traditional verification)
+  # Requires GPG_PRIVATE_KEY and GPG_PASSPHRASE secrets
+  - id: gpg-archives
+    cmd: gpg
+    signature: "${artifact}.sig"
+    args:
+      - "--batch"
+      - "--pinentry-mode"
+      - "loopback"
+      - "--passphrase"
+      - "${GPG_PASSPHRASE}"
+      - "--local-user"
+      - "software@evilbitlabs.io"
+      - "--output"
+      - "${signature}"
+      - "--detach-sign"
+      - "${artifact}"
+    artifacts: archive
+    output: true
+    # Skip if GPG_PASSPHRASE is not set
+    env:
+      - GPG_PASSPHRASE={{ if index .Env "GPG_PASSPHRASE" }}{{ .Env.GPG_PASSPHRASE }}{{ end }}
+
+  # GPG signing for packages (deb, rpm, apk)
+  - id: gpg-packages
+    cmd: gpg
+    signature: "${artifact}.sig"
+    args:
+      - "--batch"
+      - "--pinentry-mode"
+      - "loopback"
+      - "--passphrase"
+      - "${GPG_PASSPHRASE}"
+      - "--local-user"
+      - "software@evilbitlabs.io"
+      - "--output"
+      - "${signature}"
+      - "--detach-sign"
+      - "${artifact}"
+    artifacts: package
+    output: true
+    env:
+      - GPG_PASSPHRASE={{ if index .Env "GPG_PASSPHRASE" }}{{ .Env.GPG_PASSPHRASE }}{{ end }}

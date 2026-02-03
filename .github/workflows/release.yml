@@ -56,6 +56,15 @@ jobs:
       - name: Install Cosign
         uses: sigstore/cosign-installer@d7d6bc7722e3daa8354c50bcb52f4837da5e9b6a # v3.8.1
 
+      - name: Import GPG key
+        if: env.GPG_PRIVATE_KEY != ''
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          echo "${GPG_PRIVATE_KEY}" | base64 --decode | gpg --batch --import
+          # Trust the key ultimately
+          echo "138BFA788F377661EA482C1DEFC6F4CABED22E8E:6:" | gpg --import-ownertrust
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
@@ -72,6 +81,7 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Upload dist artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -86,6 +96,7 @@ jobs:
             dist/*.pkg.tar.xz
             dist/*checksums*
             dist/*.sigstore.json
+            dist/*.sig
             dist/*.bom.json
           retention-days: 5
 

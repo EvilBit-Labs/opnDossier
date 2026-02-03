@@ -88,6 +88,18 @@ The release workflow requires:
 - `packages: write` - Push Docker images to ghcr.io
 - `id-token: write` - SLSA provenance and Cosign keyless signing
 
+### GitHub Secrets
+
+For GPG signing of release artifacts, add these repository secrets:
+
+| Secret            | Description                                                                         |
+| ----------------- | ----------------------------------------------------------------------------------- |
+| `GPG_PRIVATE_KEY` | Base64-encoded GPG private key (`gpg --armor --export-secret-keys EMAIL \| base64`) |
+| `GPG_PASSPHRASE`  | Passphrase for the GPG key                                                          |
+
+> [!NOTE]
+> GPG signing is optional. If these secrets are not set, releases will still be created with Cosign signatures for checksums.
+
 ## Pre-release Checklist
 
 Before creating a release, verify:
@@ -256,6 +268,31 @@ cosign verify-blob \
 > [!NOTE]
 > Cosign v3 uses `.sigstore.json` bundle format instead of separate `.sig` and `.pem` files.
 
+### Verify GPG Signatures
+
+All release archives and packages are signed with the EvilBit Labs software signing key.
+
+```bash
+# Import the public key (one-time setup)
+curl -sSL https://raw.githubusercontent.com/EvilBit-Labs/opnDossier/main/keys/software-signing.asc | gpg --import
+
+# Or from a local clone
+gpg --import keys/software-signing.asc
+
+# Download an artifact and its signature
+gh release download v1.2.0 --pattern "opnDossier_Linux_x86_64.tar.gz*"
+
+# Verify the signature
+gpg --verify opnDossier_Linux_x86_64.tar.gz.sig opnDossier_Linux_x86_64.tar.gz
+```
+
+**Key details:**
+
+- **Email**: `software@evilbitlabs.io`
+- **Fingerprint**: `138B FA78 8F37 7661 EA48 2C1D EFC6 F4CA BED2 2E8E`
+- **Key type**: RSA 4096
+- **Expires**: 2030-02-03
+
 ### Test Installation
 
 ```bash
@@ -415,17 +452,18 @@ If `QUILL_SIGN_P12` is not set, macOS signing is skipped entirely.
 
 Each release includes:
 
-| Artifact                                      | Description                                 |
-| --------------------------------------------- | ------------------------------------------- |
-| `opnDossier_<OS>_<arch>.tar.gz`               | Binary archives (Linux, macOS, FreeBSD)     |
-| `opnDossier_<OS>_<arch>.zip`                  | Binary archive (Windows)                    |
-| `opndossier_<version>_linux_amd64.deb`        | Debian/Ubuntu package                       |
-| `opndossier_<version>_linux_amd64.rpm`        | RHEL/Fedora package                         |
-| `opndossier_<version>_linux_amd64.apk`        | Alpine package                              |
-| `opndossier_<version>_linux_amd64.pkg.tar.xz` | Arch Linux package                          |
-| `opnDossier_checksums.txt`                    | SHA256 checksums for all artifacts          |
-| `opnDossier_checksums.txt.sigstore.json`      | Cosign v3 signature bundle                  |
-| `*.bom.json`                                  | Software Bill of Materials (CycloneDX SBOM) |
+| Artifact                                      | Description                                   |
+| --------------------------------------------- | --------------------------------------------- |
+| `opnDossier_<OS>_<arch>.tar.gz`               | Binary archives (Linux, macOS, FreeBSD)       |
+| `opnDossier_<OS>_<arch>.zip`                  | Binary archive (Windows)                      |
+| `opndossier_<version>_linux_amd64.deb`        | Debian/Ubuntu package                         |
+| `opndossier_<version>_linux_amd64.rpm`        | RHEL/Fedora package                           |
+| `opndossier_<version>_linux_amd64.apk`        | Alpine package                                |
+| `opndossier_<version>_linux_amd64.pkg.tar.xz` | Arch Linux package                            |
+| `opnDossier_checksums.txt`                    | SHA256 checksums for all artifacts            |
+| `opnDossier_checksums.txt.sigstore.json`      | Cosign v3 signature bundle                    |
+| `*.sig`                                       | GPG detached signatures for archives/packages |
+| `*.bom.json`                                  | Software Bill of Materials (CycloneDX SBOM)   |
 
 Docker images are pushed to:
 
