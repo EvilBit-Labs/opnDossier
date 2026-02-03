@@ -1,13 +1,17 @@
 [tools]
-cyclonedx                                                     = "0.29.2"
-git-cliff                                                     = "latest"
-"github:anchore/quill"                                        = "0.5.1"
+act                                                           = "latest"
+cosign = "3.0.4"
+git-cliff                                                     = "2.12.0"
+"github:anchore/quill"                                        = "latest"
 go                                                            = "1.25.6"
-"go:github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod" = "1.10.0"
+"go:github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod" = "latest"
+"go:github.com/securego/gosec/v2/cmd/gosec"                   = "latest"
 golangci-lint                                                 = "2.8.0"
 goreleaser                                                    = "latest"
 just                                                          = "1.46.0"
 markdownlint-cli2                                             = "0.20.0"
+"pipx:mdformat"                                               = { version = "0.7.21", uvx_args = "--with mdformat-gfm --with mdformat-frontmatter --with mdformat-footnote --with mdformat-simple-breaks --with mdformat-gfm-alerts --with mdformat-toc --with mdformat-wikilink --with mdformat-tables" }
+"pipx:mkdocs"                                                 = { version = "1.6.1", uvx_args = " --with mkdocs-material --with pymdown-extensions --with" }
 pre-commit                                                    = "4.5.1"
 python                                                        = "3.14.2"
 uv                                                            = "latest"

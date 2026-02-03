@@ -37,54 +37,54 @@ nav:
   - Home: index.md
 
   - User Guide:
-    - Installation: user-guide/installation.md
-    - Usage: user-guide/usage.md
-    - Configuration: user-guide/configuration.md
-    - Configuration Reference: user-guide/configuration-reference.md
-    - Security Scoring: user-guide/security-scoring.md
+      - Installation: user-guide/installation.md
+      - Usage: user-guide/usage.md
+      - Configuration: user-guide/configuration.md
+      - Configuration Reference: user-guide/configuration-reference.md
+      - Security Scoring: user-guide/security-scoring.md
 
   - Examples:
-    - Overview: examples/index.md
-    - Basic Documentation: examples/basic-documentation.md
-    - Advanced Configuration: examples/advanced-configuration.md
-    - Audit & Compliance: examples/audit-compliance.md
-    - Automation & Scripting: examples/automation-scripting.md
-    - Troubleshooting: examples/troubleshooting.md
-    - All Examples: examples.md
+      - Overview: examples/index.md
+      - Basic Documentation: examples/basic-documentation.md
+      - Advanced Configuration: examples/advanced-configuration.md
+      - Audit & Compliance: examples/audit-compliance.md
+      - Automation & Scripting: examples/automation-scripting.md
+      - Troubleshooting: examples/troubleshooting.md
+      - All Examples: examples.md
 
   - Data Model & Integration:
-    - Overview: templates/index.md
-    - Model Reference: templates/model-reference.md
-    - JSON Export Examples: templates/examples/json-export.md
-    - YAML Processing Examples: templates/examples/yaml-processing.md
+      - Overview: templates/index.md
+      - Model Reference: templates/model-reference.md
+      - JSON Export Examples: templates/examples/json-export.md
+      - YAML Processing Examples: templates/examples/yaml-processing.md
 
   - Developer Guide:
-    - Architecture: dev-guide/architecture.md
-    - API Reference: dev-guide/api.md
-    - Plugin Development: dev-guide/plugin-development.md
-    - Contributing: dev-guide/contributing.md
-    - Authoritative Role Definitions: dev-guide/authoritative_role_definitions.md
+      - Architecture: dev-guide/architecture.md
+      - API Reference: dev-guide/api.md
+      - Plugin Development: dev-guide/plugin-development.md
+      - Contributing: dev-guide/contributing.md
+      - Authoritative Role Definitions: dev-guide/authoritative_role_definitions.md
 
   - Development:
-    - Architecture: development/architecture.md
-    - Development Standards: development/standards.md
-    - Releasing: development/releasing.md
+      - Architecture: development/architecture.md
+      - Development Standards: development/standards.md
+      - Releasing: development/releasing.md
 
   - Security:
-    - Compliance: security/compliance.md
-    - Validation: security/validation.md
-    - Vulnerability Scanning: security/vulnerability-scanning.md
+      - Compliance: security/compliance.md
+      - Validation: security/validation.md
+      - Vulnerability Scanning: security/vulnerability-scanning.md
 
   - Reference:
-    - API Documentation: api.md
-    - CIS-like Firewall Reference: cis-like-firewall-reference.md
-    - Compliance Standards: compliance-standards.md
-    - Pipeline v2 Compliance: pipeline-v2-compliance.md
+      - API Documentation: api.md
+      - CIS-like Firewall Reference: cis-like-firewall-reference.md
+      - Compliance Standards: compliance-standards.md
+      - Pipeline v2 Compliance: pipeline-v2-compliance.md
 
   - Research & Internal:
-    - Architecture Review: architecture-review.md
-    - Charmbracelet Compatibility: charmbracelet-compatibility-research.md
-    - Theme Usage: theme-usage.md
+      - Architecture Review: architecture-review.md
+      - Charmbracelet Compatibility: charmbracelet-compatibility-research.md
+      - Theme Usage: theme-usage.md
 
   - About: about.md
 
