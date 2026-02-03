@@ -31,9 +31,6 @@ permissions:
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
-    env:
-      # Ensure mise trusts config in all subprocesses (goreleaser -> cyclonedx-gomod -> go)
-      MISE_YES: "1"
     outputs:
       artifacts: ${{ steps.goreleaser.outputs.artifacts }}
       metadata: ${{ steps.goreleaser.outputs.metadata }}
@@ -43,17 +40,30 @@ jobs:
         with:
           fetch-depth: 0 # needed for git-cliff changelog generation
 
-      - name: Setup mise
-        uses: jdx/mise-action@6d1e696aa24c1aa1bcc1adea0212707c71ab78a8 # v3.6.1
+      - name: Setup Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
-          install: true
+          go-version-file: go.mod
           cache: true
 
-      - name: Trust mise config
-        run: mise trust
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@d7d6bc7722e3daa8354c50bcb52f4837da5e9b6a # v3.8.1
 
-      - name: Install cyclonedx-gomod directly
-        run: go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
+      - name: Install release tools
+        run: |
+          # git-cliff for changelog generation
+          curl -sSfL https://github.com/orhun/git-cliff/releases/download/v2.7.0/git-cliff-2.7.0-x86_64-unknown-linux-gnu.tar.gz | tar xz
+          sudo mv git-cliff-2.7.0/git-cliff /usr/local/bin/
+
+          # mdformat for markdown formatting
+          pip install mdformat mdformat-gfm mdformat-frontmatter mdformat-footnote mdformat-tables
+
+          # cyclonedx-gomod for SBOM generation
+          go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
+
+          # quill for macOS code signing (optional)
+          curl -sSfL https://github.com/anchore/quill/releases/download/v0.5.1/quill_0.5.1_linux_amd64.tar.gz | tar xz
+          sudo mv quill /usr/local/bin/
 
       - name: Import GPG key
         env:
@@ -142,11 +152,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Setup mise
-        uses: jdx/mise-action@6d1e696aa24c1aa1bcc1adea0212707c71ab78a8 # v3.6.1
-        with:
-          install: true
-          cache: true
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@d7d6bc7722e3daa8354c50bcb52f4837da5e9b6a # v3.8.1
 
       - name: Download artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
