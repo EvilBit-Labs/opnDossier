@@ -31,13 +31,6 @@ jobs:
           version: v1.9.0
           args: app -output sbom-modules.cyclonedx.json -json .
 
-      - name: Generate SBOM (SPDX)
-        uses: anchore/sbom-action@v0
-        with:
-          path: "."
-          format: spdx-json
-          output-file: sbom.spdx.json
-
       - name: Upload SBOM artifacts
         uses: actions/upload-artifact@v6
         with:
@@ -45,5 +38,4 @@ jobs:
           path: |
             sbom-binary.cyclonedx.json
             sbom-modules.cyclonedx.json
-            sbom.spdx.json
           retention-days: 90
