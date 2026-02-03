@@ -83,6 +83,9 @@ func init() {
 	// Add shared styling and content flags
 	addSharedTemplateFlags(convertCmd)
 
+	// Add shared audit flags
+	addSharedAuditFlags(convertCmd)
+
 	// Register flag completion functions for better tab completion
 	registerConvertFlagCompletions(convertCmd)
 
@@ -101,6 +104,14 @@ func registerConvertFlagCompletions(cmd *cobra.Command) {
 	// Section flag completion
 	if err := cmd.RegisterFlagCompletionFunc("section", ValidSections); err != nil {
 		logger.Debug("failed to register section completion", "error", err)
+	}
+
+	// Audit flag completions
+	if err := cmd.RegisterFlagCompletionFunc("audit-mode", ValidAuditModes); err != nil {
+		logger.Debug("failed to register audit-mode completion", "error", err)
+	}
+	if err := cmd.RegisterFlagCompletionFunc("audit-plugins", ValidAuditPlugins); err != nil {
+		logger.Debug("failed to register audit-plugins completion", "error", err)
 	}
 }
 
@@ -139,6 +150,23 @@ to your firewall configuration.
 
   Additional options:
     --comprehensive             - Generate detailed, comprehensive reports
+
+  AUDIT MODE:
+  Enable security auditing with compliance plugins:
+
+    --audit-mode standard|blue|red  - Enable audit reporting mode
+    --audit-plugins stig,sans,firewall - Select compliance plugins to run
+    --audit-blackhat                - Enable blackhat commentary (red mode only)
+
+  Available audit modes:
+    standard  - Neutral, comprehensive documentation report
+    blue      - Defensive audit with security findings and recommendations
+    red       - Attacker-focused recon report highlighting attack surfaces
+
+  Available compliance plugins:
+    stig      - Security Technical Implementation Guide
+    sans      - SANS Firewall Baseline
+    firewall  - Custom firewall compliance checks
 
 The convert command focuses on conversion only and does not perform validation.
 To validate your configuration files before conversion, use the 'validate' command.
@@ -189,7 +217,16 @@ Examples:
   opnDossier convert config.xml --include-tunables
 
   # Validate before converting (recommended workflow)
-  opnDossier validate config.xml && opnDossier convert config.xml -f json -o output.json`,
+  opnDossier validate config.xml && opnDossier convert config.xml -f json -o output.json
+
+  # Blue team defensive audit with STIG and SANS compliance
+  opnDossier convert config.xml --audit-mode blue --audit-plugins stig,sans
+
+  # Red team attack surface analysis with blackhat commentary
+  opnDossier convert config.xml --audit-mode red --audit-blackhat
+
+  # Standard documentation with all compliance checks
+  opnDossier convert config.xml --audit-mode standard --audit-plugins stig,sans,firewall`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
@@ -437,6 +474,15 @@ func buildConversionOptions(
 	// Include tunables: CLI flag only
 	opt.CustomFields["IncludeTunables"] = sharedIncludeTunables
 
+	// Audit mode options
+	if sharedAuditMode != "" {
+		opt.AuditMode = sharedAuditMode
+	}
+	opt.BlackhatMode = sharedBlackhatMode
+	if len(sharedSelectedPlugins) > 0 {
+		opt.SelectedPlugins = sharedSelectedPlugins
+	}
+
 	return opt
 }
 
@@ -514,6 +560,11 @@ func generateOutputByFormat(
 	opt converter.Options,
 	logger *log.Logger,
 ) (string, error) {
+	// Check if audit mode is enabled - route to audit handler
+	if opt.AuditMode != "" {
+		return handleAuditMode(ctx, opnsense, opt, logger)
+	}
+
 	// Determine the format to use
 	format := strings.ToLower(string(opt.Format))
 
@@ -624,6 +675,26 @@ func validateConvertFlags(flags *pflag.FlagSet, cmdLogger *log.Logger) error {
 	if sharedWrapWidth > 0 && (sharedWrapWidth < MinWrapWidth || sharedWrapWidth > MaxWrapWidth) {
 		return fmt.Errorf("wrap width %d out of recommended range [%d, %d]",
 			sharedWrapWidth, MinWrapWidth, MaxWrapWidth)
+	}
+
+	// Validate audit mode if provided
+	if sharedAuditMode != "" {
+		validModes := []string{"standard", "blue", "red"}
+		if !slices.Contains(validModes, strings.ToLower(sharedAuditMode)) {
+			return fmt.Errorf("invalid audit mode %q, must be one of: %s",
+				sharedAuditMode, strings.Join(validModes, ", "))
+		}
+	}
+
+	// Validate audit plugins if provided
+	if len(sharedSelectedPlugins) > 0 {
+		validPlugins := []string{"stig", "sans", "firewall"}
+		for _, p := range sharedSelectedPlugins {
+			if !slices.Contains(validPlugins, strings.ToLower(p)) {
+				return fmt.Errorf("invalid audit plugin %q, must be one of: %s",
+					p, strings.Join(validPlugins, ", "))
+			}
+		}
 	}
 
 	return nil

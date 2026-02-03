@@ -1,0 +1,204 @@
+// Package cmd provides the command-line interface for opnDossier.
+package cmd
+
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"log/slog"
+	"maps"
+	"os"
+	"slices"
+	"strconv"
+	"strings"
+
+	"github.com/EvilBit-Labs/opnDossier/internal/audit"
+	"github.com/EvilBit-Labs/opnDossier/internal/converter"
+	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	charmlog "github.com/charmbracelet/log"
+	"github.com/nao1215/markdown"
+)
+
+// handleAuditMode generates a report with audit findings appended.
+// It parses the audit mode, initializes the plugin system, runs compliance checks,
+// and appends the audit findings to the base markdown report.
+func handleAuditMode(
+	ctx context.Context,
+	doc *model.OpnSenseDocument,
+	opt converter.Options,
+	logger *log.Logger,
+) (string, error) {
+	// Parse audit mode
+	mode, err := audit.ParseReportMode(opt.AuditMode)
+	if err != nil {
+		return "", fmt.Errorf("invalid audit mode: %w", err)
+	}
+
+	// Create mode config
+	modeConfig := &audit.ModeConfig{
+		Mode:            mode,
+		BlackhatMode:    opt.BlackhatMode,
+		Comprehensive:   opt.Comprehensive,
+		SelectedPlugins: opt.SelectedPlugins,
+	}
+
+	// Initialize plugin manager with slog logger for PluginManager
+	slogLogger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	pm := audit.NewPluginManager(slogLogger)
+	if err := pm.InitializePlugins(ctx); err != nil {
+		return "", fmt.Errorf("initialize plugins: %w", err)
+	}
+
+	// Create charmbracelet/log logger for ModeController
+	charmLogger := charmlog.NewWithOptions(os.Stderr, charmlog.Options{
+		Level: charmlog.InfoLevel,
+	})
+
+	// Create mode controller and generate audit report
+	mc := audit.NewModeController(pm.GetRegistry(), charmLogger)
+	auditReport, err := mc.GenerateReport(ctx, doc, modeConfig)
+	if err != nil {
+		return "", fmt.Errorf("generate audit report: %w", err)
+	}
+
+	// Generate base markdown report using existing generator
+	baseReport, err := generateWithProgrammaticGenerator(ctx, doc, opt, logger)
+	if err != nil {
+		return "", fmt.Errorf("generate base report: %w", err)
+	}
+
+	// Append audit findings section
+	return appendAuditFindings(baseReport, auditReport), nil
+}
+
+// appendAuditFindings appends compliance summary and findings to the base report.
+// It creates a markdown section with a summary table and detailed findings.
+func appendAuditFindings(baseReport string, report *audit.Report) string {
+	var buf bytes.Buffer
+	buf.WriteString(baseReport)
+	buf.WriteString("\n\n")
+
+	md := markdown.NewMarkdown(&buf)
+	md.H2("Compliance Audit Summary")
+
+	// Summary table using nao1215/markdown
+	summaryTable := markdown.TableSet{
+		Header: []string{"Metric", "Value"},
+		Rows: [][]string{
+			{"Report Mode", string(report.Mode)},
+			{"Blackhat Mode", strconv.FormatBool(report.BlackhatMode)},
+			{"Comprehensive", strconv.FormatBool(report.Comprehensive)},
+			{"Total Findings", strconv.Itoa(len(report.Findings))},
+		},
+	}
+	md.Table(summaryTable)
+
+	// Add compliance plugin results if available (deterministic order)
+	if len(report.Compliance) > 0 {
+		md.H3("Plugin Compliance Results")
+		for _, pluginName := range slices.Sorted(maps.Keys(report.Compliance)) {
+			result := report.Compliance[pluginName]
+			md.H4(pluginName)
+			items := []string{fmt.Sprintf("Summary: %d findings", result.Summary.TotalFindings)}
+			if result.Summary.CriticalFindings > 0 {
+				items = append(items, fmt.Sprintf("Critical: %d", result.Summary.CriticalFindings))
+			}
+			if result.Summary.HighFindings > 0 {
+				items = append(items, fmt.Sprintf("High: %d", result.Summary.HighFindings))
+			}
+			if result.Summary.MediumFindings > 0 {
+				items = append(items, fmt.Sprintf("Medium: %d", result.Summary.MediumFindings))
+			}
+			if result.Summary.LowFindings > 0 {
+				items = append(items, fmt.Sprintf("Low: %d", result.Summary.LowFindings))
+			}
+			md.BulletList(items...)
+		}
+	}
+
+	// Findings details if any
+	if len(report.Findings) > 0 {
+		md.H3("Security Findings")
+		findingsTable := markdown.TableSet{
+			Header: []string{"Severity", "Component", "Title", "Recommendation"},
+			Rows:   make([][]string, 0, len(report.Findings)),
+		}
+		for _, f := range report.Findings {
+			findingsTable.Rows = append(findingsTable.Rows, []string{
+				escapePipeForMarkdown(string(f.Severity)),
+				escapePipeForMarkdown(f.Component),
+				escapePipeForMarkdown(f.Title),
+				escapePipeForMarkdown(f.Recommendation),
+			})
+		}
+		md.Table(findingsTable)
+	}
+
+	// Add plugin findings from compliance results (deterministic order)
+	for _, pluginName := range slices.Sorted(maps.Keys(report.Compliance)) {
+		result := report.Compliance[pluginName]
+		if len(result.Findings) > 0 {
+			md.H3(pluginName + " Plugin Findings")
+			pluginTable := markdown.TableSet{
+				Header: []string{"Type", "Title", "Description"},
+				Rows:   make([][]string, 0, len(result.Findings)),
+			}
+			for _, f := range result.Findings {
+				pluginTable.Rows = append(pluginTable.Rows, []string{
+					escapePipeForMarkdown(f.Type),
+					escapePipeForMarkdown(f.Title),
+					escapePipeForMarkdown(truncateString(f.Description, maxDescriptionLength)),
+				})
+			}
+			md.Table(pluginTable)
+		}
+	}
+
+	// Add metadata summary (deterministic order)
+	if len(report.Metadata) > 0 {
+		md.H3("Audit Metadata")
+		metadataTable := markdown.TableSet{
+			Header: []string{"Key", "Value"},
+			Rows:   make([][]string, 0, len(report.Metadata)),
+		}
+		for _, key := range slices.Sorted(maps.Keys(report.Metadata)) {
+			metadataTable.Rows = append(metadataTable.Rows, []string{
+				escapePipeForMarkdown(key),
+				fmt.Sprintf("%v", report.Metadata[key]),
+			})
+		}
+		md.Table(metadataTable)
+	}
+
+	//nolint:errcheck,gosec // Build writes to bytes.Buffer which cannot fail
+	md.Build()
+
+	return buf.String()
+}
+
+// escapePipeForMarkdown escapes pipe characters in markdown table cells.
+func escapePipeForMarkdown(s string) string {
+	return strings.ReplaceAll(s, "|", "\\|")
+}
+
+// Maximum description length for table cells.
+const maxDescriptionLength = 80
+
+// truncationEllipsisLen is the length of the "..." ellipsis used in truncation.
+const truncationEllipsisLen = 3
+
+// truncateString truncates a string to the specified maximum rune length.
+// It is rune-aware to avoid splitting multi-byte UTF-8 characters.
+func truncateString(s string, maxLen int) string {
+	runes := []rune(s)
+	if len(runes) <= maxLen {
+		return s
+	}
+	if maxLen <= truncationEllipsisLen {
+		return string(runes[:maxLen])
+	}
+	return string(runes[:maxLen-truncationEllipsisLen]) + "..."
+}
