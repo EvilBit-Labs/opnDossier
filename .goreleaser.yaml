@@ -16,7 +16,6 @@ before:
     - go mod tidy
     - go generate ./...
     - git-cliff --output CHANGELOG.md
-    - mdformat CHANGELOG.md
     # Build binary first for generating documentation
     - go build -o ./opndossier-temp ./main.go
     # Generate shell completions
