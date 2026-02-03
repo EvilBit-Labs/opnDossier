@@ -8,6 +8,7 @@ import (
 )
 
 func TestOptions_WithAuditMode(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		mode     string
@@ -37,6 +38,7 @@ func TestOptions_WithAuditMode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			opts := DefaultOptions().WithAuditMode(tt.mode)
 			assert.Equal(t, tt.expected, opts.AuditMode)
 		})
@@ -44,6 +46,7 @@ func TestOptions_WithAuditMode(t *testing.T) {
 }
 
 func TestOptions_WithBlackhatMode(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		enabled  bool
@@ -63,6 +66,7 @@ func TestOptions_WithBlackhatMode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			opts := DefaultOptions().WithBlackhatMode(tt.enabled)
 			assert.Equal(t, tt.expected, opts.BlackhatMode)
 		})
@@ -70,6 +74,7 @@ func TestOptions_WithBlackhatMode(t *testing.T) {
 }
 
 func TestOptions_WithSelectedPlugins(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		plugins  []string
@@ -99,6 +104,7 @@ func TestOptions_WithSelectedPlugins(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			opts := DefaultOptions().WithSelectedPlugins(tt.plugins...)
 			assert.Equal(t, tt.expected, opts.SelectedPlugins)
 		})
@@ -106,6 +112,7 @@ func TestOptions_WithSelectedPlugins(t *testing.T) {
 }
 
 func TestOptions_AuditFieldsChaining(t *testing.T) {
+	t.Parallel()
 	// Test that audit fields can be chained with other options
 	opts := DefaultOptions().
 		WithAuditMode("red").
@@ -120,6 +127,7 @@ func TestOptions_AuditFieldsChaining(t *testing.T) {
 }
 
 func TestDefaultOptions_AuditFieldsInitialized(t *testing.T) {
+	t.Parallel()
 	// Verify default values for audit fields
 	opts := DefaultOptions()
 

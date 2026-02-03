@@ -220,11 +220,11 @@ func TestTruncateString(t *testing.T) {
 		// Testing realistic scenarios where maxLen >= 4
 		{"four char max", "hello", 4, "h..."},
 		{"five char max", "hello world", 5, "he..."},
-		// Note: Unicode handling is byte-based in the current implementation,
-		// which may split multi-byte characters. For production use, this is
-		// acceptable since maxDescriptionLength (80) is large enough to avoid
-		// mid-character splits in typical descriptions.
 		{"long string", strings.Repeat("a", 100), 20, strings.Repeat("a", 17) + "..."},
+		// Rune-aware truncation: multi-byte characters are not split
+		{"unicode emoji", "Hello 🌍🌎🌏 World", 10, "Hello 🌍..."},
+		{"japanese text", "こんにちは世界", 5, "こん..."},
+		{"mixed unicode", "Test日本語Text", 8, "Test日..."},
 	}
 
 	for _, tt := range tests {
