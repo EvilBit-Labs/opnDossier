@@ -2,6 +2,7 @@
 cyclonedx         = "0.29.2"
 git-cliff         = "latest"
 go                = "1.25.6"
+"go:github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod" = "1.10.0"
 golangci-lint     = "2.8.0"
 goreleaser        = "latest"
 just              = "1.46.0"

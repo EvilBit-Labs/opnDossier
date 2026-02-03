@@ -1,0 +1,66 @@
+# opnDossier
+
+> OPNsense Configuration Processor - Transform firewall configs into documentation and security analysis
+
+opnDossier is a command-line tool for network operators and security professionals working with OPNsense firewalls. It converts XML configuration files into clear, readable documentation and identifies security issues, misconfigurations, and optimization opportunities.
+
+## Key Characteristics
+
+- **Offline-First**: Works completely offline, designed for airgapped environments
+- **No Telemetry**: Zero data collection or external communication
+- **Multi-Format Export**: Markdown, JSON, YAML output formats
+- **Security Analysis**: Detects vulnerabilities, dead rules, unused resources
+- **Go-based**: Built with Go 1.21+ for performance and reliability
+
+## Project Structure
+
+- `cmd/` - CLI command entry points (Cobra-based)
+- `internal/` - Private application logic
+  - `audit/` - Audit engine and compliance checking
+  - `converter/` - Data conversion utilities
+  - `model/` - Data models representing OPNsense configuration
+  - `parser/` - XML parsing and validation
+  - `plugins/` - Compliance plugins (firewall, SANS, STIG)
+  - `processor/` - Data processing and report generation
+- `testdata/` - Test fixtures
+- `docs/` - Documentation
+
+## Technology Stack
+
+- CLI Framework: spf13/cobra
+- Terminal Styling: charmbracelet/lipgloss, charmbracelet/glamour
+- Markdown Generation: nao1215/markdown
+- Configuration: spf13/viper
+- Logging: charmbracelet/log
+
+## Documentation
+
+- README: https://github.com/EvilBit-Labs/opnDossier/blob/main/README.md
+- Contributing: https://github.com/EvilBit-Labs/opnDossier/blob/main/CONTRIBUTING.md
+- Architecture: https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/development/architecture.md
+- Requirements: https://github.com/EvilBit-Labs/opnDossier/blob/main/project_spec/requirements.md
+- Agent Guidelines: https://github.com/EvilBit-Labs/opnDossier/blob/main/AGENTS.md
+- Releasing: https://github.com/EvilBit-Labs/opnDossier/blob/main/RELEASING.md
+
+## Commands
+
+```
+opnDossier display config.xml     # Display config in terminal
+opnDossier convert config.xml     # Convert to markdown
+opnDossier convert -f json config.xml -o output.json  # Export to JSON
+opnDossier validate config.xml    # Validate configuration
+```
+
+## Development
+
+```
+just dev       # Run in development mode
+just build     # Build with all checks
+just test      # Run tests
+just lint      # Run linting
+just ci-check  # Run CI-equivalent checks
+```
+
+## License
+
+Apache License 2.0
