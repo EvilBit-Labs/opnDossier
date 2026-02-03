@@ -195,42 +195,6 @@ universal_binaries:
   - id: opndossier-universal
     replace: true
 
-# Docker images using dockers_v2 (modern format)
-# https://goreleaser.com/customization/docker/
-dockers_v2:
-  - id: opndossier-docker
-    images:
-      - "ghcr.io/evilbit-labs/opndossier"
-    tags:
-      - "{{ .Tag }}"
-      - "v{{ .Major }}"
-      - "v{{ .Major }}.{{ .Minor }}"
-      - latest
-    dockerfile: Dockerfile.releaser
-    labels:
-      org.opencontainers.image.created: "{{ .Date }}"
-      org.opencontainers.image.title: "{{ .ProjectName }}"
-      org.opencontainers.image.description: "OPNsense configuration documentation and compliance auditing tool"
-      org.opencontainers.image.url: "https://github.com/EvilBit-Labs/opnDossier"
-      org.opencontainers.image.source: "https://github.com/EvilBit-Labs/opnDossier"
-      org.opencontainers.image.version: "{{ .Version }}"
-      org.opencontainers.image.revision: "{{ .FullCommit }}"
-      org.opencontainers.image.licenses: "MIT"
-    annotations:
-      "index:org.opencontainers.image.description": "OPNsense configuration documentation and compliance auditing tool"
-
-# Docker image signing with Cosign v3 (keyless)
-# https://goreleaser.com/customization/docker_sign/
-docker_signs:
-  - id: docker-keyless
-    cmd: cosign
-    artifacts: all
-    args:
-      - "sign"
-      - "${artifact}"
-      - "--yes"
-    output: true
-
 # Milestone auto-close
 milestones:
   - repo:
@@ -238,6 +202,28 @@ milestones:
       name: opnDossier
     close: true
     fail_on_error: false
+
+# Homebrew cask
+# https://goreleaser.com/customization/homebrew_casks/
+homebrew_casks:
+  - name: opndossier
+    repository:
+      owner: EvilBit-Labs
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    directory: Casks
+    homepage: https://github.com/EvilBit-Labs/opnDossier
+    description: "OPNsense configuration documentation and compliance auditing tool"
+    binaries:
+      - opndossier
+    completions:
+      bash: completions/opndossier.bash
+      zsh: completions/opndossier.zsh
+      fish: completions/opndossier.fish
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    commit_msg_template: "Cask update for {{ .ProjectName }} version {{ .Tag }}"
 
 # Linux packages (deb, rpm, apk, archlinux)
 # https://goreleaser.com/customization/nfpm/
@@ -361,7 +347,7 @@ signs:
       - "--pinentry-mode"
       - "loopback"
       - "--passphrase"
-      - "${GPG_PASSPHRASE}"
+      - "{{ .Env.GPG_PASSPHRASE }}"
       - "--local-user"
       - "software@evilbitlabs.io"
       - "--output"
@@ -370,9 +356,6 @@ signs:
       - "${artifact}"
     artifacts: archive
     output: true
-    # Skip if GPG_PASSPHRASE is not set
-    env:
-      - GPG_PASSPHRASE={{ if index .Env "GPG_PASSPHRASE" }}{{ .Env.GPG_PASSPHRASE }}{{ end }}
 
   # GPG signing for packages (deb, rpm, apk)
   - id: gpg-packages
@@ -383,7 +366,7 @@ signs:
       - "--pinentry-mode"
       - "loopback"
       - "--passphrase"
-      - "${GPG_PASSPHRASE}"
+      - "{{ .Env.GPG_PASSPHRASE }}"
       - "--local-user"
       - "software@evilbitlabs.io"
       - "--output"
@@ -392,5 +375,3 @@ signs:
       - "${artifact}"
     artifacts: package
     output: true
-    env:
-      - GPG_PASSPHRASE={{ if index .Env "GPG_PASSPHRASE" }}{{ .Env.GPG_PASSPHRASE }}{{ end }}

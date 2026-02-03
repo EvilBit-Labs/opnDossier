@@ -85,7 +85,6 @@ export APK_SIGNING_KEY_FILE="path/to/apk-key"
 The release workflow requires:
 
 - `contents: write` - Create releases and upload assets
-- `packages: write` - Push Docker images to ghcr.io
 - `id-token: write` - SLSA provenance and Cosign keyless signing
 
 ### GitHub Secrets
@@ -218,19 +217,6 @@ gh release view v1.2.0
 # Download and verify checksums
 gh release download v1.2.0 --pattern "*checksums*"
 sha256sum -c opnDossier_checksums.txt
-```
-
-### Verify Docker Image
-
-```bash
-# Pull and test the image
-docker pull ghcr.io/evilbit-labs/opndossier:v1.2.0
-docker run --rm ghcr.io/evilbit-labs/opndossier:v1.2.0 --version
-
-# Verify image tags
-docker pull ghcr.io/evilbit-labs/opndossier:latest
-docker pull ghcr.io/evilbit-labs/opndossier:v1
-docker pull ghcr.io/evilbit-labs/opndossier:v1.2
 ```
 
 ### Verify SLSA Provenance
@@ -389,16 +375,6 @@ yamllint .goreleaser.yaml
 goreleaser check --deprecated
 ```
 
-#### Docker push fails
-
-```bash
-# Verify GitHub Container Registry login
-echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
-
-# Check repository permissions
-gh api repos/EvilBit-Labs/opnDossier --jq '.permissions'
-```
-
 #### Cosign signing fails
 
 ```bash
@@ -426,7 +402,7 @@ If the automated workflow fails, you can release manually:
 goreleaser release --clean
 
 # Or skip certain steps
-goreleaser release --clean --skip=docker,sign
+goreleaser release --clean --skip=sign
 ```
 
 ## macOS Code Signing (Optional)
@@ -464,10 +440,3 @@ Each release includes:
 | `opnDossier_checksums.txt.sigstore.json`      | Cosign v3 signature bundle                    |
 | `*.sig`                                       | GPG detached signatures for archives/packages |
 | `*.bom.json`                                  | Software Bill of Materials (CycloneDX SBOM)   |
-
-Docker images are pushed to:
-
-- `ghcr.io/evilbit-labs/opndossier:<tag>` (e.g., `v1.2.0`)
-- `ghcr.io/evilbit-labs/opndossier:v<major>` (e.g., `v1`)
-- `ghcr.io/evilbit-labs/opndossier:v<major>.<minor>` (e.g., `v1.2`)
-- `ghcr.io/evilbit-labs/opndossier:latest`
