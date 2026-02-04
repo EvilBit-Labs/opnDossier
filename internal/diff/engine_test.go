@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/schema"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -218,5 +219,5 @@ func TestEngine_Compare_EmptyConfigs(t *testing.T) {
 	assert.False(t, result.HasChanges())
 	assert.NotNil(t, result.Metadata)
 	assert.NotZero(t, result.Metadata.ComparedAt)
-	assert.Equal(t, Version, result.Metadata.ToolVersion)
+	assert.Equal(t, constants.Version, result.Metadata.ToolVersion)
 }

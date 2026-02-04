@@ -130,13 +130,19 @@ func (a *Analyzer) CompareFirewallRules(old, newCfg []schema.Rule) []Change {
 				SecurityImpact: impact,
 			})
 		} else if !rulesEqual(oldRule, newRule) {
+			// Flag cases where the modified rule becomes permissive while the old rule was not
+			impact := ""
+			if isPermissiveRule(newRule) && !isPermissiveRule(oldRule) {
+				impact = "high"
+			}
 			changes = append(changes, Change{
-				Type:        ChangeModified,
-				Section:     SectionFirewall,
-				Path:        fmt.Sprintf("filter.rule[uuid=%s]", uuid),
-				Description: "Modified rule: " + ruleDescription(newRule),
-				OldValue:    formatRule(oldRule),
-				NewValue:    formatRule(newRule),
+				Type:           ChangeModified,
+				Section:        SectionFirewall,
+				Path:           fmt.Sprintf("filter.rule[uuid=%s]", uuid),
+				Description:    "Modified rule: " + ruleDescription(newRule),
+				OldValue:       formatRule(oldRule),
+				NewValue:       formatRule(newRule),
+				SecurityImpact: impact,
 			})
 		}
 	}

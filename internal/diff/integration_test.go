@@ -4,6 +4,7 @@ package diff
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -100,7 +101,7 @@ func TestIntegration_AllConfigPairs(t *testing.T) {
 	// Get all sample config files
 	configs := []string{}
 	for i := 1; i <= 7; i++ {
-		path := filepath.Join(testdataDir, "sample.config."+string(rune('0'+i))+".xml")
+		path := filepath.Join(testdataDir, fmt.Sprintf("sample.config.%d.xml", i))
 		if fileExists(path) {
 			configs = append(configs, path)
 		}

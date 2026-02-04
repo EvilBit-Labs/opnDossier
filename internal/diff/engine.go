@@ -4,15 +4,13 @@ import (
 	"context"
 	"time"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/log"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
 // OpnSenseDocument is a type alias for model.OpnSenseDocument for package convenience.
 type OpnSenseDocument = model.OpnSenseDocument
-
-// Version is the tool version included in metadata.
-const Version = "1.0.0"
 
 // Engine orchestrates configuration comparison.
 type Engine struct {
@@ -39,7 +37,7 @@ func (e *Engine) Compare(ctx context.Context) (*Result, error) {
 	result := NewResult()
 	result.Metadata = Metadata{
 		ComparedAt:  time.Now(),
-		ToolVersion: Version,
+		ToolVersion: constants.Version,
 	}
 
 	// Check for context cancellation

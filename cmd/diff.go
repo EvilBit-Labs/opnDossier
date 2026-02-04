@@ -63,7 +63,7 @@ func registerDiffFlagCompletions(cmd *cobra.Command) {
 	if err := cmd.RegisterFlagCompletionFunc("format", ValidDiffFormats); err != nil {
 		logger.Debug("failed to register format completion", "error", err)
 	}
-	if err := cmd.RegisterFlagCompletionFunc("section", ValidSections); err != nil {
+	if err := cmd.RegisterFlagCompletionFunc("section", ValidDiffSections); err != nil {
 		logger.Debug("failed to register section completion", "error", err)
 	}
 }
@@ -74,6 +74,23 @@ func ValidDiffFormats(_ *cobra.Command, _ []string, _ string) ([]string, cobra.S
 		DiffFormatTerminal + "\tColor-coded terminal output",
 		DiffFormatMarkdown + "\tMarkdown formatted output",
 		DiffFormatJSON + "\tJSON structured output",
+	}, cobra.ShellCompDirectiveNoFileComp
+}
+
+// ValidDiffSections provides completion for diff section flag.
+func ValidDiffSections(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	return []string{
+		"system\tSystem settings (hostname, domain, timezone)",
+		"firewall\tFirewall rules",
+		"nat\tNAT configuration and port forwards",
+		"interfaces\tNetwork interfaces",
+		"vlans\tVLAN configuration",
+		"dhcp\tDHCP servers and static reservations",
+		"users\tUser accounts",
+		"routing\tStatic routes",
+		"dns\tDNS configuration",
+		"vpn\tVPN configuration",
+		"certificates\tCertificate management",
 	}, cobra.ShellCompDirectiveNoFileComp
 }
 
