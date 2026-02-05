@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"runtime"
+	"strconv"
 	"sync"
 )
 
@@ -253,23 +254,35 @@ func ProcessBatch[T, R any](
 	wp := NewWorkerPool(ctx, opts...)
 	defer wp.Close()
 
+	// Track number of successfully submitted jobs
+	submittedCount := make(chan int, 1)
+
 	// Submit all jobs
 	go func() {
+		submitted := 0
 		for i, input := range inputs {
 			job := Job[T, R]{
-				ID:      string(rune(i)), // Simple ID for batch processing
+				ID:      strconv.Itoa(i),
 				Input:   input,
 				Process: processFn,
 			}
 			if err := wp.Submit(job); err != nil {
+				// Signal how many jobs were submitted before error/cancellation
+				submittedCount <- submitted
 				return
 			}
+			submitted++
 		}
+		// Signal all jobs were submitted successfully
+		submittedCount <- submitted
 	}()
 
-	// Collect results
-	results := make([]Result[R], 0, len(inputs))
-	for range inputs {
+	// Wait for submission goroutine to report count
+	expectedResults := <-submittedCount
+
+	// Collect results only for submitted jobs
+	results := make([]Result[R], 0, expectedResults)
+	for range expectedResults {
 		select {
 		case <-ctx.Done():
 			return results, ctx.Err()
