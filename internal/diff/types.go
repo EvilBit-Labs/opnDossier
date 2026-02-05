@@ -37,6 +37,16 @@ func (c ChangeType) Symbol() string {
 	}
 }
 
+// IsValid returns true if the change type is a valid value.
+func (c ChangeType) IsValid() bool {
+	switch c {
+	case ChangeAdded, ChangeRemoved, ChangeModified:
+		return true
+	default:
+		return false
+	}
+}
+
 // Section represents a configuration section.
 type Section string
 
@@ -84,6 +94,57 @@ func AllSections() []Section {
 		SectionUsers,
 		SectionRouting,
 		SectionCertificates,
+	}
+}
+
+// ImplementedSections returns sections that have comparison logic implemented.
+func ImplementedSections() []Section {
+	return []Section{
+		SectionSystem,
+		SectionFirewall,
+		SectionNAT,
+		SectionInterfaces,
+		SectionVLANs,
+		SectionDHCP,
+		SectionUsers,
+		SectionRouting,
+	}
+}
+
+// IsValid returns true if the section is a valid value.
+func (s Section) IsValid() bool {
+	return slices.Contains(AllSections(), s)
+}
+
+// IsImplemented returns true if the section has comparison logic implemented.
+func (s Section) IsImplemented() bool {
+	return slices.Contains(ImplementedSections(), s)
+}
+
+// SecurityImpact represents the security impact level of a change.
+type SecurityImpact string
+
+const (
+	// SecurityImpactHigh indicates a high security impact (e.g., permissive any-any rules).
+	SecurityImpactHigh SecurityImpact = "high"
+	// SecurityImpactMedium indicates a medium security impact (e.g., user changes, NAT modifications).
+	SecurityImpactMedium SecurityImpact = "medium"
+	// SecurityImpactLow indicates a low security impact (e.g., minor configuration changes).
+	SecurityImpactLow SecurityImpact = "low"
+)
+
+// String returns the string representation of the security impact.
+func (s SecurityImpact) String() string {
+	return string(s)
+}
+
+// IsValid returns true if the security impact is a valid value.
+func (s SecurityImpact) IsValid() bool {
+	switch s {
+	case SecurityImpactHigh, SecurityImpactMedium, SecurityImpactLow, "":
+		return true
+	default:
+		return false
 	}
 }
 

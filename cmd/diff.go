@@ -61,10 +61,10 @@ func init() {
 // registerDiffFlagCompletions registers completion functions for diff command flags.
 func registerDiffFlagCompletions(cmd *cobra.Command) {
 	if err := cmd.RegisterFlagCompletionFunc("format", ValidDiffFormats); err != nil {
-		logger.Debug("failed to register format completion", "error", err)
+		logger.Warn("failed to register format completion", "error", err)
 	}
 	if err := cmd.RegisterFlagCompletionFunc("section", ValidDiffSections); err != nil {
-		logger.Debug("failed to register section completion", "error", err)
+		logger.Warn("failed to register section completion", "error", err)
 	}
 }
 
@@ -237,29 +237,52 @@ func parseConfigFile(ctx context.Context, path string) (*diff.OpnSenseDocument, 
 func outputDiffResult(cmd *cobra.Command, result *diff.Result, opts diff.Options) error {
 	// Determine output destination
 	output := cmd.OutOrStdout()
+	var outputFile *os.File
+
 	if diffOutputFile != "" {
-		file, err := os.Create(diffOutputFile)
+		var err error
+		outputFile, err = os.Create(diffOutputFile)
 		if err != nil {
 			return fmt.Errorf("failed to create output file: %w", err)
 		}
-		defer file.Close()
-		output = file
+		defer func() {
+			// Close error is important for write operations - data could be lost
+			if cerr := outputFile.Close(); cerr != nil {
+				// Log but don't override a previous error
+				logger.Warn("failed to close output file", "error", cerr)
+			}
+		}()
+		output = outputFile
 	}
 
 	// Format based on requested format
+	var formatErr error
 	switch strings.ToLower(opts.Format) {
 	case DiffFormatTerminal, "":
 		formatter := formatters.NewTerminalFormatter(output)
-		return formatter.Format(result)
+		formatErr = formatter.Format(result)
 	case DiffFormatMarkdown:
 		formatter := formatters.NewMarkdownFormatter(output)
-		return formatter.Format(result)
+		formatErr = formatter.Format(result)
 	case DiffFormatJSON:
 		formatter := formatters.NewJSONFormatter(output)
-		return formatter.Format(result)
+		formatErr = formatter.Format(result)
 	default:
 		return fmt.Errorf("unsupported diff format: %s", opts.Format)
 	}
+
+	if formatErr != nil {
+		return formatErr
+	}
+
+	// Sync to ensure all data is written to disk before returning success
+	if outputFile != nil {
+		if err := outputFile.Sync(); err != nil {
+			return fmt.Errorf("failed to sync output file: %w", err)
+		}
+	}
+
+	return nil
 }
 
 // validateDiffFlags validates the diff command flags.
@@ -271,25 +294,45 @@ func validateDiffFlags() error {
 			diffFormat, strings.Join([]string{DiffFormatTerminal, DiffFormatMarkdown, DiffFormatJSON}, ", "))
 	}
 
+	// Sections that are implemented
+	implementedSections := []string{
+		"system",
+		"firewall",
+		"nat",
+		"interfaces",
+		"vlans",
+		"dhcp",
+		"users",
+		"routing",
+	}
+
+	// Sections that are defined but not yet implemented
+	unimplementedSections := []string{
+		"dns",
+		"vpn",
+		"certificates",
+	}
+
+	// All valid sections (for error messages)
+	allSections := make([]string, 0, len(implementedSections)+len(unimplementedSections))
+	allSections = append(allSections, implementedSections...)
+	allSections = append(allSections, unimplementedSections...)
+
 	// Validate sections if provided
 	if len(diffSections) > 0 {
-		validSections := []string{
-			"system",
-			"firewall",
-			"nat",
-			"interfaces",
-			"vlans",
-			"dhcp",
-			"users",
-			"routing",
-			"dns",
-			"vpn",
-			"certificates",
-		}
 		for _, s := range diffSections {
-			if !slices.Contains(validSections, strings.ToLower(s)) {
+			sLower := strings.ToLower(s)
+
+			// Check if it's an unimplemented section
+			if slices.Contains(unimplementedSections, sLower) {
+				return fmt.Errorf("section %q comparison is not yet implemented; available sections: %s",
+					s, strings.Join(implementedSections, ", "))
+			}
+
+			// Check if it's a valid section at all
+			if !slices.Contains(allSections, sLower) {
 				return fmt.Errorf("invalid section %q, must be one of: %s",
-					s, strings.Join(validSections, ", "))
+					s, strings.Join(implementedSections, ", "))
 			}
 		}
 	}

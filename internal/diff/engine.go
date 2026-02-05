@@ -85,7 +85,17 @@ func (e *Engine) compareSection(section Section) []Change {
 		return e.analyzer.CompareUsers(e.oldConfig.System.User, e.newConfig.System.User)
 	case SectionRouting:
 		return e.analyzer.CompareRoutes(&e.oldConfig.StaticRoutes, &e.newConfig.StaticRoutes)
+	case SectionDNS, SectionVPN, SectionCertificates:
+		// These sections are defined but not yet implemented
+		if e.logger != nil {
+			e.logger.Warn("section comparison not yet implemented", "section", section)
+		}
+		return nil
 	default:
+		// Unknown section - this indicates a bug (section defined but not handled)
+		if e.logger != nil {
+			e.logger.Error("unknown section in comparison", "section", section)
+		}
 		return nil
 	}
 }

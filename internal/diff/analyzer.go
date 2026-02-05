@@ -20,6 +20,27 @@ func NewAnalyzer() *Analyzer {
 func (a *Analyzer) CompareSystem(old, newCfg *schema.System) []Change {
 	var changes []Change
 
+	// Handle nil pointers gracefully
+	if old == nil && newCfg == nil {
+		return changes
+	}
+	if old == nil {
+		return []Change{{
+			Type:        ChangeAdded,
+			Section:     SectionSystem,
+			Path:        "system",
+			Description: "System configuration section added",
+		}}
+	}
+	if newCfg == nil {
+		return []Change{{
+			Type:        ChangeRemoved,
+			Section:     SectionSystem,
+			Path:        "system",
+			Description: "System configuration section removed",
+		}}
+	}
+
 	// Compare key system fields
 	if old.Hostname != newCfg.Hostname {
 		changes = append(changes, Change{
@@ -189,6 +210,27 @@ func (a *Analyzer) compareRulesByPosition(old, newCfg []schema.Rule) []Change {
 func (a *Analyzer) CompareNAT(old, newCfg *schema.Nat) []Change {
 	var changes []Change
 
+	// Handle nil pointers gracefully
+	if old == nil && newCfg == nil {
+		return changes
+	}
+	if old == nil {
+		return []Change{{
+			Type:        ChangeAdded,
+			Section:     SectionNAT,
+			Path:        "nat",
+			Description: "NAT configuration section added",
+		}}
+	}
+	if newCfg == nil {
+		return []Change{{
+			Type:        ChangeRemoved,
+			Section:     SectionNAT,
+			Path:        "nat",
+			Description: "NAT configuration section removed",
+		}}
+	}
+
 	// Compare outbound NAT mode
 	if old.Outbound.Mode != newCfg.Outbound.Mode {
 		changes = append(changes, Change{
@@ -234,6 +276,27 @@ func (a *Analyzer) CompareNAT(old, newCfg *schema.Nat) []Change {
 func (a *Analyzer) CompareInterfaces(old, newCfg *schema.Interfaces) []Change {
 	var changes []Change
 
+	// Handle nil pointers gracefully
+	if old == nil && newCfg == nil {
+		return changes
+	}
+	if old == nil {
+		return []Change{{
+			Type:        ChangeAdded,
+			Section:     SectionInterfaces,
+			Path:        "interfaces",
+			Description: "Interfaces configuration section added",
+		}}
+	}
+	if newCfg == nil {
+		return []Change{{
+			Type:        ChangeRemoved,
+			Section:     SectionInterfaces,
+			Path:        "interfaces",
+			Description: "Interfaces configuration section removed",
+		}}
+	}
+
 	oldNames := old.Names()
 	newNames := newCfg.Names()
 	slices.Sort(oldNames)
@@ -242,7 +305,12 @@ func (a *Analyzer) CompareInterfaces(old, newCfg *schema.Interfaces) []Change {
 	// Find removed interfaces
 	for _, name := range oldNames {
 		if !slices.Contains(newNames, name) {
-			iface, _ := old.Get(name)
+			// Get should not fail here because name came from Names()
+			iface, ok := old.Get(name)
+			if !ok {
+				// This indicates a bug in the Interfaces implementation - skip this interface
+				continue
+			}
 			changes = append(changes, Change{
 				Type:        ChangeRemoved,
 				Section:     SectionInterfaces,
@@ -256,7 +324,10 @@ func (a *Analyzer) CompareInterfaces(old, newCfg *schema.Interfaces) []Change {
 	// Find added interfaces
 	for _, name := range newNames {
 		if !slices.Contains(oldNames, name) {
-			iface, _ := newCfg.Get(name)
+			iface, ok := newCfg.Get(name)
+			if !ok {
+				continue
+			}
 			changes = append(changes, Change{
 				Type:        ChangeAdded,
 				Section:     SectionInterfaces,
@@ -269,12 +340,16 @@ func (a *Analyzer) CompareInterfaces(old, newCfg *schema.Interfaces) []Change {
 
 	// Find modified interfaces
 	for _, name := range oldNames {
-		if slices.Contains(newNames, name) {
-			oldIface, _ := old.Get(name)
-			newIface, _ := newCfg.Get(name)
-			ifaceChanges := a.compareInterface(name, oldIface, newIface)
-			changes = append(changes, ifaceChanges...)
+		if !slices.Contains(newNames, name) {
+			continue
 		}
+		oldIface, ok1 := old.Get(name)
+		newIface, ok2 := newCfg.Get(name)
+		if !ok1 || !ok2 {
+			continue
+		}
+		ifaceChanges := a.compareInterface(name, oldIface, newIface)
+		changes = append(changes, ifaceChanges...)
 	}
 
 	return changes
@@ -334,6 +409,27 @@ func (a *Analyzer) compareInterface(name string, old, newCfg schema.Interface) [
 // CompareVLANs compares VLAN configuration between two configs.
 func (a *Analyzer) CompareVLANs(old, newCfg *schema.VLANs) []Change {
 	var changes []Change
+
+	// Handle nil pointers gracefully
+	if old == nil && newCfg == nil {
+		return changes
+	}
+	if old == nil {
+		return []Change{{
+			Type:        ChangeAdded,
+			Section:     SectionVLANs,
+			Path:        "vlans",
+			Description: "VLANs configuration section added",
+		}}
+	}
+	if newCfg == nil {
+		return []Change{{
+			Type:        ChangeRemoved,
+			Section:     SectionVLANs,
+			Path:        "vlans",
+			Description: "VLANs configuration section removed",
+		}}
+	}
 
 	// Build maps by vlanif (unique identifier)
 	oldByVlanif := make(map[string]schema.VLAN)
@@ -399,6 +495,27 @@ func (a *Analyzer) CompareVLANs(old, newCfg *schema.VLANs) []Change {
 // Focuses on persistent configuration (static reservations) not ephemeral state (leases).
 func (a *Analyzer) CompareDHCP(old, newCfg *schema.Dhcpd) []Change {
 	var changes []Change
+
+	// Handle nil pointers gracefully
+	if old == nil && newCfg == nil {
+		return changes
+	}
+	if old == nil {
+		return []Change{{
+			Type:        ChangeAdded,
+			Section:     SectionDHCP,
+			Path:        "dhcpd",
+			Description: "DHCP configuration section added",
+		}}
+	}
+	if newCfg == nil {
+		return []Change{{
+			Type:        ChangeRemoved,
+			Section:     SectionDHCP,
+			Path:        "dhcpd",
+			Description: "DHCP configuration section removed",
+		}}
+	}
 
 	// Compare by interface names
 	oldNames := make([]string, 0)
@@ -643,6 +760,27 @@ func (a *Analyzer) CompareUsers(old, newCfg []schema.User) []Change {
 func (a *Analyzer) CompareRoutes(old, newCfg *schema.StaticRoutes) []Change {
 	var changes []Change
 
+	// Handle nil pointers gracefully
+	if old == nil && newCfg == nil {
+		return changes
+	}
+	if old == nil {
+		return []Change{{
+			Type:        ChangeAdded,
+			Section:     SectionRouting,
+			Path:        "staticroutes",
+			Description: "Static routes configuration section added",
+		}}
+	}
+	if newCfg == nil {
+		return []Change{{
+			Type:        ChangeRemoved,
+			Section:     SectionRouting,
+			Path:        "staticroutes",
+			Description: "Static routes configuration section removed",
+		}}
+	}
+
 	if len(old.Route) != len(newCfg.Route) {
 		changes = append(changes, Change{
 			Type:        ChangeModified,
@@ -735,7 +873,8 @@ func rulesEqual(a, b schema.Rule) bool {
 		a.Protocol == b.Protocol &&
 		a.Disabled == b.Disabled &&
 		a.Source == b.Source &&
-		a.Destination == b.Destination
+		a.Destination == b.Destination &&
+		slices.Equal([]string(a.Interface), []string(b.Interface))
 }
 
 func usersEqual(a, b schema.User) bool {
