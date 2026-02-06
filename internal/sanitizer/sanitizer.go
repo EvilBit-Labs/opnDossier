@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"reflect"
 	"strings"
 )
@@ -39,9 +40,18 @@ func NewSanitizer(mode Mode) *Sanitizer {
 	}
 }
 
-// GetStats returns the current sanitization statistics.
-func (s *Sanitizer) GetStats() *Stats {
-	return s.stats
+// GetStats returns a copy of the current sanitization statistics.
+// The copy ensures callers cannot observe or mutate internal state.
+func (s *Sanitizer) GetStats() Stats {
+	// Return a copy to prevent data races and external mutation
+	redactionsCopy := make(map[string]int, len(s.stats.RedactionsByType))
+	maps.Copy(redactionsCopy, s.stats.RedactionsByType)
+	return Stats{
+		TotalFields:      s.stats.TotalFields,
+		RedactedFields:   s.stats.RedactedFields,
+		SkippedFields:    s.stats.SkippedFields,
+		RedactionsByType: redactionsCopy,
+	}
 }
 
 // GetMapper returns the mapper for generating mapping reports.
@@ -136,10 +146,24 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 				}
 				// Build the full path for context
 				fullPath := strings.Join(elementStack, ".")
-				sanitizedContent := s.sanitizeValue(fullPath, content)
-				// Use the element name for additional field-based detection
-				if sanitizedContent == content {
-					sanitizedContent = s.sanitizeValue(currentElement, content)
+
+				// Check if we should redact (try full path first, then element name)
+				// Only check - don't update stats yet
+				should, rule := s.engine.ShouldRedactValue(fullPath, content)
+				if !should {
+					should, rule = s.engine.ShouldRedactValue(currentElement, content)
+				}
+
+				var sanitizedContent string
+				if should {
+					s.stats.RedactedFields++
+					if rule != nil {
+						s.stats.RedactionsByType[rule.Name]++
+					}
+					sanitizedContent = s.engine.Redact(fullPath, content)
+				} else {
+					s.stats.SkippedFields++
+					sanitizedContent = content
 				}
 				output.WriteString(escapeXMLText(sanitizedContent))
 			} else if len(t) > 0 {
@@ -148,8 +172,11 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 			}
 
 		case xml.Comment:
+			// Sanitize comment content - comments can contain sensitive data
+			commentContent := string(t)
+			sanitizedComment := s.sanitizeCommentContent(commentContent)
 			output.WriteString("<!--")
-			output.Write(t)
+			output.WriteString(sanitizedComment)
 			output.WriteString("-->")
 
 		case xml.ProcInst:
@@ -192,6 +219,26 @@ func (s *Sanitizer) sanitizeValue(fieldName, value string) string {
 	return s.engine.Redact(fieldName, value)
 }
 
+// sanitizeCommentContent applies redaction to XML comment content.
+// Comments can contain sensitive data like IPs, hostnames, and credentials.
+func (s *Sanitizer) sanitizeCommentContent(content string) string {
+	if content == "" {
+		return content
+	}
+
+	// Split comment into words and sanitize each potential sensitive value
+	words := strings.Fields(content)
+	for i, word := range words {
+		// Check if this word looks like sensitive data
+		should, _ := s.engine.ShouldRedactValue("comment", word)
+		if should {
+			words[i] = s.engine.Redact("comment", word)
+		}
+	}
+
+	return strings.Join(words, " ")
+}
+
 // SanitizeStruct uses reflection to sanitize a struct in place.
 // This is useful for sanitizing parsed model structs before re-encoding.
 func (s *Sanitizer) SanitizeStruct(v any) error {
@@ -231,12 +278,16 @@ func (s *Sanitizer) sanitizeReflect(v reflect.Value, path string) error {
 				fieldPath = path + "." + fieldType.Name
 			}
 
-			// Get xml tag for field name context
+			// Get xml tag for field name context (preserve parent path)
 			xmlTag := fieldType.Tag.Get("xml")
 			if xmlTag != "" && xmlTag != "-" {
 				parts := strings.Split(xmlTag, ",")
 				if parts[0] != "" {
-					fieldPath = parts[0]
+					if path != "" {
+						fieldPath = path + "." + parts[0]
+					} else {
+						fieldPath = parts[0]
+					}
 				}
 			}
 
@@ -284,45 +335,20 @@ func (s *Sanitizer) sanitizeReflect(v reflect.Value, path string) error {
 	return nil
 }
 
-// escapeXMLText replaces '<', '>', and '&' with their XML character references so the result is safe for XML character data.
-// Other runes are left unchanged; quotes are not escaped because this function targets character data, not attribute values.
+// escapeXMLText uses the stdlib xml.EscapeText to properly escape XML character data.
+// This handles all XML-invalid control characters and edge cases.
 func escapeXMLText(s string) string {
-	var b strings.Builder
-	for _, r := range s {
-		switch r {
-		case '<':
-			b.WriteString("&lt;")
-		case '>':
-			b.WriteString("&gt;")
-		case '&':
-			b.WriteString("&amp;")
-		default:
-			b.WriteRune(r)
-		}
+	var buf bytes.Buffer
+	// xml.EscapeText only returns an error if the writer fails, which bytes.Buffer never does
+	if err := xml.EscapeText(&buf, []byte(s)); err != nil {
+		// Fallback to original string if escaping somehow fails
+		return s
 	}
-	return b.String()
+	return buf.String()
 }
 
-// escapeXMLAttr returns s with characters that must be escaped in XML attribute values
-// replaced by their corresponding XML entities: '<' → "&lt;", '>' → "&gt;", '&' → "&amp;',
-// '"' → "&quot;", and '\” → "&apos;".
+// escapeXMLAttr escapes a string for use in XML attribute values.
+// Uses stdlib xml.EscapeText which handles all special characters including quotes.
 func escapeXMLAttr(s string) string {
-	var b strings.Builder
-	for _, r := range s {
-		switch r {
-		case '<':
-			b.WriteString("&lt;")
-		case '>':
-			b.WriteString("&gt;")
-		case '&':
-			b.WriteString("&amp;")
-		case '"':
-			b.WriteString("&quot;")
-		case '\'':
-			b.WriteString("&apos;")
-		default:
-			b.WriteRune(r)
-		}
-	}
-	return b.String()
+	return escapeXMLText(s)
 }

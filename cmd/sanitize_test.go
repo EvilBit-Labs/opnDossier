@@ -4,16 +4,18 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/sanitizer"
+	"github.com/spf13/cobra"
 )
 
 func TestValidSanitizeModes(t *testing.T) {
 	completions, directive := ValidSanitizeModes(nil, nil, "")
 
-	if directive != 4 { // ShellCompDirectiveNoFileComp expected value
-		t.Errorf("expected ShellCompDirectiveNoFileComp (4), got %d", directive)
+	if directive != cobra.ShellCompDirectiveNoFileComp {
+		t.Errorf("expected ShellCompDirectiveNoFileComp, got %d", directive)
 	}
 
 	if len(completions) != 3 {
@@ -21,21 +23,16 @@ func TestValidSanitizeModes(t *testing.T) {
 	}
 
 	// Verify all modes are present
-	found := map[string]bool{}
-	for _, c := range completions {
-		if c[:len(SanitizeModeAggressive)] == SanitizeModeAggressive {
-			found["aggressive"] = true
+	expectedModes := []string{SanitizeModeAggressive, SanitizeModeModerate, SanitizeModeMinimal}
+	for _, mode := range expectedModes {
+		found := false
+		for _, c := range completions {
+			if strings.HasPrefix(c, mode) {
+				found = true
+				break
+			}
 		}
-		if c[:len(SanitizeModeModerate)] == SanitizeModeModerate {
-			found["moderate"] = true
-		}
-		if c[:len(SanitizeModeMinimal)] == SanitizeModeMinimal {
-			found["minimal"] = true
-		}
-	}
-
-	for mode, ok := range found {
-		if !ok {
+		if !found {
 			t.Errorf("mode %q not found in completions", mode)
 		}
 	}

@@ -30,6 +30,36 @@ func TestIsIPv4(t *testing.T) {
 	}
 }
 
+func TestIsIPv6(t *testing.T) {
+	tests := []struct {
+		input string
+		want  bool
+	}{
+		// Valid IPv6 addresses (full form)
+		{"2001:0db8:0000:0000:0000:0000:0000:0001", true},
+		{"2001:db8:85a3:0000:0000:8a2e:0370:7334", true},
+		// Compressed forms (matched by simplified pattern)
+		{"2001:db8::1", true},
+		{"fe80::1", true},
+		// Not matched by simplified pattern (edge cases)
+		{"::1", false},                // Loopback - not matched by pattern
+		{"::ffff:192.168.1.1", false}, // IPv4-mapped - not matched
+		{"::", false},                 // All zeros - not matched
+		// Invalid
+		{"192.168.1.1", false}, // IPv4
+		{"not-ipv6", false},
+		{"", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			if got := IsIPv6(tt.input); got != tt.want {
+				t.Errorf("IsIPv6(%q) = %v, want %v", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestIsIP(t *testing.T) {
 	tests := []struct {
 		input string
@@ -101,6 +131,8 @@ func TestIsPublicIP(t *testing.T) {
 		{"127.0.0.1", false},
 		// Link-local
 		{"169.254.1.1", false},
+		// Unspecified address - technically parsed as valid IP but not private
+		{"0.0.0.0", true},
 		// Invalid
 		{"not-an-ip", false},
 		{"", false},
@@ -179,6 +211,109 @@ func TestIsHostname(t *testing.T) {
 		t.Run(tt.input, func(t *testing.T) {
 			if got := IsHostname(tt.input); got != tt.want {
 				t.Errorf("IsHostname(%q) = %v, want %v", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsDomain(t *testing.T) {
+	tests := []struct {
+		input string
+		want  bool
+	}{
+		{"example.com", true},
+		{"sub.example.com", true},
+		{"deep.sub.example.com", true},
+		{"host-01.domain.local", true},
+		{"example.co.uk", true},
+		// Invalid
+		{"192.168.1.1", false}, // IP address
+		{"localhost", false},   // No dot
+		{"", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			if got := IsDomain(tt.input); got != tt.want {
+				t.Errorf("IsDomain(%q) = %v, want %v", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsCertificate(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  bool
+	}{
+		{
+			"valid PEM certificate",
+			"-----BEGIN CERTIFICATE-----\nMIIBkTCB+wIJAKHBfpE=\n-----END CERTIFICATE-----",
+			true,
+		},
+		{
+			"valid base64 (potential cert)",
+			"SGVsbG8gV29ybGQhIFRoaXMgaXMgYSB0ZXN0IHN0cmluZyB0aGF0IGlzIGxvbmcgZW5vdWdo",
+			true,
+		},
+		{
+			"PEM private key (not a certificate)",
+			"-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBg=\n-----END PRIVATE KEY-----",
+			false,
+		},
+		{"not a certificate", "This is plain text", false},
+		{"empty", "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsCertificate(tt.input); got != tt.want {
+				t.Errorf("IsCertificate() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsPrivateKey(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  bool
+	}{
+		{
+			"valid PEM private key",
+			"-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBg=\n-----END PRIVATE KEY-----",
+			true,
+		},
+		{
+			"valid RSA private key",
+			"-----BEGIN RSA PRIVATE KEY-----\nMIIBOgIBAAJBAK=\n-----END RSA PRIVATE KEY-----",
+			true,
+		},
+		{
+			"valid EC private key",
+			"-----BEGIN EC PRIVATE KEY-----\nMHQCAQEEIB=\n-----END EC PRIVATE KEY-----",
+			true,
+		},
+		{
+			"PEM certificate (not a private key)",
+			"-----BEGIN CERTIFICATE-----\nMIIBkTCB+wIJAKHBfpE=\n-----END CERTIFICATE-----",
+			false,
+		},
+		{
+			"base64 data (not detected as private key without PEM)",
+			"SGVsbG8gV29ybGQhIFRoaXMgaXMgYSB0ZXN0IHN0cmluZyB0aGF0IGlzIGxvbmcgZW5vdWdo",
+			false,
+		},
+		{"not a private key", "This is plain text", false},
+		{"empty", "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsPrivateKey(tt.input); got != tt.want {
+				t.Errorf("IsPrivateKey() = %v, want %v", got, tt.want)
 			}
 		})
 	}

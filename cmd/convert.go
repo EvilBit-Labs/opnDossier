@@ -260,9 +260,14 @@ Examples:
 			go func(fp string) {
 				defer wg.Done()
 
-				// Acquire semaphore slot
-				sem <- struct{}{}
-				defer func() { <-sem }()
+				// Acquire semaphore slot with context awareness
+				select {
+				case sem <- struct{}{}:
+					defer func() { <-sem }()
+				case <-timeoutCtx.Done():
+					errs <- timeoutCtx.Err()
+					return
+				}
 
 				// Create context-aware logger for this goroutine with input file field
 				ctxLogger := cmdLogger.WithContext(timeoutCtx).WithFields("input_file", fp)

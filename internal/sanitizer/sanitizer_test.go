@@ -25,11 +25,13 @@ func TestNewSanitizer(t *testing.T) {
 func TestGetStats(t *testing.T) {
 	s := NewSanitizer(ModeAggressive)
 	stats := s.GetStats()
-	if stats == nil {
-		t.Fatal("GetStats() returned nil")
-	}
+	// GetStats now returns a value copy, not a pointer
 	if stats.RedactionsByType == nil {
 		t.Error("RedactionsByType map not initialized")
+	}
+	// Verify stats starts at zero
+	if stats.TotalFields != 0 {
+		t.Errorf("expected TotalFields=0, got %d", stats.TotalFields)
 	}
 }
 
@@ -384,9 +386,9 @@ func TestEscapeXMLAttr(t *testing.T) {
 		want  string
 	}{
 		{"hello", "hello"},
-		{`"quoted"`, "&quot;quoted&quot;"},
+		{`"quoted"`, "&#34;quoted&#34;"}, // xml.EscapeText uses numeric references
 		{"a & b", "a &amp; b"},
-		{"it's", "it&apos;s"},
+		{"it's", "it&#39;s"}, // xml.EscapeText uses numeric references
 		{"", ""},
 	}
 

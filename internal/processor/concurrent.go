@@ -4,6 +4,7 @@ package processor
 import (
 	"context"
 	"errors"
+	"fmt"
 	"runtime"
 	"strconv"
 	"sync"
@@ -259,8 +260,12 @@ func ProcessBatch[T, R any](
 	wp := NewWorkerPool(ctx, opts...)
 	defer wp.Close()
 
-	// Track number of successfully submitted jobs
-	submittedCount := make(chan int, 1)
+	// Track submission result (count and any error)
+	type submitResult struct {
+		count int
+		err   error
+	}
+	submissionDone := make(chan submitResult, 1)
 
 	// Submit all jobs
 	go func() {
@@ -273,17 +278,18 @@ func ProcessBatch[T, R any](
 			}
 			if err := wp.Submit(job); err != nil {
 				// Signal how many jobs were submitted before error/cancellation
-				submittedCount <- submitted
+				submissionDone <- submitResult{count: submitted, err: fmt.Errorf("submitting job %d: %w", i, err)}
 				return
 			}
 			submitted++
 		}
 		// Signal all jobs were submitted successfully
-		submittedCount <- submitted
+		submissionDone <- submitResult{count: submitted, err: nil}
 	}()
 
-	// Wait for submission goroutine to report count
-	expectedResults := <-submittedCount
+	// Wait for submission goroutine to report result
+	submission := <-submissionDone
+	expectedResults := submission.count
 
 	// Collect results only for submitted jobs
 	results := make([]Result[R], 0, expectedResults)
@@ -293,11 +299,13 @@ func ProcessBatch[T, R any](
 			return results, ctx.Err()
 		case result, ok := <-wp.Results():
 			if !ok {
-				return results, nil
+				// Channel closed unexpectedly, return submission error if any
+				return results, submission.err
 			}
 			results = append(results, result)
 		}
 	}
 
-	return results, nil
+	// Return any submission error that occurred
+	return results, submission.err
 }
