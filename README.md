@@ -332,8 +332,6 @@ For security vulnerabilities, please see our [security policy](SECURITY.md).
 
 Apache License 2.0 - see [LICENSE](LICENSE) file for details.
 
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FEvilBit-Labs%2FopnDossier.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FEvilBit-Labs%2FopnDossier?ref=badge_large)
-
 ## Acknowledgements
 
 - Inspired by [TKCERT/pfFocus](https://github.com/TKCERT/pfFocus) for pfSense configurations
