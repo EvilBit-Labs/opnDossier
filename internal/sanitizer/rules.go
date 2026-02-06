@@ -14,12 +14,12 @@ const (
 	ModeMinimal Mode = "minimal"
 )
 
-// ValidModes returns all valid sanitization modes.
+// ValidModes returns the supported sanitization modes (aggressive, moderate, minimal) in order from most to least aggressive.
 func ValidModes() []Mode {
 	return []Mode{ModeAggressive, ModeModerate, ModeMinimal}
 }
 
-// IsValidMode checks if the given mode string is valid.
+// Valid modes are "aggressive", "moderate", and "minimal".
 func IsValidMode(mode string) bool {
 	switch Mode(mode) {
 	case ModeAggressive, ModeModerate, ModeMinimal:
@@ -66,7 +66,8 @@ type RuleEngine struct {
 	mode   Mode
 }
 
-// NewRuleEngine creates a new RuleEngine with the specified mode.
+// NewRuleEngine creates a RuleEngine configured for the given Mode.
+// The engine is populated with the package's builtin rules and a default Mapper.
 func NewRuleEngine(mode Mode) *RuleEngine {
 	engine := &RuleEngine{
 		rules:  builtinRules(),
@@ -140,12 +141,16 @@ func (e *RuleEngine) ruleActiveForMode(rule *Rule) bool {
 	return slices.Contains(rule.Modes, e.mode)
 }
 
-// fieldNameMatches checks if a field name matches a pattern (case-insensitive).
+// fieldNameMatches reports whether pattern is a case-insensitive substring of fieldName.
+// An empty pattern always matches.
 func fieldNameMatches(fieldName, pattern string) bool {
 	return containsIgnoreCase(fieldName, pattern)
 }
 
-// containsIgnoreCase performs case-insensitive substring matching.
+// containsIgnoreCase reports whether substr is contained within s using an
+// ASCII-only, case-insensitive comparison.
+// It returns true if substr appears in s when letters A–Z are treated as a–z,
+// false otherwise.
 func containsIgnoreCase(s, substr string) bool {
 	sLower := toLower(s)
 	substrLower := toLower(substr)
@@ -155,7 +160,10 @@ func containsIgnoreCase(s, substr string) bool {
 // asciiLowercaseDelta is the offset between uppercase and lowercase ASCII letters.
 const asciiLowercaseDelta = 32
 
-// toLower converts a string to lowercase without importing strings.
+// toLower converts ASCII uppercase letters (A-Z) in s to their lowercase
+// equivalents and returns the resulting string. Non-ASCII bytes and ASCII
+// characters outside A-Z are left unchanged; the result has the same length
+// as the input.
 func toLower(s string) string {
 	result := make([]byte, len(s))
 	for i := range len(s) {
@@ -169,7 +177,8 @@ func toLower(s string) string {
 	return string(result)
 }
 
-// contains checks if s contains substr.
+// contains reports whether substr is a substring of s.
+// An empty substr is considered contained; if substr is longer than s it is not contained.
 func contains(s, substr string) bool {
 	if substr == "" {
 		return true
@@ -185,7 +194,11 @@ func contains(s, substr string) bool {
 	return false
 }
 
-// builtinRules returns the default set of redaction rules.
+// builtinRules returns the default set of redaction rules used by the sanitizer package.
+// The returned rules cover credentials, cryptographic material, identity, network, and system
+// fields; each rule indicates the modes in which it is active and provides field patterns,
+// optional value detectors, and redactors that the engine uses to determine and perform
+// redaction.
 func builtinRules() []Rule {
 	allModes := []Mode{ModeAggressive, ModeModerate, ModeMinimal}
 	aggressiveModerate := []Mode{ModeAggressive, ModeModerate}
@@ -366,7 +379,8 @@ func builtinRules() []Rule {
 	}
 }
 
-// isSystemUser returns true if the username is a common system account.
+// isSystemUser reports whether username matches a known common system account.
+// The check is case-insensitive and uses a predefined list (for example: "root", "admin", "nobody", "daemon", "www-data").
 func isSystemUser(username string) bool {
 	systemUsers := []string{
 		"root", "admin", "nobody", "daemon", "www", "www-data",
