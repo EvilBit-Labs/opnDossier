@@ -1202,7 +1202,6 @@ func BuildDHCPStaticLeasesTableSet(leases []model.DHCPStaticLease) *markdown.Tab
 	}
 }
 
-// BuildIPsecSection builds the IPsec VPN configuration section.
 // writeIPsecSection writes the IPsec VPN configuration section to the markdown instance.
 func (b *MarkdownBuilder) writeIPsecSection(md *markdown.Markdown, data *model.OpnSenseDocument) {
 	md.H3("IPsec VPN Configuration")

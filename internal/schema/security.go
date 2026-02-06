@@ -342,9 +342,7 @@ type Swanctl struct {
 	SPDs        string   `xml:"SPDs"`
 }
 
-// NewIDS creates a new IDS configuration.
-//
-// NewIDS returns a new instance of the IDS configuration struct.
+// NewIDS creates a new IDS configuration with zero-value defaults.
 func NewIDS() *IDS {
 	return &IDS{}
 }

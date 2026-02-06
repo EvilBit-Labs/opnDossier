@@ -121,6 +121,26 @@ func TestIDS_GetMonitoredInterfaces(t *testing.T) {
 			ids:  &IDS{},
 			want: nil,
 		},
+		{
+			name: "leading comma",
+			ids:  newTestIDs(func(ids *IDS) { ids.General.Interfaces = ",wan,lan" }),
+			want: []string{"wan", "lan"},
+		},
+		{
+			name: "trailing comma",
+			ids:  newTestIDs(func(ids *IDS) { ids.General.Interfaces = "wan,lan," }),
+			want: []string{"wan", "lan"},
+		},
+		{
+			name: "double comma",
+			ids:  newTestIDs(func(ids *IDS) { ids.General.Interfaces = "wan,,lan" }),
+			want: []string{"wan", "lan"},
+		},
+		{
+			name: "only commas",
+			ids:  newTestIDs(func(ids *IDS) { ids.General.Interfaces = ",,," }),
+			want: []string{},
+		},
 	}
 
 	for _, tt := range tests {
@@ -169,6 +189,26 @@ func TestIDS_GetHomeNetworks(t *testing.T) {
 			name: "empty string",
 			ids:  newTestIDs(func(ids *IDS) { ids.General.Homenet = "" }),
 			want: nil,
+		},
+		{
+			name: "leading comma",
+			ids:  newTestIDs(func(ids *IDS) { ids.General.Homenet = ",192.168.1.0/24,10.0.0.0/8" }),
+			want: []string{"192.168.1.0/24", "10.0.0.0/8"},
+		},
+		{
+			name: "trailing comma",
+			ids:  newTestIDs(func(ids *IDS) { ids.General.Homenet = "192.168.1.0/24,10.0.0.0/8," }),
+			want: []string{"192.168.1.0/24", "10.0.0.0/8"},
+		},
+		{
+			name: "double comma",
+			ids:  newTestIDs(func(ids *IDS) { ids.General.Homenet = "192.168.1.0/24,,10.0.0.0/8" }),
+			want: []string{"192.168.1.0/24", "10.0.0.0/8"},
+		},
+		{
+			name: "only commas",
+			ids:  newTestIDs(func(ids *IDS) { ids.General.Homenet = ",,," }),
+			want: []string{},
 		},
 	}
 
