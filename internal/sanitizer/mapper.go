@@ -263,7 +263,7 @@ func (m *Mapper) Reset() {
 }
 
 // extractOctets splits ip on '.' and returns the resulting octet substrings.
-// 
+//
 // The function does not validate that the input is a well-formed IPv4 address.
 // Empty segments between dots are preserved (for example, ".1" -> ["", "1"]), but
 // a trailing empty segment is omitted (for example, "1.2." -> ["1","2"]). An empty

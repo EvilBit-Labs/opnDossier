@@ -35,7 +35,7 @@ var (
 	ErrInvalidSanitizeMode = errors.New("invalid sanitize mode")
 )
 
-//   opndossier sanitize config.xml --mode aggressive --output sanitized.xml --mapping map.json --force
+// opndossier sanitize config.xml --mode aggressive --output sanitized.xml --mapping map.json --force.
 func init() {
 	rootCmd.AddCommand(sanitizeCmd)
 

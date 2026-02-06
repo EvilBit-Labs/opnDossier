@@ -19,7 +19,7 @@ func ValidModes() []Mode {
 	return []Mode{ModeAggressive, ModeModerate, ModeMinimal}
 }
 
-// Valid modes are "aggressive", "moderate", and "minimal".
+// IsValidMode checks if the provided mode string is one of the valid sanitization modes (aggressive, moderate, minimal).
 func IsValidMode(mode string) bool {
 	switch Mode(mode) {
 	case ModeAggressive, ModeModerate, ModeMinimal:

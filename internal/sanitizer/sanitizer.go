@@ -305,7 +305,7 @@ func escapeXMLText(s string) string {
 
 // escapeXMLAttr returns s with characters that must be escaped in XML attribute values
 // replaced by their corresponding XML entities: '<' → "&lt;", '>' → "&gt;", '&' → "&amp;',
-// '"' → "&quot;", and '\'' → "&apos;".
+// '"' → "&quot;", and '\” → "&apos;".
 func escapeXMLAttr(s string) string {
 	var b strings.Builder
 	for _, r := range s {

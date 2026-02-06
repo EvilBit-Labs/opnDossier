@@ -73,7 +73,7 @@ func IsIPv4(s string) bool {
 }
 
 // IsIPv6 reports whether s is a textual IPv6 address in common formats.
-// 
+//
 // The check accepts typical IPv6 representations such as full and compressed
 // forms and mixed IPv4/IPv6 notations; it does not attempt network-level
 // reachability checks. Returns true if s matches an IPv6 textual form, false otherwise.
@@ -115,7 +115,7 @@ func IsPrivateIP(s string) bool {
 }
 
 // IsPublicIP reports whether s is a publicly routable IP address.
-// 
+//
 // For unparsable input it returns false. For IPv4 addresses it returns false
 // for RFC1918 private ranges (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16), for
 // loopback (127.0.0.0/8) and for link-local (169.254.0.0/16). For IPv6 it
