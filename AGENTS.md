@@ -429,6 +429,51 @@ When code becomes unused during refactoring:
 - If the code might be needed later, rely on version control history
 - This includes helper functions, test utilities, and constants
 
+### 5.17 File Write Safety
+
+When writing to output files:
+
+- Call `file.Sync()` before `Close()` to ensure data is flushed to disk
+- Handle close errors for write operations (data could be lost)
+- Pattern:
+
+```go
+defer func() {
+    if cerr := outputFile.Close(); cerr != nil {
+        logger.Warn("failed to close output file", "error", cerr)
+    }
+}()
+// ... write operations ...
+if err := outputFile.Sync(); err != nil {
+    return fmt.Errorf("failed to sync output file: %w", err)
+}
+```
+
+### 5.18 Comparison Function Patterns
+
+When writing functions that compare two structs:
+
+- Always handle nil inputs at the start of comparison functions
+- Use `slices.Equal()` for comparing slice fields (not manual iteration)
+- Pattern for nil-safe comparisons:
+
+```go
+func CompareItems(old, new *Item) []Change {
+    if old == nil && new == nil {
+        return nil
+    }
+    if old == nil {
+        return []Change{{Type: ChangeAdded, Description: "Item added"}}
+    }
+    if new == nil {
+        return []Change{{Type: ChangeRemoved, Description: "Item removed"}}
+    }
+    // Compare fields...
+}
+```
+
+- For map-like types with `Get()` methods, check return signature: many return `(value, bool)` not `(value, error)`
+
 ---
 
 ## 6. Data Processing Standards

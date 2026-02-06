@@ -4,7 +4,9 @@ package processor
 import (
 	"context"
 	"errors"
+	"fmt"
 	"runtime"
+	"strconv"
 	"sync"
 )
 
@@ -239,7 +241,12 @@ func (wp *WorkerPool[T, R]) IsClosed() bool {
 }
 
 // ProcessBatch processes a batch of inputs using the worker pool and collects all results.
-// It returns when all inputs have been processed or the context is cancelled.
+// ProcessBatch processes a slice of inputs concurrently using a worker pool and returns the collected results.
+//
+// It submits each input as a job to a new WorkerPool created with the provided context and options. If submission is interrupted
+// (for example by context cancellation), only results for the jobs successfully submitted are collected and returned. If ctx is
+// canceled during submission or result collection, the function returns the partial results along with ctx.Err(). The worker pool
+// is closed before ProcessBatch returns.
 func ProcessBatch[T, R any](
 	ctx context.Context,
 	inputs []T,
@@ -253,33 +260,52 @@ func ProcessBatch[T, R any](
 	wp := NewWorkerPool(ctx, opts...)
 	defer wp.Close()
 
+	// Track submission result (count and any error)
+	type submitResult struct {
+		count int
+		err   error
+	}
+	submissionDone := make(chan submitResult, 1)
+
 	// Submit all jobs
 	go func() {
+		submitted := 0
 		for i, input := range inputs {
 			job := Job[T, R]{
-				ID:      string(rune(i)), // Simple ID for batch processing
+				ID:      strconv.Itoa(i),
 				Input:   input,
 				Process: processFn,
 			}
 			if err := wp.Submit(job); err != nil {
+				// Signal how many jobs were submitted before error/cancellation
+				submissionDone <- submitResult{count: submitted, err: fmt.Errorf("submitting job %d: %w", i, err)}
 				return
 			}
+			submitted++
 		}
+		// Signal all jobs were submitted successfully
+		submissionDone <- submitResult{count: submitted, err: nil}
 	}()
 
-	// Collect results
-	results := make([]Result[R], 0, len(inputs))
-	for range inputs {
+	// Wait for submission goroutine to report result
+	submission := <-submissionDone
+	expectedResults := submission.count
+
+	// Collect results only for submitted jobs
+	results := make([]Result[R], 0, expectedResults)
+	for range expectedResults {
 		select {
 		case <-ctx.Done():
 			return results, ctx.Err()
 		case result, ok := <-wp.Results():
 			if !ok {
-				return results, nil
+				// Channel closed unexpectedly, return submission error if any
+				return results, submission.err
 			}
 			results = append(results, result)
 		}
 	}
 
-	return results, nil
+	// Return any submission error that occurred
+	return results, submission.err
 }
