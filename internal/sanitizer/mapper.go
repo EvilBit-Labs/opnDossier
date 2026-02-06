@@ -54,7 +54,8 @@ type MappingCategories struct {
 	Other        map[string]string `json:"other,omitempty"`
 }
 
-// NewMapper creates a new Mapper instance with initialized maps.
+// NewMapper creates and returns a ready-to-use Mapper with all mapping tables initialized.
+// The returned Mapper is safe for concurrent use via its internal mutex.
 func NewMapper() *Mapper {
 	return &Mapper{
 		ipMappings:       make(map[string]string),
@@ -261,7 +262,12 @@ func (m *Mapper) Reset() {
 	m.genericMappings = make(map[string]string)
 }
 
-// extractOctets splits an IPv4 address into its octets.
+// extractOctets splits ip on '.' and returns the resulting octet substrings.
+//
+// The function does not validate that the input is a well-formed IPv4 address.
+// Empty segments between dots are preserved (for example, ".1" -> ["", "1"]), but
+// a trailing empty segment is omitted (for example, "1.2." -> ["1","2"]). An empty
+// input returns nil.
 func extractOctets(ip string) []string {
 	var octets []string
 	var current string
@@ -279,7 +285,7 @@ func extractOctets(ip string) []string {
 	return octets
 }
 
-// copyMap creates a copy of a string map.
+// The returned map contains the same key/value pairs as the input (a shallow copy).
 func copyMap(m map[string]string) map[string]string {
 	if len(m) == 0 {
 		return nil

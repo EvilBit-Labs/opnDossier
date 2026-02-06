@@ -27,7 +27,8 @@ type Stats struct {
 	RedactionsByType map[string]int
 }
 
-// NewSanitizer creates a new Sanitizer with the specified mode.
+// NewSanitizer creates a Sanitizer configured for the given Mode, initializing its rule engine and an empty statistics map for tracking redactions.
+// The returned *Sanitizer is ready to perform XML and struct sanitization and to collect sanitization metrics.
 func NewSanitizer(mode Mode) *Sanitizer {
 	return &Sanitizer{
 		engine: NewRuleEngine(mode),
@@ -283,7 +284,8 @@ func (s *Sanitizer) sanitizeReflect(v reflect.Value, path string) error {
 	return nil
 }
 
-// escapeXMLText escapes special characters for XML text content.
+// escapeXMLText replaces '<', '>', and '&' with their XML character references so the result is safe for XML character data.
+// Other runes are left unchanged; quotes are not escaped because this function targets character data, not attribute values.
 func escapeXMLText(s string) string {
 	var b strings.Builder
 	for _, r := range s {
@@ -301,7 +303,9 @@ func escapeXMLText(s string) string {
 	return b.String()
 }
 
-// escapeXMLAttr escapes special characters for XML attribute values.
+// escapeXMLAttr returns s with characters that must be escaped in XML attribute values
+// replaced by their corresponding XML entities: '<' → "&lt;", '>' → "&gt;", '&' → "&amp;',
+// '"' → "&quot;", and '\” → "&apos;".
 func escapeXMLAttr(s string) string {
 	var b strings.Builder
 	for _, r := range s {

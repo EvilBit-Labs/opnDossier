@@ -240,7 +240,12 @@ func (wp *WorkerPool[T, R]) IsClosed() bool {
 }
 
 // ProcessBatch processes a batch of inputs using the worker pool and collects all results.
-// It returns when all inputs have been processed or the context is cancelled.
+// ProcessBatch processes a slice of inputs concurrently using a worker pool and returns the collected results.
+//
+// It submits each input as a job to a new WorkerPool created with the provided context and options. If submission is interrupted
+// (for example by context cancellation), only results for the jobs successfully submitted are collected and returned. If ctx is
+// canceled during submission or result collection, the function returns the partial results along with ctx.Err(). The worker pool
+// is closed before ProcessBatch returns.
 func ProcessBatch[T, R any](
 	ctx context.Context,
 	inputs []T,

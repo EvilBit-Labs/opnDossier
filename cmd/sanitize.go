@@ -35,7 +35,7 @@ var (
 	ErrInvalidSanitizeMode = errors.New("invalid sanitize mode")
 )
 
-// init registers the sanitize command and its flags with the root command.
+// opndossier sanitize config.xml --mode aggressive --output sanitized.xml --mapping map.json --force.
 func init() {
 	rootCmd.AddCommand(sanitizeCmd)
 
@@ -70,7 +70,10 @@ func init() {
 	sanitizeCmd.Flags().SortFlags = false
 }
 
-// registerSanitizeFlagCompletions registers completion functions for sanitize command flags.
+// registerSanitizeFlagCompletions registers shell completion handlers for the sanitize command's flags.
+// It attaches a completer for the `--mode` flag that suggests valid sanitize modes (aggressive, moderate, minimal).
+//
+// cmd is the Cobra command representing the sanitize subcommand.
 func registerSanitizeFlagCompletions(cmd *cobra.Command) {
 	// Mode flag completion
 	if err := cmd.RegisterFlagCompletionFunc("mode", ValidSanitizeModes); err != nil {
@@ -78,7 +81,8 @@ func registerSanitizeFlagCompletions(cmd *cobra.Command) {
 	}
 }
 
-// ValidSanitizeModes provides tab completion for the --mode flag.
+// ValidSanitizeModes provides tab-completion candidates for the sanitize command's --mode flag.
+// It returns the three valid modes with brief descriptions and a shell directive that disables file completion.
 func ValidSanitizeModes(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return []string{
 		SanitizeModeAggressive + "\tRedact all sensitive data for public sharing",
@@ -305,7 +309,12 @@ Examples:
 	},
 }
 
-// determineSanitizeOutputPath handles output file path determination with overwrite protection.
+// determineSanitizeOutputPath determines whether the provided outputPath may be used.
+// If the file already exists and force is false, it prompts the user on stderr to
+// confirm overwriting; an empty response is treated as "No" and only `y` or `Y`
+// are accepted to proceed. It returns the original outputPath on approval.
+// Returns ErrOperationCancelled when the user declines, or a wrapped error if
+// reading user input fails.
 func determineSanitizeOutputPath(outputPath string, force bool) (string, error) {
 	// Check if file already exists
 	if _, err := os.Stat(outputPath); err == nil {
