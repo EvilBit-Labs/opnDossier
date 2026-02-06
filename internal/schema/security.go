@@ -342,6 +342,83 @@ type Swanctl struct {
 	SPDs        string   `xml:"SPDs"`
 }
 
+// NewIDS creates a new IDS configuration.
+//
+// NewIDS returns a new instance of the IDS configuration struct.
+func NewIDS() *IDS {
+	return &IDS{}
+}
+
+// IDS helper methods
+
+// IsEnabled returns true if the IDS is enabled.
+func (ids *IDS) IsEnabled() bool {
+	return ids != nil && ids.General.Enabled == "1"
+}
+
+// IsIPSMode returns true if the IDS is operating in IPS (Intrusion Prevention) mode.
+func (ids *IDS) IsIPSMode() bool {
+	return ids != nil && ids.General.Ips == "1"
+}
+
+// GetMonitoredInterfaces parses the comma-separated interfaces string and returns a slice.
+func (ids *IDS) GetMonitoredInterfaces() []string {
+	if ids == nil || ids.General.Interfaces == "" {
+		return nil
+	}
+	parts := strings.Split(ids.General.Interfaces, ",")
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
+}
+
+// GetHomeNetworks parses the comma-separated home networks string and returns a slice.
+func (ids *IDS) GetHomeNetworks() []string {
+	if ids == nil || ids.General.Homenet == "" {
+		return nil
+	}
+	parts := strings.Split(ids.General.Homenet, ",")
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
+}
+
+// GetDetectionMode returns a human-readable description of the detection mode.
+func (ids *IDS) GetDetectionMode() string {
+	if ids == nil {
+		return "Disabled"
+	}
+	if ids.General.Ips == "1" {
+		return "IPS (Prevention)"
+	}
+	return "IDS (Detection Only)"
+}
+
+// IsSyslogEnabled returns true if syslog output is enabled.
+func (ids *IDS) IsSyslogEnabled() bool {
+	return ids != nil && ids.General.Syslog == "1"
+}
+
+// IsSyslogEveEnabled returns true if EVE syslog output is enabled.
+func (ids *IDS) IsSyslogEveEnabled() bool {
+	return ids != nil && ids.General.SyslogEve == "1"
+}
+
+// IsPromiscuousMode returns true if promiscuous mode is enabled.
+func (ids *IDS) IsPromiscuousMode() bool {
+	return ids != nil && ids.General.Promisc == "1"
+}
+
 // Constructor functions
 
 // NewSecurityConfig returns a new SecurityConfig instance with an empty filter rule set.
@@ -356,13 +433,6 @@ func NewSecurityConfig() SecurityConfig {
 // NewFirewall returns a pointer to a new, empty Firewall configuration.
 func NewFirewall() *Firewall {
 	return &Firewall{}
-}
-
-// NewIDS creates a new IDS configuration.
-//
-// NewIDS returns a new instance of the IDS configuration struct.
-func NewIDS() *IDS {
-	return &IDS{}
 }
 
 // NewIPsec returns a pointer to a new IPsec configuration instance.

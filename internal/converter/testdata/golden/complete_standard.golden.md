@@ -3,7 +3,7 @@
 - **Hostname**: comprehensive-firewall
 - **Domain**: security.local
 - **Platform**: OPNsense 24.1.2
-- **Generated On**: 2026-02-01T22:32:32-05:00
+- **Generated On**: 2026-02-06T00:25:28-05:00
 - **Parsed By**: opnDossier v1.0.0
 ## Table of Contents
 - [System Configuration](#system-configuration)

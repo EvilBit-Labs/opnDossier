@@ -60,6 +60,8 @@ type ReportBuilder interface {
 	BuildOpenVPNSection(data *model.OpnSenseDocument) string
 	// BuildHASection builds the High Availability and CARP configuration section.
 	BuildHASection(data *model.OpnSenseDocument) string
+	// BuildIDSSection builds the IDS/Suricata configuration section.
+	BuildIDSSection(data *model.OpnSenseDocument) string
 
 	// BuildStandardReport generates a standard configuration report.
 	BuildStandardReport(data *model.OpnSenseDocument) (string, error)
@@ -328,6 +330,9 @@ func (b *MarkdownBuilder) writeSecuritySection(md *markdown.Markdown, data *mode
 	if len(rules) > 0 {
 		b.WriteFirewallRulesTable(md.H3("Firewall Rules"), rules)
 	}
+
+	// IDS/Suricata Configuration
+	b.writeIDSSection(md, data)
 }
 
 // BuildSecuritySection builds the security configuration section.
@@ -336,6 +341,125 @@ func (b *MarkdownBuilder) BuildSecuritySection(data *model.OpnSenseDocument) str
 	md := markdown.NewMarkdown(&buf)
 	b.writeSecuritySection(md, data)
 	return md.String()
+}
+
+// writeIDSSection writes the IDS/Suricata configuration section to the markdown instance.
+func (b *MarkdownBuilder) writeIDSSection(md *markdown.Markdown, data *model.OpnSenseDocument) {
+	ids := data.OPNsense.IntrusionDetectionSystem
+	if ids == nil || !ids.IsEnabled() {
+		return
+	}
+
+	md.H3("Intrusion Detection System (IDS/Suricata)")
+
+	// Configuration summary table
+	configRows := [][]string{
+		{"**Status**", "Enabled"},
+		{"**Mode**", ids.GetDetectionMode()},
+	}
+
+	if ids.General.Detect.Profile != "" {
+		configRows = append(configRows, []string{"**Detection Profile**", ids.General.Detect.Profile})
+	}
+
+	if ids.General.MPMAlgo != "" {
+		configRows = append(configRows, []string{"**Pattern Matching Algorithm**", ids.General.MPMAlgo})
+	}
+
+	configRows = append(configRows, []string{"**Promiscuous Mode**", formatIDSBoolStatus(ids.IsPromiscuousMode())})
+
+	if ids.General.DefaultPacketSize != "" {
+		configRows = append(configRows, []string{"**Default Packet Size**", ids.General.DefaultPacketSize})
+	}
+
+	md.H4("Configuration Summary").
+		Table(markdown.TableSet{
+			Header: []string{"Setting", "Value"},
+			Rows:   configRows,
+		})
+
+	// Monitored interfaces
+	interfaces := ids.GetMonitoredInterfaces()
+	if len(interfaces) > 0 {
+		md.H4("Monitored Interfaces")
+		interfaceItems := make([]string, 0, len(interfaces))
+		for _, iface := range interfaces {
+			interfaceItems = append(interfaceItems, fmt.Sprintf("`%s`", iface))
+		}
+		md.BulletList(interfaceItems...)
+	}
+
+	// Home networks
+	homeNets := ids.GetHomeNetworks()
+	if len(homeNets) > 0 {
+		md.H4("Home Networks")
+		netItems := make([]string, 0, len(homeNets))
+		for _, net := range homeNets {
+			netItems = append(netItems, fmt.Sprintf("`%s`", net))
+		}
+		md.BulletList(netItems...)
+	}
+
+	// Logging configuration
+	logRows := [][]string{
+		{"**Syslog**", formatIDSBoolStatus(ids.IsSyslogEnabled())},
+		{"**EVE Syslog**", formatIDSBoolStatus(ids.IsSyslogEveEnabled())},
+	}
+
+	if ids.General.LogPayload != "" {
+		logRows = append(logRows, []string{"**Payload Logging**", ids.General.LogPayload})
+	}
+
+	if ids.General.Verbosity != "" {
+		logRows = append(logRows, []string{"**Verbosity**", ids.General.Verbosity})
+	}
+
+	if ids.General.AlertLogrotate != "" {
+		logRows = append(logRows, []string{"**Log Rotation**", ids.General.AlertLogrotate})
+	}
+
+	if ids.General.AlertSaveLogs != "" {
+		logRows = append(logRows, []string{"**Log Retention**", ids.General.AlertSaveLogs})
+	}
+
+	md.H4("Logging Configuration").
+		Table(markdown.TableSet{
+			Header: []string{"Setting", "Value"},
+			Rows:   logRows,
+		})
+
+	// Security notes
+	if !ids.IsIPSMode() {
+		md.Tip(
+			"Consider enabling IPS mode for active threat prevention. IDS mode only detects threats without blocking them.",
+		)
+	} else {
+		md.Note(
+			"IPS mode is active. Suricata will actively block detected threats based on configured rules.",
+		)
+	}
+
+	if ids.IsSyslogEveEnabled() {
+		md.Note(
+			"EVE JSON logging is enabled via syslog, which supports SIEM integration for centralized threat monitoring.",
+		)
+	}
+}
+
+// BuildIDSSection builds the IDS/Suricata configuration section.
+func (b *MarkdownBuilder) BuildIDSSection(data *model.OpnSenseDocument) string {
+	var buf bytes.Buffer
+	md := markdown.NewMarkdown(&buf)
+	b.writeIDSSection(md, data)
+	return md.String()
+}
+
+// formatIDSBoolStatus returns "Enabled" or "Disabled" for a boolean value.
+func formatIDSBoolStatus(enabled bool) string {
+	if enabled {
+		return "Enabled"
+	}
+	return "Disabled"
 }
 
 // writeServicesSection writes the service configuration section to the markdown instance.
@@ -826,6 +950,7 @@ func (b *MarkdownBuilder) BuildComprehensiveReport(data *model.OpnSenseDocument)
 			markdown.Link("Static Routes", "#static-routes"),
 			markdown.Link("Firewall Rules", "#firewall-rules"),
 			markdown.Link("NAT Configuration", "#nat-configuration"),
+			markdown.Link("Intrusion Detection System", "#intrusion-detection-system-idssuricata"),
 			markdown.Link("IPsec VPN", "#ipsec-vpn-configuration"),
 			markdown.Link("OpenVPN", "#openvpn-configuration"),
 			markdown.Link("High Availability", "#high-availability--carp"),
