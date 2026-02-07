@@ -90,6 +90,13 @@ type Statistics struct {
 	LoadBalancerMonitors int      `json:"loadBalancerMonitors"`
 	SecurityFeatures     []string `json:"securityFeatures"`
 
+	// IDS/IPS statistics
+	IDSEnabled             bool     `json:"idsEnabled"`
+	IDSMode                string   `json:"idsMode"`
+	IDSMonitoredInterfaces []string `json:"idsMonitoredInterfaces,omitempty"`
+	IDSDetectionProfile    string   `json:"idsDetectionProfile,omitempty"`
+	IDSLoggingEnabled      bool     `json:"idsLoggingEnabled"`
+
 	// Summary counts for quick reference
 	Summary StatisticsSummary `json:"summary"`
 }
@@ -419,6 +426,27 @@ func (r *Report) addStatistics(md *markdown.Markdown) {
 			fmt.Sprintf("%s: %d", markdown.Bold("Monitors"), r.Statistics.LoadBalancerMonitors),
 		}
 		md.BulletList(lbItems...)
+		md.LF()
+	}
+
+	if r.Statistics.IDSEnabled {
+		md.H3("IDS/IPS Configuration")
+		idsItems := []string{
+			markdown.Bold("Status") + ": Enabled",
+			fmt.Sprintf("%s: %s", markdown.Bold("Mode"), r.Statistics.IDSMode),
+		}
+		if len(r.Statistics.IDSMonitoredInterfaces) > 0 {
+			idsItems = append(idsItems, fmt.Sprintf("%s: %s",
+				markdown.Bold("Monitored Interfaces"),
+				strings.Join(r.Statistics.IDSMonitoredInterfaces, ", ")))
+		}
+		if r.Statistics.IDSDetectionProfile != "" {
+			idsItems = append(idsItems, fmt.Sprintf("%s: %s",
+				markdown.Bold("Detection Profile"), r.Statistics.IDSDetectionProfile))
+		}
+		idsItems = append(idsItems, fmt.Sprintf("%s: %t",
+			markdown.Bold("Logging Enabled"), r.Statistics.IDSLoggingEnabled))
+		md.BulletList(idsItems...)
 		md.LF()
 	}
 }
@@ -818,6 +846,24 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 		stats.SecurityFeatures = append(stats.SecurityFeatures, "NAT Reflection Disabled")
 	}
 
+	// IDS/IPS statistics
+	// Note: IDS/IPS entries are NOT added to SecurityFeatures to avoid
+	// double-counting in calculateSecurityScore, which applies explicit
+	// +15 (IDS) and +10 (IPS) bonuses separately.
+	ids := cfg.OPNsense.IntrusionDetectionSystem
+	if ids != nil && ids.IsEnabled() {
+		stats.IDSEnabled = true
+		stats.IDSMonitoredInterfaces = ids.GetMonitoredInterfaces()
+		stats.IDSDetectionProfile = ids.General.Detect.Profile
+		stats.IDSLoggingEnabled = ids.IsSyslogEnabled() || ids.IsSyslogEveEnabled()
+
+		if ids.IsIPSMode() {
+			stats.IDSMode = "IPS (Prevention)"
+		} else {
+			stats.IDSMode = "IDS (Detection Only)"
+		}
+	}
+
 	// Calculate summary statistics
 	securityScore := calculateSecurityScore(cfg, stats)
 	configComplexity := calculateConfigComplexity(stats)
@@ -863,6 +909,14 @@ func calculateSecurityScore(cfg *model.OpnSenseDocument, stats *Statistics) int 
 	// SSH configuration
 	if cfg.System.SSH.Group != "" {
 		score += 10
+	}
+
+	// IDS/IPS configuration
+	if cfg.OPNsense.IntrusionDetectionSystem != nil && cfg.OPNsense.IntrusionDetectionSystem.IsEnabled() {
+		score += 15
+		if cfg.OPNsense.IntrusionDetectionSystem.IsIPSMode() {
+			score += 10
+		}
 	}
 
 	// Cap at MaxSecurityScore

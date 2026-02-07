@@ -2056,3 +2056,116 @@ func TestMarkdownBuilder_NATRulesEmptyInterfaceList(t *testing.T) {
 	assert.Empty(t, row[2]) // Interface column should be empty
 	assert.Equal(t, "NAT without interface", row[7])
 }
+
+func TestMarkdownBuilder_BuildIDSSection_Enabled(t *testing.T) {
+	builder := NewMarkdownBuilder()
+
+	ids := model.NewIDS()
+	ids.General.Enabled = "1"
+	ids.General.Ips = "1"
+	ids.General.Interfaces = "wan,lan"
+	ids.General.Homenet = "192.168.1.0/24,10.0.0.0/8"
+	ids.General.Detect.Profile = "medium"
+	ids.General.MPMAlgo = "ac"
+	ids.General.Promisc = "0"
+	ids.General.Syslog = "1"
+	ids.General.SyslogEve = "1"
+	ids.General.LogPayload = "1"
+	ids.General.AlertLogrotate = "W0D23"
+	ids.General.AlertSaveLogs = "4"
+	ids.General.DefaultPacketSize = "1518"
+
+	data := &model.OpnSenseDocument{
+		OPNsense: model.OPNsense{
+			IntrusionDetectionSystem: ids,
+		},
+	}
+
+	result := builder.BuildIDSSection(data)
+
+	assert.Contains(t, result, "Intrusion Detection System (IDS/Suricata)")
+	assert.Contains(t, result, "Enabled")
+	assert.Contains(t, result, "IPS (Prevention)")
+	assert.Contains(t, result, "medium")
+	assert.Contains(t, result, "ac")
+	assert.Contains(t, result, "wan")
+	assert.Contains(t, result, "lan")
+	assert.Contains(t, result, "192.168.1.0/24")
+	assert.Contains(t, result, "10.0.0.0/8")
+	assert.Contains(t, result, "Syslog")
+	assert.Contains(t, result, "EVE Syslog")
+	assert.Contains(t, result, "Log Rotation")
+	assert.Contains(t, result, "Log Retention")
+	assert.Contains(t, result, "1518")
+	// IPS mode note
+	assert.Contains(t, result, "IPS mode is active")
+	// EVE syslog note
+	assert.Contains(t, result, "EVE JSON logging is enabled")
+}
+
+func TestMarkdownBuilder_BuildIDSSection_IDSMode(t *testing.T) {
+	builder := NewMarkdownBuilder()
+
+	ids := model.NewIDS()
+	ids.General.Enabled = "1"
+	ids.General.Ips = "0"
+	ids.General.Interfaces = "opt1"
+
+	data := &model.OpnSenseDocument{
+		OPNsense: model.OPNsense{
+			IntrusionDetectionSystem: ids,
+		},
+	}
+
+	result := builder.BuildIDSSection(data)
+
+	assert.Contains(t, result, "IDS (Detection Only)")
+	assert.Contains(t, result, "Consider enabling IPS mode")
+}
+
+func TestMarkdownBuilder_BuildIDSSection_Disabled(t *testing.T) {
+	builder := NewMarkdownBuilder()
+
+	ids := model.NewIDS()
+	ids.General.Enabled = "0"
+
+	data := &model.OpnSenseDocument{
+		OPNsense: model.OPNsense{
+			IntrusionDetectionSystem: ids,
+		},
+	}
+
+	result := builder.BuildIDSSection(data)
+
+	assert.Empty(t, result)
+}
+
+func TestMarkdownBuilder_BuildIDSSection_NilIDS(t *testing.T) {
+	builder := NewMarkdownBuilder()
+
+	data := &model.OpnSenseDocument{}
+
+	result := builder.BuildIDSSection(data)
+
+	assert.Empty(t, result)
+}
+
+func TestMarkdownBuilder_BuildSecuritySection_IncludesIDS(t *testing.T) {
+	builder := NewMarkdownBuilder()
+
+	ids := model.NewIDS()
+	ids.General.Enabled = "1"
+	ids.General.Ips = "1"
+	ids.General.Interfaces = "opt2"
+
+	data := &model.OpnSenseDocument{
+		OPNsense: model.OPNsense{
+			IntrusionDetectionSystem: ids,
+		},
+	}
+
+	result := builder.BuildSecuritySection(data)
+
+	assert.Contains(t, result, "Security Configuration")
+	assert.Contains(t, result, "Intrusion Detection System (IDS/Suricata)")
+}
