@@ -104,5 +104,3 @@ go.sum -diff merge=union
 # Export ignore (excluded from archives)
 .github/ export-ignore
 .claude/ export-ignore
-testdata/ export-ignore
-tools/ export-ignore

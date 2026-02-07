@@ -2,10 +2,7 @@
   "name": "opnDossier",
   "image": "mcr.microsoft.com/devcontainers/go:1-1.25-bookworm",
   "remoteUser": "vscode",
-  "containerEnv": {
-    "CGO_ENABLED": "0"
-  },
-  "postCreateCommand": "mise install && just install",
+  "postCreateCommand": "just install",
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
       "installZsh": true,
