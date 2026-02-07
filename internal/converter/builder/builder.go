@@ -366,7 +366,10 @@ func (b *MarkdownBuilder) writeIDSSection(md *markdown.Markdown, data *model.Opn
 		configRows = append(configRows, []string{"**Pattern Matching Algorithm**", ids.General.MPMAlgo})
 	}
 
-	configRows = append(configRows, []string{"**Promiscuous Mode**", formatIDSBoolStatus(ids.IsPromiscuousMode())})
+	configRows = append(
+		configRows,
+		[]string{"**Promiscuous Mode**", formatters.FormatBoolStatus(ids.IsPromiscuousMode())},
+	)
 
 	if ids.General.DefaultPacketSize != "" {
 		configRows = append(configRows, []string{"**Default Packet Size**", ids.General.DefaultPacketSize})
@@ -402,8 +405,8 @@ func (b *MarkdownBuilder) writeIDSSection(md *markdown.Markdown, data *model.Opn
 
 	// Logging configuration
 	logRows := [][]string{
-		{"**Syslog**", formatIDSBoolStatus(ids.IsSyslogEnabled())},
-		{"**EVE Syslog**", formatIDSBoolStatus(ids.IsSyslogEveEnabled())},
+		{"**Syslog**", formatters.FormatBoolStatus(ids.IsSyslogEnabled())},
+		{"**EVE Syslog**", formatters.FormatBoolStatus(ids.IsSyslogEveEnabled())},
 	}
 
 	if ids.General.LogPayload != "" {
@@ -452,14 +455,6 @@ func (b *MarkdownBuilder) BuildIDSSection(data *model.OpnSenseDocument) string {
 	md := markdown.NewMarkdown(&buf)
 	b.writeIDSSection(md, data)
 	return md.String()
-}
-
-// formatIDSBoolStatus returns "Enabled" or "Disabled" for a boolean value.
-func formatIDSBoolStatus(enabled bool) string {
-	if enabled {
-		return "Enabled"
-	}
-	return "Disabled"
 }
 
 // writeServicesSection writes the service configuration section to the markdown instance.

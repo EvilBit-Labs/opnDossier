@@ -361,26 +361,27 @@ func (ids *IDS) IsIPSMode() bool {
 
 // GetMonitoredInterfaces parses the comma-separated interfaces string and returns a slice.
 func (ids *IDS) GetMonitoredInterfaces() []string {
-	if ids == nil || ids.General.Interfaces == "" {
+	if ids == nil {
 		return nil
 	}
-	parts := strings.Split(ids.General.Interfaces, ",")
-	result := make([]string, 0, len(parts))
-	for _, part := range parts {
-		trimmed := strings.TrimSpace(part)
-		if trimmed != "" {
-			result = append(result, trimmed)
-		}
-	}
-	return result
+	return parseCommaSeparatedList(ids.General.Interfaces)
 }
 
 // GetHomeNetworks parses the comma-separated home networks string and returns a slice.
 func (ids *IDS) GetHomeNetworks() []string {
-	if ids == nil || ids.General.Homenet == "" {
+	if ids == nil {
 		return nil
 	}
-	parts := strings.Split(ids.General.Homenet, ",")
+	return parseCommaSeparatedList(ids.General.Homenet)
+}
+
+// parseCommaSeparatedList splits a comma-separated string into a slice,
+// trimming whitespace from each element and filtering out empty strings.
+func parseCommaSeparatedList(s string) []string {
+	if s == "" {
+		return nil
+	}
+	parts := strings.Split(s, ",")
 	result := make([]string, 0, len(parts))
 	for _, part := range parts {
 		trimmed := strings.TrimSpace(part)

@@ -354,9 +354,9 @@ func (c *MarkdownConverter) buildIDSSection(md *markdown.Markdown, opnsense *mod
 		md.PlainTextf("%s: %s", markdown.Bold("Home Networks"), strings.Join(homeNets, ", "))
 	}
 
-	md.PlainTextf("%s: %s", markdown.Bold("Promiscuous Mode"), formatBoolStatus(ids.IsPromiscuousMode()))
-	md.PlainTextf("%s: %s", markdown.Bold("Syslog Output"), formatBoolStatus(ids.IsSyslogEnabled()))
-	md.PlainTextf("%s: %s", markdown.Bold("EVE Syslog Output"), formatBoolStatus(ids.IsSyslogEveEnabled()))
+	md.PlainTextf("%s: %s", markdown.Bold("Promiscuous Mode"), formatters.FormatBoolStatus(ids.IsPromiscuousMode()))
+	md.PlainTextf("%s: %s", markdown.Bold("Syslog Output"), formatters.FormatBoolStatus(ids.IsSyslogEnabled()))
+	md.PlainTextf("%s: %s", markdown.Bold("EVE Syslog Output"), formatters.FormatBoolStatus(ids.IsSyslogEveEnabled()))
 
 	if ids.General.LogPayload != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("Log Payload"), ids.General.LogPayload)
@@ -369,14 +369,6 @@ func (c *MarkdownConverter) buildIDSSection(md *markdown.Markdown, opnsense *mod
 	if ids.General.AlertSaveLogs != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("Log Retention"), ids.General.AlertSaveLogs)
 	}
-}
-
-// formatBoolStatus returns "Enabled" or "Disabled" for a boolean value.
-func formatBoolStatus(enabled bool) string {
-	if enabled {
-		return "Enabled"
-	}
-	return "Disabled"
 }
 
 // buildServiceSection builds the service configuration section using helper methods.
