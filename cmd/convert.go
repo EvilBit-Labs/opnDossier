@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -249,10 +250,24 @@ Examples:
 		timeoutCtx, cancel := context.WithTimeout(ctx, constants.DefaultProcessingTimeout)
 		defer cancel()
 
+		// Use a semaphore to limit concurrent file operations
+		// This prevents resource exhaustion when processing many files
+		maxConcurrent := max(runtime.NumCPU(), 1)
+		sem := make(chan struct{}, maxConcurrent)
+
 		for _, filePath := range args {
 			wg.Add(1)
 			go func(fp string) {
 				defer wg.Done()
+
+				// Acquire semaphore slot with context awareness
+				select {
+				case sem <- struct{}{}:
+					defer func() { <-sem }()
+				case <-timeoutCtx.Done():
+					errs <- timeoutCtx.Err()
+					return
+				}
 
 				// Create context-aware logger for this goroutine with input file field
 				ctxLogger := cmdLogger.WithContext(timeoutCtx).WithFields("input_file", fp)

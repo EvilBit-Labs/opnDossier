@@ -3,7 +3,7 @@
 - **Hostname**: minimal-host
 - **Domain**: minimal.local
 - **Platform**: OPNsense 23.1.1
-- **Generated On**: 2026-02-01T22:32:32-05:00
+- **Generated On**: 2026-02-06T00:25:28-05:00
 - **Parsed By**: opnDossier v1.0.0
 ## Table of Contents
 - [System Configuration](#system-configuration)
@@ -12,6 +12,7 @@
 - [Static Routes](#static-routes)
 - [Firewall Rules](#firewall-rules)
 - [NAT Configuration](#nat-configuration)
+- [Intrusion Detection System](#intrusion-detection-system-idssuricata)
 - [IPsec VPN](#ipsec-vpn-configuration)
 - [OpenVPN](#openvpn-configuration)
 - [High Availability](#high-availability--carp)

@@ -85,6 +85,14 @@ func FormatBool(value bool) string {
 	return xMark
 }
 
+// FormatBoolStatus formats a boolean value as "Enabled" or "Disabled".
+func FormatBoolStatus(value bool) string {
+	if value {
+		return "Enabled"
+	}
+	return "Disabled"
+}
+
 // GetPowerModeDescription converts power management mode acronyms to their full descriptions for templates.
 func GetPowerModeDescription(mode string) string {
 	switch mode {
