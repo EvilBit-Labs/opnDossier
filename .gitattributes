@@ -27,6 +27,7 @@ LICENSE text
 *.ini text
 *.cfg text
 *.conf text
+*.xml text
 
 # Web files
 *.html text diff=html
@@ -40,6 +41,9 @@ LICENSE text
 
 # SQL files
 *.sql text
+
+# Shell scripts
+*.sh text eol=lf diff=bash
 
 # Binary files
 *.db binary
@@ -58,6 +62,9 @@ LICENSE text
 *.gif binary
 *.ico binary
 *.svg text
+*.webp binary
+*.avif binary
+*.bmp binary
 
 # Font files
 *.ttf binary
@@ -81,5 +88,21 @@ LICENSE text
 
 # Go files
 *.go text eol=lf diff=go
+go.sum -diff merge=union
 
-.env text=utf-8 eol=lf
+# Test fixtures
+*.golden text
+*.golden.md text
+
+# Web assembly and source maps
+*.wasm binary
+*.map text
+
+# Environment files
+.env text eol=lf
+
+# Export ignore (excluded from archives)
+.github/ export-ignore
+.claude/ export-ignore
+testdata/ export-ignore
+tools/ export-ignore
