@@ -319,6 +319,56 @@ func (c *MarkdownConverter) buildSecuritySection(md *markdown.Markdown, opnsense
 		}
 		md.Table(tableSet)
 	}
+
+	// IDS/Suricata Configuration
+	c.buildIDSSection(md, opnsense)
+}
+
+// buildIDSSection builds the IDS/Suricata configuration section.
+func (c *MarkdownConverter) buildIDSSection(md *markdown.Markdown, opnsense *model.OpnSenseDocument) {
+	ids := opnsense.OPNsense.IntrusionDetectionSystem
+	if ids == nil || !ids.IsEnabled() {
+		return
+	}
+
+	md.H3("Intrusion Detection System (IDS/Suricata)")
+
+	md.PlainTextf("%s: %s", markdown.Bold("Status"), "Enabled")
+	md.PlainTextf("%s: %s", markdown.Bold("Mode"), ids.GetDetectionMode())
+
+	if ids.General.Detect.Profile != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("Detection Profile"), ids.General.Detect.Profile)
+	}
+
+	if ids.General.MPMAlgo != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("Pattern Matching Algorithm"), ids.General.MPMAlgo)
+	}
+
+	interfaces := ids.GetMonitoredInterfaces()
+	if len(interfaces) > 0 {
+		md.PlainTextf("%s: %s", markdown.Bold("Monitored Interfaces"), strings.Join(interfaces, ", "))
+	}
+
+	homeNets := ids.GetHomeNetworks()
+	if len(homeNets) > 0 {
+		md.PlainTextf("%s: %s", markdown.Bold("Home Networks"), strings.Join(homeNets, ", "))
+	}
+
+	md.PlainTextf("%s: %s", markdown.Bold("Promiscuous Mode"), formatters.FormatBoolStatus(ids.IsPromiscuousMode()))
+	md.PlainTextf("%s: %s", markdown.Bold("Syslog Output"), formatters.FormatBoolStatus(ids.IsSyslogEnabled()))
+	md.PlainTextf("%s: %s", markdown.Bold("EVE Syslog Output"), formatters.FormatBoolStatus(ids.IsSyslogEveEnabled()))
+
+	if ids.General.LogPayload != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("Log Payload"), ids.General.LogPayload)
+	}
+
+	if ids.General.AlertLogrotate != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("Log Rotation"), ids.General.AlertLogrotate)
+	}
+
+	if ids.General.AlertSaveLogs != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("Log Retention"), ids.General.AlertSaveLogs)
+	}
 }
 
 // buildServiceSection builds the service configuration section using helper methods.

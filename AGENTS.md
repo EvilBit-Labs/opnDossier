@@ -197,6 +197,7 @@ When using `sync.RWMutex` to protect struct fields:
 
 - ALL read methods need `RLock()`, not just write methods
 - Go's `sync.RWMutex` is NOT reentrant - create internal `*Unsafe()` helpers
+- Getter methods should return value copies, not pointers to internal state
 - Example pattern from `internal/processor/report.go`:
 
 ```go
@@ -428,6 +429,109 @@ When code becomes unused during refactoring:
 - Unused code adds maintenance burden and confuses future readers
 - If the code might be needed later, rely on version control history
 - This includes helper functions, test utilities, and constants
+
+### 5.17 File Write Safety
+
+When writing to output files:
+
+- Call `file.Sync()` before `Close()` to ensure data is flushed to disk
+- Handle close errors for write operations (data could be lost)
+- Pattern:
+
+```go
+defer func() {
+    if cerr := outputFile.Close(); cerr != nil {
+        logger.Warn("failed to close output file", "error", cerr)
+    }
+}()
+// ... write operations ...
+if err := outputFile.Sync(); err != nil {
+    return fmt.Errorf("failed to sync output file: %w", err)
+}
+```
+
+### 5.18 Comparison Function Patterns
+
+When writing functions that compare two structs:
+
+- Always handle nil inputs at the start of comparison functions
+- Use `slices.Equal()` for comparing slice fields (not manual iteration)
+- Pattern for nil-safe comparisons:
+
+```go
+func CompareItems(old, new *Item) []Change {
+    if old == nil && new == nil {
+        return nil
+    }
+    if old == nil {
+        return []Change{{Type: ChangeAdded, Description: "Item added"}}
+    }
+    if new == nil {
+        return []Change{{Type: ChangeRemoved, Description: "Item removed"}}
+    }
+    // Compare fields...
+}
+```
+
+- For map-like types with `Get()` methods, check return signature: many return `(value, bool)` not `(value, error)`
+
+### 5.19 Stats Tracking Pattern
+
+When a helper function updates stats and may be called multiple times for fallback logic:
+
+```go
+// Bad - stats incremented twice if first call skips
+result := s.process(pathA, value)  // increments stats
+if result == value {
+    result = s.process(pathB, value)  // increments stats again
+}
+
+// Good - check first, update stats once
+should, rule := s.shouldProcess(pathA, value)
+if !should {
+    should, rule = s.shouldProcess(pathB, value)
+}
+if should {
+    stats.Processed++
+    result = s.doProcess(value, rule)
+} else {
+    stats.Skipped++
+}
+```
+
+### 5.20 XML Escaping
+
+Use `xml.EscapeText` from stdlib instead of hand-rolled escaping:
+
+```go
+func escapeXMLText(s string) string {
+    var buf bytes.Buffer
+    if err := xml.EscapeText(&buf, []byte(s)); err != nil {
+        return s
+    }
+    return buf.String()
+}
+```
+
+Note: stdlib uses numeric refs (`&#34;`) not named entities (`&quot;`) - both are valid XML.
+
+### 5.21 Context-Aware Semaphore
+
+When acquiring semaphores in goroutines, use select with context:
+
+```go
+// Bad - blocks indefinitely on context cancel
+sem <- struct{}{}
+defer func() { <-sem }()
+
+// Good - respects context cancellation
+select {
+case sem <- struct{}{}:
+    defer func() { <-sem }()
+case <-ctx.Done():
+    return ctx.Err()
+}
+```
 
 ---
 

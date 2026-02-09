@@ -522,3 +522,84 @@ func TestMarkdownConverter_FirewallRulesWithInterfaceLinks(t *testing.T) {
 	assert.Contains(t, md, "### LAN Interface")
 	assert.Contains(t, md, "### Opt1 Interface")
 }
+
+// TestMarkdownConverter_IDSSection tests the IDS section in MarkdownConverter output.
+func TestMarkdownConverter_IDSSection(t *testing.T) {
+	// Set terminal to dumb for consistent test output
+	t.Setenv("TERM", "dumb")
+
+	t.Run("IDS enabled shows in output", func(t *testing.T) {
+		ids := model.NewIDS()
+		ids.General.Enabled = "1"
+		ids.General.Ips = "1"
+		ids.General.Interfaces = "wan,lan"
+		ids.General.Homenet = "192.168.1.0/24,10.0.0.0/8"
+		ids.General.Detect.Profile = "medium"
+		ids.General.Syslog = "1"
+		ids.General.SyslogEve = "1"
+
+		input := &model.OpnSenseDocument{
+			System: model.System{
+				Hostname: "ids-test",
+				Domain:   "test.local",
+			},
+			OPNsense: model.OPNsense{
+				IntrusionDetectionSystem: ids,
+			},
+		}
+
+		c := NewMarkdownConverter()
+		md, err := c.ToMarkdown(context.Background(), input)
+		require.NoError(t, err)
+
+		// Verify IDS section appears
+		assert.Contains(t, md, "Intrusion Detection System")
+		assert.Contains(t, md, "IPS (Prevention)")
+		assert.Contains(t, md, "wan")
+		assert.Contains(t, md, "lan")
+		assert.Contains(t, md, "192.168.1.0/24")
+		assert.Contains(t, md, "10.0.0.0/8")
+		assert.Contains(t, md, "medium")
+		assert.Contains(t, md, "Syslog Output")
+		// EVE Syslog may wrap across lines in terminal output
+		assert.Contains(t, md, "EVE")
+	})
+
+	t.Run("IDS disabled not shown", func(t *testing.T) {
+		ids := model.NewIDS()
+		ids.General.Enabled = "0"
+
+		input := &model.OpnSenseDocument{
+			System: model.System{
+				Hostname: "ids-disabled-test",
+				Domain:   "test.local",
+			},
+			OPNsense: model.OPNsense{
+				IntrusionDetectionSystem: ids,
+			},
+		}
+
+		c := NewMarkdownConverter()
+		md, err := c.ToMarkdown(context.Background(), input)
+		require.NoError(t, err)
+
+		// Verify IDS section does NOT appear when disabled
+		assert.NotContains(t, md, "Intrusion Detection System")
+	})
+
+	t.Run("nil IDS not shown", func(t *testing.T) {
+		input := &model.OpnSenseDocument{
+			System: model.System{
+				Hostname: "no-ids-test",
+				Domain:   "test.local",
+			},
+		}
+
+		c := NewMarkdownConverter()
+		md, err := c.ToMarkdown(context.Background(), input)
+		require.NoError(t, err)
+
+		// Verify IDS section does NOT appear when nil
+		assert.NotContains(t, md, "Intrusion Detection System")
+	})
+}

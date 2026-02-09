@@ -23,7 +23,7 @@ var (
 	// ErrFailedToParseXML is returned when XML cannot be parsed
 	ErrFailedToParseXML = errors.New("failed to parse XML")
 	// ErrIncompleteModel is returned when XML contains fields not represented in the model
-	ErrIncompleteModel = errors.New("XML contains fields not represented in model")
+	ErrIncompleteModel = errors.New("xml contains fields not represented in model")
 	// ErrInvalidFilePath is returned when the filepath is invalid or contains path traversal
 	ErrInvalidFilePath = errors.New("invalid filepath")
 	// ErrUnsupportedCharset is returned when an unsupported charset is encountered
