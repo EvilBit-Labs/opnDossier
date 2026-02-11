@@ -3,70 +3,87 @@ package constants
 
 import "time"
 
-// Version information.
+// Version is the current application version.
 var Version = "1.0.0"
 
 // Application constants.
 const (
-	// Application metadata.
+	// AppName is the application name used in CLI output and configuration.
 	AppName = "opnDossier"
 
-	// Default configuration values.
-	DefaultFormat  = "markdown"
-	DefaultMode    = "standard"
+	// DefaultFormat is the default output format for configuration reports.
+	DefaultFormat = "markdown"
+	// DefaultMode is the default audit report mode.
+	DefaultMode = "standard"
+	// ConfigFileName is the default configuration file name.
 	ConfigFileName = "opndossier.yaml"
 
-	// Network constants.
+	// NetworkAny represents the "any" network in firewall rules.
 	NetworkAny = "any"
 
-	// Protocol constants.
+	// ProtocolHTTPS represents the HTTPS protocol identifier.
 	ProtocolHTTPS = "https"
 
-	// Rule type constants.
+	// RuleTypePass represents a firewall pass rule.
 	RuleTypePass = "pass"
 
-	// Finding types.
+	// FindingTypeSecurity identifies security-related audit findings.
 	FindingTypeSecurity = "security"
 
-	// Theme constants.
+	// ThemeLight specifies the light color theme for terminal output.
 	ThemeLight = "light"
-	ThemeDark  = "dark"
+	// ThemeDark specifies the dark color theme for terminal output.
+	ThemeDark = "dark"
 
-	// Status display constants.
+	// StatusNotEnabled is the display string for disabled features.
 	StatusNotEnabled = "❌"
-	StatusEnabled    = "✅"
+	// StatusEnabled is the display string for enabled features.
+	StatusEnabled = "✅"
 
-	// Configuration availability.
+	// NoConfigAvailable is the placeholder text when configuration data is missing.
 	NoConfigAvailable = "*No configuration available*"
 
-	// Progress rendering constants.
+	// ProgressRenderingMarkdown is the progress percentage assigned to markdown rendering.
 	ProgressRenderingMarkdown = 0.5
 
-	// Configuration detection threshold.
+	// ConfigThreshold is the detection threshold for configuration presence.
 	ConfigThreshold = 0.3
 
-	// Timeout constants.
+	// DefaultProcessingTimeout is the maximum time allowed for standard processing operations.
 	DefaultProcessingTimeout = 5 * time.Minute
-	QuickProcessingTimeout   = 10 * time.Second
+	// QuickProcessingTimeout is the maximum time allowed for lightweight processing operations.
+	QuickProcessingTimeout = 10 * time.Second
 
-	// Scoring constants.
+	// SecurityFeatureMultiplier is the scoring weight applied per security feature.
 	SecurityFeatureMultiplier = 10
-	MaxSecurityScore          = 100
-	MaxComplexityScore        = 100
+	// MaxSecurityScore is the maximum achievable security score.
+	MaxSecurityScore = 100
+	// MaxComplexityScore is the maximum achievable complexity score.
+	MaxComplexityScore = 100
 
-	// Complexity scoring weights.
-	InterfaceComplexityWeight    = 5
+	// InterfaceComplexityWeight is the complexity scoring weight per network interface.
+	InterfaceComplexityWeight = 5
+	// FirewallRuleComplexityWeight is the complexity scoring weight per firewall rule.
 	FirewallRuleComplexityWeight = 2
-	UserComplexityWeight         = 3
-	GroupComplexityWeight        = 3
-	SysctlComplexityWeight       = 4
-	ServiceComplexityWeight      = 6
-	DHCPComplexityWeight         = 4
+	// UserComplexityWeight is the complexity scoring weight per user account.
+	UserComplexityWeight = 3
+	// GroupComplexityWeight is the complexity scoring weight per user group.
+	GroupComplexityWeight = 3
+	// SysctlComplexityWeight is the complexity scoring weight per sysctl tunable.
+	SysctlComplexityWeight = 4
+	// ServiceComplexityWeight is the complexity scoring weight per enabled service.
+	ServiceComplexityWeight = 6
+	// DHCPComplexityWeight is the complexity scoring weight per DHCP scope.
+	DHCPComplexityWeight = 4
+	// LoadBalancerComplexityWeight is the complexity scoring weight per load balancer monitor.
 	LoadBalancerComplexityWeight = 8
-	GatewayComplexityWeight      = 3
+	// GatewayComplexityWeight is the complexity scoring weight per gateway.
+	GatewayComplexityWeight = 3
+	// GatewayGroupComplexityWeight is the complexity scoring weight per gateway group.
 	GatewayGroupComplexityWeight = 5
 
-	// Thresholds.
+	// LargeRuleCountThreshold is the firewall rule count above which a configuration is considered large.
 	LargeRuleCountThreshold = 100
+	// MaxReasonableComplexity is the upper bound for meaningful complexity scores.
 	MaxReasonableComplexity = 1000
 )

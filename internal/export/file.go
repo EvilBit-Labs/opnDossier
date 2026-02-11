@@ -62,8 +62,11 @@ func normalizeLineEndings(logger *log.Logger, content string) string {
 
 // Define static errors for better error handling.
 var (
+	// ErrPathNotRegularFile is returned when the target path exists but is not a regular file.
 	ErrPathNotRegularFile = errors.New("path exists but is not a regular file")
-	ErrEmptyContent       = errors.New("cannot export empty content")
+	// ErrEmptyContent is returned when attempting to export empty content.
+	ErrEmptyContent = errors.New("cannot export empty content")
+	// ErrOperationCancelled is returned when an export operation is cancelled by context.
 	ErrOperationCancelled = errors.New("operation cancelled by context")
 )
 

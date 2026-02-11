@@ -27,9 +27,12 @@ var (
 
 // Diff format constants.
 const (
+	// DiffFormatTerminal specifies styled terminal output for diffs.
 	DiffFormatTerminal = "terminal"
+	// DiffFormatMarkdown specifies Markdown output for diffs.
 	DiffFormatMarkdown = "markdown"
-	DiffFormatJSON     = "json"
+	// DiffFormatJSON specifies JSON output for diffs.
+	DiffFormatJSON = "json"
 )
 
 // diffRequiredArgs is the number of required arguments for the diff command.

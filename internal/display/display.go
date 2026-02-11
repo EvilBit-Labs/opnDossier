@@ -19,12 +19,18 @@ import (
 
 // Theme and terminal color constants used throughout the display package.
 const (
-	None      = "none"
-	Custom    = "custom"
-	Auto      = "auto"
-	Notty     = "notty"
+	// None disables all terminal styling.
+	None = "none"
+	// Custom indicates a custom color profile is in use.
+	Custom = "custom"
+	// Auto enables automatic color profile detection.
+	Auto = "auto"
+	// Notty indicates no TTY is available (non-interactive mode).
+	Notty = "notty"
+	// Truecolor indicates a terminal supporting 24-bit true color.
 	Truecolor = "truecolor"
-	Bit24     = "24bit"
+	// Bit24 is an alias for 24-bit color support.
+	Bit24 = "24bit"
 )
 
 // ErrRawMarkdown is a sentinel error indicating that raw markdown should be displayed.
