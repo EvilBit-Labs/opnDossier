@@ -21,6 +21,7 @@ type ValidationError struct {
 	Message string
 }
 
+// Error returns a formatted string describing the validation error, including the field name and message.
 func (e ValidationError) Error() string {
 	return fmt.Sprintf("validation error for field '%s': %s", e.Field, e.Message)
 }

@@ -19,6 +19,7 @@ type UnsupportedFormatError struct {
 	Format string
 }
 
+// Error returns a string describing the unsupported format.
 func (e *UnsupportedFormatError) Error() string {
 	return "unsupported format: " + e.Format
 }
@@ -29,6 +30,7 @@ type TestError struct {
 	Message     string
 }
 
+// Error returns a formatted string including the goroutine ID and error message.
 func (e *TestError) Error() string {
 	return fmt.Sprintf("goroutine %d: %s", e.GoroutineID, e.Message)
 }
@@ -45,6 +47,7 @@ type TestHostnameError struct {
 	ActualHostname   string
 }
 
+// Error returns a formatted string describing the hostname mismatch, including expected and actual values.
 func (e *TestHostnameError) Error() string {
 	return fmt.Sprintf(
 		"goroutine %d: expected hostname %s, got %s",

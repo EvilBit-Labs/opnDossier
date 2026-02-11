@@ -3,26 +3,28 @@ package processor
 // Re-export constants from the constants package for backward compatibility.
 // This allows existing code to continue working while avoiding import cycles.
 const (
-	// Network constants.
+	// NetworkAny represents the "any" network in firewall rules.
 	NetworkAny = "any"
 
-	// Protocol constants.
+	// ProtocolHTTPS represents the HTTPS protocol identifier.
 	ProtocolHTTPS = "https"
 
-	// Rule type constants.
+	// RuleTypePass represents a firewall pass rule.
 	RuleTypePass = "pass"
 
-	// Finding types.
+	// FindingTypeSecurity identifies security-related audit findings.
 	FindingTypeSecurity = "security"
 
-	// Theme constants.
+	// ThemeLight specifies the light color theme for terminal output.
 	ThemeLight = "light"
-	ThemeDark  = "dark"
+	// ThemeDark specifies the dark color theme for terminal output.
+	ThemeDark = "dark"
 
-	// Status display constants.
+	// StatusNotEnabled is the display string for disabled features.
 	StatusNotEnabled = "❌"
-	StatusEnabled    = "✅"
+	// StatusEnabled is the display string for enabled features.
+	StatusEnabled = "✅"
 
-	// Configuration availability.
+	// NoConfigAvailable is the placeholder text when configuration data is missing.
 	NoConfigAvailable = "*No configuration available*"
 )
