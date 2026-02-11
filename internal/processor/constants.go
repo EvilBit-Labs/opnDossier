@@ -1,7 +1,7 @@
 package processor
 
-// Re-export constants from the constants package for backward compatibility.
-// This allows existing code to continue working while avoiding import cycles.
+// Compatibility constants mirroring values from the internal/constants package.
+// These are duplicated here to avoid import cycles while preserving existing APIs.
 const (
 	// NetworkAny represents the "any" network in firewall rules.
 	NetworkAny = "any"

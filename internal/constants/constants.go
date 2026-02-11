@@ -3,7 +3,7 @@ package constants
 
 import "time"
 
-// Version information.
+// Version is the current application version.
 var Version = "1.0.0"
 
 // Application constants.
