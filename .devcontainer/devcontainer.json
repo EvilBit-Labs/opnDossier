@@ -1,6 +1,8 @@
 {
-  "name": "Go",
-  "image": "mcr.microsoft.com/devcontainers/go:2-1.25-trixie",
+  "name": "opnDossier",
+  "image": "mcr.microsoft.com/devcontainers/go:1-1.25-bookworm",
+  "remoteUser": "vscode",
+  "postCreateCommand": "just install",
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
       "installZsh": true,
@@ -8,7 +10,6 @@
       "installOhMyZsh": true,
       "installOhMyZshConfig": true,
       "upgradePackages": true,
-      "nonFreePackages": true,
       "installSsl": true,
       "username": "automatic",
       "userUid": "automatic",
@@ -27,6 +28,14 @@
   },
   "customizations": {
     "vscode": {
+      "settings": {
+        "go.lintTool": "golangci-lint",
+        "go.lintOnSave": "workspace",
+        "editor.formatOnSave": true,
+        "[go]": {
+          "editor.defaultFormatter": "golang.go"
+        }
+      },
       "extensions": [
         "ms-vscode-remote.remote-containers",
         "ms-azuretools.vscode-docker",

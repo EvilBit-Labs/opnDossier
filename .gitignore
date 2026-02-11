@@ -193,3 +193,4 @@ coverage
 test-dumb.md
 test-output.md
 .devcontainer/.devpod-internal/
+.claude.local.md
