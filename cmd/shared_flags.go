@@ -101,8 +101,10 @@ func addSharedAuditFlags(cmd *cobra.Command) {
 
 // Constants for flag validation.
 const (
-	MinWrapWidth = 40  // Minimum recommended wrap width
-	MaxWrapWidth = 200 // Maximum recommended wrap width
+	// MinWrapWidth is the minimum recommended wrap width in characters.
+	MinWrapWidth = 40
+	// MaxWrapWidth is the maximum recommended wrap width in characters.
+	MaxWrapWidth = 200
 )
 
 // ValidXMLFiles provides shell completion for XML configuration files.

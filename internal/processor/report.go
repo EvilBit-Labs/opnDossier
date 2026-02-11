@@ -173,10 +173,14 @@ type Severity string
 const (
 	// SeverityCritical represents critical findings that require immediate attention.
 	SeverityCritical Severity = "critical"
-	SeverityHigh     Severity = "high"
-	SeverityMedium   Severity = "medium"
-	SeverityLow      Severity = "low"
-	SeverityInfo     Severity = "info"
+	// SeverityHigh represents high-severity findings that should be addressed soon.
+	SeverityHigh Severity = "high"
+	// SeverityMedium represents medium-severity findings worth investigating.
+	SeverityMedium Severity = "medium"
+	// SeverityLow represents low-severity findings for general improvement.
+	SeverityLow Severity = "low"
+	// SeverityInfo represents informational findings with no immediate action required.
+	SeverityInfo Severity = "info"
 )
 
 // NewReport returns a new Report instance populated with configuration metadata, processor settings, and optionally generated statistics and normalized configuration data.

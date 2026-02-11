@@ -52,11 +52,16 @@ type RuleCategory string
 
 // Rule category constants.
 const (
+	// CategoryCredentials groups rules that redact passwords, keys, and tokens.
 	CategoryCredentials RuleCategory = "credentials"
-	CategoryNetwork     RuleCategory = "network"
-	CategoryIdentity    RuleCategory = "identity"
-	CategoryCrypto      RuleCategory = "crypto"
-	CategorySystem      RuleCategory = "system"
+	// CategoryNetwork groups rules that redact IP addresses and network configurations.
+	CategoryNetwork RuleCategory = "network"
+	// CategoryIdentity groups rules that redact usernames, hostnames, and domain names.
+	CategoryIdentity RuleCategory = "identity"
+	// CategoryCrypto groups rules that redact certificates and cryptographic material.
+	CategoryCrypto RuleCategory = "crypto"
+	// CategorySystem groups rules that redact system-level configuration details.
+	CategorySystem RuleCategory = "system"
 )
 
 // RuleEngine manages and applies redaction rules.

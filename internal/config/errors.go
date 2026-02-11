@@ -22,6 +22,7 @@ type FieldValidationError struct {
 	ValidItems []string // Valid options for enum fields
 }
 
+// Error returns a formatted string describing the validation error, including field name, message, and optional suggestion.
 func (e *FieldValidationError) Error() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("validation error for field '%s': %s", e.Field, e.Message))
@@ -36,6 +37,7 @@ type MultiValidationError struct {
 	Errors []FieldValidationError
 }
 
+// Error returns all validation errors joined as a semicolon-separated string.
 func (e *MultiValidationError) Error() string {
 	if len(e.Errors) == 0 {
 		return "no validation errors"

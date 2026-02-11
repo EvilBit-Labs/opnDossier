@@ -25,13 +25,17 @@ var (
 
 // Sanitize mode constants matching the sanitizer package.
 const (
+	// SanitizeModeAggressive redacts all sensitive data for public sharing.
 	SanitizeModeAggressive = "aggressive"
-	SanitizeModeModerate   = "moderate"
-	SanitizeModeMinimal    = "minimal"
+	// SanitizeModeModerate redacts most data but preserves some network structure.
+	SanitizeModeModerate = "moderate"
+	// SanitizeModeMinimal redacts only the most sensitive data (passwords, keys).
+	SanitizeModeMinimal = "minimal"
 )
 
 // Static errors for sanitize command.
 var (
+	// ErrInvalidSanitizeMode is returned when an invalid sanitization mode is specified.
 	ErrInvalidSanitizeMode = errors.New("invalid sanitize mode")
 )
 

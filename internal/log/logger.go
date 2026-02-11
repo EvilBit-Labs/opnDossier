@@ -14,7 +14,9 @@ import (
 
 // Error definitions for validation.
 var (
-	ErrInvalidLogLevel  = errors.New("invalid log level")
+	// ErrInvalidLogLevel is returned when an unrecognized log level is specified.
+	ErrInvalidLogLevel = errors.New("invalid log level")
+	// ErrInvalidLogFormat is returned when an unrecognized log format is specified.
 	ErrInvalidLogFormat = errors.New("invalid log format")
 )
 
