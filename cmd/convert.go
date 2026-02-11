@@ -37,15 +37,20 @@ var ErrOperationCancelled = errors.New("operation cancelled by user")
 
 // Static errors for better error handling.
 var (
-	ErrFailedToEnrichConfig    = errors.New("failed to enrich configuration")
+	// ErrFailedToEnrichConfig is returned when configuration enrichment fails.
+	ErrFailedToEnrichConfig = errors.New("failed to enrich configuration")
+	// ErrUnsupportedOutputFormat is returned when an unsupported output format is specified.
 	ErrUnsupportedOutputFormat = errors.New("unsupported output format")
 )
 
 // Format constants for output formats.
 const (
+	// FormatMarkdown specifies Markdown as the output format.
 	FormatMarkdown = "markdown"
-	FormatJSON     = "json"
-	FormatYAML     = "yaml"
+	// FormatJSON specifies JSON as the output format.
+	FormatJSON = "json"
+	// FormatYAML specifies YAML as the output format.
+	FormatYAML = "yaml"
 )
 
 // init registers the convert command and its flags with the root command.

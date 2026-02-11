@@ -7,19 +7,32 @@ import (
 
 // Enrichment constants re-exported from enrichment package.
 const (
-	ProtocolHTTPS           = enrichment.ProtocolHTTPS
-	ProtocolHTTP            = enrichment.ProtocolHTTP
-	RuleTypePass            = enrichment.RuleTypePass
-	RuleTypeBlock           = enrichment.RuleTypeBlock
-	NetworkAny              = enrichment.NetworkAny
-	MaxComplexityScore      = enrichment.MaxComplexityScore
-	MaxSecurityScore        = enrichment.MaxSecurityScore
-	MaxComplianceScore      = enrichment.MaxComplianceScore
-	RuleComplexityWeight    = enrichment.RuleComplexityWeight
+	// ProtocolHTTPS represents the HTTPS protocol identifier.
+	ProtocolHTTPS = enrichment.ProtocolHTTPS
+	// ProtocolHTTP represents the HTTP protocol identifier.
+	ProtocolHTTP = enrichment.ProtocolHTTP
+	// RuleTypePass represents a firewall pass rule.
+	RuleTypePass = enrichment.RuleTypePass
+	// RuleTypeBlock represents a firewall block rule.
+	RuleTypeBlock = enrichment.RuleTypeBlock
+	// NetworkAny represents the "any" network in firewall rules.
+	NetworkAny = enrichment.NetworkAny
+	// MaxComplexityScore is the maximum achievable complexity score.
+	MaxComplexityScore = enrichment.MaxComplexityScore
+	// MaxSecurityScore is the maximum achievable security score.
+	MaxSecurityScore = enrichment.MaxSecurityScore
+	// MaxComplianceScore is the maximum achievable compliance score.
+	MaxComplianceScore = enrichment.MaxComplianceScore
+	// RuleComplexityWeight is the complexity scoring weight per firewall rule.
+	RuleComplexityWeight = enrichment.RuleComplexityWeight
+	// ServiceComplexityWeight is the complexity scoring weight per enabled service.
 	ServiceComplexityWeight = enrichment.ServiceComplexityWeight
-	MaxRulesThreshold       = enrichment.MaxRulesThreshold
-	BaseSecurityScore       = enrichment.BaseSecurityScore
-	BaseResourceUsage       = enrichment.BaseResourceUsage
+	// MaxRulesThreshold is the rule count threshold for complexity calculations.
+	MaxRulesThreshold = enrichment.MaxRulesThreshold
+	// BaseSecurityScore is the starting security score before deductions.
+	BaseSecurityScore = enrichment.BaseSecurityScore
+	// BaseResourceUsage is the base resource usage estimate.
+	BaseResourceUsage = enrichment.BaseResourceUsage
 )
 
 // EnrichedOpnSenseDocument extends OpnSenseDocument with calculated fields and analysis data.

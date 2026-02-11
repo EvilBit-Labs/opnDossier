@@ -17,9 +17,13 @@ import (
 
 // Static errors for better error handling.
 var (
-	ErrModeConfigNil    = errors.New("mode config cannot be nil")
-	ErrUnsupportedMode  = errors.New("unsupported report mode")
-	ErrPluginNotFound   = errors.New("plugin not found")
+	// ErrModeConfigNil is returned when the mode configuration is nil.
+	ErrModeConfigNil = errors.New("mode config cannot be nil")
+	// ErrUnsupportedMode is returned when an unsupported report mode is specified.
+	ErrUnsupportedMode = errors.New("unsupported report mode")
+	// ErrPluginNotFound is returned when a requested compliance plugin cannot be found.
+	ErrPluginNotFound = errors.New("plugin not found")
+	// ErrConfigurationNil is returned when the OPNsense configuration is nil.
 	ErrConfigurationNil = errors.New("configuration cannot be nil")
 )
 

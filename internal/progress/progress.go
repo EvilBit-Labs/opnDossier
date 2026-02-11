@@ -40,7 +40,8 @@ type Options struct {
 
 // Default values for progress options.
 const (
-	DefaultProgressWidth = 40 // Default width of progress bar in characters
+	// DefaultProgressWidth is the default width of the progress bar in characters.
+	DefaultProgressWidth = 40
 )
 
 // DefaultOptions returns the default progress options.
