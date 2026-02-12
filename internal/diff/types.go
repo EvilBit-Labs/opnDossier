@@ -3,7 +3,10 @@ package diff
 
 import (
 	"slices"
+	"strings"
 	"time"
+
+	"github.com/EvilBit-Labs/opnDossier/internal/diff/security"
 )
 
 // ChangeType represents the type of configuration change.
@@ -16,6 +19,8 @@ const (
 	ChangeRemoved ChangeType = "removed"
 	// ChangeModified indicates an element was modified.
 	ChangeModified ChangeType = "modified"
+	// ChangeReordered indicates an element was moved but not modified.
+	ChangeReordered ChangeType = "reordered"
 )
 
 // String returns the string representation of the change type.
@@ -32,6 +37,8 @@ func (c ChangeType) Symbol() string {
 		return "-"
 	case ChangeModified:
 		return "~"
+	case ChangeReordered:
+		return "↕"
 	default:
 		return "?"
 	}
@@ -40,7 +47,7 @@ func (c ChangeType) Symbol() string {
 // IsValid returns true if the change type is a valid value.
 func (c ChangeType) IsValid() bool {
 	switch c {
-	case ChangeAdded, ChangeRemoved, ChangeModified:
+	case ChangeAdded, ChangeRemoved, ChangeModified, ChangeReordered:
 		return true
 	default:
 		return false
@@ -161,10 +168,11 @@ type Change struct {
 
 // Summary contains aggregate statistics about the diff.
 type Summary struct {
-	Added    int `json:"added"`
-	Removed  int `json:"removed"`
-	Modified int `json:"modified"`
-	Total    int `json:"total"`
+	Added     int `json:"added"`
+	Removed   int `json:"removed"`
+	Modified  int `json:"modified"`
+	Reordered int `json:"reordered"`
+	Total     int `json:"total"`
 }
 
 // Metadata contains comparison metadata.
@@ -177,11 +185,18 @@ type Metadata struct {
 	ToolVersion string    `json:"tool_version"`
 }
 
+// RiskSummary is an alias for security.RiskSummary to avoid type duplication.
+type RiskSummary = security.RiskSummary
+
+// RiskItem is an alias for security.RiskItem to avoid type duplication.
+type RiskItem = security.RiskItem
+
 // Result contains the complete diff result.
 type Result struct {
-	Summary  Summary  `json:"summary"`
-	Metadata Metadata `json:"metadata"`
-	Changes  []Change `json:"changes"`
+	Summary     Summary     `json:"summary"`
+	Metadata    Metadata    `json:"metadata"`
+	Changes     []Change    `json:"changes"`
+	RiskSummary RiskSummary `json:"risk_summary"`
 }
 
 // NewResult creates a new Result with initialized slices.
@@ -201,6 +216,8 @@ func (r *Result) AddChange(change Change) {
 		r.Summary.Removed++
 	case ChangeModified:
 		r.Summary.Modified++
+	case ChangeReordered:
+		r.Summary.Reordered++
 	}
 	r.Summary.Total++
 }
@@ -223,13 +240,19 @@ func (r *Result) HasChanges() bool {
 type Options struct {
 	Sections     []string // Filter to specific sections (empty = all)
 	SecurityOnly bool     // Show only security-relevant changes
-	Format       string   // Output format (terminal, markdown, json)
+	Format       string   // Output format (terminal, markdown, json, html)
+	Normalize    bool     // Normalize displayed values to reduce noise (whitespace, IPs, ports)
+	DetectOrder  bool     // Detect reordered rules without content changes
+	Mode         string   // Display mode (unified, side-by-side)
 }
 
 // ShouldIncludeSection returns true if the section should be included.
+// Comparison is case-insensitive to handle user input normalization.
 func (o *Options) ShouldIncludeSection(section Section) bool {
 	if len(o.Sections) == 0 {
 		return true
 	}
-	return slices.Contains(o.Sections, section.String())
+	return slices.ContainsFunc(o.Sections, func(s string) bool {
+		return strings.EqualFold(s, section.String())
+	})
 }

@@ -110,6 +110,11 @@ func (f *MarkdownFormatter) formatSummary(result *diff.Result) error {
 	if _, err := fmt.Fprintf(f.writer, "| Modified | %d |\n", summary.Modified); err != nil {
 		return err
 	}
+	if summary.Reordered > 0 {
+		if _, err := fmt.Fprintf(f.writer, "| Reordered | %d |\n", summary.Reordered); err != nil {
+			return err
+		}
+	}
 	if _, err := fmt.Fprintf(f.writer, "| **Total** | **%d** |\n", summary.Total); err != nil {
 		return err
 	}
@@ -244,6 +249,8 @@ func changeSymbolMarkdown(changeType diff.ChangeType) string {
 		return "**-**"
 	case diff.ChangeModified:
 		return "**~**"
+	case diff.ChangeReordered:
+		return "**↕**"
 	default:
 		return "**?**"
 	}
@@ -252,11 +259,11 @@ func changeSymbolMarkdown(changeType diff.ChangeType) string {
 // securityBadge returns a formatted security impact badge.
 func securityBadge(impact string) string {
 	switch strings.ToLower(impact) {
-	case "high":
+	case string(diff.SecurityImpactHigh):
 		return "🔴 HIGH"
-	case "medium":
+	case string(diff.SecurityImpactMedium):
 		return "🟡 MEDIUM"
-	case "low":
+	case string(diff.SecurityImpactLow):
 		return "🟢 LOW"
 	default:
 		return impact
