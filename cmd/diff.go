@@ -101,7 +101,7 @@ func ValidDiffFormats(_ *cobra.Command, _ []string, _ string) ([]string, cobra.S
 		DiffFormatTerminal + "\tColor-coded terminal output",
 		DiffFormatMarkdown + "\tMarkdown formatted output",
 		DiffFormatJSON + "\tJSON structured output",
-		DiffFormatHTML + "\tSelf-contained HTML report (rendered from Markdown)",
+		DiffFormatHTML + "\tSelf-contained HTML report",
 	}, cobra.ShellCompDirectiveNoFileComp
 }
 
@@ -151,7 +151,7 @@ OUTPUT FORMATS:
   terminal   - Color-coded terminal output with symbols (+/-/~)
   markdown   - Markdown formatted output for documentation
   json       - JSON structured output for automation
-  html       - Self-contained HTML report (rendered from Markdown)
+  html       - Self-contained HTML report
 
 DISPLAY MODES:
   unified      - Standard diff view (default)
