@@ -61,6 +61,19 @@ func (e *Engine) Compare(ctx context.Context) (*Result, error) {
 	if e.opts.DetectOrder {
 		reorderChanges := e.detectFirewallReorders()
 		for i := range reorderChanges {
+			// Apply security scoring consistently with other changes
+			if reorderChanges[i].SecurityImpact == "" {
+				reorderChanges[i].SecurityImpact = e.scorer.Score(security.ChangeInput{
+					Type:    reorderChanges[i].Type.String(),
+					Section: reorderChanges[i].Section.String(),
+					Path:    reorderChanges[i].Path,
+				})
+			}
+
+			// Apply security-only filtering consistently
+			if e.opts.SecurityOnly && reorderChanges[i].SecurityImpact == "" {
+				continue
+			}
 			result.AddChange(reorderChanges[i])
 		}
 	}

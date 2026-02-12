@@ -351,6 +351,13 @@ func validateDiffFlags() error {
 			diffMode, DiffModeUnified+", "+DiffModeSideBySide)
 	}
 
+	// Side-by-side mode only applies to terminal format
+	normalizedFormat := strings.ToLower(diffFormat)
+	if strings.EqualFold(diffMode, DiffModeSideBySide) &&
+		normalizedFormat != DiffFormatTerminal && normalizedFormat != "" {
+		return fmt.Errorf("--mode side-by-side is only supported with --format terminal, got %q", diffFormat)
+	}
+
 	// Sections that are implemented
 	implementedSections := []string{
 		"system",

@@ -53,6 +53,8 @@ func NewSideBySideFormatter(writer io.Writer) *SideBySideFormatter {
 }
 
 // detectTerminalWidth returns the terminal width, or a default if detection fails.
+// Note: always queries os.Stdout regardless of the formatter's io.Writer, since
+// side-by-side output is only meaningful for interactive terminal sessions.
 func detectTerminalWidth() int {
 	fd := int(os.Stdout.Fd())
 	width, _, err := term.GetSize(fd)
@@ -136,8 +138,11 @@ func (f *SideBySideFormatter) formatHeader(result *diff.Result) error {
 
 	// Print summary
 	s := result.Summary
-	summary := fmt.Sprintf("+%d added, -%d removed, ~%d modified (%d total)",
-		s.Added, s.Removed, s.Modified, s.Total)
+	summary := fmt.Sprintf("+%d added, -%d removed, ~%d modified", s.Added, s.Removed, s.Modified)
+	if s.Reordered > 0 {
+		summary += fmt.Sprintf(", ↕%d reordered", s.Reordered)
+	}
+	summary += fmt.Sprintf(" (%d total)", s.Total)
 	if f.useStyles {
 		summary = f.styles.summary.Render(summary)
 	}
