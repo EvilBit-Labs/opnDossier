@@ -90,6 +90,8 @@ func (n *Normalizer) NormalizeWhitespace(s string) string {
 
 // NormalizePort normalizes a port or port range string.
 // "80" stays "80", "0080" becomes "80", "80-443" stays "80-443".
+// Returns the input unchanged if it does not look like a port or port range
+// (i.e., contains non-digit characters other than a single separator).
 func (n *Normalizer) NormalizePort(s string) string {
 	if s == "" {
 		return s
@@ -99,11 +101,16 @@ func (n *Normalizer) NormalizePort(s string) string {
 	if idx := strings.IndexAny(s, "-:"); idx >= 0 {
 		sep := string(s[idx])
 		parts := strings.SplitN(s, sep, rangeParts)
-		if len(parts) == rangeParts {
+		if len(parts) == rangeParts && isDigitsOnly(parts[0]) && isDigitsOnly(parts[1]) {
 			start := n.normalizePortNumber(parts[0])
 			end := n.normalizePortNumber(parts[1])
 			return start + sep + end
 		}
+		return s // Not a port range
+	}
+
+	if !isDigitsOnly(s) {
+		return s // Not a port number
 	}
 
 	return n.normalizePortNumber(s)
@@ -124,6 +131,20 @@ func (n *Normalizer) NormalizePath(s string) string {
 		s = strings.ReplaceAll(s, "//", "/")
 	}
 	return s
+}
+
+// isDigitsOnly returns true if the trimmed string consists only of digits.
+func isDigitsOnly(s string) bool {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 // normalizePortNumber strips leading zeros from a port number string.

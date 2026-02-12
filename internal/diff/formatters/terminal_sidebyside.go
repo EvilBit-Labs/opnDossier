@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/diff"
+	"github.com/charmbracelet/lipgloss"
 	"golang.org/x/term"
 )
 
@@ -124,8 +125,8 @@ func (f *SideBySideFormatter) formatHeader(result *diff.Result) error {
 		newLabel = f.styles.added.Render(newLabel)
 	}
 
-	// Print column headers
-	header := fmt.Sprintf("%-*s │ %s", colWidth, oldLabel, newLabel)
+	// Print column headers (use padRight for ANSI-safe alignment)
+	header := padRight(oldLabel, colWidth) + " │ " + newLabel
 	if _, err := fmt.Fprintln(f.writer, header); err != nil {
 		return err
 	}
@@ -224,13 +225,23 @@ func (f *SideBySideFormatter) formatChangeSideBySide(change diff.Change, colWidt
 			oldVal = f.styles.value.Render(oldVal)
 			newVal = f.styles.value.Render(newVal)
 		}
-		valLine := fmt.Sprintf("    %-*s │ %s", colWidth-valueColumnPadding, oldVal, newVal)
+		valLine := "    " + padRight(oldVal, colWidth-valueColumnPadding) + " │ " + newVal
 		if _, err := fmt.Fprintln(f.writer, valLine); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+// padRight pads a string with spaces to reach the target visible width.
+// Uses lipgloss.Width to measure visible characters, correctly handling ANSI escape codes.
+func padRight(s string, targetWidth int) string {
+	visibleWidth := lipgloss.Width(s)
+	if visibleWidth >= targetWidth {
+		return s
+	}
+	return s + strings.Repeat(" ", targetWidth-visibleWidth)
 }
 
 // truncate truncates a string to maxLen runes, adding "..." if truncated.

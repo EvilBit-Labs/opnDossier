@@ -57,27 +57,6 @@ func (e *Engine) Compare(ctx context.Context) (*Result, error) {
 	default:
 	}
 
-	// Detect firewall rule reordering if requested
-	if e.opts.DetectOrder {
-		reorderChanges := e.detectFirewallReorders()
-		for i := range reorderChanges {
-			// Apply security scoring consistently with other changes
-			if reorderChanges[i].SecurityImpact == "" {
-				reorderChanges[i].SecurityImpact = e.scorer.Score(security.ChangeInput{
-					Type:    reorderChanges[i].Type.String(),
-					Section: reorderChanges[i].Section.String(),
-					Path:    reorderChanges[i].Path,
-				})
-			}
-
-			// Apply security-only filtering consistently
-			if e.opts.SecurityOnly && reorderChanges[i].SecurityImpact == "" {
-				continue
-			}
-			result.AddChange(reorderChanges[i])
-		}
-	}
-
 	// Compare each implemented section (unimplemented sections are rejected at flag validation)
 	for _, section := range ImplementedSections() {
 		if !e.opts.ShouldIncludeSection(section) {
@@ -86,7 +65,7 @@ func (e *Engine) Compare(ctx context.Context) (*Result, error) {
 
 		changes := e.compareSection(section)
 		for i := range changes {
-			// Normalize values before comparison display if requested
+			// Normalize displayed values if requested (cosmetic, does not affect comparison)
 			if e.opts.Normalize {
 				changes[i].OldValue = e.normalizeValue(changes[i].OldValue)
 				changes[i].NewValue = e.normalizeValue(changes[i].NewValue)
@@ -107,6 +86,12 @@ func (e *Engine) Compare(ctx context.Context) (*Result, error) {
 			}
 			result.AddChange(changes[i])
 		}
+	}
+
+	// Detect firewall rule reordering if requested (after section comparison
+	// so we can exclude rules that also have content changes)
+	if e.opts.DetectOrder {
+		e.addReorderChanges(result)
 	}
 
 	// Compute aggregate risk summary
@@ -174,6 +159,42 @@ func (e *Engine) normalizeValue(s string) string {
 	s = e.normalizer.NormalizeIP(s)
 	s = e.normalizer.NormalizePort(s)
 	return s
+}
+
+// addReorderChanges detects reordered firewall rules and adds them to the result,
+// excluding rules that already have content changes (to avoid duplicate entries).
+func (e *Engine) addReorderChanges(result *Result) {
+	reorderChanges := e.detectFirewallReorders()
+
+	// Build set of UUIDs that already have content changes
+	contentChangedUUIDs := make(map[string]bool)
+	for _, c := range result.Changes {
+		if c.Section == SectionFirewall {
+			contentChangedUUIDs[c.Path] = true
+		}
+	}
+
+	for i := range reorderChanges {
+		// Skip reorder if this rule also has a content change
+		if contentChangedUUIDs[reorderChanges[i].Path] {
+			continue
+		}
+
+		// Apply security scoring
+		if reorderChanges[i].SecurityImpact == "" {
+			reorderChanges[i].SecurityImpact = e.scorer.Score(security.ChangeInput{
+				Type:    reorderChanges[i].Type.String(),
+				Section: reorderChanges[i].Section.String(),
+				Path:    reorderChanges[i].Path,
+			})
+		}
+
+		// Apply security-only filtering
+		if e.opts.SecurityOnly && reorderChanges[i].SecurityImpact == "" {
+			continue
+		}
+		result.AddChange(reorderChanges[i])
+	}
 }
 
 // detectFirewallReorders uses the order detector to find reordered firewall rules.

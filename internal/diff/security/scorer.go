@@ -21,7 +21,7 @@ const (
 // ChangeInput is the minimal change information needed for security scoring.
 // This avoids an import cycle with the parent diff package.
 type ChangeInput struct {
-	Type           string // "added", "removed", "modified"
+	Type           string // "added", "removed", "modified", "reordered"
 	Section        string // "firewall", "system", "nat", etc.
 	Path           string // Configuration path
 	Description    string

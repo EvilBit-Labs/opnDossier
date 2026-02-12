@@ -241,7 +241,7 @@ type Options struct {
 	Sections     []string // Filter to specific sections (empty = all)
 	SecurityOnly bool     // Show only security-relevant changes
 	Format       string   // Output format (terminal, markdown, json, html)
-	Normalize    bool     // Normalize values before comparing to reduce noise
+	Normalize    bool     // Normalize displayed values to reduce noise (whitespace, IPs, ports)
 	DetectOrder  bool     // Detect reordered rules without content changes
 	Mode         string   // Display mode (unified, side-by-side)
 }

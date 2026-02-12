@@ -370,6 +370,7 @@ func ValidateMarkdown(content string) error {
 
 // RenderMarkdown parses and renders markdown content to HTML using goldmark.
 // Returns the rendered HTML string or an error if rendering fails.
+// Raw HTML tags (e.g., <details>, <summary>) are preserved in the output.
 func RenderMarkdown(content string) (string, error) {
 	md := goldmark.New(
 		goldmark.WithExtensions(extension.Table),
@@ -379,6 +380,7 @@ func RenderMarkdown(content string) (string, error) {
 		goldmark.WithRendererOptions(
 			html.WithHardWraps(),
 			html.WithXHTML(),
+			html.WithUnsafe(),
 		),
 	)
 

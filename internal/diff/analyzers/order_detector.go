@@ -1,5 +1,7 @@
 package analyzers
 
+import "sort"
+
 // OrderChange describes a detected reordering.
 type OrderChange struct {
 	ID          string // UUID or identifier of the reordered element
@@ -43,6 +45,11 @@ func (d *OrderDetector) DetectReorders(oldIDs, newIDs []string) []OrderChange {
 			})
 		}
 	}
+
+	// Sort by ID for deterministic output (map iteration order is non-deterministic)
+	sort.Slice(reorders, func(i, j int) bool {
+		return reorders[i].ID < reorders[j].ID
+	})
 
 	return reorders
 }

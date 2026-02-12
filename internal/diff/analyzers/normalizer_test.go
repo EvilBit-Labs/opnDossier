@@ -73,6 +73,10 @@ func TestNormalizer_NormalizePort(t *testing.T) {
 		{"leading zeros in range", "0080-0443", "80-443"},
 		{"zero", "0", "0"},
 		{"empty", "", ""},
+		{"non-port text unchanged", "Label: Value", "Label: Value"},
+		{"text with dash unchanged", "some-text", "some-text"},
+		{"description unchanged", "Allow SSH access", "Allow SSH access"},
+		{"mixed digits text unchanged", "rule 001", "rule 001"},
 	}
 
 	for _, tt := range tests {

@@ -71,7 +71,7 @@ func init() {
 
 	// Analysis flags
 	diffCmd.Flags().
-		BoolVar(&diffNormalize, "normalize", false, "Normalize values before comparing (whitespace, IPs, ports)")
+		BoolVar(&diffNormalize, "normalize", false, "Normalize displayed values (whitespace, IPs, ports)")
 	diffCmd.Flags().
 		BoolVar(&diffDetectOrder, "detect-order", false, "Detect rule reordering without content changes")
 
@@ -168,7 +168,7 @@ SECTIONS:
   routing     - Static routes
 
 ANALYSIS OPTIONS:
-  --normalize     Normalize values before comparing (whitespace, IPs, ports)
+  --normalize     Normalize displayed values (whitespace, IPs, ports)
   --detect-order  Detect when rules are reordered without content changes
 
 SECURITY IMPACT:
