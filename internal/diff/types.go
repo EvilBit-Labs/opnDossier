@@ -5,6 +5,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/EvilBit-Labs/opnDossier/internal/diff/security"
 )
 
 // ChangeType represents the type of configuration change.
@@ -183,26 +185,11 @@ type Metadata struct {
 	ToolVersion string    `json:"tool_version"`
 }
 
-// RiskSummary contains aggregate security risk information.
-type RiskSummary struct {
-	Score    int        `json:"score"`
-	High     int        `json:"high"`
-	Medium   int        `json:"medium"`
-	Low      int        `json:"low"`
-	TopRisks []RiskItem `json:"top_risks,omitempty"`
-}
+// RiskSummary is an alias for security.RiskSummary to avoid type duplication.
+type RiskSummary = security.RiskSummary
 
-// RiskItem describes a single high-priority risk.
-type RiskItem struct {
-	Path        string `json:"path"`
-	Description string `json:"description"`
-	Impact      string `json:"impact"`
-}
-
-// HasRisks returns true if any security impacts were detected.
-func (r *RiskSummary) HasRisks() bool {
-	return r.High > 0 || r.Medium > 0 || r.Low > 0
-}
+// RiskItem is an alias for security.RiskItem to avoid type duplication.
+type RiskItem = security.RiskItem
 
 // Result contains the complete diff result.
 type Result struct {

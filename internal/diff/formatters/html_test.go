@@ -120,11 +120,6 @@ func TestHTMLFormatter_Format_SecurityBadges(t *testing.T) {
 	}
 }
 
-func TestHTMLFormatter_InterfaceCompliance(_ *testing.T) {
-	var buf bytes.Buffer
-	var _ Formatter = NewHTMLFormatter(&buf)
-}
-
 func TestHTMLFormatter_Format_SelfContained(t *testing.T) {
 	var buf bytes.Buffer
 	formatter := NewHTMLFormatter(&buf)

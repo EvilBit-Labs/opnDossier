@@ -128,22 +128,7 @@ func (e *Engine) computeRiskSummary(result *Result) RiskSummary {
 		}
 	}
 
-	scored := e.scorer.ScoreAll(inputs)
-
-	rs := RiskSummary{
-		Score:  scored.Score,
-		High:   scored.High,
-		Medium: scored.Medium,
-		Low:    scored.Low,
-	}
-	for _, item := range scored.TopRisks {
-		rs.TopRisks = append(rs.TopRisks, RiskItem{
-			Path:        item.Path,
-			Description: item.Description,
-			Impact:      item.Impact,
-		})
-	}
-	return rs
+	return e.scorer.ScoreAll(inputs)
 }
 
 // compareSection dispatches to section-specific comparers.

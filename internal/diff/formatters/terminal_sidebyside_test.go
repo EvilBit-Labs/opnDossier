@@ -118,8 +118,3 @@ func TestTruncate(t *testing.T) {
 		})
 	}
 }
-
-func TestSideBySideFormatter_InterfaceCompliance(_ *testing.T) {
-	var buf bytes.Buffer
-	var _ Formatter = NewSideBySideFormatter(&buf)
-}

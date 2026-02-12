@@ -66,4 +66,5 @@ func TestInterfaceCompliance(_ *testing.T) {
 	var _ Formatter = NewMarkdownFormatter(&buf)
 	var _ Formatter = NewJSONFormatter(&buf)
 	var _ Formatter = NewHTMLFormatter(&buf)
+	var _ Formatter = NewSideBySideFormatter(&buf)
 }
