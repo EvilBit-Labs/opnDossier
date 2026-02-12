@@ -36,6 +36,7 @@ func TestChangeType_Symbol(t *testing.T) {
 		{"added", ChangeAdded, "+"},
 		{"removed", ChangeRemoved, "-"},
 		{"modified", ChangeModified, "~"},
+		{"reordered", ChangeReordered, "↕"},
 		{"unknown", ChangeType("unknown"), "?"},
 	}
 
@@ -120,7 +121,21 @@ func TestResult_AddChange(t *testing.T) {
 	assert.Equal(t, 1, result.Summary.Added)
 	assert.Equal(t, 1, result.Summary.Removed)
 	assert.Equal(t, 1, result.Summary.Modified)
+	assert.Equal(t, 0, result.Summary.Reordered)
 	assert.Equal(t, 3, result.Summary.Total)
+
+	// Add a reordered change
+	result.AddChange(Change{
+		Type:        ChangeReordered,
+		Section:     SectionFirewall,
+		Path:        "filter.rule[uuid=abc]",
+		Description: "Rule moved from position 0 to 2",
+	})
+	assert.Equal(t, 1, result.Summary.Added)
+	assert.Equal(t, 1, result.Summary.Removed)
+	assert.Equal(t, 1, result.Summary.Modified)
+	assert.Equal(t, 1, result.Summary.Reordered)
+	assert.Equal(t, 4, result.Summary.Total)
 }
 
 func TestResult_ChangesBySection(t *testing.T) {

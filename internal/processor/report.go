@@ -604,7 +604,7 @@ func (r *Report) Summary() string {
 	}
 
 	if err := md.Build(); err != nil {
-		return "Error generating summary"
+		return fmt.Sprintf("Error generating summary: %v", err)
 	}
 
 	return buf.String()

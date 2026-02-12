@@ -166,10 +166,11 @@ type Change struct {
 
 // Summary contains aggregate statistics about the diff.
 type Summary struct {
-	Added    int `json:"added"`
-	Removed  int `json:"removed"`
-	Modified int `json:"modified"`
-	Total    int `json:"total"`
+	Added     int `json:"added"`
+	Removed   int `json:"removed"`
+	Modified  int `json:"modified"`
+	Reordered int `json:"reordered"`
+	Total     int `json:"total"`
 }
 
 // Metadata contains comparison metadata.
@@ -228,6 +229,8 @@ func (r *Result) AddChange(change Change) {
 		r.Summary.Removed++
 	case ChangeModified:
 		r.Summary.Modified++
+	case ChangeReordered:
+		r.Summary.Reordered++
 	}
 	r.Summary.Total++
 }

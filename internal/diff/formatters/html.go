@@ -30,12 +30,18 @@ func NewHTMLFormatter(writer io.Writer) *HTMLFormatter {
 	}
 }
 
+// sectionChanges groups changes under a named section for ordered template iteration.
+type sectionChanges struct {
+	Name    string
+	Changes []diff.Change
+}
+
 // htmlTemplateData contains all data passed to the HTML template.
 type htmlTemplateData struct {
-	Result    *diff.Result
-	CSS       htmltemplate.CSS
-	JS        htmltemplate.JS
-	BySection map[string][]diff.Change
+	Result   *diff.Result
+	CSS      htmltemplate.CSS
+	JS       htmltemplate.JS
+	Sections []sectionChanges
 }
 
 // Format formats the diff result as a self-contained HTML document.
@@ -54,19 +60,17 @@ func (f *HTMLFormatter) Format(result *diff.Result) error {
 		//nolint:gosec // G203: CSS is embedded from our own static files, not user input
 		CSS: htmltemplate.CSS(stylesCSS),
 		//nolint:gosec // G203: JS is embedded from our own static files, not user input
-		JS:        htmltemplate.JS(scriptsJS),
-		BySection: sortedSections(result),
+		JS:       htmltemplate.JS(scriptsJS),
+		Sections: sortedSections(result),
 	}
 
 	return tmpl.Execute(f.writer, data)
 }
 
-// sortedSections returns changes grouped by section name, sorted alphabetically.
-func sortedSections(result *diff.Result) map[string][]diff.Change {
+// sortedSections returns changes grouped by section, sorted alphabetically.
+// Returns an ordered slice to ensure deterministic template iteration.
+func sortedSections(result *diff.Result) []sectionChanges {
 	bySection := result.ChangesBySection()
-
-	// Convert to string keys for template iteration determinism
-	sorted := make(map[string][]diff.Change, len(bySection))
 
 	sections := make([]diff.Section, 0, len(bySection))
 	for s := range bySection {
@@ -76,9 +80,12 @@ func sortedSections(result *diff.Result) map[string][]diff.Change {
 		return sections[i].String() < sections[j].String()
 	})
 
+	ordered := make([]sectionChanges, 0, len(sections))
 	for _, s := range sections {
-		sorted[s.String()] = bySection[s]
+		ordered = append(ordered, sectionChanges{
+			Name:    s.String(),
+			Changes: bySection[s],
+		})
 	}
-
-	return sorted
+	return ordered
 }

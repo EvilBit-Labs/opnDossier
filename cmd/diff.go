@@ -155,7 +155,7 @@ OUTPUT FORMATS:
 
 DISPLAY MODES:
   unified      - Standard diff view (default)
-  side-by-side - Two-column comparison (terminal and HTML)
+  side-by-side - Two-column comparison (terminal only)
 
 SECTIONS:
   system      - System settings (hostname, domain, timezone)

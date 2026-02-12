@@ -110,6 +110,11 @@ func (f *MarkdownFormatter) formatSummary(result *diff.Result) error {
 	if _, err := fmt.Fprintf(f.writer, "| Modified | %d |\n", summary.Modified); err != nil {
 		return err
 	}
+	if summary.Reordered > 0 {
+		if _, err := fmt.Fprintf(f.writer, "| Reordered | %d |\n", summary.Reordered); err != nil {
+			return err
+		}
+	}
 	if _, err := fmt.Fprintf(f.writer, "| **Total** | **%d** |\n", summary.Total); err != nil {
 		return err
 	}
@@ -244,6 +249,8 @@ func changeSymbolMarkdown(changeType diff.ChangeType) string {
 		return "**-**"
 	case diff.ChangeModified:
 		return "**~**"
+	case diff.ChangeReordered:
+		return "**↕**"
 	default:
 		return "**?**"
 	}

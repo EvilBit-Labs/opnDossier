@@ -37,6 +37,12 @@
     <div class="count">{{.Result.Summary.Modified}}</div>
     <div class="label">Modified</div>
   </div>
+  {{- if gt .Result.Summary.Reordered 0}}
+  <div class="summary-card reordered">
+    <div class="count">{{.Result.Summary.Reordered}}</div>
+    <div class="label">Reordered</div>
+  </div>
+  {{- end}}
   <div class="summary-card total">
     <div class="count">{{.Result.Summary.Total}}</div>
     <div class="label">Total</div>
@@ -68,9 +74,9 @@
   <button id="toggle-all" style="cursor:pointer; padding: 0.3rem 0.8rem; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text);">Collapse All</button>
 </div>
 
-{{- range $section, $changes := .BySection}}
+{{- range .Sections}}
 <details class="section" open>
-  <summary>{{capitalize $section}} ({{len $changes}} changes)</summary>
+  <summary>{{capitalize .Name}} ({{len .Changes}} changes)</summary>
   <div class="section-content">
     <table class="changes-table">
       <thead>
@@ -83,7 +89,7 @@
         </tr>
       </thead>
       <tbody>
-        {{- range $changes}}
+        {{- range .Changes}}
         <tr class="change-{{.Type}}" data-type="{{.Type}}">
           <td><span class="badge badge-{{.Type}}">{{.Type}}</span></td>
           <td>{{.Description}}</td>
