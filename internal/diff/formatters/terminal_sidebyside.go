@@ -187,7 +187,7 @@ func (f *SideBySideFormatter) formatChangeSideBySide(change diff.Change, colWidt
 			symbol = f.styles.added.Render(symbol)
 		case diff.ChangeRemoved:
 			symbol = f.styles.removed.Render(symbol)
-		case diff.ChangeModified:
+		case diff.ChangeModified, diff.ChangeReordered:
 			symbol = f.styles.modified.Render(symbol)
 		}
 	}
@@ -233,13 +233,14 @@ func (f *SideBySideFormatter) formatChangeSideBySide(change diff.Change, colWidt
 	return nil
 }
 
-// truncate truncates a string to maxLen, adding "..." if truncated.
+// truncate truncates a string to maxLen runes, adding "..." if truncated.
 func truncate(s string, maxLen int) string {
-	if maxLen <= 0 || len(s) <= maxLen {
+	runes := []rune(s)
+	if maxLen <= 0 || len(runes) <= maxLen {
 		return s
 	}
 	if maxLen <= ellipsisLen {
-		return s[:maxLen]
+		return string(runes[:maxLen])
 	}
-	return s[:maxLen-ellipsisLen] + "..."
+	return string(runes[:maxLen-ellipsisLen]) + "..."
 }

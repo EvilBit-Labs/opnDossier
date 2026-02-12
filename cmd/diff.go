@@ -384,6 +384,7 @@ func validateDiffFlags() error {
 
 	// Validate and normalize sections if provided
 	if len(diffSections) > 0 {
+		normalizedSections := make([]string, len(diffSections))
 		for i, s := range diffSections {
 			normalized := strings.ToLower(strings.TrimSpace(s))
 
@@ -399,9 +400,9 @@ func validateDiffFlags() error {
 					s, strings.Join(implementedSections, ", "))
 			}
 
-			// Normalize in place for downstream consumers
-			diffSections[i] = normalized
+			normalizedSections[i] = normalized
 		}
+		diffSections = normalizedSections
 	}
 
 	return nil

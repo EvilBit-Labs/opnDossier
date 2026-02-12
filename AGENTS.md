@@ -275,6 +275,7 @@ Frequently encountered linter issues and fixes:
 | `mnd`                      | Magic numbers                 | Create named constants                          |
 | `minmax`                   | Manual min/max comparisons    | Use `min()`/`max()` builtins                    |
 | `goconst`                  | Repeated string literals      | Extract to package-level constants              |
+| `tparallel`                | Subtests use `t.Parallel()`   | Parent test must also call `t.Parallel()`       |
 
 > [!NOTE]
 > IDE diagnostics (marked with ★ in some editors) are suggestions, not errors. The authoritative source is `just lint` - if it reports "0 issues", the code is correct regardless of IDE warnings.
@@ -699,6 +700,7 @@ Use `sebdah/goldie/v2` for snapshot testing. Key patterns:
 - Use `time.RFC3339` for timestamps (standard format, consistent across codebase)
 - Clean trailing whitespace: `sed -i '' 's/[[:space:]]*$//' *.golden.md`
 - Markdown validation: `internal/markdown.ValidateMarkdown()` uses goldmark for round-trip validation
+- Changing shared rendering functions (e.g., goldmark config in `internal/markdown/`) requires regenerating golden files across ALL formatters that depend on them
 
 ### 7.7 Testing Global Flag Variables
 

@@ -22,6 +22,9 @@ type RiskItem struct {
 
 // HasRisks returns true if any security impacts were detected.
 func (r *RiskSummary) HasRisks() bool {
+	if r == nil {
+		return false
+	}
 	return r.High > 0 || r.Medium > 0 || r.Low > 0
 }
 

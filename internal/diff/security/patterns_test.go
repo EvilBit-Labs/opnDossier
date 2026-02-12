@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDefaultPatterns_NotEmpty(t *testing.T) {
@@ -26,7 +27,7 @@ func TestDefaultPatterns_AllHaveRequiredFields(t *testing.T) {
 func TestDefaultPatterns_NamesAreUnique(t *testing.T) {
 	seen := make(map[string]bool)
 	for _, p := range DefaultPatterns() {
-		assert.False(t, seen[p.Name], "duplicate pattern name: %s", p.Name)
+		require.False(t, seen[p.Name], "duplicate pattern name: %s", p.Name)
 		seen[p.Name] = true
 	}
 }

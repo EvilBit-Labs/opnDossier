@@ -143,7 +143,9 @@ func TestScorer_ScoreAll(t *testing.T) {
 	assert.Equal(t, 0, summary.Low)
 	assert.True(t, summary.HasRisks())
 	assert.Equal(t, weightHigh+weightMedium, summary.Score)
-	require.NotEmpty(t, summary.TopRisks)
+	// TopRisks uses tier-based prioritization: only high-impact items are included
+	// when high-impact changes exist (medium items are excluded).
+	require.Len(t, summary.TopRisks, 1)
 	assert.Equal(t, "high", summary.TopRisks[0].Impact)
 }
 
@@ -189,18 +191,19 @@ func TestNewScorerWithPatterns(t *testing.T) {
 
 func TestHigherImpact(t *testing.T) {
 	tests := []struct {
+		name           string
 		a, b, expected string
 	}{
-		{"", "", ""},
-		{"low", "", "low"},
-		{"", "high", "high"},
-		{"low", "medium", "medium"},
-		{"high", "low", "high"},
-		{"medium", "high", "high"},
+		{"both empty", "", "", ""},
+		{"low vs empty", "low", "", "low"},
+		{"empty vs high", "", "high", "high"},
+		{"low vs medium", "low", "medium", "medium"},
+		{"high vs low", "high", "low", "high"},
+		{"medium vs high", "medium", "high", "high"},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.a+"_"+tt.b, func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.expected, higherImpact(tt.a, tt.b))
 		})
 	}
@@ -211,4 +214,8 @@ func TestRiskSummary_HasRisks(t *testing.T) {
 	assert.True(t, (&RiskSummary{High: 1}).HasRisks())
 	assert.True(t, (&RiskSummary{Medium: 1}).HasRisks())
 	assert.True(t, (&RiskSummary{Low: 1}).HasRisks())
+
+	// Nil receiver should not panic
+	var nilSummary *RiskSummary
+	assert.False(t, nilSummary.HasRisks())
 }

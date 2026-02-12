@@ -7,6 +7,7 @@ import (
 )
 
 func TestNormalizer_NormalizeIP(t *testing.T) {
+	t.Parallel()
 	n := NewNormalizer()
 
 	tests := []struct {
@@ -19,13 +20,17 @@ func TestNormalizer_NormalizeIP(t *testing.T) {
 		{"all zeros", "000.000.000.000", "0.0.0.0"},
 		{"CIDR notation", "192.168.1.0/24", "192.168.1.0/24"},
 		{"CIDR with leading zeros", "010.000.000.000/8", "10.0.0.0/8"},
-		{"IPv6", "::1", "::1"},
+		{"IPv6 loopback", "::1", "::1"},
+		{"full IPv6", "2001:0db8:0000:0000:0000:0000:0000:0001", "2001:db8::1"},
+		{"IPv6 CIDR", "2001:db8::/32", "2001:db8::/32"},
+		{"invalid CIDR prefix", "192.168.1.1/33", "192.168.1.1/33"},
 		{"invalid stays unchanged", "not-an-ip", "not-an-ip"},
 		{"empty stays empty", "", ""},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			assert.Equal(t, tt.expected, n.NormalizeIP(tt.input))
 		})
 	}

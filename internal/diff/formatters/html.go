@@ -82,6 +82,8 @@ func (f *HTMLFormatter) Format(result *diff.Result) error {
 	}
 
 	// Wrap in self-contained HTML shell
-	_, err = fmt.Fprintf(f.writer, htmlShell, htmlBody)
-	return err
+	if _, err = fmt.Fprintf(f.writer, htmlShell, htmlBody); err != nil {
+		return fmt.Errorf("failed to write HTML output: %w", err)
+	}
+	return nil
 }

@@ -89,6 +89,8 @@ func (s *Scorer) ScoreAll(changes []ChangeInput) RiskSummary {
 		case impactMedium:
 			summary.Medium++
 			summary.Score += weightMedium
+			// Only include medium-impact items in TopRisks when no high-impact items exist.
+			// This tier-based prioritization keeps the summary focused on the most critical risks.
 			if summary.High == 0 && len(summary.TopRisks) < maxTopRisks {
 				summary.TopRisks = append(summary.TopRisks, RiskItem{
 					Path:        change.Path,

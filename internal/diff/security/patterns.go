@@ -12,6 +12,15 @@ type Pattern struct {
 	Impact      string         // Impact level: "high", "medium", "low"
 }
 
+// Pre-compiled regex patterns for path matching.
+var (
+	reWebGUIProtocol  = regexp.MustCompile(`system\.webgui\.protocol`)
+	reDNSServer       = regexp.MustCompile(`system\.dnsserver`)
+	reNATOutboundMode = regexp.MustCompile(`nat\.outbound\.mode`)
+	reNATInbound      = regexp.MustCompile(`nat\.inbound`)
+	reInterfaceEnable = regexp.MustCompile(`\.enable$`)
+)
+
 // DefaultPatterns returns the built-in security impact patterns.
 // These augment the context-specific scoring in the analyzer (e.g., isPermissiveRule)
 // by providing pattern-based scoring for changes that lack explicit SecurityImpact.
@@ -38,14 +47,14 @@ func DefaultPatterns() []Pattern {
 			Name:        "webgui-protocol-change",
 			Description: "WebGUI protocol changes affect admin access security",
 			Section:     "system",
-			PathRegex:   regexp.MustCompile(`system\.webgui\.protocol`),
+			PathRegex:   reWebGUIProtocol,
 			Impact:      "medium",
 		},
 		{
 			Name:        "dns-server-change",
 			Description: "DNS server changes can redirect traffic",
 			Section:     "system",
-			PathRegex:   regexp.MustCompile(`system\.dnsserver`),
+			PathRegex:   reDNSServer,
 			Impact:      "low",
 		},
 
@@ -54,14 +63,14 @@ func DefaultPatterns() []Pattern {
 			Name:        "nat-mode-change",
 			Description: "NAT mode changes affect traffic routing",
 			Section:     "nat",
-			PathRegex:   regexp.MustCompile(`nat\.outbound\.mode`),
+			PathRegex:   reNATOutboundMode,
 			Impact:      "medium",
 		},
 		{
 			Name:        "port-forward-change",
 			Description: "Port forward changes expose or hide internal services",
 			Section:     "nat",
-			PathRegex:   regexp.MustCompile(`nat\.inbound`),
+			PathRegex:   reNATInbound,
 			Impact:      "medium",
 		},
 
@@ -93,7 +102,7 @@ func DefaultPatterns() []Pattern {
 			Name:        "interface-enable-change",
 			Description: "Interface enable state changes affect network connectivity",
 			Section:     "interfaces",
-			PathRegex:   regexp.MustCompile(`\.enable$`),
+			PathRegex:   reInterfaceEnable,
 			Impact:      "medium",
 		},
 	}

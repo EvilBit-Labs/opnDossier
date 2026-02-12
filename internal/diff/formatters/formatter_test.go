@@ -54,8 +54,7 @@ func TestNew_UnsupportedFormat(t *testing.T) {
 	var buf bytes.Buffer
 	f, err := New("xml", &buf)
 	assert.Nil(t, f)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "unsupported format")
+	require.ErrorContains(t, err, "unsupported format")
 }
 
 func TestInterfaceCompliance(_ *testing.T) {
