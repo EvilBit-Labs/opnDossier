@@ -3,7 +3,7 @@ act                                                           = "latest"
 cosign = "3.0.4"
 git-cliff                                                     = "2.12.0"
 "github:anchore/quill"                                        = "latest"
-go                                                            = "1.25.6"
+go                                                            = "1.25.7"
 # cyclonedx-gomod: installed via go install in CI (mise shim causes trust issues in goreleaser subprocesses)
 "go:github.com/securego/gosec/v2/cmd/gosec" = "latest"
 golangci-lint                                                 = "2.8.0"

@@ -20,7 +20,7 @@ This document provides comprehensive compatibility research for the Charmbracele
 | `github.com/charmbracelet/lipgloss`     | v1.1.1-0.20250404... | Direct   | Terminal styling and layout      | Pseudo-version |
 | `github.com/charmbracelet/log`          | v0.4.2               | Direct   | Structured logging               | Current        |
 | `github.com/charmbracelet/glamour`      | v0.10.0              | Direct   | Markdown rendering               | Current        |
-| `github.com/charmbracelet/bubbles`      | v0.21.0              | Direct   | Reusable UI components           | Current        |
+| `github.com/charmbracelet/bubbles`      | v1.0.0               | Direct   | Reusable UI components           | Current        |
 | `github.com/charmbracelet/bubbletea`    | v1.3.6               | Indirect | TUI framework (via bubbles)      | Current        |
 | `github.com/charmbracelet/colorprofile` | v0.3.1               | Indirect | Color profile detection          | Current        |
 | `github.com/charmbracelet/harmonica`    | v0.2.0               | Indirect | Charm animation library          | Current        |
@@ -291,7 +291,7 @@ just ci-check
 
 Current packages are stable and actively maintained:
 
-- `bubbles` v0.21.0: Use current version
+- `bubbles` v1.0.0: Use current version
 - `glamour` v0.10.0: Use current version
 - `bubbletea` v1.3.6: Transitive, stable
 
