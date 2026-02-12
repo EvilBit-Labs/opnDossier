@@ -302,45 +302,57 @@ func (a *Analyzer) CompareInterfaces(old, newCfg *schema.Interfaces) []Change {
 	slices.Sort(oldNames)
 	slices.Sort(newNames)
 
+	// Build sets for O(1) lookups instead of O(n) slices.Contains
+	newNameSet := make(map[string]struct{}, len(newNames))
+	for _, name := range newNames {
+		newNameSet[name] = struct{}{}
+	}
+	oldNameSet := make(map[string]struct{}, len(oldNames))
+	for _, name := range oldNames {
+		oldNameSet[name] = struct{}{}
+	}
+
 	// Find removed interfaces
 	for _, name := range oldNames {
-		if !slices.Contains(newNames, name) {
-			// Get should not fail here because name came from Names()
-			iface, ok := old.Get(name)
-			if !ok {
-				// This indicates a bug in the Interfaces implementation - skip this interface
-				continue
-			}
-			changes = append(changes, Change{
-				Type:        ChangeRemoved,
-				Section:     SectionInterfaces,
-				Path:        "interfaces." + name,
-				Description: fmt.Sprintf("Removed interface: %s (%s)", name, iface.Descr),
-				OldValue:    formatInterface(iface),
-			})
+		if _, exists := newNameSet[name]; exists {
+			continue
 		}
+		// Get should not fail here because name came from Names()
+		iface, ok := old.Get(name)
+		if !ok {
+			// This indicates a bug in the Interfaces implementation - skip this interface
+			continue
+		}
+		changes = append(changes, Change{
+			Type:        ChangeRemoved,
+			Section:     SectionInterfaces,
+			Path:        "interfaces." + name,
+			Description: fmt.Sprintf("Removed interface: %s (%s)", name, iface.Descr),
+			OldValue:    formatInterface(iface),
+		})
 	}
 
 	// Find added interfaces
 	for _, name := range newNames {
-		if !slices.Contains(oldNames, name) {
-			iface, ok := newCfg.Get(name)
-			if !ok {
-				continue
-			}
-			changes = append(changes, Change{
-				Type:        ChangeAdded,
-				Section:     SectionInterfaces,
-				Path:        "interfaces." + name,
-				Description: fmt.Sprintf("Added interface: %s (%s)", name, iface.Descr),
-				NewValue:    formatInterface(iface),
-			})
+		if _, exists := oldNameSet[name]; exists {
+			continue
 		}
+		iface, ok := newCfg.Get(name)
+		if !ok {
+			continue
+		}
+		changes = append(changes, Change{
+			Type:        ChangeAdded,
+			Section:     SectionInterfaces,
+			Path:        "interfaces." + name,
+			Description: fmt.Sprintf("Added interface: %s (%s)", name, iface.Descr),
+			NewValue:    formatInterface(iface),
+		})
 	}
 
 	// Find modified interfaces
 	for _, name := range oldNames {
-		if !slices.Contains(newNames, name) {
+		if _, exists := newNameSet[name]; !exists {
 			continue
 		}
 		oldIface, ok1 := old.Get(name)
@@ -518,8 +530,8 @@ func (a *Analyzer) CompareDHCP(old, newCfg *schema.Dhcpd) []Change {
 	}
 
 	// Compare by interface names
-	oldNames := make([]string, 0)
-	newNames := make([]string, 0)
+	oldNames := make([]string, 0, len(old.Items))
+	newNames := make([]string, 0, len(newCfg.Items))
 	for name := range old.Items {
 		oldNames = append(oldNames, name)
 	}
@@ -529,9 +541,19 @@ func (a *Analyzer) CompareDHCP(old, newCfg *schema.Dhcpd) []Change {
 	slices.Sort(oldNames)
 	slices.Sort(newNames)
 
+	// Build sets for O(1) lookups instead of O(n) slices.Contains
+	newNameSet := make(map[string]struct{}, len(newNames))
+	for _, name := range newNames {
+		newNameSet[name] = struct{}{}
+	}
+	oldNameSet := make(map[string]struct{}, len(oldNames))
+	for _, name := range oldNames {
+		oldNameSet[name] = struct{}{}
+	}
+
 	// Find removed DHCP configs
 	for _, name := range oldNames {
-		if !slices.Contains(newNames, name) {
+		if _, exists := newNameSet[name]; !exists {
 			changes = append(changes, Change{
 				Type:        ChangeRemoved,
 				Section:     SectionDHCP,
@@ -543,7 +565,7 @@ func (a *Analyzer) CompareDHCP(old, newCfg *schema.Dhcpd) []Change {
 
 	// Find added DHCP configs
 	for _, name := range newNames {
-		if !slices.Contains(oldNames, name) {
+		if _, exists := oldNameSet[name]; !exists {
 			changes = append(changes, Change{
 				Type:        ChangeAdded,
 				Section:     SectionDHCP,
@@ -555,7 +577,7 @@ func (a *Analyzer) CompareDHCP(old, newCfg *schema.Dhcpd) []Change {
 
 	// Compare existing DHCP configs - focus on static reservations
 	for _, name := range oldNames {
-		if !slices.Contains(newNames, name) {
+		if _, exists := newNameSet[name]; !exists {
 			continue
 		}
 

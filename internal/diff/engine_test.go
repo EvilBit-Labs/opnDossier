@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const testPathInterfacesWanIP = "interfaces.wan.ipaddr"
+
 func TestNewEngine(t *testing.T) {
 	old := schema.NewOpnSenseDocument()
 	newCfg := schema.NewOpnSenseDocument()
@@ -199,7 +201,7 @@ func TestEngine_Compare_InterfaceIPChanged(t *testing.T) {
 	// Find the IP change
 	var found bool
 	for _, change := range result.Changes {
-		if change.Path == "interfaces.wan.ipaddr" {
+		if change.Path == testPathInterfacesWanIP {
 			found = true
 			assert.Equal(t, "10.0.0.1", change.OldValue)
 			assert.Equal(t, "10.0.0.2", change.NewValue)
@@ -220,4 +222,153 @@ func TestEngine_Compare_EmptyConfigs(t *testing.T) {
 	assert.NotNil(t, result.Metadata)
 	assert.NotZero(t, result.Metadata.ComparedAt)
 	assert.Equal(t, constants.Version, result.Metadata.ToolVersion)
+}
+
+func TestEngine_Compare_DetectOrder_ReorderedRules(t *testing.T) {
+	old := schema.NewOpnSenseDocument()
+	old.Filter.Rule = []schema.Rule{
+		{UUID: "uuid-1", Type: "pass", Descr: "Allow SSH", Protocol: "tcp"},
+		{UUID: "uuid-2", Type: "pass", Descr: "Allow HTTP", Protocol: "tcp"},
+		{UUID: "uuid-3", Type: "pass", Descr: "Allow DNS", Protocol: "udp"},
+	}
+
+	newCfg := schema.NewOpnSenseDocument()
+	newCfg.Filter.Rule = []schema.Rule{
+		{UUID: "uuid-3", Type: "pass", Descr: "Allow DNS", Protocol: "udp"},
+		{UUID: "uuid-1", Type: "pass", Descr: "Allow SSH", Protocol: "tcp"},
+		{UUID: "uuid-2", Type: "pass", Descr: "Allow HTTP", Protocol: "tcp"},
+	}
+
+	engine := NewEngine(old, newCfg, Options{DetectOrder: true}, nil)
+	result, err := engine.Compare(context.Background())
+
+	require.NoError(t, err)
+	assert.True(t, result.HasChanges())
+	assert.Positive(t, result.Summary.Reordered, "should detect reordered rules")
+
+	// Verify reorder changes have ChangeReordered type
+	for _, c := range result.Changes {
+		if c.Type == ChangeReordered {
+			assert.Equal(t, SectionFirewall, c.Section)
+			assert.Contains(t, c.Path, "filter.rule[uuid=")
+		}
+	}
+}
+
+func TestEngine_Compare_DetectOrder_Disabled(t *testing.T) {
+	old := schema.NewOpnSenseDocument()
+	old.Filter.Rule = []schema.Rule{
+		{UUID: "uuid-1", Type: "pass", Descr: "Allow SSH", Protocol: "tcp"},
+		{UUID: "uuid-2", Type: "pass", Descr: "Allow HTTP", Protocol: "tcp"},
+	}
+
+	newCfg := schema.NewOpnSenseDocument()
+	newCfg.Filter.Rule = []schema.Rule{
+		{UUID: "uuid-2", Type: "pass", Descr: "Allow HTTP", Protocol: "tcp"},
+		{UUID: "uuid-1", Type: "pass", Descr: "Allow SSH", Protocol: "tcp"},
+	}
+
+	// DetectOrder is false (default), so no reorder changes
+	engine := NewEngine(old, newCfg, Options{DetectOrder: false}, nil)
+	result, err := engine.Compare(context.Background())
+
+	require.NoError(t, err)
+	assert.Equal(t, 0, result.Summary.Reordered, "should not detect reorders when disabled")
+}
+
+func TestEngine_Compare_DetectOrder_ExcludesContentChanges(t *testing.T) {
+	old := schema.NewOpnSenseDocument()
+	old.Filter.Rule = []schema.Rule{
+		{UUID: "uuid-1", Type: "pass", Descr: "Allow SSH", Protocol: "tcp"},
+		{UUID: "uuid-2", Type: "pass", Descr: "Allow HTTP", Protocol: "tcp"},
+	}
+
+	newCfg := schema.NewOpnSenseDocument()
+	newCfg.Filter.Rule = []schema.Rule{
+		// uuid-2 moved to position 0 AND its description changed
+		{UUID: "uuid-2", Type: "pass", Descr: "Allow HTTPS", Protocol: "tcp"},
+		{UUID: "uuid-1", Type: "pass", Descr: "Allow SSH", Protocol: "tcp"},
+	}
+
+	engine := NewEngine(old, newCfg, Options{DetectOrder: true}, nil)
+	result, err := engine.Compare(context.Background())
+
+	require.NoError(t, err)
+	assert.True(t, result.HasChanges())
+
+	// uuid-2 should appear as modified (content change), not also as reordered
+	for _, c := range result.Changes {
+		if c.Type == ChangeReordered && c.Path == "filter.rule[uuid=uuid-2]" {
+			t.Error("uuid-2 should not appear as reordered when it also has content changes")
+		}
+	}
+}
+
+func TestEngine_Compare_Normalize_IPAddresses(t *testing.T) {
+	old := schema.NewOpnSenseDocument()
+	old.Interfaces.Items = map[string]schema.Interface{
+		"wan": {IPAddr: "010.000.001.001", Subnet: "24", Descr: "WAN"},
+	}
+
+	newCfg := schema.NewOpnSenseDocument()
+	newCfg.Interfaces.Items = map[string]schema.Interface{
+		"wan": {IPAddr: "010.000.001.002", Subnet: "24", Descr: "WAN"},
+	}
+
+	engine := NewEngine(old, newCfg, Options{Normalize: true}, nil)
+	result, err := engine.Compare(context.Background())
+
+	require.NoError(t, err)
+	assert.True(t, result.HasChanges())
+
+	// Find the IP change - values should be normalized
+	for _, c := range result.Changes {
+		if c.Path == testPathInterfacesWanIP {
+			assert.Equal(t, "10.0.1.1", c.OldValue, "old IP should be normalized")
+			assert.Equal(t, "10.0.1.2", c.NewValue, "new IP should be normalized")
+		}
+	}
+}
+
+func TestEngine_Compare_Normalize_SkipsCosmeticDiffs(t *testing.T) {
+	old := schema.NewOpnSenseDocument()
+	old.Interfaces.Items = map[string]schema.Interface{
+		"wan": {IPAddr: "010.000.001.001", Subnet: "24", Descr: "WAN"},
+	}
+
+	newCfg := schema.NewOpnSenseDocument()
+	newCfg.Interfaces.Items = map[string]schema.Interface{
+		// Same IP with different leading zeros - normalization makes them equal
+		"wan": {IPAddr: "10.0.1.1", Subnet: "24", Descr: "WAN"},
+	}
+
+	engine := NewEngine(old, newCfg, Options{Normalize: true}, nil)
+	result, err := engine.Compare(context.Background())
+
+	require.NoError(t, err)
+
+	// The IP change should be skipped because normalized values are equal
+	for _, c := range result.Changes {
+		if c.Path == testPathInterfacesWanIP {
+			t.Error("cosmetic IP difference should be skipped when normalize is enabled")
+		}
+	}
+}
+
+func TestEngine_Compare_RiskSummary_Populated(t *testing.T) {
+	old := schema.NewOpnSenseDocument()
+	old.Filter.Rule = []schema.Rule{}
+
+	newCfg := schema.NewOpnSenseDocument()
+	newCfg.Filter.Rule = []schema.Rule{
+		{UUID: "uuid-1", Type: "pass", Descr: "Allow any", Protocol: "any"},
+	}
+
+	engine := NewEngine(old, newCfg, Options{}, nil)
+	result, err := engine.Compare(context.Background())
+
+	require.NoError(t, err)
+	assert.True(t, result.HasChanges())
+	// Risk summary should be computed (score may vary based on patterns)
+	assert.NotNil(t, result.RiskSummary)
 }

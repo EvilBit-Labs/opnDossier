@@ -1,0 +1,39 @@
+{
+  "summary": {
+    "added": 0,
+    "removed": 0,
+    "modified": 2,
+    "reordered": 0,
+    "total": 2
+  },
+  "metadata": {
+    "old_file": "baseline.xml",
+    "new_file": "updated.xml",
+    "compared_at": "2026-01-15T10:30:00Z",
+    "tool_version": "1.0.0"
+  },
+  "changes": [
+    {
+      "type": "modified",
+      "section": "system",
+      "path": "system.hostname",
+      "description": "Hostname changed",
+      "old_value": "fw-prod-01",
+      "new_value": "fw-prod-02"
+    },
+    {
+      "type": "modified",
+      "section": "system",
+      "path": "system.timezone",
+      "description": "Timezone changed",
+      "old_value": "America/New_York",
+      "new_value": "UTC"
+    }
+  ],
+  "risk_summary": {
+    "score": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0
+  }
+}
