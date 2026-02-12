@@ -95,23 +95,14 @@ func (n *Normalizer) NormalizePort(s string) string {
 		return s
 	}
 
-	// Handle port ranges
-	if strings.Contains(s, "-") {
-		parts := strings.SplitN(s, "-", rangeParts)
+	// Single-pass separator detection for range formats
+	if idx := strings.IndexAny(s, "-:"); idx >= 0 {
+		sep := string(s[idx])
+		parts := strings.SplitN(s, sep, rangeParts)
 		if len(parts) == rangeParts {
 			start := n.normalizePortNumber(parts[0])
 			end := n.normalizePortNumber(parts[1])
-			return start + "-" + end
-		}
-	}
-
-	// Handle colon-separated ranges (OPNsense uses this format too)
-	if strings.Contains(s, ":") {
-		parts := strings.SplitN(s, ":", rangeParts)
-		if len(parts) == rangeParts {
-			start := n.normalizePortNumber(parts[0])
-			end := n.normalizePortNumber(parts[1])
-			return start + ":" + end
+			return start + sep + end
 		}
 	}
 

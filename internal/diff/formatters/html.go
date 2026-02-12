@@ -18,6 +18,13 @@ var stylesCSS string
 //go:embed static/scripts.js
 var scriptsJS string
 
+// parsedReportTemplate is the pre-parsed HTML template, compiled once at package init.
+var parsedReportTemplate = htmltemplate.Must(
+	htmltemplate.New("report").Funcs(htmltemplate.FuncMap{
+		"capitalize": capitalizeFirst,
+	}).Parse(reportTemplate),
+)
+
 // HTMLFormatter formats diff results as a self-contained HTML report.
 type HTMLFormatter struct {
 	writer io.Writer
@@ -46,15 +53,6 @@ type htmlTemplateData struct {
 
 // Format formats the diff result as a self-contained HTML document.
 func (f *HTMLFormatter) Format(result *diff.Result) error {
-	funcMap := htmltemplate.FuncMap{
-		"capitalize": capitalizeFirst,
-	}
-
-	tmpl, err := htmltemplate.New("report").Funcs(funcMap).Parse(reportTemplate)
-	if err != nil {
-		return err
-	}
-
 	data := htmlTemplateData{
 		Result: result,
 		//nolint:gosec // G203: CSS is embedded from our own static files, not user input
@@ -64,7 +62,7 @@ func (f *HTMLFormatter) Format(result *diff.Result) error {
 		Sections: sortedSections(result),
 	}
 
-	return tmpl.Execute(f.writer, data)
+	return parsedReportTemplate.Execute(f.writer, data)
 }
 
 // sortedSections returns changes grouped by section, sorted alphabetically.

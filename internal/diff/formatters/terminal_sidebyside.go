@@ -195,21 +195,16 @@ func (f *SideBySideFormatter) formatChangeSideBySide(change diff.Change, colWidt
 	// Security badge
 	secBadge := ""
 	if change.SecurityImpact != "" {
-		secBadge = fmt.Sprintf(" [%s]", strings.ToUpper(change.SecurityImpact))
+		badgeText := fmt.Sprintf("[%s]", strings.ToUpper(change.SecurityImpact))
+		secBadge = " " + badgeText
 		if f.useStyles {
 			switch change.SecurityImpact {
 			case "high":
-				secBadge = " " + f.styles.securityHigh.Render(
-					fmt.Sprintf("[%s]", strings.ToUpper(change.SecurityImpact)),
-				)
+				secBadge = " " + f.styles.securityHigh.Render(badgeText)
 			case "medium":
-				secBadge = " " + f.styles.securityMedium.Render(
-					fmt.Sprintf("[%s]", strings.ToUpper(change.SecurityImpact)),
-				)
+				secBadge = " " + f.styles.securityMedium.Render(badgeText)
 			case "low":
-				secBadge = " " + f.styles.securityLow.Render(
-					fmt.Sprintf("[%s]", strings.ToUpper(change.SecurityImpact)),
-				)
+				secBadge = " " + f.styles.securityLow.Render(badgeText)
 			}
 		}
 	}

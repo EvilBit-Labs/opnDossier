@@ -60,6 +60,9 @@ func (s *Scorer) Score(change ChangeInput) string {
 	for _, p := range s.patterns {
 		if s.matches(p, change) {
 			highestImpact = higherImpact(highestImpact, p.Impact)
+			if highestImpact == impactHigh {
+				break // "high" is the maximum; no need to check remaining patterns
+			}
 		}
 	}
 
