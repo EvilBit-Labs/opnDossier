@@ -65,10 +65,16 @@ func (e *Engine) Compare(ctx context.Context) (*Result, error) {
 
 		changes := e.compareSection(section)
 		for i := range changes {
-			// Normalize displayed values if requested (cosmetic, does not affect comparison)
+			// Normalize displayed values if requested; skip changes where
+			// normalized values are equal (cosmetic-only differences)
 			if e.opts.Normalize {
-				changes[i].OldValue = e.normalizeValue(changes[i].OldValue)
-				changes[i].NewValue = e.normalizeValue(changes[i].NewValue)
+				normOld := e.normalizeValue(changes[i].OldValue)
+				normNew := e.normalizeValue(changes[i].NewValue)
+				if changes[i].Type == ChangeModified && normOld == normNew {
+					continue // Normalization removed any meaningful difference
+				}
+				changes[i].OldValue = normOld
+				changes[i].NewValue = normNew
 			}
 
 			// Augment with pattern-based security scoring for changes without explicit impact

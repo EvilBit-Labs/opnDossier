@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const testPathInterfacesWanIP = "interfaces.wan.ipaddr"
+
 func TestNewEngine(t *testing.T) {
 	old := schema.NewOpnSenseDocument()
 	newCfg := schema.NewOpnSenseDocument()
@@ -199,7 +201,7 @@ func TestEngine_Compare_InterfaceIPChanged(t *testing.T) {
 	// Find the IP change
 	var found bool
 	for _, change := range result.Changes {
-		if change.Path == "interfaces.wan.ipaddr" {
+		if change.Path == testPathInterfacesWanIP {
 			found = true
 			assert.Equal(t, "10.0.0.1", change.OldValue)
 			assert.Equal(t, "10.0.0.2", change.NewValue)
@@ -321,9 +323,34 @@ func TestEngine_Compare_Normalize_IPAddresses(t *testing.T) {
 
 	// Find the IP change - values should be normalized
 	for _, c := range result.Changes {
-		if c.Path == "interfaces.wan.ipaddr" {
+		if c.Path == testPathInterfacesWanIP {
 			assert.Equal(t, "10.0.1.1", c.OldValue, "old IP should be normalized")
 			assert.Equal(t, "10.0.1.2", c.NewValue, "new IP should be normalized")
+		}
+	}
+}
+
+func TestEngine_Compare_Normalize_SkipsCosmeticDiffs(t *testing.T) {
+	old := schema.NewOpnSenseDocument()
+	old.Interfaces.Items = map[string]schema.Interface{
+		"wan": {IPAddr: "010.000.001.001", Subnet: "24", Descr: "WAN"},
+	}
+
+	newCfg := schema.NewOpnSenseDocument()
+	newCfg.Interfaces.Items = map[string]schema.Interface{
+		// Same IP with different leading zeros - normalization makes them equal
+		"wan": {IPAddr: "10.0.1.1", Subnet: "24", Descr: "WAN"},
+	}
+
+	engine := NewEngine(old, newCfg, Options{Normalize: true}, nil)
+	result, err := engine.Compare(context.Background())
+
+	require.NoError(t, err)
+
+	// The IP change should be skipped because normalized values are equal
+	for _, c := range result.Changes {
+		if c.Path == testPathInterfacesWanIP {
+			t.Error("cosmetic IP difference should be skipped when normalize is enabled")
 		}
 	}
 }
