@@ -252,11 +252,11 @@ func changeSymbolMarkdown(changeType diff.ChangeType) string {
 // securityBadge returns a formatted security impact badge.
 func securityBadge(impact string) string {
 	switch strings.ToLower(impact) {
-	case "high":
+	case string(diff.SecurityImpactHigh):
 		return "🔴 HIGH"
-	case "medium":
+	case string(diff.SecurityImpactMedium):
 		return "🟡 MEDIUM"
-	case "low":
+	case string(diff.SecurityImpactLow):
 		return "🟢 LOW"
 	default:
 		return impact

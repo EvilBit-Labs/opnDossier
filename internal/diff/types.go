@@ -3,6 +3,7 @@ package diff
 
 import (
 	"slices"
+	"strings"
 	"time"
 )
 
@@ -16,6 +17,8 @@ const (
 	ChangeRemoved ChangeType = "removed"
 	// ChangeModified indicates an element was modified.
 	ChangeModified ChangeType = "modified"
+	// ChangeReordered indicates an element was moved but not modified.
+	ChangeReordered ChangeType = "reordered"
 )
 
 // String returns the string representation of the change type.
@@ -32,6 +35,8 @@ func (c ChangeType) Symbol() string {
 		return "-"
 	case ChangeModified:
 		return "~"
+	case ChangeReordered:
+		return "↕"
 	default:
 		return "?"
 	}
@@ -40,7 +45,7 @@ func (c ChangeType) Symbol() string {
 // IsValid returns true if the change type is a valid value.
 func (c ChangeType) IsValid() bool {
 	switch c {
-	case ChangeAdded, ChangeRemoved, ChangeModified:
+	case ChangeAdded, ChangeRemoved, ChangeModified, ChangeReordered:
 		return true
 	default:
 		return false
@@ -177,11 +182,33 @@ type Metadata struct {
 	ToolVersion string    `json:"tool_version"`
 }
 
+// RiskSummary contains aggregate security risk information.
+type RiskSummary struct {
+	Score    int        `json:"score"`
+	High     int        `json:"high"`
+	Medium   int        `json:"medium"`
+	Low      int        `json:"low"`
+	TopRisks []RiskItem `json:"top_risks,omitempty"`
+}
+
+// RiskItem describes a single high-priority risk.
+type RiskItem struct {
+	Path        string `json:"path"`
+	Description string `json:"description"`
+	Impact      string `json:"impact"`
+}
+
+// HasRisks returns true if any security impacts were detected.
+func (r *RiskSummary) HasRisks() bool {
+	return r.High > 0 || r.Medium > 0 || r.Low > 0
+}
+
 // Result contains the complete diff result.
 type Result struct {
-	Summary  Summary  `json:"summary"`
-	Metadata Metadata `json:"metadata"`
-	Changes  []Change `json:"changes"`
+	Summary     Summary     `json:"summary"`
+	Metadata    Metadata    `json:"metadata"`
+	Changes     []Change    `json:"changes"`
+	RiskSummary RiskSummary `json:"risk_summary"`
 }
 
 // NewResult creates a new Result with initialized slices.
@@ -223,13 +250,19 @@ func (r *Result) HasChanges() bool {
 type Options struct {
 	Sections     []string // Filter to specific sections (empty = all)
 	SecurityOnly bool     // Show only security-relevant changes
-	Format       string   // Output format (terminal, markdown, json)
+	Format       string   // Output format (terminal, markdown, json, html)
+	Normalize    bool     // Normalize values before comparing to reduce noise
+	DetectOrder  bool     // Detect reordered rules without content changes
+	Mode         string   // Display mode (unified, side-by-side)
 }
 
 // ShouldIncludeSection returns true if the section should be included.
+// Comparison is case-insensitive to handle user input normalization.
 func (o *Options) ShouldIncludeSection(section Section) bool {
 	if len(o.Sections) == 0 {
 		return true
 	}
-	return slices.Contains(o.Sections, section.String())
+	return slices.ContainsFunc(o.Sections, func(s string) bool {
+		return strings.EqualFold(s, section.String())
+	})
 }

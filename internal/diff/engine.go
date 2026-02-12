@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
+	"github.com/EvilBit-Labs/opnDossier/internal/diff/security"
 	"github.com/EvilBit-Labs/opnDossier/internal/log"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
@@ -19,6 +20,7 @@ type Engine struct {
 	opts      Options
 	logger    *log.Logger
 	analyzer  *Analyzer
+	scorer    *security.Scorer
 }
 
 // NewEngine creates a new diff engine.
@@ -29,6 +31,7 @@ func NewEngine(old, newCfg *model.OpnSenseDocument, opts Options, logger *log.Lo
 		opts:      opts,
 		logger:    logger,
 		analyzer:  NewAnalyzer(),
+		scorer:    security.NewScorer(),
 	}
 }
 
@@ -47,23 +50,66 @@ func (e *Engine) Compare(ctx context.Context) (*Result, error) {
 	default:
 	}
 
-	// Compare each section
-	for _, section := range AllSections() {
+	// Compare each implemented section (unimplemented sections are rejected at flag validation)
+	for _, section := range ImplementedSections() {
 		if !e.opts.ShouldIncludeSection(section) {
 			continue
 		}
 
 		changes := e.compareSection(section)
-		for _, change := range changes {
+		for i := range changes {
+			// Augment with pattern-based security scoring for changes without explicit impact
+			if changes[i].SecurityImpact == "" {
+				changes[i].SecurityImpact = e.scorer.Score(security.ChangeInput{
+					Type:    changes[i].Type.String(),
+					Section: changes[i].Section.String(),
+					Path:    changes[i].Path,
+				})
+			}
+
 			// Filter security-only if requested
-			if e.opts.SecurityOnly && change.SecurityImpact == "" {
+			if e.opts.SecurityOnly && changes[i].SecurityImpact == "" {
 				continue
 			}
-			result.AddChange(change)
+			result.AddChange(changes[i])
 		}
 	}
 
+	// Compute aggregate risk summary
+	result.RiskSummary = e.computeRiskSummary(result)
+
 	return result, nil
+}
+
+// computeRiskSummary calculates the aggregate risk summary from scored changes.
+func (e *Engine) computeRiskSummary(result *Result) RiskSummary {
+	inputs := make([]security.ChangeInput, len(result.Changes))
+	for i, c := range result.Changes {
+		inputs[i] = security.ChangeInput{
+			Type:           c.Type.String(),
+			Section:        c.Section.String(),
+			Path:           c.Path,
+			Description:    c.Description,
+			SecurityImpact: c.SecurityImpact,
+		}
+	}
+
+	scored := e.scorer.ScoreAll(inputs)
+
+	rs := RiskSummary{
+		Score:  scored.Score,
+		High:   scored.High,
+		Medium: scored.Medium,
+		Low:    scored.Low,
+	}
+	for _, item := range scored.TopRisks {
+		rs.TopRisks = append(rs.TopRisks, RiskItem{
+			Path:        item.Path,
+			Description: item.Description,
+			Impact:      item.Impact,
+		})
+	}
+	return rs
 }
 
 // compareSection dispatches to section-specific comparers.

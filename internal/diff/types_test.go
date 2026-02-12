@@ -169,6 +169,18 @@ func TestOptions_ShouldIncludeSection(t *testing.T) {
 			section:  SectionSystem,
 			expected: false,
 		},
+		{
+			name:     "case-insensitive match uppercase",
+			opts:     Options{Sections: []string{"Firewall"}},
+			section:  SectionFirewall,
+			expected: true,
+		},
+		{
+			name:     "case-insensitive match mixed case",
+			opts:     Options{Sections: []string{"SYSTEM", "NAT"}},
+			section:  SectionNAT,
+			expected: true,
+		},
 	}
 
 	for _, tt := range tests {

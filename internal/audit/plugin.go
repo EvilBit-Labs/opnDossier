@@ -1,5 +1,4 @@
-// Package audit provides security audit functionality for OPNsense configurations
-// against industry-standard compliance frameworks through a plugin-based architecture.
+// Package audit provides security audit functionality for OPNsense configurations against industry-standard compliance frameworks through a plugin-based architecture.
 package audit
 
 import (

@@ -20,9 +20,12 @@ import (
 // Diff command flags.
 var (
 	diffOutputFile   string   //nolint:gochecknoglobals // Cobra flag variable
-	diffFormat       string   //nolint:gochecknoglobals // Output format (terminal, markdown, json)
+	diffFormat       string   //nolint:gochecknoglobals // Output format (terminal, markdown, json, html)
+	diffMode         string   //nolint:gochecknoglobals // Display mode (unified, side-by-side)
 	diffSections     []string //nolint:gochecknoglobals // Sections to compare
 	diffSecurityOnly bool     //nolint:gochecknoglobals // Show only security-relevant changes
+	diffNormalize    bool     //nolint:gochecknoglobals // Normalize values before comparing
+	diffDetectOrder  bool     //nolint:gochecknoglobals // Detect rule reordering
 )
 
 // Diff format constants.
@@ -33,6 +36,16 @@ const (
 	DiffFormatMarkdown = "markdown"
 	// DiffFormatJSON specifies JSON output for diffs.
 	DiffFormatJSON = "json"
+	// DiffFormatHTML specifies self-contained HTML output for diffs.
+	DiffFormatHTML = "html"
+)
+
+// Diff display mode constants.
+const (
+	// DiffModeUnified specifies unified (default) display mode.
+	DiffModeUnified = "unified"
+	// DiffModeSideBySide specifies side-by-side display mode.
+	DiffModeSideBySide = "side-by-side"
 )
 
 // diffRequiredArgs is the number of required arguments for the diff command.
@@ -46,13 +59,21 @@ func init() {
 	diffCmd.Flags().
 		StringVarP(&diffOutputFile, "output", "o", "", "Output file path (default: print to console)")
 	diffCmd.Flags().
-		StringVarP(&diffFormat, "format", "f", DiffFormatTerminal, "Output format (terminal, markdown, json)")
+		StringVarP(&diffFormat, "format", "f", DiffFormatTerminal, "Output format (terminal, markdown, json, html)")
+	diffCmd.Flags().
+		StringVarP(&diffMode, "mode", "m", DiffModeUnified, "Display mode (unified, side-by-side)")
 
 	// Filter flags
 	diffCmd.Flags().
 		StringSliceVarP(&diffSections, "section", "s", nil, "Sections to compare (default: all)")
 	diffCmd.Flags().
 		BoolVar(&diffSecurityOnly, "security", false, "Show only security-relevant changes")
+
+	// Analysis flags
+	diffCmd.Flags().
+		BoolVar(&diffNormalize, "normalize", false, "Normalize values before comparing (whitespace, IPs, ports)")
+	diffCmd.Flags().
+		BoolVar(&diffDetectOrder, "detect-order", false, "Detect rule reordering without content changes")
 
 	// Register flag completions
 	registerDiffFlagCompletions(diffCmd)
@@ -66,6 +87,9 @@ func registerDiffFlagCompletions(cmd *cobra.Command) {
 	if err := cmd.RegisterFlagCompletionFunc("format", ValidDiffFormats); err != nil {
 		logger.Warn("failed to register format completion", "error", err)
 	}
+	if err := cmd.RegisterFlagCompletionFunc("mode", ValidDiffModes); err != nil {
+		logger.Warn("failed to register mode completion", "error", err)
+	}
 	if err := cmd.RegisterFlagCompletionFunc("section", ValidDiffSections); err != nil {
 		logger.Warn("failed to register section completion", "error", err)
 	}
@@ -77,6 +101,15 @@ func ValidDiffFormats(_ *cobra.Command, _ []string, _ string) ([]string, cobra.S
 		DiffFormatTerminal + "\tColor-coded terminal output",
 		DiffFormatMarkdown + "\tMarkdown formatted output",
 		DiffFormatJSON + "\tJSON structured output",
+		DiffFormatHTML + "\tSelf-contained HTML report",
+	}, cobra.ShellCompDirectiveNoFileComp
+}
+
+// ValidDiffModes provides completion for diff mode flag.
+func ValidDiffModes(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	return []string{
+		DiffModeUnified + "\tStandard unified diff view (default)",
+		DiffModeSideBySide + "\tTwo-column side-by-side comparison",
 	}, cobra.ShellCompDirectiveNoFileComp
 }
 
@@ -112,12 +145,17 @@ Unlike a simple XML diff, this command understands OPNsense configuration semant
   - Firewall rules are matched by UUID and compared structurally
   - Interfaces are compared by name with detailed field-level changes
   - Static DHCP reservations are tracked by MAC address
-  - Security-impacting changes are flagged (high/medium/low)
+  - Security-impacting changes are scored by a pattern-based engine (high/medium/low)
 
 OUTPUT FORMATS:
   terminal   - Color-coded terminal output with symbols (+/-/~)
   markdown   - Markdown formatted output for documentation
   json       - JSON structured output for automation
+  html       - Self-contained HTML report (offline-first, no CDN)
+
+DISPLAY MODES:
+  unified      - Standard diff view (default)
+  side-by-side - Two-column comparison (terminal and HTML)
 
 SECTIONS:
   system      - System settings (hostname, domain, timezone)
@@ -129,8 +167,12 @@ SECTIONS:
   users       - User accounts
   routing     - Static routes
 
+ANALYSIS OPTIONS:
+  --normalize     Normalize values before comparing (whitespace, IPs, ports)
+  --detect-order  Detect when rules are reordered without content changes
+
 SECURITY IMPACT:
-  Changes are flagged with security impact levels:
+  Changes are scored by a pattern-based security engine:
   - HIGH: Permissive rules (any-any), risky configurations
   - MEDIUM: User changes, NAT modifications, protocol downgrades
   - LOW: Minor modifications with limited security relevance
@@ -152,7 +194,16 @@ Examples:
   opndossier diff old-config.xml new-config.xml -f json | jq '.changes[]'
 
   # Compare multiple sections
-  opndossier diff old-config.xml new-config.xml -s firewall,nat,interfaces`,
+  opndossier diff old-config.xml new-config.xml -s firewall,nat,interfaces
+
+  # Generate self-contained HTML report
+  opndossier diff old-config.xml new-config.xml -f html -o report.html
+
+  # Side-by-side terminal comparison
+  opndossier diff old-config.xml new-config.xml -m side-by-side
+
+  # Normalize values and detect reordering
+  opndossier diff old-config.xml new-config.xml --normalize --detect-order`,
 	Args: cobra.ExactArgs(diffRequiredArgs),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
@@ -192,6 +243,9 @@ Examples:
 			Sections:     diffSections,
 			SecurityOnly: diffSecurityOnly,
 			Format:       diffFormat,
+			Mode:         diffMode,
+			Normalize:    diffNormalize,
+			DetectOrder:  diffDetectOrder,
 		}
 
 		// Create diff engine and compare
@@ -258,23 +312,13 @@ func outputDiffResult(cmd *cobra.Command, result *diff.Result, opts diff.Options
 		output = outputFile
 	}
 
-	// Format based on requested format
-	var formatErr error
-	switch strings.ToLower(opts.Format) {
-	case DiffFormatTerminal, "":
-		formatter := formatters.NewTerminalFormatter(output)
-		formatErr = formatter.Format(result)
-	case DiffFormatMarkdown:
-		formatter := formatters.NewMarkdownFormatter(output)
-		formatErr = formatter.Format(result)
-	case DiffFormatJSON:
-		formatter := formatters.NewJSONFormatter(output)
-		formatErr = formatter.Format(result)
-	default:
-		return fmt.Errorf("unsupported diff format: %s", opts.Format)
+	// Create formatter via factory
+	formatter, err := formatters.NewWithMode(opts.Format, opts.Mode, output)
+	if err != nil {
+		return fmt.Errorf("unsupported diff format: %w", err)
 	}
 
-	if formatErr != nil {
+	if formatErr := formatter.Format(result); formatErr != nil {
 		return formatErr
 	}
 
@@ -291,10 +335,20 @@ func outputDiffResult(cmd *cobra.Command, result *diff.Result, opts diff.Options
 // validateDiffFlags validates the diff command flags.
 func validateDiffFlags() error {
 	// Validate format
-	validFormats := []string{DiffFormatTerminal, DiffFormatMarkdown, DiffFormatJSON, ""}
+	validFormats := []string{DiffFormatTerminal, DiffFormatMarkdown, DiffFormatJSON, DiffFormatHTML, ""}
 	if !slices.Contains(validFormats, strings.ToLower(diffFormat)) {
-		return fmt.Errorf("invalid format %q, must be one of: %s",
-			diffFormat, strings.Join([]string{DiffFormatTerminal, DiffFormatMarkdown, DiffFormatJSON}, ", "))
+		return fmt.Errorf(
+			"invalid format %q, must be one of: %s",
+			diffFormat,
+			strings.Join([]string{DiffFormatTerminal, DiffFormatMarkdown, DiffFormatJSON, DiffFormatHTML}, ", "),
+		)
+	}
+
+	// Validate mode
+	validModes := []string{DiffModeUnified, DiffModeSideBySide, ""}
+	if !slices.Contains(validModes, strings.ToLower(diffMode)) {
+		return fmt.Errorf("invalid mode %q, must be one of: %s",
+			diffMode, DiffModeUnified+", "+DiffModeSideBySide)
 	}
 
 	// Sections that are implemented
@@ -321,22 +375,25 @@ func validateDiffFlags() error {
 	allSections = append(allSections, implementedSections...)
 	allSections = append(allSections, unimplementedSections...)
 
-	// Validate sections if provided
+	// Validate and normalize sections if provided
 	if len(diffSections) > 0 {
-		for _, s := range diffSections {
-			sLower := strings.ToLower(s)
+		for i, s := range diffSections {
+			normalized := strings.ToLower(strings.TrimSpace(s))
 
 			// Check if it's an unimplemented section
-			if slices.Contains(unimplementedSections, sLower) {
+			if slices.Contains(unimplementedSections, normalized) {
 				return fmt.Errorf("section %q comparison is not yet implemented; available sections: %s",
 					s, strings.Join(implementedSections, ", "))
 			}
 
 			// Check if it's a valid section at all
-			if !slices.Contains(allSections, sLower) {
+			if !slices.Contains(allSections, normalized) {
 				return fmt.Errorf("invalid section %q, must be one of: %s",
 					s, strings.Join(implementedSections, ", "))
 			}
+
+			// Normalize in place for downstream consumers
+			diffSections[i] = normalized
 		}
 	}
 

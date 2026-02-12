@@ -331,9 +331,9 @@ func (r *Report) ToMarkdown() string {
 // Helper functions for Markdown generation
 
 func (r *Report) addHeader(md *markdown.Markdown) {
-	md.H1("OPNsense Configuration Analysis Report")
-	md.PlainTextf("Generated: %s", r.GeneratedAt.Format(time.RFC3339))
-	md.LF()
+	md.H1("OPNsense Configuration Analysis Report").
+		PlainTextf("Generated: %s", r.GeneratedAt.Format(time.RFC3339)).
+		LF()
 }
 
 func (r *Report) addConfigInfo(md *markdown.Markdown) {
@@ -353,8 +353,6 @@ func (r *Report) addConfigInfo(md *markdown.Markdown) {
 }
 
 func (r *Report) addStatistics(md *markdown.Markdown) {
-	md.H2("Configuration Statistics")
-	md.H3("Overview")
 	overviewItems := []string{
 		fmt.Sprintf("%s: %d", markdown.Bold("Total Interfaces"), r.Statistics.TotalInterfaces),
 		fmt.Sprintf("%s: %d", markdown.Bold("Firewall Rules"), r.Statistics.TotalFirewallRules),
@@ -365,18 +363,22 @@ func (r *Report) addStatistics(md *markdown.Markdown) {
 		fmt.Sprintf("%s: %d", markdown.Bold("Services"), r.Statistics.TotalServices),
 		fmt.Sprintf("%s: %d", markdown.Bold("Sysctl Settings"), r.Statistics.SysctlSettings),
 	}
-	md.BulletList(overviewItems...)
-	md.LF()
 
-	md.H3("Summary Metrics")
 	summaryItems := []string{
 		fmt.Sprintf("%s: %d", markdown.Bold("Total Configuration Items"), r.Statistics.Summary.TotalConfigItems),
 		fmt.Sprintf("%s: %d/100", markdown.Bold("Security Score"), r.Statistics.Summary.SecurityScore),
 		fmt.Sprintf("%s: %d/100", markdown.Bold("Configuration Complexity"), r.Statistics.Summary.ConfigComplexity),
 		fmt.Sprintf("%s: %t", markdown.Bold("Has Security Features"), r.Statistics.Summary.HasSecurityFeatures),
 	}
-	md.BulletList(summaryItems...)
-	md.LF()
+
+	md.
+		H2("Configuration Statistics").
+		H3("Overview").
+		BulletList(overviewItems...).
+		LF().
+		H3("Summary Metrics").
+		BulletList(summaryItems...).
+		LF()
 
 	addInterfaceDetails(md, "Interface Details", r.Statistics.InterfaceDetails)
 	addStatisticsList(md, "Firewall Rules by Interface", r.Statistics.RulesByInterface, " rules")
@@ -386,15 +388,14 @@ func (r *Report) addStatistics(md *markdown.Markdown) {
 	addStatisticsList(md, "Groups by Scope", r.Statistics.GroupsByScope, " groups")
 
 	if len(r.Statistics.EnabledServices) > 0 {
-		md.H3("Enabled Services")
-		md.BulletList(r.Statistics.EnabledServices...)
-		md.LF()
+		md.H3("Enabled Services").
+			BulletList(r.Statistics.EnabledServices...).
+			LF()
 	}
 
 	if len(r.Statistics.ServiceDetails) > 0 {
 		md.H3("Service Details")
 		for _, service := range r.Statistics.ServiceDetails {
-			md.H4(service.Name)
 			serviceItems := []string{
 				fmt.Sprintf("%s: %t", markdown.Bold("Enabled"), service.Enabled),
 			}
@@ -403,38 +404,43 @@ func (r *Report) addStatistics(md *markdown.Markdown) {
 			for _, k := range detailKeys {
 				serviceItems = append(serviceItems, fmt.Sprintf("%s: %s", markdown.Bold(k), service.Details[k]))
 			}
-			md.BulletList(serviceItems...)
-			md.LF()
+
+			md.
+				H4(service.Name).
+				BulletList(serviceItems...).
+				LF()
 		}
 	}
 
 	if len(r.Statistics.SecurityFeatures) > 0 {
-		md.H3("Security Features")
-		md.BulletList(r.Statistics.SecurityFeatures...)
-		md.LF()
+		md.
+			H3("Security Features").
+			BulletList(r.Statistics.SecurityFeatures...).
+			LF()
 	}
 
 	if r.Statistics.NATMode != "" {
-		md.H3("NAT Configuration")
 		natItems := []string{
 			fmt.Sprintf("%s: %s", markdown.Bold("NAT Mode"), r.Statistics.NATMode),
 			fmt.Sprintf("%s: %d", markdown.Bold("NAT Entries"), r.Statistics.NATEntries),
 		}
-		md.BulletList(natItems...)
-		md.LF()
+		md.
+			H3("NAT Configuration").
+			BulletList(natItems...).
+			LF()
 	}
 
 	if r.Statistics.LoadBalancerMonitors > 0 {
-		md.H3("Load Balancer")
 		lbItems := []string{
 			fmt.Sprintf("%s: %d", markdown.Bold("Monitors"), r.Statistics.LoadBalancerMonitors),
 		}
-		md.BulletList(lbItems...)
-		md.LF()
+		md.
+			H3("Load Balancer").
+			BulletList(lbItems...).
+			LF()
 	}
 
 	if r.Statistics.IDSEnabled {
-		md.H3("IDS/IPS Configuration")
 		idsItems := []string{
 			markdown.Bold("Status") + ": Enabled",
 			fmt.Sprintf("%s: %s", markdown.Bold("Mode"), r.Statistics.IDSMode),
@@ -450,8 +456,11 @@ func (r *Report) addStatistics(md *markdown.Markdown) {
 		}
 		idsItems = append(idsItems, fmt.Sprintf("%s: %t",
 			markdown.Bold("Logging Enabled"), r.Statistics.IDSLoggingEnabled))
-		md.BulletList(idsItems...)
-		md.LF()
+
+		md.
+			H3("IDS/IPS Configuration").
+			BulletList(idsItems...).
+			LF()
 	}
 }
 
@@ -459,13 +468,15 @@ func (r *Report) addStatistics(md *markdown.Markdown) {
 func (r *Report) addFindingsUnsafe(md *markdown.Markdown) {
 	md.H2("Analysis Findings")
 	if r.totalFindingsUnsafe() == 0 {
-		md.PlainText("No findings to report.")
-		md.LF()
+		md.
+			PlainText("No findings to report.").
+			LF()
 		return
 	}
 
-	md.PlainText(fmt.Sprintf("Total findings: %d", r.totalFindingsUnsafe()))
-	md.LF()
+	md.
+		PlainText(fmt.Sprintf("Total findings: %d", r.totalFindingsUnsafe())).
+		LF()
 
 	r.addFindingsSection(md, "Critical", r.Findings.Critical)
 	r.addFindingsSection(md, "High", r.Findings.High)
@@ -478,22 +489,22 @@ func addStatisticsList(md *markdown.Markdown, title string, stats map[string]int
 	if len(stats) == 0 {
 		return
 	}
-	md.H3(title)
 	// Sort keys for deterministic output
 	keys := slices.Sorted(maps.Keys(stats))
 	items := make([]string, 0, len(keys))
 	for _, k := range keys {
 		items = append(items, fmt.Sprintf("%s: %d%s", markdown.Bold(k), stats[k], suffix))
 	}
-	md.BulletList(items...)
-	md.LF()
+	md.
+		H3(title).
+		BulletList(items...).
+		LF()
 }
 
 func addInterfaceDetails(md *markdown.Markdown, title string, details []InterfaceStatistics) {
 	if len(details) == 0 {
 		return
 	}
-	md.H3(title)
 	table := markdown.TableSet{
 		Header: []string{"Interface", "Type", "Enabled", "IPv4", "IPv6", "DHCP", "Block Private", "Block Bogons"},
 		Rows:   [][]string{},
@@ -510,15 +521,17 @@ func addInterfaceDetails(md *markdown.Markdown, title string, details []Interfac
 			strconv.FormatBool(detail.BlockBogons),
 		})
 	}
-	md.Table(table)
-	md.LF()
+
+	md.
+		H3(title).
+		Table(table).
+		LF()
 }
 
 func addDHCPScopeDetails(md *markdown.Markdown, title string, details []DHCPScopeStatistics) {
 	if len(details) == 0 {
 		return
 	}
-	md.H3(title)
 	table := markdown.TableSet{
 		Header: []string{"Interface", "Enabled", "Range Start", "Range End"},
 		Rows:   [][]string{},
@@ -531,8 +544,10 @@ func addDHCPScopeDetails(md *markdown.Markdown, title string, details []DHCPScop
 			detail.To,
 		})
 	}
-	md.Table(table)
-	md.LF()
+	md.
+		H3(title).
+		Table(table).
+		LF()
 }
 
 // Summary returns a brief summary of the report.
@@ -540,56 +555,59 @@ func (r *Report) Summary() string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	var summary strings.Builder
+	var buf strings.Builder
+	md := markdown.NewMarkdown(&buf)
 
-	summary.WriteString("OPNsense Configuration Report for " + r.ConfigInfo.Hostname)
-
+	// Title with hostname
+	hostname := r.ConfigInfo.Hostname
 	if r.ConfigInfo.Domain != "" {
-		summary.WriteString("." + r.ConfigInfo.Domain)
+		hostname += "." + r.ConfigInfo.Domain
 	}
+	md.
+		PlainText("OPNsense Configuration Report for " + hostname).
+		LF()
 
-	summary.WriteString("\n")
-
+	// Configuration statistics
 	if r.Statistics != nil {
-		summary.WriteString(
-			fmt.Sprintf("Configuration contains %d interfaces, %d firewall rules, %d users, and %d groups.\n",
-				r.Statistics.TotalInterfaces, r.Statistics.TotalFirewallRules,
-				r.Statistics.TotalUsers, r.Statistics.TotalGroups),
-		)
+		md.
+			PlainTextf("Configuration contains %d interfaces, %d firewall rules, %d users, and %d groups.",
+				r.Statistics.TotalInterfaces,
+				r.Statistics.TotalFirewallRules,
+				r.Statistics.TotalUsers,
+				r.Statistics.TotalGroups).
+			LF()
 	}
 
+	// Findings summary
 	totalFindings := r.totalFindingsUnsafe()
 	if totalFindings == 0 {
-		summary.WriteString("No issues found in the configuration.")
+		md.PlainText("No issues found in the configuration.")
 	} else {
-		summary.WriteString(fmt.Sprintf("Analysis found %d findings: ", totalFindings))
-
 		parts := []string{}
 		if len(r.Findings.Critical) > 0 {
 			parts = append(parts, fmt.Sprintf("%d critical", len(r.Findings.Critical)))
 		}
-
 		if len(r.Findings.High) > 0 {
 			parts = append(parts, fmt.Sprintf("%d high", len(r.Findings.High)))
 		}
-
 		if len(r.Findings.Medium) > 0 {
 			parts = append(parts, fmt.Sprintf("%d medium", len(r.Findings.Medium)))
 		}
-
 		if len(r.Findings.Low) > 0 {
 			parts = append(parts, fmt.Sprintf("%d low", len(r.Findings.Low)))
 		}
-
 		if len(r.Findings.Info) > 0 {
 			parts = append(parts, fmt.Sprintf("%d info", len(r.Findings.Info)))
 		}
 
-		summary.WriteString(strings.Join(parts, ", "))
-		summary.WriteString(".")
+		md.PlainTextf("Analysis found %d findings: %s.", totalFindings, strings.Join(parts, ", "))
 	}
 
-	return summary.String()
+	if err := md.Build(); err != nil {
+		return "Error generating summary"
+	}
+
+	return buf.String()
 }
 
 // addFindingsSection adds a findings section using the markdown library.
@@ -624,9 +642,10 @@ func (r *Report) addFindingsSection(md *markdown.Markdown, title string, finding
 			findingItems = append(findingItems, fmt.Sprintf("%s: %s", markdown.Bold("Reference"), finding.Reference))
 		}
 
-		md.BulletList(findingItems...)
-		md.HorizontalRule()
-		md.LF()
+		md.
+			BulletList(findingItems...).
+			HorizontalRule().
+			LF()
 	}
 }
 
