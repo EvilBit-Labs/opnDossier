@@ -221,7 +221,7 @@
 
 #### Language/Runtime Versions
 
-- **Go**: 1.21.6+ (toolchain: go1.21.7, system: go1.24.5)
+- **Go**: 1.21.6+ (toolchain: go1.21.7, system: go1.25.7)
 - **Python**: 3.11+ (development: 3.13.5 for documentation)
 
 #### Core Libraries and Frameworks
