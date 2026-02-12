@@ -81,27 +81,22 @@ func TestHTMLFormatter_Format_WithChanges(t *testing.T) {
 	assert.Contains(t, output, "old-host")
 	assert.Contains(t, output, "new-host")
 
-	// Verify security badge
-	assert.Contains(t, output, "badge-high")
+	// Verify security badge (rendered from markdown emoji format)
+	assert.Contains(t, output, "HIGH")
 
 	// Verify CSS is embedded
 	assert.Contains(t, output, "<style>")
-	assert.Contains(t, output, "--bg:")
-
-	// Verify JS is embedded
-	assert.Contains(t, output, "<script>")
-	assert.Contains(t, output, "toggle-all")
 }
 
 func TestHTMLFormatter_Format_SecurityBadges(t *testing.T) {
 	tests := []struct {
 		name     string
 		impact   string
-		badgeCSS string
+		expected string
 	}{
-		{"high", "high", "badge-high"},
-		{"medium", "medium", "badge-medium"},
-		{"low", "low", "badge-low"},
+		{"high", "high", "HIGH"},
+		{"medium", "medium", "MEDIUM"},
+		{"low", "low", "LOW"},
 	}
 
 	for _, tt := range tests {
@@ -120,48 +115,14 @@ func TestHTMLFormatter_Format_SecurityBadges(t *testing.T) {
 
 			err := formatter.Format(result)
 			require.NoError(t, err)
-			assert.Contains(t, buf.String(), tt.badgeCSS)
+			assert.Contains(t, buf.String(), tt.expected)
 		})
 	}
-}
-
-func TestHTMLFormatter_Format_RiskSummary(t *testing.T) {
-	var buf bytes.Buffer
-	formatter := NewHTMLFormatter(&buf)
-
-	result := diff.NewResult()
-	result.AddChange(diff.Change{
-		Type:           diff.ChangeAdded,
-		Section:        diff.SectionFirewall,
-		Path:           "test",
-		Description:    "Test",
-		SecurityImpact: "high",
-	})
-	result.RiskSummary = diff.RiskSummary{
-		Score:  10,
-		High:   1,
-		Medium: 0,
-		Low:    0,
-	}
-
-	err := formatter.Format(result)
-	require.NoError(t, err)
-
-	output := buf.String()
-	assert.Contains(t, output, "Security Risk Score")
-	assert.Contains(t, output, "1 High")
 }
 
 func TestHTMLFormatter_InterfaceCompliance(_ *testing.T) {
 	var buf bytes.Buffer
 	var _ Formatter = NewHTMLFormatter(&buf)
-}
-
-func TestHTMLFormatter_Format_EmbeddedAssets(t *testing.T) {
-	// Verify embedded assets are not empty
-	assert.NotEmpty(t, reportTemplate, "report template should not be empty")
-	assert.NotEmpty(t, stylesCSS, "CSS should not be empty")
-	assert.NotEmpty(t, scriptsJS, "JS should not be empty")
 }
 
 func TestHTMLFormatter_Format_SelfContained(t *testing.T) {
