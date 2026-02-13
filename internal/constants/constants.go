@@ -3,8 +3,8 @@ package constants
 
 import "time"
 
-// Version is the current application version.
-var Version = "1.0.0"
+// Version is the current application version, injected at build time by GoReleaser via ldflags.
+var Version = "dev"
 
 // Application constants.
 const (
