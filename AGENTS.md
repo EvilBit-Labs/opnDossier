@@ -516,7 +516,17 @@ func escapeXMLText(s string) string {
 
 Note: stdlib uses numeric refs (`&#34;`) not named entities (`&quot;`) - both are valid XML.
 
-### 5.21 Context-Aware Semaphore
+### 5.21 XML Element Presence Detection
+
+Go's `encoding/xml` produces `""` for both self-closing tags (`<any/>`) and absent elements when using `string` fields. Use `*string` to distinguish presence from absence:
+
+- `<any/>` (self-closing) → `*string` pointing to `""` (non-nil)
+- `<any>1</any>` → `*string` pointing to `"1"` (non-nil)
+- absent element → `nil`
+
+Add `IsAny()` / `Equal()` methods rather than comparing `*string` fields directly. See `internal/schema/security.go` for the canonical pattern.
+
+### 5.22 Context-Aware Semaphore
 
 When acquiring semaphores in goroutines, use select with context:
 
@@ -531,6 +541,22 @@ case sem <- struct{}{}:
     defer func() { <-sem }()
 case <-ctx.Done():
     return ctx.Err()
+}
+```
+
+### 5.23 Goroutine Stop/Write Safety
+
+When a goroutine writes to an `io.Writer` and a stop method also writes after signaling shutdown, the goroutine must fully exit before the caller writes. Use a `stopped` channel:
+
+```go
+func (s *Spinner) spin() {
+    defer close(s.stopped)  // signal goroutine exit
+    // ... write loop ...
+}
+
+func (s *Spinner) stop() {
+    close(s.done)       // signal shutdown
+    <-s.stopped         // wait for goroutine to finish writing
 }
 ```
 
@@ -900,6 +926,7 @@ CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o opnDossier ./main.go
 12. Validate markdown with `mdformat` and `markdownlint-cli2`
 13. **CRITICAL: Tasks are NOT complete until `just ci-check` passes**
 14. Place `//nolint:` directives on SEPARATE LINE above call (inline gets stripped by gofumpt)
+15. **Fix pre-existing issues** encountered during work (race conditions, bugs, etc.) — do not dismiss them as "not our problem"
 
 ### 12.2 Code Review Checklist
 
