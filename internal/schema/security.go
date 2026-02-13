@@ -166,6 +166,7 @@ type Source struct {
 }
 
 // IsAny returns true if the source represents "any" (the <any> element is present).
+// OPNsense treats <any> as a presence-based flag; the element's value is irrelevant.
 func (s Source) IsAny() bool {
 	return s.Any != nil
 }
@@ -192,6 +193,7 @@ type Destination struct {
 }
 
 // IsAny returns true if the destination represents "any" (the <any> element is present).
+// OPNsense treats <any> as a presence-based flag; the element's value is irrelevant.
 func (d Destination) IsAny() bool {
 	return d.Any != nil
 }
@@ -211,7 +213,10 @@ func (d Destination) Equal(other Destination) bool {
 
 // StringPtr returns a pointer to the given string value.
 // This is a convenience helper for constructing Source/Destination literals
-// with the *string Any field.
+// with the *string Any field:
+//
+//	src := Source{Any: StringPtr("1")}   // equivalent to <any>1</any>
+//	dst := Destination{Any: StringPtr("")} // equivalent to <any/>
 func StringPtr(s string) *string {
 	return &s
 }
