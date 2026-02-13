@@ -138,10 +138,10 @@ func TestAnalyzer_CompareFirewallRules_PermissiveRuleAdded(t *testing.T) {
 			UUID: "uuid-1",
 			Type: "pass",
 			Source: schema.Source{
-				Any: "true",
+				Any: schema.StringPtr("true"),
 			},
 			Destination: schema.Destination{
-				Any: "true",
+				Any: schema.StringPtr("true"),
 			},
 		},
 	}

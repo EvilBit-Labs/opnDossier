@@ -97,12 +97,12 @@
 | - | - | - | - | - | - | - | No inbound NAT rules configured | - | - |
 
 ### Firewall Rules
-| # | Interface | Action | IP Ver | Proto | Source | Destination | Target | Source Port | Enabled | Description |
-|---------|---------|---------|---------|---------|---------|---------|---------|---------|---------|---------|
-| 1 |  |  |  |  | any | any |  |  | ✓ |  |
-| 2 |  | unknown | invalid | unknown | invalid-network | another|invalid|network |  |  | ✓ | Rule with \| pipes \| and   newlines 	 tabs |
-| 3 | [wan](#wan-interface) | pass | inet | tcp | source[with]brackets | dest<with>angles |  |  | ✓ | Rule with \*bold\* and \_italic\_ text |
-| 4 | [lan](#lan-interface) | block | inet | udp | source\with\backslashes | dest`with`backticks |  |  | ✓ | Rule with \`code\` and \\backslash\\ characters |
+| # | Interface | Action | IP Ver | Proto | Source | Destination | Target | Source Port | Dest Port | Enabled | Description |
+|---------|---------|---------|---------|---------|---------|---------|---------|---------|---------|---------|---------|
+| 1 |  |  |  |  |  |  |  |  |  | ✓ |  |
+| 2 |  | unknown | invalid | unknown | invalid-network | another|invalid|network |  |  |  | ✓ | Rule with \| pipes \| and   newlines 	 tabs |
+| 3 | [wan](#wan-interface) | pass | inet | tcp | source[with]brackets | dest<with>angles |  |  |  | ✓ | Rule with \*bold\* and \_italic\_ text |
+| 4 | [lan](#lan-interface) | block | inet | udp | source\with\backslashes | dest`with`backticks |  |  |  | ✓ | Rule with \`code\` and \\backslash\\ characters |
 
 ### IPsec VPN Configuration
 *No IPsec configuration present*

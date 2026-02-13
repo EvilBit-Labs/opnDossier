@@ -103,14 +103,14 @@
 | - | - | - | - | - | - | - | No inbound NAT rules configured | - | - |
 
 ### Firewall Rules
-| # | Interface | Action | IP Ver | Proto | Source | Destination | Target | Source Port | Enabled | Description |
-|---------|---------|---------|---------|---------|---------|---------|---------|---------|---------|---------|
-| 1 | [wan](#wan-interface) | block | inet | any | any | any |  |  | ✓ | Default deny all |
-| 2 | [wan](#wan-interface) | pass | inet | tcp | any | wan |  |  | ✓ | Allow HTTP/HTTPS |
-| 3 | [lan](#lan-interface) | pass | inet | any | lan | any |  |  | ✓ | Allow LAN to any |
-| 4 | [dmz](#dmz-interface) | pass | inet | tcp | dmz | !lan,!dmz,!guest |  |  | ✓ | Allow DMZ to Internet |
-| 5 | [guest](#guest-interface) | block | inet | any | guest | lan,dmz |  |  | ✓ | Block Guest to LAN |
-| 6 | [guest](#guest-interface) | pass | inet | tcp | guest | !lan,!dmz,!guest |  | 80,443,53 | ✓ | Allow Guest Internet |
+| # | Interface | Action | IP Ver | Proto | Source | Destination | Target | Source Port | Dest Port | Enabled | Description |
+|---------|---------|---------|---------|---------|---------|---------|---------|---------|---------|---------|---------|
+| 1 | [wan](#wan-interface) | block | inet | any | any | any |  |  |  | ✓ | Default deny all |
+| 2 | [wan](#wan-interface) | pass | inet | tcp | any | wan |  |  | 80,443 | ✓ | Allow HTTP/HTTPS |
+| 3 | [lan](#lan-interface) | pass | inet | any | lan | any |  |  |  | ✓ | Allow LAN to any |
+| 4 | [dmz](#dmz-interface) | pass | inet | tcp | dmz | !lan,!dmz,!guest |  |  |  | ✓ | Allow DMZ to Internet |
+| 5 | [guest](#guest-interface) | block | inet | any | guest | lan,dmz |  |  |  | ✓ | Block Guest to LAN |
+| 6 | [guest](#guest-interface) | pass | inet | tcp | guest | !lan,!dmz,!guest |  | 80,443,53 |  | ✓ | Allow Guest Internet |
 
 ## Service Configuration
 ### DHCP Server

@@ -160,7 +160,7 @@ func (p *CoreProcessor) rulesAreEquivalent(rule1, rule2 model.Rule) bool {
 func (p *CoreProcessor) getDestinationString(destination model.Destination) string {
 	network := ""
 	switch {
-	case destination.Any != "":
+	case destination.IsAny():
 		network = NetworkAny
 	case destination.Network != "":
 		network = destination.Network
