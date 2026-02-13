@@ -2,12 +2,14 @@
 
 ## Supported Versions
 
-Use this section to tell people about which versions of your project are currently being supported with security updates.
-
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.0.x   | :white_check_mark: |
+| 1.2.x   | :white_check_mark: |
+| 1.1.x   | :white_check_mark: |
+| 1.0.x   | :x:                |
 | < 1.0   | :x:                |
+
+Users on 1.0.x or earlier should upgrade to the latest release. Please review the [release notes](https://github.com/EvilBit-Labs/opnDossier/releases) when upgrading.
 
 ## Reporting a Vulnerability
 
@@ -15,23 +17,40 @@ We take the security of opnDossier seriously. If you believe you have found a se
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-Instead, please report them via GitHub Issues with the following process:
+Instead, use one of the following channels:
 
-1. **Create a new issue** on our GitHub repository
-2. **Use the "Security" label** when creating the issue
-3. **Set the issue to private** if it contains sensitive information
-4. **Provide detailed information** about the vulnerability including:
-   - Description of the vulnerability
-   - Steps to reproduce
-   - Potential impact
-   - Suggested fix (if any)
+1. [GitHub Private Vulnerability Reporting](https://github.com/EvilBit-Labs/opnDossier/security/advisories/new) (preferred)
+2. Email [support@evilbitlabs.io](mailto:support@evilbitlabs.io) encrypted with our [PGP key](#pgp-key) (verify the full fingerprint below before use)
+
+Please include:
+
+- Description of the vulnerability
+- Steps to reproduce
+- Potential impact
+- Suggested fix (if any)
+
+### Scope
+
+**In scope:**
+
+- Vulnerabilities in opnDossier's XML parser (e.g., XXE, billion laughs)
+- Path traversal in file input/output handling
+- Command injection via CLI arguments
+- Information disclosure in generated reports
+
+**Out of scope:**
+
+- Vulnerabilities in OPNsense itself
+- Issues requiring physical access to the machine running opnDossier
+- Social engineering attacks
 
 ### What to expect
 
-- We will acknowledge receipt of your report within 48 hours
-- We will investigate and provide updates on our progress
-- We will work with you to understand and address the issue
-- Once resolved, we will credit you in our security advisory (unless you prefer to remain anonymous)
+- We will acknowledge receipt of your report within **48 hours**
+- We will provide an initial assessment within **7 days**
+- We aim to release a fix within **90 days** of confirmed vulnerabilities
+- We will coordinate disclosure through a [GitHub Security Advisory](https://github.com/EvilBit-Labs/opnDossier/security/advisories)
+- We will credit you in the advisory (unless you prefer to remain anonymous)
 
 ### Responsible Disclosure
 
@@ -40,7 +59,6 @@ We ask that you:
 - Give us reasonable time to respond to issues before any disclosure
 - Avoid accessing or modifying other users' data
 - Avoid actions that could negatively impact other users
-- Not attempt to gain access to our infrastructure
 
 ### Security Best Practices
 
@@ -49,7 +67,7 @@ When using opnDossier:
 - Keep your OPNsense configuration files secure
 - Regularly update to the latest version
 - Review generated reports for sensitive information before sharing
-- Use appropriate file permissions for configuration files
+- Use appropriate file permissions for configuration files (0600)
 
 ## Security Features
 
@@ -59,10 +77,44 @@ opnDossier includes several security-focused features:
 - Audit-oriented reporting for security assessments
 - Support for airgapped/offline environments
 - Structured data handling with proper validation
+- Automated dependency updates via Dependabot
+
+## Safe Harbor
+
+We support safe harbor for security researchers who:
+
+- Make a good faith effort to avoid privacy violations, data destruction, and service disruption
+- Only interact with accounts you own or with explicit permission of the account holder
+- Report vulnerabilities through the channels described above
+
+We will not pursue legal action against researchers who follow this policy.
+
+## PGP Key
+
+**Fingerprint:** `F839 4B2C F0FE C451 1B11 E721 8F71 D62B F438 2BC0`
+
+```text
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+mDMEaLJmxhYJKwYBBAHaRw8BAQdAaS3KAoo+AgZGR6G6+m0wT2yulC5d6zV9lf2m
+TugBT+O0L3N1cHBvcnRAZXZpbGJpdGxhYnMuaW8gPHN1cHBvcnRAZXZpbGJpdGxh
+YnMuaW8+iNcEExYKAH8DCwkHRRQAAAAAABwAIHNhbHRAbm90YXRpb25zLm9wZW5w
+Z3Bqcy5vcmexd21FpCDfIrO7bf+T6hH/8drbGLWiuEueWvSTyw4T/QMVCggEFgAC
+AQIZAQKbAwIeARYhBPg5Syzw/sRRGxHnIY9x1iv0OCvABQJpiUiCBQkIXQE5AAoJ
+EI9x1iv0OCvAm2sA/AqFT6XEULJCimXX9Ve6e63RX7y2B+VoBVHt+PDaPBwkAP4j
+39xBoLFI6KZJ/A7SOQBkret+VONwPqyW83xfn+E7Arg4BGiyZsYSCisGAQQBl1UB
+BQEBB0ArjU33Uj/x1Kc7ldjVIM9UUCWMTwDWgw8lB/mNESb+GgMBCAeIvgQYFgoA
+cAWCaLJmxgkQj3HWK/Q4K8BFFAAAAAAAHAAgc2FsdEBub3RhdGlvbnMub3BlbnBn
+cGpzLm9yZ4msIB6mugSL+LkdT93+rSeNePtBY4Aj+O6TRFU9aKiQApsMFiEE+DlL
+LPD+xFEbEechj3HWK/Q4K8AAALEXAQDqlsBwMP2XXzXDSnNNLg8yh1/zQcxT1zZ1
+Z26lyM7L6QD+Lya5aFe74WE3wTys5ykGuWkHYEgba+AyZNmuPhwMGAc=
+=9zSi
+-----END PGP PUBLIC KEY BLOCK-----
+```
 
 ## Contact
 
-For general security questions or concerns, please use GitHub Issues with the "Security" label.
+For general security questions, open a GitHub Issue. For vulnerability reports, use [Private Vulnerability Reporting](https://github.com/EvilBit-Labs/opnDossier/security/advisories/new) or email [support@evilbitlabs.io](mailto:support@evilbitlabs.io).
 
 ---
 
