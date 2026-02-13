@@ -1752,7 +1752,7 @@ func TestMarkdownBuilder_BuildOutboundNATTable_WithRules(t *testing.T) {
 				Network: "lan",
 			},
 			Destination: model.Destination{
-				Any: model.StringPtr("any"),
+				Any: model.StringPtr("1"),
 			},
 			Target:   "wan_ip",
 			Disabled: "",
@@ -1844,7 +1844,7 @@ func TestMarkdownBuilder_BuildOutboundNATTable_SpecialCharacters(t *testing.T) {
 				Network: "lan",
 			},
 			Destination: model.Destination{
-				Any: model.StringPtr("any"),
+				Any: model.StringPtr("1"),
 			},
 			Target:   "wan_ip",
 			Disabled: "",
