@@ -9,7 +9,7 @@
 | 1.0.x   | :x:                |
 | < 1.0   | :x:                |
 
-Users on 1.0.x or earlier should upgrade to 1.2.x. There are no breaking changes between releases.
+Users on 1.0.x or earlier should upgrade to the latest release. Please review the [release notes](https://github.com/EvilBit-Labs/opnDossier/releases) when upgrading.
 
 ## Reporting a Vulnerability
 
@@ -20,7 +20,7 @@ We take the security of opnDossier seriously. If you believe you have found a se
 Instead, use one of the following channels:
 
 1. [GitHub Private Vulnerability Reporting](https://github.com/EvilBit-Labs/opnDossier/security/advisories/new) (preferred)
-2. Email [support@evilbitlabs.io](mailto:support@evilbitlabs.io) encrypted with our [PGP key](#pgp-key) (`F4382BC0`)
+2. Email [support@evilbitlabs.io](mailto:support@evilbitlabs.io) encrypted with our [PGP key](#pgp-key) (verify the full fingerprint below before use)
 
 Please include:
 
@@ -77,7 +77,7 @@ opnDossier includes several security-focused features:
 - Audit-oriented reporting for security assessments
 - Support for airgapped/offline environments
 - Structured data handling with proper validation
-- Automated dependency scanning via Dependabot and CodeQL
+- Automated dependency updates via Dependabot
 
 ## Safe Harbor
 
