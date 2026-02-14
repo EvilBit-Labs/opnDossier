@@ -266,7 +266,9 @@ func (b *MarkdownBuilder) writeNetworkSection(md *markdown.Markdown, data *model
 		netConfig.Interfaces,
 	)
 
-	for name, iface := range netConfig.Interfaces.Items {
+	// Sort interface names for deterministic output
+	for _, name := range slices.Sorted(maps.Keys(netConfig.Interfaces.Items)) {
+		iface := netConfig.Interfaces.Items[name]
 		sectionName := strings.ToUpper(name[:1]) + strings.ToLower(name[1:]) + " Interface"
 		md.H3(sectionName)
 		buildInterfaceDetails(md, iface)
@@ -780,7 +782,9 @@ func BuildInterfaceTableSet(interfaces model.Interfaces) *markdown.TableSet {
 	headers := []string{"Name", "Description", "IP Address", "CIDR", "Enabled"}
 
 	rows := make([][]string, 0, len(interfaces.Items))
-	for name, iface := range interfaces.Items {
+	// Sort interface names for deterministic table rows
+	for _, name := range slices.Sorted(maps.Keys(interfaces.Items)) {
+		iface := interfaces.Items[name]
 		description := iface.Descr
 		if description == "" {
 			description = iface.If
