@@ -172,13 +172,10 @@ func (s Source) IsAny() bool {
 }
 
 // Equal reports whether two Source values are semantically equal.
+// Any is compared by presence only (nil vs non-nil), not by value,
+// because OPNsense treats <any> as a presence-based flag.
 func (s Source) Equal(other Source) bool {
-	sAny := s.Any != nil
-	oAny := other.Any != nil
-	if sAny != oAny {
-		return false
-	}
-	if sAny && *s.Any != *other.Any {
+	if (s.Any != nil) != (other.Any != nil) {
 		return false
 	}
 	return s.Network == other.Network
@@ -199,13 +196,10 @@ func (d Destination) IsAny() bool {
 }
 
 // Equal reports whether two Destination values are semantically equal.
+// Any is compared by presence only (nil vs non-nil), not by value,
+// because OPNsense treats <any> as a presence-based flag.
 func (d Destination) Equal(other Destination) bool {
-	dAny := d.Any != nil
-	oAny := other.Any != nil
-	if dAny != oAny {
-		return false
-	}
-	if dAny && *d.Any != *other.Any {
+	if (d.Any != nil) != (other.Any != nil) {
 		return false
 	}
 	return d.Network == other.Network && d.Port == other.Port
