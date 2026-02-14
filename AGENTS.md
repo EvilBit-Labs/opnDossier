@@ -526,6 +526,14 @@ Go's `encoding/xml` produces `""` for both self-closing tags (`<any/>`) and abse
 
 Add `IsAny()` / `Equal()` methods rather than comparing `*string` fields directly. See `internal/schema/security.go` for the canonical pattern.
 
+**Type selection for boolean-like XML elements:**
+
+- **Presence-based** (`isset()` in PHP): `<disabled/>`, `<log/>`, `<not/>` → use `BoolFlag`
+- **Value-based** (`== "1"` in PHP): `<enable>1</enable>`, `<blockpriv>1</blockpriv>` → use `string`
+- **Presence with value access needed**: `<any/>` in Source/Destination → use `*string`
+
+See `docs/development/xml-structure-research.md` for the complete field inventory with upstream source citations.
+
 ### 5.22 Context-Aware Semaphore
 
 When acquiring semaphores in goroutines, use select with context:
@@ -570,6 +578,13 @@ func (s *Spinner) stop() {
 - **XML Tags**: Must strictly follow OPNsense configuration file structure
 - **JSON/YAML Tags**: Follow recommended best practices for each format
 - **Audit Models**: Create separate structs (`Finding`, `Target`, `Exposure`) for audit concepts
+
+**Architecture notes:**
+
+- `internal/schema/` is the canonical data model; `internal/model/` is a re-export layer (type aliases + constructor wrappers)
+- OPNsense XML uses two boolean patterns: **presence-based** (`<disabled/>` → `BoolFlag`) and **value-based** (`<enable>1</enable>` → `string`). See §5.21 and `docs/development/xml-structure-research.md`
+- `RuleLocation` in `common.go` has complete source/destination fields but is NOT used by `Source`/`Destination` in `security.go` — tracked in issue #255
+- Known schema gaps: ~40+ type mismatches and missing fields — see `docs/development/xml-structure-research.md` §4-5
 
 ### 6.2 Multi-Format Export
 
