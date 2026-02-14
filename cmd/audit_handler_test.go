@@ -618,6 +618,23 @@ func TestDetermineAuditLogLevels(t *testing.T) {
 		assert.Equal(t, charmlog.InfoLevel, levels.charm)
 	})
 
+	t.Run("nil embedded logger defaults to info", func(t *testing.T) {
+		logger := &applog.Logger{}
+		levels := determineAuditLogLevels(logger)
+		assert.Equal(t, slog.LevelInfo, levels.slog)
+		assert.Equal(t, charmlog.InfoLevel, levels.charm)
+	})
+
+	t.Run("fatal maps to error", func(t *testing.T) {
+		charmLogger := charmlog.NewWithOptions(os.Stderr, charmlog.Options{
+			Level: charmlog.FatalLevel,
+		})
+		logger := &applog.Logger{Logger: charmLogger}
+		levels := determineAuditLogLevels(logger)
+		assert.Equal(t, slog.LevelError, levels.slog)
+		assert.Equal(t, charmlog.ErrorLevel, levels.charm)
+	})
+
 	tests := []struct {
 		name           string
 		inputLevel     string

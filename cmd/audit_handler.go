@@ -91,6 +91,8 @@ func determineAuditLogLevels(logger *log.Logger) auditLogLevels {
 	switch logger.GetLevel() {
 	case charmlog.DebugLevel:
 		return auditLogLevels{slog: slog.LevelDebug, charm: charmlog.DebugLevel}
+	case charmlog.InfoLevel:
+		return auditLogLevels{slog: slog.LevelInfo, charm: charmlog.InfoLevel}
 	case charmlog.WarnLevel:
 		return auditLogLevels{slog: slog.LevelWarn, charm: charmlog.WarnLevel}
 	case charmlog.ErrorLevel, charmlog.FatalLevel:
