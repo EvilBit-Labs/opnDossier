@@ -229,7 +229,7 @@
         },
         "target": "",
         "sourceport": "",
-        "disabled": ""
+        "disabled": false
       },
       {
         "type": "pass",
@@ -246,7 +246,7 @@
         },
         "target": "",
         "sourceport": "",
-        "disabled": ""
+        "disabled": false
       },
       {
         "type": "pass",
@@ -262,7 +262,7 @@
         },
         "target": "",
         "sourceport": "",
-        "disabled": ""
+        "disabled": false
       },
       {
         "type": "pass",
@@ -278,7 +278,7 @@
         },
         "target": "",
         "sourceport": "",
-        "disabled": ""
+        "disabled": false
       },
       {
         "type": "block",
@@ -294,7 +294,7 @@
         },
         "target": "",
         "sourceport": "",
-        "disabled": ""
+        "disabled": false
       },
       {
         "type": "pass",
@@ -310,7 +310,7 @@
         },
         "target": "",
         "sourceport": "80,443,53",
-        "disabled": ""
+        "disabled": false
       }
     ]
   },

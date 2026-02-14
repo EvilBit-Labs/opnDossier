@@ -106,7 +106,8 @@ type NATRule struct {
 	Destination Destination   `xml:"destination"          json:"destination"           yaml:"destination"`
 	Target      string        `xml:"target,omitempty"     json:"target,omitempty"      yaml:"target,omitempty"`
 	SourcePort  string        `xml:"sourceport,omitempty" json:"sourcePort,omitempty"  yaml:"sourcePort,omitempty"`
-	Disabled    string        `xml:"disabled,omitempty"   json:"disabled,omitempty"    yaml:"disabled,omitempty"`
+	Disabled    BoolFlag      `xml:"disabled,omitempty"   json:"disabled,omitempty"    yaml:"disabled,omitempty"`
+	Log         BoolFlag      `xml:"log,omitempty"        json:"log,omitempty"         yaml:"log,omitempty"`
 	Descr       string        `xml:"descr,omitempty"      json:"description,omitempty" yaml:"description,omitempty"`
 	Category    string        `xml:"category,omitempty"   json:"category,omitempty"    yaml:"category,omitempty"`
 	Tag         string        `xml:"tag,omitempty"        json:"tag,omitempty"         yaml:"tag,omitempty"`
@@ -130,7 +131,8 @@ type InboundRule struct {
 	InternalPort string        `xml:"internalport,omitempty" json:"internalPort,omitempty" yaml:"internalPort,omitempty"`
 	Reflection   string        `xml:"reflection,omitempty"   json:"reflection,omitempty"   yaml:"reflection,omitempty"`
 	Priority     int           `xml:"priority,omitempty"     json:"priority,omitempty"     yaml:"priority,omitempty"`
-	Disabled     string        `xml:"disabled,omitempty"     json:"disabled,omitempty"     yaml:"disabled,omitempty"`
+	Disabled     BoolFlag      `xml:"disabled,omitempty"     json:"disabled,omitempty"     yaml:"disabled,omitempty"`
+	Log          BoolFlag      `xml:"log,omitempty"          json:"log,omitempty"          yaml:"log,omitempty"`
 	Descr        string        `xml:"descr,omitempty"        json:"description,omitempty"  yaml:"description,omitempty"`
 	Updated      *Updated      `xml:"updated,omitempty"      json:"updated,omitempty"      yaml:"updated,omitempty"`
 	Created      *Created      `xml:"created,omitempty"      json:"created,omitempty"      yaml:"created,omitempty"`
@@ -146,13 +148,17 @@ type Rule struct {
 	IPProtocol  string        `xml:"ipprotocol,omitempty"`
 	StateType   string        `xml:"statetype,omitempty"`
 	Direction   string        `xml:"direction,omitempty"`
-	Quick       string        `xml:"quick,omitempty"`
+	Floating    string        `xml:"floating,omitempty"`
+	Quick       BoolFlag      `xml:"quick,omitempty"`
 	Protocol    string        `xml:"protocol,omitempty"`
 	Source      Source        `xml:"source"`
 	Destination Destination   `xml:"destination"`
 	Target      string        `xml:"target,omitempty"`
+	Gateway     string        `xml:"gateway,omitempty"`
 	SourcePort  string        `xml:"sourceport,omitempty"`
-	Disabled    string        `xml:"disabled,omitempty"`
+	Log         BoolFlag      `xml:"log,omitempty"`
+	Disabled    BoolFlag      `xml:"disabled,omitempty"`
+	Tracker     string        `xml:"tracker,omitempty"`
 	Updated     *Updated      `xml:"updated,omitempty"`
 	Created     *Created      `xml:"created,omitempty"`
 	UUID        string        `xml:"uuid,attr,omitempty"`

@@ -759,3 +759,156 @@ func TestDestination_XMLRoundTrip(t *testing.T) {
 		})
 	}
 }
+
+func TestRule_BoolFlagFields_XMLRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		xml          string
+		wantDisabled BoolFlag
+		wantQuick    BoolFlag
+		wantLog      BoolFlag
+	}{
+		{
+			name:         "all presence flags set",
+			xml:          `<rule><disabled/><quick/><log/></rule>`,
+			wantDisabled: true,
+			wantQuick:    true,
+			wantLog:      true,
+		},
+		{
+			name:         "no presence flags",
+			xml:          `<rule></rule>`,
+			wantDisabled: false,
+			wantQuick:    false,
+			wantLog:      false,
+		},
+		{
+			name:         "only disabled",
+			xml:          `<rule><disabled/></rule>`,
+			wantDisabled: true,
+			wantQuick:    false,
+			wantLog:      false,
+		},
+		{
+			name:         "only log",
+			xml:          `<rule><log/></rule>`,
+			wantDisabled: false,
+			wantQuick:    false,
+			wantLog:      true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var got Rule
+			if err := xml.Unmarshal([]byte(tt.xml), &got); err != nil {
+				t.Fatalf("xml.Unmarshal() error = %v", err)
+			}
+			if got.Disabled != tt.wantDisabled {
+				t.Errorf("Disabled = %v, want %v", got.Disabled, tt.wantDisabled)
+			}
+			if got.Quick != tt.wantQuick {
+				t.Errorf("Quick = %v, want %v", got.Quick, tt.wantQuick)
+			}
+			if got.Log != tt.wantLog {
+				t.Errorf("Log = %v, want %v", got.Log, tt.wantLog)
+			}
+		})
+	}
+}
+
+func TestRule_NewStringFields_XMLRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		xml          string
+		wantFloating string
+		wantGateway  string
+		wantTracker  string
+	}{
+		{
+			name:         "all string fields set",
+			xml:          `<rule><floating>yes</floating><gateway>WAN_GW</gateway><tracker>12345</tracker></rule>`,
+			wantFloating: "yes",
+			wantGateway:  "WAN_GW",
+			wantTracker:  "12345",
+		},
+		{
+			name:         "no string fields",
+			xml:          `<rule></rule>`,
+			wantFloating: "",
+			wantGateway:  "",
+			wantTracker:  "",
+		},
+		{
+			name:         "only gateway",
+			xml:          `<rule><gateway>LAN_GW</gateway></rule>`,
+			wantFloating: "",
+			wantGateway:  "LAN_GW",
+			wantTracker:  "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var got Rule
+			if err := xml.Unmarshal([]byte(tt.xml), &got); err != nil {
+				t.Fatalf("xml.Unmarshal() error = %v", err)
+			}
+			if got.Floating != tt.wantFloating {
+				t.Errorf("Floating = %q, want %q", got.Floating, tt.wantFloating)
+			}
+			if got.Gateway != tt.wantGateway {
+				t.Errorf("Gateway = %q, want %q", got.Gateway, tt.wantGateway)
+			}
+			if got.Tracker != tt.wantTracker {
+				t.Errorf("Tracker = %q, want %q", got.Tracker, tt.wantTracker)
+			}
+		})
+	}
+}
+
+func TestNATRule_BoolFlagFields_XMLRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		xml          string
+		wantDisabled BoolFlag
+		wantLog      BoolFlag
+	}{
+		{
+			name:         "both flags set",
+			xml:          `<rule><disabled/><log/></rule>`,
+			wantDisabled: true,
+			wantLog:      true,
+		},
+		{
+			name:         "no flags",
+			xml:          `<rule></rule>`,
+			wantDisabled: false,
+			wantLog:      false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var got NATRule
+			if err := xml.Unmarshal([]byte(tt.xml), &got); err != nil {
+				t.Fatalf("xml.Unmarshal() error = %v", err)
+			}
+			if got.Disabled != tt.wantDisabled {
+				t.Errorf("Disabled = %v, want %v", got.Disabled, tt.wantDisabled)
+			}
+			if got.Log != tt.wantLog {
+				t.Errorf("Log = %v, want %v", got.Log, tt.wantLog)
+			}
+		})
+	}
+}

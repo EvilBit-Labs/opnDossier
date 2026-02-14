@@ -617,7 +617,7 @@ func BuildFirewallRulesTableSet(rules []model.Rule) *markdown.TableSet {
 			rule.Target,
 			rule.SourcePort,
 			formatters.EscapeTableContent(rule.Destination.Port),
-			formatters.FormatBooleanInverted(rule.Disabled),
+			formatters.FormatBoolFlagInverted(rule.Disabled),
 			formatters.EscapeTableContent(rule.Descr),
 		})
 	}
@@ -678,7 +678,7 @@ func BuildOutboundNATTableSet(rules []model.NATRule) *markdown.TableSet {
 			}
 
 			status := "**Active**"
-			if rule.Disabled != "" {
+			if rule.Disabled.Bool() {
 				status = "**Disabled**"
 			}
 
@@ -745,7 +745,7 @@ func BuildInboundNATTableSet(rules []model.InboundRule) *markdown.TableSet {
 			}
 
 			status := "**Active**"
-			if rule.Disabled != "" {
+			if rule.Disabled.Bool() {
 				status = "**Disabled**"
 			}
 

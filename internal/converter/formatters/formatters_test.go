@@ -102,6 +102,50 @@ func TestFormatBooleanInverted(t *testing.T) {
 	}
 }
 
+func TestFormatBoolFlag(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		value model.BoolFlag
+		want  string
+	}{
+		{"true returns checkmark", true, "✓"},
+		{"false returns x-mark", false, "✗"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := FormatBoolFlag(tt.value); got != tt.want {
+				t.Errorf("FormatBoolFlag(%v) = %q, want %q", tt.value, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFormatBoolFlagInverted(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		value model.BoolFlag
+		want  string
+	}{
+		{"true returns x-mark (inverted)", true, "✗"},
+		{"false returns checkmark (inverted)", false, "✓"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := FormatBoolFlagInverted(tt.value); got != tt.want {
+				t.Errorf("FormatBoolFlagInverted(%v) = %q, want %q", tt.value, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestFormatIntBoolean(t *testing.T) {
 	t.Parallel()
 

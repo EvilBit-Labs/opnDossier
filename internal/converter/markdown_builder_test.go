@@ -130,7 +130,7 @@ func TestMarkdownBuilder_BuildSecuritySection(t *testing.T) {
 					},
 					Target:     "",
 					SourcePort: "",
-					Disabled:   "",
+					Disabled:   false,
 				},
 				{
 					Type:       "block",
@@ -146,7 +146,7 @@ func TestMarkdownBuilder_BuildSecuritySection(t *testing.T) {
 					},
 					Target:     "",
 					SourcePort: "",
-					Disabled:   "",
+					Disabled:   false,
 				},
 			},
 		},
@@ -249,7 +249,7 @@ func TestMarkdownBuilder_BuildFirewallRulesTable(t *testing.T) {
 			},
 			Target:     "",
 			SourcePort: "80",
-			Disabled:   "",
+			Disabled:   false,
 		},
 	}
 
@@ -1398,7 +1398,7 @@ func TestMarkdownBuilder_BuildFirewallRulesTable_WithComplexRules(t *testing.T) 
 			},
 			Target:     "lan",
 			SourcePort: "443",
-			Disabled:   "1", // Disabled rule
+			Disabled:   true, // Disabled rule
 		},
 		{
 			Type:       "block",
@@ -1414,7 +1414,7 @@ func TestMarkdownBuilder_BuildFirewallRulesTable_WithComplexRules(t *testing.T) 
 			},
 			Target:     "",
 			SourcePort: "22",
-			Disabled:   "",
+			Disabled:   false,
 		},
 	}
 
@@ -1755,7 +1755,7 @@ func TestMarkdownBuilder_BuildOutboundNATTable_WithRules(t *testing.T) {
 				Any: model.StringPtr("1"),
 			},
 			Target:   "wan_ip",
-			Disabled: "",
+			Disabled: false,
 			Descr:    "LAN to WAN NAT",
 		},
 		{
@@ -1768,7 +1768,7 @@ func TestMarkdownBuilder_BuildOutboundNATTable_WithRules(t *testing.T) {
 				Network: "any",
 			},
 			Target:   "wan_ip",
-			Disabled: "1",
+			Disabled: true,
 			Descr:    "DMZ NAT (disabled)",
 		},
 	}
@@ -1847,7 +1847,7 @@ func TestMarkdownBuilder_BuildOutboundNATTable_SpecialCharacters(t *testing.T) {
 				Any: model.StringPtr("1"),
 			},
 			Target:   "wan_ip",
-			Disabled: "",
+			Disabled: false,
 			Descr:    "Rule with | pipe and `backticks`",
 		},
 	}
@@ -1870,7 +1870,7 @@ func TestMarkdownBuilder_BuildInboundNATTable_WithRules(t *testing.T) {
 			InternalIP:   "192.168.1.10",
 			InternalPort: "443",
 			Priority:     10,
-			Disabled:     "",
+			Disabled:     false,
 			Descr:        "Web server forwarding",
 		},
 		{
@@ -1880,7 +1880,7 @@ func TestMarkdownBuilder_BuildInboundNATTable_WithRules(t *testing.T) {
 			InternalIP:   "192.168.1.20",
 			InternalPort: "80",
 			Priority:     20,
-			Disabled:     "1",
+			Disabled:     true,
 			Descr:        "HTTP forward (disabled)",
 		},
 	}
@@ -1958,7 +1958,7 @@ func TestMarkdownBuilder_BuildInboundNATTable_SpecialCharacters(t *testing.T) {
 			InternalIP:   "192.168.1.10",
 			InternalPort: "443",
 			Priority:     10,
-			Disabled:     "",
+			Disabled:     false,
 			Descr:        "Rule with | pipe and `backticks`",
 		},
 	}

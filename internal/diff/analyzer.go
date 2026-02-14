@@ -839,7 +839,7 @@ func formatRule(rule schema.Rule) string {
 	parts = append(parts,
 		"src="+formatSource(rule.Source),
 		"dst="+formatDestination(rule.Destination))
-	if rule.Disabled != "" {
+	if rule.Disabled.Bool() {
 		parts = append(parts, "disabled")
 	}
 	return strings.Join(parts, ", ")

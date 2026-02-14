@@ -56,6 +56,24 @@ func FormatBooleanInverted(value string) string {
 	return checkmark
 }
 
+// FormatBoolFlag formats a BoolFlag for display in markdown tables.
+// true (element present) → ✓, false (element absent) → ✗.
+func FormatBoolFlag(value model.BoolFlag) string {
+	if value {
+		return checkmark
+	}
+	return xMark
+}
+
+// FormatBoolFlagInverted formats a BoolFlag with inverted logic for display in markdown tables.
+// This is used for fields like "Disabled" where true means disabled (✗) and false means enabled (✓).
+func FormatBoolFlagInverted(value model.BoolFlag) string {
+	if value {
+		return xMark
+	}
+	return checkmark
+}
+
 // FormatIntBoolean formats an integer boolean value for display in markdown tables.
 func FormatIntBoolean(value int) string {
 	if value == 1 {
