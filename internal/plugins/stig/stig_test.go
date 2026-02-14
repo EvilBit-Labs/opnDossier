@@ -28,10 +28,10 @@ func TestPlugin_hasDefaultDenyPolicy(t *testing.T) {
 						{
 							Type: "block",
 							Source: model.Source{
-								Any: "1",
+								Any: model.StringPtr("1"),
 							},
 							Destination: model.Destination{
-								Any: "1",
+								Any: model.StringPtr("1"),
 							},
 						},
 					},
@@ -47,10 +47,10 @@ func TestPlugin_hasDefaultDenyPolicy(t *testing.T) {
 						{
 							Type: "pass",
 							Source: model.Source{
-								Any: "1",
+								Any: model.StringPtr("1"),
 							},
 							Destination: model.Destination{
-								Any: "1",
+								Any: model.StringPtr("1"),
 							},
 						},
 					},
@@ -91,10 +91,10 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 						{
 							Type: "pass",
 							Source: model.Source{
-								Any: "1",
+								Any: model.StringPtr("1"),
 							},
 							Destination: model.Destination{
-								Any: "1",
+								Any: model.StringPtr("1"),
 							},
 						},
 					},

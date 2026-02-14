@@ -157,16 +157,62 @@ type Rule struct {
 }
 
 // Source represents a firewall rule source.
+// Any is a pointer to distinguish XML element presence (<any/> → non-nil "")
+// from absence (nil), since Go's encoding/xml produces "" for both self-closing
+// tags and absent elements when using a plain string.
 type Source struct {
-	Any     string `xml:"any,omitempty"`
-	Network string `xml:"network,omitempty"`
+	Any     *string `xml:"any,omitempty"     json:"any,omitempty"     yaml:"any,omitempty"`
+	Network string  `xml:"network,omitempty" json:"network,omitempty" yaml:"network,omitempty"`
+}
+
+// IsAny returns true if the source represents "any" (the <any> element is present).
+// OPNsense treats <any> as a presence-based flag; the element's value is irrelevant.
+func (s Source) IsAny() bool {
+	return s.Any != nil
+}
+
+// Equal reports whether two Source values are semantically equal.
+// Any is compared by presence only (nil vs non-nil), not by value,
+// because OPNsense treats <any> as a presence-based flag.
+func (s Source) Equal(other Source) bool {
+	if (s.Any != nil) != (other.Any != nil) {
+		return false
+	}
+	return s.Network == other.Network
 }
 
 // Destination represents a firewall rule destination.
+// Any is a pointer for the same reason as Source.Any.
 type Destination struct {
-	Any     string `xml:"any,omitempty"`
-	Network string `xml:"network,omitempty"`
-	Port    string `xml:"port,omitempty"`
+	Any     *string `xml:"any,omitempty"     json:"any,omitempty"     yaml:"any,omitempty"`
+	Network string  `xml:"network,omitempty" json:"network,omitempty" yaml:"network,omitempty"`
+	Port    string  `xml:"port,omitempty"    json:"port,omitempty"    yaml:"port,omitempty"`
+}
+
+// IsAny returns true if the destination represents "any" (the <any> element is present).
+// OPNsense treats <any> as a presence-based flag; the element's value is irrelevant.
+func (d Destination) IsAny() bool {
+	return d.Any != nil
+}
+
+// Equal reports whether two Destination values are semantically equal.
+// Any is compared by presence only (nil vs non-nil), not by value,
+// because OPNsense treats <any> as a presence-based flag.
+func (d Destination) Equal(other Destination) bool {
+	if (d.Any != nil) != (other.Any != nil) {
+		return false
+	}
+	return d.Network == other.Network && d.Port == other.Port
+}
+
+// StringPtr returns a pointer to the given string value.
+// This is a convenience helper for constructing Source/Destination literals
+// with the *string Any field:
+//
+//	src := Source{Any: StringPtr("1")}   // equivalent to <any>1</any>
+//	dst := Destination{Any: StringPtr("")} // equivalent to <any/>
+func StringPtr(s string) *string {
+	return &s
 }
 
 // Updated represents update information.

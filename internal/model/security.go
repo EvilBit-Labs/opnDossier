@@ -87,3 +87,10 @@ func NewIPsec() *IPsec {
 func NewSwanctl() *Swanctl {
 	return schema.NewSwanctl()
 }
+
+// StringPtr returns a pointer to the given string value.
+// Convenience wrapper around schema.StringPtr for constructing Source/Destination
+// literals with the *string Any field.
+func StringPtr(s string) *string {
+	return schema.StringPtr(s)
+}

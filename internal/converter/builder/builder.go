@@ -585,6 +585,7 @@ func BuildFirewallRulesTableSet(rules []model.Rule) *markdown.TableSet {
 		"Destination",
 		"Target",
 		"Source Port",
+		"Dest Port",
 		"Enabled",
 		"Description",
 	}
@@ -592,12 +593,12 @@ func BuildFirewallRulesTableSet(rules []model.Rule) *markdown.TableSet {
 	rows := make([][]string, 0, len(rules))
 	for i, rule := range rules {
 		source := rule.Source.Network
-		if source == "" {
+		if source == "" && rule.Source.IsAny() {
 			source = destinationAny
 		}
 
 		dest := rule.Destination.Network
-		if dest == "" {
+		if dest == "" && rule.Destination.IsAny() {
 			dest = destinationAny
 		}
 
@@ -613,6 +614,7 @@ func BuildFirewallRulesTableSet(rules []model.Rule) *markdown.TableSet {
 			dest,
 			rule.Target,
 			rule.SourcePort,
+			formatters.EscapeTableContent(rule.Destination.Port),
 			formatters.FormatBooleanInverted(rule.Disabled),
 			formatters.EscapeTableContent(rule.Descr),
 		})
@@ -654,12 +656,12 @@ func BuildOutboundNATTableSet(rules []model.NATRule) *markdown.TableSet {
 	} else {
 		for i, rule := range rules {
 			source := rule.Source.Network
-			if source == "" {
+			if source == "" && rule.Source.IsAny() {
 				source = destinationAny
 			}
 
 			dest := rule.Destination.Network
-			if dest == "" && rule.Destination.Any != "" {
+			if dest == "" && rule.Destination.IsAny() {
 				dest = destinationAny
 			}
 

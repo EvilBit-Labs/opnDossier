@@ -201,9 +201,9 @@ func (sp *Plugin) hasDefaultDenyPolicy(config *model.OpnSenseDocument) bool {
 	for _, rule := range rules {
 		if rule.Type == "pass" {
 			// Check if source is "any"
-			if rule.Source.Any == "1" || rule.Source.Network == NetworkAny {
+			if rule.Source.IsAny() || rule.Source.Network == NetworkAny {
 				// Check if destination is "any" or if protocol allows broad access
-				if rule.Destination.Any == "1" || rule.Destination.Network == NetworkAny {
+				if rule.Destination.IsAny() || rule.Destination.Network == NetworkAny {
 					hasAnyAnyAllow = true
 					break
 				}
@@ -223,8 +223,8 @@ func (sp *Plugin) hasOverlyPermissiveRules(config *model.OpnSenseDocument) bool 
 	for _, rule := range rules {
 		if rule.Type == "pass" {
 			// Check for "any/any" rules (most permissive)
-			if (rule.Source.Any == "1" || rule.Source.Network == NetworkAny) &&
-				(rule.Destination.Any == "1" || rule.Destination.Network == NetworkAny) {
+			if (rule.Source.IsAny() || rule.Source.Network == NetworkAny) &&
+				(rule.Destination.IsAny() || rule.Destination.Network == NetworkAny) {
 				return true
 			}
 

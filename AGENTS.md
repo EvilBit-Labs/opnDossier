@@ -516,7 +516,25 @@ func escapeXMLText(s string) string {
 
 Note: stdlib uses numeric refs (`&#34;`) not named entities (`&quot;`) - both are valid XML.
 
-### 5.21 Context-Aware Semaphore
+### 5.21 XML Element Presence Detection
+
+Go's `encoding/xml` produces `""` for both self-closing tags (`<any/>`) and absent elements when using `string` fields. Use `*string` to distinguish presence from absence:
+
+- `<any/>` (self-closing) → `*string` pointing to `""` (non-nil)
+- `<any>1</any>` → `*string` pointing to `"1"` (non-nil)
+- absent element → `nil`
+
+Add `IsAny()` / `Equal()` methods rather than comparing `*string` fields directly. See `internal/schema/security.go` for the canonical pattern.
+
+**Type selection for boolean-like XML elements:**
+
+- **Presence-based** (`isset()` in PHP): `<disabled/>`, `<log/>`, `<not/>` → use `BoolFlag`
+- **Value-based** (`== "1"` in PHP): `<enable>1</enable>`, `<blockpriv>1</blockpriv>` → use `string`
+- **Presence with value access needed**: `<any/>` in Source/Destination → use `*string`
+
+See `docs/development/xml-structure-research.md` for the complete field inventory with upstream source citations.
+
+### 5.22 Context-Aware Semaphore
 
 When acquiring semaphores in goroutines, use select with context:
 
@@ -534,6 +552,22 @@ case <-ctx.Done():
 }
 ```
 
+### 5.23 Goroutine Stop/Write Safety
+
+When a goroutine writes to an `io.Writer` and a stop method also writes after signaling shutdown, the goroutine must fully exit before the caller writes. Use a `stopped` channel:
+
+```go
+func (s *Spinner) spin() {
+    defer close(s.stopped)  // signal goroutine exit
+    // ... write loop ...
+}
+
+func (s *Spinner) stop() {
+    close(s.done)       // signal shutdown
+    <-s.stopped         // wait for goroutine to finish writing
+}
+```
+
 ---
 
 ## 6. Data Processing Standards
@@ -544,6 +578,13 @@ case <-ctx.Done():
 - **XML Tags**: Must strictly follow OPNsense configuration file structure
 - **JSON/YAML Tags**: Follow recommended best practices for each format
 - **Audit Models**: Create separate structs (`Finding`, `Target`, `Exposure`) for audit concepts
+
+**Architecture notes:**
+
+- `internal/schema/` is the canonical data model; `internal/model/` is a re-export layer (type aliases + constructor wrappers)
+- OPNsense XML uses two boolean patterns: **presence-based** (`<disabled/>` → `BoolFlag`) and **value-based** (`<enable>1</enable>` → `string`). See §5.21 and `docs/development/xml-structure-research.md`
+- `RuleLocation` in `common.go` has complete source/destination fields but is NOT used by `Source`/`Destination` in `security.go` — tracked in issue #255
+- Known schema gaps: ~40+ type mismatches and missing fields — see `docs/development/xml-structure-research.md` §4-5
 
 ### 6.2 Multi-Format Export
 
@@ -900,6 +941,7 @@ CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o opnDossier ./main.go
 12. Validate markdown with `mdformat` and `markdownlint-cli2`
 13. **CRITICAL: Tasks are NOT complete until `just ci-check` passes**
 14. Place `//nolint:` directives on SEPARATE LINE above call (inline gets stripped by gofumpt)
+15. **Fix pre-existing issues** encountered during work (race conditions, bugs, etc.) — do not dismiss them as "not our problem"
 
 ### 12.2 Code Review Checklist
 

@@ -458,7 +458,7 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 				Type:        "pass",
 				IPProtocol:  "inet",
 				Interface:   model.InterfaceList{"lan"},
-				Destination: model.Destination{Any: "1"},
+				Destination: model.Destination{Any: model.StringPtr("1")},
 				Source:      model.Source{Network: "any"},
 			},
 			rule2: model.Rule{
@@ -548,7 +548,7 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 				IPProtocol:  "inet",
 				Interface:   model.InterfaceList{"lan"},
 				Source:      model.Source{Network: "any"},
-				Destination: model.Destination{Any: "1"},
+				Destination: model.Destination{Any: model.StringPtr("1")},
 			},
 			expected: true,
 		},
@@ -566,7 +566,7 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 				IPProtocol:  "inet",
 				Interface:   model.InterfaceList{"lan"},
 				Source:      model.Source{Network: "any"},
-				Destination: model.Destination{Any: "1", Port: "443"},
+				Destination: model.Destination{Any: model.StringPtr("1"), Port: "443"},
 			},
 			expected: false, // One has explicit network, one doesn't
 		},
@@ -650,7 +650,7 @@ func TestCoreProcessor_GetDestinationString(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test that the function returns a composite key
-	destAny := model.Destination{Any: "1"}
+	destAny := model.Destination{Any: model.StringPtr("1")}
 	resultAny := processor.getDestinationString(destAny)
 	assert.Equal(t, "network:any|port:", resultAny, "getDestinationString should encode any destination")
 

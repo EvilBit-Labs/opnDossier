@@ -846,7 +846,7 @@ func formatRule(rule schema.Rule) string {
 }
 
 func formatSource(src schema.Source) string {
-	if src.Any != "" {
+	if src.IsAny() {
 		return "any"
 	}
 	if src.Network != "" {
@@ -858,7 +858,7 @@ func formatSource(src schema.Source) string {
 func formatDestination(dst schema.Destination) string {
 	var result string
 	switch {
-	case dst.Any != "":
+	case dst.IsAny():
 		result = "any"
 	case dst.Network != "":
 		result = dst.Network
@@ -894,8 +894,8 @@ func rulesEqual(a, b schema.Rule) bool {
 		a.Descr == b.Descr &&
 		a.Protocol == b.Protocol &&
 		a.Disabled == b.Disabled &&
-		a.Source == b.Source &&
-		a.Destination == b.Destination &&
+		a.Source.Equal(b.Source) &&
+		a.Destination.Equal(b.Destination) &&
 		slices.Equal([]string(a.Interface), []string(b.Interface))
 }
 
@@ -908,5 +908,5 @@ func usersEqual(a, b schema.User) bool {
 }
 
 func isPermissiveRule(rule schema.Rule) bool {
-	return rule.Source.Any != "" && rule.Destination.Any != "" && rule.Type == "pass"
+	return rule.Source.IsAny() && rule.Destination.IsAny() && rule.Type == "pass"
 }
