@@ -823,7 +823,7 @@ func ruleDescription(rule schema.Rule) string {
 	if rule.Descr != "" {
 		return rule.Descr
 	}
-	return fmt.Sprintf("%s %s → %s", rule.Type, rule.Source.Network, rule.Destination.Network)
+	return fmt.Sprintf("%s %s → %s", rule.Type, rule.Source.EffectiveAddress(), rule.Destination.EffectiveAddress())
 }
 
 func formatRule(rule schema.Rule) string {
@@ -846,25 +846,31 @@ func formatRule(rule schema.Rule) string {
 }
 
 func formatSource(src schema.Source) string {
-	if src.IsAny() {
-		return "any"
+	var prefix string
+	if src.Not {
+		prefix = "!"
 	}
-	if src.Network != "" {
-		return src.Network
+	addr := src.EffectiveAddress()
+	if addr == "" {
+		addr = "unknown"
 	}
-	return "unknown"
+	result := prefix + addr
+	if src.Port != "" {
+		result += ":" + src.Port
+	}
+	return result
 }
 
 func formatDestination(dst schema.Destination) string {
-	var result string
-	switch {
-	case dst.IsAny():
-		result = "any"
-	case dst.Network != "":
-		result = dst.Network
-	default:
-		result = "unknown"
+	var prefix string
+	if dst.Not {
+		prefix = "!"
 	}
+	addr := dst.EffectiveAddress()
+	if addr == "" {
+		addr = "unknown"
+	}
+	result := prefix + addr
 	if dst.Port != "" {
 		result += ":" + dst.Port
 	}

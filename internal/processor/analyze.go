@@ -69,7 +69,7 @@ func (p *CoreProcessor) analyzeDeadRules(cfg *model.OpnSenseDocument, report *Re
 func (p *CoreProcessor) analyzeInterfaceRules(iface string, rules []model.Rule, report *Report) {
 	for i, rule := range rules {
 		// Check for "block all" rules that make subsequent rules unreachable
-		if rule.Type == "block" && rule.Source.Network == NetworkAny {
+		if rule.Type == "block" && (rule.Source.Network == NetworkAny || rule.Source.IsAny()) {
 			// If there are rules after this block-all rule, they're dead
 			if i < len(rules)-1 {
 				report.AddFinding(SeverityMedium, Finding{
@@ -105,7 +105,7 @@ func (p *CoreProcessor) analyzeInterfaceRules(iface string, rules []model.Rule, 
 		}
 
 		// Check for overly broad rules that might be unintentional
-		if rule.Type == RuleTypePass && rule.Source.Network == NetworkAny && rule.Descr == "" {
+		if rule.Type == RuleTypePass && (rule.Source.Network == NetworkAny || rule.Source.IsAny()) && rule.Descr == "" {
 			report.AddFinding(SeverityHigh, Finding{
 				Type:  FindingTypeSecurity,
 				Title: "Overly Broad Pass Rule",
@@ -142,16 +142,12 @@ func (p *CoreProcessor) rulesAreEquivalent(rule1, rule2 model.Rule) bool {
 		return false
 	}
 
-	// Compare source configuration
-	if rule1.Source.Network != rule2.Source.Network {
+	// Compare source and destination configuration
+	if !rule1.Source.Equal(rule2.Source) {
 		return false
 	}
 
-	// Compare destination configuration
-	dest1 := p.getDestinationString(rule1.Destination)
-	dest2 := p.getDestinationString(rule2.Destination)
-
-	return dest1 == dest2
+	return rule1.Destination.Equal(rule2.Destination)
 }
 
 // getDestinationString converts the destination struct to a composite string for comparison.
@@ -406,7 +402,7 @@ func (p *CoreProcessor) analyzeSecurityIssues(cfg *model.OpnSenseDocument, repor
 
 	// Check for overly permissive firewall rules
 	for i, rule := range cfg.FilterRules() {
-		if rule.Type == RuleTypePass && rule.Source.Network == NetworkAny &&
+		if rule.Type == RuleTypePass && (rule.Source.Network == NetworkAny || rule.Source.IsAny()) &&
 			interfaceListContains(rule.Interface, "wan") {
 			report.AddFinding(SeverityHigh, Finding{
 				Type:           FindingTypeSecurity,

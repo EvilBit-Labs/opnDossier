@@ -76,22 +76,13 @@ func (p *CoreProcessor) canonicalizeAddresses(cfg *model.OpnSenseDocument) {
 	//     }
 	// }
 
-	// Canonicalize firewall rule source networks
+	// Canonicalize firewall rule source/destination networks and addresses
 	for i := range cfg.Filter.Rule {
 		rule := &cfg.Filter.Rule[i]
-		if rule.Source.Network != "" && !isSpecialNetworkType(rule.Source.Network) {
-			if _, cidr, err := net.ParseCIDR(rule.Source.Network); err == nil {
-				// Store the canonical CIDR notation
-				rule.Source.Network = cidr.String()
-			} else if ip := net.ParseIP(rule.Source.Network); ip != nil {
-				// Convert single IP to CIDR notation
-				if ip.To4() != nil {
-					rule.Source.Network = ip.String() + "/32"
-				} else {
-					rule.Source.Network = ip.String() + "/128"
-				}
-			}
-		}
+		canonicalizeIPField(&rule.Source.Network)
+		canonicalizeIPField(&rule.Source.Address)
+		canonicalizeIPField(&rule.Destination.Network)
+		canonicalizeIPField(&rule.Destination.Address)
 	}
 }
 
@@ -130,6 +121,23 @@ func (p *CoreProcessor) sortSlices(cfg *model.OpnSenseDocument) {
 	sort.Slice(cfg.LoadBalancer.MonitorType, func(i, j int) bool {
 		return cfg.LoadBalancer.MonitorType[i].Name < cfg.LoadBalancer.MonitorType[j].Name
 	})
+}
+
+// canonicalizeIPField normalizes an IP/CIDR field in-place, converting bare IPs
+// to CIDR notation and canonical form. Non-IP values (aliases, interface names) are left unchanged.
+func canonicalizeIPField(field *string) {
+	if *field == "" || isSpecialNetworkType(*field) {
+		return
+	}
+	if _, cidr, err := net.ParseCIDR(*field); err == nil {
+		*field = cidr.String()
+	} else if ip := net.ParseIP(*field); ip != nil {
+		if ip.To4() != nil {
+			*field = ip.String() + "/32"
+		} else {
+			*field = ip.String() + "/128"
+		}
+	}
 }
 
 // isSpecialNetworkType checks if the network is a special type (any, lan, wan, etc.)

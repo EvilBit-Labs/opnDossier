@@ -471,6 +471,22 @@ func validateFilter(filter *model.Filter, interfaces *model.Interfaces) []Valida
 			}
 		}
 
+		// Validate source address (IP/CIDR or alias)
+		if rule.Source.Address != "" && !isValidCIDR(rule.Source.Address) && net.ParseIP(rule.Source.Address) == nil {
+			// Not a valid IP or CIDR — could be an alias, which is acceptable
+			// Only flag if it looks like a malformed IP/CIDR
+			if strings.Contains(rule.Source.Address, "/") || strings.Contains(rule.Source.Address, ".") ||
+				strings.Contains(rule.Source.Address, ":") {
+				errors = append(errors, ValidationError{
+					Field: fmt.Sprintf("filter.rule[%d].source.address", i),
+					Message: fmt.Sprintf(
+						"source address '%s' appears to be a malformed IP/CIDR",
+						rule.Source.Address,
+					),
+				})
+			}
+		}
+
 		// Validate destination network
 		destNetwork := stripIPSuffix(rule.Destination.Network)
 		if rule.Destination.Network != "" && !isReservedNetwork(destNetwork) && !isValidCIDR(rule.Destination.Network) {
@@ -480,6 +496,21 @@ func validateFilter(filter *model.Filter, interfaces *model.Interfaces) []Valida
 					Message: fmt.Sprintf(
 						"destination network '%s' must be a valid CIDR, reserved word, or an interface key followed by 'ip'",
 						rule.Destination.Network,
+					),
+				})
+			}
+		}
+
+		// Validate destination address (IP/CIDR or alias)
+		if rule.Destination.Address != "" && !isValidCIDR(rule.Destination.Address) &&
+			net.ParseIP(rule.Destination.Address) == nil {
+			if strings.Contains(rule.Destination.Address, "/") || strings.Contains(rule.Destination.Address, ".") ||
+				strings.Contains(rule.Destination.Address, ":") {
+				errors = append(errors, ValidationError{
+					Field: fmt.Sprintf("filter.rule[%d].destination.address", i),
+					Message: fmt.Sprintf(
+						"destination address '%s' appears to be a malformed IP/CIDR",
+						rule.Destination.Address,
 					),
 				})
 			}

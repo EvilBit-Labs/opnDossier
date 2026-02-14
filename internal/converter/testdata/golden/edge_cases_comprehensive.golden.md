@@ -3,8 +3,8 @@
 - **Hostname**: edge-case-test!@#$%^&*()
 - **Domain**: domain*with*asterisks
 - **Platform**: OPNsense 
-- **Generated On**: 2026-02-06T00:25:28-05:00
-- **Parsed By**: opnDossier v1.0.0
+- **Generated On**: 2026-02-14T18:18:48-05:00
+- **Parsed By**: opnDossier vdev
 ## Table of Contents
 - [System Configuration](#system-configuration)
 - [Interfaces](#interfaces)
@@ -99,7 +99,7 @@
 ### Firewall Rules
 | # | Interface | Action | IP Ver | Proto | Source | Destination | Target | Source Port | Dest Port | Enabled | Description |
 |---------|---------|---------|---------|---------|---------|---------|---------|---------|---------|---------|---------|
-| 1 |  |  |  |  |  |  |  |  |  | ✓ |  |
+| 1 |  |  |  |  | any | any |  |  |  | ✓ |  |
 | 2 |  | unknown | invalid | unknown | invalid-network | another|invalid|network |  |  |  | ✓ | Rule with \| pipes \| and   newlines 	 tabs |
 | 3 | [wan](#wan-interface) | pass | inet | tcp | source[with]brackets | dest<with>angles |  |  |  | ✓ | Rule with \*bold\* and \_italic\_ text |
 | 4 | [lan](#lan-interface) | block | inet | udp | source\with\backslashes | dest`with`backticks |  |  |  | ✓ | Rule with \`code\` and \\backslash\\ characters |

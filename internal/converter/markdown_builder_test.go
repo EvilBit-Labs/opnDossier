@@ -796,14 +796,14 @@ func TestBuildFirewallRulesTable_AnyFieldAndDestPort(t *testing.T) {
 			wantDPort:  "",
 		},
 		{
-			name: "both_absent_shows_blank",
+			name: "both_absent_shows_any",
 			rule: model.Rule{
 				Type:        "pass",
 				Source:      model.Source{},
 				Destination: model.Destination{},
 			},
-			wantSource: "",
-			wantDest:   "",
+			wantSource: "any",
+			wantDest:   "any",
 			wantDPort:  "",
 		},
 		{

@@ -221,28 +221,31 @@ func (sp *Plugin) hasOverlyPermissiveRules(config *model.OpnSenseDocument) bool 
 	rules := config.FilterRules()
 
 	for _, rule := range rules {
-		if rule.Type == "pass" {
-			// Check for "any/any" rules (most permissive)
-			if (rule.Source.IsAny() || rule.Source.Network == NetworkAny) &&
-				(rule.Destination.IsAny() || rule.Destination.Network == NetworkAny) {
+		if rule.Type != "pass" {
+			continue
+		}
+
+		// Check for "any/any" rules (most permissive)
+		if (rule.Source.IsAny() || rule.Source.Network == NetworkAny) &&
+			(rule.Destination.IsAny() || rule.Destination.Network == NetworkAny) {
+			return true
+		}
+
+		// Check for broad network ranges (e.g., entire subnets without specific restrictions)
+		srcTarget := rule.Source.EffectiveAddress()
+		dstTarget := rule.Destination.EffectiveAddress()
+		if srcTarget != "" && (srcTarget == NetworkAny ||
+			slices.Contains(sp.broadNetworkRanges(), srcTarget)) {
+			// If destination is also broad, this is overly permissive
+			if dstTarget == "" || dstTarget == NetworkAny ||
+				slices.Contains(sp.broadNetworkRanges(), dstTarget) {
 				return true
 			}
+		}
 
-			// Check for broad network ranges (e.g., entire subnets without specific restrictions)
-			if rule.Source.Network != "" && (rule.Source.Network == NetworkAny ||
-				slices.Contains(sp.broadNetworkRanges(), rule.Source.Network)) {
-				// If destination is also broad, this is overly permissive
-				if rule.Destination.Network == "" || rule.Destination.Network == NetworkAny ||
-					slices.Contains(sp.broadNetworkRanges(), rule.Destination.Network) {
-					return true
-				}
-			}
-
-			// Check for rules without specific port restrictions
-			if rule.Destination.Port == "" || rule.Destination.Port == NetworkAny {
-				// This allows all ports, which is overly permissive
-				return true
-			}
+		// Check for rules without specific port restrictions
+		if rule.Destination.Port == "" || rule.Destination.Port == NetworkAny {
+			return true
 		}
 	}
 

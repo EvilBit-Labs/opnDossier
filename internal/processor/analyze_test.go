@@ -535,7 +535,7 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 			expected: false,
 		},
 		{
-			name: "empty destination equals explicit any",
+			name: "empty destination differs from explicit any",
 			rule1: model.Rule{
 				Type:        "pass",
 				IPProtocol:  "inet",
@@ -550,7 +550,7 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 				Source:      model.Source{Network: "any"},
 				Destination: model.Destination{Any: model.StringPtr("1")},
 			},
-			expected: true,
+			expected: false,
 		},
 		{
 			name: "empty destination with port vs any destination with same port",
