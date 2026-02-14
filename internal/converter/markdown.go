@@ -6,7 +6,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
@@ -210,7 +212,9 @@ func (c *MarkdownConverter) buildNetworkSection(md *markdown.Markdown, opnsense 
 	}
 
 	// Add other interfaces dynamically if they exist
-	for name, iface := range netConfig.Interfaces.Items {
+	// Sort interface names for deterministic output
+	for _, name := range slices.Sorted(maps.Keys(netConfig.Interfaces.Items)) {
+		iface := netConfig.Interfaces.Items[name]
 		if name != "wan" && name != "lan" {
 			// Create consistent section names for other interfaces
 			// Use proper case conversion for interface names
