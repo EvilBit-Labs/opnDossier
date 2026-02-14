@@ -1,12 +1,16 @@
 package cmd
 
 import (
+	"log/slog"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/audit"
+	applog "github.com/EvilBit-Labs/opnDossier/internal/log"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugin"
 	"github.com/EvilBit-Labs/opnDossier/internal/processor"
+	charmlog "github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
@@ -603,6 +607,63 @@ func TestBuildConversionOptionsWithAuditFlags(t *testing.T) {
 			if len(tt.selectedPlugins) > 0 {
 				assert.Equal(t, tt.selectedPlugins, result.SelectedPlugins)
 			}
+		})
+	}
+}
+
+func TestDetermineAuditLogLevels(t *testing.T) {
+	t.Run("nil logger defaults to info", func(t *testing.T) {
+		levels := determineAuditLogLevels(nil)
+		assert.Equal(t, slog.LevelInfo, levels.slog)
+		assert.Equal(t, charmlog.InfoLevel, levels.charm)
+	})
+
+	tests := []struct {
+		name           string
+		inputLevel     string
+		wantSlogLevel  slog.Level
+		wantCharmLevel charmlog.Level
+	}{
+		{
+			name:           "debug maps to debug",
+			inputLevel:     "debug",
+			wantSlogLevel:  slog.LevelDebug,
+			wantCharmLevel: charmlog.DebugLevel,
+		},
+		{
+			name:           "info maps to info",
+			inputLevel:     "info",
+			wantSlogLevel:  slog.LevelInfo,
+			wantCharmLevel: charmlog.InfoLevel,
+		},
+		{
+			name:           "warn maps to warn",
+			inputLevel:     "warn",
+			wantSlogLevel:  slog.LevelWarn,
+			wantCharmLevel: charmlog.WarnLevel,
+		},
+		{
+			name:           "error maps to error",
+			inputLevel:     "error",
+			wantSlogLevel:  slog.LevelError,
+			wantCharmLevel: charmlog.ErrorLevel,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			logger, err := applog.New(applog.Config{
+				Level:           tt.inputLevel,
+				Format:          "text",
+				Output:          os.Stderr,
+				ReportCaller:    false,
+				ReportTimestamp: false,
+			})
+			require.NoError(t, err)
+
+			levels := determineAuditLogLevels(logger)
+			assert.Equal(t, tt.wantSlogLevel, levels.slog)
+			assert.Equal(t, tt.wantCharmLevel, levels.charm)
 		})
 	}
 }
