@@ -11,6 +11,160 @@ func newTestIDs(opts func(ids *IDS)) *IDS {
 	return ids
 }
 
+func TestStringPtr(t *testing.T) {
+	t.Parallel()
+
+	s := StringPtr("hello")
+	if s == nil {
+		t.Fatal("StringPtr returned nil")
+	}
+	if *s != "hello" {
+		t.Errorf("StringPtr() = %q, want %q", *s, "hello")
+	}
+
+	empty := StringPtr("")
+	if empty == nil {
+		t.Fatal("StringPtr(\"\") returned nil")
+	}
+	if *empty != "" {
+		t.Errorf("StringPtr(\"\") = %q, want %q", *empty, "")
+	}
+}
+
+func TestSource_IsAny(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		src  Source
+		want bool
+	}{
+		{name: "nil any", src: Source{}, want: false},
+		{name: "empty string any", src: Source{Any: StringPtr("")}, want: true},
+		{name: "non-empty any", src: Source{Any: StringPtr("1")}, want: true},
+		{name: "network only", src: Source{Network: "lan"}, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := tt.src.IsAny(); got != tt.want {
+				t.Errorf("Source.IsAny() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSource_Equal(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		a, b Source
+		want bool
+	}{
+		{name: "both zero", a: Source{}, b: Source{}, want: true},
+		{name: "both any nil", a: Source{Network: "lan"}, b: Source{Network: "lan"}, want: true},
+		{name: "different network", a: Source{Network: "lan"}, b: Source{Network: "wan"}, want: false},
+		{name: "one any nil other not", a: Source{}, b: Source{Any: StringPtr("")}, want: false},
+		{name: "both any present same value", a: Source{Any: StringPtr("")}, b: Source{Any: StringPtr("")}, want: true},
+		{
+			name: "both any present different values",
+			a:    Source{Any: StringPtr("")},
+			b:    Source{Any: StringPtr("1")},
+			want: true,
+		},
+		{name: "any presence differs", a: Source{Any: StringPtr("1")}, b: Source{Network: "lan"}, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := tt.a.Equal(tt.b); got != tt.want {
+				t.Errorf("Source.Equal() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDestination_IsAny(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		dst  Destination
+		want bool
+	}{
+		{name: "nil any", dst: Destination{}, want: false},
+		{name: "empty string any", dst: Destination{Any: StringPtr("")}, want: true},
+		{name: "non-empty any", dst: Destination{Any: StringPtr("1")}, want: true},
+		{name: "network only", dst: Destination{Network: "lan"}, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := tt.dst.IsAny(); got != tt.want {
+				t.Errorf("Destination.IsAny() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDestination_Equal(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		a, b Destination
+		want bool
+	}{
+		{name: "both zero", a: Destination{}, b: Destination{}, want: true},
+		{
+			name: "same network and port",
+			a:    Destination{Network: "lan", Port: "443"},
+			b:    Destination{Network: "lan", Port: "443"},
+			want: true,
+		},
+		{name: "different network", a: Destination{Network: "lan"}, b: Destination{Network: "wan"}, want: false},
+		{name: "different port", a: Destination{Port: "80"}, b: Destination{Port: "443"}, want: false},
+		{name: "one any nil other not", a: Destination{}, b: Destination{Any: StringPtr("")}, want: false},
+		{
+			name: "both any present same value",
+			a:    Destination{Any: StringPtr("")},
+			b:    Destination{Any: StringPtr("")},
+			want: true,
+		},
+		{
+			name: "both any present different values",
+			a:    Destination{Any: StringPtr("")},
+			b:    Destination{Any: StringPtr("1")},
+			want: true,
+		},
+		{
+			name: "any with port match",
+			a:    Destination{Any: StringPtr(""), Port: "22"},
+			b:    Destination{Any: StringPtr("1"), Port: "22"},
+			want: true,
+		},
+		{
+			name: "any with port mismatch",
+			a:    Destination{Any: StringPtr(""), Port: "22"},
+			b:    Destination{Any: StringPtr(""), Port: "80"},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := tt.a.Equal(tt.b); got != tt.want {
+				t.Errorf("Destination.Equal() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestIDS_IsEnabled(t *testing.T) {
 	tests := []struct {
 		name string

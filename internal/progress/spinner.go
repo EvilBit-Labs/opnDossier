@@ -23,6 +23,7 @@ type SpinnerProgress struct {
 	message  string
 	running  bool
 	done     chan struct{}
+	stopped  chan struct{} // closed when spin goroutine exits
 	mu       sync.Mutex
 }
 
@@ -53,12 +54,15 @@ func (s *SpinnerProgress) Start(message string) {
 	s.message = message
 	s.running = true
 	s.done = make(chan struct{})
+	s.stopped = make(chan struct{})
 
 	go s.spin()
 }
 
 // spin runs the spinner animation loop.
 func (s *SpinnerProgress) spin() {
+	defer close(s.stopped)
+
 	ticker := time.NewTicker(s.interval)
 	defer ticker.Stop()
 
@@ -99,15 +103,19 @@ func (s *SpinnerProgress) Fail(err error) {
 	fmt.Fprintf(s.output, "\r\033[K✗ %v\n", err)
 }
 
-// stop stops the spinner animation.
+// stop stops the spinner animation and waits for the goroutine to exit,
+// ensuring no concurrent writes to output after stop returns.
 func (s *SpinnerProgress) stop() {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	if !s.running {
+		s.mu.Unlock()
 		return
 	}
 
 	s.running = false
 	close(s.done)
+	stopped := s.stopped
+	s.mu.Unlock()
+
+	<-stopped
 }

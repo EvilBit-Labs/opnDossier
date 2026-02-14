@@ -256,7 +256,7 @@ func TestMarkdownBuilder_BuildFirewallRulesTable(t *testing.T) {
 	tableSet := builderPkg.BuildFirewallRulesTableSet(rules)
 
 	assert.NotNil(t, tableSet)
-	assert.Len(t, tableSet.Header, 11)
+	assert.Len(t, tableSet.Header, 12)
 	assert.Len(t, tableSet.Rows, 1)
 
 	// Verify headers
@@ -270,6 +270,7 @@ func TestMarkdownBuilder_BuildFirewallRulesTable(t *testing.T) {
 		"Destination",
 		"Target",
 		"Source Port",
+		"Dest Port",
 		"Enabled",
 		"Description",
 	}
@@ -286,8 +287,9 @@ func TestMarkdownBuilder_BuildFirewallRulesTable(t *testing.T) {
 	assert.Equal(t, "any", row[6])               // Destination
 	assert.Empty(t, row[7])                      // Target
 	assert.Equal(t, "80", row[8])                // Source Port
-	assert.Equal(t, "✓", row[9])                 // Enabled
-	assert.Equal(t, "Allow LAN to WAN", row[10]) // Description
+	assert.Empty(t, row[9])                      // Dest Port
+	assert.Equal(t, "✓", row[10])                // Enabled
+	assert.Equal(t, "Allow LAN to WAN", row[11]) // Description
 }
 
 func TestMarkdownBuilder_BuildInterfaceTable(t *testing.T) {
@@ -734,7 +736,110 @@ func TestBuildFirewallRulesTable_EdgeCases(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := builderPkg.BuildFirewallRulesTableSet(tt.rules)
 			assert.NotNil(t, result)
-			assert.Len(t, result.Header, 11) // Should have 11 headers
+			assert.Len(t, result.Header, 12) // Should have 12 headers
+		})
+	}
+}
+
+func TestBuildFirewallRulesTable_AnyFieldAndDestPort(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		rule       model.Rule
+		wantSource string
+		wantDest   string
+		wantDPort  string
+	}{
+		{
+			name: "source_any_via_pointer_value_1",
+			rule: model.Rule{
+				Type:        "pass",
+				Source:      model.Source{Any: model.StringPtr("1")},
+				Destination: model.Destination{Network: "lan"},
+			},
+			wantSource: "any",
+			wantDest:   "lan",
+			wantDPort:  "",
+		},
+		{
+			name: "source_any_via_self_closing_tag",
+			rule: model.Rule{
+				Type:        "pass",
+				Source:      model.Source{Any: model.StringPtr("")},
+				Destination: model.Destination{Network: "wan"},
+			},
+			wantSource: "any",
+			wantDest:   "wan",
+			wantDPort:  "",
+		},
+		{
+			name: "destination_any_via_pointer_value_1",
+			rule: model.Rule{
+				Type:        "pass",
+				Source:      model.Source{Network: "lan"},
+				Destination: model.Destination{Any: model.StringPtr("1")},
+			},
+			wantSource: "lan",
+			wantDest:   "any",
+			wantDPort:  "",
+		},
+		{
+			name: "destination_any_via_self_closing_tag",
+			rule: model.Rule{
+				Type:        "pass",
+				Source:      model.Source{Network: "lan"},
+				Destination: model.Destination{Any: model.StringPtr("")},
+			},
+			wantSource: "lan",
+			wantDest:   "any",
+			wantDPort:  "",
+		},
+		{
+			name: "both_absent_shows_blank",
+			rule: model.Rule{
+				Type:        "pass",
+				Source:      model.Source{},
+				Destination: model.Destination{},
+			},
+			wantSource: "",
+			wantDest:   "",
+			wantDPort:  "",
+		},
+		{
+			name: "destination_port_populated",
+			rule: model.Rule{
+				Type:        "pass",
+				Source:      model.Source{Network: "any"},
+				Destination: model.Destination{Network: "wan", Port: "443"},
+			},
+			wantSource: "any",
+			wantDest:   "wan",
+			wantDPort:  "443",
+		},
+		{
+			name: "destination_any_with_port",
+			rule: model.Rule{
+				Type:        "pass",
+				Source:      model.Source{Any: model.StringPtr("1")},
+				Destination: model.Destination{Any: model.StringPtr("1"), Port: "80,443"},
+			},
+			wantSource: "any",
+			wantDest:   "any",
+			wantDPort:  "80,443",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result := builderPkg.BuildFirewallRulesTableSet([]model.Rule{tt.rule})
+			assert.Len(t, result.Header, 12)
+			assert.Len(t, result.Rows, 1)
+			row := result.Rows[0]
+			assert.Equal(t, tt.wantSource, row[5], "Source column")
+			assert.Equal(t, tt.wantDest, row[6], "Destination column")
+			assert.Equal(t, tt.wantDPort, row[9], "Dest Port column")
 		})
 	}
 }
@@ -1316,7 +1421,7 @@ func TestMarkdownBuilder_BuildFirewallRulesTable_WithComplexRules(t *testing.T) 
 	tableSet := builderPkg.BuildFirewallRulesTableSet(rules)
 
 	assert.NotNil(t, tableSet)
-	assert.Len(t, tableSet.Header, 11)
+	assert.Len(t, tableSet.Header, 12)
 	assert.Len(t, tableSet.Rows, 2)
 
 	// Verify first row (disabled rule)
@@ -1330,8 +1435,9 @@ func TestMarkdownBuilder_BuildFirewallRulesTable_WithComplexRules(t *testing.T) 
 	assert.Equal(t, "lan", row1[6])          // Destination
 	assert.Equal(t, "lan", row1[7])          // Target
 	assert.Equal(t, "443", row1[8])          // Source Port
-	assert.Equal(t, "✗", row1[9])            // Enabled (disabled)
-	assert.Equal(t, "Allow HTTPS", row1[10]) // Description
+	assert.Empty(t, row1[9])                 // Dest Port
+	assert.Equal(t, "✗", row1[10])           // Enabled (disabled)
+	assert.Equal(t, "Allow HTTPS", row1[11]) // Description
 
 	// Verify second row (enabled rule)
 	row2 := tableSet.Rows[1]
@@ -1345,8 +1451,9 @@ func TestMarkdownBuilder_BuildFirewallRulesTable_WithComplexRules(t *testing.T) 
 	assert.Equal(t, "wan", row2[6])        // Destination
 	assert.Empty(t, row2[7])               // Target
 	assert.Equal(t, "22", row2[8])         // Source Port
-	assert.Equal(t, "✓", row2[9])          // Enabled
-	assert.Equal(t, "Block SSH", row2[10]) // Description
+	assert.Empty(t, row2[9])               // Dest Port
+	assert.Equal(t, "✓", row2[10])         // Enabled
+	assert.Equal(t, "Block SSH", row2[11]) // Description
 }
 
 func TestMarkdownBuilder_BuildInterfaceTable_WithComplexInterfaces(t *testing.T) {
@@ -1645,7 +1752,7 @@ func TestMarkdownBuilder_BuildOutboundNATTable_WithRules(t *testing.T) {
 				Network: "lan",
 			},
 			Destination: model.Destination{
-				Any: "any",
+				Any: model.StringPtr("1"),
 			},
 			Target:   "wan_ip",
 			Disabled: "",
@@ -1737,7 +1844,7 @@ func TestMarkdownBuilder_BuildOutboundNATTable_SpecialCharacters(t *testing.T) {
 				Network: "lan",
 			},
 			Destination: model.Destination{
-				Any: "any",
+				Any: model.StringPtr("1"),
 			},
 			Target:   "wan_ip",
 			Disabled: "",
@@ -1881,7 +1988,7 @@ func TestMarkdownBuilder_BuildSecuritySection_WithBothNATTypes(t *testing.T) {
 						Interface:   model.InterfaceList{"wan"},
 						Protocol:    "tcp",
 						Source:      model.Source{Network: "lan"},
-						Destination: model.Destination{Any: "any"},
+						Destination: model.Destination{Any: model.StringPtr("any")},
 						Target:      "wan_ip",
 						Descr:       "LAN NAT",
 					},
@@ -1961,7 +2068,7 @@ func TestMarkdownBuilder_NATRulesWithInterfaceLinks(t *testing.T) {
 			Interface:   model.InterfaceList{"wan", "lan"},
 			Protocol:    "tcp",
 			Source:      model.Source{Network: "dmz"},
-			Destination: model.Destination{Any: "any"},
+			Destination: model.Destination{Any: model.StringPtr("any")},
 			Target:      "wan_ip",
 			Descr:       "Multi-interface NAT",
 		},
@@ -2043,7 +2150,7 @@ func TestMarkdownBuilder_NATRulesEmptyInterfaceList(t *testing.T) {
 			Interface:   model.InterfaceList{},
 			Protocol:    "tcp",
 			Source:      model.Source{Network: "lan"},
-			Destination: model.Destination{Any: "any"},
+			Destination: model.Destination{Any: model.StringPtr("any")},
 			Target:      "wan_ip",
 			Descr:       "NAT without interface",
 		},
