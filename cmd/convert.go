@@ -158,7 +158,8 @@ to your firewall configuration.
     --comprehensive             - Generate detailed, comprehensive reports
 
   AUDIT MODE:
-  Enable security auditing with compliance plugins:
+	Enable security auditing with compliance plugins.
+	Audit logging respects global output flags (--verbose/--quiet):
 
     --audit-mode standard|blue|red  - Enable audit reporting mode
     --audit-plugins stig,sans,firewall - Select compliance plugins to run
@@ -227,6 +228,12 @@ Examples:
 
   # Blue team defensive audit with STIG and SANS compliance
   opnDossier convert config.xml --audit-mode blue --audit-plugins stig,sans
+
+	# Blue team audit with verbose audit diagnostics
+	opnDossier --verbose convert config.xml --audit-mode blue --audit-plugins stig,sans
+
+	# Quiet audit mode (errors only)
+	opnDossier --quiet convert config.xml --audit-mode blue
 
   # Red team attack surface analysis with blackhat commentary
   opnDossier convert config.xml --audit-mode red --audit-blackhat
