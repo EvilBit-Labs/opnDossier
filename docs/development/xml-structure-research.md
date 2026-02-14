@@ -264,83 +264,81 @@ Either:
 
 ## 5. Type Mismatches: string vs BoolFlag
 
-Fields using `string` that should be `BoolFlag` based on upstream presence-based semantics (`isset()` / `!empty()` in PHP):
+### Resolution Status
 
-### 5a. Security (security.go)
+**Converted to BoolFlag (presence-based — `isset()` in PHP):**
 
-| Struct          | Field             | Current  | Should Be  |
-| --------------- | ----------------- | -------- | ---------- |
-| Rule            | Disabled          | `string` | `BoolFlag` |
-| Rule            | Quick             | `string` | `BoolFlag` |
-| NATRule         | Disabled          | `string` | `BoolFlag` |
-| InboundRule     | Disabled          | `string` | `BoolFlag` |
-| IDS.General     | Enabled           | `string` | `BoolFlag` |
-| IDS.General     | Ips               | `string` | `BoolFlag` |
-| IDS.General     | Promisc           | `string` | `BoolFlag` |
-| IDS.EveLog.HTTP | Enable            | `string` | `BoolFlag` |
-| IDS.EveLog.HTTP | Extended          | `string` | `BoolFlag` |
-| IDS.EveLog.HTTP | DumpAllHeaders    | `string` | `BoolFlag` |
-| IDS.EveLog.TLS  | Enable            | `string` | `BoolFlag` |
-| IDS.EveLog.TLS  | Extended          | `string` | `BoolFlag` |
-| IDS.EveLog.TLS  | SessionResumption | `string` | `BoolFlag` |
-| IPsec.General   | Enabled           | `string` | `BoolFlag` |
-| IPsec.General   | Disablevpnrules   | `string` | `BoolFlag` |
+- Rule: Disabled, Quick, Log (security.go) — Phase 2
+- NATRule: Disabled, Log (security.go) — Phase 2
+- InboundRule: Disabled, Log (security.go) — Phase 2
+- System: DisableConsoleMenu (system.go) — Phase 3
+- Firmware: Type, Subscription, Reboot (system.go) — Phase 3
+- User: Expires, AuthorizedKeys, IPSecPSK, OTPSeed (system.go) — Phase 3
+- System.RRD: Enable (system.go) — Phase 3
+- Rrd: Enable (services.go) — Phase 3
+- OpnSenseDocument: TriggerInitialWizard (opnsense.go) — Phase 3
 
-### 5b. System (system.go)
+**Kept as string (value-based — `== "1"` in PHP):**
 
-| Struct   | Field              | Current    | Should Be  |
-| -------- | ------------------ | ---------- | ---------- |
-| System   | DisableConsoleMenu | `struct{}` | `BoolFlag` |
-| Firmware | Type               | `struct{}` | `BoolFlag` |
-| Firmware | Subscription       | `struct{}` | `BoolFlag` |
-| Firmware | Reboot             | `struct{}` | `BoolFlag` |
-| User     | Expires            | `struct{}` | `BoolFlag` |
-| User     | AuthorizedKeys     | `struct{}` | `BoolFlag` |
-| User     | IPSecPSK           | `struct{}` | `BoolFlag` |
-| User     | OTPSeed            | `struct{}` | `BoolFlag` |
-| Rrd      | Enable             | `struct{}` | `BoolFlag` |
+The following fields use OPNsense MVC value-based semantics where `<field>0</field>` is valid and distinct from absent. `BoolFlag` would incorrectly treat `<field>0</field>` as true (element present), breaking the `== "1"` / `== "0"` distinction. These remain `string`:
 
-### 5c. Services (services.go)
+### 5a. Security (security.go) — value-based, kept as string
 
-| Struct        | Field        | Current  | Should Be  |
-| ------------- | ------------ | -------- | ---------- |
-| Unbound       | Enable       | `string` | `BoolFlag` |
-| Monit.General | Enabled      | `string` | `BoolFlag` |
-| Monit.General | Ssl          | `string` | `BoolFlag` |
-| Monit.General | Sslverify    | `string` | `BoolFlag` |
-| Monit.General | HttpdEnabled | `string` | `BoolFlag` |
-| Monit.Alert   | Enabled      | `string` | `BoolFlag` |
-| MonitService  | Enabled      | `string` | `BoolFlag` |
+| Struct          | Field             | Type     | Rationale                                   |
+| --------------- | ----------------- | -------- | ------------------------------------------- |
+| IDS.General     | Enabled           | `string` | MVC field, uses `== "1"` with helper method |
+| IDS.General     | Ips               | `string` | MVC field, uses `== "1"` with helper method |
+| IDS.General     | Promisc           | `string` | MVC field, uses `== "1"` with helper method |
+| IDS.EveLog.HTTP | Enable            | `string` | MVC field, value-based                      |
+| IDS.EveLog.HTTP | Extended          | `string` | MVC field, value-based                      |
+| IDS.EveLog.HTTP | DumpAllHeaders    | `string` | MVC field, value-based                      |
+| IDS.EveLog.TLS  | Enable            | `string` | MVC field, value-based                      |
+| IDS.EveLog.TLS  | Extended          | `string` | MVC field, value-based                      |
+| IDS.EveLog.TLS  | SessionResumption | `string` | MVC field, value-based                      |
+| IPsec.General   | Enabled           | `string` | MVC field, uses `FormatBoolean()`           |
+| IPsec.General   | Disablevpnrules   | `string` | MVC field, uses `FormatBoolean()`           |
 
-### 5d. OPNsense module (opnsense.go)
+### 5b. Services (services.go) — value-based, kept as string
 
-| Struct                 | Field               | Current  | Should Be  |
-| ---------------------- | ------------------- | -------- | ---------- |
-| Kea.Dhcp4.General      | Enabled             | `string` | `BoolFlag` |
-| Kea.HighAvailability   | Enabled             | `string` | `BoolFlag` |
-| UnboundPlus.General    | Enabled             | `string` | `BoolFlag` |
-| UnboundPlus.General    | Stats               | `string` | `BoolFlag` |
-| UnboundPlus.General    | Dnssec              | `string` | `BoolFlag` |
-| UnboundPlus.General    | DNS64               | `string` | `BoolFlag` |
-| UnboundPlus.General    | RegisterDHCP\* (x3) | `string` | `BoolFlag` |
-| UnboundPlus.General    | No\* fields (x2)    | `string` | `BoolFlag` |
-| UnboundPlus.General    | Txtsupport          | `string` | `BoolFlag` |
-| UnboundPlus.General    | Cacheflush          | `string` | `BoolFlag` |
-| UnboundPlus.General    | EnableWpad          | `string` | `BoolFlag` |
-| UnboundPlus.Dnsbl      | Enabled             | `string` | `BoolFlag` |
-| UnboundPlus.Dnsbl      | Safesearch          | `string` | `BoolFlag` |
-| UnboundPlus.Forwarding | Enabled             | `string` | `BoolFlag` |
-| SyslogInternal.General | Enabled             | `string` | `BoolFlag` |
-| Netflow.Capture        | EgressOnly          | `string` | `BoolFlag` |
-| Netflow.Collect        | Enable              | `string` | `BoolFlag` |
+| Struct        | Field        | Type     | Rationale                                   |
+| ------------- | ------------ | -------- | ------------------------------------------- |
+| Unbound       | Enable       | `string` | Heavily used with `== "1"` across 10+ files |
+| Monit.General | Enabled      | `string` | MVC field, value-based                      |
+| Monit.General | Ssl          | `string` | MVC field, value-based                      |
+| Monit.General | Sslverify    | `string` | MVC field, value-based                      |
+| Monit.General | HttpdEnabled | `string` | MVC field, value-based                      |
+| Monit.Alert   | Enabled      | `string` | MVC field, value-based                      |
+| MonitService  | Enabled      | `string` | MVC field, value-based                      |
 
-### 5e. DHCP (dhcp.go)
+### 5c. OPNsense module (opnsense.go) — value-based, kept as string
 
-| Struct         | Field  | Current  | Should Be                      |
-| -------------- | ------ | -------- | ------------------------------ |
-| DhcpdInterface | Enable | `string` | needs review (value-based `1`) |
+| Struct                 | Field               | Type     | Rationale              |
+| ---------------------- | ------------------- | -------- | ---------------------- |
+| Kea.Dhcp4.General      | Enabled             | `string` | MVC field, value-based |
+| Kea.HighAvailability   | Enabled             | `string` | MVC field, value-based |
+| UnboundPlus.General    | Enabled             | `string` | MVC field, value-based |
+| UnboundPlus.General    | Stats               | `string` | MVC field, value-based |
+| UnboundPlus.General    | Dnssec              | `string` | MVC field, value-based |
+| UnboundPlus.General    | DNS64               | `string` | MVC field, value-based |
+| UnboundPlus.General    | RegisterDHCP\* (x3) | `string` | MVC field, value-based |
+| UnboundPlus.General    | No\* fields (x2)    | `string` | MVC field, value-based |
+| UnboundPlus.General    | Txtsupport          | `string` | MVC field, value-based |
+| UnboundPlus.General    | Cacheflush          | `string` | MVC field, value-based |
+| UnboundPlus.General    | EnableWpad          | `string` | MVC field, value-based |
+| UnboundPlus.Dnsbl      | Enabled             | `string` | MVC field, value-based |
+| UnboundPlus.Dnsbl      | Safesearch          | `string` | MVC field, value-based |
+| UnboundPlus.Forwarding | Enabled             | `string` | MVC field, value-based |
+| SyslogInternal.General | Enabled             | `string` | MVC field, value-based |
+| Netflow.Capture        | EgressOnly          | `string` | MVC field, value-based |
+| Netflow.Collect        | Enable              | `string` | MVC field, value-based |
 
-**Note on `DhcpdInterface.Enable`:** This field uses value-based semantics (`<enable>1</enable>`), not presence-based. The distinction matters for the correct Go type choice. If the upstream always checks `== "1"`, keeping `string` is acceptable. Converting to `BoolFlag` would change semantics since `BoolFlag` treats any presence as true.
+### 5d. DHCP (dhcp.go) — value-based, kept as string
+
+| Struct         | Field  | Type     | Rationale                                     |
+| -------------- | ------ | -------- | --------------------------------------------- |
+| DhcpdInterface | Enable | `string` | Value-based (`<enable>1</enable>`), heavy use |
+
+**Note on value-based fields:** These use OPNsense MVC pattern `<field>1</field>` / `<field>0</field>`. Converting to `BoolFlag` would break semantics because `BoolFlag.UnmarshalXML` treats any present element as true, regardless of content — so `<enabled>0</enabled>` would incorrectly become `true`.
 
 ---
 

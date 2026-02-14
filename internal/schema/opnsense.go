@@ -9,7 +9,7 @@ import (
 type OpnSenseDocument struct {
 	XMLName              xml.Name             `xml:"opnsense"                         json:"-"                    yaml:"-"`
 	Version              string               `xml:"version,omitempty"                json:"version,omitempty"    yaml:"version,omitempty"              validate:"omitempty,semver"`
-	TriggerInitialWizard struct{}             `xml:"trigger_initial_wizard,omitempty" json:"triggerInitialWizard" yaml:"triggerInitialWizard,omitempty"`
+	TriggerInitialWizard BoolFlag             `xml:"trigger_initial_wizard,omitempty" json:"triggerInitialWizard" yaml:"triggerInitialWizard,omitempty"`
 	Theme                string               `xml:"theme,omitempty"                  json:"theme,omitempty"      yaml:"theme,omitempty"                validate:"omitempty,oneof=opnsense opnsense-ng bootstrap"`
 	Sysctl               []SysctlItem         `xml:"sysctl,omitempty"                 json:"sysctl,omitempty"     yaml:"sysctl,omitempty"               validate:"dive"`
 	System               System               `xml:"system,omitempty"                 json:"system"               yaml:"system,omitempty"               validate:"required"`

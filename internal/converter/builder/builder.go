@@ -165,7 +165,7 @@ func (b *MarkdownBuilder) writeSystemSection(md *markdown.Markdown, data *model.
 		PlainTextf(
 			"%s: %s",
 			markdown.Bold("Disable Console Menu"),
-			formatters.FormatStructBoolean(sysConfig.System.DisableConsoleMenu),
+			formatters.FormatBoolFlag(sysConfig.System.DisableConsoleMenu),
 		).LF().
 		PlainTextf(
 			"%s: %s",

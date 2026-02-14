@@ -103,8 +103,8 @@ func TestWalk_EmptyStructHandling(t *testing.T) {
 		System: model.System{
 			Hostname:           "test.local",
 			Domain:             "test.com",
-			DisableConsoleMenu: struct{}{}, // Empty struct for enabled
-			IPv6Allow:          "1",        // String value for enabled
+			DisableConsoleMenu: true, // BoolFlag for enabled
+			IPv6Allow:          "1",  // String value for enabled
 		},
 	}
 

@@ -3,7 +3,7 @@
 - **Hostname**: edge-case-test!@#$%^&*()
 - **Domain**: domain*with*asterisks
 - **Platform**: OPNsense 
-- **Generated On**: 2026-02-14T18:18:48-05:00
+- **Generated On**: 2026-02-14T18:35:01-05:00
 - **Parsed By**: opnDossier vdev
 ## Table of Contents
 - [System Configuration](#system-configuration)
@@ -35,7 +35,7 @@
   
 **Use Virtual Terminal**: ✗
   
-**Disable Console Menu**: ✓
+**Disable Console Menu**: ✗
   
 **Disable VLAN HW Filter**: ✗
   
