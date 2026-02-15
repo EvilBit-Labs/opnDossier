@@ -508,6 +508,112 @@ func TestValidateFilter_RuleValidation(t *testing.T) {
 	}
 }
 
+func TestValidateFilter_AddressValidation(t *testing.T) {
+	tests := []struct {
+		name           string
+		filter         model.Filter
+		expectedErrors int
+	}{
+		{
+			name: "valid source address (IP)",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:       "pass",
+						IPProtocol: "inet",
+						Interface:  model.InterfaceList{"lan"},
+						Source:     model.Source{Address: "192.168.1.100"},
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "valid source address (CIDR)",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:       "pass",
+						IPProtocol: "inet",
+						Interface:  model.InterfaceList{"lan"},
+						Source:     model.Source{Address: "10.0.0.0/8"},
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "valid source address (alias)",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:       "pass",
+						IPProtocol: "inet",
+						Interface:  model.InterfaceList{"lan"},
+						Source:     model.Source{Address: "WebServers"},
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "malformed source address (invalid CIDR)",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:       "pass",
+						IPProtocol: "inet",
+						Interface:  model.InterfaceList{"lan"},
+						Source:     model.Source{Address: "192.168.1.0/33"},
+					},
+				},
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "malformed destination address (invalid IP)",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:        "pass",
+						IPProtocol:  "inet",
+						Interface:   model.InterfaceList{"lan"},
+						Destination: model.Destination{Address: "999.999.999.999"},
+					},
+				},
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "valid destination address (alias)",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:        "pass",
+						IPProtocol:  "inet",
+						Interface:   model.InterfaceList{"lan"},
+						Destination: model.Destination{Address: "MailServers"},
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			interfaces := &model.Interfaces{
+				Items: map[string]model.Interface{
+					"wan": {},
+					"lan": {},
+				},
+			}
+			errors := validateFilter(&tt.filter, interfaces)
+			assert.Len(t, errors, tt.expectedErrors, "Expected number of errors")
+		})
+	}
+}
+
 func TestValidateDhcpd_RangeValidation(t *testing.T) {
 	tests := []struct {
 		name           string

@@ -343,6 +343,182 @@ func TestAnalyzer_CompareNAT_ModeChanged(t *testing.T) {
 	assert.Equal(t, "medium", changes[0].SecurityImpact)
 }
 
+func TestFormatSource(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		src  schema.Source
+		want string
+	}{
+		{
+			name: "network only",
+			src:  schema.Source{Network: "lan"},
+			want: "lan",
+		},
+		{
+			name: "address only",
+			src:  schema.Source{Address: "10.0.0.1"},
+			want: "10.0.0.1",
+		},
+		{
+			name: "any via pointer",
+			src:  schema.Source{Any: schema.StringPtr("")},
+			want: "any",
+		},
+		{
+			name: "empty source",
+			src:  schema.Source{},
+			want: "unknown",
+		},
+		{
+			name: "negated network",
+			src:  schema.Source{Network: "lan", Not: true},
+			want: "!lan",
+		},
+		{
+			name: "negated address with port",
+			src:  schema.Source{Address: "192.168.1.0/24", Not: true, Port: "22"},
+			want: "!192.168.1.0/24:22",
+		},
+		{
+			name: "network with port",
+			src:  schema.Source{Network: "wan", Port: "443"},
+			want: "wan:443",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := formatSource(tt.src)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestFormatDestination(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		dst  schema.Destination
+		want string
+	}{
+		{
+			name: "network only",
+			dst:  schema.Destination{Network: "wan"},
+			want: "wan",
+		},
+		{
+			name: "address only",
+			dst:  schema.Destination{Address: "10.0.0.1"},
+			want: "10.0.0.1",
+		},
+		{
+			name: "any via pointer",
+			dst:  schema.Destination{Any: schema.StringPtr("")},
+			want: "any",
+		},
+		{
+			name: "empty destination",
+			dst:  schema.Destination{},
+			want: "unknown",
+		},
+		{
+			name: "negated with port",
+			dst:  schema.Destination{Network: "lan", Not: true, Port: "80"},
+			want: "!lan:80",
+		},
+		{
+			name: "address with port",
+			dst:  schema.Destination{Address: "10.0.0.5", Port: "8080"},
+			want: "10.0.0.5:8080",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := formatDestination(tt.dst)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestFormatRule(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		rule schema.Rule
+		want string
+	}{
+		{
+			name: "basic pass rule",
+			rule: schema.Rule{
+				Type:        "pass",
+				Interface:   schema.InterfaceList{"wan"},
+				Protocol:    "tcp",
+				Source:      schema.Source{Network: "any"},
+				Destination: schema.Destination{Network: "lan", Port: "443"},
+			},
+			want: "type=pass, if=wan, proto=tcp, src=any, dst=lan:443",
+		},
+		{
+			name: "disabled rule",
+			rule: schema.Rule{
+				Type:        "block",
+				Source:      schema.Source{Network: "any"},
+				Destination: schema.Destination{Any: schema.StringPtr("")},
+				Disabled:    true,
+			},
+			want: "type=block, src=any, dst=any, disabled",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := formatRule(tt.rule)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestRuleDescription(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		rule schema.Rule
+		want string
+	}{
+		{
+			name: "with description",
+			rule: schema.Rule{Descr: "Allow SSH"},
+			want: "Allow SSH",
+		},
+		{
+			name: "without description uses effective address",
+			rule: schema.Rule{
+				Type:        "pass",
+				Source:      schema.Source{Address: "10.0.0.0/8"},
+				Destination: schema.Destination{Any: schema.StringPtr("")},
+			},
+			want: "pass 10.0.0.0/8 → any",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := ruleDescription(tt.rule)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestAnalyzer_CompareRoutes_CountChanged(t *testing.T) {
 	analyzer := NewAnalyzer()
 	old := &schema.StaticRoutes{

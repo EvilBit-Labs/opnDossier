@@ -642,57 +642,6 @@ func TestGetPowerModeDescription(t *testing.T) {
 	}
 }
 
-func TestFormatBooleanInverted(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "true_value",
-			input:    "1",
-			expected: "✗",
-		},
-		{
-			name:     "true_string",
-			input:    "true",
-			expected: "✗",
-		},
-		{
-			name:     "on_value",
-			input:    "on",
-			expected: "✗",
-		},
-		{
-			name:     "false_value",
-			input:    "0",
-			expected: "✓",
-		},
-		{
-			name:     "false_string",
-			input:    "false",
-			expected: "✓",
-		},
-		{
-			name:     "empty_string",
-			input:    "",
-			expected: "✓",
-		},
-		{
-			name:     "random_string",
-			input:    "random",
-			expected: "✓",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := formatters.FormatBooleanInverted(tt.input)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
 func TestBuildFirewallRulesTable_EdgeCases(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -1558,12 +1507,6 @@ func TestFormatIntBooleanWithUnset(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
-}
-
-func TestFormatStructBoolean(t *testing.T) {
-	// Test with empty struct
-	result := formatters.FormatStructBoolean(struct{}{})
-	assert.Equal(t, "✓", result)
 }
 
 func TestMarkdownBuilder_BuildSystemSection_WithAllFields(t *testing.T) {

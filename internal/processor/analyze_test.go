@@ -645,47 +645,6 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 	}
 }
 
-func TestCoreProcessor_GetDestinationString(t *testing.T) {
-	processor, err := NewCoreProcessor()
-	require.NoError(t, err)
-
-	// Test that the function returns a composite key
-	destAny := model.Destination{Any: model.StringPtr("1")}
-	resultAny := processor.getDestinationString(destAny)
-	assert.Equal(t, "network:any|port:", resultAny, "getDestinationString should encode any destination")
-
-	destNetwork := model.Destination{Network: "192.168.1.0/24"}
-	resultNetwork := processor.getDestinationString(destNetwork)
-	assert.Equal(t, "network:192.168.1.0/24|port:", resultNetwork, "getDestinationString should encode network")
-
-	destNetworkPort := model.Destination{Network: "192.168.1.0/24", Port: "443"}
-	resultNetworkPort := processor.getDestinationString(destNetworkPort)
-	assert.Equal(
-		t,
-		"network:192.168.1.0/24|port:443",
-		resultNetworkPort,
-		"getDestinationString should encode network and port",
-	)
-
-	// Test empty destination is treated as "any"
-	destEmpty := model.Destination{}
-	resultEmpty := processor.getDestinationString(destEmpty)
-	assert.Equal(t, "network:any|port:", resultEmpty, "getDestinationString should treat empty destination as any")
-
-	// Test that empty destination and explicit Any destination produce the same result
-	assert.Equal(t, resultAny, resultEmpty, "Empty destination should equal explicit Any destination")
-
-	// Test destination with only port (no network, no any) is NOT treated as "any"
-	destPortOnly := model.Destination{Port: "443"}
-	resultPortOnly := processor.getDestinationString(destPortOnly)
-	assert.Equal(
-		t,
-		"network:|port:443",
-		resultPortOnly,
-		"getDestinationString should not treat port-only destination as any",
-	)
-}
-
 // TestCoreProcessor_RealWorldConfigurations tests the implementation with actual OPNsense configuration files.
 func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
 	processor, err := NewCoreProcessor()

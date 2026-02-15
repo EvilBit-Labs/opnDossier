@@ -75,33 +75,6 @@ func TestFormatBoolean(t *testing.T) {
 	}
 }
 
-func TestFormatBooleanInverted(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name  string
-		value string
-		want  string
-	}{
-		{"one is xmark (inverted)", "1", "✗"},
-		{"true is xmark (inverted)", "true", "✗"},
-		{"on is xmark (inverted)", "on", "✗"},
-		{"zero is checkmark (inverted)", "0", "✓"},
-		{"false is checkmark (inverted)", "false", "✓"},
-		{"empty is checkmark (inverted)", "", "✓"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			got := FormatBooleanInverted(tt.value)
-			if got != tt.want {
-				t.Errorf("FormatBooleanInverted(%q) = %q, want %q", tt.value, got, tt.want)
-			}
-		})
-	}
-}
-
 func TestFormatBoolFlag(t *testing.T) {
 	t.Parallel()
 
@@ -192,15 +165,6 @@ func TestFormatIntBooleanWithUnset(t *testing.T) {
 				t.Errorf("FormatIntBooleanWithUnset(%d) = %q, want %q", tt.value, got, tt.want)
 			}
 		})
-	}
-}
-
-func TestFormatStructBoolean(t *testing.T) {
-	t.Parallel()
-
-	got := FormatStructBoolean(struct{}{})
-	if got != "✓" {
-		t.Errorf("FormatStructBoolean() = %q, want %q", got, "✓")
 	}
 }
 

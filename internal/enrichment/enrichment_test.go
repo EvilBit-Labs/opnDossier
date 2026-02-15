@@ -337,6 +337,51 @@ func TestGenerateSecurityAssessment(t *testing.T) {
 	}
 }
 
+func TestGenerateAnalysis_SourceIsAnyPath(t *testing.T) {
+	// Test that rules using Source{Any: StringPtr("")} (the *string pattern)
+	// are detected correctly by dead rule, security, and consistency analysis.
+	cfg := &schema.OpnSenseDocument{
+		System: schema.System{
+			WebGUI: schema.WebGUIConfig{Protocol: "https"},
+		},
+		Filter: schema.Filter{
+			Rule: []schema.Rule{
+				{
+					Type:      "block",
+					Interface: schema.InterfaceList{"wan"},
+					// Use Any pointer instead of Network: "any"
+					Source:      schema.Source{Any: schema.StringPtr("")},
+					Destination: schema.Destination{Any: schema.StringPtr("")},
+				},
+				{
+					Type:      "pass",
+					Interface: schema.InterfaceList{"wan"},
+					// This rule after block-all should be detected as dead
+					Source:      schema.Source{Network: "lan"},
+					Destination: schema.Destination{Network: "lan"},
+					Descr:       "Unreachable rule",
+				},
+			},
+		},
+	}
+
+	analysis := generateAnalysis(cfg)
+
+	// The block rule with Source{Any: StringPtr("")} should cause dead rule detection
+	assert.NotEmpty(t, analysis.DeadRules, "expected dead rules when block-all uses Any pointer")
+
+	// Verify the dead rule finding describes the unreachable rules
+	found := false
+	for _, dr := range analysis.DeadRules {
+		if dr.RuleIndex == 1 && dr.Description != "" {
+			found = true
+
+			break
+		}
+	}
+	assert.True(t, found, "expected dead rule finding for Source.IsAny() path")
+}
+
 func TestCalculateSecurityScore(t *testing.T) {
 	cfg := &schema.OpnSenseDocument{
 		System: schema.System{

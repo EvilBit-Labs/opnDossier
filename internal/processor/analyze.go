@@ -150,24 +150,6 @@ func (p *CoreProcessor) rulesAreEquivalent(rule1, rule2 model.Rule) bool {
 	return rule1.Destination.Equal(rule2.Destination)
 }
 
-// getDestinationString converts the destination struct to a composite string for comparison.
-// This preserves "any" vs explicit network/port values while treating empty fields as equivalent.
-// Empty destinations (no Any, no Network, no Port) are treated as "any" for backward compatibility.
-func (p *CoreProcessor) getDestinationString(destination model.Destination) string {
-	network := ""
-	switch {
-	case destination.IsAny():
-		network = NetworkAny
-	case destination.Network != "":
-		network = destination.Network
-	case destination.Port == "":
-		// Empty destination with no explicit fields is treated as "any"
-		network = NetworkAny
-	}
-
-	return fmt.Sprintf("network:%s|port:%s", network, destination.Port)
-}
-
 // markDHCPInterfaces iterates through all DHCP interfaces and marks enabled ones as used.
 // An interface is considered enabled if its Enable field is "1" (OPNsense convention:
 // Enable="1" means enabled, Enable="" or Enable="0" means disabled).
