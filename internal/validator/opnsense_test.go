@@ -598,6 +598,20 @@ func TestValidateFilter_AddressValidation(t *testing.T) {
 			},
 			expectedErrors: 0,
 		},
+		{
+			name: "valid source address (dotted alias)",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:       "pass",
+						IPProtocol: "inet",
+						Interface:  model.InterfaceList{"lan"},
+						Source:     model.Source{Address: "internal.servers"},
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
 	}
 
 	for _, tt := range tests {

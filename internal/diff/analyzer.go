@@ -8,6 +8,8 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/schema"
 )
 
+const addressUnknown = "unknown"
+
 // Analyzer performs structural comparison of configurations.
 type Analyzer struct{}
 
@@ -823,7 +825,18 @@ func ruleDescription(rule schema.Rule) string {
 	if rule.Descr != "" {
 		return rule.Descr
 	}
-	return fmt.Sprintf("%s %s → %s", rule.Type, rule.Source.EffectiveAddress(), rule.Destination.EffectiveAddress())
+
+	src := rule.Source.EffectiveAddress()
+	if src == "" {
+		src = addressUnknown
+	}
+
+	dst := rule.Destination.EffectiveAddress()
+	if dst == "" {
+		dst = addressUnknown
+	}
+
+	return fmt.Sprintf("%s %s → %s", rule.Type, src, dst)
 }
 
 func formatRule(rule schema.Rule) string {
@@ -852,7 +865,7 @@ func formatSource(src schema.Source) string {
 	}
 	addr := src.EffectiveAddress()
 	if addr == "" {
-		addr = "unknown"
+		addr = addressUnknown
 	}
 	result := prefix + addr
 	if src.Port != "" {
@@ -868,7 +881,7 @@ func formatDestination(dst schema.Destination) string {
 	}
 	addr := dst.EffectiveAddress()
 	if addr == "" {
-		addr = "unknown"
+		addr = addressUnknown
 	}
 	result := prefix + addr
 	if dst.Port != "" {

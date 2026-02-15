@@ -188,7 +188,8 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 				Filter: model.Filter{
 					Rule: []model.Rule{
 						{
-							Type: "pass",
+							Type:     "pass",
+							Protocol: "tcp",
 							Source: model.Source{
 								Network: "192.168.1.0/24",
 							},
@@ -208,7 +209,8 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 				Filter: model.Filter{
 					Rule: []model.Rule{
 						{
-							Type: "pass",
+							Type:     "pass",
+							Protocol: "udp",
 							Source: model.Source{
 								Network: "172.16.1.0/24",
 							},
@@ -241,6 +243,27 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 				},
 			},
 			expected: true,
+		},
+		{
+			name: "ICMP rule without port is not flagged (non-TCP/UDP)",
+			config: &model.OpnSenseDocument{
+				Filter: model.Filter{
+					Rule: []model.Rule{
+						{
+							Type:     "pass",
+							Protocol: "icmp",
+							Source: model.Source{
+								Network: "192.168.1.0/24",
+							},
+							Destination: model.Destination{
+								Network: "10.0.0.0/24",
+								Port:    "",
+							},
+						},
+					},
+				},
+			},
+			expected: false,
 		},
 		{
 			name: "config with broad source and any destination",

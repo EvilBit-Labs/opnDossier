@@ -474,9 +474,11 @@ func validateFilter(filter *model.Filter, interfaces *model.Interfaces) []Valida
 		// Validate source address (IP/CIDR or alias)
 		if rule.Source.Address != "" && !isValidCIDR(rule.Source.Address) && net.ParseIP(rule.Source.Address) == nil {
 			// Not a valid IP or CIDR — could be an alias, which is acceptable
-			// Only flag if it looks like a malformed IP/CIDR
-			if strings.Contains(rule.Source.Address, "/") || strings.Contains(rule.Source.Address, ".") ||
-				strings.Contains(rule.Source.Address, ":") {
+			// Only flag if it looks like a malformed IP/CIDR attempt:
+			// "/" = CIDR notation, ":" = IPv6, 3+ dots = IPv4 octet pattern
+			dotCount := strings.Count(rule.Source.Address, ".")
+			if strings.Contains(rule.Source.Address, "/") || strings.Contains(rule.Source.Address, ":") ||
+				dotCount >= 3 {
 				errors = append(errors, ValidationError{
 					Field: fmt.Sprintf("filter.rule[%d].source.address", i),
 					Message: fmt.Sprintf(
@@ -504,8 +506,9 @@ func validateFilter(filter *model.Filter, interfaces *model.Interfaces) []Valida
 		// Validate destination address (IP/CIDR or alias)
 		if rule.Destination.Address != "" && !isValidCIDR(rule.Destination.Address) &&
 			net.ParseIP(rule.Destination.Address) == nil {
-			if strings.Contains(rule.Destination.Address, "/") || strings.Contains(rule.Destination.Address, ".") ||
-				strings.Contains(rule.Destination.Address, ":") {
+			dotCount := strings.Count(rule.Destination.Address, ".")
+			if strings.Contains(rule.Destination.Address, "/") || strings.Contains(rule.Destination.Address, ":") ||
+				dotCount >= 3 {
 				errors = append(errors, ValidationError{
 					Field: fmt.Sprintf("filter.rule[%d].destination.address", i),
 					Message: fmt.Sprintf(

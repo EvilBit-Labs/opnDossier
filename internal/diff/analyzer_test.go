@@ -508,6 +508,13 @@ func TestRuleDescription(t *testing.T) {
 			},
 			want: "pass 10.0.0.0/8 → any",
 		},
+		{
+			name: "empty addresses fall back to unknown",
+			rule: schema.Rule{
+				Type: "block",
+			},
+			want: "block unknown → unknown",
+		},
 	}
 
 	for _, tt := range tests {

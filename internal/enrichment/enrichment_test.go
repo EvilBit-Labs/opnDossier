@@ -338,6 +338,7 @@ func TestGenerateSecurityAssessment(t *testing.T) {
 }
 
 func TestGenerateAnalysis_SourceIsAnyPath(t *testing.T) {
+	t.Parallel()
 	// Test that rules using Source{Any: StringPtr("")} (the *string pattern)
 	// are detected correctly by dead rule, security, and consistency analysis.
 	cfg := &schema.OpnSenseDocument{

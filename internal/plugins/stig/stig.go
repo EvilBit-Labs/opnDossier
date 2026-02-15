@@ -243,8 +243,9 @@ func (sp *Plugin) hasOverlyPermissiveRules(config *model.OpnSenseDocument) bool 
 			}
 		}
 
-		// Check for rules without specific port restrictions
-		if rule.Destination.Port == "" || rule.Destination.Port == NetworkAny {
+		// Check for rules without specific port restrictions (only for TCP/UDP)
+		if (rule.Protocol == "tcp" || rule.Protocol == "udp" || rule.Protocol == "tcp/udp") &&
+			(rule.Destination.Port == "" || rule.Destination.Port == NetworkAny) {
 			return true
 		}
 	}
