@@ -15,7 +15,7 @@ merge_protections:
     if:
       - base = main
     success_conditions:
-      - check-success = build
-      - check-success = integration-tests
-      - check-success = test
-      - check-success = lint
+      - check-success ~= (?i)^(CI / )?build$
+      - check-success ~= (?i)^(CI / )?integration-tests$
+      - check-success ~= (?i)^(CI / )?test$
+      - check-success ~= (?i)^(CI / )?lint$
