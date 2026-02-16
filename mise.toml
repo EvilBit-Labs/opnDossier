@@ -5,7 +5,6 @@ act                                         = "latest"
 cosign                                      = "3.0.4"
 git-cliff                                   = "2.12.0"
 "github:anchore/quill"                      = "latest"
-go                                          = "1.25.7"
 "go:github.com/securego/gosec/v2/cmd/gosec" = "latest"
 golangci-lint                               = "2.9.0"
 goreleaser                                  = "latest"
@@ -15,5 +14,8 @@ node                                        = "latest"
 "pipx:mdformat"                             = { version = "0.7.21", uvx_args = "--with mdformat-gfm --with mdformat-front-matters --with mdformat-footnote --with mdformat-simple-breaks --with mdformat-gfm-alerts --with mdformat-toc --with mdformat-wikilink --with mdformat-tables" }
 "pipx:mkdocs"                               = { version = "1.6.1", uvx_args = "--with mkdocs-material --with pymdown-extensions" }
 pre-commit                                  = "4.5.1"
-python                                      = "3.14.3"
+python = "3.14.3"
 uv                                          = "latest"
+
+[settings]
+idiomatic_version_file_enable_tools = [ "go", "python", "node" ]

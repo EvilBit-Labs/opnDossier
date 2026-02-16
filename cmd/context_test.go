@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
-	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,7 +16,7 @@ func TestGetCommandContext_ValidContext(t *testing.T) {
 	cmd.SetContext(context.Background())
 
 	expectedCfg := &config.Config{Verbose: true}
-	expectedLogger, err := log.New(log.Config{Level: "info"})
+	expectedLogger, err := logging.New(logging.Config{Level: "info"})
 	require.NoError(t, err)
 
 	cmdCtx := &CommandContext{
@@ -153,7 +153,7 @@ func TestCommandContext_FieldAccess(t *testing.T) {
 		Quiet:      false,
 		OutputFile: "test.md",
 	}
-	logger, err := log.New(log.Config{Level: "debug"})
+	logger, err := logging.New(logging.Config{Level: "debug"})
 	require.NoError(t, err)
 
 	cmdCtx := &CommandContext{

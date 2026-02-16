@@ -5,7 +5,7 @@ import (
 	"context"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
-	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +20,7 @@ type CommandContext struct {
 	Config *config.Config
 
 	// Logger is the application's structured logger instance.
-	Logger *log.Logger
+	Logger *logging.Logger
 }
 
 // contextKey is the type for context keys to avoid collisions with other packages.

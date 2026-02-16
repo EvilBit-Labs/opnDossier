@@ -351,8 +351,8 @@ func TestGenerateAnalysis_SourceIsAnyPath(t *testing.T) {
 					Type:      "block",
 					Interface: schema.InterfaceList{"wan"},
 					// Use Any pointer instead of Network: "any"
-					Source:      schema.Source{Any: schema.StringPtr("")},
-					Destination: schema.Destination{Any: schema.StringPtr("")},
+					Source:      schema.Source{Any: new("")},
+					Destination: schema.Destination{Any: new("")},
 				},
 				{
 					Type:      "pass",

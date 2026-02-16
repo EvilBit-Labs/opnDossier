@@ -14,7 +14,7 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/internal/audit"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
-	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	charmlog "github.com/charmbracelet/log"
 	"github.com/nao1215/markdown"
@@ -27,7 +27,7 @@ func handleAuditMode(
 	ctx context.Context,
 	doc *model.OpnSenseDocument,
 	opt converter.Options,
-	logger *log.Logger,
+	logger *logging.Logger,
 ) (string, error) {
 	// Parse audit mode
 	mode, err := audit.ParseReportMode(opt.AuditMode)
@@ -83,7 +83,7 @@ type auditLogLevels struct {
 
 // determineAuditLogLevels maps the application logger level to slog and charm log levels
 // used by audit mode components.
-func determineAuditLogLevels(logger *log.Logger) auditLogLevels {
+func determineAuditLogLevels(logger *logging.Logger) auditLogLevels {
 	if logger == nil || logger.Logger == nil {
 		return auditLogLevels{slog: slog.LevelInfo, charm: charmlog.InfoLevel}
 	}

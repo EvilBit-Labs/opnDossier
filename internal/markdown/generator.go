@@ -4,7 +4,7 @@ package markdown
 
 import (
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
-	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 )
 
 // Generator interface for creating documentation in various formats.
@@ -13,6 +13,6 @@ type Generator = converter.Generator
 // NewMarkdownGenerator creates a new Generator that produces documentation in Markdown, JSON, or YAML formats.
 //
 // Deprecated: use converter.NewMarkdownGenerator instead.
-func NewMarkdownGenerator(logger *log.Logger, opts Options) (Generator, error) {
+func NewMarkdownGenerator(logger *logging.Logger, opts Options) (Generator, error) {
 	return converter.NewMarkdownGenerator(logger, opts)
 }

@@ -8,13 +8,13 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
-	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
 func TestNewHybridGenerator(t *testing.T) {
 	reportBuilder := builder.NewMarkdownBuilder()
-	logger, err := log.New(log.Config{})
+	logger, err := logging.New(logging.Config{})
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
@@ -42,7 +42,7 @@ func TestNewHybridGenerator(t *testing.T) {
 
 func TestHybridGenerator_Generate_Programmatic(t *testing.T) {
 	reportBuilder := builder.NewMarkdownBuilder()
-	logger, err := log.New(log.Config{})
+	logger, err := logging.New(logging.Config{})
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
@@ -82,7 +82,7 @@ func TestHybridGenerator_Generate_Programmatic(t *testing.T) {
 
 func TestHybridGenerator_Generate_Comprehensive(t *testing.T) {
 	reportBuilder := builder.NewMarkdownBuilder()
-	logger, err := log.New(log.Config{})
+	logger, err := logging.New(logging.Config{})
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
@@ -123,7 +123,7 @@ func TestHybridGenerator_Generate_Comprehensive(t *testing.T) {
 
 func TestHybridGenerator_Generate_NilData(t *testing.T) {
 	reportBuilder := builder.NewMarkdownBuilder()
-	logger, loggerErr := log.New(log.Config{})
+	logger, loggerErr := logging.New(logging.Config{})
 	if loggerErr != nil {
 		t.Fatalf("Failed to create logger: %v", loggerErr)
 	}
@@ -145,7 +145,7 @@ func TestHybridGenerator_Generate_NilData(t *testing.T) {
 }
 
 func TestHybridGenerator_Generate_NoBuilder(t *testing.T) {
-	logger, loggerErr := log.New(log.Config{})
+	logger, loggerErr := logging.New(logging.Config{})
 	if loggerErr != nil {
 		t.Fatalf("Failed to create logger: %v", loggerErr)
 	}
@@ -174,7 +174,7 @@ func TestHybridGenerator_Generate_NoBuilder(t *testing.T) {
 
 func TestHybridGenerator_SetAndGetBuilder(t *testing.T) {
 	reportBuilder := builder.NewMarkdownBuilder()
-	logger, loggerErr := log.New(log.Config{})
+	logger, loggerErr := logging.New(logging.Config{})
 	if loggerErr != nil {
 		t.Fatalf("Failed to create logger: %v", loggerErr)
 	}

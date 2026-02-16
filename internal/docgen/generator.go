@@ -64,9 +64,7 @@ func (g *Generator) extractFields(t reflect.Type, prefix string) []FieldInfo {
 
 	var fields []FieldInfo
 
-	for i := range t.NumField() {
-		field := t.Field(i)
-
+	for field := range t.Fields() {
 		// Skip unexported fields
 		if !field.IsExported() {
 			continue

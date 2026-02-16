@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/plugin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -77,7 +77,7 @@ func TestGetControlByID(t *testing.T) {
 
 			if tt.expectError {
 				require.Error(t, err)
-				assert.Equal(t, plugin.ErrControlNotFound, err)
+				assert.Equal(t, compliance.ErrControlNotFound, err)
 				assert.Nil(t, control)
 			} else {
 				require.NoError(t, err)
@@ -106,7 +106,7 @@ func TestValidateConfiguration(t *testing.T) {
 		},
 		{
 			"plugin with no controls",
-			&Plugin{controls: []plugin.Control{}},
+			&Plugin{controls: []compliance.Control{}},
 			true,
 		},
 	}
@@ -118,7 +118,7 @@ func TestValidateConfiguration(t *testing.T) {
 
 			if tt.expectError {
 				require.Error(t, err)
-				assert.Equal(t, plugin.ErrNoControlsDefined, err)
+				assert.Equal(t, compliance.ErrNoControlsDefined, err)
 			} else {
 				require.NoError(t, err)
 			}
@@ -592,13 +592,13 @@ func TestControlsStructure(t *testing.T) {
 func TestPluginInterface(t *testing.T) {
 	t.Parallel()
 
-	// Verify that Plugin implements CompliancePlugin interface
-	var _ plugin.CompliancePlugin = (*Plugin)(nil)
+	// Verify that Plugin implements compliance.Plugin interface
+	var _ compliance.Plugin = (*Plugin)(nil)
 
 	p := NewPlugin()
 
 	// Test interface methods
-	assert.Implements(t, (*plugin.CompliancePlugin)(nil), p)
+	assert.Implements(t, (*compliance.Plugin)(nil), p)
 }
 
 func TestEffectiveAddressMethod(t *testing.T) {

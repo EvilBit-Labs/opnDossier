@@ -4,8 +4,8 @@ package enrichment
 import (
 	"fmt"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/configstats"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
-	"github.com/EvilBit-Labs/opnDossier/internal/metrics"
 	"github.com/EvilBit-Labs/opnDossier/internal/schema"
 )
 
@@ -286,7 +286,7 @@ func generateStatistics(cfg *schema.OpnSenseDocument) *Statistics {
 
 	// Calculate summary statistics
 	stats.Summary = StatisticsSummary{
-		TotalConfigItems: metrics.CalculateTotalConfigItems(
+		TotalConfigItems: configstats.CalculateTotalConfigItems(
 			stats.TotalInterfaces,
 			stats.TotalFirewallRules,
 			stats.TotalUsers,

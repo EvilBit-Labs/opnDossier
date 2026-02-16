@@ -138,10 +138,10 @@ func TestAnalyzer_CompareFirewallRules_PermissiveRuleAdded(t *testing.T) {
 			UUID: "uuid-1",
 			Type: "pass",
 			Source: schema.Source{
-				Any: schema.StringPtr("true"),
+				Any: new("true"),
 			},
 			Destination: schema.Destination{
-				Any: schema.StringPtr("true"),
+				Any: new("true"),
 			},
 		},
 	}
@@ -363,7 +363,7 @@ func TestFormatSource(t *testing.T) {
 		},
 		{
 			name: "any via pointer",
-			src:  schema.Source{Any: schema.StringPtr("")},
+			src:  schema.Source{Any: new("")},
 			want: "any",
 		},
 		{
@@ -417,7 +417,7 @@ func TestFormatDestination(t *testing.T) {
 		},
 		{
 			name: "any via pointer",
-			dst:  schema.Destination{Any: schema.StringPtr("")},
+			dst:  schema.Destination{Any: new("")},
 			want: "any",
 		},
 		{
@@ -470,7 +470,7 @@ func TestFormatRule(t *testing.T) {
 			rule: schema.Rule{
 				Type:        "block",
 				Source:      schema.Source{Network: "any"},
-				Destination: schema.Destination{Any: schema.StringPtr("")},
+				Destination: schema.Destination{Any: new("")},
 				Disabled:    true,
 			},
 			want: "type=block, src=any, dst=any, disabled",
@@ -504,7 +504,7 @@ func TestRuleDescription(t *testing.T) {
 			rule: schema.Rule{
 				Type:        "pass",
 				Source:      schema.Source{Address: "10.0.0.0/8"},
-				Destination: schema.Destination{Any: schema.StringPtr("")},
+				Destination: schema.Destination{Any: new("")},
 			},
 			want: "pass 10.0.0.0/8 → any",
 		},
@@ -559,8 +559,8 @@ func TestIsPermissiveRule(t *testing.T) {
 			name: "any/any pass rule via Any field",
 			rule: schema.Rule{
 				Type:        "pass",
-				Source:      schema.Source{Any: ptrStr("")},
-				Destination: schema.Destination{Any: ptrStr("")},
+				Source:      schema.Source{Any: new("")},
+				Destination: schema.Destination{Any: new("")},
 			},
 			want: true,
 		},
@@ -577,8 +577,8 @@ func TestIsPermissiveRule(t *testing.T) {
 			name: "block rule is not permissive",
 			rule: schema.Rule{
 				Type:        "block",
-				Source:      schema.Source{Any: ptrStr("")},
-				Destination: schema.Destination{Any: ptrStr("")},
+				Source:      schema.Source{Any: new("")},
+				Destination: schema.Destination{Any: new("")},
 			},
 			want: false,
 		},
@@ -587,7 +587,7 @@ func TestIsPermissiveRule(t *testing.T) {
 			rule: schema.Rule{
 				Type:        "pass",
 				Source:      schema.Source{Network: "192.168.1.0/24"},
-				Destination: schema.Destination{Any: ptrStr("")},
+				Destination: schema.Destination{Any: new("")},
 			},
 			want: false,
 		},
@@ -609,8 +609,4 @@ func TestIsPermissiveRule(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
-}
-
-func ptrStr(s string) *string {
-	return &s
 }

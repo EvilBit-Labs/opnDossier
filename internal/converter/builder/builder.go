@@ -12,7 +12,7 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
-	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/nao1215/markdown"
 )
@@ -73,16 +73,16 @@ type ReportBuilder interface {
 // programmatic markdown generation capabilities.
 type MarkdownBuilder struct {
 	config      *model.OpnSenseDocument
-	logger      *log.Logger
+	logger      *logging.Logger
 	generated   time.Time
 	toolVersion string
 }
 
 // NewMarkdownBuilder creates a new MarkdownBuilder instance.
 func NewMarkdownBuilder() *MarkdownBuilder {
-	logger, err := log.New(log.Config{Level: "info"})
+	logger, err := logging.New(logging.Config{Level: "info"})
 	if err != nil {
-		logger = &log.Logger{}
+		logger = &logging.Logger{}
 	}
 	return &MarkdownBuilder{
 		generated:   time.Now(),
@@ -92,12 +92,12 @@ func NewMarkdownBuilder() *MarkdownBuilder {
 }
 
 // NewMarkdownBuilderWithConfig creates a new MarkdownBuilder instance with configuration.
-func NewMarkdownBuilderWithConfig(config *model.OpnSenseDocument, logger *log.Logger) *MarkdownBuilder {
+func NewMarkdownBuilderWithConfig(config *model.OpnSenseDocument, logger *logging.Logger) *MarkdownBuilder {
 	if logger == nil {
 		var err error
-		logger, err = log.New(log.Config{Level: "info"})
+		logger, err = logging.New(logging.Config{Level: "info"})
 		if err != nil {
-			logger = &log.Logger{}
+			logger = &logging.Logger{}
 		}
 	}
 	return &MarkdownBuilder{

@@ -8,7 +8,7 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
-	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
@@ -63,7 +63,7 @@ func TestDetermineOutputPathSimple(t *testing.T) {
 
 // TestGenerateOutputByFormatSimple tests the format-based generation.
 func TestGenerateOutputByFormatSimple(t *testing.T) {
-	logger, err := log.New(log.Config{})
+	logger, err := logging.New(logging.Config{})
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
@@ -112,7 +112,7 @@ func TestGenerateOutputByFormatSimple(t *testing.T) {
 
 // TestGenerateWithProgrammaticGeneratorSimple tests the programmatic generator function.
 func TestGenerateWithProgrammaticGeneratorSimple(t *testing.T) {
-	logger, err := log.New(log.Config{})
+	logger, err := logging.New(logging.Config{})
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}

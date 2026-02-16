@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -21,7 +21,7 @@ const (
 
 func TestNewFileExporter(t *testing.T) {
 	t.Run("with logger", func(t *testing.T) {
-		logger, err := log.New(log.Config{})
+		logger, err := logging.New(logging.Config{})
 		require.NoError(t, err)
 
 		exporter := NewFileExporter(logger)
@@ -404,7 +404,7 @@ func TestFileExporter_Export_ContextCancellation(t *testing.T) {
 }
 
 func TestFileExporter_Export_WithLogger(t *testing.T) {
-	logger, err := log.New(log.Config{Level: "debug"})
+	logger, err := logging.New(logging.Config{Level: "debug"})
 	require.NoError(t, err)
 
 	exporter := NewFileExporter(logger)
@@ -429,7 +429,7 @@ func TestFileExporter_Export_WithLogger(t *testing.T) {
 }
 
 func TestNormalizeLineEndings_InvalidEnvironmentValue(t *testing.T) {
-	logger, err := log.New(log.Config{Level: "debug"})
+	logger, err := logging.New(logging.Config{Level: "debug"})
 	require.NoError(t, err)
 
 	tests := []struct {

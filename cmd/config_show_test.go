@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
-	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -272,7 +272,7 @@ func TestBuildConfigValues(t *testing.T) {
 
 func TestConfigShowCmdJSONOutput(t *testing.T) {
 	// Create a test command context
-	testLogger, err := log.New(log.Config{Level: "info"})
+	testLogger, err := logging.New(logging.Config{Level: "info"})
 	require.NoError(t, err)
 
 	cfg := &config.Config{
@@ -318,7 +318,7 @@ func TestConfigShowCmdJSONOutput(t *testing.T) {
 
 func TestConfigShowCmdStyledOutput(t *testing.T) {
 	// Create a test command context
-	testLogger, err := log.New(log.Config{Level: "info"})
+	testLogger, err := logging.New(logging.Config{Level: "info"})
 	require.NoError(t, err)
 
 	cfg := &config.Config{
@@ -357,7 +357,7 @@ func TestConfigShowCmdNilContext(t *testing.T) {
 }
 
 func TestConfigShowCmdNilConfig(t *testing.T) {
-	testLogger, err := log.New(log.Config{Level: "info"})
+	testLogger, err := logging.New(logging.Config{Level: "info"})
 	require.NoError(t, err)
 
 	cmd := &cobra.Command{Use: "test"}

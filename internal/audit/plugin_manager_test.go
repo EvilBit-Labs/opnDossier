@@ -6,8 +6,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/plugin"
 )
 
 func TestNewPluginManager(t *testing.T) {
@@ -470,7 +470,7 @@ type mockFailingPlugin struct {
 
 func (m *mockFailingPlugin) ValidateConfiguration() error {
 	if m.shouldFailValidation {
-		return plugin.ErrPluginValidation
+		return compliance.ErrPluginValidation
 	}
 	return m.mockCompliancePlugin.ValidateConfiguration()
 }

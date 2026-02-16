@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 )
 
 const (
@@ -33,7 +33,7 @@ const (
 //   - Unix-like: \n (LF)
 //
 // Only the value "1" enables this feature. Other values ("true", "yes", etc.) are ignored.
-func normalizeLineEndings(logger *log.Logger, content string) string {
+func normalizeLineEndings(logger *logging.Logger, content string) string {
 	envValue := os.Getenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS")
 
 	// Warn if environment variable is set to an invalid value
@@ -102,12 +102,12 @@ type Exporter interface {
 
 // FileExporter is a file exporter for OPNsense configurations.
 type FileExporter struct {
-	logger *log.Logger
+	logger *logging.Logger
 }
 
 // NewFileExporter creates and returns a new FileExporter for writing data to files.
 // If logger is nil, operations will continue without logging (graceful degradation).
-func NewFileExporter(logger *log.Logger) *FileExporter {
+func NewFileExporter(logger *logging.Logger) *FileExporter {
 	return &FileExporter{
 		logger: logger,
 	}

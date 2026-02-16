@@ -55,10 +55,10 @@ When rules conflict, follow the higher precedence rule.
 | Data Formats        | `encoding/xml`, `encoding/json`, `gopkg.in/yaml.v3`    |
 | Testing             | Go's built-in `testing` package                        |
 
-**Go Version:** 1.24.2+ (minimum), 1.25.7+ (recommended)
+**Go Version:** 1.24.2+ (minimum), 1.26.0+ (recommended)
 
 > [!NOTE]
-> `viper` manages opnDossier's own configuration (CLI settings, display preferences), not OPNsense config.xml parsing. XML parsing is handled by `internal/parser/`.
+> `viper` manages opnDossier's own configuration (CLI settings, display preferences), not OPNsense config.xml parsing. XML parsing is handled by `internal/cfgparser/`.
 
 ---
 
@@ -82,11 +82,12 @@ opndossier/
 │   ├── converter/                    # Data conversion utilities
 │   ├── display/                      # Terminal display formatting
 │   ├── export/                       # File export functionality
-│   ├── log/                          # Logging utilities
+│   ├── logging/                      # Logging utilities
 │   ├── markdown/                     # Markdown generation
 │   ├── model/                        # Data models and structures
-│   ├── parser/                       # XML parsing and validation
-│   ├── plugin/                       # Plugin interfaces
+│   ├── cfgparser/                    # XML parsing and validation
+│   ├── compliance/                   # Plugin interfaces
+│   ├── configstats/                  # Configuration statistics
 │   ├── plugins/                      # Compliance plugins
 │   │   ├── firewall/                 # Firewall compliance
 │   │   ├── sans/                     # SANS compliance
@@ -187,7 +188,7 @@ import (
 "github.com/spf13/cobra"
 
 // Internal
-"github.com/project/internal/parser"
+"github.com/project/internal/cfgparser"
 )
 ```
 
@@ -804,19 +805,19 @@ This pattern ensures test isolation when multiple tests modify the same global s
 
 ### 8.1 Core Components
 
-| File                               | Purpose                                                    |
-| ---------------------------------- | ---------------------------------------------------------- |
-| `internal/plugin/interfaces.go`    | `CompliancePlugin` interface, `Control`, `Finding` structs |
-| `internal/audit/plugin.go`         | `PluginRegistry`, dynamic plugin loader                    |
-| `internal/audit/plugin_manager.go` | `PluginManager` for lifecycle operations                   |
-| `internal/plugins/`                | Built-in plugin implementations                            |
+| File                                | Purpose                                          |
+| ----------------------------------- | ------------------------------------------------ |
+| `internal/compliance/interfaces.go` | `Plugin` interface, `Control`, `Finding` structs |
+| `internal/audit/plugin.go`          | `PluginRegistry`, dynamic plugin loader          |
+| `internal/audit/plugin_manager.go`  | `PluginManager` for lifecycle operations         |
+| `internal/plugins/`                 | Built-in plugin implementations                  |
 
 ### 8.2 Plugin Interface
 
-All plugins must implement `CompliancePlugin`:
+All plugins must implement `compliance.Plugin`:
 
 ```go
-type CompliancePlugin interface {
+type Plugin interface {
 Name() string
 Version() string
 Description() string
@@ -845,7 +846,7 @@ func (p *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
 
 - Use consistent control naming: `PLUGIN-001`, `PLUGIN-002`
 - Severity levels: `critical`, `high`, `medium`, `low`
-- Dynamic plugins: export `var Plugin plugin.CompliancePlugin`
+- Dynamic plugins: export `var Plugin compliance.Plugin`
 
 ### 8.4 Compliance Standards
 

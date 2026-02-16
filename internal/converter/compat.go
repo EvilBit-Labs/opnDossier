@@ -2,7 +2,7 @@ package converter
 
 import (
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
-	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
@@ -28,7 +28,7 @@ func NewMarkdownBuilder() *builder.MarkdownBuilder {
 // Deprecated: use builder.NewMarkdownBuilderWithConfig instead.
 func NewMarkdownBuilderWithConfig(
 	config *model.OpnSenseDocument,
-	logger *log.Logger,
+	logger *logging.Logger,
 ) *builder.MarkdownBuilder {
 	return builder.NewMarkdownBuilderWithConfig(config, logger)
 }

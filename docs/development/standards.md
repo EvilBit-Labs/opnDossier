@@ -277,18 +277,18 @@ just dev --verbose convert testdata/config.xml
 OPNDOSSIER_VERBOSE=true just dev convert testdata/config.xml
 
 # Profile performance
-go test -bench=. -cpuprofile=cpu.prof ./internal/parser
+go test -bench=. -cpuprofile=cpu.prof ./internal/cfgparser
 go tool pprof cpu.prof
 
 # Memory profiling
-go test -bench=. -memprofile=mem.prof ./internal/parser
+go test -bench=. -memprofile=mem.prof ./internal/cfgparser
 go tool pprof mem.prof
 ```
 
 **Debugging tips:**
 
 - Use `log.Debug()` for temporary debugging output
-- Check `internal/log/` for structured logging patterns
+- Check `internal/logging/` for structured logging patterns
 - Use `go test -v` for verbose test output
 - Use `golangci-lint run --verbose` for detailed linting info
 
@@ -301,9 +301,9 @@ go tool pprof mem.prof
 just bench
 
 # Compare benchmarks
-go test -bench=. -benchmem ./internal/parser > old.txt
+go test -bench=. -benchmem ./internal/cfgparser > old.txt
 # Make changes
-go test -bench=. -benchmem ./internal/parser > new.txt
+go test -bench=. -benchmem ./internal/cfgparser > new.txt
 benchcmp old.txt new.txt
 ```
 
@@ -311,11 +311,11 @@ benchcmp old.txt new.txt
 
 ```bash
 # CPU profiling
-go test -cpuprofile=cpu.prof -bench=. ./internal/parser
+go test -cpuprofile=cpu.prof -bench=. ./internal/cfgparser
 go tool pprof cpu.prof
 
 # Memory profiling
-go test -memprofile=mem.prof -bench=. ./internal/parser
+go test -memprofile=mem.prof -bench=. ./internal/cfgparser
 go tool pprof mem.prof
 ```
 

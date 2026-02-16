@@ -18,8 +18,7 @@ func FuzzSanitizeXML(f *testing.F) {
 	f.Add([]byte(`not xml`))
 	f.Add([]byte{})
 
-	//nolint:revive // t is required by the fuzz API signature
-	f.Fuzz(func(t *testing.T, data []byte) {
+	f.Fuzz(func(_ *testing.T, data []byte) {
 		s := NewSanitizer(ModeAggressive)
 		var out bytes.Buffer
 		// Must not panic; parse errors on malformed XML are expected
@@ -52,8 +51,7 @@ func FuzzPatternDetection(f *testing.F) {
 	f.Add(strings.Repeat("a", 10000))
 	f.Add(strings.Repeat("192.168.1.", 1000))
 
-	//nolint:revive // t is required by the fuzz API signature
-	f.Fuzz(func(t *testing.T, s string) {
+	f.Fuzz(func(_ *testing.T, s string) {
 		// All pattern detection functions must not panic on arbitrary input
 		IsIPv4(s)
 		IsIPv6(s)

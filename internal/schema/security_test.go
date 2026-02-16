@@ -23,26 +23,6 @@ func newTestIDs(opts func(ids *IDS)) *IDS {
 	return ids
 }
 
-func TestStringPtr(t *testing.T) {
-	t.Parallel()
-
-	s := StringPtr("hello")
-	if s == nil {
-		t.Fatal("StringPtr returned nil")
-	}
-	if *s != "hello" {
-		t.Errorf("StringPtr() = %q, want %q", *s, "hello")
-	}
-
-	empty := StringPtr("")
-	if empty == nil {
-		t.Fatal("StringPtr(\"\") returned nil")
-	}
-	if *empty != "" {
-		t.Errorf("StringPtr(\"\") = %q, want %q", *empty, "")
-	}
-}
-
 //nolint:dupl // Source/Destination IsAny tests are structurally similar by design
 func TestSource_IsAny(t *testing.T) {
 	t.Parallel()
@@ -53,8 +33,8 @@ func TestSource_IsAny(t *testing.T) {
 		want bool
 	}{
 		{name: "nil any", src: Source{}, want: false},
-		{name: "empty string any", src: Source{Any: StringPtr("")}, want: true},
-		{name: "non-empty any", src: Source{Any: StringPtr("1")}, want: true},
+		{name: "empty string any", src: Source{Any: new("")}, want: true},
+		{name: "non-empty any", src: Source{Any: new("1")}, want: true},
 		{name: "network only", src: Source{Network: "lan"}, want: false},
 		{name: "address only", src: Source{Address: "192.168.1.0/24"}, want: false},
 		{name: "address with not", src: Source{Address: "10.0.0.0/8", Not: BoolFlag(true)}, want: false},
@@ -81,15 +61,15 @@ func TestSource_Equal(t *testing.T) {
 		{name: "both zero", a: Source{}, b: Source{}, want: true},
 		{name: "both any nil", a: Source{Network: "lan"}, b: Source{Network: "lan"}, want: true},
 		{name: "different network", a: Source{Network: "lan"}, b: Source{Network: "wan"}, want: false},
-		{name: "one any nil other not", a: Source{}, b: Source{Any: StringPtr("")}, want: false},
-		{name: "both any present same value", a: Source{Any: StringPtr("")}, b: Source{Any: StringPtr("")}, want: true},
+		{name: "one any nil other not", a: Source{}, b: Source{Any: new("")}, want: false},
+		{name: "both any present same value", a: Source{Any: new("")}, b: Source{Any: new("")}, want: true},
 		{
 			name: "both any present different values",
-			a:    Source{Any: StringPtr("")},
-			b:    Source{Any: StringPtr("1")},
+			a:    Source{Any: new("")},
+			b:    Source{Any: new("1")},
 			want: true,
 		},
-		{name: "any presence differs", a: Source{Any: StringPtr("1")}, b: Source{Network: "lan"}, want: false},
+		{name: "any presence differs", a: Source{Any: new("1")}, b: Source{Network: "lan"}, want: false},
 		{name: "same address", a: Source{Address: "192.168.1.0/24"}, b: Source{Address: "192.168.1.0/24"}, want: true},
 		{
 			name: "different address",
@@ -144,15 +124,15 @@ func TestSource_EffectiveAddress(t *testing.T) {
 	}{
 		{
 			name: "network takes priority",
-			src:  Source{Network: "lan", Address: "192.168.1.0/24", Any: StringPtr("")},
+			src:  Source{Network: "lan", Address: "192.168.1.0/24", Any: new("")},
 			want: "lan",
 		},
 		{
 			name: "address when no network",
-			src:  Source{Address: "192.168.1.0/24", Any: StringPtr("")},
+			src:  Source{Address: "192.168.1.0/24", Any: new("")},
 			want: "192.168.1.0/24",
 		},
-		{name: "any when no network or address", src: Source{Any: StringPtr("")}, want: "any"},
+		{name: "any when no network or address", src: Source{Any: new("")}, want: "any"},
 		{name: "empty when nothing set", src: Source{}, want: ""},
 		{name: "network only", src: Source{Network: "wan"}, want: "wan"},
 		{name: "address only", src: Source{Address: "10.0.0.5"}, want: "10.0.0.5"},
@@ -178,8 +158,8 @@ func TestDestination_IsAny(t *testing.T) {
 		want bool
 	}{
 		{name: "nil any", dst: Destination{}, want: false},
-		{name: "empty string any", dst: Destination{Any: StringPtr("")}, want: true},
-		{name: "non-empty any", dst: Destination{Any: StringPtr("1")}, want: true},
+		{name: "empty string any", dst: Destination{Any: new("")}, want: true},
+		{name: "non-empty any", dst: Destination{Any: new("1")}, want: true},
 		{name: "network only", dst: Destination{Network: "lan"}, want: false},
 		{name: "address only", dst: Destination{Address: "10.0.0.1"}, want: false},
 		{name: "address with not", dst: Destination{Address: "10.0.0.0/8", Not: BoolFlag(true)}, want: false},
@@ -212,29 +192,29 @@ func TestDestination_Equal(t *testing.T) {
 		},
 		{name: "different network", a: Destination{Network: "lan"}, b: Destination{Network: "wan"}, want: false},
 		{name: "different port", a: Destination{Port: "80"}, b: Destination{Port: "443"}, want: false},
-		{name: "one any nil other not", a: Destination{}, b: Destination{Any: StringPtr("")}, want: false},
+		{name: "one any nil other not", a: Destination{}, b: Destination{Any: new("")}, want: false},
 		{
 			name: "both any present same value",
-			a:    Destination{Any: StringPtr("")},
-			b:    Destination{Any: StringPtr("")},
+			a:    Destination{Any: new("")},
+			b:    Destination{Any: new("")},
 			want: true,
 		},
 		{
 			name: "both any present different values",
-			a:    Destination{Any: StringPtr("")},
-			b:    Destination{Any: StringPtr("1")},
+			a:    Destination{Any: new("")},
+			b:    Destination{Any: new("1")},
 			want: true,
 		},
 		{
 			name: "any with port match",
-			a:    Destination{Any: StringPtr(""), Port: "22"},
-			b:    Destination{Any: StringPtr("1"), Port: "22"},
+			a:    Destination{Any: new(""), Port: "22"},
+			b:    Destination{Any: new("1"), Port: "22"},
 			want: true,
 		},
 		{
 			name: "any with port mismatch",
-			a:    Destination{Any: StringPtr(""), Port: "22"},
-			b:    Destination{Any: StringPtr(""), Port: "80"},
+			a:    Destination{Any: new(""), Port: "22"},
+			b:    Destination{Any: new(""), Port: "80"},
 			want: false,
 		},
 		{
@@ -284,15 +264,15 @@ func TestDestination_EffectiveAddress(t *testing.T) {
 	}{
 		{
 			name: "network takes priority",
-			dst:  Destination{Network: "lan", Address: "192.168.1.0/24", Any: StringPtr("")},
+			dst:  Destination{Network: "lan", Address: "192.168.1.0/24", Any: new("")},
 			want: "lan",
 		},
 		{
 			name: "address when no network",
-			dst:  Destination{Address: "192.168.1.0/24", Any: StringPtr("")},
+			dst:  Destination{Address: "192.168.1.0/24", Any: new("")},
 			want: "192.168.1.0/24",
 		},
-		{name: "any when no network or address", dst: Destination{Any: StringPtr("")}, want: "any"},
+		{name: "any when no network or address", dst: Destination{Any: new("")}, want: "any"},
 		{name: "empty when nothing set", dst: Destination{}, want: ""},
 		{name: "network only", dst: Destination{Network: "wan"}, want: "wan"},
 		{name: "address only", dst: Destination{Address: "10.0.0.5"}, want: "10.0.0.5"},
@@ -671,7 +651,7 @@ func TestSource_XMLRoundTrip(t *testing.T) {
 		{
 			name:         "any self-closing",
 			xml:          `<source><any/></source>`,
-			want:         Source{Any: StringPtr("")},
+			want:         Source{Any: new("")},
 			wantElements: []string{"<any>"},
 		},
 		{
@@ -764,7 +744,7 @@ func TestDestination_XMLRoundTrip(t *testing.T) {
 		{
 			name:         "any self-closing",
 			xml:          `<destination><any/></destination>`,
-			want:         Destination{Any: StringPtr("")},
+			want:         Destination{Any: new("")},
 			wantElements: []string{"<any>"},
 		},
 		{
@@ -782,7 +762,7 @@ func TestDestination_XMLRoundTrip(t *testing.T) {
 		{
 			name:         "any with port range",
 			xml:          `<destination><any/><port>8000-9000</port></destination>`,
-			want:         Destination{Any: StringPtr(""), Port: "8000-9000"},
+			want:         Destination{Any: new(""), Port: "8000-9000"},
 			wantElements: []string{"<any>", "<port>8000-9000</port>"},
 		},
 		{

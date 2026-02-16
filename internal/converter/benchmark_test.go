@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/parser"
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 )
 
 func BenchmarkMarkdownConverter_ToMarkdown(b *testing.B) {
@@ -20,7 +20,7 @@ func BenchmarkMarkdownConverter_ToMarkdown(b *testing.B) {
 	}
 
 	// Parse using the parser
-	p := parser.NewXMLParser()
+	p := cfgparser.NewXMLParser()
 
 	opnsense, err := p.Parse(context.Background(), strings.NewReader(string(xmlData)))
 	if err != nil {
@@ -50,7 +50,7 @@ func BenchmarkMarkdownConverter_ToMarkdown_Large(b *testing.B) {
 	}
 
 	// Parse using the parser
-	p := parser.NewXMLParser()
+	p := cfgparser.NewXMLParser()
 
 	opnsense, err := p.Parse(context.Background(), strings.NewReader(string(xmlData)))
 	if err != nil {

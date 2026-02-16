@@ -14,14 +14,14 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	"github.com/EvilBit-Labs/opnDossier/internal/export"
-	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -129,7 +129,7 @@ var convertCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 	PreRunE: func(cmd *cobra.Command, _ []string) error {
 		// Get logger from CommandContext for validation warnings
 		cmdCtx := GetCommandContext(cmd)
-		var cmdLogger *log.Logger
+		var cmdLogger *logging.Logger
 		if cmdCtx != nil {
 			cmdLogger = cmdCtx.Logger
 		}
@@ -310,13 +310,13 @@ Examples:
 
 				// Parse the XML without validation (use 'validate' command for validation)
 				ctxLogger.Debug("Parsing XML file")
-				p := parser.NewXMLParser()
+				p := cfgparser.NewXMLParser()
 				opnsense, err := p.Parse(timeoutCtx, file)
 				if err != nil {
 					ctxLogger.Error("Failed to parse XML", "error", err)
 					// Enhanced error handling for different error types
-					if parser.IsParseError(err) {
-						if parseErr := parser.GetParseError(err); parseErr != nil {
+					if cfgparser.IsParseError(err) {
+						if parseErr := cfgparser.GetParseError(err); parseErr != nil {
 							ctxLogger.Error(
 								"XML syntax error detected",
 								"line",
@@ -326,7 +326,7 @@ Examples:
 							)
 						}
 					}
-					if parser.IsValidationError(err) {
+					if cfgparser.IsValidationError(err) {
 						ctxLogger.Error("Configuration validation failed")
 					}
 					errs <- fmt.Errorf("failed to parse XML from %s: %w", fp, err)
@@ -383,7 +383,7 @@ Examples:
 				}
 
 				// Create enhanced logger with output file information
-				var enhancedLogger *log.Logger
+				var enhancedLogger *logging.Logger
 				if actualOutputFile != "" {
 					enhancedLogger = ctxLogger.WithFields("output_file", actualOutputFile)
 				} else {
@@ -585,7 +585,7 @@ func generateOutputByFormat(
 	ctx context.Context,
 	opnsense *model.OpnSenseDocument,
 	opt converter.Options,
-	logger *log.Logger,
+	logger *logging.Logger,
 ) (string, error) {
 	// Check if audit mode is enabled - route to audit handler
 	if opt.AuditMode != "" {
@@ -615,7 +615,7 @@ func generateWithProgrammaticGenerator(
 	ctx context.Context,
 	opnsense *model.OpnSenseDocument,
 	opt converter.Options,
-	logger *log.Logger,
+	logger *logging.Logger,
 ) (string, error) {
 	// Create the programmatic builder
 	reportBuilder := builder.NewMarkdownBuilder()
@@ -644,7 +644,7 @@ func generateToWriter(
 	w io.Writer,
 	opnsense *model.OpnSenseDocument,
 	opt converter.Options,
-	logger *log.Logger,
+	logger *logging.Logger,
 ) error {
 	// Create the programmatic builder
 	reportBuilder := builder.NewMarkdownBuilder()
@@ -666,7 +666,7 @@ func generateToWriter(
 // within the supported range. Returns an error when flag combinations or values are invalid.
 //
 // The cmdLogger parameter is used for warnings; if nil, warnings are skipped.
-func validateConvertFlags(flags *pflag.FlagSet, cmdLogger *log.Logger) error {
+func validateConvertFlags(flags *pflag.FlagSet, cmdLogger *logging.Logger) error {
 	// Validate mutual exclusivity for wrap flags before other checks
 	if flags != nil {
 		noWrapFlag := flags.Lookup("no-wrap")

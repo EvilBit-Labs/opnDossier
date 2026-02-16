@@ -286,16 +286,6 @@ func (d Destination) Equal(other Destination) bool {
 		d.Not == other.Not
 }
 
-// StringPtr returns a pointer to the given string value.
-// This is a convenience helper for constructing Source/Destination literals
-// with the *string Any field:
-//
-//	src := Source{Any: StringPtr("1")}   // equivalent to <any>1</any>
-//	dst := Destination{Any: StringPtr("")} // equivalent to <any/>
-func StringPtr(s string) *string {
-	return &s
-}
-
 // Updated represents update information.
 type Updated struct {
 	Username    string `xml:"username"`

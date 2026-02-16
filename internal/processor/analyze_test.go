@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -788,7 +788,7 @@ func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
 			}()
 
 			// Use the existing parser to handle XML encoding issues
-			xmlParser := parser.NewXMLParser()
+			xmlParser := cfgparser.NewXMLParser()
 
 			config, err := xmlParser.Parse(context.Background(), file)
 			if err != nil {

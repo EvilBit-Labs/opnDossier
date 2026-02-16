@@ -7,14 +7,14 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
-	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestConfigValidateCmd(t *testing.T) {
-	testLogger, err := log.New(log.Config{Level: "info"})
+	testLogger, err := logging.New(logging.Config{Level: "info"})
 	require.NoError(t, err)
 
 	t.Run("Validates valid config file", func(t *testing.T) {

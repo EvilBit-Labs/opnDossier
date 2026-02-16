@@ -8,8 +8,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/plugin"
 )
 
 // TestGlobalPluginRegistry tests all global registry functions.
@@ -214,7 +214,7 @@ func TestPluginRegistry_CalculateSummary(t *testing.T) {
 		{
 			name: "empty result",
 			result: &ComplianceResult{
-				Findings:   []plugin.Finding{},
+				Findings:   []compliance.Finding{},
 				Compliance: make(map[string]map[string]bool),
 				PluginInfo: make(map[string]PluginInfo),
 			},
@@ -227,7 +227,7 @@ func TestPluginRegistry_CalculateSummary(t *testing.T) {
 		{
 			name: "mixed severity findings",
 			result: &ComplianceResult{
-				Findings: []plugin.Finding{
+				Findings: []compliance.Finding{
 					{Type: "critical", Title: "Critical Issue", Description: "Critical security issue"},
 					{Type: "high", Title: "High Issue", Description: "High severity issue"},
 					{Type: "medium", Title: "Medium Issue", Description: "Medium severity issue"},
@@ -245,7 +245,7 @@ func TestPluginRegistry_CalculateSummary(t *testing.T) {
 						Name:        "Test Plugin",
 						Version:     "1.0.0",
 						Description: "Test plugin",
-						Controls:    []plugin.Control{},
+						Controls:    []compliance.Control{},
 					},
 				},
 			},
@@ -258,7 +258,7 @@ func TestPluginRegistry_CalculateSummary(t *testing.T) {
 		{
 			name: "unknown severity types",
 			result: &ComplianceResult{
-				Findings: []plugin.Finding{
+				Findings: []compliance.Finding{
 					{Type: "unknown", Title: "Unknown Issue", Description: "Unknown severity"},
 					{Type: "info", Title: "Info Issue", Description: "Info level"},
 					{Type: "", Title: "Empty Type", Description: "Empty severity type"},
@@ -275,7 +275,7 @@ func TestPluginRegistry_CalculateSummary(t *testing.T) {
 		{
 			name: "compliance calculations",
 			result: &ComplianceResult{
-				Findings: []plugin.Finding{},
+				Findings: []compliance.Finding{},
 				Compliance: map[string]map[string]bool{
 					"plugin1": {
 						"CONTROL-001": true,
@@ -292,13 +292,13 @@ func TestPluginRegistry_CalculateSummary(t *testing.T) {
 						Name:        "Plugin 1",
 						Version:     "1.0.0",
 						Description: "First plugin",
-						Controls:    []plugin.Control{},
+						Controls:    []compliance.Control{},
 					},
 					"plugin2": {
 						Name:        "Plugin 2",
 						Version:     "1.0.0",
 						Description: "Second plugin",
-						Controls:    []plugin.Control{},
+						Controls:    []compliance.Control{},
 					},
 				},
 			},
@@ -434,7 +434,7 @@ func TestRunComplianceChecks_WithFindingsAndReferences(t *testing.T) {
 			description: "Test plugin with findings",
 			version:     "1.0.0",
 		},
-		findings: []plugin.Finding{
+		findings: []compliance.Finding{
 			{
 				Type:           "high",
 				Title:          "Security Issue",
@@ -443,7 +443,7 @@ func TestRunComplianceChecks_WithFindingsAndReferences(t *testing.T) {
 				References:     []string{"CONTROL-001", "CONTROL-002"},
 			},
 		},
-		controls: []plugin.Control{
+		controls: []compliance.Control{
 			{ID: "CONTROL-001", Title: "Control 1", Severity: "high"},
 			{ID: "CONTROL-002", Title: "Control 2", Severity: "medium"},
 			{ID: "CONTROL-003", Title: "Control 3", Severity: "low"},
@@ -518,23 +518,23 @@ func createTestDirWithNonSOFiles(t *testing.T) string {
 type mockPluginWithFindings struct {
 	mockCompliancePlugin
 
-	findings []plugin.Finding
-	controls []plugin.Control
+	findings []compliance.Finding
+	controls []compliance.Control
 }
 
-func (m *mockPluginWithFindings) RunChecks(_ *model.OpnSenseDocument) []plugin.Finding {
+func (m *mockPluginWithFindings) RunChecks(_ *model.OpnSenseDocument) []compliance.Finding {
 	return m.findings
 }
 
-func (m *mockPluginWithFindings) GetControls() []plugin.Control {
+func (m *mockPluginWithFindings) GetControls() []compliance.Control {
 	return m.controls
 }
 
-func (m *mockPluginWithFindings) GetControlByID(id string) (*plugin.Control, error) {
+func (m *mockPluginWithFindings) GetControlByID(id string) (*compliance.Control, error) {
 	for i := range m.controls {
 		if m.controls[i].ID == id {
 			return &m.controls[i], nil
 		}
 	}
-	return nil, plugin.ErrControlNotFound
+	return nil, compliance.ErrControlNotFound
 }

@@ -38,12 +38,12 @@ import (
     "log"
 
     "github.com/EvilBit-Labs/opnDossier/internal/converter"
-    "github.com/EvilBit-Labs/opnDossier/internal/parser"
+    "github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 )
 
 func main() {
     // Parse OPNsense configuration
-    xmlParser := parser.NewXMLParser()
+    xmlParser := cfgparser.NewXMLParser()
     config, err := xmlParser.ParseFile("config.xml")
     if err != nil {
         log.Fatalf("Failed to parse config: %v", err)
@@ -308,7 +308,7 @@ echo "✓ Summary report: $OUTPUT_DIR/audit-summary.md"
 ```go
 func processMultipleConfigs(configFiles []string) error {
     // Create reusable components
-    parser := parser.NewXMLParser()
+    parser := cfgparser.NewXMLParser()
     builder := converter.NewMarkdownBuilder()
 
     // Pre-allocate results
@@ -324,7 +324,7 @@ func processMultipleConfigs(configFiles []string) error {
 
         // Process batch
         for j := i; j < end; j++ {
-            config, err := parser.ParseFile(configFiles[j])
+            config, err := cfgparser.ParseFile(configFiles[j])
             if err != nil {
                 log.Printf("Failed to parse %s: %v", configFiles[j], err)
                 continue
@@ -403,8 +403,8 @@ func concurrentReportGeneration(configs []*model.OpnSenseDocument) []string {
 ```go
 func robustReportGeneration(configFile string) error {
     // Parse configuration with error handling
-    parser := parser.NewXMLParser()
-    config, err := parser.ParseFile(configFile)
+    parser := cfgparser.NewXMLParser()
+    config, err := cfgparser.ParseFile(configFile)
     if err != nil {
         switch {
         case os.IsNotExist(err):

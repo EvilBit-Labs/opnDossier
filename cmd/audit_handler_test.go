@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/audit"
-	applog "github.com/EvilBit-Labs/opnDossier/internal/log"
-	"github.com/EvilBit-Labs/opnDossier/internal/plugin"
+	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
+	applog "github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/processor"
 	charmlog "github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
@@ -109,7 +109,7 @@ func TestAppendAuditFindings_WithComplianceResults(t *testing.T) {
 		Findings:     []audit.Finding{},
 		Compliance: map[string]audit.ComplianceResult{
 			"stig": {
-				Findings: []plugin.Finding{
+				Findings: []compliance.Finding{
 					{
 						Type:        "high",
 						Title:       "STIG Violation",
@@ -421,7 +421,7 @@ func TestAppendAuditFindings_ComplianceSeverityCounts(t *testing.T) {
 		Findings: []audit.Finding{},
 		Compliance: map[string]audit.ComplianceResult{
 			"comprehensive": {
-				Findings: []plugin.Finding{},
+				Findings: []compliance.Finding{},
 				Summary: &audit.ComplianceSummary{
 					TotalFindings:    10,
 					CriticalFindings: 2,
@@ -454,7 +454,7 @@ func TestAppendAuditFindings_PluginFindingsTruncation(t *testing.T) {
 		Findings: []audit.Finding{},
 		Compliance: map[string]audit.ComplianceResult{
 			"test_plugin": {
-				Findings: []plugin.Finding{
+				Findings: []compliance.Finding{
 					{
 						Type:        "high",
 						Title:       "Test Finding",

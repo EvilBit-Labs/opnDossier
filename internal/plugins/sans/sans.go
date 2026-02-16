@@ -2,19 +2,19 @@
 package sans
 
 import (
+	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/plugin"
 )
 
-// Plugin implements the CompliancePlugin interface for SANS compliance.
+// Plugin implements the compliance.Plugin interface for SANS plugin.
 type Plugin struct {
-	controls []plugin.Control
+	controls []compliance.Control
 }
 
 // NewPlugin creates a new SANS compliance plugin.
 func NewPlugin() *Plugin {
 	p := &Plugin{
-		controls: []plugin.Control{
+		controls: []compliance.Control{
 			{
 				ID:          "SANS-FW-001",
 				Title:       "Default Deny Policy",
@@ -77,12 +77,12 @@ func (sp *Plugin) Description() string {
 }
 
 // RunChecks performs SANS compliance checks.
-func (sp *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
-	var findings []plugin.Finding
+func (sp *Plugin) RunChecks(config *model.OpnSenseDocument) []compliance.Finding {
+	var findings []compliance.Finding
 
 	// SANS-FW-001: Default deny policy
 	if !sp.hasDefaultDenyPolicy(config) {
-		findings = append(findings, plugin.Finding{
+		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Missing Default Deny Policy (SANS)",
 			Description:    "Firewall should implement a default deny policy for all traffic",
@@ -96,7 +96,7 @@ func (sp *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
 
 	// SANS-FW-002: Explicit rule configuration
 	if sp.hasUnclearRules(config) {
-		findings = append(findings, plugin.Finding{
+		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Non-Explicit Firewall Rules",
 			Description:    "Firewall contains rules that are not explicit or well-documented",
@@ -110,7 +110,7 @@ func (sp *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
 
 	// SANS-FW-003: Network zone separation
 	if !sp.hasProperZoneSeparation(config) {
-		findings = append(findings, plugin.Finding{
+		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Insufficient Network Zone Separation",
 			Description:    "Firewall does not enforce proper separation between different security zones",
@@ -124,7 +124,7 @@ func (sp *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
 
 	// SANS-FW-004: Comprehensive logging
 	if !sp.hasComprehensiveLogging(config) {
-		findings = append(findings, plugin.Finding{
+		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Insufficient Firewall Logging",
 			Description:    "Firewall does not log all traffic and security events",
@@ -140,25 +140,25 @@ func (sp *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
 }
 
 // GetControls returns all SANS controls.
-func (sp *Plugin) GetControls() []plugin.Control {
+func (sp *Plugin) GetControls() []compliance.Control {
 	return sp.controls
 }
 
 // GetControlByID returns a specific control by ID.
-func (sp *Plugin) GetControlByID(id string) (*plugin.Control, error) {
+func (sp *Plugin) GetControlByID(id string) (*compliance.Control, error) {
 	for _, control := range sp.controls {
 		if control.ID == id {
 			return &control, nil
 		}
 	}
 
-	return nil, plugin.ErrControlNotFound
+	return nil, compliance.ErrControlNotFound
 }
 
 // ValidateConfiguration validates the plugin configuration.
 func (sp *Plugin) ValidateConfiguration() error {
 	if len(sp.controls) == 0 {
-		return plugin.ErrNoControlsDefined
+		return compliance.ErrNoControlsDefined
 	}
 
 	return nil

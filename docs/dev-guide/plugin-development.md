@@ -8,25 +8,25 @@ opnDossier uses a plugin-based architecture for compliance standards, allowing d
 
 ### Core Components
 
-- **`CompliancePlugin` Interface**: Defines the contract that all plugins must implement
+- **`compliance.Plugin` Interface**: Defines the contract that all plugins must implement
 - **`PluginRegistry`**: Manages plugin registration, dynamic loading, and lifecycle
 - **`PluginManager`**: Coordinates plugin operations and provides high-level APIs
 - **`Control` Struct**: Represents individual compliance controls within a standard
 
 ### Plugin Interface
 
-All plugins must implement the `CompliancePlugin` interface:
+All plugins must implement the `compliance.Plugin` interface:
 
 ```go
-import "github.com/EvilBit-Labs/opnDossier/internal/plugin"
+import "github.com/EvilBit-Labs/opnDossier/internal/compliance"
 
-type CompliancePlugin interface {
+type Plugin interface {
     Name() string                    // Unique plugin identifier
     Version() string                 // Plugin version
     Description() string             // Human-readable description
-    RunChecks(config *model.OpnSenseDocument) []plugin.Finding // Execute compliance checks
-    GetControls() []plugin.Control   // Return all controls
-    GetControlByID(id string) (*plugin.Control, error) // Get specific control
+    RunChecks(config *model.OpnSenseDocument) []compliance.Finding // Execute compliance checks
+    GetControls() []compliance.Control   // Return all controls
+    GetControlByID(id string) (*compliance.Control, error) // Get specific control
     ValidateConfiguration() error    // Validate plugin config
 }
 ```
@@ -34,7 +34,7 @@ type CompliancePlugin interface {
 The `Finding` struct is generic and uses `References`, `Tags`, and `Metadata` fields:
 
 ```go
-// plugin.Finding
+// compliance.Finding
 Type        string              // e.g. "compliance"
 Title       string
 Description string
@@ -75,17 +75,17 @@ package plugins
 
 import (
     "fmt"
-    "github.com/EvilBit-Labs/opnDossier/internal/plugin"
+    "github.com/EvilBit-Labs/opnDossier/internal/compliance"
     "github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
 type CustomPlugin struct {
-    controls []plugin.Control
+    controls []compliance.Control
 }
 
 func NewCustomPlugin() *CustomPlugin {
     return &CustomPlugin{
-        controls: []plugin.Control{
+        controls: []compliance.Control{
             {
                 ID:          "CUSTOM-001",
                 Title:       "Custom Security Control",
@@ -103,8 +103,8 @@ func NewCustomPlugin() *CustomPlugin {
 func (cp *CustomPlugin) Name() string        { return "custom" }
 func (cp *CustomPlugin) Version() string     { return "1.0.0" }
 func (cp *CustomPlugin) Description() string { return "Custom compliance checks for specific security requirements" }
-func (cp *CustomPlugin) GetControls() []plugin.Control { return cp.controls }
-func (cp *CustomPlugin) GetControlByID(id string) (*plugin.Control, error) {
+func (cp *CustomPlugin) GetControls() []compliance.Control { return cp.controls }
+func (cp *CustomPlugin) GetControlByID(id string) (*compliance.Control, error) {
     for _, control := range cp.controls {
         if control.ID == id {
             return &control, nil
@@ -118,11 +118,11 @@ func (cp *CustomPlugin) ValidateConfiguration() error {
     }
     return nil
 }
-func (cp *CustomPlugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
-    var findings []plugin.Finding
+func (cp *CustomPlugin) RunChecks(config *model.OpnSenseDocument) []compliance.Finding {
+    var findings []compliance.Finding
     // Implement your compliance checks here
     // Example:
-    findings = append(findings, plugin.Finding{
+    findings = append(findings, compliance.Finding{
         Type:           "compliance",
         Title:          "Missing Custom Security Feature",
         Description:    "The configuration is missing required custom security feature",
@@ -142,15 +142,15 @@ func (cp *CustomPlugin) RunChecks(config *model.OpnSenseDocument) []plugin.Findi
 package main
 
 import (
-    "github.com/EvilBit-Labs/opnDossier/internal/plugin"
+    "github.com/EvilBit-Labs/opnDossier/internal/compliance"
     "github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
 type MyDynamicPlugin struct{}
 
-// Implement CompliancePlugin methods...
+// Implement compliance.Plugin methods...
 
-var Plugin plugin.CompliancePlugin = &MyDynamicPlugin{}
+var Plugin compliance.Plugin = &MyDynamicPlugin{}
 ```
 
 Build with:
@@ -166,7 +166,7 @@ go build -buildmode=plugin -o myplugin.so main.go
 
 ## Dynamic Plugin Loading
 
-- The audit engine will scan a configurable directory for `.so` files and load any plugin that exports `var Plugin plugin.CompliancePlugin`.
+- The audit engine will scan a configurable directory for `.so` files and load any plugin that exports `var Plugin compliance.Plugin`.
 - Dynamic plugins must be built with the same Go version and dependencies as the main binary.
 - Both static and dynamic plugins are supported and can coexist.
 

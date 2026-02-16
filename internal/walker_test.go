@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 )
 
 func TestWalk_BasicStructure(t *testing.T) {
@@ -370,7 +370,7 @@ func TestWalk_SyntheticXMLFragment(t *testing.T) {
 	</opnsense>`
 
 	// Parse the XML using the parser
-	p := parser.NewXMLParser()
+	p := cfgparser.NewXMLParser()
 
 	opnsense, err := p.Parse(context.Background(), strings.NewReader(xmlData))
 	if err != nil {

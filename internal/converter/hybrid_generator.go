@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
-	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"gopkg.in/yaml.v3"
 )
@@ -43,7 +43,7 @@ type StreamingGenerator interface {
 // output, or Generate when you need the output as a string for further processing.
 type HybridGenerator struct {
 	builder builder.ReportBuilder
-	logger  *log.Logger
+	logger  *logging.Logger
 }
 
 // Ensure HybridGenerator implements StreamingGenerator.
@@ -51,10 +51,10 @@ var _ StreamingGenerator = (*HybridGenerator)(nil)
 
 // NewHybridGenerator creates a HybridGenerator that uses the provided ReportBuilder and logger.
 // If logger is nil, NewHybridGenerator creates a default logger and returns an error if logger creation fails.
-func NewHybridGenerator(reportBuilder builder.ReportBuilder, logger *log.Logger) (*HybridGenerator, error) {
+func NewHybridGenerator(reportBuilder builder.ReportBuilder, logger *logging.Logger) (*HybridGenerator, error) {
 	if logger == nil {
 		var err error
-		logger, err = log.New(log.Config{})
+		logger, err = logging.New(logging.Config{})
 		if err != nil {
 			return nil, fmt.Errorf("failed to create default logger: %w", err)
 		}
@@ -67,10 +67,10 @@ func NewHybridGenerator(reportBuilder builder.ReportBuilder, logger *log.Logger)
 
 // ensureLogger creates a default logger if the provided logger is nil.
 // ensureLogger returns the provided logger if non-nil; otherwise it creates and returns a new logger configured to write to stderr. It returns an error only if creating the default logger fails.
-func ensureLogger(logger *log.Logger) (*log.Logger, error) {
+func ensureLogger(logger *logging.Logger) (*logging.Logger, error) {
 	if logger == nil {
 		var err error
-		logger, err = log.New(log.Config{Output: os.Stderr})
+		logger, err = logging.New(logging.Config{Output: os.Stderr})
 		if err != nil {
 			return nil, fmt.Errorf("failed to create default logger: %w", err)
 		}
@@ -83,7 +83,7 @@ func ensureLogger(logger *log.Logger) (*log.Logger, error) {
 // It ensures a usable logger (creating a default logger if nil) and constructs a Markdown report builder.
 // The provided Options parameter is ignored and exists only for backward compatibility.
 // Returns a Generator configured for Markdown or an error if logger creation fails.
-func NewMarkdownGenerator(logger *log.Logger, _ Options) (Generator, error) {
+func NewMarkdownGenerator(logger *logging.Logger, _ Options) (Generator, error) {
 	var err error
 	logger, err = ensureLogger(logger)
 	if err != nil {

@@ -153,8 +153,8 @@ func TestOpnSenseDocument_FilterRules(t *testing.T) {
 
 	// Add some rules
 	doc.Filter.Rule = []Rule{
-		{Type: "pass", Interface: InterfaceList{"wan"}, Source: Source{Any: StringPtr("any")}},
-		{Type: "block", Interface: InterfaceList{"lan"}, Destination: Destination{Any: StringPtr("any")}},
+		{Type: "pass", Interface: InterfaceList{"wan"}, Source: Source{Any: new("any")}},
+		{Type: "block", Interface: InterfaceList{"lan"}, Destination: Destination{Any: new("any")}},
 	}
 
 	rules = doc.FilterRules()
