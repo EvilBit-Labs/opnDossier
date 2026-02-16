@@ -2,19 +2,19 @@
 package firewall
 
 import (
+	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/plugin"
 )
 
-// Plugin implements the CompliancePlugin interface for Firewall compliance.
+// Plugin implements the compliance.Plugin interface for Firewall plugin.
 type Plugin struct {
-	controls []plugin.Control
+	controls []compliance.Control
 }
 
 // NewPlugin creates a new Firewall compliance plugin.
 func NewPlugin() *Plugin {
 	p := &Plugin{
-		controls: []plugin.Control{
+		controls: []compliance.Control{
 			{
 				ID:          "FIREWALL-001",
 				Title:       "SSH Warning Banner Configuration",
@@ -117,12 +117,12 @@ func (fp *Plugin) Description() string {
 }
 
 // RunChecks performs Firewall compliance checks against the OPNsense configuration.
-func (fp *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
-	var findings []plugin.Finding
+func (fp *Plugin) RunChecks(config *model.OpnSenseDocument) []compliance.Finding {
+	var findings []compliance.Finding
 
 	// FIREWALL-001: SSH Warning Banner
 	if !fp.hasSSHBanner(config) {
-		findings = append(findings, plugin.Finding{
+		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "SSH Warning Banner Not Configured",
 			Description:    "SSH warning banner is not configured",
@@ -136,7 +136,7 @@ func (fp *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
 
 	// FIREWALL-002: Auto Configuration Backup
 	if !fp.hasAutoConfigBackup(config) {
-		findings = append(findings, plugin.Finding{
+		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Auto Configuration Backup Disabled",
 			Description:    "Automatic configuration backup is not enabled",
@@ -150,7 +150,7 @@ func (fp *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
 
 	// FIREWALL-003: Message of the Day
 	if !fp.hasCustomMOTD(config) {
-		findings = append(findings, plugin.Finding{
+		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Custom MOTD Not Configured",
 			Description:    "Message of the Day is not customized",
@@ -164,7 +164,7 @@ func (fp *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
 
 	// FIREWALL-004: Hostname Configuration
 	if !fp.hasCustomHostname(config) {
-		findings = append(findings, plugin.Finding{
+		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Default Hostname in Use",
 			Description:    "Device is using default hostname",
@@ -178,7 +178,7 @@ func (fp *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
 
 	// FIREWALL-005: DNS Server Configuration
 	if !fp.hasDNSServers(config) {
-		findings = append(findings, plugin.Finding{
+		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "DNS Servers Not Configured",
 			Description:    "DNS servers are not explicitly configured",
@@ -192,7 +192,7 @@ func (fp *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
 
 	// FIREWALL-006: IPv6 Disablement
 	if fp.hasIPv6Enabled(config) {
-		findings = append(findings, plugin.Finding{
+		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "IPv6 Enabled",
 			Description:    "IPv6 is enabled and should be disabled if not required",
@@ -206,7 +206,7 @@ func (fp *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
 
 	// FIREWALL-007: DNS Rebind Check
 	if fp.hasDNSRebindCheck(config) {
-		findings = append(findings, plugin.Finding{
+		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "DNS Rebind Check Enabled",
 			Description:    "DNS rebind check is enabled and should be disabled",
@@ -220,7 +220,7 @@ func (fp *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
 
 	// FIREWALL-008: HTTPS Web Management
 	if !fp.hasHTTPSManagement(config) {
-		findings = append(findings, plugin.Finding{
+		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "HTTP Management Access",
 			Description:    "Web management is not configured for HTTPS",
@@ -236,25 +236,25 @@ func (fp *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
 }
 
 // GetControls returns all Firewall controls.
-func (fp *Plugin) GetControls() []plugin.Control {
+func (fp *Plugin) GetControls() []compliance.Control {
 	return fp.controls
 }
 
 // GetControlByID returns a specific control by ID.
-func (fp *Plugin) GetControlByID(id string) (*plugin.Control, error) {
+func (fp *Plugin) GetControlByID(id string) (*compliance.Control, error) {
 	for _, control := range fp.controls {
 		if control.ID == id {
 			return &control, nil
 		}
 	}
 
-	return nil, plugin.ErrControlNotFound
+	return nil, compliance.ErrControlNotFound
 }
 
 // ValidateConfiguration validates the plugin configuration.
 func (fp *Plugin) ValidateConfiguration() error {
 	if len(fp.controls) == 0 {
-		return plugin.ErrNoControlsDefined
+		return compliance.ErrNoControlsDefined
 	}
 
 	return nil

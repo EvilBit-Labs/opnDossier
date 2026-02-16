@@ -51,7 +51,7 @@ type System struct {
 	DisableLargeReceiveOffloading int          `xml:"disablelargereceiveoffloading" json:"disableLargeReceiveOffloading,omitempty" yaml:"disableLargeReceiveOffloading,omitempty"`
 	IPv6Allow                     string       `xml:"ipv6allow"                     json:"ipv6Allow,omitempty"                     yaml:"ipv6Allow,omitempty"`
 	DisableNATReflection          string       `xml:"disablenatreflection"          json:"disableNatReflection,omitempty"          yaml:"disableNatReflection,omitempty"`
-	DisableConsoleMenu            struct{}     `xml:"disableconsolemenu"            json:"disableConsoleMenu"                      yaml:"disableConsoleMenu,omitempty"`
+	DisableConsoleMenu            BoolFlag     `xml:"disableconsolemenu"            json:"disableConsoleMenu"                      yaml:"disableConsoleMenu,omitempty"`
 	NextUID                       int          `xml:"nextuid"                       json:"nextUid,omitempty"                       yaml:"nextUid,omitempty"`
 	NextGID                       int          `xml:"nextgid"                       json:"nextGid,omitempty"                       yaml:"nextGid,omitempty"`
 	PowerdACMode                  string       `xml:"powerd_ac_mode"                json:"powerdAcMode,omitempty"                  yaml:"powerdAcMode,omitempty"                  validate:"omitempty,oneof=hadp hiadp adaptive minimum maximum"`
@@ -75,7 +75,7 @@ type System struct {
 		ROCommunity string `xml:"rocommunity"`
 	} `xml:"snmpd"         json:"snmpd"        yaml:"snmpd,omitempty"`
 	RRD struct {
-		Enable struct{} `xml:"enable"`
+		Enable BoolFlag `xml:"enable"`
 	} `xml:"rrd"           json:"rrd"          yaml:"rrd,omitempty"`
 	LoadBalancer struct {
 		MonitorType []MonitorType `xml:"monitor_type"`
@@ -108,9 +108,9 @@ type Firmware struct {
 	Mirror       string   `xml:"mirror"                 json:"mirror,omitempty"  yaml:"mirror,omitempty"`
 	Flavour      string   `xml:"flavour"                json:"flavour,omitempty" yaml:"flavour,omitempty"`
 	Plugins      string   `xml:"plugins"                json:"plugins,omitempty" yaml:"plugins,omitempty"`
-	Type         struct{} `xml:"type,omitempty"         json:"type"              yaml:"type,omitempty"`
-	Subscription struct{} `xml:"subscription,omitempty" json:"subscription"      yaml:"subscription,omitempty"`
-	Reboot       struct{} `xml:"reboot,omitempty"       json:"reboot"            yaml:"reboot,omitempty"`
+	Type         BoolFlag `xml:"type,omitempty"         json:"type"              yaml:"type,omitempty"`
+	Subscription BoolFlag `xml:"subscription,omitempty" json:"subscription"      yaml:"subscription,omitempty"`
+	Reboot       BoolFlag `xml:"reboot,omitempty"       json:"reboot"            yaml:"reboot,omitempty"`
 }
 
 // User represents a user.
@@ -123,10 +123,10 @@ type User struct {
 	Password       string   `xml:"password"       json:"password"              yaml:"password"                 validate:"required"`
 	UID            string   `xml:"uid"            json:"uid"                   yaml:"uid"                      validate:"required,numeric"`
 	APIKeys        []APIKey `xml:"apikeys>item"   json:"apiKeys,omitempty"     yaml:"apiKeys,omitempty"`
-	Expires        struct{} `xml:"expires"        json:"expires"               yaml:"expires,omitempty"`
-	AuthorizedKeys struct{} `xml:"authorizedkeys" json:"authorizedKeys"        yaml:"authorizedKeys,omitempty"`
-	IPSecPSK       struct{} `xml:"ipsecpsk"       json:"ipsecPsk"              yaml:"ipsecPsk,omitempty"`
-	OTPSeed        struct{} `xml:"otp_seed"       json:"otpSeed"               yaml:"otpSeed,omitempty"`
+	Expires        BoolFlag `xml:"expires"        json:"expires"               yaml:"expires,omitempty"`
+	AuthorizedKeys BoolFlag `xml:"authorizedkeys" json:"authorizedKeys"        yaml:"authorizedKeys,omitempty"`
+	IPSecPSK       BoolFlag `xml:"ipsecpsk"       json:"ipsecPsk"              yaml:"ipsecPsk,omitempty"`
+	OTPSeed        BoolFlag `xml:"otp_seed"       json:"otpSeed"               yaml:"otpSeed,omitempty"`
 }
 
 // APIKey represents a user API key.

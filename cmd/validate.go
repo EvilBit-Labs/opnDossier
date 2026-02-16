@@ -10,7 +10,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/parser"
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/spf13/cobra"
 )
 
@@ -119,7 +119,7 @@ Examples:
 
 				// Parse and validate the XML
 				ctxLogger.Debug("Parsing and validating XML file")
-				p := parser.NewXMLParser()
+				p := cfgparser.NewXMLParser()
 				_, err = p.ParseAndValidate(ctx, file)
 				if err != nil {
 					exitCode := DetermineExitCode(err)
@@ -130,8 +130,8 @@ Examples:
 						OutputJSONError(err, fp, exitCode)
 					} else {
 						// Enhanced error handling for different error types
-						if parser.IsParseError(err) {
-							if parseErr := parser.GetParseError(err); parseErr != nil {
+						if cfgparser.IsParseError(err) {
+							if parseErr := cfgparser.GetParseError(err); parseErr != nil {
 								ctxLogger.Error(
 									"XML syntax error detected",
 									"line",
@@ -141,7 +141,7 @@ Examples:
 								)
 							}
 							fmt.Fprintf(os.Stderr, "❌ %s: %v\n", fp, err)
-						} else if parser.IsValidationError(err) {
+						} else if cfgparser.IsValidationError(err) {
 							ctxLogger.Error("Configuration validation failed")
 							fmt.Fprintf(os.Stderr, "❌ %s:\n%s\n", fp, err)
 						} else {

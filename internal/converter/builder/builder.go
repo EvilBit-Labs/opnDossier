@@ -12,7 +12,7 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
-	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/nao1215/markdown"
 )
@@ -73,16 +73,16 @@ type ReportBuilder interface {
 // programmatic markdown generation capabilities.
 type MarkdownBuilder struct {
 	config      *model.OpnSenseDocument
-	logger      *log.Logger
+	logger      *logging.Logger
 	generated   time.Time
 	toolVersion string
 }
 
 // NewMarkdownBuilder creates a new MarkdownBuilder instance.
 func NewMarkdownBuilder() *MarkdownBuilder {
-	logger, err := log.New(log.Config{Level: "info"})
+	logger, err := logging.New(logging.Config{Level: "info"})
 	if err != nil {
-		logger = &log.Logger{}
+		logger = &logging.Logger{}
 	}
 	return &MarkdownBuilder{
 		generated:   time.Now(),
@@ -92,12 +92,12 @@ func NewMarkdownBuilder() *MarkdownBuilder {
 }
 
 // NewMarkdownBuilderWithConfig creates a new MarkdownBuilder instance with configuration.
-func NewMarkdownBuilderWithConfig(config *model.OpnSenseDocument, logger *log.Logger) *MarkdownBuilder {
+func NewMarkdownBuilderWithConfig(config *model.OpnSenseDocument, logger *logging.Logger) *MarkdownBuilder {
 	if logger == nil {
 		var err error
-		logger, err = log.New(log.Config{Level: "info"})
+		logger, err = logging.New(logging.Config{Level: "info"})
 		if err != nil {
-			logger = &log.Logger{}
+			logger = &logging.Logger{}
 		}
 	}
 	return &MarkdownBuilder{
@@ -165,7 +165,7 @@ func (b *MarkdownBuilder) writeSystemSection(md *markdown.Markdown, data *model.
 		PlainTextf(
 			"%s: %s",
 			markdown.Bold("Disable Console Menu"),
-			formatters.FormatStructBoolean(sysConfig.System.DisableConsoleMenu),
+			formatters.FormatBoolFlag(sysConfig.System.DisableConsoleMenu),
 		).LF().
 		PlainTextf(
 			"%s: %s",
@@ -594,17 +594,22 @@ func BuildFirewallRulesTableSet(rules []model.Rule) *markdown.TableSet {
 
 	rows := make([][]string, 0, len(rules))
 	for i, rule := range rules {
-		source := rule.Source.Network
-		if source == "" && rule.Source.IsAny() {
+		source := rule.Source.EffectiveAddress()
+		if source == "" {
 			source = destinationAny
 		}
 
-		dest := rule.Destination.Network
-		if dest == "" && rule.Destination.IsAny() {
+		dest := rule.Destination.EffectiveAddress()
+		if dest == "" {
 			dest = destinationAny
 		}
 
 		interfaceLinks := formatters.FormatInterfacesAsLinks(rule.Interface)
+
+		srcPort := rule.Source.Port
+		if srcPort == "" {
+			srcPort = rule.SourcePort
+		}
 
 		rows = append(rows, []string{
 			strconv.Itoa(i + 1),
@@ -615,9 +620,9 @@ func BuildFirewallRulesTableSet(rules []model.Rule) *markdown.TableSet {
 			source,
 			dest,
 			rule.Target,
-			rule.SourcePort,
+			formatters.EscapeTableContent(srcPort),
 			formatters.EscapeTableContent(rule.Destination.Port),
-			formatters.FormatBooleanInverted(rule.Disabled),
+			formatters.FormatBoolFlagInverted(rule.Disabled),
 			formatters.EscapeTableContent(rule.Descr),
 		})
 	}
@@ -657,19 +662,19 @@ func BuildOutboundNATTableSet(rules []model.NATRule) *markdown.TableSet {
 		})
 	} else {
 		for i, rule := range rules {
-			source := rule.Source.Network
-			if source == "" && rule.Source.IsAny() {
+			source := rule.Source.EffectiveAddress()
+			if source == "" {
 				source = destinationAny
 			}
 
-			dest := rule.Destination.Network
-			if dest == "" && rule.Destination.IsAny() {
+			dest := rule.Destination.EffectiveAddress()
+			if dest == "" {
 				dest = destinationAny
 			}
 
 			protocol := rule.Protocol
 			if protocol == "" {
-				protocol = "any"
+				protocol = destinationAny
 			}
 
 			target := rule.Target
@@ -678,7 +683,7 @@ func BuildOutboundNATTableSet(rules []model.NATRule) *markdown.TableSet {
 			}
 
 			status := "**Active**"
-			if rule.Disabled != "" {
+			if rule.Disabled.Bool() {
 				status = "**Disabled**"
 			}
 
@@ -736,7 +741,7 @@ func BuildInboundNATTableSet(rules []model.InboundRule) *markdown.TableSet {
 		for i, rule := range rules {
 			protocol := rule.Protocol
 			if protocol == "" {
-				protocol = "any"
+				protocol = destinationAny
 			}
 
 			targetIP := rule.InternalIP
@@ -745,7 +750,7 @@ func BuildInboundNATTableSet(rules []model.InboundRule) *markdown.TableSet {
 			}
 
 			status := "**Active**"
-			if rule.Disabled != "" {
+			if rule.Disabled.Bool() {
 				status = "**Disabled**"
 			}
 

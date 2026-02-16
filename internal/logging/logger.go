@@ -1,5 +1,5 @@
-// Package log provides centralized logging functionality for the opnDossier application.
-package log
+// Package logging provides centralized logging functionality for the opnDossier application.
+package logging
 
 import (
 	"context"

@@ -1,4 +1,4 @@
-package parser
+package cfgparser
 
 import (
 	"bytes"
@@ -29,8 +29,7 @@ func FuzzXMLParserParse(f *testing.F) {
 
 	parser := NewXMLParser()
 
-	//nolint:revive // t is required by the fuzz API signature
-	f.Fuzz(func(t *testing.T, data []byte) {
+	f.Fuzz(func(_ *testing.T, data []byte) {
 		// Must not panic; errors are expected and acceptable
 		//nolint:errcheck,gosec // fuzz tests intentionally discard errors
 		parser.Parse(context.Background(), bytes.NewReader(data))
@@ -49,8 +48,7 @@ func FuzzCharsetReader(f *testing.F) {
 	f.Add("")
 	f.Add("bogus-charset")
 
-	//nolint:revive // t is required by the fuzz API signature
-	f.Fuzz(func(t *testing.T, charset string) {
+	f.Fuzz(func(_ *testing.T, charset string) {
 		// Must not panic; unsupported charset errors are expected
 		//nolint:errcheck,gosec // fuzz tests intentionally discard errors
 		charsetReader(charset, bytes.NewReader([]byte("test input")))

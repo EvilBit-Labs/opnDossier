@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
@@ -584,7 +584,7 @@ func TestMarkdownBuilder_SanitizeID(t *testing.T) {
 
 func TestNewMarkdownBuilderWithConfig(t *testing.T) {
 	config := &model.OpnSenseDocument{}
-	logger, err := log.New(log.Config{Level: "debug"})
+	logger, err := logging.New(logging.Config{Level: "debug"})
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/plugin"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/firewall"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/sans"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/stig"
@@ -115,7 +115,7 @@ func (pm *PluginManager) RunComplianceAudit(
 }
 
 // GetPluginControlInfo returns detailed information about a specific control.
-func (pm *PluginManager) GetPluginControlInfo(pluginName, controlID string) (*plugin.Control, error) {
+func (pm *PluginManager) GetPluginControlInfo(pluginName, controlID string) (*compliance.Control, error) {
 	p, err := pm.registry.GetPlugin(pluginName)
 	if err != nil {
 		return nil, fmt.Errorf("plugin '%s' not found: %w", pluginName, err)
@@ -139,7 +139,7 @@ func (pm *PluginManager) ValidatePluginConfiguration(pluginName string) error {
 	return p.ValidateConfiguration()
 }
 
-// GetPluginStatistics returns statistics about plugin usage and compliance.
+// GetPluginStatistics returns statistics about plugin usage and plugin.
 func (pm *PluginManager) GetPluginStatistics() map[string]any {
 	stats := make(map[string]any)
 

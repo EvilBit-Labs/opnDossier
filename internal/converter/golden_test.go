@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
-	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/sebdah/goldie/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -182,7 +182,7 @@ func TestGolden_HybridGeneratorProgrammaticMode(t *testing.T) {
 			mdBuilder := createDeterministicBuilder(t)
 
 			// Create HybridGenerator with the builder
-			logger, err := log.New(log.Config{Level: "error"})
+			logger, err := logging.New(logging.Config{Level: "error"})
 			require.NoError(t, err)
 
 			hybridGen, err := NewHybridGenerator(mdBuilder, logger)

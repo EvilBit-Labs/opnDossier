@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -99,7 +99,7 @@ func TestMarkdownConverter_ConvertFromTestdataFile(t *testing.T) {
 	require.NoError(t, err, "Failed to read testdata XML file")
 
 	// Parse the XML file using the parser
-	p := parser.NewXMLParser()
+	p := cfgparser.NewXMLParser()
 	opnsense, err := p.Parse(context.Background(), strings.NewReader(string(xmlData)))
 	require.NoError(t, err, "XML parsing should succeed")
 

@@ -183,12 +183,13 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 			expected: true,
 		},
 		{
-			name: "config with no port restrictions (empty port)",
+			name: "config with no port restrictions but narrow src/dst (not flagged)",
 			config: &model.OpnSenseDocument{
 				Filter: model.Filter{
 					Rule: []model.Rule{
 						{
-							Type: "pass",
+							Type:     "pass",
+							Protocol: "tcp",
 							Source: model.Source{
 								Network: "192.168.1.0/24",
 							},
@@ -200,15 +201,16 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 					},
 				},
 			},
-			expected: true,
+			expected: false,
 		},
 		{
-			name: "config with no port restrictions (any port)",
+			name: "config with any port but narrow src/dst (not flagged)",
 			config: &model.OpnSenseDocument{
 				Filter: model.Filter{
 					Rule: []model.Rule{
 						{
-							Type: "pass",
+							Type:     "pass",
+							Protocol: "udp",
 							Source: model.Source{
 								Network: "172.16.1.0/24",
 							},
@@ -220,7 +222,7 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 					},
 				},
 			},
-			expected: true,
+			expected: false,
 		},
 		{
 			name: "config with broad network and no port restrictions",
@@ -243,6 +245,27 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 			expected: true,
 		},
 		{
+			name: "ICMP rule without port is not flagged (non-TCP/UDP)",
+			config: &model.OpnSenseDocument{
+				Filter: model.Filter{
+					Rule: []model.Rule{
+						{
+							Type:     "pass",
+							Protocol: "icmp",
+							Source: model.Source{
+								Network: "192.168.1.0/24",
+							},
+							Destination: model.Destination{
+								Network: "10.0.0.0/24",
+								Port:    "",
+							},
+						},
+					},
+				},
+			},
+			expected: false,
+		},
+		{
 			name: "config with broad source and any destination",
 			config: &model.OpnSenseDocument{
 				Filter: model.Filter{
@@ -255,6 +278,44 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 							Destination: model.Destination{
 								Network: "any",
 								Port:    "80",
+							},
+						},
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "any/any via Address fields",
+			config: &model.OpnSenseDocument{
+				Filter: model.Filter{
+					Rule: []model.Rule{
+						{
+							Type:   "pass",
+							Source: model.Source{Address: "any"},
+							Destination: model.Destination{
+								Address: "any",
+							},
+						},
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "broad source with no port restrictions (flagged)",
+			config: &model.OpnSenseDocument{
+				Filter: model.Filter{
+					Rule: []model.Rule{
+						{
+							Type:     "pass",
+							Protocol: "tcp",
+							Source: model.Source{
+								Network: "10.0.0.0/8",
+							},
+							Destination: model.Destination{
+								Network: "192.168.0.0/16",
+								Port:    "",
 							},
 						},
 					},

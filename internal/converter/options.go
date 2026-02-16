@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 )
 
 // Format represents the output format type.
@@ -143,7 +143,7 @@ func (o Options) Validate() error {
 // WithFormat sets the output format.
 func (o Options) WithFormat(format Format) Options {
 	if err := format.Validate(); err != nil {
-		if logger, loggerErr := log.New(log.Config{Level: "warn"}); loggerErr == nil {
+		if logger, loggerErr := logging.New(logging.Config{Level: "warn"}); loggerErr == nil {
 			logger.Warn("format validation failed, returning unchanged options", "format", format, "error", err)
 		}
 

@@ -10,12 +10,15 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 )
 
 const (
 	// DefaultFilePermissions defines the default file permissions for exported files.
 	DefaultFilePermissions = 0o600
+
+	// windowsOS is the GOOS value for Windows.
+	windowsOS = "windows"
 )
 
 // normalizeLineEndings converts line endings to the platform-appropriate format
@@ -30,7 +33,7 @@ const (
 //   - Unix-like: \n (LF)
 //
 // Only the value "1" enables this feature. Other values ("true", "yes", etc.) are ignored.
-func normalizeLineEndings(logger *log.Logger, content string) string {
+func normalizeLineEndings(logger *logging.Logger, content string) string {
 	envValue := os.Getenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS")
 
 	// Warn if environment variable is set to an invalid value
@@ -53,7 +56,7 @@ func normalizeLineEndings(logger *log.Logger, content string) string {
 	content = strings.ReplaceAll(content, "\r", "\n")
 
 	// When platform normalization is enabled and on Windows, convert to CRLF
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == windowsOS {
 		content = strings.ReplaceAll(content, "\n", "\r\n")
 	}
 
@@ -99,12 +102,12 @@ type Exporter interface {
 
 // FileExporter is a file exporter for OPNsense configurations.
 type FileExporter struct {
-	logger *log.Logger
+	logger *logging.Logger
 }
 
 // NewFileExporter creates and returns a new FileExporter for writing data to files.
 // If logger is nil, operations will continue without logging (graceful degradation).
-func NewFileExporter(logger *log.Logger) *FileExporter {
+func NewFileExporter(logger *logging.Logger) *FileExporter {
 	return &FileExporter{
 		logger: logger,
 	}
@@ -267,9 +270,8 @@ func (e *FileExporter) checkDirectoryWritable(dir string) error {
 		return fmt.Errorf("failed to close test file: %w", closeErr)
 	}
 
-	if removeErr := os.Remove(tempPath); removeErr != nil {
-		// Log but don't fail for cleanup errors
-		_ = removeErr
+	if removeErr := os.Remove(tempPath); removeErr != nil && e.logger != nil {
+		e.logger.Warn("failed to remove write-test file", "path", tempPath, "error", removeErr)
 	}
 
 	return nil

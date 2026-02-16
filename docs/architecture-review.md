@@ -230,7 +230,7 @@ markdown/
 
 ```go
 // Centralized error definitions
-// internal/parser/errors.go (290 lines)
+// internal/cfgparser/errors.go (290 lines)
 var (
     ErrInvalidXML = errors.New("invalid XML")
     ErrMissingOpnSenseDocumentRoot = errors.New("missing opnsense root element")

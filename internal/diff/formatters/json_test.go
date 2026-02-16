@@ -158,3 +158,86 @@ func TestJSONFormatter_Format_AllChangeTypes(t *testing.T) {
 	assert.Equal(t, 1, parsed.Summary.Modified)
 	assert.Equal(t, 3, parsed.Summary.Total)
 }
+
+func TestJSONFormatter_Format_Pretty_vs_Compact(t *testing.T) {
+	t.Parallel()
+
+	result := diff.NewResult()
+	result.AddChange(diff.Change{
+		Type:        diff.ChangeAdded,
+		Section:     diff.SectionSystem,
+		Path:        "system.hostname",
+		Description: "Added hostname",
+		NewValue:    "test-host",
+	})
+
+	t.Run("pretty formatting", func(t *testing.T) {
+		t.Parallel()
+		var buf bytes.Buffer
+		formatter := NewJSONFormatter(&buf)
+
+		err := formatter.Format(result)
+		require.NoError(t, err)
+
+		output := buf.String()
+
+		// Pretty JSON should have indentation and multiple lines
+		assert.Contains(t, output, "  \"changes\":")
+		assert.Contains(t, output, "  \"summary\":")
+
+		// Should have more than one line due to indentation
+		lines := bytes.Count(buf.Bytes(), []byte("\n"))
+		assert.Greater(t, lines, 5)
+	})
+
+	t.Run("compact formatting", func(t *testing.T) {
+		t.Parallel()
+		var buf bytes.Buffer
+		formatter := NewJSONFormatterCompact(&buf)
+
+		err := formatter.Format(result)
+		require.NoError(t, err)
+
+		// Compact should be single line (plus trailing newline)
+		lines := bytes.Count(buf.Bytes(), []byte("\n"))
+		assert.Equal(t, 1, lines)
+
+		// Should not contain indentation
+		assert.NotContains(t, buf.String(), "  \"")
+	})
+}
+
+func TestJSONFormatter_SetPretty_AffectsOutput(t *testing.T) {
+	t.Parallel()
+
+	result := diff.NewResult()
+	result.AddChange(diff.Change{
+		Type:        diff.ChangeAdded,
+		Section:     diff.SectionSystem,
+		Path:        "test",
+		Description: "Test change",
+	})
+
+	// Test that changing pretty setting affects output
+	var buf1, buf2 bytes.Buffer
+	formatter1 := NewJSONFormatter(&buf1)
+	formatter2 := NewJSONFormatter(&buf2)
+
+	// Set one to compact
+	formatter2.SetPretty(false)
+
+	err1 := formatter1.Format(result)
+	require.NoError(t, err1)
+
+	err2 := formatter2.Format(result)
+	require.NoError(t, err2)
+
+	output1 := buf1.String()
+	output2 := buf2.String()
+
+	// Outputs should be different
+	assert.NotEqual(t, output1, output2)
+
+	// Pretty should be longer due to indentation
+	assert.Greater(t, len(output1), len(output2))
+}

@@ -97,7 +97,7 @@ rootCmd.Execute()
 
 ##### `GetLogger() *log.Logger`
 
-Returns the current application logger instance configured with user settings. This returns a `*log.Logger` from the internal/log package, which wraps `charmbracelet/log.Logger` for structured logging.
+Returns the current application logger instance configured with user settings. This returns a `*logging.Logger` from the internal/logging package, which wraps `charmbracelet/log.Logger` for structured logging.
 
 ```go
 logger := cmd.GetLogger()
@@ -333,7 +333,7 @@ type Config struct {
 
 #### `New(config Config) (*Logger, error)`
 
-Creates a new logger instance with the specified configuration. Returns a `*log.Logger` from the internal/log package that wraps `charmbracelet/log.Logger`.
+Creates a new logger instance with the specified configuration. Returns a `*logging.Logger` from the internal/logging package that wraps `charmbracelet/log.Logger`.
 
 ```go
 logger, err := log.New(log.Config{

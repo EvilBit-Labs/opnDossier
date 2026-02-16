@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/configstats"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
-	"github.com/EvilBit-Labs/opnDossier/internal/metrics"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/nao1215/markdown"
 	"gopkg.in/yaml.v3"
@@ -892,7 +892,7 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 	configComplexity := calculateConfigComplexity(stats)
 
 	stats.Summary = StatisticsSummary{
-		TotalConfigItems: metrics.CalculateTotalConfigItems(
+		TotalConfigItems: configstats.CalculateTotalConfigItems(
 			stats.TotalInterfaces,
 			stats.TotalFirewallRules,
 			stats.TotalUsers,

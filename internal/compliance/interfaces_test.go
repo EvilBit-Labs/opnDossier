@@ -1,9 +1,9 @@
-package plugin_test
+package compliance_test
 
 import (
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/plugin"
+	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,17 +15,17 @@ func TestErrors(t *testing.T) {
 	}{
 		{
 			name:     "ErrPluginNotFound",
-			err:      plugin.ErrPluginNotFound,
+			err:      compliance.ErrPluginNotFound,
 			expected: "plugin not found",
 		},
 		{
 			name:     "ErrControlNotFound",
-			err:      plugin.ErrControlNotFound,
+			err:      compliance.ErrControlNotFound,
 			expected: "control not found",
 		},
 		{
 			name:     "ErrNoControlsDefined",
-			err:      plugin.ErrNoControlsDefined,
+			err:      compliance.ErrNoControlsDefined,
 			expected: "no controls defined",
 		},
 	}
@@ -38,7 +38,7 @@ func TestErrors(t *testing.T) {
 }
 
 func TestControlStruct(t *testing.T) {
-	control := plugin.Control{
+	control := compliance.Control{
 		ID:          "TEST-001",
 		Title:       "Test Control",
 		Description: "Test description",
@@ -89,7 +89,7 @@ func TestControlStruct(t *testing.T) {
 }
 
 func TestFindingStruct(t *testing.T) {
-	finding := plugin.Finding{
+	finding := compliance.Finding{
 		Type:           "compliance",
 		Title:          "Test Finding",
 		Description:    "Test description",
@@ -142,12 +142,12 @@ func TestFindingStruct(t *testing.T) {
 func TestFindingValidation(t *testing.T) {
 	tests := []struct {
 		name    string
-		finding plugin.Finding
+		finding compliance.Finding
 		isValid bool
 	}{
 		{
 			name: "Valid finding",
-			finding: plugin.Finding{
+			finding: compliance.Finding{
 				Type:           "compliance",
 				Title:          "Test Finding",
 				Description:    "Test description",
@@ -161,7 +161,7 @@ func TestFindingValidation(t *testing.T) {
 		},
 		{
 			name: "Empty type",
-			finding: plugin.Finding{
+			finding: compliance.Finding{
 				Title:          "Test Finding",
 				Description:    "Test description",
 				Recommendation: "Test recommendation",
@@ -174,7 +174,7 @@ func TestFindingValidation(t *testing.T) {
 		},
 		{
 			name: "Empty title",
-			finding: plugin.Finding{
+			finding: compliance.Finding{
 				Type:           "compliance",
 				Description:    "Test description",
 				Recommendation: "Test recommendation",

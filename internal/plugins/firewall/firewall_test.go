@@ -3,8 +3,8 @@ package firewall_test
 import (
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/plugin"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/firewall"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -223,7 +223,7 @@ func TestFirewallPlugin_ValidateConfiguration(t *testing.T) {
 }
 
 // Helper function to extract finding IDs for debugging.
-func getFindings(findings []plugin.Finding) []string {
+func getFindings(findings []compliance.Finding) []string {
 	var ids []string
 	for _, finding := range findings {
 		ids = append(ids, finding.Reference)

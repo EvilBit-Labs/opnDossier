@@ -4,8 +4,8 @@ package stig
 import (
 	"slices"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/plugin"
 )
 
 const (
@@ -15,15 +15,15 @@ const (
 	MaxDHCPInterfaces = 2
 )
 
-// Plugin implements the CompliancePlugin interface for STIG compliance.
+// Plugin implements the compliance.Plugin interface for STIG plugin.
 type Plugin struct {
-	controls []plugin.Control
+	controls []compliance.Control
 }
 
 // NewPlugin creates a new STIG compliance plugin.
 func NewPlugin() *Plugin {
 	p := &Plugin{
-		controls: []plugin.Control{
+		controls: []compliance.Control{
 			{
 				ID:          "V-206694",
 				Title:       "Firewall must deny network communications traffic by default",
@@ -86,12 +86,12 @@ func (sp *Plugin) Description() string {
 }
 
 // RunChecks performs STIG compliance checks.
-func (sp *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
-	var findings []plugin.Finding
+func (sp *Plugin) RunChecks(config *model.OpnSenseDocument) []compliance.Finding {
+	var findings []compliance.Finding
 
 	// V-206694: Default deny policy
 	if !sp.hasDefaultDenyPolicy(config) {
-		findings = append(findings, plugin.Finding{
+		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Missing Default Deny Policy",
 			Description:    "Firewall does not implement a default deny policy for all traffic",
@@ -105,7 +105,7 @@ func (sp *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
 
 	// V-206674: Specific packet filtering
 	if sp.hasOverlyPermissiveRules(config) {
-		findings = append(findings, plugin.Finding{
+		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Overly Permissive Firewall Rules",
 			Description:    "Firewall contains rules that are too broad or permissive",
@@ -119,7 +119,7 @@ func (sp *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
 
 	// V-206690: Unnecessary services
 	if sp.hasUnnecessaryServices(config) {
-		findings = append(findings, plugin.Finding{
+		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Unnecessary Network Services Enabled",
 			Description:    "Firewall has unnecessary network services enabled",
@@ -133,7 +133,7 @@ func (sp *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
 
 	// V-206682: Comprehensive logging
 	if !sp.hasComprehensiveLogging(config) {
-		findings = append(findings, plugin.Finding{
+		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Insufficient Firewall Logging",
 			Description:    "Firewall does not generate comprehensive logs for all traffic",
@@ -149,25 +149,25 @@ func (sp *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
 }
 
 // GetControls returns all STIG controls.
-func (sp *Plugin) GetControls() []plugin.Control {
+func (sp *Plugin) GetControls() []compliance.Control {
 	return sp.controls
 }
 
 // GetControlByID returns a specific control by ID.
-func (sp *Plugin) GetControlByID(id string) (*plugin.Control, error) {
+func (sp *Plugin) GetControlByID(id string) (*compliance.Control, error) {
 	for _, control := range sp.controls {
 		if control.ID == id {
 			return &control, nil
 		}
 	}
 
-	return nil, plugin.ErrControlNotFound
+	return nil, compliance.ErrControlNotFound
 }
 
 // ValidateConfiguration validates the plugin configuration.
 func (sp *Plugin) ValidateConfiguration() error {
 	if len(sp.controls) == 0 {
-		return plugin.ErrNoControlsDefined
+		return compliance.ErrNoControlsDefined
 	}
 
 	return nil
@@ -200,13 +200,12 @@ func (sp *Plugin) hasDefaultDenyPolicy(config *model.OpnSenseDocument) bool {
 
 	for _, rule := range rules {
 		if rule.Type == "pass" {
-			// Check if source is "any"
-			if rule.Source.IsAny() || rule.Source.Network == NetworkAny {
-				// Check if destination is "any" or if protocol allows broad access
-				if rule.Destination.IsAny() || rule.Destination.Network == NetworkAny {
-					hasAnyAnyAllow = true
-					break
-				}
+			srcTarget := rule.Source.EffectiveAddress()
+			dstTarget := rule.Destination.EffectiveAddress()
+
+			if srcTarget == NetworkAny && (dstTarget == "" || dstTarget == NetworkAny) {
+				hasAnyAnyAllow = true
+				break
 			}
 		}
 	}
@@ -221,28 +220,31 @@ func (sp *Plugin) hasOverlyPermissiveRules(config *model.OpnSenseDocument) bool 
 	rules := config.FilterRules()
 
 	for _, rule := range rules {
-		if rule.Type == "pass" {
-			// Check for "any/any" rules (most permissive)
-			if (rule.Source.IsAny() || rule.Source.Network == NetworkAny) &&
-				(rule.Destination.IsAny() || rule.Destination.Network == NetworkAny) {
-				return true
-			}
+		if rule.Type != "pass" {
+			continue
+		}
 
-			// Check for broad network ranges (e.g., entire subnets without specific restrictions)
-			if rule.Source.Network != "" && (rule.Source.Network == NetworkAny ||
-				slices.Contains(sp.broadNetworkRanges(), rule.Source.Network)) {
-				// If destination is also broad, this is overly permissive
-				if rule.Destination.Network == "" || rule.Destination.Network == NetworkAny ||
-					slices.Contains(sp.broadNetworkRanges(), rule.Destination.Network) {
-					return true
-				}
-			}
+		srcTarget := rule.Source.EffectiveAddress()
+		dstTarget := rule.Destination.EffectiveAddress()
 
-			// Check for rules without specific port restrictions
-			if rule.Destination.Port == "" || rule.Destination.Port == NetworkAny {
-				// This allows all ports, which is overly permissive
-				return true
-			}
+		srcBroad := srcTarget == NetworkAny || slices.Contains(sp.broadNetworkRanges(), srcTarget)
+		dstBroad := dstTarget == "" || dstTarget == NetworkAny || slices.Contains(sp.broadNetworkRanges(), dstTarget)
+
+		// Check for "any/any" rules (most permissive)
+		if srcTarget == NetworkAny && (dstTarget == "" || dstTarget == NetworkAny) {
+			return true
+		}
+
+		// Check for broad network ranges (e.g., entire subnets without specific restrictions)
+		if srcTarget != "" && srcBroad && dstBroad {
+			return true
+		}
+
+		// Check for broad rules without specific port restrictions (TCP/UDP or unspecified protocol)
+		if srcBroad && dstBroad &&
+			(rule.Protocol == "" || rule.Protocol == "tcp" || rule.Protocol == "udp" || rule.Protocol == "tcp/udp") &&
+			(rule.Destination.Port == "" || rule.Destination.Port == NetworkAny) {
+			return true
 		}
 	}
 

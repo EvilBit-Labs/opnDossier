@@ -1,8 +1,8 @@
 {
   "name": "opnDossier",
-  "image": "mcr.microsoft.com/devcontainers/go:1-1.25-bookworm",
+  "image": "mcr.microsoft.com/devcontainers/go:1.25",
   "remoteUser": "vscode",
-  "postCreateCommand": "just install",
+  "postCreateCommand": "mise trust ./mise.toml -y && just install",
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
       "installZsh": true,
@@ -16,15 +16,19 @@
       "userGid": "automatic"
     },
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      "moby": false,
       "installDockerBuildx": true,
+      "installDockerComposeSwitch": true,
       "version": "latest",
-      "dockerDashComposeVersion": "v2",
-      "moby": false
+      "dockerDashComposeVersion": "v2"
     },
     "ghcr.io/devcontainers-extra/features/mise:1": {
       "version": "latest"
     },
-    "ghcr.io/stu-bell/devcontainer-features/claude-code:0": {}
+    "ghcr.io/stu-bell/devcontainer-features/claude-code:0": {},
+    "ghcr.io/guiyomh/features/just:0": {
+      "version": "latest"
+    }
   },
   "customizations": {
     "vscode": {

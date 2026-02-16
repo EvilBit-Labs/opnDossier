@@ -89,8 +89,8 @@ func NewSwanctl() *Swanctl {
 }
 
 // StringPtr returns a pointer to the given string value.
-// Convenience wrapper around schema.StringPtr for constructing Source/Destination
-// literals with the *string Any field.
+// Convenience helper for constructing Source/Destination literals
+// with the *string Any field. Prefer new(expr) in Go 1.26+.
 func StringPtr(s string) *string {
-	return schema.StringPtr(s)
+	return new(s)
 }
