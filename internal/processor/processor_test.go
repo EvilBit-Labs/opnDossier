@@ -2167,10 +2167,7 @@ func TestReport_ThreadSafetyStress(t *testing.T) {
 
 	// Start goroutines that perform read operations
 	for range 10 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
+		wg.Go(func() {
 			for j := range operationsPerGoroutine * 10 {
 				_ = report.TotalFindings()
 				_ = report.HasCriticalFindings()
@@ -2187,7 +2184,7 @@ func TestReport_ThreadSafetyStress(t *testing.T) {
 				// Small delay to allow other goroutines to interleave
 				time.Sleep(1 * time.Microsecond)
 			}
-		}()
+		})
 	}
 
 	wg.Wait()
