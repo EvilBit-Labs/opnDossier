@@ -270,6 +270,7 @@ func TestMarkdownBuilder_FormatBytes(t *testing.T) {
 	}
 }
 
+//nolint:dupl // structurally similar to TestMarkdownBuilder_AssessRiskLevel but tests different method
 func TestMarkdownBuilder_SanitizeID(t *testing.T) {
 	t.Parallel()
 
@@ -299,7 +300,7 @@ func TestMarkdownBuilder_SanitizeID(t *testing.T) {
 	}
 }
 
-//nolint:dupl
+//nolint:dupl // structurally similar to TestMarkdownBuilder_SanitizeID but tests different method
 func TestMarkdownBuilder_AssessRiskLevel(t *testing.T) {
 	t.Parallel()
 

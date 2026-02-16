@@ -481,7 +481,9 @@ func analyzeDeadRules(cfg *schema.OpnSenseDocument) []DeadRuleFinding {
 
 	for i, rule := range rules {
 		// Check for "block all" rules that make subsequent rules unreachable
-		if rule.Type == RuleTypeBlock && (rule.Source.Network == NetworkAny || rule.Source.IsAny()) {
+		srcAny := rule.Source.Network == NetworkAny || rule.Source.IsAny()
+		dstAny := rule.Destination.Network == NetworkAny || rule.Destination.IsAny()
+		if rule.Type == RuleTypeBlock && srcAny && dstAny {
 			// If there are rules after this block-all rule, they're dead
 			if i < len(rules)-1 {
 				findings = append(findings, DeadRuleFinding{

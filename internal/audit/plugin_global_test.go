@@ -14,7 +14,7 @@ import (
 
 // TestGlobalPluginRegistry tests all global registry functions.
 //
-//nolint:tparallel
+//nolint:tparallel // subtests modify shared global registry state
 func TestGlobalPluginRegistry(t *testing.T) {
 	// Reset global registry for clean testing
 	globalRegistryOnce = sync.Once{}

@@ -51,6 +51,7 @@ func TestNewMarkdownBuilderWithConfig(t *testing.T) {
 	}
 }
 
+//nolint:dupl // structurally similar to TestBuildComprehensiveReport_Errors but tests different method
 func TestBuildStandardReport_Errors(t *testing.T) {
 	t.Parallel()
 
@@ -95,7 +96,7 @@ func TestBuildStandardReport_Errors(t *testing.T) {
 	}
 }
 
-//nolint:dupl
+//nolint:dupl // structurally similar to TestBuildStandardReport_Errors but tests different method
 func TestBuildComprehensiveReport_Errors(t *testing.T) {
 	t.Parallel()
 

@@ -365,7 +365,7 @@ func TestPluginManager_ValidatePluginConfiguration(t *testing.T) {
 	}
 }
 
-//nolint:tparallel
+//nolint:tparallel // subtests share manager state from parent setup
 func TestPluginManager_GetPluginStatistics(t *testing.T) {
 	t.Parallel()
 

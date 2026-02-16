@@ -69,7 +69,9 @@ func (p *CoreProcessor) analyzeDeadRules(cfg *model.OpnSenseDocument, report *Re
 func (p *CoreProcessor) analyzeInterfaceRules(iface string, rules []model.Rule, report *Report) {
 	for i, rule := range rules {
 		// Check for "block all" rules that make subsequent rules unreachable
-		if rule.Type == "block" && (rule.Source.Network == NetworkAny || rule.Source.IsAny()) {
+		srcAny := rule.Source.Network == NetworkAny || rule.Source.IsAny()
+		dstAny := rule.Destination.Network == NetworkAny || rule.Destination.IsAny()
+		if rule.Type == "block" && srcAny && dstAny {
 			// If there are rules after this block-all rule, they're dead
 			if i < len(rules)-1 {
 				report.AddFinding(SeverityMedium, Finding{

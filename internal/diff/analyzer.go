@@ -927,5 +927,7 @@ func usersEqual(a, b schema.User) bool {
 }
 
 func isPermissiveRule(rule schema.Rule) bool {
-	return rule.Source.IsAny() && rule.Destination.IsAny() && rule.Type == "pass"
+	return rule.Type == "pass" &&
+		rule.Source.EffectiveAddress() == "any" &&
+		rule.Destination.EffectiveAddress() == "any"
 }

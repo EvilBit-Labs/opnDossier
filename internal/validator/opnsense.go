@@ -902,33 +902,30 @@ func contains(slice []string, item string) bool {
 	return slices.Contains(slice, item)
 }
 
+// hostnamePattern matches valid hostnames: starts and ends with alphanumeric, allows hyphens in between.
+var hostnamePattern = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$`)
+
 // isValidHostname returns true if the given string is a valid hostname according to length and character rules.
 func isValidHostname(hostname string) bool {
 	if hostname == "" || len(hostname) > 253 {
 		return false
 	}
-	// Basic hostname validation - allows letters, numbers, and hyphens
-	matched, err := regexp.MatchString(`^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$`, hostname)
-	if err != nil {
-		return false
-	}
 
-	return matched
+	return hostnamePattern.MatchString(hostname)
+}
+
+// timezonePatterns matches common timezone formats: Region/City, Etc/UTC, UTC, GMT+/-offset.
+var timezonePatterns = []*regexp.Regexp{
+	regexp.MustCompile(`^(America|Europe|Asia|Africa|Australia|Antarctica)/[A-Za-z_]+$`),
+	regexp.MustCompile(`^Etc/(UTC|GMT[+-]?\d*)$`),
+	regexp.MustCompile(`^UTC$`),
+	regexp.MustCompile(`^GMT[+-]?\d*$`),
 }
 
 // isValidTimezone returns true if the given timezone string matches common timezone patterns such as "Region/City", "Etc/UTC", "UTC", or "GMT" with optional offset.
 func isValidTimezone(timezone string) bool {
-	// More restrictive timezone validation - common timezone patterns
-	// Allow: America/New_York, Europe/London, Etc/UTC, UTC, GMT+/-offset
-	validPatterns := []string{
-		`^(America|Europe|Asia|Africa|Australia|Antarctica)/[A-Za-z_]+$`,
-		`^Etc/(UTC|GMT[+-]?\d*)$`,
-		`^UTC$`,
-		`^GMT[+-]?\d*$`,
-	}
-
-	for _, pattern := range validPatterns {
-		if matched, err := regexp.MatchString(pattern, timezone); err == nil && matched {
+	for _, pattern := range timezonePatterns {
+		if pattern.MatchString(timezone) {
 			return true
 		}
 	}
@@ -953,13 +950,12 @@ func isValidCIDR(cidr string) bool {
 	return err == nil
 }
 
+// connRatePattern matches the "connections/seconds" format (e.g., "15/5").
+var connRatePattern = regexp.MustCompile(`^\d+/\d+$`)
+
 // isValidConnRateFormat returns true if the string matches the "connections/seconds" format (e.g., "15/5").
 func isValidConnRateFormat(rate string) bool {
-	matched, err := regexp.MatchString(`^\d+/\d+$`, rate)
-	if err != nil {
-		return false
-	}
-	return matched
+	return connRatePattern.MatchString(rate)
 }
 
 // portRangePattern matches a numeric port or numeric port range (e.g., "80", "1024-65535").
@@ -1018,13 +1014,10 @@ func validateNumericPort(port string) bool {
 	return low <= high
 }
 
+// sysctlNamePattern matches valid sysctl tunable names: starts with letter, allows letters, digits, underscores, dots.
+var sysctlNamePattern = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_.]*$`)
+
 // isValidSysctlName returns true if the provided string is a valid sysctl tunable name, requiring it to start with a letter, contain only letters, digits, underscores, or dots, and include at least one dot.
 func isValidSysctlName(name string) bool {
-	// Basic sysctl name validation - allows dots, letters, numbers, and underscores
-	matched, err := regexp.MatchString(`^[a-zA-Z][a-zA-Z0-9_.]*$`, name)
-	if err != nil {
-		return false
-	}
-
-	return matched && strings.Contains(name, ".")
+	return sysctlNamePattern.MatchString(name) && strings.Contains(name, ".")
 }

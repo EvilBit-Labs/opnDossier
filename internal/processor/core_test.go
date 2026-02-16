@@ -330,10 +330,11 @@ func TestCoreProcessor_Analysis(t *testing.T) {
 			Filter: model.Filter{
 				Rule: []model.Rule{
 					{
-						Type:      "block",
-						Interface: model.InterfaceList{"wan"},
-						Source:    model.Source{Network: "any"},
-						Descr:     "Block all traffic",
+						Type:        "block",
+						Interface:   model.InterfaceList{"wan"},
+						Source:      model.Source{Network: "any"},
+						Destination: model.Destination{Any: model.StringPtr("")},
+						Descr:       "Block all traffic",
 					},
 					{
 						Type:      "pass",

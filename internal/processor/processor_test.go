@@ -523,10 +523,11 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 				Filter: model.Filter{
 					Rule: []model.Rule{
 						{
-							Type:      "block",
-							Interface: model.InterfaceList{"wan"},
-							Source:    model.Source{Network: "any"},
-							Descr:     "Block all",
+							Type:        "block",
+							Interface:   model.InterfaceList{"wan"},
+							Source:      model.Source{Network: "any"},
+							Destination: model.Destination{Any: model.StringPtr("")},
+							Descr:       "Block all",
 						},
 						{
 							Type:      "pass",

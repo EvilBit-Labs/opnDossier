@@ -14,6 +14,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	testLinesLF   = "line1\nline2\n"
+	testLinesCRLF = "line1\r\nline2\r\n"
+)
+
 func TestNewFileExporter(t *testing.T) {
 	t.Run("with logger", func(t *testing.T) {
 		logger, err := log.New(log.Config{})
@@ -131,7 +136,7 @@ func TestFileExporter_CheckPathTraversal(t *testing.T) {
 			if tt.wantErr {
 				require.Error(t, err)
 				var exportErr *Error
-				assert.ErrorAs(t, err, &exportErr)
+				require.ErrorAs(t, err, &exportErr)
 				assert.Equal(t, "validate_path", exportErr.Operation)
 				assert.Contains(t, exportErr.Message, "malicious traversal")
 			} else {
@@ -417,7 +422,7 @@ func TestFileExporter_Export_WithLogger(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedContent := content
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == windowsOS {
 		expectedContent = strings.ReplaceAll(content, "\n", "\r\n")
 	}
 	assert.Equal(t, expectedContent, string(writtenContent))
@@ -436,32 +441,31 @@ func TestNormalizeLineEndings_InvalidEnvironmentValue(t *testing.T) {
 		{
 			name:     "invalid value - true",
 			envValue: "true",
-			content:  "line1\nline2\n",
-			expected: "line1\nline2\n", // Should remain unchanged
+			content:  testLinesLF,
+			expected: testLinesLF, // Should remain unchanged
 		},
 		{
 			name:     "invalid value - yes",
 			envValue: "yes",
-			content:  "line1\nline2\n",
-			expected: "line1\nline2\n", // Should remain unchanged
+			content:  testLinesLF,
+			expected: testLinesLF, // Should remain unchanged
 		},
 		{
 			name:     "valid value - 1",
 			envValue: "1",
-			content:  "line1\nline2\n",
+			content:  testLinesLF,
 			expected: func() string {
-				content := "line1\nline2\n"
-				if runtime.GOOS == "windows" {
-					return strings.ReplaceAll(content, "\n", "\r\n")
+				if runtime.GOOS == windowsOS {
+					return testLinesCRLF
 				}
-				return content
+				return testLinesLF
 			}(),
 		},
 		{
 			name:     "empty value",
 			envValue: "",
-			content:  "line1\nline2\n",
-			expected: "line1\nline2\n", // Should remain unchanged
+			content:  testLinesLF,
+			expected: testLinesLF, // Should remain unchanged
 		},
 	}
 
@@ -479,9 +483,8 @@ func TestNormalizeLineEndings_WithNilLoggerAdditional(t *testing.T) {
 	// Test with invalid environment value and nil logger (should not panic)
 	t.Setenv("OPNDOSSIER_PLATFORM_LINE_ENDINGS", "invalid")
 
-	content := "line1\nline2\n"
-	result := normalizeLineEndings(nil, content)
-	assert.Equal(t, content, result) // Should remain unchanged
+	result := normalizeLineEndings(nil, testLinesLF)
+	assert.Equal(t, testLinesLF, result) // Should remain unchanged
 }
 
 func TestNormalizeLineEndings_MixedLineEndings(t *testing.T) {
@@ -494,29 +497,29 @@ func TestNormalizeLineEndings_MixedLineEndings(t *testing.T) {
 	}{
 		{
 			name:    "CRLF input",
-			content: "line1\r\nline2\r\n",
+			content: testLinesCRLF,
 			expected: func() string {
-				if runtime.GOOS == "windows" {
-					return "line1\r\nline2\r\n"
+				if runtime.GOOS == windowsOS {
+					return testLinesCRLF
 				}
-				return "line1\nline2\n"
+				return testLinesLF
 			}(),
 		},
 		{
 			name:    "CR input",
 			content: "line1\rline2\r",
 			expected: func() string {
-				if runtime.GOOS == "windows" {
-					return "line1\r\nline2\r\n"
+				if runtime.GOOS == windowsOS {
+					return testLinesCRLF
 				}
-				return "line1\nline2\n"
+				return testLinesLF
 			}(),
 		},
 		{
 			name:    "mixed line endings",
 			content: "line1\r\nline2\nline3\rline4",
 			expected: func() string {
-				if runtime.GOOS == "windows" {
+				if runtime.GOOS == windowsOS {
 					return "line1\r\nline2\r\nline3\r\nline4"
 				}
 				return "line1\nline2\nline3\nline4"

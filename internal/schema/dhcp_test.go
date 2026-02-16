@@ -204,7 +204,7 @@ func TestDhcpd_Names(t *testing.T) {
 	}
 }
 
-//nolint:dupl
+//nolint:dupl // structurally similar to TestDhcpd_Lan but tests different accessor
 func TestDhcpd_Wan(t *testing.T) {
 	t.Parallel()
 
@@ -257,7 +257,7 @@ func TestDhcpd_Wan(t *testing.T) {
 	}
 }
 
-//nolint:dupl
+//nolint:dupl // structurally similar to TestDhcpd_Wan but tests different accessor
 func TestDhcpd_Lan(t *testing.T) {
 	t.Parallel()
 
