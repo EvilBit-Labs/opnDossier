@@ -1047,3 +1047,37 @@ just ci-check                  # Comprehensive checks
 # Validate configuration
 ./opndossier validate config.xml
 ```
+
+## 16. Open Source Quality Standards (OSSF Best Practices)
+
+This project has the OSSF Best Practices passing badge. Maintain these standards:
+
+### 16.1 Every PR Must
+
+- Sign off commits with `git commit -s` (DCO enforced by GitHub App)
+- Pass CI (golangci-lint, gofumpt, tests, CodeQL, Grype) before merge
+- Include tests for new functionality -- this is policy, not optional
+- Be reviewed (human or CodeRabbit) for correctness, safety, and style
+- Not introduce `panic()` in library code, unchecked errors, or unvalidated input
+
+### 16.2 Every Release Must
+
+- Have human-readable release notes via git-cliff (not raw git log)
+- Use unique SemVer identifiers (`vX.Y.Z` tags)
+- Be built reproducibly (pinned toolchain, committed `go.sum`, GoReleaser)
+
+### 16.3 Security
+
+- Vulnerabilities go through private reporting (GitHub advisories or <support@evilbitlabs.io>), never public issues
+- Grype and Snyk run in CI -- fix findings promptly
+- Medium+ severity vulnerabilities: we aim to release a fix within 90 days of confirmation (see SECURITY.md for canonical policy)
+- `docs/security/vulnerability-scanning.md` documents scanning thresholds and remediation process
+- `docs/security/security-assurance.md` must be updated when new attack surface is introduced
+
+### 16.4 Documentation
+
+- Exported APIs require godoc comments with examples where appropriate
+- CONTRIBUTING.md documents code review criteria, test policy, DCO, and governance
+- SECURITY.md documents vulnerability reporting with scope, safe harbor, and PGP key
+- AGENTS.md must accurately reflect implemented features (not aspirational)
+- `docs/security/security-assurance.md` documents threat model, design principles, and CWE countermeasures
