@@ -2,7 +2,7 @@
   "name": "opnDossier",
   "image": "mcr.microsoft.com/devcontainers/go:1.25",
   "remoteUser": "vscode",
-  "postCreateCommand": "just install",
+  "postCreateCommand": "mise trust ./mise.toml -y; mise install",
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
       "installZsh": true,
