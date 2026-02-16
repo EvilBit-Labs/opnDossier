@@ -277,18 +277,18 @@ just dev --verbose convert testdata/config.xml
 OPNDOSSIER_VERBOSE=true just dev convert testdata/config.xml
 
 # Profile performance
-go test -bench=. -cpuprofile=cpu.prof ./internal/parser
+go test -bench=. -cpuprofile=cpu.prof ./internal/cfgparser
 go tool pprof cpu.prof
 
 # Memory profiling
-go test -bench=. -memprofile=mem.prof ./internal/parser
+go test -bench=. -memprofile=mem.prof ./internal/cfgparser
 go tool pprof mem.prof
 ```
 
 **Debugging tips:**
 
 - Use `log.Debug()` for temporary debugging output
-- Check `internal/log/` for structured logging patterns
+- Check `internal/logging/` for structured logging patterns
 - Use `go test -v` for verbose test output
 - Use `golangci-lint run --verbose` for detailed linting info
 
@@ -301,9 +301,9 @@ go tool pprof mem.prof
 just bench
 
 # Compare benchmarks
-go test -bench=. -benchmem ./internal/parser > old.txt
+go test -bench=. -benchmem ./internal/cfgparser > old.txt
 # Make changes
-go test -bench=. -benchmem ./internal/parser > new.txt
+go test -bench=. -benchmem ./internal/cfgparser > new.txt
 benchcmp old.txt new.txt
 ```
 
@@ -311,11 +311,11 @@ benchcmp old.txt new.txt
 
 ```bash
 # CPU profiling
-go test -cpuprofile=cpu.prof -bench=. ./internal/parser
+go test -cpuprofile=cpu.prof -bench=. ./internal/cfgparser
 go tool pprof cpu.prof
 
 # Memory profiling
-go test -memprofile=mem.prof -bench=. ./internal/parser
+go test -memprofile=mem.prof -bench=. ./internal/cfgparser
 go tool pprof mem.prof
 ```
 
@@ -385,6 +385,37 @@ type Config struct {
 - Include context in log messages (filename, operation, duration)
 - Use appropriate log levels (debug, info, warn, error)
 - Avoid logging sensitive information
+
+### XML Schema Evolution
+
+The config.xml data model is enhanced in phases to ensure backward compatibility and thorough testing at each stage.
+
+**Completed Phases:**
+
+| Phase | Scope                        | Fields Added | Key Changes                                                                                                                        |
+| ----- | ---------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Source/Destination gaps      | 3            | Address, Port (Source), Not — added directly to structs                                                                            |
+| 2     | High-priority Rule fields    | 8            | Log, Disabled/Quick→BoolFlag, Floating, Gateway, Direction, Tracker, StateType                                                     |
+| 3     | Rate-limiting and advanced   | 14           | max-src-\*, TCP/ICMP flags, state timeout, advanced BoolFlags                                                                      |
+| 4     | NAT rule enhancements        | 9            | NATRule: StaticNatPort, NoNat, NatPort, PoolOptsSrcHashKey; InboundRule: NATReflection, AssociatedRuleID, NoRDR, NoSync, LocalPort |
+| 5     | Documentation and validation | —            | Research doc updates, field reference, validator enhancements                                                                      |
+
+**BoolFlag vs String Pattern:**
+
+OPNsense uses two boolean patterns. Choosing the wrong type silently breaks semantics:
+
+- **Presence-based** (`isset()` in PHP): Use `BoolFlag`. Examples: `<disabled/>`, `<log/>`, `<not/>`, `<quick/>`
+- **Value-based** (`== "1"` in PHP): Use `string`. Examples: `<enable>1</enable>`, `<blockpriv>1</blockpriv>`
+
+`BoolFlag.UnmarshalXML` treats any present element as true — so `<enabled>0</enabled>` becomes `true`, breaking value-based semantics. See `docs/development/xml-structure-research.md` §1 for the complete field inventory.
+
+**Adding New XML Fields:**
+
+1. Check upstream OPNsense/pfSense source for field semantics (presence-based vs value-based)
+2. Add the field to the appropriate struct in `internal/schema/`
+3. Add XML round-trip tests in the corresponding `*_test.go`
+4. Update the validator in `internal/validator/opnsense.go` if the field has constraints
+5. Update `docs/development/xml-structure-research.md` with the field details
 
 ## Security Standards
 

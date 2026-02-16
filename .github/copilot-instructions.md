@@ -40,14 +40,14 @@ opnDossier is a tool for auditing and reporting on OPNsense configurations, with
 - **Major Components**:
 
   - `cmd/`: CLI entrypoints (`convert`, `display`, `validate`). See `cmd/root.go` for command registration.
-  - `internal/parser/`: XML parsing to Go structs (`OpnSenseDocument` in `internal/model/opnsense.go`).
+  - `internal/cfgparser/`: XML parsing to Go structs (`OpnSenseDocument` in `internal/model/opnsense.go`).
   - `internal/model/`: Strict data models mirroring OPNsense config structure.
   - `internal/processor/`: Normalization, validation, analysis, and transformation pipeline.
   - `internal/converter/`, `internal/markdown/`: Multi-format export (Markdown, JSON, YAML) using templates and options.
-  - `internal/audit/`, `internal/plugin/`, `internal/plugins/`: Compliance audit engine and plugin system (STIG, SANS, firewall).
-  - `internal/display/`, `internal/log/`: Terminal output and structured logging.
+  - `internal/audit/`, `internal/compliance/`, `internal/plugins/`: Compliance audit engine and plugin system (STIG, SANS, firewall).
+  - `internal/display/`, `internal/logging/`: Terminal output and structured logging.
 
-- **Data Flow**: `parser` → `model` → `processor` → `converter`/`markdown` → `export`
+- **Data Flow**: `cfgparser` → `model` → `processor` → `converter`/`markdown` → `export`
 
 - **Audit overlays**: `processor` → `audit` → `plugins`
 
@@ -144,7 +144,7 @@ logger.Error("parse failed", "error", err, "filename", filename)
 
 ### Configuration Management
 
-**Note for AI Assistants**: `viper` is used for managing the opnDossier application's own configuration (CLI settings, display preferences, etc.), not for parsing OPNsense config.xml files. The OPNsense configuration parsing is handled separately by the XML parser in `internal/parser/`.
+**Note for AI Assistants**: `viper` is used for managing the opnDossier application's own configuration (CLI settings, display preferences, etc.), not for parsing OPNsense config.xml files. The OPNsense configuration parsing is handled separately by the XML parser in `internal/cfgparser/`.
 
 **Pattern**: Use `spf13/viper` for configuration with precedence: CLI flags > Environment variables > Config file > Defaults
 
@@ -220,7 +220,7 @@ All commit messages must follow the [Conventional Commits](https://www.conventio
 
 ## Integration & Plugin Patterns
 
-- **Audit Plugins**: Implement `CompliancePlugin` interface (`internal/plugin/interfaces.go`). Register in `internal/audit/plugin_manager.go`.
+- **Audit Plugins**: Implement `compliance.Plugin` interface (`internal/compliance/interfaces.go`). Register in `internal/audit/plugin_manager.go`.
 - **Plugin Structure**: Place in `internal/plugins/{standard}/`. Use generic `Finding` struct - no compliance-specific fields.
 - **Multi-Format Export**: Add new formats in `internal/converter/` and templates in `internal/templates/`.
 
@@ -246,7 +246,7 @@ opndossier/
 ## Key Files & References
 
 - `AGENTS.md`, `docs/development/standards.md`, `docs/development/architecture.md`, `project_spec/requirements.md`
-- `cmd/convert.go`, `internal/model/opnsense.go`, `internal/parser/xml.go`, `internal/processor/README.md`
+- `cmd/convert.go`, `internal/model/opnsense.go`, `internal/cfgparser/xml.go`, `internal/processor/README.md`
 
 ## Example Patterns
 
@@ -263,7 +263,7 @@ var convertCmd = &cobra.Command{
 **Plugin Interface**:
 
 ```go
-type CompliancePlugin interface {
+type Plugin interface {
     Name() string
     RunChecks(config *model.OpnSenseDocument) []Finding
     // ...

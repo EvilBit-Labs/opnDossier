@@ -44,10 +44,12 @@ Please include:
 - Issues requiring physical access to the machine running opnDossier
 - Social engineering attacks
 
-### What to expect
+### What to Expect
 
-- We will acknowledge receipt of your report within **48 hours**
-- We will provide an initial assessment within **7 days**
+**Note**: This is a passion project with volunteer maintainers. Response times are best-effort and may vary based on maintainer availability.
+
+- We will acknowledge receipt of your report within **1 week**
+- We will provide an initial assessment within **2 weeks**
 - We aim to release a fix within **90 days** of confirmed vulnerabilities
 - We will coordinate disclosure through a [GitHub Security Advisory](https://github.com/EvilBit-Labs/opnDossier/security/advisories)
 - We will credit you in the advisory (unless you prefer to remain anonymous)
@@ -73,11 +75,15 @@ When using opnDossier:
 
 opnDossier includes several security-focused features:
 
-- Secure parsing of OPNsense configuration files
-- Audit-oriented reporting for security assessments
-- Support for airgapped/offline environments
-- Structured data handling with proper validation
-- Automated dependency updates via Dependabot
+- **Memory-safe implementation**: Pure Go with no `unsafe` package usage
+- **XXE-safe parsing**: Go's `encoding/xml` does not support external entities or DTD processing
+- **Offline-first design**: No network access at runtime; built for airgapped environments
+- **Typed data handling**: All XML elements map to strictly typed Go structs with validation
+- **Dependency auditing**: Grype, Snyk, and CodeQL run in CI
+- **Automated dependency updates**: Via Dependabot
+- **Supply chain transparency**: CycloneDX SBOMs and Sigstore attestations per release
+
+For a full security assurance case, see [docs/security/security-assurance.md](docs/security/security-assurance.md).
 
 ## Safe Harbor
 

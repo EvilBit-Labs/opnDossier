@@ -298,7 +298,7 @@ func (r *Report) addCertificateAnalysis() {
 	if r.Configuration != nil {
 		// Certificate information is in Cert field
 		r.Metadata["certificate_analysis_completed"] = true
-		if r.Configuration.Cert.Text != "" {
+		if strings.TrimSpace(r.Configuration.Cert.Text) != "" {
 			r.Metadata["certificates_configured"] = true
 		} else {
 			r.Metadata["certificates_configured"] = false

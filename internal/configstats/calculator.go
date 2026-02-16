@@ -1,5 +1,5 @@
-// Package metrics provides shared calculation functions for configuration metrics.
-package metrics
+// Package configstats provides shared calculation functions for configuration statistics.
+package configstats
 
 // CalculateTotalConfigItems calculates the total number of configuration items
 // by summing all relevant components including interfaces, firewall rules, users,

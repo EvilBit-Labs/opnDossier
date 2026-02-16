@@ -3,8 +3,8 @@
 - **Hostname**: minimal-host
 - **Domain**: minimal.local
 - **Platform**: OPNsense 23.1.1
-- **Generated On**: 2026-02-06T00:25:28-05:00
-- **Parsed By**: opnDossier v1.0.0
+- **Generated On**: 2026-02-14T18:35:01-05:00
+- **Parsed By**: opnDossier vdev
 ## Table of Contents
 - [System Configuration](#system-configuration)
 - [Interfaces](#interfaces)
@@ -40,7 +40,7 @@
   
 **Use Virtual Terminal**: ✗
   
-**Disable Console Menu**: ✓
+**Disable Console Menu**: ✗
   
 **Disable VLAN HW Filter**: ✗
   

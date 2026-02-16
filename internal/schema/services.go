@@ -29,7 +29,7 @@ type Snmpd struct {
 
 // Rrd contains the RRDtool configuration.
 type Rrd struct {
-	Enable struct{} `xml:"enable"`
+	Enable BoolFlag `xml:"enable"`
 }
 
 // LoadBalancer contains the load balancer configuration.

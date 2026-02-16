@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -205,7 +205,7 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 			}()
 
 			// Parse XML into model
-			xmlParser := parser.NewXMLParser()
+			xmlParser := cfgparser.NewXMLParser()
 			ctx := context.Background()
 			cfg, err := xmlParser.Parse(ctx, xmlFile)
 			require.NoError(t, err, "Failed to parse XML file: %s", tt.xmlFile)
@@ -382,7 +382,7 @@ func TestGenerateFromXMLFilesRobustness(t *testing.T) {
 				require.NoError(t, err)
 			}()
 
-			xmlParser := parser.NewXMLParser()
+			xmlParser := cfgparser.NewXMLParser()
 			ctx := context.Background()
 			cfg, err := xmlParser.Parse(ctx, xmlFile)
 
@@ -421,7 +421,7 @@ func TestDebugSysctlParsing(t *testing.T) {
 		require.NoError(t, err)
 	}()
 
-	xmlParser := parser.NewXMLParser()
+	xmlParser := cfgparser.NewXMLParser()
 	ctx := context.Background()
 	cfg, err := xmlParser.Parse(ctx, xmlFile)
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")
@@ -479,7 +479,7 @@ func TestSysctlKeyValidation(t *testing.T) {
 		}
 	}()
 
-	xmlParser := parser.NewXMLParser()
+	xmlParser := cfgparser.NewXMLParser()
 	ctx := context.Background()
 	cfg, err := xmlParser.Parse(ctx, xmlFile)
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")
@@ -545,7 +545,7 @@ func TestInterfaceConfigurationDetail(t *testing.T) {
 		}
 	}()
 
-	xmlParser := parser.NewXMLParser()
+	xmlParser := cfgparser.NewXMLParser()
 	ctx := context.Background()
 	cfg, err := xmlParser.Parse(ctx, xmlFile)
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")
@@ -582,7 +582,7 @@ func TestFirewallRulesFormatting(t *testing.T) {
 		}
 	}()
 
-	xmlParser := parser.NewXMLParser()
+	xmlParser := cfgparser.NewXMLParser()
 	ctx := context.Background()
 	cfg, err := xmlParser.Parse(ctx, xmlFile)
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")

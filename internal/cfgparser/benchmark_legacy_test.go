@@ -1,8 +1,8 @@
 //go:build legacy_bench
 
-// Package parser provides functionality to parse OPNsense configuration files.
+// Package cfgparser provides functionality to parse OPNsense configuration files.
 // This file contains legacy benchmark implementations for comparison purposes.
-package parser
+package cfgparser
 
 import (
 	"bytes"

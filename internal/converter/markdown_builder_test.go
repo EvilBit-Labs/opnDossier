@@ -130,7 +130,7 @@ func TestMarkdownBuilder_BuildSecuritySection(t *testing.T) {
 					},
 					Target:     "",
 					SourcePort: "",
-					Disabled:   "",
+					Disabled:   false,
 				},
 				{
 					Type:       "block",
@@ -146,7 +146,7 @@ func TestMarkdownBuilder_BuildSecuritySection(t *testing.T) {
 					},
 					Target:     "",
 					SourcePort: "",
-					Disabled:   "",
+					Disabled:   false,
 				},
 			},
 		},
@@ -249,7 +249,7 @@ func TestMarkdownBuilder_BuildFirewallRulesTable(t *testing.T) {
 			},
 			Target:     "",
 			SourcePort: "80",
-			Disabled:   "",
+			Disabled:   false,
 		},
 	}
 
@@ -642,57 +642,6 @@ func TestGetPowerModeDescription(t *testing.T) {
 	}
 }
 
-func TestFormatBooleanInverted(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "true_value",
-			input:    "1",
-			expected: "✗",
-		},
-		{
-			name:     "true_string",
-			input:    "true",
-			expected: "✗",
-		},
-		{
-			name:     "on_value",
-			input:    "on",
-			expected: "✗",
-		},
-		{
-			name:     "false_value",
-			input:    "0",
-			expected: "✓",
-		},
-		{
-			name:     "false_string",
-			input:    "false",
-			expected: "✓",
-		},
-		{
-			name:     "empty_string",
-			input:    "",
-			expected: "✓",
-		},
-		{
-			name:     "random_string",
-			input:    "random",
-			expected: "✓",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := formatters.FormatBooleanInverted(tt.input)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
 func TestBuildFirewallRulesTable_EdgeCases(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -796,14 +745,14 @@ func TestBuildFirewallRulesTable_AnyFieldAndDestPort(t *testing.T) {
 			wantDPort:  "",
 		},
 		{
-			name: "both_absent_shows_blank",
+			name: "both_absent_shows_any",
 			rule: model.Rule{
 				Type:        "pass",
 				Source:      model.Source{},
 				Destination: model.Destination{},
 			},
-			wantSource: "",
-			wantDest:   "",
+			wantSource: "any",
+			wantDest:   "any",
 			wantDPort:  "",
 		},
 		{
@@ -1398,7 +1347,7 @@ func TestMarkdownBuilder_BuildFirewallRulesTable_WithComplexRules(t *testing.T) 
 			},
 			Target:     "lan",
 			SourcePort: "443",
-			Disabled:   "1", // Disabled rule
+			Disabled:   true, // Disabled rule
 		},
 		{
 			Type:       "block",
@@ -1414,7 +1363,7 @@ func TestMarkdownBuilder_BuildFirewallRulesTable_WithComplexRules(t *testing.T) 
 			},
 			Target:     "",
 			SourcePort: "22",
-			Disabled:   "",
+			Disabled:   false,
 		},
 	}
 
@@ -1558,12 +1507,6 @@ func TestFormatIntBooleanWithUnset(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
-}
-
-func TestFormatStructBoolean(t *testing.T) {
-	// Test with empty struct
-	result := formatters.FormatStructBoolean(struct{}{})
-	assert.Equal(t, "✓", result)
 }
 
 func TestMarkdownBuilder_BuildSystemSection_WithAllFields(t *testing.T) {
@@ -1755,7 +1698,7 @@ func TestMarkdownBuilder_BuildOutboundNATTable_WithRules(t *testing.T) {
 				Any: model.StringPtr("1"),
 			},
 			Target:   "wan_ip",
-			Disabled: "",
+			Disabled: false,
 			Descr:    "LAN to WAN NAT",
 		},
 		{
@@ -1768,7 +1711,7 @@ func TestMarkdownBuilder_BuildOutboundNATTable_WithRules(t *testing.T) {
 				Network: "any",
 			},
 			Target:   "wan_ip",
-			Disabled: "1",
+			Disabled: true,
 			Descr:    "DMZ NAT (disabled)",
 		},
 	}
@@ -1847,7 +1790,7 @@ func TestMarkdownBuilder_BuildOutboundNATTable_SpecialCharacters(t *testing.T) {
 				Any: model.StringPtr("1"),
 			},
 			Target:   "wan_ip",
-			Disabled: "",
+			Disabled: false,
 			Descr:    "Rule with | pipe and `backticks`",
 		},
 	}
@@ -1870,7 +1813,7 @@ func TestMarkdownBuilder_BuildInboundNATTable_WithRules(t *testing.T) {
 			InternalIP:   "192.168.1.10",
 			InternalPort: "443",
 			Priority:     10,
-			Disabled:     "",
+			Disabled:     false,
 			Descr:        "Web server forwarding",
 		},
 		{
@@ -1880,7 +1823,7 @@ func TestMarkdownBuilder_BuildInboundNATTable_WithRules(t *testing.T) {
 			InternalIP:   "192.168.1.20",
 			InternalPort: "80",
 			Priority:     20,
-			Disabled:     "1",
+			Disabled:     true,
 			Descr:        "HTTP forward (disabled)",
 		},
 	}
@@ -1958,7 +1901,7 @@ func TestMarkdownBuilder_BuildInboundNATTable_SpecialCharacters(t *testing.T) {
 			InternalIP:   "192.168.1.10",
 			InternalPort: "443",
 			Priority:     10,
-			Disabled:     "",
+			Disabled:     false,
 			Descr:        "Rule with | pipe and `backticks`",
 		},
 	}

@@ -5,6 +5,8 @@ import (
 	"encoding/xml"
 	"slices"
 	"strings"
+
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 )
 
 // InterfaceList represents a comma-separated list of interfaces that can be unmarshaled from XML.
@@ -96,43 +98,54 @@ type Filter struct {
 
 // NATRule represents a NAT rule with enhanced fields for security analysis.
 type NATRule struct {
-	XMLName     xml.Name      `xml:"rule"`
-	Interface   InterfaceList `xml:"interface,omitempty"  json:"interface,omitempty"   yaml:"interface,omitempty"`
-	IPProtocol  string        `xml:"ipprotocol,omitempty" json:"ipProtocol,omitempty"  yaml:"ipProtocol,omitempty"`
-	Protocol    string        `xml:"protocol,omitempty"   json:"protocol,omitempty"    yaml:"protocol,omitempty"`
-	Source      Source        `xml:"source"               json:"source"                yaml:"source"`
-	Destination Destination   `xml:"destination"          json:"destination"           yaml:"destination"`
-	Target      string        `xml:"target,omitempty"     json:"target,omitempty"      yaml:"target,omitempty"`
-	SourcePort  string        `xml:"sourceport,omitempty" json:"sourcePort,omitempty"  yaml:"sourcePort,omitempty"`
-	Disabled    string        `xml:"disabled,omitempty"   json:"disabled,omitempty"    yaml:"disabled,omitempty"`
-	Descr       string        `xml:"descr,omitempty"      json:"description,omitempty" yaml:"description,omitempty"`
-	Category    string        `xml:"category,omitempty"   json:"category,omitempty"    yaml:"category,omitempty"`
-	Tag         string        `xml:"tag,omitempty"        json:"tag,omitempty"         yaml:"tag,omitempty"`
-	Tagged      string        `xml:"tagged,omitempty"     json:"tagged,omitempty"      yaml:"tagged,omitempty"`
-	PoolOpts    string        `xml:"poolopts,omitempty"   json:"poolOpts,omitempty"    yaml:"poolOpts,omitempty"`
-	Updated     *Updated      `xml:"updated,omitempty"    json:"updated,omitempty"     yaml:"updated,omitempty"`
-	Created     *Created      `xml:"created,omitempty"    json:"created,omitempty"     yaml:"created,omitempty"`
-	UUID        string        `xml:"uuid,attr,omitempty"  json:"uuid,omitempty"        yaml:"uuid,omitempty"`
+	XMLName            xml.Name      `xml:"rule"`
+	Interface          InterfaceList `xml:"interface,omitempty"              json:"interface,omitempty"          yaml:"interface,omitempty"`
+	IPProtocol         string        `xml:"ipprotocol,omitempty"             json:"ipProtocol,omitempty"         yaml:"ipProtocol,omitempty"`
+	Protocol           string        `xml:"protocol,omitempty"               json:"protocol,omitempty"           yaml:"protocol,omitempty"`
+	Source             Source        `xml:"source"                           json:"source"                       yaml:"source"`
+	Destination        Destination   `xml:"destination"                      json:"destination"                  yaml:"destination"`
+	Target             string        `xml:"target,omitempty"                 json:"target,omitempty"             yaml:"target,omitempty"`
+	SourcePort         string        `xml:"sourceport,omitempty"             json:"sourcePort,omitempty"         yaml:"sourcePort,omitempty"`
+	NatPort            string        `xml:"natport,omitempty"                json:"natPort,omitempty"            yaml:"natPort,omitempty"`
+	PoolOpts           string        `xml:"poolopts,omitempty"               json:"poolOpts,omitempty"           yaml:"poolOpts,omitempty"`
+	PoolOptsSrcHashKey string        `xml:"poolopts_sourcehashkey,omitempty" json:"poolOptsSrcHashKey,omitempty" yaml:"poolOptsSrcHashKey,omitempty"`
+	StaticNatPort      BoolFlag      `xml:"staticnatport,omitempty"          json:"staticNatPort,omitempty"      yaml:"staticNatPort,omitempty"`
+	NoNat              BoolFlag      `xml:"nonat,omitempty"                  json:"noNat,omitempty"              yaml:"noNat,omitempty"`
+	Disabled           BoolFlag      `xml:"disabled,omitempty"               json:"disabled,omitempty"           yaml:"disabled,omitempty"`
+	Log                BoolFlag      `xml:"log,omitempty"                    json:"log,omitempty"                yaml:"log,omitempty"`
+	Descr              string        `xml:"descr,omitempty"                  json:"description,omitempty"        yaml:"description,omitempty"`
+	Category           string        `xml:"category,omitempty"               json:"category,omitempty"           yaml:"category,omitempty"`
+	Tag                string        `xml:"tag,omitempty"                    json:"tag,omitempty"                yaml:"tag,omitempty"`
+	Tagged             string        `xml:"tagged,omitempty"                 json:"tagged,omitempty"             yaml:"tagged,omitempty"`
+	Updated            *Updated      `xml:"updated,omitempty"                json:"updated,omitempty"            yaml:"updated,omitempty"`
+	Created            *Created      `xml:"created,omitempty"                json:"created,omitempty"            yaml:"created,omitempty"`
+	UUID               string        `xml:"uuid,attr,omitempty"              json:"uuid,omitempty"               yaml:"uuid,omitempty"`
 }
 
 // InboundRule represents an inbound NAT rule (port forwarding) with enhanced fields for security analysis.
 type InboundRule struct {
-	XMLName      xml.Name      `xml:"rule"`
-	Interface    InterfaceList `xml:"interface,omitempty"    json:"interface,omitempty"    yaml:"interface,omitempty"`
-	IPProtocol   string        `xml:"ipprotocol,omitempty"   json:"ipProtocol,omitempty"   yaml:"ipProtocol,omitempty"`
-	Protocol     string        `xml:"protocol,omitempty"     json:"protocol,omitempty"     yaml:"protocol,omitempty"`
-	Source       Source        `xml:"source"                 json:"source"                 yaml:"source"`
-	Destination  Destination   `xml:"destination"            json:"destination"            yaml:"destination"`
-	ExternalPort string        `xml:"externalport,omitempty" json:"externalPort,omitempty" yaml:"externalPort,omitempty"`
-	InternalIP   string        `xml:"internalip,omitempty"   json:"internalIP,omitempty"   yaml:"internalIP,omitempty"`
-	InternalPort string        `xml:"internalport,omitempty" json:"internalPort,omitempty" yaml:"internalPort,omitempty"`
-	Reflection   string        `xml:"reflection,omitempty"   json:"reflection,omitempty"   yaml:"reflection,omitempty"`
-	Priority     int           `xml:"priority,omitempty"     json:"priority,omitempty"     yaml:"priority,omitempty"`
-	Disabled     string        `xml:"disabled,omitempty"     json:"disabled,omitempty"     yaml:"disabled,omitempty"`
-	Descr        string        `xml:"descr,omitempty"        json:"description,omitempty"  yaml:"description,omitempty"`
-	Updated      *Updated      `xml:"updated,omitempty"      json:"updated,omitempty"      yaml:"updated,omitempty"`
-	Created      *Created      `xml:"created,omitempty"      json:"created,omitempty"      yaml:"created,omitempty"`
-	UUID         string        `xml:"uuid,attr,omitempty"    json:"uuid,omitempty"         yaml:"uuid,omitempty"`
+	XMLName          xml.Name      `xml:"rule"`
+	Interface        InterfaceList `xml:"interface,omitempty"          json:"interface,omitempty"        yaml:"interface,omitempty"`
+	IPProtocol       string        `xml:"ipprotocol,omitempty"         json:"ipProtocol,omitempty"       yaml:"ipProtocol,omitempty"`
+	Protocol         string        `xml:"protocol,omitempty"           json:"protocol,omitempty"         yaml:"protocol,omitempty"`
+	Source           Source        `xml:"source"                       json:"source"                     yaml:"source"`
+	Destination      Destination   `xml:"destination"                  json:"destination"                yaml:"destination"`
+	ExternalPort     string        `xml:"externalport,omitempty"       json:"externalPort,omitempty"     yaml:"externalPort,omitempty"`
+	InternalIP       string        `xml:"internalip,omitempty"         json:"internalIP,omitempty"       yaml:"internalIP,omitempty"`
+	InternalPort     string        `xml:"internalport,omitempty"       json:"internalPort,omitempty"     yaml:"internalPort,omitempty"`
+	LocalPort        string        `xml:"local-port,omitempty"         json:"localPort,omitempty"        yaml:"localPort,omitempty"`
+	Reflection       string        `xml:"reflection,omitempty"         json:"reflection,omitempty"       yaml:"reflection,omitempty"`
+	NATReflection    string        `xml:"natreflection,omitempty"      json:"natReflection,omitempty"    yaml:"natReflection,omitempty"`
+	AssociatedRuleID string        `xml:"associated-rule-id,omitempty" json:"associatedRuleID,omitempty" yaml:"associatedRuleID,omitempty"`
+	Priority         int           `xml:"priority,omitempty"           json:"priority,omitempty"         yaml:"priority,omitempty"`
+	NoRDR            BoolFlag      `xml:"nordr,omitempty"              json:"noRDR,omitempty"            yaml:"noRDR,omitempty"`
+	NoSync           BoolFlag      `xml:"nosync,omitempty"             json:"noSync,omitempty"           yaml:"noSync,omitempty"`
+	Disabled         BoolFlag      `xml:"disabled,omitempty"           json:"disabled,omitempty"         yaml:"disabled,omitempty"`
+	Log              BoolFlag      `xml:"log,omitempty"                json:"log,omitempty"              yaml:"log,omitempty"`
+	Descr            string        `xml:"descr,omitempty"              json:"description,omitempty"      yaml:"description,omitempty"`
+	Updated          *Updated      `xml:"updated,omitempty"            json:"updated,omitempty"          yaml:"updated,omitempty"`
+	Created          *Created      `xml:"created,omitempty"            json:"created,omitempty"          yaml:"created,omitempty"`
+	UUID             string        `xml:"uuid,attr,omitempty"          json:"uuid,omitempty"             yaml:"uuid,omitempty"`
 }
 
 // Rule represents a firewall rule.
@@ -144,31 +157,73 @@ type Rule struct {
 	IPProtocol  string        `xml:"ipprotocol,omitempty"`
 	StateType   string        `xml:"statetype,omitempty"`
 	Direction   string        `xml:"direction,omitempty"`
-	Quick       string        `xml:"quick,omitempty"`
+	Floating    string        `xml:"floating,omitempty"`
+	Quick       BoolFlag      `xml:"quick,omitempty"`
 	Protocol    string        `xml:"protocol,omitempty"`
 	Source      Source        `xml:"source"`
 	Destination Destination   `xml:"destination"`
 	Target      string        `xml:"target,omitempty"`
+	Gateway     string        `xml:"gateway,omitempty"`
 	SourcePort  string        `xml:"sourceport,omitempty"`
-	Disabled    string        `xml:"disabled,omitempty"`
-	Updated     *Updated      `xml:"updated,omitempty"`
-	Created     *Created      `xml:"created,omitempty"`
-	UUID        string        `xml:"uuid,attr,omitempty"`
+	Log         BoolFlag      `xml:"log,omitempty"`
+	Disabled    BoolFlag      `xml:"disabled,omitempty"`
+	Tracker     string        `xml:"tracker,omitempty"`
+	// Rate-limiting fields (DoS protection)
+	MaxSrcNodes     string `xml:"max-src-nodes,omitempty"`
+	MaxSrcConn      string `xml:"max-src-conn,omitempty"`
+	MaxSrcConnRate  string `xml:"max-src-conn-rate,omitempty"`
+	MaxSrcConnRates string `xml:"max-src-conn-rates,omitempty"`
+	// TCP/ICMP fields
+	TCPFlags1   string   `xml:"tcpflags1,omitempty"`
+	TCPFlags2   string   `xml:"tcpflags2,omitempty"`
+	TCPFlagsAny BoolFlag `xml:"tcpflags_any,omitempty"`
+	ICMPType    string   `xml:"icmptype,omitempty"`
+	ICMP6Type   string   `xml:"icmp6-type,omitempty"`
+	// State and advanced fields
+	StateTimeout   string   `xml:"statetimeout,omitempty"`
+	AllowOpts      BoolFlag `xml:"allowopts,omitempty"`
+	DisableReplyTo BoolFlag `xml:"disablereplyto,omitempty"`
+	NoPfSync       BoolFlag `xml:"nopfsync,omitempty"`
+	NoSync         BoolFlag `xml:"nosync,omitempty"`
+	Updated        *Updated `xml:"updated,omitempty"`
+	Created        *Created `xml:"created,omitempty"`
+	UUID           string   `xml:"uuid,attr,omitempty"`
 }
 
 // Source represents a firewall rule source.
 // Any is a pointer to distinguish XML element presence (<any/> → non-nil "")
 // from absence (nil), since Go's encoding/xml produces "" for both self-closing
 // tags and absent elements when using a plain string.
+//
+// Any, Network, and Address are mutually exclusive per OPNsense semantics.
+// Resolution priority: Network > Address > Any (per legacyMoveAddressFields).
 type Source struct {
-	Any     *string `xml:"any,omitempty"     json:"any,omitempty"     yaml:"any,omitempty"`
-	Network string  `xml:"network,omitempty" json:"network,omitempty" yaml:"network,omitempty"`
+	Any     *string  `xml:"any,omitempty"     json:"any,omitempty"     yaml:"any,omitempty"`
+	Network string   `xml:"network,omitempty" json:"network,omitempty" yaml:"network,omitempty"`
+	Address string   `xml:"address,omitempty" json:"address,omitempty" yaml:"address,omitempty"`
+	Port    string   `xml:"port,omitempty"    json:"port,omitempty"    yaml:"port,omitempty"`
+	Not     BoolFlag `xml:"not,omitempty"     json:"not,omitempty"     yaml:"not,omitempty"`
 }
 
 // IsAny returns true if the source represents "any" (the <any> element is present).
 // OPNsense treats <any> as a presence-based flag; the element's value is irrelevant.
 func (s Source) IsAny() bool {
 	return s.Any != nil
+}
+
+// EffectiveAddress returns the resolved address target following OPNsense priority:
+// Network > Address > "any" (if Any is present) > "" (empty).
+func (s Source) EffectiveAddress() string {
+	if s.Network != "" {
+		return s.Network
+	}
+	if s.Address != "" {
+		return s.Address
+	}
+	if s.IsAny() {
+		return constants.NetworkAny
+	}
+	return ""
 }
 
 // Equal reports whether two Source values are semantically equal.
@@ -178,21 +233,44 @@ func (s Source) Equal(other Source) bool {
 	if (s.Any != nil) != (other.Any != nil) {
 		return false
 	}
-	return s.Network == other.Network
+	return s.Network == other.Network &&
+		s.Address == other.Address &&
+		s.Port == other.Port &&
+		s.Not == other.Not
 }
 
 // Destination represents a firewall rule destination.
 // Any is a pointer for the same reason as Source.Any.
+//
+// Any, Network, and Address are mutually exclusive per OPNsense semantics.
+// Resolution priority: Network > Address > Any (per legacyMoveAddressFields).
 type Destination struct {
-	Any     *string `xml:"any,omitempty"     json:"any,omitempty"     yaml:"any,omitempty"`
-	Network string  `xml:"network,omitempty" json:"network,omitempty" yaml:"network,omitempty"`
-	Port    string  `xml:"port,omitempty"    json:"port,omitempty"    yaml:"port,omitempty"`
+	Any     *string  `xml:"any,omitempty"     json:"any,omitempty"     yaml:"any,omitempty"`
+	Network string   `xml:"network,omitempty" json:"network,omitempty" yaml:"network,omitempty"`
+	Address string   `xml:"address,omitempty" json:"address,omitempty" yaml:"address,omitempty"`
+	Port    string   `xml:"port,omitempty"    json:"port,omitempty"    yaml:"port,omitempty"`
+	Not     BoolFlag `xml:"not,omitempty"     json:"not,omitempty"     yaml:"not,omitempty"`
 }
 
 // IsAny returns true if the destination represents "any" (the <any> element is present).
 // OPNsense treats <any> as a presence-based flag; the element's value is irrelevant.
 func (d Destination) IsAny() bool {
 	return d.Any != nil
+}
+
+// EffectiveAddress returns the resolved address target following OPNsense priority:
+// Network > Address > "any" (if Any is present) > "" (empty).
+func (d Destination) EffectiveAddress() string {
+	if d.Network != "" {
+		return d.Network
+	}
+	if d.Address != "" {
+		return d.Address
+	}
+	if d.IsAny() {
+		return constants.NetworkAny
+	}
+	return ""
 }
 
 // Equal reports whether two Destination values are semantically equal.
@@ -202,17 +280,10 @@ func (d Destination) Equal(other Destination) bool {
 	if (d.Any != nil) != (other.Any != nil) {
 		return false
 	}
-	return d.Network == other.Network && d.Port == other.Port
-}
-
-// StringPtr returns a pointer to the given string value.
-// This is a convenience helper for constructing Source/Destination literals
-// with the *string Any field:
-//
-//	src := Source{Any: StringPtr("1")}   // equivalent to <any>1</any>
-//	dst := Destination{Any: StringPtr("")} // equivalent to <any/>
-func StringPtr(s string) *string {
-	return &s
+	return d.Network == other.Network &&
+		d.Address == other.Address &&
+		d.Port == other.Port &&
+		d.Not == other.Not
 }
 
 // Updated represents update information.

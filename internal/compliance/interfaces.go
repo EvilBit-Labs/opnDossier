@@ -1,12 +1,12 @@
-package plugin
+package compliance
 
 import (
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
-// CompliancePlugin defines the interface that all compliance plugins must implement.
+// Plugin defines the interface that all compliance plugins must implement.
 // This interface is designed to be loosely coupled and focused only on OpnSenseDocument.
-type CompliancePlugin interface {
+type Plugin interface {
 	// Name returns the unique name of the compliance standard
 	Name() string
 

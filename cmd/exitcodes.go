@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/parser"
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 )
 
 // Exit codes for structured error handling in CI/CD pipelines.
@@ -48,8 +48,8 @@ func OutputJSONError(err error, file string, exitCode int) {
 	}
 
 	// Add additional details based on error type
-	if parser.IsParseError(err) {
-		if parseErr := parser.GetParseError(err); parseErr != nil {
+	if cfgparser.IsParseError(err) {
+		if parseErr := cfgparser.GetParseError(err); parseErr != nil {
 			jsonErr.Details = map[string]any{
 				"line":    parseErr.Line,
 				"message": parseErr.Message,
@@ -92,11 +92,11 @@ func DetermineExitCode(err error) int {
 		return ExitSuccess
 	}
 
-	if parser.IsParseError(err) {
+	if cfgparser.IsParseError(err) {
 		return ExitParseError
 	}
 
-	if parser.IsValidationError(err) {
+	if cfgparser.IsValidationError(err) {
 		return ExitValidationError
 	}
 

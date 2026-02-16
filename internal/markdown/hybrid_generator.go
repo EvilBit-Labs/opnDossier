@@ -5,7 +5,7 @@ package markdown
 import (
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
-	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 )
 
 // ReportBuilder defines the interface for building markdown reports.
@@ -17,6 +17,6 @@ type HybridGenerator = converter.HybridGenerator
 // NewHybridGenerator creates a new HybridGenerator with the specified builder.
 //
 // Deprecated: use converter.NewHybridGenerator instead.
-func NewHybridGenerator(reportBuilder builder.ReportBuilder, logger *log.Logger) (*HybridGenerator, error) {
+func NewHybridGenerator(reportBuilder builder.ReportBuilder, logger *logging.Logger) (*HybridGenerator, error) {
 	return converter.NewHybridGenerator(reportBuilder, logger)
 }

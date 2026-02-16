@@ -8,6 +8,8 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/schema"
 )
 
+const addressUnknown = "unknown"
+
 // Analyzer performs structural comparison of configurations.
 type Analyzer struct{}
 
@@ -823,7 +825,18 @@ func ruleDescription(rule schema.Rule) string {
 	if rule.Descr != "" {
 		return rule.Descr
 	}
-	return fmt.Sprintf("%s %s → %s", rule.Type, rule.Source.Network, rule.Destination.Network)
+
+	src := rule.Source.EffectiveAddress()
+	if src == "" {
+		src = addressUnknown
+	}
+
+	dst := rule.Destination.EffectiveAddress()
+	if dst == "" {
+		dst = addressUnknown
+	}
+
+	return fmt.Sprintf("%s %s → %s", rule.Type, src, dst)
 }
 
 func formatRule(rule schema.Rule) string {
@@ -839,32 +852,38 @@ func formatRule(rule schema.Rule) string {
 	parts = append(parts,
 		"src="+formatSource(rule.Source),
 		"dst="+formatDestination(rule.Destination))
-	if rule.Disabled != "" {
+	if rule.Disabled.Bool() {
 		parts = append(parts, "disabled")
 	}
 	return strings.Join(parts, ", ")
 }
 
 func formatSource(src schema.Source) string {
-	if src.IsAny() {
-		return "any"
+	var prefix string
+	if src.Not {
+		prefix = "!"
 	}
-	if src.Network != "" {
-		return src.Network
+	addr := src.EffectiveAddress()
+	if addr == "" {
+		addr = addressUnknown
 	}
-	return "unknown"
+	result := prefix + addr
+	if src.Port != "" {
+		result += ":" + src.Port
+	}
+	return result
 }
 
 func formatDestination(dst schema.Destination) string {
-	var result string
-	switch {
-	case dst.IsAny():
-		result = "any"
-	case dst.Network != "":
-		result = dst.Network
-	default:
-		result = "unknown"
+	var prefix string
+	if dst.Not {
+		prefix = "!"
 	}
+	addr := dst.EffectiveAddress()
+	if addr == "" {
+		addr = addressUnknown
+	}
+	result := prefix + addr
 	if dst.Port != "" {
 		result += ":" + dst.Port
 	}
@@ -908,5 +927,7 @@ func usersEqual(a, b schema.User) bool {
 }
 
 func isPermissiveRule(rule schema.Rule) bool {
-	return rule.Source.IsAny() && rule.Destination.IsAny() && rule.Type == "pass"
+	return rule.Type == "pass" &&
+		rule.Source.EffectiveAddress() == "any" &&
+		rule.Destination.EffectiveAddress() == "any"
 }

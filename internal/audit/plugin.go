@@ -10,25 +10,25 @@ import (
 	pluginlib "plugin"
 	"sync"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/plugin"
 )
 
 // PluginRegistry manages the registration and retrieval of compliance plugins.
 type PluginRegistry struct {
-	plugins map[string]plugin.CompliancePlugin
+	plugins map[string]compliance.Plugin
 	mutex   sync.RWMutex
 }
 
 // NewPluginRegistry creates a new plugin registry.
 func NewPluginRegistry() *PluginRegistry {
 	return &PluginRegistry{
-		plugins: make(map[string]plugin.CompliancePlugin),
+		plugins: make(map[string]compliance.Plugin),
 	}
 }
 
 // RegisterPlugin registers a compliance plugin.
-func (pr *PluginRegistry) RegisterPlugin(p plugin.CompliancePlugin) error {
+func (pr *PluginRegistry) RegisterPlugin(p compliance.Plugin) error {
 	pr.mutex.Lock()
 	defer pr.mutex.Unlock()
 
@@ -47,13 +47,13 @@ func (pr *PluginRegistry) RegisterPlugin(p plugin.CompliancePlugin) error {
 }
 
 // GetPlugin retrieves a plugin by name.
-func (pr *PluginRegistry) GetPlugin(name string) (plugin.CompliancePlugin, error) {
+func (pr *PluginRegistry) GetPlugin(name string) (compliance.Plugin, error) {
 	pr.mutex.RLock()
 	defer pr.mutex.RUnlock()
 
 	p, exists := pr.plugins[name]
 	if !exists {
-		return nil, plugin.ErrPluginNotFound
+		return nil, compliance.ErrPluginNotFound
 	}
 
 	return p, nil
@@ -100,9 +100,9 @@ func (pr *PluginRegistry) LoadDynamicPlugins(ctx context.Context, dir string, lo
 			continue
 		}
 
-		compliancePlugin, ok := sym.(plugin.CompliancePlugin)
+		compliancePlugin, ok := sym.(compliance.Plugin)
 		if !ok {
-			logger.ErrorContext(ctx, "Symbol Plugin does not implement CompliancePlugin", "file", path)
+			logger.ErrorContext(ctx, "Symbol Plugin does not implement compliance.Plugin", "file", path)
 			continue
 		}
 
@@ -132,7 +132,7 @@ func (pr *PluginRegistry) RunComplianceChecks(
 	pluginNames []string,
 ) (*ComplianceResult, error) {
 	result := &ComplianceResult{
-		Findings:   []plugin.Finding{},
+		Findings:   []compliance.Finding{},
 		Compliance: make(map[string]map[string]bool),
 		Summary:    &ComplianceSummary{},
 		PluginInfo: make(map[string]PluginInfo),
@@ -225,7 +225,7 @@ func (pr *PluginRegistry) calculateSummary(result *ComplianceResult) *Compliance
 
 // ComplianceResult represents the complete result of compliance checks.
 type ComplianceResult struct {
-	Findings   []plugin.Finding           `json:"findings"`
+	Findings   []compliance.Finding       `json:"findings"`
 	Compliance map[string]map[string]bool `json:"compliance"`
 	Summary    *ComplianceSummary         `json:"summary"`
 	PluginInfo map[string]PluginInfo      `json:"pluginInfo"`
@@ -251,10 +251,10 @@ type PluginCompliance struct {
 
 // PluginInfo contains metadata about a plugin.
 type PluginInfo struct {
-	Name        string           `json:"name"`
-	Version     string           `json:"version"`
-	Description string           `json:"description"`
-	Controls    []plugin.Control `json:"controls"`
+	Name        string               `json:"name"`
+	Version     string               `json:"version"`
+	Description string               `json:"description"`
+	Controls    []compliance.Control `json:"controls"`
 }
 
 // globalRegistry holds the singleton plugin registry instance.
@@ -276,12 +276,12 @@ func GetGlobalRegistry() *PluginRegistry {
 }
 
 // RegisterGlobalPlugin registers a plugin with the global registry.
-func RegisterGlobalPlugin(p plugin.CompliancePlugin) error {
+func RegisterGlobalPlugin(p compliance.Plugin) error {
 	return GetGlobalRegistry().RegisterPlugin(p)
 }
 
 // GetGlobalPlugin retrieves a plugin from the global registry.
-func GetGlobalPlugin(name string) (plugin.CompliancePlugin, error) {
+func GetGlobalPlugin(name string) (compliance.Plugin, error) {
 	return GetGlobalRegistry().GetPlugin(name)
 }
 
