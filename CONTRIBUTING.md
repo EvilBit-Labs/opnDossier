@@ -744,6 +744,64 @@ For development questions:
 3. Ask in GitHub Discussions
 4. Create an issue if needed
 
+## Developer Certificate of Origin (DCO)
+
+This project requires all contributors to sign off on their commits, certifying that they have the right to submit the code under the project's license. This is enforced by the [DCO GitHub App](https://github.com/apps/dco).
+
+To sign off, add `-s` to your commit command:
+
+```bash
+git commit -s -m "feat(parser): add new feature"
+```
+
+This adds a `Signed-off-by` line to your commit message:
+
+```text
+Signed-off-by: Your Name <your.email@example.com>
+```
+
+By signing off, you agree to the [Developer Certificate of Origin](https://developercertificate.org/).
+
+## Project Governance
+
+### Decision-Making
+
+opnDossier uses a **maintainer-driven** governance model. Decisions are made by the project maintainers through consensus on GitHub issues and pull requests. Community input is welcomed and encouraged on all significant changes.
+
+### Roles
+
+| Role                 | Responsibilities                                                                          | Current                                        |
+| -------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| **Maintainer**       | Merge PRs, manage releases, set project direction, review security reports, triage issues | [@UncleSp1d3r](https://github.com/UncleSp1d3r) |
+| **Security Contact** | Triage vulnerability reports, coordinate fixes, publish advisories                        | support@evilbitlabs.io                         |
+| **Contributor**      | Submit issues, PRs, and participate in discussions                                        | Anyone following this guide                    |
+
+### How Decisions Are Made
+
+- **Bug fixes and minor changes**: Any maintainer can review and merge
+- **New features**: Discussed in a GitHub issue before implementation; maintainer approval required
+- **Architecture changes**: Require maintainer approval with rationale documented in the PR description
+- **Breaking changes**: Discussed in a GitHub issue with community input; maintainer approval required
+- **Releases**: Prepared by any maintainer following the [release process](#release-process); GoReleaser handles automation
+
+### Becoming a Maintainer
+
+As the project grows, active contributors who demonstrate sustained, high-quality contributions and alignment with project goals may be invited to become maintainers. Criteria include:
+
+- Consistent, high-quality PRs over a sustained period
+- Understanding of the project's architecture and security model
+- Alignment with the project's core philosophy (operator-focused, offline-first, structured data)
+
+### Continuity Plan
+
+To ensure the project can continue operating if any key person becomes unavailable:
+
+- The GitHub organization (EvilBit-Labs) has multiple administrators
+- CI/CD pipelines (GoReleaser, GitHub Actions) are fully automated and documented
+- All development standards, architecture decisions, and processes are documented in AGENTS.md, CONTRIBUTING.md, and docs/
+- Security response procedures are documented in SECURITY.md with alternative contact methods
+- Release signing uses Sigstore keyless signatures (no personal keys required)
+
 ---
 
 Thank you for contributing to opnDossier! Your contributions help make network configuration management better for everyone.
