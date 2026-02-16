@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -554,22 +555,24 @@ func TestBarConcurrentAccess(t *testing.T) {
 
 	// Test that concurrent access doesn't cause data races
 	// This test mainly ensures proper mutex usage
-	done := make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Add(2)
 
 	go func() {
-		defer close(done)
+		defer wg.Done()
 		for i := range 100 {
 			bar.Update(float64(i)/100, "Processing")
 		}
 	}()
 
 	go func() {
+		defer wg.Done()
 		for i := range 100 {
 			bar.Update(float64(i)/100, "Working")
 		}
 	}()
 
-	<-done
+	wg.Wait()
 
 	bar.Complete("Done")
 

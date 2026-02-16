@@ -14,15 +14,13 @@ import (
 
 // TestGlobalPluginRegistry tests all global registry functions.
 //
-//nolint:tparallel // subtests modify shared global registry state
+
 func TestGlobalPluginRegistry(t *testing.T) {
 	// Reset global registry for clean testing
 	globalRegistryOnce = sync.Once{}
 	globalRegistry = nil
 
 	t.Run("GetGlobalRegistry", func(t *testing.T) {
-		t.Parallel()
-
 		registry1 := GetGlobalRegistry()
 		if registry1 == nil {
 			t.Error("GetGlobalRegistry() returned nil")
@@ -35,8 +33,6 @@ func TestGlobalPluginRegistry(t *testing.T) {
 	})
 
 	t.Run("RegisterGlobalPlugin", func(t *testing.T) {
-		t.Parallel()
-
 		// Reset for this test
 		globalRegistryOnce = sync.Once{}
 		globalRegistry = nil
@@ -60,8 +56,6 @@ func TestGlobalPluginRegistry(t *testing.T) {
 	})
 
 	t.Run("GetGlobalPlugin", func(t *testing.T) {
-		t.Parallel()
-
 		// Reset for this test
 		globalRegistryOnce = sync.Once{}
 		globalRegistry = nil
@@ -100,8 +94,6 @@ func TestGlobalPluginRegistry(t *testing.T) {
 	})
 
 	t.Run("ListGlobalPlugins", func(t *testing.T) {
-		t.Parallel()
-
 		// Reset for this test
 		globalRegistryOnce = sync.Once{}
 		globalRegistry = nil

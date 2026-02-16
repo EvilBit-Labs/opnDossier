@@ -43,7 +43,7 @@ func FilterSystemTunables(tunables []model.SysctlItem, includeTunables bool) []m
 		"net.inet.udp.blackhole",
 	}
 
-	estimatedSize := maxInt(1, len(tunables)/securityTunableRatio)
+	estimatedSize := max(1, len(tunables)/securityTunableRatio)
 	filtered := make([]model.SysctlItem, 0, estimatedSize)
 
 	for _, item := range tunables {
@@ -69,7 +69,7 @@ func GroupServicesByStatus(services []model.Service) map[string][]model.Service 
 		return nil
 	}
 
-	estimatedCapacity := maxInt(1, len(services)/serviceBalanceRatio)
+	estimatedCapacity := max(1, len(services)/serviceBalanceRatio)
 
 	grouped := map[string][]model.Service{
 		statusRunning: make([]model.Service, 0, estimatedCapacity),
@@ -155,7 +155,7 @@ func FilterRulesByType(rules []model.Rule, ruleType string) []model.Rule {
 		return result
 	}
 
-	estimatedSize := maxInt(1, len(rules)/ruleTypeRatio)
+	estimatedSize := max(1, len(rules)/ruleTypeRatio)
 	filtered := make([]model.Rule, 0, estimatedSize)
 
 	for _, rule := range rules {
@@ -205,11 +205,4 @@ func ExtractUniqueValues(items []string) []string {
 
 	sort.Strings(unique)
 	return unique
-}
-
-func maxInt(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }

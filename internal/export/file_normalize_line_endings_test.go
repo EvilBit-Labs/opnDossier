@@ -159,8 +159,6 @@ func TestNormalizeLineEndings_Performance(t *testing.T) {
 }
 
 // TestNormalizeLineEndings_WithNilLogger tests that function works gracefully with nil logger.
-//
-
 func TestNormalizeLineEndings_WithNilLogger(t *testing.T) {
 	tests := []struct {
 		name     string

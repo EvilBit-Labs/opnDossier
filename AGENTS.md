@@ -1048,7 +1048,7 @@ just ci-check                  # Comprehensive checks
 ./opndossier validate config.xml
 ```
 
-## 16. Open Source Quality Standards (OSSF Best Practices)
+## 16. Open-Source Quality Standards (OSSF Best Practices)
 
 This project has the OSSF Best Practices passing badge. Maintain these standards:
 

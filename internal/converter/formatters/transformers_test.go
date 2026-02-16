@@ -469,33 +469,3 @@ func TestExtractUniqueValues(t *testing.T) {
 		})
 	}
 }
-
-func TestMaxInt(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name string
-		a    int
-		b    int
-		want int
-	}{
-		{"a greater than b", 10, 5, 10},
-		{"b greater than a", 5, 10, 10},
-		{"equal values", 5, 5, 5},
-		{"negative values", -10, -5, -5},
-		{"mixed signs", -5, 10, 10},
-		{"zero and positive", 0, 5, 5},
-		{"zero and negative", 0, -5, 0},
-		{"both zero", 0, 0, 0},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			got := maxInt(tt.a, tt.b)
-			if got != tt.want {
-				t.Errorf("maxInt(%d, %d) = %d, want %d", tt.a, tt.b, got, tt.want)
-			}
-		})
-	}
-}

@@ -645,13 +645,17 @@ When adding features:
    just check  # Must pass all checks
    ```
 
-2. **Update documentation:**
+2. **Ensure commits are signed off (DCO):**
+
+   All commits must include a DCO sign-off (`git commit -s`). See [Developer Certificate of Origin](#developer-certificate-of-origin-dco) for details.
+
+3. **Update documentation:**
 
    - Code comments
    - User guides if needed
    - CLI help text
 
-3. **Add tests:**
+4. **Add tests:**
 
    - Unit tests for new functions
    - Integration tests for new features

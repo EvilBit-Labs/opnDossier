@@ -2,7 +2,7 @@ package display
 
 import (
 	"context"
-	"os"
+	"strings"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
@@ -19,20 +19,11 @@ func TestIsTerminal(t *testing.T) {
 	result := isTerminal()
 	// We can't predict the exact result in test environments,
 	// but we can ensure the function doesn't panic
-	assert.IsType(t, true, result) // Just check it returns a bool
+	_ = result // Verify function completes without panic
 }
 
 func TestIsTerminalColorCapable(t *testing.T) {
 	// Can't use t.Parallel() because we're setting environment variables
-
-	// Save original environment variables
-	originalColorTerm := os.Getenv("COLORTERM")
-	originalTerm := os.Getenv("TERM")
-
-	defer func() {
-		t.Setenv("COLORTERM", originalColorTerm)
-		t.Setenv("TERM", originalTerm)
-	}()
 
 	tests := []struct {
 		name      string
@@ -261,7 +252,8 @@ func TestWrapRenderedLineWithANSI(t *testing.T) {
 
 	// Should handle ANSI codes properly
 	assert.NotEmpty(t, result)
-	assert.IsType(t, []string{}, result)
+	joined := strings.Join(result, "")
+	assert.Contains(t, joined, "\x1b[1m", "Bold ANSI sequence should be preserved")
 }
 
 func TestThemeApplyTheme(t *testing.T) {
@@ -283,16 +275,6 @@ func TestThemeApplyTheme(t *testing.T) {
 
 func TestGetTerminalWidthWithInvalidColumns(t *testing.T) {
 	// Can't use t.Parallel() because we're setting environment variables
-
-	// Save original COLUMNS
-	original := os.Getenv("COLUMNS")
-	defer func() {
-		if original != "" {
-			t.Setenv("COLUMNS", original)
-		} else {
-			t.Setenv("COLUMNS", "")
-		}
-	}()
 
 	// Test with various COLUMNS values
 	testCases := []struct {
@@ -335,11 +317,11 @@ func TestConvertMarkdownOptionsAllThemes(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			// We can't directly test convertMarkdownOptions since it's not exported
-			// and takes converter.Options, but we can test the theme detection logic
-			// indirectly through DetectTheme
-			theme := DetectTheme("")
+			theme := DetectTheme(tt.mdTheme)
 			assert.NotEmpty(t, theme.Name)
+			if tt.expectedResult != "" {
+				assert.Equal(t, tt.expectedResult, theme.Name)
+			}
 		})
 	}
 }
@@ -394,8 +376,7 @@ func TestContextChecking(t *testing.T) {
 	cancel()
 
 	err = td.checkContext(cancelCtx)
-	require.Error(t, err)
-	assert.Equal(t, context.Canceled, err)
+	require.ErrorIs(t, err, context.Canceled)
 }
 
 func TestProgressWithNilProgress(t *testing.T) {
@@ -415,17 +396,6 @@ func TestProgressWithNilProgress(t *testing.T) {
 
 func TestAutoDetectThemeHeuristics(t *testing.T) {
 	// Can't use t.Parallel() because we're setting environment variables
-
-	// Save original environment
-	originalColorTerm := os.Getenv("COLORTERM")
-	originalTerm := os.Getenv("TERM")
-	originalTermProgram := os.Getenv("TERM_PROGRAM")
-
-	defer func() {
-		t.Setenv("COLORTERM", originalColorTerm)
-		t.Setenv("TERM", originalTerm)
-		t.Setenv("TERM_PROGRAM", originalTermProgram)
-	}()
 
 	tests := []struct {
 		name        string
@@ -476,8 +446,7 @@ func TestDisplayErrorHandling(t *testing.T) {
 	cancel() // Cancel immediately
 
 	err := td.Display(ctx, "# Test Content")
-	require.Error(t, err)
-	assert.Equal(t, context.Canceled, err)
+	require.ErrorIs(t, err, context.Canceled)
 }
 
 func TestProgressEventStructure(t *testing.T) {

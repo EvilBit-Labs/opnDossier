@@ -185,19 +185,20 @@ func TestDhcpd_Names(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			got := tt.dhcpd.Names()
-
-			// Sort both slices to compare them regardless of order
 			sort.Strings(got)
-			sort.Strings(tt.want)
 
-			if len(got) != len(tt.want) {
-				t.Errorf("Dhcpd.Names() length = %d, want %d", len(got), len(tt.want))
+			wantSorted := make([]string, len(tt.want))
+			copy(wantSorted, tt.want)
+			sort.Strings(wantSorted)
+
+			if len(got) != len(wantSorted) {
+				t.Errorf("Dhcpd.Names() length = %d, want %d", len(got), len(wantSorted))
 				return
 			}
 
 			for i, name := range got {
-				if name != tt.want[i] {
-					t.Errorf("Dhcpd.Names()[%d] = %q, want %q", i, name, tt.want[i])
+				if name != wantSorted[i] {
+					t.Errorf("Dhcpd.Names()[%d] = %q, want %q", i, name, wantSorted[i])
 				}
 			}
 		})
@@ -339,16 +340,42 @@ func TestNewDhcpdInterface(t *testing.T) {
 	}
 }
 
-// Simple test to ensure coverage without complex marshaling issues.
+// TestDhcpd_MarshalUnmarshal_Simple tests XML round-trip for Dhcpd.
+//
+
 func TestDhcpd_MarshalUnmarshal_Simple(t *testing.T) {
 	t.Parallel()
 
-	// Test that MarshalXML method exists and handles empty case
-	d := &Dhcpd{Items: make(map[string]DhcpdInterface)}
+	d := &Dhcpd{Items: map[string]DhcpdInterface{
+		"lan": {Enable: "1", Gateway: "192.168.1.1"},
+	}}
 
-	// The method should exist (compilation test)
-	_ = d.MarshalXML
-	_ = d.UnmarshalXML
+	data, err := xml.Marshal(d)
+	if err != nil {
+		t.Fatalf("MarshalXML failed: %v", err)
+	}
+
+	var result Dhcpd
+	if err := xml.Unmarshal(data, &result); err != nil {
+		t.Fatalf("UnmarshalXML failed: %v", err)
+	}
+
+	if len(result.Items) != 1 {
+		t.Errorf("Expected 1 item, got %d", len(result.Items))
+	}
+
+	lan, exists := result.Items["lan"]
+	if !exists {
+		t.Fatal("Expected lan interface to exist after round-trip")
+	}
+
+	if lan.Enable != "1" {
+		t.Errorf("lan.Enable = %q, want %q", lan.Enable, "1")
+	}
+
+	if lan.Gateway != "192.168.1.1" {
+		t.Errorf("lan.Gateway = %q, want %q", lan.Gateway, "192.168.1.1")
+	}
 }
 
 // Test to ensure Names method works correctly after unmarshal.

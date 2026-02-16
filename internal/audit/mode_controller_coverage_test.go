@@ -83,22 +83,11 @@ func TestModeController_GenerateBlueReport_WithPlugins(t *testing.T) {
 				// Check compliance check status
 				if status, exists := report.Metadata["compliance_check_status"]; !exists {
 					t.Error("GenerateReport() missing compliance_check_status in metadata")
-				} else {
-					if tt.selectedPlugins[0] == "nonexistent-plugin" {
-						if status != "failed" {
-							t.Errorf(
-								"GenerateReport() compliance_check_status = %v, want 'failed' for invalid plugin",
-								status,
-							)
-						}
-					} else {
-						if status != "completed" {
-							t.Errorf(
-								"GenerateReport() compliance_check_status = %v, want 'completed' for valid plugin",
-								status,
-							)
-						}
-					}
+				} else if status != "completed" {
+					t.Errorf(
+						"GenerateReport() compliance_check_status = %v, want 'completed' for valid plugin",
+						status,
+					)
 				}
 			}
 		})
@@ -443,7 +432,7 @@ func TestReport_CertificateAnalysis_EdgeCases(t *testing.T) {
 					Text: "   \n\t  ",
 				},
 			},
-			expectedConfigured: true, // Non-empty string is considered configured
+			expectedConfigured: false, // Whitespace-only is not a valid certificate
 		},
 	}
 

@@ -1645,13 +1645,13 @@ func TestRule_BackwardCompatibility_MissingFields(t *testing.T) {
 			}
 
 			// All BoolFlag fields default to false
-			if got.Log != false {
+			if got.Log {
 				t.Errorf("Log = %v, want false", got.Log)
 			}
-			if got.Disabled != false {
+			if got.Disabled {
 				t.Errorf("Disabled = %v, want false", got.Disabled)
 			}
-			if got.Quick != false {
+			if got.Quick {
 				t.Errorf("Quick = %v, want false", got.Quick)
 			}
 
@@ -1676,7 +1676,7 @@ func TestRule_BackwardCompatibility_MissingFields(t *testing.T) {
 			if got.TCPFlags2 != "" {
 				t.Errorf("TCPFlags2 = %q, want empty", got.TCPFlags2)
 			}
-			if got.TCPFlagsAny != false {
+			if got.TCPFlagsAny {
 				t.Errorf("TCPFlagsAny = %v, want false", got.TCPFlagsAny)
 			}
 			if got.ICMPType != "" {
@@ -1690,16 +1690,16 @@ func TestRule_BackwardCompatibility_MissingFields(t *testing.T) {
 			if got.StateTimeout != "" {
 				t.Errorf("StateTimeout = %q, want empty", got.StateTimeout)
 			}
-			if got.AllowOpts != false {
+			if got.AllowOpts {
 				t.Errorf("AllowOpts = %v, want false", got.AllowOpts)
 			}
-			if got.DisableReplyTo != false {
+			if got.DisableReplyTo {
 				t.Errorf("DisableReplyTo = %v, want false", got.DisableReplyTo)
 			}
-			if got.NoPfSync != false {
+			if got.NoPfSync {
 				t.Errorf("NoPfSync = %v, want false", got.NoPfSync)
 			}
-			if got.NoSync != false {
+			if got.NoSync {
 				t.Errorf("NoSync = %v, want false", got.NoSync)
 			}
 		})
@@ -1821,7 +1821,7 @@ func verifyCompleteRuleFields(t *testing.T, got Rule, prefix string) {
 	if got.Log != true {
 		t.Errorf("%s Log = %v, want true", prefix, got.Log)
 	}
-	if got.Disabled != false {
+	if got.Disabled {
 		t.Errorf("%s Disabled = %v, want false", prefix, got.Disabled)
 	}
 	if got.Tracker != "1234567890" {
@@ -2266,10 +2266,10 @@ func TestNATRule_BackwardCompatibility(t *testing.T) {
 			}
 
 			// New BoolFlag fields default to false
-			if got.StaticNatPort != false {
+			if got.StaticNatPort {
 				t.Errorf("StaticNatPort = %v, want false", got.StaticNatPort)
 			}
-			if got.NoNat != false {
+			if got.NoNat {
 				t.Errorf("NoNat = %v, want false", got.NoNat)
 			}
 
@@ -2583,10 +2583,10 @@ func TestInboundRule_BackwardCompatibility(t *testing.T) {
 			}
 
 			// New BoolFlag fields default to false
-			if got.NoRDR != false {
+			if got.NoRDR {
 				t.Errorf("NoRDR = %v, want false", got.NoRDR)
 			}
-			if got.NoSync != false {
+			if got.NoSync {
 				t.Errorf("NoSync = %v, want false", got.NoSync)
 			}
 
