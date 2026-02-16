@@ -1,3 +1,63 @@
+queue_rules:
+  - name: default
+    merge_method: squash
+    merge_conditions:
+      - check-success = Lint
+      - check-success = Build
+      - "check-success = Test (ubuntu-latest)"
+      - "check-success = Test (macos-latest)"
+      - "check-success = Test (windows-latest)"
+      - check-success = Integration Tests
+      - check-success = Coverage
+
+pull_request_rules:
+  # Tier 1: Maintainer PRs -- queue when maintainer adds 'lgtm' label
+  - name: Queue maintainer PRs with lgtm label
+    conditions:
+      - base = main
+      - "author=@maintainers"
+      - label = lgtm
+      - label != do-not-merge
+    actions:
+      queue:
+        name: default
+
+  # Tier 2: Trusted bot PRs -- auto-queue when checks pass
+  - name: Auto-approve and queue dependabot PRs
+    conditions:
+      - base = main
+      - author = dependabot[bot]
+      - label != do-not-merge
+      - -files~=\.github/workflows/release\.yml
+    actions:
+      review:
+        type: APPROVE
+        message: Automatically approved by Mergify
+      queue:
+        name: default
+
+  # Tier 3: All other PRs (external contributors, copilot) -- require maintainer approval
+  - name: Queue external PRs when approved by maintainer
+    conditions:
+      - base = main
+      - "-author=@maintainers"
+      - author != dependabot[bot]
+      - "approved-reviews-by=@maintainers"
+      - label != do-not-merge
+    actions:
+      queue:
+        name: default
+
+  - name: Keep PRs up to date with main
+    conditions:
+      - base = main
+      - -conflict
+      - -draft
+      - -author = dependabot[bot]
+      - label != do-not-merge
+    actions:
+      update: {}
+
 merge_protections:
   - name: Enforce conventional commit
     description: Make sure that we follow https://www.conventionalcommits.org/en/v1.0.0/
@@ -5,17 +65,25 @@ merge_protections:
       - base = main
     success_conditions:
       - "title ~= ^(fix|feat|docs|style|refactor|perf|test|build|ci|chore|revert)(?:\\(.+\\))?:"
+
+  - name: CI must pass
+    description: >-
+      All CI checks must pass. This protection prevents manual merges
+      that bypass the merge queue.
+    if:
+      - base = main
+    success_conditions:
+      - check-success = Lint
+      - check-success = Build
+      - "check-success = Test (ubuntu-latest)"
+      - "check-success = Test (macos-latest)"
+      - "check-success = Test (windows-latest)"
+      - check-success = Integration Tests
+      - check-success = Coverage
+
   - name: Do not merge outdated PRs
-    description: Make sure PRs are within 3 commits before merging
+    description: Make sure PRs are within 10 commits of the base branch before merging
     if:
       - base = main
     success_conditions:
-      - "#commits-behind <= 3"
-  - name: Require CI checks are successful
-    if:
-      - base = main
-    success_conditions:
-      - check-success ~= (?i)^(CI / )?build$
-      - check-success ~= (?i)^(CI / )?integration-tests$
-      - check-success ~= (?i)^(CI / )?test$
-      - check-success ~= (?i)^(CI / )?lint$
+      - "#commits-behind <= 10"
