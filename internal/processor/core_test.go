@@ -20,7 +20,7 @@ func TestCoreProcessor_Process(t *testing.T) {
 		System: model.System{
 			Hostname: "test-host",
 			Domain:   "test.local",
-			WebGUI:   model.WebGUIConfig{Protocol: "https"},
+			WebGUI:   model.WebGUIConfig{Protocol: "http"}, // Insecure protocol for security finding
 			Bogons: struct {
 				Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
 			}{Interval: "monthly"},

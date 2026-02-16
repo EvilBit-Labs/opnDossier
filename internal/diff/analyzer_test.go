@@ -546,3 +546,71 @@ func TestAnalyzer_CompareRoutes_CountChanged(t *testing.T) {
 	assert.Equal(t, ChangeModified, changes[0].Type)
 	assert.Equal(t, SectionRouting, changes[0].Section)
 }
+
+func TestIsPermissiveRule(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		rule schema.Rule
+		want bool
+	}{
+		{
+			name: "any/any pass rule via Any field",
+			rule: schema.Rule{
+				Type:        "pass",
+				Source:      schema.Source{Any: ptrStr("")},
+				Destination: schema.Destination{Any: ptrStr("")},
+			},
+			want: true,
+		},
+		{
+			name: "any/any pass rule via Network field",
+			rule: schema.Rule{
+				Type:        "pass",
+				Source:      schema.Source{Network: "any"},
+				Destination: schema.Destination{Network: "any"},
+			},
+			want: true,
+		},
+		{
+			name: "block rule is not permissive",
+			rule: schema.Rule{
+				Type:        "block",
+				Source:      schema.Source{Any: ptrStr("")},
+				Destination: schema.Destination{Any: ptrStr("")},
+			},
+			want: false,
+		},
+		{
+			name: "specific source is not permissive",
+			rule: schema.Rule{
+				Type:        "pass",
+				Source:      schema.Source{Network: "192.168.1.0/24"},
+				Destination: schema.Destination{Any: ptrStr("")},
+			},
+			want: false,
+		},
+		{
+			name: "any source via Address field",
+			rule: schema.Rule{
+				Type:        "pass",
+				Source:      schema.Source{Address: "any"},
+				Destination: schema.Destination{Network: "any"},
+			},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := isPermissiveRule(tt.rule)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func ptrStr(s string) *string {
+	return &s
+}

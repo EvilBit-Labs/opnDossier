@@ -270,9 +270,8 @@ func (e *FileExporter) checkDirectoryWritable(dir string) error {
 		return fmt.Errorf("failed to close test file: %w", closeErr)
 	}
 
-	if removeErr := os.Remove(tempPath); removeErr != nil {
-		// Log but don't fail for cleanup errors
-		_ = removeErr
+	if removeErr := os.Remove(tempPath); removeErr != nil && e.logger != nil {
+		e.logger.Warn("failed to remove write-test file", "path", tempPath, "error", removeErr)
 	}
 
 	return nil

@@ -200,13 +200,12 @@ func (sp *Plugin) hasDefaultDenyPolicy(config *model.OpnSenseDocument) bool {
 
 	for _, rule := range rules {
 		if rule.Type == "pass" {
-			// Check if source is "any"
-			if rule.Source.IsAny() || rule.Source.Network == NetworkAny {
-				// Check if destination is "any" or if protocol allows broad access
-				if rule.Destination.IsAny() || rule.Destination.Network == NetworkAny {
-					hasAnyAnyAllow = true
-					break
-				}
+			srcTarget := rule.Source.EffectiveAddress()
+			dstTarget := rule.Destination.EffectiveAddress()
+
+			if srcTarget == NetworkAny && (dstTarget == "" || dstTarget == NetworkAny) {
+				hasAnyAnyAllow = true
+				break
 			}
 		}
 	}
@@ -225,26 +224,25 @@ func (sp *Plugin) hasOverlyPermissiveRules(config *model.OpnSenseDocument) bool 
 			continue
 		}
 
+		srcTarget := rule.Source.EffectiveAddress()
+		dstTarget := rule.Destination.EffectiveAddress()
+
+		srcBroad := srcTarget == NetworkAny || slices.Contains(sp.broadNetworkRanges(), srcTarget)
+		dstBroad := dstTarget == "" || dstTarget == NetworkAny || slices.Contains(sp.broadNetworkRanges(), dstTarget)
+
 		// Check for "any/any" rules (most permissive)
-		if (rule.Source.IsAny() || rule.Source.Network == NetworkAny) &&
-			(rule.Destination.IsAny() || rule.Destination.Network == NetworkAny) {
+		if srcTarget == NetworkAny && (dstTarget == "" || dstTarget == NetworkAny) {
 			return true
 		}
 
 		// Check for broad network ranges (e.g., entire subnets without specific restrictions)
-		srcTarget := rule.Source.EffectiveAddress()
-		dstTarget := rule.Destination.EffectiveAddress()
-		if srcTarget != "" && (srcTarget == NetworkAny ||
-			slices.Contains(sp.broadNetworkRanges(), srcTarget)) {
-			// If destination is also broad, this is overly permissive
-			if dstTarget == "" || dstTarget == NetworkAny ||
-				slices.Contains(sp.broadNetworkRanges(), dstTarget) {
-				return true
-			}
+		if srcTarget != "" && srcBroad && dstBroad {
+			return true
 		}
 
-		// Check for rules without specific port restrictions (TCP/UDP or unspecified protocol)
-		if (rule.Protocol == "" || rule.Protocol == "tcp" || rule.Protocol == "udp" || rule.Protocol == "tcp/udp") &&
+		// Check for broad rules without specific port restrictions (TCP/UDP or unspecified protocol)
+		if srcBroad && dstBroad &&
+			(rule.Protocol == "" || rule.Protocol == "tcp" || rule.Protocol == "udp" || rule.Protocol == "tcp/udp") &&
 			(rule.Destination.Port == "" || rule.Destination.Port == NetworkAny) {
 			return true
 		}

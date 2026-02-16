@@ -481,8 +481,8 @@ func analyzeDeadRules(cfg *schema.OpnSenseDocument) []DeadRuleFinding {
 
 	for i, rule := range rules {
 		// Check for "block all" rules that make subsequent rules unreachable
-		srcAny := rule.Source.Network == NetworkAny || rule.Source.IsAny()
-		dstAny := rule.Destination.Network == NetworkAny || rule.Destination.IsAny()
+		srcAny := rule.Source.EffectiveAddress() == NetworkAny
+		dstAny := rule.Destination.EffectiveAddress() == NetworkAny
 		if rule.Type == RuleTypeBlock && srcAny && dstAny {
 			// If there are rules after this block-all rule, they're dead
 			if i < len(rules)-1 {
@@ -500,7 +500,7 @@ func analyzeDeadRules(cfg *schema.OpnSenseDocument) []DeadRuleFinding {
 		}
 
 		// Check for overly broad rules that might be unintentional
-		if rule.Type == RuleTypePass && (rule.Source.Network == NetworkAny || rule.Source.IsAny()) && rule.Descr == "" {
+		if rule.Type == RuleTypePass && rule.Source.EffectiveAddress() == NetworkAny && rule.Descr == "" {
 			findings = append(findings, DeadRuleFinding{
 				RuleIndex: i + 1,
 				Interface: rule.Interface.String(),
@@ -572,8 +572,8 @@ func analyzeSecurityIssues(cfg *schema.OpnSenseDocument) []SecurityFinding {
 	// Check for overly permissive rules
 	rules := cfg.FilterRules()
 	for i, rule := range rules {
-		srcAny := rule.Source.Network == NetworkAny || rule.Source.IsAny()
-		dstAny := rule.Destination.Network == NetworkAny || rule.Destination.IsAny()
+		srcAny := rule.Source.EffectiveAddress() == NetworkAny
+		dstAny := rule.Destination.EffectiveAddress() == NetworkAny
 		if rule.Type == RuleTypePass && srcAny && dstAny {
 			findings = append(findings, SecurityFinding{
 				Component: fmt.Sprintf("filter.rule[%d]", i),
@@ -730,8 +730,8 @@ func calculateSecurityScore(cfg *schema.OpnSenseDocument, stats *Statistics) int
 		// Check for overly permissive rules
 		rules := cfg.FilterRules()
 		for _, rule := range rules {
-			srcIsAny := rule.Source.Network == NetworkAny || rule.Source.IsAny()
-			dstIsAny := rule.Destination.Network == NetworkAny || rule.Destination.IsAny()
+			srcIsAny := rule.Source.EffectiveAddress() == NetworkAny
+			dstIsAny := rule.Destination.EffectiveAddress() == NetworkAny
 			if rule.Type == RuleTypePass && srcIsAny && dstIsAny {
 				score -= 10
 			}

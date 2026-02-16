@@ -10,8 +10,34 @@ import (
 
 // normalize normalizes the given OPNsense configuration by filling defaults, canonicalizing IP/CIDR, and sorting slices for determinism.
 func (p *CoreProcessor) normalize(cfg *model.OpnSenseDocument) *model.OpnSenseDocument {
-	// Create a copy to avoid modifying the original
+	// Create a shallow copy, then deep-copy slices that will be mutated
 	normalized := *cfg
+
+	// Deep-copy slices to avoid mutating the original
+	if cfg.Filter.Rule != nil {
+		normalized.Filter.Rule = make([]model.Rule, len(cfg.Filter.Rule))
+		copy(normalized.Filter.Rule, cfg.Filter.Rule)
+	}
+
+	if cfg.System.User != nil {
+		normalized.System.User = make([]model.User, len(cfg.System.User))
+		copy(normalized.System.User, cfg.System.User)
+	}
+
+	if cfg.System.Group != nil {
+		normalized.System.Group = make([]model.Group, len(cfg.System.Group))
+		copy(normalized.System.Group, cfg.System.Group)
+	}
+
+	if cfg.Sysctl != nil {
+		normalized.Sysctl = make([]model.SysctlItem, len(cfg.Sysctl))
+		copy(normalized.Sysctl, cfg.Sysctl)
+	}
+
+	if cfg.LoadBalancer.MonitorType != nil {
+		normalized.LoadBalancer.MonitorType = make([]model.MonitorType, len(cfg.LoadBalancer.MonitorType))
+		copy(normalized.LoadBalancer.MonitorType, cfg.LoadBalancer.MonitorType)
+	}
 
 	// Phase 1: Fill defaults
 	p.fillDefaults(&normalized)

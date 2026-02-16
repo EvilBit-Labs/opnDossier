@@ -69,8 +69,8 @@ func (p *CoreProcessor) analyzeDeadRules(cfg *model.OpnSenseDocument, report *Re
 func (p *CoreProcessor) analyzeInterfaceRules(iface string, rules []model.Rule, report *Report) {
 	for i, rule := range rules {
 		// Check for "block all" rules that make subsequent rules unreachable
-		srcAny := rule.Source.Network == NetworkAny || rule.Source.IsAny()
-		dstAny := rule.Destination.Network == NetworkAny || rule.Destination.IsAny()
+		srcAny := rule.Source.EffectiveAddress() == NetworkAny
+		dstAny := rule.Destination.EffectiveAddress() == NetworkAny
 		if rule.Type == "block" && srcAny && dstAny {
 			// If there are rules after this block-all rule, they're dead
 			if i < len(rules)-1 {
@@ -107,7 +107,7 @@ func (p *CoreProcessor) analyzeInterfaceRules(iface string, rules []model.Rule, 
 		}
 
 		// Check for overly broad rules that might be unintentional
-		if rule.Type == RuleTypePass && (rule.Source.Network == NetworkAny || rule.Source.IsAny()) && rule.Descr == "" {
+		if rule.Type == RuleTypePass && rule.Source.EffectiveAddress() == NetworkAny && rule.Descr == "" {
 			report.AddFinding(SeverityHigh, Finding{
 				Type:  FindingTypeSecurity,
 				Title: "Overly Broad Pass Rule",
@@ -360,8 +360,8 @@ func (p *CoreProcessor) checkUserGroupConsistency(cfg *model.OpnSenseDocument, r
 
 // analyzeSecurityIssues performs security-focused analysis.
 func (p *CoreProcessor) analyzeSecurityIssues(cfg *model.OpnSenseDocument, report *Report) {
-	// WebGUI configuration
-	if cfg.System.WebGUI.Protocol != "" {
+	// WebGUI configuration — only flag non-HTTPS protocols
+	if cfg.System.WebGUI.Protocol != "" && cfg.System.WebGUI.Protocol != constants.ProtocolHTTPS {
 		report.AddFinding(SeverityCritical, Finding{
 			Type:           FindingTypeSecurity,
 			Title:          "Insecure Web GUI Protocol",
@@ -386,7 +386,7 @@ func (p *CoreProcessor) analyzeSecurityIssues(cfg *model.OpnSenseDocument, repor
 
 	// Check for overly permissive firewall rules
 	for i, rule := range cfg.FilterRules() {
-		if rule.Type == RuleTypePass && (rule.Source.Network == NetworkAny || rule.Source.IsAny()) &&
+		if rule.Type == RuleTypePass && rule.Source.EffectiveAddress() == NetworkAny &&
 			interfaceListContains(rule.Interface, "wan") {
 			report.AddFinding(SeverityHigh, Finding{
 				Type:           FindingTypeSecurity,

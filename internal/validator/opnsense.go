@@ -29,6 +29,13 @@ func (e ValidationError) Error() string {
 // ValidateOpnSenseDocument validates an entire OPNsense configuration document and returns all detected validation errors.
 // It checks system settings, network interfaces, DHCP server, firewall rules, NAT rules, users and groups, and sysctl tunables for correctness and consistency.
 func ValidateOpnSenseDocument(o *model.OpnSenseDocument) []ValidationError {
+	if o == nil {
+		return []ValidationError{{
+			Field:   "document",
+			Message: "OPNsense document is nil",
+		}}
+	}
+
 	var errors []ValidationError
 
 	// Validate system configuration
@@ -953,9 +960,19 @@ func isValidCIDR(cidr string) bool {
 // connRatePattern matches the "connections/seconds" format (e.g., "15/5").
 var connRatePattern = regexp.MustCompile(`^\d+/\d+$`)
 
-// isValidConnRateFormat returns true if the string matches the "connections/seconds" format (e.g., "15/5").
+// isValidConnRateFormat returns true if the string matches the "connections/seconds" format (e.g., "15/5")
+// with both values being positive integers.
 func isValidConnRateFormat(rate string) bool {
-	return connRatePattern.MatchString(rate)
+	if !connRatePattern.MatchString(rate) {
+		return false
+	}
+
+	//nolint:mnd // splitting "connections/seconds" into exactly 2 parts
+	parts := strings.SplitN(rate, "/", 2)
+	connections, err1 := strconv.Atoi(parts[0])
+	seconds, err2 := strconv.Atoi(parts[1])
+
+	return err1 == nil && err2 == nil && connections > 0 && seconds > 0
 }
 
 // portRangePattern matches a numeric port or numeric port range (e.g., "80", "1024-65535").

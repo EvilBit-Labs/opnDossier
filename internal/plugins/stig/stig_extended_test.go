@@ -304,7 +304,7 @@ func TestHasOverlyPermissiveRulesProtocols(t *testing.T) {
 		expected bool
 	}{
 		{
-			"tcp/udp protocol without port",
+			"tcp/udp protocol without port but narrow src/dst (not flagged)",
 			&model.OpnSenseDocument{
 				Filter: model.Filter{
 					Rule: []model.Rule{
@@ -322,7 +322,7 @@ func TestHasOverlyPermissiveRulesProtocols(t *testing.T) {
 					},
 				},
 			},
-			true,
+			false,
 		},
 		{
 			"non-TCP/UDP protocol is not flagged for missing port",

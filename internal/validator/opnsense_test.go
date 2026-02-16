@@ -5,6 +5,7 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidateOpnSenseDocument_ValidConfig(t *testing.T) {
@@ -1822,6 +1823,44 @@ func TestValidateFilter_SourceNetworkValidation(t *testing.T) {
 			}
 			errors := validateFilter(&tt.filter, interfaces)
 			assert.Len(t, errors, tt.expectedErrors, "Expected number of errors")
+		})
+	}
+}
+
+func TestValidateOpnSenseDocument_NilDocument(t *testing.T) {
+	t.Parallel()
+
+	errors := ValidateOpnSenseDocument(nil)
+	require.Len(t, errors, 1)
+	assert.Equal(t, "document", errors[0].Field)
+	assert.Contains(t, errors[0].Message, "nil")
+}
+
+func TestIsValidConnRateFormat(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		rate string
+		want bool
+	}{
+		{"valid rate", "15/5", true},
+		{"valid high rate", "100/60", true},
+		{"zero connections", "0/5", false},
+		{"zero seconds", "15/0", false},
+		{"both zero", "0/0", false},
+		{"empty string", "", false},
+		{"no slash", "155", false},
+		{"letters", "abc/def", false},
+		{"negative", "-1/5", false},
+		{"decimal", "1.5/5", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := isValidConnRateFormat(tt.rate)
+			assert.Equal(t, tt.want, got, "isValidConnRateFormat(%q)", tt.rate)
 		})
 	}
 }
