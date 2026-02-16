@@ -480,12 +480,10 @@ func validateFilter(filter *model.Filter, interfaces *model.Interfaces) []Valida
 
 		// Validate source address (IP/CIDR or alias)
 		if rule.Source.Address != "" && !isValidCIDR(rule.Source.Address) && net.ParseIP(rule.Source.Address) == nil {
-			// Not a valid IP or CIDR — could be an alias, which is acceptable
+			// Not a valid IP or CIDR — could be an alias, which is acceptable.
 			// Only flag if it looks like a malformed IP/CIDR attempt:
-			// "/" = CIDR notation, ":" = IPv6, 3+ dots = IPv4 octet pattern
-			dotCount := strings.Count(rule.Source.Address, ".")
-			if strings.Contains(rule.Source.Address, "/") || strings.Contains(rule.Source.Address, ":") ||
-				dotCount >= 3 {
+			// "/" = CIDR notation, ":" = IPv6, or digits-and-dots only (failed IPv4)
+			if looksLikeMalformedIP(rule.Source.Address) {
 				errors = append(errors, ValidationError{
 					Field: fmt.Sprintf("filter.rule[%d].source.address", i),
 					Message: fmt.Sprintf(
@@ -513,9 +511,7 @@ func validateFilter(filter *model.Filter, interfaces *model.Interfaces) []Valida
 		// Validate destination address (IP/CIDR or alias)
 		if rule.Destination.Address != "" && !isValidCIDR(rule.Destination.Address) &&
 			net.ParseIP(rule.Destination.Address) == nil {
-			dotCount := strings.Count(rule.Destination.Address, ".")
-			if strings.Contains(rule.Destination.Address, "/") || strings.Contains(rule.Destination.Address, ":") ||
-				dotCount >= 3 {
+			if looksLikeMalformedIP(rule.Destination.Address) {
 				errors = append(errors, ValidationError{
 					Field: fmt.Sprintf("filter.rule[%d].destination.address", i),
 					Message: fmt.Sprintf(
@@ -949,6 +945,15 @@ func isValidIP(ip string) bool {
 func isValidIPv6(ip string) bool {
 	parsedIP := net.ParseIP(ip)
 	return parsedIP != nil && parsedIP.To4() == nil
+}
+
+// looksLikeMalformedIP returns true if the string appears to be a failed IP/CIDR
+// attempt rather than a legitimate alias name. Checks for CIDR slash, IPv6 colons,
+// or strings composed entirely of digits and dots (failed IPv4 parse).
+var digitsAndDotsPattern = regexp.MustCompile(`^[\d.]+$`)
+
+func looksLikeMalformedIP(s string) bool {
+	return strings.Contains(s, "/") || strings.Contains(s, ":") || digitsAndDotsPattern.MatchString(s)
 }
 
 // isValidCIDR returns true if the input string is a valid CIDR notation, otherwise false.

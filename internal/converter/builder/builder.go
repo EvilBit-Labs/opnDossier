@@ -606,6 +606,11 @@ func BuildFirewallRulesTableSet(rules []model.Rule) *markdown.TableSet {
 
 		interfaceLinks := formatters.FormatInterfacesAsLinks(rule.Interface)
 
+		srcPort := rule.Source.Port
+		if srcPort == "" {
+			srcPort = rule.SourcePort
+		}
+
 		rows = append(rows, []string{
 			strconv.Itoa(i + 1),
 			interfaceLinks,
@@ -615,7 +620,7 @@ func BuildFirewallRulesTableSet(rules []model.Rule) *markdown.TableSet {
 			source,
 			dest,
 			rule.Target,
-			rule.SourcePort,
+			formatters.EscapeTableContent(srcPort),
 			formatters.EscapeTableContent(rule.Destination.Port),
 			formatters.FormatBoolFlagInverted(rule.Disabled),
 			formatters.EscapeTableContent(rule.Descr),
