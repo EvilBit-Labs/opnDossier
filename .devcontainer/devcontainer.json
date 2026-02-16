@@ -1,6 +1,6 @@
 {
   "name": "opnDossier",
-  "image": "mcr.microsoft.com/devcontainers/go:1-1.25-bookworm",
+  "image": "mcr.microsoft.com/devcontainers/go:1.25",
   "remoteUser": "vscode",
   "postCreateCommand": "just install",
   "features": {
