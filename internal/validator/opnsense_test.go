@@ -1089,6 +1089,672 @@ func TestValidateInterface_MTUValidation(t *testing.T) {
 	}
 }
 
+// TestValidateFilter_MutualExclusivity tests that source/destination fields are mutually exclusive.
+func TestValidateFilter_MutualExclusivity(t *testing.T) {
+	interfaces := &model.Interfaces{
+		Items: map[string]model.Interface{
+			"wan": {},
+			"lan": {},
+		},
+	}
+
+	tests := []struct {
+		name           string
+		filter         model.Filter
+		expectedErrors int
+		errorField     string
+	}{
+		{
+			name: "source with only any - valid",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:      "pass",
+						Interface: model.InterfaceList{"lan"},
+						Source:    model.Source{Any: model.StringPtr("")},
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "source with only network - valid",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:      "pass",
+						Interface: model.InterfaceList{"lan"},
+						Source:    model.Source{Network: "lan"},
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "source with only address - valid",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:      "pass",
+						Interface: model.InterfaceList{"lan"},
+						Source:    model.Source{Address: "192.168.1.100"},
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "source with any and network - invalid",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:      "pass",
+						Interface: model.InterfaceList{"lan"},
+						Source:    model.Source{Any: model.StringPtr(""), Network: "lan"},
+					},
+				},
+			},
+			expectedErrors: 1,
+			errorField:     "filter.rule[0].source",
+		},
+		{
+			name: "source with any and address - invalid",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:      "pass",
+						Interface: model.InterfaceList{"lan"},
+						Source:    model.Source{Any: model.StringPtr(""), Address: "10.0.0.1"},
+					},
+				},
+			},
+			expectedErrors: 1,
+			errorField:     "filter.rule[0].source",
+		},
+		{
+			name: "source with network and address - invalid",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:      "pass",
+						Interface: model.InterfaceList{"lan"},
+						Source:    model.Source{Network: "lan", Address: "10.0.0.1"},
+					},
+				},
+			},
+			expectedErrors: 1,
+			errorField:     "filter.rule[0].source",
+		},
+		{
+			name: "destination with any and network - invalid",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:        "pass",
+						Interface:   model.InterfaceList{"lan"},
+						Destination: model.Destination{Any: model.StringPtr(""), Network: "wan"},
+					},
+				},
+			},
+			expectedErrors: 1,
+			errorField:     "filter.rule[0].destination",
+		},
+		{
+			name: "destination with any and address - invalid",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:        "pass",
+						Interface:   model.InterfaceList{"lan"},
+						Destination: model.Destination{Any: model.StringPtr(""), Address: "10.0.0.1"},
+					},
+				},
+			},
+			expectedErrors: 1,
+			errorField:     "filter.rule[0].destination",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errors := validateFilter(&tt.filter, interfaces)
+			assert.Len(t, errors, tt.expectedErrors, "Expected number of errors")
+			if tt.expectedErrors > 0 && len(errors) > 0 {
+				assert.Equal(t, tt.errorField, errors[0].Field)
+			}
+		})
+	}
+}
+
+// TestValidateFilter_FloatingRuleConstraints tests floating rule direction validation.
+func TestValidateFilter_FloatingRuleConstraints(t *testing.T) {
+	interfaces := &model.Interfaces{
+		Items: map[string]model.Interface{
+			"wan": {},
+			"lan": {},
+		},
+	}
+
+	tests := []struct {
+		name           string
+		filter         model.Filter
+		expectedErrors int
+		errorField     string
+	}{
+		{
+			name: "floating rule with direction - valid",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:      "pass",
+						Interface: model.InterfaceList{"wan", "lan"},
+						Floating:  "yes",
+						Direction: "any",
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "floating rule without direction - invalid",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:      "pass",
+						Interface: model.InterfaceList{"wan"},
+						Floating:  "yes",
+					},
+				},
+			},
+			expectedErrors: 1,
+			errorField:     "filter.rule[0].direction",
+		},
+		{
+			name: "floating rule with invalid direction",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:      "pass",
+						Interface: model.InterfaceList{"wan"},
+						Floating:  "yes",
+						Direction: "invalid",
+					},
+				},
+			},
+			expectedErrors: 1,
+			errorField:     "filter.rule[0].direction",
+		},
+		{
+			name: "non-floating rule with direction in - valid",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:      "pass",
+						Interface: model.InterfaceList{"lan"},
+						Direction: "in",
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "non-floating rule with invalid direction",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:      "pass",
+						Interface: model.InterfaceList{"lan"},
+						Direction: "sideways",
+					},
+				},
+			},
+			expectedErrors: 1,
+			errorField:     "filter.rule[0].direction",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errors := validateFilter(&tt.filter, interfaces)
+			assert.Len(t, errors, tt.expectedErrors, "Expected number of errors")
+			if tt.expectedErrors > 0 && len(errors) > 0 {
+				assert.Equal(t, tt.errorField, errors[0].Field)
+			}
+		})
+	}
+}
+
+// TestValidateFilter_StateTypeValidation tests state type validation.
+//
+//nolint:dupl // table-driven test structure intentionally similar to MaxSrcConnRateFormat
+func TestValidateFilter_StateTypeValidation(t *testing.T) {
+	interfaces := &model.Interfaces{
+		Items: map[string]model.Interface{
+			"lan": {},
+		},
+	}
+
+	tests := []struct {
+		name           string
+		filter         model.Filter
+		expectedErrors int
+	}{
+		{
+			name: "valid keep state",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{Type: "pass", Interface: model.InterfaceList{"lan"}, StateType: "keep state"},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "valid sloppy state",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{Type: "pass", Interface: model.InterfaceList{"lan"}, StateType: "sloppy state"},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "valid synproxy state",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{Type: "pass", Interface: model.InterfaceList{"lan"}, StateType: "synproxy state"},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "valid none",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{Type: "pass", Interface: model.InterfaceList{"lan"}, StateType: "none"},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "empty state type - valid",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{Type: "pass", Interface: model.InterfaceList{"lan"}, StateType: ""},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "invalid state type",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{Type: "pass", Interface: model.InterfaceList{"lan"}, StateType: "invalid"},
+				},
+			},
+			expectedErrors: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errors := validateFilter(&tt.filter, interfaces)
+			assert.Len(t, errors, tt.expectedErrors, "Expected number of errors")
+		})
+	}
+}
+
+// TestValidateFilter_MaxSrcConnRateFormat tests rate-limiting field format validation.
+//
+//nolint:dupl // table-driven test structure intentionally similar to StateTypeValidation
+func TestValidateFilter_MaxSrcConnRateFormat(t *testing.T) {
+	interfaces := &model.Interfaces{
+		Items: map[string]model.Interface{
+			"lan": {},
+		},
+	}
+
+	tests := []struct {
+		name           string
+		filter         model.Filter
+		expectedErrors int
+	}{
+		{
+			name: "valid rate format 15/5",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{Type: "pass", Interface: model.InterfaceList{"lan"}, MaxSrcConnRate: "15/5"},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "valid rate format 100/60",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{Type: "pass", Interface: model.InterfaceList{"lan"}, MaxSrcConnRate: "100/60"},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "empty rate - valid",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{Type: "pass", Interface: model.InterfaceList{"lan"}, MaxSrcConnRate: ""},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "invalid rate format - no slash",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{Type: "pass", Interface: model.InterfaceList{"lan"}, MaxSrcConnRate: "15"},
+				},
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "invalid rate format - non-numeric",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{Type: "pass", Interface: model.InterfaceList{"lan"}, MaxSrcConnRate: "abc/def"},
+				},
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "invalid rate format - extra slash",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{Type: "pass", Interface: model.InterfaceList{"lan"}, MaxSrcConnRate: "15/5/3"},
+				},
+			},
+			expectedErrors: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errors := validateFilter(&tt.filter, interfaces)
+			assert.Len(t, errors, tt.expectedErrors, "Expected number of errors")
+		})
+	}
+}
+
+// TestValidateNat_InboundReflection tests NAT reflection mode validation.
+func TestValidateNat_InboundReflection(t *testing.T) {
+	tests := []struct {
+		name           string
+		nat            model.Nat
+		expectedErrors int
+	}{
+		{
+			name: "valid reflection enable",
+			nat: model.Nat{
+				Inbound: []model.InboundRule{
+					{NATReflection: "enable"},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "valid reflection disable",
+			nat: model.Nat{
+				Inbound: []model.InboundRule{
+					{NATReflection: "disable"},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "valid reflection purenat",
+			nat: model.Nat{
+				Inbound: []model.InboundRule{
+					{NATReflection: "purenat"},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "empty reflection - valid",
+			nat: model.Nat{
+				Inbound: []model.InboundRule{
+					{NATReflection: ""},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "invalid reflection mode",
+			nat: model.Nat{
+				Inbound: []model.InboundRule{
+					{NATReflection: "invalid"},
+				},
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "multiple inbound rules mixed validity",
+			nat: model.Nat{
+				Inbound: []model.InboundRule{
+					{NATReflection: "enable"},
+					{NATReflection: "badmode"},
+					{NATReflection: "purenat"},
+				},
+			},
+			expectedErrors: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errors := validateNat(&tt.nat)
+			assert.Len(t, errors, tt.expectedErrors, "Expected number of errors")
+		})
+	}
+}
+
+// TestIsValidPortOrRange tests the port validation helper directly.
+func TestIsValidPortOrRange(t *testing.T) {
+	tests := []struct {
+		name  string
+		port  string
+		valid bool
+	}{
+		{name: "empty value", port: "", valid: true},
+		{name: "single valid port 80", port: "80", valid: true},
+		{name: "single valid port 443", port: "443", valid: true},
+		{name: "single valid port 1", port: "1", valid: true},
+		{name: "single valid port 65535", port: "65535", valid: true},
+		{name: "valid range 1024-65535", port: "1024-65535", valid: true},
+		{name: "valid range 80-443", port: "80-443", valid: true},
+		{name: "valid range same value", port: "443-443", valid: true},
+		{name: "alias name http", port: "http", valid: true},
+		{name: "alias name MyAlias", port: "MyAlias", valid: true},
+		{name: "alias name with underscore", port: "web_servers", valid: true},
+		{name: "invalid port zero", port: "0", valid: false},
+		{name: "invalid port 65536", port: "65536", valid: false},
+		{name: "invalid port 99999", port: "99999", valid: false},
+		{name: "inverted range 443-80", port: "443-80", valid: false},
+		{name: "inverted range 65535-1", port: "65535-1", valid: false},
+		{name: "malformed 80-abc", port: "80-abc", valid: false},
+		{name: "range with zero low", port: "0-80", valid: false},
+		{name: "range with zero high", port: "80-0", valid: false},
+		{name: "range exceeds max", port: "1-65536", valid: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isValidPortOrRange(tt.port)
+			assert.Equal(t, tt.valid, result, "port: %q", tt.port)
+		})
+	}
+}
+
+// TestValidateFilter_PortValidation tests port validation for source and destination in filter rules.
+func TestValidateFilter_PortValidation(t *testing.T) {
+	interfaces := &model.Interfaces{
+		Items: map[string]model.Interface{
+			"lan": {},
+		},
+	}
+
+	tests := []struct {
+		name           string
+		filter         model.Filter
+		expectedErrors int
+		errorField     string
+	}{
+		{
+			name: "valid source port 443",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:      "pass",
+						Interface: model.InterfaceList{"lan"},
+						Source:    model.Source{Any: model.StringPtr(""), Port: "443"},
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "valid destination port 80",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:        "pass",
+						Interface:   model.InterfaceList{"lan"},
+						Destination: model.Destination{Any: model.StringPtr(""), Port: "80"},
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "valid source port range",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:      "pass",
+						Interface: model.InterfaceList{"lan"},
+						Source:    model.Source{Any: model.StringPtr(""), Port: "1024-65535"},
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "valid destination port alias",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:        "pass",
+						Interface:   model.InterfaceList{"lan"},
+						Destination: model.Destination{Any: model.StringPtr(""), Port: "http"},
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "empty ports - valid",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:        "pass",
+						Interface:   model.InterfaceList{"lan"},
+						Source:      model.Source{Any: model.StringPtr("")},
+						Destination: model.Destination{Any: model.StringPtr("")},
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "invalid source port zero",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:      "pass",
+						Interface: model.InterfaceList{"lan"},
+						Source:    model.Source{Any: model.StringPtr(""), Port: "0"},
+					},
+				},
+			},
+			expectedErrors: 1,
+			errorField:     "filter.rule[0].source.port",
+		},
+		{
+			name: "invalid destination port 65536",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:        "pass",
+						Interface:   model.InterfaceList{"lan"},
+						Destination: model.Destination{Any: model.StringPtr(""), Port: "65536"},
+					},
+				},
+			},
+			expectedErrors: 1,
+			errorField:     "filter.rule[0].destination.port",
+		},
+		{
+			name: "invalid source inverted range",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:      "pass",
+						Interface: model.InterfaceList{"lan"},
+						Source:    model.Source{Any: model.StringPtr(""), Port: "443-80"},
+					},
+				},
+			},
+			expectedErrors: 1,
+			errorField:     "filter.rule[0].source.port",
+		},
+		{
+			name: "invalid destination malformed 80-abc",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:        "pass",
+						Interface:   model.InterfaceList{"lan"},
+						Destination: model.Destination{Any: model.StringPtr(""), Port: "80-abc"},
+					},
+				},
+			},
+			expectedErrors: 1,
+			errorField:     "filter.rule[0].destination.port",
+		},
+		{
+			name: "both source and destination invalid ports",
+			filter: model.Filter{
+				Rule: []model.Rule{
+					{
+						Type:        "pass",
+						Interface:   model.InterfaceList{"lan"},
+						Source:      model.Source{Any: model.StringPtr(""), Port: "0"},
+						Destination: model.Destination{Any: model.StringPtr(""), Port: "65536"},
+					},
+				},
+			},
+			expectedErrors: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errors := validateFilter(&tt.filter, interfaces)
+			assert.Len(t, errors, tt.expectedErrors, "Expected number of errors")
+			if tt.expectedErrors == 1 && len(errors) > 0 && tt.errorField != "" {
+				assert.Equal(t, tt.errorField, errors[0].Field)
+			}
+		})
+	}
+}
+
 // TestValidateFilter_SourceNetworkValidation tests source network validation with CIDR.
 func TestValidateFilter_SourceNetworkValidation(t *testing.T) {
 	tests := []struct {

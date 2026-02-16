@@ -518,13 +518,103 @@ func validateFilter(filter *model.Filter, interfaces *model.Interfaces) []Valida
 				})
 			}
 		}
+
+		// Validate source port
+		if rule.Source.Port != "" && !isValidPortOrRange(rule.Source.Port) {
+			errors = append(errors, ValidationError{
+				Field: fmt.Sprintf("filter.rule[%d].source.port", i),
+				Message: fmt.Sprintf(
+					"source port '%s' is not a valid port (1-65535) or range (low-high)",
+					rule.Source.Port,
+				),
+			})
+		}
+
+		// Validate destination port
+		if rule.Destination.Port != "" && !isValidPortOrRange(rule.Destination.Port) {
+			errors = append(errors, ValidationError{
+				Field: fmt.Sprintf("filter.rule[%d].destination.port", i),
+				Message: fmt.Sprintf(
+					"destination port '%s' is not a valid port (1-65535) or range (low-high)",
+					rule.Destination.Port,
+				),
+			})
+		}
+
+		// Validate Source mutual exclusivity (Any, Network, Address)
+		sourceFieldCount := 0
+		if rule.Source.IsAny() {
+			sourceFieldCount++
+		}
+		if rule.Source.Network != "" {
+			sourceFieldCount++
+		}
+		if rule.Source.Address != "" {
+			sourceFieldCount++
+		}
+		if sourceFieldCount > 1 {
+			errors = append(errors, ValidationError{
+				Field:   fmt.Sprintf("filter.rule[%d].source", i),
+				Message: "source can only specify one of: any, network, or address",
+			})
+		}
+
+		// Validate Destination mutual exclusivity (Any, Network, Address)
+		destFieldCount := 0
+		if rule.Destination.IsAny() {
+			destFieldCount++
+		}
+		if rule.Destination.Network != "" {
+			destFieldCount++
+		}
+		if rule.Destination.Address != "" {
+			destFieldCount++
+		}
+		if destFieldCount > 1 {
+			errors = append(errors, ValidationError{
+				Field:   fmt.Sprintf("filter.rule[%d].destination", i),
+				Message: "destination can only specify one of: any, network, or address",
+			})
+		}
+
+		// Validate floating rule constraints
+		if rule.Floating == "yes" && rule.Direction == "" {
+			errors = append(errors, ValidationError{
+				Field:   fmt.Sprintf("filter.rule[%d].direction", i),
+				Message: "direction is required for floating rules",
+			})
+		}
+		validDirections := []string{"in", "out", "any"}
+		if rule.Direction != "" && !contains(validDirections, rule.Direction) {
+			errors = append(errors, ValidationError{
+				Field:   fmt.Sprintf("filter.rule[%d].direction", i),
+				Message: fmt.Sprintf("direction '%s' must be one of: %v", rule.Direction, validDirections),
+			})
+		}
+
+		// Validate state type
+		validStateTypes := []string{"keep state", "sloppy state", "synproxy state", "none"}
+		if rule.StateType != "" && !contains(validStateTypes, rule.StateType) {
+			errors = append(errors, ValidationError{
+				Field:   fmt.Sprintf("filter.rule[%d].statetype", i),
+				Message: fmt.Sprintf("state type '%s' must be one of: %v", rule.StateType, validStateTypes),
+			})
+		}
+
+		// Validate max-src-conn-rate format (e.g., "15/5")
+		if rule.MaxSrcConnRate != "" && !isValidConnRateFormat(rule.MaxSrcConnRate) {
+			errors = append(errors, ValidationError{
+				Field:   fmt.Sprintf("filter.rule[%d].max-src-conn-rate", i),
+				Message: "max-src-conn-rate must be in format 'connections/seconds' (e.g., '15/5')",
+			})
+		}
 	}
 
 	return errors
 }
 
-// validateNat checks that the NAT outbound mode is set to one of the allowed values: "automatic", "hybrid", "advanced", or "disabled".
-// It returns a slice of ValidationError for any invalid mode detected.
+// validateNat checks NAT configuration including outbound mode and inbound rule fields.
+// It returns a slice of ValidationError for any invalid values detected.
 func validateNat(nat *model.Nat) []ValidationError {
 	var errors []ValidationError
 
@@ -535,6 +625,21 @@ func validateNat(nat *model.Nat) []ValidationError {
 			Field:   "nat.outbound.mode",
 			Message: fmt.Sprintf("NAT outbound mode '%s' must be one of: %v", nat.Outbound.Mode, validModes),
 		})
+	}
+
+	// Validate inbound NAT rules
+	validReflectionModes := []string{"enable", "disable", "purenat"}
+	for i, rule := range nat.Inbound {
+		if rule.NATReflection != "" && !contains(validReflectionModes, rule.NATReflection) {
+			errors = append(errors, ValidationError{
+				Field: fmt.Sprintf("nat.inbound[%d].natreflection", i),
+				Message: fmt.Sprintf(
+					"NAT reflection mode '%s' must be one of: %v",
+					rule.NATReflection,
+					validReflectionModes,
+				),
+			})
+		}
 	}
 
 	return errors
@@ -846,6 +951,71 @@ func isValidIPv6(ip string) bool {
 func isValidCIDR(cidr string) bool {
 	_, _, err := net.ParseCIDR(cidr)
 	return err == nil
+}
+
+// isValidConnRateFormat returns true if the string matches the "connections/seconds" format (e.g., "15/5").
+func isValidConnRateFormat(rate string) bool {
+	matched, err := regexp.MatchString(`^\d+/\d+$`, rate)
+	if err != nil {
+		return false
+	}
+	return matched
+}
+
+// portRangePattern matches a numeric port or numeric port range (e.g., "80", "1024-65535").
+var portRangePattern = regexp.MustCompile(`^\d+(-\d+)?$`)
+
+// numericPrefixPattern detects values that start with digits followed by a hyphen,
+// indicating a malformed range attempt (e.g., "80-abc").
+var numericPrefixPattern = regexp.MustCompile(`^\d+-`)
+
+// maxPort is the maximum valid TCP/UDP port number.
+const maxPort = 65535
+
+// portRangeParts is the maximum number of parts when splitting a port range on hyphen.
+const portRangeParts = 2
+
+// isValidPortOrRange validates a port specification.
+// It permits empty values and alias-like strings (e.g., "http", "MyAlias").
+// When the value matches a numeric or numeric range pattern, it ensures ports
+// are 1–65535 and that range low <= high. Malformed values like "80-abc" are rejected.
+func isValidPortOrRange(port string) bool {
+	if port == "" {
+		return true
+	}
+
+	if portRangePattern.MatchString(port) {
+		return validateNumericPort(port)
+	}
+
+	// Detect malformed range attempts (starts with digits + hyphen but non-numeric tail)
+	if numericPrefixPattern.MatchString(port) {
+		return false
+	}
+
+	// Not numeric — treat as alias name (valid)
+	return true
+}
+
+// validateNumericPort validates a purely numeric port or port range string.
+func validateNumericPort(port string) bool {
+	parts := strings.SplitN(port, "-", portRangeParts)
+
+	low, err := strconv.Atoi(parts[0])
+	if err != nil || low < 1 || low > maxPort {
+		return false
+	}
+
+	if len(parts) == 1 {
+		return true
+	}
+
+	high, err := strconv.Atoi(parts[1])
+	if err != nil || high < 1 || high > maxPort {
+		return false
+	}
+
+	return low <= high
 }
 
 // isValidSysctlName returns true if the provided string is a valid sysctl tunable name, requiring it to start with a letter, contain only letters, digits, underscores, or dots, and include at least one dot.

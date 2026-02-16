@@ -669,7 +669,7 @@ func BuildOutboundNATTableSet(rules []model.NATRule) *markdown.TableSet {
 
 			protocol := rule.Protocol
 			if protocol == "" {
-				protocol = "any"
+				protocol = destinationAny
 			}
 
 			target := rule.Target
@@ -736,7 +736,7 @@ func BuildInboundNATTableSet(rules []model.InboundRule) *markdown.TableSet {
 		for i, rule := range rules {
 			protocol := rule.Protocol
 			if protocol == "" {
-				protocol = "any"
+				protocol = destinationAny
 			}
 
 			targetIP := rule.InternalIP

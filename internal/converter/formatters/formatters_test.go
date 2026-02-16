@@ -369,3 +369,52 @@ func TestFormatUnixTimestamp(t *testing.T) {
 		})
 	}
 }
+
+func TestFormatBoolStatus(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		value bool
+		want  string
+	}{
+		{"true returns enabled", true, "Enabled"},
+		{"false returns disabled", false, "Disabled"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := FormatBoolStatus(tt.value)
+			if got != tt.want {
+				t.Errorf("FormatBoolStatus(%v) = %q, want %q", tt.value, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFormatWithSuffix(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		value  string
+		suffix string
+		want   string
+	}{
+		{"empty value returns N/A", "", "MB", "N/A"},
+		{"non-empty value gets suffix", "100", "MB", "100MB"},
+		{"empty suffix is allowed", "test", "", "test"},
+		{"both empty returns N/A", "", "", "N/A"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := FormatWithSuffix(tt.value, tt.suffix)
+			if got != tt.want {
+				t.Errorf("FormatWithSuffix(%q, %q) = %q, want %q", tt.value, tt.suffix, got, tt.want)
+			}
+		})
+	}
+}

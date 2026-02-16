@@ -16,6 +16,9 @@ import (
 const (
 	// DefaultFilePermissions defines the default file permissions for exported files.
 	DefaultFilePermissions = 0o600
+
+	// windowsOS is the GOOS value for Windows.
+	windowsOS = "windows"
 )
 
 // normalizeLineEndings converts line endings to the platform-appropriate format
@@ -53,7 +56,7 @@ func normalizeLineEndings(logger *log.Logger, content string) string {
 	content = strings.ReplaceAll(content, "\r", "\n")
 
 	// When platform normalization is enabled and on Windows, convert to CRLF
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == windowsOS {
 		content = strings.ReplaceAll(content, "\n", "\r\n")
 	}
 
