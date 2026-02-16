@@ -5,21 +5,25 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    rebase-strategy: "disabled"
 
   # Maintain dependencies for GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    rebase-strategy: "disabled"
 
   # Maintain dependencies for Docker
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
+    rebase-strategy: "disabled"
 
   # Maintain dependencies for Dev Containers
   - package-ecosystem: "devcontainers"
     directory: "/"
     schedule:
       interval: "weekly"
+    rebase-strategy: "disabled"

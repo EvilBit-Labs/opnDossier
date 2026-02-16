@@ -10,10 +10,10 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/display"
-	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -157,17 +157,17 @@ Examples:
 
 		// Parse the XML - display command only ensures XML can be unmarshalled
 		// Full validation should be done with the 'validate' command
-		p := parser.NewXMLParser()
+		p := cfgparser.NewXMLParser()
 		opnsense, err := p.Parse(ctx, file)
 		if err != nil {
 			ctxLogger.Error("Failed to parse XML", "error", err)
 			// Enhanced error handling for different error types
-			if parser.IsParseError(err) {
-				if parseErr := parser.GetParseError(err); parseErr != nil {
+			if cfgparser.IsParseError(err) {
+				if parseErr := cfgparser.GetParseError(err); parseErr != nil {
 					ctxLogger.Error("XML syntax error detected", "line", parseErr.Line, "message", parseErr.Message)
 				}
 			}
-			if parser.IsValidationError(err) {
+			if cfgparser.IsValidationError(err) {
 				ctxLogger.Error("Configuration validation failed")
 			}
 			return fmt.Errorf("failed to parse XML from %s: %w", filePath, err)

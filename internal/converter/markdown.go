@@ -290,16 +290,13 @@ func (c *MarkdownConverter) buildSecuritySection(md *markdown.Markdown, opnsense
 
 		rows := make([][]string, 0, len(rules))
 		for _, rule := range rules {
-			source := rule.Source.Network
+			source := rule.Source.EffectiveAddress()
 			if source == "" {
 				source = destinationAny
 			}
 
-			// Check destination - can be either Network or Any
-			dest := rule.Destination.Network
+			dest := rule.Destination.EffectiveAddress()
 			if dest == "" {
-				// If no network is specified, check if it's any destination
-				// Since Any is a struct{}, we'll assume it's "any" if Network is empty
 				dest = destinationAny
 			}
 

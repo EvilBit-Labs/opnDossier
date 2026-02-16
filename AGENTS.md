@@ -55,10 +55,10 @@ When rules conflict, follow the higher precedence rule.
 | Data Formats        | `encoding/xml`, `encoding/json`, `gopkg.in/yaml.v3`    |
 | Testing             | Go's built-in `testing` package                        |
 
-**Go Version:** 1.21.6+ (minimum), 1.24.5+ (recommended)
+**Go Version:** 1.24.2+ (minimum), 1.26.0+ (recommended)
 
 > [!NOTE]
-> `viper` manages opnDossier's own configuration (CLI settings, display preferences), not OPNsense config.xml parsing. XML parsing is handled by `internal/parser/`.
+> `viper` manages opnDossier's own configuration (CLI settings, display preferences), not OPNsense config.xml parsing. XML parsing is handled by `internal/cfgparser/`.
 
 ---
 
@@ -82,11 +82,12 @@ opndossier/
 │   ├── converter/                    # Data conversion utilities
 │   ├── display/                      # Terminal display formatting
 │   ├── export/                       # File export functionality
-│   ├── log/                          # Logging utilities
+│   ├── logging/                      # Logging utilities
 │   ├── markdown/                     # Markdown generation
 │   ├── model/                        # Data models and structures
-│   ├── parser/                       # XML parsing and validation
-│   ├── plugin/                       # Plugin interfaces
+│   ├── cfgparser/                    # XML parsing and validation
+│   ├── compliance/                   # Plugin interfaces
+│   ├── configstats/                  # Configuration statistics
 │   ├── plugins/                      # Compliance plugins
 │   │   ├── firewall/                 # Firewall compliance
 │   │   ├── sans/                     # SANS compliance
@@ -187,7 +188,7 @@ import (
 "github.com/spf13/cobra"
 
 // Internal
-"github.com/project/internal/parser"
+"github.com/project/internal/cfgparser"
 )
 ```
 
@@ -205,6 +206,18 @@ func (r *Report) TotalFindings() int {
     r.mu.RLock()
     defer r.mu.RUnlock()
     return r.totalFindingsUnsafe()  // Internal helper, no lock
+}
+```
+
+### 5.6a Struct Shallow Copy with Slices
+
+`normalized := *cfg` copies the struct but slices share backing arrays. Deep-copy any slice you intend to mutate:
+
+```go
+normalized := *cfg
+if cfg.Filter.Rule != nil {
+    normalized.Filter.Rule = make([]model.Rule, len(cfg.Filter.Rule))
+    copy(normalized.Filter.Rule, cfg.Filter.Rule)
 }
 ```
 
@@ -526,6 +539,18 @@ Go's `encoding/xml` produces `""` for both self-closing tags (`<any/>`) and abse
 
 Add `IsAny()` / `Equal()` methods rather than comparing `*string` fields directly. See `internal/schema/security.go` for the canonical pattern.
 
+**Address resolution — use `EffectiveAddress()`:**
+
+`Source.EffectiveAddress()` / `Destination.EffectiveAddress()` resolves the effective address with priority: `Network` > `Address` > `Any` > `""`. Use this instead of manual `IsAny() || Network == NetworkAny` checks:
+
+```go
+// Good — single canonical method
+srcAny := rule.Source.EffectiveAddress() == NetworkAny
+
+// Bad — manual multi-field check (replaced in PR #258)
+srcAny := rule.Source.Network == NetworkAny || rule.Source.IsAny()
+```
+
 **Type selection for boolean-like XML elements:**
 
 - **Presence-based** (`isset()` in PHP): `<disabled/>`, `<log/>`, `<not/>` → use `BoolFlag`
@@ -585,6 +610,12 @@ func (s *Spinner) stop() {
 - OPNsense XML uses two boolean patterns: **presence-based** (`<disabled/>` → `BoolFlag`) and **value-based** (`<enable>1</enable>` → `string`). See §5.21 and `docs/development/xml-structure-research.md`
 - `RuleLocation` in `common.go` has complete source/destination fields but is NOT used by `Source`/`Destination` in `security.go` — tracked in issue #255
 - Known schema gaps: ~40+ type mismatches and missing fields — see `docs/development/xml-structure-research.md` §4-5
+
+**Port field disambiguation:**
+
+- `Source.Port` → `<source><port>...</port></source>` (nested, preferred)
+- `Rule.SourcePort` → `<sourceport>...</sourceport>` (top-level, legacy)
+- Prefer `Source.Port` with fallback to `Rule.SourcePort` for backward compatibility
 
 ### 6.2 Multi-Format Export
 
@@ -774,19 +805,19 @@ This pattern ensures test isolation when multiple tests modify the same global s
 
 ### 8.1 Core Components
 
-| File                               | Purpose                                                    |
-| ---------------------------------- | ---------------------------------------------------------- |
-| `internal/plugin/interfaces.go`    | `CompliancePlugin` interface, `Control`, `Finding` structs |
-| `internal/audit/plugin.go`         | `PluginRegistry`, dynamic plugin loader                    |
-| `internal/audit/plugin_manager.go` | `PluginManager` for lifecycle operations                   |
-| `internal/plugins/`                | Built-in plugin implementations                            |
+| File                                | Purpose                                          |
+| ----------------------------------- | ------------------------------------------------ |
+| `internal/compliance/interfaces.go` | `Plugin` interface, `Control`, `Finding` structs |
+| `internal/audit/plugin.go`          | `PluginRegistry`, dynamic plugin loader          |
+| `internal/audit/plugin_manager.go`  | `PluginManager` for lifecycle operations         |
+| `internal/plugins/`                 | Built-in plugin implementations                  |
 
 ### 8.2 Plugin Interface
 
-All plugins must implement `CompliancePlugin`:
+All plugins must implement `compliance.Plugin`:
 
 ```go
-type CompliancePlugin interface {
+type Plugin interface {
 Name() string
 Version() string
 Description() string
@@ -815,7 +846,7 @@ func (p *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
 
 - Use consistent control naming: `PLUGIN-001`, `PLUGIN-002`
 - Severity levels: `critical`, `high`, `medium`, `low`
-- Dynamic plugins: export `var Plugin plugin.CompliancePlugin`
+- Dynamic plugins: export `var Plugin compliance.Plugin`
 
 ### 8.4 Compliance Standards
 
@@ -1047,3 +1078,37 @@ just ci-check                  # Comprehensive checks
 # Validate configuration
 ./opndossier validate config.xml
 ```
+
+## 16. Open-Source Quality Standards (OSSF Best Practices)
+
+This project has the OSSF Best Practices passing badge. Maintain these standards:
+
+### 16.1 Every PR Must
+
+- Sign off commits with `git commit -s` (DCO enforced by GitHub App)
+- Pass CI (golangci-lint, gofumpt, tests, CodeQL, Grype) before merge
+- Include tests for new functionality -- this is policy, not optional
+- Be reviewed (human or CodeRabbit) for correctness, safety, and style
+- Not introduce `panic()` in library code, unchecked errors, or unvalidated input
+
+### 16.2 Every Release Must
+
+- Have human-readable release notes via git-cliff (not raw git log)
+- Use unique SemVer identifiers (`vX.Y.Z` tags)
+- Be built reproducibly (pinned toolchain, committed `go.sum`, GoReleaser)
+
+### 16.3 Security
+
+- Vulnerabilities go through private reporting (GitHub advisories or <support@evilbitlabs.io>), never public issues
+- Grype and Snyk run in CI -- fix findings promptly
+- Medium+ severity vulnerabilities: we aim to release a fix within 90 days of confirmation (see SECURITY.md for canonical policy)
+- `docs/security/vulnerability-scanning.md` documents scanning thresholds and remediation process
+- `docs/security/security-assurance.md` must be updated when new attack surface is introduced
+
+### 16.4 Documentation
+
+- Exported APIs require godoc comments with examples where appropriate
+- CONTRIBUTING.md documents code review criteria, test policy, DCO, and governance
+- SECURITY.md documents vulnerability reporting with scope, safe harbor, and PGP key
+- AGENTS.md must accurately reflect implemented features (not aspirational)
+- `docs/security/security-assurance.md` documents threat model, design principles, and CWE countermeasures

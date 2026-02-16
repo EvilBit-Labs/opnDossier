@@ -10,10 +10,10 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/diff"
 	"github.com/EvilBit-Labs/opnDossier/internal/diff/formatters"
-	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 	"github.com/spf13/cobra"
 )
 
@@ -281,7 +281,7 @@ func parseConfigFile(ctx context.Context, path string) (*diff.OpnSenseDocument, 
 	}
 	defer file.Close()
 
-	p := parser.NewXMLParser()
+	p := cfgparser.NewXMLParser()
 	doc, err := p.Parse(ctx, file)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse XML: %w", err)

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -215,7 +215,7 @@ func TestInitializeDefaultLogger_NoPanicOnInvalidConfig(t *testing.T) {
 		initializeDefaultLogger()
 	})
 
-	defaultLoggerConfig = log.Config{
+	defaultLoggerConfig = logging.Config{
 		Level:  "invalid",
 		Format: "text",
 		Output: os.Stderr,
@@ -233,7 +233,7 @@ func TestInitializeDefaultLoggerFallbackWritesToStderr(t *testing.T) {
 		initializeDefaultLogger()
 	})
 
-	defaultLoggerConfig = log.Config{
+	defaultLoggerConfig = logging.Config{
 		Level:  "invalid",
 		Format: "text",
 		Output: os.Stderr,
@@ -254,7 +254,7 @@ func TestRootCmdPersistentPreRunERecoversFromFallback(t *testing.T) {
 		initializeDefaultLogger()
 	})
 
-	defaultLoggerConfig = log.Config{
+	defaultLoggerConfig = logging.Config{
 		Level:  "invalid",
 		Format: "text",
 		Output: os.Stderr,

@@ -65,6 +65,9 @@ out/
 ## Claude Code
 .claude/settings.local.json
 
+## Stray plugin artifacts
+undefined/
+
 ## Vim
 *.swp
 *.swo

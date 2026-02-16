@@ -10,8 +10,34 @@ import (
 
 // normalize normalizes the given OPNsense configuration by filling defaults, canonicalizing IP/CIDR, and sorting slices for determinism.
 func (p *CoreProcessor) normalize(cfg *model.OpnSenseDocument) *model.OpnSenseDocument {
-	// Create a copy to avoid modifying the original
+	// Create a shallow copy, then deep-copy slices that will be mutated
 	normalized := *cfg
+
+	// Deep-copy slices to avoid mutating the original
+	if cfg.Filter.Rule != nil {
+		normalized.Filter.Rule = make([]model.Rule, len(cfg.Filter.Rule))
+		copy(normalized.Filter.Rule, cfg.Filter.Rule)
+	}
+
+	if cfg.System.User != nil {
+		normalized.System.User = make([]model.User, len(cfg.System.User))
+		copy(normalized.System.User, cfg.System.User)
+	}
+
+	if cfg.System.Group != nil {
+		normalized.System.Group = make([]model.Group, len(cfg.System.Group))
+		copy(normalized.System.Group, cfg.System.Group)
+	}
+
+	if cfg.Sysctl != nil {
+		normalized.Sysctl = make([]model.SysctlItem, len(cfg.Sysctl))
+		copy(normalized.Sysctl, cfg.Sysctl)
+	}
+
+	if cfg.LoadBalancer.MonitorType != nil {
+		normalized.LoadBalancer.MonitorType = make([]model.MonitorType, len(cfg.LoadBalancer.MonitorType))
+		copy(normalized.LoadBalancer.MonitorType, cfg.LoadBalancer.MonitorType)
+	}
 
 	// Phase 1: Fill defaults
 	p.fillDefaults(&normalized)
@@ -76,22 +102,13 @@ func (p *CoreProcessor) canonicalizeAddresses(cfg *model.OpnSenseDocument) {
 	//     }
 	// }
 
-	// Canonicalize firewall rule source networks
+	// Canonicalize firewall rule source/destination networks and addresses
 	for i := range cfg.Filter.Rule {
 		rule := &cfg.Filter.Rule[i]
-		if rule.Source.Network != "" && !isSpecialNetworkType(rule.Source.Network) {
-			if _, cidr, err := net.ParseCIDR(rule.Source.Network); err == nil {
-				// Store the canonical CIDR notation
-				rule.Source.Network = cidr.String()
-			} else if ip := net.ParseIP(rule.Source.Network); ip != nil {
-				// Convert single IP to CIDR notation
-				if ip.To4() != nil {
-					rule.Source.Network = ip.String() + "/32"
-				} else {
-					rule.Source.Network = ip.String() + "/128"
-				}
-			}
-		}
+		canonicalizeIPField(&rule.Source.Network)
+		canonicalizeIPField(&rule.Source.Address)
+		canonicalizeIPField(&rule.Destination.Network)
+		canonicalizeIPField(&rule.Destination.Address)
 	}
 }
 
@@ -130,6 +147,23 @@ func (p *CoreProcessor) sortSlices(cfg *model.OpnSenseDocument) {
 	sort.Slice(cfg.LoadBalancer.MonitorType, func(i, j int) bool {
 		return cfg.LoadBalancer.MonitorType[i].Name < cfg.LoadBalancer.MonitorType[j].Name
 	})
+}
+
+// canonicalizeIPField normalizes an IP/CIDR field in-place, converting bare IPs
+// to CIDR notation and canonical form. Non-IP values (aliases, interface names) are left unchanged.
+func canonicalizeIPField(field *string) {
+	if *field == "" || isSpecialNetworkType(*field) {
+		return
+	}
+	if _, cidr, err := net.ParseCIDR(*field); err == nil {
+		*field = cidr.String()
+	} else if ip := net.ParseIP(*field); ip != nil {
+		if ip.To4() != nil {
+			*field = ip.String() + "/32"
+		} else {
+			*field = ip.String() + "/128"
+		}
+	}
 }
 
 // isSpecialNetworkType checks if the network is a special type (any, lan, wan, etc.)

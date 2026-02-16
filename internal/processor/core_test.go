@@ -20,7 +20,7 @@ func TestCoreProcessor_Process(t *testing.T) {
 		System: model.System{
 			Hostname: "test-host",
 			Domain:   "test.local",
-			WebGUI:   model.WebGUIConfig{Protocol: "https"},
+			WebGUI:   model.WebGUIConfig{Protocol: "http"}, // Insecure protocol for security finding
 			Bogons: struct {
 				Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
 			}{Interval: "monthly"},
@@ -330,10 +330,11 @@ func TestCoreProcessor_Analysis(t *testing.T) {
 			Filter: model.Filter{
 				Rule: []model.Rule{
 					{
-						Type:      "block",
-						Interface: model.InterfaceList{"wan"},
-						Source:    model.Source{Network: "any"},
-						Descr:     "Block all traffic",
+						Type:        "block",
+						Interface:   model.InterfaceList{"wan"},
+						Source:      model.Source{Network: "any"},
+						Destination: model.Destination{Any: model.StringPtr("")},
+						Descr:       "Block all traffic",
 					},
 					{
 						Type:      "pass",

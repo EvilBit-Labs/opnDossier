@@ -36,35 +36,16 @@ jobs:
       metadata: ${{ steps.goreleaser.outputs.metadata }}
     steps:
       - name: Checkout
-        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0 # needed for git-cliff changelog generation
 
-      - name: Setup Go
-        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+      - name: Setup mise toolchain
+        uses: jdx/mise-action@6d1e696aa24c1aa1bcc1adea0212707c71ab78a8 # v3
         with:
-          go-version-file: go.mod
+          install: true
           cache: true
-
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
-
-      - name: Install release tools
-        run: |
-          # git-cliff for changelog generation
-          curl -sSfL https://github.com/orhun/git-cliff/releases/download/v2.7.0/git-cliff-2.7.0-x86_64-unknown-linux-gnu.tar.gz | tar xz
-          sudo mv git-cliff-2.7.0/git-cliff /usr/local/bin/
-          rm -rf git-cliff-2.7.0
-
-          # mdformat for markdown formatting
-          pip install --quiet mdformat mdformat-gfm mdformat-frontmatter mdformat-footnote mdformat-tables
-
-          # cyclonedx-gomod for SBOM generation
-          go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
-
-          # quill for macOS code signing (optional)
-          curl -sSfL https://github.com/anchore/quill/releases/download/v0.5.1/quill_0.5.1_linux_amd64.tar.gz | tar xz -C /tmp
-          sudo mv /tmp/quill /usr/local/bin/
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Import GPG key
         env:
@@ -150,10 +131,14 @@ jobs:
       GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
     steps:
       - name: Checkout
-        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
+      - name: Setup mise toolchain
+        uses: jdx/mise-action@6d1e696aa24c1aa1bcc1adea0212707c71ab78a8 # v3
+        with:
+          install: true
+          cache: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download artifacts
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0

@@ -22,10 +22,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const (
-	windowsOS = "windows"
-)
-
 // ValidationTestCase represents a test case for validation tests.
 type ValidationTestCase struct {
 	Name       string

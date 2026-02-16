@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -242,14 +242,14 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 				Type:       "pass",
 				IPProtocol: "inet",
 				Interface:  model.InterfaceList{"lan"},
-				Quick:      "1",
+				Quick:      true,
 				Source:     model.Source{Network: "any"},
 			},
 			rule2: model.Rule{
 				Type:       "pass",
 				IPProtocol: "inet",
 				Interface:  model.InterfaceList{"lan"},
-				Quick:      "1",
+				Quick:      true,
 				Source:     model.Source{Network: "any"},
 			},
 			expected: true,
@@ -260,14 +260,14 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 				Type:       "pass",
 				IPProtocol: "inet",
 				Interface:  model.InterfaceList{"lan"},
-				Quick:      "1",
+				Quick:      true,
 				Source:     model.Source{Network: "any"},
 			},
 			rule2: model.Rule{
 				Type:       "pass",
 				IPProtocol: "inet",
 				Interface:  model.InterfaceList{"lan"},
-				Quick:      "0",
+				Quick:      false,
 				Source:     model.Source{Network: "any"},
 			},
 			expected: false,
@@ -535,7 +535,7 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 			expected: false,
 		},
 		{
-			name: "empty destination equals explicit any",
+			name: "empty destination differs from explicit any",
 			rule1: model.Rule{
 				Type:        "pass",
 				IPProtocol:  "inet",
@@ -550,7 +550,7 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 				Source:      model.Source{Network: "any"},
 				Destination: model.Destination{Any: model.StringPtr("1")},
 			},
-			expected: true,
+			expected: false,
 		},
 		{
 			name: "empty destination with port vs any destination with same port",
@@ -580,7 +580,7 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 				StateType:  "keep state",
 				Direction:  "in",
 				Protocol:   "tcp",
-				Quick:      "1",
+				Quick:      true,
 				SourcePort: "1024:65535",
 				Source:     model.Source{Network: "10.0.0.0/8"},
 				Destination: model.Destination{
@@ -596,7 +596,7 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 				StateType:  "keep state",
 				Direction:  "in",
 				Protocol:   "tcp",
-				Quick:      "1",
+				Quick:      true,
 				SourcePort: "1024:65535",
 				Source:     model.Source{Network: "10.0.0.0/8"},
 				Destination: model.Destination{
@@ -607,6 +607,122 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 			expected: true, // Should be equivalent despite different descriptions
 		},
 		{
+			name: "source IsAny pointer vs network any are not equivalent",
+			rule1: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Source:     model.Source{Any: model.StringPtr("")},
+			},
+			rule2: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Source:     model.Source{Network: "any"},
+			},
+			expected: false,
+		},
+		{
+			name: "both sources use IsAny pointer",
+			rule1: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Source:     model.Source{Any: model.StringPtr("")},
+			},
+			rule2: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Source:     model.Source{Any: model.StringPtr("1")},
+			},
+			expected: true, // Any compared by presence only, not value
+		},
+		{
+			name: "different source address",
+			rule1: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Source:     model.Source{Address: "192.168.1.0/24"},
+			},
+			rule2: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Source:     model.Source{Address: "10.0.0.0/8"},
+			},
+			expected: false,
+		},
+		{
+			name: "different source not flag",
+			rule1: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Source:     model.Source{Network: "lan", Not: true},
+			},
+			rule2: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Source:     model.Source{Network: "lan"},
+			},
+			expected: false,
+		},
+		{
+			name: "different source port",
+			rule1: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Source:     model.Source{Network: "any", Port: "443"},
+			},
+			rule2: model.Rule{
+				Type:       "pass",
+				IPProtocol: "inet",
+				Interface:  model.InterfaceList{"lan"},
+				Source:     model.Source{Network: "any", Port: "80"},
+			},
+			expected: false,
+		},
+		{
+			name: "different destination address",
+			rule1: model.Rule{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Interface:   model.InterfaceList{"lan"},
+				Source:      model.Source{Network: "any"},
+				Destination: model.Destination{Address: "192.168.1.1"},
+			},
+			rule2: model.Rule{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Interface:   model.InterfaceList{"lan"},
+				Source:      model.Source{Network: "any"},
+				Destination: model.Destination{Address: "10.0.0.1"},
+			},
+			expected: false,
+		},
+		{
+			name: "different destination not flag",
+			rule1: model.Rule{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Interface:   model.InterfaceList{"lan"},
+				Source:      model.Source{Network: "any"},
+				Destination: model.Destination{Network: "lan", Not: true},
+			},
+			rule2: model.Rule{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Interface:   model.InterfaceList{"lan"},
+				Source:      model.Source{Network: "any"},
+				Destination: model.Destination{Network: "lan"},
+			},
+			expected: false,
+		},
+		{
 			name: "different single functional field",
 			rule1: model.Rule{
 				Type:        "pass",
@@ -615,7 +731,7 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 				StateType:   "keep state",
 				Direction:   "in",
 				Protocol:    "tcp",
-				Quick:       "1",
+				Quick:       true,
 				SourcePort:  "1024:65535",
 				Source:      model.Source{Network: "10.0.0.0/8"},
 				Destination: model.Destination{Network: "192.168.1.0/24", Port: "443"},
@@ -627,7 +743,7 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 				StateType:   "keep state",
 				Direction:   "in",
 				Protocol:    "tcp",
-				Quick:       "1",
+				Quick:       true,
 				SourcePort:  "1024:65535",
 				Source:      model.Source{Network: "10.0.0.0/8"},
 				Destination: model.Destination{Network: "192.168.1.0/24", Port: "8443"},
@@ -643,47 +759,6 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 				"rulesAreEquivalent(%+v, %+v) = %v, want %v", tt.rule1, tt.rule2, result, tt.expected)
 		})
 	}
-}
-
-func TestCoreProcessor_GetDestinationString(t *testing.T) {
-	processor, err := NewCoreProcessor()
-	require.NoError(t, err)
-
-	// Test that the function returns a composite key
-	destAny := model.Destination{Any: model.StringPtr("1")}
-	resultAny := processor.getDestinationString(destAny)
-	assert.Equal(t, "network:any|port:", resultAny, "getDestinationString should encode any destination")
-
-	destNetwork := model.Destination{Network: "192.168.1.0/24"}
-	resultNetwork := processor.getDestinationString(destNetwork)
-	assert.Equal(t, "network:192.168.1.0/24|port:", resultNetwork, "getDestinationString should encode network")
-
-	destNetworkPort := model.Destination{Network: "192.168.1.0/24", Port: "443"}
-	resultNetworkPort := processor.getDestinationString(destNetworkPort)
-	assert.Equal(
-		t,
-		"network:192.168.1.0/24|port:443",
-		resultNetworkPort,
-		"getDestinationString should encode network and port",
-	)
-
-	// Test empty destination is treated as "any"
-	destEmpty := model.Destination{}
-	resultEmpty := processor.getDestinationString(destEmpty)
-	assert.Equal(t, "network:any|port:", resultEmpty, "getDestinationString should treat empty destination as any")
-
-	// Test that empty destination and explicit Any destination produce the same result
-	assert.Equal(t, resultAny, resultEmpty, "Empty destination should equal explicit Any destination")
-
-	// Test destination with only port (no network, no any) is NOT treated as "any"
-	destPortOnly := model.Destination{Port: "443"}
-	resultPortOnly := processor.getDestinationString(destPortOnly)
-	assert.Equal(
-		t,
-		"network:|port:443",
-		resultPortOnly,
-		"getDestinationString should not treat port-only destination as any",
-	)
 }
 
 // TestCoreProcessor_RealWorldConfigurations tests the implementation with actual OPNsense configuration files.
@@ -713,7 +788,7 @@ func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
 			}()
 
 			// Use the existing parser to handle XML encoding issues
-			xmlParser := parser.NewXMLParser()
+			xmlParser := cfgparser.NewXMLParser()
 
 			config, err := xmlParser.Parse(context.Background(), file)
 			if err != nil {
@@ -1647,4 +1722,106 @@ func TestCoreProcessor_EdgeCases(t *testing.T) {
 		assert.False(t, processor.rulesAreEquivalent(rule1, rule2),
 			"Rules should be case sensitive")
 	})
+}
+
+// TestCoreProcessor_DeadRuleDetection_IsAnyPath tests that dead rule detection
+// works with Source.IsAny() (the *string pointer pattern from <any/> XML elements),
+// not just Source.Network == "any".
+func TestCoreProcessor_DeadRuleDetection_IsAnyPath(t *testing.T) {
+	t.Parallel()
+
+	processor, err := NewCoreProcessor()
+	require.NoError(t, err)
+
+	tests := []struct {
+		name           string
+		rules          []model.Rule
+		wantDeadRules  bool
+		wantBroadRules bool
+	}{
+		{
+			name: "block-all via IsAny pointer makes subsequent rules dead",
+			rules: []model.Rule{
+				{
+					Type:        "block",
+					Interface:   model.InterfaceList{"lan"},
+					Source:      model.Source{Any: model.StringPtr("")},
+					Destination: model.Destination{Any: model.StringPtr("")},
+				},
+				{
+					Type:      "pass",
+					Interface: model.InterfaceList{"lan"},
+					Source:    model.Source{Network: "192.168.1.0/24"},
+				},
+			},
+			wantDeadRules: true,
+		},
+		{
+			name: "block with source any but specific destination is not block-all",
+			rules: []model.Rule{
+				{
+					Type:        "block",
+					Interface:   model.InterfaceList{"lan"},
+					Source:      model.Source{Any: model.StringPtr("")},
+					Destination: model.Destination{Network: "10.0.0.1"},
+				},
+				{
+					Type:      "pass",
+					Interface: model.InterfaceList{"lan"},
+					Source:    model.Source{Network: "192.168.1.0/24"},
+				},
+			},
+			wantDeadRules: false,
+		},
+		{
+			name: "overly broad pass rule via IsAny pointer",
+			rules: []model.Rule{
+				{
+					Type:      "pass",
+					Interface: model.InterfaceList{"lan"},
+					Source:    model.Source{Any: model.StringPtr("")},
+				},
+			},
+			wantBroadRules: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			report := NewReport(&model.OpnSenseDocument{}, Config{})
+
+			processor.analyzeInterfaceRules("lan", tt.rules, report)
+
+			// Collect all findings across severity levels
+			var allFindings []Finding
+			allFindings = append(allFindings, report.Findings.Critical...)
+			allFindings = append(allFindings, report.Findings.High...)
+			allFindings = append(allFindings, report.Findings.Medium...)
+			allFindings = append(allFindings, report.Findings.Low...)
+			allFindings = append(allFindings, report.Findings.Info...)
+
+			hasDeadRule := false
+			hasBroadRule := false
+			for _, f := range allFindings {
+				if f.Type == "dead-rule" {
+					hasDeadRule = true
+				}
+				if f.Type == FindingTypeSecurity && f.Title == "Overly Broad Pass Rule" {
+					hasBroadRule = true
+				}
+			}
+
+			if tt.wantDeadRules {
+				assert.True(t, hasDeadRule, "expected dead-rule finding")
+			} else {
+				assert.False(t, hasDeadRule, "unexpected dead-rule finding")
+			}
+
+			if tt.wantBroadRules {
+				assert.True(t, hasBroadRule, "expected overly broad pass rule finding")
+			}
+		})
+	}
 }

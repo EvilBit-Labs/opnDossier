@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/parser"
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -177,7 +177,7 @@ func parseConfigFile(t *testing.T, path string) *OpnSenseDocument {
 	require.NoError(t, err, "Failed to open config file: %s", path)
 	defer file.Close()
 
-	p := parser.NewXMLParser()
+	p := cfgparser.NewXMLParser()
 	doc, err := p.Parse(context.Background(), file)
 	require.NoError(t, err, "Failed to parse config file: %s", path)
 

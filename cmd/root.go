@@ -9,16 +9,16 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
-	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	charmLog "github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
 
 var (
-	cfgFile string         //nolint:gochecknoglobals // CLI config file path
-	cfg     *config.Config //nolint:gochecknoglobals // Application configuration (internal)
-	logger  *log.Logger    //nolint:gochecknoglobals // Application logger (internal)
+	cfgFile string          //nolint:gochecknoglobals // CLI config file path
+	cfg     *config.Config  //nolint:gochecknoglobals // Application configuration (internal)
+	logger  *logging.Logger //nolint:gochecknoglobals // Application logger (internal)
 
 	// Build information injected by GoReleaser via ldflags.
 	buildDate = "unknown"
@@ -27,7 +27,7 @@ var (
 
 // defaultLoggerConfig provides the initial logger configuration used during init.
 // It is defined as a variable to allow fault injection in tests.
-var defaultLoggerConfig = log.Config{ //nolint:gochecknoglobals // test override hook
+var defaultLoggerConfig = logging.Config{ //nolint:gochecknoglobals // test override hook
 	Level:           "info",
 	Format:          "text",
 	Output:          os.Stderr,
@@ -137,7 +137,7 @@ func setupFullContext(cmd *cobra.Command) error {
 
 	// Create new logger with centralized configuration
 	var loggerErr error
-	logger, loggerErr = log.New(log.Config{
+	logger, loggerErr = logging.New(logging.Config{
 		Level:           logLevel,
 		Format:          "text", // Log format is hardcoded to "text" for consistency
 		Output:          os.Stderr,
@@ -285,7 +285,7 @@ func initializeDefaultLogger() {
 	// Initialize logger with default configuration before config is loaded.
 	// If it fails, fall back to a minimal stderr logger to avoid breaking startup.
 	var loggerErr error
-	logger, loggerErr = log.New(defaultLoggerConfig)
+	logger, loggerErr = logging.New(defaultLoggerConfig)
 	if loggerErr != nil {
 		logger = createFallbackLogger(loggerErr)
 	}
@@ -293,10 +293,10 @@ func initializeDefaultLogger() {
 
 // createFallbackLogger returns a minimal stderr-backed logger and reports the failure.
 // This avoids panicking during init while still providing basic error visibility.
-func createFallbackLogger(reason error) *log.Logger {
+func createFallbackLogger(reason error) *logging.Logger {
 	fmt.Fprintf(os.Stderr, "warning: unable to initialize logging (%v). Falling back to stderr output.\n", reason)
 
-	fallback, err := log.New(log.Config{
+	fallback, err := logging.New(logging.Config{
 		Level:           "error",
 		Format:          "text",
 		Output:          os.Stderr,
@@ -308,7 +308,7 @@ func createFallbackLogger(reason error) *log.Logger {
 	}
 
 	fmt.Fprintf(os.Stderr, "warning: unable to initialize fallback logger (%v). Using minimal stderr output.\n", err)
-	return &log.Logger{Logger: charmLog.NewWithOptions(os.Stderr, charmLog.Options{})}
+	return &logging.Logger{Logger: charmLog.NewWithOptions(os.Stderr, charmLog.Options{})}
 }
 
 // GetRootCmd returns the root Cobra command for the opnDossier CLI application.

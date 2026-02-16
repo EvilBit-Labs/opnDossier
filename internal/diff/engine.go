@@ -8,7 +8,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/diff/analyzers"
 	"github.com/EvilBit-Labs/opnDossier/internal/diff/security"
-	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/EvilBit-Labs/opnDossier/internal/schema"
 )
@@ -21,7 +21,7 @@ type Engine struct {
 	oldConfig     *model.OpnSenseDocument
 	newConfig     *model.OpnSenseDocument
 	opts          Options
-	logger        *log.Logger
+	logger        *logging.Logger
 	analyzer      *Analyzer
 	scorer        *security.Scorer
 	normalizer    *analyzers.Normalizer
@@ -29,7 +29,7 @@ type Engine struct {
 }
 
 // NewEngine creates a new diff engine.
-func NewEngine(old, newCfg *model.OpnSenseDocument, opts Options, logger *log.Logger) *Engine {
+func NewEngine(old, newCfg *model.OpnSenseDocument, opts Options, logger *logging.Logger) *Engine {
 	return &Engine{
 		oldConfig:     old,
 		newConfig:     newCfg,

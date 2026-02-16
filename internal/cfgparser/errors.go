@@ -1,5 +1,5 @@
-// Package parser provides error types and utilities for parsing OPNsense configuration files.
-package parser
+// Package cfgparser provides error types and utilities for parsing OPNsense configuration files.
+package cfgparser
 
 import (
 	"encoding/xml"

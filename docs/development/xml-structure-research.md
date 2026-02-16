@@ -138,236 +138,218 @@ The `<source>` and `<destination>` elements are the most complex sub-structures 
 
 ### 3a. Currently Modeled (in `Rule` struct)
 
-| Field       | XML Element     | Go Type         | Status                              |
-| ----------- | --------------- | --------------- | ----------------------------------- |
-| Type        | `<type>`        | `string`        | Correct                             |
-| Descr       | `<descr>`       | `string`        | Correct                             |
-| Interface   | `<interface>`   | `InterfaceList` | Correct                             |
-| IPProtocol  | `<ipprotocol>`  | `string`        | Correct                             |
-| Protocol    | `<protocol>`    | `string`        | Correct                             |
-| Source      | `<source>`      | `Source`        | **Incomplete** (see 4)              |
-| Destination | `<destination>` | `Destination`   | **Incomplete** (see 4)              |
-| Target      | `<target>`      | `string`        | Correct                             |
-| SourcePort  | `<sourceport>`  | `string`        | Correct                             |
-| Disabled    | `<disabled>`    | `string`        | **Wrong type** (should be BoolFlag) |
-| Quick       | `<quick>`       | `string`        | **Wrong type** (should be BoolFlag) |
-| Updated     | `<updated>`     | `*Updated`      | Correct                             |
-| Created     | `<created>`     | `*Created`      | Correct                             |
-| UUID        | `uuid` attr     | `string`        | Correct                             |
+| Field       | XML Element     | Go Type         | Status    | Phase   |
+| ----------- | --------------- | --------------- | --------- | ------- |
+| Type        | `<type>`        | `string`        | Correct   | Initial |
+| Descr       | `<descr>`       | `string`        | Correct   | Initial |
+| Interface   | `<interface>`   | `InterfaceList` | Correct   | Initial |
+| IPProtocol  | `<ipprotocol>`  | `string`        | Correct   | Initial |
+| Protocol    | `<protocol>`    | `string`        | Correct   | Initial |
+| Source      | `<source>`      | `Source`        | Complete  | Phase 1 |
+| Destination | `<destination>` | `Destination`   | Complete  | Phase 1 |
+| Target      | `<target>`      | `string`        | Correct   | Initial |
+| SourcePort  | `<sourceport>`  | `string`        | Correct   | Initial |
+| Disabled    | `<disabled>`    | `BoolFlag`      | Converted | Phase 2 |
+| Quick       | `<quick>`       | `BoolFlag`      | Converted | Phase 2 |
+| Log         | `<log>`         | `BoolFlag`      | Added     | Phase 2 |
+| Floating    | `<floating>`    | `string`        | Added     | Phase 2 |
+| Gateway     | `<gateway>`     | `string`        | Added     | Phase 2 |
+| Direction   | `<direction>`   | `string`        | Added     | Phase 2 |
+| Tracker     | `<tracker>`     | `string`        | Added     | Phase 2 |
+| StateType   | `<statetype>`   | `string`        | Added     | Phase 2 |
+| Updated     | `<updated>`     | `*Updated`      | Correct   | Initial |
+| Created     | `<created>`     | `*Created`      | Correct   | Initial |
+| UUID        | `uuid` attr     | `string`        | Correct   | Initial |
 
-### 3b. Missing Fields (HIGH importance for security auditing)
+### 3b. Rate-Limiting and Advanced Fields (Added in Phase 3)
 
-| Field            | XML Element            | Recommended Go Type | Importance                   |
-| ---------------- | ---------------------- | ------------------- | ---------------------------- |
-| Log              | `<log>`                | `BoolFlag`          | HIGH - audit visibility      |
-| Floating         | `<floating>`           | `string`            | HIGH - rule semantics        |
-| Gateway          | `<gateway>`            | `string`            | HIGH - policy routing        |
-| Tracker          | `<tracker>`            | `string`            | MEDIUM - rule identification |
-| Sched            | `<sched>`              | `string`            | MEDIUM - time-based rules    |
-| AssociatedRuleID | `<associated-rule-id>` | `string`            | MEDIUM - NAT linkage         |
-| Direction        | `<direction>`          | `string`            | MEDIUM - floating rules      |
+| Field           | XML Element            | Go Type    | Phase   |
+| --------------- | ---------------------- | ---------- | ------- |
+| MaxSrcNodes     | `<max-src-nodes>`      | `string`   | Phase 3 |
+| MaxSrcConn      | `<max-src-conn>`       | `string`   | Phase 3 |
+| MaxSrcConnRate  | `<max-src-conn-rate>`  | `string`   | Phase 3 |
+| MaxSrcConnRates | `<max-src-conn-rates>` | `string`   | Phase 3 |
+| TCPFlags1       | `<tcpflags1>`          | `string`   | Phase 3 |
+| TCPFlags2       | `<tcpflags2>`          | `string`   | Phase 3 |
+| TCPFlagsAny     | `<tcpflags_any>`       | `BoolFlag` | Phase 3 |
+| ICMPType        | `<icmptype>`           | `string`   | Phase 3 |
+| ICMP6Type       | `<icmp6-type>`         | `string`   | Phase 3 |
+| StateTimeout    | `<statetimeout>`       | `string`   | Phase 3 |
+| AllowOpts       | `<allowopts>`          | `BoolFlag` | Phase 3 |
+| DisableReplyTo  | `<disablereplyto>`     | `BoolFlag` | Phase 3 |
+| NoPfSync        | `<nopfsync>`           | `BoolFlag` | Phase 3 |
+| NoSync          | `<nosync>`             | `BoolFlag` | Phase 3 |
 
-### 3c. Missing Fields (MEDIUM importance)
+### 3c. Remaining Missing Fields (LOW importance)
 
-| Field           | XML Element            | Recommended Go Type |
-| --------------- | ---------------------- | ------------------- |
-| MaxSrcNodes     | `<max-src-nodes>`      | `string`            |
-| MaxSrcConn      | `<max-src-conn>`       | `string`            |
-| MaxSrcConnRate  | `<max-src-conn-rate>`  | `string`            |
-| MaxSrcConnRates | `<max-src-conn-rates>` | `string`            |
-| TCPFlags1       | `<tcpflags1>`          | `string`            |
-| TCPFlags2       | `<tcpflags2>`          | `string`            |
-| TCPFlagsAny     | `<tcpflags_any>`       | `BoolFlag`          |
-| ICMPType        | `<icmptype>`           | `string`            |
-| ICMP6Type       | `<icmp6-type>`         | `string`            |
-| StateType       | `<statetype>`          | `string`            |
-| StateTimeout    | `<statetimeout>`       | `string`            |
-
-### 3d. Missing Fields (LOW importance)
-
-| Field          | XML Element        | Recommended Go Type |
-| -------------- | ------------------ | ------------------- |
-| AllowOpts      | `<allowopts>`      | `BoolFlag`          |
-| DisableReplyTo | `<disablereplyto>` | `BoolFlag`          |
-| NoPfSync       | `<nopfsync>`       | `BoolFlag`          |
-| NoSync         | `<nosync>`         | `BoolFlag`          |
-| Tag            | `<tag>`            | `string`            |
-| Tagged         | `<tagged>`         | `string`            |
-| OS             | `<os>`             | `string`            |
-| DSCP           | `<dscp>`           | `string`            |
-| DNPipe         | `<dnpipe>`         | `string`            |
-| PDNPipe        | `<pdnpipe>`        | `string`            |
-| DefaultQueue   | `<defaultqueue>`   | `string`            |
-| AckQueue       | `<ackqueue>`       | `string`            |
-| Max            | `<max>`            | `string`            |
-| MaxSrcStates   | `<max-src-states>` | `string`            |
-| VLANPrio       | `<vlanprio>`       | `string`            |
-| VLANPrioSet    | `<vlanprioset>`    | `string`            |
-| SetPrio        | `<set-prio>`       | `string`            |
-| SetPrioLow     | `<set-prio-low>`   | `string`            |
-| InterfaceNot   | `<interfacenot>`   | `BoolFlag`          |
-| NotTagged      | `<nottagged>`      | `BoolFlag`          |
+| Field        | XML Element        | Recommended Go Type |
+| ------------ | ------------------ | ------------------- |
+| Tag          | `<tag>`            | `string`            |
+| Tagged       | `<tagged>`         | `string`            |
+| OS           | `<os>`             | `string`            |
+| DSCP         | `<dscp>`           | `string`            |
+| DNPipe       | `<dnpipe>`         | `string`            |
+| PDNPipe      | `<pdnpipe>`        | `string`            |
+| DefaultQueue | `<defaultqueue>`   | `string`            |
+| AckQueue     | `<ackqueue>`       | `string`            |
+| Max          | `<max>`            | `string`            |
+| MaxSrcStates | `<max-src-states>` | `string`            |
+| VLANPrio     | `<vlanprio>`       | `string`            |
+| VLANPrioSet  | `<vlanprioset>`    | `string`            |
+| SetPrio      | `<set-prio>`       | `string`            |
+| SetPrioLow   | `<set-prio-low>`   | `string`            |
+| InterfaceNot | `<interfacenot>`   | `BoolFlag`          |
+| NotTagged    | `<nottagged>`      | `BoolFlag`          |
 
 ---
 
 ## 4. Schema Gaps: Source and Destination
 
-### 4a. Current Implementation
+> **RESOLVED (Phase 1)**: All missing fields added directly to Source/Destination structs. Fields were added directly rather than via `RuleLocation` embedding to preserve the `*string` Any field and maintain backward compatibility with existing consumers.
+
+### 4a. Current Implementation (Post-Phase 1)
 
 ```go
 // security.go
 type Source struct {
-    Any     *string `xml:"any,omitempty"`
-    Network string  `xml:"network,omitempty"`
+    Any     *string  `xml:"any,omitempty"`
+    Network string   `xml:"network,omitempty"`
+    Address string   `xml:"address,omitempty"`
+    Port    string   `xml:"port,omitempty"`
+    Not     BoolFlag `xml:"not,omitempty"`
 }
 
 type Destination struct {
-    Any     *string `xml:"any,omitempty"`
-    Network string  `xml:"network,omitempty"`
-    Port    string  `xml:"port,omitempty"`
-}
-```
-
-### 4b. Missing Fields
-
-| Field                | XML Element | Impact                                                     |
-| -------------------- | ----------- | ---------------------------------------------------------- |
-| `Address`            | `<address>` | **CRITICAL** - Rules with IP/CIDR/alias silently lose data |
-| `Not`                | `<not>`     | **HIGH** - Negated rules lose semantics                    |
-| `Port` (Source only) | `<port>`    | **MEDIUM** - Source port matching lost                     |
-
-### 4c. Existing `RuleLocation` Type (Already Complete!)
-
-`internal/schema/common.go` already defines `RuleLocation` with all needed fields:
-
-```go
-type RuleLocation struct {
+    Any     *string  `xml:"any,omitempty"`
     Network string   `xml:"network,omitempty"`
     Address string   `xml:"address,omitempty"`
-    Subnet  string   `xml:"subnet,omitempty"`
     Port    string   `xml:"port,omitempty"`
     Not     BoolFlag `xml:"not,omitempty"`
 }
 ```
 
-However, `RuleLocation` is **not used** by `Source`/`Destination` in `security.go`. The types are parallel but disconnected.
+### 4b. Previously Missing Fields (Now Resolved)
 
-### 4d. Recommended Fix
+| Field                | XML Element | Impact                        | Resolution |
+| -------------------- | ----------- | ----------------------------- | ---------- |
+| `Address`            | `<address>` | CRITICAL - IP/CIDR/alias data | Phase 1    |
+| `Not`                | `<not>`     | HIGH - Negated rule semantics | Phase 1    |
+| `Port` (Source only) | `<port>`    | MEDIUM - Source port matching | Phase 1    |
 
-Either:
+Helper methods `IsAny()`, `EffectiveAddress()`, and `Equal()` were added to both types for safe comparison and address resolution following OPNsense priority rules.
 
-1. Add missing fields to `Source`/`Destination` (preserving `*string` for `Any`)
-2. Embed `RuleLocation` into `Source`/`Destination` and add the `Any *string` field
-3. Migrate to using `RuleLocation` directly (breaking change)
+### 4c. Existing `RuleLocation` Type
+
+`internal/schema/common.go` defines `RuleLocation` with similar fields. It remains available for other use cases but was not embedded into Source/Destination to avoid complexity with the `*string` Any field and XML marshaling behavior.
 
 ---
 
 ## 5. Type Mismatches: string vs BoolFlag
 
-Fields using `string` that should be `BoolFlag` based on upstream presence-based semantics (`isset()` / `!empty()` in PHP):
+### Resolution Status
 
-### 5a. Security (security.go)
+**Converted to BoolFlag (presence-based — `isset()` in PHP):**
 
-| Struct          | Field             | Current  | Should Be  |
-| --------------- | ----------------- | -------- | ---------- |
-| Rule            | Disabled          | `string` | `BoolFlag` |
-| Rule            | Quick             | `string` | `BoolFlag` |
-| NATRule         | Disabled          | `string` | `BoolFlag` |
-| InboundRule     | Disabled          | `string` | `BoolFlag` |
-| IDS.General     | Enabled           | `string` | `BoolFlag` |
-| IDS.General     | Ips               | `string` | `BoolFlag` |
-| IDS.General     | Promisc           | `string` | `BoolFlag` |
-| IDS.EveLog.HTTP | Enable            | `string` | `BoolFlag` |
-| IDS.EveLog.HTTP | Extended          | `string` | `BoolFlag` |
-| IDS.EveLog.HTTP | DumpAllHeaders    | `string` | `BoolFlag` |
-| IDS.EveLog.TLS  | Enable            | `string` | `BoolFlag` |
-| IDS.EveLog.TLS  | Extended          | `string` | `BoolFlag` |
-| IDS.EveLog.TLS  | SessionResumption | `string` | `BoolFlag` |
-| IPsec.General   | Enabled           | `string` | `BoolFlag` |
-| IPsec.General   | Disablevpnrules   | `string` | `BoolFlag` |
+- Rule: Disabled, Quick, Log (security.go) — Phase 2
+- NATRule: Disabled, Log (security.go) — Phase 2
+- InboundRule: Disabled, Log (security.go) — Phase 2
+- System: DisableConsoleMenu (system.go) — Phase 3
+- Firmware: Type, Subscription, Reboot (system.go) — Phase 3
+- User: Expires, AuthorizedKeys, IPSecPSK, OTPSeed (system.go) — Phase 3
+- System.RRD: Enable (system.go) — Phase 3
+- Rrd: Enable (services.go) — Phase 3
+- OpnSenseDocument: TriggerInitialWizard (opnsense.go) — Phase 3
 
-### 5b. System (system.go)
+**Kept as string (value-based — `== "1"` in PHP):**
 
-| Struct   | Field              | Current    | Should Be  |
-| -------- | ------------------ | ---------- | ---------- |
-| System   | DisableConsoleMenu | `struct{}` | `BoolFlag` |
-| Firmware | Type               | `struct{}` | `BoolFlag` |
-| Firmware | Subscription       | `struct{}` | `BoolFlag` |
-| Firmware | Reboot             | `struct{}` | `BoolFlag` |
-| User     | Expires            | `struct{}` | `BoolFlag` |
-| User     | AuthorizedKeys     | `struct{}` | `BoolFlag` |
-| User     | IPSecPSK           | `struct{}` | `BoolFlag` |
-| User     | OTPSeed            | `struct{}` | `BoolFlag` |
-| Rrd      | Enable             | `struct{}` | `BoolFlag` |
+The following fields use OPNsense MVC value-based semantics where `<field>0</field>` is valid and distinct from absent. `BoolFlag` would incorrectly treat `<field>0</field>` as true (element present), breaking the `== "1"` / `== "0"` distinction. These remain `string`:
 
-### 5c. Services (services.go)
+### 5a. Security (security.go) — value-based, kept as string
 
-| Struct        | Field        | Current  | Should Be  |
-| ------------- | ------------ | -------- | ---------- |
-| Unbound       | Enable       | `string` | `BoolFlag` |
-| Monit.General | Enabled      | `string` | `BoolFlag` |
-| Monit.General | Ssl          | `string` | `BoolFlag` |
-| Monit.General | Sslverify    | `string` | `BoolFlag` |
-| Monit.General | HttpdEnabled | `string` | `BoolFlag` |
-| Monit.Alert   | Enabled      | `string` | `BoolFlag` |
-| MonitService  | Enabled      | `string` | `BoolFlag` |
+| Struct          | Field             | Type     | Rationale                                   |
+| --------------- | ----------------- | -------- | ------------------------------------------- |
+| IDS.General     | Enabled           | `string` | MVC field, uses `== "1"` with helper method |
+| IDS.General     | Ips               | `string` | MVC field, uses `== "1"` with helper method |
+| IDS.General     | Promisc           | `string` | MVC field, uses `== "1"` with helper method |
+| IDS.EveLog.HTTP | Enable            | `string` | MVC field, value-based                      |
+| IDS.EveLog.HTTP | Extended          | `string` | MVC field, value-based                      |
+| IDS.EveLog.HTTP | DumpAllHeaders    | `string` | MVC field, value-based                      |
+| IDS.EveLog.TLS  | Enable            | `string` | MVC field, value-based                      |
+| IDS.EveLog.TLS  | Extended          | `string` | MVC field, value-based                      |
+| IDS.EveLog.TLS  | SessionResumption | `string` | MVC field, value-based                      |
+| IPsec.General   | Enabled           | `string` | MVC field, uses `FormatBoolean()`           |
+| IPsec.General   | Disablevpnrules   | `string` | MVC field, uses `FormatBoolean()`           |
 
-### 5d. OPNsense module (opnsense.go)
+### 5b. Services (services.go) — value-based, kept as string
 
-| Struct                 | Field               | Current  | Should Be  |
-| ---------------------- | ------------------- | -------- | ---------- |
-| Kea.Dhcp4.General      | Enabled             | `string` | `BoolFlag` |
-| Kea.HighAvailability   | Enabled             | `string` | `BoolFlag` |
-| UnboundPlus.General    | Enabled             | `string` | `BoolFlag` |
-| UnboundPlus.General    | Stats               | `string` | `BoolFlag` |
-| UnboundPlus.General    | Dnssec              | `string` | `BoolFlag` |
-| UnboundPlus.General    | DNS64               | `string` | `BoolFlag` |
-| UnboundPlus.General    | RegisterDHCP\* (x3) | `string` | `BoolFlag` |
-| UnboundPlus.General    | No\* fields (x2)    | `string` | `BoolFlag` |
-| UnboundPlus.General    | Txtsupport          | `string` | `BoolFlag` |
-| UnboundPlus.General    | Cacheflush          | `string` | `BoolFlag` |
-| UnboundPlus.General    | EnableWpad          | `string` | `BoolFlag` |
-| UnboundPlus.Dnsbl      | Enabled             | `string` | `BoolFlag` |
-| UnboundPlus.Dnsbl      | Safesearch          | `string` | `BoolFlag` |
-| UnboundPlus.Forwarding | Enabled             | `string` | `BoolFlag` |
-| SyslogInternal.General | Enabled             | `string` | `BoolFlag` |
-| Netflow.Capture        | EgressOnly          | `string` | `BoolFlag` |
-| Netflow.Collect        | Enable              | `string` | `BoolFlag` |
+| Struct        | Field        | Type     | Rationale                                   |
+| ------------- | ------------ | -------- | ------------------------------------------- |
+| Unbound       | Enable       | `string` | Heavily used with `== "1"` across 10+ files |
+| Monit.General | Enabled      | `string` | MVC field, value-based                      |
+| Monit.General | Ssl          | `string` | MVC field, value-based                      |
+| Monit.General | Sslverify    | `string` | MVC field, value-based                      |
+| Monit.General | HttpdEnabled | `string` | MVC field, value-based                      |
+| Monit.Alert   | Enabled      | `string` | MVC field, value-based                      |
+| MonitService  | Enabled      | `string` | MVC field, value-based                      |
 
-### 5e. DHCP (dhcp.go)
+### 5c. OPNsense module (opnsense.go) — value-based, kept as string
 
-| Struct         | Field  | Current  | Should Be                      |
-| -------------- | ------ | -------- | ------------------------------ |
-| DhcpdInterface | Enable | `string` | needs review (value-based `1`) |
+| Struct                 | Field               | Type     | Rationale              |
+| ---------------------- | ------------------- | -------- | ---------------------- |
+| Kea.Dhcp4.General      | Enabled             | `string` | MVC field, value-based |
+| Kea.HighAvailability   | Enabled             | `string` | MVC field, value-based |
+| UnboundPlus.General    | Enabled             | `string` | MVC field, value-based |
+| UnboundPlus.General    | Stats               | `string` | MVC field, value-based |
+| UnboundPlus.General    | Dnssec              | `string` | MVC field, value-based |
+| UnboundPlus.General    | DNS64               | `string` | MVC field, value-based |
+| UnboundPlus.General    | RegisterDHCP\* (x3) | `string` | MVC field, value-based |
+| UnboundPlus.General    | No\* fields (x2)    | `string` | MVC field, value-based |
+| UnboundPlus.General    | Txtsupport          | `string` | MVC field, value-based |
+| UnboundPlus.General    | Cacheflush          | `string` | MVC field, value-based |
+| UnboundPlus.General    | EnableWpad          | `string` | MVC field, value-based |
+| UnboundPlus.Dnsbl      | Enabled             | `string` | MVC field, value-based |
+| UnboundPlus.Dnsbl      | Safesearch          | `string` | MVC field, value-based |
+| UnboundPlus.Forwarding | Enabled             | `string` | MVC field, value-based |
+| SyslogInternal.General | Enabled             | `string` | MVC field, value-based |
+| Netflow.Capture        | EgressOnly          | `string` | MVC field, value-based |
+| Netflow.Collect        | Enable              | `string` | MVC field, value-based |
 
-**Note on `DhcpdInterface.Enable`:** This field uses value-based semantics (`<enable>1</enable>`), not presence-based. The distinction matters for the correct Go type choice. If the upstream always checks `== "1"`, keeping `string` is acceptable. Converting to `BoolFlag` would change semantics since `BoolFlag` treats any presence as true.
+### 5d. DHCP (dhcp.go) — value-based, kept as string
+
+| Struct         | Field  | Type     | Rationale                                     |
+| -------------- | ------ | -------- | --------------------------------------------- |
+| DhcpdInterface | Enable | `string` | Value-based (`<enable>1</enable>`), heavy use |
+
+**Note on value-based fields:** These use OPNsense MVC pattern `<field>1</field>` / `<field>0</field>`. Converting to `BoolFlag` would break semantics because `BoolFlag.UnmarshalXML` treats any present element as true, regardless of content — so `<enabled>0</enabled>` would incorrectly become `true`.
 
 ---
 
 ## 6. NAT Structure Issues
 
+> **RESOLVED (Phase 4)**: All missing NAT outbound and inbound fields have been added.
+
 ### 6a. NAT XML Path
 
-In OPNsense config.xml, inbound NAT (port forward) rules are at `<nat><rule>`, **not** `<nat><inbound><rule>`. Verify the XML path in the current schema matches.
+In OPNsense config.xml, inbound NAT (port forward) rules are at `<nat><rule>`, **not** `<nat><inbound><rule>`. Our schema uses `xml:"inbound>rule"` path mapping.
 
-### 6b. Missing NAT Outbound Rule Fields
+### 6b. NAT Outbound Rule Fields (Added in Phase 4)
 
-| Field              | XML Element                | Type                        |
-| ------------------ | -------------------------- | --------------------------- |
-| StaticNatPort      | `<staticnatport>`          | `BoolFlag` (presence-based) |
-| NoNat              | `<nonat>`                  | `BoolFlag` (presence-based) |
-| NatPort            | `<natport>`                | `string`                    |
-| PoolOptsSrcHashKey | `<poolopts_sourcehashkey>` | `string`                    |
+| Field              | XML Element                | Type       | Status |
+| ------------------ | -------------------------- | ---------- | ------ |
+| StaticNatPort      | `<staticnatport>`          | `BoolFlag` | Added  |
+| NoNat              | `<nonat>`                  | `BoolFlag` | Added  |
+| NatPort            | `<natport>`                | `string`   | Added  |
+| PoolOptsSrcHashKey | `<poolopts_sourcehashkey>` | `string`   | Added  |
 
-### 6c. Missing NAT Inbound Rule Fields
+### 6c. NAT Inbound Rule Fields (Added in Phase 4)
 
-| Field            | XML Element            | Type       |
-| ---------------- | ---------------------- | ---------- |
-| NATReflection    | `<natreflection>`      | `string`   |
-| AssociatedRuleID | `<associated-rule-id>` | `string`   |
-| NoRDR            | `<nordr>`              | `BoolFlag` |
-| NoSync           | `<nosync>`             | `BoolFlag` |
-| LocalPort        | `<local-port>`         | `string`   |
+| Field            | XML Element            | Type       | Status |
+| ---------------- | ---------------------- | ---------- | ------ |
+| NATReflection    | `<natreflection>`      | `string`   | Added  |
+| AssociatedRuleID | `<associated-rule-id>` | `string`   | Added  |
+| NoRDR            | `<nordr>`              | `BoolFlag` | Added  |
+| NoSync           | `<nosync>`             | `BoolFlag` | Added  |
+| LocalPort        | `<local-port>`         | `string`   | Added  |
 
 ### 6d. Outbound NAT Mode Values
 
@@ -439,14 +421,40 @@ Already has all needed fields for complete source/destination modeling. Just nee
 
 ## 9. Action Items (Priority Order)
 
-01. **CRITICAL**: Add `Address` field to `Source` and `Destination` structs
-02. **HIGH**: Add `Not` field (BoolFlag) to `Source` and `Destination`
-03. **HIGH**: Add `Port` field to `Source` struct
-04. **HIGH**: Add `Log` field (BoolFlag) to `Rule` struct
-05. **HIGH**: Convert `Rule.Disabled`, `NATRule.Disabled`, `InboundRule.Disabled` from `string` to `BoolFlag`
-06. **HIGH**: Add `Floating`, `Gateway`, `Direction` fields to `Rule`
-07. **MEDIUM**: Convert `struct{}` fields in system.go to `BoolFlag`
-08. **MEDIUM**: Add rate-limiting fields to `Rule` (max-src-nodes, etc.)
+01. ~~**CRITICAL**: Add `Address` field to `Source` and `Destination` structs~~ — COMPLETE
+02. ~~**HIGH**: Add `Not` field (BoolFlag) to `Source` and `Destination`~~ — COMPLETE
+03. ~~**HIGH**: Add `Port` field to `Source` struct~~ — COMPLETE
+04. ~~**HIGH**: Add `Log` field (BoolFlag) to `Rule` struct~~ — COMPLETE
+05. ~~**HIGH**: Convert `Rule.Disabled`, `NATRule.Disabled`, `InboundRule.Disabled` from `string` to `BoolFlag`~~ — COMPLETE
+06. ~~**HIGH**: Add `Floating`, `Gateway`, `Direction` fields to `Rule`~~ — COMPLETE
+07. ~~**MEDIUM**: Convert `struct{}` fields in system.go to `BoolFlag`~~ — COMPLETE
+08. ~~**MEDIUM**: Add rate-limiting fields to `Rule` (max-src-nodes, etc.)~~ — COMPLETE (Phase 3: 14 fields added — rate-limiting, TCP/ICMP, state/advanced)
 09. **MEDIUM**: Convert IDS/IPsec Enabled fields from `string` to `BoolFlag`
 10. **LOW**: Add remaining missing filter rule fields (tag, tagged, DSCP, etc.)
-11. **LOW**: Add missing NAT rule fields
+11. ~~**LOW**: Add missing NAT rule fields~~ — COMPLETE (Phase 4: NATRule +4 fields, InboundRule +5 fields)
+
+---
+
+## 10. Remaining Work
+
+### 10a. Medium Priority
+
+| Item | Description                                                  | Rationale                                                                                                                                                                                                                                                 |
+| ---- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| #9   | Convert IDS/IPsec Enabled fields from `string` to `BoolFlag` | These use MVC value-based semantics (`== "1"`) which `BoolFlag` cannot represent correctly. Requires a new `MVCBool` type or keeping as `string` with helper methods. Current helper methods (`IsEnabled()`, `IsIPSMode()`) work correctly with `string`. |
+
+### 10b. Low Priority
+
+| Item | Description                      | Fields                                                                                                                                                                                      |
+| ---- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| #10  | Add remaining filter rule fields | `tag`, `tagged`, `os`, `dscp`, `dnpipe`, `pdnpipe`, `defaultqueue`, `ackqueue`, `max`, `max-src-states`, `vlanprio`, `vlanprioset`, `set-prio`, `set-prio-low`, `interfacenot`, `nottagged` |
+
+### 10c. Phase Summary
+
+| Phase | Scope                             | Fields Added                                                                             | Status   |
+| ----- | --------------------------------- | ---------------------------------------------------------------------------------------- | -------- |
+| 1     | Source/Destination gaps           | Address, Port (Source), Not                                                              | Complete |
+| 2     | High-priority Rule fields         | Log, Disabled→BoolFlag, Quick→BoolFlag, Floating, Gateway, Direction, Tracker, StateType | Complete |
+| 3     | Rate-limiting and advanced fields | 14 fields (max-src-\*, TCP/ICMP, state/advanced)                                         | Complete |
+| 4     | NAT rule enhancements             | NATRule +4 fields, InboundRule +5 fields                                                 | Complete |
+| 5     | Documentation and validation      | Research doc updates, field reference, validator enhancements                            | Complete |

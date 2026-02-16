@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 )
 
 // loadTestData loads test configuration data from the specified JSON file path.
@@ -33,7 +33,7 @@ func loadTestData(filename string) *model.OpnSenseDocument {
 		panic("Failed to read test XML file: " + err.Error())
 	}
 
-	p := parser.NewXMLParser()
+	p := cfgparser.NewXMLParser()
 	opnsense, err := p.Parse(context.Background(), strings.NewReader(string(xmlData)))
 	if err != nil {
 		panic("XML parsing failed: " + err.Error())

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/log"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +17,7 @@ const (
 // TestNormalizeLineEndings tests the normalizeLineEndings function comprehensively.
 func TestNormalizeLineEndings(t *testing.T) {
 	// Create a logger for tests that need it
-	logger, err := log.New(log.Config{Level: "warn", Output: os.Stderr})
+	logger, err := logging.New(logging.Config{Level: "warn", Output: os.Stderr})
 	if err != nil {
 		t.Fatalf("failed to create logger: %v", err)
 	}
@@ -120,7 +120,7 @@ func TestNormalizeLineEndings(t *testing.T) {
 
 // TestNormalizeLineEndings_Idempotent tests that normalizing already-normalized content is safe.
 func TestNormalizeLineEndings_Idempotent(t *testing.T) {
-	logger, err := log.New(log.Config{Level: "warn", Output: os.Stderr})
+	logger, err := logging.New(logging.Config{Level: "warn", Output: os.Stderr})
 	if err != nil {
 		t.Fatalf("failed to create logger: %v", err)
 	}
@@ -139,7 +139,7 @@ func TestNormalizeLineEndings_Performance(t *testing.T) {
 		t.Skip("Skipping performance test in short mode")
 	}
 
-	logger, err := log.New(log.Config{Level: "warn", Output: os.Stderr})
+	logger, err := logging.New(logging.Config{Level: "warn", Output: os.Stderr})
 	if err != nil {
 		t.Fatalf("failed to create logger: %v", err)
 	}
@@ -200,7 +200,7 @@ func TestNormalizeLineEndings_WithNilLogger(t *testing.T) {
 
 // TestNormalizeLineEndings_ContentPreservation tests that logical line breaks are preserved.
 func TestNormalizeLineEndings_ContentPreservation(t *testing.T) {
-	logger, err := log.New(log.Config{Level: "warn", Output: os.Stderr})
+	logger, err := logging.New(logging.Config{Level: "warn", Output: os.Stderr})
 	if err != nil {
 		t.Fatalf("failed to create logger: %v", err)
 	}

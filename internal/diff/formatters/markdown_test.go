@@ -163,3 +163,211 @@ func TestMarkdownFormatter_Format_EscapesPipeCharacters(t *testing.T) {
 	// The pipe should be escaped
 	assert.Contains(t, buf.String(), "\\|")
 }
+
+func TestMarkdownFormatter_Format_ChangeSymbols(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		changeType diff.ChangeType
+		wantSymbol string
+	}{
+		{name: "added", changeType: diff.ChangeAdded, wantSymbol: "**+**"},
+		{name: "removed", changeType: diff.ChangeRemoved, wantSymbol: "**-**"},
+		{name: "modified", changeType: diff.ChangeModified, wantSymbol: "**~**"},
+		{name: "reordered", changeType: diff.ChangeReordered, wantSymbol: "**↕**"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			symbol := changeSymbolMarkdown(tt.changeType)
+			assert.Equal(t, tt.wantSymbol, symbol)
+		})
+	}
+}
+
+func TestMarkdownFormatter_Format_UnknownChangeType(t *testing.T) {
+	t.Parallel()
+
+	// Test unknown change type - create an invalid ChangeType
+	symbol := changeSymbolMarkdown(diff.ChangeType("unknown"))
+	assert.Equal(t, "**?**", symbol)
+}
+
+func TestSecurityBadge(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		impact   string
+		expected string
+	}{
+		{name: "high", impact: "high", expected: "🔴 HIGH"},
+		{name: "medium", impact: "medium", expected: "🟡 MEDIUM"},
+		{name: "low", impact: "low", expected: "🟢 LOW"},
+		{name: "uppercase high", impact: "HIGH", expected: "🔴 HIGH"},
+		{name: "mixed case", impact: "High", expected: "🔴 HIGH"},
+		{name: "unknown", impact: "unknown", expected: "unknown"},
+		{name: "empty", impact: "", expected: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result := securityBadge(tt.impact)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestEscapeMarkdown(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{name: "no pipes", input: "normal text", expected: "normal text"},
+		{name: "single pipe", input: "text|more", expected: "text\\|more"},
+		{name: "multiple pipes", input: "a|b|c", expected: "a\\|b\\|c"},
+		{name: "empty string", input: "", expected: ""},
+		{name: "only pipes", input: "|||", expected: "\\|\\|\\|"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result := escapeMarkdown(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestMarkdownFormatter_FormatMetadata_EmptyFields(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	formatter := NewMarkdownFormatter(&buf)
+
+	result := diff.NewResult()
+	// Leave metadata empty
+
+	err := formatter.formatMetadata(result)
+	require.NoError(t, err)
+
+	output := buf.String()
+
+	// Should not contain any metadata fields
+	assert.NotContains(t, output, "Old File:")
+	assert.NotContains(t, output, "New File:")
+	assert.NotContains(t, output, "Compared At:")
+	assert.NotContains(t, output, "Tool Version:")
+
+	// Should only contain the trailing newline
+	assert.Equal(t, "\n", output)
+}
+
+func TestMarkdownFormatter_FormatMetadata_PartialFields(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	formatter := NewMarkdownFormatter(&buf)
+
+	result := diff.NewResult()
+	result.Metadata.OldFile = "old.xml"
+	result.Metadata.ToolVersion = "1.0.0"
+	// Leave NewFile and ComparedAt empty
+
+	err := formatter.formatMetadata(result)
+	require.NoError(t, err)
+
+	output := buf.String()
+
+	// Should contain present fields
+	assert.Contains(t, output, "**Old File:** `old.xml`")
+	assert.Contains(t, output, "**Tool Version:** 1.0.0")
+
+	// Should not contain missing fields
+	assert.NotContains(t, output, "New File:")
+	assert.NotContains(t, output, "Compared At:")
+}
+
+func TestMarkdownFormatter_FormatSummary_WithReordered(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	formatter := NewMarkdownFormatter(&buf)
+
+	result := diff.NewResult()
+	result.AddChange(
+		diff.Change{Type: diff.ChangeReordered, Section: diff.SectionSystem, Description: "Reordered item"},
+	)
+
+	err := formatter.formatSummary(result)
+	require.NoError(t, err)
+
+	output := buf.String()
+
+	// Should contain reordered row in summary table
+	assert.Contains(t, output, "| Reordered | 1 |")
+}
+
+func TestMarkdownFormatter_FormatChangeDetails(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	formatter := NewMarkdownFormatter(&buf)
+
+	change := diff.Change{
+		Type:           diff.ChangeModified,
+		Path:           "system.hostname",
+		Description:    "Hostname changed",
+		OldValue:       "old-host",
+		NewValue:       "new-host",
+		SecurityImpact: "low",
+	}
+
+	err := formatter.formatChangeDetails(change)
+	require.NoError(t, err)
+
+	output := buf.String()
+
+	// Should contain all fields
+	assert.Contains(t, output, "### **~** Hostname changed")
+	assert.Contains(t, output, "- **Path:** `system.hostname`")
+	assert.Contains(t, output, "- **Type:** modified")
+	assert.Contains(t, output, "- **Security Impact:** 🟢 LOW")
+	assert.Contains(t, output, "- **Old Value:** `old-host`")
+	assert.Contains(t, output, "- **New Value:** `new-host`")
+}
+
+func TestMarkdownFormatter_FormatChangeDetails_EmptyValues(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	formatter := NewMarkdownFormatter(&buf)
+
+	change := diff.Change{
+		Type:        diff.ChangeAdded,
+		Path:        "system.hostname",
+		Description: "Added hostname",
+		// OldValue, NewValue, SecurityImpact empty
+	}
+
+	err := formatter.formatChangeDetails(change)
+	require.NoError(t, err)
+
+	output := buf.String()
+
+	// Should contain basic fields
+	assert.Contains(t, output, "### **+** Added hostname")
+	assert.Contains(t, output, "- **Path:** `system.hostname`")
+	assert.Contains(t, output, "- **Type:** added")
+
+	// Should not contain empty fields
+	assert.NotContains(t, output, "Security Impact:")
+	assert.NotContains(t, output, "Old Value:")
+	assert.NotContains(t, output, "New Value:")
+}

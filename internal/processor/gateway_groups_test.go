@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 )
 
 func TestGatewayGroupsInReports(t *testing.T) {
@@ -19,7 +19,7 @@ func TestGatewayGroupsInReports(t *testing.T) {
 	xmlConfig := string(xmlData)
 
 	// Parse the configuration
-	xmlParser := parser.NewXMLParser()
+	xmlParser := cfgparser.NewXMLParser()
 	cfg, err := xmlParser.Parse(context.Background(), strings.NewReader(xmlConfig))
 	if err != nil {
 		t.Fatalf("Failed to parse XML configuration: %v", err)
@@ -108,7 +108,7 @@ func TestGatewayGroupsInEnrichedDocument(t *testing.T) {
 	xmlConfig := string(xmlData)
 
 	// Parse the configuration
-	xmlParser := parser.NewXMLParser()
+	xmlParser := cfgparser.NewXMLParser()
 	cfg, err := xmlParser.Parse(context.Background(), strings.NewReader(xmlConfig))
 	if err != nil {
 		t.Fatalf("Failed to parse XML configuration: %v", err)

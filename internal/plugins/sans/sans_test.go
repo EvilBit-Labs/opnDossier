@@ -3,8 +3,8 @@ package sans_test
 import (
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/plugin"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/sans"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -195,7 +195,7 @@ func TestSANSPlugin_ValidateConfiguration(t *testing.T) {
 	}
 }
 
-func getFindings(findings []plugin.Finding) []string {
+func getFindings(findings []compliance.Finding) []string {
 	var ids []string
 	for _, finding := range findings {
 		ids = append(ids, finding.Reference)

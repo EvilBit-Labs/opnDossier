@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/parser"
 )
 
 func TestWalk_BasicStructure(t *testing.T) {
@@ -103,8 +103,8 @@ func TestWalk_EmptyStructHandling(t *testing.T) {
 		System: model.System{
 			Hostname:           "test.local",
 			Domain:             "test.com",
-			DisableConsoleMenu: struct{}{}, // Empty struct for enabled
-			IPv6Allow:          "1",        // String value for enabled
+			DisableConsoleMenu: true, // BoolFlag for enabled
+			IPv6Allow:          "1",  // String value for enabled
 		},
 	}
 
@@ -370,7 +370,7 @@ func TestWalk_SyntheticXMLFragment(t *testing.T) {
 	</opnsense>`
 
 	// Parse the XML using the parser
-	p := parser.NewXMLParser()
+	p := cfgparser.NewXMLParser()
 
 	opnsense, err := p.Parse(context.Background(), strings.NewReader(xmlData))
 	if err != nil {

@@ -6,8 +6,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/plugin"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/firewall"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/sans"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/stig"
@@ -15,7 +15,7 @@ import (
 	"github.com/charmbracelet/log"
 )
 
-// mockCompliancePlugin implements the CompliancePlugin interface for testing.
+// mockCompliancePlugin implements the compliance.Plugin interface for testing.
 type mockCompliancePlugin struct {
 	name        string
 	description string
@@ -34,15 +34,15 @@ func (m *mockCompliancePlugin) Description() string {
 	return m.description
 }
 
-func (m *mockCompliancePlugin) RunChecks(_ *model.OpnSenseDocument) []plugin.Finding {
-	return []plugin.Finding{}
+func (m *mockCompliancePlugin) RunChecks(_ *model.OpnSenseDocument) []compliance.Finding {
+	return []compliance.Finding{}
 }
 
-func (m *mockCompliancePlugin) GetControls() []plugin.Control {
-	return []plugin.Control{}
+func (m *mockCompliancePlugin) GetControls() []compliance.Control {
+	return []compliance.Control{}
 }
 
-func (m *mockCompliancePlugin) GetControlByID(_ string) (*plugin.Control, error) {
+func (m *mockCompliancePlugin) GetControlByID(_ string) (*compliance.Control, error) {
 	return nil, errors.New("invalid value and nil error")
 }
 

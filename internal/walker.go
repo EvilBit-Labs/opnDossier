@@ -31,7 +31,7 @@ const maxHeaderLevel = 6
 
 // walkNode recursively converts a Go value into an MDNode, building a hierarchical Markdown-like structure.
 // It handles structs, slices, maps, pointers, and strings, formatting field names and limiting header depth to level 6.
-// Struct fields are processed recursively, with empty structs treated as enabled flags and non-empty fields added as children or body content.
+// Struct fields are processed recursively, with empty structs and true boolean values treated as enabled flags and non-empty fields added as children or body content.
 func walkNode(title string, level int, node any) MDNode {
 	// Limit depth to H6 (level 6)
 	if level > maxHeaderLevel {
@@ -112,7 +112,11 @@ func walkNode(title string, level int, node any) MDNode {
 					child := walkNode(childTitle, level+1, field.Interface())
 					mdNode.Children = append(mdNode.Children, child)
 				}
-			case reflect.Invalid, reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+			case reflect.Bool:
+				if field.Bool() {
+					mdNode.Body += formatFieldName(fieldType.Name) + ": enabled\n"
+				}
+			case reflect.Invalid, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 				reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
 				reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128,
 				reflect.Array, reflect.Chan, reflect.Func, reflect.Interface, reflect.UnsafePointer:

@@ -1,5 +1,5 @@
-// Package plugin provides error definitions and interfaces for compliance plugins.
-package plugin
+// Package compliance provides error definitions and interfaces for compliance plugins.
+package compliance
 
 import "errors"
 

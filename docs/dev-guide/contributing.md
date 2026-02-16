@@ -68,7 +68,7 @@ The project follows standard Go conventions:
 4. Run benchmarks if modifying parser performance:
 
    ```bash
-   go test -run=^$ -bench=. ./internal/parser/
+   go test -run=^$ -bench=. ./internal/cfgparser/
    ```
 
 5. Run linting:
@@ -117,7 +117,7 @@ go test ./...
 go test ./internal/config/
 
 # Benchmarks only
-go test -run=^$ -bench=. ./internal/parser/
+go test -run=^$ -bench=. ./internal/cfgparser/
 
 # With coverage
 go test -cover ./...

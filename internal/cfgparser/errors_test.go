@@ -1,4 +1,4 @@
-package parser
+package cfgparser
 
 import (
 	"encoding/xml"

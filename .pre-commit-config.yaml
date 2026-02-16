@@ -15,7 +15,7 @@ repos:
       - id: check-yaml
         args: [--unsafe]
       - id: check-xml
-        exclude: ^internal/parser/testdata/
+        exclude: ^internal/cfgparser/testdata/
       - id: mixed-line-ending
         args: [--fix=auto]
       - id: check-docstring-first

@@ -96,13 +96,13 @@ package main
 import (
     "log"
     "github.com/EvilBit-Labs/opnDossier/internal/converter"
-    "github.com/EvilBit-Labs/opnDossier/internal/parser"
+    "github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 )
 
 func main() {
     // Parse OPNsense configuration
-    parser := parser.NewXMLParser()
-    config, err := parser.ParseFile("config.xml")
+    parser := cfgparser.NewXMLParser()
+    config, err := cfgparser.ParseFile("config.xml")
     if err != nil {
         log.Fatal(err)
     }
@@ -197,8 +197,8 @@ func processConfigSafely(filename string) error {
     builder := converter.NewMarkdownBuilder()
 
     // Parse configuration
-    parser := parser.NewXMLParser()
-    config, err := parser.ParseFile(filename)
+    parser := cfgparser.NewXMLParser()
+    config, err := cfgparser.ParseFile(filename)
     if err != nil {
         return fmt.Errorf("failed to parse config: %w", err)
     }

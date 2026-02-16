@@ -4,8 +4,8 @@ package enrichment
 import (
 	"fmt"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/configstats"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
-	"github.com/EvilBit-Labs/opnDossier/internal/metrics"
 	"github.com/EvilBit-Labs/opnDossier/internal/schema"
 )
 
@@ -286,7 +286,7 @@ func generateStatistics(cfg *schema.OpnSenseDocument) *Statistics {
 
 	// Calculate summary statistics
 	stats.Summary = StatisticsSummary{
-		TotalConfigItems: metrics.CalculateTotalConfigItems(
+		TotalConfigItems: configstats.CalculateTotalConfigItems(
 			stats.TotalInterfaces,
 			stats.TotalFirewallRules,
 			stats.TotalUsers,
@@ -481,7 +481,9 @@ func analyzeDeadRules(cfg *schema.OpnSenseDocument) []DeadRuleFinding {
 
 	for i, rule := range rules {
 		// Check for "block all" rules that make subsequent rules unreachable
-		if rule.Type == RuleTypeBlock && rule.Source.Network == NetworkAny {
+		srcAny := rule.Source.EffectiveAddress() == NetworkAny
+		dstAny := rule.Destination.EffectiveAddress() == NetworkAny
+		if rule.Type == RuleTypeBlock && srcAny && dstAny {
 			// If there are rules after this block-all rule, they're dead
 			if i < len(rules)-1 {
 				findings = append(findings, DeadRuleFinding{
@@ -498,7 +500,7 @@ func analyzeDeadRules(cfg *schema.OpnSenseDocument) []DeadRuleFinding {
 		}
 
 		// Check for overly broad rules that might be unintentional
-		if rule.Type == RuleTypePass && rule.Source.Network == NetworkAny && rule.Descr == "" {
+		if rule.Type == RuleTypePass && rule.Source.EffectiveAddress() == NetworkAny && rule.Descr == "" {
 			findings = append(findings, DeadRuleFinding{
 				RuleIndex: i + 1,
 				Interface: rule.Interface.String(),
@@ -570,7 +572,9 @@ func analyzeSecurityIssues(cfg *schema.OpnSenseDocument) []SecurityFinding {
 	// Check for overly permissive rules
 	rules := cfg.FilterRules()
 	for i, rule := range rules {
-		if rule.Type == RuleTypePass && rule.Source.Network == NetworkAny && rule.Destination.Network == NetworkAny {
+		srcAny := rule.Source.EffectiveAddress() == NetworkAny
+		dstAny := rule.Destination.EffectiveAddress() == NetworkAny
+		if rule.Type == RuleTypePass && srcAny && dstAny {
 			findings = append(findings, SecurityFinding{
 				Component: fmt.Sprintf("filter.rule[%d]", i),
 				Issue:     "overly-permissive-rule",
@@ -726,8 +730,9 @@ func calculateSecurityScore(cfg *schema.OpnSenseDocument, stats *Statistics) int
 		// Check for overly permissive rules
 		rules := cfg.FilterRules()
 		for _, rule := range rules {
-			if rule.Type == RuleTypePass && rule.Source.Network == NetworkAny &&
-				rule.Destination.Network == NetworkAny {
+			srcIsAny := rule.Source.EffectiveAddress() == NetworkAny
+			dstIsAny := rule.Destination.EffectiveAddress() == NetworkAny
+			if rule.Type == RuleTypePass && srcIsAny && dstIsAny {
 				score -= 10
 			}
 		}
