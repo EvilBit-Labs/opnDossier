@@ -208,6 +208,18 @@ func (r *Report) TotalFindings() int {
 }
 ```
 
+### 5.6a Struct Shallow Copy with Slices
+
+`normalized := *cfg` copies the struct but slices share backing arrays. Deep-copy any slice you intend to mutate:
+
+```go
+normalized := *cfg
+if cfg.Filter.Rule != nil {
+    normalized.Filter.Rule = make([]model.Rule, len(cfg.Filter.Rule))
+    copy(normalized.Filter.Rule, cfg.Filter.Rule)
+}
+```
+
 ### 5.7 CommandContext Pattern (CLI Dependency Injection)
 
 The `cmd` package uses `CommandContext` to inject dependencies into subcommands:
@@ -526,6 +538,18 @@ Go's `encoding/xml` produces `""` for both self-closing tags (`<any/>`) and abse
 
 Add `IsAny()` / `Equal()` methods rather than comparing `*string` fields directly. See `internal/schema/security.go` for the canonical pattern.
 
+**Address resolution — use `EffectiveAddress()`:**
+
+`Source.EffectiveAddress()` / `Destination.EffectiveAddress()` resolves the effective address with priority: `Network` > `Address` > `Any` > `""`. Use this instead of manual `IsAny() || Network == NetworkAny` checks:
+
+```go
+// Good — single canonical method
+srcAny := rule.Source.EffectiveAddress() == NetworkAny
+
+// Bad — manual multi-field check (replaced in PR #258)
+srcAny := rule.Source.Network == NetworkAny || rule.Source.IsAny()
+```
+
 **Type selection for boolean-like XML elements:**
 
 - **Presence-based** (`isset()` in PHP): `<disabled/>`, `<log/>`, `<not/>` → use `BoolFlag`
@@ -585,6 +609,12 @@ func (s *Spinner) stop() {
 - OPNsense XML uses two boolean patterns: **presence-based** (`<disabled/>` → `BoolFlag`) and **value-based** (`<enable>1</enable>` → `string`). See §5.21 and `docs/development/xml-structure-research.md`
 - `RuleLocation` in `common.go` has complete source/destination fields but is NOT used by `Source`/`Destination` in `security.go` — tracked in issue #255
 - Known schema gaps: ~40+ type mismatches and missing fields — see `docs/development/xml-structure-research.md` §4-5
+
+**Port field disambiguation:**
+
+- `Source.Port` → `<source><port>...</port></source>` (nested, preferred)
+- `Rule.SourcePort` → `<sourceport>...</sourceport>` (top-level, legacy)
+- Prefer `Source.Port` with fallback to `Rule.SourcePort` for backward compatibility
 
 ### 6.2 Multi-Format Export
 
