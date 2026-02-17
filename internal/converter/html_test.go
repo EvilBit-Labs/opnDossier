@@ -122,6 +122,119 @@ func TestRenderMarkdownToHTML_PrintFriendly(t *testing.T) {
 	assert.Contains(t, result, "@media print")
 }
 
+func TestTransformAlertBlockquotes(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    string
+		contains []string
+		excludes []string
+	}{
+		{
+			name:     "note alert",
+			input:    "<blockquote>\n<p>[!NOTE]<br />\nUseful information.</p>\n</blockquote>",
+			contains: []string{`class="alert alert-note"`, `class="alert-title">Note</p>`, "Useful information."},
+			excludes: []string{"<blockquote>", "[!NOTE]"},
+		},
+		{
+			name:     "warning alert",
+			input:    "<blockquote>\n<p>[!WARNING]<br />\nBe careful here.</p>\n</blockquote>",
+			contains: []string{`class="alert alert-warning"`, `class="alert-title">Warning</p>`, "Be careful here."},
+			excludes: []string{"<blockquote>", "[!WARNING]"},
+		},
+		{
+			name:     "tip alert",
+			input:    "<blockquote>\n<p>[!TIP]<br />\nConsider this approach.</p>\n</blockquote>",
+			contains: []string{`class="alert alert-tip"`, `class="alert-title">Tip</p>`, "Consider this approach."},
+			excludes: []string{"<blockquote>", "[!TIP]"},
+		},
+		{
+			name:     "caution alert",
+			input:    "<blockquote>\n<p>[!CAUTION]<br />\nThis is dangerous.</p>\n</blockquote>",
+			contains: []string{`class="alert alert-caution"`, `class="alert-title">Caution</p>`, "This is dangerous."},
+			excludes: []string{"<blockquote>", "[!CAUTION]"},
+		},
+		{
+			name:  "important alert",
+			input: "<blockquote>\n<p>[!IMPORTANT]<br />\nCritical info here.</p>\n</blockquote>",
+			contains: []string{
+				`class="alert alert-important"`,
+				`class="alert-title">Important</p>`,
+				"Critical info here.",
+			},
+			excludes: []string{"<blockquote>", "[!IMPORTANT]"},
+		},
+		{
+			name:     "regular blockquote unchanged",
+			input:    "<blockquote>\n<p>Just a regular quote.</p>\n</blockquote>",
+			contains: []string{"<blockquote>", "Just a regular quote."},
+			excludes: []string{`class="alert`},
+		},
+		{
+			name:  "multi-line alert content",
+			input: "<blockquote>\n<p>[!WARNING]<br />\nLine one.<br />\nLine two.</p>\n</blockquote>",
+			contains: []string{
+				`class="alert alert-warning"`,
+				"Line one.",
+				"Line two.",
+			},
+			excludes: []string{"<blockquote>", "[!WARNING]"},
+		},
+		{
+			name:     "no blockquotes in input",
+			input:    "<p>No alerts here.</p>",
+			contains: []string{"<p>No alerts here.</p>"},
+			excludes: []string{`class="alert`},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := transformAlertBlockquotes(tt.input)
+
+			for _, expected := range tt.contains {
+				assert.Contains(t, result, expected, "expected to contain: %s", expected)
+			}
+			for _, excluded := range tt.excludes {
+				assert.NotContains(t, result, excluded, "expected not to contain: %s", excluded)
+			}
+		})
+	}
+}
+
+func TestRenderMarkdownToHTML_AlertRendering(t *testing.T) {
+	t.Parallel()
+
+	// Test the full pipeline: markdown with alerts → HTML with styled divs
+	markdown := "> [!WARNING]\n> NAT reflection is enabled.\n"
+	result, err := renderMarkdownToHTML(markdown)
+	require.NoError(t, err)
+
+	assert.Contains(t, result, `class="alert alert-warning"`)
+	assert.Contains(t, result, `class="alert-title">Warning</p>`)
+	assert.Contains(t, result, "NAT reflection is enabled.")
+	assert.NotContains(t, result, "[!WARNING]")
+}
+
+func TestRenderMarkdownToHTML_AlertCSS(t *testing.T) {
+	t.Parallel()
+
+	result, err := renderMarkdownToHTML("# Test")
+	require.NoError(t, err)
+
+	// Verify alert CSS classes are present in the document
+	assert.Contains(t, result, ".alert {")
+	assert.Contains(t, result, ".alert-title {")
+	assert.Contains(t, result, ".alert-note {")
+	assert.Contains(t, result, ".alert-warning {")
+	assert.Contains(t, result, ".alert-tip {")
+	assert.Contains(t, result, ".alert-caution {")
+	assert.Contains(t, result, ".alert-important {")
+}
+
 func TestRenderMarkdownToHTML_LargeDocument(t *testing.T) {
 	t.Parallel()
 

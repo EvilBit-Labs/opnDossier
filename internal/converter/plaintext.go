@@ -1,99 +1,145 @@
 package converter
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/k3a/html2text"
 )
 
-// Precompiled regex patterns for markdown stripping.
+// Precompiled regex patterns for HTML-to-plaintext pre/post-processing.
+// These are compiled once at init and are safe for concurrent use.
 var (
-	reHeading     = regexp.MustCompile(`(?m)^#{1,6}\s+`)
-	reLink        = regexp.MustCompile(`\[([^\]]+)\]\(([^)]+)\)`)
-	reInlineCode  = regexp.MustCompile("`([^`]+)`")
-	reCodeFence   = regexp.MustCompile("(?m)^```[a-z]*\\s*$")
-	reHRule       = regexp.MustCompile(`(?m)^-{3,}\s*$`)
-	reHTMLTag     = regexp.MustCompile(`<[^>]+>`)
-	reTableSep    = regexp.MustCompile(`(?m)^\|[\s:|-]+\|\s*$`)
-	reAlertMarker = regexp.MustCompile(`(?m)^>\s*\[!(NOTE|WARNING|TIP|CAUTION|IMPORTANT)\]\s*$`)
-	reItalicStar  = regexp.MustCompile(`\*([^*\n]+)\*`)
-	reItalicUndsc = regexp.MustCompile(`_([^_\n]+)_`)
-	reBlockquote  = regexp.MustCompile(`(?m)^>\s?`)
-	reEmptyLines  = regexp.MustCompile(`\n{3,}`)
+	// reHTMLTable matches a complete <table>...</table> element.
+	reHTMLTable = regexp.MustCompile(`(?s)<table>.*?</table>`)
+
+	// reHTMLTableRow matches a <tr>...</tr> element.
+	reHTMLTableRow = regexp.MustCompile(`(?s)<tr>(.*?)</tr>`)
+
+	// reHTMLTableCell matches <th> or <td> elements and captures inner content.
+	reHTMLTableCell = regexp.MustCompile(`(?s)<t[hd][^>]*>(.*?)</t[hd]>`)
+
+	// reAlertBlockquoteText matches goldmark blockquote output containing alert markers
+	// for plaintext conversion. Converts to "TYPE:\ntext" format.
+	reAlertBlockquoteText = regexp.MustCompile(
+		`(?s)<blockquote>\s*<p>\[!(NOTE|WARNING|TIP|CAUTION|IMPORTANT)\]` +
+			`(?:<br\s*/?>)?\s*\n?(.*?)</p>\s*</blockquote>`,
+	)
+
+	// reHTMLLink matches anchor tags and captures href and inner text.
+	reHTMLLink = regexp.MustCompile(`(?s)<a\s+[^>]*href="([^"]*)"[^>]*>(.*?)</a>`)
+
+	// reHTMLTag matches any HTML tag for stripping from extracted content.
+	reHTMLTag = regexp.MustCompile(`<[^>]+>`)
+
+	// reExcessiveNewlines collapses 3+ consecutive newlines to 2.
+	reExcessiveNewlines = regexp.MustCompile(`\n{3,}`)
 )
 
-// stripMarkdownFormatting removes markdown formatting from the input text,
-// producing clean plain text output while preserving content structure.
+// placeholderFmt is a unique marker format that survives html2text processing.
+// Uses a prefix unlikely to appear in normal content.
+const placeholderFmt = "OPNDOSSIER_PH_%d"
+
+// stripMarkdownFormatting converts markdown to plain text using a
+// goldmark -> HTML -> html2text pipeline. The goldmark renderer (shared
+// with HTML output) handles all markdown parsing, while html2text
+// provides proper HTML-to-text conversion using Go's net/html parser.
+//
+// Tables and alerts are extracted from the HTML before html2text processing
+// (using placeholders) because html2text doesn't handle table layout or
+// preserve the tab-separated formatting we need.
 func stripMarkdownFormatting(markdown string) string {
-	text := markdown
+	// Stage 1: Render markdown to HTML via goldmark (shared renderer from html.go)
+	var buf strings.Builder
+	if err := goldmarkRenderer.Convert([]byte(markdown), &buf); err != nil {
+		return markdown
+	}
+	htmlContent := buf.String()
 
-	// Convert links [text](url) to "text (url)"
-	text = reLink.ReplaceAllString(text, "$1 ($2)")
+	// Stage 2: Extract elements needing custom formatting, replace with placeholders.
+	// Placeholders survive html2text since they're plain ASCII text.
+	var replacements []string
+	counter := 0
 
-	// Remove heading markers
-	text = reHeading.ReplaceAllString(text, "")
+	htmlContent = extractTablesWithPlaceholders(htmlContent, &replacements, &counter)
+	htmlContent = convertLinksToPlainText(htmlContent)
+	htmlContent = extractAlertsWithPlaceholders(htmlContent, &replacements, &counter)
 
-	// Remove bold markers first (** and __), then italic (* and _)
-	text = strings.ReplaceAll(text, "**", "")
-	text = strings.ReplaceAll(text, "__", "")
-	text = reItalicStar.ReplaceAllString(text, "$1")
-	text = reItalicUndsc.ReplaceAllString(text, "$1")
+	// Stage 3: Convert remaining HTML to text
+	text := html2text.HTML2TextWithOptions(
+		htmlContent,
+		html2text.WithUnixLineBreaks(),
+		html2text.WithListSupportPrefix("- "),
+	)
 
-	// Remove code fences
-	text = reCodeFence.ReplaceAllString(text, "")
+	// Stage 4: Replace placeholders with formatted text
+	for i, replacement := range replacements {
+		text = strings.Replace(text, fmt.Sprintf(placeholderFmt, i), replacement, 1)
+	}
 
-	// Remove inline code backticks (preserve content)
-	text = reInlineCode.ReplaceAllString(text, "$1")
-
-	// Remove horizontal rules
-	text = reHRule.ReplaceAllString(text, "")
-
-	// Convert alert markers to plain labels
-	text = reAlertMarker.ReplaceAllStringFunc(text, func(match string) string {
-		submatch := reAlertMarker.FindStringSubmatch(match)
-		if len(submatch) > 1 {
-			return submatch[1] + ":"
-		}
-		return match
-	})
-
-	// Remove blockquote markers
-	text = reBlockquote.ReplaceAllString(text, "")
-
-	// Convert table rows: strip leading/trailing pipes, replace inner pipes with spacing
-	text = convertTableRows(text)
-
-	// Remove HTML tags
-	text = reHTMLTag.ReplaceAllString(text, "")
-
-	// Collapse excessive blank lines to at most two
-	text = reEmptyLines.ReplaceAllString(text, "\n\n")
+	// Stage 5: Post-process text output
+	text = trimLineWhitespace(text)
+	text = reExcessiveNewlines.ReplaceAllString(text, "\n\n")
 
 	return strings.TrimSpace(text) + "\n"
 }
 
-// convertTableRows converts markdown table rows to plain text with tab-separated columns.
-func convertTableRows(text string) string {
-	// Remove table separator rows (|---|---|)
-	text = reTableSep.ReplaceAllString(text, "")
-
-	lines := strings.Split(text, "\n")
-	result := make([]string, 0, len(lines))
-
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "|") && strings.HasSuffix(trimmed, "|") {
-			// Strip outer pipes and convert inner pipes to tab separators
-			inner := trimmed[1 : len(trimmed)-1]
-			cells := strings.Split(inner, "|")
-			cleaned := make([]string, 0, len(cells))
+// extractTablesWithPlaceholders replaces HTML tables with placeholders and stores
+// tab-separated text representations in the replacements slice.
+func extractTablesWithPlaceholders(htmlContent string, replacements *[]string, counter *int) string {
+	return reHTMLTable.ReplaceAllStringFunc(htmlContent, func(tableHTML string) string {
+		rows := reHTMLTableRow.FindAllStringSubmatch(tableHTML, -1)
+		var lines []string
+		for _, row := range rows {
+			cells := reHTMLTableCell.FindAllStringSubmatch(row[1], -1)
+			var values []string
 			for _, cell := range cells {
-				cleaned = append(cleaned, strings.TrimSpace(cell))
+				cellText := reHTMLTag.ReplaceAllString(cell[1], "")
+				values = append(values, strings.TrimSpace(cellText))
 			}
-			result = append(result, strings.Join(cleaned, "\t"))
-		} else {
-			result = append(result, line)
+			lines = append(lines, strings.Join(values, "\t"))
 		}
-	}
 
-	return strings.Join(result, "\n")
+		placeholder := fmt.Sprintf("<p>"+placeholderFmt+"</p>", *counter)
+		*replacements = append(*replacements, strings.Join(lines, "\n"))
+		*counter++
+		return placeholder
+	})
+}
+
+// extractAlertsWithPlaceholders replaces alert blockquotes with placeholders and
+// stores "TYPE:\ntext" representations in the replacements slice.
+func extractAlertsWithPlaceholders(htmlContent string, replacements *[]string, counter *int) string {
+	return reAlertBlockquoteText.ReplaceAllStringFunc(htmlContent, func(match string) string {
+		submatch := reAlertBlockquoteText.FindStringSubmatch(match)
+		if len(submatch) < alertSubmatchLen {
+			return match
+		}
+		alertType := submatch[1]
+		body := reHTMLTag.ReplaceAllString(submatch[2], "")
+		body = strings.TrimSpace(body)
+
+		placeholder := fmt.Sprintf("<p>"+placeholderFmt+"</p>", *counter)
+		*replacements = append(*replacements, alertType+":\n"+body)
+		*counter++
+		return placeholder
+	})
+}
+
+// convertLinksToPlainText replaces <a href="url">text</a> with "text (url)".
+func convertLinksToPlainText(htmlContent string) string {
+	return reHTMLLink.ReplaceAllString(htmlContent, "$2 ($1)")
+}
+
+// trimLineWhitespace removes leading and trailing whitespace from each line
+// while preserving intentional indentation in tab-separated table content.
+// This cleans up artifacts from html2text (leading spaces after headings/HRs,
+// trailing spaces on list items).
+func trimLineWhitespace(text string) string {
+	lines := strings.Split(text, "\n")
+	for i, line := range lines {
+		lines[i] = strings.TrimSpace(line)
+	}
+	return strings.Join(lines, "\n")
 }

@@ -21,7 +21,7 @@ func TestStripMarkdownFormatting(t *testing.T) {
 		{
 			name:     "heading removal",
 			input:    "# Heading 1\n## Heading 2\n### Heading 3\n",
-			expected: "Heading 1\nHeading 2\nHeading 3\n",
+			expected: "Heading 1\n\nHeading 2\n\nHeading 3\n",
 		},
 		{
 			name:     "bold removal",
@@ -71,7 +71,7 @@ func TestStripMarkdownFormatting(t *testing.T) {
 		{
 			name:     "table conversion",
 			input:    "| Name | Value |\n|------|-------|\n| foo  | bar   |\n",
-			expected: "Name\tValue\n\nfoo\tbar\n",
+			expected: "Name\tValue\nfoo\tbar\n",
 		},
 		{
 			name:     "alert marker conversion",
@@ -81,7 +81,7 @@ func TestStripMarkdownFormatting(t *testing.T) {
 		{
 			name:     "blockquote removal",
 			input:    "> This is a quote\n> Second line\n",
-			expected: "This is a quote\nSecond line\n",
+			expected: "This is a quote Second line\n",
 		},
 		{
 			name:     "excessive blank lines collapsed",
@@ -96,7 +96,7 @@ func TestStripMarkdownFormatting(t *testing.T) {
 		{
 			name:     "combined formatting",
 			input:    "# Report\n\n**Status**: `active`\n\n| Key | Val |\n|-----|-----|\n| a   | b   |\n\n---\n\n> [!NOTE]\n> Check [docs](https://example.com)\n",
-			expected: "Report\n\nStatus: active\n\nKey\tVal\n\na\tb\n\nNOTE:\nCheck docs (https://example.com)\n",
+			expected: "Report\n\nStatus: active\n\nKey\tVal\na\tb\n\nNOTE:\nCheck docs (https://example.com)\n",
 		},
 		{
 			name:     "empty input",
@@ -114,7 +114,87 @@ func TestStripMarkdownFormatting(t *testing.T) {
 	}
 }
 
-func TestConvertTableRows(t *testing.T) {
+func TestExtractTablesWithPlaceholders(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name             string
+		input            string
+		expectedHTML     string
+		expectedReplaces []string
+	}{
+		{
+			name:             "simple table",
+			input:            `<table><tr><th>A</th><th>B</th></tr><tr><td>1</td><td>2</td></tr></table>`,
+			expectedHTML:     `<p>OPNDOSSIER_PH_0</p>`,
+			expectedReplaces: []string{"A\tB\n1\t2"},
+		},
+		{
+			name:             "no tables",
+			input:            `<p>No tables here</p>`,
+			expectedHTML:     `<p>No tables here</p>`,
+			expectedReplaces: nil,
+		},
+		{
+			name:             "table with formatted cell content",
+			input:            `<table><tr><td><strong>bold</strong></td><td>plain</td></tr></table>`,
+			expectedHTML:     `<p>OPNDOSSIER_PH_0</p>`,
+			expectedReplaces: []string{"bold\tplain"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var replacements []string
+			counter := 0
+			result := extractTablesWithPlaceholders(tt.input, &replacements, &counter)
+			assert.Equal(t, tt.expectedHTML, result)
+			assert.Equal(t, tt.expectedReplaces, replacements)
+		})
+	}
+}
+
+func TestExtractAlertsWithPlaceholders(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name             string
+		input            string
+		expectedHTML     string
+		expectedReplaces []string
+	}{
+		{
+			name:             "warning alert",
+			input:            "<blockquote>\n<p>[!WARNING]<br />\nBe careful.</p>\n</blockquote>",
+			expectedHTML:     "<p>OPNDOSSIER_PH_0</p>",
+			expectedReplaces: []string{"WARNING:\nBe careful."},
+		},
+		{
+			name:             "regular blockquote unchanged",
+			input:            "<blockquote>\n<p>Just a quote.</p>\n</blockquote>",
+			expectedHTML:     "<blockquote>\n<p>Just a quote.</p>\n</blockquote>",
+			expectedReplaces: nil,
+		},
+		{
+			name:             "note alert",
+			input:            "<blockquote>\n<p>[!NOTE]<br />\nSome info.</p>\n</blockquote>",
+			expectedHTML:     "<p>OPNDOSSIER_PH_0</p>",
+			expectedReplaces: []string{"NOTE:\nSome info."},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var replacements []string
+			counter := 0
+			result := extractAlertsWithPlaceholders(tt.input, &replacements, &counter)
+			assert.Equal(t, tt.expectedHTML, result)
+			assert.Equal(t, tt.expectedReplaces, replacements)
+		})
+	}
+}
+
+func TestConvertLinksToPlainText(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
@@ -122,26 +202,64 @@ func TestConvertTableRows(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     "simple table with separator removed",
-			input:    "| A | B |\n|---|---|\n| 1 | 2 |\n",
-			expected: "A\tB\n\n1\t2\n",
+			name:     "simple link",
+			input:    `<a href="https://example.com">Example</a>`,
+			expected: "Example (https://example.com)",
 		},
 		{
-			name:     "non-table text unchanged",
-			input:    "This is not a table\n",
-			expected: "This is not a table\n",
+			name:     "no links",
+			input:    "<p>No links here</p>",
+			expected: "<p>No links here</p>",
 		},
 		{
-			name:     "mixed content with table",
-			input:    "Header\n| Col1 | Col2 |\n|------|------|\n| val  | val2 |\nFooter\n",
-			expected: "Header\nCol1\tCol2\n\nval\tval2\nFooter\n",
+			name:     "multiple links",
+			input:    `<a href="https://a.com">A</a> and <a href="https://b.com">B</a>`,
+			expected: "A (https://a.com) and B (https://b.com)",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			result := convertTableRows(tt.input)
+			result := convertLinksToPlainText(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestTrimLineWhitespace(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "leading spaces removed",
+			input:    " Heading\n Normal\n",
+			expected: "Heading\nNormal\n",
+		},
+		{
+			name:     "trailing spaces removed",
+			input:    "- Item 1 \n- Item 2 \n",
+			expected: "- Item 1\n- Item 2\n",
+		},
+		{
+			name:     "tabs in middle preserved",
+			input:    "Name\tValue\nfoo\tbar\n",
+			expected: "Name\tValue\nfoo\tbar\n",
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result := trimLineWhitespace(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
