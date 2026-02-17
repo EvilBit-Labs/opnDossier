@@ -53,6 +53,8 @@ const (
 	FormatYAML = "yaml"
 	// FormatText specifies plain text as the output format.
 	FormatText = "text"
+	// FormatHTML specifies self-contained HTML as the output format.
+	FormatHTML = "html"
 )
 
 // Format alias constants for short-form format names.
@@ -63,6 +65,8 @@ const (
 	FormatAliasYML = "yml"
 	// FormatAliasTXT is the short alias for text format.
 	FormatAliasTXT = "txt"
+	// FormatAliasHTM is the short alias for HTML format.
+	FormatAliasHTM = "htm"
 )
 
 // init registers the convert command and its flags with the root command.
@@ -92,7 +96,7 @@ func init() {
 		StringVarP(&outputFile, "output", "o", "", "Output file path for saving converted configuration (default: print to console)")
 	setFlagAnnotation(convertCmd.Flags(), "output", []string{"output"})
 	convertCmd.Flags().
-		StringVarP(&format, "format", "f", "markdown", "Output format for conversion (markdown, json, yaml, text)")
+		StringVarP(&format, "format", "f", "markdown", "Output format for conversion (markdown, json, yaml, text, html)")
 	setFlagAnnotation(convertCmd.Flags(), "format", []string{"output"})
 	convertCmd.Flags().
 		BoolVar(&force, "force", false, "Force overwrite existing files without prompting for confirmation")
@@ -155,7 +159,7 @@ var convertCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 	},
 	Long: `The 'convert' command processes one or more OPNsense config.xml files and transforms
 its content into structured formats. Supported output formats include Markdown (default),
-JSON, YAML, and plain text. This allows for easier readability, documentation, and
+JSON, YAML, plain text, and HTML. This allows for easier readability, documentation, and
 programmatic access to your firewall configuration.
 
   OUTPUT FORMATS:
@@ -166,6 +170,7 @@ programmatic access to your firewall configuration.
     json                        - JSON format output
     yaml                        - YAML format output
     text                        - Plain text output (markdown without formatting)
+    html                        - Self-contained HTML report for web viewing
 
   Additional options:
     --comprehensive             - Generate detailed, comprehensive reports
@@ -386,6 +391,8 @@ Examples:
 					fileExt = ".yaml"
 				case FormatText, FormatAliasTXT:
 					fileExt = ".txt"
+				case FormatHTML, FormatAliasHTM:
+					fileExt = ".html"
 				default:
 					fileExt = ".md" // Default to markdown
 				}
@@ -466,8 +473,10 @@ func normalizeFormat(format string) converter.Format {
 		return converter.FormatYAML
 	case FormatAliasTXT:
 		return converter.FormatText
+	case FormatAliasHTM:
+		return converter.FormatHTML
 	default:
-		return converter.Format(format)
+		return converter.Format(strings.ToLower(format))
 	}
 }
 
@@ -628,16 +637,18 @@ func generateOutputByFormat(
 	format := strings.ToLower(string(opt.Format))
 
 	switch format {
-	case FormatMarkdown, FormatAliasMD, FormatJSON, FormatYAML, FormatAliasYML, FormatText, FormatAliasTXT:
+	case FormatMarkdown, FormatAliasMD, FormatJSON, FormatYAML, FormatAliasYML,
+		FormatText, FormatAliasTXT, FormatHTML, FormatAliasHTM:
 		// Use programmatic generator for all formats
-		// The HybridGenerator handles markdown (via builder), JSON, YAML, and text natively
+		// The HybridGenerator handles markdown (via builder), JSON, YAML, text, and HTML natively
 		return generateWithProgrammaticGenerator(ctx, opnsense, opt, logger)
 	default:
 		return "", fmt.Errorf(
-			"%w: %q (supported: %s, %s, %s, %s, %s, %s, %s)",
+			"%w: %q (supported: %s, %s, %s, %s, %s, %s, %s, %s, %s)",
 			ErrUnsupportedOutputFormat,
 			format,
-			FormatMarkdown, FormatAliasMD, FormatJSON, FormatYAML, FormatAliasYML, FormatText, FormatAliasTXT,
+			FormatMarkdown, FormatAliasMD, FormatJSON, FormatYAML, FormatAliasYML,
+			FormatText, FormatAliasTXT, FormatHTML, FormatAliasHTM,
 		)
 	}
 }
@@ -720,7 +731,8 @@ func validateConvertFlags(flags *pflag.FlagSet, cmdLogger *logging.Logger) error
 	// Validate format values
 	if format != "" {
 		validFormats := []string{
-			FormatMarkdown, FormatAliasMD, FormatJSON, FormatYAML, FormatAliasYML, FormatText, FormatAliasTXT,
+			FormatMarkdown, FormatAliasMD, FormatJSON, FormatYAML, FormatAliasYML,
+			FormatText, FormatAliasTXT, FormatHTML, FormatAliasHTM,
 		}
 		if !slices.Contains(validFormats, strings.ToLower(format)) {
 			return fmt.Errorf("invalid format %q, must be one of: %s", format, strings.Join(validFormats, ", "))

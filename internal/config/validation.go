@@ -20,7 +20,7 @@ var ValidLogFormats = []string{"text", "json"}
 var ValidThemes = []string{"light", "dark", "auto", "none", "custom", ""}
 
 // ValidFormats defines the allowed output formats.
-var ValidFormats = []string{"markdown", "md", "json", "yaml", "yml", ""}
+var ValidFormats = []string{"markdown", "md", "json", "yaml", "yml", "text", "txt", "html", "htm", ""}
 
 // ValidExportFormats defines the allowed export formats.
 var ValidExportFormats = []string{"markdown", "md", "json", "yaml", "yml", ""}
@@ -150,7 +150,7 @@ func (v *Validator) validateFormat() {
 			Message:    "invalid output format",
 			Value:      v.config.Format,
 			ValidItems: validOptions,
-			Suggestion: "markdown/md for Markdown, json for JSON, yaml/yml for YAML",
+			Suggestion: "markdown/md for Markdown, json for JSON, yaml/yml for YAML, text/txt for plain text, html/htm for HTML",
 		})
 	}
 }

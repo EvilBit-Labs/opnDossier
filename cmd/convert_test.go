@@ -143,6 +143,9 @@ func TestNormalizeFormat(t *testing.T) {
 		{name: "text unchanged", input: "text", expected: converter.FormatText},
 		{name: "case insensitive MD", input: "MD", expected: converter.FormatMarkdown},
 		{name: "case insensitive TXT", input: "TXT", expected: converter.FormatText},
+		{name: "htm to html", input: "htm", expected: converter.FormatHTML},
+		{name: "html unchanged", input: "html", expected: converter.FormatHTML},
+		{name: "case insensitive HTML", input: "HTML", expected: converter.FormatHTML},
 	}
 
 	for _, tt := range tests {
