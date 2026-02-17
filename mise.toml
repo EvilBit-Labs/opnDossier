@@ -11,7 +11,7 @@ golangci-lint                               = "2.9.0"
 goreleaser                                  = "latest"
 just                                        = "1.46.0"
 markdownlint-cli2                           = "0.21.0"
-node                                        = "latest"
+node                                        = "25.6.1"
 "pipx:mdformat"                             = { version = "0.7.21", uvx_args = "--with mdformat-gfm --with mdformat-front-matters --with mdformat-footnote --with mdformat-simple-breaks --with mdformat-gfm-alerts --with mdformat-toc --with mdformat-wikilink --with mdformat-tables" }
 "pipx:mkdocs"                               = { version = "1.6.1", uvx_args = "--with mkdocs-material --with pymdown-extensions" }
 pre-commit                                  = "4.5.1"
