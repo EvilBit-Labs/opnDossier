@@ -201,7 +201,7 @@ flag to specify the output format (markdown, json, yaml, text, or html).
 
 When processing multiple files, the --output flag will be ignored, and each output
 file will be named based on its input file with the appropriate extension
-(e.g., config.xml -> config.md, config.json, config.yaml, or config.txt).
+(e.g., config.xml -> config.md, config.json, config.yaml, config.txt, or config.html).
 
 Examples:
   # Convert configuration to markdown (default)
@@ -215,6 +215,9 @@ Examples:
 
   # Convert 'my_config.xml' to plain text
   opnDossier convert my_config.xml --format text
+
+  # Convert 'my_config.xml' to self-contained HTML
+  opnDossier convert my_config.xml --format html -o report.html
 
   # Generate comprehensive report
   opnDossier convert my_config.xml --comprehensive
