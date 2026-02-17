@@ -93,6 +93,10 @@ func TestValidator_ValidateFormat(t *testing.T) {
 		{"json format is valid", "json", false},
 		{"yaml format is valid", "yaml", false},
 		{"yml format is valid", "yml", false},
+		{"text format is valid", "text", false},
+		{"txt format is valid", "txt", false},
+		{"html format is valid", "html", false},
+		{"htm format is valid", "htm", false},
 		{"invalid format", "invalid", true},
 		{"xml format is invalid", "xml", true},
 	}

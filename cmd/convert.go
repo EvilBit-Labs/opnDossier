@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -28,7 +27,7 @@ import (
 
 var (
 	outputFile string //nolint:gochecknoglobals // Cobra flag variable
-	format     string //nolint:gochecknoglobals // Output format (markdown, json, yaml)
+	format     string //nolint:gochecknoglobals // Output format (markdown, json, yaml, text, html)
 	force      bool   //nolint:gochecknoglobals // Force overwrite without prompt
 )
 
@@ -51,6 +50,22 @@ const (
 	FormatJSON = "json"
 	// FormatYAML specifies YAML as the output format.
 	FormatYAML = "yaml"
+	// FormatText specifies plain text as the output format.
+	FormatText = "text"
+	// FormatHTML specifies self-contained HTML as the output format.
+	FormatHTML = "html"
+)
+
+// Format alias constants for short-form format names.
+const (
+	// FormatAliasMD is the short alias for markdown format.
+	FormatAliasMD = "md"
+	// FormatAliasYML is the short alias for YAML format.
+	FormatAliasYML = "yml"
+	// FormatAliasTXT is the short alias for text format.
+	FormatAliasTXT = "txt"
+	// FormatAliasHTM is the short alias for HTML format.
+	FormatAliasHTM = "htm"
 )
 
 // init registers the convert command and its flags with the root command.
@@ -80,7 +95,7 @@ func init() {
 		StringVarP(&outputFile, "output", "o", "", "Output file path for saving converted configuration (default: print to console)")
 	setFlagAnnotation(convertCmd.Flags(), "output", []string{"output"})
 	convertCmd.Flags().
-		StringVarP(&format, "format", "f", "markdown", "Output format for conversion (markdown, json, yaml)")
+		StringVarP(&format, "format", "f", "markdown", "Output format for conversion (markdown, json, yaml, text, html)")
 	setFlagAnnotation(convertCmd.Flags(), "format", []string{"output"})
 	convertCmd.Flags().
 		BoolVar(&force, "force", false, "Force overwrite existing files without prompting for confirmation")
@@ -143,8 +158,8 @@ var convertCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 	},
 	Long: `The 'convert' command processes one or more OPNsense config.xml files and transforms
 its content into structured formats. Supported output formats include Markdown (default),
-JSON, and YAML. This allows for easier readability, documentation, and programmatic access
-to your firewall configuration.
+JSON, YAML, plain text, and HTML. This allows for easier readability, documentation, and
+programmatic access to your firewall configuration.
 
   OUTPUT FORMATS:
   The convert command supports multiple output formats:
@@ -153,6 +168,8 @@ to your firewall configuration.
     markdown                    - Standard markdown report (default)
     json                        - JSON format output
     yaml                        - YAML format output
+    text                        - Plain text output (markdown without formatting)
+    html                        - Self-contained HTML report for web viewing
 
   Additional options:
     --comprehensive             - Generate detailed, comprehensive reports
@@ -180,11 +197,11 @@ To validate your configuration files before conversion, use the 'validate' comma
 
 You can either print the generated output directly to the console or save it to a
 specified output file using the '--output' or '-o' flag. Use the '--format' or '-f'
-flag to specify the output format (markdown, json, or yaml).
+flag to specify the output format (markdown, json, yaml, text, or html).
 
 When processing multiple files, the --output flag will be ignored, and each output
 file will be named based on its input file with the appropriate extension
-(e.g., config.xml -> config.md, config.json, or config.yaml).
+(e.g., config.xml -> config.md, config.json, config.yaml, config.txt, or config.html).
 
 Examples:
   # Convert configuration to markdown (default)
@@ -195,6 +212,12 @@ Examples:
 
   # Convert 'my_config.xml' to YAML and save to file
   opnDossier convert my_config.xml -f yaml -o documentation.yaml
+
+  # Convert 'my_config.xml' to plain text
+  opnDossier convert my_config.xml --format text
+
+  # Convert 'my_config.xml' to self-contained HTML
+  opnDossier convert my_config.xml --format html -o report.html
 
   # Generate comprehensive report
   opnDossier convert my_config.xml --comprehensive
@@ -362,12 +385,16 @@ Examples:
 
 				// Determine file extension based on format
 				switch strings.ToLower(string(opt.Format)) {
-				case "markdown", "md":
+				case FormatMarkdown, FormatAliasMD:
 					fileExt = ".md"
-				case "json":
+				case FormatJSON:
 					fileExt = ".json"
-				case "yaml", "yml":
+				case FormatYAML, FormatAliasYML:
 					fileExt = ".yaml"
+				case FormatText, FormatAliasTXT:
+					fileExt = ".txt"
+				case FormatHTML, FormatAliasHTM:
+					fileExt = ".html"
 				default:
 					fileExt = ".md" // Default to markdown
 				}
@@ -439,6 +466,22 @@ func buildEffectiveFormat(flagFormat string, cfg *config.Config) string {
 	return "markdown"
 }
 
+// normalizeFormat maps format aliases to their canonical converter.Format values.
+func normalizeFormat(format string) converter.Format {
+	switch strings.ToLower(format) {
+	case FormatAliasMD:
+		return converter.FormatMarkdown
+	case FormatAliasYML:
+		return converter.FormatYAML
+	case FormatAliasTXT:
+		return converter.FormatText
+	case FormatAliasHTM:
+		return converter.FormatHTML
+	default:
+		return converter.Format(strings.ToLower(format))
+	}
+}
+
 // buildConversionOptions constructs a converter.Options struct by merging CLI arguments and configuration values with defined precedence.
 // buildConversionOptions constructs a converter.Options value for the given output
 // format by combining CLI-provided flags, the provided configuration, and defaults.
@@ -463,8 +506,8 @@ func buildConversionOptions(
 	// Start with defaults
 	opt := converter.DefaultOptions()
 
-	// Set format
-	opt.Format = converter.Format(format)
+	// Set format, normalizing aliases to canonical values
+	opt.Format = normalizeFormat(format)
 
 	// Propagate quiet flag to suppress warnings
 	if cfg != nil && cfg.IsQuiet() {
@@ -579,7 +622,7 @@ func determineOutputPath(inputFile, outputFile, fileExt string, cfg *config.Conf
 }
 
 // generateOutputByFormat generates the document output in the requested format using the programmatic generator.
-// Supported formats are "markdown" (or "md"), "json", and "yaml" (or "yml").
+// Supported formats are "markdown" (or "md"), "json", "yaml" (or "yml"), "text" (or "txt"), and "html" (or "htm").
 // It returns the rendered output string, or an error if the format is unsupported or generation fails.
 func generateOutputByFormat(
 	ctx context.Context,
@@ -596,12 +639,19 @@ func generateOutputByFormat(
 	format := strings.ToLower(string(opt.Format))
 
 	switch format {
-	case FormatMarkdown, "md", FormatJSON, FormatYAML, "yml":
+	case FormatMarkdown, FormatAliasMD, FormatJSON, FormatYAML, FormatAliasYML,
+		FormatText, FormatAliasTXT, FormatHTML, FormatAliasHTM:
 		// Use programmatic generator for all formats
-		// The HybridGenerator handles markdown (via builder), JSON, and YAML natively
+		// The HybridGenerator handles markdown (via builder), JSON, YAML, text, and HTML natively
 		return generateWithProgrammaticGenerator(ctx, opnsense, opt, logger)
 	default:
-		return "", fmt.Errorf("%w: %q (supported: markdown, md, json, yaml, yml)", ErrUnsupportedOutputFormat, format)
+		return "", fmt.Errorf(
+			"%w: %q (supported: %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+			ErrUnsupportedOutputFormat,
+			format,
+			FormatMarkdown, FormatAliasMD, FormatJSON, FormatYAML, FormatAliasYML,
+			FormatText, FormatAliasTXT, FormatHTML, FormatAliasHTM,
+		)
 	}
 }
 
@@ -630,35 +680,6 @@ func generateWithProgrammaticGenerator(
 	return hybridGen.Generate(ctx, opnsense, opt)
 }
 
-// generateToWriter writes output directly to the provided io.Writer.
-// This is more memory-efficient than generateWithProgrammaticGenerator as it
-// streams markdown output section-by-section without accumulating the entire
-// output in memory first.
-//
-// This function is currently unused but provides infrastructure for future
-// streaming output support (e.g., direct file streaming, pipe support).
-//
-//nolint:unused // Infrastructure for future streaming output support
-func generateToWriter(
-	ctx context.Context,
-	w io.Writer,
-	opnsense *model.OpnSenseDocument,
-	opt converter.Options,
-	logger *logging.Logger,
-) error {
-	// Create the programmatic builder
-	reportBuilder := builder.NewMarkdownBuilder()
-
-	// Create hybrid generator (configured for programmatic mode)
-	hybridGen, err := converter.NewHybridGenerator(reportBuilder, logger)
-	if err != nil {
-		return fmt.Errorf("failed to create hybrid generator: %w", err)
-	}
-
-	// Generate directly to writer
-	return hybridGen.GenerateToWriter(ctx, w, opnsense, opt)
-}
-
 // validateConvertFlags validates flag combinations and CLI options for the convert command.
 // It ensures mutually exclusive wrap flags are not both set, checks that the chosen output
 // format is one of markdown/md/json/yaml/yml, warns when section filtering is used with
@@ -682,7 +703,10 @@ func validateConvertFlags(flags *pflag.FlagSet, cmdLogger *logging.Logger) error
 
 	// Validate format values
 	if format != "" {
-		validFormats := []string{"markdown", "md", "json", "yaml", "yml"}
+		validFormats := []string{
+			FormatMarkdown, FormatAliasMD, FormatJSON, FormatYAML, FormatAliasYML,
+			FormatText, FormatAliasTXT, FormatHTML, FormatAliasHTM,
+		}
 		if !slices.Contains(validFormats, strings.ToLower(format)) {
 			return fmt.Errorf("invalid format %q, must be one of: %s", format, strings.Join(validFormats, ", "))
 		}

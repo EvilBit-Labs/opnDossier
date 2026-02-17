@@ -362,9 +362,9 @@ func TestOptions_WithFormat(t *testing.T) {
 			expected: FormatYAML,
 		},
 		{
-			name:     "invalid format returns original",
+			name:     "invalid format is set and caught by Validate",
 			format:   Format("invalid"),
-			expected: FormatMarkdown, // DefaultOptions has markdown
+			expected: Format("invalid"),
 		},
 	}
 

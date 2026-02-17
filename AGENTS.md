@@ -281,14 +281,16 @@ When adding `io.Writer` support alongside string-based APIs:
 
 Frequently encountered linter issues and fixes:
 
-| Linter                     | Issue                         | Fix                                             |
-| -------------------------- | ----------------------------- | ----------------------------------------------- |
-| `gocritic emptyStringTest` | `len(s) == 0`                 | Use `s == ""`                                   |
-| `gosec G115`               | Integer overflow on int→int32 | Add `//nolint:gosec` with bounded value comment |
-| `mnd`                      | Magic numbers                 | Create named constants                          |
-| `minmax`                   | Manual min/max comparisons    | Use `min()`/`max()` builtins                    |
-| `goconst`                  | Repeated string literals      | Extract to package-level constants              |
-| `tparallel`                | Subtests use `t.Parallel()`   | Parent test must also call `t.Parallel()`       |
+| Linter                     | Issue                         | Fix                                                                |
+| -------------------------- | ----------------------------- | ------------------------------------------------------------------ |
+| `gocritic emptyStringTest` | `len(s) == 0`                 | Use `s == ""`                                                      |
+| `gosec G115`               | Integer overflow on int→int32 | Add `//nolint:gosec` with bounded value comment                    |
+| `mnd`                      | Magic numbers                 | Create named constants                                             |
+| `minmax`                   | Manual min/max comparisons    | Use `min()`/`max()` builtins                                       |
+| `goconst`                  | Repeated string literals      | Extract to package-level constants                                 |
+| `tparallel`                | Subtests use `t.Parallel()`   | Parent test must also call `t.Parallel()`                          |
+| `revive redefines-builtin` | Package name shadows stdlib   | Rename package (e.g., `log` → `logging`)                           |
+| `revive stutters`          | `pkg.PkgThing` repeats name   | Drop prefix: `compliance.Plugin` not `compliance.CompliancePlugin` |
 
 > [!NOTE]
 > IDE diagnostics (marked with ★ in some editors) are suggestions, not errors. The authoritative source is `just lint` - if it reports "0 issues", the code is correct regardless of IDE warnings.
@@ -536,6 +538,16 @@ Go's `encoding/xml` produces `""` for both self-closing tags (`<any/>`) and abse
 - `<any/>` (self-closing) → `*string` pointing to `""` (non-nil)
 - `<any>1</any>` → `*string` pointing to `"1"` (non-nil)
 - absent element → `nil`
+
+**Creating `*string` values — use `new(expr)` (Go 1.26+):**
+
+```go
+// Good — Go 1.26+ new(expr) syntax
+src := Source{Any: new(""), Network: new("lan")}
+
+// Legacy — StringPtr helper (still available in model package)
+src := Source{Any: model.StringPtr(""), Network: model.StringPtr("lan")}
+```
 
 Add `IsAny()` / `Equal()` methods rather than comparing `*string` fields directly. See `internal/schema/security.go` for the canonical pattern.
 
@@ -912,6 +924,10 @@ go test -race ./...   # Race detection
 go test -cover ./...  # Coverage
 go mod tidy           # Clean dependencies
 go mod verify         # Verify dependencies
+
+# Modernization (Go 1.26+)
+go run golang.org/x/tools/go/analysis/passes/modernize/cmd/modernize@latest -test -fix ./...
+# Note: remove //go:fix inline directives afterward (conflicts with gocheckcompilerdirectives)
 ```
 
 ### 10.2 Secure Build

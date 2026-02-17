@@ -173,6 +173,8 @@ func ValidFormats(_ *cobra.Command, _ []string, _ string) ([]string, cobra.Shell
 		"markdown\tStandard markdown format (default)",
 		"json\tJSON format for programmatic access",
 		"yaml\tYAML format for configuration management",
+		"text\tPlain text format (markdown without formatting)",
+		"html\tSelf-contained HTML report for web viewing",
 	}, cobra.ShellCompDirectiveNoFileComp
 }
 
