@@ -3,8 +3,6 @@ package converter
 import (
 	"errors"
 	"fmt"
-
-	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 )
 
 // Format represents the output format type.
@@ -17,6 +15,10 @@ const (
 	FormatJSON Format = "json"
 	// FormatYAML represents YAML output format.
 	FormatYAML Format = "yaml"
+	// FormatText represents plain text output format (markdown with formatting stripped).
+	FormatText Format = "text"
+	// FormatHTML represents self-contained HTML output format.
+	FormatHTML Format = "html"
 )
 
 // String returns the string representation of the format.
@@ -27,7 +29,7 @@ func (f Format) String() string {
 // Validate checks if the format is supported.
 func (f Format) Validate() error {
 	switch f {
-	case FormatMarkdown, FormatJSON, FormatYAML:
+	case FormatMarkdown, FormatJSON, FormatYAML, FormatText, FormatHTML:
 		return nil
 	default:
 		return fmt.Errorf("%w: %s", ErrUnsupportedFormat, f)
@@ -55,7 +57,7 @@ func (t Theme) String() string {
 
 // Options contains configuration options for report generation.
 type Options struct {
-	// Format specifies the output format (markdown, json, yaml).
+	// Format specifies the output format (markdown, json, yaml, text, html).
 	Format Format
 
 	// Comprehensive specifies whether to generate a comprehensive report.
@@ -140,18 +142,9 @@ func (o Options) Validate() error {
 	return nil
 }
 
-// WithFormat sets the output format.
+// WithFormat sets the output format. Format validity is checked by Options.Validate().
 func (o Options) WithFormat(format Format) Options {
-	if err := format.Validate(); err != nil {
-		if logger, loggerErr := logging.New(logging.Config{Level: "warn"}); loggerErr == nil {
-			logger.Warn("format validation failed, returning unchanged options", "format", format, "error", err)
-		}
-
-		return o
-	}
-
 	o.Format = format
-
 	return o
 }
 
