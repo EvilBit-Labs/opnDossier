@@ -19,4 +19,4 @@ python                                      = "3.14.3"
 uv                                          = "latest"
 
 [settings]
-idiomatic_version_file_enable_tools = [ "go", "python", "node" ]
+activate_aggressive = true
