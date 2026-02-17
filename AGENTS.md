@@ -926,7 +926,7 @@ go mod tidy           # Clean dependencies
 go mod verify         # Verify dependencies
 
 # Modernization (Go 1.26+)
-go run golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@latest -test -fix ./...
+go run golang.org/x/tools/go/analysis/passes/modernize/cmd/modernize@latest -test -fix ./...
 # Note: remove //go:fix inline directives afterward (conflicts with gocheckcompilerdirectives)
 ```
 
