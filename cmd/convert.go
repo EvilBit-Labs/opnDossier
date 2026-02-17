@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -676,35 +675,6 @@ func generateWithProgrammaticGenerator(
 
 	// Generate the output
 	return hybridGen.Generate(ctx, opnsense, opt)
-}
-
-// generateToWriter writes output directly to the provided io.Writer.
-// This is more memory-efficient than generateWithProgrammaticGenerator as it
-// streams markdown output section-by-section without accumulating the entire
-// output in memory first.
-//
-// This function is currently unused but provides infrastructure for future
-// streaming output support (e.g., direct file streaming, pipe support).
-//
-//nolint:unused // Infrastructure for future streaming output support
-func generateToWriter(
-	ctx context.Context,
-	w io.Writer,
-	opnsense *model.OpnSenseDocument,
-	opt converter.Options,
-	logger *logging.Logger,
-) error {
-	// Create the programmatic builder
-	reportBuilder := builder.NewMarkdownBuilder()
-
-	// Create hybrid generator (configured for programmatic mode)
-	hybridGen, err := converter.NewHybridGenerator(reportBuilder, logger)
-	if err != nil {
-		return fmt.Errorf("failed to create hybrid generator: %w", err)
-	}
-
-	// Generate directly to writer
-	return hybridGen.GenerateToWriter(ctx, w, opnsense, opt)
 }
 
 // validateConvertFlags validates flag combinations and CLI options for the convert command.

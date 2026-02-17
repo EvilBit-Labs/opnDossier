@@ -3,8 +3,6 @@ package converter
 import (
 	"errors"
 	"fmt"
-
-	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 )
 
 // Format represents the output format type.
@@ -144,18 +142,9 @@ func (o Options) Validate() error {
 	return nil
 }
 
-// WithFormat sets the output format.
+// WithFormat sets the output format. Format validity is checked by Options.Validate().
 func (o Options) WithFormat(format Format) Options {
-	if err := format.Validate(); err != nil {
-		if logger, loggerErr := logging.New(logging.Config{Level: "warn"}); loggerErr == nil {
-			logger.Warn("format validation failed, returning unchanged options", "format", format, "error", err)
-		}
-
-		return o
-	}
-
 	o.Format = format
-
 	return o
 }
 
