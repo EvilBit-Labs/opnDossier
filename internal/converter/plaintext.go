@@ -132,10 +132,12 @@ func convertLinksToPlainText(htmlContent string) string {
 	return reHTMLLink.ReplaceAllString(htmlContent, "$2 ($1)")
 }
 
-// trimLineWhitespace removes leading and trailing whitespace from each line
-// while preserving intentional indentation in tab-separated table content.
-// This cleans up artifacts from html2text (leading spaces after headings/HRs,
-// trailing spaces on list items).
+// trimLineWhitespace strips leading and trailing whitespace from each line.
+// html2text produces artifact whitespace: leading spaces after headings/HRs,
+// and trailing spaces on list items. TrimSpace is safe here because the
+// pipeline doesn't produce intentional indentation — tables use tab-separated
+// placeholders (restored after trimming), and nested lists are not generated
+// by the builder.
 func trimLineWhitespace(text string) string {
 	lines := strings.Split(text, "\n")
 	for i, line := range lines {

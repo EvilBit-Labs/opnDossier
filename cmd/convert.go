@@ -197,7 +197,7 @@ To validate your configuration files before conversion, use the 'validate' comma
 
 You can either print the generated output directly to the console or save it to a
 specified output file using the '--output' or '-o' flag. Use the '--format' or '-f'
-flag to specify the output format (markdown, json, yaml, or text).
+flag to specify the output format (markdown, json, yaml, text, or html).
 
 When processing multiple files, the --output flag will be ignored, and each output
 file will be named based on its input file with the appropriate extension
