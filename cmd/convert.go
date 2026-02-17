@@ -27,7 +27,7 @@ import (
 
 var (
 	outputFile string //nolint:gochecknoglobals // Cobra flag variable
-	format     string //nolint:gochecknoglobals // Output format (markdown, json, yaml, text)
+	format     string //nolint:gochecknoglobals // Output format (markdown, json, yaml, text, html)
 	force      bool   //nolint:gochecknoglobals // Force overwrite without prompt
 )
 
@@ -622,7 +622,7 @@ func determineOutputPath(inputFile, outputFile, fileExt string, cfg *config.Conf
 }
 
 // generateOutputByFormat generates the document output in the requested format using the programmatic generator.
-// Supported formats are "markdown" (or "md"), "json", "yaml" (or "yml"), and "text" (or "txt").
+// Supported formats are "markdown" (or "md"), "json", "yaml" (or "yml"), "text" (or "txt"), and "html" (or "htm").
 // It returns the rendered output string, or an error if the format is unsupported or generation fails.
 func generateOutputByFormat(
 	ctx context.Context,

@@ -95,11 +95,10 @@ func NewMarkdownGenerator(logger *logging.Logger, _ Options) (Generator, error) 
 }
 
 // Generate creates documentation in the specified format from the provided OPNsense configuration.
-// Supported formats: markdown (default), json, yaml.
+// Supported formats: markdown (default), json, yaml, text, and html.
 //
 // For memory-efficient streaming output, use GenerateToWriter instead.
-// Generate is preferred when you need the output as a string for further processing
-// (e.g., converting markdown to HTML).
+// Generate is preferred when you need the output as a string for further processing.
 func (g *HybridGenerator) Generate(_ context.Context, data *model.OpnSenseDocument, opts Options) (string, error) {
 	if data == nil {
 		return "", ErrNilConfiguration
@@ -135,12 +134,12 @@ func (g *HybridGenerator) Generate(_ context.Context, data *model.OpnSenseDocume
 // This is more memory-efficient than Generate() as it streams output section-by-section
 // without accumulating the entire output in memory first.
 //
+// Supported formats: markdown (default), json, yaml, text, and html.
 // For markdown format, sections are written incrementally as they are generated.
-// For JSON and YAML formats, the full output is generated then written (these formats
-// require complete document serialization).
+// For JSON, YAML, text, and HTML formats, the full output is generated then written
+// (these formats require complete document serialization or post-processing).
 //
-// Use Generate() instead when you need the output as a string for further processing
-// (e.g., converting markdown to HTML before writing).
+// Use Generate() instead when you need the output as a string for further processing.
 func (g *HybridGenerator) GenerateToWriter(
 	_ context.Context,
 	w io.Writer,
