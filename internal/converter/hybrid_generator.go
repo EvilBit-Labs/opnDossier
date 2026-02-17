@@ -95,11 +95,10 @@ func NewMarkdownGenerator(logger *logging.Logger, _ Options) (Generator, error) 
 }
 
 // Generate creates documentation in the specified format from the provided OPNsense configuration.
-// Supported formats: markdown (default), json, yaml.
+// Supported formats: markdown (default), json, yaml, text, and html.
 //
 // For memory-efficient streaming output, use GenerateToWriter instead.
-// Generate is preferred when you need the output as a string for further processing
-// (e.g., converting markdown to HTML).
+// Generate is preferred when you need the output as a string for further processing.
 func (g *HybridGenerator) Generate(_ context.Context, data *model.OpnSenseDocument, opts Options) (string, error) {
 	if data == nil {
 		return "", ErrNilConfiguration
@@ -122,6 +121,10 @@ func (g *HybridGenerator) Generate(_ context.Context, data *model.OpnSenseDocume
 		return g.generateJSON(data)
 	case string(FormatYAML), "yml":
 		return g.generateYAML(data)
+	case string(FormatText), "txt":
+		return g.generatePlainText(data, opts)
+	case string(FormatHTML), "htm":
+		return g.generateHTML(data, opts)
 	default:
 		return "", fmt.Errorf("%w: %s", ErrUnsupportedFormat, opts.Format)
 	}
@@ -131,12 +134,12 @@ func (g *HybridGenerator) Generate(_ context.Context, data *model.OpnSenseDocume
 // This is more memory-efficient than Generate() as it streams output section-by-section
 // without accumulating the entire output in memory first.
 //
+// Supported formats: markdown (default), json, yaml, text, and html.
 // For markdown format, sections are written incrementally as they are generated.
-// For JSON and YAML formats, the full output is generated then written (these formats
-// require complete document serialization).
+// For JSON, YAML, text, and HTML formats, the full output is generated then written
+// (these formats require complete document serialization or post-processing).
 //
-// Use Generate() instead when you need the output as a string for further processing
-// (e.g., converting markdown to HTML before writing).
+// Use Generate() instead when you need the output as a string for further processing.
 func (g *HybridGenerator) GenerateToWriter(
 	_ context.Context,
 	w io.Writer,
@@ -164,6 +167,10 @@ func (g *HybridGenerator) GenerateToWriter(
 		return g.generateJSONToWriter(w, data)
 	case string(FormatYAML), "yml":
 		return g.generateYAMLToWriter(w, data)
+	case string(FormatText), "txt":
+		return g.generatePlainTextToWriter(w, data, opts)
+	case string(FormatHTML), "htm":
+		return g.generateHTMLToWriter(w, data, opts)
 	default:
 		return fmt.Errorf("%w: %s", ErrUnsupportedFormat, opts.Format)
 	}
@@ -295,6 +302,64 @@ func (g *HybridGenerator) generateYAMLToWriter(w io.Writer, data *model.OpnSense
 		return fmt.Errorf("failed to encode YAML to writer: %w", err)
 	}
 	return encoder.Close()
+}
+
+// generatePlainText generates plain text output by rendering markdown first, then stripping formatting.
+func (g *HybridGenerator) generatePlainText(data *model.OpnSenseDocument, opts Options) (string, error) {
+	g.logger.Debug("Generating plain text output")
+
+	markdown, err := g.generateMarkdown(data, opts)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate markdown for plain text conversion: %w", err)
+	}
+
+	return stripMarkdownFormatting(markdown), nil
+}
+
+// generatePlainTextToWriter writes plain text output directly to the writer.
+func (g *HybridGenerator) generatePlainTextToWriter(
+	w io.Writer,
+	data *model.OpnSenseDocument,
+	opts Options,
+) error {
+	g.logger.Debug("Generating plain text output to writer")
+
+	output, err := g.generatePlainText(data, opts)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.WriteString(w, output)
+	return err
+}
+
+// generateHTML generates HTML output by rendering markdown first, then converting via goldmark.
+func (g *HybridGenerator) generateHTML(data *model.OpnSenseDocument, opts Options) (string, error) {
+	g.logger.Debug("Generating HTML output")
+
+	markdown, err := g.generateMarkdown(data, opts)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate markdown for HTML conversion: %w", err)
+	}
+
+	return renderMarkdownToHTML(markdown)
+}
+
+// generateHTMLToWriter writes HTML output directly to the writer.
+func (g *HybridGenerator) generateHTMLToWriter(
+	w io.Writer,
+	data *model.OpnSenseDocument,
+	opts Options,
+) error {
+	g.logger.Debug("Generating HTML output to writer")
+
+	output, err := g.generateHTML(data, opts)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.WriteString(w, output)
+	return err
 }
 
 // SetBuilder sets the report builder for programmatic generation.

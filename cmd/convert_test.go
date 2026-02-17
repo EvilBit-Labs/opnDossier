@@ -127,6 +127,36 @@ func TestBuildEffectiveFormat(t *testing.T) {
 	}
 }
 
+func TestNormalizeFormat(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		input    string
+		expected converter.Format
+	}{
+		{name: "md to markdown", input: "md", expected: converter.FormatMarkdown},
+		{name: "yml to yaml", input: "yml", expected: converter.FormatYAML},
+		{name: "txt to text", input: "txt", expected: converter.FormatText},
+		{name: "markdown unchanged", input: "markdown", expected: converter.FormatMarkdown},
+		{name: "json unchanged", input: "json", expected: converter.FormatJSON},
+		{name: "yaml unchanged", input: "yaml", expected: converter.FormatYAML},
+		{name: "text unchanged", input: "text", expected: converter.FormatText},
+		{name: "case insensitive MD", input: "MD", expected: converter.FormatMarkdown},
+		{name: "case insensitive TXT", input: "TXT", expected: converter.FormatText},
+		{name: "htm to html", input: "htm", expected: converter.FormatHTML},
+		{name: "html unchanged", input: "html", expected: converter.FormatHTML},
+		{name: "case insensitive HTML", input: "HTML", expected: converter.FormatHTML},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result := normalizeFormat(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
 func TestBuildConversionOptions(t *testing.T) {
 	tests := []struct {
 		name     string

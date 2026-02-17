@@ -179,13 +179,12 @@ func TestOptions(t *testing.T) {
 		assert.Equal(t, "value", opts.CustomFields["test"])
 	})
 
-	t.Run("validation logging on invalid inputs", func(t *testing.T) {
-		// Test that WithFormat logs warning and returns unchanged options on invalid format
-		originalOpts := DefaultOptions()
-		opts := originalOpts.WithFormat("invalid_format")
+	t.Run("invalid format is set and caught by Validate", func(t *testing.T) {
+		// WithFormat sets the format; validation happens at Validate() call
+		opts := DefaultOptions().WithFormat("invalid_format")
 
-		// Should return unchanged options when validation fails
-		assert.Equal(t, originalOpts.Format, opts.Format)
+		assert.Equal(t, Format("invalid_format"), opts.Format)
+		assert.Error(t, opts.Validate())
 	})
 }
 
