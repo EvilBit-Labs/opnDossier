@@ -3,6 +3,7 @@ package converter
 import (
 	"bytes"
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
@@ -11,6 +12,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// errWriter is an io.Writer that always returns an error.
+type errWriter struct{}
+
+var errWriteFailed = errors.New("write error")
+
+func (w *errWriter) Write(_ []byte) (int, error) {
+	return 0, errWriteFailed
+}
 
 func TestNewHybridGenerator(t *testing.T) {
 	t.Parallel()
@@ -283,32 +293,58 @@ func TestHybridGenerator_GenerateToWriter_InvalidOptions(t *testing.T) {
 func TestHybridGenerator_Generate_NilBuilder(t *testing.T) {
 	t.Parallel()
 
-	gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
-	require.NoError(t, err)
+	formats := []struct {
+		name   string
+		format Format
+	}{
+		{name: "markdown", format: FormatMarkdown},
+		{name: "text", format: FormatText},
+		{name: "html", format: FormatHTML},
+	}
 
-	gen.SetBuilder(nil)
+	for _, tt := range formats {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
+			require.NoError(t, err)
+			gen.SetBuilder(nil)
 
-	doc := &model.OpnSenseDocument{}
-	opts := DefaultOptions().WithFormat(FormatMarkdown)
+			doc := &model.OpnSenseDocument{}
+			opts := DefaultOptions().WithFormat(tt.format)
 
-	_, err = gen.Generate(context.Background(), doc, opts)
-	require.Error(t, err)
+			_, err = gen.Generate(context.Background(), doc, opts)
+			require.Error(t, err)
+		})
+	}
 }
 
 func TestHybridGenerator_GenerateToWriter_NilBuilder(t *testing.T) {
 	t.Parallel()
 
-	gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
-	require.NoError(t, err)
+	formats := []struct {
+		name   string
+		format Format
+	}{
+		{name: "markdown", format: FormatMarkdown},
+		{name: "text", format: FormatText},
+		{name: "html", format: FormatHTML},
+	}
 
-	gen.SetBuilder(nil)
+	for _, tt := range formats {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
+			require.NoError(t, err)
+			gen.SetBuilder(nil)
 
-	doc := &model.OpnSenseDocument{}
-	opts := DefaultOptions().WithFormat(FormatMarkdown)
+			doc := &model.OpnSenseDocument{}
+			opts := DefaultOptions().WithFormat(tt.format)
 
-	var buf bytes.Buffer
-	err = gen.GenerateToWriter(context.Background(), &buf, doc, opts)
-	require.Error(t, err)
+			var buf bytes.Buffer
+			err = gen.GenerateToWriter(context.Background(), &buf, doc, opts)
+			require.Error(t, err)
+		})
+	}
 }
 
 // nonStreamingBuilder wraps a ReportBuilder to hide the SectionWriter
@@ -375,4 +411,63 @@ func TestHybridGenerator_GenerateToWriter_UnsupportedFormat(t *testing.T) {
 	var buf bytes.Buffer
 	err = gen.GenerateToWriter(context.Background(), &buf, doc, opts)
 	require.Error(t, err)
+}
+
+func TestHybridGenerator_GenerateToWriter_WriteError(t *testing.T) {
+	t.Parallel()
+
+	formats := []struct {
+		name   string
+		format Format
+	}{
+		{name: "json", format: FormatJSON},
+		{name: "yaml", format: FormatYAML},
+		{name: "text", format: FormatText},
+		{name: "html", format: FormatHTML},
+	}
+
+	for _, tt := range formats {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
+			require.NoError(t, err)
+
+			doc := &model.OpnSenseDocument{}
+			opts := DefaultOptions().WithFormat(tt.format)
+
+			err = gen.GenerateToWriter(context.Background(), &errWriter{}, doc, opts)
+			require.Error(t, err)
+		})
+	}
+}
+
+func TestHybridGenerator_GenerateText(t *testing.T) {
+	t.Parallel()
+
+	gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
+	require.NoError(t, err)
+
+	doc := &model.OpnSenseDocument{}
+	opts := DefaultOptions().WithFormat(FormatText)
+
+	output, err := gen.Generate(context.Background(), doc, opts)
+	require.NoError(t, err)
+	assert.NotEmpty(t, output)
+	// Plain text should not contain markdown headers
+	assert.NotContains(t, output, "# ")
+}
+
+func TestHybridGenerator_GenerateTextToWriter(t *testing.T) {
+	t.Parallel()
+
+	gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
+	require.NoError(t, err)
+
+	doc := &model.OpnSenseDocument{}
+	opts := DefaultOptions().WithFormat(FormatText)
+
+	var buf bytes.Buffer
+	err = gen.GenerateToWriter(context.Background(), &buf, doc, opts)
+	require.NoError(t, err)
+	assert.NotEmpty(t, buf.String())
 }
