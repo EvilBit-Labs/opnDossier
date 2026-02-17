@@ -122,6 +122,8 @@ func (g *HybridGenerator) Generate(_ context.Context, data *model.OpnSenseDocume
 		return g.generateJSON(data)
 	case string(FormatYAML), "yml":
 		return g.generateYAML(data)
+	case string(FormatText), "txt":
+		return g.generatePlainText(data, opts)
 	default:
 		return "", fmt.Errorf("%w: %s", ErrUnsupportedFormat, opts.Format)
 	}
@@ -164,6 +166,8 @@ func (g *HybridGenerator) GenerateToWriter(
 		return g.generateJSONToWriter(w, data)
 	case string(FormatYAML), "yml":
 		return g.generateYAMLToWriter(w, data)
+	case string(FormatText), "txt":
+		return g.generatePlainTextToWriter(w, data, opts)
 	default:
 		return fmt.Errorf("%w: %s", ErrUnsupportedFormat, opts.Format)
 	}
@@ -295,6 +299,35 @@ func (g *HybridGenerator) generateYAMLToWriter(w io.Writer, data *model.OpnSense
 		return fmt.Errorf("failed to encode YAML to writer: %w", err)
 	}
 	return encoder.Close()
+}
+
+// generatePlainText generates plain text output by rendering markdown first, then stripping formatting.
+func (g *HybridGenerator) generatePlainText(data *model.OpnSenseDocument, opts Options) (string, error) {
+	g.logger.Debug("Generating plain text output")
+
+	markdown, err := g.generateMarkdown(data, opts)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate markdown for plain text conversion: %w", err)
+	}
+
+	return stripMarkdownFormatting(markdown), nil
+}
+
+// generatePlainTextToWriter writes plain text output directly to the writer.
+func (g *HybridGenerator) generatePlainTextToWriter(
+	w io.Writer,
+	data *model.OpnSenseDocument,
+	opts Options,
+) error {
+	g.logger.Debug("Generating plain text output to writer")
+
+	output, err := g.generatePlainText(data, opts)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.WriteString(w, output)
+	return err
 }
 
 // SetBuilder sets the report builder for programmatic generation.

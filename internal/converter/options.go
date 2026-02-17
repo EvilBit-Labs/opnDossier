@@ -17,6 +17,8 @@ const (
 	FormatJSON Format = "json"
 	// FormatYAML represents YAML output format.
 	FormatYAML Format = "yaml"
+	// FormatText represents plain text output format (markdown with formatting stripped).
+	FormatText Format = "text"
 )
 
 // String returns the string representation of the format.
@@ -27,7 +29,7 @@ func (f Format) String() string {
 // Validate checks if the format is supported.
 func (f Format) Validate() error {
 	switch f {
-	case FormatMarkdown, FormatJSON, FormatYAML:
+	case FormatMarkdown, FormatJSON, FormatYAML, FormatText:
 		return nil
 	default:
 		return fmt.Errorf("%w: %s", ErrUnsupportedFormat, f)
@@ -55,7 +57,7 @@ func (t Theme) String() string {
 
 // Options contains configuration options for report generation.
 type Options struct {
-	// Format specifies the output format (markdown, json, yaml).
+	// Format specifies the output format (markdown, json, yaml, text).
 	Format Format
 
 	// Comprehensive specifies whether to generate a comprehensive report.
