@@ -45,7 +45,7 @@ The CLI uses a layered architecture: **Cobra** provides command structure and ar
 
 - **Framework**: Cobra CLI
 - **Responsibility**: Command parsing, user interaction, error handling
-- **Key Files**: `cmd/root.go`, `cmd/opnsense.go`
+- **Key Files**: `cmd/root.go`, `cmd/convert.go`, `cmd/display.go`, `cmd/validate.go`
 
 ### 2. Configuration Management
 
@@ -71,14 +71,13 @@ The CLI uses a layered architecture: **Cobra** provides command structure and ar
 
 #### Output Renderer Component
 
-- **Formats**: Terminal display, Markdown files, JSON (planned)
+- **Formats**: Markdown, JSON, YAML, plain text, HTML
 - **Technologies**: Charm Lipgloss (styling) + Charm Glamour (rendering)
 
 ### 4. Output Systems
 
-- **Terminal Display**: Syntax-highlighted, styled terminal output
-- **File Export**: Markdown file generation with metadata
-- **Future**: HTML, JSON, and other structured formats
+- **Terminal Display**: Syntax-highlighted, styled terminal output via `display` command
+- **File Export**: Multi-format file generation (markdown, JSON, YAML, text, HTML)
 
 ## Data Model Architecture
 

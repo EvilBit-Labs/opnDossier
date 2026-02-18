@@ -8,132 +8,78 @@ This guide covers the most common use cases for generating documentation from OP
 
 ```bash
 # Basic conversion - outputs to console
-opnDossier convert config.xml
+opndossier convert config.xml
 
 # Save to file
-opnDossier convert config.xml -o network-docs.md
+opndossier convert config.xml -o network-docs.md
 
 # Convert with verbose output
-opnDossier --verbose convert config.xml -o network-docs.md
-```
-
-**Example Output:**
-
-```markdown
-# OPNsense Configuration Documentation
-
-## System Information
-- **Hostname**: firewall.example.com
-- **Domain**: example.com
-- **Theme**: opnsense
-
-## Interfaces
-| Name | IP Address | Subnet | Description |
-|------|------------|--------|-------------|
-| WAN | 192.168.1.1 | /24 | Internet connection |
-| LAN | 10.0.0.1 | /24 | Internal network |
-
-## Firewall Rules
-...
+opndossier --verbose convert config.xml -o network-docs.md
 ```
 
 ### Convert to JSON Format
 
 ```bash
 # Convert to JSON for programmatic access
-opnDossier convert config.xml -f json -o config.json
+opndossier convert config.xml -f json -o config.json
 
-# Pretty-printed JSON
-opnDossier convert config.xml -f json | jq '.'
+# Pretty-printed JSON (pipe through jq)
+opndossier convert config.xml -f json | jq '.'
 
-# Extract specific sections
-opnDossier convert config.xml -f json | jq '.system'
-opnDossier convert config.xml -f json | jq '.interfaces'
-```
-
-**Example Output:**
-
-```json
-{
-  "system": {
-    "hostname": "firewall.example.com",
-    "domain": "example.com",
-    "theme": "opnsense"
-  },
-  "interfaces": {
-    "wan": {
-      "ipaddr": "192.168.1.1",
-      "subnet": "24",
-      "descr": "Internet connection"
-    },
-    "lan": {
-      "ipaddr": "10.0.0.1",
-      "subnet": "24",
-      "descr": "Internal network"
-    }
-  }
-}
+# Extract specific sections from JSON output
+opndossier convert config.xml -f json | jq '.system'
+opndossier convert config.xml -f json | jq '.interfaces'
 ```
 
 ### Convert to YAML Format
 
 ```bash
 # Convert to YAML for configuration management
-opnDossier convert config.xml -f yaml -o config.yaml
+opndossier convert config.xml -f yaml -o config.yaml
 
 # Use in Ansible playbooks
-opnDossier convert config.xml -f yaml > vars/firewall_config.yml
+opndossier convert config.xml -f yaml > vars/firewall_config.yml
 ```
 
-**Example Output:**
+### Convert to Other Formats
 
-```yaml
-system:
-  hostname: firewall.example.com
-  domain: example.com
-  theme: opnsense
+```bash
+# Plain text (markdown without formatting)
+opndossier convert config.xml -f text -o output.txt
 
-interfaces:
-  wan:
-    ipaddr: 192.168.1.1
-    subnet: 24
-    descr: Internet connection
-  lan:
-    ipaddr: 10.0.0.1
-    subnet: 24
-    descr: Internal network
+# Self-contained HTML report
+opndossier convert config.xml -f html -o report.html
 ```
+
+Short aliases are also supported: `md`, `yml`, `txt`, `htm`.
 
 ## File Management Examples
 
 ### Multiple File Processing
 
 ```bash
-# Convert multiple files at once
-opnDossier convert config1.xml config2.xml config3.xml
+# Convert multiple files at once (each gets an auto-named output file)
+opndossier convert config1.xml config2.xml config3.xml
 
-# Each file gets appropriate extension
-# config1.xml -> config1.md
-# config2.xml -> config2.json
-# config3.xml -> config3.yaml
-
-# Convert multiple files to same format
-opnDossier convert -f json config1.xml config2.xml config3.xml
+# Convert multiple files to the same format
+opndossier convert -f json config1.xml config2.xml config3.xml
 ```
+
+When processing multiple files, the `--output` flag is ignored and each output file is named based on its input file with the appropriate extension.
 
 ### Batch Processing with Shell
 
 ```bash
 # Process all XML files in current directory
 for file in *.xml; do
-    opnDossier convert "$file" -o "${file%.xml}.md"
+    opndossier convert "$file" -o "${file%.xml}.md"
 done
 
 # Process files in subdirectories
-find . -name "*.xml" -exec opnDossier convert {} -o {}.md \;
+find . -name "*.xml" -exec opndossier convert {} \;
 
 # Process with parallel execution
-find . -name "*.xml" | xargs -P 4 -I {} opnDossier convert {} -o {}.md
+find . -name "*.xml" | xargs -P 4 -I {} opndossier convert {}
 ```
 
 ### Output File Organization
@@ -143,13 +89,13 @@ find . -name "*.xml" | xargs -P 4 -I {} opnDossier convert {} -o {}.md
 mkdir -p docs/{current,archive,backups}
 
 # Generate current documentation
-opnDossier convert config.xml -o docs/current/network-config.md
+opndossier convert config.xml -o docs/current/network-config.md
 
 # Archive with timestamp
-opnDossier convert config.xml -o docs/archive/$(date +%Y-%m-%d)-config.md
+opndossier convert config.xml -o "docs/archive/$(date +%Y-%m-%d)-config.md"
 
 # Create backup documentation
-opnDossier convert backup-config.xml -o docs/backups/backup-config.md
+opndossier convert backup-config.xml -o docs/backups/backup-config.md
 ```
 
 ## Configuration Management
@@ -160,35 +106,35 @@ Create `~/.opnDossier.yaml` for persistent settings:
 
 ```yaml
 # Default settings
-output_file: ./network-docs.md
 verbose: false
-theme: auto
+format: markdown
+wrap: 120
 ```
 
 ### Environment Variables
 
 ```bash
-# Set default output location
-export OPNDOSSIER_OUTPUT_FILE="./documentation.md"
+# Set default output format
+export OPNDOSSIER_FORMAT=json
 
 # Set logging preferences
 export OPNDOSSIER_VERBOSE=true
 
 # Run with environment configuration
-opnDossier convert config.xml
+opndossier convert config.xml
 ```
 
 ### CLI Flag Overrides
 
 ```bash
 # Override config file settings
-opnDossier --verbose --output=custom.md convert config.xml
+opndossier convert config.xml -o custom.md --comprehensive
 
 # Temporary verbose mode
-opnDossier --verbose convert config.xml
+opndossier --verbose convert config.xml
 
 # Use custom config file
-opnDossier --config ./project-config.yaml convert config.xml
+opndossier --config ./project-config.yaml convert config.xml
 ```
 
 ## Display Examples
@@ -197,24 +143,24 @@ opnDossier --config ./project-config.yaml convert config.xml
 
 ```bash
 # Display with syntax highlighting
-opnDossier display config.xml
+opndossier display config.xml
 
 # Display with specific theme
-opnDossier display --theme dark config.xml
-opnDossier display --theme light config.xml
+opndossier display --theme dark config.xml
+opndossier display --theme light config.xml
 
-# Display without validation
-opnDossier display --no-validate config.xml
+# Display with no theme styling
+opndossier display --theme none config.xml
 ```
 
 ### Section Filtering
 
 ```bash
 # Display only system information
-opnDossier display --section system config.xml
+opndossier display --section system config.xml
 
 # Display network and firewall sections
-opnDossier display --section network,firewall config.xml
+opndossier display --section network,firewall config.xml
 ```
 
 ## Validation Examples
@@ -223,28 +169,28 @@ opnDossier display --section network,firewall config.xml
 
 ```bash
 # Validate single file
-opnDossier validate config.xml
+opndossier validate config.xml
 
 # Validate with verbose output
-opnDossier --verbose validate config.xml
+opndossier --verbose validate config.xml
 
 # Validate multiple files
-opnDossier validate config1.xml config2.xml config3.xml
+opndossier validate config1.xml config2.xml config3.xml
 ```
 
 ### Validation in Workflows
 
 ```bash
 # Validate before converting (recommended)
-opnDossier validate config.xml && opnDossier convert config.xml
+opndossier validate config.xml && opndossier convert config.xml
 
 # Validate and convert in one step
-opnDossier validate config.xml && opnDossier convert config.xml -o validated-config.md
+opndossier validate config.xml && opndossier convert config.xml -o validated-config.md
 
 # Check validation status
-if opnDossier validate config.xml; then
+if opndossier validate config.xml; then
     echo "Configuration is valid"
-    opnDossier convert config.xml -o config.md
+    opndossier convert config.xml -o config.md
 else
     echo "Configuration has errors"
     exit 1
@@ -259,15 +205,12 @@ fi
 #!/bin/bash
 # daily-docs.sh
 
-# Set up environment
-export OPNDOSSIER_VERBOSE=true
-
 # Create timestamp
 TIMESTAMP=$(date +%Y-%m-%d_%H-%M-%S)
 
 # Validate and convert
-if opnDossier validate config.xml; then
-    opnDossier convert config.xml -o "docs/network-config-${TIMESTAMP}.md"
+if opndossier validate config.xml; then
+    opndossier convert config.xml -o "docs/network-config-${TIMESTAMP}.md"
     echo "Documentation updated successfully"
 else
     echo "Configuration validation failed"
@@ -282,8 +225,8 @@ fi
 # compare-configs.sh
 
 # Convert both configurations to JSON
-opnDossier convert current-config.xml -f json -o current.json
-opnDossier convert previous-config.xml -f json -o previous.json
+opndossier convert current-config.xml -f json -o current.json
+opndossier convert previous-config.xml -f json -o previous.json
 
 # Compare using jq (if available)
 if command -v jq &> /dev/null; then
@@ -305,11 +248,9 @@ fi
 BACKUP_DIR="backups/$(date +%Y/%m)"
 mkdir -p "$BACKUP_DIR"
 
-# Create backup documentation
-opnDossier convert config.xml -o "${BACKUP_DIR}/config-$(date +%Y-%m-%d).md"
-
-# Create JSON backup for programmatic access
-opnDossier convert config.xml -f json -o "${BACKUP_DIR}/config-$(date +%Y-%m-%d).json"
+# Create backup documentation in multiple formats
+opndossier convert config.xml -o "${BACKUP_DIR}/config-$(date +%Y-%m-%d).md"
+opndossier convert config.xml -f json -o "${BACKUP_DIR}/config-$(date +%Y-%m-%d).json"
 
 echo "Backup documentation created in ${BACKUP_DIR}"
 ```
@@ -320,20 +261,20 @@ echo "Backup documentation created in ${BACKUP_DIR}"
 
 ```bash
 # Good practice
-opnDossier validate config.xml && opnDossier convert config.xml
+opndossier validate config.xml && opndossier convert config.xml
 
-# Bad practice
-opnDossier convert config.xml  # May fail silently
+# Bad practice - may produce incomplete output on invalid input
+opndossier convert config.xml
 ```
 
 ### 2. Use Descriptive Output Names
 
 ```bash
 # Good
-opnDossier convert config.xml -o "network-config-$(date +%Y-%m-%d).md"
+opndossier convert config.xml -o "network-config-$(date +%Y-%m-%d).md"
 
 # Bad
-opnDossier convert config.xml -o output.md
+opndossier convert config.xml -o output.md
 ```
 
 ### 3. Organize Output Files
@@ -343,9 +284,9 @@ opnDossier convert config.xml -o output.md
 mkdir -p docs/{current,archive,backups,exports}
 
 # Use appropriate directories
-opnDossier convert config.xml -o docs/current/network.md
-opnDossier convert backup.xml -o docs/backups/backup.md
-opnDossier convert config.xml -f json -o docs/exports/config.json
+opndossier convert config.xml -o docs/current/network.md
+opndossier convert backup.xml -o docs/backups/backup.md
+opndossier convert config.xml -f json -o docs/exports/config.json
 ```
 
 ### 4. Use Environment Variables for Automation
@@ -353,11 +294,10 @@ opnDossier convert config.xml -f json -o docs/exports/config.json
 ```bash
 # Set up environment
 export OPNDOSSIER_VERBOSE=true
-export OPNDOSSIER_OUTPUT_FILE="./docs/network-config.md"
+export OPNDOSSIER_FORMAT=json
 
-# Run commands
-opnDossier validate config.xml
-opnDossier convert config.xml
+# Run commands with consistent settings
+opndossier convert config.xml -o output.json
 ```
 
 ### 5. Handle Errors Gracefully
@@ -369,13 +309,13 @@ opnDossier convert config.xml
 set -e  # Exit on any error
 
 # Validate configuration
-if ! opnDossier validate config.xml; then
+if ! opndossier validate config.xml; then
     echo "Configuration validation failed"
     exit 1
 fi
 
 # Convert with error handling
-if opnDossier convert config.xml -o network-docs.md; then
+if opndossier convert config.xml -o network-docs.md; then
     echo "Documentation generated successfully"
 else
     echo "Documentation generation failed"
@@ -387,6 +327,6 @@ fi
 
 **Next Steps:**
 
-- For security auditing, see [Audit and Compliance](audit-compliance.md)
 - For automation, see [Automation and Scripting](automation-scripting.md)
+- For advanced configuration, see [Advanced Configuration](advanced-configuration.md)
 - For troubleshooting, see [Troubleshooting](troubleshooting.md)

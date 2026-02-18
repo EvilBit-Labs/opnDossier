@@ -6,58 +6,23 @@ This guide covers advanced configuration options and customization techniques fo
 
 ### Built-in Themes
 
+opnDossier supports four display themes for terminal rendering:
+
 ```bash
+# Auto-detect theme based on terminal
+opndossier display config.xml --theme auto
+
 # Use light theme
-opnDossier display config.xml --theme light
+opndossier display config.xml --theme light
 
 # Use dark theme
-opnDossier display config.xml --theme dark
+opndossier display config.xml --theme dark
 
-# Auto-detect theme
-opnDossier display config.xml --theme auto
-
-# No theme (plain text)
-opnDossier display config.xml --theme none
+# No theme (plain text output)
+opndossier display config.xml --theme none
 ```
 
-### Custom Theme Configuration
-
-Create a custom theme configuration:
-
-```yaml
-# ~/.opnDossier/themes/custom.yaml
-colors:
-  primary: '#2563eb'
-  secondary: '#64748b'
-  success: '#059669'
-  warning: '#d97706'
-  error: '#dc2626'
-  background: '#ffffff'
-  foreground: '#1f2937'
-
-styles:
-  header:
-    bold: true
-    color: primary
-  subheader:
-    color: secondary
-  success:
-    color: success
-  warning:
-    color: warning
-  error:
-    color: error
-```
-
-### Using Custom Themes
-
-```bash
-# Use custom theme
-opnDossier display config.xml --theme custom
-
-# Create theme-specific output
-opnDossier display config.xml --theme dark --wrap 120
-```
+Available themes: `auto` (default), `dark`, `light`, `none`.
 
 ## Section Filtering
 
@@ -65,26 +30,16 @@ opnDossier display config.xml --theme dark --wrap 120
 
 ```bash
 # Display only system information
-opnDossier display config.xml --section system
+opndossier display config.xml --section system
 
 # Display network and firewall sections
-opnDossier display config.xml --section network,firewall
+opndossier display config.xml --section network,firewall
 
 # Display multiple sections
-opnDossier display config.xml --section system,interfaces,firewall
-```
+opndossier display config.xml --section system,network,firewall
 
-### Advanced Section Filtering
-
-```bash
-# Filter by specific interface
-opnDossier display config.xml --section interfaces.wan,interfaces.lan
-
-# Filter by rule type
-opnDossier display config.xml --section firewall.rules.pass,firewall.rules.block
-
-# Filter by service
-opnDossier display config.xml --section services.dhcp,services.dns
+# Convert only specific sections
+opndossier convert config.xml --section system,network -o partial-report.md
 ```
 
 ## Output Formatting
@@ -92,98 +47,91 @@ opnDossier display config.xml --section services.dhcp,services.dns
 ### Text Wrapping
 
 ```bash
-# Set text wrap width
-opnDossier display config.xml --wrap 80
-
-# No text wrapping
-opnDossier display config.xml --wrap 0
+# Set text wrap width (range: 40-200 columns)
+opndossier display config.xml --wrap 80
 
 # Wide format for large screens
-opnDossier display config.xml --wrap 160
+opndossier display config.xml --wrap 160
+
+# Disable text wrapping entirely
+opndossier display config.xml --no-wrap
+
+# Auto-detect terminal width (default behavior)
+opndossier display config.xml --wrap -1
+```
+
+The `--wrap` and `--no-wrap` flags are mutually exclusive.
+
+### Comprehensive Reports
+
+```bash
+# Generate detailed comprehensive report
+opndossier convert config.xml --comprehensive -o detailed-report.md
+
+# Include system tunables in the report
+opndossier convert config.xml --include-tunables -o tunables-report.md
+
+# Combine comprehensive with tunables
+opndossier convert config.xml --comprehensive --include-tunables -o full-report.md
 ```
 
 ### Custom Output Formats
 
-#### JSON with Custom Structure
+#### JSON with Custom Processing
 
 ```bash
-# Convert to JSON with specific structure
-opnDossier convert config.xml -f json | jq '{
+# Convert to JSON and extract specific data with jq
+opndossier convert config.xml -f json | jq '{
   hostname: .system.hostname,
   domain: .system.domain,
-  interfaces: .interfaces,
-  rule_count: (.filter.rules | length)
+  interfaces: .interfaces
 }'
 ```
 
 #### YAML with Filtering
 
 ```bash
-# Convert to YAML with specific sections
-opnDossier convert config.xml -f yaml | yq '.system, .interfaces'
+# Convert to YAML and extract sections with yq
+opndossier convert config.xml -f yaml | yq '.system'
 ```
 
-## Advanced Configuration Files
+## Configuration File
 
-### Comprehensive Configuration
+### Basic Configuration
 
-Create `~/.opnDossier.yaml`:
+Create `~/.opnDossier.yaml` for persistent settings:
 
 ```yaml
-# Global configuration
+# Logging configuration
 verbose: false
-theme: auto
+quiet: false
 
 # Output settings
-output_file: ./network-docs.md
-wrap_width: 120
+format: markdown
+wrap: 120
 
-# Display settings
-sections: [system, interfaces, firewall, nat]
-exclude_sections: [certificates, vpn]
-
-# Performance settings
-max_memory: 512MB
-timeout: 300s
+# Content options
+sections: []
 ```
 
-### Environment-Specific Configuration
-
-Create `~/.opnDossier/production.yaml`:
-
-```yaml
-# Production environment settings
-output_file: /var/www/docs/network-config.md
-
-# Performance settings
-max_memory: 1GB
-timeout: 600s
-```
-
-Create `~/.opnDossier/development.yaml`:
-
-```yaml
-# Development environment settings
-verbose: true
-output_file: ./dev-docs.md
-
-# Performance settings
-max_memory: 256MB
-timeout: 60s
-```
-
-### Using Environment-Specific Configs
+### Using a Custom Config File
 
 ```bash
-# Use production configuration
-opnDossier --config ~/.opnDossier/production.yaml convert config.xml
+# Use a project-specific config
+opndossier --config ./project-config.yaml convert config.xml
 
-# Use development configuration
-opnDossier --config ~/.opnDossier/development.yaml convert config.xml
-
-# Override specific settings
-opnDossier --config ~/.opnDossier/production.yaml --verbose convert config.xml
+# Override specific settings from the config file
+opndossier --config ./project-config.yaml --verbose convert config.xml
 ```
+
+### Configuration Precedence
+
+Settings are applied in this order (highest to lowest priority):
+
+1. **Command-line flags** - Direct CLI arguments
+2. **Environment variables** - `OPNDOSSIER_*` prefixed variables
+3. **Configuration file** - `~/.opnDossier.yaml`
+4. **Default values** - Built-in defaults
 
 ## Advanced Workflows
 
@@ -200,9 +148,10 @@ OUTPUT_DIR="$2"
 mkdir -p "$OUTPUT_DIR"
 
 # Generate multiple formats
-opnDossier convert "$CONFIG_FILE" -o "$OUTPUT_DIR/network-config.md"
-opnDossier convert "$CONFIG_FILE" -f json -o "$OUTPUT_DIR/network-config.json"
-opnDossier convert "$CONFIG_FILE" -f yaml -o "$OUTPUT_DIR/network-config.yaml"
+opndossier convert "$CONFIG_FILE" -o "$OUTPUT_DIR/network-config.md"
+opndossier convert "$CONFIG_FILE" -f json -o "$OUTPUT_DIR/network-config.json"
+opndossier convert "$CONFIG_FILE" -f yaml -o "$OUTPUT_DIR/network-config.yaml"
+opndossier convert "$CONFIG_FILE" -f html -o "$OUTPUT_DIR/network-config.html"
 
 echo "Multi-format generation completed in $OUTPUT_DIR"
 ```
@@ -215,36 +164,23 @@ echo "Multi-format generation completed in $OUTPUT_DIR"
 
 CONFIG_FILE="$1"
 
-# Check file size
-FILE_SIZE=$(stat -c%s "$CONFIG_FILE")
-
-if [ "$FILE_SIZE" -gt 1048576 ]; then
-    # Large file - use optimized settings
-    opnDossier convert "$CONFIG_FILE" \
-        --max-memory 1GB \
-        --timeout 600s \
-        -o large-config-report.md
-else
-    # Small file - use standard settings
-    opnDossier convert "$CONFIG_FILE" \
-      --comprehensive \
-      -o standard-report.md
+# Validate before any processing
+if ! opndossier validate "$CONFIG_FILE"; then
+    echo "Configuration validation failed"
+    exit 1
 fi
-```
 
-## Performance Optimization
+# Generate standard report
+opndossier convert "$CONFIG_FILE" \
+    --comprehensive \
+    -o standard-report.md
 
-### Memory Management
+# Generate JSON export for programmatic processing
+opndossier convert "$CONFIG_FILE" \
+    -f json \
+    -o config-data.json
 
-```bash
-# Set memory limits
-opnDossier convert config.xml --max-memory 512MB
-
-# Monitor memory usage
-/usr/bin/time -v opnDossier convert config.xml
-
-# Use streaming for large files
-opnDossier convert large-config.xml --streaming
+echo "Processing complete"
 ```
 
 ### Parallel Processing
@@ -252,38 +188,65 @@ opnDossier convert large-config.xml --streaming
 ```bash
 # Process multiple files in parallel
 find configs/ -name "*.xml" | xargs -P 4 -I {} \
-    opnDossier convert {} -o docs/{}.md
+    opndossier convert {} -o docs/{}.md
 
 # Batch processing with parallel execution
 for config in configs/*.xml; do
-    opnDossier convert "$config" -o "docs/$(basename "$config" .xml).md" &
+    opndossier convert "$config" -o "docs/$(basename "$config" .xml).md" &
 done
 wait
 ```
 
-## Best Practices
+## Environment Variables
 
-### 1. Configuration Management
+All configuration options can be set via environment variables:
 
 ```bash
-# Use version control for configurations
-git init ~/.opnDossier
-cd ~/.opnDossier
-git add .
-git commit -m "Initial opnDossier configuration"
+# Logging preferences
+export OPNDOSSIER_VERBOSE=true
+export OPNDOSSIER_QUIET=false
 
-# Use environment-specific configs
-export OPNDOSSIER_CONFIG=~/.opnDossier/production.yaml
+# Output settings
+export OPNDOSSIER_FORMAT=json
+export OPNDOSSIER_WRAP=100
+
+# Use in scripts
+opndossier convert config.xml -o output.json
 ```
 
-### 2. Performance Monitoring
+## Best Practices
+
+### 1. Use Configuration Files for Persistent Settings
 
 ```bash
-# Track memory usage
-opnDossier convert config.xml --memory-profile
+# Store frequently used settings in ~/.opnDossier.yaml
+cat > ~/.opnDossier.yaml << 'EOF'
+verbose: false
+format: markdown
+wrap: 120
+EOF
+```
 
-# Optimize based on usage patterns
-opnDossier convert config.xml --optimize --cache-results
+### 2. Use Environment Variables for CI/CD
+
+```bash
+#!/bin/bash
+# ci-pipeline.sh
+
+export OPNDOSSIER_QUIET=true
+export OPNDOSSIER_FORMAT=json
+
+opndossier convert config.xml -o report.json
+```
+
+### 3. Use CLI Flags for One-off Overrides
+
+```bash
+# Debug a specific run
+opndossier --verbose convert problematic-config.xml
+
+# Generate output in a different format temporarily
+opndossier convert config.xml -f yaml -o temp-output.yaml
 ```
 
 ---
@@ -291,5 +254,5 @@ opnDossier convert config.xml --optimize --cache-results
 **Next Steps:**
 
 - For basic documentation, see [Basic Documentation](basic-documentation.md)
-- For audit and compliance, see [Audit and Compliance](audit-compliance.md)
 - For automation, see [Automation and Scripting](automation-scripting.md)
+- For troubleshooting, see [Troubleshooting](troubleshooting.md)

@@ -1,6 +1,9 @@
 # Audit and Compliance Examples
 
-Audit mode functionality has been deferred to v2.1 to keep the v2.0 release focused and clean.
+Audit mode has known issues with finding aggregation and display. See [#266](https://github.com/EvilBit-Labs/opnDossier/issues/266) for details.
 
-- Tracking issue: [#174](https://github.com/EvilBit-Labs/opnDossier/issues/174)
-- Current functionality: [Basic Usage](../user-guide/usage.md), [Advanced Configuration](advanced-configuration.md), and [Automation and Scripting](automation-scripting.md)
+Until these are resolved, refer to:
+
+- [Basic Usage](../user-guide/usage.md)
+- [Advanced Configuration](advanced-configuration.md)
+- [Automation and Scripting](automation-scripting.md)

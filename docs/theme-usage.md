@@ -1,6 +1,6 @@
 # Theme System Usage
 
-This document describes how to use the comprehensive theme system in opnDossier.
+This document describes how to use the comprehensive theme system in opndossier.
 
 ## Theme Configuration
 
@@ -17,13 +17,13 @@ The theme system supports multiple configuration methods with the following prec
 
 ```bash
 # Force light theme
-opnDossier --theme light convert config.xml
+opndossier --theme light convert config.xml
 
 # Force dark theme
-opnDossier --theme dark convert config.xml
+opndossier --theme dark convert config.xml
 
 # Use custom theme
-opnDossier --theme custom convert config.xml
+opndossier --theme custom convert config.xml
 ```
 
 ### Environment Variable
@@ -31,16 +31,16 @@ opnDossier --theme custom convert config.xml
 ```bash
 # Set theme via environment variable
 export OPNDOSSIER_THEME=dark
-opnDossier convert config.xml
+opndossier convert config.xml
 
 # One-time override
-OPNDOSSIER_THEME=light opnDossier convert config.xml
+OPNDOSSIER_THEME=light opndossier convert config.xml
 ```
 
 ### YAML Configuration
 
 ```yaml
-# ~/.opnDossier.yaml
+# ~/.opndossier.yaml
 theme: dark
 ```
 

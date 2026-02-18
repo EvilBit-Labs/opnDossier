@@ -99,15 +99,14 @@ just check             # Run pre-commit checks
 just ci-check          # Full CI validation locally
 
 # Security scanning
-just scan-vulnerabilities  # Grype vulnerability scan
-just generate-sbom          # Generate SBOM with Syft
-just snyk-scan             # Snyk vulnerability scan (CLI)
-just fossa-scan            # FOSSA license analysis (CLI)
-just security-scan         # Comprehensive security scan
+just scan                  # Run gosec security scanner
+just sbom                  # Generate SBOM with cyclonedx-gomod
+just security-all          # Run all security checks (SBOM + scan)
 
 # Release workflow
-just build-for-release     # Test release build
-just check-goreleaser      # Validate GoReleaser config
+just build-release         # Build optimized release binary
+just release-check         # Validate GoReleaser config
+just release-snapshot      # Test release build (snapshot)
 ```
 
 ## Quality Gates
@@ -205,12 +204,12 @@ To verify Pipeline v2 compliance:
 
 ```bash
 # Run full compliance check
-just full-checks
+just ci-full
 
 # Check individual components
 just ci-check          # Core quality gates
-just security-scan     # Security compliance
-just check-goreleaser  # Release compliance
+just security-all      # Security compliance
+just release-check     # Release compliance
 ```
 
 ## Resources
