@@ -56,7 +56,7 @@ The project follows comprehensive coding standards outlined in our [AGENTS.md](h
 
 ## License
 
-This project is open source and available under the MIT License.
+This project is open source and available under the [Apache License 2.0](https://github.com/EvilBit-Labs/opnDossier/blob/main/LICENSE).
 
 ## Contributing
 

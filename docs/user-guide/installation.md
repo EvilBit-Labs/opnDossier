@@ -4,7 +4,7 @@ This guide covers various methods to install opnDossier on your system.
 
 ## Prerequisites
 
-- **Go 1.21+** (for building from source)
+- **Go 1.24.2+** (for building from source, 1.26+ recommended)
 - **Linux, macOS, or Windows** (cross-platform support)
 
 ## Installation Methods
@@ -33,7 +33,7 @@ just install
 just build
 
 # Or build manually
-go build -o opnDossier main.go
+go build -o opndossier main.go
 ```
 
 #### Using Just (Task Runner)
@@ -66,7 +66,7 @@ Pre-built binaries are available for multiple platforms:
 
 ```bash
 # Download the latest release for your platform
-curl -L https://github.com/EvilBit-Labs/opnDossier/releases/latest/download/opnDossier-linux-amd64 -o opnDossier
+curl -L https://github.com/EvilBit-Labs/opnDossier/releases/latest/download/opnDossier-linux-amd64 -o opndossier
 
 # Download the SHA-256 checksum file for verification
 curl -L https://github.com/EvilBit-Labs/opnDossier/releases/latest/download/checksums.txt -o checksums.txt
@@ -77,8 +77,8 @@ shasum -a 256 -c checksums.txt 2>/dev/null | grep opnDossier-linux-amd64 || \
 echo "Warning: Could not verify checksum. Proceed with caution."
 
 # Make executable and install (only if verification passed)
-chmod +x opnDossier
-sudo mv opnDossier /usr/local/bin/
+chmod +x opndossier
+sudo mv opndossier /usr/local/bin/
 
 # Clean up checksum file
 rm checksums.txt
@@ -98,33 +98,36 @@ Verify your installation:
 
 ```bash
 # Check version
-opnDossier --version
+opndossier version
 
 # Test basic functionality
-opnDossier --help
+opndossier --help
 
-# Verify Fang enhancements are working
-opnDossier completion bash  # Should show bash completion script
+# Test shell completion
+opndossier completion bash  # Should show bash completion script
 ```
 
 ## Configuration Setup
 
-### 1. Create Configuration Directory
+### 1. Create Configuration File
+
+opnDossier looks for a configuration file at `~/.opnDossier.yaml`:
 
 ```bash
-# Configuration file location (following XDG Base Directory Specification)
-mkdir -p ~/.config/opnDossier
-touch ~/.config/opnDossier/config.yaml
+touch ~/.opnDossier.yaml
 ```
+
+You can also specify a custom config file location with the `--config` flag.
 
 ### 2. Basic Configuration
 
 Create a basic configuration file:
 
 ```yaml
-# ~/.config/opnDossier/config.yaml
+# ~/.opnDossier.yaml
 verbose: false
 quiet: false
+format: markdown
 ```
 
 ### 3. Environment Variables
@@ -138,42 +141,42 @@ export OPNDOSSIER_VERBOSE=false
 
 ## Shell Completion
 
-opnDossier includes shell completion support via Fang:
+opnDossier includes shell completion support:
 
 ### Bash
 
 ```bash
 # Add to ~/.bashrc
-source <(opnDossier completion bash)
+source <(opndossier completion bash)
 
 # Or install globally
-opnDossier completion bash > /etc/bash_completion.d/opnDossier
+opndossier completion bash > /etc/bash_completion.d/opndossier
 ```
 
 ### Zsh
 
 ```bash
 # Add to ~/.zshrc
-source <(opnDossier completion zsh)
+source <(opndossier completion zsh)
 
 # Or for oh-my-zsh
-opnDossier completion zsh > ~/.oh-my-zsh/completions/_opnDossier
+opndossier completion zsh > ~/.oh-my-zsh/completions/_opndossier
 ```
 
 ### Fish
 
 ```bash
-opnDossier completion fish | source
+opndossier completion fish | source
 
 # Or save to file
-opnDossier completion fish > ~/.config/fish/completions/opnDossier.fish
+opndossier completion fish > ~/.config/fish/completions/opndossier.fish
 ```
 
 ### PowerShell
 
 ```powershell
 # Add to PowerShell profile
-opnDossier completion powershell | Out-String | Invoke-Expression
+opndossier completion powershell | Out-String | Invoke-Expression
 ```
 
 ## Troubleshooting
@@ -192,14 +195,14 @@ opnDossier completion powershell | Out-String | Invoke-Expression
 
    ```bash
    # Make binary executable
-   chmod +x opnDossier
+   chmod +x opndossier
    ```
 
 3. **Config file not found**
 
    ```bash
    # Verify config file location
-   ls -la ~/.config/opnDossier/config.yaml
+   ls -la ~/.opnDossier.yaml
 
    # Use custom config location
    opndossier --config /path/to/config.yaml convert config.xml
@@ -228,72 +231,14 @@ For development and contributing:
 git clone https://github.com/EvilBit-Labs/opnDossier.git
 cd opnDossier
 
-# Install development dependencies
-just install-dev
+# Install dependencies (Go modules + pre-commit hooks)
+just install
 
-# Run development checks
-just dev-check
+# Run quality checks
+just check
 
-# Set up pre-commit hooks
-just setup-hooks
-```
-
-## Container Installation
-
-### Docker
-
-```bash
-# Build container image
-docker build -t opndossier .
-
-# Run in container
-docker run --rm -v $(pwd):/data opndossier convert /data/config.xml
-```
-
-### Kubernetes
-
-The following example mounts the configuration file to `/app/config/config.yaml` and uses the `--config` flag to specify its location. Alternatively, you can mount the config to `/etc/opndossier/config.yaml` or use environment variables for configuration.
-
-**ConfigMap:**
-
-```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: opndossier-config
-data:
-  config.yaml: |
-    verbose: "false"
-```
-
-**Job:**
-
-```yaml
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: opndossier-job
-spec:
-  template:
-    spec:
-      containers:
-        - name: opndossier
-          image: opndossier:latest
-          args: [convert, /data/config.xml, --config, /app/config/config.yaml]
-          volumeMounts:
-            - name: config
-              mountPath: /app/config
-              subPath: config.yaml
-            - name: data
-              mountPath: /data
-      volumes:
-        - name: config
-          configMap:
-            name: opndossier-config
-        - name: data
-          persistentVolumeClaim:
-            claimName: opndossier-data
-      restartPolicy: Never
+# Run CI-equivalent checks
+just ci-check
 ```
 
 ## Next Steps

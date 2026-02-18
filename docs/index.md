@@ -1,5 +1,7 @@
 # OPNsense Configuration Processor
 
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/11920/badge)](https://www.bestpractices.dev/projects/11920)
+
 Welcome to the **OPNsense Configuration Processor** documentation! This CLI tool helps you process OPNsense `config.xml` files and convert them to human-readable markdown format.
 
 ## Features
