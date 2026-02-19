@@ -11,47 +11,67 @@ Configuration sources are applied in this order (highest to lowest priority):
 3. **Configuration file** - `~/.opnDossier.yaml`
 4. **Default values** - Built-in defaults
 
-## Complete Configuration Options
+## Global Options
+
+These options apply to all commands (`convert`, `display`, `validate`).
 
 ### Logging & Output
 
-| Setting         | CLI Flag    | Environment Variable | Config File | Type    | Default | Description                                           |
-| --------------- | ----------- | -------------------- | ----------- | ------- | ------- | ----------------------------------------------------- |
-| Verbose logging | `--verbose` | `OPNDOSSIER_VERBOSE` | `verbose`   | boolean | `false` | Enable debug/verbose output with detailed information |
-| Quiet mode      | `--quiet`   | `OPNDOSSIER_QUIET`   | `quiet`     | boolean | `false` | Suppress all non-error output                         |
+| Setting         | CLI Flag        | Environment Variable     | Config File   | Type    | Default  | Description                                |
+| --------------- | --------------- | ------------------------ | ------------- | ------- | -------- | ------------------------------------------ |
+| Verbose logging | `--verbose`     | `OPNDOSSIER_VERBOSE`     | `verbose`     | boolean | `false`  | Enable debug-level logging                 |
+| Quiet mode      | `--quiet`       | `OPNDOSSIER_QUIET`       | `quiet`       | boolean | `false`  | Suppress all output except errors          |
+| Color output    | `--color`       | `OPNDOSSIER_COLOR`       | -             | string  | `"auto"` | Color output: auto, always, never          |
+| No progress     | `--no-progress` | `OPNDOSSIER_NO_PROGRESS` | `no_progress` | boolean | `false`  | Disable progress indicators                |
+| Timestamps      | `--timestamps`  | -                        | -             | boolean | `false`  | Include timestamps in log output           |
+| Minimal mode    | `--minimal`     | `OPNDOSSIER_MINIMAL`     | `minimal`     | boolean | `false`  | Minimal output (suppress progress/verbose) |
+| JSON output     | `--json-output` | `OPNDOSSIER_JSON_OUTPUT` | `json_output` | boolean | `false`  | Output errors in JSON format               |
+| Config file     | `--config`      | -                        | -             | string  | `""`     | Custom config file path                    |
 
-### Input & Output Files
+## Convert Command Options
 
-| Setting     | CLI Flag       | Environment Variable     | Config File   | Type   | Default | Description                         |
-| ----------- | -------------- | ------------------------ | ------------- | ------ | ------- | ----------------------------------- |
-| Input file  | (positional)   | `OPNDOSSIER_INPUT_FILE`  | `input_file`  | string | -       | Path to OPNsense config.xml file    |
-| Output file | `-o, --output` | `OPNDOSSIER_OUTPUT_FILE` | `output_file` | string | stdout  | Output file path for generated docs |
+### Output Control
 
-### Format & Display
+| Setting     | CLI Flag       | Environment Variable     | Config File   | Type    | Default      | Description                             |
+| ----------- | -------------- | ------------------------ | ------------- | ------- | ------------ | --------------------------------------- |
+| Output file | `-o, --output` | `OPNDOSSIER_OUTPUT_FILE` | `output_file` | string  | stdout       | Output file path                        |
+| Format      | `-f, --format` | `OPNDOSSIER_FORMAT`      | `format`      | string  | `"markdown"` | Output format (see below)               |
+| Force       | `--force`      | -                        | -             | boolean | `false`      | Overwrite existing files without prompt |
 
-| Setting       | CLI Flag       | Environment Variable | Config File | Type   | Default    | Description                                  |
-| ------------- | -------------- | -------------------- | ----------- | ------ | ---------- | -------------------------------------------- |
-| Output format | `-f, --format` | `OPNDOSSIER_FORMAT`  | `format`    | string | `markdown` | Output format: markdown, json, yaml          |
-| Wrap width    | `--wrap`       | `OPNDOSSIER_WRAP`    | `wrap`      | int    | `120`      | Text wrap width for display command (0=auto) |
-| Theme         | `--theme`      | `OPNDOSSIER_THEME`   | `theme`     | string | `auto`     | Display theme: auto, dark, light, notty      |
+Supported formats: `markdown` (`md`), `json`, `yaml` (`yml`), `text` (`txt`), `html` (`htm`)
 
-### Processing Options
+### Content & Formatting
 
-| Setting          | CLI Flag             | Environment Variable          | Config File        | Type    | Default  | Description                                  |
-| ---------------- | -------------------- | ----------------------------- | ------------------ | ------- | -------- | -------------------------------------------- |
-| Validate         | `--validate`         | `OPNDOSSIER_VALIDATE`         | `validate`         | boolean | `false`  | Enable configuration validation              |
-| Validation mode  | `--validation-mode`  | `OPNDOSSIER_VALIDATION_MODE`  | `validation_mode`  | string  | `strict` | Validation mode: strict, lenient, permissive |
-| Include tunables | `--include-tunables` | `OPNDOSSIER_INCLUDE_TUNABLES` | `include_tunables` | boolean | `false`  | Include system tunables in output            |
-| Streaming mode   | `--streaming`        | `OPNDOSSIER_STREAMING`        | `streaming`        | boolean | `false`  | Enable streaming for large files             |
+| Setting          | CLI Flag             | Environment Variable  | Config File | Type     | Default | Description                                             |
+| ---------------- | -------------------- | --------------------- | ----------- | -------- | ------- | ------------------------------------------------------- |
+| Sections         | `--section`          | `OPNDOSSIER_SECTIONS` | `sections`  | string[] | `[]`    | Sections: system, network, firewall, services, security |
+| Wrap width       | `--wrap`             | `OPNDOSSIER_WRAP`     | `wrap`      | int      | `-1`    | Text wrap width (-1=auto, 0=off, >0=cols)               |
+| No wrap          | `--no-wrap`          | -                     | -           | boolean  | `false` | Disable text wrapping (alias for --wrap 0)              |
+| Comprehensive    | `--comprehensive`    | -                     | -           | boolean  | `false` | Generate comprehensive detailed reports                 |
+| Include tunables | `--include-tunables` | -                     | -           | boolean  | `false` | Include system tunables in output                       |
 
-### Advanced Options
+### Audit & Compliance
 
-| Setting       | CLI Flag          | Environment Variable       | Config File     | Type    | Default | Description                           |
-| ------------- | ----------------- | -------------------------- | --------------- | ------- | ------- | ------------------------------------- |
-| Max memory    | `--max-memory`    | `OPNDOSSIER_MAX_MEMORY`    | `max_memory`    | string  | `500M`  | Maximum memory usage (e.g., 100M, 1G) |
-| Timeout       | `--timeout`       | `OPNDOSSIER_TIMEOUT`       | `timeout`       | int     | `120`   | Processing timeout in seconds         |
-| Show warnings | `--show-warnings` | `OPNDOSSIER_SHOW_WARNINGS` | `show_warnings` | boolean | `true`  | Display validation warnings           |
-| Color output  | `--color`         | `OPNDOSSIER_COLOR`         | `color`         | string  | `auto`  | Color output: auto, always, never     |
+| Setting       | CLI Flag           | Environment Variable | Config File | Type     | Default | Description                           |
+| ------------- | ------------------ | -------------------- | ----------- | -------- | ------- | ------------------------------------- |
+| Audit mode    | `--audit-mode`     | -                    | -           | string   | `""`    | Audit mode: standard, blue, red       |
+| Audit plugins | `--audit-plugins`  | -                    | -           | string[] | `[]`    | Plugins: stig, sans, firewall         |
+| Blackhat mode | `--audit-blackhat` | -                    | -           | boolean  | `false` | Enable blackhat commentary (red mode) |
+
+## Display Command Options
+
+| Setting          | CLI Flag             | Environment Variable  | Config File | Type     | Default | Description                                             |
+| ---------------- | -------------------- | --------------------- | ----------- | -------- | ------- | ------------------------------------------------------- |
+| Theme            | `--theme`            | `OPNDOSSIER_THEME`    | `theme`     | string   | `""`    | Rendering theme: auto, dark, light, none                |
+| Sections         | `--section`          | `OPNDOSSIER_SECTIONS` | `sections`  | string[] | `[]`    | Sections: system, network, firewall, services, security |
+| Wrap width       | `--wrap`             | `OPNDOSSIER_WRAP`     | `wrap`      | int      | `-1`    | Text wrap width (-1=auto, 0=off, >0=cols)               |
+| No wrap          | `--no-wrap`          | -                     | -           | boolean  | `false` | Disable text wrapping                                   |
+| Comprehensive    | `--comprehensive`    | -                     | -           | boolean  | `false` | Generate comprehensive reports                          |
+| Include tunables | `--include-tunables` | -                     | -           | boolean  | `false` | Include system tunables in output                       |
+
+## Validate Command Options
+
+The validate command uses only global flags. It has no command-specific flags.
 
 ## Configuration File Format
 
@@ -61,53 +81,25 @@ Create `~/.opnDossier.yaml` with your preferred settings:
 
 ```yaml
 # Logging Configuration
-verbose: false # Enable verbose output
-quiet: false # Suppress non-error output
+verbose: false
+quiet: false
+
+# Output Settings
+format: markdown
+wrap: 120
+sections: []
 
 # File Paths
-input_file: /path/to/default/config.xml
-output_file: ./output.md
+input_file: ''
+output_file: ''
 
-# Format & Display
-format: markdown # markdown, json, yaml
-wrap: 120 # Text wrap width (0 for auto)
-theme: auto # auto, dark, light, notty
+# Display
+theme: ''
 
-# Processing Options
-validate: true # Enable validation
-validation_mode: strict # strict, lenient, permissive
-include_tunables: false # Include system tunables
-streaming: false # Enable streaming mode
-
-# Advanced Options
-max_memory: 500M # Maximum memory usage
-timeout: 120 # Timeout in seconds
-show_warnings: true # Show validation warnings
-color: auto # auto, always, never
-```
-
-### JSON Configuration File (Alternative)
-
-opnDossier also supports JSON format:
-
-```json
-{
-  "verbose": false,
-  "quiet": false,
-  "input_file": "/path/to/default/config.xml",
-  "output_file": "./output.md",
-  "format": "markdown",
-  "wrap": 120,
-  "theme": "auto",
-  "validate": true,
-  "validation_mode": "strict",
-  "include_tunables": false,
-  "streaming": false,
-  "max_memory": "500M",
-  "timeout": 120,
-  "show_warnings": true,
-  "color": "auto"
-}
+# Advanced
+no_progress: false
+json_output: false
+minimal: false
 ```
 
 ## Environment Variables
@@ -119,99 +111,74 @@ All configuration options can be set via environment variables with the `OPNDOSS
 export OPNDOSSIER_VERBOSE=true
 export OPNDOSSIER_QUIET=false
 
+# Output
+export OPNDOSSIER_FORMAT=markdown
+export OPNDOSSIER_WRAP=100
+
 # File Paths
 export OPNDOSSIER_INPUT_FILE="/path/to/config.xml"
 export OPNDOSSIER_OUTPUT_FILE="./documentation.md"
-
-# Format & Display
-export OPNDOSSIER_FORMAT=markdown
-export OPNDOSSIER_WRAP=100
-export OPNDOSSIER_THEME=dark
-
-# Processing Options
-export OPNDOSSIER_VALIDATE=true
-export OPNDOSSIER_VALIDATION_MODE=lenient
-export OPNDOSSIER_INCLUDE_TUNABLES=true
-export OPNDOSSIER_STREAMING=true
-
-# Advanced Options
-export OPNDOSSIER_MAX_MEMORY=1G
-export OPNDOSSIER_TIMEOUT=300
-export OPNDOSSIER_SHOW_WARNINGS=true
-export OPNDOSSIER_COLOR=always
 ```
 
-## Command-Line Flag Examples
+## Command-Line Examples
 
 ### Basic Usage
 
 ```bash
 # Simple conversion with defaults
-opnDossier convert config.xml
+opndossier convert config.xml
 
 # Specify output file
-opnDossier convert config.xml -o output.md
+opndossier convert config.xml -o output.md
 
 # Change output format
-opnDossier convert -f json config.xml -o output.json
+opndossier convert -f json config.xml -o output.json
 ```
 
 ### Logging Options
 
 ```bash
 # Verbose logging
-opnDossier --verbose convert config.xml
+opndossier --verbose convert config.xml
 
 # Quiet mode (errors only)
-opnDossier --quiet convert config.xml
+opndossier --quiet convert config.xml
 ```
 
 ### Display Options
 
 ```bash
 # Display in terminal
-opnDossier display config.xml
+opndossier display config.xml
 
 # Custom wrap width
-opnDossier display --wrap 100 config.xml
-
-# Auto-detect terminal width
-opnDossier display --wrap 0 config.xml
+opndossier display --wrap 100 config.xml
 
 # Force specific theme
-opnDossier display --theme dark config.xml
+opndossier display --theme dark config.xml
 ```
 
-### Validation Options
+### Validation
 
 ```bash
-# Validate without processing
-opnDossier validate config.xml
+# Validate a configuration
+opndossier validate config.xml
 
-# Validate and convert
-opnDossier convert --validate config.xml -o output.md
-
-# Lenient validation mode
-opnDossier convert --validation-mode=lenient config.xml
-
-# Show all warnings
-opnDossier convert --show-warnings config.xml
+# Validate with JSON error output
+opndossier --json-output validate config.xml
 ```
 
-### Advanced Options
+### Audit Mode
 
 ```bash
-# Increase memory limit for large files
-opnDossier --max-memory=1G convert large-config.xml
+# Blue team audit with STIG and SANS
+opndossier convert config.xml --audit-mode blue --audit-plugins stig,sans
 
-# Increase timeout
-opnDossier --timeout=300 convert config.xml
+# Red team recon with blackhat commentary
+opndossier convert config.xml --audit-mode red --audit-blackhat
 
-# Enable streaming for very large files
-opnDossier --streaming convert huge-config.xml
-
-# Include system tunables
-opnDossier convert --include-tunables config.xml -o full-report.md
+# Standard audit with all plugins
+opndossier convert config.xml --audit-mode standard --audit-plugins stig,sans,firewall
 ```
 
 ## Configuration Validation
@@ -220,104 +187,16 @@ opnDossier validates configuration values on startup. Invalid values will result
 
 ```bash
 # Invalid format
-$ opnDossier convert -f invalid config.xml
-Error: invalid format 'invalid', must be one of: markdown, json, yaml
+$ opndossier convert -f invalid config.xml
+Error: invalid format "invalid", must be one of: markdown, md, json, yaml, yml, text, txt, html, htm
 
-# Invalid wrap width
-$ opnDossier display --wrap -10 config.xml
-Error: wrap width must be non-negative
+# Mutually exclusive flags
+$ opndossier --verbose --quiet convert config.xml
+Error: if any flags in the group [verbose quiet] are set none of the others can be
 
-# Invalid memory limit
-$ opnDossier --max-memory=invalid convert config.xml
-Error: invalid memory limit format, use format like '100M', '1G'
-```
-
-## Configuration Best Practices
-
-### Local Development
-
-Use configuration file for consistent local settings:
-
-```yaml
-# ~/.opnDossier.yaml
-verbose: true
-wrap: 100
-theme: dark
-```
-
-### CI/CD Environments
-
-Use environment variables for flexibility:
-
-```bash
-export OPNDOSSIER_VALIDATE=true
-export OPNDOSSIER_QUIET=true
-```
-
-### Production Scripts
-
-Use explicit CLI flags for clarity:
-
-```bash
-#!/bin/bash
-opnDossier convert \
-  --validate \
-  --timeout=300 \
-  config.xml -o report.md
-```
-
-### Airgapped Environments
-
-Minimal configuration for offline operation:
-
-```yaml
-# ~/.opnDossier.yaml
-input_file: /mnt/configs/opnsense-config.xml
-output_file: /mnt/reports/firewall-docs.md
-validate: true
-streaming: false
-```
-
-## Troubleshooting Configuration
-
-### Configuration Not Loading
-
-Check file location and permissions:
-
-```bash
-# Verify config file exists
-ls -la ~/.opnDossier.yaml
-
-# Check file permissions
-chmod 644 ~/.opnDossier.yaml
-
-# Validate YAML syntax
-yamllint ~/.opnDossier.yaml
-```
-
-### Environment Variables Not Working
-
-Verify environment variable names and values:
-
-```bash
-# List all opnDossier environment variables
-env | grep OPNDOSSIER
-
-# Verify boolean values (use true/false, not 1/0)
-export OPNDOSSIER_VERBOSE=true  # Correct
-export OPNDOSSIER_VERBOSE=1     # Incorrect
-```
-
-### CLI Flags Not Overriding
-
-Remember precedence order - CLI flags should override everything:
-
-```bash
-# This should enable verbose output (CLI flag)
-OPNDOSSIER_VERBOSE=false opnDossier --verbose convert config.xml
-
-# Verify flag is being parsed
-opnDossier convert --help
+# Invalid color mode
+$ opndossier --color invalid convert config.xml
+Error: invalid color "invalid", must be one of: auto, always, never
 ```
 
 ## XML Schema Field Reference
@@ -326,7 +205,7 @@ This section documents the OPNsense config.xml fields that opnDossier parses and
 
 ### Source and Destination Fields
 
-Firewall rule source and destination support multiple addressing modes. The fields `any`, `network`, and `address` are **mutually exclusive** — only one should be present per source/destination block.
+Firewall rule source and destination support multiple addressing modes. The fields `any`, `network`, and `address` are **mutually exclusive** -- only one should be present per source/destination block.
 
 **Address-based rules (IP/CIDR or alias):**
 
@@ -473,7 +352,6 @@ Valid NAT reflection modes: `enable`, `disable`, `purenat`
 
 ## Related Documentation
 
-- [User Guide](./usage.md)
+- [Usage Guide](./usage.md)
 - [Configuration Guide](./configuration.md)
-- [Examples](../examples.md)
 - [Contributing Guide](https://github.com/EvilBit-Labs/opnDossier/blob/main/CONTRIBUTING.md)

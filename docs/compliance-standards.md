@@ -6,7 +6,7 @@ opnDossier integrates industry-standard security compliance frameworks to provid
 
 ## Status
 
-Audit mode CLI integration is deferred to v2.1. Track progress in [#174](https://github.com/EvilBit-Labs/opnDossier/issues/174).
+Audit mode is implemented but has known issues with finding aggregation and display. See [#266](https://github.com/EvilBit-Labs/opnDossier/issues/266) for details.
 
 ## Supported Standards
 
@@ -79,34 +79,28 @@ Our CIS-inspired firewall security controls provide comprehensive security guida
 
 ## Implementation Details
 
-### Audit Engine
+### Plugin Architecture
 
-The compliance analysis is performed by the `internal/audit/engine.go` module, which:
+Compliance checking is implemented via the plugin system in `internal/compliance/` and `internal/plugins/`:
 
-1. **Analyzes OPNsense configurations** against defined security controls
-2. **Maps findings to compliance standards** with specific control references
-3. **Generates compliance reports** with detailed remediation guidance
-4. **Provides risk assessment** based on control compliance status
+- **`internal/compliance/interfaces.go`** - Defines the `Plugin` interface, `Control`, and `Finding` types
+- **`internal/audit/plugin.go`** - Plugin registry for dynamic plugin loading
+- **`internal/audit/plugin_manager.go`** - Plugin lifecycle management
+- **`internal/plugins/stig/`** - STIG compliance plugin
+- **`internal/plugins/sans/`** - SANS compliance plugin
+- **`internal/plugins/firewall/`** - Firewall security compliance plugin
 
-### Data Structures
+Each plugin implements the `compliance.Plugin` interface:
 
 ```go
-// AuditFinding represents a finding with compliance mappings
-type AuditFinding struct {
-    processor.Finding
-    STIGReferences []string `json:"stigReferences,omitempty"`
-    SANSReferences []string `json:"sansReferences,omitempty"`
-    FirewallReferences []string `json:"firewallReferences,omitempty"`
-    ComplianceTags []string `json:"complianceTags,omitempty"`
-}
-
-// AuditResult contains the complete audit results
-type AuditResult struct {
-    Findings       []AuditFinding `json:"findings"`
-    STIGCompliance map[string]bool `json:"stigCompliance"`
-    SANSCompliance map[string]bool `json:"sansCompliance"`
-    FirewallCompliance map[string]bool `json:"firewallCompliance"`
-    Summary        AuditSummary   `json:"summary"`
+type Plugin interface {
+    Name() string
+    Version() string
+    Description() string
+    RunChecks(config *model.OpnSenseDocument) []Finding
+    GetControls() []Control
+    GetControlByID(id string) (*Control, error)
+    ValidateConfiguration() error
 }
 ```
 
@@ -216,11 +210,9 @@ The audit engine performs the following types of checks:
 - Checks source field restrictions
 - Verifies service field restrictions
 
-### Enhanced Blue Team Reports
+### Blue Team Reports
 
-Planned for v2.1 alongside audit mode CLI integration.
-
-The enhanced blue team report provides:
+When audit mode is working correctly ([#266](https://github.com/EvilBit-Labs/opnDossier/issues/266)), the blue team report provides:
 
 - **Executive Summary** with compliance metrics
 - **Findings by Severity** with control references
@@ -261,43 +253,7 @@ The enhanced blue team report provides:
 
 ### Finding to Control Mapping
 
-Each audit finding is mapped to relevant controls:
-
-```go
-finding := AuditFinding{
-    Finding: processor.Finding{
-        Type:        "compliance",
-        Title:       "Missing Default Deny Policy",
-        Description: "Firewall does not implement a default deny policy",
-        Recommendation: "Configure firewall to deny all traffic by default",
-        Component:   "firewall-rules",
-        Reference:   "FIREWALL-003, STIG V-206694",
-    },
-    STIGReferences: []string{"V-206694"},
-    SANSReferences: []string{"SANS-FW-001"},
-    FirewallReferences: []string{"FIREWALL-018"},
-    ComplianceTags: []string{"default-deny", "firewall-rules", "security-posture"},
-}
-```
-
-#### Baseline Processor Compliance Checks
-
-The `ExampleProcessor` includes baseline compliance checks that run when compliance analysis is enabled. These checks are intended to flag common configuration gaps before advanced audit mappings are applied:
-
-- **Password Policy Enforcement** (component: `users`): Critical severity when no enabled administrative users are configured; high severity when users are missing password configuration; medium severity when administrative accounts are disabled.
-- **Audit Logging Configuration** (component: `syslog`): High severity when syslog is disabled; medium severity when critical categories (system, auth, filter) are missing; low severity when no remote syslog server is configured.
-
-These findings use the `compliance` type and include remediation guidance aligned with OPNsense best practices.
-
-### Control Status Tracking
-
-The system tracks compliance status for each control:
-
-```go
-result.STIGCompliance["V-206694"] = false   // Non-compliant
-result.SANSCompliance["SANS-FW-001"] = false // Non-compliant
-result.FirewallCompliance["FIREWALL-018"] = false // Non-compliant
-```
+Each plugin maps its findings to the relevant compliance controls using the `Finding` type from `internal/compliance/interfaces.go`. Findings include severity, description, and remediation guidance.
 
 ## Benefits
 

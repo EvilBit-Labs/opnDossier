@@ -16,15 +16,13 @@ The opnDossier release process is designed to be:
 
 Before starting a release, ensure you have:
 
-1. **Required Tools**:
+1. **Required Tools** (managed via `mise install`):
 
-   - `git-cliff` installed (run `just install-git-cliff` if needed)
-   - `goreleaser` installed
-   - `cosign` for artifact signing (run `just install-cosign` if needed)
-   - `grype` for vulnerability scanning (run `just install-grype` if needed)
-   - `syft` for SBOM generation (run `just install-syft` if needed)
-   - `snyk` CLI for additional vulnerability scanning (optional)
-   - `fossa` CLI for license analysis (optional)
+   - `git-cliff` for changelog generation
+   - `goreleaser` for release automation
+   - `cosign` for artifact signing
+   - `gosec` for security scanning (run `just install-security-tools` if needed)
+   - `cyclonedx-gomod` for SBOM generation (run `just install-security-tools` if needed)
    - Proper GitHub permissions for the repository
 
 2. **Environment Setup**:
@@ -60,28 +58,23 @@ Before starting a release, ensure you have:
 1. **Run Full Test Suite**:
 
    ```bash
-   just full-checks
+   just ci-full
    ```
 
    This runs:
 
+   - Pre-commit checks (`just check`)
    - Code formatting checks (`just format-check`)
    - Linting (`just lint`)
-   - All tests with race detection (`just test`)
-   - Security scanning (`just security-scan`)
-   - GoReleaser configuration validation (`just check-goreleaser`)
-
-   The `full-checks` command includes:
-
-   - **Vulnerability Scanning**: Grype for dependency vulnerabilities
-   - **SBOM Generation**: Syft for Software Bill of Materials
-   - **License Analysis**: FOSSA for license compliance
-   - **Additional Security**: Snyk for enhanced vulnerability scanning
+   - All tests including integration tests (`just test`, `just test-integration`)
+   - Security scanning and SBOM generation (`just security-all`)
+   - GoReleaser configuration validation (`just release-check`)
+   - Documentation build (`just docs-test`)
 
 2. **Test Release Build** (Optional but Recommended):
 
    ```bash
-   just build-snapshot
+   just release-snapshot
    ```
 
    This creates a snapshot build without publishing to verify everything works.
@@ -89,14 +82,12 @@ Before starting a release, ensure you have:
 3. **Security Validation**:
 
    ```bash
-   # Run comprehensive security scan
-   just security-scan
+   # Run all security checks (gosec + SBOM)
+   just security-all
 
-   # Or run individual security checks
-   just scan-vulnerabilities  # Grype vulnerability scan
-   just generate-sbom         # Generate SBOM with Syft
-   just snyk-scan            # Snyk vulnerability scan (requires SNYK_TOKEN)
-   just fossa-scan           # FOSSA license analysis (requires FOSSA_API_KEY)
+   # Or run individual checks
+   just scan                  # Run gosec security scanner
+   just sbom                  # Generate SBOM with cyclonedx-gomod
    ```
 
 ### Step 2: Update Changelog
@@ -253,7 +244,7 @@ The `.goreleaser.yaml` file configures the following release artifacts:
 
 - **Platforms**: FreeBSD, Linux, macOS, Windows
 - **Architectures**: amd64, arm64 (FreeBSD arm64 excluded)
-- **Binary Name**: `opnDossier`
+- **Binary Name**: `opndossier`
 - **Build Flags**: CGO disabled, stripped binaries with version info
 
 ### Archives
@@ -340,13 +331,13 @@ This ensures that:
 Version information is injected into the binary at build time:
 
 - **Main Version**: Set via ldflags in GoReleaser (`main.version`)
-- **Build Date**: Available in CLI via `opnDossier version`
-- **Git Commit**: Available in CLI via `opnDossier version`
+- **Build Date**: Available in CLI via `opndossier version`
+- **Git Commit**: Available in CLI via `opndossier version`
 
 The version is displayed using:
 
 ```bash
-opnDossier version
+opndossier version
 ```
 
 ## Changelog Generation
@@ -399,19 +390,18 @@ Examples:
 2. **Missing git-cliff**:
 
    ```bash
-   just install-git-cliff
+   mise install          # Installs all tools via mise.toml
    ```
 
 3. **Missing Security Tools**:
 
    ```bash
-   just install-grype    # Install Grype vulnerability scanner
-   just install-syft     # Install Syft SBOM generator
+   just install-security-tools   # Install gosec, cyclonedx-gomod
    ```
 
 4. **Build Failures**:
 
-   - Check Go version compatibility (requires Go 1.24+)
+   - Check Go version compatibility (requires Go 1.26+)
    - Ensure all tests pass: `just test`
    - Verify dependencies: `go mod tidy`
 

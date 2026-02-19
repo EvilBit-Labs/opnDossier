@@ -1,4 +1,4 @@
-# Troubleshooting and Debugging Examples
+# Troubleshooting and Debugging
 
 This guide covers common issues, error handling, and debugging techniques for opnDossier.
 
@@ -10,59 +10,61 @@ This guide covers common issues, error handling, and debugging techniques for op
 
 ```bash
 # Error: Invalid XML syntax
-opnDossier convert invalid-config.xml
+opndossier convert invalid-config.xml
 # Output: failed to parse XML from invalid-config.xml: XML syntax error on line 42
 
-# Debug XML issues
-opnDossier --verbose convert invalid-config.xml
+# Debug XML issues with verbose output
+opndossier --verbose convert invalid-config.xml
 
-# Validate XML syntax first
+# Validate XML syntax independently
 xmllint --noout invalid-config.xml
 ```
 
-#### Malformed OPNsense Configuration
+#### Missing OPNsense Root Element
 
 ```bash
-# Error: Missing required elements
-opnDossier convert malformed-config.xml
-# Output: validation error at opnsense.system.hostname: hostname is required
-
-# Debug with verbose output
-opnDossier --verbose convert malformed-config.xml
-
-# Check specific validation errors
-opnDossier validate malformed-config.xml
+# Error: Missing required root element
+opndossier convert non-opnsense.xml
+# Output: invalid XML: missing opnsense root element
 ```
 
-### File Permission Issues
+### File Issues
 
 ```bash
 # Error: Permission denied
-opnDossier convert /root/config.xml
+opndossier convert /root/config.xml
 # Output: failed to open file /root/config.xml: permission denied
 
 # Solutions:
 # 1. Copy file to accessible location
 sudo cp /root/config.xml ./config.xml
-opnDossier convert config.xml
+opndossier convert config.xml
 
 # 2. Change file permissions (if appropriate)
 sudo chmod 644 /root/config.xml
 
 # 3. Run with appropriate permissions
-sudo opnDossier convert /root/config.xml
+sudo opndossier convert /root/config.xml
 ```
 
-### Configuration Validation Errors
+### Flag Validation Errors
 
 ```bash
-# Error: Conflicting flags
-opnDossier --verbose --quiet convert config.xml
-# Output: verbose and quiet options are mutually exclusive
+# Error: Mutually exclusive flags
+opndossier --verbose --quiet convert config.xml
+# Output: `verbose` and `quiet` are mutually exclusive
 
 # Error: Invalid output format
-opnDossier convert config.xml -f txt
-# Output: unsupported format: txt
+opndossier convert config.xml -f invalid
+# Output: invalid format 'invalid', must be one of: markdown, md, json, yaml, yml, text, txt, html, htm
+
+# Error: Invalid color mode
+opndossier --color invalid convert config.xml
+# Output: invalid color "invalid", must be one of: auto, always, never
+
+# Error: Mutually exclusive wrap flags
+opndossier convert config.xml --wrap 100 --no-wrap
+# Output: --no-wrap and --wrap flags are mutually exclusive
 ```
 
 ## Debug Techniques
@@ -71,26 +73,44 @@ opnDossier convert config.xml -f txt
 
 ```bash
 # Enable verbose output for detailed debugging
-opnDossier --verbose convert config.xml
+opndossier --verbose convert config.xml
 
-# Combine verbose with other flags
-opnDossier --verbose convert config.xml --format json
+# Combine verbose with file output to capture logs
+opndossier --verbose convert config.xml -o output.md 2>debug.log
+
+# Verbose validation
+opndossier --verbose validate config.xml
 ```
 
 ### Step-by-Step Debugging
 
 ```bash
 # 1. Validate configuration first
-opnDossier validate config.xml
+opndossier validate config.xml
 
 # 2. Test basic conversion
-opnDossier convert config.xml
+opndossier convert config.xml
 
 # 3. Test with specific format
-opnDossier convert config.xml -f json
+opndossier convert config.xml -f json
 
 # 4. Test with specific sections
-opnDossier convert config.xml --section system
+opndossier convert config.xml --section system
+
+# 5. Add complexity gradually
+opndossier convert config.xml --comprehensive --include-tunables
+```
+
+### JSON Error Output
+
+For scripting and automation, use JSON error output:
+
+```bash
+# Get errors in JSON format for programmatic handling
+opndossier --json-output validate config.xml
+
+# Parse JSON errors with jq
+opndossier --json-output validate config.xml 2>&1 | jq '.error'
 ```
 
 ## Common Issues and Solutions
@@ -100,21 +120,15 @@ opnDossier convert config.xml --section system
 **Symptoms:**
 
 - Slow processing
-- High memory usage
-- Timeout errors
 
 **Solutions:**
 
 ```bash
-# Use built-in optimization
-opnDossier convert large-config.xml
+# Process specific sections only for faster output
+opndossier convert large-config.xml --section system,interfaces
 
-# Monitor memory usage
-/usr/bin/time -v opnDossier convert large-config.xml
-
-# Process in sections
-opnDossier convert large-config.xml --section system,interfaces
-opnDossier convert large-config.xml --section firewall,nat
+# Monitor processing time
+time opndossier convert large-config.xml -o output.md
 ```
 
 ### Issue 2: Output File Issues
@@ -131,75 +145,40 @@ opnDossier convert large-config.xml --section firewall,nat
 # Check output directory permissions
 ls -la /path/to/output/directory
 
-# Force overwrite
-opnDossier convert config.xml -o output.md --force
+# Force overwrite existing files
+opndossier convert config.xml -o output.md --force
 
 # Use different output location
-opnDossier convert config.xml -o /tmp/output.md
+opndossier convert config.xml -o /tmp/output.md
 
 # Check disk space
 df -h /path/to/output/directory
 ```
 
-## Advanced Debugging
+### Issue 3: Encoding Issues
 
-### Memory Profiling
+opnDossier supports UTF-8, US-ASCII, ISO-8859-1 (Latin1), and Windows-1252 encoded XML files. If you encounter encoding errors:
 
 ```bash
-# Run with memory profiling
-go tool pprof -http=:8080 $(which opnDossier) mem.prof
+# Check file encoding
+file config.xml
 
-# Generate memory profile
-opnDossier convert config.xml -o output.md
-# (Memory profile is automatically generated for large files)
+# Convert encoding if needed (example: convert from UTF-16 to UTF-8)
+iconv -f UTF-16 -t UTF-8 config.xml > config-utf8.xml
+opndossier convert config-utf8.xml
 ```
 
-### Performance Analysis
+### Issue 4: Unexpected Output
 
 ```bash
-# Measure execution time
-time opnDossier convert config.xml
+# Verify the input is a valid OPNsense configuration
+opndossier validate config.xml
 
-# Profile CPU usage
-go tool pprof -http=:8080 $(which opnDossier) cpu.prof
+# Check with verbose output for processing details
+opndossier --verbose convert config.xml
 
-# Analyze specific operations
-opnDossier --verbose convert config.xml 2>&1 | grep "duration"
-```
-
-### Network Debugging (if applicable)
-
-```bash
-# Check for network calls (should be none in offline mode)
-strace -e trace=network opnDossier convert config.xml
-
-# Monitor file system access
-strace -e trace=file opnDossier convert config.xml
-
-# Check for external dependencies
-ldd $(which opnDossier)
-```
-
-## Error Recovery
-
-### Recovering from Validation Errors
-
-```bash
-# 1. Identify specific validation errors
-opnDossier validate config.xml
-
-# 2. Fix common issues
-# Missing hostname
-sed -i 's/<hostname><\/hostname>/<hostname>firewall<\/hostname>/' config.xml
-
-# Invalid IP address
-sed -i 's/<ipaddr>256.256.256.256<\/ipaddr>/<ipaddr>192.168.1.1<\/ipaddr>/' config.xml
-
-# 3. Re-validate
-opnDossier validate config.xml
-
-# 4. Convert if valid
-opnDossier convert config.xml
+# Try different output formats to isolate the issue
+opndossier convert config.xml -f json | jq '.' > /dev/null
 ```
 
 ## Diagnostic Scripts
@@ -210,7 +189,7 @@ opnDossier convert config.xml
 #!/bin/bash
 # config-health-check.sh
 
-CONFIG_FILE="$1"
+CONFIG_FILE="${1:?Usage: $0 <config-file>}"
 LOG_FILE="health-check.log"
 
 echo "Configuration Health Check for $CONFIG_FILE" > "$LOG_FILE"
@@ -218,107 +197,63 @@ echo "Started at $(date)" >> "$LOG_FILE"
 
 # Check file existence
 if [ ! -f "$CONFIG_FILE" ]; then
-    echo "ERROR: File not found: $CONFIG_FILE" >> "$LOG_FILE"
+    echo "ERROR: File not found: $CONFIG_FILE" | tee -a "$LOG_FILE"
     exit 1
 fi
 
-# Check file size
-FILE_SIZE=$(stat -c%s "$CONFIG_FILE")
-echo "File size: $FILE_SIZE bytes" >> "$LOG_FILE"
-
-# Check file permissions
-FILE_PERMS=$(stat -c%a "$CONFIG_FILE")
-echo "File permissions: $FILE_PERMS" >> "$LOG_FILE"
-
-# Validate XML syntax
-if xmllint --noout "$CONFIG_FILE" 2>/dev/null; then
-    echo "XML syntax: VALID" >> "$LOG_FILE"
-else
-    echo "XML syntax: INVALID" >> "$LOG_FILE"
+# Check file is readable
+if [ ! -r "$CONFIG_FILE" ]; then
+    echo "ERROR: File not readable: $CONFIG_FILE" | tee -a "$LOG_FILE"
     exit 1
+fi
+
+# Check file is not empty
+if [ ! -s "$CONFIG_FILE" ]; then
+    echo "ERROR: File is empty: $CONFIG_FILE" | tee -a "$LOG_FILE"
+    exit 1
+fi
+
+# Validate XML syntax (if xmllint is available)
+if command -v xmllint &> /dev/null; then
+    if xmllint --noout "$CONFIG_FILE" 2>/dev/null; then
+        echo "XML syntax: VALID" | tee -a "$LOG_FILE"
+    else
+        echo "XML syntax: INVALID" | tee -a "$LOG_FILE"
+        exit 1
+    fi
 fi
 
 # Run opnDossier validation
-if opnDossier validate "$CONFIG_FILE" >> "$LOG_FILE" 2>&1; then
-    echo "opnDossier validation: PASSED" >> "$LOG_FILE"
+if opndossier validate "$CONFIG_FILE" >> "$LOG_FILE" 2>&1; then
+    echo "opnDossier validation: PASSED" | tee -a "$LOG_FILE"
 else
-    echo "opnDossier validation: FAILED" >> "$LOG_FILE"
+    echo "opnDossier validation: FAILED" | tee -a "$LOG_FILE"
     exit 1
 fi
 
 # Test conversion
-if opnDossier convert "$CONFIG_FILE" -o /tmp/test.md >> "$LOG_FILE" 2>&1; then
-    echo "Conversion test: PASSED" >> "$LOG_FILE"
-    rm -f /tmp/test.md
+if opndossier convert "$CONFIG_FILE" -o /tmp/test-output.md >> "$LOG_FILE" 2>&1; then
+    echo "Conversion test: PASSED" | tee -a "$LOG_FILE"
+    rm -f /tmp/test-output.md
 else
-    echo "Conversion test: FAILED" >> "$LOG_FILE"
+    echo "Conversion test: FAILED" | tee -a "$LOG_FILE"
     exit 1
 fi
 
-echo "Health check completed successfully at $(date)" >> "$LOG_FILE"
+echo "Health check completed successfully at $(date)" | tee -a "$LOG_FILE"
 ```
 
-### Performance Diagnostic
+## Environment Isolation
 
 ```bash
-#!/bin/bash
-# performance-diagnostic.sh
+# Test in a clean environment
+env -i PATH=/usr/bin:/bin HOME="$HOME" opndossier convert config.xml
 
-CONFIG_FILE="$1"
-RESULTS_FILE="performance-results.log"
+# Test without any config file
+opndossier --config /dev/null convert config.xml
 
-echo "Performance Diagnostic for $CONFIG_FILE" > "$RESULTS_FILE"
-echo "Started at $(date)" >> "$RESULTS_FILE"
-
-# Measure validation time
-echo "Measuring validation time..." >> "$RESULTS_FILE"
-VALIDATION_TIME=$(/usr/bin/time -f "%e" opnDossier validate "$CONFIG_FILE" 2>&1)
-echo "Validation time: ${VALIDATION_TIME}s" >> "$RESULTS_FILE"
-
-# Measure conversion time
-echo "Measuring conversion time..." >> "$RESULTS_FILE"
-CONVERSION_TIME=$(/usr/bin/time -f "%e" opnDossier convert "$CONFIG_FILE" -o /tmp/test.md 2>&1)
-echo "Conversion time: ${CONVERSION_TIME}s" >> "$RESULTS_FILE"
-
-# Measure memory usage
-echo "Measuring memory usage..." >> "$RESULTS_FILE"
-MEMORY_USAGE=$(/usr/bin/time -f "%M" opnDossier convert "$CONFIG_FILE" -o /tmp/test.md 2>&1)
-echo "Memory usage: ${MEMORY_USAGE}KB" >> "$RESULTS_FILE"
-
-# Clean up
-rm -f /tmp/test.md
-
-echo "Performance diagnostic completed at $(date)" >> "$RESULTS_FILE"
-```
-
-### Error Pattern Analysis
-
-```bash
-#!/bin/bash
-# error-pattern-analysis.sh
-
-LOG_FILE="$1"
-ANALYSIS_FILE="error-analysis.log"
-
-echo "Error Pattern Analysis for $LOG_FILE" > "$ANALYSIS_FILE"
-
-# Extract error messages
-echo "=== ERROR MESSAGES ===" >> "$ANALYSIS_FILE"
-grep -i "error\|failed\|invalid" "$LOG_FILE" >> "$ANALYSIS_FILE"
-
-# Count error types
-echo "=== ERROR COUNTS ===" >> "$ANALYSIS_FILE"
-grep -i "error\|failed\|invalid" "$LOG_FILE" | sort | uniq -c | sort -nr >> "$ANALYSIS_FILE"
-
-# Extract timing information
-echo "=== TIMING INFORMATION ===" >> "$ANALYSIS_FILE"
-grep -i "duration\|time\|elapsed" "$LOG_FILE" >> "$ANALYSIS_FILE"
-
-# Extract validation errors
-echo "=== VALIDATION ERRORS ===" >> "$ANALYSIS_FILE"
-grep -i "validation" "$LOG_FILE" >> "$ANALYSIS_FILE"
-
-echo "Error pattern analysis completed" >> "$ANALYSIS_FILE"
+# Test with specific environment variables
+OPNDOSSIER_VERBOSE=true opndossier convert config.xml
 ```
 
 ## Best Practices for Troubleshooting
@@ -327,64 +262,50 @@ echo "Error pattern analysis completed" >> "$ANALYSIS_FILE"
 
 ```bash
 # Always start with validation
-opnDossier validate config.xml
+opndossier validate config.xml
 
 # Test basic functionality
-opnDossier convert config.xml
+opndossier convert config.xml
 
 # Add complexity gradually
-opnDossier convert config.xml -f json
-opnDossier convert config.xml --comprehensive
-opnDossier convert config.xml --section system,interfaces
+opndossier convert config.xml -f json
+opndossier convert config.xml --comprehensive
+opndossier convert config.xml --section system,interfaces
 ```
 
 ### 2. Error Handling in Scripts
 
 ```bash
 #!/bin/bash
-# robust-script.sh
-
 set -e  # Exit on any error
 
-# Function to handle errors
 handle_error() {
     local exit_code=$?
     echo "Error occurred in line $1, exit code: $exit_code"
-
-    # Log error details
     echo "$(date): Error in $0 at line $1, exit code: $exit_code" >> error.log
-
-    # Send notification if needed
-    # curl -X POST -H 'Content-type: application/json' \
-    #     --data "{\"text\":\"Error in opnDossier script\"}" \
-    #     "$WEBHOOK_URL"
-
     exit $exit_code
 }
 
-# Set error handler
 trap 'handle_error $LINENO' ERR
 
-# Your script logic here
-opnDossier validate config.xml
-opnDossier convert config.xml -o output.md
+opndossier validate config.xml
+opndossier convert config.xml -o output.md
 ```
 
-### 3. Environment Isolation
+### 3. Capture Detailed Logs
 
 ```bash
-# Test in clean environment
-env -i PATH=/usr/bin:/bin opnDossier convert config.xml
+# Capture stdout and stderr separately
+opndossier --verbose convert config.xml > output.md 2> debug.log
 
-# Test with minimal configuration
-opnDossier --config /dev/null convert config.xml
-
-# Test with specific environment variables
-OPNDOSSIER_OUTPUT_FILE=./docs/network.md opnDossier convert config.xml
+# Review debug log for issues
+cat debug.log
 ```
+
+---
 
 **Next Steps:**
 
 - For advanced configuration, see [Advanced Configuration](advanced-configuration.md)
 - For basic documentation, see [Basic Documentation](basic-documentation.md)
-- For audit and compliance, see [Audit and Compliance](audit-compliance.md)
+- For automation, see [Automation and Scripting](automation-scripting.md)

@@ -103,7 +103,7 @@ opnDossier implements all required components of the Pipeline v2 specification t
 
 ### Automated Dependency Updates
 
-- **Implementation**: Dependabot and Renovate
+- **Implementation**: Dependabot
 - **Frequency**: Weekly scans for updates
 - **Scope**: Go modules, GitHub Actions, development tools
 - **Process**: Automated PRs with changelog and compatibility checks
@@ -125,9 +125,9 @@ opnDossier implements all required components of the Pipeline v2 specification t
 - `just test`: Run test suite
 - `just lint`: Run linters
 - `just check`: Run all pre-commit checks
-- `just ci-check`: Run comprehensive CI checks locally
-- `just scan`: Run vulnerability scanning
-- `just sbom`: Generate SBOM artifacts
+- `just ci-check`: Run CI-equivalent checks locally
+- `just scan`: Run gosec security scanner
+- `just sbom`: Generate SBOM artifacts (cyclonedx-gomod)
 
 ## Vulnerability Management
 
@@ -172,6 +172,9 @@ just scan
 
 # Generate SBOM
 just sbom
+
+# Run all security checks
+just security-all
 
 # Verify test coverage
 just test

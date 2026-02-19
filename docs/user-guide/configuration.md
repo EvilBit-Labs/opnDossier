@@ -28,51 +28,52 @@ opndossier --config /path/to/custom/config.yaml convert config.xml
 The configuration file uses YAML format:
 
 ```yaml
-# ~/.opnDossier.yaml - opnDossier Configuration
-
-# Input/Output settings
-input_file: /path/to/default/config.xml
-output_file: ./output.md
+# ~/.opnDossier.yaml
 
 # Logging configuration
-verbose: false        # Enable debug logging
-quiet: false          # Suppress all output except errors
+verbose: false
+quiet: false
+
+# Output settings
+format: markdown
+wrap: 120
+
+# Content options
+sections: []
 ```
 
 ### Configuration Options
 
-| Option        | Type    | Default | Description                       |
-| ------------- | ------- | ------- | --------------------------------- |
-| `input_file`  | string  | ""      | Default input file path           |
-| `output_file` | string  | ""      | Default output file path          |
-| `verbose`     | boolean | false   | Enable verbose/debug logging      |
-| `quiet`       | boolean | false   | Suppress all output except errors |
+| Option        | Type     | Default      | Description                                      |
+| ------------- | -------- | ------------ | ------------------------------------------------ |
+| `verbose`     | boolean  | `false`      | Enable verbose/debug logging                     |
+| `quiet`       | boolean  | `false`      | Suppress all output except errors                |
+| `format`      | string   | `"markdown"` | Output format (markdown, json, yaml, text, html) |
+| `theme`       | string   | `""`         | Display theme (auto, dark, light, none)          |
+| `wrap`        | int      | `-1`         | Text wrap width (-1=auto, 0=off, >0=columns)     |
+| `sections`    | string[] | `[]`         | Sections to include in output                    |
+| `input_file`  | string   | `""`         | Default input file path                          |
+| `output_file` | string   | `""`         | Default output file path                         |
+| `no_progress` | boolean  | `false`      | Disable progress indicators                      |
+| `json_output` | boolean  | `false`      | Output errors in JSON format                     |
+| `minimal`     | boolean  | `false`      | Minimal output mode                              |
 
 ## Environment Variables
 
 All configuration options can be set using environment variables with the `OPNDOSSIER_` prefix:
 
-### Available Environment Variables
-
 ```bash
 # Logging configuration
-export OPNDOSSIER_VERBOSE=true          # Enable verbose/debug logging
-export OPNDOSSIER_QUIET=false           # Suppress non-error output
+export OPNDOSSIER_VERBOSE=true
+export OPNDOSSIER_QUIET=false
+
+# Output settings
+export OPNDOSSIER_FORMAT=json
+export OPNDOSSIER_WRAP=100
 
 # File paths
 export OPNDOSSIER_INPUT_FILE="/path/to/config.xml"
 export OPNDOSSIER_OUTPUT_FILE="./documentation.md"
-```
-
-### Examples
-
-```bash
-# Set environment variables for a single run
-OPNDOSSIER_VERBOSE=true opndossier convert config.xml
-
-# Export for multiple uses in the same session
-export OPNDOSSIER_OUTPUT_FILE="./network-docs.md"
-opndossier convert config.xml
 ```
 
 ### Environment Variable Naming
@@ -82,73 +83,68 @@ Environment variables follow this pattern:
 - Prefix: `OPNDOSSIER_`
 - Key transformation: Convert config key to uppercase and replace `-` with `_`
 - Examples:
-  - `input_file` → `OPNDOSSIER_INPUT_FILE`
+  - `verbose` -> `OPNDOSSIER_VERBOSE`
+  - `input_file` -> `OPNDOSSIER_INPUT_FILE`
+  - `no_progress` -> `OPNDOSSIER_NO_PROGRESS`
 
 ## Command-Line Flags
 
-CLI flags have the highest precedence and override all other configuration sources:
+CLI flags have the highest precedence and override all other configuration sources.
 
-### Global Flags
+### Global Flags (All Commands)
 
-```bash
-# Configuration file
---config string       # Custom config file path (default: ~/.opnDossier.yaml)
-
-# Logging options
---verbose, -v         # Enable verbose output (debug logging)
---quiet, -q           # Suppress all output except errors
-```
+| Flag            | Short | Default  | Description                             |
+| --------------- | ----- | -------- | --------------------------------------- |
+| `--config`      |       | `""`     | Custom config file path                 |
+| `--verbose`     | `-v`  | `false`  | Enable debug-level logging              |
+| `--quiet`       | `-q`  | `false`  | Suppress all output except errors       |
+| `--color`       |       | `"auto"` | Color output mode (auto, always, never) |
+| `--no-progress` |       | `false`  | Disable progress indicators             |
+| `--timestamps`  |       | `false`  | Include timestamps in log output        |
+| `--minimal`     |       | `false`  | Minimal output mode                     |
+| `--json-output` |       | `false`  | Output errors in JSON format            |
 
 ### Convert Command Flags
 
-The `convert` command has additional flags specific to file conversion:
+| Flag                 | Short | Default      | Description                                      |
+| -------------------- | ----- | ------------ | ------------------------------------------------ |
+| `--output`           | `-o`  | `""`         | Output file path (default: stdout)               |
+| `--format`           | `-f`  | `"markdown"` | Output format (markdown, json, yaml, text, html) |
+| `--force`            |       | `false`      | Force overwrite without prompt                   |
+| `--section`          |       | `[]`         | Sections to include (comma-separated)            |
+| `--wrap`             |       | `-1`         | Text wrap width (-1=auto, 0=off)                 |
+| `--no-wrap`          |       | `false`      | Disable text wrapping                            |
+| `--comprehensive`    |       | `false`      | Generate comprehensive reports                   |
+| `--include-tunables` |       | `false`      | Include system tunables in output                |
+| `--audit-mode`       |       | `""`         | Audit mode (standard, blue, red)                 |
+| `--audit-plugins`    |       | `[]`         | Compliance plugins (stig, sans, firewall)        |
+| `--audit-blackhat`   |       | `false`      | Enable blackhat commentary (red mode)            |
 
-```bash
---output, -o string   # Output file path for conversion results
-```
+### Display Command Flags
 
-### Usage Examples
+| Flag                 | Short | Default | Description                               |
+| -------------------- | ----- | ------- | ----------------------------------------- |
+| `--theme`            |       | `""`    | Rendering theme (auto, dark, light, none) |
+| `--section`          |       | `[]`    | Sections to include (comma-separated)     |
+| `--wrap`             |       | `-1`    | Text wrap width (-1=auto, 0=off)          |
+| `--no-wrap`          |       | `false` | Disable text wrapping                     |
+| `--comprehensive`    |       | `false` | Generate comprehensive reports            |
+| `--include-tunables` |       | `false` | Include system tunables in output         |
 
-```bash
-# Verbose mode with custom output
-opndossier --verbose convert config.xml --output detailed-output.md
+### Validate Command
 
-# Use custom config file
-opndossier --config ./project-config.yaml convert config.xml
-```
+The validate command uses only global flags (no command-specific flags).
 
-## Logging Configuration
+## Flag Constraints
 
-Logging verbosity is controlled via `--verbose` and `--quiet`. Log output is rendered in text format.
-
-### Logging Examples
-
-```bash
-# Quiet mode - only errors
-opndossier --quiet convert config.xml
-
-# Verbose mode (shorthand for debug level)
-opndossier --verbose convert config.xml
-```
-
-## Configuration Validation
-
-opnDossier validates configuration settings and provides clear error messages for invalid configurations:
-
-### Validation Rules
-
-- `verbose` and `quiet` are mutually exclusive
-- `input_file` must exist if specified
-- `output_file` directory must exist if specified
-
-### Validation Examples
-
-```bash
-# This will fail - mutually exclusive options
-opndossier --verbose --quiet convert config.xml
-# Error: verbose and quiet options are mutually exclusive
-
-```
+- `--verbose` and `--quiet` are **mutually exclusive**
+- `--wrap` and `--no-wrap` are **mutually exclusive**
+- `--color` must be one of: `auto`, `always`, `never`
+- `--theme` must be one of: `auto`, `dark`, `light`, `none`
+- `--format` must be one of: `markdown`, `md`, `json`, `yaml`, `yml`, `text`, `txt`, `html`, `htm`
+- `--audit-mode` must be one of: `standard`, `blue`, `red`
+- `--audit-plugins` must be from: `stig`, `sans`, `firewall`
+- `--wrap` allowed range: 40-200 columns (recommended: 80-120)
 
 ## Configuration Best Practices
 
@@ -159,7 +155,8 @@ Store frequently used settings in `~/.opnDossier.yaml`:
 ```yaml
 # Common settings for your environment
 verbose: false
-output_file: ./network-documentation.md
+format: markdown
+wrap: 120
 ```
 
 ### 2. Use Environment Variables for Deployment
@@ -168,10 +165,10 @@ For automated scripts and CI/CD pipelines:
 
 ```bash
 #!/bin/bash
-export OPNDOSSIER_VERBOSE=true
-export OPNDOSSIER_OUTPUT_FILE="./build/network-docs.md"
+export OPNDOSSIER_QUIET=true
+export OPNDOSSIER_FORMAT=json
 
-opndossier convert config.xml
+opndossier convert config.xml -o report.json
 ```
 
 ### 3. Use CLI Flags for One-off Overrides
@@ -183,17 +180,7 @@ For temporary debugging or testing:
 opndossier --verbose convert problematic-config.xml
 
 # Generate output to a different location
-opndossier convert config.xml --output ./debug/output.md
-```
-
-### 4. Airgapped Environment Configuration
-
-For secure, offline environments:
-
-```yaml
-# ~/.opnDossier.yaml for airgapped systems
-verbose: false
-quiet: false
+opndossier convert config.xml -o ./debug/output.md
 ```
 
 ## Troubleshooting Configuration
@@ -208,7 +195,7 @@ quiet: false
 2. **Environment variables not working**
 
    - Ensure correct `OPNDOSSIER_` prefix
-   - Check variable names match expected format
+   - Use `true`/`false` for boolean values (not `1`/`0`)
 
 3. **CLI flags not overriding config**
 
@@ -223,12 +210,6 @@ Use verbose mode to see configuration loading details:
 opndossier --verbose --config /path/to/config.yaml convert config.xml
 ```
 
-This will show:
-
-- Which configuration file is loaded
-- Which environment variables are detected
-- Final configuration values after precedence resolution
-
 ---
 
-For more configuration examples and advanced usage, see the [Usage Guide](usage.md).
+For complete flag reference with all options, see the [Configuration Reference](configuration-reference.md).
