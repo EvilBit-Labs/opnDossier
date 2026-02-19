@@ -6,9 +6,9 @@ This document describes how to use the comprehensive theme system in opndossier.
 
 The theme system supports multiple configuration methods with the following precedence:
 
-1. **CLI flag** (highest priority): `--theme light|dark|custom`
-2. **Environment variable**: `OPNDOSSIER_THEME=light|dark|custom`
-3. **YAML configuration file**: `theme: light|dark|custom`
+1. **CLI flag** (highest priority): `--theme auto|light|dark|none`
+2. **Environment variable**: `OPNDOSSIER_THEME=auto|light|dark|none`
+3. **YAML configuration file**: `theme: auto|light|dark|none`
 4. **Auto-detection** (lowest priority): Based on terminal capabilities
 
 ## Usage Examples
@@ -17,13 +17,16 @@ The theme system supports multiple configuration methods with the following prec
 
 ```bash
 # Force light theme
-opndossier --theme light convert config.xml
+opndossier --theme light display config.xml
 
 # Force dark theme
-opndossier --theme dark convert config.xml
+opndossier --theme dark display config.xml
 
-# Use custom theme
-opndossier --theme custom convert config.xml
+# Use auto-detection
+opndossier --theme auto display config.xml
+
+# Disable theming
+opndossier --theme none display config.xml
 ```
 
 ### Environment Variable
@@ -31,10 +34,10 @@ opndossier --theme custom convert config.xml
 ```bash
 # Set theme via environment variable
 export OPNDOSSIER_THEME=dark
-opndossier convert config.xml
+opndossier display config.xml
 
 # One-time override
-OPNDOSSIER_THEME=light opndossier convert config.xml
+OPNDOSSIER_THEME=light opndossier display config.xml
 ```
 
 ### YAML Configuration
@@ -72,9 +75,9 @@ When no theme is explicitly set, the system automatically detects the appropriat
 - Warning: `#FF9800` (orange)
 - Success: `#4CAF50` (green)
 
-### Custom Theme
+### None Theme
 
-The custom theme allows for user-defined color schemes (implementation depends on specific requirements).
+The `none` theme disables all theming and renders plain, unstyled output. This is useful for piping output to other tools or for terminals with limited capabilities.
 
 ## Integration with Glamour
 
@@ -82,7 +85,8 @@ The theme system integrates with Glamour for markdown rendering:
 
 - Light theme uses Glamour's "light" style
 - Dark theme uses Glamour's "dark" style
-- Custom theme uses Glamour's "auto" style
+- Auto theme uses Glamour's "auto" style (detects terminal capabilities)
+- None theme disables Glamour styling
 
 ## Terminal Compatibility
 

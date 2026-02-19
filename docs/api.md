@@ -10,7 +10,7 @@ For the full internal Go API reference including parser, config, and export pack
 
 ### ReportBuilder
 
-Defined in `internal/converter/builder/builder.go`:
+Defined in `internal/converter/builder/builder.go` (key methods shown; see source for full interface):
 
 ```go
 type ReportBuilder interface {
@@ -20,6 +20,7 @@ type ReportBuilder interface {
     BuildNetworkSection(data *model.OpnSenseDocument) string
     BuildSecuritySection(data *model.OpnSenseDocument) string
     BuildServicesSection(data *model.OpnSenseDocument) string
+    // Plus ~15 Write*Table methods for individual components
 }
 ```
 
@@ -50,10 +51,10 @@ formatters.CalculateSecurityScore(doc *model.OpnSenseDocument) int
 formatters.AssessRiskLevel(severity string) string
 
 // Evaluate security risk for a service
-formatters.AssessServiceRisk(service string) string
+formatters.AssessServiceRisk(service model.Service) string
 
-// Filter tunables by security relevance
-formatters.FilterSystemTunables(items []model.SysctlItem, securityOnly bool) []model.SysctlItem
+// Filter tunables (true = include all, false = security-relevant only)
+formatters.FilterSystemTunables(tunables []model.SysctlItem, includeTunables bool) []model.SysctlItem
 
 // Group services by running/stopped status
 formatters.GroupServicesByStatus(services []model.Service) map[string][]model.Service
@@ -82,15 +83,15 @@ The converter in `internal/converter/` provides format-specific converters:
 
 ```go
 // Markdown conversion
-converter := converter.NewMarkdownConverter(logger)
+converter := converter.NewMarkdownConverter()
 markdown, err := converter.ToMarkdown(ctx, doc)
 
 // JSON conversion
-jsonConverter := converter.NewJSONConverter(logger)
+jsonConverter := converter.NewJSONConverter()
 jsonStr, err := jsonConverter.ToJSON(ctx, doc)
 
 // YAML conversion
-yamlConverter := converter.NewYAMLConverter(logger)
+yamlConverter := converter.NewYAMLConverter()
 yamlStr, err := yamlConverter.ToYAML(ctx, doc)
 ```
 
