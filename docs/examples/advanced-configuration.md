@@ -47,7 +47,7 @@ opndossier convert config.xml --section system,network -o partial-report.md
 ### Text Wrapping
 
 ```bash
-# Set text wrap width (range: 40-200 columns)
+# Set text wrap width (allowed: 40-200, recommended: 80-120)
 opndossier display config.xml --wrap 80
 
 # Wide format for large screens

@@ -40,7 +40,7 @@ OPNDOSSIER_THEME=light opndossier convert config.xml
 ### YAML Configuration
 
 ```yaml
-# ~/.opndossier.yaml
+# ~/.opnDossier.yaml
 theme: dark
 ```
 

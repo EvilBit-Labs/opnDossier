@@ -42,13 +42,13 @@ Supported formats: `markdown` (`md`), `json`, `yaml` (`yml`), `text` (`txt`), `h
 
 ### Content & Formatting
 
-| Setting          | CLI Flag             | Environment Variable  | Config File | Type     | Default | Description                                |
-| ---------------- | -------------------- | --------------------- | ----------- | -------- | ------- | ------------------------------------------ |
-| Sections         | `--section`          | `OPNDOSSIER_SECTIONS` | `sections`  | string[] | `[]`    | Sections to include (comma-separated)      |
-| Wrap width       | `--wrap`             | `OPNDOSSIER_WRAP`     | `wrap`      | int      | `-1`    | Text wrap width (-1=auto, 0=off, >0=cols)  |
-| No wrap          | `--no-wrap`          | -                     | -           | boolean  | `false` | Disable text wrapping (alias for --wrap 0) |
-| Comprehensive    | `--comprehensive`    | -                     | -           | boolean  | `false` | Generate comprehensive detailed reports    |
-| Include tunables | `--include-tunables` | -                     | -           | boolean  | `false` | Include system tunables in output          |
+| Setting          | CLI Flag             | Environment Variable  | Config File | Type     | Default | Description                                             |
+| ---------------- | -------------------- | --------------------- | ----------- | -------- | ------- | ------------------------------------------------------- |
+| Sections         | `--section`          | `OPNDOSSIER_SECTIONS` | `sections`  | string[] | `[]`    | Sections: system, network, firewall, services, security |
+| Wrap width       | `--wrap`             | `OPNDOSSIER_WRAP`     | `wrap`      | int      | `-1`    | Text wrap width (-1=auto, 0=off, >0=cols)               |
+| No wrap          | `--no-wrap`          | -                     | -           | boolean  | `false` | Disable text wrapping (alias for --wrap 0)              |
+| Comprehensive    | `--comprehensive`    | -                     | -           | boolean  | `false` | Generate comprehensive detailed reports                 |
+| Include tunables | `--include-tunables` | -                     | -           | boolean  | `false` | Include system tunables in output                       |
 
 ### Audit & Compliance
 
@@ -60,14 +60,14 @@ Supported formats: `markdown` (`md`), `json`, `yaml` (`yml`), `text` (`txt`), `h
 
 ## Display Command Options
 
-| Setting          | CLI Flag             | Environment Variable  | Config File | Type     | Default | Description                               |
-| ---------------- | -------------------- | --------------------- | ----------- | -------- | ------- | ----------------------------------------- |
-| Theme            | `--theme`            | `OPNDOSSIER_THEME`    | `theme`     | string   | `""`    | Rendering theme: auto, dark, light, none  |
-| Sections         | `--section`          | `OPNDOSSIER_SECTIONS` | `sections`  | string[] | `[]`    | Sections to include (comma-separated)     |
-| Wrap width       | `--wrap`             | `OPNDOSSIER_WRAP`     | `wrap`      | int      | `-1`    | Text wrap width (-1=auto, 0=off, >0=cols) |
-| No wrap          | `--no-wrap`          | -                     | -           | boolean  | `false` | Disable text wrapping                     |
-| Comprehensive    | `--comprehensive`    | -                     | -           | boolean  | `false` | Generate comprehensive reports            |
-| Include tunables | `--include-tunables` | -                     | -           | boolean  | `false` | Include system tunables in output         |
+| Setting          | CLI Flag             | Environment Variable  | Config File | Type     | Default | Description                                             |
+| ---------------- | -------------------- | --------------------- | ----------- | -------- | ------- | ------------------------------------------------------- |
+| Theme            | `--theme`            | `OPNDOSSIER_THEME`    | `theme`     | string   | `""`    | Rendering theme: auto, dark, light, none                |
+| Sections         | `--section`          | `OPNDOSSIER_SECTIONS` | `sections`  | string[] | `[]`    | Sections: system, network, firewall, services, security |
+| Wrap width       | `--wrap`             | `OPNDOSSIER_WRAP`     | `wrap`      | int      | `-1`    | Text wrap width (-1=auto, 0=off, >0=cols)               |
+| No wrap          | `--no-wrap`          | -                     | -           | boolean  | `false` | Disable text wrapping                                   |
+| Comprehensive    | `--comprehensive`    | -                     | -           | boolean  | `false` | Generate comprehensive reports                          |
+| Include tunables | `--include-tunables` | -                     | -           | boolean  | `false` | Include system tunables in output                       |
 
 ## Validate Command Options
 
@@ -188,11 +188,11 @@ opnDossier validates configuration values on startup. Invalid values will result
 ```bash
 # Invalid format
 $ opndossier convert -f invalid config.xml
-Error: invalid format 'invalid', must be one of: markdown, md, json, yaml, yml, text, txt, html, htm
+Error: invalid format "invalid", must be one of: markdown, md, json, yaml, yml, text, txt, html, htm
 
 # Mutually exclusive flags
 $ opndossier --verbose --quiet convert config.xml
-Error: `verbose` and `quiet` are mutually exclusive
+Error: if any flags in the group [verbose quiet] are set none of the others can be
 
 # Invalid color mode
 $ opndossier --color invalid convert config.xml

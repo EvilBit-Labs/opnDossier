@@ -144,7 +144,7 @@ The validate command uses only global flags (no command-specific flags).
 - `--format` must be one of: `markdown`, `md`, `json`, `yaml`, `yml`, `text`, `txt`, `html`, `htm`
 - `--audit-mode` must be one of: `standard`, `blue`, `red`
 - `--audit-plugins` must be from: `stig`, `sans`, `firewall`
-- `--wrap` recommended range: 40-200 columns
+- `--wrap` allowed range: 40-200 columns (recommended: 80-120)
 
 ## Configuration Best Practices
 
