@@ -15,7 +15,7 @@ This document provides coding standards, development workflows, and technical gu
 
 ### Prerequisites
 
-- **Go 1.24.2+** (minimum), **1.26+** recommended
+- **Go 1.26+**
 - **Git** with GPG signing configured
 - **[Just](https://just.systems/)** task runner
 - **[pre-commit](https://pre-commit.com/)** - Git hook framework

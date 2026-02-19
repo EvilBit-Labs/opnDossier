@@ -401,7 +401,7 @@ Examples:
 
 4. **Build Failures**:
 
-   - Check Go version compatibility (requires Go 1.24.2+)
+   - Check Go version compatibility (requires Go 1.26+)
    - Ensure all tests pass: `just test`
    - Verify dependencies: `go mod tidy`
 

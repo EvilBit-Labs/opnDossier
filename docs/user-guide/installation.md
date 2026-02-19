@@ -4,7 +4,7 @@ This guide covers various methods to install opnDossier on your system.
 
 ## Prerequisites
 
-- **Go 1.24.2+** (for building from source, 1.26+ recommended)
+- **Go 1.26+** (for building from source)
 - **Linux, macOS, or Windows** (cross-platform support)
 
 ## Installation Methods

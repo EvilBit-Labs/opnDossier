@@ -6,7 +6,7 @@ Thank you for your interest in contributing to opnDossier! This guide will help 
 
 ### Prerequisites
 
-- **Go 1.24.2+** (minimum), **1.26+** recommended
+- **Go 1.26+**
 - **Git** with GPG signing configured
 - **[Just](https://just.systems/)** - Task runner (required for CI-equivalent checks)
 - **[golangci-lint](https://golangci-lint.run/usage/install/)** - Go linter (latest version recommended)

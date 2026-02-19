@@ -55,7 +55,7 @@ When rules conflict, follow the higher precedence rule.
 | Data Formats        | `encoding/xml`, `encoding/json`, `gopkg.in/yaml.v3`    |
 | Testing             | Go's built-in `testing` package                        |
 
-**Go Version:** 1.24.2+ (minimum), 1.26.0+ (recommended)
+**Go Version:** 1.26+
 
 > [!NOTE]
 > `viper` manages opnDossier's own configuration (CLI settings, display preferences), not OPNsense config.xml parsing. XML parsing is handled by `internal/cfgparser/`.
