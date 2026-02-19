@@ -15,10 +15,11 @@ This document provides coding standards, development workflows, and technical gu
 
 ### Prerequisites
 
-- **Go 1.21.6+** (recommended: 1.24.5+)
-- **Git** with conventional commit support
-- **Just** task runner (`just --version` to verify)
-- **Python 3.11+** (for documentation)
+- **Go 1.26+**
+- **Git** with GPG signing configured
+- **[Just](https://just.systems/)** task runner
+- **[pre-commit](https://pre-commit.com/)** - Git hook framework
+- **[golangci-lint](https://golangci-lint.run/)** - Go linter
 
 ### Initial Setup
 
@@ -55,9 +56,6 @@ just lint
 ```bash
 # Development environment
 export OPNDOSSIER_VERBOSE=true
-
-# For testing
-export OPNDOSSIER_TEST_MODE=true
 ```
 
 ## Code Quality Standards
@@ -92,7 +90,7 @@ export OPNDOSSIER_TEST_MODE=true
 - **Line Length:** 80-120 characters (Go conventions)
 - **Indentation:** Use tabs (Go standard)
 - **Naming:**
-  - Packages: `snake_case` or single word, lowercase
+  - Packages: lowercase, single word preferred
   - Variables/functions: `camelCase` for private, `PascalCase` for exported
   - Constants: `camelCase` for private, `PascalCase` for exported (avoid `ALL_CAPS`)
   - Types: `PascalCase`
@@ -117,9 +115,9 @@ func parseXMLConfig(filename string) (*Config, error) {
     return &config, nil
 }
 
-// Use structured logging
-logger := log.New(os.Stderr, "", log.LstdFlags)
-logger.Info("processing config file", "filename", filename)
+// Use charmbracelet/log for structured logging
+logger := log.With("input_file", filename)
+logger.Info("processing config file")
 ```
 
 ### Commit Message Conventions
@@ -300,11 +298,10 @@ go tool pprof mem.prof
 # Run benchmarks
 just bench
 
-# Compare benchmarks
-go test -bench=. -benchmem ./internal/cfgparser > old.txt
+# Save benchmark baseline, then compare after changes
+just bench-save
 # Make changes
-go test -bench=. -benchmem ./internal/cfgparser > new.txt
-benchcmp old.txt new.txt
+just bench-compare
 ```
 
 **Profiling:**
@@ -333,19 +330,24 @@ opnDossier/
 │   ├── validate.go                   # Validate command implementation
 │   └── *_test.go                     # Command tests
 ├── internal/                         # Private application logic
-│   ├── config/                       # Configuration handling
-│   ├── parser/                       # XML parsing logic
-│   ├── converter/                    # Data conversion logic
-│   ├── display/                      # Output formatting
-│   ├── export/                       # File export logic
-│   ├── processor/                    # Configuration processing pipeline
-│   ├── markdown/                     # Markdown generation
-│   ├── model/                        # Data models
-│   ├── validator/                    # Validation logic
-│   ├── log/                          # Structured logging
-│   ├── metrics/                      # Performance metrics
-│   ├── walker.go                     # XML walker utilities
-│   └── *_test.go                     # Package tests
+│   ├── audit/                        # Audit engine and plugin management
+│   ├── cfgparser/                    # XML parsing and validation
+│   ├── compliance/                   # Plugin interfaces
+│   ├── config/                       # Configuration management
+│   ├── configstats/                  # Configuration statistics
+│   ├── converter/                    # Data conversion and report generation
+│   │   ├── builder/                  # Programmatic markdown builder
+│   │   └── formatters/              # Security scoring, transformers
+│   ├── display/                      # Terminal display formatting
+│   ├── export/                       # File export functionality
+│   ├── logging/                      # Structured logging (charmbracelet/log)
+│   ├── model/                        # Data models (re-export layer)
+│   ├── plugins/                      # Compliance plugins (firewall/SANS/STIG)
+│   ├── processor/                    # Data processing and report generation
+│   ├── progress/                     # CLI progress indicators
+│   ├── schema/                       # Canonical data model structs
+│   ├── validator/                    # Configuration validation
+│   └── walker.go                     # XML walker utilities
 ├── docs/                             # Documentation
 ├── project_spec/                     # Project requirements
 ├── testdata/                         # Test data files

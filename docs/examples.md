@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document provides real-world usage examples and patterns for opnDossier's programmatic markdown generation.
+This document provides real-world usage examples and patterns for opnDossier.
 
 ## Basic Usage Examples
 
@@ -10,484 +10,184 @@ This document provides real-world usage examples and patterns for opnDossier's p
 
 ```bash
 # Generate a configuration report
-opnDossier convert config.xml -o report.md
+opndossier convert config.xml -o report.md
+
+# Generate comprehensive report with tunables
+opndossier convert config.xml -o detailed-report.md --comprehensive --include-tunables
 ```
 
-### Security-Focused Analysis
+### Multi-Format Export
 
 ```bash
-# Generate comprehensive security report
-opnDossier convert config.xml -o security-audit.md --include-tunables
-
-# High-security focus with detailed analysis
-opnDossier convert config.xml -o detailed-audit.md --security-focus high
-
-# Export for further analysis
-opnDossier convert config.xml -f json -o config-data.json
+# Export in all supported formats
+opndossier convert config.xml -o report.md
+opndossier convert config.xml -f json -o config-data.json
+opndossier convert config.xml -f yaml -o config-data.yaml
+opndossier convert config.xml -f text -o report.txt
+opndossier convert config.xml -f html -o report.html
 ```
 
-## Programming Examples
+## CI/CD Pipeline Integration
 
-### Basic Go Integration
-
-```go
-package main
-
-import (
-    "fmt"
-    "log"
-
-    "github.com/EvilBit-Labs/opnDossier/internal/converter"
-    "github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
-)
-
-func main() {
-    // Parse OPNsense configuration
-    xmlParser := cfgparser.NewXMLParser()
-    config, err := xmlParser.ParseFile("config.xml")
-    if err != nil {
-        log.Fatalf("Failed to parse config: %v", err)
-    }
-
-    // Create markdown builder
-    builder := converter.NewMarkdownBuilder()
-
-    // Generate standard report
-    report, err := builder.BuildStandardReport(config)
-    if err != nil {
-        log.Fatalf("Failed to generate report: %v", err)
-    }
-
-    fmt.Println("=== OPNsense Configuration Report ===")
-    fmt.Println(report)
-}
-```
-
-### Custom Security Assessment
-
-```go
-package main
-
-import (
-    "fmt"
-    "strings"
-
-    "github.com/EvilBit-Labs/opnDossier/internal/converter"
-    "github.com/EvilBit-Labs/opnDossier/internal/model"
-)
-
-func generateSecurityAudit(config *model.OpnSenseDocument) string {
-    builder := converter.NewMarkdownBuilder()
-
-    var report strings.Builder
-
-    // Header with security score
-    score := builder.CalculateSecurityScore(config)
-    riskLevel := builder.AssessRiskLevel(determineRiskFromScore(score))
-
-    report.WriteString("# Security Audit Report\n\n")
-    report.WriteString(fmt.Sprintf("**Security Score:** %d/100 %s\n\n", score, riskLevel))
-
-    // System tunables analysis
-    if config.Sysctl != nil {
-        securityTunables := builder.FilterSystemTunables(config.Sysctl.Item, true)
-        report.WriteString("## Security-Related System Tunables\n\n")
-
-        if len(securityTunables) > 0 {
-            report.WriteString("| Tunable | Value | Description |\n")
-            report.WriteString("|---------|-------|-------------|\n")
-
-            for _, tunable := range securityTunables {
-                escapedDesc := builder.EscapeMarkdownSpecialChars(tunable.Descr)
-                report.WriteString(fmt.Sprintf("| `%s` | `%s` | %s |\n",
-                    tunable.Tunable, tunable.Value, escapedDesc))
-            }
-        } else {
-            report.WriteString("*No security-related tunables found.*\n")
-        }
-        report.WriteString("\n")
-    }
-
-    // Service status analysis
-    if len(config.Installedpackages.Services) > 0 {
-        serviceGroups := builder.GroupServicesByStatus(config.Installedpackages.Services)
-
-        report.WriteString("## Service Status Summary\n\n")
-        report.WriteString(fmt.Sprintf("- **Running Services:** %d\n", len(serviceGroups["running"])))
-        report.WriteString(fmt.Sprintf("- **Stopped Services:** %d\n", len(serviceGroups["stopped"])))
-        report.WriteString("\n")
-
-        // Risk assessment for running services
-        if len(serviceGroups["running"]) > 0 {
-            report.WriteString("### Running Services Risk Assessment\n\n")
-            for _, service := range serviceGroups["running"] {
-                risk := builder.AssessServiceRisk(service)
-                report.WriteString(fmt.Sprintf("- **%s**: %s\n", service.Name, risk))
-            }
-            report.WriteString("\n")
-        }
-    }
-
-    return report.String()
-}
-
-func determineRiskFromScore(score int) string {
-    switch {
-    case score >= 80:
-        return "low"
-    case score >= 60:
-        return "medium"
-    case score >= 40:
-        return "high"
-    default:
-        return "critical"
-    }
-}
-```
-
-### Firewall Rules Analysis
-
-```go
-func analyzeFirewallRules(config *model.OpnSenseDocument) string {
-    builder := converter.NewMarkdownBuilder()
-
-    var report strings.Builder
-    report.WriteString("# Firewall Rules Analysis\n\n")
-
-    // Extract all firewall rules
-    var allRules []model.Rule
-    if config.Filter != nil {
-        allRules = config.Filter.Rule
-    }
-
-    if len(allRules) == 0 {
-        report.WriteString("*No firewall rules configured.*\n")
-        return report.String()
-    }
-
-    // Generate rules table
-    rulesTable := builder.BuildFirewallRulesTable(allRules)
-    report.WriteString(rulesTable.String())
-    report.WriteString("\n")
-
-    // Rules statistics
-    report.WriteString("## Rules Statistics\n\n")
-
-    allowRules := 0
-    blockRules := 0
-    for _, rule := range allRules {
-        if rule.Type == "pass" {
-            allowRules++
-        } else if rule.Type == "block" {
-            blockRules++
-        }
-    }
-
-    report.WriteString(fmt.Sprintf("- **Total Rules:** %d\n", len(allRules)))
-    report.WriteString(fmt.Sprintf("- **Allow Rules:** %d\n", allowRules))
-    report.WriteString(fmt.Sprintf("- **Block Rules:** %d\n", blockRules))
-
-    // Security recommendations
-    report.WriteString("\n## Security Recommendations\n\n")
-
-    if blockRules == 0 {
-        report.WriteString("⚠️ **Warning:** No explicit block rules found. Consider adding deny rules for defense in depth.\n")
-    }
-
-    if float64(allowRules)/float64(len(allRules)) > 0.8 {
-        report.WriteString("⚠️ **Warning:** High ratio of allow rules. Review for overly permissive access.\n")
-    }
-
-    return report.String()
-}
-```
-
-## Advanced Integration Examples
-
-### CI/CD Pipeline Integration
+### GitHub Actions Documentation Pipeline
 
 ```yaml
-# .github/workflows/security-audit.yml
-name: OPNsense Security Audit
+# .github/workflows/documentation.yml
+name: Generate Network Documentation
 
 on:
-  pull_request:
+  push:
     paths:
       - configs/*.xml
 
 jobs:
-  security-audit:
+  generate-docs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.26'
+
       - name: Install opnDossier
         run: go install github.com/EvilBit-Labs/opnDossier@latest
 
-      - name: Generate Security Reports
+      - name: Validate Configurations
+        run: opndossier validate configs/*.xml
+
+      - name: Generate Reports
         run: |
           mkdir -p reports
           for config in configs/*.xml; do
             filename=$(basename "$config" .xml)
-            opnDossier convert "$config" -o "reports/${filename}-audit.md" --include-tunables
+            opndossier convert "$config" \
+              --comprehensive \
+              -o "reports/${filename}.md"
           done
 
       - name: Upload Reports
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
-          name: security-reports
+          name: network-reports
           path: reports/
 ```
 
-### Batch Processing Script
+## Batch Processing Script
 
 ```bash
 #!/bin/bash
-# batch-audit.sh - Process multiple OPNsense configurations
+# batch-process.sh - Process multiple OPNsense configurations
 
 set -euo pipefail
 
-CONFIG_DIR="./configs"
-OUTPUT_DIR="./reports"
-OPNDOSSIER_BIN="./opnDossier"
+CONFIG_DIR="${1:?Usage: $0 <config-dir> [output-dir]}"
+OUTPUT_DIR="${2:-./reports}"
 
-# Create output directory
 mkdir -p "$OUTPUT_DIR"
 
-echo "Starting batch security audit..."
+echo "Starting batch processing..."
 
-# Process each configuration file
 for config_file in "$CONFIG_DIR"/*.xml; do
     if [[ -f "$config_file" ]]; then
         filename=$(basename "$config_file" .xml)
-        output_file="$OUTPUT_DIR/${filename}-security-audit.md"
+        output_file="$OUTPUT_DIR/${filename}.md"
 
         echo "Processing: $config_file"
 
-        # Generate comprehensive security report
-        if "$OPNDOSSIER_BIN" convert "$config_file" \
-            -o "$output_file" \
-            --include-tunables \
-            --security-focus high; then
-            echo "✓ Generated: $output_file"
+        if opndossier validate "$config_file" > /dev/null 2>&1; then
+            opndossier convert "$config_file" \
+                --comprehensive \
+                -o "$output_file"
+            echo "  Generated: $output_file"
         else
-            echo "✗ Failed to process: $config_file"
+            echo "  Failed to validate: $config_file"
         fi
     fi
 done
 
-echo "Batch audit complete. Reports saved to: $OUTPUT_DIR"
-
-# Generate summary report
-echo "Generating summary report..."
-cat > "$OUTPUT_DIR/audit-summary.md" << EOF
-# Security Audit Summary
-
-Generated: $(date)
-
-## Processed Configurations
-
-$(find "$OUTPUT_DIR" -name "*-security-audit.md" -exec basename {} .md \; | sed 's/^/- /')
-
-## Quick Access
-
-$(find "$OUTPUT_DIR" -name "*-security-audit.md" -exec bash -c 'echo "- [$(basename "{}" -security-audit.md)](./$(basename "{}"))"' \;)
-EOF
-
-echo "✓ Summary report: $OUTPUT_DIR/audit-summary.md"
+echo "Batch processing complete. Reports saved to: $OUTPUT_DIR"
 ```
 
-## Performance Optimization Examples
+## JSON Processing Examples
 
-### Efficient Bulk Processing
+### Extract Firewall Rules
 
-```go
-func processMultipleConfigs(configFiles []string) error {
-    // Create reusable components
-    parser := cfgparser.NewXMLParser()
-    builder := converter.NewMarkdownBuilder()
+```bash
+# Convert to JSON and extract firewall rules
+opndossier convert config.xml -f json | jq '.filter.rule[]'
 
-    // Pre-allocate results
-    results := make([]string, 0, len(configFiles))
+# Count rules by type
+opndossier convert config.xml -f json | jq '.filter.rule | group_by(.type) | map({type: .[0].type, count: length})'
 
-    // Process in optimized batches
-    batchSize := 10
-    for i := 0; i < len(configFiles); i += batchSize {
-        end := i + batchSize
-        if end > len(configFiles) {
-            end = len(configFiles)
-        }
-
-        // Process batch
-        for j := i; j < end; j++ {
-            config, err := cfgparser.ParseFile(configFiles[j])
-            if err != nil {
-                log.Printf("Failed to parse %s: %v", configFiles[j], err)
-                continue
-            }
-
-            report, err := builder.BuildStandardReport(config)
-            if err != nil {
-                log.Printf("Failed to generate report for %s: %v", configFiles[j], err)
-                continue
-            }
-
-            results = append(results, report)
-        }
-
-        // Optional: Memory cleanup between batches
-        // runtime.GC()
-    }
-
-    log.Printf("Successfully processed %d/%d configurations", len(results), len(configFiles))
-    return nil
-}
+# Find rules allowing all traffic
+opndossier convert config.xml -f json | jq '.filter.rule[] | select(.source.any != null and .destination.any != null)'
 ```
 
-### Concurrent Report Generation
+### Extract System Information
 
-```go
-func concurrentReportGeneration(configs []*model.OpnSenseDocument) []string {
-    builder := converter.NewMarkdownBuilder()
+```bash
+# Get system summary
+opndossier convert config.xml -f json | jq '{
+  hostname: .system.hostname,
+  domain: .system.domain,
+  timezone: .system.timezone
+}'
 
-    type result struct {
-        index  int
-        report string
-        err    error
-    }
-
-    // Create worker pool
-    workers := runtime.NumCPU()
-    jobs := make(chan int, len(configs))
-    results := make(chan result, len(configs))
-
-    // Start workers
-    for w := 0; w < workers; w++ {
-        go func() {
-            for index := range jobs {
-                report, err := builder.BuildStandardReport(configs[index])
-                results <- result{index: index, report: report, err: err}
-            }
-        }()
-    }
-
-    // Send jobs
-    for i := range configs {
-        jobs <- i
-    }
-    close(jobs)
-
-    // Collect results
-    reports := make([]string, len(configs))
-    for i := 0; i < len(configs); i++ {
-        result := <-results
-        if result.err == nil {
-            reports[result.index] = result.report
-        } else {
-            log.Printf("Failed to generate report for config %d: %v", result.index, result.err)
-        }
-    }
-
-    return reports
-}
+# Get interface summary
+opndossier convert config.xml -f json | jq '.interfaces'
 ```
 
-## Troubleshooting Examples
+## Configuration Comparison
 
-### Common Error Handling
+```bash
+#!/bin/bash
+# compare-configs.sh - Compare two OPNsense configurations
 
-```go
-func robustReportGeneration(configFile string) error {
-    // Parse configuration with error handling
-    parser := cfgparser.NewXMLParser()
-    config, err := cfgparser.ParseFile(configFile)
-    if err != nil {
-        switch {
-        case os.IsNotExist(err):
-            return fmt.Errorf("configuration file not found: %s", configFile)
-        case strings.Contains(err.Error(), "invalid XML"):
-            return fmt.Errorf("malformed XML in configuration file: %w", err)
-        default:
-            return fmt.Errorf("failed to parse configuration: %w", err)
-        }
-    }
+CONFIG_OLD="$1"
+CONFIG_NEW="$2"
 
-    // Generate report with comprehensive error handling
-    builder := converter.NewMarkdownBuilder()
-    report, err := builder.BuildStandardReport(config)
-    if err != nil {
-        switch {
-        case errors.Is(err, converter.ErrInvalidData):
-            // Handle data validation errors
-            log.Printf("Configuration data validation failed: %v", err)
-            return fmt.Errorf("invalid configuration data: %w", err)
-        case errors.Is(err, converter.ErrGenerationFailed):
-            // Handle generation-specific errors
-            log.Printf("Report generation failed: %v", err)
-            return fmt.Errorf("failed to generate markdown: %w", err)
-        default:
-            // Handle unexpected errors
-            log.Printf("Unexpected error during report generation: %v", err)
-            return fmt.Errorf("unexpected error: %w", err)
-        }
-    }
+# Convert both to sorted JSON
+opndossier convert "$CONFIG_OLD" -f json | jq -S . > /tmp/old-config.json
+opndossier convert "$CONFIG_NEW" -f json | jq -S . > /tmp/new-config.json
 
-    // Save report
-    outputFile := strings.TrimSuffix(configFile, ".xml") + "-report.md"
-    if err := os.WriteFile(outputFile, []byte(report), 0644); err != nil {
-        return fmt.Errorf("failed to write report to %s: %w", outputFile, err)
-    }
+# Compare
+diff /tmp/old-config.json /tmp/new-config.json
 
-    log.Printf("Successfully generated report: %s", outputFile)
-    return nil
-}
+# Clean up
+rm -f /tmp/old-config.json /tmp/new-config.json
 ```
 
-### Performance Debugging
+## Performance Tips
 
-```go
-func benchmarkReportGeneration(config *model.OpnSenseDocument) {
-    builder := converter.NewMarkdownBuilder()
+### Process Specific Sections
 
-    // Measure total generation time
-    start := time.Now()
-    report, err := builder.BuildStandardReport(config)
-    totalTime := time.Since(start)
+For large configurations, filter to specific sections for faster processing:
 
-    if err != nil {
-        log.Printf("Generation failed: %v", err)
-        return
-    }
+```bash
+# Process only firewall and network sections
+opndossier convert large-config.xml --section firewall,network -o partial-report.md
+```
 
-    // Performance metrics
-    log.Printf("Report generation completed:")
-    log.Printf("  - Total time: %v", totalTime)
-    log.Printf("  - Report size: %d characters", len(report))
-    log.Printf("  - Generation rate: %.2f chars/ms", float64(len(report))/float64(totalTime.Milliseconds()))
+### Parallel Multi-File Processing
 
-    // Memory usage (requires runtime profiling)
-    var m runtime.MemStats
-    runtime.ReadMemStats(&m)
-    log.Printf("  - Memory allocated: %d KB", m.Alloc/1024)
-    log.Printf("  - Total allocations: %d", m.TotalAlloc/1024)
-}
+```bash
+# Process multiple files in parallel (4 workers)
+find configs/ -name "*.xml" | xargs -P 4 -I {} \
+    sh -c 'opndossier convert "$1" -o "docs/$(basename "$1" .xml).md"' _ {}
 ```
 
 ## Best Practices Summary
 
-1. **Always handle errors explicitly** - The programmatic API provides detailed error information
-2. **Reuse builder instances** - Create once, use multiple times for better performance
-3. **Use defensive programming** - Check for nil pointers and empty collections
-4. **Pre-allocate slices** when size is predictable
-5. **Profile performance** for large datasets or high-frequency operations
-6. **Leverage type safety** - Compile-time checks prevent runtime errors
-7. **Follow Go conventions** - Use standard Go patterns and idioms
+1. **Always validate first** - Run `opndossier validate` before converting
+2. **Use JSON for analysis** - Export to JSON and use `jq` for programmatic processing
+3. **Automate with CI/CD** - Integrate into pipelines for automated documentation
+4. **Version control outputs** - Keep generated reports in version control for change tracking
 
-For more examples and detailed guidance, see:
+For more detailed examples, see:
 
-- [API Documentation](api.md)
-- [Architecture Overview](https://github.com/EvilBit-Labs/opnDossier/blob/main/ARCHITECTURE.md)
+- [Basic Documentation](examples/basic-documentation.md)
+- [Automation and Scripting](examples/automation-scripting.md)
+- [Advanced Configuration](examples/advanced-configuration.md)
+- [Troubleshooting](examples/troubleshooting.md)
