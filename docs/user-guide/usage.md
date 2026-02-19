@@ -2,48 +2,199 @@
 
 This guide covers common workflows and examples for using opnDossier effectively.
 
-## Basic Usage
+## Commands Overview
 
-### Convert Configuration Files
+opnDossier provides three core commands:
 
-The primary use case is converting OPNsense configuration files to markdown:
+| Command    | Purpose                                                  |
+| ---------- | -------------------------------------------------------- |
+| `convert`  | Convert config.xml to structured output formats          |
+| `display`  | Render config.xml as formatted markdown in terminal      |
+| `validate` | Check config.xml for structural and semantic correctness |
+
+## Convert Command
+
+The primary command for transforming OPNsense configurations into documentation.
+
+### Basic Conversion
 
 ```bash
-# Convert to markdown (default format)
-opnDossier convert config.xml
+# Convert to markdown (default format, prints to stdout)
+opndossier convert config.xml
 
-# Convert to markdown and save to file
-opnDossier convert config.xml -o documentation.md
+# Save to a file
+opndossier convert config.xml -o documentation.md
 
-# Convert to markdown format explicitly
-opnDossier convert -f markdown config.xml
-
-# Convert to JSON format
-opnDossier convert -f json config.xml -o output.json
-
-# Convert to YAML format
-opnDossier convert -f yaml config.xml -o output.yaml
-
-# Convert multiple files (each gets appropriate extension)
-opnDossier convert config1.xml config2.xml config3.xml
-
-# Convert multiple files to JSON format
-opnDossier convert -f json config1.xml config2.xml config3.xml
+# Force overwrite existing file without prompt
+opndossier convert config.xml -o output.md --force
 ```
 
-### Display Options
+### Output Formats
 
-Control how output is displayed:
+opnDossier supports five output formats:
 
 ```bash
-# Verbose output with debug information
+# Markdown (default)
+opndossier convert config.xml -f markdown
+
+# JSON
+opndossier convert config.xml -f json -o output.json
+
+# YAML
+opndossier convert config.xml -f yaml -o output.yaml
+
+# Plain text (markdown without formatting)
+opndossier convert config.xml -f text -o output.txt
+
+# Self-contained HTML report
+opndossier convert config.xml -f html -o report.html
+```
+
+Short aliases are also supported: `md`, `yml`, `txt`, `htm`.
+
+### Multiple Files
+
+```bash
+# Convert multiple files (each gets an auto-named output file)
+opndossier convert config1.xml config2.xml config3.xml
+
+# Convert multiple files to JSON
+opndossier convert -f json config1.xml config2.xml
+```
+
+When processing multiple files, the `--output` flag is ignored and each output file is named based on its input file with the appropriate extension.
+
+### Section Filtering
+
+```bash
+# Include only specific sections
+opndossier convert config.xml --section system,network
+
+# Available sections: system, network, firewall, services, security
+```
+
+### Text Wrapping
+
+```bash
+# Set wrap width (default: auto-detect terminal width)
+opndossier convert config.xml --wrap 120
+
+# Disable text wrapping
+opndossier convert config.xml --no-wrap
+```
+
+### Comprehensive Reports
+
+```bash
+# Generate detailed comprehensive report
+opndossier convert config.xml --comprehensive
+
+# Include system tunables in output
+opndossier convert config.xml --include-tunables
+```
+
+### Audit Mode
+
+opnDossier includes built-in security auditing with compliance plugins:
+
+```bash
+# Blue team defensive audit with STIG and SANS compliance
+opndossier convert config.xml --audit-mode blue --audit-plugins stig,sans
+
+# Red team attack surface analysis
+opndossier convert config.xml --audit-mode red
+
+# Red team with blackhat commentary
+opndossier convert config.xml --audit-mode red --audit-blackhat
+
+# Standard documentation with all compliance checks
+opndossier convert config.xml --audit-mode standard --audit-plugins stig,sans,firewall
+```
+
+Available audit modes:
+
+| Mode       | Audience   | Focus                                  |
+| ---------- | ---------- | -------------------------------------- |
+| `standard` | Operations | Neutral, comprehensive documentation   |
+| `blue`     | Blue Team  | Defensive audit with security findings |
+| `red`      | Red Team   | Attack surface and pivot points        |
+
+Available compliance plugins: `stig`, `sans`, `firewall`
+
+## Display Command
+
+Renders configuration as formatted markdown directly in your terminal with syntax highlighting.
+
+```bash
+# Display configuration
+opndossier display config.xml
+
+# Display with a specific theme
+opndossier display --theme dark config.xml
+opndossier display --theme light config.xml
+
+# Display specific sections
+opndossier display --section system,network config.xml
+
+# Display with custom wrap width
+opndossier display --wrap 100 config.xml
+
+# Display without text wrapping
+opndossier display --no-wrap config.xml
+```
+
+Available themes: `auto` (default), `dark`, `light`, `none`
+
+## Validate Command
+
+Checks configuration files for correctness without performing conversion.
+
+```bash
+# Validate a single file
+opndossier validate config.xml
+
+# Validate multiple files
+opndossier validate config1.xml config2.xml config3.xml
+
+# Validate with verbose output
+opndossier --verbose validate config.xml
+
+# Validate with JSON error output (for automation)
+opndossier --json-output validate config.xml
+```
+
+Validation includes XML syntax checks, OPNsense schema validation, required field checks, and cross-field consistency checks.
+
+### Recommended Workflow
+
+Validate before converting:
+
+```bash
+opndossier validate config.xml && opndossier convert config.xml -o output.md
+```
+
+## Global Flags
+
+These flags apply to all commands:
+
+```bash
+# Verbose output with debug logging
 opndossier --verbose convert config.xml
 
-# Quiet mode - only errors
+# Quiet mode (errors only)
 opndossier --quiet convert config.xml
 
-# Enable validation with verbose output
-opndossier --validate --verbose convert config.xml
+# Use custom config file
+opndossier --config ./custom-config.yaml convert config.xml
+
+# Disable progress indicators
+opndossier --no-progress convert config.xml
+
+# Color control
+opndossier --color never convert config.xml
+
+# JSON error output (for automation)
+opndossier --json-output validate config.xml
 ```
 
 ## Configuration Management
@@ -54,39 +205,35 @@ Create `~/.opnDossier.yaml` for persistent settings:
 
 ```yaml
 # Default settings for all operations
-output_file: ./network-docs.md
 verbose: false
+quiet: false
+format: markdown
+wrap: 120
 ```
 
 ### Environment Variables
 
-Use environment variables for deployment automation:
+Use environment variables with the `OPNDOSSIER_` prefix:
 
 ```bash
 # Set logging preferences
 export OPNDOSSIER_VERBOSE=true
 
-# Set default output location
-export OPNDOSSIER_OUTPUT_FILE="./documentation.md"
+# Set default format
+export OPNDOSSIER_FORMAT=json
 
 # Run with environment configuration
 opndossier convert config.xml
 ```
 
-### CLI Flag Overrides
+### Precedence
 
-CLI flags have the highest precedence:
+Configuration follows a clear precedence order (highest to lowest):
 
-```bash
-# Override config file settings
-opndossier --verbose --output=custom.md convert config.xml
-
-# Temporary verbose mode
-opndossier --verbose convert config.xml
-
-# Use custom config file
-opndossier --config ./project-config.yaml convert config.xml
-```
+1. Command-line flags
+2. Environment variables (`OPNDOSSIER_*`)
+3. Configuration file (`~/.opnDossier.yaml`)
+4. Default values
 
 ## Common Workflows
 
@@ -94,17 +241,27 @@ opndossier --config ./project-config.yaml convert config.xml
 
 ```bash
 # Basic documentation workflow
-opndossier convert /etc/opnsense/config.xml -o network-documentation.md
+opndossier convert config.xml -o network-documentation.md
 
 # With verbose logging for troubleshooting
-opndossier --verbose convert /etc/opnsense/config.xml -o network-docs.md
+opndossier --verbose convert config.xml -o network-docs.md
 
 # Generate multiple formats
-opndossier convert config.xml -o current-config.md
-opndossier --verbose convert config.xml > config.log
+opndossier convert config.xml -f markdown -o config.md
+opndossier convert config.xml -f json -o config.json
 ```
 
-### 2. Batch Processing
+### 2. Security Audit
+
+```bash
+# Run a defensive audit
+opndossier convert config.xml --audit-mode blue --audit-plugins stig,sans -o audit-report.md
+
+# Run a red team assessment
+opndossier convert config.xml --audit-mode red --audit-blackhat -o recon-report.md
+```
+
+### 3. Batch Processing
 
 ```bash
 # Process multiple configuration files
@@ -112,327 +269,96 @@ opndossier convert *.xml
 
 # Process files in a directory
 find /path/to/configs -name "*.xml" -exec opndossier convert {} \;
-
-# Process with parallel execution (if multiple files)
-opndossier convert config1.xml config2.xml config3.xml
 ```
 
-### 3. Automated Documentation Pipeline
+### 4. Automated Documentation Pipeline
 
 ```bash
 #!/bin/bash
-# automation-script.sh
-
-# Set up environment
-export OPNDOSSIER_VERBOSE=true
 
 # Process configuration
-opndossier convert /etc/opnsense/config.xml -o ./docs/network-config.md
+opndossier convert /path/to/config.xml -o ./docs/network-config.md
 
 # Check if successful
 if [ $? -eq 0 ]; then
     echo "Documentation generated successfully"
-    # Additional processing (git commit, upload, etc.)
 else
     echo "Documentation generation failed"
     exit 1
 fi
 ```
 
-### 4. Debugging and Troubleshooting
-
-```bash
-# Debug XML parsing issues
-opndossier --verbose convert problematic-config.xml
-
-# Debug with validation enabled
-opndossier --validate --verbose convert config.xml
-
-# Capture detailed logs
-opndossier --verbose convert config.xml > debug.log 2>&1
-
-# Test configuration loading
-opndossier --verbose --config ./test-config.yaml convert --help
-```
-
-## Validation and Error Handling
-
-### Understanding Validation Output
-
-opnDossier provides comprehensive validation with detailed error reporting:
-
-```bash
-# Enable validation during conversion
-opndossier convert config.xml --validate
-
-# Example validation error output
-# validation error at opnsense.system.hostname: hostname is required
-# validation error at opnsense.interfaces.wan.ipaddr: IP address '300.300.300.300' must be a valid IP address
-```
-
-### Common Validation Errors
-
-#### Missing Required Fields
-
-```bash
-# Error: hostname is required
-opndossier --validate convert incomplete-config.xml
-# Output: validation error at opnsense.system.hostname: hostname is required
-```
-
-#### Invalid Network Configuration
-
-```bash
-# Error: invalid IP address
-opndossier --validate convert bad-network-config.xml
-# Output: validation error at opnsense.interfaces.lan.ipaddr: IP address '256.256.256.256' must be a valid IP address
-```
-
-#### Aggregated Error Reports
-
-```bash
-# Multiple validation errors
-opndossier --validate convert multi-error-config.xml
-# Output: validation failed with 3 errors: hostname is required (and 2 more)
-#   - opnsense.system.hostname: hostname is required
-#   - opnsense.system.domain: domain is required
-#   - opnsense.interfaces.lan.subnet: subnet mask '35' must be valid (0-32)
-```
-
-### Streaming Processing
-
-opnDossier handles large configuration files efficiently:
-
-```bash
-# Process large configuration files
-opndossier convert large-config.xml  # Automatically uses streaming
-
-# Monitor memory usage during processing
-opndossier --verbose convert large-config.xml
-# Output shows memory cleanup after processing large sections
-```
-
-## Advanced Usage
-
-### Configuration Precedence Testing
-
-Test how configuration precedence works:
-
-```bash
-# Create test config file
-cat > test-config.yaml << EOF
-verbose: false
-quiet: false
-EOF
-
-# Test precedence: config file < env vars < CLI flags
-opndossier --config test-config.yaml convert config.xml  # Uses config file settings
-OPNDOSSIER_VERBOSE=true opndossier --config test-config.yaml convert config.xml  # Env var overrides config
-opndossier --config test-config.yaml --quiet convert config.xml  # CLI flag overrides all
-```
-
-### Custom Output Locations
-
-```bash
-# Create output directory structure
-mkdir -p docs/network/{current,archive}
-
-# Generate documentation with custom paths
-opndossier convert config.xml -o docs/network/current/config.md
-
-# Use environment variables for paths
-export OPNDOSSIER_OUTPUT_FILE="docs/network/current/config.md"
-opndossier convert config.xml
-
-# Batch process to different locations
-for config in configs/*.xml; do
-    name=$(basename "$config" .xml)
-    opndossier convert "$config" -o "docs/${name}.md"
-done
-```
-
-### Integration with Other Tools
-
-#### Git Integration
-
-```bash
-# Document configuration changes
-opndossier convert config.xml -o current-config.md
-git add current-config.md
-git commit -m "docs: update network configuration documentation"
-```
-
-#### CI/CD Pipeline Integration
+### 5. CI/CD Integration
 
 ```yaml
 # .github/workflows/docs.yml
 name: Generate Documentation
-on: [push, pull_request]
+on: [push]
 
 jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.26'
+
       - name: Install opnDossier
         run: go install github.com/EvilBit-Labs/opnDossier@latest
 
       - name: Generate Documentation
-        env:
-          OPNDOSSIER_VERBOSE: true
         run: opndossier convert config.xml -o docs/network-config.md
-
-      - name: Commit Documentation
-        if: github.event_name == 'push'
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add docs/network-config.md
-          git commit -m "docs: update network configuration" || exit 0
-          git push
 ```
 
-#### Monitoring Integration
+## Error Handling
+
+### XML Parsing Errors
 
 ```bash
-# Generate metrics for monitoring
-opndossier --verbose convert config.xml > metrics.log 2>&1
-
-# Parse logs for monitoring
-grep -i "error" metrics.log | wc -l
-
-# Health check script
-#!/bin/bash
-if opndossier convert config.xml -o /tmp/test.md > /dev/null 2>&1; then
-    echo "opnDossier: OK"
-    exit 0
-else
-    echo "opnDossier: FAILED"
-    exit 1
-fi
-```
-
-## Error Handling and Troubleshooting
-
-### Common Error Scenarios
-
-#### 1. XML Parsing Errors
-
-```bash
-# Invalid XML structure
 opndossier convert invalid-config.xml
 # Error: failed to parse XML from invalid-config.xml: XML syntax error on line 42
-
-# Debug XML issues
-opndossier --verbose convert invalid-config.xml
 ```
 
-#### 2. File Permission Issues
+### File Permission Issues
 
 ```bash
-# Permission denied
 opndossier convert /root/config.xml
 # Error: failed to open file /root/config.xml: permission denied
-
-# Solution: copy file or adjust permissions
-sudo cp /root/config.xml ./config.xml
-opndossier convert config.xml
 ```
 
-#### 3. Configuration Validation Errors
+### Conflicting Flags
 
 ```bash
-# Conflicting flags
 opndossier --verbose --quiet convert config.xml
-# Error: verbose and quiet options are mutually exclusive
+# Error: `verbose` and `quiet` are mutually exclusive
 
+opndossier convert config.xml --wrap 100 --no-wrap
+# Error: --no-wrap and --wrap flags are mutually exclusive
 ```
 
-### Debugging Tips
+## Debugging Tips
 
-1. **Use verbose mode for detailed information:**
+1. **Use verbose mode** for detailed processing information:
 
    ```bash
    opndossier --verbose convert config.xml
    ```
 
-2. **Check configuration precedence:**
+2. **Validate first** to isolate parsing issues from conversion issues:
 
    ```bash
-   opndossier --verbose --config /path/to/config.yaml convert --help
+   opndossier validate config.xml
    ```
 
-3. **Validate configuration files:**
+3. **Capture logs** for automated analysis:
 
    ```bash
-   # Test config file syntax
-   opndossier --config test-config.yaml --help
+   opndossier --verbose convert config.xml > output.md 2> debug.log
    ```
-
-4. **Capture verbose logs for automated analysis:**
-
-```bash
-opndossier --verbose convert config.xml > output.log 2>&1
-```
-
-## Performance Optimization
-
-### Large File Processing
-
-```bash
-# Process large files efficiently
-opndossier --quiet convert large-config.xml
-
-# Monitor memory usage
-/usr/bin/time -v opndossier convert large-config.xml
-```
-
-### Batch Processing Optimization
-
-```bash
-# Process multiple files concurrently (built-in)
-opndossier convert config1.xml config2.xml config3.xml
-
-# Custom parallel processing
-find /configs -name "*.xml" | xargs -P 4 -I {} opndossier convert {} -o {}.md
-```
-
-## Best Practices
-
-### 1. Configuration Management
-
-- Use configuration files for persistent settings
-- Use environment variables for deployment-specific settings
-- Use CLI flags for temporary overrides
-
-### 2. File Organization
-
-```bash
-# Organize output files logically
-opndossier convert config.xml -o docs/network/$(date +%Y-%m-%d)-config.md
-
-# Archive old documentation
-mkdir -p docs/network/archive/$(date +%Y/%m)
-mv docs/network/*.md docs/network/archive/$(date +%Y/%m)/
-```
-
-### 3. Automation
-
-- Always use error checking in scripts
-- Use structured logging (JSON) for automated processing
-- Implement health checks for monitoring
-
-### 4. Security
-
-- Keep configuration files in secure locations
-- Use environment variables for sensitive settings (if any)
-- Regularly audit generated documentation for sensitive information
 
 ---
 
-For more advanced examples and specific use cases, see our [Examples](../examples/) section.
+For more configuration options, see the [Configuration Reference](configuration-reference.md).

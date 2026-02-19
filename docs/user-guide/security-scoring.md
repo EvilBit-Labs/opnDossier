@@ -2,7 +2,7 @@
 
 ## Overview
 
-The opnDossier security assessment functions provide a standardized approach to evaluating OPNsense configuration security posture. This document explains the risk label mapping and security scoring methodology implemented in the `MarkdownBuilder` security functions.
+opnDossier's security assessment provides a standardized approach to evaluating OPNsense configuration security posture. This document explains the risk label mapping and security scoring methodology implemented in the `internal/converter/formatters/security.go` module.
 
 ## Risk Label Mapping
 
@@ -21,12 +21,12 @@ The security assessment uses consistent emoji + text risk labels across all outp
 
 Risk labels are used consistently across:
 
-- Programmatic markdown generation (`AssessRiskLevel` method)
-- Service risk assessment (`AssessServiceRisk` method)
+- Programmatic markdown generation (`AssessRiskLevel` function)
+- Service risk assessment (`AssessServiceRisk` function)
 
 ## Service Risk Assessment
 
-The `AssessServiceRisk()` method maps common services to risk levels based on security implications:
+The `AssessServiceRisk()` function maps common services to risk levels based on security implications:
 
 ### Critical Risk Services
 
@@ -52,18 +52,18 @@ The `AssessServiceRisk()` method maps common services to risk levels based on se
 
 ## Security Scoring Algorithm
 
-The `CalculateSecurityScore()` method provides a 0-100 security score based on configuration analysis.
+The `CalculateSecurityScore()` function provides a 0-100 security score based on configuration analysis.
 
 ### Base Score: 100 points
 
 ### Penalty System
 
-| Security Issue           | Penalty Points | Description                                           |
-| ------------------------ | -------------- | ----------------------------------------------------- |
-| No Firewall Rules        | -20            | Missing basic firewall protection                     |
-| Management on WAN        | -30            | Administrative services exposed to untrusted networks |
-| Insecure Sysctl Settings | -5 each        | Per misconfigured system tunable                      |
-| Default User Accounts    | -15 each       | Per default system account (admin, root, user)        |
+| Security Issue           | Penalty Points | Description                                    |
+| ------------------------ | -------------- | ---------------------------------------------- |
+| No Firewall Rules        | -20            | Missing basic firewall protection              |
+| Management on WAN        | -30            | Management ports exposed on WAN interface      |
+| Insecure Sysctl Settings | -5 each        | Per misconfigured system tunable               |
+| Default User Accounts    | -15 each       | Per default system account (admin, root, user) |
 
 ### Sysctl Security Checks
 
@@ -78,7 +78,7 @@ The following system tunables are evaluated for security compliance:
 
 ### Management Port Detection
 
-The following ports are considered management ports when exposed on WAN:
+The following ports are considered management ports when exposed on WAN with inbound direction:
 
 - **22** (SSH)
 - **80** (HTTP)
@@ -92,39 +92,27 @@ The following ports are considered management ports when exposed on WAN:
 - Scoring uses conservative heuristics designed for audit readability
 - Penalties are intentionally conservative to avoid false positives
 - Score is clamped between 0-100 to ensure consistent ranges
+- A `nil` document returns a score of 0
 
-### Single Source of Truth
+### Architecture
 
-The current implementation provides a transparent wrapper while existing scoring logic is consolidated. Future updates will centralize scoring logic to ensure consistency across the model, processor, and converter layers.
+The security scoring functions live in `internal/converter/formatters/security.go` as standalone functions. The `MarkdownBuilder` in `internal/converter/builder/helpers.go` delegates to these functions:
+
+```go
+// Standalone functions (canonical implementation)
+formatters.AssessRiskLevel("high")       // Returns: "🟠 High Risk"
+formatters.CalculateSecurityScore(doc)   // Returns: 0-100
+formatters.AssessServiceRisk(service)    // Returns: risk label string
+
+// MarkdownBuilder convenience methods (delegate to formatters)
+builder.AssessRiskLevel("high")
+builder.CalculateSecurityScore(doc)
+builder.AssessServiceRisk(service)
+```
 
 ### Offline Operation
 
 All security assessment functions operate completely offline with no external dependencies, making them suitable for airgapped environments.
-
-## Usage Examples
-
-### Risk Level Assessment
-
-```go
-builder := NewMarkdownBuilder()
-risk := builder.AssessRiskLevel("high")
-// Returns: "🟠 High Risk"
-```
-
-### Service Risk Assessment
-
-```go
-service := model.Service{Name: "SSH Daemon"}
-risk := builder.AssessServiceRisk(service)
-// Returns: "🟢 Low Risk"
-```
-
-### Security Score Calculation
-
-```go
-score := builder.CalculateSecurityScore(opnSenseDocument)
-// Returns: 0-100 integer score
-```
 
 ## Integration with Reports
 
@@ -145,11 +133,3 @@ score := builder.CalculateSecurityScore(opnSenseDocument)
 - Balanced view of configuration security posture
 - Include both security strengths and areas for improvement
 - Provide clear recommendations for security hardening
-
-## Future Enhancements
-
-1. **Centralized Scoring**: Consolidate scoring logic across model, processor, and converter layers
-2. **Configurable Weights**: Allow customization of penalty weights for different environments
-3. **Extended Service Database**: Expand service risk mappings for additional protocols
-4. **Compliance Integration**: Integrate with STIG, SANS, and other compliance frameworks
-5. **Dynamic Risk Assessment**: Incorporate threat intelligence and configuration context

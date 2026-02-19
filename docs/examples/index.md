@@ -8,39 +8,45 @@ This section provides comprehensive examples for common workflows and use cases 
 
 ```bash
 # Convert OPNsense config to markdown
-opnDossier convert config.xml
+opndossier convert config.xml
 
 # Convert to JSON format
-opnDossier convert config.xml -f json
+opndossier convert config.xml -f json
 
 # Convert to YAML format
-opnDossier convert config.xml -f yaml
+opndossier convert config.xml -f yaml
+
+# Convert to plain text
+opndossier convert config.xml -f text
+
+# Convert to self-contained HTML report
+opndossier convert config.xml -f html -o report.html
 ```
 
 ### Display Configuration in Terminal
 
 ```bash
 # Display with syntax highlighting
-opnDossier display config.xml
+opndossier display config.xml
 
 # Display with dark theme
-opnDossier display --theme dark config.xml
+opndossier display --theme dark config.xml
 
-# Display without validation
-opnDossier display --no-validate config.xml
+# Display specific sections only
+opndossier display --section system,network config.xml
 ```
 
 ### Validate Configuration
 
 ```bash
 # Validate single file
-opnDossier validate config.xml
+opndossier validate config.xml
 
 # Validate multiple files
-opnDossier validate config1.xml config2.xml config3.xml
+opndossier validate config1.xml config2.xml config3.xml
 
 # Validate with verbose output
-opnDossier --verbose validate config.xml
+opndossier --verbose validate config.xml
 ```
 
 ## Common Workflows
@@ -51,45 +57,39 @@ opnDossier --verbose validate config.xml
 - Output format options
 - File management
 
-### 2. [Audit and Compliance](audit-compliance.md)
-
-- Security audit reports
-- Compliance checking
-- Blue team vs Red team reports
-
-### 3. [Automation and Scripting](automation-scripting.md)
+### 2. [Automation and Scripting](automation-scripting.md)
 
 - CI/CD integration
 - Batch processing
 - Automated documentation
 
-### 4. [Troubleshooting and Debugging](troubleshooting.md)
+### 3. [Troubleshooting and Debugging](troubleshooting.md)
 
 - Error handling
 - Debug techniques
 - Common issues
 
-### 5. [Advanced Configuration](advanced-configuration.md)
+### 4. [Advanced Configuration](advanced-configuration.md)
 
 - Theme customization
 - Section filtering
-- Performance optimization
+- Text wrapping options
 
 ## Example Categories
 
 ### By Use Case
 
 - **Network Documentation**: Generate readable documentation from OPNsense configs
-- **Security Auditing**: Create security-focused audit reports
-- **Compliance Checking**: Verify configurations against standards
 - **Configuration Analysis**: Analyze and understand complex setups
 - **Backup Documentation**: Document configuration backups
 
 ### By Output Format
 
-- **Markdown**: Human-readable documentation
+- **Markdown**: Human-readable documentation (default)
 - **JSON**: Programmatic access and processing
 - **YAML**: Configuration management integration
+- **Text**: Plain text without markdown formatting
+- **HTML**: Self-contained HTML reports
 
 ### By Workflow Type
 
@@ -102,7 +102,7 @@ opnDossier --verbose validate config.xml
 
 1. **Install opnDossier**: Follow the [installation guide](../user-guide/installation.md)
 2. **Get a sample config**: Use one of the sample files in `testdata/`
-3. **Try basic conversion**: `opnDossier convert testdata/sample.config.1.xml`
+3. **Try basic conversion**: `opndossier convert testdata/sample.config.1.xml`
 4. **Explore examples**: Browse the examples below for your specific use case
 
 ## Sample Files
@@ -114,15 +114,14 @@ The project includes sample configuration files for testing:
 ls testdata/*.xml
 
 # Use a sample file for testing
-opnDossier convert testdata/sample.config.1.xml
-opnDossier display testdata/sample.config.2.xml
-opnDossier validate testdata/sample.config.3.xml
+opndossier convert testdata/sample.config.1.xml
+opndossier display testdata/sample.config.2.xml
+opndossier validate testdata/sample.config.3.xml
 ```
 
 ## Next Steps
 
 - **New users**: Start with [Basic Documentation](basic-documentation.md)
-- **Security professionals**: See [Audit and Compliance](audit-compliance.md)
 - **DevOps engineers**: Check [Automation and Scripting](automation-scripting.md)
 - **Advanced users**: Explore [Advanced Configuration](advanced-configuration.md)
 
