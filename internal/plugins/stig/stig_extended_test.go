@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -557,7 +558,7 @@ func TestBroadNetworkRangesConstants(t *testing.T) {
 	t.Parallel()
 
 	// Test the constants used in the plugin
-	assert.Equal(t, "any", NetworkAny)
+	assert.Equal(t, "any", constants.NetworkAny)
 	assert.Equal(t, 2, MaxDHCPInterfaces)
 }
 

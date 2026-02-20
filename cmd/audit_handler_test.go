@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"log/slog"
 	"os"
 	"strings"
 	"testing"
@@ -555,8 +554,8 @@ func TestValidAuditPlugins(t *testing.T) {
 	assert.Contains(t, completionStr, "firewall")
 }
 
-// TestBuildConversionOptionsWithAuditFlags tests that audit flags are properly set in options.
-func TestBuildConversionOptionsWithAuditFlags(t *testing.T) {
+// TestBuildAuditOptions tests that audit flags are properly set in audit options.
+func TestBuildAuditOptions(t *testing.T) {
 	originalAuditMode := sharedAuditMode
 	originalBlackhat := sharedBlackhatMode
 	originalPlugins := sharedSelectedPlugins
@@ -572,6 +571,12 @@ func TestBuildConversionOptionsWithAuditFlags(t *testing.T) {
 		blackhatMode    bool
 		selectedPlugins []string
 	}{
+		{
+			name:            "empty defaults",
+			auditMode:       "",
+			blackhatMode:    false,
+			selectedPlugins: nil,
+		},
 		{
 			name:            "standard mode",
 			auditMode:       "standard",
@@ -597,32 +602,26 @@ func TestBuildConversionOptionsWithAuditFlags(t *testing.T) {
 			sharedAuditMode = tt.auditMode
 			sharedBlackhatMode = tt.blackhatMode
 			sharedSelectedPlugins = tt.selectedPlugins
-			sharedSections = nil
-			sharedWrapWidth = -1
 
-			result := buildConversionOptions("markdown", nil)
+			result := buildAuditOptions()
 
 			assert.Equal(t, tt.auditMode, result.AuditMode)
 			assert.Equal(t, tt.blackhatMode, result.BlackhatMode)
-			if len(tt.selectedPlugins) > 0 {
-				assert.Equal(t, tt.selectedPlugins, result.SelectedPlugins)
-			}
+			assert.Equal(t, tt.selectedPlugins, result.SelectedPlugins)
 		})
 	}
 }
 
-func TestDetermineAuditLogLevels(t *testing.T) {
+func TestDetermineAuditLogLevel(t *testing.T) {
 	t.Run("nil logger defaults to info", func(t *testing.T) {
-		levels := determineAuditLogLevels(nil)
-		assert.Equal(t, slog.LevelInfo, levels.slog)
-		assert.Equal(t, charmlog.InfoLevel, levels.charm)
+		level := determineAuditLogLevel(nil)
+		assert.Equal(t, charmlog.InfoLevel, level)
 	})
 
 	t.Run("nil embedded logger defaults to info", func(t *testing.T) {
 		logger := &applog.Logger{}
-		levels := determineAuditLogLevels(logger)
-		assert.Equal(t, slog.LevelInfo, levels.slog)
-		assert.Equal(t, charmlog.InfoLevel, levels.charm)
+		level := determineAuditLogLevel(logger)
+		assert.Equal(t, charmlog.InfoLevel, level)
 	})
 
 	t.Run("fatal maps to error", func(t *testing.T) {
@@ -630,39 +629,33 @@ func TestDetermineAuditLogLevels(t *testing.T) {
 			Level: charmlog.FatalLevel,
 		})
 		logger := &applog.Logger{Logger: charmLogger}
-		levels := determineAuditLogLevels(logger)
-		assert.Equal(t, slog.LevelError, levels.slog)
-		assert.Equal(t, charmlog.ErrorLevel, levels.charm)
+		level := determineAuditLogLevel(logger)
+		assert.Equal(t, charmlog.ErrorLevel, level)
 	})
 
 	tests := []struct {
 		name           string
 		inputLevel     string
-		wantSlogLevel  slog.Level
 		wantCharmLevel charmlog.Level
 	}{
 		{
 			name:           "debug maps to debug",
 			inputLevel:     "debug",
-			wantSlogLevel:  slog.LevelDebug,
 			wantCharmLevel: charmlog.DebugLevel,
 		},
 		{
 			name:           "info maps to info",
 			inputLevel:     "info",
-			wantSlogLevel:  slog.LevelInfo,
 			wantCharmLevel: charmlog.InfoLevel,
 		},
 		{
 			name:           "warn maps to warn",
 			inputLevel:     "warn",
-			wantSlogLevel:  slog.LevelWarn,
 			wantCharmLevel: charmlog.WarnLevel,
 		},
 		{
 			name:           "error maps to error",
 			inputLevel:     "error",
-			wantSlogLevel:  slog.LevelError,
 			wantCharmLevel: charmlog.ErrorLevel,
 		},
 	}
@@ -678,9 +671,8 @@ func TestDetermineAuditLogLevels(t *testing.T) {
 			})
 			require.NoError(t, err)
 
-			levels := determineAuditLogLevels(logger)
-			assert.Equal(t, tt.wantSlogLevel, levels.slog)
-			assert.Equal(t, tt.wantCharmLevel, levels.charm)
+			level := determineAuditLogLevel(logger)
+			assert.Equal(t, tt.wantCharmLevel, level)
 		})
 	}
 }

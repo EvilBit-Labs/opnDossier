@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -170,7 +171,7 @@ func fileExists(path string) bool {
 	return err == nil
 }
 
-func parseConfigFile(t *testing.T, path string) *OpnSenseDocument {
+func parseConfigFile(t *testing.T, path string) *model.OpnSenseDocument {
 	t.Helper()
 
 	file, err := os.Open(path)
