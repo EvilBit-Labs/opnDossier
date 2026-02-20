@@ -113,40 +113,6 @@ func TestSetCommandContext_ExistingContext(t *testing.T) {
 	assert.True(t, result.Config.Verbose)
 }
 
-func TestMustGetCommandContext_ValidContext(t *testing.T) {
-	cmd := &cobra.Command{Use: "test"}
-	cmd.SetContext(context.Background())
-
-	cmdCtx := &CommandContext{
-		Config: &config.Config{},
-	}
-	SetCommandContext(cmd, cmdCtx)
-
-	require.NotPanics(t, func() {
-		result := MustGetCommandContext(cmd)
-		assert.NotNil(t, result)
-	})
-}
-
-func TestMustGetCommandContext_NilContext_Panics(t *testing.T) {
-	cmd := &cobra.Command{Use: "test"}
-	// Don't set context
-
-	assert.Panics(t, func() {
-		MustGetCommandContext(cmd)
-	})
-}
-
-func TestMustGetCommandContext_MissingKey_Panics(t *testing.T) {
-	cmd := &cobra.Command{Use: "test"}
-	cmd.SetContext(context.Background())
-	// Don't set CommandContext
-
-	assert.Panics(t, func() {
-		MustGetCommandContext(cmd)
-	})
-}
-
 func TestCommandContext_FieldAccess(t *testing.T) {
 	cfg := &config.Config{
 		Verbose:    true,

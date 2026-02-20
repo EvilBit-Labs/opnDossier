@@ -2,18 +2,26 @@ package audit
 
 import (
 	"context"
-	"log/slog"
-	"os"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
+
+func newTestLogger(t *testing.T) *logging.Logger {
+	t.Helper()
+	logger, err := logging.New(logging.Config{})
+	if err != nil {
+		t.Fatal("failed to create test logger:", err)
+	}
+	return logger
+}
 
 func TestNewPluginManager(t *testing.T) {
 	t.Parallel()
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger := newTestLogger(t)
 	manager := NewPluginManager(logger)
 
 	if manager == nil {
@@ -32,7 +40,7 @@ func TestNewPluginManager(t *testing.T) {
 func TestPluginManager_InitializePlugins(t *testing.T) {
 	t.Parallel()
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger := newTestLogger(t)
 	manager := NewPluginManager(logger)
 
 	ctx := context.Background()
@@ -65,7 +73,7 @@ func TestPluginManager_InitializePlugins(t *testing.T) {
 func TestPluginManager_GetRegistry(t *testing.T) {
 	t.Parallel()
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger := newTestLogger(t)
 	manager := NewPluginManager(logger)
 
 	registry := manager.GetRegistry()
@@ -102,7 +110,7 @@ func TestPluginManager_ListAvailablePlugins(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+			logger := newTestLogger(t)
 			manager := NewPluginManager(logger)
 			ctx := context.Background()
 
@@ -147,7 +155,7 @@ func TestPluginManager_ListAvailablePlugins(t *testing.T) {
 func TestPluginManager_RunComplianceAudit(t *testing.T) {
 	t.Parallel()
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger := newTestLogger(t)
 	manager := NewPluginManager(logger)
 	ctx := context.Background()
 
@@ -241,7 +249,7 @@ func TestPluginManager_RunComplianceAudit(t *testing.T) {
 func TestPluginManager_GetPluginControlInfo(t *testing.T) {
 	t.Parallel()
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger := newTestLogger(t)
 	manager := NewPluginManager(logger)
 	ctx := context.Background()
 
@@ -316,7 +324,7 @@ func TestPluginManager_GetPluginControlInfo(t *testing.T) {
 func TestPluginManager_ValidatePluginConfiguration(t *testing.T) {
 	t.Parallel()
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger := newTestLogger(t)
 	manager := NewPluginManager(logger)
 	ctx := context.Background()
 
@@ -369,7 +377,7 @@ func TestPluginManager_ValidatePluginConfiguration(t *testing.T) {
 func TestPluginManager_GetPluginStatistics(t *testing.T) {
 	t.Parallel()
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger := newTestLogger(t)
 	manager := NewPluginManager(logger)
 	ctx := context.Background()
 
@@ -441,7 +449,7 @@ func TestPluginManager_GetPluginStatistics(t *testing.T) {
 func TestPluginManager_WithNilConfig(t *testing.T) {
 	t.Parallel()
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger := newTestLogger(t)
 	manager := NewPluginManager(logger)
 	ctx := context.Background()
 
@@ -479,7 +487,7 @@ func (m *mockFailingPlugin) ValidateConfiguration() error {
 func TestPluginManager_PluginValidationFailure(t *testing.T) {
 	t.Parallel()
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger := newTestLogger(t)
 	manager := NewPluginManager(logger)
 
 	// Try to register a plugin that fails validation

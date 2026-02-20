@@ -14,6 +14,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/diff"
 	"github.com/EvilBit-Labs/opnDossier/internal/diff/formatters"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/spf13/cobra"
 )
 
@@ -265,7 +266,7 @@ Examples:
 }
 
 // parseConfigFile parses an OPNsense XML configuration file.
-func parseConfigFile(ctx context.Context, path string) (*diff.OpnSenseDocument, error) {
+func parseConfigFile(ctx context.Context, path string) (*model.OpnSenseDocument, error) {
 	// Make path absolute if needed
 	if !filepath.IsAbs(path) {
 		absPath, err := filepath.Abs(path)

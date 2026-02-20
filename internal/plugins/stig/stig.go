@@ -5,12 +5,11 @@ import (
 	"slices"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
 const (
-	// NetworkAny represents "any" network in firewall rules.
-	NetworkAny = "any"
 	// MaxDHCPInterfaces represents the maximum number of DHCP interfaces before flagging as unnecessary.
 	MaxDHCPInterfaces = 2
 )
@@ -203,7 +202,7 @@ func (sp *Plugin) hasDefaultDenyPolicy(config *model.OpnSenseDocument) bool {
 			srcTarget := rule.Source.EffectiveAddress()
 			dstTarget := rule.Destination.EffectiveAddress()
 
-			if srcTarget == NetworkAny && (dstTarget == "" || dstTarget == NetworkAny) {
+			if srcTarget == constants.NetworkAny && (dstTarget == "" || dstTarget == constants.NetworkAny) {
 				hasAnyAnyAllow = true
 				break
 			}
@@ -227,11 +226,12 @@ func (sp *Plugin) hasOverlyPermissiveRules(config *model.OpnSenseDocument) bool 
 		srcTarget := rule.Source.EffectiveAddress()
 		dstTarget := rule.Destination.EffectiveAddress()
 
-		srcBroad := srcTarget == NetworkAny || slices.Contains(sp.broadNetworkRanges(), srcTarget)
-		dstBroad := dstTarget == "" || dstTarget == NetworkAny || slices.Contains(sp.broadNetworkRanges(), dstTarget)
+		srcBroad := srcTarget == constants.NetworkAny || slices.Contains(sp.broadNetworkRanges(), srcTarget)
+		dstBroad := dstTarget == "" || dstTarget == constants.NetworkAny ||
+			slices.Contains(sp.broadNetworkRanges(), dstTarget)
 
 		// Check for "any/any" rules (most permissive)
-		if srcTarget == NetworkAny && (dstTarget == "" || dstTarget == NetworkAny) {
+		if srcTarget == constants.NetworkAny && (dstTarget == "" || dstTarget == constants.NetworkAny) {
 			return true
 		}
 
@@ -243,7 +243,7 @@ func (sp *Plugin) hasOverlyPermissiveRules(config *model.OpnSenseDocument) bool 
 		// Check for broad rules without specific port restrictions (TCP/UDP or unspecified protocol)
 		if srcBroad && dstBroad &&
 			(rule.Protocol == "" || rule.Protocol == "tcp" || rule.Protocol == "udp" || rule.Protocol == "tcp/udp") &&
-			(rule.Destination.Port == "" || rule.Destination.Port == NetworkAny) {
+			(rule.Destination.Port == "" || rule.Destination.Port == constants.NetworkAny) {
 			return true
 		}
 	}
@@ -354,11 +354,11 @@ func (sp *Plugin) analyzeLoggingConfiguration(config *model.OpnSenseDocument) Lo
 // broadNetworkRanges returns a slice of common broad network ranges.
 func (sp *Plugin) broadNetworkRanges() []string {
 	return []string{
-		"0.0.0.0/0",      // All IPv4
-		"::/0",           // All IPv6
-		"10.0.0.0/8",     // Large private network
-		"172.16.0.0/12",  // Large private network
-		"192.168.0.0/16", // Large private network
-		NetworkAny,       // Any network
+		"0.0.0.0/0",          // All IPv4
+		"::/0",               // All IPv6
+		"10.0.0.0/8",         // Large private network
+		"172.16.0.0/12",      // Large private network
+		"192.168.0.0/16",     // Large private network
+		constants.NetworkAny, // Any network
 	}
 }

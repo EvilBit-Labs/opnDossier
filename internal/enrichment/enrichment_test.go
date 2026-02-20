@@ -680,3 +680,56 @@ func TestDynamicInterfaceAnalysis(t *testing.T) {
 		t.Errorf("Expected 0 unused interface findings for single interface config, got %d", len(findings3))
 	}
 }
+
+func TestCalculateTotalConfigItems(t *testing.T) {
+	tests := []struct {
+		name     string
+		counts   ConfigItemCounts
+		expected int
+	}{
+		{
+			name:     "zero values",
+			counts:   ConfigItemCounts{},
+			expected: 0,
+		},
+		{
+			name: "all ones",
+			counts: ConfigItemCounts{
+				Interfaces:     1,
+				FirewallRules:  1,
+				Users:          1,
+				Groups:         1,
+				Services:       1,
+				Gateways:       1,
+				GatewayGroups:  1,
+				SysctlSettings: 1,
+				DHCPScopes:     1,
+				LBMonitors:     1,
+			},
+			expected: 10,
+		},
+		{
+			name: "typical configuration",
+			counts: ConfigItemCounts{
+				Interfaces:     2,
+				FirewallRules:  15,
+				Users:          3,
+				Groups:         2,
+				Services:       5,
+				Gateways:       2,
+				GatewayGroups:  1,
+				SysctlSettings: 8,
+				DHCPScopes:     2,
+				LBMonitors:     0,
+			},
+			expected: 40,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := CalculateTotalConfigItems(tt.counts)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}

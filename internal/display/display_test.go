@@ -183,18 +183,6 @@ func TestTerminalDisplayShowNavigationHints(t *testing.T) {
 	})
 }
 
-func TestDeprecatedFunctions(t *testing.T) {
-	// Test deprecated Title function
-	assert.NotPanics(t, func() {
-		Title("Test title")
-	})
-
-	// Test deprecated Error function
-	assert.NotPanics(t, func() {
-		Error("Test error")
-	})
-}
-
 func TestDisplayWithProgressGoroutineLeakFix(t *testing.T) {
 	td := NewTerminalDisplay()
 
@@ -513,33 +501,24 @@ func TestWrapMarkdownContentSkipsCodeBlocks(t *testing.T) {
 	assert.Equal(t, input, output)
 }
 
-func TestGlamourRendererWithDifferentColorSettings(t *testing.T) {
-	// Test with colors enabled
-	opts1 := Options{
+func TestRendererWithDifferentColorSettings(t *testing.T) {
+	// Test with colors enabled — renderer should be created
+	td1 := NewTerminalDisplayWithOptions(Options{
 		Theme:        LightTheme(),
 		WrapWidth:    80,
 		EnableTables: true,
 		EnableColors: true,
-	}
-	renderer1, err1 := getGlamourRenderer(&opts1)
-	require.NoError(t, err1)
-	assert.NotNil(t, renderer1)
+	})
+	assert.NotNil(t, td1.renderer)
 
-	// Test with colors disabled
-	opts2 := Options{
+	// Test with colors disabled — renderer should be nil
+	td2 := NewTerminalDisplayWithOptions(Options{
 		Theme:        LightTheme(),
 		WrapWidth:    80,
 		EnableTables: true,
 		EnableColors: false,
-	}
-	renderer2, err2 := getGlamourRenderer(&opts2)
-	assert.Equal(t, ErrRawMarkdown, err2)
-	assert.Nil(t, renderer2)
-}
-
-func TestErrRawMarkdownSentinel(t *testing.T) {
-	// Test that our sentinel error is properly defined
-	assert.Equal(t, "raw markdown display requested", ErrRawMarkdown.Error())
+	})
+	assert.Nil(t, td2.renderer)
 }
 
 // TestDetectTheme tests theme detection with various environment configurations.

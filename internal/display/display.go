@@ -3,7 +3,6 @@ package display
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -32,9 +31,6 @@ const (
 	// Bit24 is an alias for 24-bit color support.
 	Bit24 = "24bit"
 )
-
-// ErrRawMarkdown is a sentinel error indicating that raw markdown should be displayed.
-var ErrRawMarkdown = errors.New("raw markdown display requested")
 
 // StyleSheet holds styles for various terminal display elements.
 type StyleSheet struct {
@@ -110,9 +106,6 @@ func (s *StyleSheet) TablePrint(text string) {
 	fmt.Println(s.Table.Render(text))
 }
 
-// Global stylesheet instance for backward compatibility.
-var globalStyleSheet = NewStyleSheet() //nolint:gochecknoglobals // Global UI styling
-
 // Options holds display configuration settings.
 type Options struct {
 	Theme        Theme
@@ -154,87 +147,6 @@ func convertMarkdownOptions(mdOpts converter.Options) Options {
 		EnableTables: mdOpts.EnableTables,
 		EnableColors: mdOpts.EnableColors,
 	}
-}
-
-// Singleton Glamour renderer variables.
-var (
-	rendererMu   sync.RWMutex          //nolint:gochecknoglobals // Singleton pattern
-	rendererInst *glamour.TermRenderer //nolint:gochecknoglobals // Singleton instance
-	rendererOpts *Options              //nolint:gochecknoglobals // Last used options
-)
-
-// getGlamourRenderer returns a singleton Glamour renderer configured with the given options.
-// getGlamourRenderer returns a singleton Glamour markdown renderer configured with the specified options.
-// It creates a new renderer only if the options differ from the previous invocation or if no renderer exists.
-// If color rendering is disabled, it returns ErrRawMarkdown to signal that raw markdown should be displayed instead.
-// Returns the Glamour renderer or an error if renderer creation fails.
-func getGlamourRenderer(opts *Options) (*glamour.TermRenderer, error) {
-	rendererMu.RLock()
-	// Check if we need to recreate the renderer
-	needsRecreate := rendererInst == nil || rendererOpts == nil ||
-		rendererOpts.Theme.Name != opts.Theme.Name ||
-		rendererOpts.WrapWidth != opts.WrapWidth ||
-		rendererOpts.EnableTables != opts.EnableTables ||
-		rendererOpts.EnableColors != opts.EnableColors
-
-	if !needsRecreate {
-		// Return cached instance while still holding read lock
-		renderer := rendererInst
-
-		rendererMu.RUnlock()
-
-		return renderer, nil
-	}
-
-	rendererMu.RUnlock()
-
-	rendererMu.Lock()
-	defer rendererMu.Unlock()
-
-	// Double-check pattern
-	if rendererInst != nil && rendererOpts != nil &&
-		rendererOpts.Theme.Name == opts.Theme.Name &&
-		rendererOpts.WrapWidth == opts.WrapWidth &&
-		rendererOpts.EnableTables == opts.EnableTables &&
-		rendererOpts.EnableColors == opts.EnableColors {
-		return rendererInst, nil
-	}
-
-	// Determine theme for Glamour with proper fallback logic
-	glamourStyle := DetermineGlamourStyle(opts)
-
-	// Build Glamour options
-	glamourOpts := []glamour.TermRendererOption{
-		glamour.WithStandardStyle(glamourStyle),
-	}
-
-	// Add word wrap if specified
-	if opts.WrapWidth > 0 {
-		glamourOpts = append(glamourOpts, glamour.WithWordWrap(opts.WrapWidth))
-	}
-
-	// Skip Glamour rendering if colors are disabled
-	if !opts.EnableColors {
-		// Return sentinel error to indicate raw markdown should be used
-		return nil, ErrRawMarkdown
-	}
-
-	// Create new renderer with options
-	renderer, err := glamour.NewTermRenderer(glamourOpts...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Glamour renderer: %w", err)
-	}
-
-	// Store the new renderer and options
-	rendererInst = renderer
-	rendererOpts = &Options{
-		Theme:        opts.Theme,
-		WrapWidth:    opts.WrapWidth,
-		EnableTables: opts.EnableTables,
-		EnableColors: opts.EnableColors,
-	}
-
-	return renderer, nil
 }
 
 // DetermineGlamourStyle returns the Glamour style string to use for markdown rendering based on the provided options, considering color enablement, terminal color support, and the selected theme.
@@ -316,27 +228,13 @@ func isTerminal() bool {
 	return (fileInfo.Mode() & os.ModeCharDevice) != 0
 }
 
-// Title prints the given string to the console using the predefined title style.
-// Title prints the given string as a styled title using the global StyleSheet.
-//
-// Deprecated: Use StyleSheet.TitlePrint instead.
-func Title(s string) {
-	globalStyleSheet.TitlePrint(s)
-}
-
-// Error prints the input string to the terminal using a bold red error style.
-// Error prints the given string as an error message using the global StyleSheet.
-//
-// Deprecated: Use StyleSheet.ErrorPrint instead.
-func Error(s string) {
-	globalStyleSheet.ErrorPrint(s)
-}
-
 // TerminalDisplay represents a terminal markdown displayer.
 type TerminalDisplay struct {
-	options    *Options
-	progress   *progress.Model
-	progressMu sync.Mutex
+	options     *Options
+	renderer    *glamour.TermRenderer
+	rendererErr error // Preserved from construction; nil if colors were intentionally disabled
+	progress    *progress.Model
+	progressMu  sync.Mutex
 }
 
 // NewTerminalDisplay creates a TerminalDisplay with default display options and progress bar settings.
@@ -374,9 +272,31 @@ func NewTerminalDisplayWithOptions(opts Options) *TerminalDisplay {
 		progress.WithWidth(opts.WrapWidth),
 	)
 
+	// Build per-instance Glamour renderer
+	var renderer *glamour.TermRenderer
+	var rendererErr error
+	if opts.EnableColors {
+		glamourStyle := DetermineGlamourStyle(&opts)
+		glamourOpts := []glamour.TermRendererOption{
+			glamour.WithStandardStyle(glamourStyle),
+		}
+		if opts.WrapWidth > 0 {
+			glamourOpts = append(glamourOpts, glamour.WithWordWrap(opts.WrapWidth))
+		}
+		r, err := glamour.NewTermRenderer(glamourOpts...)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to create markdown renderer: %v\n", err)
+			rendererErr = err
+		} else {
+			renderer = r
+		}
+	}
+
 	return &TerminalDisplay{
-		options:  &opts,
-		progress: &p,
+		options:     &opts,
+		renderer:    renderer,
+		rendererErr: rendererErr,
+		progress:    &p,
 	}
 }
 
@@ -440,22 +360,12 @@ func (td *TerminalDisplay) Display(ctx context.Context, markdownContent string) 
 
 	markdownContent = wrapMarkdownContent(markdownContent, td.options.WrapWidth)
 
-	// Get singleton renderer with current options
-	renderer, err := getGlamourRenderer(td.options)
-	if err != nil {
-		// Check if this is our sentinel error for raw markdown
-		if errors.Is(err, ErrRawMarkdown) {
-			// Expected: colors are disabled or terminal doesn't support colors
-			fmt.Print(wrapRenderedOutput(markdownContent, td.options.WrapWidth))
-			return nil
+	// Check if renderer is available (nil when colors disabled or creation failed)
+	if td.renderer == nil {
+		if td.rendererErr != nil {
+			fmt.Fprintf(os.Stderr, "Note: Displaying raw markdown due to renderer error: %v\n", td.rendererErr)
 		}
-		// Unexpected renderer failure - notify user
-		fmt.Fprintf(os.Stderr, "Warning: Failed to create markdown renderer (error: %v), displaying raw output\n", err)
-
-		// Fallback: print raw markdown if renderer creation fails
 		fmt.Print(wrapRenderedOutput(markdownContent, td.options.WrapWidth))
-
-		// Don't return error since we've handled it by displaying raw markdown
 		return nil
 	}
 
@@ -466,10 +376,12 @@ func (td *TerminalDisplay) Display(ctx context.Context, markdownContent string) 
 	default:
 	}
 
-	// Render markdown with Glamour
-	out, err := renderer.Render(markdownContent)
+	// Render markdown with Glamour — fallback to raw output on failure
+	out, err := td.renderer.Render(markdownContent)
 	if err != nil {
-		return fmt.Errorf("failed to render markdown: %w", err)
+		fmt.Fprintf(os.Stderr, "Warning: Failed to render markdown (error: %v), displaying raw output\n", err)
+		fmt.Print(wrapRenderedOutput(markdownContent, td.options.WrapWidth))
+		return nil
 	}
 
 	// Check for context cancellation before output
@@ -574,10 +486,18 @@ func (td *TerminalDisplay) setupProgressHandling(
 func (td *TerminalDisplay) renderContent(ctx context.Context, markdownContent string, wg *sync.WaitGroup) error {
 	markdownContent = wrapMarkdownContent(markdownContent, td.options.WrapWidth)
 
-	// Get singleton renderer with current options
-	renderer, err := getGlamourRenderer(td.options)
-	if err != nil {
-		return td.handleRendererError(err, markdownContent, wg)
+	// Check if renderer is available (nil when colors disabled or creation failed)
+	if td.renderer == nil {
+		if td.rendererErr != nil {
+			td.ShowProgress(1.0, "Displaying raw markdown (renderer error)...")
+			fmt.Fprintf(os.Stderr, "Note: Displaying raw markdown due to renderer error: %v\n", td.rendererErr)
+		} else {
+			td.ShowProgress(1.0, "Displaying raw markdown (colors disabled)...")
+		}
+		td.ClearProgress()
+		fmt.Print(wrapRenderedOutput(markdownContent, td.options.WrapWidth))
+		wg.Wait()
+		return nil
 	}
 
 	// Check for context cancellation before rendering
@@ -587,11 +507,9 @@ func (td *TerminalDisplay) renderContent(ctx context.Context, markdownContent st
 	}
 
 	// Render markdown with Glamour
-	out, err := renderer.Render(markdownContent)
+	out, err := td.renderer.Render(markdownContent)
 	if err != nil {
-		td.ClearProgress()
-		wg.Wait()
-		return fmt.Errorf("failed to render markdown: %w", err)
+		return td.handleRendererError(err, markdownContent, wg)
 	}
 
 	// Check for context cancellation before output
@@ -613,22 +531,12 @@ func (td *TerminalDisplay) renderContent(ctx context.Context, markdownContent st
 	return nil
 }
 
-// handleRendererError handles errors during renderer creation or rendering.
+// handleRendererError handles unexpected render failures by falling back to raw markdown output.
 func (td *TerminalDisplay) handleRendererError(err error, markdownContent string, wg *sync.WaitGroup) error {
-	if errors.Is(err, ErrRawMarkdown) {
-		// Expected: colors are disabled or terminal doesn't support colors
-		td.ShowProgress(1.0, "Displaying raw markdown (colors disabled)...")
-		td.ClearProgress()
-		fmt.Print(wrapRenderedOutput(markdownContent, td.options.WrapWidth))
-		wg.Wait()
-		return nil
-	}
-
-	// Unexpected renderer failure - notify user
 	td.ShowProgress(1.0, "Renderer failed, displaying raw markdown...")
 	td.ClearProgress()
 
-	fmt.Fprintf(os.Stderr, "Warning: Failed to create markdown renderer (error: %v), displaying raw output\n", err)
+	fmt.Fprintf(os.Stderr, "Warning: Failed to render markdown (error: %v), displaying raw output\n", err)
 	fmt.Print(wrapRenderedOutput(markdownContent, td.options.WrapWidth))
 	wg.Wait()
 
@@ -656,173 +564,4 @@ func (td *TerminalDisplay) showNavigationHints() {
 
 	hints := "Navigation: ↑/↓ to scroll, q to quit, h for help"
 	fmt.Println(style.Render(hints))
-}
-
-func wrapMarkdownContent(content string, width int) string {
-	if width <= 0 {
-		return content
-	}
-
-	lines := strings.Split(content, "\n")
-	wrapped := make([]string, 0, len(lines))
-	inCodeBlock := false
-
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "```") {
-			inCodeBlock = !inCodeBlock
-			wrapped = append(wrapped, line)
-			continue
-		}
-		if inCodeBlock {
-			wrapped = append(wrapped, line)
-			continue
-		}
-		if len(line) <= width {
-			wrapped = append(wrapped, line)
-			continue
-		}
-
-		wrapped = append(wrapped, wrapMarkdownLine(line, width)...)
-	}
-
-	return strings.Join(wrapped, "\n")
-}
-
-func wrapMarkdownLine(line string, width int) []string {
-	if width <= 0 || len(line) <= width {
-		return []string{line}
-	}
-
-	prefixLen := 0
-	for i, r := range line {
-		if r != ' ' && r != '\t' {
-			prefixLen = i
-			break
-		}
-		if i == len(line)-1 {
-			return []string{line}
-		}
-	}
-	prefix := line[:prefixLen]
-	text := strings.TrimSpace(line[prefixLen:])
-	if text == "" {
-		return []string{line}
-	}
-
-	words := strings.Fields(text)
-	lines := make([]string, 0, len(words))
-	current := prefix
-	currentLen := len(prefix)
-	prefixLength := len(prefix)
-
-	appendLine := func(value string, hardBreak bool) {
-		if hardBreak {
-			value += `\`
-		}
-		lines = append(lines, value)
-	}
-
-	for _, word := range words {
-		for word != "" {
-			needsSpace := currentLen > prefixLength
-			remaining := width - currentLen
-			if needsSpace {
-				remaining--
-			}
-			if remaining <= 0 {
-				appendLine(current, true)
-				current = prefix
-				currentLen = prefixLength
-				continue
-			}
-
-			if len(word) > remaining {
-				part := word[:remaining]
-				if needsSpace {
-					current += " " + part
-				} else {
-					current += part
-				}
-				appendLine(current, true)
-				current = prefix
-				currentLen = prefixLength
-				word = word[remaining:]
-				continue
-			}
-
-			if needsSpace {
-				current += " " + word
-			} else {
-				current += word
-			}
-			currentLen = len(current)
-			word = ""
-		}
-	}
-
-	if strings.TrimSpace(current) != "" {
-		lines = append(lines, current)
-	}
-
-	return lines
-}
-
-func wrapRenderedOutput(output string, width int) string {
-	if width <= 0 {
-		return output
-	}
-
-	lines := strings.Split(output, "\n")
-	wrapped := make([]string, 0, len(lines))
-
-	for _, line := range lines {
-		wrapped = append(wrapped, wrapRenderedLine(line, width)...)
-	}
-
-	return strings.Join(wrapped, "\n")
-}
-
-func wrapRenderedLine(line string, width int) []string {
-	if width <= 0 {
-		return []string{line}
-	}
-
-	visible := 0
-	var segments []string
-	var builder strings.Builder
-
-	for i := 0; i < len(line); {
-		if line[i] == '\x1b' && i+1 < len(line) && line[i+1] == '[' {
-			const ansiCSIStartOffset = 2
-			end := i + ansiCSIStartOffset
-			for end < len(line) {
-				b := line[end]
-				if (b >= '0' && b <= '9') || b == ';' {
-					end++
-					continue
-				}
-				end++
-				break
-			}
-			builder.WriteString(line[i:end])
-			i = end
-			continue
-		}
-
-		builder.WriteByte(line[i])
-		visible++
-		if visible >= width {
-			segments = append(segments, builder.String())
-			builder.Reset()
-			visible = 0
-		}
-		i++
-	}
-
-	if builder.Len() > 0 || len(segments) == 0 {
-		segments = append(segments, builder.String())
-	}
-
-	return segments
 }
