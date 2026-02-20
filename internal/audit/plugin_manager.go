@@ -3,9 +3,9 @@ package audit
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/firewall"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/sans"
@@ -15,11 +15,11 @@ import (
 // PluginManager manages the lifecycle of compliance plugins.
 type PluginManager struct {
 	registry *PluginRegistry
-	logger   *slog.Logger
+	logger   *logging.Logger
 }
 
 // NewPluginManager creates a new plugin manager.
-func NewPluginManager(logger *slog.Logger) *PluginManager {
+func NewPluginManager(logger *logging.Logger) *PluginManager {
 	return &PluginManager{
 		registry: NewPluginRegistry(),
 		logger:   logger,
@@ -28,7 +28,8 @@ func NewPluginManager(logger *slog.Logger) *PluginManager {
 
 // InitializePlugins initializes and registers all available plugins.
 func (pm *PluginManager) InitializePlugins(ctx context.Context) error {
-	pm.logger.InfoContext(ctx, "Initializing compliance plugins")
+	logger := pm.logger.WithContext(ctx)
+	logger.Info("Initializing compliance plugins")
 
 	// Register STIG plugin
 	stigPlugin := stig.NewPlugin()
@@ -36,7 +37,7 @@ func (pm *PluginManager) InitializePlugins(ctx context.Context) error {
 		return fmt.Errorf("failed to register STIG plugin: %w", err)
 	}
 
-	pm.logger.InfoContext(ctx, "Registered STIG plugin", "name", stigPlugin.Name(), "version", stigPlugin.Version())
+	logger.Info("Registered STIG plugin", "name", stigPlugin.Name(), "version", stigPlugin.Version())
 
 	// Register SANS plugin
 	sansPlugin := sans.NewPlugin()
@@ -44,7 +45,7 @@ func (pm *PluginManager) InitializePlugins(ctx context.Context) error {
 		return fmt.Errorf("failed to register SANS plugin: %w", err)
 	}
 
-	pm.logger.InfoContext(ctx, "Registered SANS plugin", "name", sansPlugin.Name(), "version", sansPlugin.Version())
+	logger.Info("Registered SANS plugin", "name", sansPlugin.Name(), "version", sansPlugin.Version())
 
 	// Register Firewall plugin
 	firewallPlugin := firewall.NewPlugin()
@@ -52,16 +53,12 @@ func (pm *PluginManager) InitializePlugins(ctx context.Context) error {
 		return fmt.Errorf("failed to register Firewall plugin: %w", err)
 	}
 
-	pm.logger.InfoContext(
-		ctx,
-		"Registered Firewall plugin",
-		"name",
-		firewallPlugin.Name(),
-		"version",
-		firewallPlugin.Version(),
+	logger.Info("Registered Firewall plugin",
+		"name", firewallPlugin.Name(),
+		"version", firewallPlugin.Version(),
 	)
 
-	pm.logger.InfoContext(ctx, "Plugin initialization completed", "total_plugins", len(pm.registry.ListPlugins()))
+	logger.Info("Plugin initialization completed", "total_plugins", len(pm.registry.ListPlugins()))
 
 	return nil
 }
@@ -73,13 +70,14 @@ func (pm *PluginManager) GetRegistry() *PluginRegistry {
 
 // ListAvailablePlugins returns information about all available plugins.
 func (pm *PluginManager) ListAvailablePlugins(ctx context.Context) []PluginInfo {
+	logger := pm.logger.WithContext(ctx)
 	pluginNames := pm.registry.ListPlugins()
 	pluginInfos := make([]PluginInfo, 0, len(pluginNames))
 
 	for _, pluginName := range pluginNames {
 		p, err := pm.registry.GetPlugin(pluginName)
 		if err != nil {
-			pm.logger.ErrorContext(ctx, "Failed to get plugin info", "plugin", pluginName, "error", err)
+			logger.Error("Failed to get plugin info", "plugin", pluginName, "error", err)
 			continue
 		}
 
@@ -100,14 +98,15 @@ func (pm *PluginManager) RunComplianceAudit(
 	config *model.OpnSenseDocument,
 	pluginNames []string,
 ) (*ComplianceResult, error) {
-	pm.logger.InfoContext(ctx, "Starting compliance audit", "plugins", pluginNames)
+	logger := pm.logger.WithContext(ctx)
+	logger.Info("Starting compliance audit", "plugins", pluginNames)
 
 	result, err := pm.registry.RunComplianceChecks(config, pluginNames)
 	if err != nil {
 		return nil, fmt.Errorf("compliance audit failed: %w", err)
 	}
 
-	pm.logger.InfoContext(ctx, "Compliance audit completed",
+	logger.Info("Compliance audit completed",
 		"total_findings", result.Summary.TotalFindings,
 		"plugins_used", len(pluginNames))
 
@@ -153,6 +152,7 @@ func (pm *PluginManager) GetPluginStatistics() map[string]any {
 	for _, pluginName := range pluginNames {
 		p, err := pm.registry.GetPlugin(pluginName)
 		if err != nil {
+			pm.logger.Error("Failed to get plugin for statistics", "plugin", pluginName, "error", err)
 			continue
 		}
 

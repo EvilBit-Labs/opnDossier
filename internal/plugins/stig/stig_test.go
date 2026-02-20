@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
@@ -448,7 +449,7 @@ func TestPlugin_broadNetworkRanges(t *testing.T) {
 		"10.0.0.0/8",
 		"172.16.0.0/12",
 		"192.168.0.0/16",
-		NetworkAny,
+		constants.NetworkAny,
 	}
 
 	if len(ranges) != len(expectedRanges) {

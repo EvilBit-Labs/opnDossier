@@ -87,7 +87,6 @@ opndossier/
 │   ├── model/                        # Data models and structures
 │   ├── cfgparser/                    # XML parsing and validation
 │   ├── compliance/                   # Plugin interfaces
-│   ├── configstats/                  # Configuration statistics
 │   ├── plugins/                      # Compliance plugins
 │   │   ├── firewall/                 # Firewall compliance
 │   │   ├── sans/                     # SANS compliance
@@ -158,6 +157,20 @@ logger.Error("validation failed", "error", err)
 ```
 
 Log levels: `debug` (troubleshooting), `info` (operations), `warn` (issues), `error` (failures)
+
+**Context-aware logging — use `WithContext()` pattern:**
+
+When a method receives `context.Context`, create a local context-scoped logger instead of dropping `ctx`:
+
+```go
+func (pm *PluginManager) DoWork(ctx context.Context) error {
+    logger := pm.logger.WithContext(ctx)
+    logger.Info("starting work")
+    // ...
+}
+```
+
+This replaces `slog.InfoContext(ctx, ...)` — never simply drop `ctx` from logging calls.
 
 ### 5.4 Documentation
 
@@ -246,7 +259,7 @@ config := cmdCtx.Config
 - `PersistentPreRunE` in `root.go` creates and sets the context after config loading
 - Flag variables remain package-level (required by Cobra's binding mechanism)
 - Config and logger are unexported (`cfg`, `logger`) - accessed only via `CommandContext`
-- Use `GetCommandContext()` for safe access, `MustGetCommandContext()` when context is required
+- Use `GetCommandContext()` for safe access and handle the nil case explicitly
 
 **Pattern benefits:**
 
@@ -445,6 +458,7 @@ When code becomes unused during refactoring:
 - Unused code adds maintenance burden and confuses future readers
 - If the code might be needed later, rely on version control history
 - This includes helper functions, test utilities, and constants
+- **Type aliases and re-exported constants**: Before removing, grep the entire codebase for external references (e.g., `grep -r 'pkg.AliasName'`). The `internal/model/` re-export layer and `cmd/` package frequently reference aliases from internal packages.
 
 ### 5.17 File Write Safety
 

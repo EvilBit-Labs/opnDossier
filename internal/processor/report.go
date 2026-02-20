@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/configstats"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
+	"github.com/EvilBit-Labs/opnDossier/internal/enrichment"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/nao1215/markdown"
 	"gopkg.in/yaml.v3"
@@ -892,18 +892,18 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 	configComplexity := calculateConfigComplexity(stats)
 
 	stats.Summary = StatisticsSummary{
-		TotalConfigItems: configstats.CalculateTotalConfigItems(
-			stats.TotalInterfaces,
-			stats.TotalFirewallRules,
-			stats.TotalUsers,
-			stats.TotalGroups,
-			stats.TotalServices,
-			stats.TotalGateways,
-			stats.TotalGatewayGroups,
-			stats.SysctlSettings,
-			stats.DHCPScopes,
-			stats.LoadBalancerMonitors,
-		),
+		TotalConfigItems: enrichment.CalculateTotalConfigItems(enrichment.ConfigItemCounts{
+			Interfaces:     stats.TotalInterfaces,
+			FirewallRules:  stats.TotalFirewallRules,
+			Users:          stats.TotalUsers,
+			Groups:         stats.TotalGroups,
+			Services:       stats.TotalServices,
+			Gateways:       stats.TotalGateways,
+			GatewayGroups:  stats.TotalGatewayGroups,
+			SysctlSettings: stats.SysctlSettings,
+			DHCPScopes:     stats.DHCPScopes,
+			LBMonitors:     stats.LoadBalancerMonitors,
+		}),
 		SecurityScore:       securityScore,
 		ConfigComplexity:    configComplexity,
 		HasSecurityFeatures: len(stats.SecurityFeatures) > 0,

@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -435,8 +436,9 @@ func maxVisibleLineLengthWithLine(output string) (int, string) {
 		}
 
 		visible := strings.TrimRightFunc(trimmed, func(r rune) bool { return r == '\r' })
-		if len(visible) > maxLen {
-			maxLen = len(visible)
+		runeLen := utf8.RuneCountInString(visible)
+		if runeLen > maxLen {
+			maxLen = runeLen
 			maxLine = visible
 		}
 	}

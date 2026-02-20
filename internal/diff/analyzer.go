@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/schema"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
 const addressUnknown = "unknown"
@@ -19,7 +19,7 @@ func NewAnalyzer() *Analyzer {
 }
 
 // CompareSystem compares system configuration between two configs.
-func (a *Analyzer) CompareSystem(old, newCfg *schema.System) []Change {
+func (a *Analyzer) CompareSystem(old, newCfg *model.System) []Change {
 	var changes []Change
 
 	// Handle nil pointers gracefully
@@ -104,12 +104,12 @@ func (a *Analyzer) CompareSystem(old, newCfg *schema.System) []Change {
 }
 
 // CompareFirewallRules compares firewall rules between two configs.
-func (a *Analyzer) CompareFirewallRules(old, newCfg []schema.Rule) []Change {
+func (a *Analyzer) CompareFirewallRules(old, newCfg []model.Rule) []Change {
 	var changes []Change
 
 	// Build maps by UUID for matching
-	oldByUUID := make(map[string]schema.Rule)
-	newByUUID := make(map[string]schema.Rule)
+	oldByUUID := make(map[string]model.Rule)
+	newByUUID := make(map[string]model.Rule)
 
 	for _, rule := range old {
 		if rule.UUID != "" {
@@ -177,11 +177,11 @@ func (a *Analyzer) CompareFirewallRules(old, newCfg []schema.Rule) []Change {
 }
 
 // compareRulesByPosition compares rules that don't have UUIDs by position.
-func (a *Analyzer) compareRulesByPosition(old, newCfg []schema.Rule) []Change {
+func (a *Analyzer) compareRulesByPosition(old, newCfg []model.Rule) []Change {
 	var changes []Change
 
 	// Filter to rules without UUIDs
-	var oldNoUUID, newNoUUID []schema.Rule
+	var oldNoUUID, newNoUUID []model.Rule
 	for _, r := range old {
 		if r.UUID == "" {
 			oldNoUUID = append(oldNoUUID, r)
@@ -209,7 +209,7 @@ func (a *Analyzer) compareRulesByPosition(old, newCfg []schema.Rule) []Change {
 }
 
 // CompareNAT compares NAT configuration between two configs.
-func (a *Analyzer) CompareNAT(old, newCfg *schema.Nat) []Change {
+func (a *Analyzer) CompareNAT(old, newCfg *model.Nat) []Change {
 	var changes []Change
 
 	// Handle nil pointers gracefully
@@ -275,7 +275,7 @@ func (a *Analyzer) CompareNAT(old, newCfg *schema.Nat) []Change {
 }
 
 // CompareInterfaces compares interface configuration between two configs.
-func (a *Analyzer) CompareInterfaces(old, newCfg *schema.Interfaces) []Change {
+func (a *Analyzer) CompareInterfaces(old, newCfg *model.Interfaces) []Change {
 	var changes []Change
 
 	// Handle nil pointers gracefully
@@ -370,7 +370,7 @@ func (a *Analyzer) CompareInterfaces(old, newCfg *schema.Interfaces) []Change {
 }
 
 // compareInterface compares a single interface.
-func (a *Analyzer) compareInterface(name string, old, newCfg schema.Interface) []Change {
+func (a *Analyzer) compareInterface(name string, old, newCfg model.Interface) []Change {
 	var changes []Change
 
 	if old.IPAddr != newCfg.IPAddr {
@@ -421,7 +421,7 @@ func (a *Analyzer) compareInterface(name string, old, newCfg schema.Interface) [
 }
 
 // CompareVLANs compares VLAN configuration between two configs.
-func (a *Analyzer) CompareVLANs(old, newCfg *schema.VLANs) []Change {
+func (a *Analyzer) CompareVLANs(old, newCfg *model.VLANs) []Change {
 	var changes []Change
 
 	// Handle nil pointers gracefully
@@ -446,8 +446,8 @@ func (a *Analyzer) CompareVLANs(old, newCfg *schema.VLANs) []Change {
 	}
 
 	// Build maps by vlanif (unique identifier)
-	oldByVlanif := make(map[string]schema.VLAN)
-	newByVlanif := make(map[string]schema.VLAN)
+	oldByVlanif := make(map[string]model.VLAN)
+	newByVlanif := make(map[string]model.VLAN)
 
 	for _, v := range old.VLAN {
 		if v.Vlanif != "" {
@@ -507,7 +507,7 @@ func (a *Analyzer) CompareVLANs(old, newCfg *schema.VLANs) []Change {
 
 // CompareDHCP compares DHCP configuration between two configs.
 // Focuses on persistent configuration (static reservations) not ephemeral state (leases).
-func (a *Analyzer) CompareDHCP(old, newCfg *schema.Dhcpd) []Change {
+func (a *Analyzer) CompareDHCP(old, newCfg *model.Dhcpd) []Change {
 	var changes []Change
 
 	// Handle nil pointers gracefully
@@ -619,12 +619,12 @@ func (a *Analyzer) CompareDHCP(old, newCfg *schema.Dhcpd) []Change {
 }
 
 // compareStaticMappings compares DHCP static reservations between two configs.
-func (a *Analyzer) compareStaticMappings(ifaceName string, old, newCfg []schema.DHCPStaticLease) []Change {
+func (a *Analyzer) compareStaticMappings(ifaceName string, old, newCfg []model.DHCPStaticLease) []Change {
 	var changes []Change
 
 	// Build maps by MAC address (unique identifier for reservations)
-	oldByMAC := make(map[string]schema.DHCPStaticLease)
-	newByMAC := make(map[string]schema.DHCPStaticLease)
+	oldByMAC := make(map[string]model.DHCPStaticLease)
+	newByMAC := make(map[string]model.DHCPStaticLease)
 
 	for _, lease := range old {
 		oldByMAC[lease.Mac] = lease
@@ -697,7 +697,7 @@ func (a *Analyzer) compareStaticMappings(ifaceName string, old, newCfg []schema.
 }
 
 // staticLeaseLabel returns a human-readable label for a static lease.
-func staticLeaseLabel(lease schema.DHCPStaticLease) string {
+func staticLeaseLabel(lease model.DHCPStaticLease) string {
 	if lease.Hostname != "" {
 		return lease.Hostname
 	}
@@ -708,7 +708,7 @@ func staticLeaseLabel(lease schema.DHCPStaticLease) string {
 }
 
 // formatStaticLease returns a formatted string for a static lease.
-func formatStaticLease(lease schema.DHCPStaticLease) string {
+func formatStaticLease(lease model.DHCPStaticLease) string {
 	parts := []string{"ip=" + lease.IPAddr, "mac=" + lease.Mac}
 	if lease.Hostname != "" {
 		parts = append(parts, "hostname="+lease.Hostname)
@@ -720,12 +720,12 @@ func formatStaticLease(lease schema.DHCPStaticLease) string {
 }
 
 // CompareUsers compares user configuration between two configs.
-func (a *Analyzer) CompareUsers(old, newCfg []schema.User) []Change {
+func (a *Analyzer) CompareUsers(old, newCfg []model.User) []Change {
 	var changes []Change
 
 	// Build maps by username
-	oldByName := make(map[string]schema.User)
-	newByName := make(map[string]schema.User)
+	oldByName := make(map[string]model.User)
+	newByName := make(map[string]model.User)
 
 	for _, u := range old {
 		oldByName[u.Name] = u
@@ -781,7 +781,7 @@ func (a *Analyzer) CompareUsers(old, newCfg []schema.User) []Change {
 }
 
 // CompareRoutes compares static route configuration between two configs.
-func (a *Analyzer) CompareRoutes(old, newCfg *schema.StaticRoutes) []Change {
+func (a *Analyzer) CompareRoutes(old, newCfg *model.StaticRoutes) []Change {
 	var changes []Change
 
 	// Handle nil pointers gracefully
@@ -821,7 +821,7 @@ func (a *Analyzer) CompareRoutes(old, newCfg *schema.StaticRoutes) []Change {
 
 // Helper functions
 
-func ruleDescription(rule schema.Rule) string {
+func ruleDescription(rule model.Rule) string {
 	if rule.Descr != "" {
 		return rule.Descr
 	}
@@ -839,7 +839,7 @@ func ruleDescription(rule schema.Rule) string {
 	return fmt.Sprintf("%s %s → %s", rule.Type, src, dst)
 }
 
-func formatRule(rule schema.Rule) string {
+func formatRule(rule model.Rule) string {
 	parts := []string{
 		"type=" + rule.Type,
 	}
@@ -858,7 +858,7 @@ func formatRule(rule schema.Rule) string {
 	return strings.Join(parts, ", ")
 }
 
-func formatSource(src schema.Source) string {
+func formatSource(src model.Source) string {
 	var prefix string
 	if src.Not {
 		prefix = "!"
@@ -874,7 +874,7 @@ func formatSource(src schema.Source) string {
 	return result
 }
 
-func formatDestination(dst schema.Destination) string {
+func formatDestination(dst model.Destination) string {
 	var prefix string
 	if dst.Not {
 		prefix = "!"
@@ -890,7 +890,7 @@ func formatDestination(dst schema.Destination) string {
 	return result
 }
 
-func formatInterface(iface schema.Interface) string {
+func formatInterface(iface model.Interface) string {
 	parts := []string{}
 	if iface.If != "" {
 		parts = append(parts, "if="+iface.If)
@@ -908,7 +908,7 @@ func formatInterface(iface schema.Interface) string {
 	return strings.Join(parts, ", ")
 }
 
-func rulesEqual(a, b schema.Rule) bool {
+func rulesEqual(a, b model.Rule) bool {
 	return a.Type == b.Type &&
 		a.Descr == b.Descr &&
 		a.Protocol == b.Protocol &&
@@ -918,7 +918,7 @@ func rulesEqual(a, b schema.Rule) bool {
 		slices.Equal([]string(a.Interface), []string(b.Interface))
 }
 
-func usersEqual(a, b schema.User) bool {
+func usersEqual(a, b model.User) bool {
 	return a.Name == b.Name &&
 		a.Descr == b.Descr &&
 		a.Scope == b.Scope &&
@@ -926,7 +926,7 @@ func usersEqual(a, b schema.User) bool {
 		a.Disabled == b.Disabled
 }
 
-func isPermissiveRule(rule schema.Rule) bool {
+func isPermissiveRule(rule model.Rule) bool {
 	return rule.Type == "pass" &&
 		rule.Source.EffectiveAddress() == "any" &&
 		rule.Destination.EffectiveAddress() == "any"

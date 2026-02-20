@@ -69,8 +69,8 @@ func (p *CoreProcessor) analyzeDeadRules(cfg *model.OpnSenseDocument, report *Re
 func (p *CoreProcessor) analyzeInterfaceRules(iface string, rules []model.Rule, report *Report) {
 	for i, rule := range rules {
 		// Check for "block all" rules that make subsequent rules unreachable
-		srcAny := rule.Source.EffectiveAddress() == NetworkAny
-		dstAny := rule.Destination.EffectiveAddress() == NetworkAny
+		srcAny := rule.Source.EffectiveAddress() == constants.NetworkAny
+		dstAny := rule.Destination.EffectiveAddress() == constants.NetworkAny
 		if rule.Type == "block" && srcAny && dstAny {
 			// If there are rules after this block-all rule, they're dead
 			if i < len(rules)-1 {
@@ -107,9 +107,10 @@ func (p *CoreProcessor) analyzeInterfaceRules(iface string, rules []model.Rule, 
 		}
 
 		// Check for overly broad rules that might be unintentional
-		if rule.Type == RuleTypePass && rule.Source.EffectiveAddress() == NetworkAny && rule.Descr == "" {
+		if rule.Type == constants.RuleTypePass && rule.Source.EffectiveAddress() == constants.NetworkAny &&
+			rule.Descr == "" {
 			report.AddFinding(SeverityHigh, Finding{
-				Type:  FindingTypeSecurity,
+				Type:  constants.FindingTypeSecurity,
 				Title: "Overly Broad Pass Rule",
 				Description: fmt.Sprintf(
 					"Rule at position %d on interface %s allows all traffic without description",
@@ -363,7 +364,7 @@ func (p *CoreProcessor) analyzeSecurityIssues(cfg *model.OpnSenseDocument, repor
 	// WebGUI configuration — only flag non-HTTPS protocols
 	if cfg.System.WebGUI.Protocol != "" && cfg.System.WebGUI.Protocol != constants.ProtocolHTTPS {
 		report.AddFinding(SeverityCritical, Finding{
-			Type:           FindingTypeSecurity,
+			Type:           constants.FindingTypeSecurity,
 			Title:          "Insecure Web GUI Protocol",
 			Description:    "Web GUI is configured to use HTTP instead of HTTPS",
 			Component:      "system.webgui.protocol",
@@ -375,7 +376,7 @@ func (p *CoreProcessor) analyzeSecurityIssues(cfg *model.OpnSenseDocument, repor
 	// Check for default SNMP community strings
 	if cfg.Snmpd.ROCommunity == "public" {
 		report.AddFinding(SeverityHigh, Finding{
-			Type:           FindingTypeSecurity,
+			Type:           constants.FindingTypeSecurity,
 			Title:          "Default SNMP Community String",
 			Description:    "SNMP is using the default 'public' community string",
 			Component:      "snmpd.rocommunity",
@@ -386,10 +387,10 @@ func (p *CoreProcessor) analyzeSecurityIssues(cfg *model.OpnSenseDocument, repor
 
 	// Check for overly permissive firewall rules
 	for i, rule := range cfg.FilterRules() {
-		if rule.Type == RuleTypePass && rule.Source.EffectiveAddress() == NetworkAny &&
+		if rule.Type == constants.RuleTypePass && rule.Source.EffectiveAddress() == constants.NetworkAny &&
 			interfaceListContains(rule.Interface, "wan") {
 			report.AddFinding(SeverityHigh, Finding{
-				Type:           FindingTypeSecurity,
+				Type:           constants.FindingTypeSecurity,
 				Title:          "Overly Permissive WAN Rule",
 				Description:    fmt.Sprintf("Rule %d allows any source to pass traffic on WAN interface", i+1),
 				Component:      fmt.Sprintf("filter.rule[%d]", i),

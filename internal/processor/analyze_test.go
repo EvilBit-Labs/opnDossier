@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1808,7 +1809,7 @@ func TestCoreProcessor_DeadRuleDetection_IsAnyPath(t *testing.T) {
 				if f.Type == "dead-rule" {
 					hasDeadRule = true
 				}
-				if f.Type == FindingTypeSecurity && f.Title == "Overly Broad Pass Rule" {
+				if f.Type == constants.FindingTypeSecurity && f.Title == "Overly Broad Pass Rule" {
 					hasBroadRule = true
 				}
 			}
