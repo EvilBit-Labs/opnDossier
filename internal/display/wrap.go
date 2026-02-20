@@ -5,6 +5,9 @@ import (
 	"unicode/utf8"
 )
 
+// wrapMarkdownContent wraps markdown text to the given width while preserving
+// code blocks (fenced with ```) which are never wrapped. Each non-code line
+// that exceeds width is passed to wrapMarkdownLine for word-aware breaking.
 func wrapMarkdownContent(content string, width int) string {
 	if width <= 0 {
 		return content
@@ -25,7 +28,7 @@ func wrapMarkdownContent(content string, width int) string {
 			wrapped = append(wrapped, line)
 			continue
 		}
-		if len(line) <= width {
+		if utf8.RuneCountInString(line) <= width {
 			wrapped = append(wrapped, line)
 			continue
 		}
@@ -36,8 +39,12 @@ func wrapMarkdownContent(content string, width int) string {
 	return strings.Join(wrapped, "\n")
 }
 
+// wrapMarkdownLine breaks a single line of markdown text at word boundaries to
+// fit within width (measured in runes). Leading whitespace (indentation) is
+// preserved on continuation lines. Words longer than the remaining space are
+// split at the rune boundary with a trailing backslash.
 func wrapMarkdownLine(line string, width int) []string {
-	if width <= 0 || len(line) <= width {
+	if width <= 0 || utf8.RuneCountInString(line) <= width {
 		return []string{line}
 	}
 
@@ -96,7 +103,7 @@ func wrapMarkdownLine(line string, width int) []string {
 			} else {
 				current += word
 			}
-			currentLen = len(current)
+			currentLen = utf8.RuneCountInString(current)
 			word = ""
 		}
 	}
@@ -108,6 +115,9 @@ func wrapMarkdownLine(line string, width int) []string {
 	return lines
 }
 
+// wrapRenderedOutput wraps already-rendered terminal output (which may contain
+// ANSI escape sequences) to the given visible width. Each line is processed
+// independently by wrapRenderedLine.
 func wrapRenderedOutput(output string, width int) string {
 	if width <= 0 {
 		return output
@@ -123,6 +133,10 @@ func wrapRenderedOutput(output string, width int) string {
 	return strings.Join(wrapped, "\n")
 }
 
+// wrapRenderedLine splits a single rendered line into segments of at most width
+// visible characters. ANSI CSI escape sequences (e.g. color codes) are passed
+// through without counting toward visible width. Multi-byte UTF-8 characters
+// are decoded as whole runes so they are never split mid-sequence.
 func wrapRenderedLine(line string, width int) []string {
 	if width <= 0 {
 		return []string{line}

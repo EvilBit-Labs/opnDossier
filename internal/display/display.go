@@ -285,7 +285,6 @@ func NewTerminalDisplayWithOptions(opts Options) *TerminalDisplay {
 		}
 		r, err := glamour.NewTermRenderer(glamourOpts...)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: Failed to create markdown renderer: %v\n", err)
 			rendererErr = err
 		} else {
 			renderer = r
