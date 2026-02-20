@@ -73,16 +73,3 @@ func SetCommandContext(cmd *cobra.Command, cmdCtx *CommandContext) {
 	ctx = context.WithValue(ctx, cmdContextKey, cmdCtx)
 	cmd.SetContext(ctx)
 }
-
-// MustGetCommandContext retrieves the CommandContext from a cobra.Command's context
-// and panics if it is not found. Use this only when you are certain the context
-// has been set (e.g., after PersistentPreRunE has run).
-//
-// For most cases, prefer GetCommandContext and handle the nil case explicitly.
-func MustGetCommandContext(cmd *cobra.Command) *CommandContext {
-	cmdCtx := GetCommandContext(cmd)
-	if cmdCtx == nil {
-		panic("command context not initialized - ensure PersistentPreRunE has run")
-	}
-	return cmdCtx
-}

@@ -120,12 +120,11 @@ func parseLevel(level string) log.Level {
 }
 
 // WithContext returns a logger with the provided context.
-// Note: charmbracelet/log doesn't have built-in context support,
-// but we maintain this method signature for compatibility.
-func (l *Logger) WithContext(_ context.Context) *Logger {
-	// For now, just return the same logger since charmbracelet/log
-	// doesn't have native context support. In the future, we could
-	// add context-based functionality if needed.
+// charmbracelet/log doesn't have built-in context support yet;
+// this signature exists so callers can pass ctx for future extraction of
+// trace IDs, request IDs, or cancellation-aware logging.
+func (l *Logger) WithContext(ctx context.Context) *Logger {
+	_ = ctx // TODO: extract trace/request IDs from ctx when logging middleware is added
 	return l
 }
 

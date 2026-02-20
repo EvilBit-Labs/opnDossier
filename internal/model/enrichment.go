@@ -2,6 +2,7 @@
 package model
 
 import (
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/enrichment"
 )
 
@@ -16,7 +17,7 @@ const (
 	// RuleTypeBlock represents a firewall block rule.
 	RuleTypeBlock = enrichment.RuleTypeBlock
 	// NetworkAny represents the "any" network in firewall rules.
-	NetworkAny = enrichment.NetworkAny
+	NetworkAny = constants.NetworkAny
 	// MaxComplexityScore is the maximum achievable complexity score.
 	MaxComplexityScore = enrichment.MaxComplexityScore
 	// MaxSecurityScore is the maximum achievable security score.

@@ -326,39 +326,25 @@ func TestConvertMarkdownOptionsAllThemes(t *testing.T) {
 	}
 }
 
-func TestRendererSingletonBehavior(t *testing.T) {
+func TestPerInstanceRendererBehavior(t *testing.T) {
 	t.Parallel()
 
-	// Test that the singleton pattern works correctly
-	opts1 := &Options{
+	opts := Options{
 		Theme:        LightTheme(),
 		WrapWidth:    80,
 		EnableTables: true,
 		EnableColors: true,
 	}
 
-	// First call should create renderer
-	renderer1, err1 := getGlamourRenderer(opts1)
-	require.NoError(t, err1)
-	assert.NotNil(t, renderer1)
+	// Two instances with identical options should have independent renderers
+	td1 := NewTerminalDisplayWithOptions(opts)
+	td2 := NewTerminalDisplayWithOptions(opts)
 
-	// Second call with same options should return same instance
-	renderer2, err2 := getGlamourRenderer(opts1)
-	require.NoError(t, err2)
-	assert.NotNil(t, renderer2)
-	// Note: We can't compare pointers directly due to concurrent access patterns
+	require.NotNil(t, td1.renderer)
+	require.NotNil(t, td2.renderer)
 
-	// Call with different options should recreate
-	opts2 := &Options{
-		Theme:        DarkTheme(),
-		WrapWidth:    100,
-		EnableTables: false,
-		EnableColors: true,
-	}
-
-	renderer3, err3 := getGlamourRenderer(opts2)
-	require.NoError(t, err3)
-	assert.NotNil(t, renderer3)
+	// Renderers should be independent instances (different pointers)
+	assert.NotSame(t, td1.renderer, td2.renderer)
 }
 
 func TestContextChecking(t *testing.T) {
@@ -464,14 +450,6 @@ func TestProgressEventStructure(t *testing.T) {
 	zeroEvent := ProgressEvent{}
 	assert.Zero(t, zeroEvent.Percent)
 	assert.Empty(t, zeroEvent.Message)
-}
-
-func TestErrRawMarkdownError(t *testing.T) {
-	t.Parallel()
-
-	err := ErrRawMarkdown
-	assert.Implements(t, (*error)(nil), err)
-	assert.Contains(t, err.Error(), "raw markdown")
 }
 
 func TestGetThemeByNameEdgeCases(t *testing.T) {

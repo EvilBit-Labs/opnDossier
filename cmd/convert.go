@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/audit"
 	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
@@ -148,6 +149,9 @@ var convertCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 		if cmdCtx != nil {
 			cmdLogger = cmdCtx.Logger
 		}
+
+		// Normalize flags (apply side-effects like --no-wrap → wrap=0)
+		normalizeConvertFlags()
 
 		// Validate flag combinations specific to convert command
 		if err := validateConvertFlags(cmd.Flags(), cmdLogger); err != nil {
@@ -360,6 +364,7 @@ Examples:
 				// Build options for conversion with precedence: CLI flags > env vars > config > defaults
 				eff := buildEffectiveFormat(format, cmdConfig)
 				opt := buildConversionOptions(eff, cmdConfig)
+				auditOpts := buildAuditOptions()
 
 				// Convert using the new markdown generator
 				var output string
@@ -376,7 +381,7 @@ Examples:
 				)
 
 				// Generate output based on format
-				output, err = generateOutputByFormat(timeoutCtx, opnsense, opt, ctxLogger)
+				output, err = generateOutputByFormat(timeoutCtx, opnsense, opt, auditOpts, ctxLogger)
 				if err != nil {
 					ctxLogger.Error("Failed to convert", "error", err)
 					errs <- fmt.Errorf("failed to convert from %s: %w", fp, err)
@@ -544,16 +549,16 @@ func buildConversionOptions(
 	// Include tunables: CLI flag only
 	opt.CustomFields["IncludeTunables"] = sharedIncludeTunables
 
-	// Audit mode options
-	if sharedAuditMode != "" {
-		opt.AuditMode = sharedAuditMode
-	}
-	opt.BlackhatMode = sharedBlackhatMode
-	if len(sharedSelectedPlugins) > 0 {
-		opt.SelectedPlugins = sharedSelectedPlugins
-	}
-
 	return opt
+}
+
+// buildAuditOptions constructs an audit.Options value from the shared CLI flag globals.
+func buildAuditOptions() audit.Options {
+	return audit.Options{
+		AuditMode:       sharedAuditMode,
+		BlackhatMode:    sharedBlackhatMode,
+		SelectedPlugins: sharedSelectedPlugins,
+	}
 }
 
 // determineOutputPath determines the output file path with smart naming and overwrite protection.
@@ -628,11 +633,12 @@ func generateOutputByFormat(
 	ctx context.Context,
 	opnsense *model.OpnSenseDocument,
 	opt converter.Options,
+	auditOpts audit.Options,
 	logger *logging.Logger,
 ) (string, error) {
 	// Check if audit mode is enabled - route to audit handler
-	if opt.AuditMode != "" {
-		return handleAuditMode(ctx, opnsense, opt, logger)
+	if auditOpts.AuditMode != "" {
+		return handleAuditMode(ctx, opnsense, auditOpts, opt, logger)
 	}
 
 	// Determine the format to use
@@ -680,6 +686,14 @@ func generateWithProgrammaticGenerator(
 	return hybridGen.Generate(ctx, opnsense, opt)
 }
 
+// normalizeConvertFlags applies side-effects to shared flag variables before validation.
+// When --no-wrap is set, it forces the wrap width to zero.
+func normalizeConvertFlags() {
+	if sharedNoWrap {
+		sharedWrapWidth = 0
+	}
+}
+
 // validateConvertFlags validates flag combinations and CLI options for the convert command.
 // It ensures mutually exclusive wrap flags are not both set, checks that the chosen output
 // format is one of markdown/md/json/yaml/yml, warns when section filtering is used with
@@ -695,10 +709,6 @@ func validateConvertFlags(flags *pflag.FlagSet, cmdLogger *logging.Logger) error
 		if noWrapFlag != nil && wrapFlag != nil && noWrapFlag.Changed && wrapFlag.Changed {
 			return errors.New("--no-wrap and --wrap flags are mutually exclusive")
 		}
-	}
-
-	if sharedNoWrap {
-		sharedWrapWidth = 0
 	}
 
 	// Validate format values

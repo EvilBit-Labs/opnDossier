@@ -334,7 +334,6 @@ opnDossier/
 │   ├── cfgparser/                    # XML parsing and validation
 │   ├── compliance/                   # Plugin interfaces
 │   ├── config/                       # Configuration management
-│   ├── configstats/                  # Configuration statistics
 │   ├── converter/                    # Data conversion and report generation
 │   │   ├── builder/                  # Programmatic markdown builder
 │   │   └── formatters/              # Security scoring, transformers

@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log/slog"
 	"maps"
 	"os"
 	"slices"
@@ -26,11 +25,12 @@ import (
 func handleAuditMode(
 	ctx context.Context,
 	doc *model.OpnSenseDocument,
+	auditOpts audit.Options,
 	opt converter.Options,
 	logger *logging.Logger,
 ) (string, error) {
 	// Parse audit mode
-	mode, err := audit.ParseReportMode(opt.AuditMode)
+	mode, err := audit.ParseReportMode(auditOpts.AuditMode)
 	if err != nil {
 		return "", fmt.Errorf("invalid audit mode: %w", err)
 	}
@@ -38,25 +38,21 @@ func handleAuditMode(
 	// Create mode config
 	modeConfig := &audit.ModeConfig{
 		Mode:            mode,
-		BlackhatMode:    opt.BlackhatMode,
+		BlackhatMode:    auditOpts.BlackhatMode,
 		Comprehensive:   opt.Comprehensive,
-		SelectedPlugins: opt.SelectedPlugins,
+		SelectedPlugins: auditOpts.SelectedPlugins,
 	}
 
-	levels := determineAuditLogLevels(logger)
+	level := determineAuditLogLevel(logger)
 
-	// Initialize plugin manager with slog logger for PluginManager
-	slogLogger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level: levels.slog,
-	}))
-	pm := audit.NewPluginManager(slogLogger)
+	pm := audit.NewPluginManager(logger)
 	if err := pm.InitializePlugins(ctx); err != nil {
 		return "", fmt.Errorf("initialize plugins: %w", err)
 	}
 
 	// Create charmbracelet/log logger for ModeController
 	charmLogger := charmlog.NewWithOptions(os.Stderr, charmlog.Options{
-		Level: levels.charm,
+		Level: level,
 	})
 
 	// Create mode controller and generate audit report
@@ -76,30 +72,19 @@ func handleAuditMode(
 	return appendAuditFindings(baseReport, auditReport), nil
 }
 
-type auditLogLevels struct {
-	slog  slog.Level
-	charm charmlog.Level
-}
-
-// determineAuditLogLevels maps the application logger level to slog and charm log levels
+// determineAuditLogLevel maps the application logger level to the charm log level
 // used by audit mode components.
-func determineAuditLogLevels(logger *logging.Logger) auditLogLevels {
+func determineAuditLogLevel(logger *logging.Logger) charmlog.Level {
 	if logger == nil || logger.Logger == nil {
-		return auditLogLevels{slog: slog.LevelInfo, charm: charmlog.InfoLevel}
+		return charmlog.InfoLevel
 	}
 
-	switch logger.GetLevel() {
-	case charmlog.DebugLevel:
-		return auditLogLevels{slog: slog.LevelDebug, charm: charmlog.DebugLevel}
-	case charmlog.InfoLevel:
-		return auditLogLevels{slog: slog.LevelInfo, charm: charmlog.InfoLevel}
-	case charmlog.WarnLevel:
-		return auditLogLevels{slog: slog.LevelWarn, charm: charmlog.WarnLevel}
-	case charmlog.ErrorLevel, charmlog.FatalLevel:
-		return auditLogLevels{slog: slog.LevelError, charm: charmlog.ErrorLevel}
-	default:
-		return auditLogLevels{slog: slog.LevelInfo, charm: charmlog.InfoLevel}
+	level := logger.GetLevel()
+	if level == charmlog.FatalLevel {
+		return charmlog.ErrorLevel
 	}
+
+	return level
 }
 
 // appendAuditFindings appends compliance summary and findings to the base report.

@@ -92,15 +92,6 @@ type Options struct {
 
 	// SuppressWarnings suppresses non-critical warnings.
 	SuppressWarnings bool
-
-	// AuditMode specifies the audit reporting mode (standard, blue, red).
-	AuditMode string
-
-	// BlackhatMode enables red team blackhat commentary.
-	BlackhatMode bool
-
-	// SelectedPlugins specifies which compliance plugins to run.
-	SelectedPlugins []string
 }
 
 // DefaultOptions returns an Options initialized with the package's default settings for report generation.
@@ -216,23 +207,5 @@ func (o Options) WithComprehensive(enabled bool) Options {
 // WithSuppressWarnings enables or disables warning suppression.
 func (o Options) WithSuppressWarnings(suppress bool) Options {
 	o.SuppressWarnings = suppress
-	return o
-}
-
-// WithAuditMode sets the audit reporting mode.
-func (o Options) WithAuditMode(mode string) Options {
-	o.AuditMode = mode
-	return o
-}
-
-// WithBlackhatMode enables or disables blackhat mode for red team reports.
-func (o Options) WithBlackhatMode(enabled bool) Options {
-	o.BlackhatMode = enabled
-	return o
-}
-
-// WithSelectedPlugins sets the compliance plugins to run.
-func (o Options) WithSelectedPlugins(plugins ...string) Options {
-	o.SelectedPlugins = plugins
 	return o
 }

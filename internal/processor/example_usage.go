@@ -55,7 +55,7 @@ func ExampleUsage(cfg *model.OpnSenseDocument) {
 		fmt.Println("High severity security findings:")
 
 		for _, finding := range securityReport.Findings.High {
-			if finding.Type == FindingTypeSecurity {
+			if finding.Type == constants.FindingTypeSecurity {
 				fmt.Printf("- %s: %s\n", finding.Title, finding.Description)
 			}
 		}

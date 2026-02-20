@@ -10,11 +10,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/diff/security"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/schema"
 )
-
-// OpnSenseDocument is a type alias for model.OpnSenseDocument for package convenience.
-type OpnSenseDocument = model.OpnSenseDocument
 
 // Engine orchestrates configuration comparison.
 type Engine struct {
@@ -222,7 +218,7 @@ func (e *Engine) detectFirewallReorders() []Change {
 }
 
 // extractRuleUUIDs returns the ordered list of UUIDs from firewall rules.
-func extractRuleUUIDs(rules []schema.Rule) []string {
+func extractRuleUUIDs(rules []model.Rule) []string {
 	uuids := make([]string, 0, len(rules))
 	for _, r := range rules {
 		if r.UUID != "" {

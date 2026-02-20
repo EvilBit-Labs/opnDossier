@@ -2,6 +2,7 @@ package display
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"sync"
 	"testing"
@@ -195,9 +196,10 @@ func TestHandleRendererErrorWithCancelledContext(t *testing.T) {
 	td := NewTerminalDisplay()
 
 	var wg sync.WaitGroup
-	err := td.handleRendererError(ErrRawMarkdown, "test content", &wg)
+	renderErr := errors.New("renderer failed")
+	err := td.handleRendererError(renderErr, "test content", &wg)
 
-	// Should handle error gracefully even with cancelled context
+	// Should handle error gracefully by falling back to raw markdown
 	assert.NoError(t, err)
 }
 
