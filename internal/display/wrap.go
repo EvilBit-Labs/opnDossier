@@ -1,6 +1,9 @@
 package display
 
-import "strings"
+import (
+	"strings"
+	"unicode/utf8"
+)
 
 func wrapMarkdownContent(content string, width int) string {
 	if width <= 0 {
@@ -73,8 +76,9 @@ func wrapMarkdownLine(line string, width int) []string {
 				continue
 			}
 
-			if len(word) > remaining {
-				part := word[:remaining]
+			runes := []rune(word)
+			if len(runes) > remaining {
+				part := string(runes[:remaining])
 				if needsSpace {
 					current += " " + part
 				} else {
@@ -83,7 +87,7 @@ func wrapMarkdownLine(line string, width int) []string {
 				lines = append(lines, current+`\`)
 				current = prefix
 				currentLen = prefixLen
-				word = word[remaining:]
+				word = string(runes[remaining:])
 				continue
 			}
 
@@ -146,14 +150,15 @@ func wrapRenderedLine(line string, width int) []string {
 			continue
 		}
 
-		builder.WriteByte(line[i])
+		r, size := utf8.DecodeRuneInString(line[i:])
+		builder.WriteRune(r)
 		visible++
 		if visible >= width {
 			segments = append(segments, builder.String())
 			builder.Reset()
 			visible = 0
 		}
-		i++
+		i += size
 	}
 
 	if builder.Len() > 0 || len(segments) == 0 {
