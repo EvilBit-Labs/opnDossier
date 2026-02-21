@@ -384,3 +384,125 @@ func TestToYAML_ContainsAnalysis(t *testing.T) {
 
 	assert.NotNil(t, parsed["analysis"], "YAML output should contain analysis")
 }
+
+func TestRedactSensitiveFields_HAPassword(t *testing.T) {
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		HighAvailability: common.HighAvailability{Password: "secret123"},
+	}
+
+	result := prepareForExport(device)
+
+	assert.Equal(t, redactedValue, result.HighAvailability.Password)
+	assert.Equal(t, "secret123", device.HighAvailability.Password, "original not mutated")
+}
+
+func TestRedactSensitiveFields_CertificatePrivateKeys(t *testing.T) {
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		Certificates: []common.Certificate{
+			{Description: "cert1", PrivateKey: "-----BEGIN RSA PRIVATE KEY-----"},
+			{Description: "cert2", PrivateKey: ""},
+			{Description: "cert3", PrivateKey: "-----BEGIN EC PRIVATE KEY-----"},
+		},
+	}
+
+	result := prepareForExport(device)
+
+	assert.Equal(t, redactedValue, result.Certificates[0].PrivateKey)
+	assert.Empty(t, result.Certificates[1].PrivateKey, "empty key should stay empty")
+	assert.Equal(t, redactedValue, result.Certificates[2].PrivateKey)
+	assert.Equal(t, "-----BEGIN RSA PRIVATE KEY-----", device.Certificates[0].PrivateKey, "original not mutated")
+}
+
+func TestRedactSensitiveFields_APIKeySecrets(t *testing.T) {
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		Users: []common.User{
+			{
+				Name: "admin",
+				APIKeys: []common.APIKey{
+					{Key: "key1", Secret: "secret-a"},
+					{Key: "key2", Secret: "secret-b"},
+				},
+			},
+			{Name: "readonly"},
+		},
+	}
+
+	result := prepareForExport(device)
+
+	assert.Equal(t, redactedValue, result.Users[0].APIKeys[0].Secret)
+	assert.Equal(t, redactedValue, result.Users[0].APIKeys[1].Secret)
+	assert.Empty(t, result.Users[1].APIKeys, "user with no keys unchanged")
+	assert.Equal(t, "secret-a", device.Users[0].APIKeys[0].Secret, "original not mutated")
+}
+
+func TestRedactSensitiveFields_SNMPCommunity(t *testing.T) {
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		SNMP: common.SNMPConfig{ROCommunity: "public"},
+	}
+
+	result := prepareForExport(device)
+
+	assert.Equal(t, redactedValue, result.SNMP.ROCommunity)
+	assert.Equal(t, "public", device.SNMP.ROCommunity, "original not mutated")
+}
+
+func TestRedactSensitiveFields_WireGuardPSK(t *testing.T) {
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		VPN: common.VPN{
+			WireGuard: common.WireGuardConfig{
+				Clients: []common.WireGuardClient{
+					{Name: "peer1", PSK: "presharedkey123"},
+					{Name: "peer2", PSK: ""},
+				},
+			},
+		},
+	}
+
+	result := prepareForExport(device)
+
+	assert.Equal(t, redactedValue, result.VPN.WireGuard.Clients[0].PSK)
+	assert.Empty(t, result.VPN.WireGuard.Clients[1].PSK, "empty PSK should stay empty")
+	assert.Equal(t, "presharedkey123", device.VPN.WireGuard.Clients[0].PSK, "original not mutated")
+}
+
+func TestRedactSensitiveFields_DHCPv6Secret(t *testing.T) {
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		DHCP: []common.DHCPScope{
+			{Interface: "lan", AdvDHCP6KeyInfoStatementSecret: "dhcp-secret"},
+			{Interface: "opt1"},
+		},
+	}
+
+	result := prepareForExport(device)
+
+	assert.Equal(t, redactedValue, result.DHCP[0].AdvDHCP6KeyInfoStatementSecret)
+	assert.Empty(t, result.DHCP[1].AdvDHCP6KeyInfoStatementSecret, "empty secret should stay empty")
+	assert.Equal(t, "dhcp-secret", device.DHCP[0].AdvDHCP6KeyInfoStatementSecret, "original not mutated")
+}
+
+func TestRedactSensitiveFields_EmptyFieldsNotRedacted(t *testing.T) {
+	t.Parallel()
+
+	device := &common.CommonDevice{}
+
+	result := prepareForExport(device)
+
+	assert.Empty(t, result.HighAvailability.Password)
+	assert.Empty(t, result.SNMP.ROCommunity)
+	assert.Empty(t, result.Certificates)
+	assert.Empty(t, result.Users)
+	assert.Empty(t, result.VPN.WireGuard.Clients)
+	assert.Empty(t, result.DHCP)
+}

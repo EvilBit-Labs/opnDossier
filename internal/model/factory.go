@@ -102,11 +102,12 @@ type peekResult struct {
 // TeeReader to buffer consumed bytes. It returns the root element name, a
 // reader that replays the buffered bytes followed by the remainder of r, and
 // any error. The decode loop runs in a single goroutine so the caller can
-// select on ctx.Done() to abort when the reader blocks.
+// select on ctx.Done() to abort when the reader blocks. The reader is wrapped
+// in a ctxReader so the goroutine exits promptly after context cancellation.
 func peekRootElementBounded(ctx context.Context, r io.Reader) (string, io.Reader, error) {
 	var buf bytes.Buffer
 
-	limited := io.LimitReader(r, cfgparser.DefaultMaxInputSize)
+	limited := io.LimitReader(newCtxReader(ctx, r), cfgparser.DefaultMaxInputSize)
 	tee := io.TeeReader(limited, &buf)
 	dec := xml.NewDecoder(tee)
 	dec.CharsetReader = simpleCharsetReader
@@ -139,6 +140,24 @@ func peekRootElementBounded(ctx context.Context, r io.Reader) (string, io.Reader
 		fullReader := io.MultiReader(bytes.NewReader(buf.Bytes()), r)
 		return res.name, fullReader, nil
 	}
+}
+
+// readerFunc adapts a function to the io.Reader interface.
+type readerFunc func(p []byte) (int, error)
+
+func (f readerFunc) Read(p []byte) (int, error) { return f(p) }
+
+// newCtxReader wraps an io.Reader so that each Read call checks ctx for
+// cancellation before delegating. This ensures goroutines reading from the
+// returned reader exit promptly after context cancellation.
+func newCtxReader(ctx context.Context, r io.Reader) io.Reader {
+	return readerFunc(func(p []byte) (int, error) {
+		if err := ctx.Err(); err != nil {
+			return 0, err
+		}
+
+		return r.Read(p)
+	})
 }
 
 // simpleCharsetReader handles common XML charset declarations for root-element
