@@ -9,6 +9,7 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
@@ -416,6 +417,47 @@ func TestValidateConvertFlagsWrapWidthBounds(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestValidateConvertFlagsWrapWidthWarning(t *testing.T) {
+	originalWrap := sharedWrapWidth
+	t.Cleanup(func() {
+		sharedWrapWidth = originalWrap
+	})
+
+	t.Run("stderr fallback when logger is nil", func(t *testing.T) {
+		sharedWrapWidth = MaxWrapWidth + 1
+
+		// Capture stderr
+		oldStderr := os.Stderr
+		r, w, err := os.Pipe()
+		require.NoError(t, err)
+		os.Stderr = w
+
+		validateErr := validateConvertFlags(nil, nil)
+
+		require.NoError(t, w.Close())
+		os.Stderr = oldStderr
+
+		var buf bytes.Buffer
+		_, readErr := buf.ReadFrom(r)
+		require.NoError(t, readErr)
+		require.NoError(t, validateErr)
+		assert.Contains(t, buf.String(), "Warning: wrap width")
+	})
+
+	t.Run("logger warning when logger provided", func(t *testing.T) {
+		sharedWrapWidth = MinWrapWidth - 1
+
+		// Discard logger output — we just need to exercise the branch
+		logger, logErr := logging.New(logging.Config{Level: "warn"})
+		require.NoError(t, logErr)
+
+		validateErr := validateConvertFlags(nil, logger)
+
+		// sharedWrapWidth = MinWrapWidth-1 = 39 which is > 0 and < MinWrapWidth, so warns (no error)
+		require.NoError(t, validateErr)
+	})
 }
 
 func TestConvertCmdWithInvalidFile(t *testing.T) {
