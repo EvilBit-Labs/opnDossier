@@ -110,7 +110,7 @@ reviews:
       instructions: |
         Audit and compliance: Focus on accurate security analysis.
         - Verify security checks detect real vulnerabilities
-        - Check compliance rules match stated standards (STIG, CIS, etc.)
+        - Check compliance rules match stated standards (STIG, SANS, NIST, etc.)
         - Ensure recommendations are actionable and specific
         - Validate findings include severity and remediation guidance
         - Avoid false positives that reduce trust in audit results
@@ -471,7 +471,7 @@ issue_enrichment:
       - label: "audit-mode"
         instructions: "Use for issues related to audit mode functionality, compliance scanning, or audit feature enhancements"
       - label: "compliance"
-        instructions: "Use for compliance scanning features, security standards (STIG, CIS), or regulatory requirements"
+        instructions: "Use for compliance scanning features, security standards (STIG, SANS, NIST), or regulatory requirements"
       - label: "security"
         instructions: "Use for security-related features, vulnerability fixes, or security analysis capabilities"
       - label: "blue-team"

@@ -1,8 +1,8 @@
-# CIS-Inspired Firewall Security Controls Reference
+# Firewall Security Controls Reference
 
 ## Overview
 
-This document provides a reference guide for implementing firewall security controls inspired by industry-standard benchmarks for opnDossier. The controls outlined here are based on general security best practices for network firewalls and are designed to be compatible with OPNsense configurations. This document is not affiliated with, endorsed by, or derived from any specific benchmark organization.
+This document provides a reference guide for implementing firewall security controls for opnDossier. The controls outlined here are based on general cybersecurity best practices for network firewalls and are designed to be compatible with OPNsense configurations. These controls are independently developed by EvilBit Labs and are not affiliated with, endorsed by, or derived from any third-party benchmark organization.
 
 ## Control Categories
 

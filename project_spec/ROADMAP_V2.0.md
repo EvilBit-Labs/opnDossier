@@ -35,7 +35,7 @@ This document outlines the major architectural improvements, feature enhancement
   - **Blue Team Mode**: Security compliance and defensive analysis
   - **Red Team Mode**: Offensive security assessment perspective
   - **Blackhat Mode**: Advanced threat modeling
-  - **Plugin System**: Modular compliance plugins (STIG, SANS, CIS, etc.)
+  - **Plugin System**: Modular compliance plugins (STIG, SANS, Firewall, etc.)
 - **Note**: The TODO comments in code will be addressed as part of v1.1 milestone work
 - **V2.0 Scope**: Integration improvements and architectural cleanup after v1.1 implementation
 
