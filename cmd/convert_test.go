@@ -387,6 +387,37 @@ func TestValidateConvertFlagsNoWrapMutualExclusivity(t *testing.T) {
 	}
 }
 
+func TestValidateConvertFlagsWrapWidthBounds(t *testing.T) {
+	originalWrap := sharedWrapWidth
+	t.Cleanup(func() {
+		sharedWrapWidth = originalWrap
+	})
+
+	tests := []struct {
+		name    string
+		width   int
+		wantErr bool
+	}{
+		{name: "negative below -1 is rejected", width: -2, wantErr: true},
+		{name: "auto-detect is valid", width: -1, wantErr: false},
+		{name: "no wrapping is valid", width: 0, wantErr: false},
+		{name: "within range is valid", width: 80, wantErr: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sharedWrapWidth = tt.width
+			err := validateConvertFlags(nil, nil)
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "invalid wrap width")
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestConvertCmdWithInvalidFile(t *testing.T) {
 	// Create a temporary directory
 	tmpDir := t.TempDir()
