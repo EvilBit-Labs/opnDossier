@@ -94,6 +94,10 @@ linters:
     presets:
       - common-false-positives
       - std-error-handling
+    rules:
+      - path: internal/model/common/
+        linters: [revive]
+        text: "var-naming: avoid meaningless package names"
   disable:
     - gomodguard # Disabled: maybe someday, but not important right now
     - gocyclo # Disabled in favor of cyclop
