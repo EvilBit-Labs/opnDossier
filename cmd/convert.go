@@ -707,10 +707,11 @@ func normalizeConvertFlags() {
 // validateConvertFlags validates flag combinations and CLI options for the convert command.
 // It ensures mutually exclusive wrap flags are not both set, checks that the chosen output
 // format is one of markdown/md/json/yaml/yml, warns when section filtering is used with
-// JSON or YAML (sections will be ignored), and enforces that an explicit wrap width falls
-// within the supported range. Returns an error when flag combinations or values are invalid.
+// JSON or YAML (sections will be ignored), and emits a warning (via cmdLogger or stderr)
+// when wrap width is outside the recommended range. Returns an error for truly invalid
+// values (wrap width < -1, invalid format, invalid audit mode).
 //
-// The cmdLogger parameter is used for warnings; if nil, warnings are skipped.
+// The cmdLogger parameter is used for structured warnings; if nil, warnings fall back to stderr.
 func validateConvertFlags(flags *pflag.FlagSet, cmdLogger *logging.Logger) error {
 	// Validate mutual exclusivity for wrap flags before other checks
 	if flags != nil {

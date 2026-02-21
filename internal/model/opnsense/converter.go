@@ -2,6 +2,7 @@ package opnsense
 
 import (
 	"errors"
+	"fmt"
 	"maps"
 	"slices"
 	"strings"
@@ -28,7 +29,7 @@ func NewConverter() *Converter {
 // InterfaceGroups, Certificates, CAs, Packages) are not yet populated by this converter.
 func (c *Converter) ToCommonDevice(doc *schema.OpnSenseDocument) (*common.CommonDevice, error) {
 	if doc == nil {
-		return nil, ErrNilDocument
+		return nil, fmt.Errorf("ToCommonDevice: %w", ErrNilDocument)
 	}
 
 	device := &common.CommonDevice{
