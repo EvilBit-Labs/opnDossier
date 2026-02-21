@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
-// loadTestData loads test configuration data from the specified JSON file path.
-// For XML files, it parses and converts to model.OpnSenseDocument format.
-func loadTestData(filename string) *model.OpnSenseDocument {
+// loadTestData loads test configuration data by parsing an XML file and converting
+// to CommonDevice format via the ParserFactory.
+func loadTestData(filename string) *common.CommonDevice {
 	// Map test data size indicators to actual test files
 	var xmlFile string
 	switch filename {
@@ -33,22 +33,27 @@ func loadTestData(filename string) *model.OpnSenseDocument {
 		panic("Failed to read test XML file: " + err.Error())
 	}
 
-	p := cfgparser.NewXMLParser()
-	opnsense, err := p.Parse(context.Background(), strings.NewReader(string(xmlData)))
+	factory := model.NewParserFactory()
+	device, err := factory.CreateDevice(
+		context.Background(),
+		strings.NewReader(string(xmlData)),
+		"opnsense",
+		false,
+	)
 	if err != nil {
-		panic("XML parsing failed: " + err.Error())
+		panic("XML parsing/conversion failed: " + err.Error())
 	}
 
-	return opnsense
+	return device
 }
 
 // loadCompleteTestData loads a complete test dataset for individual method testing.
-func loadCompleteTestData() *model.OpnSenseDocument {
+func loadCompleteTestData() *common.CommonDevice {
 	return loadTestData("testdata/complete.json")
 }
 
 // loadLargeTestData loads a large test dataset for memory usage testing.
-func loadLargeTestData() *model.OpnSenseDocument {
+func loadLargeTestData() *common.CommonDevice {
 	return loadTestData("testdata/large.json")
 }
 
@@ -144,18 +149,6 @@ func BenchmarkIndividualMethods(b *testing.B) {
 	b.Run("CalculateSecurityScore", func(b *testing.B) {
 		for b.Loop() {
 			_ = builder.CalculateSecurityScore(testData)
-		}
-	})
-
-	b.Run("GroupServicesByStatus", func(b *testing.B) {
-		services := []model.Service{
-			{Name: "service1", Status: "running"},
-			{Name: "service2", Status: "stopped"},
-			{Name: "service3", Status: "running"},
-		}
-		b.ResetTimer()
-		for b.Loop() {
-			_ = builder.GroupServicesByStatus(services)
 		}
 	})
 

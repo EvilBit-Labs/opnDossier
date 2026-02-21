@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/EvilBit-Labs/opnDossier/internal/processor"
 	"github.com/charmbracelet/log"
 )
@@ -92,14 +92,14 @@ func (mc *ModeController) ValidateModeConfig(config *ModeConfig) error {
 // GenerateReport generates an audit report based on the specified mode and configuration.
 func (mc *ModeController) GenerateReport(
 	ctx context.Context,
-	cfg *model.OpnSenseDocument,
+	device *common.CommonDevice,
 	config *ModeConfig,
 ) (*Report, error) {
 	if err := mc.ValidateModeConfig(config); err != nil {
 		return nil, fmt.Errorf("invalid mode config: %w", err)
 	}
 
-	if cfg == nil {
+	if device == nil {
 		return nil, ErrConfigurationNil
 	}
 
@@ -110,7 +110,7 @@ func (mc *ModeController) GenerateReport(
 		Mode:          config.Mode,
 		BlackhatMode:  config.BlackhatMode,
 		Comprehensive: config.Comprehensive,
-		Configuration: cfg,
+		Configuration: device,
 		Findings:      make([]Finding, 0),
 		Compliance:    make(map[string]ComplianceResult),
 		Metadata:      make(map[string]any),
@@ -213,7 +213,7 @@ type Report struct {
 	Mode          ReportMode                  `json:"mode"`
 	BlackhatMode  bool                        `json:"blackhatMode"`
 	Comprehensive bool                        `json:"comprehensive"`
-	Configuration *model.OpnSenseDocument     `json:"configuration"`
+	Configuration *common.CommonDevice        `json:"configuration"`
 	Findings      []Finding                   `json:"findings"`
 	Compliance    map[string]ComplianceResult `json:"compliance"`
 	Metadata      map[string]any              `json:"metadata"`
@@ -253,8 +253,8 @@ func (r *Report) addSystemMetadata() {
 
 // addInterfaceAnalysis adds interface analysis to the report.
 func (r *Report) addInterfaceAnalysis() {
-	if r.Configuration != nil && r.Configuration.Interfaces.Items != nil {
-		interfaceCount := len(r.Configuration.Interfaces.Items)
+	if r.Configuration != nil {
+		interfaceCount := len(r.Configuration.Interfaces)
 		r.Metadata["interface_count"] = interfaceCount
 	}
 	r.Metadata["interface_analysis_completed"] = true
@@ -263,7 +263,7 @@ func (r *Report) addInterfaceAnalysis() {
 // addFirewallRuleAnalysis adds firewall rule analysis to the report.
 func (r *Report) addFirewallRuleAnalysis() {
 	if r.Configuration != nil {
-		ruleCount := len(r.Configuration.Filter.Rule)
+		ruleCount := len(r.Configuration.FirewallRules)
 		r.Metadata["firewall_rule_count"] = ruleCount
 	}
 	r.Metadata["firewall_analysis_completed"] = true
@@ -274,7 +274,7 @@ func (r *Report) addNATAnalysis() {
 	if r.Configuration != nil {
 		// NAT rules are available but structure is complex, just indicate analysis completed
 		r.Metadata["nat_analysis_completed"] = true
-		r.Metadata["nat_mode"] = r.Configuration.Nat.Outbound.Mode
+		r.Metadata["nat_mode"] = r.Configuration.NAT.OutboundMode
 	}
 	r.Metadata["nat_analysis_completed"] = true
 }
@@ -282,13 +282,14 @@ func (r *Report) addNATAnalysis() {
 // addDHCPAnalysis adds DHCP analysis to the report.
 func (r *Report) addDHCPAnalysis() {
 	if r.Configuration != nil {
-		// DHCP configuration is in Dhcpd field
-		if lanDhcp, ok := r.Configuration.Dhcpd.Lan(); ok {
-			dhcpEnabled := lanDhcp.Enable == "1"
-			r.Metadata["dhcp_enabled"] = dhcpEnabled
-		} else {
-			r.Metadata["dhcp_enabled"] = false
+		dhcpEnabled := false
+		for _, scope := range r.Configuration.DHCP {
+			if scope.Interface == "lan" {
+				dhcpEnabled = scope.Enabled
+				break
+			}
 		}
+		r.Metadata["dhcp_enabled"] = dhcpEnabled
 	}
 	r.Metadata["dhcp_analysis_completed"] = true
 }
@@ -296,13 +297,8 @@ func (r *Report) addDHCPAnalysis() {
 // addCertificateAnalysis adds certificate analysis to the report.
 func (r *Report) addCertificateAnalysis() {
 	if r.Configuration != nil {
-		// Certificate information is in Cert field
 		r.Metadata["certificate_analysis_completed"] = true
-		if strings.TrimSpace(r.Configuration.Cert.Text) != "" {
-			r.Metadata["certificates_configured"] = true
-		} else {
-			r.Metadata["certificates_configured"] = false
-		}
+		r.Metadata["certificates_configured"] = len(r.Configuration.Certificates) > 0
 	}
 	r.Metadata["certificate_analysis_completed"] = true
 }
@@ -311,10 +307,10 @@ func (r *Report) addCertificateAnalysis() {
 func (r *Report) addVPNAnalysis() {
 	if r.Configuration != nil {
 		// OpenVPN configuration - check if servers are configured
-		hasOpenVPN := len(r.Configuration.OpenVPN.Servers) > 0 || len(r.Configuration.OpenVPN.Clients) > 0
+		hasOpenVPN := len(r.Configuration.VPN.OpenVPN.Servers) > 0 || len(r.Configuration.VPN.OpenVPN.Clients) > 0
 		r.Metadata["openvpn_configured"] = hasOpenVPN
-		r.Metadata["openvpn_server_count"] = len(r.Configuration.OpenVPN.Servers)
-		r.Metadata["openvpn_client_count"] = len(r.Configuration.OpenVPN.Clients)
+		r.Metadata["openvpn_server_count"] = len(r.Configuration.VPN.OpenVPN.Servers)
+		r.Metadata["openvpn_client_count"] = len(r.Configuration.VPN.OpenVPN.Clients)
 	}
 	r.Metadata["vpn_analysis_completed"] = true
 }
@@ -322,7 +318,7 @@ func (r *Report) addVPNAnalysis() {
 // addStaticRouteAnalysis adds static route analysis to the report.
 func (r *Report) addStaticRouteAnalysis() {
 	if r.Configuration != nil {
-		routeCount := len(r.Configuration.StaticRoutes.Route)
+		routeCount := len(r.Configuration.Routing.StaticRoutes)
 		r.Metadata["static_route_count"] = routeCount
 	}
 	r.Metadata["static_route_analysis_completed"] = true
@@ -331,13 +327,13 @@ func (r *Report) addStaticRouteAnalysis() {
 // addHighAvailabilityAnalysis adds high availability analysis to the report.
 func (r *Report) addHighAvailabilityAnalysis() {
 	if r.Configuration != nil {
-		// High Availability configuration is in HighAvailabilitySync
-		haEnabled := r.Configuration.HighAvailabilitySync.Synchronizetoip != "" ||
-			r.Configuration.HighAvailabilitySync.Pfsyncinterface != ""
+		// High Availability configuration
+		haEnabled := r.Configuration.HighAvailability.SynchronizeToIP != "" ||
+			r.Configuration.HighAvailability.PfsyncInterface != ""
 		r.Metadata["ha_enabled"] = haEnabled
 		if haEnabled {
-			r.Metadata["ha_sync_ip"] = r.Configuration.HighAvailabilitySync.Synchronizetoip
-			r.Metadata["ha_pfsync_interface"] = r.Configuration.HighAvailabilitySync.Pfsyncinterface
+			r.Metadata["ha_sync_ip"] = r.Configuration.HighAvailability.SynchronizeToIP
+			r.Metadata["ha_pfsync_interface"] = r.Configuration.HighAvailability.PfsyncInterface
 		}
 	}
 	r.Metadata["ha_analysis_completed"] = true

@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/schema"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/text/encoding"
@@ -39,15 +39,15 @@ func TestXMLParser_Parse(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
-		expected *model.OpnSenseDocument
+		expected *schema.OpnSenseDocument
 		wantErr  bool
 	}{
 		{
 			name:  "valid config",
 			input: `<opnsense><version>1.2.3</version><system><hostname>test-host</hostname><domain>test.local</domain></system></opnsense>`,
-			expected: &model.OpnSenseDocument{
+			expected: &schema.OpnSenseDocument{
 				Version: "1.2.3",
-				System: model.System{
+				System: schema.System{
 					Hostname: "test-host",
 					Domain:   "test.local",
 				},
@@ -320,7 +320,7 @@ func TestXMLParser_ParseConfigSample(t *testing.T) {
 }
 
 // validateOPNsenseConfig performs comprehensive validation of an OPNsense configuration.
-func validateOPNsenseConfig(t *testing.T, config *model.OpnSenseDocument, _ string) {
+func validateOPNsenseConfig(t *testing.T, config *schema.OpnSenseDocument, _ string) {
 	t.Helper()
 
 	t.Run("Basic Structure", func(t *testing.T) {
@@ -464,9 +464,9 @@ func TestXMLParser_Validate(t *testing.T) {
 	p := NewXMLParser()
 
 	// Load a valid sample configuration
-	validConfig := &model.OpnSenseDocument{
+	validConfig := &schema.OpnSenseDocument{
 		Version: "1.2.3",
-		System: model.System{
+		System: schema.System{
 			Hostname: "test-host",
 			Domain:   "test.local",
 		},
@@ -477,9 +477,9 @@ func TestXMLParser_Validate(t *testing.T) {
 	require.NoError(t, err)
 
 	// Load an invalid configuration
-	invalidConfig := &model.OpnSenseDocument{
+	invalidConfig := &schema.OpnSenseDocument{
 		Version: "",
-		System:  model.System{}, // Missing hostname and domain
+		System:  schema.System{}, // Missing hostname and domain
 	}
 
 	// Validate should return an error for an invalid configuration

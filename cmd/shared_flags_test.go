@@ -69,3 +69,70 @@ func TestValidColorModes(t *testing.T) {
 	assert.Equal(t, cobra.ShellCompDirectiveNoFileComp, directive)
 	require.Len(t, completions, 3)
 }
+
+func TestValidDeviceTypes(t *testing.T) {
+	t.Parallel()
+	completions, directive := ValidDeviceTypes(nil, nil, "")
+	assert.Equal(t, cobra.ShellCompDirectiveNoFileComp, directive)
+	require.Len(t, completions, 1)
+	assert.Contains(t, completions[0], "opnsense")
+}
+
+func TestValidateDeviceType(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		value     string
+		wantErr   bool
+		errSubstr string
+	}{
+		{
+			name:    "empty auto-detects",
+			value:   "",
+			wantErr: false,
+		},
+		{
+			name:    "opnsense lowercase",
+			value:   "opnsense",
+			wantErr: false,
+		},
+		{
+			name:    "OPNSENSE uppercase",
+			value:   "OPNSENSE",
+			wantErr: false,
+		},
+		{
+			name:      "pfsense unsupported",
+			value:     "pfsense",
+			wantErr:   true,
+			errSubstr: "unsupported device type",
+		},
+		{
+			name:      "xyz unsupported",
+			value:     "xyz",
+			wantErr:   true,
+			errSubstr: "unsupported device type",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Save and restore sharedDeviceType
+			origDeviceType := sharedDeviceType
+			t.Cleanup(func() { sharedDeviceType = origDeviceType })
+
+			sharedDeviceType = tt.value
+			err := validateDeviceType()
+
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errSubstr)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}

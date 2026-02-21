@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/firewall"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,21 +15,21 @@ func TestFirewallPlugin_RunChecks(t *testing.T) {
 
 	tests := []struct {
 		name               string
-		config             *model.OpnSenseDocument
+		config             *common.CommonDevice
 		expectedFindings   int
 		expectedFindingIDs []string
 		description        string
 	}{
 		{
 			name: "Default configuration - all findings expected",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &common.CommonDevice{
+				System: common.System{
 					Hostname: "OPNsense", // Default hostname
 					Domain:   "localdomain",
-					WebGUI: model.WebGUIConfig{
+					WebGUI: common.WebGUI{
 						Protocol: "http", // Insecure HTTP
 					},
-					IPv6Allow: "1", // IPv6 enabled
+					IPv6Allow: true, // IPv6 enabled
 				},
 			},
 			expectedFindings: 2,
@@ -40,15 +40,13 @@ func TestFirewallPlugin_RunChecks(t *testing.T) {
 		},
 		{
 			name: "Custom secure configuration - minimal findings",
-			config: &model.OpnSenseDocument{
-				System: model.System{
-					Hostname: "secure-firewall",
-					Domain:   "company.local",
-					WebGUI: model.WebGUIConfig{
-						Protocol: "https", // Secure HTTPS
-					},
-					IPv6Allow: "0", // IPv6 disabled
-					DNSServer: "8.8.8.8",
+			config: &common.CommonDevice{
+				System: common.System{
+					Hostname:   "secure-firewall",
+					Domain:     "company.local",
+					WebGUI:     common.WebGUI{Protocol: "https"},
+					IPv6Allow:  false, // IPv6 disabled
+					DNSServers: []string{"8.8.8.8"},
 				},
 			},
 			expectedFindings: 2,
@@ -59,8 +57,8 @@ func TestFirewallPlugin_RunChecks(t *testing.T) {
 		},
 		{
 			name: "Empty configuration - all findings expected",
-			config: &model.OpnSenseDocument{
-				System: model.System{},
+			config: &common.CommonDevice{
+				System: common.System{},
 			},
 			expectedFindings: 2,
 			expectedFindingIDs: []string{

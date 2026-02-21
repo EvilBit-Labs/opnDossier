@@ -3,7 +3,7 @@
 - **Hostname**: comprehensive-firewall
 - **Domain**: security.local
 - **Platform**: OPNsense 24.1.2
-- **Generated On**: 2026-02-14T18:35:01-05:00
+- **Generated On**: 2026-02-20T10:37:09-05:00
 - **Parsed By**: opnDossier vdev
 ## Table of Contents
 - [System Configuration](#system-configuration)
@@ -36,16 +36,16 @@
 ### System Settings
 **DNS Allow Override**: ✓
   
-**Next UID**: 2000
+**Next UID**: 0
   
-**Next GID**: 2000
+**Next GID**: 0
   
-**Time Servers**: time.nist.gov pool.ntp.org
-**DNS Server**: 1.1.1.1 8.8.8.8
+**Time Servers**: time.nist.gov, pool.ntp.org
+**DNS Server**: 1.1.1.1, 8.8.8.8
 ### Hardware Offloading
-**Disable NAT Reflection**: ✓
+**Disable NAT Reflection**: ✗
   
-**Use Virtual Terminal**: ✓
+**Use Virtual Terminal**: ✗
   
 **Disable Console Menu**: ✗
   
@@ -60,31 +60,107 @@
 **IPv6 Allow**: ✓
   
 ### Power Management
-**Powerd AC Mode**: Maximum Performance (maximum)
+**Powerd AC Mode**: 
   
-**Powerd Battery Mode**: Adaptive (adaptive)
+**Powerd Battery Mode**: 
   
-**Powerd Normal Mode**: Maximum Performance (maximum)
+**Powerd Normal Mode**: 
   
 ### System Features
-**PF Share Forward**: ✓
+**PF Share Forward**: ✗
   
-**LB Use Sticky**: ✓
+**LB Use Sticky**: ✗
   
-**RRD Backup**: ✓
+**RRD Backup**: ✗
   
-**Netflow Backup**: ✓
+**Netflow Backup**: ✗
 ### Bogons Configuration
 **Interval**: weekly
 ### SSH Configuration
 **Group**: wheel
 ### Firmware Information
 **Version**: 24.1.2
+### System Users
+| Name | Description | Group | Scope |
+|---------|---------|---------|---------|
+| admin | System Administrator | wheel | system |
+| operator | Network Operator | admins | local |
+| auditor | Security Auditor | readonly | local |
+
+### System Groups
+| Name | Description | Scope |
+|---------|---------|---------|
+| wheel | System Administrators | system |
+| admins | Network Administrators | local |
+| readonly | Read-only Users | local |
+
 ## Network Configuration
 ### Interfaces
 | Name | Description | IP Address | CIDR | Enabled |
 |---------|---------|---------|---------|---------|
+| `wan` | `WAN (Internet)` | `203.0.113.10` | /28 | ✓ |
+| `lan` | `LAN (Internal)` | `192.168.100.1` | /24 | ✓ |
+| `dmz` | `DMZ (Servers)` | `10.0.100.1` | /24 | ✓ |
+| `guest` | `Guest Network` | `172.16.1.1` | /24 | ✓ |
 
+### Wan Interface
+**Physical Interface**: igb0
+  
+**Enabled**: ✓
+  
+**IPv4 Address**: 203.0.113.10
+  
+**IPv4 Subnet**: 28
+  
+**Gateway**: 203.0.113.1
+  
+**MTU**: 1500
+  
+**Block Private Networks**: ✓
+  
+**Block Bogon Networks**: ✓
+### Lan Interface
+**Physical Interface**: igb1
+  
+**Enabled**: ✓
+  
+**IPv4 Address**: 192.168.100.1
+  
+**IPv4 Subnet**: 24
+  
+**MTU**: 1500
+  
+**Block Private Networks**: ✗
+  
+**Block Bogon Networks**: ✗
+### Dmz Interface
+**Physical Interface**: igb2
+  
+**Enabled**: ✓
+  
+**IPv4 Address**: 10.0.100.1
+  
+**IPv4 Subnet**: 24
+  
+**MTU**: 1500
+  
+**Block Private Networks**: ✓
+  
+**Block Bogon Networks**: ✓
+### Guest Interface
+**Physical Interface**: igb3
+  
+**Enabled**: ✓
+  
+**IPv4 Address**: 172.16.1.1
+  
+**IPv4 Subnet**: 24
+  
+**MTU**: 1500
+  
+**Block Private Networks**: ✓
+  
+**Block Bogon Networks**: ✓
 ### VLAN Configuration
 | VLAN Interface | Physical Interface | VLAN Tag | Description | Created | Updated |
 |---------|---------|---------|---------|---------|---------|
@@ -102,23 +178,26 @@
   
 **NAT Reflection**: ✗
   
-**Port Forward State Sharing**: ✓
+**Port Forward State Sharing**: ✗
   
-**Outbound Rules**: 0
+**Outbound Rules**: 1
   
-**Inbound Rules**: 0
+**Inbound Rules**: 2
 > [!WARNING]  
 > NAT reflection is enabled, which may allow internal clients to access internal services via external IP addresses. Consider disabling if not needed.
 #### Outbound NAT (Source Translation)
 | # | Direction | Interface | Source | Destination | Target | Protocol | Description | Status |
 |---------|---------|---------|---------|---------|---------|---------|---------|---------|
-| - | - | - | - | - | - | - | No outbound NAT rules configured | - |
+| 1 | ⬆️ Outbound | [wan](#wan-interface) | lan | any | `wan` | any | Auto NAT for LAN | **Active** |
 
 #### Inbound NAT (Port Forwarding)
 | # | Direction | Interface | External Port | Target IP | Target Port | Protocol | Description | Priority | Status |
 |---------|---------|---------|---------|---------|---------|---------|---------|---------|---------|
-| - | - | - | - | - | - | - | No inbound NAT rules configured | - | - |
+| 1 | ⬇️ Inbound | [wan](#wan-interface) |  | `10.0.100.10` |  | tcp | HTTP to Web Server | 0 | **Active** |
+| 2 | ⬇️ Inbound | [wan](#wan-interface) |  | `10.0.100.10` |  | tcp | HTTPS to Web Server | 0 | **Active** |
 
+> [!WARNING]  
+> Inbound NAT rules (port forwarding) increase the attack surface by exposing internal services to external networks. Ensure these rules are necessary and properly secured.
 ### Firewall Rules
 | # | Interface | Action | IP Ver | Proto | Source | Destination | Target | Source Port | Dest Port | Enabled | Description |
 |---------|---------|---------|---------|---------|---------|---------|---------|---------|---------|---------|---------|
@@ -127,7 +206,7 @@
 | 3 | [lan](#lan-interface) | pass | inet | any | lan | any |  |  |  | ✓ | Allow LAN to any |
 | 4 | [dmz](#dmz-interface) | pass | inet | tcp | dmz | !lan,!dmz,!guest |  |  |  | ✓ | Allow DMZ to Internet |
 | 5 | [guest](#guest-interface) | block | inet | any | guest | lan,dmz |  |  |  | ✓ | Block Guest to LAN |
-| 6 | [guest](#guest-interface) | pass | inet | tcp | guest | !lan,!dmz,!guest |  | 80,443,53 |  | ✓ | Allow Guest Internet |
+| 6 | [guest](#guest-interface) | pass | inet | tcp | guest | !lan,!dmz,!guest |  |  |  | ✓ | Allow Guest Internet |
 
 ### IPsec VPN Configuration
 *No IPsec configuration present*
@@ -136,8 +215,6 @@
 *No OpenVPN servers configured*
 #### OpenVPN Clients
 *No OpenVPN clients configured*
-#### Client-Specific Overrides
-*No client-specific overrides configured*
 ### High Availability & CARP
 #### Virtual IP Addresses (CARP)
 *No virtual IPs configured*
@@ -145,9 +222,10 @@
 *No HA synchronization configured*
 ## Service Configuration
 ### DHCP Server
-| Interface | Enabled | Gateway | Range Start | Range End | DNS | WINS | NTP | DDNS Algorithm |
-|---------|---------|---------|---------|---------|---------|---------|---------|---------|
-| - | - | - | - | - | - | - | - | No DHCP scopes configured |
+| Interface | Enabled | Gateway | Range Start | Range End | DNS | WINS | NTP |
+|---------|---------|---------|---------|---------|---------|---------|---------|
+| lan | ✓ | 192.168.100.1 | 192.168.100.50 | 192.168.100.199 | 192.168.100.1 |  |  |
+| guest | ✓ | 172.16.1.1 | 172.16.1.50 | 172.16.1.199 | 1.1.1.1 |  |  |
 
 ### DNS Resolver (Unbound)
 **Enabled**: ✓
@@ -172,13 +250,13 @@
 ## System Tunables
 | Tunable | Value | Description |
 |---------|---------|---------|
-| net.inet.ip.forwarding | 1 |  |
-| net.inet6.ip6.forwarding | 1 |  |
-| net.inet.tcp.blackhole | 2 |  |
-| net.inet.udp.blackhole | 1 |  |
-| security.bsd.see\_other\_uids | 0 |  |
-| security.bsd.see\_other\_gids | 0 |  |
-| kern.securelevel | 1 |  |
-| net.inet.tcp.syncookies | 1 |  |
-| net.inet.icmp.icmplim | 50 |  |
-| net.inet.tcp.always\_keepalive | 1 |  |
+| net.inet.ip.forwarding | 1 | Enable IP forwarding for routing |
+| net.inet6.ip6.forwarding | 1 | Enable IPv6 forwarding |
+| net.inet.tcp.blackhole | 2 | Drop TCP packets to closed ports |
+| net.inet.udp.blackhole | 1 | Drop UDP packets to closed ports |
+| security.bsd.see\_other\_uids | 0 | Hide processes from other users |
+| security.bsd.see\_other\_gids | 0 | Hide processes from other groups |
+| kern.securelevel | 1 | Enable secure level 1 |
+| net.inet.tcp.syncookies | 1 | Enable SYN cookies for DDoS protection |
+| net.inet.icmp.icmplim | 50 | Limit ICMP response rate |
+| net.inet.tcp.always\_keepalive | 1 | Enable TCP keepalive |

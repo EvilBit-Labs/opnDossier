@@ -8,7 +8,7 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -102,7 +102,7 @@ func TestHybridGenerator_GenerateHTML(t *testing.T) {
 	gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
 	require.NoError(t, err)
 
-	doc := &model.OpnSenseDocument{}
+	doc := &common.CommonDevice{}
 	opts := DefaultOptions().WithFormat(FormatHTML)
 
 	output, err := gen.Generate(context.Background(), doc, opts)
@@ -118,7 +118,7 @@ func TestHybridGenerator_GenerateHTMLToWriter(t *testing.T) {
 	gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
 	require.NoError(t, err)
 
-	doc := &model.OpnSenseDocument{}
+	doc := &common.CommonDevice{}
 	opts := DefaultOptions().WithFormat(FormatHTML)
 
 	var buf bytes.Buffer
@@ -138,7 +138,7 @@ func TestHybridGenerator_GenerateJSON(t *testing.T) {
 	gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
 	require.NoError(t, err)
 
-	doc := &model.OpnSenseDocument{}
+	doc := &common.CommonDevice{}
 	opts := DefaultOptions().WithFormat(FormatJSON)
 
 	output, err := gen.Generate(context.Background(), doc, opts)
@@ -153,7 +153,7 @@ func TestHybridGenerator_GenerateJSONToWriter(t *testing.T) {
 	gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
 	require.NoError(t, err)
 
-	doc := &model.OpnSenseDocument{}
+	doc := &common.CommonDevice{}
 	opts := DefaultOptions().WithFormat(FormatJSON)
 
 	var buf bytes.Buffer
@@ -168,7 +168,7 @@ func TestHybridGenerator_GenerateYAML(t *testing.T) {
 	gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
 	require.NoError(t, err)
 
-	doc := &model.OpnSenseDocument{}
+	doc := &common.CommonDevice{}
 	opts := DefaultOptions().WithFormat(FormatYAML)
 
 	output, err := gen.Generate(context.Background(), doc, opts)
@@ -182,7 +182,7 @@ func TestHybridGenerator_GenerateYAMLToWriter(t *testing.T) {
 	gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
 	require.NoError(t, err)
 
-	doc := &model.OpnSenseDocument{}
+	doc := &common.CommonDevice{}
 	opts := DefaultOptions().WithFormat(FormatYAML)
 
 	var buf bytes.Buffer
@@ -197,7 +197,7 @@ func TestHybridGenerator_GenerateMarkdownToWriter(t *testing.T) {
 	gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
 	require.NoError(t, err)
 
-	doc := &model.OpnSenseDocument{}
+	doc := &common.CommonDevice{}
 	opts := DefaultOptions().WithFormat(FormatMarkdown)
 
 	var buf bytes.Buffer
@@ -229,7 +229,7 @@ func TestHybridGenerator_Generate_NilData(t *testing.T) {
 			opts := DefaultOptions().WithFormat(tt.format)
 			_, err := gen.Generate(context.Background(), nil, opts)
 			require.Error(t, err)
-			assert.ErrorIs(t, err, ErrNilConfiguration)
+			assert.ErrorIs(t, err, ErrNilDevice)
 		})
 	}
 }
@@ -258,7 +258,7 @@ func TestHybridGenerator_GenerateToWriter_NilData(t *testing.T) {
 			opts := DefaultOptions().WithFormat(tt.format)
 			err := gen.GenerateToWriter(context.Background(), &buf, nil, opts)
 			require.Error(t, err)
-			assert.ErrorIs(t, err, ErrNilConfiguration)
+			assert.ErrorIs(t, err, ErrNilDevice)
 		})
 	}
 }
@@ -269,7 +269,7 @@ func TestHybridGenerator_Generate_InvalidOptions(t *testing.T) {
 	gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
 	require.NoError(t, err)
 
-	doc := &model.OpnSenseDocument{}
+	doc := &common.CommonDevice{}
 	opts := DefaultOptions().WithFormat("invalid_format")
 
 	_, err = gen.Generate(context.Background(), doc, opts)
@@ -282,7 +282,7 @@ func TestHybridGenerator_GenerateToWriter_InvalidOptions(t *testing.T) {
 	gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
 	require.NoError(t, err)
 
-	doc := &model.OpnSenseDocument{}
+	doc := &common.CommonDevice{}
 	opts := DefaultOptions().WithFormat("invalid_format")
 
 	var buf bytes.Buffer
@@ -309,7 +309,7 @@ func TestHybridGenerator_Generate_NilBuilder(t *testing.T) {
 			require.NoError(t, err)
 			gen.SetBuilder(nil)
 
-			doc := &model.OpnSenseDocument{}
+			doc := &common.CommonDevice{}
 			opts := DefaultOptions().WithFormat(tt.format)
 
 			_, err = gen.Generate(context.Background(), doc, opts)
@@ -337,7 +337,7 @@ func TestHybridGenerator_GenerateToWriter_NilBuilder(t *testing.T) {
 			require.NoError(t, err)
 			gen.SetBuilder(nil)
 
-			doc := &model.OpnSenseDocument{}
+			doc := &common.CommonDevice{}
 			opts := DefaultOptions().WithFormat(tt.format)
 
 			var buf bytes.Buffer
@@ -361,7 +361,7 @@ func TestHybridGenerator_GenerateMarkdownToWriter_FallbackPath(t *testing.T) {
 	gen, err := NewHybridGenerator(wrapped, nil)
 	require.NoError(t, err)
 
-	doc := &model.OpnSenseDocument{}
+	doc := &common.CommonDevice{}
 	opts := DefaultOptions().WithFormat(FormatMarkdown)
 
 	var buf bytes.Buffer
@@ -376,7 +376,7 @@ func TestHybridGenerator_GenerateMarkdownToWriter_ComprehensiveStreaming(t *test
 	gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
 	require.NoError(t, err)
 
-	doc := &model.OpnSenseDocument{}
+	doc := &common.CommonDevice{}
 	opts := DefaultOptions().WithFormat(FormatMarkdown)
 	opts.Comprehensive = true
 
@@ -391,7 +391,7 @@ func TestHybridGenerator_Generate_UnsupportedFormat(t *testing.T) {
 
 	gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
 	require.NoError(t, err)
-	doc := &model.OpnSenseDocument{}
+	doc := &common.CommonDevice{}
 
 	// Use a format that passes Validate() but isn't handled by Generate.
 	// Currently all valid formats are handled, so test with an invalid one.
@@ -405,7 +405,7 @@ func TestHybridGenerator_GenerateToWriter_UnsupportedFormat(t *testing.T) {
 
 	gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
 	require.NoError(t, err)
-	doc := &model.OpnSenseDocument{}
+	doc := &common.CommonDevice{}
 
 	opts := DefaultOptions().WithFormat("invalid")
 	var buf bytes.Buffer
@@ -432,7 +432,7 @@ func TestHybridGenerator_GenerateToWriter_WriteError(t *testing.T) {
 			gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
 			require.NoError(t, err)
 
-			doc := &model.OpnSenseDocument{}
+			doc := &common.CommonDevice{}
 			opts := DefaultOptions().WithFormat(tt.format)
 
 			err = gen.GenerateToWriter(context.Background(), &errWriter{}, doc, opts)
@@ -447,7 +447,7 @@ func TestHybridGenerator_GenerateText(t *testing.T) {
 	gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
 	require.NoError(t, err)
 
-	doc := &model.OpnSenseDocument{}
+	doc := &common.CommonDevice{}
 	opts := DefaultOptions().WithFormat(FormatText)
 
 	output, err := gen.Generate(context.Background(), doc, opts)
@@ -463,7 +463,7 @@ func TestHybridGenerator_GenerateTextToWriter(t *testing.T) {
 	gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
 	require.NoError(t, err)
 
-	doc := &model.OpnSenseDocument{}
+	doc := &common.CommonDevice{}
 	opts := DefaultOptions().WithFormat(FormatText)
 
 	var buf bytes.Buffer

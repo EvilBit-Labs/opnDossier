@@ -32,6 +32,7 @@ type sharedFlagSnapshot struct {
 	noWrap        bool
 	sections      []string
 	comprehensive bool
+	deviceType    string
 }
 
 func captureSharedFlags() sharedFlagSnapshot {
@@ -41,6 +42,7 @@ func captureSharedFlags() sharedFlagSnapshot {
 		noWrap:        sharedNoWrap,
 		sections:      sharedSections,
 		comprehensive: sharedComprehensive,
+		deviceType:    sharedDeviceType,
 	}
 }
 
@@ -50,6 +52,7 @@ func (s sharedFlagSnapshot) restore() {
 	sharedNoWrap = s.noWrap
 	sharedSections = s.sections
 	sharedComprehensive = s.comprehensive
+	sharedDeviceType = s.deviceType
 }
 
 func captureStderr(t *testing.T, fn func()) string {

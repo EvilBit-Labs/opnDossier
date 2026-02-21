@@ -84,7 +84,10 @@ opndossier/
 │   ├── export/                       # File export functionality
 │   ├── logging/                      # Logging utilities
 │   ├── markdown/                     # Markdown generation
-│   ├── model/                        # Data models and structures
+│   ├── model/                        # Data models and re-export seam
+│   │   ├── common/                   # Platform-agnostic CommonDevice domain model
+│   │   ├── opnsense/                 # OPNsense parser + schema→CommonDevice converter
+│   │   └── factory.go                # ParserFactory + DeviceParser interface
 │   ├── cfgparser/                    # XML parsing and validation
 │   ├── compliance/                   # Plugin interfaces
 │   ├── plugins/                      # Compliance plugins
@@ -294,16 +297,17 @@ When adding `io.Writer` support alongside string-based APIs:
 
 Frequently encountered linter issues and fixes:
 
-| Linter                     | Issue                         | Fix                                                                |
-| -------------------------- | ----------------------------- | ------------------------------------------------------------------ |
-| `gocritic emptyStringTest` | `len(s) == 0`                 | Use `s == ""`                                                      |
-| `gosec G115`               | Integer overflow on int→int32 | Add `//nolint:gosec` with bounded value comment                    |
-| `mnd`                      | Magic numbers                 | Create named constants                                             |
-| `minmax`                   | Manual min/max comparisons    | Use `min()`/`max()` builtins                                       |
-| `goconst`                  | Repeated string literals      | Extract to package-level constants                                 |
-| `tparallel`                | Subtests use `t.Parallel()`   | Parent test must also call `t.Parallel()`                          |
-| `revive redefines-builtin` | Package name shadows stdlib   | Rename package (e.g., `log` → `logging`)                           |
-| `revive stutters`          | `pkg.PkgThing` repeats name   | Drop prefix: `compliance.Plugin` not `compliance.CompliancePlugin` |
+| Linter                     | Issue                         | Fix                                                                                                               |
+| -------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `gocritic emptyStringTest` | `len(s) == 0`                 | Use `s == ""`                                                                                                     |
+| `gosec G115`               | Integer overflow on int→int32 | Add `//nolint:gosec` with bounded value comment                                                                   |
+| `mnd`                      | Magic numbers                 | Create named constants                                                                                            |
+| `minmax`                   | Manual min/max comparisons    | Use `min()`/`max()` builtins                                                                                      |
+| `goconst`                  | Repeated string literals      | Extract to package-level constants                                                                                |
+| `tparallel`                | Subtests use `t.Parallel()`   | Parent test must also call `t.Parallel()`                                                                         |
+| `revive redefines-builtin` | Package name shadows stdlib   | Rename package (e.g., `log` → `logging`)                                                                          |
+| `revive stutters`          | `pkg.PkgThing` repeats name   | Drop prefix: `compliance.Plugin` not `compliance.CompliancePlugin`                                                |
+| `modernize`                | `omitempty` on struct fields  | Remove `omitempty` from JSON tags on struct-typed fields (no effect in `encoding/json`); YAML `omitempty` is fine |
 
 > [!NOTE]
 > IDE diagnostics (marked with ★ in some editors) are suggestions, not errors. The authoritative source is `just lint` - if it reports "0 issues", the code is correct regardless of IDE warnings.
@@ -585,6 +589,10 @@ srcAny := rule.Source.Network == NetworkAny || rule.Source.IsAny()
 
 See `docs/development/xml-structure-research.md` for the complete field inventory with upstream source citations.
 
+**`DeviceType` serialization:**
+
+`CommonDevice.DeviceType` uses `json:"device_type"` (no `omitempty`) — it always serializes, even when empty, to ensure JSON/YAML consumers can detect the field. The `prepareForExport` pipeline defaults it to `DeviceTypeOPNsense`.
+
 ### 5.22 Context-Aware Semaphore
 
 When acquiring semaphores in goroutines, use select with context:
@@ -636,6 +644,19 @@ func (s *Spinner) stop() {
 - OPNsense XML uses two boolean patterns: **presence-based** (`<disabled/>` → `BoolFlag`) and **value-based** (`<enable>1</enable>` → `string`). See §5.21 and `docs/development/xml-structure-research.md`
 - `RuleLocation` in `common.go` has complete source/destination fields but is NOT used by `Source`/`Destination` in `security.go` — tracked in issue #255
 - Known schema gaps: ~40+ type mismatches and missing fields — see `docs/development/xml-structure-research.md` §4-5
+
+**Platform-agnostic model layer:**
+
+- `internal/model/common/` contains device-agnostic types (firewall rules, VPN, system, network, etc.)
+- `revive` var-naming exclusion for this path is configured in `.golangci.yml`
+- JSON struct tags on nested struct fields must NOT use `omitempty` (Go 1.26+ modernize check)
+
+**Converter enrichment pipeline:**
+
+- `prepareForExport()` in `internal/converter/enrichment.go` is the single gate for all JSON/YAML exports
+- It populates `Statistics`, `Analysis`, `SecurityAssessment`, and `PerformanceMetrics` on a shallow copy
+- Cannot import `internal/processor` (circular dependency) — analysis/statistics logic is mirrored, not shared
+- New `CommonDevice` enrichment fields must be wired here to appear in JSON/YAML output
 
 **Port field disambiguation:**
 
@@ -847,7 +868,7 @@ type Plugin interface {
 Name() string
 Version() string
 Description() string
-RunChecks(config *model.OpnSenseDocument) []Finding
+RunChecks(device *common.CommonDevice) []Finding
 GetControls() []Control
 GetControlByID(id string) (*Control, error)
 ValidateConfiguration() error
@@ -857,19 +878,25 @@ ValidateConfiguration() error
 ### 8.3 Plugin Development
 
 ```go
+import (
+    "github.com/EvilBit-Labs/opnDossier/internal/compliance"
+    "github.com/EvilBit-Labs/opnDossier/internal/model/common"
+)
+
 type Plugin struct {
-controls []plugin.Control
+controls []compliance.Control
 }
 
 func NewPlugin() *Plugin {
 return &Plugin{controls: initControls()}
 }
 
-func (p *Plugin) RunChecks(config *model.OpnSenseDocument) []plugin.Finding {
+func (p *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 // Implement compliance checks
 }
 ```
 
+- Import `internal/model/common`, not `internal/model`
 - Use consistent control naming: `PLUGIN-001`, `PLUGIN-002`
 - Severity levels: `critical`, `high`, `medium`, `low`
 - Dynamic plugins: export `var Plugin compliance.Plugin`

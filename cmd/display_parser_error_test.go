@@ -72,7 +72,7 @@ func TestDisplayCommandParserErrors(t *testing.T) {
 			err := runDisplayCommand(t, tmpFile)
 
 			require.Error(t, err)
-			assert.Contains(t, err.Error(), "failed to parse XML")
+			assert.Contains(t, err.Error(), "failed to parse configuration")
 		})
 	}
 }

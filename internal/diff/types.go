@@ -191,12 +191,19 @@ type RiskSummary = security.RiskSummary
 // RiskItem is an alias for security.RiskItem to avoid type duplication.
 type RiskItem = security.RiskItem
 
+// DeviceTypeInfo records the device types of the compared configurations.
+type DeviceTypeInfo struct {
+	Old string `json:"old"`
+	New string `json:"new"`
+}
+
 // Result contains the complete diff result.
 type Result struct {
-	Summary     Summary     `json:"summary"`
-	Metadata    Metadata    `json:"metadata"`
-	Changes     []Change    `json:"changes"`
-	RiskSummary RiskSummary `json:"risk_summary"`
+	Summary     Summary        `json:"summary"`
+	Metadata    Metadata       `json:"metadata"`
+	DeviceType  DeviceTypeInfo `json:"device_type"`
+	Changes     []Change       `json:"changes"`
+	RiskSummary RiskSummary    `json:"risk_summary"`
 }
 
 // NewResult creates a new Result with initialized slices.

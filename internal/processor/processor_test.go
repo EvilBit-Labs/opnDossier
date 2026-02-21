@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -39,18 +39,14 @@ func TestExampleProcessor_Process_BasicAnalysis(t *testing.T) {
 	processor := NewExampleProcessor()
 	ctx := context.Background()
 
-	// Create a minimal OPNsense configuration
-	cfg := &model.OpnSenseDocument{
-		System: model.System{
+	// Create a minimal configuration
+	cfg := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-firewall",
 			Domain:   "example.com",
-			WebGUI:   model.WebGUIConfig{Protocol: "https"},
-			SSH: struct {
-				Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
-			}{Group: "admins"},
-			Bogons: struct {
-				Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
-			}{Interval: "monthly"},
+			WebGUI:   common.WebGUI{Protocol: "https"},
+			SSH:      common.SSH{Group: "admins"},
+			Bogons:   common.Bogons{Interval: "monthly"},
 		},
 	}
 
@@ -70,16 +66,14 @@ func TestExampleProcessor_Process_WithOptions(t *testing.T) {
 	processor := NewExampleProcessor()
 	ctx := context.Background()
 
-	cfg := &model.OpnSenseDocument{
-		System: model.System{
+	cfg := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-firewall",
 			Domain:   "example.com",
-			WebGUI:   model.WebGUIConfig{Protocol: "http"}, // Insecure protocol
-			SSH: struct {
-				Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
-			}{Group: "admins"}, // SSH enabled
+			WebGUI:   common.WebGUI{Protocol: "http"}, // Insecure protocol
+			SSH:      common.SSH{Group: "admins"},     // SSH enabled
 		},
-		Snmpd: model.Snmpd{
+		SNMP: common.SNMPConfig{
 			ROCommunity: "public", // Default community string
 		},
 	}
@@ -122,8 +116,8 @@ func TestExampleProcessor_Process_ContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // Cancel immediately
 
-	cfg := &model.OpnSenseDocument{
-		System: model.System{
+	cfg := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-firewall",
 		},
 	}
@@ -135,8 +129,8 @@ func TestExampleProcessor_Process_ContextCancellation(t *testing.T) {
 }
 
 func TestReport_AddFinding(t *testing.T) {
-	cfg := &model.OpnSenseDocument{
-		System: model.System{
+	cfg := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test",
 			Domain:   "example.com",
 		},
@@ -167,8 +161,8 @@ func TestReport_AddFinding(t *testing.T) {
 }
 
 func TestReport_ToJSON(t *testing.T) {
-	cfg := &model.OpnSenseDocument{
-		System: model.System{
+	cfg := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-firewall",
 			Domain:   "example.com",
 		},
@@ -184,8 +178,8 @@ func TestReport_ToJSON(t *testing.T) {
 }
 
 func TestReport_ToMarkdown(t *testing.T) {
-	cfg := &model.OpnSenseDocument{
-		System: model.System{
+	cfg := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-firewall",
 			Domain:   "example.com",
 		},
@@ -212,8 +206,8 @@ func TestReport_ToMarkdown(t *testing.T) {
 }
 
 func TestReport_Summary(t *testing.T) {
-	cfg := &model.OpnSenseDocument{
-		System: model.System{
+	cfg := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-firewall",
 			Domain:   "example.com",
 		},
@@ -280,27 +274,25 @@ func TestProcessorOptions(t *testing.T) {
 }
 
 func TestNewReport(t *testing.T) {
-	cfg := &model.OpnSenseDocument{
+	cfg := &common.CommonDevice{
 		Version: "24.1",
 		Theme:   "opnsense",
-		System: model.System{
+		System: common.System{
 			Hostname: "test-firewall",
 			Domain:   "example.com",
-			User: []model.User{
-				{Name: "admin"},
-				{Name: "user1"},
-			},
-			Group: []model.Group{
-				{Name: "admins"},
-			},
 		},
-		Filter: model.Filter{
-			Rule: []model.Rule{
-				{Descr: "Allow HTTP"},
-				{Descr: "Allow HTTPS"},
-			},
+		Users: []common.User{
+			{Name: "admin"},
+			{Name: "user1"},
 		},
-		Sysctl: []model.SysctlItem{
+		Groups: []common.Group{
+			{Name: "admins"},
+		},
+		FirewallRules: []common.FirewallRule{
+			{Description: "Allow HTTP"},
+			{Description: "Allow HTTPS"},
+		},
+		Sysctl: []common.SysctlItem{
 			{Tunable: "net.inet.ip.forwarding", Value: "1"},
 		},
 	}
@@ -330,55 +322,43 @@ func TestCoreProcessor_NormalizationIdempotence(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		config *model.OpnSenseDocument
+		config *common.CommonDevice
 	}{
 		{
 			name: "Basic configuration",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &common.CommonDevice{
+				System: common.System{
 					Hostname: "test-firewall",
 					Domain:   "example.com",
 				},
-				Interfaces: model.Interfaces{
-					Items: map[string]model.Interface{
-						"wan": {
-							Enable: "1",
-							IPAddr: "192.168.1.1",
-							Subnet: "24",
-						},
-						"lan": {
-							Enable: "1",
-							IPAddr: "10.0.0.1",
-							Subnet: "24",
-						},
-					},
+				Interfaces: []common.Interface{
+					{Name: "wan", Enabled: true, IPAddress: "192.168.1.1", Subnet: "24"},
+					{Name: "lan", Enabled: true, IPAddress: "10.0.0.1", Subnet: "24"},
 				},
 			},
 		},
 		{
 			name: "Configuration with users and groups",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &common.CommonDevice{
+				System: common.System{
 					Hostname: "test-firewall2",
 					Domain:   "test.local",
-					User: []model.User{
-						{Name: "charlie", UID: "1003"},
-						{Name: "alice", UID: "1001"},
-						{Name: "bob", UID: "1002"},
-					},
-					Group: []model.Group{
-						{Name: "zebra", Gid: "2003"},
-						{Name: "alpha", Gid: "2001"},
-						{Name: "beta", Gid: "2002"},
-					},
 				},
-				Interfaces: model.Interfaces{
-					Items: map[string]model.Interface{
-						"wan": {Enable: "1"},
-						"lan": {Enable: "1"},
-					},
+				Users: []common.User{
+					{Name: "charlie", UID: "1003"},
+					{Name: "alice", UID: "1001"},
+					{Name: "bob", UID: "1002"},
 				},
-				Sysctl: []model.SysctlItem{
+				Groups: []common.Group{
+					{Name: "zebra", GID: "2003"},
+					{Name: "alpha", GID: "2001"},
+					{Name: "beta", GID: "2002"},
+				},
+				Interfaces: []common.Interface{
+					{Name: "wan", Enabled: true},
+					{Name: "lan", Enabled: true},
+				},
+				Sysctl: []common.SysctlItem{
 					{Tunable: "net.inet.tcp.mssdflt", Value: "1460"},
 					{Tunable: "kern.ipc.maxsockbuf", Value: "16777216"},
 					{Tunable: "net.inet.ip.forwarding", Value: "1"},
@@ -387,31 +367,27 @@ func TestCoreProcessor_NormalizationIdempotence(t *testing.T) {
 		},
 		{
 			name: "Configuration with firewall rules",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &common.CommonDevice{
+				System: common.System{
 					Hostname: "test-firewall3",
 					Domain:   "secure.local",
 				},
-				Interfaces: model.Interfaces{
-					Items: map[string]model.Interface{
-						"wan": {Enable: "1"},
-						"lan": {Enable: "1"},
-					},
+				Interfaces: []common.Interface{
+					{Name: "wan", Enabled: true},
+					{Name: "lan", Enabled: true},
 				},
-				Filter: model.Filter{
-					Rule: []model.Rule{
-						{
-							Type:      "pass",
-							Interface: model.InterfaceList{"wan"},
-							Source:    model.Source{Network: "192.168.1.100"},
-							Descr:     "Allow specific host",
-						},
-						{
-							Type:      "block",
-							Interface: model.InterfaceList{"lan"},
-							Source:    model.Source{Network: "10.0.0.0/8"},
-							Descr:     "Block private range",
-						},
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        "pass",
+						Interfaces:  []string{"wan"},
+						Source:      common.RuleEndpoint{Address: "192.168.1.100"},
+						Description: "Allow specific host",
+					},
+					{
+						Type:        "block",
+						Interfaces:  []string{"lan"},
+						Source:      common.RuleEndpoint{Address: "10.0.0.0/8"},
+						Description: "Block private range",
 					},
 				},
 			},
@@ -434,18 +410,18 @@ func TestCoreProcessor_NormalizationIdempotence(t *testing.T) {
 			assert.Equal(t, normalized2, normalized3, "Third normalization should be identical to second")
 
 			// Verify specific normalization behaviors are preserved
-			if len(normalized1.System.User) > 0 {
+			if len(normalized1.Users) > 0 {
 				// Users should remain sorted
-				for i := 1; i < len(normalized1.System.User); i++ {
-					assert.LessOrEqual(t, normalized1.System.User[i-1].Name, normalized1.System.User[i].Name,
+				for i := 1; i < len(normalized1.Users); i++ {
+					assert.LessOrEqual(t, normalized1.Users[i-1].Name, normalized1.Users[i].Name,
 						"Users should remain sorted after multiple normalizations")
 				}
 			}
 
-			if len(normalized1.System.Group) > 0 {
+			if len(normalized1.Groups) > 0 {
 				// Groups should remain sorted
-				for i := 1; i < len(normalized1.System.Group); i++ {
-					assert.LessOrEqual(t, normalized1.System.Group[i-1].Name, normalized1.System.Group[i].Name,
+				for i := 1; i < len(normalized1.Groups); i++ {
+					assert.LessOrEqual(t, normalized1.Groups[i-1].Name, normalized1.Groups[i].Name,
 						"Groups should remain sorted after multiple normalizations")
 				}
 			}
@@ -477,26 +453,24 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 
 	tests := []struct {
 		name             string
-		config           *model.OpnSenseDocument
+		config           *common.CommonDevice
 		options          []Option
 		expectedFindings map[Severity]int // Expected minimum number of findings per severity
 		expectedTypes    []string         // Expected finding types
 	}{
 		{
 			name: "Security issues - HTTP and default SNMP",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &common.CommonDevice{
+				System: common.System{
 					Hostname: "insecure-firewall",
 					Domain:   "example.com",
-					WebGUI:   model.WebGUIConfig{Protocol: "http"}, // Insecure
+					WebGUI:   common.WebGUI{Protocol: "http"}, // Insecure
 				},
-				Interfaces: model.Interfaces{
-					Items: map[string]model.Interface{
-						"wan": {Enable: "1"},
-						"lan": {Enable: "1"},
-					},
+				Interfaces: []common.Interface{
+					{Name: "wan", Enabled: true},
+					{Name: "lan", Enabled: true},
 				},
-				Snmpd: model.Snmpd{
+				SNMP: common.SNMPConfig{
 					ROCommunity: "public", // Default community
 				},
 			},
@@ -509,46 +483,42 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 		},
 		{
 			name: "Dead rules detection",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &common.CommonDevice{
+				System: common.System{
 					Hostname: "deadrule-firewall",
 					Domain:   "example.com",
 				},
-				Interfaces: model.Interfaces{
-					Items: map[string]model.Interface{
-						"wan": {Enable: "1"},
-						"lan": {Enable: "1"},
-					},
+				Interfaces: []common.Interface{
+					{Name: "wan", Enabled: true},
+					{Name: "lan", Enabled: true},
 				},
-				Filter: model.Filter{
-					Rule: []model.Rule{
-						{
-							Type:        "block",
-							Interface:   model.InterfaceList{"wan"},
-							Source:      model.Source{Network: "any"},
-							Destination: model.Destination{Any: model.StringPtr("")},
-							Descr:       "Block all",
-						},
-						{
-							Type:      "pass",
-							Interface: model.InterfaceList{"wan"},
-							Source:    model.Source{Network: "192.168.1.0/24"},
-							Descr:     "Allow LAN (unreachable)",
-						},
-						{
-							Type:       "pass",
-							Interface:  model.InterfaceList{"lan"},
-							IPProtocol: "inet",
-							Source:     model.Source{Network: "10.0.0.0/8"},
-							Descr:      "Allow private",
-						},
-						{
-							Type:       "pass",
-							Interface:  model.InterfaceList{"lan"},
-							IPProtocol: "inet",
-							Source:     model.Source{Network: "10.0.0.0/8"},
-							Descr:      "Duplicate rule",
-						},
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        "block",
+						Interfaces:  []string{"wan"},
+						Source:      common.RuleEndpoint{Address: "any"},
+						Destination: common.RuleEndpoint{Address: "any"},
+						Description: "Block all",
+					},
+					{
+						Type:        "pass",
+						Interfaces:  []string{"wan"},
+						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
+						Description: "Allow LAN (unreachable)",
+					},
+					{
+						Type:        "pass",
+						Interfaces:  []string{"lan"},
+						IPProtocol:  "inet",
+						Source:      common.RuleEndpoint{Address: "10.0.0.0/8"},
+						Description: "Allow private",
+					},
+					{
+						Type:        "pass",
+						Interfaces:  []string{"lan"},
+						IPProtocol:  "inet",
+						Source:      common.RuleEndpoint{Address: "10.0.0.0/8"},
+						Description: "Duplicate rule",
 					},
 				},
 			},
@@ -561,23 +531,19 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 		},
 		{
 			name: "Performance issues",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &common.CommonDevice{
+				System: common.System{
 					Hostname:                      "perf-firewall",
 					Domain:                        "example.com",
-					DisableChecksumOffloading:     1,
-					DisableSegmentationOffloading: 1,
+					DisableChecksumOffloading:     true,
+					DisableSegmentationOffloading: true,
 				},
-				Interfaces: model.Interfaces{
-					Items: map[string]model.Interface{
-						"wan": {Enable: "1"},
-						"lan": {Enable: "1"},
-					},
+				Interfaces: []common.Interface{
+					{Name: "wan", Enabled: true},
+					{Name: "lan", Enabled: true},
 				},
 				// Create a large number of rules to trigger performance warning
-				Filter: model.Filter{
-					Rule: generateManyRules(150), // > 100 rules
-				},
+				FirewallRules: generateManyRules(150), // > 100 rules
 			},
 			options: []Option{WithPerformanceAnalysis()},
 			expectedFindings: map[Severity]int{
@@ -588,40 +554,37 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 		},
 		{
 			name: "Consistency issues",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &common.CommonDevice{
+				System: common.System{
 					Hostname: "consistency-firewall",
 					Domain:   "example.com",
-					User: []model.User{
-						{
-							Name:      "testuser",
-							Groupname: "nonexistent", // References non-existing group
-							UID:       "1001",
-							Scope:     "local",
-						},
-					},
-					Group: []model.Group{
-						{
-							Name:  "admins",
-							Gid:   "1000",
-							Scope: "local",
-						},
+				},
+				Users: []common.User{
+					{
+						Name:      "testuser",
+						GroupName: "nonexistent", // References non-existing group
+						UID:       "1001",
+						Scope:     "local",
 					},
 				},
-				Interfaces: model.Interfaces{
-					Items: map[string]model.Interface{
-						"wan": {Enable: "1"},
-						"lan": {Enable: "1"},
+				Groups: []common.Group{
+					{
+						Name:  "admins",
+						GID:   "1000",
+						Scope: "local",
 					},
 				},
-				Dhcpd: model.Dhcpd{
-					Items: map[string]model.DhcpdInterface{
-						"lan": {
-							Enable: "1", // DHCP enabled but no interface IP
-							Range: model.Range{
-								From: "192.168.1.100",
-								To:   "192.168.1.200",
-							},
+				Interfaces: []common.Interface{
+					{Name: "wan", Enabled: true},
+					{Name: "lan", Enabled: true},
+				},
+				DHCP: []common.DHCPScope{
+					{
+						Interface: "lan",
+						Enabled:   true, // DHCP enabled but no interface IP
+						Range: common.DHCPRange{
+							From: "192.168.1.100",
+							To:   "192.168.1.200",
 						},
 					},
 				},
@@ -635,30 +598,26 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 		},
 		{
 			name: "All features combined",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &common.CommonDevice{
+				System: common.System{
 					Hostname:                  "combined-firewall",
 					Domain:                    "example.com",
-					WebGUI:                    model.WebGUIConfig{Protocol: "http"},
-					DisableChecksumOffloading: 1,
+					WebGUI:                    common.WebGUI{Protocol: "http"},
+					DisableChecksumOffloading: true,
 				},
-				Interfaces: model.Interfaces{
-					Items: map[string]model.Interface{
-						"wan": {Enable: "1"},
-						"lan": {Enable: "1"},
-					},
+				Interfaces: []common.Interface{
+					{Name: "wan", Enabled: true},
+					{Name: "lan", Enabled: true},
 				},
-				Snmpd: model.Snmpd{
+				SNMP: common.SNMPConfig{
 					ROCommunity: "public",
 				},
-				Filter: model.Filter{
-					Rule: []model.Rule{
-						{
-							Type:      "pass",
-							Interface: model.InterfaceList{"wan"},
-							Source:    model.Source{Network: "any"},
-							Descr:     "", // Overly broad rule
-						},
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        "pass",
+						Interfaces:  []string{"wan"},
+						Source:      common.RuleEndpoint{Address: "any"},
+						Description: "", // Overly broad rule
 					},
 				},
 			},
@@ -721,14 +680,14 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 }
 
 // generateManyRules creates a large number of firewall rules for testing.
-func generateManyRules(count int) []model.Rule {
-	rules := make([]model.Rule, count)
+func generateManyRules(count int) []common.FirewallRule {
+	rules := make([]common.FirewallRule, count)
 	for i := range count {
-		rules[i] = model.Rule{
-			Type:      "pass",
-			Interface: model.InterfaceList{"lan"},
-			Descr:     fmt.Sprintf("Rule %d", i+1),
-			Source:    model.Source{Network: fmt.Sprintf("192.168.%d.0/24", (i%254)+1)},
+		rules[i] = common.FirewallRule{
+			Type:        "pass",
+			Interfaces:  []string{"lan"},
+			Description: fmt.Sprintf("Rule %d", i+1),
+			Source:      common.RuleEndpoint{Address: fmt.Sprintf("192.168.%d.0/24", (i%254)+1)},
 		}
 	}
 
@@ -736,47 +695,41 @@ func generateManyRules(count int) []model.Rule {
 }
 
 // generateSmallConfig creates a small configuration for benchmarking.
-func generateSmallConfig() *model.OpnSenseDocument {
-	return &model.OpnSenseDocument{
-		System: model.System{
+func generateSmallConfig() *common.CommonDevice {
+	return &common.CommonDevice{
+		System: common.System{
 			Hostname: "small-config",
 			Domain:   "example.com",
-			WebGUI:   model.WebGUIConfig{Protocol: "https"},
-			SSH: struct {
-				Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
-			}{Group: "admins"},
-			Bogons: struct {
-				Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
-			}{Interval: "monthly"},
-			User: []model.User{
-				{Name: "admin", UID: "1000", Scope: "local"},
-				{Name: "user1", UID: "1001", Scope: "local"},
+			WebGUI:   common.WebGUI{Protocol: "https"},
+			SSH:      common.SSH{Group: "admins"},
+			Bogons:   common.Bogons{Interval: "monthly"},
+		},
+		Users: []common.User{
+			{Name: "admin", UID: "1000", Scope: "local"},
+			{Name: "user1", UID: "1001", Scope: "local"},
+		},
+		Groups: []common.Group{
+			{Name: "admins", GID: "1000", Scope: "local"},
+		},
+		Interfaces: []common.Interface{
+			{
+				Name:      "wan",
+				Enabled:   true,
+				IPAddress: "203.0.113.1",
+				Subnet:    "24",
 			},
-			Group: []model.Group{
-				{Name: "admins", Gid: "1000", Scope: "local"},
+			{
+				Name:      "lan",
+				Enabled:   true,
+				IPAddress: "192.168.1.1",
+				Subnet:    "24",
 			},
 		},
-		Interfaces: model.Interfaces{
-			Items: map[string]model.Interface{
-				"wan": {
-					Enable: "1",
-					IPAddr: "203.0.113.1",
-					Subnet: "24",
-				},
-				"lan": {
-					Enable: "1",
-					IPAddr: "192.168.1.1",
-					Subnet: "24",
-				},
-			},
+		FirewallRules: []common.FirewallRule{
+			{Type: "pass", Interfaces: []string{"lan"}, Description: "Allow LAN"},
+			{Type: "block", Interfaces: []string{"wan"}, Description: "Block WAN"},
 		},
-		Filter: model.Filter{
-			Rule: []model.Rule{
-				{Type: "pass", Interface: model.InterfaceList{"lan"}, Descr: "Allow LAN"},
-				{Type: "block", Interface: model.InterfaceList{"wan"}, Descr: "Block WAN"},
-			},
-		},
-		Sysctl: []model.SysctlItem{
+		Sysctl: []common.SysctlItem{
 			{Tunable: "net.inet.ip.forwarding", Value: "1"},
 			{Tunable: "kern.ipc.maxsockbuf", Value: "16777216"},
 		},
@@ -784,11 +737,11 @@ func generateSmallConfig() *model.OpnSenseDocument {
 }
 
 // generateLargeConfig creates a large configuration for benchmarking.
-func generateLargeConfig() *model.OpnSenseDocument {
+func generateLargeConfig() *common.CommonDevice {
 	// Create many users
-	users := make([]model.User, 100)
+	users := make([]common.User, 100)
 	for i := range 100 {
-		users[i] = model.User{
+		users[i] = common.User{
 			Name:  fmt.Sprintf("user%d", i),
 			UID:   strconv.Itoa(1000 + i),
 			Scope: "local",
@@ -796,80 +749,73 @@ func generateLargeConfig() *model.OpnSenseDocument {
 	}
 
 	// Create many groups
-	groups := make([]model.Group, 50)
+	groups := make([]common.Group, 50)
 	for i := range 50 {
-		groups[i] = model.Group{
+		groups[i] = common.Group{
 			Name:  fmt.Sprintf("group%d", i),
-			Gid:   strconv.Itoa(2000 + i),
+			GID:   strconv.Itoa(2000 + i),
 			Scope: "local",
 		}
 	}
 
 	// Create many sysctl items
-	sysctlItems := make([]model.SysctlItem, 200)
+	sysctlItems := make([]common.SysctlItem, 200)
 	for i := range 200 {
-		sysctlItems[i] = model.SysctlItem{
-			Tunable: fmt.Sprintf("net.inet.tcp.item%d", i),
-			Value:   strconv.Itoa(i % 10),
-			Descr:   fmt.Sprintf("Test sysctl item %d", i),
+		sysctlItems[i] = common.SysctlItem{
+			Tunable:     fmt.Sprintf("net.inet.tcp.item%d", i),
+			Value:       strconv.Itoa(i % 10),
+			Description: fmt.Sprintf("Test sysctl item %d", i),
 		}
 	}
 
-	return &model.OpnSenseDocument{
-		System: model.System{
+	return &common.CommonDevice{
+		System: common.System{
 			Hostname: "large-config",
 			Domain:   "example.com",
-			WebGUI:   model.WebGUIConfig{Protocol: "https"},
-			SSH: struct {
-				Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
-			}{Group: "admins"},
-			Bogons: struct {
-				Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
-			}{Interval: "monthly"},
-			User:  users,
-			Group: groups,
+			WebGUI:   common.WebGUI{Protocol: "https"},
+			SSH:      common.SSH{Group: "admins"},
+			Bogons:   common.Bogons{Interval: "monthly"},
 		},
-		Interfaces: model.Interfaces{
-			Items: map[string]model.Interface{
-				"wan": {
-					Enable:      "1",
-					IPAddr:      "203.0.113.1",
-					Subnet:      "24",
-					BlockPriv:   "1",
-					BlockBogons: "1",
-				},
-				"lan": {
-					Enable: "1",
-					IPAddr: "192.168.1.1",
-					Subnet: "24",
+		Users:  users,
+		Groups: groups,
+		Interfaces: []common.Interface{
+			{
+				Name:         "wan",
+				Enabled:      true,
+				IPAddress:    "203.0.113.1",
+				Subnet:       "24",
+				BlockPrivate: true,
+				BlockBogons:  true,
+			},
+			{
+				Name:      "lan",
+				Enabled:   true,
+				IPAddress: "192.168.1.1",
+				Subnet:    "24",
+			},
+		},
+		FirewallRules: generateManyRules(500), // Large number of rules
+		Sysctl:        sysctlItems,
+		DHCP: []common.DHCPScope{
+			{
+				Interface: "lan",
+				Enabled:   true,
+				Range: common.DHCPRange{
+					From: "192.168.1.100",
+					To:   "192.168.1.200",
 				},
 			},
 		},
-		Filter: model.Filter{
-			Rule: generateManyRules(500), // Large number of rules
-		},
-		Sysctl: sysctlItems,
-		Dhcpd: model.Dhcpd{
-			Items: map[string]model.DhcpdInterface{
-				"lan": {
-					Enable: "1",
-					Range: model.Range{
-						From: "192.168.1.100",
-						To:   "192.168.1.200",
-					},
-				},
-			},
-		},
-		Snmpd: model.Snmpd{
+		SNMP: common.SNMPConfig{
 			ROCommunity: "secure-community",
 			SysLocation: "DataCenter",
 			SysContact:  "admin@example.com",
 		},
-		Unbound: model.Unbound{
-			Enable: "1",
+		DNS: common.DNSConfig{
+			Unbound: common.UnboundConfig{Enabled: true},
 		},
-		Nat: model.Nat{
-			Outbound: model.Outbound{Mode: "automatic"},
+		NAT: common.NATConfig{
+			OutboundMode: "automatic",
 		},
 	}
 }
@@ -1035,7 +981,7 @@ func BenchmarkCoreProcessor_ProcessConcurrent(b *testing.B) {
 
 			for pb.Next() {
 				// Alternate between small and large configs
-				var config *model.OpnSenseDocument
+				var config *common.CommonDevice
 				if i%2 == 0 {
 					config = smallConfig
 				} else {
@@ -1089,14 +1035,14 @@ func BenchmarkCoreProcessor_NormalizationOnly(b *testing.B) {
 		}
 
 		// Verify normalization worked
-		if len(normalized.System.User) != 100 {
-			b.Errorf("Expected 100 users after normalization, got %d", len(normalized.System.User))
+		if len(normalized.Users) != 100 {
+			b.Errorf("Expected 100 users after normalization, got %d", len(normalized.Users))
 		}
 
 		// Verify sorting
-		if len(normalized.System.User) > 1 {
-			for j := 1; j < len(normalized.System.User); j++ {
-				if normalized.System.User[j-1].Name > normalized.System.User[j].Name {
+		if len(normalized.Users) > 1 {
+			for j := 1; j < len(normalized.Users); j++ {
+				if normalized.Users[j-1].Name > normalized.Users[j].Name {
 					b.Error("Users are not sorted after normalization")
 					break
 				}
@@ -1167,7 +1113,7 @@ func TestCoreProcessor_RaceConditions(t *testing.T) {
 				defer wg.Done()
 
 				var (
-					config           *model.OpnSenseDocument
+					config           *common.CommonDevice
 					expectedHostname string
 				)
 
@@ -1254,93 +1200,91 @@ func TestCoreProcessor_StatisticsAccuracy(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		config   *model.OpnSenseDocument
+		config   *common.CommonDevice
 		validate func(t *testing.T, stats *Statistics)
 	}{
 		{
 			name: "Basic statistics accuracy",
-			config: &model.OpnSenseDocument{
+			config: &common.CommonDevice{
 				Version: "24.1.1",
 				Theme:   "opnsense",
-				System: model.System{
+				System: common.System{
 					Hostname: "stats-firewall",
 					Domain:   "example.com",
-					User: []model.User{
-						{Name: "admin", Scope: "local", UID: "1000"},
-						{Name: "user1", Scope: "local", UID: "1001"},
-						{Name: "user2", Scope: "system", UID: "1002"},
-					},
-					Group: []model.Group{
-						{Name: "admins", Scope: "local", Gid: "1000"},
-						{Name: "users", Scope: "system", Gid: "1001"},
-					},
-					WebGUI: model.WebGUIConfig{Protocol: "https"},
-					SSH: struct {
-						Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
-					}{Group: "admins"},
-					Bogons: struct {
-						Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
-					}{Interval: "monthly"},
+					WebGUI:   common.WebGUI{Protocol: "https"},
+					SSH:      common.SSH{Group: "admins"},
+					Bogons:   common.Bogons{Interval: "monthly"},
 				},
-				Interfaces: model.Interfaces{
-					Items: map[string]model.Interface{
-						"wan": {
-							Enable:      "1",
-							IPAddr:      "203.0.113.1",
-							Subnet:      "24",
-							BlockPriv:   "1",
-							BlockBogons: "1",
-						},
-						"lan": {
-							Enable: "1",
-							IPAddr: "192.168.1.1",
-							Subnet: "24",
-						},
+				Users: []common.User{
+					{Name: "admin", Scope: "local", UID: "1000"},
+					{Name: "user1", Scope: "local", UID: "1001"},
+					{Name: "user2", Scope: "system", UID: "1002"},
+				},
+				Groups: []common.Group{
+					{Name: "admins", Scope: "local", GID: "1000"},
+					{Name: "users", Scope: "system", GID: "1001"},
+				},
+				Interfaces: []common.Interface{
+					{
+						Name:         "wan",
+						Type:         "dhcp",
+						Enabled:      true,
+						IPAddress:    "203.0.113.1",
+						Subnet:       "24",
+						BlockPrivate: true,
+						BlockBogons:  true,
+					},
+					{
+						Name:      "lan",
+						Type:      "static",
+						Enabled:   true,
+						IPAddress: "192.168.1.1",
+						Subnet:    "24",
 					},
 				},
-				Filter: model.Filter{
-					Rule: []model.Rule{
-						{Type: "pass", Interface: model.InterfaceList{"lan"}, Descr: "Allow LAN to WAN"},
-						{Type: "block", Interface: model.InterfaceList{"wan"}, Descr: "Block external access"},
-						{Type: "pass", Interface: model.InterfaceList{"wan"}, Descr: "Allow specific service"},
-					},
+				FirewallRules: []common.FirewallRule{
+					{Type: "pass", Interfaces: []string{"lan"}, Description: "Allow LAN to WAN"},
+					{Type: "block", Interfaces: []string{"wan"}, Description: "Block external access"},
+					{Type: "pass", Interfaces: []string{"wan"}, Description: "Allow specific service"},
 				},
-				Dhcpd: model.Dhcpd{
-					Items: map[string]model.DhcpdInterface{
-						"lan": {
-							Enable: "1",
-							Range: model.Range{
-								From: "192.168.1.100",
-								To:   "192.168.1.200",
-							},
+				DHCP: []common.DHCPScope{
+					{
+						Interface: "lan",
+						Enabled:   true,
+						Range: common.DHCPRange{
+							From: "192.168.1.100",
+							To:   "192.168.1.200",
 						},
 					},
 				},
-				Snmpd: model.Snmpd{
+				SNMP: common.SNMPConfig{
 					ROCommunity: "secure-community",
 					SysLocation: "DataCenter",
 					SysContact:  "admin@example.com",
 				},
-				Unbound: model.Unbound{
-					Enable: "1",
+				DNS: common.DNSConfig{
+					Unbound: common.UnboundConfig{Enabled: true},
 				},
-				Sysctl: []model.SysctlItem{
+				Sysctl: []common.SysctlItem{
 					{Tunable: "net.inet.ip.forwarding", Value: "1"},
 					{Tunable: "net.inet.tcp.mssdflt", Value: "1460"},
 				},
-				Nat: model.Nat{
-					Outbound: model.Outbound{Mode: "automatic"},
+				NAT: common.NATConfig{
+					OutboundMode: "automatic",
+					OutboundRules: []common.NATRule{
+						{Interfaces: []string{"wan"}, Description: "Auto-created outbound NAT rule"},
+					},
 				},
-				Ntpd: model.Ntpd{
-					Prefer: "pool.ntp.org",
+				NTP: common.NTPConfig{
+					PreferredServer: "pool.ntp.org",
 				},
 			},
 			validate: func(t *testing.T, stats *Statistics) {
 				t.Helper()
 				// Interface statistics
 				assert.Equal(t, 2, stats.TotalInterfaces, "Should count WAN and LAN interfaces")
-				assert.Equal(t, 1, stats.InterfacesByType["wan"], "Should have 1 WAN interface")
-				assert.Equal(t, 1, stats.InterfacesByType["lan"], "Should have 1 LAN interface")
+				assert.Equal(t, 1, stats.InterfacesByType["dhcp"], "Should have 1 dhcp interface")
+				assert.Equal(t, 1, stats.InterfacesByType["static"], "Should have 1 static interface")
 				assert.Len(t, stats.InterfaceDetails, 2, "Should have details for both interfaces")
 
 				// Check interface details
@@ -1412,16 +1356,14 @@ func TestCoreProcessor_StatisticsAccuracy(t *testing.T) {
 		},
 		{
 			name: "Empty configuration statistics",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &common.CommonDevice{
+				System: common.System{
 					Hostname: "minimal-firewall",
 					Domain:   "example.com",
 				},
-				Interfaces: model.Interfaces{
-					Items: map[string]model.Interface{
-						"wan": {Enable: "1"},
-						"lan": {Enable: "1"},
-					},
+				Interfaces: []common.Interface{
+					{Name: "wan", Enabled: true},
+					{Name: "lan", Enabled: true},
 				},
 			},
 			validate: func(t *testing.T, stats *Statistics) {
@@ -1465,16 +1407,14 @@ func TestCoreProcessor_TransformFormats(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	cfg := &model.OpnSenseDocument{
-		System: model.System{
+	cfg := &common.CommonDevice{
+		System: common.System{
 			Hostname: "transform-test",
 			Domain:   "example.com",
 		},
-		Interfaces: model.Interfaces{
-			Items: map[string]model.Interface{
-				"wan": {Enable: "1"},
-				"lan": {Enable: "1"},
-			},
+		Interfaces: []common.Interface{
+			{Name: "wan", Enabled: true},
+			{Name: "lan", Enabled: true},
 		},
 	}
 
@@ -1575,43 +1515,35 @@ func TestCoreProcessor_ValidationErrors(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		config         *model.OpnSenseDocument
+		config         *common.CommonDevice
 		expectedErrors int
 	}{
 		{
 			name: "Configuration with validation errors",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &common.CommonDevice{
+				System: common.System{
 					Hostname: "", // Empty hostname should trigger validation error
 					Domain:   "example.com",
-					SSH: struct {
-						Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
-					}{Group: ""}, // Empty required field
+					SSH:      common.SSH{Group: ""}, // Empty required field
 				},
-				Interfaces: model.Interfaces{
-					Items: map[string]model.Interface{
-						"wan": {Enable: "1"},
-						"lan": {Enable: "1"},
-					},
+				Interfaces: []common.Interface{
+					{Name: "wan", Enabled: true},
+					{Name: "lan", Enabled: true},
 				},
 			},
 			expectedErrors: 0, // May not have strict validation depending on implementation
 		},
 		{
 			name: "Valid configuration",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &common.CommonDevice{
+				System: common.System{
 					Hostname: "valid-host",
 					Domain:   "example.com",
-					SSH: struct {
-						Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
-					}{Group: "admins"},
+					SSH:      common.SSH{Group: "admins"},
 				},
-				Interfaces: model.Interfaces{
-					Items: map[string]model.Interface{
-						"wan": {Enable: "1"},
-						"lan": {Enable: "1"},
-					},
+				Interfaces: []common.Interface{
+					{Name: "wan", Enabled: true},
+					{Name: "lan", Enabled: true},
 				},
 			},
 			expectedErrors: 0,
@@ -1624,9 +1556,9 @@ func TestCoreProcessor_ValidationErrors(t *testing.T) {
 			require.NoError(t, err)
 			assert.NotNil(t, report)
 
-			// Check for validation findings
+			// Check for validation findings (now informational severity)
 			validationFindings := 0
-			for _, finding := range report.Findings.High {
+			for _, finding := range report.Findings.Info {
 				if finding.Type == "validation" {
 					validationFindings++
 				}
@@ -1649,13 +1581,12 @@ func TestCoreProcessor_ProcessorCreationFailure(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, processor)
 	assert.NotNil(t, processor.validator)
-	assert.NotNil(t, processor.generator)
 }
 
 // TestReport_FindingSeverityDistribution tests finding distribution.
 func TestReport_FindingSeverityDistribution(t *testing.T) {
-	cfg := &model.OpnSenseDocument{
-		System: model.System{
+	cfg := &common.CommonDevice{
+		System: common.System{
 			Hostname: "severity-test",
 			Domain:   "example.com",
 		},
@@ -1707,8 +1638,8 @@ func TestReport_FindingSeverityDistribution(t *testing.T) {
 
 // TestReport_EmptyFindingsScenarios tests various empty finding scenarios.
 func TestReport_EmptyFindingsScenarios(t *testing.T) {
-	cfg := &model.OpnSenseDocument{
-		System: model.System{
+	cfg := &common.CommonDevice{
+		System: common.System{
 			Hostname: "empty-findings",
 			Domain:   "example.com",
 		},
@@ -1806,8 +1737,8 @@ func TestStatistics_ZeroValues(t *testing.T) {
 	ctx := context.Background()
 
 	// Configuration with minimal/zero values
-	cfg := &model.OpnSenseDocument{
-		System: model.System{
+	cfg := &common.CommonDevice{
+		System: common.System{
 			Hostname: "zero-values",
 			Domain:   "example.com",
 		},
@@ -1821,8 +1752,8 @@ func TestStatistics_ZeroValues(t *testing.T) {
 
 	stats := report.Statistics
 
-	// Test zero values (expect 2 interfaces: wan, lan)
-	assert.Equal(t, 2, stats.TotalInterfaces)
+	// Test zero values (no interfaces configured)
+	assert.Equal(t, 0, stats.TotalInterfaces)
 	assert.Equal(t, 0, stats.TotalFirewallRules)
 	assert.Equal(t, 0, stats.TotalUsers)
 	assert.Equal(t, 0, stats.TotalGroups)
@@ -1830,8 +1761,8 @@ func TestStatistics_ZeroValues(t *testing.T) {
 	assert.Equal(t, 0, stats.SysctlSettings)
 	assert.Equal(t, 0, stats.TotalServices)
 
-	// Test empty collections (interfaces present)
-	assert.NotEmpty(t, stats.InterfaceDetails)
+	// Test empty collections (no interfaces configured)
+	assert.Empty(t, stats.InterfaceDetails)
 	assert.Empty(t, stats.RulesByInterface)
 	assert.Empty(t, stats.RulesByType)
 	assert.Empty(t, stats.UsersByScope)
@@ -1891,8 +1822,8 @@ func TestReport_JSONSerializationPerformance(t *testing.T) {
 		t.Skip("Skipping performance test in short mode")
 	}
 
-	cfg := &model.OpnSenseDocument{
-		System: model.System{
+	cfg := &common.CommonDevice{
+		System: common.System{
 			Hostname: "perf-test",
 			Domain:   "example.com",
 		},
@@ -1949,8 +1880,8 @@ func TestReport_MarkdownGenerationEdgeCases(t *testing.T) {
 		{
 			name: "Report with very long text",
 			setupFunc: func() *Report {
-				cfg := &model.OpnSenseDocument{
-					System: model.System{
+				cfg := &common.CommonDevice{
+					System: common.System{
 						Hostname: "long-text-test",
 						Domain:   "example.com",
 					},
@@ -1983,8 +1914,8 @@ func TestReport_MarkdownGenerationEdgeCases(t *testing.T) {
 		{
 			name: "Report with HTML-like content",
 			setupFunc: func() *Report {
-				cfg := &model.OpnSenseDocument{
-					System: model.System{
+				cfg := &common.CommonDevice{
+					System: common.System{
 						Hostname: "html-test",
 						Domain:   "example.com",
 					},
@@ -2013,8 +1944,8 @@ func TestReport_MarkdownGenerationEdgeCases(t *testing.T) {
 		{
 			name: "Report with empty statistics",
 			setupFunc: func() *Report {
-				cfg := &model.OpnSenseDocument{
-					System: model.System{
+				cfg := &common.CommonDevice{
+					System: common.System{
 						Hostname: "empty-stats",
 						Domain:   "example.com",
 					},
@@ -2118,8 +2049,8 @@ func TestReport_ThreadSafetyStress(t *testing.T) {
 		t.Skip("Skipping stress test in short mode")
 	}
 
-	cfg := &model.OpnSenseDocument{
-		System: model.System{
+	cfg := &common.CommonDevice{
+		System: common.System{
 			Hostname: "stress-test",
 			Domain:   "example.com",
 		},

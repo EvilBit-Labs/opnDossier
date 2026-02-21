@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
-// ExampleUsage demonstrates various ways to process an OpnSense configuration document using the processor, including basic, security-focused, and comprehensive analyses, as well as handling custom timeouts and reporting in multiple formats.
-func ExampleUsage(cfg *model.OpnSenseDocument) {
+// ExampleUsage demonstrates various ways to process a device configuration using the processor, including basic, security-focused, and comprehensive analyses, as well as handling custom timeouts and reporting in multiple formats.
+func ExampleUsage(cfg *common.CommonDevice) {
 	// Create a processor instance
 	processor := NewExampleProcessor()
 
@@ -120,25 +120,19 @@ func ExampleUsage(cfg *model.OpnSenseDocument) {
 	fmt.Printf("Found %d maintenance issues\n", maintenanceIssues)
 }
 
-// ProcessConfigFromFile loads an OpnSense configuration from the specified file path, processes it with all analysis features enabled, and prints a summary of the results.
+// ProcessConfigFromFile loads a device configuration from the specified file path, processes it with all analysis features enabled, and prints a summary of the results.
 // Returns an error if processing fails.
 func ProcessConfigFromFile(configPath string) error {
 	// This would typically involve:
 	// 1. Loading the configuration file
-	// 2. Parsing it into model.OpnSenseDocument
+	// 2. Parsing it into common.CommonDevice
 	// 3. Processing with the processor
 	// 4. Outputting results
 	fmt.Printf("Processing configuration from: %s\n", configPath)
 
-	// Placeholder - in real implementation you would:
-	// cfg, err := parseConfigFile(configPath)
-	// if err != nil {
-	//     return fmt.Errorf("failed to parse config: %w", err)
-	// }
-
 	// For demonstration, create a minimal config
-	cfg := &model.OpnSenseDocument{
-		System: model.System{
+	cfg := &common.CommonDevice{
+		System: common.System{
 			Hostname: "example-firewall",
 			Domain:   "example.com",
 		},
@@ -177,7 +171,7 @@ type CustomProcessorExample struct {
 type CustomCheck struct {
 	Name        string
 	Description string
-	CheckFunc   func(*model.OpnSenseDocument) []Finding
+	CheckFunc   func(*common.CommonDevice) []Finding
 }
 
 // NewCustomProcessor returns a CustomProcessorExample that applies the provided custom checks in addition to the standard processing.
@@ -191,7 +185,7 @@ func NewCustomProcessor(customChecks []CustomCheck) *CustomProcessorExample {
 // Process extends the base processor with custom checks.
 func (p *CustomProcessorExample) Process(
 	ctx context.Context,
-	cfg *model.OpnSenseDocument,
+	cfg *common.CommonDevice,
 	opts ...Option,
 ) (*Report, error) {
 	// First run the standard processing
@@ -218,13 +212,13 @@ func (p *CustomProcessorExample) Process(
 	return report, nil
 }
 
-// ExampleCustomCheck returns a custom check that detects if the OpnSense configuration is using the default theme.
+// ExampleCustomCheck returns a custom check that detects if the device configuration is using the default theme.
 // The check produces a finding if no specific theme is set, recommending that a theme be configured for consistency.
 func ExampleCustomCheck() CustomCheck {
 	return CustomCheck{
 		Name:        "Theme Check",
 		Description: "Validates the configured theme",
-		CheckFunc: func(cfg *model.OpnSenseDocument) []Finding {
+		CheckFunc: func(cfg *common.CommonDevice) []Finding {
 			var findings []Finding
 
 			if cfg.Theme == "" {

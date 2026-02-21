@@ -22,6 +22,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/export"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -274,6 +275,11 @@ Examples:
 			ctx = context.Background()
 		}
 
+		// Validate device type flag early before any file processing
+		if err := validateDeviceType(); err != nil {
+			return err
+		}
+
 		// Get configuration and logger from CommandContext
 		cmdCtx := GetCommandContext(cmd)
 		if cmdCtx == nil {
@@ -335,12 +341,11 @@ Examples:
 					}
 				}()
 
-				// Parse the XML without validation (use 'validate' command for validation)
-				ctxLogger.Debug("Parsing XML file")
-				p := cfgparser.NewXMLParser()
-				opnsense, err := p.Parse(timeoutCtx, file)
+				// Parse the XML and convert to platform-agnostic device model
+				ctxLogger.Debug("Parsing configuration file")
+				device, err := model.NewParserFactory().CreateDevice(timeoutCtx, file, sharedDeviceType, false)
 				if err != nil {
-					ctxLogger.Error("Failed to parse XML", "error", err)
+					ctxLogger.Error("Failed to parse configuration", "error", err)
 					// Enhanced error handling for different error types
 					if cfgparser.IsParseError(err) {
 						if parseErr := cfgparser.GetParseError(err); parseErr != nil {
@@ -356,10 +361,10 @@ Examples:
 					if cfgparser.IsValidationError(err) {
 						ctxLogger.Error("Configuration validation failed")
 					}
-					errs <- fmt.Errorf("failed to parse XML from %s: %w", fp, err)
+					errs <- fmt.Errorf("failed to parse configuration from %s: %w", fp, err)
 					return
 				}
-				ctxLogger.Debug("XML parsing completed successfully")
+				ctxLogger.Debug("Configuration parsed successfully")
 
 				// Build options for conversion with precedence: CLI flags > env vars > config > defaults
 				eff := buildEffectiveFormat(format, cmdConfig)
@@ -381,7 +386,7 @@ Examples:
 				)
 
 				// Generate output based on format
-				output, err = generateOutputByFormat(timeoutCtx, opnsense, opt, auditOpts, ctxLogger)
+				output, err = generateOutputByFormat(timeoutCtx, device, opt, auditOpts, ctxLogger)
 				if err != nil {
 					ctxLogger.Error("Failed to convert", "error", err)
 					errs <- fmt.Errorf("failed to convert from %s: %w", fp, err)
@@ -631,14 +636,14 @@ func determineOutputPath(inputFile, outputFile, fileExt string, cfg *config.Conf
 // It returns the rendered output string, or an error if the format is unsupported or generation fails.
 func generateOutputByFormat(
 	ctx context.Context,
-	opnsense *model.OpnSenseDocument,
+	device *common.CommonDevice,
 	opt converter.Options,
 	auditOpts audit.Options,
 	logger *logging.Logger,
 ) (string, error) {
 	// Check if audit mode is enabled - route to audit handler
 	if auditOpts.AuditMode != "" {
-		return handleAuditMode(ctx, opnsense, auditOpts, opt, logger)
+		return handleAuditMode(ctx, device, auditOpts, opt, logger)
 	}
 
 	// Determine the format to use
@@ -649,7 +654,7 @@ func generateOutputByFormat(
 		FormatText, FormatAliasTXT, FormatHTML, FormatAliasHTM:
 		// Use programmatic generator for all formats
 		// The HybridGenerator handles markdown (via builder), JSON, YAML, text, and HTML natively
-		return generateWithProgrammaticGenerator(ctx, opnsense, opt, logger)
+		return generateWithProgrammaticGenerator(ctx, device, opt, logger)
 	default:
 		return "", fmt.Errorf(
 			"%w: %q (supported: %s, %s, %s, %s, %s, %s, %s, %s, %s)",
@@ -669,7 +674,7 @@ func generateOutputByFormat(
 // using generateToWriter for better memory efficiency.
 func generateWithProgrammaticGenerator(
 	ctx context.Context,
-	opnsense *model.OpnSenseDocument,
+	device *common.CommonDevice,
 	opt converter.Options,
 	logger *logging.Logger,
 ) (string, error) {
@@ -683,7 +688,7 @@ func generateWithProgrammaticGenerator(
 	}
 
 	// Generate the output
-	return hybridGen.Generate(ctx, opnsense, opt)
+	return hybridGen.Generate(ctx, device, opt)
 }
 
 // normalizeConvertFlags applies side-effects to shared flag variables before validation.

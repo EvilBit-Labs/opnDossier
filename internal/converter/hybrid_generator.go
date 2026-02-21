@@ -11,16 +11,16 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"gopkg.in/yaml.v3"
 )
 
 // Generator interface for creating documentation in various formats.
 type Generator interface {
-	// Generate creates documentation in a specified format from the provided OPNsense configuration.
+	// Generate creates documentation in a specified format from the provided device configuration.
 	// This method returns the complete output as a string, which is useful when the output
 	// needs further processing (e.g., HTML conversion).
-	Generate(ctx context.Context, cfg *model.OpnSenseDocument, opts Options) (string, error)
+	Generate(ctx context.Context, cfg *common.CommonDevice, opts Options) (string, error)
 }
 
 // StreamingGenerator extends Generator with io.Writer-based output support.
@@ -32,7 +32,7 @@ type StreamingGenerator interface {
 	// GenerateToWriter writes documentation directly to the provided io.Writer.
 	// This is more memory-efficient than Generate() for large configurations
 	// as it streams output section-by-section.
-	GenerateToWriter(ctx context.Context, w io.Writer, cfg *model.OpnSenseDocument, opts Options) error
+	GenerateToWriter(ctx context.Context, w io.Writer, cfg *common.CommonDevice, opts Options) error
 }
 
 // HybridGenerator provides programmatic markdown, JSON, and YAML generation.
@@ -99,9 +99,9 @@ func NewMarkdownGenerator(logger *logging.Logger, _ Options) (Generator, error) 
 //
 // For memory-efficient streaming output, use GenerateToWriter instead.
 // Generate is preferred when you need the output as a string for further processing.
-func (g *HybridGenerator) Generate(_ context.Context, data *model.OpnSenseDocument, opts Options) (string, error) {
+func (g *HybridGenerator) Generate(_ context.Context, data *common.CommonDevice, opts Options) (string, error) {
 	if data == nil {
-		return "", ErrNilConfiguration
+		return "", ErrNilDevice
 	}
 
 	if err := opts.Validate(); err != nil {
@@ -143,11 +143,11 @@ func (g *HybridGenerator) Generate(_ context.Context, data *model.OpnSenseDocume
 func (g *HybridGenerator) GenerateToWriter(
 	_ context.Context,
 	w io.Writer,
-	data *model.OpnSenseDocument,
+	data *common.CommonDevice,
 	opts Options,
 ) error {
 	if data == nil {
-		return ErrNilConfiguration
+		return ErrNilDevice
 	}
 
 	if err := opts.Validate(); err != nil {
@@ -177,7 +177,7 @@ func (g *HybridGenerator) GenerateToWriter(
 }
 
 // generateMarkdown generates markdown output using the programmatic builder.
-func (g *HybridGenerator) generateMarkdown(data *model.OpnSenseDocument, opts Options) (string, error) {
+func (g *HybridGenerator) generateMarkdown(data *common.CommonDevice, opts Options) (string, error) {
 	g.logger.Debug("Using programmatic markdown generation")
 
 	if g.builder == nil {
@@ -195,7 +195,7 @@ func (g *HybridGenerator) generateMarkdown(data *model.OpnSenseDocument, opts Op
 // generateMarkdownToWriter writes markdown output directly to the writer.
 func (g *HybridGenerator) generateMarkdownToWriter(
 	w io.Writer,
-	data *model.OpnSenseDocument,
+	data *common.CommonDevice,
 	opts Options,
 ) error {
 	g.logger.Debug("Using streaming markdown generation")
@@ -226,18 +226,14 @@ func (g *HybridGenerator) generateMarkdownToWriter(
 	}
 }
 
-// generateJSON generates JSON output by serializing the enriched model.
-func (g *HybridGenerator) generateJSON(data *model.OpnSenseDocument) (string, error) {
+// generateJSON generates JSON output by serializing the model.
+func (g *HybridGenerator) generateJSON(data *common.CommonDevice) (string, error) {
 	g.logger.Debug("Generating JSON output")
 
-	// Enrich the model with calculated fields and analysis data
-	enrichedCfg := model.EnrichDocument(data)
-	if enrichedCfg == nil {
-		return "", ErrNilConfiguration
-	}
+	target := prepareForExport(data)
 
 	jsonBytes, err := json.MarshalIndent(
-		enrichedCfg,
+		target,
 		"",
 		"  ",
 	)
@@ -250,34 +246,26 @@ func (g *HybridGenerator) generateJSON(data *model.OpnSenseDocument) (string, er
 // generateJSONToWriter writes JSON output directly to the writer.
 // Note: JSON marshaling requires the full document, so this doesn't provide
 // the same streaming benefits as markdown generation.
-func (g *HybridGenerator) generateJSONToWriter(w io.Writer, data *model.OpnSenseDocument) error {
+func (g *HybridGenerator) generateJSONToWriter(w io.Writer, data *common.CommonDevice) error {
 	g.logger.Debug("Generating JSON output to writer")
 
-	// Enrich the model with calculated fields and analysis data
-	enrichedCfg := model.EnrichDocument(data)
-	if enrichedCfg == nil {
-		return ErrNilConfiguration
-	}
+	target := prepareForExport(data)
 
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
-	if err := encoder.Encode(enrichedCfg); err != nil {
+	if err := encoder.Encode(target); err != nil {
 		return fmt.Errorf("failed to encode JSON to writer: %w", err)
 	}
 	return nil
 }
 
-// generateYAML generates YAML output by serializing the enriched model.
-func (g *HybridGenerator) generateYAML(data *model.OpnSenseDocument) (string, error) {
+// generateYAML generates YAML output by serializing the model.
+func (g *HybridGenerator) generateYAML(data *common.CommonDevice) (string, error) {
 	g.logger.Debug("Generating YAML output")
 
-	// Enrich the model with calculated fields and analysis data
-	enrichedCfg := model.EnrichDocument(data)
-	if enrichedCfg == nil {
-		return "", ErrNilConfiguration
-	}
+	target := prepareForExport(data)
 
-	yamlData, err := yaml.Marshal(enrichedCfg)
+	yamlData, err := yaml.Marshal(target)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal to YAML: %w", err)
 	}
@@ -287,25 +275,21 @@ func (g *HybridGenerator) generateYAML(data *model.OpnSenseDocument) (string, er
 // generateYAMLToWriter writes YAML output directly to the writer.
 // Note: YAML marshaling requires the full document, so this doesn't provide
 // the same streaming benefits as markdown generation.
-func (g *HybridGenerator) generateYAMLToWriter(w io.Writer, data *model.OpnSenseDocument) error {
+func (g *HybridGenerator) generateYAMLToWriter(w io.Writer, data *common.CommonDevice) error {
 	g.logger.Debug("Generating YAML output to writer")
 
-	// Enrich the model with calculated fields and analysis data
-	enrichedCfg := model.EnrichDocument(data)
-	if enrichedCfg == nil {
-		return ErrNilConfiguration
-	}
+	target := prepareForExport(data)
 
 	encoder := yaml.NewEncoder(w)
 	encoder.SetIndent(2) //nolint:mnd // Standard YAML indentation
-	if err := encoder.Encode(enrichedCfg); err != nil {
+	if err := encoder.Encode(target); err != nil {
 		return fmt.Errorf("failed to encode YAML to writer: %w", err)
 	}
 	return encoder.Close()
 }
 
 // generatePlainText generates plain text output by rendering markdown first, then stripping formatting.
-func (g *HybridGenerator) generatePlainText(data *model.OpnSenseDocument, opts Options) (string, error) {
+func (g *HybridGenerator) generatePlainText(data *common.CommonDevice, opts Options) (string, error) {
 	g.logger.Debug("Generating plain text output")
 
 	markdown, err := g.generateMarkdown(data, opts)
@@ -319,7 +303,7 @@ func (g *HybridGenerator) generatePlainText(data *model.OpnSenseDocument, opts O
 // generatePlainTextToWriter writes plain text output directly to the writer.
 func (g *HybridGenerator) generatePlainTextToWriter(
 	w io.Writer,
-	data *model.OpnSenseDocument,
+	data *common.CommonDevice,
 	opts Options,
 ) error {
 	g.logger.Debug("Generating plain text output to writer")
@@ -334,7 +318,7 @@ func (g *HybridGenerator) generatePlainTextToWriter(
 }
 
 // generateHTML generates HTML output by rendering markdown first, then converting via goldmark.
-func (g *HybridGenerator) generateHTML(data *model.OpnSenseDocument, opts Options) (string, error) {
+func (g *HybridGenerator) generateHTML(data *common.CommonDevice, opts Options) (string, error) {
 	g.logger.Debug("Generating HTML output")
 
 	markdown, err := g.generateMarkdown(data, opts)
@@ -348,7 +332,7 @@ func (g *HybridGenerator) generateHTML(data *model.OpnSenseDocument, opts Option
 // generateHTMLToWriter writes HTML output directly to the writer.
 func (g *HybridGenerator) generateHTMLToWriter(
 	w io.Writer,
-	data *model.OpnSenseDocument,
+	data *common.CommonDevice,
 	opts Options,
 ) error {
 	g.logger.Debug("Generating HTML output to writer")

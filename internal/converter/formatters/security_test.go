@@ -3,7 +3,7 @@ package formatters
 import (
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 func TestAssessRiskLevel(t *testing.T) {
@@ -45,7 +45,7 @@ func TestCalculateSecurityScore(t *testing.T) {
 
 	tests := []struct {
 		name string
-		data *model.OpnSenseDocument
+		data *common.CommonDevice
 		want int
 	}{
 		{
@@ -55,54 +55,54 @@ func TestCalculateSecurityScore(t *testing.T) {
 		},
 		{
 			name: "empty document - no firewall rules",
-			data: &model.OpnSenseDocument{
-				Filter: model.Filter{Rule: []model.Rule{}},
-				System: model.System{User: []model.User{}},
-				Sysctl: []model.SysctlItem{},
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{},
+				Users:         []common.User{},
+				Sysctl:        []common.SysctlItem{},
 			},
 			want: 60, // 100 - 20 (no firewall rules) - 20 (4 missing tunables × 5)
 		},
 		{
 			name: "document with firewall rules",
-			data: &model.OpnSenseDocument{
-				Filter: model.Filter{Rule: []model.Rule{{Type: "pass"}}},
-				System: model.System{User: []model.User{}},
-				Sysctl: []model.SysctlItem{},
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{{Type: "pass"}},
+				Users:         []common.User{},
+				Sysctl:        []common.SysctlItem{},
 			},
 			want: 80, // 100 - 20 (4 missing tunables × 5)
 		},
 		{
 			name: "document with management on WAN",
-			data: &model.OpnSenseDocument{
-				Filter: model.Filter{Rule: []model.Rule{
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
 					{
-						Interface:   model.InterfaceList{"wan"},
+						Interfaces:  []string{"wan"},
 						Direction:   "in",
-						Destination: model.Destination{Port: "443"},
+						Destination: common.RuleEndpoint{Port: "443"},
 					},
-				}},
-				System: model.System{User: []model.User{}},
-				Sysctl: []model.SysctlItem{},
+				},
+				Users:  []common.User{},
+				Sysctl: []common.SysctlItem{},
 			},
 			want: 50, // 100 - 30 (management on WAN) - 20 (4 missing tunables × 5)
 		},
 		{
 			name: "document with default user",
-			data: &model.OpnSenseDocument{
-				Filter: model.Filter{Rule: []model.Rule{{Type: "pass"}}},
-				System: model.System{User: []model.User{
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{{Type: "pass"}},
+				Users: []common.User{
 					{Name: "admin"},
-				}},
-				Sysctl: []model.SysctlItem{},
+				},
+				Sysctl: []common.SysctlItem{},
 			},
 			want: 65, // 100 - 15 (default user) - 20 (4 missing tunables × 5)
 		},
 		{
 			name: "document with insecure tunable",
-			data: &model.OpnSenseDocument{
-				Filter: model.Filter{Rule: []model.Rule{{Type: "pass"}}},
-				System: model.System{User: []model.User{}},
-				Sysctl: []model.SysctlItem{
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{{Type: "pass"}},
+				Users:         []common.User{},
+				Sysctl: []common.SysctlItem{
 					{Tunable: "net.inet.ip.forwarding", Value: "1"}, // Should be "0"
 				},
 			},
@@ -110,10 +110,10 @@ func TestCalculateSecurityScore(t *testing.T) {
 		},
 		{
 			name: "document with secure tunable",
-			data: &model.OpnSenseDocument{
-				Filter: model.Filter{Rule: []model.Rule{{Type: "pass"}}},
-				System: model.System{User: []model.User{}},
-				Sysctl: []model.SysctlItem{
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{{Type: "pass"}},
+				Users:         []common.User{},
+				Sysctl: []common.SysctlItem{
 					{Tunable: "net.inet.ip.forwarding", Value: "0"}, // Correct value
 				},
 			},
@@ -121,10 +121,10 @@ func TestCalculateSecurityScore(t *testing.T) {
 		},
 		{
 			name: "document with all secure tunables",
-			data: &model.OpnSenseDocument{
-				Filter: model.Filter{Rule: []model.Rule{{Type: "pass"}}},
-				System: model.System{User: []model.User{}},
-				Sysctl: []model.SysctlItem{
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{{Type: "pass"}},
+				Users:         []common.User{},
+				Sysctl: []common.SysctlItem{
 					{Tunable: "net.inet.ip.forwarding", Value: "0"},
 					{Tunable: "net.inet6.ip6.forwarding", Value: "0"},
 					{Tunable: "net.inet.tcp.blackhole", Value: "2"},
@@ -135,13 +135,13 @@ func TestCalculateSecurityScore(t *testing.T) {
 		},
 		{
 			name: "document with multiple penalties",
-			data: &model.OpnSenseDocument{
-				Filter: model.Filter{Rule: []model.Rule{}}, // No rules: -20
-				System: model.System{User: []model.User{
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{}, // No rules: -20
+				Users: []common.User{
 					{Name: "admin"}, // Default user: -15
 					{Name: "root"},  // Another default user: -15
-				}},
-				Sysctl: []model.SysctlItem{
+				},
+				Sysctl: []common.SysctlItem{
 					{Tunable: "net.inet.ip.forwarding", Value: "1"},   // Wrong: -5
 					{Tunable: "net.inet6.ip6.forwarding", Value: "1"}, // Wrong: -5
 					// Missing 2 other tunables: -10 (2 × 5)
@@ -151,9 +151,9 @@ func TestCalculateSecurityScore(t *testing.T) {
 		},
 		{
 			name: "document with extreme penalties - score clamps to 0",
-			data: &model.OpnSenseDocument{
-				Filter: model.Filter{Rule: []model.Rule{}}, // No rules: -20
-				System: model.System{User: []model.User{
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{}, // No rules: -20
+				Users: []common.User{
 					{Name: "admin"}, // Default user: -15
 					{Name: "root"},  // Default user: -15
 					{Name: "user"},  // Default user: -15
@@ -162,8 +162,8 @@ func TestCalculateSecurityScore(t *testing.T) {
 					{Name: "root"},  // Default user: -15
 					{Name: "user"},  // Default user: -15
 					{Name: "admin"}, // Default user: -15
-				}},
-				Sysctl: []model.SysctlItem{
+				},
+				Sysctl: []common.SysctlItem{
 					{Tunable: "net.inet.ip.forwarding", Value: "1"},   // Wrong: -5
 					{Tunable: "net.inet6.ip6.forwarding", Value: "1"}, // Wrong: -5
 					{Tunable: "net.inet.tcp.blackhole", Value: "1"},   // Wrong: -5
@@ -190,52 +190,52 @@ func TestAssessServiceRisk(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		service model.Service
+		service string
 		want    string
 	}{
 		{
 			name:    "telnet service",
-			service: model.Service{Name: "telnet"},
+			service: "telnet",
 			want:    "🔴 Critical Risk",
 		},
 		{
 			name:    "ftp service",
-			service: model.Service{Name: "ftp"},
+			service: "ftp",
 			want:    "🟠 High Risk",
 		},
 		{
 			name:    "vnc service",
-			service: model.Service{Name: "vnc-server"},
+			service: "vnc-server",
 			want:    "🟠 High Risk",
 		},
 		{
 			name:    "rdp service",
-			service: model.Service{Name: "rdp"},
+			service: "rdp",
 			want:    "🟡 Medium Risk",
 		},
 		{
 			name:    "ssh service",
-			service: model.Service{Name: "ssh"},
+			service: "ssh",
 			want:    "🟢 Low Risk",
 		},
 		{
 			name:    "https service",
-			service: model.Service{Name: "https"},
+			service: "https",
 			want:    "ℹ️ Informational",
 		},
 		{
 			name:    "unknown service",
-			service: model.Service{Name: "unknown"},
+			service: "unknown",
 			want:    "ℹ️ Informational",
 		},
 		{
 			name:    "case insensitive matching",
-			service: model.Service{Name: "TELNET"},
+			service: "TELNET",
 			want:    "🔴 Critical Risk",
 		},
 		{
 			name:    "service name contains pattern",
-			service: model.Service{Name: "openssh"},
+			service: "openssh",
 			want:    "🟢 Low Risk",
 		},
 	}
@@ -256,130 +256,143 @@ func TestHasManagementOnWAN(t *testing.T) {
 
 	tests := []struct {
 		name string
-		data *model.OpnSenseDocument
+		data *common.CommonDevice
 		want bool
 	}{
 		{
 			name: "no rules",
-			data: &model.OpnSenseDocument{
-				Filter: model.Filter{Rule: []model.Rule{}},
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{},
 			},
 			want: false,
 		},
 		{
 			name: "rule on LAN interface",
-			data: &model.OpnSenseDocument{
-				Filter: model.Filter{Rule: []model.Rule{
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
 					{
-						Interface:   model.InterfaceList{"lan"},
+						Interfaces:  []string{"lan"},
 						Direction:   "in",
-						Destination: model.Destination{Port: "443"},
+						Destination: common.RuleEndpoint{Port: "443"},
 					},
-				}},
+				},
 			},
 			want: false,
 		},
 		{
 			name: "rule on WAN but outbound",
-			data: &model.OpnSenseDocument{
-				Filter: model.Filter{Rule: []model.Rule{
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
 					{
-						Interface:   model.InterfaceList{"wan"},
+						Interfaces:  []string{"wan"},
 						Direction:   "out",
-						Destination: model.Destination{Port: "443"},
+						Destination: common.RuleEndpoint{Port: "443"},
 					},
-				}},
+				},
 			},
 			want: false,
 		},
 		{
 			name: "rule on WAN with non-management port",
-			data: &model.OpnSenseDocument{
-				Filter: model.Filter{Rule: []model.Rule{
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
 					{
-						Interface:   model.InterfaceList{"wan"},
+						Interfaces:  []string{"wan"},
 						Direction:   "in",
-						Destination: model.Destination{Port: "9999"},
+						Destination: common.RuleEndpoint{Port: "9999"},
 					},
-				}},
+				},
 			},
 			want: false,
 		},
 		{
 			name: "rule on WAN with HTTPS port",
-			data: &model.OpnSenseDocument{
-				Filter: model.Filter{Rule: []model.Rule{
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
 					{
-						Interface:   model.InterfaceList{"wan"},
+						Interfaces:  []string{"wan"},
 						Direction:   "in",
-						Destination: model.Destination{Port: "443"},
+						Destination: common.RuleEndpoint{Port: "443"},
 					},
-				}},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "rule on WAN with mixed-case interface name",
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Interfaces:  []string{"WAN"},
+						Direction:   "in",
+						Destination: common.RuleEndpoint{Port: "443"},
+					},
+				},
 			},
 			want: true,
 		},
 		{
 			name: "rule on WAN with HTTP port",
-			data: &model.OpnSenseDocument{
-				Filter: model.Filter{Rule: []model.Rule{
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
 					{
-						Interface:   model.InterfaceList{"wan"},
+						Interfaces:  []string{"wan"},
 						Direction:   "in",
-						Destination: model.Destination{Port: "80"},
+						Destination: common.RuleEndpoint{Port: "80"},
 					},
-				}},
+				},
 			},
 			want: true,
 		},
 		{
 			name: "rule on WAN with SSH port",
-			data: &model.OpnSenseDocument{
-				Filter: model.Filter{Rule: []model.Rule{
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
 					{
-						Interface:   model.InterfaceList{"wan"},
+						Interfaces:  []string{"wan"},
 						Direction:   "in",
-						Destination: model.Destination{Port: "22"},
+						Destination: common.RuleEndpoint{Port: "22"},
 					},
-				}},
+				},
 			},
 			want: true,
 		},
 		{
 			name: "rule on WAN with alternative HTTP port",
-			data: &model.OpnSenseDocument{
-				Filter: model.Filter{Rule: []model.Rule{
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
 					{
-						Interface:   model.InterfaceList{"wan"},
+						Interfaces:  []string{"wan"},
 						Direction:   "in",
-						Destination: model.Destination{Port: "8080"},
+						Destination: common.RuleEndpoint{Port: "8080"},
 					},
-				}},
+				},
 			},
 			want: true,
 		},
 		{
 			name: "rule on WAN with empty direction (defaults to inbound)",
-			data: &model.OpnSenseDocument{
-				Filter: model.Filter{Rule: []model.Rule{
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
 					{
-						Interface:   model.InterfaceList{"wan"},
+						Interfaces:  []string{"wan"},
 						Direction:   "",
-						Destination: model.Destination{Port: "443"},
+						Destination: common.RuleEndpoint{Port: "443"},
 					},
-				}},
+				},
 			},
 			want: true,
 		},
 		{
 			name: "rule on WAN with port in destination string",
-			data: &model.OpnSenseDocument{
-				Filter: model.Filter{Rule: []model.Rule{
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
 					{
-						Interface:   model.InterfaceList{"wan"},
+						Interfaces:  []string{"wan"},
 						Direction:   "in",
-						Destination: model.Destination{Port: "range:80-90"},
+						Destination: common.RuleEndpoint{Port: "range:80-90"},
 					},
-				}},
+				},
 			},
 			want: true,
 		},
@@ -401,21 +414,21 @@ func TestCheckTunable(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		tunables    []model.SysctlItem
+		tunables    []common.SysctlItem
 		tunableName string
 		expected    string
 		want        bool
 	}{
 		{
 			name:        "empty tunables",
-			tunables:    []model.SysctlItem{},
+			tunables:    []common.SysctlItem{},
 			tunableName: "net.inet.ip.forwarding",
 			expected:    "0",
 			want:        false,
 		},
 		{
 			name: "tunable found with correct value",
-			tunables: []model.SysctlItem{
+			tunables: []common.SysctlItem{
 				{Tunable: "net.inet.ip.forwarding", Value: "0"},
 			},
 			tunableName: "net.inet.ip.forwarding",
@@ -424,7 +437,7 @@ func TestCheckTunable(t *testing.T) {
 		},
 		{
 			name: "tunable found with incorrect value",
-			tunables: []model.SysctlItem{
+			tunables: []common.SysctlItem{
 				{Tunable: "net.inet.ip.forwarding", Value: "1"},
 			},
 			tunableName: "net.inet.ip.forwarding",
@@ -433,7 +446,7 @@ func TestCheckTunable(t *testing.T) {
 		},
 		{
 			name: "tunable not found",
-			tunables: []model.SysctlItem{
+			tunables: []common.SysctlItem{
 				{Tunable: "net.inet.ip.forwarding", Value: "0"},
 			},
 			tunableName: "net.inet6.ip6.forwarding",
@@ -442,7 +455,7 @@ func TestCheckTunable(t *testing.T) {
 		},
 		{
 			name: "multiple tunables",
-			tunables: []model.SysctlItem{
+			tunables: []common.SysctlItem{
 				{Tunable: "net.inet.ip.forwarding", Value: "0"},
 				{Tunable: "net.inet6.ip6.forwarding", Value: "0"},
 				{Tunable: "net.inet.tcp.blackhole", Value: "2"},
@@ -469,17 +482,17 @@ func TestIsDefaultUser(t *testing.T) {
 
 	tests := []struct {
 		name string
-		user model.User
+		user common.User
 		want bool
 	}{
-		{"admin user", model.User{Name: "admin"}, true},
-		{"root user", model.User{Name: "root"}, true},
-		{"user user", model.User{Name: "user"}, true},
-		{"admin uppercase", model.User{Name: "ADMIN"}, true},
-		{"root mixed case", model.User{Name: "Root"}, true},
-		{"custom user", model.User{Name: "customuser"}, false},
-		{"empty name", model.User{Name: ""}, false},
-		{"similar name", model.User{Name: "administrator"}, false},
+		{"admin user", common.User{Name: "admin"}, true},
+		{"root user", common.User{Name: "root"}, true},
+		{"user user", common.User{Name: "user"}, true},
+		{"admin uppercase", common.User{Name: "ADMIN"}, true},
+		{"root mixed case", common.User{Name: "Root"}, true},
+		{"custom user", common.User{Name: "customuser"}, false},
+		{"empty name", common.User{Name: ""}, false},
+		{"similar name", common.User{Name: "administrator"}, false},
 	}
 
 	for _, tt := range tests {

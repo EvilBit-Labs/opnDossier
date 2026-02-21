@@ -29,7 +29,7 @@
 
 - **Project Boundaries and Limitations**:
 
-  - Limited to OPNsense config.xml file processing
+  - Architecture supports multiple device types; currently only OPNsense is supported (others planned)
   - No real-time configuration monitoring or management
   - No integration with live firewall systems
   - Offline-only operation with no external API dependencies
@@ -52,8 +52,11 @@
   - Network connectivity or external API calls
   - GUI or web interface development
   - Configuration backup or restore functionality
-  - Integration with other firewall platforms
   - Telemetry or analytics collection
+
+- **Planned/Future**:
+
+  - Support for additional device types (pfSense, Cisco ASA, etc.) is planned; the `ParserFactory` is extensible but not yet populated for other platforms
 
 - **Success Criteria and Acceptance Criteria**:
 
@@ -378,7 +381,7 @@ just build      # Build application
 
 - **Component Interaction Diagrams**:
 
-  - XML Parser → Configuration Processor → Plugin Manager → Compliance Plugins → Markdown Generator → Display Engine
+  - XML Parser → ParserFactory → CommonDevice → Plugin Manager / Compliance Plugins / Markdown Generator → Display Engine
   - Configuration Manager → All Components (dependency injection)
   - CLI Interface → All Components (command orchestration)
   - Plugin Registry → Plugin Manager → Compliance Engine (plugin lifecycle management)
@@ -402,7 +405,7 @@ just build      # Build application
   - Markdown Generator Interface: `GenerateMarkdown(config *Config) (string, error)`
   - Display Interface: `RenderMarkdown(markdown string) error`
   - Configuration Interface: `LoadConfig() (*Settings, error)`
-  - Compliance Plugin Interface: `CompliancePlugin` with methods for plugin lifecycle and compliance checking
+  - Compliance Plugin Interface: `CompliancePlugin` with methods for plugin lifecycle and compliance checking (`RunChecks(*common.CommonDevice)`)
   - Plugin Registry Interface: `PluginRegistry` for plugin registration and management
   - Plugin Manager Interface: `PluginManager` for high-level plugin operations
 
@@ -944,15 +947,15 @@ just build      # Build application
 
 ## Document Metadata
 
-| Field            | Value                                                                            |
-| ---------------- | -------------------------------------------------------------------------------- |
-| Document Version | 2.1                                                                              |
-| Created Date     | 2025-07-23                                                                       |
-| Last Modified    | 2025-07-31                                                                       |
-| Author(s)        | unclesp1d3r <unclesp1d3r@protonmail.com>                                         |
-| Reviewers        | unclesp1d3r <unclesp1d3r@protonmail.com>                                         |
-| Approval Status  | Approved                                                                         |
-| Change Summary   | Balanced verbosity of requirements F016-F025 for consistency with document style |
+| Field            | Value                                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------------------- |
+| Document Version | 2.2                                                                                               |
+| Created Date     | 2025-07-23                                                                                        |
+| Last Modified    | 2026-02-20                                                                                        |
+| Author(s)        | unclesp1d3r <unclesp1d3r@evilbitlabs.io>                                                          |
+| Reviewers        | unclesp1d3r <unclesp1d3r@evilbitlabs.io>                                                          |
+| Approval Status  | Approved                                                                                          |
+| Change Summary   | Updated scope to reflect multi-device architecture; removed single-platform constraint from scope |
 
 ---
 

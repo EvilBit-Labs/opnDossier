@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/schema"
 )
 
 // LegacyXMLParser represents the old DOM-based parsing approach
@@ -30,7 +30,7 @@ func NewLegacyXMLParser() *LegacyXMLParser {
 }
 
 // Parse implements the old approach: load entire XML into memory at once
-func (p *LegacyXMLParser) Parse(_ context.Context, r io.Reader) (*model.OpnSenseDocument, error) {
+func (p *LegacyXMLParser) Parse(_ context.Context, r io.Reader) (*schema.OpnSenseDocument, error) {
 	// Legacy approach: read entire file into memory first
 	limitedReader := io.LimitReader(r, p.MaxInputSize)
 	data, err := io.ReadAll(limitedReader)
@@ -39,7 +39,7 @@ func (p *LegacyXMLParser) Parse(_ context.Context, r io.Reader) (*model.OpnSense
 	}
 
 	// Parse the entire document at once (traditional DOM approach)
-	var doc model.OpnSenseDocument
+	var doc schema.OpnSenseDocument
 	if err := xml.Unmarshal(data, &doc); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal XML: %w", err)
 	}
