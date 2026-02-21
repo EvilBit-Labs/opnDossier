@@ -229,7 +229,7 @@ func TestHybridGenerator_Generate_NilData(t *testing.T) {
 			opts := DefaultOptions().WithFormat(tt.format)
 			_, err := gen.Generate(context.Background(), nil, opts)
 			require.Error(t, err)
-			assert.ErrorIs(t, err, ErrNilConfiguration)
+			assert.ErrorIs(t, err, ErrNilDevice)
 		})
 	}
 }
@@ -258,7 +258,7 @@ func TestHybridGenerator_GenerateToWriter_NilData(t *testing.T) {
 			opts := DefaultOptions().WithFormat(tt.format)
 			err := gen.GenerateToWriter(context.Background(), &buf, nil, opts)
 			require.Error(t, err)
-			assert.ErrorIs(t, err, ErrNilConfiguration)
+			assert.ErrorIs(t, err, ErrNilDevice)
 		})
 	}
 }

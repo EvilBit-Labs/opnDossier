@@ -139,8 +139,8 @@ func TestHybridGenerator_Generate_NilData(t *testing.T) {
 	if generateErr == nil {
 		t.Error("Expected error for nil data")
 	}
-	if !errors.Is(generateErr, converter.ErrNilConfiguration) {
-		t.Errorf("Expected ErrNilConfiguration, got %v", generateErr)
+	if !errors.Is(generateErr, converter.ErrNilDevice) {
+		t.Errorf("Expected ErrNilDevice, got %v", generateErr)
 	}
 }
 

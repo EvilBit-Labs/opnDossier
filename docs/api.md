@@ -103,7 +103,6 @@ The codebase uses sentinel errors for expected conditions:
 var ErrMissingOpnSenseDocumentRoot = errors.New("invalid XML: missing opnsense root element")
 
 // converter package
-var ErrNilConfiguration = errors.New("configuration cannot be nil")
 var ErrNilDevice = errors.New("device configuration is nil")
 ```
 

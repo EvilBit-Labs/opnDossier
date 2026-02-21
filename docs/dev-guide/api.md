@@ -125,14 +125,22 @@ The platform-agnostic device model, defined in `internal/model/common/`:
 
 ```go
 type CommonDevice struct {
-    DeviceType string       `json:"device_type" yaml:"device_type"`
-    Version    string       `json:"version" yaml:"version"`
-    System     System       `json:"system" yaml:"system"`
-    Network    Network      `json:"network" yaml:"network"`
-    Firewall   Firewall     `json:"firewall" yaml:"firewall"`
-    VPN        VPN          `json:"vpn" yaml:"vpn"`
-    Services   Services     `json:"services" yaml:"services"`
-    // ... additional fields
+    DeviceType DeviceType      `json:"device_type" yaml:"device_type"`
+    Version    string          `json:"version,omitempty" yaml:"version,omitempty"`
+    System     System          `json:"system" yaml:"system,omitempty"`
+    Interfaces []Interface     `json:"interfaces,omitempty" yaml:"interfaces,omitempty"`
+    FirewallRules []FirewallRule `json:"firewallRules,omitempty" yaml:"firewallRules,omitempty"`
+    NAT        NATConfig       `json:"nat" yaml:"nat,omitempty"`
+    VPN        VPN             `json:"vpn" yaml:"vpn,omitempty"`
+    Routing    Routing         `json:"routing" yaml:"routing,omitempty"`
+    DNS        DNSConfig       `json:"dns" yaml:"dns,omitempty"`
+    DHCP       []DHCPScope     `json:"dhcp,omitempty" yaml:"dhcp,omitempty"`
+    // ... additional fields (Users, Groups, Certificates, etc.)
+
+    // Computed/enrichment fields (populated by prepareForExport)
+    Statistics         *Statistics         `json:"statistics,omitempty"`
+    SecurityAssessment *SecurityAssessment `json:"securityAssessment,omitempty"`
+    // ...
 }
 ```
 
@@ -309,7 +317,6 @@ if err := someOperation(); err != nil {
 var ErrMissingOpnSenseDocumentRoot = errors.New("invalid XML: missing opnsense root element")
 
 // converter package
-var ErrNilConfiguration = errors.New("configuration cannot be nil")
 var ErrNilDevice = errors.New("device configuration is nil")
 ```
 
