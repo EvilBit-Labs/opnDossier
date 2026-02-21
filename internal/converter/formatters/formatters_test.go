@@ -2,8 +2,6 @@ package formatters
 
 import (
 	"testing"
-
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
 func TestFormatInterfacesAsLinks(t *testing.T) {
@@ -11,27 +9,27 @@ func TestFormatInterfacesAsLinks(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		interfaces model.InterfaceList
+		interfaces []string
 		want       string
 	}{
 		{
 			name:       "empty list",
-			interfaces: model.InterfaceList{},
+			interfaces: []string{},
 			want:       "",
 		},
 		{
 			name:       "single interface",
-			interfaces: model.InterfaceList{"wan"},
+			interfaces: []string{"wan"},
 			want:       "[wan](#wan-interface)",
 		},
 		{
 			name:       "multiple interfaces",
-			interfaces: model.InterfaceList{"wan", "lan"},
+			interfaces: []string{"wan", "lan"},
 			want:       "[wan](#wan-interface), [lan](#lan-interface)",
 		},
 		{
 			name:       "uppercase interface",
-			interfaces: model.InterfaceList{"WAN"},
+			interfaces: []string{"WAN"},
 			want:       "[WAN](#wan-interface)",
 		},
 	}
@@ -70,50 +68,6 @@ func TestFormatBoolean(t *testing.T) {
 			got := FormatBoolean(tt.value)
 			if got != tt.want {
 				t.Errorf("FormatBoolean(%q) = %q, want %q", tt.value, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestFormatBoolFlag(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name  string
-		value model.BoolFlag
-		want  string
-	}{
-		{"true returns checkmark", true, "✓"},
-		{"false returns x-mark", false, "✗"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			if got := FormatBoolFlag(tt.value); got != tt.want {
-				t.Errorf("FormatBoolFlag(%v) = %q, want %q", tt.value, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestFormatBoolFlagInverted(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name  string
-		value model.BoolFlag
-		want  string
-	}{
-		{"true returns x-mark (inverted)", true, "✗"},
-		{"false returns checkmark (inverted)", false, "✓"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			if got := FormatBoolFlagInverted(tt.value); got != tt.want {
-				t.Errorf("FormatBoolFlagInverted(%v) = %q, want %q", tt.value, got, tt.want)
 			}
 		})
 	}

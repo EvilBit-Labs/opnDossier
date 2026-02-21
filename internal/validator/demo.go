@@ -4,7 +4,7 @@ package validator
 import (
 	"fmt"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/schema"
 )
 
 // DemoValidation runs example validations of OPNsense configuration data, printing results for valid, invalid, and cross-field error scenarios.
@@ -17,21 +17,21 @@ func DemoValidation() {
 	// Example 1: Valid configuration
 	fmt.Println("1. Valid Configuration:")
 
-	validConfig := &model.OpnSenseDocument{
-		System: model.System{
+	validConfig := &schema.OpnSenseDocument{
+		System: schema.System{
 			Hostname: "OPNsense",
 			Domain:   "localdomain",
 			Timezone: "America/New_York",
-			Group: []model.Group{
+			Group: []schema.Group{
 				{Name: "admins", Gid: "1999", Scope: "system"},
 			},
-			User: []model.User{
+			User: []schema.User{
 				{Name: "root", UID: "0", Groupname: "admins", Scope: "system"},
 			},
 		},
-		Filter: model.Filter{
-			Rule: []model.Rule{
-				{Type: "pass", IPProtocol: "inet", Interface: model.InterfaceList{"lan"}},
+		Filter: schema.Filter{
+			Rule: []schema.Rule{
+				{Type: "pass", IPProtocol: "inet", Interface: schema.InterfaceList{"lan"}},
 			},
 		},
 	}
@@ -52,22 +52,22 @@ func DemoValidation() {
 	// Example 2: Invalid configuration
 	fmt.Println("2. Invalid Configuration:")
 
-	invalidConfig := &model.OpnSenseDocument{
-		System: model.System{
+	invalidConfig := &schema.OpnSenseDocument{
+		System: schema.System{
 			// Missing required hostname
 			Domain:       "example.com",
 			Timezone:     "Invalid/Timezone", // Invalid timezone
 			Optimization: "invalid",          // Invalid optimization
-			Group: []model.Group{
+			Group: []schema.Group{
 				{Name: "admins", Gid: "abc", Scope: "invalid"}, // Invalid GID and scope
 				{Name: "admins", Gid: "1999", Scope: "system"}, // Duplicate name
 			},
-			User: []model.User{
+			User: []schema.User{
 				{Name: "root", UID: "-1", Groupname: "nonexistent", Scope: "system"}, // Negative UID, invalid group
 			},
 		},
-		Interfaces: model.Interfaces{
-			Items: map[string]model.Interface{
+		Interfaces: schema.Interfaces{
+			Items: map[string]schema.Interface{
 				"lan": {
 					IPAddr:   "invalid-ip", // Invalid IP
 					Subnet:   "35",         // Invalid subnet
@@ -75,19 +75,19 @@ func DemoValidation() {
 				},
 			},
 		},
-		Dhcpd: model.Dhcpd{
-			Items: map[string]model.DhcpdInterface{
+		Dhcpd: schema.Dhcpd{
+			Items: map[string]schema.DhcpdInterface{
 				"lan": {
-					Range: model.Range{
+					Range: schema.Range{
 						From: "192.168.1.200",
 						To:   "192.168.1.100", // Invalid range order
 					},
 				},
 			},
 		},
-		Filter: model.Filter{
-			Rule: []model.Rule{
-				{Type: "invalid", IPProtocol: "ipv4", Interface: model.InterfaceList{"invalid"}}, // All invalid
+		Filter: schema.Filter{
+			Rule: []schema.Rule{
+				{Type: "invalid", IPProtocol: "ipv4", Interface: schema.InterfaceList{"invalid"}}, // All invalid
 			},
 		},
 	}
@@ -104,11 +104,11 @@ func DemoValidation() {
 	// Example 3: Cross-field validation
 	fmt.Println("3. Cross-field Validation Example:")
 
-	crossFieldConfig := &model.OpnSenseDocument{
-		System: model.System{
+	crossFieldConfig := &schema.OpnSenseDocument{
+		System: schema.System{
 			Hostname: "test",
 			Domain:   "example.com",
-			User: []model.User{
+			User: []schema.User{
 				{
 					Name:      "user1",
 					UID:       "1000",
@@ -117,8 +117,8 @@ func DemoValidation() {
 				}, // References non-existent group
 			},
 		},
-		Interfaces: model.Interfaces{
-			Items: map[string]model.Interface{
+		Interfaces: schema.Interfaces{
+			Items: map[string]schema.Interface{
 				"lan": {
 					IPAddrv6: "track6", // Missing track6-interface and track6-prefix-id
 				},

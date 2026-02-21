@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/schema"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,70 +13,70 @@ import (
 func TestInterfaceReferences_TableDriven(t *testing.T) {
 	tests := []struct {
 		name               string
-		interfaces         map[string]model.Interface
-		filterRules        []model.Rule
-		dhcpInterfaces     map[string]model.DhcpdInterface
+		interfaces         map[string]schema.Interface
+		filterRules        []schema.Rule
+		dhcpInterfaces     map[string]schema.DhcpdInterface
 		expectedErrors     int
 		expectedErrorsDesc []string
 	}{
 		{
 			name: "known interfaces - opt0, opt1, opt2 - should pass",
-			interfaces: map[string]model.Interface{
+			interfaces: map[string]schema.Interface{
 				"wan":  {Enable: "1", If: "vtnet0"},
 				"lan":  {Enable: "1", If: "vtnet1"},
 				"opt0": {Enable: "1", If: "wg1"},
 				"opt1": {Enable: "1", If: "vtnet2"},
 				"opt2": {Enable: "1", If: "vtnet3"},
 			},
-			filterRules: []model.Rule{
+			filterRules: []schema.Rule{
 				{
 					Type:      "pass",
-					Interface: model.InterfaceList{"opt0"},
-					Source:    model.Source{Network: "opt0"},
+					Interface: schema.InterfaceList{"opt0"},
+					Source:    schema.Source{Network: "opt0"},
 				},
 				{
 					Type:        "pass",
-					Interface:   model.InterfaceList{"opt1"},
-					Destination: model.Destination{Network: "opt1ip"},
+					Interface:   schema.InterfaceList{"opt1"},
+					Destination: schema.Destination{Network: "opt1ip"},
 				},
 				{
 					Type:      "pass",
-					Interface: model.InterfaceList{"opt2"},
-					Source:    model.Source{Network: "opt2ip"},
+					Interface: schema.InterfaceList{"opt2"},
+					Source:    schema.Source{Network: "opt2ip"},
 				},
 			},
-			dhcpInterfaces: map[string]model.DhcpdInterface{
-				"opt1": {Range: model.Range{From: "172.17.0.10", To: "172.17.0.250"}},
-				"opt2": {Range: model.Range{From: "172.18.0.10", To: "172.18.0.250"}},
+			dhcpInterfaces: map[string]schema.DhcpdInterface{
+				"opt1": {Range: schema.Range{From: "172.17.0.10", To: "172.17.0.250"}},
+				"opt2": {Range: schema.Range{From: "172.18.0.10", To: "172.18.0.250"}},
 			},
 			expectedErrors:     0,
 			expectedErrorsDesc: []string{},
 		},
 		{
 			name: "unknown interface references - should fail",
-			interfaces: map[string]model.Interface{
+			interfaces: map[string]schema.Interface{
 				"wan": {Enable: "1", If: "vtnet0"},
 				"lan": {Enable: "1", If: "vtnet1"},
 			},
-			filterRules: []model.Rule{
+			filterRules: []schema.Rule{
 				{
 					Type:      "pass",
-					Interface: model.InterfaceList{"opt99"}, // Unknown interface
-					Source:    model.Source{Network: "any"},
+					Interface: schema.InterfaceList{"opt99"}, // Unknown interface
+					Source:    schema.Source{Network: "any"},
 				},
 				{
 					Type:      "pass",
-					Interface: model.InterfaceList{"lan"},
-					Source:    model.Source{Network: "nonexistent"}, // Unknown source network
+					Interface: schema.InterfaceList{"lan"},
+					Source:    schema.Source{Network: "nonexistent"}, // Unknown source network
 				},
 				{
 					Type:        "pass",
-					Interface:   model.InterfaceList{"wan"},
-					Destination: model.Destination{Network: "opt5ip"}, // Unknown destination
+					Interface:   schema.InterfaceList{"wan"},
+					Destination: schema.Destination{Network: "opt5ip"}, // Unknown destination
 				},
 			},
-			dhcpInterfaces: map[string]model.DhcpdInterface{
-				"opt3": {Range: model.Range{From: "10.0.0.10", To: "10.0.0.250"}}, // Unknown DHCP interface
+			dhcpInterfaces: map[string]schema.DhcpdInterface{
+				"opt3": {Range: schema.Range{From: "10.0.0.10", To: "10.0.0.250"}}, // Unknown DHCP interface
 			},
 			expectedErrors: 4,
 			expectedErrorsDesc: []string{
@@ -88,30 +88,30 @@ func TestInterfaceReferences_TableDriven(t *testing.T) {
 		},
 		{
 			name: "mixed known and unknown interfaces - partial failures",
-			interfaces: map[string]model.Interface{
+			interfaces: map[string]schema.Interface{
 				"wan":  {Enable: "1", If: "vtnet0"},
 				"lan":  {Enable: "1", If: "vtnet1"},
 				"opt0": {Enable: "1", If: "vtnet2"},
 			},
-			filterRules: []model.Rule{
+			filterRules: []schema.Rule{
 				{
 					Type:      "pass",
-					Interface: model.InterfaceList{"opt0"},     // Known - should pass
-					Source:    model.Source{Network: "opt0ip"}, // Known - should pass
+					Interface: schema.InterfaceList{"opt0"},     // Known - should pass
+					Source:    schema.Source{Network: "opt0ip"}, // Known - should pass
 				},
 				{
 					Type:      "pass",
-					Interface: model.InterfaceList{"opt1"}, // Unknown - should fail
-					Source:    model.Source{Network: "any"},
+					Interface: schema.InterfaceList{"opt1"}, // Unknown - should fail
+					Source:    schema.Source{Network: "any"},
 				},
 				{
 					Type:        "pass",
-					Interface:   model.InterfaceList{"lan"},           // Known
-					Destination: model.Destination{Network: "opt0ip"}, // Known - should pass
+					Interface:   schema.InterfaceList{"lan"},           // Known
+					Destination: schema.Destination{Network: "opt0ip"}, // Known - should pass
 				},
 			},
-			dhcpInterfaces: map[string]model.DhcpdInterface{
-				"opt0": {Range: model.Range{From: "10.0.0.10", To: "10.0.0.250"}}, // Known - should pass
+			dhcpInterfaces: map[string]schema.DhcpdInterface{
+				"opt0": {Range: schema.Range{From: "10.0.0.10", To: "10.0.0.250"}}, // Known - should pass
 			},
 			expectedErrors: 1, // Only opt1 interface should fail
 			expectedErrorsDesc: []string{
@@ -120,30 +120,30 @@ func TestInterfaceReferences_TableDriven(t *testing.T) {
 		},
 		{
 			name: "interface name with ip suffix validation",
-			interfaces: map[string]model.Interface{
+			interfaces: map[string]schema.Interface{
 				"wan":  {Enable: "1", If: "vtnet0"},
 				"lan":  {Enable: "1", If: "vtnet1"},
 				"opt0": {Enable: "1", If: "vtnet2"},
 				"opt1": {Enable: "1", If: "vtnet3"},
 			},
-			filterRules: []model.Rule{
+			filterRules: []schema.Rule{
 				{
 					Type:      "pass",
-					Interface: model.InterfaceList{"lan"},
-					Source:    model.Source{Network: "wanip"}, // Should resolve to "wan" and pass
+					Interface: schema.InterfaceList{"lan"},
+					Source:    schema.Source{Network: "wanip"}, // Should resolve to "wan" and pass
 				},
 				{
 					Type:        "pass",
-					Interface:   model.InterfaceList{"opt0"},
-					Destination: model.Destination{Network: "opt1ip"}, // Should resolve to "opt1" and pass
+					Interface:   schema.InterfaceList{"opt0"},
+					Destination: schema.Destination{Network: "opt1ip"}, // Should resolve to "opt1" and pass
 				},
 				{
 					Type:      "pass",
-					Interface: model.InterfaceList{"opt1"},
-					Source:    model.Source{Network: "opt99ip"}, // Should resolve to "opt99" and fail
+					Interface: schema.InterfaceList{"opt1"},
+					Source:    schema.Source{Network: "opt99ip"}, // Should resolve to "opt99" and fail
 				},
 			},
-			dhcpInterfaces: map[string]model.DhcpdInterface{},
+			dhcpInterfaces: map[string]schema.DhcpdInterface{},
 			expectedErrors: 1,
 			expectedErrorsDesc: []string{
 				"source network 'opt99ip' must be a valid CIDR",
@@ -151,7 +151,7 @@ func TestInterfaceReferences_TableDriven(t *testing.T) {
 		},
 		{
 			name: "track6 interface validation",
-			interfaces: map[string]model.Interface{
+			interfaces: map[string]schema.Interface{
 				"wan": {Enable: "1", If: "vtnet0"},
 				"lan": {
 					Enable:          "1",
@@ -168,8 +168,8 @@ func TestInterfaceReferences_TableDriven(t *testing.T) {
 					Track6PrefixID:  "1",
 				},
 			},
-			filterRules:    []model.Rule{},
-			dhcpInterfaces: map[string]model.DhcpdInterface{},
+			filterRules:    []schema.Rule{},
+			dhcpInterfaces: map[string]schema.DhcpdInterface{},
 			expectedErrors: 1,
 			expectedErrorsDesc: []string{
 				"track6-interface 'nonexistent' must reference a configured interface",
@@ -177,7 +177,7 @@ func TestInterfaceReferences_TableDriven(t *testing.T) {
 		},
 		{
 			name: "comprehensive opt interfaces validation - real-world scenario",
-			interfaces: map[string]model.Interface{
+			interfaces: map[string]schema.Interface{
 				"wan":  {Enable: "1", If: "vtnet0", IPAddr: "192.0.2.10"},
 				"lan":  {Enable: "1", If: "vtnet1", IPAddr: "172.16.0.1"},
 				"opt0": {Enable: "1", If: "wg1"},                          // WireGuard interface
@@ -185,38 +185,38 @@ func TestInterfaceReferences_TableDriven(t *testing.T) {
 				"opt2": {Enable: "1", If: "vtnet3", IPAddr: "172.18.0.1"}, // DMZ
 				"lo0":  {Enable: "1", If: "lo0", IPAddr: "127.0.0.1"},     // Loopback
 			},
-			filterRules: []model.Rule{
+			filterRules: []schema.Rule{
 				// WAN rule referencing wanip
 				{
 					Type:        "pass",
-					Interface:   model.InterfaceList{"wan"},
-					Destination: model.Destination{Network: "wanip"},
+					Interface:   schema.InterfaceList{"wan"},
+					Destination: schema.Destination{Network: "wanip"},
 				},
 				// LAN rule with standard network reference
 				{
 					Type:      "pass",
-					Interface: model.InterfaceList{"lan"},
-					Source:    model.Source{Network: "lan"},
+					Interface: schema.InterfaceList{"lan"},
+					Source:    schema.Source{Network: "lan"},
 				},
 				// OPT0 (WireGuard) rule
 				{
 					Type:        "pass",
-					Interface:   model.InterfaceList{"opt0"},
-					Source:      model.Source{Network: "opt0"},
-					Destination: model.Destination{Network: "opt0ip"},
+					Interface:   schema.InterfaceList{"opt0"},
+					Source:      schema.Source{Network: "opt0"},
+					Destination: schema.Destination{Network: "opt0ip"},
 				},
 				// OPT1 to OPT2 communication
 				{
 					Type:        "pass",
-					Interface:   model.InterfaceList{"opt1"},
-					Source:      model.Source{Network: "opt1ip"},
-					Destination: model.Destination{Network: "opt2ip"},
+					Interface:   schema.InterfaceList{"opt1"},
+					Source:      schema.Source{Network: "opt1ip"},
+					Destination: schema.Destination{Network: "opt2ip"},
 				},
 			},
-			dhcpInterfaces: map[string]model.DhcpdInterface{
-				"lan":  {Range: model.Range{From: "172.16.0.10", To: "172.16.0.250"}},
-				"opt1": {Range: model.Range{From: "172.17.0.10", To: "172.17.0.250"}},
-				"opt2": {Range: model.Range{From: "172.18.0.10", To: "172.18.0.250"}},
+			dhcpInterfaces: map[string]schema.DhcpdInterface{
+				"lan":  {Range: schema.Range{From: "172.16.0.10", To: "172.16.0.250"}},
+				"opt1": {Range: schema.Range{From: "172.17.0.10", To: "172.17.0.250"}},
+				"opt2": {Range: schema.Range{From: "172.18.0.10", To: "172.18.0.250"}},
 			},
 			expectedErrors:     0, // All references should be valid
 			expectedErrorsDesc: []string{},
@@ -226,22 +226,22 @@ func TestInterfaceReferences_TableDriven(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create the test configuration
-			config := &model.OpnSenseDocument{
-				System: model.System{
+			config := &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "test-host",
 					Domain:   "test.local",
-					WebGUI:   model.WebGUIConfig{Protocol: "https"},
+					WebGUI:   schema.WebGUIConfig{Protocol: "https"},
 					Bogons: struct {
 						Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
 					}{Interval: "monthly"},
 				},
-				Interfaces: model.Interfaces{
+				Interfaces: schema.Interfaces{
 					Items: tt.interfaces,
 				},
-				Filter: model.Filter{
+				Filter: schema.Filter{
 					Rule: tt.filterRules,
 				},
-				Dhcpd: model.Dhcpd{
+				Dhcpd: schema.Dhcpd{
 					Items: tt.dhcpInterfaces,
 				},
 			}
@@ -340,17 +340,17 @@ func TestInterfaceNameResolution_EdgeCases(t *testing.T) {
 // multiple validation aspects including opt interfaces.
 func TestValidation_RealWorldScenarios(t *testing.T) {
 	t.Run("complex firewall configuration with opt interfaces", func(t *testing.T) {
-		config := &model.OpnSenseDocument{
-			System: model.System{
+		config := &schema.OpnSenseDocument{
+			System: schema.System{
 				Hostname: "firewall",
 				Domain:   "example.com",
-				WebGUI:   model.WebGUIConfig{Protocol: "https"},
+				WebGUI:   schema.WebGUIConfig{Protocol: "https"},
 				Bogons: struct {
 					Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
 				}{Interval: "monthly"},
 			},
-			Interfaces: model.Interfaces{
-				Items: map[string]model.Interface{
+			Interfaces: schema.Interfaces{
+				Items: map[string]schema.Interface{
 					"wan": {
 						Enable:      "1",
 						If:          "vtnet0",
@@ -395,66 +395,66 @@ func TestValidation_RealWorldScenarios(t *testing.T) {
 					},
 				},
 			},
-			Filter: model.Filter{
-				Rule: []model.Rule{
+			Filter: schema.Filter{
+				Rule: []schema.Rule{
 					// WAN UDP rule for WireGuard
 					{
 						Type:        "pass",
-						Interface:   model.InterfaceList{"wan"},
+						Interface:   schema.InterfaceList{"wan"},
 						IPProtocol:  "inet",
-						Source:      model.Source{Network: "any"},
-						Destination: model.Destination{Network: "wanip"},
+						Source:      schema.Source{Network: "any"},
+						Destination: schema.Destination{Network: "wanip"},
 					},
 					// LAN to any
 					{
 						Type:       "pass",
-						Interface:  model.InterfaceList{"lan"},
+						Interface:  schema.InterfaceList{"lan"},
 						IPProtocol: "inet",
-						Source:     model.Source{Network: "lan"},
+						Source:     schema.Source{Network: "lan"},
 					},
 					// LAN IPv6 to any
 					{
 						Type:       "pass",
-						Interface:  model.InterfaceList{"lan"},
+						Interface:  schema.InterfaceList{"lan"},
 						IPProtocol: "inet6",
-						Source:     model.Source{Network: "lan"},
+						Source:     schema.Source{Network: "lan"},
 					},
 					// OPT0 WireGuard rule
 					{
 						Type:        "pass",
-						Interface:   model.InterfaceList{"opt0"},
+						Interface:   schema.InterfaceList{"opt0"},
 						IPProtocol:  "inet",
-						Source:      model.Source{Network: "opt0"},
-						Destination: model.Destination{Network: "opt0ip"},
+						Source:      schema.Source{Network: "opt0"},
+						Destination: schema.Destination{Network: "opt0ip"},
 					},
 				},
 			},
-			Dhcpd: model.Dhcpd{
-				Items: map[string]model.DhcpdInterface{
+			Dhcpd: schema.Dhcpd{
+				Items: map[string]schema.DhcpdInterface{
 					"lan": {
-						Range: model.Range{
+						Range: schema.Range{
 							From: "172.16.0.10",
 							To:   "172.16.0.250",
 						},
 					},
 					"opt1": {
-						Range: model.Range{
+						Range: schema.Range{
 							From: "172.17.0.10",
 							To:   "172.17.0.250",
 						},
 					},
 					"opt2": {
-						Range: model.Range{
+						Range: schema.Range{
 							From: "172.18.0.10",
 							To:   "172.18.0.250",
 						},
 					},
 				},
 			},
-			Unbound: model.Unbound{Enable: "on"},
-			Snmpd:   model.Snmpd{ROCommunity: "public"},
-			Nat:     model.Nat{Outbound: model.Outbound{Mode: "automatic"}},
-			Sysctl: []model.SysctlItem{
+			Unbound: schema.Unbound{Enable: "on"},
+			Snmpd:   schema.Snmpd{ROCommunity: "public"},
+			Nat:     schema.Nat{Outbound: schema.Outbound{Mode: "automatic"}},
+			Sysctl: []schema.SysctlItem{
 				{
 					Tunable: "net.inet.icmp.drop_redirect",
 					Value:   "1",
@@ -498,17 +498,17 @@ func TestValidation_RealWorldScenarios(t *testing.T) {
 func TestSampleConfig2_ZeroValidationErrors(t *testing.T) {
 	// This test represents the structure and content from sample.config.2.xml
 	// but constructs it manually to avoid parser dependency issues
-	config := &model.OpnSenseDocument{
-		System: model.System{
+	config := &schema.OpnSenseDocument{
+		System: schema.System{
 			Hostname: "TestHost2",
 			Domain:   "test.local",
-			WebGUI:   model.WebGUIConfig{Protocol: "https"},
+			WebGUI:   schema.WebGUIConfig{Protocol: "https"},
 			SSH: struct {
 				Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
 			}{Group: "admins"},
 		},
-		Interfaces: model.Interfaces{
-			Items: map[string]model.Interface{
+		Interfaces: schema.Interfaces{
+			Items: map[string]schema.Interface{
 				"wan": {
 					Enable: "1",
 					If:     "vtnet0",
@@ -539,57 +539,57 @@ func TestSampleConfig2_ZeroValidationErrors(t *testing.T) {
 				},
 			},
 		},
-		Filter: model.Filter{
-			Rule: []model.Rule{
+		Filter: schema.Filter{
+			Rule: []schema.Rule{
 				// Sample rules that reference opt interfaces
 				{
 					Type:        "pass",
-					Interface:   model.InterfaceList{"opt0"},
+					Interface:   schema.InterfaceList{"opt0"},
 					IPProtocol:  "inet",
-					Source:      model.Source{Network: "opt0"},
-					Destination: model.Destination{Network: "any"},
+					Source:      schema.Source{Network: "opt0"},
+					Destination: schema.Destination{Network: "any"},
 				},
 				{
 					Type:        "pass",
-					Interface:   model.InterfaceList{"opt1"},
+					Interface:   schema.InterfaceList{"opt1"},
 					IPProtocol:  "inet",
-					Source:      model.Source{Network: "opt1ip"},
-					Destination: model.Destination{Network: "opt2ip"},
+					Source:      schema.Source{Network: "opt1ip"},
+					Destination: schema.Destination{Network: "opt2ip"},
 				},
 				{
 					Type:        "pass",
-					Interface:   model.InterfaceList{"opt2"},
+					Interface:   schema.InterfaceList{"opt2"},
 					IPProtocol:  "inet",
-					Source:      model.Source{Network: "any"},
-					Destination: model.Destination{Network: "opt2ip"},
+					Source:      schema.Source{Network: "any"},
+					Destination: schema.Destination{Network: "opt2ip"},
 				},
 			},
 		},
-		Dhcpd: model.Dhcpd{
-			Items: map[string]model.DhcpdInterface{
+		Dhcpd: schema.Dhcpd{
+			Items: map[string]schema.DhcpdInterface{
 				"lan": {
-					Range: model.Range{
+					Range: schema.Range{
 						From: "172.16.0.10",
 						To:   "172.16.0.250",
 					},
 				},
 				"opt1": {
-					Range: model.Range{
+					Range: schema.Range{
 						From: "172.17.0.10",
 						To:   "172.17.0.250",
 					},
 				},
 				"opt2": {
-					Range: model.Range{
+					Range: schema.Range{
 						From: "172.18.0.10",
 						To:   "172.18.0.250",
 					},
 				},
 			},
 		},
-		Nat:     model.Nat{Outbound: model.Outbound{Mode: "automatic"}},
-		Unbound: model.Unbound{Enable: "on"},
-		Snmpd:   model.Snmpd{ROCommunity: "public"},
+		Nat:     schema.Nat{Outbound: schema.Outbound{Mode: "automatic"}},
+		Unbound: schema.Unbound{Enable: "on"},
+		Snmpd:   schema.Snmpd{ROCommunity: "public"},
 	}
 
 	// **KEY REQUIREMENT**: Validate the configuration and assert len(errors)==0

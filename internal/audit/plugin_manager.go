@@ -6,7 +6,7 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/firewall"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/sans"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/stig"
@@ -95,13 +95,13 @@ func (pm *PluginManager) ListAvailablePlugins(ctx context.Context) []PluginInfo 
 // RunComplianceAudit runs compliance checks using specified plugins.
 func (pm *PluginManager) RunComplianceAudit(
 	ctx context.Context,
-	config *model.OpnSenseDocument,
+	device *common.CommonDevice,
 	pluginNames []string,
 ) (*ComplianceResult, error) {
 	logger := pm.logger.WithContext(ctx)
 	logger.Info("Starting compliance audit", "plugins", pluginNames)
 
-	result, err := pm.registry.RunComplianceChecks(config, pluginNames)
+	result, err := pm.registry.RunComplianceChecks(device, pluginNames)
 	if err != nil {
 		return nil, fmt.Errorf("compliance audit failed: %w", err)
 	}

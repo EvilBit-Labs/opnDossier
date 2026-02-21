@@ -10,7 +10,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 // TestDetermineOutputPathSimple tests basic output path determination.
@@ -69,8 +69,8 @@ func TestGenerateOutputByFormatSimple(t *testing.T) {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
 
-	opnsense := &model.OpnSenseDocument{
-		System: model.System{
+	device := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-firewall",
 		},
 	}
@@ -83,7 +83,7 @@ func TestGenerateOutputByFormatSimple(t *testing.T) {
 		Theme:  converter.ThemeAuto,
 	}
 
-	result, err := generateOutputByFormat(ctx, opnsense, opt, audit.Options{}, logger)
+	result, err := generateOutputByFormat(ctx, device, opt, audit.Options{}, logger)
 	if err != nil {
 		t.Errorf("Unexpected error for markdown: %v", err)
 	}
@@ -93,7 +93,7 @@ func TestGenerateOutputByFormatSimple(t *testing.T) {
 
 	// Test JSON format - programmatic generation should succeed
 	opt.Format = converter.FormatJSON
-	jsonResult, err := generateOutputByFormat(ctx, opnsense, opt, audit.Options{}, logger)
+	jsonResult, err := generateOutputByFormat(ctx, device, opt, audit.Options{}, logger)
 	if err != nil {
 		t.Errorf("JSON format should succeed with programmatic generator: %v", err)
 	}
@@ -103,7 +103,7 @@ func TestGenerateOutputByFormatSimple(t *testing.T) {
 
 	// Test unknown format (should return an error)
 	opt.Format = converter.Format("unknown")
-	_, err = generateOutputByFormat(ctx, opnsense, opt, audit.Options{}, logger)
+	_, err = generateOutputByFormat(ctx, device, opt, audit.Options{}, logger)
 	if err == nil {
 		t.Errorf("Expected error for unknown format, got nil")
 	} else if !errors.Is(err, ErrUnsupportedOutputFormat) {
@@ -118,8 +118,8 @@ func TestGenerateWithProgrammaticGeneratorSimple(t *testing.T) {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
 
-	opnsense := &model.OpnSenseDocument{
-		System: model.System{
+	device := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-firewall",
 		},
 	}
@@ -132,7 +132,7 @@ func TestGenerateWithProgrammaticGeneratorSimple(t *testing.T) {
 		Theme:  converter.ThemeAuto,
 	}
 
-	result, err := generateWithProgrammaticGenerator(ctx, opnsense, opt, logger)
+	result, err := generateWithProgrammaticGenerator(ctx, device, opt, logger)
 	if err != nil {
 		t.Errorf("Unexpected error for programmatic mode: %v", err)
 	}

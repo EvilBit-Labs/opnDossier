@@ -11,16 +11,19 @@ import (
 	"time"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
-	"github.com/EvilBit-Labs/opnDossier/internal/enrichment"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/nao1215/markdown"
 	"gopkg.in/yaml.v3"
 )
 
-// Report contains the results of processing an OPNsense configuration.
+// Report contains the results of processing a device configuration.
 // It includes the normalized configuration, analysis findings, and statistics.
 type Report struct {
 	mu sync.RWMutex `json:"-" yaml:"-"` // protects Findings for concurrent access
+
+	// DeviceType identifies the platform at the top level for easy access
+	DeviceType common.DeviceType `json:"device_type" yaml:"device_type"`
+
 	// GeneratedAt contains the timestamp when the report was generated
 	GeneratedAt time.Time `json:"generatedAt"`
 
@@ -28,7 +31,7 @@ type Report struct {
 	ConfigInfo ConfigInfo `json:"configInfo"`
 
 	// NormalizedConfig contains the processed and normalized configuration
-	NormalizedConfig *model.OpnSenseDocument `json:"normalizedConfig,omitempty"`
+	NormalizedConfig *common.CommonDevice `json:"normalizedConfig,omitempty"`
 
 	// Statistics contains various statistics about the configuration
 	Statistics *Statistics `json:"statistics,omitempty"`
@@ -42,14 +45,16 @@ type Report struct {
 
 // ConfigInfo contains basic information about the processed configuration.
 type ConfigInfo struct {
-	// Hostname is the configured hostname of the OPNsense system
+	// Hostname is the configured hostname of the system
 	Hostname string `json:"hostname"`
 	// Domain is the configured domain name
 	Domain string `json:"domain"`
-	// Version is the OPNsense version (if available)
+	// Version is the firmware version (if available)
 	Version string `json:"version,omitempty"`
 	// Theme is the configured web UI theme
 	Theme string `json:"theme,omitempty"`
+	// DeviceType identifies the platform
+	DeviceType common.DeviceType `json:"deviceType,omitempty"`
 }
 
 // Statistics contains various statistics about the configuration.
@@ -184,7 +189,7 @@ const (
 )
 
 // NewReport returns a new Report instance populated with configuration metadata, processor settings, and optionally generated statistics and normalized configuration data.
-func NewReport(cfg *model.OpnSenseDocument, processorConfig Config) *Report {
+func NewReport(cfg *common.CommonDevice, processorConfig Config) *Report {
 	report := &Report{
 		GeneratedAt:     time.Now().UTC(),
 		ProcessorConfig: processorConfig,
@@ -199,11 +204,14 @@ func NewReport(cfg *model.OpnSenseDocument, processorConfig Config) *Report {
 
 	if cfg != nil {
 		report.ConfigInfo = ConfigInfo{
-			Hostname: cfg.Hostname(),
-			Domain:   cfg.System.Domain,
-			Version:  cfg.Version,
-			Theme:    cfg.Theme,
+			Hostname:   cfg.System.Hostname,
+			Domain:     cfg.System.Domain,
+			Version:    cfg.Version,
+			Theme:      cfg.Theme,
+			DeviceType: cfg.DeviceType,
 		}
+
+		report.DeviceType = cfg.DeviceType
 
 		if processorConfig.EnableStats {
 			report.Statistics = generateStatistics(cfg)
@@ -649,10 +657,36 @@ func (r *Report) addFindingsSection(md *markdown.Markdown, title string, finding
 	}
 }
 
-// generateStatistics analyzes an OPNsense configuration and returns aggregated statistics.
-//
-// The returned Statistics struct includes interface details, firewall and NAT rule counts, DHCP scopes, user and group counts, enabled services, system settings, detected security features, and summary metrics such as total configuration items, security score, and complexity.
-func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
+// findInterface returns the interface with the given name, or nil if not found.
+func findInterface(interfaces []common.Interface, name string) *common.Interface {
+	for i := range interfaces {
+		if interfaces[i].Name == name {
+			return &interfaces[i]
+		}
+	}
+	return nil
+}
+
+// findDHCPScope returns the DHCP scope for the given interface, or nil if not found.
+func findDHCPScope(scopes []common.DHCPScope, ifaceName string) *common.DHCPScope {
+	for i := range scopes {
+		if scopes[i].Interface == ifaceName {
+			return &scopes[i]
+		}
+	}
+	return nil
+}
+
+// calculateTotalConfigItems calculates the total number of configuration items
+// by summing all relevant components.
+func calculateTotalConfigItems(stats *Statistics) int {
+	return stats.TotalInterfaces + stats.TotalFirewallRules + stats.TotalUsers + stats.TotalGroups +
+		stats.TotalServices + stats.TotalGateways + stats.TotalGatewayGroups + stats.SysctlSettings +
+		stats.DHCPScopes + stats.LoadBalancerMonitors
+}
+
+// generateStatistics analyzes a device configuration and returns aggregated statistics.
+func generateStatistics(cfg *common.CommonDevice) *Statistics {
 	stats := &Statistics{
 		InterfacesByType: make(map[string]int),
 		InterfaceDetails: []InterfaceStatistics{},
@@ -667,137 +701,88 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 	}
 
 	// Interface statistics
-	stats.TotalInterfaces = 2 // WAN and LAN are always present
-	stats.InterfacesByType["wan"] = 1
-	stats.InterfacesByType["lan"] = 1
+	stats.TotalInterfaces = len(cfg.Interfaces)
+	for _, iface := range cfg.Interfaces {
+		ifaceType := iface.Type
+		stats.InterfacesByType[ifaceType]++
 
-	// Interface details
-	wanStats := InterfaceStatistics{
-		Name: "wan",
-		Type: "wan",
+		dhcpScope := findDHCPScope(cfg.DHCP, iface.Name)
+		ifStats := InterfaceStatistics{
+			Name:        iface.Name,
+			Type:        iface.Type,
+			Enabled:     iface.Enabled,
+			HasIPv4:     iface.IPAddress != "",
+			HasIPv6:     iface.IPv6Address != "",
+			HasDHCP:     dhcpScope != nil && dhcpScope.Enabled,
+			BlockPriv:   iface.BlockPrivate,
+			BlockBogons: iface.BlockBogons,
+		}
+		stats.InterfaceDetails = append(stats.InterfaceDetails, ifStats)
 	}
-	if wanDhcp, exists := cfg.Dhcpd.Wan(); exists {
-		wanStats.HasDHCP = wanDhcp.Enable != ""
-	}
-
-	if wan, ok := cfg.Interfaces.Wan(); ok {
-		wanStats.Enabled = wan.Enable != ""
-		wanStats.HasIPv4 = wan.IPAddr != ""
-		wanStats.HasIPv6 = wan.IPAddrv6 != ""
-		wanStats.BlockPriv = wan.BlockPriv != ""
-		wanStats.BlockBogons = wan.BlockBogons != ""
-	}
-
-	lanStats := InterfaceStatistics{
-		Name: "lan",
-		Type: "lan",
-	}
-	if lanDhcp, exists := cfg.Dhcpd.Lan(); exists {
-		lanStats.HasDHCP = lanDhcp.Enable != ""
-	}
-
-	if lan, ok := cfg.Interfaces.Lan(); ok {
-		lanStats.Enabled = lan.Enable != ""
-		lanStats.HasIPv4 = lan.IPAddr != ""
-		lanStats.HasIPv6 = lan.IPAddrv6 != ""
-		lanStats.BlockPriv = lan.BlockPriv != ""
-		lanStats.BlockBogons = lan.BlockBogons != ""
-	}
-
-	stats.InterfaceDetails = append(stats.InterfaceDetails, wanStats, lanStats)
 
 	// Firewall rule statistics
-	rules := cfg.FilterRules()
-
-	stats.TotalFirewallRules = len(rules)
-	for _, rule := range rules {
-		// Count each interface in the rule separately
-		for _, iface := range rule.Interface {
+	stats.TotalFirewallRules = len(cfg.FirewallRules)
+	for _, rule := range cfg.FirewallRules {
+		for _, iface := range rule.Interfaces {
 			stats.RulesByInterface[iface]++
 		}
 		stats.RulesByType[rule.Type]++
 	}
 
 	// NAT statistics
-	stats.NATMode = cfg.Nat.Outbound.Mode
-	if cfg.Nat.Outbound.Mode != "" {
-		stats.NATEntries = 1 // Count NAT configuration as present
-	}
+	stats.NATMode = cfg.NAT.OutboundMode
+	stats.NATEntries = len(cfg.NAT.OutboundRules)
 
 	// Gateway statistics
-	stats.TotalGateways = len(cfg.Gateways.Gateway)
-	stats.TotalGatewayGroups = len(cfg.Gateways.Groups)
+	stats.TotalGateways = len(cfg.Routing.Gateways)
+	stats.TotalGatewayGroups = len(cfg.Routing.GatewayGroups)
 
 	// DHCP statistics
 	dhcpScopes := 0
-	if lanDhcp, exists := cfg.Dhcpd.Lan(); exists && lanDhcp.Enable != "" {
-		dhcpScopes++
-
-		stats.DHCPScopeDetails = append(stats.DHCPScopeDetails, DHCPScopeStatistics{
-			Interface: "lan",
-			Enabled:   true,
-			From:      lanDhcp.Range.From,
-			To:        lanDhcp.Range.To,
-		})
+	for _, scope := range cfg.DHCP {
+		if scope.Enabled {
+			dhcpScopes++
+			stats.DHCPScopeDetails = append(stats.DHCPScopeDetails, DHCPScopeStatistics{
+				Interface: scope.Interface,
+				Enabled:   true,
+				From:      scope.Range.From,
+				To:        scope.Range.To,
+			})
+		}
 	}
-
-	if wanDhcp, exists := cfg.Dhcpd.Wan(); exists && wanDhcp.Enable != "" {
-		dhcpScopes++
-
-		stats.DHCPScopeDetails = append(stats.DHCPScopeDetails, DHCPScopeStatistics{
-			Interface: "wan",
-			Enabled:   true,
-			From:      wanDhcp.Range.From,
-			To:        wanDhcp.Range.To,
-		})
-	}
-
 	stats.DHCPScopes = dhcpScopes
 
 	// User and group statistics
-	stats.TotalUsers = len(cfg.System.User)
-
-	stats.TotalGroups = len(cfg.System.Group)
-	for _, user := range cfg.System.User {
+	stats.TotalUsers = len(cfg.Users)
+	stats.TotalGroups = len(cfg.Groups)
+	for _, user := range cfg.Users {
 		stats.UsersByScope[user.Scope]++
 	}
-
-	for _, group := range cfg.System.Group {
+	for _, group := range cfg.Groups {
 		stats.GroupsByScope[group.Scope]++
 	}
 
 	// Service statistics
 	serviceCount := 0
 
-	if lanDhcp, exists := cfg.Dhcpd.Lan(); exists && lanDhcp.Enable != "" {
-		stats.EnabledServices = append(stats.EnabledServices, "DHCP Server (LAN)")
-		stats.ServiceDetails = append(stats.ServiceDetails, ServiceStatistics{
-			Name:    "DHCP Server (LAN)",
-			Enabled: true,
-			Details: map[string]string{
-				"interface": "lan",
-				"from":      lanDhcp.Range.From,
-				"to":        lanDhcp.Range.To,
-			},
-		})
-		serviceCount++
+	for _, scope := range cfg.DHCP {
+		if scope.Enabled {
+			serviceName := fmt.Sprintf("DHCP Server (%s)", strings.ToUpper(scope.Interface))
+			stats.EnabledServices = append(stats.EnabledServices, serviceName)
+			stats.ServiceDetails = append(stats.ServiceDetails, ServiceStatistics{
+				Name:    serviceName,
+				Enabled: true,
+				Details: map[string]string{
+					"interface": scope.Interface,
+					"from":      scope.Range.From,
+					"to":        scope.Range.To,
+				},
+			})
+			serviceCount++
+		}
 	}
 
-	if wanDhcp, exists := cfg.Dhcpd.Wan(); exists && wanDhcp.Enable != "" {
-		stats.EnabledServices = append(stats.EnabledServices, "DHCP Server (WAN)")
-		stats.ServiceDetails = append(stats.ServiceDetails, ServiceStatistics{
-			Name:    "DHCP Server (WAN)",
-			Enabled: true,
-			Details: map[string]string{
-				"interface": "wan",
-				"from":      wanDhcp.Range.From,
-				"to":        wanDhcp.Range.To,
-			},
-		})
-		serviceCount++
-	}
-
-	if cfg.Unbound.Enable != "" {
+	if cfg.DNS.Unbound.Enabled {
 		stats.EnabledServices = append(stats.EnabledServices, "Unbound DNS Resolver")
 		stats.ServiceDetails = append(stats.ServiceDetails, ServiceStatistics{
 			Name:    "Unbound DNS Resolver",
@@ -806,15 +791,15 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 		serviceCount++
 	}
 
-	if cfg.Snmpd.ROCommunity != "" {
+	if cfg.SNMP.ROCommunity != "" {
 		stats.EnabledServices = append(stats.EnabledServices, "SNMP Daemon")
 		stats.ServiceDetails = append(stats.ServiceDetails, ServiceStatistics{
 			Name:    "SNMP Daemon",
 			Enabled: true,
 			Details: map[string]string{
-				"location":  cfg.Snmpd.SysLocation,
-				"contact":   cfg.Snmpd.SysContact,
-				"community": "[REDACTED]", // Don't expose actual community string
+				"location":  cfg.SNMP.SysLocation,
+				"contact":   cfg.SNMP.SysContact,
+				"community": "[REDACTED]",
 			},
 		})
 		serviceCount++
@@ -832,13 +817,13 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 		serviceCount++
 	}
 
-	if cfg.Ntpd.Prefer != "" {
+	if cfg.NTP.PreferredServer != "" {
 		stats.EnabledServices = append(stats.EnabledServices, "NTP Daemon")
 		stats.ServiceDetails = append(stats.ServiceDetails, ServiceStatistics{
 			Name:    "NTP Daemon",
 			Enabled: true,
 			Details: map[string]string{
-				"prefer": cfg.Ntpd.Prefer,
+				"prefer": cfg.NTP.PreferredServer,
 			},
 		})
 		serviceCount++
@@ -848,15 +833,15 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 
 	// System configuration statistics
 	stats.SysctlSettings = len(cfg.Sysctl)
-	stats.LoadBalancerMonitors = len(cfg.LoadBalancer.MonitorType)
+	stats.LoadBalancerMonitors = len(cfg.LoadBalancer.MonitorTypes)
 
 	// Security features detection
-	if wan, ok := cfg.Interfaces.Wan(); ok {
-		if wan.BlockPriv != "" {
+	wan := findInterface(cfg.Interfaces, "wan")
+	if wan != nil {
+		if wan.BlockPrivate {
 			stats.SecurityFeatures = append(stats.SecurityFeatures, "Block Private Networks")
 		}
-
-		if wan.BlockBogons != "" {
+		if wan.BlockBogons {
 			stats.SecurityFeatures = append(stats.SecurityFeatures, "Block Bogon Networks")
 		}
 	}
@@ -865,22 +850,19 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 		stats.SecurityFeatures = append(stats.SecurityFeatures, "HTTPS Web GUI")
 	}
 
-	if cfg.System.DisableNATReflection != "" {
+	if cfg.System.DisableNATReflection {
 		stats.SecurityFeatures = append(stats.SecurityFeatures, "NAT Reflection Disabled")
 	}
 
 	// IDS/IPS statistics
-	// Note: IDS/IPS entries are NOT added to SecurityFeatures to avoid
-	// double-counting in calculateSecurityScore, which applies explicit
-	// +15 (IDS) and +10 (IPS) bonuses separately.
-	ids := cfg.OPNsense.IntrusionDetectionSystem
-	if ids != nil && ids.IsEnabled() {
+	ids := cfg.IDS
+	if ids != nil && ids.Enabled {
 		stats.IDSEnabled = true
-		stats.IDSMonitoredInterfaces = ids.GetMonitoredInterfaces()
-		stats.IDSDetectionProfile = ids.General.Detect.Profile
-		stats.IDSLoggingEnabled = ids.IsSyslogEnabled() || ids.IsSyslogEveEnabled()
+		stats.IDSMonitoredInterfaces = ids.Interfaces
+		stats.IDSDetectionProfile = ids.Detect.Profile
+		stats.IDSLoggingEnabled = ids.SyslogEnabled || ids.SyslogEveEnabled
 
-		if ids.IsIPSMode() {
+		if ids.IPSMode {
 			stats.IDSMode = "IPS (Prevention)"
 		} else {
 			stats.IDSMode = "IDS (Detection Only)"
@@ -892,18 +874,7 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 	configComplexity := calculateConfigComplexity(stats)
 
 	stats.Summary = StatisticsSummary{
-		TotalConfigItems: enrichment.CalculateTotalConfigItems(enrichment.ConfigItemCounts{
-			Interfaces:     stats.TotalInterfaces,
-			FirewallRules:  stats.TotalFirewallRules,
-			Users:          stats.TotalUsers,
-			Groups:         stats.TotalGroups,
-			Services:       stats.TotalServices,
-			Gateways:       stats.TotalGateways,
-			GatewayGroups:  stats.TotalGatewayGroups,
-			SysctlSettings: stats.SysctlSettings,
-			DHCPScopes:     stats.DHCPScopes,
-			LBMonitors:     stats.LoadBalancerMonitors,
-		}),
+		TotalConfigItems:    calculateTotalConfigItems(stats),
 		SecurityScore:       securityScore,
 		ConfigComplexity:    configComplexity,
 		HasSecurityFeatures: len(stats.SecurityFeatures) > 0,
@@ -912,8 +883,8 @@ func generateStatistics(cfg *model.OpnSenseDocument) *Statistics {
 	return stats
 }
 
-// calculateSecurityScore returns a security score for the given OPNsense configuration based on detected security features, firewall rules, HTTPS Web GUI usage, and SSH group configuration. The score is capped at a defined maximum.
-func calculateSecurityScore(cfg *model.OpnSenseDocument, stats *Statistics) int {
+// calculateSecurityScore returns a security score for the given configuration based on detected security features, firewall rules, HTTPS Web GUI usage, and SSH group configuration. The score is capped at a defined maximum.
+func calculateSecurityScore(cfg *common.CommonDevice, stats *Statistics) int {
 	score := 0
 
 	// Security features contribute to score
@@ -935,9 +906,9 @@ func calculateSecurityScore(cfg *model.OpnSenseDocument, stats *Statistics) int 
 	}
 
 	// IDS/IPS configuration
-	if cfg.OPNsense.IntrusionDetectionSystem != nil && cfg.OPNsense.IntrusionDetectionSystem.IsEnabled() {
+	if cfg.IDS != nil && cfg.IDS.Enabled {
 		score += 15
-		if cfg.OPNsense.IntrusionDetectionSystem.IsIPSMode() {
+		if cfg.IDS.IPSMode {
 			score += 10
 		}
 	}

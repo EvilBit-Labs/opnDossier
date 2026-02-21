@@ -77,14 +77,14 @@ opnDossier v2.0 introduces programmatic markdown generation, replacing the templ
 ```go
 // ReportBuilder interface for programmatic generation
 type ReportBuilder interface {
-    BuildStandardReport(data *model.OpnSenseDocument) (string, error)
-    BuildCustomReport(data *model.OpnSenseDocument, options BuildOptions) (string, error)
+    BuildStandardReport(data *common.CommonDevice) (string, error)
+    BuildCustomReport(data *common.CommonDevice, options BuildOptions) (string, error)
 
     // Section builders
-    BuildSystemSection(data *model.OpnSenseDocument) string
-    BuildNetworkSection(data *model.OpnSenseDocument) string
-    BuildSecuritySection(data *model.OpnSenseDocument) string
-    BuildServicesSection(data *model.OpnSenseDocument) string
+    BuildSystemSection(data *common.CommonDevice) string
+    BuildNetworkSection(data *common.CommonDevice) string
+    BuildSecuritySection(data *common.CommonDevice) string
+    BuildServicesSection(data *common.CommonDevice) string
 
     // Component builders
     BuildFirewallRulesTable(rules []model.Rule) *markdown.TableSet
@@ -113,7 +113,7 @@ type ReportBuilder interface {
 2. **Error Handling**: Return explicit errors with context
 
    ```go
-   func (b *MarkdownBuilder) BuildSection(data *model.OpnSenseDocument) (string, error) {
+   func (b *MarkdownBuilder) BuildSection(data *common.CommonDevice) (string, error) {
        if data == nil {
            return "", fmt.Errorf("configuration data cannot be nil")
        }

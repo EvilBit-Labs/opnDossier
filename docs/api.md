@@ -14,12 +14,12 @@ Defined in `internal/converter/builder/builder.go` (key methods shown; see sourc
 
 ```go
 type ReportBuilder interface {
-    BuildStandardReport(data *model.OpnSenseDocument) (string, error)
-    BuildComprehensiveReport(data *model.OpnSenseDocument) (string, error)
-    BuildSystemSection(data *model.OpnSenseDocument) string
-    BuildNetworkSection(data *model.OpnSenseDocument) string
-    BuildSecuritySection(data *model.OpnSenseDocument) string
-    BuildServicesSection(data *model.OpnSenseDocument) string
+    BuildStandardReport(data *common.CommonDevice) (string, error)
+    BuildComprehensiveReport(data *common.CommonDevice) (string, error)
+    BuildSystemSection(data *common.CommonDevice) string
+    BuildNetworkSection(data *common.CommonDevice) string
+    BuildSecuritySection(data *common.CommonDevice) string
+    BuildServicesSection(data *common.CommonDevice) string
     // Plus ~15 Write*Table methods for individual components
 }
 ```
@@ -30,12 +30,12 @@ Defined in `internal/converter/hybrid_generator.go`:
 
 ```go
 type Generator interface {
-    Generate(ctx context.Context, cfg *model.OpnSenseDocument, opts Options) (string, error)
+    Generate(ctx context.Context, cfg *common.CommonDevice, opts Options) (string, error)
 }
 
 type StreamingGenerator interface {
     Generator
-    GenerateToWriter(ctx context.Context, w io.Writer, cfg *model.OpnSenseDocument, opts Options) error
+    GenerateToWriter(ctx context.Context, w io.Writer, cfg *common.CommonDevice, opts Options) error
 }
 ```
 
@@ -45,7 +45,7 @@ Standalone functions in `internal/converter/formatters/`:
 
 ```go
 // Calculate an overall security score (0-100)
-formatters.CalculateSecurityScore(doc *model.OpnSenseDocument) int
+formatters.CalculateSecurityScore(data *common.CommonDevice) int
 
 // Convert severity strings to risk level labels
 formatters.AssessRiskLevel(severity string) string
@@ -62,20 +62,19 @@ formatters.GroupServicesByStatus(services []model.Service) map[string][]model.Se
 
 ## Parser API
 
-The XML parser is in `internal/cfgparser/`:
+The preferred entry point is `ParserFactory` in `internal/model/factory.go`, which auto-detects the device type and returns a `common.CommonDevice`:
 
 ```go
-// Create a new parser
-parser := cfgparser.NewXMLParser()
+factory := model.NewParserFactory()
 
-// Parse from an io.Reader
-doc, err := parser.Parse(ctx, reader)
+// Auto-detect device type and parse
+device, err := factory.CreateDevice(ctx, reader, "", false)
 
-// Validate the parsed document
-err := parser.Validate(doc)
+// With validation
+device, err := factory.CreateDevice(ctx, reader, "", true)
 ```
 
-The parser supports UTF-8, US-ASCII, ISO-8859-1, and Windows-1252 encodings. Input is limited to 10MB by default (`DefaultMaxInputSize`).
+The underlying XML parser (`internal/cfgparser/XMLParser`) supports UTF-8, US-ASCII, ISO-8859-1, and Windows-1252 encodings. Input is limited to 10MB by default (`DefaultMaxInputSize`).
 
 ## Converter API
 
@@ -84,15 +83,15 @@ The converter in `internal/converter/` provides format-specific converters:
 ```go
 // Markdown conversion
 converter := converter.NewMarkdownConverter()
-markdown, err := converter.ToMarkdown(ctx, doc)
+markdown, err := converter.ToMarkdown(ctx, device)
 
 // JSON conversion
 jsonConverter := converter.NewJSONConverter()
-jsonStr, err := jsonConverter.ToJSON(ctx, doc)
+jsonStr, err := jsonConverter.ToJSON(ctx, device)
 
 // YAML conversion
 yamlConverter := converter.NewYAMLConverter()
-yamlStr, err := yamlConverter.ToYAML(ctx, doc)
+yamlStr, err := yamlConverter.ToYAML(ctx, device)
 ```
 
 ## Error Handling
@@ -104,7 +103,7 @@ The codebase uses sentinel errors for expected conditions:
 var ErrMissingOpnSenseDocumentRoot = errors.New("invalid XML: missing opnsense root element")
 
 // converter package
-var ErrNilOpnSenseDocument = errors.New("input OpnSenseDocument struct is nil")
+var ErrNilDevice = errors.New("device configuration is nil")
 ```
 
 All errors are wrapped with context using `fmt.Errorf("context: %w", err)`.

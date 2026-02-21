@@ -3,7 +3,7 @@ package converter
 import (
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -43,72 +43,72 @@ func TestMarkdownBuilder_AssessServiceRisk(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		service      model.Service
+		service      string
 		expectedRisk string
 	}{
 		{
 			name:         "Telnet service - critical risk",
-			service:      model.Service{Name: "Telnet Server"},
+			service:      "Telnet Server",
 			expectedRisk: "🔴 Critical Risk",
 		},
 		{
 			name:         "Telnet case insensitive",
-			service:      model.Service{Name: "TELNET daemon"},
+			service:      "TELNET daemon",
 			expectedRisk: "🔴 Critical Risk",
 		},
 		{
 			name:         "FTP service - high risk",
-			service:      model.Service{Name: "vsftpd FTP"},
+			service:      "vsftpd FTP",
 			expectedRisk: "🟠 High Risk",
 		},
 		{
 			name:         "FTP case insensitive",
-			service:      model.Service{Name: "FTP Server"},
+			service:      "FTP Server",
 			expectedRisk: "🟠 High Risk",
 		},
 		{
 			name:         "VNC service - high risk",
-			service:      model.Service{Name: "VNC Server"},
+			service:      "VNC Server",
 			expectedRisk: "🟠 High Risk",
 		},
 		{
 			name:         "RDP service - medium risk",
-			service:      model.Service{Name: "RDP listener"},
+			service:      "RDP listener",
 			expectedRisk: "🟡 Medium Risk",
 		},
 		{
 			name:         "RDP case insensitive",
-			service:      model.Service{Name: "rdp service"},
+			service:      "rdp service",
 			expectedRisk: "🟡 Medium Risk",
 		},
 		{
 			name:         "SSH service - low risk",
-			service:      model.Service{Name: "ssh"},
+			service:      "ssh",
 			expectedRisk: "🟢 Low Risk",
 		},
 		{
 			name:         "SSH case insensitive",
-			service:      model.Service{Name: "SSH Daemon"},
+			service:      "SSH Daemon",
 			expectedRisk: "🟢 Low Risk",
 		},
 		{
 			name:         "HTTPS service - informational",
-			service:      model.Service{Name: "https"},
+			service:      "https",
 			expectedRisk: "ℹ️ Informational",
 		},
 		{
 			name:         "HTTPS case insensitive",
-			service:      model.Service{Name: "HTTPS Server"},
+			service:      "HTTPS Server",
 			expectedRisk: "ℹ️ Informational",
 		},
 		{
 			name:         "Unknown service - informational",
-			service:      model.Service{Name: "custom"},
+			service:      "custom",
 			expectedRisk: "ℹ️ Informational",
 		},
 		{
 			name:         "Empty service name - informational",
-			service:      model.Service{Name: ""},
+			service:      "",
 			expectedRisk: "ℹ️ Informational",
 		},
 	}
@@ -130,20 +130,16 @@ func TestMarkdownBuilder_CalculateSecurityScore(t *testing.T) {
 	})
 
 	t.Run("good baseline configuration", func(t *testing.T) {
-		cfg := &model.OpnSenseDocument{
-			Filter: model.Filter{
-				Rule: []model.Rule{{Type: "block"}}, // at least one rule
-			},
-			Sysctl: []model.SysctlItem{
+		cfg := &common.CommonDevice{
+			FirewallRules: []common.FirewallRule{{Type: "block"}}, // at least one rule
+			Sysctl: []common.SysctlItem{
 				{Tunable: "net.inet.ip.forwarding", Value: "0"},
 				{Tunable: "net.inet6.ip6.forwarding", Value: "0"},
 				{Tunable: "net.inet.tcp.blackhole", Value: "2"},
 				{Tunable: "net.inet.udp.blackhole", Value: "1"},
 			},
-			System: model.System{
-				User: []model.User{
-					{Name: "john"}, // non-default user
-				},
+			Users: []common.User{
+				{Name: "john"}, // non-default user
 			},
 		}
 		score := b.CalculateSecurityScore(cfg)
@@ -152,22 +148,18 @@ func TestMarkdownBuilder_CalculateSecurityScore(t *testing.T) {
 	})
 
 	t.Run("poor configuration with management on WAN", func(t *testing.T) {
-		cfg := &model.OpnSenseDocument{
-			Filter: model.Filter{
-				Rule: []model.Rule{
-					{ // Management on WAN
-						Type:      "pass",
-						Interface: model.InterfaceList{"wan"},
-						Destination: model.Destination{
-							Port: "22",
-						},
+		cfg := &common.CommonDevice{
+			FirewallRules: []common.FirewallRule{
+				{ // Management on WAN
+					Type:       "pass",
+					Interfaces: []string{"wan"},
+					Destination: common.RuleEndpoint{
+						Port: "22",
 					},
 				},
 			},
-			System: model.System{
-				User: []model.User{
-					{Name: "admin"}, // default user
-				},
+			Users: []common.User{
+				{Name: "admin"}, // default user
 			},
 		}
 		score := b.CalculateSecurityScore(cfg)
@@ -175,14 +167,10 @@ func TestMarkdownBuilder_CalculateSecurityScore(t *testing.T) {
 	})
 
 	t.Run("no firewall rules", func(t *testing.T) {
-		cfg := &model.OpnSenseDocument{
-			Filter: model.Filter{
-				Rule: []model.Rule{}, // no rules
-			},
-			System: model.System{
-				User: []model.User{
-					{Name: "normaluser"},
-				},
+		cfg := &common.CommonDevice{
+			FirewallRules: []common.FirewallRule{}, // no rules
+			Users: []common.User{
+				{Name: "normaluser"},
 			},
 		}
 		score := b.CalculateSecurityScore(cfg)
@@ -190,18 +178,14 @@ func TestMarkdownBuilder_CalculateSecurityScore(t *testing.T) {
 	})
 
 	t.Run("bad sysctl settings", func(t *testing.T) {
-		cfg := &model.OpnSenseDocument{
-			Filter: model.Filter{
-				Rule: []model.Rule{{Type: "block"}},
-			},
-			Sysctl: []model.SysctlItem{
+		cfg := &common.CommonDevice{
+			FirewallRules: []common.FirewallRule{{Type: "block"}},
+			Sysctl: []common.SysctlItem{
 				{Tunable: "net.inet.ip.forwarding", Value: "1"}, // Bad: forwarding enabled
 				{Tunable: "net.inet.tcp.blackhole", Value: "0"}, // Bad: blackhole disabled
 			},
-			System: model.System{
-				User: []model.User{
-					{Name: "normaluser"},
-				},
+			Users: []common.User{
+				{Name: "normaluser"},
 			},
 		}
 		score := b.CalculateSecurityScore(cfg)
@@ -210,24 +194,20 @@ func TestMarkdownBuilder_CalculateSecurityScore(t *testing.T) {
 
 	t.Run("score bounds", func(t *testing.T) {
 		// Test extreme case that would result in negative score
-		cfg := &model.OpnSenseDocument{
-			Filter: model.Filter{
-				Rule: []model.Rule{
-					{ // Management on WAN
-						Type:      "pass",
-						Interface: model.InterfaceList{"wan"},
-						Destination: model.Destination{
-							Port: "22",
-						},
+		cfg := &common.CommonDevice{
+			FirewallRules: []common.FirewallRule{
+				{ // Management on WAN
+					Type:       "pass",
+					Interfaces: []string{"wan"},
+					Destination: common.RuleEndpoint{
+						Port: "22",
 					},
 				},
 			},
-			System: model.System{
-				User: []model.User{
-					{Name: "admin"}, // -15
-					{Name: "root"},  // -15
-					{Name: "user"},  // -15
-				},
+			Users: []common.User{
+				{Name: "admin"}, // -15
+				{Name: "root"},  // -15
+				{Name: "user"},  // -15
 			},
 		}
 		score := b.CalculateSecurityScore(cfg)

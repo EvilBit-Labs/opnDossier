@@ -3,7 +3,7 @@ package sans
 
 import (
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 // Plugin implements the compliance.Plugin interface for SANS plugin.
@@ -77,11 +77,11 @@ func (sp *Plugin) Description() string {
 }
 
 // RunChecks performs SANS compliance checks.
-func (sp *Plugin) RunChecks(config *model.OpnSenseDocument) []compliance.Finding {
+func (sp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	var findings []compliance.Finding
 
 	// SANS-FW-001: Default deny policy
-	if !sp.hasDefaultDenyPolicy(config) {
+	if !sp.hasDefaultDenyPolicy(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Missing Default Deny Policy (SANS)",
@@ -95,7 +95,7 @@ func (sp *Plugin) RunChecks(config *model.OpnSenseDocument) []compliance.Finding
 	}
 
 	// SANS-FW-002: Explicit rule configuration
-	if sp.hasUnclearRules(config) {
+	if sp.hasUnclearRules(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Non-Explicit Firewall Rules",
@@ -109,7 +109,7 @@ func (sp *Plugin) RunChecks(config *model.OpnSenseDocument) []compliance.Finding
 	}
 
 	// SANS-FW-003: Network zone separation
-	if !sp.hasProperZoneSeparation(config) {
+	if !sp.hasProperZoneSeparation(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Insufficient Network Zone Separation",
@@ -123,7 +123,7 @@ func (sp *Plugin) RunChecks(config *model.OpnSenseDocument) []compliance.Finding
 	}
 
 	// SANS-FW-004: Comprehensive logging
-	if !sp.hasComprehensiveLogging(config) {
+	if !sp.hasComprehensiveLogging(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Insufficient Firewall Logging",
@@ -166,23 +166,23 @@ func (sp *Plugin) ValidateConfiguration() error {
 
 // Helper methods for compliance checks
 
-func (sp *Plugin) hasDefaultDenyPolicy(_ *model.OpnSenseDocument) bool {
+func (sp *Plugin) hasDefaultDenyPolicy(_ *common.CommonDevice) bool {
 	// Check for default deny policy configuration
 	return true // Placeholder - implement actual logic
 }
 
-func (sp *Plugin) hasUnclearRules(_ *model.OpnSenseDocument) bool {
+func (sp *Plugin) hasUnclearRules(_ *common.CommonDevice) bool {
 	// Check for unclear or overly permissive rules
 	// This would analyze firewall rules for catch-all patterns, overly broad ranges, etc.
 	return false // Placeholder - implement actual logic
 }
 
-func (sp *Plugin) hasProperZoneSeparation(_ *model.OpnSenseDocument) bool {
+func (sp *Plugin) hasProperZoneSeparation(_ *common.CommonDevice) bool {
 	// Check for proper network zone separation
 	return true // Placeholder - implement actual logic
 }
 
-func (sp *Plugin) hasComprehensiveLogging(_ *model.OpnSenseDocument) bool {
+func (sp *Plugin) hasComprehensiveLogging(_ *common.CommonDevice) bool {
 	// Check for comprehensive logging configuration
 	return true // Placeholder - implement actual logic
 }

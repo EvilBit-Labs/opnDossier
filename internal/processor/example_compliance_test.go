@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,16 +17,16 @@ func TestExampleProcessor_ComplianceChecks(t *testing.T) {
 
 	tests := []struct {
 		name               string
-		config             *model.OpnSenseDocument
+		config             *common.CommonDevice
 		expectedBySeverity map[Severity]int
 		expectedTitles     []string
 		expectedComponents map[string]string
 	}{
 		{
 			name: "No administrative users configured",
-			config: func() *model.OpnSenseDocument {
+			config: func() *common.CommonDevice {
 				cfg := baseComplianceConfig()
-				cfg.System.User = nil
+				cfg.Users = nil
 				return cfg
 			}(),
 			expectedBySeverity: map[Severity]int{
@@ -40,49 +40,11 @@ func TestExampleProcessor_ComplianceChecks(t *testing.T) {
 			},
 		},
 		{
-			name: "Users without passwords",
-			config: func() *model.OpnSenseDocument {
-				cfg := baseComplianceConfig()
-				cfg.System.User = []model.User{
-					buildUser("operator", "", "admins", "local", false),
-				}
-				return cfg
-			}(),
-			expectedBySeverity: map[Severity]int{
-				SeverityHigh: 1,
-			},
-			expectedTitles: []string{
-				"Password Policy Not Enforced",
-			},
-			expectedComponents: map[string]string{
-				"Password Policy Not Enforced": "users",
-			},
-		},
-		{
-			name: "Users with whitespace-only passwords",
-			config: func() *model.OpnSenseDocument {
-				cfg := baseComplianceConfig()
-				cfg.System.User = []model.User{
-					buildUser("operator", "   ", "admins", "local", false),
-				}
-				return cfg
-			}(),
-			expectedBySeverity: map[Severity]int{
-				SeverityHigh: 1,
-			},
-			expectedTitles: []string{
-				"Password Policy Not Enforced",
-			},
-			expectedComponents: map[string]string{
-				"Password Policy Not Enforced": "users",
-			},
-		},
-		{
 			name: "Disabled administrative users",
-			config: func() *model.OpnSenseDocument {
+			config: func() *common.CommonDevice {
 				cfg := baseComplianceConfig()
-				cfg.System.User = []model.User{
-					buildUser("ops-admin", "hash", "admins", "local", true),
+				cfg.Users = []common.User{
+					buildUser("ops-admin", "admins", "local", true),
 				}
 				return cfg
 			}(),
@@ -100,12 +62,12 @@ func TestExampleProcessor_ComplianceChecks(t *testing.T) {
 			},
 		},
 		{
-			name: "Non-admin users without passwords",
-			config: func() *model.OpnSenseDocument {
+			name: "Non-admin users",
+			config: func() *common.CommonDevice {
 				cfg := baseComplianceConfig()
-				cfg.System.User = []model.User{
-					buildUser("analyst", "", "users", "local", false),
-					buildUser("admin", "hash", "admins", "local", false),
+				cfg.Users = []common.User{
+					buildUser("analyst", "users", "local", false),
+					buildUser("admin", "admins", "local", false),
 				}
 				return cfg
 			}(),
@@ -113,12 +75,12 @@ func TestExampleProcessor_ComplianceChecks(t *testing.T) {
 			expectedTitles:     nil,
 		},
 		{
-			name: "Non-local admin without password",
-			config: func() *model.OpnSenseDocument {
+			name: "Non-local admin",
+			config: func() *common.CommonDevice {
 				cfg := baseComplianceConfig()
-				cfg.System.User = []model.User{
-					buildUser("remote-admin", "", "admins", "system", false),
-					buildUser("admin", "hash", "admins", "local", false),
+				cfg.Users = []common.User{
+					buildUser("remote-admin", "admins", "system", false),
+					buildUser("admin", "admins", "local", false),
 				}
 				return cfg
 			}(),
@@ -133,7 +95,7 @@ func TestExampleProcessor_ComplianceChecks(t *testing.T) {
 		},
 		{
 			name: "Syslog disabled",
-			config: func() *model.OpnSenseDocument {
+			config: func() *common.CommonDevice {
 				cfg := baseComplianceConfig()
 				cfg.Syslog = buildSyslogConfig(false, false, false, false, false)
 				return cfg
@@ -150,7 +112,7 @@ func TestExampleProcessor_ComplianceChecks(t *testing.T) {
 		},
 		{
 			name: "Syslog missing critical categories",
-			config: func() *model.OpnSenseDocument {
+			config: func() *common.CommonDevice {
 				cfg := baseComplianceConfig()
 				cfg.Syslog = buildSyslogConfig(true, true, false, false, true)
 				return cfg
@@ -167,7 +129,7 @@ func TestExampleProcessor_ComplianceChecks(t *testing.T) {
 		},
 		{
 			name: "Syslog configured without remote server",
-			config: func() *model.OpnSenseDocument {
+			config: func() *common.CommonDevice {
 				cfg := baseComplianceConfig()
 				cfg.Syslog = buildSyslogConfig(true, true, true, true, false)
 				return cfg
@@ -190,7 +152,7 @@ func TestExampleProcessor_ComplianceChecks(t *testing.T) {
 		},
 		{
 			name: "Partial logging configuration",
-			config: func() *model.OpnSenseDocument {
+			config: func() *common.CommonDevice {
 				cfg := baseComplianceConfig()
 				cfg.Syslog = buildSyslogConfig(true, false, true, false, false)
 				return cfg
@@ -209,24 +171,22 @@ func TestExampleProcessor_ComplianceChecks(t *testing.T) {
 			},
 		},
 		{
-			name: "Password and syslog findings combined",
-			config: func() *model.OpnSenseDocument {
+			name: "Syslog disabled finding",
+			config: func() *common.CommonDevice {
 				cfg := baseComplianceConfig()
-				cfg.System.User = []model.User{
-					buildUser("operator", "", "admins", "local", false),
+				cfg.Users = []common.User{
+					buildUser("admin", "admins", "local", false),
 				}
 				cfg.Syslog = buildSyslogConfig(false, false, false, false, false)
 				return cfg
 			}(),
 			expectedBySeverity: map[Severity]int{
-				SeverityHigh: 2,
+				SeverityHigh: 1,
 			},
 			expectedTitles: []string{
-				"Password Policy Not Enforced",
 				"Audit Logging Not Configured",
 			},
 			expectedComponents: map[string]string{
-				"Password Policy Not Enforced": "users",
 				"Audit Logging Not Configured": "syslog",
 			},
 		},
@@ -257,42 +217,41 @@ func TestExampleProcessor_ComplianceChecks(t *testing.T) {
 	}
 }
 
-func baseComplianceConfig() *model.OpnSenseDocument {
-	return &model.OpnSenseDocument{
-		System: model.System{
+func baseComplianceConfig() *common.CommonDevice {
+	return &common.CommonDevice{
+		System: common.System{
 			Hostname:    "test-firewall",
 			Domain:      "example.com",
-			WebGUI:      model.WebGUIConfig{Protocol: "https"},
-			TimeServers: "pool.ntp.org",
-			User: []model.User{
-				buildUser("admin", "hash", "admins", "local", false),
-			},
+			WebGUI:      common.WebGUI{Protocol: "https"},
+			TimeServers: []string{"pool.ntp.org"},
+		},
+		Users: []common.User{
+			buildUser("admin", "admins", "local", false),
 		},
 		Syslog: buildSyslogConfig(true, true, true, true, true),
 	}
 }
 
-func buildUser(name, password, group, scope string, disabled bool) model.User {
-	return model.User{
+func buildUser(name, group, scope string, disabled bool) common.User {
+	return common.User{
 		Name:      name,
-		Password:  password,
-		Groupname: group,
+		GroupName: group,
 		UID:       "1000",
 		Scope:     scope,
-		Disabled:  model.BoolFlag(disabled),
+		Disabled:  disabled,
 	}
 }
 
-func buildSyslogConfig(enabled, system, auth, filter, remote bool) model.Syslog {
-	syslog := model.Syslog{
-		Enable: model.BoolFlag(enabled),
-		System: model.BoolFlag(system),
-		Auth:   model.BoolFlag(auth),
-		Filter: model.BoolFlag(filter),
+func buildSyslogConfig(enabled, system, auth, filter, remote bool) common.SyslogConfig {
+	syslog := common.SyslogConfig{
+		Enabled:       enabled,
+		SystemLogging: system,
+		AuthLogging:   auth,
+		FilterLogging: filter,
 	}
 
 	if remote {
-		syslog.Remoteserver = "10.0.0.10"
+		syslog.RemoteServer = "10.0.0.10"
 	}
 
 	return syslog

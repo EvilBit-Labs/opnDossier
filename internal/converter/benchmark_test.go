@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
 )
 
 func BenchmarkMarkdownConverter_ToMarkdown(b *testing.B) {
@@ -19,10 +19,9 @@ func BenchmarkMarkdownConverter_ToMarkdown(b *testing.B) {
 		b.Fatalf("Failed to read testdata XML file: %v", err)
 	}
 
-	// Parse using the parser
-	p := cfgparser.NewXMLParser()
-
-	opnsense, err := p.Parse(context.Background(), strings.NewReader(string(xmlData)))
+	// Parse using the parser factory
+	factory := model.NewParserFactory()
+	device, err := factory.CreateDevice(context.Background(), strings.NewReader(string(xmlData)), "", false)
 	if err != nil {
 		b.Fatalf("XML parsing failed: %v", err)
 	}
@@ -33,7 +32,7 @@ func BenchmarkMarkdownConverter_ToMarkdown(b *testing.B) {
 	b.ReportAllocs()
 
 	for b.Loop() {
-		_, err := converter.ToMarkdown(ctx, opnsense)
+		_, err := converter.ToMarkdown(ctx, device)
 		if err != nil {
 			b.Fatalf("ToMarkdown failed: %v", err)
 		}
@@ -49,10 +48,9 @@ func BenchmarkMarkdownConverter_ToMarkdown_Large(b *testing.B) {
 		b.Fatalf("Failed to read large testdata XML file: %v", err)
 	}
 
-	// Parse using the parser
-	p := cfgparser.NewXMLParser()
-
-	opnsense, err := p.Parse(context.Background(), strings.NewReader(string(xmlData)))
+	// Parse using the parser factory
+	factory := model.NewParserFactory()
+	device, err := factory.CreateDevice(context.Background(), strings.NewReader(string(xmlData)), "", false)
 	if err != nil {
 		b.Fatalf("XML parsing failed: %v", err)
 	}
@@ -63,7 +61,7 @@ func BenchmarkMarkdownConverter_ToMarkdown_Large(b *testing.B) {
 	b.ReportAllocs()
 
 	for b.Loop() {
-		_, err := converter.ToMarkdown(ctx, opnsense)
+		_, err := converter.ToMarkdown(ctx, device)
 		if err != nil {
 			b.Fatalf("ToMarkdown failed: %v", err)
 		}
