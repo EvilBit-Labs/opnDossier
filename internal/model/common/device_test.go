@@ -122,6 +122,30 @@ func TestCommonDevice_NATSummary(t *testing.T) {
 	}
 }
 
+func TestNATSummary_CloneIsolation(t *testing.T) {
+	t.Parallel()
+
+	device := common.CommonDevice{
+		NAT: common.NATConfig{
+			OutboundRules: []common.NATRule{{UUID: "r1"}},
+			InboundRules:  []common.InboundNATRule{{UUID: "r2"}},
+		},
+	}
+
+	summary := device.NATSummary()
+
+	// Mutate the summary slices — original device must be unaffected.
+	summary.OutboundRules = append(summary.OutboundRules, common.NATRule{UUID: "added"})
+	summary.InboundRules = append(summary.InboundRules, common.InboundNATRule{UUID: "added"})
+
+	if len(device.NAT.OutboundRules) != 1 {
+		t.Errorf("OutboundRules len = %d after summary mutation, want 1", len(device.NAT.OutboundRules))
+	}
+	if len(device.NAT.InboundRules) != 1 {
+		t.Errorf("InboundRules len = %d after summary mutation, want 1", len(device.NAT.InboundRules))
+	}
+}
+
 func TestCommonDevice_JSONRoundTrip(t *testing.T) {
 	t.Parallel()
 
