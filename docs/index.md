@@ -149,7 +149,7 @@ For AI agent coding standards and workflows, see [AGENTS.md](https://github.com/
 ### Compliance & Reference
 
 - **[Compliance Standards](compliance-standards.md)** - Security and compliance framework documentation
-- **[CIS-like Firewall Reference](cis-like-firewall-reference.md)** - Firewall configuration reference
+- **[Firewall Security Controls Reference](firewall-security-controls-reference.md)** - Firewall configuration best practices reference
 
 ### Technical Research
 

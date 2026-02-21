@@ -437,7 +437,8 @@ func (c *Converter) convertHA(doc *schema.OpnSenseDocument) common.HighAvailabil
 	}
 }
 
-// convertIDs maps doc.OPNsense.IntrusionDetectionSystem to *common.IDSConfig.
+// convertIDs (IDS = Intrusion Detection System) maps doc.OPNsense.IntrusionDetectionSystem
+// to *common.IDSConfig.
 func (c *Converter) convertIDs(doc *schema.OpnSenseDocument) *common.IDSConfig {
 	ids := doc.OPNsense.IntrusionDetectionSystem
 	if ids == nil {

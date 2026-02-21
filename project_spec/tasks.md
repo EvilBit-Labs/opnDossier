@@ -43,7 +43,7 @@
   - Standard neutral documentation reports
 - [ ] **TASK-027c**: Plugin-based compliance architecture
 - [ ] Multi-mode reporting (standard/blue/red)
-- [ ] STIG, SANS, CIS compliance checking
+- [ ] STIG, SANS, firewall best practice compliance checking
 - [ ] Blackhat commentary mode
 - [ ] Template-driven report customization
 - [ ] **TASK-044**: Achieve >70% test coverage (applies to all packages)
@@ -372,10 +372,10 @@ This document provides a comprehensive task checklist for implementing the opnDo
 
 - [ ] **TASK-027a**: Add compliance tagging to blue team findings
 
-  - **Context**: Enable future CIS/STIG correlation
+  - **Context**: Enable future STIG/SANS compliance correlation
   - **Requirement**: F019 (Blue Team Defensive Reporting), F016 (Multiple Modes), F021 (Audit Finding Struct Support), F025 (Audit mode)
   - **User Story**: US-047 (Blue team defensive reporting)
-  - **Action**: Allow findings to include optional compliance tags (e.g., `CIS-FW-2.1`)
+  - **Action**: Allow findings to include optional compliance tags (e.g., `STIG-V-206694`, `FIREWALL-001`)
   - **Acceptance**: Blue team report includes optional compliance mappings per finding
   - **Note**: Implemented comprehensive STIG and SANS compliance integration with audit engine and enhanced templates
 
