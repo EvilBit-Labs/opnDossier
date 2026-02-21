@@ -635,4 +635,29 @@ func redactSensitiveFields(cp *common.CommonDevice) {
 			}
 		}
 	}
+
+	// SNMP community string
+	if cp.SNMP.ROCommunity != "" {
+		cp.SNMP.ROCommunity = redactedValue
+	}
+
+	// WireGuard pre-shared keys
+	if len(cp.VPN.WireGuard.Clients) > 0 {
+		cp.VPN.WireGuard.Clients = slices.Clone(cp.VPN.WireGuard.Clients)
+		for i := range cp.VPN.WireGuard.Clients {
+			if cp.VPN.WireGuard.Clients[i].PSK != "" {
+				cp.VPN.WireGuard.Clients[i].PSK = redactedValue
+			}
+		}
+	}
+
+	// DHCPv6 authentication secrets
+	if len(cp.DHCP) > 0 {
+		cp.DHCP = slices.Clone(cp.DHCP)
+		for i := range cp.DHCP {
+			if cp.DHCP[i].AdvDHCP6KeyInfoStatementSecret != "" {
+				cp.DHCP[i].AdvDHCP6KeyInfoStatementSecret = redactedValue
+			}
+		}
+	}
 }
