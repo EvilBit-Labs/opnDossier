@@ -272,11 +272,9 @@ func (r *Report) addFirewallRuleAnalysis() {
 // addNATAnalysis adds NAT analysis to the report.
 func (r *Report) addNATAnalysis() {
 	if r.Configuration != nil {
-		// NAT rules are available but structure is complex, just indicate analysis completed
 		r.Metadata["nat_analysis_completed"] = true
 		r.Metadata["nat_mode"] = r.Configuration.NAT.OutboundMode
 	}
-	r.Metadata["nat_analysis_completed"] = true
 }
 
 // addDHCPAnalysis adds DHCP analysis to the report.

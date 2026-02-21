@@ -70,8 +70,6 @@ const (
 	FormatAliasHTM = "htm"
 )
 
-// init registers the convert command and its flags with the root command.
-//
 // init registers the `convert` command with the root command and configures its command-line flags.
 //
 // It defines the primary flags used to control conversion output:
@@ -497,7 +495,6 @@ func normalizeFormat(format string) converter.Format {
 	}
 }
 
-// buildConversionOptions constructs a converter.Options struct by merging CLI arguments and configuration values with defined precedence.
 // buildConversionOptions constructs a converter.Options value for the given output
 // format by combining CLI-provided flags, the provided configuration, and defaults.
 // CLI flags take precedence over configuration values, which in turn override defaults.
@@ -706,7 +703,7 @@ func normalizeConvertFlags() {
 
 // validateConvertFlags validates flag combinations and CLI options for the convert command.
 // It ensures mutually exclusive wrap flags are not both set, checks that the chosen output
-// format is one of markdown/md/json/yaml/yml, warns when section filtering is used with
+// format is one of markdown/md/json/yaml/yml/text/txt/html/htm, warns when section filtering is used with
 // JSON or YAML (sections will be ignored), and emits a warning (via cmdLogger or stderr)
 // when wrap width is outside the recommended range. Returns an error for truly invalid
 // values (wrap width < -1, invalid format, invalid audit mode).
