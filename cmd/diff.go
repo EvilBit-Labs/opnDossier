@@ -271,12 +271,12 @@ Examples:
 }
 
 // parseConfigFile parses a device configuration file via the ParserFactory.
-func parseConfigFile(ctx context.Context, path string) (*common.CommonDevice, error) {
+func parseConfigFile(ctx context.Context, path string) (_ *common.CommonDevice, err error) {
 	// Make path absolute if needed
 	if !filepath.IsAbs(path) {
-		absPath, err := filepath.Abs(path)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get absolute path: %w", err)
+		absPath, absErr := filepath.Abs(path)
+		if absErr != nil {
+			return nil, fmt.Errorf("failed to get absolute path: %w", absErr)
 		}
 		path = absPath
 	}
@@ -285,7 +285,11 @@ func parseConfigFile(ctx context.Context, path string) (*common.CommonDevice, er
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		if cerr := file.Close(); cerr != nil && err == nil {
+			err = fmt.Errorf("failed to close config file: %w", cerr)
+		}
+	}()
 
 	device, err := model.NewParserFactory().CreateDevice(ctx, file, sharedDeviceType, false)
 	if err != nil {

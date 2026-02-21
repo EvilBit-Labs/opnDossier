@@ -34,7 +34,7 @@ This document provides a reference guide for implementing firewall security cont
 - **Control**: Set device hostname
 - **Rationale**: Asset identification and security requirements
 - **Implementation**: Configure hostname in System > General Setup
-- **Default**: pfSense
+- **Default**: OPNsense
 
 #### 1.5 DNS Server Configuration
 
