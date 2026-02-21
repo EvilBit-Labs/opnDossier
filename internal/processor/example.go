@@ -252,7 +252,7 @@ func (p *ExampleProcessor) performPerformanceAnalysis(
 //   - Certificate management and expiration monitoring
 //   - Backup and disaster recovery configuration
 //   - Network segmentation best practices
-//   - Security framework compliance (CIS, NIST, etc.)
+//   - Security framework compliance (STIG, NIST, SANS, etc.)
 //   - Regulatory compliance requirements (PCI-DSS, HIPAA, etc.)
 //
 // Note: Password policy and audit logging compliance checks are implemented below.
