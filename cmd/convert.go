@@ -733,13 +733,25 @@ func validateConvertFlags(flags *pflag.FlagSet, cmdLogger *logging.Logger) error
 		}
 	}
 
-	// Validate output format compatibility (warn if logger available)
-	if cmdLogger != nil {
-		if strings.EqualFold(format, "json") && len(sharedSections) > 0 {
+	// Validate output format compatibility
+	if strings.EqualFold(format, "json") && len(sharedSections) > 0 {
+		if cmdLogger != nil {
 			cmdLogger.Warn("section filtering not supported with JSON format, sections will be ignored")
+		} else {
+			fmt.Fprintln(
+				os.Stderr,
+				"Warning: section filtering not supported with JSON format, sections will be ignored",
+			)
 		}
-		if strings.EqualFold(format, "yaml") && len(sharedSections) > 0 {
+	}
+	if strings.EqualFold(format, "yaml") && len(sharedSections) > 0 {
+		if cmdLogger != nil {
 			cmdLogger.Warn("section filtering not supported with YAML format, sections will be ignored")
+		} else {
+			fmt.Fprintln(
+				os.Stderr,
+				"Warning: section filtering not supported with YAML format, sections will be ignored",
+			)
 		}
 	}
 

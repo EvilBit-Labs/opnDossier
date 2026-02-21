@@ -6,6 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestSplitNonEmpty verifies that splitNonEmpty correctly splits strings,
+// trims whitespace, and filters out empty parts.
 func TestSplitNonEmpty(t *testing.T) {
 	t.Parallel()
 
