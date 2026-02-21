@@ -3,7 +3,6 @@ package audit
 import (
 	"context"
 	"errors"
-	"os"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
@@ -12,7 +11,6 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/sans"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/stig"
 	"github.com/EvilBit-Labs/opnDossier/internal/processor"
-	"github.com/charmbracelet/log"
 )
 
 // mockCompliancePlugin implements the compliance.Plugin interface for testing.
@@ -156,7 +154,7 @@ func TestReportMode_String(t *testing.T) {
 
 func TestNewModeController(t *testing.T) {
 	registry := NewPluginRegistry()
-	logger := log.NewWithOptions(os.Stdout, log.Options{})
+	logger := newTestLogger(t)
 
 	controller := NewModeController(registry, logger)
 
@@ -175,7 +173,7 @@ func TestNewModeController(t *testing.T) {
 
 func TestModeController_ValidateModeConfig(t *testing.T) {
 	registry := NewPluginRegistry()
-	logger := log.NewWithOptions(os.Stdout, log.Options{})
+	logger := newTestLogger(t)
 	controller := NewModeController(registry, logger)
 
 	// Register test plugins to validate against
@@ -319,7 +317,7 @@ func TestModeController_ValidateModeConfig(t *testing.T) {
 
 func TestModeController_GenerateReport(t *testing.T) {
 	registry := NewPluginRegistry()
-	logger := log.NewWithOptions(os.Stdout, log.Options{})
+	logger := newTestLogger(t)
 	controller := NewModeController(registry, logger)
 
 	// Create a minimal test configuration
@@ -706,7 +704,7 @@ func TestPluginRegistry_UnregisterNonexistent(t *testing.T) {
 
 func TestModeController_New(t *testing.T) {
 	registry := NewPluginRegistry()
-	logger := log.New(os.Stdout)
+	logger := newTestLogger(t)
 	controller := NewModeController(registry, logger)
 
 	if controller == nil {
@@ -720,7 +718,7 @@ func TestModeController_New(t *testing.T) {
 
 func TestModeController_GenerateReportWithInvalidMode(t *testing.T) {
 	registry := NewPluginRegistry()
-	logger := log.New(os.Stdout)
+	logger := newTestLogger(t)
 	controller := NewModeController(registry, logger)
 
 	config := &common.CommonDevice{
