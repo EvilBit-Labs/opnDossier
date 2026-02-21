@@ -14,10 +14,8 @@ func TestConverter_NilInput(t *testing.T) {
 	t.Parallel()
 
 	device, err := opnsense.NewConverter().ToCommonDevice(nil)
-	require.NoError(t, err)
-	require.NotNil(t, device)
-	assert.Equal(t, common.DeviceTypeOPNsense, device.DeviceType)
-	assert.Empty(t, device.System.Hostname)
+	require.ErrorIs(t, err, opnsense.ErrNilDocument)
+	require.Nil(t, device)
 }
 
 func TestConverter_System(t *testing.T) {

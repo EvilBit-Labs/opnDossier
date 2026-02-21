@@ -173,7 +173,7 @@ func TestCommonDevice_JSONRoundTrip(t *testing.T) {
 			Hostname: "fw01",
 			Domain:   "example.com",
 			Timezone: "America/New_York",
-			SSH:      common.SSH{Enabled: true, Port: "22"},
+			SSH:      common.SSH{Group: "admins"},
 		},
 		Interfaces: []common.Interface{
 			{Name: "lan", PhysicalIf: "igb0", Enabled: true, IPAddress: "10.0.0.1", Subnet: "24"},

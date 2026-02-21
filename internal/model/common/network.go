@@ -62,8 +62,8 @@ type VLAN struct {
 
 // Bridge represents a network bridge configuration.
 type Bridge struct {
-	// Members is a comma-separated list of member interface names.
-	Members string `json:"members,omitempty" yaml:"members,omitempty"`
+	// Members contains the member interface names belonging to this bridge.
+	Members []string `json:"members,omitempty" yaml:"members,omitempty"`
 	// Description is a human-readable description of the bridge.
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// BridgeIf is the bridge interface name (e.g., "bridge0").
@@ -86,7 +86,7 @@ type PPP struct {
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 }
 
-// GIF represents a GIF (Generic Tunneling Interface) tunnel configuration.
+// GIF represents a GIF (generic tunnel interface) tunnel configuration.
 type GIF struct {
 	// Interface is the GIF tunnel interface name (e.g., "gif0").
 	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
@@ -108,8 +108,8 @@ type GRE struct {
 
 // LAGG represents a link aggregation configuration.
 type LAGG struct {
-	// Members is a comma-separated list of member physical interface names.
-	Members string `json:"members,omitempty" yaml:"members,omitempty"`
+	// Members contains the member physical interface names.
+	Members []string `json:"members,omitempty" yaml:"members,omitempty"`
 	// Protocol is the aggregation protocol (e.g., "lacp", "failover", "roundrobin").
 	Protocol string `json:"protocol,omitempty" yaml:"protocol,omitempty"`
 	// Description is a human-readable description of the LAGG.
@@ -128,8 +128,8 @@ type VirtualIP struct {
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 }
 
-// InterfaceGroups represents a logical grouping of interfaces.
-type InterfaceGroups struct {
+// InterfaceGroup represents a logical grouping of interfaces.
+type InterfaceGroup struct {
 	// Name is the interface group name.
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`
 	// Members contains the interface names belonging to this group.

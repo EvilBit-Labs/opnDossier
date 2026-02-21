@@ -613,9 +613,14 @@ func prepareForExport(data *common.CommonDevice) *common.CommonDevice {
 // the caller's data. Slice fields that contain sensitive data are deep-copied
 // before redaction.
 //
-// SECURITY NOTE: Sensitive fields not present in CommonDevice (e.g., OpenVPN TLS
-// keys, IPsec PSKs) are already excluded by the converter's field mapping. If new
-// secret fields are added to common.*, they MUST be added here.
+// SECURITY NOTE: The following sensitive fields are already excluded by the converter's
+// field mapping and never appear in CommonDevice:
+//   - OpenVPN TLS keys (tls_auth_key, shared_key)
+//   - IPsec pre-shared keys
+//   - Certificate authority private keys
+//   - WireGuard private keys (only public keys are mapped)
+//
+// If new secret fields are added to common.*, they MUST be added here.
 func redactSensitiveFields(cp *common.CommonDevice) {
 	// HA password
 	if cp.HighAvailability.Password != "" {

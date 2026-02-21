@@ -50,7 +50,7 @@ type CommonDevice struct {
 	// VirtualIPs contains CARP, IP alias, and other virtual IP configurations.
 	VirtualIPs []VirtualIP `json:"virtualIps,omitempty" yaml:"virtualIps,omitempty"`
 	// InterfaceGroups contains logical groupings of interfaces.
-	InterfaceGroups []InterfaceGroups `json:"interfaceGroups,omitempty" yaml:"interfaceGroups,omitempty"`
+	InterfaceGroups []InterfaceGroup `json:"interfaceGroups,omitempty" yaml:"interfaceGroups,omitempty"`
 	// FirewallRules contains normalized firewall filter rules.
 	FirewallRules []FirewallRule `json:"firewallRules,omitempty" yaml:"firewallRules,omitempty"`
 	// NAT contains all NAT-related configuration including inbound and outbound rules.
