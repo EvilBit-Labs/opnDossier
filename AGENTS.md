@@ -589,6 +589,10 @@ srcAny := rule.Source.Network == NetworkAny || rule.Source.IsAny()
 
 See `docs/development/xml-structure-research.md` for the complete field inventory with upstream source citations.
 
+**`DeviceType` serialization:**
+
+`CommonDevice.DeviceType` uses `json:"device_type"` (no `omitempty`) — it always serializes, even when empty, to ensure JSON/YAML consumers can detect the field. The `prepareForExport` pipeline defaults it to `DeviceTypeOPNsense`.
+
 ### 5.22 Context-Aware Semaphore
 
 When acquiring semaphores in goroutines, use select with context:
@@ -646,6 +650,13 @@ func (s *Spinner) stop() {
 - `internal/model/common/` contains device-agnostic types (firewall rules, VPN, system, network, etc.)
 - `revive` var-naming exclusion for this path is configured in `.golangci.yml`
 - JSON struct tags on nested struct fields must NOT use `omitempty` (Go 1.26+ modernize check)
+
+**Converter enrichment pipeline:**
+
+- `prepareForExport()` in `internal/converter/enrichment.go` is the single gate for all JSON/YAML exports
+- It populates `Statistics`, `Analysis`, `SecurityAssessment`, and `PerformanceMetrics` on a shallow copy
+- Cannot import `internal/processor` (circular dependency) — analysis/statistics logic is mirrored, not shared
+- New `CommonDevice` enrichment fields must be wired here to appear in JSON/YAML output
 
 **Port field disambiguation:**
 
