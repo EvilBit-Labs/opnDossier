@@ -205,25 +205,22 @@ func walkMap(title string, level int, m reflect.Value) MDNode {
 
 // formatFieldName returns the input CamelCase string as a space-separated phrase, preserving acronyms.
 func formatFieldName(name string) string {
-	// Simple camelCase to space-separated conversion
-	result := ""
+	var b strings.Builder
 
-	var resultSb181 strings.Builder
 	for i, r := range name {
 		// Add space before uppercase letters, but not at the beginning
 		// and not if the previous character was also uppercase (to handle acronyms)
 		if i > 0 && r >= 'A' && r <= 'Z' {
 			prevRune := rune(name[i-1])
 			if prevRune < 'A' || prevRune > 'Z' {
-				resultSb181.WriteString(" ")
+				b.WriteString(" ")
 			}
 		}
 
-		resultSb181.WriteRune(r)
+		b.WriteRune(r)
 	}
-	result += resultSb181.String()
 
-	return result
+	return b.String()
 }
 
 // formatIndex returns the given integer index formatted as a string in square brackets, e.g., "[0]".
