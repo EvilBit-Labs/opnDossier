@@ -388,6 +388,8 @@ func TestValidateConvertFlagsNoWrapMutualExclusivity(t *testing.T) {
 	}
 }
 
+// TestValidateConvertFlagsWrapWidthBounds verifies that wrap widths below -1 are rejected
+// while -1, 0, and positive values are accepted.
 func TestValidateConvertFlagsWrapWidthBounds(t *testing.T) {
 	originalWrap := sharedWrapWidth
 	t.Cleanup(func() {
@@ -419,6 +421,8 @@ func TestValidateConvertFlagsWrapWidthBounds(t *testing.T) {
 	}
 }
 
+// TestValidateConvertFlagsWrapWidthWarning verifies that out-of-range wrap widths
+// emit warnings via logger or stderr fallback without returning an error.
 func TestValidateConvertFlagsWrapWidthWarning(t *testing.T) {
 	originalWrap := sharedWrapWidth
 	t.Cleanup(func() {
