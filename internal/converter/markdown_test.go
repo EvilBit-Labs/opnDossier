@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,15 +20,15 @@ func TestMarkdownConverter_ToMarkdown(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		input    *model.OpnSenseDocument
+		input    *common.CommonDevice
 		expected string
 		wantErr  bool
 	}{
 		{
 			name: "basic conversion",
-			input: &model.OpnSenseDocument{
+			input: &common.CommonDevice{
 				Version: "1.2.3",
-				System: model.System{
+				System: common.System{
 					Hostname: "test-host",
 					Domain:   "test.local",
 				},
@@ -48,14 +48,14 @@ func TestMarkdownConverter_ToMarkdown(t *testing.T) {
 		},
 		{
 			name:     "empty struct",
-			input:    &model.OpnSenseDocument{},
+			input:    &common.CommonDevice{},
 			expected: "OPNsense Configuration",
 			wantErr:  false,
 		},
 		{
 			name: "missing system fields",
-			input: &model.OpnSenseDocument{
-				System: model.System{},
+			input: &common.CommonDevice{
+				System: common.System{},
 			},
 			expected: "OPNsense Configuration",
 			wantErr:  false,
@@ -98,14 +98,14 @@ func TestMarkdownConverter_ConvertFromTestdataFile(t *testing.T) {
 	xmlData, err := os.ReadFile(xmlPath)
 	require.NoError(t, err, "Failed to read testdata XML file")
 
-	// Parse the XML file using the parser
-	p := cfgparser.NewXMLParser()
-	opnsense, err := p.Parse(context.Background(), strings.NewReader(string(xmlData)))
+	// Parse the XML file and convert to CommonDevice
+	factory := model.NewParserFactory()
+	device, err := factory.CreateDevice(context.Background(), strings.NewReader(string(xmlData)), "", false)
 	require.NoError(t, err, "XML parsing should succeed")
 
 	// Convert to markdown
 	c := NewMarkdownConverter()
-	markdown, err := c.ToMarkdown(context.Background(), opnsense)
+	markdown, err := c.ToMarkdown(context.Background(), device)
 	require.NoError(t, err, "Markdown conversion should succeed")
 
 	// Verify the markdown is not empty
@@ -126,9 +126,9 @@ func TestMarkdownConverter_ConvertFromTestdataFile(t *testing.T) {
 	assert.Contains(t, markdown, "normal")
 	assert.Contains(t, markdown, "**Protocol**: https")
 
-	// Verify network interfaces
-	assert.Contains(t, markdown, "## WAN Interface")
-	assert.Contains(t, markdown, "## LAN Interface")
+	// Verify network interfaces (title-cased from Name field)
+	assert.Contains(t, markdown, "Wan Interface")
+	assert.Contains(t, markdown, "Lan Interface")
 	assert.Contains(t, markdown, "**Physical Interface**: mismatch1")
 	assert.Contains(t, markdown, "**Physical Interface**: mismatch0")
 	assert.Contains(t, markdown, "**IPv4 Address**: dhcp")
@@ -183,29 +183,27 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 	t.Run("nil opnsense struct", func(t *testing.T) {
 		md, err := c.ToMarkdown(context.Background(), nil)
 		require.Error(t, err)
-		assert.Equal(t, ErrNilOpnSenseDocument, err)
+		assert.Equal(t, ErrNilDevice, err)
 		assert.Empty(t, md)
 	})
 
 	t.Run("empty opnsense struct", func(t *testing.T) {
-		md, err := c.ToMarkdown(context.Background(), &model.OpnSenseDocument{})
+		md, err := c.ToMarkdown(context.Background(), &common.CommonDevice{})
 		require.NoError(t, err)
 		assert.NotEmpty(t, md)
 		assert.Contains(t, md, "OPNsense Configuration")
 	})
 
 	t.Run("opnsense with only system configuration", func(t *testing.T) {
-		opnsense := &model.OpnSenseDocument{
-			System: model.System{
+		device := &common.CommonDevice{
+			System: common.System{
 				Hostname: "test-host",
 				Domain:   "test.local",
-				WebGUI:   model.WebGUIConfig{Protocol: "http"},
-				Bogons: struct {
-					Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
-				}{Interval: "monthly"},
+				WebGUI:   common.WebGUI{Protocol: "http"},
+				Bogons:   common.Bogons{Interval: "monthly"},
 			},
 		}
-		md, err := c.ToMarkdown(context.Background(), opnsense)
+		md, err := c.ToMarkdown(context.Background(), device)
 		require.NoError(t, err)
 		assert.NotEmpty(t, md)
 
@@ -215,25 +213,25 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("opnsense with complex sysctl configuration", func(t *testing.T) {
-		opnsense := &model.OpnSenseDocument{
-			System: model.System{
+		device := &common.CommonDevice{
+			System: common.System{
 				Hostname: "sysctl-test",
 				Domain:   "test.local",
 			},
-			Sysctl: []model.SysctlItem{
+			Sysctl: []common.SysctlItem{
 				{
-					Tunable: "net.inet.ip.forwarding",
-					Value:   "1",
-					Descr:   "Enable IP forwarding",
+					Tunable:     "net.inet.ip.forwarding",
+					Value:       "1",
+					Description: "Enable IP forwarding",
 				},
 				{
-					Tunable: "kern.ipc.somaxconn",
-					Value:   "1024",
-					Descr:   "Maximum socket connections",
+					Tunable:     "kern.ipc.somaxconn",
+					Value:       "1024",
+					Description: "Maximum socket connections",
 				},
 			},
 		}
-		md, err := c.ToMarkdown(context.Background(), opnsense)
+		md, err := c.ToMarkdown(context.Background(), device)
 		require.NoError(t, err)
 		assert.NotEmpty(t, md)
 
@@ -245,28 +243,28 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("opnsense with users and groups", func(t *testing.T) {
-		opnsense := &model.OpnSenseDocument{
-			System: model.System{
+		device := &common.CommonDevice{
+			System: common.System{
 				Hostname: "user-test",
 				Domain:   "test.local",
-				User: []model.User{
-					{
-						Name:      "admin",
-						Descr:     "Administrator",
-						Groupname: "wheel",
-						Scope:     "system",
-					},
+			},
+			Users: []common.User{
+				{
+					Name:        "admin",
+					Description: "Administrator",
+					GroupName:   "wheel",
+					Scope:       "system",
 				},
-				Group: []model.Group{
-					{
-						Name:        "wheel",
-						Description: "Wheel Group",
-						Scope:       "system",
-					},
+			},
+			Groups: []common.Group{
+				{
+					Name:        "wheel",
+					Description: "Wheel Group",
+					Scope:       "system",
 				},
 			},
 		}
-		md, err := c.ToMarkdown(context.Background(), opnsense)
+		md, err := c.ToMarkdown(context.Background(), device)
 		require.NoError(t, err)
 		assert.NotEmpty(t, md)
 
@@ -279,31 +277,29 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("opnsense with multiple firewall rules", func(t *testing.T) {
-		opnsense := &model.OpnSenseDocument{
-			System: model.System{
+		device := &common.CommonDevice{
+			System: common.System{
 				Hostname: "firewall-test",
 				Domain:   "test.local",
 			},
-			Filter: model.Filter{
-				Rule: []model.Rule{
-					{
-						Type:       "pass",
-						Interface:  model.InterfaceList{"lan"},
-						IPProtocol: "inet",
-						Descr:      "Allow LAN",
-						Source:     model.Source{Network: "lan"},
-					},
-					{
-						Type:       "block",
-						Interface:  model.InterfaceList{"wan"},
-						IPProtocol: "inet",
-						Descr:      "Block external",
-						Source:     model.Source{Network: "any"},
-					},
+			FirewallRules: []common.FirewallRule{
+				{
+					Type:        "pass",
+					Interfaces:  []string{"lan"},
+					IPProtocol:  "inet",
+					Description: "Allow LAN",
+					Source:      common.RuleEndpoint{Address: "lan"},
+				},
+				{
+					Type:        "block",
+					Interfaces:  []string{"wan"},
+					IPProtocol:  "inet",
+					Description: "Block external",
+					Source:      common.RuleEndpoint{Address: "any"},
 				},
 			},
 		}
-		md, err := c.ToMarkdown(context.Background(), opnsense)
+		md, err := c.ToMarkdown(context.Background(), device)
 		require.NoError(t, err)
 		assert.NotEmpty(t, md)
 
@@ -315,44 +311,42 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("firewall rules with actual protocol data", func(t *testing.T) {
-		opnsense := &model.OpnSenseDocument{
-			System: model.System{
+		device := &common.CommonDevice{
+			System: common.System{
 				Hostname: "protocol-test",
 				Domain:   "test.local",
 			},
-			Filter: model.Filter{
-				Rule: []model.Rule{
-					{
-						Type:        "pass",
-						Interface:   model.InterfaceList{"lan"},
-						IPProtocol:  "inet",
-						Protocol:    "tcp",
-						Descr:       "Allow TCP",
-						Source:      model.Source{Network: "lan"},
-						Destination: model.Destination{Port: "80"},
-					},
-					{
-						Type:        "pass",
-						Interface:   model.InterfaceList{"lan"},
-						IPProtocol:  "inet",
-						Protocol:    "udp",
-						Descr:       "Allow UDP",
-						Source:      model.Source{Network: "lan"},
-						Destination: model.Destination{Port: "53"},
-					},
-					{
-						Type:        "pass",
-						Interface:   model.InterfaceList{"wan"},
-						IPProtocol:  "inet",
-						Protocol:    "tcp/udp",
-						Descr:       "Allow compound protocol",
-						Source:      model.Source{Network: "any"},
-						Destination: model.Destination{Port: "443"},
-					},
+			FirewallRules: []common.FirewallRule{
+				{
+					Type:        "pass",
+					Interfaces:  []string{"lan"},
+					IPProtocol:  "inet",
+					Protocol:    "tcp",
+					Description: "Allow TCP",
+					Source:      common.RuleEndpoint{Address: "lan"},
+					Destination: common.RuleEndpoint{Port: "80"},
+				},
+				{
+					Type:        "pass",
+					Interfaces:  []string{"lan"},
+					IPProtocol:  "inet",
+					Protocol:    "udp",
+					Description: "Allow UDP",
+					Source:      common.RuleEndpoint{Address: "lan"},
+					Destination: common.RuleEndpoint{Port: "53"},
+				},
+				{
+					Type:        "pass",
+					Interfaces:  []string{"wan"},
+					IPProtocol:  "inet",
+					Protocol:    "tcp/udp",
+					Description: "Allow compound protocol",
+					Source:      common.RuleEndpoint{Address: "any"},
+					Destination: common.RuleEndpoint{Port: "443"},
 				},
 			},
 		}
-		md, err := c.ToMarkdown(context.Background(), opnsense)
+		md, err := c.ToMarkdown(context.Background(), device)
 		require.NoError(t, err)
 		assert.NotEmpty(t, md)
 
@@ -368,27 +362,27 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("opnsense with load balancer monitors", func(t *testing.T) {
-		opnsense := &model.OpnSenseDocument{
-			System: model.System{
+		device := &common.CommonDevice{
+			System: common.System{
 				Hostname: "lb-test",
 				Domain:   "test.local",
 			},
-			LoadBalancer: model.LoadBalancer{
-				MonitorType: []model.MonitorType{
+			LoadBalancer: common.LoadBalancerConfig{
+				MonitorTypes: []common.MonitorType{
 					{
-						Name:  "TCP-80",
-						Type:  "tcp",
-						Descr: "TCP port 80 check",
+						Name:        "TCP-80",
+						Type:        "tcp",
+						Description: "TCP port 80 check",
 					},
 					{
-						Name:  "HTTPS-443",
-						Type:  "https",
-						Descr: "HTTPS health check",
+						Name:        "HTTPS-443",
+						Type:        "https",
+						Description: "HTTPS health check",
 					},
 				},
 			},
 		}
-		md, err := c.ToMarkdown(context.Background(), opnsense)
+		md, err := c.ToMarkdown(context.Background(), device)
 		require.NoError(t, err)
 		assert.NotEmpty(t, md)
 
@@ -409,13 +403,13 @@ func TestMarkdownConverter_ThemeSelection(t *testing.T) {
 
 	t.Run("default theme selection", func(t *testing.T) {
 		// Test the getTheme method indirectly through ToMarkdown
-		opnsense := &model.OpnSenseDocument{
-			System: model.System{
+		device := &common.CommonDevice{
+			System: common.System{
 				Hostname: "theme-test",
 				Domain:   "test.local",
 			},
 		}
-		md, err := c.ToMarkdown(context.Background(), opnsense)
+		md, err := c.ToMarkdown(context.Background(), device)
 		require.NoError(t, err)
 		assert.NotEmpty(t, md)
 		// The markdown should be rendered without error regardless of theme
@@ -433,27 +427,27 @@ func TestNewMarkdownConverter(t *testing.T) {
 func TestFormatInterfacesAsLinks(t *testing.T) {
 	tests := []struct {
 		name       string
-		interfaces model.InterfaceList
+		interfaces []string
 		expected   string
 	}{
 		{
 			name:       "empty interface list",
-			interfaces: model.InterfaceList{},
+			interfaces: []string{},
 			expected:   "",
 		},
 		{
 			name:       "single interface",
-			interfaces: model.InterfaceList{"wan"},
+			interfaces: []string{"wan"},
 			expected:   "[wan](#wan-interface)",
 		},
 		{
 			name:       "multiple interfaces",
-			interfaces: model.InterfaceList{"wan", "lan", "opt1"},
+			interfaces: []string{"wan", "lan", "opt1"},
 			expected:   "[wan](#wan-interface), [lan](#lan-interface), [opt1](#opt1-interface)",
 		},
 		{
 			name:       "mixed case interface names",
-			interfaces: model.InterfaceList{"WAN", "LAN", "OPT1"},
+			interfaces: []string{"WAN", "LAN", "OPT1"},
 			expected:   "[WAN](#wan-interface), [LAN](#lan-interface), [OPT1](#opt1-interface)",
 		},
 	}
@@ -470,35 +464,31 @@ func TestMarkdownConverter_FirewallRulesWithInterfaceLinks(t *testing.T) {
 	// Set terminal to dumb for consistent test output
 	t.Setenv("TERM", "dumb")
 
-	input := &model.OpnSenseDocument{
-		Filter: model.Filter{
-			Rule: []model.Rule{
-				{
-					Type:        "pass",
-					Interface:   model.InterfaceList{"wan", "lan"},
-					IPProtocol:  "inet",
-					Protocol:    "tcp",
-					Source:      model.Source{Network: "any"},
-					Destination: model.Destination{Network: "any"},
-					Descr:       "Test rule with multiple interfaces",
-				},
-				{
-					Type:        "block",
-					Interface:   model.InterfaceList{"opt1"},
-					IPProtocol:  "inet",
-					Protocol:    "udp",
-					Source:      model.Source{Network: "any"},
-					Destination: model.Destination{Network: "any"},
-					Descr:       "Test rule with single interface",
-				},
+	input := &common.CommonDevice{
+		FirewallRules: []common.FirewallRule{
+			{
+				Type:        "pass",
+				Interfaces:  []string{"wan", "lan"},
+				IPProtocol:  "inet",
+				Protocol:    "tcp",
+				Source:      common.RuleEndpoint{Address: "any"},
+				Destination: common.RuleEndpoint{Address: "any"},
+				Description: "Test rule with multiple interfaces",
+			},
+			{
+				Type:        "block",
+				Interfaces:  []string{"opt1"},
+				IPProtocol:  "inet",
+				Protocol:    "udp",
+				Source:      common.RuleEndpoint{Address: "any"},
+				Destination: common.RuleEndpoint{Address: "any"},
+				Description: "Test rule with single interface",
 			},
 		},
-		Interfaces: model.Interfaces{
-			Items: map[string]model.Interface{
-				"wan":  {Enable: "1", IPAddr: "192.168.1.1"},
-				"lan":  {Enable: "1", IPAddr: "10.0.0.1"},
-				"opt1": {Enable: "1", IPAddr: "172.16.0.1"},
-			},
+		Interfaces: []common.Interface{
+			{Name: "wan", Enabled: true, IPAddress: "192.168.1.1"},
+			{Name: "lan", Enabled: true, IPAddress: "10.0.0.1"},
+			{Name: "opt1", Enabled: true, IPAddress: "172.16.0.1"},
 		},
 	}
 
@@ -517,9 +507,9 @@ func TestMarkdownConverter_FirewallRulesWithInterfaceLinks(t *testing.T) {
 	assert.Contains(t, md, "[2]: lan #lan-interface")
 	assert.Contains(t, md, "[3]: opt1 #opt1-interface")
 
-	// Check that interface sections are created
-	assert.Contains(t, md, "### WAN Interface")
-	assert.Contains(t, md, "### LAN Interface")
+	// Check that interface sections are created (title-cased from Name field)
+	assert.Contains(t, md, "### Wan Interface")
+	assert.Contains(t, md, "### Lan Interface")
 	assert.Contains(t, md, "### Opt1 Interface")
 }
 
@@ -529,22 +519,19 @@ func TestMarkdownConverter_IDSSection(t *testing.T) {
 	t.Setenv("TERM", "dumb")
 
 	t.Run("IDS enabled shows in output", func(t *testing.T) {
-		ids := model.NewIDS()
-		ids.General.Enabled = "1"
-		ids.General.Ips = "1"
-		ids.General.Interfaces = "wan,lan"
-		ids.General.Homenet = "192.168.1.0/24,10.0.0.0/8"
-		ids.General.Detect.Profile = "medium"
-		ids.General.Syslog = "1"
-		ids.General.SyslogEve = "1"
-
-		input := &model.OpnSenseDocument{
-			System: model.System{
+		input := &common.CommonDevice{
+			System: common.System{
 				Hostname: "ids-test",
 				Domain:   "test.local",
 			},
-			OPNsense: model.OPNsense{
-				IntrusionDetectionSystem: ids,
+			IDS: &common.IDSConfig{
+				Enabled:          true,
+				IPSMode:          true,
+				Interfaces:       []string{"wan", "lan"},
+				HomeNetworks:     []string{"192.168.1.0/24", "10.0.0.0/8"},
+				Detect:           common.IDSDetect{Profile: "medium"},
+				SyslogEnabled:    true,
+				SyslogEveEnabled: true,
 			},
 		}
 
@@ -554,7 +541,7 @@ func TestMarkdownConverter_IDSSection(t *testing.T) {
 
 		// Verify IDS section appears
 		assert.Contains(t, md, "Intrusion Detection System")
-		assert.Contains(t, md, "IPS (Prevention)")
+		assert.Contains(t, md, "IPS")
 		assert.Contains(t, md, "wan")
 		assert.Contains(t, md, "lan")
 		assert.Contains(t, md, "192.168.1.0/24")
@@ -566,16 +553,13 @@ func TestMarkdownConverter_IDSSection(t *testing.T) {
 	})
 
 	t.Run("IDS disabled not shown", func(t *testing.T) {
-		ids := model.NewIDS()
-		ids.General.Enabled = "0"
-
-		input := &model.OpnSenseDocument{
-			System: model.System{
+		input := &common.CommonDevice{
+			System: common.System{
 				Hostname: "ids-disabled-test",
 				Domain:   "test.local",
 			},
-			OPNsense: model.OPNsense{
-				IntrusionDetectionSystem: ids,
+			IDS: &common.IDSConfig{
+				Enabled: false,
 			},
 		}
 
@@ -588,8 +572,8 @@ func TestMarkdownConverter_IDSSection(t *testing.T) {
 	})
 
 	t.Run("nil IDS not shown", func(t *testing.T) {
-		input := &model.OpnSenseDocument{
-			System: model.System{
+		input := &common.CommonDevice{
+			System: common.System{
 				Hostname: "no-ids-test",
 				Domain:   "test.local",
 			},

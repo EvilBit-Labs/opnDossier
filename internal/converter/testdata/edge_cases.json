@@ -1,171 +1,158 @@
 {
-  "version": "1.0.0",
+  "device_type": "opnsense",
   "system": {
     "hostname": "edge-case-test!@#$%^&*()",
     "domain": "domain*with*asterisks",
     "timezone": "GMT+12:45",
-    "language": "invalid_locale",
-    "dnsServer": "",
-    "timeServers": "",
-    "user": [
-      {
-        "name": "",
-        "descr": "User with empty name",
-        "groupname": "",
-        "scope": ""
-      },
-      {
-        "name": "user-with-special-chars!@#",
-        "descr": "User\nwith\nnewlines\nand\ttabs",
-        "groupname": "group|with|pipes",
-        "scope": "unknown"
-      },
-      {
-        "name": "user_with_underscores",
-        "descr": "User with *bold* and _italic_ text",
-        "groupname": "group[with]brackets",
-        "scope": "scope<with>angles"
-      },
-      {
-        "name": "user`with`backticks",
-        "descr": "User with `code` and \\backslash\\ characters",
-        "groupname": "group\\with\\backslashes",
-        "scope": "scope|with|pipes"
-      }
-    ],
-    "group": [
-      {
-        "name": "",
-        "description": "",
-        "scope": ""
-      },
-      {
-        "name": "group*with*asterisks",
-        "description": "Group with _underscores_ and `backticks`",
-        "scope": "scope[with]brackets"
-      }
-    ]
+    "language": "invalid_locale"
   },
-  "interfaces": {
-    "items": {
-      "": {
-        "if": "",
-        "enable": "",
-        "ipaddr": "",
-        "subnet": "",
-        "descr": ""
+  "interfaces": [
+    {
+      "name": "",
+      "physicalIf": "",
+      "description": ""
+    },
+    {
+      "name": "invalid-interface",
+      "physicalIf": "nonexistent0",
+      "ipAddress": "999.999.999.999",
+      "subnet": "999",
+      "description": "Interface with | pipes | and \n newlines"
+    },
+    {
+      "name": "interface*with*chars",
+      "physicalIf": "eth0",
+      "enabled": true,
+      "ipAddress": "192.168.1.100",
+      "subnet": "24",
+      "description": "Interface with *asterisks* and _underscores_"
+    },
+    {
+      "name": "interface`with`backticks",
+      "physicalIf": "eth1",
+      "enabled": true,
+      "ipAddress": "192.168.2.100",
+      "subnet": "24",
+      "description": "Interface with `code` and \\backslashes\\"
+    }
+  ],
+  "firewallRules": [
+    {
+      "type": "",
+      "description": "",
+      "interfaces": [],
+      "ipProtocol": "",
+      "protocol": "",
+      "source": {
+        "address": ""
       },
-      "invalid-interface": {
-        "if": "nonexistent0",
-        "enable": "2",
-        "ipaddr": "999.999.999.999",
-        "subnet": "999",
-        "descr": "Interface with | pipes | and \n newlines"
+      "destination": {
+        "address": ""
+      }
+    },
+    {
+      "type": "unknown",
+      "description": "Rule with | pipes | and \n newlines \t tabs",
+      "ipProtocol": "invalid",
+      "protocol": "unknown",
+      "source": {
+        "address": "invalid-network"
       },
-      "interface*with*chars": {
-        "if": "eth0",
-        "enable": "1",
-        "ipaddr": "192.168.1.100",
-        "subnet": "24",
-        "descr": "Interface with *asterisks* and _underscores_"
+      "destination": {
+        "address": "another|invalid|network"
+      }
+    },
+    {
+      "type": "pass",
+      "description": "Rule with *bold* and _italic_ text",
+      "interfaces": ["wan"],
+      "ipProtocol": "inet",
+      "protocol": "tcp",
+      "source": {
+        "address": "source[with]brackets"
       },
-      "interface`with`backticks": {
-        "if": "eth1",
-        "enable": "1",
-        "ipaddr": "192.168.2.100",
-        "subnet": "24",
-        "descr": "Interface with `code` and \\backslashes\\"
+      "destination": {
+        "address": "dest<with>angles"
+      }
+    },
+    {
+      "type": "block",
+      "description": "Rule with `code` and \\backslash\\ characters",
+      "interfaces": ["lan"],
+      "ipProtocol": "inet",
+      "protocol": "udp",
+      "source": {
+        "address": "source\\with\\backslashes"
+      },
+      "destination": {
+        "address": "dest`with`backticks"
       }
     }
-  },
-  "filter": {
-    "rule": [
-      {
-        "type": "",
-        "descr": "",
-        "interface": [],
-        "ipprotocol": "",
-        "protocol": "",
-        "source": {
-          "network": ""
-        },
-        "destination": {
-          "network": ""
-        }
-      },
-      {
-        "type": "unknown",
-        "descr": "Rule with | pipes | and \n newlines \t tabs",
-        "interface": null,
-        "ipprotocol": "invalid",
-        "protocol": "unknown",
-        "source": {
-          "network": "invalid-network"
-        },
-        "destination": {
-          "network": "another|invalid|network"
-        }
-      },
-      {
-        "type": "pass",
-        "descr": "Rule with *bold* and _italic_ text",
-        "interface": [
-          "wan"
-        ],
-        "ipprotocol": "inet",
-        "protocol": "tcp",
-        "source": {
-          "network": "source[with]brackets"
-        },
-        "destination": {
-          "network": "dest<with>angles"
-        }
-      },
-      {
-        "type": "block",
-        "descr": "Rule with `code` and \\backslash\\ characters",
-        "interface": [
-          "lan"
-        ],
-        "ipprotocol": "inet",
-        "protocol": "udp",
-        "source": {
-          "network": "source\\with\\backslashes"
-        },
-        "destination": {
-          "network": "dest`with`backticks"
-        }
-      }
-    ]
-  },
-  "dhcpd": {
-    "items": {}
-  },
+  ],
+  "dhcp": [],
+  "users": [
+    {
+      "name": "",
+      "description": "User with empty name",
+      "groupName": "",
+      "scope": ""
+    },
+    {
+      "name": "user-with-special-chars!@#",
+      "description": "User\nwith\nnewlines\nand\ttabs",
+      "groupName": "group|with|pipes",
+      "scope": "unknown"
+    },
+    {
+      "name": "user_with_underscores",
+      "description": "User with *bold* and _italic_ text",
+      "groupName": "group[with]brackets",
+      "scope": "scope<with>angles"
+    },
+    {
+      "name": "user`with`backticks",
+      "description": "User with `code` and \\backslash\\ characters",
+      "groupName": "group\\with\\backslashes",
+      "scope": "scope|with|pipes"
+    }
+  ],
+  "groups": [
+    {
+      "name": "",
+      "description": "",
+      "scope": ""
+    },
+    {
+      "name": "group*with*asterisks",
+      "description": "Group with _underscores_ and `backticks`",
+      "scope": "scope[with]brackets"
+    }
+  ],
   "sysctl": [
     {
       "tunable": "",
       "value": "",
-      "descr": ""
+      "description": ""
     },
     {
       "tunable": "invalid.tunable.with.pipes|and|newlines",
       "value": "value\nwith\nnewlines",
-      "descr": "Description with | pipes | and \n newlines \t tabs"
+      "description": "Description with | pipes | and \n newlines \t tabs"
     },
     {
       "tunable": "tunable*with*asterisks",
       "value": "value_with_underscores",
-      "descr": "Description with *bold* and _italic_ text"
+      "description": "Description with *bold* and _italic_ text"
     },
     {
       "tunable": "tunable[with]brackets",
       "value": "value<with>angles",
-      "descr": "Description with [brackets] and <angles>"
+      "description": "Description with [brackets] and <angles>"
     },
     {
       "tunable": "tunable`with`backticks",
       "value": "value\\with\\backslashes",
-      "descr": "Description with `code` and \\backslash\\ characters"
+      "description": "Description with `code` and \\backslash\\ characters"
     }
   ]
 }

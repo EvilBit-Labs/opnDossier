@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/schema"
 )
 
 // ValidationError represents a configuration validation error.
@@ -28,7 +28,7 @@ func (e ValidationError) Error() string {
 
 // ValidateOpnSenseDocument validates an entire OPNsense configuration document and returns all detected validation errors.
 // It checks system settings, network interfaces, DHCP server, firewall rules, NAT rules, users and groups, and sysctl tunables for correctness and consistency.
-func ValidateOpnSenseDocument(o *model.OpnSenseDocument) []ValidationError {
+func ValidateOpnSenseDocument(o *schema.OpnSenseDocument) []ValidationError {
 	if o == nil {
 		return []ValidationError{{
 			Field:   "document",
@@ -64,7 +64,7 @@ func ValidateOpnSenseDocument(o *model.OpnSenseDocument) []ValidationError {
 
 // validateSystem checks the system-level configuration fields for required values and valid formats.
 // It returns a slice of ValidationError for any invalid or missing system configuration fields, including hostname, domain, timezone, optimization, web GUI protocol, power management modes, and bogons interval.
-func validateSystem(system *model.System) []ValidationError {
+func validateSystem(system *schema.System) []ValidationError {
 	var errors []ValidationError
 
 	// Hostname is required and must be valid
@@ -154,7 +154,7 @@ func validateSystem(system *model.System) []ValidationError {
 }
 
 // validateInterfaces validates all configured network interfaces and returns any validation errors found.
-func validateInterfaces(interfaces *model.Interfaces) []ValidationError {
+func validateInterfaces(interfaces *schema.Interfaces) []ValidationError {
 	var errors []ValidationError
 
 	if interfaces == nil || interfaces.Items == nil {
@@ -172,7 +172,7 @@ func validateInterfaces(interfaces *model.Interfaces) []ValidationError {
 
 // validateInterface checks a single network interface configuration for valid IP address types and formats, subnet masks, MTU range, and required fields for track6 IPv6 addressing.
 // It returns a slice of ValidationError for any invalid or missing configuration fields.
-func validateInterface(iface *model.Interface, name string, interfaces *model.Interfaces) []ValidationError {
+func validateInterface(iface *schema.Interface, name string, interfaces *schema.Interfaces) []ValidationError {
 	var errors []ValidationError
 
 	if iface == nil {
@@ -191,7 +191,7 @@ func validateInterface(iface *model.Interface, name string, interfaces *model.In
 }
 
 // validateIPAddress validates the IP address of an interface.
-func validateIPAddress(iface *model.Interface, name string) []ValidationError {
+func validateIPAddress(iface *schema.Interface, name string) []ValidationError {
 	var errors []ValidationError
 	if iface.IPAddr != "" {
 		validIPTypes := []string{"dhcp", "dhcp6", "track6", "none"}
@@ -210,7 +210,7 @@ func validateIPAddress(iface *model.Interface, name string) []ValidationError {
 }
 
 // validateIPv6Address validates the IPv6 address of an interface.
-func validateIPv6Address(iface *model.Interface, name string) []ValidationError {
+func validateIPv6Address(iface *schema.Interface, name string) []ValidationError {
 	var errors []ValidationError
 	if iface.IPAddrv6 != "" {
 		validIPv6Types := []string{"dhcp6", "slaac", "track6", "none"}
@@ -229,7 +229,7 @@ func validateIPv6Address(iface *model.Interface, name string) []ValidationError 
 }
 
 // validateSubnet validates the subnet mask of an interface.
-func validateSubnet(iface *model.Interface, name string) []ValidationError {
+func validateSubnet(iface *schema.Interface, name string) []ValidationError {
 	var errors []ValidationError
 	if iface.Subnet != "" {
 		if subnet, err := strconv.Atoi(iface.Subnet); err != nil || subnet < 0 || subnet > 32 {
@@ -251,7 +251,7 @@ func validateSubnet(iface *model.Interface, name string) []ValidationError {
 }
 
 // validateMTU validates the MTU of an interface.
-func validateMTU(iface *model.Interface, name string) []ValidationError {
+func validateMTU(iface *schema.Interface, name string) []ValidationError {
 	var errors []ValidationError
 	if iface.MTU != "" {
 		if mtu, err := strconv.Atoi(iface.MTU); err != nil || mtu < 68 || mtu > 9000 {
@@ -265,7 +265,7 @@ func validateMTU(iface *model.Interface, name string) []ValidationError {
 }
 
 // validateTrack6 performs cross-field validation for track6 configurations.
-func validateTrack6(iface *model.Interface, validInterfaceNames map[string]struct{}, name string) []ValidationError {
+func validateTrack6(iface *schema.Interface, validInterfaceNames map[string]struct{}, name string) []ValidationError {
 	var errors []ValidationError
 	if iface.IPAddrv6 == "track6" {
 		if iface.Track6Interface == "" {
@@ -305,7 +305,7 @@ func validateTrack6(iface *model.Interface, validInterfaceNames map[string]struc
 
 // It iterates over the interface map and validates each DHCP block that exists in the dhcpd section.
 // Returns a slice of ValidationError for any invalid or inconsistent DHCP configuration fields.
-func validateDhcpd(dhcpd *model.Dhcpd, interfaces *model.Interfaces) []ValidationError {
+func validateDhcpd(dhcpd *schema.Dhcpd, interfaces *schema.Interfaces) []ValidationError {
 	var errors []ValidationError
 
 	if dhcpd == nil || dhcpd.Items == nil {
@@ -326,7 +326,7 @@ func validateDhcpd(dhcpd *model.Dhcpd, interfaces *model.Interfaces) []Validatio
 // validateDhcpdInterface checks a DHCP interface configuration for validity, ensuring the referenced interface exists and that any specified DHCP range addresses are valid IPs with the 'from' address less than the 'to' address.
 //
 // Returns a slice of ValidationError for any detected issues.
-func validateDhcpdInterface(name string, cfg model.DhcpdInterface, ifaceSet map[string]struct{}) []ValidationError {
+func validateDhcpdInterface(name string, cfg schema.DhcpdInterface, ifaceSet map[string]struct{}) []ValidationError {
 	var errors []ValidationError
 
 	// Validate that the interface exists in the configuration
@@ -390,7 +390,7 @@ func validateDhcpdInterface(name string, cfg model.DhcpdInterface, ifaceSet map[
 }
 
 // collectInterfaceNames returns every key from the interfaces map as a set.
-func collectInterfaceNames(ifaces *model.Interfaces) map[string]struct{} {
+func collectInterfaceNames(ifaces *schema.Interfaces) map[string]struct{} {
 	interfaceNames := make(map[string]struct{})
 
 	if ifaces != nil && ifaces.Items != nil {
@@ -417,7 +417,7 @@ func isReservedNetwork(network string) bool {
 
 // validateFilter checks each firewall filter rule for valid types, protocols, interface references, and network specifications.
 // It returns a list of validation errors for any rule fields that are invalid or reference non-existent interfaces.
-func validateFilter(filter *model.Filter, interfaces *model.Interfaces) []ValidationError {
+func validateFilter(filter *schema.Filter, interfaces *schema.Interfaces) []ValidationError {
 	var errors []ValidationError
 
 	// Collect valid interface names from the configuration
@@ -618,7 +618,7 @@ func validateFilter(filter *model.Filter, interfaces *model.Interfaces) []Valida
 
 // validateNat checks NAT configuration including outbound mode and inbound rule fields.
 // It returns a slice of ValidationError for any invalid values detected.
-func validateNat(nat *model.Nat) []ValidationError {
+func validateNat(nat *schema.Nat) []ValidationError {
 	var errors []ValidationError
 
 	// Validate outbound NAT mode
@@ -650,7 +650,7 @@ func validateNat(nat *model.Nat) []ValidationError {
 
 // validateUsersAndGroups checks system users and groups for required fields, uniqueness, valid IDs, valid scopes, and correct group references.
 // It returns a slice of ValidationError for any invalid or inconsistent user or group entries.
-func validateUsersAndGroups(system *model.System) []ValidationError {
+func validateUsersAndGroups(system *schema.System) []ValidationError {
 	var errors []ValidationError
 
 	// Track group names and GIDs to ensure uniqueness
@@ -664,7 +664,7 @@ func validateUsersAndGroups(system *model.System) []ValidationError {
 }
 
 // validateGroups validates all groups and tracks names and GIDs for uniqueness.
-func validateGroups(groups []model.Group, groupNames, groupGIDs map[string]bool) []ValidationError {
+func validateGroups(groups []schema.Group, groupNames, groupGIDs map[string]bool) []ValidationError {
 	var errors []ValidationError
 
 	for i, group := range groups {
@@ -677,7 +677,7 @@ func validateGroups(groups []model.Group, groupNames, groupGIDs map[string]bool)
 }
 
 // validateGroupName validates group name requirements and uniqueness.
-func validateGroupName(group model.Group, index int, groupNames map[string]bool) []ValidationError {
+func validateGroupName(group schema.Group, index int, groupNames map[string]bool) []ValidationError {
 	var errors []ValidationError
 
 	switch {
@@ -699,7 +699,7 @@ func validateGroupName(group model.Group, index int, groupNames map[string]bool)
 }
 
 // validateGroupGID validates group GID requirements and uniqueness.
-func validateGroupGID(group model.Group, index int, groupGIDs map[string]bool) []ValidationError {
+func validateGroupGID(group schema.Group, index int, groupGIDs map[string]bool) []ValidationError {
 	var errors []ValidationError
 
 	if group.Gid == "" {
@@ -732,7 +732,7 @@ func validateGroupGID(group model.Group, index int, groupGIDs map[string]bool) [
 }
 
 // validateGroupScope validates group scope requirements.
-func validateGroupScope(group model.Group, index int) []ValidationError {
+func validateGroupScope(group schema.Group, index int) []ValidationError {
 	var errors []ValidationError
 
 	if group.Scope == "" {
@@ -751,7 +751,7 @@ func validateGroupScope(group model.Group, index int) []ValidationError {
 }
 
 // validateUsers validates all users.
-func validateUsers(users []model.User, groupNames map[string]bool) []ValidationError {
+func validateUsers(users []schema.User, groupNames map[string]bool) []ValidationError {
 	var errors []ValidationError
 	userNames := make(map[string]bool)
 	userUIDs := make(map[string]bool)
@@ -767,7 +767,7 @@ func validateUsers(users []model.User, groupNames map[string]bool) []ValidationE
 }
 
 // validateUserName validates user name requirements and uniqueness.
-func validateUserName(user model.User, index int, userNames map[string]bool) []ValidationError {
+func validateUserName(user schema.User, index int, userNames map[string]bool) []ValidationError {
 	var errors []ValidationError
 
 	switch {
@@ -789,7 +789,7 @@ func validateUserName(user model.User, index int, userNames map[string]bool) []V
 }
 
 // validateUserUID validates user UID requirements and uniqueness.
-func validateUserUID(user model.User, index int, userUIDs map[string]bool) []ValidationError {
+func validateUserUID(user schema.User, index int, userUIDs map[string]bool) []ValidationError {
 	var errors []ValidationError
 
 	if user.UID == "" {
@@ -822,7 +822,7 @@ func validateUserUID(user model.User, index int, userUIDs map[string]bool) []Val
 }
 
 // validateUserGroupMembership validates user group membership.
-func validateUserGroupMembership(user model.User, index int, groupNames map[string]bool) []ValidationError {
+func validateUserGroupMembership(user schema.User, index int, groupNames map[string]bool) []ValidationError {
 	var errors []ValidationError
 
 	if user.Groupname != "" && !groupNames[user.Groupname] {
@@ -836,7 +836,7 @@ func validateUserGroupMembership(user model.User, index int, groupNames map[stri
 }
 
 // validateUserScope validates user scope requirements.
-func validateUserScope(user model.User, index int) []ValidationError {
+func validateUserScope(user schema.User, index int) []ValidationError {
 	var errors []ValidationError
 
 	if user.Scope == "" {
@@ -856,7 +856,7 @@ func validateUserScope(user model.User, index int) []ValidationError {
 
 // validateSysctl checks sysctl tunable items for required fields, uniqueness, valid naming format, and presence of values.
 // It returns a slice of ValidationError for any missing, duplicate, or improperly formatted tunable names, or missing values.
-func validateSysctl(items []model.SysctlItem) []ValidationError {
+func validateSysctl(items []schema.SysctlItem) []ValidationError {
 	var errors []ValidationError
 
 	tunables := make(map[string]bool)

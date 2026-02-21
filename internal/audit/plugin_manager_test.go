@@ -6,7 +6,7 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 func newTestLogger(t *testing.T) *logging.Logger {
@@ -166,8 +166,8 @@ func TestPluginManager_RunComplianceAudit(t *testing.T) {
 	}
 
 	// Create test configuration
-	testConfig := &model.OpnSenseDocument{
-		System: model.System{
+	testConfig := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-host",
 			Domain:   "test.local",
 		},
@@ -460,7 +460,7 @@ func TestPluginManager_WithNilConfig(t *testing.T) {
 	}
 
 	// Create a test configuration (empty but not nil)
-	testConfig := &model.OpnSenseDocument{}
+	testConfig := &common.CommonDevice{}
 
 	// Test RunComplianceAudit with valid config
 	_, err = manager.RunComplianceAudit(ctx, testConfig, []string{"stig"})

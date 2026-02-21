@@ -11,7 +11,7 @@ import (
 	"sync"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 // PluginRegistry manages the registration and retrieval of compliance plugins.
@@ -128,7 +128,7 @@ func (pr *PluginRegistry) LoadDynamicPlugins(ctx context.Context, dir string, lo
 
 // RunComplianceChecks runs compliance checks for specified plugins.
 func (pr *PluginRegistry) RunComplianceChecks(
-	config *model.OpnSenseDocument,
+	device *common.CommonDevice,
 	pluginNames []string,
 ) (*ComplianceResult, error) {
 	result := &ComplianceResult{
@@ -145,7 +145,7 @@ func (pr *PluginRegistry) RunComplianceChecks(
 		}
 
 		// Run checks for this plugin
-		findings := p.RunChecks(config)
+		findings := p.RunChecks(device)
 		result.Findings = append(result.Findings, findings...)
 
 		// Track plugin information

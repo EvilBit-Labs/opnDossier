@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/spf13/cobra"
 )
 
@@ -54,6 +55,11 @@ Examples:
 		ctx := cmd.Context()
 		if ctx == nil {
 			ctx = context.Background()
+		}
+
+		// Validate device type flag early before any file processing
+		if err := validateDeviceType(); err != nil {
+			return err
 		}
 
 		// Get configuration and logger from CommandContext
@@ -117,10 +123,9 @@ Examples:
 					}
 				}()
 
-				// Parse and validate the XML
-				ctxLogger.Debug("Parsing and validating XML file")
-				p := cfgparser.NewXMLParser()
-				_, err = p.ParseAndValidate(ctx, file)
+				// Parse and validate the configuration file
+				ctxLogger.Debug("Parsing and validating configuration file")
+				_, err = model.NewParserFactory().CreateDevice(ctx, file, sharedDeviceType, true)
 				if err != nil {
 					exitCode := DetermineExitCode(err)
 					updateMaxExitCode(&maxExitCode, exitCode)

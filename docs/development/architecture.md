@@ -2,7 +2,7 @@
 
 ## Overview
 
-opnDossier is a **CLI-based OPNsense configuration processor** designed with an **offline-first, operator-focused architecture**. The system transforms complex XML configuration files into human-readable markdown documentation, following security-first principles and air-gap compatibility.
+opnDossier is a **CLI-based multi-device firewall configuration processor** designed with an **offline-first, operator-focused architecture**. Currently supports OPNsense with an extensible architecture for additional device types. The system transforms complex XML configuration files into human-readable markdown documentation, following security-first principles and air-gap compatibility.
 
 ![System Architecture](../dev-guide/opnFocus_System_Architecture.png)
 
@@ -153,6 +153,33 @@ This hierarchical structure provides:
 - **Validation**: Domain-specific validation rules improve data integrity
 - **API Evolution**: JSON tags enable better REST API integration
 
+## Multi-Device Model Layer Architecture
+
+opnDossier separates XML-specific DTOs from the domain model consumed by all downstream components. This enables support for multiple device types (OPNsense today, pfSense/Cisco ASA in the future) behind a single `CommonDevice` abstraction.
+
+```mermaid
+graph TD
+    A["internal/schema/ — XML DTOs (OPNsense-shaped structs)"]
+    B["internal/model/opnsense/ — OPNsense parser + converter"]
+    C["internal/model/common/ — CommonDevice domain model"]
+    D["Consumers: processor / converter / markdown / audit / diff / plugins"]
+
+    A --> B
+    B --> C
+    C --> D
+```
+
+### Layer Responsibilities
+
+- **`internal/schema/`** — XML DTO layer. Carries `xml:""` tags and mirrors the OPNsense config.xml structure. This layer is untouched by downstream consumers.
+- **`internal/model/opnsense/`** — Contains `parser.go` and `converter.go`. Reads schema DTOs and emits `*common.CommonDevice`. This is the only package that imports `internal/schema/`.
+- **`internal/model/common/`** — Device-agnostic domain model. No XML tags. All consumer code (processor, converter, markdown, audit, diff, compliance plugins) operates on `CommonDevice`.
+- **`internal/model/factory.go`** — `ParserFactory` and `DeviceParser` interface. Auto-detects the device type from the XML root element. The `--device-type opnsense` flag bypasses auto-detection.
+
+### Device Type Detection
+
+The `--device-type` flag is exposed on all config-reading commands (`convert`, `display`, `audit`, `diff`, `validate`). When specified, it bypasses auto-detection and fails only if parsing or validation fails. When omitted, `ParserFactory` inspects the root XML element to select the correct parser.
+
 ## Data Flow Architecture
 
 ```mermaid
@@ -269,7 +296,7 @@ classDiagram
     }
 
     class MarkdownBuilder {
-        -config *OpnSenseDocument
+        -device *common.CommonDevice
         -options BuildOptions
         -logger *Logger
         +CalculateSecurityScore(data) int
@@ -403,7 +430,7 @@ type GenerationError struct {
 }
 
 // Context-aware error handling
-func (b *MarkdownBuilder) BuildSection(data *model.OpnSenseDocument) (string, error) {
+func (b *MarkdownBuilder) BuildSection(device *common.CommonDevice) (string, error) {
     if err := b.validateInput(data); err != nil {
         return "", &ValidationError{
             Field:   "input_data",
@@ -448,7 +475,7 @@ Each report generator should be a self-contained module with its own:
 ```mermaid
 graph TB
     subgraph "Shared Infrastructure"
-        Model[model.OpnSenseDocument]
+        Model[common.CommonDevice]
         Helpers[Shared Helpers<br/>• String formatting<br/>• Markdown escaping<br/>• Table building]
     end
 
@@ -507,7 +534,7 @@ internal/converter/<report-type>/
 
 #### What Should Remain Shared
 
-- **`model.OpnSenseDocument`** - The parsed configuration model
+- **`common.CommonDevice`** - The parsed device-agnostic configuration model
 - **String helpers** - Markdown escaping, formatting utilities
 - **Table builders** - Generic markdown table construction
 - **Common interfaces** - `ReportBuilder`, `Generator` interfaces
@@ -519,7 +546,7 @@ internal/converter/<report-type>/
 package blueteam
 
 import (
-    "github.com/EvilBit-Labs/opnDossier/internal/model"
+    "github.com/EvilBit-Labs/opnDossier/internal/model/common"
     "github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
 )
 
@@ -527,15 +554,15 @@ type BlueTeamGenerator struct {
     // All state and configuration for blue team reports
 }
 
-func (g *BlueTeamGenerator) Generate(doc *model.OpnSenseDocument) (string, error) {
+func (g *BlueTeamGenerator) Generate(device *common.CommonDevice) (string, error) {
     // Self-contained generation using only model and helpers
-    score := g.calculateSecurityScore(doc)
-    findings := g.analyzeCompliance(doc)
-    return g.buildReport(doc, score, findings)
+    score := g.calculateSecurityScore(device)
+    findings := g.analyzeCompliance(device)
+    return g.buildReport(device, score, findings)
 }
 
 // All calculation logic is internal to this module
-func (g *BlueTeamGenerator) calculateSecurityScore(doc *model.OpnSenseDocument) int {
+func (g *BlueTeamGenerator) calculateSecurityScore(device *common.CommonDevice) int {
     // Blue team specific scoring algorithm
 }
 ```
@@ -728,7 +755,7 @@ graph TB
 
 1. **User provides** OPNsense config.xml file
 2. **CLI parses** command-line arguments and loads configuration
-3. **XML Parser** validates and structures the input data
+3. **ParserFactory** auto-detects device type and converts to `CommonDevice`
 4. **Data Converter** transforms XML to markdown with metadata
 5. **Output Renderer** formats for terminal display or file export
 6. **User receives** human-readable documentation

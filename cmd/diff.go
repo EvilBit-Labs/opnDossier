@@ -10,11 +10,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/diff"
 	"github.com/EvilBit-Labs/opnDossier/internal/diff/formatters"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/spf13/cobra"
 )
 
@@ -212,6 +212,11 @@ Examples:
 			ctx = context.Background()
 		}
 
+		// Validate device type flag early before any file processing
+		if err := validateDeviceType(); err != nil {
+			return err
+		}
+
 		// Get configuration and logger from CommandContext
 		cmdCtx := GetCommandContext(cmd)
 		if cmdCtx == nil {
@@ -265,8 +270,8 @@ Examples:
 	},
 }
 
-// parseConfigFile parses an OPNsense XML configuration file.
-func parseConfigFile(ctx context.Context, path string) (*model.OpnSenseDocument, error) {
+// parseConfigFile parses a device configuration file via the ParserFactory.
+func parseConfigFile(ctx context.Context, path string) (*common.CommonDevice, error) {
 	// Make path absolute if needed
 	if !filepath.IsAbs(path) {
 		absPath, err := filepath.Abs(path)
@@ -282,13 +287,12 @@ func parseConfigFile(ctx context.Context, path string) (*model.OpnSenseDocument,
 	}
 	defer file.Close()
 
-	p := cfgparser.NewXMLParser()
-	doc, err := p.Parse(ctx, file)
+	device, err := model.NewParserFactory().CreateDevice(ctx, file, sharedDeviceType, false)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse XML: %w", err)
+		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 
-	return doc, nil
+	return device, nil
 }
 
 // outputDiffResult formats and outputs the diff result.

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/opnsense"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -205,9 +205,9 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 			}()
 
 			// Parse XML into model
-			xmlParser := cfgparser.NewXMLParser()
+			parser := opnsense.NewParser()
 			ctx := context.Background()
-			cfg, err := xmlParser.Parse(ctx, xmlFile)
+			cfg, err := parser.Parse(ctx, xmlFile)
 			require.NoError(t, err, "Failed to parse XML file: %s", tt.xmlFile)
 			assert.NotNil(t, cfg, "Parsed configuration should not be nil")
 
@@ -382,9 +382,9 @@ func TestGenerateFromXMLFilesRobustness(t *testing.T) {
 				require.NoError(t, err)
 			}()
 
-			xmlParser := cfgparser.NewXMLParser()
+			parser := opnsense.NewParser()
 			ctx := context.Background()
-			cfg, err := xmlParser.Parse(ctx, xmlFile)
+			cfg, err := parser.Parse(ctx, xmlFile)
 
 			if tt.expectError {
 				require.Error(t, err, "Should have failed to parse invalid XML")
@@ -421,9 +421,9 @@ func TestDebugSysctlParsing(t *testing.T) {
 		require.NoError(t, err)
 	}()
 
-	xmlParser := cfgparser.NewXMLParser()
+	parser := opnsense.NewParser()
 	ctx := context.Background()
-	cfg, err := xmlParser.Parse(ctx, xmlFile)
+	cfg, err := parser.Parse(ctx, xmlFile)
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")
 	require.NotNil(t, cfg, "Configuration should not be nil")
 
@@ -431,15 +431,7 @@ func TestDebugSysctlParsing(t *testing.T) {
 	t.Logf("Sysctl entries found: %d", len(cfg.Sysctl))
 
 	for i, entry := range cfg.Sysctl {
-		t.Logf("Entry %d: Tunable=%s, Value=%s, Descr=%s", i, entry.Tunable, entry.Value, entry.Descr)
-	}
-
-	// Check system config
-	sysConfig := cfg.SystemConfig()
-	t.Logf("System config sysctl entries: %d", len(sysConfig.Sysctl))
-
-	for i, entry := range sysConfig.Sysctl {
-		t.Logf("SysConfig Entry %d: Tunable=%s, Value=%s, Descr=%s", i, entry.Tunable, entry.Value, entry.Descr)
+		t.Logf("Entry %d: Tunable=%s, Value=%s, Description=%s", i, entry.Tunable, entry.Value, entry.Description)
 	}
 
 	// Generate markdown to see output
@@ -479,9 +471,9 @@ func TestSysctlKeyValidation(t *testing.T) {
 		}
 	}()
 
-	xmlParser := cfgparser.NewXMLParser()
+	parser := opnsense.NewParser()
 	ctx := context.Background()
-	cfg, err := xmlParser.Parse(ctx, xmlFile)
+	cfg, err := parser.Parse(ctx, xmlFile)
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")
 	require.NotNil(t, cfg, "Configuration should not be nil")
 
@@ -545,9 +537,9 @@ func TestInterfaceConfigurationDetail(t *testing.T) {
 		}
 	}()
 
-	xmlParser := cfgparser.NewXMLParser()
+	parser := opnsense.NewParser()
 	ctx := context.Background()
-	cfg, err := xmlParser.Parse(ctx, xmlFile)
+	cfg, err := parser.Parse(ctx, xmlFile)
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")
 	require.NotNil(t, cfg, "Configuration should not be nil")
 
@@ -582,9 +574,9 @@ func TestFirewallRulesFormatting(t *testing.T) {
 		}
 	}()
 
-	xmlParser := cfgparser.NewXMLParser()
+	parser := opnsense.NewParser()
 	ctx := context.Background()
-	cfg, err := xmlParser.Parse(ctx, xmlFile)
+	cfg, err := parser.Parse(ctx, xmlFile)
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")
 	require.NotNil(t, cfg, "Configuration should not be nil")
 
@@ -616,21 +608,20 @@ func TestFirewallRulesFormatting(t *testing.T) {
 
 func TestMarkdownGenerator_Integration(t *testing.T) {
 	// Create a test configuration
-	cfg := &model.OpnSenseDocument{
-		System: model.System{
+	cfg := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-host",
 			Domain:   "test.local",
 		},
-		Interfaces: model.Interfaces{
-			Items: map[string]model.Interface{
-				"wan": {
-					Enable:  "1",
-					If:      "em0",
-					Descr:   "WAN Interface",
-					IPAddr:  "192.168.1.1",
-					Subnet:  "24",
-					Gateway: "192.168.1.254",
-				},
+		Interfaces: []common.Interface{
+			{
+				Name:        "wan",
+				Enabled:     true,
+				PhysicalIf:  "em0",
+				Description: "WAN Interface",
+				IPAddress:   "192.168.1.1",
+				Subnet:      "24",
+				Gateway:     "192.168.1.254",
 			},
 		},
 	}
@@ -715,7 +706,7 @@ func TestErrorHandling_Integration(t *testing.T) {
 		generator, err := NewMarkdownGenerator(nil, opts)
 		require.NoError(t, err)
 
-		cfg := &model.OpnSenseDocument{}
+		cfg := &common.CommonDevice{}
 		opts = Options{Format: Format("invalid")}
 		result, err := generator.Generate(ctx, cfg, opts)
 

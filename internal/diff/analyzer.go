@@ -3,9 +3,10 @@ package diff
 import (
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 const addressUnknown = "unknown"
@@ -19,7 +20,7 @@ func NewAnalyzer() *Analyzer {
 }
 
 // CompareSystem compares system configuration between two configs.
-func (a *Analyzer) CompareSystem(old, newCfg *model.System) []Change {
+func (a *Analyzer) CompareSystem(old, newCfg *common.System) []Change {
 	var changes []Change
 
 	// Handle nil pointers gracefully
@@ -77,14 +78,16 @@ func (a *Analyzer) CompareSystem(old, newCfg *model.System) []Change {
 		})
 	}
 
-	if old.DNSServer != newCfg.DNSServer {
+	oldDNS := strings.Join(old.DNSServers, ",")
+	newDNS := strings.Join(newCfg.DNSServers, ",")
+	if oldDNS != newDNS {
 		changes = append(changes, Change{
 			Type:        ChangeModified,
 			Section:     SectionSystem,
-			Path:        "system.dnsserver",
+			Path:        "system.dnsservers",
 			Description: "DNS server changed",
-			OldValue:    old.DNSServer,
-			NewValue:    newCfg.DNSServer,
+			OldValue:    oldDNS,
+			NewValue:    newDNS,
 		})
 	}
 
@@ -104,12 +107,12 @@ func (a *Analyzer) CompareSystem(old, newCfg *model.System) []Change {
 }
 
 // CompareFirewallRules compares firewall rules between two configs.
-func (a *Analyzer) CompareFirewallRules(old, newCfg []model.Rule) []Change {
+func (a *Analyzer) CompareFirewallRules(old, newCfg []common.FirewallRule) []Change {
 	var changes []Change
 
 	// Build maps by UUID for matching
-	oldByUUID := make(map[string]model.Rule)
-	newByUUID := make(map[string]model.Rule)
+	oldByUUID := make(map[string]common.FirewallRule)
+	newByUUID := make(map[string]common.FirewallRule)
 
 	for _, rule := range old {
 		if rule.UUID != "" {
@@ -177,11 +180,11 @@ func (a *Analyzer) CompareFirewallRules(old, newCfg []model.Rule) []Change {
 }
 
 // compareRulesByPosition compares rules that don't have UUIDs by position.
-func (a *Analyzer) compareRulesByPosition(old, newCfg []model.Rule) []Change {
+func (a *Analyzer) compareRulesByPosition(old, newCfg []common.FirewallRule) []Change {
 	var changes []Change
 
 	// Filter to rules without UUIDs
-	var oldNoUUID, newNoUUID []model.Rule
+	var oldNoUUID, newNoUUID []common.FirewallRule
 	for _, r := range old {
 		if r.UUID == "" {
 			oldNoUUID = append(oldNoUUID, r)
@@ -209,64 +212,43 @@ func (a *Analyzer) compareRulesByPosition(old, newCfg []model.Rule) []Change {
 }
 
 // CompareNAT compares NAT configuration between two configs.
-func (a *Analyzer) CompareNAT(old, newCfg *model.Nat) []Change {
+func (a *Analyzer) CompareNAT(old, newCfg common.NATConfig) []Change {
 	var changes []Change
 
-	// Handle nil pointers gracefully
-	if old == nil && newCfg == nil {
-		return changes
-	}
-	if old == nil {
-		return []Change{{
-			Type:        ChangeAdded,
-			Section:     SectionNAT,
-			Path:        "nat",
-			Description: "NAT configuration section added",
-		}}
-	}
-	if newCfg == nil {
-		return []Change{{
-			Type:        ChangeRemoved,
-			Section:     SectionNAT,
-			Path:        "nat",
-			Description: "NAT configuration section removed",
-		}}
-	}
-
 	// Compare outbound NAT mode
-	if old.Outbound.Mode != newCfg.Outbound.Mode {
+	if old.OutboundMode != newCfg.OutboundMode {
 		changes = append(changes, Change{
 			Type:           ChangeModified,
 			Section:        SectionNAT,
 			Path:           "nat.outbound.mode",
 			Description:    "Outbound NAT mode changed",
-			OldValue:       old.Outbound.Mode,
-			NewValue:       newCfg.Outbound.Mode,
+			OldValue:       old.OutboundMode,
+			NewValue:       newCfg.OutboundMode,
 			SecurityImpact: "medium",
 		})
 	}
 
 	// Compare outbound rule counts
-	if len(old.Outbound.Rule) != len(newCfg.Outbound.Rule) {
+	if len(old.OutboundRules) != len(newCfg.OutboundRules) {
 		changes = append(changes, Change{
 			Type:        ChangeModified,
 			Section:     SectionNAT,
 			Path:        "nat.outbound.rules",
 			Description: "Outbound NAT rule count changed",
-			OldValue:    fmt.Sprintf("%d rules", len(old.Outbound.Rule)),
-			NewValue:    fmt.Sprintf("%d rules", len(newCfg.Outbound.Rule)),
+			OldValue:    fmt.Sprintf("%d rules", len(old.OutboundRules)),
+			NewValue:    fmt.Sprintf("%d rules", len(newCfg.OutboundRules)),
 		})
 	}
 
 	// Compare inbound (port forward) rule counts
-	if len(old.Inbound) != len(newCfg.Inbound) {
+	if len(old.InboundRules) != len(newCfg.InboundRules) {
 		changes = append(changes, Change{
 			Type:           ChangeModified,
 			Section:        SectionNAT,
 			Path:           "nat.inbound.rules",
 			Description:    "Port forward rule count changed",
-			OldValue:       fmt.Sprintf("%d rules", len(old.Inbound)),
-			NewValue:       fmt.Sprintf("%d rules", len(newCfg.Inbound)),
+			OldValue:       fmt.Sprintf("%d rules", len(old.InboundRules)),
+			NewValue:       fmt.Sprintf("%d rules", len(newCfg.InboundRules)),
 			SecurityImpact: "medium",
 		})
 	}
@@ -275,94 +257,69 @@ func (a *Analyzer) CompareNAT(old, newCfg *model.Nat) []Change {
 }
 
 // CompareInterfaces compares interface configuration between two configs.
-func (a *Analyzer) CompareInterfaces(old, newCfg *model.Interfaces) []Change {
+func (a *Analyzer) CompareInterfaces(old, newCfg []common.Interface) []Change {
 	var changes []Change
 
-	// Handle nil pointers gracefully
-	if old == nil && newCfg == nil {
-		return changes
+	// Build name maps for O(1) lookup
+	oldByName := make(map[string]common.Interface, len(old))
+	for _, iface := range old {
+		oldByName[iface.Name] = iface
 	}
-	if old == nil {
-		return []Change{{
-			Type:        ChangeAdded,
-			Section:     SectionInterfaces,
-			Path:        "interfaces",
-			Description: "Interfaces configuration section added",
-		}}
-	}
-	if newCfg == nil {
-		return []Change{{
-			Type:        ChangeRemoved,
-			Section:     SectionInterfaces,
-			Path:        "interfaces",
-			Description: "Interfaces configuration section removed",
-		}}
+	newByName := make(map[string]common.Interface, len(newCfg))
+	for _, iface := range newCfg {
+		newByName[iface.Name] = iface
 	}
 
-	oldNames := old.Names()
-	newNames := newCfg.Names()
+	// Collect and sort names for deterministic output
+	oldNames := make([]string, 0, len(oldByName))
+	for name := range oldByName {
+		oldNames = append(oldNames, name)
+	}
 	slices.Sort(oldNames)
-	slices.Sort(newNames)
 
-	// Build sets for O(1) lookups instead of O(n) slices.Contains
-	newNameSet := make(map[string]struct{}, len(newNames))
-	for _, name := range newNames {
-		newNameSet[name] = struct{}{}
+	newNames := make([]string, 0, len(newByName))
+	for name := range newByName {
+		newNames = append(newNames, name)
 	}
-	oldNameSet := make(map[string]struct{}, len(oldNames))
-	for _, name := range oldNames {
-		oldNameSet[name] = struct{}{}
-	}
+	slices.Sort(newNames)
 
 	// Find removed interfaces
 	for _, name := range oldNames {
-		if _, exists := newNameSet[name]; exists {
+		if _, exists := newByName[name]; exists {
 			continue
 		}
-		// Get should not fail here because name came from Names()
-		iface, ok := old.Get(name)
-		if !ok {
-			// This indicates a bug in the Interfaces implementation - skip this interface
-			continue
-		}
+		iface := oldByName[name]
 		changes = append(changes, Change{
 			Type:        ChangeRemoved,
 			Section:     SectionInterfaces,
 			Path:        "interfaces." + name,
-			Description: fmt.Sprintf("Removed interface: %s (%s)", name, iface.Descr),
+			Description: fmt.Sprintf("Removed interface: %s (%s)", name, iface.Description),
 			OldValue:    formatInterface(iface),
 		})
 	}
 
 	// Find added interfaces
 	for _, name := range newNames {
-		if _, exists := oldNameSet[name]; exists {
+		if _, exists := oldByName[name]; exists {
 			continue
 		}
-		iface, ok := newCfg.Get(name)
-		if !ok {
-			continue
-		}
+		iface := newByName[name]
 		changes = append(changes, Change{
 			Type:        ChangeAdded,
 			Section:     SectionInterfaces,
 			Path:        "interfaces." + name,
-			Description: fmt.Sprintf("Added interface: %s (%s)", name, iface.Descr),
+			Description: fmt.Sprintf("Added interface: %s (%s)", name, iface.Description),
 			NewValue:    formatInterface(iface),
 		})
 	}
 
 	// Find modified interfaces
 	for _, name := range oldNames {
-		if _, exists := newNameSet[name]; !exists {
+		newIface, exists := newByName[name]
+		if !exists {
 			continue
 		}
-		oldIface, ok1 := old.Get(name)
-		newIface, ok2 := newCfg.Get(name)
-		if !ok1 || !ok2 {
-			continue
-		}
-		ifaceChanges := a.compareInterface(name, oldIface, newIface)
+		ifaceChanges := a.compareInterface(name, oldByName[name], newIface)
 		changes = append(changes, ifaceChanges...)
 	}
 
@@ -370,17 +327,17 @@ func (a *Analyzer) CompareInterfaces(old, newCfg *model.Interfaces) []Change {
 }
 
 // compareInterface compares a single interface.
-func (a *Analyzer) compareInterface(name string, old, newCfg model.Interface) []Change {
+func (a *Analyzer) compareInterface(name string, old, newCfg common.Interface) []Change {
 	var changes []Change
 
-	if old.IPAddr != newCfg.IPAddr {
+	if old.IPAddress != newCfg.IPAddress {
 		changes = append(changes, Change{
 			Type:        ChangeModified,
 			Section:     SectionInterfaces,
-			Path:        fmt.Sprintf("interfaces.%s.ipaddr", name),
+			Path:        fmt.Sprintf("interfaces.%s.ipAddress", name),
 			Description: "IP address changed for " + name,
-			OldValue:    old.IPAddr,
-			NewValue:    newCfg.IPAddr,
+			OldValue:    old.IPAddress,
+			NewValue:    newCfg.IPAddress,
 		})
 	}
 
@@ -395,25 +352,25 @@ func (a *Analyzer) compareInterface(name string, old, newCfg model.Interface) []
 		})
 	}
 
-	if old.Enable != newCfg.Enable {
+	if old.Enabled != newCfg.Enabled {
 		changes = append(changes, Change{
 			Type:        ChangeModified,
 			Section:     SectionInterfaces,
-			Path:        fmt.Sprintf("interfaces.%s.enable", name),
+			Path:        fmt.Sprintf("interfaces.%s.enabled", name),
 			Description: "Enable state changed for " + name,
-			OldValue:    old.Enable,
-			NewValue:    newCfg.Enable,
+			OldValue:    strconv.FormatBool(old.Enabled),
+			NewValue:    strconv.FormatBool(newCfg.Enabled),
 		})
 	}
 
-	if old.Descr != newCfg.Descr {
+	if old.Description != newCfg.Description {
 		changes = append(changes, Change{
 			Type:        ChangeModified,
 			Section:     SectionInterfaces,
-			Path:        fmt.Sprintf("interfaces.%s.descr", name),
+			Path:        fmt.Sprintf("interfaces.%s.description", name),
 			Description: "Description changed for " + name,
-			OldValue:    old.Descr,
-			NewValue:    newCfg.Descr,
+			OldValue:    old.Description,
+			NewValue:    newCfg.Description,
 		})
 	}
 
@@ -421,42 +378,21 @@ func (a *Analyzer) compareInterface(name string, old, newCfg model.Interface) []
 }
 
 // CompareVLANs compares VLAN configuration between two configs.
-func (a *Analyzer) CompareVLANs(old, newCfg *model.VLANs) []Change {
+func (a *Analyzer) CompareVLANs(old, newCfg []common.VLAN) []Change {
 	var changes []Change
 
-	// Handle nil pointers gracefully
-	if old == nil && newCfg == nil {
-		return changes
-	}
-	if old == nil {
-		return []Change{{
-			Type:        ChangeAdded,
-			Section:     SectionVLANs,
-			Path:        "vlans",
-			Description: "VLANs configuration section added",
-		}}
-	}
-	if newCfg == nil {
-		return []Change{{
-			Type:        ChangeRemoved,
-			Section:     SectionVLANs,
-			Path:        "vlans",
-			Description: "VLANs configuration section removed",
-		}}
-	}
+	// Build maps by VLANIf (unique identifier)
+	oldByVlanif := make(map[string]common.VLAN)
+	newByVlanif := make(map[string]common.VLAN)
 
-	// Build maps by vlanif (unique identifier)
-	oldByVlanif := make(map[string]model.VLAN)
-	newByVlanif := make(map[string]model.VLAN)
-
-	for _, v := range old.VLAN {
-		if v.Vlanif != "" {
-			oldByVlanif[v.Vlanif] = v
+	for _, v := range old {
+		if v.VLANIf != "" {
+			oldByVlanif[v.VLANIf] = v
 		}
 	}
-	for _, v := range newCfg.VLAN {
-		if v.Vlanif != "" {
-			newByVlanif[v.Vlanif] = v
+	for _, v := range newCfg {
+		if v.VLANIf != "" {
+			newByVlanif[v.VLANIf] = v
 		}
 	}
 
@@ -468,7 +404,12 @@ func (a *Analyzer) CompareVLANs(old, newCfg *model.VLANs) []Change {
 				Section:     SectionVLANs,
 				Path:        fmt.Sprintf("vlans.vlan[%s]", vlanif),
 				Description: fmt.Sprintf("Removed VLAN: %s (tag %s)", vlanif, oldVlan.Tag),
-				OldValue:    fmt.Sprintf("tag=%s, if=%s, descr=%s", oldVlan.Tag, oldVlan.If, oldVlan.Descr),
+				OldValue: fmt.Sprintf(
+					"tag=%s, if=%s, descr=%s",
+					oldVlan.Tag,
+					oldVlan.PhysicalIf,
+					oldVlan.Description,
+				),
 			})
 		}
 	}
@@ -481,7 +422,12 @@ func (a *Analyzer) CompareVLANs(old, newCfg *model.VLANs) []Change {
 				Section:     SectionVLANs,
 				Path:        fmt.Sprintf("vlans.vlan[%s]", vlanif),
 				Description: fmt.Sprintf("Added VLAN: %s (tag %s)", vlanif, newVlan.Tag),
-				NewValue:    fmt.Sprintf("tag=%s, if=%s, descr=%s", newVlan.Tag, newVlan.If, newVlan.Descr),
+				NewValue: fmt.Sprintf(
+					"tag=%s, if=%s, descr=%s",
+					newVlan.Tag,
+					newVlan.PhysicalIf,
+					newVlan.Description,
+				),
 			})
 		}
 	}
@@ -507,43 +453,33 @@ func (a *Analyzer) CompareVLANs(old, newCfg *model.VLANs) []Change {
 
 // CompareDHCP compares DHCP configuration between two configs.
 // Focuses on persistent configuration (static reservations) not ephemeral state (leases).
-func (a *Analyzer) CompareDHCP(old, newCfg *model.Dhcpd) []Change {
+func (a *Analyzer) CompareDHCP(old, newCfg []common.DHCPScope) []Change {
 	var changes []Change
 
-	// Handle nil pointers gracefully
-	if old == nil && newCfg == nil {
-		return changes
+	// Build maps keyed by interface name
+	oldByIface := make(map[string]common.DHCPScope, len(old))
+	for _, scope := range old {
+		oldByIface[scope.Interface] = scope
 	}
-	if old == nil {
-		return []Change{{
-			Type:        ChangeAdded,
-			Section:     SectionDHCP,
-			Path:        "dhcpd",
-			Description: "DHCP configuration section added",
-		}}
-	}
-	if newCfg == nil {
-		return []Change{{
-			Type:        ChangeRemoved,
-			Section:     SectionDHCP,
-			Path:        "dhcpd",
-			Description: "DHCP configuration section removed",
-		}}
+	newByIface := make(map[string]common.DHCPScope, len(newCfg))
+	for _, scope := range newCfg {
+		newByIface[scope.Interface] = scope
 	}
 
-	// Compare by interface names
-	oldNames := make([]string, 0, len(old.Items))
-	newNames := make([]string, 0, len(newCfg.Items))
-	for name := range old.Items {
+	// Collect and sort names for deterministic output
+	oldNames := make([]string, 0, len(oldByIface))
+	for name := range oldByIface {
 		oldNames = append(oldNames, name)
 	}
-	for name := range newCfg.Items {
+	slices.Sort(oldNames)
+
+	newNames := make([]string, 0, len(newByIface))
+	for name := range newByIface {
 		newNames = append(newNames, name)
 	}
-	slices.Sort(oldNames)
 	slices.Sort(newNames)
 
-	// Build sets for O(1) lookups instead of O(n) slices.Contains
+	// Build sets for O(1) lookups
 	newNameSet := make(map[string]struct{}, len(newNames))
 	for _, name := range newNames {
 		newNameSet[name] = struct{}{}
@@ -583,11 +519,11 @@ func (a *Analyzer) CompareDHCP(old, newCfg *model.Dhcpd) []Change {
 			continue
 		}
 
-		oldDHCP := old.Items[name]
-		newDHCP := newCfg.Items[name]
+		oldDHCP := oldByIface[name]
+		newDHCP := newByIface[name]
 
 		// Compare static reservations specifically
-		staticChanges := a.compareStaticMappings(name, oldDHCP.Staticmap, newDHCP.Staticmap)
+		staticChanges := a.compareStaticMappings(name, oldDHCP.StaticLeases, newDHCP.StaticLeases)
 		changes = append(changes, staticChanges...)
 
 		// Compare DHCP range changes
@@ -603,14 +539,14 @@ func (a *Analyzer) CompareDHCP(old, newCfg *model.Dhcpd) []Change {
 		}
 
 		// Compare enable state
-		if oldDHCP.Enable != newDHCP.Enable {
+		if oldDHCP.Enabled != newDHCP.Enabled {
 			changes = append(changes, Change{
 				Type:        ChangeModified,
 				Section:     SectionDHCP,
-				Path:        fmt.Sprintf("dhcpd.%s.enable", name),
+				Path:        fmt.Sprintf("dhcpd.%s.enabled", name),
 				Description: fmt.Sprintf("DHCP server %s state changed", name),
-				OldValue:    oldDHCP.Enable,
-				NewValue:    newDHCP.Enable,
+				OldValue:    strconv.FormatBool(oldDHCP.Enabled),
+				NewValue:    strconv.FormatBool(newDHCP.Enabled),
 			})
 		}
 	}
@@ -619,18 +555,18 @@ func (a *Analyzer) CompareDHCP(old, newCfg *model.Dhcpd) []Change {
 }
 
 // compareStaticMappings compares DHCP static reservations between two configs.
-func (a *Analyzer) compareStaticMappings(ifaceName string, old, newCfg []model.DHCPStaticLease) []Change {
+func (a *Analyzer) compareStaticMappings(ifaceName string, old, newCfg []common.DHCPStaticLease) []Change {
 	var changes []Change
 
 	// Build maps by MAC address (unique identifier for reservations)
-	oldByMAC := make(map[string]model.DHCPStaticLease)
-	newByMAC := make(map[string]model.DHCPStaticLease)
+	oldByMAC := make(map[string]common.DHCPStaticLease)
+	newByMAC := make(map[string]common.DHCPStaticLease)
 
 	for _, lease := range old {
-		oldByMAC[lease.Mac] = lease
+		oldByMAC[lease.MAC] = lease
 	}
 	for _, lease := range newCfg {
-		newByMAC[lease.Mac] = lease
+		newByMAC[lease.MAC] = lease
 	}
 
 	// Find removed static reservations
@@ -642,7 +578,7 @@ func (a *Analyzer) compareStaticMappings(ifaceName string, old, newCfg []model.D
 				Path:    fmt.Sprintf("dhcpd.%s.staticmap[%s]", ifaceName, mac),
 				Description: fmt.Sprintf(
 					"Removed static reservation: %s (%s)",
-					oldLease.IPAddr,
+					oldLease.IPAddress,
 					staticLeaseLabel(oldLease),
 				),
 				OldValue: formatStaticLease(oldLease),
@@ -659,7 +595,7 @@ func (a *Analyzer) compareStaticMappings(ifaceName string, old, newCfg []model.D
 				Path:    fmt.Sprintf("dhcpd.%s.staticmap[%s]", ifaceName, mac),
 				Description: fmt.Sprintf(
 					"Added static reservation: %s (%s)",
-					newLease.IPAddr,
+					newLease.IPAddress,
 					staticLeaseLabel(newLease),
 				),
 				NewValue: formatStaticLease(newLease),
@@ -670,14 +606,14 @@ func (a *Analyzer) compareStaticMappings(ifaceName string, old, newCfg []model.D
 	// Find modified static reservations
 	for mac, oldLease := range oldByMAC {
 		if newLease, exists := newByMAC[mac]; exists {
-			if oldLease.IPAddr != newLease.IPAddr {
+			if oldLease.IPAddress != newLease.IPAddress {
 				changes = append(changes, Change{
 					Type:        ChangeModified,
 					Section:     SectionDHCP,
 					Path:        fmt.Sprintf("dhcpd.%s.staticmap[%s].ipaddr", ifaceName, mac),
 					Description: "Static reservation IP changed for " + staticLeaseLabel(newLease),
-					OldValue:    oldLease.IPAddr,
-					NewValue:    newLease.IPAddr,
+					OldValue:    oldLease.IPAddress,
+					NewValue:    newLease.IPAddress,
 				})
 			}
 			if oldLease.Hostname != newLease.Hostname {
@@ -697,35 +633,35 @@ func (a *Analyzer) compareStaticMappings(ifaceName string, old, newCfg []model.D
 }
 
 // staticLeaseLabel returns a human-readable label for a static lease.
-func staticLeaseLabel(lease model.DHCPStaticLease) string {
+func staticLeaseLabel(lease common.DHCPStaticLease) string {
 	if lease.Hostname != "" {
 		return lease.Hostname
 	}
-	if lease.Descr != "" {
-		return lease.Descr
+	if lease.Description != "" {
+		return lease.Description
 	}
-	return lease.Mac
+	return lease.MAC
 }
 
 // formatStaticLease returns a formatted string for a static lease.
-func formatStaticLease(lease model.DHCPStaticLease) string {
-	parts := []string{"ip=" + lease.IPAddr, "mac=" + lease.Mac}
+func formatStaticLease(lease common.DHCPStaticLease) string {
+	parts := []string{"ip=" + lease.IPAddress, "mac=" + lease.MAC}
 	if lease.Hostname != "" {
 		parts = append(parts, "hostname="+lease.Hostname)
 	}
-	if lease.Descr != "" {
-		parts = append(parts, "descr="+lease.Descr)
+	if lease.Description != "" {
+		parts = append(parts, "descr="+lease.Description)
 	}
 	return strings.Join(parts, ", ")
 }
 
 // CompareUsers compares user configuration between two configs.
-func (a *Analyzer) CompareUsers(old, newCfg []model.User) []Change {
+func (a *Analyzer) CompareUsers(old, newCfg []common.User) []Change {
 	var changes []Change
 
 	// Build maps by username
-	oldByName := make(map[string]model.User)
-	newByName := make(map[string]model.User)
+	oldByName := make(map[string]common.User)
+	newByName := make(map[string]common.User)
 
 	for _, u := range old {
 		oldByName[u.Name] = u
@@ -741,8 +677,8 @@ func (a *Analyzer) CompareUsers(old, newCfg []model.User) []Change {
 				Type:           ChangeRemoved,
 				Section:        SectionUsers,
 				Path:           fmt.Sprintf("system.user[%s]", name),
-				Description:    fmt.Sprintf("Removed user: %s (%s)", name, oldUser.Descr),
-				OldValue:       fmt.Sprintf("scope=%s, group=%s", oldUser.Scope, oldUser.Groupname),
+				Description:    fmt.Sprintf("Removed user: %s (%s)", name, oldUser.Description),
+				OldValue:       fmt.Sprintf("scope=%s, group=%s", oldUser.Scope, oldUser.GroupName),
 				SecurityImpact: "medium",
 			})
 		}
@@ -755,8 +691,8 @@ func (a *Analyzer) CompareUsers(old, newCfg []model.User) []Change {
 				Type:           ChangeAdded,
 				Section:        SectionUsers,
 				Path:           fmt.Sprintf("system.user[%s]", name),
-				Description:    fmt.Sprintf("Added user: %s (%s)", name, newUser.Descr),
-				NewValue:       fmt.Sprintf("scope=%s, group=%s", newUser.Scope, newUser.Groupname),
+				Description:    fmt.Sprintf("Added user: %s (%s)", name, newUser.Description),
+				NewValue:       fmt.Sprintf("scope=%s, group=%s", newUser.Scope, newUser.GroupName),
 				SecurityImpact: "medium",
 			})
 		}
@@ -781,38 +717,17 @@ func (a *Analyzer) CompareUsers(old, newCfg []model.User) []Change {
 }
 
 // CompareRoutes compares static route configuration between two configs.
-func (a *Analyzer) CompareRoutes(old, newCfg *model.StaticRoutes) []Change {
+func (a *Analyzer) CompareRoutes(old, newCfg common.Routing) []Change {
 	var changes []Change
 
-	// Handle nil pointers gracefully
-	if old == nil && newCfg == nil {
-		return changes
-	}
-	if old == nil {
-		return []Change{{
-			Type:        ChangeAdded,
-			Section:     SectionRouting,
-			Path:        "staticroutes",
-			Description: "Static routes configuration section added",
-		}}
-	}
-	if newCfg == nil {
-		return []Change{{
-			Type:        ChangeRemoved,
-			Section:     SectionRouting,
-			Path:        "staticroutes",
-			Description: "Static routes configuration section removed",
-		}}
-	}
-
-	if len(old.Route) != len(newCfg.Route) {
+	if len(old.StaticRoutes) != len(newCfg.StaticRoutes) {
 		changes = append(changes, Change{
 			Type:        ChangeModified,
 			Section:     SectionRouting,
 			Path:        "staticroutes.route",
 			Description: "Static route count changed",
-			OldValue:    fmt.Sprintf("%d routes", len(old.Route)),
-			NewValue:    fmt.Sprintf("%d routes", len(newCfg.Route)),
+			OldValue:    fmt.Sprintf("%d routes", len(old.StaticRoutes)),
+			NewValue:    fmt.Sprintf("%d routes", len(newCfg.StaticRoutes)),
 		})
 	}
 
@@ -821,17 +736,17 @@ func (a *Analyzer) CompareRoutes(old, newCfg *model.StaticRoutes) []Change {
 
 // Helper functions
 
-func ruleDescription(rule model.Rule) string {
-	if rule.Descr != "" {
-		return rule.Descr
+func ruleDescription(rule common.FirewallRule) string {
+	if rule.Description != "" {
+		return rule.Description
 	}
 
-	src := rule.Source.EffectiveAddress()
+	src := rule.Source.Address
 	if src == "" {
 		src = addressUnknown
 	}
 
-	dst := rule.Destination.EffectiveAddress()
+	dst := rule.Destination.Address
 	if dst == "" {
 		dst = addressUnknown
 	}
@@ -839,95 +754,79 @@ func ruleDescription(rule model.Rule) string {
 	return fmt.Sprintf("%s %s → %s", rule.Type, src, dst)
 }
 
-func formatRule(rule model.Rule) string {
+func formatRule(rule common.FirewallRule) string {
 	parts := []string{
 		"type=" + rule.Type,
 	}
-	if len(rule.Interface) > 0 {
-		parts = append(parts, "if="+rule.Interface.String())
+	if len(rule.Interfaces) > 0 {
+		parts = append(parts, "if="+strings.Join(rule.Interfaces, ","))
 	}
 	if rule.Protocol != "" {
 		parts = append(parts, "proto="+rule.Protocol)
 	}
 	parts = append(parts,
-		"src="+formatSource(rule.Source),
-		"dst="+formatDestination(rule.Destination))
-	if rule.Disabled.Bool() {
+		"src="+formatEndpoint(rule.Source),
+		"dst="+formatEndpoint(rule.Destination))
+	if rule.Disabled {
 		parts = append(parts, "disabled")
 	}
 	return strings.Join(parts, ", ")
 }
 
-func formatSource(src model.Source) string {
+func formatEndpoint(ep common.RuleEndpoint) string {
 	var prefix string
-	if src.Not {
+	if ep.Negated {
 		prefix = "!"
 	}
-	addr := src.EffectiveAddress()
+	addr := ep.Address
 	if addr == "" {
 		addr = addressUnknown
 	}
 	result := prefix + addr
-	if src.Port != "" {
-		result += ":" + src.Port
+	if ep.Port != "" {
+		result += ":" + ep.Port
 	}
 	return result
 }
 
-func formatDestination(dst model.Destination) string {
-	var prefix string
-	if dst.Not {
-		prefix = "!"
+func formatInterface(iface common.Interface) string {
+	var parts []string
+	if iface.PhysicalIf != "" {
+		parts = append(parts, "if="+iface.PhysicalIf)
 	}
-	addr := dst.EffectiveAddress()
-	if addr == "" {
-		addr = addressUnknown
-	}
-	result := prefix + addr
-	if dst.Port != "" {
-		result += ":" + dst.Port
-	}
-	return result
-}
-
-func formatInterface(iface model.Interface) string {
-	parts := []string{}
-	if iface.If != "" {
-		parts = append(parts, "if="+iface.If)
-	}
-	if iface.IPAddr != "" {
-		ip := iface.IPAddr
+	if iface.IPAddress != "" {
+		ip := iface.IPAddress
 		if iface.Subnet != "" {
 			ip += "/" + iface.Subnet
 		}
 		parts = append(parts, "ip="+ip)
 	}
-	if iface.Descr != "" {
-		parts = append(parts, "descr="+iface.Descr)
+	if iface.Description != "" {
+		parts = append(parts, "descr="+iface.Description)
 	}
 	return strings.Join(parts, ", ")
 }
 
-func rulesEqual(a, b model.Rule) bool {
+func rulesEqual(a, b common.FirewallRule) bool {
 	return a.Type == b.Type &&
-		a.Descr == b.Descr &&
+		a.Description == b.Description &&
 		a.Protocol == b.Protocol &&
 		a.Disabled == b.Disabled &&
-		a.Source.Equal(b.Source) &&
-		a.Destination.Equal(b.Destination) &&
-		slices.Equal([]string(a.Interface), []string(b.Interface))
+		a.Source == b.Source &&
+		a.Destination == b.Destination &&
+		slices.Equal(a.Interfaces, b.Interfaces)
 }
 
-func usersEqual(a, b model.User) bool {
+func usersEqual(a, b common.User) bool {
 	return a.Name == b.Name &&
-		a.Descr == b.Descr &&
+		a.Description == b.Description &&
 		a.Scope == b.Scope &&
-		a.Groupname == b.Groupname &&
+		a.GroupName == b.GroupName &&
 		a.Disabled == b.Disabled
 }
 
-func isPermissiveRule(rule model.Rule) bool {
+func isPermissiveRule(rule common.FirewallRule) bool {
 	return rule.Type == "pass" &&
-		rule.Source.EffectiveAddress() == "any" &&
-		rule.Destination.EffectiveAddress() == "any"
+		rule.Source.Address == "any" &&
+		rule.Destination.Address == "any"
 }

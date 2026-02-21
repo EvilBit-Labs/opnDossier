@@ -3,33 +3,33 @@ package validator
 import (
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/schema"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestValidateOpnSenseDocument_ValidConfig(t *testing.T) {
-	config := &model.OpnSenseDocument{
-		System: model.System{
+	config := &schema.OpnSenseDocument{
+		System: schema.System{
 			Hostname:          "test-host",
 			Domain:            "test.local",
 			Timezone:          "Etc/UTC",
 			Optimization:      "normal",
-			WebGUI:            model.WebGUIConfig{Protocol: "https"},
+			WebGUI:            schema.WebGUIConfig{Protocol: "https"},
 			PowerdACMode:      "hadp",
 			PowerdBatteryMode: "hadp",
 			PowerdNormalMode:  "hadp",
 			Bogons: struct {
 				Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
 			}{Interval: "monthly"},
-			Group: []model.Group{
+			Group: []schema.Group{
 				{
 					Name:  "admins",
 					Gid:   "1999",
 					Scope: "system",
 				},
 			},
-			User: []model.User{
+			User: []schema.User{
 				{
 					Name:      "root",
 					UID:       "0",
@@ -38,8 +38,8 @@ func TestValidateOpnSenseDocument_ValidConfig(t *testing.T) {
 				},
 			},
 		},
-		Interfaces: model.Interfaces{
-			Items: map[string]model.Interface{
+		Interfaces: schema.Interfaces{
+			Items: map[string]schema.Interface{
 				"wan": {
 					IPAddr:   "dhcp",
 					IPAddrv6: "dhcp6",
@@ -58,37 +58,37 @@ func TestValidateOpnSenseDocument_ValidConfig(t *testing.T) {
 				},
 			},
 		},
-		Dhcpd: model.Dhcpd{
-			Items: map[string]model.DhcpdInterface{
+		Dhcpd: schema.Dhcpd{
+			Items: map[string]schema.DhcpdInterface{
 				"lan": {
-					Range: model.Range{
+					Range: schema.Range{
 						From: "192.168.1.100",
 						To:   "192.168.1.199",
 					},
 				},
 			},
 		},
-		Filter: model.Filter{
-			Rule: []model.Rule{
+		Filter: schema.Filter{
+			Rule: []schema.Rule{
 				{
 					Type:       "pass",
 					IPProtocol: "inet",
-					Interface:  model.InterfaceList{"lan"},
-					Source: model.Source{
+					Interface:  schema.InterfaceList{"lan"},
+					Source: schema.Source{
 						Network: "lan",
 					},
-					Destination: model.Destination{
+					Destination: schema.Destination{
 						Network: "opt0ip",
 					},
 				},
 			},
 		},
-		Nat: model.Nat{
-			Outbound: model.Outbound{
+		Nat: schema.Nat{
+			Outbound: schema.Outbound{
 				Mode: "automatic",
 			},
 		},
-		Sysctl: []model.SysctlItem{
+		Sysctl: []schema.SysctlItem{
 			{
 				Tunable: "net.inet.ip.random_id",
 				Value:   "default",
@@ -138,8 +138,8 @@ func TestStripIPSuffix(t *testing.T) {
 }
 
 func TestValidateFilter_NetworkValidation(t *testing.T) {
-	interfaces := &model.Interfaces{
-		Items: map[string]model.Interface{
+	interfaces := &schema.Interfaces{
+		Items: map[string]schema.Interface{
 			"wan":  {},
 			"lan":  {},
 			"opt0": {},
@@ -148,20 +148,20 @@ func TestValidateFilter_NetworkValidation(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		filter         model.Filter
+		filter         schema.Filter
 		expectedErrors int
 		errorField     string
 	}{
 		{
 			name: "valid reserved network",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
-						Interface: model.InterfaceList{"lan"},
-						Source: model.Source{
+						Interface: schema.InterfaceList{"lan"},
+						Source: schema.Source{
 							Network: "any",
 						},
-						Destination: model.Destination{
+						Destination: schema.Destination{
 							Network: "lan",
 						},
 					},
@@ -171,14 +171,14 @@ func TestValidateFilter_NetworkValidation(t *testing.T) {
 		},
 		{
 			name: "valid (self) reserved network",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
-						Interface: model.InterfaceList{"wan"},
-						Source: model.Source{
+						Interface: schema.InterfaceList{"wan"},
+						Source: schema.Source{
 							Network: "any",
 						},
-						Destination: model.Destination{
+						Destination: schema.Destination{
 							Network: "(self)",
 						},
 					},
@@ -188,14 +188,14 @@ func TestValidateFilter_NetworkValidation(t *testing.T) {
 		},
 		{
 			name: "valid interface with ip suffix",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
-						Interface: model.InterfaceList{"lan"},
-						Source: model.Source{
+						Interface: schema.InterfaceList{"lan"},
+						Source: schema.Source{
 							Network: "opt0ip",
 						},
-						Destination: model.Destination{
+						Destination: schema.Destination{
 							Network: "wanip",
 						},
 					},
@@ -205,14 +205,14 @@ func TestValidateFilter_NetworkValidation(t *testing.T) {
 		},
 		{
 			name: "valid CIDR",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
-						Interface: model.InterfaceList{"lan"},
-						Source: model.Source{
+						Interface: schema.InterfaceList{"lan"},
+						Source: schema.Source{
 							Network: "192.168.1.0/24",
 						},
-						Destination: model.Destination{
+						Destination: schema.Destination{
 							Network: "10.0.0.0/8",
 						},
 					},
@@ -222,11 +222,11 @@ func TestValidateFilter_NetworkValidation(t *testing.T) {
 		},
 		{
 			name: "invalid source network",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
-						Interface: model.InterfaceList{"lan"},
-						Source: model.Source{
+						Interface: schema.InterfaceList{"lan"},
+						Source: schema.Source{
 							Network: "nonexistent",
 						},
 					},
@@ -237,11 +237,11 @@ func TestValidateFilter_NetworkValidation(t *testing.T) {
 		},
 		{
 			name: "invalid destination network",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
-						Interface: model.InterfaceList{"lan"},
-						Destination: model.Destination{
+						Interface: schema.InterfaceList{"lan"},
+						Destination: schema.Destination{
 							Network: "nonexistent",
 						},
 					},
@@ -252,11 +252,11 @@ func TestValidateFilter_NetworkValidation(t *testing.T) {
 		},
 		{
 			name: "invalid interface validation",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
-						Interface: model.InterfaceList{"nonexistent"},
-						Source: model.Source{
+						Interface: schema.InterfaceList{"nonexistent"},
+						Source: schema.Source{
 							Network: "any",
 						},
 					},
@@ -282,26 +282,26 @@ func TestValidateFilter_NetworkValidation(t *testing.T) {
 func TestValidateSystem_RequiredFields(t *testing.T) {
 	tests := []struct {
 		name           string
-		system         model.System
+		system         schema.System
 		expectedErrors []string
 	}{
 		{
 			name:   "missing hostname",
-			system: model.System{Domain: "example.com"},
+			system: schema.System{Domain: "example.com"},
 			expectedErrors: []string{
 				"system.hostname",
 			},
 		},
 		{
 			name:   "missing domain",
-			system: model.System{Hostname: "test"},
+			system: schema.System{Hostname: "test"},
 			expectedErrors: []string{
 				"system.domain",
 			},
 		},
 		{
 			name: "invalid hostname",
-			system: model.System{
+			system: schema.System{
 				Hostname: "invalid-hostname-",
 				Domain:   "example.com",
 			},
@@ -311,7 +311,7 @@ func TestValidateSystem_RequiredFields(t *testing.T) {
 		},
 		{
 			name: "invalid timezone",
-			system: model.System{
+			system: schema.System{
 				Hostname: "test",
 				Domain:   "example.com",
 				Timezone: "Invalid/Timezone",
@@ -322,7 +322,7 @@ func TestValidateSystem_RequiredFields(t *testing.T) {
 		},
 		{
 			name: "invalid optimization",
-			system: model.System{
+			system: schema.System{
 				Hostname:     "test",
 				Domain:       "example.com",
 				Optimization: "invalid",
@@ -348,13 +348,13 @@ func TestValidateSystem_RequiredFields(t *testing.T) {
 func TestValidateInterface_IPAddressValidation(t *testing.T) {
 	tests := []struct {
 		name           string
-		iface          model.Interface
+		iface          schema.Interface
 		interfaceName  string
 		expectedErrors int
 	}{
 		{
 			name: "valid DHCP configuration",
-			iface: model.Interface{
+			iface: schema.Interface{
 				IPAddr:   "dhcp",
 				IPAddrv6: "dhcp6",
 			},
@@ -363,7 +363,7 @@ func TestValidateInterface_IPAddressValidation(t *testing.T) {
 		},
 		{
 			name: "valid static IP configuration",
-			iface: model.Interface{
+			iface: schema.Interface{
 				IPAddr: "192.168.1.1",
 				Subnet: "24",
 			},
@@ -372,7 +372,7 @@ func TestValidateInterface_IPAddressValidation(t *testing.T) {
 		},
 		{
 			name: "invalid IP address",
-			iface: model.Interface{
+			iface: schema.Interface{
 				IPAddr: "invalid-ip",
 			},
 			interfaceName:  "lan",
@@ -380,7 +380,7 @@ func TestValidateInterface_IPAddressValidation(t *testing.T) {
 		},
 		{
 			name: "invalid subnet mask",
-			iface: model.Interface{
+			iface: schema.Interface{
 				IPAddr: "192.168.1.1",
 				Subnet: "35", // Invalid subnet mask
 			},
@@ -389,7 +389,7 @@ func TestValidateInterface_IPAddressValidation(t *testing.T) {
 		},
 		{
 			name: "valid track6 configuration",
-			iface: model.Interface{
+			iface: schema.Interface{
 				IPAddrv6:        "track6",
 				Track6Interface: "wan",
 				Track6PrefixID:  "0",
@@ -399,7 +399,7 @@ func TestValidateInterface_IPAddressValidation(t *testing.T) {
 		},
 		{
 			name: "incomplete track6 configuration",
-			iface: model.Interface{
+			iface: schema.Interface{
 				IPAddrv6: "track6",
 				// Missing Track6Interface and Track6PrefixID
 			},
@@ -411,8 +411,8 @@ func TestValidateInterface_IPAddressValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a mock interfaces structure for cross-field validation
-			interfaces := &model.Interfaces{
-				Items: map[string]model.Interface{
+			interfaces := &schema.Interfaces{
+				Items: map[string]schema.Interface{
 					"wan": {},
 					"lan": {},
 				},
@@ -426,26 +426,26 @@ func TestValidateInterface_IPAddressValidation(t *testing.T) {
 func TestValidateFilter_RuleValidation(t *testing.T) {
 	tests := []struct {
 		name           string
-		filter         model.Filter
+		filter         schema.Filter
 		expectedErrors int
 	}{
 		{
 			name: "valid filter rules",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:       "pass",
 						IPProtocol: "inet",
-						Interface:  model.InterfaceList{"lan"},
-						Source: model.Source{
+						Interface:  schema.InterfaceList{"lan"},
+						Source: schema.Source{
 							Network: "lan",
 						},
 					},
 					{
 						Type:       "block",
 						IPProtocol: "inet6",
-						Interface:  model.InterfaceList{"wan"},
-						Source: model.Source{
+						Interface:  schema.InterfaceList{"wan"},
+						Source: schema.Source{
 							Network: "any",
 						},
 					},
@@ -455,12 +455,12 @@ func TestValidateFilter_RuleValidation(t *testing.T) {
 		},
 		{
 			name: "invalid rule type",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:       "invalid",
 						IPProtocol: "inet",
-						Interface:  model.InterfaceList{"lan"},
+						Interface:  schema.InterfaceList{"lan"},
 					},
 				},
 			},
@@ -468,12 +468,12 @@ func TestValidateFilter_RuleValidation(t *testing.T) {
 		},
 		{
 			name: "invalid IP protocol",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:       "pass",
 						IPProtocol: "invalid",
-						Interface:  model.InterfaceList{"lan"},
+						Interface:  schema.InterfaceList{"lan"},
 					},
 				},
 			},
@@ -481,12 +481,12 @@ func TestValidateFilter_RuleValidation(t *testing.T) {
 		},
 		{
 			name: "invalid interface",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:       "pass",
 						IPProtocol: "inet",
-						Interface:  model.InterfaceList{"invalid"},
+						Interface:  schema.InterfaceList{"invalid"},
 					},
 				},
 			},
@@ -497,8 +497,8 @@ func TestValidateFilter_RuleValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a mock interfaces structure for the test
-			interfaces := &model.Interfaces{
-				Items: map[string]model.Interface{
+			interfaces := &schema.Interfaces{
+				Items: map[string]schema.Interface{
 					"wan": {},
 					"lan": {},
 				},
@@ -512,18 +512,18 @@ func TestValidateFilter_RuleValidation(t *testing.T) {
 func TestValidateFilter_AddressValidation(t *testing.T) {
 	tests := []struct {
 		name           string
-		filter         model.Filter
+		filter         schema.Filter
 		expectedErrors int
 	}{
 		{
 			name: "valid source address (IP)",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:       "pass",
 						IPProtocol: "inet",
-						Interface:  model.InterfaceList{"lan"},
-						Source:     model.Source{Address: "192.168.1.100"},
+						Interface:  schema.InterfaceList{"lan"},
+						Source:     schema.Source{Address: "192.168.1.100"},
 					},
 				},
 			},
@@ -531,13 +531,13 @@ func TestValidateFilter_AddressValidation(t *testing.T) {
 		},
 		{
 			name: "valid source address (CIDR)",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:       "pass",
 						IPProtocol: "inet",
-						Interface:  model.InterfaceList{"lan"},
-						Source:     model.Source{Address: "10.0.0.0/8"},
+						Interface:  schema.InterfaceList{"lan"},
+						Source:     schema.Source{Address: "10.0.0.0/8"},
 					},
 				},
 			},
@@ -545,13 +545,13 @@ func TestValidateFilter_AddressValidation(t *testing.T) {
 		},
 		{
 			name: "valid source address (alias)",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:       "pass",
 						IPProtocol: "inet",
-						Interface:  model.InterfaceList{"lan"},
-						Source:     model.Source{Address: "WebServers"},
+						Interface:  schema.InterfaceList{"lan"},
+						Source:     schema.Source{Address: "WebServers"},
 					},
 				},
 			},
@@ -559,13 +559,13 @@ func TestValidateFilter_AddressValidation(t *testing.T) {
 		},
 		{
 			name: "malformed source address (invalid CIDR)",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:       "pass",
 						IPProtocol: "inet",
-						Interface:  model.InterfaceList{"lan"},
-						Source:     model.Source{Address: "192.168.1.0/33"},
+						Interface:  schema.InterfaceList{"lan"},
+						Source:     schema.Source{Address: "192.168.1.0/33"},
 					},
 				},
 			},
@@ -573,13 +573,13 @@ func TestValidateFilter_AddressValidation(t *testing.T) {
 		},
 		{
 			name: "malformed destination address (invalid IP)",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:        "pass",
 						IPProtocol:  "inet",
-						Interface:   model.InterfaceList{"lan"},
-						Destination: model.Destination{Address: "999.999.999.999"},
+						Interface:   schema.InterfaceList{"lan"},
+						Destination: schema.Destination{Address: "999.999.999.999"},
 					},
 				},
 			},
@@ -587,13 +587,13 @@ func TestValidateFilter_AddressValidation(t *testing.T) {
 		},
 		{
 			name: "valid destination address (alias)",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:        "pass",
 						IPProtocol:  "inet",
-						Interface:   model.InterfaceList{"lan"},
-						Destination: model.Destination{Address: "MailServers"},
+						Interface:   schema.InterfaceList{"lan"},
+						Destination: schema.Destination{Address: "MailServers"},
 					},
 				},
 			},
@@ -601,13 +601,13 @@ func TestValidateFilter_AddressValidation(t *testing.T) {
 		},
 		{
 			name: "valid source address (dotted alias)",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:       "pass",
 						IPProtocol: "inet",
-						Interface:  model.InterfaceList{"lan"},
-						Source:     model.Source{Address: "internal.servers"},
+						Interface:  schema.InterfaceList{"lan"},
+						Source:     schema.Source{Address: "internal.servers"},
 					},
 				},
 			},
@@ -617,8 +617,8 @@ func TestValidateFilter_AddressValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			interfaces := &model.Interfaces{
-				Items: map[string]model.Interface{
+			interfaces := &schema.Interfaces{
+				Items: map[string]schema.Interface{
 					"wan": {},
 					"lan": {},
 				},
@@ -632,24 +632,24 @@ func TestValidateFilter_AddressValidation(t *testing.T) {
 func TestValidateDhcpd_RangeValidation(t *testing.T) {
 	tests := []struct {
 		name           string
-		dhcpd          model.Dhcpd
-		interfaces     model.Interfaces
+		dhcpd          schema.Dhcpd
+		interfaces     schema.Interfaces
 		expectedErrors int
 	}{
 		{
 			name: "valid DHCP range",
-			dhcpd: model.Dhcpd{
-				Items: map[string]model.DhcpdInterface{
+			dhcpd: schema.Dhcpd{
+				Items: map[string]schema.DhcpdInterface{
 					"lan": {
-						Range: model.Range{
+						Range: schema.Range{
 							From: "192.168.1.100",
 							To:   "192.168.1.199",
 						},
 					},
 				},
 			},
-			interfaces: model.Interfaces{
-				Items: map[string]model.Interface{
+			interfaces: schema.Interfaces{
+				Items: map[string]schema.Interface{
 					"wan": {},
 					"lan": {},
 				},
@@ -658,18 +658,18 @@ func TestValidateDhcpd_RangeValidation(t *testing.T) {
 		},
 		{
 			name: "invalid from IP",
-			dhcpd: model.Dhcpd{
-				Items: map[string]model.DhcpdInterface{
+			dhcpd: schema.Dhcpd{
+				Items: map[string]schema.DhcpdInterface{
 					"lan": {
-						Range: model.Range{
+						Range: schema.Range{
 							From: "invalid-ip",
 							To:   "192.168.1.199",
 						},
 					},
 				},
 			},
-			interfaces: model.Interfaces{
-				Items: map[string]model.Interface{
+			interfaces: schema.Interfaces{
+				Items: map[string]schema.Interface{
 					"wan": {},
 					"lan": {},
 				},
@@ -678,18 +678,18 @@ func TestValidateDhcpd_RangeValidation(t *testing.T) {
 		},
 		{
 			name: "invalid range order",
-			dhcpd: model.Dhcpd{
-				Items: map[string]model.DhcpdInterface{
+			dhcpd: schema.Dhcpd{
+				Items: map[string]schema.DhcpdInterface{
 					"lan": {
-						Range: model.Range{
+						Range: schema.Range{
 							From: "192.168.1.200",
 							To:   "192.168.1.100",
 						},
 					},
 				},
 			},
-			interfaces: model.Interfaces{
-				Items: map[string]model.Interface{
+			interfaces: schema.Interfaces{
+				Items: map[string]schema.Interface{
 					"wan": {},
 					"lan": {},
 				},
@@ -698,18 +698,18 @@ func TestValidateDhcpd_RangeValidation(t *testing.T) {
 		},
 		{
 			name: "DHCP interface not in configured interfaces",
-			dhcpd: model.Dhcpd{
-				Items: map[string]model.DhcpdInterface{
+			dhcpd: schema.Dhcpd{
+				Items: map[string]schema.DhcpdInterface{
 					"opt0": {
-						Range: model.Range{
+						Range: schema.Range{
 							From: "192.168.1.100",
 							To:   "192.168.1.199",
 						},
 					},
 				},
 			},
-			interfaces: model.Interfaces{
-				Items: map[string]model.Interface{
+			interfaces: schema.Interfaces{
+				Items: map[string]schema.Interface{
 					"wan": {},
 					"lan": {},
 				},
@@ -718,24 +718,24 @@ func TestValidateDhcpd_RangeValidation(t *testing.T) {
 		},
 		{
 			name: "multiple interfaces validation",
-			dhcpd: model.Dhcpd{
-				Items: map[string]model.DhcpdInterface{
+			dhcpd: schema.Dhcpd{
+				Items: map[string]schema.DhcpdInterface{
 					"lan": {
-						Range: model.Range{
+						Range: schema.Range{
 							From: "192.168.1.100",
 							To:   "192.168.1.199",
 						},
 					},
 					"opt0": {
-						Range: model.Range{
+						Range: schema.Range{
 							From: "10.0.0.100",
 							To:   "10.0.0.199",
 						},
 					},
 				},
 			},
-			interfaces: model.Interfaces{
-				Items: map[string]model.Interface{
+			interfaces: schema.Interfaces{
+				Items: map[string]schema.Interface{
 					"wan":  {},
 					"lan":  {},
 					"opt0": {},
@@ -754,13 +754,13 @@ func TestValidateDhcpd_RangeValidation(t *testing.T) {
 }
 
 func TestValidateUsersAndGroups_Uniqueness(t *testing.T) {
-	system := model.System{
-		Group: []model.Group{
+	system := schema.System{
+		Group: []schema.Group{
 			{Name: "admins", Gid: "1999", Scope: "system"},
 			{Name: "admins", Gid: "2000", Scope: "system"}, // Duplicate name
 			{Name: "users", Gid: "1999", Scope: "system"},  // Duplicate GID
 		},
-		User: []model.User{
+		User: []schema.User{
 			{Name: "root", UID: "0", Groupname: "admins", Scope: "system"},
 			{Name: "root", UID: "1", Groupname: "admins", Scope: "system"},       // Duplicate name
 			{Name: "user1", UID: "0", Groupname: "admins", Scope: "system"},      // Duplicate UID
@@ -843,48 +843,48 @@ func TestHelperFunctions(t *testing.T) {
 func TestValidateNat_ComprehensiveTests(t *testing.T) {
 	tests := []struct {
 		name           string
-		nat            model.Nat
+		nat            schema.Nat
 		expectedErrors int
 	}{
 		{
 			name: "valid automatic mode",
-			nat: model.Nat{
-				Outbound: model.Outbound{Mode: "automatic"},
+			nat: schema.Nat{
+				Outbound: schema.Outbound{Mode: "automatic"},
 			},
 			expectedErrors: 0,
 		},
 		{
 			name: "valid hybrid mode",
-			nat: model.Nat{
-				Outbound: model.Outbound{Mode: "hybrid"},
+			nat: schema.Nat{
+				Outbound: schema.Outbound{Mode: "hybrid"},
 			},
 			expectedErrors: 0,
 		},
 		{
 			name: "valid advanced mode",
-			nat: model.Nat{
-				Outbound: model.Outbound{Mode: "advanced"},
+			nat: schema.Nat{
+				Outbound: schema.Outbound{Mode: "advanced"},
 			},
 			expectedErrors: 0,
 		},
 		{
 			name: "valid disabled mode",
-			nat: model.Nat{
-				Outbound: model.Outbound{Mode: "disabled"},
+			nat: schema.Nat{
+				Outbound: schema.Outbound{Mode: "disabled"},
 			},
 			expectedErrors: 0,
 		},
 		{
 			name: "invalid mode",
-			nat: model.Nat{
-				Outbound: model.Outbound{Mode: "invalid-mode"},
+			nat: schema.Nat{
+				Outbound: schema.Outbound{Mode: "invalid-mode"},
 			},
 			expectedErrors: 1,
 		},
 		{
 			name: "empty mode (should be valid)",
-			nat: model.Nat{
-				Outbound: model.Outbound{Mode: ""},
+			nat: schema.Nat{
+				Outbound: schema.Outbound{Mode: ""},
 			},
 			expectedErrors: 0,
 		},
@@ -902,12 +902,12 @@ func TestValidateNat_ComprehensiveTests(t *testing.T) {
 func TestValidateSystem_PowerManagement(t *testing.T) {
 	tests := []struct {
 		name           string
-		system         model.System
+		system         schema.System
 		expectedErrors int
 	}{
 		{
 			name: "valid power modes",
-			system: model.System{
+			system: schema.System{
 				Hostname:          "test",
 				Domain:            "test.local",
 				PowerdACMode:      "hadp",
@@ -918,7 +918,7 @@ func TestValidateSystem_PowerManagement(t *testing.T) {
 		},
 		{
 			name: "invalid AC power mode",
-			system: model.System{
+			system: schema.System{
 				Hostname:     "test",
 				Domain:       "test.local",
 				PowerdACMode: "invalid",
@@ -927,7 +927,7 @@ func TestValidateSystem_PowerManagement(t *testing.T) {
 		},
 		{
 			name: "invalid battery power mode",
-			system: model.System{
+			system: schema.System{
 				Hostname:          "test",
 				Domain:            "test.local",
 				PowerdBatteryMode: "invalid",
@@ -936,7 +936,7 @@ func TestValidateSystem_PowerManagement(t *testing.T) {
 		},
 		{
 			name: "invalid normal power mode",
-			system: model.System{
+			system: schema.System{
 				Hostname:         "test",
 				Domain:           "test.local",
 				PowerdNormalMode: "invalid",
@@ -957,12 +957,12 @@ func TestValidateSystem_PowerManagement(t *testing.T) {
 func TestValidateSystem_BogonsInterval(t *testing.T) {
 	tests := []struct {
 		name           string
-		system         model.System
+		system         schema.System
 		expectedErrors int
 	}{
 		{
 			name: "valid bogons intervals",
-			system: model.System{
+			system: schema.System{
 				Hostname: "test",
 				Domain:   "test.local",
 				Bogons: struct {
@@ -973,7 +973,7 @@ func TestValidateSystem_BogonsInterval(t *testing.T) {
 		},
 		{
 			name: "valid weekly interval",
-			system: model.System{
+			system: schema.System{
 				Hostname: "test",
 				Domain:   "test.local",
 				Bogons: struct {
@@ -984,7 +984,7 @@ func TestValidateSystem_BogonsInterval(t *testing.T) {
 		},
 		{
 			name: "valid daily interval",
-			system: model.System{
+			system: schema.System{
 				Hostname: "test",
 				Domain:   "test.local",
 				Bogons: struct {
@@ -995,7 +995,7 @@ func TestValidateSystem_BogonsInterval(t *testing.T) {
 		},
 		{
 			name: "valid never interval",
-			system: model.System{
+			system: schema.System{
 				Hostname: "test",
 				Domain:   "test.local",
 				Bogons: struct {
@@ -1006,7 +1006,7 @@ func TestValidateSystem_BogonsInterval(t *testing.T) {
 		},
 		{
 			name: "invalid bogons interval",
-			system: model.System{
+			system: schema.System{
 				Hostname: "test",
 				Domain:   "test.local",
 				Bogons: struct {
@@ -1029,47 +1029,47 @@ func TestValidateSystem_BogonsInterval(t *testing.T) {
 func TestValidateInterface_MTUValidation(t *testing.T) {
 	tests := []struct {
 		name           string
-		iface          model.Interface
+		iface          schema.Interface
 		expectedErrors int
 	}{
 		{
 			name: "valid MTU",
-			iface: model.Interface{
+			iface: schema.Interface{
 				MTU: "1500",
 			},
 			expectedErrors: 0,
 		},
 		{
 			name: "minimum valid MTU",
-			iface: model.Interface{
+			iface: schema.Interface{
 				MTU: "68",
 			},
 			expectedErrors: 0,
 		},
 		{
 			name: "maximum valid MTU",
-			iface: model.Interface{
+			iface: schema.Interface{
 				MTU: "9000",
 			},
 			expectedErrors: 0,
 		},
 		{
 			name: "MTU too low",
-			iface: model.Interface{
+			iface: schema.Interface{
 				MTU: "67",
 			},
 			expectedErrors: 1,
 		},
 		{
 			name: "MTU too high",
-			iface: model.Interface{
+			iface: schema.Interface{
 				MTU: "9001",
 			},
 			expectedErrors: 1,
 		},
 		{
 			name: "invalid MTU format",
-			iface: model.Interface{
+			iface: schema.Interface{
 				MTU: "invalid",
 			},
 			expectedErrors: 1,
@@ -1079,8 +1079,8 @@ func TestValidateInterface_MTUValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a mock interfaces structure for cross-field validation
-			interfaces := &model.Interfaces{
-				Items: map[string]model.Interface{
+			interfaces := &schema.Interfaces{
+				Items: map[string]schema.Interface{
 					"test": {},
 				},
 			}
@@ -1092,8 +1092,8 @@ func TestValidateInterface_MTUValidation(t *testing.T) {
 
 // TestValidateFilter_MutualExclusivity tests that source/destination fields are mutually exclusive.
 func TestValidateFilter_MutualExclusivity(t *testing.T) {
-	interfaces := &model.Interfaces{
-		Items: map[string]model.Interface{
+	interfaces := &schema.Interfaces{
+		Items: map[string]schema.Interface{
 			"wan": {},
 			"lan": {},
 		},
@@ -1101,18 +1101,18 @@ func TestValidateFilter_MutualExclusivity(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		filter         model.Filter
+		filter         schema.Filter
 		expectedErrors int
 		errorField     string
 	}{
 		{
 			name: "source with only any - valid",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:      "pass",
-						Interface: model.InterfaceList{"lan"},
-						Source:    model.Source{Any: model.StringPtr("")},
+						Interface: schema.InterfaceList{"lan"},
+						Source:    schema.Source{Any: new("")},
 					},
 				},
 			},
@@ -1120,12 +1120,12 @@ func TestValidateFilter_MutualExclusivity(t *testing.T) {
 		},
 		{
 			name: "source with only network - valid",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:      "pass",
-						Interface: model.InterfaceList{"lan"},
-						Source:    model.Source{Network: "lan"},
+						Interface: schema.InterfaceList{"lan"},
+						Source:    schema.Source{Network: "lan"},
 					},
 				},
 			},
@@ -1133,12 +1133,12 @@ func TestValidateFilter_MutualExclusivity(t *testing.T) {
 		},
 		{
 			name: "source with only address - valid",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:      "pass",
-						Interface: model.InterfaceList{"lan"},
-						Source:    model.Source{Address: "192.168.1.100"},
+						Interface: schema.InterfaceList{"lan"},
+						Source:    schema.Source{Address: "192.168.1.100"},
 					},
 				},
 			},
@@ -1146,12 +1146,12 @@ func TestValidateFilter_MutualExclusivity(t *testing.T) {
 		},
 		{
 			name: "source with any and network - invalid",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:      "pass",
-						Interface: model.InterfaceList{"lan"},
-						Source:    model.Source{Any: model.StringPtr(""), Network: "lan"},
+						Interface: schema.InterfaceList{"lan"},
+						Source:    schema.Source{Any: new(""), Network: "lan"},
 					},
 				},
 			},
@@ -1160,12 +1160,12 @@ func TestValidateFilter_MutualExclusivity(t *testing.T) {
 		},
 		{
 			name: "source with any and address - invalid",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:      "pass",
-						Interface: model.InterfaceList{"lan"},
-						Source:    model.Source{Any: model.StringPtr(""), Address: "10.0.0.1"},
+						Interface: schema.InterfaceList{"lan"},
+						Source:    schema.Source{Any: new(""), Address: "10.0.0.1"},
 					},
 				},
 			},
@@ -1174,12 +1174,12 @@ func TestValidateFilter_MutualExclusivity(t *testing.T) {
 		},
 		{
 			name: "source with network and address - invalid",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:      "pass",
-						Interface: model.InterfaceList{"lan"},
-						Source:    model.Source{Network: "lan", Address: "10.0.0.1"},
+						Interface: schema.InterfaceList{"lan"},
+						Source:    schema.Source{Network: "lan", Address: "10.0.0.1"},
 					},
 				},
 			},
@@ -1188,12 +1188,12 @@ func TestValidateFilter_MutualExclusivity(t *testing.T) {
 		},
 		{
 			name: "destination with any and network - invalid",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:        "pass",
-						Interface:   model.InterfaceList{"lan"},
-						Destination: model.Destination{Any: model.StringPtr(""), Network: "wan"},
+						Interface:   schema.InterfaceList{"lan"},
+						Destination: schema.Destination{Any: new(""), Network: "wan"},
 					},
 				},
 			},
@@ -1202,12 +1202,12 @@ func TestValidateFilter_MutualExclusivity(t *testing.T) {
 		},
 		{
 			name: "destination with any and address - invalid",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:        "pass",
-						Interface:   model.InterfaceList{"lan"},
-						Destination: model.Destination{Any: model.StringPtr(""), Address: "10.0.0.1"},
+						Interface:   schema.InterfaceList{"lan"},
+						Destination: schema.Destination{Any: new(""), Address: "10.0.0.1"},
 					},
 				},
 			},
@@ -1229,8 +1229,8 @@ func TestValidateFilter_MutualExclusivity(t *testing.T) {
 
 // TestValidateFilter_FloatingRuleConstraints tests floating rule direction validation.
 func TestValidateFilter_FloatingRuleConstraints(t *testing.T) {
-	interfaces := &model.Interfaces{
-		Items: map[string]model.Interface{
+	interfaces := &schema.Interfaces{
+		Items: map[string]schema.Interface{
 			"wan": {},
 			"lan": {},
 		},
@@ -1238,17 +1238,17 @@ func TestValidateFilter_FloatingRuleConstraints(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		filter         model.Filter
+		filter         schema.Filter
 		expectedErrors int
 		errorField     string
 	}{
 		{
 			name: "floating rule with direction - valid",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:      "pass",
-						Interface: model.InterfaceList{"wan", "lan"},
+						Interface: schema.InterfaceList{"wan", "lan"},
 						Floating:  "yes",
 						Direction: "any",
 					},
@@ -1258,11 +1258,11 @@ func TestValidateFilter_FloatingRuleConstraints(t *testing.T) {
 		},
 		{
 			name: "floating rule without direction - invalid",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:      "pass",
-						Interface: model.InterfaceList{"wan"},
+						Interface: schema.InterfaceList{"wan"},
 						Floating:  "yes",
 					},
 				},
@@ -1272,11 +1272,11 @@ func TestValidateFilter_FloatingRuleConstraints(t *testing.T) {
 		},
 		{
 			name: "floating rule with invalid direction",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:      "pass",
-						Interface: model.InterfaceList{"wan"},
+						Interface: schema.InterfaceList{"wan"},
 						Floating:  "yes",
 						Direction: "invalid",
 					},
@@ -1287,11 +1287,11 @@ func TestValidateFilter_FloatingRuleConstraints(t *testing.T) {
 		},
 		{
 			name: "non-floating rule with direction in - valid",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:      "pass",
-						Interface: model.InterfaceList{"lan"},
+						Interface: schema.InterfaceList{"lan"},
 						Direction: "in",
 					},
 				},
@@ -1300,11 +1300,11 @@ func TestValidateFilter_FloatingRuleConstraints(t *testing.T) {
 		},
 		{
 			name: "non-floating rule with invalid direction",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:      "pass",
-						Interface: model.InterfaceList{"lan"},
+						Interface: schema.InterfaceList{"lan"},
 						Direction: "sideways",
 					},
 				},
@@ -1329,67 +1329,67 @@ func TestValidateFilter_FloatingRuleConstraints(t *testing.T) {
 //
 //nolint:dupl // table-driven test structure intentionally similar to MaxSrcConnRateFormat
 func TestValidateFilter_StateTypeValidation(t *testing.T) {
-	interfaces := &model.Interfaces{
-		Items: map[string]model.Interface{
+	interfaces := &schema.Interfaces{
+		Items: map[string]schema.Interface{
 			"lan": {},
 		},
 	}
 
 	tests := []struct {
 		name           string
-		filter         model.Filter
+		filter         schema.Filter
 		expectedErrors int
 	}{
 		{
 			name: "valid keep state",
-			filter: model.Filter{
-				Rule: []model.Rule{
-					{Type: "pass", Interface: model.InterfaceList{"lan"}, StateType: "keep state"},
+			filter: schema.Filter{
+				Rule: []schema.Rule{
+					{Type: "pass", Interface: schema.InterfaceList{"lan"}, StateType: "keep state"},
 				},
 			},
 			expectedErrors: 0,
 		},
 		{
 			name: "valid sloppy state",
-			filter: model.Filter{
-				Rule: []model.Rule{
-					{Type: "pass", Interface: model.InterfaceList{"lan"}, StateType: "sloppy state"},
+			filter: schema.Filter{
+				Rule: []schema.Rule{
+					{Type: "pass", Interface: schema.InterfaceList{"lan"}, StateType: "sloppy state"},
 				},
 			},
 			expectedErrors: 0,
 		},
 		{
 			name: "valid synproxy state",
-			filter: model.Filter{
-				Rule: []model.Rule{
-					{Type: "pass", Interface: model.InterfaceList{"lan"}, StateType: "synproxy state"},
+			filter: schema.Filter{
+				Rule: []schema.Rule{
+					{Type: "pass", Interface: schema.InterfaceList{"lan"}, StateType: "synproxy state"},
 				},
 			},
 			expectedErrors: 0,
 		},
 		{
 			name: "valid none",
-			filter: model.Filter{
-				Rule: []model.Rule{
-					{Type: "pass", Interface: model.InterfaceList{"lan"}, StateType: "none"},
+			filter: schema.Filter{
+				Rule: []schema.Rule{
+					{Type: "pass", Interface: schema.InterfaceList{"lan"}, StateType: "none"},
 				},
 			},
 			expectedErrors: 0,
 		},
 		{
 			name: "empty state type - valid",
-			filter: model.Filter{
-				Rule: []model.Rule{
-					{Type: "pass", Interface: model.InterfaceList{"lan"}, StateType: ""},
+			filter: schema.Filter{
+				Rule: []schema.Rule{
+					{Type: "pass", Interface: schema.InterfaceList{"lan"}, StateType: ""},
 				},
 			},
 			expectedErrors: 0,
 		},
 		{
 			name: "invalid state type",
-			filter: model.Filter{
-				Rule: []model.Rule{
-					{Type: "pass", Interface: model.InterfaceList{"lan"}, StateType: "invalid"},
+			filter: schema.Filter{
+				Rule: []schema.Rule{
+					{Type: "pass", Interface: schema.InterfaceList{"lan"}, StateType: "invalid"},
 				},
 			},
 			expectedErrors: 1,
@@ -1408,67 +1408,67 @@ func TestValidateFilter_StateTypeValidation(t *testing.T) {
 //
 //nolint:dupl // table-driven test structure intentionally similar to StateTypeValidation
 func TestValidateFilter_MaxSrcConnRateFormat(t *testing.T) {
-	interfaces := &model.Interfaces{
-		Items: map[string]model.Interface{
+	interfaces := &schema.Interfaces{
+		Items: map[string]schema.Interface{
 			"lan": {},
 		},
 	}
 
 	tests := []struct {
 		name           string
-		filter         model.Filter
+		filter         schema.Filter
 		expectedErrors int
 	}{
 		{
 			name: "valid rate format 15/5",
-			filter: model.Filter{
-				Rule: []model.Rule{
-					{Type: "pass", Interface: model.InterfaceList{"lan"}, MaxSrcConnRate: "15/5"},
+			filter: schema.Filter{
+				Rule: []schema.Rule{
+					{Type: "pass", Interface: schema.InterfaceList{"lan"}, MaxSrcConnRate: "15/5"},
 				},
 			},
 			expectedErrors: 0,
 		},
 		{
 			name: "valid rate format 100/60",
-			filter: model.Filter{
-				Rule: []model.Rule{
-					{Type: "pass", Interface: model.InterfaceList{"lan"}, MaxSrcConnRate: "100/60"},
+			filter: schema.Filter{
+				Rule: []schema.Rule{
+					{Type: "pass", Interface: schema.InterfaceList{"lan"}, MaxSrcConnRate: "100/60"},
 				},
 			},
 			expectedErrors: 0,
 		},
 		{
 			name: "empty rate - valid",
-			filter: model.Filter{
-				Rule: []model.Rule{
-					{Type: "pass", Interface: model.InterfaceList{"lan"}, MaxSrcConnRate: ""},
+			filter: schema.Filter{
+				Rule: []schema.Rule{
+					{Type: "pass", Interface: schema.InterfaceList{"lan"}, MaxSrcConnRate: ""},
 				},
 			},
 			expectedErrors: 0,
 		},
 		{
 			name: "invalid rate format - no slash",
-			filter: model.Filter{
-				Rule: []model.Rule{
-					{Type: "pass", Interface: model.InterfaceList{"lan"}, MaxSrcConnRate: "15"},
+			filter: schema.Filter{
+				Rule: []schema.Rule{
+					{Type: "pass", Interface: schema.InterfaceList{"lan"}, MaxSrcConnRate: "15"},
 				},
 			},
 			expectedErrors: 1,
 		},
 		{
 			name: "invalid rate format - non-numeric",
-			filter: model.Filter{
-				Rule: []model.Rule{
-					{Type: "pass", Interface: model.InterfaceList{"lan"}, MaxSrcConnRate: "abc/def"},
+			filter: schema.Filter{
+				Rule: []schema.Rule{
+					{Type: "pass", Interface: schema.InterfaceList{"lan"}, MaxSrcConnRate: "abc/def"},
 				},
 			},
 			expectedErrors: 1,
 		},
 		{
 			name: "invalid rate format - extra slash",
-			filter: model.Filter{
-				Rule: []model.Rule{
-					{Type: "pass", Interface: model.InterfaceList{"lan"}, MaxSrcConnRate: "15/5/3"},
+			filter: schema.Filter{
+				Rule: []schema.Rule{
+					{Type: "pass", Interface: schema.InterfaceList{"lan"}, MaxSrcConnRate: "15/5/3"},
 				},
 			},
 			expectedErrors: 1,
@@ -1487,13 +1487,13 @@ func TestValidateFilter_MaxSrcConnRateFormat(t *testing.T) {
 func TestValidateNat_InboundReflection(t *testing.T) {
 	tests := []struct {
 		name           string
-		nat            model.Nat
+		nat            schema.Nat
 		expectedErrors int
 	}{
 		{
 			name: "valid reflection enable",
-			nat: model.Nat{
-				Inbound: []model.InboundRule{
+			nat: schema.Nat{
+				Inbound: []schema.InboundRule{
 					{NATReflection: "enable"},
 				},
 			},
@@ -1501,8 +1501,8 @@ func TestValidateNat_InboundReflection(t *testing.T) {
 		},
 		{
 			name: "valid reflection disable",
-			nat: model.Nat{
-				Inbound: []model.InboundRule{
+			nat: schema.Nat{
+				Inbound: []schema.InboundRule{
 					{NATReflection: "disable"},
 				},
 			},
@@ -1510,8 +1510,8 @@ func TestValidateNat_InboundReflection(t *testing.T) {
 		},
 		{
 			name: "valid reflection purenat",
-			nat: model.Nat{
-				Inbound: []model.InboundRule{
+			nat: schema.Nat{
+				Inbound: []schema.InboundRule{
 					{NATReflection: "purenat"},
 				},
 			},
@@ -1519,8 +1519,8 @@ func TestValidateNat_InboundReflection(t *testing.T) {
 		},
 		{
 			name: "empty reflection - valid",
-			nat: model.Nat{
-				Inbound: []model.InboundRule{
+			nat: schema.Nat{
+				Inbound: []schema.InboundRule{
 					{NATReflection: ""},
 				},
 			},
@@ -1528,8 +1528,8 @@ func TestValidateNat_InboundReflection(t *testing.T) {
 		},
 		{
 			name: "invalid reflection mode",
-			nat: model.Nat{
-				Inbound: []model.InboundRule{
+			nat: schema.Nat{
+				Inbound: []schema.InboundRule{
 					{NATReflection: "invalid"},
 				},
 			},
@@ -1537,8 +1537,8 @@ func TestValidateNat_InboundReflection(t *testing.T) {
 		},
 		{
 			name: "multiple inbound rules mixed validity",
-			nat: model.Nat{
-				Inbound: []model.InboundRule{
+			nat: schema.Nat{
+				Inbound: []schema.InboundRule{
 					{NATReflection: "enable"},
 					{NATReflection: "badmode"},
 					{NATReflection: "purenat"},
@@ -1595,26 +1595,26 @@ func TestIsValidPortOrRange(t *testing.T) {
 
 // TestValidateFilter_PortValidation tests port validation for source and destination in filter rules.
 func TestValidateFilter_PortValidation(t *testing.T) {
-	interfaces := &model.Interfaces{
-		Items: map[string]model.Interface{
+	interfaces := &schema.Interfaces{
+		Items: map[string]schema.Interface{
 			"lan": {},
 		},
 	}
 
 	tests := []struct {
 		name           string
-		filter         model.Filter
+		filter         schema.Filter
 		expectedErrors int
 		errorField     string
 	}{
 		{
 			name: "valid source port 443",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:      "pass",
-						Interface: model.InterfaceList{"lan"},
-						Source:    model.Source{Any: model.StringPtr(""), Port: "443"},
+						Interface: schema.InterfaceList{"lan"},
+						Source:    schema.Source{Any: new(""), Port: "443"},
 					},
 				},
 			},
@@ -1622,12 +1622,12 @@ func TestValidateFilter_PortValidation(t *testing.T) {
 		},
 		{
 			name: "valid destination port 80",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:        "pass",
-						Interface:   model.InterfaceList{"lan"},
-						Destination: model.Destination{Any: model.StringPtr(""), Port: "80"},
+						Interface:   schema.InterfaceList{"lan"},
+						Destination: schema.Destination{Any: new(""), Port: "80"},
 					},
 				},
 			},
@@ -1635,12 +1635,12 @@ func TestValidateFilter_PortValidation(t *testing.T) {
 		},
 		{
 			name: "valid source port range",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:      "pass",
-						Interface: model.InterfaceList{"lan"},
-						Source:    model.Source{Any: model.StringPtr(""), Port: "1024-65535"},
+						Interface: schema.InterfaceList{"lan"},
+						Source:    schema.Source{Any: new(""), Port: "1024-65535"},
 					},
 				},
 			},
@@ -1648,12 +1648,12 @@ func TestValidateFilter_PortValidation(t *testing.T) {
 		},
 		{
 			name: "valid destination port alias",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:        "pass",
-						Interface:   model.InterfaceList{"lan"},
-						Destination: model.Destination{Any: model.StringPtr(""), Port: "http"},
+						Interface:   schema.InterfaceList{"lan"},
+						Destination: schema.Destination{Any: new(""), Port: "http"},
 					},
 				},
 			},
@@ -1661,13 +1661,13 @@ func TestValidateFilter_PortValidation(t *testing.T) {
 		},
 		{
 			name: "empty ports - valid",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:        "pass",
-						Interface:   model.InterfaceList{"lan"},
-						Source:      model.Source{Any: model.StringPtr("")},
-						Destination: model.Destination{Any: model.StringPtr("")},
+						Interface:   schema.InterfaceList{"lan"},
+						Source:      schema.Source{Any: new("")},
+						Destination: schema.Destination{Any: new("")},
 					},
 				},
 			},
@@ -1675,12 +1675,12 @@ func TestValidateFilter_PortValidation(t *testing.T) {
 		},
 		{
 			name: "invalid source port zero",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:      "pass",
-						Interface: model.InterfaceList{"lan"},
-						Source:    model.Source{Any: model.StringPtr(""), Port: "0"},
+						Interface: schema.InterfaceList{"lan"},
+						Source:    schema.Source{Any: new(""), Port: "0"},
 					},
 				},
 			},
@@ -1689,12 +1689,12 @@ func TestValidateFilter_PortValidation(t *testing.T) {
 		},
 		{
 			name: "invalid destination port 65536",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:        "pass",
-						Interface:   model.InterfaceList{"lan"},
-						Destination: model.Destination{Any: model.StringPtr(""), Port: "65536"},
+						Interface:   schema.InterfaceList{"lan"},
+						Destination: schema.Destination{Any: new(""), Port: "65536"},
 					},
 				},
 			},
@@ -1703,12 +1703,12 @@ func TestValidateFilter_PortValidation(t *testing.T) {
 		},
 		{
 			name: "invalid source inverted range",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:      "pass",
-						Interface: model.InterfaceList{"lan"},
-						Source:    model.Source{Any: model.StringPtr(""), Port: "443-80"},
+						Interface: schema.InterfaceList{"lan"},
+						Source:    schema.Source{Any: new(""), Port: "443-80"},
 					},
 				},
 			},
@@ -1717,12 +1717,12 @@ func TestValidateFilter_PortValidation(t *testing.T) {
 		},
 		{
 			name: "invalid destination malformed 80-abc",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:        "pass",
-						Interface:   model.InterfaceList{"lan"},
-						Destination: model.Destination{Any: model.StringPtr(""), Port: "80-abc"},
+						Interface:   schema.InterfaceList{"lan"},
+						Destination: schema.Destination{Any: new(""), Port: "80-abc"},
 					},
 				},
 			},
@@ -1731,13 +1731,13 @@ func TestValidateFilter_PortValidation(t *testing.T) {
 		},
 		{
 			name: "both source and destination invalid ports",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:        "pass",
-						Interface:   model.InterfaceList{"lan"},
-						Source:      model.Source{Any: model.StringPtr(""), Port: "0"},
-						Destination: model.Destination{Any: model.StringPtr(""), Port: "65536"},
+						Interface:   schema.InterfaceList{"lan"},
+						Source:      schema.Source{Any: new(""), Port: "0"},
+						Destination: schema.Destination{Any: new(""), Port: "65536"},
 					},
 				},
 			},
@@ -1760,18 +1760,18 @@ func TestValidateFilter_PortValidation(t *testing.T) {
 func TestValidateFilter_SourceNetworkValidation(t *testing.T) {
 	tests := []struct {
 		name           string
-		filter         model.Filter
+		filter         schema.Filter
 		expectedErrors int
 	}{
 		{
 			name: "valid CIDR source network",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:       "pass",
 						IPProtocol: "inet",
-						Interface:  model.InterfaceList{"lan"},
-						Source: model.Source{
+						Interface:  schema.InterfaceList{"lan"},
+						Source: schema.Source{
 							Network: "192.168.1.0/24",
 						},
 					},
@@ -1781,13 +1781,13 @@ func TestValidateFilter_SourceNetworkValidation(t *testing.T) {
 		},
 		{
 			name: "valid IPv6 CIDR source network",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:       "pass",
 						IPProtocol: "inet6",
-						Interface:  model.InterfaceList{"lan"},
-						Source: model.Source{
+						Interface:  schema.InterfaceList{"lan"},
+						Source: schema.Source{
 							Network: "2001:db8::/32",
 						},
 					},
@@ -1797,13 +1797,13 @@ func TestValidateFilter_SourceNetworkValidation(t *testing.T) {
 		},
 		{
 			name: "invalid CIDR source network",
-			filter: model.Filter{
-				Rule: []model.Rule{
+			filter: schema.Filter{
+				Rule: []schema.Rule{
 					{
 						Type:       "pass",
 						IPProtocol: "inet",
-						Interface:  model.InterfaceList{"lan"},
-						Source: model.Source{
+						Interface:  schema.InterfaceList{"lan"},
+						Source: schema.Source{
 							Network: "invalid-cidr",
 						},
 					},
@@ -1816,8 +1816,8 @@ func TestValidateFilter_SourceNetworkValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a mock interfaces structure for the test
-			interfaces := &model.Interfaces{
-				Items: map[string]model.Interface{
+			interfaces := &schema.Interfaces{
+				Items: map[string]schema.Interface{
 					"lan": {},
 				},
 			}

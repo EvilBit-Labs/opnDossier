@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	builderPkg "github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/nao1215/markdown"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -192,9 +192,9 @@ func TestMarkdownBuilder_CrossMethodInteraction(t *testing.T) {
 
 	// Test that tables can be generated independently
 	interfaceTable := builderPkg.BuildInterfaceTableSet(testData.Interfaces)
-	rulesTable := builderPkg.BuildFirewallRulesTableSet(testData.Filter.Rule)
-	userTable := builderPkg.BuildUserTableSet(testData.System.User)
-	groupTable := builderPkg.BuildGroupTableSet(testData.System.Group)
+	rulesTable := builderPkg.BuildFirewallRulesTableSet(testData.FirewallRules)
+	userTable := builderPkg.BuildUserTableSet(testData.Users)
+	groupTable := builderPkg.BuildGroupTableSet(testData.Groups)
 	sysctlTable := builderPkg.BuildSysctlTableSet(testData.Sysctl)
 
 	// All tables should have proper structure
@@ -225,7 +225,7 @@ func TestMarkdownBuilder_ErrorHandling(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		data     *model.OpnSenseDocument
+		data     *common.CommonDevice
 		wantErr  bool
 		errCheck func(t *testing.T, err error)
 	}{
@@ -235,18 +235,18 @@ func TestMarkdownBuilder_ErrorHandling(t *testing.T) {
 			wantErr: true,
 			errCheck: func(t *testing.T, err error) {
 				t.Helper()
-				assert.Equal(t, ErrNilOpnSenseDocument, err)
+				assert.Equal(t, builderPkg.ErrNilDevice, err)
 			},
 		},
 		{
 			name:    "empty document",
-			data:    &model.OpnSenseDocument{},
+			data:    &common.CommonDevice{},
 			wantErr: false,
 		},
 		{
 			name: "document with only system",
-			data: &model.OpnSenseDocument{
-				System: model.System{
+			data: &common.CommonDevice{
+				System: common.System{
 					Hostname: "test",
 				},
 			},
@@ -340,14 +340,14 @@ func TestMarkdownBuilder_MarkdownValidation(t *testing.T) {
 
 // Helper functions for tests
 
-func loadTestDataFromFile(t *testing.T, filename string) *model.OpnSenseDocument {
+func loadTestDataFromFile(t *testing.T, filename string) *common.CommonDevice {
 	t.Helper()
 
 	path := filepath.Join("testdata", filename)
 	data, err := os.ReadFile(path)
 	require.NoError(t, err, "Failed to read test data file: %s", filename)
 
-	var doc model.OpnSenseDocument
+	var doc common.CommonDevice
 	err = json.Unmarshal(data, &doc)
 	require.NoError(t, err, "Failed to unmarshal test data: %s", filename)
 
@@ -557,74 +557,64 @@ func validateTableFormatting(t *testing.T, content string) {
 	}
 }
 
-func generateLargeTestData(t *testing.T) *model.OpnSenseDocument {
+func generateLargeTestData(t *testing.T) *common.CommonDevice {
 	t.Helper()
 
 	// Generate test data with many interfaces, rules, users, etc.
-	doc := &model.OpnSenseDocument{
-		System: model.System{
+	doc := &common.CommonDevice{
+		System: common.System{
 			Hostname: "large-test-host",
 			Domain:   "large.test.local",
-			Firmware: model.Firmware{
+			Firmware: common.Firmware{
 				Version: "24.1.2",
 			},
 		},
-		Interfaces: model.Interfaces{
-			Items: make(map[string]model.Interface),
-		},
-		Filter: model.Filter{
-			Rule: make([]model.Rule, 0, 100),
-		},
-		Sysctl: make([]model.SysctlItem, 0, 50),
 	}
 
 	// Generate 20 interfaces
+	doc.Interfaces = make([]common.Interface, 0, 20)
 	for i := range 20 {
-		name := fmt.Sprintf("if%d", i)
-		doc.Interfaces.Items[name] = model.Interface{
-			If:     fmt.Sprintf("em%d", i),
-			Enable: "1",
-			IPAddr: fmt.Sprintf("10.0.%d.1", i),
-			Subnet: "24",
-			Descr:  fmt.Sprintf("Interface %d", i),
-		}
+		doc.Interfaces = append(doc.Interfaces, common.Interface{
+			Name:       fmt.Sprintf("if%d", i),
+			PhysicalIf: fmt.Sprintf("em%d", i),
+			Enabled:    true,
+			IPAddress:  fmt.Sprintf("10.0.%d.1", i),
+			Subnet:     "24",
+		})
 	}
 
 	// Generate 100 firewall rules
+	doc.FirewallRules = make([]common.FirewallRule, 0, 100)
 	for i := range 100 {
-		rule := model.Rule{
-			Type:       []string{"pass", "block"}[i%2],
-			Descr:      fmt.Sprintf("Rule %d", i+1),
-			Interface:  model.InterfaceList{fmt.Sprintf("if%d", i%20)},
-			IPProtocol: "inet",
-			Protocol:   "tcp",
-			Source: model.Source{
-				Network: "any",
-			},
-			Destination: model.Destination{
-				Network: "any",
-			},
+		rule := common.FirewallRule{
+			Type:        []string{"pass", "block"}[i%2],
+			Description: fmt.Sprintf("Rule %d", i+1),
+			Interfaces:  []string{fmt.Sprintf("if%d", i%20)},
+			IPProtocol:  "inet",
+			Protocol:    "tcp",
+			Source:      common.RuleEndpoint{Address: "any"},
+			Destination: common.RuleEndpoint{Address: "any"},
 		}
-		doc.Filter.Rule = append(doc.Filter.Rule, rule)
+		doc.FirewallRules = append(doc.FirewallRules, rule)
 	}
 
 	// Generate 10 users
 	for i := range 10 {
-		user := model.User{
-			Name:      fmt.Sprintf("user%d", i),
-			Descr:     fmt.Sprintf("Test User %d", i),
-			Groupname: "users",
-			Scope:     "local",
+		user := common.User{
+			Name:        fmt.Sprintf("user%d", i),
+			Description: fmt.Sprintf("Test User %d", i),
+			GroupName:   "users",
+			Scope:       "local",
 		}
-		doc.System.User = append(doc.System.User, user)
+		doc.Users = append(doc.Users, user)
 	}
 
 	// Generate 50 sysctl items
 	for i := range 50 {
-		sysctl := model.SysctlItem{
-			Tunable: fmt.Sprintf("test.sysctl.item%d", i),
-			Value:   strconv.Itoa(i % 2),
-			Descr:   fmt.Sprintf("Test sysctl item %d", i),
+		sysctl := common.SysctlItem{
+			Tunable:     fmt.Sprintf("test.sysctl.item%d", i),
+			Value:       strconv.Itoa(i % 2),
+			Description: fmt.Sprintf("Test sysctl item %d", i),
 		}
 		doc.Sysctl = append(doc.Sysctl, sysctl)
 	}

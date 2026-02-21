@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/nao1215/markdown"
 )
 
@@ -33,8 +33,8 @@ func TestNewMarkdownBuilder(t *testing.T) {
 func TestNewMarkdownBuilderWithConfig(t *testing.T) {
 	t.Parallel()
 
-	config := &model.OpnSenseDocument{
-		System: model.System{Hostname: "test"},
+	config := &common.CommonDevice{
+		System: common.System{Hostname: "test"},
 	}
 
 	builder := NewMarkdownBuilderWithConfig(config, nil)
@@ -57,7 +57,7 @@ func TestBuildStandardReport_Errors(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		data    *model.OpnSenseDocument
+		data    *common.CommonDevice
 		wantErr bool
 	}{
 		{
@@ -67,11 +67,11 @@ func TestBuildStandardReport_Errors(t *testing.T) {
 		},
 		{
 			name: "valid document returns no error",
-			data: &model.OpnSenseDocument{
-				System: model.System{
+			data: &common.CommonDevice{
+				System: common.System{
 					Hostname: "test",
 					Domain:   "example.com",
-					Firmware: model.Firmware{Version: "24.1"},
+					Firmware: common.Firmware{Version: "24.1"},
 				},
 			},
 			wantErr: false,
@@ -89,8 +89,8 @@ func TestBuildStandardReport_Errors(t *testing.T) {
 				t.Errorf("BuildStandardReport() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			if tt.wantErr && !errors.Is(err, ErrNilOpnSenseDocument) {
-				t.Errorf("BuildStandardReport() error = %v, want %v", err, ErrNilOpnSenseDocument)
+			if tt.wantErr && !errors.Is(err, ErrNilDevice) {
+				t.Errorf("BuildStandardReport() error = %v, want %v", err, ErrNilDevice)
 			}
 		})
 	}
@@ -102,7 +102,7 @@ func TestBuildComprehensiveReport_Errors(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		data    *model.OpnSenseDocument
+		data    *common.CommonDevice
 		wantErr bool
 	}{
 		{
@@ -112,11 +112,11 @@ func TestBuildComprehensiveReport_Errors(t *testing.T) {
 		},
 		{
 			name: "valid document returns no error",
-			data: &model.OpnSenseDocument{
-				System: model.System{
+			data: &common.CommonDevice{
+				System: common.System{
 					Hostname: "test",
 					Domain:   "example.com",
-					Firmware: model.Firmware{Version: "24.1"},
+					Firmware: common.Firmware{Version: "24.1"},
 				},
 			},
 			wantErr: false,
@@ -134,8 +134,8 @@ func TestBuildComprehensiveReport_Errors(t *testing.T) {
 				t.Errorf("BuildComprehensiveReport() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			if tt.wantErr && !errors.Is(err, ErrNilOpnSenseDocument) {
-				t.Errorf("BuildComprehensiveReport() error = %v, want %v", err, ErrNilOpnSenseDocument)
+			if tt.wantErr && !errors.Is(err, ErrNilDevice) {
+				t.Errorf("BuildComprehensiveReport() error = %v, want %v", err, ErrNilDevice)
 			}
 		})
 	}
@@ -146,27 +146,27 @@ func TestBuildInterfaceDetails(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		iface        model.Interface
+		iface        common.Interface
 		wantContains []string
 	}{
 		{
 			name:         "empty interface",
-			iface:        model.Interface{},
+			iface:        common.Interface{},
 			wantContains: nil,
 		},
 		{
 			name: "basic interface fields",
-			iface: model.Interface{
-				If:      "em0",
-				Enable:  "1",
-				IPAddr:  "192.168.1.1",
-				Subnet:  "24",
-				Gateway: "192.168.1.254",
-				MTU:     "1500",
+			iface: common.Interface{
+				PhysicalIf: "em0",
+				Enabled:    true,
+				IPAddress:  "192.168.1.1",
+				Subnet:     "24",
+				Gateway:    "192.168.1.254",
+				MTU:        "1500",
 			},
 			wantContains: []string{
 				"**Physical Interface**: em0",
-				"**Enabled**: 1",
+				"**Enabled**: ✓",
 				"**IPv4 Address**: 192.168.1.1",
 				"**IPv4 Subnet**: 24",
 				"**Gateway**: 192.168.1.254",
@@ -175,9 +175,9 @@ func TestBuildInterfaceDetails(t *testing.T) {
 		},
 		{
 			name: "ipv6 interface fields",
-			iface: model.Interface{
-				IPAddrv6: "2001:db8::1",
-				Subnetv6: "64",
+			iface: common.Interface{
+				IPv6Address: "2001:db8::1",
+				SubnetV6:    "64",
 			},
 			wantContains: []string{
 				"**IPv6 Address**: 2001:db8::1",
@@ -186,13 +186,13 @@ func TestBuildInterfaceDetails(t *testing.T) {
 		},
 		{
 			name: "security fields",
-			iface: model.Interface{
-				BlockPriv:   "1",
-				BlockBogons: "1",
+			iface: common.Interface{
+				BlockPrivate: true,
+				BlockBogons:  true,
 			},
 			wantContains: []string{
-				"**Block Private Networks**: 1",
-				"**Block Bogon Networks**: 1",
+				"**Block Private Networks**: ✓",
+				"**Block Bogon Networks**: ✓",
 			},
 		},
 	}
@@ -222,7 +222,7 @@ func TestBuildFirewallRulesTableSet(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		rules        []model.Rule
+		rules        []common.FirewallRule
 		wantRows     int
 		wantContains []string
 	}{
@@ -234,17 +234,16 @@ func TestBuildFirewallRulesTableSet(t *testing.T) {
 		},
 		{
 			name: "single rule",
-			rules: []model.Rule{
+			rules: []common.FirewallRule{
 				{
 					Type:        "pass",
-					Interface:   []string{"lan"},
+					Interfaces:  []string{"lan"},
 					IPProtocol:  "inet",
 					Protocol:    "tcp",
 					Target:      "any",
-					SourcePort:  "any",
-					Descr:       "Allow LAN traffic",
-					Source:      model.Source{Address: "192.168.1.0/24"},
-					Destination: model.Destination{Address: "any", Port: "443"},
+					Description: "Allow LAN traffic",
+					Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
+					Destination: common.RuleEndpoint{Address: "any", Port: "443"},
 				},
 			},
 			wantRows: 1,
@@ -254,12 +253,12 @@ func TestBuildFirewallRulesTableSet(t *testing.T) {
 		},
 		{
 			name: "rule with disabled flag",
-			rules: []model.Rule{
+			rules: []common.FirewallRule{
 				{
-					Type:      "block",
-					Interface: []string{"wan"},
-					Disabled:  model.BoolFlag(true),
-					Descr:     "Disabled rule",
+					Type:        "block",
+					Interfaces:  []string{"wan"},
+					Disabled:    true,
+					Description: "Disabled rule",
 				},
 			},
 			wantRows: 1,
@@ -269,12 +268,12 @@ func TestBuildFirewallRulesTableSet(t *testing.T) {
 		},
 		{
 			name: "rule with multiple interfaces",
-			rules: []model.Rule{
+			rules: []common.FirewallRule{
 				{
-					Type:      "pass",
-					Interface: []string{"lan", "wan", "opt1"},
-					Protocol:  "udp",
-					Descr:     "Multi-interface rule",
+					Type:        "pass",
+					Interfaces:  []string{"lan", "wan", "opt1"},
+					Protocol:    "udp",
+					Description: "Multi-interface rule",
 				},
 			},
 			wantRows: 1,
@@ -304,7 +303,7 @@ func TestBuildOutboundNATTableSet(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		rules        []model.NATRule
+		rules        []common.NATRule
 		wantRows     int
 		wantContains []string
 	}{
@@ -318,14 +317,14 @@ func TestBuildOutboundNATTableSet(t *testing.T) {
 		},
 		{
 			name: "single nat rule",
-			rules: []model.NATRule{
+			rules: []common.NATRule{
 				{
-					Interface:   []string{"wan"},
+					Interfaces:  []string{"wan"},
 					Protocol:    "tcp",
 					Target:      "192.168.1.1",
-					Descr:       "Web server NAT",
-					Source:      model.Source{Address: "192.168.1.0/24"},
-					Destination: model.Destination{Address: "any"},
+					Description: "Web server NAT",
+					Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
+					Destination: common.RuleEndpoint{Address: "any"},
 				},
 			},
 			wantRows: 1,
@@ -335,11 +334,11 @@ func TestBuildOutboundNATTableSet(t *testing.T) {
 		},
 		{
 			name: "disabled nat rule",
-			rules: []model.NATRule{
+			rules: []common.NATRule{
 				{
-					Interface: []string{"wan"},
-					Disabled:  model.BoolFlag(true),
-					Descr:     "Disabled NAT",
+					Interfaces:  []string{"wan"},
+					Disabled:    true,
+					Description: "Disabled NAT",
 				},
 			},
 			wantRows: 1,
@@ -368,7 +367,7 @@ func TestBuildInboundNATTableSet(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		rules        []model.InboundRule
+		rules        []common.InboundNATRule
 		wantRows     int
 		wantContains []string
 	}{
@@ -382,15 +381,15 @@ func TestBuildInboundNATTableSet(t *testing.T) {
 		},
 		{
 			name: "single inbound rule",
-			rules: []model.InboundRule{
+			rules: []common.InboundNATRule{
 				{
-					Interface:    []string{"wan"},
+					Interfaces:   []string{"wan"},
 					Protocol:     "tcp",
 					ExternalPort: "80",
 					InternalIP:   "192.168.1.100",
 					InternalPort: "80",
 					Priority:     1,
-					Descr:        "HTTP forward",
+					Description:  "HTTP forward",
 				},
 			},
 			wantRows: 1,
@@ -400,12 +399,12 @@ func TestBuildInboundNATTableSet(t *testing.T) {
 		},
 		{
 			name: "disabled inbound rule",
-			rules: []model.InboundRule{
+			rules: []common.InboundNATRule{
 				{
-					Interface: []string{"wan"},
-					Disabled:  model.BoolFlag(true),
-					Priority:  5,
-					Descr:     "Disabled forward",
+					Interfaces:  []string{"wan"},
+					Disabled:    true,
+					Priority:    5,
+					Description: "Disabled forward",
 				},
 			},
 			wantRows: 1,
@@ -435,29 +434,26 @@ func TestBuildInterfaceTableSet(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		interfaces   model.Interfaces
+		interfaces   []common.Interface
 		wantRows     int
 		wantContains []string
 	}{
 		{
-			name: "empty interfaces",
-			interfaces: model.Interfaces{
-				Items: map[string]model.Interface{},
-			},
+			name:         "empty interfaces",
+			interfaces:   []common.Interface{},
 			wantRows:     0,
 			wantContains: nil,
 		},
 		{
 			name: "single interface",
-			interfaces: model.Interfaces{
-				Items: map[string]model.Interface{
-					"lan": {
-						If:     "em0",
-						Descr:  "LAN Interface",
-						Enable: "1",
-						IPAddr: "192.168.1.1",
-						Subnet: "24",
-					},
+			interfaces: []common.Interface{
+				{
+					Name:        "lan",
+					PhysicalIf:  "em0",
+					Description: "LAN Interface",
+					Enabled:     true,
+					IPAddress:   "192.168.1.1",
+					Subnet:      "24",
 				},
 			},
 			wantRows: 1,
@@ -466,14 +462,13 @@ func TestBuildInterfaceTableSet(t *testing.T) {
 			},
 		},
 		{
-			name: "interface without description uses If field",
-			interfaces: model.Interfaces{
-				Items: map[string]model.Interface{
-					"wan": {
-						If:     "em1",
-						Enable: "0",
-						IPAddr: "dhcp",
-					},
+			name: "interface without description uses PhysicalIf field",
+			interfaces: []common.Interface{
+				{
+					Name:       "wan",
+					PhysicalIf: "em1",
+					Enabled:    false,
+					IPAddress:  "dhcp",
 				},
 			},
 			wantRows: 1,
@@ -483,12 +478,10 @@ func TestBuildInterfaceTableSet(t *testing.T) {
 		},
 		{
 			name: "multiple interfaces sorted by name",
-			interfaces: model.Interfaces{
-				Items: map[string]model.Interface{
-					"wan":  {If: "em1", Enable: "1"},
-					"lan":  {If: "em0", Enable: "1"},
-					"opt1": {If: "em2", Enable: "0"},
-				},
+			interfaces: []common.Interface{
+				{Name: "wan", PhysicalIf: "em1", Enabled: true},
+				{Name: "lan", PhysicalIf: "em0", Enabled: true},
+				{Name: "opt1", PhysicalIf: "em2", Enabled: false},
 			},
 			wantRows: 3,
 			wantContains: []string{
@@ -514,7 +507,7 @@ func TestBuildUserTableSet(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		users        []model.User
+		users        []common.User
 		wantRows     int
 		wantContains []string
 	}{
@@ -526,12 +519,12 @@ func TestBuildUserTableSet(t *testing.T) {
 		},
 		{
 			name: "single user",
-			users: []model.User{
+			users: []common.User{
 				{
-					Name:      "admin",
-					Descr:     "System Administrator",
-					Groupname: "admins",
-					Scope:     "system",
+					Name:        "admin",
+					Description: "System Administrator",
+					GroupName:   "admins",
+					Scope:       "system",
 				},
 			},
 			wantRows: 1,
@@ -541,9 +534,9 @@ func TestBuildUserTableSet(t *testing.T) {
 		},
 		{
 			name: "multiple users",
-			users: []model.User{
-				{Name: "admin", Descr: "Administrator", Groupname: "admins", Scope: "system"},
-				{Name: "user1", Descr: "Regular User", Groupname: "users", Scope: "user"},
+			users: []common.User{
+				{Name: "admin", Description: "Administrator", GroupName: "admins", Scope: "system"},
+				{Name: "user1", Description: "Regular User", GroupName: "users", Scope: "user"},
 			},
 			wantRows: 2,
 			wantContains: []string{
@@ -570,7 +563,7 @@ func TestBuildGroupTableSet(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		groups       []model.Group
+		groups       []common.Group
 		wantRows     int
 		wantContains []string
 	}{
@@ -582,7 +575,7 @@ func TestBuildGroupTableSet(t *testing.T) {
 		},
 		{
 			name: "single group",
-			groups: []model.Group{
+			groups: []common.Group{
 				{
 					Name:        "admins",
 					Description: "System Administrators",
@@ -613,7 +606,7 @@ func TestBuildSysctlTableSet(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		sysctl       []model.SysctlItem
+		sysctl       []common.SysctlItem
 		wantRows     int
 		wantContains []string
 	}{
@@ -625,11 +618,11 @@ func TestBuildSysctlTableSet(t *testing.T) {
 		},
 		{
 			name: "single sysctl item",
-			sysctl: []model.SysctlItem{
+			sysctl: []common.SysctlItem{
 				{
-					Tunable: "kern.ipc.maxsockbuf",
-					Value:   "16777216",
-					Descr:   "Maximum socket buffer size",
+					Tunable:     "kern.ipc.maxsockbuf",
+					Value:       "16777216",
+					Description: "Maximum socket buffer size",
 				},
 			},
 			wantRows: 1,
@@ -656,7 +649,7 @@ func TestBuildVLANTableSet(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		vlans        []model.VLAN
+		vlans        []common.VLAN
 		wantRows     int
 		wantContains []string
 	}{
@@ -670,14 +663,14 @@ func TestBuildVLANTableSet(t *testing.T) {
 		},
 		{
 			name: "single vlan",
-			vlans: []model.VLAN{
+			vlans: []common.VLAN{
 				{
-					Vlanif:  "vlan10",
-					If:      "em0",
-					Tag:     "10",
-					Descr:   "Management VLAN",
-					Created: "2024-01-01",
-					Updated: "2024-01-02",
+					VLANIf:      "vlan10",
+					PhysicalIf:  "em0",
+					Tag:         "10",
+					Description: "Management VLAN",
+					Created:     "2024-01-01",
+					Updated:     "2024-01-02",
 				},
 			},
 			wantRows: 1,
@@ -706,7 +699,7 @@ func TestBuildStaticRoutesTableSet(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		routes       []model.StaticRoute
+		routes       []common.StaticRoute
 		wantRows     int
 		wantContains []string
 	}{
@@ -720,14 +713,14 @@ func TestBuildStaticRoutesTableSet(t *testing.T) {
 		},
 		{
 			name: "enabled route",
-			routes: []model.StaticRoute{
+			routes: []common.StaticRoute{
 				{
-					Network:  "10.0.0.0/8",
-					Gateway:  "192.168.1.1",
-					Descr:    "Internal networks",
-					Disabled: false,
-					Created:  "2024-01-01",
-					Updated:  "2024-01-02",
+					Network:     "10.0.0.0/8",
+					Gateway:     "192.168.1.1",
+					Description: "Internal networks",
+					Disabled:    false,
+					Created:     "2024-01-01",
+					Updated:     "2024-01-02",
 				},
 			},
 			wantRows: 1,
@@ -737,12 +730,12 @@ func TestBuildStaticRoutesTableSet(t *testing.T) {
 		},
 		{
 			name: "disabled route",
-			routes: []model.StaticRoute{
+			routes: []common.StaticRoute{
 				{
-					Network:  "172.16.0.0/12",
-					Gateway:  "192.168.1.2",
-					Descr:    "Disabled route",
-					Disabled: true,
+					Network:     "172.16.0.0/12",
+					Gateway:     "192.168.1.2",
+					Description: "Disabled route",
+					Disabled:    true,
 				},
 			},
 			wantRows: 1,
@@ -783,8 +776,8 @@ func TestWriteTableMethods(t *testing.T) {
 				t.Parallel()
 				var buf strings.Builder
 				md := markdown.NewMarkdown(&buf)
-				rules := []model.Rule{
-					{Type: "pass", Interface: []string{"lan"}, Descr: "Test rule"},
+				rules := []common.FirewallRule{
+					{Type: "pass", Interfaces: []string{"lan"}, Description: "Test rule"},
 				}
 				result := builder.WriteFirewallRulesTable(md, rules)
 				if result != md {
@@ -803,10 +796,8 @@ func TestWriteTableMethods(t *testing.T) {
 				t.Parallel()
 				var buf strings.Builder
 				md := markdown.NewMarkdown(&buf)
-				interfaces := model.Interfaces{
-					Items: map[string]model.Interface{
-						"lan": {If: "em0", Enable: "1", IPAddr: "192.168.1.1"},
-					},
+				interfaces := []common.Interface{
+					{Name: "lan", PhysicalIf: "em0", Enabled: true, IPAddress: "192.168.1.1"},
 				}
 				result := builder.WriteInterfaceTable(md, interfaces)
 				if result != md {
@@ -825,8 +816,8 @@ func TestWriteTableMethods(t *testing.T) {
 				t.Parallel()
 				var buf strings.Builder
 				md := markdown.NewMarkdown(&buf)
-				rules := []model.NATRule{
-					{Interface: []string{"wan"}, Descr: "Test NAT"},
+				rules := []common.NATRule{
+					{Interfaces: []string{"wan"}, Description: "Test NAT"},
 				}
 				result := builder.WriteOutboundNATTable(md, rules)
 				if result != md {
@@ -841,8 +832,8 @@ func TestWriteTableMethods(t *testing.T) {
 				t.Parallel()
 				var buf strings.Builder
 				md := markdown.NewMarkdown(&buf)
-				rules := []model.InboundRule{
-					{Interface: []string{"wan"}, Descr: "Test forward"},
+				rules := []common.InboundNATRule{
+					{Interfaces: []string{"wan"}, Description: "Test forward"},
 				}
 				result := builder.WriteInboundNATTable(md, rules)
 				if result != md {
@@ -857,8 +848,8 @@ func TestWriteTableMethods(t *testing.T) {
 				t.Parallel()
 				var buf strings.Builder
 				md := markdown.NewMarkdown(&buf)
-				users := []model.User{
-					{Name: "admin", Descr: "Administrator"},
+				users := []common.User{
+					{Name: "admin", Description: "Administrator"},
 				}
 				result := builder.WriteUserTable(md, users)
 				if result != md {
@@ -873,7 +864,7 @@ func TestWriteTableMethods(t *testing.T) {
 				t.Parallel()
 				var buf strings.Builder
 				md := markdown.NewMarkdown(&buf)
-				groups := []model.Group{
+				groups := []common.Group{
 					{Name: "admins", Description: "Administrators"},
 				}
 				result := builder.WriteGroupTable(md, groups)
@@ -889,7 +880,7 @@ func TestWriteTableMethods(t *testing.T) {
 				t.Parallel()
 				var buf strings.Builder
 				md := markdown.NewMarkdown(&buf)
-				sysctl := []model.SysctlItem{
+				sysctl := []common.SysctlItem{
 					{Tunable: "net.inet.tcp.mssdflt", Value: "1460"},
 				}
 				result := builder.WriteSysctlTable(md, sysctl)
@@ -905,8 +896,8 @@ func TestWriteTableMethods(t *testing.T) {
 				t.Parallel()
 				var buf strings.Builder
 				md := markdown.NewMarkdown(&buf)
-				vlans := []model.VLAN{
-					{Vlanif: "vlan10", Tag: "10"},
+				vlans := []common.VLAN{
+					{VLANIf: "vlan10", Tag: "10"},
 				}
 				result := builder.WriteVLANTable(md, vlans)
 				if result != md {
@@ -921,7 +912,7 @@ func TestWriteTableMethods(t *testing.T) {
 				t.Parallel()
 				var buf strings.Builder
 				md := markdown.NewMarkdown(&buf)
-				routes := []model.StaticRoute{
+				routes := []common.StaticRoute{
 					{Network: "10.0.0.0/8", Gateway: "192.168.1.1"},
 				}
 				result := builder.WriteStaticRoutesTable(md, routes)
@@ -937,12 +928,10 @@ func TestWriteTableMethods(t *testing.T) {
 				t.Parallel()
 				var buf strings.Builder
 				md := markdown.NewMarkdown(&buf)
-				dhcpd := model.Dhcpd{
-					Items: map[string]model.DhcpdInterface{
-						"lan": {Enable: "1", Gateway: "192.168.1.1"},
-					},
+				scopes := []common.DHCPScope{
+					{Interface: "lan", Enabled: true, Gateway: "192.168.1.1"},
 				}
-				result := builder.WriteDHCPSummaryTable(md, dhcpd)
+				result := builder.WriteDHCPSummaryTable(md, scopes)
 				if result != md {
 					t.Error("WriteDHCPSummaryTable should return the markdown instance for chaining")
 				}
@@ -955,8 +944,8 @@ func TestWriteTableMethods(t *testing.T) {
 				t.Parallel()
 				var buf strings.Builder
 				md := markdown.NewMarkdown(&buf)
-				leases := []model.DHCPStaticLease{
-					{Mac: "00:11:22:33:44:55", IPAddr: "192.168.1.100"},
+				leases := []common.DHCPStaticLease{
+					{MAC: "00:11:22:33:44:55", IPAddress: "192.168.1.100"},
 				}
 				result := builder.WriteDHCPStaticLeasesTable(md, leases)
 				if result != md {

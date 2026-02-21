@@ -2,5 +2,5 @@ package builder
 
 import "errors"
 
-// ErrNilOpnSenseDocument is returned when the input OpnSenseDocument is nil.
-var ErrNilOpnSenseDocument = errors.New("input OpnSenseDocument struct is nil")
+// ErrNilDevice is returned when the input device configuration is nil.
+var ErrNilDevice = errors.New("device configuration is nil")

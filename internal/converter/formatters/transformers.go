@@ -4,32 +4,29 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 const (
 	securityTunableRatio = 4
-	serviceBalanceRatio  = 2
 	ruleTypeRatio        = 3
-	statusRunning        = "running"
-	statusStopped        = "stopped"
 )
 
 // FilterSystemTunables filters system tunables based on security-related prefixes.
 // When includeTunables is false, only returns security-related tunables.
 // When includeTunables is true, returns all tunables.
 // Returns nil if tunables is nil, empty slice if no matches found.
-func FilterSystemTunables(tunables []model.SysctlItem, includeTunables bool) []model.SysctlItem {
+func FilterSystemTunables(tunables []common.SysctlItem, includeTunables bool) []common.SysctlItem {
 	if tunables == nil {
 		return nil
 	}
 
 	if len(tunables) == 0 {
-		return []model.SysctlItem{}
+		return []common.SysctlItem{}
 	}
 
 	if includeTunables {
-		result := make([]model.SysctlItem, len(tunables))
+		result := make([]common.SysctlItem, len(tunables))
 		copy(result, tunables)
 		return result
 	}
@@ -44,7 +41,7 @@ func FilterSystemTunables(tunables []model.SysctlItem, includeTunables bool) []m
 	}
 
 	estimatedSize := max(1, len(tunables)/securityTunableRatio)
-	filtered := make([]model.SysctlItem, 0, estimatedSize)
+	filtered := make([]common.SysctlItem, 0, estimatedSize)
 
 	for _, item := range tunables {
 		if item.Tunable == "" {
@@ -61,47 +58,10 @@ func FilterSystemTunables(tunables []model.SysctlItem, includeTunables bool) []m
 	return filtered
 }
 
-// GroupServicesByStatus groups services by their status (running/stopped).
-// Returns a map with "running" and "stopped" keys containing sorted slices of services.
-// Returns nil if services is nil, empty map with initialized slices if services is empty.
-func GroupServicesByStatus(services []model.Service) map[string][]model.Service {
-	if services == nil {
-		return nil
-	}
-
-	estimatedCapacity := max(1, len(services)/serviceBalanceRatio)
-
-	grouped := map[string][]model.Service{
-		statusRunning: make([]model.Service, 0, estimatedCapacity),
-		statusStopped: make([]model.Service, 0, estimatedCapacity),
-	}
-
-	for _, service := range services {
-		status := statusStopped
-		if service.Status == statusRunning {
-			status = statusRunning
-		}
-
-		if service.Name == "" {
-			continue
-		}
-
-		grouped[status] = append(grouped[status], service)
-	}
-
-	for status := range grouped {
-		sort.Slice(grouped[status], func(i, j int) bool {
-			return grouped[status][i].Name < grouped[status][j].Name
-		})
-	}
-
-	return grouped
-}
-
 // AggregatePackageStats aggregates statistics about packages.
 // Returns a map with total, installed, locked, and automatic package counts.
 // Returns nil if packages is nil, stats with zero counts if packages is empty.
-func AggregatePackageStats(packages []model.Package) map[string]int {
+func AggregatePackageStats(packages []common.Package) map[string]int {
 	if packages == nil {
 		return nil
 	}
@@ -140,23 +100,23 @@ func AggregatePackageStats(packages []model.Package) map[string]int {
 // If ruleType is empty, returns all rules.
 // Otherwise, returns only rules matching the specified type.
 // Returns nil if rules is nil, empty slice if no matches found.
-func FilterRulesByType(rules []model.Rule, ruleType string) []model.Rule {
+func FilterRulesByType(rules []common.FirewallRule, ruleType string) []common.FirewallRule {
 	if rules == nil {
 		return nil
 	}
 
 	if len(rules) == 0 {
-		return []model.Rule{}
+		return []common.FirewallRule{}
 	}
 
 	if ruleType == "" {
-		result := make([]model.Rule, len(rules))
+		result := make([]common.FirewallRule, len(rules))
 		copy(result, rules)
 		return result
 	}
 
 	estimatedSize := max(1, len(rules)/ruleTypeRatio)
-	filtered := make([]model.Rule, 0, estimatedSize)
+	filtered := make([]common.FirewallRule, 0, estimatedSize)
 
 	for _, rule := range rules {
 		if rule.Type == "" {

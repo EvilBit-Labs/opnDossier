@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -46,7 +46,7 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 	})
 
 	t.Run("invalid options", func(t *testing.T) {
-		cfg := &model.OpnSenseDocument{}
+		cfg := &common.CommonDevice{}
 		opts := Options{
 			Format:    "invalid",
 			WrapWidth: -1,
@@ -58,8 +58,8 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 	})
 
 	t.Run("valid markdown generation", func(t *testing.T) {
-		cfg := &model.OpnSenseDocument{
-			System: model.System{
+		cfg := &common.CommonDevice{
+			System: common.System{
 				Hostname: "test-host",
 				Domain:   "test.local",
 			},
@@ -73,8 +73,8 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 	})
 
 	t.Run("valid comprehensive markdown generation", func(t *testing.T) {
-		cfg := &model.OpnSenseDocument{
-			System: model.System{
+		cfg := &common.CommonDevice{
+			System: common.System{
 				Hostname: "test-host",
 				Domain:   "test.local",
 			},
@@ -88,8 +88,8 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 	})
 
 	t.Run("valid JSON generation", func(t *testing.T) {
-		cfg := &model.OpnSenseDocument{
-			System: model.System{
+		cfg := &common.CommonDevice{
+			System: common.System{
 				Hostname: "test-host",
 				Domain:   "test.local",
 			},
@@ -103,8 +103,8 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 	})
 
 	t.Run("valid YAML generation", func(t *testing.T) {
-		cfg := &model.OpnSenseDocument{
-			System: model.System{
+		cfg := &common.CommonDevice{
+			System: common.System{
 				Hostname: "test-host",
 				Domain:   "test.local",
 			},
@@ -118,7 +118,7 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 	})
 
 	t.Run("unsupported format", func(t *testing.T) {
-		cfg := &model.OpnSenseDocument{}
+		cfg := &common.CommonDevice{}
 		opts := Options{Format: Format("unsupported")}
 		result, err := generator.Generate(ctx, cfg, opts)
 
@@ -360,39 +360,35 @@ func TestEscapeTableContent(t *testing.T) {
 
 func TestFormatInterfacesAsLinksTemplateFunction(t *testing.T) {
 	// Create a test configuration with multiple interfaces
-	cfg := &model.OpnSenseDocument{
-		System: model.System{
+	cfg := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-host",
 			Domain:   "test.local",
 		},
-		Filter: model.Filter{
-			Rule: []model.Rule{
-				{
-					Type:        "pass",
-					Interface:   model.InterfaceList{"wan", "lan"},
-					IPProtocol:  "inet",
-					Protocol:    "tcp",
-					Source:      model.Source{Network: "any"},
-					Destination: model.Destination{Network: "any"},
-					Descr:       "Test rule with multiple interfaces",
-				},
-				{
-					Type:        "block",
-					Interface:   model.InterfaceList{"opt1"},
-					IPProtocol:  "inet",
-					Protocol:    "udp",
-					Source:      model.Source{Network: "any"},
-					Destination: model.Destination{Network: "any"},
-					Descr:       "Test rule with single interface",
-				},
+		FirewallRules: []common.FirewallRule{
+			{
+				Type:        "pass",
+				Interfaces:  []string{"wan", "lan"},
+				IPProtocol:  "inet",
+				Protocol:    "tcp",
+				Source:      common.RuleEndpoint{Address: "any"},
+				Destination: common.RuleEndpoint{Address: "any"},
+				Description: "Test rule with multiple interfaces",
+			},
+			{
+				Type:        "block",
+				Interfaces:  []string{"opt1"},
+				IPProtocol:  "inet",
+				Protocol:    "udp",
+				Source:      common.RuleEndpoint{Address: "any"},
+				Destination: common.RuleEndpoint{Address: "any"},
+				Description: "Test rule with single interface",
 			},
 		},
-		Interfaces: model.Interfaces{
-			Items: map[string]model.Interface{
-				"wan":  {Enable: "1", IPAddr: "192.168.1.1"},
-				"lan":  {Enable: "1", IPAddr: "10.0.0.1"},
-				"opt1": {Enable: "1", IPAddr: "172.16.0.1"},
-			},
+		Interfaces: []common.Interface{
+			{Name: "wan", Enabled: true, IPAddress: "192.168.1.1"},
+			{Name: "lan", Enabled: true, IPAddress: "10.0.0.1"},
+			{Name: "opt1", Enabled: true, IPAddress: "172.16.0.1"},
 		},
 	}
 

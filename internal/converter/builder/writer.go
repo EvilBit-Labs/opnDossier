@@ -1,4 +1,4 @@
-// Package builder provides programmatic report building functionality for OPNsense configurations.
+// Package builder provides programmatic report building functionality for device configurations.
 package builder
 
 import (
@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/nao1215/markdown"
 )
 
@@ -22,50 +22,50 @@ import (
 // - Better support for piping to other tools.
 type SectionWriter interface {
 	// WriteSystemSection writes the system configuration section to the writer.
-	WriteSystemSection(w io.Writer, data *model.OpnSenseDocument) error
+	WriteSystemSection(w io.Writer, data *common.CommonDevice) error
 
 	// WriteNetworkSection writes the network configuration section to the writer.
-	WriteNetworkSection(w io.Writer, data *model.OpnSenseDocument) error
+	WriteNetworkSection(w io.Writer, data *common.CommonDevice) error
 
 	// WriteSecuritySection writes the security configuration section to the writer.
-	WriteSecuritySection(w io.Writer, data *model.OpnSenseDocument) error
+	WriteSecuritySection(w io.Writer, data *common.CommonDevice) error
 
 	// WriteServicesSection writes the services configuration section to the writer.
-	WriteServicesSection(w io.Writer, data *model.OpnSenseDocument) error
+	WriteServicesSection(w io.Writer, data *common.CommonDevice) error
 
 	// WriteStandardReport writes a complete standard report to the writer.
-	WriteStandardReport(w io.Writer, data *model.OpnSenseDocument) error
+	WriteStandardReport(w io.Writer, data *common.CommonDevice) error
 
 	// WriteComprehensiveReport writes a complete comprehensive report to the writer.
-	WriteComprehensiveReport(w io.Writer, data *model.OpnSenseDocument) error
+	WriteComprehensiveReport(w io.Writer, data *common.CommonDevice) error
 }
 
 // Ensure MarkdownBuilder implements SectionWriter.
 var _ SectionWriter = (*MarkdownBuilder)(nil)
 
 // WriteSystemSection writes the system configuration section directly to the writer.
-func (b *MarkdownBuilder) WriteSystemSection(w io.Writer, data *model.OpnSenseDocument) error {
+func (b *MarkdownBuilder) WriteSystemSection(w io.Writer, data *common.CommonDevice) error {
 	section := b.BuildSystemSection(data)
 	_, err := io.WriteString(w, section)
 	return err
 }
 
 // WriteNetworkSection writes the network configuration section directly to the writer.
-func (b *MarkdownBuilder) WriteNetworkSection(w io.Writer, data *model.OpnSenseDocument) error {
+func (b *MarkdownBuilder) WriteNetworkSection(w io.Writer, data *common.CommonDevice) error {
 	section := b.BuildNetworkSection(data)
 	_, err := io.WriteString(w, section)
 	return err
 }
 
 // WriteSecuritySection writes the security configuration section directly to the writer.
-func (b *MarkdownBuilder) WriteSecuritySection(w io.Writer, data *model.OpnSenseDocument) error {
+func (b *MarkdownBuilder) WriteSecuritySection(w io.Writer, data *common.CommonDevice) error {
 	section := b.BuildSecuritySection(data)
 	_, err := io.WriteString(w, section)
 	return err
 }
 
 // WriteServicesSection writes the services configuration section directly to the writer.
-func (b *MarkdownBuilder) WriteServicesSection(w io.Writer, data *model.OpnSenseDocument) error {
+func (b *MarkdownBuilder) WriteServicesSection(w io.Writer, data *common.CommonDevice) error {
 	section := b.BuildServicesSection(data)
 	_, err := io.WriteString(w, section)
 	return err
@@ -74,9 +74,9 @@ func (b *MarkdownBuilder) WriteServicesSection(w io.Writer, data *model.OpnSense
 // WriteStandardReport writes a complete standard report directly to the writer.
 // Unlike BuildStandardReport which returns a string, this method streams output
 // section-by-section, reducing peak memory usage for large configurations.
-func (b *MarkdownBuilder) WriteStandardReport(w io.Writer, data *model.OpnSenseDocument) error {
+func (b *MarkdownBuilder) WriteStandardReport(w io.Writer, data *common.CommonDevice) error {
 	if data == nil {
-		return ErrNilOpnSenseDocument
+		return ErrNilDevice
 	}
 
 	// Write header section
@@ -116,9 +116,9 @@ func (b *MarkdownBuilder) WriteStandardReport(w io.Writer, data *model.OpnSenseD
 
 // WriteComprehensiveReport writes a complete comprehensive report directly to the writer.
 // This provides the same content as BuildComprehensiveReport but with streaming output.
-func (b *MarkdownBuilder) WriteComprehensiveReport(w io.Writer, data *model.OpnSenseDocument) error {
+func (b *MarkdownBuilder) WriteComprehensiveReport(w io.Writer, data *common.CommonDevice) error {
 	if data == nil {
-		return ErrNilOpnSenseDocument
+		return ErrNilDevice
 	}
 
 	// Write header section
@@ -140,12 +140,12 @@ func (b *MarkdownBuilder) WriteComprehensiveReport(w io.Writer, data *model.OpnS
 		return fmt.Errorf("failed to write network section: %w", err)
 	}
 
-	// Write VLAN section (Issue #67)
+	// Write VLAN section
 	if _, err := io.WriteString(w, b.buildVLANSection(data)); err != nil {
 		return fmt.Errorf("failed to write VLAN section: %w", err)
 	}
 
-	// Write Static Routes section (Issue #67)
+	// Write Static Routes section
 	if _, err := io.WriteString(w, b.buildStaticRoutesSection(data)); err != nil {
 		return fmt.Errorf("failed to write static routes section: %w", err)
 	}
@@ -154,17 +154,17 @@ func (b *MarkdownBuilder) WriteComprehensiveReport(w io.Writer, data *model.OpnS
 		return fmt.Errorf("failed to write security section: %w", err)
 	}
 
-	// Write IPsec section (Issue #67)
+	// Write IPsec section
 	if _, err := io.WriteString(w, b.BuildIPsecSection(data)); err != nil {
 		return fmt.Errorf("failed to write IPsec section: %w", err)
 	}
 
-	// Write OpenVPN section (Issue #67)
+	// Write OpenVPN section
 	if _, err := io.WriteString(w, b.BuildOpenVPNSection(data)); err != nil {
 		return fmt.Errorf("failed to write OpenVPN section: %w", err)
 	}
 
-	// Write High Availability section (Issue #67)
+	// Write High Availability section
 	if _, err := io.WriteString(w, b.BuildHASection(data)); err != nil {
 		return fmt.Errorf("failed to write HA section: %w", err)
 	}
@@ -177,7 +177,7 @@ func (b *MarkdownBuilder) WriteComprehensiveReport(w io.Writer, data *model.OpnS
 }
 
 // writeReportHeader writes the report header (title, system info) to the writer.
-func (b *MarkdownBuilder) writeReportHeader(w io.Writer, data *model.OpnSenseDocument) error {
+func (b *MarkdownBuilder) writeReportHeader(w io.Writer, data *common.CommonDevice) error {
 	var buf bytes.Buffer
 	md := markdown.NewMarkdown(&buf).
 		H1("OPNsense Configuration Summary").
@@ -248,18 +248,16 @@ func (b *MarkdownBuilder) writeTableOfContents(w io.Writer, comprehensive bool) 
 }
 
 // writeStandardReportFooter writes the additional sections for standard reports.
-func (b *MarkdownBuilder) writeStandardReportFooter(w io.Writer, data *model.OpnSenseDocument) error {
-	sysConfig := data.SystemConfig()
-
+func (b *MarkdownBuilder) writeStandardReportFooter(w io.Writer, data *common.CommonDevice) error {
 	var buf bytes.Buffer
 	md := markdown.NewMarkdown(&buf)
 
-	if len(sysConfig.System.User) > 0 {
-		b.WriteUserTable(md.H2("System Users"), sysConfig.System.User)
+	if len(data.Users) > 0 {
+		b.WriteUserTable(md.H2("System Users"), data.Users)
 	}
 
-	if len(sysConfig.Sysctl) > 0 {
-		b.WriteSysctlTable(md.H2("System Tunables"), sysConfig.Sysctl)
+	if len(data.Sysctl) > 0 {
+		b.WriteSysctlTable(md.H2("System Tunables"), data.Sysctl)
 	}
 
 	_, err := io.WriteString(w, md.String())
