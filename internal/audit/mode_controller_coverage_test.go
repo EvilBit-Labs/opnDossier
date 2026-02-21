@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/charmbracelet/log"
 )
 
@@ -29,8 +29,8 @@ func TestModeController_GenerateBlueReport_WithPlugins(t *testing.T) {
 		t.Fatalf("Failed to register mock plugin: %v", err)
 	}
 
-	testConfig := &model.OpnSenseDocument{
-		System: model.System{
+	testConfig := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-host",
 			Domain:   "test.local",
 		},
@@ -100,88 +100,80 @@ func TestReport_AddAnalysisMethods_WithVariousConfigurations(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		config *model.OpnSenseDocument
+		config *common.CommonDevice
 	}{
 		{
 			name: "with full configuration",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &common.CommonDevice{
+				System: common.System{
 					Hostname: "test-firewall",
 					Domain:   "example.com",
 				},
-				Interfaces: model.Interfaces{
-					Items: map[string]model.Interface{
-						"lan": {
-							Enable: "1",
-							If:     "em0",
-						},
-						"wan": {
-							Enable: "1",
-							If:     "em1",
+				Interfaces: []common.Interface{
+					{Name: "lan", Enabled: true, PhysicalIf: "em0"},
+					{Name: "wan", Enabled: true, PhysicalIf: "em1"},
+				},
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        "pass",
+						Protocol:    "tcp",
+						Description: "Allow HTTP",
+					},
+				},
+				NAT: common.NATConfig{
+					OutboundMode: "automatic",
+				},
+				DHCP: []common.DHCPScope{
+					{
+						Interface: "lan",
+						Enabled:   true,
+						Range: common.DHCPRange{
+							From: "192.168.1.100",
+							To:   "192.168.1.200",
 						},
 					},
 				},
-				Filter: model.Filter{
-					Rule: []model.Rule{
-						{
-							Type:     "pass",
-							Protocol: "tcp",
-							Descr:    "Allow HTTP",
+				Certificates: []common.Certificate{
+					{
+						Description: "Test Certificate",
+						Certificate: "-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----",
+					},
+				},
+				VPN: common.VPN{
+					OpenVPN: common.OpenVPNConfig{
+						Servers: []common.OpenVPNServer{
+							{
+								Mode:      "server_tls",
+								Protocol:  "udp",
+								LocalPort: "1194",
+							},
 						},
-					},
-				},
-				Nat: model.Nat{
-					Outbound: model.Outbound{
-						Mode: "automatic",
-					},
-				},
-				Dhcpd: model.Dhcpd{
-					Items: map[string]model.DhcpdInterface{
-						"lan": {
-							Enable: "1",
-							Range: model.Range{
-								From: "192.168.1.100",
-								To:   "192.168.1.200",
+						Clients: []common.OpenVPNClient{
+							{
+								Description: "Test VPN Client",
 							},
 						},
 					},
 				},
-				Cert: model.Cert{
-					Text: "-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----",
-				},
-				OpenVPN: model.OpenVPN{
-					Servers: []model.OpenVPNServer{
+				Routing: common.Routing{
+					StaticRoutes: []common.StaticRoute{
 						{
-							Mode:       "server_tls",
-							Protocol:   "udp",
-							Local_port: "1194",
-						},
-					},
-					Clients: []model.OpenVPNClient{
-						{
-							Description: "Test VPN Client",
+							Network:     "10.0.0.0/24",
+							Gateway:     "192.168.1.1",
+							Description: "Test Route",
 						},
 					},
 				},
-				StaticRoutes: model.StaticRoutes{
-					Route: []model.StaticRoute{
-						{
-							Network: "10.0.0.0/24",
-							Gateway: "192.168.1.1",
-							Descr:   "Test Route",
-						},
-					},
-				},
-				HighAvailabilitySync: model.HighAvailabilitySync{
-					Synchronizetoip: "192.168.2.100",
-					Pfsyncinterface: "lan",
+				HighAvailability: common.HighAvailability{
+					SynchronizeToIP: "192.168.2.100",
+					PfsyncInterface: "lan",
 				},
 			},
 		},
 		{
 			name: "with minimal configuration",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &common.CommonDevice{
+				System: common.System{
 					Hostname: "",
 					Domain:   "",
 				},
@@ -317,54 +309,40 @@ func TestReport_DHCPAnalysis_EdgeCases(t *testing.T) {
 
 	tests := []struct {
 		name            string
-		config          *model.OpnSenseDocument
+		config          *common.CommonDevice
 		expectedEnabled bool
 	}{
 		{
 			name: "DHCP disabled explicitly",
-			config: &model.OpnSenseDocument{
-				Dhcpd: model.Dhcpd{
-					Items: map[string]model.DhcpdInterface{
-						"lan": {
-							Enable: "0", // Explicitly disabled
-						},
-					},
+			config: &common.CommonDevice{
+				DHCP: []common.DHCPScope{
+					{Interface: "lan", Enabled: false},
 				},
 			},
 			expectedEnabled: false,
 		},
 		{
-			name: "DHCP enabled with value 1",
-			config: &model.OpnSenseDocument{
-				Dhcpd: model.Dhcpd{
-					Items: map[string]model.DhcpdInterface{
-						"lan": {
-							Enable: "1", // Explicitly enabled
-						},
-					},
+			name: "DHCP enabled",
+			config: &common.CommonDevice{
+				DHCP: []common.DHCPScope{
+					{Interface: "lan", Enabled: true},
 				},
 			},
 			expectedEnabled: true,
 		},
 		{
 			name: "no LAN DHCP config",
-			config: &model.OpnSenseDocument{
-				Dhcpd: model.Dhcpd{
-					Items: map[string]model.DhcpdInterface{
-						"wan": {
-							Enable: "1", // Only WAN, no LAN
-						},
-					},
+			config: &common.CommonDevice{
+				DHCP: []common.DHCPScope{
+					{Interface: "wan", Enabled: true},
 				},
 			},
 			expectedEnabled: false,
 		},
 		{
 			name: "empty DHCP config",
-			config: &model.OpnSenseDocument{
-				Dhcpd: model.Dhcpd{
-					Items: make(map[string]model.DhcpdInterface),
-				},
+			config: &common.CommonDevice{
+				DHCP: []common.DHCPScope{},
 			},
 			expectedEnabled: false,
 		},
@@ -404,35 +382,29 @@ func TestReport_CertificateAnalysis_EdgeCases(t *testing.T) {
 
 	tests := []struct {
 		name               string
-		config             *model.OpnSenseDocument
+		config             *common.CommonDevice
 		expectedConfigured bool
 	}{
 		{
 			name: "certificate with content",
-			config: &model.OpnSenseDocument{
-				Cert: model.Cert{
-					Text: "-----BEGIN CERTIFICATE-----\nMIIC...\n-----END CERTIFICATE-----",
+			config: &common.CommonDevice{
+				Certificates: []common.Certificate{
+					{Certificate: "-----BEGIN CERTIFICATE-----\nMIIC...\n-----END CERTIFICATE-----"},
 				},
 			},
 			expectedConfigured: true,
 		},
 		{
-			name: "certificate with empty text",
-			config: &model.OpnSenseDocument{
-				Cert: model.Cert{
-					Text: "",
-				},
+			name: "no certificates",
+			config: &common.CommonDevice{
+				Certificates: []common.Certificate{},
 			},
 			expectedConfigured: false,
 		},
 		{
-			name: "certificate with whitespace only",
-			config: &model.OpnSenseDocument{
-				Cert: model.Cert{
-					Text: "   \n\t  ",
-				},
-			},
-			expectedConfigured: false, // Whitespace-only is not a valid certificate
+			name:               "nil certificates",
+			config:             &common.CommonDevice{},
+			expectedConfigured: false,
 		},
 	}
 
@@ -469,17 +441,17 @@ func TestReport_HighAvailabilityAnalysis_EdgeCases(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		config     *model.OpnSenseDocument
+		config     *common.CommonDevice
 		expectedHA bool
 		expectedIP string
 		expectedIF string
 	}{
 		{
 			name: "HA with sync IP only",
-			config: &model.OpnSenseDocument{
-				HighAvailabilitySync: model.HighAvailabilitySync{
-					Synchronizetoip: "192.168.1.100",
-					Pfsyncinterface: "",
+			config: &common.CommonDevice{
+				HighAvailability: common.HighAvailability{
+					SynchronizeToIP: "192.168.1.100",
+					PfsyncInterface: "",
 				},
 			},
 			expectedHA: true,
@@ -488,10 +460,10 @@ func TestReport_HighAvailabilityAnalysis_EdgeCases(t *testing.T) {
 		},
 		{
 			name: "HA with pfsync interface only",
-			config: &model.OpnSenseDocument{
-				HighAvailabilitySync: model.HighAvailabilitySync{
-					Synchronizetoip: "",
-					Pfsyncinterface: "lan",
+			config: &common.CommonDevice{
+				HighAvailability: common.HighAvailability{
+					SynchronizeToIP: "",
+					PfsyncInterface: "lan",
 				},
 			},
 			expectedHA: true,
@@ -500,10 +472,10 @@ func TestReport_HighAvailabilityAnalysis_EdgeCases(t *testing.T) {
 		},
 		{
 			name: "HA with both sync IP and interface",
-			config: &model.OpnSenseDocument{
-				HighAvailabilitySync: model.HighAvailabilitySync{
-					Synchronizetoip: "192.168.1.100",
-					Pfsyncinterface: "lan",
+			config: &common.CommonDevice{
+				HighAvailability: common.HighAvailability{
+					SynchronizeToIP: "192.168.1.100",
+					PfsyncInterface: "lan",
 				},
 			},
 			expectedHA: true,
@@ -512,10 +484,10 @@ func TestReport_HighAvailabilityAnalysis_EdgeCases(t *testing.T) {
 		},
 		{
 			name: "HA disabled (empty values)",
-			config: &model.OpnSenseDocument{
-				HighAvailabilitySync: model.HighAvailabilitySync{
-					Synchronizetoip: "",
-					Pfsyncinterface: "",
+			config: &common.CommonDevice{
+				HighAvailability: common.HighAvailability{
+					SynchronizeToIP: "",
+					PfsyncInterface: "",
 				},
 			},
 			expectedHA: false,
@@ -577,39 +549,33 @@ func TestReport_InterfaceAnalysis_EdgeCases(t *testing.T) {
 
 	tests := []struct {
 		name                   string
-		config                 *model.OpnSenseDocument
+		config                 *common.CommonDevice
 		expectedInterfaceCount int
 	}{
 		{
 			name: "with multiple interfaces",
-			config: &model.OpnSenseDocument{
-				Interfaces: model.Interfaces{
-					Items: map[string]model.Interface{
-						"lan":  {Enable: "1", If: "em0"},
-						"wan":  {Enable: "1", If: "em1"},
-						"opt1": {Enable: "1", If: "em2"},
-					},
+			config: &common.CommonDevice{
+				Interfaces: []common.Interface{
+					{Name: "lan", Enabled: true, PhysicalIf: "em0"},
+					{Name: "wan", Enabled: true, PhysicalIf: "em1"},
+					{Name: "opt1", Enabled: true, PhysicalIf: "em2"},
 				},
 			},
 			expectedInterfaceCount: 3,
 		},
 		{
 			name: "with no interfaces",
-			config: &model.OpnSenseDocument{
-				Interfaces: model.Interfaces{
-					Items: make(map[string]model.Interface),
-				},
+			config: &common.CommonDevice{
+				Interfaces: []common.Interface{},
 			},
 			expectedInterfaceCount: 0,
 		},
 		{
-			name: "with nil interface items",
-			config: &model.OpnSenseDocument{
-				Interfaces: model.Interfaces{
-					Items: nil,
-				},
+			name: "with nil interfaces",
+			config: &common.CommonDevice{
+				Interfaces: nil,
 			},
-			expectedInterfaceCount: 0, // Should not set interface_count for nil items
+			expectedInterfaceCount: 0,
 		},
 	}
 
@@ -629,24 +595,17 @@ func TestReport_InterfaceAnalysis_EdgeCases(t *testing.T) {
 				t.Error("addInterfaceAnalysis() should set interface_analysis_completed")
 			}
 
-			if tt.config.Interfaces.Items != nil {
-				interfaceCount, exists := report.Metadata["interface_count"]
-				if !exists {
-					t.Error("addInterfaceAnalysis() should set interface_count when items is not nil")
-				}
+			interfaceCount, exists := report.Metadata["interface_count"]
+			if !exists {
+				t.Error("addInterfaceAnalysis() should set interface_count")
+			}
 
-				if interfaceCount != tt.expectedInterfaceCount {
-					t.Errorf(
-						"addInterfaceAnalysis() interface_count = %v, want %v",
-						interfaceCount,
-						tt.expectedInterfaceCount,
-					)
-				}
-			} else {
-				// For nil items, should not set interface_count
-				if _, exists := report.Metadata["interface_count"]; exists {
-					t.Error("addInterfaceAnalysis() should not set interface_count for nil items")
-				}
+			if interfaceCount != tt.expectedInterfaceCount {
+				t.Errorf(
+					"addInterfaceAnalysis() interface_count = %v, want %v",
+					interfaceCount,
+					tt.expectedInterfaceCount,
+				)
 			}
 		})
 	}

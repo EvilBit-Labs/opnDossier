@@ -5,20 +5,20 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 // ExampleProcessor provides a basic implementation of the Processor interface.
 // This serves as a reference implementation and can be extended with more sophisticated analysis.
 type ExampleProcessor struct{}
 
-// NewExampleProcessor returns a new ExampleProcessor for analyzing OPNsense configurations.
+// NewExampleProcessor returns a new ExampleProcessor for analyzing device configurations.
 func NewExampleProcessor() *ExampleProcessor {
 	return &ExampleProcessor{}
 }
 
-// Process analyzes the given OPNsense configuration and returns a comprehensive report.
-func (p *ExampleProcessor) Process(ctx context.Context, cfg *model.OpnSenseDocument, opts ...Option) (*Report, error) {
+// Process analyzes the given device configuration and returns a comprehensive report.
+func (p *ExampleProcessor) Process(ctx context.Context, cfg *common.CommonDevice, opts ...Option) (*Report, error) {
 	if cfg == nil {
 		return nil, ErrConfigurationNil
 	}
@@ -66,7 +66,7 @@ func (p *ExampleProcessor) Process(ctx context.Context, cfg *model.OpnSenseDocum
 // performBasicAnalysis performs basic configuration validation and analysis.
 func (p *ExampleProcessor) performBasicAnalysis(
 	ctx context.Context,
-	cfg *model.OpnSenseDocument,
+	cfg *common.CommonDevice,
 	report *Report,
 	_ Config,
 ) error {
@@ -116,7 +116,7 @@ func (p *ExampleProcessor) performBasicAnalysis(
 // performDeadRuleAnalysis analyzes firewall rules for potential dead/unused rules.
 func (p *ExampleProcessor) performDeadRuleAnalysis(
 	ctx context.Context,
-	cfg *model.OpnSenseDocument,
+	cfg *common.CommonDevice,
 	report *Report,
 ) error {
 	select {
@@ -125,7 +125,7 @@ func (p *ExampleProcessor) performDeadRuleAnalysis(
 	default:
 	}
 
-	rules := cfg.FilterRules()
+	rules := cfg.FirewallRules
 	if len(rules) == 0 {
 		report.AddFinding(SeverityInfo, Finding{
 			Type:           "configuration",
@@ -142,7 +142,7 @@ func (p *ExampleProcessor) performDeadRuleAnalysis(
 	rulesWithoutDescriptions := 0
 
 	for _, rule := range rules {
-		if rule.Descr == "" {
+		if rule.Description == "" {
 			rulesWithoutDescriptions++
 		}
 	}
@@ -166,7 +166,7 @@ func (p *ExampleProcessor) performDeadRuleAnalysis(
 // performSecurityAnalysis performs security-related analysis of the configuration.
 func (p *ExampleProcessor) performSecurityAnalysis(
 	ctx context.Context,
-	cfg *model.OpnSenseDocument,
+	cfg *common.CommonDevice,
 	report *Report,
 ) error {
 	select {
@@ -187,8 +187,8 @@ func (p *ExampleProcessor) performSecurityAnalysis(
 	}
 
 	// Check for SNMP configuration
-	if cfg.Snmpd.ROCommunity != "" {
-		if cfg.Snmpd.ROCommunity == "public" {
+	if cfg.SNMP.ROCommunity != "" {
+		if cfg.SNMP.ROCommunity == "public" {
 			report.AddFinding(SeverityHigh, Finding{
 				Type:           "security",
 				Title:          "Default SNMP Community String",
@@ -213,7 +213,7 @@ func (p *ExampleProcessor) performSecurityAnalysis(
 // performPerformanceAnalysis performs performance-related analysis of the configuration.
 func (p *ExampleProcessor) performPerformanceAnalysis(
 	ctx context.Context,
-	cfg *model.OpnSenseDocument,
+	cfg *common.CommonDevice,
 	report *Report,
 ) error {
 	select {
@@ -234,7 +234,7 @@ func (p *ExampleProcessor) performPerformanceAnalysis(
 	}
 
 	// Check for hardware offloading settings
-	if cfg.System.DisableChecksumOffloading != 0 {
+	if cfg.System.DisableChecksumOffloading {
 		report.AddFinding(SeverityInfo, Finding{
 			Type:           "performance",
 			Title:          "Checksum Offloading Disabled",
@@ -258,7 +258,7 @@ func (p *ExampleProcessor) performPerformanceAnalysis(
 // Note: Password policy and audit logging compliance checks are implemented below.
 func (p *ExampleProcessor) performComplianceCheck(
 	ctx context.Context,
-	cfg *model.OpnSenseDocument,
+	cfg *common.CommonDevice,
 	report *Report,
 ) error {
 	select {
@@ -268,7 +268,7 @@ func (p *ExampleProcessor) performComplianceCheck(
 	}
 
 	// Check for required administrative users
-	if len(cfg.System.User) == 0 {
+	if len(cfg.Users) == 0 {
 		report.AddFinding(SeverityCritical, Finding{
 			Type:           "compliance",
 			Title:          "No Administrative Users Configured",
@@ -279,7 +279,7 @@ func (p *ExampleProcessor) performComplianceCheck(
 	}
 
 	// Check for time synchronization
-	if cfg.System.TimeServers == "" && cfg.Ntpd.Prefer == "" {
+	if len(cfg.System.TimeServers) == 0 && cfg.NTP.PreferredServer == "" {
 		report.AddFinding(SeverityMedium, Finding{
 			Type:           "compliance",
 			Title:          "Time Synchronization Not Configured",
@@ -289,38 +289,32 @@ func (p *ExampleProcessor) performComplianceCheck(
 		})
 	}
 
-	// Check password policy enforcement
-	if len(cfg.System.User) > 0 {
-		var usersWithoutPasswords []string
+	// Check user account configuration
+	if len(cfg.Users) > 0 {
 		var disabledAdminUsers []string
 		enabledAdminFound := false
 
-		isAdminUser := func(user model.User) bool {
+		isAdminUser := func(user common.User) bool {
 			if strings.EqualFold(user.Name, "admin") {
 				return true
 			}
-			if strings.EqualFold(user.Groupname, "admins") || strings.EqualFold(user.Groupname, "admin") {
+			if strings.EqualFold(user.GroupName, "admins") || strings.EqualFold(user.GroupName, "admin") {
 				return true
 			}
 			return false
 		}
 
-		for _, user := range cfg.System.User {
+		for _, user := range cfg.Users {
 			name := user.Name
 			if name == "" {
 				name = user.UID
 			}
 
 			isAdmin := isAdminUser(user)
-			isEnabled := !bool(user.Disabled)
-			isLocal := strings.EqualFold(user.Scope, "local")
+			isEnabled := !user.Disabled
 
 			if isAdmin && isEnabled {
 				enabledAdminFound = true
-			}
-
-			if isLocal && isAdmin && isEnabled && strings.TrimSpace(user.Password) == "" {
-				usersWithoutPasswords = append(usersWithoutPasswords, name)
 			}
 
 			if !isEnabled && isAdmin {
@@ -334,20 +328,6 @@ func (p *ExampleProcessor) performComplianceCheck(
 				Title:          "No Administrative Users Configured",
 				Description:    "No enabled administrative users are configured in the system.",
 				Recommendation: "Ensure at least one enabled administrative user account is available for system management.",
-				Component:      "users",
-				Reference:      "https://docs.opnsense.org/manual/users.html",
-			})
-		}
-
-		if len(usersWithoutPasswords) > 0 {
-			report.AddFinding(SeverityHigh, Finding{
-				Type:  "compliance",
-				Title: "Password Policy Not Enforced",
-				Description: fmt.Sprintf(
-					"The following local administrative users are missing password configuration: %s.",
-					strings.Join(usersWithoutPasswords, ", "),
-				),
-				Recommendation: "Ensure all administrative users have strong passwords configured and enforce password complexity requirements.",
 				Component:      "users",
 				Reference:      "https://docs.opnsense.org/manual/users.html",
 			})
@@ -369,8 +349,7 @@ func (p *ExampleProcessor) performComplianceCheck(
 	}
 
 	// Check audit logging configuration
-	syslogEnabled := bool(cfg.Syslog.Enable)
-	if !syslogEnabled {
+	if !cfg.Syslog.Enabled {
 		report.AddFinding(SeverityHigh, Finding{
 			Type:           "compliance",
 			Title:          "Audit Logging Not Configured",
@@ -381,13 +360,13 @@ func (p *ExampleProcessor) performComplianceCheck(
 		})
 	} else {
 		missingCategories := []string{}
-		if !bool(cfg.Syslog.System) {
+		if !cfg.Syslog.SystemLogging {
 			missingCategories = append(missingCategories, "system")
 		}
-		if !bool(cfg.Syslog.Auth) {
+		if !cfg.Syslog.AuthLogging {
 			missingCategories = append(missingCategories, "auth")
 		}
-		if !bool(cfg.Syslog.Filter) {
+		if !cfg.Syslog.FilterLogging {
 			missingCategories = append(missingCategories, "filter")
 		}
 
@@ -408,8 +387,8 @@ func (p *ExampleProcessor) performComplianceCheck(
 			})
 		}
 
-		remoteConfigured := cfg.Syslog.Remoteserver != "" || cfg.Syslog.Remoteserver2 != "" ||
-			cfg.Syslog.Remoteserver3 != ""
+		remoteConfigured := cfg.Syslog.RemoteServer != "" || cfg.Syslog.RemoteServer2 != "" ||
+			cfg.Syslog.RemoteServer3 != ""
 		if !remoteConfigured {
 			report.AddFinding(SeverityLow, Finding{
 				Type:           "compliance",

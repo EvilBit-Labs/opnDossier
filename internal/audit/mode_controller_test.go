@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/firewall"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/sans"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/stig"
@@ -34,7 +34,7 @@ func (m *mockCompliancePlugin) Description() string {
 	return m.description
 }
 
-func (m *mockCompliancePlugin) RunChecks(_ *model.OpnSenseDocument) []compliance.Finding {
+func (m *mockCompliancePlugin) RunChecks(_ *common.CommonDevice) []compliance.Finding {
 	return []compliance.Finding{}
 }
 
@@ -323,8 +323,8 @@ func TestModeController_GenerateReport(t *testing.T) {
 	controller := NewModeController(registry, logger)
 
 	// Create a minimal test configuration
-	testConfig := &model.OpnSenseDocument{
-		System: model.System{
+	testConfig := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-host",
 			Domain:   "test.local",
 		},
@@ -387,7 +387,7 @@ func TestModeController_GenerateReport(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var cfg *model.OpnSenseDocument
+			var cfg *common.CommonDevice
 			if tt.name == "nil document" {
 				cfg = nil
 			} else {
@@ -444,7 +444,7 @@ func TestReport_Structure(t *testing.T) {
 		Mode:          ModeStandard,
 		BlackhatMode:  false,
 		Comprehensive: true,
-		Configuration: &model.OpnSenseDocument{},
+		Configuration: &common.CommonDevice{},
 		Findings:      make([]Finding, 0),
 		Compliance:    make(map[string]ComplianceResult),
 		Metadata:      make(map[string]any),
@@ -723,8 +723,8 @@ func TestModeController_GenerateReportWithInvalidMode(t *testing.T) {
 	logger := log.New(os.Stdout)
 	controller := NewModeController(registry, logger)
 
-	config := &model.OpnSenseDocument{
-		System: model.System{
+	config := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-firewall",
 			Domain:   "example.com",
 		},
@@ -978,8 +978,8 @@ func TestReport_AnalysisMethods(t *testing.T) {
 		Mode:          ModeStandard,
 		BlackhatMode:  false,
 		Comprehensive: true,
-		Configuration: &model.OpnSenseDocument{
-			System: model.System{
+		Configuration: &common.CommonDevice{
+			System: common.System{
 				Hostname: "test-host",
 				Domain:   "test.local",
 			},
@@ -1188,8 +1188,8 @@ func TestPluginRegistry_RunComplianceChecks(t *testing.T) {
 	}
 
 	// Create a test configuration
-	testConfig := &model.OpnSenseDocument{
-		System: model.System{
+	testConfig := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-host",
 			Domain:   "test.local",
 		},
@@ -1292,8 +1292,8 @@ func TestPluginManager_RunComplianceAudit(t *testing.T) {
 	manager := NewPluginManager()
 
 	// Create a test configuration
-	testConfig := &model.OpnSenseDocument{
-		System: model.System{
+	testConfig := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-host",
 			Domain:   "test.local",
 		},

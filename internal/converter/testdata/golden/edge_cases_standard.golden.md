@@ -3,7 +3,7 @@
 - **Hostname**: edge-case-test!@#$%^&*()
 - **Domain**: domain*with*asterisks
 - **Platform**: OPNsense 
-- **Generated On**: 2026-02-14T18:35:01-05:00
+- **Generated On**: 2026-02-20T10:37:09-05:00
 - **Parsed By**: opnDossier vdev
 ## Table of Contents
 - [System Configuration](#system-configuration)
@@ -59,14 +59,74 @@
   
 **LB Use Sticky**: ✗
   
-**RRD Backup**: unset
+**RRD Backup**: ✗
   
-**Netflow Backup**: unset
+**Netflow Backup**: ✗
+### System Users
+| Name | Description | Group | Scope |
+|---------|---------|---------|---------|
+|  | User with empty name |  |  |
+| user-with-special-chars!@# | User with newlines and	tabs | group\|with\|pipes | unknown |
+| user\_with\_underscores | User with \*bold\* and \_italic\_ text | group\[with\]brackets | scope\<with\>angles |
+| user\`with\`backticks | User with \`code\` and \\backslash\\ characters | group\\with\\backslashes | scope\|with\|pipes |
+
+### System Groups
+| Name | Description | Scope |
+|---------|---------|---------|
+|  |  |  |
+| group\*with\*asterisks | Group with \_underscores\_ and \`backticks\` | scope\[with\]brackets |
+
 ## Network Configuration
 ### Interfaces
 | Name | Description | IP Address | CIDR | Enabled |
 |---------|---------|---------|---------|---------|
+| `` | `` | `` |  | ✗ |
+| `invalid-interface` | `Interface with \| pipes \| and   newlines` | `999.999.999.999` | /999 | ✗ |
+| `interface*with*chars` | `Interface with \*asterisks\* and \_underscores\_` | `192.168.1.100` | /24 | ✓ |
+| `interface`with`backticks` | `Interface with \`code\` and \\backslashes\\` | `192.168.2.100` | /24 | ✓ |
 
+### Unnamed Interface
+**Enabled**: ✗
+  
+**Block Private Networks**: ✗
+  
+**Block Bogon Networks**: ✗
+### Invalid-interface Interface
+**Physical Interface**: nonexistent0
+  
+**Enabled**: ✗
+  
+**IPv4 Address**: 999.999.999.999
+  
+**IPv4 Subnet**: 999
+  
+**Block Private Networks**: ✗
+  
+**Block Bogon Networks**: ✗
+### Interface*with*chars Interface
+**Physical Interface**: eth0
+  
+**Enabled**: ✓
+  
+**IPv4 Address**: 192.168.1.100
+  
+**IPv4 Subnet**: 24
+  
+**Block Private Networks**: ✗
+  
+**Block Bogon Networks**: ✗
+### Interface`with`backticks Interface
+**Physical Interface**: eth1
+  
+**Enabled**: ✓
+  
+**IPv4 Address**: 192.168.2.100
+  
+**IPv4 Subnet**: 24
+  
+**Block Private Networks**: ✗
+  
+**Block Bogon Networks**: ✗
 ## Security Configuration
 ### NAT Configuration
 #### Outbound NAT (Source Translation)
@@ -89,9 +149,9 @@
 
 ## Service Configuration
 ### DHCP Server
-| Interface | Enabled | Gateway | Range Start | Range End | DNS | WINS | NTP | DDNS Algorithm |
-|---------|---------|---------|---------|---------|---------|---------|---------|---------|
-| - | - | - | - | - | - | - | - | No DHCP scopes configured |
+| Interface | Enabled | Gateway | Range Start | Range End | DNS | WINS | NTP |
+|---------|---------|---------|---------|---------|---------|---------|---------|
+| - | - | - | - | - | - | - | No DHCP scopes configured |
 
 ### DNS Resolver (Unbound)
 ### SNMP
@@ -100,7 +160,7 @@
 | Tunable | Value | Description |
 |---------|---------|---------|
 |  |  |  |
-| invalid.tunable.with.pipes\|and\|newlines | value with newlines |  |
-| tunable\*with\*asterisks | value\_with\_underscores |  |
-| tunable\[with\]brackets | value\<with\>angles |  |
-| tunable\`with\`backticks | value\\with\\backslashes |  |
+| invalid.tunable.with.pipes\|and\|newlines | value with newlines | Description with \| pipes \| and   newlines 	 tabs |
+| tunable\*with\*asterisks | value\_with\_underscores | Description with \*bold\* and \_italic\_ text |
+| tunable\[with\]brackets | value\<with\>angles | Description with \[brackets\] and \<angles\> |
+| tunable\`with\`backticks | value\\with\\backslashes | Description with \`code\` and \\backslash\\ characters |

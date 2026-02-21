@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/schema"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -14,15 +14,15 @@ import (
 func TestXMLParser_ValidateRequiredElements(t *testing.T) {
 	tests := []struct {
 		name           string
-		config         *model.OpnSenseDocument
+		config         *schema.OpnSenseDocument
 		expectedErrors int
 		expectedFields []string
 		description    string
 	}{
 		{
 			name: "missing hostname",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Domain: "example.com",
 				},
 			},
@@ -32,8 +32,8 @@ func TestXMLParser_ValidateRequiredElements(t *testing.T) {
 		},
 		{
 			name: "missing domain",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "testhost",
 				},
 			},
@@ -43,8 +43,8 @@ func TestXMLParser_ValidateRequiredElements(t *testing.T) {
 		},
 		{
 			name: "missing both hostname and domain",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Optimization: "normal",
 				},
 			},
@@ -54,11 +54,11 @@ func TestXMLParser_ValidateRequiredElements(t *testing.T) {
 		},
 		{
 			name: "missing group name",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
-					Group: []model.Group{
+					Group: []schema.Group{
 						{
 							Gid:   "1000",
 							Scope: "system",
@@ -72,11 +72,11 @@ func TestXMLParser_ValidateRequiredElements(t *testing.T) {
 		},
 		{
 			name: "missing group GID",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
-					Group: []model.Group{
+					Group: []schema.Group{
 						{
 							Name:  "testgroup",
 							Scope: "system",
@@ -90,17 +90,17 @@ func TestXMLParser_ValidateRequiredElements(t *testing.T) {
 		},
 		{
 			name: "missing user name",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
-					Group: []model.Group{
+					Group: []schema.Group{
 						{
 							Name: "admin",
 							Gid:  "1000",
 						},
 					},
-					User: []model.User{
+					User: []schema.User{
 						{
 							UID:       "1000",
 							Groupname: "admin",
@@ -114,17 +114,17 @@ func TestXMLParser_ValidateRequiredElements(t *testing.T) {
 		},
 		{
 			name: "missing user UID",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
-					Group: []model.Group{
+					Group: []schema.Group{
 						{
 							Name: "admin",
 							Gid:  "1000",
 						},
 					},
-					User: []model.User{
+					User: []schema.User{
 						{
 							Name:      "testuser",
 							Groupname: "admin",
@@ -138,12 +138,12 @@ func TestXMLParser_ValidateRequiredElements(t *testing.T) {
 		},
 		{
 			name: "missing sysctl tunable",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
 				},
-				Sysctl: []model.SysctlItem{
+				Sysctl: []schema.SysctlItem{
 					{
 						Value: "1",
 						Descr: "Test sysctl",
@@ -156,12 +156,12 @@ func TestXMLParser_ValidateRequiredElements(t *testing.T) {
 		},
 		{
 			name: "missing sysctl value",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
 				},
-				Sysctl: []model.SysctlItem{
+				Sysctl: []schema.SysctlItem{
 					{
 						Tunable: "net.inet.ip.random_id",
 						Descr:   "Test sysctl",
@@ -209,15 +209,15 @@ func TestXMLParser_ValidateRequiredElements(t *testing.T) {
 func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 	tests := []struct {
 		name           string
-		config         *model.OpnSenseDocument
+		config         *schema.OpnSenseDocument
 		expectedErrors int
 		expectedFields []string
 		description    string
 	}{
 		{
 			name: "invalid system optimization",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname:     "testhost",
 					Domain:       "example.com",
 					Optimization: "invalid-optimization",
@@ -229,11 +229,11 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 		},
 		{
 			name: "invalid webgui protocol",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
-					WebGUI:   model.WebGUIConfig{Protocol: "ftp"},
+					WebGUI:   schema.WebGUIConfig{Protocol: "ftp"},
 				},
 			},
 			expectedErrors: 1,
@@ -242,8 +242,8 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 		},
 		{
 			name: "invalid power management mode",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname:         "testhost",
 					Domain:           "example.com",
 					PowerdACMode:     "invalid-mode",
@@ -256,8 +256,8 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 		},
 		{
 			name: "invalid bogons interval",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
 					Bogons: struct {
@@ -271,17 +271,17 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 		},
 		{
 			name: "invalid firewall rule type",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
 				},
-				Filter: model.Filter{
-					Rule: []model.Rule{
+				Filter: schema.Filter{
+					Rule: []schema.Rule{
 						{
 							Type:       "invalid-type",
 							IPProtocol: "inet",
-							Interface:  model.InterfaceList{"lan"},
+							Interface:  schema.InterfaceList{"lan"},
 						},
 					},
 				},
@@ -292,17 +292,17 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 		},
 		{
 			name: "invalid IP protocol",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
 				},
-				Filter: model.Filter{
-					Rule: []model.Rule{
+				Filter: schema.Filter{
+					Rule: []schema.Rule{
 						{
 							Type:       "pass",
 							IPProtocol: "invalid-protocol",
-							Interface:  model.InterfaceList{"lan"},
+							Interface:  schema.InterfaceList{"lan"},
 						},
 					},
 				},
@@ -313,17 +313,17 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 		},
 		{
 			name: "invalid interface name",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
 				},
-				Filter: model.Filter{
-					Rule: []model.Rule{
+				Filter: schema.Filter{
+					Rule: []schema.Rule{
 						{
 							Type:       "pass",
 							IPProtocol: "inet",
-							Interface:  model.InterfaceList{"invalid-interface"},
+							Interface:  schema.InterfaceList{"invalid-interface"},
 						},
 					},
 				},
@@ -334,13 +334,13 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 		},
 		{
 			name: "invalid NAT outbound mode",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
 				},
-				Nat: model.Nat{
-					Outbound: model.Outbound{
+				Nat: schema.Nat{
+					Outbound: schema.Outbound{
 						Mode: "invalid-mode",
 					},
 				},
@@ -351,11 +351,11 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 		},
 		{
 			name: "invalid group scope",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
-					Group: []model.Group{
+					Group: []schema.Group{
 						{
 							Name:  "testgroup",
 							Gid:   "1000",
@@ -370,11 +370,11 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 		},
 		{
 			name: "invalid user scope",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
-					User: []model.User{
+					User: []schema.User{
 						{
 							Name:  "testuser",
 							UID:   "1000",
@@ -419,20 +419,20 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 	tests := []struct {
 		name           string
-		config         *model.OpnSenseDocument
+		config         *schema.OpnSenseDocument
 		expectedErrors int
 		expectedFields []string
 		description    string
 	}{
 		{
 			name: "track6 without required fields",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
 				},
-				Interfaces: model.Interfaces{
-					Items: map[string]model.Interface{
+				Interfaces: schema.Interfaces{
+					Items: map[string]schema.Interface{
 						"lan": {
 							IPAddrv6: "track6",
 							// Missing Track6Interface and Track6PrefixID
@@ -449,15 +449,15 @@ func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 		},
 		{
 			name: "DHCP range with invalid order",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
 				},
-				Dhcpd: model.Dhcpd{
-					Items: map[string]model.DhcpdInterface{
+				Dhcpd: schema.Dhcpd{
+					Items: map[string]schema.DhcpdInterface{
 						"lan": {
-							Range: model.Range{
+							Range: schema.Range{
 								From: "192.168.1.200",
 								To:   "192.168.1.100", // From > To
 							},
@@ -471,17 +471,17 @@ func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 		},
 		{
 			name: "user referencing non-existent group",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
-					Group: []model.Group{
+					Group: []schema.Group{
 						{
 							Name: "admin",
 							Gid:  "1000",
 						},
 					},
-					User: []model.User{
+					User: []schema.User{
 						{
 							Name:      "testuser",
 							UID:       "1001",
@@ -496,11 +496,11 @@ func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 		},
 		{
 			name: "duplicate group names",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
-					Group: []model.Group{
+					Group: []schema.Group{
 						{
 							Name: "admin",
 							Gid:  "1000",
@@ -518,11 +518,11 @@ func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 		},
 		{
 			name: "duplicate group GIDs",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
-					Group: []model.Group{
+					Group: []schema.Group{
 						{
 							Name: "admin",
 							Gid:  "1000",
@@ -540,17 +540,17 @@ func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 		},
 		{
 			name: "duplicate user names",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
-					Group: []model.Group{
+					Group: []schema.Group{
 						{
 							Name: "admin",
 							Gid:  "1000",
 						},
 					},
-					User: []model.User{
+					User: []schema.User{
 						{
 							Name:      "root",
 							UID:       "0",
@@ -570,17 +570,17 @@ func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 		},
 		{
 			name: "duplicate user UIDs",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
-					Group: []model.Group{
+					Group: []schema.Group{
 						{
 							Name: "admin",
 							Gid:  "1000",
 						},
 					},
-					User: []model.User{
+					User: []schema.User{
 						{
 							Name:      "root",
 							UID:       "0",
@@ -600,12 +600,12 @@ func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 		},
 		{
 			name: "duplicate sysctl tunables",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
 				},
-				Sysctl: []model.SysctlItem{
+				Sysctl: []schema.SysctlItem{
 					{
 						Tunable: "net.inet.ip.random_id",
 						Value:   "1",
@@ -622,17 +622,17 @@ func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 		},
 		{
 			name: "multiple cross-field validation errors",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					Hostname: "testhost",
 					Domain:   "example.com",
-					Group: []model.Group{
+					Group: []schema.Group{
 						{
 							Name: "admin",
 							Gid:  "1000",
 						},
 					},
-					User: []model.User{
+					User: []schema.User{
 						{
 							Name:      "testuser",
 							UID:       "1001",
@@ -640,18 +640,18 @@ func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 						},
 					},
 				},
-				Interfaces: model.Interfaces{
-					Items: map[string]model.Interface{
+				Interfaces: schema.Interfaces{
+					Items: map[string]schema.Interface{
 						"lan": {
 							IPAddrv6: "track6",
 							// Missing Track6Interface and Track6PrefixID
 						},
 					},
 				},
-				Dhcpd: model.Dhcpd{
-					Items: map[string]model.DhcpdInterface{
+				Dhcpd: schema.Dhcpd{
+					Items: map[string]schema.DhcpdInterface{
 						"lan": {
-							Range: model.Range{
+							Range: schema.Range{
 								From: "192.168.1.200",
 								To:   "192.168.1.100", // Invalid range order
 							},
@@ -700,19 +700,19 @@ func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 func TestXMLParser_ValidateComplexScenarios(t *testing.T) {
 	tests := []struct {
 		name           string
-		config         *model.OpnSenseDocument
+		config         *schema.OpnSenseDocument
 		expectedErrors int
 		description    string
 	}{
 		{
 			name: "configuration with all types of validation errors",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &schema.OpnSenseDocument{
+				System: schema.System{
 					// Missing hostname (required field error)
 					Domain:       "example.com",
-					Optimization: "invalid-opt",                       // Invalid enum value
-					WebGUI:       model.WebGUIConfig{Protocol: "ftp"}, // Invalid enum value
-					Group: []model.Group{
+					Optimization: "invalid-opt",                        // Invalid enum value
+					WebGUI:       schema.WebGUIConfig{Protocol: "ftp"}, // Invalid enum value
+					Group: []schema.Group{
 						{
 							Name: "admin",
 							Gid:  "1000",
@@ -722,7 +722,7 @@ func TestXMLParser_ValidateComplexScenarios(t *testing.T) {
 							Gid:  "1001",
 						},
 					},
-					User: []model.User{
+					User: []schema.User{
 						{
 							Name:      "testuser",
 							UID:       "1001",
@@ -730,12 +730,12 @@ func TestXMLParser_ValidateComplexScenarios(t *testing.T) {
 						},
 					},
 				},
-				Filter: model.Filter{
-					Rule: []model.Rule{
+				Filter: schema.Filter{
+					Rule: []schema.Rule{
 						{
 							Type:       "invalid-type", // Invalid enum value
 							IPProtocol: "inet",
-							Interface:  model.InterfaceList{"lan"},
+							Interface:  schema.InterfaceList{"lan"},
 						},
 					},
 				},
@@ -766,27 +766,27 @@ func TestXMLParser_ValidateComplexScenarios(t *testing.T) {
 
 // TestXMLParser_ValidateValidConfiguration tests that valid configurations pass validation.
 func TestXMLParser_ValidateValidConfiguration(t *testing.T) {
-	validConfig := &model.OpnSenseDocument{
-		System: model.System{
+	validConfig := &schema.OpnSenseDocument{
+		System: schema.System{
 			Hostname:          "OPNsense",
 			Domain:            "localdomain",
 			Timezone:          "Etc/UTC",
 			Optimization:      "normal",
-			WebGUI:            model.WebGUIConfig{Protocol: "https"},
+			WebGUI:            schema.WebGUIConfig{Protocol: "https"},
 			PowerdACMode:      "hadp",
 			PowerdBatteryMode: "hadp",
 			PowerdNormalMode:  "hadp",
 			Bogons: struct {
 				Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
 			}{Interval: "monthly"},
-			Group: []model.Group{
+			Group: []schema.Group{
 				{
 					Name:  "admins",
 					Gid:   "1999",
 					Scope: "system",
 				},
 			},
-			User: []model.User{
+			User: []schema.User{
 				{
 					Name:      "root",
 					UID:       "0",
@@ -795,8 +795,8 @@ func TestXMLParser_ValidateValidConfiguration(t *testing.T) {
 				},
 			},
 		},
-		Interfaces: model.Interfaces{
-			Items: map[string]model.Interface{
+		Interfaces: schema.Interfaces{
+			Items: map[string]schema.Interface{
 				"wan": {
 					IPAddr:   "dhcp",
 					IPAddrv6: "dhcp6",
@@ -811,34 +811,34 @@ func TestXMLParser_ValidateValidConfiguration(t *testing.T) {
 				},
 			},
 		},
-		Dhcpd: model.Dhcpd{
-			Items: map[string]model.DhcpdInterface{
+		Dhcpd: schema.Dhcpd{
+			Items: map[string]schema.DhcpdInterface{
 				"lan": {
-					Range: model.Range{
+					Range: schema.Range{
 						From: "192.168.1.100",
 						To:   "192.168.1.199",
 					},
 				},
 			},
 		},
-		Filter: model.Filter{
-			Rule: []model.Rule{
+		Filter: schema.Filter{
+			Rule: []schema.Rule{
 				{
 					Type:       "pass",
 					IPProtocol: "inet",
-					Interface:  model.InterfaceList{"lan"},
-					Source: model.Source{
+					Interface:  schema.InterfaceList{"lan"},
+					Source: schema.Source{
 						Network: "lan",
 					},
 				},
 			},
 		},
-		Nat: model.Nat{
-			Outbound: model.Outbound{
+		Nat: schema.Nat{
+			Outbound: schema.Outbound{
 				Mode: "automatic",
 			},
 		},
-		Sysctl: []model.SysctlItem{
+		Sysctl: []schema.SysctlItem{
 			{
 				Tunable: "net.inet.ip.random_id",
 				Value:   "default",

@@ -5,24 +5,24 @@ import (
 	"testing"
 )
 
-func TestErrNilOpnSenseDocument(t *testing.T) {
+func TestErrNilDevice(t *testing.T) {
 	t.Parallel()
 
 	// Test that the error has the expected message
-	expectedMsg := "input OpnSenseDocument struct is nil"
-	if ErrNilOpnSenseDocument.Error() != expectedMsg {
-		t.Errorf("ErrNilOpnSenseDocument.Error() = %q, want %q", ErrNilOpnSenseDocument.Error(), expectedMsg)
+	expectedMsg := "device configuration is nil"
+	if ErrNilDevice.Error() != expectedMsg {
+		t.Errorf("ErrNilDevice.Error() = %q, want %q", ErrNilDevice.Error(), expectedMsg)
 	}
 
 	// Test that errors.Is works correctly
-	testErr := ErrNilOpnSenseDocument
-	if !errors.Is(testErr, ErrNilOpnSenseDocument) {
-		t.Error("errors.Is should return true for ErrNilOpnSenseDocument")
+	testErr := ErrNilDevice
+	if !errors.Is(testErr, ErrNilDevice) {
+		t.Error("errors.Is should return true for ErrNilDevice")
 	}
 
 	// Test that it doesn't match other errors
 	otherErr := errors.New("different error")
-	if errors.Is(otherErr, ErrNilOpnSenseDocument) {
+	if errors.Is(otherErr, ErrNilDevice) {
 		t.Error("errors.Is should return false for different error")
 	}
 }
@@ -31,8 +31,8 @@ func TestErrorPropagation(t *testing.T) {
 	t.Parallel()
 
 	// Test that wrapped errors still match
-	wrappedErr := errors.Join(ErrNilOpnSenseDocument, errors.New("additional context"))
-	if !errors.Is(wrappedErr, ErrNilOpnSenseDocument) {
-		t.Error("errors.Is should return true for wrapped ErrNilOpnSenseDocument")
+	wrappedErr := errors.Join(ErrNilDevice, errors.New("additional context"))
+	if !errors.Is(wrappedErr, ErrNilDevice) {
+		t.Error("errors.Is should return true for wrapped ErrNilDevice")
 	}
 }

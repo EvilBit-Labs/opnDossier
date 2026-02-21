@@ -9,7 +9,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 func TestNewHybridGenerator(t *testing.T) {
@@ -52,8 +52,8 @@ func TestHybridGenerator_Generate_Programmatic(t *testing.T) {
 	}
 
 	// Create test data
-	data := &model.OpnSenseDocument{
-		System: model.System{
+	data := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-firewall",
 			Domain:   "example.com",
 		},
@@ -92,8 +92,8 @@ func TestHybridGenerator_Generate_Comprehensive(t *testing.T) {
 	}
 
 	// Create test data
-	data := &model.OpnSenseDocument{
-		System: model.System{
+	data := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-firewall",
 			Domain:   "example.com",
 		},
@@ -154,8 +154,8 @@ func TestHybridGenerator_Generate_NoBuilder(t *testing.T) {
 		t.Fatalf("Failed to create hybrid generator: %v", genErr)
 	}
 
-	data := &model.OpnSenseDocument{
-		System: model.System{
+	data := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-firewall",
 		},
 	}

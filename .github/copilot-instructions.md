@@ -40,7 +40,7 @@ opnDossier is a tool for auditing and reporting on OPNsense configurations, with
 - **Major Components**:
 
   - `cmd/`: CLI entrypoints (`convert`, `display`, `validate`). See `cmd/root.go` for command registration.
-  - `internal/cfgparser/`: XML parsing to Go structs (`OpnSenseDocument` in `internal/model/opnsense.go`).
+  - `internal/cfgparser/`: XML parsing to `schema.OpnSenseDocument` (XML DTO), converted to `common.CommonDevice` via `internal/model/opnsense/`.
   - `internal/model/`: Strict data models mirroring OPNsense config structure.
   - `internal/processor/`: Normalization, validation, analysis, and transformation pipeline.
   - `internal/converter/`, `internal/markdown/`: Multi-format export (Markdown, JSON, YAML) using templates and options.
@@ -152,7 +152,7 @@ logger.Error("parse failed", "error", err, "filename", filename)
 
 ### Core Data Models
 
-- **OpnSenseDocument**: Core model representing entire OPNsense configuration
+- **CommonDevice**: Platform-agnostic device model in `internal/model/common/` (the XML DTO `schema.OpnSenseDocument` remains for parsing)
 - **XML Tags**: Must strictly follow OPNsense configuration file structure
 - **JSON/YAML Tags**: Follow recommended best practices for each format
 - **Audit-Oriented Modeling**: Create internal structs (`Finding`, `Target`, `Exposure`) separately from config structs
@@ -265,7 +265,7 @@ var convertCmd = &cobra.Command{
 ```go
 type Plugin interface {
     Name() string
-    RunChecks(config *model.OpnSenseDocument) []Finding
+    RunChecks(device *common.CommonDevice) []Finding
     // ...
 }
 ```

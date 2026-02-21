@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 func TestFilterSystemTunables(t *testing.T) {
@@ -12,9 +12,9 @@ func TestFilterSystemTunables(t *testing.T) {
 
 	tests := []struct {
 		name            string
-		tunables        []model.SysctlItem
+		tunables        []common.SysctlItem
 		includeTunables bool
-		want            []model.SysctlItem
+		want            []common.SysctlItem
 	}{
 		{
 			name:            "nil tunables",
@@ -24,25 +24,25 @@ func TestFilterSystemTunables(t *testing.T) {
 		},
 		{
 			name:            "empty tunables",
-			tunables:        []model.SysctlItem{},
+			tunables:        []common.SysctlItem{},
 			includeTunables: false,
-			want:            []model.SysctlItem{},
+			want:            []common.SysctlItem{},
 		},
 		{
 			name: "include all tunables",
-			tunables: []model.SysctlItem{
+			tunables: []common.SysctlItem{
 				{Tunable: "net.inet.ip.forwarding", Value: "0"},
 				{Tunable: "vm.swapusage", Value: "1024"},
 			},
 			includeTunables: true,
-			want: []model.SysctlItem{
+			want: []common.SysctlItem{
 				{Tunable: "net.inet.ip.forwarding", Value: "0"},
 				{Tunable: "vm.swapusage", Value: "1024"},
 			},
 		},
 		{
 			name: "filter security tunables only",
-			tunables: []model.SysctlItem{
+			tunables: []common.SysctlItem{
 				{Tunable: "net.inet.ip.forwarding", Value: "0"},
 				{Tunable: "vm.swapusage", Value: "1024"},
 				{Tunable: "net.inet6.ip6.forwarding", Value: "0"},
@@ -52,7 +52,7 @@ func TestFilterSystemTunables(t *testing.T) {
 				{Tunable: "net.inet.udp.blackhole", Value: "1"},
 			},
 			includeTunables: false,
-			want: []model.SysctlItem{
+			want: []common.SysctlItem{
 				{Tunable: "net.inet.ip.forwarding", Value: "0"},
 				{Tunable: "net.inet6.ip6.forwarding", Value: "0"},
 				{Tunable: "kern.securelevel", Value: "1"},
@@ -63,23 +63,23 @@ func TestFilterSystemTunables(t *testing.T) {
 		},
 		{
 			name: "skip empty tunable names",
-			tunables: []model.SysctlItem{
+			tunables: []common.SysctlItem{
 				{Tunable: "", Value: "0"},
 				{Tunable: "net.inet.ip.forwarding", Value: "0"},
 			},
 			includeTunables: false,
-			want: []model.SysctlItem{
+			want: []common.SysctlItem{
 				{Tunable: "net.inet.ip.forwarding", Value: "0"},
 			},
 		},
 		{
 			name: "no security tunables found",
-			tunables: []model.SysctlItem{
+			tunables: []common.SysctlItem{
 				{Tunable: "vm.swapusage", Value: "1024"},
 				{Tunable: "hw.memsize", Value: "8589934592"},
 			},
 			includeTunables: false,
-			want:            []model.SysctlItem{},
+			want:            []common.SysctlItem{},
 		},
 	}
 
@@ -94,121 +94,12 @@ func TestFilterSystemTunables(t *testing.T) {
 	}
 }
 
-func TestGroupServicesByStatus(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		services []model.Service
-		want     map[string][]model.Service
-	}{
-		{
-			name:     "nil services",
-			services: nil,
-			want:     nil,
-		},
-		{
-			name:     "empty services",
-			services: []model.Service{},
-			want: map[string][]model.Service{
-				"running": {},
-				"stopped": {},
-			},
-		},
-		{
-			name: "mixed services",
-			services: []model.Service{
-				{Name: "ssh", Status: "running"},
-				{Name: "apache", Status: "stopped"},
-				{Name: "nginx", Status: "running"},
-				{Name: "mysql", Status: "stopped"},
-			},
-			want: map[string][]model.Service{
-				"running": {
-					{Name: "nginx", Status: "running"},
-					{Name: "ssh", Status: "running"},
-				},
-				"stopped": {
-					{Name: "apache", Status: "stopped"},
-					{Name: "mysql", Status: "stopped"},
-				},
-			},
-		},
-		{
-			name: "all running services",
-			services: []model.Service{
-				{Name: "ssh", Status: "running"},
-				{Name: "nginx", Status: "running"},
-			},
-			want: map[string][]model.Service{
-				"running": {
-					{Name: "nginx", Status: "running"},
-					{Name: "ssh", Status: "running"},
-				},
-				"stopped": {},
-			},
-		},
-		{
-			name: "all stopped services",
-			services: []model.Service{
-				{Name: "apache", Status: "stopped"},
-				{Name: "mysql", Status: "stopped"},
-			},
-			want: map[string][]model.Service{
-				"running": {},
-				"stopped": {
-					{Name: "apache", Status: "stopped"},
-					{Name: "mysql", Status: "stopped"},
-				},
-			},
-		},
-		{
-			name: "services with empty names are skipped",
-			services: []model.Service{
-				{Name: "", Status: "running"},
-				{Name: "ssh", Status: "running"},
-			},
-			want: map[string][]model.Service{
-				"running": {
-					{Name: "ssh", Status: "running"},
-				},
-				"stopped": {},
-			},
-		},
-		{
-			name: "services with unknown status default to stopped",
-			services: []model.Service{
-				{Name: "unknown", Status: "unknown"},
-				{Name: "ssh", Status: "running"},
-			},
-			want: map[string][]model.Service{
-				"running": {
-					{Name: "ssh", Status: "running"},
-				},
-				"stopped": {
-					{Name: "unknown", Status: "unknown"},
-				},
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			got := GroupServicesByStatus(tt.services)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GroupServicesByStatus() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestAggregatePackageStats(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name     string
-		packages []model.Package
+		packages []common.Package
 		want     map[string]int
 	}{
 		{
@@ -218,7 +109,7 @@ func TestAggregatePackageStats(t *testing.T) {
 		},
 		{
 			name:     "empty packages",
-			packages: []model.Package{},
+			packages: []common.Package{},
 			want: map[string]int{
 				"total":     0,
 				"installed": 0,
@@ -228,7 +119,7 @@ func TestAggregatePackageStats(t *testing.T) {
 		},
 		{
 			name: "mixed packages",
-			packages: []model.Package{
+			packages: []common.Package{
 				{Name: "pkg1", Installed: true, Locked: false, Automatic: false},
 				{Name: "pkg2", Installed: false, Locked: true, Automatic: false},
 				{Name: "pkg3", Installed: true, Locked: true, Automatic: true},
@@ -243,7 +134,7 @@ func TestAggregatePackageStats(t *testing.T) {
 		},
 		{
 			name: "all features enabled",
-			packages: []model.Package{
+			packages: []common.Package{
 				{Name: "pkg1", Installed: true, Locked: true, Automatic: true},
 				{Name: "pkg2", Installed: true, Locked: true, Automatic: true},
 			},
@@ -256,7 +147,7 @@ func TestAggregatePackageStats(t *testing.T) {
 		},
 		{
 			name: "no features enabled",
-			packages: []model.Package{
+			packages: []common.Package{
 				{Name: "pkg1", Installed: false, Locked: false, Automatic: false},
 				{Name: "pkg2", Installed: false, Locked: false, Automatic: false},
 			},
@@ -269,7 +160,7 @@ func TestAggregatePackageStats(t *testing.T) {
 		},
 		{
 			name: "packages with empty names are skipped for flags but counted in total",
-			packages: []model.Package{
+			packages: []common.Package{
 				{Name: "", Installed: true, Locked: true, Automatic: true},
 				{Name: "pkg1", Installed: true, Locked: false, Automatic: false},
 			},
@@ -298,9 +189,9 @@ func TestFilterRulesByType(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		rules    []model.Rule
+		rules    []common.FirewallRule
 		ruleType string
-		want     []model.Rule
+		want     []common.FirewallRule
 	}{
 		{
 			name:     "nil rules",
@@ -310,79 +201,79 @@ func TestFilterRulesByType(t *testing.T) {
 		},
 		{
 			name:     "empty rules",
-			rules:    []model.Rule{},
+			rules:    []common.FirewallRule{},
 			ruleType: "pass",
-			want:     []model.Rule{},
+			want:     []common.FirewallRule{},
 		},
 		{
 			name: "empty rule type returns all rules",
-			rules: []model.Rule{
+			rules: []common.FirewallRule{
 				{Type: "pass"},
 				{Type: "block"},
 			},
 			ruleType: "",
-			want: []model.Rule{
+			want: []common.FirewallRule{
 				{Type: "pass"},
 				{Type: "block"},
 			},
 		},
 		{
 			name: "filter by pass rules",
-			rules: []model.Rule{
+			rules: []common.FirewallRule{
 				{Type: "pass"},
 				{Type: "block"},
 				{Type: "pass"},
 				{Type: "reject"},
 			},
 			ruleType: "pass",
-			want: []model.Rule{
+			want: []common.FirewallRule{
 				{Type: "pass"},
 				{Type: "pass"},
 			},
 		},
 		{
 			name: "filter by block rules",
-			rules: []model.Rule{
+			rules: []common.FirewallRule{
 				{Type: "pass"},
 				{Type: "block"},
 				{Type: "pass"},
 				{Type: "block"},
 			},
 			ruleType: "block",
-			want: []model.Rule{
+			want: []common.FirewallRule{
 				{Type: "block"},
 				{Type: "block"},
 			},
 		},
 		{
 			name: "no matching rules",
-			rules: []model.Rule{
+			rules: []common.FirewallRule{
 				{Type: "pass"},
 				{Type: "block"},
 			},
 			ruleType: "reject",
-			want:     []model.Rule{},
+			want:     []common.FirewallRule{},
 		},
 		{
 			name: "rules with empty type are skipped",
-			rules: []model.Rule{
+			rules: []common.FirewallRule{
 				{Type: ""},
 				{Type: "pass"},
 				{Type: ""},
 			},
 			ruleType: "pass",
-			want: []model.Rule{
+			want: []common.FirewallRule{
 				{Type: "pass"},
 			},
 		},
 		{
 			name: "case sensitive matching",
-			rules: []model.Rule{
+			rules: []common.FirewallRule{
 				{Type: "pass"},
 				{Type: "PASS"},
 			},
 			ruleType: "pass",
-			want: []model.Rule{
+			want: []common.FirewallRule{
 				{Type: "pass"},
 			},
 		},

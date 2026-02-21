@@ -9,7 +9,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/schema"
 	"github.com/EvilBit-Labs/opnDossier/internal/validator"
 	"golang.org/x/text/encoding/charmap"
 	"golang.org/x/text/transform"
@@ -25,9 +25,9 @@ var ErrMissingOpnSenseDocumentRoot = errors.New("invalid XML: missing opnsense r
 
 // Parser is the interface for parsing OPNsense configuration files.
 type Parser interface {
-	Parse(ctx context.Context, r io.Reader) (*model.OpnSenseDocument, error)
+	Parse(ctx context.Context, r io.Reader) (*schema.OpnSenseDocument, error)
 
-	Validate(cfg *model.OpnSenseDocument) error
+	Validate(cfg *schema.OpnSenseDocument) error
 }
 
 // XMLParser is an XML parser for OPNsense configuration files.
@@ -75,7 +75,7 @@ func charsetReader(charset string, input io.Reader) (io.Reader, error) {
 // providing better memory efficiency for large configuration files while maintaining security protections
 // against XML bombs, XXE attacks, and excessive entity expansion.
 // The context is checked periodically to support cancellation of long-running parse operations.
-func (p *XMLParser) Parse(ctx context.Context, r io.Reader) (*model.OpnSenseDocument, error) {
+func (p *XMLParser) Parse(ctx context.Context, r io.Reader) (*schema.OpnSenseDocument, error) {
 	limitedReader := io.LimitReader(r, p.MaxInputSize)
 	dec := xml.NewDecoder(limitedReader)
 	dec.CharsetReader = charsetReader
@@ -83,7 +83,7 @@ func (p *XMLParser) Parse(ctx context.Context, r io.Reader) (*model.OpnSenseDocu
 	dec.DefaultSpace = ""
 	dec.AutoClose = xml.HTMLAutoClose
 
-	var doc model.OpnSenseDocument
+	var doc schema.OpnSenseDocument
 	for {
 		// Check for context cancellation to support timeouts and cancellation
 		select {
@@ -129,7 +129,7 @@ func handleXMLError(err error, dec *xml.Decoder) error {
 }
 
 // handleStartElement processes XML StartElement tokens.
-func handleStartElement(dec *xml.Decoder, doc *model.OpnSenseDocument, se xml.StartElement) error {
+func handleStartElement(dec *xml.Decoder, doc *schema.OpnSenseDocument, se xml.StartElement) error {
 	if se.Name.Local == "opnsense" {
 		doc.XMLName = se.Name
 		return nil
@@ -226,9 +226,9 @@ func decodeSection(dec *xml.Decoder, target any, se xml.StartElement) error {
 }
 
 // decodeSysctl handles the special sysctl section format.
-func decodeSysctl(dec *xml.Decoder, doc *model.OpnSenseDocument, se xml.StartElement) error {
+func decodeSysctl(dec *xml.Decoder, doc *schema.OpnSenseDocument, se xml.StartElement) error {
 	var container struct {
-		Items []model.SysctlItem `xml:"item"`
+		Items []schema.SysctlItem `xml:"item"`
 	}
 	if err := dec.DecodeElement(&container, &se); err == nil {
 		doc.Sysctl = append(doc.Sysctl, container.Items...)
@@ -243,7 +243,7 @@ func decodeSysctl(dec *xml.Decoder, doc *model.OpnSenseDocument, se xml.StartEle
 
 // Validate validates the given OPNsense configuration and returns an error if validation fails.
 // Returns an AggregatedValidationError containing all validation failures with element paths.
-func (p *XMLParser) Validate(cfg *model.OpnSenseDocument) error {
+func (p *XMLParser) Validate(cfg *schema.OpnSenseDocument) error {
 	validationErrors := validator.ValidateOpnSenseDocument(cfg)
 	if len(validationErrors) > 0 {
 		return NewAggregatedValidationError(convertValidatorToParserValidationErrors(validationErrors))
@@ -254,7 +254,7 @@ func (p *XMLParser) Validate(cfg *model.OpnSenseDocument) error {
 
 // ParseAndValidate parses and validates the given OPNsense configuration from an io.Reader.
 // Returns an error if parsing or validation fails.
-func (p *XMLParser) ParseAndValidate(ctx context.Context, r io.Reader) (*model.OpnSenseDocument, error) {
+func (p *XMLParser) ParseAndValidate(ctx context.Context, r io.Reader) (*schema.OpnSenseDocument, error) {
 	cfg, err := p.Parse(ctx, r)
 	if err != nil {
 		return nil, err

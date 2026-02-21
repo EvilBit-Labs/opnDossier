@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"gopkg.in/yaml.v3"
 )
 
@@ -18,23 +17,11 @@ func (p *CoreProcessor) toYAML(report *Report) (string, error) {
 	return string(data), nil
 }
 
-// toMarkdown converts a report to markdown using the configured converter.
-func (p *CoreProcessor) toMarkdown(ctx context.Context, report *Report) (string, error) {
+// toMarkdown converts a report to markdown format.
+func (p *CoreProcessor) toMarkdown(_ context.Context, report *Report) (string, error) {
 	if report.NormalizedConfig == nil {
 		return "", ErrNormalizedConfigUnavailable
 	}
 
-	// Use the existing markdown generator to convert the configuration
-	configMarkdown, err := p.generator.Generate(ctx, report.NormalizedConfig, converter.DefaultOptions())
-	if err != nil {
-		return "", fmt.Errorf("failed to convert configuration to markdown: %w", err)
-	}
-
-	// Also include the report's markdown representation
-	reportMarkdown := report.ToMarkdown()
-
-	// Combine both markdown outputs
-	combined := fmt.Sprintf("%s\n\n%s", configMarkdown, reportMarkdown)
-
-	return combined, nil
+	return report.ToMarkdown(), nil
 }

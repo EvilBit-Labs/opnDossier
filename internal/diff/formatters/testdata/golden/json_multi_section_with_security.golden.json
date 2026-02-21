@@ -12,6 +12,10 @@
     "compared_at": "2026-01-15T10:30:00Z",
     "tool_version": "1.0.0"
   },
+  "device_type": {
+    "old": "opnsense",
+    "new": "opnsense"
+  },
   "changes": [
     {
       "type": "added",

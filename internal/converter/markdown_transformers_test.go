@@ -4,23 +4,22 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestMarkdownBuilder_FilterSystemTunables(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
-	tunables := []model.SysctlItem{
-		{Tunable: "net.inet.ip.forwarding", Value: "0", Descr: "IP forwarding"},
-		{Tunable: "kern.hostname", Value: "firewall", Descr: "System hostname"},
-		{Tunable: "security.bsd.see_other_uids", Value: "0", Descr: "See other UIDs"},
-		{Tunable: "net.inet.tcp.blackhole", Value: "2", Descr: "TCP blackhole"},
-		{Tunable: "user.custom_setting", Value: "1", Descr: "Custom setting"},
-		{Tunable: "net.inet6.ip6.forwarding", Value: "0", Descr: "IPv6 forwarding"},
-		{Tunable: "kern.securelevel", Value: "1", Descr: "Security level"},
-		{Tunable: "net.inet.udp.blackhole", Value: "1", Descr: "UDP blackhole"},
+	tunables := []common.SysctlItem{
+		{Tunable: "net.inet.ip.forwarding", Value: "0", Description: "IP forwarding"},
+		{Tunable: "kern.hostname", Value: "firewall", Description: "System hostname"},
+		{Tunable: "security.bsd.see_other_uids", Value: "0", Description: "See other UIDs"},
+		{Tunable: "net.inet.tcp.blackhole", Value: "2", Description: "TCP blackhole"},
+		{Tunable: "user.custom_setting", Value: "1", Description: "Custom setting"},
+		{Tunable: "net.inet6.ip6.forwarding", Value: "0", Description: "IPv6 forwarding"},
+		{Tunable: "kern.securelevel", Value: "1", Description: "Security level"},
+		{Tunable: "net.inet.udp.blackhole", Value: "1", Description: "UDP blackhole"},
 	}
 
 	tests := []struct {
@@ -81,10 +80,10 @@ func TestMarkdownBuilder_FilterSystemTunables(t *testing.T) {
 func TestMarkdownBuilder_FilterSystemTunables_EmptyInput(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
-	result := builder.FilterSystemTunables([]model.SysctlItem{}, false)
+	result := builder.FilterSystemTunables([]common.SysctlItem{}, false)
 	assert.Empty(t, result)
 
-	result = builder.FilterSystemTunables([]model.SysctlItem{}, true)
+	result = builder.FilterSystemTunables([]common.SysctlItem{}, true)
 	assert.Empty(t, result)
 }
 
@@ -93,9 +92,9 @@ func TestMarkdownBuilder_FilterSystemTunables_EdgeCases(t *testing.T) {
 
 	tests := []struct {
 		name            string
-		input           []model.SysctlItem
+		input           []common.SysctlItem
 		includeTunables bool
-		expected        []model.SysctlItem
+		expected        []common.SysctlItem
 	}{
 		{
 			name:            "Nil input",
@@ -111,23 +110,23 @@ func TestMarkdownBuilder_FilterSystemTunables_EdgeCases(t *testing.T) {
 		},
 		{
 			name: "Empty tunable names",
-			input: []model.SysctlItem{
-				{Tunable: "", Value: "0", Descr: "Empty tunable"},
-				{Tunable: "net.inet.ip.forwarding", Value: "1", Descr: "Valid tunable"},
+			input: []common.SysctlItem{
+				{Tunable: "", Value: "0", Description: "Empty tunable"},
+				{Tunable: "net.inet.ip.forwarding", Value: "1", Description: "Valid tunable"},
 			},
 			includeTunables: false,
-			expected: []model.SysctlItem{
-				{Tunable: "net.inet.ip.forwarding", Value: "1", Descr: "Valid tunable"},
+			expected: []common.SysctlItem{
+				{Tunable: "net.inet.ip.forwarding", Value: "1", Description: "Valid tunable"},
 			},
 		},
 		{
 			name: "Include all returns copy",
-			input: []model.SysctlItem{
-				{Tunable: "test", Value: "1", Descr: "Test"},
+			input: []common.SysctlItem{
+				{Tunable: "test", Value: "1", Description: "Test"},
 			},
 			includeTunables: true,
-			expected: []model.SysctlItem{
-				{Tunable: "test", Value: "1", Descr: "Test"},
+			expected: []common.SysctlItem{
+				{Tunable: "test", Value: "1", Description: "Test"},
 			},
 		},
 	}
@@ -149,140 +148,10 @@ func TestMarkdownBuilder_FilterSystemTunables_EdgeCases(t *testing.T) {
 	}
 }
 
-func TestMarkdownBuilder_GroupServicesByStatus(t *testing.T) {
-	builder := NewMarkdownBuilder()
-
-	services := []model.Service{
-		{Name: "apache", Status: "running", Description: "Web server"},
-		{Name: "nginx", Status: "stopped", Description: "Another web server"},
-		{Name: "mysql", Status: "running", Description: "Database server"},
-		{Name: "redis", Status: "stopped", Description: "Cache server"},
-		{Name: "sshd", Status: "running", Description: "SSH daemon"},
-		{Name: "ftp", Status: "disabled", Description: "FTP server"},
-	}
-
-	result := builder.GroupServicesByStatus(services)
-
-	require.Contains(t, result, "running")
-	require.Contains(t, result, "stopped")
-
-	// Check running services
-	runningServices := result["running"]
-	assert.Len(t, runningServices, 3)
-
-	// Verify services are sorted by name
-	runningNames := make([]string, len(runningServices))
-	for i, svc := range runningServices {
-		runningNames[i] = svc.Name
-	}
-	assert.Equal(t, []string{"apache", "mysql", "sshd"}, runningNames)
-
-	// Check stopped services (includes disabled services)
-	stoppedServices := result["stopped"]
-	assert.Len(t, stoppedServices, 3)
-
-	// Verify services are sorted by name
-	stoppedNames := make([]string, len(stoppedServices))
-	for i, svc := range stoppedServices {
-		stoppedNames[i] = svc.Name
-	}
-	assert.Equal(t, []string{"ftp", "nginx", "redis"}, stoppedNames)
-}
-
-func TestMarkdownBuilder_GroupServicesByStatus_EmptyInput(t *testing.T) {
-	builder := NewMarkdownBuilder()
-
-	result := builder.GroupServicesByStatus([]model.Service{})
-	require.NotNil(t, result)
-	assert.Contains(t, result, "running")
-	assert.Contains(t, result, "stopped")
-	assert.Empty(t, result["running"])
-	assert.Empty(t, result["stopped"])
-}
-
-func TestMarkdownBuilder_GroupServicesByStatus_EdgeCases(t *testing.T) {
-	builder := NewMarkdownBuilder()
-
-	tests := []struct {
-		name            string
-		input           []model.Service
-		expectedRunning int
-		expectedStopped int
-		shouldBeNil     bool
-	}{
-		{
-			name:        "Nil input",
-			input:       nil,
-			shouldBeNil: true,
-		},
-		{
-			name: "Services with empty names",
-			input: []model.Service{
-				{Name: "", Status: "running", Description: "Empty name"},
-				{Name: "valid", Status: "running", Description: "Valid service"},
-			},
-			expectedRunning: 1,
-			expectedStopped: 0,
-		},
-		{
-			name: "Services with invalid status",
-			input: []model.Service{
-				{Name: "service1", Status: "unknown", Description: "Unknown status"},
-				{Name: "service2", Status: "disabled", Description: "Disabled status"},
-				{Name: "service3", Status: "running", Description: "Running status"},
-			},
-			expectedRunning: 1,
-			expectedStopped: 2,
-		},
-		{
-			name: "All running services",
-			input: []model.Service{
-				{Name: "service1", Status: "running"},
-				{Name: "service2", Status: "running"},
-			},
-			expectedRunning: 2,
-			expectedStopped: 0,
-		},
-		{
-			name: "All stopped services",
-			input: []model.Service{
-				{Name: "service1", Status: "stopped"},
-				{Name: "service2", Status: "disabled"},
-			},
-			expectedRunning: 0,
-			expectedStopped: 2,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := builder.GroupServicesByStatus(tt.input)
-
-			if tt.shouldBeNil {
-				assert.Nil(t, result)
-				return
-			}
-
-			require.NotNil(t, result)
-			assert.Contains(t, result, "running")
-			assert.Contains(t, result, "stopped")
-			assert.Len(t, result["running"], tt.expectedRunning)
-			assert.Len(t, result["stopped"], tt.expectedStopped)
-
-			// Verify sorting
-			for _, services := range result {
-				for i := 1; i < len(services); i++ {
-					assert.LessOrEqual(t, services[i-1].Name, services[i].Name, "Services should be sorted by name")
-				}
-			}
-		})
-	}
-}
-
 func TestMarkdownBuilder_AggregatePackageStats(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
-	packages := []model.Package{
+	packages := []common.Package{
 		{Name: "vim", Installed: true, Locked: false, Automatic: false},
 		{Name: "git", Installed: true, Locked: true, Automatic: false},
 		{Name: "curl", Installed: true, Locked: false, Automatic: true},
@@ -301,7 +170,7 @@ func TestMarkdownBuilder_AggregatePackageStats(t *testing.T) {
 func TestMarkdownBuilder_AggregatePackageStats_EmptyInput(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
-	result := builder.AggregatePackageStats([]model.Package{})
+	result := builder.AggregatePackageStats([]common.Package{})
 	expected := map[string]int{
 		"total":     0,
 		"installed": 0,
@@ -314,7 +183,7 @@ func TestMarkdownBuilder_AggregatePackageStats_EmptyInput(t *testing.T) {
 func TestMarkdownBuilder_AggregatePackageStats_AllFalse(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
-	packages := []model.Package{
+	packages := []common.Package{
 		{Name: "pkg1", Installed: false, Locked: false, Automatic: false},
 		{Name: "pkg2", Installed: false, Locked: false, Automatic: false},
 	}
@@ -331,7 +200,7 @@ func TestMarkdownBuilder_AggregatePackageStats_EdgeCases(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		input    []model.Package
+		input    []common.Package
 		expected map[string]int
 		isNil    bool
 	}{
@@ -342,7 +211,7 @@ func TestMarkdownBuilder_AggregatePackageStats_EdgeCases(t *testing.T) {
 		},
 		{
 			name:  "Empty input",
-			input: []model.Package{},
+			input: []common.Package{},
 			expected: map[string]int{
 				"total":     0,
 				"installed": 0,
@@ -352,7 +221,7 @@ func TestMarkdownBuilder_AggregatePackageStats_EdgeCases(t *testing.T) {
 		},
 		{
 			name: "Packages with empty names",
-			input: []model.Package{
+			input: []common.Package{
 				{Name: "", Installed: true, Locked: true, Automatic: true},
 				{Name: "valid", Installed: true, Locked: false, Automatic: false},
 			},
@@ -365,7 +234,7 @@ func TestMarkdownBuilder_AggregatePackageStats_EdgeCases(t *testing.T) {
 		},
 		{
 			name: "All flags true",
-			input: []model.Package{
+			input: []common.Package{
 				{Name: "pkg1", Installed: true, Locked: true, Automatic: true},
 				{Name: "pkg2", Installed: true, Locked: true, Automatic: true},
 			},
@@ -395,12 +264,12 @@ func TestMarkdownBuilder_AggregatePackageStats_EdgeCases(t *testing.T) {
 func TestMarkdownBuilder_FilterRulesByType(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
-	rules := []model.Rule{
-		{Type: "pass", Descr: "Allow HTTP"},
-		{Type: "block", Descr: "Block malicious IPs"},
-		{Type: "pass", Descr: "Allow HTTPS"},
-		{Type: "reject", Descr: "Reject with notice"},
-		{Type: "pass", Descr: "Allow SSH"},
+	rules := []common.FirewallRule{
+		{Type: "pass", Description: "Allow HTTP"},
+		{Type: "block", Description: "Block malicious IPs"},
+		{Type: "pass", Description: "Allow HTTPS"},
+		{Type: "reject", Description: "Reject with notice"},
+		{Type: "pass", Description: "Allow SSH"},
 	}
 
 	tests := []struct {
@@ -456,7 +325,7 @@ func TestMarkdownBuilder_FilterRulesByType(t *testing.T) {
 			if tt.expectedCount > 0 {
 				resultDescs := make([]string, len(result))
 				for i, rule := range result {
-					resultDescs[i] = rule.Descr
+					resultDescs[i] = rule.Description
 				}
 
 				for _, expectedDesc := range tt.expectedDescs {
@@ -470,10 +339,10 @@ func TestMarkdownBuilder_FilterRulesByType(t *testing.T) {
 func TestMarkdownBuilder_FilterRulesByType_EmptyInput(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
-	result := builder.FilterRulesByType([]model.Rule{}, "pass")
+	result := builder.FilterRulesByType([]common.FirewallRule{}, "pass")
 	assert.Empty(t, result)
 
-	result = builder.FilterRulesByType([]model.Rule{}, "")
+	result = builder.FilterRulesByType([]common.FirewallRule{}, "")
 	assert.Empty(t, result)
 }
 
@@ -482,9 +351,9 @@ func TestMarkdownBuilder_FilterRulesByType_EdgeCases(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		input        []model.Rule
+		input        []common.FirewallRule
 		ruleType     string
-		expected     []model.Rule
+		expected     []common.FirewallRule
 		shouldBeNil  bool
 		shouldBeCopy bool
 	}{
@@ -496,40 +365,40 @@ func TestMarkdownBuilder_FilterRulesByType_EdgeCases(t *testing.T) {
 		},
 		{
 			name:     "Empty input",
-			input:    []model.Rule{},
+			input:    []common.FirewallRule{},
 			ruleType: "pass",
-			expected: []model.Rule{},
+			expected: []common.FirewallRule{},
 		},
 		{
 			name: "Rules with empty types",
-			input: []model.Rule{
-				{Type: "", Descr: "Rule with empty type"},
-				{Type: "pass", Descr: "Valid rule"},
+			input: []common.FirewallRule{
+				{Type: "", Description: "Rule with empty type"},
+				{Type: "pass", Description: "Valid rule"},
 			},
 			ruleType: "pass",
-			expected: []model.Rule{
-				{Type: "pass", Descr: "Valid rule"},
+			expected: []common.FirewallRule{
+				{Type: "pass", Description: "Valid rule"},
 			},
 		},
 		{
 			name: "Empty rule type returns copy",
-			input: []model.Rule{
-				{Type: "pass", Descr: "Test rule"},
+			input: []common.FirewallRule{
+				{Type: "pass", Description: "Test rule"},
 			},
 			ruleType:     "",
 			shouldBeCopy: true,
-			expected: []model.Rule{
-				{Type: "pass", Descr: "Test rule"},
+			expected: []common.FirewallRule{
+				{Type: "pass", Description: "Test rule"},
 			},
 		},
 		{
 			name: "No matching rules",
-			input: []model.Rule{
-				{Type: "block", Descr: "Block rule"},
-				{Type: "reject", Descr: "Reject rule"},
+			input: []common.FirewallRule{
+				{Type: "block", Description: "Block rule"},
+				{Type: "reject", Description: "Reject rule"},
 			},
 			ruleType: "allow",
-			expected: []model.Rule{},
+			expected: []common.FirewallRule{},
 		},
 	}
 
@@ -547,10 +416,10 @@ func TestMarkdownBuilder_FilterRulesByType_EdgeCases(t *testing.T) {
 			// Verify it's a copy when returning all rules
 			if tt.shouldBeCopy && tt.input != nil && len(tt.input) > 0 {
 				// Modify original to ensure it's a copy
-				originalDescr := tt.input[0].Descr
-				tt.input[0].Descr = "modified"
-				assert.NotEqual(t, "modified", result[0].Descr, "Should be a copy, not reference")
-				tt.input[0].Descr = originalDescr // restore
+				originalDescr := tt.input[0].Description
+				tt.input[0].Description = "modified"
+				assert.NotEqual(t, "modified", result[0].Description, "Should be a copy, not reference")
+				tt.input[0].Description = originalDescr // restore
 			}
 		})
 	}
@@ -695,12 +564,12 @@ func BenchmarkFilterSystemTunables(b *testing.B) {
 	builder := NewMarkdownBuilder()
 
 	// Generate large dataset
-	tunables := make([]model.SysctlItem, 10000)
+	tunables := make([]common.SysctlItem, 10000)
 	for i := range 10000 {
 		if i%3 == 0 {
-			tunables[i] = model.SysctlItem{Tunable: fmt.Sprintf("security.test.%d", i), Value: "1"}
+			tunables[i] = common.SysctlItem{Tunable: fmt.Sprintf("security.test.%d", i), Value: "1"}
 		} else {
-			tunables[i] = model.SysctlItem{Tunable: fmt.Sprintf("other.test.%d", i), Value: "1"}
+			tunables[i] = common.SysctlItem{Tunable: fmt.Sprintf("other.test.%d", i), Value: "1"}
 		}
 	}
 
@@ -710,35 +579,13 @@ func BenchmarkFilterSystemTunables(b *testing.B) {
 	}
 }
 
-func BenchmarkGroupServicesByStatus(b *testing.B) {
-	builder := NewMarkdownBuilder()
-
-	// Generate large dataset
-	services := make([]model.Service, 5000)
-	for i := range 5000 {
-		status := "running"
-		if i%2 == 0 {
-			status = "stopped"
-		}
-		services[i] = model.Service{
-			Name:   fmt.Sprintf("service-%d", i),
-			Status: status,
-		}
-	}
-
-	b.ResetTimer()
-	for b.Loop() {
-		builder.GroupServicesByStatus(services)
-	}
-}
-
 func BenchmarkAggregatePackageStats(b *testing.B) {
 	builder := NewMarkdownBuilder()
 
 	// Generate large dataset
-	packages := make([]model.Package, 20000)
+	packages := make([]common.Package, 20000)
 	for i := range 20000 {
-		packages[i] = model.Package{
+		packages[i] = common.Package{
 			Name:      fmt.Sprintf("package-%d", i),
 			Installed: i%2 == 0,
 			Locked:    i%3 == 0,
@@ -756,12 +603,12 @@ func BenchmarkFilterRulesByType(b *testing.B) {
 	builder := NewMarkdownBuilder()
 
 	// Generate large dataset
-	rules := make([]model.Rule, 10000)
+	rules := make([]common.FirewallRule, 10000)
 	types := []string{"pass", "block", "reject", "match"}
 	for i := range 10000 {
-		rules[i] = model.Rule{
-			Type:  types[i%len(types)],
-			Descr: fmt.Sprintf("Rule %d", i),
+		rules[i] = common.FirewallRule{
+			Type:        types[i%len(types)],
+			Description: fmt.Sprintf("Rule %d", i),
 		}
 	}
 

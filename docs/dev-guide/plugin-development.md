@@ -18,13 +18,16 @@ opnDossier uses a plugin-based architecture for compliance standards, allowing d
 All plugins must implement the `compliance.Plugin` interface:
 
 ```go
-import "github.com/EvilBit-Labs/opnDossier/internal/compliance"
+import (
+    "github.com/EvilBit-Labs/opnDossier/internal/compliance"
+    "github.com/EvilBit-Labs/opnDossier/internal/model/common"
+)
 
 type Plugin interface {
     Name() string                    // Unique plugin identifier
     Version() string                 // Plugin version
     Description() string             // Human-readable description
-    RunChecks(config *model.OpnSenseDocument) []compliance.Finding // Execute compliance checks
+    RunChecks(device *common.CommonDevice) []compliance.Finding // Execute compliance checks
     GetControls() []compliance.Control   // Return all controls
     GetControlByID(id string) (*compliance.Control, error) // Get specific control
     ValidateConfiguration() error    // Validate plugin config
@@ -76,7 +79,7 @@ package plugins
 import (
     "fmt"
     "github.com/EvilBit-Labs/opnDossier/internal/compliance"
-    "github.com/EvilBit-Labs/opnDossier/internal/model"
+    "github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 type CustomPlugin struct {
@@ -118,7 +121,7 @@ func (cp *CustomPlugin) ValidateConfiguration() error {
     }
     return nil
 }
-func (cp *CustomPlugin) RunChecks(config *model.OpnSenseDocument) []compliance.Finding {
+func (cp *CustomPlugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
     var findings []compliance.Finding
     // Implement your compliance checks here
     // Example:
@@ -143,12 +146,13 @@ package main
 
 import (
     "github.com/EvilBit-Labs/opnDossier/internal/compliance"
-    "github.com/EvilBit-Labs/opnDossier/internal/model"
+    "github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 type MyDynamicPlugin struct{}
 
 // Implement compliance.Plugin methods...
+// RunChecks(device *common.CommonDevice) []compliance.Finding
 
 var Plugin compliance.Plugin = &MyDynamicPlugin{}
 ```
@@ -169,6 +173,21 @@ go build -buildmode=plugin -o myplugin.so main.go
 - The audit engine will scan a configurable directory for `.so` files and load any plugin that exports `var Plugin compliance.Plugin`.
 - Dynamic plugins must be built with the same Go version and dependencies as the main binary.
 - Both static and dynamic plugins are supported and can coexist.
+
+## Migrating to the CommonDevice Plugin API
+
+**Breaking change (internal API — semver stays v1.x):** The `RunChecks` method signature changed from `*model.OpnSenseDocument` to `*common.CommonDevice`.
+
+| Item      | v1.x                      | Current                 |
+| --------- | ------------------------- | ----------------------- |
+| Import    | `internal/model`          | `internal/model/common` |
+| Parameter | `*model.OpnSenseDocument` | `*common.CommonDevice`  |
+
+**Migration steps:**
+
+1. Replace `"github.com/EvilBit-Labs/opnDossier/internal/model"` import with `"github.com/EvilBit-Labs/opnDossier/internal/model/common"`
+2. Change `RunChecks(config *model.OpnSenseDocument)` to `RunChecks(device *common.CommonDevice)`
+3. Update field access — `CommonDevice` mirrors the full OPNsense surface area; field names follow Go domain conventions rather than XML tag names. Refer to `internal/model/common/` for the full type definitions.
 
 ## Plugin Development Best Practices
 

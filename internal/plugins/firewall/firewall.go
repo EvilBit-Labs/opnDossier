@@ -3,7 +3,7 @@ package firewall
 
 import (
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 // Plugin implements the compliance.Plugin interface for Firewall plugin.
@@ -116,12 +116,12 @@ func (fp *Plugin) Description() string {
 	return "Firewall-specific compliance checks for OPNsense configurations"
 }
 
-// RunChecks performs Firewall compliance checks against the OPNsense configuration.
-func (fp *Plugin) RunChecks(config *model.OpnSenseDocument) []compliance.Finding {
+// RunChecks performs Firewall compliance checks against the device configuration.
+func (fp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	var findings []compliance.Finding
 
 	// FIREWALL-001: SSH Warning Banner
-	if !fp.hasSSHBanner(config) {
+	if !fp.hasSSHBanner(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "SSH Warning Banner Not Configured",
@@ -135,7 +135,7 @@ func (fp *Plugin) RunChecks(config *model.OpnSenseDocument) []compliance.Finding
 	}
 
 	// FIREWALL-002: Auto Configuration Backup
-	if !fp.hasAutoConfigBackup(config) {
+	if !fp.hasAutoConfigBackup(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Auto Configuration Backup Disabled",
@@ -149,7 +149,7 @@ func (fp *Plugin) RunChecks(config *model.OpnSenseDocument) []compliance.Finding
 	}
 
 	// FIREWALL-003: Message of the Day
-	if !fp.hasCustomMOTD(config) {
+	if !fp.hasCustomMOTD(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Custom MOTD Not Configured",
@@ -163,7 +163,7 @@ func (fp *Plugin) RunChecks(config *model.OpnSenseDocument) []compliance.Finding
 	}
 
 	// FIREWALL-004: Hostname Configuration
-	if !fp.hasCustomHostname(config) {
+	if !fp.hasCustomHostname(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Default Hostname in Use",
@@ -177,7 +177,7 @@ func (fp *Plugin) RunChecks(config *model.OpnSenseDocument) []compliance.Finding
 	}
 
 	// FIREWALL-005: DNS Server Configuration
-	if !fp.hasDNSServers(config) {
+	if !fp.hasDNSServers(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "DNS Servers Not Configured",
@@ -191,7 +191,7 @@ func (fp *Plugin) RunChecks(config *model.OpnSenseDocument) []compliance.Finding
 	}
 
 	// FIREWALL-006: IPv6 Disablement
-	if fp.hasIPv6Enabled(config) {
+	if fp.hasIPv6Enabled(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "IPv6 Enabled",
@@ -205,7 +205,7 @@ func (fp *Plugin) RunChecks(config *model.OpnSenseDocument) []compliance.Finding
 	}
 
 	// FIREWALL-007: DNS Rebind Check
-	if fp.hasDNSRebindCheck(config) {
+	if fp.hasDNSRebindCheck(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "DNS Rebind Check Enabled",
@@ -219,7 +219,7 @@ func (fp *Plugin) RunChecks(config *model.OpnSenseDocument) []compliance.Finding
 	}
 
 	// FIREWALL-008: HTTPS Web Management
-	if !fp.hasHTTPSManagement(config) {
+	if !fp.hasHTTPSManagement(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "HTTP Management Access",
@@ -262,42 +262,42 @@ func (fp *Plugin) ValidateConfiguration() error {
 
 // Helper methods for compliance checks
 
-func (fp *Plugin) hasSSHBanner(_ *model.OpnSenseDocument) bool {
+func (fp *Plugin) hasSSHBanner(_ *common.CommonDevice) bool {
 	// Check for SSH warning banner configuration
 	return true // Placeholder - implement actual logic
 }
 
-func (fp *Plugin) hasAutoConfigBackup(_ *model.OpnSenseDocument) bool {
+func (fp *Plugin) hasAutoConfigBackup(_ *common.CommonDevice) bool {
 	// Check for AutoConfigBackup setting
 	return true // Placeholder - implement actual logic
 }
 
-func (fp *Plugin) hasCustomMOTD(_ *model.OpnSenseDocument) bool {
+func (fp *Plugin) hasCustomMOTD(_ *common.CommonDevice) bool {
 	// Check for custom MOTD configuration
 	return true // Placeholder - implement actual logic
 }
 
-func (fp *Plugin) hasCustomHostname(_ *model.OpnSenseDocument) bool {
+func (fp *Plugin) hasCustomHostname(_ *common.CommonDevice) bool {
 	// Check for custom hostname configuration
 	return true // Placeholder - implement actual logic
 }
 
-func (fp *Plugin) hasDNSServers(_ *model.OpnSenseDocument) bool {
+func (fp *Plugin) hasDNSServers(_ *common.CommonDevice) bool {
 	// Check for DNS server configuration
 	return true // Placeholder - implement actual logic
 }
 
-func (fp *Plugin) hasIPv6Enabled(_ *model.OpnSenseDocument) bool {
+func (fp *Plugin) hasIPv6Enabled(_ *common.CommonDevice) bool {
 	// Check for IPv6 status
 	return true // Placeholder - implement actual logic
 }
 
-func (fp *Plugin) hasDNSRebindCheck(_ *model.OpnSenseDocument) bool {
+func (fp *Plugin) hasDNSRebindCheck(_ *common.CommonDevice) bool {
 	// Check for DNS rebind check setting
 	return true // Placeholder - implement actual logic
 }
 
-func (fp *Plugin) hasHTTPSManagement(_ *model.OpnSenseDocument) bool {
+func (fp *Plugin) hasHTTPSManagement(_ *common.CommonDevice) bool {
 	// Check for HTTPS management access configuration
 	return true // Placeholder - implement actual logic
 }

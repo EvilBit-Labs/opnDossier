@@ -6,7 +6,7 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 const (
@@ -85,11 +85,11 @@ func (sp *Plugin) Description() string {
 }
 
 // RunChecks performs STIG compliance checks.
-func (sp *Plugin) RunChecks(config *model.OpnSenseDocument) []compliance.Finding {
+func (sp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	var findings []compliance.Finding
 
 	// V-206694: Default deny policy
-	if !sp.hasDefaultDenyPolicy(config) {
+	if !sp.hasDefaultDenyPolicy(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Missing Default Deny Policy",
@@ -103,7 +103,7 @@ func (sp *Plugin) RunChecks(config *model.OpnSenseDocument) []compliance.Finding
 	}
 
 	// V-206674: Specific packet filtering
-	if sp.hasOverlyPermissiveRules(config) {
+	if sp.hasOverlyPermissiveRules(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Overly Permissive Firewall Rules",
@@ -117,7 +117,7 @@ func (sp *Plugin) RunChecks(config *model.OpnSenseDocument) []compliance.Finding
 	}
 
 	// V-206690: Unnecessary services
-	if sp.hasUnnecessaryServices(config) {
+	if sp.hasUnnecessaryServices(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Unnecessary Network Services Enabled",
@@ -131,7 +131,7 @@ func (sp *Plugin) RunChecks(config *model.OpnSenseDocument) []compliance.Finding
 	}
 
 	// V-206682: Comprehensive logging
-	if !sp.hasComprehensiveLogging(config) {
+	if !sp.hasComprehensiveLogging(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Insufficient Firewall Logging",
@@ -174,9 +174,9 @@ func (sp *Plugin) ValidateConfiguration() error {
 
 // Helper methods for compliance checks
 
-func (sp *Plugin) hasDefaultDenyPolicy(config *model.OpnSenseDocument) bool {
+func (sp *Plugin) hasDefaultDenyPolicy(device *common.CommonDevice) bool {
 	// Check for default deny policy configuration
-	rules := config.FilterRules()
+	rules := device.FirewallRules
 
 	// If no rules exist, assume default deny (conservative approach)
 	if len(rules) == 0 {
@@ -199,8 +199,8 @@ func (sp *Plugin) hasDefaultDenyPolicy(config *model.OpnSenseDocument) bool {
 
 	for _, rule := range rules {
 		if rule.Type == "pass" {
-			srcTarget := rule.Source.EffectiveAddress()
-			dstTarget := rule.Destination.EffectiveAddress()
+			srcTarget := rule.Source.Address
+			dstTarget := rule.Destination.Address
 
 			if srcTarget == constants.NetworkAny && (dstTarget == "" || dstTarget == constants.NetworkAny) {
 				hasAnyAnyAllow = true
@@ -214,17 +214,17 @@ func (sp *Plugin) hasDefaultDenyPolicy(config *model.OpnSenseDocument) bool {
 	return hasExplicitDeny && !hasAnyAnyAllow
 }
 
-func (sp *Plugin) hasOverlyPermissiveRules(config *model.OpnSenseDocument) bool {
+func (sp *Plugin) hasOverlyPermissiveRules(device *common.CommonDevice) bool {
 	// Check for overly permissive firewall rules
-	rules := config.FilterRules()
+	rules := device.FirewallRules
 
 	for _, rule := range rules {
 		if rule.Type != "pass" {
 			continue
 		}
 
-		srcTarget := rule.Source.EffectiveAddress()
-		dstTarget := rule.Destination.EffectiveAddress()
+		srcTarget := rule.Source.Address
+		dstTarget := rule.Destination.Address
 
 		srcBroad := srcTarget == constants.NetworkAny || slices.Contains(sp.broadNetworkRanges(), srcTarget)
 		dstBroad := dstTarget == "" || dstTarget == constants.NetworkAny ||
@@ -251,35 +251,35 @@ func (sp *Plugin) hasOverlyPermissiveRules(config *model.OpnSenseDocument) bool 
 	return false
 }
 
-func (sp *Plugin) hasUnnecessaryServices(config *model.OpnSenseDocument) bool {
+func (sp *Plugin) hasUnnecessaryServices(device *common.CommonDevice) bool {
 	// Check for unnecessary network services
 
 	// Check SNMP configuration - SNMP with community strings can be a security risk
-	if config.Snmpd.ROCommunity != "" {
+	if device.SNMP.ROCommunity != "" {
 		// SNMP is enabled with community string - could be unnecessary
 		return true
 	}
 
 	// Check for enabled services that might be unnecessary
 	// Unbound DNS resolver with DNSSEC stripping
-	if config.Unbound.Enable == "1" {
+	if device.DNS.Unbound.Enabled {
 		// Check if it's configured with insecure settings
-		if config.Unbound.Dnssecstripped == "1" {
+		if device.DNS.Unbound.DNSSECStripped {
 			return true // DNSSEC stripping is a security concern
 		}
 	}
 
 	// Check for DHCP server on interfaces that might not need it
-	dhcpInterfaces := config.Dhcpd.Names()
-	if len(dhcpInterfaces) > 0 {
+	dhcpCount := len(device.DHCP)
+	if dhcpCount > 0 {
 		// Multiple DHCP interfaces might indicate unnecessary services
-		if len(dhcpInterfaces) > MaxDHCPInterfaces {
+		if dhcpCount > MaxDHCPInterfaces {
 			return true
 		}
 	}
 
 	// Check for load balancer services
-	if len(config.LoadBalancer.MonitorType) > 0 {
+	if len(device.LoadBalancer.MonitorTypes) > 0 {
 		// Load balancer is configured - check if it's necessary
 		// This is a conservative check - load balancers can be necessary
 		// but also represent additional attack surface
@@ -306,19 +306,19 @@ const (
 	LoggingStatusUnableToDetermine
 )
 
-func (sp *Plugin) hasComprehensiveLogging(config *model.OpnSenseDocument) bool {
-	status := sp.analyzeLoggingConfiguration(config)
+func (sp *Plugin) hasComprehensiveLogging(device *common.CommonDevice) bool {
+	status := sp.analyzeLoggingConfiguration(device)
 	return status == LoggingStatusComprehensive
 }
 
 // analyzeLoggingConfiguration provides detailed analysis of logging configuration
 // and returns a LoggingStatus indicating the level of logging coverage.
-func (sp *Plugin) analyzeLoggingConfiguration(config *model.OpnSenseDocument) LoggingStatus {
+func (sp *Plugin) analyzeLoggingConfiguration(device *common.CommonDevice) LoggingStatus {
 	// Check syslog configuration
-	if config.Syslog.Enable.Bool() {
+	if device.Syslog.Enabled {
 		// Syslog is enabled - good
 		// Check if it's configured to log important events
-		if config.Syslog.System.Bool() && config.Syslog.Auth.Bool() {
+		if device.Syslog.SystemLogging && device.Syslog.AuthLogging {
 			// System and auth logging are enabled
 			return LoggingStatusComprehensive
 		}
@@ -327,7 +327,7 @@ func (sp *Plugin) analyzeLoggingConfiguration(config *model.OpnSenseDocument) Lo
 	}
 
 	// Check for firewall rule logging
-	rules := config.FilterRules()
+	rules := device.FirewallRules
 	if len(rules) > 0 {
 		// CRITICAL ASSUMPTION: When firewall rules exist and syslog is not explicitly
 		// configured, we cannot definitively determine if logging is enabled.
@@ -341,8 +341,8 @@ func (sp *Plugin) analyzeLoggingConfiguration(config *model.OpnSenseDocument) Lo
 	}
 
 	// Check for IDS/IPS logging if available
-	if config.OPNsense.Firewall != nil {
-		// Firewall is configured - this provides additional logging capabilities
+	if device.IDS != nil {
+		// IDS is configured - this provides additional logging capabilities
 		// but without syslog, we cannot determine if logging is actually enabled
 		return LoggingStatusUnableToDetermine
 	}
