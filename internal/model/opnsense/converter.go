@@ -19,6 +19,9 @@ func NewConverter() *Converter {
 
 // ToCommonDevice converts an OPNsense schema document into a platform-agnostic CommonDevice.
 // A nil doc returns an empty device with DeviceType set to OPNsense.
+//
+// NOTE: Some CommonDevice fields (Bridges, PPPs, GIFs, GREs, LAGGs, VirtualIPs,
+// InterfaceGroups, Certificates, CAs, Packages) are not yet populated by this converter.
 func (c *Converter) ToCommonDevice(doc *schema.OpnSenseDocument) (*common.CommonDevice, error) {
 	if doc == nil {
 		return &common.CommonDevice{
@@ -55,6 +58,8 @@ func (c *Converter) ToCommonDevice(doc *schema.OpnSenseDocument) (*common.Common
 }
 
 // convertSystem maps doc.System to common.System.
+// NOTE: SSH and WebGUI sub-structs are partially mapped; some fields
+// (SSH.Enabled, SSH.Port, WebGUI.LoginAutocomplete, etc.) are not yet populated.
 func (c *Converter) convertSystem(doc *schema.OpnSenseDocument) common.System {
 	sys := doc.System
 
