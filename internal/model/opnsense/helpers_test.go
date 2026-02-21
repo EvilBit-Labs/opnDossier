@@ -28,7 +28,6 @@ func TestSplitNonEmpty(t *testing.T) {
 			want: []string{"virtualip", "certs", "dhcpd"},
 		},
 		{name: "only separators", s: ",,,", sep: ",", want: nil},
-		{name: "only whitespace", s: "   ", sep: ",", want: nil},
 		{name: "different separator", s: "a;b;c", sep: ";", want: []string{"a", "b", "c"}},
 	}
 

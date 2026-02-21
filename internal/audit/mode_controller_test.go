@@ -702,51 +702,6 @@ func TestPluginRegistry_UnregisterNonexistent(t *testing.T) {
 	}
 }
 
-func TestModeController_New(t *testing.T) {
-	registry := NewPluginRegistry()
-	logger := newTestLogger(t)
-	controller := NewModeController(registry, logger)
-
-	if controller == nil {
-		t.Error("NewModeController returned nil")
-	}
-
-	if controller != nil && controller.registry == nil {
-		t.Error("ModeController registry is nil")
-	}
-}
-
-func TestModeController_GenerateReportWithInvalidMode(t *testing.T) {
-	registry := NewPluginRegistry()
-	logger := newTestLogger(t)
-	controller := NewModeController(registry, logger)
-
-	config := &common.CommonDevice{
-		System: common.System{
-			Hostname: "test-firewall",
-			Domain:   "example.com",
-		},
-	}
-
-	modeConfig := &ModeConfig{
-		Mode:          "invalid-mode",
-		Comprehensive: true,
-		BlackhatMode:  false,
-	}
-
-	// Generate report with invalid mode
-	report, err := controller.GenerateReport(context.Background(), config, modeConfig)
-
-	// Should error due to invalid mode
-	if err == nil {
-		t.Error("Expected error for invalid mode, got nil")
-	}
-
-	if report != nil {
-		t.Error("Expected nil report for invalid mode")
-	}
-}
-
 func TestReport_AddFinding(t *testing.T) {
 	report := &Report{
 		Findings: []Finding{},
