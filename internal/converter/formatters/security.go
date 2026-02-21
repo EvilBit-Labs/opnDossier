@@ -101,7 +101,9 @@ func hasManagementOnWAN(data *common.CommonDevice) bool {
 	mgmtPorts := []string{"443", "80", "22", "8080"}
 
 	for _, rule := range data.FirewallRules {
-		if !slices.Contains(rule.Interfaces, "wan") {
+		if !slices.ContainsFunc(rule.Interfaces, func(s string) bool {
+			return strings.EqualFold(s, "wan")
+		}) {
 			continue
 		}
 		if rule.Direction != "" && !strings.EqualFold(rule.Direction, "in") {

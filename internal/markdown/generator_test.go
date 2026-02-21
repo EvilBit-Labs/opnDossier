@@ -41,7 +41,7 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 		opts := DefaultOptions()
 		result, err := generator.Generate(ctx, nil, opts)
 		require.Error(t, err)
-		assert.Equal(t, ErrNilConfiguration, err)
+		assert.Equal(t, ErrNilDevice, err)
 		assert.Empty(t, result)
 	})
 

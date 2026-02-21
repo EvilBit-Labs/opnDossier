@@ -316,7 +316,7 @@ func TestHybridGenerator_GeneratePlainText_NilConfig(t *testing.T) {
 	opts := DefaultOptions().WithFormat(FormatText)
 	_, err = gen.Generate(context.Background(), nil, opts)
 	require.Error(t, err)
-	assert.ErrorIs(t, err, ErrNilConfiguration)
+	assert.ErrorIs(t, err, ErrNilDevice)
 }
 
 func TestFormatText_Validate(t *testing.T) {

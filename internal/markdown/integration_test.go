@@ -697,7 +697,7 @@ func TestErrorHandling_Integration(t *testing.T) {
 		result, err := generator.Generate(ctx, nil, opts)
 
 		require.Error(t, err)
-		assert.Equal(t, ErrNilConfiguration, err)
+		assert.Equal(t, ErrNilDevice, err)
 		assert.Empty(t, result)
 	})
 
