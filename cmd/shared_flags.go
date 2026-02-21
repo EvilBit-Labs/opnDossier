@@ -29,7 +29,6 @@ var (
 	sharedSelectedPlugins []string //nolint:gochecknoglobals // Selected compliance plugins
 )
 
-// addSharedTemplateFlags adds shared flags that are common to both convert and display commands.
 // addSharedTemplateFlags adds shared CLI flags for content, formatting, and audit-related
 // output controls to the provided command. The function name is retained for backward
 // compatibility but it no longer introduces template-specific flags.
