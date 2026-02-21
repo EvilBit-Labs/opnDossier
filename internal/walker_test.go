@@ -257,6 +257,62 @@ func TestWalk_FirewallRuleHandling(t *testing.T) {
 	}
 }
 
+func TestWalk_MapDeterministicOrdering(t *testing.T) {
+	// Use enrichment fields with map types to exercise walkMap.
+	device := common.CommonDevice{
+		Statistics: &common.Statistics{
+			InterfacesByType: map[string]int{
+				"dhcp":   2,
+				"static": 3,
+				"none":   1,
+			},
+		},
+	}
+
+	// Run Walk multiple times and verify the map keys always appear in sorted order.
+	for range 10 {
+		result := Walk(device)
+
+		var statsNode *MDNode
+		for _, child := range result.Children {
+			if strings.Contains(child.Title, "Statistics") {
+				statsNode = &child
+				break
+			}
+		}
+		if statsNode == nil {
+			t.Fatal("Statistics node not found")
+		}
+
+		// Find InterfacesByType child.
+		var mapNode *MDNode
+		for _, child := range statsNode.Children {
+			if strings.Contains(child.Title, "Interfaces By Type") {
+				mapNode = &child
+				break
+			}
+		}
+		if mapNode == nil {
+			t.Fatal("InterfacesByType node not found")
+		}
+
+		if len(mapNode.Children) != 3 {
+			t.Fatalf("Expected 3 map children, got %d", len(mapNode.Children))
+		}
+
+		// Keys must be sorted: dhcp, none, static.
+		if !strings.Contains(mapNode.Children[0].Title, "dhcp") {
+			t.Errorf("Expected first key 'dhcp', got: %s", mapNode.Children[0].Title)
+		}
+		if !strings.Contains(mapNode.Children[1].Title, "none") {
+			t.Errorf("Expected second key 'none', got: %s", mapNode.Children[1].Title)
+		}
+		if !strings.Contains(mapNode.Children[2].Title, "static") {
+			t.Errorf("Expected third key 'static', got: %s", mapNode.Children[2].Title)
+		}
+	}
+}
+
 func TestFormatFieldName(t *testing.T) {
 	tests := []struct {
 		input    string

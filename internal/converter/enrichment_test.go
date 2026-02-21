@@ -385,6 +385,49 @@ func TestToYAML_ContainsAnalysis(t *testing.T) {
 	assert.NotNil(t, parsed["analysis"], "YAML output should contain analysis")
 }
 
+func TestJSONOutput_RedactsSensitiveFields(t *testing.T) {
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		HighAvailability: common.HighAvailability{Password: "secret123"},
+		Users: []common.User{{
+			Name:    "admin",
+			APIKeys: []common.APIKey{{Key: "k1", Secret: "supersecret"}},
+		}},
+		SNMP: common.SNMPConfig{ROCommunity: "private-community"},
+		Certificates: []common.Certificate{
+			{Description: "cert1", PrivateKey: "-----BEGIN RSA PRIVATE KEY-----"},
+		},
+		VPN: common.VPN{
+			WireGuard: common.WireGuardConfig{
+				Clients: []common.WireGuardClient{{Name: "peer1", PSK: "wg-psk-value"}},
+			},
+		},
+		DHCP: []common.DHCPScope{
+			{Interface: "lan", AdvDHCP6KeyInfoStatementSecret: "dhcp-secret-key"},
+		},
+	}
+
+	c := NewJSONConverter()
+	result, err := c.ToJSON(context.Background(), device)
+	require.NoError(t, err)
+
+	// No raw secret values should appear in the output.
+	assert.NotContains(t, result, "secret123")
+	assert.NotContains(t, result, "supersecret")
+	assert.NotContains(t, result, "private-community")
+	assert.NotContains(t, result, "-----BEGIN RSA PRIVATE KEY-----")
+	assert.NotContains(t, result, "wg-psk-value")
+	assert.NotContains(t, result, "dhcp-secret-key")
+
+	// Redacted placeholder should be present.
+	assert.Contains(t, result, "[REDACTED]")
+
+	// Verify result is valid JSON.
+	var parsed map[string]any
+	require.NoError(t, json.Unmarshal([]byte(result), &parsed))
+}
+
 func TestRedactSensitiveFields_HAPassword(t *testing.T) {
 	t.Parallel()
 
@@ -505,4 +548,46 @@ func TestRedactSensitiveFields_EmptyFieldsNotRedacted(t *testing.T) {
 	assert.Empty(t, result.Users)
 	assert.Empty(t, result.VPN.WireGuard.Clients)
 	assert.Empty(t, result.DHCP)
+}
+
+func TestComputeStatistics_IDSContributesToSecurityScore(t *testing.T) {
+	t.Parallel()
+
+	// IDS enabled without IPS.
+	deviceIDSOnly := &common.CommonDevice{
+		IDS: &common.IDSConfig{Enabled: true},
+	}
+	statsIDSOnly := computeStatistics(deviceIDSOnly)
+	assert.GreaterOrEqual(t, statsIDSOnly.Summary.SecurityScore, 15,
+		"IDS enabled should contribute at least 15 points")
+
+	// IDS enabled with IPS mode.
+	deviceIDSIPS := &common.CommonDevice{
+		IDS: &common.IDSConfig{Enabled: true, IPSMode: true},
+	}
+	statsIDSIPS := computeStatistics(deviceIDSIPS)
+	assert.GreaterOrEqual(t, statsIDSIPS.Summary.SecurityScore, 25,
+		"IDS enabled + IPS mode should contribute at least 25 points")
+
+	// IDS disabled — should not contribute.
+	deviceIDSOff := &common.CommonDevice{
+		IDS: &common.IDSConfig{Enabled: false},
+	}
+	statsIDSOff := computeStatistics(deviceIDSOff)
+	assert.Less(t, statsIDSOff.Summary.SecurityScore, statsIDSOnly.Summary.SecurityScore,
+		"IDS disabled should score lower than IDS enabled")
+}
+
+func TestComputeStatistics_NATEntriesCountsBothDirections(t *testing.T) {
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		NAT: common.NATConfig{
+			OutboundRules: []common.NATRule{{UUID: "o1"}, {UUID: "o2"}},
+			InboundRules:  []common.InboundNATRule{{UUID: "i1"}},
+		},
+	}
+
+	stats := computeStatistics(device)
+	assert.Equal(t, 3, stats.NATEntries, "NATEntries should count both outbound and inbound rules")
 }

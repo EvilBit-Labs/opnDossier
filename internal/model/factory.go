@@ -161,8 +161,8 @@ func newCtxReader(ctx context.Context, r io.Reader) io.Reader {
 }
 
 // simpleCharsetReader handles common XML charset declarations for root-element
-// detection. Only known-safe charsets that are compatible with UTF-8 for
-// element name detection are accepted.
+// detection. Only charsets whose ASCII subset matches UTF-8 are accepted, which
+// is sufficient because XML element names use only ASCII-range characters.
 func simpleCharsetReader(charset string, input io.Reader) (io.Reader, error) {
 	switch strings.ToLower(charset) {
 	case "us-ascii", "iso-8859-1", "latin-1", "utf-8":

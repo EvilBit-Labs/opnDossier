@@ -90,7 +90,8 @@ type CommonDevice struct {
 	// Revision contains configuration revision metadata.
 	Revision Revision `json:"revision" yaml:"revision,omitempty"`
 
-	// Computed/enrichment fields — populated by the processor, not the converter.
+	// Computed/enrichment fields — populated by prepareForExport in the converter
+	// package for JSON/YAML exports. Not set by the parser or converter directly.
 
 	// Statistics contains calculated statistics about the device configuration.
 	Statistics *Statistics `json:"statistics,omitempty" yaml:"statistics,omitempty"`

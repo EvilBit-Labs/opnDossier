@@ -76,7 +76,7 @@ func computeStatistics(cfg *common.CommonDevice) *common.Statistics {
 
 	// NAT statistics
 	stats.NATMode = cfg.NAT.OutboundMode
-	stats.NATEntries = len(cfg.NAT.OutboundRules)
+	stats.NATEntries = len(cfg.NAT.OutboundRules) + len(cfg.NAT.InboundRules)
 
 	// Gateway statistics
 	stats.TotalGateways = len(cfg.Routing.Gateways)
@@ -286,8 +286,9 @@ func computeConfigComplexity(stats *common.Statistics) int {
 }
 
 // computeAnalysis performs lightweight analysis of the device configuration and returns
-// an Analysis suitable for serialization in JSON/YAML exports. This mirrors the processor's
-// analysis logic but populates common.Analysis finding types instead of processor.Report.
+// an Analysis suitable for serialization in JSON/YAML exports. This provides analysis
+// similar to, but independent of, the processor's logic, populating common.Analysis
+// finding types instead of processor.Report.
 func computeAnalysis(cfg *common.CommonDevice) *common.Analysis {
 	analysis := &common.Analysis{}
 
@@ -572,7 +573,13 @@ const redactedValue = "[REDACTED]"
 
 // prepareForExport returns a shallow copy of the device with default DeviceType,
 // Statistics, Analysis, SecurityAssessment, and PerformanceMetrics populated when absent.
-// Sensitive fields (passwords, private keys, API secrets) are redacted.
+// Sensitive fields (passwords, private keys, API secrets, SNMP community strings,
+// WireGuard PSKs, DHCPv6 authentication secrets) are redacted.
+//
+// NOTE: computeStatistics and computeAnalysis intentionally receive the original
+// unredacted data so that presence checks (e.g., "is SNMP configured?") see real
+// values. Their outputs never include raw secret values — any sensitive data in
+// statistics output is independently redacted (e.g., SNMP community in ServiceDetails).
 func prepareForExport(data *common.CommonDevice) *common.CommonDevice {
 	cp := *data
 
@@ -605,6 +612,10 @@ func prepareForExport(data *common.CommonDevice) *common.CommonDevice {
 // This must be called on the shallow copy, not the original, to avoid mutating
 // the caller's data. Slice fields that contain sensitive data are deep-copied
 // before redaction.
+//
+// SECURITY NOTE: Sensitive fields not present in CommonDevice (e.g., OpenVPN TLS
+// keys, IPsec PSKs) are already excluded by the converter's field mapping. If new
+// secret fields are added to common.*, they MUST be added here.
 func redactSensitiveFields(cp *common.CommonDevice) {
 	// HA password
 	if cp.HighAvailability.Password != "" {

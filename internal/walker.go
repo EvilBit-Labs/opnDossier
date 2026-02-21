@@ -179,7 +179,8 @@ func walkSlice(title string, level int, slice reflect.Value) MDNode {
 	return mdNode
 }
 
-// walkMap converts a map value into an MDNode, creating a child node for each key-value pair with the key as the title and recursively processing the value.
+// walkMap converts a map value into an MDNode, iterating over keys in sorted
+// lexicographic order and creating a child node for each key-value pair.
 func walkMap(title string, level int, m reflect.Value) MDNode {
 	mdNode := MDNode{
 		Level:    level,
