@@ -4,6 +4,8 @@
 // clean Go types suitable for analysis, reporting, and multi-device support.
 package common
 
+import "slices"
+
 // DeviceType identifies the platform that produced a configuration.
 type DeviceType string
 
@@ -103,12 +105,13 @@ type CommonDevice struct {
 }
 
 // NATSummary returns a convenience view of the device's NAT configuration.
+// Slice fields are cloned to prevent callers from mutating the original device.
 func (d *CommonDevice) NATSummary() NATSummary {
 	return NATSummary{
 		Mode:               d.NAT.OutboundMode,
 		ReflectionDisabled: d.NAT.ReflectionDisabled,
 		PfShareForward:     d.NAT.PfShareForward,
-		OutboundRules:      d.NAT.OutboundRules,
-		InboundRules:       d.NAT.InboundRules,
+		OutboundRules:      slices.Clone(d.NAT.OutboundRules),
+		InboundRules:       slices.Clone(d.NAT.InboundRules),
 	}
 }

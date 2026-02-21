@@ -2,6 +2,7 @@ package converter
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
@@ -313,7 +314,8 @@ func analyzeDeadRulesForExport(cfg *common.CommonDevice, analysis *common.Analys
 		}
 	}
 
-	for iface, rules := range interfaceRules {
+	for _, iface := range slices.Sorted(maps.Keys(interfaceRules)) {
+		rules := interfaceRules[iface]
 		for i, ir := range rules {
 			// Block-all makes subsequent rules unreachable.
 			srcAny := ir.rule.Source.Address == constants.NetworkAny
@@ -565,16 +567,20 @@ func computePerformanceMetrics(stats *common.Statistics) *common.PerformanceMetr
 	}
 }
 
+// redactedValue is the placeholder for sensitive fields in exported output.
+const redactedValue = "[REDACTED]"
+
 // prepareForExport returns a shallow copy of the device with default DeviceType,
 // Statistics, Analysis, SecurityAssessment, and PerformanceMetrics populated when absent.
-// The copy is shallow — slice fields share backing arrays with the original, which
-// is safe because only pointer-typed enrichment fields are assigned on the copy.
+// Sensitive fields (passwords, private keys, API secrets) are redacted.
 func prepareForExport(data *common.CommonDevice) *common.CommonDevice {
 	cp := *data
 
 	if cp.DeviceType == "" {
 		cp.DeviceType = common.DeviceTypeOPNsense
 	}
+
+	redactSensitiveFields(&cp)
 
 	if cp.Statistics == nil {
 		cp.Statistics = computeStatistics(data)
@@ -593,4 +599,40 @@ func prepareForExport(data *common.CommonDevice) *common.CommonDevice {
 	}
 
 	return &cp
+}
+
+// redactSensitiveFields replaces sensitive field values with a redaction marker.
+// This must be called on the shallow copy, not the original, to avoid mutating
+// the caller's data. Slice fields that contain sensitive data are deep-copied
+// before redaction.
+func redactSensitiveFields(cp *common.CommonDevice) {
+	// HA password
+	if cp.HighAvailability.Password != "" {
+		cp.HighAvailability.Password = redactedValue
+	}
+
+	// Certificate private keys
+	if len(cp.Certificates) > 0 {
+		cp.Certificates = slices.Clone(cp.Certificates)
+		for i := range cp.Certificates {
+			if cp.Certificates[i].PrivateKey != "" {
+				cp.Certificates[i].PrivateKey = redactedValue
+			}
+		}
+	}
+
+	// API key secrets
+	if len(cp.Users) > 0 {
+		cp.Users = slices.Clone(cp.Users)
+		for i := range cp.Users {
+			if len(cp.Users[i].APIKeys) > 0 {
+				cp.Users[i].APIKeys = slices.Clone(cp.Users[i].APIKeys)
+				for j := range cp.Users[i].APIKeys {
+					if cp.Users[i].APIKeys[j].Secret != "" {
+						cp.Users[i].APIKeys[j].Secret = redactedValue
+					}
+				}
+			}
+		}
+	}
 }

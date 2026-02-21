@@ -1,6 +1,8 @@
 package opnsense
 
 import (
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
@@ -108,7 +110,8 @@ func (c *Converter) convertInterfaces(doc *schema.OpnSenseDocument) []common.Int
 	}
 
 	result := make([]common.Interface, 0, len(items))
-	for key, iface := range items {
+	for _, key := range slices.Sorted(maps.Keys(items)) {
+		iface := items[key]
 		result = append(result, common.Interface{
 			Name:         key,
 			PhysicalIf:   iface.If,
@@ -311,7 +314,8 @@ func (c *Converter) convertDHCP(doc *schema.OpnSenseDocument) []common.DHCPScope
 	}
 
 	result := make([]common.DHCPScope, 0, len(items))
-	for key, d := range items {
+	for _, key := range slices.Sorted(maps.Keys(items)) {
+		d := items[key]
 		scope := common.DHCPScope{
 			Interface:  key,
 			Enabled:    d.Enable == "1",

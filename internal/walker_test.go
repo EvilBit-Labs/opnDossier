@@ -1,42 +1,35 @@
 package internal
 
 import (
-	"context"
-	"encoding/xml"
 	"strings"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 func TestWalk_BasicStructure(t *testing.T) {
-	// Create a minimal OPNsense configuration
-	opnsense := model.OpnSenseDocument{
-		Version: "1.0",
-		System: model.System{
+	device := common.CommonDevice{
+		Version: "24.7",
+		System: common.System{
 			Hostname: "firewall.local",
 			Domain:   "example.com",
 		},
 	}
 
-	result := Walk(opnsense)
+	result := Walk(device)
 
-	// Test root node
 	if result.Level != 1 {
 		t.Errorf("Expected root level 1, got %d", result.Level)
 	}
 
-	if result.Title != "# OPNsense Configuration" {
-		t.Errorf("Expected root title '# OPNsense Configuration', got '%s'", result.Title)
+	if result.Title != "# Device Configuration" {
+		t.Errorf("Expected root title '# Device Configuration', got '%s'", result.Title)
 	}
 
-	// Test that version is in the body
-	if !strings.Contains(result.Body, "Version: 1.0") {
+	if !strings.Contains(result.Body, "Version: 24.7") {
 		t.Errorf("Expected Version in body, got: %s", result.Body)
 	}
 
-	// Test that System is a child node
 	found := false
 
 	for _, child := range result.Children {
@@ -45,7 +38,7 @@ func TestWalk_BasicStructure(t *testing.T) {
 		}
 
 		found = true
-		// Test system child properties
+
 		if child.Level != 2 {
 			t.Errorf("Expected System child level 2, got %d", child.Level)
 		}
@@ -67,16 +60,14 @@ func TestWalk_BasicStructure(t *testing.T) {
 }
 
 func TestWalk_DepthLimiting(t *testing.T) {
-	// Create a structure that would go beyond level 6
-	opnsense := model.OpnSenseDocument{
-		System: model.System{
-			WebGUI: model.WebGUIConfig{Protocol: "https"},
+	device := common.CommonDevice{
+		System: common.System{
+			WebGUI: common.WebGUI{Protocol: "https"},
 		},
 	}
 
-	result := Walk(opnsense)
+	result := Walk(device)
 
-	// Find the deepest node and verify it doesn't exceed level 6
 	var findMaxLevel func(node MDNode) int
 
 	findMaxLevel = func(node MDNode) int {
@@ -97,20 +88,18 @@ func TestWalk_DepthLimiting(t *testing.T) {
 	}
 }
 
-func TestWalk_EmptyStructHandling(t *testing.T) {
-	// Create OPNsense config with empty struct fields
-	opnsense := model.OpnSenseDocument{
-		System: model.System{
+func TestWalk_BoolFieldHandling(t *testing.T) {
+	device := common.CommonDevice{
+		System: common.System{
 			Hostname:           "test.local",
 			Domain:             "test.com",
-			DisableConsoleMenu: true, // BoolFlag for enabled
-			IPv6Allow:          "1",  // String value for enabled
+			DisableConsoleMenu: true,
+			IPv6Allow:          true,
 		},
 	}
 
-	result := Walk(opnsense)
+	result := Walk(device)
 
-	// Find System child
 	var systemNode *MDNode
 
 	for _, child := range result.Children {
@@ -124,36 +113,33 @@ func TestWalk_EmptyStructHandling(t *testing.T) {
 		t.Fatal("System node not found")
 	}
 
-	// Check that empty structs are handled as "enabled" flags
 	if !strings.Contains(systemNode.Body, "Disable Console Menu: enabled") {
 		t.Errorf("Expected 'Disable Console Menu: enabled' in body, got: %s", systemNode.Body)
 	}
 
-	if !strings.Contains(systemNode.Body, "IPv6 Allow: 1") {
-		t.Errorf("Expected 'IPv6 Allow: 1' in body, got: %s", systemNode.Body)
+	if !strings.Contains(systemNode.Body, "IPv6 Allow: enabled") {
+		t.Errorf("Expected 'IPv6 Allow: enabled' in body, got: %s", systemNode.Body)
 	}
 }
 
 func TestWalk_SliceHandling(t *testing.T) {
-	// Create OPNsense config with slice fields
-	opnsense := model.OpnSenseDocument{
-		Sysctl: []model.SysctlItem{
+	device := common.CommonDevice{
+		Sysctl: []common.SysctlItem{
 			{
-				Tunable: "net.inet.tcp.rfc3390",
-				Value:   "1",
-				Descr:   "TCP RFC 3390",
+				Tunable:     "net.inet.tcp.rfc3390",
+				Value:       "1",
+				Description: "TCP RFC 3390",
 			},
 			{
-				Tunable: "kern.ipc.maxsockbuf",
-				Value:   "16777216",
-				Descr:   "Maximum socket buffer size",
+				Tunable:     "kern.ipc.maxsockbuf",
+				Value:       "16777216",
+				Description: "Maximum socket buffer size",
 			},
 		},
 	}
 
-	result := Walk(opnsense)
+	result := Walk(device)
 
-	// Find Sysctl child
 	var sysctlNode *MDNode
 
 	for _, child := range result.Children {
@@ -167,12 +153,10 @@ func TestWalk_SliceHandling(t *testing.T) {
 		t.Fatal("Sysctl node not found")
 	}
 
-	// Check that slice items are properly indexed
 	if len(sysctlNode.Children) != 2 {
 		t.Errorf("Expected 2 Sysctl children, got %d", len(sysctlNode.Children))
 	}
 
-	// Check first item
 	firstItem := sysctlNode.Children[0]
 	if !strings.Contains(firstItem.Title, "[0]") {
 		t.Errorf("Expected first item to contain '[0]', got: %s", firstItem.Title)
@@ -183,28 +167,28 @@ func TestWalk_SliceHandling(t *testing.T) {
 	}
 }
 
-func TestWalk_MapHandling(t *testing.T) {
-	// Create OPNsense config with map-like structures (Interfaces)
-	opnsense := model.OpnSenseDocument{
-		Interfaces: model.Interfaces{
-			Items: map[string]model.Interface{
-				"wan": {
-					If:     "em0",
-					IPAddr: "192.168.1.100",
-					Subnet: "24",
-				},
-				"lan": {
-					If:     "em1",
-					IPAddr: "10.0.0.1",
-					Subnet: "24",
-				},
+func TestWalk_InterfaceSliceHandling(t *testing.T) {
+	device := common.CommonDevice{
+		Interfaces: []common.Interface{
+			{
+				Name:       "wan",
+				PhysicalIf: "em0",
+				IPAddress:  "192.168.1.100",
+				Subnet:     "24",
+				Enabled:    true,
+			},
+			{
+				Name:       "lan",
+				PhysicalIf: "em1",
+				IPAddress:  "10.0.0.1",
+				Subnet:     "24",
+				Enabled:    true,
 			},
 		},
 	}
 
-	result := Walk(opnsense)
+	result := Walk(device)
 
-	// Find Interfaces child
 	var interfacesNode *MDNode
 
 	for _, child := range result.Children {
@@ -218,80 +202,58 @@ func TestWalk_MapHandling(t *testing.T) {
 		t.Fatal("Interfaces node not found")
 	}
 
-	// Find Items child under Interfaces
-	var itemsNode *MDNode
+	if len(interfacesNode.Children) != 2 {
+		t.Errorf("Expected 2 interface items, got %d", len(interfacesNode.Children))
+	}
 
-	for _, child := range interfacesNode.Children {
-		if strings.Contains(child.Title, "Items") {
-			itemsNode = &child
+	firstItem := interfacesNode.Children[0]
+	if !strings.Contains(firstItem.Body, "192.168.1.100") {
+		t.Errorf("Expected WAN IP in body, got: %s", firstItem.Body)
+	}
+}
+
+func TestWalk_FirewallRuleHandling(t *testing.T) {
+	device := common.CommonDevice{
+		FirewallRules: []common.FirewallRule{
+			{
+				Type:        "pass",
+				IPProtocol:  "inet",
+				Description: "Allow LAN to any rule",
+				Interfaces:  []string{"lan"},
+				Protocol:    "tcp",
+				Source:      common.RuleEndpoint{Address: "any"},
+				Destination: common.RuleEndpoint{Address: "10.0.0.0/24", Port: "443"},
+				Log:         true,
+			},
+		},
+	}
+
+	result := Walk(device)
+
+	var rulesNode *MDNode
+
+	for _, child := range result.Children {
+		if strings.Contains(child.Title, "Firewall Rules") {
+			rulesNode = &child
 			break
 		}
 	}
 
-	if itemsNode == nil {
-		t.Fatal("Items node not found")
+	if rulesNode == nil {
+		t.Fatal("Firewall Rules node not found")
 	}
 
-	// Check that map entries are present
-	if len(itemsNode.Children) != 2 {
-		t.Errorf("Expected 2 interface items, got %d", len(itemsNode.Children))
+	if len(rulesNode.Children) != 1 {
+		t.Errorf("Expected 1 rule child, got %d", len(rulesNode.Children))
 	}
 
-	// Verify interface entries exist
-	foundWan := false
-	foundLan := false
-
-	for _, child := range itemsNode.Children {
-		if strings.Contains(child.Title, "wan") {
-			foundWan = true
-
-			if !strings.Contains(child.Body, "IPAddr: 192.168.1.100") {
-				t.Errorf("Expected WAN IP in body, got: %s", child.Body)
-			}
-		}
-
-		if strings.Contains(child.Title, "lan") {
-			foundLan = true
-
-			if !strings.Contains(child.Body, "IPAddr: 10.0.0.1") {
-				t.Errorf("Expected LAN IP in body, got: %s", child.Body)
-			}
-		}
+	ruleItem := rulesNode.Children[0]
+	if !strings.Contains(ruleItem.Title, "[0]") {
+		t.Errorf("Expected rule item to contain '[0]', got: %s", ruleItem.Title)
 	}
 
-	if !foundWan {
-		t.Error("WAN interface not found")
-	}
-
-	if !foundLan {
-		t.Error("LAN interface not found")
-	}
-}
-
-func TestWalk_XMLNameSkipping(t *testing.T) {
-	// Create OPNsense config to test that XMLName fields are skipped
-	opnsense := model.OpnSenseDocument{
-		XMLName: xml.Name{Local: "opnsense"},
-		Version: "1.0",
-		System: model.System{
-			Hostname: "test.local",
-			Domain:   "test.com",
-		},
-	}
-
-	result := Walk(opnsense)
-
-	// Check that XMLName is not present in the body or children
-	bodyStr := result.Body
-	if strings.Contains(bodyStr, "XMLName") {
-		t.Errorf("XMLName should be skipped, but found in body: %s", bodyStr)
-	}
-
-	// Check children don't contain XMLName
-	for _, child := range result.Children {
-		if strings.Contains(child.Title, "XMLName") {
-			t.Error("XMLName should be skipped in children")
-		}
+	if !strings.Contains(ruleItem.Body, "Type: pass") {
+		t.Errorf("Expected Type: pass in rule body, got: %s", ruleItem.Body)
 	}
 }
 
@@ -301,7 +263,7 @@ func TestFormatFieldName(t *testing.T) {
 		expected string
 	}{
 		{"Hostname", "Hostname"},
-		{"IPAddr", "IPAddr"},
+		{"IPAddress", "IPAddress"},
 		{"DisableConsoleMenu", "Disable Console Menu"},
 		{"IPv6Allow", "IPv6 Allow"},
 		{"XMLName", "XMLName"},
@@ -332,139 +294,5 @@ func TestFormatIndex(t *testing.T) {
 		if result != test.expected {
 			t.Errorf("formatIndex(%d) = %s, expected %s", test.input, result, test.expected)
 		}
-	}
-}
-
-func TestWalk_SyntheticXMLFragment(t *testing.T) {
-	// Test with a synthetic XML structure that mimics real OPNsense config
-	xmlData := `<opnsense version="1.0">
-		<version>1.0</version>
-		<trigger_initial_wizard />
-		<system>
-			<hostname>test-firewall</hostname>
-			<domain>example.org</domain>
-			<optimization>normal</optimization>
-			<webgui>
-				<protocol>https</protocol>
-			</webgui>
-		</system>
-		<interfaces>
-			<wan>
-				<if>em0</if>
-				<ipaddr>dhcp</ipaddr>
-			</wan>
-			<lan>
-				<if>em1</if>
-				<ipaddr>192.168.1.1</ipaddr>
-				<subnet>24</subnet>
-			</lan>
-		</interfaces>
-		<filter>
-			<rule>
-				<type>pass</type>
-				<ipprotocol>inet</ipprotocol>
-				<descr>Allow LAN to any rule</descr>
-				<interface>lan</interface>
-			</rule>
-		</filter>
-	</opnsense>`
-
-	// Parse the XML using the parser
-	p := cfgparser.NewXMLParser()
-
-	opnsense, err := p.Parse(context.Background(), strings.NewReader(xmlData))
-	if err != nil {
-		t.Fatalf("Failed to parse XML: %v", err)
-	}
-
-	result := Walk(*opnsense)
-
-	// Verify structure depth and hierarchy
-	if result.Level != 1 {
-		t.Errorf("Expected root level 1, got %d", result.Level)
-	}
-
-	// Check version is in body
-	if !strings.Contains(result.Body, "Version: 1.0") {
-		t.Errorf("Expected version in root body, got: %s", result.Body)
-	}
-
-	// Find and verify system node
-	var systemNode *MDNode
-
-	for _, child := range result.Children {
-		if strings.Contains(child.Title, "System") {
-			systemNode = &child
-			break
-		}
-	}
-
-	if systemNode == nil {
-		t.Fatal("System node not found")
-	}
-
-	if systemNode.Level != 2 {
-		t.Errorf("Expected System level 2, got %d", systemNode.Level)
-	}
-
-	// Verify system has webgui child
-	foundWebgui := false
-
-	for _, child := range systemNode.Children {
-		if strings.Contains(child.Title, "Web GUI") {
-			foundWebgui = true
-
-			if child.Level != 3 {
-				t.Errorf("Expected WebGUI level 3, got %d", child.Level)
-			}
-
-			if !strings.Contains(child.Body, "Protocol: https") {
-				t.Errorf("Expected protocol in webgui body, got: %s", child.Body)
-			}
-
-			break
-		}
-	}
-
-	if !foundWebgui {
-		t.Error("WebGUI child not found under System")
-	}
-
-	// Verify filter rules are handled properly
-	var filterNode *MDNode
-
-	for _, child := range result.Children {
-		if strings.Contains(child.Title, "Filter") {
-			filterNode = &child
-			break
-		}
-	}
-
-	if filterNode == nil {
-		t.Fatal("Filter node not found")
-	}
-
-	// Find Rule slice
-	var ruleNode *MDNode
-
-	for _, child := range filterNode.Children {
-		if strings.Contains(child.Title, "Rule") {
-			ruleNode = &child
-			break
-		}
-	}
-
-	if ruleNode == nil {
-		t.Fatal("Rule node not found")
-	}
-
-	// Check that rule has indexed children
-	if len(ruleNode.Children) != 1 {
-		t.Errorf("Expected 1 rule child, got %d", len(ruleNode.Children))
-	}
-
-	ruleItem := ruleNode.Children[0]
-	if !strings.Contains(ruleItem.Title, "[0]") {
-		t.Errorf("Expected rule item to contain '[0]', got: %s", ruleItem.Title)
 	}
 }

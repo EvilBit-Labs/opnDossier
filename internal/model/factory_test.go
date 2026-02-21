@@ -153,6 +153,87 @@ func TestFactory_ContextCancelled_BlockingReader(t *testing.T) {
 	}
 }
 
+func TestFactory_MalformedXML(t *testing.T) {
+	t.Parallel()
+
+	_, err := model.NewParserFactory().CreateDevice(
+		context.Background(),
+		strings.NewReader("<<<not xml at all"),
+		"",
+		false,
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no root XML element found")
+}
+
+func TestFactory_ErrorWrapsOriginal(t *testing.T) {
+	t.Parallel()
+
+	// Empty input causes io.EOF from the decoder, which should be wrapped.
+	_, err := model.NewParserFactory().CreateDevice(
+		context.Background(),
+		strings.NewReader(""),
+		"",
+		false,
+	)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, io.EOF, "original decoder error should be wrapped")
+}
+
+func TestFactory_UnsupportedCharset(t *testing.T) {
+	t.Parallel()
+
+	// XML with a charset the parser doesn't accept.
+	xmlData := `<?xml version="1.0" encoding="EBCDIC"?><opnsense/>`
+	_, err := model.NewParserFactory().CreateDevice(
+		context.Background(),
+		strings.NewReader(xmlData),
+		"",
+		false,
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported XML charset")
+}
+
+func TestFactory_AcceptedCharsets(t *testing.T) {
+	t.Parallel()
+
+	charsets := []string{"US-ASCII", "ISO-8859-1", "Latin-1", "UTF-8"}
+	for _, charset := range charsets {
+		t.Run(charset, func(t *testing.T) {
+			t.Parallel()
+
+			xmlData := `<?xml version="1.0" encoding="` + charset + `"?>` + "\n" +
+				`<opnsense><system><hostname>test</hostname><domain>test.local</domain></system></opnsense>`
+			device, err := model.NewParserFactory().CreateDevice(
+				context.Background(),
+				strings.NewReader(xmlData),
+				"",
+				false,
+			)
+			require.NoError(t, err)
+			require.NotNil(t, device)
+			assert.Equal(t, common.DeviceTypeOPNsense, device.DeviceType)
+		})
+	}
+}
+
+func TestFactory_LargeInput_BoundedRead(t *testing.T) {
+	t.Parallel()
+
+	// Build input that exceeds the default max input size without a root element.
+	// The decoder should stop at the limit and return an error.
+	bigInput := strings.Repeat("<!-- padding -->", int(cfgparser.DefaultMaxInputSize)/15+1)
+	_, err := model.NewParserFactory().CreateDevice(
+		context.Background(),
+		strings.NewReader(bigInput),
+		"",
+		false,
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no root XML element found")
+}
+
 // semanticOnlyInvalidXML is structurally valid XML but will fail semantic
 // validation (e.g., validator checks for required fields like hostname).
 const semanticOnlyInvalidXML = `<?xml version="1.0"?>

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -92,18 +91,18 @@ func parseDevice(ctx context.Context, p DeviceParser, r io.Reader, validateMode 
 	return p.Parse(ctx, r)
 }
 
-// tokenResult holds the outcome of a single xml.Decoder.Token call.
-type tokenResult struct {
-	tok xml.Token
-	err error
+// peekResult holds the outcome of the root-element detection goroutine.
+type peekResult struct {
+	name string
+	err  error
 }
 
 // peekRootElementBounded reads just enough of r to find the first XML start
 // element, using a bounded LimitReader (capped at DefaultMaxInputSize) and a
 // TeeReader to buffer consumed bytes. It returns the root element name, a
 // reader that replays the buffered bytes followed by the remainder of r, and
-// any error. Each Token read runs in a goroutine so the function can select
-// on ctx.Done() to abort immediately when the reader blocks.
+// any error. The decode loop runs in a single goroutine so the caller can
+// select on ctx.Done() to abort when the reader blocks.
 func peekRootElementBounded(ctx context.Context, r io.Reader) (string, io.Reader, error) {
 	var buf bytes.Buffer
 
@@ -112,32 +111,44 @@ func peekRootElementBounded(ctx context.Context, r io.Reader) (string, io.Reader
 	dec := xml.NewDecoder(tee)
 	dec.CharsetReader = simpleCharsetReader
 
-	for {
-		ch := make(chan tokenResult, 1)
-		go func() {
-			tok, err := dec.Token()
-			ch <- tokenResult{tok, err}
-		}()
+	ch := make(chan peekResult, 1)
 
-		select {
-		case <-ctx.Done():
-			return "", nil, ctx.Err()
-		case res := <-ch:
-			if res.err != nil {
-				return "", nil, errors.New("unsupported device type: no root XML element found")
+	go func() {
+		for {
+			tok, err := dec.Token()
+			if err != nil {
+				ch <- peekResult{err: fmt.Errorf("unsupported device type: no root XML element found: %w", err)}
+				return
 			}
 
-			if se, ok := res.tok.(xml.StartElement); ok {
-				fullReader := io.MultiReader(bytes.NewReader(buf.Bytes()), r)
-				return se.Name.Local, fullReader, nil
+			if se, ok := tok.(xml.StartElement); ok {
+				ch <- peekResult{name: se.Name.Local}
+				return
 			}
 		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return "", nil, ctx.Err()
+	case res := <-ch:
+		if res.err != nil {
+			return "", nil, res.err
+		}
+
+		fullReader := io.MultiReader(bytes.NewReader(buf.Bytes()), r)
+		return res.name, fullReader, nil
 	}
 }
 
 // simpleCharsetReader handles common XML charset declarations for root-element
-// detection. US-ASCII and ISO-8859-1 are supersets/subsets of UTF-8 for the
-// element names we need, so returning the input reader unchanged is safe.
-func simpleCharsetReader(_ string, input io.Reader) (io.Reader, error) {
-	return input, nil
+// detection. Only known-safe charsets that are compatible with UTF-8 for
+// element name detection are accepted.
+func simpleCharsetReader(charset string, input io.Reader) (io.Reader, error) {
+	switch strings.ToLower(charset) {
+	case "us-ascii", "iso-8859-1", "latin-1", "utf-8":
+		return input, nil
+	default:
+		return nil, fmt.Errorf("unsupported XML charset: %s", charset)
+	}
 }
