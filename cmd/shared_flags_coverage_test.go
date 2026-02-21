@@ -117,8 +117,8 @@ func TestDeviceTypeFlagAvailableOnAllCommands(t *testing.T) {
 }
 
 // resetRootFlagsForTest saves and resets global state that can be polluted by
-// other tests running rootCmd.Execute(). Returns a cleanup function that
-// restores the original state.
+// other tests running rootCmd.Execute(). It registers a t.Cleanup handler that
+// restores the original state when the test completes.
 func resetRootFlagsForTest(t *testing.T) {
 	t.Helper()
 

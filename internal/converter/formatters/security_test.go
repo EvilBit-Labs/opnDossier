@@ -319,6 +319,19 @@ func TestHasManagementOnWAN(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "rule on WAN with mixed-case interface name",
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Interfaces:  []string{"WAN"},
+						Direction:   "in",
+						Destination: common.RuleEndpoint{Port: "443"},
+					},
+				},
+			},
+			want: true,
+		},
+		{
 			name: "rule on WAN with HTTP port",
 			data: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
