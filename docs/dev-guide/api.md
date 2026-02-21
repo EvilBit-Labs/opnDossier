@@ -78,31 +78,23 @@ config := cmdCtx.Config
 
 ## Parser Package (internal/cfgparser)
 
-### Parser Interface
+### DeviceParser Interface
+
+The `DeviceParser` interface (defined in `internal/model/factory.go`) abstracts device-specific parsing behind a common contract:
 
 ```go
-type Parser interface {
-    Parse(ctx context.Context, r io.Reader) (*model.OpnSenseDocument, error)
-    Validate(cfg *model.OpnSenseDocument) error
+type DeviceParser interface {
+    Parse(ctx context.Context, r io.Reader) (*common.CommonDevice, error)
+    ParseAndValidate(ctx context.Context, r io.Reader) (*common.CommonDevice, error)
 }
 ```
 
-### XMLParser
+The `ParserFactory` auto-detects device type from the XML root element and delegates to the appropriate `DeviceParser`. The underlying OPNsense XML parser (`internal/cfgparser/XMLParser`) still produces `schema.OpnSenseDocument`, which is then converted to `common.CommonDevice` by the OPNsense-specific parser in `internal/model/opnsense/`.
+
+### ParserFactory Usage
 
 ```go
-type XMLParser struct {
-    MaxInputSize int64 // Default: 10MB
-}
-
-func NewXMLParser() *XMLParser
-```
-
-Supported encodings: UTF-8, US-ASCII, ISO-8859-1 (Latin1), Windows-1252.
-
-### Usage
-
-```go
-parser := cfgparser.NewXMLParser()
+factory := model.NewParserFactory()
 
 file, err := os.Open("config.xml")
 if err != nil {
@@ -110,39 +102,41 @@ if err != nil {
 }
 defer file.Close()
 
-doc, err := parser.Parse(context.Background(), file)
+// Auto-detect device type and parse to CommonDevice
+device, err := factory.CreateDevice(context.Background(), file, "", false)
 if err != nil {
     return fmt.Errorf("parse failed: %w", err)
 }
 
-if err := parser.Validate(doc); err != nil {
-    return fmt.Errorf("validation failed: %w", err)
+// With validation
+device, err := factory.CreateDevice(context.Background(), file, "", true)
+if err != nil {
+    return fmt.Errorf("parse and validate failed: %w", err)
 }
 ```
 
+The underlying `XMLParser` (`internal/cfgparser/`) supports UTF-8, US-ASCII, ISO-8859-1 (Latin1), and Windows-1252 encodings. Input is limited to 10MB by default (`DefaultMaxInputSize`).
+
 ## Data Model (internal/schema, internal/model)
 
-### OpnSenseDocument
+### CommonDevice
 
-The root configuration type, defined in `internal/schema/opnsense.go`:
+The platform-agnostic device model, defined in `internal/model/common/`:
 
 ```go
-type OpnSenseDocument struct {
-    Version    string      `xml:"version" json:"version" yaml:"version"`
-    System     System      `xml:"system" json:"system" yaml:"system"`
-    Interfaces Interfaces  `xml:"interfaces" json:"interfaces" yaml:"interfaces"`
-    Filter     *Filter     `xml:"filter" json:"filter" yaml:"filter"`
-    Nat        *Nat        `xml:"nat" json:"nat" yaml:"nat"`
-    Dhcpd      Dhcpd       `xml:"dhcpd" json:"dhcpd" yaml:"dhcpd"`
-    Unbound    Unbound     `xml:"unbound" json:"unbound" yaml:"unbound"`
-    Gateways   Gateways    `xml:"gateways" json:"gateways" yaml:"gateways"`
-    OpenVPN    OpenVPN     `xml:"openvpn" json:"openvpn" yaml:"openvpn"`
-    VLANs      VLANs       `xml:"vlans" json:"vlans" yaml:"vlans"`
+type CommonDevice struct {
+    DeviceType string       `json:"device_type" yaml:"device_type"`
+    Version    string       `json:"version" yaml:"version"`
+    System     System       `json:"system" yaml:"system"`
+    Network    Network      `json:"network" yaml:"network"`
+    Firewall   Firewall     `json:"firewall" yaml:"firewall"`
+    VPN        VPN          `json:"vpn" yaml:"vpn"`
+    Services   Services     `json:"services" yaml:"services"`
     // ... additional fields
 }
 ```
 
-The `internal/model/` package re-exports all types from `internal/schema/` as type aliases for backward compatibility.
+The XML DTO remains as `schema.OpnSenseDocument` in `internal/schema/opnsense.go`. The OPNsense-specific parser in `internal/model/opnsense/` converts the XML DTO into `CommonDevice`. The `internal/model/` package provides the `ParserFactory` and `DeviceParser` interface for consumers.
 
 ## Converter Package (internal/converter)
 
@@ -150,7 +144,7 @@ The `internal/model/` package re-exports all types from `internal/schema/` as ty
 
 ```go
 type Converter interface {
-    ToMarkdown(ctx context.Context, opnsense *model.OpnSenseDocument) (string, error)
+    ToMarkdown(ctx context.Context, data *common.CommonDevice) (string, error)
 }
 ```
 
@@ -158,12 +152,12 @@ type Converter interface {
 
 ```go
 type Generator interface {
-    Generate(ctx context.Context, cfg *model.OpnSenseDocument, opts Options) (string, error)
+    Generate(ctx context.Context, cfg *common.CommonDevice, opts Options) (string, error)
 }
 
 type StreamingGenerator interface {
     Generator
-    GenerateToWriter(ctx context.Context, w io.Writer, cfg *model.OpnSenseDocument, opts Options) error
+    GenerateToWriter(ctx context.Context, w io.Writer, cfg *common.CommonDevice, opts Options) error
 }
 ```
 
@@ -289,7 +283,7 @@ type Plugin interface {
     Name() string
     Version() string
     Description() string
-    RunChecks(config *model.OpnSenseDocument) []Finding
+    RunChecks(device *common.CommonDevice) []Finding
     GetControls() []Control
     GetControlByID(id string) (*Control, error)
     ValidateConfiguration() error
@@ -315,7 +309,8 @@ if err := someOperation(); err != nil {
 var ErrMissingOpnSenseDocumentRoot = errors.New("invalid XML: missing opnsense root element")
 
 // converter package
-var ErrNilOpnSenseDocument = errors.New("input OpnSenseDocument struct is nil")
+var ErrNilConfiguration = errors.New("configuration cannot be nil")
+var ErrNilDevice = errors.New("device configuration is nil")
 ```
 
 ## Extension Points

@@ -91,7 +91,7 @@ type CompliancePlugin interface {
     Name() string
     Version() string
     Description() string
-    RunChecks(config *model.OpnSenseDocument) []Finding
+    RunChecks(device *common.CommonDevice) []Finding
     GetControls() []Control
     GetControlByID(id string) (*Control, error)
     ValidateConfiguration() error
@@ -100,7 +100,7 @@ type CompliancePlugin interface {
 
 **Strengths:**
 
-- Loose coupling - only depends on `model.OpnSenseDocument`
+- Loose coupling - only depends on `common.CommonDevice`
 - Standardized `Finding` and `Control` structures
 - Support for both built-in and dynamic (.so) plugins
 - Thread-safe registry with `sync.RWMutex`
@@ -113,7 +113,7 @@ type CompliancePlugin interface {
 registry := NewPluginRegistry()
 registry.RegisterPlugin(firewallPlugin)
 registry.LoadDynamicPlugins(ctx, "/path/to/plugins", logger)
-results := registry.RunComplianceChecks(config, []string{"firewall", "STIG"})
+results := registry.RunComplianceChecks(device, []string{"firewall", "STIG"})
 ```
 
 **RECOMMENDATION:** This is a **best practice example**. Consider documenting this as a reference architecture for other projects.
@@ -125,9 +125,9 @@ results := registry.RunComplianceChecks(config, []string{"firewall", "STIG"})
 **Design:**
 
 ```go
-type Parser interface {
-    Parse(ctx context.Context, r io.Reader) (*model.OpnSenseDocument, error)
-    Validate(cfg *model.OpnSenseDocument) error
+type DeviceParser interface {
+    Parse(ctx context.Context, r io.Reader) (*common.CommonDevice, error)
+    ParseAndValidate(ctx context.Context, r io.Reader) (*common.CommonDevice, error)
 }
 ```
 
@@ -209,7 +209,7 @@ markdown/
    ```go
    // Single entry point
    type Converter interface {
-       Convert(ctx context.Context, doc *model.OpnSenseDocument, format string) (string, error)
+       Convert(ctx context.Context, device *common.CommonDevice, format string) (string, error)
    }
 
    // Internal implementation detail
@@ -233,7 +233,7 @@ markdown/
 // internal/cfgparser/errors.go (290 lines)
 var (
     ErrInvalidXML = errors.New("invalid XML")
-    ErrMissingOpnSenseDocumentRoot = errors.New("missing opnsense root element")
+    ErrMissingOpnSenseDocumentRoot = errors.New("invalid XML: missing opnsense root element")
     // ... comprehensive error catalog
 )
 
@@ -267,8 +267,8 @@ return fmt.Errorf("failed to parse configuration: %w", err)
 
 ```go
 // Many functions accept but don't use context
-func (c *MarkdownConverter) ToMarkdown(_ context.Context, opnsense *model.OpnSenseDocument) (string, error)
-func (p *CoreProcessor) analyze(_ context.Context, cfg *model.OpnSenseDocument, config *Config, report *Report)
+func (c *MarkdownConverter) ToMarkdown(_ context.Context, data *common.CommonDevice) (string, error)
+func (p *CoreProcessor) analyze(_ context.Context, cfg *common.CommonDevice, config *Config, report *Report)
 ```
 
 **Analysis:**
@@ -289,7 +289,7 @@ func (p *CoreProcessor) analyze(_ context.Context, cfg *model.OpnSenseDocument, 
 1. **Add context checks to long-running operations:**
 
    ```go
-   func (p *CoreProcessor) analyze(ctx context.Context, cfg *model.OpnSenseDocument, config *Config, report *Report) {
+   func (p *CoreProcessor) analyze(ctx context.Context, cfg *common.CommonDevice, config *Config, report *Report) {
        select {
        case <-ctx.Done():
            return ctx.Err()
@@ -383,30 +383,33 @@ func init() {
 
 ---
 
-### 3.3 Model Coupling (ARCHITECTURAL STRENGTH)
+### 3.3 Model Layer (ARCHITECTURAL STRENGTH)
 
 **Design:**
 
 ```go
-// internal/model/opnsense.go
-type OpnSenseDocument struct {
-    XMLName    xml.Name `xml:"opnsense"`
+// internal/model/common/ - platform-agnostic device model
+type CommonDevice struct {
+    DeviceType string
+    Version    string
     System     System
-    Interfaces Interfaces
-    Filter     Filter
-    // ... comprehensive OPNsense config model
+    Network    Network
+    Firewall   Firewall
+    // ... platform-agnostic device model
 }
 ```
 
+> **Note:** The OPNsense XML DTO (`schema.OpnSenseDocument`) remains in `internal/schema/opnsense.go` for XML parsing. The `ParserFactory` converts it to `CommonDevice` via `internal/model/opnsense/`.
+
 **Strengths:**
 
-- Single source of truth for OPNsense schema
+- Platform-agnostic device model with OPNsense-specific parser
 - Comprehensive XML/JSON/YAML tags
 - Validation tags for go-playground/validator
 
 **Potential Issue:**
 
-- Large struct (46+ fields in `OpnSenseDocument`)
+- Large struct (multiple nested sub-structs in `CommonDevice`)
 - Nested complexity
 
 **MITIGATION:**

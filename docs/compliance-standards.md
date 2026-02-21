@@ -97,7 +97,7 @@ type Plugin interface {
     Name() string
     Version() string
     Description() string
-    RunChecks(config *model.OpnSenseDocument) []Finding
+    RunChecks(device *common.CommonDevice) []Finding
     GetControls() []Control
     GetControlByID(id string) (*Control, error)
     ValidateConfiguration() error

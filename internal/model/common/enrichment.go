@@ -205,10 +205,6 @@ type SecurityAssessment struct {
 type PerformanceMetrics struct {
 	// ConfigComplexity is a complexity metric for the configuration.
 	ConfigComplexity int `json:"configComplexity,omitempty" yaml:"configComplexity,omitempty"`
-	// RuleEfficiency is a metric measuring firewall rule optimization.
-	RuleEfficiency int `json:"ruleEfficiency,omitempty" yaml:"ruleEfficiency,omitempty"`
-	// ResourceUsage is a metric estimating resource utilization.
-	ResourceUsage int `json:"resourceUsage,omitempty" yaml:"resourceUsage,omitempty"`
 }
 
 // ComplianceChecks contains compliance check results.
