@@ -731,7 +731,7 @@ func generateStatistics(cfg *common.CommonDevice) *Statistics {
 
 	// NAT statistics
 	stats.NATMode = cfg.NAT.OutboundMode
-	stats.NATEntries = len(cfg.NAT.OutboundRules)
+	stats.NATEntries = len(cfg.NAT.OutboundRules) + len(cfg.NAT.InboundRules)
 
 	// Gateway statistics
 	stats.TotalGateways = len(cfg.Routing.Gateways)

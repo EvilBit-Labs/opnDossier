@@ -350,7 +350,7 @@ func (r *Report) addSecurityFindings() {
 func (r *Report) addComplianceAnalysis() {
 	// Add placeholder compliance analysis
 	r.Metadata["compliance_check_completed"] = true
-	r.Metadata["compliance_frameworks"] = []string{"CIS", "NIST"}
+	r.Metadata["compliance_frameworks"] = []string{"STIG", "NIST", "SANS"}
 }
 
 // addRecommendations adds recommendations to the blue team report.
