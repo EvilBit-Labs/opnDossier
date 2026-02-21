@@ -742,10 +742,10 @@ func validateConvertFlags(flags *pflag.FlagSet, cmdLogger *logging.Logger) error
 		}
 	}
 
-	// Validate wrap width if specified
-	if sharedWrapWidth > 0 && (sharedWrapWidth < MinWrapWidth || sharedWrapWidth > MaxWrapWidth) {
-		return fmt.Errorf("wrap width %d out of recommended range [%d, %d]",
-			sharedWrapWidth, MinWrapWidth, MaxWrapWidth)
+	// Warn (not error) when wrap width is outside recommended range, matching display.go behavior.
+	if cmdLogger != nil && sharedWrapWidth > 0 && (sharedWrapWidth < MinWrapWidth || sharedWrapWidth > MaxWrapWidth) {
+		cmdLogger.Warn("wrap width is outside recommended range",
+			"width", sharedWrapWidth, "min", MinWrapWidth, "max", MaxWrapWidth)
 	}
 
 	// Validate audit mode if provided

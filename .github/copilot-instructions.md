@@ -62,7 +62,7 @@ opnDossier is a tool for auditing and reporting on OPNsense configurations, with
 | **XML Parsing**   | `encoding/xml` for OPNsense config files       |
 | **Logging**       | `charmbracelet/log` for structured logging     |
 | **Data Formats**  | Support for XML, JSON, and YAML export formats |
-| **Go Version**    | Minimum 1.21.6+, Recommended 1.24.5+           |
+| **Go Version**    | 1.26+                                          |
 
 ## Critical Workflows
 
