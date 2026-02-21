@@ -41,7 +41,7 @@ type CommonDevice struct {
 	Bridges []Bridge `json:"bridges,omitempty" yaml:"bridges,omitempty"`
 	// PPPs contains point-to-point protocol connection configurations.
 	PPPs []PPP `json:"ppps,omitempty" yaml:"ppps,omitempty"`
-	// GIFs contains GIF (Generic Tunneling Interface) tunnel configurations.
+	// GIFs contains gif (generic tunnel interface) configurations.
 	GIFs []GIF `json:"gifs,omitempty" yaml:"gifs,omitempty"`
 	// GREs contains GRE (Generic Routing Encapsulation) tunnel configurations.
 	GREs []GRE `json:"gres,omitempty" yaml:"gres,omitempty"`

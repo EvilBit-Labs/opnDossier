@@ -2,7 +2,7 @@
 
 ## Overview
 
-opnDossier integrates industry-standard security compliance frameworks to provide comprehensive blue team audit reports. The system supports **STIG (Security Technical Implementation Guide)**, **SANS Firewall Checklist**, and **CIS-inspired Firewall Security Controls** standards for firewall security assessment.
+opnDossier integrates industry-standard security compliance frameworks to provide comprehensive blue team audit reports. The system supports **STIG (Security Technical Implementation Guide)**, **SANS Firewall Checklist**, and **Firewall Security Controls** (independently developed cybersecurity best practices) for firewall security assessment.
 
 ## Status
 
@@ -48,9 +48,9 @@ The SANS Firewall Checklist provides practical security controls for firewall co
 | SANS-FW-009 | Vulnerability Management | Regular Updates               | High     |
 | SANS-FW-010 | Incident Response        | Alert Configuration           | Medium   |
 
-### CIS-Inspired Firewall Security Controls
+### Firewall Security Controls
 
-Our CIS-inspired firewall security controls provide comprehensive security guidance designed for OPNsense firewalls, based on general industry best practices for network firewall security:
+Our firewall security controls provide comprehensive security guidance designed for OPNsense firewalls, based on general cybersecurity best practices for network firewall security:
 
 #### Key Firewall Security Controls
 
@@ -295,7 +295,7 @@ Each plugin maps its findings to the relevant compliance controls using the `Fin
 
 - [DISA STIG Library](https://public.cyber.mil/stigs/)
 - [SANS Firewall Checklist](https://www.sans.org/media/score/checklists/FirewallChecklist.pdf)
-- [CIS-Inspired Firewall Security Controls Reference](cis-like-firewall-reference.md)
+- [Firewall Security Controls Reference](firewall-security-controls-reference.md)
 - [STIG Viewer](https://stigviewer.com/stigs/firewall_security_requirements_guide)
 - [NIST Cybersecurity Framework](https://www.nist.gov/cyberframework)
 

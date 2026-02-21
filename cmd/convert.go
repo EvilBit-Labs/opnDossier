@@ -440,7 +440,12 @@ Examples:
 				} else {
 					enhancedLogger.Debug("Outputting to stdout")
 
-					fmt.Fprint(cmd.OutOrStdout(), output)
+					if _, err := fmt.Fprint(cmd.OutOrStdout(), output); err != nil {
+						enhancedLogger.Error("Failed to write output to stdout", "error", err)
+						errs <- fmt.Errorf("failed to write output to stdout: %w", err)
+
+						return
+					}
 				}
 
 				// Conversion process completed successfully (no logging to avoid corrupting output)

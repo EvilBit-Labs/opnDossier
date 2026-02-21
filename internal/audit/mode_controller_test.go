@@ -488,7 +488,7 @@ func TestFinding_Structure(t *testing.T) {
 		Recommendation: "Test recommendation",
 		Tags:           []string{"test", "security"},
 		Component:      "firewall",
-		Control:        "CIS-1.1",
+		Control:        "STIG-V-206694",
 	}
 
 	// Test that the finding structure is properly set
@@ -516,8 +516,8 @@ func TestFinding_Structure(t *testing.T) {
 		t.Errorf("Finding.Component = %v, want %v", finding.Component, "firewall")
 	}
 
-	if finding.Control != "CIS-1.1" {
-		t.Errorf("Finding.Control = %v, want %v", finding.Control, "CIS-1.1")
+	if finding.Control != "STIG-V-206694" {
+		t.Errorf("Finding.Control = %v, want %v", finding.Control, "STIG-V-206694")
 	}
 }
 
