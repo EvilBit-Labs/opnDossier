@@ -1,15 +1,12 @@
 package cmd
 
 import (
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/audit"
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
-	applog "github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/processor"
-	charmlog "github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
@@ -608,71 +605,6 @@ func TestBuildAuditOptions(t *testing.T) {
 			assert.Equal(t, tt.auditMode, result.AuditMode)
 			assert.Equal(t, tt.blackhatMode, result.BlackhatMode)
 			assert.Equal(t, tt.selectedPlugins, result.SelectedPlugins)
-		})
-	}
-}
-
-func TestDetermineAuditLogLevel(t *testing.T) {
-	t.Run("nil logger defaults to info", func(t *testing.T) {
-		level := determineAuditLogLevel(nil)
-		assert.Equal(t, charmlog.InfoLevel, level)
-	})
-
-	t.Run("nil embedded logger defaults to info", func(t *testing.T) {
-		logger := &applog.Logger{}
-		level := determineAuditLogLevel(logger)
-		assert.Equal(t, charmlog.InfoLevel, level)
-	})
-
-	t.Run("fatal maps to error", func(t *testing.T) {
-		charmLogger := charmlog.NewWithOptions(os.Stderr, charmlog.Options{
-			Level: charmlog.FatalLevel,
-		})
-		logger := &applog.Logger{Logger: charmLogger}
-		level := determineAuditLogLevel(logger)
-		assert.Equal(t, charmlog.ErrorLevel, level)
-	})
-
-	tests := []struct {
-		name           string
-		inputLevel     string
-		wantCharmLevel charmlog.Level
-	}{
-		{
-			name:           "debug maps to debug",
-			inputLevel:     "debug",
-			wantCharmLevel: charmlog.DebugLevel,
-		},
-		{
-			name:           "info maps to info",
-			inputLevel:     "info",
-			wantCharmLevel: charmlog.InfoLevel,
-		},
-		{
-			name:           "warn maps to warn",
-			inputLevel:     "warn",
-			wantCharmLevel: charmlog.WarnLevel,
-		},
-		{
-			name:           "error maps to error",
-			inputLevel:     "error",
-			wantCharmLevel: charmlog.ErrorLevel,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			logger, err := applog.New(applog.Config{
-				Level:           tt.inputLevel,
-				Format:          "text",
-				Output:          os.Stderr,
-				ReportCaller:    false,
-				ReportTimestamp: false,
-			})
-			require.NoError(t, err)
-
-			level := determineAuditLogLevel(logger)
-			assert.Equal(t, tt.wantCharmLevel, level)
 		})
 	}
 }

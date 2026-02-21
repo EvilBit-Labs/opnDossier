@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/EvilBit-Labs/opnDossier/internal/processor"
-	"github.com/charmbracelet/log"
 )
 
 // Static errors for better error handling.
@@ -43,11 +43,11 @@ const (
 // based on the selected mode and configuration.
 type ModeController struct {
 	registry *PluginRegistry
-	logger   *log.Logger
+	logger   *logging.Logger
 }
 
 // NewModeController creates a new mode controller with the given plugin registry and logger.
-func NewModeController(registry *PluginRegistry, logger *log.Logger) *ModeController {
+func NewModeController(registry *PluginRegistry, logger *logging.Logger) *ModeController {
 	return &ModeController{
 		registry: registry,
 		logger:   logger,
