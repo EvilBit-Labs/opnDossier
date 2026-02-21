@@ -4,7 +4,7 @@ import (
 	"strconv"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 // Time unit constants for lease time formatting.
@@ -76,32 +76,27 @@ func (b *MarkdownBuilder) AssessRiskLevel(severity string) string {
 }
 
 // CalculateSecurityScore computes an overall score (0-100).
-func (b *MarkdownBuilder) CalculateSecurityScore(data *model.OpnSenseDocument) int {
+func (b *MarkdownBuilder) CalculateSecurityScore(data *common.CommonDevice) int {
 	return formatters.CalculateSecurityScore(data)
 }
 
 // AssessServiceRisk maps common services to risk levels.
-func (b *MarkdownBuilder) AssessServiceRisk(service model.Service) string {
-	return formatters.AssessServiceRisk(service)
+func (b *MarkdownBuilder) AssessServiceRisk(serviceName string) string {
+	return formatters.AssessServiceRisk(serviceName)
 }
 
 // FilterSystemTunables filters system tunables based on security-related prefixes.
-func (b *MarkdownBuilder) FilterSystemTunables(tunables []model.SysctlItem, includeTunables bool) []model.SysctlItem {
+func (b *MarkdownBuilder) FilterSystemTunables(tunables []common.SysctlItem, includeTunables bool) []common.SysctlItem {
 	return formatters.FilterSystemTunables(tunables, includeTunables)
 }
 
-// GroupServicesByStatus groups services by their status (running/stopped).
-func (b *MarkdownBuilder) GroupServicesByStatus(services []model.Service) map[string][]model.Service {
-	return formatters.GroupServicesByStatus(services)
-}
-
 // AggregatePackageStats aggregates statistics about packages.
-func (b *MarkdownBuilder) AggregatePackageStats(packages []model.Package) map[string]int {
+func (b *MarkdownBuilder) AggregatePackageStats(packages []common.Package) map[string]int {
 	return formatters.AggregatePackageStats(packages)
 }
 
 // FilterRulesByType filters firewall rules by their type.
-func (b *MarkdownBuilder) FilterRulesByType(rules []model.Rule, ruleType string) []model.Rule {
+func (b *MarkdownBuilder) FilterRulesByType(rules []common.FirewallRule, ruleType string) []common.FirewallRule {
 	return formatters.FilterRulesByType(rules, ruleType)
 }
 
@@ -189,9 +184,9 @@ func pluralize(count int, unit string) string {
 	return strconv.Itoa(count) + " " + unit + "s"
 }
 
-// HasAdvancedDHCPConfig checks if any AdvDHCP* fields are populated in a DhcpdInterface.
+// HasAdvancedDHCPConfig checks if any AdvDHCP* fields are populated in a DHCPScope.
 // This includes: AliasAddress, AliasSubnet, DHCPRejectFrom, and all AdvDHCP* fields.
-func HasAdvancedDHCPConfig(dhcp model.DhcpdInterface) bool {
+func HasAdvancedDHCPConfig(dhcp common.DHCPScope) bool {
 	// Check alias fields
 	if dhcp.AliasAddress != "" || dhcp.AliasSubnet != "" || dhcp.DHCPRejectFrom != "" {
 		return true
@@ -214,9 +209,9 @@ func HasAdvancedDHCPConfig(dhcp model.DhcpdInterface) bool {
 		dhcp.AdvDHCPConfigFileOverridePath != ""
 }
 
-// HasDHCPv6Config checks if any DHCPv6 fields are populated in a DhcpdInterface.
+// HasDHCPv6Config checks if any DHCPv6 fields are populated in a DHCPScope.
 // This includes: Track6Interface, Track6PrefixID, and all AdvDHCP6* fields.
-func HasDHCPv6Config(dhcp model.DhcpdInterface) bool {
+func HasDHCPv6Config(dhcp common.DHCPScope) bool {
 	// Check Track6 fields
 	if dhcp.Track6Interface != "" || dhcp.Track6PrefixID != "" {
 		return true
@@ -253,7 +248,7 @@ func HasDHCPv6Config(dhcp model.DhcpdInterface) bool {
 }
 
 // buildAdvancedDHCPItems builds a list of advanced DHCP configuration items for display.
-func buildAdvancedDHCPItems(dhcp model.DhcpdInterface) []string {
+func buildAdvancedDHCPItems(dhcp common.DHCPScope) []string {
 	items := make([]string, 0)
 
 	if dhcp.AliasAddress != "" {
@@ -312,7 +307,7 @@ func buildAdvancedDHCPItems(dhcp model.DhcpdInterface) []string {
 }
 
 // buildDHCPv6Items builds a list of DHCPv6 configuration items for display.
-func buildDHCPv6Items(dhcp model.DhcpdInterface) []string {
+func buildDHCPv6Items(dhcp common.DHCPScope) []string {
 	items := make([]string, 0)
 
 	if dhcp.Track6Interface != "" {

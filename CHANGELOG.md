@@ -4,7 +4,37 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 
+### Breaking Changes
+
+- *(plugin)* `compliance.Plugin.RunChecks` signature changed — internal API change (semver stays v1.x)
+
+  **Before (v1.x):**
+
+  ```go
+  import "github.com/EvilBit-Labs/opnDossier/internal/model"
+
+  func (p *MyPlugin) RunChecks(config *model.OpnSenseDocument) []compliance.Finding { ... }
+  ```
+
+  **After:**
+
+  ```go
+  import "github.com/EvilBit-Labs/opnDossier/internal/model/common"
+
+  func (p *MyPlugin) RunChecks(device *common.CommonDevice) []compliance.Finding { ... }
+  ```
+
+  All three built-in plugins (STIG, SANS, Firewall) have been updated.
+  External plugins must update their `RunChecks` implementation and import path accordingly.
+
 ### Features
+
+- *(model)* Introduce multi-device model layer with `CommonDevice` domain abstraction
+    - `internal/model/common/` provides a platform-agnostic `CommonDevice` struct
+    - `internal/model/opnsense/` provides the OPNsense-specific parser and converter
+    - `ParserFactory` auto-detects device type from the XML root element; `--device-type` flag bypasses detection
+    - All consumers (processor, report generators, audit, diff, compliance plugins) now operate on `CommonDevice`
+    - JSON/YAML outputs include a top-level `device_type` field
 
 - Enhance CI workflows and documentation for compliance
     - Added FOSSA status badges to README for license and security compliance visibility.

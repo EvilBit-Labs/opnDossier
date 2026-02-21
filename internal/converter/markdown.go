@@ -1,18 +1,15 @@
-// Package converter provides functionality to convert OPNsense configurations to markdown.
+// Package converter provides functionality to convert device configurations to markdown.
 package converter
 
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
-	"maps"
 	"os"
-	"slices"
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/charmbracelet/glamour"
 	"github.com/nao1215/markdown"
 )
@@ -20,26 +17,23 @@ import (
 // Constants for common values.
 const destinationAny = "any"
 
-// Converter is the interface for converting OPNsense configurations to markdown.
+// Converter is the interface for converting device configurations to markdown.
 type Converter interface {
-	ToMarkdown(ctx context.Context, opnsense *model.OpnSenseDocument) (string, error)
+	ToMarkdown(ctx context.Context, data *common.CommonDevice) (string, error)
 }
 
-// MarkdownConverter is a markdown converter for OPNsense configurations.
+// MarkdownConverter is a markdown converter for device configurations.
 type MarkdownConverter struct{}
 
-// NewMarkdownConverter creates and returns a new MarkdownConverter for converting OPNsense configuration data to markdown format.
+// NewMarkdownConverter creates and returns a new MarkdownConverter for converting device configuration data to markdown format.
 func NewMarkdownConverter() *MarkdownConverter {
 	return &MarkdownConverter{}
 }
 
-// ErrNilOpnSenseDocument is returned when the input OpnSenseDocument struct is nil.
-var ErrNilOpnSenseDocument = errors.New("input OpnSenseDocument struct is nil")
-
-// ToMarkdown converts an OPNsense configuration to markdown.
-func (c *MarkdownConverter) ToMarkdown(_ context.Context, opnsense *model.OpnSenseDocument) (string, error) {
-	if opnsense == nil {
-		return "", ErrNilOpnSenseDocument
+// ToMarkdown converts a device configuration to markdown.
+func (c *MarkdownConverter) ToMarkdown(_ context.Context, data *common.CommonDevice) (string, error) {
+	if data == nil {
+		return "", ErrNilDevice
 	}
 
 	// Create markdown using github.com/nao1215/markdown for structured output
@@ -51,16 +45,16 @@ func (c *MarkdownConverter) ToMarkdown(_ context.Context, opnsense *model.OpnSen
 	md.H1("OPNsense Configuration")
 
 	// System Configuration
-	c.buildSystemSection(md, opnsense)
+	c.buildSystemSection(md, data)
 
 	// Network Configuration
-	c.buildNetworkSection(md, opnsense)
+	c.buildNetworkSection(md, data)
 
 	// Security Configuration
-	c.buildSecuritySection(md, opnsense)
+	c.buildSecuritySection(md, data)
 
 	// Service Configuration
-	c.buildServiceSection(md, opnsense)
+	c.buildServiceSection(md, data)
 
 	// Get the raw markdown content
 	rawMarkdown := md.String()
@@ -95,52 +89,50 @@ func (c *MarkdownConverter) getTheme() string {
 }
 
 // buildSystemSection builds the system configuration section using helper methods.
-func (c *MarkdownConverter) buildSystemSection(md *markdown.Markdown, opnsense *model.OpnSenseDocument) {
-	sysConfig := opnsense.SystemConfig()
-
+func (c *MarkdownConverter) buildSystemSection(md *markdown.Markdown, data *common.CommonDevice) {
 	md.H2("System Configuration")
 
-	c.buildBasicInfo(md, &sysConfig)
-	c.buildWebGUI(md, &sysConfig)
-	c.buildSysctl(md, &sysConfig)
-	c.buildUsers(md, &sysConfig)
-	c.buildGroups(md, &sysConfig)
+	c.buildBasicInfo(md, data)
+	c.buildWebGUI(md, data)
+	c.buildSysctl(md, data)
+	c.buildUsers(md, data)
+	c.buildGroups(md, data)
 }
 
 // buildBasicInfo builds the basic system information section.
-func (c *MarkdownConverter) buildBasicInfo(md *markdown.Markdown, sysConfig *model.SystemConfig) {
+func (c *MarkdownConverter) buildBasicInfo(md *markdown.Markdown, data *common.CommonDevice) {
 	// Basic system information
 	md.H3("Basic Information")
-	md.PlainTextf("%s: %s", markdown.Bold("Hostname"), sysConfig.System.Hostname)
-	md.PlainTextf("%s: %s", markdown.Bold("Domain"), sysConfig.System.Domain)
+	md.PlainTextf("%s: %s", markdown.Bold("Hostname"), data.System.Hostname)
+	md.PlainTextf("%s: %s", markdown.Bold("Domain"), data.System.Domain)
 
-	if sysConfig.System.Timezone != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Timezone"), sysConfig.System.Timezone)
+	if data.System.Timezone != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("Timezone"), data.System.Timezone)
 	}
 
-	if sysConfig.System.Optimization != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Optimization"), sysConfig.System.Optimization)
+	if data.System.Optimization != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("Optimization"), data.System.Optimization)
 	}
 }
 
 // buildWebGUI builds the WebGUI configuration section.
-func (c *MarkdownConverter) buildWebGUI(md *markdown.Markdown, sysConfig *model.SystemConfig) {
-	if sysConfig.System.WebGUI.Protocol != "" {
+func (c *MarkdownConverter) buildWebGUI(md *markdown.Markdown, data *common.CommonDevice) {
+	if data.System.WebGUI.Protocol != "" {
 		md.H3("Web GUI")
-		md.PlainTextf("%s: %s", markdown.Bold("Protocol"), sysConfig.System.WebGUI.Protocol)
+		md.PlainTextf("%s: %s", markdown.Bold("Protocol"), data.System.WebGUI.Protocol)
 	}
 }
 
 // buildSysctl builds the sysctl configuration as a table.
-func (c *MarkdownConverter) buildSysctl(md *markdown.Markdown, sysConfig *model.SystemConfig) {
-	if len(sysConfig.Sysctl) > 0 {
+func (c *MarkdownConverter) buildSysctl(md *markdown.Markdown, data *common.CommonDevice) {
+	if len(data.Sysctl) > 0 {
 		md.H3("System Tuning")
 
 		headers := []string{"Tunable", "Value", "Description"}
 
-		rows := make([][]string, 0, len(sysConfig.Sysctl))
-		for _, item := range sysConfig.Sysctl {
-			rows = append(rows, []string{item.Tunable, item.Value, item.Descr})
+		rows := make([][]string, 0, len(data.Sysctl))
+		for _, item := range data.Sysctl {
+			rows = append(rows, []string{item.Tunable, item.Value, item.Description})
 		}
 
 		tableSet := markdown.TableSet{
@@ -152,15 +144,15 @@ func (c *MarkdownConverter) buildSysctl(md *markdown.Markdown, sysConfig *model.
 }
 
 // buildUsers builds the users configuration as a table.
-func (c *MarkdownConverter) buildUsers(md *markdown.Markdown, sysConfig *model.SystemConfig) {
-	if len(sysConfig.System.User) > 0 {
+func (c *MarkdownConverter) buildUsers(md *markdown.Markdown, data *common.CommonDevice) {
+	if len(data.Users) > 0 {
 		md.H3("Users")
 
 		headers := []string{"Name", "Description", "Group", "Scope"}
 
-		rows := make([][]string, 0, len(sysConfig.System.User))
-		for _, user := range sysConfig.System.User {
-			rows = append(rows, []string{user.Name, user.Descr, user.Groupname, user.Scope})
+		rows := make([][]string, 0, len(data.Users))
+		for _, user := range data.Users {
+			rows = append(rows, []string{user.Name, user.Description, user.GroupName, user.Scope})
 		}
 
 		tableSet := markdown.TableSet{
@@ -172,14 +164,14 @@ func (c *MarkdownConverter) buildUsers(md *markdown.Markdown, sysConfig *model.S
 }
 
 // buildGroups builds the groups configuration as a table.
-func (c *MarkdownConverter) buildGroups(md *markdown.Markdown, sysConfig *model.SystemConfig) {
-	if len(sysConfig.System.Group) > 0 {
+func (c *MarkdownConverter) buildGroups(md *markdown.Markdown, data *common.CommonDevice) {
+	if len(data.Groups) > 0 {
 		md.H3("Groups")
 
 		headers := []string{"Name", "Description", "Scope"}
 
-		rows := make([][]string, 0, len(sysConfig.System.Group))
-		for _, group := range sysConfig.System.Group {
+		rows := make([][]string, 0, len(data.Groups))
+		for _, group := range data.Groups {
 			rows = append(rows, []string{group.Name, group.Description, group.Scope})
 		}
 
@@ -192,63 +184,42 @@ func (c *MarkdownConverter) buildGroups(md *markdown.Markdown, sysConfig *model.
 }
 
 // buildNetworkSection builds the network configuration section using helper methods.
-func (c *MarkdownConverter) buildNetworkSection(md *markdown.Markdown, opnsense *model.OpnSenseDocument) {
-	netConfig := opnsense.NetworkConfig()
-
+func (c *MarkdownConverter) buildNetworkSection(md *markdown.Markdown, data *common.CommonDevice) {
 	md.H2("Network Configuration")
 
-	// WAN Interface - the H3 creates an implicit anchor #wan-interface
-	md.H3("WAN Interface")
-
-	if wan, ok := netConfig.Interfaces.Wan(); ok {
-		buildInterfaceDetails(md, wan)
-	}
-
-	// LAN Interface - the H3 creates an implicit anchor #lan-interface
-	md.H3("LAN Interface")
-
-	if lan, ok := netConfig.Interfaces.Lan(); ok {
-		buildInterfaceDetails(md, lan)
-	}
-
-	// Add other interfaces dynamically if they exist
-	// Sort interface names for deterministic output
-	for _, name := range slices.Sorted(maps.Keys(netConfig.Interfaces.Items)) {
-		iface := netConfig.Interfaces.Items[name]
-		if name != "wan" && name != "lan" {
-			// Create consistent section names for other interfaces
-			// Use proper case conversion for interface names
-			sectionName := strings.ToUpper(name[:1]) + strings.ToLower(name[1:]) + " Interface"
-			md.H3(sectionName)
-			buildInterfaceDetails(md, iface)
+	for _, iface := range data.Interfaces {
+		name := iface.Name
+		if name == "" {
+			name = "unnamed"
 		}
+		sectionName := strings.ToUpper(name[:1]) + strings.ToLower(name[1:]) + " Interface"
+		md.H3(sectionName)
+		buildInterfaceDetails(md, iface)
 	}
 }
 
 // buildInterfaceDetails builds interface configuration details.
-func buildInterfaceDetails(md *markdown.Markdown, iface model.Interface) {
-	if iface.If != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Physical Interface"), iface.If)
+func buildInterfaceDetails(md *markdown.Markdown, iface common.Interface) {
+	if iface.PhysicalIf != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("Physical Interface"), iface.PhysicalIf)
 	}
 
-	if iface.Enable != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Enabled"), iface.Enable)
-	}
+	md.PlainTextf("%s: %s", markdown.Bold("Enabled"), formatters.FormatBool(iface.Enabled))
 
-	if iface.IPAddr != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("IPv4 Address"), iface.IPAddr)
+	if iface.IPAddress != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("IPv4 Address"), iface.IPAddress)
 	}
 
 	if iface.Subnet != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("IPv4 Subnet"), iface.Subnet)
 	}
 
-	if iface.IPAddrv6 != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("IPv6 Address"), iface.IPAddrv6)
+	if iface.IPv6Address != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("IPv6 Address"), iface.IPv6Address)
 	}
 
-	if iface.Subnetv6 != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("IPv6 Subnet"), iface.Subnetv6)
+	if iface.SubnetV6 != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("IPv6 Subnet"), iface.SubnetV6)
 	}
 
 	if iface.Gateway != "" {
@@ -259,49 +230,41 @@ func buildInterfaceDetails(md *markdown.Markdown, iface model.Interface) {
 		md.PlainTextf("%s: %s", markdown.Bold("MTU"), iface.MTU)
 	}
 
-	if iface.BlockPriv != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Block Private Networks"), iface.BlockPriv)
-	}
-
-	if iface.BlockBogons != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Block Bogon Networks"), iface.BlockBogons)
-	}
+	md.PlainTextf("%s: %s", markdown.Bold("Block Private Networks"), formatters.FormatBool(iface.BlockPrivate))
+	md.PlainTextf("%s: %s", markdown.Bold("Block Bogon Networks"), formatters.FormatBool(iface.BlockBogons))
 }
 
 // buildSecuritySection builds the security configuration section using helper methods.
-func (c *MarkdownConverter) buildSecuritySection(md *markdown.Markdown, opnsense *model.OpnSenseDocument) {
-	secConfig := opnsense.SecurityConfig()
-
+func (c *MarkdownConverter) buildSecuritySection(md *markdown.Markdown, data *common.CommonDevice) {
 	md.H2("Security Configuration")
 
 	// NAT Configuration
 	md.H3("NAT Configuration")
 
-	if secConfig.Nat.Outbound.Mode != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Outbound NAT Mode"), secConfig.Nat.Outbound.Mode)
+	if data.NAT.OutboundMode != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("Outbound NAT Mode"), data.NAT.OutboundMode)
 	}
 
 	// Firewall Rules
-	rules := opnsense.FilterRules()
-	if len(rules) > 0 {
+	if len(data.FirewallRules) > 0 {
 		md.H3("Firewall Rules")
 
 		headers := []string{"Type", "Interface", "IP Ver", "Protocol", "Source", "Destination", "Description"}
 
-		rows := make([][]string, 0, len(rules))
-		for _, rule := range rules {
-			source := rule.Source.EffectiveAddress()
+		rows := make([][]string, 0, len(data.FirewallRules))
+		for _, rule := range data.FirewallRules {
+			source := rule.Source.Address
 			if source == "" {
 				source = destinationAny
 			}
 
-			dest := rule.Destination.EffectiveAddress()
+			dest := rule.Destination.Address
 			if dest == "" {
 				dest = destinationAny
 			}
 
 			// Format interfaces as hyperlinks instead of plain text
-			interfaceLinks := formatters.FormatInterfacesAsLinks(rule.Interface)
+			interfaceLinks := formatters.FormatInterfacesAsLinks(rule.Interfaces)
 
 			rows = append(rows, []string{
 				rule.Type,
@@ -310,7 +273,7 @@ func (c *MarkdownConverter) buildSecuritySection(md *markdown.Markdown, opnsense
 				rule.Protocol,
 				source,
 				dest,
-				rule.Descr,
+				rule.Description,
 			})
 		}
 
@@ -322,115 +285,116 @@ func (c *MarkdownConverter) buildSecuritySection(md *markdown.Markdown, opnsense
 	}
 
 	// IDS/Suricata Configuration
-	c.buildIDSSection(md, opnsense)
+	c.buildIDSSection(md, data)
 }
 
 // buildIDSSection builds the IDS/Suricata configuration section.
-func (c *MarkdownConverter) buildIDSSection(md *markdown.Markdown, opnsense *model.OpnSenseDocument) {
-	ids := opnsense.OPNsense.IntrusionDetectionSystem
-	if ids == nil || !ids.IsEnabled() {
+func (c *MarkdownConverter) buildIDSSection(md *markdown.Markdown, data *common.CommonDevice) {
+	if data.IDS == nil || !data.IDS.Enabled {
 		return
 	}
+
+	ids := data.IDS
 
 	md.H3("Intrusion Detection System (IDS/Suricata)")
 
 	md.PlainTextf("%s: %s", markdown.Bold("Status"), "Enabled")
-	md.PlainTextf("%s: %s", markdown.Bold("Mode"), ids.GetDetectionMode())
 
-	if ids.General.Detect.Profile != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Detection Profile"), ids.General.Detect.Profile)
+	mode := "IDS"
+	if ids.IPSMode {
+		mode = "IPS"
+	}
+	md.PlainTextf("%s: %s", markdown.Bold("Mode"), mode)
+
+	if ids.Detect.Profile != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("Detection Profile"), ids.Detect.Profile)
 	}
 
-	if ids.General.MPMAlgo != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Pattern Matching Algorithm"), ids.General.MPMAlgo)
+	if ids.MPMAlgo != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("Pattern Matching Algorithm"), ids.MPMAlgo)
 	}
 
-	interfaces := ids.GetMonitoredInterfaces()
-	if len(interfaces) > 0 {
-		md.PlainTextf("%s: %s", markdown.Bold("Monitored Interfaces"), strings.Join(interfaces, ", "))
+	if len(ids.Interfaces) > 0 {
+		md.PlainTextf("%s: %s", markdown.Bold("Monitored Interfaces"), strings.Join(ids.Interfaces, ", "))
 	}
 
-	homeNets := ids.GetHomeNetworks()
-	if len(homeNets) > 0 {
-		md.PlainTextf("%s: %s", markdown.Bold("Home Networks"), strings.Join(homeNets, ", "))
+	if len(ids.HomeNetworks) > 0 {
+		md.PlainTextf("%s: %s", markdown.Bold("Home Networks"), strings.Join(ids.HomeNetworks, ", "))
 	}
 
-	md.PlainTextf("%s: %s", markdown.Bold("Promiscuous Mode"), formatters.FormatBoolStatus(ids.IsPromiscuousMode()))
-	md.PlainTextf("%s: %s", markdown.Bold("Syslog Output"), formatters.FormatBoolStatus(ids.IsSyslogEnabled()))
-	md.PlainTextf("%s: %s", markdown.Bold("EVE Syslog Output"), formatters.FormatBoolStatus(ids.IsSyslogEveEnabled()))
+	md.PlainTextf("%s: %s", markdown.Bold("Promiscuous Mode"), formatters.FormatBoolStatus(ids.Promiscuous))
+	md.PlainTextf("%s: %s", markdown.Bold("Syslog Output"), formatters.FormatBoolStatus(ids.SyslogEnabled))
+	md.PlainTextf("%s: %s", markdown.Bold("EVE Syslog Output"), formatters.FormatBoolStatus(ids.SyslogEveEnabled))
 
-	if ids.General.LogPayload != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Log Payload"), ids.General.LogPayload)
+	if ids.LogPayload != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("Log Payload"), ids.LogPayload)
 	}
 
-	if ids.General.AlertLogrotate != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Log Rotation"), ids.General.AlertLogrotate)
+	if ids.AlertLogrotate != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("Log Rotation"), ids.AlertLogrotate)
 	}
 
-	if ids.General.AlertSaveLogs != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Log Retention"), ids.General.AlertSaveLogs)
+	if ids.AlertSaveLogs != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("Log Retention"), ids.AlertSaveLogs)
 	}
 }
 
 // buildServiceSection builds the service configuration section using helper methods.
-func (c *MarkdownConverter) buildServiceSection(md *markdown.Markdown, opnsense *model.OpnSenseDocument) {
-	svcConfig := opnsense.ServiceConfig()
-
+func (c *MarkdownConverter) buildServiceSection(md *markdown.Markdown, data *common.CommonDevice) {
 	md.H2("Service Configuration")
 
 	// DHCP Server
 	md.H3("DHCP Server")
 
-	if lanDhcp, ok := svcConfig.Dhcpd.Get("lan"); ok && lanDhcp.Enable != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("LAN DHCP Enabled"), lanDhcp.Enable)
+	for _, scope := range data.DHCP {
+		if scope.Enabled {
+			label := strings.ToUpper(scope.Interface)
+			md.PlainTextf("%s: %s", markdown.Bold(label+" DHCP Enabled"), formatters.FormatBool(scope.Enabled))
 
-		if lanDhcp.Range.From != "" && lanDhcp.Range.To != "" {
-			md.PlainTextf("%s: %s - %s", markdown.Bold("LAN DHCP Range"), lanDhcp.Range.From, lanDhcp.Range.To)
+			if scope.Range.From != "" && scope.Range.To != "" {
+				md.PlainTextf("%s: %s - %s", markdown.Bold(label+" DHCP Range"), scope.Range.From, scope.Range.To)
+			}
 		}
-	}
-
-	if wanDhcp, ok := svcConfig.Dhcpd.Get("wan"); ok && wanDhcp.Enable != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("WAN DHCP Enabled"), wanDhcp.Enable)
 	}
 
 	// DNS Resolver (Unbound)
 	md.H3("DNS Resolver (Unbound)")
 
-	if svcConfig.Unbound.Enable != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Enabled"), svcConfig.Unbound.Enable)
+	if data.DNS.Unbound.Enabled {
+		md.PlainTextf("%s: %s", markdown.Bold("Enabled"), formatters.FormatBool(data.DNS.Unbound.Enabled))
 	}
 
 	// SNMP
 	md.H3("SNMP")
 
-	if svcConfig.Snmpd.SysLocation != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("System Location"), svcConfig.Snmpd.SysLocation)
+	if data.SNMP.SysLocation != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("System Location"), data.SNMP.SysLocation)
 	}
 
-	if svcConfig.Snmpd.SysContact != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("System Contact"), svcConfig.Snmpd.SysContact)
+	if data.SNMP.SysContact != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("System Contact"), data.SNMP.SysContact)
 	}
 
-	if svcConfig.Snmpd.ROCommunity != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Read-Only Community"), svcConfig.Snmpd.ROCommunity)
+	if data.SNMP.ROCommunity != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("Read-Only Community"), data.SNMP.ROCommunity)
 	}
 
 	// NTP
 	md.H3("NTP")
 
-	if svcConfig.Ntpd.Prefer != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Preferred Server"), svcConfig.Ntpd.Prefer)
+	if data.NTP.PreferredServer != "" {
+		md.PlainTextf("%s: %s", markdown.Bold("Preferred Server"), data.NTP.PreferredServer)
 	}
 
 	// Load Balancer
-	if len(svcConfig.LoadBalancer.MonitorType) > 0 {
+	if len(data.LoadBalancer.MonitorTypes) > 0 {
 		md.H3("Load Balancer Monitors")
 
 		headers := []string{"Name", "Type", "Description"}
 
-		rows := make([][]string, 0, len(svcConfig.LoadBalancer.MonitorType))
-		for _, monitor := range svcConfig.LoadBalancer.MonitorType {
-			rows = append(rows, []string{monitor.Name, monitor.Type, monitor.Descr})
+		rows := make([][]string, 0, len(data.LoadBalancer.MonitorTypes))
+		for _, monitor := range data.LoadBalancer.MonitorTypes {
+			rows = append(rows, []string{monitor.Name, monitor.Type, monitor.Description})
 		}
 
 		tableSet := markdown.TableSet{

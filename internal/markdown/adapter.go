@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 // Adapter provides a simplified interface for generating documentation.
@@ -23,10 +23,10 @@ func NewAdapter() (*Adapter, error) {
 	return &Adapter{generator: generator}, nil
 }
 
-// GenerateMarkdown generates markdown documentation from an OPNsense configuration.
+// GenerateMarkdown generates markdown documentation from a device configuration.
 func (a *Adapter) GenerateMarkdown(
 	ctx context.Context,
-	cfg *model.OpnSenseDocument,
+	cfg *common.CommonDevice,
 	comprehensive bool,
 ) (string, error) {
 	opts := DefaultOptions().
@@ -36,15 +36,15 @@ func (a *Adapter) GenerateMarkdown(
 	return a.generator.Generate(ctx, cfg, opts)
 }
 
-// GenerateJSON generates JSON documentation from an OPNsense configuration.
-func (a *Adapter) GenerateJSON(ctx context.Context, cfg *model.OpnSenseDocument) (string, error) {
+// GenerateJSON generates JSON documentation from a device configuration.
+func (a *Adapter) GenerateJSON(ctx context.Context, cfg *common.CommonDevice) (string, error) {
 	opts := DefaultOptions().WithFormat(FormatJSON)
 
 	return a.generator.Generate(ctx, cfg, opts)
 }
 
-// GenerateYAML generates YAML documentation from an OPNsense configuration.
-func (a *Adapter) GenerateYAML(ctx context.Context, cfg *model.OpnSenseDocument) (string, error) {
+// GenerateYAML generates YAML documentation from a device configuration.
+func (a *Adapter) GenerateYAML(ctx context.Context, cfg *common.CommonDevice) (string, error) {
 	opts := DefaultOptions().WithFormat(FormatYAML)
 
 	return a.generator.Generate(ctx, cfg, opts)

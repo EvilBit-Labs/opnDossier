@@ -3,10 +3,11 @@ package internal
 
 import (
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 // MDNode represents a Markdown node structure used to build hierarchical document representations.
@@ -22,9 +23,10 @@ type MDNode struct {
 	Children []MDNode
 }
 
-// Walk converts an OpnSenseDocument into a hierarchical MDNode tree representing its structure as Markdown-like headers and content.
-func Walk(opnsense model.OpnSenseDocument) MDNode {
-	return walkNode("OPNsense Configuration", 1, opnsense)
+// Walk converts a CommonDevice into a hierarchical MDNode tree representing its
+// structure as Markdown-like headers and content.
+func Walk(device common.CommonDevice) MDNode {
+	return walkNode("Device Configuration", 1, device)
 }
 
 const maxHeaderLevel = 6
@@ -116,8 +118,15 @@ func walkNode(title string, level int, node any) MDNode {
 				if field.Bool() {
 					mdNode.Body += formatFieldName(fieldType.Name) + ": enabled\n"
 				}
-			case reflect.Invalid, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-				reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				if field.Int() != 0 {
+					mdNode.Body += formatFieldName(fieldType.Name) + ": " + strconv.FormatInt(field.Int(), 10) + "\n"
+				}
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				if field.Uint() != 0 {
+					mdNode.Body += formatFieldName(fieldType.Name) + ": " + strconv.FormatUint(field.Uint(), 10) + "\n"
+				}
+			case reflect.Invalid, reflect.Uintptr,
 				reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128,
 				reflect.Array, reflect.Chan, reflect.Func, reflect.Interface, reflect.UnsafePointer:
 				// Handle other types as needed or ignore
@@ -131,8 +140,19 @@ func walkNode(title string, level int, node any) MDNode {
 		if nodeValue.Len() > 0 {
 			mdNode.Body = nodeValue.String()
 		}
-	case reflect.Invalid, reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
+	case reflect.Bool:
+		if nodeValue.Bool() {
+			mdNode.Body = "enabled"
+		}
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if nodeValue.Int() != 0 {
+			mdNode.Body = strconv.FormatInt(nodeValue.Int(), 10)
+		}
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		if nodeValue.Uint() != 0 {
+			mdNode.Body = strconv.FormatUint(nodeValue.Uint(), 10)
+		}
+	case reflect.Invalid, reflect.Uintptr,
 		reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128,
 		reflect.Array, reflect.Chan, reflect.Func, reflect.Interface, reflect.UnsafePointer:
 		// Handle other types as needed or ignore
@@ -159,7 +179,8 @@ func walkSlice(title string, level int, slice reflect.Value) MDNode {
 	return mdNode
 }
 
-// walkMap converts a map value into an MDNode, creating a child node for each key-value pair with the key as the title and recursively processing the value.
+// walkMap converts a map value into an MDNode, iterating over keys in sorted
+// lexicographic order and creating a child node for each key-value pair.
 func walkMap(title string, level int, m reflect.Value) MDNode {
 	mdNode := MDNode{
 		Level:    level,
@@ -167,7 +188,12 @@ func walkMap(title string, level int, m reflect.Value) MDNode {
 		Children: []MDNode{},
 	}
 
-	for _, key := range m.MapKeys() {
+	keys := m.MapKeys()
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i].String() < keys[j].String()
+	})
+
+	for _, key := range keys {
 		value := m.MapIndex(key)
 		keyStr := key.String()
 		child := walkNode(keyStr, level+1, value.Interface())
@@ -179,25 +205,22 @@ func walkMap(title string, level int, m reflect.Value) MDNode {
 
 // formatFieldName returns the input CamelCase string as a space-separated phrase, preserving acronyms.
 func formatFieldName(name string) string {
-	// Simple camelCase to space-separated conversion
-	result := ""
+	var b strings.Builder
 
-	var resultSb181 strings.Builder
 	for i, r := range name {
 		// Add space before uppercase letters, but not at the beginning
 		// and not if the previous character was also uppercase (to handle acronyms)
 		if i > 0 && r >= 'A' && r <= 'Z' {
 			prevRune := rune(name[i-1])
 			if prevRune < 'A' || prevRune > 'Z' {
-				resultSb181.WriteString(" ")
+				b.WriteString(" ")
 			}
 		}
 
-		resultSb181.WriteRune(r)
+		b.WriteRune(r)
 	}
-	result += resultSb181.String()
 
-	return result
+	return b.String()
 }
 
 // formatIndex returns the given integer index formatted as a string in square brackets, e.g., "[0]".

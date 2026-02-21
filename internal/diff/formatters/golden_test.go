@@ -49,6 +49,7 @@ func buildNoChangesResult() *diff.Result {
 		ComparedAt:  time.Date(2026, 1, 15, 10, 30, 0, 0, time.UTC),
 		ToolVersion: "1.0.0",
 	}
+	result.DeviceType = diff.DeviceTypeInfo{Old: "opnsense", New: "opnsense"}
 	return result
 }
 
@@ -61,6 +62,7 @@ func buildSingleSectionResult() *diff.Result {
 		ComparedAt:  time.Date(2026, 1, 15, 10, 30, 0, 0, time.UTC),
 		ToolVersion: "1.0.0",
 	}
+	result.DeviceType = diff.DeviceTypeInfo{Old: "opnsense", New: "opnsense"}
 	result.AddChange(diff.Change{
 		Type:        diff.ChangeModified,
 		Section:     diff.SectionSystem,
@@ -90,6 +92,7 @@ func buildMultiSectionResult() *diff.Result {
 		ComparedAt:  time.Date(2026, 1, 15, 10, 30, 0, 0, time.UTC),
 		ToolVersion: "1.0.0",
 	}
+	result.DeviceType = diff.DeviceTypeInfo{Old: "opnsense", New: "opnsense"}
 
 	// Firewall changes with security impacts
 	result.AddChange(diff.Change{

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 func TestPlugin_hasDefaultDenyPolicy(t *testing.T) {
@@ -13,28 +13,22 @@ func TestPlugin_hasDefaultDenyPolicy(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		config   *model.OpnSenseDocument
+		config   *common.CommonDevice
 		expected bool
 	}{
 		{
 			name:     "empty config - conservative approach",
-			config:   &model.OpnSenseDocument{},
+			config:   &common.CommonDevice{},
 			expected: true,
 		},
 		{
 			name: "config with explicit deny rules",
-			config: &model.OpnSenseDocument{
-				Filter: model.Filter{
-					Rule: []model.Rule{
-						{
-							Type: "block",
-							Source: model.Source{
-								Any: model.StringPtr("1"),
-							},
-							Destination: model.Destination{
-								Any: model.StringPtr("1"),
-							},
-						},
+			config: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        "block",
+						Source:      common.RuleEndpoint{Address: constants.NetworkAny},
+						Destination: common.RuleEndpoint{Address: constants.NetworkAny},
 					},
 				},
 			},
@@ -42,18 +36,12 @@ func TestPlugin_hasDefaultDenyPolicy(t *testing.T) {
 		},
 		{
 			name: "config with any/any allow rules",
-			config: &model.OpnSenseDocument{
-				Filter: model.Filter{
-					Rule: []model.Rule{
-						{
-							Type: "pass",
-							Source: model.Source{
-								Any: model.StringPtr("1"),
-							},
-							Destination: model.Destination{
-								Any: model.StringPtr("1"),
-							},
-						},
+			config: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        "pass",
+						Source:      common.RuleEndpoint{Address: constants.NetworkAny},
+						Destination: common.RuleEndpoint{Address: constants.NetworkAny},
 					},
 				},
 			},
@@ -76,28 +64,22 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		config   *model.OpnSenseDocument
+		config   *common.CommonDevice
 		expected bool
 	}{
 		{
 			name:     "empty config",
-			config:   &model.OpnSenseDocument{},
+			config:   &common.CommonDevice{},
 			expected: false,
 		},
 		{
 			name: "config with any/any rules",
-			config: &model.OpnSenseDocument{
-				Filter: model.Filter{
-					Rule: []model.Rule{
-						{
-							Type: "pass",
-							Source: model.Source{
-								Any: model.StringPtr("1"),
-							},
-							Destination: model.Destination{
-								Any: model.StringPtr("1"),
-							},
-						},
+			config: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        "pass",
+						Source:      common.RuleEndpoint{Address: constants.NetworkAny},
+						Destination: common.RuleEndpoint{Address: constants.NetworkAny},
 					},
 				},
 			},
@@ -105,19 +87,12 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 		},
 		{
 			name: "config with specific rules",
-			config: &model.OpnSenseDocument{
-				Filter: model.Filter{
-					Rule: []model.Rule{
-						{
-							Type: "pass",
-							Source: model.Source{
-								Network: "192.168.1.0/24",
-							},
-							Destination: model.Destination{
-								Network: "10.0.0.0/24",
-								Port:    "80",
-							},
-						},
+			config: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        "pass",
+						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
+						Destination: common.RuleEndpoint{Address: "10.0.0.0/24", Port: "80"},
 					},
 				},
 			},
@@ -125,19 +100,12 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 		},
 		{
 			name: "config with broad network range 10.0.0.0/8 to broad destination",
-			config: &model.OpnSenseDocument{
-				Filter: model.Filter{
-					Rule: []model.Rule{
-						{
-							Type: "pass",
-							Source: model.Source{
-								Network: "10.0.0.0/8",
-							},
-							Destination: model.Destination{
-								Network: "192.168.0.0/16",
-								Port:    "443",
-							},
-						},
+			config: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        "pass",
+						Source:      common.RuleEndpoint{Address: "10.0.0.0/8"},
+						Destination: common.RuleEndpoint{Address: "192.168.0.0/16", Port: "443"},
 					},
 				},
 			},
@@ -145,19 +113,12 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 		},
 		{
 			name: "config with broad network range 192.168.0.0/16 to any destination",
-			config: &model.OpnSenseDocument{
-				Filter: model.Filter{
-					Rule: []model.Rule{
-						{
-							Type: "pass",
-							Source: model.Source{
-								Network: "192.168.0.0/16",
-							},
-							Destination: model.Destination{
-								Network: "any",
-								Port:    "22",
-							},
-						},
+			config: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        "pass",
+						Source:      common.RuleEndpoint{Address: "192.168.0.0/16"},
+						Destination: common.RuleEndpoint{Address: "any", Port: "22"},
 					},
 				},
 			},
@@ -165,19 +126,12 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 		},
 		{
 			name: "config with broad network range 172.16.0.0/12 to empty destination",
-			config: &model.OpnSenseDocument{
-				Filter: model.Filter{
-					Rule: []model.Rule{
-						{
-							Type: "pass",
-							Source: model.Source{
-								Network: "172.16.0.0/12",
-							},
-							Destination: model.Destination{
-								Network: "",
-								Port:    "80",
-							},
-						},
+			config: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        "pass",
+						Source:      common.RuleEndpoint{Address: "172.16.0.0/12"},
+						Destination: common.RuleEndpoint{Address: "", Port: "80"},
 					},
 				},
 			},
@@ -185,20 +139,13 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 		},
 		{
 			name: "config with no port restrictions but narrow src/dst (not flagged)",
-			config: &model.OpnSenseDocument{
-				Filter: model.Filter{
-					Rule: []model.Rule{
-						{
-							Type:     "pass",
-							Protocol: "tcp",
-							Source: model.Source{
-								Network: "192.168.1.0/24",
-							},
-							Destination: model.Destination{
-								Network: "10.0.0.0/24",
-								Port:    "",
-							},
-						},
+			config: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        "pass",
+						Protocol:    "tcp",
+						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
+						Destination: common.RuleEndpoint{Address: "10.0.0.0/24", Port: ""},
 					},
 				},
 			},
@@ -206,20 +153,13 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 		},
 		{
 			name: "config with any port but narrow src/dst (not flagged)",
-			config: &model.OpnSenseDocument{
-				Filter: model.Filter{
-					Rule: []model.Rule{
-						{
-							Type:     "pass",
-							Protocol: "udp",
-							Source: model.Source{
-								Network: "172.16.1.0/24",
-							},
-							Destination: model.Destination{
-								Network: "192.168.1.0/24",
-								Port:    "any",
-							},
-						},
+			config: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        "pass",
+						Protocol:    "udp",
+						Source:      common.RuleEndpoint{Address: "172.16.1.0/24"},
+						Destination: common.RuleEndpoint{Address: "192.168.1.0/24", Port: "any"},
 					},
 				},
 			},
@@ -227,19 +167,12 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 		},
 		{
 			name: "config with broad network and no port restrictions",
-			config: &model.OpnSenseDocument{
-				Filter: model.Filter{
-					Rule: []model.Rule{
-						{
-							Type: "pass",
-							Source: model.Source{
-								Network: "10.0.0.0/8",
-							},
-							Destination: model.Destination{
-								Network: "192.168.0.0/16",
-								Port:    "",
-							},
-						},
+			config: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        "pass",
+						Source:      common.RuleEndpoint{Address: "10.0.0.0/8"},
+						Destination: common.RuleEndpoint{Address: "192.168.0.0/16", Port: ""},
 					},
 				},
 			},
@@ -247,20 +180,13 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 		},
 		{
 			name: "ICMP rule without port is not flagged (non-TCP/UDP)",
-			config: &model.OpnSenseDocument{
-				Filter: model.Filter{
-					Rule: []model.Rule{
-						{
-							Type:     "pass",
-							Protocol: "icmp",
-							Source: model.Source{
-								Network: "192.168.1.0/24",
-							},
-							Destination: model.Destination{
-								Network: "10.0.0.0/24",
-								Port:    "",
-							},
-						},
+			config: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        "pass",
+						Protocol:    "icmp",
+						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
+						Destination: common.RuleEndpoint{Address: "10.0.0.0/24", Port: ""},
 					},
 				},
 			},
@@ -268,19 +194,12 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 		},
 		{
 			name: "config with broad source and any destination",
-			config: &model.OpnSenseDocument{
-				Filter: model.Filter{
-					Rule: []model.Rule{
-						{
-							Type: "pass",
-							Source: model.Source{
-								Network: "10.0.0.0/8",
-							},
-							Destination: model.Destination{
-								Network: "any",
-								Port:    "80",
-							},
-						},
+			config: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        "pass",
+						Source:      common.RuleEndpoint{Address: "10.0.0.0/8"},
+						Destination: common.RuleEndpoint{Address: "any", Port: "80"},
 					},
 				},
 			},
@@ -288,16 +207,12 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 		},
 		{
 			name: "any/any via Address fields",
-			config: &model.OpnSenseDocument{
-				Filter: model.Filter{
-					Rule: []model.Rule{
-						{
-							Type:   "pass",
-							Source: model.Source{Address: "any"},
-							Destination: model.Destination{
-								Address: "any",
-							},
-						},
+			config: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        "pass",
+						Source:      common.RuleEndpoint{Address: "any"},
+						Destination: common.RuleEndpoint{Address: "any"},
 					},
 				},
 			},
@@ -305,20 +220,13 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 		},
 		{
 			name: "broad source with no port restrictions (flagged)",
-			config: &model.OpnSenseDocument{
-				Filter: model.Filter{
-					Rule: []model.Rule{
-						{
-							Type:     "pass",
-							Protocol: "tcp",
-							Source: model.Source{
-								Network: "10.0.0.0/8",
-							},
-							Destination: model.Destination{
-								Network: "192.168.0.0/16",
-								Port:    "",
-							},
-						},
+			config: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        "pass",
+						Protocol:    "tcp",
+						Source:      common.RuleEndpoint{Address: "10.0.0.0/8"},
+						Destination: common.RuleEndpoint{Address: "192.168.0.0/16", Port: ""},
 					},
 				},
 			},
@@ -341,18 +249,18 @@ func TestPlugin_hasUnnecessaryServices(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		config   *model.OpnSenseDocument
+		config   *common.CommonDevice
 		expected bool
 	}{
 		{
 			name:     "empty config",
-			config:   &model.OpnSenseDocument{},
+			config:   &common.CommonDevice{},
 			expected: false,
 		},
 		{
 			name: "config with SNMP enabled",
-			config: &model.OpnSenseDocument{
-				Snmpd: model.Snmpd{
+			config: &common.CommonDevice{
+				SNMP: common.SNMPConfig{
 					ROCommunity: "public",
 				},
 			},
@@ -360,40 +268,30 @@ func TestPlugin_hasUnnecessaryServices(t *testing.T) {
 		},
 		{
 			name: "config with DNSSEC stripping",
-			config: &model.OpnSenseDocument{
-				Unbound: model.Unbound{
-					Enable:         "1",
-					Dnssecstripped: "1",
+			config: &common.CommonDevice{
+				DNS: common.DNSConfig{
+					Unbound: common.UnboundConfig{
+						Enabled:        true,
+						DNSSECStripped: true,
+					},
 				},
 			},
 			expected: true,
 		},
 		{
 			name: "config with more than MaxDHCPInterfaces DHCP interfaces",
-			config: &model.OpnSenseDocument{
-				Dhcpd: model.Dhcpd{
-					Items: map[string]model.DhcpdInterface{
-						"lan": {
-							Enable: "1",
-							Range: model.Range{
-								From: "192.168.1.100",
-								To:   "192.168.1.200",
-							},
-						},
-						"opt1": {
-							Enable: "1",
-							Range: model.Range{
-								From: "10.0.1.100",
-								To:   "10.0.1.200",
-							},
-						},
-						"opt2": {
-							Enable: "1",
-							Range: model.Range{
-								From: "172.16.1.100",
-								To:   "172.16.1.200",
-							},
-						},
+			config: &common.CommonDevice{
+				DHCP: []common.DHCPScope{
+					{
+						Interface: "lan",
+						Enabled:   true,
+						Range:     common.DHCPRange{From: "192.168.1.100", To: "192.168.1.200"},
+					},
+					{Interface: "opt1", Enabled: true, Range: common.DHCPRange{From: "10.0.1.100", To: "10.0.1.200"}},
+					{
+						Interface: "opt2",
+						Enabled:   true,
+						Range:     common.DHCPRange{From: "172.16.1.100", To: "172.16.1.200"},
 					},
 				},
 			},
@@ -401,28 +299,9 @@ func TestPlugin_hasUnnecessaryServices(t *testing.T) {
 		},
 		{
 			name: "config with load balancer services enabled",
-			config: &model.OpnSenseDocument{
-				LoadBalancer: model.LoadBalancer{
-					MonitorType: []model.MonitorType{
-						{
-							Name:  "http_monitor",
-							Type:  "http",
-							Descr: "HTTP health check",
-							Options: model.Options{
-								Path: "/health",
-								Code: "200",
-							},
-						},
-						{
-							Name:  "tcp_monitor",
-							Type:  "tcp",
-							Descr: "TCP health check",
-							Options: model.Options{
-								Host: "example.com",
-								Code: "80",
-							},
-						},
-					},
+			config: &common.CommonDevice{
+				LoadBalancer: common.LoadBalancerConfig{
+					MonitorTypes: []common.MonitorType{{Name: "http_monitor"}, {Name: "tcp_monitor"}},
 				},
 			},
 			expected: true,
@@ -466,7 +345,7 @@ func TestPlugin_broadNetworkRanges(t *testing.T) {
 
 type loggingTestCase struct {
 	name     string
-	config   *model.OpnSenseDocument
+	config   *common.CommonDevice
 	expected any
 }
 
@@ -474,55 +353,46 @@ func getLoggingTestCases() []loggingTestCase {
 	return []loggingTestCase{
 		{
 			name:     "empty config",
-			config:   &model.OpnSenseDocument{},
+			config:   &common.CommonDevice{},
 			expected: false,
 		},
 		{
 			name: "config with syslog enabled and system/auth logging",
-			config: &model.OpnSenseDocument{
-				Syslog: model.Syslog{
-					Enable: model.BoolFlag(true),
-					System: model.BoolFlag(true),
-					Auth:   model.BoolFlag(true),
+			config: &common.CommonDevice{
+				Syslog: common.SyslogConfig{
+					Enabled:       true,
+					SystemLogging: true,
+					AuthLogging:   true,
 				},
 			},
 			expected: true,
 		},
 		{
 			name: "config with syslog enabled but missing system/auth logging",
-			config: &model.OpnSenseDocument{
-				Syslog: model.Syslog{
-					Enable: model.BoolFlag(true),
-					System: model.BoolFlag(false),
-					Auth:   model.BoolFlag(false),
+			config: &common.CommonDevice{
+				Syslog: common.SyslogConfig{
+					Enabled:       true,
+					SystemLogging: false,
+					AuthLogging:   false,
 				},
 			},
 			expected: false,
 		},
 		{
-			name: "config with firewall configured but no syslog",
-			config: &model.OpnSenseDocument{
-				OPNsense: model.OPNsense{
-					Firewall: &model.Firewall{},
-				},
+			name: "config with IDS configured but no syslog",
+			config: &common.CommonDevice{
+				IDS: &common.IDSConfig{},
 			},
 			expected: false,
 		},
 		{
 			name: "config with firewall rules but no syslog",
-			config: &model.OpnSenseDocument{
-				Filter: model.Filter{
-					Rule: []model.Rule{
-						{
-							Type: "pass",
-							Source: model.Source{
-								Network: "192.168.1.0/24",
-							},
-							Destination: model.Destination{
-								Network: "10.0.0.0/24",
-								Port:    "80",
-							},
-						},
+			config: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        "pass",
+						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
+						Destination: common.RuleEndpoint{Address: "10.0.0.0/24", Port: "80"},
 					},
 				},
 			},
@@ -549,60 +419,51 @@ func TestPlugin_analyzeLoggingConfiguration(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		config   *model.OpnSenseDocument
+		config   *common.CommonDevice
 		expected LoggingStatus
 	}{
 		{
 			name:     "empty config",
-			config:   &model.OpnSenseDocument{},
+			config:   &common.CommonDevice{},
 			expected: LoggingStatusNotConfigured,
 		},
 		{
 			name: "config with syslog enabled and system/auth logging",
-			config: &model.OpnSenseDocument{
-				Syslog: model.Syslog{
-					Enable: model.BoolFlag(true),
-					System: model.BoolFlag(true),
-					Auth:   model.BoolFlag(true),
+			config: &common.CommonDevice{
+				Syslog: common.SyslogConfig{
+					Enabled:       true,
+					SystemLogging: true,
+					AuthLogging:   true,
 				},
 			},
 			expected: LoggingStatusComprehensive,
 		},
 		{
 			name: "config with syslog enabled but missing system/auth logging",
-			config: &model.OpnSenseDocument{
-				Syslog: model.Syslog{
-					Enable: model.BoolFlag(true),
-					System: model.BoolFlag(false),
-					Auth:   model.BoolFlag(false),
+			config: &common.CommonDevice{
+				Syslog: common.SyslogConfig{
+					Enabled:       true,
+					SystemLogging: false,
+					AuthLogging:   false,
 				},
 			},
 			expected: LoggingStatusPartial,
 		},
 		{
-			name: "config with firewall configured but no syslog",
-			config: &model.OpnSenseDocument{
-				OPNsense: model.OPNsense{
-					Firewall: &model.Firewall{},
-				},
+			name: "config with IDS configured but no syslog",
+			config: &common.CommonDevice{
+				IDS: &common.IDSConfig{},
 			},
 			expected: LoggingStatusUnableToDetermine,
 		},
 		{
 			name: "config with firewall rules but no syslog",
-			config: &model.OpnSenseDocument{
-				Filter: model.Filter{
-					Rule: []model.Rule{
-						{
-							Type: "pass",
-							Source: model.Source{
-								Network: "192.168.1.0/24",
-							},
-							Destination: model.Destination{
-								Network: "10.0.0.0/24",
-								Port:    "80",
-							},
-						},
+			config: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        "pass",
+						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
+						Destination: common.RuleEndpoint{Address: "10.0.0.0/24", Port: "80"},
 					},
 				},
 			},

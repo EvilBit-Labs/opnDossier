@@ -10,44 +10,34 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/converter"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/go-playground/validator/v10"
 )
 
-// Processor defines the interface for processing OPNsense configurations.
+// Processor defines the interface for processing firewall configurations.
 // It provides a flexible way to analyze configurations with configurable options.
 type Processor interface {
-	// Process analyzes the given OPNsense configuration and returns a comprehensive report.
+	// Process analyzes the given device configuration and returns a comprehensive report.
 	// The context allows for cancellation and timeout control.
 	// Options can be used to enable specific analysis features.
-	Process(ctx context.Context, cfg *model.OpnSenseDocument, opts ...Option) (*Report, error)
+	Process(ctx context.Context, cfg *common.CommonDevice, opts ...Option) (*Report, error)
 }
 
 // CoreProcessor implements the Processor interface with normalize, validate, analyze, and transform capabilities.
 type CoreProcessor struct {
 	validator *validator.Validate
-	generator converter.Generator
 	mu        sync.Mutex // Protects concurrent access to the processor
 }
 
-// NewCoreProcessor returns a new CoreProcessor instance with a validator and a markdown generator initialized.
-// NewCoreProcessor creates and returns a CoreProcessor configured with a markdown generator (using converter.DefaultOptions) and a new validator.
-// It returns an error if the markdown generator cannot be created.
+// NewCoreProcessor returns a new CoreProcessor instance with a validator initialized.
 func NewCoreProcessor() (*CoreProcessor, error) {
-	generator, err := converter.NewMarkdownGenerator(nil, converter.DefaultOptions())
-	if err != nil {
-		return nil, fmt.Errorf("failed to create markdown generator: %w", err)
-	}
-
 	return &CoreProcessor{
 		validator: validator.New(),
-		generator: generator,
 	}, nil
 }
 
-// Process analyzes the given OPNsense configuration and returns a comprehensive report.
-func (p *CoreProcessor) Process(ctx context.Context, cfg *model.OpnSenseDocument, opts ...Option) (*Report, error) {
+// Process analyzes the given device configuration and returns a comprehensive report.
+func (p *CoreProcessor) Process(ctx context.Context, cfg *common.CommonDevice, opts ...Option) (*Report, error) {
 	// Check for context cancellation before starting
 	select {
 	case <-ctx.Done():
@@ -89,9 +79,11 @@ func (p *CoreProcessor) Process(ctx context.Context, cfg *model.OpnSenseDocument
 	// Create the report
 	report := NewReport(normalizedCfg, *config)
 
-	// Add validation errors as findings
+	// Add validation errors as informational findings — struct-tag validation
+	// on CommonDevice is best-effort (no validate:"" tags), so surfacing
+	// failures as high severity is misleading.
 	for _, validationErr := range validationErrors {
-		report.AddFinding(SeverityHigh, Finding{
+		report.AddFinding(SeverityInfo, Finding{
 			Type:        "validation",
 			Title:       "Configuration Validation Error",
 			Description: validationErr.Error(),

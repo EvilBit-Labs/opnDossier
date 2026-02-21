@@ -9,13 +9,13 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/diff/analyzers"
 	"github.com/EvilBit-Labs/opnDossier/internal/diff/security"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 // Engine orchestrates configuration comparison.
 type Engine struct {
-	oldConfig     *model.OpnSenseDocument
-	newConfig     *model.OpnSenseDocument
+	oldConfig     *common.CommonDevice
+	newConfig     *common.CommonDevice
 	opts          Options
 	logger        *logging.Logger
 	analyzer      *Analyzer
@@ -25,7 +25,7 @@ type Engine struct {
 }
 
 // NewEngine creates a new diff engine.
-func NewEngine(old, newCfg *model.OpnSenseDocument, opts Options, logger *logging.Logger) *Engine {
+func NewEngine(old, newCfg *common.CommonDevice, opts Options, logger *logging.Logger) *Engine {
 	return &Engine{
 		oldConfig:     old,
 		newConfig:     newCfg,
@@ -99,6 +99,10 @@ func (e *Engine) Compare(ctx context.Context) (*Result, error) {
 	// Compute aggregate risk summary
 	result.RiskSummary = e.computeRiskSummary(result)
 
+	// Populate device type metadata
+	result.DeviceType.Old = string(e.oldConfig.DeviceType)
+	result.DeviceType.New = string(e.newConfig.DeviceType)
+
 	return result, nil
 }
 
@@ -124,19 +128,19 @@ func (e *Engine) compareSection(section Section) []Change {
 	case SectionSystem:
 		return e.analyzer.CompareSystem(&e.oldConfig.System, &e.newConfig.System)
 	case SectionFirewall:
-		return e.analyzer.CompareFirewallRules(e.oldConfig.Filter.Rule, e.newConfig.Filter.Rule)
+		return e.analyzer.CompareFirewallRules(e.oldConfig.FirewallRules, e.newConfig.FirewallRules)
 	case SectionNAT:
-		return e.analyzer.CompareNAT(&e.oldConfig.Nat, &e.newConfig.Nat)
+		return e.analyzer.CompareNAT(e.oldConfig.NAT, e.newConfig.NAT)
 	case SectionInterfaces:
-		return e.analyzer.CompareInterfaces(&e.oldConfig.Interfaces, &e.newConfig.Interfaces)
+		return e.analyzer.CompareInterfaces(e.oldConfig.Interfaces, e.newConfig.Interfaces)
 	case SectionVLANs:
-		return e.analyzer.CompareVLANs(&e.oldConfig.VLANs, &e.newConfig.VLANs)
+		return e.analyzer.CompareVLANs(e.oldConfig.VLANs, e.newConfig.VLANs)
 	case SectionDHCP:
-		return e.analyzer.CompareDHCP(&e.oldConfig.Dhcpd, &e.newConfig.Dhcpd)
+		return e.analyzer.CompareDHCP(e.oldConfig.DHCP, e.newConfig.DHCP)
 	case SectionUsers:
-		return e.analyzer.CompareUsers(e.oldConfig.System.User, e.newConfig.System.User)
+		return e.analyzer.CompareUsers(e.oldConfig.Users, e.newConfig.Users)
 	case SectionRouting:
-		return e.analyzer.CompareRoutes(&e.oldConfig.StaticRoutes, &e.newConfig.StaticRoutes)
+		return e.analyzer.CompareRoutes(e.oldConfig.Routing, e.newConfig.Routing)
 	case SectionDNS, SectionVPN, SectionCertificates:
 		// These sections are defined but not yet implemented
 		if e.logger != nil {
@@ -201,8 +205,8 @@ func (e *Engine) addReorderChanges(result *Result) {
 
 // detectFirewallReorders uses the order detector to find reordered firewall rules.
 func (e *Engine) detectFirewallReorders() []Change {
-	oldUUIDs := extractRuleUUIDs(e.oldConfig.Filter.Rule)
-	newUUIDs := extractRuleUUIDs(e.newConfig.Filter.Rule)
+	oldUUIDs := extractRuleUUIDs(e.oldConfig.FirewallRules)
+	newUUIDs := extractRuleUUIDs(e.newConfig.FirewallRules)
 
 	reorders := e.orderDetector.DetectReorders(oldUUIDs, newUUIDs)
 	changes := make([]Change, 0, len(reorders))
@@ -218,7 +222,7 @@ func (e *Engine) detectFirewallReorders() []Change {
 }
 
 // extractRuleUUIDs returns the ordered list of UUIDs from firewall rules.
-func extractRuleUUIDs(rules []model.Rule) []string {
+func extractRuleUUIDs(rules []common.FirewallRule) []string {
 	uuids := make([]string, 0, len(rules))
 	for _, r := range rules {
 		if r.UUID != "" {

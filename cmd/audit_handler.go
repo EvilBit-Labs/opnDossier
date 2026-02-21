@@ -14,7 +14,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/audit"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	charmlog "github.com/charmbracelet/log"
 	"github.com/nao1215/markdown"
 )
@@ -24,7 +24,7 @@ import (
 // and appends the audit findings to the base markdown report.
 func handleAuditMode(
 	ctx context.Context,
-	doc *model.OpnSenseDocument,
+	device *common.CommonDevice,
 	auditOpts audit.Options,
 	opt converter.Options,
 	logger *logging.Logger,
@@ -57,13 +57,13 @@ func handleAuditMode(
 
 	// Create mode controller and generate audit report
 	mc := audit.NewModeController(pm.GetRegistry(), charmLogger)
-	auditReport, err := mc.GenerateReport(ctx, doc, modeConfig)
+	auditReport, err := mc.GenerateReport(ctx, device, modeConfig)
 	if err != nil {
 		return "", fmt.Errorf("generate audit report: %w", err)
 	}
 
 	// Generate base markdown report using existing generator
-	baseReport, err := generateWithProgrammaticGenerator(ctx, doc, opt, logger)
+	baseReport, err := generateWithProgrammaticGenerator(ctx, device, opt, logger)
 	if err != nil {
 		return "", fmt.Errorf("generate base report: %w", err)
 	}

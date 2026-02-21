@@ -7,7 +7,7 @@ import (
 
 	builderPkg "github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -23,7 +23,7 @@ func TestMarkdownBuilder_BuildSystemSection(t *testing.T) {
 
 	// Create test data with NAT reflection disabled
 	data := createComprehensiveTestData()
-	data.System.DisableNATReflection = "1" // Override to disable NAT reflection
+	data.System.DisableNATReflection = true // Override to disable NAT reflection
 
 	result := builder.BuildSystemSection(data)
 
@@ -58,31 +58,31 @@ func TestMarkdownBuilder_BuildNetworkSection(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
 	// Create test data with interfaces
-	data := &model.OpnSenseDocument{
-		Interfaces: model.Interfaces{
-			Items: map[string]model.Interface{
-				"wan": {
-					If:          "em0",
-					Enable:      "1",
-					IPAddr:      "192.168.1.1",
-					Subnet:      "24",
-					Gateway:     "192.168.1.254",
-					MTU:         "1500",
-					BlockPriv:   "1",
-					BlockBogons: "1",
-					Descr:       "WAN Interface",
-				},
-				"lan": {
-					If:          "em1",
-					Enable:      "1",
-					IPAddr:      "10.0.0.1",
-					Subnet:      "24",
-					Gateway:     "",
-					MTU:         "1500",
-					BlockPriv:   "0",
-					BlockBogons: "0",
-					Descr:       "LAN Interface",
-				},
+	data := &common.CommonDevice{
+		Interfaces: []common.Interface{
+			{
+				Name:         "wan",
+				PhysicalIf:   "em0",
+				Enabled:      true,
+				IPAddress:    "192.168.1.1",
+				Subnet:       "24",
+				Gateway:      "192.168.1.254",
+				MTU:          "1500",
+				BlockPrivate: true,
+				BlockBogons:  true,
+				Description:  "WAN Interface",
+			},
+			{
+				Name:         "lan",
+				PhysicalIf:   "em1",
+				Enabled:      true,
+				IPAddress:    "10.0.0.1",
+				Subnet:       "24",
+				Gateway:      "",
+				MTU:          "1500",
+				BlockPrivate: false,
+				BlockBogons:  false,
+				Description:  "LAN Interface",
 			},
 		},
 	}
@@ -108,46 +108,40 @@ func TestMarkdownBuilder_BuildSecuritySection(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
 	// Create test data with security configuration
-	data := &model.OpnSenseDocument{
-		Nat: model.Nat{
-			Outbound: model.Outbound{
-				Mode: "automatic",
-			},
+	data := &common.CommonDevice{
+		NAT: common.NATConfig{
+			OutboundMode: "automatic",
 		},
-		Filter: model.Filter{
-			Rule: []model.Rule{
-				{
-					Type:       "pass",
-					Descr:      "Allow LAN to WAN",
-					Interface:  model.InterfaceList{"lan"},
-					IPProtocol: "inet",
-					Protocol:   "tcp",
-					Source: model.Source{
-						Network: "lan",
-					},
-					Destination: model.Destination{
-						Network: "any",
-					},
-					Target:     "",
-					SourcePort: "",
-					Disabled:   false,
+		FirewallRules: []common.FirewallRule{
+			{
+				Type:        "pass",
+				Description: "Allow LAN to WAN",
+				Interfaces:  []string{"lan"},
+				IPProtocol:  "inet",
+				Protocol:    "tcp",
+				Source: common.RuleEndpoint{
+					Address: "lan",
 				},
-				{
-					Type:       "block",
-					Descr:      "Block all",
-					Interface:  model.InterfaceList{"wan"},
-					IPProtocol: "inet",
-					Protocol:   "any",
-					Source: model.Source{
-						Network: "any",
-					},
-					Destination: model.Destination{
-						Network: "any",
-					},
-					Target:     "",
-					SourcePort: "",
-					Disabled:   false,
+				Destination: common.RuleEndpoint{
+					Address: "any",
 				},
+				Target:   "",
+				Disabled: false,
+			},
+			{
+				Type:        "block",
+				Description: "Block all",
+				Interfaces:  []string{"wan"},
+				IPProtocol:  "inet",
+				Protocol:    "any",
+				Source: common.RuleEndpoint{
+					Address: "any",
+				},
+				Destination: common.RuleEndpoint{
+					Address: "any",
+				},
+				Target:   "",
+				Disabled: false,
 			},
 		},
 	}
@@ -175,38 +169,40 @@ func TestMarkdownBuilder_BuildServicesSection(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
 	// Create test data with services configuration
-	data := &model.OpnSenseDocument{
-		Dhcpd: model.Dhcpd{
-			Items: map[string]model.DhcpdInterface{
-				"lan": {
-					Enable: "1",
-					Range: model.Range{
-						From: "10.0.0.100",
-						To:   "10.0.0.200",
-					},
-				},
-				"wan": {
-					Enable: "1",
+	data := &common.CommonDevice{
+		DHCP: []common.DHCPScope{
+			{
+				Interface: "lan",
+				Enabled:   true,
+				Range: common.DHCPRange{
+					From: "10.0.0.100",
+					To:   "10.0.0.200",
 				},
 			},
+			{
+				Interface: "wan",
+				Enabled:   true,
+			},
 		},
-		Unbound: model.Unbound{
-			Enable: "1",
+		DNS: common.DNSConfig{
+			Unbound: common.UnboundConfig{
+				Enabled: true,
+			},
 		},
-		Snmpd: model.Snmpd{
+		SNMP: common.SNMPConfig{
 			SysLocation: "Data Center",
 			SysContact:  "admin@example.com",
 			ROCommunity: "public",
 		},
-		Ntpd: model.Ntpd{
-			Prefer: "pool.ntp.org",
+		NTP: common.NTPConfig{
+			PreferredServer: "pool.ntp.org",
 		},
-		LoadBalancer: model.LoadBalancer{
-			MonitorType: []model.MonitorType{
+		LoadBalancer: common.LoadBalancerConfig{
+			MonitorTypes: []common.MonitorType{
 				{
-					Name:  "http-monitor",
-					Type:  "http",
-					Descr: "HTTP Health Check",
+					Name:        "http-monitor",
+					Type:        "http",
+					Description: "HTTP Health Check",
 				},
 			},
 		},
@@ -234,22 +230,22 @@ func TestMarkdownBuilder_BuildServicesSection(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildFirewallRulesTable(t *testing.T) {
-	rules := []model.Rule{
+	rules := []common.FirewallRule{
 		{
-			Type:       "pass",
-			Descr:      "Allow LAN to WAN",
-			Interface:  model.InterfaceList{"lan"},
-			IPProtocol: "inet",
-			Protocol:   "tcp",
-			Source: model.Source{
-				Network: "lan",
+			Type:        "pass",
+			Description: "Allow LAN to WAN",
+			Interfaces:  []string{"lan"},
+			IPProtocol:  "inet",
+			Protocol:    "tcp",
+			Source: common.RuleEndpoint{
+				Address: "lan",
+				Port:    "80",
 			},
-			Destination: model.Destination{
-				Network: "any",
+			Destination: common.RuleEndpoint{
+				Address: "any",
 			},
-			Target:     "",
-			SourcePort: "80",
-			Disabled:   false,
+			Target:   "",
+			Disabled: false,
 		},
 	}
 
@@ -293,22 +289,22 @@ func TestMarkdownBuilder_BuildFirewallRulesTable(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildInterfaceTable(t *testing.T) {
-	interfaces := model.Interfaces{
-		Items: map[string]model.Interface{
-			"wan": {
-				If:     "em0",
-				Enable: "1",
-				IPAddr: "192.168.1.1",
-				Subnet: "24",
-				Descr:  "WAN Interface",
-			},
-			"lan": {
-				If:     "em1",
-				Enable: "1",
-				IPAddr: "10.0.0.1",
-				Subnet: "24",
-				Descr:  "LAN Interface",
-			},
+	interfaces := []common.Interface{
+		{
+			Name:        "wan",
+			PhysicalIf:  "em0",
+			Enabled:     true,
+			IPAddress:   "192.168.1.1",
+			Subnet:      "24",
+			Description: "WAN Interface",
+		},
+		{
+			Name:        "lan",
+			PhysicalIf:  "em1",
+			Enabled:     true,
+			IPAddress:   "10.0.0.1",
+			Subnet:      "24",
+			Description: "LAN Interface",
 		},
 	}
 
@@ -346,18 +342,18 @@ func TestMarkdownBuilder_BuildInterfaceTable(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildUserTable(t *testing.T) {
-	users := []model.User{
+	users := []common.User{
 		{
-			Name:      "admin",
-			Descr:     "Administrator",
-			Groupname: "wheel",
-			Scope:     "system",
+			Name:        "admin",
+			Description: "Administrator",
+			GroupName:   "wheel",
+			Scope:       "system",
 		},
 		{
-			Name:      "user1",
-			Descr:     "Regular User",
-			Groupname: "users",
-			Scope:     "local",
+			Name:        "user1",
+			Description: "Regular User",
+			GroupName:   "users",
+			Scope:       "local",
 		},
 	}
 
@@ -380,7 +376,7 @@ func TestMarkdownBuilder_BuildUserTable(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildGroupTable(t *testing.T) {
-	groups := []model.Group{
+	groups := []common.Group{
 		{
 			Name:        "wheel",
 			Description: "Wheel group",
@@ -411,16 +407,16 @@ func TestMarkdownBuilder_BuildGroupTable(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildSysctlTable(t *testing.T) {
-	sysctl := []model.SysctlItem{
+	sysctl := []common.SysctlItem{
 		{
-			Tunable: "net.inet.ip.forwarding",
-			Value:   "1",
-			Descr:   "Enable IP forwarding",
+			Tunable:     "net.inet.ip.forwarding",
+			Value:       "1",
+			Description: "Enable IP forwarding",
 		},
 		{
-			Tunable: "net.inet.tcp.always_keepalive",
-			Value:   "0",
-			Descr:   "Disable TCP keepalive",
+			Tunable:     "net.inet.tcp.always_keepalive",
+			Value:       "0",
+			Description: "Disable TCP keepalive",
 		},
 	}
 
@@ -444,22 +440,21 @@ func TestMarkdownBuilder_BuildSysctlTable(t *testing.T) {
 func TestMarkdownBuilder_BuildStandardReport(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
-	data := &model.OpnSenseDocument{
-		System: model.System{
+	data := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-host",
 			Domain:   "test.local",
-			Firmware: model.Firmware{
+			Firmware: common.Firmware{
 				Version: "23.1.1",
 			},
 		},
-		Interfaces: model.Interfaces{
-			Items: map[string]model.Interface{
-				"wan": {
-					If:     "em0",
-					Enable: "1",
-					IPAddr: "192.168.1.1",
-					Subnet: "24",
-				},
+		Interfaces: []common.Interface{
+			{
+				Name:       "wan",
+				PhysicalIf: "em0",
+				Enabled:    true,
+				IPAddress:  "192.168.1.1",
+				Subnet:     "24",
 			},
 		},
 	}
@@ -492,22 +487,21 @@ func TestMarkdownBuilder_BuildStandardReport(t *testing.T) {
 func TestMarkdownBuilder_BuildComprehensiveReport(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
-	data := &model.OpnSenseDocument{
-		System: model.System{
+	data := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-host",
 			Domain:   "test.local",
-			Firmware: model.Firmware{
+			Firmware: common.Firmware{
 				Version: "23.1.1",
 			},
 		},
-		Interfaces: model.Interfaces{
-			Items: map[string]model.Interface{
-				"wan": {
-					If:     "em0",
-					Enable: "1",
-					IPAddr: "192.168.1.1",
-					Subnet: "24",
-				},
+		Interfaces: []common.Interface{
+			{
+				Name:       "wan",
+				PhysicalIf: "em0",
+				Enabled:    true,
+				IPAddress:  "192.168.1.1",
+				Subnet:     "24",
 			},
 		},
 	}
@@ -546,7 +540,7 @@ func TestMarkdownBuilder_BuildStandardReport_NilData(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Empty(t, result)
-	assert.Equal(t, ErrNilOpnSenseDocument, err)
+	assert.Equal(t, builderPkg.ErrNilDevice, err)
 }
 
 func TestMarkdownBuilder_BuildComprehensiveReport_NilData(t *testing.T) {
@@ -556,7 +550,7 @@ func TestMarkdownBuilder_BuildComprehensiveReport_NilData(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Empty(t, result)
-	assert.Equal(t, ErrNilOpnSenseDocument, err)
+	assert.Equal(t, builderPkg.ErrNilDevice, err)
 }
 
 func TestFormatBoolean(t *testing.T) {
@@ -645,37 +639,37 @@ func TestGetPowerModeDescription(t *testing.T) {
 func TestBuildFirewallRulesTable_EdgeCases(t *testing.T) {
 	tests := []struct {
 		name  string
-		rules []model.Rule
+		rules []common.FirewallRule
 	}{
 		{
 			name:  "empty_rules",
-			rules: []model.Rule{},
+			rules: []common.FirewallRule{},
 		},
 		{
 			name: "rules_with_empty_networks",
-			rules: []model.Rule{
+			rules: []common.FirewallRule{
 				{
 					Type:        "pass",
-					Interface:   model.InterfaceList{"lan"},
+					Interfaces:  []string{"lan"},
 					IPProtocol:  "inet",
 					Protocol:    "tcp",
-					Source:      model.Source{Network: ""},
-					Destination: model.Destination{Network: ""},
-					Descr:       "Test rule",
+					Source:      common.RuleEndpoint{Address: ""},
+					Destination: common.RuleEndpoint{Address: ""},
+					Description: "Test rule",
 				},
 			},
 		},
 		{
 			name: "rules_with_nil_interface",
-			rules: []model.Rule{
+			rules: []common.FirewallRule{
 				{
 					Type:        "pass",
-					Interface:   nil,
+					Interfaces:  nil,
 					IPProtocol:  "inet",
 					Protocol:    "tcp",
-					Source:      model.Source{Network: "lan"},
-					Destination: model.Destination{Network: "any"},
-					Descr:       "Test rule",
+					Source:      common.RuleEndpoint{Address: "lan"},
+					Destination: common.RuleEndpoint{Address: "any"},
+					Description: "Test rule",
 				},
 			},
 		},
@@ -695,50 +689,50 @@ func TestBuildFirewallRulesTable_AnyFieldAndDestPort(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		rule       model.Rule
+		rule       common.FirewallRule
 		wantSource string
 		wantDest   string
 		wantDPort  string
 	}{
 		{
-			name: "source_any_via_pointer_value_1",
-			rule: model.Rule{
+			name: "source_any_via_address",
+			rule: common.FirewallRule{
 				Type:        "pass",
-				Source:      model.Source{Any: model.StringPtr("1")},
-				Destination: model.Destination{Network: "lan"},
+				Source:      common.RuleEndpoint{Address: "any"},
+				Destination: common.RuleEndpoint{Address: "lan"},
 			},
 			wantSource: "any",
 			wantDest:   "lan",
 			wantDPort:  "",
 		},
 		{
-			name: "source_any_via_self_closing_tag",
-			rule: model.Rule{
+			name: "source_any_empty_address",
+			rule: common.FirewallRule{
 				Type:        "pass",
-				Source:      model.Source{Any: model.StringPtr("")},
-				Destination: model.Destination{Network: "wan"},
+				Source:      common.RuleEndpoint{Address: ""},
+				Destination: common.RuleEndpoint{Address: "wan"},
 			},
 			wantSource: "any",
 			wantDest:   "wan",
 			wantDPort:  "",
 		},
 		{
-			name: "destination_any_via_pointer_value_1",
-			rule: model.Rule{
+			name: "destination_any_via_address",
+			rule: common.FirewallRule{
 				Type:        "pass",
-				Source:      model.Source{Network: "lan"},
-				Destination: model.Destination{Any: model.StringPtr("1")},
+				Source:      common.RuleEndpoint{Address: "lan"},
+				Destination: common.RuleEndpoint{Address: "any"},
 			},
 			wantSource: "lan",
 			wantDest:   "any",
 			wantDPort:  "",
 		},
 		{
-			name: "destination_any_via_self_closing_tag",
-			rule: model.Rule{
+			name: "destination_any_empty_address",
+			rule: common.FirewallRule{
 				Type:        "pass",
-				Source:      model.Source{Network: "lan"},
-				Destination: model.Destination{Any: model.StringPtr("")},
+				Source:      common.RuleEndpoint{Address: "lan"},
+				Destination: common.RuleEndpoint{Address: ""},
 			},
 			wantSource: "lan",
 			wantDest:   "any",
@@ -746,10 +740,10 @@ func TestBuildFirewallRulesTable_AnyFieldAndDestPort(t *testing.T) {
 		},
 		{
 			name: "both_absent_shows_any",
-			rule: model.Rule{
+			rule: common.FirewallRule{
 				Type:        "pass",
-				Source:      model.Source{},
-				Destination: model.Destination{},
+				Source:      common.RuleEndpoint{},
+				Destination: common.RuleEndpoint{},
 			},
 			wantSource: "any",
 			wantDest:   "any",
@@ -757,10 +751,10 @@ func TestBuildFirewallRulesTable_AnyFieldAndDestPort(t *testing.T) {
 		},
 		{
 			name: "destination_port_populated",
-			rule: model.Rule{
+			rule: common.FirewallRule{
 				Type:        "pass",
-				Source:      model.Source{Network: "any"},
-				Destination: model.Destination{Network: "wan", Port: "443"},
+				Source:      common.RuleEndpoint{Address: "any"},
+				Destination: common.RuleEndpoint{Address: "wan", Port: "443"},
 			},
 			wantSource: "any",
 			wantDest:   "wan",
@@ -768,10 +762,10 @@ func TestBuildFirewallRulesTable_AnyFieldAndDestPort(t *testing.T) {
 		},
 		{
 			name: "destination_any_with_port",
-			rule: model.Rule{
+			rule: common.FirewallRule{
 				Type:        "pass",
-				Source:      model.Source{Any: model.StringPtr("1")},
-				Destination: model.Destination{Any: model.StringPtr("1"), Port: "80,443"},
+				Source:      common.RuleEndpoint{Address: "any"},
+				Destination: common.RuleEndpoint{Address: "any", Port: "80,443"},
 			},
 			wantSource: "any",
 			wantDest:   "any",
@@ -782,7 +776,7 @@ func TestBuildFirewallRulesTable_AnyFieldAndDestPort(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			result := builderPkg.BuildFirewallRulesTableSet([]model.Rule{tt.rule})
+			result := builderPkg.BuildFirewallRulesTableSet([]common.FirewallRule{tt.rule})
 			assert.Len(t, result.Header, 12)
 			assert.Len(t, result.Rows, 1)
 			row := result.Rows[0]
@@ -798,18 +792,18 @@ func TestBuildStandardReport_EdgeCases(t *testing.T) {
 
 	tests := []struct {
 		name string
-		data *model.OpnSenseDocument
+		data *common.CommonDevice
 	}{
 		{
 			name: "empty_system_config",
-			data: &model.OpnSenseDocument{
-				System: model.System{},
+			data: &common.CommonDevice{
+				System: common.System{},
 			},
 		},
 		{
 			name: "minimal_data",
-			data: &model.OpnSenseDocument{
-				System: model.System{
+			data: &common.CommonDevice{
+				System: common.System{
 					Hostname: "test",
 					Domain:   "test.local",
 				},
@@ -817,14 +811,12 @@ func TestBuildStandardReport_EdgeCases(t *testing.T) {
 		},
 		{
 			name: "data_with_empty_interfaces",
-			data: &model.OpnSenseDocument{
-				System: model.System{
+			data: &common.CommonDevice{
+				System: common.System{
 					Hostname: "test",
 					Domain:   "test.local",
 				},
-				Interfaces: model.Interfaces{
-					Items: map[string]model.Interface{},
-				},
+				Interfaces: []common.Interface{},
 			},
 		},
 	}
@@ -844,12 +836,12 @@ func TestBuildSecuritySection_EdgeCases(t *testing.T) {
 
 	tests := []struct {
 		name string
-		data *model.OpnSenseDocument
+		data *common.CommonDevice
 	}{
 		{
 			name: "no_nat_config",
-			data: &model.OpnSenseDocument{
-				System: model.System{
+			data: &common.CommonDevice{
+				System: common.System{
 					Hostname: "test",
 					Domain:   "test.local",
 				},
@@ -857,26 +849,22 @@ func TestBuildSecuritySection_EdgeCases(t *testing.T) {
 		},
 		{
 			name: "no_firewall_rules",
-			data: &model.OpnSenseDocument{
-				System: model.System{
+			data: &common.CommonDevice{
+				System: common.System{
 					Hostname: "test",
 					Domain:   "test.local",
 				},
-				Filter: model.Filter{
-					Rule: []model.Rule{},
-				},
+				FirewallRules: []common.FirewallRule{},
 			},
 		},
 		{
 			name: "nat_without_outbound",
-			data: &model.OpnSenseDocument{
-				System: model.System{
+			data: &common.CommonDevice{
+				System: common.System{
 					Hostname: "test",
 					Domain:   "test.local",
 				},
-				Nat: model.Nat{
-					Outbound: model.Outbound{},
-				},
+				NAT: common.NATConfig{},
 			},
 		},
 	}
@@ -895,12 +883,12 @@ func TestBuildServicesSection_EdgeCases(t *testing.T) {
 
 	tests := []struct {
 		name string
-		data *model.OpnSenseDocument
+		data *common.CommonDevice
 	}{
 		{
 			name: "no_dhcp_config",
-			data: &model.OpnSenseDocument{
-				System: model.System{
+			data: &common.CommonDevice{
+				System: common.System{
 					Hostname: "test",
 					Domain:   "test.local",
 				},
@@ -908,42 +896,42 @@ func TestBuildServicesSection_EdgeCases(t *testing.T) {
 		},
 		{
 			name: "no_unbound_config",
-			data: &model.OpnSenseDocument{
-				System: model.System{
+			data: &common.CommonDevice{
+				System: common.System{
 					Hostname: "test",
 					Domain:   "test.local",
 				},
-				Unbound: model.Unbound{},
+				DNS: common.DNSConfig{},
 			},
 		},
 		{
 			name: "no_snmp_config",
-			data: &model.OpnSenseDocument{
-				System: model.System{
+			data: &common.CommonDevice{
+				System: common.System{
 					Hostname: "test",
 					Domain:   "test.local",
 				},
-				Snmpd: model.Snmpd{},
+				SNMP: common.SNMPConfig{},
 			},
 		},
 		{
 			name: "no_ntpd_config",
-			data: &model.OpnSenseDocument{
-				System: model.System{
+			data: &common.CommonDevice{
+				System: common.System{
 					Hostname: "test",
 					Domain:   "test.local",
 				},
-				Ntpd: model.Ntpd{},
+				NTP: common.NTPConfig{},
 			},
 		},
 		{
 			name: "no_load_balancer_config",
-			data: &model.OpnSenseDocument{
-				System: model.System{
+			data: &common.CommonDevice{
+				System: common.System{
 					Hostname: "test",
 					Domain:   "test.local",
 				},
-				LoadBalancer: model.LoadBalancer{},
+				LoadBalancer: common.LoadBalancerConfig{},
 			},
 		},
 	}
@@ -962,16 +950,16 @@ func TestToMarkdown_EdgeCases(t *testing.T) {
 
 	tests := []struct {
 		name string
-		data *model.OpnSenseDocument
+		data *common.CommonDevice
 	}{
 		{
 			name: "empty_opnsense",
-			data: &model.OpnSenseDocument{},
+			data: &common.CommonDevice{},
 		},
 		{
 			name: "minimal_opnsense",
-			data: &model.OpnSenseDocument{
-				System: model.System{
+			data: &common.CommonDevice{
+				System: common.System{
 					Hostname: "test",
 					Domain:   "test.local",
 				},
@@ -1050,22 +1038,21 @@ func TestMarkdownBuilder_ImplementsReportBuilder(_ *testing.T) {
 // Integration test comparing with the old MarkdownConverter.
 func TestMarkdownBuilder_IntegrationWithOldConverter(t *testing.T) {
 	// Create test data
-	data := &model.OpnSenseDocument{
-		System: model.System{
+	data := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-host",
 			Domain:   "test.local",
-			Firmware: model.Firmware{
+			Firmware: common.Firmware{
 				Version: "23.1.1",
 			},
 		},
-		Interfaces: model.Interfaces{
-			Items: map[string]model.Interface{
-				"wan": {
-					If:     "em0",
-					Enable: "1",
-					IPAddr: "192.168.1.1",
-					Subnet: "24",
-				},
+		Interfaces: []common.Interface{
+			{
+				Name:       "wan",
+				PhysicalIf: "em0",
+				Enabled:    true,
+				IPAddress:  "192.168.1.1",
+				Subnet:     "24",
 			},
 		},
 	}
@@ -1100,28 +1087,28 @@ func TestMarkdownBuilder_IntegrationWithOldConverter(t *testing.T) {
 func BenchmarkMarkdownBuilder_BuildStandardReport(b *testing.B) {
 	builder := NewMarkdownBuilder()
 
-	data := &model.OpnSenseDocument{
-		System: model.System{
+	data := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-host",
 			Domain:   "test.local",
-			Firmware: model.Firmware{
+			Firmware: common.Firmware{
 				Version: "23.1.1",
 			},
 		},
-		Interfaces: model.Interfaces{
-			Items: map[string]model.Interface{
-				"wan": {
-					If:     "em0",
-					Enable: "1",
-					IPAddr: "192.168.1.1",
-					Subnet: "24",
-				},
-				"lan": {
-					If:     "em1",
-					Enable: "1",
-					IPAddr: "10.0.0.1",
-					Subnet: "24",
-				},
+		Interfaces: []common.Interface{
+			{
+				Name:       "wan",
+				PhysicalIf: "em0",
+				Enabled:    true,
+				IPAddress:  "192.168.1.1",
+				Subnet:     "24",
+			},
+			{
+				Name:       "lan",
+				PhysicalIf: "em1",
+				Enabled:    true,
+				IPAddress:  "10.0.0.1",
+				Subnet:     "24",
 			},
 		},
 	}
@@ -1138,28 +1125,28 @@ func BenchmarkMarkdownBuilder_BuildStandardReport(b *testing.B) {
 func BenchmarkMarkdownBuilder_BuildComprehensiveReport(b *testing.B) {
 	builder := NewMarkdownBuilder()
 
-	data := &model.OpnSenseDocument{
-		System: model.System{
+	data := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-host",
 			Domain:   "test.local",
-			Firmware: model.Firmware{
+			Firmware: common.Firmware{
 				Version: "23.1.1",
 			},
 		},
-		Interfaces: model.Interfaces{
-			Items: map[string]model.Interface{
-				"wan": {
-					If:     "em0",
-					Enable: "1",
-					IPAddr: "192.168.1.1",
-					Subnet: "24",
-				},
-				"lan": {
-					If:     "em1",
-					Enable: "1",
-					IPAddr: "10.0.0.1",
-					Subnet: "24",
-				},
+		Interfaces: []common.Interface{
+			{
+				Name:       "wan",
+				PhysicalIf: "em0",
+				Enabled:    true,
+				IPAddress:  "192.168.1.1",
+				Subnet:     "24",
+			},
+			{
+				Name:       "lan",
+				PhysicalIf: "em1",
+				Enabled:    true,
+				IPAddress:  "10.0.0.1",
+				Subnet:     "24",
 			},
 		},
 	}
@@ -1178,30 +1165,26 @@ func TestMarkdownBuilder_BuildSecuritySection_WithNATReflection(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
 	// Test with NAT reflection enabled
-	data := &model.OpnSenseDocument{
-		System: model.System{
-			DisableNATReflection: "0", // NAT reflection enabled
-			PfShareForward:       1,
+	data := &common.CommonDevice{
+		System: common.System{
+			DisableNATReflection: false, // NAT reflection enabled
+			PfShareForward:       true,
 		},
-		Nat: model.Nat{
-			Outbound: model.Outbound{
-				Mode: "automatic",
-			},
+		NAT: common.NATConfig{
+			OutboundMode: "automatic",
 		},
-		Filter: model.Filter{
-			Rule: []model.Rule{
-				{
-					Type:       "pass",
-					Descr:      "Test rule",
-					Interface:  model.InterfaceList{"lan"},
-					IPProtocol: "inet",
-					Protocol:   "tcp",
-					Source: model.Source{
-						Network: "lan",
-					},
-					Destination: model.Destination{
-						Network: "any",
-					},
+		FirewallRules: []common.FirewallRule{
+			{
+				Type:        "pass",
+				Description: "Test rule",
+				Interfaces:  []string{"lan"},
+				IPProtocol:  "inet",
+				Protocol:    "tcp",
+				Source: common.RuleEndpoint{
+					Address: "lan",
+				},
+				Destination: common.RuleEndpoint{
+					Address: "any",
 				},
 			},
 		},
@@ -1218,18 +1201,18 @@ func TestMarkdownBuilder_BuildServicesSection_WithLoadBalancerMonitors(t *testin
 	builder := NewMarkdownBuilder()
 
 	// Test with load balancer monitors
-	data := &model.OpnSenseDocument{
-		LoadBalancer: model.LoadBalancer{
-			MonitorType: []model.MonitorType{
+	data := &common.CommonDevice{
+		LoadBalancer: common.LoadBalancerConfig{
+			MonitorTypes: []common.MonitorType{
 				{
-					Name:  "http-monitor",
-					Type:  "http",
-					Descr: "HTTP Health Check",
+					Name:        "http-monitor",
+					Type:        "http",
+					Description: "HTTP Health Check",
 				},
 				{
-					Name:  "tcp-monitor",
-					Type:  "tcp",
-					Descr: "TCP Health Check",
+					Name:        "tcp-monitor",
+					Type:        "tcp",
+					Description: "TCP Health Check",
 				},
 			},
 		},
@@ -1249,35 +1232,35 @@ func TestMarkdownBuilder_BuildStandardReport_WithUsersAndSysctl(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
 	// Test with users and sysctl data
-	data := &model.OpnSenseDocument{
-		System: model.System{
+	data := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-host",
 			Domain:   "test.local",
-			User: []model.User{
-				{
-					Name:      "admin",
-					Descr:     "Administrator",
-					Groupname: "wheel",
-					Scope:     "system",
-				},
-				{
-					Name:      "user1",
-					Descr:     "Regular User",
-					Groupname: "users",
-					Scope:     "local",
-				},
+		},
+		Users: []common.User{
+			{
+				Name:        "admin",
+				Description: "Administrator",
+				GroupName:   "wheel",
+				Scope:       "system",
+			},
+			{
+				Name:        "user1",
+				Description: "Regular User",
+				GroupName:   "users",
+				Scope:       "local",
 			},
 		},
-		Sysctl: []model.SysctlItem{
+		Sysctl: []common.SysctlItem{
 			{
-				Tunable: "net.inet.ip.forwarding",
-				Value:   "1",
-				Descr:   "Enable IP forwarding",
+				Tunable:     "net.inet.ip.forwarding",
+				Value:       "1",
+				Description: "Enable IP forwarding",
 			},
 			{
-				Tunable: "net.inet.tcp.always_keepalive",
-				Value:   "0",
-				Descr:   "Disable TCP keepalive",
+				Tunable:     "net.inet.tcp.always_keepalive",
+				Value:       "0",
+				Description: "Disable TCP keepalive",
 			},
 		},
 	}
@@ -1300,21 +1283,21 @@ func TestMarkdownBuilder_BuildComprehensiveReport_WithGroups(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
 	// Test comprehensive report with groups
-	data := &model.OpnSenseDocument{
-		System: model.System{
+	data := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-host",
 			Domain:   "test.local",
-			Group: []model.Group{
-				{
-					Name:        "wheel",
-					Description: "Wheel group",
-					Scope:       "system",
-				},
-				{
-					Name:        "users",
-					Description: "Regular users",
-					Scope:       "local",
-				},
+		},
+		Groups: []common.Group{
+			{
+				Name:        "wheel",
+				Description: "Wheel group",
+				Scope:       "system",
+			},
+			{
+				Name:        "users",
+				Description: "Regular users",
+				Scope:       "local",
 			},
 		},
 	}
@@ -1332,38 +1315,38 @@ func TestMarkdownBuilder_BuildComprehensiveReport_WithGroups(t *testing.T) {
 
 func TestMarkdownBuilder_BuildFirewallRulesTable_WithComplexRules(t *testing.T) {
 	// Test with complex firewall rules including all fields
-	rules := []model.Rule{
+	rules := []common.FirewallRule{
 		{
-			Type:       "pass",
-			Descr:      "Allow HTTPS",
-			Interface:  model.InterfaceList{"wan"},
-			IPProtocol: "inet",
-			Protocol:   "tcp",
-			Source: model.Source{
-				Network: "any",
+			Type:        "pass",
+			Description: "Allow HTTPS",
+			Interfaces:  []string{"wan"},
+			IPProtocol:  "inet",
+			Protocol:    "tcp",
+			Source: common.RuleEndpoint{
+				Address: "any",
+				Port:    "443",
 			},
-			Destination: model.Destination{
-				Network: "lan",
+			Destination: common.RuleEndpoint{
+				Address: "lan",
 			},
-			Target:     "lan",
-			SourcePort: "443",
-			Disabled:   true, // Disabled rule
+			Target:   "lan",
+			Disabled: true, // Disabled rule
 		},
 		{
-			Type:       "block",
-			Descr:      "Block SSH",
-			Interface:  model.InterfaceList{"wan", "lan"},
-			IPProtocol: "inet6",
-			Protocol:   "tcp",
-			Source: model.Source{
-				Network: "lan",
+			Type:        "block",
+			Description: "Block SSH",
+			Interfaces:  []string{"wan", "lan"},
+			IPProtocol:  "inet6",
+			Protocol:    "tcp",
+			Source: common.RuleEndpoint{
+				Address: "lan",
+				Port:    "22",
 			},
-			Destination: model.Destination{
-				Network: "wan",
+			Destination: common.RuleEndpoint{
+				Address: "wan",
 			},
-			Target:     "",
-			SourcePort: "22",
-			Disabled:   false,
+			Target:   "",
+			Disabled: false,
 		},
 	}
 
@@ -1407,41 +1390,42 @@ func TestMarkdownBuilder_BuildFirewallRulesTable_WithComplexRules(t *testing.T) 
 
 func TestMarkdownBuilder_BuildInterfaceTable_WithComplexInterfaces(t *testing.T) {
 	// Test with complex interface configurations
-	interfaces := model.Interfaces{
-		Items: map[string]model.Interface{
-			"wan": {
-				If:          "em0",
-				Enable:      "1",
-				IPAddr:      "192.168.1.1",
-				Subnet:      "24",
-				Gateway:     "192.168.1.254",
-				MTU:         "1500",
-				BlockPriv:   "1",
-				BlockBogons: "1",
-				Descr:       "WAN Interface",
-			},
-			"lan": {
-				If:          "em1",
-				Enable:      "0", // Disabled interface
-				IPAddr:      "10.0.0.1",
-				Subnet:      "24",
-				Gateway:     "",
-				MTU:         "1500",
-				BlockPriv:   "0",
-				BlockBogons: "0",
-				Descr:       "LAN Interface",
-			},
-			"opt1": {
-				If:          "em2",
-				Enable:      "1",
-				IPAddr:      "172.16.0.1",
-				Subnet:      "16",
-				Gateway:     "",
-				MTU:         "9000",
-				BlockPriv:   "0",
-				BlockBogons: "0",
-				Descr:       "DMZ Interface",
-			},
+	interfaces := []common.Interface{
+		{
+			Name:         "wan",
+			PhysicalIf:   "em0",
+			Enabled:      true,
+			IPAddress:    "192.168.1.1",
+			Subnet:       "24",
+			Gateway:      "192.168.1.254",
+			MTU:          "1500",
+			BlockPrivate: true,
+			BlockBogons:  true,
+			Description:  "WAN Interface",
+		},
+		{
+			Name:         "lan",
+			PhysicalIf:   "em1",
+			Enabled:      false, // Disabled interface
+			IPAddress:    "10.0.0.1",
+			Subnet:       "24",
+			Gateway:      "",
+			MTU:          "1500",
+			BlockPrivate: false,
+			BlockBogons:  false,
+			Description:  "LAN Interface",
+		},
+		{
+			Name:         "opt1",
+			PhysicalIf:   "em2",
+			Enabled:      true,
+			IPAddress:    "172.16.0.1",
+			Subnet:       "16",
+			Gateway:      "",
+			MTU:          "9000",
+			BlockPrivate: false,
+			BlockBogons:  false,
+			Description:  "DMZ Interface",
 		},
 	}
 
@@ -1547,68 +1531,66 @@ func TestMarkdownBuilder_BuildSystemSection_WithAllFields(t *testing.T) {
 }
 
 // createComprehensiveTestData creates a comprehensive test data structure.
-func createComprehensiveTestData() *model.OpnSenseDocument {
-	return &model.OpnSenseDocument{
-		System: model.System{
+func createComprehensiveTestData() *common.CommonDevice {
+	return &common.CommonDevice{
+		System: common.System{
 			Hostname:                      "test-host",
 			Domain:                        "test.local",
 			Optimization:                  "normal",
 			Timezone:                      "UTC",
 			Language:                      "en_US",
-			DNSAllowOverride:              1,
+			DNSAllowOverride:              true,
 			NextUID:                       1000,
 			NextGID:                       1000,
-			TimeServers:                   "pool.ntp.org",
-			DNSServer:                     "8.8.8.8",
-			UseVirtualTerminal:            1,
-			DisableVLANHWFilter:           0,
-			DisableChecksumOffloading:     0,
-			DisableSegmentationOffloading: 0,
-			DisableLargeReceiveOffloading: 0,
-			IPv6Allow:                     "1",
-			DisableNATReflection:          "0", // NAT reflection enabled
+			TimeServers:                   []string{"pool.ntp.org"},
+			DNSServers:                    []string{"8.8.8.8"},
+			UseVirtualTerminal:            true,
+			DisableVLANHWFilter:           false,
+			DisableChecksumOffloading:     false,
+			DisableSegmentationOffloading: false,
+			DisableLargeReceiveOffloading: false,
+			IPv6Allow:                     true,
+			DisableNATReflection:          false, // NAT reflection enabled
 			PowerdACMode:                  "adaptive",
 			PowerdBatteryMode:             "minimum",
 			PowerdNormalMode:              "adaptive",
-			PfShareForward:                1,
-			LbUseSticky:                   0,
-			RrdBackup:                     1,
-			NetflowBackup:                 0,
-			WebGUI: model.WebGUIConfig{
+			PfShareForward:                true,
+			LbUseSticky:                   false,
+			RrdBackup:                     true,
+			NetflowBackup:                 false,
+			WebGUI: common.WebGUI{
 				Protocol: "https",
 			},
-			SSH: model.SSHConfig{
+			SSH: common.SSH{
 				Group: "wheel",
 			},
-			Firmware: model.Firmware{
+			Firmware: common.Firmware{
 				Version: "23.1.1",
 			},
-			Bogons: struct {
-				Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
-			}{
+			Bogons: common.Bogons{
 				Interval: "daily",
 			},
-			User: []model.User{
-				{
-					Name:      "admin",
-					Descr:     "Administrator",
-					Groupname: "wheel",
-					Scope:     "system",
-				},
-			},
-			Group: []model.Group{
-				{
-					Name:        "wheel",
-					Description: "Wheel group",
-					Scope:       "system",
-				},
+		},
+		Users: []common.User{
+			{
+				Name:        "admin",
+				Description: "Administrator",
+				GroupName:   "wheel",
+				Scope:       "system",
 			},
 		},
-		Sysctl: []model.SysctlItem{
+		Groups: []common.Group{
 			{
-				Tunable: "net.inet.ip.forwarding",
-				Value:   "1",
-				Descr:   "Enable IP forwarding",
+				Name:        "wheel",
+				Description: "Wheel group",
+				Scope:       "system",
+			},
+		},
+		Sysctl: []common.SysctlItem{
+			{
+				Tunable:     "net.inet.ip.forwarding",
+				Value:       "1",
+				Description: "Enable IP forwarding",
 			},
 		},
 	}
@@ -1618,42 +1600,43 @@ func TestMarkdownBuilder_BuildNetworkSection_WithComplexInterfaces(t *testing.T)
 	builder := NewMarkdownBuilder()
 
 	// Test with complex network configuration
-	data := &model.OpnSenseDocument{
-		Interfaces: model.Interfaces{
-			Items: map[string]model.Interface{
-				"wan": {
-					If:          "em0",
-					Enable:      "1",
-					IPAddr:      "192.168.1.1",
-					Subnet:      "24",
-					Gateway:     "192.168.1.254",
-					MTU:         "1500",
-					BlockPriv:   "1",
-					BlockBogons: "1",
-					Descr:       "WAN Interface",
-				},
-				"lan": {
-					If:          "em1",
-					Enable:      "1",
-					IPAddr:      "10.0.0.1",
-					Subnet:      "24",
-					Gateway:     "",
-					MTU:         "1500",
-					BlockPriv:   "0",
-					BlockBogons: "0",
-					Descr:       "LAN Interface",
-				},
-				"opt1": {
-					If:          "em2",
-					Enable:      "1",
-					IPAddr:      "172.16.0.1",
-					Subnet:      "16",
-					Gateway:     "",
-					MTU:         "9000",
-					BlockPriv:   "0",
-					BlockBogons: "0",
-					Descr:       "DMZ Interface",
-				},
+	data := &common.CommonDevice{
+		Interfaces: []common.Interface{
+			{
+				Name:         "wan",
+				PhysicalIf:   "em0",
+				Enabled:      true,
+				IPAddress:    "192.168.1.1",
+				Subnet:       "24",
+				Gateway:      "192.168.1.254",
+				MTU:          "1500",
+				BlockPrivate: true,
+				BlockBogons:  true,
+				Description:  "WAN Interface",
+			},
+			{
+				Name:         "lan",
+				PhysicalIf:   "em1",
+				Enabled:      true,
+				IPAddress:    "10.0.0.1",
+				Subnet:       "24",
+				Gateway:      "",
+				MTU:          "1500",
+				BlockPrivate: false,
+				BlockBogons:  false,
+				Description:  "LAN Interface",
+			},
+			{
+				Name:         "opt1",
+				PhysicalIf:   "em2",
+				Enabled:      true,
+				IPAddress:    "172.16.0.1",
+				Subnet:       "16",
+				Gateway:      "",
+				MTU:          "9000",
+				BlockPrivate: false,
+				BlockBogons:  false,
+				Description:  "DMZ Interface",
 			},
 		},
 	}
@@ -1687,32 +1670,32 @@ func TestMarkdownBuilder_BuildNetworkSection_WithComplexInterfaces(t *testing.T)
 // =============================================================================
 
 func TestMarkdownBuilder_BuildOutboundNATTable_WithRules(t *testing.T) {
-	rules := []model.NATRule{
+	rules := []common.NATRule{
 		{
-			Interface: model.InterfaceList{"wan"},
-			Protocol:  "tcp",
-			Source: model.Source{
-				Network: "lan",
+			Interfaces: []string{"wan"},
+			Protocol:   "tcp",
+			Source: common.RuleEndpoint{
+				Address: "lan",
 			},
-			Destination: model.Destination{
-				Any: model.StringPtr("1"),
+			Destination: common.RuleEndpoint{
+				Address: "any",
 			},
-			Target:   "wan_ip",
-			Disabled: false,
-			Descr:    "LAN to WAN NAT",
+			Target:      "wan_ip",
+			Disabled:    false,
+			Description: "LAN to WAN NAT",
 		},
 		{
-			Interface: model.InterfaceList{"wan"},
-			Protocol:  "",
-			Source: model.Source{
-				Network: "dmz",
+			Interfaces: []string{"wan"},
+			Protocol:   "",
+			Source: common.RuleEndpoint{
+				Address: "dmz",
 			},
-			Destination: model.Destination{
-				Network: "any",
+			Destination: common.RuleEndpoint{
+				Address: "any",
 			},
-			Target:   "wan_ip",
-			Disabled: true,
-			Descr:    "DMZ NAT (disabled)",
+			Target:      "wan_ip",
+			Disabled:    true,
+			Description: "DMZ NAT (disabled)",
 		},
 	}
 
@@ -1763,7 +1746,7 @@ func TestMarkdownBuilder_BuildOutboundNATTable_WithRules(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildOutboundNATTable_EmptyRules(t *testing.T) {
-	rules := []model.NATRule{}
+	rules := []common.NATRule{}
 
 	tableSet := builderPkg.BuildOutboundNATTableSet(rules)
 
@@ -1779,19 +1762,19 @@ func TestMarkdownBuilder_BuildOutboundNATTable_EmptyRules(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildOutboundNATTable_SpecialCharacters(t *testing.T) {
-	rules := []model.NATRule{
+	rules := []common.NATRule{
 		{
-			Interface: model.InterfaceList{"wan"},
-			Protocol:  "tcp",
-			Source: model.Source{
-				Network: "lan",
+			Interfaces: []string{"wan"},
+			Protocol:   "tcp",
+			Source: common.RuleEndpoint{
+				Address: "lan",
 			},
-			Destination: model.Destination{
-				Any: model.StringPtr("1"),
+			Destination: common.RuleEndpoint{
+				Address: "any",
 			},
-			Target:   "wan_ip",
-			Disabled: false,
-			Descr:    "Rule with | pipe and `backticks`",
+			Target:      "wan_ip",
+			Disabled:    false,
+			Description: "Rule with | pipe and `backticks`",
 		},
 	}
 
@@ -1805,26 +1788,26 @@ func TestMarkdownBuilder_BuildOutboundNATTable_SpecialCharacters(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildInboundNATTable_WithRules(t *testing.T) {
-	rules := []model.InboundRule{
+	rules := []common.InboundNATRule{
 		{
-			Interface:    model.InterfaceList{"wan"},
+			Interfaces:   []string{"wan"},
 			Protocol:     "tcp",
 			ExternalPort: "443",
 			InternalIP:   "192.168.1.10",
 			InternalPort: "443",
 			Priority:     10,
 			Disabled:     false,
-			Descr:        "Web server forwarding",
+			Description:  "Web server forwarding",
 		},
 		{
-			Interface:    model.InterfaceList{"wan"},
+			Interfaces:   []string{"wan"},
 			Protocol:     "tcp/udp",
 			ExternalPort: "8080",
 			InternalIP:   "192.168.1.20",
 			InternalPort: "80",
 			Priority:     20,
 			Disabled:     true,
-			Descr:        "HTTP forward (disabled)",
+			Description:  "HTTP forward (disabled)",
 		},
 	}
 
@@ -1877,7 +1860,7 @@ func TestMarkdownBuilder_BuildInboundNATTable_WithRules(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildInboundNATTable_EmptyRules(t *testing.T) {
-	rules := []model.InboundRule{}
+	rules := []common.InboundNATRule{}
 
 	tableSet := builderPkg.BuildInboundNATTableSet(rules)
 
@@ -1893,16 +1876,16 @@ func TestMarkdownBuilder_BuildInboundNATTable_EmptyRules(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildInboundNATTable_SpecialCharacters(t *testing.T) {
-	rules := []model.InboundRule{
+	rules := []common.InboundNATRule{
 		{
-			Interface:    model.InterfaceList{"wan"},
+			Interfaces:   []string{"wan"},
 			Protocol:     "tcp",
 			ExternalPort: "443",
 			InternalIP:   "192.168.1.10",
 			InternalPort: "443",
 			Priority:     10,
 			Disabled:     false,
-			Descr:        "Rule with | pipe and `backticks`",
+			Description:  "Rule with | pipe and `backticks`",
 		},
 	}
 
@@ -1918,33 +1901,33 @@ func TestMarkdownBuilder_BuildInboundNATTable_SpecialCharacters(t *testing.T) {
 func TestMarkdownBuilder_BuildSecuritySection_WithBothNATTypes(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
-	data := &model.OpnSenseDocument{
-		System: model.System{
-			DisableNATReflection: "yes",
-			PfShareForward:       1,
+	data := &common.CommonDevice{
+		System: common.System{
+			DisableNATReflection: true,
+			PfShareForward:       true,
 		},
-		Nat: model.Nat{
-			Outbound: model.Outbound{
-				Mode: "automatic",
-				Rule: []model.NATRule{
-					{
-						Interface:   model.InterfaceList{"wan"},
-						Protocol:    "tcp",
-						Source:      model.Source{Network: "lan"},
-						Destination: model.Destination{Any: model.StringPtr("any")},
-						Target:      "wan_ip",
-						Descr:       "LAN NAT",
-					},
+		NAT: common.NATConfig{
+			OutboundMode:       "automatic",
+			ReflectionDisabled: true,
+			PfShareForward:     true,
+			OutboundRules: []common.NATRule{
+				{
+					Interfaces:  []string{"wan"},
+					Protocol:    "tcp",
+					Source:      common.RuleEndpoint{Address: "lan"},
+					Destination: common.RuleEndpoint{Address: "any"},
+					Target:      "wan_ip",
+					Description: "LAN NAT",
 				},
 			},
-			Inbound: []model.InboundRule{
+			InboundRules: []common.InboundNATRule{
 				{
-					Interface:    model.InterfaceList{"wan"},
+					Interfaces:   []string{"wan"},
 					Protocol:     "tcp",
 					ExternalPort: "443",
 					InternalIP:   "192.168.1.10",
 					InternalPort: "443",
-					Descr:        "HTTPS forward",
+					Description:  "HTTPS forward",
 				},
 			},
 		},
@@ -1973,22 +1956,21 @@ func TestMarkdownBuilder_BuildSecuritySection_WithBothNATTypes(t *testing.T) {
 func TestMarkdownBuilder_BuildSecuritySection_InboundSecurityWarning(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
-	data := &model.OpnSenseDocument{
-		System: model.System{
-			DisableNATReflection: "yes",
+	data := &common.CommonDevice{
+		System: common.System{
+			DisableNATReflection: true,
 		},
-		Nat: model.Nat{
-			Outbound: model.Outbound{
-				Mode: "automatic",
-			},
-			Inbound: []model.InboundRule{
+		NAT: common.NATConfig{
+			OutboundMode:       "automatic",
+			ReflectionDisabled: true,
+			InboundRules: []common.InboundNATRule{
 				{
-					Interface:    model.InterfaceList{"wan"},
+					Interfaces:   []string{"wan"},
 					Protocol:     "tcp",
 					ExternalPort: "22",
 					InternalIP:   "192.168.1.5",
 					InternalPort: "22",
-					Descr:        "SSH forward",
+					Description:  "SSH forward",
 				},
 			},
 		},
@@ -2006,22 +1988,22 @@ func TestMarkdownBuilder_BuildSecuritySection_InboundSecurityWarning(t *testing.
 // as clickable markdown links pointing to interface sections (Issue #61).
 func TestMarkdownBuilder_NATRulesWithInterfaceLinks(t *testing.T) {
 	// Test outbound NAT with multiple interfaces
-	outboundRules := []model.NATRule{
+	outboundRules := []common.NATRule{
 		{
-			Interface:   model.InterfaceList{"wan", "lan"},
+			Interfaces:  []string{"wan", "lan"},
 			Protocol:    "tcp",
-			Source:      model.Source{Network: "dmz"},
-			Destination: model.Destination{Any: model.StringPtr("any")},
+			Source:      common.RuleEndpoint{Address: "dmz"},
+			Destination: common.RuleEndpoint{Address: "any"},
 			Target:      "wan_ip",
-			Descr:       "Multi-interface NAT",
+			Description: "Multi-interface NAT",
 		},
 		{
-			Interface:   model.InterfaceList{"opt1"},
+			Interfaces:  []string{"opt1"},
 			Protocol:    "udp",
-			Source:      model.Source{Network: "lan"},
-			Destination: model.Destination{Network: "any"},
+			Source:      common.RuleEndpoint{Address: "lan"},
+			Destination: common.RuleEndpoint{Address: "any"},
 			Target:      "opt1_ip",
-			Descr:       "Single interface NAT",
+			Description: "Single interface NAT",
 		},
 	}
 
@@ -2047,22 +2029,22 @@ func TestMarkdownBuilder_NATRulesWithInterfaceLinks(t *testing.T) {
 	assert.NotContains(t, interfaceCell2, ", ") // No comma for single interface
 
 	// Test inbound NAT with interface links
-	inboundRules := []model.InboundRule{
+	inboundRules := []common.InboundNATRule{
 		{
-			Interface:    model.InterfaceList{"wan"},
+			Interfaces:   []string{"wan"},
 			Protocol:     "tcp",
 			ExternalPort: "443",
 			InternalIP:   "192.168.1.10",
 			InternalPort: "443",
-			Descr:        "HTTPS forward",
+			Description:  "HTTPS forward",
 		},
 		{
-			Interface:    model.InterfaceList{"wan", "opt2"},
+			Interfaces:   []string{"wan", "opt2"},
 			Protocol:     "tcp",
 			ExternalPort: "8080",
 			InternalIP:   "192.168.1.20",
 			InternalPort: "80",
-			Descr:        "HTTP multi-interface",
+			Description:  "HTTP multi-interface",
 		},
 	}
 
@@ -2088,14 +2070,14 @@ func TestMarkdownBuilder_NATRulesWithInterfaceLinks(t *testing.T) {
 // interface lists render gracefully (Issue #61 edge case).
 func TestMarkdownBuilder_NATRulesEmptyInterfaceList(t *testing.T) {
 	// NAT rule with empty interface list
-	rules := []model.NATRule{
+	rules := []common.NATRule{
 		{
-			Interface:   model.InterfaceList{},
+			Interfaces:  []string{},
 			Protocol:    "tcp",
-			Source:      model.Source{Network: "lan"},
-			Destination: model.Destination{Any: model.StringPtr("any")},
+			Source:      common.RuleEndpoint{Address: "lan"},
+			Destination: common.RuleEndpoint{Address: "any"},
 			Target:      "wan_ip",
-			Descr:       "NAT without interface",
+			Description: "NAT without interface",
 		},
 	}
 
@@ -2110,24 +2092,21 @@ func TestMarkdownBuilder_NATRulesEmptyInterfaceList(t *testing.T) {
 func TestMarkdownBuilder_BuildIDSSection_Enabled(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
-	ids := model.NewIDS()
-	ids.General.Enabled = "1"
-	ids.General.Ips = "1"
-	ids.General.Interfaces = "wan,lan"
-	ids.General.Homenet = "192.168.1.0/24,10.0.0.0/8"
-	ids.General.Detect.Profile = "medium"
-	ids.General.MPMAlgo = "ac"
-	ids.General.Promisc = "0"
-	ids.General.Syslog = "1"
-	ids.General.SyslogEve = "1"
-	ids.General.LogPayload = "1"
-	ids.General.AlertLogrotate = "W0D23"
-	ids.General.AlertSaveLogs = "4"
-	ids.General.DefaultPacketSize = "1518"
-
-	data := &model.OpnSenseDocument{
-		OPNsense: model.OPNsense{
-			IntrusionDetectionSystem: ids,
+	data := &common.CommonDevice{
+		IDS: &common.IDSConfig{
+			Enabled:           true,
+			IPSMode:           true,
+			Interfaces:        []string{"wan", "lan"},
+			HomeNetworks:      []string{"192.168.1.0/24", "10.0.0.0/8"},
+			Detect:            common.IDSDetect{Profile: "medium"},
+			MPMAlgo:           "ac",
+			Promiscuous:       false,
+			SyslogEnabled:     true,
+			SyslogEveEnabled:  true,
+			LogPayload:        "1",
+			AlertLogrotate:    "W0D23",
+			AlertSaveLogs:     "4",
+			DefaultPacketSize: "1518",
 		},
 	}
 
@@ -2135,7 +2114,7 @@ func TestMarkdownBuilder_BuildIDSSection_Enabled(t *testing.T) {
 
 	assert.Contains(t, result, "Intrusion Detection System (IDS/Suricata)")
 	assert.Contains(t, result, "Enabled")
-	assert.Contains(t, result, "IPS (Prevention)")
+	assert.Contains(t, result, "IPS")
 	assert.Contains(t, result, "medium")
 	assert.Contains(t, result, "ac")
 	assert.Contains(t, result, "wan")
@@ -2156,32 +2135,26 @@ func TestMarkdownBuilder_BuildIDSSection_Enabled(t *testing.T) {
 func TestMarkdownBuilder_BuildIDSSection_IDSMode(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
-	ids := model.NewIDS()
-	ids.General.Enabled = "1"
-	ids.General.Ips = "0"
-	ids.General.Interfaces = "opt1"
-
-	data := &model.OpnSenseDocument{
-		OPNsense: model.OPNsense{
-			IntrusionDetectionSystem: ids,
+	data := &common.CommonDevice{
+		IDS: &common.IDSConfig{
+			Enabled:    true,
+			IPSMode:    false,
+			Interfaces: []string{"opt1"},
 		},
 	}
 
 	result := builder.BuildIDSSection(data)
 
-	assert.Contains(t, result, "IDS (Detection Only)")
+	assert.Contains(t, result, "IDS")
 	assert.Contains(t, result, "Consider enabling IPS mode")
 }
 
 func TestMarkdownBuilder_BuildIDSSection_Disabled(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
-	ids := model.NewIDS()
-	ids.General.Enabled = "0"
-
-	data := &model.OpnSenseDocument{
-		OPNsense: model.OPNsense{
-			IntrusionDetectionSystem: ids,
+	data := &common.CommonDevice{
+		IDS: &common.IDSConfig{
+			Enabled: false,
 		},
 	}
 
@@ -2193,7 +2166,7 @@ func TestMarkdownBuilder_BuildIDSSection_Disabled(t *testing.T) {
 func TestMarkdownBuilder_BuildIDSSection_NilIDS(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
-	data := &model.OpnSenseDocument{}
+	data := &common.CommonDevice{}
 
 	result := builder.BuildIDSSection(data)
 
@@ -2203,14 +2176,11 @@ func TestMarkdownBuilder_BuildIDSSection_NilIDS(t *testing.T) {
 func TestMarkdownBuilder_BuildSecuritySection_IncludesIDS(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
-	ids := model.NewIDS()
-	ids.General.Enabled = "1"
-	ids.General.Ips = "1"
-	ids.General.Interfaces = "opt2"
-
-	data := &model.OpnSenseDocument{
-		OPNsense: model.OPNsense{
-			IntrusionDetectionSystem: ids,
+	data := &common.CommonDevice{
+		IDS: &common.IDSConfig{
+			Enabled:    true,
+			IPSMode:    true,
+			Interfaces: []string{"opt2"},
 		},
 	}
 

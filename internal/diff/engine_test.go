@@ -5,16 +5,16 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
-	"github.com/EvilBit-Labs/opnDossier/internal/schema"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-const testPathInterfacesWanIP = "interfaces.wan.ipaddr"
+const testPathInterfacesWanIP = "interfaces.wan.ipAddress"
 
 func TestNewEngine(t *testing.T) {
-	old := schema.NewOpnSenseDocument()
-	newCfg := schema.NewOpnSenseDocument()
+	old := &common.CommonDevice{}
+	newCfg := &common.CommonDevice{}
 	opts := Options{}
 
 	engine := NewEngine(old, newCfg, opts, nil)
@@ -26,11 +26,11 @@ func TestNewEngine(t *testing.T) {
 }
 
 func TestEngine_Compare_IdenticalConfigs(t *testing.T) {
-	old := schema.NewOpnSenseDocument()
+	old := &common.CommonDevice{}
 	old.System.Hostname = "firewall"
 	old.System.Domain = "example.com"
 
-	newCfg := schema.NewOpnSenseDocument()
+	newCfg := &common.CommonDevice{}
 	newCfg.System.Hostname = "firewall"
 	newCfg.System.Domain = "example.com"
 
@@ -43,10 +43,10 @@ func TestEngine_Compare_IdenticalConfigs(t *testing.T) {
 }
 
 func TestEngine_Compare_HostnameChanged(t *testing.T) {
-	old := schema.NewOpnSenseDocument()
+	old := &common.CommonDevice{}
 	old.System.Hostname = "old-firewall"
 
-	newCfg := schema.NewOpnSenseDocument()
+	newCfg := &common.CommonDevice{}
 	newCfg.System.Hostname = "new-firewall"
 
 	engine := NewEngine(old, newCfg, Options{}, nil)
@@ -70,17 +70,19 @@ func TestEngine_Compare_HostnameChanged(t *testing.T) {
 }
 
 func TestEngine_Compare_SectionFiltering(t *testing.T) {
-	old := schema.NewOpnSenseDocument()
+	old := &common.CommonDevice{
+		Interfaces: []common.Interface{
+			{Name: "wan", IPAddress: "10.0.0.1"},
+		},
+	}
 	old.System.Hostname = "old-firewall"
-	old.Interfaces.Items = map[string]schema.Interface{
-		"wan": {IPAddr: "10.0.0.1"},
-	}
 
-	newCfg := schema.NewOpnSenseDocument()
-	newCfg.System.Hostname = "new-firewall"
-	newCfg.Interfaces.Items = map[string]schema.Interface{
-		"wan": {IPAddr: "10.0.0.2"},
+	newCfg := &common.CommonDevice{
+		Interfaces: []common.Interface{
+			{Name: "wan", IPAddress: "10.0.0.2"},
+		},
 	}
+	newCfg.System.Hostname = "new-firewall"
 
 	// Only compare system section
 	engine := NewEngine(old, newCfg, Options{Sections: []string{"system"}}, nil)
@@ -96,8 +98,8 @@ func TestEngine_Compare_SectionFiltering(t *testing.T) {
 }
 
 func TestEngine_Compare_ContextCancellation(t *testing.T) {
-	old := schema.NewOpnSenseDocument()
-	newCfg := schema.NewOpnSenseDocument()
+	old := &common.CommonDevice{}
+	newCfg := &common.CommonDevice{}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // Cancel immediately
@@ -110,18 +112,20 @@ func TestEngine_Compare_ContextCancellation(t *testing.T) {
 }
 
 func TestEngine_Compare_FirewallRuleAdded(t *testing.T) {
-	old := schema.NewOpnSenseDocument()
-	old.Filter.Rule = []schema.Rule{}
+	old := &common.CommonDevice{
+		FirewallRules: []common.FirewallRule{},
+	}
 
-	newCfg := schema.NewOpnSenseDocument()
-	newCfg.Filter.Rule = []schema.Rule{
-		{
-			UUID:     "test-uuid-1",
-			Type:     "pass",
-			Descr:    "Allow SSH",
-			Protocol: "tcp",
-			Destination: schema.Destination{
-				Port: "22",
+	newCfg := &common.CommonDevice{
+		FirewallRules: []common.FirewallRule{
+			{
+				UUID:        "test-uuid-1",
+				Type:        "pass",
+				Description: "Allow SSH",
+				Protocol:    "tcp",
+				Destination: common.RuleEndpoint{
+					Port: "22",
+				},
 			},
 		},
 	}
@@ -135,18 +139,20 @@ func TestEngine_Compare_FirewallRuleAdded(t *testing.T) {
 }
 
 func TestEngine_Compare_FirewallRuleRemoved(t *testing.T) {
-	old := schema.NewOpnSenseDocument()
-	old.Filter.Rule = []schema.Rule{
-		{
-			UUID:     "test-uuid-1",
-			Type:     "pass",
-			Descr:    "Legacy FTP",
-			Protocol: "tcp",
+	old := &common.CommonDevice{
+		FirewallRules: []common.FirewallRule{
+			{
+				UUID:        "test-uuid-1",
+				Type:        "pass",
+				Description: "Legacy FTP",
+				Protocol:    "tcp",
+			},
 		},
 	}
 
-	newCfg := schema.NewOpnSenseDocument()
-	newCfg.Filter.Rule = []schema.Rule{}
+	newCfg := &common.CommonDevice{
+		FirewallRules: []common.FirewallRule{},
+	}
 
 	engine := NewEngine(old, newCfg, Options{}, nil)
 	result, err := engine.Compare(context.Background())
@@ -157,15 +163,17 @@ func TestEngine_Compare_FirewallRuleRemoved(t *testing.T) {
 }
 
 func TestEngine_Compare_InterfaceAdded(t *testing.T) {
-	old := schema.NewOpnSenseDocument()
-	old.Interfaces.Items = map[string]schema.Interface{
-		"wan": {IPAddr: "10.0.0.1", Descr: "WAN"},
+	old := &common.CommonDevice{
+		Interfaces: []common.Interface{
+			{Name: "wan", IPAddress: "10.0.0.1", Description: "WAN"},
+		},
 	}
 
-	newCfg := schema.NewOpnSenseDocument()
-	newCfg.Interfaces.Items = map[string]schema.Interface{
-		"wan":  {IPAddr: "10.0.0.1", Descr: "WAN"},
-		"opt1": {IPAddr: "192.168.10.1", Descr: "DMZ"},
+	newCfg := &common.CommonDevice{
+		Interfaces: []common.Interface{
+			{Name: "wan", IPAddress: "10.0.0.1", Description: "WAN"},
+			{Name: "opt1", IPAddress: "192.168.10.1", Description: "DMZ"},
+		},
 	}
 
 	engine := NewEngine(old, newCfg, Options{}, nil)
@@ -181,14 +189,16 @@ func TestEngine_Compare_InterfaceAdded(t *testing.T) {
 }
 
 func TestEngine_Compare_InterfaceIPChanged(t *testing.T) {
-	old := schema.NewOpnSenseDocument()
-	old.Interfaces.Items = map[string]schema.Interface{
-		"wan": {IPAddr: "10.0.0.1", Subnet: "24", Descr: "WAN"},
+	old := &common.CommonDevice{
+		Interfaces: []common.Interface{
+			{Name: "wan", IPAddress: "10.0.0.1", Subnet: "24", Description: "WAN"},
+		},
 	}
 
-	newCfg := schema.NewOpnSenseDocument()
-	newCfg.Interfaces.Items = map[string]schema.Interface{
-		"wan": {IPAddr: "10.0.0.2", Subnet: "24", Descr: "WAN"},
+	newCfg := &common.CommonDevice{
+		Interfaces: []common.Interface{
+			{Name: "wan", IPAddress: "10.0.0.2", Subnet: "24", Description: "WAN"},
+		},
 	}
 
 	engine := NewEngine(old, newCfg, Options{}, nil)
@@ -211,8 +221,8 @@ func TestEngine_Compare_InterfaceIPChanged(t *testing.T) {
 }
 
 func TestEngine_Compare_EmptyConfigs(t *testing.T) {
-	old := schema.NewOpnSenseDocument()
-	newCfg := schema.NewOpnSenseDocument()
+	old := &common.CommonDevice{}
+	newCfg := &common.CommonDevice{}
 
 	engine := NewEngine(old, newCfg, Options{}, nil)
 	result, err := engine.Compare(context.Background())
@@ -225,18 +235,20 @@ func TestEngine_Compare_EmptyConfigs(t *testing.T) {
 }
 
 func TestEngine_Compare_DetectOrder_ReorderedRules(t *testing.T) {
-	old := schema.NewOpnSenseDocument()
-	old.Filter.Rule = []schema.Rule{
-		{UUID: "uuid-1", Type: "pass", Descr: "Allow SSH", Protocol: "tcp"},
-		{UUID: "uuid-2", Type: "pass", Descr: "Allow HTTP", Protocol: "tcp"},
-		{UUID: "uuid-3", Type: "pass", Descr: "Allow DNS", Protocol: "udp"},
+	old := &common.CommonDevice{
+		FirewallRules: []common.FirewallRule{
+			{UUID: "uuid-1", Type: "pass", Description: "Allow SSH", Protocol: "tcp"},
+			{UUID: "uuid-2", Type: "pass", Description: "Allow HTTP", Protocol: "tcp"},
+			{UUID: "uuid-3", Type: "pass", Description: "Allow DNS", Protocol: "udp"},
+		},
 	}
 
-	newCfg := schema.NewOpnSenseDocument()
-	newCfg.Filter.Rule = []schema.Rule{
-		{UUID: "uuid-3", Type: "pass", Descr: "Allow DNS", Protocol: "udp"},
-		{UUID: "uuid-1", Type: "pass", Descr: "Allow SSH", Protocol: "tcp"},
-		{UUID: "uuid-2", Type: "pass", Descr: "Allow HTTP", Protocol: "tcp"},
+	newCfg := &common.CommonDevice{
+		FirewallRules: []common.FirewallRule{
+			{UUID: "uuid-3", Type: "pass", Description: "Allow DNS", Protocol: "udp"},
+			{UUID: "uuid-1", Type: "pass", Description: "Allow SSH", Protocol: "tcp"},
+			{UUID: "uuid-2", Type: "pass", Description: "Allow HTTP", Protocol: "tcp"},
+		},
 	}
 
 	engine := NewEngine(old, newCfg, Options{DetectOrder: true}, nil)
@@ -256,16 +268,18 @@ func TestEngine_Compare_DetectOrder_ReorderedRules(t *testing.T) {
 }
 
 func TestEngine_Compare_DetectOrder_Disabled(t *testing.T) {
-	old := schema.NewOpnSenseDocument()
-	old.Filter.Rule = []schema.Rule{
-		{UUID: "uuid-1", Type: "pass", Descr: "Allow SSH", Protocol: "tcp"},
-		{UUID: "uuid-2", Type: "pass", Descr: "Allow HTTP", Protocol: "tcp"},
+	old := &common.CommonDevice{
+		FirewallRules: []common.FirewallRule{
+			{UUID: "uuid-1", Type: "pass", Description: "Allow SSH", Protocol: "tcp"},
+			{UUID: "uuid-2", Type: "pass", Description: "Allow HTTP", Protocol: "tcp"},
+		},
 	}
 
-	newCfg := schema.NewOpnSenseDocument()
-	newCfg.Filter.Rule = []schema.Rule{
-		{UUID: "uuid-2", Type: "pass", Descr: "Allow HTTP", Protocol: "tcp"},
-		{UUID: "uuid-1", Type: "pass", Descr: "Allow SSH", Protocol: "tcp"},
+	newCfg := &common.CommonDevice{
+		FirewallRules: []common.FirewallRule{
+			{UUID: "uuid-2", Type: "pass", Description: "Allow HTTP", Protocol: "tcp"},
+			{UUID: "uuid-1", Type: "pass", Description: "Allow SSH", Protocol: "tcp"},
+		},
 	}
 
 	// DetectOrder is false (default), so no reorder changes
@@ -277,17 +291,19 @@ func TestEngine_Compare_DetectOrder_Disabled(t *testing.T) {
 }
 
 func TestEngine_Compare_DetectOrder_ExcludesContentChanges(t *testing.T) {
-	old := schema.NewOpnSenseDocument()
-	old.Filter.Rule = []schema.Rule{
-		{UUID: "uuid-1", Type: "pass", Descr: "Allow SSH", Protocol: "tcp"},
-		{UUID: "uuid-2", Type: "pass", Descr: "Allow HTTP", Protocol: "tcp"},
+	old := &common.CommonDevice{
+		FirewallRules: []common.FirewallRule{
+			{UUID: "uuid-1", Type: "pass", Description: "Allow SSH", Protocol: "tcp"},
+			{UUID: "uuid-2", Type: "pass", Description: "Allow HTTP", Protocol: "tcp"},
+		},
 	}
 
-	newCfg := schema.NewOpnSenseDocument()
-	newCfg.Filter.Rule = []schema.Rule{
-		// uuid-2 moved to position 0 AND its description changed
-		{UUID: "uuid-2", Type: "pass", Descr: "Allow HTTPS", Protocol: "tcp"},
-		{UUID: "uuid-1", Type: "pass", Descr: "Allow SSH", Protocol: "tcp"},
+	newCfg := &common.CommonDevice{
+		FirewallRules: []common.FirewallRule{
+			// uuid-2 moved to position 0 AND its description changed
+			{UUID: "uuid-2", Type: "pass", Description: "Allow HTTPS", Protocol: "tcp"},
+			{UUID: "uuid-1", Type: "pass", Description: "Allow SSH", Protocol: "tcp"},
+		},
 	}
 
 	engine := NewEngine(old, newCfg, Options{DetectOrder: true}, nil)
@@ -305,14 +321,16 @@ func TestEngine_Compare_DetectOrder_ExcludesContentChanges(t *testing.T) {
 }
 
 func TestEngine_Compare_Normalize_IPAddresses(t *testing.T) {
-	old := schema.NewOpnSenseDocument()
-	old.Interfaces.Items = map[string]schema.Interface{
-		"wan": {IPAddr: "010.000.001.001", Subnet: "24", Descr: "WAN"},
+	old := &common.CommonDevice{
+		Interfaces: []common.Interface{
+			{Name: "wan", IPAddress: "010.000.001.001", Subnet: "24", Description: "WAN"},
+		},
 	}
 
-	newCfg := schema.NewOpnSenseDocument()
-	newCfg.Interfaces.Items = map[string]schema.Interface{
-		"wan": {IPAddr: "010.000.001.002", Subnet: "24", Descr: "WAN"},
+	newCfg := &common.CommonDevice{
+		Interfaces: []common.Interface{
+			{Name: "wan", IPAddress: "010.000.001.002", Subnet: "24", Description: "WAN"},
+		},
 	}
 
 	engine := NewEngine(old, newCfg, Options{Normalize: true}, nil)
@@ -331,15 +349,17 @@ func TestEngine_Compare_Normalize_IPAddresses(t *testing.T) {
 }
 
 func TestEngine_Compare_Normalize_SkipsCosmeticDiffs(t *testing.T) {
-	old := schema.NewOpnSenseDocument()
-	old.Interfaces.Items = map[string]schema.Interface{
-		"wan": {IPAddr: "010.000.001.001", Subnet: "24", Descr: "WAN"},
+	old := &common.CommonDevice{
+		Interfaces: []common.Interface{
+			{Name: "wan", IPAddress: "010.000.001.001", Subnet: "24", Description: "WAN"},
+		},
 	}
 
-	newCfg := schema.NewOpnSenseDocument()
-	newCfg.Interfaces.Items = map[string]schema.Interface{
-		// Same IP with different leading zeros - normalization makes them equal
-		"wan": {IPAddr: "10.0.1.1", Subnet: "24", Descr: "WAN"},
+	newCfg := &common.CommonDevice{
+		Interfaces: []common.Interface{
+			// Same IP with different leading zeros - normalization makes them equal
+			{Name: "wan", IPAddress: "10.0.1.1", Subnet: "24", Description: "WAN"},
+		},
 	}
 
 	engine := NewEngine(old, newCfg, Options{Normalize: true}, nil)
@@ -356,12 +376,14 @@ func TestEngine_Compare_Normalize_SkipsCosmeticDiffs(t *testing.T) {
 }
 
 func TestEngine_Compare_RiskSummary_Populated(t *testing.T) {
-	old := schema.NewOpnSenseDocument()
-	old.Filter.Rule = []schema.Rule{}
+	old := &common.CommonDevice{
+		FirewallRules: []common.FirewallRule{},
+	}
 
-	newCfg := schema.NewOpnSenseDocument()
-	newCfg.Filter.Rule = []schema.Rule{
-		{UUID: "uuid-1", Type: "pass", Descr: "Allow any", Protocol: "any"},
+	newCfg := &common.CommonDevice{
+		FirewallRules: []common.FirewallRule{
+			{UUID: "uuid-1", Type: "pass", Description: "Allow any", Protocol: "any"},
+		},
 	}
 
 	engine := NewEngine(old, newCfg, Options{}, nil)

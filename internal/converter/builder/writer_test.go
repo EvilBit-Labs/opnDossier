@@ -7,7 +7,7 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	internalMarkdown "github.com/EvilBit-Labs/opnDossier/internal/markdown"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/nao1215/markdown"
 )
 
@@ -52,7 +52,7 @@ func TestMarkdownBuilder_WriteNetworkSection(t *testing.T) {
 		t.Error("WriteNetworkSection produced empty output")
 	}
 
-	// Verify key content is present (map iteration order may vary)
+	// Verify key content is present
 	expectedContent := []string{
 		"## Network Configuration",
 		"### Interfaces",
@@ -238,14 +238,14 @@ func TestMarkdownBuilder_WriteVLANTable_SingleVLAN(t *testing.T) {
 	t.Parallel()
 
 	b := builder.NewMarkdownBuilder()
-	vlans := []model.VLAN{
+	vlans := []common.VLAN{
 		{
-			Vlanif:  "vlan10",
-			If:      "em0",
-			Tag:     "10",
-			Descr:   "Management VLAN",
-			Created: "2024-01-01",
-			Updated: "2024-01-02",
+			VLANIf:      "vlan10",
+			PhysicalIf:  "em0",
+			Tag:         "10",
+			Description: "Management VLAN",
+			Created:     "2024-01-01",
+			Updated:     "2024-01-02",
 		},
 	}
 	var buf bytes.Buffer
@@ -271,10 +271,10 @@ func TestMarkdownBuilder_WriteVLANTable_MultipleVLANs(t *testing.T) {
 	t.Parallel()
 
 	b := builder.NewMarkdownBuilder()
-	vlans := []model.VLAN{
-		{Vlanif: "vlan10", If: "em0", Tag: "10", Descr: "Management"},
-		{Vlanif: "vlan20", If: "em0", Tag: "20", Descr: "DMZ"},
-		{Vlanif: "vlan30", If: "em1", Tag: "30", Descr: "Guest"},
+	vlans := []common.VLAN{
+		{VLANIf: "vlan10", PhysicalIf: "em0", Tag: "10", Description: "Management"},
+		{VLANIf: "vlan20", PhysicalIf: "em0", Tag: "20", Description: "DMZ"},
+		{VLANIf: "vlan30", PhysicalIf: "em1", Tag: "30", Description: "Guest"},
 	}
 	var buf bytes.Buffer
 	md := markdown.NewMarkdown(&buf)
@@ -310,22 +310,22 @@ func TestMarkdownBuilder_WriteStaticRoutesTable_WithRoutes(t *testing.T) {
 	t.Parallel()
 
 	b := builder.NewMarkdownBuilder()
-	routes := []model.StaticRoute{
+	routes := []common.StaticRoute{
 		{
-			Network:  "10.0.0.0/8",
-			Gateway:  "192.168.1.1",
-			Descr:    "Internal networks",
-			Disabled: false,
-			Created:  "2024-01-01",
-			Updated:  "2024-01-02",
+			Network:     "10.0.0.0/8",
+			Gateway:     "192.168.1.1",
+			Description: "Internal networks",
+			Disabled:    false,
+			Created:     "2024-01-01",
+			Updated:     "2024-01-02",
 		},
 		{
-			Network:  "172.16.0.0/12",
-			Gateway:  "192.168.1.2",
-			Descr:    "VPN networks",
-			Disabled: true,
-			Created:  "2024-01-01",
-			Updated:  "2024-01-02",
+			Network:     "172.16.0.0/12",
+			Gateway:     "192.168.1.2",
+			Description: "VPN networks",
+			Disabled:    true,
+			Created:     "2024-01-01",
+			Updated:     "2024-01-02",
 		},
 	}
 	var buf bytes.Buffer
@@ -359,7 +359,7 @@ func TestMarkdownBuilder_BuildIPsecSection_Nil(t *testing.T) {
 
 	b := builder.NewMarkdownBuilder()
 	data := createTestDocument()
-	// OPNsense.IPsec is nil by default
+	// VPN.IPsec.Enabled is false by default
 
 	output := b.BuildIPsecSection(data)
 
@@ -367,7 +367,7 @@ func TestMarkdownBuilder_BuildIPsecSection_Nil(t *testing.T) {
 		t.Error("Expected IPsec section header")
 	}
 	if !strings.Contains(output, "No IPsec configuration present") {
-		t.Error("Expected 'No IPsec configuration present' message for nil IPsec")
+		t.Error("Expected 'No IPsec configuration present' message for disabled IPsec")
 	}
 }
 
@@ -383,8 +383,6 @@ func TestMarkdownBuilder_BuildIPsecSection_Configured(t *testing.T) {
 		"### IPsec VPN Configuration",
 		"#### General Configuration",
 		"**Enabled**",
-		"#### Charon IKE Daemon Configuration",
-		"**Threads**",
 	}
 
 	for _, content := range expectedContent {
@@ -412,8 +410,6 @@ func TestMarkdownBuilder_BuildOpenVPNSection_Empty(t *testing.T) {
 		"No OpenVPN servers configured",
 		"#### OpenVPN Clients",
 		"No OpenVPN clients configured",
-		"#### Client-Specific Overrides",
-		"No client-specific overrides configured",
 	}
 
 	for _, content := range expectedContent {
@@ -462,28 +458,6 @@ func TestMarkdownBuilder_BuildOpenVPNSection_WithClients(t *testing.T) {
 		"Remote Office",
 		"vpn.example.com",
 		"1194",
-	}
-
-	for _, content := range expectedContent {
-		if !strings.Contains(output, content) {
-			t.Errorf("Expected OpenVPN section to contain '%s'", content)
-		}
-	}
-}
-
-func TestMarkdownBuilder_BuildOpenVPNSection_WithCSC(t *testing.T) {
-	t.Parallel()
-
-	b := builder.NewMarkdownBuilder()
-	data := createTestDocumentWithOpenVPNCSC()
-
-	output := b.BuildOpenVPNSection(data)
-
-	expectedContent := []string{
-		"#### Client-Specific Overrides",
-		"client1",
-		"10.8.0.10/32",
-		"192.168.10.0/24",
 	}
 
 	for _, content := range expectedContent {
@@ -600,8 +574,7 @@ func TestMarkdownBuilder_WriteComprehensiveReport_NewSections(t *testing.T) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // TestMarkdownBuilder_ValidateMarkdownSyntax validates that all generated markdown
-// passes goldmark parsing. This is a round-trip validation test that generates
-// markdown and then verifies it can be parsed by a standards-compliant parser.
+// passes goldmark parsing.
 func TestMarkdownBuilder_ValidateMarkdownSyntax(t *testing.T) {
 	t.Parallel()
 
@@ -807,7 +780,7 @@ func TestMarkdownBuilder_ValidateTableMethods(t *testing.T) {
 		{
 			name: "WriteFirewallRulesTable",
 			write: func(md *markdown.Markdown) {
-				b.WriteFirewallRulesTable(md, data.Filter.Rule)
+				b.WriteFirewallRulesTable(md, data.FirewallRules)
 			},
 		},
 		{
@@ -819,25 +792,25 @@ func TestMarkdownBuilder_ValidateTableMethods(t *testing.T) {
 		{
 			name: "WriteUserTable",
 			write: func(md *markdown.Markdown) {
-				b.WriteUserTable(md, data.System.User)
+				b.WriteUserTable(md, data.Users)
 			},
 		},
 		{
 			name: "WriteGroupTable",
 			write: func(md *markdown.Markdown) {
-				b.WriteGroupTable(md, data.System.Group)
+				b.WriteGroupTable(md, data.Groups)
 			},
 		},
 		{
 			name: "WriteVLANTable",
 			write: func(md *markdown.Markdown) {
-				b.WriteVLANTable(md, data.VLANs.VLAN)
+				b.WriteVLANTable(md, data.VLANs)
 			},
 		},
 		{
 			name: "WriteStaticRoutesTable",
 			write: func(md *markdown.Markdown) {
-				b.WriteStaticRoutesTable(md, data.StaticRoutes.Route)
+				b.WriteStaticRoutesTable(md, data.Routing.StaticRoutes)
 			},
 		},
 		{
@@ -882,15 +855,12 @@ func TestMarkdownBuilder_ValidateEmptyData(t *testing.T) {
 
 	b := builder.NewMarkdownBuilder()
 	// Minimal document with mostly empty fields
-	data := &model.OpnSenseDocument{
+	data := &common.CommonDevice{
 		Version: "1.0",
-		System: model.System{
+		System: common.System{
 			Hostname: "empty-test",
 			Domain:   "test.local",
-			Firmware: model.Firmware{Version: "24.1"},
-		},
-		Interfaces: model.Interfaces{
-			Items: map[string]model.Interface{},
+			Firmware: common.Firmware{Version: "24.1"},
 		},
 	}
 
@@ -961,135 +931,102 @@ func TestMarkdownBuilder_ValidateEmptyData(t *testing.T) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // createTestDocument creates a minimal test document for testing.
-func createTestDocument() *model.OpnSenseDocument {
-	return &model.OpnSenseDocument{
+func createTestDocument() *common.CommonDevice {
+	return &common.CommonDevice{
 		Version: "1.0",
-		System: model.System{
+		System: common.System{
 			Hostname: "test-firewall",
 			Domain:   "example.com",
-			User:     []model.User{{Name: "admin", Scope: "system"}},
-			Group:    []model.Group{{Name: "admins", Scope: "system"}},
-			Firmware: model.Firmware{Version: "24.1"},
+			Firmware: common.Firmware{Version: "24.1"},
 		},
-		Interfaces: model.Interfaces{
-			Items: map[string]model.Interface{
-				"lan": {If: "em0", Enable: "1", IPAddr: "192.168.1.1", Subnet: "24"},
-				"wan": {If: "em1", Enable: "1"},
-			},
+		Users:  []common.User{{Name: "admin", Scope: "system"}},
+		Groups: []common.Group{{Name: "admins", Scope: "system"}},
+		Interfaces: []common.Interface{
+			{Name: "lan", PhysicalIf: "em0", Enabled: true, IPAddress: "192.168.1.1", Subnet: "24"},
+			{Name: "wan", PhysicalIf: "em1", Enabled: true},
 		},
-		Dhcpd: model.Dhcpd{
-			Items: map[string]model.DhcpdInterface{
-				"lan": {Enable: "1", Range: model.Range{From: "192.168.1.100", To: "192.168.1.200"}},
-			},
+		DHCP: []common.DHCPScope{
+			{Interface: "lan", Enabled: true, Range: common.DHCPRange{From: "192.168.1.100", To: "192.168.1.200"}},
 		},
-		Filter: model.Filter{
-			Rule: []model.Rule{
-				{Type: "pass", Interface: []string{"lan"}, Protocol: "tcp", Descr: "Allow LAN"},
-			},
+		FirewallRules: []common.FirewallRule{
+			{Type: "pass", Interfaces: []string{"lan"}, Protocol: "tcp", Description: "Allow LAN"},
 		},
-		Nat: model.Nat{
-			Outbound: model.Outbound{Mode: "automatic"},
-		},
+		NAT: common.NATConfig{OutboundMode: "automatic"},
 	}
 }
 
 // createTestDocumentWithIPsec creates a test document with IPsec configuration.
-func createTestDocumentWithIPsec() *model.OpnSenseDocument {
+func createTestDocumentWithIPsec() *common.CommonDevice {
 	doc := createTestDocument()
-	ipsec := &model.IPsec{}
-	ipsec.General.Enabled = "1"
-	ipsec.General.PreferredOldsa = "0"
-	ipsec.General.Disablevpnrules = "0"
-	ipsec.Charon.Threads = "16"
-	ipsec.Charon.IkesaTableSize = "1"
-	ipsec.Charon.MaxIkev1Exchanges = "3"
-	ipsec.Charon.RetransmitTries = "5"
-	ipsec.Charon.RetransmitTimeout = "4.0"
-	ipsec.Charon.MakeBeforeBreak = "0"
-	doc.OPNsense.IPsec = ipsec
+	doc.VPN.IPsec.Enabled = true
 	return doc
 }
 
 // createTestDocumentWithOpenVPN creates a test document with OpenVPN servers.
-func createTestDocumentWithOpenVPN() *model.OpnSenseDocument {
+func createTestDocumentWithOpenVPN() *common.CommonDevice {
 	doc := createTestDocument()
-	doc.OpenVPN.Servers = []model.OpenVPNServer{
+	doc.VPN.OpenVPN.Servers = []common.OpenVPNServer{
 		{
-			Description:    "Site-to-Site VPN",
-			Mode:           "p2p_tls",
-			Protocol:       "UDP",
-			Interface:      "wan",
-			Local_port:     "1194",
-			Tunnel_network: "10.8.0.0/24",
-			Remote_network: "192.168.100.0/24",
-			Cert_ref:       "cert123",
+			Description:   "Site-to-Site VPN",
+			Mode:          "p2p_tls",
+			Protocol:      "UDP",
+			Interface:     "wan",
+			LocalPort:     "1194",
+			TunnelNetwork: "10.8.0.0/24",
+			RemoteNetwork: "192.168.100.0/24",
+			CertRef:       "cert123",
 		},
 	}
 	return doc
 }
 
 // createTestDocumentWithOpenVPNClient creates a test document with OpenVPN clients.
-func createTestDocumentWithOpenVPNClient() *model.OpnSenseDocument {
+func createTestDocumentWithOpenVPNClient() *common.CommonDevice {
 	doc := createTestDocument()
-	doc.OpenVPN.Clients = []model.OpenVPNClient{
+	doc.VPN.OpenVPN.Clients = []common.OpenVPNClient{
 		{
 			Description: "Remote Office",
-			Server_addr: "vpn.example.com",
-			Server_port: "1194",
+			ServerAddr:  "vpn.example.com",
+			ServerPort:  "1194",
 			Mode:        "p2p_tls",
 			Protocol:    "UDP",
-			Cert_ref:    "cert456",
-		},
-	}
-	return doc
-}
-
-// createTestDocumentWithOpenVPNCSC creates a test document with OpenVPN client-specific configs.
-func createTestDocumentWithOpenVPNCSC() *model.OpnSenseDocument {
-	doc := createTestDocument()
-	doc.OpenVPN.CSC = []model.OpenVPNCSC{
-		{
-			Common_name:    "client1",
-			Tunnel_network: "10.8.0.10/32",
-			Local_network:  "192.168.10.0/24",
-			Remote_network: "192.168.1.0/24",
-			DNS_domain:     "client1.local",
+			CertRef:     "cert456",
 		},
 	}
 	return doc
 }
 
 // createTestDocumentWithHA creates a test document with HA configuration.
-func createTestDocumentWithHA() *model.OpnSenseDocument {
+func createTestDocumentWithHA() *common.CommonDevice {
 	doc := createTestDocument()
-	doc.VirtualIP.Vip = "192.168.1.100"
-	doc.HighAvailabilitySync = model.HighAvailabilitySync{
-		Pfsyncinterface: "em2",
-		Pfsyncpeerip:    "192.168.100.2",
-		Synchronizetoip: "192.168.100.2",
+	doc.VirtualIPs = []common.VirtualIP{{Subnet: "192.168.1.100", Mode: "CARP"}}
+	doc.HighAvailability = common.HighAvailability{
+		PfsyncInterface: "em2",
+		PfsyncPeerIP:    "192.168.100.2",
+		SynchronizeToIP: "192.168.100.2",
 		Username:        "admin",
-		Disablepreempt:  "0",
-		Pfsyncversion:   "1401",
+		DisablePreempt:  false,
+		PfsyncVersion:   "1401",
 	}
 	return doc
 }
 
 // createTestDocumentWithAllFeatures creates a test document with all new features.
-func createTestDocumentWithAllFeatures() *model.OpnSenseDocument {
+func createTestDocumentWithAllFeatures() *common.CommonDevice {
 	doc := createTestDocumentWithIPsec()
-	doc.OpenVPN.Servers = []model.OpenVPNServer{
-		{Description: "Test VPN", Mode: "p2p_tls", Protocol: "UDP", Interface: "wan", Local_port: "1194"},
+	doc.VPN.OpenVPN.Servers = []common.OpenVPNServer{
+		{Description: "Test VPN", Mode: "p2p_tls", Protocol: "UDP", Interface: "wan", LocalPort: "1194"},
 	}
-	doc.VLANs.VLAN = []model.VLAN{
-		{Vlanif: "vlan10", If: "em0", Tag: "10", Descr: "Test VLAN"},
+	doc.VLANs = []common.VLAN{
+		{VLANIf: "vlan10", PhysicalIf: "em0", Tag: "10", Description: "Test VLAN"},
 	}
-	doc.StaticRoutes.Route = []model.StaticRoute{
-		{Network: "10.0.0.0/8", Gateway: "192.168.1.1", Descr: "Test Route"},
+	doc.Routing.StaticRoutes = []common.StaticRoute{
+		{Network: "10.0.0.0/8", Gateway: "192.168.1.1", Description: "Test Route"},
 	}
-	doc.VirtualIP.Vip = "192.168.1.100"
-	doc.HighAvailabilitySync = model.HighAvailabilitySync{
-		Pfsyncinterface: "em2",
-		Pfsyncpeerip:    "192.168.100.2",
+	doc.VirtualIPs = []common.VirtualIP{{Subnet: "192.168.1.100", Mode: "CARP"}}
+	doc.HighAvailability = common.HighAvailability{
+		PfsyncInterface: "em2",
+		PfsyncPeerIP:    "192.168.100.2",
 	}
 	return doc
 }

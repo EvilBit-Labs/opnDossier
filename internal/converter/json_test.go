@@ -5,14 +5,14 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/stretchr/testify/require"
 )
 
 func TestJSONConverter_ToJSON(t *testing.T) {
 	tests := GetCommonTestCases()
 	for i := range tests {
-		if tests[i].Name == "valid opnsense" {
+		if tests[i].Name == "valid device" {
 			tests[i].ValidateOut = func(t *testing.T, result string) {
 				t.Helper()
 				var parsed map[string]any
@@ -23,8 +23,8 @@ func TestJSONConverter_ToJSON(t *testing.T) {
 	}
 
 	c := NewJSONConverter()
-	convertFunc := func(ctx context.Context, opnsense *model.OpnSenseDocument) (string, error) {
-		return c.ToJSON(ctx, opnsense)
+	convertFunc := func(ctx context.Context, data *common.CommonDevice) (string, error) {
+		return c.ToJSON(ctx, data)
 	}
 	RunConverterTests(t, tests, convertFunc)
 }
