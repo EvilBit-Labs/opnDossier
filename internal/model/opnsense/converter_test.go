@@ -415,6 +415,7 @@ func TestConverter_HA(t *testing.T) {
 	doc.HighAvailabilitySync.Pfsyncinterface = "lan"
 	doc.HighAvailabilitySync.Pfsyncpeerip = "10.0.0.2"
 	doc.HighAvailabilitySync.Username = "admin"
+	doc.HighAvailabilitySync.Syncitems = "virtualip,certs,dhcpd"
 
 	device, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
@@ -424,6 +425,7 @@ func TestConverter_HA(t *testing.T) {
 	assert.Equal(t, "lan", device.HighAvailability.PfsyncInterface)
 	assert.Equal(t, "10.0.0.2", device.HighAvailability.PfsyncPeerIP)
 	assert.Equal(t, "admin", device.HighAvailability.Username)
+	assert.Equal(t, []string{"virtualip", "certs", "dhcpd"}, device.HighAvailability.SyncItems)
 }
 
 func TestConverter_IDS_Nil(t *testing.T) {
