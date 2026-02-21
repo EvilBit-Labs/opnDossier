@@ -101,7 +101,7 @@ func NewMarkdownGenerator(logger *logging.Logger, _ Options) (Generator, error) 
 // Generate is preferred when you need the output as a string for further processing.
 func (g *HybridGenerator) Generate(_ context.Context, data *common.CommonDevice, opts Options) (string, error) {
 	if data == nil {
-		return "", ErrNilConfiguration
+		return "", ErrNilDevice
 	}
 
 	if err := opts.Validate(); err != nil {
@@ -147,7 +147,7 @@ func (g *HybridGenerator) GenerateToWriter(
 	opts Options,
 ) error {
 	if data == nil {
-		return ErrNilConfiguration
+		return ErrNilDevice
 	}
 
 	if err := opts.Validate(); err != nil {

@@ -146,6 +146,23 @@ func TestNATSummary_CloneIsolation(t *testing.T) {
 	}
 }
 
+func TestCommonDevice_NATSummary_NilReceiver(t *testing.T) {
+	t.Parallel()
+
+	var device *common.CommonDevice
+	summary := device.NATSummary()
+
+	if summary.Mode != "" {
+		t.Errorf("NATSummary().Mode = %q on nil receiver, want empty", summary.Mode)
+	}
+	if len(summary.OutboundRules) != 0 {
+		t.Errorf("NATSummary().OutboundRules len = %d on nil receiver, want 0", len(summary.OutboundRules))
+	}
+	if len(summary.InboundRules) != 0 {
+		t.Errorf("NATSummary().InboundRules len = %d on nil receiver, want 0", len(summary.InboundRules))
+	}
+}
+
 func TestCommonDevice_JSONRoundTrip(t *testing.T) {
 	t.Parallel()
 

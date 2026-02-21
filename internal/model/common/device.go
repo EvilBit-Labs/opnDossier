@@ -107,7 +107,12 @@ type CommonDevice struct {
 
 // NATSummary returns a convenience view of the device's NAT configuration.
 // Slice fields are cloned to prevent callers from mutating the original device.
+// Returns a zero-value NATSummary if d is nil.
 func (d *CommonDevice) NATSummary() NATSummary {
+	if d == nil {
+		return NATSummary{}
+	}
+
 	return NATSummary{
 		Mode:               d.NAT.OutboundMode,
 		ReflectionDisabled: d.NAT.ReflectionDisabled,
