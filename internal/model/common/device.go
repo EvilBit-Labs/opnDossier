@@ -18,6 +18,21 @@ const (
 	DeviceTypeUnknown DeviceType = ""
 )
 
+// IsValid reports whether d is a recognized, non-empty device type.
+func (d DeviceType) IsValid() bool {
+	switch d {
+	case DeviceTypeOPNsense, DeviceTypePfSense:
+		return true
+	default:
+		return false
+	}
+}
+
+// String returns the string representation of the DeviceType.
+func (d DeviceType) String() string {
+	return string(d)
+}
+
 // CommonDevice is the platform-agnostic root struct for a firewall device
 // configuration. All downstream consumers (processor, builder, plugins, diff
 // engine) operate against this type rather than XML-shaped DTOs.

@@ -272,9 +272,9 @@ func (r *Report) addFirewallRuleAnalysis() {
 // addNATAnalysis adds NAT analysis to the report.
 func (r *Report) addNATAnalysis() {
 	if r.Configuration != nil {
-		r.Metadata["nat_analysis_completed"] = true
 		r.Metadata["nat_mode"] = r.Configuration.NAT.OutboundMode
 	}
+	r.Metadata["nat_analysis_completed"] = true
 }
 
 // addDHCPAnalysis adds DHCP analysis to the report.
@@ -295,7 +295,6 @@ func (r *Report) addDHCPAnalysis() {
 // addCertificateAnalysis adds certificate analysis to the report.
 func (r *Report) addCertificateAnalysis() {
 	if r.Configuration != nil {
-		r.Metadata["certificate_analysis_completed"] = true
 		r.Metadata["certificates_configured"] = len(r.Configuration.Certificates) > 0
 	}
 	r.Metadata["certificate_analysis_completed"] = true

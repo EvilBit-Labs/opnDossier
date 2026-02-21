@@ -31,6 +31,54 @@ func TestDeviceType_Constants(t *testing.T) {
 	}
 }
 
+func TestDeviceType_IsValid(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		dt   common.DeviceType
+		want bool
+	}{
+		{"OPNsense is valid", common.DeviceTypeOPNsense, true},
+		{"pfSense is valid", common.DeviceTypePfSense, true},
+		{"Unknown is invalid", common.DeviceTypeUnknown, false},
+		{"empty is invalid", common.DeviceType(""), false},
+		{"arbitrary string is invalid", common.DeviceType("fortinet"), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := tt.dt.IsValid(); got != tt.want {
+				t.Errorf("DeviceType(%q).IsValid() = %v, want %v", tt.dt, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDeviceType_String(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		dt   common.DeviceType
+		want string
+	}{
+		{"OPNsense", common.DeviceTypeOPNsense, "opnsense"},
+		{"pfSense", common.DeviceTypePfSense, "pfsense"},
+		{"Unknown", common.DeviceTypeUnknown, ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := tt.dt.String(); got != tt.want {
+				t.Errorf("DeviceType(%q).String() = %q, want %q", tt.dt, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestCommonDevice_NATSummary(t *testing.T) {
 	t.Parallel()
 
