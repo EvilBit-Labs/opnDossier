@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/sans"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,15 +15,15 @@ func TestSANSPlugin_RunChecks(t *testing.T) {
 
 	tests := []struct {
 		name               string
-		config             *model.OpnSenseDocument
+		config             *common.CommonDevice
 		expectedFindings   int
 		expectedFindingIDs []string
 		description        string
 	}{
 		{
 			name: "Default configuration - all findings expected",
-			config: &model.OpnSenseDocument{
-				System: model.System{
+			config: &common.CommonDevice{
+				System: common.System{
 					Hostname: "OPNsense",
 					Domain:   "localdomain",
 				},
@@ -34,8 +34,8 @@ func TestSANSPlugin_RunChecks(t *testing.T) {
 		},
 		{
 			name: "Empty configuration - all findings expected",
-			config: &model.OpnSenseDocument{
-				System: model.System{},
+			config: &common.CommonDevice{
+				System: common.System{},
 			},
 			expectedFindings:   0,
 			expectedFindingIDs: []string{},

@@ -4,8 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/schema"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -13,7 +12,7 @@ import (
 func TestGenerateStatistics_IDSEnabled(t *testing.T) {
 	tests := []struct {
 		name                       string
-		ids                        *schema.IDS
+		ids                        *common.IDSConfig
 		expectIDSEnabled           bool
 		expectIDSMode              string
 		expectMonitoredInterfaces  []string
@@ -28,14 +27,14 @@ func TestGenerateStatistics_IDSEnabled(t *testing.T) {
 			expectIDSMode:    "",
 		},
 		{
-			name:             "IDS disabled (enabled=0)",
-			ids:              makeIDs("0", "0", "", "", "0", "0"),
+			name:             "IDS disabled (enabled=false)",
+			ids:              makeIDs(false, false, nil, "", false, false),
 			expectIDSEnabled: false,
 			expectIDSMode:    "",
 		},
 		{
 			name:                      "IDS mode (detection only)",
-			ids:                       makeIDs("1", "0", "lan,wan", "medium", "1", "0"),
+			ids:                       makeIDs(true, false, []string{"lan", "wan"}, "medium", true, false),
 			expectIDSEnabled:          true,
 			expectIDSMode:             "IDS (Detection Only)",
 			expectMonitoredInterfaces: []string{"lan", "wan"},
@@ -44,7 +43,7 @@ func TestGenerateStatistics_IDSEnabled(t *testing.T) {
 		},
 		{
 			name:                      "IPS mode (prevention)",
-			ids:                       makeIDs("1", "1", "lan", "high", "0", "1"),
+			ids:                       makeIDs(true, true, []string{"lan"}, "high", false, true),
 			expectIDSEnabled:          true,
 			expectIDSMode:             "IPS (Prevention)",
 			expectMonitoredInterfaces: []string{"lan"},
@@ -53,7 +52,7 @@ func TestGenerateStatistics_IDSEnabled(t *testing.T) {
 		},
 		{
 			name:                      "IDS enabled with no logging",
-			ids:                       makeIDs("1", "0", "wan", "low", "0", "0"),
+			ids:                       makeIDs(true, false, []string{"wan"}, "low", false, false),
 			expectIDSEnabled:          true,
 			expectIDSMode:             "IDS (Detection Only)",
 			expectMonitoredInterfaces: []string{"wan"},
@@ -64,14 +63,12 @@ func TestGenerateStatistics_IDSEnabled(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := &model.OpnSenseDocument{
-				System: model.System{
+			cfg := &common.CommonDevice{
+				System: common.System{
 					Hostname: "ids-test",
 					Domain:   "example.com",
 				},
-				OPNsense: model.OPNsense{
-					IntrusionDetectionSystem: tt.ids,
-				},
+				IDS: tt.ids,
 			}
 
 			stats := generateStatistics(cfg)
@@ -99,7 +96,7 @@ func TestGenerateStatistics_IDSEnabled(t *testing.T) {
 func TestCalculateSecurityScore_IDSScoring(t *testing.T) {
 	tests := []struct {
 		name          string
-		ids           *schema.IDS
+		ids           *common.IDSConfig
 		https         bool
 		sshGroup      string
 		firewallRules int
@@ -117,7 +114,7 @@ func TestCalculateSecurityScore_IDSScoring(t *testing.T) {
 		},
 		{
 			name:          "IDS only (+15)",
-			ids:           makeIDs("1", "0", "lan", "medium", "0", "0"),
+			ids:           makeIDs(true, false, []string{"lan"}, "medium", false, false),
 			https:         false,
 			sshGroup:      "",
 			firewallRules: 0,
@@ -126,7 +123,7 @@ func TestCalculateSecurityScore_IDSScoring(t *testing.T) {
 		},
 		{
 			name:          "IPS mode (+15 IDS + 10 IPS = 25)",
-			ids:           makeIDs("1", "1", "lan", "high", "0", "0"),
+			ids:           makeIDs(true, true, []string{"lan"}, "high", false, false),
 			https:         false,
 			sshGroup:      "",
 			firewallRules: 0,
@@ -135,7 +132,7 @@ func TestCalculateSecurityScore_IDSScoring(t *testing.T) {
 		},
 		{
 			name:          "IDS + HTTPS + SSH + firewall rules",
-			ids:           makeIDs("1", "0", "lan", "medium", "0", "0"),
+			ids:           makeIDs(true, false, []string{"lan"}, "medium", false, false),
 			https:         true,
 			sshGroup:      "admins",
 			firewallRules: 5,
@@ -146,7 +143,7 @@ func TestCalculateSecurityScore_IDSScoring(t *testing.T) {
 		},
 		{
 			name:          "IPS + HTTPS + SSH + firewall rules",
-			ids:           makeIDs("1", "1", "lan", "high", "0", "0"),
+			ids:           makeIDs(true, true, []string{"lan"}, "high", false, false),
 			https:         true,
 			sshGroup:      "admins",
 			firewallRules: 5,
@@ -159,14 +156,12 @@ func TestCalculateSecurityScore_IDSScoring(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := &model.OpnSenseDocument{
-				System: model.System{
+			cfg := &common.CommonDevice{
+				System: common.System{
 					Hostname: "score-test",
 					Domain:   "example.com",
 				},
-				OPNsense: model.OPNsense{
-					IntrusionDetectionSystem: tt.ids,
-				},
+				IDS: tt.ids,
 			}
 
 			if tt.https {
@@ -174,14 +169,14 @@ func TestCalculateSecurityScore_IDSScoring(t *testing.T) {
 			}
 			cfg.System.SSH.Group = tt.sshGroup
 
-			rules := make([]model.Rule, tt.firewallRules)
+			rules := make([]common.FirewallRule, tt.firewallRules)
 			for i := range tt.firewallRules {
-				rules[i] = model.Rule{
-					Type:      "pass",
-					Interface: model.InterfaceList{"lan"},
+				rules[i] = common.FirewallRule{
+					Type:       "pass",
+					Interfaces: []string{"lan"},
 				}
 			}
-			cfg.Filter.Rule = rules
+			cfg.FirewallRules = rules
 
 			stats := generateStatistics(cfg)
 			require.NotNil(t, stats)
@@ -197,7 +192,7 @@ func TestCalculateSecurityScore_IDSScoring(t *testing.T) {
 func TestReport_ToMarkdown_IDSSection(t *testing.T) {
 	tests := []struct {
 		name           string
-		ids            *schema.IDS
+		ids            *common.IDSConfig
 		expectSection  bool
 		expectContains []string
 		expectAbsent   []string
@@ -210,7 +205,7 @@ func TestReport_ToMarkdown_IDSSection(t *testing.T) {
 		},
 		{
 			name:          "IDS enabled - section present",
-			ids:           makeIDs("1", "0", "lan,wan", "medium", "1", "0"),
+			ids:           makeIDs(true, false, []string{"lan", "wan"}, "medium", true, false),
 			expectSection: true,
 			expectContains: []string{
 				"IDS/IPS Configuration",
@@ -223,7 +218,7 @@ func TestReport_ToMarkdown_IDSSection(t *testing.T) {
 		},
 		{
 			name:          "IPS mode - section present",
-			ids:           makeIDs("1", "1", "lan", "high", "0", "1"),
+			ids:           makeIDs(true, true, []string{"lan"}, "high", false, true),
 			expectSection: true,
 			expectContains: []string{
 				"IDS/IPS Configuration",
@@ -235,14 +230,12 @@ func TestReport_ToMarkdown_IDSSection(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := &model.OpnSenseDocument{
-				System: model.System{
+			cfg := &common.CommonDevice{
+				System: common.System{
 					Hostname: "markdown-ids-test",
 					Domain:   "example.com",
 				},
-				OPNsense: model.OPNsense{
-					IntrusionDetectionSystem: tt.ids,
-				},
+				IDS: tt.ids,
 			}
 
 			report := NewReport(cfg, Config{EnableStats: true})
@@ -261,29 +254,24 @@ func TestReport_ToMarkdown_IDSSection(t *testing.T) {
 
 func TestCalculateSecurityScore_NoDuplicateIDSCounting(t *testing.T) {
 	// Build a config with IPS enabled plus other security features
-	cfg := &model.OpnSenseDocument{
-		System: model.System{
+	cfg := &common.CommonDevice{
+		System: common.System{
 			Hostname: "dedup-test",
 			Domain:   "example.com",
-			WebGUI:   model.WebGUIConfig{Protocol: "https"},
+			WebGUI:   common.WebGUI{Protocol: "https"},
 		},
-		Interfaces: model.Interfaces{
-			Items: map[string]model.Interface{
-				"wan": {
-					Enable:      "1",
-					BlockPriv:   "1",
-					BlockBogons: "1",
-				},
-				"lan": {Enable: "1"},
+		Interfaces: []common.Interface{
+			{
+				Name:         "wan",
+				Enabled:      true,
+				BlockPrivate: true,
+				BlockBogons:  true,
 			},
+			{Name: "lan", Enabled: true},
 		},
-		OPNsense: model.OPNsense{
-			IntrusionDetectionSystem: makeIDs("1", "1", "lan", "high", "1", "0"),
-		},
-		Filter: model.Filter{
-			Rule: []model.Rule{
-				{Type: "pass", Interface: model.InterfaceList{"lan"}},
-			},
+		IDS: makeIDs(true, true, []string{"lan"}, "high", true, false),
+		FirewallRules: []common.FirewallRule{
+			{Type: "pass", Interfaces: []string{"lan"}},
 		},
 	}
 
@@ -316,14 +304,12 @@ func TestCalculateSecurityScore_NoDuplicateIDSCounting(t *testing.T) {
 
 func TestReport_IDSMarkdownNotInJSON(t *testing.T) {
 	// Ensure the new IDS markdown rendering doesn't affect JSON/YAML output structure
-	cfg := &model.OpnSenseDocument{
-		System: model.System{
+	cfg := &common.CommonDevice{
+		System: common.System{
 			Hostname: "format-test",
 			Domain:   "example.com",
 		},
-		OPNsense: model.OPNsense{
-			IntrusionDetectionSystem: makeIDs("1", "1", "lan,wan", "high", "1", "1"),
-		},
+		IDS: makeIDs(true, true, []string{"lan", "wan"}, "high", true, true),
 	}
 
 	report := NewReport(cfg, Config{EnableStats: true})
@@ -348,29 +334,27 @@ func TestReport_IDSMarkdownNotInJSON(t *testing.T) {
 	assert.NotContains(t, jsonStr, "**Status**")
 }
 
-// makeIDS is a helper that creates an IDS config with the given parameters.
-func makeIDs(enabled, ips, interfaces, profile, syslog, syslogEve string) *schema.IDS {
-	ids := schema.NewIDS()
-	ids.General.Enabled = enabled
-	ids.General.Ips = ips
-	ids.General.Interfaces = interfaces
-	ids.General.Detect.Profile = profile
-	ids.General.Syslog = syslog
-	ids.General.SyslogEve = syslogEve
-	return ids
+// makeIDs is a helper that creates an IDS config with the given parameters.
+func makeIDs(enabled, ips bool, interfaces []string, profile string, syslog, syslogEve bool) *common.IDSConfig {
+	return &common.IDSConfig{
+		Enabled:          enabled,
+		IPSMode:          ips,
+		Interfaces:       interfaces,
+		Detect:           common.IDSDetect{Profile: profile},
+		SyslogEnabled:    syslog,
+		SyslogEveEnabled: syslogEve,
+	}
 }
 
 func TestGenerateStatistics_IDSMarkdownRendering(t *testing.T) {
 	// Verify the markdown output contains proper formatting for the IDS section
-	ids := makeIDs("1", "0", "wan,lan,opt1", "medium", "1", "1")
-	cfg := &model.OpnSenseDocument{
-		System: model.System{
+	ids := makeIDs(true, false, []string{"wan", "lan", "opt1"}, "medium", true, true)
+	cfg := &common.CommonDevice{
+		System: common.System{
 			Hostname: "render-test",
 			Domain:   "example.com",
 		},
-		OPNsense: model.OPNsense{
-			IntrusionDetectionSystem: ids,
-		},
+		IDS: ids,
 	}
 
 	report := NewReport(cfg, Config{EnableStats: true})

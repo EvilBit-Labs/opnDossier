@@ -3,7 +3,7 @@
 - **Hostname**: minimal-host
 - **Domain**: minimal.local
 - **Platform**: OPNsense 23.1.1
-- **Generated On**: 2026-02-14T18:35:01-05:00
+- **Generated On**: 2026-02-20T10:37:09-05:00
 - **Parsed By**: opnDossier vdev
 ## Table of Contents
 - [System Configuration](#system-configuration)
@@ -57,9 +57,9 @@
   
 **LB Use Sticky**: ✗
   
-**RRD Backup**: unset
+**RRD Backup**: ✗
   
-**Netflow Backup**: unset
+**Netflow Backup**: ✗
 ### Firmware Information
 **Version**: 23.1.1
 ## Network Configuration
@@ -81,9 +81,9 @@
 
 ## Service Configuration
 ### DHCP Server
-| Interface | Enabled | Gateway | Range Start | Range End | DNS | WINS | NTP | DDNS Algorithm |
-|---------|---------|---------|---------|---------|---------|---------|---------|---------|
-| - | - | - | - | - | - | - | - | No DHCP scopes configured |
+| Interface | Enabled | Gateway | Range Start | Range End | DNS | WINS | NTP |
+|---------|---------|---------|---------|---------|---------|---------|---------|
+| - | - | - | - | - | - | - | No DHCP scopes configured |
 
 ### DNS Resolver (Unbound)
 ### SNMP

@@ -5,38 +5,38 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
-// normalize normalizes the given OPNsense configuration by filling defaults, canonicalizing IP/CIDR, and sorting slices for determinism.
-func (p *CoreProcessor) normalize(cfg *model.OpnSenseDocument) *model.OpnSenseDocument {
+// normalize normalizes the given device configuration by filling defaults, canonicalizing IP/CIDR, and sorting slices for determinism.
+func (p *CoreProcessor) normalize(cfg *common.CommonDevice) *common.CommonDevice {
 	// Create a shallow copy, then deep-copy slices that will be mutated
 	normalized := *cfg
 
 	// Deep-copy slices to avoid mutating the original
-	if cfg.Filter.Rule != nil {
-		normalized.Filter.Rule = make([]model.Rule, len(cfg.Filter.Rule))
-		copy(normalized.Filter.Rule, cfg.Filter.Rule)
+	if cfg.FirewallRules != nil {
+		normalized.FirewallRules = make([]common.FirewallRule, len(cfg.FirewallRules))
+		copy(normalized.FirewallRules, cfg.FirewallRules)
 	}
 
-	if cfg.System.User != nil {
-		normalized.System.User = make([]model.User, len(cfg.System.User))
-		copy(normalized.System.User, cfg.System.User)
+	if cfg.Users != nil {
+		normalized.Users = make([]common.User, len(cfg.Users))
+		copy(normalized.Users, cfg.Users)
 	}
 
-	if cfg.System.Group != nil {
-		normalized.System.Group = make([]model.Group, len(cfg.System.Group))
-		copy(normalized.System.Group, cfg.System.Group)
+	if cfg.Groups != nil {
+		normalized.Groups = make([]common.Group, len(cfg.Groups))
+		copy(normalized.Groups, cfg.Groups)
 	}
 
 	if cfg.Sysctl != nil {
-		normalized.Sysctl = make([]model.SysctlItem, len(cfg.Sysctl))
+		normalized.Sysctl = make([]common.SysctlItem, len(cfg.Sysctl))
 		copy(normalized.Sysctl, cfg.Sysctl)
 	}
 
-	if cfg.LoadBalancer.MonitorType != nil {
-		normalized.LoadBalancer.MonitorType = make([]model.MonitorType, len(cfg.LoadBalancer.MonitorType))
-		copy(normalized.LoadBalancer.MonitorType, cfg.LoadBalancer.MonitorType)
+	if cfg.LoadBalancer.MonitorTypes != nil {
+		normalized.LoadBalancer.MonitorTypes = make([]common.MonitorType, len(cfg.LoadBalancer.MonitorTypes))
+		copy(normalized.LoadBalancer.MonitorTypes, cfg.LoadBalancer.MonitorTypes)
 	}
 
 	// Phase 1: Fill defaults
@@ -52,7 +52,7 @@ func (p *CoreProcessor) normalize(cfg *model.OpnSenseDocument) *model.OpnSenseDo
 }
 
 // fillDefaults fills in default values for missing configuration elements.
-func (p *CoreProcessor) fillDefaults(cfg *model.OpnSenseDocument) {
+func (p *CoreProcessor) fillDefaults(cfg *common.CommonDevice) {
 	// Fill system defaults
 	if cfg.System.Optimization == "" {
 		cfg.System.Optimization = "normal"
@@ -70,13 +70,9 @@ func (p *CoreProcessor) fillDefaults(cfg *model.OpnSenseDocument) {
 		cfg.System.Bogons.Interval = "monthly"
 	}
 
-	// Note: Interface defaults are skipped due to model API limitations.
-	// The current model returns interfaces by value from functions, making them
-	// read-only. Consider model changes if interface defaults are needed.
-
 	// Fill NAT defaults
-	if cfg.Nat.Outbound.Mode == "" {
-		cfg.Nat.Outbound.Mode = "automatic"
+	if cfg.NAT.OutboundMode == "" {
+		cfg.NAT.OutboundMode = "automatic"
 	}
 
 	// Fill theme default
@@ -86,42 +82,25 @@ func (p *CoreProcessor) fillDefaults(cfg *model.OpnSenseDocument) {
 }
 
 // canonicalizeAddresses canonicalizes IP addresses and CIDR notation for consistency.
-func (p *CoreProcessor) canonicalizeAddresses(cfg *model.OpnSenseDocument) {
-	// Note: Interface canonicalization is skipped due to model API limitations.
-	// The current model returns interfaces by value from functions, making them
-	// read-only. Consider model changes if interface address canonicalization is needed.
-
-	// Note: DHCP range canonicalization is skipped due to model API limitations.
-	// The current model returns DHCP interfaces by value from functions, making them
-	// read-only. Consider model changes if DHCP address canonicalization is needed.
-	//
-	// Previous code that no longer works with new model:
-	// if cfg.Dhcpd.Lan.Range.From != "" {
-	//     if ip := net.ParseIP(cfg.Dhcpd.Lan.Range.From); ip != nil {
-	//         cfg.Dhcpd.Lan.Range.From = ip.String()
-	//     }
-	// }
-
-	// Canonicalize firewall rule source/destination networks and addresses
-	for i := range cfg.Filter.Rule {
-		rule := &cfg.Filter.Rule[i]
-		canonicalizeIPField(&rule.Source.Network)
+func (p *CoreProcessor) canonicalizeAddresses(cfg *common.CommonDevice) {
+	// Canonicalize firewall rule source/destination addresses
+	for i := range cfg.FirewallRules {
+		rule := &cfg.FirewallRules[i]
 		canonicalizeIPField(&rule.Source.Address)
-		canonicalizeIPField(&rule.Destination.Network)
 		canonicalizeIPField(&rule.Destination.Address)
 	}
 }
 
 // sortSlices sorts all slices in the configuration for deterministic output.
-func (p *CoreProcessor) sortSlices(cfg *model.OpnSenseDocument) {
+func (p *CoreProcessor) sortSlices(cfg *common.CommonDevice) {
 	// Sort users by name
-	sort.Slice(cfg.System.User, func(i, j int) bool {
-		return cfg.System.User[i].Name < cfg.System.User[j].Name
+	sort.Slice(cfg.Users, func(i, j int) bool {
+		return cfg.Users[i].Name < cfg.Users[j].Name
 	})
 
 	// Sort groups by name
-	sort.Slice(cfg.System.Group, func(i, j int) bool {
-		return cfg.System.Group[i].Name < cfg.System.Group[j].Name
+	sort.Slice(cfg.Groups, func(i, j int) bool {
+		return cfg.Groups[i].Name < cfg.Groups[j].Name
 	})
 
 	// Sort sysctl items by tunable name
@@ -130,22 +109,24 @@ func (p *CoreProcessor) sortSlices(cfg *model.OpnSenseDocument) {
 	})
 
 	// Sort firewall rules by interface, then by type, then by description for determinism
-	sort.Slice(cfg.Filter.Rule, func(i, j int) bool {
-		ruleA, ruleB := &cfg.Filter.Rule[i], &cfg.Filter.Rule[j]
-		if ruleA.Interface.String() != ruleB.Interface.String() {
-			return ruleA.Interface.String() < ruleB.Interface.String()
+	sort.Slice(cfg.FirewallRules, func(i, j int) bool {
+		ruleA, ruleB := &cfg.FirewallRules[i], &cfg.FirewallRules[j]
+		ifacesA := strings.Join(ruleA.Interfaces, ",")
+		ifacesB := strings.Join(ruleB.Interfaces, ",")
+		if ifacesA != ifacesB {
+			return ifacesA < ifacesB
 		}
 
 		if ruleA.Type != ruleB.Type {
 			return ruleA.Type < ruleB.Type
 		}
 
-		return ruleA.Descr < ruleB.Descr
+		return ruleA.Description < ruleB.Description
 	})
 
 	// Sort load balancer monitor types by name
-	sort.Slice(cfg.LoadBalancer.MonitorType, func(i, j int) bool {
-		return cfg.LoadBalancer.MonitorType[i].Name < cfg.LoadBalancer.MonitorType[j].Name
+	sort.Slice(cfg.LoadBalancer.MonitorTypes, func(i, j int) bool {
+		return cfg.LoadBalancer.MonitorTypes[i].Name < cfg.LoadBalancer.MonitorTypes[j].Name
 	})
 }
 

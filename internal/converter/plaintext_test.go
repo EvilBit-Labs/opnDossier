@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -272,7 +272,7 @@ func TestHybridGenerator_GeneratePlainText(t *testing.T) {
 	gen, err := NewHybridGenerator(reportBuilder, nil)
 	require.NoError(t, err)
 
-	doc := &model.OpnSenseDocument{}
+	doc := &common.CommonDevice{}
 	opts := DefaultOptions().WithFormat(FormatText)
 
 	output, err := gen.Generate(context.Background(), doc, opts)
@@ -292,7 +292,7 @@ func TestHybridGenerator_GeneratePlainTextToWriter(t *testing.T) {
 	gen, err := NewHybridGenerator(reportBuilder, nil)
 	require.NoError(t, err)
 
-	doc := &model.OpnSenseDocument{}
+	doc := &common.CommonDevice{}
 	opts := DefaultOptions().WithFormat(FormatText)
 
 	var buf bytes.Buffer

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -12,7 +12,7 @@ import (
 // TestCase represents a test case for converter tests.
 type TestCase struct {
 	Name        string
-	OpnSense    *model.OpnSenseDocument
+	Data        *common.CommonDevice
 	WantErr     bool
 	ErrType     error
 	ValidateOut func(t *testing.T, result string) // Function to validate the output format
@@ -22,16 +22,15 @@ type TestCase struct {
 func GetCommonTestCases() []TestCase {
 	return []TestCase{
 		{
-			Name:     "nil opnsense",
-			OpnSense: nil,
-			WantErr:  true,
-			ErrType:  ErrNilOpnSenseDocument,
+			Name:    "nil device",
+			Data:    nil,
+			WantErr: true,
+			ErrType: ErrNilDevice,
 		},
 		{
-			Name: "valid opnsense",
-			OpnSense: &model.OpnSenseDocument{
-				Version: "1.0.0",
-				System: model.System{
+			Name: "valid device",
+			Data: &common.CommonDevice{
+				System: common.System{
 					Hostname: "test-host",
 					Domain:   "test.local",
 				},
@@ -45,12 +44,12 @@ func GetCommonTestCases() []TestCase {
 func RunConverterTests(
 	t *testing.T,
 	tests []TestCase,
-	convertFunc func(context.Context, *model.OpnSenseDocument) (string, error),
+	convertFunc func(context.Context, *common.CommonDevice) (string, error),
 ) {
 	t.Helper()
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
-			result, err := convertFunc(context.Background(), tt.OpnSense)
+			result, err := convertFunc(context.Background(), tt.Data)
 
 			if tt.WantErr {
 				require.Error(t, err)

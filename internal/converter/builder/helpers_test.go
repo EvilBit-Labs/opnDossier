@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/nao1215/markdown"
 )
 
@@ -73,41 +73,41 @@ func TestHasAdvancedDHCPConfig(t *testing.T) {
 
 	tests := []struct {
 		name string
-		dhcp model.DhcpdInterface
+		dhcp common.DHCPScope
 		want bool
 	}{
 		{
 			name: "empty config",
-			dhcp: model.DhcpdInterface{},
+			dhcp: common.DHCPScope{},
 			want: false,
 		},
 		{
 			name: "basic config only",
-			dhcp: model.DhcpdInterface{
-				Enable:    "1",
+			dhcp: common.DHCPScope{
+				Enabled:   true,
 				Gateway:   "192.168.1.1",
-				Dnsserver: "8.8.8.8",
+				DNSServer: "8.8.8.8",
 			},
 			want: false,
 		},
 		// Alias fields
 		{
 			name: "alias address set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AliasAddress: "192.168.1.254",
 			},
 			want: true,
 		},
 		{
 			name: "alias subnet set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AliasSubnet: "24",
 			},
 			want: true,
 		},
 		{
 			name: "dhcp reject from set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				DHCPRejectFrom: "192.168.1.100",
 			},
 			want: true,
@@ -115,70 +115,70 @@ func TestHasAdvancedDHCPConfig(t *testing.T) {
 		// AdvDHCP* fields
 		{
 			name: "adv dhcp pt timeout set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCPPTTimeout: "60",
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp pt retry set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCPPTRetry: "5",
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp send options set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCPSendOptions: "option1",
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp request options set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCPRequestOptions: "option2",
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp required options set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCPRequiredOptions: "option3",
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp option modifiers set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCPOptionModifiers: "modifier1",
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp config advanced set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCPConfigAdvanced: "advanced",
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp config file override set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCPConfigFileOverride: "1",
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp config file override path set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCPConfigFileOverridePath: "/path/to/file",
 			},
 			want: true,
 		},
 		{
 			name: "multiple advanced fields set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AliasAddress:          "192.168.1.254",
 				AdvDHCPSendOptions:    "option1",
 				AdvDHCPConfigAdvanced: "advanced",
@@ -203,26 +203,26 @@ func TestHasDHCPv6Config(t *testing.T) {
 
 	tests := []struct {
 		name string
-		dhcp model.DhcpdInterface
+		dhcp common.DHCPScope
 		want bool
 	}{
 		{
 			name: "empty config",
-			dhcp: model.DhcpdInterface{},
+			dhcp: common.DHCPScope{},
 			want: false,
 		},
 		{
 			name: "basic ipv4 config only",
-			dhcp: model.DhcpdInterface{
-				Enable:    "1",
+			dhcp: common.DHCPScope{
+				Enabled:   true,
 				Gateway:   "192.168.1.1",
-				Dnsserver: "8.8.8.8",
+				DNSServer: "8.8.8.8",
 			},
 			want: false,
 		},
 		{
 			name: "advanced ipv4 config only",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCPSendOptions: "option1",
 			},
 			want: false,
@@ -230,14 +230,14 @@ func TestHasDHCPv6Config(t *testing.T) {
 		// Track6 fields
 		{
 			name: "track6 interface set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				Track6Interface: "wan",
 			},
 			want: true,
 		},
 		{
 			name: "track6 prefix id set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				Track6PrefixID: "0",
 			},
 			want: true,
@@ -245,112 +245,112 @@ func TestHasDHCPv6Config(t *testing.T) {
 		// AdvDHCP6* fields
 		{
 			name: "adv dhcp6 interface statement send options set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCP6InterfaceStatementSendOptions: "option1",
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 interface statement request options set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCP6InterfaceStatementRequestOptions: "option2",
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 information only enable set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCP6InterfaceStatementInformationOnlyEnable: "1",
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 interface statement script set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCP6InterfaceStatementScript: "/path/to/script",
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 id assoc address enable set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCP6IDAssocStatementAddressEnable: "1",
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 id assoc address set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCP6IDAssocStatementAddress: "2001:db8::1",
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 id assoc prefix enable set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCP6IDAssocStatementPrefixEnable: "1",
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 prefix interface sla len set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCP6PrefixInterfaceStatementSLALen: "64",
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 authentication auth name set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCP6AuthenticationStatementAuthName: "authname",
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 authentication protocol set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCP6AuthenticationStatementProtocol: "delayed",
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 key info key name set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCP6KeyInfoStatementKeyName: "keyname",
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 key info realm set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCP6KeyInfoStatementRealm: "realm",
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 config advanced set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCP6ConfigAdvanced: "advanced",
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 config file override set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCP6ConfigFileOverride: "1",
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 config file override path set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCP6ConfigFileOverridePath: "/path/to/file",
 			},
 			want: true,
 		},
 		{
 			name: "multiple dhcpv6 fields set",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				Track6Interface:                       "wan",
 				AdvDHCP6IDAssocStatementAddressEnable: "1",
 				AdvDHCP6ConfigAdvanced:                "advanced",
@@ -379,56 +379,54 @@ func TestBuildDHCPSummaryTableSet(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		dhcpd        model.Dhcpd
+		scopes       []common.DHCPScope
 		wantContains []string
 		wantRows     int
 	}{
 		{
-			name:         "empty dhcpd returns placeholder",
-			dhcpd:        model.Dhcpd{Items: nil},
+			name:         "empty scopes returns placeholder",
+			scopes:       nil,
 			wantContains: []string{"No DHCP scopes configured"},
 			wantRows:     1,
 		},
 		{
-			name: "empty items map returns placeholder",
-			dhcpd: model.Dhcpd{
-				Items: map[string]model.DhcpdInterface{},
-			},
+			name:         "empty slice returns placeholder",
+			scopes:       []common.DHCPScope{},
 			wantContains: []string{"No DHCP scopes configured"},
 			wantRows:     1,
 		},
 		{
 			name: "single interface with basic config",
-			dhcpd: model.Dhcpd{
-				Items: map[string]model.DhcpdInterface{
-					"lan": {
-						Enable:    "1",
-						Gateway:   "192.168.1.1",
-						Range:     model.Range{From: "192.168.1.100", To: "192.168.1.200"},
-						Dnsserver: "8.8.8.8",
-					},
+			scopes: []common.DHCPScope{
+				{
+					Interface: "lan",
+					Enabled:   true,
+					Gateway:   "192.168.1.1",
+					Range:     common.DHCPRange{From: "192.168.1.100", To: "192.168.1.200"},
+					DNSServer: "8.8.8.8",
 				},
 			},
 			wantContains: []string{"lan", "192.168.1.1", "192.168.1.100", "192.168.1.200", "8.8.8.8"},
 			wantRows:     1,
 		},
 		{
-			name: "multiple interfaces with deterministic ordering",
-			dhcpd: model.Dhcpd{
-				Items: map[string]model.DhcpdInterface{
-					"wan": {
-						Enable: "0",
-					},
-					"lan": {
-						Enable:  "1",
-						Gateway: "192.168.1.1",
-						Range:   model.Range{From: "192.168.1.100", To: "192.168.1.200"},
-					},
-					"opt0": {
-						Enable:  "1",
-						Gateway: "10.0.0.1",
-						Range:   model.Range{From: "10.0.0.50", To: "10.0.0.100"},
-					},
+			name: "multiple interfaces",
+			scopes: []common.DHCPScope{
+				{
+					Interface: "wan",
+					Enabled:   false,
+				},
+				{
+					Interface: "lan",
+					Enabled:   true,
+					Gateway:   "192.168.1.1",
+					Range:     common.DHCPRange{From: "192.168.1.100", To: "192.168.1.200"},
+				},
+				{
+					Interface: "opt0",
+					Enabled:   true,
+					Gateway:   "10.0.0.1",
+					Range:     common.DHCPRange{From: "10.0.0.50", To: "10.0.0.100"},
 				},
 			},
 			wantContains: []string{"lan", "wan", "opt0", "192.168.1.1", "10.0.0.1"},
@@ -436,34 +434,32 @@ func TestBuildDHCPSummaryTableSet(t *testing.T) {
 		},
 		{
 			name: "interface with all fields populated",
-			dhcpd: model.Dhcpd{
-				Items: map[string]model.DhcpdInterface{
-					"lan": {
-						Enable:              "1",
-						Gateway:             "192.168.1.1",
-						Range:               model.Range{From: "192.168.1.100", To: "192.168.1.200"},
-						Dnsserver:           "8.8.8.8",
-						Winsserver:          "192.168.1.5",
-						Ntpserver:           "pool.ntp.org",
-						DdnsDomainAlgorithm: "hmac-md5",
-					},
+			scopes: []common.DHCPScope{
+				{
+					Interface:  "lan",
+					Enabled:    true,
+					Gateway:    "192.168.1.1",
+					Range:      common.DHCPRange{From: "192.168.1.100", To: "192.168.1.200"},
+					DNSServer:  "8.8.8.8",
+					WINSServer: "192.168.1.5",
+					NTPServer:  "pool.ntp.org",
 				},
 			},
-			wantContains: []string{"lan", "192.168.1.1", "8.8.8.8", "192.168.1.5", "pool.ntp.org", "hmac-md5"},
+			wantContains: []string{"lan", "192.168.1.1", "8.8.8.8", "192.168.1.5", "pool.ntp.org"},
 			wantRows:     1,
 		},
 	}
 
 	dhcpSummaryHeaders := []string{
 		"Interface", "Enabled", "Gateway", "Range Start", "Range End",
-		"DNS", "WINS", "NTP", "DDNS Algorithm",
+		"DNS", "WINS", "NTP",
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			tableSet := BuildDHCPSummaryTableSet(tt.dhcpd)
+			tableSet := BuildDHCPSummaryTableSet(tt.scopes)
 			verifyTableSet(t, tableSet, dhcpSummaryHeaders, tt.wantRows, tt.wantContains)
 		})
 	}
@@ -474,7 +470,7 @@ func TestBuildDHCPStaticLeasesTableSet(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		leases       []model.DHCPStaticLease
+		leases       []common.DHCPStaticLease
 		wantContains []string
 		wantRows     int
 	}{
@@ -486,17 +482,17 @@ func TestBuildDHCPStaticLeasesTableSet(t *testing.T) {
 		},
 		{
 			name:         "empty slice returns placeholder",
-			leases:       []model.DHCPStaticLease{},
+			leases:       []common.DHCPStaticLease{},
 			wantContains: []string{"No static leases configured"},
 			wantRows:     1,
 		},
 		{
 			name: "basic lease with MAC IP and Hostname",
-			leases: []model.DHCPStaticLease{
+			leases: []common.DHCPStaticLease{
 				{
-					Mac:      "00:11:22:33:44:55",
-					IPAddr:   "192.168.1.50",
-					Hostname: "server1",
+					MAC:       "00:11:22:33:44:55",
+					IPAddress: "192.168.1.50",
+					Hostname:  "server1",
 				},
 			},
 			wantContains: []string{"00:11:22:33:44:55", "192.168.1.50", "server1"},
@@ -504,10 +500,10 @@ func TestBuildDHCPStaticLeasesTableSet(t *testing.T) {
 		},
 		{
 			name: "multiple leases",
-			leases: []model.DHCPStaticLease{
-				{Mac: "00:11:22:33:44:55", IPAddr: "192.168.1.50", Hostname: "server1"},
-				{Mac: "AA:BB:CC:DD:EE:FF", IPAddr: "192.168.1.51", Hostname: "server2"},
-				{Mac: "11:22:33:44:55:66", IPAddr: "192.168.1.52", Hostname: "printer"},
+			leases: []common.DHCPStaticLease{
+				{MAC: "00:11:22:33:44:55", IPAddress: "192.168.1.50", Hostname: "server1"},
+				{MAC: "AA:BB:CC:DD:EE:FF", IPAddress: "192.168.1.51", Hostname: "server2"},
+				{MAC: "11:22:33:44:55:66", IPAddress: "192.168.1.52", Hostname: "printer"},
 			},
 			wantContains: []string{
 				"00:11:22:33:44:55", "192.168.1.50", "server1",
@@ -518,17 +514,17 @@ func TestBuildDHCPStaticLeasesTableSet(t *testing.T) {
 		},
 		{
 			name: "full lease with all fields",
-			leases: []model.DHCPStaticLease{
+			leases: []common.DHCPStaticLease{
 				{
-					Mac:              "00:11:22:33:44:55",
-					IPAddr:           "192.168.1.50",
+					MAC:              "00:11:22:33:44:55",
+					IPAddress:        "192.168.1.50",
 					Hostname:         "pxe-server",
-					Cid:              "client-id-123",
+					CID:              "client-id-123",
 					Filename:         "pxelinux.0",
 					Rootpath:         "/tftpboot",
-					Defaultleasetime: "3600",
-					Maxleasetime:     "7200",
-					Descr:            "PXE boot server",
+					DefaultLeaseTime: "3600",
+					MaxLeaseTime:     "7200",
+					Description:      "PXE boot server",
 				},
 			},
 			wantContains: []string{
@@ -560,19 +556,19 @@ func TestBuildAdvancedDHCPItems(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		dhcp         model.DhcpdInterface
+		dhcp         common.DHCPScope
 		wantContains []string
 		wantLen      int
 	}{
 		{
 			name:         "empty config returns empty slice",
-			dhcp:         model.DhcpdInterface{},
+			dhcp:         common.DHCPScope{},
 			wantContains: nil,
 			wantLen:      0,
 		},
 		{
 			name: "alias fields populated",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AliasAddress:   "192.168.1.254",
 				AliasSubnet:    "24",
 				DHCPRejectFrom: "192.168.1.100",
@@ -586,7 +582,7 @@ func TestBuildAdvancedDHCPItems(t *testing.T) {
 		},
 		{
 			name: "advanced protocol timing fields",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCPPTTimeout:         "60",
 				AdvDHCPPTRetry:           "5",
 				AdvDHCPPTSelectTimeout:   "10",
@@ -626,19 +622,19 @@ func TestBuildDHCPv6Items(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		dhcp         model.DhcpdInterface
+		dhcp         common.DHCPScope
 		wantContains []string
 		wantLen      int
 	}{
 		{
 			name:         "empty config returns empty slice",
-			dhcp:         model.DhcpdInterface{},
+			dhcp:         common.DHCPScope{},
 			wantContains: nil,
 			wantLen:      0,
 		},
 		{
 			name: "track6 fields populated",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				Track6Interface: "wan",
 				Track6PrefixID:  "0",
 			},
@@ -647,7 +643,7 @@ func TestBuildDHCPv6Items(t *testing.T) {
 		},
 		{
 			name: "id assoc and prefix fields",
-			dhcp: model.DhcpdInterface{
+			dhcp: common.DHCPScope{
 				AdvDHCP6IDAssocStatementAddressEnable: "1",
 				AdvDHCP6IDAssocStatementAddress:       "2001:db8::1",
 				AdvDHCP6IDAssocStatementAddressID:     "1",

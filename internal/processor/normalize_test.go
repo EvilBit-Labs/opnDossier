@@ -3,40 +3,36 @@ package processor
 import (
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNormalize_DoesNotMutateOriginal(t *testing.T) {
 	t.Parallel()
 
-	original := &model.OpnSenseDocument{
-		Filter: model.Filter{
-			Rule: []model.Rule{
-				{Type: "pass", Descr: "rule-b"},
-				{Type: "block", Descr: "rule-a"},
-			},
+	original := &common.CommonDevice{
+		FirewallRules: []common.FirewallRule{
+			{Type: "pass", Description: "rule-b"},
+			{Type: "block", Description: "rule-a"},
 		},
-		System: model.System{
-			User: []model.User{
-				{Name: "zoe"},
-				{Name: "alice"},
-			},
-			Group: []model.Group{
-				{Name: "staff"},
-				{Name: "admins"},
-			},
+		Users: []common.User{
+			{Name: "zoe"},
+			{Name: "alice"},
 		},
-		Sysctl: []model.SysctlItem{
+		Groups: []common.Group{
+			{Name: "staff"},
+			{Name: "admins"},
+		},
+		Sysctl: []common.SysctlItem{
 			{Tunable: "z.tunable"},
 			{Tunable: "a.tunable"},
 		},
 	}
 
 	// Save original order
-	origRuleDescr := original.Filter.Rule[0].Descr
-	origUserName := original.System.User[0].Name
-	origGroupName := original.System.Group[0].Name
+	origRuleDescr := original.FirewallRules[0].Description
+	origUserName := original.Users[0].Name
+	origGroupName := original.Groups[0].Name
 	origSysctl := original.Sysctl[0].Tunable
 
 	p := &CoreProcessor{}
@@ -46,9 +42,9 @@ func TestNormalize_DoesNotMutateOriginal(t *testing.T) {
 	assert.NotNil(t, normalized)
 
 	// Original should be unmodified
-	assert.Equal(t, origRuleDescr, original.Filter.Rule[0].Descr, "original rules should not be reordered")
-	assert.Equal(t, origUserName, original.System.User[0].Name, "original users should not be reordered")
-	assert.Equal(t, origGroupName, original.System.Group[0].Name, "original groups should not be reordered")
+	assert.Equal(t, origRuleDescr, original.FirewallRules[0].Description, "original rules should not be reordered")
+	assert.Equal(t, origUserName, original.Users[0].Name, "original users should not be reordered")
+	assert.Equal(t, origGroupName, original.Groups[0].Name, "original groups should not be reordered")
 	assert.Equal(t, origSysctl, original.Sysctl[0].Tunable, "original sysctl should not be reordered")
 }
 

@@ -1,11 +1,11 @@
 package compliance
 
 import (
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 // Plugin defines the interface that all compliance plugins must implement.
-// This interface is designed to be loosely coupled and focused only on OpnSenseDocument.
+// This interface is designed to be loosely coupled and focused on CommonDevice.
 type Plugin interface {
 	// Name returns the unique name of the compliance standard
 	Name() string
@@ -16,9 +16,9 @@ type Plugin interface {
 	// Description returns a brief description of the compliance standard
 	Description() string
 
-	// RunChecks performs compliance checks against the OPNsense configuration
+	// RunChecks performs compliance checks against the device configuration
 	// Returns standardized findings that can be processed by the plugin manager
-	RunChecks(config *model.OpnSenseDocument) []Finding
+	RunChecks(device *common.CommonDevice) []Finding
 
 	// GetControls returns all controls defined by this compliance standard
 	GetControls() []Control

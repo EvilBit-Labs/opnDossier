@@ -3,7 +3,7 @@ package diff
 import (
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/schema"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,12 +14,12 @@ func TestNewAnalyzer(t *testing.T) {
 
 func TestAnalyzer_CompareSystem_NoChanges(t *testing.T) {
 	analyzer := NewAnalyzer()
-	old := &schema.System{
+	old := &common.System{
 		Hostname: "firewall",
 		Domain:   "example.com",
 		Timezone: "UTC",
 	}
-	newCfg := &schema.System{
+	newCfg := &common.System{
 		Hostname: "firewall",
 		Domain:   "example.com",
 		Timezone: "UTC",
@@ -31,8 +31,8 @@ func TestAnalyzer_CompareSystem_NoChanges(t *testing.T) {
 
 func TestAnalyzer_CompareSystem_HostnameChanged(t *testing.T) {
 	analyzer := NewAnalyzer()
-	old := &schema.System{Hostname: "old-firewall"}
-	newCfg := &schema.System{Hostname: "new-firewall"}
+	old := &common.System{Hostname: "old-firewall"}
+	newCfg := &common.System{Hostname: "new-firewall"}
 
 	changes := analyzer.CompareSystem(old, newCfg)
 
@@ -45,12 +45,12 @@ func TestAnalyzer_CompareSystem_HostnameChanged(t *testing.T) {
 
 func TestAnalyzer_CompareSystem_MultipleChanges(t *testing.T) {
 	analyzer := NewAnalyzer()
-	old := &schema.System{
+	old := &common.System{
 		Hostname: "old-host",
 		Domain:   "old.com",
 		Timezone: "UTC",
 	}
-	newCfg := &schema.System{
+	newCfg := &common.System{
 		Hostname: "new-host",
 		Domain:   "new.com",
 		Timezone: "America/New_York",
@@ -63,11 +63,11 @@ func TestAnalyzer_CompareSystem_MultipleChanges(t *testing.T) {
 
 func TestAnalyzer_CompareSystem_WebGUIProtocolChange(t *testing.T) {
 	analyzer := NewAnalyzer()
-	old := &schema.System{
-		WebGUI: schema.WebGUIConfig{Protocol: "http"},
+	old := &common.System{
+		WebGUI: common.WebGUI{Protocol: "http"},
 	}
-	newCfg := &schema.System{
-		WebGUI: schema.WebGUIConfig{Protocol: "https"},
+	newCfg := &common.System{
+		WebGUI: common.WebGUI{Protocol: "https"},
 	}
 
 	changes := analyzer.CompareSystem(old, newCfg)
@@ -78,8 +78,8 @@ func TestAnalyzer_CompareSystem_WebGUIProtocolChange(t *testing.T) {
 
 func TestAnalyzer_CompareFirewallRules_NoChanges(t *testing.T) {
 	analyzer := NewAnalyzer()
-	rules := []schema.Rule{
-		{UUID: "uuid-1", Type: "pass", Descr: "Allow SSH"},
+	rules := []common.FirewallRule{
+		{UUID: "uuid-1", Type: "pass", Description: "Allow SSH"},
 	}
 
 	changes := analyzer.CompareFirewallRules(rules, rules)
@@ -88,9 +88,9 @@ func TestAnalyzer_CompareFirewallRules_NoChanges(t *testing.T) {
 
 func TestAnalyzer_CompareFirewallRules_RuleAdded(t *testing.T) {
 	analyzer := NewAnalyzer()
-	old := []schema.Rule{}
-	newCfg := []schema.Rule{
-		{UUID: "uuid-1", Type: "pass", Descr: "Allow SSH"},
+	old := []common.FirewallRule{}
+	newCfg := []common.FirewallRule{
+		{UUID: "uuid-1", Type: "pass", Description: "Allow SSH"},
 	}
 
 	changes := analyzer.CompareFirewallRules(old, newCfg)
@@ -102,10 +102,10 @@ func TestAnalyzer_CompareFirewallRules_RuleAdded(t *testing.T) {
 
 func TestAnalyzer_CompareFirewallRules_RuleRemoved(t *testing.T) {
 	analyzer := NewAnalyzer()
-	old := []schema.Rule{
-		{UUID: "uuid-1", Type: "pass", Descr: "Legacy FTP"},
+	old := []common.FirewallRule{
+		{UUID: "uuid-1", Type: "pass", Description: "Legacy FTP"},
 	}
-	newCfg := []schema.Rule{}
+	newCfg := []common.FirewallRule{}
 
 	changes := analyzer.CompareFirewallRules(old, newCfg)
 
@@ -117,11 +117,11 @@ func TestAnalyzer_CompareFirewallRules_RuleRemoved(t *testing.T) {
 
 func TestAnalyzer_CompareFirewallRules_RuleModified(t *testing.T) {
 	analyzer := NewAnalyzer()
-	old := []schema.Rule{
-		{UUID: "uuid-1", Type: "pass", Descr: "Allow SSH", Protocol: "tcp"},
+	old := []common.FirewallRule{
+		{UUID: "uuid-1", Type: "pass", Description: "Allow SSH", Protocol: "tcp"},
 	}
-	newCfg := []schema.Rule{
-		{UUID: "uuid-1", Type: "pass", Descr: "Allow SSH", Protocol: "udp"},
+	newCfg := []common.FirewallRule{
+		{UUID: "uuid-1", Type: "pass", Description: "Allow SSH", Protocol: "udp"},
 	}
 
 	changes := analyzer.CompareFirewallRules(old, newCfg)
@@ -132,17 +132,13 @@ func TestAnalyzer_CompareFirewallRules_RuleModified(t *testing.T) {
 
 func TestAnalyzer_CompareFirewallRules_PermissiveRuleAdded(t *testing.T) {
 	analyzer := NewAnalyzer()
-	old := []schema.Rule{}
-	newCfg := []schema.Rule{
+	old := []common.FirewallRule{}
+	newCfg := []common.FirewallRule{
 		{
-			UUID: "uuid-1",
-			Type: "pass",
-			Source: schema.Source{
-				Any: new("true"),
-			},
-			Destination: schema.Destination{
-				Any: new("true"),
-			},
+			UUID:        "uuid-1",
+			Type:        "pass",
+			Source:      common.RuleEndpoint{Address: "any"},
+			Destination: common.RuleEndpoint{Address: "any"},
 		},
 	}
 
@@ -154,10 +150,8 @@ func TestAnalyzer_CompareFirewallRules_PermissiveRuleAdded(t *testing.T) {
 
 func TestAnalyzer_CompareInterfaces_NoChanges(t *testing.T) {
 	analyzer := NewAnalyzer()
-	interfaces := &schema.Interfaces{
-		Items: map[string]schema.Interface{
-			"wan": {IPAddr: "10.0.0.1", Subnet: "24"},
-		},
+	interfaces := []common.Interface{
+		{Name: "wan", IPAddress: "10.0.0.1", Subnet: "24"},
 	}
 
 	changes := analyzer.CompareInterfaces(interfaces, interfaces)
@@ -166,16 +160,12 @@ func TestAnalyzer_CompareInterfaces_NoChanges(t *testing.T) {
 
 func TestAnalyzer_CompareInterfaces_InterfaceAdded(t *testing.T) {
 	analyzer := NewAnalyzer()
-	old := &schema.Interfaces{
-		Items: map[string]schema.Interface{
-			"wan": {IPAddr: "10.0.0.1"},
-		},
+	old := []common.Interface{
+		{Name: "wan", IPAddress: "10.0.0.1"},
 	}
-	newCfg := &schema.Interfaces{
-		Items: map[string]schema.Interface{
-			"wan":  {IPAddr: "10.0.0.1"},
-			"opt1": {IPAddr: "192.168.10.1", Descr: "DMZ"},
-		},
+	newCfg := []common.Interface{
+		{Name: "wan", IPAddress: "10.0.0.1"},
+		{Name: "opt1", IPAddress: "192.168.10.1", Description: "DMZ"},
 	}
 
 	changes := analyzer.CompareInterfaces(old, newCfg)
@@ -187,16 +177,12 @@ func TestAnalyzer_CompareInterfaces_InterfaceAdded(t *testing.T) {
 
 func TestAnalyzer_CompareInterfaces_InterfaceRemoved(t *testing.T) {
 	analyzer := NewAnalyzer()
-	old := &schema.Interfaces{
-		Items: map[string]schema.Interface{
-			"wan":  {IPAddr: "10.0.0.1"},
-			"opt1": {IPAddr: "192.168.10.1", Descr: "DMZ"},
-		},
+	old := []common.Interface{
+		{Name: "wan", IPAddress: "10.0.0.1"},
+		{Name: "opt1", IPAddress: "192.168.10.1", Description: "DMZ"},
 	}
-	newCfg := &schema.Interfaces{
-		Items: map[string]schema.Interface{
-			"wan": {IPAddr: "10.0.0.1"},
-		},
+	newCfg := []common.Interface{
+		{Name: "wan", IPAddress: "10.0.0.1"},
 	}
 
 	changes := analyzer.CompareInterfaces(old, newCfg)
@@ -208,30 +194,24 @@ func TestAnalyzer_CompareInterfaces_InterfaceRemoved(t *testing.T) {
 
 func TestAnalyzer_CompareInterfaces_IPChanged(t *testing.T) {
 	analyzer := NewAnalyzer()
-	old := &schema.Interfaces{
-		Items: map[string]schema.Interface{
-			"wan": {IPAddr: "10.0.0.1", Subnet: "24"},
-		},
+	old := []common.Interface{
+		{Name: "wan", IPAddress: "10.0.0.1", Subnet: "24"},
 	}
-	newCfg := &schema.Interfaces{
-		Items: map[string]schema.Interface{
-			"wan": {IPAddr: "10.0.0.2", Subnet: "24"},
-		},
+	newCfg := []common.Interface{
+		{Name: "wan", IPAddress: "10.0.0.2", Subnet: "24"},
 	}
 
 	changes := analyzer.CompareInterfaces(old, newCfg)
 
 	assert.Len(t, changes, 1)
 	assert.Equal(t, ChangeModified, changes[0].Type)
-	assert.Equal(t, "interfaces.wan.ipaddr", changes[0].Path)
+	assert.Equal(t, "interfaces.wan.ipAddress", changes[0].Path)
 }
 
 func TestAnalyzer_CompareVLANs_NoChanges(t *testing.T) {
 	analyzer := NewAnalyzer()
-	vlans := &schema.VLANs{
-		VLAN: []schema.VLAN{
-			{Vlanif: "vlan10", Tag: "10", If: "em0"},
-		},
+	vlans := []common.VLAN{
+		{VLANIf: "vlan10", Tag: "10", PhysicalIf: "em0"},
 	}
 
 	changes := analyzer.CompareVLANs(vlans, vlans)
@@ -240,11 +220,9 @@ func TestAnalyzer_CompareVLANs_NoChanges(t *testing.T) {
 
 func TestAnalyzer_CompareVLANs_VLANAdded(t *testing.T) {
 	analyzer := NewAnalyzer()
-	old := &schema.VLANs{VLAN: []schema.VLAN{}}
-	newCfg := &schema.VLANs{
-		VLAN: []schema.VLAN{
-			{Vlanif: "vlan10", Tag: "10", If: "em0", Descr: "Guest"},
-		},
+	old := []common.VLAN{}
+	newCfg := []common.VLAN{
+		{VLANIf: "vlan10", Tag: "10", PhysicalIf: "em0", Description: "Guest"},
 	}
 
 	changes := analyzer.CompareVLANs(old, newCfg)
@@ -256,12 +234,10 @@ func TestAnalyzer_CompareVLANs_VLANAdded(t *testing.T) {
 
 func TestAnalyzer_CompareVLANs_VLANRemoved(t *testing.T) {
 	analyzer := NewAnalyzer()
-	old := &schema.VLANs{
-		VLAN: []schema.VLAN{
-			{Vlanif: "vlan10", Tag: "10", If: "em0"},
-		},
+	old := []common.VLAN{
+		{VLANIf: "vlan10", Tag: "10", PhysicalIf: "em0"},
 	}
-	newCfg := &schema.VLANs{VLAN: []schema.VLAN{}}
+	newCfg := []common.VLAN{}
 
 	changes := analyzer.CompareVLANs(old, newCfg)
 
@@ -271,15 +247,11 @@ func TestAnalyzer_CompareVLANs_VLANRemoved(t *testing.T) {
 
 func TestAnalyzer_CompareVLANs_TagChanged(t *testing.T) {
 	analyzer := NewAnalyzer()
-	old := &schema.VLANs{
-		VLAN: []schema.VLAN{
-			{Vlanif: "vlan10", Tag: "10", If: "em0"},
-		},
+	old := []common.VLAN{
+		{VLANIf: "vlan10", Tag: "10", PhysicalIf: "em0"},
 	}
-	newCfg := &schema.VLANs{
-		VLAN: []schema.VLAN{
-			{Vlanif: "vlan10", Tag: "20", If: "em0"},
-		},
+	newCfg := []common.VLAN{
+		{VLANIf: "vlan10", Tag: "20", PhysicalIf: "em0"},
 	}
 
 	changes := analyzer.CompareVLANs(old, newCfg)
@@ -291,8 +263,8 @@ func TestAnalyzer_CompareVLANs_TagChanged(t *testing.T) {
 
 func TestAnalyzer_CompareUsers_NoChanges(t *testing.T) {
 	analyzer := NewAnalyzer()
-	users := []schema.User{
-		{Name: "admin", Scope: "system", Groupname: "admins"},
+	users := []common.User{
+		{Name: "admin", Scope: "system", GroupName: "admins"},
 	}
 
 	changes := analyzer.CompareUsers(users, users)
@@ -301,9 +273,9 @@ func TestAnalyzer_CompareUsers_NoChanges(t *testing.T) {
 
 func TestAnalyzer_CompareUsers_UserAdded(t *testing.T) {
 	analyzer := NewAnalyzer()
-	old := []schema.User{}
-	newCfg := []schema.User{
-		{Name: "admin", Scope: "system", Groupname: "admins", Descr: "Administrator"},
+	old := []common.User{}
+	newCfg := []common.User{
+		{Name: "admin", Scope: "system", GroupName: "admins", Description: "Administrator"},
 	}
 
 	changes := analyzer.CompareUsers(old, newCfg)
@@ -315,10 +287,10 @@ func TestAnalyzer_CompareUsers_UserAdded(t *testing.T) {
 
 func TestAnalyzer_CompareUsers_UserRemoved(t *testing.T) {
 	analyzer := NewAnalyzer()
-	old := []schema.User{
-		{Name: "olduser", Scope: "local", Groupname: "users"},
+	old := []common.User{
+		{Name: "olduser", Scope: "local", GroupName: "users"},
 	}
-	newCfg := []schema.User{}
+	newCfg := []common.User{}
 
 	changes := analyzer.CompareUsers(old, newCfg)
 
@@ -329,11 +301,11 @@ func TestAnalyzer_CompareUsers_UserRemoved(t *testing.T) {
 
 func TestAnalyzer_CompareNAT_ModeChanged(t *testing.T) {
 	analyzer := NewAnalyzer()
-	old := &schema.Nat{
-		Outbound: schema.Outbound{Mode: "automatic"},
+	old := common.NATConfig{
+		OutboundMode: "automatic",
 	}
-	newCfg := &schema.Nat{
-		Outbound: schema.Outbound{Mode: "hybrid"},
+	newCfg := common.NATConfig{
+		OutboundMode: "hybrid",
 	}
 
 	changes := analyzer.CompareNAT(old, newCfg)
@@ -343,47 +315,47 @@ func TestAnalyzer_CompareNAT_ModeChanged(t *testing.T) {
 	assert.Equal(t, "medium", changes[0].SecurityImpact)
 }
 
-func TestFormatSource(t *testing.T) {
+func TestFormatEndpoint(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name string
-		src  schema.Source
+		ep   common.RuleEndpoint
 		want string
 	}{
 		{
-			name: "network only",
-			src:  schema.Source{Network: "lan"},
+			name: "address only",
+			ep:   common.RuleEndpoint{Address: "lan"},
 			want: "lan",
 		},
 		{
-			name: "address only",
-			src:  schema.Source{Address: "10.0.0.1"},
+			name: "specific address",
+			ep:   common.RuleEndpoint{Address: "10.0.0.1"},
 			want: "10.0.0.1",
 		},
 		{
-			name: "any via pointer",
-			src:  schema.Source{Any: new("")},
+			name: "any address",
+			ep:   common.RuleEndpoint{Address: "any"},
 			want: "any",
 		},
 		{
-			name: "empty source",
-			src:  schema.Source{},
+			name: "empty endpoint",
+			ep:   common.RuleEndpoint{},
 			want: "unknown",
 		},
 		{
-			name: "negated network",
-			src:  schema.Source{Network: "lan", Not: true},
+			name: "negated address",
+			ep:   common.RuleEndpoint{Address: "lan", Negated: true},
 			want: "!lan",
 		},
 		{
 			name: "negated address with port",
-			src:  schema.Source{Address: "192.168.1.0/24", Not: true, Port: "22"},
+			ep:   common.RuleEndpoint{Address: "192.168.1.0/24", Negated: true, Port: "22"},
 			want: "!192.168.1.0/24:22",
 		},
 		{
-			name: "network with port",
-			src:  schema.Source{Network: "wan", Port: "443"},
+			name: "address with port",
+			ep:   common.RuleEndpoint{Address: "wan", Port: "443"},
 			want: "wan:443",
 		},
 	}
@@ -391,56 +363,7 @@ func TestFormatSource(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := formatSource(tt.src)
-			assert.Equal(t, tt.want, got)
-		})
-	}
-}
-
-func TestFormatDestination(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name string
-		dst  schema.Destination
-		want string
-	}{
-		{
-			name: "network only",
-			dst:  schema.Destination{Network: "wan"},
-			want: "wan",
-		},
-		{
-			name: "address only",
-			dst:  schema.Destination{Address: "10.0.0.1"},
-			want: "10.0.0.1",
-		},
-		{
-			name: "any via pointer",
-			dst:  schema.Destination{Any: new("")},
-			want: "any",
-		},
-		{
-			name: "empty destination",
-			dst:  schema.Destination{},
-			want: "unknown",
-		},
-		{
-			name: "negated with port",
-			dst:  schema.Destination{Network: "lan", Not: true, Port: "80"},
-			want: "!lan:80",
-		},
-		{
-			name: "address with port",
-			dst:  schema.Destination{Address: "10.0.0.5", Port: "8080"},
-			want: "10.0.0.5:8080",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			got := formatDestination(tt.dst)
+			got := formatEndpoint(tt.ep)
 			assert.Equal(t, tt.want, got)
 		})
 	}
@@ -451,26 +374,26 @@ func TestFormatRule(t *testing.T) {
 
 	tests := []struct {
 		name string
-		rule schema.Rule
+		rule common.FirewallRule
 		want string
 	}{
 		{
 			name: "basic pass rule",
-			rule: schema.Rule{
+			rule: common.FirewallRule{
 				Type:        "pass",
-				Interface:   schema.InterfaceList{"wan"},
+				Interfaces:  []string{"wan"},
 				Protocol:    "tcp",
-				Source:      schema.Source{Network: "any"},
-				Destination: schema.Destination{Network: "lan", Port: "443"},
+				Source:      common.RuleEndpoint{Address: "any"},
+				Destination: common.RuleEndpoint{Address: "lan", Port: "443"},
 			},
 			want: "type=pass, if=wan, proto=tcp, src=any, dst=lan:443",
 		},
 		{
 			name: "disabled rule",
-			rule: schema.Rule{
+			rule: common.FirewallRule{
 				Type:        "block",
-				Source:      schema.Source{Network: "any"},
-				Destination: schema.Destination{Any: new("")},
+				Source:      common.RuleEndpoint{Address: "any"},
+				Destination: common.RuleEndpoint{Address: "any"},
 				Disabled:    true,
 			},
 			want: "type=block, src=any, dst=any, disabled",
@@ -491,26 +414,26 @@ func TestRuleDescription(t *testing.T) {
 
 	tests := []struct {
 		name string
-		rule schema.Rule
+		rule common.FirewallRule
 		want string
 	}{
 		{
 			name: "with description",
-			rule: schema.Rule{Descr: "Allow SSH"},
+			rule: common.FirewallRule{Description: "Allow SSH"},
 			want: "Allow SSH",
 		},
 		{
-			name: "without description uses effective address",
-			rule: schema.Rule{
+			name: "without description uses address",
+			rule: common.FirewallRule{
 				Type:        "pass",
-				Source:      schema.Source{Address: "10.0.0.0/8"},
-				Destination: schema.Destination{Any: new("")},
+				Source:      common.RuleEndpoint{Address: "10.0.0.0/8"},
+				Destination: common.RuleEndpoint{Address: "any"},
 			},
 			want: "pass 10.0.0.0/8 → any",
 		},
 		{
 			name: "empty addresses fall back to unknown",
-			rule: schema.Rule{
+			rule: common.FirewallRule{
 				Type: "block",
 			},
 			want: "block unknown → unknown",
@@ -528,13 +451,13 @@ func TestRuleDescription(t *testing.T) {
 
 func TestAnalyzer_CompareRoutes_CountChanged(t *testing.T) {
 	analyzer := NewAnalyzer()
-	old := &schema.StaticRoutes{
-		Route: []schema.StaticRoute{
+	old := common.Routing{
+		StaticRoutes: []common.StaticRoute{
 			{Network: "10.0.0.0/8"},
 		},
 	}
-	newCfg := &schema.StaticRoutes{
-		Route: []schema.StaticRoute{
+	newCfg := common.Routing{
+		StaticRoutes: []common.StaticRoute{
 			{Network: "10.0.0.0/8"},
 			{Network: "172.16.0.0/12"},
 		},
@@ -552,53 +475,35 @@ func TestIsPermissiveRule(t *testing.T) {
 
 	tests := []struct {
 		name string
-		rule schema.Rule
+		rule common.FirewallRule
 		want bool
 	}{
 		{
-			name: "any/any pass rule via Any field",
-			rule: schema.Rule{
+			name: "any/any pass rule",
+			rule: common.FirewallRule{
 				Type:        "pass",
-				Source:      schema.Source{Any: new("")},
-				Destination: schema.Destination{Any: new("")},
-			},
-			want: true,
-		},
-		{
-			name: "any/any pass rule via Network field",
-			rule: schema.Rule{
-				Type:        "pass",
-				Source:      schema.Source{Network: "any"},
-				Destination: schema.Destination{Network: "any"},
+				Source:      common.RuleEndpoint{Address: "any"},
+				Destination: common.RuleEndpoint{Address: "any"},
 			},
 			want: true,
 		},
 		{
 			name: "block rule is not permissive",
-			rule: schema.Rule{
+			rule: common.FirewallRule{
 				Type:        "block",
-				Source:      schema.Source{Any: new("")},
-				Destination: schema.Destination{Any: new("")},
+				Source:      common.RuleEndpoint{Address: "any"},
+				Destination: common.RuleEndpoint{Address: "any"},
 			},
 			want: false,
 		},
 		{
 			name: "specific source is not permissive",
-			rule: schema.Rule{
+			rule: common.FirewallRule{
 				Type:        "pass",
-				Source:      schema.Source{Network: "192.168.1.0/24"},
-				Destination: schema.Destination{Any: new("")},
+				Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
+				Destination: common.RuleEndpoint{Address: "any"},
 			},
 			want: false,
-		},
-		{
-			name: "any source via Address field",
-			rule: schema.Rule{
-				Type:        "pass",
-				Source:      schema.Source{Address: "any"},
-				Destination: schema.Destination{Network: "any"},
-			},
-			want: true,
 		},
 	}
 

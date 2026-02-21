@@ -205,6 +205,11 @@ func init() {
 		Bool("json-output", false, "Output errors in JSON format (for machine consumption)")
 	setFlagAnnotation(rootCmd.PersistentFlags(), "json-output", []string{"output"})
 
+	// Parsing control flags
+	rootCmd.PersistentFlags().
+		StringVar(&sharedDeviceType, "device-type", "", "Force device type (supported: opnsense). Bypasses auto-detection.")
+	setFlagAnnotation(rootCmd.PersistentFlags(), "device-type", []string{"parsing"})
+
 	// Flag groups for better organization
 	rootCmd.PersistentFlags().SortFlags = false
 
@@ -278,6 +283,11 @@ func registerRootFlagCompletions(cmd *cobra.Command) {
 	if err := cmd.RegisterFlagCompletionFunc("color", ValidColorModes); err != nil {
 		// Log error but don't fail - completion is optional
 		logger.Debug("failed to register color completion", "error", err)
+	}
+
+	// Device type flag completion
+	if err := cmd.RegisterFlagCompletionFunc("device-type", ValidDeviceTypes); err != nil {
+		logger.Debug("failed to register device-type completion", "error", err)
 	}
 }
 

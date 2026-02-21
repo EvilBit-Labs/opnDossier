@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 func TestMarkdownBuilder_EscapeTableContent(t *testing.T) {
@@ -583,7 +583,7 @@ func TestMarkdownBuilder_SanitizeID(t *testing.T) {
 }
 
 func TestNewMarkdownBuilderWithConfig(t *testing.T) {
-	config := &model.OpnSenseDocument{}
+	config := &common.CommonDevice{}
 	logger, err := logging.New(logging.Config{Level: "debug"})
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)

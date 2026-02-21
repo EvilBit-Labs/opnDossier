@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/nao1215/markdown"
 )
 
@@ -25,8 +24,8 @@ const (
 // Each interface name is converted to a clickable link that references the corresponding interface configuration section.
 // The function returns inline markdown links (e.g., [wan](#wan-interface)), which the nao1215/markdown package
 // automatically converts to reference-style links when used in table cells.
-func FormatInterfacesAsLinks(interfaces model.InterfaceList) string {
-	if interfaces.IsEmpty() {
+func FormatInterfacesAsLinks(interfaces []string) string {
+	if len(interfaces) == 0 {
 		return ""
 	}
 
@@ -47,18 +46,9 @@ func FormatBoolean(value string) string {
 	return xMark
 }
 
-// FormatBoolFlag formats a BoolFlag for display in markdown tables.
-// true → ✓, false → ✗.
-func FormatBoolFlag(value model.BoolFlag) string {
-	if value {
-		return checkmark
-	}
-	return xMark
-}
-
-// FormatBoolFlagInverted formats a BoolFlag with inverted logic for display in markdown tables.
+// FormatBoolInverted formats a boolean with inverted logic for display in markdown tables.
 // This is used for fields like "Disabled" where true means disabled (✗) and false means enabled (✓).
-func FormatBoolFlagInverted(value model.BoolFlag) string {
+func FormatBoolInverted(value bool) string {
 	if value {
 		return xMark
 	}

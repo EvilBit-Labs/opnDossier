@@ -95,24 +95,3 @@ func TestModel_StringPtr(t *testing.T) {
 	require.NotNil(t, empty)
 	assert.Empty(t, *empty)
 }
-
-func TestModel_EnrichDocument(t *testing.T) {
-	t.Parallel()
-
-	t.Run("nil input returns nil", func(t *testing.T) {
-		t.Parallel()
-		result := EnrichDocument(nil)
-		assert.Nil(t, result)
-	})
-
-	t.Run("valid document returns enriched", func(t *testing.T) {
-		t.Parallel()
-		doc := NewOpnSenseDocument()
-		doc.System.Hostname = "test-host"
-		doc.System.Domain = "test.local"
-
-		result := EnrichDocument(doc)
-		require.NotNil(t, result)
-		assert.Equal(t, "test-host", result.System.Hostname)
-	})
-}

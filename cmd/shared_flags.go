@@ -2,6 +2,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,6 +12,9 @@ import (
 
 // Shared flag variables for convert and display commands.
 var (
+	// Parsing flags.
+	sharedDeviceType string //nolint:gochecknoglobals // Force device type (bypasses auto-detection)
+
 	// Styling flags.
 	sharedSections        []string //nolint:gochecknoglobals // Sections to include
 	sharedTheme           string   //nolint:gochecknoglobals // Theme for rendering
@@ -224,4 +228,25 @@ func ValidAuditPlugins(_ *cobra.Command, _ []string, _ string) ([]string, cobra.
 		"sans\tSANS Firewall Baseline",
 		"firewall\tCustom firewall compliance checks",
 	}, cobra.ShellCompDirectiveNoFileComp
+}
+
+// ValidDeviceTypes provides shell completion for device type values.
+func ValidDeviceTypes(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	return []string{
+		"opnsense\tForce OPNsense device type (bypasses auto-detection)",
+	}, cobra.ShellCompDirectiveNoFileComp
+}
+
+// validateDeviceType checks that sharedDeviceType is either empty (auto-detect)
+// or a supported device type. Returns an error for unrecognized values.
+func validateDeviceType() error {
+	if sharedDeviceType == "" {
+		return nil
+	}
+
+	if strings.EqualFold(sharedDeviceType, "opnsense") {
+		return nil
+	}
+
+	return fmt.Errorf("unsupported device type: %q; supported values: opnsense", sharedDeviceType)
 }

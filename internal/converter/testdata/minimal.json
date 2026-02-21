@@ -1,4 +1,5 @@
 {
+  "device_type": "opnsense",
   "version": "1.0.0",
   "system": {
     "hostname": "minimal-host",

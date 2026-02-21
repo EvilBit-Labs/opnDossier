@@ -14,6 +14,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/display"
+	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -120,6 +121,11 @@ Examples:
 			ctx = context.Background()
 		}
 
+		// Validate device type flag early before any file processing
+		if err := validateDeviceType(); err != nil {
+			return err
+		}
+
 		// Get configuration and logger from CommandContext
 		cmdCtx := GetCommandContext(cmd)
 		if cmdCtx == nil {
@@ -155,12 +161,11 @@ Examples:
 			}
 		}()
 
-		// Parse the XML - display command only ensures XML can be unmarshalled
+		// Parse the XML and convert to platform-agnostic device model
 		// Full validation should be done with the 'validate' command
-		p := cfgparser.NewXMLParser()
-		opnsense, err := p.Parse(ctx, file)
+		device, err := model.NewParserFactory().CreateDevice(ctx, file, sharedDeviceType, false)
 		if err != nil {
-			ctxLogger.Error("Failed to parse XML", "error", err)
+			ctxLogger.Error("Failed to parse configuration", "error", err)
 			// Enhanced error handling for different error types
 			if cfgparser.IsParseError(err) {
 				if parseErr := cfgparser.GetParseError(err); parseErr != nil {
@@ -170,7 +175,7 @@ Examples:
 			if cfgparser.IsValidationError(err) {
 				ctxLogger.Error("Configuration validation failed")
 			}
-			return fmt.Errorf("failed to parse XML from %s: %w", filePath, err)
+			return fmt.Errorf("failed to parse configuration from %s: %w", filePath, err)
 		}
 
 		mdOpts := buildDisplayOptions(cmdConfig)
@@ -181,7 +186,7 @@ Examples:
 		}
 
 		// Standard markdown generation
-		md, err := g.Generate(ctx, opnsense, mdOpts)
+		md, err := g.Generate(ctx, device, mdOpts)
 		if err != nil {
 			ctxLogger.Error("Failed to convert to markdown", "error", err)
 			return fmt.Errorf("failed to convert to markdown from %s: %w", filePath, err)

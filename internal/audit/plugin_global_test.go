@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 // TestGlobalPluginRegistry tests all global registry functions.
@@ -455,8 +455,8 @@ func TestRunComplianceChecks_WithFindingsAndReferences(t *testing.T) {
 		t.Fatalf("Failed to register plugin: %v", err)
 	}
 
-	testConfig := &model.OpnSenseDocument{
-		System: model.System{
+	testConfig := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-host",
 		},
 	}
@@ -522,7 +522,7 @@ type mockPluginWithFindings struct {
 	controls []compliance.Control
 }
 
-func (m *mockPluginWithFindings) RunChecks(_ *model.OpnSenseDocument) []compliance.Finding {
+func (m *mockPluginWithFindings) RunChecks(_ *common.CommonDevice) []compliance.Finding {
 	return m.findings
 }
 

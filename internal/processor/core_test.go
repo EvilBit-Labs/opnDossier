@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -16,40 +16,36 @@ func TestCoreProcessor_Process(t *testing.T) {
 	ctx := context.Background()
 
 	// Create a test configuration
-	cfg := &model.OpnSenseDocument{
-		System: model.System{
+	cfg := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-host",
 			Domain:   "test.local",
-			WebGUI:   model.WebGUIConfig{Protocol: "http"}, // Insecure protocol for security finding
-			Bogons: struct {
-				Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
-			}{Interval: "monthly"},
+			WebGUI:   common.WebGUI{Protocol: "http"}, // Insecure protocol for security finding
+			Bogons:   common.Bogons{Interval: "monthly"},
 		},
-		Interfaces: model.Interfaces{
-			Items: map[string]model.Interface{
-				"wan": {
-					Enable: "1",
-					IPAddr: "192.168.1.1",
-					Subnet: "24",
-				},
-				"lan": {
-					Enable: "1",
-					IPAddr: "10.0.0.1",
-					Subnet: "24",
-				},
+		Interfaces: []common.Interface{
+			{
+				Name:      "wan",
+				Enabled:   true,
+				IPAddress: "192.168.1.1",
+				Subnet:    "24",
+			},
+			{
+				Name:      "lan",
+				Enabled:   true,
+				IPAddress: "10.0.0.1",
+				Subnet:    "24",
 			},
 		},
-		Filter: model.Filter{
-			Rule: []model.Rule{
-				{
-					Type:      "pass",
-					Interface: model.InterfaceList{"wan"},
-					Source:    model.Source{Network: "any"},
-					Descr:     "",
-				},
+		FirewallRules: []common.FirewallRule{
+			{
+				Type:        "pass",
+				Interfaces:  []string{"wan"},
+				Source:      common.RuleEndpoint{Address: "any"},
+				Description: "",
 			},
 		},
-		Snmpd: model.Snmpd{
+		SNMP: common.SNMPConfig{
 			ROCommunity: "public", // This should trigger a security finding
 		},
 	}
@@ -138,16 +134,14 @@ func TestCoreProcessor_Transform(t *testing.T) {
 	ctx := context.Background()
 
 	// Create a simple test configuration and process it
-	cfg := &model.OpnSenseDocument{
-		System: model.System{
+	cfg := &common.CommonDevice{
+		System: common.System{
 			Hostname: "test-firewall",
 			Domain:   "example.com",
 		},
-		Interfaces: model.Interfaces{
-			Items: map[string]model.Interface{
-				"wan": {Enable: "1"},
-				"lan": {Enable: "1"},
-			},
+		Interfaces: []common.Interface{
+			{Name: "wan", Enabled: true},
+			{Name: "lan", Enabled: true},
 		},
 	}
 
@@ -190,28 +184,18 @@ func TestCoreProcessor_Normalization(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("IP address canonicalization", func(t *testing.T) {
-		cfg := &model.OpnSenseDocument{
-			System: model.System{
+		cfg := &common.CommonDevice{
+			System: common.System{
 				Hostname: "test",
 				Domain:   "example.com",
 			},
-			Interfaces: model.Interfaces{
-				Items: map[string]model.Interface{
-					"wan": {
-						IPAddr: "192.168.1.1",
-						Subnet: "24",
-					},
-					"lan": {
-						IPAddr: "10.0.0.1",
-						Subnet: "24",
-					},
-				},
+			Interfaces: []common.Interface{
+				{Name: "wan", IPAddress: "192.168.1.1", Subnet: "24"},
+				{Name: "lan", IPAddress: "10.0.0.1", Subnet: "24"},
 			},
-			Filter: model.Filter{
-				Rule: []model.Rule{
-					{
-						Source: model.Source{Network: "192.168.1.100"},
-					},
+			FirewallRules: []common.FirewallRule{
+				{
+					Source: common.RuleEndpoint{Address: "192.168.1.100"},
 				},
 			},
 		}
@@ -219,29 +203,27 @@ func TestCoreProcessor_Normalization(t *testing.T) {
 		normalized := processor.normalize(cfg)
 
 		// IP addresses should be in canonical form
-		wan, wanExists := normalized.Interfaces.Wan()
-		assert.True(t, wanExists)
-		assert.Equal(t, "192.168.1.1", wan.IPAddr)
+		wan := findInterface(normalized.Interfaces, "wan")
+		require.NotNil(t, wan, "wan interface should exist")
+		assert.Equal(t, "192.168.1.1", wan.IPAddress)
 
-		lan, lanExists := normalized.Interfaces.Lan()
-		assert.True(t, lanExists)
-		assert.Equal(t, "10.0.0.1", lan.IPAddr)
+		lan := findInterface(normalized.Interfaces, "lan")
+		require.NotNil(t, lan, "lan interface should exist")
+		assert.Equal(t, "10.0.0.1", lan.IPAddress)
 
 		// Single IP should be converted to CIDR
-		assert.Equal(t, "192.168.1.100/32", normalized.Filter.Rule[0].Source.Network)
+		assert.Equal(t, "192.168.1.100/32", normalized.FirewallRules[0].Source.Address)
 	})
 
 	t.Run("Default values filling", func(t *testing.T) {
-		cfg := &model.OpnSenseDocument{
-			System: model.System{
+		cfg := &common.CommonDevice{
+			System: common.System{
 				Hostname: "test",
 				Domain:   "example.com",
 			},
-			Interfaces: model.Interfaces{
-				Items: map[string]model.Interface{
-					"wan": {Enable: "1"},
-					"lan": {Enable: "1"},
-				},
+			Interfaces: []common.Interface{
+				{Name: "wan", Enabled: true},
+				{Name: "lan", Enabled: true},
 			},
 		}
 
@@ -252,38 +234,31 @@ func TestCoreProcessor_Normalization(t *testing.T) {
 		assert.Equal(t, "https", normalized.System.WebGUI.Protocol)
 		assert.Equal(t, "UTC", normalized.System.Timezone)
 		assert.Equal(t, "monthly", normalized.System.Bogons.Interval)
-		// Note: MTU default values are commented out in normalize.go due to
-		// API limitations - interfaces are returned by value so cannot be modified
-		// wan, wanExists := normalized.Interfaces.Wan()
-		// assert.True(t, wanExists)
-		// assert.Equal(t, "1500", wan.MTU)
-		assert.Equal(t, "automatic", normalized.Nat.Outbound.Mode)
+		assert.Equal(t, "automatic", normalized.NAT.OutboundMode)
 		assert.Equal(t, "opnsense", normalized.Theme)
 	})
 
 	t.Run("Slice sorting", func(t *testing.T) {
-		cfg := &model.OpnSenseDocument{
-			System: model.System{
+		cfg := &common.CommonDevice{
+			System: common.System{
 				Hostname: "test",
 				Domain:   "example.com",
-				User: []model.User{
-					{Name: "charlie"},
-					{Name: "alice"},
-					{Name: "bob"},
-				},
-				Group: []model.Group{
-					{Name: "zebra"},
-					{Name: "alpha"},
-					{Name: "beta"},
-				},
 			},
-			Interfaces: model.Interfaces{
-				Items: map[string]model.Interface{
-					"wan": {Enable: "1"},
-					"lan": {Enable: "1"},
-				},
+			Interfaces: []common.Interface{
+				{Name: "wan", Enabled: true},
+				{Name: "lan", Enabled: true},
 			},
-			Sysctl: []model.SysctlItem{
+			Users: []common.User{
+				{Name: "charlie"},
+				{Name: "alice"},
+				{Name: "bob"},
+			},
+			Groups: []common.Group{
+				{Name: "zebra"},
+				{Name: "alpha"},
+				{Name: "beta"},
+			},
+			Sysctl: []common.SysctlItem{
 				{Tunable: "net.inet.tcp.mssdflt"},
 				{Tunable: "kern.ipc.maxsockbuf"},
 				{Tunable: "net.inet.ip.forwarding"},
@@ -293,14 +268,14 @@ func TestCoreProcessor_Normalization(t *testing.T) {
 		normalized := processor.normalize(cfg)
 
 		// Users should be sorted by name
-		assert.Equal(t, "alice", normalized.System.User[0].Name)
-		assert.Equal(t, "bob", normalized.System.User[1].Name)
-		assert.Equal(t, "charlie", normalized.System.User[2].Name)
+		assert.Equal(t, "alice", normalized.Users[0].Name)
+		assert.Equal(t, "bob", normalized.Users[1].Name)
+		assert.Equal(t, "charlie", normalized.Users[2].Name)
 
 		// Groups should be sorted by name
-		assert.Equal(t, "alpha", normalized.System.Group[0].Name)
-		assert.Equal(t, "beta", normalized.System.Group[1].Name)
-		assert.Equal(t, "zebra", normalized.System.Group[2].Name)
+		assert.Equal(t, "alpha", normalized.Groups[0].Name)
+		assert.Equal(t, "beta", normalized.Groups[1].Name)
+		assert.Equal(t, "zebra", normalized.Groups[2].Name)
 
 		// Sysctl items should be sorted by tunable name
 		assert.Equal(t, "kern.ipc.maxsockbuf", normalized.Sysctl[0].Tunable)
@@ -316,32 +291,28 @@ func TestCoreProcessor_Analysis(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("Dead rule detection", func(t *testing.T) {
-		cfg := &model.OpnSenseDocument{
-			System: model.System{
+		cfg := &common.CommonDevice{
+			System: common.System{
 				Hostname: "test",
 				Domain:   "example.com",
 			},
-			Interfaces: model.Interfaces{
-				Items: map[string]model.Interface{
-					"wan": {Enable: "1"},
-					"lan": {Enable: "1"},
-				},
+			Interfaces: []common.Interface{
+				{Name: "wan", Enabled: true},
+				{Name: "lan", Enabled: true},
 			},
-			Filter: model.Filter{
-				Rule: []model.Rule{
-					{
-						Type:        "block",
-						Interface:   model.InterfaceList{"wan"},
-						Source:      model.Source{Network: "any"},
-						Destination: model.Destination{Any: model.StringPtr("")},
-						Descr:       "Block all traffic",
-					},
-					{
-						Type:      "pass",
-						Interface: model.InterfaceList{"wan"},
-						Source:    model.Source{Network: "192.168.1.0/24"},
-						Descr:     "Allow LAN traffic",
-					},
+			FirewallRules: []common.FirewallRule{
+				{
+					Type:        "block",
+					Interfaces:  []string{"wan"},
+					Source:      common.RuleEndpoint{Address: "any"},
+					Destination: common.RuleEndpoint{Address: "any"},
+					Description: "Block all traffic",
+				},
+				{
+					Type:        "pass",
+					Interfaces:  []string{"wan"},
+					Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
+					Description: "Allow LAN traffic",
 				},
 			},
 		}
@@ -363,33 +334,29 @@ func TestCoreProcessor_Analysis(t *testing.T) {
 	})
 
 	t.Run("Duplicate rule detection", func(t *testing.T) {
-		cfg := &model.OpnSenseDocument{
-			System: model.System{
+		cfg := &common.CommonDevice{
+			System: common.System{
 				Hostname: "test",
 				Domain:   "example.com",
 			},
-			Interfaces: model.Interfaces{
-				Items: map[string]model.Interface{
-					"wan": {Enable: "1"},
-					"lan": {Enable: "1"},
-				},
+			Interfaces: []common.Interface{
+				{Name: "wan", Enabled: true},
+				{Name: "lan", Enabled: true},
 			},
-			Filter: model.Filter{
-				Rule: []model.Rule{
-					{
-						Type:       "pass",
-						Interface:  model.InterfaceList{"lan"},
-						IPProtocol: "inet",
-						Source:     model.Source{Network: "any"},
-						Descr:      "Allow traffic",
-					},
-					{
-						Type:       "pass",
-						Interface:  model.InterfaceList{"lan"},
-						IPProtocol: "inet",
-						Source:     model.Source{Network: "any"},
-						Descr:      "Duplicate rule",
-					},
+			FirewallRules: []common.FirewallRule{
+				{
+					Type:        "pass",
+					Interfaces:  []string{"lan"},
+					IPProtocol:  "inet",
+					Source:      common.RuleEndpoint{Address: "any"},
+					Description: "Allow traffic",
+				},
+				{
+					Type:        "pass",
+					Interfaces:  []string{"lan"},
+					IPProtocol:  "inet",
+					Source:      common.RuleEndpoint{Address: "any"},
+					Description: "Duplicate rule",
 				},
 			},
 		}
@@ -411,30 +378,28 @@ func TestCoreProcessor_Analysis(t *testing.T) {
 	})
 
 	t.Run("User-group consistency check", func(t *testing.T) {
-		cfg := &model.OpnSenseDocument{
-			System: model.System{
+		cfg := &common.CommonDevice{
+			System: common.System{
 				Hostname: "test",
 				Domain:   "example.com",
-				User: []model.User{
-					{
-						Name:      "testuser",
-						Groupname: "nonexistent",
-						UID:       "1001",
-						Scope:     "local",
-					},
-				},
-				Group: []model.Group{
-					{
-						Name:  "admins",
-						Gid:   "1000",
-						Scope: "local",
-					},
+			},
+			Interfaces: []common.Interface{
+				{Name: "wan", Enabled: true},
+				{Name: "lan", Enabled: true},
+			},
+			Users: []common.User{
+				{
+					Name:      "testuser",
+					GroupName: "nonexistent",
+					UID:       "1001",
+					Scope:     "local",
 				},
 			},
-			Interfaces: model.Interfaces{
-				Items: map[string]model.Interface{
-					"wan": {Enable: "1"},
-					"lan": {Enable: "1"},
+			Groups: []common.Group{
+				{
+					Name:  "admins",
+					GID:   "1000",
+					Scope: "local",
 				},
 			},
 		}

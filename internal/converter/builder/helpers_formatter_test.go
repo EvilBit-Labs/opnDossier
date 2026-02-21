@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 // Test the helper methods that delegate to formatters package
@@ -337,7 +337,7 @@ func TestMarkdownBuilder_CalculateSecurityScore(t *testing.T) {
 
 	tests := []struct {
 		name string
-		data *model.OpnSenseDocument
+		data *common.CommonDevice
 		want int
 	}{
 		{
@@ -347,8 +347,8 @@ func TestMarkdownBuilder_CalculateSecurityScore(t *testing.T) {
 		},
 		{
 			name: "basic document",
-			data: &model.OpnSenseDocument{
-				System: model.System{
+			data: &common.CommonDevice{
+				System: common.System{
 					Hostname: "test",
 				},
 			},
@@ -374,32 +374,32 @@ func TestMarkdownBuilder_AssessServiceRisk(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
 	tests := []struct {
-		name    string
-		service model.Service
+		name        string
+		serviceName string
 	}{
 		{
-			name:    "ssh service",
-			service: model.Service{Name: "ssh", Status: "running"},
+			name:        "ssh service",
+			serviceName: "ssh",
 		},
 		{
-			name:    "http service",
-			service: model.Service{Name: "http", Status: "running"},
+			name:        "http service",
+			serviceName: "http",
 		},
 		{
-			name:    "unknown service",
-			service: model.Service{Name: "unknown", Status: "stopped"},
+			name:        "unknown service",
+			serviceName: "unknown",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := builder.AssessServiceRisk(tt.service)
+			got := builder.AssessServiceRisk(tt.serviceName)
 			// Risk assessment can vary, just ensure it returns a valid format
 			if !strings.Contains(got, "🔴") && !strings.Contains(got, "🟠") &&
 				!strings.Contains(got, "🟡") && !strings.Contains(got, "🟢") &&
 				!strings.Contains(got, "⚪") && !strings.Contains(got, "ℹ️") {
-				t.Errorf("AssessServiceRisk(%v) = %q, want valid risk format", tt.service, got)
+				t.Errorf("AssessServiceRisk(%v) = %q, want valid risk format", tt.serviceName, got)
 			}
 		})
 	}
@@ -410,7 +410,7 @@ func TestMarkdownBuilder_FilterSystemTunables(t *testing.T) {
 
 	builder := NewMarkdownBuilder()
 
-	tunables := []model.SysctlItem{
+	tunables := []common.SysctlItem{
 		{Tunable: "kern.ipc.maxsockbuf", Value: "16777216"},
 		{Tunable: "net.inet.tcp.mssdflt", Value: "1460"},
 		{Tunable: "vm.stats.sys.v_page_size", Value: "4096"},
@@ -447,46 +447,12 @@ func TestMarkdownBuilder_FilterSystemTunables(t *testing.T) {
 	}
 }
 
-func TestMarkdownBuilder_GroupServicesByStatus(t *testing.T) {
-	t.Parallel()
-
-	builder := NewMarkdownBuilder()
-
-	services := []model.Service{
-		{Name: "ssh", Status: "running"},
-		{Name: "http", Status: "running"},
-		{Name: "ftp", Status: "stopped"},
-		{Name: "ntp", Status: "running"},
-	}
-
-	result := builder.GroupServicesByStatus(services)
-	if result == nil {
-		t.Error("GroupServicesByStatus returned nil")
-		return
-	}
-
-	// Should have running and stopped groups
-	if len(result) == 0 {
-		t.Error("GroupServicesByStatus returned empty map")
-	}
-
-	// Just verify the function doesn't panic and returns a map
-	for status, svcList := range result {
-		if status == "" {
-			t.Error("GroupServicesByStatus returned empty status key")
-		}
-		if len(svcList) == 0 {
-			t.Errorf("GroupServicesByStatus returned empty service list for status: %s", status)
-		}
-	}
-}
-
 func TestMarkdownBuilder_AggregatePackageStats(t *testing.T) {
 	t.Parallel()
 
 	builder := NewMarkdownBuilder()
 
-	packages := []model.Package{
+	packages := []common.Package{
 		{Name: "nginx", Version: "1.20.1", Installed: true},
 		{Name: "mysql", Version: "8.0.28", Installed: true},
 		{Name: "php", Version: "8.1.0", Installed: false},
@@ -519,7 +485,7 @@ func TestMarkdownBuilder_FilterRulesByType(t *testing.T) {
 
 	builder := NewMarkdownBuilder()
 
-	rules := []model.Rule{
+	rules := []common.FirewallRule{
 		{Type: "pass", Protocol: "tcp"},
 		{Type: "block", Protocol: "udp"},
 		{Type: "pass", Protocol: "icmp"},

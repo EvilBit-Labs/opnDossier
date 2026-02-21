@@ -1,9 +1,10 @@
 package formatters
 
 import (
+	"slices"
 	"strings"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 const (
@@ -34,14 +35,14 @@ func AssessRiskLevel(severity string) string {
 }
 
 // CalculateSecurityScore computes an overall score (0-100).
-func CalculateSecurityScore(data *model.OpnSenseDocument) int {
+func CalculateSecurityScore(data *common.CommonDevice) int {
 	if data == nil {
 		return 0
 	}
 
 	score := initialSecurityScore
 
-	if len(data.Filter.Rule) == 0 {
+	if len(data.FirewallRules) == 0 {
 		score -= firewallMissingPenalty
 	}
 
@@ -61,7 +62,7 @@ func CalculateSecurityScore(data *model.OpnSenseDocument) int {
 		}
 	}
 
-	for _, user := range data.System.User {
+	for _, user := range data.Users {
 		if isDefaultUser(user) {
 			score -= defaultUserPenalty
 		}
@@ -77,7 +78,7 @@ func CalculateSecurityScore(data *model.OpnSenseDocument) int {
 }
 
 // AssessServiceRisk maps common services to risk levels.
-func AssessServiceRisk(service model.Service) string {
+func AssessServiceRisk(serviceName string) string {
 	riskServices := map[string]string{
 		"telnet": "critical",
 		"ftp":    "high",
@@ -87,7 +88,7 @@ func AssessServiceRisk(service model.Service) string {
 		"https":  "info",
 	}
 
-	name := strings.ToLower(service.Name)
+	name := strings.ToLower(serviceName)
 	for pattern, risk := range riskServices {
 		if strings.Contains(name, pattern) {
 			return AssessRiskLevel(risk)
@@ -96,11 +97,11 @@ func AssessServiceRisk(service model.Service) string {
 	return AssessRiskLevel("info")
 }
 
-func hasManagementOnWAN(data *model.OpnSenseDocument) bool {
+func hasManagementOnWAN(data *common.CommonDevice) bool {
 	mgmtPorts := []string{"443", "80", "22", "8080"}
 
-	for _, rule := range data.Filter.Rule {
-		if !rule.Interface.Contains("wan") {
+	for _, rule := range data.FirewallRules {
+		if !slices.Contains(rule.Interfaces, "wan") {
 			continue
 		}
 		if rule.Direction != "" && !strings.EqualFold(rule.Direction, "in") {
@@ -115,7 +116,7 @@ func hasManagementOnWAN(data *model.OpnSenseDocument) bool {
 	return false
 }
 
-func checkTunable(tunables []model.SysctlItem, name, expected string) bool {
+func checkTunable(tunables []common.SysctlItem, name, expected string) bool {
 	for _, tunable := range tunables {
 		if tunable.Tunable == name {
 			return tunable.Value == expected
@@ -124,7 +125,7 @@ func checkTunable(tunables []model.SysctlItem, name, expected string) bool {
 	return false
 }
 
-func isDefaultUser(u model.User) bool {
+func isDefaultUser(u common.User) bool {
 	switch strings.ToLower(u.Name) {
 	case "admin", "root", "user":
 		return true

@@ -1,4 +1,4 @@
-// Package converter provides functionality to convert OPNsense configurations to various formats.
+// Package converter provides functionality to convert device configurations to various formats.
 package converter
 
 import (
@@ -6,25 +6,27 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
-// JSONConverter is a JSON converter for OPNsense configurations.
+// JSONConverter is a JSON converter for device configurations.
 type JSONConverter struct{}
 
-// NewJSONConverter creates and returns a new JSONConverter for converting OPNsense configurations to JSON format.
+// NewJSONConverter creates and returns a new JSONConverter for converting device configurations to JSON format.
 func NewJSONConverter() *JSONConverter {
 	return &JSONConverter{}
 }
 
-// ToJSON converts an OPNsense configuration to JSON.
-func (c *JSONConverter) ToJSON(_ context.Context, opnsense *model.OpnSenseDocument) (string, error) {
-	if opnsense == nil {
-		return "", ErrNilOpnSenseDocument
+// ToJSON converts a device configuration to JSON.
+func (c *JSONConverter) ToJSON(_ context.Context, data *common.CommonDevice) (string, error) {
+	if data == nil {
+		return "", ErrNilDevice
 	}
 
-	// Marshal the OpnSenseDocument struct to JSON with indentation
-	jsonBytes, err := json.MarshalIndent(opnsense, "", "  ")
+	target := prepareForExport(data)
+
+	// Marshal the CommonDevice struct to JSON with indentation
+	jsonBytes, err := json.MarshalIndent(target, "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal to JSON: %w", err)
 	}
