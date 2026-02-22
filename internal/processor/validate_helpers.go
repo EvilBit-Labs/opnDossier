@@ -16,7 +16,7 @@ var (
 	timezonePatternEtc  = regexp.MustCompile(`^Etc/GMT[+-]\d+$`)
 	timezonePatternUTC  = regexp.MustCompile(`^UTC$`)
 	timezonePatternGMT  = regexp.MustCompile(`^GMT$`)
-	portRangePattern    = regexp.MustCompile(`^\d+(?::\d+)?$`)
+	portRangePattern    = regexp.MustCompile(`^\d+(-\d+)?$`)
 	portAliasPattern    = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_-]*$`)
 	connRatePattern     = regexp.MustCompile(`^\d+/\d+$`)
 	sysctlNamePattern   = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_.]*$`)
@@ -73,8 +73,11 @@ func isValidCIDR(cidr string) bool {
 	return err == nil
 }
 
+// portRangeParts is the maximum number of parts when splitting a port range on hyphen.
+const portRangeParts = 2
+
 // isValidPortOrRange reports whether port is empty (allowed), a valid single port
-// number, a valid port range ("low:high"), or a recognized service name alias.
+// number, a valid port range ("low-high"), or a recognized service name alias.
 func isValidPortOrRange(port string) bool {
 	if port == "" {
 		return true
@@ -86,7 +89,7 @@ func isValidPortOrRange(port string) bool {
 		return portAliasPattern.MatchString(port)
 	}
 
-	parts := strings.Split(port, ":")
+	parts := strings.SplitN(port, "-", portRangeParts)
 	if len(parts) == 1 {
 		p, err := strconv.Atoi(parts[0])
 		if err != nil {
