@@ -31,8 +31,9 @@ type CoreProcessor struct {
 	validateFn func(*common.CommonDevice) []ValidationError
 }
 
-// NewCoreProcessor returns a new CoreProcessor instance with a validator initialized.
-// If logger is nil, a default logger writing to stderr is created.
+// NewCoreProcessor returns a new CoreProcessor with logging and CommonDevice
+// semantic validation configured. If logger is nil, a default logger writing
+// to stderr is created.
 func NewCoreProcessor(logger *logging.Logger) (*CoreProcessor, error) {
 	if logger == nil {
 		var err error
