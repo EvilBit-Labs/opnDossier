@@ -25,7 +25,7 @@ type Statistics struct {
 	// TotalGatewayGroups is the total number of gateway groups.
 	TotalGatewayGroups int `json:"totalGatewayGroups,omitempty" yaml:"totalGatewayGroups,omitempty"`
 
-	// DHCPScopes is the total number of DHCP scopes.
+	// DHCPScopes is the number of enabled DHCP scopes.
 	DHCPScopes int `json:"dhcpScopes,omitempty" yaml:"dhcpScopes,omitempty"`
 	// DHCPScopeDetails contains per-scope DHCP statistics.
 	DHCPScopeDetails []DHCPScopeStatistics `json:"dhcpScopeDetails,omitempty" yaml:"dhcpScopeDetails,omitempty"`

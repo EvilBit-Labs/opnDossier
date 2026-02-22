@@ -3,6 +3,7 @@ package audit
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -131,6 +132,10 @@ func (pr *PluginRegistry) RunComplianceChecks(
 	device *common.CommonDevice,
 	pluginNames []string,
 ) (*ComplianceResult, error) {
+	if device == nil {
+		return nil, errors.New("device configuration is nil")
+	}
+
 	result := &ComplianceResult{
 		Findings:   []compliance.Finding{},
 		Compliance: make(map[string]map[string]bool),
