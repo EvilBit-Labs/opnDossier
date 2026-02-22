@@ -741,7 +741,7 @@ func validateConvertFlags(flags *pflag.FlagSet, cmdLogger *logging.Logger) error
 			)
 		}
 	}
-	if strings.EqualFold(format, "yaml") && len(sharedSections) > 0 {
+	if (strings.EqualFold(format, FormatYAML) || strings.EqualFold(format, FormatAliasYML)) && len(sharedSections) > 0 {
 		if cmdLogger != nil {
 			cmdLogger.Warn("section filtering not supported with YAML format, sections will be ignored")
 		} else {
