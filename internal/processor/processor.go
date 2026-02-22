@@ -26,8 +26,9 @@ type Processor interface {
 
 // CoreProcessor implements the Processor interface with normalize, validate, analyze, and transform capabilities.
 type CoreProcessor struct {
-	logger *logging.Logger
-	mu     sync.Mutex // Protects concurrent access to the processor
+	logger     *logging.Logger
+	mu         sync.Mutex // Protects concurrent access to the processor
+	validateFn func(*common.CommonDevice) []ValidationError
 }
 
 // NewCoreProcessor returns a new CoreProcessor instance with a validator initialized.
@@ -43,7 +44,8 @@ func NewCoreProcessor(logger *logging.Logger) (*CoreProcessor, error) {
 	}
 
 	return &CoreProcessor{
-		logger: logger,
+		logger:     logger,
+		validateFn: ValidateCommonDevice,
 	}, nil
 }
 
@@ -89,7 +91,7 @@ func (p *CoreProcessor) Process(ctx context.Context, cfg *common.CommonDevice, o
 				})
 			}
 		}()
-		validationErrors = ValidateCommonDevice(normalizedCfg)
+		validationErrors = p.validateFn(normalizedCfg)
 	}()
 
 	// Check for context cancellation

@@ -1556,10 +1556,10 @@ func TestCoreProcessor_ValidationErrors(t *testing.T) {
 			require.NoError(t, err)
 			assert.NotNil(t, report)
 
-			// Check for validation findings (now informational severity)
+			// Check for validation findings (now high severity)
 			validationFindings := 0
-			for _, finding := range report.Findings.Info {
-				if finding.Type == "validation" {
+			for _, finding := range report.Findings.High {
+				if finding.Type == validationFindingType {
 					validationFindings++
 				}
 			}
