@@ -432,22 +432,13 @@ func TestValidateConvertFlagsWrapWidthWarning(t *testing.T) {
 	t.Run("stderr fallback when logger is nil", func(t *testing.T) {
 		sharedWrapWidth = MaxWrapWidth + 1
 
-		// Capture stderr
-		oldStderr := os.Stderr
-		r, w, err := os.Pipe()
-		require.NoError(t, err)
-		os.Stderr = w
+		var validateErr error
+		output := captureStderr(t, func() {
+			validateErr = validateConvertFlags(nil, nil)
+		})
 
-		validateErr := validateConvertFlags(nil, nil)
-
-		require.NoError(t, w.Close())
-		os.Stderr = oldStderr
-
-		var buf bytes.Buffer
-		_, readErr := buf.ReadFrom(r)
-		require.NoError(t, readErr)
 		require.NoError(t, validateErr)
-		assert.Contains(t, buf.String(), "Warning: wrap width")
+		assert.Contains(t, output, "Warning: wrap width")
 	})
 
 	t.Run("logger warning when logger provided", func(t *testing.T) {
