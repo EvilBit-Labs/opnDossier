@@ -319,7 +319,7 @@ When using Lipgloss/charmbracelet styling in CLI commands:
 - Create a shared `useStylesCheck()` helper that checks `TERM != "dumb"` and `NO_COLOR == ""`
 - Define terminal constants (`termEnvVar`, `noColorEnvVar`, `termDumb`) to avoid goconst issues
 - Provide plain text fallback functions (e.g., `outputConfigPlain()`) for CI/automation
-- Use `sort.Strings()` on map-derived slices for deterministic CLI output in audit logs
+- **All lists must be sorted for deterministic output** — use `slices.Sort()`, `slices.Sorted(maps.Keys())`, or `sort.Strings()` on any slice derived from maps, config iteration, or aggregation before rendering, comparing, or serializing. Non-deterministic order causes flaky tests, unstable golden files, and inconsistent CLI output
 
 Example pattern:
 
