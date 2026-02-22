@@ -39,7 +39,7 @@ func NewCoreProcessor(logger *logging.Logger) (*CoreProcessor, error) {
 
 		logger, err = logging.New(logging.Config{})
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("create default logger: %w", err)
 		}
 	}
 
@@ -80,11 +80,13 @@ func (p *CoreProcessor) Process(ctx context.Context, cfg *common.CommonDevice, o
 	}
 
 	// Phase 2: Validate the configuration
+	logger := p.logger.WithContext(ctx)
+
 	var validationErrors []ValidationError
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
-				p.logger.Error("validation panic recovered", "panic", r, "stack", string(debug.Stack()))
+				logger.Error("validation panic recovered", "panic", r, "stack", string(debug.Stack()))
 				validationErrors = append(validationErrors, ValidationError{
 					Field:   "configuration",
 					Message: fmt.Sprintf("validation panicked: %v", r),

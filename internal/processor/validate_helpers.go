@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 )
 
 var (
@@ -23,7 +25,7 @@ var (
 const connRatePartsCount = 2
 
 func isValidHostname(hostname string) bool {
-	if hostname == "" || len(hostname) > 253 {
+	if hostname == "" || len(hostname) > constants.MaxHostnameLength {
 		return false
 	}
 
@@ -80,7 +82,7 @@ func isValidPortOrRange(port string) bool {
 			return false
 		}
 
-		return p >= 1 && p <= 65535
+		return p >= constants.MinPort && p <= constants.MaxPort
 	}
 
 	low, errLow := strconv.Atoi(parts[0])
@@ -89,7 +91,7 @@ func isValidPortOrRange(port string) bool {
 		return false
 	}
 
-	return low >= 1 && high <= 65535 && low <= high
+	return low >= constants.MinPort && high <= constants.MaxPort && low <= high
 }
 
 func isValidConnRateFormat(rate string) bool {
