@@ -627,6 +627,10 @@ func (s *Spinner) stop() {
 }
 ```
 
+### 5.24 Dual Validator Synchronization
+
+`internal/processor/validate.go` maintains lightweight validation whitelists (powerd modes, optimization values, etc.) that must stay in sync with the authoritative `internal/validator/opnsense.go`. When updating allowed values in either package, grep for the same whitelist in the other and update both.
+
 ---
 
 ## 6. Data Processing Standards

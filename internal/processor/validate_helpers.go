@@ -14,6 +14,7 @@ var (
 	timezonePatternUTC  = regexp.MustCompile(`^UTC$`)
 	timezonePatternGMT  = regexp.MustCompile(`^GMT$`)
 	portRangePattern    = regexp.MustCompile(`^\d+(?::\d+)?$`)
+	portAliasPattern    = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_-]*$`)
 	connRatePattern     = regexp.MustCompile(`^\d+/\d+$`)
 	sysctlNamePattern   = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_.]*$`)
 	numericLikePattern  = regexp.MustCompile(`^[\d.]+$`)
@@ -26,7 +27,7 @@ func isValidHostname(hostname string) bool {
 		return false
 	}
 
-	for _, part := range strings.Split(hostname, ".") {
+	for part := range strings.SplitSeq(hostname, ".") {
 		if part == "" || !hostnamePattern.MatchString(part) {
 			return false
 		}
@@ -67,8 +68,9 @@ func isValidPortOrRange(port string) bool {
 	}
 
 	if !portRangePattern.MatchString(port) {
-		// Non-numeric values are treated as aliases.
-		return true
+		// Non-numeric values are treated as service name aliases (e.g., "http", "ssh").
+		// Validate they contain only alphanumeric chars and hyphens.
+		return portAliasPattern.MatchString(port)
 	}
 
 	parts := strings.Split(port, ":")
