@@ -767,6 +767,8 @@ func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
 
 	for _, testFile := range testFiles {
 		t.Run(filepath.Base(testFile), func(t *testing.T) {
+			const anyAddress = "any"
+
 			// Open the file
 			file, err := os.Open(testFile)
 			if err != nil {
@@ -829,7 +831,7 @@ func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
 			deadRuleCount := 0
 
 			for i, rule := range rules {
-				if rule.Type == "block" && rule.Source.Address == "any" {
+				if rule.Type == "block" && rule.Source.Address == anyAddress {
 					// Check if there are rules after this block-all rule
 					if i < len(rules)-1 {
 						deadRuleCount++
@@ -843,7 +845,7 @@ func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
 			securityIssues := 0
 
 			for i, rule := range rules {
-				if rule.Type == "pass" && rule.Source.Address == "any" && rule.Description == "" {
+				if rule.Type == "pass" && rule.Source.Address == anyAddress && rule.Description == "" {
 					securityIssues++
 
 					t.Logf("Found overly broad pass rule at position %d without description", i+1)
