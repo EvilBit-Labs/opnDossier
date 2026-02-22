@@ -1,6 +1,8 @@
 package opnsense
 
 import (
+	"errors"
+	"fmt"
 	"maps"
 	"slices"
 	"strings"
@@ -8,6 +10,9 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/EvilBit-Labs/opnDossier/internal/schema"
 )
+
+// ErrNilDocument is returned when ToCommonDevice receives a nil document.
+var ErrNilDocument = errors.New("opnsense converter: received nil document")
 
 // Converter transforms a schema.OpnSenseDocument into a common.CommonDevice.
 type Converter struct{}
@@ -18,15 +23,13 @@ func NewConverter() *Converter {
 }
 
 // ToCommonDevice converts an OPNsense schema document into a platform-agnostic CommonDevice.
-// A nil doc returns an empty device with DeviceType set to OPNsense.
+// Returns ErrNilDocument if doc is nil.
 //
 // NOTE: Some CommonDevice fields (Bridges, PPPs, GIFs, GREs, LAGGs, VirtualIPs,
 // InterfaceGroups, Certificates, CAs, Packages) are not yet populated by this converter.
 func (c *Converter) ToCommonDevice(doc *schema.OpnSenseDocument) (*common.CommonDevice, error) {
 	if doc == nil {
-		return &common.CommonDevice{
-			DeviceType: common.DeviceTypeOPNsense,
-		}, nil
+		return nil, fmt.Errorf("ToCommonDevice: %w", ErrNilDocument)
 	}
 
 	device := &common.CommonDevice{

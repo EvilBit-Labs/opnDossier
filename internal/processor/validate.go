@@ -2,6 +2,7 @@ package processor
 
 import (
 	"fmt"
+	"runtime/debug"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
@@ -29,11 +30,12 @@ func (p *CoreProcessor) validate(cfg *common.CommonDevice) (errors []ValidationE
 
 	// Wrap the validator call in a recover block so any panic from unexpected
 	// input is captured as a ValidationError rather than crashing the pipeline.
+	// The stack trace is included in the message to aid debugging.
 	defer func() {
 		if r := recover(); r != nil {
 			errors = append(errors, ValidationError{
 				Field:   "configuration",
-				Message: fmt.Sprintf("struct validation panicked: %v", r),
+				Message: fmt.Sprintf("struct validation panicked: %v\n%s", r, debug.Stack()),
 			})
 		}
 	}()

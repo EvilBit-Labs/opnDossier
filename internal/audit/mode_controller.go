@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/EvilBit-Labs/opnDossier/internal/processor"
-	"github.com/charmbracelet/log"
 )
 
 // Static errors for better error handling.
@@ -43,11 +43,11 @@ const (
 // based on the selected mode and configuration.
 type ModeController struct {
 	registry *PluginRegistry
-	logger   *log.Logger
+	logger   *logging.Logger
 }
 
 // NewModeController creates a new mode controller with the given plugin registry and logger.
-func NewModeController(registry *PluginRegistry, logger *log.Logger) *ModeController {
+func NewModeController(registry *PluginRegistry, logger *logging.Logger) *ModeController {
 	return &ModeController{
 		registry: registry,
 		logger:   logger,
@@ -272,8 +272,6 @@ func (r *Report) addFirewallRuleAnalysis() {
 // addNATAnalysis adds NAT analysis to the report.
 func (r *Report) addNATAnalysis() {
 	if r.Configuration != nil {
-		// NAT rules are available but structure is complex, just indicate analysis completed
-		r.Metadata["nat_analysis_completed"] = true
 		r.Metadata["nat_mode"] = r.Configuration.NAT.OutboundMode
 	}
 	r.Metadata["nat_analysis_completed"] = true
@@ -297,7 +295,6 @@ func (r *Report) addDHCPAnalysis() {
 // addCertificateAnalysis adds certificate analysis to the report.
 func (r *Report) addCertificateAnalysis() {
 	if r.Configuration != nil {
-		r.Metadata["certificate_analysis_completed"] = true
 		r.Metadata["certificates_configured"] = len(r.Configuration.Certificates) > 0
 	}
 	r.Metadata["certificate_analysis_completed"] = true

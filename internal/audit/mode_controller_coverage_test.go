@@ -2,11 +2,9 @@ package audit
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
-	"github.com/charmbracelet/log"
 )
 
 // TestModeController_GenerateBlueReport_WithPlugins tests blue report generation with plugin execution.
@@ -14,7 +12,7 @@ func TestModeController_GenerateBlueReport_WithPlugins(t *testing.T) {
 	t.Parallel()
 
 	registry := NewPluginRegistry()
-	logger := log.NewWithOptions(os.Stdout, log.Options{})
+	logger := newTestLogger(t)
 	controller := NewModeController(registry, logger)
 
 	// Register a mock plugin that succeeds

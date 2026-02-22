@@ -91,12 +91,6 @@ type WebGUI struct {
 type SSH struct {
 	// Group is the system group allowed SSH access.
 	Group string `json:"group,omitempty" yaml:"group,omitempty"`
-	// Enabled indicates whether the SSH service is active.
-	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
-	// Port is the TCP port the SSH daemon listens on.
-	Port string `json:"port,omitempty" yaml:"port,omitempty"`
-	// AuthenticationMethod is the SSH authentication method (e.g., "publickey").
-	AuthenticationMethod string `json:"authenticationMethod,omitempty" yaml:"authenticationMethod,omitempty"`
 }
 
 // Firmware contains firmware and update configuration.

@@ -14,10 +14,8 @@ func TestConverter_NilInput(t *testing.T) {
 	t.Parallel()
 
 	device, err := opnsense.NewConverter().ToCommonDevice(nil)
-	require.NoError(t, err)
-	require.NotNil(t, device)
-	assert.Equal(t, common.DeviceTypeOPNsense, device.DeviceType)
-	assert.Empty(t, device.System.Hostname)
+	require.ErrorIs(t, err, opnsense.ErrNilDocument)
+	require.Nil(t, device)
 }
 
 func TestConverter_System(t *testing.T) {
@@ -417,6 +415,7 @@ func TestConverter_HA(t *testing.T) {
 	doc.HighAvailabilitySync.Pfsyncinterface = "lan"
 	doc.HighAvailabilitySync.Pfsyncpeerip = "10.0.0.2"
 	doc.HighAvailabilitySync.Username = "admin"
+	doc.HighAvailabilitySync.Syncitems = "virtualip,certs,dhcpd"
 
 	device, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
@@ -426,6 +425,7 @@ func TestConverter_HA(t *testing.T) {
 	assert.Equal(t, "lan", device.HighAvailability.PfsyncInterface)
 	assert.Equal(t, "10.0.0.2", device.HighAvailability.PfsyncPeerIP)
 	assert.Equal(t, "admin", device.HighAvailability.Username)
+	assert.Equal(t, []string{"virtualip", "certs", "dhcpd"}, device.HighAvailability.SyncItems)
 }
 
 func TestConverter_IDS_Nil(t *testing.T) {

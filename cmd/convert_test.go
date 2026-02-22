@@ -9,6 +9,7 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
@@ -385,6 +386,73 @@ func TestValidateConvertFlagsNoWrapMutualExclusivity(t *testing.T) {
 			assert.Equal(t, 0, sharedWrapWidth)
 		})
 	}
+}
+
+// TestValidateConvertFlagsWrapWidthBounds verifies that wrap widths below -1 are rejected
+// while -1, 0, and positive values are accepted.
+func TestValidateConvertFlagsWrapWidthBounds(t *testing.T) {
+	originalWrap := sharedWrapWidth
+	t.Cleanup(func() {
+		sharedWrapWidth = originalWrap
+	})
+
+	tests := []struct {
+		name    string
+		width   int
+		wantErr bool
+	}{
+		{name: "negative below -1 is rejected", width: -2, wantErr: true},
+		{name: "auto-detect is valid", width: -1, wantErr: false},
+		{name: "no wrapping is valid", width: 0, wantErr: false},
+		{name: "within range is valid", width: 80, wantErr: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sharedWrapWidth = tt.width
+			err := validateConvertFlags(nil, nil)
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "invalid wrap width")
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestValidateConvertFlagsWrapWidthWarning verifies that out-of-range wrap widths
+// emit warnings via logger or stderr fallback without returning an error.
+func TestValidateConvertFlagsWrapWidthWarning(t *testing.T) {
+	originalWrap := sharedWrapWidth
+	t.Cleanup(func() {
+		sharedWrapWidth = originalWrap
+	})
+
+	t.Run("stderr fallback when logger is nil", func(t *testing.T) {
+		sharedWrapWidth = MaxWrapWidth + 1
+
+		var validateErr error
+		output := captureStderr(t, func() {
+			validateErr = validateConvertFlags(nil, nil)
+		})
+
+		require.NoError(t, validateErr)
+		assert.Contains(t, output, "Warning: wrap width")
+	})
+
+	t.Run("logger warning when logger provided", func(t *testing.T) {
+		sharedWrapWidth = MinWrapWidth - 1
+
+		// Discard logger output — we just need to exercise the branch
+		logger, logErr := logging.New(logging.Config{Level: "warn"})
+		require.NoError(t, logErr)
+
+		validateErr := validateConvertFlags(nil, logger)
+
+		// sharedWrapWidth = MinWrapWidth-1 = 39 which is > 0 and < MinWrapWidth, so warns (no error)
+		require.NoError(t, validateErr)
+	})
 }
 
 func TestConvertCmdWithInvalidFile(t *testing.T) {

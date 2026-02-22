@@ -18,6 +18,6 @@ type HighAvailability struct {
 	Username string `json:"username,omitempty" yaml:"username,omitempty"`
 	// Password is the password for XMLRPC configuration synchronization.
 	Password string `json:"password,omitempty" yaml:"password,omitempty"`
-	// SyncItems is a comma-separated list of configuration sections to synchronize.
-	SyncItems string `json:"syncItems,omitempty" yaml:"syncItems,omitempty"`
+	// SyncItems contains the configuration sections to synchronize.
+	SyncItems []string `json:"syncItems,omitempty" yaml:"syncItems,omitempty"`
 }
