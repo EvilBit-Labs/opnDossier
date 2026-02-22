@@ -7,12 +7,12 @@ package processor
 import (
 	"context"
 	"fmt"
+	"runtime/debug"
 	"strings"
 	"sync"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
-	"github.com/go-playground/validator/v10"
 )
 
 // Processor defines the interface for processing firewall configurations.
@@ -26,9 +26,8 @@ type Processor interface {
 
 // CoreProcessor implements the Processor interface with normalize, validate, analyze, and transform capabilities.
 type CoreProcessor struct {
-	validator *validator.Validate
-	logger    *logging.Logger
-	mu        sync.Mutex // Protects concurrent access to the processor
+	logger *logging.Logger
+	mu     sync.Mutex // Protects concurrent access to the processor
 }
 
 // NewCoreProcessor returns a new CoreProcessor instance with a validator initialized.
@@ -44,8 +43,7 @@ func NewCoreProcessor(logger *logging.Logger) (*CoreProcessor, error) {
 	}
 
 	return &CoreProcessor{
-		validator: validator.New(),
-		logger:    logger,
+		logger: logger,
 	}, nil
 }
 
@@ -80,7 +78,19 @@ func (p *CoreProcessor) Process(ctx context.Context, cfg *common.CommonDevice, o
 	}
 
 	// Phase 2: Validate the configuration
-	validationErrors := p.validate(normalizedCfg)
+	var validationErrors []ValidationError
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				p.logger.Error("validation panic recovered", "panic", r, "stack", string(debug.Stack()))
+				validationErrors = append(validationErrors, ValidationError{
+					Field:   "configuration",
+					Message: fmt.Sprintf("validation panicked: %v", r),
+				})
+			}
+		}()
+		validationErrors = ValidateCommonDevice(normalizedCfg)
+	}()
 
 	// Check for context cancellation
 	select {
@@ -92,11 +102,8 @@ func (p *CoreProcessor) Process(ctx context.Context, cfg *common.CommonDevice, o
 	// Create the report
 	report := NewReport(normalizedCfg, *config)
 
-	// Add validation errors as informational findings — struct-tag validation
-	// on CommonDevice is best-effort (no validate:"" tags), so surfacing
-	// failures as high severity is misleading.
 	for _, validationErr := range validationErrors {
-		report.AddFinding(SeverityInfo, Finding{
+		report.AddFinding(SeverityHigh, Finding{
 			Type:        "validation",
 			Title:       "Configuration Validation Error",
 			Description: validationErr.Error(),

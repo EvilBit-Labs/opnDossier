@@ -1580,7 +1580,7 @@ func TestCoreProcessor_ProcessorCreationFailure(t *testing.T) {
 	// Should normally succeed
 	require.NoError(t, err)
 	assert.NotNil(t, processor)
-	assert.NotNil(t, processor.validator)
+	assert.NotNil(t, processor.logger)
 }
 
 // TestReport_FindingSeverityDistribution tests finding distribution.
