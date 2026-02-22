@@ -11,6 +11,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
+// Initial slice capacities for validation error collectors.
 const (
 	commonValidationErrorCapacity = 16
 	systemValidationErrorCapacity = 8
@@ -56,6 +57,8 @@ func ValidateCommonDevice(cfg *common.CommonDevice) []ValidationError {
 	return errors
 }
 
+// validateCommonSystem checks system-level fields including hostname, domain,
+// timezone, optimization mode, WebGUI protocol, powerd modes, and bogons interval.
 func validateCommonSystem(s *common.System) []ValidationError {
 	errors := make([]ValidationError, 0, systemValidationErrorCapacity)
 
@@ -134,6 +137,8 @@ func validateCommonSystem(s *common.System) []ValidationError {
 	return errors
 }
 
+// validateCommonInterfaces checks each interface for valid IP addresses, subnet
+// prefix lengths, and MTU values.
 func validateCommonInterfaces(ifaces []common.Interface) []ValidationError {
 	errors := make([]ValidationError, 0, len(ifaces))
 
@@ -188,6 +193,8 @@ func validateCommonInterfaces(ifaces []common.Interface) []ValidationError {
 	return errors
 }
 
+// validateCommonDHCP checks each DHCP scope for valid interface references and
+// well-ordered IP address ranges.
 func validateCommonDHCP(scopes []common.DHCPScope, ifaces []common.Interface) []ValidationError {
 	errors := make([]ValidationError, 0, len(scopes))
 	ifaceSet := make(map[string]struct{}, len(ifaces))
@@ -241,6 +248,9 @@ func validateCommonDHCP(scopes []common.DHCPScope, ifaces []common.Interface) []
 	return errors
 }
 
+// validateCommonFirewallRules checks each firewall rule for valid types, protocols,
+// interface references, source/destination addresses, ports, direction, state type,
+// and connection rate format.
 func validateCommonFirewallRules(rules []common.FirewallRule, ifaces []common.Interface) []ValidationError {
 	errors := make([]ValidationError, 0, len(rules))
 	ifaceSet := make(map[string]struct{}, len(ifaces))
@@ -357,6 +367,8 @@ func validateCommonFirewallRules(rules []common.FirewallRule, ifaces []common.In
 	return errors
 }
 
+// validateCommonNAT checks NAT configuration for valid outbound mode and
+// reflection settings on inbound rules.
 func validateCommonNAT(nat *common.NATConfig) []ValidationError {
 	errors := make([]ValidationError, 0, len(nat.InboundRules)+1)
 
@@ -389,6 +401,8 @@ func validateCommonNAT(nat *common.NATConfig) []ValidationError {
 	return errors
 }
 
+// validateCommonUsersAndGroups checks user and group entries for required fields,
+// uniqueness of names and IDs, valid scopes, and that users reference known groups.
 func validateCommonUsersAndGroups(users []common.User, groups []common.Group) []ValidationError {
 	errors := make([]ValidationError, 0, len(users)+len(groups))
 
@@ -485,6 +499,8 @@ func validateCommonUsersAndGroups(users []common.User, groups []common.Group) []
 	return errors
 }
 
+// validateCommonSysctl checks sysctl tunables for required fields, uniqueness,
+// and valid naming format (dotted identifier like "net.inet.tcp.msl").
 func validateCommonSysctl(items []common.SysctlItem) []ValidationError {
 	errors := make([]ValidationError, 0, len(items))
 	seenTunables := make(map[string]bool, len(items))

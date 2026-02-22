@@ -9,6 +9,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 )
 
+// Compiled regular expressions used by the validation helper functions.
 var (
 	hostnamePattern     = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$`)
 	timezonePatternIANA = regexp.MustCompile(`^[A-Za-z]+(?:/[A-Za-z0-9_+\-]+)+$`)
@@ -22,8 +23,11 @@ var (
 	numericLikePattern  = regexp.MustCompile(`^[\d.]+$`)
 )
 
+// connRatePartsCount is the expected number of parts when splitting a connection rate string.
 const connRatePartsCount = 2
 
+// isValidHostname checks that hostname is non-empty, within RFC 1035 length limits,
+// and that each dot-separated label matches the hostname pattern.
 func isValidHostname(hostname string) bool {
 	if hostname == "" || len(hostname) > constants.MaxHostnameLength {
 		return false
@@ -38,6 +42,8 @@ func isValidHostname(hostname string) bool {
 	return true
 }
 
+// isValidTimezone checks that timezone matches IANA (e.g., "America/New_York"),
+// Etc/GMT offset, "UTC", or "GMT" format.
 func isValidTimezone(timezone string) bool {
 	if timezone == "" {
 		return false
@@ -49,21 +55,26 @@ func isValidTimezone(timezone string) bool {
 		timezonePatternGMT.MatchString(timezone)
 }
 
+// isValidIP reports whether ip is a valid IPv4 address.
 func isValidIP(ip string) bool {
 	parsed := net.ParseIP(ip)
 	return parsed != nil && parsed.To4() != nil
 }
 
+// isValidIPv6 reports whether ip is a valid IPv6 address (not IPv4-mapped).
 func isValidIPv6(ip string) bool {
 	parsed := net.ParseIP(ip)
 	return parsed != nil && parsed.To4() == nil
 }
 
+// isValidCIDR reports whether cidr is a valid CIDR notation (e.g., "192.168.1.0/24").
 func isValidCIDR(cidr string) bool {
 	_, _, err := net.ParseCIDR(cidr)
 	return err == nil
 }
 
+// isValidPortOrRange reports whether port is empty (allowed), a valid single port
+// number, a valid port range ("low:high"), or a recognized service name alias.
 func isValidPortOrRange(port string) bool {
 	if port == "" {
 		return true
@@ -94,6 +105,8 @@ func isValidPortOrRange(port string) bool {
 	return low >= constants.MinPort && high <= constants.MaxPort && low <= high
 }
 
+// isValidConnRateFormat reports whether rate follows the "count/seconds" format
+// with both values being positive integers.
 func isValidConnRateFormat(rate string) bool {
 	if !connRatePattern.MatchString(rate) {
 		return false
@@ -113,6 +126,8 @@ func isValidConnRateFormat(rate string) bool {
 	return count > 0 && seconds > 0
 }
 
+// isValidSysctlName reports whether name is a valid sysctl identifier
+// (starts with a letter, contains alphanumerics/dots, and has at least one dot).
 func isValidSysctlName(name string) bool {
 	if !sysctlNamePattern.MatchString(name) {
 		return false
@@ -121,6 +136,8 @@ func isValidSysctlName(name string) bool {
 	return strings.Contains(name, ".")
 }
 
+// looksLikeMalformedIP reports whether value looks like it was intended to be an
+// IP address or CIDR (contains "/" or ":" or is purely numeric/dots).
 func looksLikeMalformedIP(value string) bool {
 	return strings.Contains(value, "/") || strings.Contains(value, ":") || numericLikePattern.MatchString(value)
 }
