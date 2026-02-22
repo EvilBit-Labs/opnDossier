@@ -265,8 +265,12 @@ var convertCmd = &cobra.Command{
 ```go
 type Plugin interface {
     Name() string
-    RunChecks(device *common.CommonDevice) []Finding
-    // ...
+    Version() string
+    Description() string
+    RunChecks(device *common.CommonDevice) []compliance.Finding
+    GetControls() []compliance.Control
+    GetControlByID(id string) (*compliance.Control, error)
+    ValidateConfiguration() error
 }
 ```
 

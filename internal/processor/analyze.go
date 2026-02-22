@@ -125,9 +125,14 @@ func (p *CoreProcessor) analyzeInterfaceRules(iface string, rules []common.Firew
 // but comparisons now include state, direction, protocol, quick, and port details where available.
 func (p *CoreProcessor) rulesAreEquivalent(rule1, rule2 common.FirewallRule) bool {
 	// Compare core rule properties (excluding description as it doesn't affect functionality)
+	ifaces1 := slices.Clone(rule1.Interfaces)
+	ifaces2 := slices.Clone(rule2.Interfaces)
+	slices.Sort(ifaces1)
+	slices.Sort(ifaces2)
+
 	if rule1.Type != rule2.Type ||
 		rule1.IPProtocol != rule2.IPProtocol ||
-		strings.Join(rule1.Interfaces, ",") != strings.Join(rule2.Interfaces, ",") {
+		!slices.Equal(ifaces1, ifaces2) {
 		return false
 	}
 
