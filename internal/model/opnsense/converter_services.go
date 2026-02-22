@@ -433,7 +433,7 @@ func (c *Converter) convertHA(doc *schema.OpnSenseDocument) common.HighAvailabil
 		SynchronizeToIP: ha.Synchronizetoip,
 		Username:        ha.Username,
 		Password:        ha.Password,
-		SyncItems:       ha.Syncitems,
+		SyncItems:       splitNonEmpty(ha.Syncitems, ","),
 	}
 }
 
@@ -616,6 +616,29 @@ func (c *Converter) convertLoadBalancer(doc *schema.OpnSenseDocument) common.Loa
 	}
 
 	return common.LoadBalancerConfig{MonitorTypes: result}
+}
+
+// splitNonEmpty splits s by sep and returns only non-empty, trimmed parts.
+// Returns nil when s is empty or contains no non-empty parts.
+func splitNonEmpty(s, sep string) []string {
+	if s == "" {
+		return nil
+	}
+
+	parts := strings.Split(s, sep)
+	result := make([]string, 0, len(parts))
+
+	for _, p := range parts {
+		if trimmed := strings.TrimSpace(p); trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+
+	if len(result) == 0 {
+		return nil
+	}
+
+	return result
 }
 
 // collectNonEmpty returns a slice containing only non-empty strings from the input.

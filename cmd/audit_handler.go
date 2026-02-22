@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"maps"
-	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -15,7 +14,6 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
-	charmlog "github.com/charmbracelet/log"
 	"github.com/nao1215/markdown"
 )
 
@@ -43,20 +41,13 @@ func handleAuditMode(
 		SelectedPlugins: auditOpts.SelectedPlugins,
 	}
 
-	level := determineAuditLogLevel(logger)
-
 	pm := audit.NewPluginManager(logger)
 	if err := pm.InitializePlugins(ctx); err != nil {
 		return "", fmt.Errorf("initialize plugins: %w", err)
 	}
 
-	// Create charmbracelet/log logger for ModeController
-	charmLogger := charmlog.NewWithOptions(os.Stderr, charmlog.Options{
-		Level: level,
-	})
-
 	// Create mode controller and generate audit report
-	mc := audit.NewModeController(pm.GetRegistry(), charmLogger)
+	mc := audit.NewModeController(pm.GetRegistry(), logger)
 	auditReport, err := mc.GenerateReport(ctx, device, modeConfig)
 	if err != nil {
 		return "", fmt.Errorf("generate audit report: %w", err)
@@ -70,21 +61,6 @@ func handleAuditMode(
 
 	// Append audit findings section
 	return appendAuditFindings(baseReport, auditReport), nil
-}
-
-// determineAuditLogLevel maps the application logger level to the charm log level
-// used by audit mode components.
-func determineAuditLogLevel(logger *logging.Logger) charmlog.Level {
-	if logger == nil || logger.Logger == nil {
-		return charmlog.InfoLevel
-	}
-
-	level := logger.GetLevel()
-	if level == charmlog.FatalLevel {
-		return charmlog.ErrorLevel
-	}
-
-	return level
 }
 
 // appendAuditFindings appends compliance summary and findings to the base report.

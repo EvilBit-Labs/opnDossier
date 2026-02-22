@@ -70,8 +70,6 @@ const (
 	FormatAliasHTM = "htm"
 )
 
-// init registers the convert command and its flags with the root command.
-//
 // init registers the `convert` command with the root command and configures its command-line flags.
 //
 // It defines the primary flags used to control conversion output:
@@ -497,7 +495,6 @@ func normalizeFormat(format string) converter.Format {
 	}
 }
 
-// buildConversionOptions constructs a converter.Options struct by merging CLI arguments and configuration values with defined precedence.
 // buildConversionOptions constructs a converter.Options value for the given output
 // format by combining CLI-provided flags, the provided configuration, and defaults.
 // CLI flags take precedence over configuration values, which in turn override defaults.
@@ -706,11 +703,12 @@ func normalizeConvertFlags() {
 
 // validateConvertFlags validates flag combinations and CLI options for the convert command.
 // It ensures mutually exclusive wrap flags are not both set, checks that the chosen output
-// format is one of markdown/md/json/yaml/yml, warns when section filtering is used with
-// JSON or YAML (sections will be ignored), and enforces that an explicit wrap width falls
-// within the supported range. Returns an error when flag combinations or values are invalid.
+// format is one of markdown/md/json/yaml/yml/text/txt/html/htm, warns when section filtering is used with
+// JSON or YAML (sections will be ignored), and emits a warning (via cmdLogger or stderr)
+// when wrap width is outside the recommended range. Returns an error for truly invalid
+// values (wrap width < -1, invalid format, invalid audit mode).
 //
-// The cmdLogger parameter is used for warnings; if nil, warnings are skipped.
+// The cmdLogger parameter is used for structured warnings; if nil, warnings fall back to stderr.
 func validateConvertFlags(flags *pflag.FlagSet, cmdLogger *logging.Logger) error {
 	// Validate mutual exclusivity for wrap flags before other checks
 	if flags != nil {
@@ -732,20 +730,41 @@ func validateConvertFlags(flags *pflag.FlagSet, cmdLogger *logging.Logger) error
 		}
 	}
 
-	// Validate output format compatibility (warn if logger available)
-	if cmdLogger != nil {
-		if strings.EqualFold(format, "json") && len(sharedSections) > 0 {
+	// Validate output format compatibility
+	if strings.EqualFold(format, "json") && len(sharedSections) > 0 {
+		if cmdLogger != nil {
 			cmdLogger.Warn("section filtering not supported with JSON format, sections will be ignored")
+		} else {
+			fmt.Fprintln(
+				os.Stderr,
+				"Warning: section filtering not supported with JSON format, sections will be ignored",
+			)
 		}
-		if strings.EqualFold(format, "yaml") && len(sharedSections) > 0 {
+	}
+	if (strings.EqualFold(format, FormatYAML) || strings.EqualFold(format, FormatAliasYML)) && len(sharedSections) > 0 {
+		if cmdLogger != nil {
 			cmdLogger.Warn("section filtering not supported with YAML format, sections will be ignored")
+		} else {
+			fmt.Fprintln(
+				os.Stderr,
+				"Warning: section filtering not supported with YAML format, sections will be ignored",
+			)
 		}
 	}
 
-	// Validate wrap width if specified
+	// Warn (not error) when wrap width is outside recommended range, matching display.go behavior.
 	if sharedWrapWidth > 0 && (sharedWrapWidth < MinWrapWidth || sharedWrapWidth > MaxWrapWidth) {
-		return fmt.Errorf("wrap width %d out of recommended range [%d, %d]",
-			sharedWrapWidth, MinWrapWidth, MaxWrapWidth)
+		if cmdLogger != nil {
+			cmdLogger.Warn("wrap width is outside recommended range",
+				"width", sharedWrapWidth, "min", MinWrapWidth, "max", MaxWrapWidth)
+		} else {
+			fmt.Fprintf(os.Stderr, "Warning: wrap width %d is outside recommended range [%d, %d]\n",
+				sharedWrapWidth, MinWrapWidth, MaxWrapWidth)
+		}
+	}
+	if sharedWrapWidth < -1 {
+		return fmt.Errorf("invalid wrap width %d: must be -1 (auto-detect), 0 (no wrapping), or positive",
+			sharedWrapWidth)
 	}
 
 	// Validate audit mode if provided

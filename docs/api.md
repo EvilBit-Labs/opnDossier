@@ -50,14 +50,11 @@ formatters.CalculateSecurityScore(data *common.CommonDevice) int
 // Convert severity strings to risk level labels
 formatters.AssessRiskLevel(severity string) string
 
-// Evaluate security risk for a service
-formatters.AssessServiceRisk(service model.Service) string
+// Evaluate security risk for a named service
+formatters.AssessServiceRisk(serviceName string) string
 
 // Filter tunables (true = include all, false = security-relevant only)
-formatters.FilterSystemTunables(tunables []model.SysctlItem, includeTunables bool) []model.SysctlItem
-
-// Group services by running/stopped status
-formatters.GroupServicesByStatus(services []model.Service) map[string][]model.Service
+formatters.FilterSystemTunables(tunables []common.SysctlItem, includeTunables bool) []common.SysctlItem
 ```
 
 ## Parser API
