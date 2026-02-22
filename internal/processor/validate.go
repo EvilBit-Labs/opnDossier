@@ -7,28 +7,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 const (
 	commonValidationErrorCapacity = 16
 	systemValidationErrorCapacity = 8
-)
-
-var (
-	validOptimizationModes = map[string]struct{}{
-		"normal":       {},
-		"high-latency": {},
-		"aggressive":   {},
-		"conservative": {},
-	}
-	validPowerdModes = map[string]struct{}{
-		"hadp":     {},
-		"hiadp":    {},
-		"adaptive": {},
-		"minimum":  {},
-		"maximum":  {},
-	}
 )
 
 // ValidationError represents a validation error with field and message information.
@@ -89,7 +74,7 @@ func validateCommonSystem(s *common.System) []ValidationError {
 	}
 
 	if s.Optimization != "" {
-		if _, ok := validOptimizationModes[s.Optimization]; !ok {
+		if _, ok := constants.ValidOptimizationModes[s.Optimization]; !ok {
 			errors = append(
 				errors,
 				ValidationError{Field: "system.optimization", Message: "invalid optimization value"},
@@ -108,13 +93,13 @@ func validateCommonSystem(s *common.System) []ValidationError {
 	}
 
 	if s.PowerdACMode != "" {
-		if _, ok := validPowerdModes[s.PowerdACMode]; !ok {
+		if _, ok := constants.ValidPowerdModes[s.PowerdACMode]; !ok {
 			errors = append(errors, ValidationError{Field: "system.powerdAcMode", Message: "invalid AC power mode"})
 		}
 	}
 
 	if s.PowerdBatteryMode != "" {
-		if _, ok := validPowerdModes[s.PowerdBatteryMode]; !ok {
+		if _, ok := constants.ValidPowerdModes[s.PowerdBatteryMode]; !ok {
 			errors = append(
 				errors,
 				ValidationError{Field: "system.powerdBatteryMode", Message: "invalid battery power mode"},
@@ -123,7 +108,7 @@ func validateCommonSystem(s *common.System) []ValidationError {
 	}
 
 	if s.PowerdNormalMode != "" {
-		if _, ok := validPowerdModes[s.PowerdNormalMode]; !ok {
+		if _, ok := constants.ValidPowerdModes[s.PowerdNormalMode]; !ok {
 			errors = append(
 				errors,
 				ValidationError{Field: "system.powerdNormalMode", Message: "invalid normal power mode"},
@@ -171,7 +156,7 @@ func validateCommonInterfaces(ifaces []common.Interface) []ValidationError {
 
 		if iface.Subnet != "" {
 			subnet, err := strconv.Atoi(iface.Subnet)
-			if err != nil || subnet < 0 || subnet > 32 {
+			if err != nil || subnet < 0 || subnet > constants.MaxIPv4Subnet {
 				errors = append(
 					errors,
 					ValidationError{Field: prefix + ".subnet", Message: "IPv4 subnet must be between 0 and 32"},
@@ -181,7 +166,7 @@ func validateCommonInterfaces(ifaces []common.Interface) []ValidationError {
 
 		if iface.SubnetV6 != "" {
 			subnetV6, err := strconv.Atoi(iface.SubnetV6)
-			if err != nil || subnetV6 < 0 || subnetV6 > 128 {
+			if err != nil || subnetV6 < 0 || subnetV6 > constants.MaxIPv6Subnet {
 				errors = append(
 					errors,
 					ValidationError{Field: prefix + ".subnetV6", Message: "IPv6 subnet must be between 0 and 128"},
@@ -191,7 +176,7 @@ func validateCommonInterfaces(ifaces []common.Interface) []ValidationError {
 
 		if iface.MTU != "" {
 			mtu, err := strconv.Atoi(iface.MTU)
-			if err != nil || mtu < 68 || mtu > 9000 {
+			if err != nil || mtu < constants.MinMTU || mtu > constants.MaxMTU {
 				errors = append(
 					errors,
 					ValidationError{Field: prefix + ".mtu", Message: "MTU must be between 68 and 9000"},

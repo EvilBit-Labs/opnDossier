@@ -86,4 +86,38 @@ const (
 	LargeRuleCountThreshold = 100
 	// MaxReasonableComplexity is the upper bound for meaningful complexity scores.
 	MaxReasonableComplexity = 1000
+
+	// MaxHostnameLength is the RFC 1035 maximum hostname length.
+	MaxHostnameLength = 253
+	// MinPort is the minimum valid TCP/UDP port number.
+	MinPort = 1
+	// MaxPort is the maximum valid TCP/UDP port number.
+	MaxPort = 65535
+	// MaxIPv4Subnet is the maximum IPv4 subnet prefix length.
+	MaxIPv4Subnet = 32
+	// MaxIPv6Subnet is the maximum IPv6 subnet prefix length.
+	MaxIPv6Subnet = 128
+	// MinMTU is the minimum valid MTU (RFC 791 minimum for IPv4).
+	MinMTU = 68
+	// MaxMTU is the maximum valid MTU (jumbo frame).
+	MaxMTU = 9000
 )
+
+// ValidOptimizationModes defines the allowed system optimization modes.
+// Shared by processor and validator packages — single source of truth.
+var ValidOptimizationModes = map[string]struct{}{
+	"normal":       {},
+	"high-latency": {},
+	"aggressive":   {},
+	"conservative": {},
+}
+
+// ValidPowerdModes defines the allowed powerd power modes.
+// Shared by processor and validator packages — single source of truth.
+var ValidPowerdModes = map[string]struct{}{
+	"hadp":     {},
+	"hiadp":    {},
+	"adaptive": {},
+	"minimum":  {},
+	"maximum":  {},
+}
