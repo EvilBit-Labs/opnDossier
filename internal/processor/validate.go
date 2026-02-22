@@ -33,6 +33,7 @@ func (p *CoreProcessor) validate(cfg *common.CommonDevice) (errors []ValidationE
 	// The stack trace is included in the message to aid debugging.
 	defer func() {
 		if r := recover(); r != nil {
+			p.logger.Error("validation panic recovered", "panic", r, "stack", string(debug.Stack()))
 			errors = append(errors, ValidationError{
 				Field:   "configuration",
 				Message: fmt.Sprintf("struct validation panicked: %v\n%s", r, debug.Stack()),

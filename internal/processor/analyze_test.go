@@ -15,7 +15,7 @@ import (
 )
 
 func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
-	processor, err := NewCoreProcessor()
+	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -756,7 +756,7 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 
 // TestCoreProcessor_RealWorldConfigurations tests the implementation with actual OPNsense configuration files.
 func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
-	processor, err := NewCoreProcessor()
+	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)
 
 	testFiles := []string{
@@ -1642,7 +1642,7 @@ func TestServiceDetection_Integration(t *testing.T) {
 
 // TestCoreProcessor_EdgeCases tests edge cases and boundary conditions.
 func TestCoreProcessor_EdgeCases(t *testing.T) {
-	processor, err := NewCoreProcessor()
+	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)
 
 	t.Run("empty_rules", func(t *testing.T) {
@@ -1692,7 +1692,7 @@ func TestCoreProcessor_EdgeCases(t *testing.T) {
 func TestCoreProcessor_DeadRuleDetection_IsAnyPath(t *testing.T) {
 	t.Parallel()
 
-	processor, err := NewCoreProcessor()
+	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)
 
 	tests := []struct {

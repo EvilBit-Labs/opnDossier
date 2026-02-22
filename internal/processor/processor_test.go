@@ -317,7 +317,7 @@ func TestNewReport(t *testing.T) {
 // TestCoreProcessor_NormalizationIdempotence tests that normalization is idempotent
 // (applying it multiple times yields the same result).
 func TestCoreProcessor_NormalizationIdempotence(t *testing.T) {
-	processor, err := NewCoreProcessor()
+	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -446,7 +446,7 @@ func TestCoreProcessor_NormalizationIdempotence(t *testing.T) {
 
 // TestCoreProcessor_AnalysisFindings tests various analysis findings with table-driven tests.
 func TestCoreProcessor_AnalysisFindings(t *testing.T) {
-	processor, err := NewCoreProcessor()
+	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -822,7 +822,7 @@ func generateLargeConfig() *common.CommonDevice {
 
 // BenchmarkCoreProcessor_ProcessSmallConfig benchmarks processing a small configuration.
 func BenchmarkCoreProcessor_ProcessSmallConfig(b *testing.B) {
-	processor, err := NewCoreProcessor()
+	processor, err := NewCoreProcessor(nil)
 	require.NoError(b, err)
 
 	ctx := context.Background()
@@ -853,7 +853,7 @@ func BenchmarkCoreProcessor_ProcessSmallConfig(b *testing.B) {
 
 // BenchmarkCoreProcessor_ProcessLargeConfig benchmarks processing a large configuration.
 func BenchmarkCoreProcessor_ProcessLargeConfig(b *testing.B) {
-	processor, err := NewCoreProcessor()
+	processor, err := NewCoreProcessor(nil)
 	require.NoError(b, err)
 
 	ctx := context.Background()
@@ -943,7 +943,7 @@ func BenchmarkCoreProcessor_ProcessLargeConfig(b *testing.B) {
 
 // BenchmarkCoreProcessor_ProcessConcurrent benchmarks concurrent processing.
 func BenchmarkCoreProcessor_ProcessConcurrent(b *testing.B) {
-	processor, err := NewCoreProcessor()
+	processor, err := NewCoreProcessor(nil)
 	require.NoError(b, err)
 
 	ctx := context.Background()
@@ -1015,7 +1015,7 @@ func BenchmarkCoreProcessor_ProcessConcurrent(b *testing.B) {
 
 // BenchmarkCoreProcessor_NormalizationOnly benchmarks just the normalization phase.
 func BenchmarkCoreProcessor_NormalizationOnly(b *testing.B) {
-	processor, err := NewCoreProcessor()
+	processor, err := NewCoreProcessor(nil)
 	require.NoError(b, err)
 
 	largeConfig := generateLargeConfig()
@@ -1055,7 +1055,7 @@ func BenchmarkCoreProcessor_NormalizationOnly(b *testing.B) {
 
 // TestCoreProcessor_RaceConditions tests for race conditions using -race flag.
 func TestCoreProcessor_RaceConditions(t *testing.T) {
-	localProcessor, err := NewCoreProcessor()
+	localProcessor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -1163,7 +1163,7 @@ func TestCoreProcessor_RaceConditions(t *testing.T) {
 			go func(id int) {
 				defer wg.Done()
 
-				localProcessor, err := NewCoreProcessor()
+				localProcessor, err := NewCoreProcessor(nil)
 				if err != nil {
 					errorChan <- fmt.Errorf("goroutine %d: failed to create processor: %w", id, err)
 					return
@@ -1193,7 +1193,7 @@ func TestCoreProcessor_RaceConditions(t *testing.T) {
 
 // TestCoreProcessor_StatisticsAccuracy tests that statistics are calculated accurately.
 func TestCoreProcessor_StatisticsAccuracy(t *testing.T) {
-	processor, err := NewCoreProcessor()
+	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -1403,7 +1403,7 @@ func TestCoreProcessor_StatisticsAccuracy(t *testing.T) {
 
 // TestCoreProcessor_TransformFormats tests all supported output formats.
 func TestCoreProcessor_TransformFormats(t *testing.T) {
-	processor, err := NewCoreProcessor()
+	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -1508,7 +1508,7 @@ func TestCoreProcessor_TransformFormats(t *testing.T) {
 
 // TestCoreProcessor_ValidationErrors tests validation error handling.
 func TestCoreProcessor_ValidationErrors(t *testing.T) {
-	processor, err := NewCoreProcessor()
+	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -1576,7 +1576,7 @@ func TestCoreProcessor_ProcessorCreationFailure(t *testing.T) {
 	// Test that NewCoreProcessor handles markdown generator failures gracefully
 	// This test assumes the markdown generator can fail under certain conditions
 
-	processor, err := NewCoreProcessor()
+	processor, err := NewCoreProcessor(nil)
 	// Should normally succeed
 	require.NoError(t, err)
 	assert.NotNil(t, processor)
@@ -1731,7 +1731,7 @@ func TestReport_EmptyFindingsScenarios(t *testing.T) {
 
 // TestStatistics_ZeroValues tests statistics with zero/empty values.
 func TestStatistics_ZeroValues(t *testing.T) {
-	processor, err := NewCoreProcessor()
+	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -1778,7 +1778,7 @@ func TestStatistics_ZeroValues(t *testing.T) {
 
 // TestCoreProcessor_MutexProtection tests that the mutex protects concurrent access properly.
 func TestCoreProcessor_MutexProtection(t *testing.T) {
-	processor, err := NewCoreProcessor()
+	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)
 
 	ctx := context.Background()

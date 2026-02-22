@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/go-playground/validator/v10"
 )
@@ -26,13 +27,25 @@ type Processor interface {
 // CoreProcessor implements the Processor interface with normalize, validate, analyze, and transform capabilities.
 type CoreProcessor struct {
 	validator *validator.Validate
+	logger    *logging.Logger
 	mu        sync.Mutex // Protects concurrent access to the processor
 }
 
 // NewCoreProcessor returns a new CoreProcessor instance with a validator initialized.
-func NewCoreProcessor() (*CoreProcessor, error) {
+// If logger is nil, a default logger writing to stderr is created.
+func NewCoreProcessor(logger *logging.Logger) (*CoreProcessor, error) {
+	if logger == nil {
+		var err error
+
+		logger, err = logging.New(logging.Config{})
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &CoreProcessor{
 		validator: validator.New(),
+		logger:    logger,
 	}, nil
 }
 
