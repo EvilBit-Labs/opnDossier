@@ -103,7 +103,12 @@ func (p *CoreProcessor) Process(ctx context.Context, cfg *common.CommonDevice, o
 	report := NewReport(normalizedCfg, *config)
 
 	for _, validationErr := range validationErrors {
-		report.AddFinding(SeverityHigh, Finding{
+		severity := SeverityHigh
+		if strings.Contains(validationErr.Message, "panicked:") {
+			severity = SeverityCritical
+		}
+
+		report.AddFinding(severity, Finding{
 			Type:        "validation",
 			Title:       "Configuration Validation Error",
 			Description: validationErr.Error(),

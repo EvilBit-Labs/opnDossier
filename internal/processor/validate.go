@@ -15,6 +15,22 @@ const (
 	systemValidationErrorCapacity = 8
 )
 
+var (
+	validOptimizationModes = map[string]struct{}{
+		"normal":       {},
+		"high-latency": {},
+		"aggressive":   {},
+		"conservative": {},
+	}
+	validPowerdModes = map[string]struct{}{
+		"hadp":     {},
+		"hiadp":    {},
+		"adaptive": {},
+		"minimum":  {},
+		"maximum":  {},
+	}
+)
+
 // ValidationError represents a validation error with field and message information.
 type ValidationError struct {
 	Field   string
@@ -73,13 +89,7 @@ func validateCommonSystem(s *common.System) []ValidationError {
 	}
 
 	if s.Optimization != "" {
-		validOptimization := map[string]struct{}{
-			"normal":       {},
-			"high-latency": {},
-			"aggressive":   {},
-			"conservative": {},
-		}
-		if _, ok := validOptimization[s.Optimization]; !ok {
+		if _, ok := validOptimizationModes[s.Optimization]; !ok {
 			errors = append(
 				errors,
 				ValidationError{Field: "system.optimization", Message: "invalid optimization value"},
@@ -98,26 +108,12 @@ func validateCommonSystem(s *common.System) []ValidationError {
 	}
 
 	if s.PowerdACMode != "" {
-		validPowerdModes := map[string]struct{}{
-			"hadp":     {},
-			"hiadp":    {},
-			"adaptive": {},
-			"minimum":  {},
-			"maximum":  {},
-		}
 		if _, ok := validPowerdModes[s.PowerdACMode]; !ok {
 			errors = append(errors, ValidationError{Field: "system.powerdAcMode", Message: "invalid AC power mode"})
 		}
 	}
 
 	if s.PowerdBatteryMode != "" {
-		validPowerdModes := map[string]struct{}{
-			"hadp":     {},
-			"hiadp":    {},
-			"adaptive": {},
-			"minimum":  {},
-			"maximum":  {},
-		}
 		if _, ok := validPowerdModes[s.PowerdBatteryMode]; !ok {
 			errors = append(
 				errors,
@@ -127,13 +123,6 @@ func validateCommonSystem(s *common.System) []ValidationError {
 	}
 
 	if s.PowerdNormalMode != "" {
-		validPowerdModes := map[string]struct{}{
-			"hadp":     {},
-			"hiadp":    {},
-			"adaptive": {},
-			"minimum":  {},
-			"maximum":  {},
-		}
 		if _, ok := validPowerdModes[s.PowerdNormalMode]; !ok {
 			errors = append(
 				errors,
@@ -442,11 +431,15 @@ func validateCommonUsersAndGroups(users []common.User, groups []common.Group) []
 					errors,
 					ValidationError{Field: prefix + ".gid", Message: "group GID must be a positive integer"},
 				)
+			} else {
+				if groupIDs[group.GID] {
+					errors = append(
+						errors,
+						ValidationError{Field: prefix + ".gid", Message: "group GID must be unique"},
+					)
+				}
+				groupIDs[group.GID] = true
 			}
-			if groupIDs[group.GID] {
-				errors = append(errors, ValidationError{Field: prefix + ".gid", Message: "group GID must be unique"})
-			}
-			groupIDs[group.GID] = true
 		}
 
 		if group.Scope != "" {
@@ -481,11 +474,12 @@ func validateCommonUsersAndGroups(users []common.User, groups []common.Group) []
 					errors,
 					ValidationError{Field: prefix + ".uid", Message: "user UID must be a positive integer"},
 				)
+			} else {
+				if userIDs[user.UID] {
+					errors = append(errors, ValidationError{Field: prefix + ".uid", Message: "user UID must be unique"})
+				}
+				userIDs[user.UID] = true
 			}
-			if userIDs[user.UID] {
-				errors = append(errors, ValidationError{Field: prefix + ".uid", Message: "user UID must be unique"})
-			}
-			userIDs[user.UID] = true
 		}
 
 		if user.GroupName != "" && !groupNames[user.GroupName] {
