@@ -110,9 +110,14 @@ func (pm *PluginManager) RunComplianceAudit(
 	}
 
 	for _, pluginName := range slices.Sorted(maps.Keys(results)) {
+		result := results[pluginName]
+		totalFindings := 0
+		if result.Summary != nil {
+			totalFindings = result.Summary.TotalFindings
+		}
 		logger.Info("Plugin compliance results",
 			"plugin", pluginName,
-			"total_findings", results[pluginName].Summary.TotalFindings)
+			"total_findings", totalFindings)
 	}
 
 	logger.Info("Compliance audit completed",
