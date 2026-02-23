@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 	"time"
@@ -161,15 +162,22 @@ func (mc *ModeController) generateBlueReport(_ context.Context, report *Report, 
 
 	// Run compliance checks if plugins are selected
 	if len(config.SelectedPlugins) > 0 {
-		complianceResult, err := mc.registry.RunComplianceChecks(report.Configuration, config.SelectedPlugins)
+		complianceResults, err := mc.registry.RunComplianceChecks(report.Configuration, config.SelectedPlugins)
 		if err != nil {
-			mc.logger.Warn("Failed to run compliance checks", "error", err)
+			mc.logger.Error("Failed to run compliance checks", "error", err)
 			// Add metadata to report indicating compliance check failure
 			report.Metadata["compliance_check_status"] = "failed"
 			report.Metadata["compliance_check_error"] = err.Error()
 			report.Metadata["compliance_check_time"] = time.Now().Format(time.RFC3339)
 		} else {
-			report.Compliance["plugin_results"] = *complianceResult
+			for _, pluginName := range slices.Sorted(maps.Keys(complianceResults)) {
+				cr := complianceResults[pluginName]
+				if cr == nil {
+					mc.logger.Warn("Nil compliance result for plugin", "plugin", pluginName)
+					continue
+				}
+				report.Compliance[pluginName] = *cr
+			}
 			// Add metadata to report indicating successful compliance checks
 			report.Metadata["compliance_check_status"] = "completed"
 			report.Metadata["compliance_check_time"] = time.Now().Format(time.RFC3339)

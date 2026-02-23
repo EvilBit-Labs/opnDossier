@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	pluginlib "plugin"
+	"slices"
 	"sync"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
@@ -128,20 +129,16 @@ func (pr *PluginRegistry) LoadDynamicPlugins(ctx context.Context, dir string, lo
 }
 
 // RunComplianceChecks runs compliance checks for specified plugins.
+// It returns one ComplianceResult per plugin, keyed by plugin name.
 func (pr *PluginRegistry) RunComplianceChecks(
 	device *common.CommonDevice,
 	pluginNames []string,
-) (*ComplianceResult, error) {
+) (map[string]*ComplianceResult, error) {
 	if device == nil {
 		return nil, errors.New("device configuration is nil")
 	}
 
-	result := &ComplianceResult{
-		Findings:   []compliance.Finding{},
-		Compliance: make(map[string]map[string]bool),
-		Summary:    &ComplianceSummary{},
-		PluginInfo: make(map[string]PluginInfo),
-	}
+	results := make(map[string]*ComplianceResult, len(pluginNames))
 
 	for _, pluginName := range pluginNames {
 		p, err := pr.GetPlugin(pluginName)
@@ -149,12 +146,25 @@ func (pr *PluginRegistry) RunComplianceChecks(
 			return nil, fmt.Errorf("failed to get plugin '%s': %w", pluginName, err)
 		}
 
-		// Run checks for this plugin
 		findings := p.RunChecks(device)
-		result.Findings = append(result.Findings, findings...)
+		if findings == nil {
+			findings = []compliance.Finding{}
+		} else {
+			findings = slices.Clone(findings)
+		}
 
-		// Track plugin information
-		result.PluginInfo[pluginName] = PluginInfo{
+		// Stamp each finding with its originating plugin name
+		for i := range findings {
+			findings[i].Plugin = pluginName
+		}
+
+		pluginResult := &ComplianceResult{
+			Findings:   findings,
+			Compliance: make(map[string]map[string]bool),
+			PluginInfo: make(map[string]PluginInfo),
+		}
+
+		pluginResult.PluginInfo[pluginName] = PluginInfo{
 			Name:        p.Name(),
 			Version:     p.Version(),
 			Description: p.Description(),
@@ -162,25 +172,25 @@ func (pr *PluginRegistry) RunComplianceChecks(
 		}
 
 		// Initialize compliance tracking for this plugin
-		result.Compliance[pluginName] = make(map[string]bool)
+		pluginResult.Compliance[pluginName] = make(map[string]bool)
 		for _, control := range p.GetControls() {
-			result.Compliance[pluginName][control.ID] = true // Default to compliant
+			pluginResult.Compliance[pluginName][control.ID] = true // Default to compliant
 		}
 
 		// Update compliance status based on findings
 		for _, finding := range findings {
 			for _, ref := range finding.References {
-				if result.Compliance[pluginName] != nil {
-					result.Compliance[pluginName][ref] = false // Non-compliant
-				}
+				pluginResult.Compliance[pluginName][ref] = false // Non-compliant
 			}
 		}
+
+		// Calculate summary for this plugin
+		pluginResult.Summary = pr.calculateSummary(pluginResult)
+
+		results[pluginName] = pluginResult
 	}
 
-	// Calculate summary
-	result.Summary = pr.calculateSummary(result)
-
-	return result, nil
+	return results, nil
 }
 
 // calculateSummary calculates compliance summary statistics.

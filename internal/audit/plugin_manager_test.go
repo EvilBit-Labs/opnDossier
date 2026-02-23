@@ -214,32 +214,53 @@ func TestPluginManager_RunComplianceAudit(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			result, err := manager.RunComplianceAudit(ctx, testConfig, tt.pluginNames)
+			results, err := manager.RunComplianceAudit(ctx, testConfig, tt.pluginNames)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RunComplianceAudit() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 
 			if !tt.wantErr {
-				if result == nil {
-					t.Error("RunComplianceAudit() returned nil result when no error expected")
+				if results == nil {
+					t.Error("RunComplianceAudit() returned nil results when no error expected")
 					return
 				}
 
-				if result.Summary == nil {
-					t.Error("RunComplianceAudit() result has nil summary")
+				// For empty/nil plugin lists, expect empty map
+				if len(tt.pluginNames) == 0 {
+					if len(results) != 0 {
+						t.Errorf("RunComplianceAudit() returned %d results, want 0", len(results))
+					}
+					return
 				}
 
-				if result.Findings == nil {
-					t.Error("RunComplianceAudit() result has nil findings")
+				// Verify per-plugin results
+				if len(results) != len(tt.pluginNames) {
+					t.Errorf("RunComplianceAudit() returned %d results, want %d", len(results), len(tt.pluginNames))
 				}
 
-				if result.Compliance == nil {
-					t.Error("RunComplianceAudit() result has nil compliance")
-				}
+				for _, pluginName := range tt.pluginNames {
+					pluginResult := results[pluginName]
+					if pluginResult == nil {
+						t.Errorf("RunComplianceAudit() missing result for plugin %s", pluginName)
+						continue
+					}
 
-				if result.PluginInfo == nil {
-					t.Error("RunComplianceAudit() result has nil plugin info")
+					if pluginResult.Summary == nil {
+						t.Errorf("RunComplianceAudit() result for %s has nil summary", pluginName)
+					}
+
+					if pluginResult.Findings == nil {
+						t.Errorf("RunComplianceAudit() result for %s has nil findings", pluginName)
+					}
+
+					if pluginResult.Compliance == nil {
+						t.Errorf("RunComplianceAudit() result for %s has nil compliance", pluginName)
+					}
+
+					if pluginResult.PluginInfo == nil {
+						t.Errorf("RunComplianceAudit() result for %s has nil plugin info", pluginName)
+					}
 				}
 			}
 		})

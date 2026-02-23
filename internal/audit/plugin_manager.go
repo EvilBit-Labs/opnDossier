@@ -3,6 +3,8 @@ package audit
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
@@ -93,24 +95,39 @@ func (pm *PluginManager) ListAvailablePlugins(ctx context.Context) []PluginInfo 
 }
 
 // RunComplianceAudit runs compliance checks using specified plugins.
+// It returns one ComplianceResult per plugin, keyed by plugin name.
 func (pm *PluginManager) RunComplianceAudit(
 	ctx context.Context,
 	device *common.CommonDevice,
 	pluginNames []string,
-) (*ComplianceResult, error) {
+) (map[string]*ComplianceResult, error) {
 	logger := pm.logger.WithContext(ctx)
 	logger.Info("Starting compliance audit", "plugins", pluginNames)
 
-	result, err := pm.registry.RunComplianceChecks(device, pluginNames)
+	results, err := pm.registry.RunComplianceChecks(device, pluginNames)
 	if err != nil {
 		return nil, fmt.Errorf("compliance audit failed: %w", err)
 	}
 
-	logger.Info("Compliance audit completed",
-		"total_findings", result.Summary.TotalFindings,
-		"plugins_used", len(pluginNames))
+	for _, pluginName := range slices.Sorted(maps.Keys(results)) {
+		result := results[pluginName]
+		if result == nil {
+			logger.Warn("Nil result for plugin", "plugin", pluginName)
+			continue
+		}
+		totalFindings := 0
+		if result.Summary != nil {
+			totalFindings = result.Summary.TotalFindings
+		}
+		logger.Info("Plugin compliance results",
+			"plugin", pluginName,
+			"total_findings", totalFindings)
+	}
 
-	return result, nil
+	logger.Info("Compliance audit completed",
+		"plugins_used", len(results))
+
+	return results, nil
 }
 
 // GetPluginControlInfo returns detailed information about a specific control.
@@ -138,7 +155,7 @@ func (pm *PluginManager) ValidatePluginConfiguration(pluginName string) error {
 	return p.ValidateConfiguration()
 }
 
-// GetPluginStatistics returns statistics about plugin usage and plugin.
+// GetPluginStatistics returns statistics about plugin usage and control counts.
 func (pm *PluginManager) GetPluginStatistics() map[string]any {
 	stats := make(map[string]any)
 
