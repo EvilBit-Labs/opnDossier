@@ -4,9 +4,9 @@ This document consolidates all development standards, architectural principles, 
 
 ## Related Documentation
 
-- **[Requirements](../project_spec/requirements.md)** - Complete project requirements and specifications
-- **[Architecture](architecture.md)** - System design, component interactions, and deployment patterns
-- **[Development Standards](standards.md)** - Go-specific coding standards and project structure
+- **[Requirements](project_spec/requirements.md)** - Complete project requirements and specifications
+- **[Architecture](docs/development/architecture.md)** - System design, component interactions, and deployment patterns
+- **[Development Standards](docs/development/standards.md)** - Go-specific coding standards and project structure
 
 ---
 
@@ -68,36 +68,56 @@ When rules conflict, follow the higher precedence rule.
 opndossier/
 ├── cmd/                              # CLI command entry points
 │   ├── root.go                       # Root command and PersistentPreRunE setup
+│   ├── audit_handler.go              # Audit command handler
+│   ├── completion.go                 # Shell completion support
+│   ├── config.go                     # Config parent command
+│   ├── config_init.go                # Config init subcommand
+│   ├── config_show.go                # Config show subcommand
+│   ├── config_validate.go            # Config validate subcommand
 │   ├── context.go                    # CommandContext for dependency injection
 │   ├── convert.go                    # Convert command
+│   ├── diff.go                       # Diff command
 │   ├── display.go                    # Display command
 │   ├── exitcodes.go                  # Structured exit codes and JSON errors
 │   ├── help.go                       # Custom help templates and suggestions
+│   ├── man.go                        # Man page generation
+│   ├── sanitize.go                   # Sanitize command
+│   ├── shared_flags.go               # Shared flag definitions across commands
 │   └── validate.go                   # Validate command
 ├── internal/                         # Private application logic
+│   ├── walker.go                     # Tree-walking utilities
 │   ├── audit/                        # Audit engine and compliance checking
 │   │   ├── plugin.go                 # Plugin registry
 │   │   └── plugin_manager.go         # Plugin lifecycle
+│   ├── cfgparser/                    # XML parsing and validation
+│   ├── compliance/                   # Plugin interfaces
 │   ├── config/                       # Configuration management
+│   ├── constants/                    # Shared constants (validation whitelists, etc.)
 │   ├── converter/                    # Data conversion utilities
+│   │   └── builder/                  # Markdown builder and writer
+│   ├── diff/                         # Configuration diff engine
 │   ├── display/                      # Terminal display formatting
+│   ├── docgen/                       # Model documentation generation
 │   ├── export/                       # File export functionality
 │   ├── logging/                      # Logging utilities
-│   ├── markdown/                     # Markdown generation
+│   ├── markdown/                     # Markdown generation and validation
 │   ├── model/                        # Data models and re-export seam
 │   │   ├── common/                   # Platform-agnostic CommonDevice domain model
 │   │   ├── opnsense/                 # OPNsense parser + schema→CommonDevice converter
 │   │   └── factory.go                # ParserFactory + DeviceParser interface
-│   ├── cfgparser/                    # XML parsing and validation
-│   ├── compliance/                   # Plugin interfaces
 │   ├── plugins/                      # Compliance plugins
 │   │   ├── firewall/                 # Firewall compliance
 │   │   ├── sans/                     # SANS compliance
 │   │   └── stig/                     # STIG compliance
+│   ├── pool/                         # Worker pool for concurrent processing
 │   ├── processor/                    # Data processing and report generation
 │   ├── progress/                     # CLI progress indicators (spinner, bar)
+│   ├── sanitizer/                    # Data sanitization utilities
+│   ├── schema/                       # Canonical OPNsense data model (XML structs)
+│   ├── testing/                      # Shared test helpers
 │   └── validator/                    # Data validation
-├── pkg/                              # Public packages (if any)
+├── tools/                            # Standalone development tools
+│   └── docgen/                       # Model documentation generator
 ├── testdata/                         # Test data and fixtures
 ├── docs/                             # Documentation
 ├── project_spec/                     # Project specifications
@@ -954,14 +974,36 @@ feat(api)!: redesign plugin interface  # Breaking change
 # Development
 just dev              # Run in development mode
 just build            # Build with all checks
+just rebuild          # Clean and rebuild
 just install          # Install dependencies
 
 # Quality
-just format           # Format code and docs
-just lint             # Run linting
-just test             # Run tests
-just check            # Run pre-commit hooks
-just ci-check         # Run CI-equivalent checks
+just format           # Format code and apply fixes
+just lint             # Run linter
+just test             # Run all tests
+just check            # Run pre-commit checks on all files
+just ci-check         # Run full CI checks (pre-commit, format, lint, test)
+just ci-smoke         # Run smoke tests (fast, minimal validation)
+just modernize        # Apply Go modernization fixes
+just modernize-check  # Check for modernization opportunities (dry-run)
+
+# Testing
+just test-race        # Run tests with race detector
+just test-stress      # Run stress tests (build tag)
+just test-integration # Run integration tests (build tag)
+just coverage         # Run tests and open coverage in browser
+just cover            # Generate coverage artifact
+just completeness-check # Run model completeness check
+
+# Benchmarks
+just bench            # Run benchmarks
+just bench-compare    # Compare current benchmarks against baseline
+just bench-save       # Save benchmark baseline for comparison
+
+# Security
+just scan             # Run gosec security scanner
+just sbom             # Generate SBOM with cyclonedx-gomod
+just security-all     # Run all security checks (SBOM + scan)
 
 # Go commands
 go test ./...         # Run tests
