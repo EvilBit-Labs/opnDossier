@@ -924,6 +924,7 @@ func (p *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 - Use consistent control naming: `PLUGIN-001`, `PLUGIN-002`
 - Severity levels: `critical`, `high`, `medium`, `low`
 - Dynamic plugins: export `var Plugin compliance.Plugin`
+- **Nil-safety:** `RunChecks()` implementations may return `nil` instead of `[]compliance.Finding{}`. Callers that store results per-plugin (rather than merging via `append`) must normalize: `if findings == nil { findings = []compliance.Finding{} }`
 
 ### 8.4 Compliance Standards
 
