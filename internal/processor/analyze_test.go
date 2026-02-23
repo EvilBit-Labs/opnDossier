@@ -15,7 +15,7 @@ import (
 )
 
 func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
-	processor, err := NewCoreProcessor()
+	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -756,7 +756,7 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 
 // TestCoreProcessor_RealWorldConfigurations tests the implementation with actual OPNsense configuration files.
 func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
-	processor, err := NewCoreProcessor()
+	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)
 
 	testFiles := []string{
@@ -767,6 +767,8 @@ func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
 
 	for _, testFile := range testFiles {
 		t.Run(filepath.Base(testFile), func(t *testing.T) {
+			const anyAddress = "any"
+
 			// Open the file
 			file, err := os.Open(testFile)
 			if err != nil {
@@ -829,7 +831,7 @@ func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
 			deadRuleCount := 0
 
 			for i, rule := range rules {
-				if rule.Type == "block" && rule.Source.Address == "any" {
+				if rule.Type == "block" && rule.Source.Address == anyAddress {
 					// Check if there are rules after this block-all rule
 					if i < len(rules)-1 {
 						deadRuleCount++
@@ -843,7 +845,7 @@ func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
 			securityIssues := 0
 
 			for i, rule := range rules {
-				if rule.Type == "pass" && rule.Source.Address == "any" && rule.Description == "" {
+				if rule.Type == "pass" && rule.Source.Address == anyAddress && rule.Description == "" {
 					securityIssues++
 
 					t.Logf("Found overly broad pass rule at position %d without description", i+1)
@@ -1642,7 +1644,7 @@ func TestServiceDetection_Integration(t *testing.T) {
 
 // TestCoreProcessor_EdgeCases tests edge cases and boundary conditions.
 func TestCoreProcessor_EdgeCases(t *testing.T) {
-	processor, err := NewCoreProcessor()
+	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)
 
 	t.Run("empty_rules", func(t *testing.T) {
@@ -1692,7 +1694,7 @@ func TestCoreProcessor_EdgeCases(t *testing.T) {
 func TestCoreProcessor_DeadRuleDetection_IsAnyPath(t *testing.T) {
 	t.Parallel()
 
-	processor, err := NewCoreProcessor()
+	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)
 
 	tests := []struct {
