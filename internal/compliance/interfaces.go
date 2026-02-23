@@ -55,7 +55,10 @@ type Finding struct {
 	Recommendation string `json:"recommendation"`
 	Component      string `json:"component"`
 	Reference      string `json:"reference"`
-	Plugin         string `json:"plugin,omitempty"`
+
+	// Plugin identifies the compliance plugin that generated this finding.
+	// Set by RunComplianceChecks after invoking a plugin's RunChecks method.
+	Plugin string `json:"plugin,omitempty"`
 
 	// Generic references and metadata
 	References []string          `json:"references,omitempty"`

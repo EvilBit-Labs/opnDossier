@@ -111,6 +111,10 @@ func (pm *PluginManager) RunComplianceAudit(
 
 	for _, pluginName := range slices.Sorted(maps.Keys(results)) {
 		result := results[pluginName]
+		if result == nil {
+			logger.Warn("Nil result for plugin", "plugin", pluginName)
+			continue
+		}
 		totalFindings := 0
 		if result.Summary != nil {
 			totalFindings = result.Summary.TotalFindings
@@ -151,7 +155,7 @@ func (pm *PluginManager) ValidatePluginConfiguration(pluginName string) error {
 	return p.ValidateConfiguration()
 }
 
-// GetPluginStatistics returns statistics about plugin usage and plugin.
+// GetPluginStatistics returns statistics about plugin usage and control counts.
 func (pm *PluginManager) GetPluginStatistics() map[string]any {
 	stats := make(map[string]any)
 

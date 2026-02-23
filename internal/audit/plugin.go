@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	pluginlib "plugin"
+	"slices"
 	"sync"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
@@ -145,10 +146,11 @@ func (pr *PluginRegistry) RunComplianceChecks(
 			return nil, fmt.Errorf("failed to get plugin '%s': %w", pluginName, err)
 		}
 
-		// Run checks for this plugin
 		findings := p.RunChecks(device)
 		if findings == nil {
 			findings = []compliance.Finding{}
+		} else {
+			findings = slices.Clone(findings)
 		}
 
 		// Stamp each finding with its originating plugin name
@@ -162,7 +164,6 @@ func (pr *PluginRegistry) RunComplianceChecks(
 			PluginInfo: make(map[string]PluginInfo),
 		}
 
-		// Track plugin information
 		pluginResult.PluginInfo[pluginName] = PluginInfo{
 			Name:        p.Name(),
 			Version:     p.Version(),

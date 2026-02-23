@@ -82,7 +82,7 @@ func TestAppendAuditFindings_WithFindings(t *testing.T) {
 	assert.Contains(t, result, "Report Mode")
 	assert.Contains(t, result, "blue")
 	assert.Contains(t, result, "Total Findings")
-	assert.Contains(t, result, "0") // 0 compliance findings (Compliance map empty)
+	assert.Contains(t, result, "Total Findings | 0") // 0 compliance findings (Compliance map empty)
 	assert.Contains(t, result, "Security Analysis Findings")
 	assert.Contains(t, result, "2") // 2 security analysis findings
 
