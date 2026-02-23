@@ -179,9 +179,7 @@ func (pr *PluginRegistry) RunComplianceChecks(
 		// Update compliance status based on findings
 		for _, finding := range findings {
 			for _, ref := range finding.References {
-				if pluginResult.Compliance[pluginName] != nil {
-					pluginResult.Compliance[pluginName][ref] = false // Non-compliant
-				}
+				pluginResult.Compliance[pluginName][ref] = false // Non-compliant
 			}
 		}
 
