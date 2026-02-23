@@ -85,7 +85,7 @@ func isValidPortOrRange(port string) bool {
 
 	if !portRangePattern.MatchString(port) {
 		// Non-numeric values are treated as service name aliases (e.g., "http", "ssh").
-		// Validate they contain only alphanumeric chars and hyphens.
+		// Validate they contain only alphanumeric chars, hyphens, and underscores.
 		return portAliasPattern.MatchString(port)
 	}
 
