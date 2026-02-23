@@ -21,7 +21,7 @@ func TestFirewallPlugin_RunChecks(t *testing.T) {
 		description        string
 	}{
 		{
-			name: "Default configuration - all findings expected",
+			name: "Default configuration - verifiable findings expected",
 			config: &common.CommonDevice{
 				System: common.System{
 					Hostname: "OPNsense", // Default hostname
@@ -32,11 +32,12 @@ func TestFirewallPlugin_RunChecks(t *testing.T) {
 					IPv6Allow: true, // IPv6 enabled
 				},
 			},
-			expectedFindings: 2,
+			expectedFindings: 5,
 			expectedFindingIDs: []string{
-				"FIREWALL-006", "FIREWALL-007",
+				"FIREWALL-002", "FIREWALL-004", "FIREWALL-005",
+				"FIREWALL-006", "FIREWALL-008",
 			},
-			description: "Default OPNsense config should trigger all firewall compliance checks",
+			description: "Default OPNsense config triggers verifiable firewall compliance checks",
 		},
 		{
 			name: "Custom secure configuration - minimal findings",
@@ -49,22 +50,23 @@ func TestFirewallPlugin_RunChecks(t *testing.T) {
 					DNSServers: []string{"8.8.8.8"},
 				},
 			},
-			expectedFindings: 2,
+			expectedFindings: 1,
 			expectedFindingIDs: []string{
-				"FIREWALL-006", "FIREWALL-007",
+				"FIREWALL-002",
 			},
 			description: "Secure config with custom hostname, HTTPS, DNS, and disabled IPv6",
 		},
 		{
-			name: "Empty configuration - all findings expected",
+			name: "Empty configuration - verifiable findings expected",
 			config: &common.CommonDevice{
 				System: common.System{},
 			},
-			expectedFindings: 2,
+			expectedFindings: 4,
 			expectedFindingIDs: []string{
-				"FIREWALL-006", "FIREWALL-007",
+				"FIREWALL-002", "FIREWALL-004", "FIREWALL-005",
+				"FIREWALL-008",
 			},
-			description: "Empty system config should trigger all checks",
+			description: "Empty system config triggers verifiable checks (IPv6 defaults to false)",
 		},
 	}
 
@@ -100,6 +102,210 @@ func TestFirewallPlugin_RunChecks(t *testing.T) {
 				assert.NotEmpty(t, finding.References, "Finding should have references")
 				assert.NotEmpty(t, finding.Tags, "Finding should have tags")
 			}
+		})
+	}
+}
+
+func TestFirewallPlugin_RunChecks_NilDevice(t *testing.T) {
+	firewallPlugin := firewall.NewPlugin()
+	findings := firewallPlugin.RunChecks(nil)
+
+	// Nil device produces findings only for verifiable checks where nil means "not configured".
+	// FIREWALL-001/003 are skipped (unknowable from config.xml).
+	// FIREWALL-006 (IPv6) defaults to false (no finding).
+	// FIREWALL-007 (DNS rebind) not yet implemented (no finding).
+	expectedIDs := []string{
+		"FIREWALL-002", "FIREWALL-004", "FIREWALL-005", "FIREWALL-008",
+	}
+	assert.Len(t, findings, len(expectedIDs), "Nil device should produce %d findings, got %d: %v",
+		len(expectedIDs), len(findings), getFindings(findings))
+
+	for _, expectedID := range expectedIDs {
+		found := false
+		for _, finding := range findings {
+			if finding.Reference == expectedID {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "Expected finding ID %s not found for nil device", expectedID)
+	}
+}
+
+func TestFirewallPlugin_RunChecks_AutoConfigBackup(t *testing.T) {
+	firewallPlugin := firewall.NewPlugin()
+
+	tests := []struct {
+		name          string
+		config        *common.CommonDevice
+		expectFinding bool
+		description   string
+	}{
+		{
+			name: "os-acb package installed - no finding",
+			config: &common.CommonDevice{
+				Packages: []common.Package{
+					{Name: "os-acb", Installed: true},
+				},
+			},
+			expectFinding: false,
+			description:   "Auto config backup package is installed",
+		},
+		{
+			name: "os-acb package present but not installed - finding expected",
+			config: &common.CommonDevice{
+				Packages: []common.Package{
+					{Name: "os-acb", Installed: false},
+				},
+			},
+			expectFinding: true,
+			description:   "Auto config backup package is available but not installed",
+		},
+		{
+			name: "os-acb in firmware plugins - no finding",
+			config: &common.CommonDevice{
+				System: common.System{
+					Firmware: common.Firmware{
+						Plugins: "os-firewall,os-acb,os-theme-cicada",
+					},
+				},
+			},
+			expectFinding: false,
+			description:   "Auto config backup detected via firmware plugins string",
+		},
+		{
+			name: "os-acb in firmware plugins case insensitive - no finding",
+			config: &common.CommonDevice{
+				System: common.System{
+					Firmware: common.Firmware{
+						Plugins: "os-firewall,OS-ACB,os-theme-cicada",
+					},
+				},
+			},
+			expectFinding: false,
+			description:   "Case-insensitive match on firmware plugins string",
+		},
+		{
+			name: "similar plugin name is not a false positive - finding expected",
+			config: &common.CommonDevice{
+				System: common.System{
+					Firmware: common.Firmware{
+						Plugins: "os-firewall,os-acb-extended,os-theme-cicada",
+					},
+				},
+			},
+			expectFinding: true,
+			description:   "Substring 'os-acb-extended' must not match 'os-acb'",
+		},
+		{
+			name: "os-acb with surrounding whitespace - no finding",
+			config: &common.CommonDevice{
+				System: common.System{
+					Firmware: common.Firmware{
+						Plugins: "os-firewall, os-acb , os-theme-cicada",
+					},
+				},
+			},
+			expectFinding: false,
+			description:   "Whitespace around plugin name is trimmed before comparison",
+		},
+		{
+			name: "no packages or firmware plugins - finding expected",
+			config: &common.CommonDevice{
+				System: common.System{},
+			},
+			expectFinding: true,
+			description:   "No auto config backup detected anywhere",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			findings := firewallPlugin.RunChecks(tt.config)
+			found := false
+			for _, finding := range findings {
+				if finding.Reference == "FIREWALL-002" {
+					found = true
+					break
+				}
+			}
+			assert.Equal(t, tt.expectFinding, found,
+				"FIREWALL-002 finding presence mismatch: %s", tt.description)
+		})
+	}
+}
+
+func TestFirewallPlugin_RunChecks_CustomHostname(t *testing.T) {
+	firewallPlugin := firewall.NewPlugin()
+
+	tests := []struct {
+		name          string
+		hostname      string
+		expectFinding bool
+		description   string
+	}{
+		{
+			name:          "Default OPNsense hostname",
+			hostname:      "OPNsense",
+			expectFinding: true,
+			description:   "Default OPNsense hostname should trigger finding",
+		},
+		{
+			name:          "Default pfSense hostname",
+			hostname:      "pfSense",
+			expectFinding: true,
+			description:   "Default pfSense hostname should trigger finding",
+		},
+		{
+			name:          "Default firewall hostname",
+			hostname:      "firewall",
+			expectFinding: true,
+			description:   "Generic 'firewall' hostname should trigger finding",
+		},
+		{
+			name:          "Default localhost hostname",
+			hostname:      "localhost",
+			expectFinding: true,
+			description:   "localhost hostname should trigger finding",
+		},
+		{
+			name:          "Empty hostname",
+			hostname:      "",
+			expectFinding: true,
+			description:   "Empty hostname should trigger finding",
+		},
+		{
+			name:          "Custom hostname",
+			hostname:      "corp-fw-01",
+			expectFinding: false,
+			description:   "Custom hostname should not trigger finding",
+		},
+		{
+			name:          "Case insensitive default check",
+			hostname:      "OPNSENSE",
+			expectFinding: true,
+			description:   "Case-insensitive match against default hostnames",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := &common.CommonDevice{
+				System: common.System{
+					Hostname: tt.hostname,
+				},
+			}
+			findings := firewallPlugin.RunChecks(config)
+			found := false
+			for _, finding := range findings {
+				if finding.Reference == "FIREWALL-004" {
+					found = true
+					break
+				}
+			}
+			assert.Equal(t, tt.expectFinding, found,
+				"FIREWALL-004 finding presence mismatch for hostname %q: %s",
+				tt.hostname, tt.description)
 		})
 	}
 }
