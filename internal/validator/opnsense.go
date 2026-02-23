@@ -6,12 +6,14 @@ package validator
 
 import (
 	"fmt"
+	"maps"
 	"net"
 	"regexp"
 	"slices"
 	"strconv"
 	"strings"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/schema"
 )
 
@@ -97,12 +99,17 @@ func validateSystem(system *schema.System) []ValidationError {
 	}
 
 	// Validate optimization setting
-	validOptimizations := []string{"normal", "high-latency", "aggressive", "conservative"}
-	if system.Optimization != "" && !contains(validOptimizations, system.Optimization) {
-		errors = append(errors, ValidationError{
-			Field:   "system.optimization",
-			Message: fmt.Sprintf("optimization '%s' must be one of: %v", system.Optimization, validOptimizations),
-		})
+	if system.Optimization != "" {
+		if _, ok := constants.ValidOptimizationModes[system.Optimization]; !ok {
+			errors = append(errors, ValidationError{
+				Field: "system.optimization",
+				Message: fmt.Sprintf(
+					"optimization '%s' must be one of: %v",
+					system.Optimization,
+					slices.Sorted(maps.Keys(constants.ValidOptimizationModes)),
+				),
+			})
+		}
 	}
 
 	// Validate webgui protocol
@@ -115,26 +122,33 @@ func validateSystem(system *schema.System) []ValidationError {
 	}
 
 	// Validate power management modes
-	validPowerModes := []string{"hadp", "hiadp", "adaptive", "minimum", "maximum"}
-	if system.PowerdACMode != "" && !contains(validPowerModes, system.PowerdACMode) {
-		errors = append(errors, ValidationError{
-			Field:   "system.powerd_ac_mode",
-			Message: fmt.Sprintf("power mode '%s' must be one of: %v", system.PowerdACMode, validPowerModes),
-		})
+	validPowerdList := slices.Sorted(maps.Keys(constants.ValidPowerdModes))
+
+	if system.PowerdACMode != "" {
+		if _, ok := constants.ValidPowerdModes[system.PowerdACMode]; !ok {
+			errors = append(errors, ValidationError{
+				Field:   "system.powerd_ac_mode",
+				Message: fmt.Sprintf("power mode '%s' must be one of: %v", system.PowerdACMode, validPowerdList),
+			})
+		}
 	}
 
-	if system.PowerdBatteryMode != "" && !contains(validPowerModes, system.PowerdBatteryMode) {
-		errors = append(errors, ValidationError{
-			Field:   "system.powerd_battery_mode",
-			Message: fmt.Sprintf("power mode '%s' must be one of: %v", system.PowerdBatteryMode, validPowerModes),
-		})
+	if system.PowerdBatteryMode != "" {
+		if _, ok := constants.ValidPowerdModes[system.PowerdBatteryMode]; !ok {
+			errors = append(errors, ValidationError{
+				Field:   "system.powerd_battery_mode",
+				Message: fmt.Sprintf("power mode '%s' must be one of: %v", system.PowerdBatteryMode, validPowerdList),
+			})
+		}
 	}
 
-	if system.PowerdNormalMode != "" && !contains(validPowerModes, system.PowerdNormalMode) {
-		errors = append(errors, ValidationError{
-			Field:   "system.powerd_normal_mode",
-			Message: fmt.Sprintf("power mode '%s' must be one of: %v", system.PowerdNormalMode, validPowerModes),
-		})
+	if system.PowerdNormalMode != "" {
+		if _, ok := constants.ValidPowerdModes[system.PowerdNormalMode]; !ok {
+			errors = append(errors, ValidationError{
+				Field:   "system.powerd_normal_mode",
+				Message: fmt.Sprintf("power mode '%s' must be one of: %v", system.PowerdNormalMode, validPowerdList),
+			})
+		}
 	}
 
 	// Validate bogons interval
@@ -254,7 +268,7 @@ func validateSubnet(iface *schema.Interface, name string) []ValidationError {
 func validateMTU(iface *schema.Interface, name string) []ValidationError {
 	var errors []ValidationError
 	if iface.MTU != "" {
-		if mtu, err := strconv.Atoi(iface.MTU); err != nil || mtu < 68 || mtu > 9000 {
+		if mtu, err := strconv.Atoi(iface.MTU); err != nil || mtu < constants.MinMTU || mtu > constants.MaxMTU {
 			errors = append(errors, ValidationError{
 				Field:   fmt.Sprintf("interfaces.%s.mtu", name),
 				Message: fmt.Sprintf("MTU '%s' must be a valid MTU (68-9000)", iface.MTU),
@@ -910,7 +924,7 @@ var hostnamePattern = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-
 
 // isValidHostname returns true if the given string is a valid hostname according to length and character rules.
 func isValidHostname(hostname string) bool {
-	if hostname == "" || len(hostname) > 253 {
+	if hostname == "" || len(hostname) > constants.MaxHostnameLength {
 		return false
 	}
 
@@ -988,7 +1002,7 @@ var portRangePattern = regexp.MustCompile(`^\d+(-\d+)?$`)
 var numericPrefixPattern = regexp.MustCompile(`^\d+-`)
 
 // maxPort is the maximum valid TCP/UDP port number.
-const maxPort = 65535
+const maxPort = constants.MaxPort
 
 // portRangeParts is the maximum number of parts when splitting a port range on hyphen.
 const portRangeParts = 2
