@@ -6,6 +6,7 @@ package validator
 
 import (
 	"fmt"
+	"maps"
 	"net"
 	"regexp"
 	"slices"
@@ -101,8 +102,12 @@ func validateSystem(system *schema.System) []ValidationError {
 	if system.Optimization != "" {
 		if _, ok := constants.ValidOptimizationModes[system.Optimization]; !ok {
 			errors = append(errors, ValidationError{
-				Field:   "system.optimization",
-				Message: fmt.Sprintf("optimization '%s' is not a valid mode", system.Optimization),
+				Field: "system.optimization",
+				Message: fmt.Sprintf(
+					"optimization '%s' must be one of: %v",
+					system.Optimization,
+					slices.Sorted(maps.Keys(constants.ValidOptimizationModes)),
+				),
 			})
 		}
 	}
@@ -117,11 +122,13 @@ func validateSystem(system *schema.System) []ValidationError {
 	}
 
 	// Validate power management modes
+	validPowerdList := slices.Sorted(maps.Keys(constants.ValidPowerdModes))
+
 	if system.PowerdACMode != "" {
 		if _, ok := constants.ValidPowerdModes[system.PowerdACMode]; !ok {
 			errors = append(errors, ValidationError{
 				Field:   "system.powerd_ac_mode",
-				Message: fmt.Sprintf("power mode '%s' is not a valid mode", system.PowerdACMode),
+				Message: fmt.Sprintf("power mode '%s' must be one of: %v", system.PowerdACMode, validPowerdList),
 			})
 		}
 	}
@@ -130,7 +137,7 @@ func validateSystem(system *schema.System) []ValidationError {
 		if _, ok := constants.ValidPowerdModes[system.PowerdBatteryMode]; !ok {
 			errors = append(errors, ValidationError{
 				Field:   "system.powerd_battery_mode",
-				Message: fmt.Sprintf("power mode '%s' is not a valid mode", system.PowerdBatteryMode),
+				Message: fmt.Sprintf("power mode '%s' must be one of: %v", system.PowerdBatteryMode, validPowerdList),
 			})
 		}
 	}
@@ -139,7 +146,7 @@ func validateSystem(system *schema.System) []ValidationError {
 		if _, ok := constants.ValidPowerdModes[system.PowerdNormalMode]; !ok {
 			errors = append(errors, ValidationError{
 				Field:   "system.powerd_normal_mode",
-				Message: fmt.Sprintf("power mode '%s' is not a valid mode", system.PowerdNormalMode),
+				Message: fmt.Sprintf("power mode '%s' must be one of: %v", system.PowerdNormalMode, validPowerdList),
 			})
 		}
 	}

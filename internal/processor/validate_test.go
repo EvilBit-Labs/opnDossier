@@ -90,6 +90,17 @@ func TestValidateCommonDevice(t *testing.T) {
 			wantFields:   []string{"subnet"},
 		},
 		{
+			name: "track6 IPv6 keyword accepted",
+			cfg: &common.CommonDevice{
+				System: common.System{Hostname: "fw", Domain: "example.com"},
+				Interfaces: []common.Interface{
+					{Name: "wan", IPAddress: "192.168.1.1", Subnet: "24", IPv6Address: "track6"},
+					{Name: "lan", IPAddress: "10.0.0.1", Subnet: "24"},
+				},
+			},
+			wantErrCount: 0,
+		},
+		{
 			name: "DHCP range inverted",
 			cfg: &common.CommonDevice{
 				System:     common.System{Hostname: "fw", Domain: "example.com"},
@@ -174,6 +185,17 @@ func TestValidateCommonDevice(t *testing.T) {
 			wantErrCount: 1,
 			minErrs:      true,
 			wantFields:   []string{"uid"},
+		},
+		{
+			name: "root UID 0 accepted",
+			cfg: &common.CommonDevice{
+				System:     common.System{Hostname: "fw", Domain: "example.com"},
+				Interfaces: validInterfaces,
+				Users: []common.User{
+					{Name: "root", UID: "0"},
+				},
+			},
+			wantErrCount: 0,
 		},
 		{
 			name: "user references unknown group",

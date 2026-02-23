@@ -154,7 +154,7 @@ func validateCommonInterfaces(ifaces []common.Interface) []ValidationError {
 
 		if ip6 := strings.TrimSpace(
 			iface.IPv6Address,
-		); ip6 != "" && ip6 != "dhcp6" && ip6 != "slaac" && ip6 != "none" &&
+		); ip6 != "" && ip6 != "dhcp6" && ip6 != "slaac" && ip6 != "track6" && ip6 != "none" &&
 			!isValidIPv6(ip6) {
 			errors = append(errors, ValidationError{Field: prefix + ".ipv6Address", Message: "invalid IPv6 address"})
 		}
@@ -425,10 +425,10 @@ func validateCommonUsersAndGroups(users []common.User, groups []common.Group) []
 			errors = append(errors, ValidationError{Field: prefix + ".gid", Message: "group GID is required"})
 		} else {
 			gid, err := strconv.Atoi(group.GID)
-			if err != nil || gid <= 0 {
+			if err != nil || gid < 0 {
 				errors = append(
 					errors,
-					ValidationError{Field: prefix + ".gid", Message: "group GID must be a positive integer"},
+					ValidationError{Field: prefix + ".gid", Message: "group GID must be a non-negative integer"},
 				)
 			} else {
 				if groupIDs[group.GID] {
@@ -468,10 +468,10 @@ func validateCommonUsersAndGroups(users []common.User, groups []common.Group) []
 			errors = append(errors, ValidationError{Field: prefix + ".uid", Message: "user UID is required"})
 		} else {
 			uid, err := strconv.Atoi(user.UID)
-			if err != nil || uid <= 0 {
+			if err != nil || uid < 0 {
 				errors = append(
 					errors,
-					ValidationError{Field: prefix + ".uid", Message: "user UID must be a positive integer"},
+					ValidationError{Field: prefix + ".uid", Message: "user UID must be a non-negative integer"},
 				)
 			} else {
 				if userIDs[user.UID] {
