@@ -1156,6 +1156,9 @@ func TestPluginRegistry_RunComplianceChecks(t *testing.T) {
 	if results == nil {
 		t.Error("RunComplianceChecks() returned nil results")
 	}
+	if len(results) != 0 {
+		t.Errorf("RunComplianceChecks() with nil plugins returned %d results, want 0", len(results))
+	}
 
 	// Test running compliance checks with specific plugins
 	selectedPlugins := []string{"stig"}
@@ -1165,6 +1168,12 @@ func TestPluginRegistry_RunComplianceChecks(t *testing.T) {
 	}
 	if results == nil {
 		t.Error("RunComplianceChecks() returned nil results")
+	}
+	if len(results) != 1 {
+		t.Errorf("RunComplianceChecks() returned %d results, want 1", len(results))
+	}
+	if results["stig"] == nil {
+		t.Error("RunComplianceChecks() missing result for stig plugin")
 	}
 
 	// Test running compliance checks with non-existent plugins
