@@ -4,7 +4,7 @@ This document consolidates all development standards, architectural principles, 
 
 ## Related Documentation
 
-- **[Requirements](../project_spec/requirements.md)** - Complete project requirements and specifications
+- **[Requirements](project_spec/requirements.md)** - Complete project requirements and specifications
 - **[Architecture](docs/development/architecture.md)** - System design, component interactions, and deployment patterns
 - **[Development Standards](docs/development/standards.md)** - Go-specific coding standards and project structure
 
