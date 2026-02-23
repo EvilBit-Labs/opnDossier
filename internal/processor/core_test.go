@@ -10,7 +10,7 @@ import (
 )
 
 func TestCoreProcessor_Process(t *testing.T) {
-	processor, err := NewCoreProcessor()
+	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -128,7 +128,7 @@ func TestCoreProcessor_Process(t *testing.T) {
 }
 
 func TestCoreProcessor_Transform(t *testing.T) {
-	processor, err := NewCoreProcessor()
+	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -180,7 +180,7 @@ func TestCoreProcessor_Transform(t *testing.T) {
 }
 
 func TestCoreProcessor_Normalization(t *testing.T) {
-	processor, err := NewCoreProcessor()
+	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)
 
 	t.Run("IP address canonicalization", func(t *testing.T) {
@@ -285,7 +285,7 @@ func TestCoreProcessor_Normalization(t *testing.T) {
 }
 
 func TestCoreProcessor_Analysis(t *testing.T) {
-	processor, err := NewCoreProcessor()
+	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)
 
 	ctx := context.Background()
