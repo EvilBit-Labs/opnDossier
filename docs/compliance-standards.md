@@ -8,74 +8,68 @@ opnDossier integrates industry-standard security compliance frameworks to provid
 
 Audit mode is implemented but has known issues with finding aggregation and display. See [#266](https://github.com/EvilBit-Labs/opnDossier/issues/266) for details.
 
+## Three-State Check Pattern
+
+Firewall compliance checks use a three-state `checkResult` pattern:
+
+| State                                         | Meaning                          | Audit Behavior                            |
+| --------------------------------------------- | -------------------------------- | ----------------------------------------- |
+| **Compliant** (`Known=true, Result=pass`)     | The check passed                 | No finding emitted                        |
+| **Non-Compliant** (`Known=true, Result=fail`) | The check failed                 | Finding emitted with remediation guidance |
+| **Unknown** (`Known=false`)                   | Data not available in config.xml | Check skipped entirely                    |
+
+The "Unknown" state prevents false positives. Some settings (e.g., SSH banners, MOTD) are OS-level configurations stored outside `config.xml` and cannot be assessed from the exported configuration alone. When a check returns Unknown, opnDossier does not report a finding rather than guessing.
+
 ## Supported Standards
 
 ### STIG (Security Technical Implementation Guide)
 
-STIGs are cybersecurity methodologies for standardizing security configuration within networks, servers, computers, and logical designs to enhance overall security. opnDossier implements the **DISA Firewall Security Requirements Guide** which includes:
+STIGs are cybersecurity methodologies for standardizing security configuration within networks, servers, computers, and logical designs to enhance overall security. opnDossier implements the **DISA Firewall Security Requirements Guide** controls listed below.
 
-#### Key STIG Controls
+#### Implemented STIG Controls
 
-| Control ID | Title                                                         | Severity | Category            |
-| ---------- | ------------------------------------------------------------- | -------- | ------------------- |
-| V-206694   | Firewall must deny network communications traffic by default  | High     | Default Deny Policy |
-| V-206701   | Firewall must employ filters that prevent DoS attacks         | High     | DoS Protection      |
-| V-206674   | Firewall must use packet headers and attributes for filtering | High     | Packet Filtering    |
-| V-206690   | Firewall must disable unnecessary network services            | Medium   | Service Hardening   |
-| V-206682   | Firewall must generate comprehensive traffic logs             | Medium   | Logging             |
-| V-206680   | Firewall must log network location information                | Medium   | Logging             |
-| V-206679   | Firewall must log event timestamps                            | Medium   | Logging             |
-| V-206678   | Firewall must log event types                                 | Medium   | Logging             |
-| V-206681   | Firewall must log source information                          | Low      | Logging             |
-| V-206711   | Firewall must alert on DoS incidents                          | Low      | Alerting            |
+| Control ID | Title                                                         | Severity | Category            | Status      |
+| ---------- | ------------------------------------------------------------- | -------- | ------------------- | ----------- |
+| V-206694   | Firewall must deny network communications traffic by default  | High     | Default Deny Policy | Implemented |
+| V-206674   | Firewall must use packet headers and attributes for filtering | High     | Packet Filtering    | Implemented |
+| V-206690   | Firewall must disable unnecessary network services            | Medium   | Service Hardening   | Implemented |
+| V-206682   | Firewall must generate comprehensive traffic logs             | Medium   | Logging             | Implemented |
 
 ### SANS Firewall Checklist
 
-The SANS Firewall Checklist provides practical security controls for firewall configuration and management:
+The SANS Firewall Checklist provides practical security controls for firewall configuration and management. The current SANS plugin defines controls and the check framework, but the check helpers use placeholder logic that always returns compliant. They will be replaced with real analysis in a future release.
 
-#### Key SANS Controls
+#### Implemented SANS Controls
 
-| Control ID  | Category                 | Title                         | Severity |
-| ----------- | ------------------------ | ----------------------------- | -------- |
-| SANS-FW-001 | Access Control           | Default Deny Policy           | High     |
-| SANS-FW-002 | Rule Management          | Explicit Rule Configuration   | Medium   |
-| SANS-FW-003 | Network Segmentation     | Network Zone Separation       | High     |
-| SANS-FW-004 | Logging and Monitoring   | Comprehensive Logging         | Medium   |
-| SANS-FW-005 | Service Hardening        | Unnecessary Services Disabled | Medium   |
-| SANS-FW-006 | Authentication           | Strong Authentication         | High     |
-| SANS-FW-007 | Encryption               | Encrypted Management          | High     |
-| SANS-FW-008 | Backup and Recovery      | Configuration Backup          | Medium   |
-| SANS-FW-009 | Vulnerability Management | Regular Updates               | High     |
-| SANS-FW-010 | Incident Response        | Alert Configuration           | Medium   |
+| Control ID  | Category               | Title                       | Severity | Status      |
+| ----------- | ---------------------- | --------------------------- | -------- | ----------- |
+| SANS-FW-001 | Access Control         | Default Deny Policy         | High     | Placeholder |
+| SANS-FW-002 | Rule Management        | Explicit Rule Configuration | Medium   | Placeholder |
+| SANS-FW-003 | Network Segmentation   | Network Zone Separation     | High     | Placeholder |
+| SANS-FW-004 | Logging and Monitoring | Comprehensive Logging       | Medium   | Placeholder |
 
 ### Firewall Security Controls
 
-Our firewall security controls provide comprehensive security guidance designed for OPNsense firewalls, based on general cybersecurity best practices for network firewall security:
+Firewall security controls provide comprehensive security guidance designed for OPNsense firewalls, based on general cybersecurity best practices for network firewall security. See the [Firewall Security Controls Reference](firewall-security-controls-reference.md) for detailed per-control documentation.
 
-#### Key Firewall Security Controls
+#### Implemented Firewall Security Controls
 
-| Control ID   | Category              | Title                      | Severity | Description                           |
-| ------------ | --------------------- | -------------------------- | -------- | ------------------------------------- |
-| FIREWALL-001 | System Configuration  | SSH Warning Banner         | High     | Configure SSH warning banner          |
-| FIREWALL-002 | System Configuration  | Auto Configuration Backup  | Medium   | Enable automatic configuration backup |
-| FIREWALL-003 | System Configuration  | Message of the Day         | Medium   | Set appropriate MOTD message          |
-| FIREWALL-004 | System Configuration  | Hostname Configuration     | Low      | Set device hostname                   |
-| FIREWALL-005 | Network Configuration | DNS Server Configuration   | Medium   | Configure DNS servers                 |
-| FIREWALL-006 | Network Configuration | IPv6 Disablement           | Medium   | Disable IPv6 if not used              |
-| FIREWALL-007 | Network Configuration | DNS Rebind Check           | Medium   | Disable DNS rebind check              |
-| FIREWALL-008 | Management Access     | HTTPS Web Management       | High     | Use HTTPS for web management          |
-| FIREWALL-009 | High Availability     | HA Configuration           | Medium   | Configure synchronized HA peer        |
-| FIREWALL-010 | User Management       | Session Timeout            | High     | Set session timeout to ≤10 minutes    |
-| FIREWALL-011 | Authentication        | Central Authentication     | High     | Configure LDAP/RADIUS authentication  |
-| FIREWALL-012 | Access Control        | Console Menu Protection    | Medium   | Password protect console menu         |
-| FIREWALL-013 | User Management       | Default Account Management | High     | Secure default accounts               |
-| FIREWALL-014 | User Management       | Local Account Status       | Medium   | Disable local accounts except admin   |
-| FIREWALL-015 | Security Policy       | Login Protection Threshold | High     | Set threshold to ≤30                  |
-| FIREWALL-016 | Security Policy       | Access Block Time          | High     | Set block time to ≥300 seconds        |
-| FIREWALL-017 | Security Policy       | Default Password Change    | High     | Change default admin password         |
-| FIREWALL-018 | Firewall Rules        | Destination Restrictions   | High     | No "Any" in destination field         |
-| FIREWALL-019 | Firewall Rules        | Source Restrictions        | High     | No "Any" in source field              |
-| FIREWALL-020 | Firewall Rules        | Service Restrictions       | High     | No "Any" in service field             |
+| Control ID   | Category              | Title                            | Severity | Status      |
+| ------------ | --------------------- | -------------------------------- | -------- | ----------- |
+| FIREWALL-001 | SSH Security          | SSH Warning Banner Configuration | Medium   | Unknown     |
+| FIREWALL-002 | Backup and Recovery   | Auto Configuration Backup        | Medium   | Implemented |
+| FIREWALL-003 | System Configuration  | Message of the Day               | Low      | Unknown     |
+| FIREWALL-004 | System Configuration  | Hostname Configuration           | Low      | Implemented |
+| FIREWALL-005 | Network Configuration | DNS Server Configuration         | Medium   | Implemented |
+| FIREWALL-006 | Network Configuration | IPv6 Disablement                 | Medium   | Implemented |
+| FIREWALL-007 | DNS Security          | DNS Rebind Check                 | Low      | Unknown     |
+| FIREWALL-008 | Management Access     | HTTPS Web Management             | High     | Implemented |
+
+**Status key:**
+
+- **Implemented** - Check logic evaluates config.xml data and produces compliant/non-compliant results
+- **Unknown** - Control is defined but the required data is not available in config.xml (OS-level or model gap); the check always returns Unknown and no finding is emitted
+- **Placeholder** - Control is defined with placeholder check logic that always returns compliant; real analysis will be added in a future release
 
 ## Implementation Details
 
@@ -106,109 +100,44 @@ type Plugin interface {
 
 ### Compliance Checks
 
-The audit engine performs the following types of checks:
+The audit engine performs the following checks per plugin:
 
 #### STIG Compliance Checks
 
-1. **Default Deny Policy (V-206694)**
+1. **Default Deny Policy (V-206694)** - Looks for explicit block/reject rules in the rule set and checks that no any/any pass rules override them. If no rules exist, assumes default deny (conservative approach).
 
-- Verifies firewall implements deny-by-default approach
-- Checks for explicit allow rules only
+2. **Packet Filtering (V-206674)** - Scans pass rules for overly broad source/destination addresses (any, 0.0.0.0/0, ::/0, RFC 1918 ranges) and flags rules without specific port restrictions.
 
-2. **DoS Protection (V-206701)**
+3. **Service Hardening (V-206690)** - Checks for SNMP with community strings, Unbound DNS with DNSSEC stripping, more than 2 DHCP interfaces, and configured load balancer services.
 
-- Validates DoS protection mechanisms
-- Checks flood protection and rate limiting
-
-3. **Packet Filtering (V-206674)**
-
-- Analyzes rule specificity
-- Identifies overly permissive rules
-
-4. **Service Hardening (V-206690)**
-
-- Checks for unnecessary services
-- Validates service configuration
-
-5. **Logging Configuration (V-206682, V-206680, V-206679, V-206678, V-206681)**
-
-- Verifies comprehensive logging
-- Checks log content and format
+4. **Logging Configuration (V-206682)** - Analyzes syslog configuration for system and auth logging. Returns comprehensive, partial, not-configured, or unable-to-determine status. Finds non-compliant when syslog is disabled, logging is only partial, or logging status cannot be determined (e.g., rules exist but syslog is not configured).
 
 #### SANS Compliance Checks
 
-1. **Access Control (SANS-FW-001)**
+All four SANS checks currently use placeholder logic:
 
-- Validates default deny implementation
-- Checks explicit allow rules
-
-2. **Rule Management (SANS-FW-002)**
-
-- Analyzes rule documentation
-- Checks rule specificity
-
-3. **Network Segmentation (SANS-FW-003)**
-
-- Validates zone separation
-- Checks access controls between zones
-
-4. **Logging and Monitoring (SANS-FW-004)**
-
-- Verifies comprehensive logging
-- Checks monitoring configuration
+1. **Default Deny Policy (SANS-FW-001)** - Placeholder: always returns compliant
+2. **Explicit Rule Configuration (SANS-FW-002)** - Placeholder: always returns compliant
+3. **Network Zone Separation (SANS-FW-003)** - Placeholder: always returns compliant
+4. **Comprehensive Logging (SANS-FW-004)** - Placeholder: always returns compliant
 
 #### Firewall Security Compliance Checks
 
-1. **System Configuration (FIREWALL-001, FIREWALL-002, FIREWALL-003, FIREWALL-004)**
+1. **SSH Warning Banner (FIREWALL-001)** - Always returns Unknown. SSH banners are OS-level configs (`/etc/ssh/sshd_config`) not present in config.xml.
 
-- Validates SSH warning banner configuration
-- Checks auto configuration backup settings
-- Verifies MOTD customization
-- Validates hostname configuration
+2. **Auto Configuration Backup (FIREWALL-002)** - Checks the `Packages` list and `Firmware.Plugins` string for the `os-acb` package.
 
-2. **Network Configuration (FIREWALL-005, FIREWALL-006, FIREWALL-007)**
+3. **Message of the Day (FIREWALL-003)** - Always returns Unknown. MOTD is an OS-level file (`/etc/motd`) not present in config.xml.
 
-- Verifies DNS server configuration
-- Checks IPv6 disablement settings
-- Validates DNS rebind check configuration
+4. **Hostname Configuration (FIREWALL-004)** - Checks the device hostname against known defaults (`opnsense`, `pfsense`, `firewall`, `localhost`). Empty hostnames are also flagged.
 
-3. **Management Access (FIREWALL-008)**
+5. **DNS Server Configuration (FIREWALL-005)** - Checks whether `System.DNSServers` is non-empty.
 
-- Verifies HTTPS web management configuration
-- Checks management access encryption
+6. **IPv6 Disablement (FIREWALL-006)** - Checks `System.IPv6Allow`. Finding emitted when IPv6 is enabled.
 
-4. **High Availability (FIREWALL-009)**
+7. **DNS Rebind Check (FIREWALL-007)** - Always returns Unknown. The CommonDevice model does not yet expose this setting (tracked in [#296](https://github.com/EvilBit-Labs/opnDossier/issues/296)).
 
-- Validates HA peer configuration
-- Checks synchronization settings
-
-5. **User Management (FIREWALL-010, FIREWALL-013, FIREWALL-014)**
-
-- Verifies session timeout configuration
-- Checks default account management
-- Validates local account status
-
-6. **Authentication (FIREWALL-011)**
-
-- Validates central authentication configuration
-- Checks LDAP/RADIUS setup
-
-7. **Access Control (FIREWALL-012)**
-
-- Verifies console menu protection
-- Checks access control settings
-
-8. **Security Policy (FIREWALL-015, FIREWALL-016, FIREWALL-017)**
-
-- Validates login protection threshold
-- Checks access block time configuration
-- Verifies default password change
-
-9. **Firewall Rules (FIREWALL-018, FIREWALL-019, FIREWALL-020)**
-
-- Validates destination field restrictions
-- Checks source field restrictions
-- Verifies service field restrictions
+8. **HTTPS Web Management (FIREWALL-008)** - Checks `System.WebGUI.Protocol` for case-insensitive match against "https".
 
 ### Blue Team Reports
 
@@ -275,21 +204,55 @@ Each plugin maps its findings to the relevant compliance controls using the `Fin
 
 ## Future Enhancements
 
+### Planned Control Expansion
+
+#### STIG Controls
+
+Additional DISA Firewall SRG controls under consideration:
+
+- V-206701: DoS attack prevention filters
+- V-206680: Network location information logging
+- V-206679: Event timestamp logging
+- V-206678: Event type logging
+- V-206681: Source information logging
+- V-206711: DoS incident alerting
+
+#### SANS Controls
+
+Additional SANS Firewall Checklist controls under consideration:
+
+- SANS-FW-005: Unnecessary Services Disabled
+- SANS-FW-006: Strong Authentication
+- SANS-FW-007: Encrypted Management
+- SANS-FW-008: Configuration Backup
+- SANS-FW-009: Regular Updates
+- SANS-FW-010: Alert Configuration
+
+#### Firewall Security Controls
+
+Additional firewall security controls under consideration:
+
+- FIREWALL-009: HA Configuration
+- FIREWALL-010: Session Timeout
+- FIREWALL-011: Central Authentication (LDAP/RADIUS)
+- FIREWALL-012: Console Menu Protection
+- FIREWALL-013: Default Account Management
+- FIREWALL-014: Local Account Status
+- FIREWALL-015: Login Protection Threshold
+- FIREWALL-016: Access Block Time
+- FIREWALL-017: Default Password Change
+- FIREWALL-018: Destination Field Restrictions
+- FIREWALL-019: Source Field Restrictions
+- FIREWALL-020: Service Field Restrictions
+
 ### Planned Features
 
-1. **Additional Standards**: NIST Cybersecurity Framework, ISO 27001
-2. **Custom Controls**: Organization-specific security requirements
-3. **Automated Remediation**: Generate configuration fixes
-4. **Compliance Monitoring**: Track compliance over time
-5. **Integration**: SIEM and ticketing system integration
-
-### Control Expansion
-
-1. **More STIG Controls**: Additional DISA security requirements
-2. **Industry-Specific**: Healthcare, finance, government controls
-3. **Regional Standards**: EU, APAC, and other regional requirements
-4. **Framework Mapping**: Cross-reference between standards
-5. **Additional Controls**: Expand firewall security control coverage
+1. **Real SANS Check Logic**: Replace placeholder stubs with actual analysis
+2. **Additional Standards**: NIST Cybersecurity Framework, ISO 27001
+3. **Custom Controls**: Organization-specific security requirements
+4. **Automated Remediation**: Generate configuration fixes
+5. **Compliance Monitoring**: Track compliance over time
+6. **Integration**: SIEM and ticketing system integration
 
 ## References
 
