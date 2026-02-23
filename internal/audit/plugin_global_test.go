@@ -481,6 +481,12 @@ func TestRunComplianceChecks_WithFindingsAndReferences(t *testing.T) {
 		t.Errorf("RunComplianceChecks() findings count = %v, want 1", len(pluginResult.Findings))
 	}
 
+	// Verify Finding.Plugin is stamped with the plugin name
+	if pluginResult.Findings[0].Plugin != "test-plugin-findings" {
+		t.Errorf("RunComplianceChecks() Finding.Plugin = %q, want %q",
+			pluginResult.Findings[0].Plugin, "test-plugin-findings")
+	}
+
 	// Verify compliance status was updated based on findings
 	pluginCompliance := pluginResult.Compliance["test-plugin-findings"]
 	if pluginCompliance == nil {
