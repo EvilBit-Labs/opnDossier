@@ -2,9 +2,19 @@
 package firewall
 
 import (
+	"strings"
+
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
+
+// checkResult holds the outcome of a compliance check helper. When Known is
+// false the Result is meaningless — the check is skipped because config.xml
+// does not contain the data needed to determine compliance.
+type checkResult struct {
+	Result bool
+	Known  bool
+}
 
 // Plugin implements the compliance.Plugin interface for Firewall plugin.
 type Plugin struct {
@@ -117,11 +127,13 @@ func (fp *Plugin) Description() string {
 }
 
 // RunChecks performs Firewall compliance checks against the device configuration.
+// Each helper returns (result, known). When known is false the check is skipped
+// because the data needed to determine compliance is not available in config.xml.
 func (fp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	var findings []compliance.Finding
 
 	// FIREWALL-001: SSH Warning Banner
-	if !fp.hasSSHBanner(device) {
+	if cr := fp.hasSSHBanner(device); cr.Known && !cr.Result {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "SSH Warning Banner Not Configured",
@@ -135,7 +147,7 @@ func (fp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	}
 
 	// FIREWALL-002: Auto Configuration Backup
-	if !fp.hasAutoConfigBackup(device) {
+	if cr := fp.hasAutoConfigBackup(device); cr.Known && !cr.Result {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Auto Configuration Backup Disabled",
@@ -149,7 +161,7 @@ func (fp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	}
 
 	// FIREWALL-003: Message of the Day
-	if !fp.hasCustomMOTD(device) {
+	if cr := fp.hasCustomMOTD(device); cr.Known && !cr.Result {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Custom MOTD Not Configured",
@@ -163,7 +175,7 @@ func (fp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	}
 
 	// FIREWALL-004: Hostname Configuration
-	if !fp.hasCustomHostname(device) {
+	if cr := fp.hasCustomHostname(device); cr.Known && !cr.Result {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "Default Hostname in Use",
@@ -177,7 +189,7 @@ func (fp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	}
 
 	// FIREWALL-005: DNS Server Configuration
-	if !fp.hasDNSServers(device) {
+	if cr := fp.hasDNSServers(device); cr.Known && !cr.Result {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "DNS Servers Not Configured",
@@ -191,7 +203,7 @@ func (fp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	}
 
 	// FIREWALL-006: IPv6 Disablement
-	if fp.hasIPv6Enabled(device) {
+	if cr := fp.hasIPv6Enabled(device); cr.Known && cr.Result {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "IPv6 Enabled",
@@ -205,7 +217,7 @@ func (fp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	}
 
 	// FIREWALL-007: DNS Rebind Check
-	if fp.hasDNSRebindCheck(device) {
+	if cr := fp.hasDNSRebindCheck(device); cr.Known && cr.Result {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "DNS Rebind Check Enabled",
@@ -219,7 +231,7 @@ func (fp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	}
 
 	// FIREWALL-008: HTTPS Web Management
-	if !fp.hasHTTPSManagement(device) {
+	if cr := fp.hasHTTPSManagement(device); cr.Known && !cr.Result {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Title:          "HTTP Management Access",
@@ -260,44 +272,113 @@ func (fp *Plugin) ValidateConfiguration() error {
 	return nil
 }
 
-// Helper methods for compliance checks
-
-func (fp *Plugin) hasSSHBanner(_ *common.CommonDevice) bool {
-	// Check for SSH warning banner configuration
-	return true // Placeholder - implement actual logic
+// defaultHostnames contains factory-default hostnames that indicate the device
+// has not been customized. Comparisons are case-insensitive.
+var defaultHostnames = []string{
+	"opnsense",
+	"pfsense",
+	"firewall",
+	"localhost",
 }
 
-func (fp *Plugin) hasAutoConfigBackup(_ *common.CommonDevice) bool {
-	// Check for AutoConfigBackup setting
-	return true // Placeholder - implement actual logic
+// autoConfigBackupPackage is the OPNsense package name for automatic config backup.
+const autoConfigBackupPackage = "os-acb"
+
+// Helper methods for compliance checks.
+// Each returns a checkResult. When Known is false, Result is meaningless and
+// RunChecks skips the check — we never guess or report incorrect information.
+
+// unknown is a convenience value for checks that cannot be evaluated.
+var unknown = checkResult{Result: false, Known: false}
+
+// hasSSHBanner checks whether an SSH warning banner is configured.
+// SSH banners are OS-level configs (/etc/ssh/sshd_config) not present in
+// config.xml, so the state cannot be determined.
+func (fp *Plugin) hasSSHBanner(_ *common.CommonDevice) checkResult {
+	return unknown
 }
 
-func (fp *Plugin) hasCustomMOTD(_ *common.CommonDevice) bool {
-	// Check for custom MOTD configuration
-	return true // Placeholder - implement actual logic
+// hasAutoConfigBackup checks whether the os-acb automatic configuration backup
+// package is installed, either via the Packages list or the Firmware.Plugins
+// comma-separated string.
+func (fp *Plugin) hasAutoConfigBackup(device *common.CommonDevice) checkResult {
+	if device == nil {
+		return checkResult{Result: false, Known: true}
+	}
+
+	for _, pkg := range device.Packages {
+		if strings.EqualFold(pkg.Name, autoConfigBackupPackage) && pkg.Installed {
+			return checkResult{Result: true, Known: true}
+		}
+	}
+
+	return checkResult{
+		Result: strings.Contains(device.System.Firmware.Plugins, autoConfigBackupPackage),
+		Known:  true,
+	}
 }
 
-func (fp *Plugin) hasCustomHostname(_ *common.CommonDevice) bool {
-	// Check for custom hostname configuration
-	return true // Placeholder - implement actual logic
+// hasCustomMOTD checks whether a custom Message of the Day is configured.
+// MOTD is an OS-level file (/etc/motd) not present in config.xml, so the
+// state cannot be determined.
+func (fp *Plugin) hasCustomMOTD(_ *common.CommonDevice) checkResult {
+	return unknown
 }
 
-func (fp *Plugin) hasDNSServers(_ *common.CommonDevice) bool {
-	// Check for DNS server configuration
-	return true // Placeholder - implement actual logic
+// hasCustomHostname checks whether the device hostname has been changed from
+// factory defaults. Empty hostnames or known defaults are treated as uncustomized.
+func (fp *Plugin) hasCustomHostname(device *common.CommonDevice) checkResult {
+	if device == nil {
+		return checkResult{Result: false, Known: true}
+	}
+
+	hostname := device.System.Hostname
+	if hostname == "" {
+		return checkResult{Result: false, Known: true}
+	}
+
+	for _, def := range defaultHostnames {
+		if strings.EqualFold(hostname, def) {
+			return checkResult{Result: false, Known: true}
+		}
+	}
+
+	return checkResult{Result: true, Known: true}
 }
 
-func (fp *Plugin) hasIPv6Enabled(_ *common.CommonDevice) bool {
-	// Check for IPv6 status
-	return true // Placeholder - implement actual logic
+// hasDNSServers checks whether explicit DNS servers are configured.
+func (fp *Plugin) hasDNSServers(device *common.CommonDevice) checkResult {
+	if device == nil {
+		return checkResult{Result: false, Known: true}
+	}
+
+	return checkResult{Result: len(device.System.DNSServers) > 0, Known: true}
 }
 
-func (fp *Plugin) hasDNSRebindCheck(_ *common.CommonDevice) bool {
-	// Check for DNS rebind check setting
-	return true // Placeholder - implement actual logic
+// hasIPv6Enabled checks whether IPv6 is enabled on the device.
+func (fp *Plugin) hasIPv6Enabled(device *common.CommonDevice) checkResult {
+	if device == nil {
+		return checkResult{Result: false, Known: true}
+	}
+
+	return checkResult{Result: device.System.IPv6Allow, Known: true}
 }
 
-func (fp *Plugin) hasHTTPSManagement(_ *common.CommonDevice) bool {
-	// Check for HTTPS management access configuration
-	return true // Placeholder - implement actual logic
+// hasDNSRebindCheck checks whether the DNS rebind check is enabled.
+// The CommonDevice model does not yet expose this setting.
+// TODO(#296): Implement once DNS rebind check field is added to CommonDevice.
+func (fp *Plugin) hasDNSRebindCheck(_ *common.CommonDevice) checkResult {
+	return unknown
+}
+
+// hasHTTPSManagement checks whether the web management interface uses HTTPS.
+func (fp *Plugin) hasHTTPSManagement(device *common.CommonDevice) checkResult {
+	if device == nil {
+		return checkResult{Result: false, Known: true}
+	}
+
+	return checkResult{
+		Result: strings.EqualFold(device.System.WebGUI.Protocol, "https"),
+		Known:  true,
+	}
 }
