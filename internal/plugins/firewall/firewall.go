@@ -312,10 +312,13 @@ func (fp *Plugin) hasAutoConfigBackup(device *common.CommonDevice) checkResult {
 		}
 	}
 
-	return checkResult{
-		Result: strings.Contains(device.System.Firmware.Plugins, autoConfigBackupPackage),
-		Known:  true,
+	for plugin := range strings.SplitSeq(device.System.Firmware.Plugins, ",") {
+		if strings.EqualFold(strings.TrimSpace(plugin), autoConfigBackupPackage) {
+			return checkResult{Result: true, Known: true}
+		}
 	}
+
+	return checkResult{Result: false, Known: true}
 }
 
 // hasCustomMOTD checks whether a custom Message of the Day is configured.

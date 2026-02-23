@@ -174,6 +174,42 @@ func TestFirewallPlugin_RunChecks_AutoConfigBackup(t *testing.T) {
 			description:   "Auto config backup detected via firmware plugins string",
 		},
 		{
+			name: "os-acb in firmware plugins case insensitive - no finding",
+			config: &common.CommonDevice{
+				System: common.System{
+					Firmware: common.Firmware{
+						Plugins: "os-firewall,OS-ACB,os-theme-cicada",
+					},
+				},
+			},
+			expectFinding: false,
+			description:   "Case-insensitive match on firmware plugins string",
+		},
+		{
+			name: "similar plugin name is not a false positive - finding expected",
+			config: &common.CommonDevice{
+				System: common.System{
+					Firmware: common.Firmware{
+						Plugins: "os-firewall,os-acb-extended,os-theme-cicada",
+					},
+				},
+			},
+			expectFinding: true,
+			description:   "Substring 'os-acb-extended' must not match 'os-acb'",
+		},
+		{
+			name: "os-acb with surrounding whitespace - no finding",
+			config: &common.CommonDevice{
+				System: common.System{
+					Firmware: common.Firmware{
+						Plugins: "os-firewall, os-acb , os-theme-cicada",
+					},
+				},
+			},
+			expectFinding: false,
+			description:   "Whitespace around plugin name is trimmed before comparison",
+		},
+		{
 			name: "no packages or firmware plugins - finding expected",
 			config: &common.CommonDevice{
 				System: common.System{},
