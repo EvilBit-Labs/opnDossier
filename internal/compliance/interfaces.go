@@ -55,6 +55,7 @@ type Finding struct {
 	Recommendation string `json:"recommendation"`
 	Component      string `json:"component"`
 	Reference      string `json:"reference"`
+	Plugin         string `json:"plugin,omitempty"`
 
 	// Generic references and metadata
 	References []string          `json:"references,omitempty"`

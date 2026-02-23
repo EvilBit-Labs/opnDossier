@@ -73,6 +73,12 @@ func appendAuditFindings(baseReport string, report *audit.Report) string {
 	md := markdown.NewMarkdown(&buf)
 	md.H2("Compliance Audit Summary")
 
+	// Compute total compliance findings across all plugins
+	totalComplianceFindings := 0
+	for _, result := range report.Compliance {
+		totalComplianceFindings += len(result.Findings)
+	}
+
 	// Summary table using nao1215/markdown
 	summaryTable := markdown.TableSet{
 		Header: []string{"Metric", "Value"},
@@ -80,7 +86,8 @@ func appendAuditFindings(baseReport string, report *audit.Report) string {
 			{"Report Mode", string(report.Mode)},
 			{"Blackhat Mode", strconv.FormatBool(report.BlackhatMode)},
 			{"Comprehensive", strconv.FormatBool(report.Comprehensive)},
-			{"Total Findings", strconv.Itoa(len(report.Findings))},
+			{"Total Findings", strconv.Itoa(totalComplianceFindings)},
+			{"Security Analysis Findings", strconv.Itoa(len(report.Findings))},
 		},
 	}
 	md.Table(summaryTable)
@@ -132,11 +139,12 @@ func appendAuditFindings(baseReport string, report *audit.Report) string {
 		if len(result.Findings) > 0 {
 			md.H3(pluginName + " Plugin Findings")
 			pluginTable := markdown.TableSet{
-				Header: []string{"Type", "Title", "Description"},
+				Header: []string{"Plugin", "Type", "Title", "Description"},
 				Rows:   make([][]string, 0, len(result.Findings)),
 			}
 			for _, f := range result.Findings {
 				pluginTable.Rows = append(pluginTable.Rows, []string{
+					escapePipeForMarkdown(f.Plugin),
 					escapePipeForMarkdown(f.Type),
 					escapePipeForMarkdown(f.Title),
 					escapePipeForMarkdown(truncateString(f.Description, maxDescriptionLength)),

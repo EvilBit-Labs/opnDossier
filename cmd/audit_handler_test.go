@@ -82,7 +82,9 @@ func TestAppendAuditFindings_WithFindings(t *testing.T) {
 	assert.Contains(t, result, "Report Mode")
 	assert.Contains(t, result, "blue")
 	assert.Contains(t, result, "Total Findings")
-	assert.Contains(t, result, "2")
+	assert.Contains(t, result, "0") // No compliance findings
+	assert.Contains(t, result, "Security Analysis Findings")
+	assert.Contains(t, result, "2") // 2 security analysis findings
 
 	// Verify findings section exists
 	assert.Contains(t, result, "### Security Findings")
@@ -110,6 +112,7 @@ func TestAppendAuditFindings_WithComplianceResults(t *testing.T) {
 						Type:        "high",
 						Title:       "STIG Violation",
 						Description: "SSH timeout not configured",
+						Plugin:      "stig",
 					},
 				},
 				Summary: &audit.ComplianceSummary{
@@ -126,14 +129,21 @@ func TestAppendAuditFindings_WithComplianceResults(t *testing.T) {
 
 	result := appendAuditFindings(baseReport, report)
 
+	// Verify summary table counts with expected values
+	assert.Contains(t, result, "Total Findings")
+	assert.Contains(t, result, "Total Findings | 1")
+	assert.Contains(t, result, "Security Analysis Findings")
+	assert.Contains(t, result, "Security Analysis Findings | 0")
+
 	// Verify plugin compliance results section
 	assert.Contains(t, result, "### Plugin Compliance Results")
 	assert.Contains(t, result, "#### stig")
 	assert.Contains(t, result, "1 findings")
 	assert.Contains(t, result, "High: 1")
 
-	// Verify plugin findings section
+	// Verify plugin findings section with Plugin column
 	assert.Contains(t, result, "### stig Plugin Findings")
+	assert.Contains(t, result, "Plugin")
 	assert.Contains(t, result, "STIG Violation")
 	assert.Contains(t, result, "SSH timeout not configured")
 }

@@ -461,22 +461,28 @@ func TestRunComplianceChecks_WithFindingsAndReferences(t *testing.T) {
 		},
 	}
 
-	result, err := registry.RunComplianceChecks(testConfig, []string{"test-plugin-findings"})
+	results, err := registry.RunComplianceChecks(testConfig, []string{"test-plugin-findings"})
 	if err != nil {
 		t.Errorf("RunComplianceChecks() error = %v", err)
 	}
 
-	if result == nil {
-		t.Error("RunComplianceChecks() returned nil result")
+	if results == nil {
+		t.Error("RunComplianceChecks() returned nil results")
 		return
 	}
 
-	if len(result.Findings) != 1 {
-		t.Errorf("RunComplianceChecks() findings count = %v, want 1", len(result.Findings))
+	pluginResult := results["test-plugin-findings"]
+	if pluginResult == nil {
+		t.Error("RunComplianceChecks() missing result for test-plugin-findings")
+		return
+	}
+
+	if len(pluginResult.Findings) != 1 {
+		t.Errorf("RunComplianceChecks() findings count = %v, want 1", len(pluginResult.Findings))
 	}
 
 	// Verify compliance status was updated based on findings
-	pluginCompliance := result.Compliance["test-plugin-findings"]
+	pluginCompliance := pluginResult.Compliance["test-plugin-findings"]
 	if pluginCompliance == nil {
 		t.Error("RunComplianceChecks() missing compliance for plugin")
 		return
