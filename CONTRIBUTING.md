@@ -16,7 +16,7 @@ opnDossier follows strict coding standards and development practices:
 
 ### Prerequisites
 
-- **Go 1.21+** - Latest stable version recommended
+- **Go 1.26+** - Latest stable version recommended
 - **Just** - Task runner for development workflows
 - **Git** - Version control
 - **golangci-lint** - Linting tool
@@ -29,7 +29,7 @@ git clone https://github.com/EvilBit-Labs/opnDossier.git
 cd opnDossier
 
 # Install development dependencies
-just install-dev
+just install
 
 # Verify setup
 just check
@@ -55,48 +55,58 @@ opnDossier uses a layered CLI architecture:
 opndossier/
 ├── cmd/                 # CLI commands (Cobra)
 ├── internal/
+│   ├── audit/          # Audit engine and compliance checking
+│   ├── cfgparser/      # XML parsing and validation
+│   ├── compliance/     # Plugin interfaces
 │   ├── config/         # Configuration management (Viper)
-│   ├── parser/         # XML parsing logic
-│   ├── converter/      # Data conversion logic
-│   ├── markdown/       # Markdown generation
+│   ├── constants/      # Shared constants (validation whitelists)
+│   ├── converter/      # Data conversion and markdown generation
+│   │   └── builder/    # Markdown builder (ReportBuilder interface)
+│   ├── diff/           # Configuration diff engine
 │   ├── display/        # Terminal display (Lipgloss)
-│   ├── log/           # Logging utilities
-│   └── model/         # Data structures
-├── docs/              # Documentation
-└── testdata/          # Test files
+│   ├── logging/        # Logging utilities
+│   ├── markdown/       # Markdown generation and validation
+│   ├── model/          # Data models and re-export seam
+│   │   ├── common/     # Platform-agnostic CommonDevice domain model
+│   │   └── opnsense/   # OPNsense parser + schema→CommonDevice converter
+│   ├── plugins/        # Compliance plugins (firewall, sans, stig)
+│   ├── processor/      # Data processing and report generation
+│   ├── schema/         # Canonical OPNsense data model (XML structs)
+│   └── validator/      # Data validation
+├── tools/               # Standalone development tools
+├── testdata/            # Test data and fixtures
+├── docs/                # Documentation
+└── project_spec/        # Project specifications
 ```
 
-### Programmatic Generation Architecture (v2.0+)
+### Programmatic Generation Architecture
 
-opnDossier v2.0 introduces programmatic markdown generation, replacing the template-based approach with direct Go method calls. This architecture delivers significant performance improvements and enhanced developer experience.
+opnDossier uses programmatic markdown generation via direct Go method calls through `MarkdownBuilder` in `internal/converter/builder/`. This architecture delivers type-safe, compile-time guaranteed report generation.
 
 #### Key Components
 
-**MarkdownBuilder Interface**
+**ReportBuilder Interface**
 
 ```go
-// ReportBuilder interface for programmatic generation
+// ReportBuilder defines the contract for programmatic report generation.
 type ReportBuilder interface {
-    BuildStandardReport(data *common.CommonDevice) (string, error)
-    BuildCustomReport(data *common.CommonDevice, options BuildOptions) (string, error)
-
     // Section builders
     BuildSystemSection(data *common.CommonDevice) string
     BuildNetworkSection(data *common.CommonDevice) string
     BuildSecuritySection(data *common.CommonDevice) string
     BuildServicesSection(data *common.CommonDevice) string
 
-    // Component builders
-    BuildFirewallRulesTable(rules []model.Rule) *markdown.TableSet
-    BuildInterfaceTable(interfaces model.Interfaces) *markdown.TableSet
+    // Table writers (take *markdown.Markdown for method chaining)
+    WriteFirewallRulesTable(md *markdown.Markdown, rules []common.FirewallRule) *markdown.Markdown
+    WriteInterfaceTable(md *markdown.Markdown, interfaces []common.Interface) *markdown.Markdown
+    // ... additional Write*Table methods for NAT, VLAN, DHCP, routes, etc.
 }
 ```
 
-**Performance-Optimized Methods**
+**Key Methods on MarkdownBuilder**
 
-- **Security Assessment**: `CalculateSecurityScore`, `AssessRiskLevel`, `AssessServiceRisk`
-- **Data Transformation**: `FilterSystemTunables`, `GroupServicesByStatus`, `FormatSystemStats`
-- **String Utilities**: `EscapeMarkdownSpecialChars`, `FormatTimestamp`, `TruncateDescription`
+- **Security Assessment**: `CalculateSecurityScore(data *common.CommonDevice) int`, `AssessServiceRisk(serviceName string) string`
+- **Data Transformation**: `FilterSystemTunables(tunables []common.SysctlItem, includeTunables bool) []common.SysctlItem`
 
 #### Development Guidelines for New Methods
 
@@ -104,7 +114,7 @@ type ReportBuilder interface {
 
    ```go
    // Good
-   func (b *MarkdownBuilder) FilterSystemTunables(tunables []model.SysctlItem, securityOnly bool) []model.SysctlItem
+   func (b *MarkdownBuilder) FilterSystemTunables(tunables []common.SysctlItem, includeTunables bool) []common.SysctlItem
 
    // Avoid
    func (b *MarkdownBuilder) Filter(items []any, flag bool) []any
@@ -130,7 +140,7 @@ type ReportBuilder interface {
 3. **Performance Optimization**: Use pre-allocated slices and efficient string building
 
    ```go
-   func (b *MarkdownBuilder) ProcessLargeDataset(items []model.Item) []ProcessedItem {
+   func (b *MarkdownBuilder) ProcessLargeDataset(items []common.SysctlItem) []common.SysctlItem {
        // Pre-allocate with estimated capacity
        result := make([]ProcessedItem, 0, len(items))
 
@@ -147,10 +157,10 @@ type ReportBuilder interface {
 
    ```go
    // Good
-   func (b *MarkdownBuilder) FormatServices(services []model.Service) string
+   func (b *MarkdownBuilder) AssessServiceRisk(serviceName string) string
 
    // Avoid
-   func (b *MarkdownBuilder) FormatItems(items any) string
+   func (b *MarkdownBuilder) Assess(item any) string
    ```
 
 #### Testing Programmatic Generation
@@ -160,26 +170,26 @@ type ReportBuilder interface {
 ```go
 func TestMarkdownBuilder_FilterSystemTunables(t *testing.T) {
     tests := []struct {
-        name         string
-        tunables     []model.SysctlItem
-        securityOnly bool
-        expected     int
+        name            string
+        tunables        []common.SysctlItem
+        includeTunables bool
+        expected        int
     }{
         {
             name: "filter security tunables",
-            tunables: []model.SysctlItem{
+            tunables: []common.SysctlItem{
                 {Tunable: "security.test", Value: "1"},
                 {Tunable: "net.other", Value: "0"},
             },
-            securityOnly: true,
-            expected:     1,
+            includeTunables: true,
+            expected:        2,
         },
     }
 
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
             builder := converter.NewMarkdownBuilder()
-            result := builder.FilterSystemTunables(tt.tunables, tt.securityOnly)
+            result := builder.FilterSystemTunables(tt.tunables, tt.includeTunables)
             assert.Len(t, result, tt.expected)
         })
     }
@@ -220,40 +230,6 @@ func TestMarkdownBuilder_BuildStandardReport(t *testing.T) {
     err = validateMarkdownSyntax(report)
     assert.NoError(t, err)
 }
-```
-
-### Template to Programmatic Migration
-
-When migrating template functions to Go methods:
-
-1. **Analyze Template Function**: Understand input parameters and expected output
-2. **Create Go Method**: Implement with proper types and error handling
-3. **Add Unit Tests**: Test various input scenarios and edge cases
-4. **Benchmark Performance**: Ensure performance meets expectations
-5. **Update Documentation**: Add method to API documentation
-
-**Example Migration:**
-
-```go
-// Template function (old)
-{{ define "formatUptime" }}{{ div .Seconds 3600 }} hours{{ end }}
-
-// Go method (new)
-func (b *MarkdownBuilder) FormatUptime(seconds int) string {
-    hours := seconds / 3600
-    return fmt.Sprintf("%d hours", hours)
-}
-```
-
-## Project Structure
-
-```text
-opndossier/
-│ ├── display/ # Output formatting (Lipgloss)
-│ ├── export/ # File export logic
-│ └── log/ # Logging utilities
-├── docs/ # Documentation
-└── tests/ # Test files
 ```
 
 ## Development Workflow
@@ -558,9 +534,13 @@ CONFIGURATION:
   CLI flags > environment variables (OPNDOSSIER_*) > config file > defaults`,
 
     RunE: func(cmd *cobra.Command, args []string) error {
-        // Get config and logger from root command
-        cfg := GetConfig()
-        logger := GetLogger()
+        // Get dependencies via CommandContext (set by PersistentPreRunE in root.go)
+        cmdCtx := GetCommandContext(cmd)
+        if cmdCtx == nil {
+            return errors.New("command context not initialized")
+        }
+        logger := cmdCtx.Logger
+        cfg := cmdCtx.Config
 
         // Implementation...
         return nil
@@ -569,7 +549,7 @@ CONFIGURATION:
 
 func init() {
     rootCmd.AddCommand(newCmd)
-    newCmd.Flags().String(\"option\", \"default\", \"Option description\")
+    newCmd.Flags().String("option", "default", "Option description")
 }
 ```
 
