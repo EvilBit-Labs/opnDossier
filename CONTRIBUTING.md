@@ -464,7 +464,7 @@ The configuration system uses **Viper** for layered configuration management:
 // internal/config/config.go
 type Config struct {
     // Existing fields...
-    NewOption string `mapstructure:\"new_option\"`
+    NewOption string `mapstructure:"new_option"`
 }
 ```
 
@@ -484,7 +484,7 @@ func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 // cmd/root.go
 func init() {
     // Existing flags...
-    rootCmd.PersistentFlags().String(\"new_option\", \"default_value\", \"Description of new option\")
+    rootCmd.PersistentFlags().String("new_option", "default_value", "Description of new option")
 }
 ```
 
