@@ -142,7 +142,7 @@ type ReportBuilder interface {
    ```go
    func (b *MarkdownBuilder) ProcessLargeDataset(items []common.SysctlItem) []common.SysctlItem {
        // Pre-allocate with estimated capacity
-       result := make([]ProcessedItem, 0, len(items))
+       result := make([]common.SysctlItem, 0, len(items))
 
        // Use strings.Builder for efficient string concatenation
        var builder strings.Builder
