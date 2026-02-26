@@ -39,19 +39,16 @@ func (p *CoreProcessor) normalize(cfg *common.CommonDevice) *common.CommonDevice
 		copy(normalized.LoadBalancer.MonitorTypes, cfg.LoadBalancer.MonitorTypes)
 	}
 
-	// Certificates: PrivateKey redacted in enrichment.go:redactSensitiveFields
 	if cfg.Certificates != nil {
 		normalized.Certificates = make([]common.Certificate, len(cfg.Certificates))
 		copy(normalized.Certificates, cfg.Certificates)
 	}
 
-	// DHCP: AdvDHCP6KeyInfoStatementSecret redacted in enrichment.go:redactSensitiveFields
 	if cfg.DHCP != nil {
 		normalized.DHCP = make([]common.DHCPScope, len(cfg.DHCP))
 		copy(normalized.DHCP, cfg.DHCP)
 	}
 
-	// VPN.WireGuard.Clients: PSK redacted in enrichment.go:redactSensitiveFields
 	if cfg.VPN.WireGuard.Clients != nil {
 		normalized.VPN.WireGuard.Clients = make([]common.WireGuardClient, len(cfg.VPN.WireGuard.Clients))
 		copy(normalized.VPN.WireGuard.Clients, cfg.VPN.WireGuard.Clients)

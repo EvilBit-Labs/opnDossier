@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const redactedValue = "REDACTED"
+const mutatedValue = "MUTATED"
 
 func TestNormalize_DoesNotMutateOriginal(t *testing.T) {
 	t.Parallel()
@@ -60,9 +60,9 @@ func TestNormalize_DoesNotMutateOriginal(t *testing.T) {
 	assert.NotNil(t, normalized)
 
 	// Mutate normalized slices to prove independence from original
-	normalized.Certificates[0].PrivateKey = redactedValue
-	normalized.DHCP[0].AdvDHCP6KeyInfoStatementSecret = redactedValue
-	normalized.VPN.WireGuard.Clients[0].PSK = redactedValue
+	normalized.Certificates[0].PrivateKey = mutatedValue
+	normalized.DHCP[0].AdvDHCP6KeyInfoStatementSecret = mutatedValue
+	normalized.VPN.WireGuard.Clients[0].PSK = mutatedValue
 
 	// Original should be unmodified
 	assert.Equal(t, origRuleDescr, original.FirewallRules[0].Description, "original rules should not be reordered")
@@ -82,6 +82,43 @@ func TestNormalize_DoesNotMutateOriginal(t *testing.T) {
 		"original DHCP secret should not be mutated",
 	)
 	assert.Equal(t, origWGPSK, original.VPN.WireGuard.Clients[0].PSK, "original WireGuard PSK should not be mutated")
+}
+
+func TestNormalize_NilAndEmptySlices(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil slices remain nil", func(t *testing.T) {
+		t.Parallel()
+		original := &common.CommonDevice{}
+		p := &CoreProcessor{}
+		normalized := p.normalize(original)
+
+		assert.Nil(t, normalized.Certificates, "nil Certificates should remain nil")
+		assert.Nil(t, normalized.DHCP, "nil DHCP should remain nil")
+		assert.Nil(t, normalized.VPN.WireGuard.Clients, "nil WireGuard Clients should remain nil")
+	})
+
+	t.Run("empty slices are deep-copied", func(t *testing.T) {
+		t.Parallel()
+		original := &common.CommonDevice{
+			Certificates: []common.Certificate{},
+			DHCP:         []common.DHCPScope{},
+			VPN: common.VPN{
+				WireGuard: common.WireGuardConfig{
+					Clients: []common.WireGuardClient{},
+				},
+			},
+		}
+		p := &CoreProcessor{}
+		normalized := p.normalize(original)
+
+		assert.NotNil(t, normalized.Certificates)
+		assert.Empty(t, normalized.Certificates)
+		assert.NotNil(t, normalized.DHCP)
+		assert.Empty(t, normalized.DHCP)
+		assert.NotNil(t, normalized.VPN.WireGuard.Clients)
+		assert.Empty(t, normalized.VPN.WireGuard.Clients)
+	})
 }
 
 func TestCanonicalizeIPField(t *testing.T) {
