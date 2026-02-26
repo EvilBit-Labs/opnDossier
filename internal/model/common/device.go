@@ -102,6 +102,20 @@ type CommonDevice struct {
 	Sysctl []SysctlItem `json:"sysctl,omitempty" yaml:"sysctl,omitempty"`
 	// Packages contains installed or available software packages.
 	Packages []Package `json:"packages,omitempty" yaml:"packages,omitempty"`
+	// Monit contains process monitoring (Monit) configuration.
+	Monit *MonitConfig `json:"monit,omitempty" yaml:"monit,omitempty"`
+	// Netflow contains NetFlow/IPFIX traffic accounting configuration.
+	Netflow *NetflowConfig `json:"netflow,omitempty" yaml:"netflow,omitempty"`
+	// TrafficShaper contains QoS/traffic shaping configuration.
+	TrafficShaper *TrafficShaperConfig `json:"trafficShaper,omitempty" yaml:"trafficShaper,omitempty"`
+	// CaptivePortal contains captive portal configuration.
+	CaptivePortal *CaptivePortalConfig `json:"captivePortal,omitempty" yaml:"captivePortal,omitempty"`
+	// Cron contains scheduled task configuration.
+	Cron *CronConfig `json:"cron,omitempty" yaml:"cron,omitempty"`
+	// Trust contains system-wide TLS and certificate trust settings.
+	Trust *TrustConfig `json:"trust,omitempty" yaml:"trust,omitempty"`
+	// KeaDHCP contains Kea DHCP server configuration (modern DHCP replacement).
+	KeaDHCP *KeaDHCPConfig `json:"keaDhcp,omitempty" yaml:"keaDhcp,omitempty"`
 	// Revision contains configuration revision metadata.
 	Revision Revision `json:"revision" yaml:"revision,omitempty"`
 

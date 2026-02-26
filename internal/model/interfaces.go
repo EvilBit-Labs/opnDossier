@@ -47,6 +47,3 @@ type Bridge = schema.Bridge
 
 // Bridges represents a collection of bridge configurations.
 type Bridges = schema.Bridges
-
-// BridgesConfig represents the root-level bridges configuration.
-type BridgesConfig = schema.BridgesConfig

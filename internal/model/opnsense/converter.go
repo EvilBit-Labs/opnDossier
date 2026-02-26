@@ -24,9 +24,6 @@ func NewConverter() *Converter {
 
 // ToCommonDevice converts an OPNsense schema document into a platform-agnostic CommonDevice.
 // Returns ErrNilDocument if doc is nil.
-//
-// NOTE: Some CommonDevice fields (Bridges, PPPs, GIFs, GREs, LAGGs, VirtualIPs,
-// InterfaceGroups, Certificates, CAs, Packages) are not yet populated by this converter.
 func (c *Converter) ToCommonDevice(doc *schema.OpnSenseDocument) (*common.CommonDevice, error) {
 	if doc == nil {
 		return nil, fmt.Errorf("ToCommonDevice: %w", ErrNilDocument)
@@ -39,6 +36,13 @@ func (c *Converter) ToCommonDevice(doc *schema.OpnSenseDocument) (*common.Common
 		System:           c.convertSystem(doc),
 		Interfaces:       c.convertInterfaces(doc),
 		VLANs:            c.convertVLANs(doc),
+		Bridges:          c.convertBridges(doc),
+		PPPs:             c.convertPPPs(doc),
+		GIFs:             c.convertGIFs(doc),
+		GREs:             c.convertGREs(doc),
+		LAGGs:            c.convertLAGGs(doc),
+		VirtualIPs:       c.convertVirtualIPs(doc),
+		InterfaceGroups:  c.convertInterfaceGroups(doc),
 		FirewallRules:    c.convertFirewallRules(doc),
 		NAT:              c.convertNAT(doc),
 		DHCP:             c.convertDHCP(doc),
@@ -55,6 +59,16 @@ func (c *Converter) ToCommonDevice(doc *schema.OpnSenseDocument) (*common.Common
 		Groups:           c.convertGroups(doc),
 		Sysctl:           c.convertSysctl(doc),
 		Revision:         c.convertRevision(doc),
+		Certificates:     c.convertCertificates(doc),
+		CAs:              c.convertCAs(doc),
+		Packages:         c.convertPackages(doc),
+		Monit:            c.convertMonit(doc),
+		Netflow:          c.convertNetflow(doc),
+		TrafficShaper:    c.convertTrafficShaper(doc),
+		CaptivePortal:    c.convertCaptivePortal(doc),
+		Cron:             c.convertCron(doc),
+		Trust:            c.convertTrust(doc),
+		KeaDHCP:          c.convertKeaDHCP(doc),
 	}
 
 	return device, nil
@@ -75,7 +89,7 @@ func (c *Converter) convertSystem(doc *schema.OpnSenseDocument) common.System {
 		DNSServers:                    strings.Fields(sys.DNSServer),
 		TimeServers:                   strings.Fields(sys.TimeServers),
 		DNSAllowOverride:              sys.DNSAllowOverride != 0,
-		DisableNATReflection:          strings.EqualFold(sys.DisableNATReflection, "yes"),
+		DisableNATReflection:          strings.EqualFold(sys.DisableNATReflection, xmlBoolYes),
 		DisableConsoleMenu:            bool(sys.DisableConsoleMenu),
 		DisableVLANHWFilter:           sys.DisableVLANHWFilter != 0,
 		DisableChecksumOffloading:     sys.DisableChecksumOffloading != 0,
@@ -95,11 +109,15 @@ func (c *Converter) convertSystem(doc *schema.OpnSenseDocument) common.System {
 		Bogons:                        common.Bogons{Interval: sys.Bogons.Interval},
 		Notes:                         sys.Notes,
 		WebGUI: common.WebGUI{
-			Protocol:   sys.WebGUI.Protocol,
-			SSLCertRef: sys.WebGUI.SSLCertRef,
+			Protocol:          sys.WebGUI.Protocol,
+			SSLCertRef:        sys.WebGUI.SSLCertRef,
+			LoginAutocomplete: bool(sys.WebGUI.LoginAutocomplete),
+			MaxProcesses:      sys.WebGUI.MaxProcesses,
 		},
 		SSH: common.SSH{
-			Group: sys.SSH.Group,
+			Enabled: bool(sys.SSH.Enabled),
+			Port:    sys.SSH.Port,
+			Group:   sys.SSH.Group,
 		},
 		Firmware: common.Firmware{
 			Version: sys.Firmware.Version,
@@ -124,15 +142,15 @@ func (c *Converter) convertInterfaces(doc *schema.OpnSenseDocument) []common.Int
 			Name:         key,
 			PhysicalIf:   iface.If,
 			Description:  iface.Descr,
-			Enabled:      iface.Enable == "1",
+			Enabled:      iface.Enable == xmlBoolTrue,
 			IPAddress:    iface.IPAddr,
 			IPv6Address:  iface.IPAddrv6,
 			Subnet:       iface.Subnet,
 			SubnetV6:     iface.Subnetv6,
 			Gateway:      iface.Gateway,
 			GatewayV6:    iface.Gatewayv6,
-			BlockPrivate: iface.BlockPriv == "1",
-			BlockBogons:  iface.BlockBogons == "1",
+			BlockPrivate: iface.BlockPriv == xmlBoolTrue,
+			BlockBogons:  iface.BlockBogons == xmlBoolTrue,
 			Type:         iface.Type,
 			MTU:          iface.MTU,
 			SpoofMAC:     iface.Spoofmac,
@@ -184,7 +202,7 @@ func (c *Converter) convertFirewallRules(doc *schema.OpnSenseDocument) []common.
 			IPProtocol:  rule.IPProtocol,
 			StateType:   rule.StateType,
 			Direction:   rule.Direction,
-			Floating:    rule.Floating == "yes",
+			Floating:    rule.Floating == xmlBoolYes,
 			Quick:       bool(rule.Quick),
 			Protocol:    rule.Protocol,
 			Source: common.RuleEndpoint{
@@ -226,7 +244,7 @@ func (c *Converter) convertFirewallRules(doc *schema.OpnSenseDocument) []common.
 func (c *Converter) convertNAT(doc *schema.OpnSenseDocument) common.NATConfig {
 	nat := common.NATConfig{
 		OutboundMode:       doc.Nat.Outbound.Mode,
-		ReflectionDisabled: strings.EqualFold(doc.System.DisableNATReflection, "yes"),
+		ReflectionDisabled: strings.EqualFold(doc.System.DisableNATReflection, xmlBoolYes),
 		PfShareForward:     doc.System.PfShareForward != 0,
 		OutboundRules:      c.convertOutboundNATRules(doc.Nat.Outbound.Rule),
 		InboundRules:       c.convertInboundNATRules(doc.Nat.Inbound),

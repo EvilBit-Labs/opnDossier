@@ -9,6 +9,15 @@ type Statistics struct {
 	// InterfaceDetails contains per-interface statistics.
 	InterfaceDetails []InterfaceStatistics `json:"interfaceDetails,omitempty" yaml:"interfaceDetails,omitempty"`
 
+	// TotalVLANs is the total number of configured VLANs.
+	TotalVLANs int `json:"totalVlans,omitempty" yaml:"totalVlans,omitempty"`
+	// TotalBridges is the total number of configured bridges.
+	TotalBridges int `json:"totalBridges,omitempty" yaml:"totalBridges,omitempty"`
+	// TotalCertificates is the total number of certificates.
+	TotalCertificates int `json:"totalCertificates,omitempty" yaml:"totalCertificates,omitempty"`
+	// TotalCAs is the total number of certificate authorities.
+	TotalCAs int `json:"totalCas,omitempty" yaml:"totalCas,omitempty"`
+
 	// TotalFirewallRules is the total number of firewall filter rules.
 	TotalFirewallRules int `json:"totalFirewallRules,omitempty" yaml:"totalFirewallRules,omitempty"`
 	// RulesByInterface maps interface names to their firewall rule counts.

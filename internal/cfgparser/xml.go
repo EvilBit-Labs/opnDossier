@@ -199,11 +199,21 @@ func handleStartElement(dec *xml.Decoder, doc *schema.OpnSenseDocument, se xml.S
 	case "wireless":
 		return decodeSection(dec, &doc.Wireless, se)
 	case "ca":
-		return decodeSection(dec, &doc.CertificateAuthority, se)
+		var ca schema.CertificateAuthority
+		if err := decodeSection(dec, &ca, se); err != nil {
+			return err
+		}
+		doc.CAs = append(doc.CAs, ca)
+		return nil
 	case "dhcpdv6":
 		return decodeSection(dec, &doc.DHCPv6Server, se)
 	case "cert":
-		return decodeSection(dec, &doc.Cert, se)
+		var cert schema.Cert
+		if err := decodeSection(dec, &cert, se); err != nil {
+			return err
+		}
+		doc.Certs = append(doc.Certs, cert)
+		return nil
 	case "dnsmasq":
 		return decodeSection(dec, &doc.DNSMasquerade, se)
 	case "syslog":

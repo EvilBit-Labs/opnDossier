@@ -3,7 +3,7 @@
 - **Hostname**: comprehensive-firewall
 - **Domain**: security.local
 - **Platform**: OPNsense 24.1.2
-- **Generated On**: 2026-02-20T10:37:09-05:00
+- **Generated On**: 2026-02-25T23:02:10-05:00
 - **Parsed By**: opnDossier vdev
 ## Table of Contents
 - [System Configuration](#system-configuration)
@@ -164,7 +164,7 @@
 ### VLAN Configuration
 | VLAN Interface | Physical Interface | VLAN Tag | Description | Created | Updated |
 |---------|---------|---------|---------|---------|---------|
-| - | - | - | No VLANs configured | - | - |
+| igb0\_vlan100 | igb0 | 100 | Management VLAN |  |  |
 
 ### Static Routes
 | Destination Network | Gateway | Description | Status | Created | Updated |
@@ -217,7 +217,10 @@
 *No OpenVPN clients configured*
 ### High Availability & CARP
 #### Virtual IP Addresses (CARP)
-*No virtual IPs configured*
+| VIP Address | Type |
+|---------|---------|
+| 192.168.100.254 | carp |
+
 #### HA Synchronization Settings
 *No HA synchronization configured*
 ## Service Configuration
