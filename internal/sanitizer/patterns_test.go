@@ -82,6 +82,48 @@ func TestIsIP(t *testing.T) {
 	}
 }
 
+func TestIsSubnet(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		input string
+		want  bool
+	}{
+		// Valid IPv4 CIDR
+		{"192.168.1.0/24", true},
+		{"10.0.0.0/8", true},
+		{"0.0.0.0/0", true},
+		{"172.16.0.0/12", true},
+		{"192.168.1.1/32", true},
+		// Valid IPv6 CIDR
+		{"fd00::/8", true},
+		{"2001:db8::/32", true},
+		{"fe80::/10", true},
+		{"2001:db8:85a3::8a2e:370:7334/64", true},
+		// Bare IPs (no prefix)
+		{"192.168.1.1", false},
+		{"10.0.0.1", false},
+		{"::1", false},
+		{"2001:db8::1", false},
+		// Empty / invalid
+		{"", false},
+		{"not-a-subnet", false},
+		{"192.168.1.0/33", false},
+		{"192.168.1.0/", false},
+		{"/24", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			t.Parallel()
+
+			if got := IsSubnet(tt.input); got != tt.want {
+				t.Errorf("IsSubnet(%q) = %v, want %v", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestIsPrivateIP(t *testing.T) {
 	tests := []struct {
 		input string

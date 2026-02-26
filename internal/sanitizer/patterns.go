@@ -48,6 +48,15 @@ var (
 	// PEM certificate/key pattern.
 	//nolint:gocritic // PEM format uses literal dashes, not a simplification
 	pemPattern = regexp.MustCompile(`-----BEGIN [A-Z ]+-----[\s\S]*?-----END [A-Z ]+-----`)
+
+	// Subnet CIDR notation pattern (IPv4/prefix or IPv6/prefix).
+	subnetPattern = regexp.MustCompile(
+		`^(?:` +
+			`(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/(?:3[0-2]|[12]?[0-9])` +
+			`|` +
+			`(?:[0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}/(?:12[0-8]|1[01][0-9]|[1-9]?[0-9])` +
+			`)$`,
+	)
 )
 
 // RFC 1918 private IP ranges.
@@ -85,6 +94,12 @@ func IsIPv6(s string) bool {
 // It returns true if s can be parsed as an IP address, false otherwise.
 func IsIP(s string) bool {
 	return net.ParseIP(s) != nil
+}
+
+// IsSubnet reports whether s is a valid IPv4 or IPv6 CIDR notation subnet.
+// It returns true when s matches subnetPattern, false otherwise.
+func IsSubnet(s string) bool {
+	return subnetPattern.MatchString(s)
 }
 
 // IsPrivateIP reports whether the provided string is an IPv4 or IPv6 private address.

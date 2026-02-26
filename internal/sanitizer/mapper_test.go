@@ -104,8 +104,8 @@ func TestMapHostname(t *testing.T) {
 	m := NewMapper()
 
 	result1 := m.MapHostname("firewall.example.com")
-	if result1 != "host-001.example.com" {
-		t.Errorf("MapHostname() = %q, want %q", result1, "host-001.example.com")
+	if result1 != expectedMappedHostname1 {
+		t.Errorf("MapHostname() = %q, want %q", result1, expectedMappedHostname1)
 	}
 
 	// Same hostname should return same mapping
@@ -189,8 +189,8 @@ func TestMapEmail(t *testing.T) {
 	m := NewMapper()
 
 	result1 := m.MapEmail("admin@mycompany.com")
-	if result1 != "user1@example.com" {
-		t.Errorf("MapEmail() = %q, want %q", result1, "user1@example.com")
+	if result1 != expectedMappedEmail1 {
+		t.Errorf("MapEmail() = %q, want %q", result1, expectedMappedEmail1)
 	}
 
 	// Same email should return same mapping

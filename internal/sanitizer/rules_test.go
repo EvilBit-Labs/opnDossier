@@ -7,6 +7,8 @@ import (
 // Test constants for expected redaction values.
 const (
 	expectedRedactedPublicIP1 = "[REDACTED-PUBLIC-IP-1]"
+	expectedMappedHostname1   = "host-001.example.com"
+	expectedMappedEmail1      = "user1@example.com"
 )
 
 func TestValidModes(t *testing.T) {
@@ -80,7 +82,7 @@ func TestShouldRedactField_Password(t *testing.T) {
 		{ModeAggressive, "userPassword", true},
 		{ModeAggressive, "Password", true},
 		{ModeAggressive, "passwd", true},
-		{ModeAggressive, "hostname", false},
+		{ModeAggressive, "description", false},
 	}
 
 	for _, tt := range tests {
@@ -250,8 +252,8 @@ func TestRedact_Email(t *testing.T) {
 	engine := NewRuleEngine(ModeAggressive)
 
 	result := engine.Redact("contact", "admin@company.com")
-	if result != "user1@example.com" {
-		t.Errorf("Redact email = %q, want %q", result, "user1@example.com")
+	if result != expectedMappedEmail1 {
+		t.Errorf("Redact email = %q, want %q", result, expectedMappedEmail1)
 	}
 }
 
@@ -259,8 +261,8 @@ func TestRedact_Hostname(t *testing.T) {
 	engine := NewRuleEngine(ModeAggressive)
 
 	result := engine.Redact("fqdn", "firewall.company.local")
-	if result != "host-001.example.com" {
-		t.Errorf("Redact hostname = %q, want %q", result, "host-001.example.com")
+	if result != expectedMappedHostname1 {
+		t.Errorf("Redact hostname = %q, want %q", result, expectedMappedHostname1)
 	}
 }
 
@@ -380,6 +382,68 @@ func TestContainsIgnoreCase(t *testing.T) {
 				t.Errorf("containsIgnoreCase(%q, %q) = %v, want %v", tt.s, tt.substr, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestRedact_IPAddressField_NonIPValue(t *testing.T) {
+	engine := NewRuleEngine(ModeAggressive)
+
+	// "from" matches the ip_address_field rule's FieldPatterns,
+	// but non-IP values must pass through unchanged.
+	nonIPValues := []string{"any", "lan", "10:00", "dhcp", ""}
+	for _, val := range nonIPValues {
+		result := engine.Redact("from", val)
+		if result != val {
+			t.Errorf("Redact('from', %q) = %q, want unchanged", val, result)
+		}
+	}
+
+	// "to" field with a non-IP value
+	result := engine.Redact("to", "wan")
+	if result != "wan" {
+		t.Errorf("Redact('to', %q) = %q, want unchanged", "wan", result)
+	}
+}
+
+func TestRedact_IPAddressField_IPValue(t *testing.T) {
+	engine := NewRuleEngine(ModeAggressive)
+
+	// "from" field with a real IP should still be redacted
+	result := engine.Redact("from", "192.168.1.100")
+	if result == "192.168.1.100" {
+		t.Error("Redact('from', '192.168.1.100') should redact a private IP")
+	}
+
+	result = engine.Redact("to", "8.8.8.8")
+	if result == "8.8.8.8" {
+		t.Error("Redact('to', '8.8.8.8') should redact a public IP")
+	}
+}
+
+func TestRedact_Hostname_EmailValue(t *testing.T) {
+	engine := NewRuleEngine(ModeAggressive)
+
+	// A hostname-named field containing an email should use email mapping, not hostname mapping
+	result := engine.Redact("hostname", "admin@company.com")
+	if result == "admin@company.com" {
+		t.Error("Redact('hostname', email) should redact the email")
+	}
+	// Verify it was mapped as an email (user<N>@example.com), not a hostname (host-<N>.example.com)
+	if result != expectedMappedEmail1 {
+		t.Errorf("Redact('hostname', email) = %q, want email-style mapping 'user1@example.com'", result)
+	}
+}
+
+func TestRedact_Hostname_NonEmailValue(t *testing.T) {
+	engine := NewRuleEngine(ModeAggressive)
+
+	// A hostname-named field with a regular hostname should still use hostname mapping
+	result := engine.Redact("hostname", "fw.corp.local")
+	if result == "fw.corp.local" {
+		t.Error("Redact('hostname', FQDN) should redact the hostname")
+	}
+	if result != expectedMappedHostname1 {
+		t.Errorf("Redact('hostname', FQDN) = %q, want 'host-001.example.com'", result)
 	}
 }
 
