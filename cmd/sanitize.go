@@ -118,7 +118,8 @@ reporting without exposing credentials, IP addresses, or other sensitive data.
 
     aggressive   - Maximum redaction for public sharing (forums, GitHub issues)
                    Redacts: passwords, keys, certificates, all IPs, MACs, emails,
-                   hostnames, usernames, domains
+                   hostnames, usernames, domains, OTP seeds, WireGuard endpoints,
+                   tunnel addresses, subnets, Cloudflare account/zone IDs, public keys
 
     moderate     - Balanced redaction for internal sharing (default)
                    Redacts: passwords, keys, public IPs, MACs, emails

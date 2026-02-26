@@ -471,3 +471,112 @@ func TestHybridGenerator_GenerateTextToWriter(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, buf.String())
 }
+
+// newRedactTestDevice returns a CommonDevice with sensitive fields populated for redaction testing.
+func newRedactTestDevice() *common.CommonDevice {
+	return &common.CommonDevice{
+		SNMP: common.SNMPConfig{
+			ROCommunity: "secret-community",
+		},
+		HighAvailability: common.HighAvailability{
+			Password:        "ha-secret",
+			PfsyncInterface: "em1",
+			SynchronizeToIP: "10.0.0.2",
+			Username:        "admin",
+		},
+	}
+}
+
+func TestHybridGenerator_Generate_RedactMarkdownFormats(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		format Format
+		redact bool
+	}{
+		{name: "markdown redacted", format: FormatMarkdown, redact: true},
+		{name: "markdown unredacted", format: FormatMarkdown, redact: false},
+		{name: "text redacted", format: FormatText, redact: true},
+		{name: "html redacted", format: FormatHTML, redact: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
+			require.NoError(t, err)
+
+			doc := newRedactTestDevice()
+			opts := DefaultOptions().WithFormat(tt.format).WithRedact(tt.redact)
+
+			output, err := gen.Generate(context.Background(), doc, opts)
+			require.NoError(t, err)
+
+			if tt.redact {
+				assert.NotContains(t, output, "secret-community",
+					"redacted output must not contain SNMP community string")
+				assert.Contains(t, output, "[REDACTED]",
+					"redacted output must contain redaction marker")
+			} else {
+				assert.Contains(t, output, "secret-community",
+					"unredacted output must contain SNMP community string")
+			}
+
+			// Verify original device was not mutated
+			assert.Equal(t, "secret-community", doc.SNMP.ROCommunity,
+				"original device must not be mutated")
+			assert.Equal(t, "ha-secret", doc.HighAvailability.Password,
+				"original device must not be mutated")
+		})
+	}
+}
+
+func TestHybridGenerator_GenerateToWriter_RedactMarkdownFormats(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		format Format
+		redact bool
+	}{
+		{name: "markdown redacted", format: FormatMarkdown, redact: true},
+		{name: "markdown unredacted", format: FormatMarkdown, redact: false},
+		{name: "text redacted", format: FormatText, redact: true},
+		{name: "html redacted", format: FormatHTML, redact: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
+			require.NoError(t, err)
+
+			doc := newRedactTestDevice()
+			opts := DefaultOptions().WithFormat(tt.format).WithRedact(tt.redact)
+
+			var buf bytes.Buffer
+			err = gen.GenerateToWriter(context.Background(), &buf, doc, opts)
+			require.NoError(t, err)
+
+			output := buf.String()
+			if tt.redact {
+				assert.NotContains(t, output, "secret-community",
+					"redacted output must not contain SNMP community string")
+				assert.Contains(t, output, "[REDACTED]",
+					"redacted output must contain redaction marker")
+			} else {
+				assert.Contains(t, output, "secret-community",
+					"unredacted output must contain SNMP community string")
+			}
+
+			// Verify original device was not mutated
+			assert.Equal(t, "secret-community", doc.SNMP.ROCommunity,
+				"original device must not be mutated")
+			assert.Equal(t, "ha-secret", doc.HighAvailability.Password,
+				"original device must not be mutated")
+		})
+	}
+}

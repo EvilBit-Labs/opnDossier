@@ -184,11 +184,13 @@ func (g *HybridGenerator) generateMarkdown(data *common.CommonDevice, opts Optio
 		return "", errors.New("no report builder available for programmatic generation")
 	}
 
+	target := prepareForExport(data, opts.Redact)
+
 	switch {
 	case opts.Comprehensive:
-		return g.builder.BuildComprehensiveReport(data)
+		return g.builder.BuildComprehensiveReport(target)
 	default:
-		return g.builder.BuildStandardReport(data)
+		return g.builder.BuildStandardReport(target)
 	}
 }
 
@@ -204,25 +206,39 @@ func (g *HybridGenerator) generateMarkdownToWriter(
 		return errors.New("no report builder available for programmatic generation")
 	}
 
+	target := prepareForExport(data, opts.Redact)
+
 	// Check if builder supports SectionWriter interface for streaming
 	sectionWriter, ok := g.builder.(builder.SectionWriter)
 	if !ok {
-		// Fallback to string-based generation if builder doesn't support streaming
+		// Fallback to string-based generation using the already-prepared target
 		g.logger.Debug("Builder does not support SectionWriter, falling back to string generation")
-		output, err := g.generateMarkdown(data, opts)
+
+		var output string
+		var err error
+
+		switch {
+		case opts.Comprehensive:
+			output, err = g.builder.BuildComprehensiveReport(target)
+		default:
+			output, err = g.builder.BuildStandardReport(target)
+		}
+
 		if err != nil {
 			return err
 		}
+
 		_, err = io.WriteString(w, output)
+
 		return err
 	}
 
 	// Use streaming writer
 	switch {
 	case opts.Comprehensive:
-		return sectionWriter.WriteComprehensiveReport(w, data)
+		return sectionWriter.WriteComprehensiveReport(w, target)
 	default:
-		return sectionWriter.WriteStandardReport(w, data)
+		return sectionWriter.WriteStandardReport(w, target)
 	}
 }
 
