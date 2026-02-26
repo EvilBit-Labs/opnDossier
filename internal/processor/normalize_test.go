@@ -7,6 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const redactedValue = "REDACTED"
+
 func TestNormalize_DoesNotMutateOriginal(t *testing.T) {
 	t.Parallel()
 
@@ -27,6 +29,19 @@ func TestNormalize_DoesNotMutateOriginal(t *testing.T) {
 			{Tunable: "z.tunable"},
 			{Tunable: "a.tunable"},
 		},
+		Certificates: []common.Certificate{
+			{RefID: "cert1", PrivateKey: "SECRET"},
+		},
+		DHCP: []common.DHCPScope{
+			{Interface: "lan", AdvDHCP6KeyInfoStatementSecret: "dhcpv6-secret"},
+		},
+		VPN: common.VPN{
+			WireGuard: common.WireGuardConfig{
+				Clients: []common.WireGuardClient{
+					{UUID: "wg1", PSK: "psk-secret"},
+				},
+			},
+		},
 	}
 
 	// Save original order
@@ -34,6 +49,9 @@ func TestNormalize_DoesNotMutateOriginal(t *testing.T) {
 	origUserName := original.Users[0].Name
 	origGroupName := original.Groups[0].Name
 	origSysctl := original.Sysctl[0].Tunable
+	origCertKey := original.Certificates[0].PrivateKey
+	origDHCPSecret := original.DHCP[0].AdvDHCP6KeyInfoStatementSecret
+	origWGPSK := original.VPN.WireGuard.Clients[0].PSK
 
 	p := &CoreProcessor{}
 	normalized := p.normalize(original)
@@ -41,11 +59,29 @@ func TestNormalize_DoesNotMutateOriginal(t *testing.T) {
 	// Normalized should be sorted
 	assert.NotNil(t, normalized)
 
+	// Mutate normalized slices to prove independence from original
+	normalized.Certificates[0].PrivateKey = redactedValue
+	normalized.DHCP[0].AdvDHCP6KeyInfoStatementSecret = redactedValue
+	normalized.VPN.WireGuard.Clients[0].PSK = redactedValue
+
 	// Original should be unmodified
 	assert.Equal(t, origRuleDescr, original.FirewallRules[0].Description, "original rules should not be reordered")
 	assert.Equal(t, origUserName, original.Users[0].Name, "original users should not be reordered")
 	assert.Equal(t, origGroupName, original.Groups[0].Name, "original groups should not be reordered")
 	assert.Equal(t, origSysctl, original.Sysctl[0].Tunable, "original sysctl should not be reordered")
+	assert.Equal(
+		t,
+		origCertKey,
+		original.Certificates[0].PrivateKey,
+		"original certificate private key should not be mutated",
+	)
+	assert.Equal(
+		t,
+		origDHCPSecret,
+		original.DHCP[0].AdvDHCP6KeyInfoStatementSecret,
+		"original DHCP secret should not be mutated",
+	)
+	assert.Equal(t, origWGPSK, original.VPN.WireGuard.Clients[0].PSK, "original WireGuard PSK should not be mutated")
 }
 
 func TestCanonicalizeIPField(t *testing.T) {
