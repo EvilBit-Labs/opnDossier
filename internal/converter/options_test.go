@@ -139,6 +139,7 @@ func TestDefaultOptions(t *testing.T) {
 	assert.False(t, opts.Compact)
 	assert.True(t, opts.IncludeMetadata)
 	assert.False(t, opts.SuppressWarnings)
+	assert.False(t, opts.Redact)
 	assert.NotNil(t, opts.CustomFields)
 	assert.Equal(t, false, opts.CustomFields["IncludeTunables"])
 }
@@ -600,6 +601,34 @@ func TestOptions_WithSuppressWarnings(t *testing.T) {
 	}
 }
 
+func TestOptions_WithRedact(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		redact   bool
+		expected bool
+	}{
+		{
+			name:     "enable redact",
+			redact:   true,
+			expected: true,
+		},
+		{
+			name:     "disable redact",
+			redact:   false,
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			opts := DefaultOptions().WithRedact(tt.redact)
+			assert.Equal(t, tt.expected, opts.Redact)
+		})
+	}
+}
+
 func TestOptions_MethodChaining(t *testing.T) {
 	t.Parallel()
 	// Test that all With methods can be chained together
@@ -615,7 +644,8 @@ func TestOptions_MethodChaining(t *testing.T) {
 		WithMetadata(false).
 		WithCustomField("TestKey", "TestValue").
 		WithComprehensive(true).
-		WithSuppressWarnings(true)
+		WithSuppressWarnings(true).
+		WithRedact(true)
 
 	assert.Equal(t, FormatJSON, opts.Format)
 	assert.Equal(t, []string{"system", "interfaces"}, opts.Sections)
@@ -629,4 +659,5 @@ func TestOptions_MethodChaining(t *testing.T) {
 	assert.Equal(t, "TestValue", opts.CustomFields["TestKey"])
 	assert.True(t, opts.Comprehensive)
 	assert.True(t, opts.SuppressWarnings)
+	assert.True(t, opts.Redact)
 }

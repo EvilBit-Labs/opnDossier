@@ -82,13 +82,13 @@ The converter in `internal/converter/` provides format-specific converters:
 converter := converter.NewMarkdownConverter()
 markdown, err := converter.ToMarkdown(ctx, device)
 
-// JSON conversion
+// JSON conversion (redact=true replaces sensitive fields with [REDACTED])
 jsonConverter := converter.NewJSONConverter()
-jsonStr, err := jsonConverter.ToJSON(ctx, device)
+jsonStr, err := jsonConverter.ToJSON(ctx, device, false)
 
-// YAML conversion
+// YAML conversion (redact=true replaces sensitive fields with [REDACTED])
 yamlConverter := converter.NewYAMLConverter()
-yamlStr, err := yamlConverter.ToYAML(ctx, device)
+yamlStr, err := yamlConverter.ToYAML(ctx, device, false)
 ```
 
 ## Error Handling

@@ -18,12 +18,14 @@ func NewJSONConverter() *JSONConverter {
 }
 
 // ToJSON converts a device configuration to JSON.
-func (c *JSONConverter) ToJSON(_ context.Context, data *common.CommonDevice) (string, error) {
+// When redact is true, sensitive fields (passwords, private keys, community strings)
+// are replaced with [REDACTED] in the output.
+func (c *JSONConverter) ToJSON(_ context.Context, data *common.CommonDevice, redact bool) (string, error) {
 	if data == nil {
 		return "", ErrNilDevice
 	}
 
-	target := prepareForExport(data)
+	target := prepareForExport(data, redact)
 
 	// Marshal the CommonDevice struct to JSON with indentation
 	jsonBytes, err := json.MarshalIndent(target, "", "  ")

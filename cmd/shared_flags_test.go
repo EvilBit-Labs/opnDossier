@@ -26,6 +26,21 @@ func TestAddSharedTemplateFlagsRegistersFlags(t *testing.T) {
 	assert.Nil(t, flags.Lookup("template-cache-size"))
 	assert.Nil(t, flags.Lookup("use-template"))
 	assert.Nil(t, flags.Lookup("engine"))
+
+	// Redact flag lives in addSharedRedactFlag, not here
+	assert.Nil(t, flags.Lookup("redact"))
+}
+
+func TestAddSharedRedactFlagRegistersFlag(t *testing.T) {
+	t.Parallel()
+
+	cmd := &cobra.Command{Use: "test"}
+	addSharedRedactFlag(cmd)
+
+	flags := cmd.Flags()
+	redactFlag := flags.Lookup("redact")
+	require.NotNil(t, redactFlag)
+	assert.Equal(t, "false", redactFlag.DefValue)
 }
 
 func TestAddDisplayFlagsRegistersTheme(t *testing.T) {
