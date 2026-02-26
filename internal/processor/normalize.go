@@ -2,6 +2,7 @@ package processor
 
 import (
 	"net"
+	"slices"
 	"sort"
 	"strings"
 
@@ -13,31 +14,21 @@ func (p *CoreProcessor) normalize(cfg *common.CommonDevice) *common.CommonDevice
 	// Create a shallow copy, then deep-copy slices that will be mutated
 	normalized := *cfg
 
-	// Deep-copy slices to avoid mutating the original
-	if cfg.FirewallRules != nil {
-		normalized.FirewallRules = make([]common.FirewallRule, len(cfg.FirewallRules))
-		copy(normalized.FirewallRules, cfg.FirewallRules)
-	}
-
-	if cfg.Users != nil {
-		normalized.Users = make([]common.User, len(cfg.Users))
-		copy(normalized.Users, cfg.Users)
-	}
-
-	if cfg.Groups != nil {
-		normalized.Groups = make([]common.Group, len(cfg.Groups))
-		copy(normalized.Groups, cfg.Groups)
-	}
-
-	if cfg.Sysctl != nil {
-		normalized.Sysctl = make([]common.SysctlItem, len(cfg.Sysctl))
-		copy(normalized.Sysctl, cfg.Sysctl)
-	}
-
-	if cfg.LoadBalancer.MonitorTypes != nil {
-		normalized.LoadBalancer.MonitorTypes = make([]common.MonitorType, len(cfg.LoadBalancer.MonitorTypes))
-		copy(normalized.LoadBalancer.MonitorTypes, cfg.LoadBalancer.MonitorTypes)
-	}
+	// Deep-copy slices that normalize mutates or that contain sensitive data.
+	// Mutated by sortSlices/canonicalizeAddresses — clone required for correctness:
+	normalized.FirewallRules = slices.Clone(cfg.FirewallRules)
+	normalized.Users = slices.Clone(cfg.Users)
+	normalized.Groups = slices.Clone(cfg.Groups)
+	normalized.Sysctl = slices.Clone(cfg.Sysctl)
+	normalized.LoadBalancer.MonitorTypes = slices.Clone(cfg.LoadBalancer.MonitorTypes)
+	// Defensive clones — not mutated by normalize phases, but contain sensitive
+	// fields that downstream code must not accidentally leak back to the caller.
+	normalized.Certificates = slices.Clone(cfg.Certificates)
+	normalized.DHCP = slices.Clone(cfg.DHCP)
+	normalized.VPN.WireGuard.Clients = slices.Clone(cfg.VPN.WireGuard.Clients)
+	// Other CommonDevice slices (Interfaces, VLANs, Bridges, CAs, etc.) are
+	// intentionally not cloned — normalize does not mutate them, and the
+	// downstream analyze pipeline is read-only on the config.
 
 	// Phase 1: Fill defaults
 	p.fillDefaults(&normalized)
@@ -133,7 +124,7 @@ func (p *CoreProcessor) sortSlices(cfg *common.CommonDevice) {
 // canonicalizeIPField normalizes an IP/CIDR field in-place, converting bare IPs
 // to CIDR notation and canonical form. Non-IP values (aliases, interface names) are left unchanged.
 func canonicalizeIPField(field *string) {
-	if *field == "" || isSpecialNetworkType(*field) {
+	if field == nil || *field == "" || isSpecialNetworkType(*field) {
 		return
 	}
 	if _, cidr, err := net.ParseCIDR(*field); err == nil {
