@@ -2,6 +2,7 @@ package processor
 
 import (
 	"net"
+	"slices"
 	"sort"
 	"strings"
 
@@ -14,45 +15,14 @@ func (p *CoreProcessor) normalize(cfg *common.CommonDevice) *common.CommonDevice
 	normalized := *cfg
 
 	// Deep-copy slices to avoid mutating the original
-	if cfg.FirewallRules != nil {
-		normalized.FirewallRules = make([]common.FirewallRule, len(cfg.FirewallRules))
-		copy(normalized.FirewallRules, cfg.FirewallRules)
-	}
-
-	if cfg.Users != nil {
-		normalized.Users = make([]common.User, len(cfg.Users))
-		copy(normalized.Users, cfg.Users)
-	}
-
-	if cfg.Groups != nil {
-		normalized.Groups = make([]common.Group, len(cfg.Groups))
-		copy(normalized.Groups, cfg.Groups)
-	}
-
-	if cfg.Sysctl != nil {
-		normalized.Sysctl = make([]common.SysctlItem, len(cfg.Sysctl))
-		copy(normalized.Sysctl, cfg.Sysctl)
-	}
-
-	if cfg.LoadBalancer.MonitorTypes != nil {
-		normalized.LoadBalancer.MonitorTypes = make([]common.MonitorType, len(cfg.LoadBalancer.MonitorTypes))
-		copy(normalized.LoadBalancer.MonitorTypes, cfg.LoadBalancer.MonitorTypes)
-	}
-
-	if cfg.Certificates != nil {
-		normalized.Certificates = make([]common.Certificate, len(cfg.Certificates))
-		copy(normalized.Certificates, cfg.Certificates)
-	}
-
-	if cfg.DHCP != nil {
-		normalized.DHCP = make([]common.DHCPScope, len(cfg.DHCP))
-		copy(normalized.DHCP, cfg.DHCP)
-	}
-
-	if cfg.VPN.WireGuard.Clients != nil {
-		normalized.VPN.WireGuard.Clients = make([]common.WireGuardClient, len(cfg.VPN.WireGuard.Clients))
-		copy(normalized.VPN.WireGuard.Clients, cfg.VPN.WireGuard.Clients)
-	}
+	normalized.FirewallRules = slices.Clone(cfg.FirewallRules)
+	normalized.Users = slices.Clone(cfg.Users)
+	normalized.Groups = slices.Clone(cfg.Groups)
+	normalized.Sysctl = slices.Clone(cfg.Sysctl)
+	normalized.LoadBalancer.MonitorTypes = slices.Clone(cfg.LoadBalancer.MonitorTypes)
+	normalized.Certificates = slices.Clone(cfg.Certificates)
+	normalized.DHCP = slices.Clone(cfg.DHCP)
+	normalized.VPN.WireGuard.Clients = slices.Clone(cfg.VPN.WireGuard.Clients)
 
 	// Phase 1: Fill defaults
 	p.fillDefaults(&normalized)
