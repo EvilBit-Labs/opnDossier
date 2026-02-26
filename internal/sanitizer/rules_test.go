@@ -9,6 +9,7 @@ const (
 	expectedRedactedPublicIP1 = "[REDACTED-PUBLIC-IP-1]"
 	expectedMappedHostname1   = "host-001.example.com"
 	expectedMappedEmail1      = "user1@example.com"
+	testBase64PubKey          = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
 )
 
 func TestValidModes(t *testing.T) {
@@ -444,6 +445,401 @@ func TestRedact_Hostname_NonEmailValue(t *testing.T) {
 	}
 	if result != expectedMappedHostname1 {
 		t.Errorf("Redact('hostname', FQDN) = %q, want 'host-001.example.com'", result)
+	}
+}
+
+func TestRedact_OTPSeed(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		mode  Mode
+		field string
+	}{
+		{ModeAggressive, "otp_seed"},
+		{ModeModerate, "otp_seed"},
+		{ModeMinimal, "otp_seed"},
+		{ModeAggressive, "otpseed"},
+		{ModeModerate, "otpseed"},
+		{ModeMinimal, "otpseed"},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.mode)+"_"+tt.field, func(t *testing.T) {
+			t.Parallel()
+			engine := NewRuleEngine(tt.mode)
+			result := engine.Redact(tt.field, "TOTP_BASE32_SEED")
+			if result != "[REDACTED-SECRET]" {
+				t.Errorf("Redact(%q, otp seed) = %q, want %q", tt.field, result, "[REDACTED-SECRET]")
+			}
+		})
+	}
+}
+
+func TestRedact_KeyField(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		mode Mode
+	}{
+		{ModeAggressive},
+		{ModeModerate},
+		{ModeMinimal},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.mode), func(t *testing.T) {
+			t.Parallel()
+			engine := NewRuleEngine(tt.mode)
+			result := engine.Redact("key", "some-key-value")
+			if result != "[REDACTED-PRIVATE-KEY]" {
+				t.Errorf("Redact(%q, key value) = %q, want %q", "key", result, "[REDACTED-PRIVATE-KEY]")
+			}
+		})
+	}
+}
+
+func TestRedact_DomainField(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		mode  Mode
+		field string
+	}{
+		{ModeAggressive, "hostname"},
+		{ModeModerate, "hostname"},
+		{ModeMinimal, "hostname"},
+		{ModeAggressive, "domain"},
+		{ModeModerate, "domain"},
+		{ModeMinimal, "domain"},
+		{ModeAggressive, "althostnames"},
+		{ModeModerate, "althostnames"},
+		{ModeMinimal, "althostnames"},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.mode)+"_"+tt.field, func(t *testing.T) {
+			t.Parallel()
+			engine := NewRuleEngine(tt.mode)
+			value := "fw.corp.local"
+			result := engine.Redact(tt.field, value)
+
+			if tt.mode == ModeAggressive {
+				if result == value {
+					t.Errorf("Redact(%q, %q) = %q, want redacted value", tt.field, value, result)
+				}
+				if result != expectedMappedHostname1 {
+					t.Errorf("Redact(%q, %q) = %q, want %q", tt.field, value, result, expectedMappedHostname1)
+				}
+				return
+			}
+
+			if result != value {
+				t.Errorf("Redact(%q, %q) = %q, want unchanged", tt.field, value, result)
+			}
+		})
+	}
+}
+
+func TestRedact_MacFieldPattern(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		mode         Mode
+		wantRedacted bool
+	}{
+		{ModeAggressive, true},
+		{ModeModerate, true},
+		{ModeMinimal, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.mode), func(t *testing.T) {
+			t.Parallel()
+			engine := NewRuleEngine(tt.mode)
+			value := "00:11:22:33:44:55"
+			result := engine.Redact("mac", value)
+
+			if tt.wantRedacted {
+				if result != "XX:XX:XX:XX:XX:01" {
+					t.Errorf("Redact(%q, %q) = %q, want %q", "mac", value, result, "XX:XX:XX:XX:XX:01")
+				}
+				return
+			}
+
+			if result != value {
+				t.Errorf("Redact(%q, %q) = %q, want unchanged", "mac", value, result)
+			}
+		})
+	}
+}
+
+func TestRedact_EmailFieldPattern(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		mode         Mode
+		wantRedacted bool
+	}{
+		{ModeAggressive, true},
+		{ModeModerate, true},
+		{ModeMinimal, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.mode), func(t *testing.T) {
+			t.Parallel()
+			engine := NewRuleEngine(tt.mode)
+			value := "admin@company.com"
+			result := engine.Redact("email", value)
+
+			if tt.wantRedacted {
+				if result != expectedMappedEmail1 {
+					t.Errorf("Redact(%q, %q) = %q, want %q", "email", value, result, expectedMappedEmail1)
+				}
+				return
+			}
+
+			if result != value {
+				t.Errorf("Redact(%q, %q) = %q, want unchanged", "email", value, result)
+			}
+		})
+	}
+}
+
+func TestRedact_Endpoint(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		mode  Mode
+		field string
+	}{
+		{ModeAggressive, "endpoint"},
+		{ModeModerate, "endpoint"},
+		{ModeMinimal, "endpoint"},
+		{ModeAggressive, "tunneladdress"},
+		{ModeModerate, "tunneladdress"},
+		{ModeMinimal, "tunneladdress"},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.mode)+"_"+tt.field, func(t *testing.T) {
+			t.Parallel()
+			engine := NewRuleEngine(tt.mode)
+			value := "203.0.113.1:51820"
+			result := engine.Redact(tt.field, value)
+
+			if tt.mode == ModeAggressive {
+				if result != "[REDACTED-ENDPOINT]" {
+					t.Errorf("Redact(%q, %q) = %q, want %q", tt.field, value, result, "[REDACTED-ENDPOINT]")
+				}
+				return
+			}
+
+			if result != value {
+				t.Errorf("Redact(%q, %q) = %q, want unchanged", tt.field, value, result)
+			}
+		})
+	}
+}
+
+func TestRedact_IPAddrField(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		mode  Mode
+		field string
+		value string
+		want  string
+	}{
+		{ModeAggressive, "ipaddr", "192.168.1.100", "10.0.0.1"},
+		{ModeModerate, "ipaddr", "192.168.1.100", "192.168.1.100"},
+		{ModeMinimal, "ipaddr", "192.168.1.100", "192.168.1.100"},
+		{ModeAggressive, "ipaddrv6", "192.168.1.100", "10.0.0.1"},
+		{ModeModerate, "ipaddrv6", "192.168.1.100", "192.168.1.100"},
+		{ModeMinimal, "ipaddrv6", "192.168.1.100", "192.168.1.100"},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.mode)+"_"+tt.field, func(t *testing.T) {
+			t.Parallel()
+			engine := NewRuleEngine(tt.mode)
+			result := engine.Redact(tt.field, tt.value)
+
+			if result != tt.want {
+				t.Errorf("Redact(%q, %q) = %q, want %q", tt.field, tt.value, result, tt.want)
+			}
+		})
+	}
+}
+
+func TestRedact_SubnetField(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		mode  Mode
+		field string
+	}{
+		{ModeAggressive, "subnet"},
+		{ModeModerate, "subnet"},
+		{ModeMinimal, "subnet"},
+		{ModeAggressive, "subnetv6"},
+		{ModeModerate, "subnetv6"},
+		{ModeMinimal, "subnetv6"},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.mode)+"_"+tt.field, func(t *testing.T) {
+			t.Parallel()
+			engine := NewRuleEngine(tt.mode)
+			value := "192.168.1.0/24"
+			result := engine.Redact(tt.field, value)
+
+			if tt.mode == ModeAggressive {
+				if result != "[REDACTED-SUBNET]" {
+					t.Errorf("Redact(%q, %q) = %q, want %q", tt.field, value, result, "[REDACTED-SUBNET]")
+				}
+				return
+			}
+
+			if result != value {
+				t.Errorf("Redact(%q, %q) = %q, want unchanged", tt.field, value, result)
+			}
+		})
+	}
+}
+
+func TestRedact_CloudIdentifier(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		mode  Mode
+		field string
+	}{
+		{ModeAggressive, "dns_cf_account_id"},
+		{ModeModerate, "dns_cf_account_id"},
+		{ModeMinimal, "dns_cf_account_id"},
+		{ModeAggressive, "zone_id"},
+		{ModeModerate, "zone_id"},
+		{ModeMinimal, "zone_id"},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.mode)+"_"+tt.field, func(t *testing.T) {
+			t.Parallel()
+			engine := NewRuleEngine(tt.mode)
+			value := "abc123def456"
+			result := engine.Redact(tt.field, value)
+
+			if tt.mode == ModeAggressive {
+				if result != "[REDACTED-CLOUD-ID]" {
+					t.Errorf("Redact(%q, %q) = %q, want %q", tt.field, value, result, "[REDACTED-CLOUD-ID]")
+				}
+				return
+			}
+
+			if result != value {
+				t.Errorf("Redact(%q, %q) = %q, want unchanged", tt.field, value, result)
+			}
+		})
+	}
+}
+
+func TestRedact_PublicKey(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		mode         Mode
+		wantRedacted bool
+	}{
+		{ModeAggressive, true},
+		{ModeModerate, false},
+		{ModeMinimal, false},
+	}
+
+	t.Run("pubkey", func(t *testing.T) {
+		t.Parallel()
+		for _, tt := range tests {
+			t.Run(string(tt.mode), func(t *testing.T) {
+				t.Parallel()
+				engine := NewRuleEngine(tt.mode)
+				result := engine.Redact("pubkey", testBase64PubKey)
+
+				if tt.wantRedacted {
+					if result != "[REDACTED-PUBLIC-KEY]" {
+						t.Errorf(
+							"Redact(%q, %q) = %q, want %q",
+							"pubkey",
+							testBase64PubKey,
+							result,
+							"[REDACTED-PUBLIC-KEY]",
+						)
+					}
+					return
+				}
+
+				if result != testBase64PubKey {
+					t.Errorf("Redact(%q, %q) = %q, want unchanged", "pubkey", testBase64PubKey, result)
+				}
+			})
+		}
+	})
+
+	t.Run("pub_key", func(t *testing.T) {
+		t.Parallel()
+		for _, tt := range tests {
+			t.Run(string(tt.mode), func(t *testing.T) {
+				t.Parallel()
+				engine := NewRuleEngine(tt.mode)
+				result := engine.Redact("pub_key", testBase64PubKey)
+
+				if tt.wantRedacted {
+					if result != "[REDACTED-PUBLIC-KEY]" {
+						t.Errorf(
+							"Redact(%q, %q) = %q, want %q",
+							"pub_key",
+							testBase64PubKey,
+							result,
+							"[REDACTED-PUBLIC-KEY]",
+						)
+					}
+					return
+				}
+
+				if result != testBase64PubKey {
+					t.Errorf("Redact(%q, %q) = %q, want unchanged", "pub_key", testBase64PubKey, result)
+				}
+			})
+		}
+	})
+}
+
+func TestShouldRedactField_OTPSeed(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		mode  Mode
+		field string
+	}{
+		{ModeAggressive, "otp_seed"},
+		{ModeModerate, "otp_seed"},
+		{ModeMinimal, "otp_seed"},
+		{ModeAggressive, "otpseed"},
+		{ModeModerate, "otpseed"},
+		{ModeMinimal, "otpseed"},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.mode)+"_"+tt.field, func(t *testing.T) {
+			t.Parallel()
+			engine := NewRuleEngine(tt.mode)
+			should, rule := engine.ShouldRedactField(tt.field)
+			if !should {
+				t.Errorf("ShouldRedactField(%q) = false, want true", tt.field)
+			}
+			if rule == nil {
+				t.Errorf("ShouldRedactField(%q) returned nil rule", tt.field)
+			}
+		})
 	}
 }
 

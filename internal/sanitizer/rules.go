@@ -62,6 +62,9 @@ const (
 	CategoryCrypto RuleCategory = "crypto"
 	// CategorySystem groups rules that redact system-level configuration details.
 	CategorySystem RuleCategory = "system"
+
+	redactedSecretValue    = "[REDACTED-SECRET]"
+	redactedPublicKeyValue = "[REDACTED-PUBLIC-KEY]"
 )
 
 // RuleEngine manages and applies redaction rules.
@@ -149,6 +152,9 @@ func (e *RuleEngine) ruleActiveForMode(rule *Rule) bool {
 // fieldNameMatches reports whether pattern is a case-insensitive substring of fieldName.
 // An empty pattern always matches.
 func fieldNameMatches(fieldName, pattern string) bool {
+	if containsIgnoreCase(pattern, "key") && containsIgnoreCase("key", pattern) {
+		return containsIgnoreCase(fieldName, "key") && containsIgnoreCase("key", fieldName)
+	}
 	return containsIgnoreCase(fieldName, pattern)
 }
 
@@ -234,7 +240,7 @@ func builtinRules() []Rule {
 				"otp_seed", "otpseed",
 			},
 			Redactor: func(_ *Mapper, _, _ string) string {
-				return "[REDACTED-SECRET]"
+				return redactedSecretValue
 			},
 		},
 		{
@@ -466,7 +472,7 @@ func builtinRules() []Rule {
 			},
 			ValueDetector: IsBase64,
 			Redactor: func(_ *Mapper, _, _ string) string {
-				return "[REDACTED-PUBLIC-KEY]"
+				return redactedPublicKeyValue
 			},
 		},
 	}
