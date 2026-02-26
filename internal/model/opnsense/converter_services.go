@@ -21,7 +21,7 @@ func (c *Converter) convertDHCP(doc *schema.OpnSenseDocument) []common.DHCPScope
 		d := items[key]
 		scope := common.DHCPScope{
 			Interface:  key,
-			Enabled:    d.Enable == "1",
+			Enabled:    d.Enable == xmlBoolTrue,
 			Range:      common.DHCPRange{From: d.Range.From, To: d.Range.To},
 			Gateway:    d.Gateway,
 			DNSServer:  d.Dnsserver,
@@ -140,9 +140,9 @@ func (c *Converter) convertDNS(doc *schema.OpnSenseDocument) common.DNSConfig {
 	return common.DNSConfig{
 		Servers: strings.Fields(doc.System.DNSServer),
 		Unbound: common.UnboundConfig{
-			Enabled:        doc.Unbound.Enable == "1",
-			DNSSEC:         doc.Unbound.Dnssec == "1",
-			DNSSECStripped: doc.Unbound.Dnssecstripped == "1",
+			Enabled:        doc.Unbound.Enable == xmlBoolTrue,
+			DNSSEC:         doc.Unbound.Dnssec == xmlBoolTrue,
+			DNSSECStripped: doc.Unbound.Dnssecstripped == xmlBoolTrue,
 		},
 		DNSMasq: common.DNSMasqConfig{
 			Enabled:         bool(doc.DNSMasquerade.Enable),
@@ -213,8 +213,9 @@ func (c *Converter) convertForwarders(fwds []schema.ForwarderGroup) []common.For
 func (c *Converter) convertVPN(doc *schema.OpnSenseDocument) common.VPN {
 	vpn := common.VPN{
 		OpenVPN: common.OpenVPNConfig{
-			Servers: c.convertOpenVPNServers(doc.OpenVPN.Servers),
-			Clients: c.convertOpenVPNClients(doc.OpenVPN.Clients),
+			Servers:               c.convertOpenVPNServers(doc.OpenVPN.Servers),
+			Clients:               c.convertOpenVPNClients(doc.OpenVPN.Clients),
+			ClientSpecificConfigs: c.convertOpenVPNCSCs(doc.OpenVPN.CSC),
 		},
 	}
 
@@ -223,12 +224,65 @@ func (c *Converter) convertVPN(doc *schema.OpnSenseDocument) common.VPN {
 	}
 
 	if doc.OPNsense.IPsec != nil {
-		vpn.IPsec = common.IPsecConfig{
-			Enabled: doc.OPNsense.IPsec.General.Enabled == "1",
-		}
+		vpn.IPsec = c.convertIPsec(doc.OPNsense.IPsec)
 	}
 
 	return vpn
+}
+
+// convertIPsec maps *schema.IPsec to common.IPsecConfig.
+func (c *Converter) convertIPsec(ipsec *schema.IPsec) common.IPsecConfig {
+	return common.IPsecConfig{
+		Enabled:             ipsec.General.Enabled == xmlBoolTrue,
+		PreferredOldSA:      ipsec.General.PreferredOldsa == xmlBoolTrue,
+		DisableVPNRules:     ipsec.General.Disablevpnrules == xmlBoolTrue,
+		PassthroughNetworks: ipsec.General.PassthroughNetworks,
+		KeyPairs:            ipsec.KeyPairs,
+		PreSharedKeys:       ipsec.PreSharedKeys,
+		Charon: common.IPsecCharon{
+			Threads:            ipsec.Charon.Threads,
+			IKEsaTableSize:     ipsec.Charon.IkesaTableSize,
+			IKEsaTableSegments: ipsec.Charon.IkesaTableSegments,
+			MaxIKEv1Exchanges:  ipsec.Charon.MaxIkev1Exchanges,
+			InitLimitHalfOpen:  ipsec.Charon.InitLimitHalfOpen,
+			IgnoreAcquireTS:    ipsec.Charon.IgnoreAcquireTs == xmlBoolTrue,
+			MakeBeforeBreak:    ipsec.Charon.MakeBeforeBreak == xmlBoolTrue,
+			RetransmitTries:    ipsec.Charon.RetransmitTries,
+			RetransmitTimeout:  ipsec.Charon.RetransmitTimeout,
+			RetransmitBase:     ipsec.Charon.RetransmitBase,
+			RetransmitJitter:   ipsec.Charon.RetransmitJitter,
+			RetransmitLimit:    ipsec.Charon.RetransmitLimit,
+		},
+	}
+}
+
+// convertOpenVPNCSCs maps []schema.OpenVPNCSC to []common.OpenVPNCSC.
+func (c *Converter) convertOpenVPNCSCs(cscs []schema.OpenVPNCSC) []common.OpenVPNCSC {
+	if len(cscs) == 0 {
+		return nil
+	}
+
+	result := make([]common.OpenVPNCSC, 0, len(cscs))
+	for _, csc := range cscs {
+		result = append(result, common.OpenVPNCSC{
+			CommonName:      csc.Common_name,
+			Block:           bool(csc.Block),
+			TunnelNetwork:   csc.Tunnel_network,
+			TunnelNetworkV6: csc.Tunnel_networkv6,
+			LocalNetwork:    csc.Local_network,
+			LocalNetworkV6:  csc.Local_networkv6,
+			RemoteNetwork:   csc.Remote_network,
+			RemoteNetworkV6: csc.Remote_networkv6,
+			GWRedir:         bool(csc.Gwredir),
+			PushReset:       bool(csc.Push_reset),
+			RemoveRoute:     bool(csc.Remove_route),
+			DNSDomain:       csc.DNS_domain,
+			DNSServers:      collectNonEmpty(csc.DNS_server1, csc.DNS_server2, csc.DNS_server3, csc.DNS_server4),
+			NTPServers:      collectNonEmpty(csc.NTP_server1, csc.NTP_server2),
+		})
+	}
+
+	return result
 }
 
 // convertOpenVPNServers maps []schema.OpenVPNServer to []common.OpenVPNServer.
@@ -310,13 +364,13 @@ func (c *Converter) convertOpenVPNClients(clients []schema.OpenVPNClient) []comm
 // convertWireGuard maps *schema.WireGuard to common.WireGuardConfig.
 func (c *Converter) convertWireGuard(wg *schema.WireGuard) common.WireGuardConfig {
 	cfg := common.WireGuardConfig{
-		Enabled: wg.General.Enabled == "1",
+		Enabled: wg.General.Enabled == xmlBoolTrue,
 	}
 
 	for _, s := range wg.Server.Servers.Server {
 		cfg.Servers = append(cfg.Servers, common.WireGuardServer{
 			UUID:          s.UUID,
-			Enabled:       s.Enabled == "1",
+			Enabled:       s.Enabled == xmlBoolTrue,
 			Name:          s.Name,
 			PublicKey:     s.Pubkey,
 			Port:          s.Port,
@@ -330,7 +384,7 @@ func (c *Converter) convertWireGuard(wg *schema.WireGuard) common.WireGuardConfi
 	for _, cl := range wg.Client.Clients.Client {
 		cfg.Clients = append(cfg.Clients, common.WireGuardClient{
 			UUID:          cl.UUID,
-			Enabled:       cl.Enabled == "1",
+			Enabled:       cl.Enabled == xmlBoolTrue,
 			Name:          cl.Name,
 			PublicKey:     cl.Pubkey,
 			PSK:           cl.PSK,
@@ -373,7 +427,7 @@ func (c *Converter) convertGateways(gws []schema.Gateway) []common.Gateway {
 			Disabled:       bool(gw.Disabled),
 			DefaultGW:      gw.DefaultGW,
 			MonitorDisable: gw.MonitorDisable,
-			FarGW:          gw.FarGW == "1",
+			FarGW:          gw.FarGW == xmlBoolTrue,
 		})
 	}
 
@@ -473,20 +527,26 @@ func (c *Converter) convertSyslog(doc *schema.OpnSenseDocument) common.SyslogCon
 	sl := doc.Syslog
 
 	return common.SyslogConfig{
-		Enabled:       bool(sl.Enable),
-		SystemLogging: bool(sl.System),
-		AuthLogging:   bool(sl.Auth),
-		FilterLogging: bool(sl.Filter),
-		DHCPLogging:   bool(sl.Dhcp),
-		VPNLogging:    bool(sl.VPN),
-		RemoteServer:  sl.Remoteserver,
-		RemoteServer2: sl.Remoteserver2,
-		RemoteServer3: sl.Remoteserver3,
-		SourceIP:      sl.Sourceip,
-		IPProtocol:    sl.IPProtocol,
-		LogFileSize:   sl.LogFilesize,
-		RotateCount:   sl.RotateCount,
-		Format:        sl.Format,
+		Enabled:           bool(sl.Enable),
+		SystemLogging:     bool(sl.System),
+		AuthLogging:       bool(sl.Auth),
+		FilterLogging:     bool(sl.Filter),
+		DHCPLogging:       bool(sl.Dhcp),
+		VPNLogging:        bool(sl.VPN),
+		PortalAuthLogging: bool(sl.Portalauth),
+		DPingerLogging:    bool(sl.DPinger),
+		HostapdLogging:    bool(sl.Hostapd),
+		ResolverLogging:   bool(sl.Resolver),
+		PPPLogging:        bool(sl.PPP),
+		IGMPProxyLogging:  bool(sl.IgmpProxy),
+		RemoteServer:      sl.Remoteserver,
+		RemoteServer2:     sl.Remoteserver2,
+		RemoteServer3:     sl.Remoteserver3,
+		SourceIP:          sl.Sourceip,
+		IPProtocol:        sl.IPProtocol,
+		LogFileSize:       sl.LogFilesize,
+		RotateCount:       sl.RotateCount,
+		Format:            sl.Format,
 	}
 }
 

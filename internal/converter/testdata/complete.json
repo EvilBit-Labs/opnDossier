@@ -22,7 +22,8 @@
       "enabled": true
     },
     "firmware": {
-      "version": "24.1.2"
+      "version": "24.1.2",
+      "plugins": "os-acme-client,os-wireguard"
     },
     "bogons": {
       "interval": "weekly"
@@ -296,6 +297,79 @@
       "name": "readonly",
       "description": "Read-only Users",
       "scope": "local"
+    }
+  ],
+  "vlans": [
+    {
+      "vlanIf": "igb0_vlan100",
+      "physicalIf": "igb0",
+      "tag": "100",
+      "description": "Management VLAN"
+    }
+  ],
+  "bridges": [
+    {
+      "bridgeIf": "bridge0",
+      "members": ["igb2", "igb3"],
+      "description": "DMZ Bridge",
+      "stp": true
+    }
+  ],
+  "ppps": [
+    {
+      "interface": "pppoe0",
+      "type": "pppoe",
+      "description": "WAN PPPoE"
+    }
+  ],
+  "gifs": [
+    {
+      "interface": "gif0",
+      "remote": "198.51.100.1",
+      "description": "IPv6 Tunnel"
+    }
+  ],
+  "gres": [
+    {
+      "interface": "gre0",
+      "remote": "198.51.100.2",
+      "description": "Site-to-Site GRE"
+    }
+  ],
+  "laggs": [
+    {
+      "members": ["igb4", "igb5"],
+      "protocol": "lacp",
+      "description": "Server LAGG"
+    }
+  ],
+  "virtualIps": [
+    {
+      "mode": "carp",
+      "interface": "lan",
+      "subnet": "192.168.100.254",
+      "description": "LAN CARP VIP"
+    }
+  ],
+  "interfaceGroups": [
+    {
+      "name": "internal",
+      "members": ["lan", "dmz"]
+    }
+  ],
+  "certificates": [
+    {
+      "refId": "cert-001",
+      "description": "Web GUI Certificate",
+      "certificate": "LS0tLS1CRUdJTi0tLS0t",
+      "privateKey": "LS0tLS1QUklWQVRFLS0tLS0t"
+    }
+  ],
+  "cas": [
+    {
+      "refId": "ca-001",
+      "description": "Internal CA",
+      "certificate": "LS0tLS1CRUdJTi0tLS0t"
     }
   ],
   "sysctl": [
