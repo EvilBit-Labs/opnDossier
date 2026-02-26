@@ -13,7 +13,7 @@ require (
 	github.com/clbanning/mxj v1.8.4
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/k3a/html2text v1.3.0
-	github.com/nao1215/markdown v0.10.0
+	github.com/nao1215/markdown v0.13.0
 	github.com/sebdah/goldie/v2 v2.8.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
