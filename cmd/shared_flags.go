@@ -22,6 +22,7 @@ var (
 	sharedNoWrap          bool     //nolint:gochecknoglobals // Disable text wrapping
 	sharedIncludeTunables bool     //nolint:gochecknoglobals // Include system tunables in output
 	sharedComprehensive   bool     //nolint:gochecknoglobals // Generate comprehensive report
+	sharedRedact          bool     //nolint:gochecknoglobals // Redact sensitive fields in output
 
 	// Audit flags.
 	sharedAuditMode       string   //nolint:gochecknoglobals // Audit mode (standard, blue, red)
@@ -75,6 +76,14 @@ func addDisplayFlags(cmd *cobra.Command) {
 	cmd.Flags().
 		StringVar(&sharedTheme, "theme", "", "Theme for rendering output (light, dark, auto, none)")
 	setFlagAnnotation(cmd.Flags(), "theme", []string{"display"})
+}
+
+// addSharedRedactFlag adds the --redact flag to cmd for redacting sensitive fields
+// (passwords, keys, community strings) in output.
+func addSharedRedactFlag(cmd *cobra.Command) {
+	cmd.Flags().
+		BoolVar(&sharedRedact, "redact", false, "Redact sensitive fields (passwords, keys, community strings) in output")
+	setFlagAnnotation(cmd.Flags(), "redact", []string{"output"})
 }
 
 // addSharedAuditFlags adds shared flags for audit and compliance functionality.

@@ -23,7 +23,7 @@ func (c *JSONConverter) ToJSON(_ context.Context, data *common.CommonDevice) (st
 		return "", ErrNilDevice
 	}
 
-	target := prepareForExport(data)
+	target := prepareForExport(data, false)
 
 	// Marshal the CommonDevice struct to JSON with indentation
 	jsonBytes, err := json.MarshalIndent(target, "", "  ")

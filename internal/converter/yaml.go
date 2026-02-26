@@ -23,7 +23,7 @@ func (c *YAMLConverter) ToYAML(_ context.Context, data *common.CommonDevice) (st
 		return "", ErrNilDevice
 	}
 
-	target := prepareForExport(data)
+	target := prepareForExport(data, false)
 
 	// Marshal the CommonDevice struct to YAML
 	yamlBytes, err := yaml.Marshal(target)
