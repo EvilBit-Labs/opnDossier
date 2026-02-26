@@ -344,6 +344,18 @@ type SyslogConfig struct {
 	DHCPLogging bool `json:"dhcpLogging,omitempty" yaml:"dhcpLogging,omitempty"`
 	// VPNLogging enables forwarding of VPN log messages.
 	VPNLogging bool `json:"vpnLogging,omitempty" yaml:"vpnLogging,omitempty"`
+	// PortalAuthLogging enables forwarding of captive portal authentication log messages.
+	PortalAuthLogging bool `json:"portalAuthLogging,omitempty" yaml:"portalAuthLogging,omitempty"`
+	// DPingerLogging enables forwarding of gateway monitoring (dpinger) log messages.
+	DPingerLogging bool `json:"dpingerLogging,omitempty" yaml:"dpingerLogging,omitempty"`
+	// HostapdLogging enables forwarding of wireless access point (hostapd) log messages.
+	HostapdLogging bool `json:"hostapdLogging,omitempty" yaml:"hostapdLogging,omitempty"`
+	// ResolverLogging enables forwarding of DNS resolver log messages.
+	ResolverLogging bool `json:"resolverLogging,omitempty" yaml:"resolverLogging,omitempty"`
+	// PPPLogging enables forwarding of PPP connection log messages.
+	PPPLogging bool `json:"pppLogging,omitempty" yaml:"pppLogging,omitempty"`
+	// IGMPProxyLogging enables forwarding of IGMP proxy log messages.
+	IGMPProxyLogging bool `json:"igmpProxyLogging,omitempty" yaml:"igmpProxyLogging,omitempty"`
 	// RemoteServer is the primary remote syslog server address.
 	RemoteServer string `json:"remoteServer,omitempty" yaml:"remoteServer,omitempty"`
 	// RemoteServer2 is the secondary remote syslog server address.
@@ -360,4 +372,164 @@ type SyslogConfig struct {
 	RotateCount string `json:"rotateCount,omitempty" yaml:"rotateCount,omitempty"`
 	// Format is the syslog message format.
 	Format string `json:"format,omitempty" yaml:"format,omitempty"`
+}
+
+// MonitConfig contains process monitoring (Monit) configuration.
+type MonitConfig struct {
+	// Enabled indicates whether the Monit daemon is active.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// Interval is the monitoring check interval in seconds.
+	Interval string `json:"interval,omitempty" yaml:"interval,omitempty"`
+	// StartDelay is the delay in seconds before Monit starts checking after boot.
+	StartDelay string `json:"startDelay,omitempty" yaml:"startDelay,omitempty"`
+	// MailServer is the SMTP server address for alert delivery.
+	MailServer string `json:"mailServer,omitempty" yaml:"mailServer,omitempty"`
+	// MailPort is the SMTP server port.
+	MailPort string `json:"mailPort,omitempty" yaml:"mailPort,omitempty"`
+	// SSLEnabled enables TLS for SMTP communication.
+	SSLEnabled bool `json:"sslEnabled,omitempty" yaml:"sslEnabled,omitempty"`
+	// HTTPDEnabled enables the Monit web interface.
+	HTTPDEnabled bool `json:"httpdEnabled,omitempty" yaml:"httpdEnabled,omitempty"`
+	// HTTPDPort is the Monit web interface listening port.
+	HTTPDPort string `json:"httpdPort,omitempty" yaml:"httpdPort,omitempty"`
+	// MMonitURL is the M/Monit aggregation server URL.
+	MMonitURL string `json:"mmonitUrl,omitempty" yaml:"mmonitUrl,omitempty"`
+	// Alert contains alert notification settings.
+	Alert *MonitAlert `json:"alert,omitempty" yaml:"alert,omitempty"`
+	// Services contains monitored service definitions.
+	Services []MonitServiceEntry `json:"services,omitempty" yaml:"services,omitempty"`
+	// Tests contains monitoring test definitions.
+	Tests []MonitTest `json:"tests,omitempty" yaml:"tests,omitempty"`
+}
+
+// MonitAlert contains Monit alert notification configuration.
+type MonitAlert struct {
+	// Enabled indicates whether this alert is active.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// Recipient is the email address to receive alerts.
+	Recipient string `json:"recipient,omitempty" yaml:"recipient,omitempty"`
+	// NotOn suppresses alerts for specified events.
+	NotOn string `json:"notOn,omitempty" yaml:"notOn,omitempty"`
+	// Events contains the event types that trigger this alert.
+	Events string `json:"events,omitempty" yaml:"events,omitempty"`
+	// Description is a human-readable description of the alert.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+}
+
+// MonitServiceEntry represents a monitored service definition.
+type MonitServiceEntry struct {
+	// UUID is the unique identifier for this service entry.
+	UUID string `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+	// Enabled indicates whether monitoring of this service is active.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// Name is the service name.
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	// Type is the service monitoring type (e.g., "process", "host", "system", "file").
+	Type string `json:"type,omitempty" yaml:"type,omitempty"`
+	// Description is a human-readable description of the monitored service.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// PIDFile is the path to the service's PID file.
+	PIDFile string `json:"pidFile,omitempty" yaml:"pidFile,omitempty"`
+	// Match is a process name pattern to match.
+	Match string `json:"match,omitempty" yaml:"match,omitempty"`
+	// Path is the filesystem path to monitor (for file/directory checks).
+	Path string `json:"path,omitempty" yaml:"path,omitempty"`
+	// Address is the network address to monitor (for host checks).
+	Address string `json:"address,omitempty" yaml:"address,omitempty"`
+	// Interface is the network interface to monitor.
+	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
+	// Start is the command to start the service.
+	Start string `json:"start,omitempty" yaml:"start,omitempty"`
+	// Stop is the command to stop the service.
+	Stop string `json:"stop,omitempty" yaml:"stop,omitempty"`
+	// Tests contains the test UUIDs applied to this service.
+	Tests string `json:"tests,omitempty" yaml:"tests,omitempty"`
+	// Depends lists service dependencies (other monitored services).
+	Depends string `json:"depends,omitempty" yaml:"depends,omitempty"`
+}
+
+// MonitTest represents a Monit monitoring test definition.
+type MonitTest struct {
+	// UUID is the unique identifier for this test.
+	UUID string `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+	// Name is the test name.
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	// Type is the test type (e.g., "ResourceTesting", "ConnectionTesting").
+	Type string `json:"type,omitempty" yaml:"type,omitempty"`
+	// Condition is the test condition expression (e.g., "memory usage > 90%").
+	Condition string `json:"condition,omitempty" yaml:"condition,omitempty"`
+	// Action is the action to take when the condition is met (e.g., "alert", "restart").
+	Action string `json:"action,omitempty" yaml:"action,omitempty"`
+	// Path is the path to test (for file existence tests).
+	Path string `json:"path,omitempty" yaml:"path,omitempty"`
+}
+
+// NetflowConfig contains NetFlow/IPFIX traffic accounting configuration.
+type NetflowConfig struct {
+	// CaptureInterfaces lists the interfaces to capture flow data from.
+	CaptureInterfaces string `json:"captureInterfaces,omitempty" yaml:"captureInterfaces,omitempty"`
+	// CaptureVersion is the NetFlow protocol version (e.g., "9", "10" for IPFIX).
+	CaptureVersion string `json:"captureVersion,omitempty" yaml:"captureVersion,omitempty"`
+	// EgressOnly captures only egress flows (reduces duplicate accounting).
+	EgressOnly bool `json:"egressOnly,omitempty" yaml:"egressOnly,omitempty"`
+	// CaptureTargets contains flow collector target addresses.
+	CaptureTargets string `json:"captureTargets,omitempty" yaml:"captureTargets,omitempty"`
+	// CollectEnabled enables the local flow collector.
+	CollectEnabled bool `json:"collectEnabled,omitempty" yaml:"collectEnabled,omitempty"`
+	// InactiveTimeout is the timeout for inactive flows in seconds.
+	InactiveTimeout string `json:"inactiveTimeout,omitempty" yaml:"inactiveTimeout,omitempty"`
+	// ActiveTimeout is the timeout for active flows in seconds.
+	ActiveTimeout string `json:"activeTimeout,omitempty" yaml:"activeTimeout,omitempty"`
+}
+
+// TrafficShaperConfig contains QoS/traffic shaping configuration.
+type TrafficShaperConfig struct {
+	// Pipes contains pipe (bandwidth limiter) identifiers.
+	Pipes string `json:"pipes,omitempty" yaml:"pipes,omitempty"`
+	// Queues contains queue (scheduler) identifiers.
+	Queues string `json:"queues,omitempty" yaml:"queues,omitempty"`
+	// Rules contains traffic shaping rule identifiers.
+	Rules string `json:"rules,omitempty" yaml:"rules,omitempty"`
+}
+
+// CaptivePortalConfig contains captive portal configuration.
+type CaptivePortalConfig struct {
+	// Zones contains captive portal zone identifiers.
+	Zones string `json:"zones,omitempty" yaml:"zones,omitempty"`
+	// Templates contains captive portal template identifiers.
+	Templates string `json:"templates,omitempty" yaml:"templates,omitempty"`
+}
+
+// CronConfig contains scheduled task (cron) configuration.
+type CronConfig struct {
+	// Jobs contains cron job identifiers.
+	Jobs string `json:"jobs,omitempty" yaml:"jobs,omitempty"`
+}
+
+// KeaDHCPConfig contains Kea DHCP server configuration (modern DHCP replacement).
+type KeaDHCPConfig struct {
+	// Enabled indicates whether the Kea DHCP4 server is active.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// Interfaces lists the interfaces the Kea server listens on.
+	Interfaces string `json:"interfaces,omitempty" yaml:"interfaces,omitempty"`
+	// FirewallRules indicates whether automatic firewall rules are created.
+	FirewallRules bool `json:"firewallRules,omitempty" yaml:"firewallRules,omitempty"`
+	// ValidLifetime is the default lease valid lifetime in seconds.
+	ValidLifetime string `json:"validLifetime,omitempty" yaml:"validLifetime,omitempty"`
+	// HA contains Kea high-availability settings.
+	HA KeaDHCPHA `json:"ha" yaml:"ha,omitempty"`
+	// Subnets contains Kea DHCP subnet identifiers.
+	Subnets string `json:"subnets,omitempty" yaml:"subnets,omitempty"`
+	// Reservations contains Kea DHCP reservation identifiers.
+	Reservations string `json:"reservations,omitempty" yaml:"reservations,omitempty"`
+}
+
+// KeaDHCPHA contains Kea DHCP high-availability configuration.
+type KeaDHCPHA struct {
+	// Enabled indicates whether Kea DHCP HA is active.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// ThisServerName is the name of this server in the HA pair.
+	ThisServerName string `json:"thisServerName,omitempty" yaml:"thisServerName,omitempty"`
+	// MaxUnackedClients is the number of unacked clients before failover.
+	MaxUnackedClients string `json:"maxUnackedClients,omitempty" yaml:"maxUnackedClients,omitempty"`
 }

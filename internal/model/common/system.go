@@ -89,8 +89,36 @@ type WebGUI struct {
 
 // SSH contains SSH service configuration.
 type SSH struct {
+	// Enabled indicates whether the SSH service is active.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// Port is the SSH listening port.
+	Port string `json:"port,omitempty" yaml:"port,omitempty"`
 	// Group is the system group allowed SSH access.
 	Group string `json:"group,omitempty" yaml:"group,omitempty"`
+}
+
+// TrustConfig contains system-wide TLS and certificate trust settings.
+type TrustConfig struct {
+	// StoreIntermediateCerts enables caching of intermediate CA certificates.
+	StoreIntermediateCerts bool `json:"storeIntermediateCerts,omitempty" yaml:"storeIntermediateCerts,omitempty"`
+	// InstallCRLs enables installation of certificate revocation lists.
+	InstallCRLs bool `json:"installCrls,omitempty" yaml:"installCrls,omitempty"`
+	// FetchCRLs enables automatic fetching of CRLs from distribution points.
+	FetchCRLs bool `json:"fetchCrls,omitempty" yaml:"fetchCrls,omitempty"`
+	// EnableLegacySect enables the OpenSSL legacy provider section.
+	EnableLegacySect bool `json:"enableLegacySect,omitempty" yaml:"enableLegacySect,omitempty"`
+	// EnableConfigConstraints enables certificate configuration constraints.
+	EnableConfigConstraints bool `json:"enableConfigConstraints,omitempty" yaml:"enableConfigConstraints,omitempty"`
+	// CipherString is the OpenSSL cipher string for TLS connections.
+	CipherString string `json:"cipherString,omitempty" yaml:"cipherString,omitempty"`
+	// Ciphersuites is the TLS 1.3 ciphersuite list.
+	Ciphersuites string `json:"ciphersuites,omitempty" yaml:"ciphersuites,omitempty"`
+	// Groups is the list of supported TLS key exchange groups.
+	Groups string `json:"groups,omitempty" yaml:"groups,omitempty"`
+	// MinProtocol is the minimum TLS protocol version (e.g., "TLSv1.2").
+	MinProtocol string `json:"minProtocol,omitempty" yaml:"minProtocol,omitempty"`
+	// MinProtocolDTLS is the minimum DTLS protocol version.
+	MinProtocolDTLS string `json:"minProtocolDtls,omitempty" yaml:"minProtocolDtls,omitempty"`
 }
 
 // Firmware contains firmware and update configuration.

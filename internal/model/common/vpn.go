@@ -16,6 +16,8 @@ type OpenVPNConfig struct {
 	Servers []OpenVPNServer `json:"servers,omitempty" yaml:"servers,omitempty"`
 	// Clients contains OpenVPN client instances.
 	Clients []OpenVPNClient `json:"clients,omitempty" yaml:"clients,omitempty"`
+	// ClientSpecificConfigs contains per-client overrides keyed by certificate common name.
+	ClientSpecificConfigs []OpenVPNCSC `json:"clientSpecificConfigs,omitempty" yaml:"clientSpecificConfigs,omitempty"`
 }
 
 // OpenVPNServer represents an OpenVPN server instance.
@@ -176,4 +178,77 @@ type WireGuardClient struct {
 type IPsecConfig struct {
 	// Enabled indicates whether the IPsec subsystem is active.
 	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// PreferredOldSA prefers old security associations over new ones.
+	PreferredOldSA bool `json:"preferredOldSa,omitempty" yaml:"preferredOldSa,omitempty"`
+	// DisableVPNRules disables automatic firewall rule generation for IPsec.
+	DisableVPNRules bool `json:"disableVpnRules,omitempty" yaml:"disableVpnRules,omitempty"`
+	// PassthroughNetworks contains networks that bypass IPsec processing.
+	PassthroughNetworks string `json:"passthroughNetworks,omitempty" yaml:"passthroughNetworks,omitempty"`
+	// KeyPairs contains IPsec key pair identifiers.
+	KeyPairs string `json:"keyPairs,omitempty" yaml:"keyPairs,omitempty"`
+	// PreSharedKeys contains IPsec pre-shared key identifiers.
+	PreSharedKeys string `json:"preSharedKeys,omitempty" yaml:"preSharedKeys,omitempty"`
+	// Charon contains strongSwan charon daemon settings.
+	Charon IPsecCharon `json:"charon" yaml:"charon,omitempty"`
+}
+
+// IPsecCharon contains strongSwan charon daemon configuration.
+type IPsecCharon struct {
+	// Threads is the number of worker threads for the charon daemon.
+	Threads string `json:"threads,omitempty" yaml:"threads,omitempty"`
+	// IKEsaTableSize is the IKE SA hash table size.
+	IKEsaTableSize string `json:"ikesaTableSize,omitempty" yaml:"ikesaTableSize,omitempty"`
+	// IKEsaTableSegments is the number of IKE SA hash table segments.
+	IKEsaTableSegments string `json:"ikesaTableSegments,omitempty" yaml:"ikesaTableSegments,omitempty"`
+	// MaxIKEv1Exchanges is the maximum number of IKEv1 exchanges before giving up.
+	MaxIKEv1Exchanges string `json:"maxIkev1Exchanges,omitempty" yaml:"maxIkev1Exchanges,omitempty"`
+	// InitLimitHalfOpen is the limit of half-open IKE_SA during initialization.
+	InitLimitHalfOpen string `json:"initLimitHalfOpen,omitempty" yaml:"initLimitHalfOpen,omitempty"`
+	// IgnoreAcquireTS ignores traffic selector proposals from kernel acquire events.
+	IgnoreAcquireTS bool `json:"ignoreAcquireTs,omitempty" yaml:"ignoreAcquireTs,omitempty"`
+	// MakeBeforeBreak enables make-before-break for IKEv2 reauthentication.
+	MakeBeforeBreak bool `json:"makeBeforeBreak,omitempty" yaml:"makeBeforeBreak,omitempty"`
+	// RetransmitTries is the number of retransmit attempts before giving up.
+	RetransmitTries string `json:"retransmitTries,omitempty" yaml:"retransmitTries,omitempty"`
+	// RetransmitTimeout is the initial retransmission timeout in seconds.
+	RetransmitTimeout string `json:"retransmitTimeout,omitempty" yaml:"retransmitTimeout,omitempty"`
+	// RetransmitBase is the base for exponential backoff of retransmissions.
+	RetransmitBase string `json:"retransmitBase,omitempty" yaml:"retransmitBase,omitempty"`
+	// RetransmitJitter is the jitter percentage for retransmit intervals.
+	RetransmitJitter string `json:"retransmitJitter,omitempty" yaml:"retransmitJitter,omitempty"`
+	// RetransmitLimit is the upper limit in seconds for retransmission timeout.
+	RetransmitLimit string `json:"retransmitLimit,omitempty" yaml:"retransmitLimit,omitempty"`
+}
+
+// OpenVPNCSC represents OpenVPN client-specific configuration overrides.
+// These allow per-client settings based on the client's certificate common name.
+type OpenVPNCSC struct {
+	// CommonName is the certificate common name this override applies to.
+	CommonName string `json:"commonName,omitempty" yaml:"commonName,omitempty"`
+	// Block prevents this client from connecting.
+	Block bool `json:"block,omitempty" yaml:"block,omitempty"`
+	// TunnelNetwork is the IPv4 tunnel network override for this client.
+	TunnelNetwork string `json:"tunnelNetwork,omitempty" yaml:"tunnelNetwork,omitempty"`
+	// TunnelNetworkV6 is the IPv6 tunnel network override for this client.
+	TunnelNetworkV6 string `json:"tunnelNetworkV6,omitempty" yaml:"tunnelNetworkV6,omitempty"`
+	// LocalNetwork is the IPv4 local network pushed to this client.
+	LocalNetwork string `json:"localNetwork,omitempty" yaml:"localNetwork,omitempty"`
+	// LocalNetworkV6 is the IPv6 local network pushed to this client.
+	LocalNetworkV6 string `json:"localNetworkV6,omitempty" yaml:"localNetworkV6,omitempty"`
+	// RemoteNetwork is the IPv4 remote network accessible through this client.
+	RemoteNetwork string `json:"remoteNetwork,omitempty" yaml:"remoteNetwork,omitempty"`
+	// RemoteNetworkV6 is the IPv6 remote network accessible through this client.
+	RemoteNetworkV6 string `json:"remoteNetworkV6,omitempty" yaml:"remoteNetworkV6,omitempty"`
+	// GWRedir redirects all client traffic through the VPN gateway.
+	GWRedir bool `json:"gwRedir,omitempty" yaml:"gwRedir,omitempty"`
+	// PushReset clears all previously pushed options before applying overrides.
+	PushReset bool `json:"pushReset,omitempty" yaml:"pushReset,omitempty"`
+	// RemoveRoute removes server-side routes for this client.
+	RemoveRoute bool `json:"removeRoute,omitempty" yaml:"removeRoute,omitempty"`
+	// DNSDomain is the DNS domain override for this client.
+	DNSDomain string `json:"dnsDomain,omitempty" yaml:"dnsDomain,omitempty"`
+	// DNSServers contains DNS server overrides pushed to this client.
+	DNSServers []string `json:"dnsServers,omitempty" yaml:"dnsServers,omitempty"`
+	// NTPServers contains NTP server overrides pushed to this client.
+	NTPServers []string `json:"ntpServers,omitempty" yaml:"ntpServers,omitempty"`
 }
