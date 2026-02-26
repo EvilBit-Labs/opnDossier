@@ -21,7 +21,7 @@ func TestPrepareForExport_PopulatesStatistics(t *testing.T) {
 		},
 	}
 
-	result := prepareForExport(device)
+	result := prepareForExport(device, false)
 
 	require.NotNil(t, result.Statistics, "Statistics should be populated")
 	assert.Equal(t, common.DeviceTypeOPNsense, result.DeviceType, "DeviceType should default to OPNsense")
@@ -37,7 +37,7 @@ func TestPrepareForExport_PreservesExistingDeviceType(t *testing.T) {
 		DeviceType: common.DeviceTypePfSense,
 	}
 
-	result := prepareForExport(device)
+	result := prepareForExport(device, false)
 
 	assert.Equal(t, common.DeviceTypePfSense, result.DeviceType, "Existing DeviceType should be preserved")
 }
@@ -52,7 +52,7 @@ func TestPrepareForExport_PreservesExistingStatistics(t *testing.T) {
 		Statistics: existing,
 	}
 
-	result := prepareForExport(device)
+	result := prepareForExport(device, false)
 
 	assert.Same(t, existing, result.Statistics, "Existing Statistics should be preserved")
 	assert.Equal(t, 42, result.Statistics.TotalInterfaces)
@@ -68,7 +68,7 @@ func TestPrepareForExport_PreservesExistingAnalysis(t *testing.T) {
 		Analysis: existing,
 	}
 
-	result := prepareForExport(device)
+	result := prepareForExport(device, false)
 
 	assert.Same(t, existing, result.Analysis, "Existing Analysis should be preserved")
 }
@@ -80,7 +80,7 @@ func TestPrepareForExport_DoesNotMutateInput(t *testing.T) {
 		System: common.System{Hostname: "original"},
 	}
 
-	result := prepareForExport(device)
+	result := prepareForExport(device, false)
 
 	assert.Equal(t, common.DeviceTypeUnknown, device.DeviceType, "Original should not be mutated")
 	assert.Nil(t, device.Statistics, "Original should not be mutated")
@@ -99,7 +99,7 @@ func TestToJSON_ContainsStatistics(t *testing.T) {
 	}
 
 	c := NewJSONConverter()
-	result, err := c.ToJSON(context.Background(), device)
+	result, err := c.ToJSON(context.Background(), device, false)
 	require.NoError(t, err)
 
 	var parsed map[string]any
@@ -123,7 +123,7 @@ func TestToYAML_ContainsStatistics(t *testing.T) {
 	}
 
 	c := NewYAMLConverter()
-	result, err := c.ToYAML(context.Background(), device)
+	result, err := c.ToYAML(context.Background(), device, false)
 	require.NoError(t, err)
 
 	var parsed map[string]any
@@ -355,7 +355,7 @@ func TestToJSON_ContainsAnalysis(t *testing.T) {
 	}
 
 	c := NewJSONConverter()
-	result, err := c.ToJSON(context.Background(), device)
+	result, err := c.ToJSON(context.Background(), device, false)
 	require.NoError(t, err)
 
 	var parsed map[string]any
@@ -375,7 +375,7 @@ func TestToYAML_ContainsAnalysis(t *testing.T) {
 	}
 
 	c := NewYAMLConverter()
-	result, err := c.ToYAML(context.Background(), device)
+	result, err := c.ToYAML(context.Background(), device, false)
 	require.NoError(t, err)
 
 	var parsed map[string]any
@@ -385,7 +385,7 @@ func TestToYAML_ContainsAnalysis(t *testing.T) {
 	assert.NotNil(t, parsed["analysis"], "YAML output should contain analysis")
 }
 
-func TestJSONOutput_RedactsSensitiveFields(t *testing.T) {
+func TestPrepareForExport_RedactsSensitiveFields_JSON(t *testing.T) {
 	t.Parallel()
 
 	device := &common.CommonDevice{
@@ -408,24 +408,22 @@ func TestJSONOutput_RedactsSensitiveFields(t *testing.T) {
 		},
 	}
 
-	c := NewJSONConverter()
-	result, err := c.ToJSON(context.Background(), device)
-	require.NoError(t, err)
+	exported := prepareForExport(device, true)
 
-	// No raw secret values should appear in the output.
-	assert.NotContains(t, result, "secret123")
-	assert.NotContains(t, result, "supersecret")
-	assert.NotContains(t, result, "private-community")
-	assert.NotContains(t, result, "-----BEGIN RSA PRIVATE KEY-----")
-	assert.NotContains(t, result, "wg-psk-value")
-	assert.NotContains(t, result, "dhcp-secret-key")
-
-	// Redacted placeholder should be present.
-	assert.Contains(t, result, "[REDACTED]")
+	// Verify struct-level redaction of sensitive fields.
+	assert.Equal(t, redactedValue, exported.HighAvailability.Password)
+	assert.Equal(t, redactedValue, exported.Users[0].APIKeys[0].Secret)
+	assert.Equal(t, redactedValue, exported.SNMP.ROCommunity)
+	assert.Equal(t, redactedValue, exported.Certificates[0].PrivateKey)
+	assert.Equal(t, redactedValue, exported.VPN.WireGuard.Clients[0].PSK)
+	assert.Equal(t, redactedValue, exported.DHCP[0].AdvDHCP6KeyInfoStatementSecret)
 
 	// Verify result is valid JSON.
+	result, err := json.MarshalIndent(exported, "", "  ")
+	require.NoError(t, err)
+
 	var parsed map[string]any
-	require.NoError(t, json.Unmarshal([]byte(result), &parsed))
+	require.NoError(t, json.Unmarshal(result, &parsed))
 }
 
 func TestRedactSensitiveFields_HAPassword(t *testing.T) {
@@ -435,7 +433,7 @@ func TestRedactSensitiveFields_HAPassword(t *testing.T) {
 		HighAvailability: common.HighAvailability{Password: "secret123"},
 	}
 
-	result := prepareForExport(device)
+	result := prepareForExport(device, true)
 
 	assert.Equal(t, redactedValue, result.HighAvailability.Password)
 	assert.Equal(t, "secret123", device.HighAvailability.Password, "original not mutated")
@@ -452,7 +450,7 @@ func TestRedactSensitiveFields_CertificatePrivateKeys(t *testing.T) {
 		},
 	}
 
-	result := prepareForExport(device)
+	result := prepareForExport(device, true)
 
 	assert.Equal(t, redactedValue, result.Certificates[0].PrivateKey)
 	assert.Empty(t, result.Certificates[1].PrivateKey, "empty key should stay empty")
@@ -471,7 +469,7 @@ func TestRedactSensitiveFields_CAPrivateKeys(t *testing.T) {
 		},
 	}
 
-	result := prepareForExport(device)
+	result := prepareForExport(device, true)
 
 	assert.Equal(t, redactedValue, result.CAs[0].PrivateKey)
 	assert.Empty(t, result.CAs[1].PrivateKey, "empty key should stay empty")
@@ -495,7 +493,7 @@ func TestRedactSensitiveFields_APIKeySecrets(t *testing.T) {
 		},
 	}
 
-	result := prepareForExport(device)
+	result := prepareForExport(device, true)
 
 	assert.Equal(t, redactedValue, result.Users[0].APIKeys[0].Secret)
 	assert.Equal(t, redactedValue, result.Users[0].APIKeys[1].Secret)
@@ -510,7 +508,7 @@ func TestRedactSensitiveFields_SNMPCommunity(t *testing.T) {
 		SNMP: common.SNMPConfig{ROCommunity: "public"},
 	}
 
-	result := prepareForExport(device)
+	result := prepareForExport(device, true)
 
 	assert.Equal(t, redactedValue, result.SNMP.ROCommunity)
 	assert.Equal(t, "public", device.SNMP.ROCommunity, "original not mutated")
@@ -530,7 +528,7 @@ func TestRedactSensitiveFields_WireGuardPSK(t *testing.T) {
 		},
 	}
 
-	result := prepareForExport(device)
+	result := prepareForExport(device, true)
 
 	assert.Equal(t, redactedValue, result.VPN.WireGuard.Clients[0].PSK)
 	assert.Empty(t, result.VPN.WireGuard.Clients[1].PSK, "empty PSK should stay empty")
@@ -547,7 +545,7 @@ func TestRedactSensitiveFields_DHCPv6Secret(t *testing.T) {
 		},
 	}
 
-	result := prepareForExport(device)
+	result := prepareForExport(device, true)
 
 	assert.Equal(t, redactedValue, result.DHCP[0].AdvDHCP6KeyInfoStatementSecret)
 	assert.Empty(t, result.DHCP[1].AdvDHCP6KeyInfoStatementSecret, "empty secret should stay empty")
@@ -559,7 +557,7 @@ func TestRedactSensitiveFields_EmptyFieldsNotRedacted(t *testing.T) {
 
 	device := &common.CommonDevice{}
 
-	result := prepareForExport(device)
+	result := prepareForExport(device, true)
 
 	assert.Empty(t, result.HighAvailability.Password)
 	assert.Empty(t, result.SNMP.ROCommunity)
@@ -609,4 +607,109 @@ func TestComputeStatistics_NATEntriesCountsBothDirections(t *testing.T) {
 
 	stats := computeStatistics(device)
 	assert.Equal(t, 3, stats.NATEntries, "NATEntries should count both outbound and inbound rules")
+}
+
+func TestPrepareForExport_NoRedact_PreservesSensitiveFields(t *testing.T) {
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		HighAvailability: common.HighAvailability{Password: "secret123"},
+		SNMP:             common.SNMPConfig{ROCommunity: "private-community"},
+		Certificates: []common.Certificate{
+			{Description: "cert1", PrivateKey: "-----BEGIN RSA PRIVATE KEY-----"},
+		},
+		VPN: common.VPN{
+			WireGuard: common.WireGuardConfig{
+				Clients: []common.WireGuardClient{{Name: "peer1", PSK: "wg-psk-value"}},
+			},
+		},
+	}
+
+	result := prepareForExport(device, false)
+
+	assert.Equal(t, "secret123", result.HighAvailability.Password, "HA password should be preserved")
+	assert.Equal(t, "private-community", result.SNMP.ROCommunity, "SNMP community should be preserved")
+	assert.Equal(
+		t,
+		"-----BEGIN RSA PRIVATE KEY-----",
+		result.Certificates[0].PrivateKey,
+		"cert key should be preserved",
+	)
+	assert.Equal(t, "wg-psk-value", result.VPN.WireGuard.Clients[0].PSK, "WireGuard PSK should be preserved")
+	assert.NotContains(t, result.HighAvailability.Password, "[REDACTED]")
+}
+
+func TestComputeStatistics_SNMPCommunityInServiceDetails(t *testing.T) {
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		SNMP: common.SNMPConfig{
+			ROCommunity: "my-community",
+			SysLocation: "office",
+			SysContact:  "admin@example.com",
+		},
+	}
+
+	stats := computeStatistics(device)
+
+	require.NotEmpty(t, stats.ServiceDetails, "ServiceDetails should contain SNMP entry")
+
+	var snmpService *common.ServiceStatistics
+	for i := range stats.ServiceDetails {
+		if stats.ServiceDetails[i].Name == serviceNameSNMP {
+			snmpService = &stats.ServiceDetails[i]
+
+			break
+		}
+	}
+
+	require.NotNil(t, snmpService, "SNMP Daemon should be in ServiceDetails")
+	assert.Equal(t, "my-community", snmpService.Details["community"],
+		"ServiceDetails should contain the actual SNMP community, not [REDACTED]")
+	assert.Equal(t, "office", snmpService.Details["location"])
+	assert.Equal(t, "admin@example.com", snmpService.Details["contact"])
+}
+
+func TestPrepareForExport_Redact_SNMPCommunityInServiceDetails(t *testing.T) {
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		SNMP: common.SNMPConfig{
+			ROCommunity: "secret-community",
+			SysLocation: "datacenter",
+			SysContact:  "ops@example.com",
+		},
+	}
+
+	result := prepareForExport(device, true)
+
+	// The top-level SNMP field should be redacted.
+	assert.Equal(t, redactedValue, result.SNMP.ROCommunity)
+
+	// Statistics.ServiceDetails should also have the community redacted.
+	require.NotNil(t, result.Statistics, "Statistics should be populated")
+
+	var snmpService *common.ServiceStatistics
+	for i := range result.Statistics.ServiceDetails {
+		if result.Statistics.ServiceDetails[i].Name == serviceNameSNMP {
+			snmpService = &result.Statistics.ServiceDetails[i]
+
+			break
+		}
+	}
+
+	require.NotNil(t, snmpService, "SNMP Daemon should be in ServiceDetails")
+	assert.Equal(t, redactedValue, snmpService.Details["community"],
+		"ServiceDetails community should be redacted")
+	assert.Equal(t, "datacenter", snmpService.Details["location"],
+		"Non-sensitive details should be preserved")
+	assert.Equal(t, "ops@example.com", snmpService.Details["contact"],
+		"Non-sensitive details should be preserved")
+
+	// Original device must not be mutated.
+	assert.Equal(t, "secret-community", device.SNMP.ROCommunity, "original not mutated")
+}
+
+func TestNewFieldsSerialization(t *testing.T) {
+	RunNewFieldsSerializationTests(t)
 }

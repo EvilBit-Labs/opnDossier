@@ -220,6 +220,28 @@ func TestBuildConversionOptions(t *testing.T) {
 	}
 }
 
+func TestBuildConversionOptionsRedact(t *testing.T) {
+	origRedact := sharedRedact
+	t.Cleanup(func() { sharedRedact = origRedact })
+
+	tests := []struct {
+		name     string
+		redact   bool
+		expected bool
+	}{
+		{name: "redact enabled", redact: true, expected: true},
+		{name: "redact disabled", redact: false, expected: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sharedRedact = tt.redact
+			result := buildConversionOptions("json", nil)
+			assert.Equal(t, tt.expected, result.Redact)
+		})
+	}
+}
+
 func TestBuildConversionOptionsWrapWidthPrecedence(t *testing.T) {
 	originalWrap := sharedWrapWidth
 	originalNoWrap := sharedNoWrap

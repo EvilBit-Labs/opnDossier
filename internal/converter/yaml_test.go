@@ -24,7 +24,7 @@ func TestYAMLConverter_ToYAML(t *testing.T) {
 
 	c := NewYAMLConverter()
 	convertFunc := func(ctx context.Context, data *common.CommonDevice) (string, error) {
-		return c.ToYAML(ctx, data)
+		return c.ToYAML(ctx, data, false)
 	}
 	RunConverterTests(t, tests, convertFunc)
 }

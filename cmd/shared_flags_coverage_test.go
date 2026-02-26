@@ -67,6 +67,11 @@ func TestAddSharedTemplateFlagsComprehensive(t *testing.T) {
 					t.Errorf("Template flag %s should NOT be present", flag)
 				}
 			}
+
+			// Redact flag lives in addSharedRedactFlag, not here
+			if cmd.Flags().Lookup("redact") != nil {
+				t.Error("Redact flag should NOT be present in addSharedTemplateFlags")
+			}
 		})
 	}
 }

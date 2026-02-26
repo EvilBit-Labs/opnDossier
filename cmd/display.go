@@ -27,6 +27,8 @@ func init() {
 	addSharedTemplateFlags(displayCmd)
 	// Add display-specific flags
 	addDisplayFlags(displayCmd)
+	// Add shared redact flag
+	addSharedRedactFlag(displayCmd)
 
 	// Register flag completion functions for better tab completion
 	registerDisplayFlagCompletions(displayCmd)
@@ -108,6 +110,9 @@ Examples:
 
   # Display without text wrapping (using --wrap 0)
   opnDossier display --wrap 0 config.xml
+
+  # Redact sensitive fields from terminal output
+  opnDossier display --redact config.xml
 
   # Display with verbose logging to see processing details
   opnDossier --verbose display config.xml
@@ -252,6 +257,9 @@ func buildDisplayOptions(cfg *config.Config) converter.Options {
 	}
 
 	opt.Comprehensive = sharedComprehensive
+
+	// Redact: CLI flag only
+	opt.Redact = sharedRedact
 
 	return opt
 }

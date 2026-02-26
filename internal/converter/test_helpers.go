@@ -3,6 +3,8 @@ package converter
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
@@ -129,9 +131,10 @@ func assertNewFieldsPresent(t *testing.T, parsed map[string]any) {
 	assert.Equal(t, "[REDACTED]", cert["privateKey"], "privateKey should be redacted")
 }
 
-// TestNewFieldsSerialization verifies that all new CommonDevice fields appear
+// RunNewFieldsSerializationTests verifies that all new CommonDevice fields appear
 // in both JSON and YAML serialization output and that sensitive data is redacted.
-func TestNewFieldsSerialization(t *testing.T) {
+func RunNewFieldsSerializationTests(t *testing.T) {
+	t.Helper()
 	t.Parallel()
 
 	device := newFieldsTestDevice()
@@ -140,7 +143,7 @@ func TestNewFieldsSerialization(t *testing.T) {
 		t.Parallel()
 
 		c := NewJSONConverter()
-		result, err := c.ToJSON(context.Background(), device)
+		result, err := c.ToJSON(context.Background(), device, true)
 		require.NoError(t, err)
 
 		var parsed map[string]any
@@ -154,7 +157,7 @@ func TestNewFieldsSerialization(t *testing.T) {
 		t.Parallel()
 
 		c := NewYAMLConverter()
-		result, err := c.ToYAML(context.Background(), device)
+		result, err := c.ToYAML(context.Background(), device, true)
 		require.NoError(t, err)
 
 		var parsed map[string]any
@@ -163,4 +166,19 @@ func TestNewFieldsSerialization(t *testing.T) {
 
 		assertNewFieldsPresent(t, parsed)
 	})
+}
+
+// loadTestDataFromFile reads and unmarshals a CommonDevice from a JSON file in testdata/.
+func loadTestDataFromFile(t *testing.T, filename string) *common.CommonDevice {
+	t.Helper()
+
+	path := filepath.Join("testdata", filename)
+	data, err := os.ReadFile(path)
+	require.NoError(t, err, "Failed to read test data file: %s", filename)
+
+	var doc common.CommonDevice
+	err = json.Unmarshal(data, &doc)
+	require.NoError(t, err, "Failed to unmarshal test data: %s", filename)
+
+	return &doc
 }

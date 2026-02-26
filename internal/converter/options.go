@@ -92,6 +92,10 @@ type Options struct {
 
 	// SuppressWarnings suppresses non-critical warnings.
 	SuppressWarnings bool
+
+	// Redact controls whether sensitive fields (passwords, private keys, community strings, etc.)
+	// are replaced with [REDACTED] in the output. Defaults to false.
+	Redact bool
 }
 
 // DefaultOptions returns an Options initialized with the package's default settings for report generation.
@@ -114,6 +118,7 @@ func DefaultOptions() Options {
 			"IncludeTunables": false,
 		},
 		SuppressWarnings: false,
+		Redact:           false,
 	}
 }
 
@@ -207,5 +212,11 @@ func (o Options) WithComprehensive(enabled bool) Options {
 // WithSuppressWarnings enables or disables warning suppression.
 func (o Options) WithSuppressWarnings(suppress bool) Options {
 	o.SuppressWarnings = suppress
+	return o
+}
+
+// WithRedact enables or disables sensitive field redaction.
+func (o Options) WithRedact(redact bool) Options {
+	o.Redact = redact
 	return o
 }
