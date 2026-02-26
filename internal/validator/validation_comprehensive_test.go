@@ -503,9 +503,7 @@ func TestSampleConfig2_ZeroValidationErrors(t *testing.T) {
 			Hostname: "TestHost2",
 			Domain:   "test.local",
 			WebGUI:   schema.WebGUIConfig{Protocol: "https"},
-			SSH: struct {
-				Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
-			}{Group: "admins"},
+			SSH:      schema.SSHConfig{Group: "admins"},
 		},
 		Interfaces: schema.Interfaces{
 			Items: map[string]schema.Interface{
