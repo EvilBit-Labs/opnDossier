@@ -148,4 +148,11 @@ func TestCanonicalizeIPField(t *testing.T) {
 			assert.Equal(t, tt.want, field)
 		})
 	}
+
+	t.Run("nil pointer does not panic", func(t *testing.T) {
+		t.Parallel()
+		assert.NotPanics(t, func() {
+			canonicalizeIPField(nil)
+		})
+	})
 }

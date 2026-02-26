@@ -14,7 +14,8 @@ func (p *CoreProcessor) normalize(cfg *common.CommonDevice) *common.CommonDevice
 	// Create a shallow copy, then deep-copy slices that will be mutated
 	normalized := *cfg
 
-	// Deep-copy slices to avoid mutating the original
+	// Deep-copy slices to avoid mutating the original.
+	// NOTE: Update this list when adding new slice fields to CommonDevice.
 	normalized.FirewallRules = slices.Clone(cfg.FirewallRules)
 	normalized.Users = slices.Clone(cfg.Users)
 	normalized.Groups = slices.Clone(cfg.Groups)
@@ -118,7 +119,7 @@ func (p *CoreProcessor) sortSlices(cfg *common.CommonDevice) {
 // canonicalizeIPField normalizes an IP/CIDR field in-place, converting bare IPs
 // to CIDR notation and canonical form. Non-IP values (aliases, interface names) are left unchanged.
 func canonicalizeIPField(field *string) {
-	if *field == "" || isSpecialNetworkType(*field) {
+	if field == nil || *field == "" || isSpecialNetworkType(*field) {
 		return
 	}
 	if _, cidr, err := net.ParseCIDR(*field); err == nil {
