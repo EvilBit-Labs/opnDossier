@@ -18,12 +18,14 @@ func NewYAMLConverter() *YAMLConverter {
 }
 
 // ToYAML converts a device configuration to YAML.
-func (c *YAMLConverter) ToYAML(_ context.Context, data *common.CommonDevice) (string, error) {
+// When redact is true, sensitive fields (passwords, private keys, community strings)
+// are replaced with [REDACTED] in the output.
+func (c *YAMLConverter) ToYAML(_ context.Context, data *common.CommonDevice, redact bool) (string, error) {
 	if data == nil {
 		return "", ErrNilDevice
 	}
 
-	target := prepareForExport(data, false)
+	target := prepareForExport(data, redact)
 
 	// Marshal the CommonDevice struct to YAML
 	yamlBytes, err := yaml.Marshal(target)

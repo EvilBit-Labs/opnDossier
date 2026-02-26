@@ -99,7 +99,7 @@ func TestToJSON_ContainsStatistics(t *testing.T) {
 	}
 
 	c := NewJSONConverter()
-	result, err := c.ToJSON(context.Background(), device)
+	result, err := c.ToJSON(context.Background(), device, false)
 	require.NoError(t, err)
 
 	var parsed map[string]any
@@ -123,7 +123,7 @@ func TestToYAML_ContainsStatistics(t *testing.T) {
 	}
 
 	c := NewYAMLConverter()
-	result, err := c.ToYAML(context.Background(), device)
+	result, err := c.ToYAML(context.Background(), device, false)
 	require.NoError(t, err)
 
 	var parsed map[string]any
@@ -355,7 +355,7 @@ func TestToJSON_ContainsAnalysis(t *testing.T) {
 	}
 
 	c := NewJSONConverter()
-	result, err := c.ToJSON(context.Background(), device)
+	result, err := c.ToJSON(context.Background(), device, false)
 	require.NoError(t, err)
 
 	var parsed map[string]any
@@ -375,7 +375,7 @@ func TestToYAML_ContainsAnalysis(t *testing.T) {
 	}
 
 	c := NewYAMLConverter()
-	result, err := c.ToYAML(context.Background(), device)
+	result, err := c.ToYAML(context.Background(), device, false)
 	require.NoError(t, err)
 
 	var parsed map[string]any
@@ -708,4 +708,8 @@ func TestPrepareForExport_Redact_SNMPCommunityInServiceDetails(t *testing.T) {
 
 	// Original device must not be mutated.
 	assert.Equal(t, "secret-community", device.SNMP.ROCommunity, "original not mutated")
+}
+
+func TestNewFieldsSerialization(t *testing.T) {
+	RunNewFieldsSerializationTests(t)
 }

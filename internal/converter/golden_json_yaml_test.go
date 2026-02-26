@@ -84,11 +84,13 @@ func normalizedBytesEqual(actual, expected []byte) bool {
 	return bytes.Equal(normalizeSerializedOutput(actual), normalizeSerializedOutput(expected))
 }
 
-// normalizeSerializedOutput trims trailing whitespace and newlines from serialized output.
+// normalizeSerializedOutput normalizes line endings and trims trailing whitespace
+// from serialized output for cross-platform golden file comparison.
 // No timestamp normalization is needed because prepareForExport does not inject
 // time-based values into JSON/YAML output.
 func normalizeSerializedOutput(output []byte) []byte {
-	result := strings.TrimRight(string(output), "\n\t ")
+	result := strings.ReplaceAll(string(output), "\r\n", "\n")
+	result = strings.TrimRight(result, "\n\t ")
 
 	return []byte(result)
 }
