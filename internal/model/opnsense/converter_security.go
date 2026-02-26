@@ -62,7 +62,7 @@ func (c *Converter) convertPackages(doc *schema.OpnSenseDocument) []common.Packa
 	for _, name := range names {
 		result = append(result, common.Package{
 			Name:      name,
-			Type:      "plugin",
+			Type:      packageTypePlugin,
 			Installed: true,
 		})
 	}

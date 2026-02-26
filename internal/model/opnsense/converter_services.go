@@ -21,7 +21,7 @@ func (c *Converter) convertDHCP(doc *schema.OpnSenseDocument) []common.DHCPScope
 		d := items[key]
 		scope := common.DHCPScope{
 			Interface:  key,
-			Enabled:    d.Enable == "1",
+			Enabled:    d.Enable == xmlBoolTrue,
 			Range:      common.DHCPRange{From: d.Range.From, To: d.Range.To},
 			Gateway:    d.Gateway,
 			DNSServer:  d.Dnsserver,
@@ -140,9 +140,9 @@ func (c *Converter) convertDNS(doc *schema.OpnSenseDocument) common.DNSConfig {
 	return common.DNSConfig{
 		Servers: strings.Fields(doc.System.DNSServer),
 		Unbound: common.UnboundConfig{
-			Enabled:        doc.Unbound.Enable == "1",
-			DNSSEC:         doc.Unbound.Dnssec == "1",
-			DNSSECStripped: doc.Unbound.Dnssecstripped == "1",
+			Enabled:        doc.Unbound.Enable == xmlBoolTrue,
+			DNSSEC:         doc.Unbound.Dnssec == xmlBoolTrue,
+			DNSSECStripped: doc.Unbound.Dnssecstripped == xmlBoolTrue,
 		},
 		DNSMasq: common.DNSMasqConfig{
 			Enabled:         bool(doc.DNSMasquerade.Enable),
@@ -233,9 +233,9 @@ func (c *Converter) convertVPN(doc *schema.OpnSenseDocument) common.VPN {
 // convertIPsec maps *schema.IPsec to common.IPsecConfig.
 func (c *Converter) convertIPsec(ipsec *schema.IPsec) common.IPsecConfig {
 	return common.IPsecConfig{
-		Enabled:             ipsec.General.Enabled == "1",
-		PreferredOldSA:      ipsec.General.PreferredOldsa == "1",
-		DisableVPNRules:     ipsec.General.Disablevpnrules == "1",
+		Enabled:             ipsec.General.Enabled == xmlBoolTrue,
+		PreferredOldSA:      ipsec.General.PreferredOldsa == xmlBoolTrue,
+		DisableVPNRules:     ipsec.General.Disablevpnrules == xmlBoolTrue,
 		PassthroughNetworks: ipsec.General.PassthroughNetworks,
 		KeyPairs:            ipsec.KeyPairs,
 		PreSharedKeys:       ipsec.PreSharedKeys,
@@ -245,8 +245,8 @@ func (c *Converter) convertIPsec(ipsec *schema.IPsec) common.IPsecConfig {
 			IKEsaTableSegments: ipsec.Charon.IkesaTableSegments,
 			MaxIKEv1Exchanges:  ipsec.Charon.MaxIkev1Exchanges,
 			InitLimitHalfOpen:  ipsec.Charon.InitLimitHalfOpen,
-			IgnoreAcquireTS:    ipsec.Charon.IgnoreAcquireTs == "1",
-			MakeBeforeBreak:    ipsec.Charon.MakeBeforeBreak == "1",
+			IgnoreAcquireTS:    ipsec.Charon.IgnoreAcquireTs == xmlBoolTrue,
+			MakeBeforeBreak:    ipsec.Charon.MakeBeforeBreak == xmlBoolTrue,
 			RetransmitTries:    ipsec.Charon.RetransmitTries,
 			RetransmitTimeout:  ipsec.Charon.RetransmitTimeout,
 			RetransmitBase:     ipsec.Charon.RetransmitBase,
@@ -364,13 +364,13 @@ func (c *Converter) convertOpenVPNClients(clients []schema.OpenVPNClient) []comm
 // convertWireGuard maps *schema.WireGuard to common.WireGuardConfig.
 func (c *Converter) convertWireGuard(wg *schema.WireGuard) common.WireGuardConfig {
 	cfg := common.WireGuardConfig{
-		Enabled: wg.General.Enabled == "1",
+		Enabled: wg.General.Enabled == xmlBoolTrue,
 	}
 
 	for _, s := range wg.Server.Servers.Server {
 		cfg.Servers = append(cfg.Servers, common.WireGuardServer{
 			UUID:          s.UUID,
-			Enabled:       s.Enabled == "1",
+			Enabled:       s.Enabled == xmlBoolTrue,
 			Name:          s.Name,
 			PublicKey:     s.Pubkey,
 			Port:          s.Port,
@@ -384,7 +384,7 @@ func (c *Converter) convertWireGuard(wg *schema.WireGuard) common.WireGuardConfi
 	for _, cl := range wg.Client.Clients.Client {
 		cfg.Clients = append(cfg.Clients, common.WireGuardClient{
 			UUID:          cl.UUID,
-			Enabled:       cl.Enabled == "1",
+			Enabled:       cl.Enabled == xmlBoolTrue,
 			Name:          cl.Name,
 			PublicKey:     cl.Pubkey,
 			PSK:           cl.PSK,
@@ -427,7 +427,7 @@ func (c *Converter) convertGateways(gws []schema.Gateway) []common.Gateway {
 			Disabled:       bool(gw.Disabled),
 			DefaultGW:      gw.DefaultGW,
 			MonitorDisable: gw.MonitorDisable,
-			FarGW:          gw.FarGW == "1",
+			FarGW:          gw.FarGW == xmlBoolTrue,
 		})
 	}
 
