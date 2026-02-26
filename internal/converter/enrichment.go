@@ -624,7 +624,6 @@ func prepareForExport(data *common.CommonDevice) *common.CommonDevice {
 // field mapping and never appear in CommonDevice:
 //   - OpenVPN TLS keys (schema.OpenVPNServer.TLS, schema.OpenVPNSystem.StaticKeys)
 //   - IPsec pre-shared keys (schema.IPsec.PreSharedKeys)
-//   - Certificate authority private keys
 //   - WireGuard private keys (only public keys are mapped; PSKs are mapped but redacted below)
 //
 // If new secret fields are added to common.*, they MUST be added here.
@@ -640,6 +639,16 @@ func redactSensitiveFields(cp *common.CommonDevice) {
 		for i := range cp.Certificates {
 			if cp.Certificates[i].PrivateKey != "" {
 				cp.Certificates[i].PrivateKey = redactedValue
+			}
+		}
+	}
+
+	// CA private keys (present for locally-created CAs)
+	if len(cp.CAs) > 0 {
+		cp.CAs = slices.Clone(cp.CAs)
+		for i := range cp.CAs {
+			if cp.CAs[i].PrivateKey != "" {
+				cp.CAs[i].PrivateKey = redactedValue
 			}
 		}
 	}

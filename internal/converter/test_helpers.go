@@ -93,7 +93,9 @@ func newFieldsTestDevice() *common.CommonDevice {
 		Certificates: []common.Certificate{
 			{RefID: "cert-001", Description: "Test Cert", PrivateKey: "dGVzdC1rZXktbm90LXJlYWw="},
 		},
-		CAs:      []common.CertificateAuthority{{RefID: "ca-001", Description: "Test CA"}},
+		CAs: []common.CertificateAuthority{
+			{RefID: "ca-001", Description: "Test CA", PrivateKey: "dGVzdC1jYS1rZXktbm90LXJlYWw="},
+		},
 		Packages: []common.Package{{Name: "os-acme-client", Installed: true}},
 	}
 }

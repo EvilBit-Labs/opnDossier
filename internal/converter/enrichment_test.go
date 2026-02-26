@@ -460,6 +460,25 @@ func TestRedactSensitiveFields_CertificatePrivateKeys(t *testing.T) {
 	assert.Equal(t, "-----BEGIN RSA PRIVATE KEY-----", device.Certificates[0].PrivateKey, "original not mutated")
 }
 
+func TestRedactSensitiveFields_CAPrivateKeys(t *testing.T) {
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		CAs: []common.CertificateAuthority{
+			{Description: "ca1", PrivateKey: "-----BEGIN RSA PRIVATE KEY-----"},
+			{Description: "ca2", PrivateKey: ""},
+			{Description: "ca3", PrivateKey: "-----BEGIN EC PRIVATE KEY-----"},
+		},
+	}
+
+	result := prepareForExport(device)
+
+	assert.Equal(t, redactedValue, result.CAs[0].PrivateKey)
+	assert.Empty(t, result.CAs[1].PrivateKey, "empty key should stay empty")
+	assert.Equal(t, redactedValue, result.CAs[2].PrivateKey)
+	assert.Equal(t, "-----BEGIN RSA PRIVATE KEY-----", device.CAs[0].PrivateKey, "original not mutated")
+}
+
 func TestRedactSensitiveFields_APIKeySecrets(t *testing.T) {
 	t.Parallel()
 
