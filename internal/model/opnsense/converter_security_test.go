@@ -137,9 +137,11 @@ func TestConverter_CAs_FieldMapping(t *testing.T) {
 	doc := schema.NewOpnSenseDocument()
 	doc.CAs = []schema.CertificateAuthority{
 		{
-			Refid: "4dad3002120e0",
-			Descr: "Internal Root CA",
-			Crt:   "MIIDxTCCAq2gAw...",
+			Refid:  "4dad3002120e0",
+			Descr:  "Internal Root CA",
+			Crt:    "MIIDxTCCAq2gAw...",
+			Prv:    "MIIEvgIBADANBg...",
+			Serial: "3",
 		},
 	}
 
@@ -151,6 +153,8 @@ func TestConverter_CAs_FieldMapping(t *testing.T) {
 	assert.Equal(t, "4dad3002120e0", ca.RefID)
 	assert.Equal(t, "Internal Root CA", ca.Description)
 	assert.Equal(t, "MIIDxTCCAq2gAw...", ca.Certificate)
+	assert.Equal(t, "MIIEvgIBADANBg...", ca.PrivateKey)
+	assert.Equal(t, "3", ca.Serial)
 }
 
 func TestConverter_Packages(t *testing.T) {

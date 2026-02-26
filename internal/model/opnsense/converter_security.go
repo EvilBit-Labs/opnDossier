@@ -41,6 +41,8 @@ func (c *Converter) convertCAs(doc *schema.OpnSenseDocument) []common.Certificat
 			RefID:       ca.Refid,
 			Description: ca.Descr,
 			Certificate: ca.Crt,
+			PrivateKey:  ca.Prv,
+			Serial:      ca.Serial,
 		})
 	}
 
