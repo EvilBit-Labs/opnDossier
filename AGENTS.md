@@ -10,6 +10,12 @@ This document consolidates all development standards, architectural principles, 
 
 ---
 
+## Code Quality Policy
+
+- **Zero tolerance for tech debt.** Never dismiss warnings, lint failures, or CI errors as "pre-existing" or "not from our changes." If CI fails, investigate and fix it — regardless of when the issue was introduced. Every session should leave the codebase better than it found it.
+
+---
+
 ## 1. Rule Precedence
 
 **CRITICAL - Rules are applied in the following order:**
@@ -146,28 +152,9 @@ opndossier/
 
 ### 5.2 Error Handling
 
-```go
-// Always wrap errors with context using %w
-if err := validateConfig(config); err != nil {
-return nil, fmt.Errorf("config validation failed: %w", err)
-}
-
-// Use errors.Is() and errors.As() for checking
-var parseErr *ParseError
-if errors.As(err, &parseErr) {
-// Handle parse-specific error
-}
-
-// Create domain-specific error types
-type ParseError struct {
-Message string
-Line    int
-}
-
-func (e *ParseError) Error() string {
-return fmt.Sprintf("parse error at line %d: %s", e.Line, e.Message)
-}
-```
+- Always wrap errors with context using `fmt.Errorf("...: %w", err)`
+- Use `errors.Is()` and `errors.As()` for checking (not type assertions)
+- Create domain-specific error types for structured error handling
 
 ### 5.3 Logging
 
@@ -197,36 +184,13 @@ This replaces `slog.InfoContext(ctx, ...)` — never simply drop `ctx` from logg
 
 ### 5.4 Documentation
 
-```go
-// Package parser provides functionality for parsing OPNsense configuration files.
-package parser
-
-// ParseConfig reads and parses an OPNsense configuration file.
-// It returns a structured representation or an error if parsing fails.
-func ParseConfig(filename string) (*Config, error) {
-  // implementation
-}
-```
-
 - Start comments with the name of the thing being described
 - Use complete sentences
 - Include examples for complex functionality
 
 ### 5.5 Import Organization
 
-```go
-import (
-// Standard library
-"fmt"
-"os"
-
-// Third-party
-"github.com/spf13/cobra"
-
-// Internal
-"github.com/project/internal/cfgparser"
-)
-```
+Group imports: standard library → third-party → internal, separated by blank lines.
 
 ### 5.6 Thread Safety
 
@@ -259,50 +223,16 @@ if cfg.Filter.Rule != nil {
 
 ### 5.7 CommandContext Pattern (CLI Dependency Injection)
 
-The `cmd` package uses `CommandContext` to inject dependencies into subcommands:
-
-```go
-// cmd/context.go - CommandContext encapsulates command dependencies
-type CommandContext struct {
-    Config *config.Config
-    Logger *log.Logger
-}
-
-// Access in subcommands via:
-cmdCtx := GetCommandContext(cmd)
-if cmdCtx == nil {
-    return errors.New("command context not initialized")
-}
-logger := cmdCtx.Logger
-config := cmdCtx.Config
-```
-
-**Key points:**
+The `cmd` package uses `CommandContext` (see `cmd/context.go`) to inject dependencies into subcommands:
 
 - `PersistentPreRunE` in `root.go` creates and sets the context after config loading
 - Flag variables remain package-level (required by Cobra's binding mechanism)
-- Config and logger are unexported (`cfg`, `logger`) - accessed only via `CommandContext`
+- Config and logger are unexported (`cfg`, `logger`) — accessed only via `CommandContext`
 - Use `GetCommandContext()` for safe access and handle the nil case explicitly
-
-**Pattern benefits:**
-
-- Explicit dependency injection (not hidden global state)
-- Testable: create mock `CommandContext` in tests
-- Type-safe context key avoids collisions
 
 ### 5.8 Context Key Types
 
-Always use typed context keys to avoid `revive` linter `context-keys-type` warnings:
-
-```go
-// Good - typed key
-type contextKey string
-const myKey contextKey = "myValue"
-ctx = context.WithValue(ctx, myKey, value)
-
-// Bad - raw string (linter warning)
-ctx = context.WithValue(ctx, "myKey", value)
-```
+Always use typed context keys (`type contextKey string`) to avoid `revive` linter `context-keys-type` warnings. Never use raw strings as context keys.
 
 ### 5.9 Streaming Interface Pattern
 
@@ -371,102 +301,13 @@ Place standalone development tools in `tools/<name>/main.go` with `//go:build ig
 
 ### 5.14 Markdown Generation (`nao1215/markdown`)
 
-Use `nao1215/markdown` for programmatic markdown generation in `internal/converter/builder/`. Prefer library methods over manual string construction.
+Use `nao1215/markdown` for programmatic markdown generation in `internal/converter/builder/`. Always prefer library methods over manual string construction:
 
-**Method chaining - Use fluent builder pattern:**
-
-```go
-// Idiomatic - chain methods and terminate with Build()
-md.NewMarkdown(os.Stdout).
-    H1("Report Title").
-    PlainText("Introduction paragraph").
-    H2("Section").
-    BulletList("Item 1", "Item 2").
-    Table(tableSet).
-    Build()
-
-// Alternative - use String() when capturing output
-var buf bytes.Buffer
-md := markdown.NewMarkdown(&buf)
-md.H1("Title").
-    PlainText(markdown.Italic("subtitle")).
-    Table(data)
-return md.String()
-```
-
-**Lists - Use `BulletList()` with `Link()` helper:**
-
-```go
-// Good - idiomatic
-md.BulletList(
-    markdown.Link("System Configuration", "#system-configuration"),
-    markdown.Link("Interfaces", "#interfaces"),
-)
-
-// Bad - manual construction
-md.PlainText("- [System Configuration](#system-configuration)")
-md.PlainText("- [Interfaces](#interfaces)")
-```
-
-**Alerts - Use semantic alert methods:**
-
-```go
-// Good - renders as GitHub-flavored markdown alert
-md.Warning("NAT reflection is enabled, which may expose internal services.")
-md.Note("Phase 1/Phase 2 tunnels require additional configuration.")
-md.Tip("Consider enabling hardware offloading for better performance.")
-md.Caution("This action cannot be undone.")
-
-// Bad - manual formatting
-md.PlainText("**⚠️ Warning**: NAT reflection is enabled...")
-md.PlainText("*Note: Phase 1/Phase 2 tunnels require...*")
-```
-
-**Text formatting - Use helper functions:**
-
-```go
-// Good
-md.PlainText(markdown.Italic("No VLANs configured"))
-md.PlainTextf("Status: %s", markdown.Bold("Active"))
-linkText := markdown.Link("documentation", "https://example.com")
-
-// Bad
-md.PlainText("*No VLANs configured*")
-md.PlainText("Status: **Active**")
-```
-
-**Available methods reference:**
-
-| Method                     | Purpose         | Output           |
-| -------------------------- | --------------- | ---------------- |
-| `BulletList(items...)`     | Unordered list  | `- item`         |
-| `OrderedList(items...)`    | Numbered list   | `1. item`        |
-| `Warning(text)`            | Warning alert   | `> [!WARNING]`   |
-| `Note(text)`               | Note alert      | `> [!NOTE]`      |
-| `Tip(text)`                | Tip alert       | `> [!TIP]`       |
-| `Caution(text)`            | Caution alert   | `> [!CAUTION]`   |
-| `Important(text)`          | Important alert | `> [!IMPORTANT]` |
-| `Details(summary, text)`   | Collapsible     | `<details>`      |
-| `HorizontalRule()`         | Separator       | `---`            |
-| `markdown.Link(text, url)` | Hyperlink       | `[text](url)`    |
-| `markdown.Bold(text)`      | Bold text       | `**text**`       |
-| `markdown.Italic(text)`    | Italic text     | `*text*`         |
-| `markdown.Code(text)`      | Inline code     | `` `text` ``     |
-
-**Inline tables - Chain with headers:**
-
-```go
-// Good - chain table with header
-md.H4("Section Title").
-    Table(markdown.TableSet{
-        Header: []string{"Col1", "Col2"},
-        Rows:   rows,
-    })
-
-// Bad - separate calls break the chain
-md.H4("Section Title")
-md.Table(markdown.TableSet{...})
-```
+- Use fluent builder pattern: chain `.H1().PlainText().Table().Build()`
+- Use `BulletList()` with `markdown.Link()` — not manual `"- [text](url)"`
+- Use semantic alerts: `Warning()`, `Note()`, `Tip()`, `Caution()`, `Important()` — not manual `> [!WARNING]`
+- Use helper functions: `markdown.Bold()`, `markdown.Italic()`, `markdown.Code()`, `markdown.Link()`
+- Chain tables with headers: `md.H4("Title").Table(tableSet)` — not separate calls
 
 ### 5.15 Slice Pre-allocation
 
@@ -506,52 +347,13 @@ if err := outputFile.Sync(); err != nil {
 
 ### 5.18 Comparison Function Patterns
 
-When writing functions that compare two structs:
-
-- Always handle nil inputs at the start of comparison functions
+- Always handle nil inputs at the start of comparison functions (both-nil → nil, one-nil → added/removed)
 - Use `slices.Equal()` for comparing slice fields (not manual iteration)
-- Pattern for nil-safe comparisons:
-
-```go
-func CompareItems(old, new *Item) []Change {
-    if old == nil && new == nil {
-        return nil
-    }
-    if old == nil {
-        return []Change{{Type: ChangeAdded, Description: "Item added"}}
-    }
-    if new == nil {
-        return []Change{{Type: ChangeRemoved, Description: "Item removed"}}
-    }
-    // Compare fields...
-}
-```
-
 - For map-like types with `Get()` methods, check return signature: many return `(value, bool)` not `(value, error)`
 
 ### 5.19 Stats Tracking Pattern
 
-When a helper function updates stats and may be called multiple times for fallback logic:
-
-```go
-// Bad - stats incremented twice if first call skips
-result := s.process(pathA, value)  // increments stats
-if result == value {
-    result = s.process(pathB, value)  // increments stats again
-}
-
-// Good - check first, update stats once
-should, rule := s.shouldProcess(pathA, value)
-if !should {
-    should, rule = s.shouldProcess(pathB, value)
-}
-if should {
-    stats.Processed++
-    result = s.doProcess(value, rule)
-} else {
-    stats.Skipped++
-}
-```
+Separate check logic from stats updates. Never increment stats inside a function that may be called multiple times for fallback logic — check all candidates first, then update stats once based on the outcome.
 
 ### 5.20 XML Escaping
 
@@ -711,49 +513,7 @@ All report generation uses programmatic Go code via `builder.MarkdownBuilder` (n
 
 ### 6.4 Modular Report Generator Architecture
 
-Each report generator should be a **self-contained Go module** that can be included or excluded via build flags. This architecture enables Pro-level features and independent development of report types.
-
-**What Each Report Module Should Contain:**
-
-- All generation logic (markdown construction, section building)
-- All calculation logic (security scoring, risk assessment, statistics)
-- All data transformations specific to that report type
-- Report-specific constants and mappings
-
-**What Should Remain Shared:**
-
-- `model.OpnSenseDocument` - The parsed configuration model
-- Shared helpers (string formatting, markdown escaping, table building)
-- Common interfaces (`ReportBuilder`, `Generator`)
-
-**Build Flag Integration:**
-
-```go
-//go:build pro
-
-package reports
-
-// Pro-level report generators included only with -tags=pro
-```
-
-**Implementation Pattern:**
-
-```go
-// Each report module is self-contained
-type BlueTeamGenerator struct {
-    // All state for blue team reports
-}
-
-func (g *BlueTeamGenerator) Generate(doc *model.OpnSenseDocument) (string, error) {
-    // Uses only model and shared helpers
-    // All calculations are internal to this module
-    score := g.calculateSecurityScore(doc)  // Internal method
-    findings := g.analyzeCompliance(doc)    // Internal method
-    return g.buildReport(doc, score, findings)
-}
-```
-
-See [Architecture Documentation](docs/development/architecture.md#modular-report-generator-architecture) for detailed design.
+Each report generator is a **self-contained module** with all generation, calculation, and transformation logic. Shared: `model.OpnSenseDocument`, common interfaces (`ReportBuilder`, `Generator`), and helpers. Pro-level generators use `//go:build pro` tags. See [Architecture Documentation](docs/development/architecture.md#modular-report-generator-architecture) for detailed design.
 
 ---
 
@@ -761,32 +521,7 @@ See [Architecture Documentation](docs/development/architecture.md#modular-report
 
 ### 7.1 Test Organization
 
-```go
-func TestParseConfig_ValidXML_ReturnsConfig(t *testing.T) {
-tests := []struct {
-name    string
-input   string
-want    *Config
-wantErr bool
-}{
-{
-name:    "valid config",
-input:   "<opnsense>...</opnsense>",
-want:    &Config{},
-wantErr: false,
-},
-}
-
-for _, tt := range tests {
-t.Run(tt.name, func (t *testing.T) {
-got, err := ParseConfig(tt.input)
-if (err != nil) != tt.wantErr {
-t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
-}
-})
-}
-}
-```
+Use table-driven tests with subtests (`t.Run`). Always call `t.Parallel()` on both parent test and subtests.
 
 ### 7.2 Test Requirements
 
@@ -883,49 +618,16 @@ This pattern ensures test isolation when multiple tests modify the same global s
 | `internal/audit/plugin_manager.go`  | `PluginManager` for lifecycle operations         |
 | `internal/plugins/`                 | Built-in plugin implementations                  |
 
-### 8.2 Plugin Interface
+### 8.2 Plugin Development
 
-All plugins must implement `compliance.Plugin`:
-
-```go
-type Plugin interface {
-Name() string
-Version() string
-Description() string
-RunChecks(device *common.CommonDevice) []Finding
-GetControls() []Control
-GetControlByID(id string) (*Control, error)
-ValidateConfiguration() error
-}
-```
-
-### 8.3 Plugin Development
-
-```go
-import (
-    "github.com/EvilBit-Labs/opnDossier/internal/compliance"
-    "github.com/EvilBit-Labs/opnDossier/internal/model/common"
-)
-
-type Plugin struct {
-controls []compliance.Control
-}
-
-func NewPlugin() *Plugin {
-return &Plugin{controls: initControls()}
-}
-
-func (p *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
-// Implement compliance checks
-}
-```
+All plugins implement `compliance.Plugin` (see `internal/compliance/interfaces.go`).
 
 - Import `internal/model/common`, not `internal/model`
 - Use consistent control naming: `PLUGIN-001`, `PLUGIN-002`
 - Severity levels: `critical`, `high`, `medium`, `low`
 - Dynamic plugins: export `var Plugin compliance.Plugin`
 
-### 8.4 Compliance Standards
+### 8.3 Compliance Standards
 
 | Standard | Control Pattern | Location                     |
 | -------- | --------------- | ---------------------------- |
@@ -1111,34 +813,9 @@ When encountering problems:
 
 ---
 
-## 13. Documentation Standards
+## 13. Requirements Management
 
-### 13.1 Writing Style
-
-- **Concise**: Prefer clear explanations over verbose descriptions
-- **Consistent**: Maintain consistent style across all files
-- **Clear**: Use direct language that avoids ambiguity
-
-### 13.2 Formatting
-
-- Standard markdown formatting
-- Consistent heading hierarchy (H1 → H2 → H3)
-- Proper syntax highlighting for code blocks
-- Descriptive link text
-
-### 13.3 Validation
-
-```bash
-just format                     # Format markdown
-markdownlint **/*.md           # Validate syntax
-just ci-check                  # Comprehensive checks
-```
-
----
-
-## 14. Requirements Management
-
-### 14.1 Document Relationships
+### 13.1 Document Relationships
 
 | Document          | Purpose                          |
 | ----------------- | -------------------------------- |
@@ -1146,47 +823,13 @@ just ci-check                  # Comprehensive checks
 | `tasks.md`        | HOW to implement requirements    |
 | `user_stories.md` | WHY requirements matter to users |
 
-### 14.2 Task Structure
-
-```markdown
-- [ ] **TASK-###**: Task Title
-  - **Context**: Why this task is needed
-  - **Requirement**: F###
-  - **User Story**: US-###
-  - **Action**: Implementation steps
-  - **Acceptance**: Completion criteria
-```
-
-### 14.3 Task States
-
-| Symbol | State       |
-| ------ | ----------- |
-| `[ ]`  | Not started |
-| `[-]`  | In progress |
-| `[x]`  | Completed   |
-
 ---
 
-## 15. CLI Usage Examples
-
-```bash
-# Convert configurations
-./opndossier convert config.xml --format markdown
-./opndossier convert config.xml --format json -o output.json
-./opndossier convert config.xml --format yaml --force
-
-# Display configuration
-./opndossier display config.xml
-
-# Validate configuration
-./opndossier validate config.xml
-```
-
-## 16. Open-Source Quality Standards (OSSF Best Practices)
+## 14. Open-Source Quality Standards (OSSF Best Practices)
 
 This project has the OSSF Best Practices passing badge. Maintain these standards:
 
-### 16.1 Every PR Must
+### 14.1 Every PR Must
 
 - Sign off commits with `git commit -s` (DCO enforced by GitHub App)
 - Pass CI (golangci-lint, gofumpt, tests, CodeQL, Grype) before merge
@@ -1194,13 +837,13 @@ This project has the OSSF Best Practices passing badge. Maintain these standards
 - Be reviewed (human or CodeRabbit) for correctness, safety, and style
 - Not introduce `panic()` in library code, unchecked errors, or unvalidated input
 
-### 16.2 Every Release Must
+### 14.2 Every Release Must
 
 - Have human-readable release notes via git-cliff (not raw git log)
 - Use unique SemVer identifiers (`vX.Y.Z` tags)
 - Be built reproducibly (pinned toolchain, committed `go.sum`, GoReleaser)
 
-### 16.3 Security
+### 14.3 Security
 
 - Vulnerabilities go through private reporting (GitHub advisories or <support@evilbitlabs.io>), never public issues
 - Grype and Snyk run in CI -- fix findings promptly
@@ -1208,7 +851,7 @@ This project has the OSSF Best Practices passing badge. Maintain these standards
 - `docs/security/vulnerability-scanning.md` documents scanning thresholds and remediation process
 - `docs/security/security-assurance.md` must be updated when new attack surface is introduced
 
-### 16.4 Documentation
+### 14.4 Documentation
 
 - Exported APIs require godoc comments with examples where appropriate
 - CONTRIBUTING.md documents code review criteria, test policy, DCO, and governance
