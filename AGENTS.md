@@ -453,6 +453,18 @@ func (s *Spinner) stop() {
 
 `internal/processor/validate.go` maintains lightweight validation whitelists (powerd modes, optimization values, etc.) that must stay in sync with the authoritative `internal/validator/opnsense.go`. When updating allowed values in either package, grep for the same whitelist in the other and update both.
 
+### 5.25 Duplicate Code Detection in Tests
+
+The `dupl` linter flags structurally similar test files (e.g., `json_test.go` and `yaml_test.go`). When JSON and YAML tests share device construction and assertions, extract shared logic into `test_helpers.go` (e.g., `newFieldsTestDevice()`, `assertNewFieldsPresent()`) and use a single `Test*` function with subtests for each format. If the files remain structurally similar despite extraction, add `//nolint:dupl` on the package line.
+
+### 5.26 Statistics Struct Synchronization
+
+When adding fields to `common.Statistics`, update three places:
+
+1. The struct definition in `internal/model/common/enrichment.go`
+2. Population logic in `computeStatistics()` in `internal/converter/enrichment.go`
+3. The sum in `computeTotalConfigItems()` in the same file
+
 ---
 
 ## 6. Data Processing Standards
@@ -483,6 +495,7 @@ func (s *Spinner) stop() {
 - It populates `Statistics`, `Analysis`, `SecurityAssessment`, and `PerformanceMetrics` on a shallow copy
 - Cannot import `internal/processor` (circular dependency) — analysis/statistics logic is mirrored, not shared
 - New `CommonDevice` enrichment fields must be wired here to appear in JSON/YAML output
+- `computeStatistics` receives *unredacted* data (for accurate presence checks); sensitive values copied into `ServiceDetails` must be post-processed by `redactStatisticsServiceDetails()` when `redact=true`
 
 **Port field disambiguation:**
 
@@ -514,6 +527,20 @@ All report generation uses programmatic Go code via `builder.MarkdownBuilder` (n
 ### 6.4 Modular Report Generator Architecture
 
 Each report generator is a **self-contained module** with all generation, calculation, and transformation logic. Shared: `model.OpnSenseDocument`, common interfaces (`ReportBuilder`, `Generator`), and helpers. Pro-level generators use `//go:build pro` tags. See [Architecture Documentation](docs/development/architecture.md#modular-report-generator-architecture) for detailed design.
+
+### 6.5 cfgparser/Schema Synchronization
+
+`internal/cfgparser/xml.go` switch cases reference `OpnSenseDocument` fields by name. When renaming fields or changing types (e.g., singular → slice), update the cfgparser cases too. For slice fields, `decodeSection` can't decode a single XML element into a slice — use the temp-variable-and-append pattern:
+
+```go
+case "ca":
+    var ca schema.CertificateAuthority
+    if err := decodeSection(dec, &ca, se); err != nil {
+        return err
+    }
+    doc.CAs = append(doc.CAs, ca)
+    return nil
+```
 
 ---
 
