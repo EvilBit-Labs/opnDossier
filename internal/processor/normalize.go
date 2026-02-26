@@ -14,16 +14,21 @@ func (p *CoreProcessor) normalize(cfg *common.CommonDevice) *common.CommonDevice
 	// Create a shallow copy, then deep-copy slices that will be mutated
 	normalized := *cfg
 
-	// Deep-copy slices to avoid mutating the original.
-	// NOTE: Update this list when adding new slice fields to CommonDevice.
+	// Deep-copy slices that normalize mutates or that contain sensitive data.
+	// Mutated by sortSlices/canonicalizeAddresses — clone required for correctness:
 	normalized.FirewallRules = slices.Clone(cfg.FirewallRules)
 	normalized.Users = slices.Clone(cfg.Users)
 	normalized.Groups = slices.Clone(cfg.Groups)
 	normalized.Sysctl = slices.Clone(cfg.Sysctl)
 	normalized.LoadBalancer.MonitorTypes = slices.Clone(cfg.LoadBalancer.MonitorTypes)
+	// Defensive clones — not mutated by normalize phases, but contain sensitive
+	// fields that downstream code must not accidentally leak back to the caller.
 	normalized.Certificates = slices.Clone(cfg.Certificates)
 	normalized.DHCP = slices.Clone(cfg.DHCP)
 	normalized.VPN.WireGuard.Clients = slices.Clone(cfg.VPN.WireGuard.Clients)
+	// Other CommonDevice slices (Interfaces, VLANs, Bridges, CAs, etc.) are
+	// intentionally not cloned — normalize does not mutate them, and the
+	// downstream analyze pipeline is read-only on the config.
 
 	// Phase 1: Fill defaults
 	p.fillDefaults(&normalized)
