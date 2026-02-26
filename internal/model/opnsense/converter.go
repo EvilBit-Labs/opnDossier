@@ -62,6 +62,13 @@ func (c *Converter) ToCommonDevice(doc *schema.OpnSenseDocument) (*common.Common
 		Certificates:     c.convertCertificates(doc),
 		CAs:              c.convertCAs(doc),
 		Packages:         c.convertPackages(doc),
+		Monit:            c.convertMonit(doc),
+		Netflow:          c.convertNetflow(doc),
+		TrafficShaper:    c.convertTrafficShaper(doc),
+		CaptivePortal:    c.convertCaptivePortal(doc),
+		Cron:             c.convertCron(doc),
+		Trust:            c.convertTrust(doc),
+		KeaDHCP:          c.convertKeaDHCP(doc),
 	}
 
 	return device, nil
@@ -102,11 +109,15 @@ func (c *Converter) convertSystem(doc *schema.OpnSenseDocument) common.System {
 		Bogons:                        common.Bogons{Interval: sys.Bogons.Interval},
 		Notes:                         sys.Notes,
 		WebGUI: common.WebGUI{
-			Protocol:   sys.WebGUI.Protocol,
-			SSLCertRef: sys.WebGUI.SSLCertRef,
+			Protocol:          sys.WebGUI.Protocol,
+			SSLCertRef:        sys.WebGUI.SSLCertRef,
+			LoginAutocomplete: bool(sys.WebGUI.LoginAutocomplete),
+			MaxProcesses:      sys.WebGUI.MaxProcesses,
 		},
 		SSH: common.SSH{
-			Group: sys.SSH.Group,
+			Enabled: bool(sys.SSH.Enabled),
+			Port:    sys.SSH.Port,
+			Group:   sys.SSH.Group,
 		},
 		Firmware: common.Firmware{
 			Version: sys.Firmware.Version,

@@ -213,8 +213,9 @@ func (c *Converter) convertForwarders(fwds []schema.ForwarderGroup) []common.For
 func (c *Converter) convertVPN(doc *schema.OpnSenseDocument) common.VPN {
 	vpn := common.VPN{
 		OpenVPN: common.OpenVPNConfig{
-			Servers: c.convertOpenVPNServers(doc.OpenVPN.Servers),
-			Clients: c.convertOpenVPNClients(doc.OpenVPN.Clients),
+			Servers:               c.convertOpenVPNServers(doc.OpenVPN.Servers),
+			Clients:               c.convertOpenVPNClients(doc.OpenVPN.Clients),
+			ClientSpecificConfigs: c.convertOpenVPNCSCs(doc.OpenVPN.CSC),
 		},
 	}
 
@@ -223,12 +224,65 @@ func (c *Converter) convertVPN(doc *schema.OpnSenseDocument) common.VPN {
 	}
 
 	if doc.OPNsense.IPsec != nil {
-		vpn.IPsec = common.IPsecConfig{
-			Enabled: doc.OPNsense.IPsec.General.Enabled == "1",
-		}
+		vpn.IPsec = c.convertIPsec(doc.OPNsense.IPsec)
 	}
 
 	return vpn
+}
+
+// convertIPsec maps *schema.IPsec to common.IPsecConfig.
+func (c *Converter) convertIPsec(ipsec *schema.IPsec) common.IPsecConfig {
+	return common.IPsecConfig{
+		Enabled:             ipsec.General.Enabled == "1",
+		PreferredOldSA:      ipsec.General.PreferredOldsa == "1",
+		DisableVPNRules:     ipsec.General.Disablevpnrules == "1",
+		PassthroughNetworks: ipsec.General.PassthroughNetworks,
+		KeyPairs:            ipsec.KeyPairs,
+		PreSharedKeys:       ipsec.PreSharedKeys,
+		Charon: common.IPsecCharon{
+			Threads:            ipsec.Charon.Threads,
+			IKEsaTableSize:     ipsec.Charon.IkesaTableSize,
+			IKEsaTableSegments: ipsec.Charon.IkesaTableSegments,
+			MaxIKEv1Exchanges:  ipsec.Charon.MaxIkev1Exchanges,
+			InitLimitHalfOpen:  ipsec.Charon.InitLimitHalfOpen,
+			IgnoreAcquireTS:    ipsec.Charon.IgnoreAcquireTs == "1",
+			MakeBeforeBreak:    ipsec.Charon.MakeBeforeBreak == "1",
+			RetransmitTries:    ipsec.Charon.RetransmitTries,
+			RetransmitTimeout:  ipsec.Charon.RetransmitTimeout,
+			RetransmitBase:     ipsec.Charon.RetransmitBase,
+			RetransmitJitter:   ipsec.Charon.RetransmitJitter,
+			RetransmitLimit:    ipsec.Charon.RetransmitLimit,
+		},
+	}
+}
+
+// convertOpenVPNCSCs maps []schema.OpenVPNCSC to []common.OpenVPNCSC.
+func (c *Converter) convertOpenVPNCSCs(cscs []schema.OpenVPNCSC) []common.OpenVPNCSC {
+	if len(cscs) == 0 {
+		return nil
+	}
+
+	result := make([]common.OpenVPNCSC, 0, len(cscs))
+	for _, csc := range cscs {
+		result = append(result, common.OpenVPNCSC{
+			CommonName:      csc.Common_name,
+			Block:           bool(csc.Block),
+			TunnelNetwork:   csc.Tunnel_network,
+			TunnelNetworkV6: csc.Tunnel_networkv6,
+			LocalNetwork:    csc.Local_network,
+			LocalNetworkV6:  csc.Local_networkv6,
+			RemoteNetwork:   csc.Remote_network,
+			RemoteNetworkV6: csc.Remote_networkv6,
+			GWRedir:         bool(csc.Gwredir),
+			PushReset:       bool(csc.Push_reset),
+			RemoveRoute:     bool(csc.Remove_route),
+			DNSDomain:       csc.DNS_domain,
+			DNSServers:      collectNonEmpty(csc.DNS_server1, csc.DNS_server2, csc.DNS_server3, csc.DNS_server4),
+			NTPServers:      collectNonEmpty(csc.NTP_server1, csc.NTP_server2),
+		})
+	}
+
+	return result
 }
 
 // convertOpenVPNServers maps []schema.OpenVPNServer to []common.OpenVPNServer.
@@ -473,20 +527,26 @@ func (c *Converter) convertSyslog(doc *schema.OpnSenseDocument) common.SyslogCon
 	sl := doc.Syslog
 
 	return common.SyslogConfig{
-		Enabled:       bool(sl.Enable),
-		SystemLogging: bool(sl.System),
-		AuthLogging:   bool(sl.Auth),
-		FilterLogging: bool(sl.Filter),
-		DHCPLogging:   bool(sl.Dhcp),
-		VPNLogging:    bool(sl.VPN),
-		RemoteServer:  sl.Remoteserver,
-		RemoteServer2: sl.Remoteserver2,
-		RemoteServer3: sl.Remoteserver3,
-		SourceIP:      sl.Sourceip,
-		IPProtocol:    sl.IPProtocol,
-		LogFileSize:   sl.LogFilesize,
-		RotateCount:   sl.RotateCount,
-		Format:        sl.Format,
+		Enabled:           bool(sl.Enable),
+		SystemLogging:     bool(sl.System),
+		AuthLogging:       bool(sl.Auth),
+		FilterLogging:     bool(sl.Filter),
+		DHCPLogging:       bool(sl.Dhcp),
+		VPNLogging:        bool(sl.VPN),
+		PortalAuthLogging: bool(sl.Portalauth),
+		DPingerLogging:    bool(sl.DPinger),
+		HostapdLogging:    bool(sl.Hostapd),
+		ResolverLogging:   bool(sl.Resolver),
+		PPPLogging:        bool(sl.PPP),
+		IGMPProxyLogging:  bool(sl.IgmpProxy),
+		RemoteServer:      sl.Remoteserver,
+		RemoteServer2:     sl.Remoteserver2,
+		RemoteServer3:     sl.Remoteserver3,
+		SourceIP:          sl.Sourceip,
+		IPProtocol:        sl.IPProtocol,
+		LogFileSize:       sl.LogFilesize,
+		RotateCount:       sl.RotateCount,
+		Format:            sl.Format,
 	}
 }
 
