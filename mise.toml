@@ -16,7 +16,7 @@ node                                        = "25.6.1"
 "pipx:mkdocs"                               = { version = "1.6.1", uvx_args = "--with mkdocs-material --with pymdown-extensions" }
 pre-commit                                  = "4.5.1"
 python                                      = "3.14.3"
-uv                                          = "latest"
+uv                                          = "0.10.6"
 
 [settings]
 activate_aggressive = true
