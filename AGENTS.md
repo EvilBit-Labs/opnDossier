@@ -10,6 +10,12 @@ This document consolidates all development standards, architectural principles, 
 
 ---
 
+## Code Quality Policy
+
+- **Zero tolerance for tech debt.** Never dismiss warnings, lint failures, or CI errors as "pre-existing" or "not from our changes." If CI fails, investigate and fix it — regardless of when the issue was introduced. Every session should leave the codebase better than it found it.
+
+---
+
 ## 1. Rule Precedence
 
 **CRITICAL - Rules are applied in the following order:**
