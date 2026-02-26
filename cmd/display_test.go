@@ -33,6 +33,7 @@ type sharedFlagSnapshot struct {
 	sections      []string
 	comprehensive bool
 	deviceType    string
+	redact        bool
 }
 
 func captureSharedFlags() sharedFlagSnapshot {
@@ -43,6 +44,7 @@ func captureSharedFlags() sharedFlagSnapshot {
 		sections:      sharedSections,
 		comprehensive: sharedComprehensive,
 		deviceType:    sharedDeviceType,
+		redact:        sharedRedact,
 	}
 }
 
@@ -53,6 +55,7 @@ func (s sharedFlagSnapshot) restore() {
 	sharedSections = s.sections
 	sharedComprehensive = s.comprehensive
 	sharedDeviceType = s.deviceType
+	sharedRedact = s.redact
 }
 
 func captureStderr(t *testing.T, fn func()) string {
@@ -203,6 +206,28 @@ func TestBuildDisplayOptionsWrapWidthZeroDisablesWrapping(t *testing.T) {
 
 	result := buildDisplayOptions(cfg)
 	assert.Equal(t, 0, result.WrapWidth)
+}
+
+func TestBuildDisplayOptionsRedact(t *testing.T) {
+	snapshot := captureSharedFlags()
+	t.Cleanup(snapshot.restore)
+
+	tests := []struct {
+		name     string
+		redact   bool
+		expected bool
+	}{
+		{name: "redact enabled", redact: true, expected: true},
+		{name: "redact disabled", redact: false, expected: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sharedRedact = tt.redact
+			result := buildDisplayOptions(nil)
+			assert.Equal(t, tt.expected, result.Redact)
+		})
+	}
 }
 
 func TestValidateDisplayFlagsWrapWidthWarning(t *testing.T) {

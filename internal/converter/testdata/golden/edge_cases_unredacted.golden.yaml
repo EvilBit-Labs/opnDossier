@@ -1,0 +1,161 @@
+device_type: opnsense
+system:
+    hostname: edge-case-test!@#$%^&*()
+    domain: domain*with*asterisks
+    language: invalid_locale
+    timezone: GMT+12:45
+interfaces:
+    - {}
+    - name: invalid-interface
+      physicalIf: nonexistent0
+      description: "Interface with | pipes | and \n newlines"
+      ipAddress: 999.999.999.999
+      subnet: "999"
+    - name: interface*with*chars
+      physicalIf: eth0
+      description: Interface with *asterisks* and _underscores_
+      enabled: true
+      ipAddress: 192.168.1.100
+      subnet: "24"
+    - name: interface`with`backticks
+      physicalIf: eth1
+      description: Interface with `code` and \backslashes\
+      enabled: true
+      ipAddress: 192.168.2.100
+      subnet: "24"
+firewallRules:
+    - {}
+    - type: unknown
+      description: "Rule with | pipes | and \n newlines \t tabs"
+      ipProtocol: invalid
+      protocol: unknown
+      source:
+        address: invalid-network
+      destination:
+        address: another|invalid|network
+    - type: pass
+      description: Rule with *bold* and _italic_ text
+      interfaces:
+        - wan
+      ipProtocol: inet
+      protocol: tcp
+      source:
+        address: source[with]brackets
+      destination:
+        address: dest<with>angles
+    - type: block
+      description: Rule with `code` and \backslash\ characters
+      interfaces:
+        - lan
+      ipProtocol: inet
+      protocol: udp
+      source:
+        address: source\with\backslashes
+      destination:
+        address: dest`with`backticks
+users:
+    - description: User with empty name
+    - name: user-with-special-chars!@#
+      description: |-
+        User
+        with
+        newlines
+        and	tabs
+      scope: unknown
+      groupName: group|with|pipes
+    - name: user_with_underscores
+      description: User with *bold* and _italic_ text
+      scope: scope<with>angles
+      groupName: group[with]brackets
+    - name: user`with`backticks
+      description: User with `code` and \backslash\ characters
+      scope: scope|with|pipes
+      groupName: group\with\backslashes
+groups:
+    - {}
+    - name: group*with*asterisks
+      description: Group with _underscores_ and `backticks`
+      scope: scope[with]brackets
+sysctl:
+    - {}
+    - tunable: invalid.tunable.with.pipes|and|newlines
+      value: |-
+        value
+        with
+        newlines
+      description: "Description with | pipes | and \n newlines \t tabs"
+    - tunable: tunable*with*asterisks
+      value: value_with_underscores
+      description: Description with *bold* and _italic_ text
+    - tunable: tunable[with]brackets
+      value: value<with>angles
+      description: Description with [brackets] and <angles>
+    - tunable: tunable`with`backticks
+      value: value\with\backslashes
+      description: Description with `code` and \backslash\ characters
+statistics:
+    totalInterfaces: 4
+    interfacesByType:
+        "": 4
+    interfaceDetails:
+        - {}
+        - name: invalid-interface
+          hasIpv4: true
+        - name: interface*with*chars
+          enabled: true
+          hasIpv4: true
+        - name: interface`with`backticks
+          enabled: true
+          hasIpv4: true
+    totalFirewallRules: 4
+    rulesByInterface:
+        lan: 1
+        wan: 1
+    rulesByType:
+        "": 1
+        block: 1
+        pass: 1
+        unknown: 1
+    totalUsers: 4
+    usersByScope:
+        "": 1
+        scope<with>angles: 1
+        scope|with|pipes: 1
+        unknown: 1
+    totalGroups: 2
+    groupsByScope:
+        "": 1
+        scope[with]brackets: 1
+    sysctlSettings: 5
+    summary:
+        totalConfigItems: 19
+        securityScore: 20
+        configComplexity: 6
+analysis:
+    unusedInterfaces:
+        - interfaceName: interface*with*chars
+          description: Interface INTERFACE*WITH*CHARS is enabled but not used in any rules or services
+          recommendation: Consider disabling unused interface or add appropriate rules
+        - interfaceName: interface`with`backticks
+          description: Interface INTERFACE`WITH`BACKTICKS is enabled but not used in any rules or services
+          recommendation: Consider disabling unused interface or add appropriate rules
+    consistencyIssues:
+        - component: system.user[1].groupname
+          issue: User References Non-existent Group
+          severity: medium
+          description: User user-with-special-chars!@# references group group|with|pipes which does not exist
+          recommendation: Create the referenced group or update user's group assignment
+        - component: system.user[2].groupname
+          issue: User References Non-existent Group
+          severity: medium
+          description: User user_with_underscores references group group[with]brackets which does not exist
+          recommendation: Create the referenced group or update user's group assignment
+        - component: system.user[3].groupname
+          issue: User References Non-existent Group
+          severity: medium
+          description: User user`with`backticks references group group\with\backslashes which does not exist
+          recommendation: Create the referenced group or update user's group assignment
+securityAssessment:
+    overallScore: 20
+performanceMetrics:
+    configComplexity: 6

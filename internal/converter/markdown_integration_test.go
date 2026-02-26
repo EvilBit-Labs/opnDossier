@@ -1,10 +1,7 @@
 package converter
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -339,20 +336,6 @@ func TestMarkdownBuilder_MarkdownValidation(t *testing.T) {
 }
 
 // Helper functions for tests
-
-func loadTestDataFromFile(t *testing.T, filename string) *common.CommonDevice {
-	t.Helper()
-
-	path := filepath.Join("testdata", filename)
-	data, err := os.ReadFile(path)
-	require.NoError(t, err, "Failed to read test data file: %s", filename)
-
-	var doc common.CommonDevice
-	err = json.Unmarshal(data, &doc)
-	require.NoError(t, err, "Failed to unmarshal test data: %s", filename)
-
-	return &doc
-}
 
 func validateTableStructure(t *testing.T, table any, tableName string) {
 	t.Helper()
