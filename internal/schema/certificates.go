@@ -7,7 +7,10 @@ import (
 
 // CertificateAuthority represents certificate authority configuration.
 type CertificateAuthority struct {
-	XMLName xml.Name `xml:"ca" json:"-" yaml:"-"`
+	XMLName xml.Name `xml:"ca"              json:"-"               yaml:"-"`
+	Refid   string   `xml:"refid,omitempty" json:"refid,omitempty" yaml:"refid,omitempty"`
+	Descr   string   `xml:"descr,omitempty" json:"descr,omitempty" yaml:"descr,omitempty"`
+	Crt     string   `xml:"crt,omitempty"   json:"crt,omitempty"   yaml:"crt,omitempty"`
 }
 
 // DHCPv6Server represents DHCPv6 server configuration.

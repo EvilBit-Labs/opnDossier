@@ -7,42 +7,42 @@ import (
 
 // OpnSenseDocument is the root of the OPNsense configuration.
 type OpnSenseDocument struct {
-	XMLName              xml.Name             `xml:"opnsense"                         json:"-"                    yaml:"-"`
-	Version              string               `xml:"version,omitempty"                json:"version,omitempty"    yaml:"version,omitempty"              validate:"omitempty,semver"`
-	TriggerInitialWizard BoolFlag             `xml:"trigger_initial_wizard,omitempty" json:"triggerInitialWizard" yaml:"triggerInitialWizard,omitempty"`
-	Theme                string               `xml:"theme,omitempty"                  json:"theme,omitempty"      yaml:"theme,omitempty"                validate:"omitempty,oneof=opnsense opnsense-ng bootstrap"`
-	Sysctl               []SysctlItem         `xml:"sysctl,omitempty"                 json:"sysctl,omitempty"     yaml:"sysctl,omitempty"               validate:"dive"`
-	System               System               `xml:"system,omitempty"                 json:"system"               yaml:"system,omitempty"               validate:"required"`
-	Interfaces           Interfaces           `xml:"interfaces,omitempty"             json:"interfaces"           yaml:"interfaces,omitempty"           validate:"required"`
-	Dhcpd                Dhcpd                `xml:"dhcpd,omitempty"                  json:"dhcpd"                yaml:"dhcpd,omitempty"`
-	Unbound              Unbound              `xml:"unbound,omitempty"                json:"unbound"              yaml:"unbound,omitempty"`
-	Snmpd                Snmpd                `xml:"snmpd,omitempty"                  json:"snmpd"                yaml:"snmpd,omitempty"`
-	Nat                  Nat                  `xml:"nat,omitempty"                    json:"nat"                  yaml:"nat,omitempty"`
-	Filter               Filter               `xml:"filter,omitempty"                 json:"filter"               yaml:"filter,omitempty"`
-	Rrd                  Rrd                  `xml:"rrd,omitempty"                    json:"rrd"                  yaml:"rrd,omitempty"`
-	LoadBalancer         LoadBalancer         `xml:"load_balancer,omitempty"          json:"loadBalancer"         yaml:"loadBalancer,omitempty"`
-	Ntpd                 Ntpd                 `xml:"ntpd,omitempty"                   json:"ntpd"                 yaml:"ntpd,omitempty"`
-	Widgets              Widgets              `xml:"widgets,omitempty"                json:"widgets"              yaml:"widgets,omitempty"`
-	Revision             Revision             `xml:"revision,omitempty"               json:"revision"             yaml:"revision,omitempty"`
-	Gateways             Gateways             `xml:"gateways,omitempty"               json:"gateways"             yaml:"gateways,omitempty"`
-	HighAvailabilitySync HighAvailabilitySync `xml:"hasync,omitempty"                 json:"hasync"               yaml:"hasync,omitempty"`
-	InterfaceGroups      InterfaceGroups      `xml:"ifgroups,omitempty"               json:"ifgroups"             yaml:"ifgroups,omitempty"`
-	GIFInterfaces        GIFInterfaces        `xml:"gifs,omitempty"                   json:"gifs"                 yaml:"gifs,omitempty"`
-	GREInterfaces        GREInterfaces        `xml:"gres,omitempty"                   json:"gres"                 yaml:"gres,omitempty"`
-	LAGGInterfaces       LAGGInterfaces       `xml:"laggs,omitempty"                  json:"laggs"                yaml:"laggs,omitempty"`
-	VirtualIP            VirtualIP            `xml:"virtualip,omitempty"              json:"virtualip"            yaml:"virtualip,omitempty"`
-	VLANs                VLANs                `xml:"vlans,omitempty"                  json:"vlans"                yaml:"vlans,omitempty"`
-	OpenVPN              OpenVPN              `xml:"openvpn,omitempty"                json:"openvpn"              yaml:"openvpn,omitempty"`
-	StaticRoutes         StaticRoutes         `xml:"staticroutes,omitempty"           json:"staticroutes"         yaml:"staticroutes,omitempty"`
-	Bridges              BridgesConfig        `xml:"bridges,omitempty"                json:"bridges"              yaml:"bridges,omitempty"`
-	PPPInterfaces        PPPInterfaces        `xml:"ppps,omitempty"                   json:"ppps"                 yaml:"ppps,omitempty"`
-	Wireless             Wireless             `xml:"wireless,omitempty"               json:"wireless"             yaml:"wireless,omitempty"`
-	CertificateAuthority CertificateAuthority `xml:"ca,omitempty"                     json:"ca"                   yaml:"ca,omitempty"`
-	DHCPv6Server         DHCPv6Server         `xml:"dhcpdv6,omitempty"                json:"dhcpdv6"              yaml:"dhcpdv6,omitempty"`
-	Cert                 Cert                 `xml:"cert,omitempty"                   json:"cert"                 yaml:"cert,omitempty"`
-	DNSMasquerade        DNSMasq              `xml:"dnsmasq,omitempty"                json:"dnsmasq"              yaml:"dnsmasq,omitempty"`
-	Syslog               Syslog               `xml:"syslog,omitempty"                 json:"syslog"               yaml:"syslog,omitempty"`
-	OPNsense             OPNsense             `xml:"OPNsense,omitempty"               json:"opnsense"             yaml:"opnsense,omitempty"`
+	XMLName              xml.Name               `xml:"opnsense"                         json:"-"                    yaml:"-"`
+	Version              string                 `xml:"version,omitempty"                json:"version,omitempty"    yaml:"version,omitempty"              validate:"omitempty,semver"`
+	TriggerInitialWizard BoolFlag               `xml:"trigger_initial_wizard,omitempty" json:"triggerInitialWizard" yaml:"triggerInitialWizard,omitempty"`
+	Theme                string                 `xml:"theme,omitempty"                  json:"theme,omitempty"      yaml:"theme,omitempty"                validate:"omitempty,oneof=opnsense opnsense-ng bootstrap"`
+	Sysctl               []SysctlItem           `xml:"sysctl,omitempty"                 json:"sysctl,omitempty"     yaml:"sysctl,omitempty"               validate:"dive"`
+	System               System                 `xml:"system,omitempty"                 json:"system"               yaml:"system,omitempty"               validate:"required"`
+	Interfaces           Interfaces             `xml:"interfaces,omitempty"             json:"interfaces"           yaml:"interfaces,omitempty"           validate:"required"`
+	Dhcpd                Dhcpd                  `xml:"dhcpd,omitempty"                  json:"dhcpd"                yaml:"dhcpd,omitempty"`
+	Unbound              Unbound                `xml:"unbound,omitempty"                json:"unbound"              yaml:"unbound,omitempty"`
+	Snmpd                Snmpd                  `xml:"snmpd,omitempty"                  json:"snmpd"                yaml:"snmpd,omitempty"`
+	Nat                  Nat                    `xml:"nat,omitempty"                    json:"nat"                  yaml:"nat,omitempty"`
+	Filter               Filter                 `xml:"filter,omitempty"                 json:"filter"               yaml:"filter,omitempty"`
+	Rrd                  Rrd                    `xml:"rrd,omitempty"                    json:"rrd"                  yaml:"rrd,omitempty"`
+	LoadBalancer         LoadBalancer           `xml:"load_balancer,omitempty"          json:"loadBalancer"         yaml:"loadBalancer,omitempty"`
+	Ntpd                 Ntpd                   `xml:"ntpd,omitempty"                   json:"ntpd"                 yaml:"ntpd,omitempty"`
+	Widgets              Widgets                `xml:"widgets,omitempty"                json:"widgets"              yaml:"widgets,omitempty"`
+	Revision             Revision               `xml:"revision,omitempty"               json:"revision"             yaml:"revision,omitempty"`
+	Gateways             Gateways               `xml:"gateways,omitempty"               json:"gateways"             yaml:"gateways,omitempty"`
+	HighAvailabilitySync HighAvailabilitySync   `xml:"hasync,omitempty"                 json:"hasync"               yaml:"hasync,omitempty"`
+	InterfaceGroups      InterfaceGroups        `xml:"ifgroups,omitempty"               json:"ifgroups"             yaml:"ifgroups,omitempty"`
+	GIFInterfaces        GIFInterfaces          `xml:"gifs,omitempty"                   json:"gifs"                 yaml:"gifs,omitempty"`
+	GREInterfaces        GREInterfaces          `xml:"gres,omitempty"                   json:"gres"                 yaml:"gres,omitempty"`
+	LAGGInterfaces       LAGGInterfaces         `xml:"laggs,omitempty"                  json:"laggs"                yaml:"laggs,omitempty"`
+	VirtualIP            VirtualIP              `xml:"virtualip,omitempty"              json:"virtualip"            yaml:"virtualip,omitempty"`
+	VLANs                VLANs                  `xml:"vlans,omitempty"                  json:"vlans"                yaml:"vlans,omitempty"`
+	OpenVPN              OpenVPN                `xml:"openvpn,omitempty"                json:"openvpn"              yaml:"openvpn,omitempty"`
+	StaticRoutes         StaticRoutes           `xml:"staticroutes,omitempty"           json:"staticroutes"         yaml:"staticroutes,omitempty"`
+	Bridges              Bridges                `xml:"bridges,omitempty"                json:"bridges"              yaml:"bridges,omitempty"`
+	PPPInterfaces        PPPInterfaces          `xml:"ppps,omitempty"                   json:"ppps"                 yaml:"ppps,omitempty"`
+	Wireless             Wireless               `xml:"wireless,omitempty"               json:"wireless"             yaml:"wireless,omitempty"`
+	CAs                  []CertificateAuthority `xml:"ca,omitempty"                     json:"ca,omitempty"         yaml:"ca,omitempty"`
+	DHCPv6Server         DHCPv6Server           `xml:"dhcpdv6,omitempty"                json:"dhcpdv6"              yaml:"dhcpdv6,omitempty"`
+	Certs                []Cert                 `xml:"cert,omitempty"                   json:"cert,omitempty"       yaml:"cert,omitempty"`
+	DNSMasquerade        DNSMasq                `xml:"dnsmasq,omitempty"                json:"dnsmasq"              yaml:"dnsmasq,omitempty"`
+	Syslog               Syslog                 `xml:"syslog,omitempty"                 json:"syslog"               yaml:"syslog,omitempty"`
+	OPNsense             OPNsense               `xml:"OPNsense,omitempty"               json:"opnsense"             yaml:"opnsense,omitempty"`
 }
 
 // OPNsense represents the main OPNsense system configuration.

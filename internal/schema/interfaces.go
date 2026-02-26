@@ -7,42 +7,43 @@ import (
 
 // InterfaceGroups represents interface groups configuration.
 type InterfaceGroups struct {
-	XMLName xml.Name `xml:"ifgroups"               json:"-"                 yaml:"-"`
-	Version string   `xml:"version,attr,omitempty" json:"version,omitempty" yaml:"version,omitempty"`
+	XMLName      xml.Name       `xml:"ifgroups"               json:"-"                      yaml:"-"`
+	Version      string         `xml:"version,attr,omitempty" json:"version,omitempty"      yaml:"version,omitempty"`
+	IfGroupEntry []IfGroupEntry `xml:"ifgroupentry,omitempty" json:"ifgroupentry,omitempty" yaml:"ifgroupentry,omitempty"`
 }
 
 // GIFInterfaces represents GIF interface configuration.
 type GIFInterfaces struct {
 	XMLName xml.Name `xml:"gifs"                   json:"-"                 yaml:"-"`
 	Version string   `xml:"version,attr,omitempty" json:"version,omitempty" yaml:"version,omitempty"`
-	Gif     string   `xml:"gif,omitempty"          json:"gif,omitempty"     yaml:"gif,omitempty"`
+	Gif     []GIF    `xml:"gif,omitempty"          json:"gif,omitempty"     yaml:"gif,omitempty"`
 }
 
 // GREInterfaces represents GRE interface configuration.
 type GREInterfaces struct {
 	XMLName xml.Name `xml:"gres"                   json:"-"                 yaml:"-"`
 	Version string   `xml:"version,attr,omitempty" json:"version,omitempty" yaml:"version,omitempty"`
-	Gre     string   `xml:"gre,omitempty"          json:"gre,omitempty"     yaml:"gre,omitempty"`
+	Gre     []GRE    `xml:"gre,omitempty"          json:"gre,omitempty"     yaml:"gre,omitempty"`
 }
 
 // LAGGInterfaces represents LAGG interface configuration.
 type LAGGInterfaces struct {
 	XMLName xml.Name `xml:"laggs"                  json:"-"                 yaml:"-"`
 	Version string   `xml:"version,attr,omitempty" json:"version,omitempty" yaml:"version,omitempty"`
-	Lagg    string   `xml:"lagg,omitempty"         json:"lagg,omitempty"    yaml:"lagg,omitempty"`
+	Lagg    []LAGG   `xml:"lagg,omitempty"         json:"lagg,omitempty"    yaml:"lagg,omitempty"`
 }
 
 // VirtualIP represents virtual IP configuration.
 type VirtualIP struct {
 	XMLName xml.Name `xml:"virtualip"              json:"-"                 yaml:"-"`
 	Version string   `xml:"version,attr,omitempty" json:"version,omitempty" yaml:"version,omitempty"`
-	Vip     string   `xml:"vip,omitempty"          json:"vip,omitempty"     yaml:"vip,omitempty"`
+	Vip     []VIP    `xml:"vip,omitempty"          json:"vip,omitempty"     yaml:"vip,omitempty"`
 }
 
 // PPPInterfaces represents PPP interface configuration.
 type PPPInterfaces struct {
 	XMLName xml.Name `xml:"ppps"          json:"-"             yaml:"-"`
-	Ppp     string   `xml:"ppp,omitempty" json:"ppp,omitempty" yaml:"ppp,omitempty"`
+	Ppp     []PPP    `xml:"ppp,omitempty" json:"ppp,omitempty" yaml:"ppp,omitempty"`
 }
 
 // Wireless represents wireless interface configuration.
@@ -238,8 +239,59 @@ type Bridges struct {
 	Bridge  []Bridge `xml:"bridge,omitempty"`
 }
 
-// BridgesConfig represents the root-level bridges configuration.
-type BridgesConfig struct {
-	XMLName xml.Name `xml:"bridges"`
-	Bridged string   `xml:"bridged,omitempty"`
+// GIF represents a GIF (Generic Tunnel Interface) configuration entry.
+type GIF struct {
+	XMLName xml.Name `xml:"gif"`
+	Gifif   string   `xml:"gifif,omitempty"`
+	If      string   `xml:"if,omitempty"`
+	Remote  string   `xml:"remote,omitempty"`
+	Descr   string   `xml:"descr,omitempty"`
+	Created string   `xml:"created,omitempty"`
+	Updated string   `xml:"updated,omitempty"`
+}
+
+// GRE represents a GRE (Generic Routing Encapsulation) tunnel configuration entry.
+type GRE struct {
+	XMLName xml.Name `xml:"gre"`
+	Greif   string   `xml:"greif,omitempty"`
+	If      string   `xml:"if,omitempty"`
+	Remote  string   `xml:"remote,omitempty"`
+	Descr   string   `xml:"descr,omitempty"`
+	Created string   `xml:"created,omitempty"`
+	Updated string   `xml:"updated,omitempty"`
+}
+
+// LAGG represents a LAGG (Link Aggregation) interface configuration entry.
+type LAGG struct {
+	XMLName xml.Name `xml:"lagg"`
+	Laggif  string   `xml:"laggif,omitempty"`
+	Members string   `xml:"members,omitempty"`
+	Proto   string   `xml:"proto,omitempty"`
+	Descr   string   `xml:"descr,omitempty"`
+	Created string   `xml:"created,omitempty"`
+	Updated string   `xml:"updated,omitempty"`
+}
+
+// VIP represents a virtual IP address configuration entry.
+type VIP struct {
+	XMLName   xml.Name `xml:"vip"`
+	Mode      string   `xml:"mode,omitempty"`
+	Interface string   `xml:"interface,omitempty"`
+	Subnet    string   `xml:"subnet,omitempty"`
+	Descr     string   `xml:"descr,omitempty"`
+}
+
+// PPP represents a PPP (Point-to-Point Protocol) interface configuration entry.
+type PPP struct {
+	XMLName xml.Name `xml:"ppp"`
+	If      string   `xml:"if,omitempty"`
+	Type    string   `xml:"type,omitempty"`
+	Descr   string   `xml:"descr,omitempty"`
+}
+
+// IfGroupEntry represents an interface group entry configuration.
+type IfGroupEntry struct {
+	XMLName xml.Name `xml:"ifgroupentry"`
+	IfName  string   `xml:"ifname,omitempty"`
+	Members string   `xml:"members,omitempty"`
 }

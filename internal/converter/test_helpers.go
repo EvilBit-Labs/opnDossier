@@ -2,11 +2,13 @@ package converter
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 )
 
 // TestCase represents a test case for converter tests.
@@ -69,4 +71,94 @@ func RunConverterTests(
 			}
 		})
 	}
+}
+
+// newFieldsTestDevice returns a CommonDevice populated with all new fields
+// (VLANs, Bridges, PPPs, GIFs, GREs, LAGGs, VirtualIPs, InterfaceGroups,
+// Certificates, CAs, Packages) for serialization tests.
+func newFieldsTestDevice() *common.CommonDevice {
+	return &common.CommonDevice{
+		DeviceType: common.DeviceTypeOPNsense,
+		System:     common.System{Hostname: "test-fields"},
+		VLANs:      []common.VLAN{{VLANIf: "igb0_vlan100", Tag: "100"}},
+		Bridges:    []common.Bridge{{BridgeIf: "bridge0", Members: []string{"igb2"}}},
+		PPPs:       []common.PPP{{Interface: "pppoe0", Type: "pppoe"}},
+		GIFs:       []common.GIF{{Interface: "gif0", Remote: "198.51.100.1"}},
+		GREs:       []common.GRE{{Interface: "gre0", Remote: "198.51.100.2"}},
+		LAGGs:      []common.LAGG{{Members: []string{"igb4"}, Protocol: "lacp"}},
+		VirtualIPs: []common.VirtualIP{{Mode: "carp", Interface: "lan"}},
+		InterfaceGroups: []common.InterfaceGroup{
+			{Name: "internal", Members: []string{"lan"}},
+		},
+		Certificates: []common.Certificate{
+			{RefID: "cert-001", Description: "Test Cert", PrivateKey: "secret-key-data"},
+		},
+		CAs:      []common.CertificateAuthority{{RefID: "ca-001", Description: "Test CA"}},
+		Packages: []common.Package{{Name: "os-acme-client", Installed: true}},
+	}
+}
+
+// newFieldsExpectedKeys returns the JSON/YAML keys expected for the new CommonDevice fields.
+var newFieldsExpectedKeys = []string{
+	"vlans", "bridges", "ppps", "gifs", "gres", "laggs",
+	"virtualIps", "interfaceGroups", "certificates", "cas", "packages",
+}
+
+// assertNewFieldsPresent validates that all new-field keys are present and non-empty
+// in parsed, and that the certificate privateKey is redacted.
+func assertNewFieldsPresent(t *testing.T, parsed map[string]any) {
+	t.Helper()
+
+	for _, key := range newFieldsExpectedKeys {
+		val, ok := parsed[key]
+		assert.True(t, ok, "expected key %q in output", key)
+		arr, isArr := val.([]any)
+		if isArr {
+			assert.NotEmpty(t, arr, "expected key %q to be non-empty", key)
+		}
+	}
+
+	// Verify certificate private key is redacted
+	certs, ok := parsed["certificates"].([]any)
+	require.True(t, ok, "certificates should be an array")
+	require.Len(t, certs, 1)
+	cert, ok := certs[0].(map[string]any)
+	require.True(t, ok, "certificate entry should be an object")
+	assert.Equal(t, "[REDACTED]", cert["privateKey"], "privateKey should be redacted")
+}
+
+// TestNewFieldsSerialization verifies that all new CommonDevice fields appear
+// in both JSON and YAML serialization output and that sensitive data is redacted.
+func TestNewFieldsSerialization(t *testing.T) {
+	t.Parallel()
+
+	device := newFieldsTestDevice()
+
+	t.Run("json", func(t *testing.T) {
+		t.Parallel()
+
+		c := NewJSONConverter()
+		result, err := c.ToJSON(context.Background(), device)
+		require.NoError(t, err)
+
+		var parsed map[string]any
+		err = json.Unmarshal([]byte(result), &parsed)
+		require.NoError(t, err)
+
+		assertNewFieldsPresent(t, parsed)
+	})
+
+	t.Run("yaml", func(t *testing.T) {
+		t.Parallel()
+
+		c := NewYAMLConverter()
+		result, err := c.ToYAML(context.Background(), device)
+		require.NoError(t, err)
+
+		var parsed map[string]any
+		err = yaml.Unmarshal([]byte(result), &parsed)
+		require.NoError(t, err)
+
+		assertNewFieldsPresent(t, parsed)
+	})
 }

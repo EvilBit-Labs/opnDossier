@@ -24,9 +24,6 @@ func NewConverter() *Converter {
 
 // ToCommonDevice converts an OPNsense schema document into a platform-agnostic CommonDevice.
 // Returns ErrNilDocument if doc is nil.
-//
-// NOTE: Some CommonDevice fields (Bridges, PPPs, GIFs, GREs, LAGGs, VirtualIPs,
-// InterfaceGroups, Certificates, CAs, Packages) are not yet populated by this converter.
 func (c *Converter) ToCommonDevice(doc *schema.OpnSenseDocument) (*common.CommonDevice, error) {
 	if doc == nil {
 		return nil, fmt.Errorf("ToCommonDevice: %w", ErrNilDocument)
@@ -39,6 +36,13 @@ func (c *Converter) ToCommonDevice(doc *schema.OpnSenseDocument) (*common.Common
 		System:           c.convertSystem(doc),
 		Interfaces:       c.convertInterfaces(doc),
 		VLANs:            c.convertVLANs(doc),
+		Bridges:          c.convertBridges(doc),
+		PPPs:             c.convertPPPs(doc),
+		GIFs:             c.convertGIFs(doc),
+		GREs:             c.convertGREs(doc),
+		LAGGs:            c.convertLAGGs(doc),
+		VirtualIPs:       c.convertVirtualIPs(doc),
+		InterfaceGroups:  c.convertInterfaceGroups(doc),
 		FirewallRules:    c.convertFirewallRules(doc),
 		NAT:              c.convertNAT(doc),
 		DHCP:             c.convertDHCP(doc),
@@ -55,6 +59,9 @@ func (c *Converter) ToCommonDevice(doc *schema.OpnSenseDocument) (*common.Common
 		Groups:           c.convertGroups(doc),
 		Sysctl:           c.convertSysctl(doc),
 		Revision:         c.convertRevision(doc),
+		Certificates:     c.convertCertificates(doc),
+		CAs:              c.convertCAs(doc),
+		Packages:         c.convertPackages(doc),
 	}
 
 	return device, nil

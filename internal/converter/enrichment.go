@@ -65,6 +65,12 @@ func computeStatistics(cfg *common.CommonDevice) *common.Statistics {
 		stats.InterfaceDetails = append(stats.InterfaceDetails, ifStats)
 	}
 
+	// Network infrastructure statistics
+	stats.TotalVLANs = len(cfg.VLANs)
+	stats.TotalBridges = len(cfg.Bridges)
+	stats.TotalCertificates = len(cfg.Certificates)
+	stats.TotalCAs = len(cfg.CAs)
+
 	// Firewall rule statistics
 	stats.TotalFirewallRules = len(cfg.FirewallRules)
 	for _, rule := range cfg.FirewallRules {
@@ -218,7 +224,8 @@ func computeStatistics(cfg *common.CommonDevice) *common.Statistics {
 func computeTotalConfigItems(stats *common.Statistics) int {
 	return stats.TotalInterfaces + stats.TotalFirewallRules + stats.TotalUsers + stats.TotalGroups +
 		stats.TotalServices + stats.TotalGateways + stats.TotalGatewayGroups + stats.SysctlSettings +
-		stats.DHCPScopes + stats.LoadBalancerMonitors
+		stats.DHCPScopes + stats.LoadBalancerMonitors +
+		stats.TotalVLANs + stats.TotalBridges + stats.TotalCertificates + stats.TotalCAs
 }
 
 // computeSecurityScore returns a security score based on detected security features,
