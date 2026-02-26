@@ -3,13 +3,17 @@ package schema
 
 // WebGUIConfig represents the WebGUI configuration.
 type WebGUIConfig struct {
-	Protocol   string `xml:"protocol"              json:"protocol"             yaml:"protocol"             validate:"required,oneof=http https"`
-	SSLCertRef string `xml:"ssl-certref,omitempty" json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+	Protocol          string   `xml:"protocol"                    json:"protocol"               yaml:"protocol"                    validate:"required,oneof=http https"`
+	SSLCertRef        string   `xml:"ssl-certref,omitempty"       json:"sslCertRef,omitempty"   yaml:"sslCertRef,omitempty"`
+	LoginAutocomplete BoolFlag `xml:"loginautocomplete,omitempty" json:"loginAutocomplete"      yaml:"loginAutocomplete,omitempty"`
+	MaxProcesses      string   `xml:"max_procs,omitempty"         json:"maxProcesses,omitempty" yaml:"maxProcesses,omitempty"`
 }
 
 // SSHConfig represents the SSH configuration.
 type SSHConfig struct {
-	Group string `xml:"group" json:"group" yaml:"group" validate:"required"`
+	Enabled BoolFlag `xml:"enabled,omitempty" json:"enabled"        yaml:"enabled,omitempty"`
+	Port    string   `xml:"port,omitempty"    json:"port,omitempty" yaml:"port,omitempty"`
+	Group   string   `xml:"group"             json:"group"          yaml:"group"             validate:"required"`
 }
 
 // SystemConfig groups system-related configuration.
