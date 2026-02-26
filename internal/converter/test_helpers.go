@@ -91,7 +91,7 @@ func newFieldsTestDevice() *common.CommonDevice {
 			{Name: "internal", Members: []string{"lan"}},
 		},
 		Certificates: []common.Certificate{
-			{RefID: "cert-001", Description: "Test Cert", PrivateKey: "secret-key-data"},
+			{RefID: "cert-001", Description: "Test Cert", PrivateKey: "dGVzdC1rZXktbm90LXJlYWw="},
 		},
 		CAs:      []common.CertificateAuthority{{RefID: "ca-001", Description: "Test CA"}},
 		Packages: []common.Package{{Name: "os-acme-client", Installed: true}},
