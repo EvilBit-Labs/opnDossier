@@ -403,7 +403,7 @@ func builtinRules() []Rule {
 			},
 		},
 
-		// Aggressive-only rules — topology, cloud, and public key fields
+		// Aggressive-only rules — topology, cloud, and public key fields.
 		{
 			Name:        "endpoint",
 			Description: "Redacts VPN/tunnel endpoint addresses",

@@ -203,8 +203,8 @@ func TestRedact_Password(t *testing.T) {
 func TestRedact_Secret(t *testing.T) {
 	engine := NewRuleEngine(ModeMinimal)
 	result := engine.Redact("apikey", "sk-abc123xyz")
-	if result != "[REDACTED-SECRET]" {
-		t.Errorf("Redact apikey = %q, want %q", result, "[REDACTED-SECRET]")
+	if result != redactedSecretValue {
+		t.Errorf("Redact apikey = %q, want %q", result, redactedSecretValue)
 	}
 }
 
@@ -468,8 +468,8 @@ func TestRedact_OTPSeed(t *testing.T) {
 			t.Parallel()
 			engine := NewRuleEngine(tt.mode)
 			result := engine.Redact(tt.field, "TOTP_BASE32_SEED")
-			if result != "[REDACTED-SECRET]" {
-				t.Errorf("Redact(%q, otp seed) = %q, want %q", tt.field, result, "[REDACTED-SECRET]")
+			if result != redactedSecretValue {
+				t.Errorf("Redact(%q, otp seed) = %q, want %q", tt.field, result, redactedSecretValue)
 			}
 		})
 	}
@@ -765,13 +765,13 @@ func TestRedact_PublicKey(t *testing.T) {
 				result := engine.Redact("pubkey", testBase64PubKey)
 
 				if tt.wantRedacted {
-					if result != "[REDACTED-PUBLIC-KEY]" {
+					if result != redactedPublicKeyValue {
 						t.Errorf(
 							"Redact(%q, %q) = %q, want %q",
 							"pubkey",
 							testBase64PubKey,
 							result,
-							"[REDACTED-PUBLIC-KEY]",
+							redactedPublicKeyValue,
 						)
 					}
 					return
@@ -793,13 +793,13 @@ func TestRedact_PublicKey(t *testing.T) {
 				result := engine.Redact("pub_key", testBase64PubKey)
 
 				if tt.wantRedacted {
-					if result != "[REDACTED-PUBLIC-KEY]" {
+					if result != redactedPublicKeyValue {
 						t.Errorf(
 							"Redact(%q, %q) = %q, want %q",
 							"pub_key",
 							testBase64PubKey,
 							result,
-							"[REDACTED-PUBLIC-KEY]",
+							redactedPublicKeyValue,
 						)
 					}
 					return
