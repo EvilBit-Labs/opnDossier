@@ -79,8 +79,6 @@ nav:
       - Pipeline v2 Compliance: pipeline-v2-compliance.md
 
   - Research & Internal:
-      - Architecture Review: architecture-review.md
-      - Charmbracelet Compatibility: charmbracelet-compatibility-research.md
       - Theme Usage: theme-usage.md
 
   - About: about.md
