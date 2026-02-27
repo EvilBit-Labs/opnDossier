@@ -660,6 +660,8 @@ func TestRedact_IPAddrField(t *testing.T) {
 		{ModeAggressive, "ipaddrv6", "192.168.1.100", "10.0.0.1"},
 		{ModeModerate, "ipaddrv6", "192.168.1.100", "192.168.1.100"},
 		{ModeMinimal, "ipaddrv6", "192.168.1.100", "192.168.1.100"},
+		{ModeAggressive, "ipaddrv6", "2001:db8::1", expectedRedactedPublicIP1},
+		{ModeAggressive, "ipaddrv6", "fd00::1", "10.0.0.1"},
 	}
 
 	for _, tt := range tests {
@@ -681,31 +683,33 @@ func TestRedact_SubnetField(t *testing.T) {
 	tests := []struct {
 		mode  Mode
 		field string
+		value string
 	}{
-		{ModeAggressive, "subnet"},
-		{ModeModerate, "subnet"},
-		{ModeMinimal, "subnet"},
-		{ModeAggressive, "subnetv6"},
-		{ModeModerate, "subnetv6"},
-		{ModeMinimal, "subnetv6"},
+		{ModeAggressive, "subnet", "192.168.1.0/24"},
+		{ModeModerate, "subnet", "192.168.1.0/24"},
+		{ModeMinimal, "subnet", "192.168.1.0/24"},
+		{ModeAggressive, "subnetv6", "192.168.1.0/24"},
+		{ModeModerate, "subnetv6", "192.168.1.0/24"},
+		{ModeMinimal, "subnetv6", "192.168.1.0/24"},
+		{ModeAggressive, "subnetv6", "fd00::/8"},
+		{ModeAggressive, "subnet", "2001:db8::/32"},
 	}
 
 	for _, tt := range tests {
-		t.Run(string(tt.mode)+"_"+tt.field, func(t *testing.T) {
+		t.Run(string(tt.mode)+"_"+tt.field+"_"+tt.value, func(t *testing.T) {
 			t.Parallel()
 			engine := NewRuleEngine(tt.mode)
-			value := "192.168.1.0/24"
-			result := engine.Redact(tt.field, value)
+			result := engine.Redact(tt.field, tt.value)
 
 			if tt.mode == ModeAggressive {
 				if result != "[REDACTED-SUBNET]" {
-					t.Errorf("Redact(%q, %q) = %q, want %q", tt.field, value, result, "[REDACTED-SUBNET]")
+					t.Errorf("Redact(%q, %q) = %q, want %q", tt.field, tt.value, result, "[REDACTED-SUBNET]")
 				}
 				return
 			}
 
-			if result != value {
-				t.Errorf("Redact(%q, %q) = %q, want unchanged", tt.field, value, result)
+			if result != tt.value {
+				t.Errorf("Redact(%q, %q) = %q, want unchanged", tt.field, tt.value, result)
 			}
 		})
 	}

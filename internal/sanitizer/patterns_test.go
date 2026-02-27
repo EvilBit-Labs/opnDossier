@@ -109,6 +109,7 @@ func TestIsSubnet(t *testing.T) {
 		{"", false},
 		{"not-a-subnet", false},
 		{"192.168.1.0/33", false},
+		{"2001:db8::/129", false},
 		{"192.168.1.0/", false},
 		{"/24", false},
 	}
