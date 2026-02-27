@@ -304,9 +304,9 @@ func TestGetActiveRules(t *testing.T) {
 		mode         Mode
 		minRuleCount int
 	}{
-		{ModeAggressive, 10}, // Should have most rules
-		{ModeModerate, 7},    // Fewer rules
-		{ModeMinimal, 5},     // Fewest rules
+		{ModeAggressive, 18}, // All rules including aggressive-only
+		{ModeModerate, 9},    // Credentials + crypto + identity + network (public IP, MAC)
+		{ModeMinimal, 6},     // Credentials + crypto only
 	}
 
 	for _, tt := range tests {
@@ -514,6 +514,9 @@ func TestRedact_DomainField(t *testing.T) {
 		{ModeAggressive, "althostnames"},
 		{ModeModerate, "althostnames"},
 		{ModeMinimal, "althostnames"},
+		{ModeAggressive, "hostnames"},
+		{ModeModerate, "hostnames"},
+		{ModeMinimal, "hostnames"},
 	}
 
 	for _, tt := range tests {

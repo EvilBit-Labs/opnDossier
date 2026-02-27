@@ -517,8 +517,10 @@ func TestHybridGenerator_Generate_RedactMarkdownFormats(t *testing.T) {
 			if tt.redact {
 				assert.NotContains(t, output, "secret-community",
 					"redacted output must not contain SNMP community string")
+				assert.NotContains(t, output, "ha-secret",
+					"redacted output must not contain HA password")
 				assert.Contains(t, output, "[REDACTED]",
-					"redacted output must contain redaction marker")
+					"redacted output must contain enrichment-layer redaction marker")
 			} else {
 				assert.Contains(t, output, "secret-community",
 					"unredacted output must contain SNMP community string")
@@ -565,8 +567,10 @@ func TestHybridGenerator_GenerateToWriter_RedactMarkdownFormats(t *testing.T) {
 			if tt.redact {
 				assert.NotContains(t, output, "secret-community",
 					"redacted output must not contain SNMP community string")
+				assert.NotContains(t, output, "ha-secret",
+					"redacted output must not contain HA password")
 				assert.Contains(t, output, "[REDACTED]",
-					"redacted output must contain redaction marker")
+					"redacted output must contain enrichment-layer redaction marker")
 			} else {
 				assert.Contains(t, output, "secret-community",
 					"unredacted output must contain SNMP community string")

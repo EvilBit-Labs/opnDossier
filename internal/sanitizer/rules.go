@@ -1,6 +1,9 @@
 package sanitizer
 
-import "slices"
+import (
+	"slices"
+	"strings"
+)
 
 // Mode represents the sanitization aggressiveness level.
 type Mode string
@@ -152,8 +155,10 @@ func (e *RuleEngine) ruleActiveForMode(rule *Rule) bool {
 // fieldNameMatches reports whether pattern is a case-insensitive substring of fieldName.
 // An empty pattern always matches.
 func fieldNameMatches(fieldName, pattern string) bool {
-	if containsIgnoreCase(pattern, "key") && containsIgnoreCase("key", pattern) {
-		return containsIgnoreCase(fieldName, "key") && containsIgnoreCase("key", fieldName)
+	// "key" is an exact-match pattern to avoid false positives on
+	// compound names like "sshkey", "apikey", "authkey".
+	if strings.EqualFold(pattern, "key") {
+		return strings.EqualFold(fieldName, "key")
 	}
 	return containsIgnoreCase(fieldName, pattern)
 }
@@ -424,7 +429,6 @@ func builtinRules() []Rule {
 			FieldPatterns: []string{
 				"ipaddr", "ipaddrv6", "from", "to",
 			},
-			ValueDetector: IsIP,
 			Redactor: func(m *Mapper, _, value string) string {
 				// Guard: field patterns like "from"/"to" can match non-IP values;
 				// only redact when the value is actually an IP address.
