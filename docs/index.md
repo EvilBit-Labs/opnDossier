@@ -142,7 +142,9 @@ Check out the [Installation Guide](user-guide/installation.md) to get started, o
 - **[Architecture](development/architecture.md)** - System design and component interactions
 - **[Development Standards](development/standards.md)** - Go coding standards and project structure
 - **[Release Process](development/releasing.md)** - How to prepare and release new versions
-- **[Developer Guide](dev-guide/)** - Additional development resources
+- **[API Reference](development/api.md)** - Full internal API documentation
+- **[Plugin Development](development/plugin-development.md)** - Plugin development guide
+- **[Contributing](development/contributing.md)** - How to contribute
 
 For AI agent coding standards and workflows, see [AGENTS.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/AGENTS.md) in the root directory.
 
@@ -157,7 +159,7 @@ For AI agent coding standards and workflows, see [AGENTS.md](https://github.com/
 
 ## Contributing
 
-Interested in contributing? See our [Contributing Guide](dev-guide/contributing.md) for information on how to get involved with the project.
+Interested in contributing? See our [Contributing Guide](development/contributing.md) for information on how to get involved with the project.
 
 ---
 

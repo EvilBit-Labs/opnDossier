@@ -20,18 +20,29 @@ opnDossier demonstrates **strong architectural foundations** with excellent sepa
 
 ```
 internal/
-├── audit/           # Security audit plugins (excellent separation)
-├── config/          # Configuration management
-├── converter/       # Format converters (JSON/YAML/Markdown)
-├── display/         # Terminal display logic
-├── log/             # Centralized logging
+├── audit/           # Audit engine and plugin lifecycle
+├── cfgparser/       # XML parsing with security (streaming, XXE prevention)
+├── compliance/      # Plugin interfaces (Plugin, Finding, Control)
+├── config/          # Configuration management (Viper)
+├── constants/       # Shared constants (validation whitelists)
+├── converter/       # Format converters (JSON/YAML/Markdown/Text/HTML)
+│   └── builder/     # Markdown builder and writer
+├── diff/            # Configuration diff engine
+├── display/         # Terminal display logic (Lipgloss/Glamour)
+├── docgen/          # Model documentation generation
+├── export/          # File export functionality
+├── logging/         # Structured logging (wraps charmbracelet/log)
 ├── markdown/        # Markdown generation (hybrid approach)
-├── metrics/         # Performance metrics
-├── model/           # Data models (well-defined domain)
-├── parser/          # XML parsing with security
-├── plugin/          # Plugin interfaces
+├── model/           # Data models and re-export seam
+│   ├── common/      # Platform-agnostic CommonDevice domain model
+│   └── opnsense/    # Schema → CommonDevice converter
 ├── plugins/         # Compliance plugins (firewall/SANS/STIG)
+├── pool/            # Worker pool for concurrent processing
 ├── processor/       # Core processing and analysis
+├── progress/        # CLI progress indicators (spinner, bar)
+├── sanitizer/       # Data sanitization (redaction rules engine)
+├── schema/          # Canonical OPNsense data model (XML structs)
+├── testing/         # Shared test helpers
 └── validator/       # Configuration validation
 ```
 
@@ -172,55 +183,30 @@ dec.Entity = map[string]string{}  // Prevent XXE
 
 ```
 converter/
-├── json.go           # JSONConverter
-├── yaml.go           # YAMLConverter
-├── markdown.go       # MarkdownConverter
-├── adapter.go        # Adapter interface
-└── markdown_*.go     # Various markdown helpers
+├── json.go              # JSONConverter (ToJSON with redaction support)
+├── yaml.go              # YAMLConverter (ToYAML with redaction support)
+├── markdown.go          # MarkdownConverter (ToMarkdown)
+├── enrichment.go        # prepareForExport pipeline (Statistics, Analysis, etc.)
+├── hybrid_generator.go  # HybridGenerator (StreamingGenerator interface)
+├── builder/             # MarkdownBuilder (programmatic report generation)
+│   ├── builder.go       # ReportBuilder interface
+│   └── writer.go        # SectionWriter (io.Writer support)
+└── formatters/          # Standalone formatting functions
+    └── security.go      # CalculateSecurityScore, AssessRiskLevel
 
 markdown/
-├── generator.go      # markdownGenerator
-├── hybrid_generator.go # HybridGenerator
-└── adapter.go        # Converter adapter
+├── generator.go         # markdownGenerator
+└── validate.go          # Markdown validation (goldmark round-trip)
 ```
 
 **Analysis:**
 
-1. **Two Markdown Generation Approaches:**
-
-   - `converter/markdown.go` - Direct conversion
-   - `markdown/hybrid_generator.go` - Programmatic generation
-
-2. **Adapter Pattern Duplication:**
-
-   - `converter/adapter.go` - Empty (moved to markdown package)
-   - `markdown/adapter.go` - Actual implementation
-
-3. **Unclear Boundary:**
-
-   - When to use `converter.MarkdownConverter` vs `markdown.HybridGenerator`?
+The converter package is the primary entry point for all format exports. The `prepareForExport()` enrichment pipeline in `enrichment.go` populates Statistics, Analysis, SecurityAssessment, and PerformanceMetrics before serialization. Format-specific converters (JSON, YAML, Markdown) each handle their own serialization.
 
 **RECOMMENDATION:**
 
-**Priority: Medium**
-
-1. **Consolidate converters:**
-
-   ```go
-   // Single entry point
-   type Converter interface {
-       Convert(ctx context.Context, device *common.CommonDevice, format string) (string, error)
-   }
-
-   // Internal implementation detail
-   type converter struct {
-       jsonGen   *JSONGenerator
-       yamlGen   *YAMLGenerator
-       mdGen     *MarkdownGenerator  // delegates to markdown package
-   }
-   ```
-
-2. **Remove adapter.go or document purpose clearly**
+- Current structure is adequate — converters are format-specific with shared enrichment
+- The `markdown/` package provides validation utilities used across formatters
 
 ---
 
@@ -243,10 +229,9 @@ return fmt.Errorf("failed to parse configuration: %w", err)
 
 **Error Files:**
 
-- `parser/errors.go` - 290 lines (most comprehensive)
-- `processor/errors.go` - 55 lines
-- `markdown/errors.go` - 20 lines
-- `plugin/errors.go` - 22 lines
+- `cfgparser/errors.go` - Comprehensive error catalog
+- `processor/errors.go` - Processing errors
+- `compliance/errors.go` - Plugin errors (ErrPluginNotFound)
 
 **Pattern:**
 
@@ -719,7 +704,7 @@ func NewPluginRegistry() *PluginRegistry {
 
 1. **Charset Reader TODO**
 
-   - Location: `parser/xml.go:57`
+   - Location: `cfgparser/xml.go`
    - Impact: Limited encoding support
    - Workaround: Most configs are UTF-8
 
