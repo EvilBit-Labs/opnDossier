@@ -126,8 +126,8 @@ reporting without exposing credentials, IP addresses, or other sensitive data.
                    Preserves: private IPs, hostnames (for network topology analysis)
 
     minimal      - Credential-only redaction for trusted environments
-                   Redacts: passwords, secrets, API keys, PSKs, certificates
-                   Preserves: all network information
+                   Redacts: passwords, secrets, API keys, PSKs, private keys, SSH keys
+                   Preserves: certificates, all network information
 
   REFERENTIAL INTEGRITY:
   The sanitizer maintains consistent mappings throughout the document:

@@ -57,9 +57,9 @@ type RuleCategory string
 const (
 	// CategoryCredentials groups rules that redact passwords, keys, and tokens.
 	CategoryCredentials RuleCategory = "credentials"
-	// CategoryNetwork groups rules that redact IP addresses and network configurations.
+	// CategoryNetwork groups rules that redact IP addresses, MAC addresses, hostnames, subnets, and endpoint configurations.
 	CategoryNetwork RuleCategory = "network"
-	// CategoryIdentity groups rules that redact usernames, hostnames, and domain names.
+	// CategoryIdentity groups rules that redact usernames, email addresses, and cloud account identifiers.
 	CategoryIdentity RuleCategory = "identity"
 	// CategoryCrypto groups rules that redact certificates and cryptographic material.
 	CategoryCrypto RuleCategory = "crypto"
@@ -141,6 +141,22 @@ func (e *RuleEngine) Redact(fieldName, value string) string {
 	if !should || rule == nil {
 		return value
 	}
+	return e.redactWithRule(rule, fieldName, value)
+}
+
+// RedactWithRule applies a specific rule's Redactor to the given field/value pair.
+// Use this when you already have the matched rule from ShouldRedactValue to avoid
+// a redundant rule lookup (which could match a different rule than the one tracked
+// for statistics).
+func (e *RuleEngine) RedactWithRule(rule *Rule, fieldName, value string) string {
+	if rule == nil {
+		return value
+	}
+	return e.redactWithRule(rule, fieldName, value)
+}
+
+// redactWithRule applies the given rule's Redactor, falling back to the generic mapper.
+func (e *RuleEngine) redactWithRule(rule *Rule, fieldName, value string) string {
 	if rule.Redactor != nil {
 		return rule.Redactor(e.mapper, fieldName, value)
 	}
@@ -153,15 +169,21 @@ func (e *RuleEngine) ruleActiveForMode(rule *Rule) bool {
 	return slices.Contains(rule.Modes, e.mode)
 }
 
+// exactMatchPatterns lists field patterns that require exact (case-insensitive)
+// matching instead of substring matching. This prevents false positives on
+// compound field names (e.g., "key" would otherwise match "sshkey", "apikey";
+// "from"/"to" would match "timeout", "protocol", "platformfrom").
+var exactMatchPatterns = []string{"key", "from", "to"}
+
 // fieldNameMatches reports whether pattern matches fieldName using a
 // case-insensitive substring check. An empty pattern always matches.
-// As a special case, the pattern "key" requires an exact (case-insensitive)
-// match to prevent false positives on compound field names like "sshkey".
+// Patterns listed in exactMatchPatterns require an exact (case-insensitive)
+// match to prevent false positives on compound field names.
 func fieldNameMatches(fieldName, pattern string) bool {
-	// "key" is an exact-match pattern to avoid false positives on
-	// compound names like "sshkey", "apikey", "authkey".
-	if strings.EqualFold(pattern, "key") {
-		return strings.EqualFold(fieldName, "key")
+	for _, exact := range exactMatchPatterns {
+		if strings.EqualFold(pattern, exact) {
+			return strings.EqualFold(fieldName, exact)
+		}
 	}
 	return containsIgnoreCase(fieldName, pattern)
 }
@@ -420,7 +442,10 @@ func builtinRules() []Rule {
 			FieldPatterns: []string{
 				"endpoint", "tunneladdress",
 			},
-			Redactor: func(_ *Mapper, _, _ string) string {
+			Redactor: func(_ *Mapper, _, value string) string {
+				if value == "" {
+					return value
+				}
 				return "[REDACTED-ENDPOINT]"
 			},
 		},
@@ -432,9 +457,12 @@ func builtinRules() []Rule {
 			FieldPatterns: []string{
 				"ipaddr", "ipaddrv6", "from", "to",
 			},
+			// No ValueDetector: redaction is purely field-name-driven.
+			// "from"/"to" are too generic for value-based matching across all fields.
 			Redactor: func(m *Mapper, _, value string) string {
-				// Guard: field patterns like "from"/"to" can match non-IP values;
-				// only redact when the value is actually an IP address.
+				// Guard: field patterns like "from"/"to" can match non-IP values
+				// (e.g., "any", "lan"); only redact when the value is actually an IP.
+				// When the guard rejects, sanitizer.go counts it as SkippedFields.
 				if !IsIP(value) {
 					return value
 				}
@@ -452,10 +480,12 @@ func builtinRules() []Rule {
 			FieldPatterns: []string{
 				"subnet", "subnetv6",
 			},
+			// ValueDetector enables CIDR detection on unrecognized field names;
+			// the Redactor guard handles the field-pattern match path separately.
 			ValueDetector: IsSubnet,
 			Redactor: func(_ *Mapper, _, value string) string {
-				// Guard: field patterns like "subnet" can appear in non-CIDR contexts;
-				// only redact when the value is actually a CIDR subnet.
+				// Guard: field-pattern matches (e.g., "subnet") bypass the ValueDetector,
+				// so we must validate here too for non-CIDR values like "255.255.255.0".
 				if !IsSubnet(value) {
 					return value
 				}
@@ -470,7 +500,10 @@ func builtinRules() []Rule {
 			FieldPatterns: []string{
 				"dns_cf_account_id", "dns_cf_zone_id", "account_id", "zone_id",
 			},
-			Redactor: func(_ *Mapper, _, _ string) string {
+			Redactor: func(_ *Mapper, _, value string) string {
+				if value == "" {
+					return value
+				}
 				return "[REDACTED-CLOUD-ID]"
 			},
 		},

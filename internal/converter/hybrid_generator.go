@@ -78,11 +78,10 @@ func ensureLogger(logger *logging.Logger) (*logging.Logger, error) {
 	return logger, nil
 }
 
-// NewMarkdownGenerator creates a new Generator that produces documentation in Markdown, JSON, or YAML formats.
-// NewMarkdownGenerator creates a Generator that produces Markdown output using the programmatic report builder.
-// It ensures a usable logger (creating a default logger if nil) and constructs a Markdown report builder.
-// The provided Options parameter is ignored and exists only for backward compatibility.
-// Returns a Generator configured for Markdown or an error if logger creation fails.
+// NewMarkdownGenerator creates a HybridGenerator configured with a MarkdownBuilder and the provided logger.
+// Despite its name, the returned Generator supports all output formats (Markdown, JSON, YAML, Text, HTML)
+// via the Options passed to Generate(). The opts parameter is ignored and exists for backward compatibility.
+// Returns an error only if the provided logger is nil and creating a default logger fails.
 func NewMarkdownGenerator(logger *logging.Logger, _ Options) (Generator, error) {
 	var err error
 	logger, err = ensureLogger(logger)

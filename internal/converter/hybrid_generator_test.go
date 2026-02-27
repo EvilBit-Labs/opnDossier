@@ -584,3 +584,85 @@ func TestHybridGenerator_GenerateToWriter_RedactMarkdownFormats(t *testing.T) {
 		})
 	}
 }
+
+func TestHybridGenerator_Generate_RedactJSONYAML(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		format Format
+	}{
+		{name: "json redacted", format: FormatJSON},
+		{name: "yaml redacted", format: FormatYAML},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
+			require.NoError(t, err)
+
+			doc := newRedactTestDevice()
+			opts := DefaultOptions().WithFormat(tt.format).WithRedact(true)
+
+			output, err := gen.Generate(context.Background(), doc, opts)
+			require.NoError(t, err)
+
+			assert.NotContains(t, output, "secret-community",
+				"redacted output must not contain SNMP community string")
+			assert.NotContains(t, output, "ha-secret",
+				"redacted output must not contain HA password")
+			assert.Contains(t, output, "[REDACTED]",
+				"redacted output must contain enrichment-layer redaction marker")
+
+			// Verify original device was not mutated.
+			assert.Equal(t, "secret-community", doc.SNMP.ROCommunity,
+				"original device must not be mutated")
+			assert.Equal(t, "ha-secret", doc.HighAvailability.Password,
+				"original device must not be mutated")
+		})
+	}
+}
+
+func TestHybridGenerator_GenerateToWriter_RedactJSONYAML(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		format Format
+	}{
+		{name: "json redacted", format: FormatJSON},
+		{name: "yaml redacted", format: FormatYAML},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
+			require.NoError(t, err)
+
+			doc := newRedactTestDevice()
+			opts := DefaultOptions().WithFormat(tt.format).WithRedact(true)
+
+			var buf bytes.Buffer
+			err = gen.GenerateToWriter(context.Background(), &buf, doc, opts)
+			require.NoError(t, err)
+
+			output := buf.String()
+			assert.NotContains(t, output, "secret-community",
+				"redacted output must not contain SNMP community string")
+			assert.NotContains(t, output, "ha-secret",
+				"redacted output must not contain HA password")
+			assert.Contains(t, output, "[REDACTED]",
+				"redacted output must contain enrichment-layer redaction marker")
+
+			// Verify original device was not mutated.
+			assert.Equal(t, "secret-community", doc.SNMP.ROCommunity,
+				"original device must not be mutated")
+			assert.Equal(t, "ha-secret", doc.HighAvailability.Password,
+				"original device must not be mutated")
+		})
+	}
+}
