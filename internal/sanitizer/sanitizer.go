@@ -156,11 +156,18 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 
 				var sanitizedContent string
 				if should {
-					s.stats.RedactedFields++
-					if rule != nil {
-						s.stats.RedactionsByType[rule.Name]++
-					}
 					sanitizedContent = s.engine.Redact(fullPath, content)
+					// Only count as redacted if the value actually changed;
+					// guarded Redactors (e.g., ip_address_field) may return
+					// the original value when the guard rejects it.
+					if sanitizedContent != content {
+						s.stats.RedactedFields++
+						if rule != nil {
+							s.stats.RedactionsByType[rule.Name]++
+						}
+					} else {
+						s.stats.SkippedFields++
+					}
 				} else {
 					s.stats.SkippedFields++
 					sanitizedContent = content
@@ -211,12 +218,17 @@ func (s *Sanitizer) sanitizeValue(fieldName, value string) string {
 		return value
 	}
 
-	s.stats.RedactedFields++
-	if rule != nil {
-		s.stats.RedactionsByType[rule.Name]++
+	redacted := s.engine.Redact(fieldName, value)
+	if redacted != value {
+		s.stats.RedactedFields++
+		if rule != nil {
+			s.stats.RedactionsByType[rule.Name]++
+		}
+	} else {
+		s.stats.SkippedFields++
 	}
 
-	return s.engine.Redact(fieldName, value)
+	return redacted
 }
 
 // sanitizeCommentContent applies redaction to XML comment content.

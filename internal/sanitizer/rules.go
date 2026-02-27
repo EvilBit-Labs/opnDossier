@@ -67,6 +67,7 @@ const (
 	CategorySystem RuleCategory = "system"
 
 	redactedSecretValue    = "[REDACTED-SECRET]"
+	redactedSubnetValue    = "[REDACTED-SUBNET]"
 	redactedPublicKeyValue = "[REDACTED-PUBLIC-KEY]"
 )
 
@@ -152,8 +153,10 @@ func (e *RuleEngine) ruleActiveForMode(rule *Rule) bool {
 	return slices.Contains(rule.Modes, e.mode)
 }
 
-// fieldNameMatches reports whether pattern is a case-insensitive substring of fieldName.
-// An empty pattern always matches.
+// fieldNameMatches reports whether pattern matches fieldName using a
+// case-insensitive substring check. An empty pattern always matches.
+// As a special case, the pattern "key" requires an exact (case-insensitive)
+// match to prevent false positives on compound field names like "sshkey".
 func fieldNameMatches(fieldName, pattern string) bool {
 	// "key" is an exact-match pattern to avoid false positives on
 	// compound names like "sshkey", "apikey", "authkey".
@@ -408,7 +411,7 @@ func builtinRules() []Rule {
 			},
 		},
 
-		// Aggressive-only rules — topology, cloud, and public key fields.
+		// Aggressive-only rules — network topology (IPs, subnets, endpoints), cloud identifiers, and public keys.
 		{
 			Name:        "endpoint",
 			Description: "Redacts VPN/tunnel endpoint addresses",
@@ -450,8 +453,13 @@ func builtinRules() []Rule {
 				"subnet", "subnetv6",
 			},
 			ValueDetector: IsSubnet,
-			Redactor: func(_ *Mapper, _, _ string) string {
-				return "[REDACTED-SUBNET]"
+			Redactor: func(_ *Mapper, _, value string) string {
+				// Guard: field patterns like "subnet" can appear in non-CIDR contexts;
+				// only redact when the value is actually a CIDR subnet.
+				if !IsSubnet(value) {
+					return value
+				}
+				return redactedSubnetValue
 			},
 		},
 		{

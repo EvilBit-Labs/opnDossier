@@ -306,7 +306,7 @@ func TestGetActiveRules(t *testing.T) {
 	}{
 		{ModeAggressive, 18}, // All rules including aggressive-only
 		{ModeModerate, 9},    // Credentials + crypto + identity + network (public IP, MAC)
-		{ModeMinimal, 6},     // Credentials + crypto only
+		{ModeMinimal, 6},     // Credentials + crypto + system (SSH keys)
 	}
 
 	for _, tt := range tests {
@@ -445,6 +445,55 @@ func TestRedact_Hostname_NonEmailValue(t *testing.T) {
 	}
 	if result != expectedMappedHostname1 {
 		t.Errorf("Redact('hostname', FQDN) = %q, want 'host-001.example.com'", result)
+	}
+}
+
+func TestFieldNameMatches_KeyExactMatch(t *testing.T) {
+	t.Parallel()
+
+	engine := NewRuleEngine(ModeAggressive)
+
+	// Exact "key" field must be redacted (matched by private_key rule).
+	result := engine.Redact("key", "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBg=\n-----END PRIVATE KEY-----")
+	if result == "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBg=\n-----END PRIVATE KEY-----" {
+		t.Error("Redact('key', privateKey) should redact")
+	}
+
+	// Compound names containing "key" as a substring must NOT match the "key"
+	// exact-match pattern. Use names that don't match any other rule's patterns.
+	compoundNames := []string{"monkeybar", "keychain", "hotkey", "keystone"}
+	for _, name := range compoundNames {
+		plain := "some-plain-value"
+		got := engine.Redact(name, plain)
+		if got != plain {
+			t.Errorf(
+				"Redact(%q, %q) = %q, want unchanged (compound name should not match 'key' pattern)",
+				name,
+				plain,
+				got,
+			)
+		}
+	}
+}
+
+func TestRedact_SubnetField_NonCIDRValue(t *testing.T) {
+	t.Parallel()
+
+	engine := NewRuleEngine(ModeAggressive)
+
+	// "subnet" field with non-CIDR values must pass through unchanged.
+	nonSubnetValues := []string{"255.255.255.0", "office network", "24", ""}
+	for _, val := range nonSubnetValues {
+		result := engine.Redact("subnet", val)
+		if result != val {
+			t.Errorf("Redact('subnet', %q) = %q, want unchanged", val, result)
+		}
+	}
+
+	// "subnet" field with a real CIDR should still be redacted.
+	result := engine.Redact("subnet", "192.168.1.0/24")
+	if result != "[REDACTED-SUBNET]" {
+		t.Errorf("Redact('subnet', '192.168.1.0/24') = %q, want '[REDACTED-SUBNET]'", result)
 	}
 }
 
