@@ -8,47 +8,76 @@ opnDossier is a command-line tool for network operators and security professiona
 
 - **Offline-First**: Works completely offline, designed for airgapped environments
 - **No Telemetry**: Zero data collection or external communication
-- **Multi-Format Export**: Markdown, JSON, YAML output formats
+- **Multi-Format Export**: Markdown, JSON, YAML, HTML, and plain text output formats
 - **Security Analysis**: Detects vulnerabilities, dead rules, unused resources
-- **Go-based**: Built with Go 1.24+ for performance and reliability
+- **Compliance Auditing**: Built-in STIG, SANS, and firewall compliance plugins
+- **Configuration Sanitization**: Redact sensitive data for safe sharing
+- **Configuration Diffing**: Compare two config versions with security-aware analysis
+- **Go-based**: Built with Go 1.26+ for performance and reliability
 
 ## Project Structure
 
 - `cmd/` - CLI command entry points (Cobra-based)
 - `internal/` - Private application logic
   - `audit/` - Audit engine and compliance checking
-  - `converter/` - Data conversion utilities
-  - `model/` - Data models representing OPNsense configuration
-  - `parser/` - XML parsing and validation
+  - `cfgparser/` - XML parsing and validation
+  - `compliance/` - Plugin interfaces
+  - `config/` - Configuration management
+  - `constants/` - Shared constants and validation whitelists
+  - `converter/` - Data conversion and report generation
+    - `builder/` - Programmatic markdown builder and streaming writer
+  - `diff/` - Configuration diff engine with security analysis
+  - `display/` - Terminal display formatting
+  - `export/` - File export functionality
+  - `logging/` - Structured logging utilities
+  - `markdown/` - Markdown generation and validation
+  - `model/` - Data models and re-export seam
+    - `common/` - Platform-agnostic CommonDevice domain model
+    - `opnsense/` - OPNsense schema-to-CommonDevice converter
   - `plugins/` - Compliance plugins (firewall, SANS, STIG)
+  - `pool/` - Worker pool for concurrent processing
   - `processor/` - Data processing and report generation
+  - `progress/` - CLI progress indicators (spinner, bar)
+  - `sanitizer/` - Data sanitization and redaction engine
+  - `schema/` - Canonical OPNsense XML data model
+  - `validator/` - Data validation
 - `testdata/` - Test fixtures
 - `docs/` - Documentation
+- `project_spec/` - Project specifications
 
 ## Technology Stack
 
 - CLI Framework: spf13/cobra
+- CLI Enhancement: charmbracelet/fang
 - Terminal Styling: charmbracelet/lipgloss, charmbracelet/glamour
 - Markdown Generation: nao1215/markdown
 - Configuration: spf13/viper
 - Logging: charmbracelet/log
+- Data Formats: encoding/xml, encoding/json, gopkg.in/yaml.v3
 
 ## Documentation
 
 - README: https://github.com/EvilBit-Labs/opnDossier/blob/main/README.md
 - Contributing: https://github.com/EvilBit-Labs/opnDossier/blob/main/CONTRIBUTING.md
 - Architecture: https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/development/architecture.md
+- Development Standards: https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/development/standards.md
 - Requirements: https://github.com/EvilBit-Labs/opnDossier/blob/main/project_spec/requirements.md
 - Agent Guidelines: https://github.com/EvilBit-Labs/opnDossier/blob/main/AGENTS.md
 - Releasing: https://github.com/EvilBit-Labs/opnDossier/blob/main/RELEASING.md
+- Security: https://github.com/EvilBit-Labs/opnDossier/blob/main/SECURITY.md
 
 ## Commands
 
 ```
-opnDossier display config.xml     # Display config in terminal
-opnDossier convert config.xml     # Convert to markdown
-opnDossier convert -f json config.xml -o output.json  # Export to JSON
-opnDossier validate config.xml    # Validate configuration
+opnDossier display config.xml                          # Display config in terminal
+opnDossier convert config.xml                          # Convert to markdown
+opnDossier convert config.xml -f json -o output.json   # Export to JSON
+opnDossier convert config.xml -f yaml -o output.yaml   # Export to YAML
+opnDossier convert config.xml -f html -o output.html   # Export to HTML
+opnDossier validate config.xml                         # Validate configuration
+opnDossier audit config.xml                            # Run compliance audit
+opnDossier sanitize config.xml -m aggressive -o safe.xml  # Redact sensitive data
+opnDossier diff old.xml new.xml                        # Compare configurations
 ```
 
 ## Development
@@ -58,7 +87,9 @@ just dev       # Run in development mode
 just build     # Build with all checks
 just test      # Run tests
 just lint      # Run linting
-just ci-check  # Run CI-equivalent checks
+just ci-check  # Run CI-equivalent checks (pre-commit, lint, tests)
+just coverage  # Run tests and open coverage in browser
+just scan      # Run gosec security scanner
 ```
 
 ## License

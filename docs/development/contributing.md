@@ -73,7 +73,7 @@ The project follows standard Go conventions:
    git checkout -b feature/your-feature-name
    ```
 
-2. Make your changes following our [development standards](../development/standards.md) and the coding standards in [AGENTS.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/AGENTS.md)
+2. Make your changes following our [development standards](standards.md) and the coding standards in [AGENTS.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/AGENTS.md)
 
 3. Add tests for new functionality:
 

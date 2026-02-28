@@ -4,7 +4,7 @@
 
 The MarkdownBuilder provides a programmatic interface for generating reports from OPNsense configurations. All methods are designed for offline usage.
 
-For the full internal Go API reference including parser, config, and export packages, see the [Developer Guide API Reference](dev-guide/api.md).
+For the full internal Go API reference including parser, config, and export packages, see the [Developer Guide API Reference](development/api.md).
 
 ## Core Interfaces
 
@@ -119,6 +119,6 @@ The `MarkdownBuilder` is safe for concurrent use in read-only operations. See AG
 
 ## Related Documentation
 
-- [Developer Guide API Reference](dev-guide/api.md) - Full internal API documentation
+- [Developer Guide API Reference](development/api.md) - Full internal API documentation
 - [Data Model & Integration](templates/index.md) - JSON/YAML export examples
 - [Architecture](development/architecture.md) - System architecture

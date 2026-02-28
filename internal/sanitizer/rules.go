@@ -1,6 +1,9 @@
 package sanitizer
 
-import "slices"
+import (
+	"slices"
+	"strings"
+)
 
 // Mode represents the sanitization aggressiveness level.
 type Mode string
@@ -54,14 +57,18 @@ type RuleCategory string
 const (
 	// CategoryCredentials groups rules that redact passwords, keys, and tokens.
 	CategoryCredentials RuleCategory = "credentials"
-	// CategoryNetwork groups rules that redact IP addresses and network configurations.
+	// CategoryNetwork groups rules that redact IP addresses, MAC addresses, hostnames, subnets, and endpoint configurations.
 	CategoryNetwork RuleCategory = "network"
-	// CategoryIdentity groups rules that redact usernames, hostnames, and domain names.
+	// CategoryIdentity groups rules that redact usernames, email addresses, and cloud account identifiers.
 	CategoryIdentity RuleCategory = "identity"
 	// CategoryCrypto groups rules that redact certificates and cryptographic material.
 	CategoryCrypto RuleCategory = "crypto"
 	// CategorySystem groups rules that redact system-level configuration details.
 	CategorySystem RuleCategory = "system"
+
+	redactedSecretValue    = "[REDACTED-SECRET]"
+	redactedSubnetValue    = "[REDACTED-SUBNET]"
+	redactedPublicKeyValue = "[REDACTED-PUBLIC-KEY]"
 )
 
 // RuleEngine manages and applies redaction rules.
@@ -134,6 +141,22 @@ func (e *RuleEngine) Redact(fieldName, value string) string {
 	if !should || rule == nil {
 		return value
 	}
+	return e.redactWithRule(rule, fieldName, value)
+}
+
+// RedactWithRule applies a specific rule's Redactor to the given field/value pair.
+// Use this when you already have the matched rule from ShouldRedactValue to avoid
+// a redundant rule lookup (which could match a different rule than the one tracked
+// for statistics).
+func (e *RuleEngine) RedactWithRule(rule *Rule, fieldName, value string) string {
+	if rule == nil {
+		return value
+	}
+	return e.redactWithRule(rule, fieldName, value)
+}
+
+// redactWithRule applies the given rule's Redactor, falling back to the generic mapper.
+func (e *RuleEngine) redactWithRule(rule *Rule, fieldName, value string) string {
 	if rule.Redactor != nil {
 		return rule.Redactor(e.mapper, fieldName, value)
 	}
@@ -146,9 +169,22 @@ func (e *RuleEngine) ruleActiveForMode(rule *Rule) bool {
 	return slices.Contains(rule.Modes, e.mode)
 }
 
-// fieldNameMatches reports whether pattern is a case-insensitive substring of fieldName.
-// An empty pattern always matches.
+// exactMatchPatterns lists field patterns that require exact (case-insensitive)
+// matching instead of substring matching. This prevents false positives on
+// compound field names (e.g., "key" would otherwise match "sshkey", "apikey";
+// "from"/"to" would match "timeout", "protocol", "platformfrom").
+var exactMatchPatterns = []string{"key", "from", "to"}
+
+// fieldNameMatches reports whether pattern matches fieldName using a
+// case-insensitive substring check. An empty pattern always matches.
+// Patterns listed in exactMatchPatterns require an exact (case-insensitive)
+// match to prevent false positives on compound field names.
 func fieldNameMatches(fieldName, pattern string) bool {
+	for _, exact := range exactMatchPatterns {
+		if strings.EqualFold(pattern, exact) {
+			return strings.EqualFold(fieldName, exact)
+		}
+	}
 	return containsIgnoreCase(fieldName, pattern)
 }
 
@@ -231,9 +267,10 @@ func builtinRules() []Rule {
 			FieldPatterns: []string{
 				"secret", "token", "apikey", "api_key", "api-key",
 				"accesskey", "secretkey", "authkey", "auth_key",
+				"otp_seed", "otpseed",
 			},
 			Redactor: func(_ *Mapper, _, _ string) string {
-				return "[REDACTED-SECRET]"
+				return redactedSecretValue
 			},
 		},
 		{
@@ -268,7 +305,7 @@ func builtinRules() []Rule {
 			Category:    CategoryCrypto,
 			Modes:       allModes,
 			FieldPatterns: []string{
-				"privatekey", "private_key", "prv", "privkey",
+				"privatekey", "private_key", "prv", "privkey", "key",
 			},
 			ValueDetector: IsPrivateKey,
 			Redactor: func(_ *Mapper, _, _ string) string {
@@ -292,10 +329,13 @@ func builtinRules() []Rule {
 		// Identity rules - aggressive and moderate
 		// NOTE: Email must be checked BEFORE hostname, as emails contain dots
 		{
-			Name:          "email",
-			Description:   "Redacts email addresses",
-			Category:      CategoryIdentity,
-			Modes:         aggressiveModerate,
+			Name:        "email",
+			Description: "Redacts email addresses",
+			Category:    CategoryIdentity,
+			Modes:       aggressiveModerate,
+			FieldPatterns: []string{
+				"email",
+			},
 			ValueDetector: IsEmail,
 			Redactor: func(m *Mapper, _, value string) string {
 				return m.MapEmail(value)
@@ -326,10 +366,13 @@ func builtinRules() []Rule {
 			},
 		},
 		{
-			Name:          "mac_address",
-			Description:   "Redacts MAC addresses",
-			Category:      CategoryNetwork,
-			Modes:         aggressiveModerate,
+			Name:        "mac_address",
+			Description: "Redacts MAC addresses",
+			Category:    CategoryNetwork,
+			Modes:       aggressiveModerate,
+			FieldPatterns: []string{
+				"mac",
+			},
 			ValueDetector: IsMAC,
 			Redactor: func(m *Mapper, _, value string) string {
 				return m.MapMAC(value)
@@ -340,6 +383,9 @@ func builtinRules() []Rule {
 			Description: "Redacts hostnames/FQDNs",
 			Category:    CategoryNetwork,
 			Modes:       aggressiveOnly,
+			FieldPatterns: []string{
+				"hostname", "domain", "althostnames", "hostnames",
+			},
 			ValueDetector: func(value string) bool {
 				// Don't match emails as hostnames
 				if IsEmail(value) {
@@ -348,6 +394,11 @@ func builtinRules() []Rule {
 				return IsHostname(value)
 			},
 			Redactor: func(m *Mapper, _, value string) string {
+				// Guard: hostname field patterns can match fields containing
+				// email addresses; delegate to email mapping in that case.
+				if IsEmail(value) {
+					return m.MapEmail(value)
+				}
 				return m.MapHostname(value)
 			},
 		},
@@ -379,6 +430,94 @@ func builtinRules() []Rule {
 			},
 			Redactor: func(_ *Mapper, _, _ string) string {
 				return "[REDACTED-SSH-KEY]"
+			},
+		},
+
+		// Aggressive-only rules — network topology (IPs, subnets, endpoints), cloud identifiers, and public keys.
+		{
+			Name:        "endpoint",
+			Description: "Redacts VPN/tunnel endpoint addresses",
+			Category:    CategoryNetwork,
+			Modes:       aggressiveOnly,
+			FieldPatterns: []string{
+				"endpoint", "tunneladdress",
+			},
+			Redactor: func(_ *Mapper, _, value string) string {
+				if value == "" {
+					return value
+				}
+				return "[REDACTED-ENDPOINT]"
+			},
+		},
+		{
+			Name:        "ip_address_field",
+			Description: "Redacts IP address values in named address fields",
+			Category:    CategoryNetwork,
+			Modes:       aggressiveOnly,
+			FieldPatterns: []string{
+				"ipaddr", "ipaddrv6", "from", "to",
+			},
+			// No ValueDetector: redaction is purely field-name-driven.
+			// "from"/"to" are too generic for value-based matching across all fields.
+			Redactor: func(m *Mapper, _, value string) string {
+				// Guard: field patterns like "from"/"to" can match non-IP values
+				// (e.g., "any", "lan"); only redact when the value is actually an IP.
+				// When the guard rejects, sanitizer.go counts it as SkippedFields.
+				if !IsIP(value) {
+					return value
+				}
+				if IsPublicIP(value) {
+					return m.MapPublicIP(value)
+				}
+				return m.MapPrivateIP(value, false)
+			},
+		},
+		{
+			Name:        "subnet_field",
+			Description: "Redacts subnet CIDR values in named subnet fields",
+			Category:    CategoryNetwork,
+			Modes:       aggressiveOnly,
+			FieldPatterns: []string{
+				"subnet", "subnetv6",
+			},
+			// ValueDetector enables CIDR detection on unrecognized field names;
+			// the Redactor guard handles the field-pattern match path separately.
+			ValueDetector: IsSubnet,
+			Redactor: func(_ *Mapper, _, value string) string {
+				// Guard: field-pattern matches (e.g., "subnet") bypass the ValueDetector,
+				// so we must validate here too for non-CIDR values like "255.255.255.0".
+				if !IsSubnet(value) {
+					return value
+				}
+				return redactedSubnetValue
+			},
+		},
+		{
+			Name:        "cloud_identifier",
+			Description: "Redacts cloud provider account and zone identifiers",
+			Category:    CategoryIdentity,
+			Modes:       aggressiveOnly,
+			FieldPatterns: []string{
+				"dns_cf_account_id", "dns_cf_zone_id", "account_id", "zone_id",
+			},
+			Redactor: func(_ *Mapper, _, value string) string {
+				if value == "" {
+					return value
+				}
+				return "[REDACTED-CLOUD-ID]"
+			},
+		},
+		{
+			Name:        "public_key",
+			Description: "Redacts public keys in base64 form",
+			Category:    CategoryCrypto,
+			Modes:       aggressiveOnly,
+			FieldPatterns: []string{
+				"pubkey", "pub_key",
+			},
+			ValueDetector: IsBase64,
+			Redactor: func(_ *Mapper, _, _ string) string {
+				return redactedPublicKeyValue
 			},
 		},
 	}
