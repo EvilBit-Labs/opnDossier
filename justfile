@@ -380,7 +380,17 @@ sbom: build-release
 # Run all security checks (SBOM + security scan)
 [group('security')]
 security-all: sbom scan
-    @echo "✅ All security checks complete"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Licensing
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Generate THIRD_PARTY_NOTICES from dependency licenses
+[group('licensing')]
+notices:
+    {{ mise_exec }} go-licenses report ./... \
+        --ignore github.com/EvilBit-Labs/opnDossier \
+        --template packaging/notices.tpl > THIRD_PARTY_NOTICES 2>/dev/null
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CI
