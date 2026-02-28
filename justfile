@@ -67,11 +67,9 @@ setup: install
 # Update all dependencies
 [group('setup')]
 update-deps: _update-go _update-python _update-precommit
-    @echo "✅ All dependencies updated"
 
 [private]
 _update-go:
-    @echo "Updating Go dependencies..."
     @{{ mise_exec }} go get -u ./...
     @{{ mise_exec }} go mod tidy
     @{{ mise_exec }} go mod verify
@@ -79,12 +77,10 @@ _update-go:
 [private]
 [no-exit-message]
 _update-python:
-    @echo "Updating Python dependencies..."
     @{{ mise_exec }} pre-commit install --hook-type commit-msg 2>{{ _null }} || true
 
 [private]
 _update-precommit: _update-python
-    @echo "Updating pre-commit hooks..."
     @{{ mise_exec }} pre-commit autoupdate
 
 
@@ -215,9 +211,7 @@ bench-perf:
 # Save benchmark baseline for comparison
 [group('test')]
 bench-save:
-    @echo "Saving benchmark baseline..."
     @{{ mise_exec }} go test -bench=. -run=^$ -benchmem -count=5 ./... 2>/dev/null | tee .benchmark-baseline.txt
-    @echo "✅ Baseline saved to .benchmark-baseline.txt"
 
 # Compare current benchmarks against baseline
 [group('test')]
@@ -226,10 +220,7 @@ bench-compare:
         echo "No baseline found. Run 'just bench-save' first."; \
         exit 1; \
     fi
-    @echo "Running current benchmarks..."
     @{{ mise_exec }} go test -bench=. -run=^$ -benchmem -count=5 ./... 2>/dev/null | tee .benchmark-current.txt
-    @echo ""
-    @echo "Comparing benchmarks..."
     @{{ mise_exec }} go install golang.org/x/perf/cmd/benchstat@latest
     @{{ mise_exec }} benchstat .benchmark-baseline.txt .benchmark-current.txt
 
@@ -328,9 +319,7 @@ docs-test:
 # Generate model reference documentation
 [group('docs')]
 generate-docs:
-    @echo "Generating model reference documentation..."
     @{{ mise_exec }} go run tools/docgen/main.go
-    @echo "✅ Documentation generated"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Changelog
@@ -366,16 +355,13 @@ _require-git-cliff:
 # Run gosec security scanner
 [group('security')]
 scan:
-    @echo "Running security scan..."
     @{{ mise_exec }} gosec ./...
 
 # Generate SBOM with cyclonedx-gomod
 [group('security')]
 sbom: build-release
-    @echo "Generating SBOM..."
     @{{ mise_exec }} cyclonedx-gomod bin -output sbom-binary.cyclonedx.json ./{{ binary_name }}{{ if os_family() == "windows" { ".exe" } else { "" } }}
     @{{ mise_exec }} cyclonedx-gomod app -output sbom-modules.cyclonedx.json -json .
-    @echo "✅ SBOM generated: sbom-binary.cyclonedx.json, sbom-modules.cyclonedx.json"
 
 # Run all security checks (SBOM + security scan)
 [group('security')]
@@ -399,20 +385,16 @@ notices:
 # Run full CI checks (pre-commit, format, lint, test)
 [group('ci')]
 ci-check: check format-check lint test test-integration
-    @echo "✅ All CI checks passed"
 
 # Run smoke tests (fast, minimal validation)
 [group('ci')]
 ci-smoke:
-    @echo "Running smoke tests..."
     @{{ mise_exec }} go build -trimpath -ldflags="-s -w -X main.version=dev" -v ./...
     @{{ mise_exec }} go test -count=1 -failfast -short -timeout 5m ./cmd/... ./internal/config/...
-    @echo "✅ Smoke tests passed"
 
 # Run full checks including security and release validation
 [group('ci')]
 ci-full: ci-check security-all release-check docs-test
-    @echo "✅ All checks passed"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # GitHub Actions (act)
@@ -434,7 +416,6 @@ act-list: _require-act
 # Run a specific workflow
 [group('act')]
 act-run workflow: _require-act
-    @echo "Running workflow: {{ workflow }}"
     @{{ act_cmd }} --workflows .github/workflows/{{ workflow }}.yml --verbose
 
 # Dry-run a workflow (list steps only)
@@ -455,11 +436,6 @@ act-push: _require-act
 # Test all PR workflows (dry-run)
 [group('act')]
 act-test-all: _require-act
-    @echo "Testing CI workflow..."
     @{{ mise_exec }} just act-dry ci
-    @echo ""
-    @echo "Testing SBOM workflow..."
     @{{ mise_exec }} just act-dry sbom
-    @echo ""
-    @echo "Testing Scorecard workflow..."
     @{{ mise_exec }} just act-dry scorecard
