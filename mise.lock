@@ -3,7 +3,7 @@ version = "0.2.84"
 backend = "aqua:nektos/act"
 
 [[tools.cosign]]
-version = "3.0.4"
+version = "3.0.5"
 backend = "aqua:sigstore/cosign"
 
 [[tools.git-cliff]]
@@ -18,22 +18,21 @@ backend = "github:anchore/quill"
 version = "1.26.0"
 backend = "core:go"
 
+[[tools."go:github.com/google/go-licenses"]]
+version = "1.6.0"
+backend = "go:github.com/google/go-licenses"
+
 [[tools."go:github.com/securego/gosec/v2/cmd/gosec"]]
 version = "2.23.0"
 backend = "go:github.com/securego/gosec/v2/cmd/gosec"
 
 [[tools.golangci-lint]]
-version = "2.9.0"
+version = "2.10.1"
 backend = "aqua:golangci/golangci-lint"
 
 [[tools.goreleaser]]
 version = "2.14.1"
 backend = "aqua:goreleaser/goreleaser"
-"platforms.linux-arm64" = { checksum = "sha256:a84d3b27f052c12ad5c8342d7caf1450a7174a305730aed21d72db09301e49a5", url = "https://github.com/goreleaser/goreleaser/releases/download/v2.14.1/goreleaser_Linux_arm64.tar.gz"}
-"platforms.linux-x64" = { checksum = "sha256:2df975a7acbfdeaf888d596cab0024d48ec7fb7d747e1d08b90948b791f40a5f", url = "https://github.com/goreleaser/goreleaser/releases/download/v2.14.1/goreleaser_Linux_x86_64.tar.gz"}
-"platforms.macos-arm64" = { checksum = "sha256:9f2e47f847b4f4177376fc6aa6914fbc7f673f59720076747e738b578c2e896e", url = "https://github.com/goreleaser/goreleaser/releases/download/v2.14.1/goreleaser_Darwin_all.tar.gz"}
-"platforms.macos-x64" = { checksum = "sha256:9f2e47f847b4f4177376fc6aa6914fbc7f673f59720076747e738b578c2e896e", url = "https://github.com/goreleaser/goreleaser/releases/download/v2.14.1/goreleaser_Darwin_all.tar.gz"}
-"platforms.windows-x64" = { checksum = "sha256:d7a3d8ba795e97ab8c4f8003630d300da164adf21fde5a4049440c20f15c3137", url = "https://github.com/goreleaser/goreleaser/releases/download/v2.14.1/goreleaser_Windows_x86_64.zip"}
 
 [[tools.just]]
 version = "1.46.0"
@@ -42,10 +41,6 @@ backend = "aqua:casey/just"
 [[tools.markdownlint-cli2]]
 version = "0.21.0"
 backend = "npm:markdownlint-cli2"
-
-[[tools.node]]
-version = "25.6.1"
-backend = "core:node"
 
 [[tools."pipx:mdformat"]]
 version = "0.7.21"
@@ -70,10 +65,5 @@ version = "3.14.3"
 backend = "core:python"
 
 [[tools.uv]]
-version = "0.10.6"
+version = "0.10.7"
 backend = "aqua:astral-sh/uv"
-"platforms.linux-arm64" = { checksum = "sha256:7de7aa836fd54ff930fa5e63bc04da35e2fbd72889d6258e153479c44d08b863", url = "https://github.com/astral-sh/uv/releases/download/0.10.6/uv-aarch64-unknown-linux-musl.tar.gz"}
-"platforms.linux-x64" = { checksum = "sha256:01d6ce770da88ce6445acb0a8764c8b1634c9f69c728dca68b19fc7a893f72b9", url = "https://github.com/astral-sh/uv/releases/download/0.10.6/uv-x86_64-unknown-linux-musl.tar.gz"}
-"platforms.macos-arm64" = { checksum = "sha256:3993249d8f51deaf34cfce037e57e294e82267ff1f9dc45b7983a17afaf065b4", url = "https://github.com/astral-sh/uv/releases/download/0.10.6/uv-aarch64-apple-darwin.tar.gz"}
-"platforms.macos-x64" = { checksum = "sha256:d7647571fb17a5107d4d23cc190418039c157fd7361ddb59bc6f8127a49e3eac", url = "https://github.com/astral-sh/uv/releases/download/0.10.6/uv-x86_64-apple-darwin.tar.gz"}
-"platforms.windows-x64" = { checksum = "sha256:b27eb789f281e398a82197477de727fc8faf08605152115686da2c3cba0d25f7", url = "https://github.com/astral-sh/uv/releases/download/0.10.6/uv-x86_64-pc-windows-msvc.zip"}
