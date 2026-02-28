@@ -47,6 +47,9 @@ func FuzzPatternDetection(f *testing.F) {
 	f.Add("-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBg==\n-----END PRIVATE KEY-----")
 	f.Add("")
 	f.Add("not-a-pattern")
+	f.Add("192.168.1.0/24")
+	f.Add("fd00::/8")
+	f.Add("10.0.0.0/8")
 	// Stress test for regex backtracking
 	f.Add(strings.Repeat("a", 10000))
 	f.Add(strings.Repeat("192.168.1.", 1000))
@@ -56,6 +59,7 @@ func FuzzPatternDetection(f *testing.F) {
 		IsIPv4(s)
 		IsIPv6(s)
 		IsIP(s)
+		IsSubnet(s)
 		IsPrivateIP(s)
 		IsPublicIP(s)
 		IsMAC(s)

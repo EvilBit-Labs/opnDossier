@@ -6,6 +6,8 @@ import (
 	"testing"
 )
 
+const testPublicIP = "8.8.8.8"
+
 func TestNewSanitizer(t *testing.T) {
 	s := NewSanitizer(ModeAggressive)
 	if s == nil {
@@ -80,7 +82,7 @@ func TestSanitizeXML_PublicIP(t *testing.T) {
 	}
 
 	result := output.String()
-	if strings.Contains(result, "8.8.8.8") {
+	if strings.Contains(result, testPublicIP) {
 		t.Error("Public IP was not redacted")
 	}
 	if !strings.Contains(result, "[REDACTED-PUBLIC-IP") {
@@ -293,7 +295,7 @@ func TestSanitizeStruct(t *testing.T) {
 	config := &TestConfig{
 		Password: "supersecret",
 		Username: "jsmith",
-		Gateway:  "8.8.8.8",
+		Gateway:  testPublicIP,
 		Hostname: "firewall.company.com",
 	}
 
@@ -309,7 +311,7 @@ func TestSanitizeStruct(t *testing.T) {
 	if config.Username == "jsmith" {
 		t.Error("Username was not redacted")
 	}
-	if config.Gateway == "8.8.8.8" {
+	if config.Gateway == testPublicIP {
 		t.Error("Gateway (public IP) was not redacted")
 	}
 	if config.Hostname == "firewall.company.com" {
@@ -377,6 +379,51 @@ func TestEscapeXMLText(t *testing.T) {
 				t.Errorf("escapeXMLText(%q) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestSanitizeXML_GuardedRedactorStats(t *testing.T) {
+	t.Parallel()
+
+	// When a guarded Redactor (e.g., ip_address_field) returns the original
+	// value because the guard rejects it (non-IP value on a "from" field),
+	// stats must count it as SkippedFields, not RedactedFields.
+	input := `<config>
+  <filter>
+    <rule>
+      <from>any</from>
+      <to>lan</to>
+    </rule>
+  </filter>
+</config>`
+
+	s := NewSanitizer(ModeAggressive)
+	var output bytes.Buffer
+	err := s.SanitizeXML(strings.NewReader(input), &output)
+	if err != nil {
+		t.Fatalf("SanitizeXML() error = %v", err)
+	}
+
+	stats := s.GetStats()
+
+	// "any" and "lan" are non-IP values on ip_address_field-matched fields;
+	// guarded Redactors should return them unchanged → SkippedFields.
+	if stats.RedactedFields != 0 {
+		t.Errorf("RedactedFields = %d, want 0 (non-IP values should not be redacted)", stats.RedactedFields)
+	}
+	if stats.SkippedFields == 0 {
+		t.Error(
+			"SkippedFields should be > 0 (guarded Redactors returning original value should increment SkippedFields)",
+		)
+	}
+
+	// Verify output preserved original values.
+	result := output.String()
+	if !strings.Contains(result, "any") {
+		t.Error("output should contain 'any' unchanged")
+	}
+	if !strings.Contains(result, "lan") {
+		t.Error("output should contain 'lan' unchanged")
 	}
 }
 

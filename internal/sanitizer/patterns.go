@@ -87,6 +87,12 @@ func IsIP(s string) bool {
 	return net.ParseIP(s) != nil
 }
 
+// IsSubnet reports whether s is a valid IPv4 or IPv6 CIDR notation subnet.
+func IsSubnet(s string) bool {
+	_, _, err := net.ParseCIDR(s)
+	return err == nil
+}
+
 // IsPrivateIP reports whether the provided string is an IPv4 or IPv6 private address.
 // It returns `true` if the string parses as an IPv4 address within RFC1918 ranges or as an IPv6 unique local address (fc00::/7), and `false` otherwise.
 func IsPrivateIP(s string) bool {

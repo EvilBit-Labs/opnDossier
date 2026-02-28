@@ -78,11 +78,10 @@ func ensureLogger(logger *logging.Logger) (*logging.Logger, error) {
 	return logger, nil
 }
 
-// NewMarkdownGenerator creates a new Generator that produces documentation in Markdown, JSON, or YAML formats.
-// NewMarkdownGenerator creates a Generator that produces Markdown output using the programmatic report builder.
-// It ensures a usable logger (creating a default logger if nil) and constructs a Markdown report builder.
-// The provided Options parameter is ignored and exists only for backward compatibility.
-// Returns a Generator configured for Markdown or an error if logger creation fails.
+// NewMarkdownGenerator creates a HybridGenerator configured with a MarkdownBuilder and the provided logger.
+// Despite its name, the returned Generator supports all output formats (Markdown, JSON, YAML, Text, HTML)
+// via the Options passed to Generate(). The opts parameter is ignored and exists for backward compatibility.
+// Returns an error only if the provided logger is nil and creating a default logger fails.
 func NewMarkdownGenerator(logger *logging.Logger, _ Options) (Generator, error) {
 	var err error
 	logger, err = ensureLogger(logger)
@@ -184,11 +183,13 @@ func (g *HybridGenerator) generateMarkdown(data *common.CommonDevice, opts Optio
 		return "", errors.New("no report builder available for programmatic generation")
 	}
 
+	target := prepareForExport(data, opts.Redact)
+
 	switch {
 	case opts.Comprehensive:
-		return g.builder.BuildComprehensiveReport(data)
+		return g.builder.BuildComprehensiveReport(target)
 	default:
-		return g.builder.BuildStandardReport(data)
+		return g.builder.BuildStandardReport(target)
 	}
 }
 
@@ -204,25 +205,39 @@ func (g *HybridGenerator) generateMarkdownToWriter(
 		return errors.New("no report builder available for programmatic generation")
 	}
 
+	target := prepareForExport(data, opts.Redact)
+
 	// Check if builder supports SectionWriter interface for streaming
 	sectionWriter, ok := g.builder.(builder.SectionWriter)
 	if !ok {
-		// Fallback to string-based generation if builder doesn't support streaming
+		// Fallback to string-based generation using the already-prepared target
 		g.logger.Debug("Builder does not support SectionWriter, falling back to string generation")
-		output, err := g.generateMarkdown(data, opts)
+
+		var output string
+		var err error
+
+		switch {
+		case opts.Comprehensive:
+			output, err = g.builder.BuildComprehensiveReport(target)
+		default:
+			output, err = g.builder.BuildStandardReport(target)
+		}
+
 		if err != nil {
 			return err
 		}
+
 		_, err = io.WriteString(w, output)
+
 		return err
 	}
 
 	// Use streaming writer
 	switch {
 	case opts.Comprehensive:
-		return sectionWriter.WriteComprehensiveReport(w, data)
+		return sectionWriter.WriteComprehensiveReport(w, target)
 	default:
-		return sectionWriter.WriteStandardReport(w, data)
+		return sectionWriter.WriteStandardReport(w, target)
 	}
 }
 

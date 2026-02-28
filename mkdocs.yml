@@ -58,17 +58,14 @@ nav:
       - JSON Export Examples: templates/examples/json-export.md
       - YAML Processing Examples: templates/examples/yaml-processing.md
 
-  - Developer Guide:
-      - Architecture: dev-guide/architecture.md
-      - API Reference: dev-guide/api.md
-      - Plugin Development: dev-guide/plugin-development.md
-      - Contributing: dev-guide/contributing.md
-      - Authoritative Role Definitions: dev-guide/authoritative_role_definitions.md
-
   - Development:
       - Architecture: development/architecture.md
       - Development Standards: development/standards.md
+      - API Reference: development/api.md
+      - Plugin Development: development/plugin-development.md
+      - Contributing: development/contributing.md
       - Releasing: development/releasing.md
+      - Role Definitions: development/authoritative_role_definitions.md
 
   - Security:
       - Compliance: security/compliance.md
@@ -82,8 +79,6 @@ nav:
       - Pipeline v2 Compliance: pipeline-v2-compliance.md
 
   - Research & Internal:
-      - Architecture Review: architecture-review.md
-      - Charmbracelet Compatibility: charmbracelet-compatibility-research.md
       - Theme Usage: theme-usage.md
 
   - About: about.md
@@ -107,9 +102,6 @@ markdown_extensions:
       smart_enable: all
   - pymdownx.caret
   - pymdownx.details
-  - pymdownx.emoji:
-      emoji_generator: !!python/name:material.extensions.emoji.to_svg
-      emoji_index: !!python/name:material.extensions.emoji.twemoji
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.inlinehilite

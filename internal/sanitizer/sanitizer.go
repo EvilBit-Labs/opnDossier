@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"maps"
 	"reflect"
 	"strings"
@@ -156,11 +157,21 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 
 				var sanitizedContent string
 				if should {
-					s.stats.RedactedFields++
-					if rule != nil {
-						s.stats.RedactionsByType[rule.Name]++
+					// Use RedactWithRule to apply the same rule that ShouldRedactValue
+					// matched, avoiding a redundant lookup that could attribute the
+					// redaction to a different rule in statistics.
+					sanitizedContent = s.engine.RedactWithRule(rule, fullPath, content)
+					// Only count as redacted if the value actually changed;
+					// guarded Redactors (e.g., ip_address_field) may return
+					// the original value when the guard rejects it.
+					if sanitizedContent != content {
+						s.stats.RedactedFields++
+						if rule != nil {
+							s.stats.RedactionsByType[rule.Name]++
+						}
+					} else {
+						s.stats.SkippedFields++
 					}
-					sanitizedContent = s.engine.Redact(fullPath, content)
 				} else {
 					s.stats.SkippedFields++
 					sanitizedContent = content
@@ -211,16 +222,22 @@ func (s *Sanitizer) sanitizeValue(fieldName, value string) string {
 		return value
 	}
 
-	s.stats.RedactedFields++
-	if rule != nil {
-		s.stats.RedactionsByType[rule.Name]++
+	redacted := s.engine.RedactWithRule(rule, fieldName, value)
+	if redacted != value {
+		s.stats.RedactedFields++
+		if rule != nil {
+			s.stats.RedactionsByType[rule.Name]++
+		}
+	} else {
+		s.stats.SkippedFields++
 	}
 
-	return s.engine.Redact(fieldName, value)
+	return redacted
 }
 
 // sanitizeCommentContent applies redaction to XML comment content.
 // Comments can contain sensitive data like IPs, hostnames, and credentials.
+// Each word is checked independently and tracked in statistics.
 func (s *Sanitizer) sanitizeCommentContent(content string) string {
 	if content == "" {
 		return content
@@ -229,10 +246,21 @@ func (s *Sanitizer) sanitizeCommentContent(content string) string {
 	// Split comment into words and sanitize each potential sensitive value
 	words := strings.Fields(content)
 	for i, word := range words {
-		// Check if this word looks like sensitive data
-		should, _ := s.engine.ShouldRedactValue("comment", word)
+		s.stats.TotalFields++
+		should, rule := s.engine.ShouldRedactValue("comment", word)
 		if should {
-			words[i] = s.engine.Redact("comment", word)
+			redacted := s.engine.RedactWithRule(rule, "comment", word)
+			if redacted != word {
+				s.stats.RedactedFields++
+				if rule != nil {
+					s.stats.RedactionsByType[rule.Name]++
+				}
+				words[i] = redacted
+			} else {
+				s.stats.SkippedFields++
+			}
+		} else {
+			s.stats.SkippedFields++
 		}
 	}
 
@@ -337,11 +365,14 @@ func (s *Sanitizer) sanitizeReflect(v reflect.Value, path string) error {
 
 // escapeXMLText uses the stdlib xml.EscapeText to properly escape XML character data.
 // This handles all XML-invalid control characters and edge cases.
+// xml.EscapeText only errors if the writer fails; bytes.Buffer.Write never fails,
+// so the error path is unreachable under normal conditions.
 func escapeXMLText(s string) string {
 	var buf bytes.Buffer
-	// xml.EscapeText only returns an error if the writer fails, which bytes.Buffer never does
 	if err := xml.EscapeText(&buf, []byte(s)); err != nil {
-		// Fallback to original string if escaping somehow fails
+		// bytes.Buffer.Write should never fail. Log the error to avoid silent
+		// fallback to unescaped XML, which could produce malformed output.
+		log.Printf("sanitizer: xml.EscapeText failed (len=%d): %v", len(s), err)
 		return s
 	}
 	return buf.String()
