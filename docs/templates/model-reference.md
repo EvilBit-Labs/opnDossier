@@ -1,6 +1,6 @@
 # Model Reference
 
-> **Auto-generated documentation** - Do not edit manually. Generated: 2026-01-31 00:37:11
+> **Auto-generated documentation** - Do not edit manually. Generated: 2026-02-27 00:55:57
 
 This document provides a complete reference of all data fields available in the opnDossier configuration model. Use this reference when working with JSON/YAML exports or building custom integrations.
 
@@ -19,43 +19,43 @@ This document provides a complete reference of all data fields available in the 
 
 The root configuration object parsed from OPNsense XML.
 
-| Field                  | Type                   | JSON Path              | Description       |
-| ---------------------- | ---------------------- | ---------------------- | ----------------- |
-| `Version`              | `string`               | `version`              | Optional          |
-| `TriggerInitialWizard` | `struct`               | `triggerInitialWizard` | -                 |
-| `Theme`                | `string`               | `theme`                | Options: opnsense |
-| `Sysctl`               | `[]SysctlItem`         | `sysctl`               | Optional          |
-| `System`               | `System`               | `system`               | Required          |
-| `Interfaces`           | `Interfaces`           | `interfaces`           | Required          |
-| `Dhcpd`                | `Dhcpd`                | `dhcpd`                | -                 |
-| `Unbound`              | `Unbound`              | `unbound`              | -                 |
-| `Snmpd`                | `Snmpd`                | `snmpd`                | -                 |
-| `Nat`                  | `Nat`                  | `nat`                  | -                 |
-| `Filter`               | `Filter`               | `filter`               | -                 |
-| `Rrd`                  | `Rrd`                  | `rrd`                  | -                 |
-| `LoadBalancer`         | `LoadBalancer`         | `loadBalancer`         | -                 |
-| `Ntpd`                 | `Ntpd`                 | `ntpd`                 | -                 |
-| `Widgets`              | `Widgets`              | `widgets`              | -                 |
-| `Revision`             | `Revision`             | `revision`             | -                 |
-| `Gateways`             | `Gateways`             | `gateways`             | -                 |
-| `HighAvailabilitySync` | `HighAvailabilitySync` | `hasync`               | -                 |
-| `InterfaceGroups`      | `InterfaceGroups`      | `ifgroups`             | -                 |
-| `GIFInterfaces`        | `GIFInterfaces`        | `gifs`                 | -                 |
-| `GREInterfaces`        | `GREInterfaces`        | `gres`                 | -                 |
-| `LAGGInterfaces`       | `LAGGInterfaces`       | `laggs`                | -                 |
-| `VirtualIP`            | `VirtualIP`            | `virtualip`            | -                 |
-| `VLANs`                | `VLANs`                | `vlans`                | -                 |
-| `OpenVPN`              | `OpenVPN`              | `openvpn`              | -                 |
-| `StaticRoutes`         | `StaticRoutes`         | `staticroutes`         | -                 |
-| `Bridges`              | `BridgesConfig`        | `bridges`              | -                 |
-| `PPPInterfaces`        | `PPPInterfaces`        | `ppps`                 | -                 |
-| `Wireless`             | `Wireless`             | `wireless`             | -                 |
-| `CertificateAuthority` | `CertificateAuthority` | `ca`                   | -                 |
-| `DHCPv6Server`         | `DHCPv6Server`         | `dhcpdv6`              | -                 |
-| `Cert`                 | `Cert`                 | `cert`                 | -                 |
-| `DNSMasquerade`        | `DNSMasq`              | `dnsmasq`              | -                 |
-| `Syslog`               | `Syslog`               | `syslog`               | -                 |
-| `OPNsense`             | `OPNsense`             | `opnsense`             | -                 |
+| Field                  | Type                     | JSON Path              | Description       |
+| ---------------------- | ------------------------ | ---------------------- | ----------------- |
+| `Version`              | `string`                 | `version`              | Optional          |
+| `TriggerInitialWizard` | `BoolFlag`               | `triggerInitialWizard` | -                 |
+| `Theme`                | `string`                 | `theme`                | Options: opnsense |
+| `Sysctl`               | `[]SysctlItem`           | `sysctl`               | Optional          |
+| `System`               | `System`                 | `system`               | Required          |
+| `Interfaces`           | `Interfaces`             | `interfaces`           | Required          |
+| `Dhcpd`                | `Dhcpd`                  | `dhcpd`                | -                 |
+| `Unbound`              | `Unbound`                | `unbound`              | -                 |
+| `Snmpd`                | `Snmpd`                  | `snmpd`                | -                 |
+| `Nat`                  | `Nat`                    | `nat`                  | -                 |
+| `Filter`               | `Filter`                 | `filter`               | -                 |
+| `Rrd`                  | `Rrd`                    | `rrd`                  | -                 |
+| `LoadBalancer`         | `LoadBalancer`           | `loadBalancer`         | -                 |
+| `Ntpd`                 | `Ntpd`                   | `ntpd`                 | -                 |
+| `Widgets`              | `Widgets`                | `widgets`              | -                 |
+| `Revision`             | `Revision`               | `revision`             | -                 |
+| `Gateways`             | `Gateways`               | `gateways`             | -                 |
+| `HighAvailabilitySync` | `HighAvailabilitySync`   | `hasync`               | -                 |
+| `InterfaceGroups`      | `InterfaceGroups`        | `ifgroups`             | -                 |
+| `GIFInterfaces`        | `GIFInterfaces`          | `gifs`                 | -                 |
+| `GREInterfaces`        | `GREInterfaces`          | `gres`                 | -                 |
+| `LAGGInterfaces`       | `LAGGInterfaces`         | `laggs`                | -                 |
+| `VirtualIP`            | `VirtualIP`              | `virtualip`            | -                 |
+| `VLANs`                | `VLANs`                  | `vlans`                | -                 |
+| `OpenVPN`              | `OpenVPN`                | `openvpn`              | -                 |
+| `StaticRoutes`         | `StaticRoutes`           | `staticroutes`         | -                 |
+| `Bridges`              | `Bridges`                | `bridges`              | -                 |
+| `PPPInterfaces`        | `PPPInterfaces`          | `ppps`                 | -                 |
+| `Wireless`             | `Wireless`               | `wireless`             | -                 |
+| `CAs`                  | `[]CertificateAuthority` | `ca`                   | Optional          |
+| `DHCPv6Server`         | `DHCPv6Server`           | `dhcpdv6`              | -                 |
+| `Certs`                | `[]Cert`                 | `cert`                 | Optional          |
+| `DNSMasquerade`        | `DNSMasq`                | `dnsmasq`              | -                 |
+| `Syslog`               | `Syslog`                 | `syslog`               | -                 |
+| `OPNsense`             | `OPNsense`               | `opnsense`             | -                 |
 
 ---
 
@@ -87,7 +87,7 @@ Core system settings including hostname, users, and SSH configuration.
 | `DisableLargeReceiveOffloading` | `int`          | `system.disableLargeReceiveOffloading` | Optional        |
 | `IPv6Allow`                     | `string`       | `system.ipv6Allow`                     | Optional        |
 | `DisableNATReflection`          | `string`       | `system.disableNatReflection`          | Optional        |
-| `DisableConsoleMenu`            | `struct`       | `system.disableConsoleMenu`            | -               |
+| `DisableConsoleMenu`            | `BoolFlag`     | `system.disableConsoleMenu`            | -               |
 | `NextUID`                       | `int`          | `system.nextUid`                       | Optional        |
 | `NextGID`                       | `int`          | `system.nextGid`                       | Optional        |
 | `PowerdACMode`                  | `string`       | `system.powerdAcMode`                  | Options: hadp   |
@@ -107,31 +107,31 @@ Core system settings including hostname, users, and SSH configuration.
 
 ### User
 
-| Field            | Type       | JSON Path                       | Description |
-| ---------------- | ---------- | ------------------------------- | ----------- |
-| `Name`           | `string`   | `system.users[].name`           | Required    |
-| `Disabled`       | `BoolFlag` | `system.users[].disabled`       | -           |
-| `Descr`          | `string`   | `system.users[].description`    | Optional    |
-| `Scope`          | `string`   | `system.users[].scope`          | Required    |
-| `Groupname`      | `string`   | `system.users[].groupname`      | Required    |
-| `Password`       | `string`   | `system.users[].password`       | Required    |
-| `UID`            | `string`   | `system.users[].uid`            | Required    |
-| `APIKeys`        | `[]APIKey` | `system.users[].apiKeys`        | Optional    |
-| `Expires`        | `struct`   | `system.users[].expires`        | -           |
-| `AuthorizedKeys` | `struct`   | `system.users[].authorizedKeys` | -           |
-| `IPSecPSK`       | `struct`   | `system.users[].ipsecPsk`       | -           |
-| `OTPSeed`        | `struct`   | `system.users[].otpSeed`        | -           |
+| Field            | Type       | JSON Path                       | Description               |
+| ---------------- | ---------- | ------------------------------- | ------------------------- |
+| `Name`           | `string`   | `system.users[].name`           | Required                  |
+| `Disabled`       | `BoolFlag` | `system.users[].disabled`       | -                         |
+| `Descr`          | `string`   | `system.users[].description`    | Optional                  |
+| `Scope`          | `string`   | `system.users[].scope`          | Required; Options: system |
+| `Groupname`      | `string`   | `system.users[].groupname`      | Required                  |
+| `Password`       | `string`   | `system.users[].password`       | Required                  |
+| `UID`            | `string`   | `system.users[].uid`            | Required                  |
+| `APIKeys`        | `[]APIKey` | `system.users[].apiKeys`        | Optional                  |
+| `Expires`        | `BoolFlag` | `system.users[].expires`        | -                         |
+| `AuthorizedKeys` | `BoolFlag` | `system.users[].authorizedKeys` | -                         |
+| `IPSecPSK`       | `BoolFlag` | `system.users[].ipsecPsk`       | -                         |
+| `OTPSeed`        | `BoolFlag` | `system.users[].otpSeed`        | -                         |
 
 ### Group
 
-| Field         | Type     | JSON Path                     | Description |
-| ------------- | -------- | ----------------------------- | ----------- |
-| `Name`        | `string` | `system.groups[].name`        | Required    |
-| `Description` | `string` | `system.groups[].description` | Optional    |
-| `Scope`       | `string` | `system.groups[].scope`       | Required    |
-| `Gid`         | `string` | `system.groups[].gid`         | Required    |
-| `Member`      | `string` | `system.groups[].member`      | Optional    |
-| `Priv`        | `string` | `system.groups[].privileges`  | Optional    |
+| Field         | Type     | JSON Path                     | Description               |
+| ------------- | -------- | ----------------------------- | ------------------------- |
+| `Name`        | `string` | `system.groups[].name`        | Required                  |
+| `Description` | `string` | `system.groups[].description` | Optional                  |
+| `Scope`       | `string` | `system.groups[].scope`       | Required; Options: system |
+| `Gid`         | `string` | `system.groups[].gid`         | Required                  |
+| `Member`      | `string` | `system.groups[].member`      | Optional                  |
+| `Priv`        | `string` | `system.groups[].privileges`  | Optional                  |
 
 ---
 
@@ -209,47 +209,70 @@ Firewall rules and NAT configuration.
 
 ### Rule (Firewall)
 
-| Field         | Type          | JSON Path                   | Description |
-| ------------- | ------------- | --------------------------- | ----------- |
-| `XMLName`     | `Name`        | `filter.rule[].xmlname`     | -           |
-| `Type`        | `string`      | `filter.rule[].type`        | -           |
-| `Descr`       | `string`      | `filter.rule[].descr`       | -           |
-| `Interface`   | `[]string`    | `filter.rule[].interface`   | -           |
-| `IPProtocol`  | `string`      | `filter.rule[].ipprotocol`  | -           |
-| `StateType`   | `string`      | `filter.rule[].statetype`   | -           |
-| `Direction`   | `string`      | `filter.rule[].direction`   | -           |
-| `Quick`       | `string`      | `filter.rule[].quick`       | -           |
-| `Protocol`    | `string`      | `filter.rule[].protocol`    | -           |
-| `Source`      | `Source`      | `filter.rule[].source`      | -           |
-| `Destination` | `Destination` | `filter.rule[].destination` | -           |
-| `Target`      | `string`      | `filter.rule[].target`      | -           |
-| `SourcePort`  | `string`      | `filter.rule[].sourceport`  | -           |
-| `Disabled`    | `string`      | `filter.rule[].disabled`    | -           |
-| `Updated`     | `*Updated`    | `filter.rule[].updated`     | -           |
-| `Created`     | `*Created`    | `filter.rule[].created`     | -           |
-| `UUID`        | `string`      | `filter.rule[].uuid`        | -           |
+| Field             | Type          | JSON Path                       | Description |
+| ----------------- | ------------- | ------------------------------- | ----------- |
+| `XMLName`         | `Name`        | `filter.rule[].xmlname`         | -           |
+| `Type`            | `string`      | `filter.rule[].type`            | -           |
+| `Descr`           | `string`      | `filter.rule[].descr`           | -           |
+| `Interface`       | `[]string`    | `filter.rule[].interface`       | -           |
+| `IPProtocol`      | `string`      | `filter.rule[].ipprotocol`      | -           |
+| `StateType`       | `string`      | `filter.rule[].statetype`       | -           |
+| `Direction`       | `string`      | `filter.rule[].direction`       | -           |
+| `Floating`        | `string`      | `filter.rule[].floating`        | -           |
+| `Quick`           | `BoolFlag`    | `filter.rule[].quick`           | -           |
+| `Protocol`        | `string`      | `filter.rule[].protocol`        | -           |
+| `Source`          | `Source`      | `filter.rule[].source`          | -           |
+| `Destination`     | `Destination` | `filter.rule[].destination`     | -           |
+| `Target`          | `string`      | `filter.rule[].target`          | -           |
+| `Gateway`         | `string`      | `filter.rule[].gateway`         | -           |
+| `SourcePort`      | `string`      | `filter.rule[].sourceport`      | -           |
+| `Log`             | `BoolFlag`    | `filter.rule[].log`             | -           |
+| `Disabled`        | `BoolFlag`    | `filter.rule[].disabled`        | -           |
+| `Tracker`         | `string`      | `filter.rule[].tracker`         | -           |
+| `MaxSrcNodes`     | `string`      | `filter.rule[].maxsrcnodes`     | -           |
+| `MaxSrcConn`      | `string`      | `filter.rule[].maxsrcconn`      | -           |
+| `MaxSrcConnRate`  | `string`      | `filter.rule[].maxsrcconnrate`  | -           |
+| `MaxSrcConnRates` | `string`      | `filter.rule[].maxsrcconnrates` | -           |
+| `TCPFlags1`       | `string`      | `filter.rule[].tcpflags1`       | -           |
+| `TCPFlags2`       | `string`      | `filter.rule[].tcpflags2`       | -           |
+| `TCPFlagsAny`     | `BoolFlag`    | `filter.rule[].tcpflagsany`     | -           |
+| `ICMPType`        | `string`      | `filter.rule[].icmptype`        | -           |
+| `ICMP6Type`       | `string`      | `filter.rule[].icmp6type`       | -           |
+| `StateTimeout`    | `string`      | `filter.rule[].statetimeout`    | -           |
+| `AllowOpts`       | `BoolFlag`    | `filter.rule[].allowopts`       | -           |
+| `DisableReplyTo`  | `BoolFlag`    | `filter.rule[].disablereplyto`  | -           |
+| `NoPfSync`        | `BoolFlag`    | `filter.rule[].nopfsync`        | -           |
+| `NoSync`          | `BoolFlag`    | `filter.rule[].nosync`          | -           |
+| `Updated`         | `*Updated`    | `filter.rule[].updated`         | -           |
+| `Created`         | `*Created`    | `filter.rule[].created`         | -           |
+| `UUID`            | `string`      | `filter.rule[].uuid`            | -           |
 
 ### NATRule (Outbound)
 
-| Field         | Type          | JSON Path                         | Description |
-| ------------- | ------------- | --------------------------------- | ----------- |
-| `XMLName`     | `Name`        | `nat.outbound.rule[].xmlname`     | -           |
-| `Interface`   | `[]string`    | `nat.outbound.rule[].interface`   | Optional    |
-| `IPProtocol`  | `string`      | `nat.outbound.rule[].ipProtocol`  | Optional    |
-| `Protocol`    | `string`      | `nat.outbound.rule[].protocol`    | Optional    |
-| `Source`      | `Source`      | `nat.outbound.rule[].source`      | -           |
-| `Destination` | `Destination` | `nat.outbound.rule[].destination` | -           |
-| `Target`      | `string`      | `nat.outbound.rule[].target`      | Optional    |
-| `SourcePort`  | `string`      | `nat.outbound.rule[].sourcePort`  | Optional    |
-| `Disabled`    | `string`      | `nat.outbound.rule[].disabled`    | Optional    |
-| `Descr`       | `string`      | `nat.outbound.rule[].description` | Optional    |
-| `Category`    | `string`      | `nat.outbound.rule[].category`    | Optional    |
-| `Tag`         | `string`      | `nat.outbound.rule[].tag`         | Optional    |
-| `Tagged`      | `string`      | `nat.outbound.rule[].tagged`      | Optional    |
-| `PoolOpts`    | `string`      | `nat.outbound.rule[].poolOpts`    | Optional    |
-| `Updated`     | `*Updated`    | `nat.outbound.rule[].updated`     | Optional    |
-| `Created`     | `*Created`    | `nat.outbound.rule[].created`     | Optional    |
-| `UUID`        | `string`      | `nat.outbound.rule[].uuid`        | Optional    |
+| Field                | Type          | JSON Path                                | Description |
+| -------------------- | ------------- | ---------------------------------------- | ----------- |
+| `XMLName`            | `Name`        | `nat.outbound.rule[].xmlname`            | -           |
+| `Interface`          | `[]string`    | `nat.outbound.rule[].interface`          | Optional    |
+| `IPProtocol`         | `string`      | `nat.outbound.rule[].ipProtocol`         | Optional    |
+| `Protocol`           | `string`      | `nat.outbound.rule[].protocol`           | Optional    |
+| `Source`             | `Source`      | `nat.outbound.rule[].source`             | -           |
+| `Destination`        | `Destination` | `nat.outbound.rule[].destination`        | -           |
+| `Target`             | `string`      | `nat.outbound.rule[].target`             | Optional    |
+| `SourcePort`         | `string`      | `nat.outbound.rule[].sourcePort`         | Optional    |
+| `NatPort`            | `string`      | `nat.outbound.rule[].natPort`            | Optional    |
+| `PoolOpts`           | `string`      | `nat.outbound.rule[].poolOpts`           | Optional    |
+| `PoolOptsSrcHashKey` | `string`      | `nat.outbound.rule[].poolOptsSrcHashKey` | Optional    |
+| `StaticNatPort`      | `BoolFlag`    | `nat.outbound.rule[].staticNatPort`      | Optional    |
+| `NoNat`              | `BoolFlag`    | `nat.outbound.rule[].noNat`              | Optional    |
+| `Disabled`           | `BoolFlag`    | `nat.outbound.rule[].disabled`           | Optional    |
+| `Log`                | `BoolFlag`    | `nat.outbound.rule[].log`                | Optional    |
+| `Descr`              | `string`      | `nat.outbound.rule[].description`        | Optional    |
+| `Category`           | `string`      | `nat.outbound.rule[].category`           | Optional    |
+| `Tag`                | `string`      | `nat.outbound.rule[].tag`                | Optional    |
+| `Tagged`             | `string`      | `nat.outbound.rule[].tagged`             | Optional    |
+| `Updated`            | `*Updated`    | `nat.outbound.rule[].updated`            | Optional    |
+| `Created`            | `*Created`    | `nat.outbound.rule[].created`            | Optional    |
+| `UUID`               | `string`      | `nat.outbound.rule[].uuid`               | Optional    |
 
 ---
 

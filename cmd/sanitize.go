@@ -118,15 +118,16 @@ reporting without exposing credentials, IP addresses, or other sensitive data.
 
     aggressive   - Maximum redaction for public sharing (forums, GitHub issues)
                    Redacts: passwords, keys, certificates, all IPs, MACs, emails,
-                   hostnames, usernames, domains
+                   hostnames, usernames, domains, OTP seeds, WireGuard endpoints,
+                   tunnel addresses, subnets, Cloudflare account/zone IDs, public keys
 
     moderate     - Balanced redaction for internal sharing (default)
                    Redacts: passwords, keys, public IPs, MACs, emails
                    Preserves: private IPs, hostnames (for network topology analysis)
 
     minimal      - Credential-only redaction for trusted environments
-                   Redacts: passwords, secrets, API keys, PSKs, certificates
-                   Preserves: all network information
+                   Redacts: passwords, secrets, API keys, PSKs, private keys, SSH keys
+                   Preserves: certificates, all network information
 
   REFERENTIAL INTEGRITY:
   The sanitizer maintains consistent mappings throughout the document:

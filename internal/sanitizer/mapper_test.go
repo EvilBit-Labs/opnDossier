@@ -8,8 +8,10 @@ import (
 
 // Test constants for expected redaction values.
 const (
-	expectedPublicIP1 = "[REDACTED-PUBLIC-IP-1]"
-	expectedPublicIP2 = "[REDACTED-PUBLIC-IP-2]"
+	expectedPublicIP1  = "[REDACTED-PUBLIC-IP-1]"
+	expectedPublicIP2  = "[REDACTED-PUBLIC-IP-2]"
+	expectedMappedMAC1 = "XX:XX:XX:XX:XX:01"
+	expectedMappedMAC2 = "XX:XX:XX:XX:XX:02"
 )
 
 func TestNewMapper(t *testing.T) {
@@ -104,8 +106,8 @@ func TestMapHostname(t *testing.T) {
 	m := NewMapper()
 
 	result1 := m.MapHostname("firewall.example.com")
-	if result1 != "host-001.example.com" {
-		t.Errorf("MapHostname() = %q, want %q", result1, "host-001.example.com")
+	if result1 != expectedMappedHostname1 {
+		t.Errorf("MapHostname() = %q, want %q", result1, expectedMappedHostname1)
 	}
 
 	// Same hostname should return same mapping
@@ -168,8 +170,8 @@ func TestMapMAC(t *testing.T) {
 	m := NewMapper()
 
 	result1 := m.MapMAC("00:11:22:33:44:55")
-	if result1 != "XX:XX:XX:XX:XX:01" {
-		t.Errorf("MapMAC() = %q, want %q", result1, "XX:XX:XX:XX:XX:01")
+	if result1 != expectedMappedMAC1 {
+		t.Errorf("MapMAC() = %q, want %q", result1, expectedMappedMAC1)
 	}
 
 	// Same MAC should return same mapping
@@ -180,8 +182,8 @@ func TestMapMAC(t *testing.T) {
 
 	// Different MAC
 	result3 := m.MapMAC("AA:BB:CC:DD:EE:FF")
-	if result3 != "XX:XX:XX:XX:XX:02" {
-		t.Errorf("MapMAC different = %q, want %q", result3, "XX:XX:XX:XX:XX:02")
+	if result3 != expectedMappedMAC2 {
+		t.Errorf("MapMAC different = %q, want %q", result3, expectedMappedMAC2)
 	}
 }
 
@@ -189,8 +191,8 @@ func TestMapEmail(t *testing.T) {
 	m := NewMapper()
 
 	result1 := m.MapEmail("admin@mycompany.com")
-	if result1 != "user1@example.com" {
-		t.Errorf("MapEmail() = %q, want %q", result1, "user1@example.com")
+	if result1 != expectedMappedEmail1 {
+		t.Errorf("MapEmail() = %q, want %q", result1, expectedMappedEmail1)
 	}
 
 	// Same email should return same mapping

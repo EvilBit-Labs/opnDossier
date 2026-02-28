@@ -48,7 +48,7 @@ Built with modern Go practices and established libraries:
 
 The project follows comprehensive coding standards outlined in our [AGENTS.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/AGENTS.md) file, including:
 
-- Google Go Style Guide compliance
+- Go coding standards and conventions compliance
 - Comprehensive testing with >80% coverage
 - Structured logging and error handling
 - Security-first development practices
@@ -60,7 +60,7 @@ This project is open source and available under the [Apache License 2.0](https:/
 
 ## Contributing
 
-We welcome contributions! Please see our [Contributing Guide](dev-guide/contributing.md) for details on how to get involved.
+We welcome contributions! Please see our [Contributing Guide](development/contributing.md) for details on how to get involved.
 
 ---
 
