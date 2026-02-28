@@ -1,0 +1,39 @@
+{
+  "device_type": "opnsense",
+  "version": "1.0.0",
+  "system": {
+    "hostname": "minimal-host",
+    "domain": "minimal.local",
+    "webGui": {},
+    "ssh": {},
+    "firmware": {
+      "version": "23.1.1"
+    },
+    "bogons": {}
+  },
+  "nat": {},
+  "dns": {
+    "unbound": {},
+    "dnsMasq": {}
+  },
+  "ntp": {},
+  "snmp": {},
+  "loadBalancer": {},
+  "vpn": {
+    "openVpn": {},
+    "wireGuard": {},
+    "ipsec": {
+      "charon": {}
+    }
+  },
+  "routing": {},
+  "highAvailability": {},
+  "syslog": {},
+  "revision": {},
+  "statistics": {
+    "summary": {}
+  },
+  "analysis": {},
+  "securityAssessment": {},
+  "performanceMetrics": {}
+}

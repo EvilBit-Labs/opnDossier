@@ -143,14 +143,14 @@ func computeStatistics(cfg *common.CommonDevice) *common.Statistics {
 	}
 
 	if cfg.SNMP.ROCommunity != "" {
-		stats.EnabledServices = append(stats.EnabledServices, "SNMP Daemon")
+		stats.EnabledServices = append(stats.EnabledServices, serviceNameSNMP)
 		stats.ServiceDetails = append(stats.ServiceDetails, common.ServiceStatistics{
-			Name:    "SNMP Daemon",
+			Name:    serviceNameSNMP,
 			Enabled: true,
 			Details: map[string]string{
 				"location":  cfg.SNMP.SysLocation,
 				"contact":   cfg.SNMP.SysContact,
-				"community": "[REDACTED]",
+				"community": cfg.SNMP.ROCommunity,
 			},
 		})
 		serviceCount++
@@ -578,26 +578,35 @@ func computePerformanceMetrics(stats *common.Statistics) *common.PerformanceMetr
 // redactedValue is the placeholder for sensitive fields in exported output.
 const redactedValue = "[REDACTED]"
 
+// serviceNameSNMP is the display name for the SNMP service in statistics.
+const serviceNameSNMP = "SNMP Daemon"
+
 // prepareForExport returns a shallow copy of the device with default DeviceType,
 // Statistics, Analysis, SecurityAssessment, and PerformanceMetrics populated when absent.
-// Sensitive fields (passwords, private keys, API secrets, SNMP community strings,
-// WireGuard PSKs, DHCPv6 authentication secrets) are redacted.
+// When redact is true, sensitive fields (passwords, private keys, API secrets, SNMP
+// community strings, WireGuard PSKs, DHCPv6 authentication secrets) are replaced with
+// [REDACTED]. When redact is false, sensitive fields are passed through as-is.
 //
 // NOTE: computeStatistics and computeAnalysis intentionally receive the original
 // unredacted data so that presence checks (e.g., "is SNMP configured?") see real
-// values. Their outputs never include raw secret values — any sensitive data in
-// statistics output is independently redacted (e.g., SNMP community in ServiceDetails).
-func prepareForExport(data *common.CommonDevice) *common.CommonDevice {
+// values.
+func prepareForExport(data *common.CommonDevice, redact bool) *common.CommonDevice {
 	cp := *data
 
 	if cp.DeviceType == "" {
 		cp.DeviceType = common.DeviceTypeOPNsense
 	}
 
-	redactSensitiveFields(&cp)
+	if redact {
+		redactSensitiveFields(&cp)
+	}
 
 	if cp.Statistics == nil {
 		cp.Statistics = computeStatistics(data)
+	}
+
+	if redact {
+		redactStatisticsServiceDetails(cp.Statistics)
 	}
 
 	if cp.Analysis == nil {
@@ -689,6 +698,26 @@ func redactSensitiveFields(cp *common.CommonDevice) {
 		for i := range cp.DHCP {
 			if cp.DHCP[i].AdvDHCP6KeyInfoStatementSecret != "" {
 				cp.DHCP[i].AdvDHCP6KeyInfoStatementSecret = redactedValue
+			}
+		}
+	}
+}
+
+// redactStatisticsServiceDetails replaces sensitive values in Statistics.ServiceDetails
+// with the redaction marker. This is needed because computeStatistics intentionally
+// receives the original unredacted data for accurate presence detection, but the
+// resulting ServiceDetails may contain sensitive values (e.g., SNMP community strings).
+func redactStatisticsServiceDetails(stats *common.Statistics) {
+	if stats == nil {
+		return
+	}
+
+	for i := range stats.ServiceDetails {
+		if stats.ServiceDetails[i].Name == serviceNameSNMP && stats.ServiceDetails[i].Details != nil {
+			if _, ok := stats.ServiceDetails[i].Details["community"]; ok {
+				// Deep-copy the map to avoid mutating shared state.
+				stats.ServiceDetails[i].Details = maps.Clone(stats.ServiceDetails[i].Details)
+				stats.ServiceDetails[i].Details["community"] = redactedValue
 			}
 		}
 	}

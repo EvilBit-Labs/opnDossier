@@ -24,7 +24,7 @@ func TestJSONConverter_ToJSON(t *testing.T) {
 
 	c := NewJSONConverter()
 	convertFunc := func(ctx context.Context, data *common.CommonDevice) (string, error) {
-		return c.ToJSON(ctx, data)
+		return c.ToJSON(ctx, data, false)
 	}
 	RunConverterTests(t, tests, convertFunc)
 }

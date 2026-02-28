@@ -107,6 +107,9 @@ func init() {
 	// Add shared audit flags
 	addSharedAuditFlags(convertCmd)
 
+	// Add shared redact flag
+	addSharedRedactFlag(convertCmd)
+
 	// Register flag completion functions for better tab completion
 	registerConvertFlagCompletions(convertCmd)
 
@@ -245,6 +248,9 @@ Examples:
 
   # Force overwrite existing file without prompt
   opnDossier convert config.xml -o output.md --force
+
+  # Redact sensitive fields (passwords, SNMP community strings, private keys)
+  opnDossier convert config.xml --format json --redact
 
   # Include all system tunables (including defaults) in the report
   opnDossier convert config.xml --include-tunables
@@ -555,6 +561,9 @@ func buildConversionOptions(
 
 	// Include tunables: CLI flag only
 	opt.CustomFields["IncludeTunables"] = sharedIncludeTunables
+
+	// Redact: CLI flag only
+	opt.Redact = sharedRedact
 
 	return opt
 }

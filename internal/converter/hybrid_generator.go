@@ -118,9 +118,9 @@ func (g *HybridGenerator) Generate(_ context.Context, data *common.CommonDevice,
 	case string(FormatMarkdown), "md":
 		return g.generateMarkdown(data, opts)
 	case string(FormatJSON):
-		return g.generateJSON(data)
+		return g.generateJSON(data, opts.Redact)
 	case string(FormatYAML), "yml":
-		return g.generateYAML(data)
+		return g.generateYAML(data, opts.Redact)
 	case string(FormatText), "txt":
 		return g.generatePlainText(data, opts)
 	case string(FormatHTML), "htm":
@@ -164,9 +164,9 @@ func (g *HybridGenerator) GenerateToWriter(
 	case string(FormatMarkdown), "md":
 		return g.generateMarkdownToWriter(w, data, opts)
 	case string(FormatJSON):
-		return g.generateJSONToWriter(w, data)
+		return g.generateJSONToWriter(w, data, opts.Redact)
 	case string(FormatYAML), "yml":
-		return g.generateYAMLToWriter(w, data)
+		return g.generateYAMLToWriter(w, data, opts.Redact)
 	case string(FormatText), "txt":
 		return g.generatePlainTextToWriter(w, data, opts)
 	case string(FormatHTML), "htm":
@@ -227,10 +227,10 @@ func (g *HybridGenerator) generateMarkdownToWriter(
 }
 
 // generateJSON generates JSON output by serializing the model.
-func (g *HybridGenerator) generateJSON(data *common.CommonDevice) (string, error) {
+func (g *HybridGenerator) generateJSON(data *common.CommonDevice, redact bool) (string, error) {
 	g.logger.Debug("Generating JSON output")
 
-	target := prepareForExport(data)
+	target := prepareForExport(data, redact)
 
 	jsonBytes, err := json.MarshalIndent(
 		target,
@@ -246,10 +246,10 @@ func (g *HybridGenerator) generateJSON(data *common.CommonDevice) (string, error
 // generateJSONToWriter writes JSON output directly to the writer.
 // Note: JSON marshaling requires the full document, so this doesn't provide
 // the same streaming benefits as markdown generation.
-func (g *HybridGenerator) generateJSONToWriter(w io.Writer, data *common.CommonDevice) error {
+func (g *HybridGenerator) generateJSONToWriter(w io.Writer, data *common.CommonDevice, redact bool) error {
 	g.logger.Debug("Generating JSON output to writer")
 
-	target := prepareForExport(data)
+	target := prepareForExport(data, redact)
 
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
@@ -260,10 +260,10 @@ func (g *HybridGenerator) generateJSONToWriter(w io.Writer, data *common.CommonD
 }
 
 // generateYAML generates YAML output by serializing the model.
-func (g *HybridGenerator) generateYAML(data *common.CommonDevice) (string, error) {
+func (g *HybridGenerator) generateYAML(data *common.CommonDevice, redact bool) (string, error) {
 	g.logger.Debug("Generating YAML output")
 
-	target := prepareForExport(data)
+	target := prepareForExport(data, redact)
 
 	yamlData, err := yaml.Marshal(target)
 	if err != nil {
@@ -275,10 +275,10 @@ func (g *HybridGenerator) generateYAML(data *common.CommonDevice) (string, error
 // generateYAMLToWriter writes YAML output directly to the writer.
 // Note: YAML marshaling requires the full document, so this doesn't provide
 // the same streaming benefits as markdown generation.
-func (g *HybridGenerator) generateYAMLToWriter(w io.Writer, data *common.CommonDevice) error {
+func (g *HybridGenerator) generateYAMLToWriter(w io.Writer, data *common.CommonDevice, redact bool) error {
 	g.logger.Debug("Generating YAML output to writer")
 
-	target := prepareForExport(data)
+	target := prepareForExport(data, redact)
 
 	encoder := yaml.NewEncoder(w)
 	encoder.SetIndent(2) //nolint:mnd // Standard YAML indentation
