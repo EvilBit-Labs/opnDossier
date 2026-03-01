@@ -23,6 +23,7 @@ Before starting a release, ensure you have:
    - `cosign` for artifact signing
    - `gosec` for security scanning (run `just install-security-tools` if needed)
    - `cyclonedx-gomod` for SBOM generation (run `just install-security-tools` if needed)
+   - `go-licenses` for third-party license notices generation
    - Proper GitHub permissions for the repository
 
 2. **Environment Setup**:
@@ -155,14 +156,15 @@ All releases are performed locally using the justfile commands:
 
    This runs `goreleaser release --clean` which:
 
+   - Generates third-party license notices (`THIRD_PARTY_NOTICES`) using `just notices`
    - Dynamically generates shell completions (bash, zsh, fish, PowerShell) using Cobra
    - Dynamically generates man pages for all commands using Cobra
    - Builds binaries for all platforms (FreeBSD, Linux, macOS, Windows)
-   - Creates archives with proper naming and includes LICENSE, README.md, CHANGELOG.md
+   - Creates archives with proper naming and includes LICENSE, README.md, CHANGELOG.md, THIRD_PARTY_NOTICES
    - Generates native packages (.deb, .rpm, .apk, .pkg.tar.xz) with nfpm including:
      - Man pages in `/usr/share/man/man1/`
      - Shell completions for bash, zsh, and fish
-     - Complete documentation
+     - Complete documentation including THIRD_PARTY_NOTICES
    - Generates checksums file (`opnDossier_checksums.txt`)
    - Creates Software Bill of Materials (SBOM) for archives and packages
    - Signs all artifacts with Cosign (keyless signing)
@@ -251,7 +253,7 @@ The `.goreleaser.yaml` file configures the following release artifacts:
 
 - **Format**: tar.gz (zip for Windows)
 - **Naming**: `opnDossier_OS_ARCH` format
-- **Includes**: LICENSE, README.md, CHANGELOG.md
+- **Includes**: LICENSE, README.md, CHANGELOG.md, THIRD_PARTY_NOTICES
 
 ### Docker Images
 
@@ -273,6 +275,7 @@ Two Docker image variants are built:
 
 - **Checksums**: `opnDossier_checksums.txt`
 - **SBOM**: Software Bill of Materials for archives and packages
+- **License Notices**: `THIRD_PARTY_NOTICES` with complete license attribution for all dependencies
 - **Source Code**: Automatically included
 - **Universal Binaries**: For macOS (replaces individual arch binaries)
 
@@ -314,17 +317,19 @@ sudo opndossier man /usr/local/share/man/man1/
 
 During the release process, GoReleaser automatically:
 
-1. Builds a temporary binary with correct version information
-2. Generates shell completions for bash, zsh, fish, and PowerShell
-3. Generates man pages for all commands and subcommands
-4. Includes these files in native packages (.deb, .rpm, .apk, .pkg.tar.xz)
-5. Cleans up temporary files
+1. Generates third-party license notices using `go-licenses` via the `just notices` command
+2. Builds a temporary binary with correct version information
+3. Generates shell completions for bash, zsh, fish, and PowerShell
+4. Generates man pages for all commands and subcommands
+5. Includes these files in native packages (.deb, .rpm, .apk, .pkg.tar.xz)
+6. Cleans up temporary files
 
 This ensures that:
 
 - Package installations include working completions and man pages
 - Documentation is always synchronized with the actual CLI interface
 - No manual maintenance of static documentation files is required
+- License attribution is transparent and complete for end users
 
 ## Version Information
 
@@ -428,6 +433,7 @@ After a release, verify:
    - All binary artifacts are attached
    - Checksums file is present
    - SBOM files are included
+   - THIRD_PARTY_NOTICES is included in archives and packages
    - SLSA provenance attestation is attached
 
 2. **Docker Images**:
@@ -475,6 +481,7 @@ opnDossier follows these release practices:
 - Cosign signatures ensure artifact authenticity
 - Comprehensive vulnerability scanning with Grype and Snyk
 - License compliance verified with FOSSA
+- Third-party license notices provide transparency for all dependencies
 
 ## Post-Release Tasks
 
