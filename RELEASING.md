@@ -53,6 +53,9 @@ brew install cosign
 # cyclonedx-gomod (for SBOM) - https://github.com/CycloneDX/cyclonedx-gomod
 go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
 
+# go-licenses (for third-party notices) - https://github.com/google/go-licenses
+go install github.com/google/go-licenses@latest
+
 # quill (for macOS code signing, optional) - https://github.com/anchore/quill
 # Only needed if you want to sign and notarize macOS binaries
 curl -sSfL https://raw.githubusercontent.com/anchore/quill/main/install.sh | sh -s -- -b /usr/local/bin
@@ -144,6 +147,9 @@ goreleaser release --snapshot --clean
 # Check generated artifacts
 ls -la dist/
 ```
+
+> [!NOTE]
+> The release workflow automatically generates `THIRD_PARTY_NOTICES` via the `just notices` command as a GoReleaser before-hook. This file provides human-readable license attribution for all dependencies and is included in all distribution archives and packages. The formatting is controlled by the template at `packaging/notices.tpl`.
 
 ### Step 2: Generate Changelog Preview
 
@@ -428,15 +434,16 @@ If `QUILL_SIGN_P12` is not set, macOS signing is skipped entirely.
 
 Each release includes:
 
-| Artifact                                      | Description                                   |
-| --------------------------------------------- | --------------------------------------------- |
-| `opnDossier_<OS>_<arch>.tar.gz`               | Binary archives (Linux, macOS, FreeBSD)       |
-| `opnDossier_<OS>_<arch>.zip`                  | Binary archive (Windows)                      |
-| `opndossier_<version>_linux_amd64.deb`        | Debian/Ubuntu package                         |
-| `opndossier_<version>_linux_amd64.rpm`        | RHEL/Fedora package                           |
-| `opndossier_<version>_linux_amd64.apk`        | Alpine package                                |
-| `opndossier_<version>_linux_amd64.pkg.tar.xz` | Arch Linux package                            |
-| `opnDossier_checksums.txt`                    | SHA256 checksums for all artifacts            |
-| `opnDossier_checksums.txt.sigstore.json`      | Cosign v3 signature bundle                    |
-| `*.sig`                                       | GPG detached signatures for archives/packages |
-| `*.bom.json`                                  | Software Bill of Materials (CycloneDX SBOM)   |
+| Artifact                                      | Description                                                          |
+| --------------------------------------------- | -------------------------------------------------------------------- |
+| `opnDossier_<OS>_<arch>.tar.gz`               | Binary archives (Linux, macOS, FreeBSD) with THIRD_PARTY_NOTICES    |
+| `opnDossier_<OS>_<arch>.zip`                  | Binary archive (Windows) with THIRD_PARTY_NOTICES                   |
+| `opndossier_<version>_linux_amd64.deb`        | Debian/Ubuntu package with THIRD_PARTY_NOTICES in /usr/share/doc    |
+| `opndossier_<version>_linux_amd64.rpm`        | RHEL/Fedora package with THIRD_PARTY_NOTICES in /usr/share/doc      |
+| `opndossier_<version>_linux_amd64.apk`        | Alpine package with THIRD_PARTY_NOTICES                             |
+| `opndossier_<version>_linux_amd64.pkg.tar.xz` | Arch Linux package with THIRD_PARTY_NOTICES                         |
+| `opnDossier_checksums.txt`                    | SHA256 checksums for all artifacts                                  |
+| `opnDossier_checksums.txt.sigstore.json`      | Cosign v3 signature bundle                                          |
+| `*.sig`                                       | GPG detached signatures for archives/packages                       |
+| `*.bom.json`                                  | Software Bill of Materials (CycloneDX SBOM)                         |
+| `THIRD_PARTY_NOTICES`                         | Human-readable license attribution for all dependencies             |
