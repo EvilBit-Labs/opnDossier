@@ -689,13 +689,12 @@ func generateLargeXML(size int) string {
 
 	for i := range size {
 		builder.WriteString(`<item>`)
-		builder.WriteString(fmt.Sprintf(`<tunable>net.inet.ip.test_%d</tunable>`, i))
-		builder.WriteString(fmt.Sprintf(`<value>%d</value>`, i%10))
-		builder.WriteString(
-			fmt.Sprintf(
-				`<descr>Test sysctl item number %d with some additional descriptive text to increase size and memory usage for the benchmark</descr>`,
-				i,
-			),
+		fmt.Fprintf(&builder, `<tunable>net.inet.ip.test_%d</tunable>`, i)
+		fmt.Fprintf(&builder, `<value>%d</value>`, i%10)
+		fmt.Fprintf(
+			&builder,
+			`<descr>Test sysctl item number %d with some additional descriptive text to increase size and memory usage for the benchmark</descr>`,
+			i,
 		)
 		builder.WriteString(`</item>`)
 	}
@@ -710,9 +709,7 @@ func generateLargeXML(size int) string {
 		builder.WriteString(`<type>pass</type>`)
 		builder.WriteString(`<ipprotocol>inet</ipprotocol>`)
 		builder.WriteString(`<interface>lan</interface>`)
-		builder.WriteString(
-			fmt.Sprintf(`<descr>Generated rule number %d for testing large XML configurations</descr>`, i),
-		)
+		fmt.Fprintf(&builder, `<descr>Generated rule number %d for testing large XML configurations</descr>`, i)
 		builder.WriteString(`<source>`)
 		builder.WriteString(`<network>lan</network>`)
 		builder.WriteString(`</source>`)

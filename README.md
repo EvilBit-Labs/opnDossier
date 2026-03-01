@@ -1,6 +1,6 @@
 # opnDossier - OPNsense Configuration Processor
 
-[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/11920/badge)](https://www.bestpractices.dev/projects/11920) [![Go Version](https://img.shields.io/badge/go-1.26+-blue.svg)](https://golang.org) [![License](https://img.shields.io/badge/license-Apache-green.svg)](LICENSE) [![codecov](https://codecov.io/gh/EvilBit-Labs/opnDossier/graph/badge.svg?token=WD1QD9ITZF)](https://codecov.io/gh/EvilBit-Labs/opnDossier) [![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/index.md) ![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/EvilBit-Labs/opnDossier?utm_source=oss&utm_medium=github&utm_campaign=EvilBit-Labs%2FopnDossier&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews) [![wakatime](https://wakatime.com/badge/user/2d2fbc27-e3f7-4ec1-b2a7-935e48bad498/project/018dae18-42c0-4e3e-8330-14d39f574bd5.svg)](https://wakatime.com/badge/user/2d2fbc27-e3f7-4ec1-b2a7-935e48bad498/project/018dae18-42c0-4e3e-8330-14d39f574bd5) [![Go Report Card](https://goreportcard.com/badge/github.com/EvilBit-Labs/opnDossier)](https://goreportcard.com/report/github.com/EvilBit-Labs/opnDossier)
+[![OpenSSF Best Practices][ossf-badge]][ossf] [![Go Version][go-badge]][go] [![License][license-badge]][license] [![codecov][codecov-badge]][codecov] [![Documentation][docs-badge]][docs] ![CodeRabbit Pull Request Reviews][coderabbit-badge] [![wakatime][wakatime-badge]][wakatime] [![Go Report Card][goreportcard-badge]][goreportcard] [![Mergify Status][mergify-status]][mergify]
 
 ## Overview
 
@@ -343,3 +343,23 @@ Apache License 2.0 - see [LICENSE](LICENSE) file for details.
 ---
 
 Built for network operators and security professionals.
+
+<!-- Reference Links -->
+
+[codecov]: https://codecov.io/gh/EvilBit-Labs/opnDossier
+[codecov-badge]: https://codecov.io/gh/EvilBit-Labs/opnDossier/graph/badge.svg?token=WD1QD9ITZF
+[coderabbit-badge]: https://img.shields.io/coderabbit/prs/github/EvilBit-Labs/opnDossier?utm_source=oss&utm_medium=github&utm_campaign=EvilBit-Labs%2FopnDossier&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews
+[docs]: https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/index.md
+[docs-badge]: https://img.shields.io/badge/docs-mkdocs-blue.svg
+[go]: https://golang.org
+[go-badge]: https://img.shields.io/badge/go-1.26+-blue.svg
+[goreportcard]: https://goreportcard.com/report/github.com/EvilBit-Labs/opnDossier
+[goreportcard-badge]: https://goreportcard.com/badge/github.com/EvilBit-Labs/opnDossier
+[license]: LICENSE
+[license-badge]: https://img.shields.io/badge/license-Apache-green.svg
+[mergify]: https://mergify.com
+[mergify-status]: https://img.shields.io/endpoint.svg?url=https://api.mergify.com/v1/badges/EvilBit-Labs/opnDossier&style=flat
+[ossf]: https://www.bestpractices.dev/projects/11920
+[ossf-badge]: https://www.bestpractices.dev/projects/11920/badge
+[wakatime]: https://wakatime.com/badge/user/2d2fbc27-e3f7-4ec1-b2a7-935e48bad498/project/018dae18-42c0-4e3e-8330-14d39f574bd5
+[wakatime-badge]: https://wakatime.com/badge/user/2d2fbc27-e3f7-4ec1-b2a7-935e48bad498/project/018dae18-42c0-4e3e-8330-14d39f574bd5.svg

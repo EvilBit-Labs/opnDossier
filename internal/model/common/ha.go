@@ -17,6 +17,7 @@ type HighAvailability struct {
 	// Username is the username for XMLRPC configuration synchronization.
 	Username string `json:"username,omitempty" yaml:"username,omitempty"`
 	// Password is the password for XMLRPC configuration synchronization.
+	//nolint:gosec // Domain model field intentionally represents parsed configuration data, not embedded credentials.
 	Password string `json:"password,omitempty" yaml:"password,omitempty"`
 	// SyncItems contains the configuration sections to synchronize.
 	SyncItems []string `json:"syncItems,omitempty" yaml:"syncItems,omitempty"`

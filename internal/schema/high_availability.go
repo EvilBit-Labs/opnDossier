@@ -16,6 +16,7 @@ type HighAvailabilitySync struct {
 	Pfsyncversion   string   `xml:"pfsyncversion,omitempty"   json:"pfsyncversion,omitempty"   yaml:"pfsyncversion,omitempty"`
 	Synchronizetoip string   `xml:"synchronizetoip,omitempty" json:"synchronizetoip,omitempty" yaml:"synchronizetoip,omitempty"`
 	Username        string   `xml:"username,omitempty"        json:"username,omitempty"        yaml:"username,omitempty"`
-	Password        string   `xml:"password,omitempty"        json:"password,omitempty"        yaml:"password,omitempty"`
-	Syncitems       string   `xml:"syncitems,omitempty"       json:"syncitems,omitempty"       yaml:"syncitems,omitempty"`
+	//nolint:gosec // Schema field intentionally maps password from external configuration input.
+	Password  string `xml:"password,omitempty"  json:"password,omitempty"  yaml:"password,omitempty"`
+	Syncitems string `xml:"syncitems,omitempty" json:"syncitems,omitempty" yaml:"syncitems,omitempty"`
 }

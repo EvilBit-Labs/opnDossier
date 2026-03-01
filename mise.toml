@@ -2,21 +2,35 @@
 
 [tools]
 act                                         = "latest"
-cosign                                      = "3.0.4"
+cosign                                      = "3.0.5"
 git-cliff                                   = "2.12.0"
 "github:anchore/quill"                      = "latest"
 go                                          = "1.26.0"
+"go:github.com/google/go-licenses"          = "1.6.0"
 "go:github.com/securego/gosec/v2/cmd/gosec" = "latest"
-golangci-lint                               = "2.9.0"
+golangci-lint                               = "2.10.1"
 goreleaser                                  = "latest"
 just                                        = "1.46.0"
 markdownlint-cli2                           = "0.21.0"
-node                                        = "25.6.1"
 "pipx:mdformat"                             = { version = "0.7.21", uvx_args = "--with mdformat-gfm --with mdformat-front-matters --with mdformat-footnote --with mdformat-simple-breaks --with mdformat-gfm-alerts --with mdformat-toc --with mdformat-wikilink --with mdformat-tables" }
 "pipx:mkdocs"                               = { version = "1.6.1", uvx_args = "--with mkdocs-material --with pymdown-extensions" }
-pre-commit                                  = "4.5.1"
-python                                      = "3.14.3"
-uv                                          = "0.10.6"
+"pipx:pre-commit"                           = "4.5.1"
+python                                      = "latest"
+uv                                          = "latest"
 
+# Many of these settings are defaults, but we are explicit in case they change in the future and to make it clear to users what is enabled.
 [settings]
-activate_aggressive = true
+activate_aggressive                 = true
+idiomatic_version_file_enable_tools = [ "python", "go", "bun" ]
+env_cache                           = true
+exec_auto_install                   = true
+github_attestations                 = true
+lockfile                            = true
+pin                                 = true
+slsa                                = true
+
+[settings.npm]
+package_manager = "bun"
+
+[settings.pipx]
+uvx = true

@@ -25,12 +25,13 @@ type SystemConfig struct {
 // SysctlItem represents a single sysctl item.
 // This supports both the simple format (direct elements) and nested item format.
 type SysctlItem struct {
-	Descr   string `xml:"descr"            json:"description,omitempty" yaml:"description,omitempty"`
-	Tunable string `xml:"tunable"          json:"tunable"               yaml:"tunable"               validate:"required"`
-	Value   string `xml:"value"            json:"value"                 yaml:"value"                 validate:"required"`
-	Key     string `xml:"key,omitempty"    json:"key,omitempty"         yaml:"key,omitempty"`
-	Secret  string `xml:"secret,omitempty" json:"secret,omitempty"      yaml:"secret,omitempty"`
-	Item    string `xml:"item,omitempty"   json:"item,omitempty"        yaml:"item,omitempty"`
+	Descr   string `xml:"descr"         json:"description,omitempty" yaml:"description,omitempty"`
+	Tunable string `xml:"tunable"       json:"tunable"               yaml:"tunable"               validate:"required"`
+	Value   string `xml:"value"         json:"value"                 yaml:"value"                 validate:"required"`
+	Key     string `xml:"key,omitempty" json:"key,omitempty"         yaml:"key,omitempty"`
+	//nolint:gosec // Schema field intentionally maps secret from external configuration input.
+	Secret string `xml:"secret,omitempty" json:"secret,omitempty" yaml:"secret,omitempty"`
+	Item   string `xml:"item,omitempty"   json:"item,omitempty"   yaml:"item,omitempty"`
 }
 
 // System contains the system configuration.
@@ -119,23 +120,25 @@ type Firmware struct {
 
 // User represents a user.
 type User struct {
-	Name           string   `xml:"name"           json:"name"                  yaml:"name"                     validate:"required,alphanum"`
-	Disabled       BoolFlag `xml:"disabled"       json:"disabled"              yaml:"disabled"`
-	Descr          string   `xml:"descr"          json:"description,omitempty" yaml:"description,omitempty"`
-	Scope          string   `xml:"scope"          json:"scope"                 yaml:"scope"                    validate:"required,oneof=system local"`
-	Groupname      string   `xml:"groupname"      json:"groupname"             yaml:"groupname"                validate:"required"`
-	Password       string   `xml:"password"       json:"password"              yaml:"password"                 validate:"required"`
-	UID            string   `xml:"uid"            json:"uid"                   yaml:"uid"                      validate:"required,numeric"`
-	APIKeys        []APIKey `xml:"apikeys>item"   json:"apiKeys,omitempty"     yaml:"apiKeys,omitempty"`
-	Expires        BoolFlag `xml:"expires"        json:"expires"               yaml:"expires,omitempty"`
-	AuthorizedKeys BoolFlag `xml:"authorizedkeys" json:"authorizedKeys"        yaml:"authorizedKeys,omitempty"`
-	IPSecPSK       BoolFlag `xml:"ipsecpsk"       json:"ipsecPsk"              yaml:"ipsecPsk,omitempty"`
-	OTPSeed        BoolFlag `xml:"otp_seed"       json:"otpSeed"               yaml:"otpSeed,omitempty"`
+	Name      string   `xml:"name"      json:"name"                  yaml:"name"                  validate:"required,alphanum"`
+	Disabled  BoolFlag `xml:"disabled"  json:"disabled"              yaml:"disabled"`
+	Descr     string   `xml:"descr"     json:"description,omitempty" yaml:"description,omitempty"`
+	Scope     string   `xml:"scope"     json:"scope"                 yaml:"scope"                 validate:"required,oneof=system local"`
+	Groupname string   `xml:"groupname" json:"groupname"             yaml:"groupname"             validate:"required"`
+	//nolint:gosec // Schema field intentionally maps password from external configuration input.
+	Password       string   `xml:"password"       json:"password"          yaml:"password"                 validate:"required"`
+	UID            string   `xml:"uid"            json:"uid"               yaml:"uid"                      validate:"required,numeric"`
+	APIKeys        []APIKey `xml:"apikeys>item"   json:"apiKeys,omitempty" yaml:"apiKeys,omitempty"`
+	Expires        BoolFlag `xml:"expires"        json:"expires"           yaml:"expires,omitempty"`
+	AuthorizedKeys BoolFlag `xml:"authorizedkeys" json:"authorizedKeys"    yaml:"authorizedKeys,omitempty"`
+	IPSecPSK       BoolFlag `xml:"ipsecpsk"       json:"ipsecPsk"          yaml:"ipsecPsk,omitempty"`
+	OTPSeed        BoolFlag `xml:"otp_seed"       json:"otpSeed"           yaml:"otpSeed,omitempty"`
 }
 
 // APIKey represents a user API key.
 type APIKey struct {
-	Key         string `xml:"key"                  json:"key"                   yaml:"key"`
+	Key string `xml:"key" json:"key" yaml:"key"`
+	//nolint:gosec // Schema field intentionally maps secret from external configuration input.
 	Secret      string `xml:"secret"               json:"secret"                yaml:"secret"`
 	Privileges  string `xml:"privileges,omitempty" json:"privileges,omitempty"  yaml:"privileges,omitempty"`
 	Priv        string `xml:"priv,omitempty"       json:"priv,omitempty"        yaml:"priv,omitempty"`

@@ -610,10 +610,12 @@ func determineOutputPath(inputFile, outputFile, fileExt string, cfg *config.Conf
 	}
 
 	// Check if file already exists and handle overwrite protection
+	//nolint:gosec // CLI intentionally allows user-selected output paths; this is local file-system behavior, not path traversal.
 	if _, err := os.Stat(actualOutputFile); err == nil {
 		// File exists, check if we should overwrite
 		if !force {
 			// Prompt user for confirmation (using stderr to avoid interfering with piped output)
+			//nolint:gosec // Prompt text is written to terminal stderr and is not interpreted as HTML/JS.
 			fmt.Fprintf(os.Stderr, "File '%s' already exists. Overwrite? (y/N): ", actualOutputFile)
 
 			// Use bufio.NewReader to correctly capture entire input line including spaces
