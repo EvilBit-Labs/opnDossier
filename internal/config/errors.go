@@ -25,9 +25,9 @@ type FieldValidationError struct {
 // Error returns a formatted string describing the validation error, including field name, message, and optional suggestion.
 func (e *FieldValidationError) Error() string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("validation error for field '%s': %s", e.Field, e.Message))
+	fmt.Fprintf(&sb, "validation error for field '%s': %s", e.Field, e.Message)
 	if e.Suggestion != "" {
-		sb.WriteString(fmt.Sprintf(" (%s)", e.Suggestion))
+		fmt.Fprintf(&sb, " (%s)", e.Suggestion)
 	}
 	return sb.String()
 }

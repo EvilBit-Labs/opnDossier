@@ -138,14 +138,15 @@ type Monit struct {
 	Text    string   `xml:",chardata"    json:"text,omitempty"`
 	Version string   `xml:"version,attr" json:"version,omitempty"`
 	General struct {
-		Text                      string `xml:",chardata" json:"text,omitempty"`
-		Enabled                   string `xml:"enabled"`
-		Interval                  string `xml:"interval"`
-		Startdelay                string `xml:"startdelay"`
-		Mailserver                string `xml:"mailserver"`
-		Port                      string `xml:"port"`
-		Username                  string `xml:"username"`
-		Password                  string `xml:"password"`
+		Text       string `xml:",chardata" json:"text,omitempty"`
+		Enabled    string `xml:"enabled"`
+		Interval   string `xml:"interval"`
+		Startdelay string `xml:"startdelay"`
+		Mailserver string `xml:"mailserver"`
+		Port       string `xml:"port"`
+		Username   string `xml:"username"`
+		//nolint:gosec // Schema field intentionally maps password from external configuration input.
+		Password                  string `xml:"password" json:"password,omitempty" yaml:"password,omitempty"`
 		Ssl                       string `xml:"ssl"`
 		Sslversion                string `xml:"sslversion"`
 		Sslverify                 string `xml:"sslverify"`
