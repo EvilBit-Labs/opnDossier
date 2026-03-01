@@ -39,6 +39,7 @@ type APIKey struct {
 	// Key is the API key identifier.
 	Key string `json:"key,omitempty" yaml:"key,omitempty"`
 	// Secret is the API key secret.
+	//nolint:gosec // Domain model field intentionally represents parsed configuration data, not embedded credentials.
 	Secret string `json:"secret,omitempty" yaml:"secret,omitempty"`
 	// Privileges is a comma-separated list of privileges for this key.
 	Privileges string `json:"privileges,omitempty" yaml:"privileges,omitempty"`

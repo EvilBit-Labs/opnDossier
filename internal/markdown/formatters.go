@@ -265,7 +265,7 @@ func Table(headers []string, rows [][]string) string {
 	builder.WriteString("|")
 
 	for _, header := range headers {
-		builder.WriteString(fmt.Sprintf(" %s |", header))
+		fmt.Fprintf(&builder, " %s |", header)
 	}
 
 	builder.WriteString("\n")
@@ -285,7 +285,7 @@ func Table(headers []string, rows [][]string) string {
 
 		for i, cell := range row {
 			if i < len(headers) {
-				builder.WriteString(fmt.Sprintf(" %s |", cell))
+				fmt.Fprintf(&builder, " %s |", cell)
 			}
 		}
 		// Fill in missing cells

@@ -33,7 +33,8 @@ func TestNormalize_DoesNotMutateOriginal(t *testing.T) {
 			{RefID: "cert1", PrivateKey: "SECRET"},
 		},
 		DHCP: []common.DHCPScope{
-			{Interface: "lan", AdvDHCP6KeyInfoStatementSecret: "dhcpv6-secret"},
+			//nolint:gosec // Test fixture value is synthetic and used only to verify deep-copy behavior.
+			{Interface: "lan", AdvDHCP6KeyInfoStatementSecret: "dhcpv6-token"},
 		},
 		VPN: common.VPN{
 			WireGuard: common.WireGuardConfig{

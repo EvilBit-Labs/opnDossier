@@ -95,13 +95,12 @@ func generateLargeConfigStream(targetSizeMB int) *bytes.Buffer {
 
 	for buffer.Len() < targetBytes-10000 { // Leave some buffer for closing tags
 		buffer.WriteString(`<item>`)
-		buffer.WriteString(fmt.Sprintf(`<tunable>net.inet.ip.forwarding.benchmark.test.item_%d</tunable>`, itemCount))
-		buffer.WriteString(fmt.Sprintf(`<value>%d</value>`, itemCount%2))
-		buffer.WriteString(
-			fmt.Sprintf(
-				`<descr><![CDATA[Large sysctl description for benchmarking memory usage item %d. This description contains additional text to increase the size of each XML element and test the streaming parser's memory efficiency compared to traditional DOM parsing approaches. The streaming approach should maintain constant memory usage regardless of file size.]]></descr>`,
-				itemCount,
-			),
+		fmt.Fprintf(&buffer, `<tunable>net.inet.ip.forwarding.benchmark.test.item_%d</tunable>`, itemCount)
+		fmt.Fprintf(&buffer, `<value>%d</value>`, itemCount%2)
+		fmt.Fprintf(
+			&buffer,
+			`<descr><![CDATA[Large sysctl description for benchmarking memory usage item %d. This description contains additional text to increase the size of each XML element and test the streaming parser's memory efficiency compared to traditional DOM parsing approaches. The streaming approach should maintain constant memory usage regardless of file size.]]></descr>`,
+			itemCount,
 		)
 		buffer.WriteString(`</item>`)
 

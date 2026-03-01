@@ -44,6 +44,7 @@ When rules conflict, follow the higher precedence rule.
 - **Offline First:** Built for where the internet isn't
 - **Sane Defaults:** Clean outputs, CLI help that's actually helpful
 - **Ethical Constraints:** No dark patterns, spyware, or telemetry
+- **No Emojis:** Do not use emojis in code, CLI output, comments, or documentation unless the code specifically processes emoji data
 
 ---
 
