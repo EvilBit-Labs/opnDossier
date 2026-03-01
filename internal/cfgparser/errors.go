@@ -194,10 +194,10 @@ func (r *AggregatedValidationError) Error() string {
 
 	// Build a comprehensive error message showing all validation errors
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("validation failed with %d errors:\n", len(r.Errors)))
+	fmt.Fprintf(&sb, "validation failed with %d errors:\n", len(r.Errors))
 
 	for i, err := range r.Errors {
-		sb.WriteString(fmt.Sprintf("  %d. %s\n", i+1, err.Error()))
+		fmt.Fprintf(&sb, "  %d. %s\n", i+1, err.Error())
 	}
 
 	return strings.TrimSpace(sb.String())

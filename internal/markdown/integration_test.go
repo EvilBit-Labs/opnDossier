@@ -26,6 +26,7 @@ func createTempXMLFile(t *testing.T, pattern, content string) func() (string, fu
 			if err := tmpFile.Close(); err != nil {
 				t.Fatalf("Failed to close temp file: %v", err)
 			}
+			//nolint:gosec // tmpFile is created via os.CreateTemp in this test and removed in controlled cleanup.
 			if err := os.Remove(tmpFile.Name()); err != nil {
 				t.Logf("Failed to remove temp file: %v", err)
 			}
@@ -36,6 +37,7 @@ func createTempXMLFile(t *testing.T, pattern, content string) func() (string, fu
 		}
 
 		return tmpFile.Name(), func() {
+			//nolint:gosec // tmpFile is created via os.CreateTemp in this test and removed in controlled cleanup.
 			if err := os.Remove(tmpFile.Name()); err != nil {
 				t.Logf("Failed to remove temp file: %v", err)
 			}
@@ -342,6 +344,7 @@ func TestGenerateFromXMLFilesRobustness(t *testing.T) {
 				}
 
 				return tmpFile.Name(), func() {
+					//nolint:gosec // tmpFile is created via os.CreateTemp in this test and removed in controlled cleanup.
 					if err := os.Remove(tmpFile.Name()); err != nil {
 						t.Logf("Failed to remove temp file: %v", err)
 					}

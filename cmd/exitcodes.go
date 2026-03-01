@@ -60,6 +60,7 @@ func OutputJSONError(err error, file string, exitCode int) {
 	output, marshalErr := json.Marshal(jsonErr)
 	if marshalErr != nil {
 		// Fallback to plain error if JSON marshaling fails
+		//nolint:gosec // This emits a constant JSON literal to terminal stderr, not browser-rendered content.
 		fmt.Fprintf(os.Stderr, `{"error": "failed to marshal error", "code": %d}`, exitCode)
 		fmt.Fprintln(os.Stderr)
 		return
