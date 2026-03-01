@@ -13,6 +13,7 @@ type Certificate struct {
 	// Certificate is the PEM-encoded certificate data.
 	Certificate string `json:"certificate,omitempty" yaml:"certificate,omitempty"`
 	// PrivateKey is the PEM-encoded private key data.
+	//nolint:gosec // Domain model field intentionally represents parsed configuration data, not embedded credentials.
 	PrivateKey string `json:"privateKey,omitempty" yaml:"privateKey,omitempty"`
 }
 
@@ -26,6 +27,7 @@ type CertificateAuthority struct {
 	Certificate string `json:"certificate,omitempty" yaml:"certificate,omitempty"`
 	// PrivateKey is the PEM-encoded CA private key data. Present for
 	// locally-created CAs; absent for imported external CAs.
+	//nolint:gosec // Domain model field intentionally represents parsed configuration data, not embedded credentials.
 	PrivateKey string `json:"privateKey,omitempty" yaml:"privateKey,omitempty"`
 	// Serial is the next serial number to use when issuing certificates.
 	Serial string `json:"serial,omitempty" yaml:"serial,omitempty"`

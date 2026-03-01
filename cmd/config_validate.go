@@ -242,12 +242,14 @@ func showLineContext(content []byte, lineNum int) {
 			lineNumStr := lineNumStyle.Render(fmt.Sprintf("%4d |", currentLine))
 
 			if currentLine == lineNum {
+				//nolint:gosec // Terminal stderr output of YAML context lines is not rendered in HTML/JS contexts.
 				fmt.Fprintf(os.Stderr, "%s %s %s\n",
 					markerStyle.Render(">>>"),
 					lineNumStr,
 					errorLineStyle.Render(scanner.Text()),
 				)
 			} else {
+				//nolint:gosec // Terminal stderr output of YAML context lines is not rendered in HTML/JS contexts.
 				fmt.Fprintf(os.Stderr, "    %s %s\n",
 					lineNumStr,
 					contextStyle.Render(scanner.Text()),
@@ -272,8 +274,10 @@ func showLineContextPlain(content []byte, lineNum int) {
 		currentLine++
 		if currentLine >= lineNum-contextLines && currentLine <= lineNum+contextLines {
 			if currentLine == lineNum {
+				//nolint:gosec // Terminal stderr output of YAML context lines is not rendered in HTML/JS contexts.
 				fmt.Fprintf(os.Stderr, ">>> %4d | %s\n", currentLine, scanner.Text())
 			} else {
+				//nolint:gosec // Terminal stderr output of YAML context lines is not rendered in HTML/JS contexts.
 				fmt.Fprintf(os.Stderr, "    %4d | %s\n", currentLine, scanner.Text())
 			}
 		}

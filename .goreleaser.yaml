@@ -16,6 +16,7 @@ before:
     - go mod tidy
     - go generate ./...
     - git-cliff --output CHANGELOG.md
+    - just notices
     # Build binary first for generating documentation
     - go build -o ./opndossier-temp ./main.go
     # Generate shell completions
@@ -94,6 +95,7 @@ archives:
       - LICENSE
       - README.md
       - CHANGELOG.md
+      - THIRD_PARTY_NOTICES
     # Preserve commit timestamp for reproducibility
     builds_info:
       mtime: "{{ .CommitTimestamp }}"
@@ -240,7 +242,7 @@ nfpms:
       formats, primarily Markdown. This tool assists network administrators and
       security professionals in documenting, auditing, and understanding their
       OPNsense configurations more effectively.
-    license: MIT
+    license: Apache-2.0
     section: utils
     priority: optional
     formats:
@@ -268,6 +270,10 @@ nfpms:
           mode: 0644
       - src: ./CHANGELOG.md
         dst: /usr/share/doc/opndossier/CHANGELOG.md
+        file_info:
+          mode: 0644
+      - src: ./THIRD_PARTY_NOTICES
+        dst: /usr/share/doc/opndossier/THIRD_PARTY_NOTICES
         file_info:
           mode: 0644
       # Man page

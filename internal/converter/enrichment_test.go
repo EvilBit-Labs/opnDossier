@@ -396,7 +396,7 @@ func TestPrepareForExport_RedactsSensitiveFields_JSON(t *testing.T) {
 		}},
 		SNMP: common.SNMPConfig{ROCommunity: "private-community"},
 		Certificates: []common.Certificate{
-			{Description: "cert1", PrivateKey: "-----BEGIN RSA PRIVATE KEY-----"},
+			{Description: "cert1", PrivateKey: "test-private-key-rsa"},
 		},
 		VPN: common.VPN{
 			WireGuard: common.WireGuardConfig{
@@ -444,9 +444,9 @@ func TestRedactSensitiveFields_CertificatePrivateKeys(t *testing.T) {
 
 	device := &common.CommonDevice{
 		Certificates: []common.Certificate{
-			{Description: "cert1", PrivateKey: "-----BEGIN RSA PRIVATE KEY-----"},
+			{Description: "cert1", PrivateKey: "test-private-key-rsa"},
 			{Description: "cert2", PrivateKey: ""},
-			{Description: "cert3", PrivateKey: "-----BEGIN EC PRIVATE KEY-----"},
+			{Description: "cert3", PrivateKey: "test-private-key-ec"},
 		},
 	}
 
@@ -455,7 +455,7 @@ func TestRedactSensitiveFields_CertificatePrivateKeys(t *testing.T) {
 	assert.Equal(t, redactedValue, result.Certificates[0].PrivateKey)
 	assert.Empty(t, result.Certificates[1].PrivateKey, "empty key should stay empty")
 	assert.Equal(t, redactedValue, result.Certificates[2].PrivateKey)
-	assert.Equal(t, "-----BEGIN RSA PRIVATE KEY-----", device.Certificates[0].PrivateKey, "original not mutated")
+	assert.Equal(t, "test-private-key-rsa", device.Certificates[0].PrivateKey, "original not mutated")
 }
 
 func TestRedactSensitiveFields_CAPrivateKeys(t *testing.T) {
@@ -463,9 +463,9 @@ func TestRedactSensitiveFields_CAPrivateKeys(t *testing.T) {
 
 	device := &common.CommonDevice{
 		CAs: []common.CertificateAuthority{
-			{Description: "ca1", PrivateKey: "-----BEGIN RSA PRIVATE KEY-----"},
+			{Description: "ca1", PrivateKey: "test-private-key-rsa"},
 			{Description: "ca2", PrivateKey: ""},
-			{Description: "ca3", PrivateKey: "-----BEGIN EC PRIVATE KEY-----"},
+			{Description: "ca3", PrivateKey: "test-private-key-ec"},
 		},
 	}
 
@@ -474,7 +474,7 @@ func TestRedactSensitiveFields_CAPrivateKeys(t *testing.T) {
 	assert.Equal(t, redactedValue, result.CAs[0].PrivateKey)
 	assert.Empty(t, result.CAs[1].PrivateKey, "empty key should stay empty")
 	assert.Equal(t, redactedValue, result.CAs[2].PrivateKey)
-	assert.Equal(t, "-----BEGIN RSA PRIVATE KEY-----", device.CAs[0].PrivateKey, "original not mutated")
+	assert.Equal(t, "test-private-key-rsa", device.CAs[0].PrivateKey, "original not mutated")
 }
 
 func TestRedactSensitiveFields_APIKeySecrets(t *testing.T) {
@@ -616,7 +616,7 @@ func TestPrepareForExport_NoRedact_PreservesSensitiveFields(t *testing.T) {
 		HighAvailability: common.HighAvailability{Password: "secret123"},
 		SNMP:             common.SNMPConfig{ROCommunity: "private-community"},
 		Certificates: []common.Certificate{
-			{Description: "cert1", PrivateKey: "-----BEGIN RSA PRIVATE KEY-----"},
+			{Description: "cert1", PrivateKey: "test-private-key-rsa"},
 		},
 		VPN: common.VPN{
 			WireGuard: common.WireGuardConfig{
@@ -631,7 +631,7 @@ func TestPrepareForExport_NoRedact_PreservesSensitiveFields(t *testing.T) {
 	assert.Equal(t, "private-community", result.SNMP.ROCommunity, "SNMP community should be preserved")
 	assert.Equal(
 		t,
-		"-----BEGIN RSA PRIVATE KEY-----",
+		"test-private-key-rsa",
 		result.Certificates[0].PrivateKey,
 		"cert key should be preserved",
 	)

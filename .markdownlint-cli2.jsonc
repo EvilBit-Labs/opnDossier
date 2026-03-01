@@ -1,51 +1,52 @@
 {
-    "config": {
-        "default": true,
-        "heading-increment": true,
-        "ul-style": {
-            "style": "dash"
-        },
-        "MD007": {
-            "indent": 2
-        },
-        "MD013": false,
-        "MD024": {
-            "allow_different_nesting": true,
-            "siblings_only": true
-        },
-        "MD029": false,
-        "MD033": {
-            "allowed_elements": [
-                "span",
-                "citations",
-                "document",
-                "document_type",
-                "document_id"
-            ]
-        },
-        "MD035": {
-            "style": "---"
-        },
-        "MD046": {
-            "style": "fenced"
-        },
-        "MD048": {
-            "style": "backtick"
-        },
-        "first-line-h1": false,
-        "fenced-code-language": true
+  "config": {
+    "default": true,
+    "heading-increment": true,
+    "ul-style": {
+      "style": "dash"
     },
-    "gitignore": true,
-    "fix": true,
-    "globs": [
-        "**/*.md"
-    ],
-    "ignores": [
-        "CHANGELOG.md",
-        ".venv/**",
-        "**/node_modules/**",
-        "**/__pycache__/**",
-        "**/*.golden.md",
-        "**/*.tpl.md"
-    ]
+    "MD007": {
+      "indent": 2
+    },
+    "MD013": false,
+    "MD024": {
+      "allow_different_nesting": true,
+      "siblings_only": true
+    },
+    "MD029": false,
+    "MD033": {
+      "allowed_elements": [
+        "span",
+        "citations",
+        "document",
+        "document_type",
+        "document_id"
+      ]
+    },
+    "MD035": {
+      "style": "---"
+    },
+    "MD046": {
+      "style": "fenced"
+    },
+    "MD048": {
+      "style": "backtick"
+    },
+    "first-line-h1": false,
+    "fenced-code-language": true
+  },
+  "gitignore": true,
+  "fix": true,
+  "globs": [
+    "**/*.md"
+  ],
+  "ignores": [
+    "CHANGELOG.md",
+    ".venv/**",
+    "**/node_modules/**",
+    "**/__pycache__/**",
+    "**/*.golden.md",
+    "**/*.tpl.md",
+    "THIRD_PARTY_NOTICES"
+  ]
 }
