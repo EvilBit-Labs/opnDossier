@@ -56,6 +56,10 @@ backend = "pipx:mkdocs"
 [tools."pipx:mkdocs".options]
 uvx_args = "--with mkdocs-material --with pymdown-extensions"
 
+[[tools."pipx:pre-commit"]]
+version = "4.5.1"
+backend = "pipx:pre-commit"
+
 [[tools.pre-commit]]
 version = "4.5.1"
 backend = "aqua:pre-commit/pre-commit"
