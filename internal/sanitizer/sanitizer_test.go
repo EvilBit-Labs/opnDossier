@@ -286,6 +286,7 @@ func TestSanitizeXML_Stats(t *testing.T) {
 
 func TestSanitizeStruct(t *testing.T) {
 	type TestConfig struct {
+		//nolint:gosec // Test fixture field intentionally named to verify sanitizer behavior.
 		Password string
 		Username string
 		Gateway  string
@@ -321,7 +322,8 @@ func TestSanitizeStruct(t *testing.T) {
 
 func TestSanitizeStruct_NestedStruct(t *testing.T) {
 	type User struct {
-		Name     string
+		Name string
+		//nolint:gosec // Test fixture field intentionally named to verify sanitizer behavior.
 		Password string
 	}
 	type Config struct {

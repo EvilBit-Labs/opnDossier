@@ -14,11 +14,11 @@ just                                        = "1.46.0"
 markdownlint-cli2                           = "0.21.0"
 "pipx:mdformat"                             = { version = "0.7.21", uvx_args = "--with mdformat-gfm --with mdformat-front-matters --with mdformat-footnote --with mdformat-simple-breaks --with mdformat-gfm-alerts --with mdformat-toc --with mdformat-wikilink --with mdformat-tables" }
 "pipx:mkdocs"                               = { version = "1.6.1", uvx_args = "--with mkdocs-material --with pymdown-extensions" }
-pre-commit                                  = "latest"
+"pipx:pre-commit"                           = "4.5.1"
 python                                      = "latest"
 uv                                          = "latest"
 
-# Many of these settings are defaults, but we are explicity in case they change in the future and to make it clear to users what is enabled.
+# Many of these settings are defaults, but we are explicit in case they change in the future and to make it clear to users what is enabled.
 [settings]
 activate_aggressive                 = true
 idiomatic_version_file_enable_tools = [ "python", "go", "bun" ]

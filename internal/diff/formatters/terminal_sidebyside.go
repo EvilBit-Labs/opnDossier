@@ -57,6 +57,7 @@ func NewSideBySideFormatter(writer io.Writer) *SideBySideFormatter {
 // Note: always queries os.Stdout regardless of the formatter's io.Writer, since
 // side-by-side output is only meaningful for interactive terminal sessions.
 func detectTerminalWidth() int {
+	//nolint:gosec // os.Stdout.Fd() on supported platforms is safely representable as int for term.GetSize.
 	fd := int(os.Stdout.Fd())
 	width, _, err := term.GetSize(fd)
 	if err != nil || width <= 0 {
