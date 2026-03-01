@@ -146,7 +146,7 @@ type Monit struct {
 		Port       string `xml:"port"`
 		Username   string `xml:"username"`
 		//nolint:gosec // Schema field intentionally maps password from external configuration input.
-		Password                  string `xml:"password"`
+		Password                  string `xml:"password" json:"password,omitempty" yaml:"password,omitempty"`
 		Ssl                       string `xml:"ssl"`
 		Sslversion                string `xml:"sslversion"`
 		Sslverify                 string `xml:"sslverify"`
