@@ -126,7 +126,7 @@ func JSONSuccess(message, file string) {
 
 	jsonOutput, err := json.Marshal(output)
 	if err != nil {
-		fmt.Printf(`{"success": true, "file": "%s"}`, file)
+		fmt.Printf(`{"success": true}`)
 		fmt.Println()
 		return
 	}
