@@ -116,13 +116,13 @@ echo "Batch processing complete. Reports saved to: $OUTPUT_DIR"
 
 ```bash
 # Convert to JSON and extract firewall rules
-opndossier convert config.xml -f json | jq '.filter.rule[]'
+opndossier convert config.xml -f json | jq '.firewallRules[]'
 
 # Count rules by type
-opndossier convert config.xml -f json | jq '.filter.rule | group_by(.type) | map({type: .[0].type, count: length})'
+opndossier convert config.xml -f json | jq '.firewallRules | group_by(.type) | map({type: .[0].type, count: length})'
 
 # Find rules allowing all traffic
-opndossier convert config.xml -f json | jq '.filter.rule[] | select(.source.any != null and .destination.any != null)'
+opndossier convert config.xml -f json | jq '.firewallRules[] | select(.source.address == "any" and .destination.address == "any")'
 ```
 
 ### Extract System Information
@@ -136,27 +136,28 @@ opndossier convert config.xml -f json | jq '{
 }'
 
 # Get interface summary
-opndossier convert config.xml -f json | jq '.interfaces'
+opndossier convert config.xml -f json | jq '.interfaces[] | {name, ipAddress, subnet}'
 ```
 
 ## Configuration Comparison
 
+Use the built-in `diff` command for content-aware, security-scored configuration comparison:
+
 ```bash
-#!/bin/bash
-# compare-configs.sh - Compare two OPNsense configurations
+# Compare two configs with terminal output
+opndossier diff old-config.xml new-config.xml
 
-CONFIG_OLD="$1"
-CONFIG_NEW="$2"
+# Generate markdown diff report
+opndossier diff old-config.xml new-config.xml -f markdown -o changes.md
 
-# Convert both to sorted JSON
-opndossier convert "$CONFIG_OLD" -f json | jq -S . > /tmp/old-config.json
-opndossier convert "$CONFIG_NEW" -f json | jq -S . > /tmp/new-config.json
+# Compare only firewall rules
+opndossier diff old-config.xml new-config.xml --section firewall
 
-# Compare
-diff /tmp/old-config.json /tmp/new-config.json
+# Show only security-relevant changes
+opndossier diff old-config.xml new-config.xml --security
 
-# Clean up
-rm -f /tmp/old-config.json /tmp/new-config.json
+# Generate JSON diff for automation
+opndossier diff old-config.xml new-config.xml -f json | jq '.changes[]'
 ```
 
 ## Performance Tips
