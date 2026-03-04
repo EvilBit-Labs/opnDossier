@@ -487,6 +487,7 @@ When adding fields to `common.Statistics`, update three places:
 **Platform-agnostic model layer:**
 
 - `internal/model/common/` contains device-agnostic types (firewall rules, VPN, system, network, etc.)
+- `docs/data-model/` documents the **CommonDevice** export model (`internal/model/common/`), NOT the `OpnSenseDocument` XML schema -- field paths, types, and nesting differ significantly between the two (e.g., flat `[]Interface` array vs map-keyed, `bool` vs `BoolFlag`, top-level `users[]` vs nested `system.user[]`)
 - `revive` var-naming exclusion for this path is configured in `.golangci.yml`
 - JSON struct tags on nested struct fields must NOT use `omitempty` (Go 1.26+ modernize check)
 
