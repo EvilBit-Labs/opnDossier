@@ -17,16 +17,16 @@ The theme system supports multiple configuration methods with the following prec
 
 ```bash
 # Force light theme
-opndossier --theme light display config.xml
+opndossier display --theme light config.xml
 
 # Force dark theme
-opndossier --theme dark display config.xml
+opndossier display --theme dark config.xml
 
 # Use auto-detection
-opndossier --theme auto display config.xml
+opndossier display --theme auto config.xml
 
 # Disable theming
-opndossier --theme none display config.xml
+opndossier display --theme none config.xml
 ```
 
 ### Environment Variable
