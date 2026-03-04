@@ -10,6 +10,8 @@ opnDossier parses OPNsense configuration files (config.xml) and converts them to
 - **JSON** - Machine-readable, ideal for scripting with `jq`
 - **YAML** - Configuration-friendly, works with `yq`
 
+The JSON/YAML export uses the **CommonDevice** model -- a platform-agnostic representation that normalizes XML quirks (presence-based booleans, pointer types, map-keyed collections) into clean types suitable for scripting and integration.
+
 ## Quick Start
 
 ### Export Configuration
@@ -32,13 +34,13 @@ opndossier convert config.xml --format markdown -o config.md
 jq '.system.hostname' config.json
 
 # List all interface names
-jq '.interfaces | keys' config.json
+jq '[.interfaces[].name]' config.json
 
 # Get all enabled firewall rules
-jq '.filter.rule[] | select(.disabled != "1")' config.json
+jq '.firewallRules[] | select(.disabled | not)' config.json
 
 # Count rules by interface
-jq '.filter.rule | group_by(.interface) | map({interface: .[0].interface, count: length})' config.json
+jq '[.firewallRules[] | .interfaces[]] | group_by(.) | map({interface: .[0], count: length})' config.json
 ```
 
 ### Query Data with yq
@@ -48,29 +50,34 @@ jq '.filter.rule | group_by(.interface) | map({interface: .[0].interface, count:
 yq '.system.domain' config.yaml
 
 # List DHCP scopes
-yq '.dhcpd | keys' config.yaml
+yq '[.dhcp[].interface]' config.yaml
 ```
 
 ## Data Model Structure
 
-The opnDossier data model mirrors the OPNsense configuration structure:
+The CommonDevice model organizes configuration into logical sections:
 
 ```text
-OpnSenseDocument (root)
-├── system           # Hostname, domain, users, groups, SSH
-├── interfaces       # Network interface configurations
-├── filter           # Firewall rules
-├── nat              # NAT rules (outbound, inbound)
-├── dhcpd            # DHCP server configuration
-├── unbound          # DNS resolver
-├── openvpn          # OpenVPN servers and clients
-├── gateways         # Gateway definitions
-└── ...              # Additional services
+CommonDevice (root)
+├── system           # Hostname, domain, SSH, WebGUI, firmware
+├── interfaces[]     # Network interface configurations (flat array)
+├── vlans[]          # VLAN configurations
+├── firewallRules[]  # Normalized firewall filter rules
+├── nat              # NAT rules (outboundRules, inboundRules)
+├── dhcp[]           # DHCP server scopes
+├── dns              # DNS resolver (unbound, dnsMasq)
+├── vpn              # VPN (openVpn, wireGuard, ipsec)
+├── routing          # Gateways, gateway groups, static routes
+├── users[]          # System user accounts
+├── groups[]         # System groups
+├── certificates[]   # TLS/SSL certificates
+├── cas[]            # Certificate authorities
+└── ...              # Additional services (syslog, ids, snmp, etc.)
 ```
 
 ## Documentation
 
-- **[Model Reference](model-reference.md)** - Complete field reference (auto-generated)
+- **[Model Reference](model-reference.md)** - Complete field reference for the internal XML schema (OpnSenseDocument)
 - **[JSON Export Examples](examples/json-export.md)** - Common jq queries
 - **[YAML Processing Examples](examples/yaml-processing.md)** - Working with yq
 
@@ -80,10 +87,12 @@ OpnSenseDocument (root)
 
 ```bash
 # Find rules allowing any source
-jq '.filter.rule[] | select(.source.any == "1")' config.json
+jq '.firewallRules[] | select(.source.address == "any") | {
+  interfaces, description, destination
+}' config.json
 
 # List NAT port forwards
-jq '.nat.rule[]' config.json
+jq '.nat.inboundRules[]' config.json
 
 # Check SSH configuration
 jq '.system.ssh' config.json
@@ -93,23 +102,28 @@ jq '.system.ssh' config.json
 
 ```bash
 # Get all VLANs
-jq '.vlans.vlan[]' config.json
+jq '.vlans[] | {tag, vlanIf, description}' config.json
 
 # List gateways
-jq '.gateways.gateway_item[]' config.json
+jq '.routing.gateways[] | {name, interface, address}' config.json
 
 # Get interface IP addresses
-jq '.interfaces | to_entries[] | {name: .key, ip: .value.ipaddr}' config.json
+jq '.interfaces[] | {name, ipAddress, subnet}' config.json
 ```
 
 ### Configuration Comparison
 
-```bash
-# Compare two configs
-diff <(jq -S . config1.json) <(jq -S . config2.json)
+Use the built-in `diff` command for content-aware, security-scored comparison:
 
-# Check for changes in firewall rules
-diff <(jq '.filter.rule' config1.json) <(jq '.filter.rule' config2.json)
+```bash
+# Compare two configs with security impact scoring
+opndossier diff old-config.xml new-config.xml
+
+# Generate JSON diff for automation
+opndossier diff old-config.xml new-config.xml -f json
+
+# Compare only firewall rules
+opndossier diff old-config.xml new-config.xml --section firewall
 ```
 
 ## Integration Examples
@@ -123,7 +137,7 @@ diff <(jq '.filter.rule' config1.json) <(jq '.filter.rule' config2.json)
 
   - name: Parse configuration
     set_fact:
-      firewall_rules: '{{ (opnsense_config.stdout | from_json).filter.rule }}'
+      firewall_rules: '{{ (opnsense_config.stdout | from_json).firewallRules }}'
 ```
 
 ### Python
@@ -139,6 +153,7 @@ result = subprocess.run(
 )
 config = json.loads(result.stdout)
 print(f"Hostname: {config['system']['hostname']}")
+print(f"Interfaces: {[iface['name'] for iface in config['interfaces']]}")
 ```
 
 ### Shell Scripting
@@ -148,7 +163,7 @@ print(f"Hostname: {config['system']['hostname']}")
 CONFIG=$(opndossier convert config.xml --format json)
 
 HOSTNAME=$(echo "$CONFIG" | jq -r '.system.hostname')
-RULE_COUNT=$(echo "$CONFIG" | jq '.filter.rule | length')
+RULE_COUNT=$(echo "$CONFIG" | jq '.firewallRules | length')
 
 echo "Firewall: $HOSTNAME"
 echo "Rules: $RULE_COUNT"

@@ -1,457 +1,462 @@
 # Model Reference
 
-> **Auto-generated documentation** - Do not edit manually. Generated: 2026-02-27 00:55:57
+> **Auto-generated documentation** - Do not edit manually. Regenerate with `just generate-docs`.
 
-This document provides a complete reference of all data fields available in the opnDossier configuration model. Use this reference when working with JSON/YAML exports or building custom integrations.
+This document provides a complete reference of all data fields available in the opnDossier **CommonDevice** export model. This is the model used for JSON and YAML exports. It normalizes the raw OPNsense XML schema into clean, platform-agnostic types.
 
 ## Table of Contents
 
-- [OpnSenseDocument (Root)](#opnsensedocument-root)
+- [CommonDevice (Root)](#commondevice-root)
 - [System Configuration](#system-configuration)
 - [Network Interfaces](#network-interfaces)
 - [Firewall and Security](#firewall-and-security)
+- [NAT Configuration](#nat-configuration)
 - [Services](#services)
 - [VPN Configuration](#vpn-configuration)
+- [Routing](#routing)
+- [Users and Groups](#users-and-groups)
+- [Certificates](#certificates)
 
 ---
 
-## OpnSenseDocument (Root)
+## CommonDevice (Root)
 
-The root configuration object parsed from OPNsense XML.
+The root export object representing a normalized device configuration.
 
-| Field                  | Type                     | JSON Path              | Description       |
-| ---------------------- | ------------------------ | ---------------------- | ----------------- |
-| `Version`              | `string`                 | `version`              | Optional          |
-| `TriggerInitialWizard` | `BoolFlag`               | `triggerInitialWizard` | -                 |
-| `Theme`                | `string`                 | `theme`                | Options: opnsense |
-| `Sysctl`               | `[]SysctlItem`           | `sysctl`               | Optional          |
-| `System`               | `System`                 | `system`               | Required          |
-| `Interfaces`           | `Interfaces`             | `interfaces`           | Required          |
-| `Dhcpd`                | `Dhcpd`                  | `dhcpd`                | -                 |
-| `Unbound`              | `Unbound`                | `unbound`              | -                 |
-| `Snmpd`                | `Snmpd`                  | `snmpd`                | -                 |
-| `Nat`                  | `Nat`                    | `nat`                  | -                 |
-| `Filter`               | `Filter`                 | `filter`               | -                 |
-| `Rrd`                  | `Rrd`                    | `rrd`                  | -                 |
-| `LoadBalancer`         | `LoadBalancer`           | `loadBalancer`         | -                 |
-| `Ntpd`                 | `Ntpd`                   | `ntpd`                 | -                 |
-| `Widgets`              | `Widgets`                | `widgets`              | -                 |
-| `Revision`             | `Revision`               | `revision`             | -                 |
-| `Gateways`             | `Gateways`               | `gateways`             | -                 |
-| `HighAvailabilitySync` | `HighAvailabilitySync`   | `hasync`               | -                 |
-| `InterfaceGroups`      | `InterfaceGroups`        | `ifgroups`             | -                 |
-| `GIFInterfaces`        | `GIFInterfaces`          | `gifs`                 | -                 |
-| `GREInterfaces`        | `GREInterfaces`          | `gres`                 | -                 |
-| `LAGGInterfaces`       | `LAGGInterfaces`         | `laggs`                | -                 |
-| `VirtualIP`            | `VirtualIP`              | `virtualip`            | -                 |
-| `VLANs`                | `VLANs`                  | `vlans`                | -                 |
-| `OpenVPN`              | `OpenVPN`                | `openvpn`              | -                 |
-| `StaticRoutes`         | `StaticRoutes`           | `staticroutes`         | -                 |
-| `Bridges`              | `Bridges`                | `bridges`              | -                 |
-| `PPPInterfaces`        | `PPPInterfaces`          | `ppps`                 | -                 |
-| `Wireless`             | `Wireless`               | `wireless`             | -                 |
-| `CAs`                  | `[]CertificateAuthority` | `ca`                   | Optional          |
-| `DHCPv6Server`         | `DHCPv6Server`           | `dhcpdv6`              | -                 |
-| `Certs`                | `[]Cert`                 | `cert`                 | Optional          |
-| `DNSMasquerade`        | `DNSMasq`                | `dnsmasq`              | -                 |
-| `Syslog`               | `Syslog`                 | `syslog`               | -                 |
-| `OPNsense`             | `OPNsense`               | `opnsense`             | -                 |
+| Field              | Type                     | JSON Key           | Description                                    |
+| ------------------ | ------------------------ | ------------------ | ---------------------------------------------- |
+| `DeviceType`       | `string`                 | `device_type`      | Platform identifier (e.g., "opnsense")         |
+| `Version`          | `string`                 | `version`          | Firmware/configuration version                 |
+| `Theme`            | `string`                 | `theme`            | Web GUI theme name                             |
+| `System`           | `System`                 | `system`           | System-level settings                          |
+| `Interfaces`       | `[]Interface`            | `interfaces`       | Network interface configurations (flat array)  |
+| `VLANs`            | `[]VLAN`                 | `vlans`            | VLAN configurations                            |
+| `Bridges`          | `[]Bridge`               | `bridges`          | Network bridge configurations                  |
+| `PPPs`             | `[]PPP`                  | `ppps`             | PPP connection configurations                  |
+| `GIFs`             | `[]GIF`                  | `gifs`             | GIF tunnel configurations                      |
+| `GREs`             | `[]GRE`                  | `gres`             | GRE tunnel configurations                      |
+| `LAGGs`            | `[]LAGG`                 | `laggs`            | Link aggregation configurations                |
+| `VirtualIPs`       | `[]VirtualIP`            | `virtualIps`       | CARP, IP alias, and proxy ARP configurations   |
+| `InterfaceGroups`  | `[]InterfaceGroup`       | `interfaceGroups`  | Logical interface group configurations         |
+| `FirewallRules`    | `[]FirewallRule`         | `firewallRules`    | Normalized firewall filter rules               |
+| `NAT`              | `NATConfig`              | `nat`              | NAT configuration (inbound and outbound)       |
+| `DHCP`             | `[]DHCPScope`            | `dhcp`             | DHCP server scopes, one per interface          |
+| `DNS`              | `DNSConfig`              | `dns`              | DNS resolver and forwarder configuration       |
+| `NTP`              | `NTPConfig`              | `ntp`              | NTP time synchronization settings              |
+| `SNMP`             | `SNMPConfig`             | `snmp`             | SNMP service configuration                     |
+| `LoadBalancer`     | `LoadBalancerConfig`     | `loadBalancer`     | Load balancer and health monitor configuration |
+| `VPN`              | `VPN`                    | `vpn`              | VPN subsystem configurations                   |
+| `Routing`          | `Routing`                | `routing`          | Gateways, gateway groups, and static routes    |
+| `Certificates`     | `[]Certificate`          | `certificates`     | TLS/SSL certificates                           |
+| `CAs`              | `[]CertificateAuthority` | `cas`              | Certificate authorities                        |
+| `HighAvailability` | `HighAvailability`       | `highAvailability` | CARP/pfsync HA settings                        |
+| `IDS`              | `*IDSConfig`             | `ids`              | Intrusion detection/prevention configuration   |
+| `Syslog`           | `SyslogConfig`           | `syslog`           | Remote syslog forwarding configuration         |
+| `Users`            | `[]User`                 | `users`            | System user accounts                           |
+| `Groups`           | `[]Group`                | `groups`           | System groups                                  |
+| `Sysctl`           | `[]SysctlItem`           | `sysctl`           | Kernel tunable parameters                      |
+| `Packages`         | `[]Package`              | `packages`         | Installed software packages                    |
+| `Revision`         | `Revision`               | `revision`         | Configuration revision metadata                |
+
+**Enrichment fields** (populated during export, not present in raw parse):
+
+| Field                | Type                  | JSON Key             | Description                         |
+| -------------------- | --------------------- | -------------------- | ----------------------------------- |
+| `Statistics`         | `*Statistics`         | `statistics`         | Calculated configuration statistics |
+| `Analysis`           | `*Analysis`           | `analysis`           | Analysis findings and insights      |
+| `SecurityAssessment` | `*SecurityAssessment` | `securityAssessment` | Security scores and recommendations |
+| `PerformanceMetrics` | `*PerformanceMetrics` | `performanceMetrics` | Performance-related metrics         |
+| `ComplianceChecks`   | `*ComplianceChecks`   | `complianceChecks`   | Compliance check results            |
 
 ---
 
 ## System Configuration
 
-Core system settings including hostname, users, and SSH configuration.
+Core system settings including hostname, DNS, web GUI, and SSH.
 
 ### System
 
-| Field                           | Type           | JSON Path                              | Description     |
-| ------------------------------- | -------------- | -------------------------------------- | --------------- |
-| `Optimization`                  | `string`       | `system.optimization`                  | Options: normal |
-| `Hostname`                      | `string`       | `system.hostname`                      | Required        |
-| `Domain`                        | `string`       | `system.domain`                        | Required        |
-| `DNSAllowOverride`              | `int`          | `system.dnsAllowOverride`              | Optional        |
-| `DNSServer`                     | `string`       | `system.dnsServer`                     | Optional        |
-| `Language`                      | `string`       | `system.language`                      | Optional        |
-| `Firmware`                      | `Firmware`     | `system.firmware`                      | -               |
-| `Group`                         | `[]Group`      | `system.groups`                        | Optional        |
-| `User`                          | `[]User`       | `system.users`                         | Optional        |
-| `WebGUI`                        | `WebGUIConfig` | `system.webgui`                        | -               |
-| `SSH`                           | `SSHConfig`    | `system.ssh`                           | -               |
-| `Timezone`                      | `string`       | `system.timezone`                      | Optional        |
-| `TimeServers`                   | `string`       | `system.timeServers`                   | Optional        |
-| `UseVirtualTerminal`            | `int`          | `system.useVirtualTerminal`            | Optional        |
-| `DisableVLANHWFilter`           | `int`          | `system.disableVlanHwFilter`           | Optional        |
-| `DisableChecksumOffloading`     | `int`          | `system.disableChecksumOffloading`     | Optional        |
-| `DisableSegmentationOffloading` | `int`          | `system.disableSegmentationOffloading` | Optional        |
-| `DisableLargeReceiveOffloading` | `int`          | `system.disableLargeReceiveOffloading` | Optional        |
-| `IPv6Allow`                     | `string`       | `system.ipv6Allow`                     | Optional        |
-| `DisableNATReflection`          | `string`       | `system.disableNatReflection`          | Optional        |
-| `DisableConsoleMenu`            | `BoolFlag`     | `system.disableConsoleMenu`            | -               |
-| `NextUID`                       | `int`          | `system.nextUid`                       | Optional        |
-| `NextGID`                       | `int`          | `system.nextGid`                       | Optional        |
-| `PowerdACMode`                  | `string`       | `system.powerdAcMode`                  | Options: hadp   |
-| `PowerdBatteryMode`             | `string`       | `system.powerdBatteryMode`             | Options: hadp   |
-| `PowerdNormalMode`              | `string`       | `system.powerdNormalMode`              | Options: hadp   |
-| `Bogons`                        | `struct`       | `system.bogons`                        | -               |
-| `PfShareForward`                | `int`          | `system.pfShareForward`                | Optional        |
-| `LbUseSticky`                   | `int`          | `system.lbUseSticky`                   | Optional        |
-| `RrdBackup`                     | `int`          | `system.rrdBackup`                     | Optional        |
-| `NetflowBackup`                 | `int`          | `system.netflowBackup`                 | Optional        |
-| `NTPD`                          | `struct`       | `system.ntpd`                          | -               |
-| `SNMPD`                         | `struct`       | `system.snmpd`                         | -               |
-| `RRD`                           | `struct`       | `system.rrd`                           | -               |
-| `LoadBalancer`                  | `struct`       | `system.loadBalancer`                  | -               |
-| `Unbound`                       | `Unbound`      | `system.unbound`                       | -               |
-| `Notes`                         | `[]string`     | `system.notes`                         | Optional        |
+| Field                  | Type       | JSON Key                      | Description                          |
+| ---------------------- | ---------- | ----------------------------- | ------------------------------------ |
+| `Hostname`             | `string`   | `system.hostname`             | Device hostname                      |
+| `Domain`               | `string`   | `system.domain`               | DNS domain name                      |
+| `Optimization`         | `string`   | `system.optimization`         | TCP/IP optimization profile          |
+| `Language`             | `string`   | `system.language`             | Web GUI language code                |
+| `Timezone`             | `string`   | `system.timezone`             | System timezone (Region/City)        |
+| `TimeServers`          | `[]string` | `system.timeServers`          | Configured NTP server addresses      |
+| `DNSServers`           | `[]string` | `system.dnsServers`           | Configured DNS resolver addresses    |
+| `DNSAllowOverride`     | `bool`     | `system.dnsAllowOverride`     | Allow DHCP/PPP DNS override          |
+| `WebGUI`               | `WebGUI`   | `system.webGui`               | Web GUI access configuration         |
+| `SSH`                  | `SSH`      | `system.ssh`                  | SSH service configuration            |
+| `Firmware`             | `Firmware` | `system.firmware`             | Firmware version and update settings |
+| `DisableNATReflection` | `bool`     | `system.disableNatReflection` | Disable hairpin NAT                  |
+| `DisableConsoleMenu`   | `bool`     | `system.disableConsoleMenu`   | Disable console menu                 |
+| `IPv6Allow`            | `bool`     | `system.ipv6Allow`            | Enable IPv6 traffic                  |
+| `Notes`                | `[]string` | `system.notes`                | Operator notes                       |
 
-### User
+### SSH
 
-| Field            | Type       | JSON Path                       | Description               |
-| ---------------- | ---------- | ------------------------------- | ------------------------- |
-| `Name`           | `string`   | `system.users[].name`           | Required                  |
-| `Disabled`       | `BoolFlag` | `system.users[].disabled`       | -                         |
-| `Descr`          | `string`   | `system.users[].description`    | Optional                  |
-| `Scope`          | `string`   | `system.users[].scope`          | Required; Options: system |
-| `Groupname`      | `string`   | `system.users[].groupname`      | Required                  |
-| `Password`       | `string`   | `system.users[].password`       | Required                  |
-| `UID`            | `string`   | `system.users[].uid`            | Required                  |
-| `APIKeys`        | `[]APIKey` | `system.users[].apiKeys`        | Optional                  |
-| `Expires`        | `BoolFlag` | `system.users[].expires`        | -                         |
-| `AuthorizedKeys` | `BoolFlag` | `system.users[].authorizedKeys` | -                         |
-| `IPSecPSK`       | `BoolFlag` | `system.users[].ipsecPsk`       | -                         |
-| `OTPSeed`        | `BoolFlag` | `system.users[].otpSeed`        | -                         |
+| Field     | Type     | JSON Key             | Description              |
+| --------- | -------- | -------------------- | ------------------------ |
+| `Enabled` | `bool`   | `system.ssh.enabled` | Whether SSH is active    |
+| `Port`    | `string` | `system.ssh.port`    | SSH listening port       |
+| `Group`   | `string` | `system.ssh.group`   | Group allowed SSH access |
 
-### Group
+### WebGUI
 
-| Field         | Type     | JSON Path                     | Description               |
-| ------------- | -------- | ----------------------------- | ------------------------- |
-| `Name`        | `string` | `system.groups[].name`        | Required                  |
-| `Description` | `string` | `system.groups[].description` | Optional                  |
-| `Scope`       | `string` | `system.groups[].scope`       | Required; Options: system |
-| `Gid`         | `string` | `system.groups[].gid`         | Required                  |
-| `Member`      | `string` | `system.groups[].member`      | Optional                  |
-| `Priv`        | `string` | `system.groups[].privileges`  | Optional                  |
+| Field               | Type     | JSON Key                          | Description                   |
+| ------------------- | -------- | --------------------------------- | ----------------------------- |
+| `Protocol`          | `string` | `system.webGui.protocol`          | Web GUI protocol (http/https) |
+| `SSLCertRef`        | `string` | `system.webGui.sslCertRef`        | SSL certificate reference ID  |
+| `LoginAutocomplete` | `bool`   | `system.webGui.loginAutocomplete` | Browser autocomplete on login |
+| `MaxProcesses`      | `string` | `system.webGui.maxProcesses`      | Max web server processes      |
+
+### Firmware
+
+| Field     | Type     | JSON Key                  | Description                         |
+| --------- | -------- | ------------------------- | ----------------------------------- |
+| `Version` | `string` | `system.firmware.version` | Firmware version string             |
+| `Mirror`  | `string` | `system.firmware.mirror`  | Update mirror URL                   |
+| `Flavour` | `string` | `system.firmware.flavour` | Firmware flavour (OpenSSL/LibreSSL) |
+| `Plugins` | `string` | `system.firmware.plugins` | Comma-separated plugin list         |
 
 ---
 
 ## Network Interfaces
 
-Network interface configuration including VLANs and gateways.
+Network interface configurations are exported as a **flat array**, not a map.
 
 ### Interface
 
-| Field                                      | Type           | JSON Path                                                    | Description |
-| ------------------------------------------ | -------------- | ------------------------------------------------------------ | ----------- |
-| `Enable`                                   | `string`       | `interfaces.<name>.enable`                                   | Optional    |
-| `If`                                       | `string`       | `interfaces.<name>.if`                                       | Optional    |
-| `Descr`                                    | `string`       | `interfaces.<name>.descr`                                    | Optional    |
-| `Spoofmac`                                 | `string`       | `interfaces.<name>.spoofmac`                                 | Optional    |
-| `InternalDynamic`                          | `int`          | `interfaces.<name>.internalDynamic`                          | Optional    |
-| `Type`                                     | `string`       | `interfaces.<name>.type`                                     | Optional    |
-| `Virtual`                                  | `int`          | `interfaces.<name>.virtual`                                  | Optional    |
-| `Lock`                                     | `int`          | `interfaces.<name>.lock`                                     | Optional    |
-| `MTU`                                      | `string`       | `interfaces.<name>.mtu`                                      | Optional    |
-| `IPAddr`                                   | `string`       | `interfaces.<name>.ipaddr`                                   | Optional    |
-| `IPAddrv6`                                 | `string`       | `interfaces.<name>.ipaddrv6`                                 | Optional    |
-| `Subnet`                                   | `string`       | `interfaces.<name>.subnet`                                   | Optional    |
-| `Subnetv6`                                 | `string`       | `interfaces.<name>.subnetv6`                                 | Optional    |
-| `Gateway`                                  | `string`       | `interfaces.<name>.gateway`                                  | Optional    |
-| `Gatewayv6`                                | `string`       | `interfaces.<name>.gatewayv6`                                | Optional    |
-| `BlockPriv`                                | `string`       | `interfaces.<name>.blockpriv`                                | Optional    |
-| `BlockBogons`                              | `string`       | `interfaces.<name>.blockbogons`                              | Optional    |
-| `DHCPHostname`                             | `string`       | `interfaces.<name>.dhcphostname`                             | Optional    |
-| `Media`                                    | `string`       | `interfaces.<name>.media`                                    | Optional    |
-| `MediaOpt`                                 | `string`       | `interfaces.<name>.mediaopt`                                 | Optional    |
-| `DHCP6IaPdLen`                             | `int`          | `interfaces.<name>.dhcp6IaPdLen`                             | Optional    |
-| `Track6Interface`                          | `string`       | `interfaces.<name>.track6Interface`                          | Optional    |
-| `Track6PrefixID`                           | `string`       | `interfaces.<name>.track6PrefixId`                           | Optional    |
-| `AliasAddress`                             | `string`       | `interfaces.<name>.aliasAddress`                             | Optional    |
-| `AliasSubnet`                              | `string`       | `interfaces.<name>.aliasSubnet`                              | Optional    |
-| `DHCPRejectFrom`                           | `string`       | `interfaces.<name>.dhcprejectfrom`                           | Optional    |
-| `DDNSDomainAlgorithm`                      | `string`       | `interfaces.<name>.ddnsdomainalgorithm`                      | Optional    |
-| `NumberOptions`                            | `[]DhcpOption` | `interfaces.<name>.numberoptions`                            | Optional    |
-| `Range`                                    | `DhcpRange`    | `interfaces.<name>.range`                                    | -           |
-| `Winsserver`                               | `string`       | `interfaces.<name>.winsserver`                               | Optional    |
-| `Dnsserver`                                | `string`       | `interfaces.<name>.dnsserver`                                | Optional    |
-| `Ntpserver`                                | `string`       | `interfaces.<name>.ntpserver`                                | Optional    |
-| `AdvDHCPRequestOptions`                    | `string`       | `interfaces.<name>.advDhcpRequestOptions`                    | Optional    |
-| `AdvDHCPRequiredOptions`                   | `string`       | `interfaces.<name>.advDhcpRequiredOptions`                   | Optional    |
-| `AdvDHCP6InterfaceStatementRequestOptions` | `string`       | `interfaces.<name>.advDhcp6InterfaceStatementRequestOptions` | Optional    |
-| `AdvDHCP6ConfigFileOverride`               | `string`       | `interfaces.<name>.advDhcp6ConfigFileOverride`               | Optional    |
-| `AdvDHCP6IDAssocStatementPrefixPLTime`     | `string`       | `interfaces.<name>.advDhcp6IdAssocStatementPrefixPltime`     | Optional    |
+| Field          | Type     | JSON Key                    | Description                               |
+| -------------- | -------- | --------------------------- | ----------------------------------------- |
+| `Name`         | `string` | `interfaces[].name`         | Logical name (e.g., "lan", "wan", "opt1") |
+| `PhysicalIf`   | `string` | `interfaces[].physicalIf`   | Physical device (e.g., "igb0", "em0")     |
+| `Description`  | `string` | `interfaces[].description`  | Human-readable label                      |
+| `Enabled`      | `bool`   | `interfaces[].enabled`      | Administratively up                       |
+| `IPAddress`    | `string` | `interfaces[].ipAddress`    | IPv4 address                              |
+| `IPv6Address`  | `string` | `interfaces[].ipv6Address`  | IPv6 address                              |
+| `Subnet`       | `string` | `interfaces[].subnet`       | IPv4 subnet prefix length                 |
+| `SubnetV6`     | `string` | `interfaces[].subnetV6`     | IPv6 subnet prefix length                 |
+| `Gateway`      | `string` | `interfaces[].gateway`      | IPv4 gateway                              |
+| `GatewayV6`    | `string` | `interfaces[].gatewayV6`    | IPv6 gateway                              |
+| `BlockPrivate` | `bool`   | `interfaces[].blockPrivate` | Block RFC 1918 traffic                    |
+| `BlockBogons`  | `bool`   | `interfaces[].blockBogons`  | Block bogon traffic                       |
+| `Type`         | `string` | `interfaces[].type`         | Interface type (dhcp, static, none)       |
+| `MTU`          | `string` | `interfaces[].mtu`          | Maximum transmission unit                 |
+| `SpoofMAC`     | `string` | `interfaces[].spoofMac`     | Overridden MAC address                    |
+| `Virtual`      | `bool`   | `interfaces[].virtual`      | Virtual interface flag                    |
+
+### VLAN
+
+| Field         | Type     | JSON Key              | Description               |
+| ------------- | -------- | --------------------- | ------------------------- |
+| `VLANIf`      | `string` | `vlans[].vlanIf`      | VLAN interface name       |
+| `PhysicalIf`  | `string` | `vlans[].physicalIf`  | Parent physical interface |
+| `Tag`         | `string` | `vlans[].tag`         | 802.1Q VLAN tag           |
+| `Description` | `string` | `vlans[].description` | Description               |
 
 ### Gateway
 
-| Field            | Type       | JSON Path                                | Description |
-| ---------------- | ---------- | ---------------------------------------- | ----------- |
-| `XMLName`        | `Name`     | `gateways.gateway_item[].xmlname`        | -           |
-| `Interface`      | `string`   | `gateways.gateway_item[].interface`      | -           |
-| `Gateway`        | `string`   | `gateways.gateway_item[].gateway`        | -           |
-| `Name`           | `string`   | `gateways.gateway_item[].name`           | -           |
-| `Weight`         | `string`   | `gateways.gateway_item[].weight`         | -           |
-| `IPProtocol`     | `string`   | `gateways.gateway_item[].ipprotocol`     | -           |
-| `Interval`       | `string`   | `gateways.gateway_item[].interval`       | -           |
-| `Descr`          | `string`   | `gateways.gateway_item[].descr`          | -           |
-| `Monitor`        | `string`   | `gateways.gateway_item[].monitor`        | -           |
-| `Disabled`       | `BoolFlag` | `gateways.gateway_item[].disabled`       | -           |
-| `Created`        | `string`   | `gateways.gateway_item[].created`        | -           |
-| `Updated`        | `string`   | `gateways.gateway_item[].updated`        | -           |
-| `DefaultGW`      | `string`   | `gateways.gateway_item[].defaultgw`      | -           |
-| `MonitorDisable` | `string`   | `gateways.gateway_item[].monitordisable` | -           |
-| `FarGW`          | `string`   | `gateways.gateway_item[].fargw`          | -           |
+| Field            | Type     | JSON Key                            | Description                   |
+| ---------------- | -------- | ----------------------------------- | ----------------------------- |
+| `Name`           | `string` | `routing.gateways[].name`           | Gateway name                  |
+| `Interface`      | `string` | `routing.gateways[].interface`      | Reachable interface           |
+| `Address`        | `string` | `routing.gateways[].address`        | Gateway IP address            |
+| `IPProtocol`     | `string` | `routing.gateways[].ipProtocol`     | Address family (inet/inet6)   |
+| `Weight`         | `string` | `routing.gateways[].weight`         | Priority weight for multi-WAN |
+| `Description`    | `string` | `routing.gateways[].description`    | Description                   |
+| `Monitor`        | `string` | `routing.gateways[].monitor`        | Health monitoring IP          |
+| `Disabled`       | `bool`   | `routing.gateways[].disabled`       | Administratively disabled     |
+| `DefaultGW`      | `string` | `routing.gateways[].defaultGw`      | Default route marker          |
+| `MonitorDisable` | `string` | `routing.gateways[].monitorDisable` | Disable health monitoring     |
 
 ---
 
 ## Firewall and Security
 
-Firewall rules and NAT configuration.
+Firewall rules are normalized with clean boolean types and resolved endpoint addresses.
 
-### Rule (Firewall)
+### FirewallRule
 
-| Field             | Type          | JSON Path                       | Description |
-| ----------------- | ------------- | ------------------------------- | ----------- |
-| `XMLName`         | `Name`        | `filter.rule[].xmlname`         | -           |
-| `Type`            | `string`      | `filter.rule[].type`            | -           |
-| `Descr`           | `string`      | `filter.rule[].descr`           | -           |
-| `Interface`       | `[]string`    | `filter.rule[].interface`       | -           |
-| `IPProtocol`      | `string`      | `filter.rule[].ipprotocol`      | -           |
-| `StateType`       | `string`      | `filter.rule[].statetype`       | -           |
-| `Direction`       | `string`      | `filter.rule[].direction`       | -           |
-| `Floating`        | `string`      | `filter.rule[].floating`        | -           |
-| `Quick`           | `BoolFlag`    | `filter.rule[].quick`           | -           |
-| `Protocol`        | `string`      | `filter.rule[].protocol`        | -           |
-| `Source`          | `Source`      | `filter.rule[].source`          | -           |
-| `Destination`     | `Destination` | `filter.rule[].destination`     | -           |
-| `Target`          | `string`      | `filter.rule[].target`          | -           |
-| `Gateway`         | `string`      | `filter.rule[].gateway`         | -           |
-| `SourcePort`      | `string`      | `filter.rule[].sourceport`      | -           |
-| `Log`             | `BoolFlag`    | `filter.rule[].log`             | -           |
-| `Disabled`        | `BoolFlag`    | `filter.rule[].disabled`        | -           |
-| `Tracker`         | `string`      | `filter.rule[].tracker`         | -           |
-| `MaxSrcNodes`     | `string`      | `filter.rule[].maxsrcnodes`     | -           |
-| `MaxSrcConn`      | `string`      | `filter.rule[].maxsrcconn`      | -           |
-| `MaxSrcConnRate`  | `string`      | `filter.rule[].maxsrcconnrate`  | -           |
-| `MaxSrcConnRates` | `string`      | `filter.rule[].maxsrcconnrates` | -           |
-| `TCPFlags1`       | `string`      | `filter.rule[].tcpflags1`       | -           |
-| `TCPFlags2`       | `string`      | `filter.rule[].tcpflags2`       | -           |
-| `TCPFlagsAny`     | `BoolFlag`    | `filter.rule[].tcpflagsany`     | -           |
-| `ICMPType`        | `string`      | `filter.rule[].icmptype`        | -           |
-| `ICMP6Type`       | `string`      | `filter.rule[].icmp6type`       | -           |
-| `StateTimeout`    | `string`      | `filter.rule[].statetimeout`    | -           |
-| `AllowOpts`       | `BoolFlag`    | `filter.rule[].allowopts`       | -           |
-| `DisableReplyTo`  | `BoolFlag`    | `filter.rule[].disablereplyto`  | -           |
-| `NoPfSync`        | `BoolFlag`    | `filter.rule[].nopfsync`        | -           |
-| `NoSync`          | `BoolFlag`    | `filter.rule[].nosync`          | -           |
-| `Updated`         | `*Updated`    | `filter.rule[].updated`         | -           |
-| `Created`         | `*Created`    | `filter.rule[].created`         | -           |
-| `UUID`            | `string`      | `filter.rule[].uuid`            | -           |
+| Field         | Type           | JSON Key                      | Description                         |
+| ------------- | -------------- | ----------------------------- | ----------------------------------- |
+| `UUID`        | `string`       | `firewallRules[].uuid`        | Unique rule identifier              |
+| `Type`        | `string`       | `firewallRules[].type`        | Action: "pass", "block", "reject"   |
+| `Description` | `string`       | `firewallRules[].description` | Human-readable description          |
+| `Interfaces`  | `[]string`     | `firewallRules[].interfaces`  | Applied interface names             |
+| `IPProtocol`  | `string`       | `firewallRules[].ipProtocol`  | Address family (inet/inet6)         |
+| `Protocol`    | `string`       | `firewallRules[].protocol`    | Layer-4 protocol (tcp, udp, icmp)   |
+| `Source`      | `RuleEndpoint` | `firewallRules[].source`      | Source endpoint                     |
+| `Destination` | `RuleEndpoint` | `firewallRules[].destination` | Destination endpoint                |
+| `Direction`   | `string`       | `firewallRules[].direction`   | Traffic direction (in, out, any)    |
+| `Floating`    | `bool`         | `firewallRules[].floating`    | Floating rule (not interface-bound) |
+| `Quick`       | `bool`         | `firewallRules[].quick`       | Quick matching (first match wins)   |
+| `Gateway`     | `string`       | `firewallRules[].gateway`     | Policy-based routing gateway        |
+| `Log`         | `bool`         | `firewallRules[].log`         | Log matched packets                 |
+| `Disabled`    | `bool`         | `firewallRules[].disabled`    | Administratively disabled           |
+| `Tracker`     | `string`       | `firewallRules[].tracker`     | Tracking identifier                 |
+| `StateType`   | `string`       | `firewallRules[].stateType`   | State tracking type                 |
+
+### RuleEndpoint
+
+Used for both `source` and `destination` in firewall and NAT rules.
+
+| Field     | Type     | JSON Key  | Description                              |
+| --------- | -------- | --------- | ---------------------------------------- |
+| `Address` | `string` | `address` | Resolved address ("any", CIDR, hostname) |
+| `Port`    | `string` | `port`    | Port or port range                       |
+| `Negated` | `bool`   | `negated` | Inverted match (NOT logic)               |
+
+---
+
+## NAT Configuration
+
+### NATConfig
+
+| Field                | Type               | JSON Key                 | Description                       |
+| -------------------- | ------------------ | ------------------------ | --------------------------------- |
+| `OutboundMode`       | `string`           | `nat.outboundMode`       | Mode: automatic, hybrid, advanced |
+| `ReflectionDisabled` | `bool`             | `nat.reflectionDisabled` | NAT reflection turned off         |
+| `OutboundRules`      | `[]NATRule`        | `nat.outboundRules`      | Outbound NAT rules                |
+| `InboundRules`       | `[]InboundNATRule` | `nat.inboundRules`       | Port-forward NAT rules            |
 
 ### NATRule (Outbound)
 
-| Field                | Type          | JSON Path                                | Description |
-| -------------------- | ------------- | ---------------------------------------- | ----------- |
-| `XMLName`            | `Name`        | `nat.outbound.rule[].xmlname`            | -           |
-| `Interface`          | `[]string`    | `nat.outbound.rule[].interface`          | Optional    |
-| `IPProtocol`         | `string`      | `nat.outbound.rule[].ipProtocol`         | Optional    |
-| `Protocol`           | `string`      | `nat.outbound.rule[].protocol`           | Optional    |
-| `Source`             | `Source`      | `nat.outbound.rule[].source`             | -           |
-| `Destination`        | `Destination` | `nat.outbound.rule[].destination`        | -           |
-| `Target`             | `string`      | `nat.outbound.rule[].target`             | Optional    |
-| `SourcePort`         | `string`      | `nat.outbound.rule[].sourcePort`         | Optional    |
-| `NatPort`            | `string`      | `nat.outbound.rule[].natPort`            | Optional    |
-| `PoolOpts`           | `string`      | `nat.outbound.rule[].poolOpts`           | Optional    |
-| `PoolOptsSrcHashKey` | `string`      | `nat.outbound.rule[].poolOptsSrcHashKey` | Optional    |
-| `StaticNatPort`      | `BoolFlag`    | `nat.outbound.rule[].staticNatPort`      | Optional    |
-| `NoNat`              | `BoolFlag`    | `nat.outbound.rule[].noNat`              | Optional    |
-| `Disabled`           | `BoolFlag`    | `nat.outbound.rule[].disabled`           | Optional    |
-| `Log`                | `BoolFlag`    | `nat.outbound.rule[].log`                | Optional    |
-| `Descr`              | `string`      | `nat.outbound.rule[].description`        | Optional    |
-| `Category`           | `string`      | `nat.outbound.rule[].category`           | Optional    |
-| `Tag`                | `string`      | `nat.outbound.rule[].tag`                | Optional    |
-| `Tagged`             | `string`      | `nat.outbound.rule[].tagged`             | Optional    |
-| `Updated`            | `*Updated`    | `nat.outbound.rule[].updated`            | Optional    |
-| `Created`            | `*Created`    | `nat.outbound.rule[].created`            | Optional    |
-| `UUID`               | `string`      | `nat.outbound.rule[].uuid`               | Optional    |
+| Field         | Type           | JSON Key                          | Description                 |
+| ------------- | -------------- | --------------------------------- | --------------------------- |
+| `UUID`        | `string`       | `nat.outboundRules[].uuid`        | Unique identifier           |
+| `Interfaces`  | `[]string`     | `nat.outboundRules[].interfaces`  | Applied interfaces          |
+| `Protocol`    | `string`       | `nat.outboundRules[].protocol`    | Layer-4 protocol            |
+| `Source`      | `RuleEndpoint` | `nat.outboundRules[].source`      | Source endpoint             |
+| `Destination` | `RuleEndpoint` | `nat.outboundRules[].destination` | Destination endpoint        |
+| `Target`      | `string`       | `nat.outboundRules[].target`      | Translation target address  |
+| `NatPort`     | `string`       | `nat.outboundRules[].natPort`     | Translated destination port |
+| `Disabled`    | `bool`         | `nat.outboundRules[].disabled`    | Administratively disabled   |
+| `Log`         | `bool`         | `nat.outboundRules[].log`         | Log matched packets         |
+| `Description` | `string`       | `nat.outboundRules[].description` | Description                 |
+
+### InboundNATRule (Port Forward)
+
+| Field          | Type           | JSON Key                          | Description               |
+| -------------- | -------------- | --------------------------------- | ------------------------- |
+| `UUID`         | `string`       | `nat.inboundRules[].uuid`         | Unique identifier         |
+| `Interfaces`   | `[]string`     | `nat.inboundRules[].interfaces`   | Applied interfaces        |
+| `Protocol`     | `string`       | `nat.inboundRules[].protocol`     | Layer-4 protocol          |
+| `Source`       | `RuleEndpoint` | `nat.inboundRules[].source`       | Source endpoint           |
+| `Destination`  | `RuleEndpoint` | `nat.inboundRules[].destination`  | Destination endpoint      |
+| `ExternalPort` | `string`       | `nat.inboundRules[].externalPort` | External port to forward  |
+| `InternalIP`   | `string`       | `nat.inboundRules[].internalIp`   | Internal target IP        |
+| `InternalPort` | `string`       | `nat.inboundRules[].internalPort` | Internal target port      |
+| `Disabled`     | `bool`         | `nat.inboundRules[].disabled`     | Administratively disabled |
+| `Log`          | `bool`         | `nat.inboundRules[].log`          | Log matched packets       |
+| `Description`  | `string`       | `nat.inboundRules[].description`  | Description               |
 
 ---
 
 ## Services
 
-System services configuration.
+### DHCPScope
 
-### Unbound (DNS)
+DHCP scopes are a flat array with one entry per interface.
 
-| Field            | Type     | JSON Path                | Description |
-| ---------------- | -------- | ------------------------ | ----------- |
-| `Enable`         | `string` | `unbound.enable`         | -           |
-| `Dnssec`         | `string` | `unbound.dnssec`         | Optional    |
-| `Dnssecstripped` | `string` | `unbound.dnssecstripped` | Optional    |
+| Field          | Type                | JSON Key              | Description                     |
+| -------------- | ------------------- | --------------------- | ------------------------------- |
+| `Interface`    | `string`            | `dhcp[].interface`    | Bound interface name            |
+| `Enabled`      | `bool`              | `dhcp[].enabled`      | DHCP server active on interface |
+| `Range`        | `DHCPRange`         | `dhcp[].range`        | Address pool range              |
+| `Gateway`      | `string`            | `dhcp[].gateway`      | Default gateway for clients     |
+| `DNSServer`    | `string`            | `dhcp[].dnsServer`    | DNS server for clients          |
+| `NTPServer`    | `string`            | `dhcp[].ntpServer`    | NTP server for clients          |
+| `WINSServer`   | `string`            | `dhcp[].winsServer`   | WINS server for clients         |
+| `StaticLeases` | `[]DHCPStaticLease` | `dhcp[].staticLeases` | Fixed MAC-to-IP mappings        |
 
-### DHCP Interface
+### DHCPRange
 
-| Field                                             | Type                 | JSON Path                                                           | Description |
-| ------------------------------------------------- | -------------------- | ------------------------------------------------------------------- | ----------- |
-| `Enable`                                          | `string`             | `dhcpd.<interface>.enable`                                          | -           |
-| `Range`                                           | `Range`              | `dhcpd.<interface>.range`                                           | -           |
-| `Gateway`                                         | `string`             | `dhcpd.<interface>.gateway`                                         | -           |
-| `DdnsDomainAlgorithm`                             | `string`             | `dhcpd.<interface>.ddnsdomainalgorithm`                             | -           |
-| `NumberOptions`                                   | `[]DHCPNumberOption` | `dhcpd.<interface>.numberoptions`                                   | -           |
-| `Winsserver`                                      | `string`             | `dhcpd.<interface>.winsserver`                                      | -           |
-| `Dnsserver`                                       | `string`             | `dhcpd.<interface>.dnsserver`                                       | -           |
-| `Ntpserver`                                       | `string`             | `dhcpd.<interface>.ntpserver`                                       | -           |
-| `Staticmap`                                       | `[]DHCPStaticLease`  | `dhcpd.<interface>.staticmap`                                       | -           |
-| `AliasAddress`                                    | `string`             | `dhcpd.<interface>.aliasaddress`                                    | -           |
-| `AliasSubnet`                                     | `string`             | `dhcpd.<interface>.aliassubnet`                                     | -           |
-| `DHCPRejectFrom`                                  | `string`             | `dhcpd.<interface>.dhcprejectfrom`                                  | -           |
-| `AdvDHCPPTTimeout`                                | `string`             | `dhcpd.<interface>.advdhcppttimeout`                                | -           |
-| `AdvDHCPPTRetry`                                  | `string`             | `dhcpd.<interface>.advdhcpptretry`                                  | -           |
-| `AdvDHCPPTSelectTimeout`                          | `string`             | `dhcpd.<interface>.advdhcpptselecttimeout`                          | -           |
-| `AdvDHCPPTReboot`                                 | `string`             | `dhcpd.<interface>.advdhcpptreboot`                                 | -           |
-| `AdvDHCPPTBackoffCutoff`                          | `string`             | `dhcpd.<interface>.advdhcpptbackoffcutoff`                          | -           |
-| `AdvDHCPPTInitialInterval`                        | `string`             | `dhcpd.<interface>.advdhcpptinitialinterval`                        | -           |
-| `AdvDHCPPTValues`                                 | `string`             | `dhcpd.<interface>.advdhcpptvalues`                                 | -           |
-| `AdvDHCPSendOptions`                              | `string`             | `dhcpd.<interface>.advdhcpsendoptions`                              | -           |
-| `AdvDHCPRequestOptions`                           | `string`             | `dhcpd.<interface>.advdhcprequestoptions`                           | -           |
-| `AdvDHCPRequiredOptions`                          | `string`             | `dhcpd.<interface>.advdhcprequiredoptions`                          | -           |
-| `AdvDHCPOptionModifiers`                          | `string`             | `dhcpd.<interface>.advdhcpoptionmodifiers`                          | -           |
-| `AdvDHCPConfigAdvanced`                           | `string`             | `dhcpd.<interface>.advdhcpconfigadvanced`                           | -           |
-| `AdvDHCPConfigFileOverride`                       | `string`             | `dhcpd.<interface>.advdhcpconfigfileoverride`                       | -           |
-| `AdvDHCPConfigFileOverridePath`                   | `string`             | `dhcpd.<interface>.advdhcpconfigfileoverridepath`                   | -           |
-| `Track6Interface`                                 | `string`             | `dhcpd.<interface>.track6interface`                                 | -           |
-| `Track6PrefixID`                                  | `string`             | `dhcpd.<interface>.track6prefixid`                                  | -           |
-| `AdvDHCP6InterfaceStatementSendOptions`           | `string`             | `dhcpd.<interface>.advdhcp6interfacestatementsendoptions`           | -           |
-| `AdvDHCP6InterfaceStatementRequestOptions`        | `string`             | `dhcpd.<interface>.advdhcp6interfacestatementrequestoptions`        | -           |
-| `AdvDHCP6InterfaceStatementInformationOnlyEnable` | `string`             | `dhcpd.<interface>.advdhcp6interfacestatementinformationonlyenable` | -           |
-| `AdvDHCP6InterfaceStatementScript`                | `string`             | `dhcpd.<interface>.advdhcp6interfacestatementscript`                | -           |
-| `AdvDHCP6IDAssocStatementAddressEnable`           | `string`             | `dhcpd.<interface>.advdhcp6idassocstatementaddressenable`           | -           |
-| `AdvDHCP6IDAssocStatementAddress`                 | `string`             | `dhcpd.<interface>.advdhcp6idassocstatementaddress`                 | -           |
-| `AdvDHCP6IDAssocStatementAddressID`               | `string`             | `dhcpd.<interface>.advdhcp6idassocstatementaddressid`               | -           |
-| `AdvDHCP6IDAssocStatementAddressPLTime`           | `string`             | `dhcpd.<interface>.advdhcp6idassocstatementaddresspltime`           | -           |
-| `AdvDHCP6IDAssocStatementAddressVLTime`           | `string`             | `dhcpd.<interface>.advdhcp6idassocstatementaddressvltime`           | -           |
-| `AdvDHCP6IDAssocStatementPrefixEnable`            | `string`             | `dhcpd.<interface>.advdhcp6idassocstatementprefixenable`            | -           |
-| `AdvDHCP6IDAssocStatementPrefix`                  | `string`             | `dhcpd.<interface>.advdhcp6idassocstatementprefix`                  | -           |
-| `AdvDHCP6IDAssocStatementPrefixID`                | `string`             | `dhcpd.<interface>.advdhcp6idassocstatementprefixid`                | -           |
-| `AdvDHCP6IDAssocStatementPrefixPLTime`            | `string`             | `dhcpd.<interface>.advdhcp6idassocstatementprefixpltime`            | -           |
-| `AdvDHCP6IDAssocStatementPrefixVLTime`            | `string`             | `dhcpd.<interface>.advdhcp6idassocstatementprefixvltime`            | -           |
-| `AdvDHCP6PrefixInterfaceStatementSLALen`          | `string`             | `dhcpd.<interface>.advdhcp6prefixinterfacestatementslalen`          | -           |
-| `AdvDHCP6AuthenticationStatementAuthName`         | `string`             | `dhcpd.<interface>.advdhcp6authenticationstatementauthname`         | -           |
-| `AdvDHCP6AuthenticationStatementProtocol`         | `string`             | `dhcpd.<interface>.advdhcp6authenticationstatementprotocol`         | -           |
-| `AdvDHCP6AuthenticationStatementAlgorithm`        | `string`             | `dhcpd.<interface>.advdhcp6authenticationstatementalgorithm`        | -           |
-| `AdvDHCP6AuthenticationStatementRDM`              | `string`             | `dhcpd.<interface>.advdhcp6authenticationstatementrdm`              | -           |
-| `AdvDHCP6KeyInfoStatementKeyName`                 | `string`             | `dhcpd.<interface>.advdhcp6keyinfostatementkeyname`                 | -           |
-| `AdvDHCP6KeyInfoStatementRealm`                   | `string`             | `dhcpd.<interface>.advdhcp6keyinfostatementrealm`                   | -           |
-| `AdvDHCP6KeyInfoStatementKeyID`                   | `string`             | `dhcpd.<interface>.advdhcp6keyinfostatementkeyid`                   | -           |
-| `AdvDHCP6KeyInfoStatementSecret`                  | `string`             | `dhcpd.<interface>.advdhcp6keyinfostatementsecret`                  | -           |
-| `AdvDHCP6KeyInfoStatementExpire`                  | `string`             | `dhcpd.<interface>.advdhcp6keyinfostatementexpire`                  | -           |
-| `AdvDHCP6ConfigAdvanced`                          | `string`             | `dhcpd.<interface>.advdhcp6configadvanced`                          | -           |
-| `AdvDHCP6ConfigFileOverride`                      | `string`             | `dhcpd.<interface>.advdhcp6configfileoverride`                      | -           |
-| `AdvDHCP6ConfigFileOverridePath`                  | `string`             | `dhcpd.<interface>.advdhcp6configfileoverridepath`                  | -           |
+| Field  | Type     | JSON Key            | Description      |
+| ------ | -------- | ------------------- | ---------------- |
+| `From` | `string` | `dhcp[].range.from` | First IP in pool |
+| `To`   | `string` | `dhcp[].range.to`   | Last IP in pool  |
+
+### DHCPStaticLease
+
+| Field         | Type     | JSON Key                            | Description          |
+| ------------- | -------- | ----------------------------------- | -------------------- |
+| `MAC`         | `string` | `dhcp[].staticLeases[].mac`         | Hardware MAC address |
+| `IPAddress`   | `string` | `dhcp[].staticLeases[].ipAddress`   | Fixed IP address     |
+| `Hostname`    | `string` | `dhcp[].staticLeases[].hostname`    | Assigned hostname    |
+| `Description` | `string` | `dhcp[].staticLeases[].description` | Description          |
+
+### DNS (Unbound)
+
+| Field            | Type   | JSON Key                     | Description               |
+| ---------------- | ------ | ---------------------------- | ------------------------- |
+| `Enabled`        | `bool` | `dns.unbound.enabled`        | Unbound resolver active   |
+| `DNSSEC`         | `bool` | `dns.unbound.dnssec`         | DNSSEC validation enabled |
+| `DNSSECStripped` | `bool` | `dns.unbound.dnssecStripped` | DNSSEC stripped mode      |
+
+### DNS (dnsmasq)
+
+| Field     | Type   | JSON Key              | Description              |
+| --------- | ------ | --------------------- | ------------------------ |
+| `Enabled` | `bool` | `dns.dnsMasq.enabled` | dnsmasq forwarder active |
 
 ---
 
 ## VPN Configuration
 
-VPN service configuration including OpenVPN and WireGuard.
+### VPN (Root)
+
+| Field       | Type              | JSON Key        | Description              |
+| ----------- | ----------------- | --------------- | ------------------------ |
+| `OpenVPN`   | `OpenVPNConfig`   | `vpn.openVpn`   | OpenVPN configurations   |
+| `WireGuard` | `WireGuardConfig` | `vpn.wireGuard` | WireGuard configurations |
+| `IPsec`     | `IPsecConfig`     | `vpn.ipsec`     | IPsec configurations     |
 
 ### OpenVPN Server
 
-| Field               | Type       | JSON Path                            | Description |
-| ------------------- | ---------- | ------------------------------------ | ----------- |
-| `XMLName`           | `Name`     | `openvpn.server[].xmlname`           | -           |
-| `VPN_ID`            | `string`   | `openvpn.server[].vpn_id`            | -           |
-| `Mode`              | `string`   | `openvpn.server[].mode`              | -           |
-| `Protocol`          | `string`   | `openvpn.server[].protocol`          | -           |
-| `Dev_mode`          | `string`   | `openvpn.server[].dev_mode`          | -           |
-| `Interface`         | `string`   | `openvpn.server[].interface`         | -           |
-| `Local_port`        | `string`   | `openvpn.server[].local_port`        | -           |
-| `Description`       | `string`   | `openvpn.server[].description`       | -           |
-| `Custom_options`    | `string`   | `openvpn.server[].custom_options`    | -           |
-| `TLS`               | `string`   | `openvpn.server[].tls`               | -           |
-| `TLS_type`          | `string`   | `openvpn.server[].tls_type`          | -           |
-| `Cert_ref`          | `string`   | `openvpn.server[].cert_ref`          | -           |
-| `CA_ref`            | `string`   | `openvpn.server[].ca_ref`            | -           |
-| `CRL_ref`           | `string`   | `openvpn.server[].crl_ref`           | -           |
-| `DH_length`         | `string`   | `openvpn.server[].dh_length`         | -           |
-| `Ecdh_curve`        | `string`   | `openvpn.server[].ecdh_curve`        | -           |
-| `Cert_depth`        | `string`   | `openvpn.server[].cert_depth`        | -           |
-| `Strictusercn`      | `BoolFlag` | `openvpn.server[].strictusercn`      | -           |
-| `Tunnel_network`    | `string`   | `openvpn.server[].tunnel_network`    | -           |
-| `Tunnel_networkv6`  | `string`   | `openvpn.server[].tunnel_networkv6`  | -           |
-| `Remote_network`    | `string`   | `openvpn.server[].remote_network`    | -           |
-| `Remote_networkv6`  | `string`   | `openvpn.server[].remote_networkv6`  | -           |
-| `Gwredir`           | `BoolFlag` | `openvpn.server[].gwredir`           | -           |
-| `Local_network`     | `string`   | `openvpn.server[].local_network`     | -           |
-| `Local_networkv6`   | `string`   | `openvpn.server[].local_networkv6`   | -           |
-| `Maxclients`        | `string`   | `openvpn.server[].maxclients`        | -           |
-| `Compression`       | `string`   | `openvpn.server[].compression`       | -           |
-| `Passtos`           | `BoolFlag` | `openvpn.server[].passtos`           | -           |
-| `Client2client`     | `BoolFlag` | `openvpn.server[].client2client`     | -           |
-| `Dynamic_ip`        | `BoolFlag` | `openvpn.server[].dynamic_ip`        | -           |
-| `Topology`          | `string`   | `openvpn.server[].topology`          | -           |
-| `Serverbridge_dhcp` | `BoolFlag` | `openvpn.server[].serverbridge_dhcp` | -           |
-| `DNS_domain`        | `string`   | `openvpn.server[].dns_domain`        | -           |
-| `DNS_server1`       | `string`   | `openvpn.server[].dns_server1`       | -           |
-| `DNS_server2`       | `string`   | `openvpn.server[].dns_server2`       | -           |
-| `DNS_server3`       | `string`   | `openvpn.server[].dns_server3`       | -           |
-| `DNS_server4`       | `string`   | `openvpn.server[].dns_server4`       | -           |
-| `Push_register_dns` | `BoolFlag` | `openvpn.server[].push_register_dns` | -           |
-| `NTP_server1`       | `string`   | `openvpn.server[].ntp_server1`       | -           |
-| `NTP_server2`       | `string`   | `openvpn.server[].ntp_server2`       | -           |
-| `Netbios_enable`    | `BoolFlag` | `openvpn.server[].netbios_enable`    | -           |
-| `Netbios_ntype`     | `string`   | `openvpn.server[].netbios_ntype`     | -           |
-| `Netbios_scope`     | `string`   | `openvpn.server[].netbios_scope`     | -           |
-| `Verbosity_level`   | `string`   | `openvpn.server[].verbosity_level`   | -           |
-| `Created`           | `string`   | `openvpn.server[].created`           | -           |
-| `Updated`           | `string`   | `openvpn.server[].updated`           | -           |
+| Field             | Type     | JSON Key                                | Description                      |
+| ----------------- | -------- | --------------------------------------- | -------------------------------- |
+| `VPNID`           | `string` | `vpn.openVpn.servers[].vpnId`           | Unique VPN instance ID           |
+| `Mode`            | `string` | `vpn.openVpn.servers[].mode`            | Server mode                      |
+| `Protocol`        | `string` | `vpn.openVpn.servers[].protocol`        | Transport protocol (UDP4/TCP4)   |
+| `Interface`       | `string` | `vpn.openVpn.servers[].interface`       | Listening interface              |
+| `LocalPort`       | `string` | `vpn.openVpn.servers[].localPort`       | Listening port                   |
+| `Description`     | `string` | `vpn.openVpn.servers[].description`     | Description                      |
+| `TunnelNetwork`   | `string` | `vpn.openVpn.servers[].tunnelNetwork`   | IPv4 tunnel network CIDR         |
+| `TunnelNetworkV6` | `string` | `vpn.openVpn.servers[].tunnelNetworkV6` | IPv6 tunnel network CIDR         |
+| `LocalNetwork`    | `string` | `vpn.openVpn.servers[].localNetwork`    | Local network pushed to clients  |
+| `MaxClients`      | `string` | `vpn.openVpn.servers[].maxClients`      | Max simultaneous connections     |
+| `Compression`     | `string` | `vpn.openVpn.servers[].compression`     | Compression algorithm            |
+| `StrictUserCN`    | `bool`   | `vpn.openVpn.servers[].strictUserCn`    | Enforce CN-to-username matching  |
+| `GWRedir`         | `bool`   | `vpn.openVpn.servers[].gwRedir`         | Redirect all traffic through VPN |
 
 ### OpenVPN Client
 
-| Field             | Type     | JSON Path                          | Description |
-| ----------------- | -------- | ---------------------------------- | ----------- |
-| `XMLName`         | `Name`   | `openvpn.client[].xmlname`         | -           |
-| `VPN_ID`          | `string` | `openvpn.client[].vpn_id`          | -           |
-| `Mode`            | `string` | `openvpn.client[].mode`            | -           |
-| `Protocol`        | `string` | `openvpn.client[].protocol`        | -           |
-| `Dev_mode`        | `string` | `openvpn.client[].dev_mode`        | -           |
-| `Interface`       | `string` | `openvpn.client[].interface`       | -           |
-| `Server_addr`     | `string` | `openvpn.client[].server_addr`     | -           |
-| `Server_port`     | `string` | `openvpn.client[].server_port`     | -           |
-| `Description`     | `string` | `openvpn.client[].description`     | -           |
-| `Custom_options`  | `string` | `openvpn.client[].custom_options`  | -           |
-| `Cert_ref`        | `string` | `openvpn.client[].cert_ref`        | -           |
-| `CA_ref`          | `string` | `openvpn.client[].ca_ref`          | -           |
-| `Compression`     | `string` | `openvpn.client[].compression`     | -           |
-| `Verbosity_level` | `string` | `openvpn.client[].verbosity_level` | -           |
-| `Created`         | `string` | `openvpn.client[].created`         | -           |
-| `Updated`         | `string` | `openvpn.client[].updated`         | -           |
+| Field         | Type     | JSON Key                            | Description            |
+| ------------- | -------- | ----------------------------------- | ---------------------- |
+| `VPNID`       | `string` | `vpn.openVpn.clients[].vpnId`       | Unique VPN instance ID |
+| `Mode`        | `string` | `vpn.openVpn.clients[].mode`        | Client mode            |
+| `Protocol`    | `string` | `vpn.openVpn.clients[].protocol`    | Transport protocol     |
+| `Interface`   | `string` | `vpn.openVpn.clients[].interface`   | Bound interface        |
+| `ServerAddr`  | `string` | `vpn.openVpn.clients[].serverAddr`  | Remote server address  |
+| `ServerPort`  | `string` | `vpn.openVpn.clients[].serverPort`  | Remote server port     |
+| `Description` | `string` | `vpn.openVpn.clients[].description` | Description            |
+
+### WireGuard Server
+
+| Field           | Type     | JSON Key                                | Description           |
+| --------------- | -------- | --------------------------------------- | --------------------- |
+| `UUID`          | `string` | `vpn.wireGuard.servers[].uuid`          | Unique identifier     |
+| `Enabled`       | `bool`   | `vpn.wireGuard.servers[].enabled`       | Instance active       |
+| `Name`          | `string` | `vpn.wireGuard.servers[].name`          | Server name           |
+| `PublicKey`     | `string` | `vpn.wireGuard.servers[].publicKey`     | WireGuard public key  |
+| `Port`          | `string` | `vpn.wireGuard.servers[].port`          | UDP listening port    |
+| `MTU`           | `string` | `vpn.wireGuard.servers[].mtu`           | Tunnel MTU            |
+| `TunnelAddress` | `string` | `vpn.wireGuard.servers[].tunnelAddress` | Tunnel IP with prefix |
+| `DNS`           | `string` | `vpn.wireGuard.servers[].dns`           | DNS server for tunnel |
+
+### WireGuard Client (Peer)
+
+| Field           | Type     | JSON Key                                | Description                 |
+| --------------- | -------- | --------------------------------------- | --------------------------- |
+| `UUID`          | `string` | `vpn.wireGuard.clients[].uuid`          | Unique identifier           |
+| `Enabled`       | `bool`   | `vpn.wireGuard.clients[].enabled`       | Peer active                 |
+| `Name`          | `string` | `vpn.wireGuard.clients[].name`          | Peer name                   |
+| `PublicKey`     | `string` | `vpn.wireGuard.clients[].publicKey`     | Peer public key             |
+| `TunnelAddress` | `string` | `vpn.wireGuard.clients[].tunnelAddress` | Allowed IP address          |
+| `ServerAddress` | `string` | `vpn.wireGuard.clients[].serverAddress` | Endpoint address            |
+| `ServerPort`    | `string` | `vpn.wireGuard.clients[].serverPort`    | Endpoint port               |
+| `Keepalive`     | `string` | `vpn.wireGuard.clients[].keepalive`     | Persistent keepalive (secs) |
+
+### IPsec
+
+| Field             | Type   | JSON Key                    | Description                      |
+| ----------------- | ------ | --------------------------- | -------------------------------- |
+| `Enabled`         | `bool` | `vpn.ipsec.enabled`         | IPsec subsystem active           |
+| `PreferredOldSA`  | `bool` | `vpn.ipsec.preferredOldSa`  | Prefer old security associations |
+| `DisableVPNRules` | `bool` | `vpn.ipsec.disableVpnRules` | Disable auto firewall rules      |
 
 ---
 
-## Usage Examples
+## Routing
 
-### Accessing Fields in JSON Export
+### Routing (Root)
 
-```bash
-# Export configuration to JSON
-opndossier convert config.xml --format json -o config.json
+| Field           | Type             | JSON Key                | Description                 |
+| --------------- | ---------------- | ----------------------- | --------------------------- |
+| `Gateways`      | `[]Gateway`      | `routing.gateways`      | Network gateways            |
+| `GatewayGroups` | `[]GatewayGroup` | `routing.gatewayGroups` | Gateway groups for failover |
+| `StaticRoutes`  | `[]StaticRoute`  | `routing.staticRoutes`  | Manually configured routes  |
 
-# Extract hostname using jq
-jq '.system.hostname' config.json
+### StaticRoute
 
-# List all interfaces
-jq '.interfaces | keys' config.json
+| Field         | Type     | JSON Key                             | Description               |
+| ------------- | -------- | ------------------------------------ | ------------------------- |
+| `Network`     | `string` | `routing.staticRoutes[].network`     | Destination CIDR          |
+| `Gateway`     | `string` | `routing.staticRoutes[].gateway`     | Next-hop gateway name     |
+| `Description` | `string` | `routing.staticRoutes[].description` | Description               |
+| `Disabled`    | `bool`   | `routing.staticRoutes[].disabled`    | Administratively disabled |
 
-# Get firewall rules
-jq '.filter.rule[]' config.json
-```
+### GatewayGroup
 
-### Accessing Fields in YAML Export
+| Field         | Type       | JSON Key                              | Description                |
+| ------------- | ---------- | ------------------------------------- | -------------------------- |
+| `Name`        | `string`   | `routing.gatewayGroups[].name`        | Group name                 |
+| `Items`       | `[]string` | `routing.gatewayGroups[].items`       | Member gateways with tiers |
+| `Trigger`     | `string`   | `routing.gatewayGroups[].trigger`     | Failover condition         |
+| `Description` | `string`   | `routing.gatewayGroups[].description` | Description                |
 
-```bash
-# Export configuration to YAML
-opndossier convert config.xml --format yaml -o config.yaml
+---
 
-# Extract hostname using yq
-yq '.system.hostname' config.yaml
-```
+## Users and Groups
+
+Users and groups are **top-level arrays**, not nested under `system`.
+
+### User
+
+| Field         | Type       | JSON Key              | Description           |
+| ------------- | ---------- | --------------------- | --------------------- |
+| `Name`        | `string`   | `users[].name`        | Login username        |
+| `Disabled`    | `bool`     | `users[].disabled`    | Account locked        |
+| `Description` | `string`   | `users[].description` | Description           |
+| `Scope`       | `string`   | `users[].scope`       | Scope (system, local) |
+| `GroupName`   | `string`   | `users[].groupName`   | Primary group         |
+| `UID`         | `string`   | `users[].uid`         | Numeric user ID       |
+| `APIKeys`     | `[]APIKey` | `users[].apiKeys`     | API key credentials   |
+
+### Group
+
+| Field         | Type     | JSON Key               | Description                |
+| ------------- | -------- | ---------------------- | -------------------------- |
+| `Name`        | `string` | `groups[].name`        | Group name                 |
+| `Description` | `string` | `groups[].description` | Description                |
+| `Scope`       | `string` | `groups[].scope`       | Scope (system, local)      |
+| `GID`         | `string` | `groups[].gid`         | Numeric group ID           |
+| `Member`      | `string` | `groups[].member`      | Comma-separated user UIDs  |
+| `Privileges`  | `string` | `groups[].privileges`  | Comma-separated privileges |
+
+---
+
+## Certificates
+
+### Certificate
+
+| Field         | Type     | JSON Key                     | Description                     |
+| ------------- | -------- | ---------------------------- | ------------------------------- |
+| `RefID`       | `string` | `certificates[].refId`       | Unique reference ID             |
+| `Description` | `string` | `certificates[].description` | Description                     |
+| `Type`        | `string` | `certificates[].type`        | Certificate type (server, user) |
+| `CARef`       | `string` | `certificates[].caRef`       | Issuing CA reference ID         |
+| `Certificate` | `string` | `certificates[].certificate` | PEM-encoded certificate         |
+| `PrivateKey`  | `string` | `certificates[].privateKey`  | PEM-encoded private key         |
+
+### CertificateAuthority
+
+| Field         | Type     | JSON Key            | Description                    |
+| ------------- | -------- | ------------------- | ------------------------------ |
+| `RefID`       | `string` | `cas[].refId`       | Unique reference ID            |
+| `Description` | `string` | `cas[].description` | Description                    |
+| `Certificate` | `string` | `cas[].certificate` | PEM-encoded CA certificate     |
+| `PrivateKey`  | `string` | `cas[].privateKey`  | PEM-encoded CA private key     |
+| `Serial`      | `string` | `cas[].serial`      | Next certificate serial number |
