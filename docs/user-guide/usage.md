@@ -4,13 +4,17 @@ This guide covers common workflows and examples for using opnDossier effectively
 
 ## Commands Overview
 
-opnDossier provides three core commands:
+opnDossier provides the following commands:
 
-| Command    | Purpose                                                  |
-| ---------- | -------------------------------------------------------- |
-| `convert`  | Convert config.xml to structured output formats          |
-| `display`  | Render config.xml as formatted markdown in terminal      |
-| `validate` | Check config.xml for structural and semantic correctness |
+| Command    | Alias  | Purpose                                                  |
+| ---------- | ------ | -------------------------------------------------------- |
+| `convert`  | `conv` | Convert config.xml to structured output formats          |
+| `display`  |        | Render config.xml as formatted markdown in terminal      |
+| `validate` |        | Check config.xml for structural and semantic correctness |
+| `diff`     |        | Compare two OPNsense configuration files                 |
+| `sanitize` |        | Redact sensitive information from config.xml             |
+| `config`   |        | Manage opnDossier configuration (init, show, validate)   |
+| `version`  |        | Display version information                              |
 
 ## Convert Command
 
@@ -27,6 +31,9 @@ opndossier convert config.xml -o documentation.md
 
 # Force overwrite existing file without prompt
 opndossier convert config.xml -o output.md --force
+
+# Redact sensitive fields (passwords, keys, community strings)
+opndossier convert config.xml --redact -o documentation.md
 ```
 
 ### Output Formats
@@ -133,6 +140,9 @@ opndossier display config.xml
 opndossier display --theme dark config.xml
 opndossier display --theme light config.xml
 
+# Display with sensitive fields redacted
+opndossier display --redact config.xml
+
 # Display specific sections
 opndossier display --section system,network config.xml
 
@@ -173,6 +183,113 @@ Validate before converting:
 opndossier validate config.xml && opndossier convert config.xml -o output.md
 ```
 
+## Diff Command
+
+Compares two OPNsense configuration files and shows meaningful, content-aware changes with security impact scoring.
+
+```bash
+# Compare two configs with terminal output (default)
+opndossier diff old-config.xml new-config.xml
+
+# Generate markdown diff report
+opndossier diff old-config.xml new-config.xml -f markdown -o changes.md
+
+# Generate JSON diff for automation
+opndossier diff old-config.xml new-config.xml -f json
+
+# Generate self-contained HTML report
+opndossier diff old-config.xml new-config.xml -f html -o changes.html
+```
+
+### Display Modes
+
+```bash
+# Unified diff view (default)
+opndossier diff old-config.xml new-config.xml -m unified
+
+# Side-by-side comparison (terminal only)
+opndossier diff old-config.xml new-config.xml -m side-by-side
+```
+
+### Section Filtering
+
+```bash
+# Compare only firewall rules
+opndossier diff old-config.xml new-config.xml --section firewall
+
+# Compare multiple sections
+opndossier diff old-config.xml new-config.xml -s firewall,nat,interfaces
+```
+
+Available sections: `system`, `firewall`, `nat`, `interfaces`, `vlans`, `dhcp`, `users`, `routing`
+
+### Security and Analysis Options
+
+```bash
+# Show only security-relevant changes
+opndossier diff old-config.xml new-config.xml --security
+
+# Normalize values (whitespace, IPs, ports) for cleaner comparison
+opndossier diff old-config.xml new-config.xml --normalize
+
+# Detect rule reordering without content changes
+opndossier diff old-config.xml new-config.xml --detect-order
+```
+
+Security impact levels: **HIGH** (permissive rules, risky configs), **MEDIUM** (user changes, NAT mods), **LOW** (minor modifications)
+
+## Sanitize Command
+
+Redacts sensitive information from configuration files, making them safe to share for troubleshooting or public reporting.
+
+```bash
+# Sanitize for public sharing (maximum redaction)
+opndossier sanitize config.xml --mode aggressive -o config-sanitized.xml
+
+# Sanitize for internal sharing (default: moderate mode)
+opndossier sanitize config.xml -o sanitized.xml
+
+# Minimal redaction (credentials only)
+opndossier sanitize config.xml --mode minimal
+
+# Save a mapping file for reverse lookup
+opndossier sanitize config.xml -o sanitized.xml --mapping mappings.json
+
+# Force overwrite existing files
+opndossier sanitize config.xml -o output.xml --force
+```
+
+Available sanitization modes:
+
+| Mode         | Use Case         | Redacts                                               |
+| ------------ | ---------------- | ----------------------------------------------------- |
+| `aggressive` | Public sharing   | Passwords, keys, certs, all IPs, MACs, emails, etc.   |
+| `moderate`   | Internal sharing | Passwords, keys, public IPs, MACs, emails (default)   |
+| `minimal`    | Trusted envs     | Passwords, secrets, API keys, PSKs, private keys only |
+
+The sanitizer maintains referential integrity -- the same original value always maps to the same redacted value, so network relationships remain visible.
+
+## Config Command
+
+Manages opnDossier's own configuration.
+
+```bash
+# Show current effective configuration with source indicators
+opndossier config show
+
+# Show configuration in JSON format
+opndossier config show --json
+
+# Generate a template configuration file
+opndossier config init
+
+# Generate template at a specific path
+opndossier config init --output ~/.opnDossier.yaml
+
+# Validate an existing configuration file
+opndossier config validate ~/.opnDossier.yaml
+```
+
 ## Global Flags
 
 These flags apply to all commands:
@@ -195,6 +312,9 @@ opndossier --color never convert config.xml
 
 # JSON error output (for automation)
 opndossier --json-output validate config.xml
+
+# Force device type (bypasses auto-detection)
+opndossier --device-type opnsense convert config.xml
 ```
 
 ## Configuration Management
@@ -261,7 +381,27 @@ opndossier convert config.xml --audit-mode blue --audit-plugins stig,sans -o aud
 opndossier convert config.xml --audit-mode red --audit-blackhat -o recon-report.md
 ```
 
-### 3. Batch Processing
+### 3. Configuration Comparison
+
+```bash
+# Compare two configurations with security scoring
+opndossier diff old-config.xml new-config.xml
+
+# Generate a diff report for change management
+opndossier diff old-config.xml new-config.xml -f markdown -o change-report.md
+```
+
+### 4. Sanitize for Sharing
+
+```bash
+# Redact sensitive data before sharing
+opndossier sanitize config.xml --mode aggressive -o config-safe.xml
+
+# Keep a mapping file for internal reference
+opndossier sanitize config.xml -o config-safe.xml --mapping mappings.json
+```
+
+### 5. Batch Processing
 
 ```bash
 # Process multiple configuration files
@@ -271,7 +411,7 @@ opndossier convert *.xml
 find /path/to/configs -name "*.xml" -exec opndossier convert {} \;
 ```
 
-### 4. Automated Documentation Pipeline
+### 6. Automated Documentation Pipeline
 
 ```bash
 #!/bin/bash
@@ -288,7 +428,7 @@ else
 fi
 ```
 
-### 5. CI/CD Integration
+### 7. CI/CD Integration
 
 ```yaml
 # .github/workflows/docs.yml

@@ -247,7 +247,7 @@ After installation:
 
 1. Read the [Configuration Guide](configuration.md) to set up your preferences
 2. Check the [Usage Guide](usage.md) for common workflows
-3. Review [Examples](../examples/) for practical use cases
+3. Review [Examples](../examples/index.md) for practical use cases
 
 ## Updating
 

@@ -120,5 +120,5 @@ The `MarkdownBuilder` is safe for concurrent use in read-only operations. See AG
 ## Related Documentation
 
 - [Developer Guide API Reference](development/api.md) - Full internal API documentation
-- [Data Model & Integration](templates/index.md) - JSON/YAML export examples
+- [Data Model & Integration](data-model/index.md) - JSON/YAML export examples
 - [Architecture](development/architecture.md) - System architecture

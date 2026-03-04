@@ -103,6 +103,7 @@ CLI flags have the highest precedence and override all other configuration sourc
 | `--timestamps`  |       | `false`  | Include timestamps in log output        |
 | `--minimal`     |       | `false`  | Minimal output mode                     |
 | `--json-output` |       | `false`  | Output errors in JSON format            |
+| `--device-type` |       | `""`     | Force device type (e.g., opnsense)      |
 
 ### Convert Command Flags
 
@@ -119,6 +120,7 @@ CLI flags have the highest precedence and override all other configuration sourc
 | `--audit-mode`       |       | `""`         | Audit mode (standard, blue, red)                 |
 | `--audit-plugins`    |       | `[]`         | Compliance plugins (stig, sans, firewall)        |
 | `--audit-blackhat`   |       | `false`      | Enable blackhat commentary (red mode)            |
+| `--redact`           |       | `false`      | Redact sensitive fields (passwords, keys, etc.)  |
 
 ### Display Command Flags
 
@@ -130,6 +132,7 @@ CLI flags have the highest precedence and override all other configuration sourc
 | `--no-wrap`          |       | `false` | Disable text wrapping                     |
 | `--comprehensive`    |       | `false` | Generate comprehensive reports            |
 | `--include-tunables` |       | `false` | Include system tunables in output         |
+| `--redact`           |       | `false` | Redact sensitive fields in output         |
 
 ### Validate Command
 

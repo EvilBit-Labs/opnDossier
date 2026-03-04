@@ -6,13 +6,13 @@ Welcome to the **OPNsense Configuration Processor** documentation! This CLI tool
 
 ## Features
 
-- 🔧 **Parse OPNsense XML configurations** - Process complex configuration files with ease
-- ✅ **Configuration Validation** - Comprehensive validation with detailed error reporting
-- 📝 **Convert to Markdown** - Generate human-readable documentation
-- 🎨 **Terminal Display** - View results with syntax highlighting in your terminal
-- 💾 **Export to Files** - Save processed configurations to markdown files
-- 🔌 **Offline Operation** - Works completely offline, no external dependencies
-- 🚀 **Streaming Processing** - Memory-efficient handling of large configuration files
+- **Parse OPNsense XML configurations** - Process complex configuration files with ease
+- **Configuration Validation** - Comprehensive validation with detailed error reporting
+- **Convert to Markdown** - Generate human-readable documentation
+- **Terminal Display** - View results with syntax highlighting in your terminal
+- **Export to Files** - Save processed configurations to markdown files
+- **Offline Operation** - Works completely offline, no external dependencies
+- **Streaming Processing** - Memory-efficient handling of large configuration files
 
 ## Quick Start
 
@@ -132,8 +132,8 @@ Check out the [Installation Guide](user-guide/installation.md) to get started, o
 
 ### User Documentation
 
-- **[User Guide](user-guide/)** - Installation, configuration, and usage instructions
-- **[Examples](examples/)** - Comprehensive usage examples and common workflows
+- **[User Guide](user-guide/installation.md)** - Installation, configuration, and usage instructions
+- **[Examples](examples/index.md)** - Comprehensive usage examples and common workflows
 - **[About](about.md)** - Project overview and features
 - **[API Reference](api.md)** - Command-line interface and API documentation
 
@@ -155,7 +155,7 @@ For AI agent coding standards and workflows, see [AGENTS.md](https://github.com/
 
 ### Technical Research
 
-- **[Charmbracelet Ecosystem Compatibility Research](charmbracelet-compatibility-research.md)** - Dependency analysis, version matrix, breaking changes, and upgrade recommendations for the Charmbracelet package ecosystem
+- **[Theme Usage](theme-usage.md)** - Internal guidance for local documentation theme usage and customization
 
 ## Contributing
 

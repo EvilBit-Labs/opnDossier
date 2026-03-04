@@ -1,6 +1,6 @@
 # Pipeline v2 Compliance Guide
 
-This document details how opnDossier implements the [EvilBit Labs Pipeline v2 Specification](https://github.com/EvilBit-Labs/Standards/blob/main/pipeline_v_2_spec.md) for comprehensive OSS project quality gates and tooling.
+This document details how opnDossier implements the EvilBit Labs Pipeline v2 Specification for comprehensive OSS project quality gates and tooling.
 
 ## Overview
 
@@ -28,7 +28,7 @@ Pipeline v2 defines mandatory tooling and quality gates for all EvilBit Labs pub
 
 - [`.goreleaser.yaml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.goreleaser.yaml) - Complete GoReleaser configuration
 - [`.golangci.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.golangci.yml) - Comprehensive linting rules
-- [`justfile`](../justfile) - Local testing commands
+- [`justfile`](https://github.com/EvilBit-Labs/opnDossier/blob/main/justfile) - Local testing commands
 
 **Go Tooling Details:**
 
@@ -49,7 +49,7 @@ Pipeline v2 defines mandatory tooling and quality gates for all EvilBit Labs pub
 | -------------------------- | ------------------------------------------------ | -------- |
 | **Commit Discipline**      | Conventional Commits via pre-commit + CodeRabbit | Complete |
 | **Security Analysis**      | GitHub CodeQL                                    | Complete |
-| **SBOM Generation**        | Syft (SPDX JSON) via GoReleaser                  | Complete |
+| **SBOM Generation**        | CycloneDX-gomod via GoReleaser                   | Complete |
 | **Vulnerability Scanning** | Grype via GitHub Actions                         | Complete |
 | **License Scanning**       | FOSSA integration (GitHub App)                   | Complete |
 | **Signing & Attestation**  | Cosign + SLSA Level 3                            | Complete |
@@ -82,10 +82,10 @@ Pipeline v2 defines mandatory tooling and quality gates for all EvilBit Labs pub
 
 Both Snyk and FOSSA provide local CLI tools for development:
 
-- **Snyk CLI**: `just snyk-scan` - Local vulnerability scanning with `snyk test` and `snyk monitor`
-- **FOSSA CLI**: `just fossa-scan` - Local license analysis with `fossa analyze` and `fossa test`
+- **Snyk CLI**: Run `snyk test` and `snyk monitor` locally (requires `SNYK_TOKEN`)
+- **FOSSA CLI**: Run `fossa analyze` and `fossa test` locally (requires `FOSSA_API_KEY`)
 
-These CLI tools complement the GitHub App integrations and provide local/CI parity for security scanning.
+These CLI tools complement the GitHub App integrations. For local security scanning, use `just scan` (gosec) and `just security-all` (SBOM + gosec).
 
 ## Local Development Workflow
 
@@ -130,7 +130,7 @@ Every release must:
 
 1. ✅ Be created via automated GoReleaser flow
 2. ✅ Include signed artifacts with checksums
-3. ✅ Include SBOM (Syft-generated SPDX)
+3. ✅ Include SBOM (CycloneDX-gomod)
 4. ✅ Include vulnerability scan reports
 5. ✅ Include SLSA Level 3 provenance attestation
 6. ✅ Include Cosign signatures
