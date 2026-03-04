@@ -6,13 +6,13 @@ Welcome to the **OPNsense Configuration Processor** documentation! This CLI tool
 
 ## Features
 
-- 🔧 **Parse OPNsense XML configurations** - Process complex configuration files with ease
-- ✅ **Configuration Validation** - Comprehensive validation with detailed error reporting
-- 📝 **Convert to Markdown** - Generate human-readable documentation
-- 🎨 **Terminal Display** - View results with syntax highlighting in your terminal
-- 💾 **Export to Files** - Save processed configurations to markdown files
-- 🔌 **Offline Operation** - Works completely offline, no external dependencies
-- 🚀 **Streaming Processing** - Memory-efficient handling of large configuration files
+- **Parse OPNsense XML configurations** - Process complex configuration files with ease
+- **Configuration Validation** - Comprehensive validation with detailed error reporting
+- **Convert to Markdown** - Generate human-readable documentation
+- **Terminal Display** - View results with syntax highlighting in your terminal
+- **Export to Files** - Save processed configurations to markdown files
+- **Offline Operation** - Works completely offline, no external dependencies
+- **Streaming Processing** - Memory-efficient handling of large configuration files
 
 ## Quick Start
 
