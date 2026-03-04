@@ -45,7 +45,7 @@ opnDossier is an OPNsense configuration parser, auditor, and reporting tool. Its
 ## 3. Trust Boundaries
 
 ```mermaid
-graph LR
+graph TD
     subgraph Untrusted["Untrusted Zone"]
         XML["config.xml<br/>(any content)"]
         CLI["CLI Arguments<br/>(paths, flags)"]
@@ -55,12 +55,19 @@ graph LR
     CLI -->|Trust Boundary| Cobra
 
     subgraph Trusted["opnDossier (Trusted Zone)"]
-        Parser["XML Parser<br/> - validates structure<br/> - no XXE"]
-        Schema["Schema Mapping<br/> - typed structs<br/>- BoolFlag<br/>- validation"]
+        Cobra["CLI / Cobra<br/>- validates args<br/>- typed flags"]
+        Parser["XML Parser<br/>- validates structure<br/>- no XXE"]
+        Schema["Schema Mapping<br/>- typed structs<br/>- BoolFlag<br/>- validation"]
         Report["Report Gen<br/>- formats output<br/>- sanitizes"]
         Audit["Audit Engine<br/>- compliance checks<br/>- findings"]
         Export["Export Layer<br/>- file write<br/>- overwrite protection"]
-        Cobra["CLI / Cobra<br/>- validates args<br/>- typed flags"]
+
+        Cobra --> Parser
+        Parser --> Schema
+        Schema --> Report
+        Schema --> Audit
+        Report --> Export
+        Audit --> Export
     end
 ```
 
