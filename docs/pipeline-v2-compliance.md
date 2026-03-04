@@ -49,7 +49,7 @@ Pipeline v2 defines mandatory tooling and quality gates for all EvilBit Labs pub
 | -------------------------- | ------------------------------------------------ | -------- |
 | **Commit Discipline**      | Conventional Commits via pre-commit + CodeRabbit | Complete |
 | **Security Analysis**      | GitHub CodeQL                                    | Complete |
-| **SBOM Generation**        | Syft (SPDX JSON) via GoReleaser                  | Complete |
+| **SBOM Generation**        | CycloneDX-gomod via GoReleaser                   | Complete |
 | **Vulnerability Scanning** | Grype via GitHub Actions                         | Complete |
 | **License Scanning**       | FOSSA integration (GitHub App)                   | Complete |
 | **Signing & Attestation**  | Cosign + SLSA Level 3                            | Complete |
@@ -130,7 +130,7 @@ Every release must:
 
 1. ✅ Be created via automated GoReleaser flow
 2. ✅ Include signed artifacts with checksums
-3. ✅ Include SBOM (Syft-generated SPDX)
+3. ✅ Include SBOM (CycloneDX-gomod)
 4. ✅ Include vulnerability scan reports
 5. ✅ Include SLSA Level 3 provenance attestation
 6. ✅ Include Cosign signatures
