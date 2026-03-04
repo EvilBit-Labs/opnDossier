@@ -183,23 +183,23 @@ Network interface configuration including VLANs and gateways.
 
 ### Gateway
 
-| Field            | Type       | JSON Path                        | Description |
-| ---------------- | ---------- | -------------------------------- | ----------- |
-| `XMLName`        | `Name`     | `gateways.item[].xmlname`        | -           |
-| `Interface`      | `string`   | `gateways.item[].interface`      | -           |
-| `Gateway`        | `string`   | `gateways.item[].gateway`        | -           |
-| `Name`           | `string`   | `gateways.item[].name`           | -           |
-| `Weight`         | `string`   | `gateways.item[].weight`         | -           |
-| `IPProtocol`     | `string`   | `gateways.item[].ipprotocol`     | -           |
-| `Interval`       | `string`   | `gateways.item[].interval`       | -           |
-| `Descr`          | `string`   | `gateways.item[].descr`          | -           |
-| `Monitor`        | `string`   | `gateways.item[].monitor`        | -           |
-| `Disabled`       | `BoolFlag` | `gateways.item[].disabled`       | -           |
-| `Created`        | `string`   | `gateways.item[].created`        | -           |
-| `Updated`        | `string`   | `gateways.item[].updated`        | -           |
-| `DefaultGW`      | `string`   | `gateways.item[].defaultgw`      | -           |
-| `MonitorDisable` | `string`   | `gateways.item[].monitordisable` | -           |
-| `FarGW`          | `string`   | `gateways.item[].fargw`          | -           |
+| Field            | Type       | JSON Path                                | Description |
+| ---------------- | ---------- | ---------------------------------------- | ----------- |
+| `XMLName`        | `Name`     | `gateways.gateway_item[].xmlname`        | -           |
+| `Interface`      | `string`   | `gateways.gateway_item[].interface`      | -           |
+| `Gateway`        | `string`   | `gateways.gateway_item[].gateway`        | -           |
+| `Name`           | `string`   | `gateways.gateway_item[].name`           | -           |
+| `Weight`         | `string`   | `gateways.gateway_item[].weight`         | -           |
+| `IPProtocol`     | `string`   | `gateways.gateway_item[].ipprotocol`     | -           |
+| `Interval`       | `string`   | `gateways.gateway_item[].interval`       | -           |
+| `Descr`          | `string`   | `gateways.gateway_item[].descr`          | -           |
+| `Monitor`        | `string`   | `gateways.gateway_item[].monitor`        | -           |
+| `Disabled`       | `BoolFlag` | `gateways.gateway_item[].disabled`       | -           |
+| `Created`        | `string`   | `gateways.gateway_item[].created`        | -           |
+| `Updated`        | `string`   | `gateways.gateway_item[].updated`        | -           |
+| `DefaultGW`      | `string`   | `gateways.gateway_item[].defaultgw`      | -           |
+| `MonitorDisable` | `string`   | `gateways.gateway_item[].monitordisable` | -           |
+| `FarGW`          | `string`   | `gateways.gateway_item[].fargw`          | -           |
 
 ---
 
