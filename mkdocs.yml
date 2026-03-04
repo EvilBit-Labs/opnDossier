@@ -53,10 +53,10 @@ nav:
       - All Examples: examples.md
 
   - Data Model & Integration:
-      - Overview: templates/index.md
-      - Model Reference: templates/model-reference.md
-      - JSON Export Examples: templates/examples/json-export.md
-      - YAML Processing Examples: templates/examples/yaml-processing.md
+      - Overview: data-model/index.md
+      - Model Reference: data-model/model-reference.md
+      - JSON Export Examples: data-model/examples/json-export.md
+      - YAML Processing Examples: data-model/examples/yaml-processing.md
 
   - Development:
       - Architecture: development/architecture.md
@@ -70,16 +70,19 @@ nav:
   - Security:
       - Compliance: security/compliance.md
       - Validation: security/validation.md
+      - Security Assurance: security/security-assurance.md
       - Vulnerability Scanning: security/vulnerability-scanning.md
 
   - Reference:
       - API Documentation: api.md
+      - Configuration Guide: configuration.md
       - Firewall Security Controls: firewall-security-controls-reference.md
       - Compliance Standards: compliance-standards.md
       - Pipeline v2 Compliance: pipeline-v2-compliance.md
 
   - Research & Internal:
       - Theme Usage: theme-usage.md
+      - XML Structure Research: development/xml-structure-research.md
 
   - About: about.md
 
