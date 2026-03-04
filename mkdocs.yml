@@ -75,7 +75,6 @@ nav:
 
   - Reference:
       - API Documentation: api.md
-      - Configuration Guide: configuration.md
       - Firewall Security Controls: firewall-security-controls-reference.md
       - Compliance Standards: compliance-standards.md
       - Pipeline v2 Compliance: pipeline-v2-compliance.md

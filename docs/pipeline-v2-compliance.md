@@ -82,10 +82,10 @@ Pipeline v2 defines mandatory tooling and quality gates for all EvilBit Labs pub
 
 Both Snyk and FOSSA provide local CLI tools for development:
 
-- **Snyk CLI**: `just snyk-scan` - Local vulnerability scanning with `snyk test` and `snyk monitor`
-- **FOSSA CLI**: `just fossa-scan` - Local license analysis with `fossa analyze` and `fossa test`
+- **Snyk CLI**: Run `snyk test` and `snyk monitor` locally (requires `SNYK_TOKEN`)
+- **FOSSA CLI**: Run `fossa analyze` and `fossa test` locally (requires `FOSSA_API_KEY`)
 
-These CLI tools complement the GitHub App integrations and provide local/CI parity for security scanning.
+These CLI tools complement the GitHub App integrations. For local security scanning, use `just scan` (gosec) and `just security-all` (SBOM + gosec).
 
 ## Local Development Workflow
 
