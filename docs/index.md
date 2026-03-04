@@ -132,8 +132,8 @@ Check out the [Installation Guide](user-guide/installation.md) to get started, o
 
 ### User Documentation
 
-- **[User Guide](user-guide/)** - Installation, configuration, and usage instructions
-- **[Examples](examples/)** - Comprehensive usage examples and common workflows
+- **[User Guide](user-guide/installation.md)** - Installation, configuration, and usage instructions
+- **[Examples](examples/index.md)** - Comprehensive usage examples and common workflows
 - **[About](about.md)** - Project overview and features
 - **[API Reference](api.md)** - Command-line interface and API documentation
 
@@ -155,7 +155,7 @@ For AI agent coding standards and workflows, see [AGENTS.md](https://github.com/
 
 ### Technical Research
 
-- **[Charmbracelet Ecosystem Compatibility Research](charmbracelet-compatibility-research.md)** - Dependency analysis, version matrix, breaking changes, and upgrade recommendations for the Charmbracelet package ecosystem
+- **[Theme Usage](theme-usage.md)** - Internal guidance for local documentation theme usage and customization
 
 ## Contributing
 
