@@ -1,6 +1,6 @@
 # Pipeline v2 Compliance Guide
 
-This document details how opnDossier implements the [EvilBit Labs Pipeline v2 Specification](https://github.com/EvilBit-Labs/Standards/blob/main/pipeline_v_2_spec.md) for comprehensive OSS project quality gates and tooling.
+This document details how opnDossier implements the EvilBit Labs Pipeline v2 Specification for comprehensive OSS project quality gates and tooling.
 
 ## Overview
 
@@ -28,7 +28,7 @@ Pipeline v2 defines mandatory tooling and quality gates for all EvilBit Labs pub
 
 - [`.goreleaser.yaml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.goreleaser.yaml) - Complete GoReleaser configuration
 - [`.golangci.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.golangci.yml) - Comprehensive linting rules
-- [`justfile`](../justfile) - Local testing commands
+- [`justfile`](https://github.com/EvilBit-Labs/opnDossier/blob/main/justfile) - Local testing commands
 
 **Go Tooling Details:**
 
