@@ -44,35 +44,24 @@ opnDossier is an OPNsense configuration parser, auditor, and reporting tool. Its
 
 ## 3. Trust Boundaries
 
-```text
-+------------------------------------------------------------------+
-|  Untrusted                                                        |
-|  +------------------+    +-------------------+                    |
-|  | config.xml       |    | CLI Arguments     |                    |
-|  | (any content)    |    | (paths, flags)    |                    |
-|  +--------+---------+    +--------+----------+                    |
-|           |                       |                               |
-+-----------+-----------------------+-------------------------------+
-            |                       |
-   =========|=======================|============ Trust Boundary ====
-            |                       |
-+-----------v-----------------------v-------------------------------+
-|  opnDossier                                                       |
-|                                                                   |
-|  +----------------+     +----------------+     +--------------+   |
-|  | XML Parser     |     | Schema Mapping |     | Report Gen   |   |
-|  | - validates    |     | - typed structs|     | - formats    |   |
-|  |   structure    |     | - BoolFlag     |     |   output     |   |
-|  | - no XXE       |     | - validation   |     | - sanitizes  |   |
-|  +----------------+     +----------------+     +--------------+   |
-|                                                                   |
-|  +----------------+     +----------------+     +--------------+   |
-|  | Audit Engine   |     | Export Layer   |     | CLI (Cobra)  |   |
-|  | - compliance   |     | - file write   |     | - validates  |   |
-|  |   checks       |     | - overwrite    |     |   args       |   |
-|  | - findings     |     |   protection   |     | - typed flags|   |
-|  +----------------+     +----------------+     +--------------+   |
-+------------------------------------------------------------------+
+```mermaid
+graph LR
+    subgraph Untrusted["Untrusted Zone"]
+        XML["config.xml<br/>(any content)"]
+        CLI["CLI Arguments<br/>(paths, flags)"]
+    end
+
+    XML -->|Trust Boundary| Parser
+    CLI -->|Trust Boundary| Cobra
+
+    subgraph Trusted["opnDossier (Trusted Zone)"]
+        Parser["XML Parser<br/> - validates structure<br/> - no XXE"]
+        Schema["Schema Mapping<br/> - typed structs<br/>- BoolFlag<br/>- validation"]
+        Report["Report Gen<br/>- formats output<br/>- sanitizes"]
+        Audit["Audit Engine<br/>- compliance checks<br/>- findings"]
+        Export["Export Layer<br/>- file write<br/>- overwrite protection"]
+        Cobra["CLI / Cobra<br/>- validates args<br/>- typed flags"]
+    end
 ```
 
 All data crossing the trust boundary (config.xml content, CLI arguments, output paths) is treated as untrusted and validated before use.
