@@ -220,23 +220,20 @@ fi
 
 ### Configuration Comparison
 
+Use the built-in `diff` command for content-aware, security-scored configuration comparison:
+
 ```bash
-#!/bin/bash
-# compare-configs.sh
+# Compare two configurations with terminal output
+opndossier diff current-config.xml previous-config.xml
 
-# Convert both configurations to JSON
-opndossier convert current-config.xml -f json -o current.json
-opndossier convert previous-config.xml -f json -o previous.json
+# Generate a markdown diff report
+opndossier diff current-config.xml previous-config.xml -f markdown -o changes.md
 
-# Compare using jq (if available)
-if command -v jq &> /dev/null; then
-    jq -S . current.json > current-sorted.json
-    jq -S . previous.json > previous-sorted.json
-    diff current-sorted.json previous-sorted.json
-else
-    echo "Install jq for better comparison: brew install jq"
-    diff current.json previous.json
-fi
+# Compare only specific sections
+opndossier diff current-config.xml previous-config.xml --section firewall,nat
+
+# Show only security-relevant changes
+opndossier diff current-config.xml previous-config.xml --security
 ```
 
 ### Backup Documentation

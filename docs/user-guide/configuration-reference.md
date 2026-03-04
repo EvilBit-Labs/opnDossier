@@ -26,6 +26,7 @@ These options apply to all commands (`convert`, `display`, `validate`).
 | Timestamps      | `--timestamps`  | -                        | -             | boolean | `false`  | Include timestamps in log output           |
 | Minimal mode    | `--minimal`     | `OPNDOSSIER_MINIMAL`     | `minimal`     | boolean | `false`  | Minimal output (suppress progress/verbose) |
 | JSON output     | `--json-output` | `OPNDOSSIER_JSON_OUTPUT` | `json_output` | boolean | `false`  | Output errors in JSON format               |
+| Device type     | `--device-type` | -                        | -             | string  | `""`     | Force device type (e.g., opnsense)         |
 | Config file     | `--config`      | -                        | -             | string  | `""`     | Custom config file path                    |
 
 ## Convert Command Options
@@ -49,6 +50,7 @@ Supported formats: `markdown` (`md`), `json`, `yaml` (`yml`), `text` (`txt`), `h
 | No wrap          | `--no-wrap`          | -                     | -           | boolean  | `false` | Disable text wrapping (alias for --wrap 0)              |
 | Comprehensive    | `--comprehensive`    | -                     | -           | boolean  | `false` | Generate comprehensive detailed reports                 |
 | Include tunables | `--include-tunables` | -                     | -           | boolean  | `false` | Include system tunables in output                       |
+| Redact           | `--redact`           | -                     | -           | boolean  | `false` | Redact sensitive fields (passwords, keys, etc.)         |
 
 ### Audit & Compliance
 
@@ -68,6 +70,7 @@ Supported formats: `markdown` (`md`), `json`, `yaml` (`yml`), `text` (`txt`), `h
 | No wrap          | `--no-wrap`          | -                     | -           | boolean  | `false` | Disable text wrapping                                   |
 | Comprehensive    | `--comprehensive`    | -                     | -           | boolean  | `false` | Generate comprehensive reports                          |
 | Include tunables | `--include-tunables` | -                     | -           | boolean  | `false` | Include system tunables in output                       |
+| Redact           | `--redact`           | -                     | -           | boolean  | `false` | Redact sensitive fields in output                       |
 
 ## Validate Command Options
 
