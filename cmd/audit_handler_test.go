@@ -107,7 +107,8 @@ func TestAppendAuditFindings_WithComplianceResults(t *testing.T) {
 			"stig": {
 				Findings: []compliance.Finding{
 					{
-						Type:        "high",
+						Type:        "compliance",
+						Severity:    "high",
 						Title:       "STIG Violation",
 						Description: "SSH timeout not configured",
 					},
@@ -132,8 +133,11 @@ func TestAppendAuditFindings_WithComplianceResults(t *testing.T) {
 	assert.Contains(t, result, "1 findings")
 	assert.Contains(t, result, "High: 1")
 
-	// Verify plugin findings section
+	// Verify plugin findings section renders Severity (not Type)
 	assert.Contains(t, result, "### stig Plugin Findings")
+	assert.Contains(t, result, "| Severity |")
+	assert.NotContains(t, result, "| Type |")
+	assert.Contains(t, result, "high")
 	assert.Contains(t, result, "STIG Violation")
 	assert.Contains(t, result, "SSH timeout not configured")
 }
@@ -439,6 +443,58 @@ func TestAppendAuditFindings_ComplianceSeverityCounts(t *testing.T) {
 	assert.Contains(t, result, "Low: 1")
 }
 
+func TestAppendAuditFindings_PluginFindingsShowSeverity(t *testing.T) {
+	baseReport := testBaseReport
+
+	report := &audit.Report{
+		Mode:     audit.ModeBlue,
+		Findings: []audit.Finding{},
+		Compliance: map[string]audit.ComplianceResult{
+			"firewall": {
+				Findings: []compliance.Finding{
+					{
+						Type:        "compliance",
+						Severity:    "critical",
+						Title:       "Critical Firewall Issue",
+						Description: "A critical firewall misconfiguration",
+					},
+					{
+						Type:        "compliance",
+						Severity:    "medium",
+						Title:       "Medium Firewall Issue",
+						Description: "A medium severity firewall issue",
+					},
+				},
+				Summary: &audit.ComplianceSummary{
+					TotalFindings:    2,
+					CriticalFindings: 1,
+					MediumFindings:   1,
+				},
+			},
+		},
+		Metadata: make(map[string]any),
+	}
+
+	result := appendAuditFindings(baseReport, report)
+
+	// Plugin findings table should have Severity column, not Type
+	assert.Contains(t, result, "| Severity |")
+	assert.NotContains(t, result, "| Type |")
+
+	// Severity values should be rendered in the table
+	assert.Contains(t, result, "critical")
+	assert.Contains(t, result, "medium")
+
+	// The generic "compliance" type should NOT appear in the findings table
+	// (it would only appear if Type were still used instead of Severity)
+	for line := range strings.SplitSeq(result, "\n") {
+		if strings.Contains(line, "Critical Firewall Issue") {
+			assert.Contains(t, line, "critical")
+			assert.NotContains(t, line, "compliance")
+		}
+	}
+}
+
 func TestAppendAuditFindings_PluginFindingsTruncation(t *testing.T) {
 	baseReport := testBaseReport
 
@@ -452,7 +508,8 @@ func TestAppendAuditFindings_PluginFindingsTruncation(t *testing.T) {
 			"test_plugin": {
 				Findings: []compliance.Finding{
 					{
-						Type:        "high",
+						Type:        "compliance",
+						Severity:    "high",
 						Title:       "Test Finding",
 						Description: longDescription,
 					},

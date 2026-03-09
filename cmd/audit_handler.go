@@ -132,12 +132,12 @@ func appendAuditFindings(baseReport string, report *audit.Report) string {
 		if len(result.Findings) > 0 {
 			md.H3(pluginName + " Plugin Findings")
 			pluginTable := markdown.TableSet{
-				Header: []string{"Type", "Title", "Description"},
+				Header: []string{"Severity", "Title", "Description"},
 				Rows:   make([][]string, 0, len(result.Findings)),
 			}
 			for _, f := range result.Findings {
 				pluginTable.Rows = append(pluginTable.Rows, []string{
-					escapePipeForMarkdown(f.Type),
+					escapePipeForMarkdown(f.Severity),
 					escapePipeForMarkdown(f.Title),
 					escapePipeForMarkdown(truncateString(f.Description, maxDescriptionLength)),
 				})
