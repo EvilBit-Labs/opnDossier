@@ -343,6 +343,48 @@ func TestPlugin_broadNetworkRanges(t *testing.T) {
 	}
 }
 
+func TestPlugin_FindingSeverityMatchesControl(t *testing.T) {
+	t.Parallel()
+
+	plugin := NewPlugin()
+
+	// Build a device that triggers every STIG finding:
+	// - V-206694: any/any pass rule without deny → missing default deny
+	// - V-206674: any/any pass rule → overly permissive
+	// - V-206690: SNMP community string → unnecessary services
+	// - V-206682: no syslog → insufficient logging
+	device := &common.CommonDevice{
+		FirewallRules: []common.FirewallRule{
+			{
+				Type:        "pass",
+				Source:      common.RuleEndpoint{Address: constants.NetworkAny},
+				Destination: common.RuleEndpoint{Address: constants.NetworkAny},
+			},
+		},
+		SNMP: common.SNMPConfig{
+			ROCommunity: "public",
+		},
+	}
+
+	findings := plugin.RunChecks(device)
+	if len(findings) == 0 {
+		t.Fatal("expected at least one finding to validate severity invariant")
+	}
+
+	// Every emitted finding's severity must match its referenced control.
+	for _, finding := range findings {
+		control, err := plugin.GetControlByID(finding.References[0])
+		if err != nil {
+			t.Fatalf("finding references unknown control %s: %v", finding.References[0], err)
+		}
+
+		if finding.Severity != control.Severity {
+			t.Errorf("finding %s severity %q does not match control severity %q",
+				finding.References[0], finding.Severity, control.Severity)
+		}
+	}
+}
+
 type loggingTestCase struct {
 	name     string
 	config   *common.CommonDevice

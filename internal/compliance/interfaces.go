@@ -50,6 +50,7 @@ type Control struct {
 type Finding struct {
 	// Core finding information
 	Type           string `json:"type"`
+	Severity       string `json:"severity,omitempty"`
 	Title          string `json:"title"`
 	Description    string `json:"description"`
 	Recommendation string `json:"recommendation"`

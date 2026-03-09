@@ -91,6 +91,7 @@ func TestControlStruct(t *testing.T) {
 func TestFindingStruct(t *testing.T) {
 	finding := compliance.Finding{
 		Type:           "compliance",
+		Severity:       "high",
 		Title:          "Test Finding",
 		Description:    "Test description",
 		Recommendation: "Test recommendation",
@@ -106,6 +107,7 @@ func TestFindingStruct(t *testing.T) {
 		expected any
 	}{
 		{"Type", "Type", "compliance"},
+		{"Severity", "Severity", "high"},
 		{"Title", "Title", "Test Finding"},
 		{"Description", "Description", "Test description"},
 		{"Recommendation", "Recommendation", "Test recommendation"},
@@ -120,6 +122,8 @@ func TestFindingStruct(t *testing.T) {
 			switch tt.field {
 			case "Type":
 				assert.Equal(t, tt.expected, finding.Type)
+			case "Severity":
+				assert.Equal(t, tt.expected, finding.Severity)
 			case "Title":
 				assert.Equal(t, tt.expected, finding.Title)
 			case "Description":
@@ -149,6 +153,7 @@ func TestFindingValidation(t *testing.T) {
 			name: "Valid finding",
 			finding: compliance.Finding{
 				Type:           "compliance",
+				Severity:       "high",
 				Title:          "Test Finding",
 				Description:    "Test description",
 				Recommendation: "Test recommendation",
@@ -162,6 +167,7 @@ func TestFindingValidation(t *testing.T) {
 		{
 			name: "Empty type",
 			finding: compliance.Finding{
+				Severity:       "high",
 				Title:          "Test Finding",
 				Description:    "Test description",
 				Recommendation: "Test recommendation",
@@ -176,6 +182,21 @@ func TestFindingValidation(t *testing.T) {
 			name: "Empty title",
 			finding: compliance.Finding{
 				Type:           "compliance",
+				Severity:       "high",
+				Description:    "Test description",
+				Recommendation: "Test recommendation",
+				Component:      "test-component",
+				Reference:      "TEST-001",
+				References:     []string{"TEST-001"},
+				Tags:           []string{"test"},
+			},
+			isValid: false,
+		},
+		{
+			name: "Missing severity is invalid",
+			finding: compliance.Finding{
+				Type:           "compliance",
+				Title:          "Test Finding",
 				Description:    "Test description",
 				Recommendation: "Test recommendation",
 				Component:      "test-component",
@@ -190,6 +211,7 @@ func TestFindingValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			isValid := tt.finding.Type != "" &&
+				tt.finding.Severity != "" &&
 				tt.finding.Title != "" &&
 				tt.finding.Description != "" &&
 				tt.finding.Recommendation != "" &&

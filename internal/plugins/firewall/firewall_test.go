@@ -426,6 +426,33 @@ func TestFirewallPlugin_ValidateConfiguration(t *testing.T) {
 	}
 }
 
+func TestFirewallPlugin_FindingSeverityMatchesControl(t *testing.T) {
+	t.Parallel()
+
+	firewallPlugin := firewall.NewPlugin()
+
+	// Build a device that triggers every verifiable finding.
+	device := &common.CommonDevice{
+		System: common.System{
+			Hostname:  "OPNsense",
+			IPv6Allow: true,
+			WebGUI:    common.WebGUI{Protocol: "http"},
+		},
+	}
+
+	findings := firewallPlugin.RunChecks(device)
+	require.NotEmpty(t, findings, "expected at least one finding")
+
+	for _, finding := range findings {
+		// Each finding.Reference contains the control ID (e.g. "FIREWALL-002").
+		control, err := firewallPlugin.GetControlByID(finding.Reference)
+		require.NoError(t, err, "finding references unknown control %s", finding.Reference)
+		assert.Equal(t, control.Severity, finding.Severity,
+			"finding %s severity %q does not match control severity %q",
+			finding.Reference, finding.Severity, control.Severity)
+	}
+}
+
 // Helper function to extract finding IDs for debugging.
 func getFindings(findings []compliance.Finding) []string {
 	var ids []string

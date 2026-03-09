@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	pluginlib "plugin"
+	"slices"
+	"strings"
 	"sync"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
@@ -151,6 +153,19 @@ func (pr *PluginRegistry) RunComplianceChecks(
 
 		// Run checks for this plugin
 		findings := p.RunChecks(device)
+
+		// Normalize findings: derive missing Severity from control metadata
+		for i := range findings {
+			if findings[i].Severity == "" {
+				severity, err := deriveSeverityFromControl(p, findings[i])
+				if err != nil {
+					return nil, fmt.Errorf("plugin %q produced invalid finding: %w", pluginName, err)
+				}
+
+				findings[i].Severity = severity
+			}
+		}
+
 		result.Findings = append(result.Findings, findings...)
 
 		// Track plugin information
@@ -183,6 +198,58 @@ func (pr *PluginRegistry) RunComplianceChecks(
 	return result, nil
 }
 
+// deriveSeverityFromControl resolves a finding's severity from the plugin's
+// control definitions. It checks References first, then falls back to
+// Reference. Returns an error if no referenced control has a non-empty severity.
+func deriveSeverityFromControl(p compliance.Plugin, f compliance.Finding) (string, error) {
+	// Collect all unresolved references for error reporting
+	var unresolvedRefs []string
+
+	// Try each reference in the finding
+	for _, ref := range f.References {
+		ctrl, err := p.GetControlByID(ref)
+		if err == nil && ctrl.Severity != "" {
+			return ctrl.Severity, nil
+		}
+
+		unresolvedRefs = append(unresolvedRefs, ref)
+	}
+
+	// Fall back to single Reference field
+	if f.Reference != "" {
+		ctrl, err := p.GetControlByID(f.Reference)
+		if err == nil && ctrl.Severity != "" {
+			return ctrl.Severity, nil
+		}
+
+		// Only add if not already tracked via References
+		if !slices.Contains(unresolvedRefs, f.Reference) {
+			unresolvedRefs = append(unresolvedRefs, f.Reference)
+		}
+	}
+
+	if len(unresolvedRefs) == 0 {
+		return "", fmt.Errorf(
+			"finding %q has no control references to derive severity from",
+			f.Title,
+		)
+	}
+
+	return "", fmt.Errorf(
+		"finding %q references unresolved controls: [%s]",
+		f.Title,
+		strings.Join(unresolvedRefs, ", "),
+	)
+}
+
+// Severity level constants for summary calculation.
+const (
+	severityCritical = "critical"
+	severityHigh     = "high"
+	severityMedium   = "medium"
+	severityLow      = "low"
+)
+
 // calculateSummary calculates compliance summary statistics.
 func (pr *PluginRegistry) calculateSummary(result *ComplianceResult) *ComplianceSummary {
 	summary := &ComplianceSummary{
@@ -193,14 +260,14 @@ func (pr *PluginRegistry) calculateSummary(result *ComplianceResult) *Compliance
 
 	// Count findings by severity
 	for _, finding := range result.Findings {
-		switch finding.Type {
-		case "critical":
+		switch strings.ToLower(finding.Severity) {
+		case severityCritical:
 			summary.CriticalFindings++
-		case "high":
+		case severityHigh:
 			summary.HighFindings++
-		case "medium":
+		case severityMedium:
 			summary.MediumFindings++
-		case "low":
+		case severityLow:
 			summary.LowFindings++
 		}
 	}

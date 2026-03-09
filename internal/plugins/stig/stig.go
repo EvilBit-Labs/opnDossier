@@ -92,6 +92,7 @@ func (sp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	if !sp.hasDefaultDenyPolicy(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
+			Severity:       sp.controlSeverity("V-206694"),
 			Title:          "Missing Default Deny Policy",
 			Description:    "Firewall does not implement a default deny policy for all traffic",
 			Recommendation: "Configure firewall to deny all traffic by default and only allow necessary traffic through explicit rules",
@@ -106,6 +107,7 @@ func (sp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	if sp.hasOverlyPermissiveRules(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
+			Severity:       sp.controlSeverity("V-206674"),
 			Title:          "Overly Permissive Firewall Rules",
 			Description:    "Firewall contains rules that are too broad or permissive",
 			Recommendation: "Review and tighten firewall rules to use specific source/destination addresses and ports",
@@ -120,6 +122,7 @@ func (sp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	if sp.hasUnnecessaryServices(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
+			Severity:       sp.controlSeverity("V-206690"),
 			Title:          "Unnecessary Network Services Enabled",
 			Description:    "Firewall has unnecessary network services enabled",
 			Recommendation: "Disable or remove unnecessary network services and functions",
@@ -134,6 +137,7 @@ func (sp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	if !sp.hasComprehensiveLogging(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
+			Severity:       sp.controlSeverity("V-206682"),
 			Title:          "Insufficient Firewall Logging",
 			Description:    "Firewall does not generate comprehensive logs for all traffic",
 			Recommendation: "Enable comprehensive logging for all firewall rules and ensure logs capture success/failure outcomes",
@@ -170,6 +174,19 @@ func (sp *Plugin) ValidateConfiguration() error {
 	}
 
 	return nil
+}
+
+// controlSeverity returns the severity for a control ID from the control
+// definitions. This ensures findings derive severity from the single source
+// of truth (the control metadata) rather than hard-coding literals.
+func (sp *Plugin) controlSeverity(id string) string {
+	for _, c := range sp.controls {
+		if c.ID == id {
+			return c.Severity
+		}
+	}
+
+	return ""
 }
 
 // Helper methods for compliance checks
