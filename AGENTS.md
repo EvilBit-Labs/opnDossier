@@ -654,7 +654,10 @@ All plugins implement `compliance.Plugin` (see `internal/compliance/interfaces.g
 - Import `internal/model/common`, not `internal/model`
 - Use consistent control naming: `PLUGIN-001`, `PLUGIN-002`
 - Severity levels: `critical`, `high`, `medium`, `low`
+- `Finding.Type` = category (e.g., `"compliance"`); `Finding.Severity` = severity level matching the control's severity
+- Derive `Finding.Severity` from the control definition via a `controlSeverity(id string) string` helper — never hard-code severity literals in `RunChecks()`
 - Dynamic plugins: export `var Plugin compliance.Plugin`
+- `RunComplianceChecks` normalizes findings: if `Finding.Severity` is empty, it derives severity from the referenced control via `GetControlByID()`; if no control matches, it returns an error — dynamic plugins must set `Severity` or provide resolvable `References`
 
 ### 8.3 Compliance Standards
 
