@@ -1,5 +1,5 @@
 ---
-globs: internal/plugins/**/*,internal/plugin/**/*
+globs: internal/plugins/**/*,internal/compliance/**/*
 alwaysApply: false
 ---
 # Plugin Architecture Guidelines
@@ -8,7 +8,7 @@ alwaysApply: false
 
 The plugin architecture is defined in the following files:
 
-- [internal/plugin/interfaces.go](mdc:internal/plugin/interfaces.go) - Contains the `CompliancePlugin` interface, `Control`, and `Finding` structs
+- [internal/compliance/interfaces.go](mdc:internal/compliance/interfaces.go) - Contains the `compliance.Plugin` interface, `Control`, and `Finding` structs
 - [internal/audit/plugin.go](mdc:internal/audit/plugin.go) - Contains `PluginRegistry`, plugin management, and dynamic plugin loader
 - [internal/audit/plugin_manager.go](mdc:internal/audit/plugin_manager.go) - Contains `PluginManager` for high-level operations
 - [internal/plugins/](mdc:internal/plugins/) - Directory containing built-in plugin implementations
@@ -17,22 +17,22 @@ The plugin architecture is defined in the following files:
 
 ### Interface Compliance
 
-All plugins must implement the `CompliancePlugin` interface:
+All plugins must implement the `compliance.Plugin` interface:
 
 - `Name() string` - Unique plugin identifier
 - `Version() string` - Plugin version
 - `Description() string` - Human-readable description
-- `RunChecks(config *model.OpnSenseDocument) []Finding` - Execute compliance checks
+- `RunChecks(device *common.CommonDevice) []Finding` - Execute compliance checks
 - `GetControls() []Control` - Return all controls
 - `GetControlByID(id string) (*Control, error)` - Get specific control
 - `ValidateConfiguration() error` - Validate plugin config
 
-The `Finding` struct is generic and uses `References`, `Tags`, and `Metadata` fields. Do not use compliance-specific fields.
+The `Finding` struct is generic and uses `Severity`, `References`, `Tags`, and `Metadata` fields. Set `Finding.Severity` from the control's severity. Do not use compliance-specific fields.
 
 ### Plugin Structure
 
 - Place new static plugins in [internal/plugins/](mdc:internal/plugins/) with subdirectories for each plugin
-- For dynamic plugins, create a Go plugin (`-buildmode=plugin`) that exports `var Plugin plugin.CompliancePlugin`
+- For dynamic plugins, create a Go plugin (`-buildmode=plugin`) that exports `var Plugin compliance.Plugin`
 - Use the existing [internal/plugins/stig/stig.go](mdc:internal/plugins/stig/stig.go) as a template for static plugins
 
 ### Control Design
@@ -45,7 +45,7 @@ The `Finding` struct is generic and uses `References`, `Tags`, and `Metadata` fi
 ### Dynamic Plugin Loading
 
 - Dynamic plugins are loaded from a configurable directory (default: `./plugins`)
-- Each dynamic plugin must export `var Plugin plugin.CompliancePlugin`
+- Each dynamic plugin must export `var Plugin compliance.Plugin`
 - Dynamic plugins must be built with the same Go version and dependencies as the main binary
 - Both static and dynamic plugins are supported and can coexist
 
@@ -58,6 +58,6 @@ The `Finding` struct is generic and uses `References`, `Tags`, and `Metadata` fi
 
 ## Documentation
 
-- Reference [docs/dev-guide/plugin-development.md](mdc:docs/dev-guide/plugin-development.md) for detailed development guide
+- Reference [docs/development/plugin-development.md](mdc:docs/development/plugin-development.md) for detailed development guide
 - Document all controls with rationale and implementation details
 - Include usage examples and troubleshooting information
