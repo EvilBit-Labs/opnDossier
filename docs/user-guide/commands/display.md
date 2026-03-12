@@ -11,7 +11,7 @@ The `display` command renders an OPNsense configuration directly in your termina
 
 ## Usage
 
-```
+```text
 opndossier display [flags] <config.xml>
 ```
 
@@ -38,7 +38,7 @@ The `--theme` flag controls the color palette used for terminal rendering. Theme
 | `auto`  | Detects your terminal's background color and selects light or dark automatically. This is the default.                                                              |
 | `dark`  | Light text on dark backgrounds. Use this if auto-detection picks the wrong theme or you prefer to set it explicitly.                                                |
 | `light` | Dark text on light backgrounds. Best for terminals with white or light-colored backgrounds.                                                                         |
-| `none`  | Disables themed styling. Output is still formatted as markdown but rendered without color. Useful for piping to other tools or terminals that do not support color. |
+| `none`  | Disables themed styling. Output is still formatted as Markdown but rendered without color. Useful for piping to other tools or terminals that do not support color. |
 
 ```bash
 # Force dark theme
