@@ -40,7 +40,7 @@ When opnDossier encounters services exposed through firewall rules or NAT port f
 
 ### Low Risk
 
-- **SSH** -- Encrypted and well-understood, but still an attack surface. Key- based authentication and rate limiting are recommended when exposed.
+- **SSH** -- Encrypted and well-understood, but still an attack surface. Key-based authentication and rate limiting are recommended when exposed.
 
 ### Informational
 

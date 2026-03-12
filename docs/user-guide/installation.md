@@ -277,6 +277,18 @@ opndossier completion powershell | Out-String | Invoke-Expression
 
      Add this line to `~/.bashrc`, `~/.zshrc`, or your shell's config file to make it permanent.
 
+   - **Windows:** Verify the binary is on your `PATH`:
+
+     ```powershell
+     where.exe opndossier
+     ```
+
+     If not found, add the directory containing `opndossier.exe` to your `PATH` via **System Properties > Environment Variables**, or in PowerShell:
+
+     ```powershell
+     $env:PATH += ";C:\path\to\opndossier"
+     ```
+
 2. **Permission denied**
 
    ```bash
