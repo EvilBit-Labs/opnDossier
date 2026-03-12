@@ -235,6 +235,9 @@ Frequently encountered linter issues and fixes:
 | `minmax`                   | Manual min/max comparisons    | Use `min()`/`max()` builtins                                                                                      |
 | `goconst`                  | Repeated string literals      | Extract to package-level constants                                                                                |
 | `tparallel`                | Subtests use `t.Parallel()`   | Parent test must also call `t.Parallel()`                                                                         |
+| `tparallel`                | Subtests share mutable state  | Add `//nolint:tparallel` above func when subtests cannot be parallel due to shared mutable state                  |
+| `nonamedreturns`           | Named return values           | Use a struct return type instead of named returns                                                                 |
+| `copylocks`                | Copying `sync.Once`           | In tests resetting globals, suppress with `//nolint:govet` and comment explaining intentional reset               |
 | `revive redefines-builtin` | Package name shadows stdlib   | Rename package (e.g., `log` → `logging`)                                                                          |
 | `revive stutters`          | `pkg.PkgThing` repeats name   | Drop prefix: `compliance.Plugin` not `compliance.CompliancePlugin`                                                |
 | `modernize`                | `omitempty` on struct fields  | Remove `omitempty` from JSON tags on struct-typed fields (no effect in `encoding/json`); YAML `omitempty` is fine |
@@ -585,6 +588,8 @@ All plugins implement `compliance.Plugin` (see `internal/compliance/interfaces.g
 - Derive `Finding.Severity` from the control definition via a `controlSeverity(id string) string` helper — never hard-code severity literals in `RunChecks()`
 - Dynamic plugins: export `var Plugin compliance.Plugin`
 - `RunComplianceChecks` normalizes findings: if `Finding.Severity` is empty, it derives severity from the referenced control via `GetControlByID()`; if no control matches, it returns an error — dynamic plugins must set `Severity` or provide resolvable `References`
+- `compliance.CloneControls()` deep-copies a `[]Control` slice including nested reference types (Tags, Metadata) — use in `GetControls()` implementations and when storing controls in result structs
+- Plugin name matching is case-insensitive — `deduplicatePluginNames` and `ValidateModeConfig` normalize to lowercase
 
 ### 8.3 Compliance Standards
 
