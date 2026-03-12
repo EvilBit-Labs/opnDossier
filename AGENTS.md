@@ -4,9 +4,11 @@ This document consolidates all development standards, architectural principles, 
 
 ## Related Documentation
 
-- **[Requirements](project_spec/requirements.md)** - Complete project requirements and specifications
+- **[Requirements](project_spec/requirements.md)** - Complete project requirements and specifications (WHAT)
 - **[Architecture](docs/development/architecture.md)** - System design, component interactions, and deployment patterns
 - **[Development Standards](docs/development/standards.md)** - Go-specific coding standards and project structure
+- **[Tasks](project_spec/tasks.md)** - Implementation tasks (HOW)
+- **[User Stories](project_spec/user_stories.md)** - User stories (WHY)
 
 ---
 
@@ -73,67 +75,38 @@ When rules conflict, follow the higher precedence rule.
 
 ```text
 opndossier/
-├── cmd/                              # CLI command entry points
-│   ├── root.go                       # Root command and PersistentPreRunE setup
-│   ├── audit_handler.go              # Audit command handler
-│   ├── completion.go                 # Shell completion support
-│   ├── config.go                     # Config parent command
-│   ├── config_init.go                # Config init subcommand
-│   ├── config_show.go                # Config show subcommand
-│   ├── config_validate.go            # Config validate subcommand
-│   ├── context.go                    # CommandContext for dependency injection
-│   ├── convert.go                    # Convert command
-│   ├── diff.go                       # Diff command
-│   ├── display.go                    # Display command
-│   ├── exitcodes.go                  # Structured exit codes and JSON errors
-│   ├── help.go                       # Custom help templates and suggestions
-│   ├── man.go                        # Man page generation
-│   ├── sanitize.go                   # Sanitize command
-│   ├── shared_flags.go               # Shared flag definitions across commands
-│   └── validate.go                   # Validate command
-├── internal/                         # Private application logic
-│   ├── walker.go                     # Tree-walking utilities
-│   ├── audit/                        # Audit engine and compliance checking
-│   │   ├── plugin.go                 # Plugin registry
-│   │   └── plugin_manager.go         # Plugin lifecycle
-│   ├── cfgparser/                    # XML parsing and validation
-│   ├── compliance/                   # Plugin interfaces
-│   ├── config/                       # Configuration management
-│   ├── constants/                    # Shared constants (validation whitelists, etc.)
-│   ├── converter/                    # Data conversion utilities
-│   │   └── builder/                  # Markdown builder and writer
-│   ├── diff/                         # Configuration diff engine
-│   ├── display/                      # Terminal display formatting
-│   ├── docgen/                       # Model documentation generation
-│   ├── export/                       # File export functionality
-│   ├── logging/                      # Logging utilities
-│   ├── markdown/                     # Markdown generation and validation
-│   ├── model/                        # Data models and re-export seam
-│   │   ├── common/                   # Platform-agnostic CommonDevice domain model
-│   │   ├── opnsense/                 # OPNsense parser + schema→CommonDevice converter
-│   │   └── factory.go                # ParserFactory + DeviceParser interface
-│   ├── plugins/                      # Compliance plugins
-│   │   ├── firewall/                 # Firewall compliance
-│   │   ├── sans/                     # SANS compliance
-│   │   └── stig/                     # STIG compliance
-│   ├── pool/                         # Worker pool for concurrent processing
-│   ├── processor/                    # Data processing and report generation
-│   ├── progress/                     # CLI progress indicators (spinner, bar)
-│   ├── sanitizer/                    # Data sanitization utilities
-│   ├── schema/                       # Canonical OPNsense data model (XML structs)
-│   ├── testing/                      # Shared test helpers
-│   └── validator/                    # Data validation
-├── tools/                            # Standalone development tools
-│   └── docgen/                       # Model documentation generator
-├── testdata/                         # Test data and fixtures
-├── docs/                             # Documentation
-├── project_spec/                     # Project specifications
-│   ├── requirements.md               # Requirements specification
-│   ├── tasks.md                      # Implementation tasks
-│   └── user_stories.md               # User stories
-├── go.mod / go.sum                   # Go modules
-├── justfile                          # Task runner
-└── main.go                           # Entry point
+├── cmd/                    # CLI command entry points (root, audit, convert, diff, display, etc.)
+├── internal/               # Private application logic
+│   ├── audit/              # Audit engine, plugin registry, plugin manager
+│   ├── cfgparser/          # XML parsing and validation
+│   ├── compliance/         # Plugin interfaces (Plugin, Control, Finding)
+│   ├── config/             # Configuration management
+│   ├── constants/          # Shared constants (validation whitelists, etc.)
+│   ├── converter/          # Data conversion, enrichment, markdown builder
+│   ├── diff/               # Configuration diff engine
+│   ├── display/            # Terminal display formatting
+│   ├── export/             # File export functionality
+│   ├── logging/            # Logging utilities
+│   ├── markdown/           # Markdown generation and validation
+│   ├── model/              # Data models and re-export seam
+│   │   ├── common/         # Platform-agnostic CommonDevice domain model
+│   │   ├── opnsense/       # OPNsense parser + schema→CommonDevice converter
+│   │   └── factory.go      # ParserFactory + DeviceParser interface
+│   ├── plugins/            # Compliance plugins (firewall/, sans/, stig/)
+│   ├── pool/               # Worker pool for concurrent processing
+│   ├── processor/          # Data processing and report generation
+│   ├── progress/           # CLI progress indicators (spinner, bar)
+│   ├── sanitizer/          # Data sanitization utilities
+│   ├── schema/             # Canonical OPNsense data model (XML structs)
+│   ├── testing/            # Shared test helpers
+│   └── validator/          # Data validation
+├── tools/docgen/           # Standalone model documentation generator (//go:build ignore)
+├── testdata/               # Test data and fixtures
+├── docs/                   # Documentation
+├── project_spec/           # Requirements, tasks, user stories
+├── go.mod / go.sum         # Go modules
+├── justfile                # Task runner
+└── main.go                 # Entry point
 ```
 
 ---
@@ -210,9 +183,9 @@ func (r *Report) TotalFindings() int {
 }
 ```
 
-### 5.6a Struct Shallow Copy with Slices
+### 5.6a Struct Copy, Comparison, and Slice Patterns
 
-`normalized := *cfg` copies the struct but slices share backing arrays. Deep-copy any slice you intend to mutate:
+**Shallow copy with slices:** `normalized := *cfg` copies the struct but slices share backing arrays. Deep-copy any slice you intend to mutate:
 
 ```go
 normalized := *cfg
@@ -221,6 +194,12 @@ if cfg.Filter.Rule != nil {
     copy(normalized.Filter.Rule, cfg.Filter.Rule)
 }
 ```
+
+**Comparison functions:** Always handle nil inputs first (both-nil → nil, one-nil → added/removed). Use `slices.Equal()` for slice fields. For map-like types with `Get()` methods, check return signature: many return `(value, bool)` not `(value, error)`.
+
+**Slice pre-allocation:** Use `make([]T, 0)` without capacity hints for small, variable-length slices. Only add capacity hints when the value is reused elsewhere or performance-critical. Avoid creating constants solely for capacity hints.
+
+**String comparisons:** Use `strings.EqualFold(a, b)` for case-insensitive comparison (no need for `strings.ToLower()` first). For case-insensitive enum validation, iterate with `EqualFold` directly on original value.
 
 ### 5.7 CommandContext Pattern (CLI Dependency Injection)
 
@@ -272,26 +251,7 @@ When using Lipgloss/charmbracelet styling in CLI commands:
 - Provide plain text fallback functions (e.g., `outputConfigPlain()`) for CI/automation
 - **All lists must be sorted for deterministic output** — use `slices.Sort()`, `slices.Sorted(maps.Keys())`, or `sort.Strings()` on any slice derived from maps, config iteration, or aggregation before rendering, comparing, or serializing. Non-deterministic order causes flaky tests, unstable golden files, and inconsistent CLI output
 
-Example pattern:
-
-```go
-const (
-    termEnvVar    = "TERM"
-    noColorEnvVar = "NO_COLOR"
-    termDumb      = "dumb"
-)
-
-func useStylesCheck() bool {
-    return os.Getenv(termEnvVar) != termDumb && os.Getenv(noColorEnvVar) == ""
-}
-```
-
-### 5.12 String Comparison Patterns
-
-- `strings.EqualFold(a, b)` - Case-insensitive comparison, no need to call `strings.ToLower()` first
-- For case-insensitive enum validation, iterate with `EqualFold` directly on original value
-
-### 5.13 Standalone Tools Pattern
+### 5.12 Standalone Tools Pattern
 
 Place standalone development tools in `tools/<name>/main.go` with `//go:build ignore`:
 
@@ -300,7 +260,7 @@ Place standalone development tools in `tools/<name>/main.go` with `//go:build ig
 - Run via `go run tools/<name>/main.go` or justfile targets
 - Example: `tools/docgen/main.go` generates model documentation
 
-### 5.14 Markdown Generation (`nao1215/markdown`)
+### 5.13 Markdown Generation (`nao1215/markdown`)
 
 Use `nao1215/markdown` for programmatic markdown generation in `internal/converter/builder/`. Always prefer library methods over manual string construction:
 
@@ -310,13 +270,7 @@ Use `nao1215/markdown` for programmatic markdown generation in `internal/convert
 - Use helper functions: `markdown.Bold()`, `markdown.Italic()`, `markdown.Code()`, `markdown.Link()`
 - Chain tables with headers: `md.H4("Title").Table(tableSet)` — not separate calls
 
-### 5.15 Slice Pre-allocation
-
-- Use `make([]T, 0)` without capacity hints for small, variable-length slices
-- Only add capacity hints when the capacity value is reused elsewhere or performance-critical
-- Avoid creating constants solely for capacity hints (adds maintenance burden)
-
-### 5.16 Unused Code Guidance
+### 5.14 Unused Code Guidance
 
 When code becomes unused during refactoring:
 
@@ -326,13 +280,9 @@ When code becomes unused during refactoring:
 - This includes helper functions, test utilities, and constants
 - **Type aliases and re-exported constants**: Before removing, grep the entire codebase for external references (e.g., `grep -r 'pkg.AliasName'`). The `internal/model/` re-export layer and `cmd/` package frequently reference aliases from internal packages.
 
-### 5.17 File Write Safety
+### 5.15 File Write Safety
 
-When writing to output files:
-
-- Call `file.Sync()` before `Close()` to ensure data is flushed to disk
-- Handle close errors for write operations (data could be lost)
-- Pattern:
+Call `file.Sync()` before `Close()` to ensure data is flushed to disk. Handle close errors for write operations:
 
 ```go
 defer func() {
@@ -346,17 +296,7 @@ if err := outputFile.Sync(); err != nil {
 }
 ```
 
-### 5.18 Comparison Function Patterns
-
-- Always handle nil inputs at the start of comparison functions (both-nil → nil, one-nil → added/removed)
-- Use `slices.Equal()` for comparing slice fields (not manual iteration)
-- For map-like types with `Get()` methods, check return signature: many return `(value, bool)` not `(value, error)`
-
-### 5.19 Stats Tracking Pattern
-
-Separate check logic from stats updates. Never increment stats inside a function that may be called multiple times for fallback logic — check all candidates first, then update stats once based on the outcome.
-
-### 5.20 XML Escaping
+### 5.16 XML Escaping
 
 Use `xml.EscapeText` from stdlib instead of hand-rolled escaping:
 
@@ -372,7 +312,7 @@ func escapeXMLText(s string) string {
 
 Note: stdlib uses numeric refs (`&#34;`) not named entities (`&quot;`) - both are valid XML.
 
-### 5.21 XML Element Presence Detection
+### 5.17 XML Element Presence Detection
 
 Go's `encoding/xml` produces `""` for both self-closing tags (`<any/>`) and absent elements when using `string` fields. Use `*string` to distinguish presence from absence:
 
@@ -416,16 +356,11 @@ See `docs/development/xml-structure-research.md` for the complete field inventor
 
 `CommonDevice.DeviceType` uses `json:"device_type"` (no `omitempty`) — it always serializes, even when empty, to ensure JSON/YAML consumers can detect the field. The `prepareForExport` pipeline defaults it to `DeviceTypeOPNsense`.
 
-### 5.22 Context-Aware Semaphore
+### 5.18 Context-Aware Semaphore
 
-When acquiring semaphores in goroutines, use select with context:
+When acquiring semaphores in goroutines, use select with context to respect cancellation:
 
 ```go
-// Bad - blocks indefinitely on context cancel
-sem <- struct{}{}
-defer func() { <-sem }()
-
-// Good - respects context cancellation
 select {
 case sem <- struct{}{}:
     defer func() { <-sem }()
@@ -434,7 +369,7 @@ case <-ctx.Done():
 }
 ```
 
-### 5.23 Goroutine Stop/Write Safety
+### 5.19 Goroutine Stop/Write Safety
 
 When a goroutine writes to an `io.Writer` and a stop method also writes after signaling shutdown, the goroutine must fully exit before the caller writes. Use a `stopped` channel:
 
@@ -450,21 +385,23 @@ func (s *Spinner) stop() {
 }
 ```
 
-### 5.24 Dual Validator Synchronization
+### 5.20 Dual Validator Synchronization
 
 `internal/processor/validate.go` maintains lightweight validation whitelists (powerd modes, optimization values, etc.) that must stay in sync with the authoritative `internal/validator/opnsense.go`. When updating allowed values in either package, grep for the same whitelist in the other and update both.
 
-### 5.25 Duplicate Code Detection in Tests
+### 5.21 Duplicate Code Detection in Tests
 
 The `dupl` linter flags structurally similar test files (e.g., `json_test.go` and `yaml_test.go`). When JSON and YAML tests share device construction and assertions, extract shared logic into `test_helpers.go` (e.g., `newFieldsTestDevice()`, `assertNewFieldsPresent()`) and use a single `Test*` function with subtests for each format. If the files remain structurally similar despite extraction, add `//nolint:dupl` on the package line.
 
-### 5.26 Statistics Struct Synchronization
+### 5.22 Statistics Struct Synchronization
 
 When adding fields to `common.Statistics`, update three places:
 
 1. The struct definition in `internal/model/common/enrichment.go`
 2. Population logic in `computeStatistics()` in `internal/converter/enrichment.go`
 3. The sum in `computeTotalConfigItems()` in the same file
+
+Separate check logic from stats updates. Never increment stats inside a function that may be called multiple times for fallback logic — check all candidates first, then update stats once based on the outcome.
 
 ---
 
@@ -480,7 +417,7 @@ When adding fields to `common.Statistics`, update three places:
 **Architecture notes:**
 
 - `internal/schema/` is the canonical data model; `internal/model/` is a re-export layer (type aliases + constructor wrappers)
-- OPNsense XML uses two boolean patterns: **presence-based** (`<disabled/>` → `BoolFlag`) and **value-based** (`<enable>1</enable>` → `string`). See §5.21 and `docs/development/xml-structure-research.md`
+- OPNsense XML uses two boolean patterns: **presence-based** (`<disabled/>` → `BoolFlag`) and **value-based** (`<enable>1</enable>` → `string`). See §5.17 and `docs/development/xml-structure-research.md`
 - `RuleLocation` in `common.go` has complete source/destination fields but is NOT used by `Source`/`Destination` in `security.go` — tracked in issue #255
 - Known schema gaps: ~40+ type mismatches and missing fields — see `docs/development/xml-structure-research.md` §4-5
 
@@ -563,17 +500,7 @@ Use table-driven tests with subtests (`t.Run`). Always call `t.Parallel()` on bo
 
 ### 7.3 Test Helpers
 
-```go
-func setupTestConfig(t *testing.T) *Config {
-t.Helper()
-return &Config{InputFile: "testdata/config.xml"}
-}
-
-func createTempFile(t *testing.T, content string) string {
-t.Helper()
-// implementation with t.Cleanup()
-}
-```
+Use `t.Helper()` in all test helpers and `t.Cleanup()` for teardown. Place shared helpers in `test_helpers.go` (not `_test.go` — `revive` var-naming applies).
 
 ### 7.4 Map Iteration in Tests
 
@@ -671,32 +598,17 @@ All plugins implement `compliance.Plugin` (see `internal/compliance/interfaces.g
 
 ## 9. Commit Style
 
-### 9.1 Conventional Commits
+Format: `<type>(<scope>): <description>` — imperative mood, no period, ≤72 chars, capitalized. **Scope is required.**
 
-```text
-<type>(<scope>): <description>
-```
+**Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore` **Scopes:** `(parser)`, `(converter)`, `(audit)`, `(cli)`, `(model)`, `(plugin)`, `(builder)` **Breaking changes:** add `!` after scope or use `BREAKING CHANGE:` in footer
 
-**Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`
-
-**Scopes:** `(parser)`, `(converter)`, `(audit)`, `(cli)`, `(model)`, `(plugin)`, `(builder)`
-
-### 9.2 Examples
+Examples:
 
 ```text
 feat(parser): add support for OPNsense 24.1 config format
 fix(converter): handle empty VLAN configurations gracefully
-docs(readme): update installation instructions
-feat(api)!: redesign plugin interface  # Breaking change
+feat(api)!: redesign plugin interface
 ```
-
-### 9.3 Rules
-
-- Imperative mood ("add", not "added")
-- No period at the end
-- ≤72 characters, capitalized
-- **Scope is required**
-- Breaking changes: add `!` or use `BREAKING CHANGE:` in footer
 
 ---
 
@@ -739,16 +651,8 @@ just scan             # Run gosec security scanner
 just sbom             # Generate SBOM with cyclonedx-gomod
 just security-all     # Run all security checks (SBOM + scan)
 
-# Go commands
-go test ./...         # Run tests
-go test -race ./...   # Race detection
-go test -cover ./...  # Coverage
-go mod tidy           # Clean dependencies
-go mod verify         # Verify dependencies
-
 # Modernization (Go 1.26+)
-go run golang.org/x/tools/go/analysis/passes/modernize/cmd/modernize@latest -test -fix ./...
-# Note: remove //go:fix inline directives afterward (conflicts with gocheckcompilerdirectives)
+just modernize        # Applies modernize -fix; remove //go:fix inline directives afterward
 ```
 
 ### 10.2 Secure Build
@@ -795,36 +699,24 @@ CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o opnDossier ./main.go
 
 ### 12.1 Mandatory Practices
 
-01. **Always run tests** after changes: `just test`
-02. **Run linting** before committing: `just lint`
-03. **Follow established patterns** in existing code
-04. **Write comprehensive tests** for new functionality
-05. **Include proper error handling** with context
-06. **Add structured logging** for important operations
-07. **Validate all inputs** and handle edge cases
-08. **Document new functions and types** following Go conventions
-09. **Never commit secrets** or hardcoded credentials
-10. **Consult project documentation** before making changes
-11. Prefer structured config data + audit overlays over flat summary tables
-12. Validate markdown with `mdformat` and `markdownlint-cli2`
-13. **CRITICAL: Tasks are NOT complete until `just ci-check` passes**
-14. Place `//nolint:` directives on SEPARATE LINE above call (inline gets stripped by gofumpt)
-15. **Fix pre-existing issues** encountered during work (race conditions, bugs, etc.) — do not dismiss them as "not our problem"
+All standards in §§5-11 apply. Additionally:
+
+1. **CRITICAL: Tasks are NOT complete until `just ci-check` passes**
+2. **Always run tests** after changes (`just test`) and **linting** before committing (`just lint`)
+3. **Consult project documentation** before making changes
+4. Prefer structured config data + audit overlays over flat summary tables
+5. Validate markdown with `mdformat` and `markdownlint-cli2`
+6. Place `//nolint:` directives on SEPARATE LINE above call (inline gets stripped by gofumpt)
+7. **Fix pre-existing issues** encountered during work — do not dismiss as "not our problem"
 
 ### 12.2 Code Review Checklist
 
-- [ ] Code follows Go formatting (`gofmt`)
-- [ ] Linting issues resolved (`golangci-lint`)
-- [ ] Tests pass (`go test ./...`)
+- [ ] Formatting, linting, and tests pass (`just ci-check`)
 - [ ] Error handling includes context
-- [ ] Structured logging used appropriately
 - [ ] No hardcoded secrets
-- [ ] Input validation implemented
+- [ ] Input validation at boundaries
 - [ ] Documentation updated
-- [ ] Dependencies managed (`go mod tidy`)
-- [ ] Follows established patterns
-- [ ] Requirements compliance verified
-- [ ] Architecture patterns followed
+- [ ] Follows established patterns and architecture
 
 ### 12.3 Rules of Engagement
 
@@ -845,23 +737,11 @@ When encountering problems:
 
 ---
 
-## 13. Requirements Management
-
-### 13.1 Document Relationships
-
-| Document          | Purpose                          |
-| ----------------- | -------------------------------- |
-| `requirements.md` | WHAT the system must do          |
-| `tasks.md`        | HOW to implement requirements    |
-| `user_stories.md` | WHY requirements matter to users |
-
----
-
-## 14. Open-Source Quality Standards (OSSF Best Practices)
+## 13. Open-Source Quality Standards (OSSF Best Practices)
 
 This project has the OSSF Best Practices passing badge. Maintain these standards:
 
-### 14.1 Every PR Must
+### 13.1 Every PR Must
 
 - Sign off commits with `git commit -s` (DCO enforced by GitHub App)
 - Pass CI (golangci-lint, gofumpt, tests, CodeQL, Grype) before merge
@@ -869,13 +749,13 @@ This project has the OSSF Best Practices passing badge. Maintain these standards
 - Be reviewed (human or CodeRabbit) for correctness, safety, and style
 - Not introduce `panic()` in library code, unchecked errors, or unvalidated input
 
-### 14.2 Every Release Must
+### 13.2 Every Release Must
 
 - Have human-readable release notes via git-cliff (not raw git log)
 - Use unique SemVer identifiers (`vX.Y.Z` tags)
 - Be built reproducibly (pinned toolchain, committed `go.sum`, GoReleaser)
 
-### 14.3 Security
+### 13.3 Security
 
 - Vulnerabilities go through private reporting (GitHub advisories or <support@evilbitlabs.io>), never public issues
 - Grype and Snyk run in CI -- fix findings promptly
@@ -883,7 +763,7 @@ This project has the OSSF Best Practices passing badge. Maintain these standards
 - `docs/security/vulnerability-scanning.md` documents scanning thresholds and remediation process
 - `docs/security/security-assurance.md` must be updated when new attack surface is introduced
 
-### 14.4 Documentation
+### 13.4 Documentation
 
 - Exported APIs require godoc comments with examples where appropriate
 - CONTRIBUTING.md documents code review criteria, test policy, DCO, and governance
