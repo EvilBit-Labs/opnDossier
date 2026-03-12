@@ -1,6 +1,6 @@
 # validate
 
-The `validate` command checks an OPNsense configuration for structural and semantic correctness without producing any output. It catches problems early -- malformed XML, missing required fields, invalid values, and cross-field inconsistencies -- so you can fix them before running a conversion or audit.
+The `validate` command checks an OPNsense configuration for structural and semantic correctness. It catches problems early -- malformed XML, missing required fields, invalid values, and cross-field inconsistencies -- so you can fix them before running a conversion or audit. Valid files print a confirmation (e.g., `config.xml: Valid`); invalid files print error details to stderr and exit with a non-zero status.
 
 **When to use it:**
 
@@ -11,7 +11,7 @@ The `validate` command checks an OPNsense configuration for structural and seman
 
 ## Usage
 
-```
+```text
 opndossier validate [flags] <config.xml> [config2.xml ...]
 ```
 
