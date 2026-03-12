@@ -12,7 +12,7 @@ The `convert` command is the primary way to extract useful documentation from an
 
 ## Usage
 
-```
+```text
 opndossier convert [flags] <config.xml> [config2.xml ...]
 ```
 
@@ -56,7 +56,7 @@ opndossier convert config.xml --section firewall,network -o network-security.md
 
 OPNsense allows administrators to set kernel-level parameters (sysctl values) that control low-level system behavior -- things like TCP buffer sizes, IP forwarding, and connection tracking limits. These are configured under **System > Settings > Tunables** in the OPNsense web interface.
 
-By default, tunables are excluded from output because they are verbose and primarily relevant to performance tuning or advanced troubleshooting. Use `--include-tunables` to add them:
+By default, only security-related tunables (IP forwarding, TCP/UDP blackhole) are included in output. The `--include-tunables` flag adds all tunables -- including performance tuning, buffer sizes, and other kernel parameters:
 
 ```bash
 opndossier convert config.xml --include-tunables -o full-report.md
@@ -73,7 +73,7 @@ By default, `convert` produces a standard report covering the core sections: sys
 - IPsec VPN configuration
 - OpenVPN configuration
 - High Availability / CARP
-- System tunables (always included in comprehensive mode)
+- All system tunables (comprehensive mode implies `--include-tunables`)
 
 Use comprehensive mode when you need a complete picture of the device -- for example, when onboarding a new firewall, performing a full audit, or creating handover documentation.
 
