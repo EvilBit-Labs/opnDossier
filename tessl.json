@@ -1,0 +1,26 @@
+{
+  "name": "project",
+  "dependencies": {
+    "tessl/golang-github-com-spf13--cobra": {
+      "version": "1.10.1"
+    },
+    "tessl/golang-github-com-spf13--pflag": {
+      "version": "1.0.0"
+    },
+    "tessl/go-viper": {
+      "version": "1.21.0"
+    },
+    "tessl/golang-github-com-stretchr--testify": {
+      "version": "1.11.0"
+    },
+    "tessl/golang-golang-org-x-term": {
+      "version": "0.37.0"
+    },
+    "tessl/golang-golang-org-x--text": {
+      "version": "0.31.0"
+    },
+    "tessl/golang-gopkg-in--yaml-v3": {
+      "version": "3.0.1"
+    }
+  }
+}
