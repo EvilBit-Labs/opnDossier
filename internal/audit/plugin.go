@@ -3,7 +3,6 @@ package audit
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -72,6 +71,8 @@ func (pr *PluginRegistry) ListPlugins() []string {
 		names = append(names, name)
 	}
 
+	slices.Sort(names)
+
 	return names
 }
 
@@ -135,14 +136,19 @@ func (pr *PluginRegistry) RunComplianceChecks(
 	pluginNames []string,
 ) (*ComplianceResult, error) {
 	if device == nil {
-		return nil, errors.New("device configuration is nil")
+		return nil, ErrConfigurationNil
 	}
 
+	// Deduplicate plugin names to ensure consistent results across
+	// aggregate findings and per-plugin maps.
+	pluginNames = deduplicatePluginNames(pluginNames)
+
 	result := &ComplianceResult{
-		Findings:   []compliance.Finding{},
-		Compliance: make(map[string]map[string]bool),
-		Summary:    &ComplianceSummary{},
-		PluginInfo: make(map[string]PluginInfo),
+		Findings:       []compliance.Finding{},
+		PluginFindings: make(map[string][]compliance.Finding),
+		Compliance:     make(map[string]map[string]bool),
+		Summary:        &ComplianceSummary{},
+		PluginInfo:     make(map[string]PluginInfo),
 	}
 
 	for _, pluginName := range pluginNames {
@@ -166,14 +172,16 @@ func (pr *PluginRegistry) RunComplianceChecks(
 			}
 		}
 
+		result.PluginFindings[pluginName] = findings
 		result.Findings = append(result.Findings, findings...)
 
-		// Track plugin information
+		// Track plugin information — deep-clone controls so PluginInfo
+		// consumers cannot mutate the plugin's internal state.
 		result.PluginInfo[pluginName] = PluginInfo{
 			Name:        p.Name(),
 			Version:     p.Version(),
 			Description: p.Description(),
-			Controls:    p.GetControls(),
+			Controls:    compliance.CloneControls(p.GetControls()),
 		}
 
 		// Initialize compliance tracking for this plugin
@@ -196,6 +204,25 @@ func (pr *PluginRegistry) RunComplianceChecks(
 	result.Summary = pr.calculateSummary(result)
 
 	return result, nil
+}
+
+// deduplicatePluginNames normalizes names to lowercase and returns a new slice
+// with duplicate names removed, preserving the order of first occurrence.
+func deduplicatePluginNames(names []string) []string {
+	seen := make(map[string]struct{}, len(names))
+	unique := make([]string, 0, len(names))
+
+	for _, name := range names {
+		normalized := strings.ToLower(name)
+		if _, exists := seen[normalized]; exists {
+			continue
+		}
+
+		seen[normalized] = struct{}{}
+		unique = append(unique, normalized)
+	}
+
+	return unique
 }
 
 // deriveSeverityFromControl resolves a finding's severity from the plugin's
@@ -250,26 +277,46 @@ const (
 	severityLow      = "low"
 )
 
-// calculateSummary calculates compliance summary statistics.
-func (pr *PluginRegistry) calculateSummary(result *ComplianceResult) *ComplianceSummary {
-	summary := &ComplianceSummary{
-		TotalFindings: len(result.Findings),
-		PluginCount:   len(result.PluginInfo),
-		Compliance:    make(map[string]PluginCompliance),
-	}
+// severityCounts holds the result of tallying findings by severity level.
+type severityCounts struct {
+	critical int
+	high     int
+	medium   int
+	low      int
+}
 
-	// Count findings by severity
-	for _, finding := range result.Findings {
+// countSeverities tallies findings by severity level.
+func countSeverities(findings []compliance.Finding) severityCounts {
+	var counts severityCounts
+
+	for _, finding := range findings {
 		switch strings.ToLower(finding.Severity) {
 		case severityCritical:
-			summary.CriticalFindings++
+			counts.critical++
 		case severityHigh:
-			summary.HighFindings++
+			counts.high++
 		case severityMedium:
-			summary.MediumFindings++
+			counts.medium++
 		case severityLow:
-			summary.LowFindings++
+			counts.low++
 		}
+	}
+
+	return counts
+}
+
+// calculateSummary calculates compliance summary statistics.
+func (pr *PluginRegistry) calculateSummary(result *ComplianceResult) *ComplianceSummary {
+	counts := countSeverities(result.Findings)
+
+	summary := &ComplianceSummary{
+		TotalFindings:    len(result.Findings),
+		CriticalFindings: counts.critical,
+		HighFindings:     counts.high,
+		MediumFindings:   counts.medium,
+		LowFindings:      counts.low,
+		PluginCount:      len(result.PluginInfo),
+		Compliance:       make(map[string]PluginCompliance),
 	}
 
 	// Calculate compliance per plugin
@@ -295,12 +342,51 @@ func (pr *PluginRegistry) calculateSummary(result *ComplianceResult) *Compliance
 	return summary
 }
 
+// computePerPluginSummary calculates compliance summary statistics for a single plugin.
+func computePerPluginSummary(
+	pluginName string,
+	findings []compliance.Finding,
+	complianceMap map[string]bool,
+) *ComplianceSummary {
+	counts := countSeverities(findings)
+
+	summary := &ComplianceSummary{
+		TotalFindings:    len(findings),
+		CriticalFindings: counts.critical,
+		HighFindings:     counts.high,
+		MediumFindings:   counts.medium,
+		LowFindings:      counts.low,
+		PluginCount:      1,
+		Compliance:       make(map[string]PluginCompliance),
+	}
+
+	compliant := 0
+	nonCompliant := 0
+
+	for _, isCompliant := range complianceMap {
+		if isCompliant {
+			compliant++
+		} else {
+			nonCompliant++
+		}
+	}
+
+	summary.Compliance[pluginName] = PluginCompliance{
+		Compliant:    compliant,
+		NonCompliant: nonCompliant,
+		Total:        compliant + nonCompliant,
+	}
+
+	return summary
+}
+
 // ComplianceResult represents the complete result of compliance checks.
 type ComplianceResult struct {
-	Findings   []compliance.Finding       `json:"findings"`
-	Compliance map[string]map[string]bool `json:"compliance"`
-	Summary    *ComplianceSummary         `json:"summary"`
-	PluginInfo map[string]PluginInfo      `json:"pluginInfo"`
+	Findings       []compliance.Finding            `json:"findings"`
+	PluginFindings map[string][]compliance.Finding `json:"pluginFindings"`
+	Compliance     map[string]map[string]bool      `json:"compliance"`
+	Summary        *ComplianceSummary              `json:"summary"`
+	PluginInfo     map[string]PluginInfo           `json:"pluginInfo"`
 }
 
 // ComplianceSummary provides summary statistics.

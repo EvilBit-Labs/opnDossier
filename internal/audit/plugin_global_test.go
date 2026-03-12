@@ -10,14 +10,32 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 // TestGlobalPluginRegistry tests all global registry functions.
-//
-
 func TestGlobalPluginRegistry(t *testing.T) {
-	// Reset global registry for clean testing
+	// Save and restore global state. We capture both the registry pointer
+	// and whether the singleton was already initialized so cleanup can
+	// faithfully restore the original state.
+	origRegistry := globalRegistry
+	origInitialized := globalRegistry != nil
+
+	t.Cleanup(func() {
+		globalRegistry = origRegistry
+		if origInitialized {
+			// Mark the Once as already executed by running a no-op Do.
+			// We reset first, then immediately fire Do so subsequent
+			// GetGlobalRegistry() calls return the saved pointer.
+			globalRegistryOnce = sync.Once{}
+			globalRegistryOnce.Do(func() {})
+		} else {
+			globalRegistryOnce = sync.Once{}
+		}
+	})
+
 	globalRegistryOnce = sync.Once{}
 	globalRegistry = nil
 
@@ -34,7 +52,6 @@ func TestGlobalPluginRegistry(t *testing.T) {
 	})
 
 	t.Run("RegisterGlobalPlugin", func(t *testing.T) {
-		// Reset for this test
 		globalRegistryOnce = sync.Once{}
 		globalRegistry = nil
 
@@ -772,4 +789,221 @@ func (m *mockPluginWithFindings) GetControlByID(id string) (*compliance.Control,
 		}
 	}
 	return nil, compliance.ErrControlNotFound
+}
+
+// TestRunComplianceChecks_PerPluginSeverityArithmetic exercises the full RunComplianceChecks
+// pipeline with the real STIG plugin and verifies that severity counts sum correctly.
+func TestRunComplianceChecks_PerPluginSeverityArithmetic(t *testing.T) {
+	t.Parallel()
+
+	logger, err := logging.New(logging.Config{})
+	if err != nil {
+		t.Fatalf("failed to create logger: %v", err)
+	}
+
+	pm := NewPluginManager(logger)
+	ctx := context.Background()
+
+	if err := pm.InitializePlugins(ctx); err != nil {
+		t.Fatalf("InitializePlugins() error: %v", err)
+	}
+
+	registry := pm.GetRegistry()
+
+	// Build a device that triggers all four STIG findings:
+	// - V-206694: any/any pass rule without deny -> missing default deny
+	// - V-206674: any/any pass rule -> overly permissive
+	// - V-206690: SNMP community string -> unnecessary services
+	// - V-206682: no syslog -> insufficient logging
+	device := &common.CommonDevice{
+		FirewallRules: []common.FirewallRule{
+			{
+				Type:        "pass",
+				Source:      common.RuleEndpoint{Address: constants.NetworkAny},
+				Destination: common.RuleEndpoint{Address: constants.NetworkAny},
+			},
+		},
+		SNMP: common.SNMPConfig{
+			ROCommunity: "public",
+		},
+	}
+
+	result, err := registry.RunComplianceChecks(device, []string{"stig"})
+	if err != nil {
+		t.Fatalf("RunComplianceChecks() error: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("RunComplianceChecks() returned nil result")
+	}
+
+	if len(result.Findings) == 0 {
+		t.Fatal("RunComplianceChecks() returned zero findings; expected STIG findings")
+	}
+
+	// Total findings must be consistent
+	if result.Summary.TotalFindings != len(result.Findings) {
+		t.Errorf("Summary.TotalFindings = %d, want %d (len of Findings)",
+			result.Summary.TotalFindings, len(result.Findings))
+	}
+
+	// Severity arithmetic invariant: all severity buckets must sum to TotalFindings
+	severitySum := result.Summary.CriticalFindings +
+		result.Summary.HighFindings +
+		result.Summary.MediumFindings +
+		result.Summary.LowFindings
+	if severitySum != result.Summary.TotalFindings {
+		t.Errorf("Severity sum (%d) != TotalFindings (%d): critical=%d high=%d medium=%d low=%d",
+			severitySum, result.Summary.TotalFindings,
+			result.Summary.CriticalFindings, result.Summary.HighFindings,
+			result.Summary.MediumFindings, result.Summary.LowFindings)
+	}
+
+	// STIG controls have "high" and "medium" severities; at least one must be non-zero
+	if result.Summary.HighFindings == 0 && result.Summary.MediumFindings == 0 {
+		t.Error("Expected at least one high or medium finding from STIG plugin")
+	}
+
+	// Per-plugin findings map must match aggregate
+	stigFindings, ok := result.PluginFindings["stig"]
+	if !ok {
+		t.Fatal("PluginFindings missing 'stig' entry")
+	}
+
+	if len(stigFindings) != len(result.Findings) {
+		t.Errorf("PluginFindings[\"stig\"] length = %d, want %d",
+			len(stigFindings), len(result.Findings))
+	}
+
+	if result.Summary.PluginCount != 1 {
+		t.Errorf("Summary.PluginCount = %d, want 1", result.Summary.PluginCount)
+	}
+}
+
+// TestDeduplicatePluginNames tests the deduplicatePluginNames helper function.
+func TestDeduplicatePluginNames(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    []string
+		expected []string
+	}{
+		{
+			name:     "no duplicates",
+			input:    []string{"stig", "sans", "firewall"},
+			expected: []string{"stig", "sans", "firewall"},
+		},
+		{
+			name:     "adjacent duplicates",
+			input:    []string{"stig", "stig"},
+			expected: []string{"stig"},
+		},
+		{
+			name:     "non-adjacent duplicates",
+			input:    []string{"stig", "sans", "stig"},
+			expected: []string{"stig", "sans"},
+		},
+		{
+			name:     "all same",
+			input:    []string{"stig", "stig", "stig"},
+			expected: []string{"stig"},
+		},
+		{
+			name:     "empty input",
+			input:    []string{},
+			expected: []string{},
+		},
+		{
+			name:     "nil input",
+			input:    nil,
+			expected: []string{},
+		},
+		{
+			name:     "single element",
+			input:    []string{"stig"},
+			expected: []string{"stig"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := deduplicatePluginNames(tt.input)
+			if len(result) != len(tt.expected) {
+				t.Fatalf("deduplicatePluginNames() returned %d items, want %d", len(result), len(tt.expected))
+			}
+
+			for i, name := range result {
+				if name != tt.expected[i] {
+					t.Errorf("deduplicatePluginNames()[%d] = %q, want %q", i, name, tt.expected[i])
+				}
+			}
+		})
+	}
+}
+
+// TestRunComplianceChecks_DuplicatePluginNames tests that duplicate plugin names
+// are handled gracefully by RunComplianceChecks (defense-in-depth deduplication).
+func TestRunComplianceChecks_DuplicatePluginNames(t *testing.T) {
+	t.Parallel()
+
+	registry := NewPluginRegistry()
+
+	plugin := &mockPluginWithFindings{
+		mockCompliancePlugin: mockCompliancePlugin{
+			name:        "test-plugin",
+			version:     "1.0.0",
+			description: "Test Plugin",
+		},
+		controls: []compliance.Control{
+			{ID: "TEST-001", Title: "Test Control", Severity: "high"},
+		},
+		findings: []compliance.Finding{
+			{
+				Title:      "Test Finding",
+				Severity:   "high",
+				References: []string{"TEST-001"},
+			},
+		},
+	}
+
+	if err := registry.RegisterPlugin(plugin); err != nil {
+		t.Fatalf("Failed to register plugin: %v", err)
+	}
+
+	device := &common.CommonDevice{
+		System: common.System{Hostname: "test"},
+	}
+
+	// Pass duplicate names — should be deduplicated internally
+	result, err := registry.RunComplianceChecks(device, []string{"test-plugin", "test-plugin"})
+	if err != nil {
+		t.Fatalf("RunComplianceChecks() unexpected error: %v", err)
+	}
+
+	// Should have findings from only one execution
+	if len(result.Findings) != 1 {
+		t.Errorf("Expected 1 finding (deduplicated), got %d", len(result.Findings))
+	}
+
+	// Per-plugin map should have exactly one entry
+	if len(result.PluginFindings) != 1 {
+		t.Errorf("Expected 1 plugin in PluginFindings, got %d", len(result.PluginFindings))
+	}
+
+	// PluginInfo should have exactly one entry
+	if len(result.PluginInfo) != 1 {
+		t.Errorf("Expected 1 plugin in PluginInfo, got %d", len(result.PluginInfo))
+	}
+
+	// Summary should reflect the deduplicated count
+	if result.Summary.TotalFindings != 1 {
+		t.Errorf("Expected TotalFindings=1, got %d", result.Summary.TotalFindings)
+	}
+
+	if result.Summary.PluginCount != 1 {
+		t.Errorf("Expected PluginCount=1, got %d", result.Summary.PluginCount)
+	}
 }

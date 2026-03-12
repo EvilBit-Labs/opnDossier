@@ -143,9 +143,11 @@ func (sp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	return findings
 }
 
-// GetControls returns all SANS controls.
+// GetControls returns all SANS controls. The returned slice is a deep copy to
+// prevent callers from mutating the plugin's internal state, including nested
+// reference types (References, Tags, Metadata).
 func (sp *Plugin) GetControls() []compliance.Control {
-	return sp.controls
+	return compliance.CloneControls(sp.controls)
 }
 
 // GetControlByID returns a specific control by ID.

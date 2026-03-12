@@ -2,7 +2,6 @@ package audit
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
@@ -41,7 +40,7 @@ func (m *mockCompliancePlugin) GetControls() []compliance.Control {
 }
 
 func (m *mockCompliancePlugin) GetControlByID(_ string) (*compliance.Control, error) {
-	return nil, errors.New("invalid value and nil error")
+	return nil, compliance.ErrControlNotFound
 }
 
 func (m *mockCompliancePlugin) ValidateConfiguration() error {
@@ -49,6 +48,8 @@ func (m *mockCompliancePlugin) ValidateConfiguration() error {
 }
 
 func TestParseReportMode(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		input   string
@@ -107,6 +108,8 @@ func TestParseReportMode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got, err := ParseReportMode(tt.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ParseReportMode() error = %v, wantErr %v", err, tt.wantErr)
@@ -121,6 +124,8 @@ func TestParseReportMode(t *testing.T) {
 }
 
 func TestReportMode_String(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		mode ReportMode
@@ -145,6 +150,8 @@ func TestReportMode_String(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			if got := tt.mode.String(); got != tt.want {
 				t.Errorf("ReportMode.String() = %v, want %v", got, tt.want)
 			}
@@ -153,6 +160,8 @@ func TestReportMode_String(t *testing.T) {
 }
 
 func TestNewModeController(t *testing.T) {
+	t.Parallel()
+
 	registry := NewPluginRegistry()
 	logger := newTestLogger(t)
 
@@ -172,6 +181,8 @@ func TestNewModeController(t *testing.T) {
 }
 
 func TestModeController_ValidateModeConfig(t *testing.T) {
+	t.Parallel()
+
 	registry := NewPluginRegistry()
 	logger := newTestLogger(t)
 	controller := NewModeController(registry, logger)
@@ -280,10 +291,26 @@ func TestModeController_ValidateModeConfig(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "invalid plugin selection - case sensitive",
+			name: "valid plugin selection - case insensitive",
 			config: &ModeConfig{
 				Mode:            ModeStandard,
 				SelectedPlugins: []string{"STIG"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid plugin selection - duplicate plugin",
+			config: &ModeConfig{
+				Mode:            ModeBlue,
+				SelectedPlugins: []string{"stig", "stig"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid plugin selection - duplicate among multiple",
+			config: &ModeConfig{
+				Mode:            ModeBlue,
+				SelectedPlugins: []string{"stig", "sans", "stig"},
 			},
 			wantErr: true,
 		},
@@ -307,6 +334,8 @@ func TestModeController_ValidateModeConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := controller.ValidateModeConfig(tt.config)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateModeConfig() error = %v, wantErr %v", err, tt.wantErr)
@@ -316,6 +345,8 @@ func TestModeController_ValidateModeConfig(t *testing.T) {
 }
 
 func TestModeController_GenerateReport(t *testing.T) {
+	t.Parallel()
+
 	registry := NewPluginRegistry()
 	logger := newTestLogger(t)
 	controller := NewModeController(registry, logger)
@@ -385,6 +416,8 @@ func TestModeController_GenerateReport(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			var cfg *common.CommonDevice
 			if tt.name == "nil document" {
 				cfg = nil
@@ -438,6 +471,8 @@ func TestModeController_GenerateReport(t *testing.T) {
 }
 
 func TestReport_Structure(t *testing.T) {
+	t.Parallel()
+
 	report := &Report{
 		Mode:          ModeStandard,
 		BlackhatMode:  false,
@@ -479,6 +514,8 @@ func TestReport_Structure(t *testing.T) {
 }
 
 func TestFinding_Structure(t *testing.T) {
+	t.Parallel()
+
 	finding := Finding{
 		Title:          "Test Finding",
 		Severity:       processor.SeverityHigh,
@@ -520,6 +557,8 @@ func TestFinding_Structure(t *testing.T) {
 }
 
 func TestAttackSurface_Structure(t *testing.T) {
+	t.Parallel()
+
 	attackSurface := &AttackSurface{
 		Type:            "web",
 		Ports:           []int{80, 443},
@@ -546,6 +585,8 @@ func TestAttackSurface_Structure(t *testing.T) {
 }
 
 func TestPluginRegistry_RegisterAndGet(t *testing.T) {
+	t.Parallel()
+
 	registry := NewPluginRegistry()
 
 	// Create a mock plugin
@@ -580,6 +621,8 @@ func TestPluginRegistry_RegisterAndGet(t *testing.T) {
 }
 
 func TestPluginRegistry_RegisterDuplicate(t *testing.T) {
+	t.Parallel()
+
 	registry := NewPluginRegistry()
 
 	plugin1 := &mockCompliancePlugin{
@@ -618,6 +661,8 @@ func TestPluginRegistry_RegisterDuplicate(t *testing.T) {
 }
 
 func TestPluginRegistry_GetNonexistent(t *testing.T) {
+	t.Parallel()
+
 	registry := NewPluginRegistry()
 
 	// Try to get a plugin that doesn't exist
@@ -628,6 +673,8 @@ func TestPluginRegistry_GetNonexistent(t *testing.T) {
 }
 
 func TestPluginRegistry_List(t *testing.T) {
+	t.Parallel()
+
 	registry := NewPluginRegistry()
 
 	// Register multiple plugins
@@ -664,6 +711,8 @@ func TestPluginRegistry_List(t *testing.T) {
 }
 
 func TestPluginRegistry_Unregister(t *testing.T) {
+	t.Parallel()
+
 	registry := NewPluginRegistry()
 
 	mockPlugin := &mockCompliancePlugin{
@@ -693,6 +742,8 @@ func TestPluginRegistry_Unregister(t *testing.T) {
 }
 
 func TestPluginRegistry_UnregisterNonexistent(t *testing.T) {
+	t.Parallel()
+
 	registry := NewPluginRegistry()
 
 	// Try to get a plugin that doesn't exist
@@ -703,6 +754,8 @@ func TestPluginRegistry_UnregisterNonexistent(t *testing.T) {
 }
 
 func TestReport_AddFinding(t *testing.T) {
+	t.Parallel()
+
 	report := &Report{
 		Findings: []Finding{},
 	}
@@ -731,6 +784,8 @@ func TestReport_AddFinding(t *testing.T) {
 }
 
 func TestReport_GetFindingsBySeverity(t *testing.T) {
+	t.Parallel()
+
 	report := &Report{
 		Findings: []Finding{
 			{Title: "High Finding", Severity: processor.SeverityHigh, Description: "High severity issue"},
@@ -776,6 +831,8 @@ func TestReport_GetFindingsBySeverity(t *testing.T) {
 }
 
 func TestReport_GetFindingsByComponent(t *testing.T) {
+	t.Parallel()
+
 	report := &Report{
 		Findings: []Finding{
 			{
@@ -824,6 +881,8 @@ func TestReport_GetFindingsByComponent(t *testing.T) {
 }
 
 func TestReport_Summary(t *testing.T) {
+	t.Parallel()
+
 	report := &Report{
 		Findings: []Finding{
 			{
@@ -888,6 +947,8 @@ func TestReport_Summary(t *testing.T) {
 }
 
 func TestReport_EmptySummary(t *testing.T) {
+	t.Parallel()
+
 	report := &Report{
 		Findings: []Finding{},
 	}
@@ -926,7 +987,10 @@ func TestReport_EmptySummary(t *testing.T) {
 	}
 }
 
+//nolint:tparallel // Subtests share mutable report state and cannot run concurrently
 func TestReport_AnalysisMethods(t *testing.T) {
+	t.Parallel()
+
 	report := &Report{
 		Mode:          ModeStandard,
 		BlackhatMode:  false,

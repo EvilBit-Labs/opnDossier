@@ -255,9 +255,11 @@ func (fp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	return findings
 }
 
-// GetControls returns all Firewall controls.
+// GetControls returns all Firewall controls. The returned slice is a deep copy to
+// prevent callers from mutating the plugin's internal state, including nested
+// reference types (References, Tags, Metadata).
 func (fp *Plugin) GetControls() []compliance.Control {
-	return fp.controls
+	return compliance.CloneControls(fp.controls)
 }
 
 // GetControlByID returns a specific control by ID.

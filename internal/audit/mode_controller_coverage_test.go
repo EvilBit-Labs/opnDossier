@@ -87,6 +87,23 @@ func TestModeController_GenerateBlueReport_WithPlugins(t *testing.T) {
 						status,
 					)
 				}
+
+				// Verify per-plugin compliance results are keyed by plugin name
+				if _, exists := report.Compliance["plugin_results"]; exists {
+					t.Error("GenerateReport() should not store compliance under 'plugin_results' key")
+				}
+
+				pluginResult, exists := report.Compliance["test-plugin"]
+				if !exists {
+					t.Error("GenerateReport() should store compliance under 'test-plugin' key")
+				} else {
+					if pluginResult.Summary == nil {
+						t.Error("GenerateReport() per-plugin compliance result should have non-nil Summary")
+					}
+					if pluginResult.Findings == nil {
+						t.Error("GenerateReport() per-plugin compliance result should have non-nil Findings")
+					}
+				}
 			}
 		})
 	}

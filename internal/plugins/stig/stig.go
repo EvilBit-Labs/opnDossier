@@ -151,9 +151,11 @@ func (sp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	return findings
 }
 
-// GetControls returns all STIG controls.
+// GetControls returns all STIG controls. The returned slice is a deep copy to
+// prevent callers from mutating the plugin's internal state, including nested
+// reference types (References, Tags, Metadata).
 func (sp *Plugin) GetControls() []compliance.Control {
-	return sp.controls
+	return compliance.CloneControls(sp.controls)
 }
 
 // GetControlByID returns a specific control by ID.
@@ -243,9 +245,9 @@ func (sp *Plugin) hasOverlyPermissiveRules(device *common.CommonDevice) bool {
 		srcTarget := rule.Source.Address
 		dstTarget := rule.Destination.Address
 
-		srcBroad := srcTarget == constants.NetworkAny || slices.Contains(sp.broadNetworkRanges(), srcTarget)
+		srcBroad := srcTarget == constants.NetworkAny || slices.Contains(broadNetworks, srcTarget)
 		dstBroad := dstTarget == "" || dstTarget == constants.NetworkAny ||
-			slices.Contains(sp.broadNetworkRanges(), dstTarget)
+			slices.Contains(broadNetworks, dstTarget)
 
 		// Check for "any/any" rules (most permissive)
 		if srcTarget == constants.NetworkAny && (dstTarget == "" || dstTarget == constants.NetworkAny) {
@@ -368,14 +370,14 @@ func (sp *Plugin) analyzeLoggingConfiguration(device *common.CommonDevice) Loggi
 	return LoggingStatusNotConfigured
 }
 
-// broadNetworkRanges returns a slice of common broad network ranges.
-func (sp *Plugin) broadNetworkRanges() []string {
-	return []string{
-		"0.0.0.0/0",          // All IPv4
-		"::/0",               // All IPv6
-		"10.0.0.0/8",         // Large private network
-		"172.16.0.0/12",      // Large private network
-		"192.168.0.0/16",     // Large private network
-		constants.NetworkAny, // Any network
-	}
+// broadNetworks contains common broad network ranges used to detect overly
+// permissive firewall rules. Declared at package level to avoid allocation
+// on every call within the rule-checking loop.
+var broadNetworks = []string{
+	"0.0.0.0/0",          // All IPv4
+	"::/0",               // All IPv6
+	"10.0.0.0/8",         // Large private network
+	"172.16.0.0/12",      // Large private network
+	"192.168.0.0/16",     // Large private network
+	constants.NetworkAny, // Any network
 }

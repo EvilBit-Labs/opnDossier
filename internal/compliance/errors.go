@@ -16,7 +16,4 @@ var (
 
 	// ErrPluginValidation is returned when plugin configuration validation fails.
 	ErrPluginValidation = errors.New("plugin validation failed")
-
-	// ErrComplianceAudit is returned when a compliance audit operation fails.
-	ErrComplianceAudit = errors.New("compliance audit failed")
 )

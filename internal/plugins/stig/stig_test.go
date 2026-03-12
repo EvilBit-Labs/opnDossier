@@ -318,9 +318,8 @@ func TestPlugin_hasUnnecessaryServices(t *testing.T) {
 	}
 }
 
-func TestPlugin_broadNetworkRanges(t *testing.T) {
-	plugin := NewPlugin()
-	ranges := plugin.broadNetworkRanges()
+func TestBroadNetworks(t *testing.T) {
+	t.Parallel()
 
 	expectedRanges := []string{
 		"0.0.0.0/0",
@@ -331,14 +330,14 @@ func TestPlugin_broadNetworkRanges(t *testing.T) {
 		constants.NetworkAny,
 	}
 
-	if len(ranges) != len(expectedRanges) {
-		t.Errorf("broadNetworkRanges() returned %d ranges, want %d", len(ranges), len(expectedRanges))
+	if len(broadNetworks) != len(expectedRanges) {
+		t.Errorf("broadNetworks has %d entries, want %d", len(broadNetworks), len(expectedRanges))
 	}
 
 	for _, expected := range expectedRanges {
-		found := slices.Contains(ranges, expected)
+		found := slices.Contains(broadNetworks, expected)
 		if !found {
-			t.Errorf("broadNetworkRanges() missing expected range: %s", expected)
+			t.Errorf("broadNetworks missing expected range: %s", expected)
 		}
 	}
 }
