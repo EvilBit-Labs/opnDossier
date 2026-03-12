@@ -39,6 +39,21 @@
           "golang-pro"
         ]
       }
+    },
+    "popey/github-action-monitor": {
+      "version": "0.5.0"
+    },
+    "pantheon-ai/markdown-authoring": {
+      "version": "0.1.1"
+    },
+    "mcollina/skills": {
+      "version": "9a6d43f05298b009373157cafcd07e219c17181c",
+      "source": "https://github.com/mcollina/skills",
+      "include": {
+        "skills": [
+          "documentation"
+        ]
+      }
     }
   }
 }
