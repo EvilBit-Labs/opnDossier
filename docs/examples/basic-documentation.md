@@ -228,21 +228,16 @@ fi
 
 ```bash
 #!/bin/bash
-# compare-configs.sh
+# compare-configs.sh - using the built-in diff command
 
-# Convert both configurations to JSON
-opndossier convert current-config.xml -f json -o current.json
-opndossier convert previous-config.xml -f json -o previous.json
+# Compare configurations with structure-aware diffing
+opndossier diff previous-config.xml current-config.xml
 
-# Compare using jq (if available)
-if command -v jq &> /dev/null; then
-    jq -S . current.json > current-sorted.json
-    jq -S . previous.json > previous-sorted.json
-    diff current-sorted.json previous-sorted.json
-else
-    echo "Install jq for better comparison: brew install jq"
-    diff current.json previous.json
-fi
+# Generate a markdown change report for documentation
+opndossier diff previous-config.xml current-config.xml -f markdown -o changes.md
+
+# Focus on security-relevant changes only
+opndossier diff previous-config.xml current-config.xml --security --normalize
 ```
 
 ### Backup Documentation
