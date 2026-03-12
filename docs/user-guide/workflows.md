@@ -30,7 +30,7 @@ Practical recipes for common opnDossier tasks. Each workflow assumes you have op
 
 **Expected result:** A structured markdown document covering system settings, interfaces, firewall rules, VPN configurations, and other sections present in the configuration.
 
-For all convert options, see [convert command](commands/overview.md).
+For all convert options, see [convert command](commands/convert.md).
 
 ---
 
