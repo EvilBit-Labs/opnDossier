@@ -152,6 +152,69 @@ func TestFindingStruct(t *testing.T) {
 	}
 }
 
+func TestCloneControl_MutationIndependence(t *testing.T) {
+	t.Parallel()
+
+	original := compliance.Control{
+		ID:          "TEST-001",
+		Title:       "Original Title",
+		Description: "Original description",
+		Category:    "Test",
+		Severity:    "high",
+		References:  []string{"REF-001", "REF-002"},
+		Tags:        []string{"tag1", "tag2"},
+		Metadata:    map[string]string{"key1": "val1", "key2": "val2"},
+	}
+
+	clone := compliance.CloneControl(original)
+
+	// Mutate the clone
+	clone.References = append(clone.References, "REF-NEW")
+	clone.Tags = append(clone.Tags, "tag-new")
+	clone.Metadata["key3"] = "val3"
+
+	// Original must be unaffected
+	assert.Len(t, original.References, 2, "original References should not be mutated")
+	assert.Len(t, original.Tags, 2, "original Tags should not be mutated")
+	assert.Len(t, original.Metadata, 2, "original Metadata should not be mutated")
+	_, hasKey3 := original.Metadata["key3"]
+	assert.False(t, hasKey3, "original Metadata should not contain cloned key")
+}
+
+func TestCloneControls_MutationIndependence(t *testing.T) {
+	t.Parallel()
+
+	originals := []compliance.Control{
+		{
+			ID:         "CTRL-001",
+			Severity:   "critical",
+			References: []string{"REF-A"},
+			Tags:       []string{"t1"},
+			Metadata:   map[string]string{"k": "v"},
+		},
+		{
+			ID:         "CTRL-002",
+			Severity:   "low",
+			References: []string{"REF-B"},
+			Tags:       []string{"t2"},
+			Metadata:   map[string]string{"k2": "v2"},
+		},
+	}
+
+	clones := compliance.CloneControls(originals)
+	assert.Len(t, clones, 2)
+
+	// Mutate first clone
+	clones[0].References = append(clones[0].References, "REF-MUTATED")
+	clones[0].Tags = append(clones[0].Tags, "mutated")
+	clones[0].Metadata["mutated"] = "yes"
+
+	// Originals unaffected
+	assert.Len(t, originals[0].References, 1)
+	assert.Len(t, originals[0].Tags, 1)
+	assert.Len(t, originals[0].Metadata, 1)
+}
+
 func TestFindingValidation(t *testing.T) {
 	t.Parallel()
 

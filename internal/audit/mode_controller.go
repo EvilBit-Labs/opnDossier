@@ -80,25 +80,30 @@ func (mc *ModeController) ValidateModeConfig(config *ModeConfig) error {
 	}
 
 	// Normalize plugin names to lowercase for case-insensitive matching,
-	// then validate against the registry.
+	// then validate against the registry. A new slice is built to avoid
+	// mutating the caller's input.
 	if len(config.SelectedPlugins) > 0 {
 		availablePlugins := mc.registry.ListPlugins()
 		seen := make(map[string]struct{}, len(config.SelectedPlugins))
+		normalized := make([]string, 0, len(config.SelectedPlugins))
 
-		for i, pluginName := range config.SelectedPlugins {
-			normalized := strings.ToLower(pluginName)
-			config.SelectedPlugins[i] = normalized
+		for _, pluginName := range config.SelectedPlugins {
+			lower := strings.ToLower(pluginName)
 
-			if _, duplicate := seen[normalized]; duplicate {
-				return fmt.Errorf("%w: %s", ErrDuplicatePlugin, normalized)
+			if _, duplicate := seen[lower]; duplicate {
+				return fmt.Errorf("%w: %s", ErrDuplicatePlugin, lower)
 			}
 
-			seen[normalized] = struct{}{}
+			seen[lower] = struct{}{}
 
-			if !slices.Contains(availablePlugins, normalized) {
-				return fmt.Errorf("%w: %s", ErrPluginNotFound, normalized)
+			if !slices.Contains(availablePlugins, lower) {
+				return fmt.Errorf("%w: %s", ErrPluginNotFound, lower)
 			}
+
+			normalized = append(normalized, lower)
 		}
+
+		config.SelectedPlugins = normalized
 	}
 
 	return nil
