@@ -11,7 +11,7 @@ The `diff` command compares two OPNsense configurations and shows what changed b
 
 ## Usage
 
-```
+```text
 opndossier diff [flags] <old-config.xml> <new-config.xml>
 ```
 
