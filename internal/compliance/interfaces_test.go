@@ -8,6 +8,8 @@ import (
 )
 
 func TestErrors(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		err      error
@@ -32,12 +34,15 @@ func TestErrors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			assert.Equal(t, tt.expected, tt.err.Error())
 		})
 	}
 }
 
 func TestControlStruct(t *testing.T) {
+	t.Parallel()
+
 	control := compliance.Control{
 		ID:          "TEST-001",
 		Title:       "Test Control",
@@ -66,6 +71,7 @@ func TestControlStruct(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			switch tt.field {
 			case "ID":
 				assert.Equal(t, tt.expected, control.ID)
@@ -89,6 +95,8 @@ func TestControlStruct(t *testing.T) {
 }
 
 func TestFindingStruct(t *testing.T) {
+	t.Parallel()
+
 	finding := compliance.Finding{
 		Type:           "compliance",
 		Severity:       "high",
@@ -119,6 +127,7 @@ func TestFindingStruct(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			switch tt.field {
 			case "Type":
 				assert.Equal(t, tt.expected, finding.Type)
@@ -144,6 +153,8 @@ func TestFindingStruct(t *testing.T) {
 }
 
 func TestFindingValidation(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		finding compliance.Finding
@@ -210,6 +221,7 @@ func TestFindingValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			isValid := tt.finding.Type != "" &&
 				tt.finding.Severity != "" &&
 				tt.finding.Title != "" &&

@@ -372,6 +372,10 @@ func TestPlugin_FindingSeverityMatchesControl(t *testing.T) {
 
 	// Every emitted finding's severity must match its referenced control.
 	for _, finding := range findings {
+		if len(finding.References) == 0 {
+			t.Fatalf("finding %q has no references", finding.Title)
+		}
+
 		control, err := plugin.GetControlByID(finding.References[0])
 		if err != nil {
 			t.Fatalf("finding references unknown control %s: %v", finding.References[0], err)

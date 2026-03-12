@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	"github.com/stretchr/testify/assert"
 )
 
 // TestModeController_GenerateBlueReport_WithPlugins tests blue report generation with plugin execution.
@@ -97,12 +98,10 @@ func TestModeController_GenerateBlueReport_WithPlugins(t *testing.T) {
 				if !exists {
 					t.Error("GenerateReport() should store compliance under 'test-plugin' key")
 				} else {
-					if pluginResult.Summary == nil {
-						t.Error("GenerateReport() per-plugin compliance result should have non-nil Summary")
-					}
-					if pluginResult.Findings == nil {
-						t.Error("GenerateReport() per-plugin compliance result should have non-nil Findings")
-					}
+					assert.NotNil(t, pluginResult.Summary,
+						"GenerateReport() per-plugin compliance result should have non-nil Summary")
+					assert.NotNil(t, pluginResult.Findings,
+						"GenerateReport() per-plugin compliance result should have non-nil Findings")
 				}
 			}
 		})

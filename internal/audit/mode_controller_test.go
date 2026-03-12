@@ -1161,6 +1161,8 @@ func TestReport_AnalysisMethods(t *testing.T) {
 }
 
 func TestPluginRegistry_GetPlugin(t *testing.T) {
+	t.Parallel()
+
 	registry := NewPluginRegistry()
 	stigPlugin := stig.NewPlugin()
 
@@ -1195,6 +1197,8 @@ func TestPluginRegistry_LoadDynamicPlugins(_ *testing.T) {
 }
 
 func TestPluginRegistry_RunComplianceChecks(t *testing.T) {
+	t.Parallel()
+
 	registry := NewPluginRegistry()
 	stigPlugin := stig.NewPlugin()
 
