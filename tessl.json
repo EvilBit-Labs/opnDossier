@@ -54,6 +54,15 @@
           "documentation"
         ]
       }
+    },
+    "popey/nuxt-skills": {
+      "version": "6b12458d9307a06f2f96787c692034624723eeaa",
+      "source": "https://github.com/popey/nuxt-skills",
+      "include": {
+        "skills": [
+          "document-writer"
+        ]
+      }
     }
   }
 }
