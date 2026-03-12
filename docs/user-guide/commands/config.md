@@ -10,7 +10,7 @@ The `config` command helps you manage opnDossier's own settings -- not your OPNs
 
 ## Usage
 
-```
+```text
 opndossier config <subcommand> [flags]
 ```
 
@@ -36,7 +36,7 @@ Generate a template configuration file.
 
 Validate an existing configuration file for correctness.
 
-```
+```text
 opndossier config validate <path>
 ```
 
