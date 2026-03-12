@@ -21,6 +21,24 @@
     },
     "tessl/golang-gopkg-in--yaml-v3": {
       "version": "3.0.1"
+    },
+    "JetBrains/go-modern-guidelines": {
+      "version": "3a7f3eecd29f45e341f4e258d38fe8548ca05050",
+      "source": "https://github.com/JetBrains/go-modern-guidelines",
+      "include": {
+        "skills": [
+          "use-modern-go"
+        ]
+      }
+    },
+    "Jeffallan/claude-skills": {
+      "version": "3bf9a24b76a7c122f1fc05e83929fbc84e1c207a",
+      "source": "https://github.com/Jeffallan/claude-skills",
+      "include": {
+        "skills": [
+          "golang-pro"
+        ]
+      }
     }
   }
 }
