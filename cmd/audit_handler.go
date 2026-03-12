@@ -80,7 +80,7 @@ func appendAuditFindings(baseReport string, report *audit.Report) string {
 			{"Report Mode", string(report.Mode)},
 			{"Blackhat Mode", strconv.FormatBool(report.BlackhatMode)},
 			{"Comprehensive", strconv.FormatBool(report.Comprehensive)},
-			{"Total Findings", strconv.Itoa(len(report.Findings))},
+			{"Total Findings", strconv.Itoa(report.TotalFindingsCount())},
 		},
 	}
 	md.Table(summaryTable)
@@ -91,6 +91,12 @@ func appendAuditFindings(baseReport string, report *audit.Report) string {
 		for _, pluginName := range slices.Sorted(maps.Keys(report.Compliance)) {
 			result := report.Compliance[pluginName]
 			md.H4(pluginName)
+
+			if result.Summary == nil {
+				md.BulletList("Summary: no data available")
+				continue
+			}
+
 			items := []string{fmt.Sprintf("Summary: %d findings", result.Summary.TotalFindings)}
 			if result.Summary.CriticalFindings > 0 {
 				items = append(items, fmt.Sprintf("Critical: %d", result.Summary.CriticalFindings))
@@ -132,12 +138,12 @@ func appendAuditFindings(baseReport string, report *audit.Report) string {
 		if len(result.Findings) > 0 {
 			md.H3(pluginName + " Plugin Findings")
 			pluginTable := markdown.TableSet{
-				Header: []string{"Type", "Title", "Description"},
+				Header: []string{"Severity", "Title", "Description"},
 				Rows:   make([][]string, 0, len(result.Findings)),
 			}
 			for _, f := range result.Findings {
 				pluginTable.Rows = append(pluginTable.Rows, []string{
-					escapePipeForMarkdown(f.Type),
+					escapePipeForMarkdown(f.Severity),
 					escapePipeForMarkdown(f.Title),
 					escapePipeForMarkdown(truncateString(f.Description, maxDescriptionLength)),
 				})

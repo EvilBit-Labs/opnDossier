@@ -84,6 +84,7 @@ func (sp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	if !sp.hasDefaultDenyPolicy(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
+			Severity:       sp.controlSeverity("SANS-FW-001"),
 			Title:          "Missing Default Deny Policy (SANS)",
 			Description:    "Firewall should implement a default deny policy for all traffic",
 			Recommendation: "Configure firewall with default deny policy and explicit allow rules for necessary traffic",
@@ -98,6 +99,7 @@ func (sp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	if sp.hasUnclearRules(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
+			Severity:       sp.controlSeverity("SANS-FW-002"),
 			Title:          "Non-Explicit Firewall Rules",
 			Description:    "Firewall contains rules that are not explicit or well-documented",
 			Recommendation: "Replace any catch-all or overly permissive rules with explicit, documented rules",
@@ -112,6 +114,7 @@ func (sp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	if !sp.hasProperZoneSeparation(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
+			Severity:       sp.controlSeverity("SANS-FW-003"),
 			Title:          "Insufficient Network Zone Separation",
 			Description:    "Firewall does not enforce proper separation between different security zones",
 			Recommendation: "Configure firewall rules to enforce proper network zone separation and access controls",
@@ -126,6 +129,7 @@ func (sp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	if !sp.hasComprehensiveLogging(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
+			Severity:       sp.controlSeverity("SANS-FW-004"),
 			Title:          "Insufficient Firewall Logging",
 			Description:    "Firewall does not log all traffic and security events",
 			Recommendation: "Enable comprehensive logging for all firewall rules and security events",
@@ -139,9 +143,11 @@ func (sp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	return findings
 }
 
-// GetControls returns all SANS controls.
+// GetControls returns all SANS controls. The returned slice is a deep copy to
+// prevent callers from mutating the plugin's internal state, including nested
+// reference types (References, Tags, Metadata).
 func (sp *Plugin) GetControls() []compliance.Control {
-	return sp.controls
+	return compliance.CloneControls(sp.controls)
 }
 
 // GetControlByID returns a specific control by ID.
@@ -162,6 +168,19 @@ func (sp *Plugin) ValidateConfiguration() error {
 	}
 
 	return nil
+}
+
+// controlSeverity returns the severity for a control ID from the control
+// definitions. This ensures findings derive severity from the single source
+// of truth (the control metadata) rather than hard-coding literals.
+func (sp *Plugin) controlSeverity(id string) string {
+	for _, c := range sp.controls {
+		if c.ID == id {
+			return c.Severity
+		}
+	}
+
+	return ""
 }
 
 // Helper methods for compliance checks

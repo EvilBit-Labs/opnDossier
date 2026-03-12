@@ -80,6 +80,7 @@ func WithMaxRetries[T, R any](retries int) WorkerPoolOption[T, R] {
 // NewWorkerPool creates a new WorkerPool with the specified context and options.
 // If worker count is not specified or is 0, it defaults to NumCPU-1 (minimum 1).
 func NewWorkerPool[T, R any](ctx context.Context, opts ...WorkerPoolOption[T, R]) *WorkerPool[T, R] {
+	//nolint:gosec // G118: cancel is stored in WorkerPool.cancel and called by Stop/Cancel methods
 	ctx, cancel := context.WithCancel(ctx)
 
 	wp := &WorkerPool[T, R]{

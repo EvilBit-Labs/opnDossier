@@ -1,0 +1,68 @@
+{
+  "name": "project",
+  "dependencies": {
+    "tessl/golang-github-com-spf13--cobra": {
+      "version": "1.10.1"
+    },
+    "tessl/golang-github-com-spf13--pflag": {
+      "version": "1.0.0"
+    },
+    "tessl/go-viper": {
+      "version": "1.21.0"
+    },
+    "tessl/golang-github-com-stretchr--testify": {
+      "version": "1.11.0"
+    },
+    "tessl/golang-golang-org-x-term": {
+      "version": "0.37.0"
+    },
+    "tessl/golang-golang-org-x--text": {
+      "version": "0.31.0"
+    },
+    "tessl/golang-gopkg-in--yaml-v3": {
+      "version": "3.0.1"
+    },
+    "JetBrains/go-modern-guidelines": {
+      "version": "3a7f3eecd29f45e341f4e258d38fe8548ca05050",
+      "source": "https://github.com/JetBrains/go-modern-guidelines",
+      "include": {
+        "skills": [
+          "use-modern-go"
+        ]
+      }
+    },
+    "Jeffallan/claude-skills": {
+      "version": "3bf9a24b76a7c122f1fc05e83929fbc84e1c207a",
+      "source": "https://github.com/Jeffallan/claude-skills",
+      "include": {
+        "skills": [
+          "golang-pro"
+        ]
+      }
+    },
+    "popey/github-action-monitor": {
+      "version": "0.5.0"
+    },
+    "pantheon-ai/markdown-authoring": {
+      "version": "0.1.1"
+    },
+    "mcollina/skills": {
+      "version": "9a6d43f05298b009373157cafcd07e219c17181c",
+      "source": "https://github.com/mcollina/skills",
+      "include": {
+        "skills": [
+          "documentation"
+        ]
+      }
+    },
+    "popey/nuxt-skills": {
+      "version": "6b12458d9307a06f2f96787c692034624723eeaa",
+      "source": "https://github.com/popey/nuxt-skills",
+      "include": {
+        "skills": [
+          "document-writer"
+        ]
+      }
+    }
+  }
+}

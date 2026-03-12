@@ -195,6 +195,39 @@ func TestSANSPlugin_ValidateConfiguration(t *testing.T) {
 	}
 }
 
+func TestSANSPlugin_FindingSeverityMatchesControl(t *testing.T) {
+	t.Parallel()
+
+	sansPlugin := sans.NewPlugin()
+
+	// The SANS helpers are currently placeholders that return compliant for all
+	// checks, so no findings are emitted with a default device. This test
+	// validates the structural invariant: for any device configuration, every
+	// emitted finding's severity must match the severity of its referenced
+	// control. When the helpers gain real logic and start emitting findings,
+	// this test will automatically cover them.
+	configs := []*common.CommonDevice{
+		{},
+		{System: common.System{Hostname: "test"}},
+	}
+
+	for _, device := range configs {
+		findings := sansPlugin.RunChecks(device)
+		for _, finding := range findings {
+			control, err := sansPlugin.GetControlByID(finding.Reference)
+			require.NoError(t, err, "finding references unknown control %s", finding.Reference)
+			assert.Equal(t, control.Severity, finding.Severity,
+				"finding %s severity %q does not match control severity %q",
+				finding.Reference, finding.Severity, control.Severity)
+		}
+	}
+
+	// Verify all controls have non-empty severity (prerequisite for the invariant).
+	for _, control := range sansPlugin.GetControls() {
+		assert.NotEmpty(t, control.Severity, "control %s has empty severity", control.ID)
+	}
+}
+
 func getFindings(findings []compliance.Finding) []string {
 	var ids []string
 	for _, finding := range findings {

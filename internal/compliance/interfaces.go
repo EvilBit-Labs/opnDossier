@@ -1,6 +1,9 @@
 package compliance
 
 import (
+	"maps"
+	"slices"
+
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
@@ -45,11 +48,34 @@ type Control struct {
 	Metadata    map[string]string `json:"metadata,omitempty"`
 }
 
+// CloneControl returns a deep copy of a Control, cloning nested reference
+// types (References, Tags, Metadata) so mutations to the copy do not affect
+// the original.
+func CloneControl(c Control) Control {
+	clone := c
+	clone.References = slices.Clone(c.References)
+	clone.Tags = slices.Clone(c.Tags)
+	clone.Metadata = maps.Clone(c.Metadata)
+
+	return clone
+}
+
+// CloneControls returns a deep copy of a slice of Controls.
+func CloneControls(controls []Control) []Control {
+	cloned := make([]Control, len(controls))
+	for i, c := range controls {
+		cloned[i] = CloneControl(c)
+	}
+
+	return cloned
+}
+
 // Finding represents a standardized finding that all plugins must return.
 // This ensures consistent data structure for the plugin manager to process.
 type Finding struct {
 	// Core finding information
 	Type           string `json:"type"`
+	Severity       string `json:"severity,omitempty"`
 	Title          string `json:"title"`
 	Description    string `json:"description"`
 	Recommendation string `json:"recommendation"`
