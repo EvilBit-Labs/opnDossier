@@ -80,7 +80,7 @@ func appendAuditFindings(baseReport string, report *audit.Report) string {
 			{"Report Mode", string(report.Mode)},
 			{"Blackhat Mode", strconv.FormatBool(report.BlackhatMode)},
 			{"Comprehensive", strconv.FormatBool(report.Comprehensive)},
-			{"Total Findings", strconv.Itoa(len(report.Findings))},
+			{"Total Findings", strconv.Itoa(report.TotalFindingsCount())},
 		},
 	}
 	md.Table(summaryTable)
