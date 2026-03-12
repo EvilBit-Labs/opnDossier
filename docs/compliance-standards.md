@@ -182,7 +182,7 @@ When audit mode is working correctly ([#266](https://github.com/EvilBit-Labs/opn
 
 ### Finding to Control Mapping
 
-Each plugin maps its findings to the relevant compliance controls using the `Finding` type from `internal/compliance/interfaces.go`. Findings include description, recommendation, and component references. Severity is defined on the `Control`, not on individual findings.
+Each plugin maps its findings to the relevant compliance controls using the `Finding` type from `internal/compliance/interfaces.go`. Findings include description, recommendation, and component references. Each finding carries a `Severity` field copied from its originating control, enabling the audit engine to accurately tally findings by severity level (critical, high, medium, low).
 
 ## Benefits
 

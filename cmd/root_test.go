@@ -100,7 +100,6 @@ func TestRootCmdPersistentPreRunE(t *testing.T) {
 	require.NoError(t, err)
 
 	defer func() {
-		//nolint:gosec // tmpFile is created via os.CreateTemp in this test and removed in controlled cleanup.
 		err := os.Remove(tmpFile.Name())
 		require.NoError(t, err)
 	}()
@@ -143,7 +142,6 @@ func TestRootCmdInvalidConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	defer func() {
-		//nolint:gosec // tmpFile is created via os.CreateTemp in this test and removed in controlled cleanup.
 		err := os.Remove(tmpFile.Name())
 		require.NoError(t, err)
 	}()
@@ -178,7 +176,6 @@ func TestRootCmdVerboseQuietFlags(t *testing.T) {
 	require.NoError(t, err)
 
 	defer func() {
-		//nolint:gosec // tmpFile is created via os.CreateTemp in this test and removed in controlled cleanup.
 		err := os.Remove(tmpFile.Name())
 		require.NoError(t, err)
 	}()
@@ -269,7 +266,6 @@ func TestRootCmdPersistentPreRunERecoversFromFallback(t *testing.T) {
 	require.NoError(t, err)
 
 	defer func() {
-		//nolint:gosec // tmpFile is created via os.CreateTemp in this test and removed in controlled cleanup.
 		err := os.Remove(tmpFile.Name())
 		require.NoError(t, err)
 	}()

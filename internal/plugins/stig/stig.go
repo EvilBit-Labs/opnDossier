@@ -92,6 +92,7 @@ func (sp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	if !sp.hasDefaultDenyPolicy(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
+			Severity:       sp.controlSeverity("V-206694"),
 			Title:          "Missing Default Deny Policy",
 			Description:    "Firewall does not implement a default deny policy for all traffic",
 			Recommendation: "Configure firewall to deny all traffic by default and only allow necessary traffic through explicit rules",
@@ -106,6 +107,7 @@ func (sp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	if sp.hasOverlyPermissiveRules(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
+			Severity:       sp.controlSeverity("V-206674"),
 			Title:          "Overly Permissive Firewall Rules",
 			Description:    "Firewall contains rules that are too broad or permissive",
 			Recommendation: "Review and tighten firewall rules to use specific source/destination addresses and ports",
@@ -120,6 +122,7 @@ func (sp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	if sp.hasUnnecessaryServices(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
+			Severity:       sp.controlSeverity("V-206690"),
 			Title:          "Unnecessary Network Services Enabled",
 			Description:    "Firewall has unnecessary network services enabled",
 			Recommendation: "Disable or remove unnecessary network services and functions",
@@ -134,6 +137,7 @@ func (sp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	if !sp.hasComprehensiveLogging(device) {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
+			Severity:       sp.controlSeverity("V-206682"),
 			Title:          "Insufficient Firewall Logging",
 			Description:    "Firewall does not generate comprehensive logs for all traffic",
 			Recommendation: "Enable comprehensive logging for all firewall rules and ensure logs capture success/failure outcomes",
@@ -147,9 +151,11 @@ func (sp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	return findings
 }
 
-// GetControls returns all STIG controls.
+// GetControls returns all STIG controls. The returned slice is a deep copy to
+// prevent callers from mutating the plugin's internal state, including nested
+// reference types (References, Tags, Metadata).
 func (sp *Plugin) GetControls() []compliance.Control {
-	return sp.controls
+	return compliance.CloneControls(sp.controls)
 }
 
 // GetControlByID returns a specific control by ID.
@@ -170,6 +176,19 @@ func (sp *Plugin) ValidateConfiguration() error {
 	}
 
 	return nil
+}
+
+// controlSeverity returns the severity for a control ID from the control
+// definitions. This ensures findings derive severity from the single source
+// of truth (the control metadata) rather than hard-coding literals.
+func (sp *Plugin) controlSeverity(id string) string {
+	for _, c := range sp.controls {
+		if c.ID == id {
+			return c.Severity
+		}
+	}
+
+	return ""
 }
 
 // Helper methods for compliance checks
@@ -226,9 +245,9 @@ func (sp *Plugin) hasOverlyPermissiveRules(device *common.CommonDevice) bool {
 		srcTarget := rule.Source.Address
 		dstTarget := rule.Destination.Address
 
-		srcBroad := srcTarget == constants.NetworkAny || slices.Contains(sp.broadNetworkRanges(), srcTarget)
+		srcBroad := srcTarget == constants.NetworkAny || slices.Contains(broadNetworks, srcTarget)
 		dstBroad := dstTarget == "" || dstTarget == constants.NetworkAny ||
-			slices.Contains(sp.broadNetworkRanges(), dstTarget)
+			slices.Contains(broadNetworks, dstTarget)
 
 		// Check for "any/any" rules (most permissive)
 		if srcTarget == constants.NetworkAny && (dstTarget == "" || dstTarget == constants.NetworkAny) {
@@ -351,14 +370,14 @@ func (sp *Plugin) analyzeLoggingConfiguration(device *common.CommonDevice) Loggi
 	return LoggingStatusNotConfigured
 }
 
-// broadNetworkRanges returns a slice of common broad network ranges.
-func (sp *Plugin) broadNetworkRanges() []string {
-	return []string{
-		"0.0.0.0/0",          // All IPv4
-		"::/0",               // All IPv6
-		"10.0.0.0/8",         // Large private network
-		"172.16.0.0/12",      // Large private network
-		"192.168.0.0/16",     // Large private network
-		constants.NetworkAny, // Any network
-	}
+// broadNetworks contains common broad network ranges used to detect overly
+// permissive firewall rules. Declared at package level to avoid allocation
+// on every call within the rule-checking loop.
+var broadNetworks = []string{
+	"0.0.0.0/0",          // All IPv4
+	"::/0",               // All IPv6
+	"10.0.0.0/8",         // Large private network
+	"172.16.0.0/12",      // Large private network
+	"192.168.0.0/16",     // Large private network
+	constants.NetworkAny, // Any network
 }

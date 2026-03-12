@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/EvilBit-Labs/opnDossier/internal/processor"
@@ -25,6 +26,8 @@ var (
 	ErrPluginNotFound = errors.New("plugin not found")
 	// ErrConfigurationNil is returned when the OPNsense configuration is nil.
 	ErrConfigurationNil = errors.New("configuration cannot be nil")
+	// ErrDuplicatePlugin is returned when the same plugin appears more than once in the selection.
+	ErrDuplicatePlugin = errors.New("duplicate plugin in selection")
 )
 
 // ReportMode represents the different types of audit reports that can be generated.
@@ -76,14 +79,31 @@ func (mc *ModeController) ValidateModeConfig(config *ModeConfig) error {
 		return fmt.Errorf("%w: %s", ErrUnsupportedMode, config.Mode)
 	}
 
-	// Validate plugin selection if specified
+	// Normalize plugin names to lowercase for case-insensitive matching,
+	// then validate against the registry. A new slice is built to avoid
+	// mutating the caller's input.
 	if len(config.SelectedPlugins) > 0 {
 		availablePlugins := mc.registry.ListPlugins()
+		seen := make(map[string]struct{}, len(config.SelectedPlugins))
+		normalized := make([]string, 0, len(config.SelectedPlugins))
+
 		for _, pluginName := range config.SelectedPlugins {
-			if !slices.Contains(availablePlugins, pluginName) {
-				return fmt.Errorf("%w: %s", ErrPluginNotFound, pluginName)
+			lower := strings.ToLower(pluginName)
+
+			if _, duplicate := seen[lower]; duplicate {
+				return fmt.Errorf("%w: %s", ErrDuplicatePlugin, lower)
 			}
+
+			seen[lower] = struct{}{}
+
+			if !slices.Contains(availablePlugins, lower) {
+				return fmt.Errorf("%w: %s", ErrPluginNotFound, lower)
+			}
+
+			normalized = append(normalized, lower)
 		}
+
+		config.SelectedPlugins = normalized
 	}
 
 	return nil
@@ -169,7 +189,21 @@ func (mc *ModeController) generateBlueReport(_ context.Context, report *Report, 
 			report.Metadata["compliance_check_error"] = err.Error()
 			report.Metadata["compliance_check_time"] = time.Now().Format(time.RFC3339)
 		} else {
-			report.Compliance["plugin_results"] = *complianceResult
+			// Store per-plugin compliance results (not aggregated) so that
+			// appendAuditFindings can iterate by plugin name.
+			for pluginName, info := range complianceResult.PluginInfo {
+				pluginFindings := complianceResult.PluginFindings[pluginName]
+				pluginComplianceMap := complianceResult.Compliance[pluginName]
+				pluginSummary := computePerPluginSummary(pluginName, pluginFindings, pluginComplianceMap)
+
+				report.Compliance[pluginName] = ComplianceResult{
+					Findings:       pluginFindings,
+					PluginFindings: map[string][]compliance.Finding{pluginName: pluginFindings},
+					Compliance:     map[string]map[string]bool{pluginName: pluginComplianceMap},
+					Summary:        pluginSummary,
+					PluginInfo:     map[string]PluginInfo{pluginName: info},
+				}
+			}
 			// Add metadata to report indicating successful compliance checks
 			report.Metadata["compliance_check_status"] = "completed"
 			report.Metadata["compliance_check_time"] = time.Now().Format(time.RFC3339)
@@ -242,12 +276,16 @@ type AttackSurface struct {
 
 // addSystemMetadata adds system metadata to the report.
 func (r *Report) addSystemMetadata() {
-	if r.Configuration != nil && r.Configuration.System.Hostname != "" {
-		r.Metadata["system_hostname"] = r.Configuration.System.Hostname
+	if r.Configuration != nil {
+		if r.Configuration.System.Hostname != "" {
+			r.Metadata["system_hostname"] = r.Configuration.System.Hostname
+		}
+
+		if r.Configuration.System.Domain != "" {
+			r.Metadata["system_domain"] = r.Configuration.System.Domain
+		}
 	}
-	if r.Configuration != nil && r.Configuration.System.Domain != "" {
-		r.Metadata["system_domain"] = r.Configuration.System.Domain
-	}
+
 	r.Metadata["system_analysis_completed"] = true
 }
 
@@ -336,11 +374,25 @@ func (r *Report) addHighAvailabilityAnalysis() {
 	r.Metadata["ha_analysis_completed"] = true
 }
 
+// TotalFindingsCount returns the aggregate number of findings across both
+// direct security findings (report.Findings) and per-plugin compliance
+// findings (report.Compliance[*].Summary.TotalFindings). This ensures
+// the top-level summary reflects the same totals as the per-plugin sections.
+func (r *Report) TotalFindingsCount() int {
+	total := len(r.Findings)
+	for _, cr := range r.Compliance {
+		if cr.Summary != nil {
+			total += cr.Summary.TotalFindings
+		}
+	}
+	return total
+}
+
 // addSecurityFindings adds security findings to the blue team report.
 func (r *Report) addSecurityFindings() {
 	// Add placeholder security analysis
 	r.Metadata["security_scan_completed"] = true
-	r.Metadata["security_findings_count"] = len(r.Findings)
+	r.Metadata["security_findings_count"] = r.TotalFindingsCount()
 }
 
 // addComplianceAnalysis adds compliance analysis to the blue team report.
