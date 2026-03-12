@@ -21,6 +21,8 @@ import (
 const testBaseReport = "# Report\n"
 
 func TestAppendAuditFindings_EmptyReport(t *testing.T) {
+	t.Parallel()
+
 	// Create a base report
 	baseReport := "# Test Report\n\nSome content"
 
@@ -54,6 +56,8 @@ func TestAppendAuditFindings_EmptyReport(t *testing.T) {
 }
 
 func TestAppendAuditFindings_WithFindings(t *testing.T) {
+	t.Parallel()
+
 	baseReport := "# Configuration Report\n"
 
 	report := &audit.Report{
@@ -101,6 +105,8 @@ func TestAppendAuditFindings_WithFindings(t *testing.T) {
 }
 
 func TestAppendAuditFindings_WithComplianceResults(t *testing.T) {
+	t.Parallel()
+
 	baseReport := testBaseReport
 
 	report := &audit.Report{
@@ -147,6 +153,8 @@ func TestAppendAuditFindings_WithComplianceResults(t *testing.T) {
 }
 
 func TestAppendAuditFindings_WithMetadata(t *testing.T) {
+	t.Parallel()
+
 	baseReport := testBaseReport
 
 	report := &audit.Report{
@@ -168,6 +176,8 @@ func TestAppendAuditFindings_WithMetadata(t *testing.T) {
 }
 
 func TestAppendAuditFindings_RedTeamWithBlackhat(t *testing.T) {
+	t.Parallel()
+
 	baseReport := testBaseReport
 
 	report := &audit.Report{
@@ -188,6 +198,8 @@ func TestAppendAuditFindings_RedTeamWithBlackhat(t *testing.T) {
 }
 
 func TestEscapePipeForMarkdown(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		input    string
@@ -206,6 +218,7 @@ func TestEscapePipeForMarkdown(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := escapePipeForMarkdown(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -213,6 +226,8 @@ func TestEscapePipeForMarkdown(t *testing.T) {
 }
 
 func TestTruncateString(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		input    string
@@ -237,6 +252,7 @@ func TestTruncateString(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := truncateString(tt.input, tt.maxLen)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -244,6 +260,8 @@ func TestTruncateString(t *testing.T) {
 }
 
 func TestTruncateString_MaxDescriptionLength(t *testing.T) {
+	t.Parallel()
+
 	// Test with the actual maxDescriptionLength constant
 	longDescription := strings.Repeat("a", 100)
 	result := truncateString(longDescription, maxDescriptionLength)
@@ -418,6 +436,8 @@ func TestValidateAuditPluginsInvalid(t *testing.T) {
 }
 
 func TestAppendAuditFindings_ComplianceSeverityCounts(t *testing.T) {
+	t.Parallel()
+
 	baseReport := testBaseReport
 
 	report := &audit.Report{
@@ -448,6 +468,8 @@ func TestAppendAuditFindings_ComplianceSeverityCounts(t *testing.T) {
 }
 
 func TestAppendAuditFindings_PluginFindingsShowSeverity(t *testing.T) {
+	t.Parallel()
+
 	baseReport := testBaseReport
 
 	report := &audit.Report{
@@ -500,6 +522,8 @@ func TestAppendAuditFindings_PluginFindingsShowSeverity(t *testing.T) {
 }
 
 func TestAppendAuditFindings_PerPluginSeverityBreakdown(t *testing.T) {
+	t.Parallel()
+
 	baseReport := testBaseReport
 
 	report := &audit.Report{
@@ -586,6 +610,8 @@ func TestAppendAuditFindings_PerPluginSeverityBreakdown(t *testing.T) {
 }
 
 func TestAppendAuditFindings_EmptyPluginFindings(t *testing.T) {
+	t.Parallel()
+
 	baseReport := testBaseReport
 
 	report := &audit.Report{
@@ -627,6 +653,8 @@ func TestAppendAuditFindings_EmptyPluginFindings(t *testing.T) {
 }
 
 func TestAppendAuditFindings_PluginFindingsTruncation(t *testing.T) {
+	t.Parallel()
+
 	baseReport := testBaseReport
 
 	// Create a very long description
@@ -665,6 +693,8 @@ func TestAppendAuditFindings_PluginFindingsTruncation(t *testing.T) {
 }
 
 func TestAppendAuditFindings_PipeEscapingInTables(t *testing.T) {
+	t.Parallel()
+
 	baseReport := testBaseReport
 
 	report := &audit.Report{
@@ -691,6 +721,8 @@ func TestAppendAuditFindings_PipeEscapingInTables(t *testing.T) {
 }
 
 func TestAddSharedAuditFlagsRegistersFlags(t *testing.T) {
+	t.Parallel()
+
 	// Create a fresh command for testing
 	cmd := &cobra.Command{Use: "test"}
 	addSharedAuditFlags(cmd)
@@ -714,6 +746,8 @@ func TestAddSharedAuditFlagsRegistersFlags(t *testing.T) {
 }
 
 func TestValidAuditModes(t *testing.T) {
+	t.Parallel()
+
 	completions, directive := ValidAuditModes(nil, nil, "")
 
 	assert.Len(t, completions, 3)
@@ -727,6 +761,8 @@ func TestValidAuditModes(t *testing.T) {
 }
 
 func TestValidAuditPlugins(t *testing.T) {
+	t.Parallel()
+
 	completions, directive := ValidAuditPlugins(nil, nil, "")
 
 	assert.Len(t, completions, 3)
@@ -843,4 +879,31 @@ func TestBuildAuditOptions(t *testing.T) {
 			assert.Equal(t, tt.selectedPlugins, result.SelectedPlugins)
 		})
 	}
+}
+
+// TestAppendAuditFindings_NilSummaryInCompliance verifies that a ComplianceResult
+// with nil Summary does not cause a panic in appendAuditFindings.
+func TestAppendAuditFindings_NilSummaryInCompliance(t *testing.T) {
+	t.Parallel()
+
+	report := &audit.Report{
+		Mode:     audit.ModeBlue,
+		Findings: []audit.Finding{},
+		Compliance: map[string]audit.ComplianceResult{
+			"nil_summary_plugin": {
+				Findings: []compliance.Finding{},
+				Summary:  nil,
+			},
+		},
+		Metadata: make(map[string]any),
+	}
+
+	// This must not panic
+	assert.NotPanics(t, func() {
+		appendAuditFindings("# Base\n", report)
+	})
+
+	result := appendAuditFindings("# Base\n", report)
+	// Should show fallback text instead of panicking
+	assert.Contains(t, result, "no data available")
 }

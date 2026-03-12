@@ -91,6 +91,12 @@ func appendAuditFindings(baseReport string, report *audit.Report) string {
 		for _, pluginName := range slices.Sorted(maps.Keys(report.Compliance)) {
 			result := report.Compliance[pluginName]
 			md.H4(pluginName)
+
+			if result.Summary == nil {
+				md.BulletList("Summary: no data available")
+				continue
+			}
+
 			items := []string{fmt.Sprintf("Summary: %d findings", result.Summary.TotalFindings)}
 			if result.Summary.CriticalFindings > 0 {
 				items = append(items, fmt.Sprintf("Critical: %d", result.Summary.CriticalFindings))
