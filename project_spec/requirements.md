@@ -235,7 +235,7 @@
 - **Terminal Styling**: `charmbracelet/lipgloss` for colored output
 - **Markdown Rendering**: `charmbracelet/glamour` for terminal markdown display
 - **Standard Library**: `encoding/xml`, `encoding/json` for data processing
-- **Structured Logging**: `charmbracelet/log` for consistent logging
+- **Structured Logging**: `charmbracelet/log` v1.0.0 for consistent logging
 
 #### Build Tools and Dependency Management
 
