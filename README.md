@@ -1,6 +1,6 @@
 # opnDossier - OPNsense Configuration Processor
 
-[![OpenSSF Best Practices][ossf-badge]][ossf] [![Go Version][go-badge]][go] [![License][license-badge]][license] [![codecov][codecov-badge]][codecov] [![Documentation][docs-badge]][docs] ![CodeRabbit Pull Request Reviews][coderabbit-badge] [![wakatime][wakatime-badge]][wakatime] [![Go Report Card][goreportcard-badge]][goreportcard] [![Mergify Status][mergify-status]][mergify]
+[![OpenSSF Best Practices][ossf-badge]][ossf] [![Go Version][go-badge]][go] [![License][license-badge]][license] [![codecov][codecov-badge]][codecov] [![Documentation][docs-badge]][docs] [![wakatime][wakatime-badge]][wakatime] [![Go Report Card][goreportcard-badge]][goreportcard] [![Mergify Status][mergify-status]][mergify]
 
 ## Overview
 
@@ -348,7 +348,6 @@ Built for network operators and security professionals.
 
 [codecov]: https://codecov.io/gh/EvilBit-Labs/opnDossier
 [codecov-badge]: https://codecov.io/gh/EvilBit-Labs/opnDossier/graph/badge.svg?token=WD1QD9ITZF
-[coderabbit-badge]: https://img.shields.io/coderabbit/prs/github/EvilBit-Labs/opnDossier?utm_source=oss&utm_medium=github&utm_campaign=EvilBit-Labs%2FopnDossier&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews
 [docs]: https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/index.md
 [docs-badge]: https://img.shields.io/badge/docs-mkdocs-blue.svg
 [go]: https://golang.org
