@@ -12,12 +12,12 @@ jobs:
   go-action-detection:
     runs-on: ubuntu-latest
     steps:
-      - name: "Checkout Repository"
-        uses: actions/checkout@v6.0.2
-
-      - uses: actions/setup-go@v6.3.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: jdx/mise-action@v3.6.3
         with:
-          go-version: ">=1.26.0"
+          install: true
+          cache: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run snapshot action
         uses: actions/go-dependency-submission@v2.0.3
