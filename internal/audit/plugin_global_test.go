@@ -5,18 +5,37 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
 // TestGlobalPluginRegistry tests all global registry functions.
-//
-
 func TestGlobalPluginRegistry(t *testing.T) {
-	// Reset global registry for clean testing
+	// Save and restore global state. We capture both the registry pointer
+	// and whether the singleton was already initialized so cleanup can
+	// faithfully restore the original state.
+	origRegistry := globalRegistry
+	origInitialized := globalRegistry != nil
+
+	t.Cleanup(func() {
+		globalRegistry = origRegistry
+		if origInitialized {
+			// Mark the Once as already executed by running a no-op Do.
+			// We reset first, then immediately fire Do so subsequent
+			// GetGlobalRegistry() calls return the saved pointer.
+			globalRegistryOnce = sync.Once{}
+			globalRegistryOnce.Do(func() {})
+		} else {
+			globalRegistryOnce = sync.Once{}
+		}
+	})
+
 	globalRegistryOnce = sync.Once{}
 	globalRegistry = nil
 
@@ -33,7 +52,6 @@ func TestGlobalPluginRegistry(t *testing.T) {
 	})
 
 	t.Run("RegisterGlobalPlugin", func(t *testing.T) {
-		// Reset for this test
 		globalRegistryOnce = sync.Once{}
 		globalRegistry = nil
 
@@ -228,11 +246,26 @@ func TestPluginRegistry_CalculateSummary(t *testing.T) {
 			name: "mixed severity findings",
 			result: &ComplianceResult{
 				Findings: []compliance.Finding{
-					{Type: "critical", Title: "Critical Issue", Description: "Critical security issue"},
-					{Type: "high", Title: "High Issue", Description: "High severity issue"},
-					{Type: "medium", Title: "Medium Issue", Description: "Medium severity issue"},
-					{Type: "low", Title: "Low Issue", Description: "Low severity issue"},
-					{Type: "critical", Title: "Another Critical", Description: "Another critical issue"},
+					{
+						Type:        "compliance",
+						Severity:    "critical",
+						Title:       "Critical Issue",
+						Description: "Critical security issue",
+					},
+					{Type: "compliance", Severity: "high", Title: "High Issue", Description: "High severity issue"},
+					{
+						Type:        "compliance",
+						Severity:    "medium",
+						Title:       "Medium Issue",
+						Description: "Medium severity issue",
+					},
+					{Type: "compliance", Severity: "low", Title: "Low Issue", Description: "Low severity issue"},
+					{
+						Type:        "compliance",
+						Severity:    "critical",
+						Title:       "Another Critical",
+						Description: "Another critical issue",
+					},
 				},
 				Compliance: map[string]map[string]bool{
 					"test-plugin": {
@@ -259,9 +292,9 @@ func TestPluginRegistry_CalculateSummary(t *testing.T) {
 			name: "unknown severity types",
 			result: &ComplianceResult{
 				Findings: []compliance.Finding{
-					{Type: "unknown", Title: "Unknown Issue", Description: "Unknown severity"},
-					{Type: "info", Title: "Info Issue", Description: "Info level"},
-					{Type: "", Title: "Empty Type", Description: "Empty severity type"},
+					{Type: "compliance", Severity: "unknown", Title: "Unknown Issue", Description: "Unknown severity"},
+					{Type: "compliance", Severity: "info", Title: "Info Issue", Description: "Info level"},
+					{Type: "compliance", Severity: "", Title: "Empty Type", Description: "Empty severity type"},
 				},
 				Compliance: make(map[string]map[string]bool),
 				PluginInfo: make(map[string]PluginInfo),
@@ -436,7 +469,8 @@ func TestRunComplianceChecks_WithFindingsAndReferences(t *testing.T) {
 		},
 		findings: []compliance.Finding{
 			{
-				Type:           "high",
+				Type:           "compliance",
+				Severity:       "high",
 				Title:          "Security Issue",
 				Description:    "A security issue was found",
 				Recommendation: "Fix the issue",
@@ -495,6 +529,224 @@ func TestRunComplianceChecks_WithFindingsAndReferences(t *testing.T) {
 	}
 }
 
+// TestRunComplianceChecks_MissingSeverityDerivation tests that findings without Severity
+// are normalized by deriving severity from the plugin's control metadata.
+func TestRunComplianceChecks_MissingSeverityDerivation(t *testing.T) {
+	t.Parallel()
+
+	registry := NewPluginRegistry()
+
+	// Plugin with controls that have severity, but findings lack Severity
+	mockPlugin := &mockPluginWithFindings{
+		mockCompliancePlugin: mockCompliancePlugin{
+			name:        "test-missing-severity",
+			description: "Plugin returning findings without Severity",
+			version:     "1.0.0",
+		},
+		findings: []compliance.Finding{
+			{
+				Type:           "compliance",
+				Title:          "Finding Without Severity",
+				Description:    "This finding has no severity set",
+				Recommendation: "Fix it",
+				Reference:      "CONTROL-001",
+				References:     []string{"CONTROL-001"},
+			},
+			{
+				Type:           "compliance",
+				Title:          "Finding With Severity Already Set",
+				Description:    "This finding already has severity",
+				Severity:       "low",
+				Recommendation: "Fix it",
+				Reference:      "CONTROL-002",
+				References:     []string{"CONTROL-002"},
+			},
+		},
+		controls: []compliance.Control{
+			{ID: "CONTROL-001", Title: "Control 1", Severity: severityCritical},
+			{ID: "CONTROL-002", Title: "Control 2", Severity: "medium"},
+		},
+	}
+
+	err := registry.RegisterPlugin(mockPlugin)
+	if err != nil {
+		t.Fatalf("Failed to register plugin: %v", err)
+	}
+
+	testConfig := &common.CommonDevice{
+		System: common.System{Hostname: "test-host"},
+	}
+
+	result, err := registry.RunComplianceChecks(testConfig, []string{"test-missing-severity"})
+	if err != nil {
+		t.Fatalf("RunComplianceChecks() error = %v", err)
+	}
+
+	if len(result.Findings) != 2 {
+		t.Fatalf("Expected 2 findings, got %d", len(result.Findings))
+	}
+
+	// Finding without severity should be derived from control metadata
+	if result.Findings[0].Severity != severityCritical {
+		t.Errorf("Expected derived severity 'critical', got %q", result.Findings[0].Severity)
+	}
+
+	// Finding with severity already set should be unchanged
+	if result.Findings[1].Severity != "low" {
+		t.Errorf("Expected existing severity 'low', got %q", result.Findings[1].Severity)
+	}
+
+	// Summary should reflect the derived severity
+	if result.Summary.CriticalFindings != 1 {
+		t.Errorf("Expected 1 critical finding, got %d", result.Summary.CriticalFindings)
+	}
+	if result.Summary.LowFindings != 1 {
+		t.Errorf("Expected 1 low finding, got %d", result.Summary.LowFindings)
+	}
+}
+
+// TestRunComplianceChecks_MissingSeverityNoMatchingControl tests that findings without
+// Severity and no matching control cause RunComplianceChecks to return an error.
+func TestRunComplianceChecks_MissingSeverityNoMatchingControl(t *testing.T) {
+	t.Parallel()
+
+	registry := NewPluginRegistry()
+
+	mockPlugin := &mockPluginWithFindings{
+		mockCompliancePlugin: mockCompliancePlugin{
+			name:        "test-no-control-match",
+			description: "Plugin with unresolvable severity",
+			version:     "1.0.0",
+		},
+		findings: []compliance.Finding{
+			{
+				Type:           "compliance",
+				Title:          "Orphan Finding",
+				Description:    "No matching control exists",
+				Recommendation: "Fix it",
+				Reference:      "NONEXISTENT-001",
+				References:     []string{"NONEXISTENT-001"},
+			},
+		},
+		controls: []compliance.Control{
+			{ID: "CONTROL-001", Title: "Control 1", Severity: "high"},
+		},
+	}
+
+	err := registry.RegisterPlugin(mockPlugin)
+	if err != nil {
+		t.Fatalf("Failed to register plugin: %v", err)
+	}
+
+	testConfig := &common.CommonDevice{
+		System: common.System{Hostname: "test-host"},
+	}
+
+	result, err := registry.RunComplianceChecks(testConfig, []string{"test-no-control-match"})
+	if err == nil {
+		t.Fatal("RunComplianceChecks() should return error for orphan finding with unresolvable severity")
+	}
+
+	if result != nil {
+		t.Error("RunComplianceChecks() should return nil result on error")
+	}
+
+	// Error should identify the plugin and the unresolved reference
+	errMsg := err.Error()
+	if !strings.Contains(errMsg, "test-no-control-match") {
+		t.Errorf("Error should identify plugin name, got: %s", errMsg)
+	}
+	if !strings.Contains(errMsg, "NONEXISTENT-001") {
+		t.Errorf("Error should identify unresolved control reference, got: %s", errMsg)
+	}
+}
+
+// TestDeriveSeverityFromControl tests the deriveSeverityFromControl helper directly.
+func TestDeriveSeverityFromControl(t *testing.T) {
+	t.Parallel()
+
+	mockPlugin := &mockPluginWithFindings{
+		mockCompliancePlugin: mockCompliancePlugin{
+			name:    "derive-test",
+			version: "1.0.0",
+		},
+		controls: []compliance.Control{
+			{ID: "CTRL-001", Severity: severityCritical},
+			{ID: "CTRL-002", Severity: "high"},
+		},
+	}
+
+	t.Run("derives from References", func(t *testing.T) {
+		t.Parallel()
+
+		result, err := deriveSeverityFromControl(mockPlugin, compliance.Finding{
+			References: []string{"CTRL-001"},
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result != severityCritical {
+			t.Errorf("deriveSeverityFromControl() = %q, want %q", result, severityCritical)
+		}
+	})
+
+	t.Run("derives from Reference fallback", func(t *testing.T) {
+		t.Parallel()
+
+		result, err := deriveSeverityFromControl(mockPlugin, compliance.Finding{
+			Reference: "CTRL-002",
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result != "high" {
+			t.Errorf("deriveSeverityFromControl() = %q, want %q", result, "high")
+		}
+	})
+
+	t.Run("References takes priority over Reference", func(t *testing.T) {
+		t.Parallel()
+
+		result, err := deriveSeverityFromControl(mockPlugin, compliance.Finding{
+			References: []string{"CTRL-001"},
+			Reference:  "CTRL-002",
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result != severityCritical {
+			t.Errorf("deriveSeverityFromControl() = %q, want %q", result, severityCritical)
+		}
+	})
+
+	t.Run("no matching control returns error", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := deriveSeverityFromControl(mockPlugin, compliance.Finding{
+			Title:      "Bad Finding",
+			References: []string{"NONEXISTENT"},
+			Reference:  "ALSO-NONEXISTENT",
+		})
+		if err == nil {
+			t.Fatal("expected error for unresolvable control references")
+		}
+		if !strings.Contains(err.Error(), "NONEXISTENT") {
+			t.Errorf("error should mention unresolved reference, got: %v", err)
+		}
+	})
+
+	t.Run("empty references returns error", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := deriveSeverityFromControl(mockPlugin, compliance.Finding{
+			Title: "No Refs Finding",
+		})
+		if err == nil {
+			t.Fatal("expected error for finding with no control references")
+		}
+	})
+}
+
 // createTestDirWithNonSOFiles creates a temporary directory with non-.so files for testing.
 func createTestDirWithNonSOFiles(t *testing.T) string {
 	t.Helper()
@@ -537,4 +789,221 @@ func (m *mockPluginWithFindings) GetControlByID(id string) (*compliance.Control,
 		}
 	}
 	return nil, compliance.ErrControlNotFound
+}
+
+// TestRunComplianceChecks_PerPluginSeverityArithmetic exercises the full RunComplianceChecks
+// pipeline with the real STIG plugin and verifies that severity counts sum correctly.
+func TestRunComplianceChecks_PerPluginSeverityArithmetic(t *testing.T) {
+	t.Parallel()
+
+	logger, err := logging.New(logging.Config{})
+	if err != nil {
+		t.Fatalf("failed to create logger: %v", err)
+	}
+
+	pm := NewPluginManager(logger)
+	ctx := context.Background()
+
+	if err := pm.InitializePlugins(ctx); err != nil {
+		t.Fatalf("InitializePlugins() error: %v", err)
+	}
+
+	registry := pm.GetRegistry()
+
+	// Build a device that triggers all four STIG findings:
+	// - V-206694: any/any pass rule without deny -> missing default deny
+	// - V-206674: any/any pass rule -> overly permissive
+	// - V-206690: SNMP community string -> unnecessary services
+	// - V-206682: no syslog -> insufficient logging
+	device := &common.CommonDevice{
+		FirewallRules: []common.FirewallRule{
+			{
+				Type:        "pass",
+				Source:      common.RuleEndpoint{Address: constants.NetworkAny},
+				Destination: common.RuleEndpoint{Address: constants.NetworkAny},
+			},
+		},
+		SNMP: common.SNMPConfig{
+			ROCommunity: "public",
+		},
+	}
+
+	result, err := registry.RunComplianceChecks(device, []string{"stig"})
+	if err != nil {
+		t.Fatalf("RunComplianceChecks() error: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("RunComplianceChecks() returned nil result")
+	}
+
+	if len(result.Findings) == 0 {
+		t.Fatal("RunComplianceChecks() returned zero findings; expected STIG findings")
+	}
+
+	// Total findings must be consistent
+	if result.Summary.TotalFindings != len(result.Findings) {
+		t.Errorf("Summary.TotalFindings = %d, want %d (len of Findings)",
+			result.Summary.TotalFindings, len(result.Findings))
+	}
+
+	// Severity arithmetic invariant: all severity buckets must sum to TotalFindings
+	severitySum := result.Summary.CriticalFindings +
+		result.Summary.HighFindings +
+		result.Summary.MediumFindings +
+		result.Summary.LowFindings
+	if severitySum != result.Summary.TotalFindings {
+		t.Errorf("Severity sum (%d) != TotalFindings (%d): critical=%d high=%d medium=%d low=%d",
+			severitySum, result.Summary.TotalFindings,
+			result.Summary.CriticalFindings, result.Summary.HighFindings,
+			result.Summary.MediumFindings, result.Summary.LowFindings)
+	}
+
+	// STIG controls have "high" and "medium" severities; at least one must be non-zero
+	if result.Summary.HighFindings == 0 && result.Summary.MediumFindings == 0 {
+		t.Error("Expected at least one high or medium finding from STIG plugin")
+	}
+
+	// Per-plugin findings map must match aggregate
+	stigFindings, ok := result.PluginFindings["stig"]
+	if !ok {
+		t.Fatal("PluginFindings missing 'stig' entry")
+	}
+
+	if len(stigFindings) != len(result.Findings) {
+		t.Errorf("PluginFindings[\"stig\"] length = %d, want %d",
+			len(stigFindings), len(result.Findings))
+	}
+
+	if result.Summary.PluginCount != 1 {
+		t.Errorf("Summary.PluginCount = %d, want 1", result.Summary.PluginCount)
+	}
+}
+
+// TestDeduplicatePluginNames tests the deduplicatePluginNames helper function.
+func TestDeduplicatePluginNames(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    []string
+		expected []string
+	}{
+		{
+			name:     "no duplicates",
+			input:    []string{"stig", "sans", "firewall"},
+			expected: []string{"stig", "sans", "firewall"},
+		},
+		{
+			name:     "adjacent duplicates",
+			input:    []string{"stig", "stig"},
+			expected: []string{"stig"},
+		},
+		{
+			name:     "non-adjacent duplicates",
+			input:    []string{"stig", "sans", "stig"},
+			expected: []string{"stig", "sans"},
+		},
+		{
+			name:     "all same",
+			input:    []string{"stig", "stig", "stig"},
+			expected: []string{"stig"},
+		},
+		{
+			name:     "empty input",
+			input:    []string{},
+			expected: []string{},
+		},
+		{
+			name:     "nil input",
+			input:    nil,
+			expected: []string{},
+		},
+		{
+			name:     "single element",
+			input:    []string{"stig"},
+			expected: []string{"stig"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := deduplicatePluginNames(tt.input)
+			if len(result) != len(tt.expected) {
+				t.Fatalf("deduplicatePluginNames() returned %d items, want %d", len(result), len(tt.expected))
+			}
+
+			for i, name := range result {
+				if name != tt.expected[i] {
+					t.Errorf("deduplicatePluginNames()[%d] = %q, want %q", i, name, tt.expected[i])
+				}
+			}
+		})
+	}
+}
+
+// TestRunComplianceChecks_DuplicatePluginNames tests that duplicate plugin names
+// are handled gracefully by RunComplianceChecks (defense-in-depth deduplication).
+func TestRunComplianceChecks_DuplicatePluginNames(t *testing.T) {
+	t.Parallel()
+
+	registry := NewPluginRegistry()
+
+	plugin := &mockPluginWithFindings{
+		mockCompliancePlugin: mockCompliancePlugin{
+			name:        "test-plugin",
+			version:     "1.0.0",
+			description: "Test Plugin",
+		},
+		controls: []compliance.Control{
+			{ID: "TEST-001", Title: "Test Control", Severity: "high"},
+		},
+		findings: []compliance.Finding{
+			{
+				Title:      "Test Finding",
+				Severity:   "high",
+				References: []string{"TEST-001"},
+			},
+		},
+	}
+
+	if err := registry.RegisterPlugin(plugin); err != nil {
+		t.Fatalf("Failed to register plugin: %v", err)
+	}
+
+	device := &common.CommonDevice{
+		System: common.System{Hostname: "test"},
+	}
+
+	// Pass duplicate names — should be deduplicated internally
+	result, err := registry.RunComplianceChecks(device, []string{"test-plugin", "test-plugin"})
+	if err != nil {
+		t.Fatalf("RunComplianceChecks() unexpected error: %v", err)
+	}
+
+	// Should have findings from only one execution
+	if len(result.Findings) != 1 {
+		t.Errorf("Expected 1 finding (deduplicated), got %d", len(result.Findings))
+	}
+
+	// Per-plugin map should have exactly one entry
+	if len(result.PluginFindings) != 1 {
+		t.Errorf("Expected 1 plugin in PluginFindings, got %d", len(result.PluginFindings))
+	}
+
+	// PluginInfo should have exactly one entry
+	if len(result.PluginInfo) != 1 {
+		t.Errorf("Expected 1 plugin in PluginInfo, got %d", len(result.PluginInfo))
+	}
+
+	// Summary should reflect the deduplicated count
+	if result.Summary.TotalFindings != 1 {
+		t.Errorf("Expected TotalFindings=1, got %d", result.Summary.TotalFindings)
+	}
+
+	if result.Summary.PluginCount != 1 {
+		t.Errorf("Expected PluginCount=1, got %d", result.Summary.PluginCount)
+	}
 }

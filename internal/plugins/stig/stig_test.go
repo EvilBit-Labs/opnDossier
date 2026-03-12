@@ -318,9 +318,8 @@ func TestPlugin_hasUnnecessaryServices(t *testing.T) {
 	}
 }
 
-func TestPlugin_broadNetworkRanges(t *testing.T) {
-	plugin := NewPlugin()
-	ranges := plugin.broadNetworkRanges()
+func TestBroadNetworks(t *testing.T) {
+	t.Parallel()
 
 	expectedRanges := []string{
 		"0.0.0.0/0",
@@ -331,14 +330,60 @@ func TestPlugin_broadNetworkRanges(t *testing.T) {
 		constants.NetworkAny,
 	}
 
-	if len(ranges) != len(expectedRanges) {
-		t.Errorf("broadNetworkRanges() returned %d ranges, want %d", len(ranges), len(expectedRanges))
+	if len(broadNetworks) != len(expectedRanges) {
+		t.Errorf("broadNetworks has %d entries, want %d", len(broadNetworks), len(expectedRanges))
 	}
 
 	for _, expected := range expectedRanges {
-		found := slices.Contains(ranges, expected)
+		found := slices.Contains(broadNetworks, expected)
 		if !found {
-			t.Errorf("broadNetworkRanges() missing expected range: %s", expected)
+			t.Errorf("broadNetworks missing expected range: %s", expected)
+		}
+	}
+}
+
+func TestPlugin_FindingSeverityMatchesControl(t *testing.T) {
+	t.Parallel()
+
+	plugin := NewPlugin()
+
+	// Build a device that triggers every STIG finding:
+	// - V-206694: any/any pass rule without deny → missing default deny
+	// - V-206674: any/any pass rule → overly permissive
+	// - V-206690: SNMP community string → unnecessary services
+	// - V-206682: no syslog → insufficient logging
+	device := &common.CommonDevice{
+		FirewallRules: []common.FirewallRule{
+			{
+				Type:        "pass",
+				Source:      common.RuleEndpoint{Address: constants.NetworkAny},
+				Destination: common.RuleEndpoint{Address: constants.NetworkAny},
+			},
+		},
+		SNMP: common.SNMPConfig{
+			ROCommunity: "public",
+		},
+	}
+
+	findings := plugin.RunChecks(device)
+	if len(findings) == 0 {
+		t.Fatal("expected at least one finding to validate severity invariant")
+	}
+
+	// Every emitted finding's severity must match its referenced control.
+	for _, finding := range findings {
+		if len(finding.References) == 0 {
+			t.Fatalf("finding %q has no references", finding.Title)
+		}
+
+		control, err := plugin.GetControlByID(finding.References[0])
+		if err != nil {
+			t.Fatalf("finding references unknown control %s: %v", finding.References[0], err)
+		}
+
+		if finding.Severity != control.Severity {
+			t.Errorf("finding %s severity %q does not match control severity %q",
+				finding.References[0], finding.Severity, control.Severity)
 		}
 	}
 }

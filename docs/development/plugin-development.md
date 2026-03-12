@@ -34,11 +34,12 @@ type Plugin interface {
 }
 ```
 
-The `Finding` struct is generic and uses `References`, `Tags`, and `Metadata` fields:
+The `Finding` struct is generic and uses `Severity`, `References`, `Tags`, and `Metadata` fields:
 
 ```go
 // compliance.Finding
 Type        string              // e.g. "compliance"
+Severity    string              // e.g. "high" — copied from control's severity
 Title       string
 Description string
 Recommendation string
@@ -127,6 +128,7 @@ func (cp *CustomPlugin) RunChecks(device *common.CommonDevice) []compliance.Find
     // Example:
     findings = append(findings, compliance.Finding{
         Type:           "compliance",
+        Severity:       "high",
         Title:          "Missing Custom Security Feature",
         Description:    "The configuration is missing required custom security feature",
         Recommendation: "Enable the custom security feature in the configuration",
@@ -193,6 +195,7 @@ go build -buildmode=plugin -o myplugin.so main.go
 
 - Use unique, descriptive control IDs and titles.
 - Provide actionable remediation and clear rationale.
+- Always set `Finding.Severity` to match the control's `Severity` for correct severity breakdown in audit reports.
 - Use the `References` and `Tags` fields for all findings.
 - Write comprehensive tests for your plugin.
 - Document your controls and plugin usage.

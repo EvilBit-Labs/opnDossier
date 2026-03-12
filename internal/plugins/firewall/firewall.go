@@ -136,6 +136,7 @@ func (fp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	if cr := fp.hasSSHBanner(device); cr.Known && !cr.Result {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
+			Severity:       fp.controlSeverity("FIREWALL-001"),
 			Title:          "SSH Warning Banner Not Configured",
 			Description:    "SSH warning banner is not configured",
 			Recommendation: "Configure SSH warning banner in /etc/ssh/sshd_config",
@@ -150,6 +151,7 @@ func (fp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	if cr := fp.hasAutoConfigBackup(device); cr.Known && !cr.Result {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
+			Severity:       fp.controlSeverity("FIREWALL-002"),
 			Title:          "Auto Configuration Backup Disabled",
 			Description:    "Automatic configuration backup is not enabled",
 			Recommendation: "Enable AutoConfigBackup in Services > Auto Config Backup",
@@ -164,6 +166,7 @@ func (fp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	if cr := fp.hasCustomMOTD(device); cr.Known && !cr.Result {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
+			Severity:       fp.controlSeverity("FIREWALL-003"),
 			Title:          "Custom MOTD Not Configured",
 			Description:    "Message of the Day is not customized",
 			Recommendation: "Configure custom MOTD in /etc/motd",
@@ -178,6 +181,7 @@ func (fp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	if cr := fp.hasCustomHostname(device); cr.Known && !cr.Result {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
+			Severity:       fp.controlSeverity("FIREWALL-004"),
 			Title:          "Default Hostname in Use",
 			Description:    "Device is using default hostname",
 			Recommendation: "Set custom hostname in System > General Setup",
@@ -192,6 +196,7 @@ func (fp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	if cr := fp.hasDNSServers(device); cr.Known && !cr.Result {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
+			Severity:       fp.controlSeverity("FIREWALL-005"),
 			Title:          "DNS Servers Not Configured",
 			Description:    "DNS servers are not explicitly configured",
 			Recommendation: "Configure DNS servers in System > General Setup",
@@ -206,6 +211,7 @@ func (fp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	if cr := fp.hasIPv6Enabled(device); cr.Known && cr.Result {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
+			Severity:       fp.controlSeverity("FIREWALL-006"),
 			Title:          "IPv6 Enabled",
 			Description:    "IPv6 is enabled and should be disabled if not required",
 			Recommendation: "Disable IPv6 in System > Advanced > Networking if not required",
@@ -220,6 +226,7 @@ func (fp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	if cr := fp.hasDNSRebindCheck(device); cr.Known && cr.Result {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
+			Severity:       fp.controlSeverity("FIREWALL-007"),
 			Title:          "DNS Rebind Check Enabled",
 			Description:    "DNS rebind check is enabled and should be disabled",
 			Recommendation: "Disable DNS rebind check in System > Advanced",
@@ -234,6 +241,7 @@ func (fp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	if cr := fp.hasHTTPSManagement(device); cr.Known && !cr.Result {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
+			Severity:       fp.controlSeverity("FIREWALL-008"),
 			Title:          "HTTP Management Access",
 			Description:    "Web management is not configured for HTTPS",
 			Recommendation: "Configure HTTPS in System > Advanced > Admin Access",
@@ -247,9 +255,11 @@ func (fp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	return findings
 }
 
-// GetControls returns all Firewall controls.
+// GetControls returns all Firewall controls. The returned slice is a deep copy to
+// prevent callers from mutating the plugin's internal state, including nested
+// reference types (References, Tags, Metadata).
 func (fp *Plugin) GetControls() []compliance.Control {
-	return fp.controls
+	return compliance.CloneControls(fp.controls)
 }
 
 // GetControlByID returns a specific control by ID.
@@ -270,6 +280,19 @@ func (fp *Plugin) ValidateConfiguration() error {
 	}
 
 	return nil
+}
+
+// controlSeverity returns the severity for a control ID from the control
+// definitions. This ensures findings derive severity from the single source
+// of truth (the control metadata) rather than hard-coding literals.
+func (fp *Plugin) controlSeverity(id string) string {
+	for _, c := range fp.controls {
+		if c.ID == id {
+			return c.Severity
+		}
+	}
+
+	return ""
 }
 
 // defaultHostnames contains factory-default hostnames that indicate the device

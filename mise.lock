@@ -105,49 +105,25 @@ checksum = "sha256:f2b8c692d9488c3313d7786e2099976151c10fd8f76580b12d045bb9683a8
 url = "https://github.com/orhun/git-cliff/releases/download/v2.12.0/git-cliff-2.12.0-x86_64-pc-windows-msvc.zip"
 
 [[tools."github:anchore/quill"]]
-version = "0.5.1"
-backend = "github:anchore/quill"
-
-[tools."github:anchore/quill"."platforms.linux-arm64"]
-checksum = "sha256:fee47addc7198d7927af6081b79ca6458dcbaf8f83edb6f50505bdda6e94eaf4"
-url = "https://github.com/anchore/quill/releases/download/v0.5.1/quill_0.5.1_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/anchore/quill/releases/assets/227923941"
-
-[tools."github:anchore/quill"."platforms.linux-arm64-musl"]
-checksum = "sha256:fee47addc7198d7927af6081b79ca6458dcbaf8f83edb6f50505bdda6e94eaf4"
-url = "https://github.com/anchore/quill/releases/download/v0.5.1/quill_0.5.1_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/anchore/quill/releases/assets/227923941"
-
-[tools."github:anchore/quill"."platforms.linux-x64"]
-checksum = "sha256:f8f51ae87710a98fac629415eca2abc5aa737dabcb01295f5bb9c75233352fa4"
-url = "https://github.com/anchore/quill/releases/download/v0.5.1/quill_0.5.1_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/anchore/quill/releases/assets/227923938"
-
-[tools."github:anchore/quill"."platforms.linux-x64-musl"]
-checksum = "sha256:f8f51ae87710a98fac629415eca2abc5aa737dabcb01295f5bb9c75233352fa4"
-url = "https://github.com/anchore/quill/releases/download/v0.5.1/quill_0.5.1_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/anchore/quill/releases/assets/227923938"
-
-[tools."github:anchore/quill"."platforms.macos-arm64"]
-checksum = "sha256:dfd3600ae0bb059b9dd7779d728d667d69ccdad9886ebd5f91a3544e10a73e78"
-url = "https://github.com/anchore/quill/releases/download/v0.5.1/quill_0.5.1_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/anchore/quill/releases/assets/227923942"
-
-[tools."github:anchore/quill"."platforms.macos-x64"]
-checksum = "sha256:7134f8a5353e881a34e5e6a4c0cbac5a33d2ada1b54d0e15d21e0c77c19fd557"
-url = "https://github.com/anchore/quill/releases/download/v0.5.1/quill_0.5.1_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/anchore/quill/releases/assets/227923944"
-
-[tools."github:anchore/quill"."platforms.windows-x64"]
-checksum = "sha256:570c54fd659f2c2881eb2b86b46519480b607d5c8b6e732051188479b89b1ef5"
-url = "https://github.com/anchore/quill/releases/download/v0.5.1/quill_0.5.1_windows_amd64.zip"
-url_api = "https://api.github.com/repos/anchore/quill/releases/assets/227923945"
-
-[[tools."github:anchore/quill"]]
 version = "0.7.1"
 backend = "github:anchore/quill"
 
+[tools."github:anchore/quill"."platforms.linux-arm64"]
+checksum = "sha256:b3d5bbc006f1aa0387e06349db1a988597ce348913e6e8d38d4bfb34cc93e78d"
+url = "https://github.com/anchore/quill/releases/download/v0.7.1/quill_0.7.1_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/anchore/quill/releases/assets/370939409"
+
+[tools."github:anchore/quill"."platforms.linux-arm64-musl"]
+checksum = "sha256:b3d5bbc006f1aa0387e06349db1a988597ce348913e6e8d38d4bfb34cc93e78d"
+url = "https://github.com/anchore/quill/releases/download/v0.7.1/quill_0.7.1_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/anchore/quill/releases/assets/370939409"
+
 [tools."github:anchore/quill"."platforms.linux-x64"]
+checksum = "sha256:e58c6f86378a22507c1123e24412afd4ee2d3bb32ebd94d6059827dc0c1b3fbf"
+url = "https://github.com/anchore/quill/releases/download/v0.7.1/quill_0.7.1_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/anchore/quill/releases/assets/370939435"
+
+[tools."github:anchore/quill"."platforms.linux-x64-musl"]
 checksum = "sha256:e58c6f86378a22507c1123e24412afd4ee2d3bb32ebd94d6059827dc0c1b3fbf"
 url = "https://github.com/anchore/quill/releases/download/v0.7.1/quill_0.7.1_linux_amd64.tar.gz"
 url_api = "https://api.github.com/repos/anchore/quill/releases/assets/370939435"
@@ -168,31 +144,43 @@ url = "https://github.com/anchore/quill/releases/download/v0.7.1/quill_0.7.1_win
 url_api = "https://api.github.com/repos/anchore/quill/releases/assets/370939478"
 
 [[tools.go]]
-version = "1.26.0"
+version = "1.26.1"
 backend = "core:go"
 
+[tools.go."platforms.linux-arm64"]
+checksum = "sha256:a290581cfe4fe28ddd737dde3095f3dbeb7f2e4065cab4eae44dfc53b760c2f7"
+url = "https://dl.google.com/go/go1.26.1.linux-arm64.tar.gz"
+
+[tools.go."platforms.linux-arm64-musl"]
+checksum = "sha256:a290581cfe4fe28ddd737dde3095f3dbeb7f2e4065cab4eae44dfc53b760c2f7"
+url = "https://dl.google.com/go/go1.26.1.linux-arm64.tar.gz"
+
 [tools.go."platforms.linux-x64"]
-checksum = "sha256:aac1b08a0fb0c4e0a7c1555beb7b59180b05dfc5a3d62e40e9de90cd42f88235"
-url = "https://dl.google.com/go/go1.26.0.linux-amd64.tar.gz"
+checksum = "sha256:031f088e5d955bab8657ede27ad4e3bc5b7c1ba281f05f245bcc304f327c987a"
+url = "https://dl.google.com/go/go1.26.1.linux-amd64.tar.gz"
+
+[tools.go."platforms.linux-x64-musl"]
+checksum = "sha256:031f088e5d955bab8657ede27ad4e3bc5b7c1ba281f05f245bcc304f327c987a"
+url = "https://dl.google.com/go/go1.26.1.linux-amd64.tar.gz"
 
 [tools.go."platforms.macos-arm64"]
-checksum = "sha256:b1640525dfe68f066d56f200bef7bf4dce955a1a893bd061de6754c211431023"
-url = "https://dl.google.com/go/go1.26.0.darwin-arm64.tar.gz"
+checksum = "sha256:353df43a7811ce284c8938b5f3c7df40b7bfb6f56cb165b150bc40b5e2dd541f"
+url = "https://dl.google.com/go/go1.26.1.darwin-arm64.tar.gz"
 
 [tools.go."platforms.macos-x64"]
-checksum = "sha256:1ca28b7703cbea05a65b2a1d92d6b308610ef92f8824578a0874f2e60c9d5a22"
-url = "https://dl.google.com/go/go1.26.0.darwin-amd64.tar.gz"
+checksum = "sha256:65773dab2f8cc4cd23d93ba6d0a805de150ca0b78378879292be0b903b8cdd08"
+url = "https://dl.google.com/go/go1.26.1.darwin-amd64.tar.gz"
 
 [tools.go."platforms.windows-x64"]
-checksum = "sha256:9bbe0fc64236b2b51f6255c05c4232532b8ecc0e6d2e00950bd3021d8a4d07d4"
-url = "https://dl.google.com/go/go1.26.0.windows-amd64.zip"
+checksum = "sha256:9b68112c913f45b7aebbf13c036721264bbba7e03a642f8f7490c561eebd1ecc"
+url = "https://dl.google.com/go/go1.26.1.windows-amd64.zip"
 
 [[tools."go:github.com/google/go-licenses"]]
 version = "1.6.0"
 backend = "go:github.com/google/go-licenses"
 
 [[tools."go:github.com/securego/gosec/v2/cmd/gosec"]]
-version = "2.23.0"
+version = "2.24.7"
 backend = "go:github.com/securego/gosec/v2/cmd/gosec"
 
 [[tools."go:github.com/securego/gosec/v2/cmd/gosec"]]
@@ -200,69 +188,57 @@ version = "2.24.7"
 backend = "go:github.com/securego/gosec/v2/cmd/gosec"
 
 [[tools.golangci-lint]]
-version = "2.10.1"
+version = "2.11.3"
 backend = "aqua:golangci/golangci-lint"
 
+[tools.golangci-lint."platforms.linux-arm64"]
+checksum = "sha256:ee3d95f301359e7d578e6d99c8ad5aeadbabc5a13009a30b2b0df11c8058afe9"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.11.3/golangci-lint-2.11.3-linux-arm64.tar.gz"
+
+[tools.golangci-lint."platforms.linux-arm64-musl"]
+checksum = "sha256:ee3d95f301359e7d578e6d99c8ad5aeadbabc5a13009a30b2b0df11c8058afe9"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.11.3/golangci-lint-2.11.3-linux-arm64.tar.gz"
+
 [tools.golangci-lint."platforms.linux-x64"]
-checksum = "sha256:dfa775874cf0561b404a02a8f4481fc69b28091da95aa697259820d429b09c99"
-url = "https://github.com/golangci/golangci-lint/releases/download/v2.10.1/golangci-lint-2.10.1-linux-amd64.tar.gz"
+checksum = "sha256:87bb8cddbcc825d5778b64e8a91b46c0526b247f4e2f2904dea74ec7450475d1"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.11.3/golangci-lint-2.11.3-linux-amd64.tar.gz"
+
+[tools.golangci-lint."platforms.linux-x64-musl"]
+checksum = "sha256:87bb8cddbcc825d5778b64e8a91b46c0526b247f4e2f2904dea74ec7450475d1"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.11.3/golangci-lint-2.11.3-linux-amd64.tar.gz"
 
 [tools.golangci-lint."platforms.macos-arm64"]
-checksum = "sha256:03bfadf67e52b441b7ec21305e501c717df93c959836d66c7f97312654acb297"
-url = "https://github.com/golangci/golangci-lint/releases/download/v2.10.1/golangci-lint-2.10.1-darwin-arm64.tar.gz"
+checksum = "sha256:30ee39979c516b9d1adca289a3f93429d130c4c0fda5e57d637850894221f6cc"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.11.3/golangci-lint-2.11.3-darwin-arm64.tar.gz"
 
 [tools.golangci-lint."platforms.macos-x64"]
-checksum = "sha256:66fb0da81b8033b477f97eea420d4b46b230ca172b8bb87c6610109f3772b6b6"
-url = "https://github.com/golangci/golangci-lint/releases/download/v2.10.1/golangci-lint-2.10.1-darwin-amd64.tar.gz"
+checksum = "sha256:f93bda1f2cc981fd1326464020494be62f387bbf262706e1b3b644e5afacc440"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.11.3/golangci-lint-2.11.3-darwin-amd64.tar.gz"
 
 [tools.golangci-lint."platforms.windows-x64"]
-checksum = "sha256:c60c87695e79db8e320f0e5be885059859de52bb5ee5f11be5577828570bc2a3"
-url = "https://github.com/golangci/golangci-lint/releases/download/v2.10.1/golangci-lint-2.10.1-windows-amd64.zip"
-
-[[tools.goreleaser]]
-version = "2.14.1"
-backend = "aqua:goreleaser/goreleaser"
-
-[tools.goreleaser."platforms.linux-arm64"]
-checksum = "sha256:a84d3b27f052c12ad5c8342d7caf1450a7174a305730aed21d72db09301e49a5"
-url = "https://github.com/goreleaser/goreleaser/releases/download/v2.14.1/goreleaser_Linux_arm64.tar.gz"
-provenance = "cosign"
-
-[tools.goreleaser."platforms.linux-arm64-musl"]
-checksum = "sha256:a84d3b27f052c12ad5c8342d7caf1450a7174a305730aed21d72db09301e49a5"
-url = "https://github.com/goreleaser/goreleaser/releases/download/v2.14.1/goreleaser_Linux_arm64.tar.gz"
-provenance = "cosign"
-
-[tools.goreleaser."platforms.linux-x64"]
-checksum = "sha256:2df975a7acbfdeaf888d596cab0024d48ec7fb7d747e1d08b90948b791f40a5f"
-url = "https://github.com/goreleaser/goreleaser/releases/download/v2.14.1/goreleaser_Linux_x86_64.tar.gz"
-provenance = "cosign"
-
-[tools.goreleaser."platforms.linux-x64-musl"]
-checksum = "sha256:2df975a7acbfdeaf888d596cab0024d48ec7fb7d747e1d08b90948b791f40a5f"
-url = "https://github.com/goreleaser/goreleaser/releases/download/v2.14.1/goreleaser_Linux_x86_64.tar.gz"
-provenance = "cosign"
-
-[tools.goreleaser."platforms.macos-arm64"]
-checksum = "sha256:9f2e47f847b4f4177376fc6aa6914fbc7f673f59720076747e738b578c2e896e"
-url = "https://github.com/goreleaser/goreleaser/releases/download/v2.14.1/goreleaser_Darwin_all.tar.gz"
-provenance = "github-attestations"
-
-[tools.goreleaser."platforms.macos-x64"]
-checksum = "sha256:9f2e47f847b4f4177376fc6aa6914fbc7f673f59720076747e738b578c2e896e"
-url = "https://github.com/goreleaser/goreleaser/releases/download/v2.14.1/goreleaser_Darwin_all.tar.gz"
-provenance = "cosign"
-
-[tools.goreleaser."platforms.windows-x64"]
-checksum = "sha256:d7a3d8ba795e97ab8c4f8003630d300da164adf21fde5a4049440c20f15c3137"
-url = "https://github.com/goreleaser/goreleaser/releases/download/v2.14.1/goreleaser_Windows_x86_64.zip"
-provenance = "cosign"
+checksum = "sha256:cd42e890176bc5cfeb36225a77e66b9410ddd3a59a03551e23f6b210d29e1f67"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.11.3/golangci-lint-2.11.3-windows-amd64.zip"
 
 [[tools.goreleaser]]
 version = "2.14.3"
 backend = "aqua:goreleaser/goreleaser"
 
+[tools.goreleaser."platforms.linux-arm64"]
+checksum = "sha256:581a10e53c1176b3e81ee45cf531e02dbf899db0bc7b795669347df4276ce948"
+url = "https://github.com/goreleaser/goreleaser/releases/download/v2.14.3/goreleaser_Linux_arm64.tar.gz"
+provenance = "cosign"
+
+[tools.goreleaser."platforms.linux-arm64-musl"]
+checksum = "sha256:581a10e53c1176b3e81ee45cf531e02dbf899db0bc7b795669347df4276ce948"
+url = "https://github.com/goreleaser/goreleaser/releases/download/v2.14.3/goreleaser_Linux_arm64.tar.gz"
+provenance = "cosign"
+
 [tools.goreleaser."platforms.linux-x64"]
+checksum = "sha256:dc7faeeeb6da8bdfda788626263a4ae725892a8c7504b975c3234127d4a44579"
+url = "https://github.com/goreleaser/goreleaser/releases/download/v2.14.3/goreleaser_Linux_x86_64.tar.gz"
+provenance = "cosign"
+
+[tools.goreleaser."platforms.linux-x64-musl"]
 checksum = "sha256:dc7faeeeb6da8bdfda788626263a4ae725892a8c7504b975c3234127d4a44579"
 url = "https://github.com/goreleaser/goreleaser/releases/download/v2.14.3/goreleaser_Linux_x86_64.tar.gz"
 provenance = "cosign"
@@ -345,43 +321,22 @@ checksum = "sha256:8458fdf45b9b47685a7dea76d72a4b8cf946091fe48cac43d3564f7f318e8
 url = "https://github.com/astral-sh/python-build-standalone/releases/download/20260310/cpython-3.14.3+20260310-x86_64-pc-windows-msvc-install_only_stripped.tar.gz"
 
 [[tools.uv]]
-version = "0.10.7"
-backend = "aqua:astral-sh/uv"
-
-[tools.uv."platforms.linux-arm64"]
-checksum = "sha256:115291f9943531a3b63db3a2eabda8b74b8da4831551679382cb309c9debd9f7"
-url = "https://github.com/astral-sh/uv/releases/download/0.10.7/uv-aarch64-unknown-linux-musl.tar.gz"
-
-[tools.uv."platforms.linux-arm64-musl"]
-checksum = "sha256:115291f9943531a3b63db3a2eabda8b74b8da4831551679382cb309c9debd9f7"
-url = "https://github.com/astral-sh/uv/releases/download/0.10.7/uv-aarch64-unknown-linux-musl.tar.gz"
-
-[tools.uv."platforms.linux-x64"]
-checksum = "sha256:992529add6024e67135b1c80617abd2eca7be2cf0b99b3911f923de815bd8dc1"
-url = "https://github.com/astral-sh/uv/releases/download/0.10.7/uv-x86_64-unknown-linux-musl.tar.gz"
-
-[tools.uv."platforms.linux-x64-musl"]
-checksum = "sha256:992529add6024e67135b1c80617abd2eca7be2cf0b99b3911f923de815bd8dc1"
-url = "https://github.com/astral-sh/uv/releases/download/0.10.7/uv-x86_64-unknown-linux-musl.tar.gz"
-
-[tools.uv."platforms.macos-arm64"]
-checksum = "sha256:1eb4dcc5e0fc8669fa0b33cf1151b64ba3b8c26b60dceff4f7a686129e2af22b"
-url = "https://github.com/astral-sh/uv/releases/download/0.10.7/uv-aarch64-apple-darwin.tar.gz"
-provenance = "github-attestations"
-
-[tools.uv."platforms.macos-x64"]
-checksum = "sha256:4fed9d4f4608fb3850db714ee37244436f850a2b6e485bc510795679c2d08866"
-url = "https://github.com/astral-sh/uv/releases/download/0.10.7/uv-x86_64-apple-darwin.tar.gz"
-
-[tools.uv."platforms.windows-x64"]
-checksum = "sha256:8881afb877996a1373a12e816395122a8d39a3ac06cd066272acdb49510cf0fe"
-url = "https://github.com/astral-sh/uv/releases/download/0.10.7/uv-x86_64-pc-windows-msvc.zip"
-
-[[tools.uv]]
 version = "0.10.9"
 backend = "aqua:astral-sh/uv"
 
+[tools.uv."platforms.linux-arm64"]
+checksum = "sha256:05b0d3087e913ebe11756365a90dd47c05d6728752fdbe129ad4c3ccd769826d"
+url = "https://github.com/astral-sh/uv/releases/download/0.10.9/uv-aarch64-unknown-linux-musl.tar.gz"
+
+[tools.uv."platforms.linux-arm64-musl"]
+checksum = "sha256:05b0d3087e913ebe11756365a90dd47c05d6728752fdbe129ad4c3ccd769826d"
+url = "https://github.com/astral-sh/uv/releases/download/0.10.9/uv-aarch64-unknown-linux-musl.tar.gz"
+
 [tools.uv."platforms.linux-x64"]
+checksum = "sha256:433e56874739e92c7cfd661ba9e5f287b376ca612c08c8194a41a98a13158aea"
+url = "https://github.com/astral-sh/uv/releases/download/0.10.9/uv-x86_64-unknown-linux-musl.tar.gz"
+
+[tools.uv."platforms.linux-x64-musl"]
 checksum = "sha256:433e56874739e92c7cfd661ba9e5f287b376ca612c08c8194a41a98a13158aea"
 url = "https://github.com/astral-sh/uv/releases/download/0.10.9/uv-x86_64-unknown-linux-musl.tar.gz"
 
