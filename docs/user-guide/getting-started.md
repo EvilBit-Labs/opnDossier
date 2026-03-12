@@ -54,7 +54,7 @@ Write the report directly to a file instead of stdout:
 opndossier convert config.xml -o report.md
 ```
 
-**Expected result:** a message confirming the file was created. Open `report.md` in any Markdown viewer to browse the full report.
+**Expected result:** opnDossier writes the report without any terminal output. Open `report.md` in any Markdown viewer to browse the full report.
 
 ## 5. View in the Terminal
 
