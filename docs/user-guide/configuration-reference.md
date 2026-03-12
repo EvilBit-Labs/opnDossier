@@ -2,14 +2,7 @@
 
 Complete reference for all opnDossier configuration options. Configuration can be set via command-line flags, environment variables, or configuration file with clear precedence order.
 
-## Configuration Precedence
-
-Configuration sources are applied in this order (highest to lowest priority):
-
-1. **Command-line flags** - Direct CLI arguments
-2. **Environment variables** - `OPNDOSSIER_*` prefixed variables
-3. **Configuration file** - `~/.opnDossier.yaml`
-4. **Default values** - Built-in defaults
+For how configuration precedence works, see the [Configuration Guide](configuration.md).
 
 ## Global Options
 
@@ -54,11 +47,10 @@ Supported formats: `markdown` (`md`), `json`, `yaml` (`yml`), `text` (`txt`), `h
 
 ### Audit & Compliance
 
-| Setting       | CLI Flag           | Environment Variable | Config File | Type     | Default | Description                           |
-| ------------- | ------------------ | -------------------- | ----------- | -------- | ------- | ------------------------------------- |
-| Audit mode    | `--audit-mode`     | -                    | -           | string   | `""`    | Audit mode: standard, blue, red       |
-| Audit plugins | `--audit-plugins`  | -                    | -           | string[] | `[]`    | Plugins: stig, sans, firewall         |
-| Blackhat mode | `--audit-blackhat` | -                    | -           | boolean  | `false` | Enable blackhat commentary (red mode) |
+| Setting       | CLI Flag          | Environment Variable | Config File | Type     | Default | Description                     |
+| ------------- | ----------------- | -------------------- | ----------- | -------- | ------- | ------------------------------- |
+| Audit mode    | `--audit-mode`    | -                    | -           | string   | `""`    | Audit mode: standard, blue, red |
+| Audit plugins | `--audit-plugins` | -                    | -           | string[] | `[]`    | Plugins: stig, sans, firewall   |
 
 ## Display Command Options
 
@@ -123,67 +115,6 @@ export OPNDOSSIER_INPUT_FILE="/path/to/config.xml"
 export OPNDOSSIER_OUTPUT_FILE="./documentation.md"
 ```
 
-## Command-Line Examples
-
-### Basic Usage
-
-```bash
-# Simple conversion with defaults
-opndossier convert config.xml
-
-# Specify output file
-opndossier convert config.xml -o output.md
-
-# Change output format
-opndossier convert -f json config.xml -o output.json
-```
-
-### Logging Options
-
-```bash
-# Verbose logging
-opndossier --verbose convert config.xml
-
-# Quiet mode (errors only)
-opndossier --quiet convert config.xml
-```
-
-### Display Options
-
-```bash
-# Display in terminal
-opndossier display config.xml
-
-# Custom wrap width
-opndossier display --wrap 100 config.xml
-
-# Force specific theme
-opndossier display --theme dark config.xml
-```
-
-### Validation
-
-```bash
-# Validate a configuration
-opndossier validate config.xml
-
-# Validate with JSON error output
-opndossier --json-output validate config.xml
-```
-
-### Audit Mode
-
-```bash
-# Blue team audit with STIG and SANS
-opndossier convert config.xml --audit-mode blue --audit-plugins stig,sans
-
-# Red team recon with blackhat commentary
-opndossier convert config.xml --audit-mode red --audit-blackhat
-
-# Standard audit with all plugins
-opndossier convert config.xml --audit-mode standard --audit-plugins stig,sans,firewall
-```
-
 ## Configuration Validation
 
 opnDossier validates configuration values on startup. Invalid values will result in clear error messages:
@@ -202,159 +133,8 @@ $ opndossier --color invalid convert config.xml
 Error: invalid color "invalid", must be one of: auto, always, never
 ```
 
-## XML Schema Field Reference
+## Related
 
-This section documents the OPNsense config.xml fields that opnDossier parses and validates, with XML examples showing each field's usage.
-
-### Source and Destination Fields
-
-Firewall rule source and destination support multiple addressing modes. The fields `any`, `network`, and `address` are **mutually exclusive** -- only one should be present per source/destination block.
-
-**Address-based rules (IP/CIDR or alias):**
-
-```xml
-<source>
-  <address>192.168.1.0/24</address>
-  <port>1024-65535</port>
-</source>
-```
-
-**Network-based rules (interface subnet):**
-
-```xml
-<source>
-  <network>lan</network>
-</source>
-```
-
-**Negated rules (NOT semantics):**
-
-```xml
-<source>
-  <not />
-  <network>lan</network>
-</source>
-```
-
-**Any address:**
-
-```xml
-<source>
-  <any />
-</source>
-```
-
-**Field priority:** Network > Address > Any (per OPNsense semantics)
-
-### Advanced Rule Fields
-
-**Floating rules (interface-independent):**
-
-```xml
-<rule>
-  <floating>yes</floating>
-  <direction>any</direction>
-  <interface>wan,lan</interface>
-  ...
-</rule>
-```
-
-Floating rules require a `direction` field (`in`, `out`, or `any`).
-
-**Policy routing:**
-
-```xml
-<rule>
-  <gateway>WAN_GW</gateway>
-  ...
-</rule>
-```
-
-**State tracking:**
-
-```xml
-<rule>
-  <statetype>keep state</statetype>
-  <statetimeout>3600</statetimeout>
-  ...
-</rule>
-```
-
-Valid state types: `keep state`, `sloppy state`, `synproxy state`, `none`
-
-### Rate-Limiting and DoS Protection
-
-**Connection limits:**
-
-```xml
-<rule>
-  <max-src-nodes>100</max-src-nodes>
-  <max-src-conn>10</max-src-conn>
-  <max-src-conn-rate>15/5</max-src-conn-rate>
-  <max-src-conn-rates>300</max-src-conn-rates>
-  ...
-</rule>
-```
-
-The `max-src-conn-rate` field uses the format `connections/seconds` (e.g., `15/5` means 15 connections per 5 seconds).
-
-**TCP flags matching:**
-
-```xml
-<rule>
-  <tcpflags1>syn</tcpflags1>
-  <tcpflags2>syn,ack</tcpflags2>
-  ...
-</rule>
-```
-
-**ICMP type filtering:**
-
-```xml
-<rule>
-  <protocol>icmp</protocol>
-  <icmptype>3,11,0</icmptype>
-  ...
-</rule>
-```
-
-### NAT Rule Enhancements
-
-**Outbound NAT with port preservation:**
-
-```xml
-<rule>
-  <staticnatport />
-  <natport>1024-65535</natport>
-  <poolopts_sourcehashkey>0x12345678</poolopts_sourcehashkey>
-  ...
-</rule>
-```
-
-**NAT exclusion:**
-
-```xml
-<rule>
-  <nonat />
-  ...
-</rule>
-```
-
-**Inbound NAT with reflection:**
-
-```xml
-<rule>
-  <natreflection>enable</natreflection>
-  <associated-rule-id>5f1234567890abcd</associated-rule-id>
-  <local-port>8080</local-port>
-  ...
-</rule>
-```
-
-Valid NAT reflection modes: `enable`, `disable`, `purenat`
-
-## Related Documentation
-
-- [Usage Guide](./usage.md)
-- [Configuration Guide](./configuration.md)
-- [Contributing Guide](https://github.com/EvilBit-Labs/opnDossier/blob/main/CONTRIBUTING.md)
+- [Configuration Guide](configuration.md) -- how to configure opnDossier
+- [Commands Overview](commands/overview.md) -- per-command flag reference
+- [XML Field Reference](../xml-field-reference.md) -- OPNsense XML schema details
