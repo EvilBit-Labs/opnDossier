@@ -144,7 +144,10 @@ Every release publishes a `opnDossier_checksums.txt` file containing SHA-256 has
 curl -LO https://github.com/EvilBit-Labs/opnDossier/releases/latest/download/opnDossier_checksums.txt
 
 # Verify your downloaded file against the checksums
+# Linux:
 sha256sum -c opnDossier_checksums.txt --ignore-missing
+# macOS:
+shasum -a 256 -c opnDossier_checksums.txt
 ```
 
 ### Cosign Signature Verification
