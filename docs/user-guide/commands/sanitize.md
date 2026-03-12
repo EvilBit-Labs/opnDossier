@@ -11,7 +11,7 @@ The `sanitize` command redacts sensitive information from an OPNsense configurat
 
 ## Usage
 
-```
+```text
 opndossier sanitize [flags] <config.xml>
 ```
 
@@ -19,7 +19,7 @@ opndossier sanitize [flags] <config.xml>
 
 | Flag        | Short | Default    | Description                                            |
 | ----------- | ----- | ---------- | ------------------------------------------------------ |
-| `--mode`    |       | `moderate` | Sanitization mode: `aggressive`, `moderate`, `minimal` |
+| `--mode`    | `-m`  | `moderate` | Sanitization mode: `aggressive`, `moderate`, `minimal` |
 | `--output`  | `-o`  | stdout     | Output file path                                       |
 | `--mapping` |       |            | Save a mapping file for reverse lookup (JSON)          |
 | `--force`   |       | `false`    | Overwrite existing output file without prompt          |
@@ -86,11 +86,21 @@ The mapping file is organized by category:
 {
   "version": "1.0",
   "timestamp": "2026-03-12T10:30:00Z",
-  "mode": "moderate",
+  "mode": "aggressive",
   "mappings": {
     "ip_addresses": {
       "203.0.113.50": "198.51.100.1",
-      "203.0.113.51": "198.51.100.2"
+      "203.0.113.51": "198.51.100.2",
+      "192.168.1.1": "10.0.0.1"
+    },
+    "hostnames": {
+      "fw01.example.com": "host-001.example.com"
+    },
+    "usernames": {
+      "jdoe": "user-001"
+    },
+    "domains": {
+      "example.com": "domain-001.example.com"
     },
     "mac_addresses": {
       "aa:bb:cc:dd:ee:ff": "00:00:5e:00:53:01"
