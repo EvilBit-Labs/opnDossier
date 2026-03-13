@@ -2,6 +2,7 @@ package diff
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strconv"
 	"strings"
@@ -125,9 +126,14 @@ func (a *Analyzer) CompareFirewallRules(old, newCfg []common.FirewallRule) []Cha
 		}
 	}
 
+	// Sort keys for deterministic output
+	oldUUIDs := slices.Sorted(maps.Keys(oldByUUID))
+	newUUIDs := slices.Sorted(maps.Keys(newByUUID))
+
 	// Find removed rules
-	for uuid, oldRule := range oldByUUID {
+	for _, uuid := range oldUUIDs {
 		if _, exists := newByUUID[uuid]; !exists {
+			oldRule := oldByUUID[uuid]
 			changes = append(changes, Change{
 				Type:           ChangeRemoved,
 				Section:        SectionFirewall,
@@ -140,7 +146,8 @@ func (a *Analyzer) CompareFirewallRules(old, newCfg []common.FirewallRule) []Cha
 	}
 
 	// Find added rules and modified rules
-	for uuid, newRule := range newByUUID {
+	for _, uuid := range newUUIDs {
+		newRule := newByUUID[uuid]
 		oldRule, exists := oldByUUID[uuid]
 		if !exists {
 			impact := ""
@@ -213,6 +220,29 @@ func (a *Analyzer) compareRulesByPosition(old, newCfg []common.FirewallRule) []C
 
 // CompareNAT compares NAT configuration between two configs.
 func (a *Analyzer) CompareNAT(old, newCfg common.NATConfig) []Change {
+	oldHas := old.HasData()
+	newHas := newCfg.HasData()
+
+	if !oldHas && !newHas {
+		return nil
+	}
+	if !oldHas && newHas {
+		return []Change{{
+			Type:        ChangeAdded,
+			Section:     SectionNAT,
+			Path:        "nat",
+			Description: "NAT configuration section added",
+		}}
+	}
+	if oldHas && !newHas {
+		return []Change{{
+			Type:        ChangeRemoved,
+			Section:     SectionNAT,
+			Path:        "nat",
+			Description: "NAT configuration section removed",
+		}}
+	}
+
 	var changes []Change
 
 	// Compare outbound NAT mode
@@ -258,6 +288,26 @@ func (a *Analyzer) CompareNAT(old, newCfg common.NATConfig) []Change {
 
 // CompareInterfaces compares interface configuration between two configs.
 func (a *Analyzer) CompareInterfaces(old, newCfg []common.Interface) []Change {
+	if len(old) == 0 && len(newCfg) == 0 {
+		return nil
+	}
+	if len(old) == 0 {
+		return []Change{{
+			Type:        ChangeAdded,
+			Section:     SectionInterfaces,
+			Path:        "interfaces",
+			Description: "Interfaces configuration section added",
+		}}
+	}
+	if len(newCfg) == 0 {
+		return []Change{{
+			Type:        ChangeRemoved,
+			Section:     SectionInterfaces,
+			Path:        "interfaces",
+			Description: "Interfaces configuration section removed",
+		}}
+	}
+
 	var changes []Change
 
 	// Build name maps for O(1) lookup
@@ -271,17 +321,8 @@ func (a *Analyzer) CompareInterfaces(old, newCfg []common.Interface) []Change {
 	}
 
 	// Collect and sort names for deterministic output
-	oldNames := make([]string, 0, len(oldByName))
-	for name := range oldByName {
-		oldNames = append(oldNames, name)
-	}
-	slices.Sort(oldNames)
-
-	newNames := make([]string, 0, len(newByName))
-	for name := range newByName {
-		newNames = append(newNames, name)
-	}
-	slices.Sort(newNames)
+	oldNames := slices.Sorted(maps.Keys(oldByName))
+	newNames := slices.Sorted(maps.Keys(newByName))
 
 	// Find removed interfaces
 	for _, name := range oldNames {
@@ -379,6 +420,26 @@ func (a *Analyzer) compareInterface(name string, old, newCfg common.Interface) [
 
 // CompareVLANs compares VLAN configuration between two configs.
 func (a *Analyzer) CompareVLANs(old, newCfg []common.VLAN) []Change {
+	if len(old) == 0 && len(newCfg) == 0 {
+		return nil
+	}
+	if len(old) == 0 {
+		return []Change{{
+			Type:        ChangeAdded,
+			Section:     SectionVLANs,
+			Path:        "vlans",
+			Description: "VLANs configuration section added",
+		}}
+	}
+	if len(newCfg) == 0 {
+		return []Change{{
+			Type:        ChangeRemoved,
+			Section:     SectionVLANs,
+			Path:        "vlans",
+			Description: "VLANs configuration section removed",
+		}}
+	}
+
 	var changes []Change
 
 	// Build maps by VLANIf (unique identifier)
@@ -396,9 +457,14 @@ func (a *Analyzer) CompareVLANs(old, newCfg []common.VLAN) []Change {
 		}
 	}
 
+	// Sort keys for deterministic output
+	oldVlanifs := slices.Sorted(maps.Keys(oldByVlanif))
+	newVlanifs := slices.Sorted(maps.Keys(newByVlanif))
+
 	// Find removed VLANs
-	for vlanif, oldVlan := range oldByVlanif {
+	for _, vlanif := range oldVlanifs {
 		if _, exists := newByVlanif[vlanif]; !exists {
+			oldVlan := oldByVlanif[vlanif]
 			changes = append(changes, Change{
 				Type:        ChangeRemoved,
 				Section:     SectionVLANs,
@@ -415,8 +481,9 @@ func (a *Analyzer) CompareVLANs(old, newCfg []common.VLAN) []Change {
 	}
 
 	// Find added VLANs
-	for vlanif, newVlan := range newByVlanif {
+	for _, vlanif := range newVlanifs {
 		if _, exists := oldByVlanif[vlanif]; !exists {
+			newVlan := newByVlanif[vlanif]
 			changes = append(changes, Change{
 				Type:        ChangeAdded,
 				Section:     SectionVLANs,
@@ -433,18 +500,21 @@ func (a *Analyzer) CompareVLANs(old, newCfg []common.VLAN) []Change {
 	}
 
 	// Find modified VLANs
-	for vlanif, oldVlan := range oldByVlanif {
-		if newVlan, exists := newByVlanif[vlanif]; exists {
-			if oldVlan.Tag != newVlan.Tag {
-				changes = append(changes, Change{
-					Type:        ChangeModified,
-					Section:     SectionVLANs,
-					Path:        fmt.Sprintf("vlans.vlan[%s].tag", vlanif),
-					Description: "VLAN tag changed for " + vlanif,
-					OldValue:    oldVlan.Tag,
-					NewValue:    newVlan.Tag,
-				})
-			}
+	for _, vlanif := range oldVlanifs {
+		newVlan, exists := newByVlanif[vlanif]
+		if !exists {
+			continue
+		}
+		oldVlan := oldByVlanif[vlanif]
+		if oldVlan.Tag != newVlan.Tag {
+			changes = append(changes, Change{
+				Type:        ChangeModified,
+				Section:     SectionVLANs,
+				Path:        fmt.Sprintf("vlans.vlan[%s].tag", vlanif),
+				Description: "VLAN tag changed for " + vlanif,
+				OldValue:    oldVlan.Tag,
+				NewValue:    newVlan.Tag,
+			})
 		}
 	}
 
@@ -454,6 +524,26 @@ func (a *Analyzer) CompareVLANs(old, newCfg []common.VLAN) []Change {
 // CompareDHCP compares DHCP configuration between two configs.
 // Focuses on persistent configuration (static reservations) not ephemeral state (leases).
 func (a *Analyzer) CompareDHCP(old, newCfg []common.DHCPScope) []Change {
+	if len(old) == 0 && len(newCfg) == 0 {
+		return nil
+	}
+	if len(old) == 0 {
+		return []Change{{
+			Type:        ChangeAdded,
+			Section:     SectionDHCP,
+			Path:        "dhcpd",
+			Description: "DHCP configuration section added",
+		}}
+	}
+	if len(newCfg) == 0 {
+		return []Change{{
+			Type:        ChangeRemoved,
+			Section:     SectionDHCP,
+			Path:        "dhcpd",
+			Description: "DHCP configuration section removed",
+		}}
+	}
+
 	var changes []Change
 
 	// Build maps keyed by interface name
@@ -467,31 +557,12 @@ func (a *Analyzer) CompareDHCP(old, newCfg []common.DHCPScope) []Change {
 	}
 
 	// Collect and sort names for deterministic output
-	oldNames := make([]string, 0, len(oldByIface))
-	for name := range oldByIface {
-		oldNames = append(oldNames, name)
-	}
-	slices.Sort(oldNames)
-
-	newNames := make([]string, 0, len(newByIface))
-	for name := range newByIface {
-		newNames = append(newNames, name)
-	}
-	slices.Sort(newNames)
-
-	// Build sets for O(1) lookups
-	newNameSet := make(map[string]struct{}, len(newNames))
-	for _, name := range newNames {
-		newNameSet[name] = struct{}{}
-	}
-	oldNameSet := make(map[string]struct{}, len(oldNames))
-	for _, name := range oldNames {
-		oldNameSet[name] = struct{}{}
-	}
+	oldNames := slices.Sorted(maps.Keys(oldByIface))
+	newNames := slices.Sorted(maps.Keys(newByIface))
 
 	// Find removed DHCP configs
 	for _, name := range oldNames {
-		if _, exists := newNameSet[name]; !exists {
+		if _, exists := newByIface[name]; !exists {
 			changes = append(changes, Change{
 				Type:        ChangeRemoved,
 				Section:     SectionDHCP,
@@ -503,7 +574,7 @@ func (a *Analyzer) CompareDHCP(old, newCfg []common.DHCPScope) []Change {
 
 	// Find added DHCP configs
 	for _, name := range newNames {
-		if _, exists := oldNameSet[name]; !exists {
+		if _, exists := oldByIface[name]; !exists {
 			changes = append(changes, Change{
 				Type:        ChangeAdded,
 				Section:     SectionDHCP,
@@ -515,7 +586,7 @@ func (a *Analyzer) CompareDHCP(old, newCfg []common.DHCPScope) []Change {
 
 	// Compare existing DHCP configs - focus on static reservations
 	for _, name := range oldNames {
-		if _, exists := newNameSet[name]; !exists {
+		if _, exists := newByIface[name]; !exists {
 			continue
 		}
 
@@ -569,9 +640,14 @@ func (a *Analyzer) compareStaticMappings(ifaceName string, old, newCfg []common.
 		newByMAC[lease.MAC] = lease
 	}
 
+	// Sort keys for deterministic output
+	oldMACs := slices.Sorted(maps.Keys(oldByMAC))
+	newMACs := slices.Sorted(maps.Keys(newByMAC))
+
 	// Find removed static reservations
-	for mac, oldLease := range oldByMAC {
+	for _, mac := range oldMACs {
 		if _, exists := newByMAC[mac]; !exists {
+			oldLease := oldByMAC[mac]
 			changes = append(changes, Change{
 				Type:    ChangeRemoved,
 				Section: SectionDHCP,
@@ -587,8 +663,9 @@ func (a *Analyzer) compareStaticMappings(ifaceName string, old, newCfg []common.
 	}
 
 	// Find added static reservations
-	for mac, newLease := range newByMAC {
+	for _, mac := range newMACs {
 		if _, exists := oldByMAC[mac]; !exists {
+			newLease := newByMAC[mac]
 			changes = append(changes, Change{
 				Type:    ChangeAdded,
 				Section: SectionDHCP,
@@ -604,28 +681,31 @@ func (a *Analyzer) compareStaticMappings(ifaceName string, old, newCfg []common.
 	}
 
 	// Find modified static reservations
-	for mac, oldLease := range oldByMAC {
-		if newLease, exists := newByMAC[mac]; exists {
-			if oldLease.IPAddress != newLease.IPAddress {
-				changes = append(changes, Change{
-					Type:        ChangeModified,
-					Section:     SectionDHCP,
-					Path:        fmt.Sprintf("dhcpd.%s.staticmap[%s].ipaddr", ifaceName, mac),
-					Description: "Static reservation IP changed for " + staticLeaseLabel(newLease),
-					OldValue:    oldLease.IPAddress,
-					NewValue:    newLease.IPAddress,
-				})
-			}
-			if oldLease.Hostname != newLease.Hostname {
-				changes = append(changes, Change{
-					Type:        ChangeModified,
-					Section:     SectionDHCP,
-					Path:        fmt.Sprintf("dhcpd.%s.staticmap[%s].hostname", ifaceName, mac),
-					Description: "Static reservation hostname changed for " + mac,
-					OldValue:    oldLease.Hostname,
-					NewValue:    newLease.Hostname,
-				})
-			}
+	for _, mac := range oldMACs {
+		newLease, exists := newByMAC[mac]
+		if !exists {
+			continue
+		}
+		oldLease := oldByMAC[mac]
+		if oldLease.IPAddress != newLease.IPAddress {
+			changes = append(changes, Change{
+				Type:        ChangeModified,
+				Section:     SectionDHCP,
+				Path:        fmt.Sprintf("dhcpd.%s.staticmap[%s].ipaddr", ifaceName, mac),
+				Description: "Static reservation IP changed for " + staticLeaseLabel(newLease),
+				OldValue:    oldLease.IPAddress,
+				NewValue:    newLease.IPAddress,
+			})
+		}
+		if oldLease.Hostname != newLease.Hostname {
+			changes = append(changes, Change{
+				Type:        ChangeModified,
+				Section:     SectionDHCP,
+				Path:        fmt.Sprintf("dhcpd.%s.staticmap[%s].hostname", ifaceName, mac),
+				Description: "Static reservation hostname changed for " + mac,
+				OldValue:    oldLease.Hostname,
+				NewValue:    newLease.Hostname,
+			})
 		}
 	}
 
@@ -670,9 +750,14 @@ func (a *Analyzer) CompareUsers(old, newCfg []common.User) []Change {
 		newByName[u.Name] = u
 	}
 
+	// Sort keys for deterministic output
+	oldUserNames := slices.Sorted(maps.Keys(oldByName))
+	newUserNames := slices.Sorted(maps.Keys(newByName))
+
 	// Find removed users
-	for name, oldUser := range oldByName {
+	for _, name := range oldUserNames {
 		if _, exists := newByName[name]; !exists {
+			oldUser := oldByName[name]
 			changes = append(changes, Change{
 				Type:           ChangeRemoved,
 				Section:        SectionUsers,
@@ -685,8 +770,9 @@ func (a *Analyzer) CompareUsers(old, newCfg []common.User) []Change {
 	}
 
 	// Find added users
-	for name, newUser := range newByName {
+	for _, name := range newUserNames {
 		if _, exists := oldByName[name]; !exists {
+			newUser := newByName[name]
 			changes = append(changes, Change{
 				Type:           ChangeAdded,
 				Section:        SectionUsers,
@@ -699,17 +785,20 @@ func (a *Analyzer) CompareUsers(old, newCfg []common.User) []Change {
 	}
 
 	// Find modified users
-	for name, oldUser := range oldByName {
-		if newUser, exists := newByName[name]; exists {
-			if !usersEqual(oldUser, newUser) {
-				changes = append(changes, Change{
-					Type:           ChangeModified,
-					Section:        SectionUsers,
-					Path:           fmt.Sprintf("system.user[%s]", name),
-					Description:    "Modified user: " + name,
-					SecurityImpact: "low",
-				})
-			}
+	for _, name := range oldUserNames {
+		newUser, exists := newByName[name]
+		if !exists {
+			continue
+		}
+		oldUser := oldByName[name]
+		if !usersEqual(oldUser, newUser) {
+			changes = append(changes, Change{
+				Type:           ChangeModified,
+				Section:        SectionUsers,
+				Path:           fmt.Sprintf("system.user[%s]", name),
+				Description:    "Modified user: " + name,
+				SecurityImpact: "low",
+			})
 		}
 	}
 
@@ -718,6 +807,29 @@ func (a *Analyzer) CompareUsers(old, newCfg []common.User) []Change {
 
 // CompareRoutes compares static route configuration between two configs.
 func (a *Analyzer) CompareRoutes(old, newCfg common.Routing) []Change {
+	oldHas := len(old.StaticRoutes) > 0
+	newHas := len(newCfg.StaticRoutes) > 0
+
+	if !oldHas && !newHas {
+		return nil
+	}
+	if !oldHas && newHas {
+		return []Change{{
+			Type:        ChangeAdded,
+			Section:     SectionRouting,
+			Path:        "staticroutes.route",
+			Description: "Static routes configuration section added",
+		}}
+	}
+	if oldHas && !newHas {
+		return []Change{{
+			Type:        ChangeRemoved,
+			Section:     SectionRouting,
+			Path:        "staticroutes.route",
+			Description: "Static routes configuration section removed",
+		}}
+	}
+
 	var changes []Change
 
 	if len(old.StaticRoutes) != len(newCfg.StaticRoutes) {
