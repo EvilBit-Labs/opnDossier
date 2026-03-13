@@ -211,6 +211,303 @@ func TestCommonDevice_NATSummary_NilReceiver(t *testing.T) {
 	}
 }
 
+func TestCommonDevice_HasNATConfig(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		device common.CommonDevice
+		want   bool
+	}{
+		{
+			name:   "zero-value NATConfig returns false",
+			device: common.CommonDevice{},
+			want:   false,
+		},
+		{
+			name: "OutboundMode set returns true",
+			device: common.CommonDevice{
+				NAT: common.NATConfig{OutboundMode: "hybrid"},
+			},
+			want: true,
+		},
+		{
+			name: "OutboundRules present returns true",
+			device: common.CommonDevice{
+				NAT: common.NATConfig{OutboundRules: []common.NATRule{{UUID: "r1"}}},
+			},
+			want: true,
+		},
+		{
+			name: "InboundRules present returns true",
+			device: common.CommonDevice{
+				NAT: common.NATConfig{InboundRules: []common.InboundNATRule{{UUID: "r1"}}},
+			},
+			want: true,
+		},
+		{
+			name: "ReflectionDisabled returns true",
+			device: common.CommonDevice{
+				NAT: common.NATConfig{ReflectionDisabled: true},
+			},
+			want: true,
+		},
+		{
+			name: "PfShareForward returns true",
+			device: common.CommonDevice{
+				NAT: common.NATConfig{PfShareForward: true},
+			},
+			want: true,
+		},
+		{
+			name: "BiNATEnabled returns true",
+			device: common.CommonDevice{
+				NAT: common.NATConfig{BiNATEnabled: true},
+			},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := tt.device.HasNATConfig(); got != tt.want {
+				t.Errorf("HasNATConfig() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCommonDevice_HasNATConfig_NilReceiver(t *testing.T) {
+	t.Parallel()
+
+	var device *common.CommonDevice
+	if device.HasNATConfig() {
+		t.Error("HasNATConfig() on nil receiver should return false")
+	}
+}
+
+func TestNATConfig_HasData(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		cfg  common.NATConfig
+		want bool
+	}{
+		{
+			name: "zero-value returns false",
+			cfg:  common.NATConfig{},
+			want: false,
+		},
+		{
+			name: "OutboundMode set returns true",
+			cfg:  common.NATConfig{OutboundMode: "hybrid"},
+			want: true,
+		},
+		{
+			name: "OutboundRules present returns true",
+			cfg:  common.NATConfig{OutboundRules: []common.NATRule{{UUID: "r1"}}},
+			want: true,
+		},
+		{
+			name: "InboundRules present returns true",
+			cfg:  common.NATConfig{InboundRules: []common.InboundNATRule{{UUID: "r1"}}},
+			want: true,
+		},
+		{
+			name: "ReflectionDisabled returns true",
+			cfg:  common.NATConfig{ReflectionDisabled: true},
+			want: true,
+		},
+		{
+			name: "PfShareForward returns true",
+			cfg:  common.NATConfig{PfShareForward: true},
+			want: true,
+		},
+		{
+			name: "BiNATEnabled returns true",
+			cfg:  common.NATConfig{BiNATEnabled: true},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := tt.cfg.HasData(); got != tt.want {
+				t.Errorf("NATConfig.HasData() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCommonDevice_HasInterfaces(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		device common.CommonDevice
+		want   bool
+	}{
+		{
+			name:   "empty interfaces returns false",
+			device: common.CommonDevice{},
+			want:   false,
+		},
+		{
+			name: "populated interfaces returns true",
+			device: common.CommonDevice{
+				Interfaces: []common.Interface{{Name: "wan"}},
+			},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := tt.device.HasInterfaces(); got != tt.want {
+				t.Errorf("HasInterfaces() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCommonDevice_HasInterfaces_NilReceiver(t *testing.T) {
+	t.Parallel()
+
+	var device *common.CommonDevice
+	if device.HasInterfaces() {
+		t.Error("HasInterfaces() on nil receiver should return false")
+	}
+}
+
+func TestCommonDevice_HasVLANs(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		device common.CommonDevice
+		want   bool
+	}{
+		{
+			name:   "empty VLANs returns false",
+			device: common.CommonDevice{},
+			want:   false,
+		},
+		{
+			name: "populated VLANs returns true",
+			device: common.CommonDevice{
+				VLANs: []common.VLAN{{VLANIf: "vlan10", Tag: "10"}},
+			},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := tt.device.HasVLANs(); got != tt.want {
+				t.Errorf("HasVLANs() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCommonDevice_HasVLANs_NilReceiver(t *testing.T) {
+	t.Parallel()
+
+	var device *common.CommonDevice
+	if device.HasVLANs() {
+		t.Error("HasVLANs() on nil receiver should return false")
+	}
+}
+
+func TestCommonDevice_HasDHCP(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		device common.CommonDevice
+		want   bool
+	}{
+		{
+			name:   "empty DHCP returns false",
+			device: common.CommonDevice{},
+			want:   false,
+		},
+		{
+			name: "populated DHCP returns true",
+			device: common.CommonDevice{
+				DHCP: []common.DHCPScope{{Interface: "lan"}},
+			},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := tt.device.HasDHCP(); got != tt.want {
+				t.Errorf("HasDHCP() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCommonDevice_HasDHCP_NilReceiver(t *testing.T) {
+	t.Parallel()
+
+	var device *common.CommonDevice
+	if device.HasDHCP() {
+		t.Error("HasDHCP() on nil receiver should return false")
+	}
+}
+
+func TestCommonDevice_HasRoutes(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		device common.CommonDevice
+		want   bool
+	}{
+		{
+			name:   "empty routes returns false",
+			device: common.CommonDevice{},
+			want:   false,
+		},
+		{
+			name: "populated static routes returns true",
+			device: common.CommonDevice{
+				Routing: common.Routing{
+					StaticRoutes: []common.StaticRoute{{Network: "10.0.0.0/8"}},
+				},
+			},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := tt.device.HasRoutes(); got != tt.want {
+				t.Errorf("HasRoutes() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCommonDevice_HasRoutes_NilReceiver(t *testing.T) {
+	t.Parallel()
+
+	var device *common.CommonDevice
+	if device.HasRoutes() {
+		t.Error("HasRoutes() on nil receiver should return false")
+	}
+}
+
 func TestCommonDevice_JSONRoundTrip(t *testing.T) {
 	t.Parallel()
 
