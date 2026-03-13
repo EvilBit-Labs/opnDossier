@@ -4,7 +4,6 @@ package cmd
 import (
 	"fmt"
 	"slices"
-	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -120,7 +119,7 @@ func suggestFlags(cmd *cobra.Command, arg string) []string {
 		}
 	})
 
-	sort.Strings(suggestions)
+	slices.Sort(suggestions)
 
 	return suggestions
 }
