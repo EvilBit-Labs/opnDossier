@@ -322,7 +322,7 @@ func TestToJSON(t *testing.T) {
 	}
 }
 
-func TestMapPrivateIP_ShortIP(t *testing.T) {
+func TestMapPrivateIP_ShortIP_ReturnsDefaultPattern(t *testing.T) {
 	m := NewMapper()
 
 	// IP with fewer than 2 octets should fall back to default pattern
