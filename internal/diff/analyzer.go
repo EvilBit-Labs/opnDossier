@@ -283,6 +283,38 @@ func (a *Analyzer) CompareNAT(old, newCfg common.NATConfig) []Change {
 		})
 	}
 
+	// Compare NAT boolean settings
+	if old.ReflectionDisabled != newCfg.ReflectionDisabled {
+		changes = append(changes, Change{
+			Type:        ChangeModified,
+			Section:     SectionNAT,
+			Path:        "nat.reflectionDisabled",
+			Description: "NAT reflection setting changed",
+			OldValue:    strconv.FormatBool(old.ReflectionDisabled),
+			NewValue:    strconv.FormatBool(newCfg.ReflectionDisabled),
+		})
+	}
+	if old.PfShareForward != newCfg.PfShareForward {
+		changes = append(changes, Change{
+			Type:        ChangeModified,
+			Section:     SectionNAT,
+			Path:        "nat.pfShareForward",
+			Description: "pf share-forward setting changed",
+			OldValue:    strconv.FormatBool(old.PfShareForward),
+			NewValue:    strconv.FormatBool(newCfg.PfShareForward),
+		})
+	}
+	if old.BiNATEnabled != newCfg.BiNATEnabled {
+		changes = append(changes, Change{
+			Type:        ChangeModified,
+			Section:     SectionNAT,
+			Path:        "nat.biNatEnabled",
+			Description: "BiNAT setting changed",
+			OldValue:    strconv.FormatBool(old.BiNATEnabled),
+			NewValue:    strconv.FormatBool(newCfg.BiNATEnabled),
+		})
+	}
+
 	return changes
 }
 
@@ -805,10 +837,10 @@ func (a *Analyzer) CompareUsers(old, newCfg []common.User) []Change {
 	return changes
 }
 
-// CompareRoutes compares static route configuration between two configs.
+// CompareRoutes compares routing configuration between two configs.
 func (a *Analyzer) CompareRoutes(old, newCfg common.Routing) []Change {
-	oldHas := len(old.StaticRoutes) > 0
-	newHas := len(newCfg.StaticRoutes) > 0
+	oldHas := len(old.StaticRoutes) > 0 || len(old.Gateways) > 0 || len(old.GatewayGroups) > 0
+	newHas := len(newCfg.StaticRoutes) > 0 || len(newCfg.Gateways) > 0 || len(newCfg.GatewayGroups) > 0
 
 	if !oldHas && !newHas {
 		return nil
@@ -817,16 +849,16 @@ func (a *Analyzer) CompareRoutes(old, newCfg common.Routing) []Change {
 		return []Change{{
 			Type:        ChangeAdded,
 			Section:     SectionRouting,
-			Path:        "staticroutes.route",
-			Description: "Static routes configuration section added",
+			Path:        "routing",
+			Description: "Routing configuration section added",
 		}}
 	}
 	if oldHas && !newHas {
 		return []Change{{
 			Type:        ChangeRemoved,
 			Section:     SectionRouting,
-			Path:        "staticroutes.route",
-			Description: "Static routes configuration section removed",
+			Path:        "routing",
+			Description: "Routing configuration section removed",
 		}}
 	}
 
@@ -840,6 +872,28 @@ func (a *Analyzer) CompareRoutes(old, newCfg common.Routing) []Change {
 			Description: "Static route count changed",
 			OldValue:    fmt.Sprintf("%d routes", len(old.StaticRoutes)),
 			NewValue:    fmt.Sprintf("%d routes", len(newCfg.StaticRoutes)),
+		})
+	}
+
+	if len(old.Gateways) != len(newCfg.Gateways) {
+		changes = append(changes, Change{
+			Type:        ChangeModified,
+			Section:     SectionRouting,
+			Path:        "gateways.gateway_item",
+			Description: "Gateway count changed",
+			OldValue:    fmt.Sprintf("%d gateways", len(old.Gateways)),
+			NewValue:    fmt.Sprintf("%d gateways", len(newCfg.Gateways)),
+		})
+	}
+
+	if len(old.GatewayGroups) != len(newCfg.GatewayGroups) {
+		changes = append(changes, Change{
+			Type:        ChangeModified,
+			Section:     SectionRouting,
+			Path:        "gateway_group",
+			Description: "Gateway group count changed",
+			OldValue:    fmt.Sprintf("%d groups", len(old.GatewayGroups)),
+			NewValue:    fmt.Sprintf("%d groups", len(newCfg.GatewayGroups)),
 		})
 	}
 

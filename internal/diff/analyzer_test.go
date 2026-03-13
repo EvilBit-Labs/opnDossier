@@ -520,6 +520,13 @@ func TestRuleDescription(t *testing.T) {
 	}
 }
 
+func TestAnalyzer_CompareInterfaces_BothEmpty(t *testing.T) {
+	t.Parallel()
+	analyzer := NewAnalyzer()
+	changes := analyzer.CompareInterfaces([]common.Interface{}, []common.Interface{})
+	assert.Nil(t, changes)
+}
+
 func TestAnalyzer_CompareInterfaces_SectionAdded(t *testing.T) {
 	t.Parallel()
 	analyzer := NewAnalyzer()
@@ -555,6 +562,13 @@ func TestAnalyzer_CompareInterfaces_SectionRemoved(t *testing.T) {
 	assert.Equal(t, "Interfaces configuration section removed", changes[0].Description)
 }
 
+func TestAnalyzer_CompareVLANs_BothEmpty(t *testing.T) {
+	t.Parallel()
+	analyzer := NewAnalyzer()
+	changes := analyzer.CompareVLANs([]common.VLAN{}, []common.VLAN{})
+	assert.Nil(t, changes)
+}
+
 func TestAnalyzer_CompareVLANs_SectionAdded(t *testing.T) {
 	t.Parallel()
 	analyzer := NewAnalyzer()
@@ -587,6 +601,13 @@ func TestAnalyzer_CompareVLANs_SectionRemoved(t *testing.T) {
 	assert.Equal(t, SectionVLANs, changes[0].Section)
 	assert.Equal(t, "vlans", changes[0].Path)
 	assert.Equal(t, "VLANs configuration section removed", changes[0].Description)
+}
+
+func TestAnalyzer_CompareDHCP_BothEmpty(t *testing.T) {
+	t.Parallel()
+	analyzer := NewAnalyzer()
+	changes := analyzer.CompareDHCP([]common.DHCPScope{}, []common.DHCPScope{})
+	assert.Nil(t, changes)
 }
 
 func TestAnalyzer_CompareDHCP_SectionAdded(t *testing.T) {
@@ -645,8 +666,23 @@ func TestAnalyzer_CompareRoutes_SectionAdded(t *testing.T) {
 	assert.Len(t, changes, 1)
 	assert.Equal(t, ChangeAdded, changes[0].Type)
 	assert.Equal(t, SectionRouting, changes[0].Section)
-	assert.Equal(t, "staticroutes.route", changes[0].Path)
-	assert.Equal(t, "Static routes configuration section added", changes[0].Description)
+	assert.Equal(t, "routing", changes[0].Path)
+	assert.Equal(t, "Routing configuration section added", changes[0].Description)
+}
+
+func TestAnalyzer_CompareRoutes_SectionAddedGatewaysOnly(t *testing.T) {
+	t.Parallel()
+	analyzer := NewAnalyzer()
+	old := common.Routing{}
+	newCfg := common.Routing{
+		Gateways: []common.Gateway{{Name: "gw1"}},
+	}
+
+	changes := analyzer.CompareRoutes(old, newCfg)
+
+	assert.Len(t, changes, 1)
+	assert.Equal(t, ChangeAdded, changes[0].Type)
+	assert.Equal(t, SectionRouting, changes[0].Section)
 }
 
 func TestAnalyzer_CompareRoutes_SectionRemoved(t *testing.T) {
@@ -664,8 +700,8 @@ func TestAnalyzer_CompareRoutes_SectionRemoved(t *testing.T) {
 	assert.Len(t, changes, 1)
 	assert.Equal(t, ChangeRemoved, changes[0].Type)
 	assert.Equal(t, SectionRouting, changes[0].Section)
-	assert.Equal(t, "staticroutes.route", changes[0].Path)
-	assert.Equal(t, "Static routes configuration section removed", changes[0].Description)
+	assert.Equal(t, "routing", changes[0].Path)
+	assert.Equal(t, "Routing configuration section removed", changes[0].Description)
 }
 
 func TestAnalyzer_CompareRoutes_CountChanged(t *testing.T) {
@@ -688,6 +724,47 @@ func TestAnalyzer_CompareRoutes_CountChanged(t *testing.T) {
 	assert.Len(t, changes, 1)
 	assert.Equal(t, ChangeModified, changes[0].Type)
 	assert.Equal(t, SectionRouting, changes[0].Section)
+}
+
+func TestAnalyzer_CompareRoutes_GatewayCountChanged(t *testing.T) {
+	t.Parallel()
+	analyzer := NewAnalyzer()
+	old := common.Routing{
+		Gateways: []common.Gateway{{Name: "gw1"}},
+	}
+	newCfg := common.Routing{
+		Gateways: []common.Gateway{{Name: "gw1"}, {Name: "gw2"}},
+	}
+
+	changes := analyzer.CompareRoutes(old, newCfg)
+
+	assert.Len(t, changes, 1)
+	assert.Equal(t, ChangeModified, changes[0].Type)
+	assert.Equal(t, "gateways.gateway_item", changes[0].Path)
+}
+
+func TestAnalyzer_CompareNAT_BooleanChanges(t *testing.T) {
+	t.Parallel()
+	analyzer := NewAnalyzer()
+	old := common.NATConfig{
+		OutboundMode:       "automatic",
+		ReflectionDisabled: true,
+	}
+	newCfg := common.NATConfig{
+		OutboundMode:   "automatic",
+		PfShareForward: true,
+	}
+
+	changes := analyzer.CompareNAT(old, newCfg)
+
+	assert.Len(t, changes, 2)
+
+	paths := make([]string, len(changes))
+	for i, c := range changes {
+		paths[i] = c.Path
+	}
+	assert.Contains(t, paths, "nat.reflectionDisabled")
+	assert.Contains(t, paths, "nat.pfShareForward")
 }
 
 func TestIsPermissiveRule(t *testing.T) {
