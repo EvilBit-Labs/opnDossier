@@ -362,7 +362,7 @@ type ComplianceResult struct {
 - `Findings` ([]compliance.Finding): Aggregated findings from all plugins
 - `PluginFindings` (map[string][]compliance.Finding): Findings grouped by plugin name
 - `Compliance` (map[string]map[string]bool): Compliance status per plugin per control
-- `Summary` (*ComplianceSummary): Summary statistics with severity breakdown
+- `Summary` (\*ComplianceSummary): Summary statistics with severity breakdown
 - `PluginInfo` (map[string]PluginInfo): Metadata about executed plugins
 
 #### ComplianceSummary
