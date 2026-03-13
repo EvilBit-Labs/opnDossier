@@ -307,25 +307,37 @@ nfpms:
       packager: EvilBit Labs <support@evilbitlabs.io>
 
 winget:
-  - publisher: EvilBit Labs
-    publisher_url: "https://evilbitlabs.io/opnDossier"
-    publisher_support_url: "https://github.com/EvilBit-Labs/opnDossier/issues/new"
+  - name: opndossier
+    publisher: EvilBit Labs
+    short_description: OPNsense configuration documentation and compliance auditing tool
     description: |
       opnDossier is a command-line interface (CLI) tool designed to process OPNsense firewall configuration files (config.xml) and convert them into human-readable formats, primarily Markdown. This tool assists network administrators and security professionals in documenting, auditing, and understanding their OPNsense configurations more effectively.
-
-    short_description: OPNsense configuration documentation and compliance auditing tool
     license: Apache-2.0
+    homepage: https://github.com/EvilBit-Labs/opnDossier
+    publisher_url: "https://evilbitlabs.io/opnDossier"
+    publisher_support_url: "https://github.com/EvilBit-Labs/opnDossier/issues/new"
     privacy_url: "https://evilbitlabs.io/privacy"
+    tags:
+      - opnsense
+      - firewall
+      - audit
+      - compliance
+      - cli
+      - security
+    # Manifests are generated but not pushed until the fork exists.
+    # To enable: fork microsoft/winget-pkgs to EvilBit-Labs/winget-pkgs,
+    # then change skip_upload to 'auto' (skips prereleases only).
+    skip_upload: true
     repository:
       owner: EvilBit-Labs
-      name: opnDossier
+      name: winget-pkgs
       branch: "{{.ProjectName}}-{{.Version}}"
       pull_request:
         enabled: true
         base:
-          owner: EvilBit-Labs
-          name: opnDossier
-          branch: main
+          owner: microsoft
+          name: winget-pkgs
+          branch: master
 
 # SBOM generation with CycloneDX-gomod
 # https://goreleaser.com/customization/sbom/
