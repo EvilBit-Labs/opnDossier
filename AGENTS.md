@@ -204,6 +204,12 @@ if cfg.Filter.Rule != nil {
 
 **String comparisons:** Use `strings.EqualFold(a, b)` for case-insensitive comparison (no need for `strings.ToLower()` first). For case-insensitive enum validation, iterate with `EqualFold` directly on original value.
 
+### 5.6b Value-Type Presence Detection
+
+For value-type structs (not pointers), add a `HasData() bool` method on the struct itself to check for meaningful data. `CommonDevice` convenience methods (e.g., `HasNATConfig()`) delegate to the inner struct's `HasData()`. The diff engine calls `HasData()` directly on the value rather than using package-level helpers.
+
+See `NATConfig.HasData()` and `CompareNAT` in `internal/diff/analyzer.go` for the canonical pattern.
+
 ### 5.7 CommandContext Pattern (CLI Dependency Injection)
 
 The `cmd` package uses `CommandContext` (see `cmd/context.go`) to inject dependencies into subcommands:

@@ -120,12 +120,25 @@ func ImplementedSections() []Section {
 
 // IsValid returns true if the section is a valid value.
 func (s Section) IsValid() bool {
-	return slices.Contains(AllSections(), s)
+	switch s {
+	case SectionSystem, SectionFirewall, SectionNAT, SectionInterfaces,
+		SectionVLANs, SectionDHCP, SectionDNS, SectionVPN,
+		SectionUsers, SectionRouting, SectionCertificates:
+		return true
+	default:
+		return false
+	}
 }
 
 // IsImplemented returns true if the section has comparison logic implemented.
 func (s Section) IsImplemented() bool {
-	return slices.Contains(ImplementedSections(), s)
+	switch s {
+	case SectionSystem, SectionFirewall, SectionNAT, SectionInterfaces,
+		SectionVLANs, SectionDHCP, SectionUsers, SectionRouting:
+		return true
+	default:
+		return false
+	}
 }
 
 // SecurityImpact represents the security impact level of a change.

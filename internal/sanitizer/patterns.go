@@ -235,16 +235,24 @@ func IsPrivateKey(s string) bool {
 	return false
 }
 
+// Immutable keyword lookup tables, hoisted to package level to avoid per-call allocation.
+//
+//nolint:gochecknoglobals // Immutable lookup tables, avoids per-call allocation
+var (
+	passwordKeywords = []string{
+		"password", "passwd", "pass", "secret", "key", "token",
+		"credential", "auth", "prv", "private",
+	}
+	apiKeywords = []string{"apikey", "api_key", "api-key", "accesskey", "secretkey"}
+	pskKeywords = []string{"psk", "preshared", "pre-shared", "ipsecpsk"}
+)
+
 // LooksLikePassword reports whether fieldName likely contains a password or secret.
 // It performs a case-insensitive substring check for common password/key-related keywords
 // such as "password", "passwd", "pass", "secret", "key", "token", "credential", "auth",
 // "prv", and "private". It returns true if any keyword is present in fieldName, false otherwise.
 func LooksLikePassword(fieldName string) bool {
 	lower := strings.ToLower(fieldName)
-	passwordKeywords := []string{
-		"password", "passwd", "pass", "secret", "key", "token",
-		"credential", "auth", "prv", "private",
-	}
 	for _, kw := range passwordKeywords {
 		if strings.Contains(lower, kw) {
 			return true
@@ -259,7 +267,6 @@ func LooksLikePassword(fieldName string) bool {
 // "api-key", "accesskey", or "secretkey".
 func LooksLikeAPIKey(fieldName string) bool {
 	lower := strings.ToLower(fieldName)
-	apiKeywords := []string{"apikey", "api_key", "api-key", "accesskey", "secretkey"}
 	for _, kw := range apiKeywords {
 		if strings.Contains(lower, kw) {
 			return true
@@ -272,7 +279,6 @@ func LooksLikeAPIKey(fieldName string) bool {
 // It performs a case-insensitive substring check for common PSK-related tokens: "psk", "preshared", "pre-shared", and "ipsecpsk".
 func LooksLikePSK(fieldName string) bool {
 	lower := strings.ToLower(fieldName)
-	pskKeywords := []string{"psk", "preshared", "pre-shared", "ipsecpsk"}
 	for _, kw := range pskKeywords {
 		if strings.Contains(lower, kw) {
 			return true
