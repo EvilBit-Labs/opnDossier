@@ -222,9 +222,9 @@ func TestGenerator_FormatType_UnnamedTypes(t *testing.T) {
 	g := NewGenerator()
 	result := g.GenerateReference(structWithInterface{})
 
-	// Should contain interface{} for unnamed interface type
-	if !strings.Contains(result, "interface{}") {
-		t.Error("result should contain 'interface{}' for any/interface{} type")
+	// Should contain any for unnamed interface type
+	if !strings.Contains(result, "any") {
+		t.Error("result should contain 'any' for any/interface{} type")
 	}
 
 	// Should not have empty type cells

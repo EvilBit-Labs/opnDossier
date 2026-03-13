@@ -1,7 +1,7 @@
 package formatters
 
 import (
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
@@ -163,6 +163,6 @@ func ExtractUniqueValues(items []string) []string {
 		}
 	}
 
-	sort.Strings(unique)
+	slices.Sort(unique)
 	return unique
 }

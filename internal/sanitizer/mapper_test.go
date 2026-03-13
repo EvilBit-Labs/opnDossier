@@ -12,6 +12,7 @@ const (
 	expectedPublicIP2  = "[REDACTED-PUBLIC-IP-2]"
 	expectedMappedMAC1 = "XX:XX:XX:XX:XX:01"
 	expectedMappedMAC2 = "XX:XX:XX:XX:XX:02"
+	expectedPrivateIP1 = "10.0.0.1"
 )
 
 func TestNewMapper(t *testing.T) {
@@ -69,8 +70,8 @@ func TestMapPrivateIP(t *testing.T) {
 
 	// Without structure preservation
 	result1 := m.MapPrivateIP("192.168.1.100", false)
-	if result1 != "10.0.0.1" {
-		t.Errorf("MapPrivateIP without structure = %q, want %q", result1, "10.0.0.1")
+	if result1 != expectedPrivateIP1 {
+		t.Errorf("MapPrivateIP without structure = %q, want %q", result1, expectedPrivateIP1)
 	}
 
 	// Same IP should return same mapping
@@ -321,31 +322,13 @@ func TestToJSON(t *testing.T) {
 	}
 }
 
-func TestExtractOctets(t *testing.T) {
-	tests := []struct {
-		input string
-		want  []string
-	}{
-		{"192.168.1.1", []string{"192", "168", "1", "1"}},
-		{"10.0.0.1", []string{"10", "0", "0", "1"}},
-		{"255.255.255.255", []string{"255", "255", "255", "255"}},
-		{"1.2.3", []string{"1", "2", "3"}},
-		{"", []string{}},
-	}
+func TestMapPrivateIP_ShortIP(t *testing.T) {
+	m := NewMapper()
 
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			got := extractOctets(tt.input)
-			if len(got) != len(tt.want) {
-				t.Errorf("extractOctets(%q) returned %d octets, want %d", tt.input, len(got), len(tt.want))
-				return
-			}
-			for i, octet := range got {
-				if octet != tt.want[i] {
-					t.Errorf("extractOctets(%q)[%d] = %q, want %q", tt.input, i, octet, tt.want[i])
-				}
-			}
-		})
+	// IP with fewer than 2 octets should fall back to default pattern
+	result := m.MapPrivateIP("127", true)
+	if result != expectedPrivateIP1 {
+		t.Errorf("MapPrivateIP short IP = %q, want %q", result, expectedPrivateIP1)
 	}
 }
 

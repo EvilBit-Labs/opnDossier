@@ -4,7 +4,7 @@ package formatters
 import (
 	"fmt"
 	"io"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/diff"
@@ -131,8 +131,8 @@ func (f *MarkdownFormatter) formatChanges(result *diff.Result) error {
 	for section := range bySection {
 		sections = append(sections, section)
 	}
-	sort.Slice(sections, func(i, j int) bool {
-		return sections[i].String() < sections[j].String()
+	slices.SortFunc(sections, func(a, b diff.Section) int {
+		return strings.Compare(a.String(), b.String())
 	})
 
 	for _, section := range sections {

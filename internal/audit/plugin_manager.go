@@ -26,7 +26,17 @@ func NewPluginManager(logger *logging.Logger) *PluginManager {
 	}
 }
 
-// InitializePlugins initializes and registers all available plugins.
+// InitializePlugins registers all built-in compliance plugins (STIG, SANS,
+// Firewall) with the manager's own PluginRegistry. This method is the
+// sequential initialization entrypoint and must be called during application
+// startup before the manager's registry is used concurrently. All built-in
+// plugin registration for this manager happens here, ensuring the manager's
+// registry is fully populated before any concurrent audit operations begin.
+// Callers must not invoke this method concurrently.
+//
+// Note: this populates pm.registry only, not the global singleton returned by
+// GetGlobalRegistry(). If plugins need to be available via the global registry,
+// callers must use RegisterGlobalPlugin() separately.
 func (pm *PluginManager) InitializePlugins(ctx context.Context) error {
 	logger := pm.logger.WithContext(ctx)
 	logger.Info("Initializing compliance plugins")
