@@ -438,9 +438,16 @@ func TestCommonDevice_HasDHCP(t *testing.T) {
 			want:   false,
 		},
 		{
-			name: "populated DHCP returns true",
+			name: "populated legacy DHCP returns true",
 			device: common.CommonDevice{
 				DHCP: []common.DHCPScope{{Interface: "lan"}},
+			},
+			want: true,
+		},
+		{
+			name: "KeaDHCP present returns true",
+			device: common.CommonDevice{
+				KeaDHCP: &common.KeaDHCPConfig{Enabled: true},
 			},
 			want: true,
 		},
@@ -483,6 +490,24 @@ func TestCommonDevice_HasRoutes(t *testing.T) {
 			device: common.CommonDevice{
 				Routing: common.Routing{
 					StaticRoutes: []common.StaticRoute{{Network: "10.0.0.0/8"}},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "gateways only returns true",
+			device: common.CommonDevice{
+				Routing: common.Routing{
+					Gateways: []common.Gateway{{Name: "gw1"}},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "gateway groups only returns true",
+			device: common.CommonDevice{
+				Routing: common.Routing{
+					GatewayGroups: []common.GatewayGroup{{Name: "group1"}},
 				},
 			},
 			want: true,
