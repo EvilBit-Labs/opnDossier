@@ -89,65 +89,9 @@ Environment variables follow this pattern:
 
 ## Command-Line Flags
 
-CLI flags have the highest precedence and override all other configuration sources.
+Command-line flags have the highest precedence and override both environment variables and config file values. Global flags (like `--verbose` and `--quiet`) apply to all commands, while some flags are command-specific (like `--theme` for `display` or `--audit-mode` for `convert`).
 
-### Global Flags (All Commands)
-
-| Flag            | Short | Default  | Description                             |
-| --------------- | ----- | -------- | --------------------------------------- |
-| `--config`      |       | `""`     | Custom config file path                 |
-| `--verbose`     | `-v`  | `false`  | Enable debug-level logging              |
-| `--quiet`       | `-q`  | `false`  | Suppress all output except errors       |
-| `--color`       |       | `"auto"` | Color output mode (auto, always, never) |
-| `--no-progress` |       | `false`  | Disable progress indicators             |
-| `--timestamps`  |       | `false`  | Include timestamps in log output        |
-| `--minimal`     |       | `false`  | Minimal output mode                     |
-| `--json-output` |       | `false`  | Output errors in JSON format            |
-| `--device-type` |       | `""`     | Force device type (e.g., opnsense)      |
-
-### Convert Command Flags
-
-| Flag                 | Short | Default      | Description                                      |
-| -------------------- | ----- | ------------ | ------------------------------------------------ |
-| `--output`           | `-o`  | `""`         | Output file path (default: stdout)               |
-| `--format`           | `-f`  | `"markdown"` | Output format (markdown, json, yaml, text, html) |
-| `--force`            |       | `false`      | Force overwrite without prompt                   |
-| `--section`          |       | `[]`         | Sections to include (comma-separated)            |
-| `--wrap`             |       | `-1`         | Text wrap width (-1=auto, 0=off)                 |
-| `--no-wrap`          |       | `false`      | Disable text wrapping                            |
-| `--comprehensive`    |       | `false`      | Generate comprehensive reports                   |
-| `--include-tunables` |       | `false`      | Include system tunables in output                |
-| `--audit-mode`       |       | `""`         | Audit mode (standard, blue, red)                 |
-| `--audit-plugins`    |       | `[]`         | Compliance plugins (stig, sans, firewall)        |
-| `--audit-blackhat`   |       | `false`      | Enable blackhat commentary (red mode)            |
-| `--redact`           |       | `false`      | Redact sensitive fields (passwords, keys, etc.)  |
-
-### Display Command Flags
-
-| Flag                 | Short | Default | Description                               |
-| -------------------- | ----- | ------- | ----------------------------------------- |
-| `--theme`            |       | `""`    | Rendering theme (auto, dark, light, none) |
-| `--section`          |       | `[]`    | Sections to include (comma-separated)     |
-| `--wrap`             |       | `-1`    | Text wrap width (-1=auto, 0=off)          |
-| `--no-wrap`          |       | `false` | Disable text wrapping                     |
-| `--comprehensive`    |       | `false` | Generate comprehensive reports            |
-| `--include-tunables` |       | `false` | Include system tunables in output         |
-| `--redact`           |       | `false` | Redact sensitive fields in output         |
-
-### Validate Command
-
-The validate command uses only global flags (no command-specific flags).
-
-## Flag Constraints
-
-- `--verbose` and `--quiet` are **mutually exclusive**
-- `--wrap` and `--no-wrap` are **mutually exclusive**
-- `--color` must be one of: `auto`, `always`, `never`
-- `--theme` must be one of: `auto`, `dark`, `light`, `none`
-- `--format` must be one of: `markdown`, `md`, `json`, `yaml`, `yml`, `text`, `txt`, `html`, `htm`
-- `--audit-mode` must be one of: `standard`, `blue`, `red`
-- `--audit-plugins` must be from: `stig`, `sans`, `firewall`
-- `--wrap` allowed range: 40-200 columns (recommended: 80-120)
+Each command's flags are documented on its own page under [Commands](commands/overview.md). For a single table listing every flag, environment variable, and config file key, see the [Configuration Reference](configuration-reference.md).
 
 ## Configuration Best Practices
 
@@ -213,6 +157,7 @@ Use verbose mode to see configuration loading details:
 opndossier --verbose --config /path/to/config.yaml convert config.xml
 ```
 
----
+## Related
 
-For complete flag reference with all options, see the [Configuration Reference](configuration-reference.md).
+- [Configuration Reference](configuration-reference.md) -- complete lookup table of every flag, environment variable, and config file key
+- [Commands Overview](commands/overview.md) -- per-command documentation with usage examples

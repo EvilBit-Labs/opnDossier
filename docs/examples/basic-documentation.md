@@ -4,6 +4,8 @@ This guide covers the most common use cases for generating documentation from OP
 
 ## Simple Configuration Conversion
 
+For complete details on the convert command, see the [Convert Command Guide](../user-guide/commands/convert.md).
+
 ### Convert to Markdown (Default)
 
 ```bash
@@ -139,6 +141,8 @@ opndossier --config ./project-config.yaml convert config.xml
 
 ## Display Examples
 
+For complete details on the display command, see the [Display Command Guide](../user-guide/commands/display.md).
+
 ### Terminal Display
 
 ```bash
@@ -164,6 +168,8 @@ opndossier display --section network,firewall config.xml
 ```
 
 ## Validation Examples
+
+For complete details on the validate command, see the [Validate Command Guide](../user-guide/commands/validate.md).
 
 ### Basic Validation
 
@@ -220,20 +226,18 @@ fi
 
 ### Configuration Comparison
 
-Use the built-in `diff` command for content-aware, security-scored configuration comparison:
-
 ```bash
-# Compare two configurations with terminal output
-opndossier diff current-config.xml previous-config.xml
+#!/bin/bash
+# compare-configs.sh - using the built-in diff command
 
-# Generate a markdown diff report
-opndossier diff current-config.xml previous-config.xml -f markdown -o changes.md
+# Compare configurations with structure-aware diffing
+opndossier diff previous-config.xml current-config.xml
 
-# Compare only specific sections
-opndossier diff current-config.xml previous-config.xml --section firewall,nat
+# Generate a markdown change report for documentation
+opndossier diff previous-config.xml current-config.xml -f markdown -o changes.md
 
-# Show only security-relevant changes
-opndossier diff current-config.xml previous-config.xml --security
+# Focus on security-relevant changes only
+opndossier diff previous-config.xml current-config.xml --security --normalize
 ```
 
 ### Backup Documentation
@@ -324,6 +328,7 @@ fi
 
 **Next Steps:**
 
-- For automation, see [Automation and Scripting](automation-scripting.md)
-- For advanced configuration, see [Advanced Configuration](advanced-configuration.md)
+- For automation workflows, see [Common Workflows](../user-guide/workflows.md)
+- For configuration options, see [Configuration Reference](../user-guide/configuration-reference.md)
+- For comprehensive command reference, see [Commands Overview](../user-guide/commands/overview.md)
 - For troubleshooting, see [Troubleshooting](troubleshooting.md)

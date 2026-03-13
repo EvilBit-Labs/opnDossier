@@ -126,13 +126,14 @@ validation failed with 3 errors: hostname is required (and 2 more)
 
 ## Getting Started
 
-Check out the [Installation Guide](user-guide/installation.md) to get started, or dive into the [Usage Guide](user-guide/usage.md) to learn how to use the tool effectively.
+Check out the [Getting Started](user-guide/getting-started.md) tutorial, or browse the [Commands Overview](user-guide/commands/overview.md) for the full command reference.
 
 ## Documentation
 
 ### User Documentation
 
-- **[User Guide](user-guide/installation.md)** - Installation, configuration, and usage instructions
+- **[Getting Started](user-guide/getting-started.md)** - Tutorial to process your first configuration
+- **[User Guide](user-guide/commands/overview.md)** - Commands, configuration, and workflows
 - **[Examples](examples/index.md)** - Comprehensive usage examples and common workflows
 - **[About](about.md)** - Project overview and features
 - **[API Reference](api.md)** - Command-line interface and API documentation

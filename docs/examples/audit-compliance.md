@@ -4,6 +4,6 @@ Audit mode has known issues with finding aggregation and display. See [#266](htt
 
 Until these are resolved, refer to:
 
-- [Basic Usage](../user-guide/usage.md)
+- [Commands Overview](../user-guide/commands/overview.md)
 - [Advanced Configuration](advanced-configuration.md)
 - [Automation and Scripting](automation-scripting.md)
