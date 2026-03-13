@@ -2,11 +2,14 @@
 
 This document consolidates all development standards, architectural principles, and workflows for the opnDossier project.
 
+@GOTCHAS.md
+
 ## Related Documentation
 
 - **[Requirements](project_spec/requirements.md)** - Complete project requirements and specifications (WHAT)
 - **[Architecture](docs/development/architecture.md)** - System design, component interactions, and deployment patterns
 - **[Development Standards](docs/development/standards.md)** - Go-specific coding standards and project structure
+- **[Gotchas](GOTCHAS.md)** - Common pitfalls and non-obvious behaviors
 - **[Tasks](project_spec/tasks.md)** - Implementation tasks (HOW)
 - **[User Stories](project_spec/user_stories.md)** - User stories (WHY)
 
@@ -227,20 +230,21 @@ When adding `io.Writer` support alongside string-based APIs:
 
 Frequently encountered linter issues and fixes:
 
-| Linter                     | Issue                         | Fix                                                                                                               |
-| -------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `gocritic emptyStringTest` | `len(s) == 0`                 | Use `s == ""`                                                                                                     |
-| `gosec G115`               | Integer overflow on int→int32 | Add `//nolint:gosec` with bounded value comment                                                                   |
-| `mnd`                      | Magic numbers                 | Create named constants                                                                                            |
-| `minmax`                   | Manual min/max comparisons    | Use `min()`/`max()` builtins                                                                                      |
-| `goconst`                  | Repeated string literals      | Extract to package-level constants                                                                                |
-| `tparallel`                | Subtests use `t.Parallel()`   | Parent test must also call `t.Parallel()`                                                                         |
-| `tparallel`                | Subtests share mutable state  | Add `//nolint:tparallel` above func when subtests cannot be parallel due to shared mutable state                  |
-| `nonamedreturns`           | Named return values           | Use a struct return type instead of named returns                                                                 |
-| `copylocks`                | Copying `sync.Once`           | In tests resetting globals, suppress with `//nolint:govet` and comment explaining intentional reset               |
-| `revive redefines-builtin` | Package name shadows stdlib   | Rename package (e.g., `log` → `logging`)                                                                          |
-| `revive stutters`          | `pkg.PkgThing` repeats name   | Drop prefix: `compliance.Plugin` not `compliance.CompliancePlugin`                                                |
-| `modernize`                | `omitempty` on struct fields  | Remove `omitempty` from JSON tags on struct-typed fields (no effect in `encoding/json`); YAML `omitempty` is fine |
+| Linter                     | Issue                              | Fix                                                                                                               |
+| -------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `gocritic emptyStringTest` | `len(s) == 0`                      | Use `s == ""`                                                                                                     |
+| `gosec G115`               | Integer overflow on int→int32      | Add `//nolint:gosec` with bounded value comment                                                                   |
+| `mnd`                      | Magic numbers                      | Create named constants                                                                                            |
+| `minmax`                   | Manual min/max comparisons         | Use `min()`/`max()` builtins                                                                                      |
+| `goconst`                  | Repeated string literals           | Extract to package-level constants                                                                                |
+| `tparallel`                | Subtests use `t.Parallel()`        | Parent test must also call `t.Parallel()`                                                                         |
+| `tparallel`                | Subtests share mutable state       | Add `//nolint:tparallel` above func when subtests cannot be parallel due to shared mutable state                  |
+| `nonamedreturns`           | Named return values                | Use a struct return type instead of named returns                                                                 |
+| `copylocks`                | Copying `sync.Once`                | In tests resetting globals, suppress with `//nolint:govet` and comment explaining intentional reset               |
+| `revive redefines-builtin` | Package name shadows stdlib        | Rename package (e.g., `log` → `logging`)                                                                          |
+| `revive stutters`          | `pkg.PkgThing` repeats name        | Drop prefix: `compliance.Plugin` not `compliance.CompliancePlugin`                                                |
+| `modernize`                | `omitempty` on struct fields       | Remove `omitempty` from JSON tags on struct-typed fields (no effect in `encoding/json`); YAML `omitempty` is fine |
+| `modernize`                | Legacy `sort.Strings`/`sort.Slice` | Use `slices.Sort()` / `slices.SortFunc()` with `strings.Compare`                                                  |
 
 > [!NOTE]
 > IDE diagnostics (marked with ★ in some editors) are suggestions, not errors. The authoritative source is `just lint` - if it reports "0 issues", the code is correct regardless of IDE warnings.
@@ -252,7 +256,7 @@ When using Lipgloss/charmbracelet styling in CLI commands:
 - Create a shared `useStylesCheck()` helper that checks `TERM != "dumb"` and `NO_COLOR == ""`
 - Define terminal constants (`termEnvVar`, `noColorEnvVar`, `termDumb`) to avoid goconst issues
 - Provide plain text fallback functions (e.g., `outputConfigPlain()`) for CI/automation
-- **All lists must be sorted for deterministic output** — use `slices.Sort()`, `slices.Sorted(maps.Keys())`, or `sort.Strings()` on any slice derived from maps, config iteration, or aggregation before rendering, comparing, or serializing. Non-deterministic order causes flaky tests, unstable golden files, and inconsistent CLI output
+- **All lists must be sorted for deterministic output** — use `slices.Sort()`, `slices.SortFunc()`, or `slices.Sorted(maps.Keys())` on any slice derived from maps, config iteration, or aggregation before rendering, comparing, or serializing. Non-deterministic order causes flaky tests, unstable golden files, and inconsistent CLI output
 
 ### 5.12 Standalone Tools Pattern
 
@@ -576,6 +580,8 @@ This pattern ensures test isolation when multiple tests modify the same global s
 | `internal/audit/plugin.go`          | `PluginRegistry`, dynamic plugin loader          |
 | `internal/audit/plugin_manager.go`  | `PluginManager` for lifecycle operations         |
 | `internal/plugins/`                 | Built-in plugin implementations                  |
+
+**Important:** `PluginManager` allocates and populates its own `PluginRegistry` instance via `InitializePlugins()`. This is independent of the global singleton returned by `GetGlobalRegistry()`. Plugins registered through `PluginManager` are not automatically available in the global registry — callers needing the global registry must use `RegisterGlobalPlugin()` separately.
 
 ### 8.2 Plugin Development
 

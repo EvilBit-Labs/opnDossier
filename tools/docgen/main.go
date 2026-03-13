@@ -239,7 +239,7 @@ func formatTypeName(t reflect.Type) string {
 	case reflect.Interface:
 		name := t.Name()
 		if name == "" {
-			return "interface{}"
+			return "any"
 		}
 		return name
 	default:
