@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
@@ -349,7 +349,7 @@ func findUnknownKeys(raw map[string]any) []string {
 	}
 
 	// Sort for deterministic output
-	sort.Strings(unknown)
+	slices.Sort(unknown)
 
 	return unknown
 }

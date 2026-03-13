@@ -189,7 +189,7 @@ func GetModelCompletenessDetails(
 
 // getAllXMLPaths returns all hierarchical XML element paths found in a nested map, using dot-separated notation.
 // It recursively traverses the map structure to collect every unique path.
-func getAllXMLPaths(data map[string]interface{}, prefix string) map[string]bool {
+func getAllXMLPaths(data map[string]any, prefix string) map[string]bool {
 	paths := make(map[string]bool)
 
 	for key, value := range data {
@@ -201,7 +201,7 @@ func getAllXMLPaths(data map[string]interface{}, prefix string) map[string]bool 
 		paths[currentPath] = true
 
 		// Recursively process nested maps
-		if nestedMap, ok := value.(map[string]interface{}); ok {
+		if nestedMap, ok := value.(map[string]any); ok {
 			nestedPaths := getAllXMLPaths(nestedMap, currentPath)
 			for path := range nestedPaths {
 				paths[path] = true
@@ -227,7 +227,7 @@ func GetModelPaths(t reflect.Type, prefix string) map[string]bool {
 		return paths
 	}
 
-	for i := 0; i < t.NumField(); i++ {
+	for i := range t.NumField() {
 		field := t.Field(i)
 
 		// Get the XML tag
@@ -337,7 +337,7 @@ func GetModelPaths(t reflect.Type, prefix string) map[string]bool {
 		// This handles cases where we have a struct like Widgets with nested fields
 		if field.Type.Kind() == reflect.Struct {
 			// Add paths for each field in the nested struct
-			for i := 0; i < field.Type.NumField(); i++ {
+			for i := range field.Type.NumField() {
 				nestedField := field.Type.Field(i)
 				nestedXMLTag := nestedField.Tag.Get("xml")
 				if nestedXMLTag != "" && nestedXMLTag != "-" {
