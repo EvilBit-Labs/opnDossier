@@ -2,11 +2,14 @@
 
 This document consolidates all development standards, architectural principles, and workflows for the opnDossier project.
 
+@GOTCHAS.md
+
 ## Related Documentation
 
 - **[Requirements](project_spec/requirements.md)** - Complete project requirements and specifications (WHAT)
 - **[Architecture](docs/development/architecture.md)** - System design, component interactions, and deployment patterns
 - **[Development Standards](docs/development/standards.md)** - Go-specific coding standards and project structure
+- **[Gotchas](GOTCHAS.md)** - Common pitfalls and non-obvious behaviors
 - **[Tasks](project_spec/tasks.md)** - Implementation tasks (HOW)
 - **[User Stories](project_spec/user_stories.md)** - User stories (WHY)
 
