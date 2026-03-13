@@ -112,8 +112,8 @@ func (a *Analyzer) CompareFirewallRules(old, newCfg []common.FirewallRule) []Cha
 	var changes []Change
 
 	// Build maps by UUID for matching
-	oldByUUID := make(map[string]common.FirewallRule)
-	newByUUID := make(map[string]common.FirewallRule)
+	oldByUUID := make(map[string]common.FirewallRule, len(old))
+	newByUUID := make(map[string]common.FirewallRule, len(newCfg))
 
 	for _, rule := range old {
 		if rule.UUID != "" {
@@ -443,8 +443,8 @@ func (a *Analyzer) CompareVLANs(old, newCfg []common.VLAN) []Change {
 	var changes []Change
 
 	// Build maps by VLANIf (unique identifier)
-	oldByVlanif := make(map[string]common.VLAN)
-	newByVlanif := make(map[string]common.VLAN)
+	oldByVlanif := make(map[string]common.VLAN, len(old))
+	newByVlanif := make(map[string]common.VLAN, len(newCfg))
 
 	for _, v := range old {
 		if v.VLANIf != "" {
@@ -630,8 +630,8 @@ func (a *Analyzer) compareStaticMappings(ifaceName string, old, newCfg []common.
 	var changes []Change
 
 	// Build maps by MAC address (unique identifier for reservations)
-	oldByMAC := make(map[string]common.DHCPStaticLease)
-	newByMAC := make(map[string]common.DHCPStaticLease)
+	oldByMAC := make(map[string]common.DHCPStaticLease, len(old))
+	newByMAC := make(map[string]common.DHCPStaticLease, len(newCfg))
 
 	for _, lease := range old {
 		oldByMAC[lease.MAC] = lease
@@ -740,8 +740,8 @@ func (a *Analyzer) CompareUsers(old, newCfg []common.User) []Change {
 	var changes []Change
 
 	// Build maps by username
-	oldByName := make(map[string]common.User)
-	newByName := make(map[string]common.User)
+	oldByName := make(map[string]common.User, len(old))
+	newByName := make(map[string]common.User, len(newCfg))
 
 	for _, u := range old {
 		oldByName[u.Name] = u
