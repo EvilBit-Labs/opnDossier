@@ -11,6 +11,24 @@ import (
 // This pattern matches any sequence of non-alphanumeric characters.
 var sanitizeIDRegex = regexp.MustCompile(`[^a-zA-Z0-9]+`)
 
+// escapeTableReplacer performs all markdown table escapes in a single pass.
+//
+//nolint:gochecknoglobals // Immutable replacer, avoids per-call allocation
+var escapeTableReplacer = strings.NewReplacer(
+	"\\", "\\\\",
+	"*", "\\*",
+	"_", "\\_",
+	"`", "\\`",
+	"[", "\\[",
+	"]", "\\]",
+	"<", "\\<",
+	">", "\\>",
+	"|", "\\|",
+	"\r\n", " ",
+	"\n", " ",
+	"\r", " ",
+)
+
 // EscapeTableContent escapes content for safe display in markdown tables.
 // This function ensures that special Markdown characters don't break table formatting or rendering.
 func EscapeTableContent(content any) string {
@@ -20,21 +38,7 @@ func EscapeTableContent(content any) string {
 
 	str := fmt.Sprintf("%v", content)
 
-	str = strings.ReplaceAll(str, "\\", "\\\\")
-	str = strings.ReplaceAll(str, "*", "\\*")
-	str = strings.ReplaceAll(str, "_", "\\_")
-	str = strings.ReplaceAll(str, "`", "\\`")
-	str = strings.ReplaceAll(str, "[", "\\[")
-	str = strings.ReplaceAll(str, "]", "\\]")
-	str = strings.ReplaceAll(str, "<", "\\<")
-	str = strings.ReplaceAll(str, ">", "\\>")
-	str = strings.ReplaceAll(str, "|", "\\|")
-
-	str = strings.ReplaceAll(str, "\r\n", " ")
-	str = strings.ReplaceAll(str, "\n", " ")
-	str = strings.ReplaceAll(str, "\r", " ")
-
-	return strings.TrimSpace(str)
+	return strings.TrimSpace(escapeTableReplacer.Replace(str))
 }
 
 // TruncateDescription truncates a description to the specified maximum length,

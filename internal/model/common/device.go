@@ -134,6 +134,56 @@ type CommonDevice struct {
 	ComplianceChecks *ComplianceChecks `json:"complianceChecks,omitempty" yaml:"complianceChecks,omitempty"`
 }
 
+// HasDHCP reports whether the device has any DHCP configuration,
+// including both legacy ISC DHCP scopes and modern Kea DHCP.
+// Returns false if d is nil.
+func (d *CommonDevice) HasDHCP() bool {
+	if d == nil {
+		return false
+	}
+	return len(d.DHCP) > 0 || d.KeaDHCP != nil
+}
+
+// HasInterfaces reports whether the device has any interface configuration.
+// Returns false if d is nil.
+func (d *CommonDevice) HasInterfaces() bool {
+	if d == nil {
+		return false
+	}
+	return len(d.Interfaces) > 0
+}
+
+// HasNATConfig reports whether the device has meaningful NAT configuration
+// (any non-zero fields in the NAT struct).
+// Returns false if d is nil.
+func (d *CommonDevice) HasNATConfig() bool {
+	if d == nil {
+		return false
+	}
+	return d.NAT.HasData()
+}
+
+// HasRoutes reports whether the device has any routing configuration
+// (static routes, gateways, or gateway groups).
+// Returns false if d is nil.
+func (d *CommonDevice) HasRoutes() bool {
+	if d == nil {
+		return false
+	}
+	return len(d.Routing.StaticRoutes) > 0 ||
+		len(d.Routing.Gateways) > 0 ||
+		len(d.Routing.GatewayGroups) > 0
+}
+
+// HasVLANs reports whether the device has any VLAN configuration.
+// Returns false if d is nil.
+func (d *CommonDevice) HasVLANs() bool {
+	if d == nil {
+		return false
+	}
+	return len(d.VLANs) > 0
+}
+
 // NATSummary returns a convenience view of the device's NAT configuration.
 // Slice fields are cloned to prevent callers from mutating the original device.
 // Returns a zero-value NATSummary if d is nil.
