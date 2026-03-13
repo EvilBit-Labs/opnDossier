@@ -235,13 +235,9 @@ nfpms:
     file_name_template: "{{ .ConventionalFileName }}"
     vendor: EvilBit Labs
     homepage: https://github.com/EvilBit-Labs/opnDossier
-    maintainer: EvilBit Labs <contact@evilbitlabs.io>
+    maintainer: EvilBit Labs <support@evilbitlabs.io>
     description: |
-      opnDossier is a command-line interface (CLI) tool designed to process OPNsense
-      firewall configuration files (config.xml) and convert them into human-readable
-      formats, primarily Markdown. This tool assists network administrators and
-      security professionals in documenting, auditing, and understanding their
-      OPNsense configurations more effectively.
+      opnDossier is a command-line interface (CLI) tool designed to process OPNsense firewall configuration files (config.xml) and convert them into human-readable formats, primarily Markdown. This tool assists network administrators and security professionals in documenting, auditing, and understanding their OPNsense configurations more effectively.
     license: Apache-2.0
     section: utils
     priority: optional
@@ -308,7 +304,28 @@ nfpms:
         key_file: '{{ if index .Env "APK_SIGNING_KEY_FILE" }}{{ .Env.APK_SIGNING_KEY_FILE }}{{ end }}'
     archlinux:
       pkgbase: opndossier
-      packager: EvilBit Labs <contact@evilbitlabs.io>
+      packager: EvilBit Labs <support@evilbitlabs.io>
+
+winget:
+  - publisher: EvilBit Labs
+    publisher_url: "https://evilbitlabs.io/opnDossier"
+    publisher_support_url: "https://github.com/EvilBit-Labs/opnDossier/issues/new"
+    description: |
+      opnDossier is a command-line interface (CLI) tool designed to process OPNsense firewall configuration files (config.xml) and convert them into human-readable formats, primarily Markdown. This tool assists network administrators and security professionals in documenting, auditing, and understanding their OPNsense configurations more effectively.
+
+    short_description: OPNsense configuration documentation and compliance auditing tool
+    license: Apache-2.0
+    privacy_url: "https://evilbitlabs.io/privacy"
+    repository:
+      owner: EvilBit-Labs
+      name: opnDossier
+      branch: "{{.ProjectName}}-{{.Version}}"
+      pull_request:
+        enabled: true
+        base:
+          owner: EvilBit-Labs
+          name: opnDossier
+          branch: main
 
 # SBOM generation with CycloneDX-gomod
 # https://goreleaser.com/customization/sbom/
