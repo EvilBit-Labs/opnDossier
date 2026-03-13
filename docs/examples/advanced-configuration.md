@@ -6,7 +6,7 @@ This guide covers advanced configuration options and customization techniques fo
 
 ### Built-in Themes
 
-opnDossier supports four display themes for terminal rendering:
+opnDossier supports four display themes for terminal rendering. For detailed information on themes, see the [display command reference](../user-guide/commands/display.md#themes).
 
 ```bash
 # Auto-detect theme based on terminal
@@ -27,6 +27,8 @@ Available themes: `auto` (default), `dark`, `light`, `none`.
 ## Section Filtering
 
 ### Basic Section Filtering
+
+For more details on section filtering, see the [display command reference](../user-guide/commands/display.md) and [convert command reference](../user-guide/commands/convert.md#sections).
 
 ```bash
 # Display only system information
@@ -64,6 +66,8 @@ The `--wrap` and `--no-wrap` flags are mutually exclusive.
 
 ### Comprehensive Reports
 
+For detailed information on comprehensive mode and system tunables, see the [convert command reference](../user-guide/commands/convert.md#comprehensive-mode).
+
 ```bash
 # Generate detailed comprehensive report
 opndossier convert config.xml --comprehensive -o detailed-report.md
@@ -99,6 +103,8 @@ opndossier convert config.xml -f yaml | yq '.system'
 
 ### Basic Configuration
 
+For complete details on configuration options and precedence, see the [Configuration Guide](../user-guide/configuration.md) and [Configuration Reference](../user-guide/configuration-reference.md).
+
 Create `~/.opnDossier.yaml` for persistent settings:
 
 ```yaml
@@ -133,6 +139,8 @@ Settings are applied in this order (highest to lowest priority):
 3. **Configuration file** - `~/.opnDossier.yaml`
 4. **Default values** - Built-in defaults
 
+For more information on configuration precedence and best practices, see the [Configuration Guide](../user-guide/configuration.md).
+
 ## Advanced Workflows
 
 ### Multi-Format Generation
@@ -157,6 +165,8 @@ echo "Multi-format generation completed in $OUTPUT_DIR"
 ```
 
 ### Conditional Processing
+
+For detailed information on validation, see the [validate command reference](../user-guide/commands/validate.md).
 
 ```bash
 #!/bin/bash
@@ -216,6 +226,8 @@ opndossier convert config.xml -o output.json
 
 ## Best Practices
 
+For a comprehensive guide to configuration best practices, see the [Configuration Guide](../user-guide/configuration.md).
+
 ### 1. Use Configuration Files for Persistent Settings
 
 ```bash
@@ -256,3 +268,4 @@ opndossier convert config.xml -f yaml -o temp-output.yaml
 - For basic documentation, see [Basic Documentation](basic-documentation.md)
 - For automation, see [Automation and Scripting](automation-scripting.md)
 - For troubleshooting, see [Troubleshooting](troubleshooting.md)
+- For command reference, see [Commands Overview](../user-guide/commands/overview.md)

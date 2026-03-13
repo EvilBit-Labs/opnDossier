@@ -183,6 +183,10 @@ backend = "go:github.com/google/go-licenses"
 version = "2.24.7"
 backend = "go:github.com/securego/gosec/v2/cmd/gosec"
 
+[[tools."go:github.com/securego/gosec/v2/cmd/gosec"]]
+version = "2.24.7"
+backend = "go:github.com/securego/gosec/v2/cmd/gosec"
+
 [[tools.golangci-lint]]
 version = "2.11.3"
 backend = "aqua:golangci/golangci-lint"

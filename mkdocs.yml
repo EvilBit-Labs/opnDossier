@@ -37,9 +37,18 @@ nav:
   - Home: index.md
 
   - User Guide:
+      - Getting Started: user-guide/getting-started.md
       - Installation: user-guide/installation.md
-      - Usage: user-guide/usage.md
       - Configuration: user-guide/configuration.md
+      - Commands:
+          - Overview: user-guide/commands/overview.md
+          - convert: user-guide/commands/convert.md
+          - display: user-guide/commands/display.md
+          - validate: user-guide/commands/validate.md
+          - diff: user-guide/commands/diff.md
+          - sanitize: user-guide/commands/sanitize.md
+          - config: user-guide/commands/config.md
+      - Common Workflows: user-guide/workflows.md
       - Configuration Reference: user-guide/configuration-reference.md
       - Security Scoring: user-guide/security-scoring.md
 
@@ -75,6 +84,7 @@ nav:
 
   - Reference:
       - API Documentation: api.md
+      - XML Field Reference: xml-field-reference.md
       - Firewall Security Controls: firewall-security-controls-reference.md
       - Compliance Standards: compliance-standards.md
       - Pipeline v2 Compliance: pipeline-v2-compliance.md

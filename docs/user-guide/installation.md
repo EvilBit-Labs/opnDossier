@@ -4,97 +4,171 @@ This guide covers various methods to install opnDossier on your system.
 
 ## Prerequisites
 
-- **Go 1.26+** (for building from source)
-- **Linux, macOS, or Windows** (cross-platform support)
+- **Linux, macOS, FreeBSD, or Windows** (cross-platform support)
+- **Go 1.26+** (only required for `go install` or building from source)
 
 ## Installation Methods
 
-### 1. Go Install (Recommended)
+### 1. Homebrew (macOS)
 
-The simplest way to install opnDossier if you have Go installed:
+```bash
+brew install EvilBit-Labs/tap/opndossier
+```
+
+This installs the binary along with shell completions for bash, zsh, and fish.
+
+### 2. Linux Packages
+
+Native packages are published with each release. Download the appropriate package from the [releases page](https://github.com/EvilBit-Labs/opnDossier/releases/latest):
+
+**Debian / Ubuntu (.deb):**
+
+```bash
+sudo dpkg -i opndossier_*_linux_amd64.deb
+```
+
+**Red Hat / CentOS / Fedora (.rpm):**
+
+```bash
+sudo rpm -i opndossier_*_linux_amd64.rpm
+```
+
+**Alpine (.apk):**
+
+```bash
+sudo apk add --allow-untrusted opndossier_*_linux_amd64.apk
+```
+
+**Arch Linux:**
+
+```bash
+sudo pacman -U opndossier_*_linux_amd64.pkg.tar.xz
+```
+
+Native packages include man pages, shell completions, and documentation.
+
+To verify a downloaded package before installing, see [Verifying Downloads](#verifying-downloads) below.
+
+### 3. Download Pre-built Binaries
+
+Pre-built binaries are available for multiple platforms from the [releases page](https://github.com/EvilBit-Labs/opnDossier/releases/latest):
+
+```bash
+# Download the latest release for your platform
+curl -LO https://github.com/EvilBit-Labs/opnDossier/releases/latest/download/opnDossier_Linux_x86_64.tar.gz
+
+# Verify the download (see "Verifying Downloads" below)
+curl -LO https://github.com/EvilBit-Labs/opnDossier/releases/latest/download/opnDossier_checksums.txt
+sha256sum -c opnDossier_checksums.txt --ignore-missing
+
+# Extract and install
+tar xzf opnDossier_Linux_x86_64.tar.gz
+chmod +x opndossier
+sudo mv opndossier /usr/local/bin/
+```
+
+Available platforms:
+
+- Linux (amd64, arm64)
+- macOS (universal binary -- amd64 + arm64)
+- FreeBSD (amd64)
+- Windows (amd64, zip archive)
+
+**Windows:**
+
+Download the `.zip` archive from the [releases page](https://github.com/EvilBit-Labs/opnDossier/releases/latest), extract it, and add the directory containing `opndossier.exe` to your `PATH`.
+
+### 4. Docker
+
+```bash
+docker pull ghcr.io/evilbit-labs/opndossier:latest
+
+# Run against a local config file
+docker run --rm -v "$(pwd):/data" ghcr.io/evilbit-labs/opndossier:latest convert /data/config.xml
+```
+
+### 5. Go Install
+
+If you have Go 1.26+ installed:
 
 ```bash
 go install github.com/EvilBit-Labs/opnDossier@latest
 ```
 
-This will install the latest release to your `$GOPATH/bin` directory.
+This installs the latest release to your `$GOPATH/bin` directory.
 
-### 2. Build from Source
-
-#### Clone and Build
+### 6. Build from Source
 
 ```bash
-# Clone the repository
 git clone https://github.com/EvilBit-Labs/opnDossier.git
 cd opnDossier
-
-# Install dependencies and build
-just install
-just build
-
-# Or build manually
 go build -o opndossier main.go
 ```
 
-#### Using Just (Task Runner)
+## Updating
 
-The project uses [Just](https://just.systems/) for task management:
-
-```bash
-# Install Just if you don't have it
-cargo install just
-
-# Available tasks
-just --list
-
-# Install dependencies
-just install
-
-# Build the application
-just build
-
-# Run tests
-just test
-
-# Run all quality checks
-just check
-```
-
-### 3. Download Pre-built Binaries
-
-Pre-built binaries are available for multiple platforms:
+### Homebrew
 
 ```bash
-# Download the latest release for your platform
-curl -L https://github.com/EvilBit-Labs/opnDossier/releases/latest/download/opnDossier-linux-amd64 -o opndossier
-
-# Download the SHA-256 checksum file for verification
-curl -L https://github.com/EvilBit-Labs/opnDossier/releases/latest/download/checksums.txt -o checksums.txt
-
-# Verify the binary integrity
-sha256sum -c checksums.txt 2>/dev/null | grep opnDossier-linux-amd64 || \
-shasum -a 256 -c checksums.txt 2>/dev/null | grep opnDossier-linux-amd64 || \
-echo "Warning: Could not verify checksum. Proceed with caution."
-
-# Make executable and install (only if verification passed)
-chmod +x opndossier
-sudo mv opndossier /usr/local/bin/
-
-# Clean up checksum file
-rm checksums.txt
+brew upgrade opndossier
 ```
 
-**Security Note:** Always verify binary integrity before installation. The checksum verification ensures the binary hasn't been tampered with during download.
+### Linux Packages
 
-Available platforms:
+Download and install the latest package from the [releases page](https://github.com/EvilBit-Labs/opnDossier/releases/latest). The package manager will handle the upgrade.
 
-- Linux (amd64, arm64)
-- macOS (amd64, arm64)
-- Windows (amd64)
+### Pre-built Binaries / Source
 
-## Verification
+Download the latest binary or pull and rebuild from source.
 
-Verify your installation:
+### Docker
+
+```bash
+docker pull ghcr.io/evilbit-labs/opndossier:latest
+```
+
+### Go Install
+
+```bash
+go install github.com/EvilBit-Labs/opnDossier@latest
+```
+
+## Verifying Downloads
+
+Every release publishes a `opnDossier_checksums.txt` file containing SHA-256 hashes for all release artifacts (packages, binaries, and archives). The checksum file is signed with [Cosign](https://docs.sigstore.dev/cosign/overview/) keyless signatures via Sigstore.
+
+### SHA-256 Checksums
+
+```bash
+# Download the checksum file
+curl -LO https://github.com/EvilBit-Labs/opnDossier/releases/latest/download/opnDossier_checksums.txt
+
+# Verify your downloaded file against the checksums
+# Linux:
+sha256sum -c opnDossier_checksums.txt --ignore-missing
+# macOS:
+shasum -a 256 -c opnDossier_checksums.txt
+```
+
+### Cosign Signature Verification
+
+If you have [Cosign](https://docs.sigstore.dev/cosign/system_config/installation/) installed, you can verify the checksum file itself was produced by the official release pipeline:
+
+```bash
+# Download the signature bundle
+curl -LO https://github.com/EvilBit-Labs/opnDossier/releases/latest/download/opnDossier_checksums.txt.sigstore.json
+
+# Verify (replace TAG with the release tag, e.g. v0.9.0)
+cosign verify-blob \
+  --certificate-identity "https://github.com/EvilBit-Labs/opnDossier/.github/workflows/release.yml@refs/tags/TAG" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  --bundle opnDossier_checksums.txt.sigstore.json \
+  opnDossier_checksums.txt
+```
+
+## Verify Your Installation
+
+After installing, verify your installation:
 
 ```bash
 # Check version
@@ -107,21 +181,13 @@ opndossier --help
 opndossier completion bash  # Should show bash completion script
 ```
 
-## Configuration Setup
+## Configuration (Optional)
 
-### 1. Create Configuration File
+opnDossier works out of the box with no configuration file. All settings can be passed as command-line flags or environment variables. If you want to set persistent defaults, you can create a configuration file.
 
-opnDossier looks for a configuration file at `~/.opnDossier.yaml`:
+### Configuration File
 
-```bash
-touch ~/.opnDossier.yaml
-```
-
-You can also specify a custom config file location with the `--config` flag.
-
-### 2. Basic Configuration
-
-Create a basic configuration file:
+opnDossier looks for `~/.opnDossier.yaml` if it exists:
 
 ```yaml
 # ~/.opnDossier.yaml
@@ -130,14 +196,18 @@ quiet: false
 format: markdown
 ```
 
-### 3. Environment Variables
+You can also point to a different file with `--config /path/to/config.yaml`.
 
-Set up environment variables for your shell:
+### Environment Variables
+
+Settings can also be set via environment variables:
 
 ```bash
 # Add to ~/.bashrc, ~/.zshrc, etc.
 export OPNDOSSIER_VERBOSE=false
 ```
+
+See the [Configuration Guide](configuration.md) for the full list of options and precedence rules.
 
 ## Shell Completion
 
@@ -185,90 +255,83 @@ opndossier completion powershell | Out-String | Invoke-Expression
 
 1. **Command not found**
 
+   First, check whether the binary is on your system:
+
    ```bash
-   # Check if Go bin is in PATH
-   echo $GOPATH/bin
-   export PATH=$PATH:$GOPATH/bin
+   which opndossier
    ```
+
+   If nothing is returned, the fix depends on how you installed:
+
+   - **Homebrew:** Run `brew link opndossier` or start a new shell session.
+
+   - **Linux package (deb/rpm/apk):** The package installs to `/usr/bin/` -- verify the package is installed with your package manager (e.g., `dpkg -l | grep opndossier`).
+
+   - **Pre-built binary:** Ensure you moved the binary to a directory in your `PATH` (e.g., `/usr/local/bin/`).
+
+   - **Go install:** Add the Go bin directory to your `PATH`:
+
+     ```bash
+     export PATH=$PATH:$(go env GOPATH)/bin
+     ```
+
+     Add this line to `~/.bashrc`, `~/.zshrc`, or your shell's config file to make it permanent.
+
+   - **Windows:** Verify the binary is on your `PATH`:
+
+     ```powershell
+     where.exe opndossier
+     ```
+
+     If not found, add the directory containing `opndossier.exe` to your `PATH` via **System Properties > Environment Variables**, or in PowerShell:
+
+     ```powershell
+     $env:PATH += ";C:\path\to\opndossier"
+     ```
 
 2. **Permission denied**
 
    ```bash
-   # Make binary executable
+   # Make binary executable (pre-built binary or source build)
    chmod +x opndossier
    ```
 
 3. **Config file not found**
 
+   A configuration file is not required. If you are using one and see this error, verify its location:
+
    ```bash
-   # Verify config file location
    ls -la ~/.opnDossier.yaml
 
-   # Use custom config location
+   # Or specify a custom location
    opndossier --config /path/to/config.yaml convert config.xml
    ```
 
 ### Debugging Installation
 
 ```bash
-# Check Go environment
-go env GOPATH GOBIN
-
-# Verify build
-go version
-go build -v .
+# Verify the binary runs
+opndossier version
 
 # Test with verbose output
 opndossier --verbose --help
 ```
 
-## Development Installation
-
-For development and contributing:
+If you installed via `go install` or built from source and need to troubleshoot the Go toolchain:
 
 ```bash
-# Clone with development setup
-git clone https://github.com/EvilBit-Labs/opnDossier.git
-cd opnDossier
-
-# Install dependencies (Go modules + pre-commit hooks)
-just install
-
-# Run quality checks
-just check
-
-# Run CI-equivalent checks
-just ci-check
+go env GOPATH GOBIN
+go version
 ```
 
 ## Next Steps
 
 After installation:
 
-1. Read the [Configuration Guide](configuration.md) to set up your preferences
-2. Check the [Usage Guide](usage.md) for common workflows
-3. Review [Examples](../examples/index.md) for practical use cases
-
-## Updating
-
-### Go Install Method
-
-```bash
-# Update to latest version
-go install github.com/EvilBit-Labs/opnDossier@latest
-```
-
-### Source Build Method
-
-```bash
-# Update source and rebuild
-git pull origin main
-just build
-```
-
-### Binary Method
-
-Download and replace the binary with the latest release.
+1. Follow the [Getting Started](getting-started.md) tutorial to process your first config
+2. Read the [Configuration Guide](configuration.md) to set up your preferences
+3. Check the [Commands Overview](commands/overview.md) for the full command reference
+4. Review [Common Workflows](workflows.md) for real-world patterns
 
 ---
 
