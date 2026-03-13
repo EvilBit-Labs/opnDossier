@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"strings"
 	"sync"
 	"time"
 )
@@ -99,7 +100,7 @@ func (m *Mapper) MapPrivateIP(original string, preserveStructure bool) string {
 	if preserveStructure {
 		// Preserve the first two octets to maintain network visibility
 		// 192.168.1.100 -> 192.168.X.Y
-		parts := extractOctets(original)
+		parts := strings.Split(original, ".")
 		if len(parts) >= minOctetsForStructure {
 			replacement = fmt.Sprintf("%s.%s.X.%d", parts[0], parts[1], m.privateIPCounter)
 		} else {
@@ -260,29 +261,6 @@ func (m *Mapper) Reset() {
 	m.macMappings = make(map[string]string)
 	m.emailMappings = make(map[string]string)
 	m.genericMappings = make(map[string]string)
-}
-
-// extractOctets splits ip on '.' and returns the resulting octet substrings.
-//
-// The function does not validate that the input is a well-formed IPv4 address.
-// Empty segments between dots are preserved (for example, ".1" -> ["", "1"]), but
-// a trailing empty segment is omitted (for example, "1.2." -> ["1","2"]). An empty
-// input returns nil.
-func extractOctets(ip string) []string {
-	var octets []string
-	var current string
-	for _, c := range ip {
-		if c == '.' {
-			octets = append(octets, current)
-			current = ""
-		} else {
-			current += string(c)
-		}
-	}
-	if current != "" {
-		octets = append(octets, current)
-	}
-	return octets
 }
 
 // The returned map contains the same key/value pairs as the input (a shallow copy).

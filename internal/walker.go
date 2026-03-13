@@ -3,7 +3,7 @@ package internal
 
 import (
 	"reflect"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -189,8 +189,8 @@ func walkMap(title string, level int, m reflect.Value) MDNode {
 	}
 
 	keys := m.MapKeys()
-	sort.Slice(keys, func(i, j int) bool {
-		return keys[i].String() < keys[j].String()
+	slices.SortFunc(keys, func(a, b reflect.Value) int {
+		return strings.Compare(a.String(), b.String())
 	})
 
 	for _, key := range keys {
