@@ -13,6 +13,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/diff"
 	"github.com/EvilBit-Labs/opnDossier/internal/diff/formatters"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/spf13/cobra"
@@ -223,6 +224,7 @@ Examples:
 			return errors.New("command context not initialized")
 		}
 		cmdLogger := cmdCtx.Logger
+		quiet := cmdCtx.Config != nil && cmdCtx.Config.IsQuiet()
 
 		// Create timeout context
 		timeoutCtx, cancel := context.WithTimeout(ctx, constants.DefaultProcessingTimeout)
@@ -234,12 +236,12 @@ Examples:
 
 		cmdLogger.Debug("Parsing configuration files", "old", oldPath, "new", newPath)
 
-		oldConfig, err := parseConfigFile(timeoutCtx, oldPath)
+		oldConfig, err := parseConfigFile(timeoutCtx, oldPath, cmdLogger, quiet)
 		if err != nil {
 			return fmt.Errorf("failed to parse old config %s: %w", oldPath, err)
 		}
 
-		newConfig, err := parseConfigFile(timeoutCtx, newPath)
+		newConfig, err := parseConfigFile(timeoutCtx, newPath, cmdLogger, quiet)
 		if err != nil {
 			return fmt.Errorf("failed to parse new config %s: %w", newPath, err)
 		}
@@ -270,8 +272,15 @@ Examples:
 	},
 }
 
-// parseConfigFile parses a device configuration file via the ParserFactory.
-func parseConfigFile(ctx context.Context, path string) (_ *common.CommonDevice, err error) {
+// parseConfigFile parses a device configuration file via the ParserFactory,
+// logging any non-fatal conversion warnings via the provided logger. When
+// quiet is true, warnings are suppressed.
+func parseConfigFile(
+	ctx context.Context,
+	path string,
+	cmdLogger *logging.Logger,
+	quiet bool,
+) (_ *common.CommonDevice, err error) {
 	// Make path absolute if needed
 	if !filepath.IsAbs(path) {
 		absPath, absErr := filepath.Abs(path)
@@ -291,9 +300,19 @@ func parseConfigFile(ctx context.Context, path string) (_ *common.CommonDevice, 
 		}
 	}()
 
-	device, err := model.NewParserFactory().CreateDevice(ctx, file, sharedDeviceType, false)
+	device, warnings, err := model.NewParserFactory().CreateDevice(ctx, file, sharedDeviceType, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
+	}
+
+	if !quiet {
+		for _, w := range warnings {
+			cmdLogger.Warn("conversion warning",
+				"field", w.Field,
+				"message", w.Message,
+				"severity", w.Severity,
+			)
+		}
 	}
 
 	return device, nil

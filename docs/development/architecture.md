@@ -44,8 +44,9 @@ The CLI uses a layered architecture: **Cobra** provides command structure and ar
 ### 1. CLI Interface Layer
 
 - **Framework**: Cobra CLI
-- **Responsibility**: Command parsing, user interaction, error handling
+- **Responsibility**: Command parsing, user interaction, error handling, warning propagation
 - **Key Files**: `cmd/root.go`, `cmd/convert.go`, `cmd/display.go`, `cmd/validate.go`
+- **Warning Handling**: All commands log conversion warnings via structured logging; warnings suppressed when `--quiet` flag is used
 
 ### 2. Configuration Management
 
@@ -54,7 +55,15 @@ The CLI uses a layered architecture: **Cobra** provides command structure and ar
 - **Format**: YAML configuration files
 - **Precedence**: Standard order where environment variables override config files for deployment flexibility
 
-### 3. Data Processing Engine
+### 3. Analysis Infrastructure
+
+- **Package**: `internal/analysis/`
+- **Responsibility**: Canonical finding and severity types shared across audit, compliance, and processor packages
+- **Key Types**: `Finding` struct, `Severity` type with validation helpers
+- **Purpose**: Eliminates type duplication, ensures consistency across all analysis-related packages
+- **Usage**: Also used in `ConversionWarning` type for severity classification of non-fatal conversion issues
+
+### 4. Data Processing Engine
 
 #### XML Parser Component
 
@@ -66,15 +75,16 @@ The CLI uses a layered architecture: **Cobra** provides command structure and ar
 #### Data Converter Component
 
 - **Input**: Parsed XML structures
-- **Output**: Markdown content
-- **Features**: Hierarchy preservation, metadata injection
+- **Output**: Markdown content, conversion warnings
+- **Features**: Hierarchy preservation, metadata injection, non-fatal issue tracking
+- **Warning Generation**: Accumulates conversion warnings for incomplete or problematic configuration elements (empty firewall rule fields, missing NAT rule data, gateway issues, user/certificate problems, HA configuration warnings)
 
 #### Output Renderer Component
 
 - **Formats**: Markdown, JSON, YAML, plain text, HTML
 - **Technologies**: Charm Lipgloss (styling) + Charm Glamour (rendering)
 
-### 4. Output Systems
+### 5. Output Systems
 
 - **Terminal Display**: Syntax-highlighted, styled terminal output via `display` command
 - **File Export**: Multi-format file generation (markdown, JSON, YAML, text, HTML)
@@ -162,19 +172,22 @@ graph TD
     A["internal/schema/ — XML DTOs (OPNsense-shaped structs)"]
     B["internal/model/opnsense/ — OPNsense parser + converter"]
     C["internal/model/common/ — CommonDevice domain model"]
-    D["Consumers: processor / converter / markdown / audit / diff / plugins"]
+    D["internal/analysis/ — Canonical Finding + Severity types"]
+    E["Consumers: processor / converter / markdown / audit / diff / plugins"]
 
     A --> B
     B --> C
-    C --> D
+    C --> E
+    D --> E
 ```
 
 ### Layer Responsibilities
 
 - **`internal/schema/`** — XML DTO layer. Carries `xml:""` tags and mirrors the OPNsense config.xml structure. This layer is untouched by downstream consumers.
-- **`internal/model/opnsense/`** — Contains `parser.go` and `converter.go`. Reads schema DTOs and emits `*common.CommonDevice`. This is the only package that imports `internal/schema/`.
-- **`internal/model/common/`** — Device-agnostic domain model. No XML tags. All consumer code (processor, converter, markdown, audit, diff, compliance plugins) operates on `CommonDevice`.
-- **`internal/model/factory.go`** — `ParserFactory` and `DeviceParser` interface. Auto-detects the device type from the XML root element. The `--device-type opnsense` flag bypasses auto-detection.
+- **`internal/model/opnsense/`** — Contains `parser.go` and `converter.go`. Reads schema DTOs and emits `*common.CommonDevice` with conversion warnings. This is the only package that imports `internal/schema/`.
+- **`internal/model/common/`** — Device-agnostic domain model. No XML tags. All consumer code (processor, converter, markdown, audit, diff, compliance plugins) operates on `CommonDevice`. Includes `ConversionWarning` type for non-fatal issues.
+- **`internal/analysis/`** — Canonical finding and severity types. Provides the shared `Finding` struct and `Severity` type used across audit, compliance, and processor packages to ensure consistency.
+- **`internal/model/factory.go`** — `ParserFactory` and `DeviceParser` interface. Auto-detects the device type from the XML root element. The `--device-type opnsense` flag bypasses auto-detection. Returns 3 values: device model, warnings slice, and error.
 
 ### Device Type Detection
 
@@ -199,9 +212,11 @@ sequenceDiagram
 
     alt Valid XML
         Parser->>Parser: Validate structure
-        Parser-->>CLI: Structured data
-        CLI->>Converter: Transform data
-        Converter-->>CLI: Markdown content
+        Parser->>Converter: Transform data
+        Note over Converter: All findings use<br/>canonical analysis.Finding<br/>Warnings collected via addWarning()
+        Converter-->>Parser: Structured data + warnings
+        Parser-->>CLI: Device model + warnings + nil error
+        CLI->>CLI: Log warnings (respects --quiet flag)
         CLI->>Renderer: Format output
 
         alt Terminal display
@@ -212,7 +227,7 @@ sequenceDiagram
             Output-->>User: Confirmation
         end
     else Invalid XML
-        Parser-->>CLI: Error details
+        Parser-->>CLI: nil + nil + error details
         CLI-->>User: Error message
     end
 ```
@@ -535,6 +550,7 @@ internal/converter/<report-type>/
 #### What Should Remain Shared
 
 - **`common.CommonDevice`** - The parsed device-agnostic configuration model
+- **`analysis.Finding`** - Canonical finding type for all analysis results
 - **String helpers** - Markdown escaping, formatting utilities
 - **Table builders** - Generic markdown table construction
 - **Common interfaces** - `ReportBuilder`, `Generator` interfaces
@@ -546,6 +562,7 @@ internal/converter/<report-type>/
 package blueteam
 
 import (
+    "github.com/EvilBit-Labs/opnDossier/internal/analysis"
     "github.com/EvilBit-Labs/opnDossier/internal/model/common"
     "github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
 )
@@ -564,6 +581,11 @@ func (g *BlueTeamGenerator) Generate(device *common.CommonDevice) (string, error
 // All calculation logic is internal to this module
 func (g *BlueTeamGenerator) calculateSecurityScore(device *common.CommonDevice) int {
     // Blue team specific scoring algorithm
+}
+
+// All findings returned use the canonical analysis.Finding type
+func (g *BlueTeamGenerator) analyzeCompliance(device *common.CommonDevice) []analysis.Finding {
+    // Compliance analysis returning standardized findings
 }
 ```
 
@@ -703,8 +725,136 @@ graph TB
     VALIDATE --> PARSER
 
     PARSER --> CONVERTER
+    Note over CONVERTER: Accumulates warnings<br/>for incomplete data
     CONVERTER --> RENDERER
 ```
+
+## Warning System
+
+### ConversionWarning Type
+
+The `ConversionWarning` type captures non-fatal issues encountered during schema-to-CommonDevice conversion:
+
+```go
+// ConversionWarning represents a non-fatal issue encountered during conversion
+type ConversionWarning struct {
+    Field    string            // Dot-path of problematic field (e.g., "FirewallRules[0].Type")
+    Value    string            // Problematic value encountered
+    Message  string            // Human-readable description
+    Severity analysis.Severity // Importance of the warning
+}
+```
+
+### Warning Generation
+
+The OPNsense converter (`internal/model/opnsense/converter.go`) accumulates warnings during conversion via the `addWarning()` method:
+
+```go
+func (c *Converter) addWarning(field, value, message string, severity analysis.Severity) {
+    c.warnings = append(c.warnings, common.ConversionWarning{
+        Field:    field,
+        Value:    value,
+        Message:  message,
+        Severity: severity,
+    })
+}
+```
+
+### Common Warning Scenarios
+
+Warnings are generated for configuration elements with missing or incomplete data:
+
+#### Firewall Rules
+
+- **Empty rule type**: High severity warning when firewall rule has no type specified
+- **Missing source address**: Medium severity warning for rules without source address
+- **Missing destination address**: Medium severity warning for rules without destination address
+- **No interface assigned**: Medium severity warning when interface field is empty
+
+#### NAT Rules
+
+- **Outbound NAT without interface**: Medium severity warning for unassigned outbound rules
+- **Inbound NAT missing internal IP**: High severity warning for port forwards without target IP
+- **Inbound NAT without interface**: Medium severity warning for unassigned inbound rules
+
+#### Network Configuration
+
+- **Gateway missing address**: Warnings for incomplete gateway definitions
+- **Gateway missing name**: Warnings for unnamed gateways
+
+#### System Configuration
+
+- **User missing name**: Warnings for incomplete user accounts
+- **User missing UID**: Warnings for users without unique identifiers
+- **Certificate problems**: Warnings for invalid or incomplete certificates
+- **HA configuration issues**: Warnings for high-availability misconfigurations
+
+### Warning Propagation
+
+Warnings flow through the system alongside the device model:
+
+1. **Converter generates warnings** during `ToCommonDevice()` conversion
+2. **DeviceParser returns warnings** from `Parse()` and `ParseAndValidate()` methods
+3. **ParserFactory propagates warnings** through `CreateDevice()`
+4. **CLI commands log warnings** via structured logging using `ctxLogger.Warn()`
+
+### DeviceParser Interface
+
+The `DeviceParser` interface signature returns 3 values to support warnings:
+
+```go
+type DeviceParser interface {
+    // Parse reads and converts the configuration, returning non-fatal conversion warnings.
+    Parse(ctx context.Context, r io.Reader) (*common.CommonDevice, []common.ConversionWarning, error)
+    
+    // ParseAndValidate reads, converts, and validates the configuration, returning non-fatal conversion warnings.
+    ParseAndValidate(ctx context.Context, r io.Reader) (*common.CommonDevice, []common.ConversionWarning, error)
+}
+```
+
+### ParserFactory
+
+The `ParserFactory.CreateDevice()` method returns 3 values:
+
+```go
+func (f *ParserFactory) CreateDevice(
+    ctx context.Context,
+    r io.Reader,
+    deviceTypeOverride string,
+    validateMode bool,
+) (*common.CommonDevice, []common.ConversionWarning, error)
+```
+
+### CLI Integration
+
+All configuration-reading commands (`convert`, `display`, `validate`, `diff`) handle warnings consistently:
+
+```go
+device, warnings, err := model.NewParserFactory().CreateDevice(ctx, file, deviceType, validateMode)
+if err != nil {
+    // Handle fatal error
+}
+
+// Log warnings unless --quiet flag is set
+if cmdConfig == nil || !cmdConfig.IsQuiet() {
+    for _, w := range warnings {
+        ctxLogger.Warn("conversion warning",
+            "field", w.Field,
+            "message", w.Message,
+            "severity", w.Severity,
+        )
+    }
+}
+```
+
+### Quiet Mode Behavior
+
+When the `--quiet` flag is used:
+
+- Warnings are collected but not logged
+- Only errors are reported
+- Processing continues normally with warning suppression
+- Useful for automated processing pipelines
 
 ## Security Architecture
 
@@ -756,8 +906,10 @@ graph TB
 1. **User provides** OPNsense config.xml file
 2. **CLI parses** command-line arguments and loads configuration
 3. **ParserFactory** auto-detects device type and converts to `CommonDevice`
-4. **Data Converter** transforms XML to markdown with metadata
-5. **Output Renderer** formats for terminal display or file export
-6. **User receives** human-readable documentation
+4. **Converter** transforms XML to `CommonDevice`, accumulating conversion warnings for non-fatal issues
+5. **Parser returns** 3 values: device model, warnings slice, error
+6. **CLI logs** warnings via structured logging (suppressed with `--quiet` flag)
+7. **Output Renderer** formats for terminal display or file export
+8. **User receives** human-readable documentation
 
 **Key Benefits**: Offline operation, security-first design, operator-focused workflows, cross-platform compatibility, and comprehensive documentation generation from complex network configurations.

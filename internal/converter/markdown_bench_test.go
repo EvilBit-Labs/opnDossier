@@ -34,7 +34,7 @@ func loadTestData(filename string) *common.CommonDevice {
 	}
 
 	factory := model.NewParserFactory()
-	device, err := factory.CreateDevice(
+	device, _, err := factory.CreateDevice(
 		context.Background(),
 		strings.NewReader(string(xmlData)),
 		"opnsense",

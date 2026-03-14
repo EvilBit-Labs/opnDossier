@@ -19,7 +19,7 @@ func TestGatewayGroupsInReports(t *testing.T) {
 
 	// Parse the configuration via factory
 	factory := model.NewParserFactory()
-	cfg, err := factory.CreateDevice(context.Background(), strings.NewReader(xmlConfig), "", false)
+	cfg, _, err := factory.CreateDevice(context.Background(), strings.NewReader(xmlConfig), "", false)
 	if err != nil {
 		t.Fatalf("Failed to parse XML configuration: %v", err)
 	}

@@ -1,6 +1,9 @@
 package opnsense
 
 import (
+	"fmt"
+
+	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/EvilBit-Labs/opnDossier/internal/schema"
 )
@@ -14,7 +17,16 @@ func (c *Converter) convertCertificates(doc *schema.OpnSenseDocument) []common.C
 	}
 
 	result := make([]common.Certificate, 0, len(doc.Certs))
-	for _, cert := range doc.Certs {
+	for i, cert := range doc.Certs {
+		if cert.Crt == "" {
+			c.addWarning(
+				fmt.Sprintf("Certificates[%d].Certificate", i),
+				cert.Descr,
+				"certificate has empty PEM data",
+				analysis.SeverityHigh,
+			)
+		}
+
 		result = append(result, common.Certificate{
 			RefID:       cert.Refid,
 			Description: cert.Descr,
