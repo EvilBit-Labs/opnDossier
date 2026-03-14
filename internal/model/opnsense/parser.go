@@ -26,11 +26,12 @@ func NewParser() *Parser {
 }
 
 // Parse reads an OPNsense XML configuration from r (structural parsing only,
-// no semantic validation) and returns a platform-agnostic CommonDevice.
-func (p *Parser) Parse(ctx context.Context, r io.Reader) (*common.CommonDevice, error) {
+// no semantic validation) and returns a platform-agnostic CommonDevice along
+// with any non-fatal conversion warnings.
+func (p *Parser) Parse(ctx context.Context, r io.Reader) (*common.CommonDevice, []common.ConversionWarning, error) {
 	doc, err := p.xmlParser.Parse(ctx, r)
 	if err != nil {
-		return nil, fmt.Errorf("opnsense parser: %w", err)
+		return nil, nil, fmt.Errorf("opnsense parser: %w", err)
 	}
 
 	return toCommonDevice(doc)
@@ -38,22 +39,25 @@ func (p *Parser) Parse(ctx context.Context, r io.Reader) (*common.CommonDevice, 
 
 // ParseAndValidate reads an OPNsense XML configuration from r, runs both
 // structural parsing and semantic validation, and returns a platform-agnostic
-// CommonDevice.
-func (p *Parser) ParseAndValidate(ctx context.Context, r io.Reader) (*common.CommonDevice, error) {
+// CommonDevice along with any non-fatal conversion warnings.
+func (p *Parser) ParseAndValidate(
+	ctx context.Context,
+	r io.Reader,
+) (*common.CommonDevice, []common.ConversionWarning, error) {
 	doc, err := p.xmlParser.ParseAndValidate(ctx, r)
 	if err != nil {
-		return nil, fmt.Errorf("opnsense parser: %w", err)
+		return nil, nil, fmt.Errorf("opnsense parser: %w", err)
 	}
 
 	return toCommonDevice(doc)
 }
 
 // toCommonDevice converts a parsed OPNsense document into a CommonDevice.
-func toCommonDevice(doc *schema.OpnSenseDocument) (*common.CommonDevice, error) {
-	device, err := NewConverter().ToCommonDevice(doc)
+func toCommonDevice(doc *schema.OpnSenseDocument) (*common.CommonDevice, []common.ConversionWarning, error) {
+	device, warnings, err := NewConverter().ToCommonDevice(doc)
 	if err != nil {
-		return nil, fmt.Errorf("opnsense parser: %w", err)
+		return nil, nil, fmt.Errorf("opnsense parser: %w", err)
 	}
 
-	return device, nil
+	return device, warnings, nil
 }

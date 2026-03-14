@@ -53,8 +53,9 @@ func TestConverter_Bridges(t *testing.T) {
 			doc := schema.NewOpnSenseDocument()
 			doc.Bridges.Bridge = tt.bridges
 
-			device, err := opnsense.NewConverter().ToCommonDevice(doc)
+			device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 			require.NoError(t, err)
+			assert.Empty(t, warnings)
 
 			if tt.wantLen == 0 {
 				assert.Nil(t, device.Bridges)
@@ -80,8 +81,9 @@ func TestConverter_Bridges_FieldMapping(t *testing.T) {
 		},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	require.Len(t, device.Bridges, 1)
 
 	b := device.Bridges[0]
@@ -101,8 +103,9 @@ func TestConverter_Bridges_EmptyMembers(t *testing.T) {
 		{Bridgeif: "bridge0", Members: ""},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	require.Len(t, device.Bridges, 1)
 	assert.Nil(t, device.Bridges[0].Members)
 }
@@ -145,8 +148,9 @@ func TestConverter_PPPs(t *testing.T) {
 			doc := schema.NewOpnSenseDocument()
 			doc.PPPInterfaces.Ppp = tt.ppps
 
-			device, err := opnsense.NewConverter().ToCommonDevice(doc)
+			device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 			require.NoError(t, err)
+			assert.Empty(t, warnings)
 
 			if tt.wantLen == 0 {
 				assert.Nil(t, device.PPPs)
@@ -165,8 +169,9 @@ func TestConverter_PPPs_FieldMapping(t *testing.T) {
 		{If: "pppoe0", Type: "pppoe", Descr: "ISP Connection"},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	require.Len(t, device.PPPs, 1)
 
 	p := device.PPPs[0]
@@ -211,8 +216,9 @@ func TestConverter_GIFs(t *testing.T) {
 			doc := schema.NewOpnSenseDocument()
 			doc.GIFInterfaces.Gif = tt.gifs
 
-			device, err := opnsense.NewConverter().ToCommonDevice(doc)
+			device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 			require.NoError(t, err)
+			assert.Empty(t, warnings)
 
 			if tt.wantLen == 0 {
 				assert.Nil(t, device.GIFs)
@@ -223,6 +229,7 @@ func TestConverter_GIFs(t *testing.T) {
 	}
 }
 
+//nolint:dupl // tunnel field-mapping tests (GIF/GRE) are structurally similar by design
 func TestConverter_GIFs_FieldMapping(t *testing.T) {
 	t.Parallel()
 
@@ -238,8 +245,9 @@ func TestConverter_GIFs_FieldMapping(t *testing.T) {
 		},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	require.Len(t, device.GIFs, 1)
 
 	g := device.GIFs[0]
@@ -251,7 +259,6 @@ func TestConverter_GIFs_FieldMapping(t *testing.T) {
 	assert.Equal(t, "2024-03-15", g.Updated)
 }
 
-//nolint:dupl // tunnel converter tests (GIF/GRE/LAGG) are structurally similar by design
 func TestConverter_GREs(t *testing.T) {
 	t.Parallel()
 
@@ -296,8 +303,9 @@ func TestConverter_GREs(t *testing.T) {
 			doc := schema.NewOpnSenseDocument()
 			doc.GREInterfaces.Gre = tt.gres
 
-			device, err := opnsense.NewConverter().ToCommonDevice(doc)
+			device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 			require.NoError(t, err)
+			assert.Empty(t, warnings)
 
 			if tt.wantLen == 0 {
 				assert.Nil(t, device.GREs)
@@ -308,6 +316,7 @@ func TestConverter_GREs(t *testing.T) {
 	}
 }
 
+//nolint:dupl // tunnel field-mapping tests (GIF/GRE) are structurally similar by design
 func TestConverter_GREs_FieldMapping(t *testing.T) {
 	t.Parallel()
 
@@ -323,8 +332,9 @@ func TestConverter_GREs_FieldMapping(t *testing.T) {
 		},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	require.Len(t, device.GREs, 1)
 
 	g := device.GREs[0]
@@ -336,7 +346,6 @@ func TestConverter_GREs_FieldMapping(t *testing.T) {
 	assert.Equal(t, "2024-02-10", g.Updated)
 }
 
-//nolint:dupl // tunnel converter tests (GIF/GRE/LAGG) are structurally similar by design
 func TestConverter_LAGGs(t *testing.T) {
 	t.Parallel()
 
@@ -381,8 +390,9 @@ func TestConverter_LAGGs(t *testing.T) {
 			doc := schema.NewOpnSenseDocument()
 			doc.LAGGInterfaces.Lagg = tt.laggs
 
-			device, err := opnsense.NewConverter().ToCommonDevice(doc)
+			device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 			require.NoError(t, err)
+			assert.Empty(t, warnings)
 
 			if tt.wantLen == 0 {
 				assert.Nil(t, device.LAGGs)
@@ -408,8 +418,9 @@ func TestConverter_LAGGs_FieldMapping(t *testing.T) {
 		},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	require.Len(t, device.LAGGs, 1)
 
 	l := device.LAGGs[0]
@@ -452,8 +463,9 @@ func TestConverter_VirtualIPs(t *testing.T) {
 			doc := schema.NewOpnSenseDocument()
 			doc.VirtualIP.Vip = tt.vips
 
-			device, err := opnsense.NewConverter().ToCommonDevice(doc)
+			device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 			require.NoError(t, err)
+			assert.Empty(t, warnings)
 
 			if tt.wantLen == 0 {
 				assert.Nil(t, device.VirtualIPs)
@@ -472,8 +484,9 @@ func TestConverter_VirtualIPs_FieldMapping(t *testing.T) {
 		{Mode: "carp", Interface: "wan", Subnet: "203.0.113.100", Descr: "WAN CARP VIP"},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	require.Len(t, device.VirtualIPs, 1)
 
 	v := device.VirtualIPs[0]
@@ -512,8 +525,9 @@ func TestConverter_InterfaceGroups(t *testing.T) {
 			doc := schema.NewOpnSenseDocument()
 			doc.InterfaceGroups.IfGroupEntry = tt.groups
 
-			device, err := opnsense.NewConverter().ToCommonDevice(doc)
+			device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 			require.NoError(t, err)
+			assert.Empty(t, warnings)
 
 			if tt.wantLen == 0 {
 				assert.Nil(t, device.InterfaceGroups)
@@ -532,8 +546,9 @@ func TestConverter_InterfaceGroups_FieldMapping(t *testing.T) {
 		{IfName: "INTERNAL", Members: "lan opt1 opt2"},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	require.Len(t, device.InterfaceGroups, 1)
 
 	ig := device.InterfaceGroups[0]
@@ -549,8 +564,9 @@ func TestConverter_InterfaceGroups_SpaceSeparated(t *testing.T) {
 		{IfName: "GROUP1", Members: "  lan   opt1  "},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	require.Len(t, device.InterfaceGroups, 1)
 
 	// splitNonEmpty trims whitespace from each part

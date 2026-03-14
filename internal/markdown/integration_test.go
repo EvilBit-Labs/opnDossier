@@ -208,7 +208,7 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 			// Parse XML into model
 			parser := opnsense.NewParser()
 			ctx := context.Background()
-			cfg, err := parser.Parse(ctx, xmlFile)
+			cfg, _, err := parser.Parse(ctx, xmlFile)
 			require.NoError(t, err, "Failed to parse XML file: %s", tt.xmlFile)
 			assert.NotNil(t, cfg, "Parsed configuration should not be nil")
 
@@ -385,7 +385,7 @@ func TestGenerateFromXMLFilesRobustness(t *testing.T) {
 
 			parser := opnsense.NewParser()
 			ctx := context.Background()
-			cfg, err := parser.Parse(ctx, xmlFile)
+			cfg, _, err := parser.Parse(ctx, xmlFile)
 
 			if tt.expectError {
 				require.Error(t, err, "Should have failed to parse invalid XML")
@@ -424,7 +424,7 @@ func TestDebugSysctlParsing(t *testing.T) {
 
 	parser := opnsense.NewParser()
 	ctx := context.Background()
-	cfg, err := parser.Parse(ctx, xmlFile)
+	cfg, _, err := parser.Parse(ctx, xmlFile)
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")
 	require.NotNil(t, cfg, "Configuration should not be nil")
 
@@ -474,7 +474,7 @@ func TestSysctlKeyValidation(t *testing.T) {
 
 	parser := opnsense.NewParser()
 	ctx := context.Background()
-	cfg, err := parser.Parse(ctx, xmlFile)
+	cfg, _, err := parser.Parse(ctx, xmlFile)
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")
 	require.NotNil(t, cfg, "Configuration should not be nil")
 
@@ -540,7 +540,7 @@ func TestInterfaceConfigurationDetail(t *testing.T) {
 
 	parser := opnsense.NewParser()
 	ctx := context.Background()
-	cfg, err := parser.Parse(ctx, xmlFile)
+	cfg, _, err := parser.Parse(ctx, xmlFile)
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")
 	require.NotNil(t, cfg, "Configuration should not be nil")
 
@@ -577,7 +577,7 @@ func TestFirewallRulesFormatting(t *testing.T) {
 
 	parser := opnsense.NewParser()
 	ctx := context.Background()
-	cfg, err := parser.Parse(ctx, xmlFile)
+	cfg, _, err := parser.Parse(ctx, xmlFile)
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")
 	require.NotNil(t, cfg, "Configuration should not be nil")
 

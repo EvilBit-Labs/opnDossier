@@ -21,7 +21,7 @@ func BenchmarkMarkdownConverter_ToMarkdown(b *testing.B) {
 
 	// Parse using the parser factory
 	factory := model.NewParserFactory()
-	device, err := factory.CreateDevice(context.Background(), strings.NewReader(string(xmlData)), "", false)
+	device, _, err := factory.CreateDevice(context.Background(), strings.NewReader(string(xmlData)), "", false)
 	if err != nil {
 		b.Fatalf("XML parsing failed: %v", err)
 	}
@@ -50,7 +50,7 @@ func BenchmarkMarkdownConverter_ToMarkdown_Large(b *testing.B) {
 
 	// Parse using the parser factory
 	factory := model.NewParserFactory()
-	device, err := factory.CreateDevice(context.Background(), strings.NewReader(string(xmlData)), "", false)
+	device, _, err := factory.CreateDevice(context.Background(), strings.NewReader(string(xmlData)), "", false)
 	if err != nil {
 		b.Fatalf("XML parsing failed: %v", err)
 	}

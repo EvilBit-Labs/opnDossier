@@ -3,6 +3,7 @@ package opnsense_test
 import (
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/opnsense"
 	"github.com/EvilBit-Labs/opnDossier/internal/schema"
@@ -13,9 +14,10 @@ import (
 func TestConverter_NilInput(t *testing.T) {
 	t.Parallel()
 
-	device, err := opnsense.NewConverter().ToCommonDevice(nil)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(nil)
 	require.ErrorIs(t, err, opnsense.ErrNilDocument)
 	require.Nil(t, device)
+	assert.Nil(t, warnings)
 }
 
 func TestConverter_System(t *testing.T) {
@@ -50,8 +52,9 @@ func TestConverter_System(t *testing.T) {
 	doc.System.Firmware.Mirror = "https://mirror.example.com"
 	doc.System.Notes = []string{"test note"}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 
 	sys := device.System
 	assert.Equal(t, "fw01", sys.Hostname)
@@ -106,8 +109,9 @@ func TestConverter_Interfaces(t *testing.T) {
 		BlockBogons: "1",
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	assert.Len(t, device.Interfaces, 2)
 
 	// Find the WAN interface by name
@@ -161,8 +165,9 @@ func TestConverter_FirewallRules(t *testing.T) {
 		},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	require.Len(t, device.FirewallRules, 1)
 
 	rule := device.FirewallRules[0]
@@ -223,8 +228,9 @@ func TestConverter_NAT(t *testing.T) {
 		},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 
 	assert.Equal(t, "hybrid", device.NAT.OutboundMode)
 	assert.True(t, device.NAT.ReflectionDisabled)
@@ -258,8 +264,9 @@ func TestConverter_DHCP(t *testing.T) {
 		},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	require.Len(t, device.DHCP, 1)
 
 	scope := device.DHCP[0]
@@ -303,8 +310,9 @@ func TestConverter_VPN_OpenVPN(t *testing.T) {
 		},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 
 	require.Len(t, device.VPN.OpenVPN.Servers, 1)
 	srv := device.VPN.OpenVPN.Servers[0]
@@ -346,8 +354,9 @@ func TestConverter_VPN_WireGuard(t *testing.T) {
 		},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 
 	assert.True(t, device.VPN.WireGuard.Enabled)
 	require.Len(t, device.VPN.WireGuard.Servers, 1)
@@ -364,8 +373,9 @@ func TestConverter_VPN_IPsec(t *testing.T) {
 	doc.OPNsense.IPsec = &schema.IPsec{}
 	doc.OPNsense.IPsec.General.Enabled = "1"
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	assert.True(t, device.VPN.IPsec.Enabled)
 }
 
@@ -391,8 +401,9 @@ func TestConverter_Routing(t *testing.T) {
 		},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 
 	require.Len(t, device.Routing.Gateways, 1)
 	gw := device.Routing.Gateways[0]
@@ -417,8 +428,9 @@ func TestConverter_HA(t *testing.T) {
 	doc.HighAvailabilitySync.Username = "admin"
 	doc.HighAvailabilitySync.Syncitems = "virtualip,certs,dhcpd"
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 
 	assert.True(t, device.HighAvailability.DisablePreempt)
 	assert.True(t, device.HighAvailability.DisconnectPPPs)
@@ -434,8 +446,9 @@ func TestConverter_IDS_Nil(t *testing.T) {
 	doc := schema.NewOpnSenseDocument()
 	doc.OPNsense.IntrusionDetectionSystem = nil
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	assert.Nil(t, device.IDS)
 }
 
@@ -451,8 +464,9 @@ func TestConverter_IDS_Enabled(t *testing.T) {
 	doc.OPNsense.IntrusionDetectionSystem.General.Syslog = "1"
 	doc.OPNsense.IntrusionDetectionSystem.General.SyslogEve = "1"
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	require.NotNil(t, device.IDS)
 	assert.True(t, device.IDS.Enabled)
 	assert.True(t, device.IDS.IPSMode)
@@ -474,8 +488,9 @@ func TestConverter_Syslog(t *testing.T) {
 	doc.Syslog.VPN = true
 	doc.Syslog.Remoteserver = "10.0.0.100"
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 
 	assert.True(t, device.Syslog.Enabled)
 	assert.True(t, device.Syslog.SystemLogging)
@@ -510,8 +525,9 @@ func TestConverter_Users(t *testing.T) {
 		},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	require.Len(t, device.Users, 2)
 
 	admin := device.Users[0]
@@ -533,8 +549,9 @@ func TestConverter_Sysctl(t *testing.T) {
 		{Tunable: "net.inet.tcp.recvspace", Value: "65536", Descr: "TCP receive buffer"},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	require.Len(t, device.Sysctl, 1)
 	assert.Equal(t, "net.inet.tcp.recvspace", device.Sysctl[0].Tunable)
 	assert.Equal(t, "65536", device.Sysctl[0].Value)
@@ -549,8 +566,9 @@ func TestConverter_Revision(t *testing.T) {
 	doc.Revision.Time = "1700000000"
 	doc.Revision.Description = "config backup"
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 
 	assert.Equal(t, "admin@10.0.0.1", device.Revision.Username)
 	assert.Equal(t, "1700000000", device.Revision.Time)
@@ -561,8 +579,9 @@ func TestConverter_ComputedFieldsNil(t *testing.T) {
 	t.Parallel()
 
 	doc := schema.NewOpnSenseDocument()
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 
 	assert.Nil(t, device.Statistics)
 	assert.Nil(t, device.Analysis)
@@ -584,8 +603,9 @@ func TestConverter_DNS(t *testing.T) {
 		{Host: "server", Domain: "local", IP: "10.0.0.1"},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 
 	assert.Equal(t, []string{"1.1.1.1", "9.9.9.9"}, device.DNS.Servers)
 	assert.True(t, device.DNS.Unbound.Enabled)
@@ -604,8 +624,9 @@ func TestConverter_VLANs(t *testing.T) {
 		{If: "igb0", Tag: "100", Descr: "Guest VLAN", Vlanif: "igb0_vlan100"},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	require.Len(t, device.VLANs, 1)
 	assert.Equal(t, "igb0", device.VLANs[0].PhysicalIf)
 	assert.Equal(t, "100", device.VLANs[0].Tag)
@@ -628,8 +649,9 @@ func TestConverter_Groups(t *testing.T) {
 		},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	require.Len(t, device.Groups, 1)
 	assert.Equal(t, "admins", device.Groups[0].Name)
 	assert.Equal(t, "1999", device.Groups[0].GID)
@@ -652,8 +674,9 @@ func TestConverter_LoadBalancer(t *testing.T) {
 		},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	require.Len(t, device.LoadBalancer.MonitorTypes, 1)
 	assert.Equal(t, "http_check", device.LoadBalancer.MonitorTypes[0].Name)
 	assert.Equal(t, "/health", device.LoadBalancer.MonitorTypes[0].Options.Path)
@@ -666,8 +689,9 @@ func TestConverter_NTP(t *testing.T) {
 	doc := schema.NewOpnSenseDocument()
 	doc.Ntpd.Prefer = "0.opnsense.pool.ntp.org"
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	assert.Equal(t, "0.opnsense.pool.ntp.org", device.NTP.PreferredServer)
 }
 
@@ -679,9 +703,220 @@ func TestConverter_SNMP(t *testing.T) {
 	doc.Snmpd.SysLocation = "Server Room"
 	doc.Snmpd.SysContact = "admin@example.com"
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	assert.Equal(t, "public", device.SNMP.ROCommunity)
 	assert.Equal(t, "Server Room", device.SNMP.SysLocation)
 	assert.Equal(t, "admin@example.com", device.SNMP.SysContact)
+}
+
+func TestConverter_FirewallRules_Warnings(t *testing.T) {
+	t.Parallel()
+
+	anyStr := ""
+
+	tests := []struct {
+		name         string
+		rule         schema.Rule
+		wantWarnings int
+		wantField    string
+		wantSeverity analysis.Severity
+	}{
+		{
+			name: "empty type",
+			rule: schema.Rule{
+				Type:        "",
+				Interface:   schema.InterfaceList{"lan"},
+				Source:      schema.Source{Any: &anyStr},
+				Destination: schema.Destination{Network: "lan"},
+			},
+			wantWarnings: 1,
+			wantField:    "FirewallRules[0].Type",
+			wantSeverity: analysis.SeverityHigh,
+		},
+		{
+			name: "missing source address",
+			rule: schema.Rule{
+				Type:        "pass",
+				Interface:   schema.InterfaceList{"lan"},
+				Source:      schema.Source{},
+				Destination: schema.Destination{Network: "lan"},
+			},
+			wantWarnings: 1,
+			wantField:    "FirewallRules[0].Source",
+			wantSeverity: analysis.SeverityMedium,
+		},
+		{
+			name: "missing destination address",
+			rule: schema.Rule{
+				Type:        "pass",
+				Interface:   schema.InterfaceList{"lan"},
+				Source:      schema.Source{Any: &anyStr},
+				Destination: schema.Destination{},
+			},
+			wantWarnings: 1,
+			wantField:    "FirewallRules[0].Destination",
+			wantSeverity: analysis.SeverityMedium,
+		},
+		{
+			name: "empty interface",
+			rule: schema.Rule{
+				Type:        "pass",
+				Interface:   schema.InterfaceList{},
+				Source:      schema.Source{Any: &anyStr},
+				Destination: schema.Destination{Network: "lan"},
+			},
+			wantWarnings: 1,
+			wantField:    "FirewallRules[0].Interface",
+			wantSeverity: analysis.SeverityMedium,
+		},
+		{
+			name: "multiple issues",
+			rule: schema.Rule{
+				Type:        "",
+				Interface:   schema.InterfaceList{},
+				Source:      schema.Source{},
+				Destination: schema.Destination{},
+			},
+			wantWarnings: 4,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			doc := schema.NewOpnSenseDocument()
+			doc.Filter.Rule = []schema.Rule{tt.rule}
+
+			_, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+			require.NoError(t, err)
+			require.Len(t, warnings, tt.wantWarnings)
+
+			if tt.wantWarnings == 1 {
+				assert.Equal(t, tt.wantField, warnings[0].Field)
+				assert.Equal(t, tt.wantSeverity, warnings[0].Severity)
+			}
+		})
+	}
+}
+
+func TestConverter_NAT_Warnings(t *testing.T) {
+	t.Parallel()
+
+	anyStr := ""
+
+	tests := []struct {
+		name         string
+		setupDoc     func(*schema.OpnSenseDocument)
+		wantWarnings int
+		wantField    string
+		wantSeverity analysis.Severity
+	}{
+		{
+			name: "inbound rule missing internal IP",
+			setupDoc: func(doc *schema.OpnSenseDocument) {
+				doc.Nat.Inbound = []schema.InboundRule{
+					{
+						Interface:   schema.InterfaceList{"wan"},
+						Source:      schema.Source{Any: &anyStr},
+						Destination: schema.Destination{Network: "wanip"},
+						InternalIP:  "",
+					},
+				}
+			},
+			wantWarnings: 1,
+			wantField:    "NAT.InboundRules[0].InternalIP",
+			wantSeverity: analysis.SeverityHigh,
+		},
+		{
+			name: "inbound rule empty interface",
+			setupDoc: func(doc *schema.OpnSenseDocument) {
+				doc.Nat.Inbound = []schema.InboundRule{
+					{
+						Interface:   schema.InterfaceList{},
+						Source:      schema.Source{Any: &anyStr},
+						Destination: schema.Destination{Network: "wanip"},
+						InternalIP:  "192.168.1.10",
+					},
+				}
+			},
+			wantWarnings: 1,
+			wantField:    "NAT.InboundRules[0].Interface",
+			wantSeverity: analysis.SeverityMedium,
+		},
+		{
+			name: "outbound rule empty interface",
+			setupDoc: func(doc *schema.OpnSenseDocument) {
+				doc.Nat.Outbound.Rule = []schema.NATRule{
+					{
+						Interface:   schema.InterfaceList{},
+						Source:      schema.Source{Any: &anyStr},
+						Destination: schema.Destination{Network: "10.0.0.0/8"},
+					},
+				}
+			},
+			wantWarnings: 1,
+			wantField:    "NAT.OutboundRules[0].Interface",
+			wantSeverity: analysis.SeverityMedium,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			doc := schema.NewOpnSenseDocument()
+			tt.setupDoc(doc)
+
+			_, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+			require.NoError(t, err)
+			require.Len(t, warnings, tt.wantWarnings)
+			assert.Equal(t, tt.wantField, warnings[0].Field)
+			assert.Equal(t, tt.wantSeverity, warnings[0].Severity)
+		})
+	}
+}
+
+func TestConverter_Gateways_Warnings(t *testing.T) {
+	t.Parallel()
+
+	doc := schema.NewOpnSenseDocument()
+	doc.Gateways.Gateway = []schema.Gateway{
+		{
+			Name:    "",
+			Gateway: "",
+		},
+	}
+
+	_, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	require.NoError(t, err)
+	require.Len(t, warnings, 2)
+
+	assert.Equal(t, "Routing.Gateways[0].Address", warnings[0].Field)
+	assert.Equal(t, analysis.SeverityHigh, warnings[0].Severity)
+	assert.Equal(t, "Routing.Gateways[0].Name", warnings[1].Field)
+	assert.Equal(t, analysis.SeverityHigh, warnings[1].Severity)
+}
+
+func TestConverter_Users_Warnings(t *testing.T) {
+	t.Parallel()
+
+	doc := schema.NewOpnSenseDocument()
+	doc.System.User = []schema.User{
+		{
+			Name: "",
+			UID:  "",
+		},
+	}
+
+	_, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	require.NoError(t, err)
+	require.Len(t, warnings, 2)
+
+	assert.Equal(t, "Users[0].Name", warnings[0].Field)
+	assert.Equal(t, analysis.SeverityHigh, warnings[0].Severity)
+	assert.Equal(t, "Users[0].UID", warnings[1].Field)
+	assert.Equal(t, analysis.SeverityHigh, warnings[1].Severity)
 }
