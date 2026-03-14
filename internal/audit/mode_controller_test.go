@@ -4,12 +4,12 @@ import (
 	"context"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/firewall"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/sans"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/stig"
-	"github.com/EvilBit-Labs/opnDossier/internal/processor"
 )
 
 // mockCompliancePlugin implements the compliance.Plugin interface for testing.
@@ -517,13 +517,15 @@ func TestFinding_Structure(t *testing.T) {
 	t.Parallel()
 
 	finding := Finding{
-		Title:          "Test Finding",
-		Severity:       processor.SeverityHigh,
-		Description:    "Test description",
-		Recommendation: "Test recommendation",
-		Tags:           []string{"test", "security"},
-		Component:      "firewall",
-		Control:        "STIG-V-206694",
+		Finding: analysis.Finding{
+			Title:          "Test Finding",
+			Severity:       string(analysis.SeverityHigh),
+			Description:    "Test description",
+			Recommendation: "Test recommendation",
+			Tags:           []string{"test", "security"},
+			Component:      "firewall",
+		},
+		Control: "STIG-V-206694",
 	}
 
 	// Test that the finding structure is properly set
@@ -531,8 +533,8 @@ func TestFinding_Structure(t *testing.T) {
 		t.Errorf("Finding.Title = %v, want %v", finding.Title, "Test Finding")
 	}
 
-	if finding.Severity != processor.SeverityHigh {
-		t.Errorf("Finding.Severity = %v, want %v", finding.Severity, processor.SeverityHigh)
+	if finding.Severity != string(analysis.SeverityHigh) {
+		t.Errorf("Finding.Severity = %v, want %v", finding.Severity, analysis.SeverityHigh)
 	}
 
 	if finding.Description != "Test description" {
@@ -761,10 +763,12 @@ func TestReport_AddFinding(t *testing.T) {
 	}
 
 	finding := Finding{
-		Title:       "Test Finding",
-		Severity:    processor.SeverityHigh,
-		Description: "Test description",
-		Component:   "security",
+		Finding: analysis.Finding{
+			Title:       "Test Finding",
+			Severity:    string(analysis.SeverityHigh),
+			Description: "Test description",
+			Component:   "security",
+		},
 	}
 
 	// Add finding directly to slice since there's no AddFinding method
@@ -788,17 +792,41 @@ func TestReport_GetFindingsBySeverity(t *testing.T) {
 
 	report := &Report{
 		Findings: []Finding{
-			{Title: "High Finding", Severity: processor.SeverityHigh, Description: "High severity issue"},
-			{Title: "Medium Finding", Severity: processor.SeverityMedium, Description: "Medium severity issue"},
-			{Title: "Low Finding", Severity: processor.SeverityLow, Description: "Low severity issue"},
-			{Title: "Another High", Severity: processor.SeverityHigh, Description: "Another high severity issue"},
+			{
+				Finding: analysis.Finding{
+					Title:       "High Finding",
+					Severity:    string(analysis.SeverityHigh),
+					Description: "High severity issue",
+				},
+			},
+			{
+				Finding: analysis.Finding{
+					Title:       "Medium Finding",
+					Severity:    string(analysis.SeverityMedium),
+					Description: "Medium severity issue",
+				},
+			},
+			{
+				Finding: analysis.Finding{
+					Title:       "Low Finding",
+					Severity:    string(analysis.SeverityLow),
+					Description: "Low severity issue",
+				},
+			},
+			{
+				Finding: analysis.Finding{
+					Title:       "Another High",
+					Severity:    string(analysis.SeverityHigh),
+					Description: "Another high severity issue",
+				},
+			},
 		},
 	}
 
 	// Filter findings by severity manually since there's no GetFindingsBySeverity method
 	highFindings := []Finding{}
 	for _, finding := range report.Findings {
-		if finding.Severity == processor.SeverityHigh {
+		if finding.Severity == string(analysis.SeverityHigh) {
 			highFindings = append(highFindings, finding)
 		}
 	}
@@ -809,7 +837,7 @@ func TestReport_GetFindingsBySeverity(t *testing.T) {
 
 	mediumFindings := []Finding{}
 	for _, finding := range report.Findings {
-		if finding.Severity == processor.SeverityMedium {
+		if finding.Severity == string(analysis.SeverityMedium) {
 			mediumFindings = append(mediumFindings, finding)
 		}
 	}
@@ -820,7 +848,7 @@ func TestReport_GetFindingsBySeverity(t *testing.T) {
 
 	lowFindings := []Finding{}
 	for _, finding := range report.Findings {
-		if finding.Severity == processor.SeverityLow {
+		if finding.Severity == string(analysis.SeverityLow) {
 			lowFindings = append(lowFindings, finding)
 		}
 	}
@@ -835,24 +863,24 @@ func TestReport_GetFindingsByComponent(t *testing.T) {
 
 	report := &Report{
 		Findings: []Finding{
-			{
+			{Finding: analysis.Finding{
 				Title:       "Security Finding",
-				Severity:    processor.SeverityHigh,
+				Severity:    string(analysis.SeverityHigh),
 				Component:   "security",
 				Description: "Security issue",
-			},
-			{
+			}},
+			{Finding: analysis.Finding{
 				Title:       "Network Finding",
-				Severity:    processor.SeverityMedium,
+				Severity:    string(analysis.SeverityMedium),
 				Component:   "network",
 				Description: "Network issue",
-			},
-			{
+			}},
+			{Finding: analysis.Finding{
 				Title:       "Another Security",
-				Severity:    processor.SeverityLow,
+				Severity:    string(analysis.SeverityLow),
 				Component:   "security",
 				Description: "Another security issue",
-			},
+			}},
 		},
 	}
 
@@ -885,30 +913,30 @@ func TestReport_Summary(t *testing.T) {
 
 	report := &Report{
 		Findings: []Finding{
-			{
+			{Finding: analysis.Finding{
 				Title:       "High Finding",
-				Severity:    processor.SeverityHigh,
+				Severity:    string(analysis.SeverityHigh),
 				Component:   "security",
 				Description: "High severity issue",
-			},
-			{
+			}},
+			{Finding: analysis.Finding{
 				Title:       "Medium Finding",
-				Severity:    processor.SeverityMedium,
+				Severity:    string(analysis.SeverityMedium),
 				Component:   "network",
 				Description: "Medium severity issue",
-			},
-			{
+			}},
+			{Finding: analysis.Finding{
 				Title:       "Low Finding",
-				Severity:    processor.SeverityLow,
+				Severity:    string(analysis.SeverityLow),
 				Component:   "security",
 				Description: "Low severity issue",
-			},
-			{
+			}},
+			{Finding: analysis.Finding{
 				Title:       "Another High",
-				Severity:    processor.SeverityHigh,
+				Severity:    string(analysis.SeverityHigh),
 				Component:   "network",
 				Description: "Another high severity issue",
-			},
+			}},
 		},
 	}
 
@@ -920,11 +948,11 @@ func TestReport_Summary(t *testing.T) {
 
 	for _, finding := range report.Findings {
 		switch finding.Severity {
-		case processor.SeverityHigh:
+		case string(analysis.SeverityHigh):
 			highCount++
-		case processor.SeverityMedium:
+		case string(analysis.SeverityMedium):
 			mediumCount++
-		case processor.SeverityLow:
+		case string(analysis.SeverityLow):
 			lowCount++
 		}
 	}
@@ -961,11 +989,11 @@ func TestReport_EmptySummary(t *testing.T) {
 
 	for _, finding := range report.Findings {
 		switch finding.Severity {
-		case processor.SeverityHigh:
+		case string(analysis.SeverityHigh):
 			highCount++
-		case processor.SeverityMedium:
+		case string(analysis.SeverityMedium):
 			mediumCount++
-		case processor.SeverityLow:
+		case string(analysis.SeverityLow):
 			lowCount++
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"maps"
 	"slices"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
@@ -70,20 +71,6 @@ func CloneControls(controls []Control) []Control {
 	return cloned
 }
 
-// Finding represents a standardized finding that all plugins must return.
-// This ensures consistent data structure for the plugin manager to process.
-type Finding struct {
-	// Core finding information
-	Type           string `json:"type"`
-	Severity       string `json:"severity,omitempty"`
-	Title          string `json:"title"`
-	Description    string `json:"description"`
-	Recommendation string `json:"recommendation"`
-	Component      string `json:"component"`
-	Reference      string `json:"reference"`
-
-	// Generic references and metadata
-	References []string          `json:"references,omitempty"`
-	Tags       []string          `json:"tags,omitempty"`
-	Metadata   map[string]string `json:"metadata,omitempty"`
-}
+// Finding is a type alias for the canonical analysis.Finding type.
+// All plugins and consumers should use this type for standardized findings.
+type Finding = analysis.Finding

@@ -94,8 +94,6 @@ func TestAddDisplayFlagsComprehensive(t *testing.T) {
 // TestDeviceTypeFlagAvailableOnAllCommands verifies that the --device-type persistent
 // flag is inherited by all subcommands that process configuration files.
 func TestDeviceTypeFlagAvailableOnAllCommands(t *testing.T) {
-	t.Parallel()
-
 	// Verify the flag exists on the root command persistent flags
 	rootFlag := rootCmd.PersistentFlags().Lookup("device-type")
 	require.NotNil(t, rootFlag, "device-type flag should be registered as a persistent flag on root")
@@ -104,8 +102,6 @@ func TestDeviceTypeFlagAvailableOnAllCommands(t *testing.T) {
 	subcommands := []string{"convert", "display", "validate", "diff"}
 	for _, name := range subcommands {
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
 			var found *cobra.Command
 			for _, cmd := range rootCmd.Commands() {
 				if cmd.Name() == name {

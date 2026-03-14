@@ -8,11 +8,13 @@ import (
 )
 
 func TestNewAnalyzer(t *testing.T) {
+	t.Parallel()
 	analyzer := NewAnalyzer()
 	assert.NotNil(t, analyzer)
 }
 
 func TestAnalyzer_CompareSystem_NoChanges(t *testing.T) {
+	t.Parallel()
 	analyzer := NewAnalyzer()
 	old := &common.System{
 		Hostname: "firewall",
@@ -30,6 +32,7 @@ func TestAnalyzer_CompareSystem_NoChanges(t *testing.T) {
 }
 
 func TestAnalyzer_CompareSystem_HostnameChanged(t *testing.T) {
+	t.Parallel()
 	analyzer := NewAnalyzer()
 	old := &common.System{Hostname: "old-firewall"}
 	newCfg := &common.System{Hostname: "new-firewall"}
@@ -44,6 +47,7 @@ func TestAnalyzer_CompareSystem_HostnameChanged(t *testing.T) {
 }
 
 func TestAnalyzer_CompareSystem_MultipleChanges(t *testing.T) {
+	t.Parallel()
 	analyzer := NewAnalyzer()
 	old := &common.System{
 		Hostname: "old-host",
@@ -62,6 +66,7 @@ func TestAnalyzer_CompareSystem_MultipleChanges(t *testing.T) {
 }
 
 func TestAnalyzer_CompareSystem_WebGUIProtocolChange(t *testing.T) {
+	t.Parallel()
 	analyzer := NewAnalyzer()
 	old := &common.System{
 		WebGUI: common.WebGUI{Protocol: "http"},
@@ -77,6 +82,7 @@ func TestAnalyzer_CompareSystem_WebGUIProtocolChange(t *testing.T) {
 }
 
 func TestAnalyzer_CompareFirewallRules_NoChanges(t *testing.T) {
+	t.Parallel()
 	analyzer := NewAnalyzer()
 	rules := []common.FirewallRule{
 		{UUID: "uuid-1", Type: "pass", Description: "Allow SSH"},
@@ -87,6 +93,7 @@ func TestAnalyzer_CompareFirewallRules_NoChanges(t *testing.T) {
 }
 
 func TestAnalyzer_CompareFirewallRules_RuleAdded(t *testing.T) {
+	t.Parallel()
 	analyzer := NewAnalyzer()
 	old := []common.FirewallRule{}
 	newCfg := []common.FirewallRule{
@@ -101,6 +108,7 @@ func TestAnalyzer_CompareFirewallRules_RuleAdded(t *testing.T) {
 }
 
 func TestAnalyzer_CompareFirewallRules_RuleRemoved(t *testing.T) {
+	t.Parallel()
 	analyzer := NewAnalyzer()
 	old := []common.FirewallRule{
 		{UUID: "uuid-1", Type: "pass", Description: "Legacy FTP"},
@@ -116,6 +124,7 @@ func TestAnalyzer_CompareFirewallRules_RuleRemoved(t *testing.T) {
 }
 
 func TestAnalyzer_CompareFirewallRules_RuleModified(t *testing.T) {
+	t.Parallel()
 	analyzer := NewAnalyzer()
 	old := []common.FirewallRule{
 		{UUID: "uuid-1", Type: "pass", Description: "Allow SSH", Protocol: "tcp"},
@@ -131,6 +140,7 @@ func TestAnalyzer_CompareFirewallRules_RuleModified(t *testing.T) {
 }
 
 func TestAnalyzer_CompareFirewallRules_PermissiveRuleAdded(t *testing.T) {
+	t.Parallel()
 	analyzer := NewAnalyzer()
 	old := []common.FirewallRule{}
 	newCfg := []common.FirewallRule{
@@ -149,6 +159,7 @@ func TestAnalyzer_CompareFirewallRules_PermissiveRuleAdded(t *testing.T) {
 }
 
 func TestAnalyzer_CompareInterfaces_NoChanges(t *testing.T) {
+	t.Parallel()
 	analyzer := NewAnalyzer()
 	interfaces := []common.Interface{
 		{Name: "wan", IPAddress: "10.0.0.1", Subnet: "24"},
@@ -159,6 +170,7 @@ func TestAnalyzer_CompareInterfaces_NoChanges(t *testing.T) {
 }
 
 func TestAnalyzer_CompareInterfaces_InterfaceAdded(t *testing.T) {
+	t.Parallel()
 	analyzer := NewAnalyzer()
 	old := []common.Interface{
 		{Name: "wan", IPAddress: "10.0.0.1"},
@@ -176,6 +188,7 @@ func TestAnalyzer_CompareInterfaces_InterfaceAdded(t *testing.T) {
 }
 
 func TestAnalyzer_CompareInterfaces_InterfaceRemoved(t *testing.T) {
+	t.Parallel()
 	analyzer := NewAnalyzer()
 	old := []common.Interface{
 		{Name: "wan", IPAddress: "10.0.0.1"},
@@ -193,6 +206,7 @@ func TestAnalyzer_CompareInterfaces_InterfaceRemoved(t *testing.T) {
 }
 
 func TestAnalyzer_CompareInterfaces_IPChanged(t *testing.T) {
+	t.Parallel()
 	analyzer := NewAnalyzer()
 	old := []common.Interface{
 		{Name: "wan", IPAddress: "10.0.0.1", Subnet: "24"},
@@ -209,6 +223,7 @@ func TestAnalyzer_CompareInterfaces_IPChanged(t *testing.T) {
 }
 
 func TestAnalyzer_CompareVLANs_NoChanges(t *testing.T) {
+	t.Parallel()
 	analyzer := NewAnalyzer()
 	vlans := []common.VLAN{
 		{VLANIf: "vlan10", Tag: "10", PhysicalIf: "em0"},
@@ -219,9 +234,13 @@ func TestAnalyzer_CompareVLANs_NoChanges(t *testing.T) {
 }
 
 func TestAnalyzer_CompareVLANs_VLANAdded(t *testing.T) {
+	t.Parallel()
 	analyzer := NewAnalyzer()
-	old := []common.VLAN{}
+	old := []common.VLAN{
+		{VLANIf: "vlan20", Tag: "20", PhysicalIf: "em0"},
+	}
 	newCfg := []common.VLAN{
+		{VLANIf: "vlan20", Tag: "20", PhysicalIf: "em0"},
 		{VLANIf: "vlan10", Tag: "10", PhysicalIf: "em0", Description: "Guest"},
 	}
 
@@ -233,11 +252,15 @@ func TestAnalyzer_CompareVLANs_VLANAdded(t *testing.T) {
 }
 
 func TestAnalyzer_CompareVLANs_VLANRemoved(t *testing.T) {
+	t.Parallel()
 	analyzer := NewAnalyzer()
 	old := []common.VLAN{
 		{VLANIf: "vlan10", Tag: "10", PhysicalIf: "em0"},
+		{VLANIf: "vlan20", Tag: "20", PhysicalIf: "em0"},
 	}
-	newCfg := []common.VLAN{}
+	newCfg := []common.VLAN{
+		{VLANIf: "vlan20", Tag: "20", PhysicalIf: "em0"},
+	}
 
 	changes := analyzer.CompareVLANs(old, newCfg)
 
@@ -246,6 +269,7 @@ func TestAnalyzer_CompareVLANs_VLANRemoved(t *testing.T) {
 }
 
 func TestAnalyzer_CompareVLANs_TagChanged(t *testing.T) {
+	t.Parallel()
 	analyzer := NewAnalyzer()
 	old := []common.VLAN{
 		{VLANIf: "vlan10", Tag: "10", PhysicalIf: "em0"},
@@ -262,6 +286,7 @@ func TestAnalyzer_CompareVLANs_TagChanged(t *testing.T) {
 }
 
 func TestAnalyzer_CompareUsers_NoChanges(t *testing.T) {
+	t.Parallel()
 	analyzer := NewAnalyzer()
 	users := []common.User{
 		{Name: "admin", Scope: "system", GroupName: "admins"},
@@ -272,6 +297,7 @@ func TestAnalyzer_CompareUsers_NoChanges(t *testing.T) {
 }
 
 func TestAnalyzer_CompareUsers_UserAdded(t *testing.T) {
+	t.Parallel()
 	analyzer := NewAnalyzer()
 	old := []common.User{}
 	newCfg := []common.User{
@@ -286,6 +312,7 @@ func TestAnalyzer_CompareUsers_UserAdded(t *testing.T) {
 }
 
 func TestAnalyzer_CompareUsers_UserRemoved(t *testing.T) {
+	t.Parallel()
 	analyzer := NewAnalyzer()
 	old := []common.User{
 		{Name: "olduser", Scope: "local", GroupName: "users"},
@@ -299,7 +326,51 @@ func TestAnalyzer_CompareUsers_UserRemoved(t *testing.T) {
 	assert.Equal(t, "medium", changes[0].SecurityImpact)
 }
 
+func TestAnalyzer_CompareNAT_BothEmpty(t *testing.T) {
+	t.Parallel()
+	analyzer := NewAnalyzer()
+	changes := analyzer.CompareNAT(common.NATConfig{}, common.NATConfig{})
+	assert.Empty(t, changes)
+}
+
+func TestAnalyzer_CompareNAT_SectionAdded(t *testing.T) {
+	t.Parallel()
+	analyzer := NewAnalyzer()
+	old := common.NATConfig{}
+	newCfg := common.NATConfig{
+		OutboundMode:  "hybrid",
+		OutboundRules: []common.NATRule{{UUID: "r1"}},
+	}
+
+	changes := analyzer.CompareNAT(old, newCfg)
+
+	assert.Len(t, changes, 1)
+	assert.Equal(t, ChangeAdded, changes[0].Type)
+	assert.Equal(t, SectionNAT, changes[0].Section)
+	assert.Equal(t, "nat", changes[0].Path)
+	assert.Equal(t, "NAT configuration section added", changes[0].Description)
+}
+
+func TestAnalyzer_CompareNAT_SectionRemoved(t *testing.T) {
+	t.Parallel()
+	analyzer := NewAnalyzer()
+	old := common.NATConfig{
+		OutboundMode: "automatic",
+		InboundRules: []common.InboundNATRule{{UUID: "r1"}},
+	}
+	newCfg := common.NATConfig{}
+
+	changes := analyzer.CompareNAT(old, newCfg)
+
+	assert.Len(t, changes, 1)
+	assert.Equal(t, ChangeRemoved, changes[0].Type)
+	assert.Equal(t, SectionNAT, changes[0].Section)
+	assert.Equal(t, "nat", changes[0].Path)
+	assert.Equal(t, "NAT configuration section removed", changes[0].Description)
+}
+
 func TestAnalyzer_CompareNAT_ModeChanged(t *testing.T) {
+	t.Parallel()
 	analyzer := NewAnalyzer()
 	old := common.NATConfig{
 		OutboundMode: "automatic",
@@ -449,7 +520,192 @@ func TestRuleDescription(t *testing.T) {
 	}
 }
 
+func TestAnalyzer_CompareInterfaces_BothEmpty(t *testing.T) {
+	t.Parallel()
+	analyzer := NewAnalyzer()
+	changes := analyzer.CompareInterfaces([]common.Interface{}, []common.Interface{})
+	assert.Nil(t, changes)
+}
+
+func TestAnalyzer_CompareInterfaces_SectionAdded(t *testing.T) {
+	t.Parallel()
+	analyzer := NewAnalyzer()
+	old := []common.Interface{}
+	newCfg := []common.Interface{
+		{Name: "wan", IPAddress: "10.0.0.1"},
+		{Name: "lan", IPAddress: "192.168.1.1"},
+	}
+
+	changes := analyzer.CompareInterfaces(old, newCfg)
+
+	assert.Len(t, changes, 1)
+	assert.Equal(t, ChangeAdded, changes[0].Type)
+	assert.Equal(t, SectionInterfaces, changes[0].Section)
+	assert.Equal(t, "interfaces", changes[0].Path)
+	assert.Equal(t, "Interfaces configuration section added", changes[0].Description)
+}
+
+func TestAnalyzer_CompareInterfaces_SectionRemoved(t *testing.T) {
+	t.Parallel()
+	analyzer := NewAnalyzer()
+	old := []common.Interface{
+		{Name: "wan", IPAddress: "10.0.0.1"},
+	}
+	newCfg := []common.Interface{}
+
+	changes := analyzer.CompareInterfaces(old, newCfg)
+
+	assert.Len(t, changes, 1)
+	assert.Equal(t, ChangeRemoved, changes[0].Type)
+	assert.Equal(t, SectionInterfaces, changes[0].Section)
+	assert.Equal(t, "interfaces", changes[0].Path)
+	assert.Equal(t, "Interfaces configuration section removed", changes[0].Description)
+}
+
+func TestAnalyzer_CompareVLANs_BothEmpty(t *testing.T) {
+	t.Parallel()
+	analyzer := NewAnalyzer()
+	changes := analyzer.CompareVLANs([]common.VLAN{}, []common.VLAN{})
+	assert.Nil(t, changes)
+}
+
+func TestAnalyzer_CompareVLANs_SectionAdded(t *testing.T) {
+	t.Parallel()
+	analyzer := NewAnalyzer()
+	old := []common.VLAN{}
+	newCfg := []common.VLAN{
+		{VLANIf: "vlan10", Tag: "10", PhysicalIf: "em0"},
+	}
+
+	changes := analyzer.CompareVLANs(old, newCfg)
+
+	assert.Len(t, changes, 1)
+	assert.Equal(t, ChangeAdded, changes[0].Type)
+	assert.Equal(t, SectionVLANs, changes[0].Section)
+	assert.Equal(t, "vlans", changes[0].Path)
+	assert.Equal(t, "VLANs configuration section added", changes[0].Description)
+}
+
+func TestAnalyzer_CompareVLANs_SectionRemoved(t *testing.T) {
+	t.Parallel()
+	analyzer := NewAnalyzer()
+	old := []common.VLAN{
+		{VLANIf: "vlan10", Tag: "10", PhysicalIf: "em0"},
+	}
+	newCfg := []common.VLAN{}
+
+	changes := analyzer.CompareVLANs(old, newCfg)
+
+	assert.Len(t, changes, 1)
+	assert.Equal(t, ChangeRemoved, changes[0].Type)
+	assert.Equal(t, SectionVLANs, changes[0].Section)
+	assert.Equal(t, "vlans", changes[0].Path)
+	assert.Equal(t, "VLANs configuration section removed", changes[0].Description)
+}
+
+func TestAnalyzer_CompareDHCP_BothEmpty(t *testing.T) {
+	t.Parallel()
+	analyzer := NewAnalyzer()
+	changes := analyzer.CompareDHCP([]common.DHCPScope{}, []common.DHCPScope{})
+	assert.Nil(t, changes)
+}
+
+func TestAnalyzer_CompareDHCP_SectionAdded(t *testing.T) {
+	t.Parallel()
+	analyzer := NewAnalyzer()
+	old := []common.DHCPScope{}
+	newCfg := []common.DHCPScope{
+		{Interface: "lan", Enabled: true},
+	}
+
+	changes := analyzer.CompareDHCP(old, newCfg)
+
+	assert.Len(t, changes, 1)
+	assert.Equal(t, ChangeAdded, changes[0].Type)
+	assert.Equal(t, SectionDHCP, changes[0].Section)
+	assert.Equal(t, "dhcpd", changes[0].Path)
+	assert.Equal(t, "DHCP configuration section added", changes[0].Description)
+}
+
+func TestAnalyzer_CompareDHCP_SectionRemoved(t *testing.T) {
+	t.Parallel()
+	analyzer := NewAnalyzer()
+	old := []common.DHCPScope{
+		{Interface: "lan", Enabled: true},
+	}
+	newCfg := []common.DHCPScope{}
+
+	changes := analyzer.CompareDHCP(old, newCfg)
+
+	assert.Len(t, changes, 1)
+	assert.Equal(t, ChangeRemoved, changes[0].Type)
+	assert.Equal(t, SectionDHCP, changes[0].Section)
+	assert.Equal(t, "dhcpd", changes[0].Path)
+	assert.Equal(t, "DHCP configuration section removed", changes[0].Description)
+}
+
+func TestAnalyzer_CompareRoutes_BothEmpty(t *testing.T) {
+	t.Parallel()
+	analyzer := NewAnalyzer()
+	changes := analyzer.CompareRoutes(common.Routing{}, common.Routing{})
+	assert.Empty(t, changes)
+}
+
+func TestAnalyzer_CompareRoutes_SectionAdded(t *testing.T) {
+	t.Parallel()
+	analyzer := NewAnalyzer()
+	old := common.Routing{}
+	newCfg := common.Routing{
+		StaticRoutes: []common.StaticRoute{
+			{Network: "10.0.0.0/8", Gateway: "gw1"},
+		},
+	}
+
+	changes := analyzer.CompareRoutes(old, newCfg)
+
+	assert.Len(t, changes, 1)
+	assert.Equal(t, ChangeAdded, changes[0].Type)
+	assert.Equal(t, SectionRouting, changes[0].Section)
+	assert.Equal(t, "routing", changes[0].Path)
+	assert.Equal(t, "Routing configuration section added", changes[0].Description)
+}
+
+func TestAnalyzer_CompareRoutes_SectionAddedGatewaysOnly(t *testing.T) {
+	t.Parallel()
+	analyzer := NewAnalyzer()
+	old := common.Routing{}
+	newCfg := common.Routing{
+		Gateways: []common.Gateway{{Name: "gw1"}},
+	}
+
+	changes := analyzer.CompareRoutes(old, newCfg)
+
+	assert.Len(t, changes, 1)
+	assert.Equal(t, ChangeAdded, changes[0].Type)
+	assert.Equal(t, SectionRouting, changes[0].Section)
+}
+
+func TestAnalyzer_CompareRoutes_SectionRemoved(t *testing.T) {
+	t.Parallel()
+	analyzer := NewAnalyzer()
+	old := common.Routing{
+		StaticRoutes: []common.StaticRoute{
+			{Network: "10.0.0.0/8", Gateway: "gw1"},
+		},
+	}
+	newCfg := common.Routing{}
+
+	changes := analyzer.CompareRoutes(old, newCfg)
+
+	assert.Len(t, changes, 1)
+	assert.Equal(t, ChangeRemoved, changes[0].Type)
+	assert.Equal(t, SectionRouting, changes[0].Section)
+	assert.Equal(t, "routing", changes[0].Path)
+	assert.Equal(t, "Routing configuration section removed", changes[0].Description)
+}
+
 func TestAnalyzer_CompareRoutes_CountChanged(t *testing.T) {
+	t.Parallel()
 	analyzer := NewAnalyzer()
 	old := common.Routing{
 		StaticRoutes: []common.StaticRoute{
@@ -468,6 +724,47 @@ func TestAnalyzer_CompareRoutes_CountChanged(t *testing.T) {
 	assert.Len(t, changes, 1)
 	assert.Equal(t, ChangeModified, changes[0].Type)
 	assert.Equal(t, SectionRouting, changes[0].Section)
+}
+
+func TestAnalyzer_CompareRoutes_GatewayCountChanged(t *testing.T) {
+	t.Parallel()
+	analyzer := NewAnalyzer()
+	old := common.Routing{
+		Gateways: []common.Gateway{{Name: "gw1"}},
+	}
+	newCfg := common.Routing{
+		Gateways: []common.Gateway{{Name: "gw1"}, {Name: "gw2"}},
+	}
+
+	changes := analyzer.CompareRoutes(old, newCfg)
+
+	assert.Len(t, changes, 1)
+	assert.Equal(t, ChangeModified, changes[0].Type)
+	assert.Equal(t, "gateways.gateway_item", changes[0].Path)
+}
+
+func TestAnalyzer_CompareNAT_BooleanChanges(t *testing.T) {
+	t.Parallel()
+	analyzer := NewAnalyzer()
+	old := common.NATConfig{
+		OutboundMode:       "automatic",
+		ReflectionDisabled: true,
+	}
+	newCfg := common.NATConfig{
+		OutboundMode:   "automatic",
+		PfShareForward: true,
+	}
+
+	changes := analyzer.CompareNAT(old, newCfg)
+
+	assert.Len(t, changes, 2)
+
+	paths := make([]string, len(changes))
+	for i, c := range changes {
+		paths[i] = c.Path
+	}
+	assert.Contains(t, paths, "nat.reflectionDisabled")
+	assert.Contains(t, paths, "nat.pfShareForward")
 }
 
 func TestIsPermissiveRule(t *testing.T) {

@@ -182,6 +182,18 @@ type InboundNATRule struct {
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 }
 
+// HasData reports whether the NATConfig contains any meaningful configuration
+// (any non-zero fields). This is the single source of truth for NAT presence
+// detection, used by both CommonDevice.HasNATConfig and the diff engine.
+func (c NATConfig) HasData() bool {
+	return c.OutboundMode != "" ||
+		len(c.OutboundRules) > 0 ||
+		len(c.InboundRules) > 0 ||
+		c.ReflectionDisabled ||
+		c.PfShareForward ||
+		c.BiNATEnabled
+}
+
 // NATSummary is a convenience view of a device's NAT configuration for
 // report generation.
 type NATSummary struct {

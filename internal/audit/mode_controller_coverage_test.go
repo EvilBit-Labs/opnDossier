@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/firewall"
@@ -652,9 +653,9 @@ func TestReport_TotalFindingsCount(t *testing.T) {
 			name: "direct findings only",
 			report: &Report{
 				Findings: []Finding{
-					{Title: "f1"},
-					{Title: "f2"},
-					{Title: "f3"},
+					{Finding: analysis.Finding{Title: "f1"}},
+					{Finding: analysis.Finding{Title: "f2"}},
+					{Finding: analysis.Finding{Title: "f3"}},
 				},
 				Compliance: map[string]ComplianceResult{},
 			},
@@ -679,7 +680,7 @@ func TestReport_TotalFindingsCount(t *testing.T) {
 			name: "mixed direct and compliance findings",
 			report: &Report{
 				Findings: []Finding{
-					{Title: "f1"},
+					{Finding: analysis.Finding{Title: "f1"}},
 				},
 				Compliance: map[string]ComplianceResult{
 					"stig": {
@@ -693,7 +694,7 @@ func TestReport_TotalFindingsCount(t *testing.T) {
 			name: "nil Summary in compliance entry does not panic",
 			report: &Report{
 				Findings: []Finding{
-					{Title: "f1"},
+					{Finding: analysis.Finding{Title: "f1"}},
 				},
 				Compliance: map[string]ComplianceResult{
 					"good": {

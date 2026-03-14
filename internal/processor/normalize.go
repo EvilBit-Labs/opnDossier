@@ -3,7 +3,6 @@ package processor
 import (
 	"net"
 	"slices"
-	"sort"
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
@@ -85,39 +84,38 @@ func (p *CoreProcessor) canonicalizeAddresses(cfg *common.CommonDevice) {
 // sortSlices sorts all slices in the configuration for deterministic output.
 func (p *CoreProcessor) sortSlices(cfg *common.CommonDevice) {
 	// Sort users by name
-	sort.Slice(cfg.Users, func(i, j int) bool {
-		return cfg.Users[i].Name < cfg.Users[j].Name
+	slices.SortFunc(cfg.Users, func(a, b common.User) int {
+		return strings.Compare(a.Name, b.Name)
 	})
 
 	// Sort groups by name
-	sort.Slice(cfg.Groups, func(i, j int) bool {
-		return cfg.Groups[i].Name < cfg.Groups[j].Name
+	slices.SortFunc(cfg.Groups, func(a, b common.Group) int {
+		return strings.Compare(a.Name, b.Name)
 	})
 
 	// Sort sysctl items by tunable name
-	sort.Slice(cfg.Sysctl, func(i, j int) bool {
-		return cfg.Sysctl[i].Tunable < cfg.Sysctl[j].Tunable
+	slices.SortFunc(cfg.Sysctl, func(a, b common.SysctlItem) int {
+		return strings.Compare(a.Tunable, b.Tunable)
 	})
 
 	// Sort firewall rules by interface, then by type, then by description for determinism
-	sort.Slice(cfg.FirewallRules, func(i, j int) bool {
-		ruleA, ruleB := &cfg.FirewallRules[i], &cfg.FirewallRules[j]
-		ifacesA := strings.Join(ruleA.Interfaces, ",")
-		ifacesB := strings.Join(ruleB.Interfaces, ",")
-		if ifacesA != ifacesB {
-			return ifacesA < ifacesB
+	slices.SortFunc(cfg.FirewallRules, func(a, b common.FirewallRule) int {
+		ifacesA := strings.Join(a.Interfaces, ",")
+		ifacesB := strings.Join(b.Interfaces, ",")
+		if c := strings.Compare(ifacesA, ifacesB); c != 0 {
+			return c
 		}
 
-		if ruleA.Type != ruleB.Type {
-			return ruleA.Type < ruleB.Type
+		if c := strings.Compare(a.Type, b.Type); c != 0 {
+			return c
 		}
 
-		return ruleA.Description < ruleB.Description
+		return strings.Compare(a.Description, b.Description)
 	})
 
 	// Sort load balancer monitor types by name
-	sort.Slice(cfg.LoadBalancer.MonitorTypes, func(i, j int) bool {
-		return cfg.LoadBalancer.MonitorTypes[i].Name < cfg.LoadBalancer.MonitorTypes[j].Name
+	slices.SortFunc(cfg.LoadBalancer.MonitorTypes, func(a, b common.MonitorType) int {
+		return strings.Compare(a.Name, b.Name)
 	})
 }
 

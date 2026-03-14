@@ -523,13 +523,17 @@ func builtinRules() []Rule {
 	}
 }
 
+// systemUsers lists known common system accounts for isSystemUser lookups.
+//
+//nolint:gochecknoglobals // Immutable lookup table, avoids per-call allocation
+var systemUsers = []string{
+	"root", "admin", "nobody", "daemon", "www", "www-data",
+	"opnsense", "unbound", "dhcpd", "sshd", "ntp", "proxy",
+}
+
 // isSystemUser reports whether username matches a known common system account.
 // The check is case-insensitive and uses a predefined list (for example: "root", "admin", "nobody", "daemon", "www-data").
 func isSystemUser(username string) bool {
-	systemUsers := []string{
-		"root", "admin", "nobody", "daemon", "www", "www-data",
-		"opnsense", "unbound", "dhcpd", "sshd", "ntp", "proxy",
-	}
 	lower := toLower(username)
 	return slices.Contains(systemUsers, lower)
 }

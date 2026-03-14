@@ -2,6 +2,8 @@
 
 Thank you for your interest in contributing to opnDossier! This guide covers everything you need to know to contribute effectively.
 
+> **Before you start:** check **[GOTCHAS.md](GOTCHAS.md)** for hard-won lessons and edge cases. It will save you from common pitfalls that have tripped up contributors and broken CI before.
+
 ## Getting Started
 
 ### Quality Standards
@@ -321,6 +323,17 @@ git commit -m "feat(api)!: change configuration file format"
 - `build`: Build system changes
 - `ci`: CI/CD changes
 - `chore`: Maintenance tasks
+
+### 5. Gotchas & Pitfalls
+
+Before you start developing, please review the **[GOTCHAS.md](GOTCHAS.md)** file. It contains important information about:
+
+- Proper use of `t.Parallel()` in tests
+- Global state management in the `cmd` package
+- Non-deterministic map iteration in reports
+- XML presence vs. absence detection
+
+Reviewing these will help you avoid common pitfalls that lead to CI failures and data races.
 
 ## Coding Standards
 
@@ -757,7 +770,7 @@ opnDossier uses a **maintainer-driven** governance model. Decisions are made by 
 | Role                 | Responsibilities                                                                          | Current                                        |
 | -------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------- |
 | **Maintainer**       | Merge PRs, manage releases, set project direction, review security reports, triage issues | [@UncleSp1d3r](https://github.com/UncleSp1d3r) |
-| **Security Contact** | Triage vulnerability reports, coordinate fixes, publish advisories                        | support@evilbitlabs.io                         |
+| **Security Contact** | Triage vulnerability reports, coordinate fixes, publish advisories                        | <support@evilbitlabs.io>                       |
 | **Contributor**      | Submit issues, PRs, and participate in discussions                                        | Anyone following this guide                    |
 
 ### How Decisions Are Made

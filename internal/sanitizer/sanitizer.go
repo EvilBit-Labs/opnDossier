@@ -12,6 +12,8 @@ import (
 	"maps"
 	"reflect"
 	"strings"
+
+	"github.com/EvilBit-Labs/opnDossier/internal/pool"
 )
 
 // Sanitizer orchestrates the redaction of sensitive data from OPNsense configuration.
@@ -87,14 +89,15 @@ func (s *Sanitizer) SanitizeXML(r io.Reader, w io.Writer) error {
 // sanitizeXMLContent processes raw XML bytes and returns sanitized XML.
 func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 	// Use a token-based approach to preserve XML structure
-	decoder := xml.NewDecoder(strings.NewReader(string(data)))
+	decoder := xml.NewDecoder(bytes.NewReader(data))
 	decoder.Strict = false
 
 	var output strings.Builder
+	output.Grow(len(data))
 	var elementStack []string
 
 	// Write XML declaration if present
-	if strings.HasPrefix(strings.TrimSpace(string(data)), "<?xml") {
+	if bytes.HasPrefix(bytes.TrimSpace(data), []byte("<?xml")) {
 		idx := bytes.Index(data, []byte("?>"))
 		if idx > 0 {
 			output.Write(data[:idx+2])
@@ -368,8 +371,9 @@ func (s *Sanitizer) sanitizeReflect(v reflect.Value, path string) error {
 // xml.EscapeText only errors if the writer fails; bytes.Buffer.Write never fails,
 // so the error path is unreachable under normal conditions.
 func escapeXMLText(s string) string {
-	var buf bytes.Buffer
-	if err := xml.EscapeText(&buf, []byte(s)); err != nil {
+	buf := pool.GetBytesBuffer()
+	defer pool.PutBytesBuffer(buf)
+	if err := xml.EscapeText(buf, []byte(s)); err != nil {
 		// bytes.Buffer.Write should never fail. Log the error to avoid silent
 		// fallback to unescaped XML, which could produce malformed output.
 		log.Printf("sanitizer: xml.EscapeText failed (len=%d): %v", len(s), err)

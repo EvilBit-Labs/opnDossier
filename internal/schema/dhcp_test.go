@@ -2,7 +2,7 @@ package schema
 
 import (
 	"encoding/xml"
-	"sort"
+	"slices"
 	"testing"
 )
 
@@ -185,11 +185,11 @@ func TestDhcpd_Names(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			got := tt.dhcpd.Names()
-			sort.Strings(got)
+			slices.Sort(got)
 
 			wantSorted := make([]string, len(tt.want))
 			copy(wantSorted, tt.want)
-			sort.Strings(wantSorted)
+			slices.Sort(wantSorted)
 
 			if len(got) != len(wantSorted) {
 				t.Errorf("Dhcpd.Names() length = %d, want %d", len(got), len(wantSorted))
@@ -402,7 +402,7 @@ func TestDhcpd_Names_WithData(t *testing.T) {
 	}
 
 	names := dhcpd.Names()
-	sort.Strings(names)
+	slices.Sort(names)
 
 	expectedNames := []string{"lan", "opt1", "wan"}
 	if len(names) != len(expectedNames) {

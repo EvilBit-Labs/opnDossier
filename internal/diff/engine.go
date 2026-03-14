@@ -173,7 +173,7 @@ func (e *Engine) addReorderChanges(result *Result) {
 	reorderChanges := e.detectFirewallReorders()
 
 	// Build set of UUIDs that already have content changes
-	contentChangedUUIDs := make(map[string]bool)
+	contentChangedUUIDs := make(map[string]bool, len(result.Changes))
 	for _, c := range result.Changes {
 		if c.Section == SectionFirewall {
 			contentChangedUUIDs[c.Path] = true

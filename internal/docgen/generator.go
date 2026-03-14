@@ -170,7 +170,7 @@ func (g *Generator) formatType(t reflect.Type) string {
 		if t.Name() != "" {
 			return t.Name()
 		}
-		return "interface{}"
+		return "any"
 	default:
 		name := t.Name()
 		if name == "" {

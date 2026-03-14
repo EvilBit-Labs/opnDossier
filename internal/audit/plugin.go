@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
@@ -269,12 +270,13 @@ func deriveSeverityFromControl(p compliance.Plugin, f compliance.Finding) (strin
 	)
 }
 
-// Severity level constants for summary calculation.
+// Severity level constants for summary calculation, derived from the canonical
+// analysis.Severity values.
 const (
-	severityCritical = "critical"
-	severityHigh     = "high"
-	severityMedium   = "medium"
-	severityLow      = "low"
+	severityCritical = string(analysis.SeverityCritical)
+	severityHigh     = string(analysis.SeverityHigh)
+	severityMedium   = string(analysis.SeverityMedium)
+	severityLow      = string(analysis.SeverityLow)
 )
 
 // severityCounts holds the result of tallying findings by severity level.
@@ -415,8 +417,24 @@ type PluginInfo struct {
 	Controls    []compliance.Control `json:"controls"`
 }
 
-// globalRegistry holds the singleton plugin registry instance.
-// Access via GetGlobalRegistry() to ensure proper initialization.
+// globalRegistry holds the singleton PluginRegistry instance, and
+// globalRegistryOnce gates its one-time initialization.
+//
+// Thread-safety guarantee: sync.Once.Do(f) guarantees that all writes
+// within f happen-before any call to Do returns (per the Go memory model,
+// https://go.dev/ref/mem#once). This means the assignment of globalRegistry
+// inside Do is visible to every goroutine that subsequently calls
+// GetGlobalRegistry() without additional synchronization.
+//
+// Lifecycle: all plugin registration via RegisterGlobalPlugin() should
+// complete during sequential application startup before concurrent access
+// to the registry begins. While the internal sync.RWMutex on PluginRegistry
+// makes concurrent reads and writes safe, the intended usage pattern is
+// initialization-then-read.
+//
+// Note: this global singleton is independent of any PluginManager instance.
+// PluginManager allocates and populates its own PluginRegistry; callers that
+// need the global registry must use RegisterGlobalPlugin() explicitly.
 //
 //nolint:gochecknoglobals // Global registry for convenience functions
 var (
@@ -424,8 +442,12 @@ var (
 	globalRegistryOnce sync.Once
 )
 
-// GetGlobalRegistry returns the global plugin registry instance,
-// initializing it on first access using sync.Once for thread safety.
+// GetGlobalRegistry returns the global plugin registry singleton,
+// initializing it on first access via sync.Once. It is safe to call
+// concurrently from multiple goroutines; the sync.Once guarantee ensures
+// the initialization completes and its writes are visible before any
+// caller receives the pointer. Subsequent calls return the same
+// *PluginRegistry instance without further synchronization overhead.
 func GetGlobalRegistry() *PluginRegistry {
 	globalRegistryOnce.Do(func() {
 		globalRegistry = NewPluginRegistry()
@@ -433,7 +455,16 @@ func GetGlobalRegistry() *PluginRegistry {
 	return globalRegistry
 }
 
-// RegisterGlobalPlugin registers a plugin with the global registry.
+// RegisterGlobalPlugin registers a compliance plugin with the global
+// singleton registry. All calls to RegisterGlobalPlugin should occur during
+// sequential application startup before the registry is accessed
+// concurrently for reads. While the underlying PluginRegistry.RegisterPlugin
+// is mutex-protected and technically safe to call concurrently, the
+// application's intended pattern is register-at-startup, read-during-operation.
+//
+// Note: PluginManager.InitializePlugins() populates the manager's own
+// PluginRegistry, not this global singleton. Callers that need plugins in the
+// global registry must call RegisterGlobalPlugin() directly.
 func RegisterGlobalPlugin(p compliance.Plugin) error {
 	return GetGlobalRegistry().RegisterPlugin(p)
 }

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/diff"
@@ -92,8 +92,8 @@ func (f *SideBySideFormatter) Format(result *diff.Result) error {
 	for s := range bySection {
 		sections = append(sections, s)
 	}
-	sort.Slice(sections, func(i, j int) bool {
-		return sections[i].String() < sections[j].String()
+	slices.SortFunc(sections, func(a, b diff.Section) int {
+		return strings.Compare(a.String(), b.String())
 	})
 
 	for _, section := range sections {
