@@ -347,7 +347,8 @@ Examples:
 
 				// Parse the XML and convert to platform-agnostic device model
 				ctxLogger.Debug("Parsing configuration file")
-				device, err := model.NewParserFactory().CreateDevice(timeoutCtx, file, sharedDeviceType, false)
+				device, warnings, err := model.NewParserFactory().
+					CreateDevice(timeoutCtx, file, sharedDeviceType, false)
 				if err != nil {
 					ctxLogger.Error("Failed to parse configuration", "error", err)
 					// Enhanced error handling for different error types
@@ -369,6 +370,16 @@ Examples:
 					return
 				}
 				ctxLogger.Debug("Configuration parsed successfully")
+
+				if cmdConfig == nil || !cmdConfig.IsQuiet() {
+					for _, w := range warnings {
+						ctxLogger.Warn("conversion warning",
+							"field", w.Field,
+							"message", w.Message,
+							"severity", w.Severity,
+						)
+					}
+				}
 
 				// Build options for conversion with precedence: CLI flags > env vars > config > defaults
 				eff := buildEffectiveFormat(format, cmdConfig)

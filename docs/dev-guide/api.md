@@ -20,6 +20,7 @@ opndossier/
 │   ├── exitcodes.go             # Structured exit codes
 │   └── help.go                  # Custom help templates
 ├── internal/
+│   ├── analysis/                # Canonical finding and severity types
 │   ├── cfgparser/               # XML parsing and validation
 │   ├── config/                  # Configuration management (Viper)
 │   ├── converter/               # Data conversion and report generation
@@ -34,6 +35,7 @@ opndossier/
 │   ├── export/                  # File export functionality
 │   ├── logging/                 # Structured logging (charmbracelet/log)
 │   ├── progress/                # CLI progress indicators
+│   ├── processor/               # Security analysis and report generation
 │   └── validator/               # Configuration validation
 └── main.go                      # Entry point
 ```
@@ -84,10 +86,14 @@ The `DeviceParser` interface (defined in `internal/model/factory.go`) abstracts 
 
 ```go
 type DeviceParser interface {
-    Parse(ctx context.Context, r io.Reader) (*common.CommonDevice, error)
-    ParseAndValidate(ctx context.Context, r io.Reader) (*common.CommonDevice, error)
+    // Parse reads and converts the configuration, returning non-fatal conversion warnings.
+    Parse(ctx context.Context, r io.Reader) (*common.CommonDevice, []common.ConversionWarning, error)
+    // ParseAndValidate reads, converts, and validates the configuration, returning non-fatal conversion warnings.
+    ParseAndValidate(ctx context.Context, r io.Reader) (*common.CommonDevice, []common.ConversionWarning, error)
 }
 ```
+
+**Breaking Change:** Both methods return a 3-value tuple `(*CommonDevice, []ConversionWarning, error)` instead of the previous 2-value return `(*CommonDevice, error)`. Implementations must return non-fatal conversion warnings alongside the parsed device model. Callers should log or surface these warnings without treating them as errors.
 
 The `ParserFactory` auto-detects device type from the XML root element and delegates to the appropriate `DeviceParser`. The underlying OPNsense XML parser (`internal/cfgparser/XMLParser`) still produces `schema.OpnSenseDocument`, which is then converted to `common.CommonDevice` by the OPNsense-specific parser in `internal/model/opnsense/`.
 
@@ -103,17 +109,23 @@ if err != nil {
 defer file.Close()
 
 // Auto-detect device type and parse to CommonDevice
-device, err := factory.CreateDevice(context.Background(), file, "", false)
+device, warnings, err := factory.CreateDevice(context.Background(), file, "", false)
 if err != nil {
     return fmt.Errorf("parse failed: %w", err)
 }
+// Handle warnings (e.g., log them)
+for _, w := range warnings {
+    logger.Warn("conversion warning", "field", w.Field, "message", w.Message)
+}
 
 // With validation
-device, err := factory.CreateDevice(context.Background(), file, "", true)
+device, warnings, err := factory.CreateDevice(context.Background(), file, "", true)
 if err != nil {
     return fmt.Errorf("parse and validate failed: %w", err)
 }
 ```
+
+**Breaking Change:** `CreateDevice` returns a 3-value tuple `(*CommonDevice, []ConversionWarning, error)` instead of the previous 2-value return `(*CommonDevice, error)`. Warnings represent non-fatal conversion issues that should be logged but do not prevent successful parsing.
 
 The underlying `XMLParser` (`internal/cfgparser/`) supports UTF-8, US-ASCII, ISO-8859-1 (Latin1), and Windows-1252 encodings. Input is limited to 10MB by default (`DefaultMaxInputSize`).
 
@@ -145,6 +157,55 @@ type CommonDevice struct {
 ```
 
 The XML DTO remains as `schema.OpnSenseDocument` in `internal/schema/opnsense.go`. The OPNsense-specific parser in `internal/model/opnsense/` converts the XML DTO into `CommonDevice`. The `internal/model/` package provides the `ParserFactory` and `DeviceParser` interface for consumers.
+
+### ConversionWarning
+
+The `ConversionWarning` type represents non-fatal issues encountered during conversion from a platform-specific schema to the platform-agnostic `CommonDevice` model:
+
+```go
+type ConversionWarning struct {
+    // Field is the dot-path of the problematic field (e.g., "FirewallRules[0].Type").
+    Field string
+    // Value provides context to identify the affected config element (e.g., rule UUID,
+    // gateway name, or certificate description). When the warning is about a missing or
+    // empty field, this contains a sibling identifier rather than the empty field itself.
+    Value string
+    // Message is a human-readable description of the issue.
+    Message string
+    // Severity indicates the importance of the warning.
+    Severity analysis.Severity
+}
+```
+
+**When Warnings Are Generated:**
+
+Warnings are returned for non-fatal conversion issues such as:
+
+- Missing or empty required fields in firewall rules (type, source, destination, interface)
+- NAT rules missing internal IP or interface assignments
+- Gateways missing address or name fields
+- Users missing name or UID fields
+
+**Handling Warnings:**
+
+Callers should log warnings using structured logging but continue processing:
+
+```go
+device, warnings, err := parser.Parse(ctx, reader)
+if err != nil {
+    return fmt.Errorf("parse failed: %w", err)
+}
+for _, w := range warnings {
+    logger.Warn("conversion issue", 
+        "field", w.Field, 
+        "value", w.Value, 
+        "message", w.Message, 
+        "severity", w.Severity)
+}
+// Continue with device processing
+```
+
+Warnings differ from errors in that they indicate data quality issues or missing optional fields that do not prevent successful conversion. The converted `CommonDevice` is still valid and usable, but may contain incomplete information from the source configuration.
 
 ## Converter Package (internal/converter)
 
@@ -282,6 +343,68 @@ logger.Error("Operation failed", "error", err)
 fileLogger := logger.WithFields("operation", "convert", "file", filename)
 ```
 
+## Analysis Package (internal/analysis)
+
+The `internal/analysis` package provides canonical types for security analysis findings shared across the audit, compliance, and processor packages. This ensures consistent finding representation throughout the codebase.
+
+### Finding Type
+
+```go
+type Finding struct {
+    // Type categorizes the finding (e.g., "security", "performance", "compliance")
+    Type string `json:"type"`
+    // Severity indicates the severity level of the finding
+    Severity string `json:"severity,omitempty"`
+    // Title is a brief description of the finding
+    Title string `json:"title"`
+    // Description provides detailed information about the finding
+    Description string `json:"description"`
+    // Recommendation suggests how to address the finding
+    Recommendation string `json:"recommendation"`
+    // Component identifies the configuration component involved
+    Component string `json:"component"`
+    // Reference provides additional information or documentation links
+    Reference string `json:"reference"`
+
+    // Generic references and metadata
+    // References contains related standard or control identifiers
+    References []string `json:"references,omitempty"`
+    // Tags contains classification labels for the finding
+    Tags []string `json:"tags,omitempty"`
+    // Metadata contains arbitrary key-value pairs for additional context
+    Metadata map[string]string `json:"metadata,omitempty"`
+}
+```
+
+**JSON Tag Note:** The `Recommendation`, `Component`, and `Reference` fields intentionally lack `omitempty` to maintain consistency with the original `compliance.Finding` conventions.
+
+### Severity Type
+
+```go
+type Severity string
+
+const (
+    SeverityCritical Severity = "critical"
+    SeverityHigh     Severity = "high"
+    SeverityMedium   Severity = "medium"
+    SeverityLow      Severity = "low"
+    SeverityInfo     Severity = "info"
+)
+```
+
+**Helper Functions:**
+
+```go
+// ValidSeverities returns a fresh copy of all valid severity values
+func ValidSeverities() []Severity
+
+// IsValidSeverity checks whether the given severity is a recognized value
+func IsValidSeverity(s Severity) bool
+
+// String returns the string representation of the severity
+func (s Severity) String() string
+```
+
 ## Compliance Package (internal/compliance)
 
 ### Plugin Interface
@@ -300,40 +423,14 @@ type Plugin interface {
 
 ### Finding Type
 
-The `Finding` struct represents a standardized compliance finding:
+The `compliance.Finding` type is a type alias for the canonical `analysis.Finding` defined in the `internal/analysis` package. All compliance plugins and consumers use this standardized finding structure.
 
 ```go
-type Finding struct {
-    // Core finding information
-    Type           string            `json:"type"`
-    Severity       string            `json:"severity,omitempty"`
-    Title          string            `json:"title"`
-    Description    string            `json:"description"`
-    Recommendation string            `json:"recommendation"`
-    Component      string            `json:"component"`
-    
-    // Control references
-    Reference  string   `json:"reference"`
-    References []string `json:"references,omitempty"`
-    
-    // Additional metadata
-    Tags     []string          `json:"tags,omitempty"`
-    Metadata map[string]string `json:"metadata,omitempty"`
-}
+// Finding is a type alias for the canonical analysis.Finding type
+type Finding = analysis.Finding
 ```
 
-**Fields:**
-
-- `Type` (string): Category of the finding (e.g., "compliance")
-- `Severity` (string): **Canonical severity level** ("critical", "high", "medium", "low")
-- `Title` (string): Finding title
-- `Description` (string): Detailed description
-- `Recommendation` (string): Recommended remediation steps
-- `Component` (string): Component being checked
-- `Reference` (string): Single control ID reference
-- `References` ([]string): Multiple control ID references
-- `Tags` ([]string): Finding tags for categorization
-- `Metadata` (map[string]string): Additional key-value metadata
+See the [Analysis Package](#analysis-package-internalanalysis) section for the complete struct definition and field descriptions.
 
 **Severity Handling:**
 
@@ -394,6 +491,33 @@ type ComplianceSummary struct {
 **Report Behavior:**
 
 Blue team reports generated by the audit engine include per-plugin severity breakdowns in addition to aggregate summaries. Each plugin's findings are stored separately in the `ComplianceResult` structure, allowing reports to display both overall statistics and plugin-specific details.
+
+## Processor Package (internal/processor)
+
+The `internal/processor` package provides security analysis and report generation capabilities. It uses the canonical finding and severity types from the `internal/analysis` package.
+
+### Finding and Severity Types
+
+The processor package re-exports the canonical types from `internal/analysis`:
+
+```go
+// Finding is a type alias for the canonical analysis.Finding type
+type Finding = analysis.Finding
+
+// Severity is a type alias for the canonical analysis.Severity type
+type Severity = analysis.Severity
+
+// Severity constants re-exported from the canonical analysis package
+const (
+    SeverityCritical = analysis.SeverityCritical
+    SeverityHigh     = analysis.SeverityHigh
+    SeverityMedium   = analysis.SeverityMedium
+    SeverityLow      = analysis.SeverityLow
+    SeverityInfo     = analysis.SeverityInfo
+)
+```
+
+See the [Analysis Package](#analysis-package-internalanalysis) section for the complete struct definition and field descriptions.
 
 ## Error Handling
 
