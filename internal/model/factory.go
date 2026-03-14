@@ -15,8 +15,8 @@ import (
 
 // DeviceParser is the interface for device-specific parsers.
 type DeviceParser interface {
-	Parse(ctx context.Context, r io.Reader) (*common.CommonDevice, error)
-	ParseAndValidate(ctx context.Context, r io.Reader) (*common.CommonDevice, error)
+	Parse(ctx context.Context, r io.Reader) (*common.CommonDevice, []common.ConversionWarning, error)
+	ParseAndValidate(ctx context.Context, r io.Reader) (*common.CommonDevice, []common.ConversionWarning, error)
 }
 
 // ParserFactory detects device type and delegates to the appropriate DeviceParser.
@@ -28,14 +28,15 @@ func NewParserFactory() *ParserFactory {
 }
 
 // CreateDevice reads from r, detects (or uses the override) device type, and
-// returns a fully converted CommonDevice. When validateMode is true, semantic
-// validation is applied in addition to structural parsing.
+// returns a fully converted CommonDevice along with any non-fatal conversion
+// warnings. When validateMode is true, semantic validation is applied in
+// addition to structural parsing.
 func (f *ParserFactory) CreateDevice(
 	ctx context.Context,
 	r io.Reader,
 	deviceTypeOverride string,
 	validateMode bool,
-) (*common.CommonDevice, error) {
+) (*common.CommonDevice, []common.ConversionWarning, error) {
 	if deviceTypeOverride != "" {
 		return f.createWithOverride(ctx, r, deviceTypeOverride, validateMode)
 	}
@@ -50,12 +51,12 @@ func (f *ParserFactory) createWithOverride(
 	r io.Reader,
 	override string,
 	validateMode bool,
-) (*common.CommonDevice, error) {
+) (*common.CommonDevice, []common.ConversionWarning, error) {
 	if strings.EqualFold(override, "opnsense") {
 		return parseDevice(ctx, opnsense.NewParser(), r, validateMode)
 	}
 
-	return nil, fmt.Errorf("unsupported device type override: %s; supported: opnsense", override)
+	return nil, nil, fmt.Errorf("unsupported device type override: %s; supported: opnsense", override)
 }
 
 // createWithAutoDetect peeks the XML root element using a bounded, context-aware
@@ -64,17 +65,17 @@ func (f *ParserFactory) createWithAutoDetect(
 	ctx context.Context,
 	r io.Reader,
 	validateMode bool,
-) (*common.CommonDevice, error) {
+) (*common.CommonDevice, []common.ConversionWarning, error) {
 	rootElem, fullReader, err := peekRootElementBounded(ctx, r)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	switch strings.ToLower(rootElem) {
 	case "opnsense":
 		return parseDevice(ctx, opnsense.NewParser(), fullReader, validateMode)
 	default:
-		return nil, fmt.Errorf(
+		return nil, nil, fmt.Errorf(
 			"unsupported device type: root element <%s> is not recognized; supported: opnsense",
 			rootElem,
 		)
@@ -83,7 +84,12 @@ func (f *ParserFactory) createWithAutoDetect(
 
 // parseDevice delegates to the parser's Parse or ParseAndValidate method based
 // on validateMode.
-func parseDevice(ctx context.Context, p DeviceParser, r io.Reader, validateMode bool) (*common.CommonDevice, error) {
+func parseDevice(
+	ctx context.Context,
+	p DeviceParser,
+	r io.Reader,
+	validateMode bool,
+) (*common.CommonDevice, []common.ConversionWarning, error) {
 	if validateMode {
 		return p.ParseAndValidate(ctx, r)
 	}

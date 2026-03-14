@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/EvilBit-Labs/opnDossier/internal/schema"
 )
@@ -15,18 +16,34 @@ import (
 var ErrNilDocument = errors.New("opnsense converter: received nil document")
 
 // Converter transforms a schema.OpnSenseDocument into a common.CommonDevice.
-type Converter struct{}
+type Converter struct {
+	warnings []common.ConversionWarning
+}
 
 // NewConverter returns a new Converter.
 func NewConverter() *Converter {
 	return &Converter{}
 }
 
+// addWarning records a non-fatal conversion issue.
+func (c *Converter) addWarning(field, value, message string, severity analysis.Severity) {
+	c.warnings = append(c.warnings, common.ConversionWarning{
+		Field:    field,
+		Value:    value,
+		Message:  message,
+		Severity: severity,
+	})
+}
+
 // ToCommonDevice converts an OPNsense schema document into a platform-agnostic CommonDevice.
 // Returns ErrNilDocument if doc is nil.
-func (c *Converter) ToCommonDevice(doc *schema.OpnSenseDocument) (*common.CommonDevice, error) {
+func (c *Converter) ToCommonDevice(
+	doc *schema.OpnSenseDocument,
+) (*common.CommonDevice, []common.ConversionWarning, error) {
+	c.warnings = nil
+
 	if doc == nil {
-		return nil, fmt.Errorf("ToCommonDevice: %w", ErrNilDocument)
+		return nil, nil, fmt.Errorf("ToCommonDevice: %w", ErrNilDocument)
 	}
 
 	device := &common.CommonDevice{
@@ -71,7 +88,7 @@ func (c *Converter) ToCommonDevice(doc *schema.OpnSenseDocument) (*common.Common
 		KeaDHCP:          c.convertKeaDHCP(doc),
 	}
 
-	return device, nil
+	return device, c.warnings, nil
 }
 
 // convertSystem maps doc.System to common.System.
@@ -193,7 +210,40 @@ func (c *Converter) convertFirewallRules(doc *schema.OpnSenseDocument) []common.
 	}
 
 	result := make([]common.FirewallRule, 0, len(doc.Filter.Rule))
-	for _, rule := range doc.Filter.Rule {
+	for i, rule := range doc.Filter.Rule {
+		if rule.Type == "" {
+			c.addWarning(
+				fmt.Sprintf("FirewallRules[%d].Type", i),
+				"",
+				"firewall rule has empty type",
+				analysis.SeverityHigh,
+			)
+		}
+		if rule.Source.EffectiveAddress() == "" {
+			c.addWarning(
+				fmt.Sprintf("FirewallRules[%d].Source", i),
+				"",
+				"firewall rule has no source address",
+				analysis.SeverityMedium,
+			)
+		}
+		if rule.Destination.EffectiveAddress() == "" {
+			c.addWarning(
+				fmt.Sprintf("FirewallRules[%d].Destination", i),
+				"",
+				"firewall rule has no destination address",
+				analysis.SeverityMedium,
+			)
+		}
+		if rule.Interface.IsEmpty() {
+			c.addWarning(
+				fmt.Sprintf("FirewallRules[%d].Interface", i),
+				"",
+				"firewall rule has no interface assigned",
+				analysis.SeverityMedium,
+			)
+		}
+
 		result = append(result, common.FirewallRule{
 			UUID:        rule.UUID,
 			Type:        rule.Type,
@@ -260,7 +310,16 @@ func (c *Converter) convertOutboundNATRules(rules []schema.NATRule) []common.NAT
 	}
 
 	result := make([]common.NATRule, 0, len(rules))
-	for _, r := range rules {
+	for i, r := range rules {
+		if r.Interface.IsEmpty() {
+			c.addWarning(
+				fmt.Sprintf("NAT.OutboundRules[%d].Interface", i),
+				"",
+				"outbound NAT rule has no interface assigned",
+				analysis.SeverityMedium,
+			)
+		}
+
 		result = append(result, common.NATRule{
 			UUID:       r.UUID,
 			Interfaces: []string(r.Interface),
@@ -299,7 +358,24 @@ func (c *Converter) convertInboundNATRules(rules []schema.InboundRule) []common.
 	}
 
 	result := make([]common.InboundNATRule, 0, len(rules))
-	for _, r := range rules {
+	for i, r := range rules {
+		if r.InternalIP == "" {
+			c.addWarning(
+				fmt.Sprintf("NAT.InboundRules[%d].InternalIP", i),
+				"",
+				"inbound NAT rule has no internal IP",
+				analysis.SeverityHigh,
+			)
+		}
+		if r.Interface.IsEmpty() {
+			c.addWarning(
+				fmt.Sprintf("NAT.InboundRules[%d].Interface", i),
+				"",
+				"inbound NAT rule has no interface assigned",
+				analysis.SeverityMedium,
+			)
+		}
+
 		result = append(result, common.InboundNATRule{
 			UUID:       r.UUID,
 			Interfaces: []string(r.Interface),

@@ -1,10 +1,12 @@
 package opnsense
 
 import (
+	"fmt"
 	"maps"
 	"slices"
 	"strings"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/EvilBit-Labs/opnDossier/internal/schema"
 )
@@ -414,7 +416,24 @@ func (c *Converter) convertGateways(gws []schema.Gateway) []common.Gateway {
 	}
 
 	result := make([]common.Gateway, 0, len(gws))
-	for _, gw := range gws {
+	for i, gw := range gws {
+		if gw.Gateway == "" {
+			c.addWarning(
+				fmt.Sprintf("Routing.Gateways[%d].Address", i),
+				"",
+				"gateway has empty address",
+				analysis.SeverityHigh,
+			)
+		}
+		if gw.Name == "" {
+			c.addWarning(
+				fmt.Sprintf("Routing.Gateways[%d].Name", i),
+				"",
+				"gateway has empty name",
+				analysis.SeverityHigh,
+			)
+		}
+
 		result = append(result, common.Gateway{
 			Interface:      gw.Interface,
 			Address:        gw.Gateway,
@@ -477,6 +496,15 @@ func (c *Converter) convertStaticRoutes(routes []schema.StaticRoute) []common.St
 // convertHA maps doc.HighAvailabilitySync to common.HighAvailability.
 func (c *Converter) convertHA(doc *schema.OpnSenseDocument) common.HighAvailability {
 	ha := doc.HighAvailabilitySync
+
+	if ha.Synchronizetoip != "" && (ha.Username == "" || ha.Password == "") {
+		c.addWarning(
+			"HighAvailability.SynchronizeToIP",
+			ha.Synchronizetoip,
+			"HA sync target configured but missing credentials",
+			analysis.SeverityHigh,
+		)
+	}
 
 	return common.HighAvailability{
 		DisablePreempt:  ha.Disablepreempt != "",
@@ -557,7 +585,14 @@ func (c *Converter) convertUsers(doc *schema.OpnSenseDocument) []common.User {
 	}
 
 	result := make([]common.User, 0, len(doc.System.User))
-	for _, u := range doc.System.User {
+	for i, u := range doc.System.User {
+		if u.Name == "" {
+			c.addWarning(fmt.Sprintf("Users[%d].Name", i), "", "user has empty name", analysis.SeverityHigh)
+		}
+		if u.UID == "" {
+			c.addWarning(fmt.Sprintf("Users[%d].UID", i), "", "user has no UID", analysis.SeverityHigh)
+		}
+
 		user := common.User{
 			Name:        u.Name,
 			Disabled:    bool(u.Disabled),

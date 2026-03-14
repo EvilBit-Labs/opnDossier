@@ -31,7 +31,7 @@ func TestRoundTrip_SampleConfigs(t *testing.T) {
 			require.NoError(t, err)
 			defer f.Close()
 
-			device, err := factory.CreateDevice(context.Background(), f, "", false)
+			device, _, err := factory.CreateDevice(context.Background(), f, "", false)
 			require.NoError(t, err, "CreateDevice failed for %s", name)
 			require.NotNil(t, device, "device is nil for %s", name)
 

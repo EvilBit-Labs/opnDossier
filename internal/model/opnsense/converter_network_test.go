@@ -53,7 +53,7 @@ func TestConverter_Bridges(t *testing.T) {
 			doc := schema.NewOpnSenseDocument()
 			doc.Bridges.Bridge = tt.bridges
 
-			device, err := opnsense.NewConverter().ToCommonDevice(doc)
+			device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
 			require.NoError(t, err)
 
 			if tt.wantLen == 0 {
@@ -80,7 +80,7 @@ func TestConverter_Bridges_FieldMapping(t *testing.T) {
 		},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
 	require.Len(t, device.Bridges, 1)
 
@@ -101,7 +101,7 @@ func TestConverter_Bridges_EmptyMembers(t *testing.T) {
 		{Bridgeif: "bridge0", Members: ""},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
 	require.Len(t, device.Bridges, 1)
 	assert.Nil(t, device.Bridges[0].Members)
@@ -145,7 +145,7 @@ func TestConverter_PPPs(t *testing.T) {
 			doc := schema.NewOpnSenseDocument()
 			doc.PPPInterfaces.Ppp = tt.ppps
 
-			device, err := opnsense.NewConverter().ToCommonDevice(doc)
+			device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
 			require.NoError(t, err)
 
 			if tt.wantLen == 0 {
@@ -165,7 +165,7 @@ func TestConverter_PPPs_FieldMapping(t *testing.T) {
 		{If: "pppoe0", Type: "pppoe", Descr: "ISP Connection"},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
 	require.Len(t, device.PPPs, 1)
 
@@ -211,7 +211,7 @@ func TestConverter_GIFs(t *testing.T) {
 			doc := schema.NewOpnSenseDocument()
 			doc.GIFInterfaces.Gif = tt.gifs
 
-			device, err := opnsense.NewConverter().ToCommonDevice(doc)
+			device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
 			require.NoError(t, err)
 
 			if tt.wantLen == 0 {
@@ -238,7 +238,7 @@ func TestConverter_GIFs_FieldMapping(t *testing.T) {
 		},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
 	require.Len(t, device.GIFs, 1)
 
@@ -296,7 +296,7 @@ func TestConverter_GREs(t *testing.T) {
 			doc := schema.NewOpnSenseDocument()
 			doc.GREInterfaces.Gre = tt.gres
 
-			device, err := opnsense.NewConverter().ToCommonDevice(doc)
+			device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
 			require.NoError(t, err)
 
 			if tt.wantLen == 0 {
@@ -323,7 +323,7 @@ func TestConverter_GREs_FieldMapping(t *testing.T) {
 		},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
 	require.Len(t, device.GREs, 1)
 
@@ -381,7 +381,7 @@ func TestConverter_LAGGs(t *testing.T) {
 			doc := schema.NewOpnSenseDocument()
 			doc.LAGGInterfaces.Lagg = tt.laggs
 
-			device, err := opnsense.NewConverter().ToCommonDevice(doc)
+			device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
 			require.NoError(t, err)
 
 			if tt.wantLen == 0 {
@@ -408,7 +408,7 @@ func TestConverter_LAGGs_FieldMapping(t *testing.T) {
 		},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
 	require.Len(t, device.LAGGs, 1)
 
@@ -452,7 +452,7 @@ func TestConverter_VirtualIPs(t *testing.T) {
 			doc := schema.NewOpnSenseDocument()
 			doc.VirtualIP.Vip = tt.vips
 
-			device, err := opnsense.NewConverter().ToCommonDevice(doc)
+			device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
 			require.NoError(t, err)
 
 			if tt.wantLen == 0 {
@@ -472,7 +472,7 @@ func TestConverter_VirtualIPs_FieldMapping(t *testing.T) {
 		{Mode: "carp", Interface: "wan", Subnet: "203.0.113.100", Descr: "WAN CARP VIP"},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
 	require.Len(t, device.VirtualIPs, 1)
 
@@ -512,7 +512,7 @@ func TestConverter_InterfaceGroups(t *testing.T) {
 			doc := schema.NewOpnSenseDocument()
 			doc.InterfaceGroups.IfGroupEntry = tt.groups
 
-			device, err := opnsense.NewConverter().ToCommonDevice(doc)
+			device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
 			require.NoError(t, err)
 
 			if tt.wantLen == 0 {
@@ -532,7 +532,7 @@ func TestConverter_InterfaceGroups_FieldMapping(t *testing.T) {
 		{IfName: "INTERNAL", Members: "lan opt1 opt2"},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
 	require.Len(t, device.InterfaceGroups, 1)
 
@@ -549,7 +549,7 @@ func TestConverter_InterfaceGroups_SpaceSeparated(t *testing.T) {
 		{IfName: "GROUP1", Members: "  lan   opt1  "},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
 	require.Len(t, device.InterfaceGroups, 1)
 
