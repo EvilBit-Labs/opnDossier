@@ -123,7 +123,7 @@ func appendAuditFindings(baseReport string, report *audit.Report) string {
 		}
 		for _, f := range report.Findings {
 			findingsTable.Rows = append(findingsTable.Rows, []string{
-				escapePipeForMarkdown(string(f.Severity)),
+				escapePipeForMarkdown(f.Severity),
 				escapePipeForMarkdown(f.Component),
 				escapePipeForMarkdown(f.Title),
 				escapePipeForMarkdown(f.Recommendation),
