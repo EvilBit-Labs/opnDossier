@@ -33,8 +33,9 @@ func TestConverter_IPsec_FullMapping(t *testing.T) {
 	doc.OPNsense.IPsec.Charon.RetransmitJitter = "20"
 	doc.OPNsense.IPsec.Charon.RetransmitLimit = "60"
 
-	device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 
 	ipsec := device.VPN.IPsec
 	assert.True(t, ipsec.Enabled)
@@ -65,8 +66,9 @@ func TestConverter_IPsec_NilReturnsZeroValue(t *testing.T) {
 	doc := schema.NewOpnSenseDocument()
 	// OPNsense.IPsec is nil by default
 
-	device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 
 	assert.False(t, device.VPN.IPsec.Enabled)
 }
@@ -108,8 +110,9 @@ func TestConverter_OpenVPNCSC(t *testing.T) {
 			doc := schema.NewOpnSenseDocument()
 			doc.OpenVPN.CSC = tt.cscs
 
-			device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
+			device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 			require.NoError(t, err)
+			assert.Empty(t, warnings)
 
 			if tt.wantLen == 0 {
 				assert.Nil(t, device.VPN.OpenVPN.ClientSpecificConfigs)
@@ -144,8 +147,9 @@ func TestConverter_OpenVPNCSC_FieldMapping(t *testing.T) {
 		},
 	}
 
-	device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	require.Len(t, device.VPN.OpenVPN.ClientSpecificConfigs, 1)
 
 	csc := device.VPN.OpenVPN.ClientSpecificConfigs[0]
@@ -173,8 +177,9 @@ func TestConverter_Monit(t *testing.T) {
 
 		doc := schema.NewOpnSenseDocument()
 
-		device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
+		device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 		require.NoError(t, err)
+		assert.Empty(t, warnings)
 		assert.Nil(t, device.Monit)
 	})
 
@@ -201,8 +206,9 @@ func TestConverter_Monit(t *testing.T) {
 			{UUID: "test-1", Name: "Memory", Type: "ResourceTesting", Condition: "memory usage > 90%", Action: "alert"},
 		}
 
-		device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
+		device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 		require.NoError(t, err)
+		assert.Empty(t, warnings)
 		require.NotNil(t, device.Monit)
 
 		m := device.Monit
@@ -241,8 +247,9 @@ func TestConverter_Netflow(t *testing.T) {
 
 		doc := schema.NewOpnSenseDocument()
 
-		device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
+		device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 		require.NoError(t, err)
+		assert.Empty(t, warnings)
 		assert.Nil(t, device.Netflow)
 	})
 
@@ -258,8 +265,9 @@ func TestConverter_Netflow(t *testing.T) {
 		doc.OPNsense.Netflow.InactiveTimeout = "15"
 		doc.OPNsense.Netflow.ActiveTimeout = "1800"
 
-		device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
+		device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 		require.NoError(t, err)
+		assert.Empty(t, warnings)
 		require.NotNil(t, device.Netflow)
 
 		nf := device.Netflow
@@ -281,8 +289,9 @@ func TestConverter_TrafficShaper(t *testing.T) {
 
 		doc := schema.NewOpnSenseDocument()
 
-		device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
+		device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 		require.NoError(t, err)
+		assert.Empty(t, warnings)
 		assert.Nil(t, device.TrafficShaper)
 	})
 
@@ -294,8 +303,9 @@ func TestConverter_TrafficShaper(t *testing.T) {
 		doc.OPNsense.TrafficShaper.Queues = "queue-uuid-1"
 		doc.OPNsense.TrafficShaper.Rules = "rule-uuid-1"
 
-		device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
+		device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 		require.NoError(t, err)
+		assert.Empty(t, warnings)
 		require.NotNil(t, device.TrafficShaper)
 
 		ts := device.TrafficShaper
@@ -313,8 +323,9 @@ func TestConverter_CaptivePortal(t *testing.T) {
 
 		doc := schema.NewOpnSenseDocument()
 
-		device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
+		device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 		require.NoError(t, err)
+		assert.Empty(t, warnings)
 		assert.Nil(t, device.CaptivePortal)
 	})
 
@@ -325,8 +336,9 @@ func TestConverter_CaptivePortal(t *testing.T) {
 		doc.OPNsense.Captiveportal.Zones = "zone-uuid-1"
 		doc.OPNsense.Captiveportal.Templates = "tmpl-uuid-1"
 
-		device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
+		device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 		require.NoError(t, err)
+		assert.Empty(t, warnings)
 		require.NotNil(t, device.CaptivePortal)
 
 		cp := device.CaptivePortal
@@ -343,8 +355,9 @@ func TestConverter_Cron(t *testing.T) {
 
 		doc := schema.NewOpnSenseDocument()
 
-		device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
+		device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 		require.NoError(t, err)
+		assert.Empty(t, warnings)
 		assert.Nil(t, device.Cron)
 	})
 
@@ -354,8 +367,9 @@ func TestConverter_Cron(t *testing.T) {
 		doc := schema.NewOpnSenseDocument()
 		doc.OPNsense.Cron.Jobs = "job-uuid-1,job-uuid-2"
 
-		device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
+		device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 		require.NoError(t, err)
+		assert.Empty(t, warnings)
 		require.NotNil(t, device.Cron)
 
 		assert.Equal(t, "job-uuid-1,job-uuid-2", device.Cron.Jobs)
@@ -370,8 +384,9 @@ func TestConverter_Trust(t *testing.T) {
 
 		doc := schema.NewOpnSenseDocument()
 
-		device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
+		device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 		require.NoError(t, err)
+		assert.Empty(t, warnings)
 		assert.Nil(t, device.Trust)
 	})
 
@@ -390,8 +405,9 @@ func TestConverter_Trust(t *testing.T) {
 		doc.OPNsense.Trust.General.MinProtocol = "TLSv1.2"
 		doc.OPNsense.Trust.General.MinProtocolDTLS = "DTLSv1.2"
 
-		device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
+		device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 		require.NoError(t, err)
+		assert.Empty(t, warnings)
 		require.NotNil(t, device.Trust)
 
 		tr := device.Trust
@@ -416,8 +432,9 @@ func TestConverter_KeaDHCP(t *testing.T) {
 
 		doc := schema.NewOpnSenseDocument()
 
-		device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
+		device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 		require.NoError(t, err)
+		assert.Empty(t, warnings)
 		assert.Nil(t, device.KeaDHCP)
 	})
 
@@ -435,8 +452,9 @@ func TestConverter_KeaDHCP(t *testing.T) {
 		doc.OPNsense.Kea.Dhcp4.Subnets = "subnet-uuid-1"
 		doc.OPNsense.Kea.Dhcp4.Reservations = "res-uuid-1"
 
-		device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
+		device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 		require.NoError(t, err)
+		assert.Empty(t, warnings)
 		require.NotNil(t, device.KeaDHCP)
 
 		kea := device.KeaDHCP
@@ -464,8 +482,9 @@ func TestConverter_Syslog_ExtendedCategories(t *testing.T) {
 	doc.Syslog.PPP = schema.BoolFlag(true)
 	doc.Syslog.IgmpProxy = schema.BoolFlag(true)
 
-	device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 
 	sl := device.Syslog
 	assert.True(t, sl.Enabled)
@@ -485,8 +504,9 @@ func TestConverter_SSH_Expansion(t *testing.T) {
 	doc.System.SSH.Port = "2222"
 	doc.System.SSH.Group = "wheel"
 
-	device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 
 	assert.True(t, device.System.SSH.Enabled)
 	assert.Equal(t, "2222", device.System.SSH.Port)
@@ -500,8 +520,9 @@ func TestConverter_WebGUI_Expansion(t *testing.T) {
 	doc.System.WebGUI.LoginAutocomplete = schema.BoolFlag(true)
 	doc.System.WebGUI.MaxProcesses = "4"
 
-	device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 
 	assert.True(t, device.System.WebGUI.LoginAutocomplete)
 	assert.Equal(t, "4", device.System.WebGUI.MaxProcesses)
