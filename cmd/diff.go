@@ -309,7 +309,6 @@ func parseConfigFile(
 		for _, w := range warnings {
 			cmdLogger.Warn("conversion warning",
 				"field", w.Field,
-				"value", w.Value,
 				"message", w.Message,
 				"severity", w.Severity,
 			)
