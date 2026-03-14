@@ -456,6 +456,16 @@ Separate check logic from stats updates. Never increment stats inside a function
 - `Rule.SourcePort` → `<sourceport>...</sourceport>` (top-level, legacy)
 - Prefer `Source.Port` with fallback to `Rule.SourcePort` for backward compatibility
 
+**Conversion warnings:**
+
+- `common.ConversionWarning` lives in `internal/model/common/warning.go` — platform-agnostic, not in `opnsense` package
+- `Converter.addWarning(field, value, message, severity)` accumulates warnings during conversion
+- `ToCommonDevice` returns `(*CommonDevice, []ConversionWarning, error)` — warnings are non-fatal
+- `DeviceParser` interface, `ParserFactory.CreateDevice`, and all CLI commands propagate the 3-value return
+- CLI commands log warnings via `ctxLogger.Warn("conversion warning", "field", w.Field, ...)`
+- `diff.go`'s `parseConfigFile` accepts a `*logging.Logger` parameter for warning logging
+- Warning `Field` uses dot-path notation with array indices: `"FirewallRules[0].Type"`, `"NAT.InboundRules[0].Interface"`
+
 ### 6.2 Multi-Format Export
 
 ```bash
