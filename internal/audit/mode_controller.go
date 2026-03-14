@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
-	"github.com/EvilBit-Labs/opnDossier/internal/processor"
 )
 
 // Static errors for better error handling.
@@ -254,16 +254,14 @@ type Report struct {
 }
 
 // Finding represents a security finding or audit result.
+// It embeds analysis.Finding for the common fields (Title, Severity, Description,
+// Recommendation, Component, Tags, etc.) and adds audit-specific extensions.
 type Finding struct {
-	Title          string             `json:"title"`
-	Severity       processor.Severity `json:"severity"`
-	Description    string             `json:"description"`
-	Recommendation string             `json:"recommendation"`
-	Tags           []string           `json:"tags"`
-	AttackSurface  *AttackSurface     `json:"attackSurface,omitempty"`
-	ExploitNotes   string             `json:"exploitNotes,omitempty"`
-	Component      string             `json:"component"`
-	Control        string             `json:"control,omitempty"`
+	analysis.Finding
+
+	AttackSurface *AttackSurface `json:"attackSurface,omitempty"`
+	ExploitNotes  string         `json:"exploitNotes,omitempty"`
+	Control       string         `json:"control,omitempty"`
 }
 
 // AttackSurface represents attack surface information for red team findings.
