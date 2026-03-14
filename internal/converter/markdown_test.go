@@ -100,7 +100,7 @@ func TestMarkdownConverter_ConvertFromTestdataFile(t *testing.T) {
 
 	// Parse the XML file and convert to CommonDevice
 	factory := model.NewParserFactory()
-	device, err := factory.CreateDevice(context.Background(), strings.NewReader(string(xmlData)), "", false)
+	device, _, err := factory.CreateDevice(context.Background(), strings.NewReader(string(xmlData)), "", false)
 	require.NoError(t, err, "XML parsing should succeed")
 
 	// Convert to markdown

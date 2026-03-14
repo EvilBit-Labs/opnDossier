@@ -3,6 +3,7 @@ package opnsense_test
 import (
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/opnsense"
 	"github.com/EvilBit-Labs/opnDossier/internal/schema"
 	"github.com/stretchr/testify/assert"
@@ -46,8 +47,9 @@ func TestConverter_Certificates(t *testing.T) {
 			doc := schema.NewOpnSenseDocument()
 			doc.Certs = tt.certs
 
-			device, err := opnsense.NewConverter().ToCommonDevice(doc)
+			device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 			require.NoError(t, err)
+			assert.Empty(t, warnings)
 
 			if tt.wantLen == 0 {
 				assert.Nil(t, device.Certificates)
@@ -71,8 +73,9 @@ func TestConverter_Certificates_FieldMapping(t *testing.T) {
 		},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	require.Len(t, device.Certificates, 1)
 
 	cert := device.Certificates[0]
@@ -119,8 +122,9 @@ func TestConverter_CAs(t *testing.T) {
 			doc := schema.NewOpnSenseDocument()
 			doc.CAs = tt.cas
 
-			device, err := opnsense.NewConverter().ToCommonDevice(doc)
+			device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 			require.NoError(t, err)
+			assert.Empty(t, warnings)
 
 			if tt.wantLen == 0 {
 				assert.Nil(t, device.CAs)
@@ -145,8 +149,9 @@ func TestConverter_CAs_FieldMapping(t *testing.T) {
 		},
 	}
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	require.Len(t, device.CAs, 1)
 
 	ca := device.CAs[0]
@@ -194,8 +199,9 @@ func TestConverter_Packages(t *testing.T) {
 			doc := schema.NewOpnSenseDocument()
 			doc.System.Firmware.Plugins = tt.plugins
 
-			device, err := opnsense.NewConverter().ToCommonDevice(doc)
+			device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 			require.NoError(t, err)
+			assert.Empty(t, warnings)
 
 			if tt.wantLen == 0 {
 				assert.Nil(t, device.Packages)
@@ -212,8 +218,9 @@ func TestConverter_Packages_FieldMapping(t *testing.T) {
 	doc := schema.NewOpnSenseDocument()
 	doc.System.Firmware.Plugins = "os-haproxy,os-wireguard"
 
-	device, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
 	require.NoError(t, err)
+	assert.Empty(t, warnings)
 	require.Len(t, device.Packages, 2)
 
 	pkg := device.Packages[0]
@@ -225,4 +232,78 @@ func TestConverter_Packages_FieldMapping(t *testing.T) {
 	assert.Equal(t, "os-wireguard", pkg2.Name)
 	assert.Equal(t, "plugin", pkg2.Type)
 	assert.True(t, pkg2.Installed)
+}
+
+func TestConverter_Certificates_Warnings(t *testing.T) {
+	t.Parallel()
+
+	doc := schema.NewOpnSenseDocument()
+	doc.Certs = []schema.Cert{
+		{Refid: "cert-001", Descr: "Empty cert", Crt: "", Prv: "MIIE..."},
+	}
+
+	_, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	require.NoError(t, err)
+	require.Len(t, warnings, 1)
+	assert.Equal(t, "Certificates[0].Certificate", warnings[0].Field)
+	assert.Equal(t, analysis.SeverityHigh, warnings[0].Severity)
+	assert.Equal(t, "certificate has empty PEM data", warnings[0].Message)
+}
+
+func TestConverter_HA_Warnings(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		syncIP       string
+		username     string
+		password     string
+		wantWarnings int
+	}{
+		{
+			name:         "sync target without credentials",
+			syncIP:       "10.0.0.2",
+			username:     "",
+			password:     "",
+			wantWarnings: 1,
+		},
+		{
+			name:         "sync target with credentials",
+			syncIP:       "10.0.0.2",
+			username:     "admin",
+			password:     "secret",
+			wantWarnings: 0,
+		},
+		{
+			name:         "no sync target",
+			syncIP:       "",
+			username:     "",
+			password:     "",
+			wantWarnings: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			doc := schema.NewOpnSenseDocument()
+			doc.HighAvailabilitySync.Synchronizetoip = tt.syncIP
+			doc.HighAvailabilitySync.Username = tt.username
+			doc.HighAvailabilitySync.Password = tt.password
+
+			_, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+			require.NoError(t, err)
+
+			if tt.wantWarnings == 0 {
+				assert.Empty(t, warnings)
+				return
+			}
+
+			require.Len(t, warnings, tt.wantWarnings)
+			assert.Equal(t, "HighAvailability.SynchronizeToIP", warnings[0].Field)
+			assert.Equal(t, tt.syncIP, warnings[0].Value)
+			assert.Equal(t, analysis.SeverityHigh, warnings[0].Severity)
+		})
+	}
 }

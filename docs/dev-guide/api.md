@@ -86,10 +86,14 @@ The `DeviceParser` interface (defined in `internal/model/factory.go`) abstracts 
 
 ```go
 type DeviceParser interface {
-    Parse(ctx context.Context, r io.Reader) (*common.CommonDevice, error)
-    ParseAndValidate(ctx context.Context, r io.Reader) (*common.CommonDevice, error)
+    // Parse reads and converts the configuration, returning non-fatal conversion warnings.
+    Parse(ctx context.Context, r io.Reader) (*common.CommonDevice, []common.ConversionWarning, error)
+    // ParseAndValidate reads, converts, and validates the configuration, returning non-fatal conversion warnings.
+    ParseAndValidate(ctx context.Context, r io.Reader) (*common.CommonDevice, []common.ConversionWarning, error)
 }
 ```
+
+**Breaking Change:** Both methods return a 3-value tuple `(*CommonDevice, []ConversionWarning, error)` instead of the previous 2-value return `(*CommonDevice, error)`. Implementations must return non-fatal conversion warnings alongside the parsed device model. Callers should log or surface these warnings without treating them as errors.
 
 The `ParserFactory` auto-detects device type from the XML root element and delegates to the appropriate `DeviceParser`. The underlying OPNsense XML parser (`internal/cfgparser/XMLParser`) still produces `schema.OpnSenseDocument`, which is then converted to `common.CommonDevice` by the OPNsense-specific parser in `internal/model/opnsense/`.
 
@@ -105,17 +109,23 @@ if err != nil {
 defer file.Close()
 
 // Auto-detect device type and parse to CommonDevice
-device, err := factory.CreateDevice(context.Background(), file, "", false)
+device, warnings, err := factory.CreateDevice(context.Background(), file, "", false)
 if err != nil {
     return fmt.Errorf("parse failed: %w", err)
 }
+// Handle warnings (e.g., log them)
+for _, w := range warnings {
+    logger.Warn("conversion warning", "field", w.Field, "message", w.Message)
+}
 
 // With validation
-device, err := factory.CreateDevice(context.Background(), file, "", true)
+device, warnings, err := factory.CreateDevice(context.Background(), file, "", true)
 if err != nil {
     return fmt.Errorf("parse and validate failed: %w", err)
 }
 ```
+
+**Breaking Change:** `CreateDevice` returns a 3-value tuple `(*CommonDevice, []ConversionWarning, error)` instead of the previous 2-value return `(*CommonDevice, error)`. Warnings represent non-fatal conversion issues that should be logged but do not prevent successful parsing.
 
 The underlying `XMLParser` (`internal/cfgparser/`) supports UTF-8, US-ASCII, ISO-8859-1 (Latin1), and Windows-1252 encodings. Input is limited to 10MB by default (`DefaultMaxInputSize`).
 
@@ -147,6 +157,55 @@ type CommonDevice struct {
 ```
 
 The XML DTO remains as `schema.OpnSenseDocument` in `internal/schema/opnsense.go`. The OPNsense-specific parser in `internal/model/opnsense/` converts the XML DTO into `CommonDevice`. The `internal/model/` package provides the `ParserFactory` and `DeviceParser` interface for consumers.
+
+### ConversionWarning
+
+The `ConversionWarning` type represents non-fatal issues encountered during conversion from a platform-specific schema to the platform-agnostic `CommonDevice` model:
+
+```go
+type ConversionWarning struct {
+    // Field is the dot-path of the problematic field (e.g., "FirewallRules[0].Type").
+    Field string
+    // Value provides context to identify the affected config element (e.g., rule UUID,
+    // gateway name, or certificate description). When the warning is about a missing or
+    // empty field, this contains a sibling identifier rather than the empty field itself.
+    Value string
+    // Message is a human-readable description of the issue.
+    Message string
+    // Severity indicates the importance of the warning.
+    Severity analysis.Severity
+}
+```
+
+**When Warnings Are Generated:**
+
+Warnings are returned for non-fatal conversion issues such as:
+
+- Missing or empty required fields in firewall rules (type, source, destination, interface)
+- NAT rules missing internal IP or interface assignments
+- Gateways missing address or name fields
+- Users missing name or UID fields
+
+**Handling Warnings:**
+
+Callers should log warnings using structured logging but continue processing:
+
+```go
+device, warnings, err := parser.Parse(ctx, reader)
+if err != nil {
+    return fmt.Errorf("parse failed: %w", err)
+}
+for _, w := range warnings {
+    logger.Warn("conversion issue", 
+        "field", w.Field, 
+        "value", w.Value, 
+        "message", w.Message, 
+        "severity", w.Severity)
+}
+// Continue with device processing
+```
+
+Warnings differ from errors in that they indicate data quality issues or missing optional fields that do not prevent successful conversion. The converted `CommonDevice` is still valid and usable, but may contain incomplete information from the source configuration.
 
 ## Converter Package (internal/converter)
 
