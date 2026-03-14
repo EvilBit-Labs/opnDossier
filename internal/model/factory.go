@@ -14,8 +14,13 @@ import (
 )
 
 // DeviceParser is the interface for device-specific parsers.
+// Implementations return non-fatal conversion warnings alongside the parsed
+// device model. Callers should log or surface these warnings without treating
+// them as errors.
 type DeviceParser interface {
+	// Parse reads and converts the configuration, returning non-fatal conversion warnings.
 	Parse(ctx context.Context, r io.Reader) (*common.CommonDevice, []common.ConversionWarning, error)
+	// ParseAndValidate reads, converts, and validates the configuration, returning non-fatal conversion warnings.
 	ParseAndValidate(ctx context.Context, r io.Reader) (*common.CommonDevice, []common.ConversionWarning, error)
 }
 
