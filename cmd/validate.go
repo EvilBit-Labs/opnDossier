@@ -156,13 +156,15 @@ Examples:
 					return
 				}
 
-				for _, w := range warnings {
-					ctxLogger.Warn("conversion warning",
-						"field", w.Field,
-						"value", w.Value,
-						"message", w.Message,
-						"severity", w.Severity,
-					)
+				if cmdConfig == nil || !cmdConfig.IsQuiet() {
+					for _, w := range warnings {
+						ctxLogger.Warn("conversion warning",
+							"field", w.Field,
+							"value", w.Value,
+							"message", w.Message,
+							"severity", w.Severity,
+						)
+					}
 				}
 
 				ctxLogger.Info("Validation completed successfully")

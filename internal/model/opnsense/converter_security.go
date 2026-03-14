@@ -21,7 +21,7 @@ func (c *Converter) convertCertificates(doc *schema.OpnSenseDocument) []common.C
 		if cert.Crt == "" {
 			c.addWarning(
 				fmt.Sprintf("Certificates[%d].Certificate", i),
-				"",
+				cert.Descr,
 				"certificate has empty PEM data",
 				analysis.SeverityHigh,
 			)

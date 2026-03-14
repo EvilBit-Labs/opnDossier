@@ -16,6 +16,8 @@ import (
 var ErrNilDocument = errors.New("opnsense converter: received nil document")
 
 // Converter transforms a schema.OpnSenseDocument into a common.CommonDevice.
+// A Converter is stateful (it accumulates warnings) and is NOT safe for
+// concurrent use. Create a new instance per conversion via NewConverter().
 type Converter struct {
 	warnings []common.ConversionWarning
 }
@@ -214,7 +216,7 @@ func (c *Converter) convertFirewallRules(doc *schema.OpnSenseDocument) []common.
 		if rule.Type == "" {
 			c.addWarning(
 				fmt.Sprintf("FirewallRules[%d].Type", i),
-				"",
+				rule.UUID,
 				"firewall rule has empty type",
 				analysis.SeverityHigh,
 			)
@@ -222,7 +224,7 @@ func (c *Converter) convertFirewallRules(doc *schema.OpnSenseDocument) []common.
 		if rule.Source.EffectiveAddress() == "" {
 			c.addWarning(
 				fmt.Sprintf("FirewallRules[%d].Source", i),
-				"",
+				rule.UUID,
 				"firewall rule has no source address",
 				analysis.SeverityMedium,
 			)
@@ -230,7 +232,7 @@ func (c *Converter) convertFirewallRules(doc *schema.OpnSenseDocument) []common.
 		if rule.Destination.EffectiveAddress() == "" {
 			c.addWarning(
 				fmt.Sprintf("FirewallRules[%d].Destination", i),
-				"",
+				rule.UUID,
 				"firewall rule has no destination address",
 				analysis.SeverityMedium,
 			)
@@ -238,7 +240,7 @@ func (c *Converter) convertFirewallRules(doc *schema.OpnSenseDocument) []common.
 		if rule.Interface.IsEmpty() {
 			c.addWarning(
 				fmt.Sprintf("FirewallRules[%d].Interface", i),
-				"",
+				rule.UUID,
 				"firewall rule has no interface assigned",
 				analysis.SeverityMedium,
 			)
@@ -314,7 +316,7 @@ func (c *Converter) convertOutboundNATRules(rules []schema.NATRule) []common.NAT
 		if r.Interface.IsEmpty() {
 			c.addWarning(
 				fmt.Sprintf("NAT.OutboundRules[%d].Interface", i),
-				"",
+				r.UUID,
 				"outbound NAT rule has no interface assigned",
 				analysis.SeverityMedium,
 			)
@@ -362,7 +364,7 @@ func (c *Converter) convertInboundNATRules(rules []schema.InboundRule) []common.
 		if r.InternalIP == "" {
 			c.addWarning(
 				fmt.Sprintf("NAT.InboundRules[%d].InternalIP", i),
-				"",
+				r.UUID,
 				"inbound NAT rule has no internal IP",
 				analysis.SeverityHigh,
 			)
@@ -370,7 +372,7 @@ func (c *Converter) convertInboundNATRules(rules []schema.InboundRule) []common.
 		if r.Interface.IsEmpty() {
 			c.addWarning(
 				fmt.Sprintf("NAT.InboundRules[%d].Interface", i),
-				"",
+				r.UUID,
 				"inbound NAT rule has no interface assigned",
 				analysis.SeverityMedium,
 			)

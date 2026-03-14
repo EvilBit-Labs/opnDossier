@@ -420,7 +420,7 @@ func (c *Converter) convertGateways(gws []schema.Gateway) []common.Gateway {
 		if gw.Gateway == "" {
 			c.addWarning(
 				fmt.Sprintf("Routing.Gateways[%d].Address", i),
-				"",
+				gw.Name,
 				"gateway has empty address",
 				analysis.SeverityHigh,
 			)
@@ -428,7 +428,7 @@ func (c *Converter) convertGateways(gws []schema.Gateway) []common.Gateway {
 		if gw.Name == "" {
 			c.addWarning(
 				fmt.Sprintf("Routing.Gateways[%d].Name", i),
-				"",
+				gw.Interface,
 				"gateway has empty name",
 				analysis.SeverityHigh,
 			)
@@ -587,10 +587,10 @@ func (c *Converter) convertUsers(doc *schema.OpnSenseDocument) []common.User {
 	result := make([]common.User, 0, len(doc.System.User))
 	for i, u := range doc.System.User {
 		if u.Name == "" {
-			c.addWarning(fmt.Sprintf("Users[%d].Name", i), "", "user has empty name", analysis.SeverityHigh)
+			c.addWarning(fmt.Sprintf("Users[%d].Name", i), u.UID, "user has empty name", analysis.SeverityHigh)
 		}
 		if u.UID == "" {
-			c.addWarning(fmt.Sprintf("Users[%d].UID", i), "", "user has no UID", analysis.SeverityHigh)
+			c.addWarning(fmt.Sprintf("Users[%d].UID", i), u.Name, "user has no UID", analysis.SeverityHigh)
 		}
 
 		user := common.User{

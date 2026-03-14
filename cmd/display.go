@@ -183,13 +183,15 @@ Examples:
 			return fmt.Errorf("failed to parse configuration from %s: %w", filePath, err)
 		}
 
-		for _, w := range warnings {
-			ctxLogger.Warn("conversion warning",
-				"field", w.Field,
-				"value", w.Value,
-				"message", w.Message,
-				"severity", w.Severity,
-			)
+		if cmdConfig == nil || !cmdConfig.IsQuiet() {
+			for _, w := range warnings {
+				ctxLogger.Warn("conversion warning",
+					"field", w.Field,
+					"value", w.Value,
+					"message", w.Message,
+					"severity", w.Severity,
+				)
+			}
 		}
 
 		mdOpts := buildDisplayOptions(cmdConfig)
