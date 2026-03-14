@@ -765,21 +765,25 @@ func (c *Converter) addWarning(field, value, message string, severity analysis.S
 Warnings are generated for configuration elements with missing or incomplete data:
 
 #### Firewall Rules
+
 - **Empty rule type**: High severity warning when firewall rule has no type specified
 - **Missing source address**: Medium severity warning for rules without source address
 - **Missing destination address**: Medium severity warning for rules without destination address
 - **No interface assigned**: Medium severity warning when interface field is empty
 
 #### NAT Rules
+
 - **Outbound NAT without interface**: Medium severity warning for unassigned outbound rules
 - **Inbound NAT missing internal IP**: High severity warning for port forwards without target IP
 - **Inbound NAT without interface**: Medium severity warning for unassigned inbound rules
 
 #### Network Configuration
+
 - **Gateway missing address**: Warnings for incomplete gateway definitions
 - **Gateway missing name**: Warnings for unnamed gateways
 
 #### System Configuration
+
 - **User missing name**: Warnings for incomplete user accounts
 - **User missing UID**: Warnings for users without unique identifiers
 - **Certificate problems**: Warnings for invalid or incomplete certificates
@@ -847,6 +851,7 @@ if cmdConfig == nil || !cmdConfig.IsQuiet() {
 ### Quiet Mode Behavior
 
 When the `--quiet` flag is used:
+
 - Warnings are collected but not logged
 - Only errors are reported
 - Processing continues normally with warning suppression
