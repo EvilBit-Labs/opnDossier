@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 	"github.com/nao1215/markdown"
@@ -155,37 +156,26 @@ type Findings struct {
 	Info []Finding `json:"info,omitempty"`
 }
 
-// Finding represents a single analysis finding.
-type Finding struct {
-	// Type categorizes the finding (e.g., "security", "performance", "compliance")
-	Type string `json:"type"`
-	// Title is a brief description of the finding
-	Title string `json:"title"`
-	// Description provides detailed information about the finding
-	Description string `json:"description"`
-	// Recommendation suggests how to address the finding
-	Recommendation string `json:"recommendation,omitempty"`
-	// Component identifies the configuration component involved
-	Component string `json:"component,omitempty"`
-	// Reference provides additional information or documentation links
-	Reference string `json:"reference,omitempty"`
-}
+// Finding is a type alias for the canonical analysis.Finding type.
+// This ensures the processor package uses the same finding structure as
+// compliance and audit packages.
+type Finding = analysis.Finding
 
-// Severity represents the severity levels for findings.
-type Severity string
+// Severity is a type alias for the canonical analysis.Severity type.
+type Severity = analysis.Severity
 
-// Severity constants represent the different levels of finding severity.
+// Severity constants re-exported from the canonical analysis package.
 const (
 	// SeverityCritical represents critical findings that require immediate attention.
-	SeverityCritical Severity = "critical"
+	SeverityCritical = analysis.SeverityCritical
 	// SeverityHigh represents high-severity findings that should be addressed soon.
-	SeverityHigh Severity = "high"
+	SeverityHigh = analysis.SeverityHigh
 	// SeverityMedium represents medium-severity findings worth investigating.
-	SeverityMedium Severity = "medium"
+	SeverityMedium = analysis.SeverityMedium
 	// SeverityLow represents low-severity findings for general improvement.
-	SeverityLow Severity = "low"
+	SeverityLow = analysis.SeverityLow
 	// SeverityInfo represents informational findings with no immediate action required.
-	SeverityInfo Severity = "info"
+	SeverityInfo = analysis.SeverityInfo
 )
 
 // NewReport returns a new Report instance populated with configuration metadata, processor settings, and optionally generated statistics and normalized configuration data.

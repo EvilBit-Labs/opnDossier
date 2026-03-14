@@ -5,12 +5,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/audit"
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
-	"github.com/EvilBit-Labs/opnDossier/internal/processor"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
@@ -65,20 +65,20 @@ func TestAppendAuditFindings_WithFindings(t *testing.T) {
 		BlackhatMode:  false,
 		Comprehensive: true,
 		Findings: []audit.Finding{
-			{
+			{Finding: analysis.Finding{
 				Title:          "Weak Firewall Rule",
-				Severity:       processor.SeverityHigh,
+				Severity:       string(analysis.SeverityHigh),
 				Description:    "Rule allows all traffic from any source",
 				Recommendation: "Restrict source addresses",
 				Component:      "firewall",
-			},
-			{
+			}},
+			{Finding: analysis.Finding{
 				Title:          "Missing Authentication",
-				Severity:       processor.SeverityCritical,
+				Severity:       string(analysis.SeverityCritical),
 				Description:    "Admin portal lacks MFA",
 				Recommendation: "Enable multi-factor authentication",
 				Component:      "system",
-			},
+			}},
 		},
 		Compliance: make(map[string]audit.ComplianceResult),
 		Metadata:   make(map[string]any),
@@ -700,13 +700,13 @@ func TestAppendAuditFindings_PipeEscapingInTables(t *testing.T) {
 	report := &audit.Report{
 		Mode: audit.ModeBlue,
 		Findings: []audit.Finding{
-			{
+			{Finding: analysis.Finding{
 				Title:          "Rule with | pipe",
-				Severity:       processor.SeverityMedium,
+				Severity:       string(analysis.SeverityMedium),
 				Description:    "Contains | multiple | pipes",
 				Recommendation: "Fix the | issue",
 				Component:      "firewall|nat",
-			},
+			}},
 		},
 		Compliance: make(map[string]audit.ComplianceResult),
 		Metadata:   make(map[string]any),

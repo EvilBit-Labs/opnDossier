@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
@@ -269,12 +270,13 @@ func deriveSeverityFromControl(p compliance.Plugin, f compliance.Finding) (strin
 	)
 }
 
-// Severity level constants for summary calculation.
+// Severity level constants for summary calculation, derived from the canonical
+// analysis.Severity values.
 const (
-	severityCritical = "critical"
-	severityHigh     = "high"
-	severityMedium   = "medium"
-	severityLow      = "low"
+	severityCritical = string(analysis.SeverityCritical)
+	severityHigh     = string(analysis.SeverityHigh)
+	severityMedium   = string(analysis.SeverityMedium)
+	severityLow      = string(analysis.SeverityLow)
 )
 
 // severityCounts holds the result of tallying findings by severity level.
