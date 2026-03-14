@@ -80,6 +80,7 @@ When rules conflict, follow the higher precedence rule.
 opndossier/
 ├── cmd/                    # CLI command entry points (root, audit, convert, diff, display, etc.)
 ├── internal/               # Private application logic
+│   ├── analysis/           # Canonical Finding and Severity types (shared across audit, compliance, processor)
 │   ├── audit/              # Audit engine, plugin registry, plugin manager
 │   ├── cfgparser/          # XML parsing and validation
 │   ├── compliance/         # Plugin interfaces (Plugin, Control, Finding)
@@ -580,12 +581,13 @@ This pattern ensures test isolation when multiple tests modify the same global s
 
 ### 8.1 Core Components
 
-| File                                | Purpose                                          |
-| ----------------------------------- | ------------------------------------------------ |
-| `internal/compliance/interfaces.go` | `Plugin` interface, `Control`, `Finding` structs |
-| `internal/audit/plugin.go`          | `PluginRegistry`, dynamic plugin loader          |
-| `internal/audit/plugin_manager.go`  | `PluginManager` for lifecycle operations         |
-| `internal/plugins/`                 | Built-in plugin implementations                  |
+| File                                | Purpose                                                         |
+| ----------------------------------- | --------------------------------------------------------------- |
+| `internal/analysis/finding.go`      | Canonical `Finding` struct, `Severity` type, validation helpers |
+| `internal/compliance/interfaces.go` | `Plugin` interface, `Control`, `Finding` structs                |
+| `internal/audit/plugin.go`          | `PluginRegistry`, dynamic plugin loader                         |
+| `internal/audit/plugin_manager.go`  | `PluginManager` for lifecycle operations                        |
+| `internal/plugins/`                 | Built-in plugin implementations                                 |
 
 **Important:** `PluginManager` allocates and populates its own `PluginRegistry` instance via `InitializePlugins()`. This is independent of the global singleton returned by `GetGlobalRegistry()`. Plugins registered through `PluginManager` are not automatically available in the global registry — callers needing the global registry must use `RegisterGlobalPlugin()` separately.
 
