@@ -20,6 +20,7 @@ opndossier/
 │   ├── exitcodes.go             # Structured exit codes
 │   └── help.go                  # Custom help templates
 ├── internal/
+│   ├── analysis/                # Canonical finding and severity types
 │   ├── cfgparser/               # XML parsing and validation
 │   ├── config/                  # Configuration management (Viper)
 │   ├── converter/               # Data conversion and report generation
@@ -34,6 +35,7 @@ opndossier/
 │   ├── export/                  # File export functionality
 │   ├── logging/                 # Structured logging (charmbracelet/log)
 │   ├── progress/                # CLI progress indicators
+│   ├── processor/               # Security analysis and report generation
 │   └── validator/               # Configuration validation
 └── main.go                      # Entry point
 ```
@@ -282,6 +284,68 @@ logger.Error("Operation failed", "error", err)
 fileLogger := logger.WithFields("operation", "convert", "file", filename)
 ```
 
+## Analysis Package (internal/analysis)
+
+The `internal/analysis` package provides canonical types for security analysis findings shared across the audit, compliance, and processor packages. This ensures consistent finding representation throughout the codebase.
+
+### Finding Type
+
+```go
+type Finding struct {
+    // Type categorizes the finding (e.g., "security", "performance", "compliance")
+    Type string `json:"type"`
+    // Severity indicates the severity level of the finding
+    Severity string `json:"severity,omitempty"`
+    // Title is a brief description of the finding
+    Title string `json:"title"`
+    // Description provides detailed information about the finding
+    Description string `json:"description"`
+    // Recommendation suggests how to address the finding
+    Recommendation string `json:"recommendation"`
+    // Component identifies the configuration component involved
+    Component string `json:"component"`
+    // Reference provides additional information or documentation links
+    Reference string `json:"reference"`
+
+    // Generic references and metadata
+    // References contains related standard or control identifiers
+    References []string `json:"references,omitempty"`
+    // Tags contains classification labels for the finding
+    Tags []string `json:"tags,omitempty"`
+    // Metadata contains arbitrary key-value pairs for additional context
+    Metadata map[string]string `json:"metadata,omitempty"`
+}
+```
+
+**JSON Tag Note:** The `Recommendation`, `Component`, and `Reference` fields intentionally lack `omitempty` to maintain consistency with the original `compliance.Finding` conventions.
+
+### Severity Type
+
+```go
+type Severity string
+
+const (
+    SeverityCritical Severity = "critical"
+    SeverityHigh     Severity = "high"
+    SeverityMedium   Severity = "medium"
+    SeverityLow      Severity = "low"
+    SeverityInfo     Severity = "info"
+)
+```
+
+**Helper Functions:**
+
+```go
+// ValidSeverities returns a fresh copy of all valid severity values
+func ValidSeverities() []Severity
+
+// IsValidSeverity checks whether the given severity is a recognized value
+func IsValidSeverity(s Severity) bool
+
+// String returns the string representation of the severity
+func (s Severity) String() string
+```
+
 ## Compliance Package (internal/compliance)
 
 ### Plugin Interface
@@ -300,40 +364,14 @@ type Plugin interface {
 
 ### Finding Type
 
-The `Finding` struct represents a standardized compliance finding:
+The `compliance.Finding` type is a type alias for the canonical `analysis.Finding` defined in the `internal/analysis` package. All compliance plugins and consumers use this standardized finding structure.
 
 ```go
-type Finding struct {
-    // Core finding information
-    Type           string            `json:"type"`
-    Severity       string            `json:"severity,omitempty"`
-    Title          string            `json:"title"`
-    Description    string            `json:"description"`
-    Recommendation string            `json:"recommendation"`
-    Component      string            `json:"component"`
-    
-    // Control references
-    Reference  string   `json:"reference"`
-    References []string `json:"references,omitempty"`
-    
-    // Additional metadata
-    Tags     []string          `json:"tags,omitempty"`
-    Metadata map[string]string `json:"metadata,omitempty"`
-}
+// Finding is a type alias for the canonical analysis.Finding type
+type Finding = analysis.Finding
 ```
 
-**Fields:**
-
-- `Type` (string): Category of the finding (e.g., "compliance")
-- `Severity` (string): **Canonical severity level** ("critical", "high", "medium", "low")
-- `Title` (string): Finding title
-- `Description` (string): Detailed description
-- `Recommendation` (string): Recommended remediation steps
-- `Component` (string): Component being checked
-- `Reference` (string): Single control ID reference
-- `References` ([]string): Multiple control ID references
-- `Tags` ([]string): Finding tags for categorization
-- `Metadata` (map[string]string): Additional key-value metadata
+See the [Analysis Package](#analysis-package-internalanalysis) section for the complete struct definition and field descriptions.
 
 **Severity Handling:**
 
@@ -362,7 +400,7 @@ type ComplianceResult struct {
 - `Findings` ([]compliance.Finding): Aggregated findings from all plugins
 - `PluginFindings` (map[string][]compliance.Finding): Findings grouped by plugin name
 - `Compliance` (map[string]map[string]bool): Compliance status per plugin per control
-- `Summary` (\*ComplianceSummary): Summary statistics with severity breakdown
+- `Summary` (*ComplianceSummary): Summary statistics with severity breakdown
 - `PluginInfo` (map[string]PluginInfo): Metadata about executed plugins
 
 #### ComplianceSummary
@@ -394,6 +432,33 @@ type ComplianceSummary struct {
 **Report Behavior:**
 
 Blue team reports generated by the audit engine include per-plugin severity breakdowns in addition to aggregate summaries. Each plugin's findings are stored separately in the `ComplianceResult` structure, allowing reports to display both overall statistics and plugin-specific details.
+
+## Processor Package (internal/processor)
+
+The `internal/processor` package provides security analysis and report generation capabilities. It uses the canonical finding and severity types from the `internal/analysis` package.
+
+### Finding and Severity Types
+
+The processor package re-exports the canonical types from `internal/analysis`:
+
+```go
+// Finding is a type alias for the canonical analysis.Finding type
+type Finding = analysis.Finding
+
+// Severity is a type alias for the canonical analysis.Severity type
+type Severity = analysis.Severity
+
+// Severity constants re-exported from the canonical analysis package
+const (
+    SeverityCritical = analysis.SeverityCritical
+    SeverityHigh     = analysis.SeverityHigh
+    SeverityMedium   = analysis.SeverityMedium
+    SeverityLow      = analysis.SeverityLow
+    SeverityInfo     = analysis.SeverityInfo
+)
+```
+
+See the [Analysis Package](#analysis-package-internalanalysis) section for the complete struct definition and field descriptions.
 
 ## Error Handling
 

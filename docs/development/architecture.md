@@ -54,7 +54,14 @@ The CLI uses a layered architecture: **Cobra** provides command structure and ar
 - **Format**: YAML configuration files
 - **Precedence**: Standard order where environment variables override config files for deployment flexibility
 
-### 3. Data Processing Engine
+### 3. Analysis Infrastructure
+
+- **Package**: `internal/analysis/`
+- **Responsibility**: Canonical finding and severity types shared across audit, compliance, and processor packages
+- **Key Types**: `Finding` struct, `Severity` type with validation helpers
+- **Purpose**: Eliminates type duplication, ensures consistency across all analysis-related packages
+
+### 4. Data Processing Engine
 
 #### XML Parser Component
 
@@ -74,7 +81,7 @@ The CLI uses a layered architecture: **Cobra** provides command structure and ar
 - **Formats**: Markdown, JSON, YAML, plain text, HTML
 - **Technologies**: Charm Lipgloss (styling) + Charm Glamour (rendering)
 
-### 4. Output Systems
+### 5. Output Systems
 
 - **Terminal Display**: Syntax-highlighted, styled terminal output via `display` command
 - **File Export**: Multi-format file generation (markdown, JSON, YAML, text, HTML)
@@ -162,11 +169,13 @@ graph TD
     A["internal/schema/ — XML DTOs (OPNsense-shaped structs)"]
     B["internal/model/opnsense/ — OPNsense parser + converter"]
     C["internal/model/common/ — CommonDevice domain model"]
-    D["Consumers: processor / converter / markdown / audit / diff / plugins"]
+    D["internal/analysis/ — Canonical Finding + Severity types"]
+    E["Consumers: processor / converter / markdown / audit / diff / plugins"]
 
     A --> B
     B --> C
-    C --> D
+    C --> E
+    D --> E
 ```
 
 ### Layer Responsibilities
@@ -174,6 +183,7 @@ graph TD
 - **`internal/schema/`** — XML DTO layer. Carries `xml:""` tags and mirrors the OPNsense config.xml structure. This layer is untouched by downstream consumers.
 - **`internal/model/opnsense/`** — Contains `parser.go` and `converter.go`. Reads schema DTOs and emits `*common.CommonDevice`. This is the only package that imports `internal/schema/`.
 - **`internal/model/common/`** — Device-agnostic domain model. No XML tags. All consumer code (processor, converter, markdown, audit, diff, compliance plugins) operates on `CommonDevice`.
+- **`internal/analysis/`** — Canonical finding and severity types. Provides the shared `Finding` struct and `Severity` type used across audit, compliance, and processor packages to ensure consistency.
 - **`internal/model/factory.go`** — `ParserFactory` and `DeviceParser` interface. Auto-detects the device type from the XML root element. The `--device-type opnsense` flag bypasses auto-detection.
 
 ### Device Type Detection
@@ -201,6 +211,7 @@ sequenceDiagram
         Parser->>Parser: Validate structure
         Parser-->>CLI: Structured data
         CLI->>Converter: Transform data
+        Note over Converter: All findings use<br/>canonical analysis.Finding
         Converter-->>CLI: Markdown content
         CLI->>Renderer: Format output
 
@@ -535,6 +546,7 @@ internal/converter/<report-type>/
 #### What Should Remain Shared
 
 - **`common.CommonDevice`** - The parsed device-agnostic configuration model
+- **`analysis.Finding`** - Canonical finding type for all analysis results
 - **String helpers** - Markdown escaping, formatting utilities
 - **Table builders** - Generic markdown table construction
 - **Common interfaces** - `ReportBuilder`, `Generator` interfaces
@@ -546,6 +558,7 @@ internal/converter/<report-type>/
 package blueteam
 
 import (
+    "github.com/EvilBit-Labs/opnDossier/internal/analysis"
     "github.com/EvilBit-Labs/opnDossier/internal/model/common"
     "github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
 )
@@ -564,6 +577,11 @@ func (g *BlueTeamGenerator) Generate(device *common.CommonDevice) (string, error
 // All calculation logic is internal to this module
 func (g *BlueTeamGenerator) calculateSecurityScore(device *common.CommonDevice) int {
     // Blue team specific scoring algorithm
+}
+
+// All findings returned use the canonical analysis.Finding type
+func (g *BlueTeamGenerator) analyzeCompliance(device *common.CommonDevice) []analysis.Finding {
+    // Compliance analysis returning standardized findings
 }
 ```
 
