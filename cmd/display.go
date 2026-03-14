@@ -168,7 +168,7 @@ Examples:
 
 		// Parse the XML and convert to platform-agnostic device model
 		// Full validation should be done with the 'validate' command
-		device, err := model.NewParserFactory().CreateDevice(ctx, file, sharedDeviceType, false)
+		device, warnings, err := model.NewParserFactory().CreateDevice(ctx, file, sharedDeviceType, false)
 		if err != nil {
 			ctxLogger.Error("Failed to parse configuration", "error", err)
 			// Enhanced error handling for different error types
@@ -181,6 +181,15 @@ Examples:
 				ctxLogger.Error("Configuration validation failed")
 			}
 			return fmt.Errorf("failed to parse configuration from %s: %w", filePath, err)
+		}
+
+		for _, w := range warnings {
+			ctxLogger.Warn("conversion warning",
+				"field", w.Field,
+				"value", w.Value,
+				"message", w.Message,
+				"severity", w.Severity,
+			)
 		}
 
 		mdOpts := buildDisplayOptions(cmdConfig)

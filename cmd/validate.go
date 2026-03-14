@@ -125,7 +125,7 @@ Examples:
 
 				// Parse and validate the configuration file
 				ctxLogger.Debug("Parsing and validating configuration file")
-				_, err = model.NewParserFactory().CreateDevice(ctx, file, sharedDeviceType, true)
+				_, warnings, err := model.NewParserFactory().CreateDevice(ctx, file, sharedDeviceType, true)
 				if err != nil {
 					exitCode := DetermineExitCode(err)
 					updateMaxExitCode(&maxExitCode, exitCode)
@@ -154,6 +154,15 @@ Examples:
 						}
 					}
 					return
+				}
+
+				for _, w := range warnings {
+					ctxLogger.Warn("conversion warning",
+						"field", w.Field,
+						"value", w.Value,
+						"message", w.Message,
+						"severity", w.Severity,
+					)
 				}
 
 				ctxLogger.Info("Validation completed successfully")
