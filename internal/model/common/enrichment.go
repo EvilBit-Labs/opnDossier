@@ -216,12 +216,103 @@ type PerformanceMetrics struct {
 	ConfigComplexity int `json:"configComplexity,omitempty" yaml:"configComplexity,omitempty"`
 }
 
-// ComplianceChecks contains compliance check results.
-type ComplianceChecks struct {
-	// ComplianceScore is the overall compliance score (0-100).
-	ComplianceScore int `json:"complianceScore,omitempty" yaml:"complianceScore,omitempty"`
-	// ComplianceItems lists the compliance controls that passed.
-	ComplianceItems []string `json:"complianceItems,omitempty" yaml:"complianceItems,omitempty"`
-	// Violations lists the compliance controls that failed.
-	Violations []string `json:"violations,omitempty" yaml:"violations,omitempty"`
+// ComplianceResults contains the full results of a compliance audit run,
+// including per-plugin findings, controls, and summary statistics.
+type ComplianceResults struct {
+	// Mode is the audit report mode (e.g., "standard", "blue", "red").
+	Mode string `json:"mode,omitempty" yaml:"mode,omitempty"`
+	// Findings contains aggregate findings across all plugins.
+	Findings []ComplianceFinding `json:"findings,omitempty" yaml:"findings,omitempty"`
+	// PluginResults contains per-plugin compliance results keyed by plugin name.
+	PluginResults map[string]PluginComplianceResult `json:"pluginResults,omitempty" yaml:"pluginResults,omitempty"`
+	// Summary contains the top-level aggregate summary across all plugins.
+	Summary *ComplianceResultSummary `json:"summary,omitempty" yaml:"summary,omitempty"`
+	// Metadata contains arbitrary audit metadata.
+	Metadata map[string]any `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+}
+
+// ComplianceFinding represents an individual compliance finding from an audit plugin.
+type ComplianceFinding struct {
+	// Type is the finding category (e.g., "compliance").
+	Type string `json:"type,omitempty" yaml:"type,omitempty"`
+	// Severity is the severity level (e.g., "critical", "high", "medium", "low").
+	Severity string `json:"severity,omitempty" yaml:"severity,omitempty"`
+	// Title is a brief description of the finding.
+	Title string `json:"title,omitempty" yaml:"title,omitempty"`
+	// Description is a detailed explanation of the finding.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Recommendation is the suggested corrective action.
+	Recommendation string `json:"recommendation,omitempty" yaml:"recommendation,omitempty"`
+	// Component is the affected configuration component.
+	Component string `json:"component,omitempty" yaml:"component,omitempty"`
+	// References lists related control IDs (e.g., "STIG-V-123456").
+	References []string `json:"references,omitempty" yaml:"references,omitempty"`
+}
+
+// PluginComplianceResult contains the compliance results for a single audit plugin.
+type PluginComplianceResult struct {
+	// PluginInfo contains metadata about the plugin that produced these results.
+	PluginInfo CompliancePluginInfo `json:"pluginInfo" yaml:"pluginInfo,omitempty"`
+	// Findings contains compliance findings specific to this plugin.
+	Findings []ComplianceFinding `json:"findings,omitempty" yaml:"findings,omitempty"`
+	// Summary contains summary statistics for this plugin's results.
+	Summary *ComplianceResultSummary `json:"summary,omitempty" yaml:"summary,omitempty"`
+	// Controls contains the control definitions evaluated by this plugin.
+	Controls []ComplianceControl `json:"controls,omitempty" yaml:"controls,omitempty"`
+	// Compliance maps control IDs to their compliant/non-compliant status.
+	Compliance map[string]bool `json:"compliance,omitempty" yaml:"compliance,omitempty"`
+}
+
+// CompliancePluginInfo contains metadata about an audit plugin.
+type CompliancePluginInfo struct {
+	// Name is the plugin name.
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	// Version is the plugin version string.
+	Version string `json:"version,omitempty" yaml:"version,omitempty"`
+	// Description is a brief description of the plugin's purpose.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+}
+
+// ComplianceControl represents a single compliance control definition from a plugin.
+type ComplianceControl struct {
+	// ID is the unique control identifier (e.g., "STIG-V-123456", "SANS-001").
+	ID string `json:"id,omitempty" yaml:"id,omitempty"`
+	// Title is the control title.
+	Title string `json:"title,omitempty" yaml:"title,omitempty"`
+	// Description is a detailed explanation of the control.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Category is the control's category classification.
+	Category string `json:"category,omitempty" yaml:"category,omitempty"`
+	// Severity is the severity level for violations of this control.
+	Severity string `json:"severity,omitempty" yaml:"severity,omitempty"`
+	// Rationale explains why this control is important.
+	Rationale string `json:"rationale,omitempty" yaml:"rationale,omitempty"`
+	// Remediation describes how to achieve compliance with this control.
+	Remediation string `json:"remediation,omitempty" yaml:"remediation,omitempty"`
+	// References lists related documentation links (e.g., NIST, CIS URLs).
+	References []string `json:"references,omitempty" yaml:"references,omitempty"`
+	// Tags lists classification tags for the control.
+	Tags []string `json:"tags,omitempty" yaml:"tags,omitempty"`
+	// Metadata contains arbitrary key-value metadata about the control.
+	Metadata map[string]string `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+}
+
+// ComplianceResultSummary contains aggregate counts for compliance audit results.
+type ComplianceResultSummary struct {
+	// TotalFindings is the total number of findings.
+	TotalFindings int `json:"totalFindings,omitempty" yaml:"totalFindings,omitempty"`
+	// CriticalFindings is the number of critical-severity findings.
+	CriticalFindings int `json:"criticalFindings,omitempty" yaml:"criticalFindings,omitempty"`
+	// HighFindings is the number of high-severity findings.
+	HighFindings int `json:"highFindings,omitempty" yaml:"highFindings,omitempty"`
+	// MediumFindings is the number of medium-severity findings.
+	MediumFindings int `json:"mediumFindings,omitempty" yaml:"mediumFindings,omitempty"`
+	// LowFindings is the number of low-severity findings.
+	LowFindings int `json:"lowFindings,omitempty" yaml:"lowFindings,omitempty"`
+	// PluginCount is the number of plugins that contributed results.
+	PluginCount int `json:"pluginCount,omitempty" yaml:"pluginCount,omitempty"`
+	// Compliant is the number of controls that passed.
+	Compliant int `json:"compliant,omitempty" yaml:"compliant,omitempty"`
+	// NonCompliant is the number of controls that failed.
+	NonCompliant int `json:"nonCompliant,omitempty" yaml:"nonCompliant,omitempty"`
 }
