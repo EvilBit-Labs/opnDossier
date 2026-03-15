@@ -480,7 +480,8 @@ func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
 		totalFindings = cc.Summary.TotalFindings
 	} else {
 		// Compute from plugin results if summary is nil
-		for _, pr := range cc.PluginResults {
+		for _, pluginName := range slices.Sorted(maps.Keys(cc.PluginResults)) {
+			pr := cc.PluginResults[pluginName]
 			if pr.Summary != nil {
 				totalFindings += pr.Summary.TotalFindings
 			}

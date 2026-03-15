@@ -789,6 +789,10 @@ func TestTruncateString(t *testing.T) {
 		{"unicode emoji", "Hello \U0001f30d\U0001f30e\U0001f30f World", 10, "Hello \U0001f30d..."},
 		{"japanese text", "\u3053\u3093\u306b\u3061\u306f\u4e16\u754c", 5, "\u3053\u3093..."},
 		{"mixed unicode", "Test\u65e5\u672c\u8a9eText", 8, "Test\u65e5..."},
+		{"zero maxLen", "hello", 0, ""},
+		{"negative maxLen", "hello", -1, ""},
+		{"maxLen equals ellipsis len", "hello", 3, "hel"},
+		{"maxLen less than ellipsis len", "hello world", 2, "he"},
 	}
 
 	for _, tt := range tests {

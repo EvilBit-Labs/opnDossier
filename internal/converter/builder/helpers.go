@@ -27,6 +27,9 @@ func EscapePipeForMarkdown(s string) string {
 // Unlike formatters.TruncateDescription which truncates at word boundaries,
 // this function truncates at exact rune positions.
 func TruncateString(s string, maxLen int) string {
+	if maxLen <= 0 {
+		return ""
+	}
 	runes := []rune(s)
 	if len(runes) <= maxLen {
 		return s
