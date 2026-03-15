@@ -458,7 +458,7 @@ Separate check logic from stats updates. Never increment stats inside a function
 **Compliance results model:**
 
 - `CommonDevice.ComplianceChecks` uses `*ComplianceResults` (not the old stub `ComplianceChecks` struct)
-- `common.ComplianceResults` / `ComplianceFinding` / `PluginComplianceResult` / `ComplianceControl` / `ComplianceResultSummary` mirror `audit.Report` / `analysis.Finding` / `audit.ComplianceResult` / `compliance.Control` / `audit.ComplianceSummary` shapes but live in `common` (no `audit` import — avoids circular deps)
+- `common.ComplianceResults` / `ComplianceFinding` / `PluginComplianceResult` / `ComplianceControl` / `ComplianceResultSummary` mirror `audit.Report` / `analysis.Finding` / `audit.ComplianceResult` / `compliance.Control` / `audit.ComplianceSummary` shapes but live in `common` (no `audit` import — avoids circular deps). `ComplianceFinding` includes `AttackSurface`, `ExploitNotes`, and `Control` from `audit.Finding` in addition to all `analysis.Finding` fields
 - `ComplianceChecks` is populated by `mapAuditReportToComplianceResults()` in `cmd/audit_handler.go`, not by `prepareForExport()` — pass-through only
 - `ComplianceControl` includes `References`, `Tags`, `Metadata` fields matching `compliance.Control`
 - `compliance.Finding` is a type alias for `analysis.Finding` — they are the same struct
@@ -466,10 +466,13 @@ Separate check logic from stats updates. Never increment stats inside a function
 **Audit report rendering:**
 
 - `handleAuditMode()` in `cmd/audit_handler.go` maps `audit.Report` → `device.ComplianceChecks` via `mapAuditReportToComplianceResults()`, then delegates to `generateWithProgrammaticGenerator()` — no format-specific code in the handler
+- `handleAuditMode()` creates a shallow copy of `*CommonDevice` before setting `ComplianceChecks` — does NOT mutate the input (immutability rule)
+- `ComplianceFinding` includes `AttackSurface *ComplianceAttackSurface`, `ExploitNotes`, `Control` from `audit.Finding`, plus `Reference`, `Tags`, `Metadata` from `analysis.Finding` — no silent field drops during mapping
+- `ComplianceResultSummary` int fields use `json:"field"` (no `omitempty`) — zero values must serialize to distinguish "zero findings" from "not computed"; YAML `omitempty` is fine
 - `HybridGenerator.generateMarkdown()` / `generateMarkdownToWriter()` appends `BuildAuditSection()` / `WriteAuditSection()` when `ComplianceChecks` is present
 - JSON/YAML formats serialize `ComplianceChecks` automatically via struct tags — no special handling needed
 - `BuildAuditSection(data)` / `WriteAuditSection(w, data)` in `internal/converter/builder/` renders compliance audit results from `CommonDevice.ComplianceChecks`
-- Returns empty string when `ComplianceChecks` is nil — safe to call unconditionally
+- `BuildAuditSection` returns empty string when `ComplianceChecks` is nil; `WriteAuditSection` writes nothing and returns nil — both safe to call unconditionally
 - `audit.ComplianceResult` has nested maps: `PluginInfo map[string]PluginInfo`, `Compliance map[string]map[string]bool` — require plugin-name keyed lookups during mapping
 - `converter.Format` is the type name for output format (not `OutputFormat`)
 - Uses `EscapePipeForMarkdown()` (pipe-only escaping) and `TruncateString()` (rune-aware, exact position) — distinct from `formatters.EscapeTableContent()` (all special chars) and `formatters.TruncateDescription()` (word boundary)
