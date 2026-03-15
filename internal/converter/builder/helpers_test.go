@@ -2,6 +2,7 @@ package builder
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
@@ -727,4 +728,90 @@ func flattenTableSet(ts *markdown.TableSet) []string {
 // containsString checks if a slice contains a specific string.
 func containsString(slice []string, s string) bool {
 	return slices.Contains(slice, s)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EscapePipeForMarkdown Tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+func TestEscapePipeForMarkdown(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"no pipes", "hello world", "hello world"},
+		{"single pipe", "a|b", "a\\|b"},
+		{"multiple pipes", "a|b|c", "a\\|b\\|c"},
+		{"empty string", "", ""},
+		{"pipe at start", "|hello", "\\|hello"},
+		{"pipe at end", "hello|", "hello\\|"},
+		{"only pipe", "|", "\\|"},
+		{"adjacent pipes", "a||b", "a\\|\\|b"},
+		{"pipes with spaces", "a | b | c", "a \\| b \\| c"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result := EscapePipeForMarkdown(tt.input)
+			if result != tt.expected {
+				t.Errorf("EscapePipeForMarkdown(%q) = %q, want %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TruncateString Tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+func TestTruncateString(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    string
+		maxLen   int
+		expected string
+	}{
+		{"short string", "hello", 10, "hello"},
+		{"exact length", "hello", 5, "hello"},
+		{"needs truncation", "hello world", 8, "hello..."},
+		{"empty string", "", 10, ""},
+		{"very short max", "hello world", 4, "h..."},
+		{"four char max", "hello", 4, "h..."},
+		{"five char max", "hello world", 5, "he..."},
+		{"long string", strings.Repeat("a", 100), 20, strings.Repeat("a", 17) + "..."},
+		// Rune-aware truncation: multi-byte characters are not split
+		{"unicode emoji", "Hello \U0001f30d\U0001f30e\U0001f30f World", 10, "Hello \U0001f30d..."},
+		{"japanese text", "\u3053\u3093\u306b\u3061\u306f\u4e16\u754c", 5, "\u3053\u3093..."},
+		{"mixed unicode", "Test\u65e5\u672c\u8a9eText", 8, "Test\u65e5..."},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result := TruncateString(tt.input, tt.maxLen)
+			if result != tt.expected {
+				t.Errorf("TruncateString(%q, %d) = %q, want %q", tt.input, tt.maxLen, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestTruncateString_MaxDescriptionLength(t *testing.T) {
+	t.Parallel()
+
+	longDescription := strings.Repeat("a", 100)
+	result := TruncateString(longDescription, MaxDescriptionLength)
+
+	if len(result) > MaxDescriptionLength {
+		t.Errorf("TruncateString result length %d exceeds MaxDescriptionLength %d", len(result), MaxDescriptionLength)
+	}
+	if !strings.HasSuffix(result, "...") {
+		t.Error("Truncated string should end with '...'")
+	}
 }

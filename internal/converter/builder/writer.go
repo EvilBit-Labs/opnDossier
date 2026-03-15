@@ -33,6 +33,9 @@ type SectionWriter interface {
 	// WriteServicesSection writes the services configuration section to the writer.
 	WriteServicesSection(w io.Writer, data *common.CommonDevice) error
 
+	// WriteAuditSection writes the compliance audit section to the writer.
+	WriteAuditSection(w io.Writer, data *common.CommonDevice) error
+
 	// WriteStandardReport writes a complete standard report to the writer.
 	WriteStandardReport(w io.Writer, data *common.CommonDevice) error
 
@@ -42,6 +45,13 @@ type SectionWriter interface {
 
 // Ensure MarkdownBuilder implements SectionWriter.
 var _ SectionWriter = (*MarkdownBuilder)(nil)
+
+// WriteAuditSection writes the compliance audit section directly to the writer.
+func (b *MarkdownBuilder) WriteAuditSection(w io.Writer, data *common.CommonDevice) error {
+	section := b.BuildAuditSection(data)
+	_, err := io.WriteString(w, section)
+	return err
+}
 
 // WriteSystemSection writes the system configuration section directly to the writer.
 func (b *MarkdownBuilder) WriteSystemSection(w io.Writer, data *common.CommonDevice) error {
