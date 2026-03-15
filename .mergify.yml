@@ -1,6 +1,83 @@
 queue_rules:
-  - name: default
+  # ─────────────────────────────────────────────────────────────────────────
+  # 1. dosubot — lint only
+  # ─────────────────────────────────────────────────────────────────────────
+  - name: dosubot
     merge_method: squash
+    autoqueue: true
+    queue_conditions:
+      - base = main
+      - label != do-not-merge
+      - author = dosubot[bot]
+    merge_conditions:
+      - check-success = Lint
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # 2. dependabot-workflows — workflow-only changes, lint only
+  # ─────────────────────────────────────────────────────────────────────────
+  - name: dependabot-workflows
+    merge_method: squash
+    autoqueue: true
+    queue_conditions:
+      - base = main
+      - label != do-not-merge
+      - author = dependabot[bot]
+      - "-files ~= ^(?!\\.github/workflows/)"
+    merge_conditions:
+      - check-success = Lint
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # 3. dependabot — non-workflow changes, full CI
+  # ─────────────────────────────────────────────────────────────────────────
+  - name: dependabot
+    merge_method: squash
+    autoqueue: true
+    queue_conditions:
+      - base = main
+      - label != do-not-merge
+      - author = dependabot[bot]
+    merge_conditions:
+      - check-success = Lint
+      - check-success = Build
+      - "check-success = Test (ubuntu-latest)"
+      - "check-success = Test (macos-latest)"
+      - "check-success = Test (windows-latest)"
+      - check-success = Integration Tests
+      - check-success = Coverage
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # 4. maintainer — requires lgtm label, full CI
+  # ─────────────────────────────────────────────────────────────────────────
+  - name: maintainer
+    merge_method: squash
+    autoqueue: true
+    queue_conditions:
+      - base = main
+      - label != do-not-merge
+      - author = unclesp1d3r
+      - label = lgtm
+    merge_conditions:
+      - check-success = Lint
+      - check-success = Build
+      - "check-success = Test (ubuntu-latest)"
+      - "check-success = Test (macos-latest)"
+      - "check-success = Test (windows-latest)"
+      - check-success = Integration Tests
+      - check-success = Coverage
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # 5. external — anyone else, requires approval, full CI
+  # ─────────────────────────────────────────────────────────────────────────
+  - name: external
+    merge_method: squash
+    autoqueue: true
+    queue_conditions:
+      - base = main
+      - label != do-not-merge
+      - author != dependabot[bot]
+      - author != dosubot[bot]
+      - author != unclesp1d3r
+      - branch-protection-review-decision = APPROVED
     merge_conditions:
       - check-success = Lint
       - check-success = Build
@@ -11,71 +88,69 @@ queue_rules:
       - check-success = Coverage
 
 pull_request_rules:
-  # Tier 1: Trusted bot PRs -- auto-approve and queue immediately
-  - name: Auto-approve and queue dependabot PRs
+  # ─────────────────────────────────────────────────────────────────────────
+  # Auto-approve bot PRs
+  # ─────────────────────────────────────────────────────────────────────────
+  - name: Auto-approve dosubot PRs
     conditions:
       - base = main
-      - author = dependabot[bot]
-      - -draft
-      - label != do-not-merge
-      - -files~=\.github/workflows/release\.yml
+      - author = dosubot[bot]
     actions:
       review:
         type: APPROVE
         message: Automatically approved by Mergify
-      queue:
-        name: default
 
-  # Tier 2: Maintainer PRs -- queue when maintainer self-labels 'lgtm'
-  # (no approval required; solves the sole-maintainer self-merge problem)
-  - name: Queue maintainer PRs with lgtm label
+  - name: Auto-approve dependabot PRs
     conditions:
       - base = main
-      - "author=@maintainers"
-      - -draft
-      - label = lgtm
-      - label != do-not-merge
+      - author = dependabot[bot]
     actions:
-      queue:
-        name: default
+      review:
+        type: APPROVE
+        message: Automatically approved by Mergify
 
-  # Tier 3: External contributor PRs -- require maintainer approval
-  - name: Queue external PRs when approved by maintainer
-    conditions:
-      - base = main
-      - "-author=@maintainers"
-      - author != dependabot[bot]
-      - -draft
-      - "approved-reviews-by=@maintainers"
-      - label != do-not-merge
-    actions:
-      queue:
-        name: default
-
+  # ─────────────────────────────────────────────────────────────────────────
+  # Keep PRs up to date
+  # ─────────────────────────────────────────────────────────────────────────
   - name: Keep PRs up to date with main
     conditions:
       - base = main
       - -conflict
       - -draft
-      - -author = dependabot[bot]
-      - label != do-not-merge
     actions:
       update: {}
 
 merge_protections:
+  # ─────────────────────────────────────────────────────────────────────────
+  # 1. Conventional commits (skip for bots)
+  # ─────────────────────────────────────────────────────────────────────────
   - name: Enforce conventional commit
-    description: Make sure that we follow https://www.conventionalcommits.org/en/v1.0.0/
+    description: >-
+      Require conventional commit format per https://www.conventionalcommits.org/en/v1.0.0/.
+      Skipped for dependabot and dosubot.
     if:
       - base = main
+      - author != dependabot[bot]
+      - author != dosubot[bot]
     success_conditions:
       - "title ~= ^(fix|feat|docs|style|refactor|perf|test|build|ci|chore|revert)(?:\\(.+\\))?:"
 
-  - name: CI must pass
+  # ─────────────────────────────────────────────────────────────────────────
+  # 2. Full CI for non-bot authors or dependabot with non-workflow changes
+  # ─────────────────────────────────────────────────────────────────────────
+  - name: Full CI must pass
     description: >-
-      All CI checks must pass. This protection prevents manual merges
-      that bypass the merge queue.
+      All CI checks must pass. Activates for non-bot authors, or dependabot
+      when files exist outside .github/workflows/.
     if:
       - base = main
+      - or:
+          - and:
+              - author != dependabot[bot]
+              - author != dosubot[bot]
+          - and:
+              - author = dependabot[bot]
+              - "files ~= ^(?!\\.github/workflows/)"
     success_conditions:
       - check-success = Lint
       - check-success = Build
@@ -85,6 +160,26 @@ merge_protections:
       - check-success = Integration Tests
       - check-success = Coverage
 
+  # ─────────────────────────────────────────────────────────────────────────
+  # 3. Lint-only for bots with workflow-only changes
+  # ─────────────────────────────────────────────────────────────────────────
+  - name: Lint must pass for bot workflow PRs
+    description: >-
+      Lint check must pass for dosubot or dependabot when all files are
+      within .github/workflows/.
+    if:
+      - base = main
+      - or:
+          - author = dosubot[bot]
+          - and:
+              - author = dependabot[bot]
+              - "-files ~= ^(?!\\.github/workflows/)"
+    success_conditions:
+      - check-success = Lint
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # 4. Outdated PR protection
+  # ─────────────────────────────────────────────────────────────────────────
   - name: Do not merge outdated PRs
     description: Make sure PRs are within 10 commits of the base branch before merging
     if:
