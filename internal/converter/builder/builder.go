@@ -4,6 +4,8 @@ package builder
 import (
 	"bytes"
 	"fmt"
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -60,6 +62,8 @@ type ReportBuilder interface {
 	BuildHASection(data *common.CommonDevice) string
 	// BuildIDSSection builds the IDS/Suricata configuration section.
 	BuildIDSSection(data *common.CommonDevice) string
+	// BuildAuditSection builds the compliance audit section from the device's ComplianceChecks.
+	BuildAuditSection(data *common.CommonDevice) string
 
 	// BuildStandardReport generates a standard configuration report.
 	BuildStandardReport(data *common.CommonDevice) (string, error)
@@ -456,6 +460,130 @@ func (b *MarkdownBuilder) BuildIDSSection(data *common.CommonDevice) string {
 	md := markdown.NewMarkdown(&buf)
 	b.writeIDSSection(md, data)
 	return md.String()
+}
+
+// BuildAuditSection builds the compliance audit section from the device's ComplianceChecks.
+// If ComplianceChecks is nil, it returns an empty string.
+func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
+	if data.ComplianceChecks == nil {
+		return ""
+	}
+
+	cc := data.ComplianceChecks
+
+	var buf bytes.Buffer
+	md := markdown.NewMarkdown(&buf)
+
+	// Summary table
+	totalFindings := 0
+	if cc.Summary != nil {
+		totalFindings = cc.Summary.TotalFindings
+	} else {
+		// Compute from plugin results if summary is nil
+		for _, pluginName := range slices.Sorted(maps.Keys(cc.PluginResults)) {
+			pr := cc.PluginResults[pluginName]
+			if pr.Summary != nil {
+				totalFindings += pr.Summary.TotalFindings
+			}
+		}
+	}
+
+	md.H2("Compliance Audit Summary")
+	md.Table(markdown.TableSet{
+		Header: []string{"Metric", "Value"},
+		Rows: [][]string{
+			{"Mode", cc.Mode},
+			{"Total Findings", strconv.Itoa(totalFindings)},
+		},
+	})
+
+	// Plugin compliance results
+	if len(cc.PluginResults) > 0 {
+		md.H3("Plugin Compliance Results")
+		for _, pluginName := range slices.Sorted(maps.Keys(cc.PluginResults)) {
+			result := cc.PluginResults[pluginName]
+			md.H4(pluginName)
+
+			if result.Summary == nil {
+				md.BulletList("Summary: no data available")
+				continue
+			}
+
+			items := []string{fmt.Sprintf("Summary: %d findings", result.Summary.TotalFindings)}
+			if result.Summary.CriticalFindings > 0 {
+				items = append(items, fmt.Sprintf("Critical: %d", result.Summary.CriticalFindings))
+			}
+			if result.Summary.HighFindings > 0 {
+				items = append(items, fmt.Sprintf("High: %d", result.Summary.HighFindings))
+			}
+			if result.Summary.MediumFindings > 0 {
+				items = append(items, fmt.Sprintf("Medium: %d", result.Summary.MediumFindings))
+			}
+			if result.Summary.LowFindings > 0 {
+				items = append(items, fmt.Sprintf("Low: %d", result.Summary.LowFindings))
+			}
+			md.BulletList(items...)
+		}
+	}
+
+	// Security findings table
+	if len(cc.Findings) > 0 {
+		md.H3("Security Findings")
+		findingsTable := markdown.TableSet{
+			Header: []string{"Severity", "Component", "Title", "Recommendation"},
+			Rows:   make([][]string, 0, len(cc.Findings)),
+		}
+		for _, f := range cc.Findings {
+			findingsTable.Rows = append(findingsTable.Rows, []string{
+				EscapePipeForMarkdown(f.Severity),
+				EscapePipeForMarkdown(f.Component),
+				EscapePipeForMarkdown(f.Title),
+				EscapePipeForMarkdown(f.Recommendation),
+			})
+		}
+		md.Table(findingsTable)
+	}
+
+	// Per-plugin findings tables
+	for _, pluginName := range slices.Sorted(maps.Keys(cc.PluginResults)) {
+		result := cc.PluginResults[pluginName]
+		if len(result.Findings) > 0 {
+			md.H3(pluginName + " Plugin Findings")
+			pluginTable := markdown.TableSet{
+				Header: []string{"Severity", "Title", "Description"},
+				Rows:   make([][]string, 0, len(result.Findings)),
+			}
+			for _, f := range result.Findings {
+				pluginTable.Rows = append(pluginTable.Rows, []string{
+					EscapePipeForMarkdown(f.Severity),
+					EscapePipeForMarkdown(f.Title),
+					EscapePipeForMarkdown(TruncateString(f.Description, MaxDescriptionLength)),
+				})
+			}
+			md.Table(pluginTable)
+		}
+	}
+
+	// Audit metadata table
+	if len(cc.Metadata) > 0 {
+		md.H3("Audit Metadata")
+		metadataTable := markdown.TableSet{
+			Header: []string{"Key", "Value"},
+			Rows:   make([][]string, 0, len(cc.Metadata)),
+		}
+		for _, key := range slices.Sorted(maps.Keys(cc.Metadata)) {
+			metadataTable.Rows = append(metadataTable.Rows, []string{
+				EscapePipeForMarkdown(key),
+				EscapePipeForMarkdown(fmt.Sprintf("%v", cc.Metadata[key])),
+			})
+		}
+		md.Table(metadataTable)
+	}
+
+	//nolint:errcheck,gosec // Build writes to bytes.Buffer which cannot fail
+	md.Build()
+
+	return buf.String()
 }
 
 // writeServicesSection writes the service configuration section to the markdown instance.

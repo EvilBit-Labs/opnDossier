@@ -130,8 +130,8 @@ type CommonDevice struct {
 	SecurityAssessment *SecurityAssessment `json:"securityAssessment,omitempty" yaml:"securityAssessment,omitempty"`
 	// PerformanceMetrics contains performance-related metrics.
 	PerformanceMetrics *PerformanceMetrics `json:"performanceMetrics,omitempty" yaml:"performanceMetrics,omitempty"`
-	// ComplianceChecks contains compliance check results.
-	ComplianceChecks *ComplianceChecks `json:"complianceChecks,omitempty" yaml:"complianceChecks,omitempty"`
+	// ComplianceChecks contains compliance audit results from plugin-based checks.
+	ComplianceChecks *ComplianceResults `json:"complianceChecks,omitempty" yaml:"complianceChecks,omitempty"`
 }
 
 // HasDHCP reports whether the device has any DHCP configuration,

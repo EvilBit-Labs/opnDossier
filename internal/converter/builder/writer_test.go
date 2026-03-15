@@ -215,6 +215,55 @@ func TestSectionWriter_Interface(t *testing.T) {
 	var _ builder.SectionWriter = (*builder.MarkdownBuilder)(nil)
 }
 
+func TestMarkdownBuilder_WriteAuditSection(t *testing.T) {
+	t.Parallel()
+
+	b := builder.NewMarkdownBuilder()
+	data := &common.CommonDevice{
+		ComplianceChecks: &common.ComplianceResults{
+			Mode: "blue",
+			Findings: []common.ComplianceFinding{
+				{Severity: "high", Title: "Test Finding", Component: "firewall", Recommendation: "Fix it"},
+			},
+			Summary: &common.ComplianceResultSummary{TotalFindings: 1, HighFindings: 1},
+		},
+	}
+
+	var buf bytes.Buffer
+	err := b.WriteAuditSection(&buf, data)
+	if err != nil {
+		t.Fatalf("WriteAuditSection returned error: %v", err)
+	}
+
+	output := buf.String()
+	if output == "" {
+		t.Error("WriteAuditSection produced empty output")
+	}
+
+	// Verify it matches the Build method output
+	expected := b.BuildAuditSection(data)
+	if output != expected {
+		t.Errorf("WriteAuditSection output differs from BuildAuditSection:\ngot:\n%s\nwant:\n%s", output, expected)
+	}
+}
+
+func TestMarkdownBuilder_WriteAuditSection_NilComplianceChecks(t *testing.T) {
+	t.Parallel()
+
+	b := builder.NewMarkdownBuilder()
+	data := &common.CommonDevice{ComplianceChecks: nil}
+
+	var buf bytes.Buffer
+	err := b.WriteAuditSection(&buf, data)
+	if err != nil {
+		t.Fatalf("WriteAuditSection returned error: %v", err)
+	}
+
+	if buf.String() != "" {
+		t.Error("WriteAuditSection with nil ComplianceChecks should produce empty output")
+	}
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // VLAN Table Tests (Issue #67)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -575,6 +624,8 @@ func TestMarkdownBuilder_WriteComprehensiveReport_NewSections(t *testing.T) {
 
 // TestMarkdownBuilder_ValidateMarkdownSyntax validates that all generated markdown
 // passes goldmark parsing.
+//
+//nolint:dupl // test table structure intentionally mirrors TestMarkdownBuilder_ValidateEmptyData
 func TestMarkdownBuilder_ValidateMarkdownSyntax(t *testing.T) {
 	t.Parallel()
 
@@ -625,6 +676,12 @@ func TestMarkdownBuilder_ValidateMarkdownSyntax(t *testing.T) {
 			name: "HASection",
 			generate: func() string {
 				return b.BuildHASection(data)
+			},
+		},
+		{
+			name: "AuditSection",
+			generate: func() string {
+				return b.BuildAuditSection(data)
 			},
 		},
 	}
@@ -740,6 +797,12 @@ func TestMarkdownBuilder_ValidateWriteMethods(t *testing.T) {
 				return b.WriteComprehensiveReport(buf, data)
 			},
 		},
+		{
+			name: "WriteAuditSection",
+			write: func(buf *bytes.Buffer) error {
+				return b.WriteAuditSection(buf, data)
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -850,6 +913,8 @@ func TestMarkdownBuilder_ValidateTableMethods(t *testing.T) {
 
 // TestMarkdownBuilder_ValidateEmptyData validates that the builder handles empty
 // data gracefully and still produces valid markdown.
+//
+//nolint:dupl // test table structure intentionally mirrors TestMarkdownBuilder_ValidateMarkdownSyntax
 func TestMarkdownBuilder_ValidateEmptyData(t *testing.T) {
 	t.Parallel()
 
@@ -908,6 +973,12 @@ func TestMarkdownBuilder_ValidateEmptyData(t *testing.T) {
 			name: "HASection_Empty",
 			generate: func() string {
 				return b.BuildHASection(data)
+			},
+		},
+		{
+			name: "AuditSection_Empty",
+			generate: func() string {
+				return b.BuildAuditSection(data)
 			},
 		},
 	}
@@ -1027,6 +1098,23 @@ func createTestDocumentWithAllFeatures() *common.CommonDevice {
 	doc.HighAvailability = common.HighAvailability{
 		PfsyncInterface: "em2",
 		PfsyncPeerIP:    "192.168.100.2",
+	}
+	doc.ComplianceChecks = &common.ComplianceResults{
+		Mode: "blue",
+		Findings: []common.ComplianceFinding{
+			{Severity: "high", Title: "Test Finding", Component: "firewall", Recommendation: "Fix it"},
+		},
+		PluginResults: map[string]common.PluginComplianceResult{
+			"stig": {
+				PluginInfo: common.CompliancePluginInfo{Name: "stig", Version: "1.0"},
+				Findings: []common.ComplianceFinding{
+					{Severity: "medium", Title: "STIG Check", Description: "A STIG finding"},
+				},
+				Summary: &common.ComplianceResultSummary{TotalFindings: 1, MediumFindings: 1},
+			},
+		},
+		Summary:  &common.ComplianceResultSummary{TotalFindings: 1, HighFindings: 1},
+		Metadata: map[string]any{"scan_time": "2024-01-15T10:30:00Z"},
 	}
 	return doc
 }
