@@ -450,6 +450,20 @@ Separate check logic from stats updates. Never increment stats inside a function
 - New `CommonDevice` enrichment fields must be wired here to appear in JSON/YAML output
 - `computeStatistics` receives *unredacted* data (for accurate presence checks); sensitive values copied into `ServiceDetails` must be post-processed by `redactStatisticsServiceDetails()` when `redact=true`
 
+**Compliance results model:**
+
+- `CommonDevice.ComplianceChecks` uses `*ComplianceResults` (not the old stub `ComplianceChecks` struct)
+- `common.ComplianceResults` / `ComplianceFinding` / `PluginComplianceResult` / `ComplianceControl` / `ComplianceResultSummary` mirror `audit.Report` / `analysis.Finding` / `audit.ComplianceResult` / `compliance.Control` / `audit.ComplianceSummary` shapes but live in `common` (no `audit` import — avoids circular deps)
+- `ComplianceChecks` is populated externally by the audit handler, not by `prepareForExport()` — pass-through only
+- `ComplianceControl` includes `References`, `Tags`, `Metadata` fields matching `compliance.Control`
+
+**Audit report rendering:**
+
+- `BuildAuditSection(data)` / `WriteAuditSection(w, data)` in `internal/converter/builder/` renders compliance audit results from `CommonDevice.ComplianceChecks`
+- Returns empty string when `ComplianceChecks` is nil — safe to call unconditionally
+- Uses `EscapePipeForMarkdown()` (pipe-only escaping) and `TruncateString()` (rune-aware, exact position) — distinct from `formatters.EscapeTableContent()` (all special chars) and `formatters.TruncateDescription()` (word boundary)
+- Plugin names and metadata keys are iterated in sorted order (`slices.Sorted(maps.Keys(...))`)
+
 **Port field disambiguation:**
 
 - `Source.Port` → `<source><port>...</port></source>` (nested, preferred)
