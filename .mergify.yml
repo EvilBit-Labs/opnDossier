@@ -46,38 +46,11 @@ queue_rules:
       - check-success = Coverage
 
   # ─────────────────────────────────────────────────────────────────────────
-  # 4. maintainer — requires lgtm label, full CI
+  # 4. default — manually enqueued by maintainers, full CI
+  #    Repo permissions restrict who can send the /queue command.
   # ─────────────────────────────────────────────────────────────────────────
-  - name: maintainer
+  - name: default
     merge_method: squash
-    autoqueue: true
-    queue_conditions:
-      - base = main
-      - label != do-not-merge
-      - author = unclesp1d3r
-      - label = lgtm
-    merge_conditions:
-      - check-success = Lint
-      - check-success = Build
-      - "check-success = Test (ubuntu-latest)"
-      - "check-success = Test (macos-latest)"
-      - "check-success = Test (windows-latest)"
-      - check-success = Integration Tests
-      - check-success = Coverage
-
-  # ─────────────────────────────────────────────────────────────────────────
-  # 5. external — anyone else, requires approval, full CI
-  # ─────────────────────────────────────────────────────────────────────────
-  - name: external
-    merge_method: squash
-    autoqueue: true
-    queue_conditions:
-      - base = main
-      - label != do-not-merge
-      - author != dependabot[bot]
-      - author != dosubot[bot]
-      - author != unclesp1d3r
-      - branch-protection-review-decision = APPROVED
     merge_conditions:
       - check-success = Lint
       - check-success = Build
