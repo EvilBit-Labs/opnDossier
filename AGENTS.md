@@ -51,6 +51,11 @@ When rules conflict, follow the higher precedence rule.
 - **Ethical Constraints:** No dark patterns, spyware, or telemetry
 - **No Emojis:** Do not use emojis in code, CLI output, comments, or documentation unless the code specifically processes emoji data
 
+### Repository Roles
+
+- **Maintainer:** `unclesp1d3r` (sole maintainer — `lgtm` label self-merge pattern in Mergify)
+- **Trusted bots:** `dependabot[bot]`, `dosubot[bot]` (auto-approved by Mergify)
+
 ---
 
 ## 3. Technology Stack
@@ -454,13 +459,19 @@ Separate check logic from stats updates. Never increment stats inside a function
 
 - `CommonDevice.ComplianceChecks` uses `*ComplianceResults` (not the old stub `ComplianceChecks` struct)
 - `common.ComplianceResults` / `ComplianceFinding` / `PluginComplianceResult` / `ComplianceControl` / `ComplianceResultSummary` mirror `audit.Report` / `analysis.Finding` / `audit.ComplianceResult` / `compliance.Control` / `audit.ComplianceSummary` shapes but live in `common` (no `audit` import — avoids circular deps)
-- `ComplianceChecks` is populated externally by the audit handler, not by `prepareForExport()` — pass-through only
+- `ComplianceChecks` is populated by `mapAuditReportToComplianceResults()` in `cmd/audit_handler.go`, not by `prepareForExport()` — pass-through only
 - `ComplianceControl` includes `References`, `Tags`, `Metadata` fields matching `compliance.Control`
+- `compliance.Finding` is a type alias for `analysis.Finding` — they are the same struct
 
 **Audit report rendering:**
 
+- `handleAuditMode()` in `cmd/audit_handler.go` maps `audit.Report` → `device.ComplianceChecks` via `mapAuditReportToComplianceResults()`, then delegates to `generateWithProgrammaticGenerator()` — no format-specific code in the handler
+- `HybridGenerator.generateMarkdown()` / `generateMarkdownToWriter()` appends `BuildAuditSection()` / `WriteAuditSection()` when `ComplianceChecks` is present
+- JSON/YAML formats serialize `ComplianceChecks` automatically via struct tags — no special handling needed
 - `BuildAuditSection(data)` / `WriteAuditSection(w, data)` in `internal/converter/builder/` renders compliance audit results from `CommonDevice.ComplianceChecks`
 - Returns empty string when `ComplianceChecks` is nil — safe to call unconditionally
+- `audit.ComplianceResult` has nested maps: `PluginInfo map[string]PluginInfo`, `Compliance map[string]map[string]bool` — require plugin-name keyed lookups during mapping
+- `converter.Format` is the type name for output format (not `OutputFormat`)
 - Uses `EscapePipeForMarkdown()` (pipe-only escaping) and `TruncateString()` (rune-aware, exact position) — distinct from `formatters.EscapeTableContent()` (all special chars) and `formatters.TruncateDescription()` (word boundary)
 - Plugin names and metadata keys are iterated in sorted order (`slices.Sorted(maps.Keys(...))`)
 
@@ -722,6 +733,14 @@ CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o opnDossier ./main.go
 - Race detection can fail on async test infrastructure (spinners/progress bars) - not production bugs
 - Benchmarks with large files can hang for hours; use `timeout-minutes` and `continue-on-error: true`
 - The `Performance Benchmarks` job is non-blocking (continue-on-error) to prevent PR merge delays
+
+**Mergify merge queues:**
+
+- `.mergify.yml` defines 5 author-specific queues: `dosubot`, `dependabot-workflows`, `dependabot`, `maintainer`, `external`
+- CI check names in Mergify must match the `name:` field in workflow jobs (e.g., `Lint`, `Build`, `Test (ubuntu-latest)`), NOT the job ID (`lint`, `build`, `test`)
+- DCO sign-off is enforced by a GitHub App, not a CI workflow — there is no `DCO` check name
+- Bot PRs (dosubot, dependabot workflow-only) require only `Lint`; all others require full CI
+- `autoqueue: true` on all queues — PRs are enqueued automatically when `queue_conditions` match, no `pull_request_rules` queue action needed
 
 ---
 

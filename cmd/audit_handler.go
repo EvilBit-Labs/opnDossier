@@ -2,24 +2,22 @@
 package cmd
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"maps"
 	"slices"
-	"strconv"
-	"strings"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/audit"
+	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
-	"github.com/nao1215/markdown"
 )
 
-// handleAuditMode generates a report with audit findings appended.
-// It parses the audit mode, initializes the plugin system, runs compliance checks,
-// and appends the audit findings to the base markdown report.
+// handleAuditMode generates a report with audit findings.
+// It runs compliance checks, maps results onto the device's ComplianceChecks field,
+// and delegates report generation to generateWithProgrammaticGenerator.
 func handleAuditMode(
 	ctx context.Context,
 	device *common.CommonDevice,
@@ -53,147 +51,173 @@ func handleAuditMode(
 		return "", fmt.Errorf("generate audit report: %w", err)
 	}
 
-	// Generate base markdown report using existing generator
-	baseReport, err := generateWithProgrammaticGenerator(ctx, device, opt, logger)
-	if err != nil {
-		return "", fmt.Errorf("generate base report: %w", err)
-	}
+	// Map audit results onto the device's ComplianceChecks field
+	device.ComplianceChecks = mapAuditReportToComplianceResults(auditReport)
 
-	// Append audit findings section
-	return appendAuditFindings(baseReport, auditReport), nil
+	// Delegate to the standard generator pipeline (handles markdown, JSON, YAML, etc.)
+	return generateWithProgrammaticGenerator(ctx, device, opt, logger)
 }
 
-// appendAuditFindings appends compliance summary and findings to the base report.
-// It creates a markdown section with a summary table and detailed findings.
-func appendAuditFindings(baseReport string, report *audit.Report) string {
-	var buf bytes.Buffer
-	buf.WriteString(baseReport)
-	buf.WriteString("\n\n")
-
-	md := markdown.NewMarkdown(&buf)
-	md.H2("Compliance Audit Summary")
-
-	// Summary table using nao1215/markdown
-	summaryTable := markdown.TableSet{
-		Header: []string{"Metric", "Value"},
-		Rows: [][]string{
-			{"Report Mode", string(report.Mode)},
-			{"Blackhat Mode", strconv.FormatBool(report.BlackhatMode)},
-			{"Comprehensive", strconv.FormatBool(report.Comprehensive)},
-			{"Total Findings", strconv.Itoa(report.TotalFindingsCount())},
-		},
-	}
-	md.Table(summaryTable)
-
-	// Add compliance plugin results if available (deterministic order)
-	if len(report.Compliance) > 0 {
-		md.H3("Plugin Compliance Results")
-		for _, pluginName := range slices.Sorted(maps.Keys(report.Compliance)) {
-			result := report.Compliance[pluginName]
-			md.H4(pluginName)
-
-			if result.Summary == nil {
-				md.BulletList("Summary: no data available")
-				continue
-			}
-
-			items := []string{fmt.Sprintf("Summary: %d findings", result.Summary.TotalFindings)}
-			if result.Summary.CriticalFindings > 0 {
-				items = append(items, fmt.Sprintf("Critical: %d", result.Summary.CriticalFindings))
-			}
-			if result.Summary.HighFindings > 0 {
-				items = append(items, fmt.Sprintf("High: %d", result.Summary.HighFindings))
-			}
-			if result.Summary.MediumFindings > 0 {
-				items = append(items, fmt.Sprintf("Medium: %d", result.Summary.MediumFindings))
-			}
-			if result.Summary.LowFindings > 0 {
-				items = append(items, fmt.Sprintf("Low: %d", result.Summary.LowFindings))
-			}
-			md.BulletList(items...)
-		}
+// mapAuditReportToComplianceResults converts an audit.Report into a common.ComplianceResults
+// for embedding in CommonDevice. This enables all output formats (markdown, JSON, YAML)
+// to include compliance data through the standard export pipeline.
+func mapAuditReportToComplianceResults(report *audit.Report) *common.ComplianceResults {
+	result := &common.ComplianceResults{
+		Mode:          string(report.Mode),
+		PluginResults: make(map[string]common.PluginComplianceResult, len(report.Compliance)),
+		Metadata:      maps.Clone(report.Metadata),
 	}
 
-	// Findings details if any
-	if len(report.Findings) > 0 {
-		md.H3("Security Findings")
-		findingsTable := markdown.TableSet{
-			Header: []string{"Severity", "Component", "Title", "Recommendation"},
-			Rows:   make([][]string, 0, len(report.Findings)),
-		}
-		for _, f := range report.Findings {
-			findingsTable.Rows = append(findingsTable.Rows, []string{
-				escapePipeForMarkdown(f.Severity),
-				escapePipeForMarkdown(f.Component),
-				escapePipeForMarkdown(f.Title),
-				escapePipeForMarkdown(f.Recommendation),
-			})
-		}
-		md.Table(findingsTable)
-	}
+	// Map top-level findings (security analysis findings)
+	result.Findings = mapAuditFindings(report.Findings)
 
-	// Add plugin findings from compliance results (deterministic order)
+	// Map per-plugin compliance results (deterministic iteration order)
+	var totalFindings, totalCritical, totalHigh, totalMedium, totalLow int
+	var totalCompliant, totalNonCompliant int
+
 	for _, pluginName := range slices.Sorted(maps.Keys(report.Compliance)) {
-		result := report.Compliance[pluginName]
-		if len(result.Findings) > 0 {
-			md.H3(pluginName + " Plugin Findings")
-			pluginTable := markdown.TableSet{
-				Header: []string{"Severity", "Title", "Description"},
-				Rows:   make([][]string, 0, len(result.Findings)),
-			}
-			for _, f := range result.Findings {
-				pluginTable.Rows = append(pluginTable.Rows, []string{
-					escapePipeForMarkdown(f.Severity),
-					escapePipeForMarkdown(f.Title),
-					escapePipeForMarkdown(truncateString(f.Description, maxDescriptionLength)),
-				})
-			}
-			md.Table(pluginTable)
+		cr := report.Compliance[pluginName]
+		pluginResult := mapPluginComplianceResult(pluginName, &cr)
+		result.PluginResults[pluginName] = pluginResult
+
+		if pluginResult.Summary != nil {
+			totalFindings += pluginResult.Summary.TotalFindings
+			totalCritical += pluginResult.Summary.CriticalFindings
+			totalHigh += pluginResult.Summary.HighFindings
+			totalMedium += pluginResult.Summary.MediumFindings
+			totalLow += pluginResult.Summary.LowFindings
+			totalCompliant += pluginResult.Summary.Compliant
+			totalNonCompliant += pluginResult.Summary.NonCompliant
 		}
 	}
 
-	// Add metadata summary (deterministic order)
-	if len(report.Metadata) > 0 {
-		md.H3("Audit Metadata")
-		metadataTable := markdown.TableSet{
-			Header: []string{"Key", "Value"},
-			Rows:   make([][]string, 0, len(report.Metadata)),
-		}
-		for _, key := range slices.Sorted(maps.Keys(report.Metadata)) {
-			metadataTable.Rows = append(metadataTable.Rows, []string{
-				escapePipeForMarkdown(key),
-				fmt.Sprintf("%v", report.Metadata[key]),
-			})
-		}
-		md.Table(metadataTable)
+	// Add direct findings to total count
+	totalFindings += len(report.Findings)
+
+	// Compute aggregate summary
+	result.Summary = &common.ComplianceResultSummary{
+		TotalFindings:    totalFindings,
+		CriticalFindings: totalCritical,
+		HighFindings:     totalHigh,
+		MediumFindings:   totalMedium,
+		LowFindings:      totalLow,
+		PluginCount:      len(report.Compliance),
+		Compliant:        totalCompliant,
+		NonCompliant:     totalNonCompliant,
 	}
 
-	//nolint:errcheck,gosec // Build writes to bytes.Buffer which cannot fail
-	md.Build()
-
-	return buf.String()
+	return result
 }
 
-// escapePipeForMarkdown escapes pipe characters in markdown table cells.
-func escapePipeForMarkdown(s string) string {
-	return strings.ReplaceAll(s, "|", "\\|")
+// mapAnalysisFinding converts a single analysis.Finding to a common.ComplianceFinding.
+// This shared helper is used by both mapAuditFindings and mapComplianceFindings,
+// since audit.Finding embeds analysis.Finding and compliance.Finding is a type alias for it.
+func mapAnalysisFinding(f analysis.Finding) common.ComplianceFinding {
+	return common.ComplianceFinding{
+		Type:           f.Type,
+		Severity:       f.Severity,
+		Title:          f.Title,
+		Description:    f.Description,
+		Recommendation: f.Recommendation,
+		Component:      f.Component,
+		References:     slices.Clone(f.References),
+	}
 }
 
-// Maximum description length for table cells.
-const maxDescriptionLength = 80
-
-// truncationEllipsisLen is the length of the "..." ellipsis used in truncation.
-const truncationEllipsisLen = 3
-
-// truncateString truncates a string to the specified maximum rune length.
-// It is rune-aware to avoid splitting multi-byte UTF-8 characters.
-func truncateString(s string, maxLen int) string {
-	runes := []rune(s)
-	if len(runes) <= maxLen {
-		return s
+// mapAuditFindings converts audit.Finding slices to common.ComplianceFinding slices.
+func mapAuditFindings(findings []audit.Finding) []common.ComplianceFinding {
+	if len(findings) == 0 {
+		return nil
 	}
-	if maxLen <= truncationEllipsisLen {
-		return string(runes[:maxLen])
+
+	mapped := make([]common.ComplianceFinding, len(findings))
+	for i, f := range findings {
+		mapped[i] = mapAnalysisFinding(f.Finding)
 	}
-	return string(runes[:maxLen-truncationEllipsisLen]) + "..."
+
+	return mapped
+}
+
+// mapPluginComplianceResult converts an audit.ComplianceResult into a common.PluginComplianceResult.
+func mapPluginComplianceResult(pluginName string, cr *audit.ComplianceResult) common.PluginComplianceResult {
+	pluginResult := common.PluginComplianceResult{}
+
+	// Map plugin info
+	if info, exists := cr.PluginInfo[pluginName]; exists {
+		pluginResult.PluginInfo = common.CompliancePluginInfo{
+			Name:        info.Name,
+			Version:     info.Version,
+			Description: info.Description,
+		}
+		// Map controls from plugin info
+		pluginResult.Controls = mapControls(info.Controls)
+	}
+
+	// Map findings
+	pluginResult.Findings = mapComplianceFindings(cr.Findings)
+
+	// Map summary
+	if cr.Summary != nil {
+		pluginResult.Summary = &common.ComplianceResultSummary{
+			TotalFindings:    cr.Summary.TotalFindings,
+			CriticalFindings: cr.Summary.CriticalFindings,
+			HighFindings:     cr.Summary.HighFindings,
+			MediumFindings:   cr.Summary.MediumFindings,
+			LowFindings:      cr.Summary.LowFindings,
+			PluginCount:      cr.Summary.PluginCount,
+		}
+
+		// Map compliance stats from plugin-level compliance data
+		if pc, exists := cr.Summary.Compliance[pluginName]; exists {
+			pluginResult.Summary.Compliant = pc.Compliant
+			pluginResult.Summary.NonCompliant = pc.NonCompliant
+		}
+	}
+
+	// Map per-control compliance status (clone to avoid shared reference)
+	if controlCompliance, exists := cr.Compliance[pluginName]; exists {
+		pluginResult.Compliance = maps.Clone(controlCompliance)
+	}
+
+	return pluginResult
+}
+
+// mapComplianceFindings converts compliance.Finding (analysis.Finding) slices
+// to common.ComplianceFinding slices.
+func mapComplianceFindings(findings []compliance.Finding) []common.ComplianceFinding {
+	if len(findings) == 0 {
+		return nil
+	}
+
+	mapped := make([]common.ComplianceFinding, len(findings))
+	for i, f := range findings {
+		mapped[i] = mapAnalysisFinding(f)
+	}
+
+	return mapped
+}
+
+// mapControls converts compliance.Control slices to common.ComplianceControl slices.
+func mapControls(controls []compliance.Control) []common.ComplianceControl {
+	if len(controls) == 0 {
+		return nil
+	}
+
+	mapped := make([]common.ComplianceControl, len(controls))
+	for i, c := range controls {
+		mapped[i] = common.ComplianceControl{
+			ID:          c.ID,
+			Title:       c.Title,
+			Description: c.Description,
+			Category:    c.Category,
+			Severity:    c.Severity,
+			Rationale:   c.Rationale,
+			Remediation: c.Remediation,
+			References:  slices.Clone(c.References),
+			Tags:        slices.Clone(c.Tags),
+			Metadata:    maps.Clone(c.Metadata),
+		}
+	}
+
+	return mapped
 }
