@@ -472,8 +472,8 @@ Separate check logic from stats updates. Never increment stats inside a function
 - `HybridGenerator.generateMarkdown()` / `generateMarkdownToWriter()` appends `BuildAuditSection()` / `WriteAuditSection()` when `ComplianceChecks` is present
 - JSON/YAML formats serialize `ComplianceChecks` automatically via struct tags — no special handling needed
 - `BuildAuditSection(data)` / `WriteAuditSection(w, data)` in `internal/converter/builder/` renders compliance audit results from `CommonDevice.ComplianceChecks`
-- `BuildAuditSection` returns empty string when `ComplianceChecks` is nil; `WriteAuditSection` writes nothing and returns nil — both safe to call unconditionally
-- `audit.ComplianceResult` has nested maps: `PluginInfo map[string]PluginInfo`, `Compliance map[string]map[string]bool` — require plugin-name keyed lookups during mapping
+- `BuildAuditSection` returns empty string when `data` is nil or `ComplianceChecks` is nil; `WriteAuditSection` writes nothing and returns nil — both safe to call unconditionally
+- `audit.ComplianceResult` has nested maps: `PluginInfo` (a map from plugin name to `PluginInfo`) and `Compliance` (a map from plugin name to a map from control ID to bool) — require plugin-name keyed lookups during mapping
 - `converter.Format` is the type name for output format (not `OutputFormat`)
 - Uses `EscapePipeForMarkdown()` (pipe-only escaping) and `TruncateString()` (rune-aware, exact position) — distinct from `formatters.EscapeTableContent()` (all special chars) and `formatters.TruncateDescription()` (word boundary)
 - Plugin names and metadata keys are iterated in sorted order (`slices.Sorted(maps.Keys(...))`)
