@@ -621,6 +621,9 @@ func prepareForExport(data *common.CommonDevice, redact bool) *common.CommonDevi
 		cp.PerformanceMetrics = computePerformanceMetrics(cp.Statistics)
 	}
 
+	// ComplianceChecks is populated externally by the audit handler;
+	// pass through as-is when present.
+
 	return &cp
 }
 
