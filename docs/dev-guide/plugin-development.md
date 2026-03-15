@@ -50,6 +50,8 @@ Tags           []string
 Metadata       map[string]string
 ```
 
+**Note:** `compliance.Finding` is a type alias for the canonical `analysis.Finding` type defined in `internal/analysis/finding.go`. This architectural change unifies finding representations across the audit, compliance, and processor modules, ensuring consistency throughout the codebase. Plugins should continue to import `github.com/EvilBit-Labs/opnDossier/internal/compliance` and use `compliance.Finding`, which remains fully compatible.
+
 ## Creating a New Plugin
 
 ### Step 1: Plugin Structure
