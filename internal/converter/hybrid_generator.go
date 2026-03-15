@@ -273,12 +273,11 @@ func (g *HybridGenerator) generateMarkdownToWriter(
 
 	// Append audit section when compliance data is present
 	if target.ComplianceChecks != nil {
-		if _, writeErr := io.WriteString(w, "\n\n"); writeErr != nil {
-			return fmt.Errorf("failed to write audit section separator: %w", writeErr)
-		}
-
-		if writeErr := sectionWriter.WriteAuditSection(w, target); writeErr != nil {
-			return fmt.Errorf("failed to write audit section: %w", writeErr)
+		auditSection := g.builder.BuildAuditSection(target)
+		if auditSection != "" {
+			if _, writeErr := io.WriteString(w, "\n\n"+auditSection); writeErr != nil {
+				return fmt.Errorf("failed to write audit section: %w", writeErr)
+			}
 		}
 	}
 
