@@ -231,6 +231,15 @@ type ComplianceResults struct {
 	Metadata map[string]any `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 }
 
+// HasData reports whether the compliance results contain meaningful data.
+func (r ComplianceResults) HasData() bool {
+	return r.Mode != "" ||
+		len(r.Findings) > 0 ||
+		len(r.PluginResults) > 0 ||
+		r.Summary != nil ||
+		len(r.Metadata) > 0
+}
+
 // ComplianceFinding represents an individual compliance finding from an audit plugin.
 type ComplianceFinding struct {
 	// Type is the finding category (e.g., "compliance").
