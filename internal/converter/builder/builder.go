@@ -465,7 +465,7 @@ func (b *MarkdownBuilder) BuildIDSSection(data *common.CommonDevice) string {
 // BuildAuditSection builds the compliance audit section from the device's ComplianceChecks.
 // If ComplianceChecks is nil, it returns an empty string.
 func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
-	if data.ComplianceChecks == nil {
+	if data == nil || data.ComplianceChecks == nil {
 		return ""
 	}
 
@@ -475,15 +475,18 @@ func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
 	md := markdown.NewMarkdown(&buf)
 
 	// Summary table
-	totalFindings := 0
+	var totalFindings int
 	if cc.Summary != nil {
 		totalFindings = cc.Summary.TotalFindings
 	} else {
-		// Compute from plugin results if summary is nil
+		// Compute from direct findings plus plugin results if summary is nil
+		totalFindings = len(cc.Findings)
 		for _, pluginName := range slices.Sorted(maps.Keys(cc.PluginResults)) {
 			pr := cc.PluginResults[pluginName]
 			if pr.Summary != nil {
 				totalFindings += pr.Summary.TotalFindings
+			} else {
+				totalFindings += len(pr.Findings)
 			}
 		}
 	}

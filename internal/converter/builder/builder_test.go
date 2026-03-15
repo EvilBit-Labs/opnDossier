@@ -964,6 +964,16 @@ func TestWriteTableMethods(t *testing.T) {
 // BuildAuditSection Tests
 // ─────────────────────────────────────────────────────────────────────────────
 
+func TestBuildAuditSection_NilData(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	result := b.BuildAuditSection(nil)
+	if result != "" {
+		t.Errorf("BuildAuditSection with nil data should return empty string, got: %s", result)
+	}
+}
+
 func TestBuildAuditSection_NilComplianceChecks(t *testing.T) {
 	t.Parallel()
 
@@ -1242,6 +1252,37 @@ func TestBuildAuditSection_NilPluginSummary(t *testing.T) {
 
 	if !strings.Contains(result, "no data available") {
 		t.Error("Expected 'no data available' fallback for nil summary")
+	}
+}
+
+func TestBuildAuditSection_FallbackTotalCountsFindings(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	data := &common.CommonDevice{
+		ComplianceChecks: &common.ComplianceResults{
+			Mode: "standard",
+			Findings: []common.ComplianceFinding{
+				{Title: "Direct finding 1", Severity: "high"},
+				{Title: "Direct finding 2", Severity: "medium"},
+			},
+			PluginResults: map[string]common.PluginComplianceResult{
+				"no-summary-plugin": {
+					Findings: []common.ComplianceFinding{
+						{Title: "Plugin finding", Severity: "low"},
+					},
+					Summary: nil,
+				},
+			},
+			// Summary is nil — forces fallback path
+		},
+	}
+
+	result := b.BuildAuditSection(data)
+
+	// Fallback should count 2 direct + 1 plugin finding = 3 total
+	if !strings.Contains(result, "3") {
+		t.Errorf("Fallback total should count direct findings + plugin findings, got:\n%s", result)
 	}
 }
 

@@ -812,8 +812,12 @@ func TestTruncateString_MaxDescriptionLength(t *testing.T) {
 	longDescription := strings.Repeat("a", 100)
 	result := TruncateString(longDescription, MaxDescriptionLength)
 
-	if len(result) > MaxDescriptionLength {
-		t.Errorf("TruncateString result length %d exceeds MaxDescriptionLength %d", len(result), MaxDescriptionLength)
+	if len([]rune(result)) > MaxDescriptionLength {
+		t.Errorf(
+			"TruncateString result rune length %d exceeds MaxDescriptionLength %d",
+			len([]rune(result)),
+			MaxDescriptionLength,
+		)
 	}
 	if !strings.HasSuffix(result, "...") {
 		t.Error("Truncated string should end with '...'")
