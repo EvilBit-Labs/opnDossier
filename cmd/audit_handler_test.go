@@ -482,12 +482,173 @@ func TestMapAuditReportToComplianceResults(t *testing.T) {
 				assert.Equal(t, 2, result.Summary.PluginCount)
 			},
 		},
+		{
+			name:   "nil report returns nil",
+			report: nil,
+			verify: func(t *testing.T, _ *common.ComplianceResults) {
+				t.Helper()
+				// nil is handled by the test loop below
+			},
+		},
+		{
+			name: "direct finding severity counts included in aggregate summary",
+			report: &audit.Report{
+				Mode: audit.ModeBlue,
+				Findings: []audit.Finding{
+					{Finding: compliance.Finding{Severity: "high", Title: "F1"}},
+					{Finding: compliance.Finding{Severity: "critical", Title: "F2"}},
+					{Finding: compliance.Finding{Severity: "info", Title: "F3"}},
+				},
+				Compliance: map[string]audit.ComplianceResult{
+					"stig": {
+						Findings: []compliance.Finding{},
+						Summary: &audit.ComplianceSummary{
+							TotalFindings:  1,
+							MediumFindings: 1,
+						},
+						PluginInfo: map[string]audit.PluginInfo{},
+						Compliance: map[string]map[string]bool{},
+					},
+				},
+				Metadata: make(map[string]any),
+			},
+			verify: func(t *testing.T, result *common.ComplianceResults) {
+				t.Helper()
+				require.NotNil(t, result.Summary)
+				// 3 direct + 1 plugin = 4 total
+				assert.Equal(t, 4, result.Summary.TotalFindings)
+				assert.Equal(t, 1, result.Summary.CriticalFindings)
+				assert.Equal(t, 1, result.Summary.HighFindings)
+				assert.Equal(t, 1, result.Summary.MediumFindings)
+				assert.Equal(t, 1, result.Summary.InfoFindings)
+			},
+		},
+		{
+			name: "missing PluginInfo key produces zero-valued info",
+			report: &audit.Report{
+				Mode:     audit.ModeStandard,
+				Findings: []audit.Finding{},
+				Compliance: map[string]audit.ComplianceResult{
+					"firewall": {
+						Findings:   []compliance.Finding{},
+						Summary:    &audit.ComplianceSummary{TotalFindings: 0},
+						PluginInfo: map[string]audit.PluginInfo{},
+						Compliance: map[string]map[string]bool{},
+					},
+				},
+				Metadata: make(map[string]any),
+			},
+			verify: func(t *testing.T, result *common.ComplianceResults) {
+				t.Helper()
+				require.Contains(t, result.PluginResults, "firewall")
+				pr := result.PluginResults["firewall"]
+				assert.Empty(t, pr.PluginInfo.Name)
+				assert.Empty(t, pr.PluginInfo.Version)
+				assert.Empty(t, pr.Controls)
+			},
+		},
+		{
+			name: "audit-specific fields mapped from audit.Finding",
+			report: &audit.Report{
+				Mode: audit.ModeRed,
+				Findings: []audit.Finding{
+					{
+						Finding: compliance.Finding{
+							Severity:  "high",
+							Title:     "Open Port",
+							Reference: "CIS-1.1",
+							Tags:      []string{"network", "exposure"},
+							Metadata:  map[string]string{"port": "22"},
+						},
+						AttackSurface: &audit.AttackSurface{
+							Type:            "network",
+							Ports:           []int{22, 443},
+							Services:        []string{"ssh", "https"},
+							Vulnerabilities: []string{"CVE-2024-0001"},
+						},
+						ExploitNotes: "SSH brute force possible",
+						Control:      "STIG-V-000001",
+					},
+				},
+				Compliance: make(map[string]audit.ComplianceResult),
+				Metadata:   make(map[string]any),
+			},
+			verify: func(t *testing.T, result *common.ComplianceResults) {
+				t.Helper()
+				require.Len(t, result.Findings, 1)
+				f := result.Findings[0]
+
+				// analysis.Finding fields
+				assert.Equal(t, "CIS-1.1", f.Reference)
+				assert.Equal(t, []string{"network", "exposure"}, f.Tags)
+				assert.Equal(t, map[string]string{"port": "22"}, f.Metadata)
+
+				// audit.Finding fields
+				require.NotNil(t, f.AttackSurface)
+				assert.Equal(t, "network", f.AttackSurface.Type)
+				assert.Equal(t, []int{22, 443}, f.AttackSurface.Ports)
+				assert.Equal(t, []string{"ssh", "https"}, f.AttackSurface.Services)
+				assert.Equal(t, []string{"CVE-2024-0001"}, f.AttackSurface.Vulnerabilities)
+				assert.Equal(t, "SSH brute force possible", f.ExploitNotes)
+				assert.Equal(t, "STIG-V-000001", f.Control)
+			},
+		},
+		{
+			name: "controls with tags and metadata are deep-copied",
+			report: &audit.Report{
+				Mode:     audit.ModeBlue,
+				Findings: []audit.Finding{},
+				Compliance: map[string]audit.ComplianceResult{
+					"stig": {
+						Findings: []compliance.Finding{},
+						Summary:  &audit.ComplianceSummary{TotalFindings: 0},
+						PluginInfo: map[string]audit.PluginInfo{
+							"stig": {
+								Name:    "stig",
+								Version: "1.0.0",
+								Controls: []compliance.Control{
+									{
+										ID:          "STIG-V-000002",
+										Title:       "Audit Logging",
+										Severity:    "medium",
+										Rationale:   "Required for accountability",
+										Remediation: "Enable audit logging",
+										References:  []string{"NIST-AU-2"},
+										Tags:        []string{"logging", "audit"},
+										Metadata:    map[string]string{"source": "DISA"},
+									},
+								},
+							},
+						},
+						Compliance: map[string]map[string]bool{},
+					},
+				},
+				Metadata: make(map[string]any),
+			},
+			verify: func(t *testing.T, result *common.ComplianceResults) {
+				t.Helper()
+				require.Contains(t, result.PluginResults, "stig")
+				pr := result.PluginResults["stig"]
+				require.Len(t, pr.Controls, 1)
+				c := pr.Controls[0]
+				assert.Equal(t, "STIG-V-000002", c.ID)
+				assert.Equal(t, "Required for accountability", c.Rationale)
+				assert.Equal(t, "Enable audit logging", c.Remediation)
+				assert.Equal(t, []string{"NIST-AU-2"}, c.References)
+				assert.Equal(t, []string{"logging", "audit"}, c.Tags)
+				assert.Equal(t, map[string]string{"source": "DISA"}, c.Metadata)
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := mapAuditReportToComplianceResults(tt.report)
+			if tt.report == nil {
+				assert.Nil(t, result, "nil report should return nil result")
+				return
+			}
 			require.NotNil(t, result)
 			tt.verify(t, result)
 		})
@@ -527,15 +688,11 @@ func TestHandleAuditMode_EndToEnd(t *testing.T) {
 	// The rendered markdown must contain the compliance audit summary section
 	// (rendered by the builder layer, not the old appendAuditFindings).
 	assert.Contains(t, result, "## Compliance Audit Summary")
+	assert.Contains(t, result, "Plugin Compliance Results")
+	assert.Contains(t, result, "stig")
 
-	// ComplianceChecks should be populated on the device after handleAuditMode
-	require.NotNil(t, device.ComplianceChecks)
-	assert.Equal(t, "blue", device.ComplianceChecks.Mode)
-	require.NotNil(t, device.ComplianceChecks.Summary)
-	assert.Positive(t, device.ComplianceChecks.Summary.TotalFindings)
-
-	// Plugin results should contain stig
-	require.Contains(t, device.ComplianceChecks.PluginResults, "stig")
+	// handleAuditMode must NOT mutate the input device (immutability rule)
+	assert.Nil(t, device.ComplianceChecks, "input device should not be mutated")
 }
 
 // TestHandleAuditMode_StructuredFormats verifies that audit data appears in JSON and YAML output.

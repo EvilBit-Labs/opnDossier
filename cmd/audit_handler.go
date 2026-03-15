@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/audit"
@@ -16,8 +17,9 @@ import (
 )
 
 // handleAuditMode generates a report with audit findings.
-// It runs compliance checks, maps results onto the device's ComplianceChecks field,
-// and delegates report generation to generateWithProgrammaticGenerator.
+// It runs compliance checks, maps results onto a shallow copy of the device's
+// ComplianceChecks field, and delegates report generation to
+// generateWithProgrammaticGenerator. The input device is not mutated.
 func handleAuditMode(
 	ctx context.Context,
 	device *common.CommonDevice,
@@ -51,17 +53,22 @@ func handleAuditMode(
 		return "", fmt.Errorf("generate audit report: %w", err)
 	}
 
-	// Map audit results onto the device's ComplianceChecks field
-	device.ComplianceChecks = mapAuditReportToComplianceResults(auditReport)
+	// Create a shallow copy so the caller's device is not mutated.
+	enrichedDevice := *device
+	enrichedDevice.ComplianceChecks = mapAuditReportToComplianceResults(auditReport)
 
 	// Delegate to the standard generator pipeline (handles markdown, JSON, YAML, etc.)
-	return generateWithProgrammaticGenerator(ctx, device, opt, logger)
+	return generateWithProgrammaticGenerator(ctx, &enrichedDevice, opt, logger)
 }
 
 // mapAuditReportToComplianceResults converts an audit.Report into a common.ComplianceResults
 // for embedding in CommonDevice. This enables all output formats (markdown, JSON, YAML)
 // to include compliance data through the standard export pipeline.
 func mapAuditReportToComplianceResults(report *audit.Report) *common.ComplianceResults {
+	if report == nil {
+		return nil
+	}
+
 	result := &common.ComplianceResults{
 		Mode:          string(report.Mode),
 		PluginResults: make(map[string]common.PluginComplianceResult, len(report.Compliance)),
@@ -72,7 +79,7 @@ func mapAuditReportToComplianceResults(report *audit.Report) *common.ComplianceR
 	result.Findings = mapAuditFindings(report.Findings)
 
 	// Map per-plugin compliance results (deterministic iteration order)
-	var totalFindings, totalCritical, totalHigh, totalMedium, totalLow int
+	var totalFindings, totalCritical, totalHigh, totalMedium, totalLow, totalInfo int
 	var totalCompliant, totalNonCompliant int
 
 	for _, pluginName := range slices.Sorted(maps.Keys(report.Compliance)) {
@@ -91,8 +98,23 @@ func mapAuditReportToComplianceResults(report *audit.Report) *common.ComplianceR
 		}
 	}
 
-	// Add direct findings to total count
+	// Add direct findings to total count and severity tallies
 	totalFindings += len(report.Findings)
+
+	for _, f := range report.Findings {
+		switch strings.ToLower(f.Severity) {
+		case "critical":
+			totalCritical++
+		case "high":
+			totalHigh++
+		case "medium":
+			totalMedium++
+		case "low":
+			totalLow++
+		case "info":
+			totalInfo++
+		}
+	}
 
 	// Compute aggregate summary
 	result.Summary = &common.ComplianceResultSummary{
@@ -101,6 +123,7 @@ func mapAuditReportToComplianceResults(report *audit.Report) *common.ComplianceR
 		HighFindings:     totalHigh,
 		MediumFindings:   totalMedium,
 		LowFindings:      totalLow,
+		InfoFindings:     totalInfo,
 		PluginCount:      len(report.Compliance),
 		Compliant:        totalCompliant,
 		NonCompliant:     totalNonCompliant,
@@ -121,6 +144,9 @@ func mapAnalysisFinding(f analysis.Finding) common.ComplianceFinding {
 		Recommendation: f.Recommendation,
 		Component:      f.Component,
 		References:     slices.Clone(f.References),
+		Reference:      f.Reference,
+		Tags:           slices.Clone(f.Tags),
+		Metadata:       maps.Clone(f.Metadata),
 	}
 }
 
@@ -133,6 +159,17 @@ func mapAuditFindings(findings []audit.Finding) []common.ComplianceFinding {
 	mapped := make([]common.ComplianceFinding, len(findings))
 	for i, f := range findings {
 		mapped[i] = mapAnalysisFinding(f.Finding)
+		mapped[i].ExploitNotes = f.ExploitNotes
+		mapped[i].Control = f.Control
+
+		if f.AttackSurface != nil {
+			mapped[i].AttackSurface = &common.ComplianceAttackSurface{
+				Type:            f.AttackSurface.Type,
+				Ports:           slices.Clone(f.AttackSurface.Ports),
+				Services:        slices.Clone(f.AttackSurface.Services),
+				Vulnerabilities: slices.Clone(f.AttackSurface.Vulnerabilities),
+			}
+		}
 	}
 
 	return mapped
@@ -153,7 +190,10 @@ func mapPluginComplianceResult(pluginName string, cr *audit.ComplianceResult) co
 		pluginResult.Controls = mapControls(info.Controls)
 	}
 
-	// Map findings
+	// Map findings from cr.Findings (the per-plugin subset).
+	// cr.PluginFindings is intentionally not mapped here because GenerateReport
+	// constructs per-plugin ComplianceResult instances where cr.Findings already
+	// contains the plugin-specific findings.
 	pluginResult.Findings = mapComplianceFindings(cr.Findings)
 
 	// Map summary
