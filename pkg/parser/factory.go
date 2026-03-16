@@ -11,8 +11,8 @@ import (
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
-	"github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
+	"github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"
 )
 
 // DeviceParser is the interface for device-specific parsers.
@@ -26,19 +26,19 @@ type DeviceParser interface {
 	ParseAndValidate(ctx context.Context, r io.Reader) (*common.CommonDevice, []common.ConversionWarning, error)
 }
 
-// ParserFactory detects device type and delegates to the appropriate DeviceParser.
-type ParserFactory struct{}
+// Factory detects device type and delegates to the appropriate DeviceParser.
+type Factory struct{}
 
-// NewParserFactory returns a new ParserFactory.
-func NewParserFactory() *ParserFactory {
-	return &ParserFactory{}
+// NewFactory returns a new Factory.
+func NewFactory() *Factory {
+	return &Factory{}
 }
 
 // CreateDevice reads from r, detects (or uses the override) device type, and
 // returns a fully converted CommonDevice along with any non-fatal conversion
 // warnings. When validateMode is true, semantic validation is applied in
 // addition to structural parsing.
-func (f *ParserFactory) CreateDevice(
+func (f *Factory) CreateDevice(
 	ctx context.Context,
 	r io.Reader,
 	deviceTypeOverride string,
@@ -53,7 +53,7 @@ func (f *ParserFactory) CreateDevice(
 
 // createWithOverride skips root-element detection and directly delegates to the
 // parser matching deviceTypeOverride.
-func (f *ParserFactory) createWithOverride(
+func (f *Factory) createWithOverride(
 	ctx context.Context,
 	r io.Reader,
 	override string,
@@ -68,7 +68,7 @@ func (f *ParserFactory) createWithOverride(
 
 // createWithAutoDetect peeks the XML root element using a bounded, context-aware
 // reader and delegates to the matching parser.
-func (f *ParserFactory) createWithAutoDetect(
+func (f *Factory) createWithAutoDetect(
 	ctx context.Context,
 	r io.Reader,
 	validateMode bool,

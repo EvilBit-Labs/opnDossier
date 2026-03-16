@@ -3,8 +3,8 @@ package opnsense_test
 import (
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
+	"github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"
 	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

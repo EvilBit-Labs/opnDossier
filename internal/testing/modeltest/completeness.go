@@ -3,10 +3,10 @@
 // Package modeltest provides testing utilities for verifying model completeness
 // against OPNsense XML configuration files.
 //
-// NOTE: This package intentionally uses schema.OpnSenseDocument (via the model
-// re-export layer) rather than common.CommonDevice. It reflects over XML struct
-// tags to verify that every element in a raw OPNsense config.xml is represented
-// in the DTO schema — a schema-layer concern, not a domain-model concern.
+// NOTE: This package intentionally uses schema.OpnSenseDocument (from
+// pkg/schema/opnsense) rather than common.CommonDevice. It reflects over XML
+// struct tags to verify that every element in a raw OPNsense config.xml is
+// represented in the DTO schema — a schema-layer concern, not a domain-model concern.
 package modeltest
 
 import (
@@ -18,7 +18,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 	"github.com/clbanning/mxj"
 )
 
@@ -111,7 +111,7 @@ func CheckModelCompleteness(filePath string) error {
 	}
 
 	// Get all expected paths from our Go model
-	modelPaths := GetModelPaths(reflect.TypeOf(model.OpnSenseDocument{}), "")
+	modelPaths := GetModelPaths(reflect.TypeOf(schema.OpnSenseDocument{}), "")
 
 	// Find missing paths (XML paths not in our model)
 	missingPaths := findMissingPaths(strippedXMLPaths, modelPaths)
@@ -180,7 +180,7 @@ func GetModelCompletenessDetails(
 	}
 
 	// Get all expected paths from our Go model
-	modelPaths = GetModelPaths(reflect.TypeOf(model.OpnSenseDocument{}), "")
+	modelPaths = GetModelPaths(reflect.TypeOf(schema.OpnSenseDocument{}), "")
 
 	// Find missing paths (XML paths not in our model)
 	missingPaths = findMissingPaths(strippedXMLPaths, modelPaths)

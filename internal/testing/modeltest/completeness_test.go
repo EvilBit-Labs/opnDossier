@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
 
 // TestModelCompleteness tests that our OpnSenseDocument model can fully represent
@@ -60,7 +60,7 @@ func TestModelCompleteness(t *testing.T) {
 
 func TestDebugModelPaths(t *testing.T) {
 	// Get all expected paths from our Go model
-	modelPaths := GetModelPaths(reflect.TypeOf(model.OpnSenseDocument{}), "")
+	modelPaths := GetModelPaths(reflect.TypeOf(schema.OpnSenseDocument{}), "")
 
 	// Print all model paths for debugging
 	t.Log("Model paths:")

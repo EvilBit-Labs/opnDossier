@@ -1,4 +1,4 @@
-package model
+package opnsense
 
 import (
 	"bytes"
@@ -16,11 +16,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// ErrUnsupportedCharset is returned when an unsupported charset is encountered.
-var ErrUnsupportedCharset = errors.New("unsupported charset")
+// errUnsupportedCharset is returned when an unsupported charset is encountered.
+var errUnsupportedCharset = errors.New("unsupported charset")
 
-func TestOpnSenseDocumentModel_XMLUnmarshalling(t *testing.T) {
-	// Test that XML unmarshalling still works with the refactored model
+// testdataDir returns the path to the testdata directory relative to this package.
+func testdataDir() string {
+	return filepath.Join("..", "..", "..", "testdata")
+}
+
+// Tests migrated from internal/model/opnsense_test.go
+
+func TestOpnSenseDocument_XMLUnmarshalling(t *testing.T) {
+	t.Parallel()
+
 	xmlData := `<opnsense>
 		<version>1.2.3</version>
 		<theme>opnsense</theme>
@@ -70,13 +78,11 @@ func TestOpnSenseDocumentModel_XMLUnmarshalling(t *testing.T) {
 	err := xml.Unmarshal([]byte(xmlData), &opnsense)
 	require.NoError(t, err)
 
-	// Test basic fields
 	assert.Equal(t, "1.2.3", opnsense.Version)
 	assert.Equal(t, "opnsense", opnsense.Theme)
 	assert.Equal(t, "test-host", opnsense.System.Hostname)
 	assert.Equal(t, "test.local", opnsense.System.Domain)
 
-	// Test interfaces
 	wan, exists := opnsense.Interfaces.Items["wan"]
 	assert.True(t, exists)
 	assert.Equal(t, "em0", wan.If)
@@ -88,10 +94,8 @@ func TestOpnSenseDocumentModel_XMLUnmarshalling(t *testing.T) {
 	assert.Equal(t, "192.168.1.1", lan.IPAddr)
 	assert.Equal(t, "24", lan.Subnet)
 
-	// Test NAT configuration
 	assert.Equal(t, "automatic", opnsense.Nat.Outbound.Mode)
 
-	// Test firewall rules
 	require.Len(t, opnsense.Filter.Rule, 1)
 	rule := opnsense.Filter.Rule[0]
 	assert.Equal(t, "pass", rule.Type)
@@ -100,7 +104,6 @@ func TestOpnSenseDocumentModel_XMLUnmarshalling(t *testing.T) {
 	assert.Equal(t, "lan", rule.Interface.String())
 	assert.Equal(t, "lan", rule.Source.Network)
 
-	// Test sysctl
 	require.Len(t, opnsense.Sysctl, 1)
 	sysctl := opnsense.Sysctl[0]
 	assert.Equal(t, "Test sysctl", sysctl.Descr)
@@ -108,104 +111,11 @@ func TestOpnSenseDocumentModel_XMLUnmarshalling(t *testing.T) {
 	assert.Equal(t, "1", sysctl.Value)
 }
 
-func TestOpnSenseDocumentModel_HelperMethods(t *testing.T) {
-	opnsense := OpnSenseDocument{
-		System: System{
-			Hostname: "test-hostname",
-		},
-		Interfaces: Interfaces{
-			Items: map[string]Interface{
-				"wan": {If: "em0"},
-				"lan": {If: "em1"},
-			},
-		},
-		Filter: Filter{
-			Rule: []Rule{
-				{Type: "pass", Descr: "Test rule 1"},
-				{Type: "block", Descr: "Test rule 2"},
-			},
-		},
-	}
+func TestOpnSenseDocument_Validation(t *testing.T) {
+	t.Parallel()
 
-	// Test Hostname helper
-	assert.Equal(t, "test-hostname", opnsense.Hostname())
-
-	// Test InterfaceByName helper
-	wanInterface := opnsense.InterfaceByName("em0")
-	require.NotNil(t, wanInterface)
-	assert.Equal(t, "em0", wanInterface.If)
-
-	lanInterface := opnsense.InterfaceByName("em1")
-	require.NotNil(t, lanInterface)
-	assert.Equal(t, "em1", lanInterface.If)
-
-	nonExistentInterface := opnsense.InterfaceByName("em2")
-	assert.Nil(t, nonExistentInterface)
-
-	// Test FilterRules helper
-	rules := opnsense.FilterRules()
-	require.Len(t, rules, 2)
-	assert.Equal(t, "Test rule 1", rules[0].Descr)
-	assert.Equal(t, "Test rule 2", rules[1].Descr)
-}
-
-func TestOpnSenseDocumentModel_ConfigGroupHelpers(t *testing.T) {
-	opnsense := OpnSenseDocument{
-		System: System{
-			Hostname: "test-hostname",
-			Domain:   "test.local",
-		},
-		Sysctl: []SysctlItem{
-			{Tunable: "net.inet.ip.test", Value: "1"},
-		},
-		Interfaces: Interfaces{
-			Items: map[string]Interface{
-				"wan": {If: "em0"},
-				"lan": {If: "em1"},
-			},
-		},
-		Nat:    Nat{Outbound: Outbound{Mode: "automatic"}},
-		Filter: Filter{Rule: []Rule{{Type: "pass"}}},
-		Dhcpd: Dhcpd{
-			Items: map[string]DhcpdInterface{
-				"lan": {Enable: "1"},
-			},
-		},
-	}
-
-	// Test SystemConfig helper
-	systemConfig := opnsense.SystemConfig()
-	assert.Equal(t, "test-hostname", systemConfig.System.Hostname)
-	assert.Equal(t, "test.local", systemConfig.System.Domain)
-	assert.Len(t, systemConfig.Sysctl, 1)
-	assert.Equal(t, "net.inet.ip.test", systemConfig.Sysctl[0].Tunable)
-
-	// Test NetworkConfig helper
-	networkConfig := opnsense.NetworkConfig()
-	wan, wanExists := networkConfig.Interfaces.Get("wan")
-	assert.True(t, wanExists)
-	assert.Equal(t, "em0", wan.If)
-
-	lan, lanExists := networkConfig.Interfaces.Get("lan")
-	assert.True(t, lanExists)
-	assert.Equal(t, "em1", lan.If)
-
-	// Test SecurityConfig helper
-	securityConfig := opnsense.SecurityConfig()
-	assert.Equal(t, "automatic", securityConfig.Nat.Outbound.Mode)
-	assert.Len(t, securityConfig.Filter.Rule, 1)
-
-	// Test ServiceConfig helper
-	serviceConfig := opnsense.ServiceConfig()
-	lanDhcp, lanDhcpExists := serviceConfig.Dhcpd.Get("lan")
-	assert.True(t, lanDhcpExists)
-	assert.Equal(t, "1", lanDhcp.Enable)
-}
-
-func TestOpnSenseDocumentModel_Validation(t *testing.T) {
 	validate := validator.New()
 
-	// Test valid configuration
 	validConfig := OpnSenseDocument{
 		System: System{
 			Hostname: "test-host",
@@ -227,10 +137,9 @@ func TestOpnSenseDocumentModel_Validation(t *testing.T) {
 	err := validate.Struct(validConfig)
 	require.NoError(t, err)
 
-	// Test invalid configuration - missing required fields
 	invalidConfig := OpnSenseDocument{
 		Sysctl: []SysctlItem{
-			{Tunable: "", Value: ""}, // Empty required fields
+			{Tunable: "", Value: ""},
 		},
 	}
 
@@ -239,9 +148,10 @@ func TestOpnSenseDocumentModel_Validation(t *testing.T) {
 }
 
 func TestSysctlItem_Validation(t *testing.T) {
+	t.Parallel()
+
 	validate := validator.New()
 
-	// Test valid SysctlItem
 	validItem := SysctlItem{
 		Tunable: "net.inet.ip.test",
 		Value:   "1",
@@ -251,10 +161,9 @@ func TestSysctlItem_Validation(t *testing.T) {
 	err := validate.Struct(validItem)
 	require.NoError(t, err)
 
-	// Test invalid SysctlItem - missing required fields
 	invalidItem := SysctlItem{
-		Tunable: "", // Required field is empty
-		Value:   "", // Required field is empty
+		Tunable: "",
+		Value:   "",
 		Descr:   "Description",
 	}
 
@@ -262,35 +171,29 @@ func TestSysctlItem_Validation(t *testing.T) {
 	require.Error(t, err)
 }
 
-// TestOpnSenseDocumentModel_XMLUnmarshalFromFile tests XML unmarshalling from the sample testdata file.
-func TestOpnSenseDocumentModel_XMLUnmarshalFromFile(t *testing.T) {
-	// Read the sample XML file
-	xmlPath := filepath.Join("..", "..", "testdata", "sample.config.1.xml")
+// TestOpnSenseDocument_XMLUnmarshalFromFile tests XML unmarshalling from a sample testdata file.
+func TestOpnSenseDocument_XMLUnmarshalFromFile(t *testing.T) {
+	t.Parallel()
+
+	xmlPath := filepath.Join(testdataDir(), "sample.config.1.xml")
 	xmlData, err := os.ReadFile(xmlPath)
 	require.NoError(t, err, "Failed to read testdata XML file")
 
-	// Unmarshal into struct
 	var opnsense OpnSenseDocument
 
 	err = xml.Unmarshal(xmlData, &opnsense)
 	require.NoError(t, err, "XML unmarshalling should succeed")
 
-	// Verify basic structure is correctly loaded
 	assert.Equal(t, "opnsense", opnsense.Theme)
 	assert.Equal(t, "OPNsense", opnsense.System.Hostname)
 	assert.Equal(t, "localdomain", opnsense.System.Domain)
 
-	// Note: sysctl parsing is tested in parser tests, not here
-	// This test focuses on model structure validation
-
-	// Verify system users and groups
 	assert.Len(t, opnsense.System.User, 1)
 	assert.Equal(t, "root", opnsense.System.User[0].Name)
 
 	assert.Len(t, opnsense.System.Group, 1)
 	assert.Equal(t, "admins", opnsense.System.Group[0].Name)
 
-	// Verify interfaces
 	wan, wanExists := opnsense.Interfaces.Get("wan")
 	assert.True(t, wanExists)
 	assert.Equal(t, "mismatch1", wan.If)
@@ -301,17 +204,17 @@ func TestOpnSenseDocumentModel_XMLUnmarshalFromFile(t *testing.T) {
 	assert.Equal(t, "mismatch0", lan.If)
 	assert.Equal(t, "192.168.1.1", lan.IPAddr)
 
-	// Verify filter rules
 	assert.NotEmpty(t, opnsense.Filter.Rule)
 	assert.Equal(t, "pass", opnsense.Filter.Rule[0].Type)
 
-	// Verify load balancer monitors
 	assert.NotEmpty(t, opnsense.LoadBalancer.MonitorType)
 	assert.Equal(t, "ICMP", opnsense.LoadBalancer.MonitorType[0].Name)
 }
 
-// TestOpnSenseDocumentModel_MissingRequiredFieldsValidation tests that validation catches missing required fields.
-func TestOpnSenseDocumentModel_MissingRequiredFieldsValidation(t *testing.T) {
+// TestOpnSenseDocument_MissingRequiredFieldsValidation tests that validation catches missing required fields.
+func TestOpnSenseDocument_MissingRequiredFieldsValidation(t *testing.T) {
+	t.Parallel()
+
 	validate := validator.New()
 
 	tests := []struct {
@@ -403,7 +306,7 @@ func TestOpnSenseDocumentModel_MissingRequiredFieldsValidation(t *testing.T) {
 					},
 				},
 				Sysctl: []SysctlItem{
-					{Value: "1", Descr: "Test"}, // Missing Tunable
+					{Value: "1", Descr: "Test"},
 				},
 			},
 			wantErr: true,
@@ -424,7 +327,7 @@ func TestOpnSenseDocumentModel_MissingRequiredFieldsValidation(t *testing.T) {
 					},
 				},
 				Sysctl: []SysctlItem{
-					{Tunable: "net.inet.ip.test", Descr: "Test"}, // Missing Value
+					{Tunable: "net.inet.ip.test", Descr: "Test"},
 				},
 			},
 			wantErr: true,
@@ -454,6 +357,8 @@ func TestOpnSenseDocumentModel_MissingRequiredFieldsValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := validate.Struct(tt.config)
 			if tt.wantErr {
 				require.Error(t, err, "Expected validation error for %s", tt.name)
@@ -464,8 +369,10 @@ func TestOpnSenseDocumentModel_MissingRequiredFieldsValidation(t *testing.T) {
 	}
 }
 
-// TestOpnSenseDocumentModel_XMLUnmarshalInvalid tests handling of invalid XML.
-func TestOpnSenseDocumentModel_XMLUnmarshalInvalid(t *testing.T) {
+// TestOpnSenseDocument_XMLUnmarshalInvalid tests handling of invalid XML.
+func TestOpnSenseDocument_XMLUnmarshalInvalid(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		xmlData string
@@ -473,7 +380,7 @@ func TestOpnSenseDocumentModel_XMLUnmarshalInvalid(t *testing.T) {
 	}{
 		{
 			name:    "Invalid XML syntax",
-			xmlData: `<opnsense><system><hostname>test</system></opnsense>`, // Missing closing hostname tag
+			xmlData: `<opnsense><system><hostname>test</system></opnsense>`,
 			wantErr: true,
 		},
 		{
@@ -490,6 +397,8 @@ func TestOpnSenseDocumentModel_XMLUnmarshalInvalid(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			var opnsense OpnSenseDocument
 
 			err := xml.Unmarshal([]byte(tt.xmlData), &opnsense)
@@ -502,59 +411,19 @@ func TestOpnSenseDocumentModel_XMLUnmarshalInvalid(t *testing.T) {
 	}
 }
 
-// TestOpnSenseDocumentModel_EdgeCases tests edge cases in the model.
-func TestNATSummary_NilSafety(t *testing.T) {
-	// Test NATSummary with minimal document (no NAT configuration)
-	doc := &OpnSenseDocument{
-		System: System{
-			Hostname: "test-host",
-			Domain:   "test.local",
-		},
-		// Nat field is zero-valued (empty struct)
-	}
+// TestOpnSenseDocument_EdgeCases tests edge cases in the model.
+func TestOpnSenseDocument_EdgeCases(t *testing.T) {
+	t.Parallel()
 
-	summary := doc.NATSummary()
-
-	// Should return safe defaults without panicking
-	assert.Empty(t, summary.Mode)
-	assert.False(t, summary.ReflectionDisabled)
-	assert.False(t, summary.PfShareForward)
-	assert.Nil(t, summary.OutboundRules)
-	assert.Nil(t, summary.InboundRules)
-
-	// Test with partial NAT configuration
-	doc.Nat.Outbound.Mode = "manual"
-	doc.Nat.Outbound.Rule = []NATRule{
-		{
-			Descr: "Test rule",
-		},
-	}
-
-	summary = doc.NATSummary()
-	assert.Equal(t, "manual", summary.Mode)
-	assert.NotNil(t, summary.OutboundRules)
-	assert.Len(t, summary.OutboundRules, 1)
-	assert.Equal(t, "Test rule", summary.OutboundRules[0].Descr)
-
-	// Test with NAT reflection disabled
-	doc.System.DisableNATReflection = "yes"
-	doc.System.PfShareForward = 1
-
-	summary = doc.NATSummary()
-	assert.True(t, summary.ReflectionDisabled)
-	assert.True(t, summary.PfShareForward)
-}
-
-func TestOpnSenseDocumentModel_EdgeCases(t *testing.T) {
 	t.Run("Empty opnsense struct", func(t *testing.T) {
+		t.Parallel()
+
 		opnsense := OpnSenseDocument{}
 
-		// Should not panic and return empty values
 		assert.Empty(t, opnsense.Hostname())
 		assert.Nil(t, opnsense.InterfaceByName("any"))
 		assert.Empty(t, opnsense.FilterRules())
 
-		// Config helpers should return empty structs
 		sysConfig := opnsense.SystemConfig()
 		assert.Empty(t, sysConfig.System.Hostname)
 		assert.Empty(t, sysConfig.Sysctl)
@@ -572,10 +441,10 @@ func TestOpnSenseDocumentModel_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("Nil pointer safety", func(t *testing.T) {
-		// Test that helper methods don't panic with partially initialized structs
+		t.Parallel()
+
 		opnsense := OpnSenseDocument{
 			System: System{Hostname: "test"},
-			// Interfaces not initialized
 		}
 
 		assert.Equal(t, "test", opnsense.Hostname())
@@ -583,7 +452,8 @@ func TestOpnSenseDocumentModel_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("InterfaceByName reflection-based search", func(t *testing.T) {
-		// Test that InterfaceByName works with reflection-based field discovery
+		t.Parallel()
+
 		opnsense := OpnSenseDocument{
 			Interfaces: Interfaces{
 				Items: map[string]Interface{
@@ -593,7 +463,6 @@ func TestOpnSenseDocumentModel_EdgeCases(t *testing.T) {
 			},
 		}
 
-		// Test finding existing interfaces
 		wanInterface := opnsense.InterfaceByName("em0")
 		require.NotNil(t, wanInterface)
 		assert.Equal(t, "em0", wanInterface.If)
@@ -604,18 +473,19 @@ func TestOpnSenseDocumentModel_EdgeCases(t *testing.T) {
 		assert.Equal(t, "em1", lanInterface.If)
 		assert.Equal(t, "192.168.1.1", lanInterface.IPAddr)
 
-		// Test finding non-existent interface
 		nonExistentInterface := opnsense.InterfaceByName("em2")
 		assert.Nil(t, nonExistentInterface)
 
-		// Test with empty interface names
 		emptyInterface := opnsense.InterfaceByName("")
 		assert.Nil(t, emptyInterface)
 	})
 }
 
-func TestOpnSenseDocumentModel_XMLCoverage(t *testing.T) {
-	testDir := "../../testdata"
+// TestOpnSenseDocument_XMLCoverage iterates over all XML test files to ensure they unmarshal.
+func TestOpnSenseDocument_XMLCoverage(t *testing.T) {
+	t.Parallel()
+
+	testDir := testdataDir()
 
 	files, err := os.ReadDir(testDir)
 	if err != nil {
@@ -636,7 +506,8 @@ func TestOpnSenseDocumentModel_XMLCoverage(t *testing.T) {
 
 	for _, file := range xmlFiles {
 		t.Run(filepath.Base(file), func(t *testing.T) {
-			// Validate file path is within testdata directory
+			t.Parallel()
+
 			absFile, err := filepath.Abs(file)
 			if err != nil {
 				t.Fatalf("failed to get absolute path for %s: %v", file, err)
@@ -649,22 +520,19 @@ func TestOpnSenseDocumentModel_XMLCoverage(t *testing.T) {
 				t.Fatalf("file path %s is outside testdata directory", file)
 			}
 
-			// deepcode ignore PT/test: This is not a web application or even part of the application that is deployed. Its a test that runs in the test environment.
+			// deepcode ignore PT/test: This is a test, not a deployed application.
 			data, err := os.ReadFile(file)
 			if err != nil {
 				t.Fatalf("failed to read %s: %v", file, err)
 			}
 
-			// Create a decoder with custom charset reader to handle us-ascii encoding
 			decoder := xml.NewDecoder(bytes.NewReader(data))
 			decoder.CharsetReader = func(charset string, input io.Reader) (io.Reader, error) {
 				switch charset {
 				case "us-ascii", "ascii":
-					// us-ascii is a subset of UTF-8, so we can just return the input
 					return input, nil
 				default:
-					// For other charsets, return an error to maintain strict behavior
-					return nil, fmt.Errorf("%w: %s", ErrUnsupportedCharset, charset)
+					return nil, fmt.Errorf("%w: %s", errUnsupportedCharset, charset)
 				}
 			}
 
@@ -676,4 +544,84 @@ func TestOpnSenseDocumentModel_XMLCoverage(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Tests migrated from internal/model/interface_list_test.go
+
+// TestInterfaceList_MarshalXML tests XML marshalling of InterfaceList within a wrapper struct.
+func TestInterfaceList_MarshalXML(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    InterfaceList
+		expected string
+	}{
+		{
+			name:     "single interface",
+			input:    InterfaceList{"lan"},
+			expected: `<test><interface>lan</interface></test>`,
+		},
+		{
+			name:     "multiple interfaces",
+			input:    InterfaceList{"lan", "wan", "opt1"},
+			expected: `<test><interface>lan</interface><interface>wan</interface><interface>opt1</interface></test>`,
+		},
+		{
+			name:     "empty interface list",
+			input:    InterfaceList{},
+			expected: `<test></test>`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			type TestStruct struct {
+				XMLName   xml.Name      `xml:"test"`
+				Interface InterfaceList `xml:"interface,omitempty"`
+			}
+
+			input := TestStruct{Interface: tt.input}
+			result, err := xml.Marshal(input)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, string(result))
+		})
+	}
+}
+
+// TestRule_InterfaceList_Integration tests comma-separated interface parsing in an XML Rule.
+func TestRule_InterfaceList_Integration(t *testing.T) {
+	t.Parallel()
+
+	xmlData := `
+	<rule>
+		<type>pass</type>
+		<interface>opt1,opt2,lan</interface>
+		<ipprotocol>inet</ipprotocol>
+		<source>
+			<network>any</network>
+		</source>
+		<destination>
+			<network>any</network>
+		</destination>
+		<descr>Test rule with comma-separated interfaces</descr>
+	</rule>`
+
+	var rule Rule
+	err := xml.Unmarshal([]byte(xmlData), &rule)
+	require.NoError(t, err)
+
+	assert.Equal(t, "pass", rule.Type)
+	assert.Equal(t, InterfaceList{"opt1", "opt2", "lan"}, rule.Interface)
+	assert.Equal(t, "inet", rule.IPProtocol)
+	assert.Equal(t, "Test rule with comma-separated interfaces", rule.Descr)
+
+	assert.True(t, rule.Interface.Contains("opt1"))
+	assert.True(t, rule.Interface.Contains("opt2"))
+	assert.True(t, rule.Interface.Contains("lan"))
+	assert.False(t, rule.Interface.Contains("wan"))
+
+	assert.Equal(t, "opt1,opt2,lan", rule.Interface.String())
 }

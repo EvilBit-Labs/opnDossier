@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
+	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -616,7 +616,7 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 			expected: true,
 		},
 		{
-			// Both presence-based Any values (StringPtr("") and StringPtr("1")) normalize
+			// Both presence-based Any values (new("") and new("1")) normalize
 			// to Address="any" in the common model, so they are equivalent.
 			name: "both sources use IsAny pointer",
 			rule1: common.FirewallRule{
@@ -783,7 +783,7 @@ func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
 			}()
 
 			// Use the factory to parse and normalize the config into a CommonDevice
-			factory := model.NewParserFactory()
+			factory := parser.NewFactory()
 
 			device, _, err := factory.CreateDevice(context.Background(), file, "", false)
 			if err != nil {
