@@ -9,8 +9,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/schema"
 	"github.com/EvilBit-Labs/opnDossier/internal/validator"
+	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 	"golang.org/x/text/encoding/charmap"
 	"golang.org/x/text/transform"
 )

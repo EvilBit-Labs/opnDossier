@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/schema"
+	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
 
 // LegacyXMLParser represents the old DOM-based parsing approach
