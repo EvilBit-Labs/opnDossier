@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/pflag"
 )
 
+// Package-level variables for root command configuration and build metadata, required by cobra's flag binding mechanism.
 var (
 	cfgFile string          //nolint:gochecknoglobals // CLI config file path
 	cfg     *config.Config  //nolint:gochecknoglobals // Application configuration (internal)
@@ -291,6 +292,7 @@ func registerRootFlagCompletions(cmd *cobra.Command) {
 	}
 }
 
+// initializeDefaultLogger creates the application logger with default configuration before config is loaded.
 func initializeDefaultLogger() {
 	// Initialize logger with default configuration before config is loaded.
 	// If it fails, fall back to a minimal stderr logger to avoid breaking startup.
