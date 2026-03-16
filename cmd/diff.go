@@ -132,6 +132,7 @@ func ValidDiffSections(_ *cobra.Command, _ []string, _ string) ([]string, cobra.
 	}, cobra.ShellCompDirectiveNoFileComp
 }
 
+// diffCmd is the cobra.Command for the diff subcommand.
 var diffCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 	Use:               "diff <old-config.xml> <new-config.xml>",
 	Short:             "Compare two OPNsense configuration files.",
