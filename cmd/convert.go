@@ -21,8 +21,8 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	"github.com/EvilBit-Labs/opnDossier/internal/export"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
-	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
+	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -349,7 +349,7 @@ Examples:
 
 				// Parse the XML and convert to platform-agnostic device model
 				ctxLogger.Debug("Parsing configuration file")
-				device, warnings, err := parser.NewParserFactory().
+				device, warnings, err := parser.NewFactory().
 					CreateDevice(timeoutCtx, file, sharedDeviceType, false)
 				if err != nil {
 					ctxLogger.Error("Failed to parse configuration", "error", err)

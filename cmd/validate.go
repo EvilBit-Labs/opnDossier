@@ -126,7 +126,7 @@ Examples:
 
 				// Parse and validate the configuration file
 				ctxLogger.Debug("Parsing and validating configuration file")
-				_, warnings, err := parser.NewParserFactory().CreateDevice(ctx, file, sharedDeviceType, true)
+				_, warnings, err := parser.NewFactory().CreateDevice(ctx, file, sharedDeviceType, true)
 				if err != nil {
 					exitCode := DetermineExitCode(err)
 					updateMaxExitCode(&maxExitCode, exitCode)

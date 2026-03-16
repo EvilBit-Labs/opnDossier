@@ -169,7 +169,7 @@ Examples:
 
 		// Parse the XML and convert to platform-agnostic device model
 		// Full validation should be done with the 'validate' command
-		device, warnings, err := parser.NewParserFactory().CreateDevice(ctx, file, sharedDeviceType, false)
+		device, warnings, err := parser.NewFactory().CreateDevice(ctx, file, sharedDeviceType, false)
 		if err != nil {
 			ctxLogger.Error("Failed to parse configuration", "error", err)
 			// Enhanced error handling for different error types
