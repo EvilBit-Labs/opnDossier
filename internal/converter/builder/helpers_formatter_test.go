@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 // Test the helper methods that delegate to formatters package

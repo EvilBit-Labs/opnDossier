@@ -9,7 +9,7 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

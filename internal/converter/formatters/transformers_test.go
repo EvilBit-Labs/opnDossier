@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 func TestFilterSystemTunables(t *testing.T) {

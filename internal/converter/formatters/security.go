@@ -4,7 +4,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 // Scoring constants and penalty values used by CalculateSecurityScore to compute a security posture score.

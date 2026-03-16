@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 // loadTestData loads test configuration data by parsing an XML file and converting

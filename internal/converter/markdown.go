@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/charmbracelet/glamour"
 	"github.com/nao1215/markdown"
 )
