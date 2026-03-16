@@ -40,14 +40,16 @@ opnDossier is a tool for auditing and reporting on OPNsense configurations, with
 - **Major Components**:
 
   - `cmd/`: CLI entrypoints (`convert`, `display`, `validate`). See `cmd/root.go` for command registration.
-  - `internal/cfgparser/`: XML parsing to `schema.OpnSenseDocument` (XML DTO), converted to `common.CommonDevice` via `internal/model/opnsense/`.
-  - `internal/model/`: Strict data models mirroring OPNsense config structure.
+  - `internal/cfgparser/`: XML parsing to `schema.OpnSenseDocument` (XML DTO), converted to `common.CommonDevice` via `pkg/parser/opnsense/`.
+  - `pkg/model/`: Platform-agnostic CommonDevice domain model.
+  - `pkg/parser/`: Factory + DeviceParser interface (`pkg/parser/opnsense/` for OPNsense-specific converter).
+  - `pkg/schema/opnsense/`: Canonical OPNsense XML data model structs.
   - `internal/processor/`: Normalization, validation, analysis, and transformation pipeline.
   - `internal/converter/`, `internal/markdown/`: Multi-format export (Markdown, JSON, YAML) using templates and options.
   - `internal/audit/`, `internal/compliance/`, `internal/plugins/`: Compliance audit engine and plugin system (STIG, SANS, firewall).
   - `internal/display/`, `internal/logging/`: Terminal output and structured logging.
 
-- **Data Flow**: `cfgparser` → `model` → `processor` → `converter`/`markdown` → `export`
+- **Data Flow**: `cfgparser` → `pkg/parser/opnsense` → `processor` → `converter`/`markdown` → `export`
 
 - **Audit overlays**: `processor` → `audit` → `plugins`
 
@@ -152,7 +154,7 @@ logger.Error("parse failed", "error", err, "filename", filename)
 
 ### Core Data Models
 
-- **CommonDevice**: Platform-agnostic device model in `internal/model/common/` (the XML DTO `schema.OpnSenseDocument` remains for parsing)
+- **CommonDevice**: Platform-agnostic device model in `pkg/model/` (the XML DTO `schema.OpnSenseDocument` remains in `pkg/schema/opnsense/` for parsing)
 - **XML Tags**: Must strictly follow OPNsense configuration file structure
 - **JSON/YAML Tags**: Follow recommended best practices for each format
 - **Audit-Oriented Modeling**: Create internal structs (`Finding`, `Target`, `Exposure`) separately from config structs
@@ -230,8 +232,7 @@ All commit messages must follow the [Conventional Commits](https://www.conventio
 opndossier/
 ├── cmd/              # Command entry points (convert, display, validate, root)
 ├── internal/         # Private application logic
-│   ├── parser/       # XML parsing logic
-│   ├── model/        # Data models and structures
+│   ├── cfgparser/    # XML parsing and validation
 │   ├── processor/    # Data processing and analysis
 │   ├── converter/    # Data conversion utilities
 │   ├── markdown/     # Markdown generation
@@ -239,6 +240,12 @@ opndossier/
 │   ├── export/       # File export functionality
 │   ├── audit/        # Audit engine and compliance checking
 │   └── validator/    # Configuration validation
+├── pkg/              # Public API packages
+│   ├── model/        # Platform-agnostic CommonDevice domain model
+│   ├── parser/       # Factory + DeviceParser interface
+│   │   └── opnsense/ # OPNsense parser + schema→CommonDevice converter
+│   └── schema/
+│       └── opnsense/ # Canonical OPNsense XML data model structs
 ├── project_spec/     # Requirements, tasks, user stories
 └── docs/             # Documentation
 ```
@@ -246,7 +253,7 @@ opndossier/
 ## Key Files & References
 
 - `AGENTS.md`, `docs/development/standards.md`, `docs/development/architecture.md`, `project_spec/requirements.md`
-- `cmd/convert.go`, `internal/model/opnsense.go`, `internal/cfgparser/xml.go`, `internal/processor/README.md`
+- `cmd/convert.go`, `pkg/parser/opnsense/converter.go`, `internal/cfgparser/xml.go`, `internal/processor/README.md`
 
 ## Example Patterns
 
