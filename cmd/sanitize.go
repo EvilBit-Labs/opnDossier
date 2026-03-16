@@ -95,6 +95,7 @@ func ValidSanitizeModes(_ *cobra.Command, _ []string, _ string) ([]string, cobra
 	}, cobra.ShellCompDirectiveNoFileComp
 }
 
+// sanitizeCmd is the cobra.Command for the sanitize subcommand.
 var sanitizeCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 	Use:               "sanitize [file]",
 	Short:             "Redact sensitive data from OPNsense configuration files.",

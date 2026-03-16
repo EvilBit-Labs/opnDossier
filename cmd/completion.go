@@ -64,6 +64,7 @@ PowerShell:
 	},
 }
 
+// init registers the completion command with the root command.
 func init() {
 	rootCmd.AddCommand(completionCmd)
 }

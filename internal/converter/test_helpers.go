@@ -102,7 +102,7 @@ func newFieldsTestDevice() *common.CommonDevice {
 	}
 }
 
-// newFieldsExpectedKeys returns the JSON/YAML keys expected for the new CommonDevice fields.
+// newFieldsExpectedKeys lists the JSON/YAML keys expected for the new CommonDevice fields.
 var newFieldsExpectedKeys = []string{
 	"vlans", "bridges", "ppps", "gifs", "gres", "laggs",
 	"virtualIps", "interfaceGroups", "certificates", "cas", "packages",

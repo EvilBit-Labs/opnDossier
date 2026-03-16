@@ -263,7 +263,8 @@ func (m *Mapper) Reset() {
 	m.genericMappings = make(map[string]string)
 }
 
-// The returned map contains the same key/value pairs as the input (a shallow copy).
+// copyMap returns a shallow copy of the provided string-to-string map.
+// It returns nil when the input map is empty.
 func copyMap(m map[string]string) map[string]string {
 	if len(m) == 0 {
 		return nil

@@ -8,6 +8,7 @@ import (
 // Format represents the output format type.
 type Format string
 
+// Supported output format constants for report generation.
 const (
 	// FormatMarkdown represents markdown output format.
 	FormatMarkdown Format = "markdown"
@@ -39,6 +40,7 @@ func (f Format) Validate() error {
 // Theme represents the rendering theme for terminal output.
 type Theme string
 
+// Supported rendering theme constants for terminal output styling.
 const (
 	// ThemeAuto automatically detects the appropriate theme.
 	ThemeAuto Theme = "auto"

@@ -10,6 +10,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
+// addressUnknown is the fallback label used when a rule source or destination address is empty.
 const addressUnknown = "unknown"
 
 // Analyzer performs structural comparison of configurations.
@@ -900,8 +901,8 @@ func (a *Analyzer) CompareRoutes(old, newCfg common.Routing) []Change {
 	return changes
 }
 
-// Helper functions
-
+// ruleDescription returns the rule's description if set, or a synthesized
+// summary of the form "type source -> destination" as a fallback.
 func ruleDescription(rule common.FirewallRule) string {
 	if rule.Description != "" {
 		return rule.Description
@@ -920,6 +921,8 @@ func ruleDescription(rule common.FirewallRule) string {
 	return fmt.Sprintf("%s %s → %s", rule.Type, src, dst)
 }
 
+// formatRule returns a compact, human-readable representation of a firewall rule
+// including its type, interfaces, protocol, source, destination, and disabled state.
 func formatRule(rule common.FirewallRule) string {
 	parts := []string{
 		"type=" + rule.Type,
@@ -939,6 +942,8 @@ func formatRule(rule common.FirewallRule) string {
 	return strings.Join(parts, ", ")
 }
 
+// formatEndpoint returns a string representation of a rule endpoint in the form
+// [!]address[:port], using "unknown" when the address is empty.
 func formatEndpoint(ep common.RuleEndpoint) string {
 	var prefix string
 	if ep.Negated {
@@ -955,6 +960,8 @@ func formatEndpoint(ep common.RuleEndpoint) string {
 	return result
 }
 
+// formatInterface returns a compact summary of an interface showing its physical
+// device, IP address with subnet, and description.
 func formatInterface(iface common.Interface) string {
 	var parts []string
 	if iface.PhysicalIf != "" {
@@ -973,6 +980,8 @@ func formatInterface(iface common.Interface) string {
 	return strings.Join(parts, ", ")
 }
 
+// rulesEqual reports whether two firewall rules are semantically equal by comparing
+// their type, description, protocol, disabled state, source, destination, and interfaces.
 func rulesEqual(a, b common.FirewallRule) bool {
 	return a.Type == b.Type &&
 		a.Description == b.Description &&
@@ -983,6 +992,8 @@ func rulesEqual(a, b common.FirewallRule) bool {
 		slices.Equal(a.Interfaces, b.Interfaces)
 }
 
+// usersEqual reports whether two users are semantically equal by comparing
+// their name, description, scope, group, and disabled state.
 func usersEqual(a, b common.User) bool {
 	return a.Name == b.Name &&
 		a.Description == b.Description &&
@@ -991,6 +1002,8 @@ func usersEqual(a, b common.User) bool {
 		a.Disabled == b.Disabled
 }
 
+// isPermissiveRule reports whether a firewall rule is an unrestricted pass rule
+// that allows all traffic from any source to any destination.
 func isPermissiveRule(rule common.FirewallRule) bool {
 	return rule.Type == "pass" &&
 		rule.Source.Address == "any" &&

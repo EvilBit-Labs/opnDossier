@@ -14,7 +14,7 @@ import (
 	"github.com/nao1215/markdown"
 )
 
-// Constants for common values.
+// destinationAny is the default address value used when a firewall rule source or destination is unset.
 const destinationAny = "any"
 
 // Converter is the interface for converting device configurations to markdown.

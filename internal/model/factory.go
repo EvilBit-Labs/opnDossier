@@ -156,6 +156,7 @@ func peekRootElementBounded(ctx context.Context, r io.Reader) (string, io.Reader
 // readerFunc adapts a function to the io.Reader interface.
 type readerFunc func(p []byte) (int, error)
 
+// Read delegates to the underlying function, satisfying the io.Reader interface.
 func (f readerFunc) Read(p []byte) (int, error) { return f(p) }
 
 // newCtxReader wraps an io.Reader so that each Read call checks ctx for

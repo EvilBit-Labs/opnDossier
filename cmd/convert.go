@@ -27,6 +27,7 @@ import (
 	"github.com/spf13/pflag"
 )
 
+// Package-level flag variables for the convert command, required by cobra's flag binding mechanism.
 var (
 	outputFile string //nolint:gochecknoglobals // Cobra flag variable
 	format     string //nolint:gochecknoglobals // Output format (markdown, json, yaml, text, html)
@@ -139,6 +140,7 @@ func registerConvertFlagCompletions(cmd *cobra.Command) {
 	}
 }
 
+// convertCmd is the cobra.Command for the convert subcommand.
 var convertCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 	Use:               "convert [file ...]",
 	Short:             "Convert OPNsense configuration files to structured formats.",

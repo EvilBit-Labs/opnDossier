@@ -51,6 +51,7 @@ func registerDisplayFlagCompletions(cmd *cobra.Command) {
 	}
 }
 
+// displayCmd is the cobra.Command for the display subcommand.
 var displayCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 	Use:               "display [file]",
 	Short:             "Display OPNsense configuration in formatted markdown.",

@@ -966,6 +966,8 @@ func isValidIPv6(ip string) bool {
 // or strings composed entirely of digits and dots (failed IPv4 parse).
 var digitsAndDotsPattern = regexp.MustCompile(`^[\d.]+$`)
 
+// looksLikeMalformedIP reports whether s appears to be a failed IP address parse
+// attempt rather than a legitimate alias name.
 func looksLikeMalformedIP(s string) bool {
 	return strings.Contains(s, "/") || strings.Contains(s, ":") || digitsAndDotsPattern.MatchString(s)
 }
@@ -979,8 +981,8 @@ func isValidCIDR(cidr string) bool {
 // connRatePattern matches the "connections/seconds" format (e.g., "15/5").
 var connRatePattern = regexp.MustCompile(`^\d+/\d+$`)
 
-// isValidConnRateFormat returns true if the string matches the "connections/seconds" format (e.g., "15/5")
-// with both values being positive integers.
+// isValidConnRateFormat returns true if the string matches the "connections/seconds" format
+// (e.g., "15/5") with both values being positive integers.
 func isValidConnRateFormat(rate string) bool {
 	if !connRatePattern.MatchString(rate) {
 		return false

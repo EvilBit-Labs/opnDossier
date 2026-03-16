@@ -9,6 +9,7 @@ import "slices"
 // DeviceType identifies the platform that produced a configuration.
 type DeviceType string
 
+// Recognized device type constants used to identify the platform that produced a configuration.
 const (
 	// DeviceTypeOPNsense represents an OPNsense device.
 	DeviceTypeOPNsense DeviceType = "opnsense"
@@ -130,8 +131,8 @@ type CommonDevice struct {
 	SecurityAssessment *SecurityAssessment `json:"securityAssessment,omitempty" yaml:"securityAssessment,omitempty"`
 	// PerformanceMetrics contains performance-related metrics.
 	PerformanceMetrics *PerformanceMetrics `json:"performanceMetrics,omitempty" yaml:"performanceMetrics,omitempty"`
-	// ComplianceChecks contains compliance check results.
-	ComplianceChecks *ComplianceChecks `json:"complianceChecks,omitempty" yaml:"complianceChecks,omitempty"`
+	// ComplianceChecks contains compliance audit results from plugin-based checks.
+	ComplianceChecks *ComplianceResults `json:"complianceChecks,omitempty" yaml:"complianceChecks,omitempty"`
 }
 
 // HasDHCP reports whether the device has any DHCP configuration,

@@ -7,6 +7,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
+// Scoring constants and penalty values used by CalculateSecurityScore to compute a security posture score.
 const (
 	maxSecurityScore       = 100
 	initialSecurityScore   = 100
@@ -97,6 +98,7 @@ func AssessServiceRisk(serviceName string) string {
 	return AssessRiskLevel("info")
 }
 
+// hasManagementOnWAN checks whether any firewall rule allows inbound traffic to common management ports on the WAN interface.
 func hasManagementOnWAN(data *common.CommonDevice) bool {
 	mgmtPorts := []string{"443", "80", "22", "8080"}
 
@@ -118,6 +120,7 @@ func hasManagementOnWAN(data *common.CommonDevice) bool {
 	return false
 }
 
+// checkTunable returns true if a sysctl tunable with the given name exists and has the expected value.
 func checkTunable(tunables []common.SysctlItem, name, expected string) bool {
 	for _, tunable := range tunables {
 		if tunable.Tunable == name {
@@ -127,6 +130,7 @@ func checkTunable(tunables []common.SysctlItem, name, expected string) bool {
 	return false
 }
 
+// isDefaultUser returns true if the user has a well-known default username such as admin, root, or user.
 func isDefaultUser(u common.User) bool {
 	switch strings.ToLower(u.Name) {
 	case "admin", "root", "user":

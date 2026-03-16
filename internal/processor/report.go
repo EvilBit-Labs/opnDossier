@@ -255,6 +255,7 @@ func (r *Report) HasCriticalFindings() bool {
 // OutputFormat represents the supported output formats.
 type OutputFormat string
 
+// Supported output format constants for report generation.
 const (
 	// OutputFormatMarkdown outputs the report as Markdown.
 	OutputFormatMarkdown OutputFormat = "markdown"
@@ -328,12 +329,14 @@ func (r *Report) ToMarkdown() string {
 
 // Helper functions for Markdown generation
 
+// addHeader writes the top-level report title and generation timestamp to the markdown document.
 func (r *Report) addHeader(md *markdown.Markdown) {
 	md.H1("OPNsense Configuration Analysis Report").
 		PlainTextf("Generated: %s", r.GeneratedAt.Format(time.RFC3339)).
 		LF()
 }
 
+// addConfigInfo writes the configuration metadata section (hostname, domain, version, theme) to the markdown document.
 func (r *Report) addConfigInfo(md *markdown.Markdown) {
 	md.H2("Configuration Information")
 	configItems := []string{
@@ -350,6 +353,7 @@ func (r *Report) addConfigInfo(md *markdown.Markdown) {
 	md.LF()
 }
 
+// addStatistics writes the configuration statistics overview and summary sections to the markdown document.
 func (r *Report) addStatistics(md *markdown.Markdown) {
 	overviewItems := []string{
 		fmt.Sprintf("%s: %d", markdown.Bold("Total Interfaces"), r.Statistics.TotalInterfaces),
@@ -483,6 +487,8 @@ func (r *Report) addFindingsUnsafe(md *markdown.Markdown) {
 	r.addFindingsSection(md, "Informational", r.Findings.Info)
 }
 
+// addStatisticsList renders a sorted bullet list of named integer statistics under the given title,
+// appending suffix to each value.
 func addStatisticsList(md *markdown.Markdown, title string, stats map[string]int, suffix string) {
 	if len(stats) == 0 {
 		return
@@ -499,6 +505,7 @@ func addStatisticsList(md *markdown.Markdown, title string, stats map[string]int
 		LF()
 }
 
+// addInterfaceDetails renders a table of interface statistics (type, enabled state, addressing, blocking) under the given title.
 func addInterfaceDetails(md *markdown.Markdown, title string, details []InterfaceStatistics) {
 	if len(details) == 0 {
 		return
@@ -526,6 +533,7 @@ func addInterfaceDetails(md *markdown.Markdown, title string, details []Interfac
 		LF()
 }
 
+// addDHCPScopeDetails renders a table of DHCP scope statistics (interface, enabled state, address range) under the given title.
 func addDHCPScopeDetails(md *markdown.Markdown, title string, details []DHCPScopeStatistics) {
 	if len(details) == 0 {
 		return
