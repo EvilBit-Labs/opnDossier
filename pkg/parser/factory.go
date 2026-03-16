@@ -27,6 +27,12 @@ type DeviceParser interface {
 }
 
 // Factory detects device type and delegates to the appropriate DeviceParser.
+//
+// Renamed from ParserFactory to Factory to comply with Go naming conventions
+// (revive stutters rule: parser.ParserFactory → parser.Factory). The
+// internal/model/ re-export layer that previously forwarded NewParserFactory
+// was removed in the same change. All in-repo callers now use NewFactory
+// directly. There are no known external consumers of the old name.
 type Factory struct{}
 
 // NewFactory returns a new Factory.
