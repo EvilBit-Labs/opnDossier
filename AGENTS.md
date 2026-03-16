@@ -53,7 +53,7 @@ When rules conflict, follow the higher precedence rule.
 
 ### Repository Roles
 
-- **Maintainer:** `unclesp1d3r` (sole maintainer — `lgtm` label self-merge pattern in Mergify)
+- **Maintainer:** `unclesp1d3r` (sole maintainer — manually enqueues PRs via Mergify `/queue` command)
 - **Trusted bots:** `dependabot[bot]`, `dosubot[bot]` (auto-approved by Mergify)
 
 ---
@@ -739,11 +739,12 @@ CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o opnDossier ./main.go
 
 **Mergify merge queues:**
 
-- `.mergify.yml` defines 5 author-specific queues: `dosubot`, `dependabot-workflows`, `dependabot`, `maintainer`, `external`
+- `.mergify.yml` defines 4 queues: `dosubot` (lint-only), `dependabot-workflows` (lint-only), `dependabot` (full CI), `default` (full CI, manually enqueued)
+- Bot queues use `autoqueue: true` — PRs are enqueued automatically when `queue_conditions` match
+- Human PRs use the `default` queue — maintainers manually enqueue via Mergify `/queue` command; repo permissions restrict who can send the command
 - CI check names in Mergify must match the `name:` field in workflow jobs (e.g., `Lint`, `Build`, `Test (ubuntu-latest)`), NOT the job ID (`lint`, `build`, `test`)
 - DCO sign-off is enforced by a GitHub App, not a CI workflow — there is no `DCO` check name
 - Bot PRs (dosubot, dependabot workflow-only) require only `Lint`; all others require full CI
-- `autoqueue: true` on all queues — PRs are enqueued automatically when `queue_conditions` match, no `pull_request_rules` queue action needed
 
 ---
 
