@@ -9,6 +9,7 @@ import "slices"
 // DeviceType identifies the platform that produced a configuration.
 type DeviceType string
 
+// Recognized device type constants used to identify the platform that produced a configuration.
 const (
 	// DeviceTypeOPNsense represents an OPNsense device.
 	DeviceTypeOPNsense DeviceType = "opnsense"
