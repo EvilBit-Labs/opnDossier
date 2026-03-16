@@ -60,6 +60,7 @@ The CLI uses a layered architecture: **Cobra** provides command structure and ar
 - **Package**: `internal/analysis/`
 - **Responsibility**: Canonical finding and severity types shared across audit, compliance, and processor packages
 - **Key Types**: `Finding` struct, `Severity` type with validation helpers
+- **Export Model**: `ComplianceResults`, `ComplianceFinding`, `PluginComplianceResult`, `ComplianceControl`, `ComplianceResultSummary`, `CompliancePluginInfo`, `ComplianceAttackSurface` in `internal/model/common/enrichment.go`
 - **Purpose**: Eliminates type duplication, ensures consistency across all analysis-related packages
 - **Usage**: Also used in `ConversionWarning` type for severity classification of non-fatal conversion issues
 
@@ -78,6 +79,8 @@ The CLI uses a layered architecture: **Cobra** provides command structure and ar
 - **Output**: Markdown content, conversion warnings
 - **Features**: Hierarchy preservation, metadata injection, non-fatal issue tracking
 - **Warning Generation**: Accumulates conversion warnings for incomplete or problematic configuration elements (empty firewall rule fields, missing NAT rule data, gateway issues, user/certificate problems, HA configuration warnings)
+- **Audit Report Rendering**: Delegates compliance audit report rendering to `internal/converter/builder/` via `BuildAuditSection()` and `WriteAuditSection()` methods
+- **Audit Mode Integration**: In audit mode, `cmd/audit_handler.go` maps `audit.Report` to `common.ComplianceResults` and populates the `ComplianceChecks` field on a shallow copy of `CommonDevice`, enabling multi-format output (markdown, JSON, YAML) through the standard generation pipeline
 
 #### Output Renderer Component
 
@@ -162,6 +165,7 @@ This hierarchical structure provides:
 - **Extensibility**: New features can be added to appropriate domains
 - **Validation**: Domain-specific validation rules improve data integrity
 - **API Evolution**: JSON tags enable better REST API integration
+- **Compliance Data**: `ComplianceResults` field (formerly `ComplianceChecks`) is a rich nested structure containing `Mode`, `Findings`, `PluginResults` map with per-plugin `PluginComplianceResult` instances, `Summary`, and `Metadata`
 
 ## Multi-Device Model Layer Architecture
 
@@ -185,7 +189,7 @@ graph TD
 
 - **`internal/schema/`** — XML DTO layer. Carries `xml:""` tags and mirrors the OPNsense config.xml structure. This layer is untouched by downstream consumers.
 - **`internal/model/opnsense/`** — Contains `parser.go` and `converter.go`. Reads schema DTOs and emits `*common.CommonDevice` with conversion warnings. This is the only package that imports `internal/schema/`.
-- **`internal/model/common/`** — Device-agnostic domain model. No XML tags. All consumer code (processor, converter, markdown, audit, diff, compliance plugins) operates on `CommonDevice`. Includes `ConversionWarning` type for non-fatal issues.
+- **`internal/model/common/`** — Device-agnostic domain model. No XML tags. All consumer code (processor, converter, markdown, audit, diff, compliance plugins) operates on `CommonDevice`. Includes `ConversionWarning` type for non-fatal issues and `ComplianceResults` type (with nested `ComplianceFinding`, `PluginComplianceResult`, `ComplianceControl`, `ComplianceResultSummary`, `CompliancePluginInfo`, `ComplianceAttackSurface`) for compliance audit data representation.
 - **`internal/analysis/`** — Canonical finding and severity types. Provides the shared `Finding` struct and `Severity` type used across audit, compliance, and processor packages to ensure consistency.
 - **`internal/model/factory.go`** — `ParserFactory` and `DeviceParser` interface. Auto-detects the device type from the XML root element. The `--device-type opnsense` flag bypasses auto-detection. Returns 3 values: device model, warnings slice, and error.
 
@@ -308,6 +312,7 @@ classDiagram
         +BuildNetworkSection(data) string
         +BuildSecuritySection(data) string
         +BuildServicesSection(data) string
+        +BuildAuditSection(data) string
     }
 
     class MarkdownBuilder {
@@ -320,6 +325,7 @@ classDiagram
         +GroupServicesByStatus(services) map[string][]Service
         +FormatInterfaceLinks(interfaces) string
         +EscapeMarkdownSpecialChars(input) string
+        +BuildAuditSection(data) string
     }
 
     class SecurityAssessor {
@@ -411,6 +417,7 @@ graph TD
 - **BuildNetworkSection**: 6.7K operations/sec
 - **BuildSecuritySection**: 5.1K operations/sec
 - **BuildServicesSection**: 13K operations/sec
+- **BuildAuditSection**: Renders compliance audit sections including summary, plugin results, findings tables, and metadata
 
 ### Memory Management Architecture
 
@@ -596,6 +603,26 @@ func (g *BlueTeamGenerator) analyzeCompliance(device *common.CommonDevice) []ana
 3. **Reduced Coupling** - Changes to one report type don't affect others
 4. **Clear Ownership** - Each module has defined boundaries
 5. **Extensibility** - New report types added without modifying core
+
+## Audit-to-Export Mapping
+
+The `cmd/audit_handler.go` module contains `mapAuditReportToComplianceResults()`, which converts the internal `audit.Report` structure into the export model `common.ComplianceResults`. This mapping enables multi-format output (markdown, JSON, YAML) for compliance audit data through the standard generation pipeline.
+
+### Mapping Process
+
+1. **Top-level findings**: Converts `audit.Finding` instances (which embed `analysis.Finding`) to `common.ComplianceFinding` instances, preserving `AttackSurface`, `ExploitNotes`, and `Control` fields
+2. **Per-plugin results**: Maps each `audit.ComplianceResult` in the `report.Compliance` map to `common.PluginComplianceResult`, including:
+   - Plugin metadata (`PluginInfo`)
+   - Plugin-specific findings
+   - Summary statistics (`ComplianceResultSummary`)
+   - Control definitions (`ComplianceControl`)
+   - Per-control compliance status (boolean map)
+3. **Aggregate summary**: Computes summary statistics across all plugins and direct findings, including total/critical/high/medium/low counts and compliant/non-compliant control counts
+4. **Metadata preservation**: Clones the audit metadata map
+
+### Integration with Builder Layer
+
+Once the mapping is complete, `handleAuditMode()` creates a shallow copy of the `CommonDevice` and populates its `ComplianceChecks` field with the mapped `ComplianceResults`. This enriched device is then passed to `generateWithProgrammaticGenerator()`, which delegates to `BuildAuditSection()` (for markdown) or serializes the `ComplianceChecks` field directly (for JSON/YAML).
 
 ## Data Storage Strategy
 
