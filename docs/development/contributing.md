@@ -52,8 +52,6 @@ The project follows standard Go conventions:
   - `cfgparser/` - XML parsing and validation
   - `config/` - Configuration management (Viper)
   - `converter/` - Data conversion and report generation
-  - `model/` - Data models (re-export layer over `internal/schema/`)
-  - `schema/` - Canonical data model structs
   - `compliance/` - Plugin interfaces
   - `plugins/` - Compliance plugin implementations (stig, sans, firewall)
   - `audit/` - Audit engine and plugin management
@@ -62,7 +60,12 @@ The project follows standard Go conventions:
   - `logging/` - Structured logging (wraps `charmbracelet/log`)
   - `progress/` - CLI progress indicators
   - `validator/` - Configuration validation
-- `docs/` - Documentation (MkDocs format)
+- `pkg/` - Public API packages
+  - `model/` - Platform-agnostic CommonDevice domain model
+  - `parser/` - Factory + DeviceParser interface
+    - `opnsense/` - OPNsense parser + schema→CommonDevice converter
+  - `schema/opnsense/` - Canonical OPNsense XML data model structs
+- `docs/` - Documentation
 - `testdata/` - Test fixtures and sample configuration files
 
 ### Making Changes
@@ -104,7 +107,7 @@ The project follows standard Go conventions:
 When modifying XML parsing logic:
 
 - The parser lives in `internal/cfgparser/`
-- Data models are defined in `internal/schema/` with re-exports in `internal/model/`
+- Data models are defined in `pkg/schema/opnsense/` (XML structs) and `pkg/model/` (platform-agnostic CommonDevice)
 - Test with sample files in `testdata/`
 - Add benchmarks for performance-critical changes
 - Preserve backward compatibility in the `Parser` interface

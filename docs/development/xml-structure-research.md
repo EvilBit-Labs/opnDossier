@@ -12,7 +12,7 @@
 | pfSense filter.inc              | `src/etc/inc/filter.inc`                                       | pf rule generation from config.xml |
 | pfSense firewall_rules_edit.php | `src/usr/local/www/firewall_rules_edit.php`                    | Web UI address handling            |
 | pfSense Bug #6893               | Redmine issue tracker                                          | Self-closing tag inconsistency fix |
-| Go schema package               | `internal/schema/*.go`                                         | Our current data model             |
+| Go schema package               | `pkg/schema/opnsense/*.go`                                     | Our current data model             |
 
 ---
 
@@ -26,7 +26,7 @@ Element existing = true, absent = false. Content is irrelevant.
 
 **Upstream PHP pattern:** `isset($rule['disabled'])` or `!empty($rule['disabled'])`
 
-**Go type:** `BoolFlag` (custom type in `internal/schema/common.go`)
+**Go type:** `BoolFlag` (custom type in `pkg/schema/opnsense/common.go`)
 
 | Element                     | Parent Context              | Upstream Evidence                                       |
 | --------------------------- | --------------------------- | ------------------------------------------------------- |
@@ -240,7 +240,7 @@ Helper methods `IsAny()`, `EffectiveAddress()`, and `Equal()` were added to both
 
 ### 4c. Existing `RuleLocation` Type
 
-`internal/schema/common.go` defines `RuleLocation` with similar fields. It remains available for other use cases but was not embedded into Source/Destination to avoid complexity with the `*string` Any field and XML marshaling behavior.
+`pkg/schema/opnsense/common.go` defines `RuleLocation` with similar fields. It remains available for other use cases but was not embedded into Source/Destination to avoid complexity with the `*string` Any field and XML marshaling behavior.
 
 ---
 

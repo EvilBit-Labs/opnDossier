@@ -19,15 +19,13 @@ opndossier/
 │   ├── shared_flags.go          # Shared flags (section, wrap, audit)
 │   ├── exitcodes.go             # Structured exit codes
 │   └── help.go                  # Custom help templates
-├── internal/
+├── internal/                    # Private application logic
 │   ├── analysis/                # Canonical finding and severity types
 │   ├── cfgparser/               # XML parsing and validation
 │   ├── config/                  # Configuration management (Viper)
 │   ├── converter/               # Data conversion and report generation
 │   │   ├── builder/             # Programmatic markdown builder
 │   │   └── formatters/          # Security scoring, transformers
-│   ├── schema/                  # Canonical data model structs
-│   ├── model/                   # Re-export layer (type aliases)
 │   ├── compliance/              # Plugin interfaces
 │   ├── plugins/                 # Plugin implementations (stig, sans, firewall)
 │   ├── audit/                   # Audit engine and plugin management
@@ -37,6 +35,12 @@ opndossier/
 │   ├── progress/                # CLI progress indicators
 │   ├── processor/               # Security analysis and report generation
 │   └── validator/               # Configuration validation
+├── pkg/                         # Public API packages
+│   ├── model/                   # Platform-agnostic CommonDevice domain model
+│   ├── parser/                  # Factory + DeviceParser interface
+│   │   └── opnsense/            # OPNsense parser + schema→CommonDevice converter
+│   └── schema/
+│       └── opnsense/            # Canonical OPNsense XML data model structs
 └── main.go                      # Entry point
 ```
 
@@ -82,7 +86,7 @@ config := cmdCtx.Config
 
 ### DeviceParser Interface
 
-The `DeviceParser` interface (defined in `internal/model/factory.go`) abstracts device-specific parsing behind a common contract:
+The `DeviceParser` interface (defined in `pkg/parser/factory.go`) abstracts device-specific parsing behind a common contract:
 
 ```go
 type DeviceParser interface {
