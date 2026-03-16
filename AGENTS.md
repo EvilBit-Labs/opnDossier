@@ -105,11 +105,11 @@ opndossier/
 │   ├── testing/            # Shared test helpers
 │   └── validator/          # Data validation
 ├── pkg/                    # Public API packages (importable by external consumers)
-│   ├── model/              # Platform-agnostic CommonDevice domain model (was internal/model/common/)
+│   ├── model/              # Platform-agnostic CommonDevice domain model
 │   ├── parser/             # Factory + DeviceParser interface
 │   │   └── opnsense/       # OPNsense parser + schema→CommonDevice converter
 │   └── schema/
-│       └── opnsense/       # Canonical OPNsense data model — XML structs (was internal/schema/)
+│       └── opnsense/       # Canonical OPNsense data model — XML structs
 ├── tools/docgen/           # Standalone model documentation generator (//go:build ignore)
 ├── testdata/               # Test data and fixtures
 ├── docs/                   # Documentation
