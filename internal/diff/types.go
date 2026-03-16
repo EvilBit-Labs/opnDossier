@@ -12,6 +12,7 @@ import (
 // ChangeType represents the type of configuration change.
 type ChangeType string
 
+// ChangeType constants enumerate the possible kinds of configuration changes.
 const (
 	// ChangeAdded indicates a new element was added.
 	ChangeAdded ChangeType = "added"
@@ -57,6 +58,7 @@ func (c ChangeType) IsValid() bool {
 // Section represents a configuration section.
 type Section string
 
+// Section constants enumerate the configuration sections available for comparison.
 const (
 	// SectionSystem represents system configuration.
 	SectionSystem Section = "system"
@@ -144,6 +146,7 @@ func (s Section) IsImplemented() bool {
 // SecurityImpact represents the security impact level of a change.
 type SecurityImpact string
 
+// SecurityImpact constants define the severity tiers for security-relevant changes.
 const (
 	// SecurityImpactHigh indicates a high security impact (e.g., permissive any-any rules).
 	SecurityImpactHigh SecurityImpact = "high"
