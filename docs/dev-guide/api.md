@@ -95,12 +95,12 @@ type DeviceParser interface {
 
 **Breaking Change:** Both methods return a 3-value tuple `(*CommonDevice, []ConversionWarning, error)` instead of the previous 2-value return `(*CommonDevice, error)`. Implementations must return non-fatal conversion warnings alongside the parsed device model. Callers should log or surface these warnings without treating them as errors.
 
-The `ParserFactory` auto-detects device type from the XML root element and delegates to the appropriate `DeviceParser`. The underlying OPNsense XML parser (`internal/cfgparser/XMLParser`) still produces `schema.OpnSenseDocument`, which is then converted to `common.CommonDevice` by the OPNsense-specific parser in `internal/model/opnsense/`.
+The `parser.Factory` auto-detects device type from the XML root element and delegates to the appropriate `DeviceParser`. The underlying OPNsense XML parser (`internal/cfgparser/XMLParser`) still produces `schema.OpnSenseDocument`, which is then converted to `common.CommonDevice` by the OPNsense-specific parser in `pkg/parser/opnsense/`.
 
-### ParserFactory Usage
+### Factory Usage
 
 ```go
-factory := model.NewParserFactory()
+factory := parser.NewFactory()
 
 file, err := os.Open("config.xml")
 if err != nil {
@@ -156,7 +156,7 @@ type CommonDevice struct {
 }
 ```
 
-The XML DTO remains as `schema.OpnSenseDocument` in `internal/schema/opnsense.go`. The OPNsense-specific parser in `internal/model/opnsense/` converts the XML DTO into `CommonDevice`. The `internal/model/` package provides the `ParserFactory` and `DeviceParser` interface for consumers.
+The XML DTO remains as `schema.OpnSenseDocument` in `pkg/schema/opnsense/`. The OPNsense-specific parser in `pkg/parser/opnsense/` converts the XML DTO into `CommonDevice`. The `pkg/parser/` package provides the `Factory` and `DeviceParser` interface for consumers.
 
 ### ConversionWarning
 
