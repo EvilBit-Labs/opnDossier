@@ -16,6 +16,7 @@ import (
 	"github.com/yuin/goldmark/renderer/html"
 )
 
+// Checkbox string constants used for rendering task list items in markdown.
 const (
 	checkboxChecked   = "[x]"
 	checkboxUnchecked = "[ ]"
