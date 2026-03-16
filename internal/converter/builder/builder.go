@@ -17,6 +17,7 @@ import (
 	"github.com/nao1215/markdown"
 )
 
+// destinationAny is the canonical string used to represent an unrestricted destination in firewall rules.
 const destinationAny = "any"
 
 // ReportBuilder interface defines the contract for programmatic report generation.
@@ -1108,6 +1109,7 @@ func (b *MarkdownBuilder) BuildComprehensiveReport(data *common.CommonDevice) (s
 	return md.String(), nil
 }
 
+// buildInterfaceDetails renders the property details for a single network interface into the markdown builder.
 func buildInterfaceDetails(md *markdown.Markdown, iface common.Interface) {
 	// Build a list of interface properties that are set
 	if iface.PhysicalIf != "" {
