@@ -29,6 +29,7 @@ func Walk(device common.CommonDevice) MDNode {
 	return walkNode("Device Configuration", 1, device)
 }
 
+// maxHeaderLevel is the deepest markdown heading level (h6) used when walking nested structs.
 const maxHeaderLevel = 6
 
 // walkNode recursively converts a Go value into an MDNode, building a hierarchical Markdown-like structure.
