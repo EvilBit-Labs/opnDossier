@@ -76,6 +76,7 @@ func NewStyleSheetWithTheme(theme Theme) *StyleSheet {
 	}
 }
 
+// Terminal display layout constants.
 const (
 	// DefaultWordWrapWidth is the default word wrap width for terminal display.
 	DefaultWordWrapWidth = 120

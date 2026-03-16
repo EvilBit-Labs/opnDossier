@@ -54,6 +54,7 @@ func (bf *BoolFlag) Set(value bool) {
 	*bf = BoolFlag(value)
 }
 
+// Compile-time interface compliance check for BoolFlag implementing xml.Marshaler.
 var _ xml.Marshaler = (*BoolFlag)(nil)
 
 // ChangeMeta tracks creation and modification metadata for configuration items.

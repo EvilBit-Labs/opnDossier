@@ -33,6 +33,7 @@ var (
 // ReportMode represents the different types of audit reports that can be generated.
 type ReportMode string
 
+// Report mode constants that determine the perspective and focus of audit output.
 const (
 	// ModeStandard represents a neutral, comprehensive documentation report.
 	ModeStandard ReportMode = "standard"

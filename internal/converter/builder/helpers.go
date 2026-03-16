@@ -2,10 +2,43 @@ package builder
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
+
+// MaxDescriptionLength is the maximum rune length for table cell descriptions.
+const MaxDescriptionLength = 80
+
+// TruncationEllipsisLen is the length of the "..." ellipsis used in truncation.
+const TruncationEllipsisLen = 3
+
+// EscapePipeForMarkdown escapes pipe characters for safe display in markdown table cells.
+// Unlike formatters.EscapeTableContent which escapes all markdown special characters,
+// this function only escapes pipes for table cell safety when content is already
+// partially formatted.
+func EscapePipeForMarkdown(s string) string {
+	return strings.ReplaceAll(s, "|", "\\|")
+}
+
+// TruncateString truncates a string to the specified maximum rune length.
+// It is rune-aware to avoid splitting multi-byte UTF-8 characters.
+// Unlike formatters.TruncateDescription which truncates at word boundaries,
+// this function truncates at exact rune positions.
+func TruncateString(s string, maxLen int) string {
+	if maxLen <= 0 {
+		return ""
+	}
+	runes := []rune(s)
+	if len(runes) <= maxLen {
+		return s
+	}
+	if maxLen <= TruncationEllipsisLen {
+		return string(runes[:maxLen])
+	}
+	return string(runes[:maxLen-TruncationEllipsisLen]) + "..."
+}
 
 // Time unit constants for lease time formatting.
 const (

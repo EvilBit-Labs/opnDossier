@@ -60,13 +60,13 @@ The root export object representing a normalized device configuration.
 
 **Enrichment fields** (populated during export, not present in raw parse):
 
-| Field                | Type                  | JSON Key             | Description                         |
-| -------------------- | --------------------- | -------------------- | ----------------------------------- |
-| `Statistics`         | `*Statistics`         | `statistics`         | Calculated configuration statistics |
-| `Analysis`           | `*Analysis`           | `analysis`           | Analysis findings and insights      |
-| `SecurityAssessment` | `*SecurityAssessment` | `securityAssessment` | Security scores and recommendations |
-| `PerformanceMetrics` | `*PerformanceMetrics` | `performanceMetrics` | Performance-related metrics         |
-| `ComplianceChecks`   | `*ComplianceChecks`   | `complianceChecks`   | Compliance check results            |
+| Field                | Type                  | JSON Key             | Description                                       |
+| -------------------- | --------------------- | -------------------- | ------------------------------------------------- |
+| `Statistics`         | `*Statistics`         | `statistics`         | Calculated configuration statistics               |
+| `Analysis`           | `*Analysis`           | `analysis`           | Analysis findings and insights                    |
+| `SecurityAssessment` | `*SecurityAssessment` | `securityAssessment` | Security scores and recommendations               |
+| `PerformanceMetrics` | `*PerformanceMetrics` | `performanceMetrics` | Performance-related metrics                       |
+| `ComplianceChecks`   | `*ComplianceResults`  | `complianceChecks`   | Compliance audit results from plugin-based checks |
 
 ---
 

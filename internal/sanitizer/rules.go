@@ -8,6 +8,7 @@ import (
 // Mode represents the sanitization aggressiveness level.
 type Mode string
 
+// Sanitization mode constants ordered from most to least aggressive.
 const (
 	// ModeAggressive redacts all sensitive data for public sharing.
 	ModeAggressive Mode = "aggressive"

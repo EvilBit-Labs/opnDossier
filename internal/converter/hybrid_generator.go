@@ -185,12 +185,29 @@ func (g *HybridGenerator) generateMarkdown(data *common.CommonDevice, opts Optio
 
 	target := prepareForExport(data, opts.Redact)
 
+	var report string
+	var err error
+
 	switch {
 	case opts.Comprehensive:
-		return g.builder.BuildComprehensiveReport(target)
+		report, err = g.builder.BuildComprehensiveReport(target)
 	default:
-		return g.builder.BuildStandardReport(target)
+		report, err = g.builder.BuildStandardReport(target)
 	}
+
+	if err != nil {
+		return "", err
+	}
+
+	// Append audit section when compliance data is present
+	if target.ComplianceChecks != nil {
+		auditSection := g.builder.BuildAuditSection(target)
+		if auditSection != "" {
+			report += "\n\n" + auditSection
+		}
+	}
+
+	return report, nil
 }
 
 // generateMarkdownToWriter writes markdown output directly to the writer.
@@ -227,18 +244,44 @@ func (g *HybridGenerator) generateMarkdownToWriter(
 			return err
 		}
 
+		// Append audit section when compliance data is present
+		if target.ComplianceChecks != nil {
+			auditSection := g.builder.BuildAuditSection(target)
+			if auditSection != "" {
+				output += "\n\n" + auditSection
+			}
+		}
+
 		_, err = io.WriteString(w, output)
 
 		return err
 	}
 
 	// Use streaming writer
+	var err error
+
 	switch {
 	case opts.Comprehensive:
-		return sectionWriter.WriteComprehensiveReport(w, target)
+		err = sectionWriter.WriteComprehensiveReport(w, target)
 	default:
-		return sectionWriter.WriteStandardReport(w, target)
+		err = sectionWriter.WriteStandardReport(w, target)
 	}
+
+	if err != nil {
+		return err
+	}
+
+	// Append audit section when compliance data is present
+	if target.ComplianceChecks != nil {
+		auditSection := g.builder.BuildAuditSection(target)
+		if auditSection != "" {
+			if _, writeErr := io.WriteString(w, "\n\n"+auditSection); writeErr != nil {
+				return fmt.Errorf("failed to write audit section: %w", writeErr)
+			}
+		}
+	}
+
+	return nil
 }
 
 // generateJSON generates JSON output by serializing the model.

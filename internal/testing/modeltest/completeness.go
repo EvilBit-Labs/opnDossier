@@ -22,6 +22,7 @@ import (
 	"github.com/clbanning/mxj"
 )
 
+// Sentinel errors for model completeness check failures.
 var (
 	// ErrFailedToReadFile is returned when a file cannot be read
 	ErrFailedToReadFile = errors.New("failed to read file")

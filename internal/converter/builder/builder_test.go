@@ -960,4 +960,330 @@ func TestWriteTableMethods(t *testing.T) {
 	}
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// BuildAuditSection Tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+func TestBuildAuditSection_NilData(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	result := b.BuildAuditSection(nil)
+	if result != "" {
+		t.Errorf("BuildAuditSection with nil data should return empty string, got: %s", result)
+	}
+}
+
+func TestBuildAuditSection_NilComplianceChecks(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	data := &common.CommonDevice{ComplianceChecks: nil}
+
+	result := b.BuildAuditSection(data)
+	if result != "" {
+		t.Errorf("BuildAuditSection with nil ComplianceChecks should return empty string, got: %s", result)
+	}
+}
+
+func TestBuildAuditSection_EmptyComplianceResults(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	data := &common.CommonDevice{
+		ComplianceChecks: &common.ComplianceResults{Mode: "standard"},
+	}
+
+	result := b.BuildAuditSection(data)
+	if !strings.Contains(result, "## Compliance Audit Summary") {
+		t.Error("Expected '## Compliance Audit Summary' in output")
+	}
+	if !strings.Contains(result, "standard") {
+		t.Error("Expected mode 'standard' in output")
+	}
+	if strings.Contains(result, "### Security Findings") {
+		t.Error("Should not contain '### Security Findings' when no findings")
+	}
+	if strings.Contains(result, "### Plugin Compliance Results") {
+		t.Error("Should not contain '### Plugin Compliance Results' when no plugin results")
+	}
+}
+
+func TestBuildAuditSection_WithFindings(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	data := &common.CommonDevice{
+		ComplianceChecks: &common.ComplianceResults{
+			Mode: "blue",
+			Findings: []common.ComplianceFinding{
+				{Severity: "high", Component: "firewall", Title: "Open Port", Recommendation: "Close unused ports"},
+				{
+					Severity:       "critical",
+					Component:      "auth",
+					Title:          "Weak Password",
+					Recommendation: "Enforce strong passwords",
+				},
+			},
+			Summary: &common.ComplianceResultSummary{TotalFindings: 2},
+		},
+	}
+
+	result := b.BuildAuditSection(data)
+	expectedContent := []string{
+		"### Security Findings",
+		"high",
+		"critical",
+		"firewall",
+		"auth",
+		"Open Port",
+		"Weak Password",
+		"Close unused ports",
+		"Enforce strong passwords",
+	}
+	for _, content := range expectedContent {
+		if !strings.Contains(result, content) {
+			t.Errorf("Expected output to contain %q", content)
+		}
+	}
+}
+
+func TestBuildAuditSection_WithPluginResults(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	data := &common.CommonDevice{
+		ComplianceChecks: &common.ComplianceResults{
+			Mode: "blue",
+			PluginResults: map[string]common.PluginComplianceResult{
+				"firewall": {
+					PluginInfo: common.CompliancePluginInfo{Name: "firewall", Version: "1.0"},
+					Findings: []common.ComplianceFinding{
+						{Severity: "critical", Title: "FW Issue 1", Description: "Critical firewall issue"},
+						{Severity: "critical", Title: "FW Issue 2", Description: "Another critical issue"},
+						{Severity: "high", Title: "FW Issue 3", Description: "High issue"},
+					},
+					Summary: &common.ComplianceResultSummary{
+						TotalFindings:    3,
+						CriticalFindings: 2,
+						HighFindings:     1,
+					},
+				},
+				"stig": {
+					PluginInfo: common.CompliancePluginInfo{Name: "stig", Version: "2.0"},
+					Findings: []common.ComplianceFinding{
+						{Severity: "medium", Title: "STIG Check", Description: "Medium stig issue"},
+					},
+					Summary: &common.ComplianceResultSummary{
+						TotalFindings:  1,
+						MediumFindings: 1,
+					},
+				},
+			},
+			Summary: &common.ComplianceResultSummary{TotalFindings: 4},
+		},
+	}
+
+	result := b.BuildAuditSection(data)
+
+	expectedContent := []string{
+		"### Plugin Compliance Results",
+		"#### firewall",
+		"#### stig",
+		"Critical: 2",
+		"High: 1",
+		"Medium: 1",
+		"### firewall Plugin Findings",
+		"### stig Plugin Findings",
+	}
+	for _, content := range expectedContent {
+		if !strings.Contains(result, content) {
+			t.Errorf("Expected output to contain %q", content)
+		}
+	}
+
+	// Verify sorted order: firewall before stig
+	fwIdx := strings.Index(result, "#### firewall")
+	stigIdx := strings.Index(result, "#### stig")
+	if fwIdx >= stigIdx {
+		t.Error("Expected 'firewall' to appear before 'stig' (sorted order)")
+	}
+}
+
+func TestBuildAuditSection_WithMetadata(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	data := &common.CommonDevice{
+		ComplianceChecks: &common.ComplianceResults{
+			Mode: "standard",
+			Metadata: map[string]any{
+				"scan_time": "2024-01-15",
+				"version":   "1.0",
+			},
+			Summary: &common.ComplianceResultSummary{TotalFindings: 0},
+		},
+	}
+
+	result := b.BuildAuditSection(data)
+
+	expectedContent := []string{
+		"### Audit Metadata",
+		"scan_time",
+		"version",
+		"2024-01-15",
+		"1.0",
+	}
+	for _, content := range expectedContent {
+		if !strings.Contains(result, content) {
+			t.Errorf("Expected output to contain %q", content)
+		}
+	}
+}
+
+func TestBuildAuditSection_PipeEscaping(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	data := &common.CommonDevice{
+		ComplianceChecks: &common.ComplianceResults{
+			Mode: "blue",
+			Findings: []common.ComplianceFinding{
+				{
+					Severity:       "high",
+					Component:      "firewall|nat",
+					Title:          "Rule with | pipe",
+					Recommendation: "Fix the | issue",
+				},
+			},
+			Summary: &common.ComplianceResultSummary{TotalFindings: 1},
+		},
+	}
+
+	result := b.BuildAuditSection(data)
+
+	if !strings.Contains(result, "firewall\\|nat") {
+		t.Error("Expected escaped pipe in component")
+	}
+	if !strings.Contains(result, "Rule with \\| pipe") {
+		t.Error("Expected escaped pipe in title")
+	}
+	if !strings.Contains(result, "Fix the \\| issue") {
+		t.Error("Expected escaped pipe in recommendation")
+	}
+}
+
+func TestBuildAuditSection_MetadataValuePipeEscaping(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	data := &common.CommonDevice{
+		ComplianceChecks: &common.ComplianceResults{
+			Mode: "standard",
+			Metadata: map[string]any{
+				"tool":    "scanner|v2",
+				"key|bar": "value|baz",
+			},
+			Summary: &common.ComplianceResultSummary{TotalFindings: 0},
+		},
+	}
+
+	result := b.BuildAuditSection(data)
+
+	if !strings.Contains(result, "scanner\\|v2") {
+		t.Error("Expected escaped pipe in metadata value")
+	}
+	if !strings.Contains(result, "key\\|bar") {
+		t.Error("Expected escaped pipe in metadata key")
+	}
+	if !strings.Contains(result, "value\\|baz") {
+		t.Error("Expected escaped pipe in metadata value with pipe key")
+	}
+}
+
+func TestBuildAuditSection_DescriptionTruncation(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	longDescription := strings.Repeat("a", 100)
+
+	data := &common.CommonDevice{
+		ComplianceChecks: &common.ComplianceResults{
+			Mode: "blue",
+			PluginResults: map[string]common.PluginComplianceResult{
+				"test": {
+					Findings: []common.ComplianceFinding{
+						{Severity: "high", Title: "Test", Description: longDescription},
+					},
+					Summary: &common.ComplianceResultSummary{TotalFindings: 1, HighFindings: 1},
+				},
+			},
+			Summary: &common.ComplianceResultSummary{TotalFindings: 1},
+		},
+	}
+
+	result := b.BuildAuditSection(data)
+
+	if strings.Contains(result, longDescription) {
+		t.Error("Full long description should not appear in output")
+	}
+	if !strings.Contains(result, "...") {
+		t.Error("Truncated description should contain '...' ellipsis")
+	}
+}
+
+func TestBuildAuditSection_NilPluginSummary(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	data := &common.CommonDevice{
+		ComplianceChecks: &common.ComplianceResults{
+			Mode: "blue",
+			PluginResults: map[string]common.PluginComplianceResult{
+				"nil_summary": {
+					Summary: nil,
+				},
+			},
+		},
+	}
+
+	// Must not panic
+	result := b.BuildAuditSection(data)
+
+	if !strings.Contains(result, "no data available") {
+		t.Error("Expected 'no data available' fallback for nil summary")
+	}
+}
+
+func TestBuildAuditSection_FallbackTotalCountsFindings(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	data := &common.CommonDevice{
+		ComplianceChecks: &common.ComplianceResults{
+			Mode: "standard",
+			Findings: []common.ComplianceFinding{
+				{Title: "Direct finding 1", Severity: "high"},
+				{Title: "Direct finding 2", Severity: "medium"},
+			},
+			PluginResults: map[string]common.PluginComplianceResult{
+				"no-summary-plugin": {
+					Findings: []common.ComplianceFinding{
+						{Title: "Plugin finding", Severity: "low"},
+					},
+					Summary: nil,
+				},
+			},
+			// Summary is nil — forces fallback path
+		},
+	}
+
+	result := b.BuildAuditSection(data)
+
+	// Fallback should count 2 direct + 1 plugin finding = 3 total
+	if !strings.Contains(result, "3") {
+		t.Errorf("Fallback total should count direct findings + plugin findings, got:\n%s", result)
+	}
+}
+
 // Use helper functions from existing helpers_test.go

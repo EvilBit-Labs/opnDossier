@@ -7,6 +7,7 @@ import "github.com/EvilBit-Labs/opnDossier/internal/converter"
 // Format represents the output format type.
 type Format = converter.Format
 
+// Output format constants re-exported from the converter package.
 const (
 	// FormatMarkdown represents markdown output format.
 	FormatMarkdown = converter.FormatMarkdown
@@ -19,6 +20,7 @@ const (
 // Theme represents the rendering theme for terminal output.
 type Theme = converter.Theme
 
+// Theme constants re-exported from the converter package for terminal rendering.
 const (
 	// ThemeAuto automatically detects the appropriate theme.
 	ThemeAuto = converter.ThemeAuto

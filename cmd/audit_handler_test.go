@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/audit"
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
@@ -15,260 +15,8 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 )
-
-// testBaseReport is a base report string used across multiple tests.
-const testBaseReport = "# Report\n"
-
-func TestAppendAuditFindings_EmptyReport(t *testing.T) {
-	t.Parallel()
-
-	// Create a base report
-	baseReport := "# Test Report\n\nSome content"
-
-	// Create an audit report with no findings
-	report := &audit.Report{
-		Mode:          audit.ModeStandard,
-		BlackhatMode:  false,
-		Comprehensive: false,
-		Findings:      []audit.Finding{},
-		Compliance:    make(map[string]audit.ComplianceResult),
-		Metadata:      make(map[string]any),
-	}
-
-	result := appendAuditFindings(baseReport, report)
-
-	// Verify the base report is preserved
-	assert.Contains(t, result, "# Test Report")
-	assert.Contains(t, result, "Some content")
-
-	// Verify the audit section was appended
-	assert.Contains(t, result, "## Compliance Audit Summary")
-	assert.Contains(t, result, "Report Mode")
-	assert.Contains(t, result, "standard")
-	assert.Contains(t, result, "Blackhat Mode")
-	assert.Contains(t, result, "false")
-	assert.Contains(t, result, "Total Findings")
-	assert.Contains(t, result, "0")
-
-	// Should not have findings section with no findings
-	assert.NotContains(t, result, "### Security Findings")
-}
-
-func TestAppendAuditFindings_WithFindings(t *testing.T) {
-	t.Parallel()
-
-	baseReport := "# Configuration Report\n"
-
-	report := &audit.Report{
-		Mode:          audit.ModeBlue,
-		BlackhatMode:  false,
-		Comprehensive: true,
-		Findings: []audit.Finding{
-			{Finding: analysis.Finding{
-				Title:          "Weak Firewall Rule",
-				Severity:       string(analysis.SeverityHigh),
-				Description:    "Rule allows all traffic from any source",
-				Recommendation: "Restrict source addresses",
-				Component:      "firewall",
-			}},
-			{Finding: analysis.Finding{
-				Title:          "Missing Authentication",
-				Severity:       string(analysis.SeverityCritical),
-				Description:    "Admin portal lacks MFA",
-				Recommendation: "Enable multi-factor authentication",
-				Component:      "system",
-			}},
-		},
-		Compliance: make(map[string]audit.ComplianceResult),
-		Metadata:   make(map[string]any),
-	}
-
-	result := appendAuditFindings(baseReport, report)
-
-	// Verify summary table
-	assert.Contains(t, result, "Report Mode")
-	assert.Contains(t, result, "blue")
-	assert.Contains(t, result, "Total Findings")
-	assert.Contains(t, result, "2")
-
-	// Verify findings section exists
-	assert.Contains(t, result, "### Security Findings")
-	assert.Contains(t, result, "Severity")
-	assert.Contains(t, result, "Component")
-
-	// Verify finding details are present
-	assert.Contains(t, result, "Weak Firewall Rule")
-	assert.Contains(t, result, "firewall")
-	assert.Contains(t, result, "Missing Authentication")
-	assert.Contains(t, result, "system")
-}
-
-func TestAppendAuditFindings_WithComplianceResults(t *testing.T) {
-	t.Parallel()
-
-	baseReport := testBaseReport
-
-	report := &audit.Report{
-		Mode:         audit.ModeBlue,
-		BlackhatMode: false,
-		Findings:     []audit.Finding{},
-		Compliance: map[string]audit.ComplianceResult{
-			"stig": {
-				Findings: []compliance.Finding{
-					{
-						Type:        "compliance",
-						Severity:    "high",
-						Title:       "STIG Violation",
-						Description: "SSH timeout not configured",
-					},
-				},
-				Summary: &audit.ComplianceSummary{
-					TotalFindings:    1,
-					CriticalFindings: 0,
-					HighFindings:     1,
-					MediumFindings:   0,
-					LowFindings:      0,
-				},
-			},
-		},
-		Metadata: make(map[string]any),
-	}
-
-	result := appendAuditFindings(baseReport, report)
-
-	// Verify plugin compliance results section
-	assert.Contains(t, result, "### Plugin Compliance Results")
-	assert.Contains(t, result, "#### stig")
-	assert.Contains(t, result, "1 findings")
-	assert.Contains(t, result, "High: 1")
-
-	// Verify plugin findings section renders Severity (not Type)
-	assert.Contains(t, result, "### stig Plugin Findings")
-	assert.Contains(t, result, "| Severity |")
-	assert.NotContains(t, result, "| Type |")
-	assert.Contains(t, result, "high")
-	assert.Contains(t, result, "STIG Violation")
-	assert.Contains(t, result, "SSH timeout not configured")
-}
-
-func TestAppendAuditFindings_WithMetadata(t *testing.T) {
-	t.Parallel()
-
-	baseReport := testBaseReport
-
-	report := &audit.Report{
-		Mode:       audit.ModeRed,
-		Findings:   []audit.Finding{},
-		Compliance: make(map[string]audit.ComplianceResult),
-		Metadata: map[string]any{
-			"scan_time":       "2024-01-15T10:30:00Z",
-			"scanner_version": "1.0.0",
-		},
-	}
-
-	result := appendAuditFindings(baseReport, report)
-
-	// Verify metadata section
-	assert.Contains(t, result, "### Audit Metadata")
-	assert.Contains(t, result, "scan_time")
-	assert.Contains(t, result, "scanner_version")
-}
-
-func TestAppendAuditFindings_RedTeamWithBlackhat(t *testing.T) {
-	t.Parallel()
-
-	baseReport := testBaseReport
-
-	report := &audit.Report{
-		Mode:         audit.ModeRed,
-		BlackhatMode: true,
-		Findings:     []audit.Finding{},
-		Compliance:   make(map[string]audit.ComplianceResult),
-		Metadata:     make(map[string]any),
-	}
-
-	result := appendAuditFindings(baseReport, report)
-
-	// Verify blackhat mode is shown
-	assert.Contains(t, result, "Report Mode")
-	assert.Contains(t, result, "red")
-	assert.Contains(t, result, "Blackhat Mode")
-	assert.Contains(t, result, "true")
-}
-
-func TestEscapePipeForMarkdown(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{"no pipes", "hello world", "hello world"},
-		{"single pipe", "a|b", "a\\|b"},
-		{"multiple pipes", "a|b|c", "a\\|b\\|c"},
-		{"empty string", "", ""},
-		{"pipe at start", "|hello", "\\|hello"},
-		{"pipe at end", "hello|", "hello\\|"},
-		{"only pipe", "|", "\\|"},
-		{"adjacent pipes", "a||b", "a\\|\\|b"},
-		{"pipes with spaces", "a | b | c", "a \\| b \\| c"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			result := escapePipeForMarkdown(tt.input)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestTruncateString(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		input    string
-		maxLen   int
-		expected string
-	}{
-		{"short string", "hello", 10, "hello"},
-		{"exact length", "hello", 5, "hello"},
-		{"needs truncation", "hello world", 8, "hello..."},
-		{"empty string", "", 10, ""},
-		{"very short max", "hello world", 4, "h..."},
-		// Note: maxLen <= 3 causes issues with current implementation
-		// Testing realistic scenarios where maxLen >= 4
-		{"four char max", "hello", 4, "h..."},
-		{"five char max", "hello world", 5, "he..."},
-		{"long string", strings.Repeat("a", 100), 20, strings.Repeat("a", 17) + "..."},
-		// Rune-aware truncation: multi-byte characters are not split
-		{"unicode emoji", "Hello 🌍🌎🌏 World", 10, "Hello 🌍..."},
-		{"japanese text", "こんにちは世界", 5, "こん..."},
-		{"mixed unicode", "Test日本語Text", 8, "Test日..."},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			result := truncateString(tt.input, tt.maxLen)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestTruncateString_MaxDescriptionLength(t *testing.T) {
-	t.Parallel()
-
-	// Test with the actual maxDescriptionLength constant
-	longDescription := strings.Repeat("a", 100)
-	result := truncateString(longDescription, maxDescriptionLength)
-
-	assert.LessOrEqual(t, len(result), maxDescriptionLength)
-	assert.True(t, strings.HasSuffix(result, "..."))
-}
 
 func TestValidateAuditModeValid(t *testing.T) {
 	originalAuditMode := sharedAuditMode
@@ -435,291 +183,6 @@ func TestValidateAuditPluginsInvalid(t *testing.T) {
 	}
 }
 
-func TestAppendAuditFindings_ComplianceSeverityCounts(t *testing.T) {
-	t.Parallel()
-
-	baseReport := testBaseReport
-
-	report := &audit.Report{
-		Mode:     audit.ModeBlue,
-		Findings: []audit.Finding{},
-		Compliance: map[string]audit.ComplianceResult{
-			"comprehensive": {
-				Findings: []compliance.Finding{},
-				Summary: &audit.ComplianceSummary{
-					TotalFindings:    10,
-					CriticalFindings: 2,
-					HighFindings:     3,
-					MediumFindings:   4,
-					LowFindings:      1,
-				},
-			},
-		},
-		Metadata: make(map[string]any),
-	}
-
-	result := appendAuditFindings(baseReport, report)
-
-	// Verify all severity counts are shown
-	assert.Contains(t, result, "Critical: 2")
-	assert.Contains(t, result, "High: 3")
-	assert.Contains(t, result, "Medium: 4")
-	assert.Contains(t, result, "Low: 1")
-}
-
-func TestAppendAuditFindings_PluginFindingsShowSeverity(t *testing.T) {
-	t.Parallel()
-
-	baseReport := testBaseReport
-
-	report := &audit.Report{
-		Mode:     audit.ModeBlue,
-		Findings: []audit.Finding{},
-		Compliance: map[string]audit.ComplianceResult{
-			"firewall": {
-				Findings: []compliance.Finding{
-					{
-						Type:        "compliance",
-						Severity:    "critical",
-						Title:       "Critical Firewall Issue",
-						Description: "A critical firewall misconfiguration",
-					},
-					{
-						Type:        "compliance",
-						Severity:    "medium",
-						Title:       "Medium Firewall Issue",
-						Description: "A medium severity firewall issue",
-					},
-				},
-				Summary: &audit.ComplianceSummary{
-					TotalFindings:    2,
-					CriticalFindings: 1,
-					MediumFindings:   1,
-				},
-			},
-		},
-		Metadata: make(map[string]any),
-	}
-
-	result := appendAuditFindings(baseReport, report)
-
-	// Plugin findings table should have Severity column, not Type
-	assert.Contains(t, result, "| Severity |")
-	assert.NotContains(t, result, "| Type |")
-
-	// Severity values should be rendered in the table
-	assert.Contains(t, result, "critical")
-	assert.Contains(t, result, "medium")
-
-	// The generic "compliance" type should NOT appear in the findings table
-	// (it would only appear if Type were still used instead of Severity)
-	for line := range strings.SplitSeq(result, "\n") {
-		if strings.Contains(line, "Critical Firewall Issue") {
-			assert.Contains(t, line, "critical")
-			assert.NotContains(t, line, "compliance")
-		}
-	}
-}
-
-func TestAppendAuditFindings_PerPluginSeverityBreakdown(t *testing.T) {
-	t.Parallel()
-
-	baseReport := testBaseReport
-
-	report := &audit.Report{
-		Mode:     audit.ModeBlue,
-		Findings: []audit.Finding{},
-		Compliance: map[string]audit.ComplianceResult{
-			"stig": {
-				Findings: []compliance.Finding{
-					{
-						Type:        "compliance",
-						Severity:    "critical",
-						Title:       "STIG Critical",
-						Description: "Critical STIG issue",
-					},
-					{Type: "compliance", Severity: "high", Title: "STIG High", Description: "High STIG issue"},
-					{Type: "compliance", Severity: "medium", Title: "STIG Medium", Description: "Medium STIG issue"},
-					{Type: "compliance", Severity: "low", Title: "STIG Low", Description: "Low STIG issue"},
-				},
-				Summary: &audit.ComplianceSummary{
-					TotalFindings:    4,
-					CriticalFindings: 1,
-					HighFindings:     1,
-					MediumFindings:   1,
-					LowFindings:      1,
-				},
-			},
-			"firewall": {
-				Findings: []compliance.Finding{
-					{
-						Type:        "compliance",
-						Severity:    "critical",
-						Title:       "FW Critical 1",
-						Description: "Critical firewall issue 1",
-					},
-					{
-						Type:        "compliance",
-						Severity:    "critical",
-						Title:       "FW Critical 2",
-						Description: "Critical firewall issue 2",
-					},
-					{Type: "compliance", Severity: "high", Title: "FW High", Description: "High firewall issue"},
-					{Type: "compliance", Severity: "medium", Title: "FW Medium", Description: "Medium firewall issue"},
-					{Type: "compliance", Severity: "low", Title: "FW Low 1", Description: "Low firewall issue 1"},
-					{Type: "compliance", Severity: "low", Title: "FW Low 2", Description: "Low firewall issue 2"},
-				},
-				Summary: &audit.ComplianceSummary{
-					TotalFindings:    6,
-					CriticalFindings: 2,
-					HighFindings:     1,
-					MediumFindings:   1,
-					LowFindings:      2,
-				},
-			},
-		},
-		Metadata: make(map[string]any),
-	}
-
-	result := appendAuditFindings(baseReport, report)
-
-	// Section header exists
-	assert.Contains(t, result, "### Plugin Compliance Results")
-
-	// Both plugins appear
-	assert.Contains(t, result, "#### stig")
-	assert.Contains(t, result, "#### firewall")
-
-	// Severity breakdown lines with non-zero values are present
-	assert.Contains(t, result, "Critical: ")
-	assert.Contains(t, result, "High: ")
-	assert.Contains(t, result, "Medium: ")
-	assert.Contains(t, result, "Low: ")
-	// Ensure not all zeros
-	assert.NotContains(t, result, "Critical: 0")
-
-	// Per-plugin finding tables rendered
-	assert.Contains(t, result, "### stig Plugin Findings")
-	assert.Contains(t, result, "### firewall Plugin Findings")
-
-	// Severity values appear in findings table rows
-	assert.Contains(t, result, "critical")
-	assert.Contains(t, result, "high")
-	assert.Contains(t, result, "medium")
-	assert.Contains(t, result, "low")
-}
-
-func TestAppendAuditFindings_EmptyPluginFindings(t *testing.T) {
-	t.Parallel()
-
-	baseReport := testBaseReport
-
-	report := &audit.Report{
-		Mode:     audit.ModeBlue,
-		Findings: []audit.Finding{},
-		Compliance: map[string]audit.ComplianceResult{
-			"empty_plugin": {
-				Findings: []compliance.Finding{},
-				Summary: &audit.ComplianceSummary{
-					TotalFindings:    0,
-					CriticalFindings: 0,
-					HighFindings:     0,
-					MediumFindings:   0,
-					LowFindings:      0,
-				},
-			},
-		},
-		Metadata: make(map[string]any),
-	}
-
-	result := appendAuditFindings(baseReport, report)
-
-	// Plugin header appears under compliance results
-	assert.Contains(t, result, "### Plugin Compliance Results")
-	assert.Contains(t, result, "#### empty_plugin")
-
-	// Zero findings indicated
-	assert.Contains(t, result, "0 findings")
-
-	// No per-plugin findings table rendered (empty findings)
-	assert.NotContains(t, result, "### empty_plugin Plugin Findings")
-
-	// No severity breakdown lines for all-zero counts
-	// (appendAuditFindings only renders non-zero severity counts)
-	assert.NotContains(t, result, "Critical: 0")
-	assert.NotContains(t, result, "High: 0")
-	assert.NotContains(t, result, "Medium: 0")
-	assert.NotContains(t, result, "Low: 0")
-}
-
-func TestAppendAuditFindings_PluginFindingsTruncation(t *testing.T) {
-	t.Parallel()
-
-	baseReport := testBaseReport
-
-	// Create a very long description
-	longDescription := strings.Repeat("This is a very long description. ", 10)
-
-	report := &audit.Report{
-		Mode:     audit.ModeBlue,
-		Findings: []audit.Finding{},
-		Compliance: map[string]audit.ComplianceResult{
-			"test_plugin": {
-				Findings: []compliance.Finding{
-					{
-						Type:        "compliance",
-						Severity:    "high",
-						Title:       "Test Finding",
-						Description: longDescription,
-					},
-				},
-				Summary: &audit.ComplianceSummary{
-					TotalFindings: 1,
-					HighFindings:  1,
-				},
-			},
-		},
-		Metadata: make(map[string]any),
-	}
-
-	result := appendAuditFindings(baseReport, report)
-
-	// The description should be truncated
-	assert.Contains(t, result, "Test Finding")
-	// Truncated description should end with "..."
-	assert.Contains(t, result, "...")
-	// Full description should not be present (it exceeds maxDescriptionLength)
-	assert.NotContains(t, result, longDescription)
-}
-
-func TestAppendAuditFindings_PipeEscapingInTables(t *testing.T) {
-	t.Parallel()
-
-	baseReport := testBaseReport
-
-	report := &audit.Report{
-		Mode: audit.ModeBlue,
-		Findings: []audit.Finding{
-			{Finding: analysis.Finding{
-				Title:          "Rule with | pipe",
-				Severity:       string(analysis.SeverityMedium),
-				Description:    "Contains | multiple | pipes",
-				Recommendation: "Fix the | issue",
-				Component:      "firewall|nat",
-			}},
-		},
-		Compliance: make(map[string]audit.ComplianceResult),
-		Metadata:   make(map[string]any),
-	}
-
-	result := appendAuditFindings(baseReport, report)
-
-	// Pipes should be escaped in table cells
-	assert.Contains(t, result, "Rule with \\| pipe")
-	assert.Contains(t, result, "firewall\\|nat")
-	assert.Contains(t, result, "Fix the \\| issue")
-}
-
 func TestAddSharedAuditFlagsRegistersFlags(t *testing.T) {
 	t.Parallel()
 
@@ -773,54 +236,6 @@ func TestValidAuditPlugins(t *testing.T) {
 	assert.Contains(t, completionStr, "stig")
 	assert.Contains(t, completionStr, "sans")
 	assert.Contains(t, completionStr, "firewall")
-}
-
-// TestHandleAuditMode_EndToEnd exercises the full audit pipeline: plugin
-// initialization, compliance checks, base report generation, and markdown
-// assembly. It asserts that the rendered output contains a non-zero severity
-// breakdown line produced by at least one real plugin.
-func TestHandleAuditMode_EndToEnd(t *testing.T) {
-	t.Parallel()
-
-	logger, err := logging.New(logging.Config{Level: "warn"})
-	require.NoError(t, err)
-
-	// A minimal device triggers at least one STIG finding (missing logging).
-	device := &common.CommonDevice{
-		System: common.System{
-			Hostname: "test-fw",
-			Domain:   "example.com",
-		},
-	}
-
-	auditOpts := audit.Options{
-		AuditMode:       "blue",
-		SelectedPlugins: []string{"stig"},
-	}
-
-	opt := converter.Options{
-		Format: converter.FormatMarkdown,
-	}
-
-	result, err := handleAuditMode(context.Background(), device, auditOpts, opt, logger)
-	require.NoError(t, err)
-
-	// The rendered markdown must contain the compliance audit summary section.
-	assert.Contains(t, result, "## Compliance Audit Summary")
-
-	// Total Findings must be non-zero because the STIG plugin fires at
-	// least one finding against a minimal device.
-	assert.NotContains(t, result, "| Total Findings | 0 |")
-
-	// Per-plugin severity breakdown must contain at least one non-zero line.
-	hasSeverityLine := strings.Contains(result, "High: ") ||
-		strings.Contains(result, "Medium: ") ||
-		strings.Contains(result, "Critical: ") ||
-		strings.Contains(result, "Low: ")
-	assert.True(t, hasSeverityLine, "expected at least one non-zero severity breakdown line in output")
-
-	// Plugin findings table should be rendered.
-	assert.Contains(t, result, "### stig Plugin Findings")
 }
 
 // TestBuildAuditOptions tests that audit flags are properly set in audit options.
@@ -881,29 +296,455 @@ func TestBuildAuditOptions(t *testing.T) {
 	}
 }
 
-// TestAppendAuditFindings_NilSummaryInCompliance verifies that a ComplianceResult
-// with nil Summary does not cause a panic in appendAuditFindings.
-func TestAppendAuditFindings_NilSummaryInCompliance(t *testing.T) {
+// TestMapAuditReportToComplianceResults verifies the mapping function
+// correctly converts audit.Report data into common.ComplianceResults.
+func TestMapAuditReportToComplianceResults(t *testing.T) {
 	t.Parallel()
 
-	report := &audit.Report{
-		Mode:     audit.ModeBlue,
-		Findings: []audit.Finding{},
-		Compliance: map[string]audit.ComplianceResult{
-			"nil_summary_plugin": {
-				Findings: []compliance.Finding{},
-				Summary:  nil,
+	tests := []struct {
+		name   string
+		report *audit.Report
+		verify func(t *testing.T, result *common.ComplianceResults)
+	}{
+		{
+			name: "empty report sets mode",
+			report: &audit.Report{
+				Mode:       audit.ModeBlue,
+				Findings:   []audit.Finding{},
+				Compliance: make(map[string]audit.ComplianceResult),
+				Metadata:   make(map[string]any),
+			},
+			verify: func(t *testing.T, result *common.ComplianceResults) {
+				t.Helper()
+				assert.Equal(t, "blue", result.Mode)
+				assert.Empty(t, result.Findings)
+				assert.Empty(t, result.PluginResults)
+				require.NotNil(t, result.Summary)
+				assert.Equal(t, 0, result.Summary.TotalFindings)
 			},
 		},
-		Metadata: make(map[string]any),
+		{
+			name: "report with findings maps correctly",
+			report: &audit.Report{
+				Mode: audit.ModeRed,
+				Findings: []audit.Finding{
+					{Finding: compliance.Finding{
+						Type:           "security",
+						Severity:       "high",
+						Title:          "Weak Rule",
+						Description:    "Rule allows all",
+						Recommendation: "Restrict",
+						Component:      "firewall",
+						References:     []string{"REF-001"},
+					}},
+				},
+				Compliance: make(map[string]audit.ComplianceResult),
+				Metadata:   make(map[string]any),
+			},
+			verify: func(t *testing.T, result *common.ComplianceResults) {
+				t.Helper()
+				assert.Equal(t, "red", result.Mode)
+				require.Len(t, result.Findings, 1)
+
+				f := result.Findings[0]
+				assert.Equal(t, "security", f.Type)
+				assert.Equal(t, "high", f.Severity)
+				assert.Equal(t, "Weak Rule", f.Title)
+				assert.Equal(t, "Rule allows all", f.Description)
+				assert.Equal(t, "Restrict", f.Recommendation)
+				assert.Equal(t, "firewall", f.Component)
+				assert.Equal(t, []string{"REF-001"}, f.References)
+
+				require.NotNil(t, result.Summary)
+				assert.Equal(t, 1, result.Summary.TotalFindings)
+			},
+		},
+		{
+			name: "report with compliance results maps per-plugin data",
+			report: &audit.Report{
+				Mode:     audit.ModeBlue,
+				Findings: []audit.Finding{},
+				Compliance: map[string]audit.ComplianceResult{
+					"stig": {
+						Findings: []compliance.Finding{
+							{
+								Type:        "compliance",
+								Severity:    "high",
+								Title:       "STIG Violation",
+								Description: "SSH timeout not configured",
+							},
+						},
+						Summary: &audit.ComplianceSummary{
+							TotalFindings: 1,
+							HighFindings:  1,
+							PluginCount:   1,
+							Compliance:    map[string]audit.PluginCompliance{},
+						},
+						PluginInfo: map[string]audit.PluginInfo{
+							"stig": {
+								Name:        "stig",
+								Version:     "1.0.0",
+								Description: "STIG compliance checks",
+								Controls: []compliance.Control{
+									{
+										ID:       "STIG-V-000001",
+										Title:    "SSH Timeout",
+										Severity: "high",
+										Category: "access",
+									},
+								},
+							},
+						},
+						Compliance: map[string]map[string]bool{
+							"stig": {"STIG-V-000001": false},
+						},
+					},
+				},
+				Metadata: map[string]any{"scan_time": "2024-01-15"},
+			},
+			verify: func(t *testing.T, result *common.ComplianceResults) {
+				t.Helper()
+
+				// Metadata
+				assert.Equal(t, "2024-01-15", result.Metadata["scan_time"])
+
+				// Plugin results
+				require.Contains(t, result.PluginResults, "stig")
+				pr := result.PluginResults["stig"]
+
+				// Plugin info
+				assert.Equal(t, "stig", pr.PluginInfo.Name)
+				assert.Equal(t, "1.0.0", pr.PluginInfo.Version)
+				assert.Equal(t, "STIG compliance checks", pr.PluginInfo.Description)
+
+				// Controls
+				require.Len(t, pr.Controls, 1)
+				assert.Equal(t, "STIG-V-000001", pr.Controls[0].ID)
+				assert.Equal(t, "high", pr.Controls[0].Severity)
+
+				// Findings
+				require.Len(t, pr.Findings, 1)
+				assert.Equal(t, "STIG Violation", pr.Findings[0].Title)
+
+				// Summary
+				require.NotNil(t, pr.Summary)
+				assert.Equal(t, 1, pr.Summary.TotalFindings)
+				assert.Equal(t, 1, pr.Summary.HighFindings)
+
+				// Compliance map
+				require.Contains(t, pr.Compliance, "STIG-V-000001")
+				assert.False(t, pr.Compliance["STIG-V-000001"])
+
+				// Aggregate summary
+				require.NotNil(t, result.Summary)
+				assert.Equal(t, 1, result.Summary.TotalFindings)
+				assert.Equal(t, 1, result.Summary.HighFindings)
+				assert.Equal(t, 1, result.Summary.PluginCount)
+			},
+		},
+		{
+			name: "aggregate summary across multiple plugins",
+			report: &audit.Report{
+				Mode:     audit.ModeStandard,
+				Findings: []audit.Finding{},
+				Compliance: map[string]audit.ComplianceResult{
+					"stig": {
+						Findings: []compliance.Finding{},
+						Summary: &audit.ComplianceSummary{
+							TotalFindings:    3,
+							CriticalFindings: 1,
+							HighFindings:     2,
+						},
+						PluginInfo: map[string]audit.PluginInfo{},
+						Compliance: map[string]map[string]bool{},
+					},
+					"firewall": {
+						Findings: []compliance.Finding{},
+						Summary: &audit.ComplianceSummary{
+							TotalFindings:  2,
+							MediumFindings: 1,
+							LowFindings:    1,
+						},
+						PluginInfo: map[string]audit.PluginInfo{},
+						Compliance: map[string]map[string]bool{},
+					},
+				},
+				Metadata: make(map[string]any),
+			},
+			verify: func(t *testing.T, result *common.ComplianceResults) {
+				t.Helper()
+				require.NotNil(t, result.Summary)
+				assert.Equal(t, 5, result.Summary.TotalFindings)
+				assert.Equal(t, 1, result.Summary.CriticalFindings)
+				assert.Equal(t, 2, result.Summary.HighFindings)
+				assert.Equal(t, 1, result.Summary.MediumFindings)
+				assert.Equal(t, 1, result.Summary.LowFindings)
+				assert.Equal(t, 2, result.Summary.PluginCount)
+			},
+		},
+		{
+			name:   "nil report returns nil",
+			report: nil,
+			verify: func(t *testing.T, _ *common.ComplianceResults) {
+				t.Helper()
+				// nil is handled by the test loop below
+			},
+		},
+		{
+			name: "direct finding severity counts included in aggregate summary",
+			report: &audit.Report{
+				Mode: audit.ModeBlue,
+				Findings: []audit.Finding{
+					{Finding: compliance.Finding{Severity: "high", Title: "F1"}},
+					{Finding: compliance.Finding{Severity: "critical", Title: "F2"}},
+					{Finding: compliance.Finding{Severity: "info", Title: "F3"}},
+				},
+				Compliance: map[string]audit.ComplianceResult{
+					"stig": {
+						Findings: []compliance.Finding{},
+						Summary: &audit.ComplianceSummary{
+							TotalFindings:  1,
+							MediumFindings: 1,
+						},
+						PluginInfo: map[string]audit.PluginInfo{},
+						Compliance: map[string]map[string]bool{},
+					},
+				},
+				Metadata: make(map[string]any),
+			},
+			verify: func(t *testing.T, result *common.ComplianceResults) {
+				t.Helper()
+				require.NotNil(t, result.Summary)
+				// 3 direct + 1 plugin = 4 total
+				assert.Equal(t, 4, result.Summary.TotalFindings)
+				assert.Equal(t, 1, result.Summary.CriticalFindings)
+				assert.Equal(t, 1, result.Summary.HighFindings)
+				assert.Equal(t, 1, result.Summary.MediumFindings)
+				assert.Equal(t, 1, result.Summary.InfoFindings)
+			},
+		},
+		{
+			name: "missing PluginInfo key produces zero-valued info",
+			report: &audit.Report{
+				Mode:     audit.ModeStandard,
+				Findings: []audit.Finding{},
+				Compliance: map[string]audit.ComplianceResult{
+					"firewall": {
+						Findings:   []compliance.Finding{},
+						Summary:    &audit.ComplianceSummary{TotalFindings: 0},
+						PluginInfo: map[string]audit.PluginInfo{},
+						Compliance: map[string]map[string]bool{},
+					},
+				},
+				Metadata: make(map[string]any),
+			},
+			verify: func(t *testing.T, result *common.ComplianceResults) {
+				t.Helper()
+				require.Contains(t, result.PluginResults, "firewall")
+				pr := result.PluginResults["firewall"]
+				assert.Empty(t, pr.PluginInfo.Name)
+				assert.Empty(t, pr.PluginInfo.Version)
+				assert.Empty(t, pr.Controls)
+			},
+		},
+		{
+			name: "audit-specific fields mapped from audit.Finding",
+			report: &audit.Report{
+				Mode: audit.ModeRed,
+				Findings: []audit.Finding{
+					{
+						Finding: compliance.Finding{
+							Severity:  "high",
+							Title:     "Open Port",
+							Reference: "CIS-1.1",
+							Tags:      []string{"network", "exposure"},
+							Metadata:  map[string]string{"port": "22"},
+						},
+						AttackSurface: &audit.AttackSurface{
+							Type:            "network",
+							Ports:           []int{22, 443},
+							Services:        []string{"ssh", "https"},
+							Vulnerabilities: []string{"CVE-2024-0001"},
+						},
+						ExploitNotes: "SSH brute force possible",
+						Control:      "STIG-V-000001",
+					},
+				},
+				Compliance: make(map[string]audit.ComplianceResult),
+				Metadata:   make(map[string]any),
+			},
+			verify: func(t *testing.T, result *common.ComplianceResults) {
+				t.Helper()
+				require.Len(t, result.Findings, 1)
+				f := result.Findings[0]
+
+				// analysis.Finding fields
+				assert.Equal(t, "CIS-1.1", f.Reference)
+				assert.Equal(t, []string{"network", "exposure"}, f.Tags)
+				assert.Equal(t, map[string]string{"port": "22"}, f.Metadata)
+
+				// audit.Finding fields
+				require.NotNil(t, f.AttackSurface)
+				assert.Equal(t, "network", f.AttackSurface.Type)
+				assert.Equal(t, []int{22, 443}, f.AttackSurface.Ports)
+				assert.Equal(t, []string{"ssh", "https"}, f.AttackSurface.Services)
+				assert.Equal(t, []string{"CVE-2024-0001"}, f.AttackSurface.Vulnerabilities)
+				assert.Equal(t, "SSH brute force possible", f.ExploitNotes)
+				assert.Equal(t, "STIG-V-000001", f.Control)
+			},
+		},
+		{
+			name: "controls with tags and metadata are deep-copied",
+			report: &audit.Report{
+				Mode:     audit.ModeBlue,
+				Findings: []audit.Finding{},
+				Compliance: map[string]audit.ComplianceResult{
+					"stig": {
+						Findings: []compliance.Finding{},
+						Summary:  &audit.ComplianceSummary{TotalFindings: 0},
+						PluginInfo: map[string]audit.PluginInfo{
+							"stig": {
+								Name:    "stig",
+								Version: "1.0.0",
+								Controls: []compliance.Control{
+									{
+										ID:          "STIG-V-000002",
+										Title:       "Audit Logging",
+										Severity:    "medium",
+										Rationale:   "Required for accountability",
+										Remediation: "Enable audit logging",
+										References:  []string{"NIST-AU-2"},
+										Tags:        []string{"logging", "audit"},
+										Metadata:    map[string]string{"source": "DISA"},
+									},
+								},
+							},
+						},
+						Compliance: map[string]map[string]bool{},
+					},
+				},
+				Metadata: make(map[string]any),
+			},
+			verify: func(t *testing.T, result *common.ComplianceResults) {
+				t.Helper()
+				require.Contains(t, result.PluginResults, "stig")
+				pr := result.PluginResults["stig"]
+				require.Len(t, pr.Controls, 1)
+				c := pr.Controls[0]
+				assert.Equal(t, "STIG-V-000002", c.ID)
+				assert.Equal(t, "Required for accountability", c.Rationale)
+				assert.Equal(t, "Enable audit logging", c.Remediation)
+				assert.Equal(t, []string{"NIST-AU-2"}, c.References)
+				assert.Equal(t, []string{"logging", "audit"}, c.Tags)
+				assert.Equal(t, map[string]string{"source": "DISA"}, c.Metadata)
+			},
+		},
 	}
 
-	// This must not panic
-	assert.NotPanics(t, func() {
-		appendAuditFindings("# Base\n", report)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result := mapAuditReportToComplianceResults(tt.report)
+			if tt.report == nil {
+				assert.Nil(t, result, "nil report should return nil result")
+				return
+			}
+			require.NotNil(t, result)
+			tt.verify(t, result)
+		})
+	}
+}
 
-	result := appendAuditFindings("# Base\n", report)
-	// Should show fallback text instead of panicking
-	assert.Contains(t, result, "no data available")
+// TestHandleAuditMode_EndToEnd exercises the full audit pipeline: plugin
+// initialization, compliance checks, and report generation via the standard
+// generator pipeline. It asserts that the rendered output contains
+// the audit section from the builder layer.
+func TestHandleAuditMode_EndToEnd(t *testing.T) {
+	t.Parallel()
+
+	logger, err := logging.New(logging.Config{Level: "warn"})
+	require.NoError(t, err)
+
+	// A minimal device triggers at least one STIG finding (missing logging).
+	device := &common.CommonDevice{
+		System: common.System{
+			Hostname: "test-fw",
+			Domain:   "example.com",
+		},
+	}
+
+	auditOpts := audit.Options{
+		AuditMode:       "blue",
+		SelectedPlugins: []string{"stig"},
+	}
+
+	opt := converter.Options{
+		Format: converter.FormatMarkdown,
+	}
+
+	result, err := handleAuditMode(context.Background(), device, auditOpts, opt, logger)
+	require.NoError(t, err)
+
+	// The rendered markdown must contain the compliance audit summary section
+	// (rendered by the builder layer, not the old appendAuditFindings).
+	assert.Contains(t, result, "## Compliance Audit Summary")
+	assert.Contains(t, result, "Plugin Compliance Results")
+	assert.Contains(t, result, "stig")
+
+	// handleAuditMode must NOT mutate the input device (immutability rule)
+	assert.Nil(t, device.ComplianceChecks, "input device should not be mutated")
+}
+
+// TestHandleAuditMode_StructuredFormats verifies that audit data appears in JSON and YAML output.
+func TestHandleAuditMode_StructuredFormats(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		format    converter.Format
+		unmarshal func([]byte, any) error
+	}{
+		{"JSON", converter.FormatJSON, json.Unmarshal},
+		{"YAML", converter.FormatYAML, yaml.Unmarshal},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			logger, err := logging.New(logging.Config{Level: "warn"})
+			require.NoError(t, err)
+
+			device := &common.CommonDevice{
+				System: common.System{
+					Hostname: "test-fw",
+					Domain:   "example.com",
+				},
+			}
+
+			auditOpts := audit.Options{
+				AuditMode:       "blue",
+				SelectedPlugins: []string{"stig"},
+			}
+
+			opt := converter.Options{
+				Format: tt.format,
+			}
+
+			result, err := handleAuditMode(context.Background(), device, auditOpts, opt, logger)
+			require.NoError(t, err)
+
+			// Verify it's valid structured output
+			var parsed map[string]any
+			require.NoError(t, tt.unmarshal([]byte(result), &parsed))
+
+			// Verify complianceChecks key is present
+			assert.Contains(t, parsed, "complianceChecks")
+
+			// Verify compliance data has content
+			checks, ok := parsed["complianceChecks"].(map[string]any)
+			require.True(t, ok, "complianceChecks should be an object")
+			assert.Equal(t, "blue", checks["mode"])
+		})
+	}
 }

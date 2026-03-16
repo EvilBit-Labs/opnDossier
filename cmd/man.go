@@ -63,6 +63,7 @@ Example:
 	},
 }
 
+// init registers the man command with the root command.
 func init() {
 	rootCmd.AddCommand(manCmd)
 }

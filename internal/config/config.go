@@ -252,6 +252,8 @@ func convertToLegacyError(errs *MultiValidationError) error {
 // Legacy validation functions are now handled by the Validator in validation.go
 // These are kept as no-ops for backward compatibility with any code that might reference them.
 
+// combineValidationErrors joins multiple ValidationError values into a single
+// semicolon-delimited error for unified reporting.
 func combineValidationErrors(validationErrors []ValidationError) error {
 	var sb strings.Builder
 	for i, err := range validationErrors {

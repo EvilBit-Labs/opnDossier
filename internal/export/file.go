@@ -13,6 +13,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 )
 
+// File export constants for permissions and platform detection.
 const (
 	// DefaultFilePermissions defines the default file permissions for exported files.
 	DefaultFilePermissions = 0o600

@@ -7,6 +7,7 @@ import "slices"
 // Severity represents the severity levels for findings.
 type Severity string
 
+// Severity level constants define the standard severity tiers for security findings.
 const (
 	// SeverityCritical indicates a critical severity finding.
 	SeverityCritical Severity = "critical"

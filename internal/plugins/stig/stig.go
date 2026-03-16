@@ -9,6 +9,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
+// STIG compliance thresholds used to evaluate service hardening controls.
 const (
 	// MaxDHCPInterfaces represents the maximum number of DHCP interfaces before flagging as unnecessary.
 	MaxDHCPInterfaces = 2
@@ -191,8 +192,9 @@ func (sp *Plugin) controlSeverity(id string) string {
 	return ""
 }
 
-// Helper methods for compliance checks
-
+// hasDefaultDenyPolicy checks whether the device's firewall implements a default deny
+// posture by verifying explicit block or reject rules exist and that no overly broad
+// any-to-any allow rules override the deny policy.
 func (sp *Plugin) hasDefaultDenyPolicy(device *common.CommonDevice) bool {
 	// Check for default deny policy configuration
 	rules := device.FirewallRules
@@ -233,6 +235,9 @@ func (sp *Plugin) hasDefaultDenyPolicy(device *common.CommonDevice) bool {
 	return hasExplicitDeny && !hasAnyAnyAllow
 }
 
+// hasOverlyPermissiveRules checks whether the device contains firewall pass rules with
+// overly broad source or destination addresses, wide network ranges, or missing port
+// restrictions that violate STIG packet-filtering requirements.
 func (sp *Plugin) hasOverlyPermissiveRules(device *common.CommonDevice) bool {
 	// Check for overly permissive firewall rules
 	rules := device.FirewallRules
@@ -270,6 +275,9 @@ func (sp *Plugin) hasOverlyPermissiveRules(device *common.CommonDevice) bool {
 	return false
 }
 
+// hasUnnecessaryServices checks whether the device has network services enabled that
+// increase the attack surface, including SNMP with community strings, insecure DNS
+// settings, excessive DHCP interfaces, or load balancer configurations.
 func (sp *Plugin) hasUnnecessaryServices(device *common.CommonDevice) bool {
 	// Check for unnecessary network services
 
@@ -314,6 +322,7 @@ func (sp *Plugin) hasUnnecessaryServices(device *common.CommonDevice) bool {
 // LoggingStatus represents the result of logging configuration analysis.
 type LoggingStatus int
 
+// LoggingStatus values classify the device's logging posture for STIG compliance evaluation.
 const (
 	// LoggingStatusNotConfigured indicates no logging configuration is detected.
 	LoggingStatusNotConfigured LoggingStatus = iota
@@ -325,6 +334,8 @@ const (
 	LoggingStatusUnableToDetermine
 )
 
+// hasComprehensiveLogging checks whether the device is configured with comprehensive
+// logging by delegating to analyzeLoggingConfiguration and requiring full coverage.
 func (sp *Plugin) hasComprehensiveLogging(device *common.CommonDevice) bool {
 	status := sp.analyzeLoggingConfiguration(device)
 	return status == LoggingStatusComprehensive
