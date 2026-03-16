@@ -97,9 +97,6 @@ opndossier/
 │   ├── export/             # File export functionality
 │   ├── logging/            # Logging utilities
 │   ├── markdown/           # Markdown generation and validation
-│   ├── model/              # Data models and re-export seam
-│   │   ├── opnsense/       # OPNsense parser + schema→CommonDevice converter
-│   │   └── factory.go      # ParserFactory + DeviceParser interface
 │   ├── plugins/            # Compliance plugins (firewall/, sans/, stig/)
 │   ├── pool/               # Worker pool for concurrent processing
 │   ├── processor/          # Data processing and report generation
@@ -109,6 +106,8 @@ opndossier/
 │   └── validator/          # Data validation
 ├── pkg/                    # Public API packages (importable by external consumers)
 │   ├── model/              # Platform-agnostic CommonDevice domain model (was internal/model/common/)
+│   ├── parser/             # Factory + DeviceParser interface
+│   │   └── opnsense/       # OPNsense parser + schema→CommonDevice converter
 │   └── schema/
 │       └── opnsense/       # Canonical OPNsense data model — XML structs (was internal/schema/)
 ├── tools/docgen/           # Standalone model documentation generator (//go:build ignore)
@@ -299,7 +298,7 @@ When code becomes unused during refactoring:
 - Unused code adds maintenance burden and confuses future readers
 - If the code might be needed later, rely on version control history
 - This includes helper functions, test utilities, and constants
-- **Type aliases and re-exported constants**: Before removing, grep the entire codebase for external references (e.g., `grep -r 'pkg.AliasName'`). The `internal/model/` re-export layer and `cmd/` package frequently reference aliases from internal packages.
+- **Type aliases and re-exported constants**: Before removing, grep the entire codebase for external references (e.g., `grep -r 'pkg.AliasName'`). The `cmd/` package frequently references aliases from internal packages.
 
 ### 5.15 File Write Safety
 
@@ -433,7 +432,7 @@ schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"  // use schema.O
 common "github.com/EvilBit-Labs/opnDossier/pkg/model"             // use common.CommonDevice
 ```
 
-Files in `internal/model/opnsense/` (package `opnsense`) **must** alias the schema import as `schema` to avoid collision. Files in `internal/model/` (package `model`) **must** alias the model import as `common` to avoid collision.
+Files in `pkg/parser/opnsense/` (package `opnsense`) **must** alias the schema import as `schema` to avoid collision. `cmd/` files that use the parser factory import `"github.com/EvilBit-Labs/opnDossier/pkg/parser"` (no alias needed -- package name `parser` is unambiguous).
 
 ### 5.24 Public Package Purity
 
@@ -452,7 +451,7 @@ Files in `internal/model/opnsense/` (package `opnsense`) **must** alias the sche
 
 **Architecture notes:**
 
-- `pkg/schema/opnsense/` is the canonical data model; `internal/model/` is a re-export layer (type aliases + constructor wrappers)
+- `pkg/schema/opnsense/` is the canonical OPNsense XML data model
 - OPNsense XML uses two boolean patterns: **presence-based** (`<disabled/>` → `BoolFlag`) and **value-based** (`<enable>1</enable>` → `string`). See §5.17 and `docs/development/xml-structure-research.md`
 - `RuleLocation` in `common.go` has complete source/destination fields but is NOT used by `Source`/`Destination` in `security.go` — tracked in issue #255
 - Known schema gaps: ~40+ type mismatches and missing fields — see `docs/development/xml-structure-research.md` §4-5
@@ -506,7 +505,7 @@ Files in `internal/model/opnsense/` (package `opnsense`) **must** alias the sche
 - `common.ConversionWarning` lives in `pkg/model/warning.go` — platform-agnostic, not in `opnsense` package
 - `Converter.addWarning(field, value, message, severity)` accumulates warnings during conversion
 - `ToCommonDevice` returns `(*CommonDevice, []ConversionWarning, error)` — warnings are non-fatal
-- `DeviceParser` interface, `ParserFactory.CreateDevice`, and all CLI commands propagate the 3-value return
+- `DeviceParser` interface, `Factory.CreateDevice`, and all CLI commands propagate the 3-value return
 - CLI commands log warnings via `ctxLogger.Warn("conversion warning", "field", w.Field, ...)`
 - `diff.go`'s `parseConfigFile` accepts a `*logging.Logger` parameter for warning logging
 - Warning `Field` uses dot-path notation with array indices: `"FirewallRules[0].Type"`, `"NAT.InboundRules[0].Interface"`
@@ -651,7 +650,7 @@ This pattern ensures test isolation when multiple tests modify the same global s
 
 All plugins implement `compliance.Plugin` (see `internal/compliance/interfaces.go`).
 
-- Import `internal/model/common`, not `internal/model`
+- Import `common "github.com/EvilBit-Labs/opnDossier/pkg/model"` for CommonDevice types
 - Use consistent control naming: `PLUGIN-001`, `PLUGIN-002`
 - Severity levels: `critical`, `high`, `medium`, `low`
 - `Finding.Type` = category (e.g., `"compliance"`); `Finding.Severity` = severity level matching the control's severity
