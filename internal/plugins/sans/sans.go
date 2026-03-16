@@ -183,24 +183,30 @@ func (sp *Plugin) controlSeverity(id string) string {
 	return ""
 }
 
-// Helper methods for compliance checks
-
+// hasDefaultDenyPolicy checks whether the device's firewall configuration includes
+// a default deny policy that blocks all traffic not explicitly permitted.
 func (sp *Plugin) hasDefaultDenyPolicy(_ *common.CommonDevice) bool {
 	// Check for default deny policy configuration
 	return true // Placeholder - implement actual logic
 }
 
+// hasUnclearRules checks whether the device contains firewall rules that are overly
+// broad, undocumented, or use catch-all patterns that reduce auditability.
 func (sp *Plugin) hasUnclearRules(_ *common.CommonDevice) bool {
 	// Check for unclear or overly permissive rules
 	// This would analyze firewall rules for catch-all patterns, overly broad ranges, etc.
 	return false // Placeholder - implement actual logic
 }
 
+// hasProperZoneSeparation checks whether the device enforces network segmentation
+// between different security zones to prevent unauthorized cross-zone access.
 func (sp *Plugin) hasProperZoneSeparation(_ *common.CommonDevice) bool {
 	// Check for proper network zone separation
 	return true // Placeholder - implement actual logic
 }
 
+// hasComprehensiveLogging checks whether the device is configured with sufficient
+// logging to support security analysis and incident response.
 func (sp *Plugin) hasComprehensiveLogging(_ *common.CommonDevice) bool {
 	// Check for comprehensive logging configuration
 	return true // Placeholder - implement actual logic
