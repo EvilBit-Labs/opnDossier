@@ -10,6 +10,7 @@ type CommonDevice = common.CommonDevice
 // DeviceType identifies the platform that produced a configuration.
 type DeviceType = common.DeviceType
 
+// Device type constants re-exported from the common package.
 const (
 	// DeviceTypeOPNsense represents an OPNsense device.
 	DeviceTypeOPNsense = common.DeviceTypeOPNsense
