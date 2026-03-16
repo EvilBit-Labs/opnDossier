@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
-	"github.com/EvilBit-Labs/opnDossier/internal/model/opnsense"
+	"github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
