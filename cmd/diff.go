@@ -14,8 +14,8 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/diff"
 	"github.com/EvilBit-Labs/opnDossier/internal/diff/formatters"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/spf13/cobra"
 )
 
@@ -301,7 +301,7 @@ func parseConfigFile(
 		}
 	}()
 
-	device, warnings, err := model.NewParserFactory().CreateDevice(ctx, file, sharedDeviceType, false)
+	device, warnings, err := parser.NewParserFactory().CreateDevice(ctx, file, sharedDeviceType, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
