@@ -15,6 +15,7 @@ import (
 	"golang.org/x/text/transform"
 )
 
+// Parser size limits to prevent XML bomb attacks.
 const (
 	// DefaultMaxInputSize is the default maximum size in bytes for XML input to prevent XML bombs.
 	DefaultMaxInputSize = 10 * 1024 * 1024 // 10MB
