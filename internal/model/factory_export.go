@@ -1,7 +1,7 @@
 package model
 
 import (
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 // CommonDevice is the platform-agnostic domain model for a firewall device.

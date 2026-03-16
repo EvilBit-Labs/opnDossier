@@ -2,7 +2,7 @@
 package model
 
 import (
-	"github.com/EvilBit-Labs/opnDossier/internal/schema"
+	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
 
 // Dhcpd represents DHCP server configuration with interface-keyed entries.

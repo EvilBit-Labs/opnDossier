@@ -2,7 +2,7 @@
 package model
 
 import (
-	"github.com/EvilBit-Labs/opnDossier/internal/schema"
+	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
 
 // InterfaceList represents a comma-separated list of interfaces.
