@@ -98,7 +98,6 @@ opndossier/
 │   ├── logging/            # Logging utilities
 │   ├── markdown/           # Markdown generation and validation
 │   ├── model/              # Data models and re-export seam
-│   │   ├── common/         # Platform-agnostic CommonDevice domain model
 │   │   ├── opnsense/       # OPNsense parser + schema→CommonDevice converter
 │   │   └── factory.go      # ParserFactory + DeviceParser interface
 │   ├── plugins/            # Compliance plugins (firewall/, sans/, stig/)
@@ -106,9 +105,12 @@ opndossier/
 │   ├── processor/          # Data processing and report generation
 │   ├── progress/           # CLI progress indicators (spinner, bar)
 │   ├── sanitizer/          # Data sanitization utilities
-│   ├── schema/             # Canonical OPNsense data model (XML structs)
 │   ├── testing/            # Shared test helpers
 │   └── validator/          # Data validation
+├── pkg/                    # Public API packages (importable by external consumers)
+│   ├── model/              # Platform-agnostic CommonDevice domain model (was internal/model/common/)
+│   └── schema/
+│       └── opnsense/       # Canonical OPNsense data model — XML structs (was internal/schema/)
 ├── tools/docgen/           # Standalone model documentation generator (//go:build ignore)
 ├── testdata/               # Test data and fixtures
 ├── docs/                   # Documentation
@@ -349,7 +351,7 @@ src := Source{Any: new(""), Network: new("lan")}
 src := Source{Any: model.StringPtr(""), Network: model.StringPtr("lan")}
 ```
 
-Add `IsAny()` / `Equal()` methods rather than comparing `*string` fields directly. See `internal/schema/security.go` for the canonical pattern.
+Add `IsAny()` / `Equal()` methods rather than comparing `*string` fields directly. See `pkg/schema/opnsense/security.go` for the canonical pattern.
 
 **Address resolution — use `EffectiveAddress()`:**
 
@@ -416,11 +418,26 @@ The `dupl` linter flags structurally similar test files (e.g., `json_test.go` an
 
 When adding fields to `common.Statistics`, update three places:
 
-1. The struct definition in `internal/model/common/enrichment.go`
+1. The struct definition in `pkg/model/enrichment.go`
 2. Population logic in `computeStatistics()` in `internal/converter/enrichment.go`
 3. The sum in `computeTotalConfigItems()` in the same file
 
 Separate check logic from stats updates. Never increment stats inside a function that may be called multiple times for fallback logic — check all candidates first, then update stats once based on the outcome.
+
+### 5.23 Public Package Import Aliases
+
+`pkg/schema/opnsense/` (package `opnsense`) and `pkg/model/` (package `model`) are public API packages. Consumer files use import aliases to preserve historical qualifiers:
+
+```go
+schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"  // use schema.OpnSenseDocument
+common "github.com/EvilBit-Labs/opnDossier/pkg/model"             // use common.CommonDevice
+```
+
+Files in `internal/model/opnsense/` (package `opnsense`) **must** alias the schema import as `schema` to avoid collision. Files in `internal/model/` (package `model`) **must** alias the model import as `common` to avoid collision.
+
+### 5.24 Public Package Purity
+
+`pkg/` packages must NEVER import `internal/` packages. Any type exposed through a `pkg/` struct field must itself live in `pkg/` or stdlib. When moving types from `internal/` to `pkg/`, audit all struct fields for leaked internal types and define public equivalents in `pkg/` (e.g., `pkg/model.Severity` replaces `internal/analysis.Severity` in `ConversionWarning`).
 
 ---
 
@@ -435,15 +452,15 @@ Separate check logic from stats updates. Never increment stats inside a function
 
 **Architecture notes:**
 
-- `internal/schema/` is the canonical data model; `internal/model/` is a re-export layer (type aliases + constructor wrappers)
+- `pkg/schema/opnsense/` is the canonical data model; `internal/model/` is a re-export layer (type aliases + constructor wrappers)
 - OPNsense XML uses two boolean patterns: **presence-based** (`<disabled/>` → `BoolFlag`) and **value-based** (`<enable>1</enable>` → `string`). See §5.17 and `docs/development/xml-structure-research.md`
 - `RuleLocation` in `common.go` has complete source/destination fields but is NOT used by `Source`/`Destination` in `security.go` — tracked in issue #255
 - Known schema gaps: ~40+ type mismatches and missing fields — see `docs/development/xml-structure-research.md` §4-5
 
 **Platform-agnostic model layer:**
 
-- `internal/model/common/` contains device-agnostic types (firewall rules, VPN, system, network, etc.)
-- `docs/data-model/` documents the **CommonDevice** export model (`internal/model/common/`), NOT the `OpnSenseDocument` XML schema -- field paths, types, and nesting differ significantly between the two (e.g., flat `[]Interface` array vs map-keyed, `bool` vs `BoolFlag`, top-level `users[]` vs nested `system.user[]`)
+- `pkg/model/` contains device-agnostic types (firewall rules, VPN, system, network, etc.)
+- `docs/data-model/` documents the **CommonDevice** export model (`pkg/model/`), NOT the `OpnSenseDocument` XML schema -- field paths, types, and nesting differ significantly between the two (e.g., flat `[]Interface` array vs map-keyed, `bool` vs `BoolFlag`, top-level `users[]` vs nested `system.user[]`)
 - `revive` var-naming exclusion for this path is configured in `.golangci.yml`
 - JSON struct tags on nested struct fields must NOT use `omitempty` (Go 1.26+ modernize check)
 
@@ -486,13 +503,14 @@ Separate check logic from stats updates. Never increment stats inside a function
 
 **Conversion warnings:**
 
-- `common.ConversionWarning` lives in `internal/model/common/warning.go` — platform-agnostic, not in `opnsense` package
+- `common.ConversionWarning` lives in `pkg/model/warning.go` — platform-agnostic, not in `opnsense` package
 - `Converter.addWarning(field, value, message, severity)` accumulates warnings during conversion
 - `ToCommonDevice` returns `(*CommonDevice, []ConversionWarning, error)` — warnings are non-fatal
 - `DeviceParser` interface, `ParserFactory.CreateDevice`, and all CLI commands propagate the 3-value return
 - CLI commands log warnings via `ctxLogger.Warn("conversion warning", "field", w.Field, ...)`
 - `diff.go`'s `parseConfigFile` accepts a `*logging.Logger` parameter for warning logging
 - Warning `Field` uses dot-path notation with array indices: `"FirewallRules[0].Type"`, `"NAT.InboundRules[0].Interface"`
+- Warning `Severity` uses `pkg/model.Severity` (not `internal/analysis.Severity`) — public API boundary; converter files use `common.SeverityHigh` etc.
 
 ### 6.2 Multi-Format Export
 
