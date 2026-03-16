@@ -117,11 +117,19 @@ if err != nil {
 
 The underlying `XMLParser` (`internal/cfgparser/`) supports UTF-8, US-ASCII, ISO-8859-1 (Latin1), and Windows-1252 encodings. Input is limited to 10MB by default (`DefaultMaxInputSize`).
 
-## Data Model (internal/schema, internal/model)
+**Breaking Change:** `ParserFactory` / `NewParserFactory()` were renamed to `Factory` / `NewFactory()` to comply with Go naming conventions (`revive` stutters rule). The `internal/model/` re-export layer was removed; import `pkg/parser` directly.
+
+| Old                         | New                   |
+| --------------------------- | --------------------- |
+| `parser.ParserFactory`      | `parser.Factory`      |
+| `parser.NewParserFactory()` | `parser.NewFactory()` |
+| `model.NewParserFactory()`  | `parser.NewFactory()` |
+
+## Data Model (pkg/schema/opnsense, pkg/model)
 
 ### CommonDevice
 
-The platform-agnostic device model, defined in `internal/model/common/`:
+The platform-agnostic device model, defined in `pkg/model/`:
 
 ```go
 type CommonDevice struct {
