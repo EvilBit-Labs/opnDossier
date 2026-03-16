@@ -10,6 +10,7 @@ import (
 	"github.com/nao1215/markdown"
 )
 
+// Display symbols and boolean string representations used for formatting report output.
 const (
 	checkboxChecked   = "[x]"
 	checkboxUnchecked = "[ ]"

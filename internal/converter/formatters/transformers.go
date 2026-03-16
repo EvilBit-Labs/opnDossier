@@ -7,6 +7,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
 )
 
+// Ratio constants used for pre-allocating filtered tunable and rule type slices.
 const (
 	securityTunableRatio = 4
 	ruleTypeRatio        = 3
