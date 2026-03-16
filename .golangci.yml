@@ -95,7 +95,7 @@ linters:
       - common-false-positives
       - std-error-handling
     rules:
-      - path: internal/model/common/
+      - path: pkg/model/
         linters: [revive]
         text: "var-naming: avoid meaningless package names"
   disable:
@@ -129,7 +129,7 @@ linters:
     tagliatelle:
       case:
         overrides:
-          - pkg: internal/model/opnsense.go
+          - pkg: pkg/parser/opnsense
             ignore: true
 
     errcheck:
