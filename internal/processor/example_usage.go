@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 // ExampleUsage demonstrates various ways to process a device configuration using the processor, including basic, security-focused, and comprehensive analyses, as well as handling custom timeouts and reporting in multiple formats.

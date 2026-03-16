@@ -12,7 +12,7 @@ import (
 	"sync"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 // Processor defines the interface for processing firewall configurations.
