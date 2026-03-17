@@ -39,6 +39,99 @@ Built with modern Go practices and established libraries:
 
 The CLI uses a layered architecture: **Cobra** provides command structure and argument parsing, **Viper** handles layered configuration management (files, env, flags), and **Fang** adds enhanced UX features like styled help, automatic version flags, and shell completion.
 
+## Public Package Boundaries and Interface Injection
+
+### The pkg/internal/ Import Boundary
+
+`pkg/` packages must **NEVER** import `internal/` packages. Any type exposed through a `pkg/` struct field must itself live in `pkg/` or stdlib. This enforces a strict architectural boundary that ensures external consumers can use the public API without encountering Go's `internal/` access restrictions.
+
+**Key Principle**: When moving types from `internal/` to `pkg/`, audit all struct fields for leaked internal types and define public equivalents in `pkg/` (e.g., `pkg/model.Severity` replaces `internal/analysis.Severity` in `ConversionWarning`).
+
+### Boundary Verification
+
+Before committing changes to `pkg/` packages, run this command to catch boundary violations:
+
+```bash
+grep -rn 'internal/' --include='*.go' pkg/ | grep -v _test.go
+```
+
+This checks for any production code in `pkg/` that imports `internal/` packages. Test files (`*_test.go`) are allowed to import `internal/` packages since Go's access restrictions only apply to external consumers.
+
+### Interface Injection Pattern
+
+When `pkg/` packages need functionality from `internal/` packages, use **interface injection** instead of moving entire dependency chains:
+
+1. **Define an interface in `pkg/`** with the required methods
+2. **Inject the concrete implementation at the `cmd/` layer** where both `pkg/` and `internal/` packages are accessible
+3. **Use the interface type** in `pkg/` package constructors and fields
+
+#### Canonical Example: XMLDecoder
+
+The `pkg/parser.XMLDecoder` interface demonstrates this pattern:
+
+```go
+// pkg/parser/factory.go
+type XMLDecoder interface {
+    Parse(ctx context.Context, r io.Reader) (*schema.OpnSenseDocument, error)
+    ParseAndValidate(ctx context.Context, r io.Reader) (*schema.OpnSenseDocument, error)
+}
+
+func NewFactory(decoder XMLDecoder) *Factory {
+    return &Factory{xmlDecoder: decoder}
+}
+```
+
+Application code in `cmd/` wires the concrete implementation:
+
+```go
+// cmd/convert.go
+factory := parser.NewFactory(cfgparser.NewXMLParser())
+```
+
+This allows `pkg/parser` to use XML parsing functionality from `internal/cfgparser` without importing it directly.
+
+### Structural Typing for Sub-Packages
+
+Go's structural typing allows `pkg/` sub-packages to define their own **unexported interface** that `internal/` types satisfy without importing them:
+
+```go
+// pkg/parser/opnsense/parser.go
+type xmlDecoder interface {
+    Parse(ctx context.Context, r io.Reader) (*schema.OpnSenseDocument, error)
+    ParseAndValidate(ctx context.Context, r io.Reader) (*schema.OpnSenseDocument, error)
+}
+
+func NewParser(decoder xmlDecoder) *Parser {
+    return &Parser{decoder: decoder}
+}
+```
+
+The `internal/cfgparser.XMLParser` type satisfies this interface through structural compatibility, without requiring an explicit import.
+
+### Unexporting Types Pattern
+
+When making a type unexported (e.g., `Converter` → `converter`) to reduce API surface area, provide a **convenience function** for external test packages that cannot access unexported constructors:
+
+```go
+// pkg/parser/opnsense/converter.go
+type converter struct {
+    // unexported fields
+}
+
+// ConvertDocument provides public access for testing and external consumers
+func ConvertDocument(doc *schema.OpnSenseDocument) (*common.CommonDevice, []common.ConversionWarning, error) {
+    c := &converter{}
+    return c.ToCommonDevice(doc)
+}
+```
+
+This allows external test packages to use the conversion functionality without accessing the unexported `converter` type directly.
+
+### Related Documentation
+
+For detailed examples and the historical context of fixing `pkg/internal/` boundary violations, see:
+- **[docs/solutions/architecture-issues/pkg-internal-import-boundary.md](../solutions/architecture-issues/pkg-internal-import-boundary.md)**
+
 ## Services and Components
 
 ### 1. CLI Interface Layer
@@ -58,10 +151,17 @@ The CLI uses a layered architecture: **Cobra** provides command structure and ar
 ### 3. Analysis Infrastructure
 
 - **Package**: `internal/analysis/`
-- **Responsibility**: Canonical finding and severity types shared across audit, compliance, and processor packages
+- **Responsibility**: Shared analysis logic and canonical finding types for converter, processor, audit, and compliance packages
 - **Key Types**: `Finding` struct, `Severity` type with validation helpers
+- **Shared Functions**:
+  - `ComputeStatistics()` - Statistics computation for configuration items, services, and security features
+  - `ComputeAnalysis()` - Detection logic for dead rules, unused interfaces, security, performance, and consistency issues
+  - `DetectDeadRules()` - Dead rule detection with structured `Kind` field (`"unreachable"` or `"duplicate"`)
+  - `DetectUnusedInterfaces()` - Unused interface detection across rules, DHCP, DNS, VPN, and load balancer
+  - `RulesEquivalent()` - Rule comparison including `Disabled` field and normalized interface order
+- **Defensive API**: All exported `Compute*` functions include nil guards for safe use with nil arguments
 - **Export Model**: `ComplianceResults`, `ComplianceFinding`, `PluginComplianceResult`, `ComplianceControl`, `ComplianceResultSummary`, `CompliancePluginInfo`, `ComplianceAttackSurface` in `pkg/model/enrichment.go`
-- **Purpose**: Eliminates type duplication, ensures consistency across all analysis-related packages
+- **Purpose**: Eliminates duplicated detection and statistics logic, ensures consistency across all analysis-related packages
 - **Usage**: Also used in `ConversionWarning` type for severity classification of non-fatal conversion issues
 
 ### 4. Data Processing Engine
@@ -79,6 +179,7 @@ The CLI uses a layered architecture: **Cobra** provides command structure and ar
 - **Output**: Markdown content, conversion warnings
 - **Features**: Hierarchy preservation, metadata injection, non-fatal issue tracking
 - **Warning Generation**: Accumulates conversion warnings for incomplete or problematic configuration elements (empty firewall rule fields, missing NAT rule data, gateway issues, user/certificate problems, HA configuration warnings)
+- **Analysis Integration**: Delegates to `internal/analysis/` for `ComputeStatistics()` and `ComputeAnalysis()` (shared, not mirrored)
 - **Audit Report Rendering**: Delegates compliance audit report rendering to `internal/converter/builder/` via `BuildAuditSection()` and `WriteAuditSection()` methods
 - **Audit Mode Integration**: In audit mode, `cmd/audit_handler.go` maps `audit.Report` to `common.ComplianceResults` and populates the `ComplianceChecks` field on a shallow copy of `CommonDevice`, enabling multi-format output (markdown, JSON, YAML) through the standard generation pipeline
 
@@ -190,7 +291,7 @@ graph TD
 - **`pkg/schema/opnsense/`** — XML DTO layer. Carries `xml:""` tags and mirrors the OPNsense config.xml structure. This layer is untouched by downstream consumers.
 - **`pkg/parser/opnsense/`** — Contains `parser.go` and `converter.go`. Reads schema DTOs and emits `*common.CommonDevice` with conversion warnings. This is the only package that imports `pkg/schema/opnsense/`.
 - **`pkg/model/`** — Device-agnostic domain model. No XML tags. All consumer code (processor, converter, markdown, audit, diff, compliance plugins) operates on `CommonDevice`. Includes `ConversionWarning` type for non-fatal issues and `ComplianceResults` type (with nested `ComplianceFinding`, `PluginComplianceResult`, `ComplianceControl`, `ComplianceResultSummary`, `CompliancePluginInfo`, `ComplianceAttackSurface`) for compliance audit data representation.
-- **`internal/analysis/`** — Canonical finding and severity types. Provides the shared `Finding` struct and `Severity` type used across audit, compliance, and processor packages to ensure consistency.
+- **`internal/analysis/`** — Shared analysis logic and canonical finding types. Provides detection functions (`DetectDeadRules`, `DetectUnusedInterfaces`, `DetectSecurityIssues`, `DetectPerformanceIssues`, `DetectConsistency`), statistics computation (`ComputeStatistics`), analysis aggregation (`ComputeAnalysis`), and rule comparison (`RulesEquivalent`). Used by both `internal/converter` and `internal/processor` to eliminate duplicated logic.
 - **`pkg/parser/factory.go`** — `Factory` and `DeviceParser` interface. Auto-detects the device type from the XML root element. The `--device-type opnsense` flag bypasses auto-detection. Returns 3 values: device model, warnings slice, and error.
 
 ### Device Type Detection
