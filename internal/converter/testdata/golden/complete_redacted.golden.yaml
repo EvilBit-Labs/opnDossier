@@ -306,15 +306,6 @@ statistics:
     interfacesByType:
         "": 4
     interfaceDetails:
-        - name: wan
-          enabled: true
-          hasIpv4: true
-          blockPriv: true
-          blockBogons: true
-        - name: lan
-          enabled: true
-          hasIpv4: true
-          hasDhcp: true
         - name: dmz
           enabled: true
           hasIpv4: true
@@ -324,6 +315,15 @@ statistics:
           enabled: true
           hasIpv4: true
           hasDhcp: true
+          blockPriv: true
+          blockBogons: true
+        - name: lan
+          enabled: true
+          hasIpv4: true
+          hasDhcp: true
+        - name: wan
+          enabled: true
+          hasIpv4: true
           blockPriv: true
           blockBogons: true
     totalVlans: 1
@@ -343,14 +343,14 @@ statistics:
     natMode: automatic
     dhcpScopes: 2
     dhcpScopeDetails:
-        - interface: lan
-          enabled: true
-          from: 192.168.100.50
-          to: 192.168.100.199
         - interface: guest
           enabled: true
           from: 172.16.1.50
           to: 172.16.1.199
+        - interface: lan
+          enabled: true
+          from: 192.168.100.50
+          to: 192.168.100.199
     totalUsers: 3
     usersByScope:
         local: 2
@@ -360,28 +360,30 @@ statistics:
         local: 2
         system: 1
     enabledServices:
-        - DHCP Server (LAN)
         - DHCP Server (GUEST)
-        - Unbound DNS Resolver
+        - DHCP Server (LAN)
+        - NTP Daemon
         - SNMP Daemon
         - SSH Daemon
-        - NTP Daemon
+        - Unbound DNS Resolver
     totalServices: 6
     serviceDetails:
-        - name: DHCP Server (LAN)
-          enabled: true
-          details:
-            from: 192.168.100.50
-            interface: lan
-            to: 192.168.100.199
         - name: DHCP Server (GUEST)
           enabled: true
           details:
             from: 172.16.1.50
             interface: guest
             to: 172.16.1.199
-        - name: Unbound DNS Resolver
+        - name: DHCP Server (LAN)
           enabled: true
+          details:
+            from: 192.168.100.50
+            interface: lan
+            to: 192.168.100.199
+        - name: NTP Daemon
+          enabled: true
+          details:
+            prefer: time.nist.gov
         - name: SNMP Daemon
           enabled: true
           details:
@@ -392,15 +394,13 @@ statistics:
           enabled: true
           details:
             group: wheel
-        - name: NTP Daemon
+        - name: Unbound DNS Resolver
           enabled: true
-          details:
-            prefer: time.nist.gov
     sysctlSettings: 10
     loadBalancerMonitors: 3
     securityFeatures:
-        - Block Private Networks
         - Block Bogon Networks
+        - Block Private Networks
         - HTTPS Web GUI
     summary:
         totalConfigItems: 41
@@ -409,7 +409,8 @@ statistics:
         hasSecurityFeatures: true
 analysis:
     deadRules:
-        - interface: wan
+        - kind: unreachable
+          interface: wan
           description: Rules after position 1 on interface wan are unreachable due to preceding block-all rule
           recommendation: Remove unreachable rules or reorder them before the block-all rule
     securityIssues:
@@ -421,8 +422,8 @@ analysis:
 securityAssessment:
     overallScore: 75
     securityFeatures:
-        - Block Private Networks
         - Block Bogon Networks
+        - Block Private Networks
         - HTTPS Web GUI
 performanceMetrics:
     configComplexity: 15
