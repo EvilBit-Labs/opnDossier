@@ -292,11 +292,12 @@ The `dupl` linter flags structurally similar test files (e.g., `json_test.go` an
 
 ### 5.22 Statistics Struct Synchronization
 
-When adding fields to `common.Statistics`, update three places:
+When adding fields to `common.Statistics`, update two places:
 
 1. The struct definition in `pkg/model/enrichment.go`
-2. Population logic in `computeStatistics()` in `internal/converter/enrichment.go`
-3. The sum in `computeTotalConfigItems()` in the same file
+2. Population logic in `ComputeStatistics()` in `internal/analysis/statistics.go`
+
+The processor's `translateCommonStats()` in `internal/processor/report.go` must also be updated if new fields are added to `processor.Statistics`.
 
 Separate check logic from stats updates. Never increment stats inside a function that may be called multiple times for fallback logic — check all candidates first, then update stats once based on the outcome.
 
@@ -314,6 +315,10 @@ Files in `pkg/parser/opnsense/` (package `opnsense`) **must** alias the schema i
 ### 5.24 Public Package Purity
 
 `pkg/` packages must NEVER import `internal/` packages. Any type exposed through a `pkg/` struct field must itself live in `pkg/` or stdlib. When moving types from `internal/` to `pkg/`, audit all struct fields for leaked internal types and define public equivalents in `pkg/` (e.g., `pkg/model.Severity` replaces `internal/analysis.Severity` in `ConversionWarning`).
+
+### 5.25 Processor Report Serialization Redaction
+
+`Report.ToJSON()` and `Report.ToYAML()` serialize a redacted copy via `redactedCopyUnsafe()` to prevent `NormalizedConfig.SNMP.ROCommunity` from leaking. When adding new sensitive fields to `CommonDevice`, extend `redactedCopyUnsafe()` in `internal/processor/report.go`. The copy is constructed field-by-field (not `cp := *r`) to avoid `copylocks` on `sync.RWMutex`. Statistics redaction (`redactServiceDetails`) is separate and handles the statistics-layer SNMP community.
 
 ---
 
@@ -342,7 +347,8 @@ Files in `pkg/parser/opnsense/` (package `opnsense`) **must** alias the schema i
 
 - `prepareForExport()` in `internal/converter/enrichment.go` is the single gate for all JSON/YAML exports
 - It populates `Statistics`, `Analysis`, `SecurityAssessment`, and `PerformanceMetrics` on a shallow copy
-- Cannot import `internal/processor` (circular dependency) — analysis/statistics logic is mirrored, not shared
+- Delegates to `internal/analysis/` for `ComputeStatistics` and `ComputeAnalysis` (shared, not mirrored)
+- `internal/processor/` also delegates to `internal/analysis/` via `translateCommonStats` for type translation
 - New `CommonDevice` enrichment fields must be wired here to appear in JSON/YAML output
 - `computeStatistics` receives *unredacted* data (for accurate presence checks); sensitive values copied into `ServiceDetails` must be post-processed by `redactStatisticsServiceDetails()` when `redact=true`
 
