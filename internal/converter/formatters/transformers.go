@@ -4,7 +4,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 // Ratio constants used for pre-allocating filtered tunable and rule type slices.

@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/schema"
+	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/text/encoding"

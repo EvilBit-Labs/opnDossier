@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 func TestMarkdownBuilder_EscapeTableContent(t *testing.T) {

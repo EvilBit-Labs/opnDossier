@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 // addressUnknown is the fallback label used when a rule source or destination address is empty.

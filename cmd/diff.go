@@ -10,12 +10,13 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/diff"
 	"github.com/EvilBit-Labs/opnDossier/internal/diff/formatters"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
+	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 	"github.com/spf13/cobra"
 )
 
@@ -273,7 +274,7 @@ Examples:
 	},
 }
 
-// parseConfigFile parses a device configuration file via the ParserFactory,
+// parseConfigFile parses a device configuration file via the parser.Factory,
 // logging any non-fatal conversion warnings via the provided logger. When
 // quiet is true, warnings are suppressed.
 func parseConfigFile(
@@ -301,7 +302,8 @@ func parseConfigFile(
 		}
 	}()
 
-	device, warnings, err := model.NewParserFactory().CreateDevice(ctx, file, sharedDeviceType, false)
+	device, warnings, err := parser.NewFactory(cfgparser.NewXMLParser()).
+		CreateDevice(ctx, file, sharedDeviceType, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}

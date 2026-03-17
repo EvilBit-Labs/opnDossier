@@ -196,4 +196,12 @@ coverage
 test-dumb.md
 test-output.md
 .devcontainer/.devpod-internal/
+
+# AI assistant artifacts
 .claude.local.md
+.full-review
+docs/plans
+.cursor/commands
+.github/prompts
+.kiro/specs/*
+.worktrees/

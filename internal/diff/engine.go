@@ -9,7 +9,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/diff/analyzers"
 	"github.com/EvilBit-Labs/opnDossier/internal/diff/security"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 // Engine orchestrates configuration comparison.

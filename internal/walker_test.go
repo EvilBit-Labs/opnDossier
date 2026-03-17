@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 func TestWalk_BasicStructure(t *testing.T) {

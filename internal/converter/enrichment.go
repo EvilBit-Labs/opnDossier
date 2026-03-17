@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 // findCommonInterface returns the interface with the given name, or nil if not found.

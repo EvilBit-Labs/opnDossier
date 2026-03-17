@@ -4,7 +4,7 @@ package validator
 import (
 	"fmt"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/schema"
+	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
 
 // DemoValidation runs example validations of OPNsense configuration data, printing results for valid, invalid, and cross-field error scenarios.

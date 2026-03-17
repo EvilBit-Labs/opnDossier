@@ -19,15 +19,13 @@ opndossier/
 │   ├── shared_flags.go          # Shared flags (section, wrap, audit)
 │   ├── exitcodes.go             # Structured exit codes
 │   └── help.go                  # Custom help templates
-├── internal/
+├── internal/                    # Private application logic
 │   ├── analysis/                # Canonical finding and severity types
 │   ├── cfgparser/               # XML parsing and validation
 │   ├── config/                  # Configuration management (Viper)
 │   ├── converter/               # Data conversion and report generation
 │   │   ├── builder/             # Programmatic markdown builder
 │   │   └── formatters/          # Security scoring, transformers
-│   ├── schema/                  # Canonical data model structs
-│   ├── model/                   # Re-export layer (type aliases)
 │   ├── compliance/              # Plugin interfaces
 │   ├── plugins/                 # Plugin implementations (stig, sans, firewall)
 │   ├── audit/                   # Audit engine and plugin management
@@ -37,6 +35,12 @@ opndossier/
 │   ├── progress/                # CLI progress indicators
 │   ├── processor/               # Security analysis and report generation
 │   └── validator/               # Configuration validation
+├── pkg/                         # Public API packages
+│   ├── model/                   # Platform-agnostic CommonDevice domain model
+│   ├── parser/                  # Factory + DeviceParser interface
+│   │   └── opnsense/            # OPNsense parser + schema→CommonDevice converter
+│   └── schema/
+│       └── opnsense/            # Canonical OPNsense XML data model structs
 └── main.go                      # Entry point
 ```
 
@@ -82,7 +86,7 @@ config := cmdCtx.Config
 
 ### DeviceParser Interface
 
-The `DeviceParser` interface (defined in `internal/model/factory.go`) abstracts device-specific parsing behind a common contract:
+The `DeviceParser` interface (defined in `pkg/parser/factory.go`) abstracts device-specific parsing behind a common contract:
 
 ```go
 type DeviceParser interface {
@@ -95,12 +99,12 @@ type DeviceParser interface {
 
 **Breaking Change:** Both methods return a 3-value tuple `(*CommonDevice, []ConversionWarning, error)` instead of the previous 2-value return `(*CommonDevice, error)`. Implementations must return non-fatal conversion warnings alongside the parsed device model. Callers should log or surface these warnings without treating them as errors.
 
-The `ParserFactory` auto-detects device type from the XML root element and delegates to the appropriate `DeviceParser`. The underlying OPNsense XML parser (`internal/cfgparser/XMLParser`) still produces `schema.OpnSenseDocument`, which is then converted to `common.CommonDevice` by the OPNsense-specific parser in `internal/model/opnsense/`.
+The `parser.Factory` auto-detects device type from the XML root element and delegates to the appropriate `DeviceParser`. The underlying OPNsense XML parser (`internal/cfgparser/XMLParser`) still produces `schema.OpnSenseDocument`, which is then converted to `common.CommonDevice` by the OPNsense-specific parser in `pkg/parser/opnsense/`.
 
-### ParserFactory Usage
+### Factory Usage
 
 ```go
-factory := model.NewParserFactory()
+factory := parser.NewFactory(cfgparser.NewXMLParser())
 
 file, err := os.Open("config.xml")
 if err != nil {
@@ -129,11 +133,20 @@ if err != nil {
 
 The underlying `XMLParser` (`internal/cfgparser/`) supports UTF-8, US-ASCII, ISO-8859-1 (Latin1), and Windows-1252 encodings. Input is limited to 10MB by default (`DefaultMaxInputSize`).
 
-## Data Model (internal/schema, internal/model)
+**Breaking Change:** `ParserFactory` / `NewParserFactory()` were renamed to `Factory` / `NewFactory()` to comply with Go naming conventions (`revive` stutters rule). The `internal/model/` re-export layer was removed; import `pkg/parser` directly. `NewFactory()` now requires an `XMLDecoder` argument.
+
+| Old                         | New                                           |
+| --------------------------- | --------------------------------------------- |
+| `parser.ParserFactory`      | `parser.Factory`                              |
+| `parser.NewParserFactory()` | `parser.NewFactory(cfgparser.NewXMLParser())` |
+| `model.NewParserFactory()`  | `parser.NewFactory(cfgparser.NewXMLParser())` |
+| `parser.NewFactory()`       | `parser.NewFactory(cfgparser.NewXMLParser())` |
+
+## Data Model (pkg/schema/opnsense, pkg/model)
 
 ### CommonDevice
 
-The platform-agnostic device model, defined in `internal/model/common/`:
+The platform-agnostic device model, defined in `pkg/model/`:
 
 ```go
 type CommonDevice struct {
@@ -156,7 +169,7 @@ type CommonDevice struct {
 }
 ```
 
-The XML DTO remains as `schema.OpnSenseDocument` in `internal/schema/opnsense.go`. The OPNsense-specific parser in `internal/model/opnsense/` converts the XML DTO into `CommonDevice`. The `internal/model/` package provides the `ParserFactory` and `DeviceParser` interface for consumers.
+The XML DTO remains as `schema.OpnSenseDocument` in `pkg/schema/opnsense/`. The OPNsense-specific parser in `pkg/parser/opnsense/` converts the XML DTO into `CommonDevice`. The `pkg/parser/` package provides the `Factory` and `DeviceParser` interface for consumers.
 
 ### ConversionWarning
 

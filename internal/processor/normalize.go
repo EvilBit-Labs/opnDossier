@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 // normalize normalizes the given device configuration by filling defaults, canonicalizing IP/CIDR, and sorting slices for determinism.

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 // ExampleProcessor provides a basic implementation of the Processor interface.

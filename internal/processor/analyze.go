@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 // analyze performs comprehensive analysis of the device configuration based on enabled options.

@@ -7,12 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
+	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 )
 
 // loadTestData loads test configuration data by parsing an XML file and converting
-// to CommonDevice format via the ParserFactory.
+// to CommonDevice format via the Factory.
 func loadTestData(filename string) *common.CommonDevice {
 	// Map test data size indicators to actual test files
 	var xmlFile string
@@ -33,7 +34,7 @@ func loadTestData(filename string) *common.CommonDevice {
 		panic("Failed to read test XML file: " + err.Error())
 	}
 
-	factory := model.NewParserFactory()
+	factory := parser.NewFactory(cfgparser.NewXMLParser())
 	device, _, err := factory.CreateDevice(
 		context.Background(),
 		strings.NewReader(string(xmlData)),

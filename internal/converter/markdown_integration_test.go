@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	builderPkg "github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/nao1215/markdown"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

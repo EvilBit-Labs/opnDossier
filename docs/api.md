@@ -59,10 +59,10 @@ formatters.FilterSystemTunables(tunables []common.SysctlItem, includeTunables bo
 
 ## Parser API
 
-The preferred entry point is `ParserFactory` in `internal/model/factory.go`, which auto-detects the device type and returns a `common.CommonDevice`:
+The preferred entry point is `Factory` in `pkg/parser/factory.go`, which auto-detects the device type and returns a `common.CommonDevice`:
 
 ```go
-factory := model.NewParserFactory()
+factory := parser.NewFactory(cfgparser.NewXMLParser())
 
 // Auto-detect device type and parse
 device, err := factory.CreateDevice(ctx, reader, "", false)

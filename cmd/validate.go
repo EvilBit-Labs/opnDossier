@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 	"github.com/spf13/cobra"
 )
 
@@ -126,7 +126,8 @@ Examples:
 
 				// Parse and validate the configuration file
 				ctxLogger.Debug("Parsing and validating configuration file")
-				_, warnings, err := model.NewParserFactory().CreateDevice(ctx, file, sharedDeviceType, true)
+				_, warnings, err := parser.NewFactory(cfgparser.NewXMLParser()).
+					CreateDevice(ctx, file, sharedDeviceType, true)
 				if err != nil {
 					exitCode := DetermineExitCode(err)
 					updateMaxExitCode(&maxExitCode, exitCode)
