@@ -2,8 +2,6 @@
 
 Thank you for your interest in contributing to opnDossier! This guide covers everything you need to know to contribute effectively.
 
-> **Before you start:** check **[GOTCHAS.md](GOTCHAS.md)** for hard-won lessons and edge cases. It will save you from common pitfalls that have tripped up contributors and broken CI before.
-
 ## Getting Started
 
 ### Quality Standards
@@ -68,13 +66,15 @@ opndossier/
 │   ├── display/        # Terminal display (Lipgloss)
 │   ├── logging/        # Logging utilities
 │   ├── markdown/       # Markdown generation and validation
-│   ├── model/          # Data models and re-export seam
-│   │   ├── common/     # Platform-agnostic CommonDevice domain model
-│   │   └── opnsense/   # OPNsense parser + schema→CommonDevice converter
 │   ├── plugins/        # Compliance plugins (firewall, sans, stig)
 │   ├── processor/      # Data processing and report generation
-│   ├── schema/         # Canonical OPNsense data model (XML structs)
 │   └── validator/      # Data validation
+├── pkg/                 # Public API packages (importable by external Go projects)
+│   ├── model/          # Platform-agnostic CommonDevice domain model
+│   ├── parser/         # Factory and DeviceParser interface
+│   │   └── opnsense/   # OPNsense parser + schema→CommonDevice converter
+│   └── schema/
+│       └── opnsense/   # Canonical OPNsense XML data model (XML structs)
 ├── tools/               # Standalone development tools
 ├── testdata/            # Test data and fixtures
 ├── docs/                # Documentation
@@ -91,6 +91,7 @@ opnDossier uses programmatic markdown generation via direct Go method calls thro
 
 ```go
 // ReportBuilder defines the contract for programmatic report generation.
+// It operates on the platform-agnostic CommonDevice model from pkg/model/.
 type ReportBuilder interface {
     // Section builders
     BuildSystemSection(data *common.CommonDevice) string
@@ -324,17 +325,6 @@ git commit -m "feat(api)!: change configuration file format"
 - `ci`: CI/CD changes
 - `chore`: Maintenance tasks
 
-### 5. Gotchas & Pitfalls
-
-Before you start developing, please review the **[GOTCHAS.md](GOTCHAS.md)** file. It contains important information about:
-
-- Proper use of `t.Parallel()` in tests
-- Global state management in the `cmd` package
-- Non-deterministic map iteration in reports
-- XML presence vs. absence detection
-
-Reviewing these will help you avoid common pitfalls that lead to CI failures and data races.
-
 ## Coding Standards
 
 ### Go Style Guide
@@ -354,8 +344,12 @@ import (
     // Third-party packages
     "github.com/spf13/cobra"
 
-    // Local packages last
+    // Internal packages
     "github.com/EvilBit-Labs/opnDossier/internal/config"
+    
+    // Public API packages
+    common "github.com/EvilBit-Labs/opnDossier/pkg/model"
+    "github.com/EvilBit-Labs/opnDossier/pkg/parser"
 )
 
 // Function documentation required for exported functions
@@ -770,7 +764,7 @@ opnDossier uses a **maintainer-driven** governance model. Decisions are made by 
 | Role                 | Responsibilities                                                                          | Current                                        |
 | -------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------- |
 | **Maintainer**       | Merge PRs, manage releases, set project direction, review security reports, triage issues | [@UncleSp1d3r](https://github.com/UncleSp1d3r) |
-| **Security Contact** | Triage vulnerability reports, coordinate fixes, publish advisories                        | <support@evilbitlabs.io>                       |
+| **Security Contact** | Triage vulnerability reports, coordinate fixes, publish advisories                        | support@evilbitlabs.io                         |
 | **Contributor**      | Submit issues, PRs, and participate in discussions                                        | Anyone following this guide                    |
 
 ### How Decisions Are Made
