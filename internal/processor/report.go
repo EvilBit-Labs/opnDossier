@@ -11,11 +11,13 @@ import (
 	"time"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
-	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/nao1215/markdown"
 	"gopkg.in/yaml.v3"
 )
+
+// redactedValue is the placeholder for sensitive fields in processor report output.
+const redactedValue = "[REDACTED]"
 
 // Report contains the results of processing a device configuration.
 // It includes the normalized configuration, analysis findings, and statistics.
@@ -280,10 +282,13 @@ func (r *Report) ToFormat(format OutputFormat) (string, error) {
 }
 
 // ToJSON returns the report as a JSON string.
+// NormalizedConfig is redacted before serialization to prevent leaking secrets.
 func (r *Report) ToJSON() (string, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	data, err := json.MarshalIndent(r, "", "  ") //nolint:musttag // Report has proper json tags
+
+	safe := r.redactedCopyUnsafe()
+	data, err := json.MarshalIndent(safe, "", "  ") //nolint:musttag // Report has proper json tags
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal report to JSON: %w", err)
 	}
@@ -292,15 +297,46 @@ func (r *Report) ToJSON() (string, error) {
 }
 
 // ToYAML returns the report as a YAML string.
+// NormalizedConfig is redacted before serialization to prevent leaking secrets.
 func (r *Report) ToYAML() (string, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	data, err := yaml.Marshal(r) //nolint:musttag // Report has proper yaml tags
+
+	safe := r.redactedCopyUnsafe()
+	data, err := yaml.Marshal(safe) //nolint:musttag // Report has proper yaml tags
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal report to YAML: %w", err)
 	}
 
 	return string(data), nil
+}
+
+// redactedCopyUnsafe returns a shallow copy of the Report with sensitive fields
+// in NormalizedConfig replaced by the redaction marker. The caller's original
+// CommonDevice is never mutated. The mu field is omitted (json:"-" / yaml:"-")
+// so the copy does not need a live mutex. Caller must hold mu.
+func (r *Report) redactedCopyUnsafe() *Report {
+	cp := &Report{
+		DeviceType:       r.DeviceType,
+		GeneratedAt:      r.GeneratedAt,
+		ConfigInfo:       r.ConfigInfo,
+		NormalizedConfig: r.NormalizedConfig,
+		Statistics:       r.Statistics,
+		Findings:         r.Findings,
+		ProcessorConfig:  r.ProcessorConfig,
+	}
+
+	if cp.NormalizedConfig != nil && cp.NormalizedConfig.SNMP.ROCommunity != "" {
+		deviceCopy := *cp.NormalizedConfig
+		deviceCopy.SNMP = common.SNMPConfig{
+			ROCommunity: redactedValue,
+			SysLocation: cp.NormalizedConfig.SNMP.SysLocation,
+			SysContact:  cp.NormalizedConfig.SNMP.SysContact,
+		}
+		cp.NormalizedConfig = &deviceCopy
+	}
+
+	return cp
 }
 
 // ToMarkdown returns the report formatted as Markdown using the markdown library.
@@ -655,204 +691,34 @@ func (r *Report) addFindingsSection(md *markdown.Markdown, title string, finding
 	}
 }
 
-// findInterface returns the interface with the given name, or nil if not found.
-func findInterface(interfaces []common.Interface, name string) *common.Interface {
-	for i := range interfaces {
-		if interfaces[i].Name == name {
-			return &interfaces[i]
+// redactServiceDetails replaces sensitive values in the processor's ServiceDetails
+// with the redaction marker. The shared analysis.ComputeStatistics intentionally
+// returns raw values so callers can decide on redaction policy; the processor
+// always redacts before rendering or serializing.
+func redactServiceDetails(stats *Statistics) {
+	if stats == nil {
+		return
+	}
+
+	for i := range stats.ServiceDetails {
+		if stats.ServiceDetails[i].Name == analysis.ServiceNameSNMP && stats.ServiceDetails[i].Details != nil {
+			if _, ok := stats.ServiceDetails[i].Details["community"]; ok {
+				// Deep-copy the map to avoid mutating shared state.
+				stats.ServiceDetails[i].Details = maps.Clone(stats.ServiceDetails[i].Details)
+				stats.ServiceDetails[i].Details["community"] = redactedValue
+			}
 		}
 	}
-	return nil
-}
-
-// findDHCPScope returns the DHCP scope for the given interface, or nil if not found.
-func findDHCPScope(scopes []common.DHCPScope, ifaceName string) *common.DHCPScope {
-	for i := range scopes {
-		if scopes[i].Interface == ifaceName {
-			return &scopes[i]
-		}
-	}
-	return nil
-}
-
-// calculateTotalConfigItems calculates the total number of configuration items
-// by summing all relevant components.
-func calculateTotalConfigItems(stats *Statistics) int {
-	return stats.TotalInterfaces + stats.TotalFirewallRules + stats.TotalUsers + stats.TotalGroups +
-		stats.TotalServices + stats.TotalGateways + stats.TotalGatewayGroups + stats.SysctlSettings +
-		stats.DHCPScopes + stats.LoadBalancerMonitors
 }
 
 // generateStatistics analyzes a device configuration and returns aggregated statistics.
+// It delegates to analysis.ComputeStatistics for shared logic, translates the result
+// into the processor's Statistics type, and adds IDS-specific fields.
 func generateStatistics(cfg *common.CommonDevice) *Statistics {
-	stats := &Statistics{
-		InterfacesByType: make(map[string]int),
-		InterfaceDetails: []InterfaceStatistics{},
-		RulesByInterface: make(map[string]int),
-		RulesByType:      make(map[string]int),
-		DHCPScopeDetails: []DHCPScopeStatistics{},
-		UsersByScope:     make(map[string]int),
-		GroupsByScope:    make(map[string]int),
-		EnabledServices:  []string{},
-		ServiceDetails:   []ServiceStatistics{},
-		SecurityFeatures: []string{},
-	}
+	commonStats := analysis.ComputeStatistics(cfg)
+	stats := translateCommonStats(commonStats)
 
-	// Interface statistics
-	stats.TotalInterfaces = len(cfg.Interfaces)
-	for _, iface := range cfg.Interfaces {
-		ifaceType := iface.Type
-		stats.InterfacesByType[ifaceType]++
-
-		dhcpScope := findDHCPScope(cfg.DHCP, iface.Name)
-		ifStats := InterfaceStatistics{
-			Name:        iface.Name,
-			Type:        iface.Type,
-			Enabled:     iface.Enabled,
-			HasIPv4:     iface.IPAddress != "",
-			HasIPv6:     iface.IPv6Address != "",
-			HasDHCP:     dhcpScope != nil && dhcpScope.Enabled,
-			BlockPriv:   iface.BlockPrivate,
-			BlockBogons: iface.BlockBogons,
-		}
-		stats.InterfaceDetails = append(stats.InterfaceDetails, ifStats)
-	}
-
-	// Firewall rule statistics
-	stats.TotalFirewallRules = len(cfg.FirewallRules)
-	for _, rule := range cfg.FirewallRules {
-		for _, iface := range rule.Interfaces {
-			stats.RulesByInterface[iface]++
-		}
-		stats.RulesByType[rule.Type]++
-	}
-
-	// NAT statistics
-	stats.NATMode = cfg.NAT.OutboundMode
-	stats.NATEntries = len(cfg.NAT.OutboundRules) + len(cfg.NAT.InboundRules)
-
-	// Gateway statistics
-	stats.TotalGateways = len(cfg.Routing.Gateways)
-	stats.TotalGatewayGroups = len(cfg.Routing.GatewayGroups)
-
-	// DHCP statistics
-	dhcpScopes := 0
-	for _, scope := range cfg.DHCP {
-		if scope.Enabled {
-			dhcpScopes++
-			stats.DHCPScopeDetails = append(stats.DHCPScopeDetails, DHCPScopeStatistics{
-				Interface: scope.Interface,
-				Enabled:   true,
-				From:      scope.Range.From,
-				To:        scope.Range.To,
-			})
-		}
-	}
-	stats.DHCPScopes = dhcpScopes
-
-	// User and group statistics
-	stats.TotalUsers = len(cfg.Users)
-	stats.TotalGroups = len(cfg.Groups)
-	for _, user := range cfg.Users {
-		stats.UsersByScope[user.Scope]++
-	}
-	for _, group := range cfg.Groups {
-		stats.GroupsByScope[group.Scope]++
-	}
-
-	// Service statistics
-	serviceCount := 0
-
-	for _, scope := range cfg.DHCP {
-		if scope.Enabled {
-			serviceName := fmt.Sprintf("DHCP Server (%s)", strings.ToUpper(scope.Interface))
-			stats.EnabledServices = append(stats.EnabledServices, serviceName)
-			stats.ServiceDetails = append(stats.ServiceDetails, ServiceStatistics{
-				Name:    serviceName,
-				Enabled: true,
-				Details: map[string]string{
-					"interface": scope.Interface,
-					"from":      scope.Range.From,
-					"to":        scope.Range.To,
-				},
-			})
-			serviceCount++
-		}
-	}
-
-	if cfg.DNS.Unbound.Enabled {
-		stats.EnabledServices = append(stats.EnabledServices, "Unbound DNS Resolver")
-		stats.ServiceDetails = append(stats.ServiceDetails, ServiceStatistics{
-			Name:    "Unbound DNS Resolver",
-			Enabled: true,
-		})
-		serviceCount++
-	}
-
-	if cfg.SNMP.ROCommunity != "" {
-		stats.EnabledServices = append(stats.EnabledServices, "SNMP Daemon")
-		stats.ServiceDetails = append(stats.ServiceDetails, ServiceStatistics{
-			Name:    "SNMP Daemon",
-			Enabled: true,
-			Details: map[string]string{
-				"location":  cfg.SNMP.SysLocation,
-				"contact":   cfg.SNMP.SysContact,
-				"community": "[REDACTED]",
-			},
-		})
-		serviceCount++
-	}
-
-	if cfg.System.SSH.Group != "" {
-		stats.EnabledServices = append(stats.EnabledServices, "SSH Daemon")
-		stats.ServiceDetails = append(stats.ServiceDetails, ServiceStatistics{
-			Name:    "SSH Daemon",
-			Enabled: true,
-			Details: map[string]string{
-				"group": cfg.System.SSH.Group,
-			},
-		})
-		serviceCount++
-	}
-
-	if cfg.NTP.PreferredServer != "" {
-		stats.EnabledServices = append(stats.EnabledServices, "NTP Daemon")
-		stats.ServiceDetails = append(stats.ServiceDetails, ServiceStatistics{
-			Name:    "NTP Daemon",
-			Enabled: true,
-			Details: map[string]string{
-				"prefer": cfg.NTP.PreferredServer,
-			},
-		})
-		serviceCount++
-	}
-
-	stats.TotalServices = serviceCount
-
-	// System configuration statistics
-	stats.SysctlSettings = len(cfg.Sysctl)
-	stats.LoadBalancerMonitors = len(cfg.LoadBalancer.MonitorTypes)
-
-	// Security features detection
-	wan := findInterface(cfg.Interfaces, "wan")
-	if wan != nil {
-		if wan.BlockPrivate {
-			stats.SecurityFeatures = append(stats.SecurityFeatures, "Block Private Networks")
-		}
-		if wan.BlockBogons {
-			stats.SecurityFeatures = append(stats.SecurityFeatures, "Block Bogon Networks")
-		}
-	}
-
-	if cfg.System.WebGUI.Protocol == constants.ProtocolHTTPS {
-		stats.SecurityFeatures = append(stats.SecurityFeatures, "HTTPS Web GUI")
-	}
-
-	if cfg.System.DisableNATReflection {
-		stats.SecurityFeatures = append(stats.SecurityFeatures, "NAT Reflection Disabled")
-	}
-
-	// IDS/IPS statistics
+	// IDS/IPS statistics — processor-specific fields not in common.Statistics
 	ids := cfg.IDS
 	if ids != nil && ids.Enabled {
 		stats.IDSEnabled = true
@@ -867,79 +733,86 @@ func generateStatistics(cfg *common.CommonDevice) *Statistics {
 		}
 	}
 
-	// Calculate summary statistics
-	securityScore := calculateSecurityScore(cfg, stats)
-	configComplexity := calculateConfigComplexity(stats)
-
-	stats.Summary = StatisticsSummary{
-		TotalConfigItems:    calculateTotalConfigItems(stats),
-		SecurityScore:       securityScore,
-		ConfigComplexity:    configComplexity,
-		HasSecurityFeatures: len(stats.SecurityFeatures) > 0,
-	}
+	// Redact sensitive service details before the report can be rendered or serialized.
+	redactServiceDetails(stats)
 
 	return stats
 }
 
-// calculateSecurityScore returns a security score for the given configuration based on detected security features, firewall rules, HTTPS Web GUI usage, and SSH group configuration. The score is capped at a defined maximum.
-func calculateSecurityScore(cfg *common.CommonDevice, stats *Statistics) int {
-	score := 0
+// translateCommonStats converts a common.Statistics into a processor.Statistics
+// by copying all matching fields. The processor's Statistics type mirrors the
+// common type but adds IDS-specific fields.
+func translateCommonStats(cs *common.Statistics) *Statistics {
+	stats := &Statistics{
+		TotalInterfaces:  cs.TotalInterfaces,
+		InterfacesByType: cs.InterfacesByType,
+		RulesByInterface: cs.RulesByInterface,
+		RulesByType:      cs.RulesByType,
 
-	// Security features contribute to score
-	score += len(stats.SecurityFeatures) * constants.SecurityFeatureMultiplier
+		TotalFirewallRules: cs.TotalFirewallRules,
+		NATEntries:         cs.NATEntries,
+		NATMode:            cs.NATMode,
 
-	// Firewall rules indicate active security configuration
-	if stats.TotalFirewallRules > 0 {
-		score += 20
+		TotalGateways:      cs.TotalGateways,
+		TotalGatewayGroups: cs.TotalGatewayGroups,
+
+		DHCPScopes: cs.DHCPScopes,
+
+		TotalUsers:    cs.TotalUsers,
+		UsersByScope:  cs.UsersByScope,
+		TotalGroups:   cs.TotalGroups,
+		GroupsByScope: cs.GroupsByScope,
+
+		EnabledServices: cs.EnabledServices,
+		TotalServices:   cs.TotalServices,
+
+		SysctlSettings:       cs.SysctlSettings,
+		LoadBalancerMonitors: cs.LoadBalancerMonitors,
+		SecurityFeatures:     cs.SecurityFeatures,
+
+		Summary: StatisticsSummary{
+			TotalConfigItems:    cs.Summary.TotalConfigItems,
+			SecurityScore:       cs.Summary.SecurityScore,
+			ConfigComplexity:    cs.Summary.ConfigComplexity,
+			HasSecurityFeatures: cs.Summary.HasSecurityFeatures,
+		},
 	}
 
-	// HTTPS web interface
-	if cfg.System.WebGUI.Protocol == constants.ProtocolHTTPS {
-		score += 15
-	}
-
-	// SSH configuration
-	if cfg.System.SSH.Group != "" {
-		score += 10
-	}
-
-	// IDS/IPS configuration
-	if cfg.IDS != nil && cfg.IDS.Enabled {
-		score += 15
-		if cfg.IDS.IPSMode {
-			score += 10
+	// Translate InterfaceDetails
+	stats.InterfaceDetails = make([]InterfaceStatistics, len(cs.InterfaceDetails))
+	for i, d := range cs.InterfaceDetails {
+		stats.InterfaceDetails[i] = InterfaceStatistics{
+			Name:        d.Name,
+			Type:        d.Type,
+			Enabled:     d.Enabled,
+			HasIPv4:     d.HasIPv4,
+			HasIPv6:     d.HasIPv6,
+			HasDHCP:     d.HasDHCP,
+			BlockPriv:   d.BlockPriv,
+			BlockBogons: d.BlockBogons,
 		}
 	}
 
-	// Cap at MaxSecurityScore
-	if score > constants.MaxSecurityScore {
-		score = constants.MaxSecurityScore
+	// Translate DHCPScopeDetails
+	stats.DHCPScopeDetails = make([]DHCPScopeStatistics, len(cs.DHCPScopeDetails))
+	for i, d := range cs.DHCPScopeDetails {
+		stats.DHCPScopeDetails[i] = DHCPScopeStatistics{
+			Interface: d.Interface,
+			Enabled:   d.Enabled,
+			From:      d.From,
+			To:        d.To,
+		}
 	}
 
-	return score
-}
+	// Translate ServiceDetails
+	stats.ServiceDetails = make([]ServiceStatistics, len(cs.ServiceDetails))
+	for i, d := range cs.ServiceDetails {
+		stats.ServiceDetails[i] = ServiceStatistics{
+			Name:    d.Name,
+			Enabled: d.Enabled,
+			Details: d.Details,
+		}
+	}
 
-// calculateConfigComplexity returns a normalized complexity score for the configuration based on weighted counts of interfaces, firewall rules, users, groups, sysctl settings, services, DHCP scopes, and load balancer monitors. The score is scaled to a maximum defined value.
-func calculateConfigComplexity(stats *Statistics) int {
-	complexity := 0
-
-	// Each configuration type adds to complexity
-	complexity += stats.TotalInterfaces * constants.InterfaceComplexityWeight
-	complexity += stats.TotalFirewallRules * constants.FirewallRuleComplexityWeight
-	complexity += stats.TotalUsers * constants.UserComplexityWeight
-	complexity += stats.TotalGroups * constants.GroupComplexityWeight
-	complexity += stats.SysctlSettings * constants.SysctlComplexityWeight
-	complexity += stats.TotalServices * constants.ServiceComplexityWeight
-	complexity += stats.DHCPScopes * constants.DHCPComplexityWeight
-	complexity += stats.LoadBalancerMonitors * constants.LoadBalancerComplexityWeight
-	complexity += stats.TotalGateways * constants.GatewayComplexityWeight
-	complexity += stats.TotalGatewayGroups * constants.GatewayGroupComplexityWeight
-
-	// Normalize to 0-100 scale (assuming max reasonable config)
-	normalizedComplexity := min(
-		(complexity*constants.MaxComplexityScore)/constants.MaxReasonableComplexity,
-		constants.MaxComplexityScore,
-	)
-
-	return normalizedComplexity
+	return stats
 }

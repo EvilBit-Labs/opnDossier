@@ -346,6 +346,151 @@ func makeIDs(enabled, ips bool, interfaces []string, profile string, syslog, sys
 	}
 }
 
+func TestGenerateStatistics_SNMPCommunityRedacted(t *testing.T) {
+	cfg := &common.CommonDevice{
+		System: common.System{
+			Hostname: "snmp-redact-test",
+			Domain:   "example.com",
+		},
+		SNMP: common.SNMPConfig{
+			ROCommunity: "super-secret-community",
+			SysLocation: "office",
+			SysContact:  "admin@example.com",
+		},
+	}
+
+	stats := generateStatistics(cfg)
+	require.NotNil(t, stats)
+
+	// Find the SNMP service in ServiceDetails
+	var snmpService *ServiceStatistics
+	for i := range stats.ServiceDetails {
+		if stats.ServiceDetails[i].Name == "SNMP Daemon" {
+			snmpService = &stats.ServiceDetails[i]
+			break
+		}
+	}
+	require.NotNil(t, snmpService, "SNMP Daemon should be in ServiceDetails")
+
+	// The community string must be redacted, not the raw value
+	assert.Equal(t, "[REDACTED]", snmpService.Details["community"],
+		"SNMP community string must be redacted in processor statistics")
+	assert.Equal(t, "office", snmpService.Details["location"],
+		"Non-sensitive SNMP details should be preserved")
+	assert.Equal(t, "admin@example.com", snmpService.Details["contact"],
+		"Non-sensitive SNMP details should be preserved")
+
+	// Verify redaction in JSON statistics output
+	report := NewReport(cfg, Config{EnableStats: true})
+	jsonStr, err := report.ToJSON()
+	require.NoError(t, err)
+
+	// The statistics serviceDetails must contain [REDACTED], not the raw community
+	assert.Contains(t, jsonStr, `"community": "[REDACTED]"`,
+		"JSON statistics should contain redacted marker for SNMP community")
+
+	// Verify redaction in Markdown output (only statistics section renders service details)
+	md := report.ToMarkdown()
+	assert.NotContains(t, md, "super-secret-community",
+		"Markdown output must not contain raw SNMP community string")
+	assert.Contains(t, md, "[REDACTED]",
+		"Markdown should show redacted SNMP community")
+}
+
+func TestReport_SNMPCommunityRedactedInNormalizedConfig(t *testing.T) {
+	const rawCommunity = "super-secret-community"
+
+	cfg := &common.CommonDevice{
+		System: common.System{
+			Hostname: "snmp-leak-test",
+			Domain:   "example.com",
+		},
+		SNMP: common.SNMPConfig{
+			ROCommunity: rawCommunity,
+			SysLocation: "rack-42",
+			SysContact:  "noc@example.com",
+		},
+	}
+
+	report := NewReport(cfg, Config{EnableStats: true})
+
+	t.Run("JSON does not contain raw community", func(t *testing.T) {
+		jsonStr, err := report.ToJSON()
+		require.NoError(t, err)
+
+		assert.NotContains(t, jsonStr, rawCommunity,
+			"JSON output must not contain raw SNMP community string anywhere")
+		assert.Contains(t, jsonStr, `"roCommunity": "[REDACTED]"`,
+			"JSON normalizedConfig.snmp.roCommunity must be redacted")
+		// Non-sensitive SNMP fields should still be present
+		assert.Contains(t, jsonStr, "rack-42",
+			"JSON should preserve non-sensitive SNMP sysLocation")
+		assert.Contains(t, jsonStr, "noc@example.com",
+			"JSON should preserve non-sensitive SNMP sysContact")
+	})
+
+	t.Run("YAML does not contain raw community", func(t *testing.T) {
+		yamlStr, err := report.ToYAML()
+		require.NoError(t, err)
+
+		assert.NotContains(t, yamlStr, rawCommunity,
+			"YAML output must not contain raw SNMP community string anywhere")
+		assert.Contains(t, yamlStr, "[REDACTED]",
+			"YAML normalizedConfig SNMP community must be redacted")
+		// Non-sensitive SNMP fields should still be present
+		assert.Contains(t, yamlStr, "rack-42",
+			"YAML should preserve non-sensitive SNMP sysLocation")
+		assert.Contains(t, yamlStr, "noc@example.com",
+			"YAML should preserve non-sensitive SNMP sysContact")
+	})
+
+	t.Run("Markdown does not contain raw community", func(t *testing.T) {
+		md := report.ToMarkdown()
+		assert.NotContains(t, md, rawCommunity,
+			"Markdown output must not contain raw SNMP community string")
+	})
+
+	t.Run("original device is not mutated", func(t *testing.T) {
+		// Serialization must not modify the caller's CommonDevice
+		assert.Equal(t, rawCommunity, cfg.SNMP.ROCommunity,
+			"original CommonDevice.SNMP.ROCommunity must remain unchanged after serialization")
+	})
+}
+
+func TestGenerateStatistics_TotalConfigItemsUsesSharedFormula(t *testing.T) {
+	cfg := &common.CommonDevice{
+		System: common.System{
+			Hostname: "total-items-test",
+			Domain:   "example.com",
+		},
+		Interfaces: []common.Interface{
+			{Name: "wan", Enabled: true},
+			{Name: "lan", Enabled: true},
+		},
+		FirewallRules: []common.FirewallRule{
+			{Type: "pass", Interfaces: []string{"lan"}},
+		},
+		Users:        []common.User{{Name: "admin", Scope: "system"}},
+		Groups:       []common.Group{{Name: "admins", Scope: "system"}},
+		VLANs:        []common.VLAN{{Tag: "100"}},
+		Bridges:      []common.Bridge{{Members: []string{"lan"}}},
+		Certificates: []common.Certificate{{Description: "test-cert"}},
+		CAs:          []common.CertificateAuthority{{Description: "test-ca"}},
+	}
+
+	stats := generateStatistics(cfg)
+	require.NotNil(t, stats)
+
+	// The processor should now use the shared analysis formula which includes
+	// VLANs, Bridges, Certificates, and CAs in the total.
+	// 2 interfaces + 1 rule + 1 user + 1 group + 0 services + 0 gateways +
+	// 0 gateway groups + 0 sysctl + 0 dhcp + 0 lb monitors +
+	// 1 VLAN + 1 bridge + 1 cert + 1 CA = 9
+	expectedTotal := 2 + 1 + 1 + 1 + 0 + 0 + 0 + 0 + 0 + 0 + 1 + 1 + 1 + 1
+	assert.Equal(t, expectedTotal, stats.Summary.TotalConfigItems,
+		"TotalConfigItems should use the shared analysis formula including VLANs/Bridges/Certs/CAs")
+}
+
 func TestGenerateStatistics_IDSMarkdownRendering(t *testing.T) {
 	// Verify the markdown output contains proper formatting for the IDS section
 	ids := makeIDs(true, false, []string{"wan", "lan", "opt1"}, "medium", true, true)
