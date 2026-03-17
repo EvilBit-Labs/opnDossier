@@ -35,26 +35,16 @@ When rules conflict, follow the higher precedence rule.
 
 ## 2. Core Philosophy
 
-| Principle            | Description                                                                         |
-| -------------------- | ----------------------------------------------------------------------------------- |
-| **Operator-Focused** | Build tools for operators, by operators. Intuitive and efficient workflows          |
-| **Offline-First**    | Operate in fully offline/airgapped environments. No external dependencies           |
-| **Structured Data**  | Data should be structured, versioned, and portable for auditable systems            |
-| **Framework-First**  | Leverage established frameworks. Avoid custom solutions when established ones exist |
+| Principle               | Description                                                                         |
+| ----------------------- | ----------------------------------------------------------------------------------- |
+| **Operator-Focused**    | Build tools for operators, by operators. Full control, no black boxes               |
+| **Offline-First**       | Operate in fully offline/airgapped environments. No external dependencies           |
+| **Structured Data**     | Data should be structured, versioned, and portable for auditable systems            |
+| **Framework-First**     | Leverage established frameworks. Avoid custom solutions when established ones exist |
+| **Polish Over Scale**   | Quality over feature-bloat. Sane defaults, CLI help that's actually helpful         |
+| **Ethical Constraints** | No dark patterns, spyware, telemetry, or emojis in code/output/docs                 |
 
-### EvilBit Labs Brand Principles
-
-- **Trust the Operator:** Full control, no black boxes
-- **Polish Over Scale:** Quality over feature-bloat
-- **Offline First:** Built for where the internet isn't
-- **Sane Defaults:** Clean outputs, CLI help that's actually helpful
-- **Ethical Constraints:** No dark patterns, spyware, or telemetry
-- **No Emojis:** Do not use emojis in code, CLI output, comments, or documentation unless the code specifically processes emoji data
-
-### Repository Roles
-
-- **Maintainer:** `unclesp1d3r` (sole maintainer — manually enqueues PRs via Mergify `/queue` command)
-- **Trusted bots:** `dependabot[bot]`, `dosubot[bot]` (auto-approved by Mergify)
+**Repository Roles:** Maintainer: `unclesp1d3r` (sole maintainer, enqueues PRs via Mergify `/queue`). Trusted bots: `dependabot[bot]`, `dosubot[bot]` (auto-approved by Mergify).
 
 ---
 
@@ -142,29 +132,9 @@ opndossier/
 
 ### 5.3 Logging
 
-Use `charmbracelet/log` for structured logging:
+Use `charmbracelet/log` with structured key-value pairs: `logger.Info("msg", "key", val)`. Log levels: `debug` (troubleshooting), `info` (operations), `warn` (issues), `error` (failures).
 
-```go
-logger := log.With("input_file", config.InputFile)
-logger.Info("starting processing")
-logger.Error("validation failed", "error", err)
-```
-
-Log levels: `debug` (troubleshooting), `info` (operations), `warn` (issues), `error` (failures)
-
-**Context-aware logging — use `WithContext()` pattern:**
-
-When a method receives `context.Context`, create a local context-scoped logger instead of dropping `ctx`:
-
-```go
-func (pm *PluginManager) DoWork(ctx context.Context) error {
-    logger := pm.logger.WithContext(ctx)
-    logger.Info("starting work")
-    // ...
-}
-```
-
-This replaces `slog.InfoContext(ctx, ...)` — never simply drop `ctx` from logging calls.
+**Context-aware logging:** When a method receives `context.Context`, use `pm.logger.WithContext(ctx)` to create a scoped logger — never drop `ctx` from logging calls.
 
 ### 5.4 Documentation
 
@@ -181,35 +151,16 @@ Group imports: standard library → third-party → internal, separated by blank
 When using `sync.RWMutex` to protect struct fields:
 
 - ALL read methods need `RLock()`, not just write methods
-- Go's `sync.RWMutex` is NOT reentrant - create internal `*Unsafe()` helpers
+- Go's `sync.RWMutex` is NOT reentrant — create internal `*Unsafe()` helpers for lock-free internal calls
 - Getter methods should return value copies, not pointers to internal state
-- Example pattern from `internal/processor/report.go`:
-
-```go
-func (r *Report) TotalFindings() int {
-    r.mu.RLock()
-    defer r.mu.RUnlock()
-    return r.totalFindingsUnsafe()  // Internal helper, no lock
-}
-```
+- See `internal/processor/report.go` for the canonical pattern
 
 ### 5.6a Struct Copy, Comparison, and Slice Patterns
 
-**Shallow copy with slices:** `normalized := *cfg` copies the struct but slices share backing arrays. Deep-copy any slice you intend to mutate:
-
-```go
-normalized := *cfg
-if cfg.Filter.Rule != nil {
-    normalized.Filter.Rule = make([]model.Rule, len(cfg.Filter.Rule))
-    copy(normalized.Filter.Rule, cfg.Filter.Rule)
-}
-```
-
-**Comparison functions:** Always handle nil inputs first (both-nil → nil, one-nil → added/removed). Use `slices.Equal()` for slice fields. For map-like types with `Get()` methods, check return signature: many return `(value, bool)` not `(value, error)`.
-
-**Slice pre-allocation:** Use `make([]T, 0)` without capacity hints for small, variable-length slices. Only add capacity hints when the value is reused elsewhere or performance-critical. Avoid creating constants solely for capacity hints.
-
-**String comparisons:** Use `strings.EqualFold(a, b)` for case-insensitive comparison (no need for `strings.ToLower()` first). For case-insensitive enum validation, iterate with `EqualFold` directly on original value.
+- **Shallow copy with slices:** `normalized := *cfg` copies the struct but slices share backing arrays — deep-copy any slice you intend to mutate with `make` + `copy`
+- **Comparison functions:** Handle nil inputs first (both-nil → nil, one-nil → added/removed). Use `slices.Equal()` for slice fields. Map-like `Get()` methods often return `(value, bool)` not `(value, error)`
+- **Slice pre-allocation:** Use `make([]T, 0)` without capacity hints for small, variable-length slices. Only add capacity hints when performance-critical
+- **String comparisons:** Use `strings.EqualFold(a, b)` for case-insensitive comparison (no `strings.ToLower()` needed). For enum validation, iterate with `EqualFold` directly
 
 ### 5.6b Value-Type Presence Detection
 
@@ -292,77 +243,26 @@ Use `nao1215/markdown` for programmatic markdown generation in `internal/convert
 
 ### 5.14 Unused Code Guidance
 
-When code becomes unused during refactoring:
-
-- **Remove it** rather than suppressing linter warnings with `//nolint:unused`
-- Unused code adds maintenance burden and confuses future readers
-- If the code might be needed later, rely on version control history
-- This includes helper functions, test utilities, and constants
-- **Type aliases and re-exported constants**: Before removing, grep the entire codebase for external references (e.g., `grep -r 'pkg.AliasName'`). The `cmd/` package frequently references aliases from internal packages.
+- **Remove unused code** rather than suppressing with `//nolint:unused` — rely on version control history if needed later
+- **Type aliases and re-exported constants**: Before removing, grep the entire codebase for external references (e.g., `grep -r 'pkg.AliasName'`) — `cmd/` frequently references aliases from internal packages
 
 ### 5.15 File Write Safety
 
-Call `file.Sync()` before `Close()` to ensure data is flushed to disk. Handle close errors for write operations:
-
-```go
-defer func() {
-    if cerr := outputFile.Close(); cerr != nil {
-        logger.Warn("failed to close output file", "error", cerr)
-    }
-}()
-// ... write operations ...
-if err := outputFile.Sync(); err != nil {
-    return fmt.Errorf("failed to sync output file: %w", err)
-}
-```
+Call `file.Sync()` before `Close()` to ensure data is flushed to disk. Handle close errors in a deferred func with `logger.Warn`, not silent discard.
 
 ### 5.16 XML Escaping
 
-Use `xml.EscapeText` from stdlib instead of hand-rolled escaping:
-
-```go
-func escapeXMLText(s string) string {
-    var buf bytes.Buffer
-    if err := xml.EscapeText(&buf, []byte(s)); err != nil {
-        return s
-    }
-    return buf.String()
-}
-```
-
-Note: stdlib uses numeric refs (`&#34;`) not named entities (`&quot;`) - both are valid XML.
+Use `xml.EscapeText` from stdlib instead of hand-rolled escaping. Note: stdlib uses numeric refs (`&#34;`) not named entities (`&quot;`) — both are valid XML.
 
 ### 5.17 XML Element Presence Detection
 
-Go's `encoding/xml` produces `""` for both self-closing tags (`<any/>`) and absent elements when using `string` fields. Use `*string` to distinguish presence from absence:
+Go's `encoding/xml` produces `""` for both self-closing tags (`<any/>`) and absent elements when using `string` fields. Use `*string` to distinguish presence from absence: self-closing → `*string` pointing to `""` (non-nil); absent → `nil`.
 
-- `<any/>` (self-closing) → `*string` pointing to `""` (non-nil)
-- `<any>1</any>` → `*string` pointing to `"1"` (non-nil)
-- absent element → `nil`
-
-**Creating `*string` values — use `new(expr)` (Go 1.26+):**
-
-```go
-// Good — Go 1.26+ new(expr) syntax
-src := Source{Any: new(""), Network: new("lan")}
-
-// Legacy — StringPtr helper (still available in model package)
-src := Source{Any: model.StringPtr(""), Network: model.StringPtr("lan")}
-```
+**Creating `*string` values:** Use `new(expr)` (Go 1.26+), e.g., `Source{Any: new(""), Network: new("lan")}`. Legacy `StringPtr` helper still available in model package.
 
 Add `IsAny()` / `Equal()` methods rather than comparing `*string` fields directly. See `pkg/schema/opnsense/security.go` for the canonical pattern.
 
-**Address resolution — use `EffectiveAddress()`:**
-
-`Source.EffectiveAddress()` / `Destination.EffectiveAddress()` resolves the effective address with priority: `Network` > `Address` > `Any` > `""`. Use this instead of manual `IsAny() || Network == NetworkAny` checks:
-
-```go
-// Good — single canonical method
-srcAny := rule.Source.EffectiveAddress() == NetworkAny
-
-// Bad — manual multi-field check (replaced in PR #258)
-srcAny := rule.Source.Network == NetworkAny || rule.Source.IsAny()
-```
+**Address resolution:** `Source.EffectiveAddress()` / `Destination.EffectiveAddress()` resolves with priority: `Network` > `Address` > `Any` > `""`. Use this instead of manual `IsAny() || Network == NetworkAny` checks.
 
 **Type selection for boolean-like XML elements:**
 
@@ -372,38 +272,15 @@ srcAny := rule.Source.Network == NetworkAny || rule.Source.IsAny()
 
 See `docs/development/xml-structure-research.md` for the complete field inventory with upstream source citations.
 
-**`DeviceType` serialization:**
-
-`CommonDevice.DeviceType` uses `json:"device_type"` (no `omitempty`) — it always serializes, even when empty, to ensure JSON/YAML consumers can detect the field. The `prepareForExport` pipeline defaults it to `DeviceTypeOPNsense`.
+**`DeviceType` serialization:** `CommonDevice.DeviceType` uses `json:"device_type"` (no `omitempty`) — always serializes, even when empty. The `prepareForExport` pipeline defaults it to `DeviceTypeOPNsense`.
 
 ### 5.18 Context-Aware Semaphore
 
-When acquiring semaphores in goroutines, use select with context to respect cancellation:
-
-```go
-select {
-case sem <- struct{}{}:
-    defer func() { <-sem }()
-case <-ctx.Done():
-    return ctx.Err()
-}
-```
+When acquiring semaphores in goroutines, use `select` with `ctx.Done()` to respect cancellation (don't block unconditionally on `sem <- struct{}{}`).
 
 ### 5.19 Goroutine Stop/Write Safety
 
-When a goroutine writes to an `io.Writer` and a stop method also writes after signaling shutdown, the goroutine must fully exit before the caller writes. Use a `stopped` channel:
-
-```go
-func (s *Spinner) spin() {
-    defer close(s.stopped)  // signal goroutine exit
-    // ... write loop ...
-}
-
-func (s *Spinner) stop() {
-    close(s.done)       // signal shutdown
-    <-s.stopped         // wait for goroutine to finish writing
-}
-```
+When a goroutine writes to an `io.Writer` and a stop method also writes after signaling shutdown, the goroutine must fully exit before the caller writes. Use a `stopped` channel: goroutine defers `close(stopped)`, stop method does `close(done)` then `<-stopped`.
 
 ### 5.20 Dual Validator Synchronization
 
@@ -451,16 +328,14 @@ Files in `pkg/parser/opnsense/` (package `opnsense`) **must** alias the schema i
 
 **Architecture notes:**
 
-- `pkg/schema/opnsense/` is the canonical OPNsense XML data model
-- OPNsense XML uses two boolean patterns: **presence-based** (`<disabled/>` → `BoolFlag`) and **value-based** (`<enable>1</enable>` → `string`). See §5.17 and `docs/development/xml-structure-research.md`
+- `pkg/schema/opnsense/` is the canonical OPNsense XML data model. Boolean patterns: see §5.17
 - `RuleLocation` in `common.go` has complete source/destination fields but is NOT used by `Source`/`Destination` in `security.go` — tracked in issue #255
 - Known schema gaps: ~40+ type mismatches and missing fields — see `docs/development/xml-structure-research.md` §4-5
 
 **Platform-agnostic model layer:**
 
-- `pkg/model/` contains device-agnostic types (firewall rules, VPN, system, network, etc.)
-- `docs/data-model/` documents the **CommonDevice** export model (`pkg/model/`), NOT the `OpnSenseDocument` XML schema -- field paths, types, and nesting differ significantly between the two (e.g., flat `[]Interface` array vs map-keyed, `bool` vs `BoolFlag`, top-level `users[]` vs nested `system.user[]`)
-- `revive` var-naming exclusion for this path is configured in `.golangci.yml`
+- `pkg/model/` contains device-agnostic types (firewall rules, VPN, system, network, etc.). `revive` var-naming exclusion configured in `.golangci.yml`
+- `docs/data-model/` documents the **CommonDevice** export model (`pkg/model/`), NOT the `OpnSenseDocument` XML schema -- paths, types, and nesting differ significantly (e.g., flat `[]Interface` vs map-keyed, `bool` vs `BoolFlag`, top-level `users[]` vs nested `system.user[]`)
 - JSON struct tags on nested struct fields must NOT use `omitempty` (Go 1.26+ modernize check)
 
 **Converter enrichment pipeline:**
@@ -473,26 +348,19 @@ Files in `pkg/parser/opnsense/` (package `opnsense`) **must** alias the schema i
 
 **Compliance results model:**
 
-- `CommonDevice.ComplianceChecks` uses `*ComplianceResults` (not the old stub `ComplianceChecks` struct)
-- `common.ComplianceResults` / `ComplianceFinding` / `PluginComplianceResult` / `ComplianceControl` / `ComplianceResultSummary` mirror `audit.Report` / `analysis.Finding` / `audit.ComplianceResult` / `compliance.Control` / `audit.ComplianceSummary` shapes but live in `common` (no `audit` import — avoids circular deps). `ComplianceFinding` includes `AttackSurface`, `ExploitNotes`, and `Control` from `audit.Finding` in addition to all `analysis.Finding` fields
-- `ComplianceChecks` is populated by `mapAuditReportToComplianceResults()` in `cmd/audit_handler.go`, not by `prepareForExport()` — pass-through only
-- `ComplianceControl` includes `References`, `Tags`, `Metadata` fields matching `compliance.Control`
-- `compliance.Finding` is a type alias for `analysis.Finding` — they are the same struct
+- `CommonDevice.ComplianceChecks` uses `*ComplianceResults`. Types (`ComplianceResults`, `ComplianceFinding`, `PluginComplianceResult`, `ComplianceControl`, `ComplianceResultSummary`) mirror `audit`/`analysis`/`compliance` shapes but live in `common` to avoid circular deps. `compliance.Finding` is a type alias for `analysis.Finding`
+- `ComplianceFinding` includes `AttackSurface`, `ExploitNotes`, `Control` (from `audit.Finding`) plus all `analysis.Finding` fields. `ComplianceControl` includes `References`, `Tags`, `Metadata` matching `compliance.Control`
+- Populated by `mapAuditReportToComplianceResults()` in `cmd/audit_handler.go`, not by `prepareForExport()` (pass-through only)
 
 **Audit report rendering:**
 
-- `handleAuditMode()` in `cmd/audit_handler.go` maps `audit.Report` → `device.ComplianceChecks` via `mapAuditReportToComplianceResults()`, then delegates to `generateWithProgrammaticGenerator()` — no format-specific code in the handler
-- `handleAuditMode()` creates a shallow copy of `*CommonDevice` before setting `ComplianceChecks` — does NOT mutate the input (immutability rule)
-- `ComplianceFinding` includes `AttackSurface *ComplianceAttackSurface`, `ExploitNotes`, `Control` from `audit.Finding`, plus `Reference`, `Tags`, `Metadata` from `analysis.Finding` — no silent field drops during mapping
+- `handleAuditMode()` in `cmd/audit_handler.go`: maps `audit.Report` → `device.ComplianceChecks` via `mapAuditReportToComplianceResults()`, creates a shallow copy (immutability), then delegates to `generateWithProgrammaticGenerator()` — no format-specific code in handler
 - `ComplianceResultSummary` int fields use `json:"field"` (no `omitempty`) — zero values must serialize to distinguish "zero findings" from "not computed"; YAML `omitempty` is fine
-- `HybridGenerator.generateMarkdown()` / `generateMarkdownToWriter()` appends `BuildAuditSection()` / `WriteAuditSection()` when `ComplianceChecks` is present
-- JSON/YAML formats serialize `ComplianceChecks` automatically via struct tags — no special handling needed
-- `BuildAuditSection(data)` / `WriteAuditSection(w, data)` in `internal/converter/builder/` renders compliance audit results from `CommonDevice.ComplianceChecks`
-- `BuildAuditSection` returns empty string when `data` is nil or `ComplianceChecks` is nil; `WriteAuditSection` writes nothing and returns nil — both safe to call unconditionally
-- `audit.ComplianceResult` has nested maps: `PluginInfo` (a map from plugin name to `PluginInfo`) and `Compliance` (a map from plugin name to a map from control ID to bool) — require plugin-name keyed lookups during mapping
+- Markdown: `HybridGenerator` appends `BuildAuditSection()` / `WriteAuditSection()` when `ComplianceChecks` is present. Both are safe to call unconditionally (nil → empty string / nil return). JSON/YAML serialize `ComplianceChecks` automatically via struct tags
+- `audit.ComplianceResult` has nested maps (`PluginInfo map[string]PluginInfo`, `Compliance map[string]map[string]bool`) — require plugin-name keyed lookups during mapping
 - `converter.Format` is the type name for output format (not `OutputFormat`)
-- Uses `EscapePipeForMarkdown()` (pipe-only escaping) and `TruncateString()` (rune-aware, exact position) — distinct from `formatters.EscapeTableContent()` (all special chars) and `formatters.TruncateDescription()` (word boundary)
-- Plugin names and metadata keys are iterated in sorted order (`slices.Sorted(maps.Keys(...))`)
+- `EscapePipeForMarkdown()` (pipe-only) and `TruncateString()` (rune-aware, exact position) are distinct from `formatters.EscapeTableContent()` (all special chars) and `formatters.TruncateDescription()` (word boundary)
+- Plugin names and metadata keys iterated in sorted order (`slices.Sorted(maps.Keys(...))`)
 
 **Port field disambiguation:**
 
@@ -502,14 +370,11 @@ Files in `pkg/parser/opnsense/` (package `opnsense`) **must** alias the schema i
 
 **Conversion warnings:**
 
-- `common.ConversionWarning` lives in `pkg/model/warning.go` — platform-agnostic, not in `opnsense` package
-- `Converter.addWarning(field, value, message, severity)` accumulates warnings during conversion
-- `ToCommonDevice` returns `(*CommonDevice, []ConversionWarning, error)` — warnings are non-fatal
-- `DeviceParser` interface, `Factory.CreateDevice`, and all CLI commands propagate the 3-value return
-- CLI commands log warnings via `ctxLogger.Warn("conversion warning", "field", w.Field, ...)`
+- `common.ConversionWarning` in `pkg/model/warning.go` — platform-agnostic. `Converter.addWarning(field, value, message, severity)` accumulates non-fatal warnings
+- `ToCommonDevice` returns `(*CommonDevice, []ConversionWarning, error)` — propagated through `DeviceParser`, `Factory.CreateDevice`, and all CLI commands (logged via `ctxLogger.Warn`)
 - `diff.go`'s `parseConfigFile` accepts a `*logging.Logger` parameter for warning logging
-- Warning `Field` uses dot-path notation with array indices: `"FirewallRules[0].Type"`, `"NAT.InboundRules[0].Interface"`
-- Warning `Severity` uses `pkg/model.Severity` (not `internal/analysis.Severity`) — public API boundary; converter files use `common.SeverityHigh` etc.
+- Warning `Field` uses dot-path with array indices: `"FirewallRules[0].Type"`, `"NAT.InboundRules[0].Interface"`
+- Warning `Severity` uses `pkg/model.Severity` (not `internal/analysis.Severity`) — public API boundary
 
 ### 6.2 Multi-Format Export
 
@@ -538,17 +403,7 @@ Each report generator is a **self-contained module** with all generation, calcul
 
 ### 6.5 cfgparser/Schema Synchronization
 
-`internal/cfgparser/xml.go` switch cases reference `OpnSenseDocument` fields by name. When renaming fields or changing types (e.g., singular → slice), update the cfgparser cases too. For slice fields, `decodeSection` can't decode a single XML element into a slice — use the temp-variable-and-append pattern:
-
-```go
-case "ca":
-    var ca schema.CertificateAuthority
-    if err := decodeSection(dec, &ca, se); err != nil {
-        return err
-    }
-    doc.CAs = append(doc.CAs, ca)
-    return nil
-```
+`internal/cfgparser/xml.go` switch cases reference `OpnSenseDocument` fields by name. When renaming fields or changing types (e.g., singular → slice), update the cfgparser cases too. For slice fields, `decodeSection` can't decode a single XML element into a slice — decode into a temp variable and `append` to the slice field.
 
 ---
 
@@ -573,11 +428,7 @@ Use `t.Helper()` in all test helpers and `t.Cleanup()` for teardown. Place share
 
 ### 7.4 Map Iteration in Tests
 
-When testing output that involves map iteration:
-
-- **Don't** compare exact string equality (map iteration order is non-deterministic)
-- **Do** test for presence of expected content using `strings.Contains()`
-- **Do** use `slices.Sorted(maps.Keys())` in production code for deterministic output
+Map iteration is non-deterministic — test for presence (`strings.Contains()`) not exact equality. Production code must sort before rendering (see §5.11).
 
 ### 7.5 Test Assertion Specificity
 
@@ -607,28 +458,7 @@ Use `sebdah/goldie/v2` for snapshot testing. Key patterns:
 
 ### 7.7 Testing Global Flag Variables
 
-When testing CLI commands with package-level flag variables (required by Cobra), use `t.Cleanup()` to restore original values:
-
-```go
-func TestValidateFlags(t *testing.T) {
-    // Save original values
-    origMode := sharedAuditMode
-    origPlugins := sharedSelectedPlugins
-
-    // Restore after test
-    t.Cleanup(func() {
-        sharedAuditMode = origMode
-        sharedSelectedPlugins = origPlugins
-    })
-
-    // Test with modified values
-    sharedAuditMode = "invalid"
-    err := validateConvertFlags()
-    require.Error(t, err)
-}
-```
-
-This pattern ensures test isolation when multiple tests modify the same global state.
+When testing CLI commands with package-level flag variables (required by Cobra), save originals and use `t.Cleanup()` to restore them. Do NOT use `t.Parallel()` — see GOTCHAS.md §1.1.
 
 ---
 
@@ -644,21 +474,17 @@ This pattern ensures test isolation when multiple tests modify the same global s
 | `internal/audit/plugin_manager.go`  | `PluginManager` for lifecycle operations                        |
 | `internal/plugins/`                 | Built-in plugin implementations                                 |
 
-**Important:** `PluginManager` allocates and populates its own `PluginRegistry` instance via `InitializePlugins()`. This is independent of the global singleton returned by `GetGlobalRegistry()`. Plugins registered through `PluginManager` are not automatically available in the global registry — callers needing the global registry must use `RegisterGlobalPlugin()` separately.
+**Important:** `PluginManager`'s registry is independent of the global singleton — see GOTCHAS.md §2.1 for details.
 
 ### 8.2 Plugin Development
 
-All plugins implement `compliance.Plugin` (see `internal/compliance/interfaces.go`).
+All plugins implement `compliance.Plugin` (see `internal/compliance/interfaces.go`). Import `common "github.com/EvilBit-Labs/opnDossier/pkg/model"` for CommonDevice types.
 
-- Import `common "github.com/EvilBit-Labs/opnDossier/pkg/model"` for CommonDevice types
-- Use consistent control naming: `PLUGIN-001`, `PLUGIN-002`
-- Severity levels: `critical`, `high`, `medium`, `low`
-- `Finding.Type` = category (e.g., `"compliance"`); `Finding.Severity` = severity level matching the control's severity
-- Derive `Finding.Severity` from the control definition via a `controlSeverity(id string) string` helper — never hard-code severity literals in `RunChecks()`
-- Dynamic plugins: export `var Plugin compliance.Plugin`
-- `RunComplianceChecks` normalizes findings: if `Finding.Severity` is empty, it derives severity from the referenced control via `GetControlByID()`; if no control matches, it returns an error — dynamic plugins must set `Severity` or provide resolvable `References`
-- `compliance.CloneControls()` deep-copies a `[]Control` slice including nested reference types (Tags, Metadata) — use in `GetControls()` implementations and when storing controls in result structs
-- Plugin name matching is case-insensitive — `deduplicatePluginNames` and `ValidateModeConfig` normalize to lowercase
+- Control naming: `PLUGIN-001`, `PLUGIN-002`. Severity levels: `critical`, `high`, `medium`, `low`
+- `Finding.Type` = category (e.g., `"compliance"`); `Finding.Severity` = severity level from the control definition via `controlSeverity(id)` helper — never hard-code severity literals in `RunChecks()`
+- Dynamic plugins: export `var Plugin compliance.Plugin`. Must set `Severity` or provide resolvable `References` — `RunComplianceChecks` normalizes empty severity via `GetControlByID()` or returns error
+- `compliance.CloneControls()` deep-copies `[]Control` including nested types (Tags, Metadata) — use in `GetControls()` and when storing controls in result structs
+- Plugin name matching is case-insensitive (`deduplicatePluginNames`, `ValidateModeConfig` normalize to lowercase)
 
 ### 8.3 Compliance Standards
 
@@ -704,7 +530,7 @@ just test             # Run all tests
 just check            # Run pre-commit checks on all files
 just ci-check         # Run full CI checks (pre-commit, format, lint, test)
 just ci-smoke         # Run smoke tests (fast, minimal validation)
-just modernize        # Apply Go modernization fixes
+just modernize        # Apply Go modernization fixes (remove //go:fix inline directives afterward)
 just modernize-check  # Check for modernization opportunities (dry-run)
 
 # Testing
@@ -724,9 +550,6 @@ just bench-save       # Save benchmark baseline for comparison
 just scan             # Run gosec security scanner
 just sbom             # Generate SBOM with cyclonedx-gomod
 just security-all     # Run all security checks (SBOM + scan)
-
-# Modernization (Go 1.26+)
-just modernize        # Applies modernize -fix; remove //go:fix inline directives afterward
 ```
 
 ### 10.2 Secure Build
@@ -735,9 +558,7 @@ just modernize        # Applies modernize -fix; remove //go:fix inline directive
 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o opnDossier ./main.go
 ```
 
-- `-trimpath`: Remove local paths from binaries
-- `-ldflags="-s -w"`: Strip debug info
-- `CGO_ENABLED=0`: Static, portable builds
+Static, portable builds: no CGO, stripped debug info, no local paths in binary.
 
 ### 10.3 CI Debugging Commands
 
@@ -790,7 +611,6 @@ All standards in §§5-11 apply. Additionally:
 4. Prefer structured config data + audit overlays over flat summary tables
 5. Validate markdown with `mdformat` and `markdownlint-cli2`
 6. Place `//nolint:` directives on SEPARATE LINE above call (inline gets stripped by gofumpt)
-7. **Fix pre-existing issues** encountered during work — do not dismiss as "not our problem"
 
 ### 12.2 Code Review Checklist
 
