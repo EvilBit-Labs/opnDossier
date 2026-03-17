@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -141,7 +142,7 @@ func TestComputeStatistics_MinimalDevice(t *testing.T) {
 
 	device := &common.CommonDevice{}
 
-	stats := computeStatistics(device)
+	stats := analysis.ComputeStatistics(device)
 
 	require.NotNil(t, stats)
 	assert.Zero(t, stats.TotalInterfaces)
@@ -172,7 +173,7 @@ func TestComputeStatistics_WithInterfaces(t *testing.T) {
 		},
 	}
 
-	stats := computeStatistics(device)
+	stats := analysis.ComputeStatistics(device)
 
 	assert.Equal(t, 3, stats.TotalInterfaces)
 	assert.Equal(t, 2, stats.InterfacesByType["physical"])
@@ -188,14 +189,14 @@ func TestComputeAnalysis_MinimalDevice(t *testing.T) {
 	t.Parallel()
 
 	device := &common.CommonDevice{}
-	analysis := computeAnalysis(device)
+	analysisResult := analysis.ComputeAnalysis(device)
 
-	require.NotNil(t, analysis)
-	assert.Empty(t, analysis.DeadRules)
-	assert.Empty(t, analysis.UnusedInterfaces)
-	assert.Empty(t, analysis.SecurityIssues)
-	assert.Empty(t, analysis.PerformanceIssues)
-	assert.Empty(t, analysis.ConsistencyIssues)
+	require.NotNil(t, analysisResult)
+	assert.Empty(t, analysisResult.DeadRules)
+	assert.Empty(t, analysisResult.UnusedInterfaces)
+	assert.Empty(t, analysisResult.SecurityIssues)
+	assert.Empty(t, analysisResult.PerformanceIssues)
+	assert.Empty(t, analysisResult.ConsistencyIssues)
 }
 
 func TestComputeAnalysis_DeadRules(t *testing.T) {
@@ -218,11 +219,11 @@ func TestComputeAnalysis_DeadRules(t *testing.T) {
 		},
 	}
 
-	analysis := computeAnalysis(device)
+	analysisResult := analysis.ComputeAnalysis(device)
 
-	require.NotEmpty(t, analysis.DeadRules)
-	assert.Equal(t, "wan", analysis.DeadRules[0].Interface)
-	assert.Contains(t, analysis.DeadRules[0].Description, "unreachable")
+	require.NotEmpty(t, analysisResult.DeadRules)
+	assert.Equal(t, "wan", analysisResult.DeadRules[0].Interface)
+	assert.Contains(t, analysisResult.DeadRules[0].Description, "unreachable")
 }
 
 func TestComputeAnalysis_DuplicateRules(t *testing.T) {
@@ -245,10 +246,10 @@ func TestComputeAnalysis_DuplicateRules(t *testing.T) {
 		},
 	}
 
-	analysis := computeAnalysis(device)
+	analysisResult := analysis.ComputeAnalysis(device)
 
-	require.NotEmpty(t, analysis.DeadRules)
-	assert.Contains(t, analysis.DeadRules[0].Description, "duplicate")
+	require.NotEmpty(t, analysisResult.DeadRules)
+	assert.Contains(t, analysisResult.DeadRules[0].Description, "duplicate")
 }
 
 func TestComputeAnalysis_UnusedInterfaces(t *testing.T) {
@@ -264,10 +265,10 @@ func TestComputeAnalysis_UnusedInterfaces(t *testing.T) {
 		},
 	}
 
-	analysis := computeAnalysis(device)
+	analysisResult := analysis.ComputeAnalysis(device)
 
-	require.Len(t, analysis.UnusedInterfaces, 1)
-	assert.Equal(t, "opt1", analysis.UnusedInterfaces[0].InterfaceName)
+	require.Len(t, analysisResult.UnusedInterfaces, 1)
+	assert.Equal(t, "opt1", analysisResult.UnusedInterfaces[0].InterfaceName)
 }
 
 func TestComputeAnalysis_SecurityIssues(t *testing.T) {
@@ -283,12 +284,12 @@ func TestComputeAnalysis_SecurityIssues(t *testing.T) {
 		},
 	}
 
-	analysis := computeAnalysis(device)
+	analysisResult := analysis.ComputeAnalysis(device)
 
-	require.Len(t, analysis.SecurityIssues, 3)
+	require.Len(t, analysisResult.SecurityIssues, 3)
 
 	issues := make(map[string]bool)
-	for _, si := range analysis.SecurityIssues {
+	for _, si := range analysisResult.SecurityIssues {
 		issues[si.Issue] = true
 	}
 	assert.True(t, issues["Insecure Web GUI Protocol"])
@@ -306,12 +307,12 @@ func TestComputeAnalysis_PerformanceIssues(t *testing.T) {
 		},
 	}
 
-	analysis := computeAnalysis(device)
+	analysisResult := analysis.ComputeAnalysis(device)
 
-	require.Len(t, analysis.PerformanceIssues, 2)
+	require.Len(t, analysisResult.PerformanceIssues, 2)
 
 	issues := make(map[string]bool)
-	for _, pi := range analysis.PerformanceIssues {
+	for _, pi := range analysisResult.PerformanceIssues {
 		issues[pi.Issue] = true
 	}
 	assert.True(t, issues["Checksum Offloading Disabled"])
@@ -333,12 +334,12 @@ func TestComputeAnalysis_ConsistencyIssues(t *testing.T) {
 		},
 	}
 
-	analysis := computeAnalysis(device)
+	analysisResult := analysis.ComputeAnalysis(device)
 
-	require.NotEmpty(t, analysis.ConsistencyIssues)
+	require.NotEmpty(t, analysisResult.ConsistencyIssues)
 
 	issues := make(map[string]bool)
-	for _, ci := range analysis.ConsistencyIssues {
+	for _, ci := range analysisResult.ConsistencyIssues {
 		issues[ci.Issue] = true
 	}
 	assert.True(t, issues["DHCP Enabled Without Interface IP"])
@@ -574,7 +575,7 @@ func TestComputeStatistics_IDSContributesToSecurityScore(t *testing.T) {
 	deviceIDSOnly := &common.CommonDevice{
 		IDS: &common.IDSConfig{Enabled: true},
 	}
-	statsIDSOnly := computeStatistics(deviceIDSOnly)
+	statsIDSOnly := analysis.ComputeStatistics(deviceIDSOnly)
 	assert.GreaterOrEqual(t, statsIDSOnly.Summary.SecurityScore, 15,
 		"IDS enabled should contribute at least 15 points")
 
@@ -582,7 +583,7 @@ func TestComputeStatistics_IDSContributesToSecurityScore(t *testing.T) {
 	deviceIDSIPS := &common.CommonDevice{
 		IDS: &common.IDSConfig{Enabled: true, IPSMode: true},
 	}
-	statsIDSIPS := computeStatistics(deviceIDSIPS)
+	statsIDSIPS := analysis.ComputeStatistics(deviceIDSIPS)
 	assert.GreaterOrEqual(t, statsIDSIPS.Summary.SecurityScore, 25,
 		"IDS enabled + IPS mode should contribute at least 25 points")
 
@@ -590,7 +591,7 @@ func TestComputeStatistics_IDSContributesToSecurityScore(t *testing.T) {
 	deviceIDSOff := &common.CommonDevice{
 		IDS: &common.IDSConfig{Enabled: false},
 	}
-	statsIDSOff := computeStatistics(deviceIDSOff)
+	statsIDSOff := analysis.ComputeStatistics(deviceIDSOff)
 	assert.Less(t, statsIDSOff.Summary.SecurityScore, statsIDSOnly.Summary.SecurityScore,
 		"IDS disabled should score lower than IDS enabled")
 }
@@ -605,7 +606,7 @@ func TestComputeStatistics_NATEntriesCountsBothDirections(t *testing.T) {
 		},
 	}
 
-	stats := computeStatistics(device)
+	stats := analysis.ComputeStatistics(device)
 	assert.Equal(t, 3, stats.NATEntries, "NATEntries should count both outbound and inbound rules")
 }
 
@@ -650,13 +651,13 @@ func TestComputeStatistics_SNMPCommunityInServiceDetails(t *testing.T) {
 		},
 	}
 
-	stats := computeStatistics(device)
+	stats := analysis.ComputeStatistics(device)
 
 	require.NotEmpty(t, stats.ServiceDetails, "ServiceDetails should contain SNMP entry")
 
 	var snmpService *common.ServiceStatistics
 	for i := range stats.ServiceDetails {
-		if stats.ServiceDetails[i].Name == serviceNameSNMP {
+		if stats.ServiceDetails[i].Name == analysis.ServiceNameSNMP {
 			snmpService = &stats.ServiceDetails[i]
 
 			break
@@ -691,7 +692,7 @@ func TestPrepareForExport_Redact_SNMPCommunityInServiceDetails(t *testing.T) {
 
 	var snmpService *common.ServiceStatistics
 	for i := range result.Statistics.ServiceDetails {
-		if result.Statistics.ServiceDetails[i].Name == serviceNameSNMP {
+		if result.Statistics.ServiceDetails[i].Name == analysis.ServiceNameSNMP {
 			snmpService = &result.Statistics.ServiceDetails[i]
 
 			break

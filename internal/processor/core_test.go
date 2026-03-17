@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -203,11 +204,11 @@ func TestCoreProcessor_Normalization(t *testing.T) {
 		normalized := processor.normalize(cfg)
 
 		// IP addresses should be in canonical form
-		wan := findInterface(normalized.Interfaces, "wan")
+		wan := analysis.FindInterface(normalized.Interfaces, "wan")
 		require.NotNil(t, wan, "wan interface should exist")
 		assert.Equal(t, "192.168.1.1", wan.IPAddress)
 
-		lan := findInterface(normalized.Interfaces, "lan")
+		lan := analysis.FindInterface(normalized.Interfaces, "lan")
 		require.NotNil(t, lan, "lan interface should exist")
 		assert.Equal(t, "10.0.0.1", lan.IPAddress)
 

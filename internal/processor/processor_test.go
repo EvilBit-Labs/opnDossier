@@ -1345,8 +1345,11 @@ func TestCoreProcessor_StatisticsAccuracy(t *testing.T) {
 					assert.Contains(t, stats.SecurityFeatures, feature, "Should detect %s security feature", feature)
 				}
 
-				// Summary metrics should be reasonable
-				assert.Greater(t, stats.Summary.TotalConfigItems, 10, "Should have reasonable number of config items")
+				// Summary uses the shared analysis formula:
+				// 2 interfaces + 3 rules + 3 users + 2 groups + 5 services +
+				// 0 gateways + 0 gateway groups + 2 sysctl + 1 DHCP + 0 LB +
+				// 0 VLANs + 0 bridges + 0 certs + 0 CAs = 18
+				assert.Equal(t, 18, stats.Summary.TotalConfigItems, "TotalConfigItems should match shared formula")
 				assert.GreaterOrEqual(t, stats.Summary.SecurityScore, 0, "Security score should be non-negative")
 				assert.LessOrEqual(t, stats.Summary.SecurityScore, 100, "Security score should not exceed 100")
 				assert.GreaterOrEqual(t, stats.Summary.ConfigComplexity, 0, "Complexity should be non-negative")
@@ -1770,8 +1773,8 @@ func TestStatistics_ZeroValues(t *testing.T) {
 	assert.Empty(t, stats.EnabledServices)
 	assert.Empty(t, stats.DHCPScopeDetails)
 
-	// Summary should handle zero values gracefully
-	assert.GreaterOrEqual(t, stats.Summary.TotalConfigItems, 0)
+	// Summary should handle zero values gracefully — all counts are 0
+	assert.Equal(t, 0, stats.Summary.TotalConfigItems, "Empty config should have zero total items")
 	assert.GreaterOrEqual(t, stats.Summary.SecurityScore, 0)
 	assert.GreaterOrEqual(t, stats.Summary.ConfigComplexity, 0)
 }

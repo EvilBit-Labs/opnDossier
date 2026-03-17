@@ -130,6 +130,7 @@ This allows external test packages to use the conversion functionality without a
 ### Related Documentation
 
 For detailed examples and the historical context of fixing `pkg/internal/` boundary violations, see:
+
 - **[docs/solutions/architecture-issues/pkg-internal-import-boundary.md](../solutions/architecture-issues/pkg-internal-import-boundary.md)**
 
 ## Services and Components
@@ -151,10 +152,17 @@ For detailed examples and the historical context of fixing `pkg/internal/` bound
 ### 3. Analysis Infrastructure
 
 - **Package**: `internal/analysis/`
-- **Responsibility**: Canonical finding and severity types shared across audit, compliance, and processor packages
+- **Responsibility**: Shared analysis logic and canonical finding types for converter, processor, audit, and compliance packages
 - **Key Types**: `Finding` struct, `Severity` type with validation helpers
+- **Shared Functions**:
+  - `ComputeStatistics()` - Statistics computation for configuration items, services, and security features
+  - `ComputeAnalysis()` - Detection logic for dead rules, unused interfaces, security, performance, and consistency issues
+  - `DetectDeadRules()` - Dead rule detection with structured `Kind` field (`"unreachable"` or `"duplicate"`)
+  - `DetectUnusedInterfaces()` - Unused interface detection across rules, DHCP, DNS, VPN, and load balancer
+  - `RulesEquivalent()` - Rule comparison including `Disabled` field and normalized interface order
+- **Defensive API**: All exported `Compute*` functions include nil guards for safe use with nil arguments
 - **Export Model**: `ComplianceResults`, `ComplianceFinding`, `PluginComplianceResult`, `ComplianceControl`, `ComplianceResultSummary`, `CompliancePluginInfo`, `ComplianceAttackSurface` in `pkg/model/enrichment.go`
-- **Purpose**: Eliminates type duplication, ensures consistency across all analysis-related packages
+- **Purpose**: Eliminates duplicated detection and statistics logic, ensures consistency across all analysis-related packages
 - **Usage**: Also used in `ConversionWarning` type for severity classification of non-fatal conversion issues
 
 ### 4. Data Processing Engine
@@ -172,6 +180,7 @@ For detailed examples and the historical context of fixing `pkg/internal/` bound
 - **Output**: Markdown content, conversion warnings
 - **Features**: Hierarchy preservation, metadata injection, non-fatal issue tracking
 - **Warning Generation**: Accumulates conversion warnings for incomplete or problematic configuration elements (empty firewall rule fields, missing NAT rule data, gateway issues, user/certificate problems, HA configuration warnings)
+- **Analysis Integration**: Delegates to `internal/analysis/` for `ComputeStatistics()` and `ComputeAnalysis()` (shared, not mirrored)
 - **Audit Report Rendering**: Delegates compliance audit report rendering to `internal/converter/builder/` via `BuildAuditSection()` and `WriteAuditSection()` methods
 - **Audit Mode Integration**: In audit mode, `cmd/audit_handler.go` maps `audit.Report` to `common.ComplianceResults` and populates the `ComplianceChecks` field on a shallow copy of `CommonDevice`, enabling multi-format output (markdown, JSON, YAML) through the standard generation pipeline
 
@@ -283,7 +292,7 @@ graph TD
 - **`pkg/schema/opnsense/`** — XML DTO layer. Carries `xml:""` tags and mirrors the OPNsense config.xml structure. This layer is untouched by downstream consumers.
 - **`pkg/parser/opnsense/`** — Contains `parser.go` and `converter.go`. Reads schema DTOs and emits `*common.CommonDevice` with conversion warnings. This is the only package that imports `pkg/schema/opnsense/`.
 - **`pkg/model/`** — Device-agnostic domain model. No XML tags. All consumer code (processor, converter, markdown, audit, diff, compliance plugins) operates on `CommonDevice`. Includes `ConversionWarning` type for non-fatal issues and `ComplianceResults` type (with nested `ComplianceFinding`, `PluginComplianceResult`, `ComplianceControl`, `ComplianceResultSummary`, `CompliancePluginInfo`, `ComplianceAttackSurface`) for compliance audit data representation.
-- **`internal/analysis/`** — Canonical finding and severity types. Provides the shared `Finding` struct and `Severity` type used across audit, compliance, and processor packages to ensure consistency.
+- **`internal/analysis/`** — Shared analysis logic and canonical finding types. Provides detection functions (`DetectDeadRules`, `DetectUnusedInterfaces`, `DetectSecurityIssues`, `DetectPerformanceIssues`, `DetectConsistency`), statistics computation (`ComputeStatistics`), analysis aggregation (`ComputeAnalysis`), and rule comparison (`RulesEquivalent`). Used by both `internal/converter` and `internal/processor` to eliminate duplicated logic.
 - **`pkg/parser/factory.go`** — `Factory` and `DeviceParser` interface. Auto-detects the device type from the XML root element. The `--device-type opnsense` flag bypasses auto-detection. Returns 3 values: device model, warnings slice, and error.
 
 ### Device Type Detection

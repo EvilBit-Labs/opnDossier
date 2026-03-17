@@ -134,8 +134,18 @@ type Analysis struct {
 	ConsistencyIssues []ConsistencyFinding `json:"consistencyIssues,omitempty" yaml:"consistencyIssues,omitempty"`
 }
 
+// Dead rule kind constants classify the reason a rule is considered dead.
+const (
+	// DeadRuleKindUnreachable indicates the rule is unreachable due to a preceding block-all.
+	DeadRuleKindUnreachable = "unreachable"
+	// DeadRuleKindDuplicate indicates the rule is a duplicate of another rule.
+	DeadRuleKindDuplicate = "duplicate"
+)
+
 // DeadRuleFinding represents a dead rule finding.
 type DeadRuleFinding struct {
+	// Kind classifies the dead rule reason (e.g., "unreachable", "duplicate").
+	Kind string `json:"kind,omitempty" yaml:"kind,omitempty"`
 	// RuleIndex is the position of the dead rule in the filter rule list.
 	RuleIndex int `json:"ruleIndex,omitempty" yaml:"ruleIndex,omitempty"`
 	// Interface is the interface the dead rule is bound to.

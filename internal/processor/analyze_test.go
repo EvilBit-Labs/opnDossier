@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
@@ -15,10 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
-	processor, err := NewCoreProcessor(nil)
-	require.NoError(t, err)
-
+func TestRulesEquivalent(t *testing.T) {
 	tests := []struct {
 		name     string
 		rule1    common.FirewallRule
@@ -59,7 +57,7 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 				Description: "Different description",
 				Source:      common.RuleEndpoint{Address: "any"},
 			},
-			expected: true, // Should be equivalent despite different descriptions
+			expected: true,
 		},
 		{
 			name: "same state type",
@@ -562,7 +560,7 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 				Source:      common.RuleEndpoint{Address: "any"},
 				Destination: common.RuleEndpoint{Address: "any", Port: "443"},
 			},
-			expected: false, // One has explicit network, one doesn't
+			expected: false,
 		},
 		{
 			name: "complex rules with all fields",
@@ -596,11 +594,9 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 					Port:    "443",
 				},
 			},
-			expected: true, // Should be equivalent despite different descriptions
+			expected: true,
 		},
 		{
-			// In the normalized common model, both presence-based IsAny (*string pointer)
-			// and Network="any" resolve to Address="any". They are therefore equivalent.
 			name: "source IsAny pointer vs network any are equivalent in normalized model",
 			rule1: common.FirewallRule{
 				Type:       "pass",
@@ -617,8 +613,6 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 			expected: true,
 		},
 		{
-			// Both presence-based Any values (new("") and new("1")) normalize
-			// to Address="any" in the common model, so they are equivalent.
 			name: "both sources use IsAny pointer",
 			rule1: common.FirewallRule{
 				Type:       "pass",
@@ -748,18 +742,15 @@ func TestCoreProcessor_RulesAreEquivalent(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := processor.rulesAreEquivalent(tt.rule1, tt.rule2)
+			result := analysis.RulesEquivalent(tt.rule1, tt.rule2)
 			assert.Equal(t, tt.expected, result,
-				"rulesAreEquivalent(%+v, %+v) = %v, want %v", tt.rule1, tt.rule2, result, tt.expected)
+				"RulesEquivalent(%+v, %+v) = %v, want %v", tt.rule1, tt.rule2, result, tt.expected)
 		})
 	}
 }
 
 // TestCoreProcessor_RealWorldConfigurations tests the implementation with actual OPNsense configuration files.
 func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
-	processor, err := NewCoreProcessor(nil)
-	require.NoError(t, err)
-
 	testFiles := []string{
 		"../../testdata/sample.config.1.xml",
 		"../../testdata/sample.config.2.xml",
@@ -804,7 +795,7 @@ func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
 			for i, rule1 := range rules {
 				for j := i + 1; j < len(rules); j++ {
 					rule2 := rules[j]
-					if processor.rulesAreEquivalent(rule1, rule2) {
+					if analysis.RulesEquivalent(rule1, rule2) {
 						duplicateCount++
 
 						t.Logf("Found duplicate rules: rule[%d] and rule[%d]", i, j)
@@ -868,7 +859,7 @@ func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
 					assert.NotEmpty(t, rule.Interfaces, "Rule %d should have an interface", i)
 
 					// Test that the rule can be compared with itself
-					assert.True(t, processor.rulesAreEquivalent(rule, rule),
+					assert.True(t, analysis.RulesEquivalent(rule, rule),
 						"Rule %d should be equivalent to itself", i)
 				})
 			}
@@ -879,796 +870,36 @@ func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
 // TestCoreProcessor_ModelLimitations documents the current limitations of the model.
 func TestCoreProcessor_ModelLimitations(t *testing.T) {
 	t.Run("missing_fields_documentation", func(t *testing.T) {
-		// This test documents the limitations of the current common.FirewallRule struct
-		// compared to actual OPNsense configurations.
-
-		// The common.FirewallRule (normalized model) supports:
-		// - type, ipProtocol, description, interfaces
-		// - stateType, direction, quick, protocol
-		// - source.address, source.port, source.negated
-		// - destination.address, destination.port, destination.negated
-		// - target, gateway, log, disabled
 		t.Log("Current common.FirewallRule supported comparisons:")
 		t.Log("  - stateType, direction, protocol, quick")
 		t.Log("  - source.address (normalized from any/network/address)")
 		t.Log("  - source.port, source.negated")
 		t.Log("  - destination.address, destination.port, destination.negated")
 		t.Log("  - Port semantics are compared as raw strings")
-
-		// This is expected behavior for the current implementation
-		// This test documents current model limitations and should always pass
 		t.Log("Model limitations documented successfully")
-	})
-}
-
-// TestMarkDHCPInterfaces tests the markDHCPInterfaces helper function.
-func TestMarkDHCPInterfaces(t *testing.T) {
-	t.Run("AllItems", func(t *testing.T) {
-		// Test that all enabled DHCP scopes are marked as used
-		cfg := &common.CommonDevice{
-			DHCP: []common.DHCPScope{
-				{Interface: "lan", Enabled: true},
-				{Interface: "wan", Enabled: true},
-				{Interface: "opt0", Enabled: true},
-				{Interface: "opt1", Enabled: true},
-			},
-		}
-
-		used := make(map[string]bool)
-		markDHCPInterfaces(cfg, used)
-
-		assert.True(t, used["lan"], "lan should be marked as used")
-		assert.True(t, used["wan"], "wan should be marked as used")
-		assert.True(t, used["opt0"], "opt0 should be marked as used")
-		assert.True(t, used["opt1"], "opt1 should be marked as used")
-		assert.Len(t, used, 4, "should have exactly 4 interfaces marked")
-	})
-
-	t.Run("EmptySlice", func(t *testing.T) {
-		// Test handling of nil DHCP slice
-		cfg := &common.CommonDevice{
-			DHCP: nil,
-		}
-
-		used := make(map[string]bool)
-		markDHCPInterfaces(cfg, used)
-
-		assert.Empty(t, used, "no interfaces should be marked when DHCP is nil")
-	})
-
-	t.Run("EmptyItemsSlice", func(t *testing.T) {
-		// Test handling of empty DHCP slice
-		cfg := &common.CommonDevice{
-			DHCP: []common.DHCPScope{},
-		}
-
-		used := make(map[string]bool)
-		markDHCPInterfaces(cfg, used)
-
-		assert.Empty(t, used, "no interfaces should be marked when DHCP slice is empty")
-	})
-
-	t.Run("DisabledInterface", func(t *testing.T) {
-		// Test that disabled DHCP scopes (Enabled: false) are not marked
-		cfg := &common.CommonDevice{
-			DHCP: []common.DHCPScope{
-				{Interface: "lan", Enabled: true},  // enabled
-				{Interface: "wan", Enabled: false}, // disabled
-				{Interface: "opt0", Enabled: true}, // enabled
-				{Interface: "opt1"},                // disabled (zero value)
-			},
-		}
-
-		used := make(map[string]bool)
-		markDHCPInterfaces(cfg, used)
-
-		assert.True(t, used["lan"], "lan should be marked as used (enabled)")
-		assert.False(t, used["wan"], "wan should NOT be marked (Enabled: false)")
-		assert.True(t, used["opt0"], "opt0 should be marked as used (enabled)")
-		assert.False(t, used["opt1"], "opt1 should NOT be marked (zero value, Enabled: false)")
-	})
-
-	t.Run("PreservesExistingEntries", func(t *testing.T) {
-		// Test that existing entries in the used map are preserved
-		cfg := &common.CommonDevice{
-			DHCP: []common.DHCPScope{
-				{Interface: "opt0", Enabled: true},
-			},
-		}
-
-		used := map[string]bool{
-			"lan": true,
-			"wan": true,
-		}
-		markDHCPInterfaces(cfg, used)
-
-		assert.True(t, used["lan"], "pre-existing lan entry should be preserved")
-		assert.True(t, used["wan"], "pre-existing wan entry should be preserved")
-		assert.True(t, used["opt0"], "opt0 should be marked as used")
-		assert.Len(t, used, 3, "should have 3 interfaces marked")
-	})
-}
-
-// TestMarkDNSInterfaces tests the markDNSInterfaces helper function.
-func TestMarkDNSInterfaces(t *testing.T) {
-	t.Run("UnboundEnabled", func(t *testing.T) {
-		// Test that when Unbound DNS is enabled, "lan" is marked as used
-		cfg := &common.CommonDevice{
-			DNS: common.DNSConfig{
-				Unbound: common.UnboundConfig{Enabled: true},
-			},
-		}
-
-		used := make(map[string]bool)
-		markDNSInterfaces(cfg, used)
-
-		assert.True(t, used["lan"], "lan should be marked as used when Unbound is enabled")
-	})
-
-	t.Run("DNSMasqEnabled", func(t *testing.T) {
-		// Test that when DNSMasq is enabled, "lan" is marked as used
-		cfg := &common.CommonDevice{
-			DNS: common.DNSConfig{
-				DNSMasq: common.DNSMasqConfig{Enabled: true},
-			},
-		}
-
-		used := make(map[string]bool)
-		markDNSInterfaces(cfg, used)
-
-		assert.True(t, used["lan"], "lan should be marked as used when DNSMasq is enabled")
-	})
-
-	t.Run("BothDisabled", func(t *testing.T) {
-		// Test that when both DNS services are disabled, no interfaces are marked
-		cfg := &common.CommonDevice{
-			DNS: common.DNSConfig{
-				Unbound: common.UnboundConfig{Enabled: false},
-				DNSMasq: common.DNSMasqConfig{Enabled: false},
-			},
-		}
-
-		used := make(map[string]bool)
-		markDNSInterfaces(cfg, used)
-
-		assert.Empty(t, used, "no interfaces should be marked when both DNS services are disabled")
-	})
-
-	t.Run("BothEnabled", func(t *testing.T) {
-		// Test that when both DNS services are enabled, "lan" is still only marked once
-		cfg := &common.CommonDevice{
-			DNS: common.DNSConfig{
-				Unbound: common.UnboundConfig{Enabled: true},
-				DNSMasq: common.DNSMasqConfig{Enabled: true},
-			},
-		}
-
-		used := make(map[string]bool)
-		markDNSInterfaces(cfg, used)
-
-		assert.True(t, used["lan"], "lan should be marked as used when both DNS services are enabled")
-		assert.Len(t, used, 1, "should only have one interface marked (lan)")
-	})
-
-	t.Run("PreservesExistingEntries", func(t *testing.T) {
-		// Test that existing entries in the used map are preserved
-		cfg := &common.CommonDevice{
-			DNS: common.DNSConfig{
-				Unbound: common.UnboundConfig{Enabled: true},
-			},
-		}
-
-		used := map[string]bool{
-			"wan":  true,
-			"opt0": true,
-		}
-		markDNSInterfaces(cfg, used)
-
-		assert.True(t, used["wan"], "pre-existing wan entry should be preserved")
-		assert.True(t, used["opt0"], "pre-existing opt0 entry should be preserved")
-		assert.True(t, used["lan"], "lan should be marked as used")
-		assert.Len(t, used, 3, "should have 3 interfaces marked")
-	})
-
-	t.Run("UnboundEnabledVariousValues", func(t *testing.T) {
-		// In the normalized model, Enabled is a bool. Test true and false cases.
-		testCases := []struct {
-			enabled    bool
-			shouldMark bool
-		}{
-			{true, true},
-			{false, false},
-		}
-
-		for _, tc := range testCases {
-			t.Run(fmt.Sprintf("Enabled=%v", tc.enabled), func(t *testing.T) {
-				cfg := &common.CommonDevice{
-					DNS: common.DNSConfig{
-						Unbound: common.UnboundConfig{Enabled: tc.enabled},
-					},
-				}
-
-				used := make(map[string]bool)
-				markDNSInterfaces(cfg, used)
-
-				if tc.shouldMark {
-					assert.True(t, used["lan"], "lan should be marked as used")
-				} else {
-					assert.False(t, used["lan"], "lan should NOT be marked as used")
-				}
-			})
-		}
-	})
-}
-
-// TestMarkVPNInterfaces_OpenVPNServers tests that OpenVPN server interfaces are marked as used.
-func TestMarkVPNInterfaces_OpenVPNServers(t *testing.T) {
-	t.Run("SingleServer", func(t *testing.T) {
-		cfg := &common.CommonDevice{
-			VPN: common.VPN{
-				OpenVPN: common.OpenVPNConfig{
-					Servers: []common.OpenVPNServer{
-						{Interface: "wan"},
-					},
-				},
-			},
-		}
-
-		used := make(map[string]bool)
-		markVPNInterfaces(cfg, used)
-
-		assert.True(t, used["wan"], "wan should be marked as used from OpenVPN server")
-		assert.Len(t, used, 1, "should have exactly 1 interface marked")
-	})
-
-	t.Run("MultipleServers", func(t *testing.T) {
-		cfg := &common.CommonDevice{
-			VPN: common.VPN{
-				OpenVPN: common.OpenVPNConfig{
-					Servers: []common.OpenVPNServer{
-						{Interface: "wan"},
-						{Interface: "opt1"},
-						{Interface: "lan"},
-					},
-				},
-			},
-		}
-
-		used := make(map[string]bool)
-		markVPNInterfaces(cfg, used)
-
-		assert.True(t, used["wan"], "wan should be marked as used")
-		assert.True(t, used["opt1"], "opt1 should be marked as used")
-		assert.True(t, used["lan"], "lan should be marked as used")
-		assert.Len(t, used, 3, "should have exactly 3 interfaces marked")
-	})
-
-	t.Run("EmptyInterface", func(t *testing.T) {
-		// Servers with empty interface field should not mark anything
-		cfg := &common.CommonDevice{
-			VPN: common.VPN{
-				OpenVPN: common.OpenVPNConfig{
-					Servers: []common.OpenVPNServer{
-						{Interface: ""},
-						{Interface: "wan"},
-					},
-				},
-			},
-		}
-
-		used := make(map[string]bool)
-		markVPNInterfaces(cfg, used)
-
-		assert.True(t, used["wan"], "wan should be marked as used")
-		assert.False(t, used[""], "empty interface should not be marked")
-		assert.Len(t, used, 1, "should have exactly 1 interface marked")
-	})
-
-	t.Run("NoServers", func(t *testing.T) {
-		cfg := &common.CommonDevice{
-			VPN: common.VPN{
-				OpenVPN: common.OpenVPNConfig{
-					Servers: []common.OpenVPNServer{},
-				},
-			},
-		}
-
-		used := make(map[string]bool)
-		markVPNInterfaces(cfg, used)
-
-		assert.Empty(t, used, "no interfaces should be marked when no servers exist")
-	})
-}
-
-// TestMarkVPNInterfaces_OpenVPNClients tests that OpenVPN client interfaces are marked as used.
-func TestMarkVPNInterfaces_OpenVPNClients(t *testing.T) {
-	t.Run("SingleClient", func(t *testing.T) {
-		cfg := &common.CommonDevice{
-			VPN: common.VPN{
-				OpenVPN: common.OpenVPNConfig{
-					Clients: []common.OpenVPNClient{
-						{Interface: "wan"},
-					},
-				},
-			},
-		}
-
-		used := make(map[string]bool)
-		markVPNInterfaces(cfg, used)
-
-		assert.True(t, used["wan"], "wan should be marked as used from OpenVPN client")
-		assert.Len(t, used, 1, "should have exactly 1 interface marked")
-	})
-
-	t.Run("MultipleClients", func(t *testing.T) {
-		cfg := &common.CommonDevice{
-			VPN: common.VPN{
-				OpenVPN: common.OpenVPNConfig{
-					Clients: []common.OpenVPNClient{
-						{Interface: "wan"},
-						{Interface: "opt2"},
-					},
-				},
-			},
-		}
-
-		used := make(map[string]bool)
-		markVPNInterfaces(cfg, used)
-
-		assert.True(t, used["wan"], "wan should be marked as used")
-		assert.True(t, used["opt2"], "opt2 should be marked as used")
-		assert.Len(t, used, 2, "should have exactly 2 interfaces marked")
-	})
-
-	t.Run("EmptyInterface", func(t *testing.T) {
-		cfg := &common.CommonDevice{
-			VPN: common.VPN{
-				OpenVPN: common.OpenVPNConfig{
-					Clients: []common.OpenVPNClient{
-						{Interface: ""},
-						{Interface: "lan"},
-					},
-				},
-			},
-		}
-
-		used := make(map[string]bool)
-		markVPNInterfaces(cfg, used)
-
-		assert.True(t, used["lan"], "lan should be marked as used")
-		assert.False(t, used[""], "empty interface should not be marked")
-		assert.Len(t, used, 1, "should have exactly 1 interface marked")
-	})
-
-	t.Run("MixedServersAndClients", func(t *testing.T) {
-		cfg := &common.CommonDevice{
-			VPN: common.VPN{
-				OpenVPN: common.OpenVPNConfig{
-					Servers: []common.OpenVPNServer{
-						{Interface: "wan"},
-					},
-					Clients: []common.OpenVPNClient{
-						{Interface: "opt1"},
-					},
-				},
-			},
-		}
-
-		used := make(map[string]bool)
-		markVPNInterfaces(cfg, used)
-
-		assert.True(t, used["wan"], "wan should be marked as used from server")
-		assert.True(t, used["opt1"], "opt1 should be marked as used from client")
-		assert.Len(t, used, 2, "should have exactly 2 interfaces marked")
-	})
-}
-
-// TestMarkVPNInterfaces_WireGuard tests that WireGuard interfaces are marked as used.
-func TestMarkVPNInterfaces_WireGuard(t *testing.T) {
-	t.Run("WireGuardEnabled", func(t *testing.T) {
-		cfg := &common.CommonDevice{
-			VPN: common.VPN{
-				WireGuard: common.WireGuardConfig{Enabled: true},
-			},
-		}
-
-		used := make(map[string]bool)
-		markVPNInterfaces(cfg, used)
-
-		assert.True(t, used["lan"], "lan should be marked as used when WireGuard is enabled")
-	})
-
-	t.Run("WireGuardDisabled", func(t *testing.T) {
-		cfg := &common.CommonDevice{
-			VPN: common.VPN{
-				WireGuard: common.WireGuardConfig{Enabled: false},
-			},
-		}
-
-		used := make(map[string]bool)
-		markVPNInterfaces(cfg, used)
-
-		assert.False(t, used["lan"], "lan should NOT be marked when WireGuard is disabled")
-	})
-
-	t.Run("WireGuardEnabledVariousValues", func(t *testing.T) {
-		// In the normalized model, Enabled is a bool. Test true and false cases.
-		testCases := []struct {
-			enabled    bool
-			shouldMark bool
-		}{
-			{true, true},
-			{false, false},
-		}
-
-		for _, tc := range testCases {
-			t.Run(fmt.Sprintf("Enabled=%v", tc.enabled), func(t *testing.T) {
-				cfg := &common.CommonDevice{
-					VPN: common.VPN{
-						WireGuard: common.WireGuardConfig{Enabled: tc.enabled},
-					},
-				}
-
-				used := make(map[string]bool)
-				markVPNInterfaces(cfg, used)
-
-				if tc.shouldMark {
-					assert.True(t, used["lan"], "lan should be marked as used")
-				} else {
-					assert.False(t, used["lan"], "lan should NOT be marked as used")
-				}
-			})
-		}
-	})
-
-	t.Run("WireGuardWithOpenVPN", func(t *testing.T) {
-		// Test that WireGuard and OpenVPN interfaces are all marked
-		cfg := &common.CommonDevice{
-			VPN: common.VPN{
-				OpenVPN: common.OpenVPNConfig{
-					Servers: []common.OpenVPNServer{
-						{Interface: "wan"},
-					},
-				},
-				WireGuard: common.WireGuardConfig{Enabled: true},
-			},
-		}
-
-		used := make(map[string]bool)
-		markVPNInterfaces(cfg, used)
-
-		assert.True(t, used["wan"], "wan should be marked from OpenVPN server")
-		assert.True(t, used["lan"], "lan should be marked from WireGuard")
-		assert.Len(t, used, 2, "should have exactly 2 interfaces marked")
-	})
-}
-
-// TestMarkVPNInterfaces_NilConfig tests safe handling of nil/empty VPN configurations.
-func TestMarkVPNInterfaces_NilConfig(t *testing.T) {
-	t.Run("ZeroValueWireGuard", func(t *testing.T) {
-		// WireGuard with zero-value config has Enabled: false
-		cfg := &common.CommonDevice{
-			VPN: common.VPN{
-				WireGuard: common.WireGuardConfig{},
-			},
-		}
-
-		used := make(map[string]bool)
-		// Should not panic
-		markVPNInterfaces(cfg, used)
-
-		assert.Empty(t, used, "no interfaces should be marked when WireGuard is zero-value (disabled)")
-	})
-
-	t.Run("NilServersSlice", func(t *testing.T) {
-		cfg := &common.CommonDevice{
-			VPN: common.VPN{
-				OpenVPN: common.OpenVPNConfig{
-					Servers: nil,
-				},
-			},
-		}
-
-		used := make(map[string]bool)
-		// Should not panic
-		markVPNInterfaces(cfg, used)
-
-		assert.Empty(t, used, "no interfaces should be marked when Servers is nil")
-	})
-
-	t.Run("NilClientsSlice", func(t *testing.T) {
-		cfg := &common.CommonDevice{
-			VPN: common.VPN{
-				OpenVPN: common.OpenVPNConfig{
-					Clients: nil,
-				},
-			},
-		}
-
-		used := make(map[string]bool)
-		// Should not panic
-		markVPNInterfaces(cfg, used)
-
-		assert.Empty(t, used, "no interfaces should be marked when Clients is nil")
-	})
-
-	t.Run("AllNil", func(t *testing.T) {
-		cfg := &common.CommonDevice{
-			VPN: common.VPN{
-				OpenVPN: common.OpenVPNConfig{
-					Servers: nil,
-					Clients: nil,
-				},
-				WireGuard: common.WireGuardConfig{},
-			},
-		}
-
-		used := make(map[string]bool)
-		// Should not panic
-		markVPNInterfaces(cfg, used)
-
-		assert.Empty(t, used, "no interfaces should be marked when all VPN configs are nil/zero")
-	})
-
-	t.Run("PreservesExistingEntries", func(t *testing.T) {
-		cfg := &common.CommonDevice{
-			VPN: common.VPN{
-				OpenVPN: common.OpenVPNConfig{
-					Servers: []common.OpenVPNServer{
-						{Interface: "opt1"},
-					},
-				},
-				WireGuard: common.WireGuardConfig{Enabled: true},
-			},
-		}
-
-		used := map[string]bool{
-			"wan":  true,
-			"opt0": true,
-		}
-		markVPNInterfaces(cfg, used)
-
-		assert.True(t, used["wan"], "pre-existing wan entry should be preserved")
-		assert.True(t, used["opt0"], "pre-existing opt0 entry should be preserved")
-		assert.True(t, used["opt1"], "opt1 should be marked from OpenVPN server")
-		assert.True(t, used["lan"], "lan should be marked from WireGuard")
-		assert.Len(t, used, 4, "should have 4 interfaces marked")
-	})
-}
-
-// TestMarkLoadBalancerInterfaces_WithMonitors tests that load balancer interfaces are marked as used
-// when monitor types are configured.
-func TestMarkLoadBalancerInterfaces_WithMonitors(t *testing.T) {
-	t.Run("SingleMonitor", func(t *testing.T) {
-		cfg := &common.CommonDevice{
-			LoadBalancer: common.LoadBalancerConfig{
-				MonitorTypes: []common.MonitorType{
-					{Name: "ICMP", Type: "icmp"},
-				},
-			},
-		}
-
-		used := make(map[string]bool)
-		markLoadBalancerInterfaces(cfg, used)
-
-		assert.True(t, used["lan"], "lan should be marked as used when load balancer monitors are configured")
-		assert.Len(t, used, 1, "should have exactly 1 interface marked")
-	})
-
-	t.Run("MultipleMonitors", func(t *testing.T) {
-		cfg := &common.CommonDevice{
-			LoadBalancer: common.LoadBalancerConfig{
-				MonitorTypes: []common.MonitorType{
-					{Name: "ICMP", Type: "icmp"},
-					{Name: "HTTP", Type: "http"},
-					{Name: "TCP", Type: "tcp"},
-				},
-			},
-		}
-
-		used := make(map[string]bool)
-		markLoadBalancerInterfaces(cfg, used)
-
-		assert.True(t, used["lan"], "lan should be marked as used when multiple monitors are configured")
-		assert.Len(t, used, 1, "should have exactly 1 interface marked (lan only)")
-	})
-
-	t.Run("PreservesExistingEntries", func(t *testing.T) {
-		cfg := &common.CommonDevice{
-			LoadBalancer: common.LoadBalancerConfig{
-				MonitorTypes: []common.MonitorType{
-					{Name: "ICMP", Type: "icmp"},
-				},
-			},
-		}
-
-		used := map[string]bool{
-			"wan":  true,
-			"opt0": true,
-		}
-		markLoadBalancerInterfaces(cfg, used)
-
-		assert.True(t, used["wan"], "pre-existing wan entry should be preserved")
-		assert.True(t, used["opt0"], "pre-existing opt0 entry should be preserved")
-		assert.True(t, used["lan"], "lan should be marked as used")
-		assert.Len(t, used, 3, "should have 3 interfaces marked")
-	})
-}
-
-// TestMarkLoadBalancerInterfaces_EmptyMonitors tests that no interfaces are marked
-// when no load balancer monitors are configured.
-func TestMarkLoadBalancerInterfaces_EmptyMonitors(t *testing.T) {
-	t.Run("EmptySlice", func(t *testing.T) {
-		cfg := &common.CommonDevice{
-			LoadBalancer: common.LoadBalancerConfig{
-				MonitorTypes: []common.MonitorType{},
-			},
-		}
-
-		used := make(map[string]bool)
-		markLoadBalancerInterfaces(cfg, used)
-
-		assert.Empty(t, used, "no interfaces should be marked when MonitorTypes slice is empty")
-	})
-
-	t.Run("PreservesExistingEntries", func(t *testing.T) {
-		cfg := &common.CommonDevice{
-			LoadBalancer: common.LoadBalancerConfig{
-				MonitorTypes: []common.MonitorType{},
-			},
-		}
-
-		used := map[string]bool{
-			"wan": true,
-			"lan": true,
-		}
-		markLoadBalancerInterfaces(cfg, used)
-
-		assert.True(t, used["wan"], "pre-existing wan entry should be preserved")
-		assert.True(t, used["lan"], "pre-existing lan entry should be preserved")
-		assert.Len(t, used, 2, "should still have 2 interfaces marked")
-	})
-}
-
-// TestMarkLoadBalancerInterfaces_NilSlice tests safe handling of nil MonitorTypes slice.
-func TestMarkLoadBalancerInterfaces_NilSlice(t *testing.T) {
-	t.Run("NilMonitorTypeSlice", func(t *testing.T) {
-		cfg := &common.CommonDevice{
-			LoadBalancer: common.LoadBalancerConfig{
-				MonitorTypes: nil,
-			},
-		}
-
-		used := make(map[string]bool)
-		// Should not panic
-		markLoadBalancerInterfaces(cfg, used)
-
-		assert.Empty(t, used, "no interfaces should be marked when MonitorTypes is nil")
-	})
-
-	t.Run("DefaultLoadBalancer", func(t *testing.T) {
-		// Test with default/zero-value LoadBalancerConfig struct
-		cfg := &common.CommonDevice{}
-
-		used := make(map[string]bool)
-		// Should not panic
-		markLoadBalancerInterfaces(cfg, used)
-
-		assert.Empty(t, used, "no interfaces should be marked with default LoadBalancer")
-	})
-
-	t.Run("PreservesExistingEntriesWithNil", func(t *testing.T) {
-		cfg := &common.CommonDevice{
-			LoadBalancer: common.LoadBalancerConfig{
-				MonitorTypes: nil,
-			},
-		}
-
-		used := map[string]bool{
-			"wan":  true,
-			"opt1": true,
-		}
-		markLoadBalancerInterfaces(cfg, used)
-
-		assert.True(t, used["wan"], "pre-existing wan entry should be preserved")
-		assert.True(t, used["opt1"], "pre-existing opt1 entry should be preserved")
-		assert.Len(t, used, 2, "should still have 2 interfaces marked")
-	})
-}
-
-// TestServiceDetection_Integration tests that all service detection helpers work together
-// in the analyzeUnusedInterfaces function.
-func TestServiceDetection_Integration(t *testing.T) {
-	t.Run("MultipleServicesMarkingSameInterface", func(t *testing.T) {
-		// Test that multiple services can mark the same interface (idempotent)
-		cfg := &common.CommonDevice{
-			DHCP: []common.DHCPScope{
-				{Interface: "lan", Enabled: true},
-			},
-			DNS: common.DNSConfig{
-				Unbound: common.UnboundConfig{Enabled: true}, // Also marks "lan"
-			},
-			LoadBalancer: common.LoadBalancerConfig{
-				MonitorTypes: []common.MonitorType{{Name: "ICMP"}}, // Also marks "lan"
-			},
-		}
-
-		used := make(map[string]bool)
-		markDHCPInterfaces(cfg, used)
-		markDNSInterfaces(cfg, used)
-		markLoadBalancerInterfaces(cfg, used)
-
-		assert.True(t, used["lan"])
-		assert.Len(t, used, 1, "should only have one entry despite multiple services marking 'lan'")
-	})
-
-	t.Run("AllServiceTypesDetection", func(t *testing.T) {
-		// Test that interfaces from all service types are correctly accumulated
-		cfg := &common.CommonDevice{
-			Interfaces: []common.Interface{
-				{Name: "lan", Enabled: true},
-				{Name: "wan", Enabled: true},
-				{Name: "opt0", Enabled: true}, // Should be detected as unused
-				{Name: "opt1", Enabled: true},
-				{Name: "opt2", Enabled: true},
-			},
-			DHCP: []common.DHCPScope{
-				{Interface: "opt1", Enabled: true}, // Marks opt1 via DHCP
-			},
-			VPN: common.VPN{
-				OpenVPN: common.OpenVPNConfig{
-					Servers: []common.OpenVPNServer{
-						{Interface: "wan"}, // Marks wan via OpenVPN
-					},
-					Clients: []common.OpenVPNClient{
-						{Interface: "opt2"}, // Marks opt2 via OpenVPN
-					},
-				},
-				WireGuard: common.WireGuardConfig{Enabled: true}, // Marks lan via WireGuard
-			},
-		}
-
-		used := make(map[string]bool)
-		markDHCPInterfaces(cfg, used)
-		markDNSInterfaces(cfg, used)
-		markVPNInterfaces(cfg, used)
-		markLoadBalancerInterfaces(cfg, used)
-
-		// Verify all services marked their interfaces
-		assert.True(t, used["lan"], "lan should be marked from WireGuard")
-		assert.True(t, used["wan"], "wan should be marked from OpenVPN server")
-		assert.True(t, used["opt1"], "opt1 should be marked from DHCP")
-		assert.True(t, used["opt2"], "opt2 should be marked from OpenVPN client")
-		assert.False(t, used["opt0"], "opt0 should NOT be marked (unused)")
 	})
 }
 
 // TestCoreProcessor_EdgeCases tests edge cases and boundary conditions.
 func TestCoreProcessor_EdgeCases(t *testing.T) {
-	processor, err := NewCoreProcessor(nil)
-	require.NoError(t, err)
-
 	t.Run("empty_rules", func(t *testing.T) {
-		// Test with empty rules
 		emptyRule := common.FirewallRule{}
-		assert.True(t, processor.rulesAreEquivalent(emptyRule, emptyRule),
+		assert.True(t, analysis.RulesEquivalent(emptyRule, emptyRule),
 			"Empty rules should be equivalent to themselves")
 	})
 
 	t.Run("partial_rules", func(t *testing.T) {
-		// Test with partially filled rules
 		rule1 := common.FirewallRule{Type: "pass"}
 		rule2 := common.FirewallRule{Type: "pass"}
 		rule3 := common.FirewallRule{Type: "block"}
 
-		assert.True(t, processor.rulesAreEquivalent(rule1, rule2),
+		assert.True(t, analysis.RulesEquivalent(rule1, rule2),
 			"Rules with only type should be equivalent if types match")
-		assert.False(t, processor.rulesAreEquivalent(rule1, rule3),
+		assert.False(t, analysis.RulesEquivalent(rule1, rule3),
 			"Rules with different types should not be equivalent")
 	})
 
 	t.Run("case_sensitivity", func(t *testing.T) {
-		// Test case sensitivity
 		rule1 := common.FirewallRule{
 			Type:       "PASS",
 			IPProtocol: "INET",
@@ -1683,7 +914,7 @@ func TestCoreProcessor_EdgeCases(t *testing.T) {
 		}
 
 		// Should be case sensitive (OPNsense is case sensitive)
-		assert.False(t, processor.rulesAreEquivalent(rule1, rule2),
+		assert.False(t, analysis.RulesEquivalent(rule1, rule2),
 			"Rules should be case sensitive")
 	})
 }
@@ -1755,9 +986,13 @@ func TestCoreProcessor_DeadRuleDetection_IsAnyPath(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			report := NewReport(&common.CommonDevice{}, Config{})
+			cfg := &common.CommonDevice{
+				FirewallRules: tt.rules,
+			}
+			report := NewReport(cfg, Config{})
 
-			processor.analyzeInterfaceRules("lan", tt.rules, report)
+			// Test dead rule detection via shared analysis
+			processor.analyzeDeadRules(cfg, report)
 
 			// Collect all findings across severity levels
 			var allFindings []Finding
