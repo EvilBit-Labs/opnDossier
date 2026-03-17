@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"
 	"github.com/stretchr/testify/assert"
@@ -206,7 +207,7 @@ func TestGenerateFromXMLFiles(t *testing.T) {
 			}()
 
 			// Parse XML into model
-			parser := opnsense.NewParser()
+			parser := opnsense.NewParser(cfgparser.NewXMLParser())
 			ctx := context.Background()
 			cfg, _, err := parser.Parse(ctx, xmlFile)
 			require.NoError(t, err, "Failed to parse XML file: %s", tt.xmlFile)
@@ -383,7 +384,7 @@ func TestGenerateFromXMLFilesRobustness(t *testing.T) {
 				require.NoError(t, err)
 			}()
 
-			parser := opnsense.NewParser()
+			parser := opnsense.NewParser(cfgparser.NewXMLParser())
 			ctx := context.Background()
 			cfg, _, err := parser.Parse(ctx, xmlFile)
 
@@ -422,7 +423,7 @@ func TestDebugSysctlParsing(t *testing.T) {
 		require.NoError(t, err)
 	}()
 
-	parser := opnsense.NewParser()
+	parser := opnsense.NewParser(cfgparser.NewXMLParser())
 	ctx := context.Background()
 	cfg, _, err := parser.Parse(ctx, xmlFile)
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")
@@ -472,7 +473,7 @@ func TestSysctlKeyValidation(t *testing.T) {
 		}
 	}()
 
-	parser := opnsense.NewParser()
+	parser := opnsense.NewParser(cfgparser.NewXMLParser())
 	ctx := context.Background()
 	cfg, _, err := parser.Parse(ctx, xmlFile)
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")
@@ -538,7 +539,7 @@ func TestInterfaceConfigurationDetail(t *testing.T) {
 		}
 	}()
 
-	parser := opnsense.NewParser()
+	parser := opnsense.NewParser(cfgparser.NewXMLParser())
 	ctx := context.Background()
 	cfg, _, err := parser.Parse(ctx, xmlFile)
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")
@@ -575,7 +576,7 @@ func TestFirewallRulesFormatting(t *testing.T) {
 		}
 	}()
 
-	parser := opnsense.NewParser()
+	parser := opnsense.NewParser(cfgparser.NewXMLParser())
 	ctx := context.Background()
 	cfg, _, err := parser.Parse(ctx, xmlFile)
 	require.NoError(t, err, "Failed to parse sample.config.1.xml")

@@ -822,7 +822,7 @@ Warnings flow through the system alongside the device model:
 
 1. **Converter generates warnings** during `ToCommonDevice()` conversion
 2. **DeviceParser returns warnings** from `Parse()` and `ParseAndValidate()` methods
-3. **Factory propagates warnings** through `CreateDevice()`
+3. **The Factory propagates warnings** through `CreateDevice()`
 4. **CLI commands log warnings** via structured logging using `ctxLogger.Warn()`
 
 ### DeviceParser Interface
@@ -857,7 +857,7 @@ func (f *Factory) CreateDevice(
 All configuration-reading commands (`convert`, `display`, `validate`, `diff`) handle warnings consistently:
 
 ```go
-device, warnings, err := parser.NewFactory().CreateDevice(ctx, file, deviceType, validateMode)
+device, warnings, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(ctx, file, deviceType, validateMode)
 if err != nil {
     // Handle fatal error
 }

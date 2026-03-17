@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 	"github.com/stretchr/testify/assert"
@@ -20,7 +21,7 @@ func TestRoundTrip_SampleConfigs(t *testing.T) {
 	require.NoError(t, err, "failed to glob testdata")
 	require.NotEmpty(t, files, "no sample config files found at %s", pattern)
 
-	factory := parser.NewFactory()
+	factory := parser.NewFactory(cfgparser.NewXMLParser())
 
 	for _, fpath := range files {
 		name := filepath.Base(fpath)

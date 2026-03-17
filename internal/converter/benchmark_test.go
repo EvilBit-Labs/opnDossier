@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 )
 
@@ -20,7 +21,7 @@ func BenchmarkMarkdownConverter_ToMarkdown(b *testing.B) {
 	}
 
 	// Parse using the parser factory
-	factory := parser.NewFactory()
+	factory := parser.NewFactory(cfgparser.NewXMLParser())
 	device, _, err := factory.CreateDevice(context.Background(), strings.NewReader(string(xmlData)), "", false)
 	if err != nil {
 		b.Fatalf("XML parsing failed: %v", err)
@@ -49,7 +50,7 @@ func BenchmarkMarkdownConverter_ToMarkdown_Large(b *testing.B) {
 	}
 
 	// Parse using the parser factory
-	factory := parser.NewFactory()
+	factory := parser.NewFactory(cfgparser.NewXMLParser())
 	device, _, err := factory.CreateDevice(context.Background(), strings.NewReader(string(xmlData)), "", false)
 	if err != nil {
 		b.Fatalf("XML parsing failed: %v", err)

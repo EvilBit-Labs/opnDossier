@@ -104,13 +104,16 @@ The project follows standard Go conventions:
 
 ### Parser Development
 
-When modifying XML parsing logic:
+When modifying parsing or conversion logic:
 
-- The parser lives in `internal/cfgparser/`
-- Data models are defined in `pkg/schema/opnsense/` (XML structs) and `pkg/model/` (platform-agnostic CommonDevice)
+- `pkg/parser/` -- Factory and `DeviceParser` interface (public API)
+- `pkg/parser/opnsense/` -- OPNsense parser and schema-to-CommonDevice converter
+- `pkg/schema/opnsense/` -- Canonical OPNsense XML schema structs
+- `pkg/model/` -- Platform-agnostic CommonDevice domain model
+- `internal/cfgparser/` -- Low-level XML parsing and validation
 - Test with sample files in `testdata/`
 - Add benchmarks for performance-critical changes
-- Preserve backward compatibility in the `Parser` interface
+- Preserve backward compatibility in the `DeviceParser` interface
 
 ### Testing
 

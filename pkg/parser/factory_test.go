@@ -27,7 +27,7 @@ const validOPNsenseXML = `<?xml version="1.0"?>
 func TestFactory_ValidOPNsense(t *testing.T) {
 	t.Parallel()
 
-	device, _, err := parser.NewFactory().CreateDevice(
+	device, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader(validOPNsenseXML),
 		"",
@@ -44,7 +44,7 @@ func TestFactory_UnknownRootElement(t *testing.T) {
 	t.Parallel()
 
 	xml := `<?xml version="1.0"?><pfsense><system><hostname>test</hostname></system></pfsense>`
-	_, _, err := parser.NewFactory().CreateDevice(
+	_, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader(xml),
 		"",
@@ -58,7 +58,7 @@ func TestFactory_UnknownRootElement(t *testing.T) {
 func TestFactory_Override_OPNsense(t *testing.T) {
 	t.Parallel()
 
-	device, _, err := parser.NewFactory().CreateDevice(
+	device, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader(validOPNsenseXML),
 		"opnsense",
@@ -72,7 +72,7 @@ func TestFactory_Override_OPNsense(t *testing.T) {
 func TestFactory_Override_CaseInsensitive(t *testing.T) {
 	t.Parallel()
 
-	device, _, err := parser.NewFactory().CreateDevice(
+	device, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader(validOPNsenseXML),
 		"OPNsense",
@@ -86,7 +86,7 @@ func TestFactory_Override_CaseInsensitive(t *testing.T) {
 func TestFactory_Override_Unsupported(t *testing.T) {
 	t.Parallel()
 
-	_, _, err := parser.NewFactory().CreateDevice(
+	_, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader(validOPNsenseXML),
 		"pfsense",
@@ -100,7 +100,7 @@ func TestFactory_Override_Unsupported(t *testing.T) {
 func TestFactory_EmptyReader(t *testing.T) {
 	t.Parallel()
 
-	_, _, err := parser.NewFactory().CreateDevice(
+	_, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader(""),
 		"",
@@ -116,7 +116,7 @@ func TestFactory_ContextCancelled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, _, err := parser.NewFactory().CreateDevice(
+	_, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		ctx,
 		strings.NewReader(validOPNsenseXML),
 		"",
@@ -137,7 +137,7 @@ func TestFactory_ContextCancelled_BlockingReader(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		_, _, err := parser.NewFactory().CreateDevice(ctx, pr, "", false)
+		_, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(ctx, pr, "", false)
 		done <- err
 	}()
 
@@ -156,7 +156,7 @@ func TestFactory_ContextCancelled_BlockingReader(t *testing.T) {
 func TestFactory_MalformedXML(t *testing.T) {
 	t.Parallel()
 
-	_, _, err := parser.NewFactory().CreateDevice(
+	_, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader("<<<not xml at all"),
 		"",
@@ -170,7 +170,7 @@ func TestFactory_ErrorWrapsOriginal(t *testing.T) {
 	t.Parallel()
 
 	// Empty input causes io.EOF from the decoder, which should be wrapped.
-	_, _, err := parser.NewFactory().CreateDevice(
+	_, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader(""),
 		"",
@@ -185,7 +185,7 @@ func TestFactory_UnsupportedCharset(t *testing.T) {
 
 	// XML with a charset the parser doesn't accept.
 	xmlData := `<?xml version="1.0" encoding="EBCDIC"?><opnsense/>`
-	_, _, err := parser.NewFactory().CreateDevice(
+	_, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader(xmlData),
 		"",
@@ -205,7 +205,7 @@ func TestFactory_AcceptedCharsets(t *testing.T) {
 
 			xmlData := `<?xml version="1.0" encoding="` + charset + `"?>` + "\n" +
 				`<opnsense><system><hostname>test</hostname><domain>test.local</domain></system></opnsense>`
-			device, _, err := parser.NewFactory().CreateDevice(
+			device, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 				context.Background(),
 				strings.NewReader(xmlData),
 				"",
@@ -224,7 +224,7 @@ func TestFactory_LargeInput_BoundedRead(t *testing.T) {
 	// Build input that exceeds the default max input size without a root element.
 	// The decoder should stop at the limit and return an error.
 	bigInput := strings.Repeat("<!-- padding -->", int(cfgparser.DefaultMaxInputSize)/15+1)
-	_, _, err := parser.NewFactory().CreateDevice(
+	_, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader(bigInput),
 		"",
@@ -247,7 +247,7 @@ const semanticOnlyInvalidXML = `<?xml version="1.0"?>
 func TestFactory_ValidateMode_False_SemanticErrorsIgnored(t *testing.T) {
 	t.Parallel()
 
-	device, _, err := parser.NewFactory().CreateDevice(
+	device, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader(semanticOnlyInvalidXML),
 		"",
@@ -260,7 +260,7 @@ func TestFactory_ValidateMode_False_SemanticErrorsIgnored(t *testing.T) {
 func TestFactory_ValidateMode_True_SemanticErrorsFail(t *testing.T) {
 	t.Parallel()
 
-	_, _, err := parser.NewFactory().CreateDevice(
+	_, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader(semanticOnlyInvalidXML),
 		"",

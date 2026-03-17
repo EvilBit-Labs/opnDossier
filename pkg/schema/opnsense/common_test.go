@@ -3,8 +3,6 @@ package opnsense
 import (
 	"encoding/xml"
 	"testing"
-
-	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 )
 
 func TestBoolFlag_String(t *testing.T) {
@@ -170,7 +168,7 @@ func TestRuleLocation_IsAny(t *testing.T) {
 		},
 		{
 			name: "network any",
-			rl:   RuleLocation{Network: constants.NetworkAny},
+			rl:   RuleLocation{Network: NetworkAny},
 			want: true,
 		},
 		{

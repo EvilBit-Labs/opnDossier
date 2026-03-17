@@ -10,7 +10,7 @@ import (
 // convertCertificates maps doc.Certs to []common.Certificate.
 // Certificate data includes the PEM-encoded certificate and private key, which
 // are stored as base64-encoded strings in the OPNsense XML configuration.
-func (c *Converter) convertCertificates(doc *schema.OpnSenseDocument) []common.Certificate {
+func (c *converter) convertCertificates(doc *schema.OpnSenseDocument) []common.Certificate {
 	if len(doc.Certs) == 0 {
 		return nil
 	}
@@ -41,7 +41,7 @@ func (c *Converter) convertCertificates(doc *schema.OpnSenseDocument) []common.C
 // CA entries store the authority's certificate for chain validation. Unlike
 // identity certificates, CA entries do not carry a private key field in the
 // current OPNsense schema (locally-created CAs may have one in practice).
-func (c *Converter) convertCAs(doc *schema.OpnSenseDocument) []common.CertificateAuthority {
+func (c *converter) convertCAs(doc *schema.OpnSenseDocument) []common.CertificateAuthority {
 	if len(doc.CAs) == 0 {
 		return nil
 	}
@@ -65,7 +65,7 @@ func (c *Converter) convertCAs(doc *schema.OpnSenseDocument) []common.Certificat
 // comma-separated string in the XML configuration. Full package metadata
 // (versions, descriptions) requires the OPNsense API and is not available
 // from config.xml alone.
-func (c *Converter) convertPackages(doc *schema.OpnSenseDocument) []common.Package {
+func (c *converter) convertPackages(doc *schema.OpnSenseDocument) []common.Package {
 	names := splitNonEmpty(doc.System.Firmware.Plugins, ",")
 	if len(names) == 0 {
 		return nil

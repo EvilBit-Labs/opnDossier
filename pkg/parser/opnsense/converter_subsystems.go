@@ -7,7 +7,7 @@ import (
 
 // convertMonit maps doc.OPNsense.Monit to *common.MonitConfig.
 // Returns nil if the Monit subsystem is not configured.
-func (c *Converter) convertMonit(doc *schema.OpnSenseDocument) *common.MonitConfig {
+func (c *converter) convertMonit(doc *schema.OpnSenseDocument) *common.MonitConfig {
 	monit := doc.OPNsense.Monit
 	if monit == nil {
 		return nil
@@ -42,7 +42,7 @@ func (c *Converter) convertMonit(doc *schema.OpnSenseDocument) *common.MonitConf
 }
 
 // convertMonitServices maps []schema.MonitService to []common.MonitServiceEntry.
-func (c *Converter) convertMonitServices(services []schema.MonitService) []common.MonitServiceEntry {
+func (c *converter) convertMonitServices(services []schema.MonitService) []common.MonitServiceEntry {
 	if len(services) == 0 {
 		return nil
 	}
@@ -71,7 +71,7 @@ func (c *Converter) convertMonitServices(services []schema.MonitService) []commo
 }
 
 // convertMonitTests maps []schema.MonitTest to []common.MonitTest.
-func (c *Converter) convertMonitTests(tests []schema.MonitTest) []common.MonitTest {
+func (c *converter) convertMonitTests(tests []schema.MonitTest) []common.MonitTest {
 	if len(tests) == 0 {
 		return nil
 	}
@@ -93,7 +93,7 @@ func (c *Converter) convertMonitTests(tests []schema.MonitTest) []common.MonitTe
 
 // convertNetflow maps doc.OPNsense.Netflow to *common.NetflowConfig.
 // Returns nil if Netflow has no meaningful configuration.
-func (c *Converter) convertNetflow(doc *schema.OpnSenseDocument) *common.NetflowConfig {
+func (c *converter) convertNetflow(doc *schema.OpnSenseDocument) *common.NetflowConfig {
 	nf := doc.OPNsense.Netflow
 	hasCapture := nf.Capture.Interfaces != "" || nf.Capture.Version != ""
 	hasCollect := nf.Collect.Enable == xmlBoolTrue
@@ -115,7 +115,7 @@ func (c *Converter) convertNetflow(doc *schema.OpnSenseDocument) *common.Netflow
 
 // convertTrafficShaper maps doc.OPNsense.TrafficShaper to *common.TrafficShaperConfig.
 // Returns nil if no traffic shaping is configured.
-func (c *Converter) convertTrafficShaper(doc *schema.OpnSenseDocument) *common.TrafficShaperConfig {
+func (c *converter) convertTrafficShaper(doc *schema.OpnSenseDocument) *common.TrafficShaperConfig {
 	ts := doc.OPNsense.TrafficShaper
 	if ts.Pipes == "" && ts.Queues == "" && ts.Rules == "" {
 		return nil
@@ -130,7 +130,7 @@ func (c *Converter) convertTrafficShaper(doc *schema.OpnSenseDocument) *common.T
 
 // convertCaptivePortal maps doc.OPNsense.Captiveportal to *common.CaptivePortalConfig.
 // Returns nil if no captive portal zones are configured.
-func (c *Converter) convertCaptivePortal(doc *schema.OpnSenseDocument) *common.CaptivePortalConfig {
+func (c *converter) convertCaptivePortal(doc *schema.OpnSenseDocument) *common.CaptivePortalConfig {
 	cp := doc.OPNsense.Captiveportal
 	if cp.Zones == "" && cp.Templates == "" {
 		return nil
@@ -144,7 +144,7 @@ func (c *Converter) convertCaptivePortal(doc *schema.OpnSenseDocument) *common.C
 
 // convertCron maps doc.OPNsense.Cron to *common.CronConfig.
 // Returns nil if no cron jobs are configured.
-func (c *Converter) convertCron(doc *schema.OpnSenseDocument) *common.CronConfig {
+func (c *converter) convertCron(doc *schema.OpnSenseDocument) *common.CronConfig {
 	if doc.OPNsense.Cron.Jobs == "" {
 		return nil
 	}
@@ -156,7 +156,7 @@ func (c *Converter) convertCron(doc *schema.OpnSenseDocument) *common.CronConfig
 
 // convertTrust maps doc.OPNsense.Trust to *common.TrustConfig.
 // Returns nil if TLS trust settings are all at defaults.
-func (c *Converter) convertTrust(doc *schema.OpnSenseDocument) *common.TrustConfig {
+func (c *converter) convertTrust(doc *schema.OpnSenseDocument) *common.TrustConfig {
 	t := doc.OPNsense.Trust.General
 	hasCrypto := t.CipherString != "" || t.Ciphersuites != "" || t.MinProtocol != ""
 	hasFlags := t.StoreIntermediateCerts == xmlBoolTrue || t.InstallCrls == xmlBoolTrue || t.FetchCrls == xmlBoolTrue
@@ -181,7 +181,7 @@ func (c *Converter) convertTrust(doc *schema.OpnSenseDocument) *common.TrustConf
 
 // convertKeaDHCP maps doc.OPNsense.Kea to *common.KeaDHCPConfig.
 // Returns nil if the Kea DHCP server is not configured.
-func (c *Converter) convertKeaDHCP(doc *schema.OpnSenseDocument) *common.KeaDHCPConfig {
+func (c *converter) convertKeaDHCP(doc *schema.OpnSenseDocument) *common.KeaDHCPConfig {
 	kea := doc.OPNsense.Kea
 	if kea.Dhcp4.General.Enabled != xmlBoolTrue && kea.Dhcp4.General.Interfaces == "" {
 		return nil

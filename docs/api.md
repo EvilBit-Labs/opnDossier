@@ -62,7 +62,7 @@ formatters.FilterSystemTunables(tunables []common.SysctlItem, includeTunables bo
 The preferred entry point is `Factory` in `pkg/parser/factory.go`, which auto-detects the device type and returns a `common.CommonDevice`:
 
 ```go
-factory := parser.NewFactory()
+factory := parser.NewFactory(cfgparser.NewXMLParser())
 
 // Auto-detect device type and parse
 device, err := factory.CreateDevice(ctx, reader, "", false)

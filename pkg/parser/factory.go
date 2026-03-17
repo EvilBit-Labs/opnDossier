@@ -10,10 +10,26 @@ import (
 	"io"
 	"strings"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"
+	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
+
+// DefaultMaxInputSize is the default maximum size in bytes for XML input.
+// This prevents XML bomb attacks by limiting how much data is read during
+// root-element detection and parsing.
+const DefaultMaxInputSize = 10 * 1024 * 1024 // 10MB
+
+// XMLDecoder parses raw XML input into an OpnSenseDocument. Implementations
+// must handle charset detection, entity expansion protection, and input size
+// limits. The cfgparser.XMLParser in internal/cfgparser provides the default
+// implementation used by the CLI.
+type XMLDecoder interface {
+	// Parse reads XML from r and returns a parsed OpnSenseDocument.
+	Parse(ctx context.Context, r io.Reader) (*schema.OpnSenseDocument, error)
+	// ParseAndValidate reads XML from r, parses it, and applies semantic validation.
+	ParseAndValidate(ctx context.Context, r io.Reader) (*schema.OpnSenseDocument, error)
+}
 
 // DeviceParser is the interface for device-specific parsers.
 // Implementations return non-fatal conversion warnings alongside the parsed
@@ -27,17 +43,16 @@ type DeviceParser interface {
 }
 
 // Factory detects device type and delegates to the appropriate DeviceParser.
-//
-// Renamed from ParserFactory to Factory to comply with Go naming conventions
-// (revive stutters rule: parser.ParserFactory → parser.Factory). The
-// internal/model/ re-export layer that previously forwarded NewParserFactory
-// was removed in the same change. All in-repo callers now use NewFactory
-// directly. There are no known external consumers of the old name.
-type Factory struct{}
+// The XMLDecoder is injected at construction to keep pkg/ free of internal/
+// imports, allowing external consumers to provide their own XML decoder.
+type Factory struct {
+	xmlDecoder XMLDecoder
+}
 
-// NewFactory returns a new Factory.
-func NewFactory() *Factory {
-	return &Factory{}
+// NewFactory returns a new Factory that uses the given XMLDecoder for parsing.
+// Pass cfgparser.NewXMLParser() from internal/cfgparser at the call site.
+func NewFactory(decoder XMLDecoder) *Factory {
+	return &Factory{xmlDecoder: decoder}
 }
 
 // CreateDevice reads from r, detects (or uses the override) device type, and
@@ -66,7 +81,7 @@ func (f *Factory) createWithOverride(
 	validateMode bool,
 ) (*common.CommonDevice, []common.ConversionWarning, error) {
 	if strings.EqualFold(override, "opnsense") {
-		return parseDevice(ctx, opnsense.NewParser(), r, validateMode)
+		return parseDevice(ctx, opnsense.NewParser(f.xmlDecoder), r, validateMode)
 	}
 
 	return nil, nil, fmt.Errorf("unsupported device type override: %s; supported: opnsense", override)
@@ -86,7 +101,7 @@ func (f *Factory) createWithAutoDetect(
 
 	switch strings.ToLower(rootElem) {
 	case "opnsense":
-		return parseDevice(ctx, opnsense.NewParser(), fullReader, validateMode)
+		return parseDevice(ctx, opnsense.NewParser(f.xmlDecoder), fullReader, validateMode)
 	default:
 		return nil, nil, fmt.Errorf(
 			"unsupported device type: root element <%s> is not recognized; supported: opnsense",
@@ -126,7 +141,7 @@ type peekResult struct {
 func peekRootElementBounded(ctx context.Context, r io.Reader) (string, io.Reader, error) {
 	var buf bytes.Buffer
 
-	limited := io.LimitReader(newCtxReader(ctx, r), cfgparser.DefaultMaxInputSize)
+	limited := io.LimitReader(newCtxReader(ctx, r), DefaultMaxInputSize)
 	tee := io.TeeReader(limited, &buf)
 	dec := xml.NewDecoder(tee)
 	dec.CharsetReader = simpleCharsetReader

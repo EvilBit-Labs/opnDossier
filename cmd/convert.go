@@ -349,7 +349,7 @@ Examples:
 
 				// Parse the XML and convert to platform-agnostic device model
 				ctxLogger.Debug("Parsing configuration file")
-				device, warnings, err := parser.NewFactory().
+				device, warnings, err := parser.NewFactory(cfgparser.NewXMLParser()).
 					CreateDevice(timeoutCtx, file, sharedDeviceType, false)
 				if err != nil {
 					ctxLogger.Error("Failed to parse configuration", "error", err)

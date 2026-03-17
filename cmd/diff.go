@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/diff"
 	"github.com/EvilBit-Labs/opnDossier/internal/diff/formatters"
@@ -301,7 +302,8 @@ func parseConfigFile(
 		}
 	}()
 
-	device, warnings, err := parser.NewFactory().CreateDevice(ctx, file, sharedDeviceType, false)
+	device, warnings, err := parser.NewFactory(cfgparser.NewXMLParser()).
+		CreateDevice(ctx, file, sharedDeviceType, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}

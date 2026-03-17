@@ -104,7 +104,7 @@ The `parser.Factory` auto-detects device type from the XML root element and dele
 ### Factory Usage
 
 ```go
-factory := parser.NewFactory()
+factory := parser.NewFactory(cfgparser.NewXMLParser())
 
 file, err := os.Open("config.xml")
 if err != nil {
@@ -133,13 +133,14 @@ if err != nil {
 
 The underlying `XMLParser` (`internal/cfgparser/`) supports UTF-8, US-ASCII, ISO-8859-1 (Latin1), and Windows-1252 encodings. Input is limited to 10MB by default (`DefaultMaxInputSize`).
 
-**Breaking Change:** `ParserFactory` / `NewParserFactory()` were renamed to `Factory` / `NewFactory()` to comply with Go naming conventions (`revive` stutters rule). The `internal/model/` re-export layer was removed; import `pkg/parser` directly.
+**Breaking Change:** `ParserFactory` / `NewParserFactory()` were renamed to `Factory` / `NewFactory()` to comply with Go naming conventions (`revive` stutters rule). The `internal/model/` re-export layer was removed; import `pkg/parser` directly. `NewFactory()` now requires an `XMLDecoder` argument.
 
-| Old                         | New                   |
-| --------------------------- | --------------------- |
-| `parser.ParserFactory`      | `parser.Factory`      |
-| `parser.NewParserFactory()` | `parser.NewFactory()` |
-| `model.NewParserFactory()`  | `parser.NewFactory()` |
+| Old                         | New                                           |
+| --------------------------- | --------------------------------------------- |
+| `parser.ParserFactory`      | `parser.Factory`                              |
+| `parser.NewParserFactory()` | `parser.NewFactory(cfgparser.NewXMLParser())` |
+| `model.NewParserFactory()`  | `parser.NewFactory(cfgparser.NewXMLParser())` |
+| `parser.NewFactory()`       | `parser.NewFactory(cfgparser.NewXMLParser())` |
 
 ## Data Model (pkg/schema/opnsense, pkg/model)
 

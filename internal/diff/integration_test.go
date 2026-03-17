@@ -191,7 +191,7 @@ func tryParseConfigFile(path string) (*common.CommonDevice, error) {
 		return nil, fmt.Errorf("failed to parse: %w", err)
 	}
 
-	device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, _, err := opnsense.ConvertDocument(doc)
 	return device, err
 }
 
@@ -206,7 +206,7 @@ func parseConfigFile(t *testing.T, path string) *common.CommonDevice {
 	doc, err := cfgparser.NewXMLParser().Parse(context.Background(), file)
 	require.NoError(t, err, "Failed to parse config file: %s", path)
 
-	device, _, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, _, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err, "Failed to convert config file: %s", path)
 
 	return device

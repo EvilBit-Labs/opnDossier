@@ -47,7 +47,7 @@ func TestConverter_Certificates(t *testing.T) {
 			doc := schema.NewOpnSenseDocument()
 			doc.Certs = tt.certs
 
-			device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+			device, warnings, err := opnsense.ConvertDocument(doc)
 			require.NoError(t, err)
 			assert.Empty(t, warnings)
 
@@ -73,7 +73,7 @@ func TestConverter_Certificates_FieldMapping(t *testing.T) {
 		},
 	}
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 	require.Len(t, device.Certificates, 1)
@@ -122,7 +122,7 @@ func TestConverter_CAs(t *testing.T) {
 			doc := schema.NewOpnSenseDocument()
 			doc.CAs = tt.cas
 
-			device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+			device, warnings, err := opnsense.ConvertDocument(doc)
 			require.NoError(t, err)
 			assert.Empty(t, warnings)
 
@@ -149,7 +149,7 @@ func TestConverter_CAs_FieldMapping(t *testing.T) {
 		},
 	}
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 	require.Len(t, device.CAs, 1)
@@ -199,7 +199,7 @@ func TestConverter_Packages(t *testing.T) {
 			doc := schema.NewOpnSenseDocument()
 			doc.System.Firmware.Plugins = tt.plugins
 
-			device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+			device, warnings, err := opnsense.ConvertDocument(doc)
 			require.NoError(t, err)
 			assert.Empty(t, warnings)
 
@@ -218,7 +218,7 @@ func TestConverter_Packages_FieldMapping(t *testing.T) {
 	doc := schema.NewOpnSenseDocument()
 	doc.System.Firmware.Plugins = "os-haproxy,os-wireguard"
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 	require.Len(t, device.Packages, 2)
@@ -242,7 +242,7 @@ func TestConverter_Certificates_Warnings(t *testing.T) {
 		{Refid: "cert-001", Descr: "Empty cert", Crt: "", Prv: "MIIE..."},
 	}
 
-	_, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	_, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	require.Len(t, warnings, 1)
 	assert.Equal(t, "Certificates[0].Certificate", warnings[0].Field)
@@ -292,7 +292,7 @@ func TestConverter_HA_Warnings(t *testing.T) {
 			doc.HighAvailabilitySync.Username = tt.username
 			doc.HighAvailabilitySync.Password = tt.password
 
-			_, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+			_, warnings, err := opnsense.ConvertDocument(doc)
 			require.NoError(t, err)
 
 			if tt.wantWarnings == 0 {

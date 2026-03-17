@@ -7,8 +7,6 @@ package opnsense
 import (
 	"encoding/xml"
 	"strings"
-
-	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 )
 
 // BoolFlag provides custom XML marshaling for OPNsense boolean values.
@@ -77,7 +75,7 @@ type RuleLocation struct {
 
 // IsAny returns true if this location represents "any".
 func (rl *RuleLocation) IsAny() bool {
-	return rl.Network == constants.NetworkAny || (rl.Network == "" && rl.Address == "" && rl.Port == "")
+	return rl.Network == NetworkAny || (rl.Network == "" && rl.Address == "" && rl.Port == "")
 }
 
 // String returns a human-readable representation of the rule location.

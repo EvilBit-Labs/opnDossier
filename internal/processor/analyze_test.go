@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
@@ -783,7 +784,7 @@ func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
 			}()
 
 			// Use the factory to parse and normalize the config into a CommonDevice
-			factory := parser.NewFactory()
+			factory := parser.NewFactory(cfgparser.NewXMLParser())
 
 			device, _, err := factory.CreateDevice(context.Background(), file, "", false)
 			if err != nil {

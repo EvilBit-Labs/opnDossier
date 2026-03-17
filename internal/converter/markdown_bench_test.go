@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 )
@@ -33,7 +34,7 @@ func loadTestData(filename string) *common.CommonDevice {
 		panic("Failed to read test XML file: " + err.Error())
 	}
 
-	factory := parser.NewFactory()
+	factory := parser.NewFactory(cfgparser.NewXMLParser())
 	device, _, err := factory.CreateDevice(
 		context.Background(),
 		strings.NewReader(string(xmlData)),

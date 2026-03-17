@@ -1,7 +1,5 @@
 package model
 
-import "slices"
-
 // Severity represents the severity level of a conversion warning.
 type Severity string
 
@@ -19,10 +17,13 @@ const (
 	SeverityInfo Severity = "info"
 )
 
+// validSeverities is the package-level authoritative list of valid severity values.
+var validSeverities = []Severity{SeverityCritical, SeverityHigh, SeverityMedium, SeverityLow, SeverityInfo}
+
 // ValidSeverities returns a fresh copy of all valid severity values.
 // Returns a new slice each call to prevent callers from mutating shared state.
 func ValidSeverities() []Severity {
-	return []Severity{SeverityCritical, SeverityHigh, SeverityMedium, SeverityLow, SeverityInfo}
+	return append([]Severity{}, validSeverities...)
 }
 
 // String returns the string representation of the severity.
@@ -31,8 +32,14 @@ func (s Severity) String() string {
 }
 
 // IsValidSeverity checks whether the given severity is a recognized value.
+// Uses a switch statement to avoid allocating a slice on every call.
 func IsValidSeverity(s Severity) bool {
-	return slices.Contains(ValidSeverities(), s)
+	switch s {
+	case SeverityCritical, SeverityHigh, SeverityMedium, SeverityLow, SeverityInfo:
+		return true
+	default:
+		return false
+	}
 }
 
 // ConversionWarning represents a non-fatal issue encountered during conversion

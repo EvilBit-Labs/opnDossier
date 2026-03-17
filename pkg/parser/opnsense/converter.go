@@ -14,20 +14,27 @@ import (
 // ErrNilDocument is returned when ToCommonDevice receives a nil document.
 var ErrNilDocument = errors.New("opnsense converter: received nil document")
 
-// Converter transforms a schema.OpnSenseDocument into a common.CommonDevice.
-// A Converter is stateful (it accumulates warnings) and is NOT safe for
-// concurrent use. Create a new instance per conversion via NewConverter().
-type Converter struct {
+// converter transforms a schema.OpnSenseDocument into a common.CommonDevice.
+// A converter is stateful (it accumulates warnings) and is NOT safe for
+// concurrent use. Create a new instance per conversion via newConverter().
+type converter struct {
 	warnings []common.ConversionWarning
 }
 
-// NewConverter returns a new Converter.
-func NewConverter() *Converter {
-	return &Converter{}
+// newConverter returns a new converter.
+func newConverter() *converter {
+	return &converter{}
+}
+
+// ConvertDocument transforms a parsed OpnSenseDocument into a platform-agnostic
+// CommonDevice along with any non-fatal conversion warnings. This is a
+// convenience function that creates a fresh converter internally.
+func ConvertDocument(doc *schema.OpnSenseDocument) (*common.CommonDevice, []common.ConversionWarning, error) {
+	return newConverter().ToCommonDevice(doc)
 }
 
 // addWarning records a non-fatal conversion issue.
-func (c *Converter) addWarning(field, value, message string, severity common.Severity) {
+func (c *converter) addWarning(field, value, message string, severity common.Severity) {
 	c.warnings = append(c.warnings, common.ConversionWarning{
 		Field:    field,
 		Value:    value,
@@ -38,7 +45,7 @@ func (c *Converter) addWarning(field, value, message string, severity common.Sev
 
 // ToCommonDevice converts an OPNsense schema document into a platform-agnostic CommonDevice.
 // Returns ErrNilDocument if doc is nil.
-func (c *Converter) ToCommonDevice(
+func (c *converter) ToCommonDevice(
 	doc *schema.OpnSenseDocument,
 ) (*common.CommonDevice, []common.ConversionWarning, error) {
 	c.warnings = nil
@@ -95,7 +102,7 @@ func (c *Converter) ToCommonDevice(
 // convertSystem maps doc.System to common.System.
 // NOTE: SSH and WebGUI sub-structs are partially mapped; some fields
 // (SSH.Enabled, SSH.Port, WebGUI.LoginAutocomplete, etc.) are not yet populated.
-func (c *Converter) convertSystem(doc *schema.OpnSenseDocument) common.System {
+func (c *converter) convertSystem(doc *schema.OpnSenseDocument) common.System {
 	sys := doc.System
 
 	return common.System{
@@ -147,7 +154,7 @@ func (c *Converter) convertSystem(doc *schema.OpnSenseDocument) common.System {
 }
 
 // convertInterfaces maps doc.Interfaces.Items to []common.Interface.
-func (c *Converter) convertInterfaces(doc *schema.OpnSenseDocument) []common.Interface {
+func (c *converter) convertInterfaces(doc *schema.OpnSenseDocument) []common.Interface {
 	items := doc.Interfaces.Items
 	if len(items) == 0 {
 		return nil
@@ -184,7 +191,7 @@ func (c *Converter) convertInterfaces(doc *schema.OpnSenseDocument) []common.Int
 }
 
 // convertVLANs maps doc.VLANs.VLAN to []common.VLAN.
-func (c *Converter) convertVLANs(doc *schema.OpnSenseDocument) []common.VLAN {
+func (c *converter) convertVLANs(doc *schema.OpnSenseDocument) []common.VLAN {
 	if len(doc.VLANs.VLAN) == 0 {
 		return nil
 	}
@@ -205,7 +212,7 @@ func (c *Converter) convertVLANs(doc *schema.OpnSenseDocument) []common.VLAN {
 }
 
 // convertFirewallRules maps doc.Filter.Rule to []common.FirewallRule.
-func (c *Converter) convertFirewallRules(doc *schema.OpnSenseDocument) []common.FirewallRule {
+func (c *converter) convertFirewallRules(doc *schema.OpnSenseDocument) []common.FirewallRule {
 	if len(doc.Filter.Rule) == 0 {
 		return nil
 	}
@@ -292,7 +299,7 @@ func (c *Converter) convertFirewallRules(doc *schema.OpnSenseDocument) []common.
 }
 
 // convertNAT maps doc.Nat and system fields to common.NATConfig.
-func (c *Converter) convertNAT(doc *schema.OpnSenseDocument) common.NATConfig {
+func (c *converter) convertNAT(doc *schema.OpnSenseDocument) common.NATConfig {
 	nat := common.NATConfig{
 		OutboundMode:       doc.Nat.Outbound.Mode,
 		ReflectionDisabled: strings.EqualFold(doc.System.DisableNATReflection, xmlBoolYes),
@@ -305,7 +312,7 @@ func (c *Converter) convertNAT(doc *schema.OpnSenseDocument) common.NATConfig {
 }
 
 // convertOutboundNATRules maps []schema.NATRule to []common.NATRule.
-func (c *Converter) convertOutboundNATRules(rules []schema.NATRule) []common.NATRule {
+func (c *converter) convertOutboundNATRules(rules []schema.NATRule) []common.NATRule {
 	if len(rules) == 0 {
 		return nil
 	}
@@ -353,7 +360,7 @@ func (c *Converter) convertOutboundNATRules(rules []schema.NATRule) []common.NAT
 }
 
 // convertInboundNATRules maps []schema.InboundRule to []common.InboundNATRule.
-func (c *Converter) convertInboundNATRules(rules []schema.InboundRule) []common.InboundNATRule {
+func (c *converter) convertInboundNATRules(rules []schema.InboundRule) []common.InboundNATRule {
 	if len(rules) == 0 {
 		return nil
 	}

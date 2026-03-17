@@ -5,8 +5,6 @@ import (
 	"encoding/xml"
 	"slices"
 	"strings"
-
-	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 )
 
 // InterfaceList represents a comma-separated list of interfaces that can be unmarshaled from XML.
@@ -221,7 +219,7 @@ func (s Source) EffectiveAddress() string {
 		return s.Address
 	}
 	if s.IsAny() {
-		return constants.NetworkAny
+		return NetworkAny
 	}
 	return ""
 }
@@ -268,7 +266,7 @@ func (d Destination) EffectiveAddress() string {
 		return d.Address
 	}
 	if d.IsAny() {
-		return constants.NetworkAny
+		return NetworkAny
 	}
 	return ""
 }

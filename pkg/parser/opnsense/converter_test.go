@@ -13,7 +13,7 @@ import (
 func TestConverter_NilInput(t *testing.T) {
 	t.Parallel()
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(nil)
+	device, warnings, err := opnsense.ConvertDocument(nil)
 	require.ErrorIs(t, err, opnsense.ErrNilDocument)
 	require.Nil(t, device)
 	assert.Nil(t, warnings)
@@ -51,7 +51,7 @@ func TestConverter_System(t *testing.T) {
 	doc.System.Firmware.Mirror = "https://mirror.example.com"
 	doc.System.Notes = []string{"test note"}
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 
@@ -108,7 +108,7 @@ func TestConverter_Interfaces(t *testing.T) {
 		BlockBogons: "1",
 	}
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 	assert.Len(t, device.Interfaces, 2)
@@ -164,7 +164,7 @@ func TestConverter_FirewallRules(t *testing.T) {
 		},
 	}
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 	require.Len(t, device.FirewallRules, 1)
@@ -227,7 +227,7 @@ func TestConverter_NAT(t *testing.T) {
 		},
 	}
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 
@@ -263,7 +263,7 @@ func TestConverter_DHCP(t *testing.T) {
 		},
 	}
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 	require.Len(t, device.DHCP, 1)
@@ -309,7 +309,7 @@ func TestConverter_VPN_OpenVPN(t *testing.T) {
 		},
 	}
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 
@@ -353,7 +353,7 @@ func TestConverter_VPN_WireGuard(t *testing.T) {
 		},
 	}
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 
@@ -372,7 +372,7 @@ func TestConverter_VPN_IPsec(t *testing.T) {
 	doc.OPNsense.IPsec = &schema.IPsec{}
 	doc.OPNsense.IPsec.General.Enabled = "1"
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 	assert.True(t, device.VPN.IPsec.Enabled)
@@ -400,7 +400,7 @@ func TestConverter_Routing(t *testing.T) {
 		},
 	}
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 
@@ -427,7 +427,7 @@ func TestConverter_HA(t *testing.T) {
 	doc.HighAvailabilitySync.Username = "admin"
 	doc.HighAvailabilitySync.Syncitems = "virtualip,certs,dhcpd"
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 
@@ -445,7 +445,7 @@ func TestConverter_IDS_Nil(t *testing.T) {
 	doc := schema.NewOpnSenseDocument()
 	doc.OPNsense.IntrusionDetectionSystem = nil
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 	assert.Nil(t, device.IDS)
@@ -463,7 +463,7 @@ func TestConverter_IDS_Enabled(t *testing.T) {
 	doc.OPNsense.IntrusionDetectionSystem.General.Syslog = "1"
 	doc.OPNsense.IntrusionDetectionSystem.General.SyslogEve = "1"
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 	require.NotNil(t, device.IDS)
@@ -487,7 +487,7 @@ func TestConverter_Syslog(t *testing.T) {
 	doc.Syslog.VPN = true
 	doc.Syslog.Remoteserver = "10.0.0.100"
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 
@@ -524,7 +524,7 @@ func TestConverter_Users(t *testing.T) {
 		},
 	}
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 	require.Len(t, device.Users, 2)
@@ -548,7 +548,7 @@ func TestConverter_Sysctl(t *testing.T) {
 		{Tunable: "net.inet.tcp.recvspace", Value: "65536", Descr: "TCP receive buffer"},
 	}
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 	require.Len(t, device.Sysctl, 1)
@@ -565,7 +565,7 @@ func TestConverter_Revision(t *testing.T) {
 	doc.Revision.Time = "1700000000"
 	doc.Revision.Description = "config backup"
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 
@@ -578,7 +578,7 @@ func TestConverter_ComputedFieldsNil(t *testing.T) {
 	t.Parallel()
 
 	doc := schema.NewOpnSenseDocument()
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 
@@ -602,7 +602,7 @@ func TestConverter_DNS(t *testing.T) {
 		{Host: "server", Domain: "local", IP: "10.0.0.1"},
 	}
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 
@@ -623,7 +623,7 @@ func TestConverter_VLANs(t *testing.T) {
 		{If: "igb0", Tag: "100", Descr: "Guest VLAN", Vlanif: "igb0_vlan100"},
 	}
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 	require.Len(t, device.VLANs, 1)
@@ -648,7 +648,7 @@ func TestConverter_Groups(t *testing.T) {
 		},
 	}
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 	require.Len(t, device.Groups, 1)
@@ -673,7 +673,7 @@ func TestConverter_LoadBalancer(t *testing.T) {
 		},
 	}
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 	require.Len(t, device.LoadBalancer.MonitorTypes, 1)
@@ -688,7 +688,7 @@ func TestConverter_NTP(t *testing.T) {
 	doc := schema.NewOpnSenseDocument()
 	doc.Ntpd.Prefer = "0.opnsense.pool.ntp.org"
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 	assert.Equal(t, "0.opnsense.pool.ntp.org", device.NTP.PreferredServer)
@@ -702,7 +702,7 @@ func TestConverter_SNMP(t *testing.T) {
 	doc.Snmpd.SysLocation = "Server Room"
 	doc.Snmpd.SysContact = "admin@example.com"
 
-	device, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 	assert.Equal(t, "public", device.SNMP.ROCommunity)
@@ -789,7 +789,7 @@ func TestConverter_FirewallRules_Warnings(t *testing.T) {
 			doc := schema.NewOpnSenseDocument()
 			doc.Filter.Rule = []schema.Rule{tt.rule}
 
-			_, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+			_, warnings, err := opnsense.ConvertDocument(doc)
 			require.NoError(t, err)
 			require.Len(t, warnings, tt.wantWarnings)
 
@@ -869,7 +869,7 @@ func TestConverter_NAT_Warnings(t *testing.T) {
 			doc := schema.NewOpnSenseDocument()
 			tt.setupDoc(doc)
 
-			_, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+			_, warnings, err := opnsense.ConvertDocument(doc)
 			require.NoError(t, err)
 			require.Len(t, warnings, tt.wantWarnings)
 			assert.Equal(t, tt.wantField, warnings[0].Field)
@@ -889,7 +889,7 @@ func TestConverter_Gateways_Warnings(t *testing.T) {
 		},
 	}
 
-	_, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	_, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	require.Len(t, warnings, 2)
 
@@ -910,7 +910,7 @@ func TestConverter_Users_Warnings(t *testing.T) {
 		},
 	}
 
-	_, warnings, err := opnsense.NewConverter().ToCommonDevice(doc)
+	_, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	require.Len(t, warnings, 2)
 

@@ -11,7 +11,7 @@ import (
 )
 
 // convertDHCP maps doc.Dhcpd.Items to []common.DHCPScope.
-func (c *Converter) convertDHCP(doc *schema.OpnSenseDocument) []common.DHCPScope {
+func (c *converter) convertDHCP(doc *schema.OpnSenseDocument) []common.DHCPScope {
 	items := doc.Dhcpd.Items
 	if len(items) == 0 {
 		return nil
@@ -95,7 +95,7 @@ func (c *Converter) convertDHCP(doc *schema.OpnSenseDocument) []common.DHCPScope
 }
 
 // convertStaticLeases maps []schema.DHCPStaticLease to []common.DHCPStaticLease.
-func (c *Converter) convertStaticLeases(leases []schema.DHCPStaticLease) []common.DHCPStaticLease {
+func (c *converter) convertStaticLeases(leases []schema.DHCPStaticLease) []common.DHCPStaticLease {
 	if len(leases) == 0 {
 		return nil
 	}
@@ -119,7 +119,7 @@ func (c *Converter) convertStaticLeases(leases []schema.DHCPStaticLease) []commo
 }
 
 // convertNumberOptions maps []schema.DHCPNumberOption to []common.DHCPNumberOption.
-func (c *Converter) convertNumberOptions(opts []schema.DHCPNumberOption) []common.DHCPNumberOption {
+func (c *converter) convertNumberOptions(opts []schema.DHCPNumberOption) []common.DHCPNumberOption {
 	if len(opts) == 0 {
 		return nil
 	}
@@ -137,7 +137,7 @@ func (c *Converter) convertNumberOptions(opts []schema.DHCPNumberOption) []commo
 }
 
 // convertDNS maps doc.Unbound, doc.DNSMasquerade, and system DNS to common.DNSConfig.
-func (c *Converter) convertDNS(doc *schema.OpnSenseDocument) common.DNSConfig {
+func (c *converter) convertDNS(doc *schema.OpnSenseDocument) common.DNSConfig {
 	return common.DNSConfig{
 		Servers: strings.Fields(doc.System.DNSServer),
 		Unbound: common.UnboundConfig{
@@ -155,7 +155,7 @@ func (c *Converter) convertDNS(doc *schema.OpnSenseDocument) common.DNSConfig {
 }
 
 // convertDNSMasqHosts maps []schema.DNSMasqHost to []common.DNSMasqHost.
-func (c *Converter) convertDNSMasqHosts(hosts []schema.DNSMasqHost) []common.DNSMasqHost {
+func (c *converter) convertDNSMasqHosts(hosts []schema.DNSMasqHost) []common.DNSMasqHost {
 	if len(hosts) == 0 {
 		return nil
 	}
@@ -175,7 +175,7 @@ func (c *Converter) convertDNSMasqHosts(hosts []schema.DNSMasqHost) []common.DNS
 }
 
 // convertDomainOverrides maps []schema.DomainOverride to []common.DomainOverride.
-func (c *Converter) convertDomainOverrides(overrides []schema.DomainOverride) []common.DomainOverride {
+func (c *converter) convertDomainOverrides(overrides []schema.DomainOverride) []common.DomainOverride {
 	if len(overrides) == 0 {
 		return nil
 	}
@@ -193,7 +193,7 @@ func (c *Converter) convertDomainOverrides(overrides []schema.DomainOverride) []
 }
 
 // convertForwarders maps []schema.ForwarderGroup to []common.ForwarderGroup.
-func (c *Converter) convertForwarders(fwds []schema.ForwarderGroup) []common.ForwarderGroup {
+func (c *converter) convertForwarders(fwds []schema.ForwarderGroup) []common.ForwarderGroup {
 	if len(fwds) == 0 {
 		return nil
 	}
@@ -211,7 +211,7 @@ func (c *Converter) convertForwarders(fwds []schema.ForwarderGroup) []common.For
 }
 
 // convertVPN maps OpenVPN, WireGuard, and IPsec sections to common.VPN.
-func (c *Converter) convertVPN(doc *schema.OpnSenseDocument) common.VPN {
+func (c *converter) convertVPN(doc *schema.OpnSenseDocument) common.VPN {
 	vpn := common.VPN{
 		OpenVPN: common.OpenVPNConfig{
 			Servers:               c.convertOpenVPNServers(doc.OpenVPN.Servers),
@@ -232,7 +232,7 @@ func (c *Converter) convertVPN(doc *schema.OpnSenseDocument) common.VPN {
 }
 
 // convertIPsec maps *schema.IPsec to common.IPsecConfig.
-func (c *Converter) convertIPsec(ipsec *schema.IPsec) common.IPsecConfig {
+func (c *converter) convertIPsec(ipsec *schema.IPsec) common.IPsecConfig {
 	return common.IPsecConfig{
 		Enabled:             ipsec.General.Enabled == xmlBoolTrue,
 		PreferredOldSA:      ipsec.General.PreferredOldsa == xmlBoolTrue,
@@ -258,7 +258,7 @@ func (c *Converter) convertIPsec(ipsec *schema.IPsec) common.IPsecConfig {
 }
 
 // convertOpenVPNCSCs maps []schema.OpenVPNCSC to []common.OpenVPNCSC.
-func (c *Converter) convertOpenVPNCSCs(cscs []schema.OpenVPNCSC) []common.OpenVPNCSC {
+func (c *converter) convertOpenVPNCSCs(cscs []schema.OpenVPNCSC) []common.OpenVPNCSC {
 	if len(cscs) == 0 {
 		return nil
 	}
@@ -287,7 +287,7 @@ func (c *Converter) convertOpenVPNCSCs(cscs []schema.OpenVPNCSC) []common.OpenVP
 }
 
 // convertOpenVPNServers maps []schema.OpenVPNServer to []common.OpenVPNServer.
-func (c *Converter) convertOpenVPNServers(servers []schema.OpenVPNServer) []common.OpenVPNServer {
+func (c *converter) convertOpenVPNServers(servers []schema.OpenVPNServer) []common.OpenVPNServer {
 	if len(servers) == 0 {
 		return nil
 	}
@@ -336,7 +336,7 @@ func (c *Converter) convertOpenVPNServers(servers []schema.OpenVPNServer) []comm
 }
 
 // convertOpenVPNClients maps []schema.OpenVPNClient to []common.OpenVPNClient.
-func (c *Converter) convertOpenVPNClients(clients []schema.OpenVPNClient) []common.OpenVPNClient {
+func (c *converter) convertOpenVPNClients(clients []schema.OpenVPNClient) []common.OpenVPNClient {
 	if len(clients) == 0 {
 		return nil
 	}
@@ -363,7 +363,7 @@ func (c *Converter) convertOpenVPNClients(clients []schema.OpenVPNClient) []comm
 }
 
 // convertWireGuard maps *schema.WireGuard to common.WireGuardConfig.
-func (c *Converter) convertWireGuard(wg *schema.WireGuard) common.WireGuardConfig {
+func (c *converter) convertWireGuard(wg *schema.WireGuard) common.WireGuardConfig {
 	cfg := common.WireGuardConfig{
 		Enabled: wg.General.Enabled == xmlBoolTrue,
 	}
@@ -400,7 +400,7 @@ func (c *Converter) convertWireGuard(wg *schema.WireGuard) common.WireGuardConfi
 }
 
 // convertRouting maps doc.Gateways and doc.StaticRoutes to common.Routing.
-func (c *Converter) convertRouting(doc *schema.OpnSenseDocument) common.Routing {
+func (c *converter) convertRouting(doc *schema.OpnSenseDocument) common.Routing {
 	return common.Routing{
 		Gateways:      c.convertGateways(doc.Gateways.Gateway),
 		GatewayGroups: c.convertGatewayGroups(doc.Gateways.Groups),
@@ -409,7 +409,7 @@ func (c *Converter) convertRouting(doc *schema.OpnSenseDocument) common.Routing 
 }
 
 // convertGateways maps []schema.Gateway to []common.Gateway.
-func (c *Converter) convertGateways(gws []schema.Gateway) []common.Gateway {
+func (c *converter) convertGateways(gws []schema.Gateway) []common.Gateway {
 	if len(gws) == 0 {
 		return nil
 	}
@@ -453,7 +453,7 @@ func (c *Converter) convertGateways(gws []schema.Gateway) []common.Gateway {
 }
 
 // convertGatewayGroups maps []schema.GatewayGroup to []common.GatewayGroup.
-func (c *Converter) convertGatewayGroups(groups []schema.GatewayGroup) []common.GatewayGroup {
+func (c *converter) convertGatewayGroups(groups []schema.GatewayGroup) []common.GatewayGroup {
 	if len(groups) == 0 {
 		return nil
 	}
@@ -472,7 +472,7 @@ func (c *Converter) convertGatewayGroups(groups []schema.GatewayGroup) []common.
 }
 
 // convertStaticRoutes maps []schema.StaticRoute to []common.StaticRoute.
-func (c *Converter) convertStaticRoutes(routes []schema.StaticRoute) []common.StaticRoute {
+func (c *converter) convertStaticRoutes(routes []schema.StaticRoute) []common.StaticRoute {
 	if len(routes) == 0 {
 		return nil
 	}
@@ -493,7 +493,7 @@ func (c *Converter) convertStaticRoutes(routes []schema.StaticRoute) []common.St
 }
 
 // convertHA maps doc.HighAvailabilitySync to common.HighAvailability.
-func (c *Converter) convertHA(doc *schema.OpnSenseDocument) common.HighAvailability {
+func (c *converter) convertHA(doc *schema.OpnSenseDocument) common.HighAvailability {
 	ha := doc.HighAvailabilitySync
 
 	if ha.Synchronizetoip != "" && (ha.Username == "" || ha.Password == "") {
@@ -520,7 +520,7 @@ func (c *Converter) convertHA(doc *schema.OpnSenseDocument) common.HighAvailabil
 
 // convertIDs (IDS = Intrusion Detection System) maps doc.OPNsense.IntrusionDetectionSystem
 // to *common.IDSConfig.
-func (c *Converter) convertIDs(doc *schema.OpnSenseDocument) *common.IDSConfig {
+func (c *converter) convertIDs(doc *schema.OpnSenseDocument) *common.IDSConfig {
 	ids := doc.OPNsense.IntrusionDetectionSystem
 	if ids == nil {
 		return nil
@@ -550,7 +550,7 @@ func (c *Converter) convertIDs(doc *schema.OpnSenseDocument) *common.IDSConfig {
 }
 
 // convertSyslog maps doc.Syslog to common.SyslogConfig.
-func (c *Converter) convertSyslog(doc *schema.OpnSenseDocument) common.SyslogConfig {
+func (c *converter) convertSyslog(doc *schema.OpnSenseDocument) common.SyslogConfig {
 	sl := doc.Syslog
 
 	return common.SyslogConfig{
@@ -578,7 +578,7 @@ func (c *Converter) convertSyslog(doc *schema.OpnSenseDocument) common.SyslogCon
 }
 
 // convertUsers maps doc.System.User to []common.User.
-func (c *Converter) convertUsers(doc *schema.OpnSenseDocument) []common.User {
+func (c *converter) convertUsers(doc *schema.OpnSenseDocument) []common.User {
 	if len(doc.System.User) == 0 {
 		return nil
 	}
@@ -623,7 +623,7 @@ func (c *Converter) convertUsers(doc *schema.OpnSenseDocument) []common.User {
 }
 
 // convertGroups maps doc.System.Group to []common.Group.
-func (c *Converter) convertGroups(doc *schema.OpnSenseDocument) []common.Group {
+func (c *converter) convertGroups(doc *schema.OpnSenseDocument) []common.Group {
 	if len(doc.System.Group) == 0 {
 		return nil
 	}
@@ -644,7 +644,7 @@ func (c *Converter) convertGroups(doc *schema.OpnSenseDocument) []common.Group {
 }
 
 // convertSysctl maps doc.Sysctl to []common.SysctlItem.
-func (c *Converter) convertSysctl(doc *schema.OpnSenseDocument) []common.SysctlItem {
+func (c *converter) convertSysctl(doc *schema.OpnSenseDocument) []common.SysctlItem {
 	if len(doc.Sysctl) == 0 {
 		return nil
 	}
@@ -662,7 +662,7 @@ func (c *Converter) convertSysctl(doc *schema.OpnSenseDocument) []common.SysctlI
 }
 
 // convertRevision maps doc.Revision to common.Revision.
-func (c *Converter) convertRevision(doc *schema.OpnSenseDocument) common.Revision {
+func (c *converter) convertRevision(doc *schema.OpnSenseDocument) common.Revision {
 	return common.Revision{
 		Username:    doc.Revision.Username,
 		Time:        doc.Revision.Time,
@@ -671,14 +671,14 @@ func (c *Converter) convertRevision(doc *schema.OpnSenseDocument) common.Revisio
 }
 
 // convertNTP maps doc.Ntpd to common.NTPConfig.
-func (c *Converter) convertNTP(doc *schema.OpnSenseDocument) common.NTPConfig {
+func (c *converter) convertNTP(doc *schema.OpnSenseDocument) common.NTPConfig {
 	return common.NTPConfig{
 		PreferredServer: doc.Ntpd.Prefer,
 	}
 }
 
 // convertSNMP maps doc.Snmpd to common.SNMPConfig.
-func (c *Converter) convertSNMP(doc *schema.OpnSenseDocument) common.SNMPConfig {
+func (c *converter) convertSNMP(doc *schema.OpnSenseDocument) common.SNMPConfig {
 	return common.SNMPConfig{
 		ROCommunity: doc.Snmpd.ROCommunity,
 		SysLocation: doc.Snmpd.SysLocation,
@@ -687,7 +687,7 @@ func (c *Converter) convertSNMP(doc *schema.OpnSenseDocument) common.SNMPConfig 
 }
 
 // convertLoadBalancer maps doc.LoadBalancer.MonitorType to common.LoadBalancerConfig.
-func (c *Converter) convertLoadBalancer(doc *schema.OpnSenseDocument) common.LoadBalancerConfig {
+func (c *converter) convertLoadBalancer(doc *schema.OpnSenseDocument) common.LoadBalancerConfig {
 	monitors := doc.LoadBalancer.MonitorType
 	if len(monitors) == 0 {
 		return common.LoadBalancerConfig{}
