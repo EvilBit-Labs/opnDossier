@@ -58,7 +58,7 @@ func (p *CoreProcessor) analyzeDeadRules(cfg *common.CommonDevice, report *Repor
 				Type:           "dead-rule",
 				Title:          "Unreachable Rules After Block All",
 				Description:    f.Description,
-				Component:      fmt.Sprintf("filter.rule[%d+]", f.RuleIndex+1),
+				Component:      fmt.Sprintf("filter.rule[%d]", f.RuleIndex),
 				Recommendation: f.Recommendation,
 			})
 		}
