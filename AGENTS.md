@@ -12,6 +12,7 @@ This document consolidates all development standards, architectural principles, 
 - **[Gotchas](GOTCHAS.md)** - Common pitfalls and non-obvious behaviors
 - **[Tasks](project_spec/tasks.md)** - Implementation tasks (HOW)
 - **[User Stories](project_spec/user_stories.md)** - User stories (WHY)
+- **[Solutions](docs/solutions/)** - Documented problem solutions for searchable future reference
 
 ---
 
@@ -434,9 +435,17 @@ common "github.com/EvilBit-Labs/opnDossier/pkg/model"             // use common.
 
 Files in `pkg/parser/opnsense/` (package `opnsense`) **must** alias the schema import as `schema` to avoid collision. `cmd/` files that use the parser factory import `"github.com/EvilBit-Labs/opnDossier/pkg/parser"` (no alias needed -- package name `parser` is unambiguous).
 
+`parser.NewFactory(decoder)` requires an `XMLDecoder` argument -- wire with `parser.NewFactory(cfgparser.NewXMLParser())` at the call site. The `XMLDecoder` interface is defined in `pkg/parser/factory.go`.
+
 ### 5.24 Public Package Purity
 
 `pkg/` packages must NEVER import `internal/` packages. Any type exposed through a `pkg/` struct field must itself live in `pkg/` or stdlib. When moving types from `internal/` to `pkg/`, audit all struct fields for leaked internal types and define public equivalents in `pkg/` (e.g., `pkg/model.Severity` replaces `internal/analysis.Severity` in `ConversionWarning`).
+
+**Boundary verification:** `grep -rn 'internal/' --include='*.go' pkg/ | grep -v _test.go` -- run before committing `pkg/` changes.
+
+**Interface injection pattern:** When `pkg/` needs `internal/` functionality, define an interface in `pkg/` and inject the concrete implementation at the `cmd/` layer. See `pkg/parser.XMLDecoder` for the canonical example. Go's structural typing allows `pkg/` sub-packages to define their own unexported interface that `internal/` types satisfy without importing them.
+
+**Unexporting types:** When making a type unexported (e.g., `Converter` -> `converter`), add a convenience function (e.g., `ConvertDocument()`) for external test packages that cannot access unexported constructors.
 
 ---
 
