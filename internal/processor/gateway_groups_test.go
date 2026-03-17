@@ -6,7 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
+	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 )
 
 func TestGatewayGroupsInReports(t *testing.T) {
@@ -18,7 +19,7 @@ func TestGatewayGroupsInReports(t *testing.T) {
 	xmlConfig := string(xmlData)
 
 	// Parse the configuration via factory
-	factory := model.NewParserFactory()
+	factory := parser.NewFactory(cfgparser.NewXMLParser())
 	cfg, _, err := factory.CreateDevice(context.Background(), strings.NewReader(xmlConfig), "", false)
 	if err != nil {
 		t.Fatalf("Failed to parse XML configuration: %v", err)

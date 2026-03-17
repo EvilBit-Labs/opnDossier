@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	builderPkg "github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 // BenchmarkMarkdownBuilder_CompleteReport benchmarks report generation with complete data.

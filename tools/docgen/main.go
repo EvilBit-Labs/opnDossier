@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/schema"
+	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
 
 const (

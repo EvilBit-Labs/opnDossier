@@ -340,13 +340,17 @@ opnDossier/
 │   ├── display/                      # Terminal display formatting
 │   ├── export/                       # File export functionality
 │   ├── logging/                      # Structured logging (charmbracelet/log)
-│   ├── model/                        # Data models (re-export layer)
 │   ├── plugins/                      # Compliance plugins (firewall/SANS/STIG)
 │   ├── processor/                    # Data processing and report generation
 │   ├── progress/                     # CLI progress indicators
-│   ├── schema/                       # Canonical data model structs
 │   ├── validator/                    # Configuration validation
 │   └── walker.go                     # XML walker utilities
+├── pkg/                              # Public API packages
+│   ├── model/                        # Platform-agnostic CommonDevice domain model
+│   ├── parser/                       # Factory + DeviceParser interface
+│   │   └── opnsense/                 # OPNsense parser + schema→CommonDevice converter
+│   └── schema/
+│       └── opnsense/                 # Canonical OPNsense XML data model structs
 ├── docs/                             # Documentation
 ├── project_spec/                     # Project requirements
 ├── testdata/                         # Test data files
@@ -413,7 +417,7 @@ OPNsense uses two boolean patterns. Choosing the wrong type silently breaks sema
 **Adding New XML Fields:**
 
 1. Check upstream OPNsense/pfSense source for field semantics (presence-based vs value-based)
-2. Add the field to the appropriate struct in `internal/schema/`
+2. Add the field to the appropriate struct in `pkg/schema/opnsense/`
 3. Add XML round-trip tests in the corresponding `*_test.go`
 4. Update the validator in `internal/validator/opnsense.go` if the field has constraints
 5. Update `docs/development/xml-structure-research.md` with the field details

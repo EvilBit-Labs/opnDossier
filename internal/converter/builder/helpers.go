@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 // MaxDescriptionLength is the maximum rune length for table cell descriptions.

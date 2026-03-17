@@ -56,7 +56,7 @@
 
 - **Planned/Future**:
 
-  - Support for additional device types (pfSense, Cisco ASA, etc.) is planned; the `ParserFactory` is extensible but not yet populated for other platforms
+  - Support for additional device types (pfSense, Cisco ASA, etc.) is planned; the `parser.Factory` is extensible but not yet populated for other platforms
 
 - **Success Criteria and Acceptance Criteria**:
 
@@ -381,7 +381,7 @@ just build      # Build application
 
 - **Component Interaction Diagrams**:
 
-  - XML Parser → ParserFactory → CommonDevice → Plugin Manager / Compliance Plugins / Markdown Generator → Display Engine
+  - XML Parser → parser.Factory → CommonDevice → Plugin Manager / Compliance Plugins / Markdown Generator → Display Engine
   - Configuration Manager → All Components (dependency injection)
   - CLI Interface → All Components (command orchestration)
   - Plugin Registry → Plugin Manager → Compliance Engine (plugin lifecycle management)

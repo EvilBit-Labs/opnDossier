@@ -5,7 +5,7 @@ import (
 	"slices"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 // Plugin defines the interface that all compliance plugins must implement.

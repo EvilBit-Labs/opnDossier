@@ -14,7 +14,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/display"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
+	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -169,7 +169,8 @@ Examples:
 
 		// Parse the XML and convert to platform-agnostic device model
 		// Full validation should be done with the 'validate' command
-		device, warnings, err := model.NewParserFactory().CreateDevice(ctx, file, sharedDeviceType, false)
+		device, warnings, err := parser.NewFactory(cfgparser.NewXMLParser()).
+			CreateDevice(ctx, file, sharedDeviceType, false)
 		if err != nil {
 			ctxLogger.Error("Failed to parse configuration", "error", err)
 			// Enhanced error handling for different error types

@@ -20,7 +20,7 @@ All plugins must implement the `compliance.Plugin` interface:
 ```go
 import (
     "github.com/EvilBit-Labs/opnDossier/internal/compliance"
-    "github.com/EvilBit-Labs/opnDossier/internal/model/common"
+    common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 type Plugin interface {
@@ -82,7 +82,7 @@ package plugins
 import (
     "fmt"
     "github.com/EvilBit-Labs/opnDossier/internal/compliance"
-    "github.com/EvilBit-Labs/opnDossier/internal/model/common"
+    common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 type CustomPlugin struct {
@@ -162,7 +162,7 @@ package main
 
 import (
     "github.com/EvilBit-Labs/opnDossier/internal/compliance"
-    "github.com/EvilBit-Labs/opnDossier/internal/model/common"
+    common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 type MyDynamicPlugin struct{}
@@ -194,16 +194,16 @@ go build -buildmode=plugin -o myplugin.so main.go
 
 **Breaking change (internal API — semver stays v1.x):** The `RunChecks` method signature changed from `*model.OpnSenseDocument` to `*common.CommonDevice`.
 
-| Item      | v1.x                      | Current                 |
-| --------- | ------------------------- | ----------------------- |
-| Import    | `internal/model`          | `internal/model/common` |
-| Parameter | `*model.OpnSenseDocument` | `*common.CommonDevice`  |
+| Item      | v1.x                      | Current                |
+| --------- | ------------------------- | ---------------------- |
+| Import    | `internal/model`          | `pkg/model`            |
+| Parameter | `*model.OpnSenseDocument` | `*common.CommonDevice` |
 
 **Migration steps:**
 
-1. Replace `"github.com/EvilBit-Labs/opnDossier/internal/model"` import with `"github.com/EvilBit-Labs/opnDossier/internal/model/common"`
+1. Replace `"github.com/EvilBit-Labs/opnDossier/internal/model"` import with `common "github.com/EvilBit-Labs/opnDossier/pkg/model"`
 2. Change `RunChecks(config *model.OpnSenseDocument)` to `RunChecks(device *common.CommonDevice)`
-3. Update field access — `CommonDevice` mirrors the full OPNsense surface area; field names follow Go domain conventions rather than XML tag names. Refer to `internal/model/common/` for the full type definitions.
+3. Update field access — `CommonDevice` mirrors the full OPNsense surface area; field names follow Go domain conventions rather than XML tag names. Refer to `pkg/model/` for the full type definitions.
 
 ## Plugin Development Best Practices
 

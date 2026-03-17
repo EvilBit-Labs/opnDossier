@@ -60,7 +60,7 @@ The CLI uses a layered architecture: **Cobra** provides command structure and ar
 - **Package**: `internal/analysis/`
 - **Responsibility**: Canonical finding and severity types shared across audit, compliance, and processor packages
 - **Key Types**: `Finding` struct, `Severity` type with validation helpers
-- **Export Model**: `ComplianceResults`, `ComplianceFinding`, `PluginComplianceResult`, `ComplianceControl`, `ComplianceResultSummary`, `CompliancePluginInfo`, `ComplianceAttackSurface` in `internal/model/common/enrichment.go`
+- **Export Model**: `ComplianceResults`, `ComplianceFinding`, `PluginComplianceResult`, `ComplianceControl`, `ComplianceResultSummary`, `CompliancePluginInfo`, `ComplianceAttackSurface` in `pkg/model/enrichment.go`
 - **Purpose**: Eliminates type duplication, ensures consistency across all analysis-related packages
 - **Usage**: Also used in `ConversionWarning` type for severity classification of non-fatal conversion issues
 
@@ -173,9 +173,9 @@ opnDossier separates XML-specific DTOs from the domain model consumed by all dow
 
 ```mermaid
 graph TD
-    A["internal/schema/ — XML DTOs (OPNsense-shaped structs)"]
-    B["internal/model/opnsense/ — OPNsense parser + converter"]
-    C["internal/model/common/ — CommonDevice domain model"]
+    A["pkg/schema/opnsense/ — XML DTOs (OPNsense-shaped structs)"]
+    B["pkg/parser/opnsense/ — OPNsense parser + converter"]
+    C["pkg/model/ — CommonDevice domain model"]
     D["internal/analysis/ — Canonical Finding + Severity types"]
     E["Consumers: processor / converter / markdown / audit / diff / plugins"]
 
@@ -187,15 +187,15 @@ graph TD
 
 ### Layer Responsibilities
 
-- **`internal/schema/`** — XML DTO layer. Carries `xml:""` tags and mirrors the OPNsense config.xml structure. This layer is untouched by downstream consumers.
-- **`internal/model/opnsense/`** — Contains `parser.go` and `converter.go`. Reads schema DTOs and emits `*common.CommonDevice` with conversion warnings. This is the only package that imports `internal/schema/`.
-- **`internal/model/common/`** — Device-agnostic domain model. No XML tags. All consumer code (processor, converter, markdown, audit, diff, compliance plugins) operates on `CommonDevice`. Includes `ConversionWarning` type for non-fatal issues and `ComplianceResults` type (with nested `ComplianceFinding`, `PluginComplianceResult`, `ComplianceControl`, `ComplianceResultSummary`, `CompliancePluginInfo`, `ComplianceAttackSurface`) for compliance audit data representation.
+- **`pkg/schema/opnsense/`** — XML DTO layer. Carries `xml:""` tags and mirrors the OPNsense config.xml structure. This layer is untouched by downstream consumers.
+- **`pkg/parser/opnsense/`** — Contains `parser.go` and `converter.go`. Reads schema DTOs and emits `*common.CommonDevice` with conversion warnings. This is the only package that imports `pkg/schema/opnsense/`.
+- **`pkg/model/`** — Device-agnostic domain model. No XML tags. All consumer code (processor, converter, markdown, audit, diff, compliance plugins) operates on `CommonDevice`. Includes `ConversionWarning` type for non-fatal issues and `ComplianceResults` type (with nested `ComplianceFinding`, `PluginComplianceResult`, `ComplianceControl`, `ComplianceResultSummary`, `CompliancePluginInfo`, `ComplianceAttackSurface`) for compliance audit data representation.
 - **`internal/analysis/`** — Canonical finding and severity types. Provides the shared `Finding` struct and `Severity` type used across audit, compliance, and processor packages to ensure consistency.
-- **`internal/model/factory.go`** — `ParserFactory` and `DeviceParser` interface. Auto-detects the device type from the XML root element. The `--device-type opnsense` flag bypasses auto-detection. Returns 3 values: device model, warnings slice, and error.
+- **`pkg/parser/factory.go`** — `Factory` and `DeviceParser` interface. Auto-detects the device type from the XML root element. The `--device-type opnsense` flag bypasses auto-detection. Returns 3 values: device model, warnings slice, and error.
 
 ### Device Type Detection
 
-The `--device-type` flag is exposed on all config-reading commands (`convert`, `display`, `audit`, `diff`, `validate`). When specified, it bypasses auto-detection and fails only if parsing or validation fails. When omitted, `ParserFactory` inspects the root XML element to select the correct parser.
+The `--device-type` flag is exposed on all config-reading commands (`convert`, `display`, `audit`, `diff`, `validate`). When specified, it bypasses auto-detection and fails only if parsing or validation fails. When omitted, `parser.Factory` inspects the root XML element to select the correct parser.
 
 ## Data Flow Architecture
 
@@ -570,7 +570,7 @@ package blueteam
 
 import (
     "github.com/EvilBit-Labs/opnDossier/internal/analysis"
-    "github.com/EvilBit-Labs/opnDossier/internal/model/common"
+    common "github.com/EvilBit-Labs/opnDossier/pkg/model"
     "github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
 )
 
@@ -774,7 +774,7 @@ type ConversionWarning struct {
 
 ### Warning Generation
 
-The OPNsense converter (`internal/model/opnsense/converter.go`) accumulates warnings during conversion via the `addWarning()` method:
+The OPNsense converter (`pkg/parser/opnsense/converter.go`) accumulates warnings during conversion via the `addWarning()` method:
 
 ```go
 func (c *Converter) addWarning(field, value, message string, severity analysis.Severity) {
@@ -822,7 +822,7 @@ Warnings flow through the system alongside the device model:
 
 1. **Converter generates warnings** during `ToCommonDevice()` conversion
 2. **DeviceParser returns warnings** from `Parse()` and `ParseAndValidate()` methods
-3. **ParserFactory propagates warnings** through `CreateDevice()`
+3. **The Factory propagates warnings** through `CreateDevice()`
 4. **CLI commands log warnings** via structured logging using `ctxLogger.Warn()`
 
 ### DeviceParser Interface
@@ -839,12 +839,12 @@ type DeviceParser interface {
 }
 ```
 
-### ParserFactory
+### Factory
 
-The `ParserFactory.CreateDevice()` method returns 3 values:
+The `Factory.CreateDevice()` method returns 3 values:
 
 ```go
-func (f *ParserFactory) CreateDevice(
+func (f *Factory) CreateDevice(
     ctx context.Context,
     r io.Reader,
     deviceTypeOverride string,
@@ -857,7 +857,7 @@ func (f *ParserFactory) CreateDevice(
 All configuration-reading commands (`convert`, `display`, `validate`, `diff`) handle warnings consistently:
 
 ```go
-device, warnings, err := model.NewParserFactory().CreateDevice(ctx, file, deviceType, validateMode)
+device, warnings, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(ctx, file, deviceType, validateMode)
 if err != nil {
     // Handle fatal error
 }
@@ -932,7 +932,7 @@ When the `--quiet` flag is used:
 
 1. **User provides** OPNsense config.xml file
 2. **CLI parses** command-line arguments and loads configuration
-3. **ParserFactory** auto-detects device type and converts to `CommonDevice`
+3. **Factory** auto-detects device type and converts to `CommonDevice`
 4. **Converter** transforms XML to `CommonDevice`, accumulating conversion warnings for non-fatal issues
 5. **Parser returns** 3 values: device model, warnings slice, error
 6. **CLI logs** warnings via structured logging (suppressed with `--quiet` flag)

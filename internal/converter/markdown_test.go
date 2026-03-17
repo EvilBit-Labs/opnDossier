@@ -7,9 +7,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
-	"github.com/EvilBit-Labs/opnDossier/internal/model"
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
+	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -99,7 +100,7 @@ func TestMarkdownConverter_ConvertFromTestdataFile(t *testing.T) {
 	require.NoError(t, err, "Failed to read testdata XML file")
 
 	// Parse the XML file and convert to CommonDevice
-	factory := model.NewParserFactory()
+	factory := parser.NewFactory(cfgparser.NewXMLParser())
 	device, _, err := factory.CreateDevice(context.Background(), strings.NewReader(string(xmlData)), "", false)
 	require.NoError(t, err, "XML parsing should succeed")
 

@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"gopkg.in/yaml.v3"
 )
 

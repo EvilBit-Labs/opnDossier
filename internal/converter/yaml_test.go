@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/model/common"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
