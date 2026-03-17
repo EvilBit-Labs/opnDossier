@@ -139,6 +139,39 @@ func TestDetectDeadRules(t *testing.T) {
 			wantContains: "duplicate",
 			wantKind:     common.DeadRuleKindDuplicate,
 		},
+		{
+			name: "three equivalent rules produce findings for each pair",
+			cfg: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        "pass",
+						IPProtocol:  "inet",
+						Interfaces:  []string{"lan"},
+						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
+						Destination: common.RuleEndpoint{Address: "any"},
+					},
+					{
+						Type:        "pass",
+						IPProtocol:  "inet",
+						Interfaces:  []string{"lan"},
+						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
+						Destination: common.RuleEndpoint{Address: "any"},
+					},
+					{
+						Type:        "pass",
+						IPProtocol:  "inet",
+						Interfaces:  []string{"lan"},
+						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
+						Destination: common.RuleEndpoint{Address: "any"},
+					},
+				},
+			},
+			wantCount:    3,
+			wantIndex:    1,
+			wantIface:    "lan",
+			wantContains: "duplicate",
+			wantKind:     common.DeadRuleKindDuplicate,
+		},
 	}
 
 	for _, tt := range tests {

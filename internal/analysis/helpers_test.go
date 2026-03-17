@@ -84,7 +84,7 @@ func TestFindInterface_ReturnsPointerToOriginal(t *testing.T) {
 
 	result := analysis.FindInterface(interfaces, "wan")
 	require.NotNil(t, result)
-	assert.Equal(t, &interfaces[0], result)
+	assert.Same(t, &interfaces[0], result)
 }
 
 func TestFindDHCPScope(t *testing.T) {

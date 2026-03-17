@@ -130,6 +130,7 @@ This allows external test packages to use the conversion functionality without a
 ### Related Documentation
 
 For detailed examples and the historical context of fixing `pkg/internal/` boundary violations, see:
+
 - **[docs/solutions/architecture-issues/pkg-internal-import-boundary.md](../solutions/architecture-issues/pkg-internal-import-boundary.md)**
 
 ## Services and Components

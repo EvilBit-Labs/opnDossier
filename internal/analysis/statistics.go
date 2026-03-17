@@ -2,6 +2,7 @@ package analysis
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
@@ -201,6 +202,19 @@ func ComputeStatistics(cfg *common.CommonDevice) *common.Statistics {
 	if cfg.System.DisableNATReflection {
 		stats.SecurityFeatures = append(stats.SecurityFeatures, "NAT Reflection Disabled")
 	}
+
+	// Sort list fields for deterministic serialization output.
+	slices.Sort(stats.EnabledServices)
+	slices.Sort(stats.SecurityFeatures)
+	slices.SortFunc(stats.InterfaceDetails, func(a, b common.InterfaceStatistics) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+	slices.SortFunc(stats.ServiceDetails, func(a, b common.ServiceStatistics) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+	slices.SortFunc(stats.DHCPScopeDetails, func(a, b common.DHCPScopeStatistics) int {
+		return strings.Compare(a.Interface, b.Interface)
+	})
 
 	// Calculate summary statistics
 	securityScore := ComputeSecurityScore(cfg, stats)

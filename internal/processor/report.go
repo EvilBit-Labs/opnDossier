@@ -288,7 +288,8 @@ func (r *Report) ToJSON() (string, error) {
 	defer r.mu.RUnlock()
 
 	safe := r.redactedCopyUnsafe()
-	data, err := json.MarshalIndent(safe, "", "  ") //nolint:musttag // Report has proper json tags
+	//nolint:musttag // Report has proper json tags
+	data, err := json.MarshalIndent(safe, "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal report to JSON: %w", err)
 	}
@@ -303,7 +304,8 @@ func (r *Report) ToYAML() (string, error) {
 	defer r.mu.RUnlock()
 
 	safe := r.redactedCopyUnsafe()
-	data, err := yaml.Marshal(safe) //nolint:musttag // Report has proper yaml tags
+	//nolint:musttag // Report has proper yaml tags
+	data, err := yaml.Marshal(safe)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal report to YAML: %w", err)
 	}

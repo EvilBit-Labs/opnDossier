@@ -99,13 +99,13 @@ statistics:
         "": 4
     interfaceDetails:
         - {}
-        - name: invalid-interface
-          hasIpv4: true
         - name: interface*with*chars
           enabled: true
           hasIpv4: true
         - name: interface`with`backticks
           enabled: true
+          hasIpv4: true
+        - name: invalid-interface
           hasIpv4: true
     totalFirewallRules: 4
     rulesByInterface:
