@@ -31,6 +31,11 @@ func TestComputeStatistics(t *testing.T) {
 		checkMapsNotNil    bool
 	}{
 		{
+			name:            "nil device returns initialized empty stats",
+			cfg:             nil,
+			checkMapsNotNil: true,
+		},
+		{
 			name:            "minimal empty device",
 			cfg:             &common.CommonDevice{},
 			checkMapsNotNil: true,
@@ -135,6 +140,14 @@ func TestComputeStatistics(t *testing.T) {
 			},
 			wantServices: 1,
 		},
+		{
+			name: "NAT reflection disabled detected as security feature",
+			cfg: &common.CommonDevice{
+				System: common.System{DisableNATReflection: true},
+			},
+			wantHasSecFeatures: true,
+			wantSecFeatures:    []string{"NAT Reflection Disabled"},
+		},
 	}
 
 	for _, tt := range tests {
@@ -182,6 +195,31 @@ func TestComputeStatistics(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestComputeStatistics_UserAndGroupScopes(t *testing.T) {
+	t.Parallel()
+
+	cfg := &common.CommonDevice{
+		Users: []common.User{
+			{Name: "admin", Scope: "system"},
+			{Name: "user1", Scope: "user"},
+			{Name: "user2", Scope: "user"},
+		},
+		Groups: []common.Group{
+			{Name: "admins", Scope: "system"},
+			{Name: "users", Scope: "local"},
+		},
+	}
+
+	stats := analysis.ComputeStatistics(cfg)
+
+	assert.Equal(t, 3, stats.TotalUsers)
+	assert.Equal(t, 2, stats.TotalGroups)
+	assert.Equal(t, 1, stats.UsersByScope["system"])
+	assert.Equal(t, 2, stats.UsersByScope["user"])
+	assert.Equal(t, 1, stats.GroupsByScope["system"])
+	assert.Equal(t, 1, stats.GroupsByScope["local"])
 }
 
 func TestComputeStatistics_SNMPCommunityRawValue(t *testing.T) {
@@ -241,10 +279,23 @@ func TestComputeSecurityScore(t *testing.T) {
 	tests := []struct {
 		name      string
 		cfg       *common.CommonDevice
+		stats     *common.Statistics
 		features  []string
 		rules     int
 		wantScore int
 	}{
+		{
+			name:      "nil cfg returns zero",
+			cfg:       nil,
+			stats:     &common.Statistics{},
+			wantScore: 0,
+		},
+		{
+			name:      "nil stats returns zero",
+			cfg:       &common.CommonDevice{},
+			stats:     nil,
+			wantScore: 0,
+		},
 		{
 			name:      "no features",
 			cfg:       &common.CommonDevice{},
@@ -283,9 +334,12 @@ func TestComputeSecurityScore(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			stats := &common.Statistics{
-				SecurityFeatures:   tt.features,
-				TotalFirewallRules: tt.rules,
+			stats := tt.stats
+			if stats == nil {
+				stats = &common.Statistics{
+					SecurityFeatures:   tt.features,
+					TotalFirewallRules: tt.rules,
+				}
 			}
 			score := analysis.ComputeSecurityScore(tt.cfg, stats)
 			assert.Equal(t, tt.wantScore, score)
@@ -301,6 +355,11 @@ func TestComputeConfigComplexity(t *testing.T) {
 		stats      *common.Statistics
 		wantResult int
 	}{
+		{
+			name:       "nil stats returns zero",
+			stats:      nil,
+			wantResult: 0,
+		},
 		{
 			name:       "empty config",
 			stats:      &common.Statistics{},
@@ -350,6 +409,11 @@ func TestComputeTotalConfigItems(t *testing.T) {
 		stats *common.Statistics
 		want  int
 	}{
+		{
+			name:  "nil stats returns zero",
+			stats: nil,
+			want:  0,
+		},
 		{
 			name:  "empty stats",
 			stats: &common.Statistics{},

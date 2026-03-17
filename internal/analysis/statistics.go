@@ -13,7 +13,23 @@ const ServiceNameSNMP = "SNMP Daemon"
 
 // ComputeStatistics analyzes a device configuration and returns aggregated statistics
 // using the common.Statistics type suitable for serialization in JSON/YAML exports.
+// A nil cfg returns an initialized but empty Statistics.
 func ComputeStatistics(cfg *common.CommonDevice) *common.Statistics {
+	if cfg == nil {
+		return &common.Statistics{
+			InterfacesByType: make(map[string]int),
+			InterfaceDetails: []common.InterfaceStatistics{},
+			RulesByInterface: make(map[string]int),
+			RulesByType:      make(map[string]int),
+			DHCPScopeDetails: []common.DHCPScopeStatistics{},
+			UsersByScope:     make(map[string]int),
+			GroupsByScope:    make(map[string]int),
+			EnabledServices:  []string{},
+			ServiceDetails:   []common.ServiceStatistics{},
+			SecurityFeatures: []string{},
+		}
+	}
+
 	stats := &common.Statistics{
 		InterfacesByType: make(map[string]int),
 		InterfaceDetails: []common.InterfaceStatistics{},
@@ -201,8 +217,13 @@ func ComputeStatistics(cfg *common.CommonDevice) *common.Statistics {
 }
 
 // ComputeTotalConfigItems calculates the total number of configuration items
-// by summing all relevant components including network infrastructure.
+// by summing interfaces, rules, users, groups, services, gateways, sysctl,
+// DHCP, load balancer, VLANs, bridges, certificates, and CAs.
 func ComputeTotalConfigItems(stats *common.Statistics) int {
+	if stats == nil {
+		return 0
+	}
+
 	return stats.TotalInterfaces + stats.TotalFirewallRules + stats.TotalUsers + stats.TotalGroups +
 		stats.TotalServices + stats.TotalGateways + stats.TotalGatewayGroups + stats.SysctlSettings +
 		stats.DHCPScopes + stats.LoadBalancerMonitors +
@@ -210,8 +231,13 @@ func ComputeTotalConfigItems(stats *common.Statistics) int {
 }
 
 // ComputeSecurityScore returns a security score based on detected security features,
-// firewall rules, HTTPS Web GUI usage, and SSH group configuration.
+// firewall rules, HTTPS Web GUI usage, SSH group configuration, and IDS/IPS enablement.
+// The score is capped at MaxSecurityScore. Returns 0 when cfg or stats is nil.
 func ComputeSecurityScore(cfg *common.CommonDevice, stats *common.Statistics) int {
+	if cfg == nil || stats == nil {
+		return 0
+	}
+
 	score := 0
 
 	// Security features contribute to score
@@ -249,8 +275,12 @@ func ComputeSecurityScore(cfg *common.CommonDevice, stats *common.Statistics) in
 }
 
 // ComputeConfigComplexity returns a normalized complexity score for the configuration
-// based on weighted counts of various configuration elements.
+// based on weighted counts of various configuration elements. Returns 0 when stats is nil.
 func ComputeConfigComplexity(stats *common.Statistics) int {
+	if stats == nil {
+		return 0
+	}
+
 	complexity := 0
 
 	complexity += stats.TotalInterfaces * constants.InterfaceComplexityWeight

@@ -44,7 +44,8 @@ func (p *CoreProcessor) analyze(_ context.Context, cfg *common.CommonDevice, con
 func (p *CoreProcessor) analyzeDeadRules(cfg *common.CommonDevice, report *Report) {
 	deadRules := analysis.DetectDeadRules(cfg)
 	for _, f := range deadRules {
-		if strings.Contains(f.Description, "duplicate") {
+		switch f.Kind {
+		case common.DeadRuleKindDuplicate:
 			report.AddFinding(SeverityLow, Finding{
 				Type:           "duplicate-rule",
 				Title:          "Duplicate Firewall Rule",
@@ -52,7 +53,7 @@ func (p *CoreProcessor) analyzeDeadRules(cfg *common.CommonDevice, report *Repor
 				Component:      fmt.Sprintf("filter.rule[%d]", f.RuleIndex),
 				Recommendation: f.Recommendation,
 			})
-		} else {
+		default:
 			report.AddFinding(SeverityMedium, Finding{
 				Type:           "dead-rule",
 				Title:          "Unreachable Rules After Block All",

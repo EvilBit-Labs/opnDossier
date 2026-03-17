@@ -3,6 +3,7 @@ package analysis
 import (
 	"fmt"
 	"maps"
+	"net"
 	"slices"
 	"strings"
 
@@ -27,7 +28,9 @@ func ComputeAnalysis(cfg *common.CommonDevice) *common.Analysis {
 	}
 }
 
-// DetectDeadRules detects unreachable and duplicate firewall rules.
+// DetectDeadRules detects unreachable and duplicate firewall rules by grouping
+// rules per interface and analyzing each group independently. Each finding carries
+// a Kind field ("unreachable" or "duplicate") for structured classification.
 // Returns nil when no dead rules are found.
 func DetectDeadRules(cfg *common.CommonDevice) []common.DeadRuleFinding {
 	if cfg == nil || len(cfg.FirewallRules) == 0 {
@@ -52,6 +55,7 @@ func DetectDeadRules(cfg *common.CommonDevice) []common.DeadRuleFinding {
 			dstAny := ir.Rule.Destination.Address == constants.NetworkAny
 			if ir.Rule.Type == "block" && srcAny && dstAny && i < len(rules)-1 {
 				findings = append(findings, common.DeadRuleFinding{
+					Kind:      common.DeadRuleKindUnreachable,
 					RuleIndex: ir.Index,
 					Interface: iface,
 					Description: fmt.Sprintf(
@@ -66,6 +70,7 @@ func DetectDeadRules(cfg *common.CommonDevice) []common.DeadRuleFinding {
 			for j := i + 1; j < len(rules); j++ {
 				if RulesEquivalent(ir.Rule, rules[j].Rule) {
 					findings = append(findings, common.DeadRuleFinding{
+						Kind:      common.DeadRuleKindDuplicate,
 						RuleIndex: rules[j].Index,
 						Interface: iface,
 						Description: fmt.Sprintf(
@@ -82,7 +87,10 @@ func DetectDeadRules(cfg *common.CommonDevice) []common.DeadRuleFinding {
 	return findings
 }
 
-// DetectUnusedInterfaces detects enabled interfaces not used in rules or services.
+// DetectUnusedInterfaces detects enabled interfaces not referenced by firewall rules,
+// DHCP scopes, DNS resolvers (Unbound/DNSMasq), OpenVPN instances, WireGuard, or the
+// load balancer. DNS, WireGuard, and load balancer currently assume "lan" binding when
+// enabled — this is a known limitation when these services are bound to non-LAN interfaces.
 // Returns nil when no unused interfaces are found.
 func DetectUnusedInterfaces(cfg *common.CommonDevice) []common.UnusedInterfaceFinding {
 	if cfg == nil {
@@ -240,7 +248,7 @@ func DetectConsistency(cfg *common.CommonDevice) []common.ConsistencyFinding {
 	// Gateway format consistency.
 	for _, iface := range cfg.Interfaces {
 		if iface.Gateway != "" && iface.IPAddress != "" && iface.Subnet != "" {
-			if !strings.Contains(iface.Gateway, ".") {
+			if net.ParseIP(iface.Gateway) == nil {
 				findings = append(findings, common.ConsistencyFinding{
 					Component: fmt.Sprintf("interfaces.%s.gateway", iface.Name),
 					Issue:     "Invalid Gateway Format",

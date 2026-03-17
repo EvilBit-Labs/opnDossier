@@ -8,8 +8,14 @@ import (
 
 // RulesEquivalent checks if two firewall rules are functionally equivalent.
 // Interface order is normalized before comparison so that ["wan","lan"] and
-// ["lan","wan"] are treated as equivalent.
+// ["lan","wan"] are treated as equivalent. Metadata fields (Description, etc.)
+// are intentionally excluded from comparison. A disabled rule is not equivalent
+// to an enabled rule.
 func RulesEquivalent(a, b common.FirewallRule) bool {
+	if a.Disabled != b.Disabled {
+		return false
+	}
+
 	ifaces1 := slices.Clone(a.Interfaces)
 	ifaces2 := slices.Clone(b.Interfaces)
 	slices.Sort(ifaces1)

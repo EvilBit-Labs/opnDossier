@@ -1,5 +1,6 @@
-// Package analysis provides canonical types for security analysis findings
-// shared across the audit, compliance, and processor packages.
+// Package analysis provides canonical types for security analysis findings and
+// shared analysis functions (detection, statistics, rule comparison) used across
+// the audit, compliance, converter, and processor packages.
 package analysis
 
 import "slices"

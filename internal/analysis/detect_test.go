@@ -57,6 +57,7 @@ func TestDetectDeadRules(t *testing.T) {
 		wantIndex    int
 		wantIface    string
 		wantContains string
+		wantKind     string
 	}{
 		{
 			name:      "nil device",
@@ -90,6 +91,7 @@ func TestDetectDeadRules(t *testing.T) {
 			wantIndex:    0,
 			wantIface:    "wan",
 			wantContains: "unreachable",
+			wantKind:     common.DeadRuleKindUnreachable,
 		},
 		{
 			name: "block-all as last rule produces no finding",
@@ -135,6 +137,7 @@ func TestDetectDeadRules(t *testing.T) {
 			wantIndex:    1,
 			wantIface:    "lan",
 			wantContains: "duplicate",
+			wantKind:     common.DeadRuleKindDuplicate,
 		},
 	}
 
@@ -149,6 +152,7 @@ func TestDetectDeadRules(t *testing.T) {
 				assert.Equal(t, tt.wantIndex, findings[0].RuleIndex)
 				assert.Equal(t, tt.wantIface, findings[0].Interface)
 				assert.Contains(t, findings[0].Description, tt.wantContains)
+				assert.Equal(t, tt.wantKind, findings[0].Kind)
 			}
 		})
 	}
@@ -233,6 +237,46 @@ func TestDetectUnusedInterfaces(t *testing.T) {
 				},
 				DNS: common.DNSConfig{
 					Unbound: common.UnboundConfig{Enabled: true},
+				},
+			},
+			wantCount: 0,
+		},
+		{
+			name: "used by DNSMasq not flagged",
+			cfg: &common.CommonDevice{
+				Interfaces: []common.Interface{
+					{Name: "lan", Enabled: true},
+				},
+				DNS: common.DNSConfig{
+					DNSMasq: common.DNSMasqConfig{Enabled: true},
+				},
+			},
+			wantCount: 0,
+		},
+		{
+			name: "used by OpenVPN client not flagged",
+			cfg: &common.CommonDevice{
+				Interfaces: []common.Interface{
+					{Name: "opt1", Enabled: true},
+				},
+				VPN: common.VPN{
+					OpenVPN: common.OpenVPNConfig{
+						Clients: []common.OpenVPNClient{
+							{Interface: "opt1"},
+						},
+					},
+				},
+			},
+			wantCount: 0,
+		},
+		{
+			name: "used by load balancer not flagged",
+			cfg: &common.CommonDevice{
+				Interfaces: []common.Interface{
+					{Name: "lan", Enabled: true},
+				},
+				LoadBalancer: common.LoadBalancerConfig{
+					MonitorTypes: []common.MonitorType{{Name: "http"}},
 				},
 			},
 			wantCount: 0,
@@ -435,6 +479,15 @@ func TestDetectConsistency(t *testing.T) {
 			cfg: &common.CommonDevice{
 				Interfaces: []common.Interface{
 					{Name: "wan", IPAddress: "1.2.3.4", Subnet: "24", Gateway: "1.2.3.1"},
+				},
+			},
+			wantCount: 0,
+		},
+		{
+			name: "valid IPv6 gateway not flagged",
+			cfg: &common.CommonDevice{
+				Interfaces: []common.Interface{
+					{Name: "wan", IPAddress: "2001:db8::1", Subnet: "64", Gateway: "fe80::1"},
 				},
 			},
 			wantCount: 0,

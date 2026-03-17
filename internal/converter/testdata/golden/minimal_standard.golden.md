@@ -3,7 +3,7 @@
 - **Hostname**: minimal-host
 - **Domain**: minimal.local
 - **Platform**: OPNsense 23.1.1
-- **Generated On**: 2026-03-17T01:12:50-04:00
+- **Generated On**: 2026-03-17T02:13:17-04:00
 - **Parsed By**: opnDossier vdev
 ## Table of Contents
 - [System Configuration](#system-configuration)

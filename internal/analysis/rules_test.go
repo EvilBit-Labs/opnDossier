@@ -205,6 +205,30 @@ func TestRulesEquivalent(t *testing.T) {
 			}(),
 			expected: true,
 		},
+		{
+			name:  "different disabled state",
+			ruleA: baseRule,
+			ruleB: func() common.FirewallRule {
+				r := baseRule
+				r.Disabled = true
+				return r
+			}(),
+			expected: false,
+		},
+		{
+			name: "both disabled are equivalent",
+			ruleA: func() common.FirewallRule {
+				r := baseRule
+				r.Disabled = true
+				return r
+			}(),
+			ruleB: func() common.FirewallRule {
+				r := baseRule
+				r.Disabled = true
+				return r
+			}(),
+			expected: true,
+		},
 	}
 
 	for _, tt := range tests {

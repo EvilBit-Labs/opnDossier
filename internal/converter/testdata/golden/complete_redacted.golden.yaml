@@ -409,7 +409,8 @@ statistics:
         hasSecurityFeatures: true
 analysis:
     deadRules:
-        - interface: wan
+        - kind: unreachable
+          interface: wan
           description: Rules after position 1 on interface wan are unreachable due to preceding block-all rule
           recommendation: Remove unreachable rules or reorder them before the block-all rule
     securityIssues:
