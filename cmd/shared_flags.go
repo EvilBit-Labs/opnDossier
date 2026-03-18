@@ -49,7 +49,7 @@ var (
 // cmd must be a non-nil *cobra.Command.
 func addSharedTemplateFlags(cmd *cobra.Command) {
 	cmd.Flags().
-		BoolVar(&sharedIncludeTunables, "include-tunables", false, "Include system tunables in the output report")
+		BoolVar(&sharedIncludeTunables, "include-tunables", false, "Include all system tunables in report output (markdown, text, HTML only; JSON/YAML always include all tunables)")
 	setFlagAnnotation(cmd.Flags(), "include-tunables", []string{"content"})
 
 	cmd.Flags().
