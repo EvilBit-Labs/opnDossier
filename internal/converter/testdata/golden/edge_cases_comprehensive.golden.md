@@ -3,7 +3,7 @@
 - **Hostname**: edge-case-test!@#$%^&*()
 - **Domain**: domain*with*asterisks
 - **Platform**: OPNsense 
-- **Generated On**: 2026-03-17T02:42:11-04:00
+- **Generated On**: 2026-03-17T23:08:41-04:00
 - **Parsed By**: opnDossier vdev
 ## Table of Contents
 - [System Configuration](#system-configuration)
@@ -21,7 +21,6 @@
 - [System Users](#system-users)
 - [System Groups](#system-groups)
 - [Services & Daemons](#services--daemons)
-- [System Tunables](#system-tunables)
 ## System Configuration
 ### Basic Information
 **Hostname**: edge-case-test!@#$%^&*()
@@ -185,11 +184,3 @@
 ### DNS Resolver (Unbound)
 ### SNMP
 ### NTP
-## System Tunables
-| Tunable | Value | Description |
-|---------|---------|---------|
-|  |  |  |
-| invalid.tunable.with.pipes\|and\|newlines | value with newlines | Description with \| pipes \| and   newlines 	 tabs |
-| tunable\*with\*asterisks | value\_with\_underscores | Description with \*bold\* and \_italic\_ text |
-| tunable\[with\]brackets | value\<with\>angles | Description with \[brackets\] and \<angles\> |
-| tunable\`with\`backticks | value\\with\\backslashes | Description with \`code\` and \\backslash\\ characters |
