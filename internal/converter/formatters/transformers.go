@@ -13,6 +13,28 @@ const (
 	ruleTypeRatio        = 3
 )
 
+// securitySysctlPrefixes lists security-relevant FreeBSD/OPNsense sysctl prefixes
+// used to filter tunables when only security-related items are requested.
+var securitySysctlPrefixes = []string{
+	"kern.coredump",                  // core dump control (information leakage)
+	"kern.randompid",                 // PID randomization
+	"kern.securelevel",               // system security level
+	"net.inet.icmp.drop_redirect",    // ICMP redirect attack mitigation
+	"net.inet.ip.accept_sourceroute", // source route acceptance
+	"net.inet.ip.forwarding",         // IP forwarding control
+	"net.inet.ip.redirect",           // IP redirect control
+	"net.inet.ip.sourceroute",        // source routing control
+	"net.inet.tcp.blackhole",         // TCP stealth drop
+	"net.inet.tcp.drop_synfin",       // SYN+FIN attack mitigation
+	"net.inet.tcp.log_in_vain",       // TCP connection logging
+	"net.inet.tcp.syncookies",        // SYN flood protection
+	"net.inet.udp.blackhole",         // UDP stealth drop
+	"net.inet.udp.log_in_vain",       // UDP connection logging
+	"net.inet6.icmp6.rediraccept",    // IPv6 ICMP redirect
+	"net.inet6.ip6.forwarding",       // IPv6 forwarding control
+	"security.",                      // security subsystem prefix
+}
+
 // FilterSystemTunables filters system tunables based on security-related prefixes.
 // When includeTunables is false, only returns security-related tunables.
 // When includeTunables is true, returns all tunables.
@@ -32,15 +54,6 @@ func FilterSystemTunables(tunables []common.SysctlItem, includeTunables bool) []
 		return result
 	}
 
-	securityPrefixes := []string{
-		"net.inet.ip.forwarding",
-		"net.inet6.ip6.forwarding",
-		"kern.securelevel",
-		"security.",
-		"net.inet.tcp.blackhole",
-		"net.inet.udp.blackhole",
-	}
-
 	estimatedSize := max(1, len(tunables)/securityTunableRatio)
 	filtered := make([]common.SysctlItem, 0, estimatedSize)
 
@@ -49,7 +62,7 @@ func FilterSystemTunables(tunables []common.SysctlItem, includeTunables bool) []
 			continue
 		}
 
-		for _, prefix := range securityPrefixes {
+		for _, prefix := range securitySysctlPrefixes {
 			if strings.HasPrefix(item.Tunable, prefix) {
 				filtered = append(filtered, item)
 				break
