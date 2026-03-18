@@ -191,6 +191,8 @@ When adding `io.Writer` support alongside string-based APIs:
 - Keep string-based methods for cases needing further processing (HTML conversion)
 - See `internal/converter/builder/writer.go` and `internal/converter/hybrid_generator.go`
 
+> **Thread safety:** `MarkdownBuilder` is not safe for concurrent use. Create a new instance per goroutine. `SetIncludeTunables` and similar setters mutate builder state and must be called in the same synchronous call chain as `Build*Report`.
+
 ### 5.10 Common Linter Patterns
 
 Frequently encountered linter issues and fixes:
