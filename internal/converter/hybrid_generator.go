@@ -176,6 +176,7 @@ func (g *HybridGenerator) GenerateToWriter(
 }
 
 // generateMarkdown generates markdown output using the programmatic builder.
+// Not safe for concurrent use — MarkdownBuilder is per-instance, not shared.
 func (g *HybridGenerator) generateMarkdown(data *common.CommonDevice, opts Options) (string, error) {
 	g.logger.Debug("Using programmatic markdown generation")
 
