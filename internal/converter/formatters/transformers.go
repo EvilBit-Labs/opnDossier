@@ -60,12 +60,14 @@ func FilterSystemTunables(tunables []common.SysctlItem, includeTunables bool) []
 	estimatedSize := max(1, len(tunables)/securityTunableRatio)
 	filtered := make([]common.SysctlItem, 0, estimatedSize)
 
+	prefixes := securitySysctlPrefixes()
+
 	for _, item := range tunables {
 		if item.Tunable == "" {
 			continue
 		}
 
-		for _, prefix := range securitySysctlPrefixes() {
+		for _, prefix := range prefixes {
 			if strings.HasPrefix(item.Tunable, prefix) {
 				filtered = append(filtered, item)
 				break
