@@ -89,9 +89,6 @@ type Options struct {
 	// IncludeMetadata controls whether to include generation metadata.
 	IncludeMetadata bool
 
-	// CustomFields allows for additional custom fields to be passed to generation.
-	CustomFields map[string]any
-
 	// SuppressWarnings suppresses non-critical warnings.
 	SuppressWarnings bool
 
@@ -121,7 +118,6 @@ func DefaultOptions() Options {
 		EnableEmojis:     true,
 		Compact:          false,
 		IncludeMetadata:  true,
-		CustomFields:     map[string]any{},
 		SuppressWarnings: false,
 		IncludeTunables:  false,
 		Redact:           false,
@@ -195,17 +191,6 @@ func (o Options) WithCompact(compact bool) Options {
 // WithMetadata enables or disables generation metadata.
 func (o Options) WithMetadata(enabled bool) Options {
 	o.IncludeMetadata = enabled
-	return o
-}
-
-// WithCustomField adds a custom field for template rendering.
-func (o Options) WithCustomField(key string, value any) Options {
-	if o.CustomFields == nil {
-		o.CustomFields = make(map[string]any)
-	}
-
-	o.CustomFields[key] = value
-
 	return o
 }
 

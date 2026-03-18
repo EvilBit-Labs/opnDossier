@@ -141,7 +141,6 @@ func TestDefaultOptions(t *testing.T) {
 	assert.False(t, opts.SuppressWarnings)
 	assert.False(t, opts.Redact)
 	assert.False(t, opts.IncludeTunables)
-	assert.NotNil(t, opts.CustomFields)
 }
 
 func TestOptions_Validate(t *testing.T) {
@@ -493,58 +492,6 @@ func TestOptions_WithMetadata(t *testing.T) {
 	}
 }
 
-func TestOptions_WithCustomField(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name     string
-		key      string
-		value    any
-		expected any
-	}{
-		{
-			name:     "string value",
-			key:      "TestKey",
-			value:    "TestValue",
-			expected: "TestValue",
-		},
-		{
-			name:     "boolean value",
-			key:      "BoolKey",
-			value:    true,
-			expected: true,
-		},
-		{
-			name:     "int value",
-			key:      "IntKey",
-			value:    42,
-			expected: 42,
-		},
-		{
-			name:     "nil value",
-			key:      "NilKey",
-			value:    nil,
-			expected: nil,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			opts := DefaultOptions().WithCustomField(tt.key, tt.value)
-			assert.Equal(t, tt.expected, opts.CustomFields[tt.key])
-		})
-	}
-}
-
-func TestOptions_WithCustomField_NilMap(t *testing.T) {
-	t.Parallel()
-	// Test that WithCustomField creates a map if it's nil
-	opts := Options{} // Empty options with nil CustomFields
-	opts = opts.WithCustomField("TestKey", "TestValue")
-	assert.NotNil(t, opts.CustomFields)
-	assert.Equal(t, "TestValue", opts.CustomFields["TestKey"])
-}
-
 func TestOptions_WithComprehensive(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -670,7 +617,6 @@ func TestOptions_MethodChaining(t *testing.T) {
 		WithEmojis(false).
 		WithCompact(true).
 		WithMetadata(false).
-		WithCustomField("TestKey", "TestValue").
 		WithComprehensive(true).
 		WithSuppressWarnings(true).
 		WithRedact(true).
@@ -685,7 +631,6 @@ func TestOptions_MethodChaining(t *testing.T) {
 	assert.False(t, opts.EnableEmojis)
 	assert.True(t, opts.Compact)
 	assert.False(t, opts.IncludeMetadata)
-	assert.Equal(t, "TestValue", opts.CustomFields["TestKey"])
 	assert.True(t, opts.Comprehensive)
 	assert.True(t, opts.SuppressWarnings)
 	assert.True(t, opts.Redact)
