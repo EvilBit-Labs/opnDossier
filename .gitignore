@@ -205,3 +205,4 @@ docs/plans
 .github/prompts
 .kiro/specs/*
 .worktrees/
+todos/**/*.md

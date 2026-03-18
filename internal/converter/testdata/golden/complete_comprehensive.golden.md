@@ -3,7 +3,7 @@
 - **Hostname**: comprehensive-firewall
 - **Domain**: security.local
 - **Platform**: OPNsense 24.1.2
-- **Generated On**: 2026-03-17T02:42:11-04:00
+- **Generated On**: 2026-03-18T00:49:26-04:00
 - **Parsed By**: opnDossier vdev
 ## Table of Contents
 - [System Configuration](#system-configuration)
@@ -20,7 +20,7 @@
 - [DNS Resolver](#dns-resolver)
 - [System Users](#system-users)
 - [System Groups](#system-groups)
-- [Services & Daemons](#services--daemons)
+- [Services & Daemons](#service-configuration)
 - [System Tunables](#system-tunables)
 ## System Configuration
 ### Basic Information
@@ -261,5 +261,3 @@
 | security.bsd.see\_other\_gids | 0 | Hide processes from other groups |
 | kern.securelevel | 1 | Enable secure level 1 |
 | net.inet.tcp.syncookies | 1 | Enable SYN cookies for DDoS protection |
-| net.inet.icmp.icmplim | 50 | Limit ICMP response rate |
-| net.inet.tcp.always\_keepalive | 1 | Enable TCP keepalive |

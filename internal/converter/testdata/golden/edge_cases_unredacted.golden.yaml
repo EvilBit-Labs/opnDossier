@@ -78,6 +78,12 @@ groups:
       scope: scope[with]brackets
 sysctl:
     - {}
+    - tunable: security.bsd.see|other|uids
+      value: "0"
+      description: Hide processes from | other | users with *special* chars
+    - tunable: kern.securelevel`with`backticks
+      value: value\with\backslashes
+      description: Secure level with `code` and \backslash\ [brackets] <angles>
     - tunable: invalid.tunable.with.pipes|and|newlines
       value: |-
         value
@@ -126,11 +132,11 @@ statistics:
     groupsByScope:
         "": 1
         scope[with]brackets: 1
-    sysctlSettings: 5
+    sysctlSettings: 7
     summary:
-        totalConfigItems: 19
+        totalConfigItems: 21
         securityScore: 20
-        configComplexity: 6
+        configComplexity: 7
 analysis:
     unusedInterfaces:
         - interfaceName: interface*with*chars
@@ -158,4 +164,4 @@ analysis:
 securityAssessment:
     overallScore: 20
 performanceMetrics:
-    configComplexity: 6
+    configComplexity: 7

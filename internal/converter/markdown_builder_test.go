@@ -475,7 +475,8 @@ func TestMarkdownBuilder_BuildStandardReport(t *testing.T) {
 	assert.Contains(t, result, "DNS Resolver")
 	assert.Contains(t, result, "System Users")
 	assert.Contains(t, result, "Services & Daemons")
-	assert.Contains(t, result, "System Tunables")
+	// "System Tunables" ToC entry is conditional on tunables data being present
+	assert.NotContains(t, result, "System Tunables")
 
 	// Verify data
 	assert.Contains(t, result, "test-host")
@@ -524,7 +525,8 @@ func TestMarkdownBuilder_BuildComprehensiveReport(t *testing.T) {
 	assert.Contains(t, result, "System Users")
 	assert.Contains(t, result, "System Groups")
 	assert.Contains(t, result, "Services & Daemons")
-	assert.Contains(t, result, "System Tunables")
+	// "System Tunables" ToC entry is conditional on tunables data being present
+	assert.NotContains(t, result, "System Tunables")
 
 	// Verify data
 	assert.Contains(t, result, "test-host")
@@ -1230,6 +1232,7 @@ func TestMarkdownBuilder_BuildServicesSection_WithLoadBalancerMonitors(t *testin
 
 func TestMarkdownBuilder_BuildStandardReport_WithUsersAndSysctl(t *testing.T) {
 	builder := NewMarkdownBuilder()
+	builder.SetIncludeTunables(true)
 
 	// Test with users and sysctl data
 	data := &common.CommonDevice{

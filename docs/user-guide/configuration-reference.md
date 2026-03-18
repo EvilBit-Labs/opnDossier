@@ -36,14 +36,14 @@ Supported formats: `markdown` (`md`), `json`, `yaml` (`yml`), `text` (`txt`), `h
 
 ### Content & Formatting
 
-| Setting          | CLI Flag             | Environment Variable  | Config File | Type     | Default | Description                                             |
-| ---------------- | -------------------- | --------------------- | ----------- | -------- | ------- | ------------------------------------------------------- |
-| Sections         | `--section`          | `OPNDOSSIER_SECTIONS` | `sections`  | string[] | `[]`    | Sections: system, network, firewall, services, security |
-| Wrap width       | `--wrap`             | `OPNDOSSIER_WRAP`     | `wrap`      | int      | `-1`    | Text wrap width (-1=auto, 0=off, >0=cols)               |
-| No wrap          | `--no-wrap`          | -                     | -           | boolean  | `false` | Disable text wrapping (alias for --wrap 0)              |
-| Comprehensive    | `--comprehensive`    | -                     | -           | boolean  | `false` | Generate comprehensive detailed reports                 |
-| Include tunables | `--include-tunables` | -                     | -           | boolean  | `false` | Include system tunables in output                       |
-| Redact           | `--redact`           | -                     | -           | boolean  | `false` | Redact sensitive fields (passwords, keys, etc.)         |
+| Setting          | CLI Flag             | Environment Variable  | Config File | Type     | Default | Description                                                                                                     |
+| ---------------- | -------------------- | --------------------- | ----------- | -------- | ------- | --------------------------------------------------------------------------------------------------------------- |
+| Sections         | `--section`          | `OPNDOSSIER_SECTIONS` | `sections`  | string[] | `[]`    | Sections: system, network, firewall, services, security                                                         |
+| Wrap width       | `--wrap`             | `OPNDOSSIER_WRAP`     | `wrap`      | int      | `-1`    | Text wrap width (-1=auto, 0=off, >0=cols)                                                                       |
+| No wrap          | `--no-wrap`          | -                     | -           | boolean  | `false` | Disable text wrapping (alias for --wrap 0)                                                                      |
+| Comprehensive    | `--comprehensive`    | -                     | -           | boolean  | `false` | Generate comprehensive detailed reports                                                                         |
+| Include tunables | `--include-tunables` | -                     | -           | boolean  | `false` | Include all system tunables in report output (markdown, text, HTML only; JSON/YAML always include all tunables) |
+| Redact           | `--redact`           | -                     | -           | boolean  | `false` | Redact sensitive fields (passwords, keys, etc.)                                                                 |
 
 ### Audit & Compliance
 
@@ -54,15 +54,15 @@ Supported formats: `markdown` (`md`), `json`, `yaml` (`yml`), `text` (`txt`), `h
 
 ## Display Command Options
 
-| Setting          | CLI Flag             | Environment Variable  | Config File | Type     | Default | Description                                             |
-| ---------------- | -------------------- | --------------------- | ----------- | -------- | ------- | ------------------------------------------------------- |
-| Theme            | `--theme`            | `OPNDOSSIER_THEME`    | `theme`     | string   | `""`    | Rendering theme: auto, dark, light, none                |
-| Sections         | `--section`          | `OPNDOSSIER_SECTIONS` | `sections`  | string[] | `[]`    | Sections: system, network, firewall, services, security |
-| Wrap width       | `--wrap`             | `OPNDOSSIER_WRAP`     | `wrap`      | int      | `-1`    | Text wrap width (-1=auto, 0=off, >0=cols)               |
-| No wrap          | `--no-wrap`          | -                     | -           | boolean  | `false` | Disable text wrapping                                   |
-| Comprehensive    | `--comprehensive`    | -                     | -           | boolean  | `false` | Generate comprehensive reports                          |
-| Include tunables | `--include-tunables` | -                     | -           | boolean  | `false` | Include system tunables in output                       |
-| Redact           | `--redact`           | -                     | -           | boolean  | `false` | Redact sensitive fields in output                       |
+| Setting          | CLI Flag             | Environment Variable  | Config File | Type     | Default | Description                                                                                                     |
+| ---------------- | -------------------- | --------------------- | ----------- | -------- | ------- | --------------------------------------------------------------------------------------------------------------- |
+| Theme            | `--theme`            | `OPNDOSSIER_THEME`    | `theme`     | string   | `""`    | Rendering theme: auto, dark, light, none                                                                        |
+| Sections         | `--section`          | `OPNDOSSIER_SECTIONS` | `sections`  | string[] | `[]`    | Sections: system, network, firewall, services, security                                                         |
+| Wrap width       | `--wrap`             | `OPNDOSSIER_WRAP`     | `wrap`      | int      | `-1`    | Text wrap width (-1=auto, 0=off, >0=cols)                                                                       |
+| No wrap          | `--no-wrap`          | -                     | -           | boolean  | `false` | Disable text wrapping                                                                                           |
+| Comprehensive    | `--comprehensive`    | -                     | -           | boolean  | `false` | Generate comprehensive reports                                                                                  |
+| Include tunables | `--include-tunables` | -                     | -           | boolean  | `false` | Include all system tunables in report output (markdown, text, HTML only; JSON/YAML always include all tunables) |
+| Redact           | `--redact`           | -                     | -           | boolean  | `false` | Redact sensitive fields in output                                                                               |
 
 ## Validate Command Options
 

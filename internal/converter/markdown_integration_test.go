@@ -148,8 +148,9 @@ func TestMarkdownBuilder_TemplateParityValidation(t *testing.T) {
 			// Load test data
 			testData := loadTestDataFromFile(t, tt.dataFile)
 
-			// Generate standard report
+			// Generate standard report (include all tunables to test escaping)
 			builder := NewMarkdownBuilder()
+			builder.SetIncludeTunables(true)
 			standardOutput, err := builder.BuildStandardReport(testData)
 			require.NoError(t, err)
 			assert.NotEmpty(t, standardOutput)

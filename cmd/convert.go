@@ -526,7 +526,7 @@ func normalizeFormat(format string) converter.Format {
 //   - WrapWidth: CLI wrap width if specified (>=0), otherwise cfg wrap width if >=0,
 //     otherwise -1 to indicate automatic behavior; 0 disables wrapping.
 //   - Comprehensive: controlled by the CLI-only comprehensive flag.
-//   - CustomFields["IncludeTunables"]: set from the CLI-only include-tunables flag.
+//   - IncludeTunables: set from the CLI-only include-tunables flag.
 //
 // The function returns a fully populated converter.Options ready for use by the
 // programmatic generator.
@@ -573,7 +573,7 @@ func buildConversionOptions(
 	opt.Comprehensive = sharedComprehensive
 
 	// Include tunables: CLI flag only
-	opt.CustomFields["IncludeTunables"] = sharedIncludeTunables
+	opt.IncludeTunables = sharedIncludeTunables
 
 	// Redact: CLI flag only
 	opt.Redact = sharedRedact

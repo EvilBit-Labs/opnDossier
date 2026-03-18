@@ -62,6 +62,64 @@ func TestFilterSystemTunables(t *testing.T) {
 			},
 		},
 		{
+			name: "filter ICMP and redirect tunables",
+			tunables: []common.SysctlItem{
+				{Tunable: "net.inet.icmp.drop_redirect", Value: "1"},
+				{Tunable: "net.inet.ip.redirect", Value: "0"},
+				{Tunable: "net.inet6.icmp6.rediraccept", Value: "0"},
+				{Tunable: "hw.memsize", Value: "8589934592"},
+			},
+			includeTunables: false,
+			want: []common.SysctlItem{
+				{Tunable: "net.inet.icmp.drop_redirect", Value: "1"},
+				{Tunable: "net.inet.ip.redirect", Value: "0"},
+				{Tunable: "net.inet6.icmp6.rediraccept", Value: "0"},
+			},
+		},
+		{
+			name: "filter source routing tunables",
+			tunables: []common.SysctlItem{
+				{Tunable: "net.inet.ip.sourceroute", Value: "0"},
+				{Tunable: "net.inet.ip.accept_sourceroute", Value: "0"},
+				{Tunable: "vm.swapusage", Value: "1024"},
+			},
+			includeTunables: false,
+			want: []common.SysctlItem{
+				{Tunable: "net.inet.ip.sourceroute", Value: "0"},
+				{Tunable: "net.inet.ip.accept_sourceroute", Value: "0"},
+			},
+		},
+		{
+			name: "filter TCP and UDP attack mitigation tunables",
+			tunables: []common.SysctlItem{
+				{Tunable: "net.inet.tcp.drop_synfin", Value: "1"},
+				{Tunable: "net.inet.tcp.syncookies", Value: "1"},
+				{Tunable: "net.inet.tcp.log_in_vain", Value: "1"},
+				{Tunable: "net.inet.udp.log_in_vain", Value: "1"},
+				{Tunable: "hw.memsize", Value: "8589934592"},
+			},
+			includeTunables: false,
+			want: []common.SysctlItem{
+				{Tunable: "net.inet.tcp.drop_synfin", Value: "1"},
+				{Tunable: "net.inet.tcp.syncookies", Value: "1"},
+				{Tunable: "net.inet.tcp.log_in_vain", Value: "1"},
+				{Tunable: "net.inet.udp.log_in_vain", Value: "1"},
+			},
+		},
+		{
+			name: "filter kernel security tunables",
+			tunables: []common.SysctlItem{
+				{Tunable: "kern.randompid", Value: "1"},
+				{Tunable: "kern.coredump", Value: "0"},
+				{Tunable: "kern.maxfiles", Value: "65536"},
+			},
+			includeTunables: false,
+			want: []common.SysctlItem{
+				{Tunable: "kern.randompid", Value: "1"},
+				{Tunable: "kern.coredump", Value: "0"},
+			},
+		},
+		{
 			name: "skip empty tunable names",
 			tunables: []common.SysctlItem{
 				{Tunable: "", Value: "0"},

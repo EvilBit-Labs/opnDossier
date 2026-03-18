@@ -138,7 +138,6 @@ func TestOptions(t *testing.T) {
 		assert.True(t, opts.EnableEmojis)
 		assert.False(t, opts.Compact)
 		assert.True(t, opts.IncludeMetadata)
-		assert.NotNil(t, opts.CustomFields)
 	})
 
 	t.Run("options validation", func(t *testing.T) {
@@ -165,8 +164,7 @@ func TestOptions(t *testing.T) {
 			WithColors(false).
 			WithEmojis(false).
 			WithCompact(true).
-			WithMetadata(false).
-			WithCustomField("test", "value")
+			WithMetadata(false)
 
 		assert.Equal(t, FormatJSON, opts.Format)
 		assert.Equal(t, ThemeDark, opts.Theme)
@@ -176,7 +174,6 @@ func TestOptions(t *testing.T) {
 		assert.False(t, opts.EnableEmojis)
 		assert.True(t, opts.Compact)
 		assert.False(t, opts.IncludeMetadata)
-		assert.Equal(t, "value", opts.CustomFields["test"])
 	})
 
 	t.Run("invalid format is set and caught by Validate", func(t *testing.T) {

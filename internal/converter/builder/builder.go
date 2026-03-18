@@ -66,6 +66,11 @@ type ReportBuilder interface {
 	// BuildAuditSection builds the compliance audit section from the device's ComplianceChecks.
 	BuildAuditSection(data *common.CommonDevice) string
 
+	// SetIncludeTunables configures whether all system tunables are included in the report.
+	// When false, only tunables matching the security prefixes used by
+	// formatters.FilterSystemTunables are shown.
+	SetIncludeTunables(v bool)
+
 	// BuildStandardReport generates a standard configuration report.
 	BuildStandardReport(data *common.CommonDevice) (string, error)
 	// BuildComprehensiveReport generates a comprehensive configuration report.
@@ -74,11 +79,13 @@ type ReportBuilder interface {
 
 // MarkdownBuilder implements the ReportBuilder interface with comprehensive
 // programmatic markdown generation capabilities.
+// MarkdownBuilder is not safe for concurrent use. Create a new instance per goroutine.
 type MarkdownBuilder struct {
-	config      *common.CommonDevice
-	logger      *logging.Logger
-	generated   time.Time
-	toolVersion string
+	config          *common.CommonDevice
+	logger          *logging.Logger
+	generated       time.Time
+	toolVersion     string
+	includeTunables bool
 }
 
 // NewMarkdownBuilder creates a new MarkdownBuilder instance.
@@ -109,6 +116,13 @@ func NewMarkdownBuilderWithConfig(config *common.CommonDevice, logger *logging.L
 		generated:   time.Now(),
 		toolVersion: constants.Version,
 	}
+}
+
+// SetIncludeTunables configures whether all system tunables are included in the report.
+// When false, only security-relevant tunables are shown (filtered by formatters.FilterSystemTunables).
+// Not safe for concurrent use — call in the same goroutine as Build/Write methods.
+func (b *MarkdownBuilder) SetIncludeTunables(v bool) {
+	b.includeTunables = v
 }
 
 // writeSystemSection writes the system configuration section to the markdown instance.
@@ -1013,11 +1027,59 @@ func BuildSysctlTableSet(sysctl []common.SysctlItem) *markdown.TableSet {
 	}
 }
 
+// standardToCItems returns the table of contents items for a standard report.
+// The hasTunables parameter controls whether the "System Tunables" link is included.
+func (b *MarkdownBuilder) standardToCItems(hasTunables bool) []string {
+	items := []string{
+		markdown.Link("System Configuration", "#system-configuration"),
+		markdown.Link("Interfaces", "#interfaces"),
+		markdown.Link("Firewall Rules", "#firewall-rules"),
+		markdown.Link("NAT Configuration", "#nat-configuration"),
+		markdown.Link("DHCP Services", "#dhcp-services"),
+		markdown.Link("DNS Resolver", "#dns-resolver"),
+		markdown.Link("System Users", "#system-users"),
+		markdown.Link("Services & Daemons", "#service-configuration"),
+	}
+	if hasTunables {
+		items = append(items, markdown.Link("System Tunables", "#system-tunables"))
+	}
+	return items
+}
+
+// comprehensiveToCItems returns the table of contents items for a comprehensive report.
+// The hasTunables parameter controls whether the "System Tunables" link is included.
+func (b *MarkdownBuilder) comprehensiveToCItems(hasTunables bool) []string {
+	items := []string{
+		markdown.Link("System Configuration", "#system-configuration"),
+		markdown.Link("Interfaces", "#interfaces"),
+		markdown.Link("VLANs", "#vlan-configuration"),
+		markdown.Link("Static Routes", "#static-routes"),
+		markdown.Link("Firewall Rules", "#firewall-rules"),
+		markdown.Link("NAT Configuration", "#nat-configuration"),
+		markdown.Link("Intrusion Detection System", "#intrusion-detection-system-idssuricata"),
+		markdown.Link("IPsec VPN", "#ipsec-vpn-configuration"),
+		markdown.Link("OpenVPN", "#openvpn-configuration"),
+		markdown.Link("High Availability", "#high-availability--carp"),
+		markdown.Link("DHCP Services", "#dhcp-services"),
+		markdown.Link("DNS Resolver", "#dns-resolver"),
+		markdown.Link("System Users", "#system-users"),
+		markdown.Link("System Groups", "#system-groups"),
+		markdown.Link("Services & Daemons", "#service-configuration"),
+	}
+	if hasTunables {
+		items = append(items, markdown.Link("System Tunables", "#system-tunables"))
+	}
+	return items
+}
+
 // BuildStandardReport builds a standard markdown report.
 func (b *MarkdownBuilder) BuildStandardReport(data *common.CommonDevice) (string, error) {
 	if data == nil {
 		return "", ErrNilDevice
 	}
+
+	filteredSysctl := formatters.FilterSystemTunables(data.Sysctl, b.includeTunables)
+	tocItems := b.standardToCItems(len(filteredSysctl) > 0)
 
 	var buf bytes.Buffer
 	md := markdown.NewMarkdown(&buf).
@@ -1031,25 +1093,15 @@ func (b *MarkdownBuilder) BuildStandardReport(data *common.CommonDevice) (string
 			markdown.Bold("Parsed By")+": opnDossier v"+b.toolVersion,
 		).
 		H2("Table of Contents").
-		BulletList(
-			markdown.Link("System Configuration", "#system-configuration"),
-			markdown.Link("Interfaces", "#interfaces"),
-			markdown.Link("Firewall Rules", "#firewall-rules"),
-			markdown.Link("NAT Configuration", "#nat-configuration"),
-			markdown.Link("DHCP Services", "#dhcp-services"),
-			markdown.Link("DNS Resolver", "#dns-resolver"),
-			markdown.Link("System Users", "#system-users"),
-			markdown.Link("Services & Daemons", "#services--daemons"),
-			markdown.Link("System Tunables", "#system-tunables"),
-		)
+		BulletList(tocItems...)
 
 	b.writeSystemSection(md, data)
 	b.writeNetworkSection(md, data)
 	b.writeSecuritySection(md, data)
 	b.writeServicesSection(md, data)
 
-	if len(data.Sysctl) > 0 {
-		b.WriteSysctlTable(md.H2("System Tunables"), data.Sysctl)
+	if len(filteredSysctl) > 0 {
+		b.WriteSysctlTable(md.H2("System Tunables"), filteredSysctl)
 	}
 
 	return md.String(), nil
@@ -1061,6 +1113,9 @@ func (b *MarkdownBuilder) BuildComprehensiveReport(data *common.CommonDevice) (s
 		return "", ErrNilDevice
 	}
 
+	filteredSysctl := formatters.FilterSystemTunables(data.Sysctl, b.includeTunables)
+	tocItems := b.comprehensiveToCItems(len(filteredSysctl) > 0)
+
 	var buf bytes.Buffer
 	md := markdown.NewMarkdown(&buf).
 		H1("OPNsense Configuration Summary").
@@ -1073,24 +1128,7 @@ func (b *MarkdownBuilder) BuildComprehensiveReport(data *common.CommonDevice) (s
 			markdown.Bold("Parsed By")+": opnDossier v"+b.toolVersion,
 		).
 		H2("Table of Contents").
-		BulletList(
-			markdown.Link("System Configuration", "#system-configuration"),
-			markdown.Link("Interfaces", "#interfaces"),
-			markdown.Link("VLANs", "#vlan-configuration"),
-			markdown.Link("Static Routes", "#static-routes"),
-			markdown.Link("Firewall Rules", "#firewall-rules"),
-			markdown.Link("NAT Configuration", "#nat-configuration"),
-			markdown.Link("Intrusion Detection System", "#intrusion-detection-system-idssuricata"),
-			markdown.Link("IPsec VPN", "#ipsec-vpn-configuration"),
-			markdown.Link("OpenVPN", "#openvpn-configuration"),
-			markdown.Link("High Availability", "#high-availability--carp"),
-			markdown.Link("DHCP Services", "#dhcp-services"),
-			markdown.Link("DNS Resolver", "#dns-resolver"),
-			markdown.Link("System Users", "#system-users"),
-			markdown.Link("System Groups", "#system-groups"),
-			markdown.Link("Services & Daemons", "#services--daemons"),
-			markdown.Link("System Tunables", "#system-tunables"),
-		)
+		BulletList(tocItems...)
 
 	b.writeSystemSection(md, data)
 	b.writeNetworkSection(md, data)
@@ -1102,8 +1140,8 @@ func (b *MarkdownBuilder) BuildComprehensiveReport(data *common.CommonDevice) (s
 	b.writeHASection(md, data)
 	b.writeServicesSection(md, data)
 
-	if len(data.Sysctl) > 0 {
-		b.WriteSysctlTable(md.H2("System Tunables"), data.Sysctl)
+	if len(filteredSysctl) > 0 {
+		b.WriteSysctlTable(md.H2("System Tunables"), filteredSysctl)
 	}
 
 	return md.String(), nil
