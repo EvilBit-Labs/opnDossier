@@ -3,7 +3,7 @@
 - **Hostname**: comprehensive-firewall
 - **Domain**: security.local
 - **Platform**: OPNsense 24.1.2
-- **Generated On**: 2026-03-17T23:08:41-04:00
+- **Generated On**: 2026-03-17T23:48:22-04:00
 - **Parsed By**: opnDossier vdev
 ## Table of Contents
 - [System Configuration](#system-configuration)
@@ -228,3 +228,4 @@
 | security.bsd.see\_other\_uids | 0 | Hide processes from other users |
 | security.bsd.see\_other\_gids | 0 | Hide processes from other groups |
 | kern.securelevel | 1 | Enable secure level 1 |
+| net.inet.tcp.syncookies | 1 | Enable SYN cookies for DDoS protection |

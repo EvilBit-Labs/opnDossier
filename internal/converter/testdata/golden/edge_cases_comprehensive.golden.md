@@ -3,7 +3,7 @@
 - **Hostname**: edge-case-test!@#$%^&*()
 - **Domain**: domain*with*asterisks
 - **Platform**: OPNsense 
-- **Generated On**: 2026-03-17T23:08:41-04:00
+- **Generated On**: 2026-03-17T23:48:22-04:00
 - **Parsed By**: opnDossier vdev
 ## Table of Contents
 - [System Configuration](#system-configuration)
@@ -21,6 +21,7 @@
 - [System Users](#system-users)
 - [System Groups](#system-groups)
 - [Services & Daemons](#services--daemons)
+- [System Tunables](#system-tunables)
 ## System Configuration
 ### Basic Information
 **Hostname**: edge-case-test!@#$%^&*()
@@ -184,3 +185,8 @@
 ### DNS Resolver (Unbound)
 ### SNMP
 ### NTP
+## System Tunables
+| Tunable | Value | Description |
+|---------|---------|---------|
+| security.bsd.see\|other\|uids | 0 | Hide processes from \| other \| users with \*special\* chars |
+| kern.securelevel\`with\`backticks | value\\with\\backslashes | Secure level with \`code\` and \\backslash\\ \[brackets\] \<angles\> |
