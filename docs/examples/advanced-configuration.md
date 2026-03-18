@@ -77,6 +77,9 @@ opndossier convert config.xml --include-tunables -o tunables-report.md
 
 # Combine comprehensive with tunables
 opndossier convert config.xml --comprehensive --include-tunables -o full-report.md
+
+# Display all tunables directly in the terminal
+opndossier display config.xml --include-tunables
 ```
 
 **Note:** The `--include-tunables` flag affects only markdown, text, and HTML output formats. By default, these formats show only security-related tunables. When the flag is enabled, all system tunables are included. JSON and YAML exports always include all tunables regardless of this flag setting.
