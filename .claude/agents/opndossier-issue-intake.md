@@ -44,7 +44,8 @@ opnDossier has a strict layered architecture. Every issue touches one or more of
 **Parser layer** (open-source, Apache-2.0)
 
 - Raw deserialization of platform config formats (XML, flat text, JSON)
-- Platform-specific format handling — OPNsense XML, pfSense XML, Cisco IOS text, Fortinet text, etc.- Implements the `DeviceParser` interface in `pkg/parser/`: `Parse(context.Context, io.Reader)` and `ParseAndValidate(context.Context, io.Reader)`
+- Platform-specific format handling: OPNsense XML, pfSense XML, Cisco IOS text, Fortinet text, etc.
+- Implements the `DeviceParser` interface in `pkg/parser/`: `Parse(context.Context, io.Reader)` and `ParseAndValidate(context.Context, io.Reader)`
 - Factory pattern: `parser.NewFactory(decoder)` auto-detects device type from XML root element
 - Lives in: `pkg/parser/` (factory), `pkg/parser/opnsense/` (OPNsense-specific), `pkg/schema/opnsense/` (XML structs)
 - Signals: issue mentions a specific platform config format, parsing failure, field not being read, wrong values after import
