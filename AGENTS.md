@@ -191,6 +191,8 @@ When adding `io.Writer` support alongside string-based APIs:
 - Keep string-based methods for cases needing further processing (HTML conversion)
 - See `internal/converter/builder/writer.go` and `internal/converter/hybrid_generator.go`
 
+> **Thread safety:** `MarkdownBuilder` is not safe for concurrent use. Create a new instance per goroutine. `SetIncludeTunables` and similar setters mutate builder state and must be called in the same synchronous call chain as `Build*Report`.
+
 ### 5.10 Common Linter Patterns
 
 Frequently encountered linter issues and fixes:
@@ -205,6 +207,7 @@ Frequently encountered linter issues and fixes:
 | `tparallel`                | Subtests use `t.Parallel()`        | Parent test must also call `t.Parallel()`                                                                         |
 | `tparallel`                | Subtests share mutable state       | Add `//nolint:tparallel` above func when subtests cannot be parallel due to shared mutable state                  |
 | `nonamedreturns`           | Named return values                | Use a struct return type instead of named returns                                                                 |
+| `funcorder`                | Method placed between constructors | All constructors (`New*`) must be grouped before any methods on the struct                                        |
 | `copylocks`                | Copying `sync.Once`                | In tests resetting globals, suppress with `//nolint:govet` and comment explaining intentional reset               |
 | `revive redefines-builtin` | Package name shadows stdlib        | Rename package (e.g., `log` → `logging`)                                                                          |
 | `revive stutters`          | `pkg.PkgThing` repeats name        | Drop prefix: `compliance.Plugin` not `compliance.CompliancePlugin`                                                |
@@ -468,12 +471,16 @@ Use `sebdah/goldie/v2` for snapshot testing. Key patterns:
 - Update golden files: `go test ./path -run TestGolden -update`
 - Use `time.RFC3339` for timestamps (standard format, consistent across codebase)
 - Clean trailing whitespace: `sed -i '' 's/[[:space:]]*$//' *.golden.md`
+- Ensure golden files end with a trailing newline — goldie uses strict byte comparison and `md.String()` output includes one
 - Markdown validation: `internal/markdown.ValidateMarkdown()` uses goldmark for round-trip validation
+- When making a report section conditional, update tests that assert its presence in ToC — tests with no matching data must use `NotContains`
 - Changing shared rendering functions (e.g., goldmark config in `internal/markdown/`) requires regenerating golden files across ALL formatters that depend on them
 
 ### 7.7 Testing Global Flag Variables
 
 When testing CLI commands with package-level flag variables (required by Cobra), save originals and use `t.Cleanup()` to restore them. Do NOT use `t.Parallel()` — see GOTCHAS.md §1.1.
+
+When adding new shared flags (`cmd/shared_flags.go`), update `sharedFlagSnapshot` in `cmd/display_test.go` — add the field to the struct, `captureSharedFlags()`, and `restore()`. Missing fields leak state between tests.
 
 ---
 
@@ -689,6 +696,6 @@ This project has the OSSF Best Practices passing badge. Maintain these standards
 - AGENTS.md must accurately reflect implemented features (not aspirational)
 - `docs/security/security-assurance.md` documents threat model, design principles, and CWE countermeasures
 
-# Agent Rules <!-- tessl-managed -->
+## Agent Rules <!-- tessl-managed -->
 
 @.tessl/RULES.md follow the [instructions](.tessl/RULES.md)

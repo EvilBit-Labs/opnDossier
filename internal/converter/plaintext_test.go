@@ -81,7 +81,7 @@ func TestStripMarkdownFormatting(t *testing.T) {
 		{
 			name:     "blockquote removal",
 			input:    "> This is a quote\n> Second line\n",
-			expected: "This is a quote Second line\n",
+			expected: "This is a quote\nSecond line\n",
 		},
 		{
 			name:     "excessive blank lines collapsed",

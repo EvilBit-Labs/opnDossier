@@ -3,7 +3,7 @@
 - **Hostname**: minimal-host
 - **Domain**: minimal.local
 - **Platform**: OPNsense 23.1.1
-- **Generated On**: 2026-03-17T02:42:11-04:00
+- **Generated On**: 2026-03-18T00:49:26-04:00
 - **Parsed By**: opnDossier vdev
 ## Table of Contents
 - [System Configuration](#system-configuration)
@@ -13,8 +13,7 @@
 - [DHCP Services](#dhcp-services)
 - [DNS Resolver](#dns-resolver)
 - [System Users](#system-users)
-- [Services & Daemons](#services--daemons)
-- [System Tunables](#system-tunables)
+- [Services & Daemons](#service-configuration)
 ## System Configuration
 ### Basic Information
 **Hostname**: minimal-host

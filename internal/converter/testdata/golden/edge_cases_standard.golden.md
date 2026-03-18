@@ -3,7 +3,7 @@
 - **Hostname**: edge-case-test!@#$%^&*()
 - **Domain**: domain*with*asterisks
 - **Platform**: OPNsense 
-- **Generated On**: 2026-03-17T02:42:11-04:00
+- **Generated On**: 2026-03-18T00:49:26-04:00
 - **Parsed By**: opnDossier vdev
 ## Table of Contents
 - [System Configuration](#system-configuration)
@@ -13,7 +13,7 @@
 - [DHCP Services](#dhcp-services)
 - [DNS Resolver](#dns-resolver)
 - [System Users](#system-users)
-- [Services & Daemons](#services--daemons)
+- [Services & Daemons](#service-configuration)
 - [System Tunables](#system-tunables)
 ## System Configuration
 ### Basic Information
@@ -159,8 +159,5 @@
 ## System Tunables
 | Tunable | Value | Description |
 |---------|---------|---------|
-|  |  |  |
-| invalid.tunable.with.pipes\|and\|newlines | value with newlines | Description with \| pipes \| and   newlines 	 tabs |
-| tunable\*with\*asterisks | value\_with\_underscores | Description with \*bold\* and \_italic\_ text |
-| tunable\[with\]brackets | value\<with\>angles | Description with \[brackets\] and \<angles\> |
-| tunable\`with\`backticks | value\\with\\backslashes | Description with \`code\` and \\backslash\\ characters |
+| security.bsd.see\|other\|uids | 0 | Hide processes from \| other \| users with \*special\* chars |
+| kern.securelevel\`with\`backticks | value\\with\\backslashes | Secure level with \`code\` and \\backslash\\ \[brackets\] \<angles\> |

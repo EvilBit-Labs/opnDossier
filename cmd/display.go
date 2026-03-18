@@ -270,6 +270,9 @@ func buildDisplayOptions(cfg *config.Config) converter.Options {
 
 	opt.Comprehensive = sharedComprehensive
 
+	// Include tunables: CLI flag only
+	opt.IncludeTunables = sharedIncludeTunables
+
 	// Redact: CLI flag only
 	opt.Redact = sharedRedact
 

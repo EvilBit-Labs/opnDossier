@@ -176,6 +176,7 @@ func (g *HybridGenerator) GenerateToWriter(
 }
 
 // generateMarkdown generates markdown output using the programmatic builder.
+// Not safe for concurrent use — MarkdownBuilder is per-instance, not shared.
 func (g *HybridGenerator) generateMarkdown(data *common.CommonDevice, opts Options) (string, error) {
 	g.logger.Debug("Using programmatic markdown generation")
 
@@ -183,6 +184,7 @@ func (g *HybridGenerator) generateMarkdown(data *common.CommonDevice, opts Optio
 		return "", errors.New("no report builder available for programmatic generation")
 	}
 
+	g.builder.SetIncludeTunables(opts.IncludeTunables)
 	target := prepareForExport(data, opts.Redact)
 
 	var report string
@@ -222,6 +224,7 @@ func (g *HybridGenerator) generateMarkdownToWriter(
 		return errors.New("no report builder available for programmatic generation")
 	}
 
+	g.builder.SetIncludeTunables(opts.IncludeTunables)
 	target := prepareForExport(data, opts.Redact)
 
 	// Check if builder supports SectionWriter interface for streaming

@@ -27,24 +27,26 @@ import (
 // Rationale: The snapshot focuses on flags that directly affect display output
 // and are commonly modified in display tests.
 type sharedFlagSnapshot struct {
-	theme         string
-	wrapWidth     int
-	noWrap        bool
-	sections      []string
-	comprehensive bool
-	deviceType    string
-	redact        bool
+	theme           string
+	wrapWidth       int
+	noWrap          bool
+	sections        []string
+	comprehensive   bool
+	deviceType      string
+	redact          bool
+	includeTunables bool
 }
 
 func captureSharedFlags() sharedFlagSnapshot {
 	return sharedFlagSnapshot{
-		theme:         sharedTheme,
-		wrapWidth:     sharedWrapWidth,
-		noWrap:        sharedNoWrap,
-		sections:      sharedSections,
-		comprehensive: sharedComprehensive,
-		deviceType:    sharedDeviceType,
-		redact:        sharedRedact,
+		theme:           sharedTheme,
+		wrapWidth:       sharedWrapWidth,
+		noWrap:          sharedNoWrap,
+		sections:        sharedSections,
+		comprehensive:   sharedComprehensive,
+		deviceType:      sharedDeviceType,
+		redact:          sharedRedact,
+		includeTunables: sharedIncludeTunables,
 	}
 }
 
@@ -56,6 +58,7 @@ func (s sharedFlagSnapshot) restore() {
 	sharedComprehensive = s.comprehensive
 	sharedDeviceType = s.deviceType
 	sharedRedact = s.redact
+	sharedIncludeTunables = s.includeTunables
 }
 
 func captureStderr(t *testing.T, fn func()) string {
@@ -226,6 +229,28 @@ func TestBuildDisplayOptionsRedact(t *testing.T) {
 			sharedRedact = tt.redact
 			result := buildDisplayOptions(nil)
 			assert.Equal(t, tt.expected, result.Redact)
+		})
+	}
+}
+
+func TestBuildDisplayOptionsIncludeTunables(t *testing.T) {
+	snapshot := captureSharedFlags()
+	t.Cleanup(snapshot.restore)
+
+	tests := []struct {
+		name     string
+		tunables bool
+		expected bool
+	}{
+		{name: "include tunables enabled", tunables: true, expected: true},
+		{name: "include tunables disabled", tunables: false, expected: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sharedIncludeTunables = tt.tunables
+			result := buildDisplayOptions(nil)
+			assert.Equal(t, tt.expected, result.IncludeTunables)
 		})
 	}
 }

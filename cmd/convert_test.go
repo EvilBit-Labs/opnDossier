@@ -242,6 +242,28 @@ func TestBuildConversionOptionsRedact(t *testing.T) {
 	}
 }
 
+func TestBuildConversionOptionsIncludeTunables(t *testing.T) {
+	origIncludeTunables := sharedIncludeTunables
+	t.Cleanup(func() { sharedIncludeTunables = origIncludeTunables })
+
+	tests := []struct {
+		name     string
+		tunables bool
+		expected bool
+	}{
+		{name: "include tunables enabled", tunables: true, expected: true},
+		{name: "include tunables disabled", tunables: false, expected: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sharedIncludeTunables = tt.tunables
+			result := buildConversionOptions("json", nil)
+			assert.Equal(t, tt.expected, result.IncludeTunables)
+		})
+	}
+}
+
 func TestBuildConversionOptionsWrapWidthPrecedence(t *testing.T) {
 	originalWrap := sharedWrapWidth
 	originalNoWrap := sharedNoWrap
