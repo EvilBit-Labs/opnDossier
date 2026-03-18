@@ -72,12 +72,14 @@ For detailed information on comprehensive mode and system tunables, see the [con
 # Generate detailed comprehensive report
 opndossier convert config.xml --comprehensive -o detailed-report.md
 
-# Include system tunables in the report
+# Include all system tunables in the report (markdown/text/HTML only)
 opndossier convert config.xml --include-tunables -o tunables-report.md
 
 # Combine comprehensive with tunables
 opndossier convert config.xml --comprehensive --include-tunables -o full-report.md
 ```
+
+**Note:** The `--include-tunables` flag affects only markdown, text, and HTML output formats. By default, these formats show only security-related tunables. When the flag is enabled, all system tunables are included. JSON and YAML exports always include all tunables regardless of this flag setting.
 
 ### Custom Output Formats
 
