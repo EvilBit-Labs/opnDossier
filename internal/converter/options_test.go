@@ -140,8 +140,8 @@ func TestDefaultOptions(t *testing.T) {
 	assert.True(t, opts.IncludeMetadata)
 	assert.False(t, opts.SuppressWarnings)
 	assert.False(t, opts.Redact)
+	assert.False(t, opts.IncludeTunables)
 	assert.NotNil(t, opts.CustomFields)
-	assert.Equal(t, false, opts.CustomFields["IncludeTunables"])
 }
 
 func TestOptions_Validate(t *testing.T) {
@@ -629,6 +629,34 @@ func TestOptions_WithRedact(t *testing.T) {
 	}
 }
 
+func TestOptions_WithIncludeTunables(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		enabled  bool
+		expected bool
+	}{
+		{
+			name:     "enable include tunables",
+			enabled:  true,
+			expected: true,
+		},
+		{
+			name:     "disable include tunables",
+			enabled:  false,
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			opts := DefaultOptions().WithIncludeTunables(tt.enabled)
+			assert.Equal(t, tt.expected, opts.IncludeTunables)
+		})
+	}
+}
+
 func TestOptions_MethodChaining(t *testing.T) {
 	t.Parallel()
 	// Test that all With methods can be chained together
@@ -645,7 +673,8 @@ func TestOptions_MethodChaining(t *testing.T) {
 		WithCustomField("TestKey", "TestValue").
 		WithComprehensive(true).
 		WithSuppressWarnings(true).
-		WithRedact(true)
+		WithRedact(true).
+		WithIncludeTunables(true)
 
 	assert.Equal(t, FormatJSON, opts.Format)
 	assert.Equal(t, []string{"system", "interfaces"}, opts.Sections)
@@ -660,4 +689,5 @@ func TestOptions_MethodChaining(t *testing.T) {
 	assert.True(t, opts.Comprehensive)
 	assert.True(t, opts.SuppressWarnings)
 	assert.True(t, opts.Redact)
+	assert.True(t, opts.IncludeTunables)
 }

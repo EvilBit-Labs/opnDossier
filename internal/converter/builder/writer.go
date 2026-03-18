@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
+	"github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/nao1215/markdown"
 )
@@ -89,13 +90,15 @@ func (b *MarkdownBuilder) WriteStandardReport(w io.Writer, data *common.CommonDe
 		return ErrNilDevice
 	}
 
+	filteredSysctl := formatters.FilterSystemTunables(data.Sysctl, b.includeTunables)
+
 	// Write header section
 	if err := b.writeReportHeader(w, data); err != nil {
 		return fmt.Errorf("failed to write report header: %w", err)
 	}
 
 	// Write table of contents
-	if err := b.writeTableOfContents(w, false); err != nil {
+	if err := b.writeTableOfContents(w, false, len(filteredSysctl) > 0); err != nil {
 		return fmt.Errorf("failed to write table of contents: %w", err)
 	}
 
@@ -116,8 +119,8 @@ func (b *MarkdownBuilder) WriteStandardReport(w io.Writer, data *common.CommonDe
 		return fmt.Errorf("failed to write services section: %w", err)
 	}
 
-	// Write additional standard report sections
-	if err := b.writeStandardReportFooter(w, data); err != nil {
+	// Write additional standard report sections (pass pre-filtered tunables)
+	if err := b.writeStandardReportFooterWithTunables(w, data, filteredSysctl); err != nil {
 		return fmt.Errorf("failed to write report footer: %w", err)
 	}
 
@@ -131,13 +134,15 @@ func (b *MarkdownBuilder) WriteComprehensiveReport(w io.Writer, data *common.Com
 		return ErrNilDevice
 	}
 
+	filteredSysctl := formatters.FilterSystemTunables(data.Sysctl, b.includeTunables)
+
 	// Write header section
 	if err := b.writeReportHeader(w, data); err != nil {
 		return fmt.Errorf("failed to write report header: %w", err)
 	}
 
 	// Write comprehensive table of contents
-	if err := b.writeTableOfContents(w, true); err != nil {
+	if err := b.writeTableOfContents(w, true, len(filteredSysctl) > 0); err != nil {
 		return fmt.Errorf("failed to write table of contents: %w", err)
 	}
 
@@ -183,6 +188,16 @@ func (b *MarkdownBuilder) WriteComprehensiveReport(w io.Writer, data *common.Com
 		return fmt.Errorf("failed to write services section: %w", err)
 	}
 
+	// Write tunables section
+	if len(filteredSysctl) > 0 {
+		var buf bytes.Buffer
+		md := markdown.NewMarkdown(&buf)
+		b.WriteSysctlTable(md.H2("System Tunables"), filteredSysctl)
+		if _, err := io.WriteString(w, md.String()); err != nil {
+			return fmt.Errorf("failed to write tunables section: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -205,7 +220,8 @@ func (b *MarkdownBuilder) writeReportHeader(w io.Writer, data *common.CommonDevi
 }
 
 // writeTableOfContents writes the table of contents to the writer.
-func (b *MarkdownBuilder) writeTableOfContents(w io.Writer, comprehensive bool) error {
+// The hasTunables parameter controls whether the "System Tunables" link is included.
+func (b *MarkdownBuilder) writeTableOfContents(w io.Writer, comprehensive, hasTunables bool) error {
 	var buf bytes.Buffer
 
 	// Build ToC items dynamically based on report type
@@ -246,8 +262,11 @@ func (b *MarkdownBuilder) writeTableOfContents(w io.Writer, comprehensive bool) 
 
 	tocItems = append(tocItems,
 		markdown.Link("Services & Daemons", "#services--daemons"),
-		markdown.Link("System Tunables", "#system-tunables"),
 	)
+
+	if hasTunables {
+		tocItems = append(tocItems, markdown.Link("System Tunables", "#system-tunables"))
+	}
 
 	md := markdown.NewMarkdown(&buf).
 		H2("Table of Contents").
@@ -257,8 +276,13 @@ func (b *MarkdownBuilder) writeTableOfContents(w io.Writer, comprehensive bool) 
 	return err
 }
 
-// writeStandardReportFooter writes the additional sections for standard reports.
-func (b *MarkdownBuilder) writeStandardReportFooter(w io.Writer, data *common.CommonDevice) error {
+// writeStandardReportFooterWithTunables writes the additional sections for standard reports,
+// using a pre-filtered tunables slice to avoid redundant filtering.
+func (b *MarkdownBuilder) writeStandardReportFooterWithTunables(
+	w io.Writer,
+	data *common.CommonDevice,
+	filteredSysctl []common.SysctlItem,
+) error {
 	var buf bytes.Buffer
 	md := markdown.NewMarkdown(&buf)
 
@@ -266,8 +290,8 @@ func (b *MarkdownBuilder) writeStandardReportFooter(w io.Writer, data *common.Co
 		b.WriteUserTable(md.H2("System Users"), data.Users)
 	}
 
-	if len(data.Sysctl) > 0 {
-		b.WriteSysctlTable(md.H2("System Tunables"), data.Sysctl)
+	if len(filteredSysctl) > 0 {
+		b.WriteSysctlTable(md.H2("System Tunables"), filteredSysctl)
 	}
 
 	_, err := io.WriteString(w, md.String())

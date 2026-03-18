@@ -95,6 +95,10 @@ type Options struct {
 	// SuppressWarnings suppresses non-critical warnings.
 	SuppressWarnings bool
 
+	// IncludeTunables controls whether all system tunables are included in the output.
+	// When false (default), only security-related tunables are shown.
+	IncludeTunables bool
+
 	// Redact controls whether sensitive fields (passwords, private keys, community strings, etc.)
 	// are replaced with [REDACTED] in the output. Defaults to false.
 	Redact bool
@@ -102,24 +106,23 @@ type Options struct {
 
 // DefaultOptions returns an Options initialized with the package's default settings for report generation.
 // Defaults: Format=markdown, Theme=auto, WrapWidth=0, EnableTables=true, EnableColors=true, EnableEmojis=true,
-// IncludeMetadata=true, CustomFields["IncludeTunables"]=false, Comprehensive and Compact set to false, and
+// IncludeMetadata=true, IncludeTunables=false, Comprehensive and Compact set to false, and
 // SuppressWarnings set to false.
 func DefaultOptions() Options {
 	return Options{
-		Format:          FormatMarkdown,
-		Comprehensive:   false,
-		Sections:        nil,
-		Theme:           ThemeAuto,
-		WrapWidth:       0,
-		EnableTables:    true,
-		EnableColors:    true,
-		EnableEmojis:    true,
-		Compact:         false,
-		IncludeMetadata: true,
-		CustomFields: map[string]any{
-			"IncludeTunables": false,
-		},
+		Format:           FormatMarkdown,
+		Comprehensive:    false,
+		Sections:         nil,
+		Theme:            ThemeAuto,
+		WrapWidth:        0,
+		EnableTables:     true,
+		EnableColors:     true,
+		EnableEmojis:     true,
+		Compact:          false,
+		IncludeMetadata:  true,
+		CustomFields:     map[string]any{},
 		SuppressWarnings: false,
+		IncludeTunables:  false,
 		Redact:           false,
 	}
 }
@@ -220,5 +223,12 @@ func (o Options) WithSuppressWarnings(suppress bool) Options {
 // WithRedact enables or disables sensitive field redaction.
 func (o Options) WithRedact(redact bool) Options {
 	o.Redact = redact
+	return o
+}
+
+// WithIncludeTunables enables or disables inclusion of all system tunables.
+// When false, only security-related tunables are shown in reports.
+func (o Options) WithIncludeTunables(enabled bool) Options {
+	o.IncludeTunables = enabled
 	return o
 }
