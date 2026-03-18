@@ -694,6 +694,6 @@ This project has the OSSF Best Practices passing badge. Maintain these standards
 - AGENTS.md must accurately reflect implemented features (not aspirational)
 - `docs/security/security-assurance.md` documents threat model, design principles, and CWE countermeasures
 
-# Agent Rules <!-- tessl-managed -->
+## Agent Rules <!-- tessl-managed -->
 
 @.tessl/RULES.md follow the [instructions](.tessl/RULES.md)
