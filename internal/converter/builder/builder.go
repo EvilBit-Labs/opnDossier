@@ -66,6 +66,10 @@ type ReportBuilder interface {
 	// BuildAuditSection builds the compliance audit section from the device's ComplianceChecks.
 	BuildAuditSection(data *common.CommonDevice) string
 
+	// SetIncludeTunables configures whether all system tunables are included in the report.
+	// When false, only security-related tunables are shown.
+	SetIncludeTunables(v bool)
+
 	// BuildStandardReport generates a standard configuration report.
 	BuildStandardReport(data *common.CommonDevice) (string, error)
 	// BuildComprehensiveReport generates a comprehensive configuration report.
@@ -1020,15 +1024,10 @@ func BuildSysctlTableSet(sysctl []common.SysctlItem) *markdown.TableSet {
 	}
 }
 
-// BuildStandardReport builds a standard markdown report.
-func (b *MarkdownBuilder) BuildStandardReport(data *common.CommonDevice) (string, error) {
-	if data == nil {
-		return "", ErrNilDevice
-	}
-
-	filteredSysctl := formatters.FilterSystemTunables(data.Sysctl, b.includeTunables)
-
-	tocItems := []string{
+// standardToCItems returns the table of contents items for a standard report.
+// The hasTunables parameter controls whether the "System Tunables" link is included.
+func (b *MarkdownBuilder) standardToCItems(hasTunables bool) []string {
+	items := []string{
 		markdown.Link("System Configuration", "#system-configuration"),
 		markdown.Link("Interfaces", "#interfaces"),
 		markdown.Link("Firewall Rules", "#firewall-rules"),
@@ -1038,9 +1037,46 @@ func (b *MarkdownBuilder) BuildStandardReport(data *common.CommonDevice) (string
 		markdown.Link("System Users", "#system-users"),
 		markdown.Link("Services & Daemons", "#services--daemons"),
 	}
-	if len(filteredSysctl) > 0 {
-		tocItems = append(tocItems, markdown.Link("System Tunables", "#system-tunables"))
+	if hasTunables {
+		items = append(items, markdown.Link("System Tunables", "#system-tunables"))
 	}
+	return items
+}
+
+// comprehensiveToCItems returns the table of contents items for a comprehensive report.
+// The hasTunables parameter controls whether the "System Tunables" link is included.
+func (b *MarkdownBuilder) comprehensiveToCItems(hasTunables bool) []string {
+	items := []string{
+		markdown.Link("System Configuration", "#system-configuration"),
+		markdown.Link("Interfaces", "#interfaces"),
+		markdown.Link("VLANs", "#vlan-configuration"),
+		markdown.Link("Static Routes", "#static-routes"),
+		markdown.Link("Firewall Rules", "#firewall-rules"),
+		markdown.Link("NAT Configuration", "#nat-configuration"),
+		markdown.Link("Intrusion Detection System", "#intrusion-detection-system-idssuricata"),
+		markdown.Link("IPsec VPN", "#ipsec-vpn-configuration"),
+		markdown.Link("OpenVPN", "#openvpn-configuration"),
+		markdown.Link("High Availability", "#high-availability--carp"),
+		markdown.Link("DHCP Services", "#dhcp-services"),
+		markdown.Link("DNS Resolver", "#dns-resolver"),
+		markdown.Link("System Users", "#system-users"),
+		markdown.Link("System Groups", "#system-groups"),
+		markdown.Link("Services & Daemons", "#services--daemons"),
+	}
+	if hasTunables {
+		items = append(items, markdown.Link("System Tunables", "#system-tunables"))
+	}
+	return items
+}
+
+// BuildStandardReport builds a standard markdown report.
+func (b *MarkdownBuilder) BuildStandardReport(data *common.CommonDevice) (string, error) {
+	if data == nil {
+		return "", ErrNilDevice
+	}
+
+	filteredSysctl := formatters.FilterSystemTunables(data.Sysctl, b.includeTunables)
+	tocItems := b.standardToCItems(len(filteredSysctl) > 0)
 
 	var buf bytes.Buffer
 	md := markdown.NewMarkdown(&buf).
@@ -1075,27 +1111,7 @@ func (b *MarkdownBuilder) BuildComprehensiveReport(data *common.CommonDevice) (s
 	}
 
 	filteredSysctl := formatters.FilterSystemTunables(data.Sysctl, b.includeTunables)
-
-	tocItems := []string{
-		markdown.Link("System Configuration", "#system-configuration"),
-		markdown.Link("Interfaces", "#interfaces"),
-		markdown.Link("VLANs", "#vlan-configuration"),
-		markdown.Link("Static Routes", "#static-routes"),
-		markdown.Link("Firewall Rules", "#firewall-rules"),
-		markdown.Link("NAT Configuration", "#nat-configuration"),
-		markdown.Link("Intrusion Detection System", "#intrusion-detection-system-idssuricata"),
-		markdown.Link("IPsec VPN", "#ipsec-vpn-configuration"),
-		markdown.Link("OpenVPN", "#openvpn-configuration"),
-		markdown.Link("High Availability", "#high-availability--carp"),
-		markdown.Link("DHCP Services", "#dhcp-services"),
-		markdown.Link("DNS Resolver", "#dns-resolver"),
-		markdown.Link("System Users", "#system-users"),
-		markdown.Link("System Groups", "#system-groups"),
-		markdown.Link("Services & Daemons", "#services--daemons"),
-	}
-	if len(filteredSysctl) > 0 {
-		tocItems = append(tocItems, markdown.Link("System Tunables", "#system-tunables"))
-	}
+	tocItems := b.comprehensiveToCItems(len(filteredSysctl) > 0)
 
 	var buf bytes.Buffer
 	md := markdown.NewMarkdown(&buf).

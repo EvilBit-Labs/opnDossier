@@ -175,18 +175,6 @@ func (g *HybridGenerator) GenerateToWriter(
 	}
 }
 
-// tunablesSetter is implemented by builders that support tunable filtering.
-type tunablesSetter interface {
-	SetIncludeTunables(v bool)
-}
-
-// applyIncludeTunables sets the IncludeTunables flag on the builder if it supports it.
-func (g *HybridGenerator) applyIncludeTunables(includeTunables bool) {
-	if ts, ok := g.builder.(tunablesSetter); ok {
-		ts.SetIncludeTunables(includeTunables)
-	}
-}
-
 // generateMarkdown generates markdown output using the programmatic builder.
 func (g *HybridGenerator) generateMarkdown(data *common.CommonDevice, opts Options) (string, error) {
 	g.logger.Debug("Using programmatic markdown generation")
@@ -195,7 +183,7 @@ func (g *HybridGenerator) generateMarkdown(data *common.CommonDevice, opts Optio
 		return "", errors.New("no report builder available for programmatic generation")
 	}
 
-	g.applyIncludeTunables(opts.IncludeTunables)
+	g.builder.SetIncludeTunables(opts.IncludeTunables)
 	target := prepareForExport(data, opts.Redact)
 
 	var report string
@@ -235,7 +223,7 @@ func (g *HybridGenerator) generateMarkdownToWriter(
 		return errors.New("no report builder available for programmatic generation")
 	}
 
-	g.applyIncludeTunables(opts.IncludeTunables)
+	g.builder.SetIncludeTunables(opts.IncludeTunables)
 	target := prepareForExport(data, opts.Redact)
 
 	// Check if builder supports SectionWriter interface for streaming

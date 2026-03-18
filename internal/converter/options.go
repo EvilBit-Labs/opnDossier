@@ -96,7 +96,8 @@ type Options struct {
 	SuppressWarnings bool
 
 	// IncludeTunables controls whether all system tunables are included in the output.
-	// When false (default), only security-related tunables are shown.
+	// When false (default), only security-related tunables are shown in markdown, text, and HTML output.
+	// JSON and YAML exports always include all tunables regardless of this setting.
 	IncludeTunables bool
 
 	// Redact controls whether sensitive fields (passwords, private keys, community strings, etc.)

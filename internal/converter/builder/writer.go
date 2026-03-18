@@ -119,8 +119,8 @@ func (b *MarkdownBuilder) WriteStandardReport(w io.Writer, data *common.CommonDe
 		return fmt.Errorf("failed to write services section: %w", err)
 	}
 
-	// Write additional standard report sections (pass pre-filtered tunables)
-	if err := b.writeStandardReportFooterWithTunables(w, data, filteredSysctl); err != nil {
+	// Write additional standard report sections
+	if err := b.writeStandardReportFooter(w, data); err != nil {
 		return fmt.Errorf("failed to write report footer: %w", err)
 	}
 
@@ -224,48 +224,11 @@ func (b *MarkdownBuilder) writeReportHeader(w io.Writer, data *common.CommonDevi
 func (b *MarkdownBuilder) writeTableOfContents(w io.Writer, comprehensive, hasTunables bool) error {
 	var buf bytes.Buffer
 
-	// Build ToC items dynamically based on report type
-	tocItems := []string{
-		markdown.Link("System Configuration", "#system-configuration"),
-		markdown.Link("Interfaces", "#interfaces"),
-	}
-
+	var tocItems []string
 	if comprehensive {
-		tocItems = append(tocItems,
-			markdown.Link("VLANs", "#vlan-configuration"),
-			markdown.Link("Static Routes", "#static-routes"),
-		)
-	}
-
-	tocItems = append(tocItems,
-		markdown.Link("Firewall Rules", "#firewall-rules"),
-		markdown.Link("NAT Configuration", "#nat-configuration"),
-	)
-
-	if comprehensive {
-		tocItems = append(tocItems,
-			markdown.Link("IPsec VPN", "#ipsec-vpn-configuration"),
-			markdown.Link("OpenVPN", "#openvpn-configuration"),
-			markdown.Link("High Availability", "#high-availability--carp"),
-		)
-	}
-
-	tocItems = append(tocItems,
-		markdown.Link("DHCP Services", "#dhcp-services"),
-		markdown.Link("DNS Resolver", "#dns-resolver"),
-		markdown.Link("System Users", "#system-users"),
-	)
-
-	if comprehensive {
-		tocItems = append(tocItems, markdown.Link("System Groups", "#system-groups"))
-	}
-
-	tocItems = append(tocItems,
-		markdown.Link("Services & Daemons", "#services--daemons"),
-	)
-
-	if hasTunables {
-		tocItems = append(tocItems, markdown.Link("System Tunables", "#system-tunables"))
+		tocItems = b.comprehensiveToCItems(hasTunables)
+	} else {
+		tocItems = b.standardToCItems(hasTunables)
 	}
 
 	md := markdown.NewMarkdown(&buf).
@@ -276,13 +239,9 @@ func (b *MarkdownBuilder) writeTableOfContents(w io.Writer, comprehensive, hasTu
 	return err
 }
 
-// writeStandardReportFooterWithTunables writes the additional sections for standard reports,
-// using a pre-filtered tunables slice to avoid redundant filtering.
-func (b *MarkdownBuilder) writeStandardReportFooterWithTunables(
-	w io.Writer,
-	data *common.CommonDevice,
-	filteredSysctl []common.SysctlItem,
-) error {
+// writeStandardReportFooter writes the additional sections for standard reports,
+// including system users and optionally system tunables.
+func (b *MarkdownBuilder) writeStandardReportFooter(w io.Writer, data *common.CommonDevice) error {
 	var buf bytes.Buffer
 	md := markdown.NewMarkdown(&buf)
 
@@ -290,6 +249,7 @@ func (b *MarkdownBuilder) writeStandardReportFooterWithTunables(
 		b.WriteUserTable(md.H2("System Users"), data.Users)
 	}
 
+	filteredSysctl := formatters.FilterSystemTunables(data.Sysctl, b.includeTunables)
 	if len(filteredSysctl) > 0 {
 		b.WriteSysctlTable(md.H2("System Tunables"), filteredSysctl)
 	}
