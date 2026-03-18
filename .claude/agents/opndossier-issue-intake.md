@@ -44,24 +44,25 @@ opnDossier has a strict layered architecture. Every issue touches one or more of
 **Parser layer** (open-source, Apache-2.0)
 
 - Raw deserialization of platform config formats (XML, flat text, JSON)
-- Platform-specific format handling — OPNsense XML, pfSense XML, Cisco IOS text, Fortinet text, etc.
-- Implements the `DeviceParser` interface: `Parse(io.Reader)` and `ParseAndValidate(io.Reader)`
-- Three-layer pattern: raw DTO struct → converter function → parser wrapper that satisfies `DeviceParser`
-- Lives in: `internal/parsers/<platform>/`
+- Platform-specific format handling — OPNsense XML via `pkg/schema/opnsense/`
+- Implements the `DeviceParser` interface in `pkg/parser/`: `Parse(context.Context, io.Reader)` and `ParseAndValidate(context.Context, io.Reader)`
+- Factory pattern: `parser.NewFactory(decoder)` auto-detects device type from XML root element
+- Lives in: `pkg/parser/` (factory), `pkg/parser/opnsense/` (OPNsense-specific), `pkg/schema/opnsense/` (XML structs)
 - Signals: issue mentions a specific platform config format, parsing failure, field not being read, wrong values after import
 
 **Converter layer** (open-source, Apache-2.0)
 
 - Maps platform-specific DTOs to `CommonDevice`
 - The translation boundary between "what the config file says" and "what opnDossier understands"
-- Lives in: `internal/parsers/<platform>/converter.go` (or similar)
+- Lives in: `pkg/parser/opnsense/converter.go`, `converter_network.go`, `converter_security.go`, `converter_services.go`
+- Public entry point: `opnsense.ConvertDocument(doc)` for direct schema-to-CommonDevice conversion
 - Signals: issue mentions a field that parses correctly but shows wrong data in analysis/reports, platform-specific concept has no mapping in the common model
 
 **CommonDevice model** (open-source, Apache-2.0)
 
-- The central abstraction: `internal/model/common/`
+- The central abstraction: `pkg/model/` (package `model`, imported as `common`)
 - Represents a firewall device independent of platform
-- Currently mid-migration (v1.3.0) — call sites are being moved from `*model.OpnSenseDocument` to `*common.CommonDevice`
+- Migration from `internal/model/` complete (PR #404) — all consumers import `pkg/model` directly
 - Changes here ripple across all compliance plugins and report generators
 - Signals: issue requires a new field or concept that doesn't exist in the common model, or exposes a gap between what platforms can express and what CommonDevice can represent
 
@@ -107,21 +108,11 @@ Flag cross-repo changes prominently. They require coordinated PRs and a clear me
 
 ## Step 4: CommonDevice migration status check
 
-If the issue touches the CommonDevice model or any layer that consumes it, add a migration warning:
+If the issue touches the CommonDevice model or any layer that consumes it, verify the current state:
 
-opnDossier is mid-migration from `*model.OpnSenseDocument` to `*common.CommonDevice` (v1.3.0). Check whether:
+The migration from `*model.OpnSenseDocument` to `*common.CommonDevice` is complete (PR #404). All consumers import `pkg/model` directly. The `internal/model/` re-export layer has been fully removed. Write all new code against `common.CommonDevice` (from `pkg/model/`).
 
-- The affected call sites have already been migrated
-- The fix should be written against the old model (temporary) or the new model (preferred)
-- The fix might need to be applied twice if the migration hasn't reached those call sites yet
-
-Run a quick grep to check:
-
-```bash
-grep -r "OpnSenseDocument" --include="*.go" -l .
-```
-
-Report how many files still reference the old model. This tells you whether migration is far enough along to write against CommonDevice directly.
+`OpnSenseDocument` still exists in `pkg/schema/opnsense/` as the XML deserialization target — this is by design, not a migration artifact. The converter translates it to `CommonDevice`.
 
 ## Step 5: Recommend entry point
 

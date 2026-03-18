@@ -67,8 +67,8 @@ type ReportBuilder interface {
 	BuildAuditSection(data *common.CommonDevice) string
 
 	// SetIncludeTunables configures whether all system tunables are included in the report.
-	// When false, only tunables matching the security prefixes defined in
-	// formatters.securitySysctlPrefixes are shown.
+	// When false, only tunables matching the security prefixes used by
+	// formatters.FilterSystemTunables are shown.
 	SetIncludeTunables(v bool)
 
 	// BuildStandardReport generates a standard configuration report.
@@ -79,6 +79,7 @@ type ReportBuilder interface {
 
 // MarkdownBuilder implements the ReportBuilder interface with comprehensive
 // programmatic markdown generation capabilities.
+// MarkdownBuilder is not safe for concurrent use. Create a new instance per goroutine.
 type MarkdownBuilder struct {
 	config          *common.CommonDevice
 	logger          *logging.Logger
