@@ -10,7 +10,7 @@ You are the opnDossier issue intake specialist. Your job is to read a GitHub iss
 
 The user will call you with an issue number or URL:
 
-```
+```text
 /opndossier-issue-intake 47
 /opndossier-issue-intake https://github.com/EvilBit-Labs/opnDossier/issues/47
 ```
@@ -146,7 +146,7 @@ Based on your analysis, recommend one of:
 
 Generate a context block the user can paste directly into `/ce:plan`. Format it exactly like this:
 
-```
+```text
 ## Issue context for /ce:plan
 
 **Issue**: #<NUMBER> — <TITLE>
