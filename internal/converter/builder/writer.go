@@ -119,8 +119,8 @@ func (b *MarkdownBuilder) WriteStandardReport(w io.Writer, data *common.CommonDe
 		return fmt.Errorf("failed to write services section: %w", err)
 	}
 
-	// Write additional standard report sections (pass pre-filtered tunables for consistency)
-	if err := b.writeStandardReportFooter(w, data, filteredSysctl); err != nil {
+	// Write tunables footer (users already rendered by WriteSystemSection)
+	if err := b.writeStandardReportFooter(w, filteredSysctl); err != nil {
 		return fmt.Errorf("failed to write report footer: %w", err)
 	}
 
@@ -239,24 +239,20 @@ func (b *MarkdownBuilder) writeTableOfContents(w io.Writer, comprehensive, hasTu
 	return err
 }
 
-// writeStandardReportFooter writes the additional sections for standard reports,
-// including system users and optionally system tunables. The filteredSysctl parameter
-// is the pre-filtered tunables slice to avoid redundant filtering.
+// writeStandardReportFooter writes system tunables for standard reports.
+// Users are already rendered by WriteSystemSection — this avoids duplication.
+// The filteredSysctl parameter is the pre-filtered tunables slice.
 func (b *MarkdownBuilder) writeStandardReportFooter(
 	w io.Writer,
-	data *common.CommonDevice,
 	filteredSysctl []common.SysctlItem,
 ) error {
+	if len(filteredSysctl) == 0 {
+		return nil
+	}
+
 	var buf bytes.Buffer
 	md := markdown.NewMarkdown(&buf)
-
-	if len(data.Users) > 0 {
-		b.WriteUserTable(md.H2("System Users"), data.Users)
-	}
-
-	if len(filteredSysctl) > 0 {
-		b.WriteSysctlTable(md.H2("System Tunables"), filteredSysctl)
-	}
+	b.WriteSysctlTable(md.H2("System Tunables"), filteredSysctl)
 
 	_, err := io.WriteString(w, md.String())
 	return err

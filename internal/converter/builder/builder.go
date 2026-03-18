@@ -119,8 +119,8 @@ func NewMarkdownBuilderWithConfig(config *common.CommonDevice, logger *logging.L
 }
 
 // SetIncludeTunables configures whether all system tunables are included in the report.
-// When false, only tunables matching the security prefixes defined in
-// formatters.securitySysctlPrefixes are shown.
+// When false, only security-relevant tunables are shown (filtered by formatters.FilterSystemTunables).
+// Not safe for concurrent use — call in the same goroutine as Build/Write methods.
 func (b *MarkdownBuilder) SetIncludeTunables(v bool) {
 	b.includeTunables = v
 }
@@ -1038,7 +1038,7 @@ func (b *MarkdownBuilder) standardToCItems(hasTunables bool) []string {
 		markdown.Link("DHCP Services", "#dhcp-services"),
 		markdown.Link("DNS Resolver", "#dns-resolver"),
 		markdown.Link("System Users", "#system-users"),
-		markdown.Link("Services & Daemons", "#services--daemons"),
+		markdown.Link("Services & Daemons", "#service-configuration"),
 	}
 	if hasTunables {
 		items = append(items, markdown.Link("System Tunables", "#system-tunables"))
@@ -1064,7 +1064,7 @@ func (b *MarkdownBuilder) comprehensiveToCItems(hasTunables bool) []string {
 		markdown.Link("DNS Resolver", "#dns-resolver"),
 		markdown.Link("System Users", "#system-users"),
 		markdown.Link("System Groups", "#system-groups"),
-		markdown.Link("Services & Daemons", "#services--daemons"),
+		markdown.Link("Services & Daemons", "#service-configuration"),
 	}
 	if hasTunables {
 		items = append(items, markdown.Link("System Tunables", "#system-tunables"))
