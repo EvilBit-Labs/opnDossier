@@ -36,7 +36,7 @@ var (
 //
 // Flags added:
 //
-//	--include-tunables    Include system tunables in the output report.
+//	--include-tunables    Include all system tunables in report output (markdown, text, HTML only; JSON/YAML always include all tunables).
 //	--section             Comma-separated list of specific sections to include (e.g., system,network,firewall).
 //	--wrap                Text wrap width in characters (-1 = auto-detect terminal width, 0 = no wrapping).
 //	--no-wrap             Disable text wrapping (alias for --wrap 0).

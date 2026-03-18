@@ -67,7 +67,8 @@ type ReportBuilder interface {
 	BuildAuditSection(data *common.CommonDevice) string
 
 	// SetIncludeTunables configures whether all system tunables are included in the report.
-	// When false, only security-related tunables are shown.
+	// When false, only tunables matching the security prefixes defined in
+	// formatters.securitySysctlPrefixes are shown.
 	SetIncludeTunables(v bool)
 
 	// BuildStandardReport generates a standard configuration report.
@@ -117,7 +118,8 @@ func NewMarkdownBuilderWithConfig(config *common.CommonDevice, logger *logging.L
 }
 
 // SetIncludeTunables configures whether all system tunables are included in the report.
-// When false, only security-related tunables are shown.
+// When false, only tunables matching the security prefixes defined in
+// formatters.securitySysctlPrefixes are shown.
 func (b *MarkdownBuilder) SetIncludeTunables(v bool) {
 	b.includeTunables = v
 }
