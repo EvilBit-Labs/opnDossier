@@ -301,7 +301,7 @@ When adding fields to `common.Statistics`, update two places:
 1. The struct definition in `pkg/model/enrichment.go`
 2. Population logic in `ComputeStatistics()` in `internal/analysis/statistics.go`
 
-The processor's `translateCommonStats()` in `internal/processor/report.go` must also be updated if new fields are added to `processor.Statistics`.
+The processor's `translateCommonStats()` in `internal/processor/report_statistics.go` must also be updated if new fields are added to `processor.Statistics`.
 
 Separate check logic from stats updates. Never increment stats inside a function that may be called multiple times for fallback logic — check all candidates first, then update stats once based on the outcome.
 
