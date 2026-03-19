@@ -130,12 +130,13 @@ func isValidTimezone(timezone string) bool {
 	return false
 }
 
-// sysctlNamePattern matches valid sysctl tunable names: starts with letter, allows letters, digits, underscores, dots.
-var sysctlNamePattern = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_.]*$`)
+// sysctlNamePattern matches valid sysctl tunable names: starts with a letter, segments of
+// letters/digits/underscores separated by dots, with at least one dot required.
+var sysctlNamePattern = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$`)
 
 // isValidSysctlName returns true if the provided string is a valid sysctl tunable name, requiring it to start with a letter, contain only letters, digits, underscores, or dots, and include at least one dot.
 func isValidSysctlName(name string) bool {
-	return sysctlNamePattern.MatchString(name) && strings.Contains(name, ".")
+	return sysctlNamePattern.MatchString(name)
 }
 
 // connRatePattern matches the "connections/seconds" format (e.g., "15/5").
