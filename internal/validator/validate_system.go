@@ -120,7 +120,7 @@ func validateUsersAndGroups(system *schema.System) []ValidationError {
 
 	// Track group names and GIDs to ensure uniqueness
 	groupNames := make(map[string]bool)
-	groupGIDs := make(map[string]bool)
+	groupGIDs := make(map[int]struct{})
 
 	errors = append(errors, validateGroups(system.Group, groupNames, groupGIDs)...)
 	errors = append(errors, validateUsers(system.User, groupNames)...)
@@ -129,7 +129,7 @@ func validateUsersAndGroups(system *schema.System) []ValidationError {
 }
 
 // validateGroups validates all groups and tracks names and GIDs for uniqueness.
-func validateGroups(groups []schema.Group, groupNames, groupGIDs map[string]bool) []ValidationError {
+func validateGroups(groups []schema.Group, groupNames map[string]bool, groupGIDs map[int]struct{}) []ValidationError {
 	var errors []ValidationError
 
 	for i, group := range groups {
@@ -164,7 +164,7 @@ func validateGroupName(group schema.Group, index int, groupNames map[string]bool
 }
 
 // validateGroupGID validates group GID requirements and uniqueness.
-func validateGroupGID(group schema.Group, index int, groupGIDs map[string]bool) []ValidationError {
+func validateGroupGID(group schema.Group, index int, groupGIDs map[int]struct{}) []ValidationError {
 	var errors []ValidationError
 
 	if group.Gid == "" {
@@ -184,7 +184,7 @@ func validateGroupGID(group schema.Group, index int, groupGIDs map[string]bool) 
 		return errors
 	}
 
-	if groupGIDs[group.Gid] {
+	if _, exists := groupGIDs[gid]; exists {
 		errors = append(errors, ValidationError{
 			Field:   fmt.Sprintf("system.group[%d].gid", index),
 			Message: fmt.Sprintf("group GID '%s' must be unique", group.Gid),
@@ -192,7 +192,7 @@ func validateGroupGID(group schema.Group, index int, groupGIDs map[string]bool) 
 		return errors
 	}
 
-	groupGIDs[group.Gid] = true
+	groupGIDs[gid] = struct{}{}
 	return errors
 }
 
@@ -219,7 +219,7 @@ func validateGroupScope(group schema.Group, index int) []ValidationError {
 func validateUsers(users []schema.User, groupNames map[string]bool) []ValidationError {
 	var errors []ValidationError
 	userNames := make(map[string]bool)
-	userUIDs := make(map[string]bool)
+	userUIDs := make(map[int]struct{})
 
 	for i, user := range users {
 		errors = append(errors, validateUserName(user, i, userNames)...)
@@ -254,7 +254,7 @@ func validateUserName(user schema.User, index int, userNames map[string]bool) []
 }
 
 // validateUserUID validates user UID requirements and uniqueness.
-func validateUserUID(user schema.User, index int, userUIDs map[string]bool) []ValidationError {
+func validateUserUID(user schema.User, index int, userUIDs map[int]struct{}) []ValidationError {
 	var errors []ValidationError
 
 	if user.UID == "" {
@@ -274,7 +274,7 @@ func validateUserUID(user schema.User, index int, userUIDs map[string]bool) []Va
 		return errors
 	}
 
-	if userUIDs[user.UID] {
+	if _, exists := userUIDs[uid]; exists {
 		errors = append(errors, ValidationError{
 			Field:   fmt.Sprintf("system.user[%d].uid", index),
 			Message: fmt.Sprintf("user UID '%s' must be unique", user.UID),
@@ -282,7 +282,7 @@ func validateUserUID(user schema.User, index int, userUIDs map[string]bool) []Va
 		return errors
 	}
 
-	userUIDs[user.UID] = true
+	userUIDs[uid] = struct{}{}
 	return errors
 }
 
