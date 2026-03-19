@@ -60,3 +60,9 @@ A CLI flag can be accepted by Cobra, stored in a package-level variable, and sil
 - **Detection:** A new flag that breaks zero golden files or tests is likely broken.
 - **Prevention:** Typed `Options` fields (not `CustomFields`), regression tests per command, diff output with/without flag.
 - **Reference:** `docs/solutions/logic-errors/cli-flag-wiring-silent-ignore.md`
+
+## 6. Validator
+
+### 6.1 GID/UID Zero is Valid
+
+Unix GID 0 (wheel/root group) and UID 0 (root user) are valid. The validator check is `gid < 0` / `uid < 0`, correctly allowing zero. Error messages must say "non-negative integer", not "positive integer".
