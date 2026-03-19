@@ -35,6 +35,25 @@ type StreamingGenerator interface {
 	GenerateToWriter(ctx context.Context, w io.Writer, cfg *common.CommonDevice, opts Options) error
 }
 
+// reportGenerator is the narrowest interface HybridGenerator requires from its
+// builder. It exposes only the four methods HybridGenerator directly calls:
+// SetIncludeTunables, BuildAuditSection (via auditBuilder), BuildStandardReport,
+// and BuildComprehensiveReport (via ReportComposer).
+// SectionBuilder and TableWriter are deliberately excluded — HybridGenerator
+// never calls individual section or table methods.
+type reportGenerator interface {
+	auditBuilder
+	builder.ReportComposer
+}
+
+// auditBuilder groups the two non-report-composition methods HybridGenerator calls.
+type auditBuilder interface {
+	// SetIncludeTunables configures whether all system tunables are included in the report.
+	SetIncludeTunables(v bool)
+	// BuildAuditSection builds the compliance audit section from the device's ComplianceChecks.
+	BuildAuditSection(data *common.CommonDevice) string
+}
+
 // HybridGenerator provides programmatic markdown, JSON, and YAML generation.
 // It uses the builder pattern for markdown output and direct serialization for JSON/YAML.
 //
@@ -42,7 +61,7 @@ type StreamingGenerator interface {
 // (io.Writer-based) interfaces. Use GenerateToWriter for memory-efficient streaming
 // output, or Generate when you need the output as a string for further processing.
 type HybridGenerator struct {
-	builder builder.ReportBuilder
+	builder reportGenerator
 	logger  *logging.Logger
 }
 
@@ -412,7 +431,19 @@ func (g *HybridGenerator) SetBuilder(reportBuilder builder.ReportBuilder) {
 	g.builder = reportBuilder
 }
 
-// GetBuilder returns the current report builder.
+// GetBuilder returns the current report builder as a ReportBuilder.
+// The underlying value is always a ReportBuilder (e.g., *MarkdownBuilder),
+// so the type assertion succeeds in practice. Returns nil if the builder
+// is nil or does not satisfy ReportBuilder.
 func (g *HybridGenerator) GetBuilder() builder.ReportBuilder {
-	return g.builder
+	if g.builder == nil {
+		return nil
+	}
+
+	rb, ok := g.builder.(builder.ReportBuilder)
+	if !ok {
+		return nil
+	}
+
+	return rb
 }
