@@ -63,6 +63,25 @@
           "document-writer"
         ]
       }
+    },
+    "ghostsecurity/skills": {
+      "version": "3c1875a3286dbbebf890872875266b3eccd9e264",
+      "source": "https://github.com/ghostsecurity/skills",
+      "include": {
+        "skills": [
+          "ghost-validate"
+        ]
+      }
+    },
+    "santosomar/general-secure-coding-agent-skills": {
+      "version": "47d56bbc24dc4560c0afe546edbb34973da79391",
+      "source": "https://github.com/santosomar/general-secure-coding-agent-skills",
+      "include": {
+        "skills": [
+          "release-notes-writer",
+          "containerization-assistant"
+        ]
+      }
     }
   }
 }
