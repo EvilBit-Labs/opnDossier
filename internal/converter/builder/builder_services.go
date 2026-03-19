@@ -86,7 +86,7 @@ func (b *MarkdownBuilder) writeServicesSection(md *markdown.Markdown, data *comm
 		md.PlainTextf("%s: %s", markdown.Bold("System Contact"), data.SNMP.SysContact).LF()
 	}
 	if data.SNMP.ROCommunity != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Read-Only Community"), "configured").LF()
+		md.PlainTextf("%s: %s", markdown.Bold("Read-Only Community"), data.SNMP.ROCommunity).LF()
 	}
 
 	md.H3("NTP")
