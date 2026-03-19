@@ -168,7 +168,11 @@ func (b *MarkdownBuilder) writeHASection(md *markdown.Markdown, data *common.Com
 	// HA Synchronization Settings
 	hasync := data.HighAvailability
 
-	if hasync.PfsyncInterface == "" && hasync.SynchronizeToIP == "" {
+	haConfigured := hasync.PfsyncInterface != "" || hasync.SynchronizeToIP != "" ||
+		hasync.PfsyncPeerIP != "" || hasync.Username != "" ||
+		hasync.PfsyncVersion != "" || hasync.DisablePreempt
+
+	if !haConfigured {
 		md.H4("HA Synchronization Settings").
 			PlainText(markdown.Italic("No HA synchronization configured"))
 	} else {
