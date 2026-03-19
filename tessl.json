@@ -79,7 +79,8 @@
       "include": {
         "skills": [
           "release-notes-writer",
-          "containerization-assistant"
+          "containerization-assistant",
+          "change-log-generator"
         ]
       }
     }
