@@ -404,17 +404,53 @@ graph TB
 
 ### MarkdownBuilder Component Architecture
 
+The `ReportBuilder` interface follows the Interface Segregation Principle (SOLID), composing three focused sub-interfaces that were split from the original monolithic interface in PR #431 (issue #323):
+
+- **`SectionBuilder`** (9 methods): Build*Section methods plus SetIncludeTunables
+- **`TableWriter`** (11 methods): Write*Table methods for formatting data tables
+- **`ReportComposer`** (2 methods): BuildStandardReport and BuildComprehensiveReport
+
+This composition provides full backward compatibility—existing code using `ReportBuilder` continues to work unchanged—while enabling consumers to depend only on the methods they actually use.
+
 ```mermaid
 classDiagram
-    class ReportBuilder {
+    class SectionBuilder {
         <<interface>>
-        +BuildStandardReport(data) string
-        +BuildCustomReport(data, options) string
         +BuildSystemSection(data) string
         +BuildNetworkSection(data) string
         +BuildSecuritySection(data) string
         +BuildServicesSection(data) string
+        +BuildIPsecSection(data) string
+        +BuildOpenVPNSection(data) string
+        +BuildHASection(data) string
+        +BuildIDSSection(data) string
         +BuildAuditSection(data) string
+        +SetIncludeTunables(v bool)
+    }
+
+    class TableWriter {
+        <<interface>>
+        +WriteFirewallRulesTable(md, rules) *Markdown
+        +WriteInterfaceTable(md, interfaces) *Markdown
+        +WriteVLANTable(md, vlans) *Markdown
+        +WriteGatewayTable(md, gateways) *Markdown
+        +WriteRouteTable(md, routes) *Markdown
+        +WriteNATRulesTable(md, rules) *Markdown
+        +WriteDNSHostTable(md, hosts) *Markdown
+        +WriteDNSAliasTable(md, aliases) *Markdown
+        +WriteDHCPSummaryTable(md, scopes) *Markdown
+        +WriteDHCPStaticLeasesTable(md, leases) *Markdown
+        +WriteUserTable(md, users) *Markdown
+    }
+
+    class ReportComposer {
+        <<interface>>
+        +BuildStandardReport(data) (string, error)
+        +BuildComprehensiveReport(data) (string, error)
+    }
+
+    class ReportBuilder {
+        <<interface>>
     }
 
     class MarkdownBuilder {
@@ -427,7 +463,6 @@ classDiagram
         +GroupServicesByStatus(services) map[string][]Service
         +FormatInterfaceLinks(interfaces) string
         +EscapeMarkdownSpecialChars(input) string
-        +BuildAuditSection(data) string
     }
 
     class SecurityAssessor {
@@ -450,11 +485,23 @@ classDiagram
         +FormatBoolean(value) string
     }
 
-    ReportBuilder <|.. MarkdownBuilder
+    ReportBuilder *-- SectionBuilder : composes
+    ReportBuilder *-- TableWriter : composes
+    ReportBuilder *-- ReportComposer : composes
+    ReportBuilder <|.. MarkdownBuilder : implements
     MarkdownBuilder o-- SecurityAssessor
     MarkdownBuilder o-- DataTransformer
     MarkdownBuilder o-- StringFormatter
 ```
+
+#### Consumer-Local Interface Narrowing
+
+`HybridGenerator` demonstrates the consumer-local interface narrowing pattern (documented in AGENTS.md §5.9a). It defines a private `reportGenerator` interface that exposes only the four methods it directly calls:
+
+- `SetIncludeTunables` and `BuildAuditSection` (via the `auditBuilder` sub-interface)
+- `BuildStandardReport` and `BuildComprehensiveReport` (via `ReportComposer`)
+
+The `HybridGenerator.builder` field is typed as this narrower `reportGenerator` interface internally. Public methods (`SetBuilder`, `GetBuilder`) continue to accept and return the full `ReportBuilder` interface, maintaining backward compatibility. The `GetBuilder` method uses a two-value type assertion to recover the full interface when needed.
 
 ### Data Flow Pipeline (Programmatic Mode)
 
