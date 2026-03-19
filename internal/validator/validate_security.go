@@ -2,6 +2,7 @@ package validator
 
 import (
 	"fmt"
+	"maps"
 	"net"
 	"slices"
 	"strings"
@@ -19,6 +20,69 @@ func stripIPSuffix(network string) string {
 func isReservedNetwork(network string) bool {
 	reserved := []string{"any", "lan", "wan", "localhost", "loopback", "(self)"}
 	return slices.Contains(reserved, network)
+}
+
+// sortedInterfaceNames returns a deterministic, sorted list of interface names from the set.
+func sortedInterfaceNames(names map[string]struct{}) []string {
+	return slices.Sorted(maps.Keys(names))
+}
+
+// validateNetworkField validates a network field value (source or destination) against reserved
+// keywords, CIDR notation, and configured interface references. Reserved keywords are matched
+// against the original value (exact match); the "ip" suffix is only stripped for interface lookups.
+// The direction parameter (e.g., "source", "destination") is used in error messages.
+func validateNetworkField(
+	network string,
+	fieldPath string,
+	direction string,
+	validInterfaceNames map[string]struct{},
+) []ValidationError {
+	if network == "" {
+		return nil
+	}
+
+	// Check reserved keywords against the original value (exact match)
+	if isReservedNetwork(network) {
+		return nil
+	}
+
+	// Check if it's a valid CIDR
+	if isValidCIDR(network) {
+		return nil
+	}
+
+	// Strip "ip" suffix and check as interface reference (e.g., "lanip" -> "lan")
+	stripped := stripIPSuffix(network)
+	if _, exists := validInterfaceNames[stripped]; exists {
+		return nil
+	}
+
+	return []ValidationError{{
+		Field: fieldPath,
+		Message: fmt.Sprintf(
+			"%s network '%s' must be a valid CIDR, reserved word, or an interface key followed by 'ip'",
+			direction,
+			network,
+		),
+	}}
+}
+
+// validateAddressField validates an address field value (source or destination) for malformed IPs.
+func validateAddressField(address, fieldPath string) []ValidationError {
+	if address == "" || isValidCIDR(address) || net.ParseIP(address) != nil {
+		return nil
+	}
+
+	// Not a valid IP or CIDR — could be an alias, which is acceptable.
+	// Only flag if it looks like a malformed IP/CIDR attempt.
+	if looksLikeMalformedIP(address) {
+		return []ValidationError{{
+			Field:   fieldPath,
+			Message: fmt.Sprintf("address '%s' appears to be a malformed IP/CIDR", address),
+		}}
+	}
+
+	return nil
 }
 
 // validateFilter checks each firewall filter rule for valid types, protocols, interface references, and network specifications.
@@ -52,81 +116,34 @@ func validateFilter(filter *schema.Filter, interfaces *schema.Interfaces) []Vali
 		if !rule.Interface.IsEmpty() {
 			for _, iface := range rule.Interface {
 				if _, exists := validInterfaceNames[iface]; !exists {
-					// Create a sorted slice of interface names for error message
-					interfaceList := make([]string, 0, len(validInterfaceNames))
-					for name := range validInterfaceNames {
-						interfaceList = append(interfaceList, name)
-					}
-
 					errors = append(errors, ValidationError{
 						Field: fmt.Sprintf("filter.rule[%d].interface", i),
 						Message: fmt.Sprintf(
 							"interface '%s' must be one of the configured interfaces: %v",
 							iface,
-							interfaceList,
+							sortedInterfaceNames(validInterfaceNames),
 						),
 					})
 				}
 			}
 		}
 
-		// Validate source network
-		network := stripIPSuffix(rule.Source.Network)
-		if rule.Source.Network != "" && !isReservedNetwork(network) && !isValidCIDR(rule.Source.Network) {
-			if _, exists := validInterfaceNames[network]; !exists {
-				errors = append(errors, ValidationError{
-					Field: fmt.Sprintf("filter.rule[%d].source.network", i),
-					Message: fmt.Sprintf(
-						"source network '%s' must be a valid CIDR, reserved word, or an interface key followed by 'ip'",
-						rule.Source.Network,
-					),
-				})
-			}
-		}
-
-		// Validate source address (IP/CIDR or alias)
-		if rule.Source.Address != "" && !isValidCIDR(rule.Source.Address) && net.ParseIP(rule.Source.Address) == nil {
-			// Not a valid IP or CIDR — could be an alias, which is acceptable.
-			// Only flag if it looks like a malformed IP/CIDR attempt:
-			// "/" = CIDR notation, ":" = IPv6, or digits-and-dots only (failed IPv4)
-			if looksLikeMalformedIP(rule.Source.Address) {
-				errors = append(errors, ValidationError{
-					Field: fmt.Sprintf("filter.rule[%d].source.address", i),
-					Message: fmt.Sprintf(
-						"source address '%s' appears to be a malformed IP/CIDR",
-						rule.Source.Address,
-					),
-				})
-			}
-		}
-
-		// Validate destination network
-		destNetwork := stripIPSuffix(rule.Destination.Network)
-		if rule.Destination.Network != "" && !isReservedNetwork(destNetwork) && !isValidCIDR(rule.Destination.Network) {
-			if _, exists := validInterfaceNames[destNetwork]; !exists {
-				errors = append(errors, ValidationError{
-					Field: fmt.Sprintf("filter.rule[%d].destination.network", i),
-					Message: fmt.Sprintf(
-						"destination network '%s' must be a valid CIDR, reserved word, or an interface key followed by 'ip'",
-						rule.Destination.Network,
-					),
-				})
-			}
-		}
-
-		// Validate destination address (IP/CIDR or alias)
-		if rule.Destination.Address != "" && !isValidCIDR(rule.Destination.Address) &&
-			net.ParseIP(rule.Destination.Address) == nil {
-			if looksLikeMalformedIP(rule.Destination.Address) {
-				errors = append(errors, ValidationError{
-					Field: fmt.Sprintf("filter.rule[%d].destination.address", i),
-					Message: fmt.Sprintf(
-						"destination address '%s' appears to be a malformed IP/CIDR",
-						rule.Destination.Address,
-					),
-				})
-			}
-		}
+		// Validate source/destination networks and addresses
+		errors = append(errors, validateNetworkField(
+			rule.Source.Network, fmt.Sprintf("filter.rule[%d].source.network", i), "source", validInterfaceNames,
+		)...)
+		errors = append(errors, validateAddressField(
+			rule.Source.Address, fmt.Sprintf("filter.rule[%d].source.address", i),
+		)...)
+		errors = append(errors, validateNetworkField(
+			rule.Destination.Network,
+			fmt.Sprintf("filter.rule[%d].destination.network", i),
+			"destination",
+			validInterfaceNames,
+		)...)
+		errors = append(errors, validateAddressField(
+			rule.Destination.Address, fmt.Sprintf("filter.rule[%d].destination.address", i),
+		)...)
 
 		// Validate source port
 		if rule.Source.Port != "" && !isValidPortOrRange(rule.Source.Port) {
