@@ -2,7 +2,9 @@ package validator
 
 import (
 	"fmt"
+	"maps"
 	"net"
+	"slices"
 	"strconv"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
@@ -68,7 +70,7 @@ func validateInterface(
 func validateIPAddress(iface *schema.Interface, name string) []ValidationError {
 	var errors []ValidationError
 	if iface.IPAddr != "" {
-		validIPTypes := []string{"dhcp", "dhcp6", "track6", "none"}
+		validIPTypes := []string{"dhcp", "none"}
 		if !contains(validIPTypes, iface.IPAddr) && !isValidIP(iface.IPAddr) {
 			errors = append(errors, ValidationError{
 				Field: fmt.Sprintf("interfaces.%s.ipaddr", name),
@@ -130,8 +132,13 @@ func validateMTU(iface *schema.Interface, name string) []ValidationError {
 	if iface.MTU != "" {
 		if mtu, err := strconv.Atoi(iface.MTU); err != nil || mtu < constants.MinMTU || mtu > constants.MaxMTU {
 			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("interfaces.%s.mtu", name),
-				Message: fmt.Sprintf("MTU '%s' must be a valid MTU (68-9000)", iface.MTU),
+				Field: fmt.Sprintf("interfaces.%s.mtu", name),
+				Message: fmt.Sprintf(
+					"MTU '%s' must be a valid MTU (%d-%d)",
+					iface.MTU,
+					constants.MinMTU,
+					constants.MaxMTU,
+				),
 			})
 		}
 	}
@@ -151,10 +158,7 @@ func validateTrack6(iface *schema.Interface, validInterfaceNames map[string]stru
 			// Validate that the referenced interface exists
 			if _, exists := validInterfaceNames[iface.Track6Interface]; !exists {
 				// Create a sorted slice of interface names for error message
-				interfaceList := make([]string, 0, len(validInterfaceNames))
-				for interfaceName := range validInterfaceNames {
-					interfaceList = append(interfaceList, interfaceName)
-				}
+				interfaceList := slices.Sorted(maps.Keys(validInterfaceNames))
 
 				errors = append(errors, ValidationError{
 					Field: fmt.Sprintf("interfaces.%s.track6-interface", name),
@@ -206,10 +210,7 @@ func validateDhcpdInterface(name string, cfg schema.DhcpdInterface, ifaceSet map
 	// Validate that the interface exists in the configuration
 	if _, exists := ifaceSet[name]; !exists {
 		// Create a sorted slice of interface names for error message
-		interfaceList := make([]string, 0, len(ifaceSet))
-		for interfaceName := range ifaceSet {
-			interfaceList = append(interfaceList, interfaceName)
-		}
+		interfaceList := slices.Sorted(maps.Keys(ifaceSet))
 
 		errors = append(errors, ValidationError{
 			Field:   "dhcpd." + name,
