@@ -72,7 +72,8 @@ func contains(slice []string, item string) bool {
 
 // isValidIP returns true if the input string is a valid IPv4 address.
 func isValidIP(ip string) bool {
-	return net.ParseIP(ip) != nil && net.ParseIP(ip).To4() != nil
+	parsed := net.ParseIP(ip)
+	return parsed != nil && parsed.To4() != nil
 }
 
 // isValidIPv6 returns true if the input string is a valid IPv6 address.

@@ -179,7 +179,7 @@ func validateGroupGID(group schema.Group, index int, groupGIDs map[string]bool) 
 	if err != nil || gid < 0 {
 		errors = append(errors, ValidationError{
 			Field:   fmt.Sprintf("system.group[%d].gid", index),
-			Message: fmt.Sprintf("GID '%s' must be a positive integer", group.Gid),
+			Message: fmt.Sprintf("GID '%s' must be a non-negative integer", group.Gid),
 		})
 		return errors
 	}
@@ -269,7 +269,7 @@ func validateUserUID(user schema.User, index int, userUIDs map[string]bool) []Va
 	if err != nil || uid < 0 {
 		errors = append(errors, ValidationError{
 			Field:   fmt.Sprintf("system.user[%d].uid", index),
-			Message: fmt.Sprintf("UID '%s' must be a positive integer", user.UID),
+			Message: fmt.Sprintf("UID '%s' must be a non-negative integer", user.UID),
 		})
 		return errors
 	}

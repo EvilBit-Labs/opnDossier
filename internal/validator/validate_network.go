@@ -30,10 +30,13 @@ func validateInterfaces(interfaces *schema.Interfaces) []ValidationError {
 		return errors
 	}
 
+	// Pre-compute interface names once to avoid O(N^2) recomputation per interface
+	validInterfaceNames := collectInterfaceNames(interfaces)
+
 	// Validate each configured interface
 	for name, iface := range interfaces.Items {
 		ifaceCopy := iface // Create a copy to get a pointer
-		errors = append(errors, validateInterface(&ifaceCopy, name, interfaces)...)
+		errors = append(errors, validateInterface(&ifaceCopy, name, validInterfaceNames)...)
 	}
 
 	return errors
@@ -41,14 +44,16 @@ func validateInterfaces(interfaces *schema.Interfaces) []ValidationError {
 
 // validateInterface checks a single network interface configuration for valid IP address types and formats, subnet masks, MTU range, and required fields for track6 IPv6 addressing.
 // It returns a slice of ValidationError for any invalid or missing configuration fields.
-func validateInterface(iface *schema.Interface, name string, interfaces *schema.Interfaces) []ValidationError {
+func validateInterface(
+	iface *schema.Interface,
+	name string,
+	validInterfaceNames map[string]struct{},
+) []ValidationError {
 	var errors []ValidationError
 
 	if iface == nil {
 		return errors
 	}
-
-	validInterfaceNames := collectInterfaceNames(interfaces)
 
 	errors = append(errors, validateIPAddress(iface, name)...)                   // IP Address Validation
 	errors = append(errors, validateIPv6Address(iface, name)...)                 // IPv6 Address Validation
@@ -172,8 +177,8 @@ func validateTrack6(iface *schema.Interface, validInterfaceNames map[string]stru
 	return errors
 }
 
-// It iterates over the interface map and validates each DHCP block that exists in the dhcpd section.
-// Returns a slice of ValidationError for any invalid or inconsistent DHCP configuration fields.
+// validateDhcpd iterates over the interface map and validates each DHCP block that exists in the dhcpd section.
+// It returns a slice of ValidationError for any invalid or inconsistent DHCP configuration fields.
 func validateDhcpd(dhcpd *schema.Dhcpd, interfaces *schema.Interfaces) []ValidationError {
 	var errors []ValidationError
 

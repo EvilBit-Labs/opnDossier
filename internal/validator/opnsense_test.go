@@ -417,7 +417,7 @@ func TestValidateInterface_IPAddressValidation(t *testing.T) {
 					"lan": {},
 				},
 			}
-			errors := validateInterface(&tt.iface, tt.interfaceName, interfaces)
+			errors := validateInterface(&tt.iface, tt.interfaceName, collectInterfaceNames(interfaces))
 			assert.Len(t, errors, tt.expectedErrors, "Expected number of errors")
 		})
 	}
@@ -1084,7 +1084,7 @@ func TestValidateInterface_MTUValidation(t *testing.T) {
 					"test": {},
 				},
 			}
-			errors := validateInterface(&tt.iface, "test", interfaces)
+			errors := validateInterface(&tt.iface, "test", collectInterfaceNames(interfaces))
 			assert.Len(t, errors, tt.expectedErrors, "Expected number of errors")
 		})
 	}
