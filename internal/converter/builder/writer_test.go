@@ -480,7 +480,7 @@ func TestMarkdownBuilder_BuildOpenVPNSection_WithServers(t *testing.T) {
 		"### OpenVPN Configuration",
 		"#### OpenVPN Servers",
 		"Site-to-Site VPN",
-		"p2p_tls",
+		"p2p\\_tls",
 		"UDP",
 		"wan",
 		"1194",
