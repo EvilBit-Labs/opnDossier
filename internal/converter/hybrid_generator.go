@@ -36,22 +36,21 @@ type StreamingGenerator interface {
 }
 
 // reportGenerator is the narrowest interface HybridGenerator requires from its
-// builder. It exposes only the four methods HybridGenerator directly calls:
-// SetIncludeTunables, BuildAuditSection (via auditBuilder), BuildStandardReport,
-// and BuildComprehensiveReport (via ReportComposer).
+// builder. It lists only the four methods HybridGenerator directly calls.
 // SectionBuilder and TableWriter are deliberately excluded — HybridGenerator
 // never calls individual section or table methods.
+//
+// Note: HybridGenerator also type-asserts the builder to builder.SectionWriter
+// for streaming support — see generateMarkdownToWriter.
 type reportGenerator interface {
-	auditBuilder
-	builder.ReportComposer
-}
-
-// auditBuilder groups the two non-report-composition methods HybridGenerator calls.
-type auditBuilder interface {
 	// SetIncludeTunables configures whether all system tunables are included in the report.
 	SetIncludeTunables(v bool)
 	// BuildAuditSection builds the compliance audit section from the device's ComplianceChecks.
 	BuildAuditSection(data *common.CommonDevice) string
+	// BuildStandardReport generates a standard configuration report.
+	BuildStandardReport(data *common.CommonDevice) (string, error)
+	// BuildComprehensiveReport generates a comprehensive configuration report.
+	BuildComprehensiveReport(data *common.CommonDevice) (string, error)
 }
 
 // HybridGenerator provides programmatic markdown, JSON, and YAML generation.
@@ -432,9 +431,9 @@ func (g *HybridGenerator) SetBuilder(reportBuilder builder.ReportBuilder) {
 }
 
 // GetBuilder returns the current report builder as a ReportBuilder.
-// The underlying value is always a ReportBuilder (e.g., *MarkdownBuilder),
-// so the type assertion succeeds in practice. Returns nil if the builder
-// is nil or does not satisfy ReportBuilder.
+// The underlying value is typically a ReportBuilder (e.g., *MarkdownBuilder)
+// because SetBuilder and NewHybridGenerator accept ReportBuilder.
+// Returns nil if the builder is nil or does not satisfy the full ReportBuilder interface.
 func (g *HybridGenerator) GetBuilder() builder.ReportBuilder {
 	if g.builder == nil {
 		return nil

@@ -195,12 +195,12 @@ When adding `io.Writer` support alongside string-based APIs:
 
 ### 5.9a Consumer-Local Interface Narrowing
 
-When a struct depends on a broad interface but only calls a subset of its methods, define an unexported consumer-local interface listing only the methods actually called. Do NOT embed a broader sub-interface if it brings unused methods — instead, list the exact method signatures directly.
+When a struct depends on a broad interface but only calls a subset of its methods, define an unexported consumer-local interface listing only the methods actually called. Do NOT embed a broader sub-interface if it brings unused methods — instead, list the exact method signatures directly. Embedding a sub-interface is acceptable when every method in that sub-interface is called by the consumer.
 
-- Name the interface descriptively (e.g., `reportGenerator`, `auditBuilder`)
+- Name the interface descriptively (e.g., `reportGenerator`)
 - Keep public constructor/setter signatures accepting the broad interface for backward compatibility
 - Use a two-value type assertion in getter methods to recover the broad interface when needed
-- See `reportGenerator` and `auditBuilder` in `internal/converter/hybrid_generator.go`
+- See `reportGenerator` in `internal/converter/hybrid_generator.go`
 
 ### 5.10 Common Linter Patterns
 

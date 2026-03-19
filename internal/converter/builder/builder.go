@@ -21,7 +21,8 @@ import (
 const destinationAny = "any"
 
 // SectionBuilder defines methods for building individual report sections.
-// Each method renders a specific configuration domain into a markdown string.
+// Each method renders a specific configuration domain into a markdown string
+// or returns an empty string when the section has no data.
 type SectionBuilder interface {
 	// BuildSystemSection builds the system configuration section.
 	BuildSystemSection(data *common.CommonDevice) string
@@ -41,10 +42,6 @@ type SectionBuilder interface {
 	BuildIDSSection(data *common.CommonDevice) string
 	// BuildAuditSection builds the compliance audit section from the device's ComplianceChecks.
 	BuildAuditSection(data *common.CommonDevice) string
-	// SetIncludeTunables configures whether all system tunables are included in the report.
-	// When false, only tunables matching the security prefixes used by
-	// formatters.FilterSystemTunables are shown.
-	SetIncludeTunables(v bool)
 }
 
 // TableWriter defines methods for writing data tables into a markdown instance.
@@ -76,7 +73,12 @@ type TableWriter interface {
 
 // ReportComposer defines methods for composing full configuration reports.
 // Each method assembles multiple sections into a complete markdown document.
+// SetIncludeTunables configures rendering behavior before composition.
 type ReportComposer interface {
+	// SetIncludeTunables configures whether all system tunables are included in the report.
+	// When false, only tunables matching the security prefixes used by
+	// formatters.FilterSystemTunables are shown.
+	SetIncludeTunables(v bool)
 	// BuildStandardReport generates a standard configuration report.
 	BuildStandardReport(data *common.CommonDevice) (string, error)
 	// BuildComprehensiveReport generates a comprehensive configuration report.
@@ -92,8 +94,13 @@ type ReportBuilder interface {
 	ReportComposer
 }
 
-// Compile-time assertion that MarkdownBuilder satisfies ReportBuilder.
-var _ ReportBuilder = (*MarkdownBuilder)(nil)
+// Compile-time assertions that MarkdownBuilder satisfies all interfaces.
+var (
+	_ SectionBuilder = (*MarkdownBuilder)(nil)
+	_ TableWriter    = (*MarkdownBuilder)(nil)
+	_ ReportComposer = (*MarkdownBuilder)(nil)
+	_ ReportBuilder  = (*MarkdownBuilder)(nil)
+)
 
 // MarkdownBuilder implements the ReportBuilder interface with comprehensive
 // programmatic markdown generation capabilities.
