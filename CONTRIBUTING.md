@@ -87,24 +87,74 @@ opnDossier uses programmatic markdown generation via direct Go method calls thro
 
 #### Key Components
 
-**ReportBuilder Interface**
+**ReportBuilder Interface Composition**
+
+The `ReportBuilder` interface follows the Interface Segregation Principle by composing three focused interfaces:
 
 ```go
-// ReportBuilder defines the contract for programmatic report generation.
-// It operates on the platform-agnostic CommonDevice model from pkg/model/.
-type ReportBuilder interface {
-    // Section builders
+// SectionBuilder defines methods for building individual report sections.
+// Each method renders a specific configuration domain into a markdown string.
+type SectionBuilder interface {
     BuildSystemSection(data *common.CommonDevice) string
     BuildNetworkSection(data *common.CommonDevice) string
     BuildSecuritySection(data *common.CommonDevice) string
     BuildServicesSection(data *common.CommonDevice) string
+    BuildIPsecSection(data *common.CommonDevice) string
+    BuildOpenVPNSection(data *common.CommonDevice) string
+    BuildHASection(data *common.CommonDevice) string
+    BuildIDSSection(data *common.CommonDevice) string
+    BuildAuditSection(data *common.CommonDevice) string
+    SetIncludeTunables(v bool)
+}
 
-    // Table writers (take *markdown.Markdown for method chaining)
+// TableWriter defines methods for writing data tables into a markdown instance.
+// Each method appends a formatted table and returns the markdown for chaining.
+type TableWriter interface {
     WriteFirewallRulesTable(md *markdown.Markdown, rules []common.FirewallRule) *markdown.Markdown
     WriteInterfaceTable(md *markdown.Markdown, interfaces []common.Interface) *markdown.Markdown
-    // ... additional Write*Table methods for NAT, VLAN, DHCP, routes, etc.
+    WriteVLANTable(md *markdown.Markdown, vlans []common.VLAN) *markdown.Markdown
+    WriteStaticRouteTable(md *markdown.Markdown, routes []common.StaticRoute) *markdown.Markdown
+    WriteAliasTable(md *markdown.Markdown, aliases []common.Alias) *markdown.Markdown
+    WriteNATRulesTable(md *markdown.Markdown, rules []common.NATRule) *markdown.Markdown
+    WriteOpenVPNInstanceTable(md *markdown.Markdown, instances []common.OpenVPNInstance) *markdown.Markdown
+    WriteIPsecTunnelTable(md *markdown.Markdown, tunnels []common.IPsecTunnel) *markdown.Markdown
+    WriteCARPInterfaceTable(md *markdown.Markdown, interfaces []common.CARPInterface) *markdown.Markdown
+    WriteDHCPSummaryTable(md *markdown.Markdown, scopes []common.DHCPScope) *markdown.Markdown
+    WriteDHCPStaticLeasesTable(md *markdown.Markdown, leases []common.DHCPStaticLease) *markdown.Markdown
+}
+
+// ReportComposer defines methods for composing full configuration reports.
+// Each method assembles multiple sections into a complete markdown document.
+type ReportComposer interface {
+    BuildStandardReport(data *common.CommonDevice) (string, error)
+    BuildComprehensiveReport(data *common.CommonDevice) (string, error)
+}
+
+// ReportBuilder composes all three interfaces for full backward compatibility.
+type ReportBuilder interface {
+    SectionBuilder
+    TableWriter
+    ReportComposer
 }
 ```
+
+This interface segregation allows consumers to depend only on the specific capabilities they need. For example, `HybridGenerator` uses a consumer-local `reportGenerator` interface that includes only `SetIncludeTunables`, `BuildAuditSection`, and the two `ReportComposer` methods—it never calls individual section or table methods.
+
+`MarkdownBuilder` implements all three interfaces, with `ReportBuilder` serving as the complete interface contract for full functionality.
+
+**Understanding Interface Segregation in Practice**
+
+Contributors should understand this design when working with the builder pattern:
+
+1. **Interface Composition**: `ReportBuilder` composes three focused interfaces (`SectionBuilder`, `TableWriter`, `ReportComposer`) rather than declaring all methods directly. This follows the Interface Segregation Principle.
+
+2. **Consumer-Local Interface Narrowing**: When a component needs only a subset of methods, define an unexported consumer-local interface with exactly those methods. See `reportGenerator` and `auditBuilder` in `internal/converter/hybrid_generator.go` as examples.
+
+3. **Backward Compatibility**: Public APIs (constructors, setters) accept the broad `ReportBuilder` interface. Internal fields use the narrower interface. Getters use two-value type assertions to recover the full interface when needed.
+
+4. **Implementation**: `MarkdownBuilder` implements all methods from all three interfaces. A compile-time assertion (`var _ ReportBuilder = (*MarkdownBuilder)(nil)`) ensures the concrete type satisfies the full contract.
+
+This refactoring was completed in PR #431 (closing issue #323) and maintains full backward compatibility while improving interface design.
 
 **Key Methods on MarkdownBuilder**
 
