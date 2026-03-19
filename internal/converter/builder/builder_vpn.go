@@ -52,10 +52,10 @@ func (b *MarkdownBuilder) writeOpenVPNSection(md *markdown.Markdown, data *commo
 		for _, server := range openvpn.Servers {
 			serverRows = append(serverRows, []string{
 				formatters.EscapeTableContent(server.Description),
-				server.Mode,
-				server.Protocol,
-				server.Interface,
-				server.LocalPort,
+				formatters.EscapeTableContent(server.Mode),
+				formatters.EscapeTableContent(server.Protocol),
+				formatters.EscapeTableContent(server.Interface),
+				formatters.EscapeTableContent(server.LocalPort),
 				formatters.EscapeTableContent(server.TunnelNetwork),
 				formatters.EscapeTableContent(server.RemoteNetwork),
 				formatters.EscapeTableContent(server.CertRef),
@@ -87,9 +87,9 @@ func (b *MarkdownBuilder) writeOpenVPNSection(md *markdown.Markdown, data *commo
 			clientRows = append(clientRows, []string{
 				formatters.EscapeTableContent(client.Description),
 				formatters.EscapeTableContent(client.ServerAddr),
-				client.ServerPort,
-				client.Mode,
-				client.Protocol,
+				formatters.EscapeTableContent(client.ServerPort),
+				formatters.EscapeTableContent(client.Mode),
+				formatters.EscapeTableContent(client.Protocol),
 				formatters.EscapeTableContent(client.CertRef),
 			})
 		}
@@ -155,7 +155,7 @@ func (b *MarkdownBuilder) writeHASection(md *markdown.Markdown, data *common.Com
 		for _, vip := range data.VirtualIPs {
 			vipRows = append(vipRows, []string{
 				formatters.EscapeTableContent(vip.Subnet),
-				vip.Mode,
+				formatters.EscapeTableContent(vip.Mode),
 			})
 		}
 		md.H4("Virtual IP Addresses (CARP)").
@@ -181,7 +181,7 @@ func (b *MarkdownBuilder) writeHASection(md *markdown.Markdown, data *common.Com
 					{"**Configuration Sync IP**", formatters.EscapeTableContent(hasync.SynchronizeToIP)},
 					{"**Sync Username**", formatters.EscapeTableContent(hasync.Username)},
 					{"**Disable Preempt**", formatters.FormatBool(hasync.DisablePreempt)},
-					{"**pfSync Version**", hasync.PfsyncVersion},
+					{"**pfSync Version**", formatters.EscapeTableContent(hasync.PfsyncVersion)},
 				},
 			})
 	}
