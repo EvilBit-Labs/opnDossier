@@ -332,6 +332,17 @@ Files in `pkg/parser/opnsense/` (package `opnsense`) **must** alias the schema i
 
 `Report.ToJSON()` and `Report.ToYAML()` serialize a redacted copy via `redactedCopyUnsafe()` to prevent `NormalizedConfig.SNMP.ROCommunity` from leaking. When adding new sensitive fields to `CommonDevice`, extend `redactedCopyUnsafe()` in `internal/processor/report.go`. The copy is constructed field-by-field (not `cp := *r`) to avoid `copylocks` on `sync.RWMutex`. Statistics redaction (`redactServiceDetails`) is separate and handles the statistics-layer SNMP community.
 
+### 5.26 File-Split Refactoring Pattern
+
+When splitting a large file into domain-specific files within the same package:
+
+- All functions remain in the same package — tests find them regardless of file
+- Pre-commit hooks (gofumpt, linters) may rearrange where helpers land — re-verify file contents after hooks run
+- Changing an unexported function's signature breaks same-package test files that call it directly — grep for all call sites in `*_test.go` before changing signatures
+- Shared helpers used across domain files stay in the orchestrator file; domain-specific helpers move with their domain
+- Naming convention: `<base>_<domain>.go` (e.g., `validate_system.go`, `report_statistics.go`)
+- Precedent: PR #415 (`report.go` split), PR #417 (`opnsense.go` split), `pkg/parser/opnsense/` (`converter_*.go`)
+
 ---
 
 ## 6. Data Processing Standards
