@@ -3,10 +3,8 @@ package validator
 import (
 	"fmt"
 	"maps"
-	"regexp"
 	"slices"
 	"strconv"
-	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
@@ -363,43 +361,4 @@ func validateSysctl(items []schema.SysctlItem) []ValidationError {
 	}
 
 	return errors
-}
-
-// hostnamePattern matches valid hostnames: starts and ends with alphanumeric, allows hyphens in between.
-var hostnamePattern = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$`)
-
-// isValidHostname returns true if the given string is a valid hostname according to length and character rules.
-func isValidHostname(hostname string) bool {
-	if hostname == "" || len(hostname) > constants.MaxHostnameLength {
-		return false
-	}
-
-	return hostnamePattern.MatchString(hostname)
-}
-
-// timezonePatterns matches common timezone formats: Region/City, Etc/UTC, UTC, GMT+/-offset.
-var timezonePatterns = []*regexp.Regexp{
-	regexp.MustCompile(`^(America|Europe|Asia|Africa|Australia|Antarctica)/[A-Za-z_]+$`),
-	regexp.MustCompile(`^Etc/(UTC|GMT[+-]?\d*)$`),
-	regexp.MustCompile(`^UTC$`),
-	regexp.MustCompile(`^GMT[+-]?\d*$`),
-}
-
-// isValidTimezone returns true if the given timezone string matches common timezone patterns such as "Region/City", "Etc/UTC", "UTC", or "GMT" with optional offset.
-func isValidTimezone(timezone string) bool {
-	for _, pattern := range timezonePatterns {
-		if pattern.MatchString(timezone) {
-			return true
-		}
-	}
-
-	return false
-}
-
-// sysctlNamePattern matches valid sysctl tunable names: starts with letter, allows letters, digits, underscores, dots.
-var sysctlNamePattern = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_.]*$`)
-
-// isValidSysctlName returns true if the provided string is a valid sysctl tunable name, requiring it to start with a letter, contain only letters, digits, underscores, or dots, and include at least one dot.
-func isValidSysctlName(name string) bool {
-	return sysctlNamePattern.MatchString(name) && strings.Contains(name, ".")
 }

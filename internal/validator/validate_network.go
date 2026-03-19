@@ -9,6 +9,19 @@ import (
 	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
 
+// collectInterfaceNames returns every key from the interfaces map as a set.
+func collectInterfaceNames(ifaces *schema.Interfaces) map[string]struct{} {
+	interfaceNames := make(map[string]struct{})
+
+	if ifaces != nil && ifaces.Items != nil {
+		for name := range ifaces.Items {
+			interfaceNames[name] = struct{}{}
+		}
+	}
+
+	return interfaceNames
+}
+
 // validateInterfaces validates all configured network interfaces and returns any validation errors found.
 func validateInterfaces(interfaces *schema.Interfaces) []ValidationError {
 	var errors []ValidationError

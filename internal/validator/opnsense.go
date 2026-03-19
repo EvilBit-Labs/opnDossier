@@ -9,8 +9,10 @@ import (
 	"net"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
 
@@ -61,19 +63,6 @@ func ValidateOpnSenseDocument(o *schema.OpnSenseDocument) []ValidationError {
 	return errors
 }
 
-// collectInterfaceNames returns every key from the interfaces map as a set.
-func collectInterfaceNames(ifaces *schema.Interfaces) map[string]struct{} {
-	interfaceNames := make(map[string]struct{})
-
-	if ifaces != nil && ifaces.Items != nil {
-		for name := range ifaces.Items {
-			interfaceNames[name] = struct{}{}
-		}
-	}
-
-	return interfaceNames
-}
-
 // Helper functions for validation
 
 // contains reports whether a slice of strings contains a specified string.
@@ -107,4 +96,117 @@ func looksLikeMalformedIP(s string) bool {
 func isValidCIDR(cidr string) bool {
 	_, _, err := net.ParseCIDR(cidr)
 	return err == nil
+}
+
+// hostnamePattern matches valid hostnames: starts and ends with alphanumeric, allows hyphens in between.
+var hostnamePattern = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$`)
+
+// isValidHostname returns true if the given string is a valid hostname according to length and character rules.
+func isValidHostname(hostname string) bool {
+	if hostname == "" || len(hostname) > constants.MaxHostnameLength {
+		return false
+	}
+
+	return hostnamePattern.MatchString(hostname)
+}
+
+// timezonePatterns matches common timezone formats: Region/City, Etc/UTC, UTC, GMT+/-offset.
+var timezonePatterns = []*regexp.Regexp{
+	regexp.MustCompile(`^(America|Europe|Asia|Africa|Australia|Antarctica)/[A-Za-z_]+$`),
+	regexp.MustCompile(`^Etc/(UTC|GMT[+-]?\d*)$`),
+	regexp.MustCompile(`^UTC$`),
+	regexp.MustCompile(`^GMT[+-]?\d*$`),
+}
+
+// isValidTimezone returns true if the given timezone string matches common timezone patterns such as "Region/City", "Etc/UTC", "UTC", or "GMT" with optional offset.
+func isValidTimezone(timezone string) bool {
+	for _, pattern := range timezonePatterns {
+		if pattern.MatchString(timezone) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// sysctlNamePattern matches valid sysctl tunable names: starts with letter, allows letters, digits, underscores, dots.
+var sysctlNamePattern = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_.]*$`)
+
+// isValidSysctlName returns true if the provided string is a valid sysctl tunable name, requiring it to start with a letter, contain only letters, digits, underscores, or dots, and include at least one dot.
+func isValidSysctlName(name string) bool {
+	return sysctlNamePattern.MatchString(name) && strings.Contains(name, ".")
+}
+
+// connRatePattern matches the "connections/seconds" format (e.g., "15/5").
+var connRatePattern = regexp.MustCompile(`^\d+/\d+$`)
+
+// isValidConnRateFormat returns true if the string matches the "connections/seconds" format
+// (e.g., "15/5") with both values being positive integers.
+func isValidConnRateFormat(rate string) bool {
+	if !connRatePattern.MatchString(rate) {
+		return false
+	}
+
+	//nolint:mnd // splitting "connections/seconds" into exactly 2 parts
+	parts := strings.SplitN(rate, "/", 2)
+	connections, err1 := strconv.Atoi(parts[0])
+	seconds, err2 := strconv.Atoi(parts[1])
+
+	return err1 == nil && err2 == nil && connections > 0 && seconds > 0
+}
+
+// portRangePattern matches a numeric port or numeric port range (e.g., "80", "1024-65535").
+var portRangePattern = regexp.MustCompile(`^\d+(-\d+)?$`)
+
+// numericPrefixPattern detects values that start with digits followed by a hyphen,
+// indicating a malformed range attempt (e.g., "80-abc").
+var numericPrefixPattern = regexp.MustCompile(`^\d+-`)
+
+// maxPort is the maximum valid TCP/UDP port number.
+const maxPort = constants.MaxPort
+
+// portRangeParts is the maximum number of parts when splitting a port range on hyphen.
+const portRangeParts = 2
+
+// isValidPortOrRange validates a port specification.
+// It permits empty values and alias-like strings (e.g., "http", "MyAlias").
+// When the value matches a numeric or numeric range pattern, it ensures ports
+// are 1–65535 and that range low <= high. Malformed values like "80-abc" are rejected.
+func isValidPortOrRange(port string) bool {
+	if port == "" {
+		return true
+	}
+
+	if portRangePattern.MatchString(port) {
+		return validateNumericPort(port)
+	}
+
+	// Detect malformed range attempts (starts with digits + hyphen but non-numeric tail)
+	if numericPrefixPattern.MatchString(port) {
+		return false
+	}
+
+	// Not numeric — treat as alias name (valid)
+	return true
+}
+
+// validateNumericPort validates a purely numeric port or port range string.
+func validateNumericPort(port string) bool {
+	parts := strings.SplitN(port, "-", portRangeParts)
+
+	low, err := strconv.Atoi(parts[0])
+	if err != nil || low < 1 || low > maxPort {
+		return false
+	}
+
+	if len(parts) == 1 {
+		return true
+	}
+
+	high, err := strconv.Atoi(parts[1])
+	if err != nil || high < 1 || high > maxPort {
+		return false
+	}
+
+	return low <= high
 }
