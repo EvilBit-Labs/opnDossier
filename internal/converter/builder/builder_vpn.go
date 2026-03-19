@@ -108,7 +108,7 @@ func (b *MarkdownBuilder) writeOpenVPNSection(md *markdown.Markdown, data *commo
 	}
 }
 
-// BuildOpenVPNSection builds the OpenVPN configuration section with servers, clients, and CSC.
+// BuildOpenVPNSection builds the OpenVPN configuration section with servers and clients.
 func (b *MarkdownBuilder) BuildOpenVPNSection(data *common.CommonDevice) string {
 	var buf bytes.Buffer
 	md := markdown.NewMarkdown(&buf)

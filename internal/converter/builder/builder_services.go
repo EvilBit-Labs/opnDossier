@@ -97,7 +97,11 @@ func (b *MarkdownBuilder) writeServicesSection(md *markdown.Markdown, data *comm
 	if len(data.LoadBalancer.MonitorTypes) > 0 {
 		rows := make([][]string, 0, len(data.LoadBalancer.MonitorTypes))
 		for _, monitor := range data.LoadBalancer.MonitorTypes {
-			rows = append(rows, []string{monitor.Name, monitor.Type, monitor.Description})
+			rows = append(rows, []string{
+				formatters.EscapeTableContent(monitor.Name),
+				formatters.EscapeTableContent(monitor.Type),
+				formatters.EscapeTableContent(monitor.Description),
+			})
 		}
 		md.H3("Load Balancer Monitors").
 			Table(markdown.TableSet{
