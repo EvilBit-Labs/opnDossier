@@ -896,7 +896,7 @@ type FormatHandler interface {
 `DefaultRegistry` manages five built-in format handlers:
 
 | Format   | Extension | Aliases | Handler Implementation |
-|----------|-----------|---------|------------------------|
+| -------- | --------- | ------- | ---------------------- |
 | markdown | `.md`     | md      | `markdownHandler`      |
 | json     | `.json`   | -       | `jsonHandler`          |
 | yaml     | `.yaml`   | yml     | `yamlHandler`          |
