@@ -97,7 +97,7 @@ func (r *FormatRegistry) Get(format string) (FormatHandler, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	key := strings.ToLower(format)
+	key := strings.TrimSpace(strings.ToLower(format))
 
 	if h, ok := r.handlers[key]; ok {
 		return h, nil
@@ -117,7 +117,7 @@ func (r *FormatRegistry) Canonical(format string) (string, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	key := strings.ToLower(format)
+	key := strings.TrimSpace(strings.ToLower(format))
 
 	if _, exists := r.handlers[key]; exists {
 		return key, true
