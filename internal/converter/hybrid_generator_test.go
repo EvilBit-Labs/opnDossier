@@ -356,6 +356,7 @@ func (n *narrowOnlyBuilder) BuildAuditSection(_ *common.CommonDevice) string { r
 func (n *narrowOnlyBuilder) BuildStandardReport(_ *common.CommonDevice) (string, error) {
 	return "", nil
 }
+
 func (n *narrowOnlyBuilder) BuildComprehensiveReport(_ *common.CommonDevice) (string, error) {
 	return "", nil
 }
