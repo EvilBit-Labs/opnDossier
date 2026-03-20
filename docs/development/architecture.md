@@ -511,7 +511,7 @@ The `HybridGenerator.builder` field is typed as this narrower `reportGenerator` 
 
 #### FormatRegistry Integration
 
-`HybridGenerator` delegates format-specific generation to `FormatHandler` implementations retrieved from `DefaultRegistry` (documented in AGENTS.md §5.9b). The `handlerForFormat()` helper function resolves the format string to a handler, defaulting to markdown when empty. Each handler implements:
+`HybridGenerator` delegates format-specific generation to `FormatHandler` implementations retrieved from `DefaultRegistry` (documented in AGENTS.md §5.9b). The `handlerForFormat()` helper function resolves the format string to a handler via the registry; format defaulting (to markdown) is handled earlier via `DefaultOptions` / CLI configuration, so `handlerForFormat()` expects a non-empty, registered format string. Each handler implements:
 
 - **`FileExtension()`** - Returns the file extension for the format (e.g., ".md", ".json")
 - **`Aliases()`** - Returns alternative format names (e.g., "md" for markdown, "yml" for yaml)
