@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
@@ -150,6 +151,20 @@ func (p *CoreProcessor) Transform(ctx context.Context, report *Report, format st
 		return p.toYAML(report)
 	case "markdown":
 		return p.toMarkdown(ctx, report)
+	case "text":
+		md, err := p.toMarkdown(ctx, report)
+		if err != nil {
+			return "", err
+		}
+
+		return converter.StripMarkdownFormatting(md), nil
+	case "html":
+		md, err := p.toMarkdown(ctx, report)
+		if err != nil {
+			return "", err
+		}
+
+		return converter.RenderMarkdownToHTML(md)
 	default:
 		return "", fmt.Errorf("unsupported format: %w", &UnsupportedFormatError{Format: format})
 	}
