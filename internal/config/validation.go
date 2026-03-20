@@ -8,6 +8,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 )
 
 // ValidLogLevels defines the allowed logging levels.
@@ -19,8 +21,12 @@ var ValidLogFormats = []string{"text", "json"}
 // ValidThemes defines the allowed theme values.
 var ValidThemes = []string{"light", "dark", "auto", "none", "custom", ""}
 
-// ValidFormats defines the allowed output formats.
-var ValidFormats = []string{"markdown", "md", "json", "yaml", "yml", "text", "txt", "html", "htm", ""}
+// ValidFormats defines the allowed output formats, sourced from the converter registry
+// with an empty string appended to allow unset values.
+var ValidFormats = append(
+	converter.DefaultRegistry.ValidFormatsWithAliases(),
+	"",
+) //nolint:gochecknoglobals // derived from registry
 
 // ValidExportFormats defines the allowed export formats for structured data interchange.
 // Text and HTML are excluded because they are human-readable output formats
