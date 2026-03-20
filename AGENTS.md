@@ -213,6 +213,9 @@ When a struct depends on a broad interface but only calls a subset of its method
 - **File extensions:** `handler.FileExtension()` replaces scattered switch statements in `cmd/convert.go`
 - **Generation dispatch:** `FormatHandler.Generate()` and `FormatHandler.GenerateToWriter()` replace hardcoded `switch` blocks in `HybridGenerator` — each handler delegates to the generator's private format-specific methods. `handlerForFormat()` is the generator-scoped registry accessor
 - **Processor integration:** `processor.Transform()` handles all five formats (markdown, json, yaml, text, html) -- text and html formats delegate to exported `converter.StripMarkdownFormatting()` and `converter.RenderMarkdownToHTML()` respectively
+- **Alias resolution in processor:** `processor.Transform()` calls `DefaultRegistry.Canonical()` before its switch statement, so aliases (`txt`, `htm`, `md`, `yml`) work consistently across all code paths
+- **Registry safety:** `Register()` validates all conditions (duplicates, alias conflicts, nil handler, empty name) before mutating maps — panics never leave partial state. `Get()` and `Canonical()` apply the same `TrimSpace(ToLower(...))` normalization as `Register()`
+- **Return types:** `Canonical()` returns `(string, bool)` (not just `string`) and `StripMarkdownFormatting()` returns `(string, error)` — no silent fallbacks
 - `cmd/convert.go` no longer defines format constants — use `converter.FormatMarkdown`, `converter.FormatJSON`, etc.
 
 ### 5.10 Common Linter Patterns
@@ -480,6 +483,10 @@ Use `t.Helper()` in all test helpers and `t.Cleanup()` for teardown. Place share
 ### 7.4 Map Iteration in Tests
 
 Map iteration is non-deterministic — test for presence (`strings.Contains()`) not exact equality. Production code must sort before rendering (see §5.11).
+
+### 7.4a Pointer Identity in Tests
+
+Use `assert.Same(t, expected, actual)` (not `assert.Equal`) when verifying that two interface values point to the same object (e.g., alias and canonical registry lookups return the same handler instance).
 
 ### 7.5 Test Assertion Specificity
 
