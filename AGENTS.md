@@ -680,6 +680,16 @@ When encountering problems:
 3. Propose a concrete path forward
 4. Don't proceed without resolving blockers
 
+### 12.5 Documentation Accuracy for Interfaces
+
+When documenting interfaces in prose, Mermaid diagrams, or code examples:
+
+- Extract method lists from `go doc` output or source code, never from memory or design proposals
+- Verify every identifier in Mermaid diagrams resolves to a real symbol (`grep -r` in source)
+- Method counts stated in prose must match actual interface definitions
+- Update docs in the same commit as interface changes, not in follow-up PRs
+- See `docs/solutions/logic-errors/documentation-code-drift-interface-refactoring.md`
+
 ---
 
 ## 13. Open-Source Quality Standards (OSSF Best Practices)
