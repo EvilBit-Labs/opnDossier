@@ -55,7 +55,10 @@ func (r *FormatRegistry) Register(format string, handler FormatHandler) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	key := strings.ToLower(format)
+	key := strings.TrimSpace(strings.ToLower(format))
+	if key == "" {
+		panic("converter: empty format name")
+	}
 	if _, exists := r.handlers[key]; exists {
 		panic(fmt.Sprintf("converter: format %q already registered", key))
 	}
@@ -67,7 +70,10 @@ func (r *FormatRegistry) Register(format string, handler FormatHandler) {
 	// the registry partially registered.
 	aliasKeys := make([]string, 0, len(handler.Aliases()))
 	for _, alias := range handler.Aliases() {
-		aliasKey := strings.ToLower(alias)
+		aliasKey := strings.TrimSpace(strings.ToLower(alias))
+		if aliasKey == "" {
+			panic(fmt.Sprintf("converter: empty alias for format %q", key))
+		}
 		if _, exists := r.aliases[aliasKey]; exists {
 			panic(fmt.Sprintf("converter: alias %q already registered", aliasKey))
 		}

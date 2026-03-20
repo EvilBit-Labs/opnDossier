@@ -23,6 +23,30 @@ func TestFormatRegistry_RegisterNilHandlerPanics(t *testing.T) {
 	)
 }
 
+func TestFormatRegistry_RegisterEmptyFormatPanics(t *testing.T) {
+	t.Parallel()
+
+	r := NewFormatRegistry()
+
+	assert.PanicsWithValue(t,
+		"converter: empty format name",
+		func() { r.Register("", &markdownHandler{}) },
+		"Register with empty format name should panic",
+	)
+}
+
+func TestFormatRegistry_RegisterWhitespaceFormatPanics(t *testing.T) {
+	t.Parallel()
+
+	r := NewFormatRegistry()
+
+	assert.PanicsWithValue(t,
+		"converter: empty format name",
+		func() { r.Register("  ", &markdownHandler{}) },
+		"Register with whitespace-only format name should panic",
+	)
+}
+
 func TestFormatRegistry_RegisterDuplicateFormatPanics(t *testing.T) {
 	t.Parallel()
 
