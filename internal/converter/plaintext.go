@@ -41,7 +41,7 @@ var (
 // Uses a prefix unlikely to appear in normal content.
 const placeholderFmt = "OPNDOSSIER_PH_%d"
 
-// stripMarkdownFormatting converts markdown to plain text using a
+// StripMarkdownFormatting converts markdown to plain text using a
 // goldmark -> HTML -> html2text pipeline. The goldmark renderer (shared
 // with HTML output) handles all markdown parsing, while html2text
 // provides proper HTML-to-text conversion using Go's net/html parser.
@@ -49,7 +49,7 @@ const placeholderFmt = "OPNDOSSIER_PH_%d"
 // Tables and alerts are extracted from the HTML before html2text processing
 // (using placeholders) because html2text doesn't handle table layout or
 // preserve the tab-separated formatting we need.
-func stripMarkdownFormatting(markdown string) string {
+func StripMarkdownFormatting(markdown string) string {
 	// Stage 1: Render markdown to HTML via goldmark (shared renderer from html.go)
 	var buf strings.Builder
 	if err := goldmarkRenderer.Convert([]byte(markdown), &buf); err != nil {
