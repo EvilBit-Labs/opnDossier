@@ -12,25 +12,17 @@ import (
 	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
 
-// xmlDecoder parses raw XML input into an OpnSenseDocument. This interface
-// matches the contract defined by parser.XMLDecoder and is satisfied by
-// cfgparser.XMLParser.
-type xmlDecoder interface {
-	Parse(ctx context.Context, r io.Reader) (*schema.OpnSenseDocument, error)
-	ParseAndValidate(ctx context.Context, r io.Reader) (*schema.OpnSenseDocument, error)
-}
-
 // Parser implements the DeviceParser interface for OPNsense configuration
 // files. The XML decoder is injected at construction to keep this package
 // free of internal/ imports.
 type Parser struct {
-	decoder xmlDecoder
+	decoder parser.XMLDecoder
 }
 
 // NewParser returns a new OPNsense Parser backed by the given XML decoder.
 // The decoder is typically cfgparser.NewXMLParser(), wired at the application
 // layer.
-func NewParser(decoder xmlDecoder) *Parser {
+func NewParser(decoder parser.XMLDecoder) *Parser {
 	return &Parser{decoder: decoder}
 }
 
