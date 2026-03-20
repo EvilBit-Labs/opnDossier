@@ -238,7 +238,10 @@ summary := report.Summary()
 ### HTML Output
 
 ```go
-html, err := report.ToHTML()
+html, err := processor.Transform(ctx, report, "html")
+if err != nil {
+    // handle error
+}
 ```
 
 ### Format Aliases
