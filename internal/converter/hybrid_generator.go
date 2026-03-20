@@ -116,6 +116,18 @@ func NewMarkdownGenerator(logger *logging.Logger, _ Options) (Generator, error) 
 	return NewHybridGenerator(reportBuilder, logger)
 }
 
+// handlerForFormat resolves the format string to a FormatHandler via the DefaultRegistry,
+// defaulting to markdown when the format is empty. Returns ErrUnsupportedFormat for unknown formats.
+func handlerForFormat(format string) (FormatHandler, error) {
+	if format == "" {
+		format = string(FormatMarkdown)
+	}
+
+	canonical := DefaultRegistry.Canonical(format)
+
+	return DefaultRegistry.Get(canonical)
+}
+
 // Generate creates documentation in the specified format from the provided OPNsense configuration.
 // Supported formats: markdown (default), json, yaml, text, and html.
 //
@@ -130,28 +142,12 @@ func (g *HybridGenerator) Generate(_ context.Context, data *common.CommonDevice,
 		return "", fmt.Errorf("invalid options: %w", err)
 	}
 
-	// Resolve format via registry and dispatch
-	format := string(opts.Format)
-	if format == "" {
-		format = string(FormatMarkdown)
+	handler, err := handlerForFormat(string(opts.Format))
+	if err != nil {
+		return "", err
 	}
 
-	canonical := DefaultRegistry.Canonical(format)
-
-	switch Format(canonical) {
-	case FormatMarkdown:
-		return g.generateMarkdown(data, opts)
-	case FormatJSON:
-		return g.generateJSON(data, opts.Redact)
-	case FormatYAML:
-		return g.generateYAML(data, opts.Redact)
-	case FormatText:
-		return g.generatePlainText(data, opts)
-	case FormatHTML:
-		return g.generateHTML(data, opts)
-	default:
-		return "", fmt.Errorf("%w: %s", ErrUnsupportedFormat, opts.Format)
-	}
+	return handler.Generate(g, data, opts)
 }
 
 // GenerateToWriter writes documentation directly to the provided io.Writer.
@@ -178,28 +174,12 @@ func (g *HybridGenerator) GenerateToWriter(
 		return fmt.Errorf("invalid options: %w", err)
 	}
 
-	// Resolve format via registry and dispatch
-	format := string(opts.Format)
-	if format == "" {
-		format = string(FormatMarkdown)
+	handler, err := handlerForFormat(string(opts.Format))
+	if err != nil {
+		return err
 	}
 
-	canonical := DefaultRegistry.Canonical(format)
-
-	switch Format(canonical) {
-	case FormatMarkdown:
-		return g.generateMarkdownToWriter(w, data, opts)
-	case FormatJSON:
-		return g.generateJSONToWriter(w, data, opts.Redact)
-	case FormatYAML:
-		return g.generateYAMLToWriter(w, data, opts.Redact)
-	case FormatText:
-		return g.generatePlainTextToWriter(w, data, opts)
-	case FormatHTML:
-		return g.generateHTMLToWriter(w, data, opts)
-	default:
-		return fmt.Errorf("%w: %s", ErrUnsupportedFormat, opts.Format)
-	}
+	return handler.GenerateToWriter(g, w, data, opts)
 }
 
 // generateMarkdown generates markdown output using the programmatic builder.
