@@ -1,13 +1,14 @@
 package converter
 
 import (
+	"bytes"
 	"io"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 func TestFormatRegistry_RegisterNilHandlerPanics(t *testing.T) {
@@ -162,8 +163,8 @@ func TestFormatRegistry_Get_CaseInsensitive(t *testing.T) {
 	r.Register("json", &jsonHandler{})
 
 	tests := []struct {
-		name   string
-		input  string
+		name    string
+		input   string
 		wantExt string
 	}{
 		{name: "uppercase", input: "JSON", wantExt: ".json"},
@@ -237,9 +238,9 @@ func TestFormatRegistry_ValidFormats_ExcludesAliases(t *testing.T) {
 	t.Parallel()
 
 	r := NewFormatRegistry()
-	r.Register("text", &textHandler{})   // alias "txt"
-	r.Register("yaml", &yamlHandler{})   // alias "yml"
-	r.Register("html", &htmlHandler{})   // alias "htm"
+	r.Register("text", &textHandler{}) // alias "txt"
+	r.Register("yaml", &yamlHandler{}) // alias "yml"
+	r.Register("html", &htmlHandler{}) // alias "htm"
 
 	formats := r.ValidFormats()
 	assert.Equal(t, []string{"html", "text", "yaml"}, formats)
@@ -253,8 +254,8 @@ func TestFormatRegistry_ValidFormatsWithAliases_AllFormats(t *testing.T) {
 
 	r := NewFormatRegistry()
 	r.Register("markdown", &markdownHandler{}) // alias "md"
-	r.Register("json", &jsonHandler{})          // no alias
-	r.Register("yaml", &yamlHandler{})          // alias "yml"
+	r.Register("json", &jsonHandler{})         // no alias
+	r.Register("yaml", &yamlHandler{})         // alias "yml"
 
 	all := r.ValidFormatsWithAliases()
 	assert.Equal(t, []string{"json", "markdown", "md", "yaml", "yml"}, all)
@@ -530,4 +531,87 @@ func TestFormatRegistry_Register_NoAliases(t *testing.T) {
 
 	all := r.ValidFormatsWithAliases()
 	assert.Equal(t, []string{"json"}, all)
+}
+
+// --- Handler Generate/GenerateToWriter dispatch via registry ---
+
+// newTestGenerator creates a minimal HybridGenerator for handler dispatch tests.
+func newTestGenerator(t *testing.T) *HybridGenerator {
+	t.Helper()
+
+	gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
+	require.NoError(t, err)
+
+	return gen
+}
+
+func TestHandler_Generate_DispatchesViaRegistry(t *testing.T) {
+	t.Parallel()
+
+	gen := newTestGenerator(t)
+	device := &common.CommonDevice{System: common.System{Hostname: "test-host"}}
+
+	tests := []struct {
+		format  string
+		wantErr bool
+	}{
+		{format: "json", wantErr: false},
+		{format: "yaml", wantErr: false},
+		{format: "markdown", wantErr: false},
+		{format: "text", wantErr: false},
+		{format: "html", wantErr: false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.format, func(t *testing.T) {
+			t.Parallel()
+
+			handler, err := DefaultRegistry.Get(tc.format)
+			require.NoError(t, err)
+
+			result, err := handler.Generate(gen, device, DefaultOptions().WithFormat(Format(tc.format)))
+			if tc.wantErr {
+				assert.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				assert.NotEmpty(t, result)
+			}
+		})
+	}
+}
+
+func TestHandler_GenerateToWriter_DispatchesViaRegistry(t *testing.T) {
+	t.Parallel()
+
+	gen := newTestGenerator(t)
+	device := &common.CommonDevice{System: common.System{Hostname: "test-host"}}
+
+	tests := []struct {
+		format  string
+		wantErr bool
+	}{
+		{format: "json", wantErr: false},
+		{format: "yaml", wantErr: false},
+		{format: "markdown", wantErr: false},
+		{format: "text", wantErr: false},
+		{format: "html", wantErr: false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.format, func(t *testing.T) {
+			t.Parallel()
+
+			handler, err := DefaultRegistry.Get(tc.format)
+			require.NoError(t, err)
+
+			var buf bytes.Buffer
+			err = handler.GenerateToWriter(gen, &buf, device, DefaultOptions().WithFormat(Format(tc.format)))
+			if tc.wantErr {
+				assert.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				assert.NotEmpty(t, buf.String())
+			}
+		})
+	}
 }
