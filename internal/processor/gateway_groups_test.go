@@ -8,6 +8,7 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
+	_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense" // self-registers OPNsense parser via init()
 )
 
 func TestGatewayGroupsInReports(t *testing.T) {
