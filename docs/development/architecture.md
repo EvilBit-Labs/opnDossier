@@ -186,8 +186,10 @@ For detailed examples and the historical context of fixing `pkg/internal/` bound
 
 #### Output Renderer Component
 
-- **Formats**: Markdown, JSON, YAML, plain text, HTML
+- **Formats**: Markdown, JSON, YAML, plain text, HTML (registered as handlers in `DefaultRegistry`)
+- **Format Dispatch**: `FormatRegistry` pattern provides centralized format metadata and handler dispatch
 - **Technologies**: Charm Lipgloss (styling) + Charm Glamour (rendering)
+- **Format Registration**: `DefaultRegistry` manages format names, aliases (txt, htm, md, yml), file extensions, and validation
 
 ### 5. Output Systems
 
@@ -308,6 +310,7 @@ sequenceDiagram
     participant ConfigMgr as Config Manager
     participant Parser as XML Parser
     participant Converter
+    participant Registry as FormatRegistry
     participant Renderer
     participant Output
 
@@ -323,7 +326,9 @@ sequenceDiagram
         Converter-->>Parser: Structured data + warnings
         Parser-->>CLI: Device model + warnings + nil error
         CLI->>CLI: Log warnings (respects --quiet flag)
-        CLI->>Renderer: Format output
+        CLI->>Registry: Get handler for format
+        Registry-->>CLI: FormatHandler
+        CLI->>Renderer: Generate via handler
 
         alt Terminal display
             Renderer->>Output: Styled terminal
@@ -337,6 +342,8 @@ sequenceDiagram
         CLI-->>User: Error message
     end
 ```
+
+**Note on Format Dispatch**: The `Renderer` component uses the `FormatRegistry` for format dispatch rather than switch statements. `DefaultRegistry` manages all format metadata (names, aliases, extensions) and provides `FormatHandler` implementations for centralized format handling.
 
 ## Programmatic Generation Architecture
 
@@ -501,6 +508,17 @@ classDiagram
 - `SetIncludeTunables`, `BuildAuditSection`, `BuildStandardReport`, and `BuildComprehensiveReport` -- all listed directly, not via embedded sub-interfaces
 
 The `HybridGenerator.builder` field is typed as this narrower `reportGenerator` interface internally. Public methods (`SetBuilder`, `GetBuilder`) continue to accept and return the full `ReportBuilder` interface, maintaining backward compatibility. The `GetBuilder` method uses a two-value type assertion to recover the full interface when needed.
+
+#### FormatRegistry Integration
+
+`HybridGenerator` delegates format-specific generation to `FormatHandler` implementations retrieved from `DefaultRegistry` (documented in AGENTS.md §5.9b). The `handlerForFormat()` helper function resolves the format string to a handler via the registry; format defaulting (to markdown) is handled earlier via `DefaultOptions` / CLI configuration, so `handlerForFormat()` expects a non-empty, registered format string. Each handler implements:
+
+- **`FileExtension()`** - Returns the file extension for the format (e.g., ".md", ".json")
+- **`Aliases()`** - Returns alternative format names (e.g., "md" for markdown, "yml" for yaml)
+- **`Generate()`** - Creates documentation as a string via the generator
+- **`GenerateToWriter()`** - Streams documentation directly to an io.Writer
+
+Handler dispatch replaces the previous switch statement approach, enabling centralized format metadata management and simplified addition of new formats through `DefaultRegistry` registration.
 
 ### Data Flow Pipeline (Programmatic Mode)
 
@@ -754,7 +772,7 @@ func (g *BlueTeamGenerator) analyzeCompliance(device *common.CommonDevice) []ana
 
 ## Audit-to-Export Mapping
 
-The `cmd/audit_handler.go` module contains `mapAuditReportToComplianceResults()`, which converts the internal `audit.Report` structure into the export model `common.ComplianceResults`. This mapping enables multi-format output (markdown, JSON, YAML) for compliance audit data through the standard generation pipeline.
+The `cmd/audit_handler.go` module contains `mapAuditReportToComplianceResults()`, which converts the internal `audit.Report` structure into the export model `common.ComplianceResults`. This mapping enables multi-format output (markdown, JSON, YAML, text, HTML) for compliance audit data through the standard generation pipeline.
 
 ### Mapping Process
 
@@ -770,7 +788,7 @@ The `cmd/audit_handler.go` module contains `mapAuditReportToComplianceResults()`
 
 ### Integration with Builder Layer
 
-Once the mapping is complete, `handleAuditMode()` creates a shallow copy of the `CommonDevice` and populates its `ComplianceChecks` field with the mapped `ComplianceResults`. This enriched device is then passed to `generateWithProgrammaticGenerator()`, which delegates to `BuildAuditSection()` (for markdown) or serializes the `ComplianceChecks` field directly (for JSON/YAML).
+Once the mapping is complete, `handleAuditMode()` creates a shallow copy of the `CommonDevice` and populates its `ComplianceChecks` field with the mapped `ComplianceResults`. This enriched device is then passed to `generateWithProgrammaticGenerator()`, which delegates to the appropriate format handler via `FormatRegistry`. For markdown, `BuildAuditSection()` renders compliance sections; for JSON/YAML/text/HTML, the `ComplianceChecks` field is serialized directly or formatted according to the target format.
 
 ## Data Storage Strategy
 
@@ -849,8 +867,103 @@ graph LR
 ### Data Exchange Patterns
 
 - **Import**: Local files, USB drives, network shares
-- **Export**: Markdown, JSON, plain text
+- **Export**: Markdown, JSON, YAML, plain text, HTML
 - **Transfer**: Standard file transfer protocols (SCP, SFTP, etc.)
+
+## FormatRegistry Pattern
+
+### Overview
+
+The `FormatRegistry` pattern provides a **centralized format dispatch mechanism** that replaced scattered switch statements across 8+ locations. `DefaultRegistry` is the single source of truth for supported output formats, managing format names, aliases, file extensions, validation, and generation dispatch.
+
+### Key Components
+
+#### FormatHandler Interface
+
+Each format implements the `FormatHandler` interface:
+
+```go
+type FormatHandler interface {
+    FileExtension() string
+    Aliases() []string
+    Generate(g *HybridGenerator, data *common.CommonDevice, opts Options) (string, error)
+    GenerateToWriter(g *HybridGenerator, w io.Writer, data *common.CommonDevice, opts Options) error
+}
+```
+
+#### Registered Formats
+
+`DefaultRegistry` manages five built-in format handlers:
+
+| Format   | Extension | Aliases | Handler Implementation |
+| -------- | --------- | ------- | ---------------------- |
+| markdown | `.md`     | md      | `markdownHandler`      |
+| json     | `.json`   | -       | `jsonHandler`          |
+| yaml     | `.yaml`   | yml     | `yamlHandler`          |
+| text     | `.txt`    | txt     | `textHandler`          |
+| html     | `.html`   | htm     | `htmlHandler`          |
+
+### Adding a New Format
+
+Adding a new format requires only registering a `FormatHandler` in `newDefaultRegistry()`:
+
+```go
+func newDefaultRegistry() *FormatRegistry {
+    r := NewFormatRegistry()
+    r.Register("markdown", &markdownHandler{})
+    r.Register("json", &jsonHandler{})
+    r.Register("yaml", &yamlHandler{})
+    r.Register("text", &textHandler{})
+    r.Register("html", &htmlHandler{})
+    // Add new formats here
+    return r
+}
+```
+
+All validation, shell completion, and dispatch logic automatically picks up the new format.
+
+### Format Resolution and Validation
+
+- **`DefaultRegistry.Canonical(format)`** - Resolves aliases to canonical names (e.g., "md" → "markdown", "yml" → "yaml")
+- **`DefaultRegistry.Get(format)`** - Returns the `FormatHandler` for a format or alias, returning `ErrUnsupportedFormat` for unknown formats
+- **`DefaultRegistry.ValidFormats()`** - Returns sorted slice of canonical format names for validation
+- **`DefaultRegistry.Extensions()`** - Returns map of format name to file extension for file output
+
+### Integration Points
+
+#### CLI Layer (`cmd/`)
+
+- Format validation and shell completions use `DefaultRegistry.ValidFormats()`
+- File extension lookup replaced switch statements with `handler.FileExtension()`
+- Format descriptions maintained separately in `formatDescriptions` map in `cmd/shared_flags.go`
+
+#### Config Layer (`internal/config/`)
+
+- `ValidFormats` derived from registry with `slices.Clone()` for immutability
+
+#### Generator Layer (`internal/converter/`)
+
+- `HybridGenerator.Generate()` uses `handlerForFormat()` to retrieve handlers
+- Handler dispatch via `handler.Generate()` and `handler.GenerateToWriter()`
+- Each handler delegates to generator's private format-specific methods
+
+#### Processor Layer (`internal/processor/`)
+
+- `processor.Transform()` resolves aliases via `DefaultRegistry.Canonical()`
+- Supports all five formats (markdown, json, yaml, text, html)
+- Text and HTML formats delegate to exported `converter.StripMarkdownFormatting()` and `converter.RenderMarkdownToHTML()`
+
+### Design Rationale
+
+- **Single Source of Truth**: Eliminates duplicated format lists across CLI, config, and generator layers
+- **Centralized Validation**: Format validation occurs in one place via the registry
+- **Extensibility**: New formats require only handler registration, no changes to dispatch logic
+- **Alias Support**: Consistent alias resolution (txt, htm, md, yml) across all code paths
+- **Type Safety**: Handler interface ensures consistent format implementation
+
+### Related Documentation
+
+For detailed guidance on the FormatRegistry pattern and consumer-local interface narrowing, see AGENTS.md §5.9b.
 
 ## Versioned Data Strategy
 
@@ -1084,7 +1197,8 @@ When the `--quiet` flag is used:
 4. **Converter** transforms XML to `CommonDevice`, accumulating conversion warnings for non-fatal issues
 5. **Parser returns** 3 values: device model, warnings slice, error
 6. **CLI logs** warnings via structured logging (suppressed with `--quiet` flag)
-7. **Output Renderer** formats for terminal display or file export
-8. **User receives** human-readable documentation
+7. **FormatRegistry** provides handler for requested format (markdown, JSON, YAML, text, HTML)
+8. **Output Renderer** generates documentation via format-specific handler
+9. **User receives** human-readable documentation in the requested format
 
 **Key Benefits**: Offline operation, security-first design, operator-focused workflows, cross-platform compatibility, and comprehensive documentation generation from complex network configurations.

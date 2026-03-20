@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
@@ -117,6 +116,16 @@ func NewMarkdownGenerator(logger *logging.Logger, _ Options) (Generator, error) 
 	return NewHybridGenerator(reportBuilder, logger)
 }
 
+// handlerForFormat resolves the format string to a FormatHandler via the DefaultRegistry.
+// Returns ErrUnsupportedFormat for unknown formats.
+//
+// Note: Generate/GenerateToWriter call opts.Validate() before reaching this function,
+// so empty and invalid formats are rejected upstream. This function does not add its own
+// empty-format default to avoid masking validation gaps.
+func handlerForFormat(format string) (FormatHandler, error) {
+	return DefaultRegistry.Get(format)
+}
+
 // Generate creates documentation in the specified format from the provided OPNsense configuration.
 // Supported formats: markdown (default), json, yaml, text, and html.
 //
@@ -131,26 +140,12 @@ func (g *HybridGenerator) Generate(_ context.Context, data *common.CommonDevice,
 		return "", fmt.Errorf("invalid options: %w", err)
 	}
 
-	// Determine format and generate accordingly
-	format := strings.ToLower(string(opts.Format))
-	if format == "" {
-		format = string(FormatMarkdown)
+	handler, err := handlerForFormat(string(opts.Format))
+	if err != nil {
+		return "", err
 	}
 
-	switch format {
-	case string(FormatMarkdown), "md":
-		return g.generateMarkdown(data, opts)
-	case string(FormatJSON):
-		return g.generateJSON(data, opts.Redact)
-	case string(FormatYAML), "yml":
-		return g.generateYAML(data, opts.Redact)
-	case string(FormatText), "txt":
-		return g.generatePlainText(data, opts)
-	case string(FormatHTML), "htm":
-		return g.generateHTML(data, opts)
-	default:
-		return "", fmt.Errorf("%w: %s", ErrUnsupportedFormat, opts.Format)
-	}
+	return handler.Generate(g, data, opts)
 }
 
 // GenerateToWriter writes documentation directly to the provided io.Writer.
@@ -177,26 +172,12 @@ func (g *HybridGenerator) GenerateToWriter(
 		return fmt.Errorf("invalid options: %w", err)
 	}
 
-	// Determine format and generate accordingly
-	format := strings.ToLower(string(opts.Format))
-	if format == "" {
-		format = string(FormatMarkdown)
+	handler, err := handlerForFormat(string(opts.Format))
+	if err != nil {
+		return err
 	}
 
-	switch format {
-	case string(FormatMarkdown), "md":
-		return g.generateMarkdownToWriter(w, data, opts)
-	case string(FormatJSON):
-		return g.generateJSONToWriter(w, data, opts.Redact)
-	case string(FormatYAML), "yml":
-		return g.generateYAMLToWriter(w, data, opts.Redact)
-	case string(FormatText), "txt":
-		return g.generatePlainTextToWriter(w, data, opts)
-	case string(FormatHTML), "htm":
-		return g.generateHTMLToWriter(w, data, opts)
-	default:
-		return fmt.Errorf("%w: %s", ErrUnsupportedFormat, opts.Format)
-	}
+	return handler.GenerateToWriter(g, w, data, opts)
 }
 
 // generateMarkdown generates markdown output using the programmatic builder.
@@ -312,10 +293,10 @@ func (g *HybridGenerator) generateMarkdownToWriter(
 }
 
 // generateJSON generates JSON output by serializing the model.
-func (g *HybridGenerator) generateJSON(data *common.CommonDevice, redact bool) (string, error) {
+func (g *HybridGenerator) generateJSON(data *common.CommonDevice, opts Options) (string, error) {
 	g.logger.Debug("Generating JSON output")
 
-	target := prepareForExport(data, redact)
+	target := prepareForExport(data, opts.Redact)
 
 	jsonBytes, err := json.MarshalIndent(
 		target,
@@ -331,10 +312,10 @@ func (g *HybridGenerator) generateJSON(data *common.CommonDevice, redact bool) (
 // generateJSONToWriter writes JSON output directly to the writer.
 // Note: JSON marshaling requires the full document, so this doesn't provide
 // the same streaming benefits as markdown generation.
-func (g *HybridGenerator) generateJSONToWriter(w io.Writer, data *common.CommonDevice, redact bool) error {
+func (g *HybridGenerator) generateJSONToWriter(w io.Writer, data *common.CommonDevice, opts Options) error {
 	g.logger.Debug("Generating JSON output to writer")
 
-	target := prepareForExport(data, redact)
+	target := prepareForExport(data, opts.Redact)
 
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
@@ -345,10 +326,10 @@ func (g *HybridGenerator) generateJSONToWriter(w io.Writer, data *common.CommonD
 }
 
 // generateYAML generates YAML output by serializing the model.
-func (g *HybridGenerator) generateYAML(data *common.CommonDevice, redact bool) (string, error) {
+func (g *HybridGenerator) generateYAML(data *common.CommonDevice, opts Options) (string, error) {
 	g.logger.Debug("Generating YAML output")
 
-	target := prepareForExport(data, redact)
+	target := prepareForExport(data, opts.Redact)
 
 	yamlData, err := yaml.Marshal(target)
 	if err != nil {
@@ -360,10 +341,10 @@ func (g *HybridGenerator) generateYAML(data *common.CommonDevice, redact bool) (
 // generateYAMLToWriter writes YAML output directly to the writer.
 // Note: YAML marshaling requires the full document, so this doesn't provide
 // the same streaming benefits as markdown generation.
-func (g *HybridGenerator) generateYAMLToWriter(w io.Writer, data *common.CommonDevice, redact bool) error {
+func (g *HybridGenerator) generateYAMLToWriter(w io.Writer, data *common.CommonDevice, opts Options) error {
 	g.logger.Debug("Generating YAML output to writer")
 
-	target := prepareForExport(data, redact)
+	target := prepareForExport(data, opts.Redact)
 
 	encoder := yaml.NewEncoder(w)
 	encoder.SetIndent(2) //nolint:mnd // Standard YAML indentation
@@ -382,7 +363,7 @@ func (g *HybridGenerator) generatePlainText(data *common.CommonDevice, opts Opti
 		return "", fmt.Errorf("failed to generate markdown for plain text conversion: %w", err)
 	}
 
-	return stripMarkdownFormatting(markdown), nil
+	return StripMarkdownFormatting(markdown)
 }
 
 // generatePlainTextToWriter writes plain text output directly to the writer.
@@ -411,7 +392,7 @@ func (g *HybridGenerator) generateHTML(data *common.CommonDevice, opts Options) 
 		return "", fmt.Errorf("failed to generate markdown for HTML conversion: %w", err)
 	}
 
-	return renderMarkdownToHTML(markdown)
+	return RenderMarkdownToHTML(markdown)
 }
 
 // generateHTMLToWriter writes HTML output directly to the writer.

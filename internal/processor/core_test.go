@@ -173,6 +173,52 @@ func TestCoreProcessor_Transform(t *testing.T) {
 		assert.Contains(t, result, "example.com")
 	})
 
+	t.Run("Transform to Text", func(t *testing.T) {
+		result, err := processor.Transform(ctx, report, "text")
+		require.NoError(t, err)
+		assert.NotEmpty(t, result)
+		assert.Contains(t, result, "test-firewall")
+		assert.NotContains(t, result, "# ", "text output should not contain markdown header markers")
+	})
+
+	t.Run("Transform to HTML", func(t *testing.T) {
+		result, err := processor.Transform(ctx, report, "html")
+		require.NoError(t, err)
+		assert.NotEmpty(t, result)
+		assert.Contains(t, result, "<html")
+		assert.Contains(t, result, "test-firewall")
+	})
+
+	t.Run("Transform with md alias", func(t *testing.T) {
+		result, err := processor.Transform(ctx, report, "md")
+		require.NoError(t, err)
+		assert.NotEmpty(t, result)
+		assert.Contains(t, result, "test-firewall")
+	})
+
+	t.Run("Transform with yml alias", func(t *testing.T) {
+		result, err := processor.Transform(ctx, report, "yml")
+		require.NoError(t, err)
+		assert.NotEmpty(t, result)
+		assert.Contains(t, result, "test-firewall")
+	})
+
+	t.Run("Transform with txt alias", func(t *testing.T) {
+		result, err := processor.Transform(ctx, report, "txt")
+		require.NoError(t, err)
+		assert.NotEmpty(t, result)
+		assert.Contains(t, result, "test-firewall")
+		assert.NotContains(t, result, "# ", "text output should not contain markdown header markers")
+	})
+
+	t.Run("Transform with htm alias", func(t *testing.T) {
+		result, err := processor.Transform(ctx, report, "htm")
+		require.NoError(t, err)
+		assert.NotEmpty(t, result)
+		assert.Contains(t, result, "<html")
+		assert.Contains(t, result, "test-firewall")
+	})
+
 	t.Run("Transform to unsupported format", func(t *testing.T) {
 		_, err := processor.Transform(ctx, report, "xml")
 		require.Error(t, err)
