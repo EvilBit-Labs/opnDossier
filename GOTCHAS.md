@@ -66,3 +66,14 @@ A CLI flag can be accepted by Cobra, stored in a package-level variable, and sil
 ### 6.1 GID/UID Zero is Valid
 
 Unix GID 0 (wheel/root group) and UID 0 (root user) are valid. The validator check is `gid < 0` / `uid < 0`, correctly allowing zero. Error messages must say "non-negative integer", not "positive integer".
+
+## 7. Parser Registry
+
+### 7.1 Blank Import Requirement
+
+`pkg/parser/factory.go` dispatches through the registry, not via direct imports. The OPNsense parser only registers itself when its package `init()` runs, which requires a blank import: `_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"`.
+
+- **Symptom:** `"unsupported device type: root element <opnsense> is not recognized; supported: "` -- empty supported list
+- **Cause:** Missing blank import means `init()` never ran, registry is empty
+- **Fix:** Add the blank import to the test file or production file using `parser.NewFactory()`
+- **Detection:** Any new test file using `parser.NewFactory()` that sees an empty registry is missing the blank import

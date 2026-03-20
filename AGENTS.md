@@ -357,6 +357,17 @@ Files in `pkg/parser/opnsense/` (package `opnsense`) **must** alias the schema i
 
 `Report.ToJSON()` and `Report.ToYAML()` serialize a redacted copy via `redactedCopyUnsafe()` to prevent `NormalizedConfig.SNMP.ROCommunity` from leaking. When adding new sensitive fields to `CommonDevice`, extend `redactedCopyUnsafe()` in `internal/processor/report.go`. The copy is constructed field-by-field (not `cp := *r`) to avoid `copylocks` on `sync.RWMutex`. Statistics redaction (`redactServiceDetails`) is separate and handles the statistics-layer SNMP community.
 
+### 5.25a DeviceParser Registry Pattern
+
+`pkg/parser/registry.go` follows the `database/sql` driver registration pattern:
+
+- `parser.Register("opnsense", factory)` called from `init()` in `pkg/parser/opnsense/parser.go`
+- `parser.DefaultRegistry()` returns the singleton; `parser.NewDeviceParserRegistry()` for test isolation
+- `parser.NewFactoryWithRegistry(decoder, reg)` for tests needing isolated registry state
+- **CRITICAL: Blank imports required.** Any file using `parser.NewFactory()` must import `_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"` to trigger `init()` self-registration. Without this, the registry is empty and all device type lookups fail silently. The canonical blank import lives in `cmd/root.go`; test files must add their own.
+- `ConstructorFunc = func(XMLDecoder) DeviceParser` -- named type alias for factory functions
+- `Get()` returns `(ConstructorFunc, bool)` (map semantics), not `(T, error)` like FormatRegistry
+
 ### 5.26 File-Split Refactoring Pattern
 
 When splitting a large file into domain-specific files within the same package:
