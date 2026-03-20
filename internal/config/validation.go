@@ -24,7 +24,7 @@ var ValidThemes = []string{"light", "dark", "auto", "none", "custom", ""}
 // ValidFormats defines the allowed output formats, sourced from the converter registry
 // with an empty string appended to allow unset values.
 var ValidFormats = append(
-	converter.DefaultRegistry.ValidFormatsWithAliases(),
+	slices.Clone(converter.DefaultRegistry.ValidFormatsWithAliases()),
 	"",
 ) //nolint:gochecknoglobals // derived from registry
 
