@@ -36,9 +36,12 @@ type StreamingGenerator interface {
 }
 
 // reportGenerator is the narrowest interface HybridGenerator requires from its
-// builder. It lists only the four methods HybridGenerator directly calls.
-// SectionBuilder and TableWriter are deliberately excluded — HybridGenerator
-// never calls individual section or table methods.
+// builder. It lists only the four methods HybridGenerator directly calls:
+// report composition (BuildStandardReport, BuildComprehensiveReport),
+// audit section rendering (BuildAuditSection), and a tunables toggle
+// (SetIncludeTunables). The remaining SectionBuilder and TableWriter methods
+// are deliberately excluded — HybridGenerator delegates full-report assembly
+// to the builder and only renders the audit section individually.
 //
 // Note: HybridGenerator also type-asserts the builder to builder.SectionWriter
 // for streaming support — see generateMarkdownToWriter.
