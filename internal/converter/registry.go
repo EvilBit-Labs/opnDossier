@@ -168,11 +168,11 @@ var DefaultRegistry = newDefaultRegistry() //nolint:gochecknoglobals // package-
 // newDefaultRegistry creates a FormatRegistry populated with all built-in handlers.
 func newDefaultRegistry() *FormatRegistry {
 	r := NewFormatRegistry()
-	r.Register("markdown", &markdownHandler{})
-	r.Register("json", &jsonHandler{})
-	r.Register("yaml", &yamlHandler{})
-	r.Register("text", &textHandler{})
-	r.Register("html", &htmlHandler{})
+	r.Register(string(FormatMarkdown), &markdownHandler{})
+	r.Register(string(FormatJSON), &jsonHandler{})
+	r.Register(string(FormatYAML), &yamlHandler{})
+	r.Register(string(FormatText), &textHandler{})
+	r.Register(string(FormatHTML), &htmlHandler{})
 
 	return r
 }

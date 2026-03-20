@@ -169,7 +169,7 @@ func (p *CoreProcessor) Transform(ctx context.Context, report *Report, format st
 
 		return converter.RenderMarkdownToHTML(md)
 	default:
-		return "", fmt.Errorf("unsupported format: %w", &UnsupportedFormatError{Format: format})
+		return "", &UnsupportedFormatError{Format: format}
 	}
 }
 

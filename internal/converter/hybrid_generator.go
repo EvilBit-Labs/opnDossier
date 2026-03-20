@@ -116,13 +116,13 @@ func NewMarkdownGenerator(logger *logging.Logger, _ Options) (Generator, error) 
 	return NewHybridGenerator(reportBuilder, logger)
 }
 
-// handlerForFormat resolves the format string to a FormatHandler via the DefaultRegistry,
-// defaulting to markdown when the format is empty. Returns ErrUnsupportedFormat for unknown formats.
+// handlerForFormat resolves the format string to a FormatHandler via the DefaultRegistry.
+// Returns ErrUnsupportedFormat for unknown formats.
+//
+// Note: Generate/GenerateToWriter call opts.Validate() before reaching this function,
+// so empty and invalid formats are rejected upstream. This function does not add its own
+// empty-format default to avoid masking validation gaps.
 func handlerForFormat(format string) (FormatHandler, error) {
-	if format == "" {
-		format = string(FormatMarkdown)
-	}
-
 	return DefaultRegistry.Get(format)
 }
 

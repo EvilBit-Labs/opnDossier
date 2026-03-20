@@ -424,12 +424,11 @@ func TestDefaultRegistry_ValidFormatsWithAliases(t *testing.T) {
 
 // --- handlerForFormat tests ---
 
-func TestHandlerForFormat_EmptyDefaultsToMarkdown(t *testing.T) {
+func TestHandlerForFormat_EmptyReturnsError(t *testing.T) {
 	t.Parallel()
 
-	h, err := handlerForFormat("")
-	require.NoError(t, err)
-	assert.Equal(t, ".md", h.FileExtension())
+	_, err := handlerForFormat("")
+	assert.ErrorIs(t, err, ErrUnsupportedFormat)
 }
 
 func TestHandlerForFormat_KnownFormat(t *testing.T) {
