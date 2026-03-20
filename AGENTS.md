@@ -193,6 +193,15 @@ When adding `io.Writer` support alongside string-based APIs:
 
 > **Thread safety:** `MarkdownBuilder` is not safe for concurrent use. Create a new instance per goroutine. `SetIncludeTunables` and similar setters mutate builder state and must be called in the same synchronous call chain as `Build*Report`.
 
+### 5.9a Consumer-Local Interface Narrowing
+
+When a struct depends on a broad interface but only calls a subset of its methods, define an unexported consumer-local interface listing only the methods actually called. Do NOT embed a broader sub-interface if it brings unused methods — instead, list the exact method signatures directly. Embedding a sub-interface is acceptable when every method in that sub-interface is called by the consumer.
+
+- Name the interface descriptively (e.g., `reportGenerator`)
+- Keep public constructor/setter signatures accepting the broad interface for backward compatibility
+- Use a two-value type assertion in getter methods to recover the broad interface when needed
+- See `reportGenerator` in `internal/converter/hybrid_generator.go`
+
 ### 5.10 Common Linter Patterns
 
 Frequently encountered linter issues and fixes:
