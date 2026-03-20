@@ -9,7 +9,7 @@ The package defines a `Processor` interface that implementations can provide to 
 - **Interface-based design**: The `Processor` interface allows for multiple implementations
 - **Options pattern**: Flexible configuration using functional options
 - **Context support**: Proper context handling for cancellation and timeouts
-- **Multi-format output**: Reports can be exported as JSON, YAML, Markdown, or plain text summaries
+- **Multi-format output**: Reports can be exported as JSON, YAML, Markdown, plain text, and HTML
 
 ## Core Processor Implementation
 
@@ -18,7 +18,7 @@ The `CoreProcessor` implements a comprehensive four-phase processing pipeline:
 1. **Normalize**: Fill defaults, canonicalize IP/CIDR, sort slices for determinism
 2. **Validate**: Use go-playground/validator and custom checks leveraging struct tags
 3. **Analyze**: Dead rule detection, unused interfaces, consistency checks
-4. **Transform**: Delegate to converter for markdown; marshal to JSON/YAML for other formats
+4. **Transform**: Delegate to converter for markdown; marshal to JSON/YAML; transform to text/HTML for other formats
 
 ### Normalization Features
 
@@ -184,7 +184,8 @@ The processor implements a comprehensive four-phase pipeline for analyzing OPNse
 
 ### Phase 4: Transform
 
-- **Multi-format Output**: Generates Markdown, JSON, YAML, or plain text summaries
+- **Multi-format Output**: Generates Markdown, JSON, YAML, plain text, and HTML
+- **Format Aliases**: Supports format aliases (md/markdown, yml/yaml, txt/text, htm/html) via `converter.DefaultRegistry`
 - **Structured Reports**: Organizes findings by severity (Critical, High, Medium, Low, Info)
 - **Export Capabilities**: Saves to files or streams to stdout
 
@@ -216,6 +217,12 @@ Reports support multiple output formats:
 jsonStr, err := report.ToJSON()
 ```
 
+### YAML Output
+
+```go
+yamlStr, err := report.ToYAML()
+```
+
 ### Markdown Output
 
 ```go
@@ -227,6 +234,39 @@ markdown := report.ToMarkdown()
 ```go
 summary := report.Summary()
 ```
+
+### HTML Output
+
+```go
+html, err := report.ToHTML()
+```
+
+### Format Aliases
+
+The processor supports format aliases via the `converter.DefaultRegistry`:
+
+- `md` or `markdown` → Markdown format
+- `yml` or `yaml` → YAML format
+- `txt` or `text` → Plain text format
+- `htm` or `html` → HTML format
+
+Format aliases are resolved consistently across all code paths through the `processor.Transform()` method.
+
+## processor.Transform() Method
+
+The `Transform()` method converts reports to the specified output format:
+
+```go
+func (p *CoreProcessor) Transform(ctx context.Context, report *Report, format string) (string, error)
+```
+
+**Features**:
+
+- Handles all five formats: `markdown`, `json`, `yaml`, `text`, `html`
+- Uses `converter.DefaultRegistry.Canonical()` for alias resolution
+- Text format uses exported `converter.StripMarkdownFormatting()` function
+- HTML format uses exported `converter.RenderMarkdownToHTML()` function
+- Returns `UnsupportedFormatError` for unknown formats
 
 ## Implementation
 
