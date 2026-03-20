@@ -64,8 +64,11 @@ type HybridGenerator struct {
 	logger  *logging.Logger
 }
 
-// Ensure HybridGenerator implements StreamingGenerator.
-var _ StreamingGenerator = (*HybridGenerator)(nil)
+// Compile-time assertions.
+var (
+	_ StreamingGenerator = (*HybridGenerator)(nil)
+	_ reportGenerator    = (*builder.MarkdownBuilder)(nil)
+)
 
 // NewHybridGenerator creates a HybridGenerator that uses the provided ReportBuilder and logger.
 // If logger is nil, NewHybridGenerator creates a default logger and returns an error if logger creation fails.
@@ -441,6 +444,9 @@ func (g *HybridGenerator) GetBuilder() builder.ReportBuilder {
 
 	rb, ok := g.builder.(builder.ReportBuilder)
 	if !ok {
+		g.logger.Debug("builder does not satisfy full ReportBuilder interface",
+			"type", fmt.Sprintf("%T", g.builder))
+
 		return nil
 	}
 
