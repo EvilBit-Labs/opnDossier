@@ -347,6 +347,48 @@ func TestHybridGenerator_GenerateToWriter_NilBuilder(t *testing.T) {
 	}
 }
 
+// narrowOnlyBuilder satisfies reportGenerator but NOT builder.ReportBuilder,
+// exercising the !ok path in GetBuilder's type assertion.
+type narrowOnlyBuilder struct{}
+
+func (n *narrowOnlyBuilder) SetIncludeTunables(_ bool)                       {}
+func (n *narrowOnlyBuilder) BuildAuditSection(_ *common.CommonDevice) string { return "" }
+func (n *narrowOnlyBuilder) BuildStandardReport(_ *common.CommonDevice) (string, error) {
+	return "", nil
+}
+func (n *narrowOnlyBuilder) BuildComprehensiveReport(_ *common.CommonDevice) (string, error) {
+	return "", nil
+}
+
+// TestHybridGenerator_GetBuilder_NarrowBuilder verifies that GetBuilder returns nil
+// when the internal builder satisfies reportGenerator but not the full ReportBuilder.
+func TestHybridGenerator_GetBuilder_NarrowBuilder(t *testing.T) {
+	t.Parallel()
+
+	gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
+	require.NoError(t, err)
+
+	// Directly assign a narrow implementation that satisfies reportGenerator but not ReportBuilder.
+	gen.builder = &narrowOnlyBuilder{}
+
+	result := gen.GetBuilder()
+	assert.Nil(t, result, "GetBuilder should return nil for a builder not satisfying ReportBuilder")
+}
+
+// TestHybridGenerator_GetBuilder_NilBuilder verifies that GetBuilder returns nil
+// when the builder field is nil.
+func TestHybridGenerator_GetBuilder_NilBuilder(t *testing.T) {
+	t.Parallel()
+
+	gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
+	require.NoError(t, err)
+
+	gen.SetBuilder(nil)
+
+	result := gen.GetBuilder()
+	assert.Nil(t, result, "GetBuilder should return nil when builder is nil")
+}
+
 // nonStreamingBuilder wraps a ReportBuilder to hide the SectionWriter
 // interface, forcing the generateMarkdownToWriter fallback path.
 type nonStreamingBuilder struct {
