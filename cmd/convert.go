@@ -470,8 +470,11 @@ func buildEffectiveFormat(flagFormat string, cfg *config.Config) string {
 
 // normalizeFormat maps format aliases to their canonical converter.Format values
 // using the converter.DefaultRegistry as the single source of truth.
+// Unrecognized formats are passed through as-is for downstream validation.
 func normalizeFormat(format string) converter.Format {
-	return converter.Format(converter.DefaultRegistry.Canonical(format))
+	canonical, _ := converter.DefaultRegistry.Canonical(format)
+
+	return converter.Format(canonical)
 }
 
 // buildConversionOptions constructs a converter.Options value for the given output
@@ -718,7 +721,7 @@ func validateConvertFlags(flags *pflag.FlagSet, cmdLogger *logging.Logger) error
 		}
 	}
 
-	canonicalFormat := converter.DefaultRegistry.Canonical(format)
+	canonicalFormat, _ := converter.DefaultRegistry.Canonical(format)
 	if canonicalFormat == "yaml" && len(sharedSections) > 0 {
 		if cmdLogger != nil {
 			cmdLogger.Warn("section filtering not supported with YAML format, sections will be ignored")

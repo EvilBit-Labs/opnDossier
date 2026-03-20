@@ -95,22 +95,23 @@ func (r *FormatRegistry) Get(format string) (FormatHandler, error) {
 }
 
 // Canonical returns the canonical format name for the given format string,
-// resolving aliases. Returns the lowercased input if not found.
-func (r *FormatRegistry) Canonical(format string) string {
+// resolving aliases. The boolean indicates whether the format was recognized.
+// When ok is false, the returned string is the lowercased input (unresolved).
+func (r *FormatRegistry) Canonical(format string) (string, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	key := strings.ToLower(format)
 
-	if _, ok := r.handlers[key]; ok {
-		return key
+	if _, exists := r.handlers[key]; exists {
+		return key, true
 	}
 
-	if canonical, ok := r.aliases[key]; ok {
-		return canonical
+	if canonical, exists := r.aliases[key]; exists {
+		return canonical, true
 	}
 
-	return key
+	return key, false
 }
 
 // Extensions returns a map of canonical format name to file extension.

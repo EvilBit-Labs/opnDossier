@@ -363,7 +363,7 @@ func (g *HybridGenerator) generatePlainText(data *common.CommonDevice, opts Opti
 		return "", fmt.Errorf("failed to generate markdown for plain text conversion: %w", err)
 	}
 
-	return StripMarkdownFormatting(markdown), nil
+	return StripMarkdownFormatting(markdown)
 }
 
 // generatePlainTextToWriter writes plain text output directly to the writer.

@@ -85,9 +85,17 @@ func TestFormatRegistry_Canonical(t *testing.T) {
 	r := NewFormatRegistry()
 	r.Register("yaml", &yamlHandler{})
 
-	assert.Equal(t, "yaml", r.Canonical("yml"))
-	assert.Equal(t, "yaml", r.Canonical("YAML"))
-	assert.Equal(t, "unknown", r.Canonical("unknown"))
+	canonical, ok := r.Canonical("yml")
+	assert.Equal(t, "yaml", canonical)
+	assert.True(t, ok)
+
+	canonical, ok = r.Canonical("YAML")
+	assert.Equal(t, "yaml", canonical)
+	assert.True(t, ok)
+
+	canonical, ok = r.Canonical("unknown")
+	assert.Equal(t, "unknown", canonical)
+	assert.False(t, ok)
 }
 
 func TestFormatRegistry_ValidFormats(t *testing.T) {
@@ -205,8 +213,13 @@ func TestFormatRegistry_Canonical_CanonicalReturnsSelf(t *testing.T) {
 	r.Register("markdown", &markdownHandler{})
 	r.Register("json", &jsonHandler{})
 
-	assert.Equal(t, "markdown", r.Canonical("markdown"))
-	assert.Equal(t, "json", r.Canonical("json"))
+	canonical, ok := r.Canonical("markdown")
+	assert.Equal(t, "markdown", canonical)
+	assert.True(t, ok)
+
+	canonical, ok = r.Canonical("json")
+	assert.Equal(t, "json", canonical)
+	assert.True(t, ok)
 }
 
 func TestFormatRegistry_Canonical_CaseInsensitive(t *testing.T) {
@@ -216,20 +229,23 @@ func TestFormatRegistry_Canonical_CaseInsensitive(t *testing.T) {
 	r.Register("html", &htmlHandler{})
 
 	tests := []struct {
-		name  string
-		input string
-		want  string
+		name   string
+		input  string
+		want   string
+		wantOK bool
 	}{
-		{name: "uppercase canonical", input: "HTML", want: "html"},
-		{name: "mixed case canonical", input: "Html", want: "html"},
-		{name: "uppercase alias", input: "HTM", want: "html"},
+		{name: "uppercase canonical", input: "HTML", want: "html", wantOK: true},
+		{name: "mixed case canonical", input: "Html", want: "html", wantOK: true},
+		{name: "uppercase alias", input: "HTM", want: "html", wantOK: true},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			assert.Equal(t, tc.want, r.Canonical(tc.input))
+			canonical, ok := r.Canonical(tc.input)
+			assert.Equal(t, tc.want, canonical)
+			assert.Equal(t, tc.wantOK, ok)
 		})
 	}
 }
@@ -304,10 +320,12 @@ func TestFormatRegistry_EmptyRegistry(t *testing.T) {
 		assert.ErrorIs(t, err, ErrUnsupportedFormat)
 	})
 
-	t.Run("Canonical returns lowercased input", func(t *testing.T) {
+	t.Run("Canonical returns lowercased input and false", func(t *testing.T) {
 		t.Parallel()
 
-		assert.Equal(t, "anything", r.Canonical("ANYTHING"))
+		canonical, ok := r.Canonical("ANYTHING")
+		assert.Equal(t, "anything", canonical)
+		assert.False(t, ok)
 	})
 
 	t.Run("ValidFormats returns empty slice", func(t *testing.T) {
@@ -373,7 +391,9 @@ func TestDefaultRegistry_CorrectAliases(t *testing.T) {
 		t.Run(tc.alias, func(t *testing.T) {
 			t.Parallel()
 
-			assert.Equal(t, tc.canonical, DefaultRegistry.Canonical(tc.alias))
+			canonical, ok := DefaultRegistry.Canonical(tc.alias)
+			assert.Equal(t, tc.canonical, canonical)
+			assert.True(t, ok)
 
 			h, err := DefaultRegistry.Get(tc.alias)
 			require.NoError(t, err)
