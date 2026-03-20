@@ -48,6 +48,10 @@ func NewFormatRegistry() *FormatRegistry {
 // all aliases returned by handler.Aliases(). Panics on duplicate registration,
 // consistent with the database/sql driver pattern.
 func (r *FormatRegistry) Register(format string, handler FormatHandler) {
+	if handler == nil {
+		panic(fmt.Sprintf("converter: nil handler for format %q", format))
+	}
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -172,18 +176,24 @@ func newDefaultRegistry() *FormatRegistry {
 	return r
 }
 
-// markdownHandler handles markdown format output.
+// Format handler implementations below follow a uniform delegation pattern:
+// each Generate/GenerateToWriter method forwards the full Options to the
+// corresponding private method on HybridGenerator, which owns the actual
+// generation logic. Handlers exist to provide format metadata (extension,
+// aliases) and to decouple registry dispatch from generation internals.
+
+// markdownHandler handles markdown format output using the programmatic builder.
 type markdownHandler struct{}
 
 func (h *markdownHandler) FileExtension() string { return ".md" }
 func (h *markdownHandler) Aliases() []string     { return []string{"md"} }
 
-// Generate delegates markdown generation to the HybridGenerator's private markdown method.
+// Generate produces markdown output via the builder pattern, supporting standard and comprehensive modes.
 func (h *markdownHandler) Generate(g *HybridGenerator, data *common.CommonDevice, opts Options) (string, error) {
 	return g.generateMarkdown(data, opts)
 }
 
-// GenerateToWriter delegates markdown streaming to the HybridGenerator's private markdown writer method.
+// GenerateToWriter streams markdown sections incrementally via SectionWriter when available.
 func (h *markdownHandler) GenerateToWriter(
 	g *HybridGenerator,
 	w io.Writer,
@@ -193,66 +203,66 @@ func (h *markdownHandler) GenerateToWriter(
 	return g.generateMarkdownToWriter(w, data, opts)
 }
 
-// jsonHandler handles JSON format output.
+// jsonHandler handles JSON format output via encoding/json serialization.
 type jsonHandler struct{}
 
 func (h *jsonHandler) FileExtension() string { return ".json" }
 func (h *jsonHandler) Aliases() []string     { return nil }
 
-// Generate delegates JSON generation to the HybridGenerator's private JSON method.
+// Generate produces indented JSON from the enriched CommonDevice model.
 func (h *jsonHandler) Generate(g *HybridGenerator, data *common.CommonDevice, opts Options) (string, error) {
-	return g.generateJSON(data, opts.Redact)
+	return g.generateJSON(data, opts)
 }
 
-// GenerateToWriter delegates JSON streaming to the HybridGenerator's private JSON writer method.
+// GenerateToWriter encodes JSON directly to the writer via json.NewEncoder.
 func (h *jsonHandler) GenerateToWriter(g *HybridGenerator, w io.Writer, data *common.CommonDevice, opts Options) error {
-	return g.generateJSONToWriter(w, data, opts.Redact)
+	return g.generateJSONToWriter(w, data, opts)
 }
 
-// yamlHandler handles YAML format output.
+// yamlHandler handles YAML format output via gopkg.in/yaml.v3 serialization.
 type yamlHandler struct{}
 
 func (h *yamlHandler) FileExtension() string { return ".yaml" }
 func (h *yamlHandler) Aliases() []string     { return []string{"yml"} }
 
-// Generate delegates YAML generation to the HybridGenerator's private YAML method.
+// Generate produces YAML from the enriched CommonDevice model.
 func (h *yamlHandler) Generate(g *HybridGenerator, data *common.CommonDevice, opts Options) (string, error) {
-	return g.generateYAML(data, opts.Redact)
+	return g.generateYAML(data, opts)
 }
 
-// GenerateToWriter delegates YAML streaming to the HybridGenerator's private YAML writer method.
+// GenerateToWriter encodes YAML directly to the writer via yaml.NewEncoder.
 func (h *yamlHandler) GenerateToWriter(g *HybridGenerator, w io.Writer, data *common.CommonDevice, opts Options) error {
-	return g.generateYAMLToWriter(w, data, opts.Redact)
+	return g.generateYAMLToWriter(w, data, opts)
 }
 
-// textHandler handles plain text format output.
+// textHandler handles plain text output by generating markdown and stripping formatting.
 type textHandler struct{}
 
 func (h *textHandler) FileExtension() string { return ".txt" }
 func (h *textHandler) Aliases() []string     { return []string{"txt"} }
 
-// Generate delegates plain text generation to the HybridGenerator's private text method.
+// Generate produces plain text by rendering markdown then removing all formatting markers.
 func (h *textHandler) Generate(g *HybridGenerator, data *common.CommonDevice, opts Options) (string, error) {
 	return g.generatePlainText(data, opts)
 }
 
-// GenerateToWriter delegates plain text streaming to the HybridGenerator's private text writer method.
+// GenerateToWriter writes the stripped plain text output to the writer.
 func (h *textHandler) GenerateToWriter(g *HybridGenerator, w io.Writer, data *common.CommonDevice, opts Options) error {
 	return g.generatePlainTextToWriter(w, data, opts)
 }
 
-// htmlHandler handles HTML format output.
+// htmlHandler handles HTML output by generating markdown and converting via goldmark.
 type htmlHandler struct{}
 
 func (h *htmlHandler) FileExtension() string { return ".html" }
 func (h *htmlHandler) Aliases() []string     { return []string{"htm"} }
 
-// Generate delegates HTML generation to the HybridGenerator's private HTML method.
+// Generate produces HTML by rendering markdown then converting via goldmark.
 func (h *htmlHandler) Generate(g *HybridGenerator, data *common.CommonDevice, opts Options) (string, error) {
 	return g.generateHTML(data, opts)
 }
 
-// GenerateToWriter delegates HTML streaming to the HybridGenerator's private HTML writer method.
+// GenerateToWriter writes the rendered HTML output to the writer.
 func (h *htmlHandler) GenerateToWriter(g *HybridGenerator, w io.Writer, data *common.CommonDevice, opts Options) error {
 	return g.generateHTMLToWriter(w, data, opts)
 }
