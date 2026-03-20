@@ -131,7 +131,7 @@ Make `var _ Interface = (*Struct)(nil)` mandatory for every interface a struct i
 
 ### Treat docs like code: method counts must be verifiable
 
-When stating "SectionBuilder has 9 methods", include a verification note in the PR description: `Verified: grep -c 'func.*SectionBuilder' builder.go`.
+When stating "SectionBuilder has 9 methods", include a verification note in the PR description: `Verified: go doc ./internal/converter/builder SectionBuilder | grep -c '^\t'`.
 
 ### Update docs in the same commit as the interface change
 
