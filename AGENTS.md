@@ -202,6 +202,18 @@ When a struct depends on a broad interface but only calls a subset of its method
 - Use a two-value type assertion in getter methods to recover the broad interface when needed
 - See `reportGenerator` in `internal/converter/hybrid_generator.go`
 
+### 5.9b FormatRegistry Pattern
+
+`converter.DefaultRegistry` (`internal/converter/registry.go`) is the **single source of truth** for supported output formats. It centralises format names, aliases, file extensions, and validation that were previously scattered across six locations.
+
+- **Adding a new format:** Register a `FormatHandler` in `newDefaultRegistry()` — all validation, completion, and dispatch automatically picks it up
+- **Format resolution:** `DefaultRegistry.Canonical(format)` resolves aliases (e.g., "md" → "markdown", "yml" → "yaml")
+- **Validation:** `Format.Validate()` and `config.ValidFormats` both delegate to the registry
+- **Shell completions:** `cmd.ValidFormats()` derives from `DefaultRegistry.ValidFormats()` (alphabetically sorted)
+- **File extensions:** `handler.FileExtension()` replaces scattered switch statements in `cmd/convert.go`
+- **Processor integration:** `processor.Transform()` handles all five formats (markdown, json, yaml, text, html) via exported `converter.StripMarkdownFormatting()` and `converter.RenderMarkdownToHTML()`
+- `cmd/convert.go` no longer defines format constants — use `converter.FormatMarkdown`, `converter.FormatJSON`, etc.
+
 ### 5.10 Common Linter Patterns
 
 Frequently encountered linter issues and fixes:
@@ -417,7 +429,7 @@ When splitting a large file into domain-specific files within the same package:
 ### 6.2 Multi-Format Export
 
 ```bash
-opndossier convert config.xml --format [markdown|json|yaml]
+opndossier convert config.xml --format [markdown|json|yaml|text|html]
 opndossier convert config.xml --format json -o output.json
 opndossier convert config.xml --format yaml --force
 ```
