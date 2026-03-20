@@ -206,3 +206,4 @@ docs/plans
 .kiro/specs/*
 .worktrees/
 todos/**/*.md
+.cursor/hooks/state/

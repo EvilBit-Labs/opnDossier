@@ -35,6 +35,27 @@ type StreamingGenerator interface {
 	GenerateToWriter(ctx context.Context, w io.Writer, cfg *common.CommonDevice, opts Options) error
 }
 
+// reportGenerator is the narrowest interface HybridGenerator requires from its
+// builder. It lists only the four methods HybridGenerator directly calls:
+// report composition (BuildStandardReport, BuildComprehensiveReport),
+// audit section rendering (BuildAuditSection), and a tunables toggle
+// (SetIncludeTunables). The remaining SectionBuilder and TableWriter methods
+// are deliberately excluded — HybridGenerator delegates full-report assembly
+// to the builder and only renders the audit section individually.
+//
+// Note: HybridGenerator also type-asserts the builder to builder.SectionWriter
+// for streaming support — see generateMarkdownToWriter.
+type reportGenerator interface {
+	// SetIncludeTunables configures whether all system tunables are included in the report.
+	SetIncludeTunables(v bool)
+	// BuildAuditSection builds the compliance audit section from the device's ComplianceChecks.
+	BuildAuditSection(data *common.CommonDevice) string
+	// BuildStandardReport generates a standard configuration report.
+	BuildStandardReport(data *common.CommonDevice) (string, error)
+	// BuildComprehensiveReport generates a comprehensive configuration report.
+	BuildComprehensiveReport(data *common.CommonDevice) (string, error)
+}
+
 // HybridGenerator provides programmatic markdown, JSON, and YAML generation.
 // It uses the builder pattern for markdown output and direct serialization for JSON/YAML.
 //
@@ -42,12 +63,15 @@ type StreamingGenerator interface {
 // (io.Writer-based) interfaces. Use GenerateToWriter for memory-efficient streaming
 // output, or Generate when you need the output as a string for further processing.
 type HybridGenerator struct {
-	builder builder.ReportBuilder
+	builder reportGenerator
 	logger  *logging.Logger
 }
 
-// Ensure HybridGenerator implements StreamingGenerator.
-var _ StreamingGenerator = (*HybridGenerator)(nil)
+// Compile-time assertions.
+var (
+	_ StreamingGenerator = (*HybridGenerator)(nil)
+	_ reportGenerator    = (*builder.MarkdownBuilder)(nil)
+)
 
 // NewHybridGenerator creates a HybridGenerator that uses the provided ReportBuilder and logger.
 // If logger is nil, NewHybridGenerator creates a default logger and returns an error if logger creation fails.
@@ -412,7 +436,22 @@ func (g *HybridGenerator) SetBuilder(reportBuilder builder.ReportBuilder) {
 	g.builder = reportBuilder
 }
 
-// GetBuilder returns the current report builder.
+// GetBuilder returns the current report builder as a ReportBuilder.
+// The underlying value is typically a ReportBuilder (e.g., *MarkdownBuilder)
+// because SetBuilder and NewHybridGenerator accept ReportBuilder.
+// Returns nil if the builder is nil or does not satisfy the full ReportBuilder interface.
 func (g *HybridGenerator) GetBuilder() builder.ReportBuilder {
-	return g.builder
+	if g.builder == nil {
+		return nil
+	}
+
+	rb, ok := g.builder.(builder.ReportBuilder)
+	if !ok {
+		g.logger.Debug("builder does not satisfy full ReportBuilder interface",
+			"type", fmt.Sprintf("%T", g.builder))
+
+		return nil
+	}
+
+	return rb
 }

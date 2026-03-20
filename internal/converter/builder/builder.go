@@ -20,9 +20,10 @@ import (
 // destinationAny is the canonical string used to represent an unrestricted destination in firewall rules.
 const destinationAny = "any"
 
-// ReportBuilder interface defines the contract for programmatic report generation.
-// This provides type-safe, compile-time guaranteed markdown generation.
-type ReportBuilder interface {
+// SectionBuilder defines methods for building individual report sections.
+// Each method renders a specific configuration domain into a markdown string
+// or returns an empty string when the section has no data.
+type SectionBuilder interface {
 	// BuildSystemSection builds the system configuration section.
 	BuildSystemSection(data *common.CommonDevice) string
 	// BuildNetworkSection builds the network configuration section.
@@ -31,7 +32,21 @@ type ReportBuilder interface {
 	BuildSecuritySection(data *common.CommonDevice) string
 	// BuildServicesSection builds the services configuration section.
 	BuildServicesSection(data *common.CommonDevice) string
+	// BuildIPsecSection builds the IPsec VPN configuration section.
+	BuildIPsecSection(data *common.CommonDevice) string
+	// BuildOpenVPNSection builds the OpenVPN configuration section.
+	BuildOpenVPNSection(data *common.CommonDevice) string
+	// BuildHASection builds the High Availability and CARP configuration section.
+	BuildHASection(data *common.CommonDevice) string
+	// BuildIDSSection builds the IDS/Suricata configuration section.
+	BuildIDSSection(data *common.CommonDevice) string
+	// BuildAuditSection builds the compliance audit section from the device's ComplianceChecks.
+	BuildAuditSection(data *common.CommonDevice) string
+}
 
+// TableWriter defines methods for writing data tables into a markdown instance.
+// Each method appends a formatted table and returns the markdown for chaining.
+type TableWriter interface {
 	// WriteFirewallRulesTable writes a firewall rules table and returns md for chaining.
 	WriteFirewallRulesTable(md *markdown.Markdown, rules []common.FirewallRule) *markdown.Markdown
 	// WriteInterfaceTable writes an interfaces table and returns md for chaining.
@@ -54,28 +69,38 @@ type ReportBuilder interface {
 	WriteDHCPSummaryTable(md *markdown.Markdown, scopes []common.DHCPScope) *markdown.Markdown
 	// WriteDHCPStaticLeasesTable writes a static leases table and returns md for chaining.
 	WriteDHCPStaticLeasesTable(md *markdown.Markdown, leases []common.DHCPStaticLease) *markdown.Markdown
+}
 
-	// BuildIPsecSection builds the IPsec VPN configuration section.
-	BuildIPsecSection(data *common.CommonDevice) string
-	// BuildOpenVPNSection builds the OpenVPN configuration section.
-	BuildOpenVPNSection(data *common.CommonDevice) string
-	// BuildHASection builds the High Availability and CARP configuration section.
-	BuildHASection(data *common.CommonDevice) string
-	// BuildIDSSection builds the IDS/Suricata configuration section.
-	BuildIDSSection(data *common.CommonDevice) string
-	// BuildAuditSection builds the compliance audit section from the device's ComplianceChecks.
-	BuildAuditSection(data *common.CommonDevice) string
-
+// ReportComposer defines methods for composing full configuration reports.
+// Each method assembles multiple sections into a complete markdown document.
+// SetIncludeTunables configures rendering behavior before composition.
+type ReportComposer interface {
 	// SetIncludeTunables configures whether all system tunables are included in the report.
 	// When false, only tunables matching the security prefixes used by
 	// formatters.FilterSystemTunables are shown.
 	SetIncludeTunables(v bool)
-
 	// BuildStandardReport generates a standard configuration report.
 	BuildStandardReport(data *common.CommonDevice) (string, error)
 	// BuildComprehensiveReport generates a comprehensive configuration report.
 	BuildComprehensiveReport(data *common.CommonDevice) (string, error)
 }
+
+// ReportBuilder defines the contract for programmatic report generation.
+// It composes SectionBuilder, TableWriter, and ReportComposer to provide
+// type-safe, compile-time guaranteed markdown generation.
+type ReportBuilder interface {
+	SectionBuilder
+	TableWriter
+	ReportComposer
+}
+
+// Compile-time assertions that MarkdownBuilder satisfies all interfaces.
+var (
+	_ SectionBuilder = (*MarkdownBuilder)(nil)
+	_ TableWriter    = (*MarkdownBuilder)(nil)
+	_ ReportComposer = (*MarkdownBuilder)(nil)
+	_ ReportBuilder  = (*MarkdownBuilder)(nil)
+)
 
 // MarkdownBuilder implements the ReportBuilder interface with comprehensive
 // programmatic markdown generation capabilities.
