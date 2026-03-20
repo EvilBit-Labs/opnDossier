@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
@@ -142,16 +143,33 @@ func (p *CoreProcessor) Process(ctx context.Context, cfg *common.CommonDevice, o
 }
 
 // Transform converts the report to the specified format.
+// Format aliases (e.g., "txt", "htm", "md") are resolved via the FormatRegistry
+// before dispatching so that all registered aliases work consistently.
 func (p *CoreProcessor) Transform(ctx context.Context, report *Report, format string) (string, error) {
-	switch strings.ToLower(format) {
+	canonical, _ := converter.DefaultRegistry.Canonical(strings.ToLower(format))
+	switch canonical {
 	case "json":
 		return report.ToJSON()
 	case "yaml":
 		return p.toYAML(report)
 	case "markdown":
 		return p.toMarkdown(ctx, report)
+	case "text":
+		md, err := p.toMarkdown(ctx, report)
+		if err != nil {
+			return "", err
+		}
+
+		return converter.StripMarkdownFormatting(md)
+	case "html":
+		md, err := p.toMarkdown(ctx, report)
+		if err != nil {
+			return "", err
+		}
+
+		return converter.RenderMarkdownToHTML(md)
 	default:
-		return "", fmt.Errorf("unsupported format: %w", &UnsupportedFormatError{Format: format})
+		return "", &UnsupportedFormatError{Format: format}
 	}
 }
 

@@ -85,7 +85,7 @@ func TestValidateAuditModeInvalid(t *testing.T) {
 			sharedSelectedPlugins = nil
 			sharedWrapWidth = -1
 			sharedNoWrap = false
-			format = FormatMarkdown // Set valid format to avoid format error
+			format = string(converter.FormatMarkdown) // Set valid format to avoid format error
 
 			// Set up minimal flags
 			flags := pflag.NewFlagSet("test", pflag.ContinueOnError)
@@ -129,7 +129,7 @@ func TestValidateAuditPluginsValid(t *testing.T) {
 			sharedSelectedPlugins = tt.plugins
 			sharedWrapWidth = -1
 			sharedNoWrap = false
-			format = FormatMarkdown
+			format = string(converter.FormatMarkdown)
 
 			// Set up minimal flags
 			flags := pflag.NewFlagSet("test", pflag.ContinueOnError)
@@ -169,7 +169,7 @@ func TestValidateAuditPluginsInvalid(t *testing.T) {
 			sharedSelectedPlugins = tt.plugins
 			sharedWrapWidth = -1
 			sharedNoWrap = false
-			format = FormatMarkdown
+			format = string(converter.FormatMarkdown)
 
 			// Set up minimal flags
 			flags := pflag.NewFlagSet("test", pflag.ContinueOnError)

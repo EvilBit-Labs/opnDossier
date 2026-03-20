@@ -27,14 +27,11 @@ func (f Format) String() string {
 	return string(f)
 }
 
-// Validate checks if the format is supported.
+// Validate checks if the format is supported by looking it up in the DefaultRegistry.
 func (f Format) Validate() error {
-	switch f {
-	case FormatMarkdown, FormatJSON, FormatYAML, FormatText, FormatHTML:
-		return nil
-	default:
-		return fmt.Errorf("%w: %s", ErrUnsupportedFormat, f)
-	}
+	_, err := DefaultRegistry.Get(string(f))
+
+	return err
 }
 
 // Theme represents the rendering theme for terminal output.

@@ -109,8 +109,8 @@ var alertTitles = map[string]string{
 }
 
 // goldmarkRenderer is a pre-configured goldmark instance shared between:
-//   - HTML output (renderMarkdownToHTML)
-//   - Plain text output (stripMarkdownFormatting in plaintext.go)
+//   - HTML output (RenderMarkdownToHTML)
+//   - Plain text output (StripMarkdownFormatting in plaintext.go)
 //
 // Configuration matches internal/markdown/formatters.go:RenderMarkdown().
 //
@@ -163,10 +163,10 @@ func transformAlertBlockquotes(htmlContent string) string {
 	})
 }
 
-// renderMarkdownToHTML converts markdown content to a self-contained HTML document.
+// RenderMarkdownToHTML converts markdown content to a self-contained HTML document.
 // It uses goldmark for markdown-to-HTML conversion, transforms GitHub-style alert
 // blockquotes into styled div elements, and wraps the result in htmlShell.
-func renderMarkdownToHTML(md string) (string, error) {
+func RenderMarkdownToHTML(md string) (string, error) {
 	var buf strings.Builder
 	if err := goldmarkRenderer.Convert([]byte(md), &buf); err != nil {
 		return "", fmt.Errorf("failed to convert markdown to HTML: %w", err)

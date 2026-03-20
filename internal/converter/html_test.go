@@ -63,7 +63,7 @@ func TestRenderMarkdownToHTML(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			result, err := renderMarkdownToHTML(tt.markdown)
+			result, err := RenderMarkdownToHTML(tt.markdown)
 			require.NoError(t, err)
 
 			for _, expected := range tt.contains {
@@ -76,7 +76,7 @@ func TestRenderMarkdownToHTML(t *testing.T) {
 func TestRenderMarkdownToHTML_HTMLStructure(t *testing.T) {
 	t.Parallel()
 
-	result, err := renderMarkdownToHTML("# Test")
+	result, err := RenderMarkdownToHTML("# Test")
 	require.NoError(t, err)
 
 	// Verify self-contained HTML document structure
@@ -95,7 +95,7 @@ func TestRenderMarkdownToHTML_HTMLStructure(t *testing.T) {
 func TestRenderMarkdownToHTML_NoExternalResources(t *testing.T) {
 	t.Parallel()
 
-	result, err := renderMarkdownToHTML("# Test")
+	result, err := RenderMarkdownToHTML("# Test")
 	require.NoError(t, err)
 
 	// Verify no external stylesheets or scripts are loaded
@@ -107,7 +107,7 @@ func TestRenderMarkdownToHTML_NoExternalResources(t *testing.T) {
 func TestRenderMarkdownToHTML_DarkModeSupport(t *testing.T) {
 	t.Parallel()
 
-	result, err := renderMarkdownToHTML("# Test")
+	result, err := RenderMarkdownToHTML("# Test")
 	require.NoError(t, err)
 
 	assert.Contains(t, result, "prefers-color-scheme: dark")
@@ -116,7 +116,7 @@ func TestRenderMarkdownToHTML_DarkModeSupport(t *testing.T) {
 func TestRenderMarkdownToHTML_PrintFriendly(t *testing.T) {
 	t.Parallel()
 
-	result, err := renderMarkdownToHTML("# Test")
+	result, err := RenderMarkdownToHTML("# Test")
 	require.NoError(t, err)
 
 	assert.Contains(t, result, "@media print")
@@ -210,7 +210,7 @@ func TestRenderMarkdownToHTML_AlertRendering(t *testing.T) {
 
 	// Test the full pipeline: markdown with alerts → HTML with styled divs
 	markdown := "> [!WARNING]\n> NAT reflection is enabled.\n"
-	result, err := renderMarkdownToHTML(markdown)
+	result, err := RenderMarkdownToHTML(markdown)
 	require.NoError(t, err)
 
 	assert.Contains(t, result, `class="alert alert-warning"`)
@@ -222,7 +222,7 @@ func TestRenderMarkdownToHTML_AlertRendering(t *testing.T) {
 func TestRenderMarkdownToHTML_AlertCSS(t *testing.T) {
 	t.Parallel()
 
-	result, err := renderMarkdownToHTML("# Test")
+	result, err := RenderMarkdownToHTML("# Test")
 	require.NoError(t, err)
 
 	// Verify alert CSS classes are present in the document
@@ -252,7 +252,7 @@ func TestRenderMarkdownToHTML_LargeDocument(t *testing.T) {
 		sb.WriteString("\n")
 	}
 
-	result, err := renderMarkdownToHTML(sb.String())
+	result, err := RenderMarkdownToHTML(sb.String())
 	require.NoError(t, err)
 	assert.Contains(t, result, "<!DOCTYPE html>")
 	assert.Contains(t, result, "Configuration Report")
