@@ -108,7 +108,8 @@ func TestStripMarkdownFormatting(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			result := stripMarkdownFormatting(tt.input)
+			result, err := StripMarkdownFormatting(tt.input)
+			require.NoError(t, err)
 			assert.Equal(t, tt.expected, result)
 		})
 	}

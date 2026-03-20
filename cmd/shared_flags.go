@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/spf13/cobra"
 )
 
@@ -179,15 +180,33 @@ func ValidXMLFiles(_ *cobra.Command, _ []string, toComplete string) ([]string, c
 	return completions, cobra.ShellCompDirectiveNoSpace
 }
 
+// formatDescriptions maps canonical format names to their shell completion descriptions.
+// When registering a new format in the DefaultRegistry, add a description here too.
+// Missing entries fall back to a generic description.
+var formatDescriptions = map[string]string{ //nolint:gochecknoglobals // static lookup table
+	"markdown": "Standard markdown format (default)",
+	"json":     "JSON format for programmatic access",
+	"yaml":     "YAML format for configuration management",
+	"text":     "Plain text format (markdown without formatting)",
+	"html":     "Self-contained HTML report for web viewing",
+}
+
 // ValidFormats provides shell completion for output format values.
+// Canonical format names are sourced from the converter.DefaultRegistry.
 func ValidFormats(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
-	return []string{
-		"markdown\tStandard markdown format (default)",
-		"json\tJSON format for programmatic access",
-		"yaml\tYAML format for configuration management",
-		"text\tPlain text format (markdown without formatting)",
-		"html\tSelf-contained HTML report for web viewing",
-	}, cobra.ShellCompDirectiveNoFileComp
+	formats := converter.DefaultRegistry.ValidFormats()
+	completions := make([]string, 0, len(formats))
+
+	for _, f := range formats {
+		desc, ok := formatDescriptions[f]
+		if !ok {
+			desc = f + " format"
+		}
+
+		completions = append(completions, f+"\t"+desc)
+	}
+
+	return completions, cobra.ShellCompDirectiveNoFileComp
 }
 
 // ValidThemes provides shell completion for theme values.

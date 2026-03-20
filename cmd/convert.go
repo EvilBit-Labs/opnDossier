@@ -45,32 +45,6 @@ var (
 	ErrUnsupportedOutputFormat = errors.New("unsupported output format")
 )
 
-// Format constants for output formats.
-const (
-	// FormatMarkdown specifies Markdown as the output format.
-	FormatMarkdown = "markdown"
-	// FormatJSON specifies JSON as the output format.
-	FormatJSON = "json"
-	// FormatYAML specifies YAML as the output format.
-	FormatYAML = "yaml"
-	// FormatText specifies plain text as the output format.
-	FormatText = "text"
-	// FormatHTML specifies self-contained HTML as the output format.
-	FormatHTML = "html"
-)
-
-// Format alias constants for short-form format names.
-const (
-	// FormatAliasMD is the short alias for markdown format.
-	FormatAliasMD = "md"
-	// FormatAliasYML is the short alias for YAML format.
-	FormatAliasYML = "yml"
-	// FormatAliasTXT is the short alias for text format.
-	FormatAliasTXT = "txt"
-	// FormatAliasHTM is the short alias for HTML format.
-	FormatAliasHTM = "htm"
-)
-
 // init registers the `convert` command with the root command and configures its command-line flags.
 //
 // It defines the primary flags used to control conversion output:
@@ -410,21 +384,17 @@ Examples:
 					return
 				}
 
-				// Determine file extension based on format
-				switch strings.ToLower(string(opt.Format)) {
-				case FormatMarkdown, FormatAliasMD:
-					fileExt = ".md"
-				case FormatJSON:
-					fileExt = ".json"
-				case FormatYAML, FormatAliasYML:
-					fileExt = ".yaml"
-				case FormatText, FormatAliasTXT:
-					fileExt = ".txt"
-				case FormatHTML, FormatAliasHTM:
-					fileExt = ".html"
-				default:
-					fileExt = ".md" // Default to markdown
+				// Determine file extension from the registry
+				handler, err := converter.DefaultRegistry.Get(string(opt.Format))
+				if err != nil {
+					ctxLogger.Error("format passed validation but registry lookup failed",
+						"format", opt.Format, "error", err)
+					errs <- fmt.Errorf("internal error determining file extension for %q: %w", opt.Format, err)
+
+					return
 				}
+
+				fileExt = handler.FileExtension()
 
 				ctxLogger.Debug("Conversion completed successfully")
 
@@ -498,20 +468,13 @@ func buildEffectiveFormat(flagFormat string, cfg *config.Config) string {
 	return "markdown"
 }
 
-// normalizeFormat maps format aliases to their canonical converter.Format values.
+// normalizeFormat maps format aliases to their canonical converter.Format values
+// using the converter.DefaultRegistry as the single source of truth.
+// Unrecognized formats are passed through as-is for downstream validation.
 func normalizeFormat(format string) converter.Format {
-	switch strings.ToLower(format) {
-	case FormatAliasMD:
-		return converter.FormatMarkdown
-	case FormatAliasYML:
-		return converter.FormatYAML
-	case FormatAliasTXT:
-		return converter.FormatText
-	case FormatAliasHTM:
-		return converter.FormatHTML
-	default:
-		return converter.Format(strings.ToLower(format))
-	}
+	canonical, _ := converter.DefaultRegistry.Canonical(format)
+
+	return converter.Format(canonical)
 }
 
 // buildConversionOptions constructs a converter.Options value for the given output
@@ -672,24 +635,19 @@ func generateOutputByFormat(
 		return handleAuditMode(ctx, device, auditOpts, opt, logger)
 	}
 
-	// Determine the format to use
-	format := strings.ToLower(string(opt.Format))
-
-	switch format {
-	case FormatMarkdown, FormatAliasMD, FormatJSON, FormatYAML, FormatAliasYML,
-		FormatText, FormatAliasTXT, FormatHTML, FormatAliasHTM:
-		// Use programmatic generator for all formats
-		// The HybridGenerator handles markdown (via builder), JSON, YAML, text, and HTML natively
-		return generateWithProgrammaticGenerator(ctx, device, opt, logger)
-	default:
+	// Validate format via registry before generating
+	if _, err := converter.DefaultRegistry.Get(string(opt.Format)); err != nil {
 		return "", fmt.Errorf(
-			"%w: %q (supported: %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+			"%w: %q (supported: %s)",
 			ErrUnsupportedOutputFormat,
-			format,
-			FormatMarkdown, FormatAliasMD, FormatJSON, FormatYAML, FormatAliasYML,
-			FormatText, FormatAliasTXT, FormatHTML, FormatAliasHTM,
+			opt.Format,
+			strings.Join(converter.DefaultRegistry.ValidFormatsWithAliases(), ", "),
 		)
 	}
+
+	// Use programmatic generator for all formats
+	// The HybridGenerator handles markdown (via builder), JSON, YAML, text, and HTML natively
+	return generateWithProgrammaticGenerator(ctx, device, opt, logger)
 }
 
 // generateWithProgrammaticGenerator creates and uses a generator that produces output using the programmatic Markdown builder.
@@ -743,12 +701,9 @@ func validateConvertFlags(flags *pflag.FlagSet, cmdLogger *logging.Logger) error
 		}
 	}
 
-	// Validate format values
+	// Validate format values via the converter registry
 	if format != "" {
-		validFormats := []string{
-			FormatMarkdown, FormatAliasMD, FormatJSON, FormatYAML, FormatAliasYML,
-			FormatText, FormatAliasTXT, FormatHTML, FormatAliasHTM,
-		}
+		validFormats := converter.DefaultRegistry.ValidFormatsWithAliases()
 		if !slices.Contains(validFormats, strings.ToLower(format)) {
 			return fmt.Errorf("invalid format %q, must be one of: %s", format, strings.Join(validFormats, ", "))
 		}
@@ -765,7 +720,9 @@ func validateConvertFlags(flags *pflag.FlagSet, cmdLogger *logging.Logger) error
 			)
 		}
 	}
-	if (strings.EqualFold(format, FormatYAML) || strings.EqualFold(format, FormatAliasYML)) && len(sharedSections) > 0 {
+
+	canonicalFormat, _ := converter.DefaultRegistry.Canonical(format)
+	if canonicalFormat == "yaml" && len(sharedSections) > 0 {
 		if cmdLogger != nil {
 			cmdLogger.Warn("section filtering not supported with YAML format, sections will be ignored")
 		} else {

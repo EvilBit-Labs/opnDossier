@@ -56,12 +56,12 @@ func TestValidFormats(t *testing.T) {
 	completions, directive := ValidFormats(nil, nil, "")
 	assert.Equal(t, cobra.ShellCompDirectiveNoFileComp, directive)
 	require.Len(t, completions, 5)
-	// Verify all formats are present
-	assert.Contains(t, completions[0], "markdown")
+	// Verify all formats are present (sorted alphabetically by the registry)
+	assert.Contains(t, completions[0], "html")
 	assert.Contains(t, completions[1], "json")
-	assert.Contains(t, completions[2], "yaml")
+	assert.Contains(t, completions[2], "markdown")
 	assert.Contains(t, completions[3], "text")
-	assert.Contains(t, completions[4], "html")
+	assert.Contains(t, completions[4], "yaml")
 }
 
 func TestValidThemes(t *testing.T) {

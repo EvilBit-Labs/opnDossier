@@ -1475,6 +1475,71 @@ func TestCoreProcessor_TransformFormats(t *testing.T) {
 			},
 		},
 		{
+			name:        "Text format",
+			format:      "text",
+			expectError: false,
+			validate: func(t *testing.T, output string) {
+				t.Helper()
+				assert.NotEmpty(t, output)
+				assert.Contains(t, output, "transform-test")
+				assert.NotContains(t, output, "# ", "text output should not contain markdown header markers")
+			},
+		},
+		{
+			name:        "HTML format",
+			format:      "html",
+			expectError: false,
+			validate: func(t *testing.T, output string) {
+				t.Helper()
+				assert.NotEmpty(t, output)
+				assert.Contains(t, output, "<html")
+				assert.Contains(t, output, "transform-test")
+			},
+		},
+		{
+			name:        "md alias resolves to markdown",
+			format:      "md",
+			expectError: false,
+			validate: func(t *testing.T, output string) {
+				t.Helper()
+				assert.NotEmpty(t, output)
+				assert.Contains(t, output, "# OPNsense Configuration Analysis Report")
+				assert.Contains(t, output, "transform-test")
+			},
+		},
+		{
+			name:        "yml alias resolves to yaml",
+			format:      "yml",
+			expectError: false,
+			validate: func(t *testing.T, output string) {
+				t.Helper()
+				assert.NotEmpty(t, output)
+				assert.Contains(t, output, "transform-test")
+			},
+		},
+		{
+			name:        "txt alias resolves to text",
+			format:      "txt",
+			expectError: false,
+			validate: func(t *testing.T, output string) {
+				t.Helper()
+				assert.NotEmpty(t, output)
+				assert.Contains(t, output, "transform-test")
+				assert.NotContains(t, output, "# ", "text output should not contain markdown header markers")
+			},
+		},
+		{
+			name:        "htm alias resolves to html",
+			format:      "htm",
+			expectError: false,
+			validate: func(t *testing.T, output string) {
+				t.Helper()
+				assert.NotEmpty(t, output)
+				assert.Contains(t, output, "<html")
+				assert.Contains(t, output, "transform-test")
+			},
+		},
+		{
 			name:        "Unsupported format",
 			format:      "xml",
 			expectError: true,
