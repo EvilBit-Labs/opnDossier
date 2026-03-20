@@ -385,11 +385,16 @@ Examples:
 				}
 
 				// Determine file extension from the registry
-				if handler, err := converter.DefaultRegistry.Get(string(opt.Format)); err == nil {
-					fileExt = handler.FileExtension()
-				} else {
-					fileExt = ".md" // Default to markdown
+				handler, err := converter.DefaultRegistry.Get(string(opt.Format))
+				if err != nil {
+					ctxLogger.Error("format passed validation but registry lookup failed",
+						"format", opt.Format, "error", err)
+					errs <- fmt.Errorf("internal error determining file extension for %q: %w", opt.Format, err)
+
+					return
 				}
+
+				fileExt = handler.FileExtension()
 
 				ctxLogger.Debug("Conversion completed successfully")
 

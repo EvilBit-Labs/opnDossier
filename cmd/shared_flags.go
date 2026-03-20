@@ -181,6 +181,8 @@ func ValidXMLFiles(_ *cobra.Command, _ []string, toComplete string) ([]string, c
 }
 
 // formatDescriptions maps canonical format names to their shell completion descriptions.
+// When registering a new format in the DefaultRegistry, add a description here too.
+// Missing entries fall back to a generic description.
 var formatDescriptions = map[string]string{ //nolint:gochecknoglobals // static lookup table
 	"markdown": "Standard markdown format (default)",
 	"json":     "JSON format for programmatic access",
