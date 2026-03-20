@@ -211,6 +211,7 @@ When a struct depends on a broad interface but only calls a subset of its method
 - **Validation:** `Format.Validate()` and `config.ValidFormats` both delegate to the registry
 - **Shell completions:** `cmd.ValidFormats()` derives from `DefaultRegistry.ValidFormats()` (alphabetically sorted)
 - **File extensions:** `handler.FileExtension()` replaces scattered switch statements in `cmd/convert.go`
+- **Generation dispatch:** `FormatHandler.Generate()` and `FormatHandler.GenerateToWriter()` replace hardcoded `switch` blocks in `HybridGenerator` — each handler delegates to the generator's private format-specific methods. `handlerForFormat()` is the generator-scoped registry accessor
 - **Processor integration:** `processor.Transform()` handles all five formats (markdown, json, yaml, text, html) via exported `converter.StripMarkdownFormatting()` and `converter.RenderMarkdownToHTML()`
 - `cmd/convert.go` no longer defines format constants — use `converter.FormatMarkdown`, `converter.FormatJSON`, etc.
 
