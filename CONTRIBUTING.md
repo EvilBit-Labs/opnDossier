@@ -104,7 +104,6 @@ type SectionBuilder interface {
     BuildHASection(data *common.CommonDevice) string
     BuildIDSSection(data *common.CommonDevice) string
     BuildAuditSection(data *common.CommonDevice) string
-    SetIncludeTunables(v bool)
 }
 
 // TableWriter defines methods for writing data tables into a markdown instance.
@@ -112,13 +111,13 @@ type SectionBuilder interface {
 type TableWriter interface {
     WriteFirewallRulesTable(md *markdown.Markdown, rules []common.FirewallRule) *markdown.Markdown
     WriteInterfaceTable(md *markdown.Markdown, interfaces []common.Interface) *markdown.Markdown
+    WriteUserTable(md *markdown.Markdown, users []common.User) *markdown.Markdown
+    WriteGroupTable(md *markdown.Markdown, groups []common.Group) *markdown.Markdown
+    WriteSysctlTable(md *markdown.Markdown, sysctl []common.SysctlItem) *markdown.Markdown
+    WriteOutboundNATTable(md *markdown.Markdown, rules []common.NATRule) *markdown.Markdown
+    WriteInboundNATTable(md *markdown.Markdown, rules []common.InboundNATRule) *markdown.Markdown
     WriteVLANTable(md *markdown.Markdown, vlans []common.VLAN) *markdown.Markdown
-    WriteStaticRouteTable(md *markdown.Markdown, routes []common.StaticRoute) *markdown.Markdown
-    WriteAliasTable(md *markdown.Markdown, aliases []common.Alias) *markdown.Markdown
-    WriteNATRulesTable(md *markdown.Markdown, rules []common.NATRule) *markdown.Markdown
-    WriteOpenVPNInstanceTable(md *markdown.Markdown, instances []common.OpenVPNInstance) *markdown.Markdown
-    WriteIPsecTunnelTable(md *markdown.Markdown, tunnels []common.IPsecTunnel) *markdown.Markdown
-    WriteCARPInterfaceTable(md *markdown.Markdown, interfaces []common.CARPInterface) *markdown.Markdown
+    WriteStaticRoutesTable(md *markdown.Markdown, routes []common.StaticRoute) *markdown.Markdown
     WriteDHCPSummaryTable(md *markdown.Markdown, scopes []common.DHCPScope) *markdown.Markdown
     WriteDHCPStaticLeasesTable(md *markdown.Markdown, leases []common.DHCPStaticLease) *markdown.Markdown
 }
@@ -126,6 +125,7 @@ type TableWriter interface {
 // ReportComposer defines methods for composing full configuration reports.
 // Each method assembles multiple sections into a complete markdown document.
 type ReportComposer interface {
+    SetIncludeTunables(v bool)
     BuildStandardReport(data *common.CommonDevice) (string, error)
     BuildComprehensiveReport(data *common.CommonDevice) (string, error)
 }
@@ -148,7 +148,7 @@ Contributors should understand this design when working with the builder pattern
 
 1. **Interface Composition**: `ReportBuilder` composes three focused interfaces (`SectionBuilder`, `TableWriter`, `ReportComposer`) rather than declaring all methods directly. This follows the Interface Segregation Principle.
 
-2. **Consumer-Local Interface Narrowing**: When a component needs only a subset of methods, define an unexported consumer-local interface with exactly those methods. See `reportGenerator` and `auditBuilder` in `internal/converter/hybrid_generator.go` as examples.
+2. **Consumer-Local Interface Narrowing**: When a component needs only a subset of methods, define an unexported consumer-local interface with exactly those methods. See `reportGenerator` in `internal/converter/hybrid_generator.go` as an example.
 
 3. **Backward Compatibility**: Public APIs (constructors, setters) accept the broad `ReportBuilder` interface. Internal fields use the narrower interface. Getters use two-value type assertions to recover the full interface when needed.
 
