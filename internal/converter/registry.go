@@ -59,9 +59,13 @@ func (r *FormatRegistry) Register(format string, handler FormatHandler) {
 	if _, exists := r.handlers[key]; exists {
 		panic(fmt.Sprintf("converter: format %q already registered", key))
 	}
+	if _, exists := r.aliases[key]; exists {
+		panic(fmt.Sprintf("converter: format %q conflicts with existing alias", key))
+	}
 
-	r.handlers[key] = handler
-
+	// Validate all aliases before mutating any state so a panic never leaves
+	// the registry partially registered.
+	aliasKeys := make([]string, 0, len(handler.Aliases()))
 	for _, alias := range handler.Aliases() {
 		aliasKey := strings.ToLower(alias)
 		if _, exists := r.aliases[aliasKey]; exists {
@@ -71,6 +75,12 @@ func (r *FormatRegistry) Register(format string, handler FormatHandler) {
 			panic(fmt.Sprintf("converter: alias %q conflicts with canonical format", aliasKey))
 		}
 
+		aliasKeys = append(aliasKeys, aliasKey)
+	}
+
+	// Commit: all validation passed, now mutate maps atomically.
+	r.handlers[key] = handler
+	for _, aliasKey := range aliasKeys {
 		r.aliases[aliasKey] = key
 	}
 }

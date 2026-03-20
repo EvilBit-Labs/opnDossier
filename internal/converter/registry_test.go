@@ -164,6 +164,21 @@ func TestFormatRegistry_RegisterAliasConflictsWithCanonicalPanics(t *testing.T) 
 	)
 }
 
+func TestFormatRegistry_RegisterCanonicalConflictsWithExistingAliasPanics(t *testing.T) {
+	t.Parallel()
+
+	r := NewFormatRegistry()
+	// Register "markdown" which claims "md" as an alias.
+	r.Register("markdown", &markdownHandler{})
+
+	// Now register "md" as a canonical format -- should conflict with the existing alias.
+	assert.PanicsWithValue(t,
+		`converter: format "md" conflicts with existing alias`,
+		func() { r.Register("md", &stubHandler{ext: ".md"}) },
+		"Register with canonical name conflicting an existing alias should panic",
+	)
+}
+
 func TestFormatRegistry_Get_CaseInsensitive(t *testing.T) {
 	t.Parallel()
 
@@ -203,7 +218,7 @@ func TestFormatRegistry_Get_AliasReturnsSameHandlerAsCanonical(t *testing.T) {
 	alias, err := r.Get("yml")
 	require.NoError(t, err)
 
-	assert.Equal(t, canonical, alias, "alias and canonical should return the same handler instance")
+	assert.Same(t, canonical, alias, "alias and canonical should return the same handler instance")
 }
 
 func TestFormatRegistry_Canonical_CanonicalReturnsSelf(t *testing.T) {
@@ -567,9 +582,6 @@ func newTestGenerator(t *testing.T) *HybridGenerator {
 func TestHandler_Generate_DispatchesViaRegistry(t *testing.T) {
 	t.Parallel()
 
-	gen := newTestGenerator(t)
-	device := &common.CommonDevice{System: common.System{Hostname: "test-host"}}
-
 	tests := []struct {
 		format  string
 		wantErr bool
@@ -584,6 +596,9 @@ func TestHandler_Generate_DispatchesViaRegistry(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.format, func(t *testing.T) {
 			t.Parallel()
+
+			gen := newTestGenerator(t)
+			device := &common.CommonDevice{System: common.System{Hostname: "test-host"}}
 
 			handler, err := DefaultRegistry.Get(tc.format)
 			require.NoError(t, err)
@@ -602,9 +617,6 @@ func TestHandler_Generate_DispatchesViaRegistry(t *testing.T) {
 func TestHandler_GenerateToWriter_DispatchesViaRegistry(t *testing.T) {
 	t.Parallel()
 
-	gen := newTestGenerator(t)
-	device := &common.CommonDevice{System: common.System{Hostname: "test-host"}}
-
 	tests := []struct {
 		format  string
 		wantErr bool
@@ -619,6 +631,9 @@ func TestHandler_GenerateToWriter_DispatchesViaRegistry(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.format, func(t *testing.T) {
 			t.Parallel()
+
+			gen := newTestGenerator(t)
+			device := &common.CommonDevice{System: common.System{Hostname: "test-host"}}
 
 			handler, err := DefaultRegistry.Get(tc.format)
 			require.NoError(t, err)
