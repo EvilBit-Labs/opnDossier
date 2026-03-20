@@ -8,6 +8,7 @@ import (
 	"io"
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
+	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
 
@@ -68,4 +69,14 @@ func toCommonDevice(doc *schema.OpnSenseDocument) (*common.CommonDevice, []commo
 	}
 
 	return device, warnings, nil
+}
+
+// NewParserFactory returns a new DeviceParser configured for OPNsense devices.
+// It satisfies the factory function signature required by DeviceParserRegistry.
+func NewParserFactory(decoder parser.XMLDecoder) parser.DeviceParser {
+	return NewParser(decoder)
+}
+
+func init() {
+	parser.Register("opnsense", NewParserFactory)
 }

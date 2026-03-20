@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
-	"github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"
 	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
 
@@ -44,15 +43,37 @@ type DeviceParser interface {
 
 // Factory detects device type and delegates to the appropriate DeviceParser.
 // The XMLDecoder is injected at construction to keep pkg/ free of internal/
-// imports, allowing external consumers to provide their own XML decoder.
+// imports. The registry defaults to DefaultRegistry() unless overridden via
+// NewFactoryWithRegistry (e.g., for isolated tests).
 type Factory struct {
 	xmlDecoder XMLDecoder
+	registry   *DeviceParserRegistry
 }
 
-// NewFactory returns a new Factory that uses the given XMLDecoder for parsing.
+// NewFactory returns a new Factory that uses the given XMLDecoder for parsing
+// and the global DefaultRegistry() for parser lookup.
 // Pass cfgparser.NewXMLParser() from internal/cfgparser at the call site.
 func NewFactory(decoder XMLDecoder) *Factory {
-	return &Factory{xmlDecoder: decoder}
+	if decoder == nil {
+		panic("parser: NewFactory requires a non-nil XMLDecoder")
+	}
+
+	return &Factory{xmlDecoder: decoder, registry: DefaultRegistry()}
+}
+
+// NewFactoryWithRegistry returns a Factory that uses a custom registry instead
+// of the global singleton. This is primarily useful for tests that need
+// isolated registry state without polluting the global registry.
+func NewFactoryWithRegistry(decoder XMLDecoder, reg *DeviceParserRegistry) *Factory {
+	if decoder == nil {
+		panic("parser: NewFactoryWithRegistry requires a non-nil XMLDecoder")
+	}
+
+	if reg == nil {
+		panic("parser: NewFactoryWithRegistry requires a non-nil DeviceParserRegistry")
+	}
+
+	return &Factory{xmlDecoder: decoder, registry: reg}
 }
 
 // CreateDevice reads from r, detects (or uses the override) device type, and
@@ -80,11 +101,15 @@ func (f *Factory) createWithOverride(
 	override string,
 	validateMode bool,
 ) (*common.CommonDevice, []common.ConversionWarning, error) {
-	if strings.EqualFold(override, "opnsense") {
-		return parseDevice(ctx, opnsense.NewParser(f.xmlDecoder), r, validateMode)
+	fn, ok := f.registry.Get(override)
+	if !ok {
+		return nil, nil, fmt.Errorf(
+			"unsupported device type override: %s; supported: %s",
+			override, strings.Join(f.registry.List(), ", "),
+		)
 	}
 
-	return nil, nil, fmt.Errorf("unsupported device type override: %s; supported: opnsense", override)
+	return parseDevice(ctx, fn(f.xmlDecoder), r, validateMode)
 }
 
 // createWithAutoDetect peeks the XML root element using a bounded, context-aware
@@ -99,15 +124,15 @@ func (f *Factory) createWithAutoDetect(
 		return nil, nil, err
 	}
 
-	switch strings.ToLower(rootElem) {
-	case "opnsense":
-		return parseDevice(ctx, opnsense.NewParser(f.xmlDecoder), fullReader, validateMode)
-	default:
+	fn, ok := f.registry.Get(rootElem)
+	if !ok {
 		return nil, nil, fmt.Errorf(
-			"unsupported device type: root element <%s> is not recognized; supported: opnsense",
-			rootElem,
+			"unsupported device type: root element <%s> is not recognized; supported: %s",
+			rootElem, strings.Join(f.registry.List(), ", "),
 		)
 	}
+
+	return parseDevice(ctx, fn(f.xmlDecoder), fullReader, validateMode)
 }
 
 // parseDevice delegates to the parser's Parse or ParseAndValidate method based
