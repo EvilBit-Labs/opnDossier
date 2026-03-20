@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
@@ -131,22 +130,24 @@ func (g *HybridGenerator) Generate(_ context.Context, data *common.CommonDevice,
 		return "", fmt.Errorf("invalid options: %w", err)
 	}
 
-	// Determine format and generate accordingly
-	format := strings.ToLower(string(opts.Format))
+	// Resolve format via registry and dispatch
+	format := string(opts.Format)
 	if format == "" {
 		format = string(FormatMarkdown)
 	}
 
-	switch format {
-	case string(FormatMarkdown), "md":
+	canonical := DefaultRegistry.Canonical(format)
+
+	switch Format(canonical) {
+	case FormatMarkdown:
 		return g.generateMarkdown(data, opts)
-	case string(FormatJSON):
+	case FormatJSON:
 		return g.generateJSON(data, opts.Redact)
-	case string(FormatYAML), "yml":
+	case FormatYAML:
 		return g.generateYAML(data, opts.Redact)
-	case string(FormatText), "txt":
+	case FormatText:
 		return g.generatePlainText(data, opts)
-	case string(FormatHTML), "htm":
+	case FormatHTML:
 		return g.generateHTML(data, opts)
 	default:
 		return "", fmt.Errorf("%w: %s", ErrUnsupportedFormat, opts.Format)
@@ -177,22 +178,24 @@ func (g *HybridGenerator) GenerateToWriter(
 		return fmt.Errorf("invalid options: %w", err)
 	}
 
-	// Determine format and generate accordingly
-	format := strings.ToLower(string(opts.Format))
+	// Resolve format via registry and dispatch
+	format := string(opts.Format)
 	if format == "" {
 		format = string(FormatMarkdown)
 	}
 
-	switch format {
-	case string(FormatMarkdown), "md":
+	canonical := DefaultRegistry.Canonical(format)
+
+	switch Format(canonical) {
+	case FormatMarkdown:
 		return g.generateMarkdownToWriter(w, data, opts)
-	case string(FormatJSON):
+	case FormatJSON:
 		return g.generateJSONToWriter(w, data, opts.Redact)
-	case string(FormatYAML), "yml":
+	case FormatYAML:
 		return g.generateYAMLToWriter(w, data, opts.Redact)
-	case string(FormatText), "txt":
+	case FormatText:
 		return g.generatePlainTextToWriter(w, data, opts)
-	case string(FormatHTML), "htm":
+	case FormatHTML:
 		return g.generateHTMLToWriter(w, data, opts)
 	default:
 		return fmt.Errorf("%w: %s", ErrUnsupportedFormat, opts.Format)
@@ -382,7 +385,7 @@ func (g *HybridGenerator) generatePlainText(data *common.CommonDevice, opts Opti
 		return "", fmt.Errorf("failed to generate markdown for plain text conversion: %w", err)
 	}
 
-	return stripMarkdownFormatting(markdown), nil
+	return StripMarkdownFormatting(markdown), nil
 }
 
 // generatePlainTextToWriter writes plain text output directly to the writer.
@@ -411,7 +414,7 @@ func (g *HybridGenerator) generateHTML(data *common.CommonDevice, opts Options) 
 		return "", fmt.Errorf("failed to generate markdown for HTML conversion: %w", err)
 	}
 
-	return renderMarkdownToHTML(markdown)
+	return RenderMarkdownToHTML(markdown)
 }
 
 // generateHTMLToWriter writes HTML output directly to the writer.
