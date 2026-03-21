@@ -543,22 +543,18 @@ func (pr *PluginRegistry) RunComplianceChecks(
 
 **Parameters:**
 
-- `device` (\*common.CommonDevice): The device configuration to audit (required)
-- `pluginNames` ([]string): List of plugin names to execute (empty list runs all registered plugins)
-- `logger` (\*logging.Logger): Logger for panic recovery events (required; nil defaults to a fallback logger)
-
-**Breaking Change:** The `logger` parameter was added in PR #442. This is a required parameter used to log panic recovery events when plugins crash during `RunChecks()` execution.
+- `device` (\*common.CommonDevice): The device configuration to audit (required; nil returns `ErrConfigurationNil`)
+- `pluginNames` ([]string): List of plugin names to execute. Only the specified plugins run; an empty or nil slice results in zero plugins executed and an empty result
+- `logger` (\*logging.Logger): Logger for panic recovery events (optional; nil creates a fallback logger internally)
 
 **Panic Recovery:**
 
 Each plugin's `RunChecks()` call is wrapped in a `defer recover()` boundary to prevent misbehaving plugins (especially dynamically-loaded ones) from crashing the entire audit process. When a plugin panics:
 
-- The panic is caught and logged via the provided `*logging.Logger` with the plugin name and panic value
-- The plugin is retained in the result with zero findings (not skipped)
-- The plugin appears in all result maps: `PluginFindings`, `PluginInfo`, `Compliance`, and summary statistics
+- The panic is caught and logged via the `*logging.Logger` with the plugin name, panic type, and stack trace
+- The recovery path populates safe defaults (`PluginFindings`, `PluginInfo` with `Version: "unknown (panicked)"`, empty `Compliance` map) and skips further method calls on the potentially corrupt plugin
+- The plugin appears in all result maps, ensuring downstream consumers can see it was requested
 - Other plugins continue execution normally
-
-This ensures that panicking plugins remain visible to downstream consumers and do not silently disappear from audit results.
 
 #### ComplianceResult
 
