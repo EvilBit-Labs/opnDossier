@@ -29,10 +29,10 @@ When a data race occurs in a test touching global state, the Go race detector ma
 
 ### 2.2 Panic Recovery Retains Plugins
 
-`RunComplianceChecks` wraps each plugin's `RunChecks()` in `defer recover()`. On panic, `findings` stays `nil` and the plugin flows through the normal aggregation path — populating `PluginFindings`, `PluginInfo`, `Compliance`, and summary with zero findings.
+`RunComplianceChecks` wraps each plugin's `RunChecks()` in `defer recover()`. On panic, a dedicated recovery path populates `PluginFindings`, `PluginInfo`, and `Compliance` with safe defaults, then uses `continue` to skip further method calls on the potentially corrupt plugin.
 
-- **Gotcha:** After recovery, the code uses `continue` to skip method calls on the panicked plugin (since its internal state may be corrupt). The panicked plugin is populated with safe defaults (`pluginName` from the loop variable, `Version: "unknown (panicked)"`, empty compliance map) before the `continue`, ensuring it still appears in all result maps.
-- **Invariant:** Every selected plugin must appear in the result, even if it panicked. The `continue` path populates `PluginFindings`, `PluginInfo`, and `Compliance` with safe defaults before skipping the rest of the loop body.
+- **Gotcha:** The recovery path must NOT call methods on the panicked plugin (`Name()`, `Version()`, `Description()`, `GetControls()`) — the plugin's internal state may be corrupt after the panic. Instead, it uses the `pluginName` string already in scope and sets `Version: "unknown (panicked)"` with an empty compliance map.
+- **Invariant:** Every selected plugin must appear in all result maps, even if it panicked.
 
 ## 3. Data Processing
 
