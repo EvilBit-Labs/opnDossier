@@ -19,16 +19,58 @@ import (
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
-// PluginRegistry manages the registration and retrieval of compliance plugins.
-type PluginRegistry struct {
-	plugins map[string]compliance.Plugin
-	mutex   sync.RWMutex
+// pluginLoaderFunc loads a compliance.Plugin from a shared object file path.
+// It encapsulates the open → lookup → type-assert pipeline so that tests can
+// inject a fake loader without requiring real .so files.
+type pluginLoaderFunc func(path string) (compliance.Plugin, error)
+
+// defaultPluginLoader is the production plugin loader that opens a .so file,
+// looks up the exported "Plugin" symbol, and asserts it implements compliance.Plugin.
+func defaultPluginLoader(path string) (compliance.Plugin, error) {
+	p, err := pluginlib.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("open %q: %w", path, err)
+	}
+
+	sym, err := p.Lookup("Plugin")
+	if err != nil {
+		return nil, fmt.Errorf("lookup Plugin in %q: %w", path, err)
+	}
+
+	// plugin.Lookup returns a pointer to the exported variable, not the value
+	// itself. For `var Plugin compliance.Plugin`, sym is *compliance.Plugin.
+	pSym, ok := sym.(*compliance.Plugin)
+	if !ok {
+		return nil, fmt.Errorf("symbol Plugin in %q is not *compliance.Plugin (got %T)", path, sym)
+	}
+
+	return *pSym, nil
 }
 
-// NewPluginRegistry creates a new plugin registry.
+// PluginRegistry manages the registration and retrieval of compliance plugins.
+type PluginRegistry struct {
+	plugins      map[string]compliance.Plugin
+	mutex        sync.RWMutex
+	pluginLoader pluginLoaderFunc
+}
+
+// NewPluginRegistry creates a new plugin registry with the default plugin loader.
 func NewPluginRegistry() *PluginRegistry {
+	return newPluginRegistryWithLoader(defaultPluginLoader)
+}
+
+// newPluginRegistryWithLoader creates a plugin registry with the given loader.
+// This constructor is the single injection point for pluginLoader, ensuring
+// the field is set exactly once at construction time. A nil loader defaults
+// to defaultPluginLoader.
+func newPluginRegistryWithLoader(loader pluginLoaderFunc) *PluginRegistry {
+	if loader == nil {
+		loader = defaultPluginLoader
+	}
+
 	return &PluginRegistry{
-		plugins: make(map[string]compliance.Plugin),
+		plugins:      make(map[string]compliance.Plugin),
+		pluginLoader: loader,
 	}
 }
 
@@ -80,10 +122,20 @@ func (pr *PluginRegistry) ListPlugins() []string {
 }
 
 // LoadDynamicPlugins loads .so plugins from the specified directory and registers them.
-// It is safe to call even if the directory does not exist.
-func (pr *PluginRegistry) LoadDynamicPlugins(ctx context.Context, dir string, logger *logging.Logger) error {
+// When explicitDir is false, a missing directory is silently ignored (Debug log).
+// When explicitDir is true, a missing directory returns an error because the user
+// explicitly configured the path.
+// A nil logger returns an error immediately.
+// Per-plugin failures are collected in the returned LoadResult and aggregated into
+// the returned error via errors.Join.
+func (pr *PluginRegistry) LoadDynamicPlugins(
+	ctx context.Context,
+	dir string,
+	explicitDir bool,
+	logger *logging.Logger,
+) (LoadResult, error) {
 	if logger == nil {
-		return errors.New("nil logger provided to LoadDynamicPlugins")
+		return LoadResult{}, errors.New("nil logger provided to LoadDynamicPlugins")
 	}
 
 	ctxLogger := logger.WithContext(ctx)
@@ -91,14 +143,24 @@ func (pr *PluginRegistry) LoadDynamicPlugins(ctx context.Context, dir string, lo
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
+			if explicitDir {
+				return LoadResult{}, fmt.Errorf("plugin directory %q does not exist: %w", dir, err)
+			}
+
 			ctxLogger.Debug("Dynamic plugin directory does not exist", "dir", dir)
-			return nil
+
+			return LoadResult{}, nil
 		}
 
 		ctxLogger.Error("Failed to read dynamic plugin directory", "dir", dir, "error", err)
 
-		return fmt.Errorf("failed to read plugin directory %q: %w", dir, err)
+		return LoadResult{}, fmt.Errorf("failed to read plugin directory %q: %w", dir, err)
 	}
+
+	var (
+		loaded   int
+		failures []PluginLoadError
+	)
 
 	for _, entry := range entries {
 		if filepath.Ext(entry.Name()) != ".so" {
@@ -107,26 +169,29 @@ func (pr *PluginRegistry) LoadDynamicPlugins(ctx context.Context, dir string, lo
 
 		path := filepath.Join(dir, entry.Name())
 
-		p, err := pluginlib.Open(path)
+		compliancePlugin, err := pr.pluginLoader(path)
 		if err != nil {
-			ctxLogger.Error("Failed to open plugin", "file", path, "error", err)
+			ctxLogger.Error("Failed to load plugin", "file", path, "error", err)
+			failures = append(failures, PluginLoadError{Name: entry.Name(), Err: err})
+
 			continue
 		}
 
-		sym, err := p.Lookup("Plugin")
-		if err != nil {
-			ctxLogger.Error("Failed to find Plugin symbol", "file", path, "error", err)
-			continue
-		}
+		if compliancePlugin == nil {
+			nilErr := fmt.Errorf("loader returned nil plugin for %q", path)
+			ctxLogger.Error("Failed to load plugin", "file", path, "error", nilErr)
+			failures = append(failures, PluginLoadError{Name: entry.Name(), Err: nilErr})
 
-		compliancePlugin, ok := sym.(compliance.Plugin)
-		if !ok {
-			ctxLogger.Error("Symbol Plugin does not implement compliance.Plugin", "file", path)
 			continue
 		}
 
 		if err := pr.RegisterPlugin(compliancePlugin); err != nil {
 			ctxLogger.Error("Failed to register dynamic plugin", "file", path, "error", err)
+			failures = append(
+				failures,
+				PluginLoadError{Name: entry.Name(), Err: fmt.Errorf("register %q: %w", path, err)},
+			)
+
 			continue
 		}
 
@@ -139,9 +204,22 @@ func (pr *PluginRegistry) LoadDynamicPlugins(ctx context.Context, dir string, lo
 			"version",
 			compliancePlugin.Version(),
 		)
+
+		loaded++
 	}
 
-	return nil
+	// Build aggregate error from individual failures.
+	var aggregateErr error
+	if len(failures) > 0 {
+		errs := make([]error, len(failures))
+		for i := range failures {
+			errs[i] = failures[i]
+		}
+
+		aggregateErr = errors.Join(errs...)
+	}
+
+	return LoadResult{Loaded: loaded, Failures: failures}, aggregateErr
 }
 
 // RunComplianceChecks runs compliance checks for specified plugins.
@@ -476,6 +554,39 @@ type PluginInfo struct {
 	Version     string               `json:"version"`
 	Description string               `json:"description"`
 	Controls    []compliance.Control `json:"controls"`
+}
+
+// PluginLoadError records a single dynamic plugin that failed to load,
+// capturing the .so filename and the underlying error.
+// It implements the error interface for use with errors.Join.
+type PluginLoadError struct {
+	Name string
+	Err  error
+}
+
+// Error returns a human-readable description of the load failure.
+func (f PluginLoadError) Error() string {
+	return fmt.Sprintf("plugin %s: %v", f.Name, f.Err)
+}
+
+// Unwrap returns the underlying error that caused the plugin load to fail.
+// This allows consumers to use errors.Is and errors.As with PluginLoadError,
+// including when these errors are combined via errors.Join.
+func (f PluginLoadError) Unwrap() error {
+	return f.Err
+}
+
+// LoadResult summarises the outcome of a LoadDynamicPlugins call, reporting
+// how many plugins loaded successfully, how many failed, and the individual
+// failure details. The zero value represents "no dynamic plugins attempted".
+type LoadResult struct {
+	Loaded   int
+	Failures []PluginLoadError
+}
+
+// Failed returns the number of plugins that failed to load.
+func (r LoadResult) Failed() int {
+	return len(r.Failures)
 }
 
 // globalRegistry holds the singleton PluginRegistry instance, and
