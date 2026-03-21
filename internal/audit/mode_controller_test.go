@@ -1219,9 +1219,17 @@ func TestPluginRegistry_GetPlugin(t *testing.T) {
 	}
 }
 
-// TODO: Update this test when LoadDynamicPlugins uses charmbracelet/log.Logger.
-func TestPluginRegistry_LoadDynamicPlugins(_ *testing.T) {
-	// This test is disabled due to logger type mismatch (slog vs charmbracelet/log)
+// TestPluginRegistry_LoadDynamicPlugins verifies that LoadDynamicPlugins handles missing directories gracefully.
+func TestPluginRegistry_LoadDynamicPlugins(t *testing.T) {
+	t.Parallel()
+
+	registry := NewPluginRegistry()
+	logger := newTestLogger(t)
+
+	err := registry.LoadDynamicPlugins(context.Background(), "/nonexistent/path", logger)
+	if err != nil {
+		t.Errorf("LoadDynamicPlugins() should not error for missing directory, got %v", err)
+	}
 }
 
 func TestPluginRegistry_RunComplianceChecks(t *testing.T) {
