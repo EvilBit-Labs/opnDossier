@@ -69,6 +69,8 @@ func NewParserFactory(decoder parser.XMLDecoder) parser.DeviceParser {
 	return NewParser(decoder)
 }
 
+// init registers the OPNsense parser with the global DeviceParserRegistry
+// so that Factory.CreateDevice can auto-detect <opnsense> root elements.
 func init() {
 	parser.Register("opnsense", NewParserFactory)
 }

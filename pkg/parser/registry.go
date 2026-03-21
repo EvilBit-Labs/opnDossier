@@ -85,7 +85,8 @@ func (r *DeviceParserRegistry) List() []string {
 	return names
 }
 
-// Global singleton — follows database/sql driver registration pattern.
+// defaultRegistry and defaultRegistryOnce implement the global singleton,
+// following the database/sql driver registration pattern.
 //
 //nolint:gochecknoglobals // package-level singleton is the standard Go registry pattern (database/sql, image)
 var (
