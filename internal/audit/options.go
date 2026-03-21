@@ -13,4 +13,13 @@ type Options struct {
 
 	// SelectedPlugins specifies which compliance plugins to run.
 	SelectedPlugins []string
+
+	// PluginDir is the directory from which dynamic .so plugins are loaded.
+	// When non-empty, LoadDynamicPlugins scans this path during InitializePlugins.
+	PluginDir string
+
+	// ExplicitPluginDir indicates that PluginDir was explicitly configured by
+	// the user (via CLI flag or config file). When true and the directory does
+	// not exist, a Warn-level log is emitted instead of Debug.
+	ExplicitPluginDir bool
 }
