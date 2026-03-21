@@ -132,9 +132,15 @@ func (pr *PluginRegistry) LoadDynamicPlugins(ctx context.Context, dir string, lo
 }
 
 // RunComplianceChecks runs compliance checks for specified plugins.
+// Each plugin's RunChecks call is wrapped in a panic recovery boundary so that
+// a misbehaving (especially dynamically-loaded) plugin cannot crash the entire
+// audit. Panicking plugins are logged and retained in the result with zero
+// findings, ensuring downstream consumers can see they were requested and
+// evaluated.
 func (pr *PluginRegistry) RunComplianceChecks(
 	device *common.CommonDevice,
 	pluginNames []string,
+	logger *slog.Logger,
 ) (*ComplianceResult, error) {
 	if device == nil {
 		return nil, ErrConfigurationNil
@@ -158,8 +164,23 @@ func (pr *PluginRegistry) RunComplianceChecks(
 			return nil, fmt.Errorf("failed to get plugin '%s': %w", pluginName, err)
 		}
 
-		// Run checks for this plugin
-		findings := p.RunChecks(device)
+		// Run checks for this plugin inside a recovery boundary so that a
+		// panicking plugin (especially a dynamically-loaded one) cannot crash
+		// the entire audit process. On panic, findings remains nil and the
+		// plugin is retained in the result with zero findings.
+		var findings []compliance.Finding
+
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					logger.Error("plugin panicked during RunChecks",
+						"plugin", pluginName,
+						"panic", r,
+					)
+				}
+			}()
+			findings = p.RunChecks(device)
+		}()
 
 		// Normalize findings: derive missing Severity from control metadata
 		for i := range findings {

@@ -175,6 +175,7 @@ go build -buildmode=plugin -o myplugin.so main.go
 - The audit engine will scan a configurable directory for `.so` files and load any plugin that exports `var Plugin compliance.Plugin`.
 - Dynamic plugins must be built with the same Go version and dependencies as the main binary.
 - Both static and dynamic plugins are supported and can coexist.
+- `RunComplianceChecks` wraps each plugin's `RunChecks()` in `defer recover()` so a panicking dynamic plugin cannot crash the audit. See [panic recovery solution](../solutions/runtime-errors/plugin-panic-recovery-audit-runchecks.md) and GOTCHAS.md SS2.2.
 
 ## Migrating to the CommonDevice Plugin API
 

@@ -3,6 +3,7 @@ package audit
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
@@ -111,7 +112,7 @@ func (pm *PluginManager) RunComplianceAudit(
 	logger := pm.logger.WithContext(ctx)
 	logger.Info("Starting compliance audit", "plugins", pluginNames)
 
-	result, err := pm.registry.RunComplianceChecks(device, pluginNames)
+	result, err := pm.registry.RunComplianceChecks(device, pluginNames, slog.Default())
 	if err != nil {
 		return nil, fmt.Errorf("compliance audit failed: %w", err)
 	}
