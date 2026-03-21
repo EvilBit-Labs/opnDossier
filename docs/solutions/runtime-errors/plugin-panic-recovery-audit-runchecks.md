@@ -39,7 +39,7 @@ Wrap the `p.RunChecks(device)` call in an immediately-invoked function with `def
 // Before: bare call, panic propagates and kills the process
 findings := p.RunChecks(device)
 
-// After: panic recovery with structured logging
+// After: panic recovery with structured logging and stack trace
 var findings []compliance.Finding
 
 func() {
@@ -48,6 +48,7 @@ func() {
             logger.Error("plugin panicked during RunChecks",
                 "plugin", pluginName,
                 "panic", r,
+                "stack", string(debug.Stack()),
             )
         }
     }()
@@ -59,18 +60,18 @@ The immediately-invoked function literal creates a deferred recovery scope isola
 
 ### Key Design Decisions
 
-1. **Logger parameter uses `*slog.Logger`** -- matches the existing `LoadDynamicPlugins` signature pattern in the same file, maintaining API consistency.
-2. **Panicked plugins retained in results with zero findings** -- not skipped via `continue`. Downstream consumers (summary tables, compliance reports) can see the plugin was requested and evaluated, rather than silently disappearing from output. See GOTCHAS.md SS2.2.
-3. **`slog.Default()` at call sites** -- bridging `charmbracelet/log` to `slog` would add complexity disproportionate to an exceptional-path-only log message. Both `PluginManager.RunComplianceAudit` and `ModeController.generateBlueReport` pass `slog.Default()`.
+1. **Logger parameter uses `*logging.Logger`** -- matches the project's charmbracelet/log-based logging, ensuring panic recovery logs respect the application's configured output format, level, and destination. A nil guard defaults to a fallback logger so callers can never trigger a secondary panic on the recovery path.
+2. **Stack trace included via `runtime/debug.Stack()`** -- matches the pattern in `internal/processor/processor.go`, giving actionable debugging information for misbehaving plugins (especially dynamic `.so` files).
+3. **Panicked plugins retained in results with zero findings** -- not skipped via `continue`. Downstream consumers (summary tables, compliance reports) can see the plugin was requested and evaluated, rather than silently disappearing from output. See GOTCHAS.md SS2.2.
 4. **Nil findings are inherently safe in Go** -- `range nil` is a no-op and `append(slice, nil...)` is a no-op, so the rest of the loop body (PluginInfo population, Compliance tracking) executes safely on the zero-value `findings` slice without additional nil guards.
 
 ### Files Changed
 
-- `internal/audit/plugin.go` -- core panic recovery wrapper
-- `internal/audit/plugin_manager.go` -- call site updated with `slog.Default()`
-- `internal/audit/mode_controller.go` -- call site updated with `slog.Default()`
+- `internal/audit/plugin.go` -- core panic recovery wrapper with `*logging.Logger` and `debug.Stack()`
+- `internal/audit/plugin_manager.go` -- passes `pm.logger` (configured logger)
+- `internal/audit/mode_controller.go` -- passes `mc.logger` (configured logger)
 - `internal/audit/plugin_global_test.go` -- `mockPanickingPlugin` and isolation tests added
-- `internal/audit/mode_controller_test.go` -- call sites updated
+- `internal/audit/mode_controller_test.go` -- call sites updated, `LoadDynamicPlugins` test enabled
 
 ## Prevention
 
