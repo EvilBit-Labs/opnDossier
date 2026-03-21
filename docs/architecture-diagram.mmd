@@ -55,8 +55,9 @@ graph TD
     ROOT --> DISPLAY
 
     CONVERT --> ENRICH
-    CONVERT --> BUILDER
+    CONVERT --> PROC
     ENRICH --> CD
+    PROC --> BUILDER
     BUILDER --> MD
     BUILDER --> JSON_OUT
     BUILDER --> YAML_OUT
