@@ -197,13 +197,17 @@ test-dumb.md
 test-output.md
 .devcontainer/.devpod-internal/
 
-# AI assistant artifacts
-.claude.local.md
-.full-review
-docs/plans
-.cursor/commands
-.github/prompts
-.kiro/specs/*
-.worktrees/
-todos/**/*.md
-.cursor/hooks/state/
+
+**/*.local.*
+
+# AI coding assistants (local state, not shared)
+docs/plans/
+.agent/
+.agents/
+.augment/
+.claude/
+.cursor/
+.roo/
+.full-review/
+SECURITY_AUDIT.md
+todos/
