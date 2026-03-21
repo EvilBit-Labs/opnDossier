@@ -34,6 +34,10 @@ When a data race occurs in a test touching global state, the Go race detector ma
 - **Gotcha:** The recovery path must NOT call methods on the panicked plugin (`Name()`, `Version()`, `Description()`, `GetControls()`) — the plugin's internal state may be corrupt after the panic. Instead, it uses the `pluginName` string already in scope and sets `Version: "unknown (panicked)"` with an empty compliance map.
 - **Invariant:** Every selected plugin must appear in all result maps, even if it panicked.
 
+### 2.3 SetPluginDir Must Precede InitializePlugins
+
+`PluginManager.SetPluginDir(dir, explicit)` configures the directory for dynamic `.so` loading. It must be called **before** `InitializePlugins(ctx)` because `InitializePlugins` reads `pm.pluginDir` during execution. Calling it after has no effect.
+
 ## 3. Data Processing
 
 ### 3.1 Map Iteration Order
