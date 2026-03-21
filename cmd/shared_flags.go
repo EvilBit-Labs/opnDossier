@@ -192,6 +192,7 @@ var formatDescriptions = map[string]string{ //nolint:gochecknoglobals // static 
 	"html":     "Self-contained HTML report for web viewing",
 }
 
+// deviceTypeDescriptions maps registered device types to their shell completion descriptions.
 var deviceTypeDescriptions = map[string]string{ //nolint:gochecknoglobals // static lookup table
 	"opnsense": "OPNsense firewall configuration",
 }
