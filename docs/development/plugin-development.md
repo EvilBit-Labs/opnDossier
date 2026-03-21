@@ -329,9 +329,9 @@ Fix: add `_ "your/parser/package"` to the binary's import list.
 
 ## Examples
 
-- See `internal/plugins/` for static compliance plugin examples.
-- See `pkg/parser/opnsense/parser.go` for the built-in device parser example.
-- See the above dynamic plugin example for external compliance plugins.
+- `internal/plugins/` contains static compliance plugin examples.
+- `pkg/parser/opnsense/parser.go` provides a reference device parser implementation.
+- The dynamic plugin example above demonstrates external compliance plugins.
 
 ## Conclusion
 

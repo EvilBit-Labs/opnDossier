@@ -89,7 +89,7 @@ func (f *Factory) ensureInitialized() error {
 	}
 
 	if f.registry == nil {
-		f.registry = DefaultRegistry()
+		return fmt.Errorf("parser: Factory has nil DeviceParserRegistry; use parser.NewFactory or parser.NewFactoryWithRegistry to construct a Factory")
 	}
 
 	return nil
