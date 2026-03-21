@@ -31,7 +31,7 @@ The compliance plugin interface (`compliance.Plugin`) is an extension point desi
 
 ## Solution
 
-Wrap the `p.RunChecks(device)` call in an immediately-invoked function with `defer recover()`. Add a `*slog.Logger` parameter to `RunComplianceChecks` for structured panic logging.
+Wrap the `p.RunChecks(device)` call in an immediately-invoked function with `defer recover()`. Add a `*logging.Logger` parameter to `RunComplianceChecks` for structured panic logging.
 
 ### Code Example
 
