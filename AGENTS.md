@@ -565,8 +565,8 @@ All plugins implement `compliance.Plugin` (see `internal/compliance/interfaces.g
 
 | Standard | Control Pattern | Location                     |
 | -------- | --------------- | ---------------------------- |
-| STIG     | `STIG-V-XXXXXX` | `internal/plugins/stig/`     |
-| SANS     | `SANS-XXX`      | `internal/plugins/sans/`     |
+| STIG     | `V-XXXXXX`      | `internal/plugins/stig/`     |
+| SANS     | `SANS-FW-XXX`   | `internal/plugins/sans/`     |
 | Firewall | `FIREWALL-XXX`  | `internal/plugins/firewall/` |
 
 ---
