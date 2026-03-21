@@ -76,6 +76,25 @@ func NewFactoryWithRegistry(decoder XMLDecoder, reg *DeviceParserRegistry) *Fact
 	return &Factory{xmlDecoder: decoder, registry: reg}
 }
 
+// ensureInitialized validates that the Factory has been constructed correctly.
+// It returns a descriptive error instead of allowing nil-pointer dereferences
+// when a zero-valued Factory is used without going through NewFactory.
+func (f *Factory) ensureInitialized() error {
+	if f == nil {
+		return fmt.Errorf("parser: Factory is nil; use parser.NewFactory to construct a Factory")
+	}
+
+	if f.xmlDecoder == nil {
+		return fmt.Errorf("parser: Factory has nil XMLDecoder; use parser.NewFactory to construct a Factory")
+	}
+
+	if f.registry == nil {
+		f.registry = DefaultRegistry()
+	}
+
+	return nil
+}
+
 // CreateDevice reads from r, detects (or uses the override) device type, and
 // returns a fully converted CommonDevice along with any non-fatal conversion
 // warnings. When validateMode is true, semantic validation is applied in
@@ -86,6 +105,10 @@ func (f *Factory) CreateDevice(
 	deviceTypeOverride string,
 	validateMode bool,
 ) (*common.CommonDevice, []common.ConversionWarning, error) {
+	if err := f.ensureInitialized(); err != nil {
+		return nil, nil, err
+	}
+
 	if deviceTypeOverride != "" {
 		return f.createWithOverride(ctx, r, deviceTypeOverride, validateMode)
 	}

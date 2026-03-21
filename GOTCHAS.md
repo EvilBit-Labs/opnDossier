@@ -73,7 +73,7 @@ Unix GID 0 (wheel/root group) and UID 0 (root user) are valid. The validator che
 
 `pkg/parser/factory.go` dispatches through the registry, not via direct imports. The OPNsense parser only registers itself when its package `init()` runs, which requires a blank import: `_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"`.
 
-- **Symptom:** `"unsupported device type: root element <opnsense> is not recognized; supported: "` -- empty supported list
+- **Symptom:** `"unsupported device type: root element <opnsense> is not recognized; supported: (none registered -- ensure parser packages are imported)"` -- empty registry with hint
 - **Cause:** Missing blank import means `init()` never ran, registry is empty
 - **Fix:** Add the blank import to the test file or production file using `parser.NewFactory()`
 - **Detection:** Any new test file using `parser.NewFactory()` that sees an empty registry is missing the blank import

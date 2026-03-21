@@ -182,7 +182,7 @@ All registry operations are protected by `sync.RWMutex`:
 _ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"
 ```
 
-- **Symptom:** `"unsupported device type: root element <opnsense> is not recognized; supported: "` -- empty supported list
+- **Symptom:** `"unsupported device type: root element <opnsense> is not recognized; supported: (none registered -- ensure parser packages are imported)"` -- empty registry with actionable hint
 - **Cause:** Missing blank import means `init()` never ran, registry is empty
 - **Fix:** Add the blank import to any file using `parser.NewFactory()`
 - **Canonical location:** `cmd/root.go` has the production blank import; test files must add their own
