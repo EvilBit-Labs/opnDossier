@@ -14,8 +14,11 @@ import (
 
 // PluginManager manages the lifecycle of compliance plugins.
 type PluginManager struct {
-	registry *PluginRegistry
-	logger   *logging.Logger
+	registry          *PluginRegistry
+	logger            *logging.Logger
+	pluginDir         string
+	explicitPluginDir bool
+	loadResult        LoadResult
 }
 
 // NewPluginManager creates a new plugin manager.
@@ -68,9 +71,39 @@ func (pm *PluginManager) InitializePlugins(ctx context.Context) error {
 		"version", firewallPlugin.Version(),
 	)
 
+	// Load dynamic plugins from the configured directory, if any.
+	if pm.pluginDir != "" {
+		result, loadErr := pm.registry.LoadDynamicPlugins(ctx, pm.pluginDir, pm.explicitPluginDir, pm.logger)
+		pm.loadResult = result
+
+		logger.Info("Dynamic plugin loading completed", "loaded", result.Loaded, "failed", result.Failed)
+
+		if loadErr != nil {
+			logger.Warn("Some dynamic plugins failed to load", "error", loadErr)
+		}
+	}
+
 	logger.Info("Plugin initialization completed", "total_plugins", len(pm.registry.ListPlugins()))
 
 	return nil
+}
+
+// SetPluginDir configures the directory from which dynamic .so plugins are
+// loaded during InitializePlugins. The explicit flag controls the log level
+// when the directory does not exist: true means the user explicitly configured
+// this path (logs at Warn), false means it is a default/optional path (logs at
+// Debug).
+func (pm *PluginManager) SetPluginDir(dir string, explicit bool) {
+	pm.pluginDir = dir
+	pm.explicitPluginDir = explicit
+}
+
+// GetLoadResult returns the result of the most recent LoadDynamicPlugins call
+// performed during InitializePlugins. If no dynamic plugin directory was
+// configured, or InitializePlugins has not been called, the zero-value
+// LoadResult is returned.
+func (pm *PluginManager) GetLoadResult() LoadResult {
+	return pm.loadResult
 }
 
 // GetRegistry returns the plugin registry.

@@ -2,6 +2,7 @@ package audit
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -175,42 +176,226 @@ func TestGlobalPluginRegistry(t *testing.T) {
 func TestLoadDynamicPlugins(t *testing.T) {
 	t.Parallel()
 
-	registry := NewPluginRegistry()
-	logger := newTestLogger(t)
 	ctx := context.Background()
 
-	tests := []struct {
-		name    string
-		dir     string
-		wantErr bool
-	}{
-		{
-			name:    "nonexistent directory",
-			dir:     "/nonexistent/path/to/plugins",
-			wantErr: false, // Should not error, just log and continue
-		},
-		{
-			name:    "empty directory",
-			dir:     t.TempDir(),
-			wantErr: false,
-		},
-		{
-			name:    "directory with non-.so files",
-			dir:     createTestDirWithNonSOFiles(t),
-			wantErr: false,
-		},
-	}
+	t.Run("nonexistent directory", func(t *testing.T) {
+		t.Parallel()
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+		registry := NewPluginRegistry()
+		logger := newTestLogger(t)
 
-			err := registry.LoadDynamicPlugins(ctx, tt.dir, logger)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("LoadDynamicPlugins() error = %v, wantErr %v", err, tt.wantErr)
-			}
+		result, err := registry.LoadDynamicPlugins(ctx, "/nonexistent/path/to/plugins", false, logger)
+		if err != nil {
+			t.Errorf("LoadDynamicPlugins() unexpected error: %v", err)
+		}
+
+		if result.Loaded != 0 || result.Failed != 0 {
+			t.Errorf("LoadDynamicPlugins() Loaded=%d, Failed=%d; want 0, 0", result.Loaded, result.Failed)
+		}
+	})
+
+	t.Run("empty directory", func(t *testing.T) {
+		t.Parallel()
+
+		registry := NewPluginRegistry()
+		logger := newTestLogger(t)
+
+		result, err := registry.LoadDynamicPlugins(ctx, t.TempDir(), false, logger)
+		if err != nil {
+			t.Errorf("LoadDynamicPlugins() unexpected error: %v", err)
+		}
+
+		if result.Loaded != 0 || result.Failed != 0 {
+			t.Errorf("LoadDynamicPlugins() Loaded=%d, Failed=%d; want 0, 0", result.Loaded, result.Failed)
+		}
+	})
+
+	t.Run("directory with non-.so files", func(t *testing.T) {
+		t.Parallel()
+
+		registry := NewPluginRegistry()
+		logger := newTestLogger(t)
+		dir := createTestDirWithNonSOFiles(t)
+
+		result, err := registry.LoadDynamicPlugins(ctx, dir, false, logger)
+		if err != nil {
+			t.Errorf("LoadDynamicPlugins() unexpected error: %v", err)
+		}
+
+		if result.Loaded != 0 || result.Failed != 0 {
+			t.Errorf("LoadDynamicPlugins() Loaded=%d, Failed=%d; want 0, 0", result.Loaded, result.Failed)
+		}
+	})
+
+	t.Run("explicit dir not found emits Warn", func(t *testing.T) {
+		t.Parallel()
+
+		registry := NewPluginRegistry()
+
+		// Use a buffer-backed logger to capture log output and verify level.
+		var buf strings.Builder
+		bufLogger, err := logging.New(logging.Config{
+			Level:  "debug",
+			Output: &buf,
 		})
-	}
+		if err != nil {
+			t.Fatalf("failed to create buffer logger: %v", err)
+		}
+
+		missingDir := filepath.Join(t.TempDir(), "explicit-missing")
+		result, loadErr := registry.LoadDynamicPlugins(ctx, missingDir, true, bufLogger)
+		if loadErr != nil {
+			t.Errorf("LoadDynamicPlugins() unexpected error: %v", loadErr)
+		}
+
+		if result.Loaded != 0 || result.Failed != 0 {
+			t.Errorf("LoadDynamicPlugins() Loaded=%d, Failed=%d; want 0, 0", result.Loaded, result.Failed)
+		}
+
+		// Assert that the log output contains a WARN-level message about the missing directory.
+		logOutput := buf.String()
+		if !strings.Contains(logOutput, "WARN") {
+			t.Errorf("expected WARN-level log for explicit missing directory, got:\n%s", logOutput)
+		}
+
+		if !strings.Contains(logOutput, "Dynamic plugin directory does not exist") {
+			t.Errorf("expected missing-directory message in log, got:\n%s", logOutput)
+		}
+	})
+
+	t.Run("nonexplicit dir not found emits Debug", func(t *testing.T) {
+		t.Parallel()
+
+		registry := NewPluginRegistry()
+
+		var buf strings.Builder
+		bufLogger, err := logging.New(logging.Config{
+			Level:  "debug",
+			Output: &buf,
+		})
+		if err != nil {
+			t.Fatalf("failed to create buffer logger: %v", err)
+		}
+
+		missingDir := filepath.Join(t.TempDir(), "optional-missing")
+		result, loadErr := registry.LoadDynamicPlugins(ctx, missingDir, false, bufLogger)
+		if loadErr != nil {
+			t.Errorf("LoadDynamicPlugins() unexpected error: %v", loadErr)
+		}
+
+		if result.Loaded != 0 || result.Failed != 0 {
+			t.Errorf("LoadDynamicPlugins() Loaded=%d, Failed=%d; want 0, 0", result.Loaded, result.Failed)
+		}
+
+		logOutput := buf.String()
+		if !strings.Contains(logOutput, "DEBU") {
+			t.Errorf("expected DEBUG-level log for non-explicit missing directory, got:\n%s", logOutput)
+		}
+
+		// Should NOT contain WARN for the non-explicit case.
+		if strings.Contains(logOutput, "WARN") {
+			t.Errorf("did not expect WARN-level log for non-explicit missing directory, got:\n%s", logOutput)
+		}
+	})
+
+	t.Run("all .so files fail", func(t *testing.T) {
+		t.Parallel()
+
+		registry := NewPluginRegistry()
+		logger := newTestLogger(t)
+		dir := createTestDirWithDummySOFiles(t, 3)
+
+		result, err := registry.LoadDynamicPlugins(ctx, dir, false, logger)
+		if err == nil {
+			t.Error("LoadDynamicPlugins() expected error when all .so files fail")
+		}
+
+		if result.Loaded != 0 {
+			t.Errorf("LoadDynamicPlugins() Loaded = %d, want 0", result.Loaded)
+		}
+
+		if result.Failed != 3 {
+			t.Errorf("LoadDynamicPlugins() Failed = %d, want 3", result.Failed)
+		}
+
+		if len(result.Failures) != 3 {
+			t.Errorf("LoadDynamicPlugins() len(Failures) = %d, want 3", len(result.Failures))
+		}
+
+		for _, f := range result.Failures {
+			if f.Err == nil {
+				t.Errorf("PluginLoadFailure for %q has nil Err", f.Name)
+			}
+
+			if filepath.Ext(f.Name) != ".so" {
+				t.Errorf("PluginLoadFailure Name %q does not end in .so", f.Name)
+			}
+		}
+	})
+
+	t.Run("partial failure — mixed success and failure", func(t *testing.T) {
+		t.Parallel()
+
+		// Create a directory with two .so files.
+		dir := t.TempDir()
+		goodFile := "good_plugin.so"
+		badFile := "bad_plugin.so"
+
+		for _, name := range []string{goodFile, badFile} {
+			err := os.WriteFile(filepath.Join(dir, name), []byte("stub"), 0o600)
+			if err != nil {
+				t.Fatalf("Failed to create %s: %v", name, err)
+			}
+		}
+
+		// Build a registry with a custom pluginLoader that succeeds for
+		// good_plugin.so and fails for bad_plugin.so.
+		registry := NewPluginRegistry()
+		registry.pluginLoader = func(path string) (compliance.Plugin, error) {
+			if strings.Contains(path, "good_plugin") {
+				return &mockCompliancePlugin{
+					name:        "good-dynamic-plugin",
+					version:     "1.0.0",
+					description: "A successfully loaded plugin",
+				}, nil
+			}
+
+			return nil, fmt.Errorf("simulated load failure for %s", path)
+		}
+
+		logger := newTestLogger(t)
+
+		result, err := registry.LoadDynamicPlugins(ctx, dir, false, logger)
+		if err == nil {
+			t.Error("LoadDynamicPlugins() expected error when some .so files fail")
+		}
+
+		if result.Loaded != 1 {
+			t.Errorf("LoadDynamicPlugins() Loaded = %d, want 1", result.Loaded)
+		}
+
+		if result.Failed != 1 {
+			t.Errorf("LoadDynamicPlugins() Failed = %d, want 1", result.Failed)
+		}
+
+		if len(result.Failures) != 1 {
+			t.Fatalf("LoadDynamicPlugins() len(Failures) = %d, want 1", len(result.Failures))
+		}
+
+		if result.Failures[0].Name != badFile {
+			t.Errorf("LoadDynamicPlugins() Failures[0].Name = %q, want %q", result.Failures[0].Name, badFile)
+		}
+
+		if result.Failures[0].Err == nil {
+			t.Error("LoadDynamicPlugins() Failures[0].Err should not be nil")
+		}
+
+		// Verify the successfully loaded plugin was actually registered.
+		_, getErr := registry.GetPlugin("good-dynamic-plugin")
+		if getErr != nil {
+			t.Errorf("expected good-dynamic-plugin to be registered, got error: %v", getErr)
+		}
+	})
 }
 
 // TestPluginRegistry_CalculateSummary tests the calculateSummary method with various scenarios.
@@ -759,6 +944,26 @@ func createTestDirWithNonSOFiles(t *testing.T) string {
 		err := os.WriteFile(filePath, []byte("test content"), 0o600)
 		if err != nil {
 			t.Fatalf("Failed to create test file %s: %v", file, err)
+		}
+	}
+
+	return dir
+}
+
+// createTestDirWithDummySOFiles creates a temporary directory containing count
+// dummy .so files (plain text, not valid shared objects) for testing load failures.
+func createTestDirWithDummySOFiles(t *testing.T, count int) string {
+	t.Helper()
+
+	dir := t.TempDir()
+
+	for i := range count {
+		name := fmt.Sprintf("dummy_%d.so", i)
+		filePath := filepath.Join(dir, name)
+
+		err := os.WriteFile(filePath, []byte("not a real shared object"), 0o600)
+		if err != nil {
+			t.Fatalf("Failed to create dummy .so file %s: %v", name, err)
 		}
 	}
 
