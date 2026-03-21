@@ -529,6 +529,37 @@ See [Plugin Development Guide](plugin-development.md) for details.
 
 ### Audit Package Types (internal/audit)
 
+#### RunComplianceChecks
+
+The `RunComplianceChecks` method executes compliance checks for specified plugins:
+
+```go
+func (pr *PluginRegistry) RunComplianceChecks(
+    device *common.CommonDevice,
+    pluginNames []string,
+    logger *slog.Logger,
+) (*ComplianceResult, error)
+```
+
+**Parameters:**
+
+- `device` (*common.CommonDevice): The device configuration to audit (required)
+- `pluginNames` ([]string): List of plugin names to execute (empty list runs all registered plugins)
+- `logger` (*slog.Logger): Logger for panic recovery events (required)
+
+**Breaking Change:** The `logger` parameter was added in PR #442. This is a required parameter used to log panic recovery events when plugins crash during `RunChecks()` execution.
+
+**Panic Recovery:**
+
+Each plugin's `RunChecks()` call is wrapped in a `defer recover()` boundary to prevent misbehaving plugins (especially dynamically-loaded ones) from crashing the entire audit process. When a plugin panics:
+
+- The panic is caught and logged via the provided `*slog.Logger` with the plugin name and panic value
+- The plugin is retained in the result with zero findings (not skipped)
+- The plugin appears in all result maps: `PluginFindings`, `PluginInfo`, `Compliance`, and summary statistics
+- Other plugins continue execution normally
+
+This ensures that panicking plugins remain visible to downstream consumers and do not silently disappear from audit results.
+
 #### ComplianceResult
 
 The `ComplianceResult` struct represents the complete result of compliance checks:
