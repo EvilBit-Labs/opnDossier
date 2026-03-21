@@ -105,7 +105,7 @@ The community edition is a complete, production-ready tool — not a limited pre
 
 **Professional tier** adds:
 
-- STIG compliance checks (government/defense standard)
+- Expanded STIG coverage (full DISA STIG checklist beyond the community baseline controls)
 - Topology mapping and attack path analysis
 - Red/blue dual-output reports
 - Desktop application with local analysis history
