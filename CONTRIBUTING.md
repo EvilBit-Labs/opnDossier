@@ -529,21 +529,21 @@ ctxLogger.Error("Conversion failed", "error", err)
 
 ### Thread Safety with `sync.RWMutex`
 
-When a struct uses `sync.RWMutex`, all read methods need `RLock()` -- not just write paths. Go's `RWMutex` is also not reentrant, so internal call chains should use lock-free `*Unsafe()` helpers instead of trying to acquire the same lock twice. Getter methods should return value copies rather than pointers into protected internal state. The canonical pattern lives in `internal/processor/report.go`.
+When a struct uses `sync.RWMutex`, all read methods need `RLock()` -- not just write paths. Go's `RWMutex` is also not reentrant, so internal call chains should use lock-free `*Unsafe()` helpers instead of trying to acquire the same lock twice. Getter methods should return value copies rather than pointers into protected internal state. The canonical pattern lives in `internal/processor/report.go`. See **[AGENTS.md](AGENTS.md)** §5.6 for the full thread safety guide.
 
 ### XML Handling
 
 When working with `encoding/xml`, remember that `string` fields cannot distinguish between an absent element and a self-closing element such as `<any/>`; both decode to `""`. Use `*string` when presence itself matters, and add helpers such as `IsAny()` or `Equal()` instead of comparing raw `*string` fields throughout the codebase. See `pkg/schema/opnsense/security.go` for the established pattern.
 
-For escaping, use `xml.EscapeText` from the standard library. Do not hand-roll XML escaping logic.
+For escaping, use `xml.EscapeText` from the standard library. Do not hand-roll XML escaping logic. See **[AGENTS.md](AGENTS.md)** §§5.16-5.17 for additional XML patterns.
 
 ### Streaming Interfaces
 
-When adding `io.Writer` support alongside string-returning APIs, split the responsibilities. Create a dedicated writer-oriented interface such as `SectionWriter`, then expose a `Streaming*` wrapper interface for consumers that need streaming behaviour. Keep string-based methods for flows that still need post-processing such as HTML conversion. Also note that `MarkdownBuilder` is not safe for concurrent use; create a new instance per goroutine. See `internal/converter/builder/writer.go` for the canonical pattern.
+When adding `io.Writer` support alongside string-returning APIs, split the responsibilities. Create a dedicated writer-oriented interface such as `SectionWriter`, then expose a `Streaming*` wrapper interface for consumers that need streaming behaviour. Keep string-based methods for flows that still need post-processing such as HTML conversion. Also note that `MarkdownBuilder` is not safe for concurrent use; create a new instance per goroutine. See `internal/converter/builder/writer.go` for the canonical pattern and **[AGENTS.md](AGENTS.md)** §5.9 for details.
 
 ### FormatRegistry Pattern
 
-`converter.DefaultRegistry` in `internal/converter/registry.go` is the single source of truth for supported output formats. To add a new format, register a `FormatHandler` in `newDefaultRegistry()` and let validation, shell completion, file extensions, and dispatch pick it up automatically. Do not reintroduce format constants or switch statements in `cmd/convert.go`; use `converter.FormatMarkdown`, `converter.FormatJSON`, and the other registry-backed constants instead.
+`converter.DefaultRegistry` in `internal/converter/registry.go` is the single source of truth for supported output formats. To add a new format, register a `FormatHandler` in `newDefaultRegistry()` and let validation, shell completion, file extensions, and dispatch pick it up automatically. Do not reintroduce format constants or switch statements in `cmd/convert.go`; use `converter.FormatMarkdown`, `converter.FormatJSON`, and the other registry-backed constants instead. See **[AGENTS.md](AGENTS.md)** §5.9b for the full registry specification.
 
 ### DeviceParser Registry Pattern
 
@@ -551,11 +551,11 @@ Device parser registration follows the `database/sql` model: parsers call `parse
 
 ### File Write Safety
 
-Always call `file.Sync()` before `Close()` when writing files that matter. Handle close failures in a deferred function with `logger.Warn`; never silently discard them.
+Always call `file.Sync()` before `Close()` when writing files that matter. Handle close failures in a deferred function with `logger.Warn`; never silently discard them. See **[AGENTS.md](AGENTS.md)** §5.15.
 
 ### Public Package Purity
 
-Packages under `pkg/` must never import `internal/` packages. Before committing `pkg/` changes, run `grep -rn 'internal/' --include='*.go' pkg/ | grep -v _test.go` to confirm the public boundary remains clean. When `pkg/` needs functionality implemented in `internal/`, define an interface in `pkg/` and inject the concrete implementation from the `cmd/` layer.
+Packages under `pkg/` must never import `internal/` packages. Before committing `pkg/` changes, run `grep -rn 'internal/' --include='*.go' pkg/ | grep -v _test.go` to confirm the public boundary remains clean. When `pkg/` needs functionality implemented in `internal/`, define an interface in `pkg/` and inject the concrete implementation from the `cmd/` layer. See **[AGENTS.md](AGENTS.md)** §5.24 for the full boundary rules.
 
 ### Linter Guidance
 
@@ -620,7 +620,7 @@ From there, export enrichment happens through a single gate: `prepareForExport()
 
 Export itself is registry-driven. The project supports five output formats -- markdown, json, yaml, text, and html -- through the FormatRegistry pattern, including smart file naming and overwrite protection.
 
-Report generation is audience-aware. Standard reports provide an operations overview, Blue Team reports favour clarity and grouping, and Red Team reports favour target prioritisation and pivot surface discovery. All of them are built through `builder.MarkdownBuilder`; there is no template system to keep in sync.
+Report generation is audience-aware. Standard reports provide an operations overview, Blue Team reports favour clarity and grouping, and Red Team reports favour target prioritisation and pivot surface discovery. Markdown, text, and HTML reports are built through `builder.MarkdownBuilder` (text and HTML are derived from the markdown output). JSON and YAML exports serialize the enriched `CommonDevice` struct directly via struct tags -- they do not flow through `MarkdownBuilder`.
 
 Finally, remember that `cfgparser` and schema definitions evolve together. If you rename or reshape fields on `OpnSenseDocument`, update the switch cases in `internal/cfgparser/xml.go` at the same time so decoding behaviour stays correct. For the full architectural walkthrough, see `docs/development/architecture.md`.
 
@@ -778,7 +778,7 @@ cmd/
 
 ### Map Iteration in Tests
 
-Go map iteration is non-deterministic. When output is assembled from maps, tests should usually assert presence with helpers such as `strings.Contains()` instead of comparing full string output byte-for-byte. Production code is responsible for sorting before rendering.
+Go map iteration is non-deterministic. When output is assembled from maps, tests should usually assert presence with helpers such as `strings.Contains()` instead of comparing full string output byte-for-byte. Production code is responsible for sorting before rendering. See **[AGENTS.md](AGENTS.md)** §7.4.
 
 ### Golden File Testing
 
@@ -786,7 +786,7 @@ The project uses `sebdah/goldie/v2` for snapshot-style testing. Golden files sho
 
 ### Pointer Identity Assertions
 
-When verifying that two interface values refer to the same underlying object, use `assert.Same(t, expected, actual)` rather than `assert.Equal`. This is especially important for registry tests that confirm aliases resolve to the canonical handler instance.
+When verifying that two interface values refer to the same underlying object, use `assert.Same(t, expected, actual)` rather than `assert.Equal`. This is especially important for registry tests that confirm aliases resolve to the canonical handler instance. See **[AGENTS.md](AGENTS.md)** §7.4a.
 
 ### Global Flag Testing in `cmd/`
 
@@ -794,7 +794,7 @@ Tests in `cmd/` must account for Cobra's package-level flag bindings. Do not use
 
 ### Duplicate Code Detection
 
-The `dupl` linter will flag structurally similar test files, especially paired JSON and YAML coverage. When two test files mostly differ by format, extract the shared setup and assertions into `test_helpers.go` and use subtests to cover each format cleanly.
+The `dupl` linter will flag structurally similar test files, especially paired JSON and YAML coverage. When two test files mostly differ by format, extract the shared setup and assertions into `test_helpers.go` and use subtests to cover each format cleanly. See **[AGENTS.md](AGENTS.md)** §5.21.
 
 ## Documentation
 

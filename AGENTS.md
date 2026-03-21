@@ -36,14 +36,14 @@ When rules conflict, follow the higher precedence rule.
 
 ## 2. Core Philosophy
 
-| Principle               | Description                                                                         |
-| ----------------------- | ----------------------------------------------------------------------------------- |
-| **Operator-Focused**    | Build tools for operators, by operators. Full control, no black boxes               |
-| **Offline-First**       | Operate in fully offline/airgapped environments. No external dependencies           |
-| **Structured Data**     | Data should be structured, versioned, and portable for auditable systems            |
-| **Framework-First**     | Leverage established frameworks. Avoid custom solutions when established ones exist |
-| **Polish Over Scale**   | Quality over feature-bloat. Sane defaults, CLI help that's actually helpful         |
-| **Ethical Constraints** | No dark patterns, spyware, telemetry, or emojis in code/output/docs                 |
+| Principle               | Description                                                                                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Operator-Focused**    | Build tools for operators, by operators. Full control, no black boxes                                                                       |
+| **Offline-First**       | Operate in fully offline/airgapped environments. No external dependencies                                                                   |
+| **Structured Data**     | Data should be structured, versioned, and portable for auditable systems                                                                    |
+| **Framework-First**     | Leverage established frameworks. Avoid custom solutions when established ones exist                                                         |
+| **Polish Over Scale**   | Quality over feature-bloat. Sane defaults, CLI help that's actually helpful                                                                 |
+| **Ethical Constraints** | No dark patterns, spyware, telemetry, or decorative emojis in code/output/docs (functional status indicators like `✅`/`❌` are acceptable) |
 
 **Repository Roles:** Maintainer: `unclesp1d3r` (sole maintainer, enqueues PRs via Mergify `/queue`). Trusted bots: `dependabot[bot]`, `dosubot[bot]` (auto-approved by Mergify).
 
