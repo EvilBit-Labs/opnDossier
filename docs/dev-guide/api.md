@@ -537,15 +537,15 @@ The `RunComplianceChecks` method executes compliance checks for specified plugin
 func (pr *PluginRegistry) RunComplianceChecks(
     device *common.CommonDevice,
     pluginNames []string,
-    logger *slog.Logger,
+    logger *logging.Logger,
 ) (*ComplianceResult, error)
 ```
 
 **Parameters:**
 
-- `device` (*common.CommonDevice): The device configuration to audit (required)
+- `device` (\*common.CommonDevice): The device configuration to audit (required)
 - `pluginNames` ([]string): List of plugin names to execute (empty list runs all registered plugins)
-- `logger` (*slog.Logger): Logger for panic recovery events (required)
+- `logger` (\*logging.Logger): Logger for panic recovery events (required; nil defaults to a fallback logger)
 
 **Breaking Change:** The `logger` parameter was added in PR #442. This is a required parameter used to log panic recovery events when plugins crash during `RunChecks()` execution.
 
@@ -553,7 +553,7 @@ func (pr *PluginRegistry) RunComplianceChecks(
 
 Each plugin's `RunChecks()` call is wrapped in a `defer recover()` boundary to prevent misbehaving plugins (especially dynamically-loaded ones) from crashing the entire audit process. When a plugin panics:
 
-- The panic is caught and logged via the provided `*slog.Logger` with the plugin name and panic value
+- The panic is caught and logged via the provided `*logging.Logger` with the plugin name and panic value
 - The plugin is retained in the result with zero findings (not skipped)
 - The plugin appears in all result maps: `PluginFindings`, `PluginInfo`, `Compliance`, and summary statistics
 - Other plugins continue execution normally
