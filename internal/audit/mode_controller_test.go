@@ -1237,8 +1237,8 @@ func TestPluginRegistry_LoadDynamicPlugins(t *testing.T) {
 		t.Errorf("LoadDynamicPlugins() Loaded = %d, want 0", result.Loaded)
 	}
 
-	if result.Failed != 0 {
-		t.Errorf("LoadDynamicPlugins() Failed = %d, want 0", result.Failed)
+	if result.Failed() != 0 {
+		t.Errorf("LoadDynamicPlugins() Failed = %d, want 0", result.Failed())
 	}
 }
 

@@ -2,6 +2,7 @@ package audit
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -189,8 +190,8 @@ func TestLoadDynamicPlugins(t *testing.T) {
 			t.Errorf("LoadDynamicPlugins() unexpected error: %v", err)
 		}
 
-		if result.Loaded != 0 || result.Failed != 0 {
-			t.Errorf("LoadDynamicPlugins() Loaded=%d, Failed=%d; want 0, 0", result.Loaded, result.Failed)
+		if result.Loaded != 0 || result.Failed() != 0 {
+			t.Errorf("LoadDynamicPlugins() Loaded=%d, Failed=%d; want 0, 0", result.Loaded, result.Failed())
 		}
 	})
 
@@ -205,8 +206,8 @@ func TestLoadDynamicPlugins(t *testing.T) {
 			t.Errorf("LoadDynamicPlugins() unexpected error: %v", err)
 		}
 
-		if result.Loaded != 0 || result.Failed != 0 {
-			t.Errorf("LoadDynamicPlugins() Loaded=%d, Failed=%d; want 0, 0", result.Loaded, result.Failed)
+		if result.Loaded != 0 || result.Failed() != 0 {
+			t.Errorf("LoadDynamicPlugins() Loaded=%d, Failed=%d; want 0, 0", result.Loaded, result.Failed())
 		}
 	})
 
@@ -222,44 +223,29 @@ func TestLoadDynamicPlugins(t *testing.T) {
 			t.Errorf("LoadDynamicPlugins() unexpected error: %v", err)
 		}
 
-		if result.Loaded != 0 || result.Failed != 0 {
-			t.Errorf("LoadDynamicPlugins() Loaded=%d, Failed=%d; want 0, 0", result.Loaded, result.Failed)
+		if result.Loaded != 0 || result.Failed() != 0 {
+			t.Errorf("LoadDynamicPlugins() Loaded=%d, Failed=%d; want 0, 0", result.Loaded, result.Failed())
 		}
 	})
 
-	t.Run("explicit dir not found emits Warn", func(t *testing.T) {
+	t.Run("explicit dir not found returns error", func(t *testing.T) {
 		t.Parallel()
 
 		registry := NewPluginRegistry()
-
-		// Use a buffer-backed logger to capture log output and verify level.
-		var buf strings.Builder
-		bufLogger, err := logging.New(logging.Config{
-			Level:  "debug",
-			Output: &buf,
-		})
-		if err != nil {
-			t.Fatalf("failed to create buffer logger: %v", err)
-		}
+		logger := newTestLogger(t)
 
 		missingDir := filepath.Join(t.TempDir(), "explicit-missing")
-		result, loadErr := registry.LoadDynamicPlugins(ctx, missingDir, true, bufLogger)
-		if loadErr != nil {
-			t.Errorf("LoadDynamicPlugins() unexpected error: %v", loadErr)
+		result, loadErr := registry.LoadDynamicPlugins(ctx, missingDir, true, logger)
+		if loadErr == nil {
+			t.Error("LoadDynamicPlugins() expected error for explicit missing directory")
 		}
 
-		if result.Loaded != 0 || result.Failed != 0 {
-			t.Errorf("LoadDynamicPlugins() Loaded=%d, Failed=%d; want 0, 0", result.Loaded, result.Failed)
+		if !strings.Contains(loadErr.Error(), "does not exist") {
+			t.Errorf("expected 'does not exist' in error, got: %v", loadErr)
 		}
 
-		// Assert that the log output contains a WARN-level message about the missing directory.
-		logOutput := buf.String()
-		if !strings.Contains(logOutput, "WARN") {
-			t.Errorf("expected WARN-level log for explicit missing directory, got:\n%s", logOutput)
-		}
-
-		if !strings.Contains(logOutput, "Dynamic plugin directory does not exist") {
-			t.Errorf("expected missing-directory message in log, got:\n%s", logOutput)
+		if result.Loaded != 0 || result.Failed() != 0 {
+			t.Errorf("LoadDynamicPlugins() Loaded=%d, Failed=%d; want 0, 0", result.Loaded, result.Failed())
 		}
 	})
 
@@ -283,8 +269,8 @@ func TestLoadDynamicPlugins(t *testing.T) {
 			t.Errorf("LoadDynamicPlugins() unexpected error: %v", loadErr)
 		}
 
-		if result.Loaded != 0 || result.Failed != 0 {
-			t.Errorf("LoadDynamicPlugins() Loaded=%d, Failed=%d; want 0, 0", result.Loaded, result.Failed)
+		if result.Loaded != 0 || result.Failed() != 0 {
+			t.Errorf("LoadDynamicPlugins() Loaded=%d, Failed=%d; want 0, 0", result.Loaded, result.Failed())
 		}
 
 		logOutput := buf.String()
@@ -301,9 +287,13 @@ func TestLoadDynamicPlugins(t *testing.T) {
 	t.Run("all .so files fail", func(t *testing.T) {
 		t.Parallel()
 
-		registry := NewPluginRegistry()
-		logger := newTestLogger(t)
 		dir := createTestDirWithDummySOFiles(t, 3)
+
+		// Use injectable loader for deterministic, platform-independent failures.
+		registry := newPluginRegistryWithLoader(func(path string) (compliance.Plugin, error) {
+			return nil, fmt.Errorf("simulated failure for %s", path)
+		})
+		logger := newTestLogger(t)
 
 		result, err := registry.LoadDynamicPlugins(ctx, dir, false, logger)
 		if err == nil {
@@ -314,21 +304,17 @@ func TestLoadDynamicPlugins(t *testing.T) {
 			t.Errorf("LoadDynamicPlugins() Loaded = %d, want 0", result.Loaded)
 		}
 
-		if result.Failed != 3 {
-			t.Errorf("LoadDynamicPlugins() Failed = %d, want 3", result.Failed)
-		}
-
-		if len(result.Failures) != 3 {
-			t.Errorf("LoadDynamicPlugins() len(Failures) = %d, want 3", len(result.Failures))
+		if result.Failed() != 3 {
+			t.Fatalf("LoadDynamicPlugins() Failed = %d, want 3", result.Failed())
 		}
 
 		for _, f := range result.Failures {
 			if f.Err == nil {
-				t.Errorf("PluginLoadFailure for %q has nil Err", f.Name)
+				t.Errorf("PluginLoadError for %q has nil Err", f.Name)
 			}
 
 			if filepath.Ext(f.Name) != ".so" {
-				t.Errorf("PluginLoadFailure Name %q does not end in .so", f.Name)
+				t.Errorf("PluginLoadError Name %q does not end in .so", f.Name)
 			}
 		}
 	})
@@ -350,8 +336,7 @@ func TestLoadDynamicPlugins(t *testing.T) {
 
 		// Build a registry with a custom pluginLoader that succeeds for
 		// good_plugin.so and fails for bad_plugin.so.
-		registry := NewPluginRegistry()
-		registry.pluginLoader = func(path string) (compliance.Plugin, error) {
+		registry := newPluginRegistryWithLoader(func(path string) (compliance.Plugin, error) {
 			if strings.Contains(path, "good_plugin") {
 				return &mockCompliancePlugin{
 					name:        "good-dynamic-plugin",
@@ -361,7 +346,7 @@ func TestLoadDynamicPlugins(t *testing.T) {
 			}
 
 			return nil, fmt.Errorf("simulated load failure for %s", path)
-		}
+		})
 
 		logger := newTestLogger(t)
 
@@ -374,8 +359,8 @@ func TestLoadDynamicPlugins(t *testing.T) {
 			t.Errorf("LoadDynamicPlugins() Loaded = %d, want 1", result.Loaded)
 		}
 
-		if result.Failed != 1 {
-			t.Errorf("LoadDynamicPlugins() Failed = %d, want 1", result.Failed)
+		if result.Failed() != 1 {
+			t.Errorf("LoadDynamicPlugins() Failed = %d, want 1", result.Failed())
 		}
 
 		if len(result.Failures) != 1 {
@@ -394,6 +379,182 @@ func TestLoadDynamicPlugins(t *testing.T) {
 		_, getErr := registry.GetPlugin("good-dynamic-plugin")
 		if getErr != nil {
 			t.Errorf("expected good-dynamic-plugin to be registered, got error: %v", getErr)
+		}
+	})
+}
+
+// TestLoadDynamicPlugins_NilLogger verifies that LoadDynamicPlugins returns an
+// error immediately when called with a nil logger.
+func TestLoadDynamicPlugins_NilLogger(t *testing.T) {
+	t.Parallel()
+
+	registry := NewPluginRegistry()
+	result, err := registry.LoadDynamicPlugins(context.Background(), t.TempDir(), false, nil)
+
+	if err == nil {
+		t.Error("LoadDynamicPlugins() expected error for nil logger")
+	}
+
+	if !strings.Contains(err.Error(), "nil logger") {
+		t.Errorf("expected 'nil logger' in error, got: %v", err)
+	}
+
+	if result.Loaded != 0 || result.Failed() != 0 {
+		t.Errorf("LoadDynamicPlugins() Loaded=%d, Failed=%d; want 0, 0", result.Loaded, result.Failed())
+	}
+}
+
+// TestLoadDynamicPlugins_RegistrationFailure verifies that a plugin whose loader
+// succeeds but whose registration fails (e.g., duplicate name) is recorded as
+// a failure with a "register" error message.
+func TestLoadDynamicPlugins_RegistrationFailure(t *testing.T) {
+	t.Parallel()
+
+	dir := createTestDirWithDummySOFiles(t, 1)
+
+	// Loader always returns the same plugin name, but we pre-register it
+	// so the second registration attempt fails.
+	registry := newPluginRegistryWithLoader(func(_ string) (compliance.Plugin, error) {
+		return &mockCompliancePlugin{
+			name:        "already-registered",
+			version:     "1.0.0",
+			description: "duplicate",
+		}, nil
+	})
+
+	// Pre-register so LoadDynamicPlugins hits the duplicate path.
+	err := registry.RegisterPlugin(&mockCompliancePlugin{
+		name:        "already-registered",
+		version:     "1.0.0",
+		description: "original",
+	})
+	if err != nil {
+		t.Fatalf("pre-registration failed: %v", err)
+	}
+
+	logger := newTestLogger(t)
+	result, loadErr := registry.LoadDynamicPlugins(context.Background(), dir, false, logger)
+
+	if loadErr == nil {
+		t.Error("LoadDynamicPlugins() expected error for registration failure")
+	}
+
+	if result.Loaded != 0 {
+		t.Errorf("LoadDynamicPlugins() Loaded = %d, want 0", result.Loaded)
+	}
+
+	if result.Failed() != 1 {
+		t.Fatalf("LoadDynamicPlugins() Failed = %d, want 1", result.Failed())
+	}
+
+	if !strings.Contains(result.Failures[0].Error(), "register") {
+		t.Errorf("expected 'register' in failure error, got: %v", result.Failures[0].Err)
+	}
+}
+
+// TestLoadDynamicPlugins_NilPlugin verifies that a loader returning (nil, nil)
+// is treated as a failure rather than causing a nil-pointer panic.
+func TestLoadDynamicPlugins_NilPlugin(t *testing.T) {
+	t.Parallel()
+
+	dir := createTestDirWithDummySOFiles(t, 1)
+
+	registry := newPluginRegistryWithLoader(func(_ string) (compliance.Plugin, error) {
+		return nil, nil //nolint:nilnil // intentional: testing nil-plugin guard
+	})
+
+	logger := newTestLogger(t)
+	result, loadErr := registry.LoadDynamicPlugins(context.Background(), dir, false, logger)
+
+	if loadErr == nil {
+		t.Error("LoadDynamicPlugins() expected error for nil plugin")
+	}
+
+	if result.Loaded != 0 {
+		t.Errorf("LoadDynamicPlugins() Loaded = %d, want 0", result.Loaded)
+	}
+
+	if result.Failed() != 1 {
+		t.Fatalf("LoadDynamicPlugins() Failed = %d, want 1", result.Failed())
+	}
+
+	if !strings.Contains(result.Failures[0].Error(), "nil plugin") {
+		t.Errorf("expected 'nil plugin' in failure error, got: %v", result.Failures[0].Err)
+	}
+}
+
+// TestPluginLoadError_Error verifies that PluginLoadError implements the
+// error interface with a descriptive message.
+func TestPluginLoadError_Error(t *testing.T) {
+	t.Parallel()
+
+	f := PluginLoadError{Name: "bad.so", Err: errors.New("corrupt file")}
+	got := f.Error()
+
+	if !strings.Contains(got, "bad.so") {
+		t.Errorf("Error() should contain filename, got: %s", got)
+	}
+
+	if !strings.Contains(got, "corrupt file") {
+		t.Errorf("Error() should contain underlying error, got: %s", got)
+	}
+}
+
+// TestPluginManager_SetPluginDir_Integration verifies the full lifecycle:
+// SetPluginDir → InitializePlugins → GetLoadResult with both success and
+// failure dynamic plugins.
+func TestPluginManager_SetPluginDir_Integration(t *testing.T) {
+	t.Parallel()
+
+	t.Run("no plugin dir configured", func(t *testing.T) {
+		t.Parallel()
+
+		logger := newTestLogger(t)
+		pm := NewPluginManager(logger)
+
+		if err := pm.InitializePlugins(context.Background()); err != nil {
+			t.Fatalf("InitializePlugins() unexpected error: %v", err)
+		}
+
+		result := pm.GetLoadResult()
+		if result.Loaded != 0 || result.Failed() != 0 {
+			t.Errorf("GetLoadResult() Loaded=%d, Failed=%d; want 0, 0", result.Loaded, result.Failed())
+		}
+	})
+
+	t.Run("explicit dir missing returns error", func(t *testing.T) {
+		t.Parallel()
+
+		logger := newTestLogger(t)
+		pm := NewPluginManager(logger)
+
+		missingDir := filepath.Join(t.TempDir(), "does-not-exist")
+		pm.SetPluginDir(missingDir, true)
+
+		err := pm.InitializePlugins(context.Background())
+		if err == nil {
+			t.Error("InitializePlugins() expected error for explicit missing dir")
+		}
+
+		if !strings.Contains(err.Error(), "does not exist") {
+			t.Errorf("expected 'does not exist' in error, got: %v", err)
+		}
+	})
+
+	t.Run("empty plugin dir loads nothing", func(t *testing.T) {
+		t.Parallel()
+
+		logger := newTestLogger(t)
+		pm := NewPluginManager(logger)
+		pm.SetPluginDir(t.TempDir(), false)
+
+		if err := pm.InitializePlugins(context.Background()); err != nil {
+			t.Fatalf("InitializePlugins() unexpected error: %v", err)
+		}
+
+		result := pm.GetLoadResult()
+		if result.Loaded != 0 || result.Failed() != 0 {
+			t.Errorf("GetLoadResult() Loaded=%d, Failed=%d; want 0, 0", result.Loaded, result.Failed())
 		}
 	})
 }

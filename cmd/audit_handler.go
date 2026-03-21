@@ -54,14 +54,14 @@ func handleAuditMode(
 	}
 
 	// Surface any dynamic plugin load failures to the CLI user.
-	if loadResult := pm.GetLoadResult(); loadResult.Failed > 0 {
+	if loadResult := pm.GetLoadResult(); loadResult.Failed() > 0 {
 		failedNames := make([]string, len(loadResult.Failures))
 		for i, f := range loadResult.Failures {
 			failedNames[i] = f.Name
 		}
 
 		logger.Warn("Some dynamic plugins failed to load",
-			"failed", loadResult.Failed,
+			"failed", loadResult.Failed(),
 			"loaded", loadResult.Loaded,
 			"files", strings.Join(failedNames, ", "),
 		)

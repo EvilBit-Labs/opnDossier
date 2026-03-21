@@ -19,7 +19,7 @@ type Options struct {
 	PluginDir string
 
 	// ExplicitPluginDir indicates that PluginDir was explicitly configured by
-	// the user (via CLI flag or config file). When true and the directory does
-	// not exist, a Warn-level log is emitted instead of Debug.
+	// the user (via CLI flag). When true and the directory does not exist,
+	// LoadDynamicPlugins returns an error instead of silently continuing.
 	ExplicitPluginDir bool
 }

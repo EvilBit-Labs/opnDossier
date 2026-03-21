@@ -544,8 +544,7 @@ func buildConversionOptions(
 	return opt
 }
 
-// buildAuditOptions constructs an audit.Options value from the shared CLI flag globals
-// and configuration. CLI flags take precedence over config file values.
+// buildAuditOptions constructs an audit.Options value from the shared CLI flag globals.
 func buildAuditOptions() audit.Options {
 	opts := audit.Options{
 		AuditMode:       sharedAuditMode,

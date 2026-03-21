@@ -561,9 +561,10 @@ All plugins implement `compliance.Plugin` (see `internal/compliance/interfaces.g
 - `compliance.CloneControls()` deep-copies `[]Control` including nested types (Tags, Metadata) — use in `GetControls()` and when storing controls in result structs
 - Plugin name matching is case-insensitive (`deduplicatePluginNames`, `ValidateModeConfig` normalize to lowercase)
 - `RunComplianceChecks` wraps each plugin's `RunChecks()` in `defer recover()` with `debug.Stack()` — panicked plugins are logged via `*logging.Logger` and retained in results with safe defaults (`Version: "unknown (panicked)"`, empty compliance map) via `continue`, skipping post-recovery method calls on potentially corrupt plugin state. Nil logger defaults to a fallback. Callers pass their configured logger
-- `LoadDynamicPlugins` returns `(LoadResult, error)` with per-plugin `PluginLoadFailure` details; aggregate error via `errors.Join`
-- `PluginRegistry.pluginLoader` (type `pluginLoaderFunc`) is injectable for testing — defaults to `defaultPluginLoader` which wraps `plugin.Open`/`Lookup`/type-assert
-- `PluginManager.SetPluginDir(dir, explicit)` must be called *before* `InitializePlugins` — the dir is read during initialization, not after
+- `LoadDynamicPlugins` returns `(LoadResult, error)` with per-plugin `PluginLoadError` details; aggregate error via `errors.Join`. When `explicitDir=true` and the directory is missing, returns an error (not a silent skip)
+- `LoadResult.Failed()` is a method (not a field) — always equals `len(Failures)`. `PluginLoadError` implements the `error` interface
+- `PluginRegistry.pluginLoader` (type `pluginLoaderFunc`) is injectable via `newPluginRegistryWithLoader()` for testing — defaults to `defaultPluginLoader` which wraps `plugin.Open`/`Lookup`/type-assert. Includes nil-plugin guard after loader returns
+- `PluginManager.SetPluginDir(dir, explicit)` must be called *before* `InitializePlugins` — the dir is read during initialization, not after. Dynamic plugin load failures are non-fatal: they do not cause `InitializePlugins` to return an error. Callers must inspect `GetLoadResult()` to detect failures
 - `audit.Options` includes `PluginDir` and `ExplicitPluginDir` fields — wired in `handleAuditMode` before `InitializePlugins`
 
 ### 8.3 Compliance Standards

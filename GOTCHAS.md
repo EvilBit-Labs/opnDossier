@@ -36,7 +36,7 @@ When a data race occurs in a test touching global state, the Go race detector ma
 
 ### 2.3 SetPluginDir Must Precede InitializePlugins
 
-`PluginManager.SetPluginDir(dir, explicit)` configures the directory for dynamic `.so` loading. It must be called **before** `InitializePlugins(ctx)` because `InitializePlugins` reads `pm.pluginDir` during execution. Calling it after has no effect.
+`PluginManager.SetPluginDir(dir, explicit)` configures the directory for dynamic `.so` loading. It must be called **before** `InitializePlugins(ctx)` because `InitializePlugins` reads `pm.pluginDir` only during its execution. Calling `SetPluginDir` after `InitializePlugins` mutates the field but has no observable effect on plugin loading because `InitializePlugins` has already completed.
 
 ## 3. Data Processing
 

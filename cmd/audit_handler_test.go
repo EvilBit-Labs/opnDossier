@@ -206,6 +206,11 @@ func TestAddSharedAuditFlagsRegistersFlags(t *testing.T) {
 	pluginsFlag := flags.Lookup("audit-plugins")
 	require.NotNil(t, pluginsFlag)
 	assert.Equal(t, "[]", pluginsFlag.DefValue)
+
+	// Verify plugin-dir flag
+	pluginDirFlag := flags.Lookup("plugin-dir")
+	require.NotNil(t, pluginDirFlag)
+	assert.Empty(t, pluginDirFlag.DefValue)
 }
 
 func TestValidAuditModes(t *testing.T) {
@@ -243,10 +248,12 @@ func TestBuildAuditOptions(t *testing.T) {
 	originalAuditMode := sharedAuditMode
 	originalBlackhat := sharedBlackhatMode
 	originalPlugins := sharedSelectedPlugins
+	originalPluginDir := sharedPluginDir
 	t.Cleanup(func() {
 		sharedAuditMode = originalAuditMode
 		sharedBlackhatMode = originalBlackhat
 		sharedSelectedPlugins = originalPlugins
+		sharedPluginDir = originalPluginDir
 	})
 
 	tests := []struct {
@@ -254,30 +261,54 @@ func TestBuildAuditOptions(t *testing.T) {
 		auditMode       string
 		blackhatMode    bool
 		selectedPlugins []string
+		pluginDir       string
+		wantPluginDir   string
+		wantExplicitDir bool
 	}{
 		{
 			name:            "empty defaults",
 			auditMode:       "",
 			blackhatMode:    false,
 			selectedPlugins: nil,
+			pluginDir:       "",
+			wantPluginDir:   "",
+			wantExplicitDir: false,
 		},
 		{
 			name:            "standard mode",
 			auditMode:       "standard",
 			blackhatMode:    false,
 			selectedPlugins: nil,
+			pluginDir:       "",
+			wantPluginDir:   "",
+			wantExplicitDir: false,
 		},
 		{
 			name:            "blue mode with plugins",
 			auditMode:       "blue",
 			blackhatMode:    false,
 			selectedPlugins: []string{"stig", "sans"},
+			pluginDir:       "",
+			wantPluginDir:   "",
+			wantExplicitDir: false,
 		},
 		{
 			name:            "red mode with blackhat",
 			auditMode:       "red",
 			blackhatMode:    true,
 			selectedPlugins: nil,
+			pluginDir:       "",
+			wantPluginDir:   "",
+			wantExplicitDir: false,
+		},
+		{
+			name:            "with plugin dir",
+			auditMode:       "blue",
+			blackhatMode:    false,
+			selectedPlugins: nil,
+			pluginDir:       "/path/to/plugins",
+			wantPluginDir:   "/path/to/plugins",
+			wantExplicitDir: true,
 		},
 	}
 
@@ -286,12 +317,15 @@ func TestBuildAuditOptions(t *testing.T) {
 			sharedAuditMode = tt.auditMode
 			sharedBlackhatMode = tt.blackhatMode
 			sharedSelectedPlugins = tt.selectedPlugins
+			sharedPluginDir = tt.pluginDir
 
 			result := buildAuditOptions()
 
 			assert.Equal(t, tt.auditMode, result.AuditMode)
 			assert.Equal(t, tt.blackhatMode, result.BlackhatMode)
 			assert.Equal(t, tt.selectedPlugins, result.SelectedPlugins)
+			assert.Equal(t, tt.wantPluginDir, result.PluginDir)
+			assert.Equal(t, tt.wantExplicitDir, result.ExplicitPluginDir)
 		})
 	}
 }

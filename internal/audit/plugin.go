@@ -52,11 +52,18 @@ type PluginRegistry struct {
 	pluginLoader pluginLoaderFunc
 }
 
-// NewPluginRegistry creates a new plugin registry.
+// NewPluginRegistry creates a new plugin registry with the default plugin loader.
 func NewPluginRegistry() *PluginRegistry {
+	return newPluginRegistryWithLoader(defaultPluginLoader)
+}
+
+// newPluginRegistryWithLoader creates a plugin registry with the given loader.
+// This constructor is the single injection point for pluginLoader, ensuring
+// the field is set exactly once at construction time.
+func newPluginRegistryWithLoader(loader pluginLoaderFunc) *PluginRegistry {
 	return &PluginRegistry{
 		plugins:      make(map[string]compliance.Plugin),
-		pluginLoader: defaultPluginLoader,
+		pluginLoader: loader,
 	}
 }
 
@@ -108,9 +115,10 @@ func (pr *PluginRegistry) ListPlugins() []string {
 }
 
 // LoadDynamicPlugins loads .so plugins from the specified directory and registers them.
-// It is safe to call even if the directory does not exist. The explicitDir parameter
-// controls the log level when the directory is missing: true logs at Warn (user
-// explicitly configured a path), false logs at Debug (default/optional path).
+// When explicitDir is false, a missing directory is silently ignored (Debug log).
+// When explicitDir is true, a missing directory returns an error because the user
+// explicitly configured the path.
+// A nil logger returns an error immediately.
 // Per-plugin failures are collected in the returned LoadResult and aggregated into
 // the returned error via errors.Join.
 func (pr *PluginRegistry) LoadDynamicPlugins(
@@ -129,10 +137,10 @@ func (pr *PluginRegistry) LoadDynamicPlugins(
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			if explicitDir {
-				ctxLogger.Warn("Dynamic plugin directory does not exist", "dir", dir)
-			} else {
-				ctxLogger.Debug("Dynamic plugin directory does not exist", "dir", dir)
+				return LoadResult{}, fmt.Errorf("plugin directory %q does not exist", dir)
 			}
+
+			ctxLogger.Debug("Dynamic plugin directory does not exist", "dir", dir)
 
 			return LoadResult{}, nil
 		}
@@ -144,8 +152,7 @@ func (pr *PluginRegistry) LoadDynamicPlugins(
 
 	var (
 		loaded   int
-		failed   int
-		failures []PluginLoadFailure
+		failures []PluginLoadError
 	)
 
 	for _, entry := range entries {
@@ -158,8 +165,15 @@ func (pr *PluginRegistry) LoadDynamicPlugins(
 		compliancePlugin, err := pr.pluginLoader(path)
 		if err != nil {
 			ctxLogger.Error("Failed to load plugin", "file", path, "error", err)
-			failures = append(failures, PluginLoadFailure{Name: entry.Name(), Err: err})
-			failed++
+			failures = append(failures, PluginLoadError{Name: entry.Name(), Err: err})
+
+			continue
+		}
+
+		if compliancePlugin == nil {
+			nilErr := fmt.Errorf("loader returned nil plugin for %q", path)
+			ctxLogger.Error("Failed to load plugin", "file", path, "error", nilErr)
+			failures = append(failures, PluginLoadError{Name: entry.Name(), Err: nilErr})
 
 			continue
 		}
@@ -168,9 +182,8 @@ func (pr *PluginRegistry) LoadDynamicPlugins(
 			ctxLogger.Error("Failed to register dynamic plugin", "file", path, "error", err)
 			failures = append(
 				failures,
-				PluginLoadFailure{Name: entry.Name(), Err: fmt.Errorf("register %q: %w", path, err)},
+				PluginLoadError{Name: entry.Name(), Err: fmt.Errorf("register %q: %w", path, err)},
 			)
-			failed++
 
 			continue
 		}
@@ -192,14 +205,14 @@ func (pr *PluginRegistry) LoadDynamicPlugins(
 	var aggregateErr error
 	if len(failures) > 0 {
 		errs := make([]error, len(failures))
-		for i, f := range failures {
-			errs[i] = f.Err
+		for i := range failures {
+			errs[i] = failures[i]
 		}
 
 		aggregateErr = errors.Join(errs...)
 	}
 
-	return LoadResult{Loaded: loaded, Failed: failed, Failures: failures}, aggregateErr
+	return LoadResult{Loaded: loaded, Failures: failures}, aggregateErr
 }
 
 // RunComplianceChecks runs compliance checks for specified plugins.
@@ -536,20 +549,30 @@ type PluginInfo struct {
 	Controls    []compliance.Control `json:"controls"`
 }
 
-// PluginLoadFailure records a single dynamic plugin that failed to load,
+// PluginLoadError records a single dynamic plugin that failed to load,
 // capturing the .so filename and the underlying error.
-type PluginLoadFailure struct {
+// It implements the error interface for use with errors.Join.
+type PluginLoadError struct {
 	Name string
 	Err  error
 }
 
+// Error returns a human-readable description of the load failure.
+func (f PluginLoadError) Error() string {
+	return fmt.Sprintf("plugin %s: %v", f.Name, f.Err)
+}
+
 // LoadResult summarises the outcome of a LoadDynamicPlugins call, reporting
 // how many plugins loaded successfully, how many failed, and the individual
-// failure details.
+// failure details. The zero value represents "no dynamic plugins attempted".
 type LoadResult struct {
 	Loaded   int
-	Failed   int
-	Failures []PluginLoadFailure
+	Failures []PluginLoadError
+}
+
+// Failed returns the number of plugins that failed to load.
+func (r LoadResult) Failed() int {
+	return len(r.Failures)
 }
 
 // globalRegistry holds the singleton PluginRegistry instance, and

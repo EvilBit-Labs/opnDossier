@@ -37,6 +37,12 @@ func NewPluginManager(logger *logging.Logger) *PluginManager {
 // registry is fully populated before any concurrent audit operations begin.
 // Callers must not invoke this method concurrently.
 //
+// Dynamic plugin loading: if SetPluginDir was called before this method,
+// dynamic .so plugins are loaded from the configured directory. Per-plugin
+// load failures are non-fatal — they do NOT cause InitializePlugins to return
+// an error. Callers must inspect GetLoadResult() after this method returns to
+// detect and surface dynamic plugin load failures.
+//
 // Note: this populates pm.registry only, not the global singleton returned by
 // GetGlobalRegistry(). If plugins need to be available via the global registry,
 // callers must use RegisterGlobalPlugin() separately.
@@ -72,15 +78,21 @@ func (pm *PluginManager) InitializePlugins(ctx context.Context) error {
 	)
 
 	// Load dynamic plugins from the configured directory, if any.
+	// Directory-level errors (missing explicit dir, unreadable dir) are fatal.
+	// Per-plugin load failures are non-fatal — available via GetLoadResult().
 	if pm.pluginDir != "" {
 		result, loadErr := pm.registry.LoadDynamicPlugins(ctx, pm.pluginDir, pm.explicitPluginDir, pm.logger)
 		pm.loadResult = result
 
-		logger.Info("Dynamic plugin loading completed", "loaded", result.Loaded, "failed", result.Failed)
-
-		if loadErr != nil {
-			logger.Warn("Some dynamic plugins failed to load", "error", loadErr)
+		if loadErr != nil && result.Loaded == 0 && len(result.Failures) == 0 {
+			// Directory-level error (not per-plugin failures).
+			return fmt.Errorf("load dynamic plugins: %w", loadErr)
 		}
+
+		logger.Info("Dynamic plugin loading completed",
+			"loaded", result.Loaded,
+			"failed", result.Failed(),
+		)
 	}
 
 	logger.Info("Plugin initialization completed", "total_plugins", len(pm.registry.ListPlugins()))
@@ -120,7 +132,11 @@ func (pm *PluginManager) ListAvailablePlugins(ctx context.Context) []PluginInfo 
 	for _, pluginName := range pluginNames {
 		p, err := pm.registry.GetPlugin(pluginName)
 		if err != nil {
+			// This should not happen since ListPlugins and GetPlugin read the
+			// same registry. A failure here indicates registry corruption or a
+			// concurrent unregister — log and skip the entry.
 			logger.Error("Failed to get plugin info", "plugin", pluginName, "error", err)
+
 			continue
 		}
 
