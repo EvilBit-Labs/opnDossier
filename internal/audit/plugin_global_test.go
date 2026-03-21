@@ -927,6 +927,11 @@ func TestRunComplianceChecks_PanickingPluginIsolation(t *testing.T) {
 			if _, ok := result.PluginInfo["panicking-plugin"]; !ok {
 				t.Error("Panicking plugin should be present in PluginInfo")
 			}
+
+			// Panicking plugin must be present in Compliance map
+			if _, ok := result.Compliance["panicking-plugin"]; !ok {
+				t.Error("Panicking plugin should be present in Compliance map")
+			}
 		})
 	}
 
@@ -969,6 +974,94 @@ func TestRunComplianceChecks_PanickingPluginIsolation(t *testing.T) {
 			t.Errorf("healthy-plugin finding title = %q, want %q", hf[0].Title, "Healthy Finding")
 		}
 	})
+}
+
+// TestRunComplianceChecks_NilLoggerFallback verifies that passing a nil logger
+// to RunComplianceChecks creates a fallback logger and completes without error,
+// including when a plugin panics.
+func TestRunComplianceChecks_NilLoggerFallback(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name              string
+		plugins           []compliance.Plugin
+		selectedPlugins   []string
+		wantFindingsCount int
+	}{
+		{
+			name: "nil logger with healthy plugin",
+			plugins: []compliance.Plugin{
+				&mockPluginWithFindings{
+					mockCompliancePlugin: mockCompliancePlugin{
+						name:        "healthy",
+						version:     "1.0.0",
+						description: "Healthy plugin",
+					},
+					controls: []compliance.Control{
+						{ID: "H-001", Title: "Control", Severity: "low"},
+					},
+					findings: []compliance.Finding{
+						{
+							Type:       "compliance",
+							Severity:   "low",
+							Title:      "A finding",
+							References: []string{"H-001"},
+						},
+					},
+				},
+			},
+			selectedPlugins:   []string{"healthy"},
+			wantFindingsCount: 1,
+		},
+		{
+			name: "nil logger with panicking plugin",
+			plugins: []compliance.Plugin{
+				&mockPanickingPlugin{
+					mockCompliancePlugin: mockCompliancePlugin{
+						name:        "panicker",
+						version:     "0.1.0",
+						description: "Panics",
+					},
+					controls: []compliance.Control{
+						{ID: "P-001", Title: "Control", Severity: "high"},
+					},
+				},
+			},
+			selectedPlugins:   []string{"panicker"},
+			wantFindingsCount: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			registry := NewPluginRegistry()
+			for _, p := range tt.plugins {
+				if err := registry.RegisterPlugin(p); err != nil {
+					t.Fatalf("Failed to register plugin %q: %v", p.Name(), err)
+				}
+			}
+
+			device := &common.CommonDevice{
+				System: common.System{Hostname: "test-host"},
+			}
+
+			// Pass nil logger — should create fallback without error
+			result, err := registry.RunComplianceChecks(device, tt.selectedPlugins, nil)
+			if err != nil {
+				t.Fatalf("RunComplianceChecks() with nil logger unexpected error: %v", err)
+			}
+
+			if result == nil {
+				t.Fatal("RunComplianceChecks() returned nil result")
+			}
+
+			if len(result.Findings) != tt.wantFindingsCount {
+				t.Errorf("Findings count = %d, want %d", len(result.Findings), tt.wantFindingsCount)
+			}
+		})
+	}
 }
 
 // TestRunComplianceChecks_PerPluginSeverityArithmetic exercises the full RunComplianceChecks
