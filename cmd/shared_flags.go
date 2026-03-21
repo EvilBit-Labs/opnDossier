@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
+	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 	"github.com/spf13/cobra"
 )
 
@@ -191,6 +192,11 @@ var formatDescriptions = map[string]string{ //nolint:gochecknoglobals // static 
 	"html":     "Self-contained HTML report for web viewing",
 }
 
+// deviceTypeDescriptions maps registered device types to their shell completion descriptions.
+var deviceTypeDescriptions = map[string]string{ //nolint:gochecknoglobals // static lookup table
+	"opnsense": "OPNsense firewall configuration",
+}
+
 // ValidFormats provides shell completion for output format values.
 // Canonical format names are sourced from the converter.DefaultRegistry.
 func ValidFormats(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
@@ -253,27 +259,48 @@ func ValidAuditPlugins(_ *cobra.Command, _ []string, _ string) ([]string, cobra.
 	return []string{
 		"stig\tSecurity Technical Implementation Guide",
 		"sans\tSANS Firewall Baseline",
-		"firewall\tCustom firewall compliance checks",
+		"firewall\tFirewall Configuration Analysis",
 	}, cobra.ShellCompDirectiveNoFileComp
 }
 
 // ValidDeviceTypes provides shell completion for device type values.
+// Canonical device type names are sourced from the parser.DefaultRegistry.
 func ValidDeviceTypes(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
-	return []string{
-		"opnsense\tForce OPNsense device type (bypasses auto-detection)",
-	}, cobra.ShellCompDirectiveNoFileComp
+	devices := parser.DefaultRegistry().List()
+	completions := make([]string, 0, len(devices))
+
+	for _, d := range devices {
+		desc, ok := deviceTypeDescriptions[d]
+		if !ok {
+			desc = d + " device type"
+		}
+
+		completions = append(completions, d+"\t"+desc)
+	}
+
+	return completions, cobra.ShellCompDirectiveNoFileComp
 }
 
-// validateDeviceType checks that sharedDeviceType is either empty (auto-detect)
-// or a supported device type. Returns an error for unrecognized values.
+// validateDeviceType validates the --device-type flag against the parser registry.
 func validateDeviceType() error {
 	if sharedDeviceType == "" {
 		return nil
 	}
 
-	if strings.EqualFold(sharedDeviceType, "opnsense") {
+	if _, ok := parser.DefaultRegistry().Get(sharedDeviceType); ok {
 		return nil
 	}
 
-	return fmt.Errorf("unsupported device type: %q; supported values: opnsense", sharedDeviceType)
+	devices := parser.DefaultRegistry().List()
+
+	supported := strings.Join(devices, ", ")
+	if len(devices) == 0 {
+		supported = "(none registered -- ensure parser packages are imported)"
+	}
+
+	return fmt.Errorf(
+		"unsupported device type: %q; supported values: %s",
+		sharedDeviceType,
+		supported,
+	)
 }

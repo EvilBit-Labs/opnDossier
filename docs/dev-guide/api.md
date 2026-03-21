@@ -99,11 +99,87 @@ type DeviceParser interface {
 
 **Breaking Change:** Both methods return a 3-value tuple `(*CommonDevice, []ConversionWarning, error)` instead of the previous 2-value return `(*CommonDevice, error)`. Implementations must return non-fatal conversion warnings alongside the parsed device model. Callers should log or surface these warnings without treating them as errors.
 
-The `parser.Factory` auto-detects device type from the XML root element and delegates to the appropriate `DeviceParser`. The underlying OPNsense XML parser (`internal/cfgparser/XMLParser`) still produces `schema.OpnSenseDocument`, which is then converted to `common.CommonDevice` by the OPNsense-specific parser in `pkg/parser/opnsense/`.
+The `parser.Factory` auto-detects device type from the XML root element and delegates to the appropriate `DeviceParser` via the registry. The underlying OPNsense XML parser (`internal/cfgparser/XMLParser`) still produces `schema.OpnSenseDocument`, which is then converted to `common.CommonDevice` by the OPNsense-specific parser in `pkg/parser/opnsense/`.
+
+### DeviceParser Registry
+
+The `DeviceParserRegistry` enables compile-time registration of device-specific parsers following the `database/sql` driver pattern. Parser packages self-register via `init()` functions, and consumers activate them through blank imports.
+
+#### Registry Structure and Methods
+
+```go
+type DeviceParserRegistry struct {
+    // Thread-safe registry of parser constructors keyed by device type
+}
+
+// ConstructorFunc is the factory function signature for creating DeviceParser instances.
+type ConstructorFunc = func(XMLDecoder) DeviceParser
+
+// Register adds a constructor for the given device type. Device type names are
+// normalized to lowercase with whitespace trimmed. Panics on duplicate registration,
+// nil factory, or empty device type to surface wiring conflicts at startup.
+func (r *DeviceParserRegistry) Register(deviceType string, fn ConstructorFunc)
+
+// Get returns the constructor for the given device type, or (nil, false) if not registered.
+func (r *DeviceParserRegistry) Get(deviceType string) (ConstructorFunc, bool)
+
+// List returns a sorted slice of all registered device type names.
+func (r *DeviceParserRegistry) List() []string
+
+// DefaultRegistry returns the package-level singleton registry.
+func DefaultRegistry() *DeviceParserRegistry
+
+// Register is a package-level convenience wrapper around DefaultRegistry().Register().
+func Register(deviceType string, fn ConstructorFunc)
+```
+
+#### Self-Registration Pattern
+
+Parser packages register themselves via `init()` functions:
+
+```go
+// In pkg/parser/opnsense/parser.go
+func NewParserFactory(decoder parser.XMLDecoder) parser.DeviceParser {
+    return NewParser(decoder)
+}
+
+func init() {
+    parser.Register("opnsense", NewParserFactory)
+}
+```
+
+#### Blank Import Requirement
+
+**CRITICAL:** Code using `parser.NewFactory()` MUST include blank imports for all required parser packages:
+
+```go
+import (
+    "github.com/EvilBit-Labs/opnDossier/pkg/parser"
+    _ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense" // self-registers via init()
+)
+```
+
+Missing the blank import causes "unsupported device type" errors and a supported device list that only includes a hint about missing blank imports. The parser implementation exists but its `init()` function never runs, so the registry remains empty. See [GOTCHAS.md section 7.1](../../GOTCHAS.md#71-blank-import-requirement) for details.
+
+#### Test Isolation
+
+For tests that need isolated registry state without polluting the global singleton:
+
+```go
+// Create a factory with a custom registry
+registry := parser.NewDeviceParserRegistry()
+registry.Register("testdevice", testConstructor)
+factory := parser.NewFactoryWithRegistry(decoder, registry)
+```
 
 ### Factory Usage
 
 ```go
+import (
+    "github.com/EvilBit-Labs/opnDossier/pkg/parser"
+    _ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense" // Required: self-registers via init()
+)
+
 factory := parser.NewFactory(cfgparser.NewXMLParser())
 
 file, err := os.Open("config.xml")
@@ -574,6 +650,52 @@ var ErrNilDevice = errors.New("device configuration is nil")
 1. Implement the `Generator` interface in `internal/converter/`
 2. Register the format in the convert command
 3. Add tests and documentation
+
+### Adding Custom Device Parsers
+
+External Go projects can register custom device parsers by:
+
+1. **Implement the `DeviceParser` interface** in `pkg/parser/`:
+
+   ```go
+   type CustomParser struct {
+       decoder parser.XMLDecoder
+   }
+
+   func (p *CustomParser) Parse(ctx context.Context, r io.Reader) (*common.CommonDevice, []common.ConversionWarning, error) {
+       // Implementation
+   }
+
+   func (p *CustomParser) ParseAndValidate(ctx context.Context, r io.Reader) (*common.CommonDevice, []common.ConversionWarning, error) {
+       // Implementation with validation
+   }
+   ```
+
+2. **Export a factory function** matching the `ConstructorFunc` signature:
+
+   ```go
+   func NewCustomParserFactory(decoder parser.XMLDecoder) parser.DeviceParser {
+       return &CustomParser{decoder: decoder}
+   }
+   ```
+
+3. **Register via `init()`** in your parser package:
+
+   ```go
+   func init() {
+       parser.Register("customdevice", NewCustomParserFactory)
+   }
+   ```
+
+4. **Add blank import** in the consuming application:
+
+   ```go
+   import (
+       _ "your.module/pkg/parser/customdevice" // self-registers via init()
+   )
+   ```
+
+See [docs/solutions/architecture-issues/pluggable-deviceparser-registry-pattern.md](../solutions/architecture-issues/pluggable-deviceparser-registry-pattern.md) for complete implementation details and examples.
 
 ---
 

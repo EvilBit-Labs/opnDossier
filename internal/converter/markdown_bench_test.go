@@ -10,6 +10,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
+	_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense" // self-registers OPNsense parser via init()
 )
 
 // loadTestData loads test configuration data by parsing an XML file and converting

@@ -38,6 +38,16 @@ just check
 just test
 ```
 
+### Known Gotchas
+
+Before diving into the codebase, read **[GOTCHAS.md](GOTCHAS.md)** -- it documents non-obvious behaviors, common pitfalls, and architectural quirks that will save you debugging time. Key topics include:
+
+- Global state and `t.Parallel()` restrictions in `cmd/` tests
+- Plugin registry independence (global vs manager-scoped)
+- Map iteration non-determinism in output
+- XML presence vs absence detection with `*string`
+- **Parser registry blank import requirement** (forgetting this causes empty "supported:" errors)
+
 ## Architecture Overview
 
 opnDossier uses a layered CLI architecture:
@@ -80,6 +90,16 @@ opndossier/
 ├── docs/                # Documentation
 └── project_spec/        # Project specifications
 ```
+
+### Extensibility: Two Plugin Systems
+
+opnDossier has two independent extension points:
+
+**Device Parsers** (`pkg/parser/`) -- Add support for new device types (pfSense, Fortinet, etc.). Device parsers transform vendor-specific XML into the platform-agnostic `CommonDevice` model. They self-register via `init()` and are linked at compile time through blank imports. See the [Device Parser Development](docs/dev-guide/plugin-development.md#device-parser-development) section in the Plugin Development Guide.
+
+**Compliance Plugins** (`internal/plugins/`) -- Add new compliance standards and audit checks. Compliance plugins implement the `compliance.Plugin` interface and run security checks against the `CommonDevice` model. See the [Plugin Development Guide](docs/dev-guide/plugin-development.md) for details.
+
+Both systems use self-registration patterns -- adding a new parser or plugin requires zero changes to existing code.
 
 ### Programmatic Generation Architecture
 
@@ -814,7 +834,7 @@ opnDossier uses a **maintainer-driven** governance model. Decisions are made by 
 | Role                 | Responsibilities                                                                          | Current                                        |
 | -------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------- |
 | **Maintainer**       | Merge PRs, manage releases, set project direction, review security reports, triage issues | [@UncleSp1d3r](https://github.com/UncleSp1d3r) |
-| **Security Contact** | Triage vulnerability reports, coordinate fixes, publish advisories                        | support@evilbitlabs.io                         |
+| **Security Contact** | Triage vulnerability reports, coordinate fixes, publish advisories                        | <support@evilbitlabs.io>                       |
 | **Contributor**      | Submit issues, PRs, and participate in discussions                                        | Anyone following this guide                    |
 
 ### How Decisions Are Made

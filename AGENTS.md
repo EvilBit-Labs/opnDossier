@@ -142,6 +142,8 @@ Use `charmbracelet/log` with structured key-value pairs: `logger.Info("msg", "ke
 - Start comments with the name of the thing being described
 - Use complete sentences
 - Include examples for complex functionality
+- **80%+ docstring coverage required** -- all exported AND unexported functions, types, vars, and const blocks need doc comments. This includes `init()` functions, `var` blocks, and test helpers
+- `//nolint` directives between a doc comment and its declaration break the association -- place the doc comment directly above the declaration or above the nolint line
 
 ### 5.5 Import Organization
 
@@ -213,6 +215,9 @@ When a struct depends on a broad interface but only calls a subset of its method
 - **File extensions:** `handler.FileExtension()` replaces scattered switch statements in `cmd/convert.go`
 - **Generation dispatch:** `FormatHandler.Generate()` and `FormatHandler.GenerateToWriter()` replace hardcoded `switch` blocks in `HybridGenerator` — each handler delegates to the generator's private format-specific methods. `handlerForFormat()` is the generator-scoped registry accessor
 - **Processor integration:** `processor.Transform()` handles all five formats (markdown, json, yaml, text, html) -- text and html formats delegate to exported `converter.StripMarkdownFormatting()` and `converter.RenderMarkdownToHTML()` respectively
+- **Alias resolution in processor:** `processor.Transform()` calls `DefaultRegistry.Canonical()` before its switch statement, so aliases (`txt`, `htm`, `md`, `yml`) work consistently across all code paths
+- **Registry safety:** `Register()` validates all conditions (duplicates, alias conflicts, nil handler, empty name) before mutating maps — panics never leave partial state. `Get()` and `Canonical()` apply the same `TrimSpace(ToLower(...))` normalization as `Register()`
+- **Return types:** `Canonical()` returns `(string, bool)` (not just `string`) and `StripMarkdownFormatting()` returns `(string, error)` — no silent fallbacks
 - `cmd/convert.go` no longer defines format constants — use `converter.FormatMarkdown`, `converter.FormatJSON`, etc.
 
 ### 5.10 Common Linter Patterns
@@ -354,6 +359,17 @@ Files in `pkg/parser/opnsense/` (package `opnsense`) **must** alias the schema i
 
 `Report.ToJSON()` and `Report.ToYAML()` serialize a redacted copy via `redactedCopyUnsafe()` to prevent `NormalizedConfig.SNMP.ROCommunity` from leaking. When adding new sensitive fields to `CommonDevice`, extend `redactedCopyUnsafe()` in `internal/processor/report.go`. The copy is constructed field-by-field (not `cp := *r`) to avoid `copylocks` on `sync.RWMutex`. Statistics redaction (`redactServiceDetails`) is separate and handles the statistics-layer SNMP community.
 
+### 5.25a DeviceParser Registry Pattern
+
+`pkg/parser/registry.go` follows the `database/sql` driver registration pattern:
+
+- `parser.Register("opnsense", factory)` called from `init()` in `pkg/parser/opnsense/parser.go`
+- `parser.DefaultRegistry()` returns the singleton; `parser.NewDeviceParserRegistry()` for test isolation
+- `parser.NewFactoryWithRegistry(decoder, reg)` for tests needing isolated registry state
+- **CRITICAL: Blank imports required.** Any file using `parser.NewFactory()` must import `_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"` to trigger `init()` self-registration. Without this, the registry is empty and all device type lookups fail silently. The canonical blank import lives in `cmd/root.go`; test files must add their own.
+- `ConstructorFunc = func(XMLDecoder) DeviceParser` -- named type alias for factory functions
+- `Get()` returns `(ConstructorFunc, bool)` (map semantics), not `(T, error)` like FormatRegistry
+
 ### 5.26 File-Split Refactoring Pattern
 
 When splitting a large file into domain-specific files within the same package:
@@ -480,6 +496,10 @@ Use `t.Helper()` in all test helpers and `t.Cleanup()` for teardown. Place share
 ### 7.4 Map Iteration in Tests
 
 Map iteration is non-deterministic — test for presence (`strings.Contains()`) not exact equality. Production code must sort before rendering (see §5.11).
+
+### 7.4a Pointer Identity in Tests
+
+Use `assert.Same(t, expected, actual)` (not `assert.Equal`) when verifying that two interface values point to the same object (e.g., alias and canonical registry lookups return the same handler instance).
 
 ### 7.5 Test Assertion Specificity
 

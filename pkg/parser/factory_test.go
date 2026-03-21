@@ -10,6 +10,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
+	_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense" // triggers init() self-registration
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -53,6 +54,8 @@ func TestFactory_UnknownRootElement(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported device type")
 	assert.Contains(t, err.Error(), "pfsense")
+	assert.Contains(t, err.Error(), "supported:")
+	assert.Contains(t, err.Error(), "opnsense")
 }
 
 func TestFactory_Override_OPNsense(t *testing.T) {
@@ -95,6 +98,8 @@ func TestFactory_Override_Unsupported(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported device type override")
 	assert.Contains(t, err.Error(), "pfsense")
+	assert.Contains(t, err.Error(), "supported:")
+	assert.Contains(t, err.Error(), "opnsense")
 }
 
 func TestFactory_EmptyReader(t *testing.T) {
