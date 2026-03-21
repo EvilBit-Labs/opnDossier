@@ -116,8 +116,9 @@ func (pm *PluginManager) SetPluginDir(dir string, explicit bool) {
 // GetLoadResult returns the result of the most recent LoadDynamicPlugins call
 // performed during InitializePlugins. If no dynamic plugin directory was
 // configured, or InitializePlugins has not been called, the zero-value
-// LoadResult is returned. The returned value is a deep copy — callers cannot
-// mutate the manager's internal state.
+// LoadResult is returned. The Failures slice is copied so callers cannot
+// mutate the manager's internal slice state; error values within each
+// PluginLoadError are shared references.
 func (pm *PluginManager) GetLoadResult() LoadResult {
 	result := pm.loadResult
 	if len(result.Failures) > 0 {

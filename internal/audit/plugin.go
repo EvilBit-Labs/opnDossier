@@ -61,8 +61,13 @@ func NewPluginRegistry() *PluginRegistry {
 
 // newPluginRegistryWithLoader creates a plugin registry with the given loader.
 // This constructor is the single injection point for pluginLoader, ensuring
-// the field is set exactly once at construction time.
+// the field is set exactly once at construction time. A nil loader defaults
+// to defaultPluginLoader.
 func newPluginRegistryWithLoader(loader pluginLoaderFunc) *PluginRegistry {
+	if loader == nil {
+		loader = defaultPluginLoader
+	}
+
 	return &PluginRegistry{
 		plugins:      make(map[string]compliance.Plugin),
 		pluginLoader: loader,

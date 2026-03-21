@@ -237,7 +237,7 @@ func TestLoadDynamicPlugins(t *testing.T) {
 		missingDir := filepath.Join(t.TempDir(), "explicit-missing")
 		result, loadErr := registry.LoadDynamicPlugins(ctx, missingDir, true, logger)
 		if loadErr == nil {
-			t.Error("LoadDynamicPlugins() expected error for explicit missing directory")
+			t.Fatal("LoadDynamicPlugins() expected error for explicit missing directory")
 		}
 
 		if !strings.Contains(loadErr.Error(), "does not exist") {
@@ -460,7 +460,8 @@ func TestLoadDynamicPlugins_NilPlugin(t *testing.T) {
 	dir := createTestDirWithDummySOFiles(t, 1)
 
 	registry := newPluginRegistryWithLoader(func(_ string) (compliance.Plugin, error) {
-		return nil, nil //nolint:nilnil // intentional: testing nil-plugin guard
+		//nolint:nilnil // intentional: testing nil-plugin guard
+		return nil, nil
 	})
 
 	logger := newTestLogger(t)

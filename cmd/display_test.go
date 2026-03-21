@@ -25,7 +25,9 @@ import (
 //   - comprehensive: Whether to generate comprehensive reports
 //
 // Rationale: The snapshot focuses on flags that directly affect display output
-// and are commonly modified in display tests.
+// and are commonly modified in display tests. Fields: theme, wrapWidth,
+// noWrap, sections, comprehensive, deviceType, redact, includeTunables,
+// pluginDir.
 type sharedFlagSnapshot struct {
 	theme           string
 	wrapWidth       int
