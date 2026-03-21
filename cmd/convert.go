@@ -544,13 +544,23 @@ func buildConversionOptions(
 	return opt
 }
 
-// buildAuditOptions constructs an audit.Options value from the shared CLI flag globals.
+// buildAuditOptions constructs an audit.Options value from the shared CLI flag globals
+// and configuration. CLI flags take precedence over config file values.
 func buildAuditOptions() audit.Options {
-	return audit.Options{
+	opts := audit.Options{
 		AuditMode:       sharedAuditMode,
 		BlackhatMode:    sharedBlackhatMode,
 		SelectedPlugins: sharedSelectedPlugins,
 	}
+
+	// Plugin directory: CLI flag is the source. When set, mark as explicit
+	// so that a missing directory produces a Warn-level log.
+	if sharedPluginDir != "" {
+		opts.PluginDir = sharedPluginDir
+		opts.ExplicitPluginDir = true
+	}
+
+	return opts
 }
 
 // determineOutputPath determines the output file path with smart naming and overwrite protection.
