@@ -148,7 +148,11 @@ func (pr *PluginRegistry) RunComplianceChecks(
 
 	// Guard against nil logger so the recovery path never panics on a log call.
 	if logger == nil {
-		fallback, _ := logging.New(logging.Config{Level: "info"})
+		fallback, err := logging.New(logging.Config{Level: "info"})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create fallback logger: %w", err)
+		}
+
 		logger = fallback
 	}
 
