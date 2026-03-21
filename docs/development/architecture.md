@@ -30,17 +30,17 @@ For the complete philosophical foundation and ethical constraints, see **[CONTRI
 
 Built with modern Go practices and established libraries:
 
-| Component               | Technology                                                  |
-| ----------------------- | ----------------------------------------------------------- |
-| CLI Framework           | [Cobra](https://github.com/spf13/cobra)                     |
-| Configuration           | [Viper](https://github.com/spf13/viper)                     |
-| CLI Enhancement         | [Charm Fang](https://github.com/charmbracelet/fang)         |
-| Terminal Styling        | [Charm Lipgloss](https://github.com/charmbracelet/lipgloss) |
-| Markdown Rendering      | [Charm Glamour](https://github.com/charmbracelet/glamour)   |
-| Markdown Generation     | [nao1215/markdown](https://github.com/nao1215/markdown)     |
-| XML Processing          | Go's built-in `encoding/xml`                                |
-| Structured Logging      | [Charm Log](https://github.com/charmbracelet/log)           |
-| Minimum Go Version      | Go 1.26+                                                    |
+| Component           | Technology                                                  |
+| ------------------- | ----------------------------------------------------------- |
+| CLI Framework       | [Cobra](https://github.com/spf13/cobra)                     |
+| Configuration       | [Viper](https://github.com/spf13/viper)                     |
+| CLI Enhancement     | [Charm Fang](https://github.com/charmbracelet/fang)         |
+| Terminal Styling    | [Charm Lipgloss](https://github.com/charmbracelet/lipgloss) |
+| Markdown Rendering  | [Charm Glamour](https://github.com/charmbracelet/glamour)   |
+| Markdown Generation | [nao1215/markdown](https://github.com/nao1215/markdown)     |
+| XML Processing      | Go's built-in `encoding/xml`                                |
+| Structured Logging  | [Charm Log](https://github.com/charmbracelet/log)           |
+| Minimum Go Version  | Go 1.26+                                                    |
 
 The CLI uses a layered architecture: **Cobra** provides command structure and argument parsing, **Viper** handles layered configuration management (files, env, flags) for opnDossier's own settings (CLI preferences, display options), and **Fang** adds enhanced UX features like styled help, automatic version flags, and shell completion. Note that **Viper** manages opnDossier configuration, while OPNsense `config.xml` parsing is handled separately by `internal/cfgparser/`.
 

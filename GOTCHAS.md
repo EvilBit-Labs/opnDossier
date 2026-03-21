@@ -27,6 +27,13 @@ When a data race occurs in a test touching global state, the Go race detector ma
 - **Gotcha:** Calling `pm.InitializePlugins()` does **not** populate the global registry.
 - **Requirement:** If a plugin must be available globally (e.g., for simple CLI helpers), it must be explicitly registered via `audit.RegisterGlobalPlugin()`.
 
+### 2.2 Panic Recovery Retains Plugins
+
+`RunComplianceChecks` wraps each plugin's `RunChecks()` in `defer recover()`. On panic, a dedicated recovery path populates `PluginFindings`, `PluginInfo`, and `Compliance` with safe defaults, then uses `continue` to skip further method calls on the potentially corrupt plugin.
+
+- **Gotcha:** The recovery path must NOT call methods on the panicked plugin (`Name()`, `Version()`, `Description()`, `GetControls()`) — the plugin's internal state may be corrupt after the panic. Instead, it uses the `pluginName` string already in scope and sets `Version: "unknown (panicked)"` with an empty compliance map.
+- **Invariant:** Every selected plugin must appear in all result maps, even if it panicked.
+
 ## 3. Data Processing
 
 ### 3.1 Map Iteration Order

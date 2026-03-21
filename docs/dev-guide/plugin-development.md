@@ -27,12 +27,14 @@ type Plugin interface {
     Name() string                    // Unique plugin identifier
     Version() string                 // Plugin version
     Description() string             // Human-readable description
-    RunChecks(device *common.CommonDevice) []compliance.Finding // Execute compliance checks
+    RunChecks(device *common.CommonDevice) []compliance.Finding // Execute compliance checks (panic-safe)
     GetControls() []compliance.Control   // Return all controls
     GetControlByID(id string) (*compliance.Control, error) // Get specific control
     ValidateConfiguration() error    // Validate plugin config
 }
 ```
+
+**Note:** The audit engine wraps `RunChecks()` calls in panic recovery, so a panicking plugin will not crash the audit process. However, plugins should still handle errors properly and return findings or empty slices rather than panicking, as panic recovery is a safety mechanism, not a substitute for good error handling.
 
 The `Finding` struct is generic and uses `References`, `Tags`, and `Metadata` fields:
 
@@ -215,6 +217,23 @@ go build -buildmode=plugin -o myplugin.so main.go
 - Write comprehensive tests for your plugin.
 - Document your controls and plugin usage.
 
+### Error Handling and Panic Recovery
+
+The audit engine wraps each `RunChecks()` call in panic recovery to protect the audit process from misbehaving plugins. If a plugin panics during execution:
+
+- The panic is caught and logged via the structured logger with the plugin name and panic details
+- The plugin remains in the audit results with zero findings (it is not skipped or removed)
+- Other plugins continue to execute without interruption
+- The overall audit process completes successfully
+
+**Best practices:**
+
+- Plugins should handle errors gracefully by returning appropriate findings rather than panicking
+- Use proper error checking and validation in your compliance checks
+- Return empty findings slices (`[]compliance.Finding`) for plugins that find no issues, rather than panicking
+- The panic recovery is a safety net for unexpected failures, not a substitute for proper error handling
+- For better diagnostics, log errors within your plugin and return descriptive findings instead of relying on panic recovery
+
 ### Setting Finding Severity
 
 The audit engine requires the `Finding.Severity` field to generate accurate severity breakdowns in reports. Plugins should:
@@ -370,6 +389,7 @@ Fix: add `_ "your/parser/package"` to the binary's import list.
 - **Plugin not loaded?** Ensure it is built as a Go plugin (`-buildmode=plugin`), exports `var Plugin`, and is in the correct directory.
 - **Go version mismatch?** All plugins and the main binary must be built with the exact same Go version and dependencies.
 - **Platform support:** Go plugins are supported on Linux and macOS, not Windows.
+- **Plugin appears with zero findings?** The plugin may have panicked during execution. Check the audit logs for panic details. Panicked plugins are retained in results but produce no findings. Review the plugin's error handling and ensure it returns findings properly rather than panicking.
 
 ### Device Parsers
 

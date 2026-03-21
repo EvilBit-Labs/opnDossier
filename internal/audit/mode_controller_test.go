@@ -2,6 +2,7 @@ package audit
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
@@ -1219,9 +1220,18 @@ func TestPluginRegistry_GetPlugin(t *testing.T) {
 	}
 }
 
-// TODO: Update this test when LoadDynamicPlugins uses charmbracelet/log.Logger.
-func TestPluginRegistry_LoadDynamicPlugins(_ *testing.T) {
-	// This test is disabled due to logger type mismatch (slog vs charmbracelet/log)
+// TestPluginRegistry_LoadDynamicPlugins verifies that LoadDynamicPlugins handles missing directories gracefully.
+func TestPluginRegistry_LoadDynamicPlugins(t *testing.T) {
+	t.Parallel()
+
+	registry := NewPluginRegistry()
+	logger := newTestLogger(t)
+
+	missingDir := filepath.Join(t.TempDir(), "does-not-exist")
+	err := registry.LoadDynamicPlugins(context.Background(), missingDir, logger)
+	if err != nil {
+		t.Errorf("LoadDynamicPlugins() should not error for missing directory, got %v", err)
+	}
 }
 
 func TestPluginRegistry_RunComplianceChecks(t *testing.T) {
@@ -1245,7 +1255,7 @@ func TestPluginRegistry_RunComplianceChecks(t *testing.T) {
 	}
 
 	// Test running compliance checks with no plugins selected
-	results, err := registry.RunComplianceChecks(testConfig, nil)
+	results, err := registry.RunComplianceChecks(testConfig, nil, newTestLogger(t))
 	if err != nil {
 		t.Errorf("RunComplianceChecks() error = %v", err)
 	}
@@ -1255,7 +1265,7 @@ func TestPluginRegistry_RunComplianceChecks(t *testing.T) {
 
 	// Test running compliance checks with specific plugins
 	selectedPlugins := []string{"stig"}
-	results, err = registry.RunComplianceChecks(testConfig, selectedPlugins)
+	results, err = registry.RunComplianceChecks(testConfig, selectedPlugins, newTestLogger(t))
 	if err != nil {
 		t.Errorf("RunComplianceChecks() error = %v", err)
 	}
@@ -1265,7 +1275,7 @@ func TestPluginRegistry_RunComplianceChecks(t *testing.T) {
 
 	// Test running compliance checks with non-existent plugins
 	selectedPluginsNonexistent := []string{"nonexistent"}
-	_, err = registry.RunComplianceChecks(testConfig, selectedPluginsNonexistent)
+	_, err = registry.RunComplianceChecks(testConfig, selectedPluginsNonexistent, newTestLogger(t))
 	if err == nil {
 		t.Error("RunComplianceChecks() should return error for non-existent plugins")
 	}

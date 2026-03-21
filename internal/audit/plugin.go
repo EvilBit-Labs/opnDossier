@@ -3,17 +3,19 @@ package audit
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"log/slog"
 	"os"
 	"path/filepath"
 	pluginlib "plugin"
+	"runtime/debug"
 	"slices"
 	"strings"
 	"sync"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
@@ -79,11 +81,23 @@ func (pr *PluginRegistry) ListPlugins() []string {
 
 // LoadDynamicPlugins loads .so plugins from the specified directory and registers them.
 // It is safe to call even if the directory does not exist.
-func (pr *PluginRegistry) LoadDynamicPlugins(ctx context.Context, dir string, logger *slog.Logger) error {
+func (pr *PluginRegistry) LoadDynamicPlugins(ctx context.Context, dir string, logger *logging.Logger) error {
+	if logger == nil {
+		return errors.New("nil logger provided to LoadDynamicPlugins")
+	}
+
+	ctxLogger := logger.WithContext(ctx)
+
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		logger.InfoContext(ctx, "Dynamic plugin directory not found or not accessible", "dir", dir)
-		return nil //nolint:nilerr // Intentionally ignore directory access errors
+		if errors.Is(err, os.ErrNotExist) {
+			ctxLogger.Debug("Dynamic plugin directory does not exist", "dir", dir)
+			return nil
+		}
+
+		ctxLogger.Error("Failed to read dynamic plugin directory", "dir", dir, "error", err)
+
+		return fmt.Errorf("failed to read plugin directory %q: %w", dir, err)
 	}
 
 	for _, entry := range entries {
@@ -95,29 +109,28 @@ func (pr *PluginRegistry) LoadDynamicPlugins(ctx context.Context, dir string, lo
 
 		p, err := pluginlib.Open(path)
 		if err != nil {
-			logger.ErrorContext(ctx, "Failed to open plugin", "file", path, "error", err)
+			ctxLogger.Error("Failed to open plugin", "file", path, "error", err)
 			continue
 		}
 
 		sym, err := p.Lookup("Plugin")
 		if err != nil {
-			logger.ErrorContext(ctx, "Failed to find Plugin symbol", "file", path, "error", err)
+			ctxLogger.Error("Failed to find Plugin symbol", "file", path, "error", err)
 			continue
 		}
 
 		compliancePlugin, ok := sym.(compliance.Plugin)
 		if !ok {
-			logger.ErrorContext(ctx, "Symbol Plugin does not implement compliance.Plugin", "file", path)
+			ctxLogger.Error("Symbol Plugin does not implement compliance.Plugin", "file", path)
 			continue
 		}
 
 		if err := pr.RegisterPlugin(compliancePlugin); err != nil {
-			logger.ErrorContext(ctx, "Failed to register dynamic plugin", "file", path, "error", err)
+			ctxLogger.Error("Failed to register dynamic plugin", "file", path, "error", err)
 			continue
 		}
 
-		logger.InfoContext(
-			ctx,
+		ctxLogger.Info(
 			"Loaded dynamic plugin",
 			"file",
 			path,
@@ -132,12 +145,28 @@ func (pr *PluginRegistry) LoadDynamicPlugins(ctx context.Context, dir string, lo
 }
 
 // RunComplianceChecks runs compliance checks for specified plugins.
+// Each plugin's RunChecks call is wrapped in a panic recovery boundary so that
+// a misbehaving (especially dynamically-loaded) plugin cannot crash the entire
+// audit. Panicking plugins are logged and retained in the result with zero
+// findings, ensuring downstream consumers can see they were requested and
+// evaluated.
 func (pr *PluginRegistry) RunComplianceChecks(
 	device *common.CommonDevice,
 	pluginNames []string,
+	logger *logging.Logger,
 ) (*ComplianceResult, error) {
 	if device == nil {
 		return nil, ErrConfigurationNil
+	}
+
+	// Guard against nil logger so the recovery path never panics on a log call.
+	if logger == nil {
+		fallback, err := logging.New(logging.Config{Level: "info"})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create fallback logger: %w", err)
+		}
+
+		logger = fallback
 	}
 
 	// Deduplicate plugin names to ensure consistent results across
@@ -158,8 +187,40 @@ func (pr *PluginRegistry) RunComplianceChecks(
 			return nil, fmt.Errorf("failed to get plugin '%s': %w", pluginName, err)
 		}
 
-		// Run checks for this plugin
-		findings := p.RunChecks(device)
+		// Run checks for this plugin inside a recovery boundary so that a
+		// panicking plugin (especially a dynamically-loaded one) cannot crash
+		// the entire audit process. On panic, findings remains nil and the
+		// plugin is retained in the result with zero findings.
+		var findings []compliance.Finding
+		var panicked bool
+
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					panicked = true
+					logger.Error("plugin panicked during RunChecks",
+						"plugin", pluginName,
+						"panic", r,
+						"stack", string(debug.Stack()),
+					)
+				}
+			}()
+			findings = p.RunChecks(device)
+		}()
+
+		// When a plugin panicked, its internal state may be corrupt.
+		// Use only the pluginName (already known) and skip method calls
+		// that could trigger a secondary unrecovered panic.
+		if panicked {
+			result.PluginFindings[pluginName] = nil
+			result.PluginInfo[pluginName] = PluginInfo{
+				Name:    pluginName,
+				Version: "unknown (panicked)",
+			}
+			result.Compliance[pluginName] = make(map[string]bool)
+
+			continue
+		}
 
 		// Normalize findings: derive missing Severity from control metadata
 		for i := range findings {
