@@ -77,7 +77,12 @@ type XMLDecoder interface {
 }
 
 func NewFactory(decoder XMLDecoder) *Factory {
-    return &Factory{xmlDecoder: decoder}
+    return &Factory{xmlDecoder: decoder, registry: DefaultRegistry()}
+}
+
+// NewFactoryWithRegistry allows test isolation with a custom registry.
+func NewFactoryWithRegistry(decoder XMLDecoder, reg *DeviceParserRegistry) *Factory {
+    return &Factory{xmlDecoder: decoder, registry: reg}
 }
 ```
 
@@ -166,6 +171,18 @@ For detailed examples and the historical context of fixing `pkg/internal/` bound
 - **Usage**: Also used in `ConversionWarning` type for severity classification of non-fatal conversion issues
 
 ### 4. Data Processing Engine
+
+#### Device Parser Registry
+
+- **Package**: `pkg/parser/`
+- **Pattern**: Self-registration via `init()` + blank imports (mirrors `database/sql` driver pattern)
+- **Key Types**: `DeviceParserRegistry`, `ConstructorFunc`, `DeviceParser` interface
+- **Singleton**: `parser.DefaultRegistry()` returns the global registry; `parser.NewDeviceParserRegistry()` for test isolation
+- **Registration**: Each parser package calls `parser.Register("rootElement", factory)` from `init()`
+- **Dispatch**: `Factory.CreateDevice()` auto-detects device type from the XML root element via registry lookup, or accepts an explicit `--device-type` override
+- **Built-in**: OPNsense parser self-registers in `pkg/parser/opnsense/parser.go`
+- **Extensibility**: External parsers register via blank import in the consumer binary (see [Device Parser Development](#device-parser-development) below)
+- **Blank Import Requirement**: `cmd/root.go` (and test files using `parser.NewFactory()`) must import `_ "pkg/parser/opnsense"` to trigger registration
 
 #### XML Parser Component
 

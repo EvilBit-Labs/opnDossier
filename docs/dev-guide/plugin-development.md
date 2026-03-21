@@ -250,17 +250,139 @@ The audit engine requires the `Finding.Severity` field to generate accurate seve
 
 3. **Fallback behavior**: The audit engine will attempt to derive severity from Referenced controls if not provided, but plugins should not rely on this behavior. Always set `Finding.Severity` explicitly.
 
+## Device Parser Development
+
+opnDossier supports adding new device types (e.g., pfSense, Fortinet, MikroTik) through a compile-time parser registry. This is separate from compliance plugins -- device parsers transform vendor-specific configuration files into the platform-agnostic `CommonDevice` model.
+
+### Architecture
+
+The `DeviceParserRegistry` in `pkg/parser/registry.go` follows the `database/sql` driver registration pattern:
+
+- Parsers self-register via `init()` functions
+- The `Factory` auto-detects device type from the XML root element
+- External parsers link at compile time via blank imports
+
+### Creating a Device Parser
+
+1. **Create a Go package** that implements the `parser.DeviceParser` interface:
+
+   ```go
+   package pfsense
+
+   import (
+       "context"
+       "io"
+
+       common "github.com/EvilBit-Labs/opnDossier/pkg/model"
+       "github.com/EvilBit-Labs/opnDossier/pkg/parser"
+   )
+
+   type PfSenseParser struct{}
+
+   func (p *PfSenseParser) Parse(
+       ctx context.Context, r io.Reader,
+   ) (*common.CommonDevice, []common.ConversionWarning, error) {
+       // Parse pfSense XML and convert to CommonDevice
+   }
+
+   func (p *PfSenseParser) ParseAndValidate(
+       ctx context.Context, r io.Reader,
+   ) (*common.CommonDevice, []common.ConversionWarning, error) {
+       // Parse + validate
+   }
+   ```
+
+2. **Register via `init()`**:
+
+   ```go
+   func init() {
+       parser.Register("pfsense", func(dec parser.XMLDecoder) parser.DeviceParser {
+           return &PfSenseParser{}
+       })
+   }
+   ```
+
+   The first argument (`"pfsense"`) must match the XML root element name of the config file.
+
+3. **Link via blank import** in your consumer binary:
+
+   ```go
+   package main
+
+   import (
+       "github.com/EvilBit-Labs/opnDossier/cmd"
+       _ "github.com/example/pfsense-parser" // self-registers at init()
+   )
+
+   func main() { cmd.Execute() }
+   ```
+
+### Key Types
+
+| Type                     | Description                                                                                           |
+| ------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `parser.DeviceParser`    | Interface: `Parse()` and `ParseAndValidate()` returning `(*CommonDevice, []ConversionWarning, error)` |
+| `parser.ConstructorFunc` | Factory signature: `func(XMLDecoder) DeviceParser`                                                    |
+| `parser.XMLDecoder`      | XML parsing backend injected by the Factory; external parsers that handle their own XML may ignore it |
+
+### Registration Rules
+
+- Device type names are normalized to lowercase with whitespace trimmed
+- Duplicate registrations panic at startup (fail-fast)
+- Nil factories and empty names panic at startup
+- `parser.DefaultRegistry().List()` returns all registered types (sorted)
+
+### Testing
+
+Use `parser.NewFactoryWithRegistry()` with `parser.NewDeviceParserRegistry()` for isolated tests that don't pollute the global registry:
+
+```go
+reg := parser.NewDeviceParserRegistry()
+reg.Register("testdevice", myFactory)
+factory := parser.NewFactoryWithRegistry(decoder, reg)
+device, warnings, err := factory.CreateDevice(ctx, reader, "", false)
+```
+
+### Common Pitfalls
+
+**Empty registry (missing blank import):** The most common mistake is forgetting the blank import. Without it, your parser's `init()` never runs and the registry stays empty. The symptom is an error like:
+
+```text
+unsupported device type: root element <pfsense> is not recognized; supported: (none registered -- ensure parser packages are imported)
+```
+
+Fix: add `_ "your/parser/package"` to the binary's import list.
+
+**Root element mismatch:** The string passed to `parser.Register()` must exactly match the XML root element name (lowercase). If a pfSense config uses `<pfsense>` as the root element, register as `"pfsense"`, not `"pfSense"` or `"PfSense"` (the registry normalizes to lowercase, but the XML root element detection also lowercases).
+
+**Duplicate registration:** If two packages register the same root element name, the binary will panic at startup. This is intentional -- it surfaces conflicts immediately rather than silently picking one.
+
+### Source Files
+
+- `pkg/parser/registry.go` -- Registry implementation
+- `pkg/parser/factory.go` -- Factory with auto-detection and error handling
+- `pkg/parser/opnsense/parser.go` -- Built-in OPNsense parser (reference implementation)
+
 ## Troubleshooting
+
+### Compliance Plugins
 
 - **Plugin not loaded?** Ensure it is built as a Go plugin (`-buildmode=plugin`), exports `var Plugin`, and is in the correct directory.
 - **Go version mismatch?** All plugins and the main binary must be built with the exact same Go version and dependencies.
 - **Platform support:** Go plugins are supported on Linux and macOS, not Windows.
 
+### Device Parsers
+
+- **Device type not recognized?** Ensure the parser package is imported via blank import (`_ "pkg/path"`) in the binary so `init()` runs. See "Common Pitfalls" above.
+- **Panic on startup?** Two packages registered the same root element name. Check for duplicate `parser.Register()` calls.
+- **Auto-detection picks wrong parser?** Use `--device-type` to force a specific parser and bypass root element detection.
+
 ## Examples
 
-- See `internal/plugins/` for static plugin examples.
-- See the above dynamic plugin example for external plugins.
+- See `internal/plugins/` for static compliance plugin examples.
+- See `pkg/parser/opnsense/parser.go` for the built-in device parser example.
+- See the above dynamic plugin example for external compliance plugins.
 
 ## Conclusion
 
-The opnDossier plugin system is flexible: you can extend compliance coverage by adding new plugins statically or dynamically, with a simple, generic interface and robust integration with the audit engine.
+The opnDossier plugin system is flexible: you can extend compliance coverage by adding new compliance plugins, and add new device types by registering device parsers via the `DeviceParserRegistry`. Both systems use self-registration patterns for zero-change extensibility.

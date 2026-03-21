@@ -19,7 +19,7 @@ These options apply to all commands (`convert`, `display`, `validate`).
 | Timestamps      | `--timestamps`  | -                        | -             | boolean | `false`  | Include timestamps in log output           |
 | Minimal mode    | `--minimal`     | `OPNDOSSIER_MINIMAL`     | `minimal`     | boolean | `false`  | Minimal output (suppress progress/verbose) |
 | JSON output     | `--json-output` | `OPNDOSSIER_JSON_OUTPUT` | `json_output` | boolean | `false`  | Output errors in JSON format               |
-| Device type     | `--device-type` | -                        | -             | string  | `""`     | Force device type (e.g., opnsense)         |
+| Device type     | `--device-type` | -                        | -             | string  | `""`     | Force device type (auto-detected if empty) |
 | Config file     | `--config`      | -                        | -             | string  | `""`     | Custom config file path                    |
 
 ## Convert Command Options

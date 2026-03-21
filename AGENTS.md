@@ -142,6 +142,8 @@ Use `charmbracelet/log` with structured key-value pairs: `logger.Info("msg", "ke
 - Start comments with the name of the thing being described
 - Use complete sentences
 - Include examples for complex functionality
+- **80%+ docstring coverage required** -- all exported AND unexported functions, types, vars, and const blocks need doc comments. This includes `init()` functions, `var` blocks, and test helpers
+- `//nolint` directives between a doc comment and its declaration break the association -- place the doc comment directly above the declaration or above the nolint line
 
 ### 5.5 Import Organization
 

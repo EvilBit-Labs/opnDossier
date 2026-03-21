@@ -31,8 +31,21 @@ opndossier convert [flags] <config.xml> [config2.xml ...]
 | `--audit-mode`       |       |                | Audit mode: `standard`, `blue`, `red`                                                                |
 | `--audit-plugins`    |       |                | Comma-separated compliance plugins: `stig`, `sans`, `firewall`                                       |
 | `--redact`           |       | `false`        | Redact sensitive fields (passwords, keys, community strings)                                         |
+| `--device-type`      |       | auto-detect    | Force device type instead of auto-detecting from XML root element                                    |
 
 For global flags (`--verbose`, `--quiet`, `--config`, etc.), see [Configuration Reference](../configuration-reference.md).
+
+## Device Types
+
+By default, opnDossier auto-detects the device type from the XML root element of the configuration file. Currently, OPNsense (`<opnsense>`) is the built-in device type.
+
+The `--device-type` flag overrides auto-detection, which is useful if a config file has an unexpected root element or if you want to explicitly specify the parser.
+
+```bash
+opndossier convert config.xml --device-type opnsense
+```
+
+opnDossier's device type system is extensible -- additional device types (e.g., pfSense, Fortinet) can be added via third-party parser plugins. Use `opndossier convert --device-type <TAB>` to see all available device types via shell completion. See the [Plugin Development Guide](../../dev-guide/plugin-development.md#device-parser-development) for details on creating device parsers.
 
 ## Sections
 
