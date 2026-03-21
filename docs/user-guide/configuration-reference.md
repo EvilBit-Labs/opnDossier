@@ -47,11 +47,11 @@ Supported formats: `markdown` (`md`), `json`, `yaml` (`yml`), `text` (`txt`), `h
 
 ### Audit & Compliance
 
-| Setting       | CLI Flag          | Environment Variable | Config File | Type     | Default | Description                                                                                                                                                                |
-| ------------- | ----------------- | -------------------- | ----------- | -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Audit mode    | `--audit-mode`    | -                    | -           | string   | `""`    | Audit mode: standard, blue, red                                                                                                                                            |
-| Audit plugins | `--audit-plugins` | -                    | -           | string[] | `[]`    | Plugins: stig, sans, firewall                                                                                                                                              |
-| Plugin dir    | `--plugin-dir`    | -                    | -           | string   | `""`    | Directory containing dynamic .so compliance plugins. If explicitly set to a nonexistent directory, fails with an error. If not specified, default plugin paths are used. |
+| Setting       | CLI Flag          | Environment Variable | Config File | Type     | Default | Description                                                                                                                                                              |
+| ------------- | ----------------- | -------------------- | ----------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Audit mode    | `--audit-mode`    | -                    | -           | string   | `""`    | Audit mode: standard, blue, red                                                                                                                                          |
+| Audit plugins | `--audit-plugins` | -                    | -           | string[] | `[]`    | Plugins: stig, sans, firewall                                                                                                                                            |
+| Plugin dir    | `--plugin-dir`    | -                    | -           | string   | `""`    | Directory containing dynamic .so compliance plugins. If explicitly set to a nonexistent directory, fails with an error. If not specified, no dynamic plugins are loaded. |
 
 ## Display Command Options
 

@@ -37,12 +37,14 @@ func defaultPluginLoader(path string) (compliance.Plugin, error) {
 		return nil, fmt.Errorf("lookup Plugin in %q: %w", path, err)
 	}
 
-	cp, ok := sym.(compliance.Plugin)
+	// plugin.Lookup returns a pointer to the exported variable, not the value
+	// itself. For `var Plugin compliance.Plugin`, sym is *compliance.Plugin.
+	pSym, ok := sym.(*compliance.Plugin)
 	if !ok {
-		return nil, fmt.Errorf("symbol Plugin in %q does not implement compliance.Plugin", path)
+		return nil, fmt.Errorf("symbol Plugin in %q is not *compliance.Plugin (got %T)", path, sym)
 	}
 
-	return cp, nil
+	return *pSym, nil
 }
 
 // PluginRegistry manages the registration and retrieval of compliance plugins.
@@ -137,7 +139,7 @@ func (pr *PluginRegistry) LoadDynamicPlugins(
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			if explicitDir {
-				return LoadResult{}, fmt.Errorf("plugin directory %q does not exist", dir)
+				return LoadResult{}, fmt.Errorf("plugin directory %q does not exist: %w", dir, err)
 			}
 
 			ctxLogger.Debug("Dynamic plugin directory does not exist", "dir", dir)
@@ -560,6 +562,13 @@ type PluginLoadError struct {
 // Error returns a human-readable description of the load failure.
 func (f PluginLoadError) Error() string {
 	return fmt.Sprintf("plugin %s: %v", f.Name, f.Err)
+}
+
+// Unwrap returns the underlying error that caused the plugin load to fail.
+// This allows consumers to use errors.Is and errors.As with PluginLoadError,
+// including when these errors are combined via errors.Join.
+func (f PluginLoadError) Unwrap() error {
+	return f.Err
 }
 
 // LoadResult summarises the outcome of a LoadDynamicPlugins call, reporting

@@ -500,6 +500,44 @@ func TestPluginLoadError_Error(t *testing.T) {
 	}
 }
 
+// TestPluginLoadError_Unwrap verifies that PluginLoadError supports
+// errors.Is and errors.As through its Unwrap method.
+func TestPluginLoadError_Unwrap(t *testing.T) {
+	t.Parallel()
+
+	sentinel := errors.New("sentinel")
+	f := PluginLoadError{Name: "bad.so", Err: sentinel}
+
+	if !errors.Is(f, sentinel) {
+		t.Error("errors.Is should match the underlying sentinel error")
+	}
+
+	unwrapped := f.Unwrap()
+	if !errors.Is(unwrapped, sentinel) {
+		t.Errorf("Unwrap() = %v, want sentinel", unwrapped)
+	}
+}
+
+// TestLoadDynamicPlugins_ExplicitDirWrapsErrNotExist verifies that the error
+// returned for an explicit missing directory wraps os.ErrNotExist.
+func TestLoadDynamicPlugins_ExplicitDirWrapsErrNotExist(t *testing.T) {
+	t.Parallel()
+
+	registry := NewPluginRegistry()
+	logger := newTestLogger(t)
+
+	missingDir := filepath.Join(t.TempDir(), "explicit-missing")
+	_, loadErr := registry.LoadDynamicPlugins(context.Background(), missingDir, true, logger)
+
+	if loadErr == nil {
+		t.Fatal("expected error for explicit missing directory")
+	}
+
+	if !errors.Is(loadErr, os.ErrNotExist) {
+		t.Errorf("expected error to wrap os.ErrNotExist, got: %v", loadErr)
+	}
+}
+
 // TestPluginManager_SetPluginDir_Integration verifies the full lifecycle:
 // SetPluginDir → InitializePlugins → GetLoadResult with both success and
 // failure dynamic plugins.

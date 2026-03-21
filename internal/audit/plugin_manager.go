@@ -50,6 +50,9 @@ func (pm *PluginManager) InitializePlugins(ctx context.Context) error {
 	logger := pm.logger.WithContext(ctx)
 	logger.Info("Initializing compliance plugins")
 
+	// Reset load result so repeated calls don't carry stale state.
+	pm.loadResult = LoadResult{}
+
 	// Register STIG plugin
 	stigPlugin := stig.NewPlugin()
 	if err := pm.registry.RegisterPlugin(stigPlugin); err != nil {
@@ -81,7 +84,7 @@ func (pm *PluginManager) InitializePlugins(ctx context.Context) error {
 	// Directory-level errors (missing explicit dir, unreadable dir) are fatal.
 	// Per-plugin load failures are non-fatal — available via GetLoadResult().
 	if pm.pluginDir != "" {
-		result, loadErr := pm.registry.LoadDynamicPlugins(ctx, pm.pluginDir, pm.explicitPluginDir, pm.logger)
+		result, loadErr := pm.registry.LoadDynamicPlugins(ctx, pm.pluginDir, pm.explicitPluginDir, logger)
 		pm.loadResult = result
 
 		if loadErr != nil && result.Loaded == 0 && len(result.Failures) == 0 {
@@ -113,9 +116,15 @@ func (pm *PluginManager) SetPluginDir(dir string, explicit bool) {
 // GetLoadResult returns the result of the most recent LoadDynamicPlugins call
 // performed during InitializePlugins. If no dynamic plugin directory was
 // configured, or InitializePlugins has not been called, the zero-value
-// LoadResult is returned.
+// LoadResult is returned. The returned value is a deep copy — callers cannot
+// mutate the manager's internal state.
 func (pm *PluginManager) GetLoadResult() LoadResult {
-	return pm.loadResult
+	result := pm.loadResult
+	if len(result.Failures) > 0 {
+		result.Failures = append([]PluginLoadError(nil), result.Failures...)
+	}
+
+	return result
 }
 
 // GetRegistry returns the plugin registry.
