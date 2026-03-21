@@ -25,7 +25,9 @@ import (
 //   - comprehensive: Whether to generate comprehensive reports
 //
 // Rationale: The snapshot focuses on flags that directly affect display output
-// and are commonly modified in display tests.
+// and are commonly modified in display tests. Fields: theme, wrapWidth,
+// noWrap, sections, comprehensive, deviceType, redact, includeTunables,
+// pluginDir.
 type sharedFlagSnapshot struct {
 	theme           string
 	wrapWidth       int
@@ -35,6 +37,7 @@ type sharedFlagSnapshot struct {
 	deviceType      string
 	redact          bool
 	includeTunables bool
+	pluginDir       string
 }
 
 func captureSharedFlags() sharedFlagSnapshot {
@@ -47,6 +50,7 @@ func captureSharedFlags() sharedFlagSnapshot {
 		deviceType:      sharedDeviceType,
 		redact:          sharedRedact,
 		includeTunables: sharedIncludeTunables,
+		pluginDir:       sharedPluginDir,
 	}
 }
 
@@ -59,6 +63,7 @@ func (s sharedFlagSnapshot) restore() {
 	sharedDeviceType = s.deviceType
 	sharedRedact = s.redact
 	sharedIncludeTunables = s.includeTunables
+	sharedPluginDir = s.pluginDir
 }
 
 func captureStderr(t *testing.T, fn func()) string {

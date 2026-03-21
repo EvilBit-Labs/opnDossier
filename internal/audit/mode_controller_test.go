@@ -1228,9 +1228,17 @@ func TestPluginRegistry_LoadDynamicPlugins(t *testing.T) {
 	logger := newTestLogger(t)
 
 	missingDir := filepath.Join(t.TempDir(), "does-not-exist")
-	err := registry.LoadDynamicPlugins(context.Background(), missingDir, logger)
+	result, err := registry.LoadDynamicPlugins(context.Background(), missingDir, false, logger)
 	if err != nil {
 		t.Errorf("LoadDynamicPlugins() should not error for missing directory, got %v", err)
+	}
+
+	if result.Loaded != 0 {
+		t.Errorf("LoadDynamicPlugins() Loaded = %d, want 0", result.Loaded)
+	}
+
+	if result.Failed() != 0 {
+		t.Errorf("LoadDynamicPlugins() Failed = %d, want 0", result.Failed())
 	}
 }
 

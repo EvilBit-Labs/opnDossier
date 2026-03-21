@@ -30,6 +30,7 @@ var (
 	sharedAuditMode       string   //nolint:gochecknoglobals // Audit mode (standard, blue, red)
 	sharedBlackhatMode    bool     //nolint:gochecknoglobals // Enable blackhat mode for red team reports
 	sharedSelectedPlugins []string //nolint:gochecknoglobals // Selected compliance plugins
+	sharedPluginDir       string   //nolint:gochecknoglobals // Directory for dynamic .so plugins
 )
 
 // addSharedTemplateFlags adds shared CLI flags for content, formatting, and audit-related
@@ -111,6 +112,10 @@ func addSharedAuditFlags(cmd *cobra.Command) {
 	cmd.Flags().
 		StringSliceVar(&sharedSelectedPlugins, "audit-plugins", []string{}, "Compliance plugins to run (stig,sans,firewall)")
 	setFlagAnnotation(cmd.Flags(), "audit-plugins", []string{"audit"})
+
+	cmd.Flags().
+		StringVar(&sharedPluginDir, "plugin-dir", "", "Directory containing dynamic .so compliance plugins")
+	setFlagAnnotation(cmd.Flags(), "plugin-dir", []string{"audit"})
 }
 
 // Constants for flag validation.
