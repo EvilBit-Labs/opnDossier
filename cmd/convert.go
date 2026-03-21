@@ -553,7 +553,7 @@ func buildAuditOptions() audit.Options {
 	}
 
 	// Plugin directory: CLI flag is the source. When set, mark as explicit
-	// so that a missing directory produces a Warn-level log.
+	// so that a missing directory produces an error instead of being silently skipped.
 	if sharedPluginDir != "" {
 		opts.PluginDir = sharedPluginDir
 		opts.ExplicitPluginDir = true

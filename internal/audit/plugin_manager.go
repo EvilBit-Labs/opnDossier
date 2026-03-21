@@ -101,10 +101,10 @@ func (pm *PluginManager) InitializePlugins(ctx context.Context) error {
 }
 
 // SetPluginDir configures the directory from which dynamic .so plugins are
-// loaded during InitializePlugins. The explicit flag controls the log level
+// loaded during InitializePlugins. The explicit flag controls the behavior
 // when the directory does not exist: true means the user explicitly configured
-// this path (logs at Warn), false means it is a default/optional path (logs at
-// Debug).
+// this path (returns an error), false means it is a default/optional path
+// (logs at Debug and continues).
 func (pm *PluginManager) SetPluginDir(dir string, explicit bool) {
 	pm.pluginDir = dir
 	pm.explicitPluginDir = explicit
