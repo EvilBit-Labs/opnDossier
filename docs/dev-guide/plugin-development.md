@@ -207,7 +207,7 @@ go build -buildmode=plugin -o myplugin.so main.go
 
 ## Plugin Development Best Practices
 
-- Use unique, descriptive control IDs and titles.
+- **Control ID patterns**: Use stable, predictable identifiers. The built-in plugins use `V-XXXXXX` for STIG (matching real DISA STIG vulnerability IDs), `SANS-FW-XXX` for SANS, and `FIREWALL-XXX` for the firewall plugin. New plugins should follow a similar `PLUGIN-XXX` pattern with a prefix that identifies the standard.
 - Provide actionable remediation and clear rationale.
 - Use the `References` and `Tags` fields for all findings.
 - **Set Finding Severity**: Plugins must populate `Finding.Severity` for accurate severity breakdown in reports. Use a helper function like `controlSeverity(id string) string` to look up severity from control definitions rather than hard-coding literals.
