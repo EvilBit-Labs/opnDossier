@@ -1,0 +1,76 @@
+graph TD
+    subgraph CLI["CLI Layer (cmd/)"]
+        ROOT[root.go<br/>Cobra CLI]
+        CONVERT[convert]
+        AUDIT[audit]
+        DIFF[diff]
+        DISPLAY[display]
+    end
+
+    subgraph Input["Input"]
+        XML[OPNsense<br/>config.xml]
+    end
+
+    subgraph Parsing["Parsing Layer (pkg/)"]
+        FACTORY[parser.Factory<br/>Auto-detect device type]
+        SCHEMA[schema/opnsense<br/>XML structs]
+        CONVERTER[parser/opnsense<br/>Schema → CommonDevice]
+    end
+
+    subgraph Model["Domain Model (pkg/model/)"]
+        CD[CommonDevice<br/>Platform-agnostic model]
+    end
+
+    subgraph Processing["Processing Layer (internal/)"]
+        ENRICH[converter/enrichment<br/>Statistics, Analysis]
+        PROC[processor<br/>Report generation]
+        DIFFENG[diff/analyzer<br/>Config comparison]
+        BUILDER[converter/builder<br/>Markdown generation]
+    end
+
+    subgraph Audit["Audit Engine (internal/)"]
+        PM[audit/PluginManager]
+        REG[audit/PluginRegistry]
+        FW[plugins/firewall]
+        SANS[plugins/sans]
+        STIG[plugins/stig]
+    end
+
+    subgraph Output["Output Formats"]
+        MD[Markdown]
+        JSON_OUT[JSON]
+        YAML_OUT[YAML]
+        TXT[Text]
+        HTML_OUT[HTML]
+    end
+
+    XML --> FACTORY
+    FACTORY --> SCHEMA
+    SCHEMA --> CONVERTER
+    CONVERTER --> CD
+
+    ROOT --> CONVERT
+    ROOT --> AUDIT
+    ROOT --> DIFF
+    ROOT --> DISPLAY
+
+    CONVERT --> ENRICH
+    CONVERT --> BUILDER
+    ENRICH --> CD
+    BUILDER --> MD
+    BUILDER --> JSON_OUT
+    BUILDER --> YAML_OUT
+    BUILDER --> TXT
+    BUILDER --> HTML_OUT
+
+    AUDIT --> PM
+    PM --> REG
+    REG --> FW
+    REG --> SANS
+    REG --> STIG
+    PM --> CD
+
+    DIFF --> DIFFENG
+    DIFFENG --> CD
+
+    DISPLAY --> CD
