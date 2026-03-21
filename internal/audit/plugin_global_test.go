@@ -392,7 +392,7 @@ func TestLoadDynamicPlugins_NilLogger(t *testing.T) {
 	result, err := registry.LoadDynamicPlugins(context.Background(), t.TempDir(), false, nil)
 
 	if err == nil {
-		t.Error("LoadDynamicPlugins() expected error for nil logger")
+		t.Fatal("LoadDynamicPlugins() expected error for nil logger")
 	}
 
 	if !strings.Contains(err.Error(), "nil logger") {
@@ -572,7 +572,7 @@ func TestPluginManager_SetPluginDir_Integration(t *testing.T) {
 
 		err := pm.InitializePlugins(context.Background())
 		if err == nil {
-			t.Error("InitializePlugins() expected error for explicit missing dir")
+			t.Fatal("InitializePlugins() expected error for explicit missing dir")
 		}
 
 		if !strings.Contains(err.Error(), "does not exist") {
