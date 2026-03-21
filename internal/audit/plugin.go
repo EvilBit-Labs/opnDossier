@@ -4,16 +4,17 @@ package audit
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"os"
 	"path/filepath"
 	pluginlib "plugin"
+	"runtime/debug"
 	"slices"
 	"strings"
 	"sync"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
@@ -79,10 +80,10 @@ func (pr *PluginRegistry) ListPlugins() []string {
 
 // LoadDynamicPlugins loads .so plugins from the specified directory and registers them.
 // It is safe to call even if the directory does not exist.
-func (pr *PluginRegistry) LoadDynamicPlugins(ctx context.Context, dir string, logger *slog.Logger) error {
+func (pr *PluginRegistry) LoadDynamicPlugins(_ context.Context, dir string, logger *logging.Logger) error {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		logger.InfoContext(ctx, "Dynamic plugin directory not found or not accessible", "dir", dir)
+		logger.Info("Dynamic plugin directory not found or not accessible", "dir", dir)
 		return nil //nolint:nilerr // Intentionally ignore directory access errors
 	}
 
@@ -95,29 +96,28 @@ func (pr *PluginRegistry) LoadDynamicPlugins(ctx context.Context, dir string, lo
 
 		p, err := pluginlib.Open(path)
 		if err != nil {
-			logger.ErrorContext(ctx, "Failed to open plugin", "file", path, "error", err)
+			logger.Error("Failed to open plugin", "file", path, "error", err)
 			continue
 		}
 
 		sym, err := p.Lookup("Plugin")
 		if err != nil {
-			logger.ErrorContext(ctx, "Failed to find Plugin symbol", "file", path, "error", err)
+			logger.Error("Failed to find Plugin symbol", "file", path, "error", err)
 			continue
 		}
 
 		compliancePlugin, ok := sym.(compliance.Plugin)
 		if !ok {
-			logger.ErrorContext(ctx, "Symbol Plugin does not implement compliance.Plugin", "file", path)
+			logger.Error("Symbol Plugin does not implement compliance.Plugin", "file", path)
 			continue
 		}
 
 		if err := pr.RegisterPlugin(compliancePlugin); err != nil {
-			logger.ErrorContext(ctx, "Failed to register dynamic plugin", "file", path, "error", err)
+			logger.Error("Failed to register dynamic plugin", "file", path, "error", err)
 			continue
 		}
 
-		logger.InfoContext(
-			ctx,
+		logger.Info(
 			"Loaded dynamic plugin",
 			"file",
 			path,
@@ -140,10 +140,16 @@ func (pr *PluginRegistry) LoadDynamicPlugins(ctx context.Context, dir string, lo
 func (pr *PluginRegistry) RunComplianceChecks(
 	device *common.CommonDevice,
 	pluginNames []string,
-	logger *slog.Logger,
+	logger *logging.Logger,
 ) (*ComplianceResult, error) {
 	if device == nil {
 		return nil, ErrConfigurationNil
+	}
+
+	// Guard against nil logger so the recovery path never panics on a log call.
+	if logger == nil {
+		fallback, _ := logging.New(logging.Config{Level: "info"})
+		logger = fallback
 	}
 
 	// Deduplicate plugin names to ensure consistent results across
@@ -176,6 +182,7 @@ func (pr *PluginRegistry) RunComplianceChecks(
 					logger.Error("plugin panicked during RunChecks",
 						"plugin", pluginName,
 						"panic", r,
+						"stack", string(debug.Stack()),
 					)
 				}
 			}()

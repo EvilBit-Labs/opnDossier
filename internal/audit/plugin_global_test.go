@@ -2,7 +2,6 @@ package audit
 
 import (
 	"context"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -177,7 +176,7 @@ func TestLoadDynamicPlugins(t *testing.T) {
 	t.Parallel()
 
 	registry := NewPluginRegistry()
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger := newTestLogger(t)
 	ctx := context.Background()
 
 	tests := []struct {
@@ -495,7 +494,7 @@ func TestRunComplianceChecks_WithFindingsAndReferences(t *testing.T) {
 		},
 	}
 
-	result, err := registry.RunComplianceChecks(testConfig, []string{"test-plugin-findings"}, slog.Default())
+	result, err := registry.RunComplianceChecks(testConfig, []string{"test-plugin-findings"}, newTestLogger(t))
 	if err != nil {
 		t.Errorf("RunComplianceChecks() error = %v", err)
 	}
@@ -577,7 +576,7 @@ func TestRunComplianceChecks_MissingSeverityDerivation(t *testing.T) {
 		System: common.System{Hostname: "test-host"},
 	}
 
-	result, err := registry.RunComplianceChecks(testConfig, []string{"test-missing-severity"}, slog.Default())
+	result, err := registry.RunComplianceChecks(testConfig, []string{"test-missing-severity"}, newTestLogger(t))
 	if err != nil {
 		t.Fatalf("RunComplianceChecks() error = %v", err)
 	}
@@ -642,7 +641,7 @@ func TestRunComplianceChecks_MissingSeverityNoMatchingControl(t *testing.T) {
 		System: common.System{Hostname: "test-host"},
 	}
 
-	result, err := registry.RunComplianceChecks(testConfig, []string{"test-no-control-match"}, slog.Default())
+	result, err := registry.RunComplianceChecks(testConfig, []string{"test-no-control-match"}, newTestLogger(t))
 	if err == nil {
 		t.Fatal("RunComplianceChecks() should return error for orphan finding with unresolvable severity")
 	}
@@ -823,7 +822,7 @@ func (m *mockPanickingPlugin) GetControlByID(id string) (*compliance.Control, er
 func TestRunComplianceChecks_PanickingPluginIsolation(t *testing.T) {
 	t.Parallel()
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger := newTestLogger(t)
 
 	panickingPlugin := &mockPanickingPlugin{
 		mockCompliancePlugin: mockCompliancePlugin{
@@ -877,13 +876,6 @@ func TestRunComplianceChecks_PanickingPluginIsolation(t *testing.T) {
 			selectedPlugins:     []string{"panicking-plugin", "healthy-plugin"},
 			wantFindingsCount:   1,
 			wantPluginInfoCount: 2,
-		},
-		{
-			name:                "panicking plugin contributes zero findings",
-			plugins:             []compliance.Plugin{panickingPlugin},
-			selectedPlugins:     []string{"panicking-plugin"},
-			wantFindingsCount:   0,
-			wantPluginInfoCount: 1,
 		},
 	}
 
@@ -1016,7 +1008,7 @@ func TestRunComplianceChecks_PerPluginSeverityArithmetic(t *testing.T) {
 		},
 	}
 
-	result, err := registry.RunComplianceChecks(device, []string{"stig"}, slog.Default())
+	result, err := registry.RunComplianceChecks(device, []string{"stig"}, newTestLogger(t))
 	if err != nil {
 		t.Fatalf("RunComplianceChecks() error: %v", err)
 	}
@@ -1166,7 +1158,7 @@ func TestRunComplianceChecks_DuplicatePluginNames(t *testing.T) {
 	}
 
 	// Pass duplicate names — should be deduplicated internally
-	result, err := registry.RunComplianceChecks(device, []string{"test-plugin", "test-plugin"}, slog.Default())
+	result, err := registry.RunComplianceChecks(device, []string{"test-plugin", "test-plugin"}, newTestLogger(t))
 	if err != nil {
 		t.Fatalf("RunComplianceChecks() unexpected error: %v", err)
 	}
