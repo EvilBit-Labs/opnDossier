@@ -30,7 +30,7 @@ graph TD
 
     subgraph Audit["Audit Engine (internal/)"]
         PM[audit/PluginManager]
-        REG[audit/PluginRegistry]
+        REG[audit/PluginRegistry<br/>Panic-isolated execution]
         FW[plugins/firewall]
         SANS[plugins/sans]
         STIG[plugins/stig]
