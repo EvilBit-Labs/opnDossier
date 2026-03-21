@@ -1,6 +1,5 @@
 {
   "enabledPlugins": {
-    "golang-development@geoffjay-claude-plugins": true,
-    "ralph-loop@claude-plugins-official": true
+    "golang-development@geoffjay-claude-plugins": true
   }
 }
