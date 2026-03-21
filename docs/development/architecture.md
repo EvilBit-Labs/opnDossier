@@ -77,7 +77,12 @@ type XMLDecoder interface {
 }
 
 func NewFactory(decoder XMLDecoder) *Factory {
-    return &Factory{xmlDecoder: decoder}
+    return &Factory{xmlDecoder: decoder, registry: DefaultRegistry()}
+}
+
+// NewFactoryWithRegistry allows test isolation with a custom registry.
+func NewFactoryWithRegistry(decoder XMLDecoder, reg *DeviceParserRegistry) *Factory {
+    return &Factory{xmlDecoder: decoder, registry: reg}
 }
 ```
 
@@ -92,21 +97,21 @@ This allows `pkg/parser` to use XML parsing functionality from `internal/cfgpars
 
 ### Structural Typing for Sub-Packages
 
-Go's structural typing allows `pkg/` sub-packages to define their own **unexported interface** that `internal/` types satisfy without importing them:
+Go's structural typing allows `pkg/` sub-packages to define their own interface that `internal/` types satisfy without importing them. In **PR #437**, the OPNsense parser was refactored to use the exported `parser.XMLDecoder` interface directly instead of a local `xmlDecoder` interface. This change was made because:
+
+1. The `parser.XMLDecoder` interface is already exported in the public API
+2. The local interface was redundant and added unnecessary indirection
+3. Using the exported interface enables better type safety and documentation
+4. It clarifies the dependency contract for external consumers
 
 ```go
 // pkg/parser/opnsense/parser.go
-type xmlDecoder interface {
-    Parse(ctx context.Context, r io.Reader) (*schema.OpnSenseDocument, error)
-    ParseAndValidate(ctx context.Context, r io.Reader) (*schema.OpnSenseDocument, error)
-}
-
-func NewParser(decoder xmlDecoder) *Parser {
+func NewParser(decoder parser.XMLDecoder) *Parser {
     return &Parser{decoder: decoder}
 }
 ```
 
-The `internal/cfgparser.XMLParser` type satisfies this interface through structural compatibility, without requiring an explicit import.
+The `internal/cfgparser.XMLParser` type satisfies the `parser.XMLDecoder` interface through structural compatibility, without requiring an explicit import of `internal/cfgparser`.
 
 ### Unexporting Types Pattern
 
@@ -166,6 +171,18 @@ For detailed examples and the historical context of fixing `pkg/internal/` bound
 - **Usage**: Also used in `ConversionWarning` type for severity classification of non-fatal conversion issues
 
 ### 4. Data Processing Engine
+
+#### Device Parser Registry
+
+- **Package**: `pkg/parser/`
+- **Pattern**: Self-registration via `init()` + blank imports (mirrors `database/sql` driver pattern)
+- **Key Types**: `DeviceParserRegistry`, `ConstructorFunc`, `DeviceParser` interface
+- **Singleton**: `parser.DefaultRegistry()` returns the global registry; `parser.NewDeviceParserRegistry()` for test isolation
+- **Registration**: Each parser package calls `parser.Register("rootElement", factory)` from `init()`
+- **Dispatch**: `Factory.CreateDevice()` auto-detects device type from the XML root element via registry lookup, or accepts an explicit `--device-type` override
+- **Built-in**: OPNsense parser self-registers in `pkg/parser/opnsense/parser.go`
+- **Extensibility**: External parsers register via blank import in the consumer binary (see [Plugin Development Guide](plugin-development.md#device-parser-development))
+- **Blank Import Requirement**: `cmd/root.go` (and test files using `parser.NewFactory()`) must import `_ "pkg/parser/opnsense"` to trigger registration
 
 #### XML Parser Component
 
@@ -295,11 +312,125 @@ graph TD
 - **`pkg/parser/opnsense/`** — Contains `parser.go` and `converter.go`. Reads schema DTOs and emits `*common.CommonDevice` with conversion warnings. This is the only package that imports `pkg/schema/opnsense/`.
 - **`pkg/model/`** — Device-agnostic domain model. No XML tags. All consumer code (processor, converter, markdown, audit, diff, compliance plugins) operates on `CommonDevice`. Includes `ConversionWarning` type for non-fatal issues and `ComplianceResults` type (with nested `ComplianceFinding`, `PluginComplianceResult`, `ComplianceControl`, `ComplianceResultSummary`, `CompliancePluginInfo`, `ComplianceAttackSurface`) for compliance audit data representation.
 - **`internal/analysis/`** — Shared analysis logic and canonical finding types. Provides detection functions (`DetectDeadRules`, `DetectUnusedInterfaces`, `DetectSecurityIssues`, `DetectPerformanceIssues`, `DetectConsistency`), statistics computation (`ComputeStatistics`), analysis aggregation (`ComputeAnalysis`), and rule comparison (`RulesEquivalent`). Used by both `internal/converter` and `internal/processor` to eliminate duplicated logic.
-- **`pkg/parser/factory.go`** — `Factory` and `DeviceParser` interface. Auto-detects the device type from the XML root element. The `--device-type opnsense` flag bypasses auto-detection. Returns 3 values: device model, warnings slice, and error.
+- **`pkg/parser/factory.go`** — `Factory` and `DeviceParser` interface. Uses the `DeviceParserRegistry` for device type dispatch. Auto-detects the device type from the XML root element or uses the `--device-type` flag to bypass auto-detection. Returns 3 values: device model, warnings slice, and error.
 
 ### Device Type Detection
 
-The `--device-type` flag is exposed on all config-reading commands (`convert`, `display`, `audit`, `diff`, `validate`). When specified, it bypasses auto-detection and fails only if parsing or validation fails. When omitted, `parser.Factory` inspects the root XML element to select the correct parser.
+The `--device-type` flag is exposed on all config-reading commands (`convert`, `display`, `audit`, `diff`, `validate`). When specified, it bypasses auto-detection and validates against the parser registry; error messages dynamically list supported devices from `registry.List()`. When omitted, `parser.Factory` inspects the root XML element to select the correct parser from the registry.
+
+## DeviceParser Registry Pattern
+
+opnDossier uses a **pluggable DeviceParser registry** that enables external Go projects to register custom device parsers at compile time. This pattern follows the `database/sql` driver registration model, replacing hardcoded switch statements with a thread-safe registry.
+
+### Registry Architecture
+
+```go
+// ConstructorFunc is the factory function signature for creating DeviceParser instances
+type ConstructorFunc = func(XMLDecoder) DeviceParser
+
+// DeviceParserRegistry manages registered DeviceParser constructors
+type DeviceParserRegistry struct {
+    mu      sync.RWMutex
+    parsers map[string]ConstructorFunc
+}
+```
+
+### Key Components
+
+#### 1. Thread-Safe Operations
+
+The registry uses `sync.RWMutex` for concurrent access:
+
+- **`Register(deviceType, fn)`** — Registers a parser constructor (panics on duplicates, nil functions, or empty device types)
+- **`Get(deviceType)`** — Returns `(ConstructorFunc, bool)` for thread-safe lookups with nil guards
+- **`List()`** — Returns sorted slice of registered device type names
+
+#### 2. Self-Registration via init()
+
+Parser packages register themselves using `init()` functions:
+
+```go
+// pkg/parser/opnsense/parser.go
+func NewParserFactory(decoder parser.XMLDecoder) parser.DeviceParser {
+    return NewParser(decoder)
+}
+
+func init() {
+    parser.Register("opnsense", NewParserFactory)
+}
+```
+
+#### 3. CRITICAL: Blank Import Requirement
+
+**All code using `parser.NewFactory()` MUST include blank imports for parser packages** to ensure `init()` functions execute:
+
+```go
+import (
+    _ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"  // Register OPNsense parser
+)
+```
+
+Without this blank import, the OPNsense parser never registers and the factory has no parsers available. This gotcha is documented in **GOTCHAS.md §7.1** and affects:
+
+- `cmd/root.go` — CLI entry point
+- All test files using `parser.NewFactory()` or `parser.DefaultRegistry()`
+
+#### 4. Factory Integration
+
+`factory.go` uses registry-based dispatch instead of hardcoded switch statements:
+
+```go
+func (f *Factory) createWithOverride(ctx context.Context, r io.Reader, override string, validateMode bool) (*common.CommonDevice, []common.ConversionWarning, error) {
+    fn, ok := f.registry.Get(override)
+    if !ok {
+        return nil, nil, fmt.Errorf(
+            "unsupported device type override: %s; supported: %s",
+            override, strings.Join(f.registry.List(), ", "),
+        )
+    }
+    
+    return parseDevice(ctx, fn(f.xmlDecoder), r, validateMode)
+}
+```
+
+Error messages dynamically list supported devices from `registry.List()`, eliminating hardcoded device type strings.
+
+#### 5. Test Isolation with NewFactoryWithRegistry()
+
+Tests requiring isolated registry state use `NewFactoryWithRegistry()`:
+
+```go
+func TestCustomParser(t *testing.T) {
+    reg := parser.NewDeviceParserRegistry()
+    reg.Register("testdevice", testParserFactory)
+    factory := parser.NewFactoryWithRegistry(mockDecoder, reg)
+    // Test without polluting global registry
+}
+```
+
+### CLI Integration
+
+`cmd/shared_flags.go` functions derive device type lists dynamically from `parser.DefaultRegistry()`:
+
+- **`ValidDeviceTypes()`** — Shell completion using `registry.List()`
+- **`validateDeviceType()`** — Validation using `registry.Get()` with dynamic error messages
+
+This replaces hardcoded "opnsense" strings with registry queries, enabling automatic CLI support for new parsers via self-registration.
+
+### Benefits
+
+1. **Compile-Time Extensibility**: External projects register parsers via blank imports
+2. **Zero Hardcoded Strings**: Device types discovered from registry at runtime
+3. **Thread-Safe**: Concurrent access protected by RWMutex
+4. **Test Isolation**: Custom registries prevent global state pollution
+5. **Dynamic Error Messages**: Supported device lists always accurate
+
+### Related Documentation
+
+For complete implementation details, error-handling patterns, and gotchas, see:
+
+- **[docs/solutions/architecture-issues/pluggable-deviceparser-registry-pattern.md](../solutions/architecture-issues/pluggable-deviceparser-registry-pattern.md)**
+- **[GOTCHAS.md §7.1](../../GOTCHAS.md)** — Blank import requirement
 
 ## Data Flow Architecture
 
