@@ -82,6 +82,10 @@ func (pr *PluginRegistry) ListPlugins() []string {
 // LoadDynamicPlugins loads .so plugins from the specified directory and registers them.
 // It is safe to call even if the directory does not exist.
 func (pr *PluginRegistry) LoadDynamicPlugins(ctx context.Context, dir string, logger *logging.Logger) error {
+	if logger == nil {
+		return errors.New("nil logger provided to LoadDynamicPlugins")
+	}
+
 	ctxLogger := logger.WithContext(ctx)
 
 	entries, err := os.ReadDir(dir)
