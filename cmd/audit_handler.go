@@ -42,8 +42,29 @@ func handleAuditMode(
 	}
 
 	pm := audit.NewPluginManager(logger)
+
+	// Configure dynamic plugin directory before initialization so that
+	// LoadDynamicPlugins actually executes when the user provides a path.
+	if auditOpts.PluginDir != "" {
+		pm.SetPluginDir(auditOpts.PluginDir, auditOpts.ExplicitPluginDir)
+	}
+
 	if err := pm.InitializePlugins(ctx); err != nil {
 		return "", fmt.Errorf("initialize plugins: %w", err)
+	}
+
+	// Surface any dynamic plugin load failures to the CLI user.
+	if loadResult := pm.GetLoadResult(); loadResult.Failed > 0 {
+		failedNames := make([]string, len(loadResult.Failures))
+		for i, f := range loadResult.Failures {
+			failedNames[i] = f.Name
+		}
+
+		logger.Warn("Some dynamic plugins failed to load",
+			"failed", loadResult.Failed,
+			"loaded", loadResult.Loaded,
+			"files", strings.Join(failedNames, ", "),
+		)
 	}
 
 	// Create mode controller and generate audit report
