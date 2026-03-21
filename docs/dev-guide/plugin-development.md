@@ -184,13 +184,51 @@ go build -buildmode=plugin -o myplugin.so main.go
 ### Step 3: Plugin Registration
 
 - **Static plugins**: Register in the plugin manager as before.
-- **Dynamic plugins**: Drop `.so` files into the plugin directory (default: `./plugins`). They will be loaded automatically at startup.
+- **Dynamic plugins**: Drop `.so` files into the plugin directory. They will be loaded automatically at startup.
 
 ## Dynamic Plugin Loading
 
-- The audit engine will scan a configurable directory for `.so` files and load any plugin that exports `var Plugin compliance.Plugin`.
+The audit engine scans a configurable directory for `.so` files and loads any plugin that exports `var Plugin compliance.Plugin`.
+
+### Configuration
+
+Use the `--plugin-dir` CLI flag to specify a custom directory containing `.so` plugins:
+
+```sh
+opndossier audit --plugin-dir /path/to/plugins config.xml
+```
+
+**Default behavior:** If `--plugin-dir` is not specified, the engine does not attempt to load dynamic plugins. There is no hardcoded default plugin directory.
+
+**Explicit vs. optional paths:**
+
+- **Explicit directory** (user-provided via `--plugin-dir`): If the directory does not exist, the audit fails fast with an error.
+- **Optional/default paths**: If implemented by calling code, missing directories are silently skipped (Debug log).
+
+### Load Result and Error Handling
+
+`LoadDynamicPlugins` returns `(LoadResult, error)`:
+
+- **`LoadResult`** tracks both successful (`Loaded int`) and failed (`Failed() int`) plugin counts
+- **Per-plugin failures** are collected in `LoadResult.Failures` (slice of `PluginLoadError`)
+- **Aggregate errors** are returned via `errors.Join` when one or more plugins fail to load
+- **Individual plugin load failures are non-fatal** — other plugins continue loading
+
+**CLI behavior:** The audit command surfaces load failures to users via `Warn` logs listing failed plugin filenames. The audit continues with any successfully loaded plugins.
+
+**Programmatic usage:** If using `PluginManager` programmatically:
+
+1. Call `SetPluginDir(dir, explicit)` before `InitializePlugins()`
+2. Check `GetLoadResult()` after initialization to detect any plugin load failures
+3. `LoadResult.Failures` contains individual `PluginLoadError` entries with filename and error
+
+**PluginLoadError type:** Each failure captures the `.so` filename and the underlying error. It implements the `error` interface for use with `errors.Join`.
+
+### Requirements
+
 - Dynamic plugins must be built with the same Go version and dependencies as the main binary.
 - Both static and dynamic plugins are supported and can coexist.
+- The plugin directory is scanned once during `InitializePlugins()`, not on every audit.
 
 ## Migrating to the CommonDevice Plugin API
 
@@ -217,6 +255,16 @@ go build -buildmode=plugin -o myplugin.so main.go
 - Write comprehensive tests for your plugin.
 - Document your controls and plugin usage.
 
+### Testing Dynamic Plugin Loading
+
+For testing code that loads dynamic plugins without requiring real `.so` files, use the `pluginLoaderFunc` injection mechanism:
+
+- Tests can create a `PluginRegistry` with `newPluginRegistryWithLoader(fakeLoader)`
+- The fake loader can return mock plugins or simulate load failures deterministically
+- This enables testing of load error handling, partial failures, and `LoadResult` aggregation without filesystem dependencies
+
+See `internal/audit/plugin_global_test.go` for examples of injecting test loaders.
+
 ### Error Handling and Panic Recovery
 
 The audit engine wraps each `RunChecks()` call in panic recovery to protect the audit process from misbehaving plugins. If a plugin panics during execution:
@@ -233,6 +281,16 @@ The audit engine wraps each `RunChecks()` call in panic recovery to protect the 
 - Return empty findings slices (`[]compliance.Finding`) for plugins that find no issues, rather than panicking
 - The panic recovery is a safety net for unexpected failures, not a substitute for proper error handling
 - For better diagnostics, log errors within your plugin and return descriptive findings instead of relying on panic recovery
+
+### Dynamic Plugin Load Failures
+
+Dynamic plugin load failures (from `.so` files) are distinct from runtime panics:
+
+- Load failures occur during `InitializePlugins()` when the registry scans the plugin directory
+- Failed plugins do not appear in the audit results at all (they are never registered)
+- The CLI surfaces load failures via `Warn` logs with failed plugin filenames
+- Programmatic callers should check `PluginManager.GetLoadResult()` after initialization
+- Common load failure causes: Go version mismatch, missing dependencies, malformed `.so` files, duplicate plugin names
 
 ### Setting Finding Severity
 
@@ -386,10 +444,12 @@ Fix: add `_ "your/parser/package"` to the binary's import list.
 
 ### Compliance Plugins
 
-- **Plugin not loaded?** Ensure it is built as a Go plugin (`-buildmode=plugin`), exports `var Plugin`, and is in the correct directory.
-- **Go version mismatch?** All plugins and the main binary must be built with the exact same Go version and dependencies.
+- **Plugin not loaded?** Ensure it is built as a Go plugin (`-buildmode=plugin`), exports `var Plugin`, and is in the correct directory. Check `GetLoadResult()` or CLI warnings for load failures.
+- **Go version mismatch?** All plugins and the main binary must be built with the exact same Go version and dependencies. This is the most common cause of dynamic plugin load failures.
 - **Platform support:** Go plugins are supported on Linux and macOS, not Windows.
 - **Plugin appears with zero findings?** The plugin may have panicked during execution. Check the audit logs for panic details. Panicked plugins are retained in results but produce no findings. Review the plugin's error handling and ensure it returns findings properly rather than panicking.
+- **Dynamic plugin directory not found?** If you specified `--plugin-dir`, ensure the directory exists. Explicit directories fail fast if missing. Without the flag, no dynamic plugins are loaded.
+- **Duplicate plugin name?** If a dynamic plugin has the same name as a static plugin or another dynamic plugin, registration will fail. Check the load failures in `GetLoadResult()` or CLI warning logs.
 
 ### Device Parsers
 
