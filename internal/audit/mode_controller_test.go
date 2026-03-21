@@ -2,6 +2,7 @@ package audit
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
@@ -1226,7 +1227,8 @@ func TestPluginRegistry_LoadDynamicPlugins(t *testing.T) {
 	registry := NewPluginRegistry()
 	logger := newTestLogger(t)
 
-	err := registry.LoadDynamicPlugins(context.Background(), "/nonexistent/path", logger)
+	missingDir := filepath.Join(t.TempDir(), "does-not-exist")
+	err := registry.LoadDynamicPlugins(context.Background(), missingDir, logger)
 	if err != nil {
 		t.Errorf("LoadDynamicPlugins() should not error for missing directory, got %v", err)
 	}
