@@ -119,7 +119,7 @@ Plugin name matching is case-insensitive. Normalize names to lowercase when comp
 
 ##### Panic Recovery and Error Handling
 
-The audit engine wraps all `RunChecks()` calls in panic recovery. If a plugin panics, it will be logged via `*slog.Logger` and retained in results with zero findings rather than skipped. This safety net prevents a misbehaving plugin from crashing the entire audit process, which is especially important for dynamically-loaded plugins.
+The audit engine wraps all `RunChecks()` calls in panic recovery. If a plugin panics, it will be logged via `*logging.Logger` (from `internal/logging`) and retained in results with zero findings rather than skipped. This safety net prevents a misbehaving plugin from crashing the entire audit process, which is especially important for dynamically-loaded plugins.
 
 **Plugin authors do not need to implement panic recovery at the top level of `RunChecks()`.** The engine handles this automatically. However, panic recovery is not a replacement for proper error handling:
 
