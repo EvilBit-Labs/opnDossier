@@ -290,9 +290,16 @@ func validateDeviceType() error {
 		return nil
 	}
 
+	devices := parser.DefaultRegistry().List()
+
+	supported := strings.Join(devices, ", ")
+	if len(devices) == 0 {
+		supported = "(none registered -- ensure parser packages are imported)"
+	}
+
 	return fmt.Errorf(
 		"unsupported device type: %q; supported values: %s",
 		sharedDeviceType,
-		strings.Join(parser.DefaultRegistry().List(), ", "),
+		supported,
 	)
 }

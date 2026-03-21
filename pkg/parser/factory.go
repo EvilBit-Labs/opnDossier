@@ -104,8 +104,8 @@ func (f *Factory) createWithOverride(
 	fn, ok := f.registry.Get(override)
 	if !ok {
 		return nil, nil, fmt.Errorf(
-			"unsupported device type override: %s; supported: %s",
-			override, strings.Join(f.registry.List(), ", "),
+			"unsupported device type override: %q; supported: %s",
+			override, supportedDevicesList(f.registry),
 		)
 	}
 
@@ -128,7 +128,7 @@ func (f *Factory) createWithAutoDetect(
 	if !ok {
 		return nil, nil, fmt.Errorf(
 			"unsupported device type: root element <%s> is not recognized; supported: %s",
-			rootElem, strings.Join(f.registry.List(), ", "),
+			rootElem, supportedDevicesList(f.registry),
 		)
 	}
 
@@ -148,6 +148,18 @@ func parseDevice(
 	}
 
 	return p.Parse(ctx, r)
+}
+
+// supportedDevicesList formats the registry's device list for error messages.
+// Returns "(none registered -- ensure parser packages are imported)" when the
+// registry is empty, providing an actionable hint about missing blank imports.
+func supportedDevicesList(reg *DeviceParserRegistry) string {
+	devices := reg.List()
+	if len(devices) == 0 {
+		return "(none registered -- ensure parser packages are imported)"
+	}
+
+	return strings.Join(devices, ", ")
 }
 
 // peekResult holds the outcome of the root-element detection goroutine.
