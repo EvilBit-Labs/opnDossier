@@ -60,6 +60,9 @@ export OPNDOSSIER_VERBOSE=true
 
 ## Code Quality Standards
 
+> [!NOTE]
+> This document covers practical development workflows. For comprehensive Go development standards including thread safety, XML handling, streaming interfaces, registry patterns, file write safety, public package purity, and testing patterns, see **[CONTRIBUTING.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/CONTRIBUTING.md)** — the canonical reference for these topics.
+
 ### Technology Stack
 
 | Component              | Technology                      | Purpose                               |
@@ -70,6 +73,7 @@ export OPNDOSSIER_VERBOSE=true
 | **Terminal Styling**   | `charmbracelet/lipgloss`        | Colored output and styling            |
 | **Markdown Rendering** | `charmbracelet/glamour`         | Terminal markdown display             |
 | **Logging**            | `charmbracelet/log`             | Structured logging                    |
+| **Markdown Generation**| `nao1215/markdown`              | Programmatic markdown builder         |
 | **Data Processing**    | `encoding/xml`, `encoding/json` | Standard library XML/JSON handling    |
 | **Testing**            | Go's built-in `testing` package | Table-driven tests with >80% coverage |
 
@@ -151,7 +155,14 @@ perf(converter): optimize markdown generation
 test(parser): add integration tests for XML parsing
 ```
 
+### Linter Guidance
+
+Treat `just lint` as authoritative; IDE diagnostics are suggestions, not the final word. For common patterns such as replacing magic numbers with named constants, preferring `s == ""` over `len(s) == 0`, or using `slices.*` instead of legacy `sort.*`, see **[AGENTS.md](AGENTS.md)** §5.10 and `.golangci.yml`.
+
 ## Testing Requirements
+
+> [!NOTE]
+> For comprehensive testing guidance including map iteration, golden file testing, pointer identity assertions, global flag testing, and duplicate code detection, see **[CONTRIBUTING.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/CONTRIBUTING.md)**.
 
 ### Test Standards
 
@@ -377,12 +388,16 @@ type Config struct {
 // Configuration precedence: CLI flags > environment variables > config file > defaults
 ```
 
+> [!NOTE]
+> `viper` manages opnDossier's own configuration such as CLI settings and display preferences. OPNsense `config.xml` parsing is a separate concern handled by `internal/cfgparser/`.
+
 ### Error Handling
 
 - Always wrap errors with context using `fmt.Errorf` with `%w`
 - Create domain-specific error types for better error handling
 - Use `errors.Is()` and `errors.As()` for error type checking
 - Provide actionable error messages for users
+- Use `errors.New` instead of `fmt.Errorf` for static error strings
 
 ### Logging
 
@@ -390,6 +405,36 @@ type Config struct {
 - Include context in log messages (filename, operation, duration)
 - Use appropriate log levels (debug, info, warn, error)
 - Avoid logging sensitive information
+
+### Thread Safety with `sync.RWMutex`
+
+When a struct uses `sync.RWMutex`, all read methods need `RLock()` — not just write paths. Go's `RWMutex` is not reentrant; internal call chains should use lock-free `*Unsafe()` helpers. Getter methods should return value copies, not pointers into protected state. See `internal/processor/report.go` for the canonical pattern.
+
+### XML Handling
+
+`string` fields cannot distinguish between absent elements and self-closing elements like `<any/>`; both decode to `""`. Use `*string` when presence matters, and add helpers like `IsAny()` or `Equal()` instead of comparing raw `*string` fields. See `pkg/schema/opnsense/security.go` for the pattern.
+
+Always use `xml.EscapeText` from the standard library; never hand-roll XML escaping.
+
+### Streaming Interfaces
+
+When adding `io.Writer` support alongside string-returning APIs, split responsibilities. Create dedicated writer-oriented interfaces like `SectionWriter`, expose `Streaming*` wrapper interfaces for streaming consumers, and keep string methods for post-processing flows. `MarkdownBuilder` is not concurrency-safe; create a new instance per goroutine. See `internal/converter/builder/writer.go`.
+
+### FormatRegistry Pattern
+
+`converter.DefaultRegistry` in `internal/converter/registry.go` is the single source of truth for output formats. Register `FormatHandler` in `newDefaultRegistry()` for validation, shell completion, file extensions, and dispatch. Don't reintroduce format constants or switch statements; use `converter.FormatMarkdown`, `converter.FormatJSON`, etc.
+
+### DeviceParser Registry Pattern
+
+Parser registration follows the `database/sql` model: parsers call `parser.Register(name, factory)` from `init()`. **Critical:** any file using `parser.NewFactory()` must blank-import the parser package (e.g., `_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"`). Without it, the registry is empty. See **[GOTCHAS.md](GOTCHAS.md)** for symptoms and fixes.
+
+### File Write Safety
+
+Always call `file.Sync()` before `Close()` when writing files that matter. Handle close failures in deferred functions with `logger.Warn`; never silently discard them.
+
+### Public Package Purity
+
+Packages under `pkg/` must never import `internal/`. Before committing `pkg/` changes, run `grep -rn 'internal/' --include='*.go' pkg/ | grep -v _test.go`. When `pkg/` needs `internal/` functionality, define an interface in `pkg/` and inject the implementation from `cmd/`.
 
 ### XML Schema Evolution
 
@@ -474,6 +519,11 @@ func processConfig(filename string) error {
 - **No Telemetry:** No external data transmission
 - **Portable Data Exchange:** Secure data bundle import/export
 - **Error Message Safety:** No sensitive information exposure
+- **File Permissions:** Write sensitive files with `0600` permissions
+- **Input Validation:** Validate all inputs at system boundaries (CLI args, config files, XML)
+- **Secret Management:** Never commit secrets; use environment variables or secure secret storage
+
+For detailed secure coding principles, vulnerability reporting, and threat model, see **[CONTRIBUTING.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/CONTRIBUTING.md)** and `SECURITY.md`.
 
 ### Dependency Security
 
