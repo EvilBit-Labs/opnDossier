@@ -296,3 +296,4 @@ func validateDeviceType() error {
 - `cmd/root.go` -- Blank import triggering OPNsense `init()`
 - AGENTS.md section 5.25a -- DeviceParser Registry Pattern documentation
 - GOTCHAS.md section 7.1 -- Blank import requirement
+- [Panic recovery for plugin RunChecks()](../runtime-errors/plugin-panic-recovery-audit-runchecks.md) -- fault isolation for the audit plugin registry
