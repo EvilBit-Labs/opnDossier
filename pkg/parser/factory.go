@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -81,15 +82,17 @@ func NewFactoryWithRegistry(decoder XMLDecoder, reg *DeviceParserRegistry) *Fact
 // when a zero-valued Factory is used without going through NewFactory.
 func (f *Factory) ensureInitialized() error {
 	if f == nil {
-		return fmt.Errorf("parser: Factory is nil; use parser.NewFactory to construct a Factory")
+		return errors.New("parser: Factory is nil; use parser.NewFactory to construct a Factory")
 	}
 
 	if f.xmlDecoder == nil {
-		return fmt.Errorf("parser: Factory has nil XMLDecoder; use parser.NewFactory to construct a Factory")
+		return errors.New("parser: Factory has nil XMLDecoder; use parser.NewFactory to construct a Factory")
 	}
 
 	if f.registry == nil {
-		return fmt.Errorf("parser: Factory has nil DeviceParserRegistry; use parser.NewFactory or parser.NewFactoryWithRegistry to construct a Factory")
+		return errors.New(
+			"parser: Factory has nil DeviceParserRegistry; use parser.NewFactory or parser.NewFactoryWithRegistry to construct a Factory",
+		)
 	}
 
 	return nil

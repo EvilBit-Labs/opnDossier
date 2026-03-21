@@ -10,11 +10,14 @@ opnDossier is a **CLI-based multi-device firewall configuration processor** desi
 
 ### Core Design Principles
 
-1. **Offline-First**: Zero external dependencies, complete air-gap compatibility
-2. **Operator-Focused**: Built for network administrators and operators
-3. **Framework-First**: Leverages established Go libraries (Cobra, Charm ecosystem)
-4. **Structured Data**: Maintains configuration hierarchy and relationships
-5. **Security-First**: No telemetry, input validation, secure processing
+1. **Offline-First**: Zero external dependencies, complete air-gap compatibility, no runtime network calls
+2. **Operator-Focused**: Built for network administrators and operators, preserves operator control and visibility
+3. **Framework-First**: Leverages established Go libraries (Cobra, Charm ecosystem) before custom plumbing
+4. **Structured Data**: Maintains configuration hierarchy and relationships, prefers typed models over ad-hoc strings
+5. **Security-First**: No telemetry, input validation, secure processing, restrictive file permissions
+6. **Polish Over Scale**: Smaller, well-documented feature set with sane defaults over large inconsistent surface area
+
+For the complete philosophical foundation and ethical constraints, see **[CONTRIBUTING.md](../../CONTRIBUTING.md) Core Philosophy** section.
 
 ### Architecture Pattern
 
@@ -27,17 +30,19 @@ opnDossier is a **CLI-based multi-device firewall configuration processor** desi
 
 Built with modern Go practices and established libraries:
 
-| Component          | Technology                                                  |
-| ------------------ | ----------------------------------------------------------- |
-| CLI Framework      | [Cobra](https://github.com/spf13/cobra)                     |
-| Configuration      | [Viper](https://github.com/spf13/viper)                     |
-| CLI Enhancement    | [Charm Fang](https://github.com/charmbracelet/fang)         |
-| Terminal Styling   | [Charm Lipgloss](https://github.com/charmbracelet/lipgloss) |
-| Markdown Rendering | [Charm Glamour](https://github.com/charmbracelet/glamour)   |
-| XML Processing     | Go's built-in `encoding/xml`                                |
-| Structured Logging | [Charm Log](https://github.com/charmbracelet/log)           |
+| Component               | Technology                                                  |
+| ----------------------- | ----------------------------------------------------------- |
+| CLI Framework           | [Cobra](https://github.com/spf13/cobra)                     |
+| Configuration           | [Viper](https://github.com/spf13/viper)                     |
+| CLI Enhancement         | [Charm Fang](https://github.com/charmbracelet/fang)         |
+| Terminal Styling        | [Charm Lipgloss](https://github.com/charmbracelet/lipgloss) |
+| Markdown Rendering      | [Charm Glamour](https://github.com/charmbracelet/glamour)   |
+| Markdown Generation     | [nao1215/markdown](https://github.com/nao1215/markdown)     |
+| XML Processing          | Go's built-in `encoding/xml`                                |
+| Structured Logging      | [Charm Log](https://github.com/charmbracelet/log)           |
+| Minimum Go Version      | Go 1.26+                                                    |
 
-The CLI uses a layered architecture: **Cobra** provides command structure and argument parsing, **Viper** handles layered configuration management (files, env, flags), and **Fang** adds enhanced UX features like styled help, automatic version flags, and shell completion.
+The CLI uses a layered architecture: **Cobra** provides command structure and argument parsing, **Viper** handles layered configuration management (files, env, flags) for opnDossier's own settings (CLI preferences, display options), and **Fang** adds enhanced UX features like styled help, automatic version flags, and shell completion. Note that **Viper** manages opnDossier configuration, while OPNsense `config.xml` parsing is handled separately by `internal/cfgparser/`.
 
 ## Public Package Boundaries and Interface Injection
 
@@ -137,6 +142,8 @@ This allows external test packages to use the conversion functionality without a
 For detailed examples and the historical context of fixing `pkg/internal/` boundary violations, see:
 
 - **[docs/solutions/architecture-issues/pkg-internal-import-boundary.md](../solutions/architecture-issues/pkg-internal-import-boundary.md)**
+
+For practical developer guidance on public package purity and the boundary verification command, see **[CONTRIBUTING.md](../../CONTRIBUTING.md) Go Development Standards** section.
 
 ## Services and Components
 
@@ -432,7 +439,17 @@ For complete implementation details, error-handling patterns, and gotchas, see:
 - **[docs/solutions/architecture-issues/pluggable-deviceparser-registry-pattern.md](../solutions/architecture-issues/pluggable-deviceparser-registry-pattern.md)**
 - **[GOTCHAS.md §7.1](../../GOTCHAS.md)** — Blank import requirement
 
+For practical developer guidance on the DeviceParser registry pattern and blank import footgun, see **[CONTRIBUTING.md](../../CONTRIBUTING.md) Go Development Standards** section.
+
 ## Data Flow Architecture
+
+The data processing pipeline follows a clear multi-stage architecture documented in **[CONTRIBUTING.md](../../CONTRIBUTING.md) Data Processing Pipeline** section:
+
+1. **Ingestion**: `internal/cfgparser/` parses OPNsense `config.xml` → `pkg/schema/opnsense.OpnSenseDocument`
+2. **Conversion**: `pkg/parser/opnsense/` transforms `OpnSenseDocument` → `pkg/model.CommonDevice` with conversion warnings
+3. **Export Enrichment**: `internal/converter/enrichment.go` populates statistics, analysis, security assessment via `prepareForExport()`
+4. **Export**: Registry-driven multi-format output (markdown, json, yaml, text, html) via `FormatRegistry`
+5. **Report Generation**: Audience-aware reports built through `builder.MarkdownBuilder`
 
 ```mermaid
 sequenceDiagram
@@ -1096,6 +1113,8 @@ All validation, shell completion, and dispatch logic automatically picks up the 
 
 For detailed guidance on the FormatRegistry pattern and consumer-local interface narrowing, see AGENTS.md §5.9b.
 
+For practical developer guidance on the FormatRegistry pattern, format addition workflow, and avoiding hardcoded switch statements, see **[CONTRIBUTING.md](../../CONTRIBUTING.md) Go Development Standards** section.
+
 ## Versioned Data Strategy
 
 ### Configuration Versioning
@@ -1284,9 +1303,11 @@ When the `--quiet` flag is used:
 
 ### Security Controls
 
-- **Input Validation**: XML schema validation, path sanitization, size limits
-- **Processing Security**: Memory safety (Go runtime), type safety, error handling
-- **Output Security**: Path validation, permission checks, content sanitization
+- **Input Validation**: XML schema validation, path sanitization, size limits at system boundaries
+- **Processing Security**: Memory safety (Go runtime), type safety, error handling that prevents credential leakage
+- **Output Security**: Path validation, restrictive file permissions (0600 for sensitive data), content sanitization
+
+For secure coding principles, SNMP redaction patterns, and the canonical approach to safe error messages, see **[CONTRIBUTING.md](../../CONTRIBUTING.md) Secure Coding Principles** section and `internal/processor/report.go`.
 
 ### Air-Gap Security Benefits
 
