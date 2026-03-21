@@ -2,7 +2,6 @@ package audit
 
 import (
 	"context"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -177,7 +176,7 @@ func TestLoadDynamicPlugins(t *testing.T) {
 	t.Parallel()
 
 	registry := NewPluginRegistry()
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger := newTestLogger(t)
 	ctx := context.Background()
 
 	tests := []struct {
@@ -495,7 +494,7 @@ func TestRunComplianceChecks_WithFindingsAndReferences(t *testing.T) {
 		},
 	}
 
-	result, err := registry.RunComplianceChecks(testConfig, []string{"test-plugin-findings"})
+	result, err := registry.RunComplianceChecks(testConfig, []string{"test-plugin-findings"}, newTestLogger(t))
 	if err != nil {
 		t.Errorf("RunComplianceChecks() error = %v", err)
 	}
@@ -577,7 +576,7 @@ func TestRunComplianceChecks_MissingSeverityDerivation(t *testing.T) {
 		System: common.System{Hostname: "test-host"},
 	}
 
-	result, err := registry.RunComplianceChecks(testConfig, []string{"test-missing-severity"})
+	result, err := registry.RunComplianceChecks(testConfig, []string{"test-missing-severity"}, newTestLogger(t))
 	if err != nil {
 		t.Fatalf("RunComplianceChecks() error = %v", err)
 	}
@@ -642,7 +641,7 @@ func TestRunComplianceChecks_MissingSeverityNoMatchingControl(t *testing.T) {
 		System: common.System{Hostname: "test-host"},
 	}
 
-	result, err := registry.RunComplianceChecks(testConfig, []string{"test-no-control-match"})
+	result, err := registry.RunComplianceChecks(testConfig, []string{"test-no-control-match"}, newTestLogger(t))
 	if err == nil {
 		t.Fatal("RunComplianceChecks() should return error for orphan finding with unresolvable severity")
 	}
@@ -791,6 +790,280 @@ func (m *mockPluginWithFindings) GetControlByID(id string) (*compliance.Control,
 	return nil, compliance.ErrControlNotFound
 }
 
+// mockPanickingPlugin is a mock plugin whose RunChecks method always panics.
+type mockPanickingPlugin struct {
+	mockCompliancePlugin
+
+	controls []compliance.Control
+}
+
+// RunChecks panics unconditionally to simulate a misbehaving plugin.
+func (m *mockPanickingPlugin) RunChecks(_ *common.CommonDevice) []compliance.Finding {
+	panic("test panic")
+}
+
+// GetControls returns the controls configured on the mock.
+func (m *mockPanickingPlugin) GetControls() []compliance.Control {
+	return m.controls
+}
+
+// GetControlByID returns the control matching the given ID.
+func (m *mockPanickingPlugin) GetControlByID(id string) (*compliance.Control, error) {
+	for i := range m.controls {
+		if m.controls[i].ID == id {
+			return &m.controls[i], nil
+		}
+	}
+	return nil, compliance.ErrControlNotFound
+}
+
+// TestRunComplianceChecks_PanickingPluginIsolation verifies that a panicking
+// plugin is caught and retained with zero findings without affecting other plugins.
+func TestRunComplianceChecks_PanickingPluginIsolation(t *testing.T) {
+	t.Parallel()
+
+	logger := newTestLogger(t)
+
+	panickingPlugin := &mockPanickingPlugin{
+		mockCompliancePlugin: mockCompliancePlugin{
+			name:        "panicking-plugin",
+			version:     "0.0.1",
+			description: "Plugin that panics",
+		},
+		controls: []compliance.Control{
+			{ID: "PANIC-001", Title: "Panic Control", Severity: "high"},
+		},
+	}
+
+	healthyPlugin := &mockPluginWithFindings{
+		mockCompliancePlugin: mockCompliancePlugin{
+			name:        "healthy-plugin",
+			version:     "1.0.0",
+			description: "Plugin that works",
+		},
+		controls: []compliance.Control{
+			{ID: "HEALTHY-001", Title: "Healthy Control", Severity: "medium"},
+		},
+		findings: []compliance.Finding{
+			{
+				Type:           "compliance",
+				Severity:       "medium",
+				Title:          "Healthy Finding",
+				Description:    "A real finding",
+				Recommendation: "Fix it",
+				References:     []string{"HEALTHY-001"},
+			},
+		},
+	}
+
+	tests := []struct {
+		name                string
+		plugins             []compliance.Plugin
+		selectedPlugins     []string
+		wantFindingsCount   int
+		wantPluginInfoCount int
+	}{
+		{
+			name:                "panicking plugin only",
+			plugins:             []compliance.Plugin{panickingPlugin},
+			selectedPlugins:     []string{"panicking-plugin"},
+			wantFindingsCount:   0,
+			wantPluginInfoCount: 1,
+		},
+		{
+			name:                "panicking plugin with healthy plugin",
+			plugins:             []compliance.Plugin{panickingPlugin, healthyPlugin},
+			selectedPlugins:     []string{"panicking-plugin", "healthy-plugin"},
+			wantFindingsCount:   1,
+			wantPluginInfoCount: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			registry := NewPluginRegistry()
+			for _, p := range tt.plugins {
+				if err := registry.RegisterPlugin(p); err != nil {
+					t.Fatalf("Failed to register plugin %q: %v", p.Name(), err)
+				}
+			}
+
+			device := &common.CommonDevice{
+				System: common.System{Hostname: "test-host"},
+			}
+
+			result, err := registry.RunComplianceChecks(device, tt.selectedPlugins, logger)
+			if err != nil {
+				t.Fatalf("RunComplianceChecks() unexpected error: %v", err)
+			}
+
+			if result == nil {
+				t.Fatal("RunComplianceChecks() returned nil result")
+			}
+
+			if len(result.Findings) != tt.wantFindingsCount {
+				t.Errorf("Findings count = %d, want %d", len(result.Findings), tt.wantFindingsCount)
+			}
+
+			if len(result.PluginInfo) != tt.wantPluginInfoCount {
+				t.Errorf("PluginInfo count = %d, want %d", len(result.PluginInfo), tt.wantPluginInfoCount)
+			}
+
+			if result.Summary.TotalFindings != tt.wantFindingsCount {
+				t.Errorf("Summary.TotalFindings = %d, want %d", result.Summary.TotalFindings, tt.wantFindingsCount)
+			}
+
+			// Panicking plugin must be present in PluginFindings with zero findings
+			pf, ok := result.PluginFindings["panicking-plugin"]
+			if !ok {
+				t.Error("Panicking plugin should be present in PluginFindings")
+			} else if len(pf) > 0 {
+				t.Errorf("Panicking plugin should have no findings, got %d", len(pf))
+			}
+
+			// Panicking plugin must be present in PluginInfo
+			if _, ok := result.PluginInfo["panicking-plugin"]; !ok {
+				t.Error("Panicking plugin should be present in PluginInfo")
+			}
+
+			// Panicking plugin must be present in Compliance map
+			if _, ok := result.Compliance["panicking-plugin"]; !ok {
+				t.Error("Panicking plugin should be present in Compliance map")
+			}
+		})
+	}
+
+	// Verify healthy plugin findings are preserved when a sibling panics
+	t.Run("healthy plugin findings preserved alongside panic", func(t *testing.T) {
+		t.Parallel()
+
+		registry := NewPluginRegistry()
+		if err := registry.RegisterPlugin(panickingPlugin); err != nil {
+			t.Fatalf("Failed to register panicking plugin: %v", err)
+		}
+
+		if err := registry.RegisterPlugin(healthyPlugin); err != nil {
+			t.Fatalf("Failed to register healthy plugin: %v", err)
+		}
+
+		device := &common.CommonDevice{
+			System: common.System{Hostname: "test-host"},
+		}
+
+		result, err := registry.RunComplianceChecks(
+			device,
+			[]string{"panicking-plugin", "healthy-plugin"},
+			logger,
+		)
+		if err != nil {
+			t.Fatalf("RunComplianceChecks() unexpected error: %v", err)
+		}
+
+		hf, ok := result.PluginFindings["healthy-plugin"]
+		if !ok {
+			t.Fatal("healthy-plugin should be present in PluginFindings")
+		}
+
+		if len(hf) != 1 {
+			t.Errorf("healthy-plugin findings count = %d, want 1", len(hf))
+		}
+
+		if hf[0].Title != "Healthy Finding" {
+			t.Errorf("healthy-plugin finding title = %q, want %q", hf[0].Title, "Healthy Finding")
+		}
+	})
+}
+
+// TestRunComplianceChecks_NilLoggerFallback verifies that passing a nil logger
+// to RunComplianceChecks creates a fallback logger and completes without error,
+// including when a plugin panics.
+func TestRunComplianceChecks_NilLoggerFallback(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name              string
+		plugins           []compliance.Plugin
+		selectedPlugins   []string
+		wantFindingsCount int
+	}{
+		{
+			name: "nil logger with healthy plugin",
+			plugins: []compliance.Plugin{
+				&mockPluginWithFindings{
+					mockCompliancePlugin: mockCompliancePlugin{
+						name:        "healthy",
+						version:     "1.0.0",
+						description: "Healthy plugin",
+					},
+					controls: []compliance.Control{
+						{ID: "H-001", Title: "Control", Severity: "low"},
+					},
+					findings: []compliance.Finding{
+						{
+							Type:       "compliance",
+							Severity:   "low",
+							Title:      "A finding",
+							References: []string{"H-001"},
+						},
+					},
+				},
+			},
+			selectedPlugins:   []string{"healthy"},
+			wantFindingsCount: 1,
+		},
+		{
+			name: "nil logger with panicking plugin",
+			plugins: []compliance.Plugin{
+				&mockPanickingPlugin{
+					mockCompliancePlugin: mockCompliancePlugin{
+						name:        "panicker",
+						version:     "0.1.0",
+						description: "Panics",
+					},
+					controls: []compliance.Control{
+						{ID: "P-001", Title: "Control", Severity: "high"},
+					},
+				},
+			},
+			selectedPlugins:   []string{"panicker"},
+			wantFindingsCount: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			registry := NewPluginRegistry()
+			for _, p := range tt.plugins {
+				if err := registry.RegisterPlugin(p); err != nil {
+					t.Fatalf("Failed to register plugin %q: %v", p.Name(), err)
+				}
+			}
+
+			device := &common.CommonDevice{
+				System: common.System{Hostname: "test-host"},
+			}
+
+			// Pass nil logger — should create fallback without error
+			result, err := registry.RunComplianceChecks(device, tt.selectedPlugins, nil)
+			if err != nil {
+				t.Fatalf("RunComplianceChecks() with nil logger unexpected error: %v", err)
+			}
+
+			if result == nil {
+				t.Fatal("RunComplianceChecks() returned nil result")
+			}
+
+			if len(result.Findings) != tt.wantFindingsCount {
+				t.Errorf("Findings count = %d, want %d", len(result.Findings), tt.wantFindingsCount)
+			}
+		})
+	}
+}
+
 // TestRunComplianceChecks_PerPluginSeverityArithmetic exercises the full RunComplianceChecks
 // pipeline with the real STIG plugin and verifies that severity counts sum correctly.
 func TestRunComplianceChecks_PerPluginSeverityArithmetic(t *testing.T) {
@@ -828,7 +1101,7 @@ func TestRunComplianceChecks_PerPluginSeverityArithmetic(t *testing.T) {
 		},
 	}
 
-	result, err := registry.RunComplianceChecks(device, []string{"stig"})
+	result, err := registry.RunComplianceChecks(device, []string{"stig"}, newTestLogger(t))
 	if err != nil {
 		t.Fatalf("RunComplianceChecks() error: %v", err)
 	}
@@ -978,7 +1251,7 @@ func TestRunComplianceChecks_DuplicatePluginNames(t *testing.T) {
 	}
 
 	// Pass duplicate names — should be deduplicated internally
-	result, err := registry.RunComplianceChecks(device, []string{"test-plugin", "test-plugin"})
+	result, err := registry.RunComplianceChecks(device, []string{"test-plugin", "test-plugin"}, newTestLogger(t))
 	if err != nil {
 		t.Fatalf("RunComplianceChecks() unexpected error: %v", err)
 	}

@@ -182,7 +182,11 @@ func (mc *ModeController) generateBlueReport(_ context.Context, report *Report, 
 
 	// Run compliance checks if plugins are selected
 	if len(config.SelectedPlugins) > 0 {
-		complianceResult, err := mc.registry.RunComplianceChecks(report.Configuration, config.SelectedPlugins)
+		complianceResult, err := mc.registry.RunComplianceChecks(
+			report.Configuration,
+			config.SelectedPlugins,
+			mc.logger,
+		)
 		if err != nil {
 			mc.logger.Warn("Failed to run compliance checks", "error", err)
 			// Add metadata to report indicating compliance check failure

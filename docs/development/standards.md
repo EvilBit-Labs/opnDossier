@@ -65,17 +65,17 @@ export OPNDOSSIER_VERBOSE=true
 
 ### Technology Stack
 
-| Component              | Technology                      | Purpose                               |
-| ---------------------- | ------------------------------- | ------------------------------------- |
-| **CLI Framework**      | `cobra`                         | Command organization and help system  |
-| **Configuration**      | `spf13/viper`                   | Configuration management              |
-| **CLI Enhancement**    | `charmbracelet/fang`            | Enhanced CLI experience               |
-| **Terminal Styling**   | `charmbracelet/lipgloss`        | Colored output and styling            |
-| **Markdown Rendering** | `charmbracelet/glamour`         | Terminal markdown display             |
-| **Logging**            | `charmbracelet/log`             | Structured logging                    |
-| **Markdown Generation**| `nao1215/markdown`              | Programmatic markdown builder         |
-| **Data Processing**    | `encoding/xml`, `encoding/json` | Standard library XML/JSON handling    |
-| **Testing**            | Go's built-in `testing` package | Table-driven tests with >80% coverage |
+| Component               | Technology                      | Purpose                               |
+| ----------------------- | ------------------------------- | ------------------------------------- |
+| **CLI Framework**       | `cobra`                         | Command organization and help system  |
+| **Configuration**       | `spf13/viper`                   | Configuration management              |
+| **CLI Enhancement**     | `charmbracelet/fang`            | Enhanced CLI experience               |
+| **Terminal Styling**    | `charmbracelet/lipgloss`        | Colored output and styling            |
+| **Markdown Rendering**  | `charmbracelet/glamour`         | Terminal markdown display             |
+| **Logging**             | `charmbracelet/log`             | Structured logging                    |
+| **Markdown Generation** | `nao1215/markdown`              | Programmatic markdown builder         |
+| **Data Processing**     | `encoding/xml`, `encoding/json` | Standard library XML/JSON handling    |
+| **Testing**             | Go's built-in `testing` package | Table-driven tests with >80% coverage |
 
 ### Code Style and Formatting
 
