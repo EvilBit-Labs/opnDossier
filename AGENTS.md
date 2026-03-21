@@ -560,7 +560,7 @@ All plugins implement `compliance.Plugin` (see `internal/compliance/interfaces.g
 - Dynamic plugins: export `var Plugin compliance.Plugin`. Must set `Severity` or provide resolvable `References` — `RunComplianceChecks` normalizes empty severity via `GetControlByID()` or returns error
 - `compliance.CloneControls()` deep-copies `[]Control` including nested types (Tags, Metadata) — use in `GetControls()` and when storing controls in result structs
 - Plugin name matching is case-insensitive (`deduplicatePluginNames`, `ValidateModeConfig` normalize to lowercase)
-- `RunComplianceChecks` wraps each plugin's `RunChecks()` in `defer recover()` with `debug.Stack()` — panicked plugins are logged via `*logging.Logger` and retained in results with zero findings (not skipped). Nil logger defaults to a fallback. Callers pass their configured logger
+- `RunComplianceChecks` wraps each plugin's `RunChecks()` in `defer recover()` with `debug.Stack()` — panicked plugins are logged via `*logging.Logger` and retained in results with safe defaults (`Version: "unknown (panicked)"`, empty compliance map) via `continue`, skipping post-recovery method calls on potentially corrupt plugin state. Nil logger defaults to a fallback. Callers pass their configured logger
 
 ### 8.3 Compliance Standards
 
