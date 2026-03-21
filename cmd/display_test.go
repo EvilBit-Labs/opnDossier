@@ -35,6 +35,7 @@ type sharedFlagSnapshot struct {
 	deviceType      string
 	redact          bool
 	includeTunables bool
+	pluginDir       string
 }
 
 func captureSharedFlags() sharedFlagSnapshot {
@@ -47,6 +48,7 @@ func captureSharedFlags() sharedFlagSnapshot {
 		deviceType:      sharedDeviceType,
 		redact:          sharedRedact,
 		includeTunables: sharedIncludeTunables,
+		pluginDir:       sharedPluginDir,
 	}
 }
 
@@ -59,6 +61,7 @@ func (s sharedFlagSnapshot) restore() {
 	sharedDeviceType = s.deviceType
 	sharedRedact = s.redact
 	sharedIncludeTunables = s.includeTunables
+	sharedPluginDir = s.pluginDir
 }
 
 func captureStderr(t *testing.T, fn func()) string {
