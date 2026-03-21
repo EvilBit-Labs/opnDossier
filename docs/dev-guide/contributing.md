@@ -117,6 +117,18 @@ When returning controls from `GetControls()` or storing them in result structs, 
 
 Plugin name matching is case-insensitive. Normalize names to lowercase when comparing, deduplicating, or validating selections so CLI behaviour stays predictable regardless of how the input was typed.
 
+##### Panic Recovery and Error Handling
+
+The audit engine wraps all `RunChecks()` calls in panic recovery. If a plugin panics, it will be logged via `*slog.Logger` and retained in results with zero findings rather than skipped. This safety net prevents a misbehaving plugin from crashing the entire audit process, which is especially important for dynamically-loaded plugins.
+
+**Plugin authors do not need to implement panic recovery at the top level of `RunChecks()`.** The engine handles this automatically. However, panic recovery is not a replacement for proper error handling:
+
+- **Return errors for expected failure cases**: Use standard error returns to communicate issues like invalid configuration, missing data, or unsupported features. This provides actionable diagnostics to operators.
+- **Handle edge cases gracefully**: Validate inputs, check for nil pointers, and guard against out-of-bounds access before they cause panics.
+- **Reserve panics for truly unexpected situations**: Panics should only occur when the plugin encounters an unrecoverable programmer error or corrupt internal state.
+
+When testing your plugin, include test cases that exercise edge conditions such as empty configurations, malformed data, and resource exhaustion scenarios. While panic recovery exists as a safety mechanism, plugins that handle errors gracefully provide a better operator experience through clear diagnostics and meaningful remediation guidance.
+
 For canonical interfaces and examples, see `internal/compliance/interfaces.go` and the implementations under `internal/plugins/`.
 
 ### Making Changes
