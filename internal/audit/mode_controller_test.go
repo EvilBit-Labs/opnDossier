@@ -2,6 +2,7 @@ package audit
 
 import (
 	"context"
+	"log/slog"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
@@ -1245,7 +1246,7 @@ func TestPluginRegistry_RunComplianceChecks(t *testing.T) {
 	}
 
 	// Test running compliance checks with no plugins selected
-	results, err := registry.RunComplianceChecks(testConfig, nil)
+	results, err := registry.RunComplianceChecks(testConfig, nil, slog.Default())
 	if err != nil {
 		t.Errorf("RunComplianceChecks() error = %v", err)
 	}
@@ -1255,7 +1256,7 @@ func TestPluginRegistry_RunComplianceChecks(t *testing.T) {
 
 	// Test running compliance checks with specific plugins
 	selectedPlugins := []string{"stig"}
-	results, err = registry.RunComplianceChecks(testConfig, selectedPlugins)
+	results, err = registry.RunComplianceChecks(testConfig, selectedPlugins, slog.Default())
 	if err != nil {
 		t.Errorf("RunComplianceChecks() error = %v", err)
 	}
@@ -1265,7 +1266,7 @@ func TestPluginRegistry_RunComplianceChecks(t *testing.T) {
 
 	// Test running compliance checks with non-existent plugins
 	selectedPluginsNonexistent := []string{"nonexistent"}
-	_, err = registry.RunComplianceChecks(testConfig, selectedPluginsNonexistent)
+	_, err = registry.RunComplianceChecks(testConfig, selectedPluginsNonexistent, slog.Default())
 	if err == nil {
 		t.Error("RunComplianceChecks() should return error for non-existent plugins")
 	}
