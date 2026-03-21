@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"slices"
 	"strings"
 	"time"
@@ -186,7 +185,7 @@ func (mc *ModeController) generateBlueReport(_ context.Context, report *Report, 
 		complianceResult, err := mc.registry.RunComplianceChecks(
 			report.Configuration,
 			config.SelectedPlugins,
-			slog.Default(),
+			mc.logger,
 		)
 		if err != nil {
 			mc.logger.Warn("Failed to run compliance checks", "error", err)
