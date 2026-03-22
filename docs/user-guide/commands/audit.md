@@ -93,7 +93,13 @@ See the [Plugin Development Guide](../../dev-guide/plugin-development.md) for de
 
 ## Multiple Files
 
-When auditing multiple files, the `--output` flag cannot be used. Each report is auto-named based on the input filename with an `-audit` suffix and the appropriate format extension. For example, `config1.xml` produces `config1-audit.md`.
+When auditing multiple files, the `--output` flag cannot be used. Each report is auto-named based on the input path with an `-audit` suffix and the appropriate format extension. Bare filenames produce simple names (e.g., `config1.xml` produces `config1-audit.md`). When inputs include directory components, the full path is encoded into the filename to prevent collisions between files that share the same basename:
+
+```text
+config.xml                  -> config-audit.md
+prod/site-a/config.xml      -> prod_site-a_config-audit.md
+dr/site-a/config.xml        -> dr_site-a_config-audit.md
+```
 
 ```bash
 opndossier audit config1.xml config2.xml --mode blue
