@@ -1,6 +1,6 @@
 # sanitize
 
-The `sanitize` command redacts sensitive information from an OPNsense configuration file while preserving its structure and relationships. The output is a valid XML file with passwords, keys, IP addresses, and other secrets replaced by consistent pseudonymized values -- so network topology and rule logic remain visible without exposing real credentials or addresses.
+The `sanitize` command redacts sensitive information from an OPNsense or pfSense configuration file while preserving its structure and relationships. The output is a valid XML file with passwords, keys, IP addresses, and other secrets replaced by consistent pseudonymized values -- so network topology and rule logic remain visible without exposing real credentials or addresses. Both OPNsense password fields (`<password>`) and pfSense bcrypt hashes (`<bcrypt-hash>`) are detected and redacted.
 
 **When to use it:**
 

@@ -1,6 +1,6 @@
 # Commands Overview
 
-opnDossier provides the following commands for working with OPNsense configuration files.
+opnDossier provides the following commands for working with OPNsense and pfSense configuration files. The device type is auto-detected from the XML root element.
 
 | Command                   | Alias  | Purpose                                                    |
 | ------------------------- | ------ | ---------------------------------------------------------- |
