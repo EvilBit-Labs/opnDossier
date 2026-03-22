@@ -40,7 +40,7 @@ func TestCoreProcessor_Process(t *testing.T) {
 		},
 		FirewallRules: []common.FirewallRule{
 			{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Interfaces:  []string{"wan"},
 				Source:      common.RuleEndpoint{Address: "any"},
 				Description: "",
@@ -349,14 +349,14 @@ func TestCoreProcessor_Analysis(t *testing.T) {
 			},
 			FirewallRules: []common.FirewallRule{
 				{
-					Type:        "block",
+					Type:        common.RuleTypeBlock,
 					Interfaces:  []string{"wan"},
 					Source:      common.RuleEndpoint{Address: "any"},
 					Destination: common.RuleEndpoint{Address: "any"},
 					Description: "Block all traffic",
 				},
 				{
-					Type:        "pass",
+					Type:        common.RuleTypePass,
 					Interfaces:  []string{"wan"},
 					Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
 					Description: "Allow LAN traffic",
@@ -392,16 +392,16 @@ func TestCoreProcessor_Analysis(t *testing.T) {
 			},
 			FirewallRules: []common.FirewallRule{
 				{
-					Type:        "pass",
+					Type:        common.RuleTypePass,
 					Interfaces:  []string{"lan"},
-					IPProtocol:  "inet",
+					IPProtocol:  common.IPProtocolInet,
 					Source:      common.RuleEndpoint{Address: "any"},
 					Description: "Allow traffic",
 				},
 				{
-					Type:        "pass",
+					Type:        common.RuleTypePass,
 					Interfaces:  []string{"lan"},
-					IPProtocol:  "inet",
+					IPProtocol:  common.IPProtocolInet,
 					Source:      common.RuleEndpoint{Address: "any"},
 					Description: "Duplicate rule",
 				},

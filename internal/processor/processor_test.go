@@ -378,13 +378,13 @@ func TestCoreProcessor_NormalizationIdempotence(t *testing.T) {
 				},
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Interfaces:  []string{"wan"},
 						Source:      common.RuleEndpoint{Address: "192.168.1.100"},
 						Description: "Allow specific host",
 					},
 					{
-						Type:        "block",
+						Type:        common.RuleTypeBlock,
 						Interfaces:  []string{"lan"},
 						Source:      common.RuleEndpoint{Address: "10.0.0.0/8"},
 						Description: "Block private range",
@@ -494,29 +494,29 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 				},
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "block",
+						Type:        common.RuleTypeBlock,
 						Interfaces:  []string{"wan"},
 						Source:      common.RuleEndpoint{Address: "any"},
 						Destination: common.RuleEndpoint{Address: "any"},
 						Description: "Block all",
 					},
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Interfaces:  []string{"wan"},
 						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
 						Description: "Allow LAN (unreachable)",
 					},
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Interfaces:  []string{"lan"},
-						IPProtocol:  "inet",
+						IPProtocol:  common.IPProtocolInet,
 						Source:      common.RuleEndpoint{Address: "10.0.0.0/8"},
 						Description: "Allow private",
 					},
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Interfaces:  []string{"lan"},
-						IPProtocol:  "inet",
+						IPProtocol:  common.IPProtocolInet,
 						Source:      common.RuleEndpoint{Address: "10.0.0.0/8"},
 						Description: "Duplicate rule",
 					},
@@ -614,7 +614,7 @@ func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 				},
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Interfaces:  []string{"wan"},
 						Source:      common.RuleEndpoint{Address: "any"},
 						Description: "", // Overly broad rule
@@ -684,7 +684,7 @@ func generateManyRules(count int) []common.FirewallRule {
 	rules := make([]common.FirewallRule, count)
 	for i := range count {
 		rules[i] = common.FirewallRule{
-			Type:        "pass",
+			Type:        common.RuleTypePass,
 			Interfaces:  []string{"lan"},
 			Description: fmt.Sprintf("Rule %d", i+1),
 			Source:      common.RuleEndpoint{Address: fmt.Sprintf("192.168.%d.0/24", (i%254)+1)},
@@ -726,8 +726,8 @@ func generateSmallConfig() *common.CommonDevice {
 			},
 		},
 		FirewallRules: []common.FirewallRule{
-			{Type: "pass", Interfaces: []string{"lan"}, Description: "Allow LAN"},
-			{Type: "block", Interfaces: []string{"wan"}, Description: "Block WAN"},
+			{Type: common.RuleTypePass, Interfaces: []string{"lan"}, Description: "Allow LAN"},
+			{Type: common.RuleTypeBlock, Interfaces: []string{"wan"}, Description: "Block WAN"},
 		},
 		Sysctl: []common.SysctlItem{
 			{Tunable: "net.inet.ip.forwarding", Value: "1"},
@@ -815,7 +815,7 @@ func generateLargeConfig() *common.CommonDevice {
 			Unbound: common.UnboundConfig{Enabled: true},
 		},
 		NAT: common.NATConfig{
-			OutboundMode: "automatic",
+			OutboundMode: common.OutboundAutomatic,
 		},
 	}
 }
@@ -1243,9 +1243,9 @@ func TestCoreProcessor_StatisticsAccuracy(t *testing.T) {
 					},
 				},
 				FirewallRules: []common.FirewallRule{
-					{Type: "pass", Interfaces: []string{"lan"}, Description: "Allow LAN to WAN"},
-					{Type: "block", Interfaces: []string{"wan"}, Description: "Block external access"},
-					{Type: "pass", Interfaces: []string{"wan"}, Description: "Allow specific service"},
+					{Type: common.RuleTypePass, Interfaces: []string{"lan"}, Description: "Allow LAN to WAN"},
+					{Type: common.RuleTypeBlock, Interfaces: []string{"wan"}, Description: "Block external access"},
+					{Type: common.RuleTypePass, Interfaces: []string{"wan"}, Description: "Allow specific service"},
 				},
 				DHCP: []common.DHCPScope{
 					{
@@ -1270,7 +1270,7 @@ func TestCoreProcessor_StatisticsAccuracy(t *testing.T) {
 					{Tunable: "net.inet.tcp.mssdflt", Value: "1460"},
 				},
 				NAT: common.NATConfig{
-					OutboundMode: "automatic",
+					OutboundMode: common.OutboundAutomatic,
 					OutboundRules: []common.NATRule{
 						{Interfaces: []string{"wan"}, Description: "Auto-created outbound NAT rule"},
 					},
@@ -1300,11 +1300,11 @@ func TestCoreProcessor_StatisticsAccuracy(t *testing.T) {
 				assert.Equal(t, 3, stats.TotalFirewallRules, "Should count all firewall rules")
 				assert.Equal(t, 1, stats.RulesByInterface["lan"], "Should have 1 LAN rule")
 				assert.Equal(t, 2, stats.RulesByInterface["wan"], "Should have 2 WAN rules")
-				assert.Equal(t, 2, stats.RulesByType["pass"], "Should have 2 pass rules")
-				assert.Equal(t, 1, stats.RulesByType["block"], "Should have 1 block rule")
+				assert.Equal(t, 2, stats.RulesByType[string(common.RuleTypePass)], "Should have 2 pass rules")
+				assert.Equal(t, 1, stats.RulesByType[string(common.RuleTypeBlock)], "Should have 1 block rule")
 
 				// NAT statistics
-				assert.Equal(t, "automatic", stats.NATMode, "Should detect NAT mode")
+				assert.Equal(t, string(common.OutboundAutomatic), stats.NATMode, "Should detect NAT mode")
 				assert.Equal(t, 1, stats.NATEntries, "Should count NAT configuration")
 
 				// DHCP statistics

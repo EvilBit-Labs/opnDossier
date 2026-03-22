@@ -138,7 +138,7 @@ func TestValidateCommonDevice(t *testing.T) {
 				System:     common.System{Hostname: "fw", Domain: "example.com"},
 				Interfaces: validInterfaces,
 				FirewallRules: []common.FirewallRule{
-					{Type: "allow", Interfaces: []string{"lan"}, IPProtocol: "inet"},
+					{Type: "allow", Interfaces: []string{"lan"}, IPProtocol: common.IPProtocolInet},
 				},
 			},
 			wantErrCount: 1,
@@ -151,7 +151,7 @@ func TestValidateCommonDevice(t *testing.T) {
 				System:     common.System{Hostname: "fw", Domain: "example.com"},
 				Interfaces: validInterfaces,
 				FirewallRules: []common.FirewallRule{
-					{Type: "pass", Interfaces: []string{"opt1"}, IPProtocol: "inet"},
+					{Type: common.RuleTypePass, Interfaces: []string{"opt1"}, IPProtocol: common.IPProtocolInet},
 				},
 			},
 			wantErrCount: 1,

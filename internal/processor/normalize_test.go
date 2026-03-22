@@ -14,8 +14,8 @@ func TestNormalize_DoesNotMutateOriginal(t *testing.T) {
 
 	original := &common.CommonDevice{
 		FirewallRules: []common.FirewallRule{
-			{Type: "pass", Description: "rule-b"},
-			{Type: "block", Description: "rule-a"},
+			{Type: common.RuleTypePass, Description: "rule-b"},
+			{Type: common.RuleTypeBlock, Description: "rule-a"},
 		},
 		Users: []common.User{
 			{Name: "zoe"},

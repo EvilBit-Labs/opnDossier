@@ -170,8 +170,14 @@ func (p *CoreProcessor) analyzePerformanceIssues(cfg *common.CommonDevice, repor
 	}
 }
 
-// mapSeverity converts a common.FindingSeverity to the canonical processor Severity.
-// Both types share the same underlying string constants, so a direct conversion suffices.
-func mapSeverity(s common.FindingSeverity) Severity {
-	return Severity(s)
+// mapSeverity converts a common.Severity to the canonical processor Severity.
+// Normalizes case and falls back to SeverityInfo for unrecognized values,
+// which is critical for dynamic plugins that may return non-canonical severities.
+func mapSeverity(s common.Severity) Severity {
+	normalized := common.Severity(strings.ToLower(string(s)))
+	if common.IsValidSeverity(normalized) {
+		return Severity(normalized)
+	}
+
+	return SeverityInfo
 }

@@ -25,6 +25,10 @@ func (p *CoreProcessor) normalize(cfg *common.CommonDevice) *common.CommonDevice
 	normalized.Certificates = slices.Clone(cfg.Certificates)
 	normalized.DHCP = slices.Clone(cfg.DHCP)
 	for i := range normalized.DHCP {
+		if normalized.DHCP[i].AdvancedV4 != nil {
+			v4Copy := *normalized.DHCP[i].AdvancedV4
+			normalized.DHCP[i].AdvancedV4 = &v4Copy
+		}
 		if normalized.DHCP[i].AdvancedV6 != nil {
 			v6Copy := *normalized.DHCP[i].AdvancedV6
 			normalized.DHCP[i].AdvancedV6 = &v6Copy
