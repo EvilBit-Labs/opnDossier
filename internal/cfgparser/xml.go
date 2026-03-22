@@ -7,12 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/validator"
+	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
-	"golang.org/x/text/encoding/charmap"
-	"golang.org/x/text/transform"
 )
 
 // Parser size limits to prevent XML bomb attacks.
@@ -44,31 +42,10 @@ func NewXMLParser() *XMLParser {
 	}
 }
 
-// charsetReader creates a reader for the specified charset.
+// charsetReader delegates to the shared parser.CharsetReader for charset handling.
 // Supported encodings: UTF-8, US-ASCII, ISO-8859-1 (Latin1), and Windows-1252.
 func charsetReader(charset string, input io.Reader) (io.Reader, error) {
-	normalizedCharset := strings.ToLower(strings.TrimSpace(charset))
-	normalizedCharset = strings.ReplaceAll(normalizedCharset, "_", "-")
-	normalizedCharset = strings.TrimSuffix(normalizedCharset, ":1987")
-
-	switch normalizedCharset {
-	case "us-ascii", "ascii":
-		// us-ascii is a subset of UTF-8, so we can use the input as-is
-		return input, nil
-	case "utf-8", "utf8":
-		// UTF-8 is the default, use input as-is
-		return input, nil
-	case "iso-8859-1", "iso8859-1", "latin1", "latin-1":
-		// Convert ISO-8859-1 to UTF-8 for internal parsing.
-		decoder := charmap.ISO8859_1.NewDecoder()
-		return transform.NewReader(input, decoder), nil
-	case "windows-1252", "windows1252", "cp1252":
-		// Convert Windows-1252 to UTF-8 for internal parsing.
-		decoder := charmap.Windows1252.NewDecoder()
-		return transform.NewReader(input, decoder), nil
-	default:
-		return nil, fmt.Errorf("unsupported charset: %s", charset)
-	}
+	return parser.CharsetReader(charset, input)
 }
 
 // Parse parses an OPNsense configuration file with security protections using streaming to minimize memory usage.
@@ -77,10 +54,8 @@ func charsetReader(charset string, input io.Reader) (io.Reader, error) {
 // against XML bombs, XXE attacks, and excessive entity expansion.
 // The context is checked periodically to support cancellation of long-running parse operations.
 func (p *XMLParser) Parse(ctx context.Context, r io.Reader) (*schema.OpnSenseDocument, error) {
-	limitedReader := io.LimitReader(r, p.MaxInputSize)
-	dec := xml.NewDecoder(limitedReader)
-	dec.CharsetReader = charsetReader
-	dec.Entity = map[string]string{}
+	dec := parser.NewSecureXMLDecoder(r, p.MaxInputSize)
+	// OPNsense-specific decoder settings for streaming token parsing.
 	dec.DefaultSpace = ""
 	dec.AutoClose = xml.HTMLAutoClose
 
