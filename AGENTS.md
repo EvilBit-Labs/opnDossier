@@ -401,7 +401,7 @@ When splitting a large file into domain-specific files within the same package:
 - `pkg/schema/opnsense/` is the canonical OPNsense XML data model. Boolean patterns: see §5.17
 - `RuleLocation` in `common.go` has complete source/destination fields but is NOT used by `Source`/`Destination` in `security.go` — tracked in issue #255
 - Known schema gaps: ~40+ type mismatches and missing fields — see `docs/development/xml-structure-research.md` §4-5
-- **Schema reuse (copy-on-write):** When creating a new device schema (for example, pfSense), it is acceptable as a stop-gap to reuse struct definitions from another schema when they are truly identical. Treat reused structs as copy-on-write: do not alter the original device schema in place. If behavior or fields diverge, copy the struct into the new schema package and make changes there. pfSense vs OPNsense is the primary expected reuse case due to structural similarity.
+- **Schema reuse (copy-on-write):** When creating a new device schema (for example, pfSense), it is acceptable as a stop-gap to reuse struct definitions from another schema when they are truly identical. Treat reused structs as copy-on-write: do not alter the original device schema in place. If behavior or fields diverge, copy the struct into the new schema package and make changes there. This also applies when forked or variant platforms undergo major breaking schema changes (for example, within Cisco families such as ASA vs IOS vs NGFW-style variants): reuse only while identical, then fork locally at first divergence.
 
 **Platform-agnostic model layer:**
 
