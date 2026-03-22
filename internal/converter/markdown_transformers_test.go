@@ -604,7 +604,7 @@ func BenchmarkFilterRulesByType(b *testing.B) {
 
 	// Generate large dataset
 	rules := make([]common.FirewallRule, 10000)
-	types := []common.FirewallRuleType{common.RuleTypePass, common.RuleTypeBlock, common.RuleTypeReject, "match"}
+	types := []common.FirewallRuleType{common.RuleTypePass, common.RuleTypeBlock, common.RuleTypeReject}
 	for i := range 10000 {
 		rules[i] = common.FirewallRule{
 			Type:        types[i%len(types)],
