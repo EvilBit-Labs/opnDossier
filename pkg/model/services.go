@@ -12,23 +12,6 @@ type DHCPAdvancedV4 struct {
 	// DHCPRejectFrom is a comma-separated list of MAC addresses to reject.
 	DHCPRejectFrom string `json:"dhcpRejectFrom,omitempty" yaml:"dhcpRejectFrom,omitempty"`
 
-	// Advanced DHCPv4 DNS fields.
-
-	// AdvDHCPDNSDomain is the advanced DHCP DNS domain override.
-	AdvDHCPDNSDomain string `json:"advDhcpDnsDomain,omitempty" yaml:"advDhcpDnsDomain,omitempty"`
-	// AdvDHCPDNSServer1 is the first advanced DHCP DNS server override.
-	AdvDHCPDNSServer1 string `json:"advDhcpDnsServer1,omitempty" yaml:"advDhcpDnsServer1,omitempty"`
-	// AdvDHCPDNSServer2 is the second advanced DHCP DNS server override.
-	AdvDHCPDNSServer2 string `json:"advDhcpDnsServer2,omitempty" yaml:"advDhcpDnsServer2,omitempty"`
-	// AdvDHCPDNSServer3 is the third advanced DHCP DNS server override.
-	AdvDHCPDNSServer3 string `json:"advDhcpDnsServer3,omitempty" yaml:"advDhcpDnsServer3,omitempty"`
-	// AdvDHCPDNSServer4 is the fourth advanced DHCP DNS server override.
-	AdvDHCPDNSServer4 string `json:"advDhcpDnsServer4,omitempty" yaml:"advDhcpDnsServer4,omitempty"`
-	// AdvDHCPOptionEnabled indicates whether advanced DHCP option overrides are active.
-	AdvDHCPOptionEnabled string `json:"advDhcpOptionEnabled,omitempty" yaml:"advDhcpOptionEnabled,omitempty"`
-	// AdvDHCPOptionServer is the advanced DHCP option server address.
-	AdvDHCPOptionServer string `json:"advDhcpOptionServer,omitempty" yaml:"advDhcpOptionServer,omitempty"`
-
 	// Advanced DHCPv4 protocol timing fields.
 
 	// AdvDHCPPTTimeout is the protocol timeout for DHCP client requests.
@@ -70,15 +53,6 @@ type DHCPAdvancedV4 struct {
 // DHCPAdvancedV6 contains advanced DHCPv6 configuration fields including tracking,
 // interface statement, identity association, authentication, key info, and config overrides.
 type DHCPAdvancedV6 struct {
-	// DHCPv6 basic fields.
-
-	// DHCPv6ConfigAdvanced contains raw advanced DHCPv6 configuration text.
-	DHCPv6ConfigAdvanced string `json:"dhcpv6ConfigAdvanced,omitempty" yaml:"dhcpv6ConfigAdvanced,omitempty"`
-	// DHCPv6PrefixOnly restricts DHCPv6 to prefix delegation only.
-	DHCPv6PrefixOnly string `json:"dhcpv6PrefixOnly,omitempty" yaml:"dhcpv6PrefixOnly,omitempty"`
-	// DHCPv6PrefixDelegationSize is the size of the delegated IPv6 prefix.
-	DHCPv6PrefixDelegationSize string `json:"dhcpv6PrefixDelegationSize,omitempty" yaml:"dhcpv6PrefixDelegationSize,omitempty"`
-
 	// IPv6 tracking fields.
 
 	// Track6Interface is the upstream interface used for IPv6 prefix tracking.

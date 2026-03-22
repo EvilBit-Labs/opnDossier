@@ -27,7 +27,7 @@ type Statistics struct {
 	// NATEntries is the total number of NAT rules (inbound and outbound).
 	NATEntries int `json:"natEntries,omitempty" yaml:"natEntries,omitempty"`
 	// NATMode is the outbound NAT mode.
-	NATMode string `json:"natMode,omitempty" yaml:"natMode,omitempty"`
+	NATMode NATOutboundMode `json:"natMode,omitempty" yaml:"natMode,omitempty"`
 
 	// TotalGateways is the total number of configured gateways.
 	TotalGateways int `json:"totalGateways,omitempty" yaml:"totalGateways,omitempty"`
@@ -166,7 +166,9 @@ type UnusedInterfaceFinding struct {
 	Recommendation string `json:"recommendation,omitempty" yaml:"recommendation,omitempty"`
 }
 
-// FindingSeverity is the severity type used in analysis findings.
+// FindingSeverity is an alias for Severity, kept for backward compatibility in tests.
+//
+// Deprecated: Use Severity directly.
 type FindingSeverity = Severity
 
 // SecurityFinding represents a security finding.
@@ -176,7 +178,7 @@ type SecurityFinding struct {
 	// Issue is a brief summary of the finding.
 	Issue string `json:"issue,omitempty" yaml:"issue,omitempty"`
 	// Severity is the severity level (e.g., "critical", "high", "medium", "low").
-	Severity FindingSeverity `json:"severity,omitempty" yaml:"severity,omitempty"`
+	Severity Severity `json:"severity,omitempty" yaml:"severity,omitempty"`
 	// Description is a detailed explanation of the finding.
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// Recommendation is the suggested corrective action.
@@ -190,7 +192,7 @@ type PerformanceFinding struct {
 	// Issue is a brief summary of the finding.
 	Issue string `json:"issue,omitempty" yaml:"issue,omitempty"`
 	// Severity is the severity level (e.g., "critical", "high", "medium", "low").
-	Severity FindingSeverity `json:"severity,omitempty" yaml:"severity,omitempty"`
+	Severity Severity `json:"severity,omitempty" yaml:"severity,omitempty"`
 	// Description is a detailed explanation of the finding.
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// Recommendation is the suggested corrective action.
@@ -204,7 +206,7 @@ type ConsistencyFinding struct {
 	// Issue is a brief summary of the finding.
 	Issue string `json:"issue,omitempty" yaml:"issue,omitempty"`
 	// Severity is the severity level (e.g., "critical", "high", "medium", "low").
-	Severity FindingSeverity `json:"severity,omitempty" yaml:"severity,omitempty"`
+	Severity Severity `json:"severity,omitempty" yaml:"severity,omitempty"`
 	// Description is a detailed explanation of the finding.
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// Recommendation is the suggested corrective action.

@@ -155,6 +155,16 @@ const (
 	LAGGProtocolRoundRobin LAGGProtocol = "roundrobin"
 )
 
+// IsValid reports whether p is a recognized LAGG protocol.
+func (p LAGGProtocol) IsValid() bool {
+	switch p {
+	case LAGGProtocolLACP, LAGGProtocolFailover, LAGGProtocolLoadBalance, LAGGProtocolRoundRobin:
+		return true
+	default:
+		return false
+	}
+}
+
 // LAGG represents a link aggregation configuration.
 type LAGG struct {
 	// Interface is the LAGG interface name (e.g., "lagg0", "Port-channel1").
@@ -182,6 +192,16 @@ const (
 	// VIPModeProxyARP enables ARP proxying for downstream hosts.
 	VIPModeProxyARP VIPMode = "proxyarp"
 )
+
+// IsValid reports whether m is a recognized virtual IP mode.
+func (m VIPMode) IsValid() bool {
+	switch m {
+	case VIPModeCarp, VIPModeIPAlias, VIPModeProxyARP:
+		return true
+	default:
+		return false
+	}
+}
 
 // VirtualIP represents a virtual IP address configuration.
 type VirtualIP struct {

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
+	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 )
 
@@ -96,7 +97,7 @@ func TestCommonDevice_NATSummary(t *testing.T) {
 			name: "populated NAT fields propagate",
 			device: common.CommonDevice{
 				NAT: common.NATConfig{
-					OutboundMode:       "hybrid",
+					OutboundMode:       common.OutboundHybrid,
 					ReflectionDisabled: true,
 					PfShareForward:     true,
 					OutboundRules: []common.NATRule{
@@ -123,7 +124,7 @@ func TestCommonDevice_NATSummary(t *testing.T) {
 			name: "BiNATEnabled not included in summary",
 			device: common.CommonDevice{
 				NAT: common.NATConfig{
-					OutboundMode: "automatic",
+					OutboundMode: common.OutboundAutomatic,
 					BiNATEnabled: true,
 				},
 			},
@@ -227,7 +228,7 @@ func TestCommonDevice_HasNATConfig(t *testing.T) {
 		{
 			name: "OutboundMode set returns true",
 			device: common.CommonDevice{
-				NAT: common.NATConfig{OutboundMode: "hybrid"},
+				NAT: common.NATConfig{OutboundMode: common.OutboundHybrid},
 			},
 			want: true,
 		},
@@ -302,7 +303,7 @@ func TestNATConfig_HasData(t *testing.T) {
 		},
 		{
 			name: "OutboundMode set returns true",
-			cfg:  common.NATConfig{OutboundMode: "hybrid"},
+			cfg:  common.NATConfig{OutboundMode: common.OutboundHybrid},
 			want: true,
 		},
 		{
@@ -552,7 +553,7 @@ func TestCommonDevice_JSONRoundTrip(t *testing.T) {
 		FirewallRules: []common.FirewallRule{
 			{
 				UUID:       "abc-123",
-				Type:       "pass",
+				Type:       common.RuleTypePass,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "any"},
 				Destination: common.RuleEndpoint{
@@ -750,5 +751,32 @@ func TestCommonDevice_EnrichmentFieldsOptional(t *testing.T) {
 	}
 	if got.ComplianceChecks != nil {
 		t.Error("ComplianceChecks should be nil when not set")
+	}
+}
+
+func TestParseDeviceType(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		input string
+		want  common.DeviceType
+	}{
+		{"empty string returns unknown", "", common.DeviceTypeUnknown},
+		{"opnsense lowercase", "opnsense", common.DeviceTypeOPNsense},
+		{"OPNsense mixed case", "OPNsense", common.DeviceTypeOPNsense},
+		{"OPNsense with whitespace", " OPNsense ", common.DeviceTypeOPNsense},
+		{"pfsense lowercase", "pfsense", common.DeviceTypePfSense},
+		{"PfSense mixed case", "PfSense", common.DeviceTypePfSense},
+		{"unknown string returns unknown", "unknown", common.DeviceTypeUnknown},
+		{"routeros returns unknown", "routeros", common.DeviceTypeUnknown},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := common.ParseDeviceType(tt.input)
+			assert.Equal(t, tt.want, got)
+		})
 	}
 }

@@ -48,6 +48,46 @@ const (
 	OutboundDisabled NATOutboundMode = "disabled"
 )
 
+// IsValid reports whether t is a recognized firewall rule type.
+func (t FirewallRuleType) IsValid() bool {
+	switch t {
+	case RuleTypePass, RuleTypeBlock, RuleTypeReject:
+		return true
+	default:
+		return false
+	}
+}
+
+// IsValid reports whether d is a recognized firewall direction.
+func (d FirewallDirection) IsValid() bool {
+	switch d {
+	case DirectionIn, DirectionOut, DirectionAny:
+		return true
+	default:
+		return false
+	}
+}
+
+// IsValid reports whether p is a recognized IP protocol family.
+func (p IPProtocol) IsValid() bool {
+	switch p {
+	case IPProtocolInet, IPProtocolInet6:
+		return true
+	default:
+		return false
+	}
+}
+
+// IsValid reports whether m is a recognized NAT outbound mode.
+func (m NATOutboundMode) IsValid() bool {
+	switch m {
+	case OutboundAutomatic, OutboundHybrid, OutboundAdvanced, OutboundDisabled:
+		return true
+	default:
+		return false
+	}
+}
+
 // RuleEndpoint represents a normalized source or destination in a firewall
 // or NAT rule. The Address field contains the already-resolved effective
 // address ("any", a CIDR, hostname, or empty string).
