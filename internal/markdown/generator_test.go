@@ -364,18 +364,18 @@ func TestFormatInterfacesAsLinksTemplateFunction(t *testing.T) {
 		},
 		FirewallRules: []common.FirewallRule{
 			{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Interfaces:  []string{"wan", "lan"},
-				IPProtocol:  "inet",
+				IPProtocol:  common.IPProtocolInet,
 				Protocol:    "tcp",
 				Source:      common.RuleEndpoint{Address: "any"},
 				Destination: common.RuleEndpoint{Address: "any"},
 				Description: "Test rule with multiple interfaces",
 			},
 			{
-				Type:        "block",
+				Type:        common.RuleTypeBlock,
 				Interfaces:  []string{"opt1"},
-				IPProtocol:  "inet",
+				IPProtocol:  common.IPProtocolInet,
 				Protocol:    "udp",
 				Source:      common.RuleEndpoint{Address: "any"},
 				Destination: common.RuleEndpoint{Address: "any"},
