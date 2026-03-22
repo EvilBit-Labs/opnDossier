@@ -153,3 +153,20 @@ When adding device-specific validators that are structurally similar to existing
 ### 10.2 NAT Rule Field Name Disambiguation
 
 `OutboundNATRule.Target` is the NAT target address. `InboundNATRule.InternalIP` is the port-forward destination — there is no `Target` field on `InboundNATRule`. `FirewallRule` has no `Tag`/`Tagged` fields — those exist only on `OutboundNATRule`.
+
+## 11. Sanitizer
+
+### 11.1 pfSense `bcrypt-hash` Field Name
+
+pfSense stores user passwords in `<bcrypt-hash>` elements, not `<password>` or `<passwd>` like OPNsense. The sanitizer's field-pattern matching must explicitly include `bcrypt-hash` and `sha512-hash` — the generic `"pass"` substring match does not cover these.
+
+- **Symptom:** `sanitize` command outputs bcrypt hashes in cleartext.
+- **Fix:** Add `"bcrypt-hash"`, `"sha512-hash"` to the `password` rule's `FieldPatterns` in `internal/sanitizer/rules.go` and to `passwordKeywords` in `internal/sanitizer/patterns.go`.
+- **Precedent:** The SNMP community string (`rocommunity`) required a dedicated field pattern for the same reason.
+
+### 11.2 New Device Type Field Names
+
+When adding a new device type (e.g., pfSense), audit the XML element names for credential fields that differ from OPNsense. The sanitizer operates on raw XML element names, not CommonDevice field names. Any device-specific naming for secrets must be added to the sanitizer's pattern lists.
+
+- **Detection:** `sanitize <config.xml> | grep -i 'hash\|secret\|key\|pass'` — check for unredacted sensitive values.
+- **Prevention:** When adding a new device schema, grep for credential-like fields and verify each is matched by a sanitizer rule.
