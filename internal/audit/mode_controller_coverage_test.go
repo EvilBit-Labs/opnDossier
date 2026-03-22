@@ -135,13 +135,13 @@ func TestReport_AddAnalysisMethods_WithVariousConfigurations(t *testing.T) {
 				},
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Protocol:    "tcp",
 						Description: "Allow HTTP",
 					},
 				},
 				NAT: common.NATConfig{
-					OutboundMode: "automatic",
+					OutboundMode: common.OutboundAutomatic,
 				},
 				DHCP: []common.DHCPScope{
 					{
