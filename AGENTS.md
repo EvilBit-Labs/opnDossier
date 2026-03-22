@@ -224,22 +224,23 @@ When a struct depends on a broad interface but only calls a subset of its method
 
 Frequently encountered linter issues and fixes:
 
-| Linter                     | Issue                              | Fix                                                                                                               |
-| -------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `gocritic emptyStringTest` | `len(s) == 0`                      | Use `s == ""`                                                                                                     |
-| `gosec G115`               | Integer overflow on int→int32      | Add `//nolint:gosec` with bounded value comment                                                                   |
-| `mnd`                      | Magic numbers                      | Create named constants                                                                                            |
-| `minmax`                   | Manual min/max comparisons         | Use `min()`/`max()` builtins                                                                                      |
-| `goconst`                  | Repeated string literals           | Extract to package-level constants                                                                                |
-| `tparallel`                | Subtests use `t.Parallel()`        | Parent test must also call `t.Parallel()`                                                                         |
-| `tparallel`                | Subtests share mutable state       | Add `//nolint:tparallel` above func when subtests cannot be parallel due to shared mutable state                  |
-| `nonamedreturns`           | Named return values                | Use a struct return type instead of named returns                                                                 |
-| `funcorder`                | Method placed between constructors | All constructors (`New*`) must be grouped before any methods on the struct                                        |
-| `copylocks`                | Copying `sync.Once`                | In tests resetting globals, suppress with `//nolint:govet` and comment explaining intentional reset               |
-| `revive redefines-builtin` | Package name shadows stdlib        | Rename package (e.g., `log` → `logging`)                                                                          |
-| `revive stutters`          | `pkg.PkgThing` repeats name        | Drop prefix: `compliance.Plugin` not `compliance.CompliancePlugin`                                                |
-| `modernize`                | `omitempty` on struct fields       | Remove `omitempty` from JSON tags on struct-typed fields (no effect in `encoding/json`); YAML `omitempty` is fine |
-| `modernize`                | Legacy `sort.Strings`/`sort.Slice` | Use `slices.Sort()` / `slices.SortFunc()` with `strings.Compare`                                                  |
+| Linter                     | Issue                              | Fix                                                                                                                                        |
+| -------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `gocritic emptyStringTest` | `len(s) == 0`                      | Use `s == ""`                                                                                                                              |
+| `gosec G115`               | Integer overflow on int→int32      | Add `//nolint:gosec` with bounded value comment                                                                                            |
+| `mnd`                      | Magic numbers                      | Create named constants                                                                                                                     |
+| `minmax`                   | Manual min/max comparisons         | Use `min()`/`max()` builtins                                                                                                               |
+| `goconst`                  | Repeated string literals           | Extract to package-level constants                                                                                                         |
+| `tparallel`                | Subtests use `t.Parallel()`        | Parent test must also call `t.Parallel()`                                                                                                  |
+| `tparallel`                | Subtests share mutable state       | Add `//nolint:tparallel` above func when subtests cannot be parallel due to shared mutable state                                           |
+| `nonamedreturns`           | Named return values                | Use a struct return type instead of named returns                                                                                          |
+| `funcorder`                | Method placed between constructors | All constructors (`New*`) must be grouped before any methods on the struct                                                                 |
+| `copylocks`                | Copying `sync.Once`                | In tests resetting globals, suppress with `//nolint:govet` and comment explaining intentional reset                                        |
+| `revive redefines-builtin` | Package name shadows stdlib        | Rename package (e.g., `log` → `logging`)                                                                                                   |
+| `revive stutters`          | `pkg.PkgThing` repeats name        | Drop prefix: `compliance.Plugin` not `compliance.CompliancePlugin`                                                                         |
+| `modernize`                | `omitempty` on struct fields       | Remove `omitempty` from JSON tags on struct-typed fields (no effect in `encoding/json`); YAML `omitempty` is fine                          |
+| `staticcheck SA1019`       | Deprecated type alias usage        | Migrate ALL references (including test files) when deprecating a type alias — `Deprecated:` doc comment triggers SA1019 on every reference |
+| `modernize`                | Legacy `sort.Strings`/`sort.Slice` | Use `slices.Sort()` / `slices.SortFunc()` with `strings.Compare`                                                                           |
 
 > [!NOTE]
 > IDE diagnostics (marked with ★ in some editors) are suggestions, not errors. The authoritative source is `just lint` - if it reports "0 issues", the code is correct regardless of IDE warnings.
@@ -330,6 +331,8 @@ When adding fields to `common.Statistics`, update two places:
 
 The processor's `translateCommonStats()` in `internal/processor/report_statistics.go` must also be updated if new fields are added to `processor.Statistics`.
 
+When changing a `Statistics` field from `string` to a typed enum (e.g., `NATMode string` → `NATMode NATOutboundMode`), add a `string()` cast in `translateCommonStats()` and update test struct field types — `assert.Equal` fails at runtime on `string("") != TypedEnum("")` even though both compile.
+
 Separate check logic from stats updates. Never increment stats inside a function that may be called multiple times for fallback logic — check all candidates first, then update stats once based on the outcome.
 
 ### 5.23 Public Package Import Aliases
@@ -412,6 +415,7 @@ When splitting a large file into domain-specific files within the same package:
 - `internal/processor/` also delegates to `internal/analysis/` via `translateCommonStats` for type translation
 - New `CommonDevice` enrichment fields must be wired here to appear in JSON/YAML output
 - `computeStatistics` receives *unredacted* data (for accurate presence checks); sensitive values copied into `ServiceDetails` must be post-processed by `redactStatisticsServiceDetails()` when `redact=true`
+- Model fields without schema counterparts (no XML mapping in converter) create dead code in `Has*` helpers and `build*Items` display functions — remove unpopulated fields or gate them with comments until schema support exists
 
 **Compliance results model:**
 
