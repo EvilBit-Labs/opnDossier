@@ -79,7 +79,7 @@ func ComputeStatistics(cfg *common.CommonDevice) *common.Statistics {
 	}
 
 	// NAT statistics
-	stats.NATMode = string(cfg.NAT.OutboundMode)
+	stats.NATMode = cfg.NAT.OutboundMode
 	stats.NATEntries = len(cfg.NAT.OutboundRules) + len(cfg.NAT.InboundRules)
 
 	// Gateway statistics

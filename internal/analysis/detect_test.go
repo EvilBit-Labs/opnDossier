@@ -338,7 +338,7 @@ func TestDetectSecurityIssues(t *testing.T) {
 		cfg            *common.CommonDevice
 		wantCount      int
 		wantIssues     []string
-		wantSeverities []common.FindingSeverity
+		wantSeverities []common.Severity
 	}{
 		{
 			name:      "nil device",
@@ -366,7 +366,7 @@ func TestDetectSecurityIssues(t *testing.T) {
 				"Default SNMP Community String",
 				"Overly Permissive WAN Rule",
 			},
-			wantSeverities: []common.FindingSeverity{common.SeverityCritical, common.SeverityHigh, common.SeverityHigh},
+			wantSeverities: []common.Severity{common.SeverityCritical, common.SeverityHigh, common.SeverityHigh},
 		},
 		{
 			name: "secure config produces no findings",
@@ -417,7 +417,7 @@ func TestDetectPerformanceIssues(t *testing.T) {
 		cfg            *common.CommonDevice
 		wantCount      int
 		wantIssues     []string
-		wantSeverities []common.FindingSeverity
+		wantSeverities []common.Severity
 	}{
 		{
 			name:      "nil device",
@@ -439,14 +439,14 @@ func TestDetectPerformanceIssues(t *testing.T) {
 			},
 			wantCount:      2,
 			wantIssues:     []string{"Checksum Offloading Disabled", "Segmentation Offloading Disabled"},
-			wantSeverities: []common.FindingSeverity{common.SeverityLow, common.SeverityLow},
+			wantSeverities: []common.Severity{common.SeverityLow, common.SeverityLow},
 		},
 		{
 			name:           "high rule count",
 			cfg:            &common.CommonDevice{FirewallRules: highRuleCount},
 			wantCount:      1,
 			wantIssues:     []string{"High Number of Firewall Rules"},
-			wantSeverities: []common.FindingSeverity{common.SeverityMedium},
+			wantSeverities: []common.Severity{common.SeverityMedium},
 		},
 	}
 

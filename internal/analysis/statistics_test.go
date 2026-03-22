@@ -23,7 +23,7 @@ func TestComputeStatistics(t *testing.T) {
 		wantCertificates   int
 		wantCAs            int
 		wantNATEntries     int
-		wantNATMode        string
+		wantNATMode        common.NATOutboundMode
 		wantHasSecFeatures bool
 		wantSecFeatures    []string
 		wantServiceNames   []string
@@ -86,7 +86,7 @@ func TestComputeStatistics(t *testing.T) {
 				},
 			},
 			wantNATEntries: 3,
-			wantNATMode:    "automatic",
+			wantNATMode:    common.OutboundAutomatic,
 		},
 		{
 			name: "network infrastructure counts",
