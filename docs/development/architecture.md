@@ -151,8 +151,11 @@ For practical developer guidance on public package purity and the boundary verif
 
 - **Framework**: Cobra CLI
 - **Responsibility**: Command parsing, user interaction, error handling, warning propagation
-- **Key Files**: `cmd/root.go`, `cmd/convert.go`, `cmd/display.go`, `cmd/validate.go`
+- **Key Files**: `cmd/root.go`, `cmd/convert.go`, `cmd/display.go`, `cmd/validate.go`, `cmd/audit.go`, `cmd/audit_output.go`
 - **Warning Handling**: All commands log conversion warnings via structured logging; warnings suppressed when `--quiet` flag is used
+- **File Organization**: Audit command split into two files following file-size guidelines:
+  - `audit.go` — Command definition, flags, `PreRunE` validation, `runAudit`, and `generateAuditOutput`
+  - `audit_output.go` — Output emission logic (`emitAuditResult`), path derivation (`deriveAuditOutputPath`), and segment escaping (`escapePathSegment`)
 
 ### 2. Configuration Management
 
@@ -206,7 +209,7 @@ For practical developer guidance on public package purity and the boundary verif
 - **Warning Generation**: Accumulates conversion warnings for incomplete or problematic configuration elements (empty firewall rule fields, missing NAT rule data, gateway issues, user/certificate problems, HA configuration warnings)
 - **Analysis Integration**: Delegates to `internal/analysis/` for `ComputeStatistics()` and `ComputeAnalysis()` (shared, not mirrored)
 - **Audit Report Rendering**: Delegates compliance audit report rendering to `internal/converter/builder/` via `BuildAuditSection()` and `WriteAuditSection()` methods
-- **Audit Mode Integration**: In audit mode, `cmd/audit_handler.go` maps `audit.Report` to `common.ComplianceResults` and populates the `ComplianceChecks` field on a shallow copy of `CommonDevice`, enabling multi-format output (markdown, JSON, YAML) through the standard generation pipeline
+- **Audit Mode Integration**: In audit mode, `cmd/audit_handler.go` maps `audit.Report` to `common.ComplianceResults` and populates the `ComplianceChecks` field on a shallow copy of `CommonDevice`, enabling multi-format output (markdown, JSON, YAML, text, HTML) through the standard generation pipeline
 
 #### Output Renderer Component
 
@@ -217,8 +220,9 @@ For practical developer guidance on public package purity and the boundary verif
 
 ### 5. Output Systems
 
-- **Terminal Display**: Syntax-highlighted, styled terminal output via `display` command
+- **Terminal Display**: Syntax-highlighted, styled terminal output via `display` command and `audit` command (glamour rendering for markdown to stdout)
 - **File Export**: Multi-format file generation (markdown, JSON, YAML, text, HTML)
+- **Multi-File Audit Output**: Auto-naming with lossless tilde-based path escaping prevents filename collisions (e.g., `prod/site-a/config.xml` → `prod_site-a_config-audit.md`)
 
 ## Data Model Architecture
 
@@ -397,6 +401,82 @@ graph TD
 ### Device Type Detection
 
 The `--device-type` flag is exposed on all config-reading commands (`convert`, `display`, `audit`, `diff`, `validate`). When specified, it bypasses auto-detection and validates against the parser registry; error messages dynamically list supported devices from `registry.List()`. When omitted, `parser.Factory` inspects the root XML element to select the correct parser from the registry.
+
+## Audit Command Architecture
+
+### Overview
+
+The `opndossier audit` command provides a dedicated, first-class entry point for security audit and compliance checks. It is an alternative to the `convert --audit-mode` workflow, using the same underlying audit/compliance engine but offering a streamlined CLI interface optimized for audit-specific workflows.
+
+### Command Structure and Execution Flow
+
+1. **Command Definition** (`cmd/audit.go`):
+   - Declares audit-specific flags: `--mode` (standard/blue/red), `--plugins` (compliance checks), `--plugin-dir` (dynamic plugin loading), `--blackhat` (red team commentary)
+   - Reuses shared output flags: `--format`, `--output`, `--wrap`, `--section`, `--comprehensive`, `--redact`
+   - `PreRunE` validation enforces:
+     - Valid audit mode (standard, blue, red)
+     - Valid plugin names (stig, sans, firewall)
+     - `--plugins` flag only accepted with `--mode blue` (compliance checks only run in blue mode)
+     - `--output` flag rejected when auditing multiple files (prevents output clobbering)
+
+2. **Execution Flow** (`runAudit`):
+   - Validates device type flag before any file processing
+   - Processes multiple input files concurrently with configurable semaphore (defaults to `runtime.NumCPU()`)
+   - Buffers all results before emission to prevent interleaved stdout writes or file overwrites
+   - Each file processed via `generateAuditOutput` (parsing + audit generation, no I/O)
+   - Results emitted serially via `emitAuditResult` after all processing completes
+
+3. **Output Emission** (`cmd/audit_output.go`):
+   - `emitAuditResult` handles file vs stdout emission with format-specific rendering
+   - Markdown output to stdout uses glamour for styled terminal rendering
+   - Non-markdown formats (JSON, YAML, text, HTML) written raw
+   - File output uses standard file export without terminal styling
+
+### Architectural Patterns
+
+#### Shared Validation Extraction
+
+The `validateOutputFlags()` helper (in `cmd/shared_flags.go`) was extracted from `validateConvertFlags()` to share format, wrap, and section validation logic between audit and convert commands:
+
+- **Validates**: Format against `converter.DefaultRegistry`, wrap width range, mutual exclusivity of `--wrap` and `--no-wrap`
+- **Warns**: When section filtering used with JSON/YAML (sections ignored in structured formats)
+- **Reused by**: Both `convert` and `audit` commands call `validateOutputFlags()` in their `PreRunE` hooks
+- **Command-specific validation**: Each command performs its own audit-mode/plugin validation on command-specific flag variables
+
+#### Multi-File Output Naming
+
+When auditing multiple files, each report is auto-named to prevent filename collisions:
+
+- **Pattern**: `<escaped-path>_<basename>-audit.<ext>`
+- **Escaping**: Lossless tilde-based escaping via `escapePathSegment()`:
+  - Tildes become `~~` (escape character doubling)
+  - Underscores become `~u` (freeing underscore as segment separator)
+  - Prevents boundary ambiguity: `"a_/b"` → `"a~u_b"`, `"a/_b"` → `"a_~ub"` (unambiguous)
+- **Absolute paths**: Marked with `~a` prefix segment
+- **Examples**:
+  - `config.xml` → `config-audit.md`
+  - `prod/site-a/config.xml` → `prod_site-a_config-audit.md`
+  - `~/configs/edge.xml` → `~a_home_user_configs_edge-audit.md`
+
+#### Plugin Mode Coupling
+
+- `--plugins` flag only accepted with `--mode blue` (enforced in `PreRunE`)
+- Standard and red modes do not execute compliance checks
+- When no plugins specified in blue mode, all available plugins run (resolved in `internal/audit/mode_controller.go`)
+
+### Relationship to convert --audit-mode
+
+Both entry points use the same underlying `internal/audit` package and `cmd/audit_handler.go` mapping logic:
+
+| Aspect | `opndossier audit` | `convert --audit-mode` |
+| --- | --- | --- |
+| **Purpose** | Dedicated audit workflow | General conversion with optional audit |
+| **Flag Names** | Shorter audit-specific flags (`--mode`, `--plugins`) | Prefixed flags (`--audit-mode`, `--audit-plugins`) |
+| **Multi-File** | Concurrent processing with auto-naming | Sequential processing with explicit output paths |
+| **Output** | Glamour-styled markdown to terminal | Raw markdown or file export |
+| **Backward Compat** | New in PR #454 | Existing since initial audit support |
+
+The `convert --audit-mode` workflow remains unchanged for backward compatibility.
 
 ## DeviceParser Registry Pattern
 
@@ -1418,7 +1498,7 @@ For secure coding principles, SNMP redaction patterns, and the canonical approac
 ## Quick Start Architecture Summary
 
 1. **User provides** OPNsense config.xml file
-2. **CLI parses** command-line arguments and loads configuration
+2. **CLI parses** command-line arguments and loads configuration (via `convert`, `display`, `audit`, `validate`, or `diff` commands)
 3. **Factory** auto-detects device type and converts to `CommonDevice`
 4. **Converter** transforms XML to `CommonDevice`, accumulating conversion warnings for non-fatal issues
 5. **Parser returns** 3 values: device model, warnings slice, error
@@ -1428,3 +1508,5 @@ For secure coding principles, SNMP redaction patterns, and the canonical approac
 9. **User receives** human-readable documentation in the requested format
 
 **Key Benefits**: Offline operation, security-first design, operator-focused workflows, cross-platform compatibility, and comprehensive documentation generation from complex network configurations.
+
+**Audit Command**: The `opndossier audit` command provides a dedicated entry point for security audit and compliance checks, using the same underlying engine as `convert --audit-mode` but with a streamlined CLI interface, concurrent multi-file processing, glamour-styled terminal output, and auto-named report files to prevent collisions.
