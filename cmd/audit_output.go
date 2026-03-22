@@ -126,6 +126,13 @@ func deriveAuditOutputPath(inputFile, fileExt string) string {
 		cleaned := filepath.Clean(dir)
 		isAbs := filepath.IsAbs(cleaned)
 
+		// Strip volume name (e.g., "C:" on Windows) and leading separator
+		// so segments contain only directory names, not OS-specific roots.
+		vol := filepath.VolumeName(cleaned)
+		if vol != "" {
+			cleaned = strings.TrimPrefix(cleaned, vol)
+		}
+
 		if isAbs {
 			cleaned = strings.TrimPrefix(cleaned, string(filepath.Separator))
 		}

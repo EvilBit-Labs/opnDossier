@@ -734,8 +734,7 @@ func TestHandleAuditMode_EndToEnd(t *testing.T) {
 // skipping compliance. This is a regression test for the documented default
 // where `opnDossier audit config.xml --mode blue` runs all available plugins.
 func TestHandleAuditMode_BlueModeNoPluginsRunsAll(t *testing.T) {
-	t.Parallel()
-
+	// Do NOT use t.Parallel() — exercises audit pipeline with package-level flag state.
 	logger, err := logging.New(logging.Config{Level: "warn"})
 	require.NoError(t, err)
 

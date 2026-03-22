@@ -6,7 +6,7 @@ opnDossier provides the following commands for working with OPNsense configurati
 | ------------------------- | ------ | ---------------------------------------------------------- |
 | [`audit`](audit.md)       |        | Run security audit and compliance checks on configurations |
 | [`convert`](convert.md)   | `conv` | Convert config.xml to structured output formats            |
-| [`display`](display.md)   |        | Render config.xml as formatted markdown in terminal        |
+| [`display`](display.md)   |        | Render config.xml as formatted Markdown in terminal        |
 | [`validate`](validate.md) |        | Check config.xml for structural and semantic correctness   |
 | [`diff`](diff.md)         |        | Compare two OPNsense configuration files                   |
 | [`sanitize`](sanitize.md) |        | Redact sensitive information from config.xml               |

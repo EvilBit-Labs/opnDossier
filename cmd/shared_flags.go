@@ -360,8 +360,10 @@ func validateOutputFlags(flags *pflag.FlagSet, cmdLogger *logging.Logger) error 
 		}
 	}
 
-	// Validate output format compatibility
-	if strings.EqualFold(format, "json") && len(sharedSections) > 0 {
+	// Validate output format compatibility using canonical names for consistent alias handling
+	canonicalFormat, _ := converter.DefaultRegistry.Canonical(format)
+
+	if canonicalFormat == "json" && len(sharedSections) > 0 {
 		if cmdLogger != nil {
 			cmdLogger.Warn("section filtering not supported with JSON format, sections will be ignored")
 		} else {
@@ -372,7 +374,6 @@ func validateOutputFlags(flags *pflag.FlagSet, cmdLogger *logging.Logger) error 
 		}
 	}
 
-	canonicalFormat, _ := converter.DefaultRegistry.Canonical(format)
 	if canonicalFormat == "yaml" && len(sharedSections) > 0 {
 		if cmdLogger != nil {
 			cmdLogger.Warn("section filtering not supported with YAML format, sections will be ignored")

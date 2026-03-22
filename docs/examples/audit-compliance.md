@@ -77,6 +77,11 @@ When auditing multiple files, each report is auto-named based on the input filen
 ```bash
 # Audit multiple files (produces config1-audit.md, config2-audit.md)
 opndossier audit config1.xml config2.xml --mode blue
+
+# Files in subdirectories encode the path to prevent collisions
+# prod/config.xml -> prod_config-audit.md
+# dr/config.xml  -> dr_config-audit.md
+opndossier audit prod/config.xml dr/config.xml --mode blue
 ```
 
 ## Automation Workflows
