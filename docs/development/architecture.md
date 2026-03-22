@@ -411,6 +411,7 @@ The `opndossier audit` command provides a dedicated, first-class entry point for
 ### Command Structure and Execution Flow
 
 1. **Command Definition** (`cmd/audit.go`):
+
    - Declares audit-specific flags: `--mode` (standard/blue/red), `--plugins` (compliance checks), `--plugin-dir` (dynamic plugin loading), `--blackhat` (red team commentary)
    - Reuses shared output flags: `--format`, `--output`, `--wrap`, `--section`, `--comprehensive`, `--redact`
    - `PreRunE` validation enforces:
@@ -420,6 +421,7 @@ The `opndossier audit` command provides a dedicated, first-class entry point for
      - `--output` flag rejected when auditing multiple files (prevents output clobbering)
 
 2. **Execution Flow** (`runAudit`):
+
    - Validates device type flag before any file processing
    - Processes multiple input files concurrently with configurable semaphore (defaults to `runtime.NumCPU()`)
    - Buffers all results before emission to prevent interleaved stdout writes or file overwrites
@@ -427,6 +429,7 @@ The `opndossier audit` command provides a dedicated, first-class entry point for
    - Results emitted serially via `emitAuditResult` after all processing completes
 
 3. **Output Emission** (`cmd/audit_output.go`):
+
    - `emitAuditResult` handles file vs stdout emission with format-specific rendering
    - Markdown output to stdout uses glamour for styled terminal rendering
    - Non-markdown formats (JSON, YAML, text, HTML) written raw
@@ -468,13 +471,13 @@ When auditing multiple files, each report is auto-named to prevent filename coll
 
 Both entry points use the same underlying `internal/audit` package and `cmd/audit_handler.go` mapping logic:
 
-| Aspect | `opndossier audit` | `convert --audit-mode` |
-| --- | --- | --- |
-| **Purpose** | Dedicated audit workflow | General conversion with optional audit |
-| **Flag Names** | Shorter audit-specific flags (`--mode`, `--plugins`) | Prefixed flags (`--audit-mode`, `--audit-plugins`) |
-| **Multi-File** | Concurrent processing with auto-naming | Sequential processing with explicit output paths |
-| **Output** | Glamour-styled markdown to terminal | Raw markdown or file export |
-| **Backward Compat** | New in PR #454 | Existing since initial audit support |
+| Aspect              | `opndossier audit`                                   | `convert --audit-mode`                             |
+| ------------------- | ---------------------------------------------------- | -------------------------------------------------- |
+| **Purpose**         | Dedicated audit workflow                             | General conversion with optional audit             |
+| **Flag Names**      | Shorter audit-specific flags (`--mode`, `--plugins`) | Prefixed flags (`--audit-mode`, `--audit-plugins`) |
+| **Multi-File**      | Concurrent processing with auto-naming               | Sequential processing with explicit output paths   |
+| **Output**          | Glamour-styled markdown to terminal                  | Raw markdown or file export                        |
+| **Backward Compat** | New in PR #454                                       | Existing since initial audit support               |
 
 The `convert --audit-mode` workflow remains unchanged for backward compatibility.
 
