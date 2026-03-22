@@ -64,7 +64,6 @@ func NewModeController(registry *PluginRegistry, logger *logging.Logger) *ModeCo
 // ModeConfig holds configuration options for report generation.
 type ModeConfig struct {
 	Mode            ReportMode
-	BlackhatMode    bool
 	Comprehensive   bool
 	SelectedPlugins []string
 	TemplateDir     string
@@ -132,7 +131,6 @@ func (mc *ModeController) GenerateReport(
 	// Create base report structure
 	report := &Report{
 		Mode:          config.Mode,
-		BlackhatMode:  config.BlackhatMode,
 		Comprehensive: config.Comprehensive,
 		Configuration: device,
 		Findings:      make([]Finding, 0),
@@ -236,11 +234,10 @@ func (mc *ModeController) generateBlueReport(_ context.Context, report *Report, 
 
 // generateRedReport generates an attacker-focused recon report highlighting attack surfaces.
 func (mc *ModeController) generateRedReport(_ context.Context, report *Report, config *ModeConfig) (*Report, error) {
-	mc.logger.Debug("Generating red team report", "blackhat_mode", config.BlackhatMode)
+	mc.logger.Debug("Generating red team report")
 
 	// Add red team specific metadata
 	report.Metadata["report_type"] = "red_team"
-	report.Metadata["blackhat_mode"] = config.BlackhatMode
 	report.Metadata["generation_time"] = time.Now().Format(time.RFC3339)
 
 	// Add red team specific analysis
@@ -250,17 +247,12 @@ func (mc *ModeController) generateRedReport(_ context.Context, report *Report, c
 	report.addAttackSurfaces()
 	report.addEnumerationData()
 
-	if config.BlackhatMode {
-		report.addSnarkyCommentary()
-	}
-
 	return report, nil
 }
 
 // Report represents a comprehensive audit report with findings and analysis.
 type Report struct {
 	Mode          ReportMode                  `json:"mode"`
-	BlackhatMode  bool                        `json:"blackhatMode"`
 	Comprehensive bool                        `json:"comprehensive"`
 	Configuration *common.CommonDevice        `json:"configuration"`
 	Findings      []Finding                   `json:"findings"`
@@ -462,13 +454,6 @@ func (r *Report) addEnumerationData() {
 	// Add placeholder enumeration data
 	r.Metadata["enumeration_completed"] = true
 	r.Metadata["enumeration_targets"] = []string{"services", "ports"}
-}
-
-// addSnarkyCommentary adds snarky commentary to the red team report when blackhat mode is enabled.
-func (r *Report) addSnarkyCommentary() {
-	// Add placeholder snarky commentary
-	r.Metadata["snarky_mode_enabled"] = true
-	r.Metadata["commentary_style"] = "blackhat"
 }
 
 // ParseReportMode parses a string into a ReportMode, returning an error if invalid.

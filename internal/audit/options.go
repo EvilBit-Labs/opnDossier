@@ -8,9 +8,6 @@ type Options struct {
 	// AuditMode specifies the audit reporting mode (standard, blue, red).
 	AuditMode string
 
-	// BlackhatMode enables red team blackhat commentary.
-	BlackhatMode bool
-
 	// SelectedPlugins specifies which compliance plugins to run.
 	SelectedPlugins []string
 

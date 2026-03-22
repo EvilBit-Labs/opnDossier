@@ -387,14 +387,6 @@ func TestModeController_GenerateReport(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "red mode with blackhat",
-			config: &ModeConfig{
-				Mode:         ModeRed,
-				BlackhatMode: true,
-			},
-			wantErr: false,
-		},
-		{
 			name:    "nil config",
 			config:  nil,
 			wantErr: true,
@@ -443,14 +435,6 @@ func TestModeController_GenerateReport(t *testing.T) {
 					t.Errorf("GenerateReport() report mode = %v, want %v", report.Mode, tt.config.Mode)
 				}
 
-				if report.BlackhatMode != tt.config.BlackhatMode {
-					t.Errorf(
-						"GenerateReport() blackhat mode = %v, want %v",
-						report.BlackhatMode,
-						tt.config.BlackhatMode,
-					)
-				}
-
 				if report.Configuration != cfg {
 					t.Error("GenerateReport() configuration not set correctly")
 				}
@@ -476,7 +460,6 @@ func TestReport_Structure(t *testing.T) {
 
 	report := &Report{
 		Mode:          ModeStandard,
-		BlackhatMode:  false,
 		Comprehensive: true,
 		Configuration: &common.CommonDevice{},
 		Findings:      make([]Finding, 0),
@@ -487,10 +470,6 @@ func TestReport_Structure(t *testing.T) {
 	// Test that the report structure is properly initialized
 	if report.Mode != ModeStandard {
 		t.Errorf("Report.Mode = %v, want %v", report.Mode, ModeStandard)
-	}
-
-	if report.BlackhatMode {
-		t.Error("Report.BlackhatMode should be false")
 	}
 
 	if !report.Comprehensive {
@@ -1022,7 +1001,6 @@ func TestReport_AnalysisMethods(t *testing.T) {
 
 	report := &Report{
 		Mode:          ModeStandard,
-		BlackhatMode:  false,
 		Comprehensive: true,
 		Configuration: &common.CommonDevice{
 			System: common.System{
@@ -1177,14 +1155,6 @@ func TestReport_AnalysisMethods(t *testing.T) {
 		// Verify that enumeration data was added
 		if len(report.Metadata) == 0 {
 			t.Error("addEnumerationData() should add enumeration data to the report")
-		}
-	})
-
-	t.Run("addSnarkyCommentary", func(t *testing.T) {
-		report.addSnarkyCommentary()
-		// Verify that snarky commentary was added
-		if len(report.Metadata) == 0 {
-			t.Error("addSnarkyCommentary() should add snarky commentary to the report")
 		}
 	})
 }
