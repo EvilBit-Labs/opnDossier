@@ -130,3 +130,12 @@ Only `blue` mode runs `RunComplianceChecks`. The `standard` and `red` modes igno
 
 - **Gotcha:** Simple character replacement (e.g., `/` → `-`) is NOT sufficient — paths like `a-b/c/config.xml` and `a/b-c/config.xml` would collide. The escaping must be lossless (invertible). The earlier double-underscore scheme (`_` → `__`, separator → `_`) was also insufficient — it collapsed at segment boundaries where trailing/leading underscores were indistinguishable from the separator.
 - **Gotcha:** Expected output filenames are asserted in 5+ test functions (`TestDeriveAuditOutputPath`, `TestEmitAuditResult_MultiFileAutoNaming`, `TestEmitAuditResult_MultiFileConfigOutputFileIgnored`, `TestDeriveAuditOutputPath_BasenameCollision`, `TestDeriveAuditOutputPath_BoundaryUnderscoreCollision`, etc.). When changing the encoding scheme, grep for all assertion sites — missing one causes CI failure.
+
+## 9. Dupl Linter Bidirectional Firing
+
+### 9.1 Cross-Type Validator Duplication
+
+When adding device-specific validators that are structurally similar to existing validators (e.g., `validatePfSenseSystem` vs `validateSystem`), the `dupl` linter fires on BOTH files — not just the new one.
+
+- **Gotcha:** Adding `//nolint:dupl` only to the new function is insufficient. The existing function also needs `//nolint:dupl` because `dupl` reports pairs.
+- **Pattern:** Both sides of the duplicate pair must carry the suppression directive.
