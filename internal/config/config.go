@@ -44,6 +44,7 @@ type Config struct {
 	InputFile   string   `mapstructure:"input_file"`
 	OutputFile  string   `mapstructure:"output_file"`
 	Verbose     bool     `mapstructure:"verbose"`
+	Debug       bool     `mapstructure:"debug"`
 	Quiet       bool     `mapstructure:"quiet"`
 	Theme       string   `mapstructure:"theme"`
 	Format      string   `mapstructure:"format"`
@@ -272,6 +273,11 @@ func combineValidationErrors(validationErrors []ValidationError) error {
 // IsVerbose returns true if verbose logging is enabled.
 func (c *Config) IsVerbose() bool {
 	return c.Verbose
+}
+
+// IsDebug returns true if debug logging is enabled.
+func (c *Config) IsDebug() bool {
+	return c.Debug
 }
 
 // IsQuiet returns true if quiet mode is enabled.
