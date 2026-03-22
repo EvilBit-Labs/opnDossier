@@ -164,6 +164,9 @@ var portRangePattern = regexp.MustCompile(`^\d+(-\d+)?$`)
 // indicating a malformed range attempt (e.g., "80-abc").
 var numericPrefixPattern = regexp.MustCompile(`^\d+-`)
 
+// floatingYes is the XML value indicating a floating firewall rule.
+const floatingYes = "yes"
+
 // maxPort is the maximum valid TCP/UDP port number.
 const maxPort = constants.MaxPort
 

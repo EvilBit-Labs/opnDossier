@@ -87,6 +87,8 @@ func validateAddressField(address, fieldPath string) []ValidationError {
 
 // validateFilter checks each firewall filter rule for valid types, protocols, interface references, and network specifications.
 // It returns a list of validation errors for any rule fields that are invalid or reference non-existent interfaces.
+//
+
 func validateFilter(filter *schema.Filter, interfaces *schema.Interfaces) []ValidationError {
 	var errors []ValidationError
 
@@ -204,7 +206,7 @@ func validateFilter(filter *schema.Filter, interfaces *schema.Interfaces) []Vali
 		}
 
 		// Validate floating rule constraints
-		if rule.Floating == "yes" && rule.Direction == "" {
+		if rule.Floating == floatingYes && rule.Direction == "" {
 			errors = append(errors, ValidationError{
 				Field:   fmt.Sprintf("filter.rule[%d].direction", i),
 				Message: "direction is required for floating rules",
