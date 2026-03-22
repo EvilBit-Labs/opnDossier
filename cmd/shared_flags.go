@@ -36,7 +36,6 @@ var (
 	// after audit flag removal from convert. Retained because buildAuditOptions()
 	// and generateOutputByFormat() still reference them.
 	sharedAuditMode       string   //nolint:gochecknoglobals // Audit mode (standard, blue, red)
-	sharedBlackhatMode    bool     //nolint:gochecknoglobals // Enable blackhat mode for red team reports
 	sharedSelectedPlugins []string //nolint:gochecknoglobals // Selected compliance plugins
 	sharedPluginDir       string   //nolint:gochecknoglobals // Directory for dynamic .so plugins
 )

@@ -25,7 +25,6 @@ import (
 // Package-level flag variables for the audit command, required by cobra's flag binding mechanism.
 var (
 	auditMode      string   //nolint:gochecknoglobals // Cobra flag variable — audit reporting mode
-	auditBlackhat  bool     //nolint:gochecknoglobals // Cobra flag variable — blackhat commentary toggle
 	auditPlugins   []string //nolint:gochecknoglobals // Cobra flag variable — selected compliance plugins
 	auditPluginDir string   //nolint:gochecknoglobals // Cobra flag variable — dynamic plugin directory
 )
@@ -38,10 +37,6 @@ func init() {
 	auditCmd.Flags().
 		StringVar(&auditMode, "mode", "standard", "Audit mode (standard|blue|red)")
 	setFlagAnnotation(auditCmd.Flags(), "mode", []string{"audit"})
-
-	auditCmd.Flags().
-		BoolVar(&auditBlackhat, "blackhat", false, "Enable blackhat commentary for red team reports")
-	setFlagAnnotation(auditCmd.Flags(), "blackhat", []string{"audit"})
 
 	auditCmd.Flags().
 		StringSliceVar(&auditPlugins, "plugins", []string{}, "Compliance plugins to run (stig,sans,firewall)")
@@ -196,8 +191,8 @@ Examples:
   # Blue team audit with all compliance plugins (default when no --plugins)
   opnDossier audit config.xml --mode blue
 
-  # Red team attack surface analysis with blackhat commentary
-  opnDossier audit config.xml --mode red --blackhat
+  # Red team attack surface analysis
+  opnDossier audit config.xml --mode red
 
   # Export audit report as JSON
   opnDossier audit config.xml --format json -o audit-report.json
@@ -407,7 +402,6 @@ func generateAuditOutput(
 	// Build audit options from audit-specific flag variables (not shared globals)
 	auditOpts := audit.Options{
 		AuditMode:       auditMode,
-		BlackhatMode:    auditBlackhat,
 		SelectedPlugins: auditPlugins,
 	}
 

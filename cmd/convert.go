@@ -507,7 +507,6 @@ func buildConversionOptions(
 func buildAuditOptions() audit.Options {
 	opts := audit.Options{
 		AuditMode:       sharedAuditMode,
-		BlackhatMode:    sharedBlackhatMode,
 		SelectedPlugins: sharedSelectedPlugins,
 	}
 

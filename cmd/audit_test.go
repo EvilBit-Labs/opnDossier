@@ -15,7 +15,6 @@ import (
 // prevent test pollution when flags are modified during test execution.
 type auditFlagSnapshot struct {
 	mode       string
-	blackhat   bool
 	plugins    []string
 	pluginDir  string
 	formatFlag string
@@ -28,7 +27,6 @@ type auditFlagSnapshot struct {
 func captureAuditFlags() auditFlagSnapshot {
 	return auditFlagSnapshot{
 		mode:       auditMode,
-		blackhat:   auditBlackhat,
 		plugins:    auditPlugins,
 		pluginDir:  auditPluginDir,
 		formatFlag: format,
@@ -41,7 +39,6 @@ func captureAuditFlags() auditFlagSnapshot {
 // to their previously captured values.
 func (s auditFlagSnapshot) restore() {
 	auditMode = s.mode
-	auditBlackhat = s.blackhat
 	auditPlugins = s.plugins
 	auditPluginDir = s.pluginDir
 	format = s.formatFlag
@@ -86,7 +83,6 @@ func TestAuditCmdFlagDefaults(t *testing.T) {
 		defValue string
 	}{
 		{"mode", "standard"},
-		{"blackhat", "false"},
 		{"plugins", "[]"},
 		{"plugin-dir", ""},
 		{"format", "markdown"},
@@ -133,7 +129,6 @@ func TestAuditCmdHelpOutput(t *testing.T) {
 		"audit",
 		"--mode",
 		"--plugins",
-		"--blackhat",
 		"--format",
 		"--output",
 	}
