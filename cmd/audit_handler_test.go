@@ -807,8 +807,8 @@ func TestEmitAuditResult_MultiFileAutoNaming(t *testing.T) {
 	path1 := deriveAuditOutputPath(result1.inputFile, ".md")
 	path2 := deriveAuditOutputPath(result2.inputFile, ".md")
 
-	assert.Equal(t, "tmp_config1-audit.md", path1)
-	assert.Equal(t, "tmp_config2-audit.md", path2)
+	assert.Equal(t, "~a_tmp_config1-audit.md", path1)
+	assert.Equal(t, "~a_tmp_config2-audit.md", path2)
 	assert.NotEqual(t, path1, path2, "multi-file audit must produce distinct output paths")
 
 	// Verify the derived paths pass through determineOutputPath correctly
@@ -818,8 +818,8 @@ func TestEmitAuditResult_MultiFileAutoNaming(t *testing.T) {
 	require.NoError(t, err1)
 	require.NoError(t, err2)
 
-	assert.Equal(t, "tmp_config1-audit.md", resolvedPath1)
-	assert.Equal(t, "tmp_config2-audit.md", resolvedPath2)
+	assert.Equal(t, "~a_tmp_config1-audit.md", resolvedPath1)
+	assert.Equal(t, "~a_tmp_config2-audit.md", resolvedPath2)
 }
 
 // TestEmitAuditResult_MultiFileConfigOutputFileIgnored verifies that when
@@ -860,8 +860,8 @@ func TestEmitAuditResult_MultiFileConfigOutputFileIgnored(t *testing.T) {
 	require.NoError(t, errResolvedA)
 	require.NoError(t, errResolvedB)
 
-	assert.Equal(t, "tmp_config1-audit.md", resolvedA)
-	assert.Equal(t, "tmp_config2-audit.md", resolvedB)
+	assert.Equal(t, "~a_tmp_config1-audit.md", resolvedA)
+	assert.Equal(t, "~a_tmp_config2-audit.md", resolvedB)
 	assert.NotEqual(t, resolvedA, resolvedB, "multi-file audit must not resolve to same output path")
 }
 
@@ -875,13 +875,13 @@ func TestDeriveAuditOutputPath(t *testing.T) {
 		fileExt   string
 		want      string
 	}{
-		{"markdown from xml", "/path/to/config.xml", ".md", "path_to_config-audit.md"},
-		{"json from xml", "/path/to/config.xml", ".json", "path_to_config-audit.json"},
-		{"yaml from xml", "/path/to/config.xml", ".yaml", "path_to_config-audit.yaml"},
+		{"markdown from xml", "/path/to/config.xml", ".md", "~a_path_to_config-audit.md"},
+		{"json from xml", "/path/to/config.xml", ".json", "~a_path_to_config-audit.json"},
+		{"yaml from xml", "/path/to/config.xml", ".yaml", "~a_path_to_config-audit.yaml"},
 		{"html from xml", "config.xml", ".html", "config-audit.html"},
 		{"txt from xml", "config.xml", ".txt", "config-audit.txt"},
-		{"nested path", "/a/b/c/firewall-prod.xml", ".md", "a_b_c_firewall-prod-audit.md"},
-		{"no extension input", "/path/to/config", ".json", "path_to_config-audit.json"},
+		{"nested path", "/a/b/c/firewall-prod.xml", ".md", "~a_a_b_c_firewall-prod-audit.md"},
+		{"no extension input", "/path/to/config", ".json", "~a_path_to_config-audit.json"},
 		{"relative path", "configs/backup.xml", ".md", "configs_backup-audit.md"},
 		{"bare filename no dir", "config.xml", ".md", "config-audit.md"},
 		{"underscore in segment", "a_b/config.xml", ".md", "a~ub_config-audit.md"},
@@ -927,8 +927,8 @@ func TestDeriveAuditOutputPath_SameParentBasenameCollision(t *testing.T) {
 	pathA := deriveAuditOutputPath("/prod/site-a/config.xml", ".md")
 	pathB := deriveAuditOutputPath("/dr/site-a/config.xml", ".md")
 
-	assert.Equal(t, "prod_site-a_config-audit.md", pathA)
-	assert.Equal(t, "dr_site-a_config-audit.md", pathB)
+	assert.Equal(t, "~a_prod_site-a_config-audit.md", pathA)
+	assert.Equal(t, "~a_dr_site-a_config-audit.md", pathB)
 	assert.NotEqual(t, pathA, pathB,
 		"inputs with same basename AND same parent basename under different trees must produce distinct output paths")
 
@@ -936,10 +936,34 @@ func TestDeriveAuditOutputPath_SameParentBasenameCollision(t *testing.T) {
 	pathC := deriveAuditOutputPath("/us-east/prod/fw/config.xml", ".md")
 	pathD := deriveAuditOutputPath("/eu-west/prod/fw/config.xml", ".md")
 
-	assert.Equal(t, "us-east_prod_fw_config-audit.md", pathC)
-	assert.Equal(t, "eu-west_prod_fw_config-audit.md", pathD)
+	assert.Equal(t, "~a_us-east_prod_fw_config-audit.md", pathC)
+	assert.Equal(t, "~a_eu-west_prod_fw_config-audit.md", pathD)
 	assert.NotEqual(t, pathC, pathD,
 		"deeply nested inputs with shared parent segments must still produce distinct output paths")
+}
+
+// TestDeriveAuditOutputPath_AbsoluteVsRelativeCollision verifies that distinct
+// cleaned absolute and relative paths never collapse to the same derived output
+// filename. Absolute paths carry an explicit marker segment to preserve root
+// information after flattening.
+func TestDeriveAuditOutputPath_AbsoluteVsRelativeCollision(t *testing.T) {
+	t.Parallel()
+
+	absPath := deriveAuditOutputPath("/tmp/site-a/config.xml", ".md")
+	relPath := deriveAuditOutputPath("tmp/site-a/config.xml", ".md")
+
+	assert.Equal(t, "~a_tmp_site-a_config-audit.md", absPath)
+	assert.Equal(t, "tmp_site-a_config-audit.md", relPath)
+	assert.NotEqual(t, absPath, relPath,
+		"absolute and relative inputs with identical segments must produce distinct output paths")
+
+	deepAbsPath := deriveAuditOutputPath("/tmp/site-a/edge/config.xml", ".md")
+	deepRelPath := deriveAuditOutputPath("tmp/site-a/edge/config.xml", ".md")
+
+	assert.Equal(t, "~a_tmp_site-a_edge_config-audit.md", deepAbsPath)
+	assert.Equal(t, "tmp_site-a_edge_config-audit.md", deepRelPath)
+	assert.NotEqual(t, deepAbsPath, deepRelPath,
+		"deeply nested absolute and relative inputs with identical segments must produce distinct output paths")
 }
 
 // TestDeriveAuditOutputPath_SeparatorPlacementCollision verifies that paths which
