@@ -98,7 +98,8 @@ opndossier/
 ├── pkg/                    # Public API packages (importable by external consumers)
 │   ├── model/              # Platform-agnostic CommonDevice domain model
 │   ├── parser/             # Factory + DeviceParser interface
-│   │   └── opnsense/       # OPNsense parser + schema→CommonDevice converter
+│   │   ├── opnsense/       # OPNsense parser + schema→CommonDevice converter
+│   │   └── pfsense/        # pfSense parser + schema→CommonDevice converter (own XML decode)
 │   └── schema/
 │       ├── opnsense/       # Canonical OPNsense data model — XML structs
 │       └── pfsense/        # pfSense data model — reuses opnsense types where XML matches
