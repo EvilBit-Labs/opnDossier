@@ -291,7 +291,7 @@ Use `xml.EscapeText` from stdlib instead of hand-rolled escaping. Note: stdlib u
 
 ### 5.17 XML Element Presence Detection
 
-Go's `encoding/xml` produces `""` for both self-closing tags (`<any/>`) and absent elements when using `string` fields. Use `*string` to distinguish presence from absence: self-closing → `*string` pointing to `""` (non-nil); absent → `nil`.
+Go's `encoding/xml` produces `""` for both self-closing tags (`<any/>`) and absent elements when using `string` fields. Use `*string` to distinguish presence from absence: self-closing → `*string` pointing to `""` (non-nil); absent → `nil`. See GOTCHAS.md §3.2 for the pitfall.
 
 **Creating `*string` values:** Use `new(expr)` (Go 1.26+), e.g., `Source{Any: new(""), Network: new("lan")}`. Legacy `StringPtr` helper still available in model package.
 
@@ -307,7 +307,7 @@ Add `IsAny()` / `Equal()` methods rather than comparing `*string` fields directl
 
 See `docs/development/xml-structure-research.md` for the complete field inventory with upstream source citations.
 
-**Repeated XML elements:** When an XML element can appear multiple times (e.g., `<priv>user-shell-access</priv><priv>page-all</priv>`), use `[]string` (not `string`). Go's `encoding/xml` silently captures only the first occurrence with a `string` field.
+**Repeated XML elements:** Use `[]string` for elements that can appear multiple times — see GOTCHAS.md §3.3 for the silent data loss pitfall.
 
 **`DeviceType` serialization:** `CommonDevice.DeviceType` uses `json:"device_type"` (no `omitempty`) — always serializes, even when empty. The `prepareForExport` pipeline defaults it to `DeviceTypeOPNsense`.
 
@@ -376,7 +376,7 @@ Files in `pkg/parser/opnsense/` (package `opnsense`) **must** alias the schema i
 - `parser.Register("opnsense", factory)` called from `init()` in `pkg/parser/opnsense/parser.go`
 - `parser.DefaultRegistry()` returns the singleton; `parser.NewDeviceParserRegistry()` for test isolation
 - `parser.NewFactoryWithRegistry(decoder, reg)` for tests needing isolated registry state
-- **CRITICAL: Blank imports required.** Any file using `parser.NewFactory()` must import `_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"` to trigger `init()` self-registration. Without this, the registry is empty and all device type lookups fail silently. The canonical blank import lives in `cmd/root.go`; test files must add their own.
+- **CRITICAL: Blank imports required.** Any file using `parser.NewFactory()` must import `_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"` and `_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/pfsense"` to trigger `init()` self-registration. The canonical blank imports live in `cmd/root.go`; test files must add their own — see GOTCHAS.md §7.1 for symptoms and debugging.
 - `ConstructorFunc = func(XMLDecoder) DeviceParser` -- named type alias for factory functions
 - `Get()` returns `(ConstructorFunc, bool)` (map semantics), not `(T, error)` like FormatRegistry
 
@@ -507,7 +507,7 @@ Use `t.Helper()` in all test helpers and `t.Cleanup()` for teardown. Place share
 
 ### 7.4 Map Iteration in Tests
 
-Map iteration is non-deterministic — test for presence (`strings.Contains()`) not exact equality. Production code must sort before rendering (see §5.11).
+Map iteration is non-deterministic — test for presence (`strings.Contains()`) not exact equality. Production code must sort before rendering (see §5.11 and GOTCHAS.md §3.1).
 
 ### 7.4a Pointer Identity in Tests
 
@@ -551,7 +551,7 @@ When adding new audit-specific flags (`cmd/audit.go`), update `auditFlagSnapshot
 
 ### 7.8 Testing Cobra PreRunE Validators
 
-To unit-test `PreRunE` without requiring a full `CommandContext` (which needs config loading), construct a temporary `cobra.Command` with flags bound to the same global variables, set values via `cmd.Flags().Set("name", "value")`, then invoke `auditCmd.PreRunE(tempCmd, args)` directly. See `cmd/audit_test.go` for the canonical pattern.
+To unit-test `PreRunE` without requiring a full `CommandContext` (which needs config loading), construct a temporary `cobra.Command` with flags bound to the same global variables, set values via `cmd.Flags().Set("name", "value")`, then invoke `auditCmd.PreRunE(tempCmd, args)` directly. See `cmd/audit_test.go` for the canonical pattern and GOTCHAS.md §5.3 for the binding pitfall.
 
 ---
 
@@ -578,15 +578,15 @@ All plugins implement `compliance.Plugin` (see `internal/compliance/interfaces.g
 - Dynamic plugins: export `var Plugin compliance.Plugin`. Must set `Severity` or provide resolvable `References` — `RunComplianceChecks` normalizes empty severity via `GetControlByID()` or returns error
 - `compliance.CloneControls()` deep-copies `[]Control` including nested types (Tags, Metadata) — use in `GetControls()` and when storing controls in result structs
 - Plugin name matching is case-insensitive (`deduplicatePluginNames`, `ValidateModeConfig` normalize to lowercase)
-- `RunComplianceChecks` wraps each plugin's `RunChecks()` in `defer recover()` with `debug.Stack()` — panicked plugins are logged via `*logging.Logger` and retained in results with safe defaults (`Version: "unknown (panicked)"`, empty compliance map) via `continue`, skipping post-recovery method calls on potentially corrupt plugin state. Nil logger defaults to a fallback. Callers pass their configured logger
+- `RunComplianceChecks` wraps each plugin's `RunChecks()` in `defer recover()` — see GOTCHAS.md §2.2 for recovery invariants. Nil logger defaults to a fallback. Callers pass their configured logger
 - `LoadDynamicPlugins` returns `(LoadResult, error)` with per-plugin `PluginLoadError` details; aggregate error via `errors.Join`. When `explicitDir=true` and the directory is missing, returns an error (not a silent skip)
 - `LoadResult.Failed()` is a method (not a field) — always equals `len(Failures)`. `PluginLoadError` implements the `error` interface
 - `PluginRegistry.pluginLoader` (type `pluginLoaderFunc`) is injectable via `newPluginRegistryWithLoader()` for testing — defaults to `defaultPluginLoader` which wraps `plugin.Open`/`Lookup`/type-assert. Includes nil-plugin guard after loader returns
-- `PluginManager.SetPluginDir(dir, explicit)` must be called *before* `InitializePlugins` — the dir is read during initialization, not after. Dynamic plugin load failures are non-fatal: they do not cause `InitializePlugins` to return an error. Callers must inspect `GetLoadResult()` to detect failures
+- `PluginManager.SetPluginDir(dir, explicit)` must be called *before* `InitializePlugins` (see GOTCHAS.md §2.3). Dynamic plugin load failures are non-fatal: they do not cause `InitializePlugins` to return an error. Callers must inspect `GetLoadResult()` to detect failures
 - `audit.Options` includes `PluginDir` and `ExplicitPluginDir` fields — wired in `handleAuditMode` before `InitializePlugins`
 - `generateBlueReport()` resolves all registered plugins via `mc.registry.ListPlugins()` when `SelectedPlugins` is empty — bare `--mode blue` runs a full compliance audit by default
 - Multi-file audit: `emitAuditResult()` takes a `multiFile bool` parameter; when true, derives per-input output paths via `deriveAuditOutputPath()` and nils out config to prevent shared `OutputFile` from causing overwrites
-- `deriveAuditOutputPath` uses lossless tilde-based escaping (`~` → `~~`, `_` → `~u`, separator → `_`) to guarantee distinct filenames for distinct input paths (e.g., `a_b/c/config.xml` → `a~ub_c_config-audit.md` vs `a/b_c/config.xml` → `a_b~uc_config-audit.md`; dashes are preserved as-is). The tilde scheme avoids the boundary ambiguity of double-underscore escaping where `a_/b` and `a/_b` collapsed to the same output
+- `deriveAuditOutputPath` uses lossless tilde-based escaping to guarantee distinct filenames for distinct input paths — see GOTCHAS.md §8.3 for the encoding scheme and collision pitfalls
 - `validateOutputFlags()` in `cmd/shared_flags.go` validates format, wrap, and section flags shared by `convert` and `audit`. `validateConvertFlags()` delegates to it then adds convert-specific audit flag checks. The audit command calls `validateOutputFlags()` directly — never `validateConvertFlags()`
 - Audit file organization: `cmd/audit.go` (command definition, flags, `runAudit`, `generateAuditOutput`), `cmd/audit_output.go` (emission logic, path derivation), `cmd/audit_handler.go` (audit pipeline orchestration shared with convert)
 
