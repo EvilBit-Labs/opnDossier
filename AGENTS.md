@@ -354,6 +354,8 @@ Files in `pkg/parser/opnsense/` (package `opnsense`) **must** alias the schema i
 
 `parser.NewFactory(decoder)` requires an `XMLDecoder` argument -- wire with `parser.NewFactory(cfgparser.NewXMLParser())` at the call site. The `XMLDecoder` interface is defined in `pkg/parser/factory.go`.
 
+**pfSense parser independence:** The pfSense parser in `pkg/parser/pfsense/` manages its own XML decoding because `XMLDecoder.Parse()` returns `*schema.OpnSenseDocument`, which is incompatible with `pfsense.Document`. The parser accepts the `XMLDecoder` parameter for `ConstructorFunc` compatibility but does not use it. Security hardening (LimitReader, entity map, charset reader) is duplicated from `internal/cfgparser/xml.go`.
+
 `pkg/schema/pfsense/` (package `pfsense`) imports the opnsense package as `opnsense` and reuses shared types (`Interfaces`, `Dhcpd`, `BoolFlag`, `Source`, `Destination`, etc.) where the XML structure is identical. pfSense-specific types that share names with opnsense types use disambiguating suffixes (e.g., `SyslogConfig`, `UnboundConfig`) to avoid confusion when both packages are co-imported. All pfSense struct fields must carry triple tags (`xml`/`json`/`yaml`). Omitting `json`/`yaml` tags produces unformatted field names in serialized output (e.g., `IPProtocol` instead of `ipProtocol`).
 
 ### 5.24 Public Package Purity
