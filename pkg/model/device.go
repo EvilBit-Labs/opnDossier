@@ -37,6 +37,20 @@ func (d DeviceType) String() string {
 	return string(d)
 }
 
+// DisplayName returns the human-readable, properly-cased platform name
+// for use in report titles and UI labels (e.g. "OPNsense", "pfSense").
+// Unrecognized or empty values return "Device" as a generic fallback.
+func (d DeviceType) DisplayName() string {
+	switch d {
+	case DeviceTypeOPNsense:
+		return "OPNsense"
+	case DeviceTypePfSense:
+		return "pfSense"
+	default:
+		return "Device"
+	}
+}
+
 // ParseDeviceType normalizes a raw string into a recognized DeviceType.
 // Unrecognized values return DeviceTypeUnknown.
 func ParseDeviceType(s string) DeviceType {

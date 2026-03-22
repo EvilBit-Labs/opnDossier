@@ -32,6 +32,8 @@ const (
 	IPProtocolInet IPProtocol = "inet"
 	// IPProtocolInet6 represents the IPv6 address family.
 	IPProtocolInet6 IPProtocol = "inet6"
+	// IPProtocolInet46 matches both IPv4 and IPv6 traffic (pfSense-specific).
+	IPProtocolInet46 IPProtocol = "inet46"
 )
 
 // NATOutboundMode represents the outbound NAT operating mode.
@@ -71,7 +73,7 @@ func (d FirewallDirection) IsValid() bool {
 // IsValid reports whether p is a recognized IP protocol family.
 func (p IPProtocol) IsValid() bool {
 	switch p {
-	case IPProtocolInet, IPProtocolInet6:
+	case IPProtocolInet, IPProtocolInet6, IPProtocolInet46:
 		return true
 	default:
 		return false
