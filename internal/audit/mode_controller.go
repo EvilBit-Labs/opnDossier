@@ -43,6 +43,9 @@ const (
 	ModeRed ReportMode = "red"
 )
 
+// complianceCheckStatusCompleted is the metadata value indicating compliance checks ran successfully.
+const complianceCheckStatusCompleted = "completed"
+
 // ModeController manages the generation of different types of audit reports
 // based on the selected mode and configuration.
 type ModeController struct {
@@ -61,7 +64,6 @@ func NewModeController(registry *PluginRegistry, logger *logging.Logger) *ModeCo
 // ModeConfig holds configuration options for report generation.
 type ModeConfig struct {
 	Mode            ReportMode
-	BlackhatMode    bool
 	Comprehensive   bool
 	SelectedPlugins []string
 	TemplateDir     string
@@ -129,7 +131,6 @@ func (mc *ModeController) GenerateReport(
 	// Create base report structure
 	report := &Report{
 		Mode:          config.Mode,
-		BlackhatMode:  config.BlackhatMode,
 		Comprehensive: config.Comprehensive,
 		Configuration: device,
 		Findings:      make([]Finding, 0),
@@ -180,39 +181,46 @@ func (mc *ModeController) generateBlueReport(_ context.Context, report *Report, 
 	report.Metadata["report_type"] = "blue_team"
 	report.Metadata["generation_time"] = time.Now().Format(time.RFC3339)
 
-	// Run compliance checks if plugins are selected
-	if len(config.SelectedPlugins) > 0 {
+	// Resolve the plugin set: when no plugins are explicitly selected, run all
+	// available plugins. This matches the documented behavior where bare
+	// `--mode blue` executes a full compliance audit.
+	pluginsToRun := config.SelectedPlugins
+	if len(pluginsToRun) == 0 {
+		pluginsToRun = mc.registry.ListPlugins()
+		mc.logger.Debug("No plugins specified, running all available plugins", "plugins", pluginsToRun)
+	}
+
+	// Run compliance checks with the resolved plugin set
+	if len(pluginsToRun) > 0 {
 		complianceResult, err := mc.registry.RunComplianceChecks(
 			report.Configuration,
-			config.SelectedPlugins,
+			pluginsToRun,
 			mc.logger,
 		)
 		if err != nil {
-			mc.logger.Warn("Failed to run compliance checks", "error", err)
-			// Add metadata to report indicating compliance check failure
-			report.Metadata["compliance_check_status"] = "failed"
-			report.Metadata["compliance_check_error"] = err.Error()
-			report.Metadata["compliance_check_time"] = time.Now().Format(time.RFC3339)
-		} else {
-			// Store per-plugin compliance results (not aggregated) so that
-			// appendAuditFindings can iterate by plugin name.
-			for pluginName, info := range complianceResult.PluginInfo {
-				pluginFindings := complianceResult.PluginFindings[pluginName]
-				pluginComplianceMap := complianceResult.Compliance[pluginName]
-				pluginSummary := computePerPluginSummary(pluginName, pluginFindings, pluginComplianceMap)
+			mc.logger.Error("Failed to run compliance checks", "error", err)
 
-				report.Compliance[pluginName] = ComplianceResult{
-					Findings:       pluginFindings,
-					PluginFindings: map[string][]compliance.Finding{pluginName: pluginFindings},
-					Compliance:     map[string]map[string]bool{pluginName: pluginComplianceMap},
-					Summary:        pluginSummary,
-					PluginInfo:     map[string]PluginInfo{pluginName: info},
-				}
-			}
-			// Add metadata to report indicating successful compliance checks
-			report.Metadata["compliance_check_status"] = "completed"
-			report.Metadata["compliance_check_time"] = time.Now().Format(time.RFC3339)
+			return nil, fmt.Errorf("compliance checks failed: %w", err)
 		}
+
+		// Store per-plugin compliance results (not aggregated) so that
+		// appendAuditFindings can iterate by plugin name.
+		for pluginName, info := range complianceResult.PluginInfo {
+			pluginFindings := complianceResult.PluginFindings[pluginName]
+			pluginComplianceMap := complianceResult.Compliance[pluginName]
+			pluginSummary := computePerPluginSummary(pluginName, pluginFindings, pluginComplianceMap)
+
+			report.Compliance[pluginName] = ComplianceResult{
+				Findings:       pluginFindings,
+				PluginFindings: map[string][]compliance.Finding{pluginName: pluginFindings},
+				Compliance:     map[string]map[string]bool{pluginName: pluginComplianceMap},
+				Summary:        pluginSummary,
+				PluginInfo:     map[string]PluginInfo{pluginName: info},
+			}
+		}
+		// Add metadata to report indicating successful compliance checks
+		report.Metadata["compliance_check_status"] = complianceCheckStatusCompleted
+		report.Metadata["compliance_check_time"] = time.Now().Format(time.RFC3339)
 	}
 
 	// Add blue team specific analysis
@@ -225,12 +233,11 @@ func (mc *ModeController) generateBlueReport(_ context.Context, report *Report, 
 }
 
 // generateRedReport generates an attacker-focused recon report highlighting attack surfaces.
-func (mc *ModeController) generateRedReport(_ context.Context, report *Report, config *ModeConfig) (*Report, error) {
-	mc.logger.Debug("Generating red team report", "blackhat_mode", config.BlackhatMode)
+func (mc *ModeController) generateRedReport(_ context.Context, report *Report, _ *ModeConfig) (*Report, error) {
+	mc.logger.Debug("Generating red team report")
 
 	// Add red team specific metadata
 	report.Metadata["report_type"] = "red_team"
-	report.Metadata["blackhat_mode"] = config.BlackhatMode
 	report.Metadata["generation_time"] = time.Now().Format(time.RFC3339)
 
 	// Add red team specific analysis
@@ -240,17 +247,12 @@ func (mc *ModeController) generateRedReport(_ context.Context, report *Report, c
 	report.addAttackSurfaces()
 	report.addEnumerationData()
 
-	if config.BlackhatMode {
-		report.addSnarkyCommentary()
-	}
-
 	return report, nil
 }
 
 // Report represents a comprehensive audit report with findings and analysis.
 type Report struct {
 	Mode          ReportMode                  `json:"mode"`
-	BlackhatMode  bool                        `json:"blackhatMode"`
 	Comprehensive bool                        `json:"comprehensive"`
 	Configuration *common.CommonDevice        `json:"configuration"`
 	Findings      []Finding                   `json:"findings"`
@@ -452,13 +454,6 @@ func (r *Report) addEnumerationData() {
 	// Add placeholder enumeration data
 	r.Metadata["enumeration_completed"] = true
 	r.Metadata["enumeration_targets"] = []string{"services", "ports"}
-}
-
-// addSnarkyCommentary adds snarky commentary to the red team report when blackhat mode is enabled.
-func (r *Report) addSnarkyCommentary() {
-	// Add placeholder snarky commentary
-	r.Metadata["snarky_mode_enabled"] = true
-	r.Metadata["commentary_style"] = "blackhat"
 }
 
 // ParseReportMode parses a string into a ReportMode, returning an error if invalid.

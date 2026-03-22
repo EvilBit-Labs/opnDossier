@@ -88,10 +88,10 @@ func TestModeController_GenerateBlueReport_WithPlugins(t *testing.T) {
 				// Check compliance check status
 				if status, exists := report.Metadata["compliance_check_status"]; !exists {
 					t.Error("GenerateReport() missing compliance_check_status in metadata")
-				} else if status != "completed" {
+				} else if status != complianceCheckStatusCompleted {
 					t.Errorf(
-						"GenerateReport() compliance_check_status = %v, want 'completed' for valid plugin",
-						status,
+						"GenerateReport() compliance_check_status = %v, want %q for valid plugin",
+						status, complianceCheckStatusCompleted,
 					)
 				}
 

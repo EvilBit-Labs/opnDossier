@@ -501,6 +501,25 @@ func TestWrapMarkdownContentSkipsCodeBlocks(t *testing.T) {
 	assert.Equal(t, input, output)
 }
 
+// TestWrapMarkdownContentSkipsTableRows verifies that markdown table rows
+// (lines starting with |) are never wrapped, preventing broken table structure.
+func TestWrapMarkdownContentSkipsTableRows(t *testing.T) {
+	t.Parallel()
+
+	tableRow := "| net.inet.ip.sourceroute | default | Source routing is another way for an attacker to try to reach non-routable addresses behind your box. |"
+	separatorRow := "|---------|---------|---------|"
+	normalLine := "This is a normal line that should be wrapped when it exceeds the width limit for display purposes."
+
+	input := separatorRow + "\n" + tableRow + "\n" + normalLine
+	output := wrapMarkdownContent(input, 40)
+
+	// Table rows must be preserved exactly as-is
+	assert.Contains(t, output, tableRow)
+	assert.Contains(t, output, separatorRow)
+	// Normal line should be wrapped
+	assert.NotContains(t, output, normalLine)
+}
+
 func TestRendererWithDifferentColorSettings(t *testing.T) {
 	// Test with colors enabled — renderer should be created
 	td1 := NewTerminalDisplayWithOptions(Options{

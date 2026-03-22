@@ -212,20 +212,24 @@ Firewall rules and NAT configuration.
 opnDossier uses typed string enums for domain constants to provide type safety and compile-time validation:
 
 - **`FirewallRuleType`**: Firewall rule actions
+
   - `RuleTypePass`: Allow matching traffic to pass
   - `RuleTypeBlock`: Silently drop matching traffic
   - `RuleTypeReject`: Drop matching traffic and send rejection response
 
 - **`FirewallDirection`**: Traffic direction for rules
+
   - `DirectionIn`: Inbound traffic
   - `DirectionOut`: Outbound traffic
   - `DirectionAny`: Traffic in either direction
 
 - **`IPProtocol`**: IP address family
+
   - `IPProtocolInet`: IPv4 (inet)
   - `IPProtocolInet6`: IPv6 (inet6)
 
 - **`NATOutboundMode`**: Outbound NAT operating mode
+
   - `OutboundAutomatic`: Automatic outbound NAT rules
   - `OutboundHybrid`: Combined automatic and manual rules
   - `OutboundAdvanced`: Manual rules only
@@ -233,70 +237,70 @@ opnDossier uses typed string enums for domain constants to provide type safety a
 
 ### Rule (Firewall)
 
-| Field             | Type                  | JSON Path                       | Description                                                       |
-| ----------------- | --------------------- | ------------------------------- | ----------------------------------------------------------------- |
-| `XMLName`         | `Name`                | `filter.rule[].xmlname`         | -                                                                 |
-| `Type`            | `FirewallRuleType`    | `filter.rule[].type`            | Rule action; Options: `RuleTypePass`, `RuleTypeBlock`, `RuleTypeReject` |
-| `Descr`           | `string`           | `filter.rule[].descr`           | -                                                                 |
-| `Interface`       | `[]string`         | `filter.rule[].interface`       | -                                                                 |
-| `IPProtocol`      | `IPProtocol`       | `filter.rule[].ipprotocol`      | IP address family; Options: `IPProtocolInet`, `IPProtocolInet6`   |
-| `StateType`       | `string`           | `filter.rule[].statetype`       | -                                                                 |
-| `Direction`       | `FirewallDirection`| `filter.rule[].direction`       | Traffic direction; Options: `DirectionIn`, `DirectionOut`, `DirectionAny` |
-| `Floating`        | `string`      | `filter.rule[].floating`        | -           |
-| `Quick`           | `BoolFlag`    | `filter.rule[].quick`           | -           |
-| `Protocol`        | `string`      | `filter.rule[].protocol`        | -           |
-| `Source`          | `Source`      | `filter.rule[].source`          | -           |
-| `Destination`     | `Destination` | `filter.rule[].destination`     | -           |
-| `Target`          | `string`      | `filter.rule[].target`          | -           |
-| `Gateway`         | `string`      | `filter.rule[].gateway`         | -           |
-| `SourcePort`      | `string`      | `filter.rule[].sourceport`      | -           |
-| `Log`             | `BoolFlag`    | `filter.rule[].log`             | -           |
-| `Disabled`        | `BoolFlag`    | `filter.rule[].disabled`        | -           |
-| `Tracker`         | `string`      | `filter.rule[].tracker`         | -           |
-| `MaxSrcNodes`     | `string`      | `filter.rule[].maxsrcnodes`     | -           |
-| `MaxSrcConn`      | `string`      | `filter.rule[].maxsrcconn`      | -           |
-| `MaxSrcConnRate`  | `string`      | `filter.rule[].maxsrcconnrate`  | -           |
-| `MaxSrcConnRates` | `string`      | `filter.rule[].maxsrcconnrates` | -           |
-| `TCPFlags1`       | `string`      | `filter.rule[].tcpflags1`       | -           |
-| `TCPFlags2`       | `string`      | `filter.rule[].tcpflags2`       | -           |
-| `TCPFlagsAny`     | `BoolFlag`    | `filter.rule[].tcpflagsany`     | -           |
-| `ICMPType`        | `string`      | `filter.rule[].icmptype`        | -           |
-| `ICMP6Type`       | `string`      | `filter.rule[].icmp6type`       | -           |
-| `StateTimeout`    | `string`      | `filter.rule[].statetimeout`    | -           |
-| `AllowOpts`       | `BoolFlag`    | `filter.rule[].allowopts`       | -           |
-| `DisableReplyTo`  | `BoolFlag`    | `filter.rule[].disablereplyto`  | -           |
-| `NoPfSync`        | `BoolFlag`    | `filter.rule[].nopfsync`        | -           |
-| `NoSync`          | `BoolFlag`    | `filter.rule[].nosync`          | -           |
-| `Updated`         | `*Updated`    | `filter.rule[].updated`         | -           |
-| `Created`         | `*Created`    | `filter.rule[].created`         | -           |
-| `UUID`            | `string`      | `filter.rule[].uuid`            | -           |
+| Field             | Type                | JSON Path                       | Description                                                               |
+| ----------------- | ------------------- | ------------------------------- | ------------------------------------------------------------------------- |
+| `XMLName`         | `Name`              | `filter.rule[].xmlname`         | -                                                                         |
+| `Type`            | `FirewallRuleType`  | `filter.rule[].type`            | Rule action; Options: `RuleTypePass`, `RuleTypeBlock`, `RuleTypeReject`   |
+| `Descr`           | `string`            | `filter.rule[].descr`           | -                                                                         |
+| `Interface`       | `[]string`          | `filter.rule[].interface`       | -                                                                         |
+| `IPProtocol`      | `IPProtocol`        | `filter.rule[].ipprotocol`      | IP address family; Options: `IPProtocolInet`, `IPProtocolInet6`           |
+| `StateType`       | `string`            | `filter.rule[].statetype`       | -                                                                         |
+| `Direction`       | `FirewallDirection` | `filter.rule[].direction`       | Traffic direction; Options: `DirectionIn`, `DirectionOut`, `DirectionAny` |
+| `Floating`        | `string`            | `filter.rule[].floating`        | -                                                                         |
+| `Quick`           | `BoolFlag`          | `filter.rule[].quick`           | -                                                                         |
+| `Protocol`        | `string`            | `filter.rule[].protocol`        | -                                                                         |
+| `Source`          | `Source`            | `filter.rule[].source`          | -                                                                         |
+| `Destination`     | `Destination`       | `filter.rule[].destination`     | -                                                                         |
+| `Target`          | `string`            | `filter.rule[].target`          | -                                                                         |
+| `Gateway`         | `string`            | `filter.rule[].gateway`         | -                                                                         |
+| `SourcePort`      | `string`            | `filter.rule[].sourceport`      | -                                                                         |
+| `Log`             | `BoolFlag`          | `filter.rule[].log`             | -                                                                         |
+| `Disabled`        | `BoolFlag`          | `filter.rule[].disabled`        | -                                                                         |
+| `Tracker`         | `string`            | `filter.rule[].tracker`         | -                                                                         |
+| `MaxSrcNodes`     | `string`            | `filter.rule[].maxsrcnodes`     | -                                                                         |
+| `MaxSrcConn`      | `string`            | `filter.rule[].maxsrcconn`      | -                                                                         |
+| `MaxSrcConnRate`  | `string`            | `filter.rule[].maxsrcconnrate`  | -                                                                         |
+| `MaxSrcConnRates` | `string`            | `filter.rule[].maxsrcconnrates` | -                                                                         |
+| `TCPFlags1`       | `string`            | `filter.rule[].tcpflags1`       | -                                                                         |
+| `TCPFlags2`       | `string`            | `filter.rule[].tcpflags2`       | -                                                                         |
+| `TCPFlagsAny`     | `BoolFlag`          | `filter.rule[].tcpflagsany`     | -                                                                         |
+| `ICMPType`        | `string`            | `filter.rule[].icmptype`        | -                                                                         |
+| `ICMP6Type`       | `string`            | `filter.rule[].icmp6type`       | -                                                                         |
+| `StateTimeout`    | `string`            | `filter.rule[].statetimeout`    | -                                                                         |
+| `AllowOpts`       | `BoolFlag`          | `filter.rule[].allowopts`       | -                                                                         |
+| `DisableReplyTo`  | `BoolFlag`          | `filter.rule[].disablereplyto`  | -                                                                         |
+| `NoPfSync`        | `BoolFlag`          | `filter.rule[].nopfsync`        | -                                                                         |
+| `NoSync`          | `BoolFlag`          | `filter.rule[].nosync`          | -                                                                         |
+| `Updated`         | `*Updated`          | `filter.rule[].updated`         | -                                                                         |
+| `Created`         | `*Created`          | `filter.rule[].created`         | -                                                                         |
+| `UUID`            | `string`            | `filter.rule[].uuid`            | -                                                                         |
 
 ### NATRule (Outbound)
 
-| Field                | Type               | JSON Path                                | Description                                                  |
-| -------------------- | ------------------ | ---------------------------------------- | ------------------------------------------------------------ |
-| `XMLName`            | `Name`             | `nat.outbound.rule[].xmlname`            | -                                                            |
-| `Interface`          | `[]string`         | `nat.outbound.rule[].interface`          | Optional                                                     |
-| `IPProtocol`         | `IPProtocol`       | `nat.outbound.rule[].ipProtocol`         | IP address family; Options: `IPProtocolInet`, `IPProtocolInet6` |
-| `Protocol`           | `string`      | `nat.outbound.rule[].protocol`           | Optional    |
-| `Source`             | `Source`      | `nat.outbound.rule[].source`             | -           |
-| `Destination`        | `Destination` | `nat.outbound.rule[].destination`        | -           |
-| `Target`             | `string`      | `nat.outbound.rule[].target`             | Optional    |
-| `SourcePort`         | `string`      | `nat.outbound.rule[].sourcePort`         | Optional    |
-| `NatPort`            | `string`      | `nat.outbound.rule[].natPort`            | Optional    |
-| `PoolOpts`           | `string`      | `nat.outbound.rule[].poolOpts`           | Optional    |
-| `PoolOptsSrcHashKey` | `string`      | `nat.outbound.rule[].poolOptsSrcHashKey` | Optional    |
-| `StaticNatPort`      | `BoolFlag`    | `nat.outbound.rule[].staticNatPort`      | Optional    |
-| `NoNat`              | `BoolFlag`    | `nat.outbound.rule[].noNat`              | Optional    |
-| `Disabled`           | `BoolFlag`    | `nat.outbound.rule[].disabled`           | Optional    |
-| `Log`                | `BoolFlag`    | `nat.outbound.rule[].log`                | Optional    |
-| `Descr`              | `string`      | `nat.outbound.rule[].description`        | Optional    |
-| `Category`           | `string`      | `nat.outbound.rule[].category`           | Optional    |
-| `Tag`                | `string`      | `nat.outbound.rule[].tag`                | Optional    |
-| `Tagged`             | `string`      | `nat.outbound.rule[].tagged`             | Optional    |
-| `Updated`            | `*Updated`    | `nat.outbound.rule[].updated`            | Optional    |
-| `Created`            | `*Created`    | `nat.outbound.rule[].created`            | Optional    |
-| `UUID`               | `string`      | `nat.outbound.rule[].uuid`               | Optional    |
+| Field                | Type          | JSON Path                                | Description                                                     |
+| -------------------- | ------------- | ---------------------------------------- | --------------------------------------------------------------- |
+| `XMLName`            | `Name`        | `nat.outbound.rule[].xmlname`            | -                                                               |
+| `Interface`          | `[]string`    | `nat.outbound.rule[].interface`          | Optional                                                        |
+| `IPProtocol`         | `IPProtocol`  | `nat.outbound.rule[].ipProtocol`         | IP address family; Options: `IPProtocolInet`, `IPProtocolInet6` |
+| `Protocol`           | `string`      | `nat.outbound.rule[].protocol`           | Optional                                                        |
+| `Source`             | `Source`      | `nat.outbound.rule[].source`             | -                                                               |
+| `Destination`        | `Destination` | `nat.outbound.rule[].destination`        | -                                                               |
+| `Target`             | `string`      | `nat.outbound.rule[].target`             | Optional                                                        |
+| `SourcePort`         | `string`      | `nat.outbound.rule[].sourcePort`         | Optional                                                        |
+| `NatPort`            | `string`      | `nat.outbound.rule[].natPort`            | Optional                                                        |
+| `PoolOpts`           | `string`      | `nat.outbound.rule[].poolOpts`           | Optional                                                        |
+| `PoolOptsSrcHashKey` | `string`      | `nat.outbound.rule[].poolOptsSrcHashKey` | Optional                                                        |
+| `StaticNatPort`      | `BoolFlag`    | `nat.outbound.rule[].staticNatPort`      | Optional                                                        |
+| `NoNat`              | `BoolFlag`    | `nat.outbound.rule[].noNat`              | Optional                                                        |
+| `Disabled`           | `BoolFlag`    | `nat.outbound.rule[].disabled`           | Optional                                                        |
+| `Log`                | `BoolFlag`    | `nat.outbound.rule[].log`                | Optional                                                        |
+| `Descr`              | `string`      | `nat.outbound.rule[].description`        | Optional                                                        |
+| `Category`           | `string`      | `nat.outbound.rule[].category`           | Optional                                                        |
+| `Tag`                | `string`      | `nat.outbound.rule[].tag`                | Optional                                                        |
+| `Tagged`             | `string`      | `nat.outbound.rule[].tagged`             | Optional                                                        |
+| `Updated`            | `*Updated`    | `nat.outbound.rule[].updated`            | Optional                                                        |
+| `Created`            | `*Created`    | `nat.outbound.rule[].created`            | Optional                                                        |
+| `UUID`               | `string`      | `nat.outbound.rule[].uuid`               | Optional                                                        |
 
 ---
 

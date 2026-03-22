@@ -6,7 +6,7 @@ For how configuration precedence works, see the [Configuration Guide](configurat
 
 ## Global Options
 
-These options apply to all commands (`convert`, `display`, `validate`).
+These options are persistent flags available on all subcommands.
 
 ### Logging & Output
 
@@ -45,13 +45,69 @@ Supported formats: `markdown` (`md`), `json`, `yaml` (`yml`), `text` (`txt`), `h
 | Include tunables | `--include-tunables` | -                     | -           | boolean  | `false` | Include all system tunables in report output (markdown, text, HTML only; JSON/YAML always include all tunables) |
 | Redact           | `--redact`           | -                     | -           | boolean  | `false` | Redact sensitive fields (passwords, keys, etc.)                                                                 |
 
-### Audit & Compliance
+## Audit Command Options
 
-| Setting       | CLI Flag          | Environment Variable | Config File | Type     | Default | Description                                                                                                                                                              |
-| ------------- | ----------------- | -------------------- | ----------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Audit mode    | `--audit-mode`    | -                    | -           | string   | `""`    | Audit mode: standard, blue, red                                                                                                                                          |
-| Audit plugins | `--audit-plugins` | -                    | -           | string[] | `[]`    | Plugins: stig, sans, firewall                                                                                                                                            |
-| Plugin dir    | `--plugin-dir`    | -                    | -           | string   | `""`    | Directory containing dynamic .so compliance plugins. If explicitly set to a nonexistent directory, fails with an error. If not specified, no dynamic plugins are loaded. |
+The `audit` command is the dedicated entry point for security audit and compliance checks. See the [audit command documentation](commands/audit.md) for complete details.
+
+### Audit-Specific Flags
+
+| Setting            | CLI Flag       | Type     | Default      | Description                                                                                                 |
+| ------------------ | -------------- | -------- | ------------ | ----------------------------------------------------------------------------------------------------------- |
+| Audit mode         | `--mode`       | string   | `"standard"` | Audit mode: `standard` (neutral report), `blue` (defensive audit with compliance), `red` (attack surface)   |
+| Compliance plugins | `--plugins`    | string[] | `[]`         | Comma-separated list: `stig`, `sans`, `firewall`. Only valid with `--mode blue`. Empty = all plugins run.   |
+| Plugin directory   | `--plugin-dir` | string   | `""`         | Directory containing dynamic `.so` compliance plugins. Failed plugin loads are non-fatal (warnings logged). |
+
+### Shared Output Flags
+
+The `audit` command shares the following output and formatting flags with `convert`:
+
+- `--format` / `-f` -- Output format (markdown, json, yaml, text, html)
+- `--output` / `-o` -- Output file path (cannot be used with multiple input files)
+- `--force` -- Overwrite existing files without prompt
+- `--comprehensive` -- Generate detailed comprehensive reports
+- `--redact` -- Redact sensitive fields (passwords, keys, etc.)
+- `--wrap` -- Text wrap width
+- `--no-wrap` -- Disable text wrapping
+- `--include-tunables` -- Include all system tunables (markdown, text, HTML only)
+- `--section` -- Filter output to specific sections
+
+### Multi-File Audit Behavior
+
+When auditing multiple files, the `--output` flag cannot be used. Each report is auto-named with an `-audit` suffix and format extension:
+
+```bash
+# Single file: --output allowed
+opndossier audit config.xml --mode blue -o security-report.md
+
+# Multiple files: auto-named outputs (config1-audit.md, config2-audit.md)
+opndossier audit config1.xml config2.xml --mode blue
+```
+
+Path encoding for multi-file output:
+
+- Bare filenames: `config.xml` → `config-audit.md`
+- Paths with directories: `prod/site-a/config.xml` → `prod_site-a_config-audit.md`
+
+### Usage Examples
+
+```bash
+# Blue team audit with all plugins (default when no --plugins specified)
+opndossier audit config.xml --mode blue
+
+# Blue team audit with specific plugins
+opndossier audit config.xml --mode blue --plugins stig,sans
+
+# Red team attack surface analysis
+opndossier audit config.xml --mode red
+
+# Custom plugins directory
+opndossier audit config.xml --mode blue --plugin-dir /opt/plugins
+
+# Multi-file audit with JSON output
+opndossier audit config1.xml config2.xml --mode blue --format json
+```
+
+**Relationship to convert:** The `audit` command is the dedicated entry point for audit workflows. The `convert --audit-mode` flags remain available for backward compatibility but are not the primary interface.
 
 ## Display Command Options
 
@@ -138,4 +194,5 @@ Error: invalid color "invalid", must be one of: auto, always, never
 
 - [Configuration Guide](configuration.md) -- how to configure opnDossier
 - [Commands Overview](commands/overview.md) -- per-command flag reference
+- [Audit Command](commands/audit.md) -- dedicated security audit and compliance checks
 - [XML Field Reference](../xml-field-reference.md) -- OPNsense XML schema details

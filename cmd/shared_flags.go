@@ -2,15 +2,19 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 // Shared flag variables for convert and display commands.
@@ -28,8 +32,10 @@ var (
 	sharedRedact          bool     //nolint:gochecknoglobals // Redact sensitive fields in output
 
 	// Audit flags.
+	// TODO(#457): Remove shared audit globals — no longer bound to any CLI flags
+	// after audit flag removal from convert. Retained because buildAuditOptions()
+	// and generateOutputByFormat() still reference them.
 	sharedAuditMode       string   //nolint:gochecknoglobals // Audit mode (standard, blue, red)
-	sharedBlackhatMode    bool     //nolint:gochecknoglobals // Enable blackhat mode for red team reports
 	sharedSelectedPlugins []string //nolint:gochecknoglobals // Selected compliance plugins
 	sharedPluginDir       string   //nolint:gochecknoglobals // Directory for dynamic .so plugins
 )
@@ -88,35 +94,6 @@ func addSharedRedactFlag(cmd *cobra.Command) {
 	cmd.Flags().
 		BoolVar(&sharedRedact, "redact", false, "Redact sensitive fields (passwords, keys, community strings) in output")
 	setFlagAnnotation(cmd.Flags(), "redact", []string{"output"})
-}
-
-// addSharedAuditFlags adds shared flags for audit and compliance functionality.
-//
-// Flags added:
-//
-//	--audit-mode       Audit mode (standard|blue|red) for security-focused reports.
-//	--audit-blackhat   Enable blackhat mode for red team commentary.
-//	--audit-plugins    Comma-separated list of compliance plugins to run (stig,sans,firewall).
-//
-// Example:
-//
-//	mycmd --audit-mode blue --audit-plugins stig,sans
-func addSharedAuditFlags(cmd *cobra.Command) {
-	cmd.Flags().
-		StringVar(&sharedAuditMode, "audit-mode", "", "Enable audit mode (standard|blue|red)")
-	setFlagAnnotation(cmd.Flags(), "audit-mode", []string{"audit"})
-
-	cmd.Flags().
-		BoolVar(&sharedBlackhatMode, "audit-blackhat", false, "Enable blackhat mode for red team commentary")
-	setFlagAnnotation(cmd.Flags(), "audit-blackhat", []string{"audit"})
-
-	cmd.Flags().
-		StringSliceVar(&sharedSelectedPlugins, "audit-plugins", []string{}, "Compliance plugins to run (stig,sans,firewall)")
-	setFlagAnnotation(cmd.Flags(), "audit-plugins", []string{"audit"})
-
-	cmd.Flags().
-		StringVar(&sharedPluginDir, "plugin-dir", "", "Directory containing dynamic .so compliance plugins")
-	setFlagAnnotation(cmd.Flags(), "plugin-dir", []string{"audit"})
 }
 
 // Constants for flag validation.
@@ -327,4 +304,75 @@ func resolveDeviceType() common.DeviceType {
 	// so it is a valid registered key that is not a built-in enum member.
 	// Normalize to lowercase to match registry key normalization.
 	return common.DeviceType(strings.ToLower(strings.TrimSpace(sharedDeviceType)))
+}
+
+// validateOutputFlags validates format, wrap, and section flag combinations that are
+// shared across multiple commands (convert, audit). It checks mutual exclusivity of
+// wrap flags, validates the output format against the converter registry, warns when
+// section filtering is used with JSON or YAML, and validates wrap width range.
+//
+// Command-specific validation (e.g., audit mode, plugin names) should be performed
+// in the calling command's PreRunE, not here.
+//
+// The cmdLogger parameter is used for structured warnings; if nil, warnings fall back to stderr.
+func validateOutputFlags(flags *pflag.FlagSet, cmdLogger *logging.Logger) error {
+	// Validate mutual exclusivity for wrap flags before other checks
+	if flags != nil {
+		noWrapFlag := flags.Lookup("no-wrap")
+		wrapFlag := flags.Lookup("wrap")
+		if noWrapFlag != nil && wrapFlag != nil && noWrapFlag.Changed && wrapFlag.Changed {
+			return errors.New("--no-wrap and --wrap flags are mutually exclusive")
+		}
+	}
+
+	// Validate format values via the converter registry
+	if format != "" {
+		validFormats := converter.DefaultRegistry.ValidFormatsWithAliases()
+		if !slices.Contains(validFormats, strings.ToLower(format)) {
+			return fmt.Errorf("invalid format %q, must be one of: %s", format, strings.Join(validFormats, ", "))
+		}
+	}
+
+	// Validate output format compatibility using canonical names for consistent alias handling
+	canonicalFormat, _ := converter.DefaultRegistry.Canonical(format)
+
+	if canonicalFormat == "json" && len(sharedSections) > 0 {
+		if cmdLogger != nil {
+			cmdLogger.Warn("section filtering not supported with JSON format, sections will be ignored")
+		} else {
+			fmt.Fprintln(
+				os.Stderr,
+				"Warning: section filtering not supported with JSON format, sections will be ignored",
+			)
+		}
+	}
+
+	if canonicalFormat == "yaml" && len(sharedSections) > 0 {
+		if cmdLogger != nil {
+			cmdLogger.Warn("section filtering not supported with YAML format, sections will be ignored")
+		} else {
+			fmt.Fprintln(
+				os.Stderr,
+				"Warning: section filtering not supported with YAML format, sections will be ignored",
+			)
+		}
+	}
+
+	// Warn (not error) when wrap width is outside recommended range, matching display.go behavior.
+	if sharedWrapWidth > 0 && (sharedWrapWidth < MinWrapWidth || sharedWrapWidth > MaxWrapWidth) {
+		if cmdLogger != nil {
+			cmdLogger.Warn("wrap width is outside recommended range",
+				"width", sharedWrapWidth, "min", MinWrapWidth, "max", MaxWrapWidth)
+		} else {
+			fmt.Fprintf(os.Stderr, "Warning: wrap width %d is outside recommended range [%d, %d]\n",
+				sharedWrapWidth, MinWrapWidth, MaxWrapWidth)
+		}
+	}
+
+	if sharedWrapWidth < -1 {
+		return fmt.Errorf("invalid wrap width %d: must be -1 (auto-detect), 0 (no wrapping), or positive",
+			sharedWrapWidth)
+	}
+
+	return nil
 }

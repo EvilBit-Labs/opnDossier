@@ -12,206 +12,10 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
-
-func TestValidateAuditModeValid(t *testing.T) {
-	originalAuditMode := sharedAuditMode
-	originalPlugins := sharedSelectedPlugins
-	t.Cleanup(func() {
-		sharedAuditMode = originalAuditMode
-		sharedSelectedPlugins = originalPlugins
-	})
-
-	tests := []struct {
-		name      string
-		auditMode string
-	}{
-		{"standard mode", "standard"},
-		{"blue mode", "blue"},
-		{"red mode", "red"},
-		{"uppercase standard", "STANDARD"},
-		{"uppercase blue", "BLUE"},
-		{"uppercase red", "RED"},
-		{"mixed case", "Blue"},
-		{"empty mode (disabled)", ""},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			sharedAuditMode = tt.auditMode
-			sharedSelectedPlugins = nil
-			sharedWrapWidth = -1
-			sharedNoWrap = false
-
-			// Set up minimal flags
-			flags := pflag.NewFlagSet("test", pflag.ContinueOnError)
-			flags.Bool("no-wrap", false, "")
-			flags.Int("wrap", -1, "")
-
-			err := validateConvertFlags(flags, nil)
-			require.NoError(t, err, "audit mode %q should be valid", tt.auditMode)
-		})
-	}
-}
-
-func TestValidateAuditModeInvalid(t *testing.T) {
-	originalAuditMode := sharedAuditMode
-	originalPlugins := sharedSelectedPlugins
-	originalFormat := format
-	t.Cleanup(func() {
-		sharedAuditMode = originalAuditMode
-		sharedSelectedPlugins = originalPlugins
-		format = originalFormat
-	})
-
-	tests := []struct {
-		name          string
-		auditMode     string
-		wantErrSubstr string
-	}{
-		{"invalid mode", "invalid", "invalid audit mode"},
-		{"typo mode", "stanard", "invalid audit mode"},
-		{"numeric mode", "123", "invalid audit mode"},
-		{"partial mode", "blu", "invalid audit mode"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			sharedAuditMode = tt.auditMode
-			sharedSelectedPlugins = nil
-			sharedWrapWidth = -1
-			sharedNoWrap = false
-			format = string(converter.FormatMarkdown) // Set valid format to avoid format error
-
-			// Set up minimal flags
-			flags := pflag.NewFlagSet("test", pflag.ContinueOnError)
-			flags.Bool("no-wrap", false, "")
-			flags.Int("wrap", -1, "")
-
-			err := validateConvertFlags(flags, nil)
-			require.Error(t, err)
-			assert.Contains(t, err.Error(), tt.wantErrSubstr)
-		})
-	}
-}
-
-func TestValidateAuditPluginsValid(t *testing.T) {
-	originalAuditMode := sharedAuditMode
-	originalPlugins := sharedSelectedPlugins
-	originalFormat := format
-	t.Cleanup(func() {
-		sharedAuditMode = originalAuditMode
-		sharedSelectedPlugins = originalPlugins
-		format = originalFormat
-	})
-
-	tests := []struct {
-		name    string
-		plugins []string
-	}{
-		{"single stig", []string{"stig"}},
-		{"single sans", []string{"sans"}},
-		{"single firewall", []string{"firewall"}},
-		{"all plugins", []string{"stig", "sans", "firewall"}},
-		{"two plugins", []string{"stig", "sans"}},
-		{"empty plugins", []string{}},
-		{"uppercase plugin", []string{"STIG"}},
-		{"mixed case", []string{"Stig", "SANS"}},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			sharedAuditMode = ""
-			sharedSelectedPlugins = tt.plugins
-			sharedWrapWidth = -1
-			sharedNoWrap = false
-			format = string(converter.FormatMarkdown)
-
-			// Set up minimal flags
-			flags := pflag.NewFlagSet("test", pflag.ContinueOnError)
-			flags.Bool("no-wrap", false, "")
-			flags.Int("wrap", -1, "")
-
-			err := validateConvertFlags(flags, nil)
-			require.NoError(t, err, "plugins %v should be valid", tt.plugins)
-		})
-	}
-}
-
-func TestValidateAuditPluginsInvalid(t *testing.T) {
-	originalAuditMode := sharedAuditMode
-	originalPlugins := sharedSelectedPlugins
-	originalFormat := format
-	t.Cleanup(func() {
-		sharedAuditMode = originalAuditMode
-		sharedSelectedPlugins = originalPlugins
-		format = originalFormat
-	})
-
-	tests := []struct {
-		name          string
-		plugins       []string
-		wantErrSubstr string
-	}{
-		{"invalid plugin", []string{"invalid"}, "invalid audit plugin"},
-		{"typo plugin", []string{"stigg"}, "invalid audit plugin"},
-		{"valid and invalid mixed", []string{"stig", "invalid"}, "invalid audit plugin"},
-		{"numeric plugin", []string{"123"}, "invalid audit plugin"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			sharedAuditMode = ""
-			sharedSelectedPlugins = tt.plugins
-			sharedWrapWidth = -1
-			sharedNoWrap = false
-			format = string(converter.FormatMarkdown)
-
-			// Set up minimal flags
-			flags := pflag.NewFlagSet("test", pflag.ContinueOnError)
-			flags.Bool("no-wrap", false, "")
-			flags.Int("wrap", -1, "")
-
-			err := validateConvertFlags(flags, nil)
-			require.Error(t, err)
-			assert.Contains(t, err.Error(), tt.wantErrSubstr)
-		})
-	}
-}
-
-func TestAddSharedAuditFlagsRegistersFlags(t *testing.T) {
-	t.Parallel()
-
-	// Create a fresh command for testing
-	cmd := &cobra.Command{Use: "test"}
-	addSharedAuditFlags(cmd)
-
-	flags := cmd.Flags()
-
-	// Verify audit-mode flag
-	auditModeFlag := flags.Lookup("audit-mode")
-	require.NotNil(t, auditModeFlag)
-	assert.Empty(t, auditModeFlag.DefValue)
-
-	// Verify audit-blackhat flag
-	blackhatFlag := flags.Lookup("audit-blackhat")
-	require.NotNil(t, blackhatFlag)
-	assert.Equal(t, "false", blackhatFlag.DefValue)
-
-	// Verify audit-plugins flag
-	pluginsFlag := flags.Lookup("audit-plugins")
-	require.NotNil(t, pluginsFlag)
-	assert.Equal(t, "[]", pluginsFlag.DefValue)
-
-	// Verify plugin-dir flag
-	pluginDirFlag := flags.Lookup("plugin-dir")
-	require.NotNil(t, pluginDirFlag)
-	assert.Empty(t, pluginDirFlag.DefValue)
-}
 
 func TestValidAuditModes(t *testing.T) {
 	t.Parallel()
@@ -241,93 +45,6 @@ func TestValidAuditPlugins(t *testing.T) {
 	assert.Contains(t, completionStr, "stig")
 	assert.Contains(t, completionStr, "sans")
 	assert.Contains(t, completionStr, "firewall")
-}
-
-// TestBuildAuditOptions tests that audit flags are properly set in audit options.
-func TestBuildAuditOptions(t *testing.T) {
-	originalAuditMode := sharedAuditMode
-	originalBlackhat := sharedBlackhatMode
-	originalPlugins := sharedSelectedPlugins
-	originalPluginDir := sharedPluginDir
-	t.Cleanup(func() {
-		sharedAuditMode = originalAuditMode
-		sharedBlackhatMode = originalBlackhat
-		sharedSelectedPlugins = originalPlugins
-		sharedPluginDir = originalPluginDir
-	})
-
-	tests := []struct {
-		name            string
-		auditMode       string
-		blackhatMode    bool
-		selectedPlugins []string
-		pluginDir       string
-		wantPluginDir   string
-		wantExplicitDir bool
-	}{
-		{
-			name:            "empty defaults",
-			auditMode:       "",
-			blackhatMode:    false,
-			selectedPlugins: nil,
-			pluginDir:       "",
-			wantPluginDir:   "",
-			wantExplicitDir: false,
-		},
-		{
-			name:            "standard mode",
-			auditMode:       "standard",
-			blackhatMode:    false,
-			selectedPlugins: nil,
-			pluginDir:       "",
-			wantPluginDir:   "",
-			wantExplicitDir: false,
-		},
-		{
-			name:            "blue mode with plugins",
-			auditMode:       "blue",
-			blackhatMode:    false,
-			selectedPlugins: []string{"stig", "sans"},
-			pluginDir:       "",
-			wantPluginDir:   "",
-			wantExplicitDir: false,
-		},
-		{
-			name:            "red mode with blackhat",
-			auditMode:       "red",
-			blackhatMode:    true,
-			selectedPlugins: nil,
-			pluginDir:       "",
-			wantPluginDir:   "",
-			wantExplicitDir: false,
-		},
-		{
-			name:            "with plugin dir",
-			auditMode:       "blue",
-			blackhatMode:    false,
-			selectedPlugins: nil,
-			pluginDir:       "/path/to/plugins",
-			wantPluginDir:   "/path/to/plugins",
-			wantExplicitDir: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			sharedAuditMode = tt.auditMode
-			sharedBlackhatMode = tt.blackhatMode
-			sharedSelectedPlugins = tt.selectedPlugins
-			sharedPluginDir = tt.pluginDir
-
-			result := buildAuditOptions()
-
-			assert.Equal(t, tt.auditMode, result.AuditMode)
-			assert.Equal(t, tt.blackhatMode, result.BlackhatMode)
-			assert.Equal(t, tt.selectedPlugins, result.SelectedPlugins)
-			assert.Equal(t, tt.wantPluginDir, result.PluginDir)
-			assert.Equal(t, tt.wantExplicitDir, result.ExplicitPluginDir)
-		})
-	}
 }
 
 // TestMapAuditReportToComplianceResults verifies the mapping function
@@ -726,6 +443,56 @@ func TestHandleAuditMode_EndToEnd(t *testing.T) {
 	assert.Contains(t, result, "stig")
 
 	// handleAuditMode must NOT mutate the input device (immutability rule)
+	assert.Nil(t, device.ComplianceChecks, "input device should not be mutated")
+}
+
+// TestHandleAuditMode_BlueModeNoPluginsRunsAll verifies that bare blue mode
+// (no --plugins) produces populated compliance results rather than silently
+// skipping compliance. This is a regression test for the documented default
+// where `opnDossier audit config.xml --mode blue` runs all available plugins.
+func TestHandleAuditMode_BlueModeNoPluginsRunsAll(t *testing.T) {
+	// Do NOT use t.Parallel() — exercises audit pipeline with package-level flag state.
+	logger, err := logging.New(logging.Config{Level: "warn"})
+	require.NoError(t, err)
+
+	device := &common.CommonDevice{
+		System: common.System{
+			Hostname: "test-fw",
+			Domain:   "example.com",
+		},
+	}
+
+	// Bare blue mode: empty SelectedPlugins
+	auditOpts := audit.Options{
+		AuditMode:       "blue",
+		SelectedPlugins: nil,
+	}
+
+	opt := converter.Options{
+		Format: converter.FormatJSON,
+	}
+
+	result, err := handleAuditMode(context.Background(), device, auditOpts, opt, logger)
+	require.NoError(t, err)
+
+	// Parse JSON and verify complianceChecks is populated with plugin results
+	var parsed map[string]any
+	require.NoError(t, json.Unmarshal([]byte(result), &parsed))
+
+	checks, ok := parsed["complianceChecks"].(map[string]any)
+	require.True(t, ok, "complianceChecks should be an object")
+	assert.Equal(t, "blue", checks["mode"])
+
+	// pluginResults must contain all three built-in plugins
+	pluginResults, ok := checks["pluginResults"].(map[string]any)
+	require.True(t, ok, "pluginResults should be an object")
+
+	for _, name := range []string{"stig", "sans", "firewall"} {
+		assert.Contains(t, pluginResults, name,
+			"bare blue mode should include plugin %q in results", name)
+	}
+
+	// Input device must not be mutated (immutability rule)
 	assert.Nil(t, device.ComplianceChecks, "input device should not be mutated")
 }
 
