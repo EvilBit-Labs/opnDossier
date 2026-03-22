@@ -593,11 +593,17 @@ func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
 		if len(result.Findings) > 0 {
 			md.H3(pluginName + " Plugin Findings")
 			pluginTable := markdown.TableSet{
-				Header: []string{"Severity", "Title", "Description"},
+				Header: []string{"Control", "Severity", "Title", "Description"},
 				Rows:   make([][]string, 0, len(result.Findings)),
 			}
 			for _, f := range result.Findings {
+				controlID := f.Control
+				if controlID == "" && len(f.References) > 0 {
+					controlID = strings.Join(f.References, ", ")
+				}
+
 				pluginTable.Rows = append(pluginTable.Rows, []string{
+					EscapePipeForMarkdown(controlID),
 					EscapePipeForMarkdown(f.Severity),
 					EscapePipeForMarkdown(f.Title),
 					EscapePipeForMarkdown(TruncateString(f.Description, MaxDescriptionLength)),
