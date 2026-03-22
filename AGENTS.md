@@ -418,6 +418,13 @@ When splitting a large file into domain-specific files within the same package:
 - Known schema gaps: ~40+ type mismatches and missing fields — see `docs/development/xml-structure-research.md` §4-5
 - **Schema reuse (copy-on-write):** When creating a new device schema (for example, pfSense), it is acceptable as a stop-gap to reuse struct definitions from another schema when they are truly identical. Treat reused structs as copy-on-write: do not alter the original device schema in place. If behavior or fields diverge, copy the struct into the new schema package and make changes there. This also applies when forked or variant platforms undergo major breaking schema changes (for example, within Cisco families such as ASA vs IOS vs NGFW-style variants): reuse only while identical, then fork locally at first divergence.
 
+**pfSense type divergences from OPNsense:**
+
+- `pfsense.Group` has `Priv []string` (not `string`) — converter uses `strings.Join(g.Priv, ", ")` for `common.Group.Privileges`
+- `pfsense.System.DNSServers` is `[]string` (not space-separated `string`) — no `strings.Fields()` needed
+- `pfsense.InboundRule` has `Target` field for internal redirect IP — converter uses `Target` with fallback to `InternalIP`
+- `pfsense.SyslogConfig` only has `FilterDescriptions` — no mapping to `common.SyslogConfig` (returns zero value)
+
 **Platform-agnostic model layer:**
 
 - `pkg/model/` contains device-agnostic types (firewall rules, VPN, system, network, etc.). `revive` var-naming exclusion configured in `.golangci.yml`
