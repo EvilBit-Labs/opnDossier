@@ -312,6 +312,8 @@ See `docs/development/xml-structure-research.md` for the complete field inventor
 
 **`DeviceType` serialization:** `CommonDevice.DeviceType` uses `json:"device_type"` (no `omitempty`) — always serializes, even when empty. The `prepareForExport` pipeline defaults it to `DeviceTypeOPNsense`.
 
+**`DeviceType.DisplayName()`** returns the properly-cased human-readable platform name (`"OPNsense"`, `"pfSense"`, `"Device"` for unknown). All report titles and Platform labels in the converter/builder pipeline use this method — never hardcode `"OPNsense"` in rendered output. Test fixtures constructing `CommonDevice` directly must set `DeviceType` to get the correct platform name in assertions.
+
 ### 5.18 Context-Aware Semaphore
 
 When acquiring semaphores in goroutines, use `select` with `ctx.Done()` to respect cancellation (don't block unconditionally on `sem <- struct{}{}`).
@@ -354,9 +356,9 @@ Files in `pkg/parser/opnsense/` (package `opnsense`) **must** alias the schema i
 
 `parser.NewFactory(decoder)` requires an `XMLDecoder` argument -- wire with `parser.NewFactory(cfgparser.NewXMLParser())` at the call site. The `XMLDecoder` interface is defined in `pkg/parser/factory.go`.
 
-**pfSense parser independence:** The pfSense parser in `pkg/parser/pfsense/` manages its own XML decoding because `XMLDecoder.Parse()` returns `*schema.OpnSenseDocument`, which is incompatible with `pfsense.Document`. The parser accepts the `XMLDecoder` parameter for `ConstructorFunc` compatibility but does not use it. Security hardening (LimitReader, entity map, charset reader) is duplicated from `internal/cfgparser/xml.go`.
+**pfSense parser independence:** The pfSense parser in `pkg/parser/pfsense/` manages its own XML decoding because `XMLDecoder.Parse()` returns `*schema.OpnSenseDocument`, which is incompatible with `pfsense.Document`. The parser accepts the `XMLDecoder` parameter for `ConstructorFunc` compatibility but does not use it. Security hardening (LimitReader, entity map, charset reader) is shared via `parser.NewSecureXMLDecoder()` in `pkg/parser/xmlutil.go` -- both OPNsense (`internal/cfgparser`) and pfSense parsers delegate to it.
 
-`pkg/schema/pfsense/` (package `pfsense`) imports the opnsense package as `opnsense` and reuses shared types (`Interfaces`, `Dhcpd`, `BoolFlag`, `Source`, `Destination`, etc.) where the XML structure is identical. pfSense-specific types that share names with opnsense types use disambiguating suffixes (e.g., `SyslogConfig`, `UnboundConfig`) to avoid confusion when both packages are co-imported. All pfSense struct fields must carry triple tags (`xml`/`json`/`yaml`). Omitting `json`/`yaml` tags produces unformatted field names in serialized output (e.g., `IPProtocol` instead of `ipProtocol`).
+`pkg/schema/pfsense/` (package `pfsense`) imports the opnsense package as `opnsense` and reuses shared types (`Interfaces`, `Dhcpd`, `BoolFlag`, `Source`, `Destination`, etc.) where the XML structure is identical. pfSense-specific types that share names with opnsense types use disambiguating suffixes (e.g., `SyslogConfig`, `UnboundConfig`) to avoid confusion when both packages are co-imported. All pfSense struct fields must carry triple tags (`xml`/`json`/`yaml`). Omitting `json`/`yaml` tags produces unformatted field names in serialized output (e.g., `IPProtocol` instead of `ipProtocol`). `pfsense.Group` is a local fork of `opnsense.Group` (copy-on-write per §6.1) because pfSense `<priv>` elements repeat per group — `Priv []string` vs `string`. The pfSense validator uses `validatePfSenseGroups` (not the shared `validateGroups` which takes `[]schema.Group`).
 
 See [`pkg/schema/pfsense/README.md`](pkg/schema/pfsense/README.md) for the complete pfSense config.xml structural reference, including all top-level sections, field inventories, listtags (array elements), version mapping, and differences from OPNsense.
 

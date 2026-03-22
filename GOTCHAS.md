@@ -139,3 +139,17 @@ When adding device-specific validators that are structurally similar to existing
 
 - **Gotcha:** Adding `//nolint:dupl` only to the new function is insufficient. The existing function also needs `//nolint:dupl` because `dupl` reports pairs.
 - **Pattern:** Both sides of the duplicate pair must carry the suppression directive.
+
+## 10. Converter Testing
+
+### 10.1 ToMarkdown Outputs ANSI-Rendered Text
+
+`MarkdownConverter.ToMarkdown()` passes output through `glamour.Render()`, which inserts ANSI escape codes. Tests asserting on the output must set `t.Setenv("TERM", "dumb")` for clean text. Since `t.Setenv` is incompatible with `t.Parallel()`, remove `t.Parallel()` and add `//nolint:tparallel` to the function.
+
+- **Symptom:** `assert.Contains(t, md, "System Configuration")` fails despite the text being present.
+- **Fix:** Add `t.Setenv("TERM", "dumb")` at the start of the test (no `t.Parallel()`).
+- **Precedent:** `internal/converter/markdown_test.go` uses this pattern throughout.
+
+### 10.2 NAT Rule Field Name Disambiguation
+
+`OutboundNATRule.Target` is the NAT target address. `InboundNATRule.InternalIP` is the port-forward destination — there is no `Target` field on `InboundNATRule`. `FirewallRule` has no `Tag`/`Tagged` fields — those exist only on `OutboundNATRule`.
