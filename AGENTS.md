@@ -306,6 +306,8 @@ Add `IsAny()` / `Equal()` methods rather than comparing `*string` fields directl
 
 See `docs/development/xml-structure-research.md` for the complete field inventory with upstream source citations.
 
+**Repeated XML elements:** When an XML element can appear multiple times (e.g., `<priv>user-shell-access</priv><priv>page-all</priv>`), use `[]string` (not `string`). Go's `encoding/xml` silently captures only the first occurrence with a `string` field.
+
 **`DeviceType` serialization:** `CommonDevice.DeviceType` uses `json:"device_type"` (no `omitempty`) — always serializes, even when empty. The `prepareForExport` pipeline defaults it to `DeviceTypeOPNsense`.
 
 ### 5.18 Context-Aware Semaphore
@@ -350,7 +352,7 @@ Files in `pkg/parser/opnsense/` (package `opnsense`) **must** alias the schema i
 
 `parser.NewFactory(decoder)` requires an `XMLDecoder` argument -- wire with `parser.NewFactory(cfgparser.NewXMLParser())` at the call site. The `XMLDecoder` interface is defined in `pkg/parser/factory.go`.
 
-`pkg/schema/pfsense/` (package `pfsense`) imports the opnsense package as `opnsense` and reuses shared types (`Interfaces`, `Dhcpd`, `BoolFlag`, `Source`, `Destination`, etc.) where the XML structure is identical. pfSense-specific types that share names with opnsense types use disambiguating suffixes (e.g., `SyslogConfig`, `UnboundConfig`) to avoid confusion when both packages are co-imported.
+`pkg/schema/pfsense/` (package `pfsense`) imports the opnsense package as `opnsense` and reuses shared types (`Interfaces`, `Dhcpd`, `BoolFlag`, `Source`, `Destination`, etc.) where the XML structure is identical. pfSense-specific types that share names with opnsense types use disambiguating suffixes (e.g., `SyslogConfig`, `UnboundConfig`) to avoid confusion when both packages are co-imported. All pfSense struct fields must carry triple tags (`xml`/`json`/`yaml`). Omitting `json`/`yaml` tags produces unformatted field names in serialized output (e.g., `IPProtocol` instead of `ipProtocol`).
 
 ### 5.24 Public Package Purity
 
