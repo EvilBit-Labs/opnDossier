@@ -546,6 +546,7 @@ func generateLargeTestData(t *testing.T) *common.CommonDevice {
 
 	// Generate test data with many interfaces, rules, users, etc.
 	doc := &common.CommonDevice{
+		DeviceType: common.DeviceTypeOPNsense,
 		System: common.System{
 			Hostname: "large-test-host",
 			Domain:   "large.test.local",

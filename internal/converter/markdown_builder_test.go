@@ -441,6 +441,7 @@ func TestMarkdownBuilder_BuildStandardReport(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
 	data := &common.CommonDevice{
+		DeviceType: common.DeviceTypeOPNsense,
 		System: common.System{
 			Hostname: "test-host",
 			Domain:   "test.local",
@@ -489,6 +490,7 @@ func TestMarkdownBuilder_BuildComprehensiveReport(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
 	data := &common.CommonDevice{
+		DeviceType: common.DeviceTypeOPNsense,
 		System: common.System{
 			Hostname: "test-host",
 			Domain:   "test.local",
@@ -828,7 +830,7 @@ func TestBuildStandardReport_EdgeCases(t *testing.T) {
 			result, err := builder.BuildStandardReport(tt.data)
 			require.NoError(t, err)
 			assert.NotEmpty(t, result)
-			assert.Contains(t, result, "OPNsense Configuration Summary")
+			assert.Contains(t, result, "Configuration Summary")
 		})
 	}
 }
@@ -980,7 +982,7 @@ func TestToMarkdown_EdgeCases(t *testing.T) {
 			cleanResult = strings.ReplaceAll(cleanResult, "\x1b[38;5;252m", "")
 			cleanResult = strings.ReplaceAll(cleanResult, "\x1b[38;5;39;1m", "")
 			cleanResult = strings.ReplaceAll(cleanResult, "\x1b[38;5;252;1m", "")
-			assert.Contains(t, cleanResult, "OPNsense Configuration")
+			assert.Contains(t, cleanResult, "Configuration")
 		})
 	}
 }
