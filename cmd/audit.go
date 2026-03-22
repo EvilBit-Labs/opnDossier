@@ -502,28 +502,39 @@ func emitAuditResult(
 
 // deriveAuditOutputPath computes a unique output filename for a multi-file audit
 // run based on the input file's path and the desired format extension.
-// Directory separators are encoded as underscores ("_") rather than dashes so
-// that pre-existing dashes within directory or file names are preserved. This
-// prevents distinct paths like "a-b/c/config.xml" and "a/b-c/config.xml" from
-// collapsing to the same filename. Bare filenames without directory components
-// produce simple names like "config-audit.md".
+// Directory separators are losslessly encoded using underscore escaping: literal
+// underscores in path segments are doubled ("_" → "__") and directory separators
+// are replaced with single underscores. This guarantees that distinct cleaned
+// paths always produce distinct filenames, even when segments contain underscores
+// (e.g., "a_b/c/config.xml" → "a__b_c_config-audit.md" versus
+// "a/b_c/config.xml" → "a_b__c_config-audit.md"). Bare filenames without
+// directory components produce simple names like "config-audit.md".
 func deriveAuditOutputPath(inputFile, fileExt string) string {
 	base := filepath.Base(inputFile)
 	ext := filepath.Ext(base)
 	stem := strings.TrimSuffix(base, ext)
 
-	// Include all directory components as an underscore-joined prefix.
-	// Underscores encode path separators losslessly so that dashes within
-	// individual segment names remain distinguishable from segment boundaries
-	// (e.g., "a-b/c" → "a-b_c" vs "a/b-c" → "a_b-c").
 	dir := filepath.Dir(inputFile)
 	if dir != "" && dir != "." {
 		cleaned := filepath.Clean(dir)
 		cleaned = strings.TrimPrefix(cleaned, string(filepath.Separator))
-		prefix := strings.ReplaceAll(cleaned, string(filepath.Separator), "_")
 
-		return prefix + "_" + stem + "-audit" + fileExt
+		// Escape literal underscores in each segment, then join with single
+		// underscores representing directory separators. This is lossless:
+		// "_" in a segment → "__", separator → "_".
+		segments := strings.Split(cleaned, string(filepath.Separator))
+		for i, seg := range segments {
+			segments[i] = strings.ReplaceAll(seg, "_", "__")
+		}
+
+		escapedStem := strings.ReplaceAll(stem, "_", "__")
+		prefix := strings.Join(segments, "_")
+
+		return prefix + "_" + escapedStem + "-audit" + fileExt
 	}
 
-	return stem + "-audit" + fileExt
+	// Bare filename: escape underscores in stem for consistency.
+	escapedStem := strings.ReplaceAll(stem, "_", "__")
+
+	return escapedStem + "-audit" + fileExt
 }
