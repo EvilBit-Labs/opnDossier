@@ -53,6 +53,14 @@ The `encoding/xml` package treats self-closing tags (e.g., `<disabled/>`) and mi
 
 - **Gotcha:** Use `*string` (pointer to string) when you need to distinguish between "element present but empty" (`""`) and "element absent" (`nil`).
 
+### 3.3 Repeated XML Elements and `string` Fields
+
+When an XML element appears multiple times (e.g., `<priv>a</priv><priv>b</priv>`), a `string` field only captures the first occurrence — all others are silently dropped. Use `[]string` for elements that can repeat.
+
+- **Symptom:** Only the first value is parsed; no error is raised.
+- **Detection:** Compare parsed struct against raw XML for multi-valued elements.
+- **Fix:** Change the field type from `string` to `[]string` with the same `xml` tag.
+
 ## 4. Diff Engine
 
 ### 4.1 Section-Level Added/Removed Guards
