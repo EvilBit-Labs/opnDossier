@@ -9,6 +9,7 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
+	"github.com/EvilBit-Labs/opnDossier/internal/display"
 	"github.com/EvilBit-Labs/opnDossier/internal/export"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/spf13/cobra"
@@ -87,8 +88,17 @@ func emitAuditResult(
 	} else {
 		ctxLogger.Debug("Outputting audit report to stdout")
 
-		if _, err := fmt.Fprint(cmd.OutOrStdout(), result.output); err != nil {
-			return fmt.Errorf("failed to write audit report to stdout: %w", err)
+		// Render markdown through glamour for styled terminal output;
+		// other formats (JSON, YAML, text, HTML) are written raw.
+		if opt.Format == converter.FormatMarkdown {
+			displayer := display.NewTerminalDisplayWithMarkdownOptions(opt)
+			if err := displayer.Display(ctx, result.output); err != nil {
+				return fmt.Errorf("failed to display audit report: %w", err)
+			}
+		} else {
+			if _, err := fmt.Fprint(cmd.OutOrStdout(), result.output); err != nil {
+				return fmt.Errorf("failed to write audit report to stdout: %w", err)
+			}
 		}
 	}
 
