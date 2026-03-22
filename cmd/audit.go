@@ -1,0 +1,525 @@
+// Package cmd provides the command-line interface for opnDossier.
+package cmd
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
+	"slices"
+	"strings"
+	"sync"
+
+	"github.com/EvilBit-Labs/opnDossier/internal/audit"
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
+	"github.com/EvilBit-Labs/opnDossier/internal/config"
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
+	"github.com/EvilBit-Labs/opnDossier/internal/converter"
+	"github.com/EvilBit-Labs/opnDossier/internal/export"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
+	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
+	"github.com/spf13/cobra"
+)
+
+// auditResult holds the output of a single audit file processing operation,
+// pairing the generated report content with the input file path for serialized emission.
+type auditResult struct {
+	inputFile string
+	output    string
+}
+
+// Package-level flag variables for the audit command, required by cobra's flag binding mechanism.
+var (
+	auditMode      string   //nolint:gochecknoglobals // Cobra flag variable — audit reporting mode
+	auditBlackhat  bool     //nolint:gochecknoglobals // Cobra flag variable — blackhat commentary toggle
+	auditPlugins   []string //nolint:gochecknoglobals // Cobra flag variable — selected compliance plugins
+	auditPluginDir string   //nolint:gochecknoglobals // Cobra flag variable — dynamic plugin directory
+)
+
+// init registers the audit command with the root command and configures its command-line flags.
+func init() {
+	rootCmd.AddCommand(auditCmd)
+
+	// Audit-specific flags (shorter names since this is the dedicated audit command)
+	auditCmd.Flags().
+		StringVar(&auditMode, "mode", "standard", "Audit mode (standard|blue|red)")
+	setFlagAnnotation(auditCmd.Flags(), "mode", []string{"audit"})
+
+	auditCmd.Flags().
+		BoolVar(&auditBlackhat, "blackhat", false, "Enable blackhat commentary for red team reports")
+	setFlagAnnotation(auditCmd.Flags(), "blackhat", []string{"audit"})
+
+	auditCmd.Flags().
+		StringSliceVar(&auditPlugins, "plugins", []string{}, "Compliance plugins to run (stig,sans,firewall)")
+	setFlagAnnotation(auditCmd.Flags(), "plugins", []string{"audit"})
+
+	auditCmd.Flags().
+		StringVar(&auditPluginDir, "plugin-dir", "", "Directory containing dynamic .so compliance plugins")
+	setFlagAnnotation(auditCmd.Flags(), "plugin-dir", []string{"audit"})
+
+	// Output and format flags (reuse existing package-level variables)
+	auditCmd.Flags().
+		StringVarP(&format, "format", "f", "markdown", "Output format for audit report (markdown, json, yaml, text, html)")
+	setFlagAnnotation(auditCmd.Flags(), "format", []string{"output"})
+
+	auditCmd.Flags().
+		StringVarP(&outputFile, "output", "o", "", "Output file path for saving audit report (default: print to console)")
+	setFlagAnnotation(auditCmd.Flags(), "output", []string{"output"})
+
+	auditCmd.Flags().
+		BoolVar(&force, "force", false, "Force overwrite existing files without prompting for confirmation")
+	setFlagAnnotation(auditCmd.Flags(), "force", []string{"output"})
+
+	// Add shared styling and content flags
+	addSharedTemplateFlags(auditCmd)
+
+	// Add shared redact flag
+	addSharedRedactFlag(auditCmd)
+
+	// Register flag completion functions for better tab completion
+	registerAuditFlagCompletions(auditCmd)
+
+	// Preserve logical flag grouping in help output
+	auditCmd.Flags().SortFlags = false
+}
+
+// registerAuditFlagCompletions registers completion functions for audit command flags.
+func registerAuditFlagCompletions(cmd *cobra.Command) {
+	if err := cmd.RegisterFlagCompletionFunc("mode", ValidAuditModes); err != nil {
+		logger.Debug("failed to register mode completion", "error", err)
+	}
+
+	if err := cmd.RegisterFlagCompletionFunc("plugins", ValidAuditPlugins); err != nil {
+		logger.Debug("failed to register plugins completion", "error", err)
+	}
+
+	if err := cmd.RegisterFlagCompletionFunc("format", ValidFormats); err != nil {
+		logger.Debug("failed to register format completion", "error", err)
+	}
+
+	if err := cmd.RegisterFlagCompletionFunc("section", ValidSections); err != nil {
+		logger.Debug("failed to register section completion", "error", err)
+	}
+}
+
+// auditCmd is the cobra.Command for the audit subcommand.
+//
+//nolint:gochecknoglobals // Cobra command
+var auditCmd = &cobra.Command{
+	Use:               "audit [file ...]",
+	Short:             "Run security audit and compliance checks on OPNsense configurations.",
+	GroupID:           "audit",
+	ValidArgsFunction: ValidXMLFiles,
+	Args:              cobra.MinimumNArgs(1),
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		// Get logger from CommandContext for validation warnings
+		cmdCtx := GetCommandContext(cmd)
+		var cmdLogger *logging.Logger
+		if cmdCtx != nil {
+			cmdLogger = cmdCtx.Logger
+		}
+
+		// Normalize flags (apply side-effects like --no-wrap -> wrap=0)
+		normalizeConvertFlags()
+
+		// Validate audit mode
+		validModes := []string{"standard", "blue", "red"}
+		if !slices.Contains(validModes, strings.ToLower(auditMode)) {
+			return fmt.Errorf("invalid audit mode %q, must be one of: %s",
+				auditMode, strings.Join(validModes, ", "))
+		}
+
+		// Validate audit plugins
+		validPlugins := []string{"stig", "sans", "firewall"}
+		for _, p := range auditPlugins {
+			if !slices.Contains(validPlugins, strings.ToLower(p)) {
+				return fmt.Errorf("invalid audit plugin %q, must be one of: %s",
+					p, strings.Join(validPlugins, ", "))
+			}
+		}
+
+		// Reject --plugins when the selected mode does not execute compliance checks.
+		// Only blue mode runs RunComplianceChecks; standard and red modes ignore plugins.
+		if len(auditPlugins) > 0 && !strings.EqualFold(auditMode, "blue") {
+			return fmt.Errorf("--plugins is only supported with --mode blue; %q mode does not run compliance checks",
+				auditMode)
+		}
+
+		// Reject --output with multiple input files to prevent output clobbering.
+		// Each file produces a separate report auto-named as <input>-audit.<ext>.
+		if outputFile != "" && len(args) > 1 {
+			return errors.New(
+				"--output cannot be used with multiple input files; omit --output to auto-name each report as <input>-audit.<ext>",
+			)
+		}
+
+		// Validate format/wrap flag combinations
+		if err := validateConvertFlags(cmd.Flags(), cmdLogger); err != nil {
+			return fmt.Errorf("audit command validation failed: %w", err)
+		}
+
+		return nil
+	},
+	Long: `The 'audit' command runs security audit and compliance checks on one or more
+OPNsense config.xml files. It produces a report with compliance findings,
+security recommendations, and risk assessments based on the selected audit
+mode and compliance plugins.
+
+  AUDIT MODES:
+  Select the audit perspective using the --mode flag:
+
+    standard  - Neutral, comprehensive documentation report (default)
+    blue      - Defensive audit with security findings and recommendations
+    red       - Attacker-focused recon report highlighting attack surfaces
+
+  COMPLIANCE PLUGINS (blue mode only):
+  Select compliance checks to run with the --plugins flag (requires --mode blue):
+
+    stig      - Security Technical Implementation Guide
+    sans      - SANS Firewall Baseline
+    firewall  - Firewall Configuration Analysis
+
+  When no plugins are specified in blue mode, all available plugins are run.
+  The --plugins flag is not accepted with standard or red modes.
+
+  OUTPUT FORMATS:
+  The audit report can be exported in multiple formats using the --format flag:
+
+    markdown  - Standard markdown report (default)
+    json      - JSON format for programmatic access
+    yaml      - YAML format for configuration management
+    text      - Plain text output (markdown without formatting)
+    html      - Self-contained HTML report for web viewing
+
+Examples:
+  # Run a standard audit (documentation report, no compliance plugins)
+  opnDossier audit config.xml
+
+  # Blue team defensive audit with STIG and SANS compliance
+  opnDossier audit config.xml --mode blue --plugins stig,sans
+
+  # Blue team audit with all compliance plugins (default when no --plugins)
+  opnDossier audit config.xml --mode blue
+
+  # Red team attack surface analysis with blackhat commentary
+  opnDossier audit config.xml --mode red --blackhat
+
+  # Export audit report as JSON
+  opnDossier audit config.xml --format json -o audit-report.json
+
+  # Run audit on multiple files (each report is auto-named: config1-audit.md, config2-audit.md)
+  opnDossier audit config1.xml config2.xml --mode blue
+
+  # Comprehensive blue team audit with all compliance checks
+  opnDossier audit config.xml --mode blue --comprehensive --plugins stig,sans,firewall
+
+  # Redact sensitive fields from audit output
+  opnDossier audit config.xml --redact
+
+  # Quiet mode (errors only)
+  opnDossier --quiet audit config.xml --mode blue
+
+  # Verbose audit diagnostics
+  opnDossier --verbose audit config.xml --mode blue --plugins stig,sans`,
+	RunE: runAudit,
+}
+
+// runAudit processes one or more configuration files through the audit pipeline.
+// It parses each file concurrently, runs compliance checks with the selected audit
+// mode and plugins, buffers the results, and then serializes the final output
+// writes to avoid interleaved or overwritten reports.
+func runAudit(cmd *cobra.Command, args []string) error {
+	ctx := cmd.Context()
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	// Validate device type flag early before any file processing
+	if err := validateDeviceType(); err != nil {
+		return err
+	}
+
+	// Get configuration and logger from CommandContext
+	cmdCtx := GetCommandContext(cmd)
+	if cmdCtx == nil {
+		return errors.New("command context not initialized")
+	}
+	cmdLogger := cmdCtx.Logger
+	cmdConfig := cmdCtx.Config
+
+	// For multi-file runs, reject any shared output destination — whether from
+	// the CLI flag (already validated in PreRunE) or from configuration defaults
+	// (e.g., config file output_file or OPNDOSSIER_OUTPUT_FILE). Each file must
+	// produce a uniquely named report to prevent later reports overwriting earlier ones.
+	multiFile := len(args) > 1
+	if multiFile && cmdConfig != nil && cmdConfig.OutputFile != "" {
+		cmdLogger.Info(
+			"Configured output_file ignored for multi-file audit; each report will be auto-named from input filename",
+			"configured_output",
+			cmdConfig.OutputFile,
+		)
+	}
+
+	// Create a timeout context for file processing
+	timeoutCtx, cancel := context.WithTimeout(ctx, constants.DefaultProcessingTimeout)
+	defer cancel()
+
+	// Use a semaphore to limit concurrent file operations
+	maxConcurrent := max(runtime.NumCPU(), 1)
+	sem := make(chan struct{}, maxConcurrent)
+
+	// Buffer results: each goroutine produces an auditResult or an error.
+	// Results are collected here and emitted serially after all processing completes.
+	type resultOrError struct {
+		result auditResult
+		err    error
+	}
+
+	results := make([]resultOrError, len(args))
+
+	var wg sync.WaitGroup
+
+	for i, filePath := range args {
+		wg.Add(1)
+
+		go func(idx int, fp string) {
+			defer wg.Done()
+
+			// Acquire semaphore slot with context awareness
+			select {
+			case sem <- struct{}{}:
+				defer func() { <-sem }()
+			case <-timeoutCtx.Done():
+				results[idx] = resultOrError{err: timeoutCtx.Err()}
+
+				return
+			}
+
+			output, err := generateAuditOutput(timeoutCtx, fp, cmdLogger, cmdConfig)
+			if err != nil {
+				results[idx] = resultOrError{err: err}
+			} else {
+				results[idx] = resultOrError{result: auditResult{inputFile: fp, output: output}}
+			}
+		}(i, filePath)
+	}
+
+	wg.Wait()
+
+	// Serialize emission: write results in input order after all processing completes.
+	// This prevents interleaved stdout writes and file clobbering.
+	var allErrors []error
+
+	for _, r := range results {
+		if r.err != nil {
+			allErrors = append(allErrors, r.err)
+
+			continue
+		}
+
+		if err := emitAuditResult(ctx, cmd, r.result, cmdLogger, cmdConfig, multiFile); err != nil {
+			allErrors = append(allErrors, err)
+		}
+	}
+
+	return errors.Join(allErrors...)
+}
+
+// generateAuditOutput handles parsing and audit generation for a single configuration
+// file, returning the rendered report string. It does NOT perform any I/O emission
+// (stdout or file writes) so that it is safe to call concurrently.
+func generateAuditOutput(
+	ctx context.Context,
+	fp string,
+	cmdLogger *logging.Logger,
+	cmdConfig *config.Config,
+) (string, error) {
+	// Create context-aware logger for this goroutine with input file field
+	ctxLogger := cmdLogger.WithContext(ctx).WithFields("input_file", fp)
+
+	// Sanitize the file path
+	cleanPath := filepath.Clean(fp)
+	if !filepath.IsAbs(cleanPath) {
+		var err error
+
+		cleanPath, err = filepath.Abs(cleanPath)
+		if err != nil {
+			return "", fmt.Errorf("failed to get absolute path for %s: %w", fp, err)
+		}
+	}
+
+	// Read the file
+	file, err := os.Open(cleanPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to open file %s: %w", fp, err)
+	}
+	defer func() {
+		if cerr := file.Close(); cerr != nil {
+			ctxLogger.Error("failed to close file", "error", cerr)
+		}
+	}()
+
+	// Parse the XML and convert to platform-agnostic device model
+	ctxLogger.Debug("Parsing configuration file")
+
+	device, warnings, parseErr := parser.NewFactory(cfgparser.NewXMLParser()).
+		CreateDevice(ctx, file, resolveDeviceType(), false)
+	if parseErr != nil {
+		ctxLogger.Error("Failed to parse configuration", "error", parseErr)
+
+		if cfgparser.IsParseError(parseErr) {
+			if pe := cfgparser.GetParseError(parseErr); pe != nil {
+				ctxLogger.Error("XML syntax error detected", "line", pe.Line, "message", pe.Message)
+			}
+		}
+
+		if cfgparser.IsValidationError(parseErr) {
+			ctxLogger.Error("Configuration validation failed")
+		}
+
+		return "", fmt.Errorf("failed to parse configuration from %s: %w", fp, parseErr)
+	}
+
+	ctxLogger.Debug("Configuration parsed successfully")
+
+	if cmdConfig == nil || !cmdConfig.IsQuiet() {
+		for _, w := range warnings {
+			ctxLogger.Warn("conversion warning",
+				"field", w.Field,
+				"message", w.Message,
+				"severity", w.Severity,
+			)
+		}
+	}
+
+	// Build conversion options with precedence: CLI flags > env vars > config > defaults
+	eff := buildEffectiveFormat(format, cmdConfig)
+	opt := buildConversionOptions(eff, cmdConfig)
+
+	// Build audit options from audit-specific flag variables (not shared globals)
+	auditOpts := audit.Options{
+		AuditMode:       auditMode,
+		BlackhatMode:    auditBlackhat,
+		SelectedPlugins: auditPlugins,
+	}
+
+	if auditPluginDir != "" {
+		auditOpts.PluginDir = auditPluginDir
+		auditOpts.ExplicitPluginDir = true
+	}
+
+	// Always route through audit mode — this is the dedicated audit command
+	ctxLogger.Debug("Running audit",
+		"mode", auditOpts.AuditMode,
+		"plugins", auditOpts.SelectedPlugins,
+	)
+
+	output, err := handleAuditMode(ctx, device, auditOpts, opt, ctxLogger)
+	if err != nil {
+		ctxLogger.Error("Failed to generate audit report", "error", err)
+
+		return "", fmt.Errorf("failed to generate audit report for %s: %w", fp, err)
+	}
+
+	return output, nil
+}
+
+// emitAuditResult writes a single audit result to the appropriate destination
+// (file or stdout). This function must be called serially from the parent
+// goroutine to prevent interleaved stdout writes or file clobbering.
+// When multiFile is true, per-input auto-named output paths are derived so that
+// each input file produces a distinct report file rather than falling back to stdout.
+func emitAuditResult(
+	ctx context.Context,
+	cmd *cobra.Command,
+	result auditResult,
+	cmdLogger *logging.Logger,
+	cmdConfig *config.Config,
+	multiFile bool,
+) error {
+	ctxLogger := cmdLogger.WithContext(ctx).WithFields("input_file", result.inputFile)
+
+	// Build conversion options to determine file extension
+	eff := buildEffectiveFormat(format, cmdConfig)
+	opt := buildConversionOptions(eff, cmdConfig)
+
+	// Determine file extension from the registry
+	handler, err := converter.DefaultRegistry.Get(string(opt.Format))
+	if err != nil {
+		ctxLogger.Error("format passed validation but registry lookup failed",
+			"format", opt.Format, "error", err)
+
+		return fmt.Errorf("internal error determining file extension for %q: %w", opt.Format, err)
+	}
+
+	fileExt := handler.FileExtension()
+
+	// For multi-file runs, derive a unique per-input output path so each report
+	// goes to its own file. This bypasses the shared config OutputFile (which would
+	// cause later reports to overwrite earlier ones) and avoids the stdout fallback
+	// (which would interleave reports). The derived path is passed as the explicit
+	// outputFile argument to determineOutputPath, giving it CLI-flag precedence.
+	perInputOutputFile := outputFile
+	if multiFile && outputFile == "" {
+		perInputOutputFile = deriveAuditOutputPath(result.inputFile, fileExt)
+	}
+
+	// Determine output path with smart naming and overwrite protection.
+	// For multi-file runs, pass nil config to prevent the shared config OutputFile
+	// from overriding the derived per-input path.
+	emitConfig := cmdConfig
+	if multiFile {
+		emitConfig = nil
+	}
+
+	actualOutputFile, err := determineOutputPath(result.inputFile, perInputOutputFile, fileExt, emitConfig, force)
+	if err != nil {
+		ctxLogger.Error("Failed to determine output path", "error", err)
+
+		return fmt.Errorf("failed to determine output path for %s: %w", result.inputFile, err)
+	}
+
+	// Export or print the output
+	if actualOutputFile != "" {
+		ctxLogger.Debug("Exporting audit report to file", "output_file", actualOutputFile)
+		e := export.NewFileExporter(ctxLogger)
+
+		if err := e.Export(ctx, result.output, actualOutputFile); err != nil {
+			return fmt.Errorf("failed to export audit report to %s: %w", actualOutputFile, err)
+		}
+	} else {
+		ctxLogger.Debug("Outputting audit report to stdout")
+
+		if _, err := fmt.Fprint(cmd.OutOrStdout(), result.output); err != nil {
+			return fmt.Errorf("failed to write audit report to stdout: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// deriveAuditOutputPath computes a unique output filename for a multi-file audit
+// run based on the input file's path and the desired format extension.
+// When multiple inputs share the same basename (e.g., "site-a/config.xml" and
+// "site-b/config.xml"), a deterministic path-derived disambiguator is inserted
+// to prevent output collisions. Single-directory inputs produce simple names
+// like "config1-audit.md".
+func deriveAuditOutputPath(inputFile, fileExt string) string {
+	base := filepath.Base(inputFile)
+	ext := filepath.Ext(base)
+	stem := strings.TrimSuffix(base, ext)
+
+	// Include the parent directory name as a disambiguator when the input
+	// path has directory components. This prevents collisions when different
+	// directories contain files with the same basename.
+	dir := filepath.Dir(inputFile)
+	if dir != "" && dir != "." {
+		// Use the immediate parent directory name as prefix
+		parent := filepath.Base(dir)
+		return parent + "-" + stem + "-audit" + fileExt
+	}
+
+	return stem + "-audit" + fileExt
+}

@@ -8,6 +8,7 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/internal/audit"
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
+	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
@@ -727,6 +728,187 @@ func TestHandleAuditMode_EndToEnd(t *testing.T) {
 
 	// handleAuditMode must NOT mutate the input device (immutability rule)
 	assert.Nil(t, device.ComplianceChecks, "input device should not be mutated")
+}
+
+// TestHandleAuditMode_BlueModeNoPluginsRunsAll verifies that bare blue mode
+// (no --plugins) produces populated compliance results rather than silently
+// skipping compliance. This is a regression test for the documented default
+// where `opnDossier audit config.xml --mode blue` runs all available plugins.
+func TestHandleAuditMode_BlueModeNoPluginsRunsAll(t *testing.T) {
+	t.Parallel()
+
+	logger, err := logging.New(logging.Config{Level: "warn"})
+	require.NoError(t, err)
+
+	device := &common.CommonDevice{
+		System: common.System{
+			Hostname: "test-fw",
+			Domain:   "example.com",
+		},
+	}
+
+	// Bare blue mode: empty SelectedPlugins
+	auditOpts := audit.Options{
+		AuditMode:       "blue",
+		SelectedPlugins: nil,
+	}
+
+	opt := converter.Options{
+		Format: converter.FormatJSON,
+	}
+
+	result, err := handleAuditMode(context.Background(), device, auditOpts, opt, logger)
+	require.NoError(t, err)
+
+	// Parse JSON and verify complianceChecks is populated with plugin results
+	var parsed map[string]any
+	require.NoError(t, json.Unmarshal([]byte(result), &parsed))
+
+	checks, ok := parsed["complianceChecks"].(map[string]any)
+	require.True(t, ok, "complianceChecks should be an object")
+	assert.Equal(t, "blue", checks["mode"])
+
+	// pluginResults must contain all three built-in plugins
+	pluginResults, ok := checks["pluginResults"].(map[string]any)
+	require.True(t, ok, "pluginResults should be an object")
+
+	for _, name := range []string{"stig", "sans", "firewall"} {
+		assert.Contains(t, pluginResults, name,
+			"bare blue mode should include plugin %q in results", name)
+	}
+
+	// Input device must not be mutated (immutability rule)
+	assert.Nil(t, device.ComplianceChecks, "input device should not be mutated")
+}
+
+// TestEmitAuditResult_MultiFileAutoNaming verifies that multi-file audit runs
+// derive unique per-input output paths instead of falling back to stdout or
+// resolving to a shared config-driven output path.
+func TestEmitAuditResult_MultiFileAutoNaming(t *testing.T) {
+	// Do NOT use t.Parallel() — modifies package-level flag variables.
+	originalOutputFile := outputFile
+	originalFormat := format
+	originalForce := force
+	t.Cleanup(func() {
+		outputFile = originalOutputFile
+		format = originalFormat
+		force = originalForce
+	})
+
+	outputFile = "" // No CLI --output
+	format = "markdown"
+	force = true
+
+	// Two different input files with the same parent directory
+	result1 := auditResult{inputFile: "/tmp/config1.xml"}
+	result2 := auditResult{inputFile: "/tmp/config2.xml"}
+
+	// Multi-file auto-naming derives unique per-input paths
+	path1 := deriveAuditOutputPath(result1.inputFile, ".md")
+	path2 := deriveAuditOutputPath(result2.inputFile, ".md")
+
+	assert.Equal(t, "tmp-config1-audit.md", path1)
+	assert.Equal(t, "tmp-config2-audit.md", path2)
+	assert.NotEqual(t, path1, path2, "multi-file audit must produce distinct output paths")
+
+	// Verify the derived paths pass through determineOutputPath correctly
+	// (treated as explicit CLI outputFile, so config is ignored)
+	resolvedPath1, err1 := determineOutputPath(result1.inputFile, path1, ".md", nil, force)
+	resolvedPath2, err2 := determineOutputPath(result2.inputFile, path2, ".md", nil, force)
+	require.NoError(t, err1)
+	require.NoError(t, err2)
+
+	assert.Equal(t, "tmp-config1-audit.md", resolvedPath1)
+	assert.Equal(t, "tmp-config2-audit.md", resolvedPath2)
+}
+
+// TestEmitAuditResult_MultiFileConfigOutputFileIgnored verifies that when
+// cmdConfig.OutputFile is set during a multi-file audit, the shared config
+// destination is ignored in favor of per-input auto-named paths.
+func TestEmitAuditResult_MultiFileConfigOutputFileIgnored(t *testing.T) {
+	// Do NOT use t.Parallel() — modifies package-level flag variables.
+	originalOutputFile := outputFile
+	originalFormat := format
+	originalForce := force
+	t.Cleanup(func() {
+		outputFile = originalOutputFile
+		format = originalFormat
+		force = originalForce
+	})
+
+	outputFile = "" // No CLI --output
+	format = "markdown"
+	force = true
+
+	// Simulate multi-file run with config OutputFile set
+	cfgWithOutput := &config.Config{OutputFile: "/tmp/shared-report.md"}
+
+	// Without the fix, both inputs would resolve to the shared config path
+	pathA, errA := determineOutputPath("/tmp/config1.xml", "", ".md", cfgWithOutput, true)
+	pathB, errB := determineOutputPath("/tmp/config2.xml", "", ".md", cfgWithOutput, true)
+	require.NoError(t, errA)
+	require.NoError(t, errB)
+	assert.Equal(t, pathA, pathB, "raw config OutputFile causes collision")
+
+	// With the fix, deriveAuditOutputPath produces unique paths and nil config
+	// is passed to determineOutputPath, preventing the config path from being used.
+	derivedA := deriveAuditOutputPath("/tmp/config1.xml", ".md")
+	derivedB := deriveAuditOutputPath("/tmp/config2.xml", ".md")
+
+	resolvedA, errResolvedA := determineOutputPath("/tmp/config1.xml", derivedA, ".md", nil, true)
+	resolvedB, errResolvedB := determineOutputPath("/tmp/config2.xml", derivedB, ".md", nil, true)
+	require.NoError(t, errResolvedA)
+	require.NoError(t, errResolvedB)
+
+	assert.Equal(t, "tmp-config1-audit.md", resolvedA)
+	assert.Equal(t, "tmp-config2-audit.md", resolvedB)
+	assert.NotEqual(t, resolvedA, resolvedB, "multi-file audit must not resolve to same output path")
+}
+
+// TestDeriveAuditOutputPath verifies per-input filename derivation for multi-file audit.
+func TestDeriveAuditOutputPath(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		inputFile string
+		fileExt   string
+		want      string
+	}{
+		{"markdown from xml", "/path/to/config.xml", ".md", "to-config-audit.md"},
+		{"json from xml", "/path/to/config.xml", ".json", "to-config-audit.json"},
+		{"yaml from xml", "/path/to/config.xml", ".yaml", "to-config-audit.yaml"},
+		{"html from xml", "config.xml", ".html", "config-audit.html"},
+		{"txt from xml", "config.xml", ".txt", "config-audit.txt"},
+		{"nested path", "/a/b/c/firewall-prod.xml", ".md", "c-firewall-prod-audit.md"},
+		{"no extension input", "/path/to/config", ".json", "to-config-audit.json"},
+		{"relative path", "configs/backup.xml", ".md", "configs-backup-audit.md"},
+		{"bare filename no dir", "config.xml", ".md", "config-audit.md"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := deriveAuditOutputPath(tt.inputFile, tt.fileExt)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+// TestDeriveAuditOutputPath_BasenamCollision verifies that inputs with the same
+// basename but different parent directories produce distinct output paths,
+// preventing overwrite prompts or silent clobbering during multi-file audit.
+func TestDeriveAuditOutputPath_BasenameCollision(t *testing.T) {
+	t.Parallel()
+
+	pathA := deriveAuditOutputPath("site-a/config.xml", ".md")
+	pathB := deriveAuditOutputPath("site-b/config.xml", ".md")
+
+	assert.Equal(t, "site-a-config-audit.md", pathA)
+	assert.Equal(t, "site-b-config-audit.md", pathB)
+	assert.NotEqual(t, pathA, pathB,
+		"inputs with same basename but different directories must produce distinct output paths")
 }
 
 // TestHandleAuditMode_StructuredFormats verifies that audit data appears in JSON and YAML output.
