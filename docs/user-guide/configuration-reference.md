@@ -49,7 +49,7 @@ Supported formats: `markdown` (`md`), `json`, `yaml` (`yml`), `text` (`txt`), `h
 
 | Setting       | CLI Flag          | Environment Variable | Config File | Type     | Default | Description                                                                                                                                                              |
 | ------------- | ----------------- | -------------------- | ----------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Audit mode    | `--audit-mode`    | -                    | -           | string   | `""`    | Audit mode: standard, blue, red (for backward compatibility; use `audit` command for dedicated audit workflows)                                                         |
+| Audit mode    | `--audit-mode`    | -                    | -           | string   | `""`    | Audit mode: standard, blue, red (for backward compatibility; use `audit` command for dedicated audit workflows)                                                          |
 | Audit plugins | `--audit-plugins` | -                    | -           | string[] | `[]`    | Plugins: stig, sans, firewall                                                                                                                                            |
 | Plugin dir    | `--plugin-dir`    | -                    | -           | string   | `""`    | Directory containing dynamic .so compliance plugins. If explicitly set to a nonexistent directory, fails with an error. If not specified, no dynamic plugins are loaded. |
 
@@ -59,12 +59,12 @@ The `audit` command is the dedicated entry point for security audit and complian
 
 ### Audit-Specific Flags
 
-| Setting          | CLI Flag     | Type     | Default      | Description                                                                                                 |
-| ---------------- | ------------ | -------- | ------------ | ----------------------------------------------------------------------------------------------------------- |
-| Audit mode       | `--mode`     | string   | `"standard"` | Audit mode: `standard` (neutral report), `blue` (defensive audit with compliance), `red` (attack surface)   |
-| Compliance plugins | `--plugins`  | string[] | `[]`         | Comma-separated list: `stig`, `sans`, `firewall`. Only valid with `--mode blue`. Empty = all plugins run.  |
-| Blackhat mode    | `--blackhat` | boolean  | `false`      | Enable blackhat commentary for red team reports (red mode only)                                             |
-| Plugin directory | `--plugin-dir` | string | `""`         | Directory containing dynamic `.so` compliance plugins. Failed plugin loads are non-fatal (warnings logged). |
+| Setting            | CLI Flag       | Type     | Default      | Description                                                                                                 |
+| ------------------ | -------------- | -------- | ------------ | ----------------------------------------------------------------------------------------------------------- |
+| Audit mode         | `--mode`       | string   | `"standard"` | Audit mode: `standard` (neutral report), `blue` (defensive audit with compliance), `red` (attack surface)   |
+| Compliance plugins | `--plugins`    | string[] | `[]`         | Comma-separated list: `stig`, `sans`, `firewall`. Only valid with `--mode blue`. Empty = all plugins run.   |
+| Blackhat mode      | `--blackhat`   | boolean  | `false`      | Enable blackhat commentary for red team reports (red mode only)                                             |
+| Plugin directory   | `--plugin-dir` | string   | `""`         | Directory containing dynamic `.so` compliance plugins. Failed plugin loads are non-fatal (warnings logged). |
 
 ### Shared Output Flags
 
@@ -93,6 +93,7 @@ opndossier audit config1.xml config2.xml --mode blue
 ```
 
 Path encoding for multi-file output:
+
 - Bare filenames: `config.xml` → `config-audit.md`
 - Paths with directories: `prod/site-a/config.xml` → `prod_site-a_config-audit.md`
 
