@@ -108,7 +108,7 @@ func hasManagementOnWAN(data *common.CommonDevice) bool {
 		}) {
 			continue
 		}
-		if rule.Direction != "" && !strings.EqualFold(rule.Direction, "in") {
+		if rule.Direction != "" && !strings.EqualFold(string(rule.Direction), string(common.DirectionIn)) {
 			continue
 		}
 		for _, port := range mgmtPorts {

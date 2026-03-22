@@ -248,91 +248,91 @@ func TestFilterRulesByType(t *testing.T) {
 	tests := []struct {
 		name     string
 		rules    []common.FirewallRule
-		ruleType string
+		ruleType common.FirewallRuleType
 		want     []common.FirewallRule
 	}{
 		{
 			name:     "nil rules",
 			rules:    nil,
-			ruleType: "pass",
+			ruleType: common.RuleTypePass,
 			want:     nil,
 		},
 		{
 			name:     "empty rules",
 			rules:    []common.FirewallRule{},
-			ruleType: "pass",
+			ruleType: common.RuleTypePass,
 			want:     []common.FirewallRule{},
 		},
 		{
 			name: "empty rule type returns all rules",
 			rules: []common.FirewallRule{
-				{Type: "pass"},
-				{Type: "block"},
+				{Type: common.RuleTypePass},
+				{Type: common.RuleTypeBlock},
 			},
 			ruleType: "",
 			want: []common.FirewallRule{
-				{Type: "pass"},
-				{Type: "block"},
+				{Type: common.RuleTypePass},
+				{Type: common.RuleTypeBlock},
 			},
 		},
 		{
 			name: "filter by pass rules",
 			rules: []common.FirewallRule{
-				{Type: "pass"},
-				{Type: "block"},
-				{Type: "pass"},
-				{Type: "reject"},
+				{Type: common.RuleTypePass},
+				{Type: common.RuleTypeBlock},
+				{Type: common.RuleTypePass},
+				{Type: common.RuleTypeReject},
 			},
-			ruleType: "pass",
+			ruleType: common.RuleTypePass,
 			want: []common.FirewallRule{
-				{Type: "pass"},
-				{Type: "pass"},
+				{Type: common.RuleTypePass},
+				{Type: common.RuleTypePass},
 			},
 		},
 		{
 			name: "filter by block rules",
 			rules: []common.FirewallRule{
-				{Type: "pass"},
-				{Type: "block"},
-				{Type: "pass"},
-				{Type: "block"},
+				{Type: common.RuleTypePass},
+				{Type: common.RuleTypeBlock},
+				{Type: common.RuleTypePass},
+				{Type: common.RuleTypeBlock},
 			},
-			ruleType: "block",
+			ruleType: common.RuleTypeBlock,
 			want: []common.FirewallRule{
-				{Type: "block"},
-				{Type: "block"},
+				{Type: common.RuleTypeBlock},
+				{Type: common.RuleTypeBlock},
 			},
 		},
 		{
 			name: "no matching rules",
 			rules: []common.FirewallRule{
-				{Type: "pass"},
-				{Type: "block"},
+				{Type: common.RuleTypePass},
+				{Type: common.RuleTypeBlock},
 			},
-			ruleType: "reject",
+			ruleType: common.RuleTypeReject,
 			want:     []common.FirewallRule{},
 		},
 		{
 			name: "rules with empty type are skipped",
 			rules: []common.FirewallRule{
 				{Type: ""},
-				{Type: "pass"},
+				{Type: common.RuleTypePass},
 				{Type: ""},
 			},
-			ruleType: "pass",
+			ruleType: common.RuleTypePass,
 			want: []common.FirewallRule{
-				{Type: "pass"},
+				{Type: common.RuleTypePass},
 			},
 		},
 		{
 			name: "case sensitive matching",
 			rules: []common.FirewallRule{
-				{Type: "pass"},
-				{Type: "PASS"},
+				{Type: common.RuleTypePass},
+				{Type: common.FirewallRuleType("PASS")},
 			},
-			ruleType: "pass",
+			ruleType: common.RuleTypePass,
 			want: []common.FirewallRule{
-				{Type: "pass"},
+				{Type: common.RuleTypePass},
 			},
 		},
 	}
