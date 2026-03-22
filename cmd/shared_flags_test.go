@@ -1,8 +1,11 @@
 package cmd
 
 import (
+	"strings"
 	"testing"
 
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
+	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -89,8 +92,19 @@ func TestValidDeviceTypes(t *testing.T) {
 	t.Parallel()
 	completions, directive := ValidDeviceTypes(nil, nil, "")
 	assert.Equal(t, cobra.ShellCompDirectiveNoFileComp, directive)
-	require.Len(t, completions, 1)
-	assert.Contains(t, completions[0], "opnsense")
+	// At least the built-in opnsense type must be present; additional entries
+	// may exist from other tests registering custom device types on the global
+	// singleton registry.
+	require.GreaterOrEqual(t, len(completions), 1)
+
+	found := false
+	for _, c := range completions {
+		if strings.Contains(c, "opnsense") {
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "opnsense should be in completions")
 }
 
 func TestValidateDeviceType(t *testing.T) {
@@ -146,4 +160,92 @@ func TestValidateDeviceType(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestValidateDeviceType_CustomRegisteredType(t *testing.T) {
+	// Register a custom device type that is not in the built-in enum.
+	// Use a unique name to avoid collisions with other tests on the global registry.
+	const customType = "customfirewall-validate-test"
+
+	parser.DefaultRegistry().Register(customType, func(_ parser.XMLDecoder) parser.DeviceParser {
+		return nil // placeholder; only testing validation, not parsing
+	})
+
+	origDeviceType := sharedDeviceType
+	t.Cleanup(func() { sharedDeviceType = origDeviceType })
+
+	sharedDeviceType = customType
+	err := validateDeviceType()
+	require.NoError(t, err, "custom registry-registered device type should pass validation")
+}
+
+func TestResolveDeviceType(t *testing.T) {
+	tests := []struct {
+		name     string
+		value    string
+		expected common.DeviceType
+	}{
+		{
+			name:     "empty returns DeviceTypeUnknown",
+			value:    "",
+			expected: common.DeviceTypeUnknown,
+		},
+		{
+			name:     "opnsense returns built-in constant",
+			value:    "opnsense",
+			expected: common.DeviceTypeOPNsense,
+		},
+		{
+			name:     "OPNsense case-insensitive returns built-in constant",
+			value:    "OPNsense",
+			expected: common.DeviceTypeOPNsense,
+		},
+		{
+			name:     "pfsense returns built-in constant",
+			value:    "pfsense",
+			expected: common.DeviceTypePfSense,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			origDeviceType := sharedDeviceType
+			t.Cleanup(func() { sharedDeviceType = origDeviceType })
+
+			sharedDeviceType = tt.value
+			result := resolveDeviceType()
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestResolveDeviceType_CustomRegisteredType(t *testing.T) {
+	// Register a custom type not in the built-in enum.
+	const customType = "customfirewall-resolve-test"
+
+	parser.DefaultRegistry().Register(customType, func(_ parser.XMLDecoder) parser.DeviceParser {
+		return nil
+	})
+
+	origDeviceType := sharedDeviceType
+	t.Cleanup(func() { sharedDeviceType = origDeviceType })
+
+	sharedDeviceType = customType
+	result := resolveDeviceType()
+
+	// Should fall back to the normalized raw string, not DeviceTypeUnknown.
+	assert.Equal(t, common.DeviceType(customType), result)
+	assert.NotEqual(t, common.DeviceTypeUnknown, result)
+}
+
+func TestValidateDeviceType_ErrorUsesSupportedDevices(t *testing.T) {
+	origDeviceType := sharedDeviceType
+	t.Cleanup(func() { sharedDeviceType = origDeviceType })
+
+	sharedDeviceType = "nonexistent-device"
+	err := validateDeviceType()
+	require.Error(t, err)
+
+	// Error message should contain the centralized SupportedDevices() output.
+	assert.Contains(t, err.Error(), parser.DefaultRegistry().SupportedDevices())
 }
