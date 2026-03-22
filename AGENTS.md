@@ -383,7 +383,7 @@ When splitting a large file into domain-specific files within the same package:
 - Changing an unexported function's signature breaks same-package test files that call it directly — grep for all call sites in `*_test.go` before changing signatures
 - Shared helpers used across domain files stay in the orchestrator file; domain-specific helpers move with their domain
 - Naming convention: `<base>_<domain>.go` (e.g., `validate_system.go`, `report_statistics.go`)
-- Precedent: PR #415 (`report.go` split), PR #417 (`opnsense.go` split), `pkg/parser/opnsense/` (`converter_*.go`)
+- Precedent: PR #415 (`report.go` split), PR #417 (`opnsense.go` split), `pkg/parser/opnsense/` (`converter_*.go`), `cmd/audit.go` split into `audit.go` + `audit_output.go`
 
 ---
 
@@ -580,6 +580,8 @@ All plugins implement `compliance.Plugin` (see `internal/compliance/interfaces.g
 - `generateBlueReport()` resolves all registered plugins via `mc.registry.ListPlugins()` when `SelectedPlugins` is empty — bare `--mode blue` runs a full compliance audit by default
 - Multi-file audit: `emitAuditResult()` takes a `multiFile bool` parameter; when true, derives per-input output paths via `deriveAuditOutputPath()` and nils out config to prevent shared `OutputFile` from causing overwrites
 - `deriveAuditOutputPath` uses lossless tilde-based escaping (`~` → `~~`, `_` → `~u`, separator → `_`) to guarantee distinct filenames for distinct input paths (e.g., `a_b/c/config.xml` → `a~ub_c_config-audit.md` vs `a/b_c/config.xml` → `a_b~uc_config-audit.md`; dashes are preserved as-is). The tilde scheme avoids the boundary ambiguity of double-underscore escaping where `a_/b` and `a/_b` collapsed to the same output
+- `validateOutputFlags()` in `cmd/shared_flags.go` validates format, wrap, and section flags shared by `convert` and `audit`. `validateConvertFlags()` delegates to it then adds convert-specific audit flag checks. The audit command calls `validateOutputFlags()` directly — never `validateConvertFlags()`
+- Audit file organization: `cmd/audit.go` (command definition, flags, `runAudit`, `generateAuditOutput`), `cmd/audit_output.go` (emission logic, path derivation), `cmd/audit_handler.go` (audit pipeline orchestration shared with convert)
 
 ### 8.3 Compliance Standards
 
