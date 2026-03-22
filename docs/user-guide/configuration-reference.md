@@ -6,7 +6,7 @@ For how configuration precedence works, see the [Configuration Guide](configurat
 
 ## Global Options
 
-These options apply to all commands (`audit`, `convert`, `display`, `validate`).
+These options are persistent flags available on all subcommands.
 
 ### Logging & Output
 
@@ -44,14 +44,6 @@ Supported formats: `markdown` (`md`), `json`, `yaml` (`yml`), `text` (`txt`), `h
 | Comprehensive    | `--comprehensive`    | -                     | -           | boolean  | `false` | Generate comprehensive detailed reports                                                                         |
 | Include tunables | `--include-tunables` | -                     | -           | boolean  | `false` | Include all system tunables in report output (markdown, text, HTML only; JSON/YAML always include all tunables) |
 | Redact           | `--redact`           | -                     | -           | boolean  | `false` | Redact sensitive fields (passwords, keys, etc.)                                                                 |
-
-### Audit & Compliance (convert command only)
-
-| Setting       | CLI Flag          | Environment Variable | Config File | Type     | Default | Description                                                                                                                                                              |
-| ------------- | ----------------- | -------------------- | ----------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Audit mode    | `--audit-mode`    | -                    | -           | string   | `""`    | Audit mode: standard, blue, red (for backward compatibility; use `audit` command for dedicated audit workflows)                                                          |
-| Audit plugins | `--audit-plugins` | -                    | -           | string[] | `[]`    | Plugins: stig, sans, firewall                                                                                                                                            |
-| Plugin dir    | `--plugin-dir`    | -                    | -           | string   | `""`    | Directory containing dynamic .so compliance plugins. If explicitly set to a nonexistent directory, fails with an error. If not specified, no dynamic plugins are loaded. |
 
 ## Audit Command Options
 
