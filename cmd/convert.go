@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"slices"
 	"strings"
 	"sync"
 
@@ -79,9 +78,6 @@ func init() {
 	// Add shared styling and content flags
 	addSharedTemplateFlags(convertCmd)
 
-	// Add shared audit flags
-	addSharedAuditFlags(convertCmd)
-
 	// Add shared redact flag
 	addSharedRedactFlag(convertCmd)
 
@@ -103,14 +99,6 @@ func registerConvertFlagCompletions(cmd *cobra.Command) {
 	// Section flag completion
 	if err := cmd.RegisterFlagCompletionFunc("section", ValidSections); err != nil {
 		logger.Debug("failed to register section completion", "error", err)
-	}
-
-	// Audit flag completions
-	if err := cmd.RegisterFlagCompletionFunc("audit-mode", ValidAuditModes); err != nil {
-		logger.Debug("failed to register audit-mode completion", "error", err)
-	}
-	if err := cmd.RegisterFlagCompletionFunc("audit-plugins", ValidAuditPlugins); err != nil {
-		logger.Debug("failed to register audit-plugins completion", "error", err)
 	}
 }
 
@@ -156,23 +144,8 @@ programmatic access to your firewall configuration.
   Additional options:
     --comprehensive             - Generate detailed, comprehensive reports
 
-  AUDIT MODE:
-  Enable security auditing with compliance plugins.
-  Audit logging respects global output flags (--verbose/--quiet):
-
-    --audit-mode standard|blue|red  - Enable audit reporting mode
-    --audit-plugins stig,sans,firewall - Select compliance plugins to run
-    --audit-blackhat                - Enable blackhat commentary (red mode only)
-
-  Available audit modes:
-    standard  - Neutral, comprehensive documentation report
-    blue      - Defensive audit with security findings and recommendations
-    red       - Attacker-focused recon report highlighting attack surfaces
-
-  Available compliance plugins:
-    stig      - Security Technical Implementation Guide
-    sans      - SANS Firewall Baseline
-    firewall  - Custom firewall compliance checks
+  For security auditing and compliance checks, use the dedicated 'audit' command:
+    opnDossier audit config.xml --mode blue
 
 The convert command focuses on conversion only and does not perform validation.
 To validate your configuration files before conversion, use the 'validate' command.
@@ -232,22 +205,7 @@ Examples:
   opnDossier convert config.xml --include-tunables
 
   # Validate before converting (recommended workflow)
-  opnDossier validate config.xml && opnDossier convert config.xml -f json -o output.json
-
-  # Blue team defensive audit with STIG and SANS compliance
-  opnDossier convert config.xml --audit-mode blue --audit-plugins stig,sans
-
-  # Blue team audit with verbose audit diagnostics
-  opnDossier --verbose convert config.xml --audit-mode blue --audit-plugins stig,sans
-
-  # Quiet audit mode (errors only)
-  opnDossier --quiet convert config.xml --audit-mode blue
-
-  # Red team attack surface analysis with blackhat commentary
-  opnDossier convert config.xml --audit-mode red --audit-blackhat
-
-  # Standard documentation with all compliance checks
-  opnDossier convert config.xml --audit-mode standard --audit-plugins stig,sans,firewall`,
+  opnDossier validate config.xml && opnDossier convert config.xml -f json -o output.json`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
@@ -699,30 +657,5 @@ func normalizeConvertFlags() {
 //
 // The cmdLogger parameter is used for structured warnings; if nil, warnings fall back to stderr.
 func validateConvertFlags(flags *pflag.FlagSet, cmdLogger *logging.Logger) error {
-	// Validate format, wrap, and section flags (shared across convert and audit)
-	if err := validateOutputFlags(flags, cmdLogger); err != nil {
-		return err
-	}
-
-	// Validate audit mode if provided (convert-specific: uses shared globals)
-	if sharedAuditMode != "" {
-		validModes := []string{"standard", "blue", "red"}
-		if !slices.Contains(validModes, strings.ToLower(sharedAuditMode)) {
-			return fmt.Errorf("invalid audit mode %q, must be one of: %s",
-				sharedAuditMode, strings.Join(validModes, ", "))
-		}
-	}
-
-	// Validate audit plugins if provided (convert-specific: uses shared globals)
-	if len(sharedSelectedPlugins) > 0 {
-		validPlugins := []string{"stig", "sans", "firewall"}
-		for _, p := range sharedSelectedPlugins {
-			if !slices.Contains(validPlugins, strings.ToLower(p)) {
-				return fmt.Errorf("invalid audit plugin %q, must be one of: %s",
-					p, strings.Join(validPlugins, ", "))
-			}
-		}
-	}
-
-	return nil
+	return validateOutputFlags(flags, cmdLogger)
 }

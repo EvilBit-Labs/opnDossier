@@ -94,35 +94,6 @@ func addSharedRedactFlag(cmd *cobra.Command) {
 	setFlagAnnotation(cmd.Flags(), "redact", []string{"output"})
 }
 
-// addSharedAuditFlags adds shared flags for audit and compliance functionality.
-//
-// Flags added:
-//
-//	--audit-mode       Audit mode (standard|blue|red) for security-focused reports.
-//	--audit-blackhat   Enable blackhat mode for red team commentary.
-//	--audit-plugins    Comma-separated list of compliance plugins to run (stig,sans,firewall).
-//
-// Example:
-//
-//	mycmd --audit-mode blue --audit-plugins stig,sans
-func addSharedAuditFlags(cmd *cobra.Command) {
-	cmd.Flags().
-		StringVar(&sharedAuditMode, "audit-mode", "", "Enable audit mode (standard|blue|red)")
-	setFlagAnnotation(cmd.Flags(), "audit-mode", []string{"audit"})
-
-	cmd.Flags().
-		BoolVar(&sharedBlackhatMode, "audit-blackhat", false, "Enable blackhat mode for red team commentary")
-	setFlagAnnotation(cmd.Flags(), "audit-blackhat", []string{"audit"})
-
-	cmd.Flags().
-		StringSliceVar(&sharedSelectedPlugins, "audit-plugins", []string{}, "Compliance plugins to run (stig,sans,firewall)")
-	setFlagAnnotation(cmd.Flags(), "audit-plugins", []string{"audit"})
-
-	cmd.Flags().
-		StringVar(&sharedPluginDir, "plugin-dir", "", "Directory containing dynamic .so compliance plugins")
-	setFlagAnnotation(cmd.Flags(), "plugin-dir", []string{"audit"})
-}
-
 // Constants for flag validation.
 const (
 	// MinWrapWidth is the minimum recommended wrap width in characters.
