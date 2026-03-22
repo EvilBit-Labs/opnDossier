@@ -170,7 +170,7 @@ func TestConverter_FirewallRules(t *testing.T) {
 	require.Len(t, device.FirewallRules, 1)
 
 	rule := device.FirewallRules[0]
-	assert.Equal(t, "pass", rule.Type)
+	assert.Equal(t, common.RuleTypePass, rule.Type)
 	assert.Equal(t, "Allow LAN", rule.Description)
 	assert.Equal(t, []string{"lan"}, rule.Interfaces)
 	assert.True(t, rule.Floating)
@@ -231,7 +231,7 @@ func TestConverter_NAT(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
 
-	assert.Equal(t, "hybrid", device.NAT.OutboundMode)
+	assert.Equal(t, common.OutboundHybrid, device.NAT.OutboundMode)
 	assert.True(t, device.NAT.ReflectionDisabled)
 	assert.True(t, device.NAT.PfShareForward)
 	require.Len(t, device.NAT.OutboundRules, 1)

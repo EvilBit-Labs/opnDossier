@@ -108,7 +108,7 @@ func (c *converter) convertLAGGs(doc *schema.OpnSenseDocument) []common.LAGG {
 		result = append(result, common.LAGG{
 			Interface:   l.Laggif,
 			Members:     splitNonEmpty(l.Members, ","),
-			Protocol:    l.Proto,
+			Protocol:    common.LAGGProtocol(l.Proto),
 			Description: l.Descr,
 			Created:     l.Created,
 			Updated:     l.Updated,
@@ -129,7 +129,7 @@ func (c *converter) convertVirtualIPs(doc *schema.OpnSenseDocument) []common.Vir
 	result := make([]common.VirtualIP, 0, len(doc.VirtualIP.Vip))
 	for _, v := range doc.VirtualIP.Vip {
 		result = append(result, common.VirtualIP{
-			Mode:        v.Mode,
+			Mode:        common.VIPMode(v.Mode),
 			Interface:   v.Interface,
 			Subnet:      v.Subnet,
 			Description: v.Descr,

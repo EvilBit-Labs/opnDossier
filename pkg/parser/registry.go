@@ -85,6 +85,20 @@ func (r *DeviceParserRegistry) List() []string {
 	return names
 }
 
+// SupportedDevices returns a formatted string listing all registered device
+// type names, suitable for error messages. When the registry is empty, it
+// returns an actionable hint about missing blank imports. This is the single
+// source of truth for supported-device messaging across factory errors and
+// CLI validation.
+func (r *DeviceParserRegistry) SupportedDevices() string {
+	devices := r.List()
+	if len(devices) == 0 {
+		return "(none registered -- ensure parser packages are imported)"
+	}
+
+	return strings.Join(devices, ", ")
+}
+
 // defaultRegistry and defaultRegistryOnce implement the global singleton,
 // following the database/sql driver registration pattern.
 var ( //nolint:gochecknoglobals // package-level singleton is the standard Go registry pattern (database/sql, image)

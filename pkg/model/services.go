@@ -1,26 +1,8 @@
 package model
 
-// DHCPScope represents DHCP server configuration for a single interface.
-type DHCPScope struct {
-	// Interface is the logical interface name this DHCP scope is bound to.
-	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
-	// Enabled indicates whether the DHCP server is active on this interface.
-	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
-	// Range defines the start and end of the DHCP address pool.
-	Range DHCPRange `json:"range" yaml:"range,omitempty"`
-	// Gateway is the default gateway advertised to DHCP clients.
-	Gateway string `json:"gateway,omitempty" yaml:"gateway,omitempty"`
-	// DNSServer is the DNS server advertised to DHCP clients.
-	DNSServer string `json:"dnsServer,omitempty" yaml:"dnsServer,omitempty"`
-	// NTPServer is the NTP server advertised to DHCP clients.
-	NTPServer string `json:"ntpServer,omitempty" yaml:"ntpServer,omitempty"`
-	// WINSServer is the WINS/NetBIOS name server advertised to DHCP clients.
-	WINSServer string `json:"winsServer,omitempty" yaml:"winsServer,omitempty"`
-	// StaticLeases contains fixed MAC-to-IP address mappings.
-	StaticLeases []DHCPStaticLease `json:"staticLeases,omitempty" yaml:"staticLeases,omitempty"`
-	// NumberOptions contains custom DHCP number options.
-	NumberOptions []DHCPNumberOption `json:"numberOptions,omitempty" yaml:"numberOptions,omitempty"`
-
+// DHCPAdvancedV4 contains advanced DHCPv4 configuration fields including alias/reject,
+// DNS overrides, protocol timing, send/request/required options, and config overrides.
+type DHCPAdvancedV4 struct {
 	// Alias and rejection fields.
 
 	// AliasAddress is an additional IP alias for the DHCP server interface.
@@ -83,7 +65,11 @@ type DHCPScope struct {
 	AdvDHCPConfigFileOverride string `json:"advDhcpConfigFileOverride,omitempty" yaml:"advDhcpConfigFileOverride,omitempty"`
 	// AdvDHCPConfigFileOverridePath is the filesystem path for the DHCP config override file.
 	AdvDHCPConfigFileOverridePath string `json:"advDhcpConfigFileOverridePath,omitempty" yaml:"advDhcpConfigFileOverridePath,omitempty"`
+}
 
+// DHCPAdvancedV6 contains advanced DHCPv6 configuration fields including tracking,
+// interface statement, identity association, authentication, key info, and config overrides.
+type DHCPAdvancedV6 struct {
 	// DHCPv6 basic fields.
 
 	// DHCPv6ConfigAdvanced contains raw advanced DHCPv6 configuration text.
@@ -174,6 +160,35 @@ type DHCPScope struct {
 	AdvDHCP6ConfigFileOverride string `json:"advDhcp6ConfigFileOverride,omitempty" yaml:"advDhcp6ConfigFileOverride,omitempty"`
 	// AdvDHCP6ConfigFileOverridePath is the filesystem path for the DHCPv6 config override file.
 	AdvDHCP6ConfigFileOverridePath string `json:"advDhcp6ConfigFileOverridePath,omitempty" yaml:"advDhcp6ConfigFileOverridePath,omitempty"`
+}
+
+// DHCPScope represents DHCP server configuration for a single interface.
+type DHCPScope struct {
+	// Interface is the logical interface name this DHCP scope is bound to.
+	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
+	// Enabled indicates whether the DHCP server is active on this interface.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// Range defines the start and end of the DHCP address pool.
+	Range DHCPRange `json:"range" yaml:"range,omitempty"`
+	// Gateway is the default gateway advertised to DHCP clients.
+	Gateway string `json:"gateway,omitempty" yaml:"gateway,omitempty"`
+	// DNSServer is the DNS server advertised to DHCP clients.
+	DNSServer string `json:"dnsServer,omitempty" yaml:"dnsServer,omitempty"`
+	// NTPServer is the NTP server advertised to DHCP clients.
+	NTPServer string `json:"ntpServer,omitempty" yaml:"ntpServer,omitempty"`
+	// WINSServer is the WINS/NetBIOS name server advertised to DHCP clients.
+	WINSServer string `json:"winsServer,omitempty" yaml:"winsServer,omitempty"`
+	// StaticLeases contains fixed MAC-to-IP address mappings.
+	StaticLeases []DHCPStaticLease `json:"staticLeases,omitempty" yaml:"staticLeases,omitempty"`
+	// NumberOptions contains custom DHCP number options.
+	NumberOptions []DHCPNumberOption `json:"numberOptions,omitempty" yaml:"numberOptions,omitempty"`
+
+	// AdvancedV4 contains advanced DHCPv4 configuration (alias, timing, options, overrides).
+	// Nil when no advanced DHCPv4 config is present.
+	AdvancedV4 *DHCPAdvancedV4 `json:"advancedV4,omitempty" yaml:"advancedV4,omitempty"`
+	// AdvancedV6 contains advanced DHCPv6 configuration (tracking, identity association, auth, overrides).
+	// Nil when no advanced DHCPv6 config is present.
+	AdvancedV6 *DHCPAdvancedV6 `json:"advancedV6,omitempty" yaml:"advancedV6,omitempty"`
 }
 
 // DHCPRange represents the start and end of a DHCP address range.

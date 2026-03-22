@@ -254,12 +254,12 @@ func (c *converter) convertFirewallRules(doc *schema.OpnSenseDocument) []common.
 
 		result = append(result, common.FirewallRule{
 			UUID:        rule.UUID,
-			Type:        rule.Type,
+			Type:        common.FirewallRuleType(rule.Type),
 			Description: rule.Descr,
 			Interfaces:  []string(rule.Interface),
-			IPProtocol:  rule.IPProtocol,
+			IPProtocol:  common.IPProtocol(rule.IPProtocol),
 			StateType:   rule.StateType,
-			Direction:   rule.Direction,
+			Direction:   common.FirewallDirection(rule.Direction),
 			Floating:    rule.Floating == xmlBoolYes,
 			Quick:       bool(rule.Quick),
 			Protocol:    rule.Protocol,
@@ -301,7 +301,7 @@ func (c *converter) convertFirewallRules(doc *schema.OpnSenseDocument) []common.
 // convertNAT maps doc.Nat and system fields to common.NATConfig.
 func (c *converter) convertNAT(doc *schema.OpnSenseDocument) common.NATConfig {
 	nat := common.NATConfig{
-		OutboundMode:       doc.Nat.Outbound.Mode,
+		OutboundMode:       common.NATOutboundMode(doc.Nat.Outbound.Mode),
 		ReflectionDisabled: strings.EqualFold(doc.System.DisableNATReflection, xmlBoolYes),
 		PfShareForward:     doc.System.PfShareForward != 0,
 		OutboundRules:      c.convertOutboundNATRules(doc.Nat.Outbound.Rule),
@@ -331,7 +331,7 @@ func (c *converter) convertOutboundNATRules(rules []schema.NATRule) []common.NAT
 		result = append(result, common.NATRule{
 			UUID:       r.UUID,
 			Interfaces: []string(r.Interface),
-			IPProtocol: r.IPProtocol,
+			IPProtocol: common.IPProtocol(r.IPProtocol),
 			Protocol:   r.Protocol,
 			Source: common.RuleEndpoint{
 				Address: r.Source.EffectiveAddress(),
@@ -387,7 +387,7 @@ func (c *converter) convertInboundNATRules(rules []schema.InboundRule) []common.
 		result = append(result, common.InboundNATRule{
 			UUID:       r.UUID,
 			Interfaces: []string(r.Interface),
-			IPProtocol: r.IPProtocol,
+			IPProtocol: common.IPProtocol(r.IPProtocol),
 			Protocol:   r.Protocol,
 			Source: common.RuleEndpoint{
 				Address: r.Source.EffectiveAddress(),

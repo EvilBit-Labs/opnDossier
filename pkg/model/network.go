@@ -141,14 +141,28 @@ type GRE struct {
 	Updated string `json:"updated,omitempty" yaml:"updated,omitempty"`
 }
 
+// LAGGProtocol represents the link aggregation protocol.
+type LAGGProtocol string
+
+const (
+	// LAGGProtocolLACP uses IEEE 802.3ad Link Aggregation Control Protocol.
+	LAGGProtocolLACP LAGGProtocol = "lacp"
+	// LAGGProtocolFailover uses active/standby failover between members.
+	LAGGProtocolFailover LAGGProtocol = "failover"
+	// LAGGProtocolLoadBalance distributes traffic across members by hashing.
+	LAGGProtocolLoadBalance LAGGProtocol = "loadbalance"
+	// LAGGProtocolRoundRobin distributes traffic across members in round-robin order.
+	LAGGProtocolRoundRobin LAGGProtocol = "roundrobin"
+)
+
 // LAGG represents a link aggregation configuration.
 type LAGG struct {
 	// Interface is the LAGG interface name (e.g., "lagg0", "Port-channel1").
 	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
 	// Members contains the member physical interface names.
 	Members []string `json:"members,omitempty" yaml:"members,omitempty"`
-	// Protocol is the aggregation protocol (e.g., "lacp", "failover", "roundrobin").
-	Protocol string `json:"protocol,omitempty" yaml:"protocol,omitempty"`
+	// Protocol is the aggregation protocol (lacp, failover, loadbalance, or roundrobin).
+	Protocol LAGGProtocol `json:"protocol,omitempty" yaml:"protocol,omitempty"`
 	// Description is a human-readable description of the LAGG.
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// Created is the timestamp when the LAGG was created.
@@ -157,10 +171,22 @@ type LAGG struct {
 	Updated string `json:"updated,omitempty" yaml:"updated,omitempty"`
 }
 
+// VIPMode represents the virtual IP operating mode.
+type VIPMode string
+
+const (
+	// VIPModeCarp uses CARP (Common Address Redundancy Protocol) for HA failover.
+	VIPModeCarp VIPMode = "carp"
+	// VIPModeIPAlias assigns an additional IP address to an interface.
+	VIPModeIPAlias VIPMode = "ipalias"
+	// VIPModeProxyARP enables ARP proxying for downstream hosts.
+	VIPModeProxyARP VIPMode = "proxyarp"
+)
+
 // VirtualIP represents a virtual IP address configuration.
 type VirtualIP struct {
-	// Mode is the virtual IP mode (e.g., "carp", "ipalias", "proxyarp").
-	Mode string `json:"mode,omitempty" yaml:"mode,omitempty"`
+	// Mode is the virtual IP mode (carp, ipalias, or proxyarp).
+	Mode VIPMode `json:"mode,omitempty" yaml:"mode,omitempty"`
 	// Interface is the interface the virtual IP is bound to.
 	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
 	// Subnet is the virtual IP address.
