@@ -358,6 +358,12 @@ Files in `pkg/parser/opnsense/` (package `opnsense`) **must** alias the schema i
 
 `pkg/schema/pfsense/` (package `pfsense`) imports the opnsense package as `opnsense` and reuses shared types (`Interfaces`, `Dhcpd`, `BoolFlag`, `Source`, `Destination`, etc.) where the XML structure is identical. pfSense-specific types that share names with opnsense types use disambiguating suffixes (e.g., `SyslogConfig`, `UnboundConfig`) to avoid confusion when both packages are co-imported. All pfSense struct fields must carry triple tags (`xml`/`json`/`yaml`). Omitting `json`/`yaml` tags produces unformatted field names in serialized output (e.g., `IPProtocol` instead of `ipProtocol`).
 
+See [`pkg/schema/pfsense/README.md`](pkg/schema/pfsense/README.md) for the complete pfSense config.xml structural reference, including all top-level sections, field inventories, listtags (array elements), version mapping, and differences from OPNsense.
+
+**pfSense source reference:** The pfSense PHP codebase at `github.com/pfsense/pfsense` is the authoritative source for config.xml structure. Key files: `src/etc/inc/xmlparse.inc` (listtags/array elements), `src/etc/inc/config.lib.inc` (config management), `src/etc/inc/upgrade_config.inc` (version migrations), and per-feature PHP pages in `src/usr/local/www/` (field inventories).
+
+**pfSense listtags:** Elements listed in pfSense's `xmlparse.inc` as listtags (e.g., `priv`, `dnsserver`, `user`, `rule`, `vip`) must use `[]Type` in Go schema structs -- using `string` silently drops all but the first value (see GOTCHAS.md §3.3).
+
 ### 5.24 Public Package Purity
 
 `pkg/` packages must NEVER import `internal/` packages. Any type exposed through a `pkg/` struct field must itself live in `pkg/` or stdlib. When moving types from `internal/` to `pkg/`, audit all struct fields for leaked internal types and define public equivalents in `pkg/` (e.g., `pkg/model.Severity` replaces `internal/analysis.Severity` in `ConversionWarning`).
