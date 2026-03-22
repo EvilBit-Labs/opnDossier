@@ -129,13 +129,20 @@ func setupFullContext(cmd *cobra.Command) error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	// Initialize logger after config load with proper verbose/quiet handling
-	// Determine log level based on verbose/quiet flags
-	logLevel := "info"
+	// Initialize logger after config load with proper log level handling.
+	// Default level is "warn" so normal operation is quiet — only warnings
+	// and errors are shown. The levels are mutually exclusive:
+	//   --quiet   → error only
+	//   (default) → warn
+	//   --verbose → info (includes warn + error)
+	//   --debug   → debug (includes info + warn + error)
+	logLevel := "warn"
 	if cfg.IsQuiet() {
 		logLevel = "error"
-	} else if cfg.IsVerbose() {
+	} else if cfg.IsDebug() {
 		logLevel = "debug"
+	} else if cfg.IsVerbose() {
+		logLevel = "info"
 	}
 
 	// Create new logger with centralized configuration
@@ -182,10 +189,13 @@ func init() {
 		StringVar(&cfgFile, "config", "", "Configuration file path (default: $HOME/.opnDossier.yaml)")
 	setFlagAnnotation(rootCmd.PersistentFlags(), "config", []string{"configuration"})
 
-	// Output control flags
+	// Output control flags (mutually exclusive: quiet < default(warn) < verbose < debug)
 	rootCmd.PersistentFlags().
-		BoolP("verbose", "v", false, "Enable verbose output with debug-level logging for detailed troubleshooting")
+		BoolP("verbose", "v", false, "Enable info-level logging (warnings, errors, and informational messages)")
 	setFlagAnnotation(rootCmd.PersistentFlags(), "verbose", []string{"output"})
+	rootCmd.PersistentFlags().
+		Bool("debug", false, "Enable debug-level logging (all messages, for troubleshooting)")
+	setFlagAnnotation(rootCmd.PersistentFlags(), "debug", []string{"output"})
 	rootCmd.PersistentFlags().BoolP("quiet", "q", false, "Suppress all output except errors and critical messages")
 	setFlagAnnotation(rootCmd.PersistentFlags(), "quiet", []string{"output"})
 
@@ -217,8 +227,8 @@ func init() {
 	rootCmd.PersistentFlags().SortFlags = false
 
 	// Mark mutually exclusive flags
-	// Verbose and quiet are mutually exclusive
-	rootCmd.MarkFlagsMutuallyExclusive("verbose", "quiet")
+	// Log level flags are mutually exclusive
+	rootCmd.MarkFlagsMutuallyExclusive("verbose", "quiet", "debug")
 
 	// Add version command with lightweight annotation for fast startup
 	versionCmd := &cobra.Command{
