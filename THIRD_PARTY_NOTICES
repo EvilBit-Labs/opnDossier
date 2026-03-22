@@ -258,7 +258,7 @@ SOFTWARE.
 ============================================================
 Package: github.com/charmbracelet/glamour
 License: MIT
-URL:     https://github.com/charmbracelet/glamour/blob/v0.10.0/LICENSE
+URL:     https://github.com/charmbracelet/glamour/blob/v1.0.0/LICENSE
 ------------------------------------------------------------
 MIT License
 
@@ -370,7 +370,7 @@ SOFTWARE.
 ============================================================
 Package: github.com/charmbracelet/ultraviolet
 License: MIT
-URL:     https://github.com/charmbracelet/ultraviolet/blob/903bfd0cf188/LICENSE
+URL:     https://github.com/charmbracelet/ultraviolet/blob/b93f6a3b8502/LICENSE
 ------------------------------------------------------------
 MIT License
 
@@ -454,7 +454,7 @@ SOFTWARE.
 ============================================================
 Package: github.com/charmbracelet/x/exp/charmtone
 License: MIT
-URL:     https://github.com/charmbracelet/x/blob/c83711a11ffa/exp/charmtone/LICENSE
+URL:     https://github.com/charmbracelet/x/blob/f2fb44ab3145/exp/charmtone/LICENSE
 ------------------------------------------------------------
 MIT License
 
@@ -482,7 +482,7 @@ SOFTWARE.
 ============================================================
 Package: github.com/charmbracelet/x/exp/slice
 License: MIT
-URL:     https://github.com/charmbracelet/x/blob/c83711a11ffa/exp/slice/LICENSE
+URL:     https://github.com/charmbracelet/x/blob/f2fb44ab3145/exp/slice/LICENSE
 ------------------------------------------------------------
 MIT License
 
@@ -844,7 +844,7 @@ THE SOFTWARE.
 ============================================================
 Package: github.com/goccy/go-json
 License: MIT
-URL:     https://github.com/goccy/go-json/blob/v0.10.5/LICENSE
+URL:     https://github.com/goccy/go-json/blob/v0.10.6/LICENSE
 ------------------------------------------------------------
 MIT License
 
@@ -907,7 +907,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ============================================================
 Package: github.com/k3a/html2text
 License: MIT
-URL:     https://github.com/k3a/html2text/blob/v1.3.0/LICENSE
+URL:     https://github.com/k3a/html2text/blob/v1.4.0/LICENSE
 ------------------------------------------------------------
 MIT License
 
@@ -2138,7 +2138,7 @@ SOFTWARE.
 ============================================================
 Package: github.com/yuin/goldmark
 License: MIT
-URL:     https://github.com/yuin/goldmark/blob/v1.7.16/LICENSE
+URL:     https://github.com/yuin/goldmark/blob/v1.7.17/LICENSE
 ------------------------------------------------------------
 MIT License
 
