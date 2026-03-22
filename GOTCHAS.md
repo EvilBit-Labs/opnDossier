@@ -114,3 +114,10 @@ Only `blue` mode runs `RunComplianceChecks`. The `standard` and `red` modes igno
 
 - **Gotcha:** Never add stdout writes or file exports inside `generateAuditOutput` — all emission must go through `emitAuditResult` to prevent interleaved output.
 - **Gotcha:** `--output` is rejected with multiple input files in `PreRunE` to prevent file clobbering.
+
+### 8.3 Multi-File Output Path Uniqueness
+
+`deriveAuditOutputPath` uses lossless underscore escaping: literal underscores in path segments are doubled (`_` → `__`) and directory separators are replaced with single underscores. This prevents distinct paths from collapsing to the same filename.
+
+- **Gotcha:** Simple character replacement (e.g., `/` → `-`) is NOT sufficient — paths like `a-b/c/config.xml` and `a/b-c/config.xml` would collide. The escaping must be lossless (invertible).
+- **Gotcha:** Expected output filenames are asserted in 4+ test functions (`TestDeriveAuditOutputPath`, `TestEmitAuditResult_MultiFileAutoNaming`, `TestEmitAuditResult_MultiFileConfigOutputFileIgnored`, `TestDeriveAuditOutputPath_BasenameCollision`, etc.). When changing the encoding scheme, grep for all assertion sites — missing one causes CI failure.
