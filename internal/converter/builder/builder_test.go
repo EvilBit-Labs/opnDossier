@@ -236,9 +236,9 @@ func TestBuildFirewallRulesTableSet(t *testing.T) {
 			name: "single rule",
 			rules: []common.FirewallRule{
 				{
-					Type:        "pass",
+					Type:        common.RuleTypePass,
 					Interfaces:  []string{"lan"},
-					IPProtocol:  "inet",
+					IPProtocol:  common.IPProtocolInet,
 					Protocol:    "tcp",
 					Target:      "any",
 					Description: "Allow LAN traffic",
@@ -255,7 +255,7 @@ func TestBuildFirewallRulesTableSet(t *testing.T) {
 			name: "rule with disabled flag",
 			rules: []common.FirewallRule{
 				{
-					Type:        "block",
+					Type:        common.RuleTypeBlock,
 					Interfaces:  []string{"wan"},
 					Disabled:    true,
 					Description: "Disabled rule",
@@ -270,7 +270,7 @@ func TestBuildFirewallRulesTableSet(t *testing.T) {
 			name: "rule with multiple interfaces",
 			rules: []common.FirewallRule{
 				{
-					Type:        "pass",
+					Type:        common.RuleTypePass,
 					Interfaces:  []string{"lan", "wan", "opt1"},
 					Protocol:    "udp",
 					Description: "Multi-interface rule",
@@ -777,7 +777,7 @@ func TestWriteTableMethods(t *testing.T) {
 				var buf strings.Builder
 				md := markdown.NewMarkdown(&buf)
 				rules := []common.FirewallRule{
-					{Type: "pass", Interfaces: []string{"lan"}, Description: "Test rule"},
+					{Type: common.RuleTypePass, Interfaces: []string{"lan"}, Description: "Test rule"},
 				}
 				result := builder.WriteFirewallRulesTable(md, rules)
 				if result != md {

@@ -129,7 +129,10 @@ func (b *MarkdownBuilder) AggregatePackageStats(packages []common.Package) map[s
 }
 
 // FilterRulesByType filters firewall rules by their type.
-func (b *MarkdownBuilder) FilterRulesByType(rules []common.FirewallRule, ruleType string) []common.FirewallRule {
+func (b *MarkdownBuilder) FilterRulesByType(
+	rules []common.FirewallRule,
+	ruleType common.FirewallRuleType,
+) []common.FirewallRule {
 	return formatters.FilterRulesByType(rules, ruleType)
 }
 
@@ -217,123 +220,157 @@ func pluralize(count int, unit string) string {
 	return strconv.Itoa(count) + " " + unit + "s"
 }
 
-// HasAdvancedDHCPConfig checks if any AdvDHCP* fields are populated in a DHCPScope.
-// This includes: AliasAddress, AliasSubnet, DHCPRejectFrom, and all AdvDHCP* fields.
+// HasAdvancedDHCPConfig checks if any advanced DHCPv4 fields are populated in a DHCPScope.
 func HasAdvancedDHCPConfig(dhcp common.DHCPScope) bool {
-	// Check alias fields
-	if dhcp.AliasAddress != "" || dhcp.AliasSubnet != "" || dhcp.DHCPRejectFrom != "" {
-		return true
+	if dhcp.AdvancedV4 == nil {
+		return false
 	}
 
-	// Check all AdvDHCP* fields (14 total)
-	return dhcp.AdvDHCPPTTimeout != "" ||
-		dhcp.AdvDHCPPTRetry != "" ||
-		dhcp.AdvDHCPPTSelectTimeout != "" ||
-		dhcp.AdvDHCPPTReboot != "" ||
-		dhcp.AdvDHCPPTBackoffCutoff != "" ||
-		dhcp.AdvDHCPPTInitialInterval != "" ||
-		dhcp.AdvDHCPPTValues != "" ||
-		dhcp.AdvDHCPSendOptions != "" ||
-		dhcp.AdvDHCPRequestOptions != "" ||
-		dhcp.AdvDHCPRequiredOptions != "" ||
-		dhcp.AdvDHCPOptionModifiers != "" ||
-		dhcp.AdvDHCPConfigAdvanced != "" ||
-		dhcp.AdvDHCPConfigFileOverride != "" ||
-		dhcp.AdvDHCPConfigFileOverridePath != ""
+	v4 := dhcp.AdvancedV4
+
+	return v4.AliasAddress != "" || v4.AliasSubnet != "" || v4.DHCPRejectFrom != "" ||
+		v4.AdvDHCPDNSDomain != "" ||
+		v4.AdvDHCPDNSServer1 != "" ||
+		v4.AdvDHCPDNSServer2 != "" ||
+		v4.AdvDHCPDNSServer3 != "" ||
+		v4.AdvDHCPDNSServer4 != "" ||
+		v4.AdvDHCPOptionEnabled != "" ||
+		v4.AdvDHCPOptionServer != "" ||
+		v4.AdvDHCPPTTimeout != "" ||
+		v4.AdvDHCPPTRetry != "" ||
+		v4.AdvDHCPPTSelectTimeout != "" ||
+		v4.AdvDHCPPTReboot != "" ||
+		v4.AdvDHCPPTBackoffCutoff != "" ||
+		v4.AdvDHCPPTInitialInterval != "" ||
+		v4.AdvDHCPPTValues != "" ||
+		v4.AdvDHCPSendOptions != "" ||
+		v4.AdvDHCPRequestOptions != "" ||
+		v4.AdvDHCPRequiredOptions != "" ||
+		v4.AdvDHCPOptionModifiers != "" ||
+		v4.AdvDHCPConfigAdvanced != "" ||
+		v4.AdvDHCPConfigFileOverride != "" ||
+		v4.AdvDHCPConfigFileOverridePath != ""
 }
 
 // HasDHCPv6Config checks if any DHCPv6 fields are populated in a DHCPScope.
-// This includes: Track6Interface, Track6PrefixID, and all AdvDHCP6* fields.
 func HasDHCPv6Config(dhcp common.DHCPScope) bool {
-	// Check Track6 fields
-	if dhcp.Track6Interface != "" || dhcp.Track6PrefixID != "" {
-		return true
+	if dhcp.AdvancedV6 == nil {
+		return false
 	}
 
-	// Check all AdvDHCP6* fields (27 total)
-	return dhcp.AdvDHCP6InterfaceStatementSendOptions != "" ||
-		dhcp.AdvDHCP6InterfaceStatementRequestOptions != "" ||
-		dhcp.AdvDHCP6InterfaceStatementInformationOnlyEnable != "" ||
-		dhcp.AdvDHCP6InterfaceStatementScript != "" ||
-		dhcp.AdvDHCP6IDAssocStatementAddressEnable != "" ||
-		dhcp.AdvDHCP6IDAssocStatementAddress != "" ||
-		dhcp.AdvDHCP6IDAssocStatementAddressID != "" ||
-		dhcp.AdvDHCP6IDAssocStatementAddressPLTime != "" ||
-		dhcp.AdvDHCP6IDAssocStatementAddressVLTime != "" ||
-		dhcp.AdvDHCP6IDAssocStatementPrefixEnable != "" ||
-		dhcp.AdvDHCP6IDAssocStatementPrefix != "" ||
-		dhcp.AdvDHCP6IDAssocStatementPrefixID != "" ||
-		dhcp.AdvDHCP6IDAssocStatementPrefixPLTime != "" ||
-		dhcp.AdvDHCP6IDAssocStatementPrefixVLTime != "" ||
-		dhcp.AdvDHCP6PrefixInterfaceStatementSLALen != "" ||
-		dhcp.AdvDHCP6AuthenticationStatementAuthName != "" ||
-		dhcp.AdvDHCP6AuthenticationStatementProtocol != "" ||
-		dhcp.AdvDHCP6AuthenticationStatementAlgorithm != "" ||
-		dhcp.AdvDHCP6AuthenticationStatementRDM != "" ||
-		dhcp.AdvDHCP6KeyInfoStatementKeyName != "" ||
-		dhcp.AdvDHCP6KeyInfoStatementRealm != "" ||
-		dhcp.AdvDHCP6KeyInfoStatementKeyID != "" ||
-		dhcp.AdvDHCP6KeyInfoStatementSecret != "" ||
-		dhcp.AdvDHCP6KeyInfoStatementExpire != "" ||
-		dhcp.AdvDHCP6ConfigAdvanced != "" ||
-		dhcp.AdvDHCP6ConfigFileOverride != "" ||
-		dhcp.AdvDHCP6ConfigFileOverridePath != ""
+	v6 := dhcp.AdvancedV6
+
+	return v6.DHCPv6ConfigAdvanced != "" || v6.DHCPv6PrefixOnly != "" || v6.DHCPv6PrefixDelegationSize != "" ||
+		v6.Track6Interface != "" || v6.Track6PrefixID != "" ||
+		v6.AdvDHCP6InterfaceStatementSendOptions != "" ||
+		v6.AdvDHCP6InterfaceStatementRequestOptions != "" ||
+		v6.AdvDHCP6InterfaceStatementInformationOnlyEnable != "" ||
+		v6.AdvDHCP6InterfaceStatementScript != "" ||
+		v6.AdvDHCP6IDAssocStatementAddressEnable != "" ||
+		v6.AdvDHCP6IDAssocStatementAddress != "" ||
+		v6.AdvDHCP6IDAssocStatementAddressID != "" ||
+		v6.AdvDHCP6IDAssocStatementAddressPLTime != "" ||
+		v6.AdvDHCP6IDAssocStatementAddressVLTime != "" ||
+		v6.AdvDHCP6IDAssocStatementPrefixEnable != "" ||
+		v6.AdvDHCP6IDAssocStatementPrefix != "" ||
+		v6.AdvDHCP6IDAssocStatementPrefixID != "" ||
+		v6.AdvDHCP6IDAssocStatementPrefixPLTime != "" ||
+		v6.AdvDHCP6IDAssocStatementPrefixVLTime != "" ||
+		v6.AdvDHCP6PrefixInterfaceStatementSLALen != "" ||
+		v6.AdvDHCP6AuthenticationStatementAuthName != "" ||
+		v6.AdvDHCP6AuthenticationStatementProtocol != "" ||
+		v6.AdvDHCP6AuthenticationStatementAlgorithm != "" ||
+		v6.AdvDHCP6AuthenticationStatementRDM != "" ||
+		v6.AdvDHCP6KeyInfoStatementKeyName != "" ||
+		v6.AdvDHCP6KeyInfoStatementRealm != "" ||
+		v6.AdvDHCP6KeyInfoStatementKeyID != "" ||
+		v6.AdvDHCP6KeyInfoStatementSecret != "" ||
+		v6.AdvDHCP6KeyInfoStatementExpire != "" ||
+		v6.AdvDHCP6ConfigAdvanced != "" ||
+		v6.AdvDHCP6ConfigFileOverride != "" ||
+		v6.AdvDHCP6ConfigFileOverridePath != ""
 }
 
 // buildAdvancedDHCPItems builds a list of advanced DHCP configuration items for display.
 func buildAdvancedDHCPItems(dhcp common.DHCPScope) []string {
+	if dhcp.AdvancedV4 == nil {
+		return make([]string, 0)
+	}
+
+	v4 := dhcp.AdvancedV4
 	items := make([]string, 0)
 
-	if dhcp.AliasAddress != "" {
-		items = append(items, "Alias Address: "+dhcp.AliasAddress)
+	if v4.AliasAddress != "" {
+		items = append(items, "Alias Address: "+v4.AliasAddress)
 	}
-	if dhcp.AliasSubnet != "" {
-		items = append(items, "Alias Subnet: "+dhcp.AliasSubnet)
+	if v4.AliasSubnet != "" {
+		items = append(items, "Alias Subnet: "+v4.AliasSubnet)
 	}
-	if dhcp.DHCPRejectFrom != "" {
-		items = append(items, "DHCP Reject From: "+dhcp.DHCPRejectFrom)
+	if v4.DHCPRejectFrom != "" {
+		items = append(items, "DHCP Reject From: "+v4.DHCPRejectFrom)
 	}
-	if dhcp.AdvDHCPPTTimeout != "" {
-		items = append(items, "Protocol Timeout: "+dhcp.AdvDHCPPTTimeout)
+	if v4.AdvDHCPDNSDomain != "" {
+		items = append(items, "DNS Domain: "+v4.AdvDHCPDNSDomain)
 	}
-	if dhcp.AdvDHCPPTRetry != "" {
-		items = append(items, "Protocol Retry: "+dhcp.AdvDHCPPTRetry)
+	if v4.AdvDHCPDNSServer1 != "" {
+		items = append(items, "DNS Server 1: "+v4.AdvDHCPDNSServer1)
 	}
-	if dhcp.AdvDHCPPTSelectTimeout != "" {
-		items = append(items, "Select Timeout: "+dhcp.AdvDHCPPTSelectTimeout)
+	if v4.AdvDHCPDNSServer2 != "" {
+		items = append(items, "DNS Server 2: "+v4.AdvDHCPDNSServer2)
 	}
-	if dhcp.AdvDHCPPTReboot != "" {
-		items = append(items, "Reboot: "+dhcp.AdvDHCPPTReboot)
+	if v4.AdvDHCPDNSServer3 != "" {
+		items = append(items, "DNS Server 3: "+v4.AdvDHCPDNSServer3)
 	}
-	if dhcp.AdvDHCPPTBackoffCutoff != "" {
-		items = append(items, "Backoff Cutoff: "+dhcp.AdvDHCPPTBackoffCutoff)
+	if v4.AdvDHCPDNSServer4 != "" {
+		items = append(items, "DNS Server 4: "+v4.AdvDHCPDNSServer4)
 	}
-	if dhcp.AdvDHCPPTInitialInterval != "" {
-		items = append(items, "Initial Interval: "+dhcp.AdvDHCPPTInitialInterval)
+	if v4.AdvDHCPOptionEnabled != "" {
+		items = append(items, "DHCP Option Override: Enabled")
 	}
-	if dhcp.AdvDHCPPTValues != "" {
-		items = append(items, "PT Values: "+dhcp.AdvDHCPPTValues)
+	if v4.AdvDHCPOptionServer != "" {
+		items = append(items, "Option Server: "+v4.AdvDHCPOptionServer)
 	}
-	if dhcp.AdvDHCPSendOptions != "" {
-		items = append(items, "Send Options: "+dhcp.AdvDHCPSendOptions)
+	if v4.AdvDHCPPTTimeout != "" {
+		items = append(items, "Protocol Timeout: "+v4.AdvDHCPPTTimeout)
 	}
-	if dhcp.AdvDHCPRequestOptions != "" {
-		items = append(items, "Request Options: "+dhcp.AdvDHCPRequestOptions)
+	if v4.AdvDHCPPTRetry != "" {
+		items = append(items, "Protocol Retry: "+v4.AdvDHCPPTRetry)
 	}
-	if dhcp.AdvDHCPRequiredOptions != "" {
-		items = append(items, "Required Options: "+dhcp.AdvDHCPRequiredOptions)
+	if v4.AdvDHCPPTSelectTimeout != "" {
+		items = append(items, "Select Timeout: "+v4.AdvDHCPPTSelectTimeout)
 	}
-	if dhcp.AdvDHCPOptionModifiers != "" {
-		items = append(items, "Option Modifiers: "+dhcp.AdvDHCPOptionModifiers)
+	if v4.AdvDHCPPTReboot != "" {
+		items = append(items, "Reboot: "+v4.AdvDHCPPTReboot)
 	}
-	if dhcp.AdvDHCPConfigAdvanced != "" {
+	if v4.AdvDHCPPTBackoffCutoff != "" {
+		items = append(items, "Backoff Cutoff: "+v4.AdvDHCPPTBackoffCutoff)
+	}
+	if v4.AdvDHCPPTInitialInterval != "" {
+		items = append(items, "Initial Interval: "+v4.AdvDHCPPTInitialInterval)
+	}
+	if v4.AdvDHCPPTValues != "" {
+		items = append(items, "PT Values: "+v4.AdvDHCPPTValues)
+	}
+	if v4.AdvDHCPSendOptions != "" {
+		items = append(items, "Send Options: "+v4.AdvDHCPSendOptions)
+	}
+	if v4.AdvDHCPRequestOptions != "" {
+		items = append(items, "Request Options: "+v4.AdvDHCPRequestOptions)
+	}
+	if v4.AdvDHCPRequiredOptions != "" {
+		items = append(items, "Required Options: "+v4.AdvDHCPRequiredOptions)
+	}
+	if v4.AdvDHCPOptionModifiers != "" {
+		items = append(items, "Option Modifiers: "+v4.AdvDHCPOptionModifiers)
+	}
+	if v4.AdvDHCPConfigAdvanced != "" {
 		items = append(items, "Advanced Config: Enabled")
 	}
-	if dhcp.AdvDHCPConfigFileOverride != "" {
+	if v4.AdvDHCPConfigFileOverride != "" {
 		items = append(items, "Config File Override: Enabled")
 	}
-	if dhcp.AdvDHCPConfigFileOverridePath != "" {
-		items = append(items, "Override Path: "+dhcp.AdvDHCPConfigFileOverridePath)
+	if v4.AdvDHCPConfigFileOverridePath != "" {
+		items = append(items, "Override Path: "+v4.AdvDHCPConfigFileOverridePath)
 	}
 
 	return items
@@ -341,70 +378,108 @@ func buildAdvancedDHCPItems(dhcp common.DHCPScope) []string {
 
 // buildDHCPv6Items builds a list of DHCPv6 configuration items for display.
 func buildDHCPv6Items(dhcp common.DHCPScope) []string {
+	if dhcp.AdvancedV6 == nil {
+		return make([]string, 0)
+	}
+
+	v6 := dhcp.AdvancedV6
 	items := make([]string, 0)
 
-	if dhcp.Track6Interface != "" {
-		items = append(items, "Track6 Interface: "+dhcp.Track6Interface)
+	if v6.DHCPv6ConfigAdvanced != "" {
+		items = append(items, "DHCPv6 Config Advanced: "+v6.DHCPv6ConfigAdvanced)
 	}
-	if dhcp.Track6PrefixID != "" {
-		items = append(items, "Track6 Prefix ID: "+dhcp.Track6PrefixID)
+	if v6.DHCPv6PrefixOnly != "" {
+		items = append(items, "Prefix Only: Enabled")
 	}
-	if dhcp.AdvDHCP6InterfaceStatementSendOptions != "" {
-		items = append(items, "Send Options: "+dhcp.AdvDHCP6InterfaceStatementSendOptions)
+	if v6.DHCPv6PrefixDelegationSize != "" {
+		items = append(items, "Prefix Delegation Size: "+v6.DHCPv6PrefixDelegationSize)
 	}
-	if dhcp.AdvDHCP6InterfaceStatementRequestOptions != "" {
-		items = append(items, "Request Options: "+dhcp.AdvDHCP6InterfaceStatementRequestOptions)
+	if v6.Track6Interface != "" {
+		items = append(items, "Track6 Interface: "+v6.Track6Interface)
 	}
-	if dhcp.AdvDHCP6InterfaceStatementInformationOnlyEnable != "" {
+	if v6.Track6PrefixID != "" {
+		items = append(items, "Track6 Prefix ID: "+v6.Track6PrefixID)
+	}
+	if v6.AdvDHCP6InterfaceStatementSendOptions != "" {
+		items = append(items, "Send Options: "+v6.AdvDHCP6InterfaceStatementSendOptions)
+	}
+	if v6.AdvDHCP6InterfaceStatementRequestOptions != "" {
+		items = append(items, "Request Options: "+v6.AdvDHCP6InterfaceStatementRequestOptions)
+	}
+	if v6.AdvDHCP6InterfaceStatementInformationOnlyEnable != "" {
 		items = append(items, "Information Only: Enabled")
 	}
-	if dhcp.AdvDHCP6InterfaceStatementScript != "" {
-		items = append(items, "Script: "+dhcp.AdvDHCP6InterfaceStatementScript)
+	if v6.AdvDHCP6InterfaceStatementScript != "" {
+		items = append(items, "Script: "+v6.AdvDHCP6InterfaceStatementScript)
 	}
-	if dhcp.AdvDHCP6IDAssocStatementAddressEnable != "" {
+	if v6.AdvDHCP6IDAssocStatementAddressEnable != "" {
 		items = append(items, "ID Assoc Address: Enabled")
 	}
-	if dhcp.AdvDHCP6IDAssocStatementAddress != "" {
-		items = append(items, "Address: "+dhcp.AdvDHCP6IDAssocStatementAddress)
+	if v6.AdvDHCP6IDAssocStatementAddress != "" {
+		items = append(items, "Address: "+v6.AdvDHCP6IDAssocStatementAddress)
 	}
-	if dhcp.AdvDHCP6IDAssocStatementAddressID != "" {
-		items = append(items, "Address ID: "+dhcp.AdvDHCP6IDAssocStatementAddressID)
+	if v6.AdvDHCP6IDAssocStatementAddressID != "" {
+		items = append(items, "Address ID: "+v6.AdvDHCP6IDAssocStatementAddressID)
 	}
-	if dhcp.AdvDHCP6IDAssocStatementPrefixEnable != "" {
+	if v6.AdvDHCP6IDAssocStatementAddressPLTime != "" {
+		items = append(items, "Address Preferred Lifetime: "+v6.AdvDHCP6IDAssocStatementAddressPLTime)
+	}
+	if v6.AdvDHCP6IDAssocStatementAddressVLTime != "" {
+		items = append(items, "Address Valid Lifetime: "+v6.AdvDHCP6IDAssocStatementAddressVLTime)
+	}
+	if v6.AdvDHCP6IDAssocStatementPrefixEnable != "" {
 		items = append(items, "ID Assoc Prefix: Enabled")
 	}
-	if dhcp.AdvDHCP6IDAssocStatementPrefix != "" {
-		items = append(items, "Prefix: "+dhcp.AdvDHCP6IDAssocStatementPrefix)
+	if v6.AdvDHCP6IDAssocStatementPrefix != "" {
+		items = append(items, "Prefix: "+v6.AdvDHCP6IDAssocStatementPrefix)
 	}
-	if dhcp.AdvDHCP6IDAssocStatementPrefixID != "" {
-		items = append(items, "Prefix ID: "+dhcp.AdvDHCP6IDAssocStatementPrefixID)
+	if v6.AdvDHCP6IDAssocStatementPrefixID != "" {
+		items = append(items, "Prefix ID: "+v6.AdvDHCP6IDAssocStatementPrefixID)
 	}
-	if dhcp.AdvDHCP6PrefixInterfaceStatementSLALen != "" {
-		items = append(items, "SLA Length: "+dhcp.AdvDHCP6PrefixInterfaceStatementSLALen)
+	if v6.AdvDHCP6IDAssocStatementPrefixPLTime != "" {
+		items = append(items, "Prefix Preferred Lifetime: "+v6.AdvDHCP6IDAssocStatementPrefixPLTime)
 	}
-	if dhcp.AdvDHCP6AuthenticationStatementAuthName != "" {
-		items = append(items, "Auth Name: "+dhcp.AdvDHCP6AuthenticationStatementAuthName)
+	if v6.AdvDHCP6IDAssocStatementPrefixVLTime != "" {
+		items = append(items, "Prefix Valid Lifetime: "+v6.AdvDHCP6IDAssocStatementPrefixVLTime)
 	}
-	if dhcp.AdvDHCP6AuthenticationStatementProtocol != "" {
-		items = append(items, "Auth Protocol: "+dhcp.AdvDHCP6AuthenticationStatementProtocol)
+	if v6.AdvDHCP6PrefixInterfaceStatementSLALen != "" {
+		items = append(items, "SLA Length: "+v6.AdvDHCP6PrefixInterfaceStatementSLALen)
 	}
-	if dhcp.AdvDHCP6AuthenticationStatementAlgorithm != "" {
-		items = append(items, "Auth Algorithm: "+dhcp.AdvDHCP6AuthenticationStatementAlgorithm)
+	if v6.AdvDHCP6AuthenticationStatementAuthName != "" {
+		items = append(items, "Auth Name: "+v6.AdvDHCP6AuthenticationStatementAuthName)
 	}
-	if dhcp.AdvDHCP6KeyInfoStatementKeyName != "" {
-		items = append(items, "Key Name: "+dhcp.AdvDHCP6KeyInfoStatementKeyName)
+	if v6.AdvDHCP6AuthenticationStatementProtocol != "" {
+		items = append(items, "Auth Protocol: "+v6.AdvDHCP6AuthenticationStatementProtocol)
 	}
-	if dhcp.AdvDHCP6KeyInfoStatementRealm != "" {
-		items = append(items, "Key Realm: "+dhcp.AdvDHCP6KeyInfoStatementRealm)
+	if v6.AdvDHCP6AuthenticationStatementAlgorithm != "" {
+		items = append(items, "Auth Algorithm: "+v6.AdvDHCP6AuthenticationStatementAlgorithm)
 	}
-	if dhcp.AdvDHCP6ConfigAdvanced != "" {
+	if v6.AdvDHCP6AuthenticationStatementRDM != "" {
+		items = append(items, "Auth RDM: "+v6.AdvDHCP6AuthenticationStatementRDM)
+	}
+	if v6.AdvDHCP6KeyInfoStatementKeyName != "" {
+		items = append(items, "Key Name: "+v6.AdvDHCP6KeyInfoStatementKeyName)
+	}
+	if v6.AdvDHCP6KeyInfoStatementRealm != "" {
+		items = append(items, "Key Realm: "+v6.AdvDHCP6KeyInfoStatementRealm)
+	}
+	if v6.AdvDHCP6KeyInfoStatementKeyID != "" {
+		items = append(items, "Key ID: "+v6.AdvDHCP6KeyInfoStatementKeyID)
+	}
+	if v6.AdvDHCP6KeyInfoStatementSecret != "" {
+		items = append(items, "Key Secret: "+v6.AdvDHCP6KeyInfoStatementSecret)
+	}
+	if v6.AdvDHCP6KeyInfoStatementExpire != "" {
+		items = append(items, "Key Expire: "+v6.AdvDHCP6KeyInfoStatementExpire)
+	}
+	if v6.AdvDHCP6ConfigAdvanced != "" {
 		items = append(items, "Advanced Config: Enabled")
 	}
-	if dhcp.AdvDHCP6ConfigFileOverride != "" {
+	if v6.AdvDHCP6ConfigFileOverride != "" {
 		items = append(items, "Config File Override: Enabled")
 	}
-	if dhcp.AdvDHCP6ConfigFileOverridePath != "" {
-		items = append(items, "Override Path: "+dhcp.AdvDHCP6ConfigFileOverridePath)
+	if v6.AdvDHCP6ConfigFileOverridePath != "" {
+		items = append(items, "Override Path: "+v6.AdvDHCP6ConfigFileOverridePath)
 	}
 
 	return items

@@ -1020,9 +1020,9 @@ func createTestDocument() *common.CommonDevice {
 			{Interface: "lan", Enabled: true, Range: common.DHCPRange{From: "192.168.1.100", To: "192.168.1.200"}},
 		},
 		FirewallRules: []common.FirewallRule{
-			{Type: "pass", Interfaces: []string{"lan"}, Protocol: "tcp", Description: "Allow LAN"},
+			{Type: common.RuleTypePass, Interfaces: []string{"lan"}, Protocol: "tcp", Description: "Allow LAN"},
 		},
-		NAT: common.NATConfig{OutboundMode: "automatic"},
+		NAT: common.NATConfig{OutboundMode: common.OutboundAutomatic},
 	}
 }
 
@@ -1070,7 +1070,7 @@ func createTestDocumentWithOpenVPNClient() *common.CommonDevice {
 // createTestDocumentWithHA creates a test document with HA configuration.
 func createTestDocumentWithHA() *common.CommonDevice {
 	doc := createTestDocument()
-	doc.VirtualIPs = []common.VirtualIP{{Subnet: "192.168.1.100", Mode: "CARP"}}
+	doc.VirtualIPs = []common.VirtualIP{{Subnet: "192.168.1.100", Mode: common.VIPModeCarp}}
 	doc.HighAvailability = common.HighAvailability{
 		PfsyncInterface: "em2",
 		PfsyncPeerIP:    "192.168.100.2",
@@ -1094,7 +1094,7 @@ func createTestDocumentWithAllFeatures() *common.CommonDevice {
 	doc.Routing.StaticRoutes = []common.StaticRoute{
 		{Network: "10.0.0.0/8", Gateway: "192.168.1.1", Description: "Test Route"},
 	}
-	doc.VirtualIPs = []common.VirtualIP{{Subnet: "192.168.1.100", Mode: "CARP"}}
+	doc.VirtualIPs = []common.VirtualIP{{Subnet: "192.168.1.100", Mode: common.VIPModeCarp}}
 	doc.HighAvailability = common.HighAvailability{
 		PfsyncInterface: "em2",
 		PfsyncPeerIP:    "192.168.100.2",
