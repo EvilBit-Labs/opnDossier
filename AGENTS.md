@@ -578,7 +578,8 @@ All plugins implement `compliance.Plugin` (see `internal/compliance/interfaces.g
 - `PluginManager.SetPluginDir(dir, explicit)` must be called *before* `InitializePlugins` — the dir is read during initialization, not after. Dynamic plugin load failures are non-fatal: they do not cause `InitializePlugins` to return an error. Callers must inspect `GetLoadResult()` to detect failures
 - `audit.Options` includes `PluginDir` and `ExplicitPluginDir` fields — wired in `handleAuditMode` before `InitializePlugins`
 - `generateBlueReport()` resolves all registered plugins via `mc.registry.ListPlugins()` when `SelectedPlugins` is empty — bare `--mode blue` runs a full compliance audit by default
-- Multi-file audit: `emitAuditResult()` takes a `multiFile bool` parameter; when true, derives per-input output paths via `deriveAuditOutputPath()` (`<input>-audit.<ext>`) and nils out config to prevent shared `OutputFile` from causing overwrites
+- Multi-file audit: `emitAuditResult()` takes a `multiFile bool` parameter; when true, derives per-input output paths via `deriveAuditOutputPath()` and nils out config to prevent shared `OutputFile` from causing overwrites
+- `deriveAuditOutputPath` uses lossless underscore escaping (literal `_` → `__`, separator → `_`) to guarantee distinct filenames for distinct input paths (e.g., `a_b/c/config.xml` → `a__b_c_config-audit.md` vs `a/b_c/config.xml` → `a_b__c_config-audit.md`; dashes are preserved as-is)
 
 ### 8.3 Compliance Standards
 
