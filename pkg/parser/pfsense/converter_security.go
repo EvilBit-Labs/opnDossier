@@ -17,7 +17,7 @@ func (c *converter) convertFirewallRules(doc *pfsense.Document) []common.Firewal
 
 	result := make([]common.FirewallRule, 0, len(doc.Filter.Rule))
 	for i, rule := range doc.Filter.Rule {
-		if rule.Type == "" {
+		if rule.Type == "" && rule.AssociatedRuleID == "" {
 			c.addWarning(
 				fmt.Sprintf("FirewallRules[%d].Type", i),
 				rule.UUID,

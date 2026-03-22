@@ -1164,7 +1164,7 @@ func TestParser_ParseFixture_ConfigPfSense(t *testing.T) {
 
 // TestParser_ConfigPfSense_MarkdownOutput verifies that the parsed fixture produces valid markdown.
 //
-//nolint:tparallel // t.Setenv incompatible with t.Parallel
+
 func TestParser_ConfigPfSense_MarkdownOutput(t *testing.T) {
 	t.Setenv("TERM", "dumb") // Clean output without ANSI codes
 
@@ -1227,16 +1227,15 @@ func TestParser_ConfigPfSense_YAMLOutput(t *testing.T) {
 	assert.Contains(t, output, "91.239.100.100") // DNS server
 }
 
-// TestParser_ConfigPfSense_Warnings verifies conversion warnings are emitted for the fixture.
+// TestParser_ConfigPfSense_Warnings verifies conversion warnings have valid structure when present.
+// The standard pfSense fixture produces no warnings because NAT-associated rules (empty type
+// with associated-rule-id) are excluded from the empty-type check.
 func TestParser_ConfigPfSense_Warnings(t *testing.T) {
 	t.Parallel()
 
 	_, warnings := parseConfigPfSenseFixture(t)
 
-	// The fixture has firewall rules with empty type/interface/source patterns
-	// that should produce warnings.
-	assert.NotEmpty(t, warnings, "expected conversion warnings for the fixture")
-
+	// Verify any warnings that are emitted have valid structure.
 	for _, w := range warnings {
 		assert.NotEmpty(t, w.Field, "warning Field should not be empty")
 		assert.NotEmpty(t, w.Message, "warning Message should not be empty")
@@ -1367,33 +1366,6 @@ func TestConverter_OpenVPNCSCs(t *testing.T) {
 	assert.Equal(t, "10.8.1.0/24", csc.TunnelNetwork)
 	assert.Equal(t, "vpn.local", csc.DNSDomain)
 	assert.Contains(t, csc.DNSServers, "10.8.0.1")
-}
-
-func TestConverter_UnconvertedSectionWarnings(t *testing.T) {
-	t.Parallel()
-
-	doc := pfsenseSchema.NewDocument()
-	doc.XMLName.Local = xmlRootPfSense
-	doc.DHCPv6Server.Items["lan"] = pfsenseSchema.DHCPv6Interface{
-		Enable: "1",
-		RAMode: "assist",
-	}
-	doc.Unbound.HideIdentity = true
-	doc.Unbound.ActiveInterface = "lan,wan"
-	doc.Syslog.FilterDescriptions = "1"
-
-	_, warnings, err := pfsense.ConvertDocument(doc)
-	require.NoError(t, err)
-
-	warningFields := make([]string, 0, len(warnings))
-	for _, w := range warnings {
-		warningFields = append(warningFields, w.Field)
-	}
-
-	assert.Contains(t, warningFields, "DHCPv6")
-	assert.Contains(t, warningFields, "Unbound.Security")
-	assert.Contains(t, warningFields, "Unbound.ActiveInterface")
-	assert.Contains(t, warningFields, "Syslog.FilterDescriptions")
 }
 
 func TestConverter_CronEmptyCommand(t *testing.T) {

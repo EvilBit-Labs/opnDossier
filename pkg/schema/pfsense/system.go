@@ -45,13 +45,13 @@ type System struct {
 // Forked from opnsense.Group because pfSense supports multiple <priv> elements
 // per group (copy-on-write per AGENTS.md §6.1).
 type Group struct {
-	Name        string   `xml:"name"        json:"name"                  yaml:"name"`
-	Description string   `xml:"description" json:"description,omitempty" yaml:"description,omitempty"`
-	Scope       string   `xml:"scope"       json:"scope"                 yaml:"scope"`
+	Name        string `xml:"name"        json:"name"                  yaml:"name"`
+	Description string `xml:"description" json:"description,omitempty" yaml:"description,omitempty"`
+	Scope       string `xml:"scope"       json:"scope"                 yaml:"scope"`
 	//nolint:staticcheck // Field name matches pfSense schema
-	Gid string `xml:"gid" json:"gid" yaml:"gid"`
-	Member      string   `xml:"member"      json:"member,omitempty"      yaml:"member,omitempty"`
-	Priv        []string `xml:"priv"        json:"privileges,omitempty"  yaml:"privileges,omitempty"`
+	Gid    string   `xml:"gid"    json:"gid"                  yaml:"gid"`
+	Member string   `xml:"member" json:"member,omitempty"     yaml:"member,omitempty"`
+	Priv   []string `xml:"priv"   json:"privileges,omitempty" yaml:"privileges,omitempty"`
 }
 
 // NewSystem returns a System with all slice fields initialized for safe use.

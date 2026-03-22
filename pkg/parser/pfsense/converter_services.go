@@ -248,19 +248,11 @@ func (c *converter) convertOpenVPNCSCs(cscs []opnsense.OpenVPNCSC) []common.Open
 
 // convertSyslog maps pfSense syslog to common.SyslogConfig.
 // pfSense SyslogConfig only has FilterDescriptions which has no counterpart
-// in common.SyslogConfig, so this returns a zero-value config with a warning.
+// in common.SyslogConfig, so this returns a zero-value config. Unconverted
+// fields are documented in pkg/schema/pfsense/README.md.
 //
-//nolint:unparam // returns zero-value intentionally — pfSense syslog fields have no common model counterpart
-func (c *converter) convertSyslog(doc *pfsense.Document) common.SyslogConfig {
-	if doc.Syslog.FilterDescriptions != "" {
-		c.addWarning(
-			"Syslog.FilterDescriptions",
-			doc.Syslog.FilterDescriptions,
-			"pfSense syslog filter descriptions have no CommonDevice equivalent; data not converted",
-			common.SeverityLow,
-		)
-	}
 
+func (c *converter) convertSyslog(_ *pfsense.Document) common.SyslogConfig {
 	return common.SyslogConfig{}
 }
 

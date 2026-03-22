@@ -76,40 +76,7 @@ func (c *converter) ToCommonDevice(
 		Cron:          c.convertCron(doc),
 	}
 
-	c.warnUnconvertedSections(doc)
-
 	return device, c.warnings, nil
-}
-
-// warnUnconvertedSections emits conversion warnings for schema sections that
-// contain data but are not yet mapped to CommonDevice fields.
-func (c *converter) warnUnconvertedSections(doc *pfsense.Document) {
-	if len(doc.DHCPv6Server.Items) > 0 {
-		c.addWarning(
-			"DHCPv6",
-			fmt.Sprintf("%d scopes", len(doc.DHCPv6Server.Items)),
-			"DHCPv6 scopes present but not yet mapped to CommonDevice",
-			common.SeverityLow,
-		)
-	}
-
-	if bool(doc.Unbound.HideIdentity) || bool(doc.Unbound.HideVersion) {
-		c.addWarning(
-			"Unbound.Security",
-			"",
-			"Unbound security fields (HideIdentity, HideVersion) not mapped to CommonDevice",
-			common.SeverityLow,
-		)
-	}
-
-	if doc.Unbound.ActiveInterface != "" {
-		c.addWarning(
-			"Unbound.ActiveInterface",
-			doc.Unbound.ActiveInterface,
-			"Unbound interface binding not mapped to CommonDevice",
-			common.SeverityLow,
-		)
-	}
 }
 
 // convertSystem maps doc.System to common.System.
