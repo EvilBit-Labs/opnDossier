@@ -87,8 +87,8 @@ func newFieldsTestDevice() *common.CommonDevice {
 		PPPs:       []common.PPP{{Interface: "pppoe0", Type: "pppoe"}},
 		GIFs:       []common.GIF{{Interface: "gif0", Remote: "198.51.100.1"}},
 		GREs:       []common.GRE{{Interface: "gre0", Remote: "198.51.100.2"}},
-		LAGGs:      []common.LAGG{{Members: []string{"igb4"}, Protocol: "lacp"}},
-		VirtualIPs: []common.VirtualIP{{Mode: "carp", Interface: "lan"}},
+		LAGGs:      []common.LAGG{{Members: []string{"igb4"}, Protocol: common.LAGGProtocolLACP}},
+		VirtualIPs: []common.VirtualIP{{Mode: common.VIPModeCarp, Interface: "lan"}},
 		InterfaceGroups: []common.InterfaceGroup{
 			{Name: "internal", Members: []string{"lan"}},
 		},

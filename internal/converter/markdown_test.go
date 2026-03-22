@@ -102,7 +102,12 @@ func TestMarkdownConverter_ConvertFromTestdataFile(t *testing.T) {
 
 	// Parse the XML file and convert to CommonDevice
 	factory := parser.NewFactory(cfgparser.NewXMLParser())
-	device, _, err := factory.CreateDevice(context.Background(), strings.NewReader(string(xmlData)), "", false)
+	device, _, err := factory.CreateDevice(
+		context.Background(),
+		strings.NewReader(string(xmlData)),
+		common.DeviceTypeUnknown,
+		false,
+	)
 	require.NoError(t, err, "XML parsing should succeed")
 
 	// Convert to markdown
@@ -286,16 +291,16 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 			},
 			FirewallRules: []common.FirewallRule{
 				{
-					Type:        "pass",
+					Type:        common.RuleTypePass,
 					Interfaces:  []string{"lan"},
-					IPProtocol:  "inet",
+					IPProtocol:  common.IPProtocolInet,
 					Description: "Allow LAN",
 					Source:      common.RuleEndpoint{Address: "lan"},
 				},
 				{
-					Type:        "block",
+					Type:        common.RuleTypeBlock,
 					Interfaces:  []string{"wan"},
-					IPProtocol:  "inet",
+					IPProtocol:  common.IPProtocolInet,
 					Description: "Block external",
 					Source:      common.RuleEndpoint{Address: "any"},
 				},
@@ -320,27 +325,27 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 			},
 			FirewallRules: []common.FirewallRule{
 				{
-					Type:        "pass",
+					Type:        common.RuleTypePass,
 					Interfaces:  []string{"lan"},
-					IPProtocol:  "inet",
+					IPProtocol:  common.IPProtocolInet,
 					Protocol:    "tcp",
 					Description: "Allow TCP",
 					Source:      common.RuleEndpoint{Address: "lan"},
 					Destination: common.RuleEndpoint{Port: "80"},
 				},
 				{
-					Type:        "pass",
+					Type:        common.RuleTypePass,
 					Interfaces:  []string{"lan"},
-					IPProtocol:  "inet",
+					IPProtocol:  common.IPProtocolInet,
 					Protocol:    "udp",
 					Description: "Allow UDP",
 					Source:      common.RuleEndpoint{Address: "lan"},
 					Destination: common.RuleEndpoint{Port: "53"},
 				},
 				{
-					Type:        "pass",
+					Type:        common.RuleTypePass,
 					Interfaces:  []string{"wan"},
-					IPProtocol:  "inet",
+					IPProtocol:  common.IPProtocolInet,
 					Protocol:    "tcp/udp",
 					Description: "Allow compound protocol",
 					Source:      common.RuleEndpoint{Address: "any"},
@@ -469,18 +474,18 @@ func TestMarkdownConverter_FirewallRulesWithInterfaceLinks(t *testing.T) {
 	input := &common.CommonDevice{
 		FirewallRules: []common.FirewallRule{
 			{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Interfaces:  []string{"wan", "lan"},
-				IPProtocol:  "inet",
+				IPProtocol:  common.IPProtocolInet,
 				Protocol:    "tcp",
 				Source:      common.RuleEndpoint{Address: "any"},
 				Destination: common.RuleEndpoint{Address: "any"},
 				Description: "Test rule with multiple interfaces",
 			},
 			{
-				Type:        "block",
+				Type:        common.RuleTypeBlock,
 				Interfaces:  []string{"opt1"},
-				IPProtocol:  "inet",
+				IPProtocol:  common.IPProtocolInet,
 				Protocol:    "udp",
 				Source:      common.RuleEndpoint{Address: "any"},
 				Destination: common.RuleEndpoint{Address: "any"},

@@ -110,14 +110,14 @@ func TestMarkdownBuilder_BuildSecuritySection(t *testing.T) {
 	// Create test data with security configuration
 	data := &common.CommonDevice{
 		NAT: common.NATConfig{
-			OutboundMode: "automatic",
+			OutboundMode: common.OutboundAutomatic,
 		},
 		FirewallRules: []common.FirewallRule{
 			{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Description: "Allow LAN to WAN",
 				Interfaces:  []string{"lan"},
-				IPProtocol:  "inet",
+				IPProtocol:  common.IPProtocolInet,
 				Protocol:    "tcp",
 				Source: common.RuleEndpoint{
 					Address: "lan",
@@ -129,10 +129,10 @@ func TestMarkdownBuilder_BuildSecuritySection(t *testing.T) {
 				Disabled: false,
 			},
 			{
-				Type:        "block",
+				Type:        common.RuleTypeBlock,
 				Description: "Block all",
 				Interfaces:  []string{"wan"},
-				IPProtocol:  "inet",
+				IPProtocol:  common.IPProtocolInet,
 				Protocol:    "any",
 				Source: common.RuleEndpoint{
 					Address: "any",
@@ -232,10 +232,10 @@ func TestMarkdownBuilder_BuildServicesSection(t *testing.T) {
 func TestMarkdownBuilder_BuildFirewallRulesTable(t *testing.T) {
 	rules := []common.FirewallRule{
 		{
-			Type:        "pass",
+			Type:        common.RuleTypePass,
 			Description: "Allow LAN to WAN",
 			Interfaces:  []string{"lan"},
-			IPProtocol:  "inet",
+			IPProtocol:  common.IPProtocolInet,
 			Protocol:    "tcp",
 			Source: common.RuleEndpoint{
 				Address: "lan",
@@ -651,9 +651,9 @@ func TestBuildFirewallRulesTable_EdgeCases(t *testing.T) {
 			name: "rules_with_empty_networks",
 			rules: []common.FirewallRule{
 				{
-					Type:        "pass",
+					Type:        common.RuleTypePass,
 					Interfaces:  []string{"lan"},
-					IPProtocol:  "inet",
+					IPProtocol:  common.IPProtocolInet,
 					Protocol:    "tcp",
 					Source:      common.RuleEndpoint{Address: ""},
 					Destination: common.RuleEndpoint{Address: ""},
@@ -665,9 +665,9 @@ func TestBuildFirewallRulesTable_EdgeCases(t *testing.T) {
 			name: "rules_with_nil_interface",
 			rules: []common.FirewallRule{
 				{
-					Type:        "pass",
+					Type:        common.RuleTypePass,
 					Interfaces:  nil,
-					IPProtocol:  "inet",
+					IPProtocol:  common.IPProtocolInet,
 					Protocol:    "tcp",
 					Source:      common.RuleEndpoint{Address: "lan"},
 					Destination: common.RuleEndpoint{Address: "any"},
@@ -699,7 +699,7 @@ func TestBuildFirewallRulesTable_AnyFieldAndDestPort(t *testing.T) {
 		{
 			name: "source_any_via_address",
 			rule: common.FirewallRule{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Source:      common.RuleEndpoint{Address: "any"},
 				Destination: common.RuleEndpoint{Address: "lan"},
 			},
@@ -710,7 +710,7 @@ func TestBuildFirewallRulesTable_AnyFieldAndDestPort(t *testing.T) {
 		{
 			name: "source_any_empty_address",
 			rule: common.FirewallRule{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Source:      common.RuleEndpoint{Address: ""},
 				Destination: common.RuleEndpoint{Address: "wan"},
 			},
@@ -721,7 +721,7 @@ func TestBuildFirewallRulesTable_AnyFieldAndDestPort(t *testing.T) {
 		{
 			name: "destination_any_via_address",
 			rule: common.FirewallRule{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Source:      common.RuleEndpoint{Address: "lan"},
 				Destination: common.RuleEndpoint{Address: "any"},
 			},
@@ -732,7 +732,7 @@ func TestBuildFirewallRulesTable_AnyFieldAndDestPort(t *testing.T) {
 		{
 			name: "destination_any_empty_address",
 			rule: common.FirewallRule{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Source:      common.RuleEndpoint{Address: "lan"},
 				Destination: common.RuleEndpoint{Address: ""},
 			},
@@ -743,7 +743,7 @@ func TestBuildFirewallRulesTable_AnyFieldAndDestPort(t *testing.T) {
 		{
 			name: "both_absent_shows_any",
 			rule: common.FirewallRule{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Source:      common.RuleEndpoint{},
 				Destination: common.RuleEndpoint{},
 			},
@@ -754,7 +754,7 @@ func TestBuildFirewallRulesTable_AnyFieldAndDestPort(t *testing.T) {
 		{
 			name: "destination_port_populated",
 			rule: common.FirewallRule{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Source:      common.RuleEndpoint{Address: "any"},
 				Destination: common.RuleEndpoint{Address: "wan", Port: "443"},
 			},
@@ -765,7 +765,7 @@ func TestBuildFirewallRulesTable_AnyFieldAndDestPort(t *testing.T) {
 		{
 			name: "destination_any_with_port",
 			rule: common.FirewallRule{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Source:      common.RuleEndpoint{Address: "any"},
 				Destination: common.RuleEndpoint{Address: "any", Port: "80,443"},
 			},
@@ -1173,14 +1173,14 @@ func TestMarkdownBuilder_BuildSecuritySection_WithNATReflection(t *testing.T) {
 			PfShareForward:       true,
 		},
 		NAT: common.NATConfig{
-			OutboundMode: "automatic",
+			OutboundMode: common.OutboundAutomatic,
 		},
 		FirewallRules: []common.FirewallRule{
 			{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Description: "Test rule",
 				Interfaces:  []string{"lan"},
-				IPProtocol:  "inet",
+				IPProtocol:  common.IPProtocolInet,
 				Protocol:    "tcp",
 				Source: common.RuleEndpoint{
 					Address: "lan",
@@ -1320,10 +1320,10 @@ func TestMarkdownBuilder_BuildFirewallRulesTable_WithComplexRules(t *testing.T) 
 	// Test with complex firewall rules including all fields
 	rules := []common.FirewallRule{
 		{
-			Type:        "pass",
+			Type:        common.RuleTypePass,
 			Description: "Allow HTTPS",
 			Interfaces:  []string{"wan"},
-			IPProtocol:  "inet",
+			IPProtocol:  common.IPProtocolInet,
 			Protocol:    "tcp",
 			Source: common.RuleEndpoint{
 				Address: "any",
@@ -1336,10 +1336,10 @@ func TestMarkdownBuilder_BuildFirewallRulesTable_WithComplexRules(t *testing.T) 
 			Disabled: true, // Disabled rule
 		},
 		{
-			Type:        "block",
+			Type:        common.RuleTypeBlock,
 			Description: "Block SSH",
 			Interfaces:  []string{"wan", "lan"},
-			IPProtocol:  "inet6",
+			IPProtocol:  common.IPProtocolInet6,
 			Protocol:    "tcp",
 			Source: common.RuleEndpoint{
 				Address: "lan",
@@ -1910,7 +1910,7 @@ func TestMarkdownBuilder_BuildSecuritySection_WithBothNATTypes(t *testing.T) {
 			PfShareForward:       true,
 		},
 		NAT: common.NATConfig{
-			OutboundMode:       "automatic",
+			OutboundMode:       common.OutboundAutomatic,
 			ReflectionDisabled: true,
 			PfShareForward:     true,
 			OutboundRules: []common.NATRule{
@@ -1964,7 +1964,7 @@ func TestMarkdownBuilder_BuildSecuritySection_InboundSecurityWarning(t *testing.
 			DisableNATReflection: true,
 		},
 		NAT: common.NATConfig{
-			OutboundMode:       "automatic",
+			OutboundMode:       common.OutboundAutomatic,
 			ReflectionDisabled: true,
 			InboundRules: []common.InboundNATRule{
 				{

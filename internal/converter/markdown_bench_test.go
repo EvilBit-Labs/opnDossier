@@ -39,7 +39,7 @@ func loadTestData(filename string) *common.CommonDevice {
 	device, _, err := factory.CreateDevice(
 		context.Background(),
 		strings.NewReader(string(xmlData)),
-		"opnsense",
+		common.DeviceTypeOPNsense,
 		false,
 	)
 	if err != nil {

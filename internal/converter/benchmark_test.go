@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 	_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense" // self-registers OPNsense parser via init()
 )
@@ -23,7 +24,12 @@ func BenchmarkMarkdownConverter_ToMarkdown(b *testing.B) {
 
 	// Parse using the parser factory
 	factory := parser.NewFactory(cfgparser.NewXMLParser())
-	device, _, err := factory.CreateDevice(context.Background(), strings.NewReader(string(xmlData)), "", false)
+	device, _, err := factory.CreateDevice(
+		context.Background(),
+		strings.NewReader(string(xmlData)),
+		common.DeviceTypeUnknown,
+		false,
+	)
 	if err != nil {
 		b.Fatalf("XML parsing failed: %v", err)
 	}
@@ -52,7 +58,12 @@ func BenchmarkMarkdownConverter_ToMarkdown_Large(b *testing.B) {
 
 	// Parse using the parser factory
 	factory := parser.NewFactory(cfgparser.NewXMLParser())
-	device, _, err := factory.CreateDevice(context.Background(), strings.NewReader(string(xmlData)), "", false)
+	device, _, err := factory.CreateDevice(
+		context.Background(),
+		strings.NewReader(string(xmlData)),
+		common.DeviceTypeUnknown,
+		false,
+	)
 	if err != nil {
 		b.Fatalf("XML parsing failed: %v", err)
 	}
