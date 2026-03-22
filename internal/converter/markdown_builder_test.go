@@ -274,18 +274,18 @@ func TestMarkdownBuilder_BuildFirewallRulesTable(t *testing.T) {
 
 	// Verify first row
 	row := tableSet.Rows[0]
-	assert.Equal(t, "1", row[0])                 // #
-	assert.Contains(t, row[1], "lan")            // Interface (with link)
-	assert.Equal(t, "pass", row[2])              // Action
-	assert.Equal(t, "inet", row[3])              // IP Ver
-	assert.Equal(t, "tcp", row[4])               // Proto
-	assert.Equal(t, "lan", row[5])               // Source
-	assert.Equal(t, "any", row[6])               // Destination
-	assert.Empty(t, row[7])                      // Target
-	assert.Equal(t, "80", row[8])                // Source Port
-	assert.Empty(t, row[9])                      // Dest Port
-	assert.Equal(t, "✓", row[10])                // Enabled
-	assert.Equal(t, "Allow LAN to WAN", row[11]) // Description
+	assert.Equal(t, "1", row[0])                           // #
+	assert.Contains(t, row[1], "lan")                      // Interface (with link)
+	assert.Equal(t, string(common.RuleTypePass), row[2])   // Action
+	assert.Equal(t, string(common.IPProtocolInet), row[3]) // IP Ver
+	assert.Equal(t, "tcp", row[4])                         // Proto
+	assert.Equal(t, "lan", row[5])                         // Source
+	assert.Equal(t, "any", row[6])                         // Destination
+	assert.Empty(t, row[7])                                // Target
+	assert.Equal(t, "80", row[8])                          // Source Port
+	assert.Empty(t, row[9])                                // Dest Port
+	assert.Equal(t, "✓", row[10])                          // Enabled
+	assert.Equal(t, "Allow LAN to WAN", row[11])           // Description
 }
 
 func TestMarkdownBuilder_BuildInterfaceTable(t *testing.T) {
@@ -1361,34 +1361,34 @@ func TestMarkdownBuilder_BuildFirewallRulesTable_WithComplexRules(t *testing.T) 
 
 	// Verify first row (disabled rule)
 	row1 := tableSet.Rows[0]
-	assert.Equal(t, "1", row1[0])            // #
-	assert.Contains(t, row1[1], "wan")       // Interface
-	assert.Equal(t, "pass", row1[2])         // Action
-	assert.Equal(t, "inet", row1[3])         // IP Ver
-	assert.Equal(t, "tcp", row1[4])          // Proto
-	assert.Equal(t, "any", row1[5])          // Source
-	assert.Equal(t, "lan", row1[6])          // Destination
-	assert.Equal(t, "lan", row1[7])          // Target
-	assert.Equal(t, "443", row1[8])          // Source Port
-	assert.Empty(t, row1[9])                 // Dest Port
-	assert.Equal(t, "✗", row1[10])           // Enabled (disabled)
-	assert.Equal(t, "Allow HTTPS", row1[11]) // Description
+	assert.Equal(t, "1", row1[0])                           // #
+	assert.Contains(t, row1[1], "wan")                      // Interface
+	assert.Equal(t, string(common.RuleTypePass), row1[2])   // Action
+	assert.Equal(t, string(common.IPProtocolInet), row1[3]) // IP Ver
+	assert.Equal(t, "tcp", row1[4])                         // Proto
+	assert.Equal(t, "any", row1[5])                         // Source
+	assert.Equal(t, "lan", row1[6])                         // Destination
+	assert.Equal(t, "lan", row1[7])                         // Target
+	assert.Equal(t, "443", row1[8])                         // Source Port
+	assert.Empty(t, row1[9])                                // Dest Port
+	assert.Equal(t, "✗", row1[10])                          // Enabled (disabled)
+	assert.Equal(t, "Allow HTTPS", row1[11])                // Description
 
 	// Verify second row (enabled rule)
 	row2 := tableSet.Rows[1]
-	assert.Equal(t, "2", row2[0])          // #
-	assert.Contains(t, row2[1], "wan")     // Interface
-	assert.Contains(t, row2[1], "lan")     // Interface
-	assert.Equal(t, "block", row2[2])      // Action
-	assert.Equal(t, "inet6", row2[3])      // IP Ver
-	assert.Equal(t, "tcp", row2[4])        // Proto
-	assert.Equal(t, "lan", row2[5])        // Source
-	assert.Equal(t, "wan", row2[6])        // Destination
-	assert.Empty(t, row2[7])               // Target
-	assert.Equal(t, "22", row2[8])         // Source Port
-	assert.Empty(t, row2[9])               // Dest Port
-	assert.Equal(t, "✓", row2[10])         // Enabled
-	assert.Equal(t, "Block SSH", row2[11]) // Description
+	assert.Equal(t, "2", row2[0])                            // #
+	assert.Contains(t, row2[1], "wan")                       // Interface
+	assert.Contains(t, row2[1], "lan")                       // Interface
+	assert.Equal(t, string(common.RuleTypeBlock), row2[2])   // Action
+	assert.Equal(t, string(common.IPProtocolInet6), row2[3]) // IP Ver
+	assert.Equal(t, "tcp", row2[4])                          // Proto
+	assert.Equal(t, "lan", row2[5])                          // Source
+	assert.Equal(t, "wan", row2[6])                          // Destination
+	assert.Empty(t, row2[7])                                 // Target
+	assert.Equal(t, "22", row2[8])                           // Source Port
+	assert.Empty(t, row2[9])                                 // Dest Port
+	assert.Equal(t, "✓", row2[10])                           // Enabled
+	assert.Equal(t, "Block SSH", row2[11])                   // Description
 }
 
 func TestMarkdownBuilder_BuildInterfaceTable_WithComplexInterfaces(t *testing.T) {
