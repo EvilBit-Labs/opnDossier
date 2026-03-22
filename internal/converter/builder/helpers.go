@@ -229,13 +229,6 @@ func HasAdvancedDHCPConfig(dhcp common.DHCPScope) bool {
 	v4 := dhcp.AdvancedV4
 
 	return v4.AliasAddress != "" || v4.AliasSubnet != "" || v4.DHCPRejectFrom != "" ||
-		v4.AdvDHCPDNSDomain != "" ||
-		v4.AdvDHCPDNSServer1 != "" ||
-		v4.AdvDHCPDNSServer2 != "" ||
-		v4.AdvDHCPDNSServer3 != "" ||
-		v4.AdvDHCPDNSServer4 != "" ||
-		v4.AdvDHCPOptionEnabled != "" ||
-		v4.AdvDHCPOptionServer != "" ||
 		v4.AdvDHCPPTTimeout != "" ||
 		v4.AdvDHCPPTRetry != "" ||
 		v4.AdvDHCPPTSelectTimeout != "" ||
@@ -260,8 +253,7 @@ func HasDHCPv6Config(dhcp common.DHCPScope) bool {
 
 	v6 := dhcp.AdvancedV6
 
-	return v6.DHCPv6ConfigAdvanced != "" || v6.DHCPv6PrefixOnly != "" || v6.DHCPv6PrefixDelegationSize != "" ||
-		v6.Track6Interface != "" || v6.Track6PrefixID != "" ||
+	return v6.Track6Interface != "" || v6.Track6PrefixID != "" ||
 		v6.AdvDHCP6InterfaceStatementSendOptions != "" ||
 		v6.AdvDHCP6InterfaceStatementRequestOptions != "" ||
 		v6.AdvDHCP6InterfaceStatementInformationOnlyEnable != "" ||
@@ -308,27 +300,6 @@ func buildAdvancedDHCPItems(dhcp common.DHCPScope) []string {
 	}
 	if v4.DHCPRejectFrom != "" {
 		items = append(items, "DHCP Reject From: "+v4.DHCPRejectFrom)
-	}
-	if v4.AdvDHCPDNSDomain != "" {
-		items = append(items, "DNS Domain: "+v4.AdvDHCPDNSDomain)
-	}
-	if v4.AdvDHCPDNSServer1 != "" {
-		items = append(items, "DNS Server 1: "+v4.AdvDHCPDNSServer1)
-	}
-	if v4.AdvDHCPDNSServer2 != "" {
-		items = append(items, "DNS Server 2: "+v4.AdvDHCPDNSServer2)
-	}
-	if v4.AdvDHCPDNSServer3 != "" {
-		items = append(items, "DNS Server 3: "+v4.AdvDHCPDNSServer3)
-	}
-	if v4.AdvDHCPDNSServer4 != "" {
-		items = append(items, "DNS Server 4: "+v4.AdvDHCPDNSServer4)
-	}
-	if v4.AdvDHCPOptionEnabled != "" {
-		items = append(items, "DHCP Option Override: Enabled")
-	}
-	if v4.AdvDHCPOptionServer != "" {
-		items = append(items, "Option Server: "+v4.AdvDHCPOptionServer)
 	}
 	if v4.AdvDHCPPTTimeout != "" {
 		items = append(items, "Protocol Timeout: "+v4.AdvDHCPPTTimeout)
@@ -385,15 +356,6 @@ func buildDHCPv6Items(dhcp common.DHCPScope) []string {
 	v6 := dhcp.AdvancedV6
 	items := make([]string, 0)
 
-	if v6.DHCPv6ConfigAdvanced != "" {
-		items = append(items, "DHCPv6 Config Advanced: "+v6.DHCPv6ConfigAdvanced)
-	}
-	if v6.DHCPv6PrefixOnly != "" {
-		items = append(items, "Prefix Only: Enabled")
-	}
-	if v6.DHCPv6PrefixDelegationSize != "" {
-		items = append(items, "Prefix Delegation Size: "+v6.DHCPv6PrefixDelegationSize)
-	}
 	if v6.Track6Interface != "" {
 		items = append(items, "Track6 Interface: "+v6.Track6Interface)
 	}

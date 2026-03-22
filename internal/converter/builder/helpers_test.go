@@ -188,63 +188,18 @@ func TestHasAdvancedDHCPConfig(t *testing.T) {
 			},
 			want: true,
 		},
-		// DNS override fields
+		// Protocol timing fields
 		{
-			name: "adv dhcp dns domain set",
+			name: "adv dhcp pt timeout set",
 			dhcp: common.DHCPScope{
-				AdvancedV4: &common.DHCPAdvancedV4{AdvDHCPDNSDomain: "example.com"},
+				AdvancedV4: &common.DHCPAdvancedV4{AdvDHCPPTTimeout: "60"},
 			},
 			want: true,
 		},
 		{
-			name: "adv dhcp dns server1 set",
+			name: "adv dhcp config file override path set via remaining field",
 			dhcp: common.DHCPScope{
-				AdvancedV4: &common.DHCPAdvancedV4{AdvDHCPDNSServer1: "8.8.8.8"},
-			},
-			want: true,
-		},
-		{
-			name: "adv dhcp dns server2 set",
-			dhcp: common.DHCPScope{
-				AdvancedV4: &common.DHCPAdvancedV4{AdvDHCPDNSServer2: "8.8.4.4"},
-			},
-			want: true,
-		},
-		{
-			name: "adv dhcp dns server3 set",
-			dhcp: common.DHCPScope{
-				AdvancedV4: &common.DHCPAdvancedV4{AdvDHCPDNSServer3: "1.1.1.1"},
-			},
-			want: true,
-		},
-		{
-			name: "adv dhcp dns server4 set",
-			dhcp: common.DHCPScope{
-				AdvancedV4: &common.DHCPAdvancedV4{AdvDHCPDNSServer4: "1.0.0.1"},
-			},
-			want: true,
-		},
-		{
-			name: "adv dhcp option enabled set",
-			dhcp: common.DHCPScope{
-				AdvancedV4: &common.DHCPAdvancedV4{AdvDHCPOptionEnabled: "1"},
-			},
-			want: true,
-		},
-		{
-			name: "adv dhcp option server set",
-			dhcp: common.DHCPScope{
-				AdvancedV4: &common.DHCPAdvancedV4{AdvDHCPOptionServer: "192.168.1.1"},
-			},
-			want: true,
-		},
-		{
-			name: "dns only advanced v4",
-			dhcp: common.DHCPScope{
-				AdvancedV4: &common.DHCPAdvancedV4{
-					AdvDHCPDNSDomain:  "internal.corp",
-					AdvDHCPDNSServer1: "10.0.0.53",
-				},
+				AdvancedV4: &common.DHCPAdvancedV4{AdvDHCPConfigFileOverridePath: "/etc/dhcp.conf"},
 			},
 			want: true,
 		},
@@ -496,25 +451,11 @@ func TestHasDHCPv6Config(t *testing.T) {
 			},
 			want: true,
 		},
-		// Basic DHCPv6 fields
+		// Basic DHCPv6 tracking fields
 		{
-			name: "dhcpv6 config advanced set",
+			name: "dhcpv6 track6 interface set",
 			dhcp: common.DHCPScope{
-				AdvancedV6: &common.DHCPAdvancedV6{DHCPv6ConfigAdvanced: "custom-config"},
-			},
-			want: true,
-		},
-		{
-			name: "dhcpv6 prefix only set",
-			dhcp: common.DHCPScope{
-				AdvancedV6: &common.DHCPAdvancedV6{DHCPv6PrefixOnly: "1"},
-			},
-			want: true,
-		},
-		{
-			name: "dhcpv6 prefix delegation size set",
-			dhcp: common.DHCPScope{
-				AdvancedV6: &common.DHCPAdvancedV6{DHCPv6PrefixDelegationSize: "48"},
+				AdvancedV6: &common.DHCPAdvancedV6{Track6Interface: "wan"},
 			},
 			want: true,
 		},
@@ -762,42 +703,26 @@ func TestBuildAdvancedDHCPItems(t *testing.T) {
 			wantLen: 6,
 		},
 		{
-			name: "dns override fields only",
+			name: "option and config override fields",
 			dhcp: common.DHCPScope{
 				AdvancedV4: &common.DHCPAdvancedV4{
-					AdvDHCPDNSDomain:  "internal.corp",
-					AdvDHCPDNSServer1: "10.0.0.53",
-					AdvDHCPDNSServer2: "10.0.0.54",
+					AdvDHCPSendOptions:            "option1",
+					AdvDHCPRequestOptions:         "option2",
+					AdvDHCPRequiredOptions:        "option3",
+					AdvDHCPOptionModifiers:        "modifier1",
+					AdvDHCPConfigAdvanced:         "advanced",
+					AdvDHCPConfigFileOverride:     "1",
+					AdvDHCPConfigFileOverridePath: "/path/to/file",
 				},
 			},
 			wantContains: []string{
-				"DNS Domain: internal.corp",
-				"DNS Server 1: 10.0.0.53",
-				"DNS Server 2: 10.0.0.54",
-			},
-			wantLen: 3,
-		},
-		{
-			name: "all dns override fields",
-			dhcp: common.DHCPScope{
-				AdvancedV4: &common.DHCPAdvancedV4{
-					AdvDHCPDNSDomain:     "example.com",
-					AdvDHCPDNSServer1:    "8.8.8.8",
-					AdvDHCPDNSServer2:    "8.8.4.4",
-					AdvDHCPDNSServer3:    "1.1.1.1",
-					AdvDHCPDNSServer4:    "1.0.0.1",
-					AdvDHCPOptionEnabled: "1",
-					AdvDHCPOptionServer:  "192.168.1.1",
-				},
-			},
-			wantContains: []string{
-				"DNS Domain: example.com",
-				"DNS Server 1: 8.8.8.8",
-				"DNS Server 2: 8.8.4.4",
-				"DNS Server 3: 1.1.1.1",
-				"DNS Server 4: 1.0.0.1",
-				"DHCP Option Override: Enabled",
-				"Option Server: 192.168.1.1",
+				"Send Options: option1",
+				"Request Options: option2",
+				"Required Options: option3",
+				"Option Modifiers: modifier1",
+				"Advanced Config: Enabled",
+				"Config File Override: Enabled",
+				"Override Path: /path/to/file",
 			},
 			wantLen: 7,
 		},
@@ -918,20 +843,18 @@ func TestBuildDHCPv6Items(t *testing.T) {
 			wantLen: 3,
 		},
 		{
-			name: "basic dhcpv6 fields",
+			name: "basic dhcpv6 tracking fields",
 			dhcp: common.DHCPScope{
 				AdvancedV6: &common.DHCPAdvancedV6{
-					DHCPv6ConfigAdvanced:       "custom-config",
-					DHCPv6PrefixOnly:           "1",
-					DHCPv6PrefixDelegationSize: "48",
+					Track6Interface: "wan",
+					Track6PrefixID:  "0",
 				},
 			},
 			wantContains: []string{
-				"DHCPv6 Config Advanced: custom-config",
-				"Prefix Only: Enabled",
-				"Prefix Delegation Size: 48",
+				"Track6 Interface: wan",
+				"Track6 Prefix ID: 0",
 			},
-			wantLen: 3,
+			wantLen: 2,
 		},
 		{
 			name: "non-nil but empty advanced v6",
