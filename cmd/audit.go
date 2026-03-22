@@ -35,7 +35,7 @@ func init() {
 
 	// Audit-specific flags (shorter names since this is the dedicated audit command)
 	auditCmd.Flags().
-		StringVar(&auditMode, "mode", "standard", "Audit mode (standard|blue|red)")
+		StringVar(&auditMode, "mode", "blue", "Audit mode (standard|blue|red)")
 	setFlagAnnotation(auditCmd.Flags(), "mode", []string{"audit"})
 
 	auditCmd.Flags().

@@ -82,7 +82,7 @@ func TestAuditCmdFlagDefaults(t *testing.T) {
 		name     string
 		defValue string
 	}{
-		{"mode", "standard"},
+		{"mode", "blue"},
 		{"plugins", "[]"},
 		{"plugin-dir", ""},
 		{"format", "markdown"},
