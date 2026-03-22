@@ -55,10 +55,10 @@ The `encoding/xml` package treats self-closing tags (e.g., `<disabled/>`) and mi
 
 ### 3.3 Repeated XML Elements and `string` Fields
 
-When an XML element appears multiple times (e.g., `<priv>a</priv><priv>b</priv>`), a `string` field only captures the first occurrence — all others are silently dropped. Use `[]string` for elements that can repeat.
+When an XML element appears multiple times (e.g., `<priv>a</priv><priv>b</priv>`), a `string` field only captures the last occurrence — all others are silently dropped. Use `[]string` for elements that can repeat.
 
-- **Symptom:** Only the first value is parsed; no error is raised.
-- **Detection:** Compare parsed struct against raw XML for multi-valued elements.
+- **Symptom:** Only the last value is retained; no error is raised.
+- **Detection:** Compare parsed struct against raw XML — earlier occurrences are silently overwritten by later ones.
 - **Fix:** Change the field type from `string` to `[]string` with the same `xml` tag.
 
 ## 4. Diff Engine

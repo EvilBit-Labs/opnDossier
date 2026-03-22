@@ -1019,7 +1019,7 @@ func (b *MarkdownBuilder) BuildStandardReport(data *common.CommonDevice) (string
 		BulletList(
 			markdown.Bold("Hostname")+": "+data.System.Hostname,
 			markdown.Bold("Domain")+": "+data.System.Domain,
-			markdown.Bold("Platform")+": "+platformName+" "+data.System.Firmware.Version,
+			markdown.Bold("Platform")+": "+strings.TrimSpace(platformName+" "+data.System.Firmware.Version),
 			markdown.Bold("Generated On")+": "+b.generated.Format(time.RFC3339),
 			markdown.Bold("Parsed By")+": opnDossier v"+b.toolVersion,
 		).
@@ -1056,7 +1056,7 @@ func (b *MarkdownBuilder) BuildComprehensiveReport(data *common.CommonDevice) (s
 		BulletList(
 			markdown.Bold("Hostname")+": "+data.System.Hostname,
 			markdown.Bold("Domain")+": "+data.System.Domain,
-			markdown.Bold("Platform")+": "+platformName+" "+data.System.Firmware.Version,
+			markdown.Bold("Platform")+": "+strings.TrimSpace(platformName+" "+data.System.Firmware.Version),
 			markdown.Bold("Generated On")+": "+b.generated.Format(time.RFC3339),
 			markdown.Bold("Parsed By")+": opnDossier v"+b.toolVersion,
 		).

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
@@ -212,7 +213,7 @@ func (b *MarkdownBuilder) writeReportHeader(w io.Writer, data *common.CommonDevi
 		BulletList(
 			markdown.Bold("Hostname")+": "+data.System.Hostname,
 			markdown.Bold("Domain")+": "+data.System.Domain,
-			markdown.Bold("Platform")+": "+platformName+" "+data.System.Firmware.Version,
+			markdown.Bold("Platform")+": "+strings.TrimSpace(platformName+" "+data.System.Firmware.Version),
 			markdown.Bold("Generated On")+": "+b.getGeneratedTime().Format(time.RFC3339),
 			markdown.Bold("Parsed By")+": opnDossier v"+b.getToolVersion(),
 		)

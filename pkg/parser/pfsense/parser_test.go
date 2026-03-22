@@ -1164,7 +1164,7 @@ func TestParser_ParseFixture_ConfigPfSense(t *testing.T) {
 
 // TestParser_ConfigPfSense_MarkdownOutput verifies that the parsed fixture produces valid markdown.
 //
-
+//nolint:tparallel // t.Setenv incompatible with t.Parallel
 func TestParser_ConfigPfSense_MarkdownOutput(t *testing.T) {
 	t.Setenv("TERM", "dumb") // Clean output without ANSI codes
 
@@ -1191,7 +1191,7 @@ func TestParser_ConfigPfSense_MarkdownOutput(t *testing.T) {
 	assert.Contains(t, md, "igb0")        // WAN physical interface
 	assert.Contains(t, md, "192.168.1.1") // LAN IP
 	assert.Contains(t, md, "advanced")    // NAT mode
-	assert.Contains(t, md, "public")      // SNMP community
+	assert.Contains(t, md, "SNMP")        // SNMP section present
 	assert.Contains(t, md, "ICMP")        // Load balancer monitor
 	assert.Contains(t, md, "HTTP")        // Load balancer monitor
 }

@@ -114,9 +114,11 @@ var ValidOptimizationModes = map[string]struct{}{
 // ValidPowerdModes defines the allowed powerd power modes.
 // Shared by processor and validator packages — single source of truth.
 var ValidPowerdModes = map[string]struct{}{
-	"hadp":     {},
-	"hiadp":    {},
-	"adaptive": {},
-	"minimum":  {},
-	"maximum":  {},
+	"hadp":       {},
+	"hiadp":      {},
+	"hadaptive":  {},
+	"hiadaptive": {},
+	"adaptive":   {},
+	"minimum":    {},
+	"maximum":    {},
 }
