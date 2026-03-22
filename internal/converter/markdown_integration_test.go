@@ -571,10 +571,10 @@ func generateLargeTestData(t *testing.T) *common.CommonDevice {
 	doc.FirewallRules = make([]common.FirewallRule, 0, 100)
 	for i := range 100 {
 		rule := common.FirewallRule{
-			Type:        []string{"pass", "block"}[i%2],
+			Type:        []common.FirewallRuleType{common.RuleTypePass, common.RuleTypeBlock}[i%2],
 			Description: fmt.Sprintf("Rule %d", i+1),
 			Interfaces:  []string{fmt.Sprintf("if%d", i%20)},
-			IPProtocol:  "inet",
+			IPProtocol:  common.IPProtocolInet,
 			Protocol:    "tcp",
 			Source:      common.RuleEndpoint{Address: "any"},
 			Destination: common.RuleEndpoint{Address: "any"},

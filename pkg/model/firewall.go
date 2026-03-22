@@ -1,5 +1,93 @@
 package model
 
+// FirewallRuleType represents the action taken by a firewall rule.
+type FirewallRuleType string
+
+const (
+	// RuleTypePass allows matching traffic to pass through.
+	RuleTypePass FirewallRuleType = "pass"
+	// RuleTypeBlock silently drops matching traffic.
+	RuleTypeBlock FirewallRuleType = "block"
+	// RuleTypeReject drops matching traffic and sends a rejection response.
+	RuleTypeReject FirewallRuleType = "reject"
+)
+
+// FirewallDirection represents the traffic direction a firewall rule applies to.
+type FirewallDirection string
+
+const (
+	// DirectionIn matches inbound traffic.
+	DirectionIn FirewallDirection = "in"
+	// DirectionOut matches outbound traffic.
+	DirectionOut FirewallDirection = "out"
+	// DirectionAny matches traffic in either direction.
+	DirectionAny FirewallDirection = "any"
+)
+
+// IPProtocol represents the IP address family.
+type IPProtocol string
+
+const (
+	// IPProtocolInet represents the IPv4 address family.
+	IPProtocolInet IPProtocol = "inet"
+	// IPProtocolInet6 represents the IPv6 address family.
+	IPProtocolInet6 IPProtocol = "inet6"
+)
+
+// NATOutboundMode represents the outbound NAT operating mode.
+type NATOutboundMode string
+
+const (
+	// OutboundAutomatic uses automatic outbound NAT rules.
+	OutboundAutomatic NATOutboundMode = "automatic"
+	// OutboundHybrid combines automatic and manual outbound NAT rules.
+	OutboundHybrid NATOutboundMode = "hybrid"
+	// OutboundAdvanced uses only manually configured outbound NAT rules.
+	OutboundAdvanced NATOutboundMode = "advanced"
+	// OutboundDisabled turns off outbound NAT entirely.
+	OutboundDisabled NATOutboundMode = "disabled"
+)
+
+// IsValid reports whether t is a recognized firewall rule type.
+func (t FirewallRuleType) IsValid() bool {
+	switch t {
+	case RuleTypePass, RuleTypeBlock, RuleTypeReject:
+		return true
+	default:
+		return false
+	}
+}
+
+// IsValid reports whether d is a recognized firewall direction.
+func (d FirewallDirection) IsValid() bool {
+	switch d {
+	case DirectionIn, DirectionOut, DirectionAny:
+		return true
+	default:
+		return false
+	}
+}
+
+// IsValid reports whether p is a recognized IP protocol family.
+func (p IPProtocol) IsValid() bool {
+	switch p {
+	case IPProtocolInet, IPProtocolInet6:
+		return true
+	default:
+		return false
+	}
+}
+
+// IsValid reports whether m is a recognized NAT outbound mode.
+func (m NATOutboundMode) IsValid() bool {
+	switch m {
+	case OutboundAutomatic, OutboundHybrid, OutboundAdvanced, OutboundDisabled:
+		return true
+	default:
+		return false
+	}
+}
+
 // RuleEndpoint represents a normalized source or destination in a firewall
 // or NAT rule. The Address field contains the already-resolved effective
 // address ("any", a CIDR, hostname, or empty string).
@@ -16,18 +104,18 @@ type RuleEndpoint struct {
 type FirewallRule struct {
 	// UUID is the unique identifier for the rule.
 	UUID string `json:"uuid,omitempty" yaml:"uuid,omitempty"`
-	// Type is the rule action (e.g., "pass", "block", "reject").
-	Type string `json:"type,omitempty" yaml:"type,omitempty"`
+	// Type is the rule action (pass, block, or reject).
+	Type FirewallRuleType `json:"type,omitempty" yaml:"type,omitempty"`
 	// Description is a human-readable description of the rule.
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// Interfaces lists the interface names this rule applies to.
 	Interfaces []string `json:"interfaces,omitempty" yaml:"interfaces,omitempty"`
-	// IPProtocol is the IP address family (e.g., "inet", "inet6").
-	IPProtocol string `json:"ipProtocol,omitempty" yaml:"ipProtocol,omitempty"`
+	// IPProtocol is the IP address family (inet or inet6).
+	IPProtocol IPProtocol `json:"ipProtocol,omitempty" yaml:"ipProtocol,omitempty"`
 	// StateType is the state tracking type (e.g., "keep state", "sloppy state").
 	StateType string `json:"stateType,omitempty" yaml:"stateType,omitempty"`
-	// Direction is the traffic direction (e.g., "in", "out", "any").
-	Direction string `json:"direction,omitempty" yaml:"direction,omitempty"`
+	// Direction is the traffic direction (in, out, or any).
+	Direction FirewallDirection `json:"direction,omitempty" yaml:"direction,omitempty"`
 	// Floating indicates this is a floating rule not bound to a specific interface.
 	Floating bool `json:"floating,omitempty" yaml:"floating,omitempty"`
 	// Quick indicates the rule uses quick matching (first match wins).
@@ -86,8 +174,8 @@ type FirewallRule struct {
 
 // NATConfig contains all NAT-related configuration.
 type NATConfig struct {
-	// OutboundMode is the outbound NAT mode (e.g., "automatic", "hybrid", "advanced").
-	OutboundMode string `json:"outboundMode,omitempty" yaml:"outboundMode,omitempty"`
+	// OutboundMode is the outbound NAT mode (automatic, hybrid, advanced, or disabled).
+	OutboundMode NATOutboundMode `json:"outboundMode,omitempty" yaml:"outboundMode,omitempty"`
 	// ReflectionDisabled indicates NAT reflection is turned off.
 	ReflectionDisabled bool `json:"reflectionDisabled,omitempty" yaml:"reflectionDisabled,omitempty"`
 	// PfShareForward enables pf share-forward for NAT.
@@ -106,8 +194,8 @@ type NATRule struct {
 	UUID string `json:"uuid,omitempty" yaml:"uuid,omitempty"`
 	// Interfaces lists the interface names this rule applies to.
 	Interfaces []string `json:"interfaces,omitempty" yaml:"interfaces,omitempty"`
-	// IPProtocol is the IP address family (e.g., "inet", "inet6").
-	IPProtocol string `json:"ipProtocol,omitempty" yaml:"ipProtocol,omitempty"`
+	// IPProtocol is the IP address family (inet or inet6).
+	IPProtocol IPProtocol `json:"ipProtocol,omitempty" yaml:"ipProtocol,omitempty"`
 	// Protocol is the layer-4 protocol (e.g., "tcp", "udp").
 	Protocol string `json:"protocol,omitempty" yaml:"protocol,omitempty"`
 	// Source is the source endpoint for the NAT rule.
@@ -146,8 +234,8 @@ type InboundNATRule struct {
 	UUID string `json:"uuid,omitempty" yaml:"uuid,omitempty"`
 	// Interfaces lists the interface names this rule applies to.
 	Interfaces []string `json:"interfaces,omitempty" yaml:"interfaces,omitempty"`
-	// IPProtocol is the IP address family (e.g., "inet", "inet6").
-	IPProtocol string `json:"ipProtocol,omitempty" yaml:"ipProtocol,omitempty"`
+	// IPProtocol is the IP address family (inet or inet6).
+	IPProtocol IPProtocol `json:"ipProtocol,omitempty" yaml:"ipProtocol,omitempty"`
 	// Protocol is the layer-4 protocol (e.g., "tcp", "udp").
 	Protocol string `json:"protocol,omitempty" yaml:"protocol,omitempty"`
 	// Source is the source endpoint for the port-forward rule.
@@ -198,7 +286,7 @@ func (c NATConfig) HasData() bool {
 // report generation.
 type NATSummary struct {
 	// Mode is the outbound NAT mode.
-	Mode string `json:"mode,omitempty" yaml:"mode,omitempty"`
+	Mode NATOutboundMode `json:"mode,omitempty" yaml:"mode,omitempty"`
 	// ReflectionDisabled indicates NAT reflection is turned off.
 	ReflectionDisabled bool `json:"reflectionDisabled,omitempty" yaml:"reflectionDisabled,omitempty"`
 	// PfShareForward enables pf share-forward for NAT.

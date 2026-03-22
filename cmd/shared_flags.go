@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 	"github.com/spf13/cobra"
 )
@@ -287,6 +288,9 @@ func ValidDeviceTypes(_ *cobra.Command, _ []string, _ string) ([]string, cobra.S
 }
 
 // validateDeviceType validates the --device-type flag against the parser registry.
+// It checks the raw flag value directly against registered device types, so
+// third-party parsers registered in the registry are accepted even if they are
+// not built into the common.DeviceType enum.
 func validateDeviceType() error {
 	if sharedDeviceType == "" {
 		return nil
@@ -296,16 +300,31 @@ func validateDeviceType() error {
 		return nil
 	}
 
-	devices := parser.DefaultRegistry().List()
-
-	supported := strings.Join(devices, ", ")
-	if len(devices) == 0 {
-		supported = "(none registered -- ensure parser packages are imported)"
-	}
-
 	return fmt.Errorf(
 		"unsupported device type: %q; supported values: %s",
 		sharedDeviceType,
-		supported,
+		parser.DefaultRegistry().SupportedDevices(),
 	)
+}
+
+// resolveDeviceType converts the raw --device-type flag value into a
+// common.DeviceType suitable for Factory.CreateDevice. For built-in types
+// (opnsense, pfsense) it returns the canonical enum constant. For non-empty
+// values that are validated against the registry but not in the built-in enum,
+// it falls back to casting the normalized registry key, allowing third-party
+// registered parsers to work via the CLI.
+func resolveDeviceType() common.DeviceType {
+	if sharedDeviceType == "" {
+		return common.DeviceTypeUnknown
+	}
+
+	dt := common.ParseDeviceType(sharedDeviceType)
+	if dt != common.DeviceTypeUnknown {
+		return dt
+	}
+
+	// The value has been validated against the registry by validateDeviceType,
+	// so it is a valid registered key that is not a built-in enum member.
+	// Normalize to lowercase to match registry key normalization.
+	return common.DeviceType(strings.ToLower(strings.TrimSpace(sharedDeviceType)))
 }

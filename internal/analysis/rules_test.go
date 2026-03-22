@@ -12,11 +12,11 @@ func TestRulesEquivalent(t *testing.T) {
 	t.Parallel()
 
 	baseRule := common.FirewallRule{
-		Type:       "pass",
-		IPProtocol: "inet",
+		Type:       common.RuleTypePass,
+		IPProtocol: common.IPProtocolInet,
 		Interfaces: []string{"wan", "lan"},
 		StateType:  "keep state",
-		Direction:  "in",
+		Direction:  common.DirectionIn,
 		Protocol:   "tcp",
 		Quick:      true,
 		Source: common.RuleEndpoint{
@@ -58,7 +58,7 @@ func TestRulesEquivalent(t *testing.T) {
 			ruleA: baseRule,
 			ruleB: func() common.FirewallRule {
 				r := baseRule
-				r.Type = "block"
+				r.Type = common.RuleTypeBlock
 				return r
 			}(),
 			expected: false,
@@ -68,7 +68,7 @@ func TestRulesEquivalent(t *testing.T) {
 			ruleA: baseRule,
 			ruleB: func() common.FirewallRule {
 				r := baseRule
-				r.IPProtocol = "inet6"
+				r.IPProtocol = common.IPProtocolInet6
 				return r
 			}(),
 			expected: false,
@@ -98,7 +98,7 @@ func TestRulesEquivalent(t *testing.T) {
 			ruleA: baseRule,
 			ruleB: func() common.FirewallRule {
 				r := baseRule
-				r.Direction = "out"
+				r.Direction = common.DirectionOut
 				return r
 			}(),
 			expected: false,

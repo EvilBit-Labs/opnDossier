@@ -144,8 +144,10 @@ func redactSensitiveFields(cp *common.CommonDevice) {
 	if len(cp.DHCP) > 0 {
 		cp.DHCP = slices.Clone(cp.DHCP)
 		for i := range cp.DHCP {
-			if cp.DHCP[i].AdvDHCP6KeyInfoStatementSecret != "" {
-				cp.DHCP[i].AdvDHCP6KeyInfoStatementSecret = redactedValue
+			if cp.DHCP[i].AdvancedV6 != nil && cp.DHCP[i].AdvancedV6.AdvDHCP6KeyInfoStatementSecret != "" {
+				v6Copy := *cp.DHCP[i].AdvancedV6
+				v6Copy.AdvDHCP6KeyInfoStatementSecret = redactedValue
+				cp.DHCP[i].AdvancedV6 = &v6Copy
 			}
 		}
 	}

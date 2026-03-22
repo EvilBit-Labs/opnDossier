@@ -1496,7 +1496,7 @@ func TestRunComplianceChecks_PerPluginSeverityArithmetic(t *testing.T) {
 	device := &common.CommonDevice{
 		FirewallRules: []common.FirewallRule{
 			{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Source:      common.RuleEndpoint{Address: constants.NetworkAny},
 				Destination: common.RuleEndpoint{Address: constants.NetworkAny},
 			},

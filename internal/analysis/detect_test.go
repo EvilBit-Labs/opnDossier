@@ -74,13 +74,13 @@ func TestDetectDeadRules(t *testing.T) {
 			cfg: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "block",
+						Type:        common.RuleTypeBlock,
 						Interfaces:  []string{"wan"},
 						Source:      common.RuleEndpoint{Address: "any"},
 						Destination: common.RuleEndpoint{Address: "any"},
 					},
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Interfaces:  []string{"wan"},
 						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
 						Destination: common.RuleEndpoint{Address: "10.0.0.0/8"},
@@ -98,13 +98,13 @@ func TestDetectDeadRules(t *testing.T) {
 			cfg: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Interfaces:  []string{"wan"},
 						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
 						Destination: common.RuleEndpoint{Address: "any"},
 					},
 					{
-						Type:        "block",
+						Type:        common.RuleTypeBlock,
 						Interfaces:  []string{"wan"},
 						Source:      common.RuleEndpoint{Address: "any"},
 						Destination: common.RuleEndpoint{Address: "any"},
@@ -118,15 +118,15 @@ func TestDetectDeadRules(t *testing.T) {
 			cfg: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
-						IPProtocol:  "inet",
+						Type:        common.RuleTypePass,
+						IPProtocol:  common.IPProtocolInet,
 						Interfaces:  []string{"lan"},
 						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
 						Destination: common.RuleEndpoint{Address: "any"},
 					},
 					{
-						Type:        "pass",
-						IPProtocol:  "inet",
+						Type:        common.RuleTypePass,
+						IPProtocol:  common.IPProtocolInet,
 						Interfaces:  []string{"lan"},
 						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
 						Destination: common.RuleEndpoint{Address: "any"},
@@ -144,22 +144,22 @@ func TestDetectDeadRules(t *testing.T) {
 			cfg: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
-						IPProtocol:  "inet",
+						Type:        common.RuleTypePass,
+						IPProtocol:  common.IPProtocolInet,
 						Interfaces:  []string{"lan"},
 						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
 						Destination: common.RuleEndpoint{Address: "any"},
 					},
 					{
-						Type:        "pass",
-						IPProtocol:  "inet",
+						Type:        common.RuleTypePass,
+						IPProtocol:  common.IPProtocolInet,
 						Interfaces:  []string{"lan"},
 						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
 						Destination: common.RuleEndpoint{Address: "any"},
 					},
 					{
-						Type:        "pass",
-						IPProtocol:  "inet",
+						Type:        common.RuleTypePass,
+						IPProtocol:  common.IPProtocolInet,
 						Interfaces:  []string{"lan"},
 						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
 						Destination: common.RuleEndpoint{Address: "any"},
@@ -338,7 +338,7 @@ func TestDetectSecurityIssues(t *testing.T) {
 		cfg            *common.CommonDevice
 		wantCount      int
 		wantIssues     []string
-		wantSeverities []string
+		wantSeverities []common.Severity
 	}{
 		{
 			name:      "nil device",
@@ -354,7 +354,7 @@ func TestDetectSecurityIssues(t *testing.T) {
 				SNMP: common.SNMPConfig{ROCommunity: "public"},
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:       "pass",
+						Type:       common.RuleTypePass,
 						Interfaces: []string{"wan"},
 						Source:     common.RuleEndpoint{Address: "any"},
 					},
@@ -366,7 +366,7 @@ func TestDetectSecurityIssues(t *testing.T) {
 				"Default SNMP Community String",
 				"Overly Permissive WAN Rule",
 			},
-			wantSeverities: []string{"critical", "high", "high"},
+			wantSeverities: []common.Severity{common.SeverityCritical, common.SeverityHigh, common.SeverityHigh},
 		},
 		{
 			name: "secure config produces no findings",
@@ -409,7 +409,7 @@ func TestDetectPerformanceIssues(t *testing.T) {
 
 	highRuleCount := make([]common.FirewallRule, 101)
 	for i := range highRuleCount {
-		highRuleCount[i] = common.FirewallRule{Type: "pass", Interfaces: []string{"lan"}}
+		highRuleCount[i] = common.FirewallRule{Type: common.RuleTypePass, Interfaces: []string{"lan"}}
 	}
 
 	tests := []struct {
@@ -417,7 +417,7 @@ func TestDetectPerformanceIssues(t *testing.T) {
 		cfg            *common.CommonDevice
 		wantCount      int
 		wantIssues     []string
-		wantSeverities []string
+		wantSeverities []common.Severity
 	}{
 		{
 			name:      "nil device",
@@ -439,14 +439,14 @@ func TestDetectPerformanceIssues(t *testing.T) {
 			},
 			wantCount:      2,
 			wantIssues:     []string{"Checksum Offloading Disabled", "Segmentation Offloading Disabled"},
-			wantSeverities: []string{"low", "low"},
+			wantSeverities: []common.Severity{common.SeverityLow, common.SeverityLow},
 		},
 		{
 			name:           "high rule count",
 			cfg:            &common.CommonDevice{FirewallRules: highRuleCount},
 			wantCount:      1,
 			wantIssues:     []string{"High Number of Firewall Rules"},
-			wantSeverities: []string{"medium"},
+			wantSeverities: []common.Severity{common.SeverityMedium},
 		},
 	}
 

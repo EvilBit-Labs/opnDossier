@@ -252,14 +252,42 @@ func (c *converter) convertFirewallRules(doc *schema.OpnSenseDocument) []common.
 			)
 		}
 
+		ruleType := common.FirewallRuleType(rule.Type)
+		if rule.Type != "" && !ruleType.IsValid() {
+			c.addWarning(
+				fmt.Sprintf("FirewallRules[%d].Type", i),
+				rule.Type,
+				"unrecognized firewall rule type",
+				common.SeverityLow,
+			)
+		}
+		direction := common.FirewallDirection(rule.Direction)
+		if rule.Direction != "" && !direction.IsValid() {
+			c.addWarning(
+				fmt.Sprintf("FirewallRules[%d].Direction", i),
+				rule.Direction,
+				"unrecognized firewall direction",
+				common.SeverityLow,
+			)
+		}
+		ipProto := common.IPProtocol(rule.IPProtocol)
+		if rule.IPProtocol != "" && !ipProto.IsValid() {
+			c.addWarning(
+				fmt.Sprintf("FirewallRules[%d].IPProtocol", i),
+				rule.IPProtocol,
+				"unrecognized IP protocol family",
+				common.SeverityLow,
+			)
+		}
+
 		result = append(result, common.FirewallRule{
 			UUID:        rule.UUID,
-			Type:        rule.Type,
+			Type:        ruleType,
 			Description: rule.Descr,
 			Interfaces:  []string(rule.Interface),
-			IPProtocol:  rule.IPProtocol,
+			IPProtocol:  ipProto,
 			StateType:   rule.StateType,
-			Direction:   rule.Direction,
+			Direction:   direction,
 			Floating:    rule.Floating == xmlBoolYes,
 			Quick:       bool(rule.Quick),
 			Protocol:    rule.Protocol,
@@ -300,8 +328,18 @@ func (c *converter) convertFirewallRules(doc *schema.OpnSenseDocument) []common.
 
 // convertNAT maps doc.Nat and system fields to common.NATConfig.
 func (c *converter) convertNAT(doc *schema.OpnSenseDocument) common.NATConfig {
+	outboundMode := common.NATOutboundMode(doc.Nat.Outbound.Mode)
+	if doc.Nat.Outbound.Mode != "" && !outboundMode.IsValid() {
+		c.addWarning(
+			"NAT.OutboundMode",
+			doc.Nat.Outbound.Mode,
+			"unrecognized NAT outbound mode",
+			common.SeverityLow,
+		)
+	}
+
 	nat := common.NATConfig{
-		OutboundMode:       doc.Nat.Outbound.Mode,
+		OutboundMode:       outboundMode,
 		ReflectionDisabled: strings.EqualFold(doc.System.DisableNATReflection, xmlBoolYes),
 		PfShareForward:     doc.System.PfShareForward != 0,
 		OutboundRules:      c.convertOutboundNATRules(doc.Nat.Outbound.Rule),
@@ -331,7 +369,7 @@ func (c *converter) convertOutboundNATRules(rules []schema.NATRule) []common.NAT
 		result = append(result, common.NATRule{
 			UUID:       r.UUID,
 			Interfaces: []string(r.Interface),
-			IPProtocol: r.IPProtocol,
+			IPProtocol: common.IPProtocol(r.IPProtocol),
 			Protocol:   r.Protocol,
 			Source: common.RuleEndpoint{
 				Address: r.Source.EffectiveAddress(),
@@ -387,7 +425,7 @@ func (c *converter) convertInboundNATRules(rules []schema.InboundRule) []common.
 		result = append(result, common.InboundNATRule{
 			UUID:       r.UUID,
 			Interfaces: []string(r.Interface),
-			IPProtocol: r.IPProtocol,
+			IPProtocol: common.IPProtocol(r.IPProtocol),
 			Protocol:   r.Protocol,
 			Source: common.RuleEndpoint{
 				Address: r.Source.EffectiveAddress(),

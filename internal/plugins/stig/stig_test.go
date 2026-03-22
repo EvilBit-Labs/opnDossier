@@ -26,7 +26,7 @@ func TestPlugin_hasDefaultDenyPolicy(t *testing.T) {
 			config: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "block",
+						Type:        common.RuleTypeBlock,
 						Source:      common.RuleEndpoint{Address: constants.NetworkAny},
 						Destination: common.RuleEndpoint{Address: constants.NetworkAny},
 					},
@@ -39,7 +39,7 @@ func TestPlugin_hasDefaultDenyPolicy(t *testing.T) {
 			config: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Source:      common.RuleEndpoint{Address: constants.NetworkAny},
 						Destination: common.RuleEndpoint{Address: constants.NetworkAny},
 					},
@@ -77,7 +77,7 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 			config: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Source:      common.RuleEndpoint{Address: constants.NetworkAny},
 						Destination: common.RuleEndpoint{Address: constants.NetworkAny},
 					},
@@ -90,7 +90,7 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 			config: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
 						Destination: common.RuleEndpoint{Address: "10.0.0.0/24", Port: "80"},
 					},
@@ -103,7 +103,7 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 			config: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Source:      common.RuleEndpoint{Address: "10.0.0.0/8"},
 						Destination: common.RuleEndpoint{Address: "192.168.0.0/16", Port: "443"},
 					},
@@ -116,7 +116,7 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 			config: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Source:      common.RuleEndpoint{Address: "192.168.0.0/16"},
 						Destination: common.RuleEndpoint{Address: "any", Port: "22"},
 					},
@@ -129,7 +129,7 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 			config: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Source:      common.RuleEndpoint{Address: "172.16.0.0/12"},
 						Destination: common.RuleEndpoint{Address: "", Port: "80"},
 					},
@@ -142,7 +142,7 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 			config: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Protocol:    "tcp",
 						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
 						Destination: common.RuleEndpoint{Address: "10.0.0.0/24", Port: ""},
@@ -156,7 +156,7 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 			config: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Protocol:    "udp",
 						Source:      common.RuleEndpoint{Address: "172.16.1.0/24"},
 						Destination: common.RuleEndpoint{Address: "192.168.1.0/24", Port: "any"},
@@ -170,7 +170,7 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 			config: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Source:      common.RuleEndpoint{Address: "10.0.0.0/8"},
 						Destination: common.RuleEndpoint{Address: "192.168.0.0/16", Port: ""},
 					},
@@ -183,7 +183,7 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 			config: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Protocol:    "icmp",
 						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
 						Destination: common.RuleEndpoint{Address: "10.0.0.0/24", Port: ""},
@@ -197,7 +197,7 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 			config: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Source:      common.RuleEndpoint{Address: "10.0.0.0/8"},
 						Destination: common.RuleEndpoint{Address: "any", Port: "80"},
 					},
@@ -210,7 +210,7 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 			config: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Source:      common.RuleEndpoint{Address: "any"},
 						Destination: common.RuleEndpoint{Address: "any"},
 					},
@@ -223,7 +223,7 @@ func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 			config: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Protocol:    "tcp",
 						Source:      common.RuleEndpoint{Address: "10.0.0.0/8"},
 						Destination: common.RuleEndpoint{Address: "192.168.0.0/16", Port: ""},
@@ -355,7 +355,7 @@ func TestPlugin_FindingSeverityMatchesControl(t *testing.T) {
 	device := &common.CommonDevice{
 		FirewallRules: []common.FirewallRule{
 			{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Source:      common.RuleEndpoint{Address: constants.NetworkAny},
 				Destination: common.RuleEndpoint{Address: constants.NetworkAny},
 			},
@@ -435,7 +435,7 @@ func getLoggingTestCases() []loggingTestCase {
 			config: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
 						Destination: common.RuleEndpoint{Address: "10.0.0.0/24", Port: "80"},
 					},
@@ -506,7 +506,7 @@ func TestPlugin_analyzeLoggingConfiguration(t *testing.T) {
 			config: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
 						Destination: common.RuleEndpoint{Address: "10.0.0.0/24", Port: "80"},
 					},

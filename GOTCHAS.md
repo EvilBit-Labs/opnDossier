@@ -72,6 +72,13 @@ A CLI flag can be accepted by Cobra, stored in a package-level variable, and sil
 - **Prevention:** Typed `Options` fields (not `CustomFields`), regression tests per command, diff output with/without flag.
 - **Reference:** `docs/solutions/logic-errors/cli-flag-wiring-silent-ignore.md`
 
+### 5.2 Enum Type Casts from XML
+
+When converting XML schema `string` fields to typed enums (e.g., `common.FirewallRuleType(rule.Type)`), always validate with `IsValid()` after the cast and emit a conversion warning for unrecognized values via `c.addWarning()`. The `DeviceType` enum with `ParseDeviceType()` + `IsValid()` is the canonical pattern. Bare casts silently pass invalid values through the entire pipeline.
+
+- **Symptom:** Invalid enum values (e.g., `FirewallRuleType("match")`) pass through the pipeline without error, failing silently in downstream `switch` statements.
+- **Prevention:** Call `IsValid()` after every XML-to-enum cast. For `NATOutboundMode`, `LAGGProtocol`, and `VIPMode` there is no downstream validation — the converter cast is the only defense.
+
 ## 6. Validator
 
 ### 6.1 GID/UID Zero is Valid

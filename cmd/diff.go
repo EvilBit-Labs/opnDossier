@@ -303,7 +303,7 @@ func parseConfigFile(
 	}()
 
 	device, warnings, err := parser.NewFactory(cfgparser.NewXMLParser()).
-		CreateDevice(ctx, file, sharedDeviceType, false)
+		CreateDevice(ctx, file, resolveDeviceType(), false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}

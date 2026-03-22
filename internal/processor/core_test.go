@@ -40,7 +40,7 @@ func TestCoreProcessor_Process(t *testing.T) {
 		},
 		FirewallRules: []common.FirewallRule{
 			{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Interfaces:  []string{"wan"},
 				Source:      common.RuleEndpoint{Address: "any"},
 				Description: "",
@@ -281,7 +281,7 @@ func TestCoreProcessor_Normalization(t *testing.T) {
 		assert.Equal(t, "https", normalized.System.WebGUI.Protocol)
 		assert.Equal(t, "UTC", normalized.System.Timezone)
 		assert.Equal(t, "monthly", normalized.System.Bogons.Interval)
-		assert.Equal(t, "automatic", normalized.NAT.OutboundMode)
+		assert.Equal(t, common.OutboundAutomatic, normalized.NAT.OutboundMode)
 		assert.Equal(t, "opnsense", normalized.Theme)
 	})
 
@@ -349,14 +349,14 @@ func TestCoreProcessor_Analysis(t *testing.T) {
 			},
 			FirewallRules: []common.FirewallRule{
 				{
-					Type:        "block",
+					Type:        common.RuleTypeBlock,
 					Interfaces:  []string{"wan"},
 					Source:      common.RuleEndpoint{Address: "any"},
 					Destination: common.RuleEndpoint{Address: "any"},
 					Description: "Block all traffic",
 				},
 				{
-					Type:        "pass",
+					Type:        common.RuleTypePass,
 					Interfaces:  []string{"wan"},
 					Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
 					Description: "Allow LAN traffic",
@@ -392,16 +392,16 @@ func TestCoreProcessor_Analysis(t *testing.T) {
 			},
 			FirewallRules: []common.FirewallRule{
 				{
-					Type:        "pass",
+					Type:        common.RuleTypePass,
 					Interfaces:  []string{"lan"},
-					IPProtocol:  "inet",
+					IPProtocol:  common.IPProtocolInet,
 					Source:      common.RuleEndpoint{Address: "any"},
 					Description: "Allow traffic",
 				},
 				{
-					Type:        "pass",
+					Type:        common.RuleTypePass,
 					Interfaces:  []string{"lan"},
-					IPProtocol:  "inet",
+					IPProtocol:  common.IPProtocolInet,
 					Source:      common.RuleEndpoint{Address: "any"},
 					Description: "Duplicate rule",
 				},

@@ -151,7 +151,7 @@ func translateCommonStats(cs *common.Statistics) *Statistics {
 
 		TotalFirewallRules: cs.TotalFirewallRules,
 		NATEntries:         cs.NATEntries,
-		NATMode:            cs.NATMode,
+		NATMode:            string(cs.NATMode),
 
 		TotalGateways:      cs.TotalGateways,
 		TotalGatewayGroups: cs.TotalGatewayGroups,

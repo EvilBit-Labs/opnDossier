@@ -27,7 +27,7 @@ type Statistics struct {
 	// NATEntries is the total number of NAT rules (inbound and outbound).
 	NATEntries int `json:"natEntries,omitempty" yaml:"natEntries,omitempty"`
 	// NATMode is the outbound NAT mode.
-	NATMode string `json:"natMode,omitempty" yaml:"natMode,omitempty"`
+	NATMode NATOutboundMode `json:"natMode,omitempty" yaml:"natMode,omitempty"`
 
 	// TotalGateways is the total number of configured gateways.
 	TotalGateways int `json:"totalGateways,omitempty" yaml:"totalGateways,omitempty"`
@@ -166,15 +166,20 @@ type UnusedInterfaceFinding struct {
 	Recommendation string `json:"recommendation,omitempty" yaml:"recommendation,omitempty"`
 }
 
+// FindingSeverity is an alias for Severity, kept for backward compatibility in tests.
+//
+// Deprecated: Use Severity directly.
+type FindingSeverity = Severity
+
 // SecurityFinding represents a security finding.
 type SecurityFinding struct {
 	// Component is the configuration component affected by the finding.
 	Component string `json:"component,omitempty" yaml:"component,omitempty"`
-	// Issue is a brief summary of the security issue.
+	// Issue is a brief summary of the finding.
 	Issue string `json:"issue,omitempty" yaml:"issue,omitempty"`
 	// Severity is the severity level (e.g., "critical", "high", "medium", "low").
-	Severity string `json:"severity,omitempty" yaml:"severity,omitempty"`
-	// Description is a detailed explanation of the security issue.
+	Severity Severity `json:"severity,omitempty" yaml:"severity,omitempty"`
+	// Description is a detailed explanation of the finding.
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// Recommendation is the suggested corrective action.
 	Recommendation string `json:"recommendation,omitempty" yaml:"recommendation,omitempty"`
@@ -184,11 +189,11 @@ type SecurityFinding struct {
 type PerformanceFinding struct {
 	// Component is the configuration component affected by the finding.
 	Component string `json:"component,omitempty" yaml:"component,omitempty"`
-	// Issue is a brief summary of the performance issue.
+	// Issue is a brief summary of the finding.
 	Issue string `json:"issue,omitempty" yaml:"issue,omitempty"`
-	// Severity is the severity level.
-	Severity string `json:"severity,omitempty" yaml:"severity,omitempty"`
-	// Description is a detailed explanation of the performance issue.
+	// Severity is the severity level (e.g., "critical", "high", "medium", "low").
+	Severity Severity `json:"severity,omitempty" yaml:"severity,omitempty"`
+	// Description is a detailed explanation of the finding.
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// Recommendation is the suggested corrective action.
 	Recommendation string `json:"recommendation,omitempty" yaml:"recommendation,omitempty"`
@@ -198,11 +203,11 @@ type PerformanceFinding struct {
 type ConsistencyFinding struct {
 	// Component is the configuration component affected by the finding.
 	Component string `json:"component,omitempty" yaml:"component,omitempty"`
-	// Issue is a brief summary of the consistency issue.
+	// Issue is a brief summary of the finding.
 	Issue string `json:"issue,omitempty" yaml:"issue,omitempty"`
-	// Severity is the severity level.
-	Severity string `json:"severity,omitempty" yaml:"severity,omitempty"`
-	// Description is a detailed explanation of the consistency issue.
+	// Severity is the severity level (e.g., "critical", "high", "medium", "low").
+	Severity Severity `json:"severity,omitempty" yaml:"severity,omitempty"`
+	// Description is a detailed explanation of the finding.
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// Recommendation is the suggested corrective action.
 	Recommendation string `json:"recommendation,omitempty" yaml:"recommendation,omitempty"`

@@ -41,7 +41,7 @@ The `Finding` struct is generic and uses `References`, `Tags`, and `Metadata` fi
 ```go
 // compliance.Finding
 Type           string            // Category (e.g., "compliance")
-Severity       string            // Severity level: "critical", "high", "medium", "low"
+Severity       common.Severity   // Severity level: use constants like common.SeverityCritical, common.SeverityHigh, etc.
 Title          string
 Description    string
 Recommendation string
@@ -99,7 +99,7 @@ func NewCustomPlugin() *CustomPlugin {
                 Title:       "Custom Security Control",
                 Description: "Description of the custom security control",
                 Category:    "Security",
-                Severity:    "high",
+                Severity:    string(common.SeverityHigh),
                 Rationale:   "Why this control is important",
                 Remediation: "How to fix compliance issues",
                 Tags:        []string{"custom", "security", "compliance"},
@@ -130,10 +130,10 @@ func (cp *CustomPlugin) ValidateConfiguration() error {
 // controlSeverity returns the severity for a control ID from the control
 // definitions. This ensures findings derive severity from the single source
 // of truth (the control metadata) rather than hard-coding literals.
-func (cp *CustomPlugin) controlSeverity(id string) string {
+func (cp *CustomPlugin) controlSeverity(id string) common.Severity {
     for _, c := range cp.controls {
         if c.ID == id {
-            return c.Severity
+            return common.Severity(c.Severity)
         }
     }
     return ""
@@ -250,7 +250,7 @@ opndossier convert --audit-mode standard --plugin-dir /path/to/plugins config.xm
 - **Control ID patterns**: Use stable, predictable identifiers. The built-in plugins use `V-XXXXXX` for STIG (matching real DISA STIG vulnerability IDs), `SANS-FW-XXX` for SANS, and `FIREWALL-XXX` for the firewall plugin. New plugins should follow a similar `PLUGIN-XXX` pattern with a prefix that identifies the standard.
 - Provide actionable remediation and clear rationale.
 - Use the `References` and `Tags` fields for all findings.
-- **Set Finding Severity**: Plugins must populate `Finding.Severity` for accurate severity breakdown in reports. Use a helper function like `controlSeverity(id string) string` to look up severity from control definitions rather than hard-coding literals.
+- **Set Finding Severity**: Plugins must populate `Finding.Severity` for accurate severity breakdown in reports. Use typed constants like `common.SeverityHigh`, `common.SeverityCritical`, etc., from `pkg/model`. Use a helper function like `controlSeverity(id string) common.Severity` to look up severity from control definitions rather than hard-coding literals.
 - **Deep Copy Controls**: Implement `GetControls()` to return `compliance.CloneControls(cp.controls)` to prevent callers from mutating the plugin's internal state.
 - Write comprehensive tests for your plugin.
 - Document your controls and plugin usage.
@@ -296,23 +296,31 @@ Dynamic plugin load failures (from `.so` files) are distinct from runtime panics
 
 The audit engine requires the `Finding.Severity` field to generate accurate severity breakdowns in reports. Plugins should:
 
-1. **Derive severity from control metadata** using a helper function that looks up the control's severity:
+1. **Use typed severity constants from `pkg/model`**:
+
+   Available severity constants:
+   - `common.SeverityCritical` — for critical security issues
+   - `common.SeverityHigh` — for high-priority findings
+   - `common.SeverityMedium` — for medium-priority findings
+   - `common.SeverityLow` — for low-priority findings
+
+2. **Derive severity from control metadata** using a helper function that looks up the control's severity:
 
    ```go
    // controlSeverity returns the severity for a control ID from the control
    // definitions. This ensures findings derive severity from the single source
    // of truth (the control metadata) rather than hard-coding literals.
-   func (p *Plugin) controlSeverity(id string) string {
+   func (p *Plugin) controlSeverity(id string) common.Severity {
        for _, c := range p.controls {
            if c.ID == id {
-               return c.Severity
+               return common.Severity(c.Severity)
            }
        }
        return ""
    }
    ```
 
-2. **Set Severity on every Finding**:
+3. **Set Severity on every Finding**:
 
    ```go
    findings = append(findings, compliance.Finding{
@@ -325,7 +333,66 @@ The audit engine requires the `Finding.Severity` field to generate accurate seve
    })
    ```
 
-3. **Fallback behavior**: The audit engine will attempt to derive severity from Referenced controls if not provided, but plugins should not rely on this behavior. Always set `Finding.Severity` explicitly.
+4. **Benefits of typed constants**: Using typed constants from `pkg/model` provides compile-time validation, prevents typos, enables IDE autocomplete, and makes refactoring safer. The compiler will catch invalid severity values before runtime.
+
+5. **Fallback behavior**: The audit engine will attempt to derive severity from referenced controls if not provided, but plugins should not rely on this behavior. Always set `Finding.Severity` explicitly.
+
+### Working with Model Enums
+
+opnDossier uses typed string enums in `pkg/model` for firewall rules, NAT configuration, network types, and other model fields. These enums provide compile-time type safety and prevent typos.
+
+**Common enum types:**
+
+- **`RuleType`** (firewall rule actions):
+  - `common.RuleTypePass` — allow matching traffic
+  - `common.RuleTypeBlock` — silently drop matching traffic
+  - `common.RuleTypeReject` — drop and send rejection response
+
+- **`Direction`** (firewall rule direction):
+  - `common.DirectionIn` — inbound traffic
+  - `common.DirectionOut` — outbound traffic
+  - `common.DirectionAny` — bidirectional
+
+- **`IPProtocol`** (IP address family):
+  - `common.IPProtocolInet` — IPv4
+  - `common.IPProtocolInet6` — IPv6
+
+- **`NATOutboundMode`** (NAT configuration):
+  - `common.OutboundAutomatic` — automatic outbound NAT
+  - `common.OutboundHybrid` — combined automatic and manual rules
+  - `common.OutboundAdvanced` — manual rules only
+  - `common.OutboundDisabled` — NAT disabled
+
+**Example usage in plugin checks:**
+
+```go
+// Check for permissive firewall rules
+for _, rule := range device.FirewallRules {
+    if rule.Type == common.RuleTypePass && 
+       rule.Source.Address == "any" && 
+       rule.Direction == common.DirectionIn {
+        // Found a permissive inbound allow rule
+    }
+}
+
+// Check NAT configuration
+if device.NAT.OutboundMode == common.OutboundAutomatic {
+    // NAT is in automatic mode
+}
+
+// Check IP protocol for IPv6 support
+for _, rule := range device.FirewallRules {
+    if rule.IPProtocol == common.IPProtocolInet6 {
+        // Found an IPv6 rule
+    }
+}
+```
+
+**Benefits:**
+- Compile-time validation — invalid enum values cause build failures
+- IDE autocomplete for available values
+- Refactoring support — renaming a constant updates all uses
+- Eliminates string literal typos like `"pas"` instead of `"pass"`
 
 ## Device Parser Development
 

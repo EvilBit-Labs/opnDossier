@@ -271,6 +271,7 @@ git commit -s -m "feat(parser): add support for new XML element"
    - Ensure `just ci-check` passes (pre-commit hooks + lint + tests)
    - Update documentation if needed
    - Include tests for new functionality
+   - Verify typed enum constants are used instead of string literals for domain values
 
 2. **PR Description**:
 
@@ -330,6 +331,42 @@ Packages under `pkg/` must never import `internal/` packages. Before committing 
 ### Linter Guidance
 
 Treat `just lint` as the authoritative linter reference; IDE diagnostics are helpful suggestions, not the final word. For common patterns such as replacing magic numbers with named constants, preferring `s == ""` over `len(s) == 0`, or using `slices.*` instead of legacy `sort.*`, see **[AGENTS.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/AGENTS.md)** §5.10 and `.golangci.yml`.
+
+### Use Typed Enums for Domain Constants
+
+The project enforces compile-time type safety for domain values through typed string enums defined in `pkg/model/`. Firewall rule types, NAT configurations, DHCP settings, and other domain values use typed constants instead of magic strings.
+
+**Rationale:**
+
+- **Type safety**: Typed enums catch typos and invalid values at compile time
+- **IDE support**: Autocompletion shows available values; refactoring updates all references
+- **Intent clarity**: `rule.Type = common.RuleTypePass` is self-documenting; `rule.Type = "pass"` is not
+
+**Pattern:**
+
+```go
+// ❌ Don't use magic strings
+rule.Type = "pass"
+natConfig.OutboundMode = "hybrid"
+vip.Mode = "carp"
+
+// ✅ Do use typed constants
+rule.Type = common.RuleTypePass
+natConfig.OutboundMode = common.OutboundHybrid
+vip.Mode = common.VIPModeCarp
+```
+
+**Main enum types:**
+
+- `FirewallRuleType`: `RuleTypePass`, `RuleTypeBlock`, `RuleTypeReject`
+- `FirewallDirection`: `DirectionIn`, `DirectionOut`, `DirectionAny`
+- `IPProtocol`: `IPProtocolInet`, `IPProtocolInet6`
+- `NATOutboundMode`: `OutboundAutomatic`, `OutboundHybrid`, `OutboundAdvanced`, `OutboundDisabled`
+- `VIPMode`: `VIPModeCarp`, `VIPModeIPAlias`, `VIPModeProxyARP`
+- `LAGGProtocol`: `LAGGProtocolLACP`, `LAGGProtocolFailover`, `LAGGProtocolLoadBalance`, `LAGGProtocolRoundRobin`
+- `DeviceType`: `DeviceTypeOPNsense`, `DeviceTypePfSense`, `DeviceTypeUnknown`
+
+When adding new domain values to `pkg/model/`, define them as typed constants with godoc comments. Avoid string literals at compile boundaries; use the typed enums in analysis, diff, plugin, converter, and test code.
 
 ## Performance Considerations
 

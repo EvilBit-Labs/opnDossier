@@ -95,21 +95,21 @@ func TestHasAdvancedDHCPConfig(t *testing.T) {
 		{
 			name: "alias address set",
 			dhcp: common.DHCPScope{
-				AliasAddress: "192.168.1.254",
+				AdvancedV4: &common.DHCPAdvancedV4{AliasAddress: "192.168.1.254"},
 			},
 			want: true,
 		},
 		{
 			name: "alias subnet set",
 			dhcp: common.DHCPScope{
-				AliasSubnet: "24",
+				AdvancedV4: &common.DHCPAdvancedV4{AliasSubnet: "24"},
 			},
 			want: true,
 		},
 		{
 			name: "dhcp reject from set",
 			dhcp: common.DHCPScope{
-				DHCPRejectFrom: "192.168.1.100",
+				AdvancedV4: &common.DHCPAdvancedV4{DHCPRejectFrom: "192.168.1.100"},
 			},
 			want: true,
 		},
@@ -117,74 +117,98 @@ func TestHasAdvancedDHCPConfig(t *testing.T) {
 		{
 			name: "adv dhcp pt timeout set",
 			dhcp: common.DHCPScope{
-				AdvDHCPPTTimeout: "60",
+				AdvancedV4: &common.DHCPAdvancedV4{AdvDHCPPTTimeout: "60"},
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp pt retry set",
 			dhcp: common.DHCPScope{
-				AdvDHCPPTRetry: "5",
+				AdvancedV4: &common.DHCPAdvancedV4{AdvDHCPPTRetry: "5"},
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp send options set",
 			dhcp: common.DHCPScope{
-				AdvDHCPSendOptions: "option1",
+				AdvancedV4: &common.DHCPAdvancedV4{AdvDHCPSendOptions: "option1"},
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp request options set",
 			dhcp: common.DHCPScope{
-				AdvDHCPRequestOptions: "option2",
+				AdvancedV4: &common.DHCPAdvancedV4{AdvDHCPRequestOptions: "option2"},
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp required options set",
 			dhcp: common.DHCPScope{
-				AdvDHCPRequiredOptions: "option3",
+				AdvancedV4: &common.DHCPAdvancedV4{AdvDHCPRequiredOptions: "option3"},
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp option modifiers set",
 			dhcp: common.DHCPScope{
-				AdvDHCPOptionModifiers: "modifier1",
+				AdvancedV4: &common.DHCPAdvancedV4{AdvDHCPOptionModifiers: "modifier1"},
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp config advanced set",
 			dhcp: common.DHCPScope{
-				AdvDHCPConfigAdvanced: "advanced",
+				AdvancedV4: &common.DHCPAdvancedV4{AdvDHCPConfigAdvanced: "advanced"},
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp config file override set",
 			dhcp: common.DHCPScope{
-				AdvDHCPConfigFileOverride: "1",
+				AdvancedV4: &common.DHCPAdvancedV4{AdvDHCPConfigFileOverride: "1"},
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp config file override path set",
 			dhcp: common.DHCPScope{
-				AdvDHCPConfigFileOverridePath: "/path/to/file",
+				AdvancedV4: &common.DHCPAdvancedV4{AdvDHCPConfigFileOverridePath: "/path/to/file"},
 			},
 			want: true,
 		},
 		{
 			name: "multiple advanced fields set",
 			dhcp: common.DHCPScope{
-				AliasAddress:          "192.168.1.254",
-				AdvDHCPSendOptions:    "option1",
-				AdvDHCPConfigAdvanced: "advanced",
+				AdvancedV4: &common.DHCPAdvancedV4{
+					AliasAddress:          "192.168.1.254",
+					AdvDHCPSendOptions:    "option1",
+					AdvDHCPConfigAdvanced: "advanced",
+				},
 			},
 			want: true,
+		},
+		// Protocol timing fields
+		{
+			name: "adv dhcp pt timeout set",
+			dhcp: common.DHCPScope{
+				AdvancedV4: &common.DHCPAdvancedV4{AdvDHCPPTTimeout: "60"},
+			},
+			want: true,
+		},
+		{
+			name: "adv dhcp config file override path set via remaining field",
+			dhcp: common.DHCPScope{
+				AdvancedV4: &common.DHCPAdvancedV4{AdvDHCPConfigFileOverridePath: "/etc/dhcp.conf"},
+			},
+			want: true,
+		},
+		{
+			name: "non-nil but empty advanced v4",
+			dhcp: common.DHCPScope{
+				AdvancedV4: &common.DHCPAdvancedV4{},
+			},
+			want: false,
 		},
 	}
 
@@ -224,7 +248,7 @@ func TestHasDHCPv6Config(t *testing.T) {
 		{
 			name: "advanced ipv4 config only",
 			dhcp: common.DHCPScope{
-				AdvDHCPSendOptions: "option1",
+				AdvancedV4: &common.DHCPAdvancedV4{AdvDHCPSendOptions: "option1"},
 			},
 			want: false,
 		},
@@ -232,14 +256,14 @@ func TestHasDHCPv6Config(t *testing.T) {
 		{
 			name: "track6 interface set",
 			dhcp: common.DHCPScope{
-				Track6Interface: "wan",
+				AdvancedV6: &common.DHCPAdvancedV6{Track6Interface: "wan"},
 			},
 			want: true,
 		},
 		{
 			name: "track6 prefix id set",
 			dhcp: common.DHCPScope{
-				Track6PrefixID: "0",
+				AdvancedV6: &common.DHCPAdvancedV6{Track6PrefixID: "0"},
 			},
 			want: true,
 		},
@@ -247,114 +271,191 @@ func TestHasDHCPv6Config(t *testing.T) {
 		{
 			name: "adv dhcp6 interface statement send options set",
 			dhcp: common.DHCPScope{
-				AdvDHCP6InterfaceStatementSendOptions: "option1",
+				AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6InterfaceStatementSendOptions: "option1"},
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 interface statement request options set",
 			dhcp: common.DHCPScope{
-				AdvDHCP6InterfaceStatementRequestOptions: "option2",
+				AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6InterfaceStatementRequestOptions: "option2"},
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 information only enable set",
 			dhcp: common.DHCPScope{
-				AdvDHCP6InterfaceStatementInformationOnlyEnable: "1",
+				AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6InterfaceStatementInformationOnlyEnable: "1"},
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 interface statement script set",
 			dhcp: common.DHCPScope{
-				AdvDHCP6InterfaceStatementScript: "/path/to/script",
+				AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6InterfaceStatementScript: "/path/to/script"},
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 id assoc address enable set",
 			dhcp: common.DHCPScope{
-				AdvDHCP6IDAssocStatementAddressEnable: "1",
+				AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6IDAssocStatementAddressEnable: "1"},
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 id assoc address set",
 			dhcp: common.DHCPScope{
-				AdvDHCP6IDAssocStatementAddress: "2001:db8::1",
+				AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6IDAssocStatementAddress: "2001:db8::1"},
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 id assoc prefix enable set",
 			dhcp: common.DHCPScope{
-				AdvDHCP6IDAssocStatementPrefixEnable: "1",
+				AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6IDAssocStatementPrefixEnable: "1"},
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 prefix interface sla len set",
 			dhcp: common.DHCPScope{
-				AdvDHCP6PrefixInterfaceStatementSLALen: "64",
+				AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6PrefixInterfaceStatementSLALen: "64"},
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 authentication auth name set",
 			dhcp: common.DHCPScope{
-				AdvDHCP6AuthenticationStatementAuthName: "authname",
+				AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6AuthenticationStatementAuthName: "authname"},
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 authentication protocol set",
 			dhcp: common.DHCPScope{
-				AdvDHCP6AuthenticationStatementProtocol: "delayed",
+				AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6AuthenticationStatementProtocol: "delayed"},
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 key info key name set",
 			dhcp: common.DHCPScope{
-				AdvDHCP6KeyInfoStatementKeyName: "keyname",
+				AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6KeyInfoStatementKeyName: "keyname"},
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 key info realm set",
 			dhcp: common.DHCPScope{
-				AdvDHCP6KeyInfoStatementRealm: "realm",
+				AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6KeyInfoStatementRealm: "realm"},
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 config advanced set",
 			dhcp: common.DHCPScope{
-				AdvDHCP6ConfigAdvanced: "advanced",
+				AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6ConfigAdvanced: "advanced"},
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 config file override set",
 			dhcp: common.DHCPScope{
-				AdvDHCP6ConfigFileOverride: "1",
+				AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6ConfigFileOverride: "1"},
 			},
 			want: true,
 		},
 		{
 			name: "adv dhcp6 config file override path set",
 			dhcp: common.DHCPScope{
-				AdvDHCP6ConfigFileOverridePath: "/path/to/file",
+				AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6ConfigFileOverridePath: "/path/to/file"},
 			},
 			want: true,
 		},
 		{
 			name: "multiple dhcpv6 fields set",
 			dhcp: common.DHCPScope{
-				Track6Interface:                       "wan",
-				AdvDHCP6IDAssocStatementAddressEnable: "1",
-				AdvDHCP6ConfigAdvanced:                "advanced",
+				AdvancedV6: &common.DHCPAdvancedV6{
+					Track6Interface:                       "wan",
+					AdvDHCP6IDAssocStatementAddressEnable: "1",
+					AdvDHCP6ConfigAdvanced:                "advanced",
+				},
+			},
+			want: true,
+		},
+		// Empty non-nil AdvancedV6
+		{
+			name: "non-nil but empty advanced v6",
+			dhcp: common.DHCPScope{
+				AdvancedV6: &common.DHCPAdvancedV6{},
+			},
+			want: false,
+		},
+		// Lifetime fields
+		{
+			name: "address preferred lifetime only",
+			dhcp: common.DHCPScope{
+				AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6IDAssocStatementAddressPLTime: "3600"},
+			},
+			want: true,
+		},
+		{
+			name: "address valid lifetime only",
+			dhcp: common.DHCPScope{
+				AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6IDAssocStatementAddressVLTime: "7200"},
+			},
+			want: true,
+		},
+		{
+			name: "prefix preferred lifetime only",
+			dhcp: common.DHCPScope{
+				AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6IDAssocStatementPrefixPLTime: "1800"},
+			},
+			want: true,
+		},
+		{
+			name: "prefix valid lifetime only",
+			dhcp: common.DHCPScope{
+				AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6IDAssocStatementPrefixVLTime: "3600"},
+			},
+			want: true,
+		},
+		// Auth RDM
+		{
+			name: "auth rdm only",
+			dhcp: common.DHCPScope{
+				AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6AuthenticationStatementRDM: "monotonic-clock"},
+			},
+			want: true,
+		},
+		// Key metadata
+		{
+			name: "key id only",
+			dhcp: common.DHCPScope{
+				AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6KeyInfoStatementKeyID: "42"},
+			},
+			want: true,
+		},
+		{
+			name: "key secret only",
+			dhcp: common.DHCPScope{
+				AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6KeyInfoStatementSecret: "secret123"},
+			},
+			want: true,
+		},
+		{
+			name: "key expire only",
+			dhcp: common.DHCPScope{
+				AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6KeyInfoStatementExpire: "2026-12-31"},
+			},
+			want: true,
+		},
+		// Basic DHCPv6 tracking fields
+		{
+			name: "dhcpv6 track6 interface set",
+			dhcp: common.DHCPScope{
+				AdvancedV6: &common.DHCPAdvancedV6{Track6Interface: "wan"},
 			},
 			want: true,
 		},
@@ -570,9 +671,11 @@ func TestBuildAdvancedDHCPItems(t *testing.T) {
 		{
 			name: "alias fields populated",
 			dhcp: common.DHCPScope{
-				AliasAddress:   "192.168.1.254",
-				AliasSubnet:    "24",
-				DHCPRejectFrom: "192.168.1.100",
+				AdvancedV4: &common.DHCPAdvancedV4{
+					AliasAddress:   "192.168.1.254",
+					AliasSubnet:    "24",
+					DHCPRejectFrom: "192.168.1.100",
+				},
 			},
 			wantContains: []string{
 				"Alias Address: 192.168.1.254",
@@ -584,18 +687,52 @@ func TestBuildAdvancedDHCPItems(t *testing.T) {
 		{
 			name: "advanced protocol timing fields",
 			dhcp: common.DHCPScope{
-				AdvDHCPPTTimeout:         "60",
-				AdvDHCPPTRetry:           "5",
-				AdvDHCPPTSelectTimeout:   "10",
-				AdvDHCPPTReboot:          "30",
-				AdvDHCPPTBackoffCutoff:   "120",
-				AdvDHCPPTInitialInterval: "3",
+				AdvancedV4: &common.DHCPAdvancedV4{
+					AdvDHCPPTTimeout:         "60",
+					AdvDHCPPTRetry:           "5",
+					AdvDHCPPTSelectTimeout:   "10",
+					AdvDHCPPTReboot:          "30",
+					AdvDHCPPTBackoffCutoff:   "120",
+					AdvDHCPPTInitialInterval: "3",
+				},
 			},
 			wantContains: []string{
 				"Protocol Timeout: 60", "Protocol Retry: 5", "Select Timeout: 10",
 				"Reboot: 30", "Backoff Cutoff: 120", "Initial Interval: 3",
 			},
 			wantLen: 6,
+		},
+		{
+			name: "option and config override fields",
+			dhcp: common.DHCPScope{
+				AdvancedV4: &common.DHCPAdvancedV4{
+					AdvDHCPSendOptions:            "option1",
+					AdvDHCPRequestOptions:         "option2",
+					AdvDHCPRequiredOptions:        "option3",
+					AdvDHCPOptionModifiers:        "modifier1",
+					AdvDHCPConfigAdvanced:         "advanced",
+					AdvDHCPConfigFileOverride:     "1",
+					AdvDHCPConfigFileOverridePath: "/path/to/file",
+				},
+			},
+			wantContains: []string{
+				"Send Options: option1",
+				"Request Options: option2",
+				"Required Options: option3",
+				"Option Modifiers: modifier1",
+				"Advanced Config: Enabled",
+				"Config File Override: Enabled",
+				"Override Path: /path/to/file",
+			},
+			wantLen: 7,
+		},
+		{
+			name: "non-nil but empty advanced v4",
+			dhcp: common.DHCPScope{
+				AdvancedV4: &common.DHCPAdvancedV4{},
+			},
+			wantContains: nil,
+			wantLen:      0,
 		},
 	}
 
@@ -636,8 +773,10 @@ func TestBuildDHCPv6Items(t *testing.T) {
 		{
 			name: "track6 fields populated",
 			dhcp: common.DHCPScope{
-				Track6Interface: "wan",
-				Track6PrefixID:  "0",
+				AdvancedV6: &common.DHCPAdvancedV6{
+					Track6Interface: "wan",
+					Track6PrefixID:  "0",
+				},
 			},
 			wantContains: []string{"Track6 Interface: wan", "Track6 Prefix ID: 0"},
 			wantLen:      2,
@@ -645,17 +784,85 @@ func TestBuildDHCPv6Items(t *testing.T) {
 		{
 			name: "id assoc and prefix fields",
 			dhcp: common.DHCPScope{
-				AdvDHCP6IDAssocStatementAddressEnable: "1",
-				AdvDHCP6IDAssocStatementAddress:       "2001:db8::1",
-				AdvDHCP6IDAssocStatementAddressID:     "1",
-				AdvDHCP6IDAssocStatementPrefixEnable:  "1",
-				AdvDHCP6IDAssocStatementPrefix:        "2001:db8::/48",
+				AdvancedV6: &common.DHCPAdvancedV6{
+					AdvDHCP6IDAssocStatementAddressEnable: "1",
+					AdvDHCP6IDAssocStatementAddress:       "2001:db8::1",
+					AdvDHCP6IDAssocStatementAddressID:     "1",
+					AdvDHCP6IDAssocStatementPrefixEnable:  "1",
+					AdvDHCP6IDAssocStatementPrefix:        "2001:db8::/48",
+				},
 			},
 			wantContains: []string{
 				"ID Assoc Address: Enabled", "Address: 2001:db8::1", "Address ID: 1",
 				"ID Assoc Prefix: Enabled", "Prefix: 2001:db8::/48",
 			},
 			wantLen: 5,
+		},
+		{
+			name: "lifetime fields only",
+			dhcp: common.DHCPScope{
+				AdvancedV6: &common.DHCPAdvancedV6{
+					AdvDHCP6IDAssocStatementAddressPLTime: "3600",
+					AdvDHCP6IDAssocStatementAddressVLTime: "7200",
+					AdvDHCP6IDAssocStatementPrefixPLTime:  "1800",
+					AdvDHCP6IDAssocStatementPrefixVLTime:  "3600",
+				},
+			},
+			wantContains: []string{
+				"Address Preferred Lifetime: 3600",
+				"Address Valid Lifetime: 7200",
+				"Prefix Preferred Lifetime: 1800",
+				"Prefix Valid Lifetime: 3600",
+			},
+			wantLen: 4,
+		},
+		{
+			name: "auth rdm only",
+			dhcp: common.DHCPScope{
+				AdvancedV6: &common.DHCPAdvancedV6{
+					AdvDHCP6AuthenticationStatementRDM: "monotonic-clock",
+				},
+			},
+			wantContains: []string{"Auth RDM: monotonic-clock"},
+			wantLen:      1,
+		},
+		{
+			name: "key metadata fields",
+			dhcp: common.DHCPScope{
+				AdvancedV6: &common.DHCPAdvancedV6{
+					AdvDHCP6KeyInfoStatementKeyID:  "42",
+					AdvDHCP6KeyInfoStatementSecret: "secret123",
+					AdvDHCP6KeyInfoStatementExpire: "2026-12-31",
+				},
+			},
+			wantContains: []string{
+				"Key ID: 42",
+				"Key Secret: secret123",
+				"Key Expire: 2026-12-31",
+			},
+			wantLen: 3,
+		},
+		{
+			name: "basic dhcpv6 tracking fields",
+			dhcp: common.DHCPScope{
+				AdvancedV6: &common.DHCPAdvancedV6{
+					Track6Interface: "wan",
+					Track6PrefixID:  "0",
+				},
+			},
+			wantContains: []string{
+				"Track6 Interface: wan",
+				"Track6 Prefix ID: 0",
+			},
+			wantLen: 2,
+		},
+		{
+			name: "non-nil but empty advanced v6",
+			dhcp: common.DHCPScope{
+				AdvancedV6: &common.DHCPAdvancedV6{},
+			},
+			wantContains: nil,
+			wantLen:      0,
 		},
 	}
 

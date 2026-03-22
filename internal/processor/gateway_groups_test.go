@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 	_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense" // self-registers OPNsense parser via init()
 )
@@ -21,7 +22,12 @@ func TestGatewayGroupsInReports(t *testing.T) {
 
 	// Parse the configuration via factory
 	factory := parser.NewFactory(cfgparser.NewXMLParser())
-	cfg, _, err := factory.CreateDevice(context.Background(), strings.NewReader(xmlConfig), "", false)
+	cfg, _, err := factory.CreateDevice(
+		context.Background(),
+		strings.NewReader(xmlConfig),
+		common.DeviceTypeUnknown,
+		false,
+	)
 	if err != nil {
 		t.Fatalf("Failed to parse XML configuration: %v", err)
 	}

@@ -27,15 +27,15 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "identical rules",
 			rule1: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Description: "Allow traffic",
 				Source:      common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Description: "Allow traffic",
 				Source:      common.RuleEndpoint{Address: "any"},
@@ -45,15 +45,15 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "different descriptions but same functionality",
 			rule1: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Description: "Allow traffic",
 				Source:      common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Description: "Different description",
 				Source:      common.RuleEndpoint{Address: "any"},
@@ -63,15 +63,15 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "same state type",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				StateType:  "keep state",
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				StateType:  "keep state",
 				Source:     common.RuleEndpoint{Address: "any"},
@@ -81,15 +81,15 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "different state types",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				StateType:  "keep state",
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				StateType:  "sloppy state",
 				Source:     common.RuleEndpoint{Address: "any"},
@@ -99,15 +99,15 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "state type vs empty",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				StateType:  "synproxy state",
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
@@ -116,17 +116,17 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "same direction",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
-				Direction:  "in",
+				Direction:  common.DirectionIn,
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
-				Direction:  "in",
+				Direction:  common.DirectionIn,
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
 			expected: true,
@@ -134,17 +134,17 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "different directions",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
-				Direction:  "in",
+				Direction:  common.DirectionIn,
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
-				Direction:  "out",
+				Direction:  common.DirectionOut,
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
 			expected: false,
@@ -152,15 +152,15 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "direction vs empty",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
-				Direction:  "out",
+				Direction:  common.DirectionOut,
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
@@ -169,15 +169,15 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "same protocol",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Protocol:   "tcp",
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Protocol:   "tcp",
 				Source:     common.RuleEndpoint{Address: "any"},
@@ -187,15 +187,15 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "different protocols",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Protocol:   "udp",
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Protocol:   "icmp",
 				Source:     common.RuleEndpoint{Address: "any"},
@@ -205,15 +205,15 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "protocol vs empty",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Protocol:   "tcp",
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
@@ -222,15 +222,15 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "any protocol handling",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Protocol:   "any",
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Protocol:   "any",
 				Source:     common.RuleEndpoint{Address: "any"},
@@ -240,15 +240,15 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "quick flag matches",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Quick:      true,
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Quick:      true,
 				Source:     common.RuleEndpoint{Address: "any"},
@@ -258,15 +258,15 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "quick flag differs",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Quick:      true,
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Quick:      false,
 				Source:     common.RuleEndpoint{Address: "any"},
@@ -276,14 +276,14 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "same source port",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "any", Port: "443"},
 			},
 			rule2: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "any", Port: "443"},
 			},
@@ -292,14 +292,14 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "different source ports",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "any", Port: "80"},
 			},
 			rule2: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "any", Port: "443"},
 			},
@@ -308,14 +308,14 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "source port range comparison",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "any", Port: "20:25"},
 			},
 			rule2: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "any", Port: "20:25"},
 			},
@@ -324,14 +324,14 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "source port range vs single port",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "any", Port: "50000:60000"},
 			},
 			rule2: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "any", Port: "50000"},
 			},
@@ -340,15 +340,15 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "same destination port",
 			rule1: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Destination: common.RuleEndpoint{Port: "443"},
 				Source:      common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Destination: common.RuleEndpoint{Port: "443"},
 				Source:      common.RuleEndpoint{Address: "any"},
@@ -358,15 +358,15 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "different destination ports",
 			rule1: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Destination: common.RuleEndpoint{Port: "80"},
 				Source:      common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Destination: common.RuleEndpoint{Port: "443"},
 				Source:      common.RuleEndpoint{Address: "any"},
@@ -376,15 +376,15 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "destination port range comparison",
 			rule1: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Destination: common.RuleEndpoint{Port: "20:25"},
 				Source:      common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Destination: common.RuleEndpoint{Port: "20:25"},
 				Source:      common.RuleEndpoint{Address: "any"},
@@ -394,15 +394,15 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "destination port range vs single port",
 			rule1: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Destination: common.RuleEndpoint{Port: "50000:60000"},
 				Source:      common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Destination: common.RuleEndpoint{Port: "50000"},
 				Source:      common.RuleEndpoint{Address: "any"},
@@ -412,15 +412,15 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "same destination network",
 			rule1: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Destination: common.RuleEndpoint{Address: "192.168.1.0/24"},
 				Source:      common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Destination: common.RuleEndpoint{Address: "192.168.1.0/24"},
 				Source:      common.RuleEndpoint{Address: "any"},
@@ -430,15 +430,15 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "different destination networks",
 			rule1: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Destination: common.RuleEndpoint{Address: "192.168.1.0/24"},
 				Source:      common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Destination: common.RuleEndpoint{Address: "10.0.0.0/8"},
 				Source:      common.RuleEndpoint{Address: "any"},
@@ -448,15 +448,15 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "any destination vs specific network",
 			rule1: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Destination: common.RuleEndpoint{Address: "any"},
 				Source:      common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Destination: common.RuleEndpoint{Address: "10.0.0.0/8"},
 				Source:      common.RuleEndpoint{Address: "any"},
@@ -466,14 +466,14 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "different types",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:       "block",
-				IPProtocol: "inet",
+				Type:       common.RuleTypeBlock,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
@@ -482,14 +482,14 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "different protocols",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet6",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet6,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
@@ -498,14 +498,14 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "different interfaces",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"wan"},
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
@@ -514,14 +514,14 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "different source networks",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "192.168.1.0/24"},
 			},
@@ -530,15 +530,15 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "empty destination differs from explicit any",
 			rule1: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Source:      common.RuleEndpoint{Address: "any"},
 				Destination: common.RuleEndpoint{},
 			},
 			rule2: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Source:      common.RuleEndpoint{Address: "any"},
 				Destination: common.RuleEndpoint{Address: "any"},
@@ -548,15 +548,15 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "empty destination with port vs any destination with same port",
 			rule1: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Source:      common.RuleEndpoint{Address: "any"},
 				Destination: common.RuleEndpoint{Port: "443"},
 			},
 			rule2: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Source:      common.RuleEndpoint{Address: "any"},
 				Destination: common.RuleEndpoint{Address: "any", Port: "443"},
@@ -566,12 +566,12 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "complex rules with all fields",
 			rule1: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"wan"},
 				Description: "Allow web traffic",
 				StateType:   "keep state",
-				Direction:   "in",
+				Direction:   common.DirectionIn,
 				Protocol:    "tcp",
 				Quick:       true,
 				Source:      common.RuleEndpoint{Address: "10.0.0.0/8", Port: "1024:65535"},
@@ -581,12 +581,12 @@ func TestRulesEquivalent(t *testing.T) {
 				},
 			},
 			rule2: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"wan"},
 				Description: "Allow web traffic (duplicate)",
 				StateType:   "keep state",
-				Direction:   "in",
+				Direction:   common.DirectionIn,
 				Protocol:    "tcp",
 				Quick:       true,
 				Source:      common.RuleEndpoint{Address: "10.0.0.0/8", Port: "1024:65535"},
@@ -600,14 +600,14 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "source IsAny pointer vs network any are equivalent in normalized model",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
@@ -616,14 +616,14 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "both sources use IsAny pointer",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
 			rule2: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "any"},
 			},
@@ -632,14 +632,14 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "different source address",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "192.168.1.0/24"},
 			},
 			rule2: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "10.0.0.0/8"},
 			},
@@ -648,14 +648,14 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "different source not flag",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "lan", Negated: true},
 			},
 			rule2: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "lan"},
 			},
@@ -664,14 +664,14 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "different source port",
 			rule1: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "any", Port: "443"},
 			},
 			rule2: common.FirewallRule{
-				Type:       "pass",
-				IPProtocol: "inet",
+				Type:       common.RuleTypePass,
+				IPProtocol: common.IPProtocolInet,
 				Interfaces: []string{"lan"},
 				Source:     common.RuleEndpoint{Address: "any", Port: "80"},
 			},
@@ -680,15 +680,15 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "different destination address",
 			rule1: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Source:      common.RuleEndpoint{Address: "any"},
 				Destination: common.RuleEndpoint{Address: "192.168.1.1"},
 			},
 			rule2: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Source:      common.RuleEndpoint{Address: "any"},
 				Destination: common.RuleEndpoint{Address: "10.0.0.1"},
@@ -698,15 +698,15 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "different destination not flag",
 			rule1: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Source:      common.RuleEndpoint{Address: "any"},
 				Destination: common.RuleEndpoint{Address: "lan", Negated: true},
 			},
 			rule2: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"lan"},
 				Source:      common.RuleEndpoint{Address: "any"},
 				Destination: common.RuleEndpoint{Address: "lan"},
@@ -716,22 +716,22 @@ func TestRulesEquivalent(t *testing.T) {
 		{
 			name: "different single functional field",
 			rule1: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"wan"},
 				StateType:   "keep state",
-				Direction:   "in",
+				Direction:   common.DirectionIn,
 				Protocol:    "tcp",
 				Quick:       true,
 				Source:      common.RuleEndpoint{Address: "10.0.0.0/8", Port: "1024:65535"},
 				Destination: common.RuleEndpoint{Address: "192.168.1.0/24", Port: "443"},
 			},
 			rule2: common.FirewallRule{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Interfaces:  []string{"wan"},
 				StateType:   "keep state",
-				Direction:   "in",
+				Direction:   common.DirectionIn,
 				Protocol:    "tcp",
 				Quick:       true,
 				Source:      common.RuleEndpoint{Address: "10.0.0.0/8", Port: "1024:65535"},
@@ -778,7 +778,7 @@ func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
 			// Use the factory to parse and normalize the config into a CommonDevice
 			factory := parser.NewFactory(cfgparser.NewXMLParser())
 
-			device, _, err := factory.CreateDevice(context.Background(), file, "", false)
+			device, _, err := factory.CreateDevice(context.Background(), file, common.DeviceTypeUnknown, false)
 			if err != nil {
 				t.Skipf("Skipping test due to parsing error: %v", err)
 				return
@@ -824,7 +824,7 @@ func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
 			deadRuleCount := 0
 
 			for i, rule := range rules {
-				if rule.Type == "block" && rule.Source.Address == anyAddress {
+				if rule.Type == common.RuleTypeBlock && rule.Source.Address == anyAddress {
 					// Check if there are rules after this block-all rule
 					if i < len(rules)-1 {
 						deadRuleCount++
@@ -838,7 +838,7 @@ func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
 			securityIssues := 0
 
 			for i, rule := range rules {
-				if rule.Type == "pass" && rule.Source.Address == anyAddress && rule.Description == "" {
+				if rule.Type == common.RuleTypePass && rule.Source.Address == anyAddress && rule.Description == "" {
 					securityIssues++
 
 					t.Logf("Found overly broad pass rule at position %d without description", i+1)
@@ -890,9 +890,9 @@ func TestCoreProcessor_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("partial_rules", func(t *testing.T) {
-		rule1 := common.FirewallRule{Type: "pass"}
-		rule2 := common.FirewallRule{Type: "pass"}
-		rule3 := common.FirewallRule{Type: "block"}
+		rule1 := common.FirewallRule{Type: common.RuleTypePass}
+		rule2 := common.FirewallRule{Type: common.RuleTypePass}
+		rule3 := common.FirewallRule{Type: common.RuleTypeBlock}
 
 		assert.True(t, analysis.RulesEquivalent(rule1, rule2),
 			"Rules with only type should be equivalent if types match")
@@ -908,8 +908,8 @@ func TestCoreProcessor_EdgeCases(t *testing.T) {
 			Source:     common.RuleEndpoint{Address: "ANY"},
 		}
 		rule2 := common.FirewallRule{
-			Type:       "pass",
-			IPProtocol: "inet",
+			Type:       common.RuleTypePass,
+			IPProtocol: common.IPProtocolInet,
 			Interfaces: []string{"lan"},
 			Source:     common.RuleEndpoint{Address: "any"},
 		}
@@ -940,13 +940,13 @@ func TestCoreProcessor_DeadRuleDetection_IsAnyPath(t *testing.T) {
 			name: "block-all via IsAny pointer makes subsequent rules dead",
 			rules: []common.FirewallRule{
 				{
-					Type:        "block",
+					Type:        common.RuleTypeBlock,
 					Interfaces:  []string{"lan"},
 					Source:      common.RuleEndpoint{Address: "any"},
 					Destination: common.RuleEndpoint{Address: "any"},
 				},
 				{
-					Type:       "pass",
+					Type:       common.RuleTypePass,
 					Interfaces: []string{"lan"},
 					Source:     common.RuleEndpoint{Address: "192.168.1.0/24"},
 				},
@@ -957,13 +957,13 @@ func TestCoreProcessor_DeadRuleDetection_IsAnyPath(t *testing.T) {
 			name: "block with source any but specific destination is not block-all",
 			rules: []common.FirewallRule{
 				{
-					Type:        "block",
+					Type:        common.RuleTypeBlock,
 					Interfaces:  []string{"lan"},
 					Source:      common.RuleEndpoint{Address: "any"},
 					Destination: common.RuleEndpoint{Address: "10.0.0.1"},
 				},
 				{
-					Type:       "pass",
+					Type:       common.RuleTypePass,
 					Interfaces: []string{"lan"},
 					Source:     common.RuleEndpoint{Address: "192.168.1.0/24"},
 				},
@@ -974,7 +974,7 @@ func TestCoreProcessor_DeadRuleDetection_IsAnyPath(t *testing.T) {
 			name: "overly broad pass rule via IsAny pointer",
 			rules: []common.FirewallRule{
 				{
-					Type:       "pass",
+					Type:       common.RuleTypePass,
 					Interfaces: []string{"lan"},
 					Source:     common.RuleEndpoint{Address: "any"},
 				},
@@ -1023,6 +1023,32 @@ func TestCoreProcessor_DeadRuleDetection_IsAnyPath(t *testing.T) {
 			if tt.wantBroadRules {
 				assert.True(t, hasBroadRule, "expected overly broad pass rule finding")
 			}
+		})
+	}
+}
+
+func TestMapSeverity(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		input common.Severity
+		want  Severity
+	}{
+		{"critical maps to SeverityCritical", common.SeverityCritical, SeverityCritical},
+		{"HIGH uppercase maps to SeverityHigh", common.Severity("HIGH"), SeverityHigh},
+		{"medium maps to SeverityMedium", common.SeverityMedium, SeverityMedium},
+		{"low maps to SeverityLow", common.SeverityLow, SeverityLow},
+		{"info maps to SeverityInfo", common.SeverityInfo, SeverityInfo},
+		{"unknown falls back to SeverityInfo", common.Severity("unknown"), SeverityInfo},
+		{"empty falls back to SeverityInfo", common.Severity(""), SeverityInfo},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := mapSeverity(tt.input)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

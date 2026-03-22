@@ -3,6 +3,7 @@ package opnsense_test
 import (
 	"testing"
 
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"
 	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 	"github.com/stretchr/testify/assert"
@@ -426,7 +427,7 @@ func TestConverter_LAGGs_FieldMapping(t *testing.T) {
 	l := device.LAGGs[0]
 	assert.Equal(t, "lagg0", l.Interface)
 	assert.Equal(t, []string{"ix0", "ix1", "ix2"}, l.Members)
-	assert.Equal(t, "lacp", l.Protocol)
+	assert.Equal(t, common.LAGGProtocolLACP, l.Protocol)
 	assert.Equal(t, "Server Bond", l.Description)
 	assert.Equal(t, "2024-01-15", l.Created)
 	assert.Equal(t, "2024-01-20", l.Updated)
@@ -490,7 +491,7 @@ func TestConverter_VirtualIPs_FieldMapping(t *testing.T) {
 	require.Len(t, device.VirtualIPs, 1)
 
 	v := device.VirtualIPs[0]
-	assert.Equal(t, "carp", v.Mode)
+	assert.Equal(t, common.VIPModeCarp, v.Mode)
 	assert.Equal(t, "wan", v.Interface)
 	assert.Equal(t, "203.0.113.100", v.Subnet)
 	assert.Equal(t, "WAN CARP VIP", v.Description)

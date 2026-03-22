@@ -267,9 +267,9 @@ func (c *MarkdownConverter) buildSecuritySection(md *markdown.Markdown, data *co
 			interfaceLinks := formatters.FormatInterfacesAsLinks(rule.Interfaces)
 
 			rows = append(rows, []string{
-				rule.Type,
+				string(rule.Type),
 				interfaceLinks,
-				rule.IPProtocol,
+				string(rule.IPProtocol),
 				rule.Protocol,
 				source,
 				dest,

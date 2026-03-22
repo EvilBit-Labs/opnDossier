@@ -216,8 +216,8 @@ func TestWalk_FirewallRuleHandling(t *testing.T) {
 	device := common.CommonDevice{
 		FirewallRules: []common.FirewallRule{
 			{
-				Type:        "pass",
-				IPProtocol:  "inet",
+				Type:        common.RuleTypePass,
+				IPProtocol:  common.IPProtocolInet,
 				Description: "Allow LAN to any rule",
 				Interfaces:  []string{"lan"},
 				Protocol:    "tcp",

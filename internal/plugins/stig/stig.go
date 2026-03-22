@@ -209,7 +209,7 @@ func (sp *Plugin) hasDefaultDenyPolicy(device *common.CommonDevice) bool {
 
 	for _, rule := range rules {
 		// Look for rules that explicitly deny traffic
-		if rule.Type == "block" || rule.Type == "reject" {
+		if rule.Type == common.RuleTypeBlock || rule.Type == common.RuleTypeReject {
 			hasExplicitDeny = true
 			break
 		}
@@ -219,7 +219,7 @@ func (sp *Plugin) hasDefaultDenyPolicy(device *common.CommonDevice) bool {
 	hasAnyAnyAllow := false
 
 	for _, rule := range rules {
-		if rule.Type == "pass" {
+		if rule.Type == common.RuleTypePass {
 			srcTarget := rule.Source.Address
 			dstTarget := rule.Destination.Address
 
@@ -243,7 +243,7 @@ func (sp *Plugin) hasOverlyPermissiveRules(device *common.CommonDevice) bool {
 	rules := device.FirewallRules
 
 	for _, rule := range rules {
-		if rule.Type != "pass" {
+		if rule.Type != common.RuleTypePass {
 			continue
 		}
 

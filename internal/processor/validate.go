@@ -264,18 +264,17 @@ func validateCommonFirewallRules(rules []common.FirewallRule, ifaces []common.In
 	for i, rule := range rules {
 		prefix := fmt.Sprintf("firewallRules[%d]", i)
 
-		if rule.Type != "" {
-			validTypes := map[string]struct{}{"pass": {}, "block": {}, "reject": {}}
-			if _, ok := validTypes[rule.Type]; !ok {
-				errors = append(errors, ValidationError{Field: prefix + ".type", Message: "invalid firewall rule type"})
-			}
+		if rule.Type != "" &&
+			rule.Type != common.RuleTypePass &&
+			rule.Type != common.RuleTypeBlock &&
+			rule.Type != common.RuleTypeReject {
+			errors = append(errors, ValidationError{Field: prefix + ".type", Message: "invalid firewall rule type"})
 		}
 
-		if rule.IPProtocol != "" {
-			validProtocols := map[string]struct{}{"inet": {}, "inet6": {}}
-			if _, ok := validProtocols[rule.IPProtocol]; !ok {
-				errors = append(errors, ValidationError{Field: prefix + ".ipProtocol", Message: "invalid IP protocol"})
-			}
+		if rule.IPProtocol != "" &&
+			rule.IPProtocol != common.IPProtocolInet &&
+			rule.IPProtocol != common.IPProtocolInet6 {
+			errors = append(errors, ValidationError{Field: prefix + ".ipProtocol", Message: "invalid IP protocol"})
 		}
 
 		for idx, ifaceName := range rule.Interfaces {
@@ -323,17 +322,17 @@ func validateCommonFirewallRules(rules []common.FirewallRule, ifaces []common.In
 			)
 		}
 
-		if rule.Direction != "" {
-			validDirections := map[string]struct{}{"in": {}, "out": {}, "any": {}}
-			if _, ok := validDirections[rule.Direction]; !ok {
-				errors = append(
-					errors,
-					ValidationError{Field: prefix + ".direction", Message: "invalid firewall direction"},
-				)
-			}
+		if rule.Direction != "" &&
+			rule.Direction != common.DirectionIn &&
+			rule.Direction != common.DirectionOut &&
+			rule.Direction != common.DirectionAny {
+			errors = append(
+				errors,
+				ValidationError{Field: prefix + ".direction", Message: "invalid firewall direction"},
+			)
 		}
 
-		if rule.Floating && strings.TrimSpace(rule.Direction) == "" {
+		if rule.Floating && strings.TrimSpace(string(rule.Direction)) == "" {
 			errors = append(
 				errors,
 				ValidationError{Field: prefix + ".direction", Message: "floating rule requires direction"},
@@ -372,16 +371,12 @@ func validateCommonFirewallRules(rules []common.FirewallRule, ifaces []common.In
 func validateCommonNAT(nat *common.NATConfig) []ValidationError {
 	errors := make([]ValidationError, 0, len(nat.InboundRules)+1)
 
-	if nat.OutboundMode != "" {
-		validModes := map[string]struct{}{
-			"automatic": {},
-			"hybrid":    {},
-			"advanced":  {},
-			"disabled":  {},
-		}
-		if _, ok := validModes[nat.OutboundMode]; !ok {
-			errors = append(errors, ValidationError{Field: "nat.outboundMode", Message: "invalid NAT outbound mode"})
-		}
+	if nat.OutboundMode != "" &&
+		nat.OutboundMode != common.OutboundAutomatic &&
+		nat.OutboundMode != common.OutboundHybrid &&
+		nat.OutboundMode != common.OutboundAdvanced &&
+		nat.OutboundMode != common.OutboundDisabled {
+		errors = append(errors, ValidationError{Field: "nat.outboundMode", Message: "invalid NAT outbound mode"})
 	}
 
 	for i, rule := range nat.InboundRules {

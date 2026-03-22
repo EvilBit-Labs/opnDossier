@@ -105,14 +105,14 @@ func (f *Factory) ensureInitialized() error {
 func (f *Factory) CreateDevice(
 	ctx context.Context,
 	r io.Reader,
-	deviceTypeOverride string,
+	deviceTypeOverride common.DeviceType,
 	validateMode bool,
 ) (*common.CommonDevice, []common.ConversionWarning, error) {
 	if err := f.ensureInitialized(); err != nil {
 		return nil, nil, err
 	}
 
-	if deviceTypeOverride != "" {
+	if deviceTypeOverride != "" && deviceTypeOverride != common.DeviceTypeUnknown {
 		return f.createWithOverride(ctx, r, deviceTypeOverride, validateMode)
 	}
 
@@ -124,14 +124,14 @@ func (f *Factory) CreateDevice(
 func (f *Factory) createWithOverride(
 	ctx context.Context,
 	r io.Reader,
-	override string,
+	override common.DeviceType,
 	validateMode bool,
 ) (*common.CommonDevice, []common.ConversionWarning, error) {
-	fn, ok := f.registry.Get(override)
+	fn, ok := f.registry.Get(override.String())
 	if !ok {
 		return nil, nil, fmt.Errorf(
 			"unsupported device type override: %q; supported: %s",
-			override, supportedDevicesList(f.registry),
+			override, f.registry.SupportedDevices(),
 		)
 	}
 
@@ -154,7 +154,7 @@ func (f *Factory) createWithAutoDetect(
 	if !ok {
 		return nil, nil, fmt.Errorf(
 			"unsupported device type: root element <%s> is not recognized; supported: %s",
-			rootElem, supportedDevicesList(f.registry),
+			rootElem, f.registry.SupportedDevices(),
 		)
 	}
 
@@ -174,18 +174,6 @@ func parseDevice(
 	}
 
 	return p.Parse(ctx, r)
-}
-
-// supportedDevicesList formats the registry's device list for error messages.
-// Returns "(none registered -- ensure parser packages are imported)" when the
-// registry is empty, providing an actionable hint about missing blank imports.
-func supportedDevicesList(reg *DeviceParserRegistry) string {
-	devices := reg.List()
-	if len(devices) == 0 {
-		return "(none registered -- ensure parser packages are imported)"
-	}
-
-	return strings.Join(devices, ", ")
 }
 
 // peekResult holds the outcome of the root-element detection goroutine.
