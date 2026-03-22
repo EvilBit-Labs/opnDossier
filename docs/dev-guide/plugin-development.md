@@ -299,6 +299,7 @@ The audit engine requires the `Finding.Severity` field to generate accurate seve
 1. **Use typed severity constants from `pkg/model`**:
 
    Available severity constants:
+
    - `common.SeverityCritical` — for critical security issues
    - `common.SeverityHigh` — for high-priority findings
    - `common.SeverityMedium` — for medium-priority findings
@@ -344,20 +345,24 @@ opnDossier uses typed string enums in `pkg/model` for firewall rules, NAT config
 **Common enum types:**
 
 - **`RuleType`** (firewall rule actions):
+
   - `common.RuleTypePass` — allow matching traffic
   - `common.RuleTypeBlock` — silently drop matching traffic
   - `common.RuleTypeReject` — drop and send rejection response
 
 - **`Direction`** (firewall rule direction):
+
   - `common.DirectionIn` — inbound traffic
   - `common.DirectionOut` — outbound traffic
   - `common.DirectionAny` — bidirectional
 
 - **`IPProtocol`** (IP address family):
+
   - `common.IPProtocolInet` — IPv4
   - `common.IPProtocolInet6` — IPv6
 
 - **`NATOutboundMode`** (NAT configuration):
+
   - `common.OutboundAutomatic` — automatic outbound NAT
   - `common.OutboundHybrid` — combined automatic and manual rules
   - `common.OutboundAdvanced` — manual rules only
@@ -389,6 +394,7 @@ for _, rule := range device.FirewallRules {
 ```
 
 **Benefits:**
+
 - Compile-time validation — invalid enum values cause build failures
 - IDE autocomplete for available values
 - Refactoring support — renaming a constant updates all uses
