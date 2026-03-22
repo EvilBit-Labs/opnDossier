@@ -503,7 +503,7 @@ unsupported device type: root element <fortinet> is not recognized; supported: (
 
 Fix: add `_ "your/parser/package"` to the binary's import list.
 
-**Root element mismatch:** The string passed to `parser.Register()` must exactly match the XML root element name (lowercase). For example, if a Fortinet config uses `<fortinet>` as the root element, register as `"fortinet"`, not `"Fortinet"` or `"FortiNet"` (the registry normalizes to lowercase, but the XML root element detection also lowercases).
+**Root element mismatch:** The string passed to `parser.Register()` must match the XML root element name. Both the registry and the XML root element detection normalize to lowercase, so `"Fortinet"` and `"fortinet"` will resolve identically. However, using lowercase consistently is recommended for clarity.
 
 **Duplicate registration:** If two packages register the same root element name, the binary will panic at startup. This is intentional -- it surfaces conflicts immediately rather than silently picking one.
 

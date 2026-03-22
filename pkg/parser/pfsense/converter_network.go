@@ -20,18 +20,22 @@ func (c *converter) convertInterfaces(doc *pfsense.Document) []common.Interface 
 	for _, key := range slices.Sorted(maps.Keys(items)) {
 		iface := items[key]
 		result = append(result, common.Interface{
-			Name:         key,
-			PhysicalIf:   iface.If,
-			Description:  iface.Descr,
-			Enabled:      iface.Enable == xmlBoolTrue,
+			Name:        key,
+			PhysicalIf:  iface.If,
+			Description: iface.Descr,
+			// TODO(#461): iface.Enable is presence-based in pfSense (<enable/> = enabled,
+			// absent = disabled) but the shared opnsense.Interface type uses string,
+			// which cannot distinguish presence from absence. Fork Interface type to
+			// use BoolFlag for Enable. For now, fall back to the value-based check.
+			Enabled:      isPfSenseValueTrue(iface.Enable),
 			IPAddress:    iface.IPAddr,
 			IPv6Address:  iface.IPAddrv6,
 			Subnet:       iface.Subnet,
 			SubnetV6:     iface.Subnetv6,
 			Gateway:      iface.Gateway,
 			GatewayV6:    iface.Gatewayv6,
-			BlockPrivate: iface.BlockPriv == xmlBoolTrue,
-			BlockBogons:  iface.BlockBogons == xmlBoolTrue,
+			BlockPrivate: isPfSenseValueTrue(iface.BlockPriv),
+			BlockBogons:  isPfSenseValueTrue(iface.BlockBogons),
 			Type:         iface.Type,
 			MTU:          iface.MTU,
 			SpoofMAC:     iface.Spoofmac,
@@ -132,7 +136,7 @@ func (c *converter) convertGateways(doc *pfsense.Document) []common.Gateway {
 			Disabled:       bool(gw.Disabled),
 			DefaultGW:      gw.DefaultGW,
 			MonitorDisable: gw.MonitorDisable,
-			FarGW:          gw.FarGW == xmlBoolTrue,
+			FarGW:          isPfSenseValueTrue(gw.FarGW),
 		})
 	}
 

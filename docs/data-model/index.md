@@ -77,7 +77,7 @@ CommonDevice (root)
 
 ## Documentation
 
-- **[Model Reference](model-reference.md)** - Complete field reference for the internal XML schema (OpnSenseDocument)
+- **[Model Reference](model-reference.md)** - Complete field reference for the CommonDevice export model and internal XML schemas
 - **[JSON Export Examples](examples/json-export.md)** - Common jq queries
 - **[YAML Processing Examples](examples/yaml-processing.md)** - Working with yq
 

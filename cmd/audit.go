@@ -158,8 +158,8 @@ mode and compliance plugins.
   AUDIT MODES:
   Select the audit perspective using the --mode flag:
 
-    standard  - Neutral, comprehensive documentation report (default)
-    blue      - Defensive audit with security findings and recommendations
+    standard  - Neutral, comprehensive documentation report
+    blue      - Defensive audit with security findings and recommendations (default)
     red       - Attacker-focused recon report highlighting attack surfaces
 
   COMPLIANCE PLUGINS (blue mode only):
@@ -182,14 +182,14 @@ mode and compliance plugins.
     html      - Self-contained HTML report for web viewing
 
 Examples:
-  # Run a standard audit (documentation report, no compliance plugins)
+  # Run a blue team audit with all compliance plugins (default)
   opnDossier audit config.xml
 
-  # Blue team defensive audit with STIG and SANS compliance
-  opnDossier audit config.xml --mode blue --plugins stig,sans
+  # Blue team defensive audit with specific plugins
+  opnDossier audit config.xml --plugins stig,sans
 
-  # Blue team audit with all compliance plugins (default when no --plugins)
-  opnDossier audit config.xml --mode blue
+  # Standard mode (documentation report, no compliance plugins)
+  opnDossier audit config.xml --mode standard
 
   # Red team attack surface analysis
   opnDossier audit config.xml --mode red

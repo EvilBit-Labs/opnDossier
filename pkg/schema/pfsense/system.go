@@ -50,7 +50,7 @@ type Group struct {
 	Scope       string `xml:"scope"       json:"scope"                 yaml:"scope"`
 	//nolint:staticcheck // Field name matches pfSense schema
 	Gid    string   `xml:"gid"    json:"gid"                  yaml:"gid"`
-	Member string   `xml:"member" json:"member,omitempty"     yaml:"member,omitempty"`
+	Member []string `xml:"member" json:"members,omitempty"    yaml:"members,omitempty"`
 	Priv   []string `xml:"priv"   json:"privileges,omitempty" yaml:"privileges,omitempty"`
 }
 

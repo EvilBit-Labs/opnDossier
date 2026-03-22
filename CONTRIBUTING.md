@@ -372,7 +372,7 @@ Use restrictive file permissions for sensitive material. Configuration files and
 
 Keep error messages safe for operators and safe for logs. Do not leak credentials, raw configuration secrets, internal-only filesystem details, or sensitive values in returned errors. The SNMP community redaction logic in `internal/processor/report.go` is the canonical example of how sensitive values should be handled.
 
-When adding a new device type, audit its XML element names for credential fields and add them to the sanitizer's field-pattern lists in `internal/sanitizer/rules.go` (`FieldPatterns`) and `internal/sanitizer/patterns.go` (`passwordKeywords`). Device types may use different element names for the same data (e.g., pfSense uses `<bcrypt-hash>` where OPNsense uses `<password>`). Verify with: `opndossier sanitize <config.xml> | grep -i 'hash\|secret\|key\|pass\|community'`.
+When adding a new device type, audit its XML element names for credential fields and add them to the sanitizer's field-pattern lists in `internal/sanitizer/rules.go` (`FieldPatterns`) and `internal/sanitizer/patterns.go` (`passwordKeywords`). Device types may use different element names for the same data (e.g., pfSense uses `<bcrypt-hash>` where OPNsense uses `<password>`). Verify with: `opndossier sanitize <config.xml> | grep -iE 'hash|secret|key|pass|community' | grep -v REDACTED` — the output should be empty. Any lines that appear contain unredacted sensitive values that need new sanitizer rules.
 
 Never commit secrets to source control. Use environment variables or secure secret storage when a secret is genuinely required. For the full vulnerability reporting process and threat model, see `SECURITY.md` and `docs/security/security-assurance.md`.
 
