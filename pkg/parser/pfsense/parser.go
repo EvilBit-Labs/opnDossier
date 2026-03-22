@@ -16,6 +16,14 @@ import (
 // errMissingRoot is returned when the XML document lacks a <pfsense> root element.
 var errMissingRoot = errors.New("invalid XML: missing pfsense root element")
 
+// ValidateFunc is a function that validates a parsed pfSense document and
+// returns an error if validation fails. Set this package-level variable from
+// the cmd layer to inject internal/validator without violating pkg/ purity.
+// When nil, ParseAndValidate falls back to structural parsing only.
+//
+//nolint:gochecknoglobals // injection point — set once at startup from cmd/
+var ValidateFunc func(doc *pfsense.Document) error
+
 // Parser implements the DeviceParser interface for pfSense configuration files.
 // It manages its own XML decoding because the shared XMLDecoder returns
 // *schema.OpnSenseDocument which is incompatible with pfsense.Document.
@@ -43,14 +51,25 @@ func (p *Parser) Parse(ctx context.Context, r io.Reader) (*common.CommonDevice, 
 }
 
 // ParseAndValidate reads a pfSense XML configuration from r, runs structural
-// parsing, and returns a platform-agnostic CommonDevice along with any non-fatal
-// conversion warnings.
-// TODO: Wire semantic validation via cmd layer (similar to OPNsense cfgparser → validator).
+// parsing and semantic validation, and returns a platform-agnostic CommonDevice
+// along with any non-fatal conversion warnings. If no validator has been
+// injected via SetValidator, falls back to structural parsing only.
 func (p *Parser) ParseAndValidate(
 	ctx context.Context,
 	r io.Reader,
 ) (*common.CommonDevice, []common.ConversionWarning, error) {
-	return p.Parse(ctx, r)
+	doc, err := p.decode(ctx, r)
+	if err != nil {
+		return nil, nil, fmt.Errorf("pfsense parser: %w", err)
+	}
+
+	if ValidateFunc != nil {
+		if vErr := ValidateFunc(doc); vErr != nil {
+			return nil, nil, fmt.Errorf("pfsense validation: %w", vErr)
+		}
+	}
+
+	return toCommonDevice(doc)
 }
 
 // decode reads XML from r into a pfsense.Document with security hardening

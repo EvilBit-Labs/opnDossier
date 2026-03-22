@@ -77,14 +77,15 @@ func (p *Document) Hostname() string {
 }
 
 // InterfaceByName returns a network interface by its interface name (e.g., "em0", "igb0").
-func (p *Document) InterfaceByName(name string) *opnsense.Interface {
+// Returns a copy of the interface and true if found, or zero-value and false if not.
+func (p *Document) InterfaceByName(name string) (opnsense.Interface, bool) {
 	for _, iface := range p.Interfaces.Items {
 		if iface.If == name {
-			return &iface
+			return iface, true
 		}
 	}
 
-	return nil
+	return opnsense.Interface{}, false
 }
 
 // FilterRules returns a slice of all firewall filter rules configured in the system.

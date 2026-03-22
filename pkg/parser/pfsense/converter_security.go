@@ -161,10 +161,20 @@ func (c *converter) convertOutboundNATRules(rules []opnsense.NATRule) []common.N
 			)
 		}
 
+		ipProto := common.IPProtocol(r.IPProtocol)
+		if r.IPProtocol != "" && !ipProto.IsValid() {
+			c.addWarning(
+				fmt.Sprintf("NAT.OutboundRules[%d].IPProtocol", i),
+				r.IPProtocol,
+				"unrecognized IP protocol family",
+				common.SeverityLow,
+			)
+		}
+
 		result = append(result, common.NATRule{
 			UUID:       r.UUID,
 			Interfaces: []string(r.Interface),
-			IPProtocol: common.IPProtocol(r.IPProtocol),
+			IPProtocol: ipProto,
 			Protocol:   r.Protocol,
 			Source: common.RuleEndpoint{
 				Address: r.Source.EffectiveAddress(),
@@ -223,10 +233,20 @@ func (c *converter) convertInboundNATRules(rules []pfsense.InboundRule) []common
 			)
 		}
 
+		ipProto := common.IPProtocol(r.IPProtocol)
+		if r.IPProtocol != "" && !ipProto.IsValid() {
+			c.addWarning(
+				fmt.Sprintf("NAT.InboundRules[%d].IPProtocol", i),
+				r.IPProtocol,
+				"unrecognized IP protocol family",
+				common.SeverityLow,
+			)
+		}
+
 		result = append(result, common.InboundNATRule{
 			UUID:       r.UUID,
 			Interfaces: []string(r.Interface),
-			IPProtocol: common.IPProtocol(r.IPProtocol),
+			IPProtocol: ipProto,
 			Protocol:   r.Protocol,
 			Source: common.RuleEndpoint{
 				Address: r.Source.EffectiveAddress(),

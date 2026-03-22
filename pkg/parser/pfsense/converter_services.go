@@ -1,6 +1,7 @@
 package pfsense
 
 import (
+	"fmt"
 	"maps"
 	"slices"
 	"strings"
@@ -247,8 +248,19 @@ func (c *converter) convertOpenVPNCSCs(cscs []opnsense.OpenVPNCSC) []common.Open
 
 // convertSyslog maps pfSense syslog to common.SyslogConfig.
 // pfSense SyslogConfig only has FilterDescriptions which has no counterpart
-// in common.SyslogConfig, so this returns a zero-value config.
-func (c *converter) convertSyslog(_ *pfsense.Document) common.SyslogConfig {
+// in common.SyslogConfig, so this returns a zero-value config with a warning.
+//
+//nolint:unparam // returns zero-value intentionally — pfSense syslog fields have no common model counterpart
+func (c *converter) convertSyslog(doc *pfsense.Document) common.SyslogConfig {
+	if doc.Syslog.FilterDescriptions != "" {
+		c.addWarning(
+			"Syslog.FilterDescriptions",
+			doc.Syslog.FilterDescriptions,
+			"pfSense syslog filter descriptions have no CommonDevice equivalent; data not converted",
+			common.SeverityLow,
+		)
+	}
+
 	return common.SyslogConfig{}
 }
 
@@ -269,10 +281,19 @@ func (c *converter) convertCron(doc *pfsense.Document) *common.CronConfig {
 	}
 
 	commands := make([]string, 0, len(doc.Cron.Items))
-	for _, item := range doc.Cron.Items {
-		if item.Command != "" {
-			commands = append(commands, item.Command)
+	for i, item := range doc.Cron.Items {
+		if item.Command == "" {
+			c.addWarning(
+				fmt.Sprintf("Cron.Items[%d].Command", i),
+				"",
+				"cron job has empty command",
+				common.SeverityLow,
+			)
+
+			continue
 		}
+
+		commands = append(commands, item.Command)
 	}
 
 	if len(commands) == 0 {

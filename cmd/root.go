@@ -10,8 +10,10 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
-	_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense" // self-registers OPNsense parser via init()
-	_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/pfsense"  // self-registers pfSense parser via init()
+	"github.com/EvilBit-Labs/opnDossier/internal/validator"
+	_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"       // self-registers OPNsense parser via init()
+	pfparser "github.com/EvilBit-Labs/opnDossier/pkg/parser/pfsense" // self-registers pfSense parser via init()
+	"github.com/EvilBit-Labs/opnDossier/pkg/schema/pfsense"
 	charmLog "github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -137,11 +139,13 @@ func setupFullContext(cmd *cobra.Command) error {
 	//   --verbose → info (includes warn + error)
 	//   --debug   → debug (includes info + warn + error)
 	logLevel := "warn"
-	if cfg.IsQuiet() {
+
+	switch {
+	case cfg.IsQuiet():
 		logLevel = "error"
-	} else if cfg.IsDebug() {
+	case cfg.IsDebug():
 		logLevel = "debug"
-	} else if cfg.IsVerbose() {
+	case cfg.IsVerbose():
 		logLevel = "info"
 	}
 
@@ -183,6 +187,7 @@ func setupFullContext(cmd *cobra.Command) error {
 // If logger initialization fails, a stderr-based fallback logger is used to keep the CLI operational.
 func init() {
 	initializeDefaultLogger()
+	wirePfSenseValidator()
 
 	// Configuration flags
 	rootCmd.PersistentFlags().
@@ -312,6 +317,27 @@ func initializeDefaultLogger() {
 	logger, loggerErr = logging.New(defaultLoggerConfig)
 	if loggerErr != nil {
 		logger = createFallbackLogger(loggerErr)
+	}
+}
+
+// wirePfSenseValidator injects the internal/validator validation function into
+// the pfSense parser package. This bridges pkg/ → internal/ without violating
+// public package purity (§5.24): the function variable lives in pkg/, the
+// implementation lives in internal/, and the wiring happens here in cmd/.
+func wirePfSenseValidator() {
+	pfparser.ValidateFunc = func(doc *pfsense.Document) error {
+		errs := validator.ValidatePfSenseDocument(doc)
+		if len(errs) == 0 {
+			return nil
+		}
+
+		// Aggregate validation errors into a single error message.
+		msgs := make([]string, 0, len(errs))
+		for _, e := range errs {
+			msgs = append(msgs, fmt.Sprintf("%s: %s", e.Field, e.Message))
+		}
+
+		return fmt.Errorf("pfSense validation failed (%d errors): %s", len(errs), strings.Join(msgs, "; "))
 	}
 }
 

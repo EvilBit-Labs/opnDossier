@@ -25,6 +25,8 @@ func ValidatePfSenseDocument(doc *pfsense.Document) []ValidationError {
 	var errors []ValidationError
 
 	errors = append(errors, validatePfSenseSystem(&doc.System)...)
+	// validateInterfaces and validateDhcpd are reused from the OPNsense validator
+	// because pfSense uses identical schema types (opnsense.Interfaces, opnsense.Dhcpd).
 	errors = append(errors, validateInterfaces(&doc.Interfaces)...)
 	errors = append(errors, validateDhcpd(&doc.Dhcpd, &doc.Interfaces)...)
 	errors = append(errors, validatePfSenseFilter(&doc.Filter, &doc.Interfaces)...)

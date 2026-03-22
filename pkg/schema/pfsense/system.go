@@ -66,16 +66,16 @@ func NewSystem() System {
 // The critical difference from OPNsense is the use of bcrypt-hash instead of password,
 // and user-level privileges via the Priv field.
 type User struct {
-	Name           string            `xml:"name"           json:"name"                  yaml:"name"`
-	Disabled       opnsense.BoolFlag `xml:"disabled"       json:"disabled"              yaml:"disabled"`
-	Descr          string            `xml:"descr"          json:"description,omitempty" yaml:"description,omitempty"`
-	Scope          string            `xml:"scope"          json:"scope"                 yaml:"scope"`
-	Groupname      string            `xml:"groupname"      json:"groupname"             yaml:"groupname"`
-	BcryptHash     string            `xml:"bcrypt-hash"    json:"bcryptHash"            yaml:"bcryptHash"`
-	UID            string            `xml:"uid"            json:"uid"                   yaml:"uid"`
-	Priv           []string          `xml:"priv,omitempty" json:"priv,omitempty"        yaml:"priv,omitempty"`
-	Expires        opnsense.BoolFlag `xml:"expires"        json:"expires"               yaml:"expires,omitempty"`
-	AuthorizedKeys opnsense.BoolFlag `xml:"authorizedkeys" json:"authorizedKeys"        yaml:"authorizedKeys,omitempty"`
+	Name           string            `xml:"name"           json:"name"                     yaml:"name"`
+	Disabled       opnsense.BoolFlag `xml:"disabled"       json:"disabled"                 yaml:"disabled"`
+	Descr          string            `xml:"descr"          json:"description,omitempty"    yaml:"description,omitempty"`
+	Scope          string            `xml:"scope"          json:"scope"                    yaml:"scope"`
+	Groupname      string            `xml:"groupname"      json:"groupname"                yaml:"groupname"`
+	BcryptHash     string            `xml:"bcrypt-hash"    json:"bcryptHash"               yaml:"bcryptHash"`
+	UID            string            `xml:"uid"            json:"uid"                      yaml:"uid"`
+	Priv           []string          `xml:"priv,omitempty" json:"priv,omitempty"           yaml:"priv,omitempty"`
+	Expires        string            `xml:"expires"        json:"expires,omitempty"        yaml:"expires,omitempty"`
+	AuthorizedKeys string            `xml:"authorizedkeys" json:"authorizedKeys,omitempty" yaml:"authorizedKeys,omitempty"`
 }
 
 // NewUser returns a User with zero-value defaults.

@@ -3,6 +3,7 @@ package pfsense_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -16,6 +17,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
+
+// xmlRootPfSense is the expected XML root element name for pfSense configurations.
+const xmlRootPfSense = "pfsense"
 
 // --- Parser.Parse tests ---
 
@@ -1238,4 +1242,237 @@ func TestParser_ConfigPfSense_Warnings(t *testing.T) {
 		assert.NotEmpty(t, w.Message, "warning Message should not be empty")
 		assert.True(t, common.IsValidSeverity(w.Severity), "warning Severity %q should be valid", w.Severity)
 	}
+}
+
+func TestConverter_InvalidEnumValues(t *testing.T) {
+	t.Parallel()
+
+	doc := pfsenseSchema.NewDocument()
+	doc.XMLName.Local = xmlRootPfSense
+	doc.Filter.Rule = []pfsenseSchema.FilterRule{
+		{
+			Type:        "match",
+			Direction:   "sideways",
+			IPProtocol:  "ipv5",
+			Source:      opnsense.Source{Any: new(string)},
+			Destination: opnsense.Destination{Any: new(string)},
+			Interface:   opnsense.InterfaceList{"lan"},
+		},
+	}
+	doc.Nat.Outbound.Rule = []opnsense.NATRule{
+		{
+			IPProtocol:  "ipv5",
+			Interface:   opnsense.InterfaceList{"wan"},
+			Source:      opnsense.Source{Any: new(string)},
+			Destination: opnsense.Destination{Any: new(string)},
+		},
+	}
+	doc.Nat.Inbound = []pfsenseSchema.InboundRule{
+		{
+			IPProtocol:  "ipv5",
+			Target:      "10.0.0.1",
+			Interface:   opnsense.InterfaceList{"wan"},
+			Source:      opnsense.Source{Any: new(string)},
+			Destination: opnsense.Destination{Any: new(string)},
+		},
+	}
+	doc.Nat.Outbound.Mode = "bogus"
+
+	device, warnings, err := pfsense.ConvertDocument(doc)
+	require.NoError(t, err)
+	require.NotNil(t, device)
+
+	// Expect warnings for: unrecognized firewall type, direction, IP protocol (firewall),
+	// IP protocol (outbound NAT), IP protocol (inbound NAT), outbound mode
+	enumWarnings := 0
+	for _, w := range warnings {
+		if strings.Contains(w.Message, "unrecognized") {
+			enumWarnings++
+		}
+	}
+
+	assert.Equal(
+		t,
+		6,
+		enumWarnings,
+		"expected 6 unrecognized-enum warnings, got %d; warnings: %v",
+		enumWarnings,
+		warnings,
+	)
+}
+
+func TestConverter_PPPs(t *testing.T) {
+	t.Parallel()
+
+	doc := pfsenseSchema.NewDocument()
+	doc.XMLName.Local = xmlRootPfSense
+	doc.PPPs = opnsense.PPPInterfaces{
+		Ppp: []opnsense.PPP{
+			{If: "pppoe0", Type: "pppoe", Descr: "WAN PPPoE"},
+		},
+	}
+
+	device, _, err := pfsense.ConvertDocument(doc)
+	require.NoError(t, err)
+	require.Len(t, device.PPPs, 1)
+	assert.Equal(t, "pppoe0", device.PPPs[0].Interface)
+	assert.Equal(t, "pppoe", device.PPPs[0].Type)
+	assert.Equal(t, "WAN PPPoE", device.PPPs[0].Description)
+}
+
+func TestConverter_GatewayGroups(t *testing.T) {
+	t.Parallel()
+
+	doc := pfsenseSchema.NewDocument()
+	doc.XMLName.Local = xmlRootPfSense
+	doc.Gateways = opnsense.Gateways{
+		Gateway: []opnsense.Gateway{
+			{Name: "WAN_DHCP", Interface: "wan", Gateway: "dynamic"},
+		},
+		Groups: []opnsense.GatewayGroup{
+			{Name: "WANGROUP", Trigger: "downloss", Descr: "WAN Failover"},
+		},
+	}
+
+	device, _, err := pfsense.ConvertDocument(doc)
+	require.NoError(t, err)
+	require.Len(t, device.Routing.Gateways, 1)
+	assert.Equal(t, "WAN_DHCP", device.Routing.Gateways[0].Name)
+	require.Len(t, device.Routing.GatewayGroups, 1)
+	assert.Equal(t, "WANGROUP", device.Routing.GatewayGroups[0].Name)
+	assert.Equal(t, "downloss", device.Routing.GatewayGroups[0].Trigger)
+}
+
+func TestConverter_OpenVPNCSCs(t *testing.T) {
+	t.Parallel()
+
+	doc := pfsenseSchema.NewDocument()
+	doc.XMLName.Local = xmlRootPfSense
+	doc.OpenVPN = opnsense.OpenVPN{
+		CSC: []opnsense.OpenVPNCSC{
+			{
+				Common_name:    "client1",
+				Tunnel_network: "10.8.1.0/24",
+				DNS_domain:     "vpn.local",
+				DNS_server1:    "10.8.0.1",
+			},
+		},
+	}
+
+	device, _, err := pfsense.ConvertDocument(doc)
+	require.NoError(t, err)
+	require.Len(t, device.VPN.OpenVPN.ClientSpecificConfigs, 1)
+	csc := device.VPN.OpenVPN.ClientSpecificConfigs[0]
+	assert.Equal(t, "client1", csc.CommonName)
+	assert.Equal(t, "10.8.1.0/24", csc.TunnelNetwork)
+	assert.Equal(t, "vpn.local", csc.DNSDomain)
+	assert.Contains(t, csc.DNSServers, "10.8.0.1")
+}
+
+func TestConverter_UnconvertedSectionWarnings(t *testing.T) {
+	t.Parallel()
+
+	doc := pfsenseSchema.NewDocument()
+	doc.XMLName.Local = xmlRootPfSense
+	doc.DHCPv6Server.Items["lan"] = pfsenseSchema.DHCPv6Interface{
+		Enable: "1",
+		RAMode: "assist",
+	}
+	doc.Unbound.HideIdentity = true
+	doc.Unbound.ActiveInterface = "lan,wan"
+	doc.Syslog.FilterDescriptions = "1"
+
+	_, warnings, err := pfsense.ConvertDocument(doc)
+	require.NoError(t, err)
+
+	warningFields := make([]string, 0, len(warnings))
+	for _, w := range warnings {
+		warningFields = append(warningFields, w.Field)
+	}
+
+	assert.Contains(t, warningFields, "DHCPv6")
+	assert.Contains(t, warningFields, "Unbound.Security")
+	assert.Contains(t, warningFields, "Unbound.ActiveInterface")
+	assert.Contains(t, warningFields, "Syslog.FilterDescriptions")
+}
+
+func TestConverter_CronEmptyCommand(t *testing.T) {
+	t.Parallel()
+
+	doc := pfsenseSchema.NewDocument()
+	doc.XMLName.Local = xmlRootPfSense
+	doc.Cron.Items = []pfsenseSchema.CronItem{
+		{Command: "/usr/bin/nice -n20 newsyslog", Minute: "1", Hour: "0"},
+		{Command: "", Minute: "0", Hour: "0"},
+	}
+
+	device, warnings, err := pfsense.ConvertDocument(doc)
+	require.NoError(t, err)
+	require.NotNil(t, device.Cron)
+	assert.Equal(t, "/usr/bin/nice -n20 newsyslog", device.Cron.Jobs)
+
+	cronWarnings := 0
+	for _, w := range warnings {
+		if strings.Contains(w.Field, "Cron") && strings.Contains(w.Message, "empty command") {
+			cronWarnings++
+		}
+	}
+
+	assert.Equal(t, 1, cronWarnings, "expected 1 empty-command cron warning")
+}
+
+func TestParser_ParseAndValidateWithValidator(t *testing.T) {
+	origFunc := pfsense.ValidateFunc
+	t.Cleanup(func() { pfsense.ValidateFunc = origFunc })
+
+	t.Run("validates with injected validator", func(t *testing.T) {
+		pfsense.ValidateFunc = func(_ *pfsenseSchema.Document) error {
+			return nil
+		}
+
+		p := pfsense.NewParser(nil)
+		xmlData := `<?xml version="1.0"?><pfsense><version>19.1</version><system><hostname>test</hostname></system></pfsense>`
+		device, _, err := p.ParseAndValidate(context.Background(), strings.NewReader(xmlData))
+
+		require.NoError(t, err)
+		assert.Equal(t, "test", device.System.Hostname)
+	})
+
+	t.Run("returns validation error", func(t *testing.T) {
+		pfsense.ValidateFunc = func(_ *pfsenseSchema.Document) error {
+			return errors.New("hostname is required")
+		}
+
+		p := pfsense.NewParser(nil)
+		xmlData := `<?xml version="1.0"?><pfsense><version>19.1</version></pfsense>`
+		_, _, err := p.ParseAndValidate(context.Background(), strings.NewReader(xmlData))
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "validation")
+		assert.Contains(t, err.Error(), "hostname is required")
+	})
+
+	t.Run("falls back to parse when no validator", func(t *testing.T) {
+		pfsense.ValidateFunc = nil
+
+		p := pfsense.NewParser(nil)
+		xmlData := `<?xml version="1.0"?><pfsense><version>19.1</version><system><hostname>fallback</hostname></system></pfsense>`
+		device, _, err := p.ParseAndValidate(context.Background(), strings.NewReader(xmlData))
+
+		require.NoError(t, err)
+		assert.Equal(t, "fallback", device.System.Hostname)
+	})
+}
+
+func TestConverter_FirmwareVersion(t *testing.T) {
+	t.Parallel()
+
+	doc := pfsenseSchema.NewDocument()
+	doc.XMLName.Local = xmlRootPfSense
+	doc.Version = "22.9"
+
+	device, _, err := pfsense.ConvertDocument(doc)
+	require.NoError(t, err)
+	assert.Equal(t, "22.9", device.System.Firmware.Version)
+	assert.Equal(t, "22.9", device.Version)
 }

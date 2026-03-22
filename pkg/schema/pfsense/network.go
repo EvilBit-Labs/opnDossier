@@ -3,6 +3,8 @@ package pfsense
 
 import (
 	"encoding/xml"
+	"maps"
+	"slices"
 
 	opnsense "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
@@ -45,7 +47,8 @@ func (d *DHCPv6) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 		return err
 	}
 
-	for key, dhcpIface := range d.Items {
+	for _, key := range slices.Sorted(maps.Keys(d.Items)) {
+		dhcpIface := d.Items[key]
 		dhcpStart := xml.StartElement{Name: xml.Name{Local: key}}
 		if err := e.EncodeElement(dhcpIface, dhcpStart); err != nil {
 			return err
@@ -73,12 +76,7 @@ func (d *DHCPv6) Names() []string {
 		return []string{}
 	}
 
-	names := make([]string, 0, len(d.Items))
-	for key := range d.Items {
-		names = append(names, key)
-	}
-
-	return names
+	return slices.Sorted(maps.Keys(d.Items))
 }
 
 // DHCPv6Interface contains the DHCPv6 server configuration for a specific interface.
