@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"slices"
 	"strings"
 	"sync"
@@ -280,6 +281,12 @@ func runAudit(cmd *cobra.Command, args []string) error {
 			defer wg.Done()
 			defer func() {
 				if r := recover(); r != nil {
+					cmdLogger.WithContext(timeoutCtx).Error(
+						"goroutine panicked during audit processing",
+						"input_file", fp,
+						"panic", r,
+						"stack", string(debug.Stack()),
+					)
 					results[idx] = resultOrError{
 						err: fmt.Errorf("panic processing %s: %v", fp, r),
 					}
