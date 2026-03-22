@@ -4,11 +4,9 @@ package pfsense
 
 import (
 	"context"
-	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
@@ -29,7 +27,7 @@ type Parser struct {
 // for compatibility with the ConstructorFunc signature but is not used because
 // pfSense requires its own XML decoding pipeline.
 func NewParser(_ parser.XMLDecoder) *Parser {
-	return &Parser{maxInputSize: defaultMaxInputSize}
+	return &Parser{maxInputSize: parser.DefaultMaxInputSize}
 }
 
 // Parse reads a pfSense XML configuration from r (structural parsing only,
@@ -56,7 +54,8 @@ func (p *Parser) ParseAndValidate(
 }
 
 // decode reads XML from r into a pfsense.Document with security hardening
-// (input size limit, XXE protection, charset handling).
+// (input size limit, XXE protection, charset handling) via the shared
+// parser.NewSecureXMLDecoder helper.
 func (p *Parser) decode(ctx context.Context, r io.Reader) (*pfsense.Document, error) {
 	select {
 	case <-ctx.Done():
@@ -64,10 +63,7 @@ func (p *Parser) decode(ctx context.Context, r io.Reader) (*pfsense.Document, er
 	default:
 	}
 
-	limitedReader := io.LimitReader(r, p.maxInputSize)
-	dec := xml.NewDecoder(limitedReader)
-	dec.Entity = map[string]string{} // Disable entity expansion (XXE protection)
-	dec.CharsetReader = simpleCharsetReader
+	dec := parser.NewSecureXMLDecoder(r, p.maxInputSize)
 
 	var doc pfsense.Document
 	if err := dec.Decode(&doc); err != nil {
@@ -85,18 +81,6 @@ func (p *Parser) decode(ctx context.Context, r io.Reader) (*pfsense.Document, er
 	}
 
 	return &doc, nil
-}
-
-// simpleCharsetReader handles common XML charset declarations.
-// Only charsets whose ASCII subset matches UTF-8 are accepted, which is
-// sufficient because XML element names use only ASCII-range characters.
-func simpleCharsetReader(charset string, input io.Reader) (io.Reader, error) {
-	switch strings.ToLower(charset) {
-	case "us-ascii", "iso-8859-1", "latin-1", "utf-8":
-		return input, nil
-	default:
-		return nil, fmt.Errorf("unsupported XML charset: %s", charset)
-	}
 }
 
 // toCommonDevice converts a parsed pfSense document into a CommonDevice.

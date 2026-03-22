@@ -82,7 +82,7 @@ func TestParser_Parse(t *testing.T) {
 			input:     `<?xml version="1.0" encoding="EBCDIC"?><pfsense/>`,
 			ctxFn:     context.Background,
 			wantErr:   true,
-			errSubstr: "unsupported XML charset",
+			errSubstr: "unsupported charset",
 		},
 	}
 

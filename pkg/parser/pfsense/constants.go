@@ -11,8 +11,4 @@ const (
 
 	// xmlBoolYes is the pfSense XML value for affirmative options (e.g., floating="yes").
 	xmlBoolYes = "yes"
-
-	// defaultMaxInputSize is the maximum allowed XML input size in bytes (10 MB).
-	// This mirrors cfgparser.DefaultMaxInputSize and prevents XML bomb attacks.
-	defaultMaxInputSize = 10 * 1024 * 1024
 )
