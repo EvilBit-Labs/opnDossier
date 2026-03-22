@@ -56,9 +56,9 @@ func TestComputeStatistics(t *testing.T) {
 					{Name: "opt1", Type: "ethernet", Enabled: true},
 				},
 				FirewallRules: []common.FirewallRule{
-					{Type: "pass", Interfaces: []string{"wan"}},
-					{Type: "pass", Interfaces: []string{"lan"}},
-					{Type: "block", Interfaces: []string{"wan"}},
+					{Type: common.RuleTypePass, Interfaces: []string{"wan"}},
+					{Type: common.RuleTypePass, Interfaces: []string{"lan"}},
+					{Type: common.RuleTypeBlock, Interfaces: []string{"wan"}},
 				},
 				System: common.System{
 					WebGUI: common.WebGUI{Protocol: "https"},
@@ -75,7 +75,7 @@ func TestComputeStatistics(t *testing.T) {
 			name: "NAT entries count both directions",
 			cfg: &common.CommonDevice{
 				NAT: common.NATConfig{
-					OutboundMode: "automatic",
+					OutboundMode: common.OutboundAutomatic,
 					OutboundRules: []common.NATRule{
 						{Description: "outbound1"},
 						{Description: "outbound2"},

@@ -75,11 +75,11 @@ func ComputeStatistics(cfg *common.CommonDevice) *common.Statistics {
 		for _, iface := range rule.Interfaces {
 			stats.RulesByInterface[iface]++
 		}
-		stats.RulesByType[rule.Type]++
+		stats.RulesByType[string(rule.Type)]++
 	}
 
 	// NAT statistics
-	stats.NATMode = cfg.NAT.OutboundMode
+	stats.NATMode = string(cfg.NAT.OutboundMode)
 	stats.NATEntries = len(cfg.NAT.OutboundRules) + len(cfg.NAT.InboundRules)
 
 	// Gateway statistics

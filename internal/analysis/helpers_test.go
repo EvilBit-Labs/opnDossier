@@ -150,7 +150,7 @@ func TestIndexedRule(t *testing.T) {
 	t.Parallel()
 
 	rule := common.FirewallRule{
-		Type:       "pass",
+		Type:       common.RuleTypePass,
 		Interfaces: []string{"wan"},
 	}
 
@@ -160,6 +160,6 @@ func TestIndexedRule(t *testing.T) {
 	}
 
 	assert.Equal(t, 5, ir.Index)
-	assert.Equal(t, "pass", ir.Rule.Type)
+	assert.Equal(t, common.RuleTypePass, ir.Rule.Type)
 	assert.Equal(t, []string{"wan"}, ir.Rule.Interfaces)
 }

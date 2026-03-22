@@ -53,7 +53,7 @@ func DetectDeadRules(cfg *common.CommonDevice) []common.DeadRuleFinding {
 			// Block-all makes subsequent rules unreachable.
 			srcAny := ir.Rule.Source.Address == constants.NetworkAny
 			dstAny := ir.Rule.Destination.Address == constants.NetworkAny
-			if ir.Rule.Type == "block" && srcAny && dstAny && i < len(rules)-1 {
+			if ir.Rule.Type == common.RuleTypeBlock && srcAny && dstAny && i < len(rules)-1 {
 				findings = append(findings, common.DeadRuleFinding{
 					Kind:      common.DeadRuleKindUnreachable,
 					RuleIndex: ir.Index,
@@ -159,7 +159,7 @@ func DetectSecurityIssues(cfg *common.CommonDevice) []common.SecurityFinding {
 		findings = append(findings, common.SecurityFinding{
 			Component:      "system.webgui.protocol",
 			Issue:          "Insecure Web GUI Protocol",
-			Severity:       "critical",
+			Severity:       common.SeverityCritical,
 			Description:    "Web GUI is configured to use HTTP instead of HTTPS",
 			Recommendation: "Change web GUI protocol to HTTPS for secure administration",
 		})
@@ -169,19 +169,19 @@ func DetectSecurityIssues(cfg *common.CommonDevice) []common.SecurityFinding {
 		findings = append(findings, common.SecurityFinding{
 			Component:      "snmpd.rocommunity",
 			Issue:          "Default SNMP Community String",
-			Severity:       "high",
+			Severity:       common.SeverityHigh,
 			Description:    "SNMP is using the default 'public' community string",
 			Recommendation: "Change SNMP community string to a secure, non-default value",
 		})
 	}
 
 	for i, rule := range cfg.FirewallRules {
-		if rule.Type == constants.RuleTypePass && rule.Source.Address == constants.NetworkAny &&
+		if rule.Type == common.RuleTypePass && rule.Source.Address == constants.NetworkAny &&
 			slices.Contains(rule.Interfaces, "wan") {
 			findings = append(findings, common.SecurityFinding{
 				Component:      fmt.Sprintf("filter.rule[%d]", i),
 				Issue:          "Overly Permissive WAN Rule",
-				Severity:       "high",
+				Severity:       common.SeverityHigh,
 				Description:    fmt.Sprintf("Rule %d allows any source to pass traffic on WAN interface", i+1),
 				Recommendation: "Restrict source networks or add specific destination restrictions",
 			})
@@ -204,7 +204,7 @@ func DetectPerformanceIssues(cfg *common.CommonDevice) []common.PerformanceFindi
 		findings = append(findings, common.PerformanceFinding{
 			Component:      "system.disablechecksumoffloading",
 			Issue:          "Checksum Offloading Disabled",
-			Severity:       "low",
+			Severity:       common.SeverityLow,
 			Description:    "Hardware checksum offloading is disabled, which may impact performance",
 			Recommendation: "Enable checksum offloading unless experiencing specific hardware issues",
 		})
@@ -214,7 +214,7 @@ func DetectPerformanceIssues(cfg *common.CommonDevice) []common.PerformanceFindi
 		findings = append(findings, common.PerformanceFinding{
 			Component:      "system.disablesegmentationoffloading",
 			Issue:          "Segmentation Offloading Disabled",
-			Severity:       "low",
+			Severity:       common.SeverityLow,
 			Description:    "Hardware segmentation offloading is disabled, which may impact performance",
 			Recommendation: "Enable segmentation offloading unless experiencing specific hardware issues",
 		})
@@ -224,7 +224,7 @@ func DetectPerformanceIssues(cfg *common.CommonDevice) []common.PerformanceFindi
 		findings = append(findings, common.PerformanceFinding{
 			Component: "filter.rule",
 			Issue:     "High Number of Firewall Rules",
-			Severity:  "medium",
+			Severity:  common.SeverityMedium,
 			Description: fmt.Sprintf(
 				"Configuration contains %d firewall rules, which may impact performance",
 				len(cfg.FirewallRules),
@@ -252,7 +252,7 @@ func DetectConsistency(cfg *common.CommonDevice) []common.ConsistencyFinding {
 				findings = append(findings, common.ConsistencyFinding{
 					Component: fmt.Sprintf("interfaces.%s.gateway", iface.Name),
 					Issue:     "Invalid Gateway Format",
-					Severity:  "medium",
+					Severity:  common.SeverityMedium,
 					Description: fmt.Sprintf(
 						"Gateway %s for interface %s appears to be invalid",
 						iface.Gateway, iface.Name,
@@ -271,7 +271,7 @@ func DetectConsistency(cfg *common.CommonDevice) []common.ConsistencyFinding {
 			findings = append(findings, common.ConsistencyFinding{
 				Component:      "dhcpd.lan",
 				Issue:          "DHCP Enabled Without Interface IP",
-				Severity:       "high",
+				Severity:       common.SeverityHigh,
 				Description:    "DHCP is enabled on LAN interface but the interface has no IP address configured",
 				Recommendation: "Configure LAN interface IP address or disable DHCP service",
 			})
@@ -288,7 +288,7 @@ func DetectConsistency(cfg *common.CommonDevice) []common.ConsistencyFinding {
 			findings = append(findings, common.ConsistencyFinding{
 				Component: fmt.Sprintf("system.user[%d].groupname", i),
 				Issue:     "User References Non-existent Group",
-				Severity:  "medium",
+				Severity:  common.SeverityMedium,
 				Description: fmt.Sprintf(
 					"User %s references group %s which does not exist",
 					user.Name, user.GroupName,
