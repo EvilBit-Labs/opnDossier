@@ -233,7 +233,7 @@ func (mc *ModeController) generateBlueReport(_ context.Context, report *Report, 
 }
 
 // generateRedReport generates an attacker-focused recon report highlighting attack surfaces.
-func (mc *ModeController) generateRedReport(_ context.Context, report *Report, config *ModeConfig) (*Report, error) {
+func (mc *ModeController) generateRedReport(_ context.Context, report *Report, _ *ModeConfig) (*Report, error) {
 	mc.logger.Debug("Generating red team report")
 
 	// Add red team specific metadata
