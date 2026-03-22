@@ -112,7 +112,7 @@ func (f *Factory) CreateDevice(
 		return nil, nil, err
 	}
 
-	if deviceTypeOverride != common.DeviceTypeUnknown {
+	if deviceTypeOverride != "" && deviceTypeOverride != common.DeviceTypeUnknown {
 		return f.createWithOverride(ctx, r, deviceTypeOverride, validateMode)
 	}
 
