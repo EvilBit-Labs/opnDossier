@@ -281,7 +281,7 @@ func TestCoreProcessor_Normalization(t *testing.T) {
 		assert.Equal(t, "https", normalized.System.WebGUI.Protocol)
 		assert.Equal(t, "UTC", normalized.System.Timezone)
 		assert.Equal(t, "monthly", normalized.System.Bogons.Interval)
-		assert.Equal(t, "automatic", normalized.NAT.OutboundMode)
+		assert.Equal(t, common.OutboundAutomatic, normalized.NAT.OutboundMode)
 		assert.Equal(t, "opnsense", normalized.Theme)
 	})
 

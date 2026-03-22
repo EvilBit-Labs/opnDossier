@@ -778,7 +778,7 @@ func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
 			// Use the factory to parse and normalize the config into a CommonDevice
 			factory := parser.NewFactory(cfgparser.NewXMLParser())
 
-			device, _, err := factory.CreateDevice(context.Background(), file, "", false)
+			device, _, err := factory.CreateDevice(context.Background(), file, common.DeviceTypeUnknown, false)
 			if err != nil {
 				t.Skipf("Skipping test due to parsing error: %v", err)
 				return

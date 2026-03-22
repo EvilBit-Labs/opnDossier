@@ -73,7 +73,7 @@ func (p *CoreProcessor) analyzeDeadRules(cfg *common.CommonDevice, report *Repor
 // processor-specific check not included in the shared analysis package.
 func checkBroadPassRules(cfg *common.CommonDevice, report *Report) {
 	for i, rule := range cfg.FirewallRules {
-		if rule.Type == constants.RuleTypePass && rule.Source.Address == constants.NetworkAny &&
+		if rule.Type == common.RuleTypePass && rule.Source.Address == constants.NetworkAny &&
 			rule.Description == "" {
 			for _, iface := range rule.Interfaces {
 				report.AddFinding(SeverityHigh, Finding{
@@ -170,19 +170,8 @@ func (p *CoreProcessor) analyzePerformanceIssues(cfg *common.CommonDevice, repor
 	}
 }
 
-// mapSeverity converts a string severity from common finding types to the
-// canonical analysis.Severity constant.
-func mapSeverity(s string) Severity {
-	switch strings.ToLower(s) {
-	case "critical":
-		return SeverityCritical
-	case "high":
-		return SeverityHigh
-	case "medium":
-		return SeverityMedium
-	case "low":
-		return SeverityLow
-	default:
-		return SeverityInfo
-	}
+// mapSeverity converts a common.FindingSeverity to the canonical processor Severity.
+// Both types share the same underlying string constants, so a direct conversion suffices.
+func mapSeverity(s common.FindingSeverity) Severity {
+	return Severity(s)
 }
