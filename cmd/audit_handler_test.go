@@ -807,8 +807,8 @@ func TestEmitAuditResult_MultiFileAutoNaming(t *testing.T) {
 	path1 := deriveAuditOutputPath(result1.inputFile, ".md")
 	path2 := deriveAuditOutputPath(result2.inputFile, ".md")
 
-	assert.Equal(t, "tmp-config1-audit.md", path1)
-	assert.Equal(t, "tmp-config2-audit.md", path2)
+	assert.Equal(t, "tmp_config1-audit.md", path1)
+	assert.Equal(t, "tmp_config2-audit.md", path2)
 	assert.NotEqual(t, path1, path2, "multi-file audit must produce distinct output paths")
 
 	// Verify the derived paths pass through determineOutputPath correctly
@@ -818,8 +818,8 @@ func TestEmitAuditResult_MultiFileAutoNaming(t *testing.T) {
 	require.NoError(t, err1)
 	require.NoError(t, err2)
 
-	assert.Equal(t, "tmp-config1-audit.md", resolvedPath1)
-	assert.Equal(t, "tmp-config2-audit.md", resolvedPath2)
+	assert.Equal(t, "tmp_config1-audit.md", resolvedPath1)
+	assert.Equal(t, "tmp_config2-audit.md", resolvedPath2)
 }
 
 // TestEmitAuditResult_MultiFileConfigOutputFileIgnored verifies that when
@@ -860,8 +860,8 @@ func TestEmitAuditResult_MultiFileConfigOutputFileIgnored(t *testing.T) {
 	require.NoError(t, errResolvedA)
 	require.NoError(t, errResolvedB)
 
-	assert.Equal(t, "tmp-config1-audit.md", resolvedA)
-	assert.Equal(t, "tmp-config2-audit.md", resolvedB)
+	assert.Equal(t, "tmp_config1-audit.md", resolvedA)
+	assert.Equal(t, "tmp_config2-audit.md", resolvedB)
 	assert.NotEqual(t, resolvedA, resolvedB, "multi-file audit must not resolve to same output path")
 }
 
@@ -875,14 +875,14 @@ func TestDeriveAuditOutputPath(t *testing.T) {
 		fileExt   string
 		want      string
 	}{
-		{"markdown from xml", "/path/to/config.xml", ".md", "to-config-audit.md"},
-		{"json from xml", "/path/to/config.xml", ".json", "to-config-audit.json"},
-		{"yaml from xml", "/path/to/config.xml", ".yaml", "to-config-audit.yaml"},
+		{"markdown from xml", "/path/to/config.xml", ".md", "path_to_config-audit.md"},
+		{"json from xml", "/path/to/config.xml", ".json", "path_to_config-audit.json"},
+		{"yaml from xml", "/path/to/config.xml", ".yaml", "path_to_config-audit.yaml"},
 		{"html from xml", "config.xml", ".html", "config-audit.html"},
 		{"txt from xml", "config.xml", ".txt", "config-audit.txt"},
-		{"nested path", "/a/b/c/firewall-prod.xml", ".md", "c-firewall-prod-audit.md"},
-		{"no extension input", "/path/to/config", ".json", "to-config-audit.json"},
-		{"relative path", "configs/backup.xml", ".md", "configs-backup-audit.md"},
+		{"nested path", "/a/b/c/firewall-prod.xml", ".md", "a_b_c_firewall-prod-audit.md"},
+		{"no extension input", "/path/to/config", ".json", "path_to_config-audit.json"},
+		{"relative path", "configs/backup.xml", ".md", "configs_backup-audit.md"},
 		{"bare filename no dir", "config.xml", ".md", "config-audit.md"},
 	}
 
@@ -905,10 +905,69 @@ func TestDeriveAuditOutputPath_BasenameCollision(t *testing.T) {
 	pathA := deriveAuditOutputPath("site-a/config.xml", ".md")
 	pathB := deriveAuditOutputPath("site-b/config.xml", ".md")
 
-	assert.Equal(t, "site-a-config-audit.md", pathA)
-	assert.Equal(t, "site-b-config-audit.md", pathB)
+	assert.Equal(t, "site-a_config-audit.md", pathA)
+	assert.Equal(t, "site-b_config-audit.md", pathB)
 	assert.NotEqual(t, pathA, pathB,
 		"inputs with same basename but different directories must produce distinct output paths")
+}
+
+// TestDeriveAuditOutputPath_SameParentBasenameCollision verifies that inputs under
+// different directory trees that share both the same basename and the same immediate
+// parent directory name still produce distinct output paths. This prevents the
+// collision that would occur if only the immediate parent were used as disambiguator
+// (e.g., /prod/site-a/config.xml and /dr/site-a/config.xml both resolving to
+// "site-a-config-audit.md").
+func TestDeriveAuditOutputPath_SameParentBasenameCollision(t *testing.T) {
+	t.Parallel()
+
+	pathA := deriveAuditOutputPath("/prod/site-a/config.xml", ".md")
+	pathB := deriveAuditOutputPath("/dr/site-a/config.xml", ".md")
+
+	assert.Equal(t, "prod_site-a_config-audit.md", pathA)
+	assert.Equal(t, "dr_site-a_config-audit.md", pathB)
+	assert.NotEqual(t, pathA, pathB,
+		"inputs with same basename AND same parent basename under different trees must produce distinct output paths")
+
+	// Deeper nesting: verify three-level disambiguation
+	pathC := deriveAuditOutputPath("/us-east/prod/fw/config.xml", ".md")
+	pathD := deriveAuditOutputPath("/eu-west/prod/fw/config.xml", ".md")
+
+	assert.Equal(t, "us-east_prod_fw_config-audit.md", pathC)
+	assert.Equal(t, "eu-west_prod_fw_config-audit.md", pathD)
+	assert.NotEqual(t, pathC, pathD,
+		"deeply nested inputs with shared parent segments must still produce distinct output paths")
+}
+
+// TestDeriveAuditOutputPath_SeparatorPlacementCollision verifies that paths which
+// differ only in the placement of dashes versus directory separators produce
+// distinct output filenames. Without lossless separator encoding, "a-b/c/config.xml"
+// and "a/b-c/config.xml" would both flatten to the same name.
+func TestDeriveAuditOutputPath_SeparatorPlacementCollision(t *testing.T) {
+	t.Parallel()
+
+	// Two-level collision: dash in first segment vs dash in second segment.
+	pathA := deriveAuditOutputPath("a-b/c/config.xml", ".md")
+	pathB := deriveAuditOutputPath("a/b-c/config.xml", ".md")
+
+	assert.Equal(t, "a-b_c_config-audit.md", pathA)
+	assert.Equal(t, "a_b-c_config-audit.md", pathB)
+	assert.NotEqual(t, pathA, pathB,
+		"paths differing only in dash vs separator placement must produce distinct output filenames")
+
+	// Deeper nesting: three segments with varied dash placement.
+	pathC := deriveAuditOutputPath("x-y/z/w/config.xml", ".md")
+	pathD := deriveAuditOutputPath("x/y-z/w/config.xml", ".md")
+	pathE := deriveAuditOutputPath("x/y/z-w/config.xml", ".md")
+
+	assert.Equal(t, "x-y_z_w_config-audit.md", pathC)
+	assert.Equal(t, "x_y-z_w_config-audit.md", pathD)
+	assert.Equal(t, "x_y_z-w_config-audit.md", pathE)
+	assert.NotEqual(t, pathC, pathD,
+		"deeper nesting: dash in first vs second segment must differ")
+	assert.NotEqual(t, pathD, pathE,
+		"deeper nesting: dash in second vs third segment must differ")
+	assert.NotEqual(t, pathC, pathE,
+		"deeper nesting: dash in first vs third segment must differ")
 }
 
 // TestHandleAuditMode_StructuredFormats verifies that audit data appears in JSON and YAML output.

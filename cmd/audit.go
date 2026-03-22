@@ -502,23 +502,27 @@ func emitAuditResult(
 
 // deriveAuditOutputPath computes a unique output filename for a multi-file audit
 // run based on the input file's path and the desired format extension.
-// When multiple inputs share the same basename (e.g., "site-a/config.xml" and
-// "site-b/config.xml"), a deterministic path-derived disambiguator is inserted
-// to prevent output collisions. Single-directory inputs produce simple names
-// like "config1-audit.md".
+// Directory separators are encoded as underscores ("_") rather than dashes so
+// that pre-existing dashes within directory or file names are preserved. This
+// prevents distinct paths like "a-b/c/config.xml" and "a/b-c/config.xml" from
+// collapsing to the same filename. Bare filenames without directory components
+// produce simple names like "config-audit.md".
 func deriveAuditOutputPath(inputFile, fileExt string) string {
 	base := filepath.Base(inputFile)
 	ext := filepath.Ext(base)
 	stem := strings.TrimSuffix(base, ext)
 
-	// Include the parent directory name as a disambiguator when the input
-	// path has directory components. This prevents collisions when different
-	// directories contain files with the same basename.
+	// Include all directory components as an underscore-joined prefix.
+	// Underscores encode path separators losslessly so that dashes within
+	// individual segment names remain distinguishable from segment boundaries
+	// (e.g., "a-b/c" → "a-b_c" vs "a/b-c" → "a_b-c").
 	dir := filepath.Dir(inputFile)
 	if dir != "" && dir != "." {
-		// Use the immediate parent directory name as prefix
-		parent := filepath.Base(dir)
-		return parent + "-" + stem + "-audit" + fileExt
+		cleaned := filepath.Clean(dir)
+		cleaned = strings.TrimPrefix(cleaned, string(filepath.Separator))
+		prefix := strings.ReplaceAll(cleaned, string(filepath.Separator), "_")
+
+		return prefix + "_" + stem + "-audit" + fileExt
 	}
 
 	return stem + "-audit" + fileExt
