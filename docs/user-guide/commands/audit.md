@@ -126,8 +126,8 @@ opndossier audit config.xml --mode blue --plugins stig,sans
 # Blue team audit with all compliance plugins (default when no --plugins)
 opndossier audit config.xml --mode blue
 
-# Red team attack surface analysis with blackhat commentary
-opndossier audit config.xml --mode red --blackhat
+# Red team attack surface analysis
+opndossier audit config.xml --mode red
 
 # Export audit report as JSON
 opndossier audit config.xml --format json -o audit-report.json
