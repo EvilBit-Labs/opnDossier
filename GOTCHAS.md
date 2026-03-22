@@ -79,6 +79,10 @@ When converting XML schema `string` fields to typed enums (e.g., `common.Firewal
 - **Symptom:** Invalid enum values (e.g., `FirewallRuleType("match")`) pass through the pipeline without error, failing silently in downstream `switch` statements.
 - **Prevention:** Call `IsValid()` after every XML-to-enum cast. For `NATOutboundMode`, `LAGGProtocol`, and `VIPMode` there is no downstream validation — the converter cast is the only defense.
 
+### 5.3 PreRunE Test Commands Must Bind to Real Globals
+
+When testing `PreRunE` with a temporary `cobra.Command`, bind its flags to the **same** package-level variables the real command uses (e.g., `tempCmd.Flags().StringVar(&auditMode, ...)`). If you bind to local variables instead, `PreRunE` reads stale globals and tests pass vacuously. Always set values via `cmd.Flags().Set()` (not direct assignment) to exercise real pflag parsing.
+
 ## 6. Validator
 
 ### 6.1 GID/UID Zero is Valid
@@ -95,3 +99,26 @@ Unix GID 0 (wheel/root group) and UID 0 (root user) are valid. The validator che
 - **Cause:** Missing blank import means `init()` never ran, registry is empty
 - **Fix:** Add the blank import to the test file or production file using `parser.NewFactory()`
 - **Detection:** Any new test file using `parser.NewFactory()` that sees an empty registry is missing the blank import
+
+## 8. Audit Command
+
+### 8.1 Mode/Plugin Coupling
+
+Only `blue` mode runs `RunComplianceChecks`. The `standard` and `red` modes ignore `SelectedPlugins` entirely. The `--plugins` flag is rejected in `PreRunE` unless `--mode blue` is set.
+
+- **Gotcha:** Adding plugin support to `standard` or `red` mode requires wiring `RunComplianceChecks` into `generateStandardReport`/`generateRedReport` in `mode_controller.go` AND removing the `PreRunE` guard in `cmd/audit.go`.
+- **Gotcha:** `--plugins` only accepts built-in names (`stig`, `sans`, `firewall`). Dynamic plugins loaded via `--plugin-dir` are included automatically when `--plugins` is omitted (the "all available" default). To run *only* a dynamic plugin, the current design does not support it — this is intentional to avoid unvalidated plugin name strings.
+
+### 8.2 Concurrent Generation, Serial Emission
+
+`runAudit` in `cmd/audit.go` processes files concurrently via `generateAuditOutput` (returns string, no I/O), then writes results serially via `emitAuditResult` in the parent goroutine.
+
+- **Gotcha:** Never add stdout writes or file exports inside `generateAuditOutput` — all emission must go through `emitAuditResult` to prevent interleaved output.
+- **Gotcha:** `--output` is rejected with multiple input files in `PreRunE` to prevent file clobbering.
+
+### 8.3 Multi-File Output Path Uniqueness
+
+`deriveAuditOutputPath` uses lossless tilde-based escaping: tildes in path segments become `~~` and underscores become `~u`, freeing the literal underscore to serve as an unambiguous directory separator. This prevents distinct paths from collapsing to the same filename, including boundary cases where one segment ends with `_` and the next begins with `_` (e.g., `a_/b/config.xml` → `a~u_b_config-audit.md` versus `a/_b/config.xml` → `a_~ub_config-audit.md`).
+
+- **Gotcha:** Simple character replacement (e.g., `/` → `-`) is NOT sufficient — paths like `a-b/c/config.xml` and `a/b-c/config.xml` would collide. The escaping must be lossless (invertible). The earlier double-underscore scheme (`_` → `__`, separator → `_`) was also insufficient — it collapsed at segment boundaries where trailing/leading underscores were indistinguishable from the separator.
+- **Gotcha:** Expected output filenames are asserted in 5+ test functions (`TestDeriveAuditOutputPath`, `TestEmitAuditResult_MultiFileAutoNaming`, `TestEmitAuditResult_MultiFileConfigOutputFileIgnored`, `TestDeriveAuditOutputPath_BasenameCollision`, `TestDeriveAuditOutputPath_BoundaryUnderscoreCollision`, etc.). When changing the encoding scheme, grep for all assertion sites — missing one causes CI failure.

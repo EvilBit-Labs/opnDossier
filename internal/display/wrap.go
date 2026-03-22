@@ -28,6 +28,13 @@ func wrapMarkdownContent(content string, width int) string {
 			wrapped = append(wrapped, line)
 			continue
 		}
+		// Never wrap markdown table rows — breaking pipe-delimited cells
+		// across lines corrupts the table structure. Glamour handles its
+		// own internal cell wrapping when rendering tables.
+		if strings.HasPrefix(trimmed, "|") {
+			wrapped = append(wrapped, line)
+			continue
+		}
 		if utf8.RuneCountInString(line) <= width {
 			wrapped = append(wrapped, line)
 			continue

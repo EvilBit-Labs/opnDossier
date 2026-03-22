@@ -36,7 +36,6 @@ func handleAuditMode(
 	// Create mode config
 	modeConfig := &audit.ModeConfig{
 		Mode:            mode,
-		BlackhatMode:    auditOpts.BlackhatMode,
 		Comprehensive:   opt.Comprehensive,
 		SelectedPlugins: auditOpts.SelectedPlugins,
 	}

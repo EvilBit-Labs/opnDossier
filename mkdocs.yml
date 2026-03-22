@@ -42,6 +42,7 @@ nav:
       - Configuration: user-guide/configuration.md
       - Commands:
           - Overview: user-guide/commands/overview.md
+          - audit: user-guide/commands/audit.md
           - convert: user-guide/commands/convert.md
           - display: user-guide/commands/display.md
           - validate: user-guide/commands/validate.md

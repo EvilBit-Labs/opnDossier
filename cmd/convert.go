@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"slices"
 	"strings"
 	"sync"
 
@@ -79,9 +78,6 @@ func init() {
 	// Add shared styling and content flags
 	addSharedTemplateFlags(convertCmd)
 
-	// Add shared audit flags
-	addSharedAuditFlags(convertCmd)
-
 	// Add shared redact flag
 	addSharedRedactFlag(convertCmd)
 
@@ -103,14 +99,6 @@ func registerConvertFlagCompletions(cmd *cobra.Command) {
 	// Section flag completion
 	if err := cmd.RegisterFlagCompletionFunc("section", ValidSections); err != nil {
 		logger.Debug("failed to register section completion", "error", err)
-	}
-
-	// Audit flag completions
-	if err := cmd.RegisterFlagCompletionFunc("audit-mode", ValidAuditModes); err != nil {
-		logger.Debug("failed to register audit-mode completion", "error", err)
-	}
-	if err := cmd.RegisterFlagCompletionFunc("audit-plugins", ValidAuditPlugins); err != nil {
-		logger.Debug("failed to register audit-plugins completion", "error", err)
 	}
 }
 
@@ -156,23 +144,8 @@ programmatic access to your firewall configuration.
   Additional options:
     --comprehensive             - Generate detailed, comprehensive reports
 
-  AUDIT MODE:
-  Enable security auditing with compliance plugins.
-  Audit logging respects global output flags (--verbose/--quiet):
-
-    --audit-mode standard|blue|red  - Enable audit reporting mode
-    --audit-plugins stig,sans,firewall - Select compliance plugins to run
-    --audit-blackhat                - Enable blackhat commentary (red mode only)
-
-  Available audit modes:
-    standard  - Neutral, comprehensive documentation report
-    blue      - Defensive audit with security findings and recommendations
-    red       - Attacker-focused recon report highlighting attack surfaces
-
-  Available compliance plugins:
-    stig      - Security Technical Implementation Guide
-    sans      - SANS Firewall Baseline
-    firewall  - Custom firewall compliance checks
+  For security auditing and compliance checks, use the dedicated 'audit' command:
+    opnDossier audit config.xml --mode blue
 
 The convert command focuses on conversion only and does not perform validation.
 To validate your configuration files before conversion, use the 'validate' command.
@@ -232,22 +205,7 @@ Examples:
   opnDossier convert config.xml --include-tunables
 
   # Validate before converting (recommended workflow)
-  opnDossier validate config.xml && opnDossier convert config.xml -f json -o output.json
-
-  # Blue team defensive audit with STIG and SANS compliance
-  opnDossier convert config.xml --audit-mode blue --audit-plugins stig,sans
-
-  # Blue team audit with verbose audit diagnostics
-  opnDossier --verbose convert config.xml --audit-mode blue --audit-plugins stig,sans
-
-  # Quiet audit mode (errors only)
-  opnDossier --quiet convert config.xml --audit-mode blue
-
-  # Red team attack surface analysis with blackhat commentary
-  opnDossier convert config.xml --audit-mode red --audit-blackhat
-
-  # Standard documentation with all compliance checks
-  opnDossier convert config.xml --audit-mode standard --audit-plugins stig,sans,firewall`,
+  opnDossier validate config.xml && opnDossier convert config.xml -f json -o output.json`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
@@ -465,7 +423,7 @@ func buildEffectiveFormat(flagFormat string, cfg *config.Config) string {
 	}
 
 	// Default
-	return "markdown"
+	return string(converter.FormatMarkdown)
 }
 
 // normalizeFormat maps format aliases to their canonical converter.Format values
@@ -545,10 +503,10 @@ func buildConversionOptions(
 }
 
 // buildAuditOptions constructs an audit.Options value from the shared CLI flag globals.
+// TODO(#457): Remove — shared audit globals are no longer bound to CLI flags.
 func buildAuditOptions() audit.Options {
 	opts := audit.Options{
 		AuditMode:       sharedAuditMode,
-		BlackhatMode:    sharedBlackhatMode,
 		SelectedPlugins: sharedSelectedPlugins,
 	}
 
@@ -639,7 +597,8 @@ func generateOutputByFormat(
 	auditOpts audit.Options,
 	logger *logging.Logger,
 ) (string, error) {
-	// Check if audit mode is enabled - route to audit handler
+	// TODO(#457): Remove audit parameter — unreachable since audit flags were
+	// removed from convert. The auditOpts.AuditMode is always empty.
 	if auditOpts.AuditMode != "" {
 		return handleAuditMode(ctx, device, auditOpts, opt, logger)
 	}
@@ -693,89 +652,8 @@ func normalizeConvertFlags() {
 }
 
 // validateConvertFlags validates flag combinations and CLI options for the convert command.
-// It ensures mutually exclusive wrap flags are not both set, checks that the chosen output
-// format is one of markdown/md/json/yaml/yml/text/txt/html/htm, warns when section filtering is used with
-// JSON or YAML (sections will be ignored), and emits a warning (via cmdLogger or stderr)
-// when wrap width is outside the recommended range. Returns an error for truly invalid
-// values (wrap width < -1, invalid format, invalid audit mode).
-//
+// It delegates format, wrap, and section validation to validateOutputFlags.
 // The cmdLogger parameter is used for structured warnings; if nil, warnings fall back to stderr.
 func validateConvertFlags(flags *pflag.FlagSet, cmdLogger *logging.Logger) error {
-	// Validate mutual exclusivity for wrap flags before other checks
-	if flags != nil {
-		noWrapFlag := flags.Lookup("no-wrap")
-		wrapFlag := flags.Lookup("wrap")
-		if noWrapFlag != nil && wrapFlag != nil && noWrapFlag.Changed && wrapFlag.Changed {
-			return errors.New("--no-wrap and --wrap flags are mutually exclusive")
-		}
-	}
-
-	// Validate format values via the converter registry
-	if format != "" {
-		validFormats := converter.DefaultRegistry.ValidFormatsWithAliases()
-		if !slices.Contains(validFormats, strings.ToLower(format)) {
-			return fmt.Errorf("invalid format %q, must be one of: %s", format, strings.Join(validFormats, ", "))
-		}
-	}
-
-	// Validate output format compatibility
-	if strings.EqualFold(format, "json") && len(sharedSections) > 0 {
-		if cmdLogger != nil {
-			cmdLogger.Warn("section filtering not supported with JSON format, sections will be ignored")
-		} else {
-			fmt.Fprintln(
-				os.Stderr,
-				"Warning: section filtering not supported with JSON format, sections will be ignored",
-			)
-		}
-	}
-
-	canonicalFormat, _ := converter.DefaultRegistry.Canonical(format)
-	if canonicalFormat == "yaml" && len(sharedSections) > 0 {
-		if cmdLogger != nil {
-			cmdLogger.Warn("section filtering not supported with YAML format, sections will be ignored")
-		} else {
-			fmt.Fprintln(
-				os.Stderr,
-				"Warning: section filtering not supported with YAML format, sections will be ignored",
-			)
-		}
-	}
-
-	// Warn (not error) when wrap width is outside recommended range, matching display.go behavior.
-	if sharedWrapWidth > 0 && (sharedWrapWidth < MinWrapWidth || sharedWrapWidth > MaxWrapWidth) {
-		if cmdLogger != nil {
-			cmdLogger.Warn("wrap width is outside recommended range",
-				"width", sharedWrapWidth, "min", MinWrapWidth, "max", MaxWrapWidth)
-		} else {
-			fmt.Fprintf(os.Stderr, "Warning: wrap width %d is outside recommended range [%d, %d]\n",
-				sharedWrapWidth, MinWrapWidth, MaxWrapWidth)
-		}
-	}
-	if sharedWrapWidth < -1 {
-		return fmt.Errorf("invalid wrap width %d: must be -1 (auto-detect), 0 (no wrapping), or positive",
-			sharedWrapWidth)
-	}
-
-	// Validate audit mode if provided
-	if sharedAuditMode != "" {
-		validModes := []string{"standard", "blue", "red"}
-		if !slices.Contains(validModes, strings.ToLower(sharedAuditMode)) {
-			return fmt.Errorf("invalid audit mode %q, must be one of: %s",
-				sharedAuditMode, strings.Join(validModes, ", "))
-		}
-	}
-
-	// Validate audit plugins if provided
-	if len(sharedSelectedPlugins) > 0 {
-		validPlugins := []string{"stig", "sans", "firewall"}
-		for _, p := range sharedSelectedPlugins {
-			if !slices.Contains(validPlugins, strings.ToLower(p)) {
-				return fmt.Errorf("invalid audit plugin %q, must be one of: %s",
-					p, strings.Join(validPlugins, ", "))
-			}
-		}
-	}
-
-	return nil
+	return validateOutputFlags(flags, cmdLogger)
 }

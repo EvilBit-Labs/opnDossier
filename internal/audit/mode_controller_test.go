@@ -387,14 +387,6 @@ func TestModeController_GenerateReport(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "red mode with blackhat",
-			config: &ModeConfig{
-				Mode:         ModeRed,
-				BlackhatMode: true,
-			},
-			wantErr: false,
-		},
-		{
 			name:    "nil config",
 			config:  nil,
 			wantErr: true,
@@ -443,14 +435,6 @@ func TestModeController_GenerateReport(t *testing.T) {
 					t.Errorf("GenerateReport() report mode = %v, want %v", report.Mode, tt.config.Mode)
 				}
 
-				if report.BlackhatMode != tt.config.BlackhatMode {
-					t.Errorf(
-						"GenerateReport() blackhat mode = %v, want %v",
-						report.BlackhatMode,
-						tt.config.BlackhatMode,
-					)
-				}
-
 				if report.Configuration != cfg {
 					t.Error("GenerateReport() configuration not set correctly")
 				}
@@ -476,7 +460,6 @@ func TestReport_Structure(t *testing.T) {
 
 	report := &Report{
 		Mode:          ModeStandard,
-		BlackhatMode:  false,
 		Comprehensive: true,
 		Configuration: &common.CommonDevice{},
 		Findings:      make([]Finding, 0),
@@ -487,10 +470,6 @@ func TestReport_Structure(t *testing.T) {
 	// Test that the report structure is properly initialized
 	if report.Mode != ModeStandard {
 		t.Errorf("Report.Mode = %v, want %v", report.Mode, ModeStandard)
-	}
-
-	if report.BlackhatMode {
-		t.Error("Report.BlackhatMode should be false")
 	}
 
 	if !report.Comprehensive {
@@ -1022,7 +1001,6 @@ func TestReport_AnalysisMethods(t *testing.T) {
 
 	report := &Report{
 		Mode:          ModeStandard,
-		BlackhatMode:  false,
 		Comprehensive: true,
 		Configuration: &common.CommonDevice{
 			System: common.System{
@@ -1177,14 +1155,6 @@ func TestReport_AnalysisMethods(t *testing.T) {
 		// Verify that enumeration data was added
 		if len(report.Metadata) == 0 {
 			t.Error("addEnumerationData() should add enumeration data to the report")
-		}
-	})
-
-	t.Run("addSnarkyCommentary", func(t *testing.T) {
-		report.addSnarkyCommentary()
-		// Verify that snarky commentary was added
-		if len(report.Metadata) == 0 {
-			t.Error("addSnarkyCommentary() should add snarky commentary to the report")
 		}
 	})
 }
@@ -1406,3 +1376,57 @@ func TestPluginManager_GetPluginStatistics(t *testing.T) {
 	}
 }
 */
+
+// TestGenerateBlueReport_NoPluginsRunsAllAvailable verifies that blue mode
+// executes compliance checks using all registered plugins when SelectedPlugins
+// is empty. This is the documented default: `--mode blue` without `--plugins`
+// should produce a full compliance audit, not silently skip compliance.
+func TestGenerateBlueReport_NoPluginsRunsAllAvailable(t *testing.T) {
+	t.Parallel()
+
+	// Register all built-in plugins so the registry has content to resolve.
+	registry := NewPluginRegistry()
+	for _, p := range []compliance.Plugin{stig.NewPlugin(), sans.NewPlugin(), firewall.NewPlugin()} {
+		if err := registry.RegisterPlugin(p); err != nil {
+			t.Fatalf("RegisterPlugin(%s): %v", p.Name(), err)
+		}
+	}
+
+	logger := newTestLogger(t)
+	controller := NewModeController(registry, logger)
+
+	device := &common.CommonDevice{
+		System: common.System{
+			Hostname: "test-fw",
+			Domain:   "example.com",
+		},
+	}
+
+	// Bare blue mode — no SelectedPlugins
+	modeConfig := &ModeConfig{
+		Mode:            ModeBlue,
+		SelectedPlugins: nil,
+	}
+
+	report, err := controller.GenerateReport(context.Background(), device, modeConfig)
+	if err != nil {
+		t.Fatalf("GenerateReport() unexpected error: %v", err)
+	}
+
+	// All three built-in plugins must appear in the compliance results.
+	expectedPlugins := []string{"firewall", "sans", "stig"}
+	for _, name := range expectedPlugins {
+		if _, exists := report.Compliance[name]; !exists {
+			t.Errorf("expected plugin %q in compliance results, but not found", name)
+		}
+	}
+
+	if len(report.Compliance) != len(expectedPlugins) {
+		t.Errorf("expected %d plugins in compliance, got %d", len(expectedPlugins), len(report.Compliance))
+	}
+
+	// Verify metadata indicates compliance ran successfully.
+	if status, ok := report.Metadata["compliance_check_status"]; !ok || status != complianceCheckStatusCompleted {
+		t.Errorf("expected compliance_check_status=%s, got %v", complianceCheckStatusCompleted, status)
+	}
+}
