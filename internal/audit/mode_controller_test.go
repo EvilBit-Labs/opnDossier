@@ -1406,3 +1406,57 @@ func TestPluginManager_GetPluginStatistics(t *testing.T) {
 	}
 }
 */
+
+// TestGenerateBlueReport_NoPluginsRunsAllAvailable verifies that blue mode
+// executes compliance checks using all registered plugins when SelectedPlugins
+// is empty. This is the documented default: `--mode blue` without `--plugins`
+// should produce a full compliance audit, not silently skip compliance.
+func TestGenerateBlueReport_NoPluginsRunsAllAvailable(t *testing.T) {
+	t.Parallel()
+
+	// Register all built-in plugins so the registry has content to resolve.
+	registry := NewPluginRegistry()
+	for _, p := range []compliance.Plugin{stig.NewPlugin(), sans.NewPlugin(), firewall.NewPlugin()} {
+		if err := registry.RegisterPlugin(p); err != nil {
+			t.Fatalf("RegisterPlugin(%s): %v", p.Name(), err)
+		}
+	}
+
+	logger := newTestLogger(t)
+	controller := NewModeController(registry, logger)
+
+	device := &common.CommonDevice{
+		System: common.System{
+			Hostname: "test-fw",
+			Domain:   "example.com",
+		},
+	}
+
+	// Bare blue mode — no SelectedPlugins
+	modeConfig := &ModeConfig{
+		Mode:            ModeBlue,
+		SelectedPlugins: nil,
+	}
+
+	report, err := controller.GenerateReport(context.Background(), device, modeConfig)
+	if err != nil {
+		t.Fatalf("GenerateReport() unexpected error: %v", err)
+	}
+
+	// All three built-in plugins must appear in the compliance results.
+	expectedPlugins := []string{"firewall", "sans", "stig"}
+	for _, name := range expectedPlugins {
+		if _, exists := report.Compliance[name]; !exists {
+			t.Errorf("expected plugin %q in compliance results, but not found", name)
+		}
+	}
+
+	if len(report.Compliance) != len(expectedPlugins) {
+		t.Errorf("expected %d plugins in compliance, got %d", len(expectedPlugins), len(report.Compliance))
+	}
+
+	// Verify metadata indicates compliance ran successfully.
+	if status, ok := report.Metadata["compliance_check_status"]; !ok || status != complianceCheckStatusCompleted {
+		t.Errorf("expected compliance_check_status=%s, got %v", complianceCheckStatusCompleted, status)
+	}
+}

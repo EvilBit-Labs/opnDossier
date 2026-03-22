@@ -43,6 +43,9 @@ const (
 	ModeRed ReportMode = "red"
 )
 
+// complianceCheckStatusCompleted is the metadata value indicating compliance checks ran successfully.
+const complianceCheckStatusCompleted = "completed"
+
 // ModeController manages the generation of different types of audit reports
 // based on the selected mode and configuration.
 type ModeController struct {
@@ -180,11 +183,20 @@ func (mc *ModeController) generateBlueReport(_ context.Context, report *Report, 
 	report.Metadata["report_type"] = "blue_team"
 	report.Metadata["generation_time"] = time.Now().Format(time.RFC3339)
 
-	// Run compliance checks if plugins are selected
-	if len(config.SelectedPlugins) > 0 {
+	// Resolve the plugin set: when no plugins are explicitly selected, run all
+	// available plugins. This matches the documented behavior where bare
+	// `--mode blue` executes a full compliance audit.
+	pluginsToRun := config.SelectedPlugins
+	if len(pluginsToRun) == 0 {
+		pluginsToRun = mc.registry.ListPlugins()
+		mc.logger.Debug("No plugins specified, running all available plugins", "plugins", pluginsToRun)
+	}
+
+	// Run compliance checks with the resolved plugin set
+	if len(pluginsToRun) > 0 {
 		complianceResult, err := mc.registry.RunComplianceChecks(
 			report.Configuration,
-			config.SelectedPlugins,
+			pluginsToRun,
 			mc.logger,
 		)
 		if err != nil {
@@ -210,7 +222,7 @@ func (mc *ModeController) generateBlueReport(_ context.Context, report *Report, 
 				}
 			}
 			// Add metadata to report indicating successful compliance checks
-			report.Metadata["compliance_check_status"] = "completed"
+			report.Metadata["compliance_check_status"] = complianceCheckStatusCompleted
 			report.Metadata["compliance_check_time"] = time.Now().Format(time.RFC3339)
 		}
 	}
