@@ -502,39 +502,63 @@ func emitAuditResult(
 
 // deriveAuditOutputPath computes a unique output filename for a multi-file audit
 // run based on the input file's path and the desired format extension.
-// Directory separators are losslessly encoded using underscore escaping: literal
-// underscores in path segments are doubled ("_" → "__") and directory separators
-// are replaced with single underscores. This guarantees that distinct cleaned
-// paths always produce distinct filenames, even when segments contain underscores
-// (e.g., "a_b/c/config.xml" → "a__b_c_config-audit.md" versus
-// "a/b_c/config.xml" → "a_b__c_config-audit.md"). Bare filenames without
-// directory components produce simple names like "config-audit.md".
+// Directory separators are losslessly encoded using tilde-based escaping: tildes
+// in path segments become "~~" and underscores become "~u", freeing the literal
+// underscore character to serve as an unambiguous segment separator. This avoids
+// the boundary ambiguity of the simpler double-underscore scheme, where a segment
+// ending with "_" followed by the separator is indistinguishable from the separator
+// followed by a segment starting with "_" (e.g., "a_/b" and "a/_b" both producing
+// "a___b"). Bare filenames without directory components produce simple names like
+// "config-audit.md".
 func deriveAuditOutputPath(inputFile, fileExt string) string {
 	base := filepath.Base(inputFile)
 	ext := filepath.Ext(base)
 	stem := strings.TrimSuffix(base, ext)
+	const absolutePathMarker = "~a"
 
 	dir := filepath.Dir(inputFile)
 	if dir != "" && dir != "." {
 		cleaned := filepath.Clean(dir)
-		cleaned = strings.TrimPrefix(cleaned, string(filepath.Separator))
+		isAbs := filepath.IsAbs(cleaned)
 
-		// Escape literal underscores in each segment, then join with single
-		// underscores representing directory separators. This is lossless:
-		// "_" in a segment → "__", separator → "_".
-		segments := strings.Split(cleaned, string(filepath.Separator))
-		for i, seg := range segments {
-			segments[i] = strings.ReplaceAll(seg, "_", "__")
+		if isAbs {
+			cleaned = strings.TrimPrefix(cleaned, string(filepath.Separator))
 		}
 
-		escapedStem := strings.ReplaceAll(stem, "_", "__")
+		rawSegments := strings.Split(cleaned, string(filepath.Separator))
+		segments := make([]string, 0, len(rawSegments)+1)
+
+		if isAbs {
+			segments = append(segments, absolutePathMarker)
+		}
+
+		for _, seg := range rawSegments {
+			if seg == "" {
+				continue
+			}
+
+			segments = append(segments, escapePathSegment(seg))
+		}
+
+		escapedStem := escapePathSegment(stem)
 		prefix := strings.Join(segments, "_")
 
 		return prefix + "_" + escapedStem + "-audit" + fileExt
 	}
 
-	// Bare filename: escape underscores in stem for consistency.
-	escapedStem := strings.ReplaceAll(stem, "_", "__")
+	escapedStem := escapePathSegment(stem)
 
 	return escapedStem + "-audit" + fileExt
+}
+
+// escapePathSegment encodes a single path segment for use in a flattened filename.
+// Tildes are escaped as "~~" and underscores as "~u", making the underscore
+// character available as an unambiguous segment separator in the flattened name.
+// This avoids the boundary ambiguity of double-underscore escaping where segment
+// "a_" + separator + "b" and segment "a" + separator + "_b" both flatten to "a___b".
+func escapePathSegment(seg string) string {
+	s := strings.ReplaceAll(seg, "~", "~~")
+	s = strings.ReplaceAll(s, "_", "~u")
+
+	return s
 }

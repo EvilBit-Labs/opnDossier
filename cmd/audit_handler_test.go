@@ -884,8 +884,10 @@ func TestDeriveAuditOutputPath(t *testing.T) {
 		{"no extension input", "/path/to/config", ".json", "path_to_config-audit.json"},
 		{"relative path", "configs/backup.xml", ".md", "configs_backup-audit.md"},
 		{"bare filename no dir", "config.xml", ".md", "config-audit.md"},
-		{"underscore in segment", "a_b/config.xml", ".md", "a__b_config-audit.md"},
-		{"underscore in bare filename", "my_config.xml", ".md", "my__config-audit.md"},
+		{"underscore in segment", "a_b/config.xml", ".md", "a~ub_config-audit.md"},
+		{"underscore in bare filename", "my_config.xml", ".md", "my~uconfig-audit.md"},
+		{"tilde in segment", "a~b/config.xml", ".md", "a~~b_config-audit.md"},
+		{"tilde in bare filename", "my~config.xml", ".md", "my~~config-audit.md"},
 	}
 
 	for _, tt := range tests {
@@ -977,6 +979,8 @@ func TestDeriveAuditOutputPath_SeparatorPlacementCollision(t *testing.T) {
 // paths where the underscore position falls on a directory boundary. Without
 // lossless underscore escaping, "a_b/c/config.xml" and "a/b_c/config.xml" would
 // both flatten to "a_b_c_config-audit.md".
+//
+//nolint:dupl // Structurally similar to BoundaryUnderscoreCollision but tests mid-segment underscores.
 func TestDeriveAuditOutputPath_UnderscoreCollision(t *testing.T) {
 	t.Parallel()
 
@@ -984,8 +988,8 @@ func TestDeriveAuditOutputPath_UnderscoreCollision(t *testing.T) {
 	pathA := deriveAuditOutputPath("a_b/c/config.xml", ".md")
 	pathB := deriveAuditOutputPath("a/b_c/config.xml", ".md")
 
-	assert.Equal(t, "a__b_c_config-audit.md", pathA)
-	assert.Equal(t, "a_b__c_config-audit.md", pathB)
+	assert.Equal(t, "a~ub_c_config-audit.md", pathA)
+	assert.Equal(t, "a_b~uc_config-audit.md", pathB)
 	assert.NotEqual(t, pathA, pathB,
 		"paths differing only in underscore vs separator placement must produce distinct output filenames")
 
@@ -994,9 +998,9 @@ func TestDeriveAuditOutputPath_UnderscoreCollision(t *testing.T) {
 	pathD := deriveAuditOutputPath("x/y_z/w/config.xml", ".md")
 	pathE := deriveAuditOutputPath("x/y/z_w/config.xml", ".md")
 
-	assert.Equal(t, "x__y_z_w_config-audit.md", pathC)
-	assert.Equal(t, "x_y__z_w_config-audit.md", pathD)
-	assert.Equal(t, "x_y_z__w_config-audit.md", pathE)
+	assert.Equal(t, "x~uy_z_w_config-audit.md", pathC)
+	assert.Equal(t, "x_y~uz_w_config-audit.md", pathD)
+	assert.Equal(t, "x_y_z~uw_config-audit.md", pathE)
 	assert.NotEqual(t, pathC, pathD,
 		"deeper nesting: underscore in first vs second segment must differ")
 	assert.NotEqual(t, pathD, pathE,
@@ -1008,8 +1012,54 @@ func TestDeriveAuditOutputPath_UnderscoreCollision(t *testing.T) {
 	pathF := deriveAuditOutputPath("a_b/my_config.xml", ".md")
 	pathG := deriveAuditOutputPath("a/b_my_config.xml", ".md")
 
+	assert.Equal(t, "a~ub_my~uconfig-audit.md", pathF)
+	assert.Equal(t, "a_b~umy~uconfig-audit.md", pathG)
 	assert.NotEqual(t, pathF, pathG,
 		"underscore in stem combined with directory underscores must not collide")
+}
+
+// TestDeriveAuditOutputPath_BoundaryUnderscoreCollision verifies that paths where
+// one segment ends with "_" and the next begins with "_" produce distinct output
+// filenames. The old double-underscore escaping scheme collapsed "a_/b/config.xml"
+// and "a/_b/config.xml" to the same "a___b_config-audit.md" because escaped
+// underscores at segment boundaries were indistinguishable from the separator.
+//
+//nolint:dupl // Structurally similar to UnderscoreCollision but tests boundary underscores.
+func TestDeriveAuditOutputPath_BoundaryUnderscoreCollision(t *testing.T) {
+	t.Parallel()
+
+	// Trailing underscore in first segment vs leading underscore in second segment.
+	pathA := deriveAuditOutputPath("a_/b/config.xml", ".md")
+	pathB := deriveAuditOutputPath("a/_b/config.xml", ".md")
+
+	assert.Equal(t, "a~u_b_config-audit.md", pathA)
+	assert.Equal(t, "a_~ub_config-audit.md", pathB)
+	assert.NotEqual(t, pathA, pathB,
+		"trailing underscore in segment vs leading underscore in next segment must produce distinct filenames")
+
+	// Deeper nesting with multiple boundary underscores.
+	pathC := deriveAuditOutputPath("x_/y_/z/config.xml", ".md")
+	pathD := deriveAuditOutputPath("x/_y/z_/config.xml", ".md")
+	pathE := deriveAuditOutputPath("x/_y/_z/config.xml", ".md")
+
+	assert.Equal(t, "x~u_y~u_z_config-audit.md", pathC)
+	assert.Equal(t, "x_~uy_z~u_config-audit.md", pathD)
+	assert.Equal(t, "x_~uy_~uz_config-audit.md", pathE)
+	assert.NotEqual(t, pathC, pathD,
+		"deeper nesting: trailing underscores vs leading underscores must differ")
+	assert.NotEqual(t, pathD, pathE,
+		"deeper nesting: mixed boundary positions must differ")
+	assert.NotEqual(t, pathC, pathE,
+		"deeper nesting: all-trailing vs all-leading must differ")
+
+	// Combined: trailing underscore meets leading underscore at same boundary.
+	pathF := deriveAuditOutputPath("a_/_b/config.xml", ".md")
+	pathG := deriveAuditOutputPath("a__b/config.xml", ".md")
+
+	assert.Equal(t, "a~u_~ub_config-audit.md", pathF)
+	assert.Equal(t, "a~u~ub_config-audit.md", pathG)
+	assert.NotEqual(t, pathF, pathG,
+		"a_/_b (two segments) vs a__b (one segment) must produce distinct filenames")
 }
 
 // TestHandleAuditMode_StructuredFormats verifies that audit data appears in JSON and YAML output.
