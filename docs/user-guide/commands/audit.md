@@ -22,7 +22,6 @@ opndossier audit [flags] <config.xml> [config2.xml ...]
 | -------------------- | ----- | -------------- | --------------------------------------------------------------------------------------------------------------- |
 | `--mode`             |       | `standard`     | Audit mode: `standard`, `blue`, `red`                                                                           |
 | `--plugins`          |       |                | Comma-separated compliance plugins to run: `stig`, `sans`, `firewall` (blue mode only)                          |
-| `--blackhat`         |       | `false`        | Enable blackhat commentary for red team reports                                                                 |
 | `--plugin-dir`       |       |                | Directory containing dynamic `.so` compliance plugins                                                           |
 | `--output`           | `-o`  | stdout         | Output file path                                                                                                |
 | `--format`           | `-f`  | `markdown`     | Output format: `markdown` (`md`), `json`, `yaml` (`yml`), `text` (`txt`), `html` (`htm`)                        |
@@ -56,7 +55,7 @@ When no `--plugins` flag is specified, all available plugins are run by default.
 
 ### Red
 
-Attacker-focused recon mode highlighting attack surfaces, pivot points, and exposed services. The `--blackhat` flag adds adversary commentary to the report.
+Attacker-focused recon mode highlighting attack surfaces, pivot points, and exposed services.
 
 ## Compliance Plugins
 

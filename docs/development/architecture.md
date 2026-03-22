@@ -412,7 +412,7 @@ The `opndossier audit` command provides a dedicated, first-class entry point for
 
 1. **Command Definition** (`cmd/audit.go`):
 
-   - Declares audit-specific flags: `--mode` (standard/blue/red), `--plugins` (compliance checks), `--plugin-dir` (dynamic plugin loading), `--blackhat` (red team commentary)
+   - Declares audit-specific flags: `--mode` (standard/blue/red), `--plugins` (compliance checks), `--plugin-dir` (dynamic plugin loading)
    - Reuses shared output flags: `--format`, `--output`, `--wrap`, `--section`, `--comprehensive`, `--redact`
    - `PreRunE` validation enforces:
      - Valid audit mode (standard, blue, red)

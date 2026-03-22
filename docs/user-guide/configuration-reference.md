@@ -63,7 +63,6 @@ The `audit` command is the dedicated entry point for security audit and complian
 | ------------------ | -------------- | -------- | ------------ | ----------------------------------------------------------------------------------------------------------- |
 | Audit mode         | `--mode`       | string   | `"standard"` | Audit mode: `standard` (neutral report), `blue` (defensive audit with compliance), `red` (attack surface)   |
 | Compliance plugins | `--plugins`    | string[] | `[]`         | Comma-separated list: `stig`, `sans`, `firewall`. Only valid with `--mode blue`. Empty = all plugins run.   |
-| Blackhat mode      | `--blackhat`   | boolean  | `false`      | Enable blackhat commentary for red team reports (red mode only)                                             |
 | Plugin directory   | `--plugin-dir` | string   | `""`         | Directory containing dynamic `.so` compliance plugins. Failed plugin loads are non-fatal (warnings logged). |
 
 ### Shared Output Flags
@@ -106,8 +105,8 @@ opndossier audit config.xml --mode blue
 # Blue team audit with specific plugins
 opndossier audit config.xml --mode blue --plugins stig,sans
 
-# Red team audit with blackhat commentary
-opndossier audit config.xml --mode red --blackhat
+# Red team attack surface analysis
+opndossier audit config.xml --mode red
 
 # Custom plugins directory
 opndossier audit config.xml --mode blue --plugin-dir /opt/plugins

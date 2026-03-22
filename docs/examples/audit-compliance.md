@@ -37,8 +37,6 @@ Red mode produces an attacker-focused recon report highlighting attack surfaces,
 # Basic red team analysis
 opndossier audit config.xml --mode red
 
-# Red team analysis with blackhat commentary
-opndossier audit config.xml --mode red --blackhat
 ```
 
 ## Exporting Audit Reports
