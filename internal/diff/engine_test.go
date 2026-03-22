@@ -120,7 +120,7 @@ func TestEngine_Compare_FirewallRuleAdded(t *testing.T) {
 		FirewallRules: []common.FirewallRule{
 			{
 				UUID:        "test-uuid-1",
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Description: "Allow SSH",
 				Protocol:    "tcp",
 				Destination: common.RuleEndpoint{
@@ -143,7 +143,7 @@ func TestEngine_Compare_FirewallRuleRemoved(t *testing.T) {
 		FirewallRules: []common.FirewallRule{
 			{
 				UUID:        "test-uuid-1",
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Description: "Legacy FTP",
 				Protocol:    "tcp",
 			},
@@ -237,17 +237,17 @@ func TestEngine_Compare_EmptyConfigs(t *testing.T) {
 func TestEngine_Compare_DetectOrder_ReorderedRules(t *testing.T) {
 	old := &common.CommonDevice{
 		FirewallRules: []common.FirewallRule{
-			{UUID: "uuid-1", Type: "pass", Description: "Allow SSH", Protocol: "tcp"},
-			{UUID: "uuid-2", Type: "pass", Description: "Allow HTTP", Protocol: "tcp"},
-			{UUID: "uuid-3", Type: "pass", Description: "Allow DNS", Protocol: "udp"},
+			{UUID: "uuid-1", Type: common.RuleTypePass, Description: "Allow SSH", Protocol: "tcp"},
+			{UUID: "uuid-2", Type: common.RuleTypePass, Description: "Allow HTTP", Protocol: "tcp"},
+			{UUID: "uuid-3", Type: common.RuleTypePass, Description: "Allow DNS", Protocol: "udp"},
 		},
 	}
 
 	newCfg := &common.CommonDevice{
 		FirewallRules: []common.FirewallRule{
-			{UUID: "uuid-3", Type: "pass", Description: "Allow DNS", Protocol: "udp"},
-			{UUID: "uuid-1", Type: "pass", Description: "Allow SSH", Protocol: "tcp"},
-			{UUID: "uuid-2", Type: "pass", Description: "Allow HTTP", Protocol: "tcp"},
+			{UUID: "uuid-3", Type: common.RuleTypePass, Description: "Allow DNS", Protocol: "udp"},
+			{UUID: "uuid-1", Type: common.RuleTypePass, Description: "Allow SSH", Protocol: "tcp"},
+			{UUID: "uuid-2", Type: common.RuleTypePass, Description: "Allow HTTP", Protocol: "tcp"},
 		},
 	}
 
@@ -270,15 +270,15 @@ func TestEngine_Compare_DetectOrder_ReorderedRules(t *testing.T) {
 func TestEngine_Compare_DetectOrder_Disabled(t *testing.T) {
 	old := &common.CommonDevice{
 		FirewallRules: []common.FirewallRule{
-			{UUID: "uuid-1", Type: "pass", Description: "Allow SSH", Protocol: "tcp"},
-			{UUID: "uuid-2", Type: "pass", Description: "Allow HTTP", Protocol: "tcp"},
+			{UUID: "uuid-1", Type: common.RuleTypePass, Description: "Allow SSH", Protocol: "tcp"},
+			{UUID: "uuid-2", Type: common.RuleTypePass, Description: "Allow HTTP", Protocol: "tcp"},
 		},
 	}
 
 	newCfg := &common.CommonDevice{
 		FirewallRules: []common.FirewallRule{
-			{UUID: "uuid-2", Type: "pass", Description: "Allow HTTP", Protocol: "tcp"},
-			{UUID: "uuid-1", Type: "pass", Description: "Allow SSH", Protocol: "tcp"},
+			{UUID: "uuid-2", Type: common.RuleTypePass, Description: "Allow HTTP", Protocol: "tcp"},
+			{UUID: "uuid-1", Type: common.RuleTypePass, Description: "Allow SSH", Protocol: "tcp"},
 		},
 	}
 
@@ -293,16 +293,16 @@ func TestEngine_Compare_DetectOrder_Disabled(t *testing.T) {
 func TestEngine_Compare_DetectOrder_ExcludesContentChanges(t *testing.T) {
 	old := &common.CommonDevice{
 		FirewallRules: []common.FirewallRule{
-			{UUID: "uuid-1", Type: "pass", Description: "Allow SSH", Protocol: "tcp"},
-			{UUID: "uuid-2", Type: "pass", Description: "Allow HTTP", Protocol: "tcp"},
+			{UUID: "uuid-1", Type: common.RuleTypePass, Description: "Allow SSH", Protocol: "tcp"},
+			{UUID: "uuid-2", Type: common.RuleTypePass, Description: "Allow HTTP", Protocol: "tcp"},
 		},
 	}
 
 	newCfg := &common.CommonDevice{
 		FirewallRules: []common.FirewallRule{
 			// uuid-2 moved to position 0 AND its description changed
-			{UUID: "uuid-2", Type: "pass", Description: "Allow HTTPS", Protocol: "tcp"},
-			{UUID: "uuid-1", Type: "pass", Description: "Allow SSH", Protocol: "tcp"},
+			{UUID: "uuid-2", Type: common.RuleTypePass, Description: "Allow HTTPS", Protocol: "tcp"},
+			{UUID: "uuid-1", Type: common.RuleTypePass, Description: "Allow SSH", Protocol: "tcp"},
 		},
 	}
 
@@ -382,7 +382,7 @@ func TestEngine_Compare_RiskSummary_Populated(t *testing.T) {
 
 	newCfg := &common.CommonDevice{
 		FirewallRules: []common.FirewallRule{
-			{UUID: "uuid-1", Type: "pass", Description: "Allow any", Protocol: "any"},
+			{UUID: "uuid-1", Type: common.RuleTypePass, Description: "Allow any", Protocol: "any"},
 		},
 	}
 

@@ -85,7 +85,7 @@ func TestAnalyzer_CompareFirewallRules_NoChanges(t *testing.T) {
 	t.Parallel()
 	analyzer := NewAnalyzer()
 	rules := []common.FirewallRule{
-		{UUID: "uuid-1", Type: "pass", Description: "Allow SSH"},
+		{UUID: "uuid-1", Type: common.RuleTypePass, Description: "Allow SSH"},
 	}
 
 	changes := analyzer.CompareFirewallRules(rules, rules)
@@ -97,7 +97,7 @@ func TestAnalyzer_CompareFirewallRules_RuleAdded(t *testing.T) {
 	analyzer := NewAnalyzer()
 	old := []common.FirewallRule{}
 	newCfg := []common.FirewallRule{
-		{UUID: "uuid-1", Type: "pass", Description: "Allow SSH"},
+		{UUID: "uuid-1", Type: common.RuleTypePass, Description: "Allow SSH"},
 	}
 
 	changes := analyzer.CompareFirewallRules(old, newCfg)
@@ -111,7 +111,7 @@ func TestAnalyzer_CompareFirewallRules_RuleRemoved(t *testing.T) {
 	t.Parallel()
 	analyzer := NewAnalyzer()
 	old := []common.FirewallRule{
-		{UUID: "uuid-1", Type: "pass", Description: "Legacy FTP"},
+		{UUID: "uuid-1", Type: common.RuleTypePass, Description: "Legacy FTP"},
 	}
 	newCfg := []common.FirewallRule{}
 
@@ -127,10 +127,10 @@ func TestAnalyzer_CompareFirewallRules_RuleModified(t *testing.T) {
 	t.Parallel()
 	analyzer := NewAnalyzer()
 	old := []common.FirewallRule{
-		{UUID: "uuid-1", Type: "pass", Description: "Allow SSH", Protocol: "tcp"},
+		{UUID: "uuid-1", Type: common.RuleTypePass, Description: "Allow SSH", Protocol: "tcp"},
 	}
 	newCfg := []common.FirewallRule{
-		{UUID: "uuid-1", Type: "pass", Description: "Allow SSH", Protocol: "udp"},
+		{UUID: "uuid-1", Type: common.RuleTypePass, Description: "Allow SSH", Protocol: "udp"},
 	}
 
 	changes := analyzer.CompareFirewallRules(old, newCfg)
@@ -146,7 +146,7 @@ func TestAnalyzer_CompareFirewallRules_PermissiveRuleAdded(t *testing.T) {
 	newCfg := []common.FirewallRule{
 		{
 			UUID:        "uuid-1",
-			Type:        "pass",
+			Type:        common.RuleTypePass,
 			Source:      common.RuleEndpoint{Address: "any"},
 			Destination: common.RuleEndpoint{Address: "any"},
 		},
@@ -338,7 +338,7 @@ func TestAnalyzer_CompareNAT_SectionAdded(t *testing.T) {
 	analyzer := NewAnalyzer()
 	old := common.NATConfig{}
 	newCfg := common.NATConfig{
-		OutboundMode:  "hybrid",
+		OutboundMode:  common.OutboundHybrid,
 		OutboundRules: []common.NATRule{{UUID: "r1"}},
 	}
 
@@ -355,7 +355,7 @@ func TestAnalyzer_CompareNAT_SectionRemoved(t *testing.T) {
 	t.Parallel()
 	analyzer := NewAnalyzer()
 	old := common.NATConfig{
-		OutboundMode: "automatic",
+		OutboundMode: common.OutboundAutomatic,
 		InboundRules: []common.InboundNATRule{{UUID: "r1"}},
 	}
 	newCfg := common.NATConfig{}
@@ -373,10 +373,10 @@ func TestAnalyzer_CompareNAT_ModeChanged(t *testing.T) {
 	t.Parallel()
 	analyzer := NewAnalyzer()
 	old := common.NATConfig{
-		OutboundMode: "automatic",
+		OutboundMode: common.OutboundAutomatic,
 	}
 	newCfg := common.NATConfig{
-		OutboundMode: "hybrid",
+		OutboundMode: common.OutboundHybrid,
 	}
 
 	changes := analyzer.CompareNAT(old, newCfg)
@@ -451,7 +451,7 @@ func TestFormatRule(t *testing.T) {
 		{
 			name: "basic pass rule",
 			rule: common.FirewallRule{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Interfaces:  []string{"wan"},
 				Protocol:    "tcp",
 				Source:      common.RuleEndpoint{Address: "any"},
@@ -462,7 +462,7 @@ func TestFormatRule(t *testing.T) {
 		{
 			name: "disabled rule",
 			rule: common.FirewallRule{
-				Type:        "block",
+				Type:        common.RuleTypeBlock,
 				Source:      common.RuleEndpoint{Address: "any"},
 				Destination: common.RuleEndpoint{Address: "any"},
 				Disabled:    true,
@@ -496,7 +496,7 @@ func TestRuleDescription(t *testing.T) {
 		{
 			name: "without description uses address",
 			rule: common.FirewallRule{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Source:      common.RuleEndpoint{Address: "10.0.0.0/8"},
 				Destination: common.RuleEndpoint{Address: "any"},
 			},
@@ -505,7 +505,7 @@ func TestRuleDescription(t *testing.T) {
 		{
 			name: "empty addresses fall back to unknown",
 			rule: common.FirewallRule{
-				Type: "block",
+				Type: common.RuleTypeBlock,
 			},
 			want: "block unknown → unknown",
 		},
@@ -747,11 +747,11 @@ func TestAnalyzer_CompareNAT_BooleanChanges(t *testing.T) {
 	t.Parallel()
 	analyzer := NewAnalyzer()
 	old := common.NATConfig{
-		OutboundMode:       "automatic",
+		OutboundMode:       common.OutboundAutomatic,
 		ReflectionDisabled: true,
 	}
 	newCfg := common.NATConfig{
-		OutboundMode:   "automatic",
+		OutboundMode:   common.OutboundAutomatic,
 		PfShareForward: true,
 	}
 
@@ -778,7 +778,7 @@ func TestIsPermissiveRule(t *testing.T) {
 		{
 			name: "any/any pass rule",
 			rule: common.FirewallRule{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Source:      common.RuleEndpoint{Address: "any"},
 				Destination: common.RuleEndpoint{Address: "any"},
 			},
@@ -787,7 +787,7 @@ func TestIsPermissiveRule(t *testing.T) {
 		{
 			name: "block rule is not permissive",
 			rule: common.FirewallRule{
-				Type:        "block",
+				Type:        common.RuleTypeBlock,
 				Source:      common.RuleEndpoint{Address: "any"},
 				Destination: common.RuleEndpoint{Address: "any"},
 			},
@@ -796,7 +796,7 @@ func TestIsPermissiveRule(t *testing.T) {
 		{
 			name: "specific source is not permissive",
 			rule: common.FirewallRule{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
 				Destination: common.RuleEndpoint{Address: "any"},
 			},
