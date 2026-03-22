@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"runtime"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
@@ -26,16 +27,18 @@ func TestEmitAuditResult_MultiFileAutoNaming(t *testing.T) {
 	format = "markdown"
 	force = true
 
-	// Two different input files with the same parent directory
-	result1 := auditResult{inputFile: "/tmp/config1.xml"}
-	result2 := auditResult{inputFile: "/tmp/config2.xml"}
+	// Two different input files with the same parent directory.
+	// Use relative paths to avoid platform-dependent absolute path handling
+	// (Unix /tmp/ vs Windows C:\tmp\).
+	result1 := auditResult{inputFile: "tmp/config1.xml"}
+	result2 := auditResult{inputFile: "tmp/config2.xml"}
 
 	// Multi-file auto-naming derives unique per-input paths
 	path1 := deriveAuditOutputPath(result1.inputFile, ".md")
 	path2 := deriveAuditOutputPath(result2.inputFile, ".md")
 
-	assert.Equal(t, "~a_tmp_config1-audit.md", path1)
-	assert.Equal(t, "~a_tmp_config2-audit.md", path2)
+	assert.Equal(t, "tmp_config1-audit.md", path1)
+	assert.Equal(t, "tmp_config2-audit.md", path2)
 	assert.NotEqual(t, path1, path2, "multi-file audit must produce distinct output paths")
 
 	// Verify the derived paths pass through determineOutputPath correctly
@@ -45,8 +48,8 @@ func TestEmitAuditResult_MultiFileAutoNaming(t *testing.T) {
 	require.NoError(t, err1)
 	require.NoError(t, err2)
 
-	assert.Equal(t, "~a_tmp_config1-audit.md", resolvedPath1)
-	assert.Equal(t, "~a_tmp_config2-audit.md", resolvedPath2)
+	assert.Equal(t, "tmp_config1-audit.md", resolvedPath1)
+	assert.Equal(t, "tmp_config2-audit.md", resolvedPath2)
 }
 
 // TestEmitAuditResult_MultiFileConfigOutputFileIgnored verifies that when
@@ -67,28 +70,29 @@ func TestEmitAuditResult_MultiFileConfigOutputFileIgnored(t *testing.T) {
 	format = "markdown"
 	force = true
 
-	// Simulate multi-file run with config OutputFile set
-	cfgWithOutput := &config.Config{OutputFile: "/tmp/shared-report.md"}
+	// Simulate multi-file run with config OutputFile set.
+	// Use relative paths to avoid platform-dependent absolute path handling.
+	cfgWithOutput := &config.Config{OutputFile: "tmp/shared-report.md"}
 
 	// Without the fix, both inputs would resolve to the shared config path
-	pathA, errA := determineOutputPath("/tmp/config1.xml", "", ".md", cfgWithOutput, true)
-	pathB, errB := determineOutputPath("/tmp/config2.xml", "", ".md", cfgWithOutput, true)
+	pathA, errA := determineOutputPath("tmp/config1.xml", "", ".md", cfgWithOutput, true)
+	pathB, errB := determineOutputPath("tmp/config2.xml", "", ".md", cfgWithOutput, true)
 	require.NoError(t, errA)
 	require.NoError(t, errB)
 	assert.Equal(t, pathA, pathB, "raw config OutputFile causes collision")
 
 	// With the fix, deriveAuditOutputPath produces unique paths and nil config
 	// is passed to determineOutputPath, preventing the config path from being used.
-	derivedA := deriveAuditOutputPath("/tmp/config1.xml", ".md")
-	derivedB := deriveAuditOutputPath("/tmp/config2.xml", ".md")
+	derivedA := deriveAuditOutputPath("tmp/config1.xml", ".md")
+	derivedB := deriveAuditOutputPath("tmp/config2.xml", ".md")
 
-	resolvedA, errResolvedA := determineOutputPath("/tmp/config1.xml", derivedA, ".md", nil, true)
-	resolvedB, errResolvedB := determineOutputPath("/tmp/config2.xml", derivedB, ".md", nil, true)
+	resolvedA, errResolvedA := determineOutputPath("tmp/config1.xml", derivedA, ".md", nil, true)
+	resolvedB, errResolvedB := determineOutputPath("tmp/config2.xml", derivedB, ".md", nil, true)
 	require.NoError(t, errResolvedA)
 	require.NoError(t, errResolvedB)
 
-	assert.Equal(t, "~a_tmp_config1-audit.md", resolvedA)
-	assert.Equal(t, "~a_tmp_config2-audit.md", resolvedB)
+	assert.Equal(t, "tmp_config1-audit.md", resolvedA)
+	assert.Equal(t, "tmp_config2-audit.md", resolvedB)
 	assert.NotEqual(t, resolvedA, resolvedB, "multi-file audit must not resolve to same output path")
 }
 
@@ -102,13 +106,13 @@ func TestDeriveAuditOutputPath(t *testing.T) {
 		fileExt   string
 		want      string
 	}{
-		{"markdown from xml", "/path/to/config.xml", ".md", "~a_path_to_config-audit.md"},
-		{"json from xml", "/path/to/config.xml", ".json", "~a_path_to_config-audit.json"},
-		{"yaml from xml", "/path/to/config.xml", ".yaml", "~a_path_to_config-audit.yaml"},
+		{"markdown from xml", "path/to/config.xml", ".md", "path_to_config-audit.md"},
+		{"json from xml", "path/to/config.xml", ".json", "path_to_config-audit.json"},
+		{"yaml from xml", "path/to/config.xml", ".yaml", "path_to_config-audit.yaml"},
 		{"html from xml", "config.xml", ".html", "config-audit.html"},
 		{"txt from xml", "config.xml", ".txt", "config-audit.txt"},
-		{"nested path", "/a/b/c/firewall-prod.xml", ".md", "~a_a_b_c_firewall-prod-audit.md"},
-		{"no extension input", "/path/to/config", ".json", "~a_path_to_config-audit.json"},
+		{"nested path", "a/b/c/firewall-prod.xml", ".md", "a_b_c_firewall-prod-audit.md"},
+		{"no extension input", "path/to/config", ".json", "path_to_config-audit.json"},
 		{"relative path", "configs/backup.xml", ".md", "configs_backup-audit.md"},
 		{"bare filename no dir", "config.xml", ".md", "config-audit.md"},
 		{"underscore in segment", "a_b/config.xml", ".md", "a~ub_config-audit.md"},
@@ -151,20 +155,20 @@ func TestDeriveAuditOutputPath_BasenameCollision(t *testing.T) {
 func TestDeriveAuditOutputPath_SameParentBasenameCollision(t *testing.T) {
 	t.Parallel()
 
-	pathA := deriveAuditOutputPath("/prod/site-a/config.xml", ".md")
-	pathB := deriveAuditOutputPath("/dr/site-a/config.xml", ".md")
+	pathA := deriveAuditOutputPath("prod/site-a/config.xml", ".md")
+	pathB := deriveAuditOutputPath("dr/site-a/config.xml", ".md")
 
-	assert.Equal(t, "~a_prod_site-a_config-audit.md", pathA)
-	assert.Equal(t, "~a_dr_site-a_config-audit.md", pathB)
+	assert.Equal(t, "prod_site-a_config-audit.md", pathA)
+	assert.Equal(t, "dr_site-a_config-audit.md", pathB)
 	assert.NotEqual(t, pathA, pathB,
 		"inputs with same basename AND same parent basename under different trees must produce distinct output paths")
 
 	// Deeper nesting: verify three-level disambiguation
-	pathC := deriveAuditOutputPath("/us-east/prod/fw/config.xml", ".md")
-	pathD := deriveAuditOutputPath("/eu-west/prod/fw/config.xml", ".md")
+	pathC := deriveAuditOutputPath("us-east/prod/fw/config.xml", ".md")
+	pathD := deriveAuditOutputPath("eu-west/prod/fw/config.xml", ".md")
 
-	assert.Equal(t, "~a_us-east_prod_fw_config-audit.md", pathC)
-	assert.Equal(t, "~a_eu-west_prod_fw_config-audit.md", pathD)
+	assert.Equal(t, "us-east_prod_fw_config-audit.md", pathC)
+	assert.Equal(t, "eu-west_prod_fw_config-audit.md", pathD)
 	assert.NotEqual(t, pathC, pathD,
 		"deeply nested inputs with shared parent segments must still produce distinct output paths")
 }
@@ -173,8 +177,14 @@ func TestDeriveAuditOutputPath_SameParentBasenameCollision(t *testing.T) {
 // cleaned absolute and relative paths never collapse to the same derived output
 // filename. Absolute paths carry an explicit marker segment to preserve root
 // information after flattening.
+// Skipped on Windows because Unix-style absolute paths (/tmp/...) are not
+// recognized as absolute by filepath.IsAbs on Windows.
 func TestDeriveAuditOutputPath_AbsoluteVsRelativeCollision(t *testing.T) {
 	t.Parallel()
+
+	if runtime.GOOS == "windows" {
+		t.Skip("Unix-style absolute path tests not applicable on Windows")
+	}
 
 	absPath := deriveAuditOutputPath("/tmp/site-a/config.xml", ".md")
 	relPath := deriveAuditOutputPath("tmp/site-a/config.xml", ".md")
