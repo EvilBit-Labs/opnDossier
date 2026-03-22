@@ -192,11 +192,7 @@ func TestAuditCmdPreRunEModeValidation(t *testing.T) {
 			tempCmd.Flags().Int("wrap", -1, "")
 
 			// Set flags through pflag to verify real CLI wiring
-			if tt.mode != "" {
-				require.NoError(t, tempCmd.Flags().Set("mode", tt.mode))
-			} else {
-				auditMode = ""
-			}
+			require.NoError(t, tempCmd.Flags().Set("mode", tt.mode))
 
 			err := auditCmd.PreRunE(tempCmd, []string{"dummy.xml"})
 			if tt.wantErr {

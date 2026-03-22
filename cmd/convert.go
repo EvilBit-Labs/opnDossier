@@ -693,71 +693,18 @@ func normalizeConvertFlags() {
 }
 
 // validateConvertFlags validates flag combinations and CLI options for the convert command.
-// It ensures mutually exclusive wrap flags are not both set, checks that the chosen output
-// format is one of markdown/md/json/yaml/yml/text/txt/html/htm, warns when section filtering is used with
-// JSON or YAML (sections will be ignored), and emits a warning (via cmdLogger or stderr)
-// when wrap width is outside the recommended range. Returns an error for truly invalid
-// values (wrap width < -1, invalid format, invalid audit mode).
+// It delegates format, wrap, and section validation to validateOutputFlags, then performs
+// convert-specific audit flag validation on the shared globals (sharedAuditMode,
+// sharedSelectedPlugins) that are bound to the convert command's --audit-* flags.
 //
 // The cmdLogger parameter is used for structured warnings; if nil, warnings fall back to stderr.
 func validateConvertFlags(flags *pflag.FlagSet, cmdLogger *logging.Logger) error {
-	// Validate mutual exclusivity for wrap flags before other checks
-	if flags != nil {
-		noWrapFlag := flags.Lookup("no-wrap")
-		wrapFlag := flags.Lookup("wrap")
-		if noWrapFlag != nil && wrapFlag != nil && noWrapFlag.Changed && wrapFlag.Changed {
-			return errors.New("--no-wrap and --wrap flags are mutually exclusive")
-		}
+	// Validate format, wrap, and section flags (shared across convert and audit)
+	if err := validateOutputFlags(flags, cmdLogger); err != nil {
+		return err
 	}
 
-	// Validate format values via the converter registry
-	if format != "" {
-		validFormats := converter.DefaultRegistry.ValidFormatsWithAliases()
-		if !slices.Contains(validFormats, strings.ToLower(format)) {
-			return fmt.Errorf("invalid format %q, must be one of: %s", format, strings.Join(validFormats, ", "))
-		}
-	}
-
-	// Validate output format compatibility
-	if strings.EqualFold(format, "json") && len(sharedSections) > 0 {
-		if cmdLogger != nil {
-			cmdLogger.Warn("section filtering not supported with JSON format, sections will be ignored")
-		} else {
-			fmt.Fprintln(
-				os.Stderr,
-				"Warning: section filtering not supported with JSON format, sections will be ignored",
-			)
-		}
-	}
-
-	canonicalFormat, _ := converter.DefaultRegistry.Canonical(format)
-	if canonicalFormat == "yaml" && len(sharedSections) > 0 {
-		if cmdLogger != nil {
-			cmdLogger.Warn("section filtering not supported with YAML format, sections will be ignored")
-		} else {
-			fmt.Fprintln(
-				os.Stderr,
-				"Warning: section filtering not supported with YAML format, sections will be ignored",
-			)
-		}
-	}
-
-	// Warn (not error) when wrap width is outside recommended range, matching display.go behavior.
-	if sharedWrapWidth > 0 && (sharedWrapWidth < MinWrapWidth || sharedWrapWidth > MaxWrapWidth) {
-		if cmdLogger != nil {
-			cmdLogger.Warn("wrap width is outside recommended range",
-				"width", sharedWrapWidth, "min", MinWrapWidth, "max", MaxWrapWidth)
-		} else {
-			fmt.Fprintf(os.Stderr, "Warning: wrap width %d is outside recommended range [%d, %d]\n",
-				sharedWrapWidth, MinWrapWidth, MaxWrapWidth)
-		}
-	}
-	if sharedWrapWidth < -1 {
-		return fmt.Errorf("invalid wrap width %d: must be -1 (auto-detect), 0 (no wrapping), or positive",
-			sharedWrapWidth)
-	}
-
-	// Validate audit mode if provided
+	// Validate audit mode if provided (convert-specific: uses shared globals)
 	if sharedAuditMode != "" {
 		validModes := []string{"standard", "blue", "red"}
 		if !slices.Contains(validModes, strings.ToLower(sharedAuditMode)) {
@@ -766,7 +713,7 @@ func validateConvertFlags(flags *pflag.FlagSet, cmdLogger *logging.Logger) error
 		}
 	}
 
-	// Validate audit plugins if provided
+	// Validate audit plugins if provided (convert-specific: uses shared globals)
 	if len(sharedSelectedPlugins) > 0 {
 		validPlugins := []string{"stig", "sans", "firewall"}
 		for _, p := range sharedSelectedPlugins {

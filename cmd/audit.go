@@ -417,4 +417,3 @@ func generateAuditOutput(
 
 	return output, nil
 }
-

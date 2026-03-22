@@ -2,15 +2,19 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 // Shared flag variables for convert and display commands.
@@ -327,4 +331,74 @@ func resolveDeviceType() common.DeviceType {
 	// so it is a valid registered key that is not a built-in enum member.
 	// Normalize to lowercase to match registry key normalization.
 	return common.DeviceType(strings.ToLower(strings.TrimSpace(sharedDeviceType)))
+}
+
+// validateOutputFlags validates format, wrap, and section flag combinations that are
+// shared across multiple commands (convert, audit). It checks mutual exclusivity of
+// wrap flags, validates the output format against the converter registry, warns when
+// section filtering is used with JSON or YAML, and validates wrap width range.
+//
+// Command-specific validation (e.g., audit mode, plugin names) should be performed
+// in the calling command's PreRunE, not here.
+//
+// The cmdLogger parameter is used for structured warnings; if nil, warnings fall back to stderr.
+func validateOutputFlags(flags *pflag.FlagSet, cmdLogger *logging.Logger) error {
+	// Validate mutual exclusivity for wrap flags before other checks
+	if flags != nil {
+		noWrapFlag := flags.Lookup("no-wrap")
+		wrapFlag := flags.Lookup("wrap")
+		if noWrapFlag != nil && wrapFlag != nil && noWrapFlag.Changed && wrapFlag.Changed {
+			return errors.New("--no-wrap and --wrap flags are mutually exclusive")
+		}
+	}
+
+	// Validate format values via the converter registry
+	if format != "" {
+		validFormats := converter.DefaultRegistry.ValidFormatsWithAliases()
+		if !slices.Contains(validFormats, strings.ToLower(format)) {
+			return fmt.Errorf("invalid format %q, must be one of: %s", format, strings.Join(validFormats, ", "))
+		}
+	}
+
+	// Validate output format compatibility
+	if strings.EqualFold(format, "json") && len(sharedSections) > 0 {
+		if cmdLogger != nil {
+			cmdLogger.Warn("section filtering not supported with JSON format, sections will be ignored")
+		} else {
+			fmt.Fprintln(
+				os.Stderr,
+				"Warning: section filtering not supported with JSON format, sections will be ignored",
+			)
+		}
+	}
+
+	canonicalFormat, _ := converter.DefaultRegistry.Canonical(format)
+	if canonicalFormat == "yaml" && len(sharedSections) > 0 {
+		if cmdLogger != nil {
+			cmdLogger.Warn("section filtering not supported with YAML format, sections will be ignored")
+		} else {
+			fmt.Fprintln(
+				os.Stderr,
+				"Warning: section filtering not supported with YAML format, sections will be ignored",
+			)
+		}
+	}
+
+	// Warn (not error) when wrap width is outside recommended range, matching display.go behavior.
+	if sharedWrapWidth > 0 && (sharedWrapWidth < MinWrapWidth || sharedWrapWidth > MaxWrapWidth) {
+		if cmdLogger != nil {
+			cmdLogger.Warn("wrap width is outside recommended range",
+				"width", sharedWrapWidth, "min", MinWrapWidth, "max", MaxWrapWidth)
+		} else {
+			fmt.Fprintf(os.Stderr, "Warning: wrap width %d is outside recommended range [%d, %d]\n",
+				sharedWrapWidth, MinWrapWidth, MaxWrapWidth)
+		}
+	}
+
+	if sharedWrapWidth < -1 {
+		return fmt.Errorf("invalid wrap width %d: must be -1 (auto-detect), 0 (no wrapping), or positive",
+			sharedWrapWidth)
+	}
+
+	return nil
 }
