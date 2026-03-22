@@ -100,7 +100,8 @@ opndossier/
 │   ├── parser/             # Factory + DeviceParser interface
 │   │   └── opnsense/       # OPNsense parser + schema→CommonDevice converter
 │   └── schema/
-│       └── opnsense/       # Canonical OPNsense data model — XML structs
+│       ├── opnsense/       # Canonical OPNsense data model — XML structs
+│       └── pfsense/        # pfSense data model — reuses opnsense types where XML matches
 ├── tools/docgen/           # Standalone model documentation generator (//go:build ignore)
 ├── testdata/               # Test data and fixtures
 ├── docs/                   # Documentation
@@ -348,6 +349,8 @@ common "github.com/EvilBit-Labs/opnDossier/pkg/model"             // use common.
 Files in `pkg/parser/opnsense/` (package `opnsense`) **must** alias the schema import as `schema` to avoid collision. `cmd/` files that use the parser factory import `"github.com/EvilBit-Labs/opnDossier/pkg/parser"` (no alias needed -- package name `parser` is unambiguous).
 
 `parser.NewFactory(decoder)` requires an `XMLDecoder` argument -- wire with `parser.NewFactory(cfgparser.NewXMLParser())` at the call site. The `XMLDecoder` interface is defined in `pkg/parser/factory.go`.
+
+`pkg/schema/pfsense/` (package `pfsense`) imports the opnsense package as `opnsense` and reuses shared types (`Interfaces`, `Dhcpd`, `BoolFlag`, `Source`, `Destination`, etc.) where the XML structure is identical. pfSense-specific types that share names with opnsense types use disambiguating suffixes (e.g., `SyslogConfig`, `UnboundConfig`) to avoid confusion when both packages are co-imported.
 
 ### 5.24 Public Package Purity
 
