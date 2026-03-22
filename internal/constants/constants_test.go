@@ -47,12 +47,6 @@ func TestProtocolConstant(t *testing.T) {
 	}
 }
 
-func TestRuleTypeConstant(t *testing.T) {
-	if RuleTypePass != "pass" {
-		t.Errorf("RuleTypePass = %q, want %q", RuleTypePass, "pass")
-	}
-}
-
 func TestFindingTypeConstant(t *testing.T) {
 	if FindingTypeSecurity != "security" {
 		t.Errorf("FindingTypeSecurity = %q, want %q", FindingTypeSecurity, "security")

@@ -3,8 +3,6 @@ package constants
 
 import (
 	"time"
-
-	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 // Version is the current application version, injected at build time by GoReleaser via ldflags.
@@ -27,11 +25,6 @@ const (
 
 	// ProtocolHTTPS represents the HTTPS protocol identifier.
 	ProtocolHTTPS = "https"
-
-	// RuleTypePass represents a firewall pass rule.
-	//
-	// Deprecated: Use common.RuleTypePass directly. Kept for backward compatibility.
-	RuleTypePass = common.RuleTypePass
 
 	// FindingTypeSecurity identifies security-related audit findings.
 	FindingTypeSecurity = "security"
