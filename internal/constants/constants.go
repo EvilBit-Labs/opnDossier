@@ -1,7 +1,11 @@
 // Package constants defines shared constants used across the application.
 package constants
 
-import "time"
+import (
+	"time"
+
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
+)
 
 // Version is the current application version, injected at build time by GoReleaser via ldflags.
 var Version = "dev"
@@ -25,7 +29,9 @@ const (
 	ProtocolHTTPS = "https"
 
 	// RuleTypePass represents a firewall pass rule.
-	RuleTypePass = "pass"
+	//
+	// Deprecated: Use common.RuleTypePass directly. Kept for backward compatibility.
+	RuleTypePass = common.RuleTypePass
 
 	// FindingTypeSecurity identifies security-related audit findings.
 	FindingTypeSecurity = "security"
