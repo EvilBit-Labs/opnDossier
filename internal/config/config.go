@@ -99,6 +99,7 @@ func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 	v.SetDefault("input_file", "")
 	v.SetDefault("output_file", "")
 	v.SetDefault("verbose", false)
+	v.SetDefault("debug", false)
 	v.SetDefault("quiet", false)
 	v.SetDefault("theme", "")
 	v.SetDefault("format", "markdown")

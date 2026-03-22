@@ -136,8 +136,6 @@ func validatePfSenseSystem(sys *pfsense.System) []ValidationError {
 
 // validatePfSenseFilter checks each pfSense firewall filter rule for valid types,
 // protocols, interface references, and network specifications.
-//
-
 func validatePfSenseFilter(filter *pfsense.Filter, interfaces *opnsense.Interfaces) []ValidationError {
 	var errors []ValidationError
 

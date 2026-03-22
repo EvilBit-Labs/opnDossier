@@ -52,8 +52,8 @@ func (p *Parser) Parse(ctx context.Context, r io.Reader) (*common.CommonDevice, 
 
 // ParseAndValidate reads a pfSense XML configuration from r, runs structural
 // parsing and semantic validation, and returns a platform-agnostic CommonDevice
-// along with any non-fatal conversion warnings. If no validator has been
-// injected via SetValidator, falls back to structural parsing only.
+// along with any non-fatal conversion warnings. If ValidateFunc has not been
+// set (e.g., by cmd/root.go), falls back to structural parsing only.
 func (p *Parser) ParseAndValidate(
 	ctx context.Context,
 	r io.Reader,

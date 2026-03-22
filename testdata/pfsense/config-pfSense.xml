@@ -26,7 +26,7 @@
 			<descr><![CDATA[System Administrator]]></descr>
 			<scope>system</scope>
 			<groupname>admins</groupname>
-			<bcrypt-hash>$2y$10$n/GpV5PBUXVYYSL3HX0jpegxw8GpW6mmrLZIcwAHgSK4OgFmbWhbS</bcrypt-hash>
+			<bcrypt-hash>$2y$10$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</bcrypt-hash>
 			<uid>0</uid>
 			<priv>user-shell-access</priv>
 		</user>

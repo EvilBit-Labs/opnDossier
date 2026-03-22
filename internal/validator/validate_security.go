@@ -87,8 +87,6 @@ func validateAddressField(address, fieldPath string) []ValidationError {
 
 // validateFilter checks each firewall filter rule for valid types, protocols, interface references, and network specifications.
 // It returns a list of validation errors for any rule fields that are invalid or reference non-existent interfaces.
-//
-
 func validateFilter(filter *schema.Filter, interfaces *schema.Interfaces) []ValidationError {
 	var errors []ValidationError
 
