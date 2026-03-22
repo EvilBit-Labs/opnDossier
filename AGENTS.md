@@ -244,6 +244,7 @@ Frequently encountered linter issues and fixes:
 | `staticcheck SA1019`       | Deprecated type alias usage            | Migrate ALL references (including test files) when deprecating a type alias — `Deprecated:` doc comment triggers SA1019 on every reference                |
 | `modernize`                | Legacy `sort.Strings`/`sort.Slice`     | Use `slices.Sort()` / `slices.SortFunc()` with `strings.Compare`                                                                                          |
 | `gofumpt` vs `//nolint`    | Directive between doc comment and func | `gofumpt` inserts a blank line that detaches the directive from the func — embed the suppression rationale in the doc comment instead of using `//nolint` |
+| `dupl`                     | Cross-type validator similarity        | Both sides of the duplicate pair need `//nolint:dupl` — see GOTCHAS.md §9.1                                                                               |
 
 > [!NOTE]
 > IDE diagnostics (marked with ★ in some editors) are suggestions, not errors. The authoritative source is `just lint` - if it reports "0 issues", the code is correct regardless of IDE warnings.
