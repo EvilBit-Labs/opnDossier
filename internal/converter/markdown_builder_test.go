@@ -110,14 +110,14 @@ func TestMarkdownBuilder_BuildSecuritySection(t *testing.T) {
 	// Create test data with security configuration
 	data := &common.CommonDevice{
 		NAT: common.NATConfig{
-			OutboundMode: "automatic",
+			OutboundMode: common.OutboundAutomatic,
 		},
 		FirewallRules: []common.FirewallRule{
 			{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Description: "Allow LAN to WAN",
 				Interfaces:  []string{"lan"},
-				IPProtocol:  "inet",
+				IPProtocol:  common.IPProtocolInet,
 				Protocol:    "tcp",
 				Source: common.RuleEndpoint{
 					Address: "lan",
@@ -129,10 +129,10 @@ func TestMarkdownBuilder_BuildSecuritySection(t *testing.T) {
 				Disabled: false,
 			},
 			{
-				Type:        "block",
+				Type:        common.RuleTypeBlock,
 				Description: "Block all",
 				Interfaces:  []string{"wan"},
-				IPProtocol:  "inet",
+				IPProtocol:  common.IPProtocolInet,
 				Protocol:    "any",
 				Source: common.RuleEndpoint{
 					Address: "any",
@@ -232,10 +232,10 @@ func TestMarkdownBuilder_BuildServicesSection(t *testing.T) {
 func TestMarkdownBuilder_BuildFirewallRulesTable(t *testing.T) {
 	rules := []common.FirewallRule{
 		{
-			Type:        "pass",
+			Type:        common.RuleTypePass,
 			Description: "Allow LAN to WAN",
 			Interfaces:  []string{"lan"},
-			IPProtocol:  "inet",
+			IPProtocol:  common.IPProtocolInet,
 			Protocol:    "tcp",
 			Source: common.RuleEndpoint{
 				Address: "lan",
@@ -274,18 +274,18 @@ func TestMarkdownBuilder_BuildFirewallRulesTable(t *testing.T) {
 
 	// Verify first row
 	row := tableSet.Rows[0]
-	assert.Equal(t, "1", row[0])                 // #
-	assert.Contains(t, row[1], "lan")            // Interface (with link)
-	assert.Equal(t, "pass", row[2])              // Action
-	assert.Equal(t, "inet", row[3])              // IP Ver
-	assert.Equal(t, "tcp", row[4])               // Proto
-	assert.Equal(t, "lan", row[5])               // Source
-	assert.Equal(t, "any", row[6])               // Destination
-	assert.Empty(t, row[7])                      // Target
-	assert.Equal(t, "80", row[8])                // Source Port
-	assert.Empty(t, row[9])                      // Dest Port
-	assert.Equal(t, "✓", row[10])                // Enabled
-	assert.Equal(t, "Allow LAN to WAN", row[11]) // Description
+	assert.Equal(t, "1", row[0])                           // #
+	assert.Contains(t, row[1], "lan")                      // Interface (with link)
+	assert.Equal(t, string(common.RuleTypePass), row[2])   // Action
+	assert.Equal(t, string(common.IPProtocolInet), row[3]) // IP Ver
+	assert.Equal(t, "tcp", row[4])                         // Proto
+	assert.Equal(t, "lan", row[5])                         // Source
+	assert.Equal(t, "any", row[6])                         // Destination
+	assert.Empty(t, row[7])                                // Target
+	assert.Equal(t, "80", row[8])                          // Source Port
+	assert.Empty(t, row[9])                                // Dest Port
+	assert.Equal(t, "✓", row[10])                          // Enabled
+	assert.Equal(t, "Allow LAN to WAN", row[11])           // Description
 }
 
 func TestMarkdownBuilder_BuildInterfaceTable(t *testing.T) {
@@ -651,9 +651,9 @@ func TestBuildFirewallRulesTable_EdgeCases(t *testing.T) {
 			name: "rules_with_empty_networks",
 			rules: []common.FirewallRule{
 				{
-					Type:        "pass",
+					Type:        common.RuleTypePass,
 					Interfaces:  []string{"lan"},
-					IPProtocol:  "inet",
+					IPProtocol:  common.IPProtocolInet,
 					Protocol:    "tcp",
 					Source:      common.RuleEndpoint{Address: ""},
 					Destination: common.RuleEndpoint{Address: ""},
@@ -665,9 +665,9 @@ func TestBuildFirewallRulesTable_EdgeCases(t *testing.T) {
 			name: "rules_with_nil_interface",
 			rules: []common.FirewallRule{
 				{
-					Type:        "pass",
+					Type:        common.RuleTypePass,
 					Interfaces:  nil,
-					IPProtocol:  "inet",
+					IPProtocol:  common.IPProtocolInet,
 					Protocol:    "tcp",
 					Source:      common.RuleEndpoint{Address: "lan"},
 					Destination: common.RuleEndpoint{Address: "any"},
@@ -699,7 +699,7 @@ func TestBuildFirewallRulesTable_AnyFieldAndDestPort(t *testing.T) {
 		{
 			name: "source_any_via_address",
 			rule: common.FirewallRule{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Source:      common.RuleEndpoint{Address: "any"},
 				Destination: common.RuleEndpoint{Address: "lan"},
 			},
@@ -710,7 +710,7 @@ func TestBuildFirewallRulesTable_AnyFieldAndDestPort(t *testing.T) {
 		{
 			name: "source_any_empty_address",
 			rule: common.FirewallRule{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Source:      common.RuleEndpoint{Address: ""},
 				Destination: common.RuleEndpoint{Address: "wan"},
 			},
@@ -721,7 +721,7 @@ func TestBuildFirewallRulesTable_AnyFieldAndDestPort(t *testing.T) {
 		{
 			name: "destination_any_via_address",
 			rule: common.FirewallRule{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Source:      common.RuleEndpoint{Address: "lan"},
 				Destination: common.RuleEndpoint{Address: "any"},
 			},
@@ -732,7 +732,7 @@ func TestBuildFirewallRulesTable_AnyFieldAndDestPort(t *testing.T) {
 		{
 			name: "destination_any_empty_address",
 			rule: common.FirewallRule{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Source:      common.RuleEndpoint{Address: "lan"},
 				Destination: common.RuleEndpoint{Address: ""},
 			},
@@ -743,7 +743,7 @@ func TestBuildFirewallRulesTable_AnyFieldAndDestPort(t *testing.T) {
 		{
 			name: "both_absent_shows_any",
 			rule: common.FirewallRule{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Source:      common.RuleEndpoint{},
 				Destination: common.RuleEndpoint{},
 			},
@@ -754,7 +754,7 @@ func TestBuildFirewallRulesTable_AnyFieldAndDestPort(t *testing.T) {
 		{
 			name: "destination_port_populated",
 			rule: common.FirewallRule{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Source:      common.RuleEndpoint{Address: "any"},
 				Destination: common.RuleEndpoint{Address: "wan", Port: "443"},
 			},
@@ -765,7 +765,7 @@ func TestBuildFirewallRulesTable_AnyFieldAndDestPort(t *testing.T) {
 		{
 			name: "destination_any_with_port",
 			rule: common.FirewallRule{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Source:      common.RuleEndpoint{Address: "any"},
 				Destination: common.RuleEndpoint{Address: "any", Port: "80,443"},
 			},
@@ -1173,14 +1173,14 @@ func TestMarkdownBuilder_BuildSecuritySection_WithNATReflection(t *testing.T) {
 			PfShareForward:       true,
 		},
 		NAT: common.NATConfig{
-			OutboundMode: "automatic",
+			OutboundMode: common.OutboundAutomatic,
 		},
 		FirewallRules: []common.FirewallRule{
 			{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Description: "Test rule",
 				Interfaces:  []string{"lan"},
-				IPProtocol:  "inet",
+				IPProtocol:  common.IPProtocolInet,
 				Protocol:    "tcp",
 				Source: common.RuleEndpoint{
 					Address: "lan",
@@ -1320,10 +1320,10 @@ func TestMarkdownBuilder_BuildFirewallRulesTable_WithComplexRules(t *testing.T) 
 	// Test with complex firewall rules including all fields
 	rules := []common.FirewallRule{
 		{
-			Type:        "pass",
+			Type:        common.RuleTypePass,
 			Description: "Allow HTTPS",
 			Interfaces:  []string{"wan"},
-			IPProtocol:  "inet",
+			IPProtocol:  common.IPProtocolInet,
 			Protocol:    "tcp",
 			Source: common.RuleEndpoint{
 				Address: "any",
@@ -1336,10 +1336,10 @@ func TestMarkdownBuilder_BuildFirewallRulesTable_WithComplexRules(t *testing.T) 
 			Disabled: true, // Disabled rule
 		},
 		{
-			Type:        "block",
+			Type:        common.RuleTypeBlock,
 			Description: "Block SSH",
 			Interfaces:  []string{"wan", "lan"},
-			IPProtocol:  "inet6",
+			IPProtocol:  common.IPProtocolInet6,
 			Protocol:    "tcp",
 			Source: common.RuleEndpoint{
 				Address: "lan",
@@ -1361,34 +1361,34 @@ func TestMarkdownBuilder_BuildFirewallRulesTable_WithComplexRules(t *testing.T) 
 
 	// Verify first row (disabled rule)
 	row1 := tableSet.Rows[0]
-	assert.Equal(t, "1", row1[0])            // #
-	assert.Contains(t, row1[1], "wan")       // Interface
-	assert.Equal(t, "pass", row1[2])         // Action
-	assert.Equal(t, "inet", row1[3])         // IP Ver
-	assert.Equal(t, "tcp", row1[4])          // Proto
-	assert.Equal(t, "any", row1[5])          // Source
-	assert.Equal(t, "lan", row1[6])          // Destination
-	assert.Equal(t, "lan", row1[7])          // Target
-	assert.Equal(t, "443", row1[8])          // Source Port
-	assert.Empty(t, row1[9])                 // Dest Port
-	assert.Equal(t, "✗", row1[10])           // Enabled (disabled)
-	assert.Equal(t, "Allow HTTPS", row1[11]) // Description
+	assert.Equal(t, "1", row1[0])                           // #
+	assert.Contains(t, row1[1], "wan")                      // Interface
+	assert.Equal(t, string(common.RuleTypePass), row1[2])   // Action
+	assert.Equal(t, string(common.IPProtocolInet), row1[3]) // IP Ver
+	assert.Equal(t, "tcp", row1[4])                         // Proto
+	assert.Equal(t, "any", row1[5])                         // Source
+	assert.Equal(t, "lan", row1[6])                         // Destination
+	assert.Equal(t, "lan", row1[7])                         // Target
+	assert.Equal(t, "443", row1[8])                         // Source Port
+	assert.Empty(t, row1[9])                                // Dest Port
+	assert.Equal(t, "✗", row1[10])                          // Enabled (disabled)
+	assert.Equal(t, "Allow HTTPS", row1[11])                // Description
 
 	// Verify second row (enabled rule)
 	row2 := tableSet.Rows[1]
-	assert.Equal(t, "2", row2[0])          // #
-	assert.Contains(t, row2[1], "wan")     // Interface
-	assert.Contains(t, row2[1], "lan")     // Interface
-	assert.Equal(t, "block", row2[2])      // Action
-	assert.Equal(t, "inet6", row2[3])      // IP Ver
-	assert.Equal(t, "tcp", row2[4])        // Proto
-	assert.Equal(t, "lan", row2[5])        // Source
-	assert.Equal(t, "wan", row2[6])        // Destination
-	assert.Empty(t, row2[7])               // Target
-	assert.Equal(t, "22", row2[8])         // Source Port
-	assert.Empty(t, row2[9])               // Dest Port
-	assert.Equal(t, "✓", row2[10])         // Enabled
-	assert.Equal(t, "Block SSH", row2[11]) // Description
+	assert.Equal(t, "2", row2[0])                            // #
+	assert.Contains(t, row2[1], "wan")                       // Interface
+	assert.Contains(t, row2[1], "lan")                       // Interface
+	assert.Equal(t, string(common.RuleTypeBlock), row2[2])   // Action
+	assert.Equal(t, string(common.IPProtocolInet6), row2[3]) // IP Ver
+	assert.Equal(t, "tcp", row2[4])                          // Proto
+	assert.Equal(t, "lan", row2[5])                          // Source
+	assert.Equal(t, "wan", row2[6])                          // Destination
+	assert.Empty(t, row2[7])                                 // Target
+	assert.Equal(t, "22", row2[8])                           // Source Port
+	assert.Empty(t, row2[9])                                 // Dest Port
+	assert.Equal(t, "✓", row2[10])                           // Enabled
+	assert.Equal(t, "Block SSH", row2[11])                   // Description
 }
 
 func TestMarkdownBuilder_BuildInterfaceTable_WithComplexInterfaces(t *testing.T) {
@@ -1910,7 +1910,7 @@ func TestMarkdownBuilder_BuildSecuritySection_WithBothNATTypes(t *testing.T) {
 			PfShareForward:       true,
 		},
 		NAT: common.NATConfig{
-			OutboundMode:       "automatic",
+			OutboundMode:       common.OutboundAutomatic,
 			ReflectionDisabled: true,
 			PfShareForward:     true,
 			OutboundRules: []common.NATRule{
@@ -1964,7 +1964,7 @@ func TestMarkdownBuilder_BuildSecuritySection_InboundSecurityWarning(t *testing.
 			DisableNATReflection: true,
 		},
 		NAT: common.NATConfig{
-			OutboundMode:       "automatic",
+			OutboundMode:       common.OutboundAutomatic,
 			ReflectionDisabled: true,
 			InboundRules: []common.InboundNATRule{
 				{

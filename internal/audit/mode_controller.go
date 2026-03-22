@@ -313,7 +313,7 @@ func (r *Report) addFirewallRuleAnalysis() {
 // addNATAnalysis adds NAT analysis to the report.
 func (r *Report) addNATAnalysis() {
 	if r.Configuration != nil {
-		r.Metadata["nat_mode"] = r.Configuration.NAT.OutboundMode
+		r.Metadata["nat_mode"] = string(r.Configuration.NAT.OutboundMode)
 	}
 	r.Metadata["nat_analysis_completed"] = true
 }

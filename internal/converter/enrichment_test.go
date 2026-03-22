@@ -205,13 +205,13 @@ func TestComputeAnalysis_DeadRules(t *testing.T) {
 	device := &common.CommonDevice{
 		FirewallRules: []common.FirewallRule{
 			{
-				Type:        "block",
+				Type:        common.RuleTypeBlock,
 				Interfaces:  []string{"wan"},
 				Source:      common.RuleEndpoint{Address: "any"},
 				Destination: common.RuleEndpoint{Address: "any"},
 			},
 			{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Interfaces:  []string{"wan"},
 				Source:      common.RuleEndpoint{Address: "10.0.0.0/8"},
 				Destination: common.RuleEndpoint{Address: "any"},
@@ -232,13 +232,13 @@ func TestComputeAnalysis_DuplicateRules(t *testing.T) {
 	device := &common.CommonDevice{
 		FirewallRules: []common.FirewallRule{
 			{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Interfaces:  []string{"lan"},
 				Source:      common.RuleEndpoint{Address: "10.0.0.0/8"},
 				Destination: common.RuleEndpoint{Address: "any"},
 			},
 			{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Interfaces:  []string{"lan"},
 				Source:      common.RuleEndpoint{Address: "10.0.0.0/8"},
 				Destination: common.RuleEndpoint{Address: "any"},
@@ -280,7 +280,7 @@ func TestComputeAnalysis_SecurityIssues(t *testing.T) {
 		},
 		SNMP: common.SNMPConfig{ROCommunity: "public"},
 		FirewallRules: []common.FirewallRule{
-			{Type: "pass", Interfaces: []string{"wan"}, Source: common.RuleEndpoint{Address: "any"}},
+			{Type: common.RuleTypePass, Interfaces: []string{"wan"}, Source: common.RuleEndpoint{Address: "any"}},
 		},
 	}
 
@@ -405,7 +405,7 @@ func TestPrepareForExport_RedactsSensitiveFields_JSON(t *testing.T) {
 			},
 		},
 		DHCP: []common.DHCPScope{
-			{Interface: "lan", AdvDHCP6KeyInfoStatementSecret: "dhcp-secret-key"},
+			{Interface: "lan", AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6KeyInfoStatementSecret: "dhcp-secret-key"}},
 		},
 	}
 
@@ -417,7 +417,7 @@ func TestPrepareForExport_RedactsSensitiveFields_JSON(t *testing.T) {
 	assert.Equal(t, redactedValue, exported.SNMP.ROCommunity)
 	assert.Equal(t, redactedValue, exported.Certificates[0].PrivateKey)
 	assert.Equal(t, redactedValue, exported.VPN.WireGuard.Clients[0].PSK)
-	assert.Equal(t, redactedValue, exported.DHCP[0].AdvDHCP6KeyInfoStatementSecret)
+	assert.Equal(t, redactedValue, exported.DHCP[0].AdvancedV6.AdvDHCP6KeyInfoStatementSecret)
 
 	// Verify result is valid JSON.
 	result, err := json.MarshalIndent(exported, "", "  ")
@@ -541,16 +541,16 @@ func TestRedactSensitiveFields_DHCPv6Secret(t *testing.T) {
 
 	device := &common.CommonDevice{
 		DHCP: []common.DHCPScope{
-			{Interface: "lan", AdvDHCP6KeyInfoStatementSecret: "dhcp-secret"},
+			{Interface: "lan", AdvancedV6: &common.DHCPAdvancedV6{AdvDHCP6KeyInfoStatementSecret: "dhcp-secret"}},
 			{Interface: "opt1"},
 		},
 	}
 
 	result := prepareForExport(device, true)
 
-	assert.Equal(t, redactedValue, result.DHCP[0].AdvDHCP6KeyInfoStatementSecret)
-	assert.Empty(t, result.DHCP[1].AdvDHCP6KeyInfoStatementSecret, "empty secret should stay empty")
-	assert.Equal(t, "dhcp-secret", device.DHCP[0].AdvDHCP6KeyInfoStatementSecret, "original not mutated")
+	assert.Equal(t, redactedValue, result.DHCP[0].AdvancedV6.AdvDHCP6KeyInfoStatementSecret)
+	assert.Nil(t, result.DHCP[1].AdvancedV6, "nil AdvancedV6 should stay nil")
+	assert.Equal(t, "dhcp-secret", device.DHCP[0].AdvancedV6.AdvDHCP6KeyInfoStatementSecret, "original not mutated")
 }
 
 func TestRedactSensitiveFields_EmptyFieldsNotRedacted(t *testing.T) {

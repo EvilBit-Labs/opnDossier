@@ -247,6 +247,111 @@ type CommonDevice struct {
 
 The XML DTO remains as `schema.OpnSenseDocument` in `pkg/schema/opnsense/`. The OPNsense-specific parser in `pkg/parser/opnsense/` converts the XML DTO into `CommonDevice`. The `pkg/parser/` package provides the `Factory` and `DeviceParser` interface for consumers.
 
+### Type Safety with Enums
+
+The `pkg/model` package uses typed string enums to enforce compile-time validation of configuration values and eliminate typos in string literals. This provides better IDE autocomplete, refactoring support, and catches errors at build time instead of runtime.
+
+#### Firewall Rule Types
+
+Firewall rule actions use the `FirewallRuleType` enum instead of bare strings:
+
+```go
+type FirewallRuleType string
+
+const (
+    RuleTypePass   FirewallRuleType = "pass"    // Allow matching traffic
+    RuleTypeBlock  FirewallRuleType = "block"   // Silently drop matching traffic
+    RuleTypeReject FirewallRuleType = "reject"  // Drop and send rejection response
+)
+```
+
+**Usage:**
+
+```go
+// Creating rules with typed constants
+rule := common.FirewallRule{
+    Type:        common.RuleTypePass,
+    Description: "Allow HTTPS",
+    // ...
+}
+
+// Comparing rule types
+if rule.Type == common.RuleTypeBlock {
+    // Handle blocked traffic
+}
+
+// Filtering rules by type
+passRules := builder.FilterRulesByType(rules, common.RuleTypePass)
+```
+
+#### NAT Configuration
+
+NAT outbound modes use the `NATOutboundMode` enum:
+
+```go
+type NATOutboundMode string
+
+const (
+    OutboundAutomatic NATOutboundMode = "automatic"  // Automatic outbound NAT rules
+    OutboundHybrid    NATOutboundMode = "hybrid"     // Combined automatic and manual rules
+    OutboundAdvanced  NATOutboundMode = "advanced"   // Manual rules only
+    OutboundDisabled  NATOutboundMode = "disabled"   // Outbound NAT disabled
+)
+```
+
+**Usage:**
+
+```go
+nat := common.NATConfig{
+    OutboundMode: common.OutboundHybrid,
+    // ...
+}
+```
+
+#### IP Protocol and Direction
+
+Additional typed enums for network configuration:
+
+```go
+type IPProtocol string
+
+const (
+    IPProtocolInet  IPProtocol = "inet"   // IPv4
+    IPProtocolInet6 IPProtocol = "inet6"  // IPv6
+)
+
+type FirewallDirection string
+
+const (
+    DirectionIn  FirewallDirection = "in"   // Inbound traffic
+    DirectionOut FirewallDirection = "out"  // Outbound traffic
+    DirectionAny FirewallDirection = "any"  // Either direction
+)
+```
+
+#### Network Configuration Types
+
+Network features use typed enums for link aggregation and virtual IPs:
+
+```go
+type LAGGProtocol string
+
+const (
+    LAGGProtocolLACP        LAGGProtocol = "lacp"        // IEEE 802.3ad LACP
+    LAGGProtocolFailover    LAGGProtocol = "failover"    // Active/standby failover
+    LAGGProtocolLoadBalance LAGGProtocol = "loadbalance" // Hash-based distribution
+    LAGGProtocolRoundRobin  LAGGProtocol = "roundrobin"  // Round-robin distribution
+)
+
+type VIPMode string
+
+const (
+    VIPModeCarp     VIPMode = "carp"     // CARP HA failover
+    VIPModeIPAlias  VIPMode = "ipalias"  // Additional IP address
+    VIPModeProxyARP VIPMode = "proxyarp" // ARP proxying
+)
+```
+
 ### ConversionWarning
 
 The `ConversionWarning` type represents non-fatal issues encountered during conversion from a platform-specific schema to the platform-agnostic `CommonDevice` model:
@@ -337,6 +442,11 @@ systemSection := builder.BuildSystemSection(doc)
 networkSection := builder.BuildNetworkSection(doc)
 securitySection := builder.BuildSecuritySection(doc)
 servicesSection := builder.BuildServicesSection(doc)
+
+// Filter rules by type using typed constants
+passRules := builder.FilterRulesByType(rules, common.RuleTypePass)
+blockRules := builder.FilterRulesByType(rules, common.RuleTypeBlock)
+rejectRules := builder.FilterRulesByType(rules, common.RuleTypeReject)
 ```
 
 ### Security Functions (internal/converter/formatters)

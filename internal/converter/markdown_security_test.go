@@ -131,7 +131,7 @@ func TestMarkdownBuilder_CalculateSecurityScore(t *testing.T) {
 
 	t.Run("good baseline configuration", func(t *testing.T) {
 		cfg := &common.CommonDevice{
-			FirewallRules: []common.FirewallRule{{Type: "block"}}, // at least one rule
+			FirewallRules: []common.FirewallRule{{Type: common.RuleTypeBlock}}, // at least one rule
 			Sysctl: []common.SysctlItem{
 				{Tunable: "net.inet.ip.forwarding", Value: "0"},
 				{Tunable: "net.inet6.ip6.forwarding", Value: "0"},
@@ -151,7 +151,7 @@ func TestMarkdownBuilder_CalculateSecurityScore(t *testing.T) {
 		cfg := &common.CommonDevice{
 			FirewallRules: []common.FirewallRule{
 				{ // Management on WAN
-					Type:       "pass",
+					Type:       common.RuleTypePass,
 					Interfaces: []string{"wan"},
 					Destination: common.RuleEndpoint{
 						Port: "22",
@@ -179,7 +179,7 @@ func TestMarkdownBuilder_CalculateSecurityScore(t *testing.T) {
 
 	t.Run("bad sysctl settings", func(t *testing.T) {
 		cfg := &common.CommonDevice{
-			FirewallRules: []common.FirewallRule{{Type: "block"}},
+			FirewallRules: []common.FirewallRule{{Type: common.RuleTypeBlock}},
 			Sysctl: []common.SysctlItem{
 				{Tunable: "net.inet.ip.forwarding", Value: "1"}, // Bad: forwarding enabled
 				{Tunable: "net.inet.tcp.blackhole", Value: "0"}, // Bad: blackhole disabled
@@ -197,7 +197,7 @@ func TestMarkdownBuilder_CalculateSecurityScore(t *testing.T) {
 		cfg := &common.CommonDevice{
 			FirewallRules: []common.FirewallRule{
 				{ // Management on WAN
-					Type:       "pass",
+					Type:       common.RuleTypePass,
 					Interfaces: []string{"wan"},
 					Destination: common.RuleEndpoint{
 						Port: "22",

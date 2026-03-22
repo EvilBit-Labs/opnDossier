@@ -1,6 +1,8 @@
 package opnsense
 
 import (
+	"fmt"
+
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
@@ -104,11 +106,20 @@ func (c *converter) convertLAGGs(doc *schema.OpnSenseDocument) []common.LAGG {
 	}
 
 	result := make([]common.LAGG, 0, len(doc.LAGGInterfaces.Lagg))
-	for _, l := range doc.LAGGInterfaces.Lagg {
+	for i, l := range doc.LAGGInterfaces.Lagg {
+		proto := common.LAGGProtocol(l.Proto)
+		if l.Proto != "" && !proto.IsValid() {
+			c.addWarning(
+				fmt.Sprintf("LAGGs[%d].Protocol", i),
+				l.Proto,
+				"unrecognized LAGG protocol",
+				common.SeverityLow,
+			)
+		}
 		result = append(result, common.LAGG{
 			Interface:   l.Laggif,
 			Members:     splitNonEmpty(l.Members, ","),
-			Protocol:    l.Proto,
+			Protocol:    proto,
 			Description: l.Descr,
 			Created:     l.Created,
 			Updated:     l.Updated,
@@ -127,9 +138,18 @@ func (c *converter) convertVirtualIPs(doc *schema.OpnSenseDocument) []common.Vir
 	}
 
 	result := make([]common.VirtualIP, 0, len(doc.VirtualIP.Vip))
-	for _, v := range doc.VirtualIP.Vip {
+	for i, v := range doc.VirtualIP.Vip {
+		mode := common.VIPMode(v.Mode)
+		if v.Mode != "" && !mode.IsValid() {
+			c.addWarning(
+				fmt.Sprintf("VirtualIPs[%d].Mode", i),
+				v.Mode,
+				"unrecognized virtual IP mode",
+				common.SeverityLow,
+			)
+		}
 		result = append(result, common.VirtualIP{
-			Mode:        v.Mode,
+			Mode:        mode,
 			Interface:   v.Interface,
 			Subnet:      v.Subnet,
 			Description: v.Descr,

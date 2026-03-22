@@ -119,7 +119,7 @@ func AggregatePackageStats(packages []common.Package) map[string]int {
 // If ruleType is empty, returns all rules.
 // Otherwise, returns only rules matching the specified type.
 // Returns nil if rules is nil, empty slice if no matches found.
-func FilterRulesByType(rules []common.FirewallRule, ruleType string) []common.FirewallRule {
+func FilterRulesByType(rules []common.FirewallRule, ruleType common.FirewallRuleType) []common.FirewallRule {
 	if rules == nil {
 		return nil
 	}

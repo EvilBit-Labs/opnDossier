@@ -172,7 +172,7 @@ func TestCalculateSecurityScore_IDSScoring(t *testing.T) {
 			rules := make([]common.FirewallRule, tt.firewallRules)
 			for i := range tt.firewallRules {
 				rules[i] = common.FirewallRule{
-					Type:       "pass",
+					Type:       common.RuleTypePass,
 					Interfaces: []string{"lan"},
 				}
 			}
@@ -271,7 +271,7 @@ func TestCalculateSecurityScore_NoDuplicateIDSCounting(t *testing.T) {
 		},
 		IDS: makeIDs(true, true, []string{"lan"}, "high", true, false),
 		FirewallRules: []common.FirewallRule{
-			{Type: "pass", Interfaces: []string{"lan"}},
+			{Type: common.RuleTypePass, Interfaces: []string{"lan"}},
 		},
 	}
 
@@ -468,7 +468,7 @@ func TestGenerateStatistics_TotalConfigItemsUsesSharedFormula(t *testing.T) {
 			{Name: "lan", Enabled: true},
 		},
 		FirewallRules: []common.FirewallRule{
-			{Type: "pass", Interfaces: []string{"lan"}},
+			{Type: common.RuleTypePass, Interfaces: []string{"lan"}},
 		},
 		Users:        []common.User{{Name: "admin", Scope: "system"}},
 		Groups:       []common.Group{{Name: "admins", Scope: "system"}},

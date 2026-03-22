@@ -14,8 +14,8 @@ func TestNormalize_DoesNotMutateOriginal(t *testing.T) {
 
 	original := &common.CommonDevice{
 		FirewallRules: []common.FirewallRule{
-			{Type: "pass", Description: "rule-b"},
-			{Type: "block", Description: "rule-a"},
+			{Type: common.RuleTypePass, Description: "rule-b"},
+			{Type: common.RuleTypeBlock, Description: "rule-a"},
 		},
 		Users: []common.User{
 			{Name: "zoe"},
@@ -34,7 +34,9 @@ func TestNormalize_DoesNotMutateOriginal(t *testing.T) {
 		},
 		DHCP: []common.DHCPScope{
 			//nolint:gosec // Test fixture value is synthetic and used only to verify deep-copy behavior.
-			{Interface: "lan", AdvDHCP6KeyInfoStatementSecret: "dhcpv6-token"},
+			{Interface: "lan", AdvancedV6: &common.DHCPAdvancedV6{
+				AdvDHCP6KeyInfoStatementSecret: "dhcpv6-token",
+			}},
 		},
 		VPN: common.VPN{
 			WireGuard: common.WireGuardConfig{
@@ -51,7 +53,7 @@ func TestNormalize_DoesNotMutateOriginal(t *testing.T) {
 	origGroupName := original.Groups[0].Name
 	origSysctl := original.Sysctl[0].Tunable
 	origCertKey := original.Certificates[0].PrivateKey
-	origDHCPSecret := original.DHCP[0].AdvDHCP6KeyInfoStatementSecret
+	origDHCPSecret := original.DHCP[0].AdvancedV6.AdvDHCP6KeyInfoStatementSecret
 	origWGPSK := original.VPN.WireGuard.Clients[0].PSK
 
 	p := &CoreProcessor{}
@@ -62,7 +64,7 @@ func TestNormalize_DoesNotMutateOriginal(t *testing.T) {
 
 	// Mutate normalized slices to prove independence from original
 	normalized.Certificates[0].PrivateKey = mutatedValue
-	normalized.DHCP[0].AdvDHCP6KeyInfoStatementSecret = mutatedValue
+	normalized.DHCP[0].AdvancedV6.AdvDHCP6KeyInfoStatementSecret = mutatedValue
 	normalized.VPN.WireGuard.Clients[0].PSK = mutatedValue
 
 	// Original should be unmodified
@@ -79,7 +81,7 @@ func TestNormalize_DoesNotMutateOriginal(t *testing.T) {
 	assert.Equal(
 		t,
 		origDHCPSecret,
-		original.DHCP[0].AdvDHCP6KeyInfoStatementSecret,
+		original.DHCP[0].AdvancedV6.AdvDHCP6KeyInfoStatementSecret,
 		"original DHCP secret should not be mutated",
 	)
 	assert.Equal(t, origWGPSK, original.VPN.WireGuard.Clients[0].PSK, "original WireGuard PSK should not be mutated")

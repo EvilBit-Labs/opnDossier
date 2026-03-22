@@ -4,7 +4,10 @@
 // clean Go types suitable for analysis, reporting, and multi-device support.
 package model
 
-import "slices"
+import (
+	"slices"
+	"strings"
+)
 
 // DeviceType identifies the platform that produced a configuration.
 type DeviceType string
@@ -32,6 +35,19 @@ func (d DeviceType) IsValid() bool {
 // String returns the string representation of the DeviceType.
 func (d DeviceType) String() string {
 	return string(d)
+}
+
+// ParseDeviceType normalizes a raw string into a recognized DeviceType.
+// Unrecognized values return DeviceTypeUnknown.
+func ParseDeviceType(s string) DeviceType {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "opnsense":
+		return DeviceTypeOPNsense
+	case "pfsense":
+		return DeviceTypePfSense
+	default:
+		return DeviceTypeUnknown
+	}
 }
 
 // CommonDevice is the platform-agnostic root struct for a firewall device

@@ -290,6 +290,46 @@ func TestList(t *testing.T) {
 	}
 }
 
+// TestSupportedDevices verifies the formatted supported-device string.
+func TestSupportedDevices(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		registerTypes []string
+		expected      string
+	}{
+		{
+			name:          "empty registry returns hint",
+			registerTypes: []string{},
+			expected:      "(none registered -- ensure parser packages are imported)",
+		},
+		{
+			name:          "single entry",
+			registerTypes: []string{"alpha"},
+			expected:      "alpha",
+		},
+		{
+			name:          "multiple entries returned sorted and joined",
+			registerTypes: []string{"zulu", "alpha", "bravo"},
+			expected:      "alpha, bravo, zulu",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			reg := NewDeviceParserRegistry()
+			for _, dt := range tt.registerTypes {
+				reg.Register(dt, mockConstructor())
+			}
+
+			assert.Equal(t, tt.expected, reg.SupportedDevices())
+		})
+	}
+}
+
 // TestDefaultRegistry verifies the singleton returns the same instance.
 func TestDefaultRegistry(t *testing.T) {
 	t.Parallel()
@@ -370,7 +410,7 @@ func TestFactoryIntegration(t *testing.T) {
 		name               string
 		registerTypes      []string
 		xmlInput           string
-		deviceTypeOverride string
+		deviceTypeOverride common.DeviceType
 		validateMode       bool
 		wantErr            bool
 		errContains        string
@@ -379,7 +419,7 @@ func TestFactoryIntegration(t *testing.T) {
 			name:               "override with registered type succeeds",
 			registerTypes:      []string{"testdevice"},
 			xmlInput:           `<?xml version="1.0"?><testdevice></testdevice>`,
-			deviceTypeOverride: "testdevice",
+			deviceTypeOverride: common.DeviceType("testdevice"),
 			validateMode:       false,
 			wantErr:            false,
 		},
@@ -387,7 +427,7 @@ func TestFactoryIntegration(t *testing.T) {
 			name:               "override with unregistered type returns error",
 			registerTypes:      []string{"testdevice"},
 			xmlInput:           `<?xml version="1.0"?><testdevice></testdevice>`,
-			deviceTypeOverride: "unknown",
+			deviceTypeOverride: common.DeviceType("unknown"),
 			validateMode:       false,
 			wantErr:            true,
 			errContains:        "unsupported device type override",
@@ -396,7 +436,7 @@ func TestFactoryIntegration(t *testing.T) {
 			name:               "auto-detect from XML root element succeeds",
 			registerTypes:      []string{"testdevice"},
 			xmlInput:           `<?xml version="1.0"?><testdevice></testdevice>`,
-			deviceTypeOverride: "",
+			deviceTypeOverride: common.DeviceTypeUnknown,
 			validateMode:       false,
 			wantErr:            false,
 		},
@@ -404,7 +444,7 @@ func TestFactoryIntegration(t *testing.T) {
 			name:               "auto-detect with unregistered root element returns error",
 			registerTypes:      []string{"testdevice"},
 			xmlInput:           `<?xml version="1.0"?><otherdevice></otherdevice>`,
-			deviceTypeOverride: "",
+			deviceTypeOverride: common.DeviceTypeUnknown,
 			validateMode:       false,
 			wantErr:            true,
 			errContains:        "unsupported device type",

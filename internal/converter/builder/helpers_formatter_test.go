@@ -486,19 +486,19 @@ func TestMarkdownBuilder_FilterRulesByType(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
 	rules := []common.FirewallRule{
-		{Type: "pass", Protocol: "tcp"},
-		{Type: "block", Protocol: "udp"},
-		{Type: "pass", Protocol: "icmp"},
-		{Type: "reject", Protocol: "tcp"},
+		{Type: common.RuleTypePass, Protocol: "tcp"},
+		{Type: common.RuleTypeBlock, Protocol: "udp"},
+		{Type: common.RuleTypePass, Protocol: "icmp"},
+		{Type: common.RuleTypeReject, Protocol: "tcp"},
 	}
 
 	tests := []struct {
 		name     string
-		ruleType string
+		ruleType common.FirewallRuleType
 	}{
-		{name: "pass rules", ruleType: "pass"},
-		{name: "block rules", ruleType: "block"},
-		{name: "reject rules", ruleType: "reject"},
+		{name: "pass rules", ruleType: common.RuleTypePass},
+		{name: "block rules", ruleType: common.RuleTypeBlock},
+		{name: "reject rules", ruleType: common.RuleTypeReject},
 		{name: "nonexistent type", ruleType: "nonexistent"},
 	}
 

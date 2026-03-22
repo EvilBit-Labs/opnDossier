@@ -1,7 +1,9 @@
 // Package constants defines shared constants used across the application.
 package constants
 
-import "time"
+import (
+	"time"
+)
 
 // Version is the current application version, injected at build time by GoReleaser via ldflags.
 var Version = "dev"
@@ -23,9 +25,6 @@ const (
 
 	// ProtocolHTTPS represents the HTTPS protocol identifier.
 	ProtocolHTTPS = "https"
-
-	// RuleTypePass represents a firewall pass rule.
-	RuleTypePass = "pass"
 
 	// FindingTypeSecurity identifies security-related audit findings.
 	FindingTypeSecurity = "security"

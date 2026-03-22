@@ -169,12 +169,12 @@ For practical developer guidance on public package purity and the boundary verif
 - **Shared Functions**:
   - `ComputeStatistics()` - Statistics computation for configuration items, services, and security features
   - `ComputeAnalysis()` - Detection logic for dead rules, unused interfaces, security, performance, and consistency issues
-  - `DetectDeadRules()` - Dead rule detection with structured `Kind` field (`"unreachable"` or `"duplicate"`)
+  - `DetectDeadRules()` - Dead rule detection with structured `Kind` field (`"unreachable"` or `"duplicate"`). **Uses typed constants for rule type comparisons** (e.g., `rule.Type == common.RuleTypeBlock`)
   - `DetectUnusedInterfaces()` - Unused interface detection across rules, DHCP, DNS, VPN, and load balancer
   - `RulesEquivalent()` - Rule comparison including `Disabled` field and normalized interface order
 - **Defensive API**: All exported `Compute*` functions include nil guards for safe use with nil arguments
 - **Export Model**: `ComplianceResults`, `ComplianceFinding`, `PluginComplianceResult`, `ComplianceControl`, `ComplianceResultSummary`, `CompliancePluginInfo`, `ComplianceAttackSurface` in `pkg/model/enrichment.go`
-- **Purpose**: Eliminates duplicated detection and statistics logic, ensures consistency across all analysis-related packages
+- **Purpose**: Eliminates duplicated detection and statistics logic, ensures consistency across all analysis-related packages. **Analysis code uses typed enum constants instead of string literals**, providing compile-time safety for rule type checks and security severity levels
 - **Usage**: Also used in `ConversionWarning` type for severity classification of non-fatal conversion issues
 
 ### 4. Data Processing Engine
@@ -295,6 +295,79 @@ This hierarchical structure provides:
 - **API Evolution**: JSON tags enable better REST API integration
 - **Compliance Data**: `ComplianceResults` field (formerly `ComplianceChecks`) is a rich nested structure containing `Mode`, `Findings`, `PluginResults` map with per-plugin `PluginComplianceResult` instances, `Summary`, and `Metadata`
 
+### Type Safety with Enums
+
+The model package enforces type safety through **typed string enums** for configuration domains where arbitrary string values historically led to validation and refactoring challenges:
+
+#### Firewall Rule Types
+
+```go
+type FirewallRuleType string
+
+const (
+    RuleTypePass   FirewallRuleType = "pass"    // Allow traffic
+    RuleTypeBlock  FirewallRuleType = "block"   // Silently drop traffic
+    RuleTypeReject FirewallRuleType = "reject"  // Drop and send rejection
+)
+```
+
+#### NAT Configuration
+
+```go
+type NATOutboundMode string
+
+const (
+    OutboundAutomatic NATOutboundMode = "automatic"  // Automatic rules
+    OutboundHybrid    NATOutboundMode = "hybrid"     // Mixed auto/manual
+    OutboundAdvanced  NATOutboundMode = "advanced"   // Manual only
+    OutboundDisabled  NATOutboundMode = "disabled"   // NAT disabled
+)
+```
+
+#### Network Configuration
+
+```go
+type IPProtocol string
+
+const (
+    IPProtocolInet  IPProtocol = "inet"   // IPv4
+    IPProtocolInet6 IPProtocol = "inet6"  // IPv6
+)
+
+type FirewallDirection string
+
+const (
+    DirectionIn  FirewallDirection = "in"   // Inbound traffic
+    DirectionOut FirewallDirection = "out"  // Outbound traffic
+    DirectionAny FirewallDirection = "any"  // Bidirectional
+)
+
+type LAGGProtocol string
+
+const (
+    LAGGProtocolLACP        LAGGProtocol = "lacp"        // IEEE 802.3ad
+    LAGGProtocolFailover    LAGGProtocol = "failover"    // Active/standby
+    LAGGProtocolLoadBalance LAGGProtocol = "loadbalance" // Hash-based
+    LAGGProtocolRoundRobin  LAGGProtocol = "roundrobin"  // Round-robin
+)
+
+type VIPMode string
+
+const (
+    VIPModeCarp     VIPMode = "carp"     // CARP failover
+    VIPModeIPAlias  VIPMode = "ipalias"  // IP alias
+    VIPModeProxyARP VIPMode = "proxyarp" // ARP proxy
+)
+```
+
+#### Benefits of Typed Enums
+
+1. **Compile-Time Safety**: Type system prevents invalid assignments like `rule.Type = "invalid"` — compiler enforces valid constants
+2. **Refactoring Support**: IDE rename operations update all references across 70 files without grep-based search/replace
+3. **Documentation**: Enum constants provide inline documentation at usage sites (`RuleTypePass` is self-documenting vs `"pass"`)
+4. **Autocomplete**: IDEs offer completion suggestions for valid enum values
+5. **Magic String Elimination**: No bare string literals like `"pass"`, `"block"`, `"reject"` scattered across analysis, diff, converter, and plugin packages
+
 ## Multi-Device Model Layer Architecture
 
 opnDossier separates XML-specific DTOs from the domain model consumed by all downstream components. This enables support for multiple device types (OPNsense today, pfSense/Cisco ASA in the future) behind a single `CommonDevice` abstraction.
@@ -316,9 +389,9 @@ graph TD
 ### Layer Responsibilities
 
 - **`pkg/schema/opnsense/`** — XML DTO layer. Carries `xml:""` tags and mirrors the OPNsense config.xml structure. This layer is untouched by downstream consumers.
-- **`pkg/parser/opnsense/`** — Contains `parser.go` and `converter.go`. Reads schema DTOs and emits `*common.CommonDevice` with conversion warnings. This is the only package that imports `pkg/schema/opnsense/`.
-- **`pkg/model/`** — Device-agnostic domain model. No XML tags. All consumer code (processor, converter, markdown, audit, diff, compliance plugins) operates on `CommonDevice`. Includes `ConversionWarning` type for non-fatal issues and `ComplianceResults` type (with nested `ComplianceFinding`, `PluginComplianceResult`, `ComplianceControl`, `ComplianceResultSummary`, `CompliancePluginInfo`, `ComplianceAttackSurface`) for compliance audit data representation.
-- **`internal/analysis/`** — Shared analysis logic and canonical finding types. Provides detection functions (`DetectDeadRules`, `DetectUnusedInterfaces`, `DetectSecurityIssues`, `DetectPerformanceIssues`, `DetectConsistency`), statistics computation (`ComputeStatistics`), analysis aggregation (`ComputeAnalysis`), and rule comparison (`RulesEquivalent`). Used by both `internal/converter` and `internal/processor` to eliminate duplicated logic.
+- **`pkg/parser/opnsense/`** — Contains `parser.go` and `converter.go`. Reads schema DTOs and emits `*common.CommonDevice` with conversion warnings. **Converts OPNsense XML string values to typed enum constants** (e.g., `"pass"` → `common.RuleTypePass`, `"automatic"` → `common.OutboundAutomatic`). This is the only package that imports `pkg/schema/opnsense/`.
+- **`pkg/model/`** — Device-agnostic domain model. No XML tags. Defines typed string enums for firewall rules (`RuleType`, `Direction`, `IPProtocol`), NAT configurations (`OutboundMode`), and network elements (`LAGGProtocol`, `VIPMode`). All consumer code (processor, converter, markdown, audit, diff, compliance plugins) operates on `CommonDevice`. Includes `ConversionWarning` type for non-fatal issues and `ComplianceResults` type (with nested `ComplianceFinding`, `PluginComplianceResult`, `ComplianceControl`, `ComplianceResultSummary`, `CompliancePluginInfo`, `ComplianceAttackSurface`) for compliance audit data representation.
+- **`internal/analysis/`** — Shared analysis logic and canonical finding types. Provides detection functions (`DetectDeadRules`, `DetectUnusedInterfaces`, `DetectSecurityIssues`, `DetectPerformanceIssues`, `DetectConsistency`), statistics computation (`ComputeStatistics`), analysis aggregation (`ComputeAnalysis`), and rule comparison (`RulesEquivalent`). **Uses typed constants for rule type comparisons** (e.g., `rule.Type == common.RuleTypeBlock`) instead of string literals. Used by both `internal/converter` and `internal/processor` to eliminate duplicated logic.
 - **`pkg/parser/factory.go`** — `Factory` and `DeviceParser` interface. Uses the `DeviceParserRegistry` for device type dispatch. Auto-detects the device type from the XML root element or uses the `--device-type` flag to bypass auto-detection. Returns 3 values: device model, warnings slice, and error.
 
 ### Device Type Detection
@@ -421,8 +494,9 @@ func TestCustomParser(t *testing.T) {
 
 - **`ValidDeviceTypes()`** — Shell completion using `registry.List()`
 - **`validateDeviceType()`** — Validation using `registry.Get()` with dynamic error messages
+- **`resolveDeviceType()`** — Type-safe device type resolution that converts the raw `--device-type` flag value into a `common.DeviceType` enum constant for built-in types (opnsense, pfsense) or falls back to casting the normalized registry key for third-party parsers
 
-This replaces hardcoded "opnsense" strings with registry queries, enabling automatic CLI support for new parsers via self-registration.
+The `resolveDeviceType()` function replaces the previous `sharedDeviceType` string pattern, providing compile-time safety for built-in device types while maintaining extensibility for externally registered parsers. This approach eliminates hardcoded "opnsense" strings with registry queries, enabling automatic CLI support for new parsers via self-registration.
 
 ### Benefits
 
@@ -446,9 +520,9 @@ For practical developer guidance on the DeviceParser registry pattern and blank 
 The data processing pipeline follows a clear multi-stage architecture documented in **[CONTRIBUTING.md](../../CONTRIBUTING.md) Data Processing Pipeline** section:
 
 1. **Ingestion**: `internal/cfgparser/` parses OPNsense `config.xml` → `pkg/schema/opnsense.OpnSenseDocument`
-2. **Conversion**: `pkg/parser/opnsense/` transforms `OpnSenseDocument` → `pkg/model.CommonDevice` with conversion warnings
+2. **Conversion**: `pkg/parser/opnsense/` transforms `OpnSenseDocument` → `pkg/model.CommonDevice` with conversion warnings. **XML string values are converted to typed enum constants** (e.g., `rule.Type` XML string `"pass"` becomes `common.RuleTypePass`)
 3. **Export Enrichment**: `internal/converter/enrichment.go` populates statistics, analysis, security assessment via `prepareForExport()`
-4. **Export**: Registry-driven multi-format output (markdown, json, yaml, text, html) via `FormatRegistry`
+4. **Export**: Registry-driven multi-format output (markdown, json, yaml, text, html) via `FormatRegistry`. **Typed enums serialize back to string values** during JSON/YAML marshaling (e.g., `common.RuleTypePass` → `"pass"`)
 5. **Report Generation**: Audience-aware reports built through `builder.MarkdownBuilder`
 
 ```mermaid

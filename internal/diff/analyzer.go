@@ -253,8 +253,8 @@ func (a *Analyzer) CompareNAT(old, newCfg common.NATConfig) []Change {
 			Section:        SectionNAT,
 			Path:           "nat.outbound.mode",
 			Description:    "Outbound NAT mode changed",
-			OldValue:       old.OutboundMode,
-			NewValue:       newCfg.OutboundMode,
+			OldValue:       string(old.OutboundMode),
+			NewValue:       string(newCfg.OutboundMode),
 			SecurityImpact: "medium",
 		})
 	}
@@ -918,14 +918,14 @@ func ruleDescription(rule common.FirewallRule) string {
 		dst = addressUnknown
 	}
 
-	return fmt.Sprintf("%s %s → %s", rule.Type, src, dst)
+	return fmt.Sprintf("%s %s → %s", string(rule.Type), src, dst)
 }
 
 // formatRule returns a compact, human-readable representation of a firewall rule
 // including its type, interfaces, protocol, source, destination, and disabled state.
 func formatRule(rule common.FirewallRule) string {
 	parts := []string{
-		"type=" + rule.Type,
+		"type=" + string(rule.Type),
 	}
 	if len(rule.Interfaces) > 0 {
 		parts = append(parts, "if="+strings.Join(rule.Interfaces, ","))
@@ -1005,7 +1005,7 @@ func usersEqual(a, b common.User) bool {
 // isPermissiveRule reports whether a firewall rule is an unrestricted pass rule
 // that allows all traffic from any source to any destination.
 func isPermissiveRule(rule common.FirewallRule) bool {
-	return rule.Type == "pass" &&
+	return rule.Type == common.RuleTypePass &&
 		rule.Source.Address == "any" &&
 		rule.Destination.Address == "any"
 }

@@ -65,7 +65,7 @@ func TestCalculateSecurityScore(t *testing.T) {
 		{
 			name: "document with firewall rules",
 			data: &common.CommonDevice{
-				FirewallRules: []common.FirewallRule{{Type: "pass"}},
+				FirewallRules: []common.FirewallRule{{Type: common.RuleTypePass}},
 				Users:         []common.User{},
 				Sysctl:        []common.SysctlItem{},
 			},
@@ -77,7 +77,7 @@ func TestCalculateSecurityScore(t *testing.T) {
 				FirewallRules: []common.FirewallRule{
 					{
 						Interfaces:  []string{"wan"},
-						Direction:   "in",
+						Direction:   common.DirectionIn,
 						Destination: common.RuleEndpoint{Port: "443"},
 					},
 				},
@@ -89,7 +89,7 @@ func TestCalculateSecurityScore(t *testing.T) {
 		{
 			name: "document with default user",
 			data: &common.CommonDevice{
-				FirewallRules: []common.FirewallRule{{Type: "pass"}},
+				FirewallRules: []common.FirewallRule{{Type: common.RuleTypePass}},
 				Users: []common.User{
 					{Name: "admin"},
 				},
@@ -100,7 +100,7 @@ func TestCalculateSecurityScore(t *testing.T) {
 		{
 			name: "document with insecure tunable",
 			data: &common.CommonDevice{
-				FirewallRules: []common.FirewallRule{{Type: "pass"}},
+				FirewallRules: []common.FirewallRule{{Type: common.RuleTypePass}},
 				Users:         []common.User{},
 				Sysctl: []common.SysctlItem{
 					{Tunable: "net.inet.ip.forwarding", Value: "1"}, // Should be "0"
@@ -111,7 +111,7 @@ func TestCalculateSecurityScore(t *testing.T) {
 		{
 			name: "document with secure tunable",
 			data: &common.CommonDevice{
-				FirewallRules: []common.FirewallRule{{Type: "pass"}},
+				FirewallRules: []common.FirewallRule{{Type: common.RuleTypePass}},
 				Users:         []common.User{},
 				Sysctl: []common.SysctlItem{
 					{Tunable: "net.inet.ip.forwarding", Value: "0"}, // Correct value
@@ -122,7 +122,7 @@ func TestCalculateSecurityScore(t *testing.T) {
 		{
 			name: "document with all secure tunables",
 			data: &common.CommonDevice{
-				FirewallRules: []common.FirewallRule{{Type: "pass"}},
+				FirewallRules: []common.FirewallRule{{Type: common.RuleTypePass}},
 				Users:         []common.User{},
 				Sysctl: []common.SysctlItem{
 					{Tunable: "net.inet.ip.forwarding", Value: "0"},
@@ -272,7 +272,7 @@ func TestHasManagementOnWAN(t *testing.T) {
 				FirewallRules: []common.FirewallRule{
 					{
 						Interfaces:  []string{"lan"},
-						Direction:   "in",
+						Direction:   common.DirectionIn,
 						Destination: common.RuleEndpoint{Port: "443"},
 					},
 				},
@@ -285,7 +285,7 @@ func TestHasManagementOnWAN(t *testing.T) {
 				FirewallRules: []common.FirewallRule{
 					{
 						Interfaces:  []string{"wan"},
-						Direction:   "out",
+						Direction:   common.DirectionOut,
 						Destination: common.RuleEndpoint{Port: "443"},
 					},
 				},
@@ -298,7 +298,7 @@ func TestHasManagementOnWAN(t *testing.T) {
 				FirewallRules: []common.FirewallRule{
 					{
 						Interfaces:  []string{"wan"},
-						Direction:   "in",
+						Direction:   common.DirectionIn,
 						Destination: common.RuleEndpoint{Port: "9999"},
 					},
 				},
@@ -311,7 +311,7 @@ func TestHasManagementOnWAN(t *testing.T) {
 				FirewallRules: []common.FirewallRule{
 					{
 						Interfaces:  []string{"wan"},
-						Direction:   "in",
+						Direction:   common.DirectionIn,
 						Destination: common.RuleEndpoint{Port: "443"},
 					},
 				},
@@ -324,7 +324,7 @@ func TestHasManagementOnWAN(t *testing.T) {
 				FirewallRules: []common.FirewallRule{
 					{
 						Interfaces:  []string{"WAN"},
-						Direction:   "in",
+						Direction:   common.DirectionIn,
 						Destination: common.RuleEndpoint{Port: "443"},
 					},
 				},
@@ -337,7 +337,7 @@ func TestHasManagementOnWAN(t *testing.T) {
 				FirewallRules: []common.FirewallRule{
 					{
 						Interfaces:  []string{"wan"},
-						Direction:   "in",
+						Direction:   common.DirectionIn,
 						Destination: common.RuleEndpoint{Port: "80"},
 					},
 				},
@@ -350,7 +350,7 @@ func TestHasManagementOnWAN(t *testing.T) {
 				FirewallRules: []common.FirewallRule{
 					{
 						Interfaces:  []string{"wan"},
-						Direction:   "in",
+						Direction:   common.DirectionIn,
 						Destination: common.RuleEndpoint{Port: "22"},
 					},
 				},
@@ -363,7 +363,7 @@ func TestHasManagementOnWAN(t *testing.T) {
 				FirewallRules: []common.FirewallRule{
 					{
 						Interfaces:  []string{"wan"},
-						Direction:   "in",
+						Direction:   common.DirectionIn,
 						Destination: common.RuleEndpoint{Port: "8080"},
 					},
 				},
@@ -389,7 +389,7 @@ func TestHasManagementOnWAN(t *testing.T) {
 				FirewallRules: []common.FirewallRule{
 					{
 						Interfaces:  []string{"wan"},
-						Direction:   "in",
+						Direction:   common.DirectionIn,
 						Destination: common.RuleEndpoint{Port: "range:80-90"},
 					},
 				},

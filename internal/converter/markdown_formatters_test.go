@@ -331,10 +331,10 @@ func makeLargeDataset() *common.CommonDevice {
 	// Generate 1000 firewall rules
 	for i := range 1000 {
 		rule := common.FirewallRule{
-			Type:        []string{"pass", "block", "reject"}[i%3],
+			Type:        []common.FirewallRuleType{common.RuleTypePass, common.RuleTypeBlock, common.RuleTypeReject}[i%3],
 			Description: fmt.Sprintf("Benchmark Rule %d", i+1),
 			Interfaces:  []string{fmt.Sprintf("if%d", i%50)},
-			IPProtocol:  []string{"inet", "inet6"}[i%2],
+			IPProtocol:  []common.IPProtocol{common.IPProtocolInet, common.IPProtocolInet6}[i%2],
 			Protocol:    []string{"tcp", "udp", "any"}[i%3],
 			Source: common.RuleEndpoint{
 				Address: []string{"any", "lan", "wan"}[i%3],

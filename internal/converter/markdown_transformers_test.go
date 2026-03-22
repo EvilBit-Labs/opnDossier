@@ -265,34 +265,34 @@ func TestMarkdownBuilder_FilterRulesByType(t *testing.T) {
 	builder := NewMarkdownBuilder()
 
 	rules := []common.FirewallRule{
-		{Type: "pass", Description: "Allow HTTP"},
-		{Type: "block", Description: "Block malicious IPs"},
-		{Type: "pass", Description: "Allow HTTPS"},
-		{Type: "reject", Description: "Reject with notice"},
-		{Type: "pass", Description: "Allow SSH"},
+		{Type: common.RuleTypePass, Description: "Allow HTTP"},
+		{Type: common.RuleTypeBlock, Description: "Block malicious IPs"},
+		{Type: common.RuleTypePass, Description: "Allow HTTPS"},
+		{Type: common.RuleTypeReject, Description: "Reject with notice"},
+		{Type: common.RuleTypePass, Description: "Allow SSH"},
 	}
 
 	tests := []struct {
 		name          string
-		ruleType      string
+		ruleType      common.FirewallRuleType
 		expectedCount int
 		expectedDescs []string
 	}{
 		{
 			name:          "Filter pass rules",
-			ruleType:      "pass",
+			ruleType:      common.RuleTypePass,
 			expectedCount: 3,
 			expectedDescs: []string{"Allow HTTP", "Allow HTTPS", "Allow SSH"},
 		},
 		{
 			name:          "Filter block rules",
-			ruleType:      "block",
+			ruleType:      common.RuleTypeBlock,
 			expectedCount: 1,
 			expectedDescs: []string{"Block malicious IPs"},
 		},
 		{
 			name:          "Filter reject rules",
-			ruleType:      "reject",
+			ruleType:      common.RuleTypeReject,
 			expectedCount: 1,
 			expectedDescs: []string{"Reject with notice"},
 		},
@@ -352,7 +352,7 @@ func TestMarkdownBuilder_FilterRulesByType_EdgeCases(t *testing.T) {
 	tests := []struct {
 		name         string
 		input        []common.FirewallRule
-		ruleType     string
+		ruleType     common.FirewallRuleType
 		expected     []common.FirewallRule
 		shouldBeNil  bool
 		shouldBeCopy bool
@@ -360,42 +360,42 @@ func TestMarkdownBuilder_FilterRulesByType_EdgeCases(t *testing.T) {
 		{
 			name:        "Nil input",
 			input:       nil,
-			ruleType:    "pass",
+			ruleType:    common.RuleTypePass,
 			shouldBeNil: true,
 		},
 		{
 			name:     "Empty input",
 			input:    []common.FirewallRule{},
-			ruleType: "pass",
+			ruleType: common.RuleTypePass,
 			expected: []common.FirewallRule{},
 		},
 		{
 			name: "Rules with empty types",
 			input: []common.FirewallRule{
 				{Type: "", Description: "Rule with empty type"},
-				{Type: "pass", Description: "Valid rule"},
+				{Type: common.RuleTypePass, Description: "Valid rule"},
 			},
-			ruleType: "pass",
+			ruleType: common.RuleTypePass,
 			expected: []common.FirewallRule{
-				{Type: "pass", Description: "Valid rule"},
+				{Type: common.RuleTypePass, Description: "Valid rule"},
 			},
 		},
 		{
 			name: "Empty rule type returns copy",
 			input: []common.FirewallRule{
-				{Type: "pass", Description: "Test rule"},
+				{Type: common.RuleTypePass, Description: "Test rule"},
 			},
 			ruleType:     "",
 			shouldBeCopy: true,
 			expected: []common.FirewallRule{
-				{Type: "pass", Description: "Test rule"},
+				{Type: common.RuleTypePass, Description: "Test rule"},
 			},
 		},
 		{
 			name: "No matching rules",
 			input: []common.FirewallRule{
-				{Type: "block", Description: "Block rule"},
-				{Type: "reject", Description: "Reject rule"},
+				{Type: common.RuleTypeBlock, Description: "Block rule"},
+				{Type: common.RuleTypeReject, Description: "Reject rule"},
 			},
 			ruleType: "allow",
 			expected: []common.FirewallRule{},
@@ -604,7 +604,7 @@ func BenchmarkFilterRulesByType(b *testing.B) {
 
 	// Generate large dataset
 	rules := make([]common.FirewallRule, 10000)
-	types := []string{"pass", "block", "reject", "match"}
+	types := []common.FirewallRuleType{common.RuleTypePass, common.RuleTypeBlock, common.RuleTypeReject}
 	for i := range 10000 {
 		rules[i] = common.FirewallRule{
 			Type:        types[i%len(types)],

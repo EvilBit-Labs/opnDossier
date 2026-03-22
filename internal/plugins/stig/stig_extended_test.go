@@ -158,7 +158,7 @@ func TestRunChecksWithProblematicConfig(t *testing.T) {
 		// Any/any allow rule (violates default deny and is overly permissive)
 		FirewallRules: []common.FirewallRule{
 			{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Source:      common.RuleEndpoint{Address: constants.NetworkAny},
 				Destination: common.RuleEndpoint{Address: constants.NetworkAny},
 			},
@@ -214,7 +214,7 @@ func TestHasDefaultDenyPolicyEdgeCases(t *testing.T) {
 			&common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "reject",
+						Type:        common.RuleTypeReject,
 						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
 						Destination: common.RuleEndpoint{Address: "10.0.0.0/24"},
 					},
@@ -227,12 +227,12 @@ func TestHasDefaultDenyPolicyEdgeCases(t *testing.T) {
 			&common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Source:      common.RuleEndpoint{Address: "192.168.1.10"},
 						Destination: common.RuleEndpoint{Address: "10.0.0.10", Port: "22"},
 					},
 					{
-						Type:        "block",
+						Type:        common.RuleTypeBlock,
 						Source:      common.RuleEndpoint{Address: constants.NetworkAny},
 						Destination: common.RuleEndpoint{Address: constants.NetworkAny},
 					},
@@ -245,7 +245,7 @@ func TestHasDefaultDenyPolicyEdgeCases(t *testing.T) {
 			&common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Source:      common.RuleEndpoint{Address: constants.NetworkAny},
 						Destination: common.RuleEndpoint{Address: "10.0.0.10", Port: "80"},
 					},
@@ -279,7 +279,7 @@ func TestHasOverlyPermissiveRulesProtocols(t *testing.T) {
 			&common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Protocol:    "tcp/udp",
 						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
 						Destination: common.RuleEndpoint{Address: "10.0.0.0/24", Port: ""},
@@ -293,7 +293,7 @@ func TestHasOverlyPermissiveRulesProtocols(t *testing.T) {
 			&common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "pass",
+						Type:        common.RuleTypePass,
 						Protocol:    "gre",
 						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
 						Destination: common.RuleEndpoint{Address: "10.0.0.0/24", Port: ""},
@@ -307,7 +307,7 @@ func TestHasOverlyPermissiveRulesProtocols(t *testing.T) {
 			&common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
-						Type:        "block",
+						Type:        common.RuleTypeBlock,
 						Source:      common.RuleEndpoint{Address: constants.NetworkAny},
 						Destination: common.RuleEndpoint{Address: constants.NetworkAny},
 					},
@@ -558,20 +558,20 @@ func TestComplexScenarios(t *testing.T) {
 		FirewallRules: []common.FirewallRule{
 			// Good rule - specific source/destination/port
 			{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Protocol:    "tcp",
 				Source:      common.RuleEndpoint{Address: "192.168.1.10"},
 				Destination: common.RuleEndpoint{Address: "10.0.0.10", Port: "22"},
 			},
 			// Bad rule - any to any
 			{
-				Type:        "pass",
+				Type:        common.RuleTypePass,
 				Source:      common.RuleEndpoint{Address: constants.NetworkAny},
 				Destination: common.RuleEndpoint{Address: constants.NetworkAny},
 			},
 			// Good rule - explicit deny
 			{
-				Type:        "block",
+				Type:        common.RuleTypeBlock,
 				Source:      common.RuleEndpoint{Address: constants.NetworkAny},
 				Destination: common.RuleEndpoint{Address: constants.NetworkAny},
 			},

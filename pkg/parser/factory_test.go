@@ -31,7 +31,7 @@ func TestFactory_ValidOPNsense(t *testing.T) {
 	device, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader(validOPNsenseXML),
-		"",
+		common.DeviceTypeUnknown,
 		false,
 	)
 	require.NoError(t, err)
@@ -48,7 +48,7 @@ func TestFactory_UnknownRootElement(t *testing.T) {
 	_, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader(xml),
-		"",
+		common.DeviceTypeUnknown,
 		false,
 	)
 	require.Error(t, err)
@@ -64,7 +64,7 @@ func TestFactory_Override_OPNsense(t *testing.T) {
 	device, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader(validOPNsenseXML),
-		"opnsense",
+		common.DeviceTypeOPNsense,
 		false,
 	)
 	require.NoError(t, err)
@@ -78,7 +78,7 @@ func TestFactory_Override_CaseInsensitive(t *testing.T) {
 	device, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader(validOPNsenseXML),
-		"OPNsense",
+		common.ParseDeviceType("OPNsense"),
 		false,
 	)
 	require.NoError(t, err)
@@ -92,7 +92,7 @@ func TestFactory_Override_Unsupported(t *testing.T) {
 	_, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader(validOPNsenseXML),
-		"pfsense",
+		common.DeviceTypePfSense,
 		false,
 	)
 	require.Error(t, err)
@@ -108,7 +108,7 @@ func TestFactory_EmptyReader(t *testing.T) {
 	_, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader(""),
-		"",
+		common.DeviceTypeUnknown,
 		false,
 	)
 	require.Error(t, err)
@@ -124,7 +124,7 @@ func TestFactory_ContextCancelled(t *testing.T) {
 	_, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		ctx,
 		strings.NewReader(validOPNsenseXML),
-		"",
+		common.DeviceTypeUnknown,
 		false,
 	)
 	require.Error(t, err)
@@ -142,7 +142,7 @@ func TestFactory_ContextCancelled_BlockingReader(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		_, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(ctx, pr, "", false)
+		_, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(ctx, pr, common.DeviceTypeUnknown, false)
 		done <- err
 	}()
 
@@ -164,7 +164,7 @@ func TestFactory_MalformedXML(t *testing.T) {
 	_, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader("<<<not xml at all"),
-		"",
+		common.DeviceTypeUnknown,
 		false,
 	)
 	require.Error(t, err)
@@ -178,7 +178,7 @@ func TestFactory_ErrorWrapsOriginal(t *testing.T) {
 	_, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader(""),
-		"",
+		common.DeviceTypeUnknown,
 		false,
 	)
 	require.Error(t, err)
@@ -193,7 +193,7 @@ func TestFactory_UnsupportedCharset(t *testing.T) {
 	_, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader(xmlData),
-		"",
+		common.DeviceTypeUnknown,
 		false,
 	)
 	require.Error(t, err)
@@ -213,7 +213,7 @@ func TestFactory_AcceptedCharsets(t *testing.T) {
 			device, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 				context.Background(),
 				strings.NewReader(xmlData),
-				"",
+				common.DeviceTypeUnknown,
 				false,
 			)
 			require.NoError(t, err)
@@ -232,7 +232,7 @@ func TestFactory_LargeInput_BoundedRead(t *testing.T) {
 	_, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader(bigInput),
-		"",
+		common.DeviceTypeUnknown,
 		false,
 	)
 	require.Error(t, err)
@@ -255,7 +255,7 @@ func TestFactory_ValidateMode_False_SemanticErrorsIgnored(t *testing.T) {
 	device, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader(semanticOnlyInvalidXML),
-		"",
+		common.DeviceTypeUnknown,
 		false,
 	)
 	require.NoError(t, err)
@@ -268,7 +268,7 @@ func TestFactory_ValidateMode_True_SemanticErrorsFail(t *testing.T) {
 	_, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader(semanticOnlyInvalidXML),
-		"",
+		common.DeviceTypeUnknown,
 		true,
 	)
 	require.Error(t, err)
