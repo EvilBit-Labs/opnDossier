@@ -224,23 +224,24 @@ When a struct depends on a broad interface but only calls a subset of its method
 
 Frequently encountered linter issues and fixes:
 
-| Linter                     | Issue                              | Fix                                                                                                                                        |
-| -------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `gocritic emptyStringTest` | `len(s) == 0`                      | Use `s == ""`                                                                                                                              |
-| `gosec G115`               | Integer overflow on int→int32      | Add `//nolint:gosec` with bounded value comment                                                                                            |
-| `mnd`                      | Magic numbers                      | Create named constants                                                                                                                     |
-| `minmax`                   | Manual min/max comparisons         | Use `min()`/`max()` builtins                                                                                                               |
-| `goconst`                  | Repeated string literals           | Extract to package-level constants                                                                                                         |
-| `tparallel`                | Subtests use `t.Parallel()`        | Parent test must also call `t.Parallel()`                                                                                                  |
-| `tparallel`                | Subtests share mutable state       | Add `//nolint:tparallel` above func when subtests cannot be parallel due to shared mutable state                                           |
-| `nonamedreturns`           | Named return values                | Use a struct return type instead of named returns                                                                                          |
-| `funcorder`                | Method placed between constructors | All constructors (`New*`) must be grouped before any methods on the struct                                                                 |
-| `copylocks`                | Copying `sync.Once`                | In tests resetting globals, suppress with `//nolint:govet` and comment explaining intentional reset                                        |
-| `revive redefines-builtin` | Package name shadows stdlib        | Rename package (e.g., `log` → `logging`)                                                                                                   |
-| `revive stutters`          | `pkg.PkgThing` repeats name        | Drop prefix: `compliance.Plugin` not `compliance.CompliancePlugin`                                                                         |
-| `modernize`                | `omitempty` on struct fields       | Remove `omitempty` from JSON tags on struct-typed fields (no effect in `encoding/json`); YAML `omitempty` is fine                          |
-| `staticcheck SA1019`       | Deprecated type alias usage        | Migrate ALL references (including test files) when deprecating a type alias — `Deprecated:` doc comment triggers SA1019 on every reference |
-| `modernize`                | Legacy `sort.Strings`/`sort.Slice` | Use `slices.Sort()` / `slices.SortFunc()` with `strings.Compare`                                                                           |
+| Linter                     | Issue                                  | Fix                                                                                                                                                       |
+| -------------------------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gocritic emptyStringTest` | `len(s) == 0`                          | Use `s == ""`                                                                                                                                             |
+| `gosec G115`               | Integer overflow on int→int32          | Add `//nolint:gosec` with bounded value comment                                                                                                           |
+| `mnd`                      | Magic numbers                          | Create named constants                                                                                                                                    |
+| `minmax`                   | Manual min/max comparisons             | Use `min()`/`max()` builtins                                                                                                                              |
+| `goconst`                  | Repeated string literals               | Extract to package-level constants                                                                                                                        |
+| `tparallel`                | Subtests use `t.Parallel()`            | Parent test must also call `t.Parallel()`                                                                                                                 |
+| `tparallel`                | Subtests share mutable state           | Add `//nolint:tparallel` above func when subtests cannot be parallel due to shared mutable state                                                          |
+| `nonamedreturns`           | Named return values                    | Use a struct return type instead of named returns                                                                                                         |
+| `funcorder`                | Method placed between constructors     | All constructors (`New*`) must be grouped before any methods on the struct                                                                                |
+| `copylocks`                | Copying `sync.Once`                    | In tests resetting globals, suppress with `//nolint:govet` and comment explaining intentional reset                                                       |
+| `revive redefines-builtin` | Package name shadows stdlib            | Rename package (e.g., `log` → `logging`)                                                                                                                  |
+| `revive stutters`          | `pkg.PkgThing` repeats name            | Drop prefix: `compliance.Plugin` not `compliance.CompliancePlugin`                                                                                        |
+| `modernize`                | `omitempty` on struct fields           | Remove `omitempty` from JSON tags on struct-typed fields (no effect in `encoding/json`); YAML `omitempty` is fine                                         |
+| `staticcheck SA1019`       | Deprecated type alias usage            | Migrate ALL references (including test files) when deprecating a type alias — `Deprecated:` doc comment triggers SA1019 on every reference                |
+| `modernize`                | Legacy `sort.Strings`/`sort.Slice`     | Use `slices.Sort()` / `slices.SortFunc()` with `strings.Compare`                                                                                          |
+| `gofumpt` vs `//nolint`    | Directive between doc comment and func | `gofumpt` inserts a blank line that detaches the directive from the func — embed the suppression rationale in the doc comment instead of using `//nolint` |
 
 > [!NOTE]
 > IDE diagnostics (marked with ★ in some editors) are suggestions, not errors. The authoritative source is `just lint` - if it reports "0 issues", the code is correct regardless of IDE warnings.
@@ -539,6 +540,12 @@ When testing CLI commands with package-level flag variables (required by Cobra),
 
 When adding new shared flags (`cmd/shared_flags.go`), update `sharedFlagSnapshot` in `cmd/display_test.go` — add the field to the struct, `captureSharedFlags()`, and `restore()`. Missing fields leak state between tests.
 
+When adding new audit-specific flags (`cmd/audit.go`), update `auditFlagSnapshot` in `cmd/audit_test.go` — add the field to the struct, `captureAuditFlags()`, and `restore()`. The audit snapshot also captures shared convert-level variables (`format`, `outputFile`, `force`) since the audit command reuses them.
+
+### 7.8 Testing Cobra PreRunE Validators
+
+To unit-test `PreRunE` without requiring a full `CommandContext` (which needs config loading), construct a temporary `cobra.Command` with flags bound to the same global variables, set values via `cmd.Flags().Set("name", "value")`, then invoke `auditCmd.PreRunE(tempCmd, args)` directly. See `cmd/audit_test.go` for the canonical pattern.
+
 ---
 
 ## 8. Plugin Architecture
@@ -570,6 +577,8 @@ All plugins implement `compliance.Plugin` (see `internal/compliance/interfaces.g
 - `PluginRegistry.pluginLoader` (type `pluginLoaderFunc`) is injectable via `newPluginRegistryWithLoader()` for testing — defaults to `defaultPluginLoader` which wraps `plugin.Open`/`Lookup`/type-assert. Includes nil-plugin guard after loader returns
 - `PluginManager.SetPluginDir(dir, explicit)` must be called *before* `InitializePlugins` — the dir is read during initialization, not after. Dynamic plugin load failures are non-fatal: they do not cause `InitializePlugins` to return an error. Callers must inspect `GetLoadResult()` to detect failures
 - `audit.Options` includes `PluginDir` and `ExplicitPluginDir` fields — wired in `handleAuditMode` before `InitializePlugins`
+- `generateBlueReport()` resolves all registered plugins via `mc.registry.ListPlugins()` when `SelectedPlugins` is empty — bare `--mode blue` runs a full compliance audit by default
+- Multi-file audit: `emitAuditResult()` takes a `multiFile bool` parameter; when true, derives per-input output paths via `deriveAuditOutputPath()` (`<input>-audit.<ext>`) and nils out config to prevent shared `OutputFile` from causing overwrites
 
 ### 8.3 Compliance Standards
 
