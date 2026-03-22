@@ -465,7 +465,7 @@ func buildEffectiveFormat(flagFormat string, cfg *config.Config) string {
 	}
 
 	// Default
-	return "markdown"
+	return string(converter.FormatMarkdown)
 }
 
 // normalizeFormat maps format aliases to their canonical converter.Format values
