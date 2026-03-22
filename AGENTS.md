@@ -380,6 +380,12 @@ See [`pkg/schema/pfsense/README.md`](pkg/schema/pfsense/README.md) for the compl
 
 `Report.ToJSON()` and `Report.ToYAML()` serialize a redacted copy via `redactedCopyUnsafe()` to prevent `NormalizedConfig.SNMP.ROCommunity` from leaking. When adding new sensitive fields to `CommonDevice`, extend `redactedCopyUnsafe()` in `internal/processor/report.go`. The copy is constructed field-by-field (not `cp := *r`) to avoid `copylocks` on `sync.RWMutex`. Statistics redaction (`redactServiceDetails`) is separate and handles the statistics-layer SNMP community.
 
+### 5.25b Sanitizer Field Pattern Maintenance
+
+The `sanitize` command operates on raw XML element names via pattern matching in `internal/sanitizer/rules.go` (rule `FieldPatterns`) and `internal/sanitizer/patterns.go` (`passwordKeywords`). When adding a new device type, audit its XML element names for credential fields that differ from OPNsense and add them to both files. Example: pfSense uses `<bcrypt-hash>` instead of `<password>` — the generic `"pass"` substring did not match, so `"bcrypt-hash"` and `"sha512-hash"` were added explicitly.
+
+**Verification:** `opndossier sanitize <config.xml> | grep -i 'hash\|secret\|key\|pass\|community'` — check for unredacted sensitive values.
+
 ### 5.25a DeviceParser Registry Pattern
 
 `pkg/parser/registry.go` follows the `database/sql` driver registration pattern:
