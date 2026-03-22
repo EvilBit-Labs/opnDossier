@@ -503,6 +503,7 @@ func buildConversionOptions(
 }
 
 // buildAuditOptions constructs an audit.Options value from the shared CLI flag globals.
+// TODO(#457): Remove — shared audit globals are no longer bound to CLI flags.
 func buildAuditOptions() audit.Options {
 	opts := audit.Options{
 		AuditMode:       sharedAuditMode,
@@ -597,7 +598,8 @@ func generateOutputByFormat(
 	auditOpts audit.Options,
 	logger *logging.Logger,
 ) (string, error) {
-	// Check if audit mode is enabled - route to audit handler
+	// TODO(#457): Remove audit parameter — unreachable since audit flags were
+	// removed from convert. The auditOpts.AuditMode is always empty.
 	if auditOpts.AuditMode != "" {
 		return handleAuditMode(ctx, device, auditOpts, opt, logger)
 	}

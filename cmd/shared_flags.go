@@ -32,6 +32,9 @@ var (
 	sharedRedact          bool     //nolint:gochecknoglobals // Redact sensitive fields in output
 
 	// Audit flags.
+	// TODO(#457): Remove shared audit globals — no longer bound to any CLI flags
+	// after audit flag removal from convert. Retained because buildAuditOptions()
+	// and generateOutputByFormat() still reference them.
 	sharedAuditMode       string   //nolint:gochecknoglobals // Audit mode (standard, blue, red)
 	sharedBlackhatMode    bool     //nolint:gochecknoglobals // Enable blackhat mode for red team reports
 	sharedSelectedPlugins []string //nolint:gochecknoglobals // Selected compliance plugins
