@@ -579,7 +579,7 @@ All plugins implement `compliance.Plugin` (see `internal/compliance/interfaces.g
 - `audit.Options` includes `PluginDir` and `ExplicitPluginDir` fields — wired in `handleAuditMode` before `InitializePlugins`
 - `generateBlueReport()` resolves all registered plugins via `mc.registry.ListPlugins()` when `SelectedPlugins` is empty — bare `--mode blue` runs a full compliance audit by default
 - Multi-file audit: `emitAuditResult()` takes a `multiFile bool` parameter; when true, derives per-input output paths via `deriveAuditOutputPath()` and nils out config to prevent shared `OutputFile` from causing overwrites
-- `deriveAuditOutputPath` uses lossless underscore escaping (literal `_` → `__`, separator → `_`) to guarantee distinct filenames for distinct input paths (e.g., `a_b/c/config.xml` → `a__b_c_config-audit.md` vs `a/b_c/config.xml` → `a_b__c_config-audit.md`; dashes are preserved as-is)
+- `deriveAuditOutputPath` uses lossless tilde-based escaping (`~` → `~~`, `_` → `~u`, separator → `_`) to guarantee distinct filenames for distinct input paths (e.g., `a_b/c/config.xml` → `a~ub_c_config-audit.md` vs `a/b_c/config.xml` → `a_b~uc_config-audit.md`; dashes are preserved as-is). The tilde scheme avoids the boundary ambiguity of double-underscore escaping where `a_/b` and `a/_b` collapsed to the same output
 
 ### 8.3 Compliance Standards
 
