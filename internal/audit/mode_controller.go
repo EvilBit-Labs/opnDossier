@@ -200,31 +200,29 @@ func (mc *ModeController) generateBlueReport(_ context.Context, report *Report, 
 			mc.logger,
 		)
 		if err != nil {
-			mc.logger.Warn("Failed to run compliance checks", "error", err)
-			// Add metadata to report indicating compliance check failure
-			report.Metadata["compliance_check_status"] = "failed"
-			report.Metadata["compliance_check_error"] = err.Error()
-			report.Metadata["compliance_check_time"] = time.Now().Format(time.RFC3339)
-		} else {
-			// Store per-plugin compliance results (not aggregated) so that
-			// appendAuditFindings can iterate by plugin name.
-			for pluginName, info := range complianceResult.PluginInfo {
-				pluginFindings := complianceResult.PluginFindings[pluginName]
-				pluginComplianceMap := complianceResult.Compliance[pluginName]
-				pluginSummary := computePerPluginSummary(pluginName, pluginFindings, pluginComplianceMap)
+			mc.logger.Error("Failed to run compliance checks", "error", err)
 
-				report.Compliance[pluginName] = ComplianceResult{
-					Findings:       pluginFindings,
-					PluginFindings: map[string][]compliance.Finding{pluginName: pluginFindings},
-					Compliance:     map[string]map[string]bool{pluginName: pluginComplianceMap},
-					Summary:        pluginSummary,
-					PluginInfo:     map[string]PluginInfo{pluginName: info},
-				}
-			}
-			// Add metadata to report indicating successful compliance checks
-			report.Metadata["compliance_check_status"] = complianceCheckStatusCompleted
-			report.Metadata["compliance_check_time"] = time.Now().Format(time.RFC3339)
+			return nil, fmt.Errorf("compliance checks failed: %w", err)
 		}
+
+		// Store per-plugin compliance results (not aggregated) so that
+		// appendAuditFindings can iterate by plugin name.
+		for pluginName, info := range complianceResult.PluginInfo {
+			pluginFindings := complianceResult.PluginFindings[pluginName]
+			pluginComplianceMap := complianceResult.Compliance[pluginName]
+			pluginSummary := computePerPluginSummary(pluginName, pluginFindings, pluginComplianceMap)
+
+			report.Compliance[pluginName] = ComplianceResult{
+				Findings:       pluginFindings,
+				PluginFindings: map[string][]compliance.Finding{pluginName: pluginFindings},
+				Compliance:     map[string]map[string]bool{pluginName: pluginComplianceMap},
+				Summary:        pluginSummary,
+				PluginInfo:     map[string]PluginInfo{pluginName: info},
+			}
+		}
+		// Add metadata to report indicating successful compliance checks
+		report.Metadata["compliance_check_status"] = complianceCheckStatusCompleted
+		report.Metadata["compliance_check_time"] = time.Now().Format(time.RFC3339)
 	}
 
 	// Add blue team specific analysis

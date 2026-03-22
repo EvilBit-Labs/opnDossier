@@ -278,6 +278,13 @@ func runAudit(cmd *cobra.Command, args []string) error {
 
 		go func(idx int, fp string) {
 			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					results[idx] = resultOrError{
+						err: fmt.Errorf("panic processing %s: %v", fp, r),
+					}
+				}
+			}()
 
 			// Acquire semaphore slot with context awareness
 			select {
