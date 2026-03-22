@@ -358,7 +358,7 @@ func generateAuditOutput(
 	}
 	defer func() {
 		if cerr := file.Close(); cerr != nil {
-			ctxLogger.Error("failed to close file", "error", cerr)
+			ctxLogger.Warn("failed to close file", "error", cerr)
 		}
 	}()
 

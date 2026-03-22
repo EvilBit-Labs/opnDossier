@@ -652,10 +652,7 @@ func normalizeConvertFlags() {
 }
 
 // validateConvertFlags validates flag combinations and CLI options for the convert command.
-// It delegates format, wrap, and section validation to validateOutputFlags, then performs
-// convert-specific audit flag validation on the shared globals (sharedAuditMode,
-// sharedSelectedPlugins) that are bound to the convert command's --audit-* flags.
-//
+// It delegates format, wrap, and section validation to validateOutputFlags.
 // The cmdLogger parameter is used for structured warnings; if nil, warnings fall back to stderr.
 func validateConvertFlags(flags *pflag.FlagSet, cmdLogger *logging.Logger) error {
 	return validateOutputFlags(flags, cmdLogger)

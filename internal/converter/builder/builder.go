@@ -598,7 +598,11 @@ func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
 			}
 			for _, f := range result.Findings {
 				controlID := f.Control
-				if controlID == "" && len(f.References) > 0 {
+				switch {
+				case controlID != "":
+				case f.Reference != "":
+					controlID = f.Reference
+				case len(f.References) > 0:
 					controlID = strings.Join(f.References, ", ")
 				}
 
