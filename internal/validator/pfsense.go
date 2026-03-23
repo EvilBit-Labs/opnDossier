@@ -25,98 +25,13 @@ func ValidatePfSenseDocument(doc *pfsense.Document) []ValidationError {
 	var errors []ValidationError
 
 	errors = append(errors, validatePfSenseSystem(&doc.System)...)
-	errors = append(errors, validatePfSenseInterfaces(&doc.Interfaces)...)
-	errors = append(errors, validatePfSenseDhcpd(&doc.Dhcpd, &doc.Interfaces)...)
+	// validateInterfaces and validateDhcpd are reused from the OPNsense validator
+	// because Document.Interfaces and Document.Dhcpd use opnsense types (backward-compatible).
+	errors = append(errors, validateInterfaces(&doc.Interfaces)...)
+	errors = append(errors, validateDhcpd(&doc.Dhcpd, &doc.Interfaces)...)
 	errors = append(errors, validatePfSenseFilter(&doc.Filter, &doc.Interfaces)...)
 	errors = append(errors, validatePfSenseNat(&doc.Nat)...)
 	errors = append(errors, validatePfSenseUsersAndGroups(&doc.System)...)
-
-	return errors
-}
-
-// collectPfSenseInterfaceNames returns every key from the pfSense interfaces map as a set.
-func collectPfSenseInterfaceNames(ifaces *pfsense.Interfaces) map[string]struct{} {
-	interfaceNames := make(map[string]struct{})
-
-	if ifaces != nil && ifaces.Items != nil {
-		for name := range ifaces.Items {
-			interfaceNames[name] = struct{}{}
-		}
-	}
-
-	return interfaceNames
-}
-
-// validatePfSenseInterfaces validates all configured pfSense network interfaces.
-func validatePfSenseInterfaces(interfaces *pfsense.Interfaces) []ValidationError {
-	var errors []ValidationError
-
-	if interfaces == nil || interfaces.Items == nil {
-		return errors
-	}
-
-	validInterfaceNames := collectPfSenseInterfaceNames(interfaces)
-
-	for name, iface := range interfaces.Items {
-		ifaceCopy := iface
-		errors = append(errors, validatePfSenseInterface(&ifaceCopy, name, validInterfaceNames)...)
-	}
-
-	return errors
-}
-
-// validatePfSenseInterface checks a single pfSense interface configuration for valid
-// IP addresses, subnets, MTU, and track6 settings. It delegates to the same field-level
-// validators used by OPNsense via a temporary opnsense.Interface conversion.
-func validatePfSenseInterface(
-	iface *pfsense.Interface,
-	name string,
-	validInterfaceNames map[string]struct{},
-) []ValidationError {
-	if iface == nil {
-		return nil
-	}
-
-	// Convert to opnsense.Interface for reuse of field-level validators.
-	opnIface := &opnsense.Interface{
-		IPAddr:          iface.IPAddr,
-		IPAddrv6:        iface.IPAddrv6,
-		Subnet:          iface.Subnet,
-		Subnetv6:        iface.Subnetv6,
-		MTU:             iface.MTU,
-		Track6Interface: iface.Track6Interface,
-		Track6PrefixID:  iface.Track6PrefixID,
-	}
-
-	return validateInterface(opnIface, name, validInterfaceNames)
-}
-
-// validatePfSenseDhcpd validates pfSense DHCP configuration, cross-referencing
-// against the pfSense interfaces map. Uses a pfSense-specific type because
-// pfsense.DhcpdInterface diverges from opnsense.DhcpdInterface (Enable is BoolFlag).
-func validatePfSenseDhcpd(dhcpd *pfsense.Dhcpd, interfaces *pfsense.Interfaces) []ValidationError {
-	var errors []ValidationError
-
-	if dhcpd == nil || dhcpd.Items == nil {
-		return errors
-	}
-
-	ifaceSet := collectPfSenseInterfaceNames(interfaces)
-
-	for name, cfg := range dhcpd.Items {
-		// Adapt pfsense.DhcpdInterface to opnsense.DhcpdInterface for shared validation.
-		// The shared validator checks Range, Staticmap, etc. but not Enable.
-		sharedCfg := opnsense.DhcpdInterface{
-			Range:         cfg.Range,
-			Gateway:       cfg.Gateway,
-			NumberOptions: cfg.NumberOptions,
-			Winsserver:    cfg.Winsserver,
-			Dnsserver:     cfg.Dnsserver,
-			Ntpserver:     cfg.Ntpserver,
-			Staticmap:     cfg.Staticmap,
-		}
-		errors = append(errors, validateDhcpdInterface(name, sharedCfg, ifaceSet)...)
-	}
 
 	return errors
 }
@@ -221,10 +136,10 @@ func validatePfSenseSystem(sys *pfsense.System) []ValidationError {
 
 // validatePfSenseFilter checks each pfSense firewall filter rule for valid types,
 // protocols, interface references, and network specifications.
-func validatePfSenseFilter(filter *pfsense.Filter, interfaces *pfsense.Interfaces) []ValidationError {
+func validatePfSenseFilter(filter *pfsense.Filter, interfaces *opnsense.Interfaces) []ValidationError {
 	var errors []ValidationError
 
-	validInterfaceNames := collectPfSenseInterfaceNames(interfaces)
+	validInterfaceNames := collectInterfaceNames(interfaces)
 
 	for i, rule := range filter.Rule {
 		validTypes := []string{"pass", "block", "reject"}
