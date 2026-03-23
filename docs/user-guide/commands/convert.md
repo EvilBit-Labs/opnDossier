@@ -5,7 +5,6 @@ The `convert` command is the primary way to extract useful documentation from an
 **When to use it:**
 
 - Generating network documentation from a firewall config backup
-- Producing audit reports with compliance findings (STIG, SANS, firewall controls)
 - Exporting structured data for integration with other tools or dashboards
 - Creating redacted reports safe for sharing with vendors or consultants
 - Batch-processing multiple configs for fleet-wide documentation
@@ -28,8 +27,6 @@ opndossier convert [flags] <config.xml> [config2.xml ...]
 | `--no-wrap`          |       | `false`        | Disable text wrapping                                                                                |
 | `--comprehensive`    |       | `false`        | Generate detailed comprehensive report                                                               |
 | `--include-tunables` |       | `false`        | Include system tunables (sysctl) in output                                                           |
-| `--audit-mode`       |       |                | Audit mode: `standard`, `blue`, `red`                                                                |
-| `--audit-plugins`    |       |                | Comma-separated compliance plugins: `stig`, `sans`, `firewall`                                       |
 | `--redact`           |       | `false`        | Redact sensitive fields (passwords, keys, community strings)                                         |
 | `--device-type`      |       | auto-detect    | Force device type instead of auto-detecting from XML root element                                    |
 
@@ -79,7 +76,7 @@ When included, tunables appear as a table with three columns: the sysctl paramet
 
 ## Comprehensive Mode
 
-By default, `convert` produces a standard report covering the core sections: system settings, interfaces, firewall rules, NAT, and services. The `--comprehensive` flag generates a more detailed report that adds:
+By default, `convert` produces a baseline report covering the core sections: system settings, interfaces, firewall rules, NAT, and services. The `--comprehensive` flag generates a more detailed report that adds:
 
 - VLAN configuration
 - Static routes
@@ -127,15 +124,18 @@ For full XML-level sanitization (replacing IPs, hostnames, and all identifying d
 | `text`     | `txt`   | Plain text (markdown without formatting) |
 | `html`     | `htm`   | Self-contained HTML report               |
 
-## Audit Modes
+## Security Audits
 
-| Mode       | Audience   | Focus                                  |
-| ---------- | ---------- | -------------------------------------- |
-| `standard` | Operations | Neutral, comprehensive documentation   |
-| `blue`     | Blue Team  | Defensive audit with security findings |
-| `red`      | Red Team   | Attack surface and pivot points        |
+Security auditing and compliance checks are handled by the dedicated [`audit`](audit.md) command, not `convert`.
 
-Available compliance plugins: `stig`, `sans`, `firewall`.
+Supported audit modes:
+
+| Mode   | Audience  | Focus                                  |
+| ------ | --------- | -------------------------------------- |
+| `blue` | Blue Team | Defensive audit with security findings |
+| `red`  | Red Team  | Attack surface and pivot points        |
+
+Available compliance plugins in blue mode: `stig`, `sans`, `firewall`.
 
 ## Multiple Files
 
@@ -151,7 +151,10 @@ opndossier convert config.xml -o documentation.md
 opndossier convert config.xml -f json -o output.json --force
 
 # Blue team audit with STIG and SANS compliance
-opndossier convert config.xml --audit-mode blue --audit-plugins stig,sans -o audit.md
+opndossier audit config.xml --mode blue --plugins stig,sans -o audit.md
+
+# Red team attack surface analysis
+opndossier audit config.xml --mode red -o recon.md
 
 # Convert multiple files to JSON (auto-named outputs)
 opndossier convert -f json config1.xml config2.xml
