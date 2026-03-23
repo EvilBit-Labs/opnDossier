@@ -93,11 +93,7 @@ The following ports are flagged when exposed on the WAN interface with an inboun
 
 ## Integration with Reports
 
-The security score and findings appear differently depending on the audit mode used with the [convert command](commands/convert.md#audit-modes):
-
-### Standard Reports
-
-A balanced overview of configuration security. Includes the numeric score, a summary of deductions, and general recommendations. Best for routine documentation and periodic review.
+The security score and findings appear differently depending on the audit mode used with the [audit command](commands/audit.md#audit-modes):
 
 ### Blue Team Reports
 
@@ -109,4 +105,4 @@ Focused on what an attacker would target. Highlights exposed management interfac
 
 ---
 
-For how to generate audit reports, see the [convert command](commands/convert.md#audit-modes).
+For how to generate audit reports, see the [audit command](commands/audit.md).

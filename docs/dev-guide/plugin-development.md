@@ -192,10 +192,10 @@ The audit engine scans a configurable directory for `.so` files and loads any pl
 
 ### Configuration
 
-Use the `--plugin-dir` CLI flag to specify a custom directory containing `.so` plugins:
+Use the `--plugin-dir` CLI flag on the `audit` command to specify a custom directory containing `.so` plugins:
 
 ```sh
-opndossier convert --audit-mode standard --plugin-dir /path/to/plugins config.xml
+opndossier audit config.xml --mode blue --plugin-dir /path/to/plugins
 ```
 
 **Default behavior:** If `--plugin-dir` is not specified, the engine does not attempt to load dynamic plugins. There is no hardcoded default plugin directory.

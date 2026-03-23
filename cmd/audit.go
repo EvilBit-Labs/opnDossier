@@ -35,7 +35,7 @@ func init() {
 
 	// Audit-specific flags (shorter names since this is the dedicated audit command)
 	auditCmd.Flags().
-		StringVar(&auditMode, "mode", "blue", "Audit mode (standard|blue|red)")
+		StringVar(&auditMode, "mode", "blue", "Audit mode (blue|red)")
 	setFlagAnnotation(auditCmd.Flags(), "mode", []string{"audit"})
 
 	auditCmd.Flags().
@@ -112,7 +112,7 @@ var auditCmd = &cobra.Command{
 		normalizeConvertFlags()
 
 		// Validate audit mode
-		validModes := []string{"standard", "blue", "red"}
+		validModes := []string{"blue", "red"}
 		if !slices.Contains(validModes, strings.ToLower(auditMode)) {
 			return fmt.Errorf("invalid audit mode %q, must be one of: %s",
 				auditMode, strings.Join(validModes, ", "))
@@ -128,7 +128,7 @@ var auditCmd = &cobra.Command{
 		}
 
 		// Reject --plugins when the selected mode does not execute compliance checks.
-		// Only blue mode runs RunComplianceChecks; standard and red modes ignore plugins.
+		// Only blue mode runs RunComplianceChecks; red mode ignores plugins.
 		if len(auditPlugins) > 0 && !strings.EqualFold(auditMode, "blue") {
 			return fmt.Errorf("--plugins is only supported with --mode blue; %q mode does not run compliance checks",
 				auditMode)
@@ -158,7 +158,6 @@ mode and compliance plugins.
   AUDIT MODES:
   Select the audit perspective using the --mode flag:
 
-    standard  - Neutral, comprehensive documentation report
     blue      - Defensive audit with security findings and recommendations (default)
     red       - Attacker-focused recon report highlighting attack surfaces
 
@@ -170,7 +169,7 @@ mode and compliance plugins.
     firewall  - Firewall Configuration Analysis
 
   When no plugins are specified in blue mode, all available plugins are run.
-  The --plugins flag is not accepted with standard or red modes.
+  The --plugins flag is not accepted with red mode.
 
   OUTPUT FORMATS:
   The audit report can be exported in multiple formats using the --format flag:
@@ -187,9 +186,6 @@ Examples:
 
   # Blue team defensive audit with specific plugins
   opnDossier audit config.xml --plugins stig,sans
-
-  # Standard mode (documentation report, no compliance plugins)
-  opnDossier audit config.xml --mode standard
 
   # Red team attack surface analysis
   opnDossier audit config.xml --mode red

@@ -40,9 +40,8 @@
 - [ ] **TASK-023-029**: Complete audit report generation system
   - Red team recon reports (attack surfaces, WAN exposure)
   - Blue team defensive reports (findings, recommendations)
-  - Standard neutral documentation reports
 - [ ] **TASK-027c**: Plugin-based compliance architecture
-- [ ] Multi-mode reporting (standard/blue/red)
+- [ ] Multi-mode reporting (blue/red). _Note: standard mode was removed — neutral documentation is handled by the `convert` command._
 - [ ] STIG, SANS, firewall best practice compliance checking
 - [ ] Blackhat commentary mode
 - [ ] Template-driven report customization
@@ -318,8 +317,8 @@ This document provides a comprehensive task checklist for implementing the opnDo
 
 - [ ] **TASK-024**: Implement multi-mode report controller
 
-  - **Context**: Need to support standard, blue, and red report modes with different content and tone
-  - **Requirement**: F016 (Multiple Modes), F020 (Standard Summary Report), F025 (Audit mode)
+  - **Context**: Need to support blue and red report modes with different content and tone. _Note: standard mode was removed — neutral documentation is handled by the `convert` command._
+  - **Requirement**: F016 (Multiple Modes), F025 (Audit mode)
   - **User Story**: US-046-US-048 (Audit Report Generation)
   - **Action**: Create mode-based report generation system that determines content and tone based on --mode flag
   - **Acceptance**: System generates different report types based on selected mode
@@ -414,20 +413,20 @@ This document provides a comprehensive task checklist for implementing the opnDo
     - STIG compliance is successfully migrated to plugin architecture
     - Plugin development guide is comprehensive and clear
 
-- [ ] **TASK-028**: Generate standard summary report
+- [x] **TASK-028**: ~~Generate standard summary report~~ _Removed — neutral documentation is handled by the `convert` command. Standard audit mode was removed; only blue and red modes are supported._
 
-  - **Context**: Need neutral, comprehensive documentation reports for general use
-  - **Requirement**: F020 (Standard Summary Report), F016 (Multiple Modes), F025 (Audit mode)
-  - **User Story**: US-048 (Standard Summary Reporting)
-  - **Action**: Implement standard mode reporting with detailed but neutral config documentation including system metadata, rule counts, interfaces, certs, DHCP, routes, and HA
-  - **Acceptance**: Standard mode produces comprehensive, neutral documentation suitable for audit records including system metadata, rule counts, interfaces, certificates, DHCP, routes, and high availability
+  - **Context**: ~~Need neutral, comprehensive documentation reports for general use~~
+  - **Requirement**: ~~F020 (Standard Summary Report)~~ _Removed_
+  - **User Story**: ~~US-048 (Standard Summary Reporting)~~ _Removed_
+  - **Action**: ~~Implement standard mode reporting~~ _Superseded by `convert` command_
+  - **Acceptance**: ~~Standard mode produces comprehensive, neutral documentation~~ _N/A_
 
 - [ ] **TASK-029**: Add CLI flags for audit report modes
 
   - **Context**: Need command-line interface for selecting report modes and options
   - **Requirement**: F016 (Multiple Modes), F018 (Red Team Recon Reporting), F025 (Audit mode)
   - **User Story**: US-046-US-048 (Audit Report Generation)
-  - **Action**: Add --mode flag (standard/blue/red) and --blackhat-mode flag for red team reports
+  - **Action**: Add --mode flag (blue/red) and --blackhat-mode flag for red team reports. _Note: standard mode was removed._
   - **Acceptance**: CLI supports mode selection and blackhat mode option with proper validation
 
 - [ ] **TASK-029a**: Add CLI support for plugin-based compliance
@@ -946,12 +945,12 @@ This document provides a comprehensive task checklist for implementing the opnDo
 - [ ] Markdown conversion preserves configuration hierarchy (TASK-011, TASK-012)
 - [ ] Terminal output includes syntax highlighting (TASK-014, TASK-016)
 - [ ] File export creates valid output files (markdown, json, or yaml) (TASK-017, TASK-018, TASK-019)
-- [ ] Audit report generation supports multiple modes (standard, blue, red) (TASK-023, TASK-024, TASK-025)
+- [ ] Audit report generation supports multiple modes (blue, red) (TASK-023, TASK-024, TASK-025). _Note: standard mode was removed._
 - [ ] Red team recon reporting highlights attack surfaces and enumeration data (TASK-026)
 - [ ] Blue team defensive reporting includes audit findings and recommendations (TASK-027)
 - [ ] Plugin-based compliance architecture supports extensible compliance standards (TASK-027c)
 - [ ] CLI supports plugin selection and management (TASK-029a)
-- [ ] Standard summary reports provide neutral, comprehensive documentation (TASK-028)
+- [x] ~~Standard summary reports provide neutral, comprehensive documentation (TASK-028)~~ _Removed — handled by `convert` command._
 - [ ] CLI supports mode selection and blackhat mode options (TASK-029)
 - [ ] Tool operates completely offline (TASK-053)
 - [ ] CLI provides comprehensive help documentation (TASK-031, TASK-052)
@@ -993,7 +992,7 @@ This document provides a comprehensive task checklist for implementing the opnDo
 - TASK-011 → TASK-012 → TASK-013 (In-memory markdown generation foundation)
 - TASK-014 → TASK-015 → TASK-016 (Terminal display foundation)
 - TASK-017 → TASK-018 → TASK-019 → TASK-020 → TASK-021 (File export foundation)
-- TASK-023 → TASK-024 → TASK-025 → TASK-026 → TASK-027 → TASK-028 → TASK-029 (Audit report generation foundation)
+- TASK-023 → TASK-024 → TASK-025 → TASK-026 → TASK-027 → TASK-029 (Audit report generation foundation)
 - TASK-030 → TASK-031 → TASK-032 (CLI foundation)
 
 ### Parallel Development Opportunities

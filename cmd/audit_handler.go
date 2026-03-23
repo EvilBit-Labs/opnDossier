@@ -77,7 +77,7 @@ func handleAuditMode(
 	enrichedDevice := *device
 	enrichedDevice.ComplianceChecks = mapAuditReportToComplianceResults(auditReport)
 
-	// Delegate to the standard generator pipeline (handles markdown, JSON, YAML, etc.)
+	// Delegate to the shared generator pipeline (handles markdown, JSON, YAML, etc.)
 	return generateWithProgrammaticGenerator(ctx, &enrichedDevice, opt, logger)
 }
 

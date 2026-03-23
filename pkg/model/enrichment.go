@@ -234,7 +234,7 @@ type PerformanceMetrics struct {
 // ComplianceResults contains the full results of a compliance audit run,
 // including per-plugin findings, controls, and summary statistics.
 type ComplianceResults struct {
-	// Mode is the audit report mode (e.g., "standard", "blue", "red").
+	// Mode is the audit report mode (e.g., "blue", "red").
 	Mode string `json:"mode,omitempty" yaml:"mode,omitempty"`
 	// Findings contains top-level security analysis findings (distinct from per-plugin findings in PluginResults).
 	Findings []ComplianceFinding `json:"findings,omitempty" yaml:"findings,omitempty"`

@@ -185,10 +185,10 @@ if ! opndossier validate "$CONFIG_FILE"; then
     exit 1
 fi
 
-# Generate standard report
+# Generate configuration report
 opndossier convert "$CONFIG_FILE" \
     --comprehensive \
-    -o standard-report.md
+    -o config-report.md
 
 # Generate JSON export for programmatic processing
 opndossier convert "$CONFIG_FILE" \

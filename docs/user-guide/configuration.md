@@ -89,7 +89,7 @@ Environment variables follow this pattern:
 
 ## Command-Line Flags
 
-Command-line flags have the highest precedence and override both environment variables and config file values. Global flags (like `--verbose` and `--quiet`) apply to all commands, while some flags are command-specific (like `--theme` for `display` or `--audit-mode` for `convert`).
+Command-line flags have the highest precedence and override both environment variables and config file values. Global flags (like `--verbose` and `--quiet`) apply to all commands, while some flags are command-specific (like `--theme` for `display` or `--mode` for `audit`).
 
 Each command's flags are documented on its own page under [Commands](commands/overview.md). For a single table listing every flag, environment variable, and config file key, see the [Configuration Reference](configuration-reference.md).
 

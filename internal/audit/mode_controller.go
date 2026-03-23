@@ -35,8 +35,6 @@ type ReportMode string
 
 // Report mode constants that determine the perspective and focus of audit output.
 const (
-	// ModeStandard represents a neutral, comprehensive documentation report.
-	ModeStandard ReportMode = "standard"
 	// ModeBlue represents a defensive audit report with security findings and recommendations.
 	ModeBlue ReportMode = "blue"
 	// ModeRed represents an attacker-focused recon report highlighting attack surfaces.
@@ -76,7 +74,7 @@ func (mc *ModeController) ValidateModeConfig(config *ModeConfig) error {
 	}
 
 	switch config.Mode {
-	case ModeStandard, ModeBlue, ModeRed:
+	case ModeBlue, ModeRed:
 		// Valid modes
 	default:
 		return fmt.Errorf("%w: %s", ErrUnsupportedMode, config.Mode)
@@ -140,8 +138,6 @@ func (mc *ModeController) GenerateReport(
 
 	// Generate mode-specific content
 	switch config.Mode {
-	case ModeStandard:
-		return mc.generateStandardReport(ctx, report)
 	case ModeBlue:
 		return mc.generateBlueReport(ctx, report, config)
 	case ModeRed:
@@ -149,28 +145,6 @@ func (mc *ModeController) GenerateReport(
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrUnsupportedMode, config.Mode)
 	}
-}
-
-// generateStandardReport generates a neutral, comprehensive documentation report.
-func (mc *ModeController) generateStandardReport(_ context.Context, report *Report) (*Report, error) {
-	mc.logger.Debug("Generating standard report")
-
-	// Add system metadata
-	report.Metadata["report_type"] = "standard"
-	report.Metadata["generation_time"] = time.Now().Format(time.RFC3339)
-
-	// Add basic configuration analysis
-	report.addSystemMetadata()
-	report.addInterfaceAnalysis()
-	report.addFirewallRuleAnalysis()
-	report.addNATAnalysis()
-	report.addDHCPAnalysis()
-	report.addCertificateAnalysis()
-	report.addVPNAnalysis()
-	report.addStaticRouteAnalysis()
-	report.addHighAvailabilityAnalysis()
-
-	return report, nil
 }
 
 // generateBlueReport generates a defensive audit report with security findings and recommendations.
@@ -279,106 +253,6 @@ type AttackSurface struct {
 	Vulnerabilities []string `json:"vulnerabilities"`
 }
 
-// addSystemMetadata adds system metadata to the report.
-func (r *Report) addSystemMetadata() {
-	if r.Configuration != nil {
-		if r.Configuration.System.Hostname != "" {
-			r.Metadata["system_hostname"] = r.Configuration.System.Hostname
-		}
-
-		if r.Configuration.System.Domain != "" {
-			r.Metadata["system_domain"] = r.Configuration.System.Domain
-		}
-	}
-
-	r.Metadata["system_analysis_completed"] = true
-}
-
-// addInterfaceAnalysis adds interface analysis to the report.
-func (r *Report) addInterfaceAnalysis() {
-	if r.Configuration != nil {
-		interfaceCount := len(r.Configuration.Interfaces)
-		r.Metadata["interface_count"] = interfaceCount
-	}
-	r.Metadata["interface_analysis_completed"] = true
-}
-
-// addFirewallRuleAnalysis adds firewall rule analysis to the report.
-func (r *Report) addFirewallRuleAnalysis() {
-	if r.Configuration != nil {
-		ruleCount := len(r.Configuration.FirewallRules)
-		r.Metadata["firewall_rule_count"] = ruleCount
-	}
-	r.Metadata["firewall_analysis_completed"] = true
-}
-
-// addNATAnalysis adds NAT analysis to the report.
-func (r *Report) addNATAnalysis() {
-	if r.Configuration != nil {
-		r.Metadata["nat_mode"] = string(r.Configuration.NAT.OutboundMode)
-	}
-	r.Metadata["nat_analysis_completed"] = true
-}
-
-// addDHCPAnalysis adds DHCP analysis to the report.
-func (r *Report) addDHCPAnalysis() {
-	if r.Configuration != nil {
-		dhcpEnabled := false
-		for _, scope := range r.Configuration.DHCP {
-			if scope.Interface == "lan" {
-				dhcpEnabled = scope.Enabled
-				break
-			}
-		}
-		r.Metadata["dhcp_enabled"] = dhcpEnabled
-	}
-	r.Metadata["dhcp_analysis_completed"] = true
-}
-
-// addCertificateAnalysis adds certificate analysis to the report.
-func (r *Report) addCertificateAnalysis() {
-	if r.Configuration != nil {
-		r.Metadata["certificates_configured"] = len(r.Configuration.Certificates) > 0
-	}
-	r.Metadata["certificate_analysis_completed"] = true
-}
-
-// addVPNAnalysis adds VPN analysis to the report.
-func (r *Report) addVPNAnalysis() {
-	if r.Configuration != nil {
-		// OpenVPN configuration - check if servers are configured
-		hasOpenVPN := len(r.Configuration.VPN.OpenVPN.Servers) > 0 || len(r.Configuration.VPN.OpenVPN.Clients) > 0
-		r.Metadata["openvpn_configured"] = hasOpenVPN
-		r.Metadata["openvpn_server_count"] = len(r.Configuration.VPN.OpenVPN.Servers)
-		r.Metadata["openvpn_client_count"] = len(r.Configuration.VPN.OpenVPN.Clients)
-	}
-	r.Metadata["vpn_analysis_completed"] = true
-}
-
-// addStaticRouteAnalysis adds static route analysis to the report.
-func (r *Report) addStaticRouteAnalysis() {
-	if r.Configuration != nil {
-		routeCount := len(r.Configuration.Routing.StaticRoutes)
-		r.Metadata["static_route_count"] = routeCount
-	}
-	r.Metadata["static_route_analysis_completed"] = true
-}
-
-// addHighAvailabilityAnalysis adds high availability analysis to the report.
-func (r *Report) addHighAvailabilityAnalysis() {
-	if r.Configuration != nil {
-		// High Availability configuration
-		haEnabled := r.Configuration.HighAvailability.SynchronizeToIP != "" ||
-			r.Configuration.HighAvailability.PfsyncInterface != ""
-		r.Metadata["ha_enabled"] = haEnabled
-		if haEnabled {
-			r.Metadata["ha_sync_ip"] = r.Configuration.HighAvailability.SynchronizeToIP
-			r.Metadata["ha_pfsync_interface"] = r.Configuration.HighAvailability.PfsyncInterface
-		}
-	}
-	r.Metadata["ha_analysis_completed"] = true
-}
-
 // TotalFindingsCount returns the aggregate number of findings across both
 // direct security findings (report.Findings) and per-plugin compliance
 // findings (report.Compliance[*].Summary.TotalFindings). This ensures
@@ -460,7 +334,7 @@ func (r *Report) addEnumerationData() {
 func ParseReportMode(s string) (ReportMode, error) {
 	mode := ReportMode(strings.ToLower(s))
 	switch mode {
-	case ModeStandard, ModeBlue, ModeRed:
+	case ModeBlue, ModeRed:
 		return mode, nil
 	default:
 		return "", fmt.Errorf("%w: %s", ErrUnsupportedMode, s)

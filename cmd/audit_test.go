@@ -139,7 +139,6 @@ func TestAuditCmdHelpOutput(t *testing.T) {
 
 	// Verify the full audit mode description strings from auditCmd.Long
 	modeDescriptions := []string{
-		"standard  - Neutral, comprehensive documentation report",
 		"blue      - Defensive audit with security findings and recommendations (default)",
 		"red       - Attacker-focused recon report highlighting attack surfaces",
 	}
@@ -159,9 +158,9 @@ func TestAuditCmdPreRunEModeValidation(t *testing.T) {
 		wantErr   bool
 		errSubstr string
 	}{
-		{"standard is accepted", "standard", false, ""},
 		{"blue is accepted", "blue", false, ""},
 		{"red is accepted", "red", false, ""},
+		{"standard is rejected", "standard", true, "invalid audit mode"},
 		{"invalid is rejected", "invalid", true, "invalid audit mode"},
 		{"empty is rejected", "", true, "invalid audit mode"},
 		{"typo is rejected", "stanard", true, "invalid audit mode"},
@@ -179,7 +178,7 @@ func TestAuditCmdPreRunEModeValidation(t *testing.T) {
 			// Build a command with the same flag bindings as auditCmd to exercise
 			// real Cobra/pflag parsing, not just direct global mutation.
 			tempCmd := &cobra.Command{}
-			tempCmd.Flags().StringVar(&auditMode, "mode", "standard", "")
+			tempCmd.Flags().StringVar(&auditMode, "mode", "blue", "")
 			tempCmd.Flags().StringSliceVar(&auditPlugins, "plugins", []string{}, "")
 			tempCmd.Flags().StringVar(&outputFile, "output", "", "")
 			tempCmd.Flags().StringVar(&format, "format", "markdown", "")
@@ -230,7 +229,7 @@ func TestAuditCmdPreRunEPluginValidation(t *testing.T) {
 			// Build a command with the same flag bindings as auditCmd to exercise
 			// real Cobra/pflag parsing, not just direct global mutation.
 			tempCmd := &cobra.Command{}
-			tempCmd.Flags().StringVar(&auditMode, "mode", "standard", "")
+			tempCmd.Flags().StringVar(&auditMode, "mode", "blue", "")
 			tempCmd.Flags().StringSliceVar(&auditPlugins, "plugins", []string{}, "")
 			tempCmd.Flags().StringVar(&outputFile, "output", "", "")
 			tempCmd.Flags().StringVar(&format, "format", "markdown", "")
@@ -263,10 +262,9 @@ func TestAuditCmdPreRunEPluginsRequireBlueMode(t *testing.T) {
 		wantErr   bool
 		errSubstr string
 	}{
-		{"plugins with standard", "standard", "stig", true, "--plugins is only supported with --mode blue"},
 		{"plugins with red", "red", "stig", true, "--plugins is only supported with --mode blue"},
 		{"plugins with blue accepted", "blue", "stig", false, ""},
-		{"empty plugins with standard", "standard", "", false, ""},
+		{"empty plugins with red", "red", "", false, ""},
 	}
 
 	for _, tt := range tests {
@@ -281,7 +279,7 @@ func TestAuditCmdPreRunEPluginsRequireBlueMode(t *testing.T) {
 			// Build a command with the same flag bindings as auditCmd to exercise
 			// real Cobra/pflag parsing, not just direct global mutation.
 			tempCmd := &cobra.Command{}
-			tempCmd.Flags().StringVar(&auditMode, "mode", "standard", "")
+			tempCmd.Flags().StringVar(&auditMode, "mode", "blue", "")
 			tempCmd.Flags().StringSliceVar(&auditPlugins, "plugins", []string{}, "")
 			tempCmd.Flags().StringVar(&outputFile, "output", "", "")
 			tempCmd.Flags().StringVar(&format, "format", "markdown", "")
@@ -319,7 +317,7 @@ func TestAuditCmdPreRunEMultiFileOutput(t *testing.T) {
 	// Build a command with the same flag bindings as auditCmd to exercise
 	// real Cobra/pflag parsing, not just direct global mutation.
 	tempCmd := &cobra.Command{}
-	tempCmd.Flags().StringVar(&auditMode, "mode", "standard", "")
+	tempCmd.Flags().StringVar(&auditMode, "mode", "blue", "")
 	tempCmd.Flags().StringSliceVar(&auditPlugins, "plugins", []string{}, "")
 	tempCmd.Flags().StringVarP(&outputFile, "output", "o", "", "")
 	tempCmd.Flags().StringVar(&format, "format", "markdown", "")
@@ -345,11 +343,10 @@ func TestAuditCmdPreRunEMultiFileOutput(t *testing.T) {
 func TestAuditCmdCompletions(t *testing.T) {
 	t.Run("audit modes", func(t *testing.T) {
 		completions, directive := ValidAuditModes(nil, nil, "")
-		assert.Len(t, completions, 3)
+		assert.Len(t, completions, 2)
 		assert.Equal(t, cobra.ShellCompDirectiveNoFileComp, directive)
 
 		joined := strings.Join(completions, " ")
-		assert.Contains(t, joined, "standard")
 		assert.Contains(t, joined, "blue")
 		assert.Contains(t, joined, "red")
 	})

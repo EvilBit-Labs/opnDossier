@@ -432,6 +432,9 @@ When splitting a large file into domain-specific files within the same package:
 - `pfsense.System.DNSServers` is `[]string` (not space-separated `string`) — no `strings.Fields()` needed
 - `pfsense.InboundRule` has `Target` field for internal redirect IP — converter uses `Target` with fallback to `InternalIP`
 - `pfsense.SyslogConfig` only has `FilterDescriptions` — no mapping to `common.SyslogConfig` (returns zero value)
+- pfSense value-based booleans use "1", "on", or "yes" (not just "1") — use `isPfSenseValueTrue()` in converter comparisons, not direct `== "1"` checks
+- pfSense `<enable>` on interfaces/DHCP is presence-based (`<enable/>` = enabled, absent = disabled) but shared `opnsense.Interface` uses `string` which can't distinguish — tracked in #461 for type forking to `BoolFlag`
+- `pfsense.Group.Member` is `[]string` (listtag) — converter uses `strings.Join(g.Member, ", ")` for `common.Group.Member`
 
 **Platform-agnostic model layer:**
 
@@ -492,11 +495,10 @@ opndossier convert config.xml --format yaml --force
 
 ### 6.3 Report Generation
 
-| Mode            | Audience   | Focus                                 |
-| --------------- | ---------- | ------------------------------------- |
-| Standard (ops)  | Operations | General configuration overview        |
-| Blue (defense)  | Blue Team  | Clarity, grouping, actionability      |
-| Red (adversary) | Red Team   | Target prioritization, pivot surfaces |
+| Mode            | Audience  | Focus                                 |
+| --------------- | --------- | ------------------------------------- |
+| Blue (defense)  | Blue Team | Clarity, grouping, actionability      |
+| Red (adversary) | Red Team  | Target prioritization, pivot surfaces |
 
 All report generation uses programmatic Go code via `builder.MarkdownBuilder` (no template system).
 

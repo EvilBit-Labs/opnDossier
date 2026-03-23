@@ -22,12 +22,11 @@ func TestValidAuditModes(t *testing.T) {
 
 	completions, directive := ValidAuditModes(nil, nil, "")
 
-	assert.Len(t, completions, 3)
+	assert.Len(t, completions, 2)
 	assert.Equal(t, cobra.ShellCompDirectiveNoFileComp, directive)
 
 	// Check that all modes are present
 	completionStr := strings.Join(completions, " ")
-	assert.Contains(t, completionStr, "standard")
 	assert.Contains(t, completionStr, "blue")
 	assert.Contains(t, completionStr, "red")
 }
@@ -196,7 +195,7 @@ func TestMapAuditReportToComplianceResults(t *testing.T) {
 		{
 			name: "aggregate summary across multiple plugins",
 			report: &audit.Report{
-				Mode:     audit.ModeStandard,
+				Mode:     audit.ModeBlue,
 				Findings: []audit.Finding{},
 				Compliance: map[string]audit.ComplianceResult{
 					"stig": {
@@ -277,7 +276,7 @@ func TestMapAuditReportToComplianceResults(t *testing.T) {
 		{
 			name: "missing PluginInfo key produces zero-valued info",
 			report: &audit.Report{
-				Mode:     audit.ModeStandard,
+				Mode:     audit.ModeBlue,
 				Findings: []audit.Finding{},
 				Compliance: map[string]audit.ComplianceResult{
 					"firewall": {
@@ -407,7 +406,7 @@ func TestMapAuditReportToComplianceResults(t *testing.T) {
 }
 
 // TestHandleAuditMode_EndToEnd exercises the full audit pipeline: plugin
-// initialization, compliance checks, and report generation via the standard
+// initialization, compliance checks, and report generation via the shared
 // generator pipeline. It asserts that the rendered output contains
 // the audit section from the builder layer.
 func TestHandleAuditMode_EndToEnd(t *testing.T) {
