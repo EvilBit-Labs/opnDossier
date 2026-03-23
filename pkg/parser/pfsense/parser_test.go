@@ -1573,6 +1573,8 @@ func TestConverter_FirmwareVersion(t *testing.T) {
 
 // --- IPsec converter tests ---
 
+// TestConverter_IPsec_Phase1 verifies Phase 1 (IKE SA) tunnel conversion from pfSense schema
+// to common model, including all field mappings, BoolFlag handling, and encryption algorithms.
 func TestConverter_IPsec_Phase1(t *testing.T) {
 	t.Parallel()
 
@@ -1729,6 +1731,8 @@ func TestConverter_IPsec_Phase1(t *testing.T) {
 	}
 }
 
+// TestConverter_IPsec_Phase2 verifies Phase 2 (child SA) tunnel conversion from pfSense schema
+// to common model, including network identity netbits, NATLocalID, and hash/encryption algorithms.
 func TestConverter_IPsec_Phase2(t *testing.T) {
 	t.Parallel()
 
@@ -1878,6 +1882,8 @@ func TestConverter_IPsec_Phase2(t *testing.T) {
 	}
 }
 
+// TestConverter_IPsec_MobileClient verifies mobile/road-warrior client pool conversion,
+// including IPv4/IPv6 pools, DNS/WINS aggregation, and SavePassword flag.
 func TestConverter_IPsec_MobileClient(t *testing.T) {
 	t.Parallel()
 
@@ -1930,7 +1936,7 @@ func TestConverter_IPsec_MobileClient(t *testing.T) {
 				assert.Equal(t, "vpn.local", mc.DNSDomain)
 				assert.Equal(t, "internal.local", mc.DNSSplit)
 				assert.Equal(t, "Welcome to the VPN", mc.LoginBanner)
-				assert.True(t, mc.SavePasswd)
+				assert.True(t, mc.SavePassword)
 			},
 		},
 	}
@@ -1949,6 +1955,8 @@ func TestConverter_IPsec_MobileClient(t *testing.T) {
 	}
 }
 
+// TestConverter_IPsec_EmptyDocument verifies that an empty pfSense document produces a
+// zero-value IPsecConfig with Enabled=false and nil tunnel slices.
 func TestConverter_IPsec_EmptyDocument(t *testing.T) {
 	t.Parallel()
 

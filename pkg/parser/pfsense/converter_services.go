@@ -143,6 +143,7 @@ func (c *converter) convertVPN(doc *pfsense.Document) common.VPN {
 
 // convertIPsec maps doc.IPsec to common.IPsecConfig.
 // Returns a zero-value IPsecConfig when no Phase1/Phase2 tunnels exist and mobile client is disabled.
+// The Logging section is intentionally excluded — it contains daemon tuning, not security-relevant config.
 func (c *converter) convertIPsec(doc *pfsense.Document) common.IPsecConfig {
 	ipsec := doc.IPsec
 	if len(ipsec.Phase1) == 0 && len(ipsec.Phase2) == 0 && !ipsec.Client.Enable.Bool() {
@@ -164,59 +165,143 @@ func (c *converter) convertIPsecPhase1Tunnels(phases []pfsense.IPsecPhase1) []co
 	}
 
 	result := make([]common.IPsecPhase1Tunnel, 0, len(phases))
-	for _, p1 := range phases {
+	for i, p1 := range phases {
+		c.validateIPsecPhase1Fields(i, p1)
+
+		if p1.PreSharedKey != "" {
+			c.addWarning(
+				fmt.Sprintf("IPsec.Phase1[%d].PreSharedKey", i),
+				"[present]",
+				"pre-shared key intentionally excluded from export model for security",
+				common.SeverityLow,
+			)
+		}
+
 		result = append(result, common.IPsecPhase1Tunnel{
-			IKEID:                p1.IKEId,
-			IKEType:              p1.IKEType,
-			Interface:            p1.Interface,
-			RemoteGateway:        p1.RemoteGW,
-			Protocol:             p1.Protocol,
-			AuthMethod:           p1.AuthMethod,
-			MyIDType:             p1.MyIDType,
-			MyIDData:             p1.MyIDData,
-			PeerIDType:           p1.PeerIDType,
-			PeerIDData:           p1.PeerIDData,
-			Mode:                 p1.Mode,
-			Lifetime:             p1.Lifetime,
-			RekeyTime:            p1.RekeyTime,
-			ReauthTime:           p1.ReauthTime,
-			RandTime:             p1.RandTime,
-			NATTraversal:         p1.NATTraversal,
-			MOBIKE:               p1.Mobike,
-			DPDDelay:             p1.DPDDelay,
-			DPDMaxFail:           p1.DPDMaxFail,
-			StartAction:          p1.StartAction,
-			CloseAction:          p1.CloseAction,
-			CertRef:              p1.CertRef,
-			CARef:                p1.CARef,
-			IKEPort:              p1.IKEPort,
-			NATTPort:             p1.NATTPort,
-			SplitConn:            p1.SplitConn,
-			Description:          p1.Descr,
-			Disabled:             p1.Disabled.Bool(),
-			Mobile:               p1.Mobile.Bool(),
-			EncryptionAlgorithms: convertIPsecEncryptionAlgorithms(p1.Encryption.Algorithms),
+			IKEID:         p1.IKEId,
+			IKEType:       p1.IKEType,
+			Interface:     p1.Interface,
+			RemoteGateway: p1.RemoteGW,
+			Protocol:      p1.Protocol,
+			AuthMethod:    p1.AuthMethod,
+			MyIDType:      p1.MyIDType,
+			MyIDData:      p1.MyIDData,
+			PeerIDType:    p1.PeerIDType,
+			PeerIDData:    p1.PeerIDData,
+			Mode:          p1.Mode,
+			Lifetime:      p1.Lifetime,
+			RekeyTime:     p1.RekeyTime,
+			ReauthTime:    p1.ReauthTime,
+			RandTime:      p1.RandTime,
+			NATTraversal:  p1.NATTraversal,
+			MOBIKE:        p1.Mobike,
+			DPDDelay:      p1.DPDDelay,
+			DPDMaxFail:    p1.DPDMaxFail,
+			StartAction:   p1.StartAction,
+			CloseAction:   p1.CloseAction,
+			CertRef:       p1.CertRef,
+			CARef:         p1.CARef,
+			IKEPort:       p1.IKEPort,
+			NATTPort:      p1.NATTPort,
+			SplitConn:     p1.SplitConn,
+			Description:   p1.Descr,
+			Disabled:      p1.Disabled.Bool(),
+			Mobile:        p1.Mobile.Bool(),
+			EncryptionAlgorithms: c.convertIPsecEncryptionAlgorithms(
+				fmt.Sprintf("IPsec.Phase1[%d]", i),
+				p1.Encryption.Algorithms,
+			),
 		})
 	}
 
 	return result
 }
 
+// validIPsecPhase1IKETypes contains recognized IKE version values for Phase 1.
+var validIPsecPhase1IKETypes = []string{"ikev1", "ikev2", "auto"}
+
+// validIPsecPhase1Modes contains recognized negotiation modes for Phase 1.
+var validIPsecPhase1Modes = []string{"main", "aggressive"}
+
+// validIPsecPhase1Protocols contains recognized address family values for Phase 1.
+var validIPsecPhase1Protocols = []string{"inet", "inet6", "both"}
+
+// validIPsecPhase2Modes contains recognized tunnel modes for Phase 2.
+var validIPsecPhase2Modes = []string{"tunnel", "tunnel6", "transport", "vti"}
+
+// validIPsecPhase2Protocols contains recognized IPsec protocols for Phase 2.
+var validIPsecPhase2Protocols = []string{"esp", "ah"}
+
+// validateIPsecPhase1Fields emits conversion warnings for unrecognized enum-like field values.
+func (c *converter) validateIPsecPhase1Fields(idx int, p1 pfsense.IPsecPhase1) {
+	prefix := fmt.Sprintf("IPsec.Phase1[%d]", idx)
+
+	if p1.IKEType != "" && !containsString(validIPsecPhase1IKETypes, p1.IKEType) {
+		c.addWarning(prefix+".IKEType", p1.IKEType, "unrecognized IKE version", common.SeverityMedium)
+	}
+
+	if p1.Mode != "" && !containsString(validIPsecPhase1Modes, p1.Mode) {
+		c.addWarning(prefix+".Mode", p1.Mode, "unrecognized negotiation mode", common.SeverityMedium)
+	}
+
+	if p1.Protocol != "" && !containsString(validIPsecPhase1Protocols, p1.Protocol) {
+		c.addWarning(prefix+".Protocol", p1.Protocol, "unrecognized address family", common.SeverityMedium)
+	}
+}
+
+// validateIPsecPhase2Fields emits conversion warnings for unrecognized enum-like field values.
+func (c *converter) validateIPsecPhase2Fields(idx int, p2 pfsense.IPsecPhase2) {
+	prefix := fmt.Sprintf("IPsec.Phase2[%d]", idx)
+
+	if p2.Mode != "" && !containsString(validIPsecPhase2Modes, p2.Mode) {
+		c.addWarning(prefix+".Mode", p2.Mode, "unrecognized tunnel mode", common.SeverityMedium)
+	}
+
+	if p2.Protocol != "" && !containsString(validIPsecPhase2Protocols, p2.Protocol) {
+		c.addWarning(prefix+".Protocol", p2.Protocol, "unrecognized IPsec protocol", common.SeverityMedium)
+	}
+}
+
+// containsString reports whether needle is in haystack (case-sensitive).
+func containsString(haystack []string, needle string) bool {
+	return slices.Contains(haystack, needle)
+}
+
 // convertIPsecEncryptionAlgorithms extracts algorithm names with optional key lengths.
-// Shared by Phase 1 and Phase 2 — both use the same encryption-algorithm-option structure.
-func convertIPsecEncryptionAlgorithms(algs []pfsense.IPsecEncryptionAlgorithm) []string {
+// Shared by Phase 1 and Phase 2 — both use []IPsecEncryptionAlgorithm, though Phase 1
+// nests them inside an <encryption> wrapper element.
+// Entries with empty names are skipped with a conversion warning.
+func (c *converter) convertIPsecEncryptionAlgorithms(
+	parentPath string,
+	algs []pfsense.IPsecEncryptionAlgorithm,
+) []string {
 	if len(algs) == 0 {
 		return nil
 	}
 
 	result := make([]string, 0, len(algs))
-	for _, alg := range algs {
+	for i, alg := range algs {
+		if alg.Name == "" {
+			c.addWarning(
+				fmt.Sprintf("%s.EncryptionAlgorithms[%d].Name", parentPath, i),
+				"",
+				"encryption algorithm has empty name, skipping",
+				common.SeverityMedium,
+			)
+
+			continue
+		}
+
 		name := alg.Name
 		if alg.KeyLen != "" {
 			name = name + "-" + alg.KeyLen
 		}
 
 		result = append(result, name)
+	}
+
+	if len(result) == 0 {
+		return nil
 	}
 
 	return result
@@ -229,29 +314,34 @@ func (c *converter) convertIPsecPhase2Tunnels(phases []pfsense.IPsecPhase2) []co
 	}
 
 	result := make([]common.IPsecPhase2Tunnel, 0, len(phases))
-	for _, p2 := range phases {
+	for i, p2 := range phases {
+		c.validateIPsecPhase2Fields(i, p2)
+
 		result = append(result, common.IPsecPhase2Tunnel{
-			IKEID:                p2.IKEId,
-			UniqID:               p2.UniqID,
-			ReqID:                p2.ReqID,
-			Mode:                 p2.Mode,
-			Disabled:             p2.Disabled.Bool(),
-			Protocol:             p2.Protocol,
-			LocalIDType:          p2.LocalID.Type,
-			LocalIDAddress:       p2.LocalID.Address,
-			LocalIDNetbits:       p2.LocalID.Netbits,
-			RemoteIDType:         p2.RemoteID.Type,
-			RemoteIDAddress:      p2.RemoteID.Address,
-			RemoteIDNetbits:      p2.RemoteID.Netbits,
-			NATLocalIDType:       p2.NATLocalID.Type,
-			NATLocalIDAddress:    p2.NATLocalID.Address,
-			NATLocalIDNetbits:    p2.NATLocalID.Netbits,
-			PFSGroup:             p2.PFSGroup,
-			Lifetime:             p2.Lifetime,
-			PingHost:             p2.PingHost,
-			Description:          p2.Descr,
-			EncryptionAlgorithms: convertIPsecEncryptionAlgorithms(p2.EncryptionAlgorithms),
-			HashAlgorithms:       convertIPsecHashAlgorithms(p2.HashAlgorithms),
+			IKEID:             p2.IKEId,
+			UniqID:            p2.UniqID,
+			ReqID:             p2.ReqID,
+			Mode:              p2.Mode,
+			Disabled:          p2.Disabled.Bool(),
+			Protocol:          p2.Protocol,
+			LocalIDType:       p2.LocalID.Type,
+			LocalIDAddress:    p2.LocalID.Address,
+			LocalIDNetbits:    p2.LocalID.Netbits,
+			RemoteIDType:      p2.RemoteID.Type,
+			RemoteIDAddress:   p2.RemoteID.Address,
+			RemoteIDNetbits:   p2.RemoteID.Netbits,
+			NATLocalIDType:    p2.NATLocalID.Type,
+			NATLocalIDAddress: p2.NATLocalID.Address,
+			NATLocalIDNetbits: p2.NATLocalID.Netbits,
+			PFSGroup:          p2.PFSGroup,
+			Lifetime:          p2.Lifetime,
+			PingHost:          p2.PingHost,
+			Description:       p2.Descr,
+			EncryptionAlgorithms: c.convertIPsecEncryptionAlgorithms(
+				fmt.Sprintf("IPsec.Phase2[%d]", i),
+				p2.EncryptionAlgorithms,
+			),
+			HashAlgorithms: c.convertIPsecHashAlgorithms(fmt.Sprintf("IPsec.Phase2[%d]", i), p2.HashAlgorithms),
 		})
 	}
 
@@ -259,14 +349,30 @@ func (c *converter) convertIPsecPhase2Tunnels(phases []pfsense.IPsecPhase2) []co
 }
 
 // convertIPsecHashAlgorithms extracts hash algorithm names from Phase 2 entries.
-func convertIPsecHashAlgorithms(algs []pfsense.IPsecHashAlgorithm) []string {
+// Entries with empty names are skipped with a conversion warning.
+func (c *converter) convertIPsecHashAlgorithms(parentPath string, algs []pfsense.IPsecHashAlgorithm) []string {
 	if len(algs) == 0 {
 		return nil
 	}
 
 	result := make([]string, 0, len(algs))
-	for _, alg := range algs {
+	for i, alg := range algs {
+		if alg.Name == "" {
+			c.addWarning(
+				fmt.Sprintf("%s.HashAlgorithms[%d].Name", parentPath, i),
+				"",
+				"hash algorithm has empty name, skipping",
+				common.SeverityMedium,
+			)
+
+			continue
+		}
+
 		result = append(result, alg.Name)
+	}
+
+	if len(result) == 0 {
+		return nil
 	}
 
 	return result
@@ -287,7 +393,7 @@ func (c *converter) convertIPsecMobileClient(client pfsense.IPsecClient) common.
 		DNSDomain:     client.DNSDomain,
 		DNSSplit:      client.DNSSplit,
 		LoginBanner:   client.LoginBanner,
-		SavePasswd:    client.SavePasswd.Bool(),
+		SavePassword:  client.SavePasswd.Bool(),
 	}
 }
 
