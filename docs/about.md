@@ -1,8 +1,8 @@
-# About OPNsense Configuration Processor
+# About opnDossier
 
 ## Project Overview
 
-The **OPNsense Configuration Processor** is a command-line tool designed to bridge the gap between complex XML configuration files and human-readable documentation. Built specifically for network operators and administrators working with OPNsense firewalls, this tool transforms cryptic XML configurations into clear, structured markdown documentation.
+**opnDossier** is a command-line tool designed to bridge the gap between complex XML configuration files and human-readable documentation. Built for network operators and administrators working with OPNsense and pfSense firewalls, this tool transforms cryptic XML configurations into clear, structured documentation and security analysis.
 
 ## Why This Tool Exists
 

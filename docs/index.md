@@ -1,12 +1,12 @@
-# OPNsense Configuration Processor
+# Firewall Configuration Processor
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/11920/badge)](https://www.bestpractices.dev/projects/11920)
 
-Welcome to the **OPNsense Configuration Processor** documentation! This CLI tool helps you process OPNsense `config.xml` files and convert them to human-readable markdown format.
+Welcome to the **opnDossier** documentation! This CLI tool helps you process OPNsense and pfSense `config.xml` files and convert them to human-readable documentation and security analysis.
 
 ## Features
 
-- **Parse OPNsense XML configurations** - Process complex configuration files with ease
+- **Parse OPNsense and pfSense configurations** - Process complex XML configuration files with ease
 - **Configuration Validation** - Comprehensive validation with detailed error reporting
 - **Convert to Markdown** - Generate human-readable documentation
 - **Terminal Display** - View results with syntax highlighting in your terminal
@@ -52,7 +52,7 @@ The tool uses a layered CLI architecture built with modern Go libraries:
 
 ### Data Model Architecture
 
-opnDossier uses a hierarchical model structure that organizes OPNsense configuration into logical domains:
+opnDossier uses a hierarchical model structure that organizes firewall configuration into logical domains:
 
 - **System Domain**: Core system settings, users, groups, system services
 - **Network Domain**: Interfaces, routing, VLANs, network addressing
