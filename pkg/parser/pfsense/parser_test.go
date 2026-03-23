@@ -21,6 +21,9 @@ import (
 // xmlRootPfSense is the expected XML root element name for pfSense configurations.
 const xmlRootPfSense = "pfsense"
 
+// ifaceLAN is the standard LAN interface name used in pfSense fixture assertions.
+const ifaceLAN = "lan"
+
 // --- Parser.Parse tests ---
 
 func TestParser_Parse(t *testing.T) {
@@ -237,16 +240,16 @@ func TestConverter_Interfaces(t *testing.T) {
 	t.Parallel()
 
 	doc := pfsenseSchema.NewDocument()
-	doc.Interfaces.Items["wan"] = pfsenseSchema.Interface{
+	doc.Interfaces.Items["wan"] = opnsense.Interface{
 		If:          "igb0",
-		Enable:      opnsense.BoolFlag(true),
+		Enable:      "1",
 		IPAddr:      "dhcp",
 		BlockPriv:   "1",
 		BlockBogons: "1",
 	}
-	doc.Interfaces.Items["lan"] = pfsenseSchema.Interface{
+	doc.Interfaces.Items["lan"] = opnsense.Interface{
 		If:     "igb1",
-		Enable: opnsense.BoolFlag(true),
+		Enable: "1",
 		IPAddr: "192.168.1.1",
 		Subnet: "24",
 		Descr:  "LAN",
@@ -392,8 +395,8 @@ func TestConverter_DHCP(t *testing.T) {
 	t.Parallel()
 
 	doc := pfsenseSchema.NewDocument()
-	doc.Dhcpd.Items["lan"] = pfsenseSchema.DhcpdInterface{
-		Enable: true,
+	doc.Dhcpd.Items["lan"] = opnsense.DhcpdInterface{
+		Enable: "1",
 		Range:  opnsense.Range{From: "192.168.1.100", To: "192.168.1.200"},
 		Staticmap: []opnsense.DHCPStaticLease{
 			{Mac: "00:11:22:33:44:55", IPAddr: "192.168.1.10", Hostname: "printer"},
@@ -948,6 +951,113 @@ func TestParser_ParseFixture_2_6_x(t *testing.T) {
 	assert.Len(t, device.VPN.OpenVPN.Servers, 1)
 	assert.Len(t, device.Certificates, 1)
 	assert.Len(t, device.CAs, 1)
+
+	// Verify <enable>1</enable> (value-based) produces Enabled: true through the converter.
+	// Use explicit lookups with require to fail the test when expected entries are missing.
+	var wanIface, lanIface *common.Interface
+	for i := range device.Interfaces {
+		switch device.Interfaces[i].Name {
+		case "wan":
+			wanIface = &device.Interfaces[i]
+		case ifaceLAN:
+			lanIface = &device.Interfaces[i]
+		}
+	}
+
+	require.NotNil(t, wanIface, "WAN interface must exist in fixture")
+	assert.True(t, wanIface.Enabled, "WAN interface should be enabled")
+
+	require.NotNil(t, lanIface, "LAN interface must exist in fixture")
+	assert.True(t, lanIface.Enabled, "LAN interface should be enabled")
+
+	var lanDHCP *common.DHCPScope
+	for i := range device.DHCP {
+		if device.DHCP[i].Interface == ifaceLAN {
+			lanDHCP = &device.DHCP[i]
+		}
+	}
+
+	require.NotNil(t, lanDHCP, "LAN DHCP scope must exist in fixture")
+	assert.True(t, lanDHCP.Enabled, "LAN DHCP scope should be enabled")
+}
+
+// TestParser_EnablePresenceXML verifies that self-closing <enable/> elements
+// (presence-based flags) correctly produce Enabled: true on the converted
+// CommonDevice for both interfaces and DHCP scopes.
+func TestParser_EnablePresenceXML(t *testing.T) {
+	t.Parallel()
+
+	const xmlInput = `<?xml version="1.0"?>
+<pfsense>
+  <version>21.02</version>
+  <system>
+    <hostname>test</hostname>
+    <domain>test.local</domain>
+  </system>
+  <interfaces>
+    <wan>
+      <enable/>
+      <if>em0</if>
+      <descr>WAN</descr>
+      <ipaddr>dhcp</ipaddr>
+    </wan>
+    <lan>
+      <if>em1</if>
+      <descr>LAN</descr>
+      <ipaddr>192.168.1.1</ipaddr>
+      <subnet>24</subnet>
+    </lan>
+  </interfaces>
+  <dhcpd>
+    <lan>
+      <enable/>
+      <range>
+        <from>192.168.1.100</from>
+        <to>192.168.1.200</to>
+      </range>
+      <gateway>192.168.1.1</gateway>
+    </lan>
+  </dhcpd>
+</pfsense>`
+
+	p := pfsense.NewParser(nil)
+	device, _, err := p.Parse(context.Background(), strings.NewReader(xmlInput))
+	require.NoError(t, err)
+	require.NotNil(t, device)
+
+	assert.Equal(t, common.DeviceTypePfSense, device.DeviceType)
+	require.Len(t, device.Interfaces, 2)
+
+	// Find interfaces by name
+	var wanIface, lanIface *common.Interface
+	for i := range device.Interfaces {
+		switch device.Interfaces[i].Name {
+		case "wan":
+			wanIface = &device.Interfaces[i]
+		case "lan":
+			lanIface = &device.Interfaces[i]
+		}
+	}
+
+	require.NotNil(t, wanIface, "WAN interface must exist")
+	assert.True(t, wanIface.Enabled, "WAN with <enable/> must be Enabled")
+	assert.Equal(t, "em0", wanIface.PhysicalIf)
+
+	require.NotNil(t, lanIface, "LAN interface must exist")
+	assert.False(t, lanIface.Enabled, "LAN without <enable> must not be Enabled")
+	assert.Equal(t, "em1", lanIface.PhysicalIf)
+
+	require.GreaterOrEqual(t, len(device.DHCP), 1)
+
+	var lanDHCP *common.DHCPScope
+	for i := range device.DHCP {
+		if device.DHCP[i].Interface == "lan" {
+			lanDHCP = &device.DHCP[i]
+		}
+	}
+
+	require.NotNil(t, lanDHCP, "LAN DHCP scope must exist")
+	assert.True(t, lanDHCP.Enabled, "LAN DHCP with <enable/> must be Enabled")
 }
 
 func TestParser_ParseFixture_2_7_x(t *testing.T) {

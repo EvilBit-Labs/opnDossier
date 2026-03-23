@@ -84,8 +84,10 @@ func (p *Parser) decode(ctx context.Context, r io.Reader) (*pfsense.Document, er
 
 	dec := parser.NewSecureXMLDecoder(r, p.maxInputSize)
 
-	var doc pfsense.Document
-	if err := dec.Decode(&doc); err != nil {
+	// Decode into an intermediate struct that uses BoolFlag for presence-based
+	// enable detection, then convert to Document with opnsense-compatible string types.
+	var raw decodeDocument
+	if err := dec.Decode(&raw); err != nil {
 		return nil, fmt.Errorf("XML decode: %w", err)
 	}
 
@@ -95,11 +97,13 @@ func (p *Parser) decode(ctx context.Context, r io.Reader) (*pfsense.Document, er
 	default:
 	}
 
-	if doc.XMLName.Local == "" {
+	if raw.XMLName.Local == "" {
 		return nil, errMissingRoot
 	}
 
-	return &doc, nil
+	doc := raw.toDocument()
+
+	return doc, nil
 }
 
 // toCommonDevice converts a parsed pfSense document into a CommonDevice.
