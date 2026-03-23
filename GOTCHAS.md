@@ -170,3 +170,13 @@ When adding a new device type (e.g., pfSense), audit the XML element names for c
 
 - **Detection:** `sanitize <config.xml> | grep -i 'hash\|secret\|key\|pass'` — check for unredacted sensitive values.
 - **Prevention:** When adding a new device schema, grep for credential-like fields and verify each is matched by a sanitizer rule.
+
+## 12. Git Tagging
+
+### 12.1 Tag the Squash-Merge Commit on Main
+
+When tagging a release after a squash-merge PR, always tag the resulting commit **on `main`**, not the PR branch head. Squash-merge creates a new commit on `main` that is not an ancestor of the branch commits. If you tag the branch head instead, the tag points to an orphaned commit that `git log main` and `git describe` will never reach.
+
+- **Symptom:** `git tag --merged main` does not list the release tag; `git describe` on `main` skips the version.
+- **Fix:** `git checkout main && git pull && git tag vX.Y.Z && git push origin vX.Y.Z`
+- **Prevention:** Always switch to `main` and pull before tagging. Never tag from the feature branch after merge.
