@@ -198,6 +198,12 @@ type IPsecConfig struct {
 	MobileClient IPsecMobileClient `json:"mobileClient" yaml:"mobileClient,omitempty"`
 }
 
+// HasData reports whether the IPsecConfig contains meaningful data.
+func (c IPsecConfig) HasData() bool {
+	return c.Enabled || len(c.Phase1Tunnels) > 0 || len(c.Phase2Tunnels) > 0 || c.MobileClient.Enabled ||
+		c.PreferredOldSA || c.DisableVPNRules || c.PassthroughNetworks != "" || c.Charon.Threads != ""
+}
+
 // IPsecPhase1Tunnel represents a platform-agnostic IKE Phase 1 tunnel configuration.
 type IPsecPhase1Tunnel struct {
 	// IKEID is the unique IKE SA identifier.
@@ -208,7 +214,7 @@ type IPsecPhase1Tunnel struct {
 	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
 	// RemoteGateway is the remote peer's IP address or hostname.
 	RemoteGateway string `json:"remoteGateway,omitempty" yaml:"remoteGateway,omitempty"`
-	// Protocol is the key exchange protocol (e.g., "inet", "inet6").
+	// Protocol is the IP address family for the tunnel (e.g., "inet" for IPv4, "inet6" for IPv6).
 	Protocol string `json:"protocol,omitempty" yaml:"protocol,omitempty"`
 	// AuthMethod is the authentication method (e.g., "pre_shared_key", "rsasig").
 	AuthMethod string `json:"authMethod,omitempty" yaml:"authMethod,omitempty"`
@@ -228,7 +234,7 @@ type IPsecPhase1Tunnel struct {
 	RekeyTime string `json:"rekeyTime,omitempty" yaml:"rekeyTime,omitempty"`
 	// ReauthTime is the IKE SA reauthentication time in seconds.
 	ReauthTime string `json:"reauthTime,omitempty" yaml:"reauthTime,omitempty"`
-	// RandTime is the random time range to subtract from rekey/reauth time.
+	// RandTime is the random jitter range (in seconds) subtracted from rekey/reauth time to prevent synchronized rekeying.
 	RandTime string `json:"randTime,omitempty" yaml:"randTime,omitempty"`
 	// NATTraversal is the NAT-T setting (e.g., "on", "force").
 	NATTraversal string `json:"natTraversal,omitempty" yaml:"natTraversal,omitempty"`
@@ -334,8 +340,8 @@ type IPsecMobileClient struct {
 	DNSSplit string `json:"dnsSplit,omitempty" yaml:"dnsSplit,omitempty"`
 	// LoginBanner is the banner message displayed to mobile clients on connection.
 	LoginBanner string `json:"loginBanner,omitempty" yaml:"loginBanner,omitempty"`
-	// SavePasswd indicates whether mobile clients can save passwords.
-	SavePasswd bool `json:"savePasswd,omitempty" yaml:"savePasswd,omitempty"`
+	// SavePassword indicates whether mobile clients can save passwords.
+	SavePassword bool `json:"savePassword,omitempty" yaml:"savePassword,omitempty"`
 }
 
 // IPsecCharon contains strongSwan charon daemon configuration.
