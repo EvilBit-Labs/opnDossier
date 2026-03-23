@@ -4,13 +4,13 @@ This guide explains how to work with opnDossier's data model for custom integrat
 
 ## Overview
 
-opnDossier parses OPNsense configuration files (config.xml) and converts them to structured data formats:
+opnDossier parses OPNsense and pfSense configuration files (config.xml) and converts them to structured data formats:
 
 - **Markdown** - Human-readable documentation
 - **JSON** - Machine-readable, ideal for scripting with `jq`
 - **YAML** - Configuration-friendly, works with `yq`
 
-The JSON/YAML export uses the **CommonDevice** model -- a platform-agnostic representation that normalizes XML quirks (presence-based booleans, pointer types, map-keyed collections) into clean types suitable for scripting and integration.
+The JSON/YAML export uses the **CommonDevice** model -- a platform-agnostic representation that normalizes XML quirks (presence-based booleans, pointer types, map-keyed collections) into clean types suitable for scripting and integration. Both OPNsense and pfSense configs are normalized to identical CommonDevice structures, enabling unified scripting regardless of device type. opnDossier auto-detects the device type from the XML root element (`<opnsense>` or `<pfsense>`).
 
 ## Quick Start
 
@@ -77,7 +77,7 @@ CommonDevice (root)
 
 ## Documentation
 
-- **[Model Reference](model-reference.md)** - Complete field reference for the internal XML schema (OpnSenseDocument)
+- **[Model Reference](model-reference.md)** - Complete field reference for the CommonDevice export model and internal XML schemas
 - **[JSON Export Examples](examples/json-export.md)** - Common jq queries
 - **[YAML Processing Examples](examples/yaml-processing.md)** - Working with yq
 

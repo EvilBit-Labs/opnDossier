@@ -242,6 +242,7 @@ var (
 	passwordKeywords = []string{
 		"password", "passwd", "pass", "secret", "key", "token",
 		"credential", "auth", "prv", "private",
+		"bcrypt-hash", "sha512-hash",
 	}
 	apiKeywords = []string{"apikey", "api_key", "api-key", "accesskey", "secretkey"}
 	pskKeywords = []string{"psk", "preshared", "pre-shared", "ipsecpsk"}

@@ -1010,14 +1010,16 @@ func (b *MarkdownBuilder) BuildStandardReport(data *common.CommonDevice) (string
 	filteredSysctl := formatters.FilterSystemTunables(data.Sysctl, b.includeTunables)
 	tocItems := b.standardToCItems(len(filteredSysctl) > 0)
 
+	platformName := data.DeviceType.DisplayName()
+
 	var buf bytes.Buffer
 	md := markdown.NewMarkdown(&buf).
-		H1("OPNsense Configuration Summary").
+		H1(platformName+" Configuration Summary").
 		H2("System Information").
 		BulletList(
 			markdown.Bold("Hostname")+": "+data.System.Hostname,
 			markdown.Bold("Domain")+": "+data.System.Domain,
-			markdown.Bold("Platform")+": OPNsense "+data.System.Firmware.Version,
+			markdown.Bold("Platform")+": "+strings.TrimSpace(platformName+" "+data.System.Firmware.Version),
 			markdown.Bold("Generated On")+": "+b.generated.Format(time.RFC3339),
 			markdown.Bold("Parsed By")+": opnDossier v"+b.toolVersion,
 		).
@@ -1045,14 +1047,16 @@ func (b *MarkdownBuilder) BuildComprehensiveReport(data *common.CommonDevice) (s
 	filteredSysctl := formatters.FilterSystemTunables(data.Sysctl, b.includeTunables)
 	tocItems := b.comprehensiveToCItems(len(filteredSysctl) > 0)
 
+	platformName := data.DeviceType.DisplayName()
+
 	var buf bytes.Buffer
 	md := markdown.NewMarkdown(&buf).
-		H1("OPNsense Configuration Summary").
+		H1(platformName+" Configuration Summary").
 		H2("System Information").
 		BulletList(
 			markdown.Bold("Hostname")+": "+data.System.Hostname,
 			markdown.Bold("Domain")+": "+data.System.Domain,
-			markdown.Bold("Platform")+": OPNsense "+data.System.Firmware.Version,
+			markdown.Bold("Platform")+": "+strings.TrimSpace(platformName+" "+data.System.Firmware.Version),
 			markdown.Bold("Generated On")+": "+b.generated.Format(time.RFC3339),
 			markdown.Bold("Parsed By")+": opnDossier v"+b.toolVersion,
 		).

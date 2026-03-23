@@ -53,6 +53,14 @@ The `encoding/xml` package treats self-closing tags (e.g., `<disabled/>`) and mi
 
 - **Gotcha:** Use `*string` (pointer to string) when you need to distinguish between "element present but empty" (`""`) and "element absent" (`nil`).
 
+### 3.3 Repeated XML Elements and `string` Fields
+
+When an XML element appears multiple times (e.g., `<priv>a</priv><priv>b</priv>`), a `string` field only captures the last occurrence — all others are silently dropped. Use `[]string` for elements that can repeat.
+
+- **Symptom:** Only the last value is retained; no error is raised.
+- **Detection:** Compare parsed struct against raw XML — earlier occurrences are silently overwritten by later ones.
+- **Fix:** Change the field type from `string` to `[]string` with the same `xml` tag.
+
 ## 4. Diff Engine
 
 ### 4.1 Section-Level Added/Removed Guards
@@ -122,3 +130,43 @@ Only `blue` mode runs `RunComplianceChecks`. The `standard` and `red` modes igno
 
 - **Gotcha:** Simple character replacement (e.g., `/` → `-`) is NOT sufficient — paths like `a-b/c/config.xml` and `a/b-c/config.xml` would collide. The escaping must be lossless (invertible). The earlier double-underscore scheme (`_` → `__`, separator → `_`) was also insufficient — it collapsed at segment boundaries where trailing/leading underscores were indistinguishable from the separator.
 - **Gotcha:** Expected output filenames are asserted in 5+ test functions (`TestDeriveAuditOutputPath`, `TestEmitAuditResult_MultiFileAutoNaming`, `TestEmitAuditResult_MultiFileConfigOutputFileIgnored`, `TestDeriveAuditOutputPath_BasenameCollision`, `TestDeriveAuditOutputPath_BoundaryUnderscoreCollision`, etc.). When changing the encoding scheme, grep for all assertion sites — missing one causes CI failure.
+
+## 9. Dupl Linter Bidirectional Firing
+
+### 9.1 Cross-Type Validator Duplication
+
+When adding device-specific validators that are structurally similar to existing validators (e.g., `validatePfSenseSystem` vs `validateSystem`), the `dupl` linter fires on BOTH files — not just the new one.
+
+- **Gotcha:** Adding `//nolint:dupl` only to the new function is insufficient. The existing function also needs `//nolint:dupl` because `dupl` reports pairs.
+- **Pattern:** Both sides of the duplicate pair must carry the suppression directive.
+
+## 10. Converter Testing
+
+### 10.1 ToMarkdown Outputs ANSI-Rendered Text
+
+`MarkdownConverter.ToMarkdown()` passes output through `glamour.Render()`, which inserts ANSI escape codes. Tests asserting on the output must set `t.Setenv("TERM", "dumb")` for clean text. Since `t.Setenv` is incompatible with `t.Parallel()`, remove `t.Parallel()` and add `//nolint:tparallel` to the function.
+
+- **Symptom:** `assert.Contains(t, md, "System Configuration")` fails despite the text being present.
+- **Fix:** Add `t.Setenv("TERM", "dumb")` at the start of the test (no `t.Parallel()`).
+- **Precedent:** `internal/converter/markdown_test.go` uses this pattern throughout.
+
+### 10.2 NAT Rule Field Name Disambiguation
+
+`OutboundNATRule.Target` is the NAT target address. `InboundNATRule.InternalIP` is the port-forward destination — there is no `Target` field on `InboundNATRule`. `FirewallRule` has no `Tag`/`Tagged` fields — those exist only on `OutboundNATRule`.
+
+## 11. Sanitizer
+
+### 11.1 pfSense `bcrypt-hash` Field Name
+
+pfSense stores user passwords in `<bcrypt-hash>` elements, not `<password>` or `<passwd>` like OPNsense. The sanitizer's field-pattern matching must explicitly include `bcrypt-hash` and `sha512-hash` — the generic `"pass"` substring match does not cover these.
+
+- **Symptom:** `sanitize` command outputs bcrypt hashes in cleartext.
+- **Fix:** Add `"bcrypt-hash"`, `"sha512-hash"` to the `password` rule's `FieldPatterns` in `internal/sanitizer/rules.go` and to `passwordKeywords` in `internal/sanitizer/patterns.go`.
+- **Precedent:** The SNMP community string (`rocommunity`) required a dedicated field pattern for the same reason.
+
+### 11.2 New Device Type Field Names
+
+When adding a new device type (e.g., pfSense), audit the XML element names for credential fields that differ from OPNsense. The sanitizer operates on raw XML element names, not CommonDevice field names. Any device-specific naming for secrets must be added to the sanitizer's pattern lists.
+
+- **Detection:** `sanitize <config.xml> | grep -i 'hash\|secret\|key\|pass'` — check for unredacted sensitive values.
+- **Prevention:** When adding a new device schema, grep for credential-like fields and verify each is matched by a sanitizer rule.

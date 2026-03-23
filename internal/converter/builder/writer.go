@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
@@ -203,14 +204,16 @@ func (b *MarkdownBuilder) WriteComprehensiveReport(w io.Writer, data *common.Com
 
 // writeReportHeader writes the report header (title, system info) to the writer.
 func (b *MarkdownBuilder) writeReportHeader(w io.Writer, data *common.CommonDevice) error {
+	platformName := data.DeviceType.DisplayName()
+
 	var buf bytes.Buffer
 	md := markdown.NewMarkdown(&buf).
-		H1("OPNsense Configuration Summary").
+		H1(platformName+" Configuration Summary").
 		H2("System Information").
 		BulletList(
 			markdown.Bold("Hostname")+": "+data.System.Hostname,
 			markdown.Bold("Domain")+": "+data.System.Domain,
-			markdown.Bold("Platform")+": OPNsense "+data.System.Firmware.Version,
+			markdown.Bold("Platform")+": "+strings.TrimSpace(platformName+" "+data.System.Firmware.Version),
 			markdown.Bold("Generated On")+": "+b.getGeneratedTime().Format(time.RFC3339),
 			markdown.Bold("Parsed By")+": opnDossier v"+b.getToolVersion(),
 		)

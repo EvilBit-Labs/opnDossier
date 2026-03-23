@@ -11,6 +11,7 @@ import (
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 	_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense" // triggers init() self-registration
+	_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/pfsense"  // triggers init() self-registration
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -44,7 +45,7 @@ func TestFactory_ValidOPNsense(t *testing.T) {
 func TestFactory_UnknownRootElement(t *testing.T) {
 	t.Parallel()
 
-	xml := `<?xml version="1.0"?><pfsense><system><hostname>test</hostname></system></pfsense>`
+	xml := `<?xml version="1.0"?><unknowndevice><system><hostname>test</hostname></system></unknowndevice>`
 	_, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader(xml),
@@ -53,9 +54,10 @@ func TestFactory_UnknownRootElement(t *testing.T) {
 	)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported device type")
-	assert.Contains(t, err.Error(), "pfsense")
+	assert.Contains(t, err.Error(), "unknowndevice")
 	assert.Contains(t, err.Error(), "supported:")
 	assert.Contains(t, err.Error(), "opnsense")
+	assert.Contains(t, err.Error(), "pfsense")
 }
 
 func TestFactory_Override_OPNsense(t *testing.T) {
@@ -92,12 +94,12 @@ func TestFactory_Override_Unsupported(t *testing.T) {
 	_, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
 		context.Background(),
 		strings.NewReader(validOPNsenseXML),
-		common.DeviceTypePfSense,
+		common.DeviceType("unsupported_device"),
 		false,
 	)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported device type override")
-	assert.Contains(t, err.Error(), "pfsense")
+	assert.Contains(t, err.Error(), "unsupported_device")
 	assert.Contains(t, err.Error(), "supported:")
 	assert.Contains(t, err.Error(), "opnsense")
 }
@@ -275,4 +277,67 @@ func TestFactory_ValidateMode_True_SemanticErrorsFail(t *testing.T) {
 
 	var aggErr *cfgparser.AggregatedValidationError
 	assert.ErrorAs(t, err, &aggErr, "expected an AggregatedValidationError, got: %v", err)
+}
+
+// --- pfSense factory tests ---
+
+const validPfSenseXML = `<?xml version="1.0"?>
+<pfsense>
+  <system>
+    <hostname>pf-test</hostname>
+    <domain>pf.local</domain>
+  </system>
+</pfsense>`
+
+func TestFactory_ValidPfSense(t *testing.T) {
+	t.Parallel()
+
+	device, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
+		context.Background(),
+		strings.NewReader(validPfSenseXML),
+		common.DeviceTypeUnknown,
+		false,
+	)
+	require.NoError(t, err)
+	require.NotNil(t, device)
+	assert.Equal(t, common.DeviceTypePfSense, device.DeviceType)
+	assert.Equal(t, "pf-test", device.System.Hostname)
+	assert.Equal(t, "pf.local", device.System.Domain)
+}
+
+func TestFactory_Override_PfSense(t *testing.T) {
+	t.Parallel()
+
+	device, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
+		context.Background(),
+		strings.NewReader(validPfSenseXML),
+		common.DeviceTypePfSense,
+		false,
+	)
+	require.NoError(t, err)
+	require.NotNil(t, device)
+	assert.Equal(t, common.DeviceTypePfSense, device.DeviceType)
+}
+
+func TestFactory_PfSense_AcceptedCharsets(t *testing.T) {
+	t.Parallel()
+
+	charsets := []string{"US-ASCII", "ISO-8859-1", "Latin-1", "UTF-8"}
+	for _, charset := range charsets {
+		t.Run(charset, func(t *testing.T) {
+			t.Parallel()
+
+			xmlData := `<?xml version="1.0" encoding="` + charset + `"?>` + "\n" +
+				`<pfsense><system><hostname>test</hostname><domain>test.local</domain></system></pfsense>`
+			device, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
+				context.Background(),
+				strings.NewReader(xmlData),
+				common.DeviceTypeUnknown,
+				false,
+			)
+			require.NoError(t, err)
+			require.NotNil(t, device)
+			assert.Equal(t, common.DeviceTypePfSense, device.DeviceType)
+		})
+	}
 }

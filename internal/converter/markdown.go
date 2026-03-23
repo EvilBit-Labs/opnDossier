@@ -42,7 +42,7 @@ func (c *MarkdownConverter) ToMarkdown(_ context.Context, data *common.CommonDev
 	md := markdown.NewMarkdown(&buf)
 
 	// Main title
-	md.H1("OPNsense Configuration")
+	md.H1(data.DeviceType.DisplayName() + " Configuration")
 
 	// System Configuration
 	c.buildSystemSection(md, data)

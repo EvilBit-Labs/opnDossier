@@ -130,10 +130,9 @@ func TestValidateDeviceType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:      "pfsense unsupported",
-			value:     "pfsense",
-			wantErr:   true,
-			errSubstr: "unsupported device type",
+			name:    "pfsense supported",
+			value:   "pfsense",
+			wantErr: false,
 		},
 		{
 			name:      "xyz unsupported",

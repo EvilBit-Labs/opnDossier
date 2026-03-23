@@ -358,10 +358,12 @@ opnDossier/
 │   └── walker.go                     # XML walker utilities
 ├── pkg/                              # Public API packages
 │   ├── model/                        # Platform-agnostic CommonDevice domain model
-│   ├── parser/                       # Factory + DeviceParser interface
-│   │   └── opnsense/                 # OPNsense parser + schema→CommonDevice converter
+│   ├── parser/                       # Factory + DeviceParser interface + shared xmlutil.go
+│   │   ├── opnsense/                 # OPNsense parser + schema→CommonDevice converter
+│   │   └── pfsense/                  # pfSense parser + schema→CommonDevice converter
 │   └── schema/
-│       └── opnsense/                 # Canonical OPNsense XML data model structs
+│       ├── opnsense/                 # Canonical OPNsense XML data model structs
+│       └── pfsense/                  # pfSense XML data model (copy-on-write from opnsense)
 ├── docs/                             # Documentation
 ├── project_spec/                     # Project requirements
 ├── testdata/                         # Test data files
@@ -426,7 +428,9 @@ When adding `io.Writer` support alongside string-returning APIs, split responsib
 
 ### DeviceParser Registry Pattern
 
-Parser registration follows the `database/sql` model: parsers call `parser.Register(name, factory)` from `init()`. **Critical:** any file using `parser.NewFactory()` must blank-import the parser package (e.g., `_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"`). Without it, the registry is empty. See **[GOTCHAS.md](GOTCHAS.md)** for symptoms and fixes.
+Parser registration follows the `database/sql` model: parsers call `parser.Register(name, factory)` from `init()`. **Critical:** any file using `parser.NewFactory()` must blank-import the parser packages (e.g., `_ ".../pkg/parser/opnsense"` and `_ ".../pkg/parser/pfsense"`). Without it, the registry is empty. See **[GOTCHAS.md](GOTCHAS.md)** for symptoms and fixes.
+
+Both parsers share XML security hardening via `parser.NewSecureXMLDecoder()` in `pkg/parser/xmlutil.go` (LimitReader, XXE protection, charset handling). The pfSense parser manages its own XML decoding because `XMLDecoder` returns `*schema.OpnSenseDocument`; validation is injected via `pfsense.ValidateFunc` (set in `cmd/root.go`).
 
 ### File Write Safety
 
@@ -452,7 +456,7 @@ The config.xml data model is enhanced in phases to ensure backward compatibility
 
 **BoolFlag vs String Pattern:**
 
-OPNsense uses two boolean patterns. Choosing the wrong type silently breaks semantics:
+OPNsense and pfSense use two boolean patterns. Choosing the wrong type silently breaks semantics:
 
 - **Presence-based** (`isset()` in PHP): Use `BoolFlag`. Examples: `<disabled/>`, `<log/>`, `<not/>`, `<quick/>`
 - **Value-based** (`== "1"` in PHP): Use `string`. Examples: `<enable>1</enable>`, `<blockpriv>1</blockpriv>`
@@ -462,10 +466,11 @@ OPNsense uses two boolean patterns. Choosing the wrong type silently breaks sema
 **Adding New XML Fields:**
 
 1. Check upstream OPNsense/pfSense source for field semantics (presence-based vs value-based)
-2. Add the field to the appropriate struct in `pkg/schema/opnsense/`
+2. Add the field to the appropriate struct in `pkg/schema/opnsense/` or `pkg/schema/pfsense/` (copy-on-write: reuse opnsense types where XML is identical, fork locally at divergence)
 3. Add XML round-trip tests in the corresponding `*_test.go`
-4. Update the validator in `internal/validator/opnsense.go` if the field has constraints
+4. Update the validator in `internal/validator/opnsense.go` or `internal/validator/pfsense.go` if the field has constraints
 5. Update `docs/development/xml-structure-research.md` with the field details
+6. If the field is a credential, add its XML element name to the sanitizer patterns in `internal/sanitizer/rules.go` and `internal/sanitizer/patterns.go`
 
 ## Security Standards
 

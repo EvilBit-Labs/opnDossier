@@ -82,7 +82,7 @@ func TestAuditCmdFlagDefaults(t *testing.T) {
 		name     string
 		defValue string
 	}{
-		{"mode", "standard"},
+		{"mode", "blue"},
 		{"plugins", "[]"},
 		{"plugin-dir", ""},
 		{"format", "markdown"},
@@ -139,8 +139,8 @@ func TestAuditCmdHelpOutput(t *testing.T) {
 
 	// Verify the full audit mode description strings from auditCmd.Long
 	modeDescriptions := []string{
-		"standard  - Neutral, comprehensive documentation report (default)",
-		"blue      - Defensive audit with security findings and recommendations",
+		"standard  - Neutral, comprehensive documentation report",
+		"blue      - Defensive audit with security findings and recommendations (default)",
 		"red       - Attacker-focused recon report highlighting attack surfaces",
 	}
 
