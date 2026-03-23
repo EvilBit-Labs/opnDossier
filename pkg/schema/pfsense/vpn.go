@@ -26,37 +26,41 @@ func NewIPsec() IPsec {
 // IPsecPhase1 represents a single IKE Phase 1 (SA) entry.
 // Phase 1 entries are listtags in pfSense config.xml.
 type IPsecPhase1 struct {
-	IKEId        string                `xml:"ikeid,omitempty"                 json:"ikeid,omitempty"                yaml:"ikeid,omitempty"`
-	IKEType      string                `xml:"iketype,omitempty"               json:"iketype,omitempty"              yaml:"iketype,omitempty"`
-	Interface    string                `xml:"interface,omitempty"             json:"interface,omitempty"            yaml:"interface,omitempty"`
-	RemoteGW     string                `xml:"remote-gateway,omitempty"        json:"remoteGateway,omitempty"        yaml:"remoteGateway,omitempty"`
-	Protocol     string                `xml:"protocol,omitempty"              json:"protocol,omitempty"             yaml:"protocol,omitempty"`
-	MyIDType     string                `xml:"myid_type,omitempty"             json:"myidType,omitempty"             yaml:"myidType,omitempty"`
-	MyIDData     string                `xml:"myid_data,omitempty"             json:"myidData,omitempty"             yaml:"myidData,omitempty"`
-	PeerIDType   string                `xml:"peerid_type,omitempty"           json:"peeridType,omitempty"           yaml:"peeridType,omitempty"`
-	PeerIDData   string                `xml:"peerid_data,omitempty"           json:"peeridData,omitempty"           yaml:"peeridData,omitempty"`
-	AuthMethod   string                `xml:"authentication_method,omitempty" json:"authenticationMethod,omitempty" yaml:"authenticationMethod,omitempty"`
-	PreSharedKey string                `xml:"pre-shared-key,omitempty"        json:"preSharedKey,omitempty"         yaml:"preSharedKey,omitempty"`
-	CertRef      string                `xml:"certref,omitempty"               json:"certref,omitempty"              yaml:"certref,omitempty"`
-	CARef        string                `xml:"caref,omitempty"                 json:"caref,omitempty"                yaml:"caref,omitempty"`
-	Lifetime     string                `xml:"lifetime,omitempty"              json:"lifetime,omitempty"             yaml:"lifetime,omitempty"`
-	RekeyTime    string                `xml:"rekey_time,omitempty"            json:"rekeyTime,omitempty"            yaml:"rekeyTime,omitempty"`
-	ReauthTime   string                `xml:"reauth_time,omitempty"           json:"reauthTime,omitempty"           yaml:"reauthTime,omitempty"`
-	RandTime     string                `xml:"rand_time,omitempty"             json:"randTime,omitempty"             yaml:"randTime,omitempty"`
-	Mode         string                `xml:"mode,omitempty"                  json:"mode,omitempty"                 yaml:"mode,omitempty"`
-	NATTraversal string                `xml:"nat_traversal,omitempty"         json:"natTraversal,omitempty"         yaml:"natTraversal,omitempty"`
-	Mobike       string                `xml:"mobike,omitempty"                json:"mobike,omitempty"               yaml:"mobike,omitempty"`
-	DPDDelay     string                `xml:"dpd_delay,omitempty"             json:"dpdDelay,omitempty"             yaml:"dpdDelay,omitempty"`
-	DPDMaxFail   string                `xml:"dpd_maxfail,omitempty"           json:"dpdMaxFail,omitempty"           yaml:"dpdMaxFail,omitempty"`
-	StartAction  string                `xml:"startaction,omitempty"           json:"startaction,omitempty"          yaml:"startaction,omitempty"`
-	CloseAction  string                `xml:"closeaction,omitempty"           json:"closeaction,omitempty"          yaml:"closeaction,omitempty"`
-	Disabled     opnsense.BoolFlag     `xml:"disabled,omitempty"              json:"disabled"                       yaml:"disabled,omitempty"`
-	Descr        string                `xml:"descr,omitempty"                 json:"descr,omitempty"                yaml:"descr,omitempty"`
-	Mobile       opnsense.BoolFlag     `xml:"mobile,omitempty"                json:"mobile"                         yaml:"mobile,omitempty"`
-	IKEPort      string                `xml:"ikeport,omitempty"               json:"ikeport,omitempty"              yaml:"ikeport,omitempty"`
-	NATTPort     string                `xml:"nattport,omitempty"              json:"nattport,omitempty"             yaml:"nattport,omitempty"`
-	SplitConn    string                `xml:"splitconn,omitempty"             json:"splitconn,omitempty"            yaml:"splitconn,omitempty"`
-	Encryption   IPsecPhase1Encryption `xml:"encryption,omitempty"            json:"encryption"                     yaml:"encryption,omitempty"`
+	IKEId      string `xml:"ikeid,omitempty"                 json:"ikeId,omitempty"                yaml:"ikeId,omitempty"`
+	IKEType    string `xml:"iketype,omitempty"               json:"ikeType,omitempty"              yaml:"ikeType,omitempty"`
+	Interface  string `xml:"interface,omitempty"             json:"interface,omitempty"            yaml:"interface,omitempty"`
+	RemoteGW   string `xml:"remote-gateway,omitempty"        json:"remoteGateway,omitempty"        yaml:"remoteGateway,omitempty"`
+	Protocol   string `xml:"protocol,omitempty"              json:"protocol,omitempty"             yaml:"protocol,omitempty"`
+	MyIDType   string `xml:"myid_type,omitempty"             json:"myIdType,omitempty"             yaml:"myIdType,omitempty"`
+	MyIDData   string `xml:"myid_data,omitempty"             json:"myIdData,omitempty"             yaml:"myIdData,omitempty"`
+	PeerIDType string `xml:"peerid_type,omitempty"           json:"peerIdType,omitempty"           yaml:"peerIdType,omitempty"`
+	PeerIDData string `xml:"peerid_data,omitempty"           json:"peerIdData,omitempty"           yaml:"peerIdData,omitempty"`
+	AuthMethod string `xml:"authentication_method,omitempty" json:"authenticationMethod,omitempty" yaml:"authenticationMethod,omitempty"`
+	// PreSharedKey is the IPsec pre-shared key. Intentionally excluded from the common model
+	// (secrets must not reach the export pipeline). The sanitizer handles this at the XML level.
+	// If this field is ever mapped to common.IPsecPhase1Tunnel, redactedCopyUnsafe() in
+	// internal/processor/report.go MUST be updated to redact it.
+	PreSharedKey string                `xml:"pre-shared-key,omitempty" json:"-"                      yaml:"-"`
+	CertRef      string                `xml:"certref,omitempty"        json:"certRef,omitempty"      yaml:"certRef,omitempty"`
+	CARef        string                `xml:"caref,omitempty"          json:"caRef,omitempty"        yaml:"caRef,omitempty"`
+	Lifetime     string                `xml:"lifetime,omitempty"       json:"lifetime,omitempty"     yaml:"lifetime,omitempty"`
+	RekeyTime    string                `xml:"rekey_time,omitempty"     json:"rekeyTime,omitempty"    yaml:"rekeyTime,omitempty"`
+	ReauthTime   string                `xml:"reauth_time,omitempty"    json:"reauthTime,omitempty"   yaml:"reauthTime,omitempty"`
+	RandTime     string                `xml:"rand_time,omitempty"      json:"randTime,omitempty"     yaml:"randTime,omitempty"`
+	Mode         string                `xml:"mode,omitempty"           json:"mode,omitempty"         yaml:"mode,omitempty"`
+	NATTraversal string                `xml:"nat_traversal,omitempty"  json:"natTraversal,omitempty" yaml:"natTraversal,omitempty"`
+	Mobike       string                `xml:"mobike,omitempty"         json:"mobike,omitempty"       yaml:"mobike,omitempty"`
+	DPDDelay     string                `xml:"dpd_delay,omitempty"      json:"dpdDelay,omitempty"     yaml:"dpdDelay,omitempty"`
+	DPDMaxFail   string                `xml:"dpd_maxfail,omitempty"    json:"dpdMaxFail,omitempty"   yaml:"dpdMaxFail,omitempty"`
+	StartAction  string                `xml:"startaction,omitempty"    json:"startAction,omitempty"  yaml:"startAction,omitempty"`
+	CloseAction  string                `xml:"closeaction,omitempty"    json:"closeAction,omitempty"  yaml:"closeAction,omitempty"`
+	Disabled     opnsense.BoolFlag     `xml:"disabled,omitempty"       json:"disabled"               yaml:"disabled,omitempty"`
+	Descr        string                `xml:"descr,omitempty"          json:"descr,omitempty"        yaml:"descr,omitempty"`
+	Mobile       opnsense.BoolFlag     `xml:"mobile,omitempty"         json:"mobile"                 yaml:"mobile,omitempty"`
+	IKEPort      string                `xml:"ikeport,omitempty"        json:"ikePort,omitempty"      yaml:"ikePort,omitempty"`
+	NATTPort     string                `xml:"nattport,omitempty"       json:"nattPort,omitempty"     yaml:"nattPort,omitempty"`
+	SplitConn    string                `xml:"splitconn,omitempty"      json:"splitConn,omitempty"    yaml:"splitConn,omitempty"`
+	Encryption   IPsecPhase1Encryption `xml:"encryption,omitempty"     json:"encryption"             yaml:"encryption,omitempty"`
 }
 
 // ipsecPhase1Alias is a type alias used to break the recursion in IPsecPhase1.MarshalXML.
@@ -80,20 +84,20 @@ type IPsecPhase1Encryption struct {
 // IPsecPhase2 represents a single IPsec Phase 2 (child SA) entry.
 // Phase 2 entries are listtags in pfSense config.xml.
 type IPsecPhase2 struct {
-	IKEId                string                     `xml:"ikeid,omitempty"                       json:"ikeid,omitempty"                yaml:"ikeid,omitempty"`
-	UniqID               string                     `xml:"uniqid,omitempty"                      json:"uniqid,omitempty"               yaml:"uniqid,omitempty"`
+	IKEId                string                     `xml:"ikeid,omitempty"                       json:"ikeId,omitempty"                yaml:"ikeId,omitempty"`
+	UniqID               string                     `xml:"uniqid,omitempty"                      json:"uniqId,omitempty"               yaml:"uniqId,omitempty"`
 	Mode                 string                     `xml:"mode,omitempty"                        json:"mode,omitempty"                 yaml:"mode,omitempty"`
 	Disabled             opnsense.BoolFlag          `xml:"disabled,omitempty"                    json:"disabled"                       yaml:"disabled,omitempty"`
-	ReqID                string                     `xml:"reqid,omitempty"                       json:"reqid,omitempty"                yaml:"reqid,omitempty"`
-	LocalID              IPsecID                    `xml:"localid,omitempty"                     json:"localid"                        yaml:"localid,omitempty"`
-	RemoteID             IPsecID                    `xml:"remoteid,omitempty"                    json:"remoteid"                       yaml:"remoteid,omitempty"`
-	NATLocalID           IPsecID                    `xml:"natlocalid,omitempty"                  json:"natlocalid"                     yaml:"natlocalid,omitempty"`
+	ReqID                string                     `xml:"reqid,omitempty"                       json:"reqId,omitempty"                yaml:"reqId,omitempty"`
+	LocalID              IPsecID                    `xml:"localid,omitempty"                     json:"localId"                        yaml:"localId,omitempty"`
+	RemoteID             IPsecID                    `xml:"remoteid,omitempty"                    json:"remoteId"                       yaml:"remoteId,omitempty"`
+	NATLocalID           IPsecID                    `xml:"natlocalid,omitempty"                  json:"natLocalId"                     yaml:"natLocalId,omitempty"`
 	Protocol             string                     `xml:"protocol,omitempty"                    json:"protocol,omitempty"             yaml:"protocol,omitempty"`
 	EncryptionAlgorithms []IPsecEncryptionAlgorithm `xml:"encryption-algorithm-option,omitempty" json:"encryptionAlgorithms,omitempty" yaml:"encryptionAlgorithms,omitempty"`
 	HashAlgorithms       []IPsecHashAlgorithm       `xml:"hash-algorithm-option,omitempty"       json:"hashAlgorithms,omitempty"       yaml:"hashAlgorithms,omitempty"`
-	PFSGroup             string                     `xml:"pfsgroup,omitempty"                    json:"pfsgroup,omitempty"             yaml:"pfsgroup,omitempty"`
+	PFSGroup             string                     `xml:"pfsgroup,omitempty"                    json:"pfsGroup,omitempty"             yaml:"pfsGroup,omitempty"`
 	Lifetime             string                     `xml:"lifetime,omitempty"                    json:"lifetime,omitempty"             yaml:"lifetime,omitempty"`
-	PingHost             string                     `xml:"pinghost,omitempty"                    json:"pinghost,omitempty"             yaml:"pinghost,omitempty"`
+	PingHost             string                     `xml:"pinghost,omitempty"                    json:"pingHost,omitempty"             yaml:"pingHost,omitempty"`
 	Descr                string                     `xml:"descr,omitempty"                       json:"descr,omitempty"                yaml:"descr,omitempty"`
 }
 
@@ -113,7 +117,7 @@ func (p IPsecPhase2) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 // IPsecEncryptionAlgorithm represents a single encryption algorithm option used in Phase 1 and Phase 2.
 type IPsecEncryptionAlgorithm struct {
 	Name   string `xml:"name,omitempty"   json:"name,omitempty"   yaml:"name,omitempty"`
-	KeyLen string `xml:"keylen,omitempty" json:"keylen,omitempty" yaml:"keylen,omitempty"`
+	KeyLen string `xml:"keylen,omitempty" json:"keyLen,omitempty" yaml:"keyLen,omitempty"`
 }
 
 // IPsecHashAlgorithm represents a single hash algorithm option used in Phase 2.
@@ -121,14 +125,16 @@ type IPsecHashAlgorithm struct {
 	Name string `xml:"name,omitempty" json:"name,omitempty" yaml:"name,omitempty"`
 }
 
-// IPsecID represents a network identity used in Phase 2 localid, remoteid, and natlocalid elements.
+// IPsecID represents a network identity element, used for localid, remoteid,
+// and natlocalid in IPsec configurations.
 type IPsecID struct {
 	Type    string `xml:"type,omitempty"    json:"type,omitempty"    yaml:"type,omitempty"`
 	Address string `xml:"address,omitempty" json:"address,omitempty" yaml:"address,omitempty"`
 	Netbits string `xml:"netbits,omitempty" json:"netbits,omitempty" yaml:"netbits,omitempty"`
 }
 
-// IPsecClient represents the mobile IPsec client configuration.
+// IPsecClient represents the mobile IPsec client pool configuration
+// (the <client> element within <ipsec>).
 type IPsecClient struct {
 	Enable      opnsense.BoolFlag `xml:"enable,omitempty"          json:"enable"                  yaml:"enable,omitempty"`
 	UserSource  string            `xml:"user_source,omitempty"     json:"userSource,omitempty"    yaml:"userSource,omitempty"`
@@ -162,17 +168,30 @@ func (c IPsecClient) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return e.EncodeElement((*ipsecClientAlias)(&c), start)
 }
 
-// IPsecLogging represents per-subsystem IPsec log level configuration.
+// IPsecLogging represents per-subsystem strongSwan log level configuration.
+// Parsed from config.xml but intentionally not mapped to the common model — log
+// levels are daemon tuning, not security-relevant configuration for audit/export.
 type IPsecLogging struct {
+	// Dmn is the strongSwan daemon (main process) log level.
 	Dmn string `xml:"dmn,omitempty" json:"dmn,omitempty" yaml:"dmn,omitempty"`
+	// Mgr is the IKE SA manager log level.
 	Mgr string `xml:"mgr,omitempty" json:"mgr,omitempty" yaml:"mgr,omitempty"`
+	// Ike is the IKE protocol log level.
 	Ike string `xml:"ike,omitempty" json:"ike,omitempty" yaml:"ike,omitempty"`
+	// Chd is the child SA (IPsec SA) log level.
 	Chd string `xml:"chd,omitempty" json:"chd,omitempty" yaml:"chd,omitempty"`
+	// Job is the job processing log level.
 	Job string `xml:"job,omitempty" json:"job,omitempty" yaml:"job,omitempty"`
+	// Cfg is the configuration backend log level.
 	Cfg string `xml:"cfg,omitempty" json:"cfg,omitempty" yaml:"cfg,omitempty"`
+	// Knl is the kernel interface log level.
 	Knl string `xml:"knl,omitempty" json:"knl,omitempty" yaml:"knl,omitempty"`
+	// Net is the networking log level.
 	Net string `xml:"net,omitempty" json:"net,omitempty" yaml:"net,omitempty"`
+	// Asn is the ASN.1 encoding/decoding log level.
 	Asn string `xml:"asn,omitempty" json:"asn,omitempty" yaml:"asn,omitempty"`
+	// Enc is the cryptographic operations log level.
 	Enc string `xml:"enc,omitempty" json:"enc,omitempty" yaml:"enc,omitempty"`
+	// Lib is the strongSwan library log level.
 	Lib string `xml:"lib,omitempty" json:"lib,omitempty" yaml:"lib,omitempty"`
 }

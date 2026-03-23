@@ -162,6 +162,140 @@ func TestIPsecPhase2MarshalXML_BoolFlagProducesPresenceElement(t *testing.T) {
 	}
 }
 
+// TestIPsecPhase2UnmarshalXML_BoolFlag verifies that the Disabled BoolFlag field on
+// IPsecPhase2 correctly unmarshals from self-closing and absent XML elements.
+func TestIPsecPhase2UnmarshalXML_BoolFlag(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		xml          string
+		wantDisabled bool
+	}{
+		{
+			name:         "disabled self-closing",
+			xml:          `<phase2><disabled/><ikeid>1</ikeid></phase2>`,
+			wantDisabled: true,
+		},
+		{
+			name:         "disabled absent",
+			xml:          `<phase2><ikeid>1</ikeid></phase2>`,
+			wantDisabled: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var result IPsecPhase2
+			err := xml.Unmarshal([]byte(tt.xml), &result)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.wantDisabled, result.Disabled.Bool(), "Disabled mismatch")
+		})
+	}
+}
+
+// TestIPsecXMLRoundTrip_NestedStructs verifies that a realistic IPsec XML fragment
+// with Phase 1, Phase 2, encryption algorithms, and network identities correctly
+// survives XML unmarshal. This catches tag mismatches on nested types like IPsecID,
+// IPsecEncryptionAlgorithm, and IPsecPhase1Encryption that converter tests cannot detect.
+func TestIPsecXMLRoundTrip_NestedStructs(t *testing.T) {
+	t.Parallel()
+
+	input := `<ipsec>
+		<phase1>
+			<ikeid>1</ikeid>
+			<iketype>ikev2</iketype>
+			<remote-gateway>203.0.113.1</remote-gateway>
+			<authentication_method>pre_shared_key</authentication_method>
+			<encryption>
+				<encryption-algorithm-option>
+					<name>aes</name>
+					<keylen>256</keylen>
+				</encryption-algorithm-option>
+				<encryption-algorithm-option>
+					<name>aes</name>
+					<keylen>128</keylen>
+				</encryption-algorithm-option>
+			</encryption>
+			<disabled/>
+		</phase1>
+		<phase2>
+			<ikeid>1</ikeid>
+			<uniqid>abc123</uniqid>
+			<mode>tunnel</mode>
+			<localid>
+				<type>network</type>
+				<address>192.168.1.0</address>
+				<netbits>24</netbits>
+			</localid>
+			<remoteid>
+				<type>network</type>
+				<address>10.0.0.0</address>
+				<netbits>8</netbits>
+			</remoteid>
+			<encryption-algorithm-option>
+				<name>aes</name>
+				<keylen>256</keylen>
+			</encryption-algorithm-option>
+			<hash-algorithm-option>
+				<name>hmac-sha256</name>
+			</hash-algorithm-option>
+			<pfsgroup>14</pfsgroup>
+		</phase2>
+		<client>
+			<enable/>
+			<user_source>local</user_source>
+			<pool_address>10.10.10.0</pool_address>
+			<dns_server1>8.8.8.8</dns_server1>
+		</client>
+	</ipsec>`
+
+	var result IPsec
+	err := xml.Unmarshal([]byte(input), &result)
+	require.NoError(t, err)
+
+	// Phase 1
+	require.Len(t, result.Phase1, 1)
+	p1 := result.Phase1[0]
+	assert.Equal(t, "1", p1.IKEId)
+	assert.Equal(t, "ikev2", p1.IKEType)
+	assert.Equal(t, "203.0.113.1", p1.RemoteGW)
+	assert.Equal(t, "pre_shared_key", p1.AuthMethod)
+	assert.True(t, p1.Disabled.Bool())
+	require.Len(t, p1.Encryption.Algorithms, 2)
+	assert.Equal(t, "aes", p1.Encryption.Algorithms[0].Name)
+	assert.Equal(t, "256", p1.Encryption.Algorithms[0].KeyLen)
+	assert.Equal(t, "128", p1.Encryption.Algorithms[1].KeyLen)
+
+	// Phase 2
+	require.Len(t, result.Phase2, 1)
+	p2 := result.Phase2[0]
+	assert.Equal(t, "1", p2.IKEId)
+	assert.Equal(t, "abc123", p2.UniqID)
+	assert.Equal(t, "tunnel", p2.Mode)
+	assert.Equal(t, "network", p2.LocalID.Type)
+	assert.Equal(t, "192.168.1.0", p2.LocalID.Address)
+	assert.Equal(t, "24", p2.LocalID.Netbits)
+	assert.Equal(t, "network", p2.RemoteID.Type)
+	assert.Equal(t, "10.0.0.0", p2.RemoteID.Address)
+	assert.Equal(t, "8", p2.RemoteID.Netbits)
+	require.Len(t, p2.EncryptionAlgorithms, 1)
+	assert.Equal(t, "aes", p2.EncryptionAlgorithms[0].Name)
+	assert.Equal(t, "256", p2.EncryptionAlgorithms[0].KeyLen)
+	require.Len(t, p2.HashAlgorithms, 1)
+	assert.Equal(t, "hmac-sha256", p2.HashAlgorithms[0].Name)
+	assert.Equal(t, "14", p2.PFSGroup)
+
+	// Client
+	assert.True(t, result.Client.Enable.Bool())
+	assert.Equal(t, "local", result.Client.UserSource)
+	assert.Equal(t, "10.10.10.0", result.Client.PoolAddress)
+	assert.Equal(t, "8.8.8.8", result.Client.DNSServer1)
+}
+
 // TestIPsecClientMarshalXML_BoolFlagProducesPresenceElement verifies that the Enable
 // and SavePasswd BoolFlag fields on IPsecClient marshal as presence-based XML elements.
 func TestIPsecClientMarshalXML_BoolFlagProducesPresenceElement(t *testing.T) {
