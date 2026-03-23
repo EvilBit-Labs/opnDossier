@@ -1017,6 +1017,12 @@ func TestParser_EnablePresenceXML(t *testing.T) {
       </range>
       <gateway>192.168.1.1</gateway>
     </lan>
+    <opt1>
+      <range>
+        <from>10.0.10.100</from>
+        <to>10.0.10.200</to>
+      </range>
+    </opt1>
   </dhcpd>
 </pfsense>`
 
@@ -1047,17 +1053,23 @@ func TestParser_EnablePresenceXML(t *testing.T) {
 	assert.False(t, lanIface.Enabled, "LAN without <enable> must not be Enabled")
 	assert.Equal(t, "em1", lanIface.PhysicalIf)
 
-	require.GreaterOrEqual(t, len(device.DHCP), 1)
+	require.Len(t, device.DHCP, 2)
 
-	var lanDHCP *common.DHCPScope
+	var lanDHCP, opt1DHCP *common.DHCPScope
 	for i := range device.DHCP {
-		if device.DHCP[i].Interface == ifaceLAN {
+		switch device.DHCP[i].Interface {
+		case ifaceLAN:
 			lanDHCP = &device.DHCP[i]
+		case "opt1":
+			opt1DHCP = &device.DHCP[i]
 		}
 	}
 
 	require.NotNil(t, lanDHCP, "LAN DHCP scope must exist")
 	assert.True(t, lanDHCP.Enabled, "LAN DHCP with <enable/> must be Enabled")
+
+	require.NotNil(t, opt1DHCP, "OPT1 DHCP scope must exist")
+	assert.False(t, opt1DHCP.Enabled, "OPT1 DHCP without <enable/> must not be Enabled")
 }
 
 func TestParser_ParseFixture_2_7_x(t *testing.T) {
