@@ -6,6 +6,130 @@ All notable changes to this project will be documented in this file.
 
 ### Features
 
+- **audit**: Implement dynamic logging levels for audit mode ([#257](https://github.com/EvilBit-Labs/opnDossier/pull/257))
+
+- **schema**: Fix schema gaps with missing fields and type mismatches ([#258](https://github.com/EvilBit-Labs/opnDossier/pull/258))
+
+- **converter**: Add text and HTML output formats with alert rendering ([#264](https://github.com/EvilBit-Labs/opnDossier/pull/264))
+
+- **model**: Enhance OPNsense converters and configurations with tests and fields ([#315](https://github.com/EvilBit-Labs/opnDossier/pull/315))
+
+- **converter**: Make sensitive field redaction opt-in via `--redact` flag ([#326](https://github.com/EvilBit-Labs/opnDossier/pull/326))
+
+- **sanitize**: Additional tags for the sanitize command: secrets & topology ([#344](https://github.com/EvilBit-Labs/opnDossier/pull/344))
+
+- **converter**: Add non-fatal conversion warnings to OPNsense converter pipeline ([#394](https://github.com/EvilBit-Labs/opnDossier/pull/394))
+
+- **pkg**: Expose schemas and CommonDevice model as public packages ([#404](https://github.com/EvilBit-Labs/opnDossier/pull/404))
+
+- **parser**: Add pluggable DeviceParser registry for compile-time extensions ([#437](https://github.com/EvilBit-Labs/opnDossier/pull/437))
+
+- **plugin**: Add panic recovery around plugin RunChecks calls ([#309](https://github.com/EvilBit-Labs/opnDossier/pull/309)) ([#442](https://github.com/EvilBit-Labs/opnDossier/pull/442))
+
+- **plugin**: Surface dynamic plugin load failures to user ([#445](https://github.com/EvilBit-Labs/opnDossier/pull/445))
+
+- **cli**: Add dedicated audit command as first-class entry point ([#454](https://github.com/EvilBit-Labs/opnDossier/pull/454))
+
+- **parser**: Add pfSense configuration parser with multi-device abstraction ([#459](https://github.com/EvilBit-Labs/opnDossier/pull/459))
+
+
+### Bug Fixes
+
+- **builder**: Add Dest Port column and fix Any field handling ([#253](https://github.com/EvilBit-Labs/opnDossier/pull/253)) ([#254](https://github.com/EvilBit-Labs/opnDossier/pull/254))
+
+- **converter**: Sort map iterations for deterministic report output ([#256](https://github.com/EvilBit-Labs/opnDossier/pull/256))
+
+- **model**: Address PR #273 review findings ([#277](https://github.com/EvilBit-Labs/opnDossier/pull/277))
+
+- **processor**: Restore semantic validation for CommonDevice ([#303](https://github.com/EvilBit-Labs/opnDossier/pull/303))
+
+- **plugin**: Implement firewall compliance check helpers ([#305](https://github.com/EvilBit-Labs/opnDossier/pull/305))
+
+- **dependencies**: Update uv to version 0.10.6 and specify platform checksums
+
+- **processor**: Prevent shared backing array mutations in normalize   deep copy all mutable slice fields ([#313](https://github.com/EvilBit-Labs/opnDossier/pull/313))
+
+- **audit**: Resolve severity breakdown missing in audit reports ([#310](https://github.com/EvilBit-Labs/opnDossier/pull/310)) ([#373](https://github.com/EvilBit-Labs/opnDossier/pull/373))
+
+- **diff**: Restore section added/removed detection for value types ([#388](https://github.com/EvilBit-Labs/opnDossier/pull/388))
+
+- **mise.lock**: Remove duplicate gosec entry and add baseline support for uv tool across platforms
+
+- **converter**: Wire --include-tunables flag through display and convert commands ([#413](https://github.com/EvilBit-Labs/opnDossier/pull/413))
+
+
+### Refactor
+
+- **model**: Address tech debt across model, enrichment, display, and logging ([#269](https://github.com/EvilBit-Labs/opnDossier/pull/269))
+
+- **model**: Multi-device model layer with CommonDevice and ParserFactory ([#273](https://github.com/EvilBit-Labs/opnDossier/pull/273))
+
+- Harden multi-device model, fix bugs, and remove CIS trademark references ([#274](https://github.com/EvilBit-Labs/opnDossier/pull/274))
+
+- Unify finding types across compliance processor and audit packages to eliminate duplication ([#391](https://github.com/EvilBit-Labs/opnDossier/pull/391))
+
+- **audit**: Move audit report rendering from cmd to converter/builder layer ([#400](https://github.com/EvilBit-Labs/opnDossier/pull/400))
+
+- **docs**: Update AGENTS.md and add pkg-internal-import-boundary… ([#408](https://github.com/EvilBit-Labs/opnDossier/pull/408))
+
+- **analysis**: Extract shared analysis package to eliminate enrichment mirror ([#409](https://github.com/EvilBit-Labs/opnDossier/pull/409))
+
+- **processor**: Split report.go into focused files ([#415](https://github.com/EvilBit-Labs/opnDossier/pull/415))
+
+- **validator**: Split opnsense.go into domain specific files ([#417](https://github.com/EvilBit-Labs/opnDossier/pull/417))
+
+- **builder**: Split builder.go into domain-specific files ([#419](https://github.com/EvilBit-Labs/opnDossier/pull/419))
+
+- **builder**: Split ReportBuilder interface into focused interfaces ([#431](https://github.com/EvilBit-Labs/opnDossier/pull/431))
+
+- **converter**: Introduce FormatRegistry to centralize format dispatch ([#434](https://github.com/EvilBit-Labs/opnDossier/pull/434))
+
+- **model**: Improve type safety with enums for firewall rules, NAT, and DHCP ([#452](https://github.com/EvilBit-Labs/opnDossier/pull/452))
+
+
+### Documentation
+
+- Fix inaccurate content across MkDocs site ([#267](https://github.com/EvilBit-Labs/opnDossier/pull/267))
+
+- Updates for PR #348 ([#349](https://github.com/EvilBit-Labs/opnDossier/pull/349))
+
+- Rewrite data-model docs for CommonDevice export model ([#355](https://github.com/EvilBit-Labs/opnDossier/pull/355))
+
+- Add comprehensive requirements document for opnDossier CLI tool ([#371](https://github.com/EvilBit-Labs/opnDossier/pull/371))
+
+- Add plugin development guide and API reference ([#377](https://github.com/EvilBit-Labs/opnDossier/pull/377))
+
+- **user-guide**: Restructure commands documentation ([#381](https://github.com/EvilBit-Labs/opnDossier/pull/381))
+
+- **audit**: Document thread-safety guarantees for global PluginRegistry ([#290](https://github.com/EvilBit-Labs/opnDossier/pull/290)) ([#384](https://github.com/EvilBit-Labs/opnDossier/pull/384))
+
+- Add plugin development guide and update API/architecture docs ([#393](https://github.com/EvilBit-Labs/opnDossier/pull/393))
+
+- Add comprehensive system architecture documentation ([#402](https://github.com/EvilBit-Labs/opnDossier/pull/402))
+
+- Expand contributing guide with architecture and governance ([#406](https://github.com/EvilBit-Labs/opnDossier/pull/406))
+
+- **agents**: Fix translateCommonStats path after report.go split
+
+- **contributing**: Sync CONTRIBUTING.md with AGENTS.md coverage ([#440](https://github.com/EvilBit-Labs/opnDossier/pull/440))
+
+
+### Miscellaneous Tasks
+
+- **Mergify**: Configuration update ([#259](https://github.com/EvilBit-Labs/opnDossier/pull/259))
+
+- **ci**: Various minor improvements to mergify configs, documentation, mise settings, and AGENTS.md rules ([#348](https://github.com/EvilBit-Labs/opnDossier/pull/348))
+
+
+### Security
+
+- Overhaul SECURITY.md and add fuzz tests ([#252](https://github.com/EvilBit-Labs/opnDossier/pull/252))
+
+
+## [1.2.2] - 2026-02-12
+
+### Features
+
 - **security**: Add security policy documentation  
 
 - **templates**: Add issue and pull request templates
@@ -162,17 +286,9 @@ All notable changes to this project will be documented in this file.
 
 - **sanitizer**: Add sanitize command to redact sensitive data from OPNsense configs ([#234](https://github.com/EvilBit-Labs/opnDossier/pull/234))
 
+- Parse and report IDS/Suricata configuration ([#237](https://github.com/EvilBit-Labs/opnDossier/pull/237))
+
 - **diff**: Add HTML formatter, side-by-side mode, analyzers, and security scoring ([#245](https://github.com/EvilBit-Labs/opnDossier/pull/245))
-
-- **audit**: Implement dynamic logging levels for audit mode ([#257](https://github.com/EvilBit-Labs/opnDossier/pull/257))
-
-- **schema**: Fix schema gaps with missing fields and type mismatches ([#258](https://github.com/EvilBit-Labs/opnDossier/pull/258))
-
-- **converter**: Add text and HTML output formats with alert rendering ([#264](https://github.com/EvilBit-Labs/opnDossier/pull/264))
-
-- **converter**: Make sensitive field redaction opt-in via `--redact` flag ([#326](https://github.com/EvilBit-Labs/opnDossier/pull/326))
-
-- **sanitize**: Additional tags for the sanitize command: secrets & topology ([#344](https://github.com/EvilBit-Labs/opnDossier/pull/344))
 
 
 ### Bug Fixes
@@ -271,24 +387,6 @@ All notable changes to this project will be documented in this file.
 
 - **release**: Disable GPG signing until secrets are configured
 
-- **builder**: Add Dest Port column and fix Any field handling ([#253](https://github.com/EvilBit-Labs/opnDossier/pull/253)) ([#254](https://github.com/EvilBit-Labs/opnDossier/pull/254))
-
-- **converter**: Sort map iterations for deterministic report output ([#256](https://github.com/EvilBit-Labs/opnDossier/pull/256))
-
-- **model**: Address PR #273 review findings ([#277](https://github.com/EvilBit-Labs/opnDossier/pull/277))
-
-- **processor**: Restore semantic validation for CommonDevice ([#303](https://github.com/EvilBit-Labs/opnDossier/pull/303))
-
-- **plugin**: Implement firewall compliance check helpers ([#305](https://github.com/EvilBit-Labs/opnDossier/pull/305))
-
-- **dependencies**: Update uv to version 0.10.6 and specify platform checksums
-
-- **processor**: Prevent shared backing array mutations in normalize   deep copy all mutable slice fields ([#313](https://github.com/EvilBit-Labs/opnDossier/pull/313))
-
-- **audit**: Resolve severity breakdown missing in audit reports ([#310](https://github.com/EvilBit-Labs/opnDossier/pull/310)) ([#373](https://github.com/EvilBit-Labs/opnDossier/pull/373))
-
-- Correct markdown syntax for ComplianceSummary pointer notation in API reference
-
 
 ### Refactor
 
@@ -309,22 +407,6 @@ All notable changes to this project will be documented in this file.
 - **builder**: Leverage markdown library methods to reduce code verbosity ([#222](https://github.com/EvilBit-Labs/opnDossier/pull/222))
 
 - **ci**: Replace mise with vendor actions in release workflow
-
-- **model**: Address tech debt across model, enrichment, display, and logging ([#269](https://github.com/EvilBit-Labs/opnDossier/pull/269))
-
-- **model**: Multi-device model layer with CommonDevice and ParserFactory ([#273](https://github.com/EvilBit-Labs/opnDossier/pull/273))
-
-- Harden multi-device model, fix bugs, and remove CIS trademark references ([#274](https://github.com/EvilBit-Labs/opnDossier/pull/274))
-
-- Replace sort package with slices for improved performance in config validation and help suggestions
-
-- Update interface type name to 'any' for improved clarity
-
-- Update linter patterns and enhance sorting guidelines for consistency
-
-- Remove parallel execution from device type tests for improved stability
-
-- Update maintainer contact and enhance winget configuration for clarity
 
 
 ### Documentation
@@ -356,20 +438,6 @@ All notable changes to this project will be documented in this file.
 - Add Contributor Covenant Code of Conduct ([#236](https://github.com/EvilBit-Labs/opnDossier/pull/236))
 
 - **go**: Add doc comments to all exported symbols for 100% coverage ([#241](https://github.com/EvilBit-Labs/opnDossier/pull/241))
-
-- Fix inaccurate content across MkDocs site ([#267](https://github.com/EvilBit-Labs/opnDossier/pull/267))
-
-- Updates for PR #348 ([#349](https://github.com/EvilBit-Labs/opnDossier/pull/349))
-
-- Rewrite data-model docs for CommonDevice export model ([#355](https://github.com/EvilBit-Labs/opnDossier/pull/355))
-
-- Add comprehensive requirements document for opnDossier CLI tool ([#371](https://github.com/EvilBit-Labs/opnDossier/pull/371))
-
-- Add plugin development guide and API reference ([#377](https://github.com/EvilBit-Labs/opnDossier/pull/377))
-
-- **user-guide**: Restructure commands documentation ([#381](https://github.com/EvilBit-Labs/opnDossier/pull/381))
-
-- Add GOTCHAS.md to document common pitfalls and architectural gotchas
 
 
 ### Styling
@@ -544,16 +612,10 @@ All notable changes to this project will be documented in this file.
 
 - Update release workflow and dependencies ([#226](https://github.com/EvilBit-Labs/opnDossier/pull/226))
 
-- **Mergify**: Configuration update ([#259](https://github.com/EvilBit-Labs/opnDossier/pull/259))
-
-- **ci**: Various minor improvements to mergify configs, documentation, mise settings, and AGENTS.md rules ([#348](https://github.com/EvilBit-Labs/opnDossier/pull/348))
-
 
 ### Security
 
 - **security**: Pin GitHub Actions to SHA commits ([#240](https://github.com/EvilBit-Labs/opnDossier/pull/240))
-
-- Overhaul SECURITY.md and add fuzz tests ([#252](https://github.com/EvilBit-Labs/opnDossier/pull/252))
 
 
 ## [1.0.0-rc1] - 2025-08-01
