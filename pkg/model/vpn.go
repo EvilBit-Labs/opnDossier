@@ -224,8 +224,16 @@ type IPsecPhase1Tunnel struct {
 	Mode string `json:"mode,omitempty" yaml:"mode,omitempty"`
 	// Lifetime is the Phase 1 SA lifetime in seconds.
 	Lifetime string `json:"lifetime,omitempty" yaml:"lifetime,omitempty"`
+	// RekeyTime is the IKE SA rekey time in seconds.
+	RekeyTime string `json:"rekeyTime,omitempty" yaml:"rekeyTime,omitempty"`
+	// ReauthTime is the IKE SA reauthentication time in seconds.
+	ReauthTime string `json:"reauthTime,omitempty" yaml:"reauthTime,omitempty"`
+	// RandTime is the random time range to subtract from rekey/reauth time.
+	RandTime string `json:"randTime,omitempty" yaml:"randTime,omitempty"`
 	// NATTraversal is the NAT-T setting (e.g., "on", "force").
 	NATTraversal string `json:"natTraversal,omitempty" yaml:"natTraversal,omitempty"`
+	// MOBIKE indicates MOBIKE protocol support (e.g., "on", "off").
+	MOBIKE string `json:"mobike,omitempty" yaml:"mobike,omitempty"`
 	// DPDDelay is the dead peer detection check interval in seconds.
 	DPDDelay string `json:"dpdDelay,omitempty" yaml:"dpdDelay,omitempty"`
 	// DPDMaxFail is the maximum number of DPD failures before declaring peer dead.
@@ -234,6 +242,16 @@ type IPsecPhase1Tunnel struct {
 	StartAction string `json:"startAction,omitempty" yaml:"startAction,omitempty"`
 	// CloseAction is the action on tunnel close (e.g., "none", "start", "trap").
 	CloseAction string `json:"closeAction,omitempty" yaml:"closeAction,omitempty"`
+	// CertRef is the reference ID of the certificate used for this tunnel.
+	CertRef string `json:"certRef,omitempty" yaml:"certRef,omitempty"`
+	// CARef is the reference ID of the certificate authority used for this tunnel.
+	CARef string `json:"caRef,omitempty" yaml:"caRef,omitempty"`
+	// IKEPort is the custom IKE port override (default 500).
+	IKEPort string `json:"ikePort,omitempty" yaml:"ikePort,omitempty"`
+	// NATTPort is the custom NAT-T port override (default 4500).
+	NATTPort string `json:"nattPort,omitempty" yaml:"nattPort,omitempty"`
+	// SplitConn enables split connection for this tunnel.
+	SplitConn string `json:"splitConn,omitempty" yaml:"splitConn,omitempty"`
 	// Description is a human-readable description of the tunnel.
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// Disabled indicates whether this tunnel is administratively disabled.
@@ -250,6 +268,8 @@ type IPsecPhase2Tunnel struct {
 	IKEID string `json:"ikeId,omitempty" yaml:"ikeId,omitempty"`
 	// UniqID is the unique identifier for this Phase 2 entry.
 	UniqID string `json:"uniqId,omitempty" yaml:"uniqId,omitempty"`
+	// ReqID is the unique request identifier for this Phase 2 entry.
+	ReqID string `json:"reqId,omitempty" yaml:"reqId,omitempty"`
 	// Mode is the IPsec mode (e.g., "tunnel", "transport").
 	Mode string `json:"mode,omitempty" yaml:"mode,omitempty"`
 	// Disabled indicates whether this Phase 2 entry is administratively disabled.
@@ -260,14 +280,26 @@ type IPsecPhase2Tunnel struct {
 	LocalIDType string `json:"localIdType,omitempty" yaml:"localIdType,omitempty"`
 	// LocalIDAddress is the local network identity address.
 	LocalIDAddress string `json:"localIdAddress,omitempty" yaml:"localIdAddress,omitempty"`
+	// LocalIDNetbits is the local network identity prefix length.
+	LocalIDNetbits string `json:"localIdNetbits,omitempty" yaml:"localIdNetbits,omitempty"`
 	// RemoteIDType is the remote network identity type.
 	RemoteIDType string `json:"remoteIdType,omitempty" yaml:"remoteIdType,omitempty"`
 	// RemoteIDAddress is the remote network identity address.
 	RemoteIDAddress string `json:"remoteIdAddress,omitempty" yaml:"remoteIdAddress,omitempty"`
+	// RemoteIDNetbits is the remote network identity prefix length.
+	RemoteIDNetbits string `json:"remoteIdNetbits,omitempty" yaml:"remoteIdNetbits,omitempty"`
+	// NATLocalIDType is the NAT/BINAT local identity type.
+	NATLocalIDType string `json:"natLocalIdType,omitempty" yaml:"natLocalIdType,omitempty"`
+	// NATLocalIDAddress is the NAT/BINAT local identity address.
+	NATLocalIDAddress string `json:"natLocalIdAddress,omitempty" yaml:"natLocalIdAddress,omitempty"`
+	// NATLocalIDNetbits is the NAT/BINAT local identity prefix length.
+	NATLocalIDNetbits string `json:"natLocalIdNetbits,omitempty" yaml:"natLocalIdNetbits,omitempty"`
 	// PFSGroup is the Perfect Forward Secrecy Diffie-Hellman group number.
 	PFSGroup string `json:"pfsGroup,omitempty" yaml:"pfsGroup,omitempty"`
 	// Lifetime is the Phase 2 SA lifetime in seconds.
 	Lifetime string `json:"lifetime,omitempty" yaml:"lifetime,omitempty"`
+	// PingHost is the keep-alive destination IP for tunnel monitoring.
+	PingHost string `json:"pingHost,omitempty" yaml:"pingHost,omitempty"`
 	// Description is a human-readable description of this Phase 2 entry.
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// EncryptionAlgorithms lists the encryption algorithms for this child SA.
@@ -282,14 +314,28 @@ type IPsecMobileClient struct {
 	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 	// UserSource is the authentication source for mobile users (e.g., "local", "radius").
 	UserSource string `json:"userSource,omitempty" yaml:"userSource,omitempty"`
-	// PoolAddress is the virtual address pool network address.
+	// GroupSource is the group-based access source for mobile users.
+	GroupSource string `json:"groupSource,omitempty" yaml:"groupSource,omitempty"`
+	// PoolAddress is the IPv4 virtual address pool network address.
 	PoolAddress string `json:"poolAddress,omitempty" yaml:"poolAddress,omitempty"`
-	// PoolNetbits is the virtual address pool network prefix length.
+	// PoolNetbits is the IPv4 virtual address pool prefix length.
 	PoolNetbits string `json:"poolNetbits,omitempty" yaml:"poolNetbits,omitempty"`
+	// PoolAddressV6 is the IPv6 virtual address pool network address.
+	PoolAddressV6 string `json:"poolAddressV6,omitempty" yaml:"poolAddressV6,omitempty"`
+	// PoolNetbitsV6 is the IPv6 virtual address pool prefix length.
+	PoolNetbitsV6 string `json:"poolNetbitsV6,omitempty" yaml:"poolNetbitsV6,omitempty"`
 	// DNSServers contains DNS servers pushed to mobile clients.
 	DNSServers []string `json:"dnsServers,omitempty" yaml:"dnsServers,omitempty"`
+	// WINSServers contains WINS servers pushed to mobile clients.
+	WINSServers []string `json:"winsServers,omitempty" yaml:"winsServers,omitempty"`
 	// DNSDomain is the DNS domain pushed to mobile clients.
 	DNSDomain string `json:"dnsDomain,omitempty" yaml:"dnsDomain,omitempty"`
+	// DNSSplit is the split DNS configuration for mobile clients.
+	DNSSplit string `json:"dnsSplit,omitempty" yaml:"dnsSplit,omitempty"`
+	// LoginBanner is the banner message displayed to mobile clients on connection.
+	LoginBanner string `json:"loginBanner,omitempty" yaml:"loginBanner,omitempty"`
+	// SavePasswd indicates whether mobile clients can save passwords.
+	SavePasswd bool `json:"savePasswd,omitempty" yaml:"savePasswd,omitempty"`
 }
 
 // IPsecCharon contains strongSwan charon daemon configuration.
