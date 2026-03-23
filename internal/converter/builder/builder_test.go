@@ -991,15 +991,15 @@ func TestBuildAuditSection_EmptyComplianceResults(t *testing.T) {
 
 	b := NewMarkdownBuilder()
 	data := &common.CommonDevice{
-		ComplianceChecks: &common.ComplianceResults{Mode: "standard"},
+		ComplianceChecks: &common.ComplianceResults{Mode: "blue"},
 	}
 
 	result := b.BuildAuditSection(data)
 	if !strings.Contains(result, "## Compliance Audit Summary") {
 		t.Error("Expected '## Compliance Audit Summary' in output")
 	}
-	if !strings.Contains(result, "standard") {
-		t.Error("Expected mode 'standard' in output")
+	if !strings.Contains(result, "blue") {
+		t.Error("Expected mode 'blue' in output")
 	}
 	if strings.Contains(result, "### Security Findings") {
 		t.Error("Should not contain '### Security Findings' when no findings")
@@ -1116,7 +1116,7 @@ func TestBuildAuditSection_WithMetadata(t *testing.T) {
 	b := NewMarkdownBuilder()
 	data := &common.CommonDevice{
 		ComplianceChecks: &common.ComplianceResults{
-			Mode: "standard",
+			Mode: "blue",
 			Metadata: map[string]any{
 				"scan_time": "2024-01-15",
 				"version":   "1.0",
@@ -1179,7 +1179,7 @@ func TestBuildAuditSection_MetadataValuePipeEscaping(t *testing.T) {
 	b := NewMarkdownBuilder()
 	data := &common.CommonDevice{
 		ComplianceChecks: &common.ComplianceResults{
-			Mode: "standard",
+			Mode: "blue",
 			Metadata: map[string]any{
 				"tool":    "scanner|v2",
 				"key|bar": "value|baz",
@@ -1261,7 +1261,7 @@ func TestBuildAuditSection_FallbackTotalCountsFindings(t *testing.T) {
 	b := NewMarkdownBuilder()
 	data := &common.CommonDevice{
 		ComplianceChecks: &common.ComplianceResults{
-			Mode: "standard",
+			Mode: "blue",
 			Findings: []common.ComplianceFinding{
 				{Title: "Direct finding 1", Severity: "high"},
 				{Title: "Direct finding 2", Severity: "medium"},
