@@ -65,12 +65,12 @@ jobs:
       - name: Install cyclonedx-gomod for SBOM generation
         run: go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
 
-      - name: Remove mise shims from PATH
-        # cyclonedx-gomod shells out to `go` — the mise shim interferes with
-        # trust checks inside goreleaser subprocesses, causing SBOM generation
-        # to fail. Stripping shims is safe because mise already placed the real
-        # tool directories on PATH ahead of the shims directory.
-        run: echo "PATH=${PATH//$HOME\/.local\/share\/mise\/shims:/}" >> "$GITHUB_ENV"
+      - name: Remove mise go shim
+        # cyclonedx-gomod shells out to `go mod why` and resolves the mise
+        # shim instead of the real binary, causing trust/vendor failures.
+        # The real go is already on PATH via mise installs — the shim is
+        # redundant and harmful in goreleaser subprocesses.
+        run: rm -f "$HOME/.local/share/mise/shims/go"
 
       - name: Run GoReleaser
         id: goreleaser
