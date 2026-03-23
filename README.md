@@ -29,14 +29,14 @@ go install github.com/EvilBit-Labs/opnDossier@latest
 ### Basic Usage
 
 ```bash
-# Analyze your config and display in terminal
+# Generate configuration documentation
+opnDossier convert config.xml -o report.md
+
+# Run security audit (blue mode is default)
+opnDossier audit config.xml
+
+# Display config in terminal
 opnDossier display config.xml
-
-# Generate security report
-opnDossier convert config.xml -o security-report.md
-
-# Export to JSON for automation
-opnDossier convert -f json config.xml -o output.json
 ```
 
 ## Analysis & Security Features
@@ -187,14 +187,17 @@ For development builds with additional tooling, see [CONTRIBUTING.md](CONTRIBUTI
 ### Security Analysis
 
 ```bash
-# Generate comprehensive security report
-opnDossier convert config.xml -o security-report.md
+# Run blue team defensive audit (default mode)
+opnDossier audit config.xml
 
-# Display configuration with security findings in terminal
-opnDossier display config.xml
+# Blue team audit with specific compliance plugins
+opnDossier audit config.xml --plugins stig,sans
 
-# Export findings to JSON for automation/integration
-opnDossier convert -f json config.xml -o findings.json
+# Red team attack surface analysis
+opnDossier audit config.xml --mode red
+
+# Export audit findings to JSON for automation/integration
+opnDossier audit -f json config.xml -o findings.json
 ```
 
 ### Configuration Documentation
