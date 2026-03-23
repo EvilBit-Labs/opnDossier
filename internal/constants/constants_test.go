@@ -24,8 +24,8 @@ func TestDefaultFormatConstant(t *testing.T) {
 }
 
 func TestDefaultModeConstant(t *testing.T) {
-	if DefaultMode != "standard" {
-		t.Errorf("DefaultMode = %q, want %q", DefaultMode, "standard")
+	if DefaultMode != "blue" {
+		t.Errorf("DefaultMode = %q, want %q", DefaultMode, "blue")
 	}
 }
 
