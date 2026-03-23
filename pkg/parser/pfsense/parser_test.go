@@ -1034,7 +1034,7 @@ func TestParser_EnablePresenceXML(t *testing.T) {
 		switch device.Interfaces[i].Name {
 		case "wan":
 			wanIface = &device.Interfaces[i]
-		case "lan":
+		case ifaceLAN:
 			lanIface = &device.Interfaces[i]
 		}
 	}
@@ -1051,7 +1051,7 @@ func TestParser_EnablePresenceXML(t *testing.T) {
 
 	var lanDHCP *common.DHCPScope
 	for i := range device.DHCP {
-		if device.DHCP[i].Interface == "lan" {
+		if device.DHCP[i].Interface == ifaceLAN {
 			lanDHCP = &device.DHCP[i]
 		}
 	}
