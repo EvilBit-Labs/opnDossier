@@ -443,16 +443,16 @@ The `--device-type` flag is exposed on all config-reading commands (`convert`, `
 
 ### Overview
 
-The `opndossier audit` command provides a dedicated, first-class entry point for security audit and compliance checks. It is an alternative to the `convert --audit-mode` workflow, using the same underlying audit/compliance engine but offering a streamlined CLI interface optimized for audit-specific workflows.
+The `opndossier audit` command provides the dedicated, first-class entry point for security audit and compliance checks. It uses the underlying audit/compliance engine through a CLI surface optimized for audit-specific workflows.
 
 ### Command Structure and Execution Flow
 
 1. **Command Definition** (`cmd/audit.go`):
 
-   - Declares audit-specific flags: `--mode` (standard/blue/red), `--plugins` (compliance checks), `--plugin-dir` (dynamic plugin loading)
+   - Declares audit-specific flags: `--mode` (blue/red), `--plugins` (compliance checks), `--plugin-dir` (dynamic plugin loading)
    - Reuses shared output flags: `--format`, `--output`, `--wrap`, `--section`, `--comprehensive`, `--redact`
    - `PreRunE` validation enforces:
-     - Valid audit mode (standard, blue, red)
+     - Valid audit mode (blue, red)
      - Valid plugin names (stig, sans, firewall)
      - `--plugins` flag only accepted with `--mode blue` (compliance checks only run in blue mode)
      - `--output` flag rejected when auditing multiple files (prevents output clobbering)
@@ -501,22 +501,8 @@ When auditing multiple files, each report is auto-named to prevent filename coll
 #### Plugin Mode Coupling
 
 - `--plugins` flag only accepted with `--mode blue` (enforced in `PreRunE`)
-- Standard and red modes do not execute compliance checks
+- Red mode does not execute compliance checks
 - When no plugins specified in blue mode, all available plugins run (resolved in `internal/audit/mode_controller.go`)
-
-### Relationship to convert --audit-mode
-
-Both entry points use the same underlying `internal/audit` package and `cmd/audit_handler.go` mapping logic:
-
-| Aspect              | `opndossier audit`                                   | `convert --audit-mode`                             |
-| ------------------- | ---------------------------------------------------- | -------------------------------------------------- |
-| **Purpose**         | Dedicated audit workflow                             | General conversion with optional audit             |
-| **Flag Names**      | Shorter audit-specific flags (`--mode`, `--plugins`) | Prefixed flags (`--audit-mode`, `--audit-plugins`) |
-| **Multi-File**      | Concurrent processing with auto-naming               | Sequential processing with explicit output paths   |
-| **Output**          | Glamour-styled markdown to terminal                  | Raw markdown or file export                        |
-| **Backward Compat** | New in PR #454                                       | Existing since initial audit support               |
-
-The `convert --audit-mode` workflow remains unchanged for backward compatibility.
 
 ## DeviceParser Registry Pattern
 
@@ -1555,4 +1541,4 @@ For secure coding principles, SNMP redaction patterns, and the canonical approac
 
 **Key Benefits**: Offline operation, security-first design, operator-focused workflows, cross-platform compatibility, and comprehensive documentation generation from complex network configurations.
 
-**Audit Command**: The `opndossier audit` command provides a dedicated entry point for security audit and compliance checks, using the same underlying engine as `convert --audit-mode` but with a streamlined CLI interface, concurrent multi-file processing, glamour-styled terminal output, and auto-named report files to prevent collisions.
+**Audit Command**: The `opndossier audit` command provides the supported entry point for security audit and compliance checks, with concurrent multi-file processing, glamour-styled terminal output, and auto-named report files to prevent collisions.
