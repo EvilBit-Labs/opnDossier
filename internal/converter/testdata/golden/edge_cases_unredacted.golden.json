@@ -96,7 +96,8 @@
     "openVpn": {},
     "wireGuard": {},
     "ipsec": {
-      "charon": {}
+      "charon": {},
+      "mobileClient": {}
     }
   },
   "routing": {},
