@@ -41,20 +41,20 @@ For all convert options, see [convert command](commands/convert.md).
 1. Run a defensive (blue team) audit with specific compliance frameworks:
 
    ```bash
-   opndossier convert config.xml --audit-mode blue --audit-plugins stig,sans -o audit-report.md
+   opndossier audit config.xml --mode blue --plugins stig,sans -o audit-report.md
    ```
 
 2. For a red team assessment that highlights attack surfaces and pivot points:
 
    ```bash
-   opndossier convert config.xml --audit-mode red -o recon-report.md
+   opndossier audit config.xml --mode red -o recon-report.md
    ```
 
 3. Review the generated report. Findings are grouped by severity (critical, high, medium, low) with references to the applicable compliance controls.
 
 **Expected result:** A markdown report containing compliance findings, a severity breakdown summary, and actionable recommendations mapped to STIG, SANS, or firewall best-practice controls.
 
-For audit mode details, see [convert command](commands/convert.md).
+For audit mode details, see [audit command](commands/audit.md).
 
 ---
 
