@@ -308,6 +308,8 @@ Add `IsAny()` / `Equal()` methods rather than comparing `*string` fields directl
 
 See `docs/development/xml-structure-research.md` for the complete field inventory with upstream source citations.
 
+**BoolFlag in forked structs:** When a copy-on-write struct changes a field from `string` to `BoolFlag`, add a private type alias (e.g., `type interfaceAlias Interface`) and a pointer-receiver `MarshalXML` that delegates via `e.EncodeElement((*alias)(ptr), start)` to ensure `BoolFlag.MarshalXML` is invoked. See `pkg/schema/pfsense/interfaces.go` and GOTCHAS.md §15.1.
+
 **Repeated XML elements:** Use `[]string` for elements that can appear multiple times — see GOTCHAS.md §3.3 for the silent data loss pitfall.
 
 **`DeviceType` serialization:** `CommonDevice.DeviceType` uses `json:"device_type"` (no `omitempty`) — always serializes, even when empty. The `prepareForExport` pipeline defaults it to `DeviceTypeOPNsense`.
@@ -433,7 +435,9 @@ When splitting a large file into domain-specific files within the same package:
 - `pfsense.InboundRule` has `Target` field for internal redirect IP — converter uses `Target` with fallback to `InternalIP`
 - `pfsense.SyslogConfig` only has `FilterDescriptions` — no mapping to `common.SyslogConfig` (returns zero value)
 - pfSense value-based booleans use "1", "on", or "yes" (not just "1") — use `isPfSenseValueTrue()` in converter comparisons, not direct `== "1"` checks
-- pfSense `<enable>` on interfaces/DHCP is presence-based (`<enable/>` = enabled, absent = disabled) but shared `opnsense.Interface` uses `string` which can't distinguish — tracked in #461 for type forking to `BoolFlag`
+- `pfsense.Interface` has `Enable opnsense.BoolFlag` (not `string`) — converter uses `iface.Enable.Bool()`, not `isPfSenseValueTrue()`. `Document.Interfaces` is `pfsense.Interfaces` (not `opnsense.Interfaces`)
+- Forking a `Document` field type (e.g., `Interfaces`) cascades to `internal/validator/pfsense.go` — shared OPNsense validators (`validateInterfaces`, `validateDhcpd`, `collectInterfaceNames`) accept `*opnsense.Interfaces` and must be wrapped with pfSense-specific versions that accept the forked type. The pfSense validator uses `validatePfSenseInterfaces` and `collectPfSenseInterfaceNames` for this purpose
+- When a pfSense-specific validator wraps a shared field-level validator (e.g., `validateDhcpdInterface` expects `opnsense.DhcpdInterface`), construct a temporary `opnsense.*` value from the `pfsense.*` fields inside the loop — only map fields the shared validator actually checks. See `validatePfSenseDhcpd` for the canonical adapter pattern
 - `pfsense.Group.Member` is `[]string` (listtag) — converter uses `strings.Join(g.Member, ", ")` for `common.Group.Member`
 
 **Platform-agnostic model layer:**
@@ -735,11 +739,11 @@ Static, portable builds: no CGO, stripped debug info, no local paths in binary.
 
 All standards in §§5-11 apply. Additionally:
 
-1. **CRITICAL: Tasks are NOT complete until `just ci-check` passes**
+1. **CRITICAL: Run `just ci-check` BEFORE committing, not after** — tasks are not complete until it passes
 2. **Always run tests** after changes (`just test`) and **linting** before committing (`just lint`)
 3. **Consult project documentation** before making changes
 4. Prefer structured config data + audit overlays over flat summary tables
-5. Validate markdown with `mdformat` and `markdownlint-cli2`
+5. Validate markdown with `mdformat` and `markdownlint-cli2` — **never run `mdformat` directly**; use `pre-commit run -a` which loads the correct plugins
 6. Place `//nolint:` directives on SEPARATE LINE above call (inline gets stripped by gofumpt)
 
 ### 12.2 Code Review Checklist

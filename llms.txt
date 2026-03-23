@@ -1,8 +1,8 @@
 # opnDossier
 
-> OPNsense Configuration Processor - Transform firewall configs into documentation and security analysis
+> Firewall Configuration Processor - Transform OPNsense and pfSense configs into documentation and security analysis
 
-opnDossier is a command-line tool for network operators and security professionals working with OPNsense firewalls. It converts XML configuration files into clear, readable documentation and identifies security issues, misconfigurations, and optimization opportunities.
+opnDossier is a command-line tool for network operators and security professionals working with OPNsense and pfSense firewalls. It converts XML configuration files into clear, readable documentation and identifies security issues, misconfigurations, and optimization opportunities.
 
 ## Key Characteristics
 

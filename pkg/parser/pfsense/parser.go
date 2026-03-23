@@ -74,7 +74,8 @@ func (p *Parser) ParseAndValidate(
 
 // decode reads XML from r into a pfsense.Document with security hardening
 // (input size limit, XXE protection, charset handling) via the shared
-// parser.NewSecureXMLDecoder helper.
+// parser.NewSecureXMLDecoder helper. Presence-based <enable/> elements are
+// decoded directly into BoolFlag fields on pfsense.Interface and pfsense.DhcpdInterface.
 func (p *Parser) decode(ctx context.Context, r io.Reader) (*pfsense.Document, error) {
 	select {
 	case <-ctx.Done():
