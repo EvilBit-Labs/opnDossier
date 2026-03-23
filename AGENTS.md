@@ -435,7 +435,9 @@ When splitting a large file into domain-specific files within the same package:
 - `pfsense.InboundRule` has `Target` field for internal redirect IP — converter uses `Target` with fallback to `InternalIP`
 - `pfsense.SyslogConfig` only has `FilterDescriptions` — no mapping to `common.SyslogConfig` (returns zero value)
 - pfSense value-based booleans use "1", "on", or "yes" (not just "1") — use `isPfSenseValueTrue()` in converter comparisons, not direct `== "1"` checks
-- pfSense `<enable>` on interfaces/DHCP is presence-based (`<enable/>` = enabled, absent = disabled) but shared `opnsense.Interface` uses `string` which can't distinguish — tracked in #461 for type forking to `BoolFlag`
+- `pfsense.Interface` has `Enable opnsense.BoolFlag` (not `string`) — converter uses `iface.Enable.Bool()`, not `isPfSenseValueTrue()`. `Document.Interfaces` is `pfsense.Interfaces` (not `opnsense.Interfaces`)
+- Forking a `Document` field type (e.g., `Interfaces`) cascades to `internal/validator/pfsense.go` — shared OPNsense validators (`validateInterfaces`, `validateDhcpd`, `collectInterfaceNames`) accept `*opnsense.Interfaces` and must be wrapped with pfSense-specific versions that accept the forked type. The pfSense validator uses `validatePfSenseInterfaces` and `collectPfSenseInterfaceNames` for this purpose
+- When a pfSense-specific validator wraps a shared field-level validator (e.g., `validateDhcpdInterface` expects `opnsense.DhcpdInterface`), construct a temporary `opnsense.*` value from the `pfsense.*` fields inside the loop — only map fields the shared validator actually checks. See `validatePfSenseDhcpd` for the canonical adapter pattern
 - `pfsense.Group.Member` is `[]string` (listtag) — converter uses `strings.Join(g.Member, ", ")` for `common.Group.Member`
 
 **Platform-agnostic model layer:**
