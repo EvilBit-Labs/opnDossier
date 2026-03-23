@@ -624,7 +624,7 @@ From there, export enrichment happens through a single gate: `prepareForExport()
 
 Export itself is registry-driven. The project supports five output formats -- markdown, json, yaml, text, and html -- through the FormatRegistry pattern, including smart file naming and overwrite protection.
 
-Report generation is audience-aware. Standard reports provide an operations overview, Blue Team reports favour clarity and grouping, and Red Team reports favour target prioritisation and pivot surface discovery. Markdown, text, and HTML reports are built through `builder.MarkdownBuilder` (text and HTML are derived from the markdown output). JSON and YAML exports serialize the enriched `CommonDevice` struct directly via struct tags -- they do not flow through `MarkdownBuilder`.
+Report generation is audience-aware. Blue Team reports favour clarity and grouping, and Red Team reports favour target prioritisation and pivot surface discovery. Neutral configuration documentation is handled by the `convert` command. Markdown, text, and HTML reports are built through `builder.MarkdownBuilder` (text and HTML are derived from the markdown output). JSON and YAML exports serialize the enriched `CommonDevice` struct directly via struct tags -- they do not flow through `MarkdownBuilder`.
 
 Finally, remember that `cfgparser` and schema definitions evolve together. If you rename or reshape fields on `OpnSenseDocument`, update the switch cases in `internal/cfgparser/xml.go` at the same time so decoding behaviour stays correct. For the full architectural walkthrough, see `docs/development/architecture.md`.
 

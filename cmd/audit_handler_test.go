@@ -406,7 +406,7 @@ func TestMapAuditReportToComplianceResults(t *testing.T) {
 }
 
 // TestHandleAuditMode_EndToEnd exercises the full audit pipeline: plugin
-// initialization, compliance checks, and report generation via the standard
+// initialization, compliance checks, and report generation via the shared
 // generator pipeline. It asserts that the rendered output contains
 // the audit section from the builder layer.
 func TestHandleAuditMode_EndToEnd(t *testing.T) {
