@@ -20,7 +20,7 @@ opndossier audit [flags] <config.xml> [config2.xml ...]
 
 | Flag                 | Short | Default        | Description                                                                                                     |
 | -------------------- | ----- | -------------- | --------------------------------------------------------------------------------------------------------------- |
-| `--mode`             |       | `standard`     | Audit mode: `standard`, `blue`, `red`                                                                           |
+| `--mode`             |       | `blue`         | Audit mode: `blue`, `red`                                                                                       |
 | `--plugins`          |       |                | Comma-separated compliance plugins to run: `stig`, `sans`, `firewall` (blue mode only)                          |
 | `--plugin-dir`       |       |                | Directory containing dynamic `.so` compliance plugins                                                           |
 | `--output`           | `-o`  | stdout         | Output file path                                                                                                |
@@ -37,21 +37,16 @@ For global flags (`--verbose`, `--quiet`, `--config`, etc.), see [Configuration 
 
 ## Audit Modes
 
-| Mode       | Audience   | Focus                                  |
-| ---------- | ---------- | -------------------------------------- |
-| `standard` | Operations | Neutral, comprehensive documentation   |
-| `blue`     | Blue Team  | Defensive audit with security findings |
-| `red`      | Red Team   | Attack surface and pivot points        |
-
-### Standard
-
-The default mode. Produces a neutral documentation report covering the full configuration -- system settings, interfaces, firewall rules, NAT, and services. No compliance plugins are run.
+| Mode   | Audience  | Focus                                  |
+| ------ | --------- | -------------------------------------- |
+| `blue` | Blue Team | Defensive audit with security findings |
+| `red`  | Red Team  | Attack surface and pivot points        |
 
 ### Blue
 
-Defensive audit mode targeting blue team operators. Runs compliance plugins and produces a report with security findings, control pass/fail results, and remediation recommendations.
+The default mode. Defensive audit mode targeting blue team operators. Runs compliance plugins and produces a report with security findings, control pass/fail results, and remediation recommendations.
 
-When no `--plugins` flag is specified, all available plugins are run by default. The `--plugins` flag is only accepted in blue mode and is rejected for standard or red modes.
+When no `--plugins` flag is specified, all available plugins are run by default. The `--plugins` flag is only accepted in blue mode and is rejected for red mode.
 
 ### Red
 
@@ -65,7 +60,7 @@ Attacker-focused recon mode highlighting attack surfaces, pivot points, and expo
 | `sans`     | `SANS-FW-XXX`   | SANS Firewall Baseline                  |
 | `firewall` | `FIREWALL-XXX`  | Firewall Configuration Analysis         |
 
-The `--plugins` flag requires `--mode blue`. It is rejected for standard and red modes.
+The `--plugins` flag requires `--mode blue`. It is rejected for red mode.
 
 ## Dynamic Plugins
 
@@ -117,14 +112,11 @@ opndossier audit config.xml --redact -o audit-for-vendor.md
 ## Examples
 
 ```bash
-# Run a standard audit (documentation report, no compliance plugins)
+# Run a blue team audit with all compliance plugins (default)
 opndossier audit config.xml
 
 # Blue team defensive audit with STIG and SANS compliance
 opndossier audit config.xml --mode blue --plugins stig,sans
-
-# Blue team audit with all compliance plugins (default when no --plugins)
-opndossier audit config.xml --mode blue
 
 # Red team attack surface analysis
 opndossier audit config.xml --mode red
@@ -150,7 +142,7 @@ opndossier --verbose audit config.xml --mode blue --plugins stig,sans
 
 ## Related
 
-- [convert](convert.md) -- convert configs to documentation (includes audit modes via `--audit-mode`)
+- [convert](convert.md) -- convert configs to documentation
 - [display](display.md) -- render in terminal instead of writing to file
 - [Configuration Reference](../configuration-reference.md) -- global flags and settings
 - [Audit and Compliance Examples](../../examples/audit-compliance.md) -- common audit workflows
