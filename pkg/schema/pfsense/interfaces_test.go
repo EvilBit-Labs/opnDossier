@@ -144,21 +144,63 @@ func TestInterfaceXMLRoundTrip(t *testing.T) {
 	assert.Equal(t, "em1", lanIface.If)
 }
 
+// TestInterfaceEnable_UnmarshalXML verifies that BoolFlag Enable on Interface
+// correctly unmarshals from self-closing, value-based, and absent XML elements.
+func TestInterfaceEnable_UnmarshalXML(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		xml        string
+		wantEnable bool
+	}{
+		{
+			name:       "enable self-closing",
+			xml:        `<iface><enable/><if>em0</if></iface>`,
+			wantEnable: true,
+		},
+		{
+			name:       "enable with content",
+			xml:        `<iface><enable>1</enable><if>em0</if></iface>`,
+			wantEnable: true,
+		},
+		{
+			name:       "enable absent",
+			xml:        `<iface><if>em0</if></iface>`,
+			wantEnable: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var result Interface
+			err := xml.Unmarshal([]byte(tt.xml), &result)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.wantEnable, result.Enable.Bool(),
+				"Enable.Bool() mismatch for case %q", tt.name)
+		})
+	}
+}
+
 // TestDocumentXMLRoundTrip_InterfaceEnable verifies that marshaling a full
-// pfsense.Document with enabled/disabled interfaces emits presence-based
-// <enable/> elements and that unmarshaling preserves the enabled/disabled state.
+// pfsense.Document with enabled/disabled interfaces round-trips through
+// XML marshal/unmarshal preserving the enable state as a string value.
+// Document uses opnsense.Interfaces (backward-compatible), so Enable is
+// stored as "1" (enabled) or "" (disabled) rather than BoolFlag.
 func TestDocumentXMLRoundTrip_InterfaceEnable(t *testing.T) {
 	t.Parallel()
 
 	doc := NewDocument()
-	doc.Interfaces.Items["wan"] = Interface{
-		Enable: opnsense.BoolFlag(true),
+	doc.Interfaces.Items["wan"] = opnsense.Interface{
+		Enable: "1",
 		If:     "em0",
 		Descr:  "WAN",
 		IPAddr: "dhcp",
 	}
-	doc.Interfaces.Items["lan"] = Interface{
-		Enable: opnsense.BoolFlag(false),
+	doc.Interfaces.Items["lan"] = opnsense.Interface{
 		If:     "em1",
 		Descr:  "LAN",
 		IPAddr: "192.168.1.1",
@@ -168,22 +210,6 @@ func TestDocumentXMLRoundTrip_InterfaceEnable(t *testing.T) {
 	out, err := xml.MarshalIndent(doc, "", "  ")
 	require.NoError(t, err)
 
-	xmlStr := string(out)
-
-	// Verify the marshaled XML contains a presence-based <enable> for WAN
-	wanIdx := strings.Index(xmlStr, "<wan>")
-	lanIdx := strings.Index(xmlStr, "<lan>")
-	require.Greater(t, wanIdx, -1, "wan element must exist in document XML")
-	require.Greater(t, lanIdx, -1, "lan element must exist in document XML")
-
-	// lan sorts before wan alphabetically
-	lanSection := xmlStr[lanIdx:wanIdx]
-	wanSection := xmlStr[wanIdx:]
-
-	assert.NotContains(t, lanSection, "<enable", "disabled LAN must omit <enable> element")
-	assert.Contains(t, wanSection, "<enable>", "enabled WAN must have <enable> element")
-	assert.NotContains(t, wanSection, "true", "WAN enable must not contain textual boolean")
-
 	// Unmarshal back and verify state is preserved
 	var decoded Document
 	err = xml.Unmarshal(out, &decoded)
@@ -191,14 +217,14 @@ func TestDocumentXMLRoundTrip_InterfaceEnable(t *testing.T) {
 
 	wanIface, ok := decoded.Interfaces.Get("wan")
 	require.True(t, ok, "wan must exist after document round-trip")
-	assert.True(t, wanIface.Enable.Bool(), "WAN Enable must be true after document round-trip")
+	assert.Equal(t, "1", wanIface.Enable, "WAN Enable must be '1' after document round-trip")
 	assert.Equal(t, "em0", wanIface.If)
 	assert.Equal(t, "WAN", wanIface.Descr)
 	assert.Equal(t, "dhcp", wanIface.IPAddr)
 
 	lanIface, ok := decoded.Interfaces.Get("lan")
 	require.True(t, ok, "lan must exist after document round-trip")
-	assert.False(t, lanIface.Enable.Bool(), "LAN Enable must be false after document round-trip")
+	assert.Empty(t, lanIface.Enable, "LAN Enable must be empty after document round-trip")
 	assert.Equal(t, "em1", lanIface.If)
 	assert.Equal(t, "LAN", lanIface.Descr)
 	assert.Equal(t, "192.168.1.1", lanIface.IPAddr)
