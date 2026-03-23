@@ -39,11 +39,7 @@ type Document struct {
 // NewDocument returns a new Document with all slice and map fields initialized for safe use.
 func NewDocument() *Document {
 	return &Document{
-		System: System{
-			Group:      make([]Group, 0),
-			User:       make([]User, 0),
-			DNSServers: make([]string, 0),
-		},
+		System: NewSystem(),
 		Interfaces: opnsense.Interfaces{
 			Items: make(map[string]opnsense.Interface),
 		},

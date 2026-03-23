@@ -251,8 +251,6 @@ func (c *converter) convertOpenVPNCSCs(cscs []opnsense.OpenVPNCSC) []common.Open
 // pfSense SyslogConfig only has FilterDescriptions which has no counterpart
 // in common.SyslogConfig, so this returns a zero-value config. Unconverted
 // fields are documented in pkg/schema/pfsense/README.md.
-//
-
 func (c *converter) convertSyslog(_ *pfsense.Document) common.SyslogConfig {
 	return common.SyslogConfig{}
 }

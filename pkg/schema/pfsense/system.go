@@ -79,11 +79,6 @@ type User struct {
 	AuthorizedKeys string            `xml:"authorizedkeys" json:"authorizedKeys,omitempty" yaml:"authorizedKeys,omitempty"`
 }
 
-// NewUser returns a User with zero-value defaults.
-func NewUser() User {
-	return User{}
-}
-
 // WebGUI represents the pfSense WebGUI configuration.
 // It extends the OPNsense WebGUIConfig with pfSense-specific fields
 // such as dashboard columns, CSS theme, login CSS, and alternate hostnames.
