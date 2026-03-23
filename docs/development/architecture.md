@@ -1002,18 +1002,18 @@ graph TB
     end
 
     subgraph "Report Generator Modules"
-        Standard[Standard Report<br/>• Generation logic<br/>• Calculations<br/>• Transformations]
+        Conversion[Conversion Report<br/>• Generation logic<br/>• Calculations<br/>• Transformations]
         Blue[Blue Team Report<br/>• Compliance checks<br/>• Security findings<br/>• Risk assessment]
         Red[Red Team Report<br/>• Attack surface<br/>• Enumeration data<br/>• Pivot analysis]
         Pro[Pro Reports<br/>• Advanced analytics<br/>• Custom formats<br/>• Enterprise features]
     end
 
-    Model --> Standard
+    Model --> Conversion
     Model --> Blue
     Model --> Red
     Model --> Pro
 
-    Helpers --> Standard
+    Helpers --> Conversion
     Helpers --> Blue
     Helpers --> Red
     Helpers --> Pro
@@ -1035,7 +1035,7 @@ package reports
 
 This enables:
 
-- **Standard builds** with core report types
+- **Core builds** with conversion and audit report types
 - **Pro builds** with additional enterprise features
 - **Custom builds** with specific report combinations
 
@@ -1099,7 +1099,7 @@ func (g *BlueTeamGenerator) analyzeCompliance(device *common.CommonDevice) []ana
 ### Benefits
 
 1. **Independent Testing** - Each report module can be tested in isolation
-2. **Feature Gating** - Pro features excluded from standard builds
+2. **Feature Gating** - Pro features excluded from core builds
 3. **Reduced Coupling** - Changes to one report type don't affect others
 4. **Clear Ownership** - Each module has defined boundaries
 5. **Extensibility** - New report types added without modifying core

@@ -154,9 +154,9 @@ _Status: Deferred to v2.1 (see [#174](https://github.com/EvilBit-Labs/opnDossier
 
 _Status: Deferred to v2.1 (see [#174](https://github.com/EvilBit-Labs/opnDossier/issues/174))._
 
-**US-048** **As an** infrastructure maintainer or auditor **I want** to generate a complete but neutral summary of a config file **So that** I can include it in documentation or audit records without red/blue-specific commentary **Given** I have a valid OPNsense config.xml file **When** I run the opnDossier command `analyze` with the `--mode=standard` flag **Then** the system should generate a detailed but neutral config documentation report including system metadata, rule counts, interfaces, certs, DHCP, routes, and HA
+~~**US-048** **As an** infrastructure maintainer or auditor **I want** to generate a complete but neutral summary of a config file **So that** I can include it in documentation or audit records without red/blue-specific commentary **Given** I have a valid OPNsense config.xml file **When** I run the opnDossier command `analyze` with the `--mode=standard` flag **Then** the system should generate a detailed but neutral config documentation report including system metadata, rule counts, interfaces, certs, DHCP, routes, and HA~~
 
-_Status: Deferred to v2.1 (see [#174](https://github.com/EvilBit-Labs/opnDossier/issues/174))._
+_Status: Removed — standard audit mode was removed. Neutral documentation is handled by the `convert` command._
 
 ---
 
@@ -176,12 +176,12 @@ _Status: Deferred to v2.1 (see [#174](https://github.com/EvilBit-Labs/opnDossier
 - [ ] Performance meets specified requirements (\<100ms for tests, efficient memory usage)
 - [ ] Analyze command with `--mode=red` generates recon reports highlighting WAN-exposed services, weak NAT rules, admin portals, and known attack surfaces (deferred to v2.1; see [#174](https://github.com/EvilBit-Labs/opnDossier/issues/174))
 - [ ] Analyze command with `--mode=blue` generates defensive audits with audit findings, structured configuration tables, and recommendations with severity ratings (deferred to v2.1; see [#174](https://github.com/EvilBit-Labs/opnDossier/issues/174))
-- [ ] Analyze command with `--mode=standard` generates detailed but neutral config documentation including system metadata, rule counts, interfaces, certs, DHCP, routes, and HA (deferred to v2.1; see [#174](https://github.com/EvilBit-Labs/opnDossier/issues/174))
+- [x] ~~Analyze command with `--mode=standard` generates detailed but neutral config documentation~~ _Removed — standard audit mode was removed; neutral documentation is handled by the `convert` command._
 - [ ] Analyze command validates --mode flag values and provides clear error messages for invalid modes
 - [ ] Analyze command output format is consistent across all modes and includes appropriate security context
 - [ ] Red team reports include snarky or attacker-focused commentary when --blackhat-mode is enabled
 - [ ] Blue team reports include structured configuration tables for visibility and actionable recommendations
-- [ ] Standard reports provide comprehensive, neutral documentation suitable for audit records
+- [x] ~~Standard reports provide comprehensive, neutral documentation suitable for audit records~~ _Removed — handled by `convert` command._
 
 ### Quality Assurance Acceptance
 

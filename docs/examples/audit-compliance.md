@@ -2,12 +2,12 @@
 
 This guide covers common audit and compliance workflows using the `opndossier audit` command. For the full flag reference, see the [audit command guide](../user-guide/commands/audit.md).
 
-## Standard Audit
+## Basic Audit
 
-The default mode produces a neutral documentation report without compliance checks.
+The default mode is `blue`, which runs compliance plugins and produces a defensive audit report.
 
 ```bash
-# Basic audit — outputs to console
+# Basic audit — outputs to console (defaults to --mode blue)
 opndossier audit config.xml
 
 # Save audit report to file

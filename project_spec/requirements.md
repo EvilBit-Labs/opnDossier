@@ -127,11 +127,11 @@
   - **F013**: Support multiple output styles (comprehensive, summary) for file export (selectable via CLI flag)
   - **F014**: Analyze the XML configuration and provide a report of the configuration, containing common security and performance issues, if any are found
   - **F015**: Export files must be valid and parseable by standard tools and libraries (markdown linters, JSON parsers, YAML parsers)
-  - **F016**: Support audit report generation in three modes: standard (neutral documentation), blue (defensive analysis with findings and recommendations), and red (attack surface enumeration with optional blackhat commentary)
+  - **F016**: Support audit report generation in two modes: blue (defensive analysis with findings and recommendations) and red (attack surface enumeration with optional blackhat commentary). _Note: standard mode was removed — the `convert` command covers neutral documentation._
   - **F017**: Generate Markdown reports using Go text/template files from `internal/templates/reports/` with user-extensible sections for interfaces, firewall rules, NAT rules, DHCP, certificates, VPN config, static routes, and high availability
   - **F018**: Red team mode must highlight WAN-exposed services, weak NAT rules, admin portals, attack surfaces, and provide pivot data (hostnames, static leases, service ports) with optional blackhat commentary
   - **F019**: Blue team mode must include audit findings (insecure SNMP, allow-all rules, expired certs), structured configuration tables, and actionable recommendations with severity ratings
-  - **F020**: Standard mode must produce detailed neutral configuration documentation including system metadata, rule counts, interfaces, certificates, DHCP, routes, and high availability
+  - **F020**: ~~Standard mode must produce detailed neutral configuration documentation including system metadata, rule counts, interfaces, certificates, DHCP, routes, and high availability~~ _Removed — neutral documentation is handled by the `convert` command._
   - **F021**: Use consistent audit finding structure with Title, Severity, Description, Recommendation, Tags (Red mode adds AttackSurface, ExploitNotes)
   - **F022**: Support plugin-based compliance architecture with standardized interfaces, dynamic registration, lifecycle management, metadata tracking, configuration support, dependency management, and statistics reporting for both internal and external plugins
   - **F023**: Support convert mode that processes OPNsense XML configuration files and exports to JSON, YAML, or Markdown files on disk (with error handling, overwrite protection, and smart file naming)
