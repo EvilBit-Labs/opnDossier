@@ -13,8 +13,8 @@ type Document struct {
 	Version      string                          `xml:"version,omitempty"       json:"version,omitempty"    yaml:"version,omitempty"`
 	LastChange   string                          `xml:"lastchange,omitempty"    json:"lastChange,omitempty" yaml:"lastChange,omitempty"`
 	System       System                          `xml:"system,omitempty"        json:"system"               yaml:"system,omitempty"`
-	Interfaces   opnsense.Interfaces             `xml:"interfaces,omitempty"    json:"interfaces"           yaml:"interfaces,omitempty"`
-	Dhcpd        opnsense.Dhcpd                  `xml:"dhcpd,omitempty"         json:"dhcpd"                yaml:"dhcpd,omitempty"`
+	Interfaces   Interfaces                      `xml:"interfaces,omitempty"    json:"interfaces"           yaml:"interfaces,omitempty"`
+	Dhcpd        Dhcpd                           `xml:"dhcpd,omitempty"         json:"dhcpd"                yaml:"dhcpd,omitempty"`
 	DHCPv6Server DHCPv6                          `xml:"dhcpdv6,omitempty"       json:"dhcpdv6"              yaml:"dhcpdv6,omitempty"`
 	Snmpd        opnsense.Snmpd                  `xml:"snmpd,omitempty"         json:"snmpd"                yaml:"snmpd,omitempty"`
 	Diag         Diag                            `xml:"diag,omitempty"          json:"diag"                 yaml:"diag,omitempty"`
@@ -40,11 +40,11 @@ type Document struct {
 func NewDocument() *Document {
 	return &Document{
 		System: NewSystem(),
-		Interfaces: opnsense.Interfaces{
-			Items: make(map[string]opnsense.Interface),
+		Interfaces: Interfaces{
+			Items: make(map[string]Interface),
 		},
-		Dhcpd: opnsense.Dhcpd{
-			Items: make(map[string]opnsense.DhcpdInterface),
+		Dhcpd: Dhcpd{
+			Items: make(map[string]DhcpdInterface),
 		},
 		DHCPv6Server: DHCPv6{
 			Items: make(map[string]DHCPv6Interface),
@@ -74,14 +74,14 @@ func (p *Document) Hostname() string {
 
 // InterfaceByName returns a network interface by its interface name (e.g., "em0", "igb0").
 // Returns a copy of the interface and true if found, or zero-value and false if not.
-func (p *Document) InterfaceByName(name string) (opnsense.Interface, bool) {
+func (p *Document) InterfaceByName(name string) (Interface, bool) {
 	for _, iface := range p.Interfaces.Items {
 		if iface.If == name {
 			return iface, true
 		}
 	}
 
-	return opnsense.Interface{}, false
+	return Interface{}, false
 }
 
 // FilterRules returns a slice of all firewall filter rules configured in the system.

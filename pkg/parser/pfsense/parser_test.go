@@ -240,16 +240,16 @@ func TestConverter_Interfaces(t *testing.T) {
 	t.Parallel()
 
 	doc := pfsenseSchema.NewDocument()
-	doc.Interfaces.Items["wan"] = opnsense.Interface{
+	doc.Interfaces.Items["wan"] = pfsenseSchema.Interface{
 		If:          "igb0",
-		Enable:      "1",
+		Enable:      opnsense.BoolFlag(true),
 		IPAddr:      "dhcp",
 		BlockPriv:   "1",
 		BlockBogons: "1",
 	}
-	doc.Interfaces.Items["lan"] = opnsense.Interface{
+	doc.Interfaces.Items["lan"] = pfsenseSchema.Interface{
 		If:     "igb1",
-		Enable: "1",
+		Enable: opnsense.BoolFlag(true),
 		IPAddr: "192.168.1.1",
 		Subnet: "24",
 		Descr:  "LAN",
@@ -395,8 +395,8 @@ func TestConverter_DHCP(t *testing.T) {
 	t.Parallel()
 
 	doc := pfsenseSchema.NewDocument()
-	doc.Dhcpd.Items["lan"] = opnsense.DhcpdInterface{
-		Enable: "1",
+	doc.Dhcpd.Items["lan"] = pfsenseSchema.DhcpdInterface{
+		Enable: opnsense.BoolFlag(true),
 		Range:  opnsense.Range{From: "192.168.1.100", To: "192.168.1.200"},
 		Staticmap: []opnsense.DHCPStaticLease{
 			{Mac: "00:11:22:33:44:55", IPAddr: "192.168.1.10", Hostname: "printer"},

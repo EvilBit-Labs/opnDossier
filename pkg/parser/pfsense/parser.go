@@ -74,7 +74,8 @@ func (p *Parser) ParseAndValidate(
 
 // decode reads XML from r into a pfsense.Document with security hardening
 // (input size limit, XXE protection, charset handling) via the shared
-// parser.NewSecureXMLDecoder helper.
+// parser.NewSecureXMLDecoder helper. Presence-based <enable/> elements are
+// decoded directly into BoolFlag fields on pfsense.Interface and pfsense.DhcpdInterface.
 func (p *Parser) decode(ctx context.Context, r io.Reader) (*pfsense.Document, error) {
 	select {
 	case <-ctx.Done():
@@ -84,10 +85,8 @@ func (p *Parser) decode(ctx context.Context, r io.Reader) (*pfsense.Document, er
 
 	dec := parser.NewSecureXMLDecoder(r, p.maxInputSize)
 
-	// Decode into an intermediate struct that uses BoolFlag for presence-based
-	// enable detection, then convert to Document with opnsense-compatible string types.
-	var raw decodeDocument
-	if err := dec.Decode(&raw); err != nil {
+	var doc pfsense.Document
+	if err := dec.Decode(&doc); err != nil {
 		return nil, fmt.Errorf("XML decode: %w", err)
 	}
 
@@ -97,13 +96,11 @@ func (p *Parser) decode(ctx context.Context, r io.Reader) (*pfsense.Document, er
 	default:
 	}
 
-	if raw.XMLName.Local == "" {
+	if doc.XMLName.Local == "" {
 		return nil, errMissingRoot
 	}
 
-	doc := raw.toDocument()
-
-	return doc, nil
+	return &doc, nil
 }
 
 // toCommonDevice converts a parsed pfSense document into a CommonDevice.

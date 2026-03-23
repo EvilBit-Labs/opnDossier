@@ -183,21 +183,20 @@ func TestDhcpdXMLRoundTrip(t *testing.T) {
 // TestDocumentXMLRoundTrip_DhcpdEnable verifies that marshaling a full
 // pfsense.Document with enabled/disabled DHCP scopes round-trips through
 // XML marshal/unmarshal preserving the enable state as a string value.
-// Document uses opnsense.Dhcpd (backward-compatible), so Enable is
-// stored as "1" (enabled) or "" (disabled) rather than BoolFlag.
+// Document uses pfsense.Dhcpd with BoolFlag Enable.
 func TestDocumentXMLRoundTrip_DhcpdEnable(t *testing.T) {
 	t.Parallel()
 
 	doc := NewDocument()
-	doc.Dhcpd.Items["lan"] = opnsense.DhcpdInterface{
-		Enable:  "1",
+	doc.Dhcpd.Items["lan"] = DhcpdInterface{
+		Enable:  opnsense.BoolFlag(true),
 		Gateway: "192.168.1.1",
 		Range: opnsense.Range{
 			From: "192.168.1.100",
 			To:   "192.168.1.200",
 		},
 	}
-	doc.Dhcpd.Items["wan"] = opnsense.DhcpdInterface{
+	doc.Dhcpd.Items["wan"] = DhcpdInterface{
 		Gateway: "10.0.0.1",
 	}
 
@@ -211,12 +210,12 @@ func TestDocumentXMLRoundTrip_DhcpdEnable(t *testing.T) {
 
 	lanScope, ok := decoded.Dhcpd.Get("lan")
 	require.True(t, ok, "lan must exist after document round-trip")
-	assert.Equal(t, "1", lanScope.Enable, "LAN Enable must be '1' after document round-trip")
+	assert.True(t, lanScope.Enable.Bool(), "LAN Enable must be true after document round-trip")
 	assert.Equal(t, "192.168.1.1", lanScope.Gateway)
 	assert.Equal(t, "192.168.1.100", lanScope.Range.From)
 
 	wanScope, ok := decoded.Dhcpd.Get("wan")
 	require.True(t, ok, "wan must exist after document round-trip")
-	assert.Empty(t, wanScope.Enable, "WAN Enable must be empty after document round-trip")
+	assert.False(t, wanScope.Enable.Bool(), "WAN Enable must be false after document round-trip")
 	assert.Equal(t, "10.0.0.1", wanScope.Gateway)
 }

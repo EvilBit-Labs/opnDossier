@@ -23,7 +23,7 @@ func (c *converter) convertDHCP(doc *pfsense.Document) []common.DHCPScope {
 		d := items[key]
 		scope := common.DHCPScope{
 			Interface:  key,
-			Enabled:    isPfSenseValueTrue(d.Enable),
+			Enabled:    d.Enable.Bool(),
 			Range:      common.DHCPRange{From: d.Range.From, To: d.Range.To},
 			Gateway:    d.Gateway,
 			DNSServer:  d.Dnsserver,

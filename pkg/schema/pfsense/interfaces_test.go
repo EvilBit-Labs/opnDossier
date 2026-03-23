@@ -187,20 +187,18 @@ func TestInterfaceEnable_UnmarshalXML(t *testing.T) {
 
 // TestDocumentXMLRoundTrip_InterfaceEnable verifies that marshaling a full
 // pfsense.Document with enabled/disabled interfaces round-trips through
-// XML marshal/unmarshal preserving the enable state as a string value.
-// Document uses opnsense.Interfaces (backward-compatible), so Enable is
-// stored as "1" (enabled) or "" (disabled) rather than BoolFlag.
+// XML marshal/unmarshal preserving the Enable BoolFlag state.
 func TestDocumentXMLRoundTrip_InterfaceEnable(t *testing.T) {
 	t.Parallel()
 
 	doc := NewDocument()
-	doc.Interfaces.Items["wan"] = opnsense.Interface{
-		Enable: "1",
+	doc.Interfaces.Items["wan"] = Interface{
+		Enable: opnsense.BoolFlag(true),
 		If:     "em0",
 		Descr:  "WAN",
 		IPAddr: "dhcp",
 	}
-	doc.Interfaces.Items["lan"] = opnsense.Interface{
+	doc.Interfaces.Items["lan"] = Interface{
 		If:     "em1",
 		Descr:  "LAN",
 		IPAddr: "192.168.1.1",
@@ -217,14 +215,14 @@ func TestDocumentXMLRoundTrip_InterfaceEnable(t *testing.T) {
 
 	wanIface, ok := decoded.Interfaces.Get("wan")
 	require.True(t, ok, "wan must exist after document round-trip")
-	assert.Equal(t, "1", wanIface.Enable, "WAN Enable must be '1' after document round-trip")
+	assert.True(t, wanIface.Enable.Bool(), "WAN Enable must be true after document round-trip")
 	assert.Equal(t, "em0", wanIface.If)
 	assert.Equal(t, "WAN", wanIface.Descr)
 	assert.Equal(t, "dhcp", wanIface.IPAddr)
 
 	lanIface, ok := decoded.Interfaces.Get("lan")
 	require.True(t, ok, "lan must exist after document round-trip")
-	assert.Empty(t, lanIface.Enable, "LAN Enable must be empty after document round-trip")
+	assert.False(t, lanIface.Enable.Bool(), "LAN Enable must be false after document round-trip")
 	assert.Equal(t, "em1", lanIface.If)
 	assert.Equal(t, "LAN", lanIface.Descr)
 	assert.Equal(t, "192.168.1.1", lanIface.IPAddr)

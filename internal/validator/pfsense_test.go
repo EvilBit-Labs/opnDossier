@@ -33,14 +33,14 @@ func newValidPfSenseDocument() *pfsense.Document {
 			{Name: "admin", UID: "0", Scope: "system", Groupname: "admins"},
 		},
 	}
-	doc.Interfaces = opnsense.Interfaces{
-		Items: map[string]opnsense.Interface{
+	doc.Interfaces = pfsense.Interfaces{
+		Items: map[string]pfsense.Interface{
 			"wan": {IPAddr: "dhcp"},
 			"lan": {IPAddr: "192.168.1.1", Subnet: "24"},
 		},
 	}
-	doc.Dhcpd = opnsense.Dhcpd{
-		Items: map[string]opnsense.DhcpdInterface{
+	doc.Dhcpd = pfsense.Dhcpd{
+		Items: map[string]pfsense.DhcpdInterface{
 			"lan": {Range: opnsense.Range{From: "192.168.1.100", To: "192.168.1.199"}},
 		},
 	}
@@ -175,8 +175,8 @@ func TestValidatePfSenseSystem(t *testing.T) {
 func TestValidatePfSenseFilter(t *testing.T) {
 	t.Parallel()
 
-	ifaces := &opnsense.Interfaces{
-		Items: map[string]opnsense.Interface{
+	ifaces := &pfsense.Interfaces{
+		Items: map[string]pfsense.Interface{
 			"wan": {},
 			"lan": {},
 		},
@@ -481,8 +481,8 @@ func TestValidatePfSenseDocument_CrossValidation(t *testing.T) {
 		{
 			name: "DHCP references non-existent interface",
 			mutate: func(doc *pfsense.Document) {
-				doc.Dhcpd = opnsense.Dhcpd{
-					Items: map[string]opnsense.DhcpdInterface{
+				doc.Dhcpd = pfsense.Dhcpd{
+					Items: map[string]pfsense.DhcpdInterface{
 						"opt99": {Range: opnsense.Range{From: "10.0.0.100", To: "10.0.0.200"}},
 					},
 				}
@@ -573,8 +573,8 @@ func TestValidatePfSenseSystem_PowerdModes(t *testing.T) {
 func TestValidatePfSenseFilter_DestinationMutualExclusivity(t *testing.T) {
 	t.Parallel()
 
-	ifaces := &opnsense.Interfaces{
-		Items: map[string]opnsense.Interface{"lan": {}},
+	ifaces := &pfsense.Interfaces{
+		Items: map[string]pfsense.Interface{"lan": {}},
 	}
 
 	filter := &pfsense.Filter{
