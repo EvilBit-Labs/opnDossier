@@ -129,8 +129,7 @@ func (c *converter) convertLoadBalancer(doc *pfsense.Document) common.LoadBalanc
 	return common.LoadBalancerConfig{MonitorTypes: result}
 }
 
-// convertVPN maps OpenVPN sections to common.VPN.
-// pfSense Document does not include WireGuard or IPsec subsystems.
+// convertVPN maps OpenVPN and IPsec sections to common.VPN.
 func (c *converter) convertVPN(doc *pfsense.Document) common.VPN {
 	return common.VPN{
 		OpenVPN: common.OpenVPNConfig{
@@ -138,6 +137,147 @@ func (c *converter) convertVPN(doc *pfsense.Document) common.VPN {
 			Clients:               c.convertOpenVPNClients(doc.OpenVPN.Clients),
 			ClientSpecificConfigs: c.convertOpenVPNCSCs(doc.OpenVPN.CSC),
 		},
+		IPsec: c.convertIPsec(doc),
+	}
+}
+
+// convertIPsec maps doc.IPsec to common.IPsecConfig.
+// Returns a zero-value IPsecConfig when no Phase1/Phase2 tunnels exist and mobile client is disabled.
+func (c *converter) convertIPsec(doc *pfsense.Document) common.IPsecConfig {
+	ipsec := doc.IPsec
+	if len(ipsec.Phase1) == 0 && len(ipsec.Phase2) == 0 && !ipsec.Client.Enable.Bool() {
+		return common.IPsecConfig{}
+	}
+
+	return common.IPsecConfig{
+		Enabled:       true,
+		Phase1Tunnels: c.convertIPsecPhase1Tunnels(ipsec.Phase1),
+		Phase2Tunnels: c.convertIPsecPhase2Tunnels(ipsec.Phase2),
+		MobileClient:  c.convertIPsecMobileClient(ipsec.Client),
+	}
+}
+
+// convertIPsecPhase1Tunnels maps []pfsense.IPsecPhase1 to []common.IPsecPhase1Tunnel.
+func (c *converter) convertIPsecPhase1Tunnels(phases []pfsense.IPsecPhase1) []common.IPsecPhase1Tunnel {
+	if len(phases) == 0 {
+		return nil
+	}
+
+	result := make([]common.IPsecPhase1Tunnel, 0, len(phases))
+	for _, p1 := range phases {
+		result = append(result, common.IPsecPhase1Tunnel{
+			IKEID:                p1.IKEId,
+			IKEType:              p1.IKEType,
+			Interface:            p1.Interface,
+			RemoteGateway:        p1.RemoteGW,
+			Protocol:             p1.Protocol,
+			AuthMethod:           p1.AuthMethod,
+			MyIDType:             p1.MyIDType,
+			MyIDData:             p1.MyIDData,
+			PeerIDType:           p1.PeerIDType,
+			PeerIDData:           p1.PeerIDData,
+			Mode:                 p1.Mode,
+			Lifetime:             p1.Lifetime,
+			NATTraversal:         p1.NATTraversal,
+			DPDDelay:             p1.DPDDelay,
+			DPDMaxFail:           p1.DPDMaxFail,
+			StartAction:          p1.StartAction,
+			CloseAction:          p1.CloseAction,
+			Description:          p1.Descr,
+			Disabled:             p1.Disabled.Bool(),
+			Mobile:               p1.Mobile.Bool(),
+			EncryptionAlgorithms: convertPhase1EncryptionAlgorithms(p1.Encryption.Algorithms),
+		})
+	}
+
+	return result
+}
+
+// convertPhase1EncryptionAlgorithms extracts algorithm names with optional key lengths.
+func convertPhase1EncryptionAlgorithms(algs []pfsense.IPsecEncryptionAlgorithm) []string {
+	if len(algs) == 0 {
+		return nil
+	}
+
+	result := make([]string, 0, len(algs))
+	for _, alg := range algs {
+		name := alg.Name
+		if alg.KeyLen != "" {
+			name = name + "-" + alg.KeyLen
+		}
+
+		result = append(result, name)
+	}
+
+	return result
+}
+
+// convertIPsecPhase2Tunnels maps []pfsense.IPsecPhase2 to []common.IPsecPhase2Tunnel.
+func (c *converter) convertIPsecPhase2Tunnels(phases []pfsense.IPsecPhase2) []common.IPsecPhase2Tunnel {
+	if len(phases) == 0 {
+		return nil
+	}
+
+	result := make([]common.IPsecPhase2Tunnel, 0, len(phases))
+	for _, p2 := range phases {
+		result = append(result, common.IPsecPhase2Tunnel{
+			IKEID:                p2.IKEId,
+			UniqID:               p2.UniqID,
+			Mode:                 p2.Mode,
+			Disabled:             p2.Disabled.Bool(),
+			Protocol:             p2.Protocol,
+			LocalIDType:          p2.LocalID.Type,
+			LocalIDAddress:       p2.LocalID.Address,
+			RemoteIDType:         p2.RemoteID.Type,
+			RemoteIDAddress:      p2.RemoteID.Address,
+			PFSGroup:             p2.PFSGroup,
+			Lifetime:             p2.Lifetime,
+			Description:          p2.Descr,
+			EncryptionAlgorithms: convertPhase2EncryptionAlgorithms(p2.EncryptionAlgorithms),
+			HashAlgorithms:       convertPhase2HashAlgorithms(p2.HashAlgorithms),
+		})
+	}
+
+	return result
+}
+
+// convertPhase2EncryptionAlgorithms extracts encryption algorithm names from Phase 2 entries.
+func convertPhase2EncryptionAlgorithms(algs []pfsense.IPsecEncryptionAlgorithm) []string {
+	if len(algs) == 0 {
+		return nil
+	}
+
+	result := make([]string, 0, len(algs))
+	for _, alg := range algs {
+		result = append(result, alg.Name)
+	}
+
+	return result
+}
+
+// convertPhase2HashAlgorithms extracts hash algorithm names from Phase 2 entries.
+func convertPhase2HashAlgorithms(algs []pfsense.IPsecHashAlgorithm) []string {
+	if len(algs) == 0 {
+		return nil
+	}
+
+	result := make([]string, 0, len(algs))
+	for _, alg := range algs {
+		result = append(result, alg.Name)
+	}
+
+	return result
+}
+
+// convertIPsecMobileClient maps pfsense.IPsecClient to common.IPsecMobileClient.
+func (c *converter) convertIPsecMobileClient(client pfsense.IPsecClient) common.IPsecMobileClient {
+	return common.IPsecMobileClient{
+		Enabled:     client.Enable.Bool(),
+		UserSource:  client.UserSource,
+		PoolAddress: client.PoolAddress,
+		PoolNetbits: client.PoolNetbits,
+		DNSServers:  collectNonEmpty(client.DNSServer1, client.DNSServer2, client.DNSServer3, client.DNSServer4),
+		DNSDomain:   client.DNSDomain,
 	}
 }
 
