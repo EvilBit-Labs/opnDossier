@@ -240,15 +240,15 @@ func (r *Report) redactedCopyUnsafe() *Report {
 	}
 
 	if cp.NormalizedConfig != nil {
-		needsRedaction := cp.NormalizedConfig.SNMP.ROCommunity != "" ||
-			hasCertPrivateKeys(cp.NormalizedConfig.Certificates) ||
-			hasCAPrivateKeys(cp.NormalizedConfig.CAs)
+		snmpNeedsRedaction := cp.NormalizedConfig.SNMP.ROCommunity != ""
+		certsNeedRedaction := hasCertPrivateKeys(cp.NormalizedConfig.Certificates)
+		casNeedRedaction := hasCAPrivateKeys(cp.NormalizedConfig.CAs)
 
-		if needsRedaction {
+		if snmpNeedsRedaction || certsNeedRedaction || casNeedRedaction {
 			deviceCopy := *cp.NormalizedConfig
 			cp.NormalizedConfig = &deviceCopy
 
-			if deviceCopy.SNMP.ROCommunity != "" {
+			if snmpNeedsRedaction {
 				deviceCopy.SNMP = common.SNMPConfig{
 					ROCommunity: redactedValue,
 					SysLocation: deviceCopy.SNMP.SysLocation,
@@ -256,7 +256,7 @@ func (r *Report) redactedCopyUnsafe() *Report {
 				}
 			}
 
-			if len(deviceCopy.Certificates) > 0 {
+			if certsNeedRedaction {
 				certs := make([]common.Certificate, len(deviceCopy.Certificates))
 				copy(certs, deviceCopy.Certificates)
 
@@ -269,7 +269,7 @@ func (r *Report) redactedCopyUnsafe() *Report {
 				deviceCopy.Certificates = certs
 			}
 
-			if len(deviceCopy.CAs) > 0 {
+			if casNeedRedaction {
 				cas := make([]common.CertificateAuthority, len(deviceCopy.CAs))
 				copy(cas, deviceCopy.CAs)
 
