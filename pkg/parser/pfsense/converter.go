@@ -158,7 +158,7 @@ func (c *converter) convertGroups(doc *pfsense.Document) []common.Group {
 			Description: g.Description,
 			Scope:       g.Scope,
 			GID:         g.Gid,
-			Member:      strings.Join(g.Member, ","),
+			Member:      strings.Join(g.Member, ", "),
 			Privileges:  strings.Join(g.Priv, ", "),
 		})
 	}
