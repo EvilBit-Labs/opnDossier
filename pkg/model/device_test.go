@@ -80,6 +80,31 @@ func TestDeviceType_String(t *testing.T) {
 	}
 }
 
+func TestDeviceType_DisplayName(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		dt   common.DeviceType
+		want string
+	}{
+		{"OPNsense", common.DeviceTypeOPNsense, "OPNsense"},
+		{"pfSense", common.DeviceTypePfSense, "pfSense"},
+		{"Unknown", common.DeviceTypeUnknown, "Device"},
+		{"empty string", common.DeviceType(""), "Device"},
+		{"arbitrary unrecognized value", common.DeviceType("fortinet"), "Device"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := tt.dt.DisplayName(); got != tt.want {
+				t.Errorf("DeviceType(%q).DisplayName() = %q, want %q", tt.dt, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestCommonDevice_NATSummary(t *testing.T) {
 	t.Parallel()
 

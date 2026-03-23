@@ -402,7 +402,7 @@ for _, rule := range device.FirewallRules {
 
 ## Device Parser Development
 
-opnDossier supports adding new device types (e.g., pfSense, Fortinet, MikroTik) through a compile-time parser registry. This is separate from compliance plugins -- device parsers transform vendor-specific configuration files into the platform-agnostic `CommonDevice` model.
+opnDossier ships with built-in parsers for **OPNsense** and **pfSense** devices. Additional device types (e.g., Fortinet, MikroTik, Cisco ASA) can be added through a compile-time parser registry. Device parsers are separate from compliance plugins -- they transform vendor-specific configuration files into the platform-agnostic `CommonDevice` model.
 
 ### Architecture
 
@@ -417,7 +417,7 @@ The `DeviceParserRegistry` in `pkg/parser/registry.go` follows the `database/sql
 1. **Create a Go package** that implements the `parser.DeviceParser` interface:
 
    ```go
-   package pfsense
+   package fortinet
 
    import (
        "context"
@@ -427,15 +427,15 @@ The `DeviceParserRegistry` in `pkg/parser/registry.go` follows the `database/sql
        "github.com/EvilBit-Labs/opnDossier/pkg/parser"
    )
 
-   type PfSenseParser struct{}
+   type FortinetParser struct{}
 
-   func (p *PfSenseParser) Parse(
+   func (p *FortinetParser) Parse(
        ctx context.Context, r io.Reader,
    ) (*common.CommonDevice, []common.ConversionWarning, error) {
-       // Parse pfSense XML and convert to CommonDevice
+       // Parse Fortinet config and convert to CommonDevice
    }
 
-   func (p *PfSenseParser) ParseAndValidate(
+   func (p *FortinetParser) ParseAndValidate(
        ctx context.Context, r io.Reader,
    ) (*common.CommonDevice, []common.ConversionWarning, error) {
        // Parse + validate
@@ -446,13 +446,13 @@ The `DeviceParserRegistry` in `pkg/parser/registry.go` follows the `database/sql
 
    ```go
    func init() {
-       parser.Register("pfsense", func(dec parser.XMLDecoder) parser.DeviceParser {
-           return &PfSenseParser{}
+       parser.Register("fortinet", func(dec parser.XMLDecoder) parser.DeviceParser {
+           return &FortinetParser{}
        })
    }
    ```
 
-   The first argument (`"pfsense"`) must match the XML root element name of the config file.
+   The first argument (`"fortinet"`) must match the XML root element name of the config file.
 
 3. **Link via blank import** in your consumer binary:
 
@@ -461,7 +461,7 @@ The `DeviceParserRegistry` in `pkg/parser/registry.go` follows the `database/sql
 
    import (
        "github.com/EvilBit-Labs/opnDossier/cmd"
-       _ "github.com/example/pfsense-parser" // self-registers at init()
+       _ "github.com/example/fortinet-parser" // self-registers at init()
    )
 
    func main() { cmd.Execute() }
@@ -498,12 +498,12 @@ device, warnings, err := factory.CreateDevice(ctx, reader, "", false)
 **Empty registry (missing blank import):** The most common mistake is forgetting the blank import. Without it, your parser's `init()` never runs and the registry stays empty. The symptom is an error like:
 
 ```text
-unsupported device type: root element <pfsense> is not recognized; supported: (none registered -- ensure parser packages are imported)
+unsupported device type: root element <fortinet> is not recognized; supported: (none registered -- ensure parser packages are imported)
 ```
 
 Fix: add `_ "your/parser/package"` to the binary's import list.
 
-**Root element mismatch:** The string passed to `parser.Register()` must exactly match the XML root element name (lowercase). If a pfSense config uses `<pfsense>` as the root element, register as `"pfsense"`, not `"pfSense"` or `"PfSense"` (the registry normalizes to lowercase, but the XML root element detection also lowercases).
+**Root element mismatch:** The string passed to `parser.Register()` must match the XML root element name. Both the registry and the XML root element detection normalize to lowercase, so `"Fortinet"` and `"fortinet"` will resolve identically. However, using lowercase consistently is recommended for clarity.
 
 **Duplicate registration:** If two packages register the same root element name, the binary will panic at startup. This is intentional -- it surfaces conflicts immediately rather than silently picking one.
 
@@ -512,6 +512,7 @@ Fix: add `_ "your/parser/package"` to the binary's import list.
 - `pkg/parser/registry.go` -- Registry implementation
 - `pkg/parser/factory.go` -- Factory with auto-detection and error handling
 - `pkg/parser/opnsense/parser.go` -- Built-in OPNsense parser (reference implementation)
+- `pkg/parser/pfsense/parser.go` -- Built-in pfSense parser
 
 ## Troubleshooting
 
@@ -533,7 +534,7 @@ Fix: add `_ "your/parser/package"` to the binary's import list.
 ## Examples
 
 - `internal/plugins/` contains static compliance plugin examples.
-- `pkg/parser/opnsense/parser.go` provides a reference device parser implementation.
+- `pkg/parser/opnsense/parser.go` and `pkg/parser/pfsense/parser.go` provide reference device parser implementations.
 - The dynamic plugin example above demonstrates external compliance plugins.
 
 ## Conclusion

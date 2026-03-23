@@ -1,0 +1,137 @@
+<?xml version="1.0"?>
+<pfsense>
+  <version>23.09</version>
+  <system>
+    <optimization>normal</optimization>
+    <hostname>pf-edge</hostname>
+    <domain>edge.local</domain>
+    <dnsserver>9.9.9.9</dnsserver>
+    <language>en_US</language>
+    <timezone>America/New_York</timezone>
+    <powerd_ac_mode>hadp</powerd_ac_mode>
+    <bogons>
+      <interval>weekly</interval>
+    </bogons>
+    <webgui>
+      <protocol>https</protocol>
+    </webgui>
+    <ssh>
+      <enabled/>
+      <group>admins</group>
+    </ssh>
+    <group>
+      <name>admins</name>
+      <description>Administrators</description>
+      <scope>system</scope>
+      <gid>1999</gid>
+    </group>
+    <group>
+      <name>users</name>
+      <description>Regular Users</description>
+      <scope>local</scope>
+      <gid>2000</gid>
+    </group>
+    <user>
+      <name>admin</name>
+      <descr>Admin User</descr>
+      <scope>system</scope>
+      <groupname>admins</groupname>
+      <bcrypt-hash>$2b$10$examplehashhere</bcrypt-hash>
+      <uid>0</uid>
+    </user>
+    <user>
+      <name>operator</name>
+      <descr>Ops User</descr>
+      <scope>local</scope>
+      <groupname>users</groupname>
+      <bcrypt-hash>$2b$10$anotherhashhere</bcrypt-hash>
+      <uid>2001</uid>
+    </user>
+    <nextuid>2002</nextuid>
+    <nextgid>2001</nextgid>
+  </system>
+  <interfaces>
+    <wan>
+      <if>igb0</if>
+      <enable>1</enable>
+      <ipaddr>dhcp</ipaddr>
+    </wan>
+    <lan>
+      <if>igb1</if>
+      <enable>1</enable>
+      <ipaddr>10.0.0.1</ipaddr>
+      <subnet>24</subnet>
+    </lan>
+  </interfaces>
+  <vlans>
+    <vlan>
+      <if>igb1</if>
+      <tag>100</tag>
+      <descr>Guest VLAN</descr>
+      <vlanif>igb1.100</vlanif>
+    </vlan>
+  </vlans>
+  <filter>
+    <rule>
+      <type>pass</type>
+      <interface>lan</interface>
+      <ipprotocol>inet</ipprotocol>
+      <source><any/></source>
+      <destination><any/></destination>
+      <descr>Allow all from LAN</descr>
+    </rule>
+  </filter>
+  <nat>
+    <outbound>
+      <mode>hybrid</mode>
+    </outbound>
+  </nat>
+  <staticroutes>
+    <route>
+      <network>10.10.0.0/16</network>
+      <gateway>GW_WAN</gateway>
+      <descr>Remote office route</descr>
+    </route>
+  </staticroutes>
+  <gateways>
+    <gateway_item>
+      <interface>wan</interface>
+      <gateway>203.0.113.1</gateway>
+      <name>GW_WAN</name>
+      <weight>1</weight>
+      <ipprotocol>inet</ipprotocol>
+      <descr>Default WAN gateway</descr>
+    </gateway_item>
+  </gateways>
+  <unbound>
+    <enable/>
+    <dnssec/>
+    <active_interface>lan</active_interface>
+    <outgoing_interface>wan</outgoing_interface>
+    <hideidentity/>
+    <hideversion/>
+  </unbound>
+  <snmpd>
+    <rocommunity>public</rocommunity>
+    <syslocation>Server Room</syslocation>
+    <syscontact>admin@edge.local</syscontact>
+  </snmpd>
+  <cron>
+    <item>
+      <minute>0</minute>
+      <hour>3</hour>
+      <mday>*</mday>
+      <month>*</month>
+      <wday>*</wday>
+      <who>root</who>
+      <command>/usr/bin/nice -n20 newsyslog</command>
+    </item>
+  </cron>
+  <load_balancer>
+    <monitor_type>
+      <name>ICMP</name>
+      <type>icmp</type>
+      <descr>ICMP Monitor</descr>
+    </monitor_type>
+  </load_balancer>
+</pfsense>

@@ -1004,7 +1004,8 @@ func TestMarkdownBuilder_ValidateEmptyData(t *testing.T) {
 // createTestDocument creates a minimal test document for testing.
 func createTestDocument() *common.CommonDevice {
 	return &common.CommonDevice{
-		Version: "1.0",
+		DeviceType: common.DeviceTypeOPNsense,
+		Version:    "1.0",
 		System: common.System{
 			Hostname: "test-firewall",
 			Domain:   "example.com",

@@ -12,6 +12,8 @@ import (
 
 // validateSystem checks the system-level configuration fields for required values and valid formats.
 // It returns a slice of ValidationError for any invalid or missing system configuration fields, including hostname, domain, timezone, optimization, web GUI protocol, power management modes, and bogons interval.
+//
+//nolint:dupl // structurally similar to validatePfSenseSystem but operates on schema.System
 func validateSystem(system *schema.System) []ValidationError {
 	var errors []ValidationError
 

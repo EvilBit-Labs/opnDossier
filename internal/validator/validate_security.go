@@ -204,7 +204,7 @@ func validateFilter(filter *schema.Filter, interfaces *schema.Interfaces) []Vali
 		}
 
 		// Validate floating rule constraints
-		if rule.Floating == "yes" && rule.Direction == "" {
+		if rule.Floating == floatingYes && rule.Direction == "" {
 			errors = append(errors, ValidationError{
 				Field:   fmt.Sprintf("filter.rule[%d].direction", i),
 				Message: "direction is required for floating rules",

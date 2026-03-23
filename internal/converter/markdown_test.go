@@ -29,18 +29,15 @@ func TestMarkdownConverter_ToMarkdown(t *testing.T) {
 		{
 			name: "basic conversion",
 			input: &common.CommonDevice{
-				Version: "1.2.3",
+				DeviceType: common.DeviceTypeOPNsense,
+				Version:    "1.2.3",
 				System: common.System{
 					Hostname: "test-host",
 					Domain:   "test.local",
 				},
 			},
-			expected: `OPNsense Configuration
-
-  ## System
-
-  Hostname: test-host Domain: test.local`,
-			wantErr: false,
+			expected: "OPNsense Configuration",
+			wantErr:  false,
 		},
 		{
 			name:     "nil input",
@@ -51,7 +48,7 @@ func TestMarkdownConverter_ToMarkdown(t *testing.T) {
 		{
 			name:     "empty struct",
 			input:    &common.CommonDevice{},
-			expected: "OPNsense Configuration",
+			expected: "Device Configuration",
 			wantErr:  false,
 		},
 		{
@@ -59,7 +56,7 @@ func TestMarkdownConverter_ToMarkdown(t *testing.T) {
 			input: &common.CommonDevice{
 				System: common.System{},
 			},
-			expected: "OPNsense Configuration",
+			expected: "Device Configuration",
 			wantErr:  false,
 		},
 	}
@@ -78,7 +75,7 @@ func TestMarkdownConverter_ToMarkdown(t *testing.T) {
 				require.NoError(t, err)
 
 				// With TERM=dumb, we get clean output without ANSI codes
-				assert.Contains(t, md, "OPNsense Configuration")
+				assert.Contains(t, md, tt.expected)
 				assert.Contains(t, md, "## System")
 
 				if tt.input != nil && tt.input.System.Hostname != "" && tt.input.System.Domain != "" {
@@ -198,7 +195,7 @@ func TestMarkdownConverter_EdgeCases(t *testing.T) {
 		md, err := c.ToMarkdown(context.Background(), &common.CommonDevice{})
 		require.NoError(t, err)
 		assert.NotEmpty(t, md)
-		assert.Contains(t, md, "OPNsense Configuration")
+		assert.Contains(t, md, "Device Configuration")
 	})
 
 	t.Run("opnsense with only system configuration", func(t *testing.T) {
@@ -420,7 +417,7 @@ func TestMarkdownConverter_ThemeSelection(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotEmpty(t, md)
 		// The markdown should be rendered without error regardless of theme
-		assert.Contains(t, md, "OPNsense Configuration")
+		assert.Contains(t, md, "Device Configuration")
 	})
 }
 

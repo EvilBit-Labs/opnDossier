@@ -1,10 +1,10 @@
-# opnDossier - OPNsense Configuration Processor
+# opnDossier - OPNsense and pfSense Configuration Processor
 
 [![OpenSSF Best Practices][ossf-badge]][ossf] [![Go Version][go-badge]][go] [![License][license-badge]][license] [![codecov][codecov-badge]][codecov] [![Documentation][docs-badge]][docs] [![wakatime][wakatime-badge]][wakatime] [![Go Report Card][goreportcard-badge]][goreportcard] [![Mergify Status][mergify-status]][mergify]
 
 ## Overview
 
-opnDossier is a command-line tool for network operators and security professionals working with OPNsense firewalls. Transform complex XML configuration files into clear, readable documentation and identify security issues, misconfigurations, and optimization opportunities.
+opnDossier is a command-line tool for network operators and security professionals working with OPNsense and pfSense firewalls. Transform complex XML configuration files into clear, readable documentation and identify security issues, misconfigurations, and optimization opportunities.
 
 Built for offline operation in secure environments - no external dependencies, no telemetry, complete airgapped support.
 
@@ -41,7 +41,7 @@ opnDossier convert -f json config.xml -o output.json
 
 ## Analysis & Security Features
 
-opnDossier automatically analyzes your OPNsense configuration to identify security issues, misconfigurations, and optimization opportunities.
+opnDossier automatically analyzes your OPNsense or pfSense configuration to identify security issues, misconfigurations, and optimization opportunities.
 
 ### Security Vulnerability Detection
 
@@ -166,7 +166,7 @@ tar -xzf opnDossier-*.tar.gz
 
 ### Install via Go
 
-**Prerequisites:** Go 1.21 or later
+**Prerequisites:** Go 1.26 or later
 
 ```bash
 go install github.com/EvilBit-Labs/opnDossier@latest
@@ -200,7 +200,7 @@ opnDossier convert -f json config.xml -o findings.json
 ### Configuration Documentation
 
 ```bash
-# Convert OPNsense config to markdown documentation
+# Convert OPNsense or pfSense config to markdown documentation
 opnDossier convert config.xml -o firewall-docs.md
 
 # Generate YAML for configuration management tools

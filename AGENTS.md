@@ -98,9 +98,11 @@ opndossier/
 ├── pkg/                    # Public API packages (importable by external consumers)
 │   ├── model/              # Platform-agnostic CommonDevice domain model
 │   ├── parser/             # Factory + DeviceParser interface
-│   │   └── opnsense/       # OPNsense parser + schema→CommonDevice converter
+│   │   ├── opnsense/       # OPNsense parser + schema→CommonDevice converter
+│   │   └── pfsense/        # pfSense parser + schema→CommonDevice converter (own XML decode)
 │   └── schema/
-│       └── opnsense/       # Canonical OPNsense data model — XML structs
+│       ├── opnsense/       # Canonical OPNsense data model — XML structs
+│       └── pfsense/        # pfSense data model — reuses opnsense types where XML matches
 ├── tools/docgen/           # Standalone model documentation generator (//go:build ignore)
 ├── testdata/               # Test data and fixtures
 ├── docs/                   # Documentation
@@ -242,6 +244,7 @@ Frequently encountered linter issues and fixes:
 | `staticcheck SA1019`       | Deprecated type alias usage            | Migrate ALL references (including test files) when deprecating a type alias — `Deprecated:` doc comment triggers SA1019 on every reference                |
 | `modernize`                | Legacy `sort.Strings`/`sort.Slice`     | Use `slices.Sort()` / `slices.SortFunc()` with `strings.Compare`                                                                                          |
 | `gofumpt` vs `//nolint`    | Directive between doc comment and func | `gofumpt` inserts a blank line that detaches the directive from the func — embed the suppression rationale in the doc comment instead of using `//nolint` |
+| `dupl`                     | Cross-type validator similarity        | Both sides of the duplicate pair need `//nolint:dupl` — see GOTCHAS.md §9.1                                                                               |
 
 > [!NOTE]
 > IDE diagnostics (marked with ★ in some editors) are suggestions, not errors. The authoritative source is `just lint` - if it reports "0 issues", the code is correct regardless of IDE warnings.
@@ -289,7 +292,7 @@ Use `xml.EscapeText` from stdlib instead of hand-rolled escaping. Note: stdlib u
 
 ### 5.17 XML Element Presence Detection
 
-Go's `encoding/xml` produces `""` for both self-closing tags (`<any/>`) and absent elements when using `string` fields. Use `*string` to distinguish presence from absence: self-closing → `*string` pointing to `""` (non-nil); absent → `nil`.
+Go's `encoding/xml` produces `""` for both self-closing tags (`<any/>`) and absent elements when using `string` fields. Use `*string` to distinguish presence from absence: self-closing → `*string` pointing to `""` (non-nil); absent → `nil`. See GOTCHAS.md §3.2 for the pitfall.
 
 **Creating `*string` values:** Use `new(expr)` (Go 1.26+), e.g., `Source{Any: new(""), Network: new("lan")}`. Legacy `StringPtr` helper still available in model package.
 
@@ -305,7 +308,11 @@ Add `IsAny()` / `Equal()` methods rather than comparing `*string` fields directl
 
 See `docs/development/xml-structure-research.md` for the complete field inventory with upstream source citations.
 
+**Repeated XML elements:** Use `[]string` for elements that can appear multiple times — see GOTCHAS.md §3.3 for the silent data loss pitfall.
+
 **`DeviceType` serialization:** `CommonDevice.DeviceType` uses `json:"device_type"` (no `omitempty`) — always serializes, even when empty. The `prepareForExport` pipeline defaults it to `DeviceTypeOPNsense`.
+
+**`DeviceType.DisplayName()`** returns the properly-cased human-readable platform name (`"OPNsense"`, `"pfSense"`, `"Device"` for unknown). All report titles and Platform labels in the converter/builder pipeline use this method — never hardcode `"OPNsense"` in rendered output. Test fixtures constructing `CommonDevice` directly must set `DeviceType` to get the correct platform name in assertions.
 
 ### 5.18 Context-Aware Semaphore
 
@@ -349,6 +356,16 @@ Files in `pkg/parser/opnsense/` (package `opnsense`) **must** alias the schema i
 
 `parser.NewFactory(decoder)` requires an `XMLDecoder` argument -- wire with `parser.NewFactory(cfgparser.NewXMLParser())` at the call site. The `XMLDecoder` interface is defined in `pkg/parser/factory.go`.
 
+**pfSense parser independence:** The pfSense parser in `pkg/parser/pfsense/` manages its own XML decoding because `XMLDecoder.Parse()` returns `*schema.OpnSenseDocument`, which is incompatible with `pfsense.Document`. The parser accepts the `XMLDecoder` parameter for `ConstructorFunc` compatibility but does not use it. Security hardening (LimitReader, entity map, charset reader) is shared via `parser.NewSecureXMLDecoder()` in `pkg/parser/xmlutil.go` -- both OPNsense (`internal/cfgparser`) and pfSense parsers delegate to it.
+
+`pkg/schema/pfsense/` (package `pfsense`) imports the opnsense package as `opnsense` and reuses shared types (`Interfaces`, `Dhcpd`, `BoolFlag`, `Source`, `Destination`, etc.) where the XML structure is identical. pfSense-specific types that share names with opnsense types use disambiguating suffixes (e.g., `SyslogConfig`, `UnboundConfig`) to avoid confusion when both packages are co-imported. All pfSense struct fields must carry triple tags (`xml`/`json`/`yaml`). Omitting `json`/`yaml` tags produces unformatted field names in serialized output (e.g., `IPProtocol` instead of `ipProtocol`). `pfsense.Group` is a local fork of `opnsense.Group` (copy-on-write per §6.1) because pfSense `<priv>` elements repeat per group — `Priv []string` vs `string`. The pfSense validator uses `validatePfSenseGroups` (not the shared `validateGroups` which takes `[]schema.Group`).
+
+See [`pkg/schema/pfsense/README.md`](pkg/schema/pfsense/README.md) for the complete pfSense config.xml structural reference, including all top-level sections, field inventories, listtags (array elements), version mapping, and differences from OPNsense.
+
+**pfSense source reference:** The pfSense PHP codebase at `github.com/pfsense/pfsense` is the authoritative source for config.xml structure. Key files: `src/etc/inc/xmlparse.inc` (listtags/array elements), `src/etc/inc/config.lib.inc` (config management), `src/etc/inc/upgrade_config.inc` (version migrations), and per-feature PHP pages in `src/usr/local/www/` (field inventories).
+
+**pfSense listtags:** Elements listed in pfSense's `xmlparse.inc` as listtags (e.g., `priv`, `dnsserver`, `user`, `rule`, `vip`) must use `[]Type` in Go schema structs -- using `string` silently drops all but the first value (see GOTCHAS.md §3.3).
+
 ### 5.24 Public Package Purity
 
 `pkg/` packages must NEVER import `internal/` packages. Any type exposed through a `pkg/` struct field must itself live in `pkg/` or stdlib. When moving types from `internal/` to `pkg/`, audit all struct fields for leaked internal types and define public equivalents in `pkg/` (e.g., `pkg/model.Severity` replaces `internal/analysis.Severity` in `ConversionWarning`).
@@ -363,6 +380,12 @@ Files in `pkg/parser/opnsense/` (package `opnsense`) **must** alias the schema i
 
 `Report.ToJSON()` and `Report.ToYAML()` serialize a redacted copy via `redactedCopyUnsafe()` to prevent `NormalizedConfig.SNMP.ROCommunity` from leaking. When adding new sensitive fields to `CommonDevice`, extend `redactedCopyUnsafe()` in `internal/processor/report.go`. The copy is constructed field-by-field (not `cp := *r`) to avoid `copylocks` on `sync.RWMutex`. Statistics redaction (`redactServiceDetails`) is separate and handles the statistics-layer SNMP community.
 
+### 5.25b Sanitizer Field Pattern Maintenance
+
+The `sanitize` command operates on raw XML element names via pattern matching in `internal/sanitizer/rules.go` (rule `FieldPatterns`) and `internal/sanitizer/patterns.go` (`passwordKeywords`). When adding a new device type, audit its XML element names for credential fields that differ from OPNsense and add them to both files. Example: pfSense uses `<bcrypt-hash>` instead of `<password>` — the generic `"pass"` substring did not match, so `"bcrypt-hash"` and `"sha512-hash"` were added explicitly.
+
+**Verification:** `opndossier sanitize <config.xml> | grep -i 'hash\|secret\|key\|pass\|community'` — check for unredacted sensitive values.
+
 ### 5.25a DeviceParser Registry Pattern
 
 `pkg/parser/registry.go` follows the `database/sql` driver registration pattern:
@@ -370,7 +393,7 @@ Files in `pkg/parser/opnsense/` (package `opnsense`) **must** alias the schema i
 - `parser.Register("opnsense", factory)` called from `init()` in `pkg/parser/opnsense/parser.go`
 - `parser.DefaultRegistry()` returns the singleton; `parser.NewDeviceParserRegistry()` for test isolation
 - `parser.NewFactoryWithRegistry(decoder, reg)` for tests needing isolated registry state
-- **CRITICAL: Blank imports required.** Any file using `parser.NewFactory()` must import `_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"` to trigger `init()` self-registration. Without this, the registry is empty and all device type lookups fail silently. The canonical blank import lives in `cmd/root.go`; test files must add their own.
+- **CRITICAL: Blank imports required.** Any file using `parser.NewFactory()` must import `_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"` and `_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/pfsense"` to trigger `init()` self-registration. The canonical blank imports live in `cmd/root.go`; test files must add their own — see GOTCHAS.md §7.1 for symptoms and debugging.
 - `ConstructorFunc = func(XMLDecoder) DeviceParser` -- named type alias for factory functions
 - `Get()` returns `(ConstructorFunc, bool)` (map semantics), not `(T, error)` like FormatRegistry
 
@@ -401,6 +424,14 @@ When splitting a large file into domain-specific files within the same package:
 - `pkg/schema/opnsense/` is the canonical OPNsense XML data model. Boolean patterns: see §5.17
 - `RuleLocation` in `common.go` has complete source/destination fields but is NOT used by `Source`/`Destination` in `security.go` — tracked in issue #255
 - Known schema gaps: ~40+ type mismatches and missing fields — see `docs/development/xml-structure-research.md` §4-5
+- **Schema reuse (copy-on-write):** When creating a new device schema (for example, pfSense), it is acceptable as a stop-gap to reuse struct definitions from another schema when they are truly identical. Treat reused structs as copy-on-write: do not alter the original device schema in place. If behavior or fields diverge, copy the struct into the new schema package and make changes there. This also applies when forked or variant platforms undergo major breaking schema changes (for example, within Cisco families such as ASA vs IOS vs NGFW-style variants): reuse only while identical, then fork locally at first divergence.
+
+**pfSense type divergences from OPNsense:**
+
+- `pfsense.Group` has `Priv []string` (not `string`) — converter uses `strings.Join(g.Priv, ", ")` for `common.Group.Privileges`
+- `pfsense.System.DNSServers` is `[]string` (not space-separated `string`) — no `strings.Fields()` needed
+- `pfsense.InboundRule` has `Target` field for internal redirect IP — converter uses `Target` with fallback to `InternalIP`
+- `pfsense.SyslogConfig` only has `FilterDescriptions` — no mapping to `common.SyslogConfig` (returns zero value)
 
 **Platform-agnostic model layer:**
 
@@ -500,7 +531,7 @@ Use `t.Helper()` in all test helpers and `t.Cleanup()` for teardown. Place share
 
 ### 7.4 Map Iteration in Tests
 
-Map iteration is non-deterministic — test for presence (`strings.Contains()`) not exact equality. Production code must sort before rendering (see §5.11).
+Map iteration is non-deterministic — test for presence (`strings.Contains()`) not exact equality. Production code must sort before rendering (see §5.11 and GOTCHAS.md §3.1).
 
 ### 7.4a Pointer Identity in Tests
 
@@ -544,7 +575,7 @@ When adding new audit-specific flags (`cmd/audit.go`), update `auditFlagSnapshot
 
 ### 7.8 Testing Cobra PreRunE Validators
 
-To unit-test `PreRunE` without requiring a full `CommandContext` (which needs config loading), construct a temporary `cobra.Command` with flags bound to the same global variables, set values via `cmd.Flags().Set("name", "value")`, then invoke `auditCmd.PreRunE(tempCmd, args)` directly. See `cmd/audit_test.go` for the canonical pattern.
+To unit-test `PreRunE` without requiring a full `CommandContext` (which needs config loading), construct a temporary `cobra.Command` with flags bound to the same global variables, set values via `cmd.Flags().Set("name", "value")`, then invoke `auditCmd.PreRunE(tempCmd, args)` directly. See `cmd/audit_test.go` for the canonical pattern and GOTCHAS.md §5.3 for the binding pitfall.
 
 ---
 
@@ -571,15 +602,15 @@ All plugins implement `compliance.Plugin` (see `internal/compliance/interfaces.g
 - Dynamic plugins: export `var Plugin compliance.Plugin`. Must set `Severity` or provide resolvable `References` — `RunComplianceChecks` normalizes empty severity via `GetControlByID()` or returns error
 - `compliance.CloneControls()` deep-copies `[]Control` including nested types (Tags, Metadata) — use in `GetControls()` and when storing controls in result structs
 - Plugin name matching is case-insensitive (`deduplicatePluginNames`, `ValidateModeConfig` normalize to lowercase)
-- `RunComplianceChecks` wraps each plugin's `RunChecks()` in `defer recover()` with `debug.Stack()` — panicked plugins are logged via `*logging.Logger` and retained in results with safe defaults (`Version: "unknown (panicked)"`, empty compliance map) via `continue`, skipping post-recovery method calls on potentially corrupt plugin state. Nil logger defaults to a fallback. Callers pass their configured logger
+- `RunComplianceChecks` wraps each plugin's `RunChecks()` in `defer recover()` — see GOTCHAS.md §2.2 for recovery invariants. Nil logger defaults to a fallback. Callers pass their configured logger
 - `LoadDynamicPlugins` returns `(LoadResult, error)` with per-plugin `PluginLoadError` details; aggregate error via `errors.Join`. When `explicitDir=true` and the directory is missing, returns an error (not a silent skip)
 - `LoadResult.Failed()` is a method (not a field) — always equals `len(Failures)`. `PluginLoadError` implements the `error` interface
 - `PluginRegistry.pluginLoader` (type `pluginLoaderFunc`) is injectable via `newPluginRegistryWithLoader()` for testing — defaults to `defaultPluginLoader` which wraps `plugin.Open`/`Lookup`/type-assert. Includes nil-plugin guard after loader returns
-- `PluginManager.SetPluginDir(dir, explicit)` must be called *before* `InitializePlugins` — the dir is read during initialization, not after. Dynamic plugin load failures are non-fatal: they do not cause `InitializePlugins` to return an error. Callers must inspect `GetLoadResult()` to detect failures
+- `PluginManager.SetPluginDir(dir, explicit)` must be called *before* `InitializePlugins` (see GOTCHAS.md §2.3). Dynamic plugin load failures are non-fatal: they do not cause `InitializePlugins` to return an error. Callers must inspect `GetLoadResult()` to detect failures
 - `audit.Options` includes `PluginDir` and `ExplicitPluginDir` fields — wired in `handleAuditMode` before `InitializePlugins`
 - `generateBlueReport()` resolves all registered plugins via `mc.registry.ListPlugins()` when `SelectedPlugins` is empty — bare `--mode blue` runs a full compliance audit by default
 - Multi-file audit: `emitAuditResult()` takes a `multiFile bool` parameter; when true, derives per-input output paths via `deriveAuditOutputPath()` and nils out config to prevent shared `OutputFile` from causing overwrites
-- `deriveAuditOutputPath` uses lossless tilde-based escaping (`~` → `~~`, `_` → `~u`, separator → `_`) to guarantee distinct filenames for distinct input paths (e.g., `a_b/c/config.xml` → `a~ub_c_config-audit.md` vs `a/b_c/config.xml` → `a_b~uc_config-audit.md`; dashes are preserved as-is). The tilde scheme avoids the boundary ambiguity of double-underscore escaping where `a_/b` and `a/_b` collapsed to the same output
+- `deriveAuditOutputPath` uses lossless tilde-based escaping to guarantee distinct filenames for distinct input paths — see GOTCHAS.md §8.3 for the encoding scheme and collision pitfalls
 - `validateOutputFlags()` in `cmd/shared_flags.go` validates format, wrap, and section flags shared by `convert` and `audit`. `validateConvertFlags()` delegates to it then adds convert-specific audit flag checks. The audit command calls `validateOutputFlags()` directly — never `validateConvertFlags()`
 - Audit file organization: `cmd/audit.go` (command definition, flags, `runAudit`, `generateAuditOutput`), `cmd/audit_output.go` (emission logic, path derivation), `cmd/audit_handler.go` (audit pipeline orchestration shared with convert)
 

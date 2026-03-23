@@ -64,7 +64,7 @@ func TestIPProtocol_IsValid(t *testing.T) {
 	}{
 		{"inet is valid", common.IPProtocolInet, true},
 		{"inet6 is valid", common.IPProtocolInet6, true},
-		{"inet46 is invalid", common.IPProtocol("inet46"), false},
+		{"inet46 is valid", common.IPProtocolInet46, true},
 		{"empty is invalid", common.IPProtocol(""), false},
 	}
 

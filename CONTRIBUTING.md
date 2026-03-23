@@ -100,10 +100,12 @@ opndossier/
 │   └── validator/      # Data validation
 ├── pkg/                 # Public API packages (importable by external Go projects)
 │   ├── model/          # Platform-agnostic CommonDevice domain model
-│   ├── parser/         # Factory and DeviceParser interface
-│   │   └── opnsense/   # OPNsense parser + schema→CommonDevice converter
+│   ├── parser/         # Factory, DeviceParser interface, shared xmlutil.go
+│   │   ├── opnsense/   # OPNsense parser + schema→CommonDevice converter
+│   │   └── pfsense/    # pfSense parser + schema→CommonDevice converter
 │   └── schema/
-│       └── opnsense/   # Canonical OPNsense XML data model (XML structs)
+│       ├── opnsense/   # Canonical OPNsense XML data model (XML structs)
+│       └── pfsense/    # pfSense XML data model (copy-on-write from opnsense)
 ├── tools/               # Standalone development tools
 ├── testdata/            # Test data and fixtures
 ├── docs/                # Documentation
@@ -370,6 +372,8 @@ Use restrictive file permissions for sensitive material. Configuration files and
 
 Keep error messages safe for operators and safe for logs. Do not leak credentials, raw configuration secrets, internal-only filesystem details, or sensitive values in returned errors. The SNMP community redaction logic in `internal/processor/report.go` is the canonical example of how sensitive values should be handled.
 
+When adding a new device type, audit its XML element names for credential fields and add them to the sanitizer's field-pattern lists in `internal/sanitizer/rules.go` (`FieldPatterns`) and `internal/sanitizer/patterns.go` (`passwordKeywords`). Device types may use different element names for the same data (e.g., pfSense uses `<bcrypt-hash>` where OPNsense uses `<password>`). Verify with: `opndossier sanitize <config.xml> | grep -iE 'hash|secret|key|pass|community' | grep -v REDACTED` — the output should be empty. Any lines that appear contain unredacted sensitive values that need new sanitizer rules.
+
 Never commit secrets to source control. Use environment variables or secure secret storage when a secret is genuinely required. For the full vulnerability reporting process and threat model, see `SECURITY.md` and `docs/security/security-assurance.md`.
 
 ### 2. Development Commands
@@ -612,9 +616,9 @@ func TestConfigLoad(t *testing.T) {
 
 ## Data Processing Pipeline
 
-The pipeline starts with ingestion. `internal/cfgparser/` parses OPNsense `config.xml` input into `pkg/schema/opnsense.OpnSenseDocument`, which serves as the canonical XML data transfer model for the rest of the system.
+The pipeline starts with ingestion. The parser factory (`pkg/parser/factory.go`) auto-detects the device type from the XML root element (`<opnsense>` or `<pfsense>`) and delegates to the appropriate registered parser. OPNsense configs are parsed via `internal/cfgparser/` into `pkg/schema/opnsense.OpnSenseDocument`; pfSense configs are parsed directly into `pkg/schema/pfsense.Document`. Both parsers share XML security hardening via `pkg/parser/xmlutil.go`.
 
-The next stage is conversion. `pkg/parser/opnsense/` transforms `OpnSenseDocument` into `pkg/model.CommonDevice`, the platform-agnostic domain model used by audit, diff, display, and export flows. Conversion warnings (`common.ConversionWarning`) are non-fatal and must be propagated to the caller rather than silently discarded.
+The next stage is conversion. `pkg/parser/opnsense/` and `pkg/parser/pfsense/` each transform their schema types into `pkg/model.CommonDevice`, the platform-agnostic domain model used by audit, diff, display, and export flows. Conversion warnings (`common.ConversionWarning`) are non-fatal and must be propagated to the caller rather than silently discarded.
 
 From there, export enrichment happens through a single gate: `prepareForExport()` in `internal/converter/enrichment.go`. This function is the shared path for JSON and YAML export preparation and populates statistics, analysis, security assessment data, and performance metrics in one place.
 

@@ -445,3 +445,84 @@ func maxVisibleLineLengthWithLine(output string) (int, string) {
 
 	return maxLen, maxLine
 }
+
+// TestEndToEndConversion_PfSense performs end-to-end integration tests with a real pfSense fixture.
+func TestEndToEndConversion_PfSense(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "opndossier-pfsense-integration-test")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	binaryPath := filepath.Join(tmpDir, "opndossier")
+	buildBinary(t, binaryPath)
+
+	// Use the committed fixture file with an absolute path for working-directory safety.
+	absConfig, err := filepath.Abs("testdata/pfsense/config-pfSense.xml")
+	require.NoError(t, err)
+	configFile := absConfig
+
+	testCases := []struct {
+		name     string
+		args     []string
+		expected []string
+	}{
+		{
+			name:     "pfSense markdown conversion",
+			args:     []string{"convert", configFile},
+			expected: []string{"pfSense", "System Configuration", "Network Configuration"},
+		},
+		{
+			name:     "pfSense JSON conversion",
+			args:     []string{"convert", configFile, "--format", "json"},
+			expected: []string{`"hostname"`, `"pfSense"`, `"pfsense"`},
+		},
+		{
+			name:     "pfSense YAML conversion",
+			args:     []string{"convert", configFile, "--format", "yaml"},
+			expected: []string{"hostname:", "pfSense"},
+		},
+		{
+			name:     "pfSense with sections",
+			args:     []string{"convert", configFile, "--section", "system,network"},
+			expected: []string{"System Configuration", "Network Configuration"},
+		},
+		{
+			name:     "pfSense display",
+			args:     []string{"display", configFile},
+			expected: []string{"pfSense"},
+		},
+		{
+			name:     "pfSense with device-type override",
+			args:     []string{"convert", configFile, "--device-type", "pfsense", "--format", "json"},
+			expected: []string{`"pfsense"`},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cmd := exec.Command(binaryPath, tc.args...)
+
+			var stdout, stderr bytes.Buffer
+			cmd.Stdout = &stdout
+			cmd.Stderr = &stderr
+
+			err := cmd.Run()
+
+			output := stdout.String() + stderr.String()
+			assert.NotEmpty(t, output, "Expected some output from CLI command")
+
+			if err != nil {
+				errorStr := err.Error() + stderr.String()
+				assert.True(t,
+					strings.Contains(errorStr, "parse") ||
+						strings.Contains(errorStr, "xml") ||
+						strings.Contains(errorStr, "config"),
+					"Error should be related to parsing, not command structure: %s", errorStr)
+			} else {
+				for _, expected := range tc.expected {
+					assert.Contains(t, output, expected,
+						"Output should contain expected content: %s", expected)
+				}
+			}
+		})
+	}
+}

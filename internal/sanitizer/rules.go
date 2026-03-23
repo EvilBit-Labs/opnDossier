@@ -255,6 +255,7 @@ func builtinRules() []Rule {
 			Modes:       allModes,
 			FieldPatterns: []string{
 				"password", "passwd", "pass", "pwd",
+				"bcrypt-hash", "bcrypt_hash", "sha512-hash",
 			},
 			Redactor: func(_ *Mapper, _, _ string) string {
 				return "[REDACTED-PASSWORD]"

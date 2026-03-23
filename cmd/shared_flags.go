@@ -178,6 +178,7 @@ var formatDescriptions = map[string]string{ //nolint:gochecknoglobals // static 
 // deviceTypeDescriptions maps registered device types to their shell completion descriptions.
 var deviceTypeDescriptions = map[string]string{ //nolint:gochecknoglobals // static lookup table
 	"opnsense": "OPNsense firewall configuration",
+	"pfsense":  "pfSense firewall configuration",
 }
 
 // ValidFormats provides shell completion for output format values.

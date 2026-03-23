@@ -186,7 +186,7 @@ func TestDeviceTypeUnknownReturnsError(t *testing.T) {
 </opnsense>`
 	tmpFile := createTestXMLFile(t, xmlContent)
 
-	sharedDeviceType = "pfsense"
+	sharedDeviceType = "juniper"
 	err := runDisplayCommand(t, tmpFile)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported device type")

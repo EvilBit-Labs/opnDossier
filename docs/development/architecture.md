@@ -2,7 +2,7 @@
 
 ## Overview
 
-opnDossier is a **CLI-based multi-device firewall configuration processor** designed with an **offline-first, operator-focused architecture**. Currently supports OPNsense with an extensible architecture for additional device types. The system transforms complex XML configuration files into human-readable markdown documentation, following security-first principles and air-gap compatibility.
+opnDossier is a **CLI-based multi-device firewall configuration processor** designed with an **offline-first, operator-focused architecture**. Currently supports OPNsense and pfSense with an extensible architecture for additional device types. The system transforms complex XML configuration files into human-readable markdown documentation, following security-first principles and air-gap compatibility.
 
 ![System Architecture](opnFocus_System_Architecture.png)
 
@@ -192,14 +192,19 @@ For practical developer guidance on public package purity and the boundary verif
 - **Dispatch**: `Factory.CreateDevice()` auto-detects device type from the XML root element via registry lookup, or accepts an explicit `--device-type` override
 - **Built-in**: OPNsense parser self-registers in `pkg/parser/opnsense/parser.go`
 - **Extensibility**: External parsers register via blank import in the consumer binary (see [Plugin Development Guide](plugin-development.md#device-parser-development))
-- **Blank Import Requirement**: `cmd/root.go` (and test files using `parser.NewFactory()`) must import `_ "pkg/parser/opnsense"` to trigger registration
+- **Blank Import Requirement**: `cmd/root.go` (and test files using `parser.NewFactory()`) must import both device parsers to trigger registration:
+  ```go
+  _ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"
+  _ "github.com/EvilBit-Labs/opnDossier/pkg/parser/pfsense"
+  ```
 
 #### XML Parser Component
 
 - **Technology**: Go's built-in `encoding/xml`
-- **Input**: OPNsense config.xml files
+- **Input**: OPNsense and pfSense config.xml files
 - **Output**: Structured Go data types
 - **Features**: Schema validation, error reporting, automatic charset conversion (UTF-8, US-ASCII, ISO-8859-1, Windows-1252)
+- **Shared Security Hardening**: `pkg/parser/xmlutil.go` provides `NewSecureXMLDecoder()` and `CharsetReader()` for XXE protection, input size limits, and charset handling used by both OPNsense and pfSense parsers
 
 #### Data Converter Component
 
@@ -374,29 +379,61 @@ const (
 
 ## Multi-Device Model Layer Architecture
 
-opnDossier separates XML-specific DTOs from the domain model consumed by all downstream components. This enables support for multiple device types (OPNsense today, pfSense/Cisco ASA in the future) behind a single `CommonDevice` abstraction.
+opnDossier separates XML-specific DTOs from the domain model consumed by all downstream components. This enables support for multiple device types (OPNsense and pfSense today, Cisco ASA in the future) behind a single `CommonDevice` abstraction.
 
 ```mermaid
 graph TD
     A["pkg/schema/opnsense/ — XML DTOs (OPNsense-shaped structs)"]
     B["pkg/parser/opnsense/ — OPNsense parser + converter"]
-    C["pkg/model/ — CommonDevice domain model"]
-    D["internal/analysis/ — Canonical Finding + Severity types"]
-    E["Consumers: processor / converter / markdown / audit / diff / plugins"]
+    C["pkg/schema/pfsense/ — XML DTOs (pfSense-shaped structs)"]
+    D["pkg/parser/pfsense/ — pfSense parser + converter"]
+    E["pkg/model/ — CommonDevice domain model"]
+    F["internal/analysis/ — Canonical Finding + Severity types"]
+    G["Consumers: processor / converter / markdown / audit / diff / plugins"]
 
     A --> B
-    B --> C
-    C --> E
+    C --> D
+    B --> E
     D --> E
+    E --> G
+    F --> G
 ```
 
 ### Layer Responsibilities
 
 - **`pkg/schema/opnsense/`** — XML DTO layer. Carries `xml:""` tags and mirrors the OPNsense config.xml structure. This layer is untouched by downstream consumers.
 - **`pkg/parser/opnsense/`** — Contains `parser.go` and `converter.go`. Reads schema DTOs and emits `*common.CommonDevice` with conversion warnings. **Converts OPNsense XML string values to typed enum constants** (e.g., `"pass"` → `common.RuleTypePass`, `"automatic"` → `common.OutboundAutomatic`). This is the only package that imports `pkg/schema/opnsense/`.
-- **`pkg/model/`** — Device-agnostic domain model. No XML tags. Defines typed string enums for firewall rules (`RuleType`, `Direction`, `IPProtocol`), NAT configurations (`OutboundMode`), and network elements (`LAGGProtocol`, `VIPMode`). All consumer code (processor, converter, markdown, audit, diff, compliance plugins) operates on `CommonDevice`. Includes `ConversionWarning` type for non-fatal issues and `ComplianceResults` type (with nested `ComplianceFinding`, `PluginComplianceResult`, `ComplianceControl`, `ComplianceResultSummary`, `CompliancePluginInfo`, `ComplianceAttackSurface`) for compliance audit data representation.
+- **`pkg/schema/pfsense/`** — XML DTO layer for pfSense. Follows **copy-on-write pattern**: reuses OPNsense types where XML structures are identical (e.g., `Interface`, `Destination`, `Source`), forks locally at divergence points (e.g., `InboundRule` uses `<target>` instead of `<internalip>`, `FilterRule` adds pfSense-specific fields like `ID`, `Tag`, `OS`, `AssociatedRuleID`). Documented in `pkg/schema/pfsense/README.md`.
+- **`pkg/parser/pfsense/`** — Contains `parser.go`, `converter.go`, and subsystem converters. Manages its own XML decoding via `parser.NewSecureXMLDecoder()` (pfSense parser doesn't use `internal/cfgparser.NewXMLParser()` because the shared `XMLDecoder` interface returns `*schema.OpnSenseDocument`). Emits `*common.CommonDevice` with conversion warnings.
+- **`pkg/model/`** — Device-agnostic domain model. No XML tags. Defines typed string enums for firewall rules (`RuleType`, `Direction`, `IPProtocol`), NAT configurations (`OutboundMode`), and network elements (`LAGGProtocol`, `VIPMode`). All consumer code (processor, converter, markdown, audit, diff, compliance plugins) operates on `CommonDevice`. Includes `ConversionWarning` type for non-fatal issues and `ComplianceResults` type (with nested `ComplianceFinding`, `PluginComplianceResult`, `ComplianceControl`, `ComplianceResultSummary`, `CompliancePluginInfo`, `ComplianceAttackSurface`) for compliance audit data representation. Adds `DeviceType.DisplayName()` method for dynamic report headers (e.g., "OPNsense" vs "pfSense").
 - **`internal/analysis/`** — Shared analysis logic and canonical finding types. Provides detection functions (`DetectDeadRules`, `DetectUnusedInterfaces`, `DetectSecurityIssues`, `DetectPerformanceIssues`, `DetectConsistency`), statistics computation (`ComputeStatistics`), analysis aggregation (`ComputeAnalysis`), and rule comparison (`RulesEquivalent`). **Uses typed constants for rule type comparisons** (e.g., `rule.Type == common.RuleTypeBlock`) instead of string literals. Used by both `internal/converter` and `internal/processor` to eliminate duplicated logic.
 - **`pkg/parser/factory.go`** — `Factory` and `DeviceParser` interface. Uses the `DeviceParserRegistry` for device type dispatch. Auto-detects the device type from the XML root element or uses the `--device-type` flag to bypass auto-detection. Returns 3 values: device model, warnings slice, and error.
+
+### Schema Reuse Pattern
+
+pfSense schema follows a **copy-on-write** approach to minimize duplication:
+
+- **Reuse OPNsense types** when XML structure is identical (e.g., `opnsense.Interface`, `opnsense.Source`, `opnsense.Destination`, `opnsense.Outbound`, `opnsense.SSHConfig`)
+- **Fork locally** when pfSense diverges (e.g., `InboundRule` for `<target>` vs `<internalip>`, `Group` for `[]string Priv` vs single privilege, `System` for `[]string DNSServers` vs single server, `FilterRule` for pfSense-specific fields)
+- **Document differences** in `pkg/schema/pfsense/README.md` with complete structural reference covering 50+ top-level sections
+
+### pfSense-Specific Types
+
+Key pfSense types that differ from OPNsense:
+
+- **`InboundRule`** — NAT port forward rule using `<target>` field instead of OPNsense's `<internalip>`
+- **`FilterRule`** — Firewall rule with pfSense-specific fields: `ID`, `Tag`, `Tagged`, `OS`, `AssociatedRuleID`, `MaxSrcStates`, plus additional rate-limiting and state fields
+- **`Group`** — Group with `[]string Priv` array (per-group privileges) instead of OPNsense's single privilege model
+- **`System`** — System config with `[]string DNSServers` (repeating `<dnsserver>` elements) instead of single DNS server string
+- **`User`** — User account with `BcryptHash` field instead of OPNsense's `Password` field (SHA-based)
+
+### Parser Independence
+
+The pfSense parser operates independently from the OPNsense parser:
+
+- **Self-contained XML decoding**: Uses `parser.NewSecureXMLDecoder()` directly instead of `internal/cfgparser.NewXMLParser()` because the shared `XMLDecoder` interface is typed to return `*schema.OpnSenseDocument`
+- **Shared security hardening**: Both parsers use the same `NewSecureXMLDecoder()` and `CharsetReader()` from `pkg/parser/xmlutil.go` for XXE protection, input size limits, and charset handling (UTF-8, US-ASCII, ISO-8859-1, Windows-1252)
+- **Registry-based registration**: Self-registers via `init()` in `pkg/parser/pfsense/parser.go` to handle `<pfsense>` root elements
 
 ### Device Type Detection
 
@@ -530,10 +567,11 @@ func init() {
 ```go
 import (
     _ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"  // Register OPNsense parser
+    _ "github.com/EvilBit-Labs/opnDossier/pkg/parser/pfsense"   // Register pfSense parser
 )
 ```
 
-Without this blank import, the OPNsense parser never registers and the factory has no parsers available. This gotcha is documented in **GOTCHAS.md §7.1** and affects:
+Without these blank imports, the parsers never register and the factory has no parsers available. This gotcha is documented in **GOTCHAS.md §7.1** and affects:
 
 - `cmd/root.go` — CLI entry point
 - All test files using `parser.NewFactory()` or `parser.DefaultRegistry()`
@@ -602,11 +640,16 @@ For practical developer guidance on the DeviceParser registry pattern and blank 
 
 The data processing pipeline follows a clear multi-stage architecture documented in **[CONTRIBUTING.md](../../CONTRIBUTING.md) Data Processing Pipeline** section:
 
-1. **Ingestion**: `internal/cfgparser/` parses OPNsense `config.xml` → `pkg/schema/opnsense.OpnSenseDocument`
-2. **Conversion**: `pkg/parser/opnsense/` transforms `OpnSenseDocument` → `pkg/model.CommonDevice` with conversion warnings. **XML string values are converted to typed enum constants** (e.g., `rule.Type` XML string `"pass"` becomes `common.RuleTypePass`)
+1. **Ingestion**: Device-specific parsers parse configuration files → schema documents
+   - OPNsense: `internal/cfgparser/` parses `config.xml` → `pkg/schema/opnsense.OpnSenseDocument`
+   - pfSense: `pkg/parser/pfsense/parser.go` parses `config.xml` → `pkg/schema/pfsense.Document`
+2. **Conversion**: Device-specific converters transform schema documents → `pkg/model.CommonDevice` with conversion warnings
+   - OPNsense: `pkg/parser/opnsense/` transforms `OpnSenseDocument` → `CommonDevice`
+   - pfSense: `pkg/parser/pfsense/` transforms `Document` → `CommonDevice`
+   - **XML string values are converted to typed enum constants** (e.g., `rule.Type` XML string `"pass"` becomes `common.RuleTypePass`)
 3. **Export Enrichment**: `internal/converter/enrichment.go` populates statistics, analysis, security assessment via `prepareForExport()`
 4. **Export**: Registry-driven multi-format output (markdown, json, yaml, text, html) via `FormatRegistry`. **Typed enums serialize back to string values** during JSON/YAML marshaling (e.g., `common.RuleTypePass` → `"pass"`)
-5. **Report Generation**: Audience-aware reports built through `builder.MarkdownBuilder`
+5. **Report Generation**: Audience-aware reports built through `builder.MarkdownBuilder` with dynamic headers using `DeviceType.DisplayName()` (e.g., "OPNsense Configuration Summary" vs "pfSense Configuration Summary")
 
 ```mermaid
 sequenceDiagram
@@ -1500,14 +1543,14 @@ For secure coding principles, SNMP redaction patterns, and the canonical approac
 
 ## Quick Start Architecture Summary
 
-1. **User provides** OPNsense config.xml file
+1. **User provides** OPNsense or pfSense config.xml file
 2. **CLI parses** command-line arguments and loads configuration (via `convert`, `display`, `audit`, `validate`, or `diff` commands)
-3. **Factory** auto-detects device type and converts to `CommonDevice`
+3. **Factory** auto-detects device type from XML root element (`<opnsense>` or `<pfsense>`) and dispatches to appropriate parser
 4. **Converter** transforms XML to `CommonDevice`, accumulating conversion warnings for non-fatal issues
 5. **Parser returns** 3 values: device model, warnings slice, error
 6. **CLI logs** warnings via structured logging (suppressed with `--quiet` flag)
 7. **FormatRegistry** provides handler for requested format (markdown, JSON, YAML, text, HTML)
-8. **Output Renderer** generates documentation via format-specific handler
+8. **Output Renderer** generates documentation via format-specific handler with dynamic headers using `DeviceType.DisplayName()`
 9. **User receives** human-readable documentation in the requested format
 
 **Key Benefits**: Offline operation, security-first design, operator-focused workflows, cross-platform compatibility, and comprehensive documentation generation from complex network configurations.
