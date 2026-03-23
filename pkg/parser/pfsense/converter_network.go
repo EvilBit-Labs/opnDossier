@@ -23,7 +23,7 @@ func (c *converter) convertInterfaces(doc *pfsense.Document) []common.Interface 
 			Name:         key,
 			PhysicalIf:   iface.If,
 			Description:  iface.Descr,
-			Enabled:      iface.Enable.Bool(),
+			Enabled:      isPfSenseValueTrue(iface.Enable),
 			IPAddress:    iface.IPAddr,
 			IPv6Address:  iface.IPAddrv6,
 			Subnet:       iface.Subnet,
