@@ -35,7 +35,7 @@ var (
 	// TODO(#457): Remove shared audit globals — no longer bound to any CLI flags
 	// after audit flag removal from convert. Retained because buildAuditOptions()
 	// and generateOutputByFormat() still reference them.
-	sharedAuditMode       string   //nolint:gochecknoglobals // Audit mode (standard, blue, red)
+	sharedAuditMode       string   //nolint:gochecknoglobals // Audit mode (blue, red)
 	sharedSelectedPlugins []string //nolint:gochecknoglobals // Selected compliance plugins
 	sharedPluginDir       string   //nolint:gochecknoglobals // Directory for dynamic .so plugins
 )
@@ -232,7 +232,6 @@ func ValidColorModes(_ *cobra.Command, _ []string, _ string) ([]string, cobra.Sh
 // ValidAuditModes provides shell completion for audit mode values.
 func ValidAuditModes(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return []string{
-		"standard\tNeutral, comprehensive documentation report",
 		"blue\tDefensive audit with security findings",
 		"red\tAttacker-focused recon report",
 	}, cobra.ShellCompDirectiveNoFileComp

@@ -223,7 +223,7 @@ All commit messages must follow the [Conventional Commits](https://www.conventio
 ## Integration & Plugin Patterns
 
 - **Audit Plugins**: Implement `compliance.Plugin` interface (`internal/compliance/interfaces.go`). Register in `internal/audit/plugin_manager.go`.
-- **Plugin Structure**: Place in `internal/plugins/{standard}/`. Use generic `Finding` struct - no compliance-specific fields.
+- **Plugin Structure**: Place in `internal/plugins/<plugin-name>/`. Use generic `Finding` struct - no compliance-specific fields.
 - **Multi-Format Export**: Add new formats in `internal/converter/` and templates in `internal/templates/`.
 
 ## Project Structure
@@ -348,8 +348,8 @@ just docs               # Serve documentation locally (if available)
 # Validate configuration
 ./opndossier validate config.xml
 
-# Run with audit plugins
-./opndossier convert config.xml --audit stig,sans
+# Run a blue team audit with specific compliance plugins
+./opndossier audit config.xml --mode blue --plugins stig,sans
 ```
 
 ## AI Agent Mandatory Practices

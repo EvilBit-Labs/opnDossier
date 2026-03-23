@@ -21,7 +21,7 @@ func TestComplianceResults_HasData(t *testing.T) {
 		},
 		{
 			name:     "mode set",
-			results:  common.ComplianceResults{Mode: "standard"},
+			results:  common.ComplianceResults{Mode: "blue"},
 			expected: true,
 		},
 		{

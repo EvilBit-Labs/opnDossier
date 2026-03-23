@@ -51,11 +51,11 @@ The `audit` command is the dedicated entry point for security audit and complian
 
 ### Audit-Specific Flags
 
-| Setting            | CLI Flag       | Type     | Default      | Description                                                                                                 |
-| ------------------ | -------------- | -------- | ------------ | ----------------------------------------------------------------------------------------------------------- |
-| Audit mode         | `--mode`       | string   | `"standard"` | Audit mode: `standard` (neutral report), `blue` (defensive audit with compliance), `red` (attack surface)   |
-| Compliance plugins | `--plugins`    | string[] | `[]`         | Comma-separated list: `stig`, `sans`, `firewall`. Only valid with `--mode blue`. Empty = all plugins run.   |
-| Plugin directory   | `--plugin-dir` | string   | `""`         | Directory containing dynamic `.so` compliance plugins. Failed plugin loads are non-fatal (warnings logged). |
+| Setting            | CLI Flag       | Type     | Default  | Description                                                                                                 |
+| ------------------ | -------------- | -------- | -------- | ----------------------------------------------------------------------------------------------------------- |
+| Audit mode         | `--mode`       | string   | `"blue"` | Audit mode: `blue` (defensive audit with compliance), `red` (attack surface)                                |
+| Compliance plugins | `--plugins`    | string[] | `[]`     | Comma-separated list: `stig`, `sans`, `firewall`. Only valid with `--mode blue`. Empty = all plugins run.   |
+| Plugin directory   | `--plugin-dir` | string   | `""`     | Directory containing dynamic `.so` compliance plugins. Failed plugin loads are non-fatal (warnings logged). |
 
 ### Shared Output Flags
 
@@ -106,8 +106,6 @@ opndossier audit config.xml --mode blue --plugin-dir /opt/plugins
 # Multi-file audit with JSON output
 opndossier audit config1.xml config2.xml --mode blue --format json
 ```
-
-**Relationship to convert:** The `audit` command is the dedicated entry point for audit workflows. The `convert --audit-mode` flags remain available for backward compatibility but are not the primary interface.
 
 ## Display Command Options
 

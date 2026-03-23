@@ -58,10 +58,10 @@ func TestParseReportMode(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "standard mode",
+			name:    "standard mode is rejected",
 			input:   "standard",
-			want:    ModeStandard,
-			wantErr: false,
+			want:    "",
+			wantErr: true,
 		},
 		{
 			name:    "blue mode",
@@ -76,10 +76,10 @@ func TestParseReportMode(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "case insensitive standard",
+			name:    "case insensitive standard is rejected",
 			input:   "STANDARD",
-			want:    ModeStandard,
-			wantErr: false,
+			want:    "",
+			wantErr: true,
 		},
 		{
 			name:    "case insensitive blue",
@@ -132,11 +132,6 @@ func TestReportMode_String(t *testing.T) {
 		mode ReportMode
 		want string
 	}{
-		{
-			name: "standard mode",
-			mode: ModeStandard,
-			want: "standard",
-		},
 		{
 			name: "blue mode",
 			mode: ModeBlue,
@@ -211,13 +206,6 @@ func TestModeController_ValidateModeConfig(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "valid standard mode",
-			config: &ModeConfig{
-				Mode: ModeStandard,
-			},
-			wantErr: false,
-		},
-		{
 			name: "valid blue mode",
 			config: &ModeConfig{
 				Mode: ModeBlue,
@@ -262,7 +250,7 @@ func TestModeController_ValidateModeConfig(t *testing.T) {
 		{
 			name: "valid plugin selection - empty plugins array",
 			config: &ModeConfig{
-				Mode:            ModeStandard,
+				Mode:            ModeBlue,
 				SelectedPlugins: []string{},
 			},
 			wantErr: false,
@@ -294,7 +282,7 @@ func TestModeController_ValidateModeConfig(t *testing.T) {
 		{
 			name: "valid plugin selection - case insensitive",
 			config: &ModeConfig{
-				Mode:            ModeStandard,
+				Mode:            ModeBlue,
 				SelectedPlugins: []string{"STIG"},
 			},
 			wantErr: false,
@@ -366,13 +354,6 @@ func TestModeController_GenerateReport(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "standard mode",
-			config: &ModeConfig{
-				Mode: ModeStandard,
-			},
-			wantErr: false,
-		},
-		{
 			name: "blue mode",
 			config: &ModeConfig{
 				Mode: ModeBlue,
@@ -401,7 +382,7 @@ func TestModeController_GenerateReport(t *testing.T) {
 		{
 			name: "nil document",
 			config: &ModeConfig{
-				Mode: ModeStandard,
+				Mode: ModeBlue,
 			},
 			wantErr: true,
 		},
@@ -459,7 +440,7 @@ func TestReport_Structure(t *testing.T) {
 	t.Parallel()
 
 	report := &Report{
-		Mode:          ModeStandard,
+		Mode:          ModeBlue,
 		Comprehensive: true,
 		Configuration: &common.CommonDevice{},
 		Findings:      make([]Finding, 0),
@@ -468,8 +449,8 @@ func TestReport_Structure(t *testing.T) {
 	}
 
 	// Test that the report structure is properly initialized
-	if report.Mode != ModeStandard {
-		t.Errorf("Report.Mode = %v, want %v", report.Mode, ModeStandard)
+	if report.Mode != ModeBlue {
+		t.Errorf("Report.Mode = %v, want %v", report.Mode, ModeBlue)
 	}
 
 	if !report.Comprehensive {
@@ -1000,7 +981,7 @@ func TestReport_AnalysisMethods(t *testing.T) {
 	t.Parallel()
 
 	report := &Report{
-		Mode:          ModeStandard,
+		Mode:          ModeBlue,
 		Comprehensive: true,
 		Configuration: &common.CommonDevice{
 			System: common.System{
@@ -1013,79 +994,7 @@ func TestReport_AnalysisMethods(t *testing.T) {
 		Metadata:   make(map[string]any),
 	}
 
-	// Test all the analysis methods that add metadata to the report
-	t.Run("addSystemMetadata", func(t *testing.T) {
-		report.addSystemMetadata()
-		// Verify that metadata was added
-		if len(report.Metadata) == 0 {
-			t.Error("addSystemMetadata() should add metadata to the report")
-		}
-	})
-
-	t.Run("addInterfaceAnalysis", func(t *testing.T) {
-		report.addInterfaceAnalysis()
-		// Verify that interface analysis was added
-		if len(report.Metadata) == 0 {
-			t.Error("addInterfaceAnalysis() should add interface analysis to the report")
-		}
-	})
-
-	t.Run("addFirewallRuleAnalysis", func(t *testing.T) {
-		report.addFirewallRuleAnalysis()
-		// Verify that firewall rule analysis was added
-		if len(report.Metadata) == 0 {
-			t.Error("addFirewallRuleAnalysis() should add firewall rule analysis to the report")
-		}
-	})
-
-	t.Run("addNATAnalysis", func(t *testing.T) {
-		report.addNATAnalysis()
-		// Verify that NAT analysis was added
-		if len(report.Metadata) == 0 {
-			t.Error("addNATAnalysis() should add NAT analysis to the report")
-		}
-	})
-
-	t.Run("addDHCPAnalysis", func(t *testing.T) {
-		report.addDHCPAnalysis()
-		// Verify that DHCP analysis was added
-		if len(report.Metadata) == 0 {
-			t.Error("addDHCPAnalysis() should add DHCP analysis to the report")
-		}
-	})
-
-	t.Run("addCertificateAnalysis", func(t *testing.T) {
-		report.addCertificateAnalysis()
-		// Verify that certificate analysis was added
-		if len(report.Metadata) == 0 {
-			t.Error("addCertificateAnalysis() should add certificate analysis to the report")
-		}
-	})
-
-	t.Run("addVPNAnalysis", func(t *testing.T) {
-		report.addVPNAnalysis()
-		// Verify that VPN analysis was added
-		if len(report.Metadata) == 0 {
-			t.Error("addVPNAnalysis() should add VPN analysis to the report")
-		}
-	})
-
-	t.Run("addStaticRouteAnalysis", func(t *testing.T) {
-		report.addStaticRouteAnalysis()
-		// Verify that static route analysis was added
-		if len(report.Metadata) == 0 {
-			t.Error("addStaticRouteAnalysis() should add static route analysis to the report")
-		}
-	})
-
-	t.Run("addHighAvailabilityAnalysis", func(t *testing.T) {
-		report.addHighAvailabilityAnalysis()
-		// Verify that high availability analysis was added
-		if len(report.Metadata) == 0 {
-			t.Error("addHighAvailabilityAnalysis() should add high availability analysis to the report")
-		}
-	})
-
+	// Test the analysis methods that add metadata to the report
 	t.Run("addSecurityFindings", func(t *testing.T) {
 		report.addSecurityFindings()
 		// Verify that security findings were added

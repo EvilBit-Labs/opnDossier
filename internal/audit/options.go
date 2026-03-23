@@ -5,7 +5,7 @@ package audit
 // (mode selection, compliance plugins) are orthogonal to conversion
 // concerns (format, theme, wrapping).
 type Options struct {
-	// AuditMode specifies the audit reporting mode (standard, blue, red).
+	// AuditMode specifies the audit reporting mode (blue, red).
 	AuditMode string
 
 	// SelectedPlugins specifies which compliance plugins to run.

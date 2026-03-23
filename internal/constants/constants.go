@@ -16,7 +16,7 @@ const (
 	// DefaultFormat is the default output format for configuration reports.
 	DefaultFormat = "markdown"
 	// DefaultMode is the default audit report mode.
-	DefaultMode = "standard"
+	DefaultMode = "blue"
 	// ConfigFileName is the default configuration file name.
 	ConfigFileName = "opndossier.yaml"
 
