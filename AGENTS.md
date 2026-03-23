@@ -388,6 +388,10 @@ The `sanitize` command operates on raw XML element names via pattern matching in
 
 **Verification:** `opndossier sanitize <config.xml> | grep -i 'hash\|secret\|key\|pass\|community'` — check for unredacted sensitive values.
 
+### 5.25c Schema-Level Secret Exclusion
+
+Secret fields in `pkg/schema/` structs (e.g., `PreSharedKey`, private keys) must carry `json:"-" yaml:"-"` tags to prevent accidental serialization if the raw schema struct is ever marshaled. This is defense-in-depth alongside `redactedCopyUnsafe()` (which operates on `CommonDevice`). Do NOT map these fields to the common model — the sanitizer handles them at the XML level. If a secret field is ever mapped to `CommonDevice`, update `redactedCopyUnsafe()` in `internal/processor/report.go`.
+
 ### 5.25a DeviceParser Registry Pattern
 
 `pkg/parser/registry.go` follows the `database/sql` driver registration pattern:

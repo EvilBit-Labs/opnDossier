@@ -226,3 +226,12 @@ A fresh `NewRuleEngine` creates a fresh `NewMapper()` — mappings are determini
 - **Fix:** Add a private type alias (e.g., `type interfaceAlias Interface`) and a pointer-receiver `MarshalXML` on the parent struct that delegates via `e.EncodeElement((*alias)(ptr), start)`. Also pass `&value` (not `value`) when encoding the struct within map-based containers like `Interfaces.MarshalXML`.
 - **Precedent:** `pkg/schema/pfsense/interfaces.go` — `interfaceAlias` and `(*Interface).MarshalXML`.
 - **Rule:** Any pfSense struct forked from opnsense that changes a field to `BoolFlag` needs this pattern.
+
+## 16. pfSense IPsec Enabled Flag
+
+### 16.1 Converter Must Set Enabled Explicitly
+
+`convertIPsec()` must set `common.IPsecConfig.Enabled = true` when Phase1/Phase2 tunnels exist or the mobile client is enabled. Downstream consumers (e.g., `builder_vpn.go`) short-circuit to "No IPsec configuration present" when `Enabled` is false, effectively hiding valid converted tunnel data.
+
+- **Symptom:** IPsec tunnels are converted but reports say "No IPsec configuration present."
+- **Fix:** Ensure the converter sets `Enabled: true` whenever meaningful IPsec data exists.
