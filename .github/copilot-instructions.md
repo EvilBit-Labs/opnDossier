@@ -225,6 +225,7 @@ All commit messages must follow the [Conventional Commits](https://www.conventio
 - **Audit Plugins**: Implement `compliance.Plugin` interface (`internal/compliance/interfaces.go`). Register in `internal/audit/plugin_manager.go`.
 - **Plugin Structure**: Place in `internal/plugins/<plugin-name>/`. Use generic `Finding` struct - no compliance-specific fields.
 - **Multi-Format Export**: Add new formats in `internal/converter/` and templates in `internal/templates/`.
+- **Audit Modes**: The audit command supports two modes: `blue` (defensive, compliance-focused, default) and `red` (offensive, attack-surface-focused). Plugins only execute in blue mode.
 
 ## Project Structure
 
@@ -348,8 +349,11 @@ just docs               # Serve documentation locally (if available)
 # Validate configuration
 ./opndossier validate config.xml
 
-# Run a blue team audit with specific compliance plugins
-./opndossier audit config.xml --mode blue --plugins stig,sans
+# Run a blue team audit with specific compliance plugins (default mode)
+./opndossier audit config.xml --plugins stig,sans
+
+# Run a red team attack surface analysis
+./opndossier audit config.xml --mode red
 ```
 
 ## AI Agent Mandatory Practices
