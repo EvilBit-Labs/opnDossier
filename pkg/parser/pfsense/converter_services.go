@@ -178,23 +178,33 @@ func (c *converter) convertIPsecPhase1Tunnels(phases []pfsense.IPsecPhase1) []co
 			PeerIDData:           p1.PeerIDData,
 			Mode:                 p1.Mode,
 			Lifetime:             p1.Lifetime,
+			RekeyTime:            p1.RekeyTime,
+			ReauthTime:           p1.ReauthTime,
+			RandTime:             p1.RandTime,
 			NATTraversal:         p1.NATTraversal,
+			MOBIKE:               p1.Mobike,
 			DPDDelay:             p1.DPDDelay,
 			DPDMaxFail:           p1.DPDMaxFail,
 			StartAction:          p1.StartAction,
 			CloseAction:          p1.CloseAction,
+			CertRef:              p1.CertRef,
+			CARef:                p1.CARef,
+			IKEPort:              p1.IKEPort,
+			NATTPort:             p1.NATTPort,
+			SplitConn:            p1.SplitConn,
 			Description:          p1.Descr,
 			Disabled:             p1.Disabled.Bool(),
 			Mobile:               p1.Mobile.Bool(),
-			EncryptionAlgorithms: convertPhase1EncryptionAlgorithms(p1.Encryption.Algorithms),
+			EncryptionAlgorithms: convertIPsecEncryptionAlgorithms(p1.Encryption.Algorithms),
 		})
 	}
 
 	return result
 }
 
-// convertPhase1EncryptionAlgorithms extracts algorithm names with optional key lengths.
-func convertPhase1EncryptionAlgorithms(algs []pfsense.IPsecEncryptionAlgorithm) []string {
+// convertIPsecEncryptionAlgorithms extracts algorithm names with optional key lengths.
+// Shared by Phase 1 and Phase 2 — both use the same encryption-algorithm-option structure.
+func convertIPsecEncryptionAlgorithms(algs []pfsense.IPsecEncryptionAlgorithm) []string {
 	if len(algs) == 0 {
 		return nil
 	}
@@ -223,40 +233,33 @@ func (c *converter) convertIPsecPhase2Tunnels(phases []pfsense.IPsecPhase2) []co
 		result = append(result, common.IPsecPhase2Tunnel{
 			IKEID:                p2.IKEId,
 			UniqID:               p2.UniqID,
+			ReqID:                p2.ReqID,
 			Mode:                 p2.Mode,
 			Disabled:             p2.Disabled.Bool(),
 			Protocol:             p2.Protocol,
 			LocalIDType:          p2.LocalID.Type,
 			LocalIDAddress:       p2.LocalID.Address,
+			LocalIDNetbits:       p2.LocalID.Netbits,
 			RemoteIDType:         p2.RemoteID.Type,
 			RemoteIDAddress:      p2.RemoteID.Address,
+			RemoteIDNetbits:      p2.RemoteID.Netbits,
+			NATLocalIDType:       p2.NATLocalID.Type,
+			NATLocalIDAddress:    p2.NATLocalID.Address,
+			NATLocalIDNetbits:    p2.NATLocalID.Netbits,
 			PFSGroup:             p2.PFSGroup,
 			Lifetime:             p2.Lifetime,
+			PingHost:             p2.PingHost,
 			Description:          p2.Descr,
-			EncryptionAlgorithms: convertPhase2EncryptionAlgorithms(p2.EncryptionAlgorithms),
-			HashAlgorithms:       convertPhase2HashAlgorithms(p2.HashAlgorithms),
+			EncryptionAlgorithms: convertIPsecEncryptionAlgorithms(p2.EncryptionAlgorithms),
+			HashAlgorithms:       convertIPsecHashAlgorithms(p2.HashAlgorithms),
 		})
 	}
 
 	return result
 }
 
-// convertPhase2EncryptionAlgorithms extracts encryption algorithm names from Phase 2 entries.
-func convertPhase2EncryptionAlgorithms(algs []pfsense.IPsecEncryptionAlgorithm) []string {
-	if len(algs) == 0 {
-		return nil
-	}
-
-	result := make([]string, 0, len(algs))
-	for _, alg := range algs {
-		result = append(result, alg.Name)
-	}
-
-	return result
-}
-
-// convertPhase2HashAlgorithms extracts hash algorithm names from Phase 2 entries.
-func convertPhase2HashAlgorithms(algs []pfsense.IPsecHashAlgorithm) []string {
+// convertIPsecHashAlgorithms extracts hash algorithm names from Phase 2 entries.
+func convertIPsecHashAlgorithms(algs []pfsense.IPsecHashAlgorithm) []string {
 	if len(algs) == 0 {
 		return nil
 	}
@@ -272,12 +275,19 @@ func convertPhase2HashAlgorithms(algs []pfsense.IPsecHashAlgorithm) []string {
 // convertIPsecMobileClient maps pfsense.IPsecClient to common.IPsecMobileClient.
 func (c *converter) convertIPsecMobileClient(client pfsense.IPsecClient) common.IPsecMobileClient {
 	return common.IPsecMobileClient{
-		Enabled:     client.Enable.Bool(),
-		UserSource:  client.UserSource,
-		PoolAddress: client.PoolAddress,
-		PoolNetbits: client.PoolNetbits,
-		DNSServers:  collectNonEmpty(client.DNSServer1, client.DNSServer2, client.DNSServer3, client.DNSServer4),
-		DNSDomain:   client.DNSDomain,
+		Enabled:       client.Enable.Bool(),
+		UserSource:    client.UserSource,
+		GroupSource:   client.GroupSource,
+		PoolAddress:   client.PoolAddress,
+		PoolNetbits:   client.PoolNetbits,
+		PoolAddressV6: client.PoolAddrV6,
+		PoolNetbitsV6: client.PoolNetV6,
+		DNSServers:    collectNonEmpty(client.DNSServer1, client.DNSServer2, client.DNSServer3, client.DNSServer4),
+		WINSServers:   collectNonEmpty(client.WINSServer1, client.WINSServer2),
+		DNSDomain:     client.DNSDomain,
+		DNSSplit:      client.DNSSplit,
+		LoginBanner:   client.LoginBanner,
+		SavePasswd:    client.SavePasswd.Bool(),
 	}
 }
 
