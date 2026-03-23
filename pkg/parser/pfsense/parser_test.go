@@ -1601,14 +1601,25 @@ func TestConverter_IPsec_Phase1(t *testing.T) {
 						Protocol:     "inet",
 						AuthMethod:   "pre_shared_key",
 						MyIDType:     "myaddress",
+						MyIDData:     "198.51.100.1",
 						PeerIDType:   "peeraddress",
+						PeerIDData:   "203.0.113.1",
 						Mode:         "main",
 						Lifetime:     "28800",
+						RekeyTime:    "25200",
+						ReauthTime:   "0",
+						RandTime:     "540",
 						NATTraversal: "on",
+						Mobike:       "on",
 						DPDDelay:     "10",
 						DPDMaxFail:   "5",
 						StartAction:  "none",
 						CloseAction:  "none",
+						CertRef:      "cert-abc123",
+						CARef:        "ca-def456",
+						IKEPort:      "500",
+						NATTPort:     "4500",
+						SplitConn:    "on",
 						Descr:        "Site-to-site VPN",
 					},
 				}
@@ -1625,14 +1636,25 @@ func TestConverter_IPsec_Phase1(t *testing.T) {
 				assert.Equal(t, "inet", p1.Protocol)
 				assert.Equal(t, "pre_shared_key", p1.AuthMethod)
 				assert.Equal(t, "myaddress", p1.MyIDType)
+				assert.Equal(t, "198.51.100.1", p1.MyIDData)
 				assert.Equal(t, "peeraddress", p1.PeerIDType)
+				assert.Equal(t, "203.0.113.1", p1.PeerIDData)
 				assert.Equal(t, "main", p1.Mode)
 				assert.Equal(t, "28800", p1.Lifetime)
+				assert.Equal(t, "25200", p1.RekeyTime)
+				assert.Equal(t, "0", p1.ReauthTime)
+				assert.Equal(t, "540", p1.RandTime)
 				assert.Equal(t, "on", p1.NATTraversal)
+				assert.Equal(t, "on", p1.MOBIKE)
 				assert.Equal(t, "10", p1.DPDDelay)
 				assert.Equal(t, "5", p1.DPDMaxFail)
 				assert.Equal(t, "none", p1.StartAction)
 				assert.Equal(t, "none", p1.CloseAction)
+				assert.Equal(t, "cert-abc123", p1.CertRef)
+				assert.Equal(t, "ca-def456", p1.CARef)
+				assert.Equal(t, "500", p1.IKEPort)
+				assert.Equal(t, "4500", p1.NATTPort)
+				assert.Equal(t, "on", p1.SplitConn)
 				assert.Equal(t, "Site-to-site VPN", p1.Description)
 				assert.False(t, p1.Disabled)
 				assert.False(t, p1.Mobile)
@@ -1730,6 +1752,7 @@ func TestConverter_IPsec_Phase2(t *testing.T) {
 					{
 						IKEId:    "1",
 						UniqID:   "abc123",
+						ReqID:    "42",
 						Mode:     "tunnel",
 						Protocol: "esp",
 						LocalID: pfsenseSchema.IPsecID{
@@ -1742,8 +1765,14 @@ func TestConverter_IPsec_Phase2(t *testing.T) {
 							Address: "10.0.0.0",
 							Netbits: "8",
 						},
+						NATLocalID: pfsenseSchema.IPsecID{
+							Type:    "network",
+							Address: "172.16.0.0",
+							Netbits: "16",
+						},
 						PFSGroup: "14",
 						Lifetime: "3600",
+						PingHost: "10.0.0.1",
 						Descr:    "LAN to remote",
 					},
 				}
@@ -1755,14 +1784,21 @@ func TestConverter_IPsec_Phase2(t *testing.T) {
 				p2 := device.VPN.IPsec.Phase2Tunnels[0]
 				assert.Equal(t, "1", p2.IKEID)
 				assert.Equal(t, "abc123", p2.UniqID)
+				assert.Equal(t, "42", p2.ReqID)
 				assert.Equal(t, "tunnel", p2.Mode)
 				assert.Equal(t, "esp", p2.Protocol)
 				assert.Equal(t, "network", p2.LocalIDType)
 				assert.Equal(t, "192.168.1.0", p2.LocalIDAddress)
+				assert.Equal(t, "24", p2.LocalIDNetbits)
 				assert.Equal(t, "network", p2.RemoteIDType)
 				assert.Equal(t, "10.0.0.0", p2.RemoteIDAddress)
+				assert.Equal(t, "8", p2.RemoteIDNetbits)
+				assert.Equal(t, "network", p2.NATLocalIDType)
+				assert.Equal(t, "172.16.0.0", p2.NATLocalIDAddress)
+				assert.Equal(t, "16", p2.NATLocalIDNetbits)
 				assert.Equal(t, "14", p2.PFSGroup)
 				assert.Equal(t, "3600", p2.Lifetime)
+				assert.Equal(t, "10.0.0.1", p2.PingHost)
 				assert.Equal(t, "LAN to remote", p2.Description)
 				assert.False(t, p2.Disabled)
 			},
@@ -1781,6 +1817,30 @@ func TestConverter_IPsec_Phase2(t *testing.T) {
 				t.Helper()
 				require.Len(t, device.VPN.IPsec.Phase2Tunnels, 1)
 				assert.True(t, device.VPN.IPsec.Phase2Tunnels[0].Disabled)
+			},
+		},
+		{
+			name: "with encryption algorithms and key lengths",
+			setup: func(doc *pfsenseSchema.Document) {
+				doc.IPsec.Phase2 = []pfsenseSchema.IPsecPhase2{
+					{
+						IKEId: "1",
+						EncryptionAlgorithms: []pfsenseSchema.IPsecEncryptionAlgorithm{
+							{Name: "aes", KeyLen: "256"},
+							{Name: "aes", KeyLen: "128"},
+							{Name: "blowfish"},
+						},
+					},
+				}
+			},
+			check: func(t *testing.T, device *common.CommonDevice) {
+				t.Helper()
+				require.Len(t, device.VPN.IPsec.Phase2Tunnels, 1)
+				assert.Equal(
+					t,
+					[]string{"aes-256", "aes-128", "blowfish"},
+					device.VPN.IPsec.Phase2Tunnels[0].EncryptionAlgorithms,
+				)
 			},
 		},
 		{
@@ -1840,10 +1900,18 @@ func TestConverter_IPsec_MobileClient(t *testing.T) {
 				doc.IPsec.Client = pfsenseSchema.IPsecClient{
 					Enable:      opnsense.BoolFlag(true),
 					UserSource:  "local",
+					GroupSource: "system",
 					PoolAddress: "10.10.10.0",
 					PoolNetbits: "24",
+					PoolAddrV6:  "fd00::1",
+					PoolNetV6:   "64",
 					DNSServer1:  "8.8.8.8",
+					DNSServer2:  "8.8.4.4",
+					WINSServer1: "192.168.1.10",
 					DNSDomain:   "vpn.local",
+					DNSSplit:    "internal.local",
+					LoginBanner: "Welcome to the VPN",
+					SavePasswd:  opnsense.BoolFlag(true),
 				}
 			},
 			check: func(t *testing.T, device *common.CommonDevice) {
@@ -1852,10 +1920,17 @@ func TestConverter_IPsec_MobileClient(t *testing.T) {
 				mc := device.VPN.IPsec.MobileClient
 				assert.True(t, mc.Enabled)
 				assert.Equal(t, "local", mc.UserSource)
+				assert.Equal(t, "system", mc.GroupSource)
 				assert.Equal(t, "10.10.10.0", mc.PoolAddress)
 				assert.Equal(t, "24", mc.PoolNetbits)
-				assert.Equal(t, []string{"8.8.8.8"}, mc.DNSServers)
+				assert.Equal(t, "fd00::1", mc.PoolAddressV6)
+				assert.Equal(t, "64", mc.PoolNetbitsV6)
+				assert.Equal(t, []string{"8.8.8.8", "8.8.4.4"}, mc.DNSServers)
+				assert.Equal(t, []string{"192.168.1.10"}, mc.WINSServers)
 				assert.Equal(t, "vpn.local", mc.DNSDomain)
+				assert.Equal(t, "internal.local", mc.DNSSplit)
+				assert.Equal(t, "Welcome to the VPN", mc.LoginBanner)
+				assert.True(t, mc.SavePasswd)
 			},
 		},
 	}
