@@ -96,6 +96,8 @@ archives:
       - README.md
       - CHANGELOG.md
       - THIRD_PARTY_NOTICES
+      - src: ./packaging/completions/*
+        dst: completions
     # Preserve commit timestamp for reproducibility
     builds_info:
       mtime: "{{ .CommitTimestamp }}"
