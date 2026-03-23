@@ -62,6 +62,9 @@ jobs:
       - name: Reset mise.lock to avoid dirty-tree failure
         run: git checkout -- mise.lock || true
 
+      - name: Install cyclonedx-gomod for SBOM generation
+        run: go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
+
       - name: Run GoReleaser
         id: goreleaser
         uses: goreleaser/goreleaser-action@ec59f474b9834571250b370d4735c50f8e2d1e29 # v7.0.0
