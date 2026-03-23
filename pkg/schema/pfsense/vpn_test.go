@@ -70,6 +70,8 @@ func TestIPsecPhase1MarshalXML_BoolFlagProducesPresenceElement(t *testing.T) {
 
 // TestIPsecPhase1UnmarshalXML_BoolFlag verifies that BoolFlag fields on IPsecPhase1
 // correctly unmarshal from self-closing and absent XML elements.
+//
+//nolint:dupl // structurally similar to TestIPsecClientUnmarshalXML_BoolFlag but tests different types
 func TestIPsecPhase1UnmarshalXML_BoolFlag(t *testing.T) {
 	t.Parallel()
 
@@ -220,6 +222,8 @@ func TestIPsecClientMarshalXML_BoolFlagProducesPresenceElement(t *testing.T) {
 
 // TestIPsecClientUnmarshalXML_BoolFlag verifies that BoolFlag fields on IPsecClient
 // correctly unmarshal from self-closing and absent XML elements.
+//
+//nolint:dupl // structurally similar to TestIPsecPhase1UnmarshalXML_BoolFlag but tests different types
 func TestIPsecClientUnmarshalXML_BoolFlag(t *testing.T) {
 	t.Parallel()
 

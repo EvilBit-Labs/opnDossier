@@ -26,7 +26,7 @@ type Document struct {
 	LoadBalancer opnsense.LoadBalancer           `xml:"load_balancer,omitempty" json:"loadBalancer"         yaml:"loadBalancer,omitempty"`
 	Widgets      Widgets                         `xml:"widgets,omitempty"       json:"widgets"              yaml:"widgets,omitempty"`
 	OpenVPN      opnsense.OpenVPN                `xml:"openvpn,omitempty"       json:"openvpn"              yaml:"openvpn,omitempty"`
-	IPsec        IPsec                          `xml:"ipsec,omitempty"         json:"ipsec"                yaml:"ipsec,omitempty"`
+	IPsec        IPsec                           `xml:"ipsec,omitempty"         json:"ipsec"                yaml:"ipsec,omitempty"`
 	Unbound      UnboundConfig                   `xml:"unbound,omitempty"       json:"unbound"              yaml:"unbound,omitempty"`
 	Revision     opnsense.Revision               `xml:"revision,omitempty"      json:"revision"             yaml:"revision,omitempty"`
 	StaticRoutes opnsense.StaticRoutes           `xml:"staticroutes,omitempty"  json:"staticroutes"         yaml:"staticroutes,omitempty"`
