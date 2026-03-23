@@ -1,7 +1,7 @@
-site_name: opnDossier - OPNsense Configuration Processor
-site_description: A CLI tool for processing OPNsense config.xml files and converting them to markdown
+site_name: opnDossier - Firewall Configuration Processor
+site_description: A CLI tool for processing OPNsense and pfSense configuration files into documentation and security analysis
 site_author: EvilBit Labs
-site_url: https://opndossier.evilbitlabs.io
+site_url: https://opndossier.com
 
 # Repository
 repo_name: opnDossier
