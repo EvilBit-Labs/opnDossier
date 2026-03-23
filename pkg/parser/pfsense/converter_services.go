@@ -142,11 +142,15 @@ func (c *converter) convertVPN(doc *pfsense.Document) common.VPN {
 }
 
 // convertIPsec maps doc.IPsec to common.IPsecConfig.
-// Returns a zero-value IPsecConfig when no Phase1/Phase2 tunnels exist and mobile client is disabled.
+// IPsec is considered enabled only when Phase 1 (IKE SA) entries exist. Phase 2 tunnels and
+// mobile client settings hang off Phase 1 in pfSense — without Phase 1 entries they are orphaned
+// and functionally inactive. Orphan Phase 2 or mobile client data emits conversion warnings.
 // The Logging section is intentionally excluded — it contains daemon tuning, not security-relevant config.
 func (c *converter) convertIPsec(doc *pfsense.Document) common.IPsecConfig {
 	ipsec := doc.IPsec
-	if len(ipsec.Phase1) == 0 && len(ipsec.Phase2) == 0 && !ipsec.Client.Enable.Bool() {
+	if len(ipsec.Phase1) == 0 {
+		c.warnOrphanIPsecData(ipsec)
+
 		return common.IPsecConfig{}
 	}
 
@@ -155,6 +159,29 @@ func (c *converter) convertIPsec(doc *pfsense.Document) common.IPsecConfig {
 		Phase1Tunnels: c.convertIPsecPhase1Tunnels(ipsec.Phase1),
 		Phase2Tunnels: c.convertIPsecPhase2Tunnels(ipsec.Phase2),
 		MobileClient:  c.convertIPsecMobileClient(ipsec.Client),
+	}
+}
+
+// warnOrphanIPsecData emits conversion warnings for Phase 2 tunnels or mobile client
+// configuration that exist without any Phase 1 entries. These are orphaned and functionally
+// inactive in pfSense because Phase 2 and mobile client settings depend on Phase 1.
+func (c *converter) warnOrphanIPsecData(ipsec pfsense.IPsec) {
+	if len(ipsec.Phase2) > 0 {
+		c.addWarning(
+			"IPsec.Phase2",
+			fmt.Sprintf("%d entries", len(ipsec.Phase2)),
+			"orphan Phase 2 tunnels without Phase 1 entries are functionally inactive",
+			common.SeverityMedium,
+		)
+	}
+
+	if ipsec.Client.Enable.Bool() {
+		c.addWarning(
+			"IPsec.Client",
+			"enabled",
+			"orphan mobile client configuration without Phase 1 entries is functionally inactive",
+			common.SeverityMedium,
+		)
 	}
 }
 
