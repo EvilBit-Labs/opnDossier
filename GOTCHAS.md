@@ -140,6 +140,14 @@ When adding device-specific validators that are structurally similar to existing
 - **Gotcha:** Adding `//nolint:dupl` only to the new function is insufficient. The existing function also needs `//nolint:dupl` because `dupl` reports pairs.
 - **Pattern:** Both sides of the duplicate pair must carry the suppression directive.
 
+### 9.2 Validator Cascade on Document Field Type Forks
+
+When changing a `Document` field type from an opnsense type to a local pfSense fork (e.g., `opnsense.Dhcpd` → `pfsense.Dhcpd`), the pfSense-specific validator function that accepts a pointer to that type will fail to compile. The shared field-level validator (e.g., `validateDhcpdInterface`) still expects `opnsense.DhcpdInterface`, so the pfSense wrapper must construct a temporary adapter value.
+
+- **Symptom:** `cannot use &doc.Dhcpd (value of type *pfsense.Dhcpd) as *opnsense.Dhcpd`
+- **Fix:** Update the pfSense validator signature to accept `*pfsense.Dhcpd` and adapt each item to `opnsense.DhcpdInterface` inside the loop before calling the shared validator.
+- **Also update:** Test files (`pfsense_test.go`, `parser_test.go`) that construct `opnsense.Dhcpd{Items: map[string]opnsense.DhcpdInterface{...}}` — change to `pfsense.Dhcpd`/`pfsense.DhcpdInterface`.
+
 ## 10. Converter Testing
 
 ### 10.1 ToMarkdown Outputs ANSI-Rendered Text
