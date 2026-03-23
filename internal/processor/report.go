@@ -239,15 +239,74 @@ func (r *Report) redactedCopyUnsafe() *Report {
 		ProcessorConfig:  r.ProcessorConfig,
 	}
 
-	if cp.NormalizedConfig != nil && cp.NormalizedConfig.SNMP.ROCommunity != "" {
-		deviceCopy := *cp.NormalizedConfig
-		deviceCopy.SNMP = common.SNMPConfig{
-			ROCommunity: redactedValue,
-			SysLocation: cp.NormalizedConfig.SNMP.SysLocation,
-			SysContact:  cp.NormalizedConfig.SNMP.SysContact,
+	if cp.NormalizedConfig != nil {
+		snmpNeedsRedaction := cp.NormalizedConfig.SNMP.ROCommunity != ""
+		certsNeedRedaction := hasCertPrivateKeys(cp.NormalizedConfig.Certificates)
+		casNeedRedaction := hasCAPrivateKeys(cp.NormalizedConfig.CAs)
+
+		if snmpNeedsRedaction || certsNeedRedaction || casNeedRedaction {
+			deviceCopy := *cp.NormalizedConfig
+			cp.NormalizedConfig = &deviceCopy
+
+			if snmpNeedsRedaction {
+				deviceCopy.SNMP = common.SNMPConfig{
+					ROCommunity: redactedValue,
+					SysLocation: deviceCopy.SNMP.SysLocation,
+					SysContact:  deviceCopy.SNMP.SysContact,
+				}
+			}
+
+			if certsNeedRedaction {
+				certs := make([]common.Certificate, len(deviceCopy.Certificates))
+				copy(certs, deviceCopy.Certificates)
+
+				for i := range certs {
+					if certs[i].PrivateKey != "" {
+						certs[i].PrivateKey = redactedValue
+					}
+				}
+
+				deviceCopy.Certificates = certs
+			}
+
+			if casNeedRedaction {
+				cas := make([]common.CertificateAuthority, len(deviceCopy.CAs))
+				copy(cas, deviceCopy.CAs)
+
+				for i := range cas {
+					if cas[i].PrivateKey != "" {
+						cas[i].PrivateKey = redactedValue
+					}
+				}
+
+				deviceCopy.CAs = cas
+			}
 		}
-		cp.NormalizedConfig = &deviceCopy
 	}
 
 	return cp
+}
+
+// hasCertPrivateKeys reports whether any certificate in the slice has a
+// non-empty PrivateKey.
+func hasCertPrivateKeys(certs []common.Certificate) bool {
+	for i := range certs {
+		if certs[i].PrivateKey != "" {
+			return true
+		}
+	}
+
+	return false
+}
+
+// hasCAPrivateKeys reports whether any CA in the slice has a non-empty
+// PrivateKey.
+func hasCAPrivateKeys(cas []common.CertificateAuthority) bool {
+	for i := range cas {
+		if cas[i].PrivateKey != "" {
+			return true
+		}
+	}
+
+	return false
 }

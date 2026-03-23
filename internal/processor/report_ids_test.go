@@ -1,12 +1,14 @@
 package processor
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 )
 
 func TestGenerateStatistics_IDSEnabled(t *testing.T) {
@@ -454,6 +456,133 @@ func TestReport_SNMPCommunityRedactedInNormalizedConfig(t *testing.T) {
 		// Serialization must not modify the caller's CommonDevice
 		assert.Equal(t, rawCommunity, cfg.SNMP.ROCommunity,
 			"original CommonDevice.SNMP.ROCommunity must remain unchanged after serialization")
+	})
+}
+
+// certRedactionReport is a minimal struct for unmarshalling JSON/YAML output
+// to verify certificate and CA private key redaction structurally.
+type certRedactionReport struct {
+	NormalizedConfig struct {
+		Certificates []common.Certificate          `json:"certificates" yaml:"certificates"`
+		CAs          []common.CertificateAuthority `json:"cas"          yaml:"cas"`
+	} `json:"normalizedConfig" yaml:"normalizedconfig"`
+}
+
+func TestReport_CertificatePrivateKeysRedacted(t *testing.T) {
+	//nolint:gosec // G101: test fixture, not a real credential
+	const rawPrivateKey = "-----BEGIN RSA PRIVATE KEY-----\nSECRET\n-----END RSA PRIVATE KEY-----"
+
+	cfg := &common.CommonDevice{
+		System: common.System{
+			Hostname: "cert-redact-test",
+			Domain:   "example.com",
+		},
+		Certificates: []common.Certificate{
+			{
+				RefID:       "cert-001",
+				Description: "web-server-cert",
+				Certificate: "-----BEGIN CERTIFICATE-----\nPUBLICDATA\n-----END CERTIFICATE-----",
+				PrivateKey:  rawPrivateKey,
+			},
+			{
+				RefID:       "cert-002",
+				Description: "no-key-cert",
+				Certificate: "-----BEGIN CERTIFICATE-----\nOTHER\n-----END CERTIFICATE-----",
+				PrivateKey:  "",
+			},
+		},
+		CAs: []common.CertificateAuthority{
+			{
+				RefID:       "ca-001",
+				Description: "internal-ca",
+				Certificate: "-----BEGIN CERTIFICATE-----\nCAPUBLIC\n-----END CERTIFICATE-----",
+				PrivateKey:  rawPrivateKey,
+			},
+			{
+				RefID:       "ca-002",
+				Description: "external-ca",
+				Certificate: "-----BEGIN CERTIFICATE-----\nEXTCA\n-----END CERTIFICATE-----",
+				PrivateKey:  "",
+			},
+		},
+	}
+
+	report := NewReport(cfg, Config{EnableStats: true})
+
+	t.Run("JSON redaction verified structurally", func(t *testing.T) {
+		jsonStr, err := report.ToJSON()
+		require.NoError(t, err)
+
+		var parsed certRedactionReport
+		require.NoError(t, json.Unmarshal([]byte(jsonStr), &parsed),
+			"JSON output must be valid and unmarshal into report structure")
+
+		// Certificates: entry with key must be redacted
+		require.Len(t, parsed.NormalizedConfig.Certificates, 2,
+			"JSON should contain both certificates")
+		assert.Equal(t, "[REDACTED]", parsed.NormalizedConfig.Certificates[0].PrivateKey,
+			"cert-001 PrivateKey must be [REDACTED]")
+		assert.NotEqual(t, rawPrivateKey, parsed.NormalizedConfig.Certificates[0].PrivateKey,
+			"cert-001 must not contain raw private key")
+		assert.Empty(t, parsed.NormalizedConfig.Certificates[1].PrivateKey,
+			"cert-002 with empty key must remain empty")
+
+		// CAs: entry with key must be redacted
+		require.Len(t, parsed.NormalizedConfig.CAs, 2,
+			"JSON should contain both CAs")
+		assert.Equal(t, "[REDACTED]", parsed.NormalizedConfig.CAs[0].PrivateKey,
+			"ca-001 PrivateKey must be [REDACTED]")
+		assert.NotEqual(t, rawPrivateKey, parsed.NormalizedConfig.CAs[0].PrivateKey,
+			"ca-001 must not contain raw private key")
+		assert.Empty(t, parsed.NormalizedConfig.CAs[1].PrivateKey,
+			"ca-002 with empty key must remain empty")
+
+		// Non-sensitive fields preserved
+		assert.Equal(t, "cert-001", parsed.NormalizedConfig.Certificates[0].RefID)
+		assert.Equal(t, "web-server-cert", parsed.NormalizedConfig.Certificates[0].Description)
+		assert.Contains(t, parsed.NormalizedConfig.Certificates[0].Certificate, "PUBLICDATA",
+			"public certificate PEM data should be preserved")
+		assert.Equal(t, "ca-001", parsed.NormalizedConfig.CAs[0].RefID)
+	})
+
+	t.Run("YAML redaction verified structurally", func(t *testing.T) {
+		yamlStr, err := report.ToYAML()
+		require.NoError(t, err)
+
+		var parsed certRedactionReport
+		require.NoError(t, yaml.Unmarshal([]byte(yamlStr), &parsed),
+			"YAML output must be valid and unmarshal into report structure")
+
+		// Certificates: entry with key must be redacted
+		require.Len(t, parsed.NormalizedConfig.Certificates, 2,
+			"YAML should contain both certificates")
+		assert.Equal(t, "[REDACTED]", parsed.NormalizedConfig.Certificates[0].PrivateKey,
+			"cert-001 PrivateKey must be [REDACTED]")
+		assert.NotEqual(t, rawPrivateKey, parsed.NormalizedConfig.Certificates[0].PrivateKey,
+			"cert-001 must not contain raw private key")
+		assert.Empty(t, parsed.NormalizedConfig.Certificates[1].PrivateKey,
+			"cert-002 with empty key must remain empty")
+
+		// CAs: entry with key must be redacted
+		require.Len(t, parsed.NormalizedConfig.CAs, 2,
+			"YAML should contain both CAs")
+		assert.Equal(t, "[REDACTED]", parsed.NormalizedConfig.CAs[0].PrivateKey,
+			"ca-001 PrivateKey must be [REDACTED]")
+		assert.NotEqual(t, rawPrivateKey, parsed.NormalizedConfig.CAs[0].PrivateKey,
+			"ca-001 must not contain raw private key")
+		assert.Empty(t, parsed.NormalizedConfig.CAs[1].PrivateKey,
+			"ca-002 with empty key must remain empty")
+
+		// Non-sensitive fields preserved
+		assert.Equal(t, "web-server-cert", parsed.NormalizedConfig.Certificates[0].Description)
+		assert.Equal(t, "internal-ca", parsed.NormalizedConfig.CAs[0].Description)
+	})
+
+	t.Run("original device is not mutated", func(t *testing.T) {
+		assert.Equal(t, rawPrivateKey, cfg.Certificates[0].PrivateKey,
+			"original Certificate.PrivateKey must remain unchanged after serialization")
+		assert.Equal(t, rawPrivateKey, cfg.CAs[0].PrivateKey,
+			"original CA.PrivateKey must remain unchanged after serialization")
 	})
 }
 

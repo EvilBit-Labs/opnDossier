@@ -180,3 +180,13 @@ When tagging a release after a squash-merge PR, always tag the resulting commit 
 - **Symptom:** `git tag --merged main` does not list the release tag; `git describe` on `main` skips the version.
 - **Fix:** `git checkout main && git pull && git tag vX.Y.Z && git push origin vX.Y.Z`
 - **Prevention:** Always switch to `main` and pull before tagging. Never tag from the feature branch after merge.
+
+## 13. Serialization Testing
+
+### 13.1 Multiline Secret Assertions Against Serialized Output
+
+`assert.NotContains(t, jsonStr, rawPEMKey)` is ineffective for multiline secrets: `encoding/json` escapes embedded newlines as `\n`, and `yaml.v3` may emit block scalars with indentation. The raw PEM substring will often not appear even when the secret is fully present in the output.
+
+- **Symptom:** Test passes even when redaction is broken — the raw multiline string never matches the encoded form.
+- **Fix:** Unmarshal JSON/YAML output back into a typed struct and assert on the parsed `PrivateKey` field values directly.
+- **Precedent:** `certRedactionReport` in `internal/processor/report_ids_test.go`.
