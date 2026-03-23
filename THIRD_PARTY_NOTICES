@@ -454,7 +454,7 @@ SOFTWARE.
 ============================================================
 Package: github.com/charmbracelet/x/exp/charmtone
 License: MIT
-URL:     https://github.com/charmbracelet/x/blob/f2fb44ab3145/exp/charmtone/LICENSE
+URL:     https://github.com/charmbracelet/x/blob/f2fb44ab3145/LICENSE
 ------------------------------------------------------------
 MIT License
 
@@ -482,7 +482,7 @@ SOFTWARE.
 ============================================================
 Package: github.com/charmbracelet/x/exp/slice
 License: MIT
-URL:     https://github.com/charmbracelet/x/blob/f2fb44ab3145/exp/slice/LICENSE
+URL:     https://github.com/charmbracelet/x/blob/f2fb44ab3145/LICENSE
 ------------------------------------------------------------
 MIT License
 
