@@ -3,6 +3,7 @@ package pfsense
 
 import (
 	"encoding/xml"
+	"fmt"
 	"maps"
 	"slices"
 
@@ -22,14 +23,14 @@ func (d *DHCPv6) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) erro
 	for {
 		tok, err := decoder.Token()
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to read DHCPv6 token: %w", err)
 		}
 
 		switch se := tok.(type) {
 		case xml.StartElement:
 			var dhcpIface DHCPv6Interface
 			if err := decoder.DecodeElement(&dhcpIface, &se); err != nil {
-				return err
+				return fmt.Errorf("failed to decode DHCPv6 interface %s: %w", se.Name.Local, err)
 			}
 
 			d.Items[se.Name.Local] = dhcpIface
