@@ -378,7 +378,7 @@ See [`pkg/schema/pfsense/README.md`](pkg/schema/pfsense/README.md) for the compl
 
 ### 5.25 Processor Report Serialization Redaction
 
-`Report.ToJSON()` and `Report.ToYAML()` serialize a redacted copy via `redactedCopyUnsafe()` to prevent `NormalizedConfig.SNMP.ROCommunity` from leaking. When adding new sensitive fields to `CommonDevice`, extend `redactedCopyUnsafe()` in `internal/processor/report.go`. The copy is constructed field-by-field (not `cp := *r`) to avoid `copylocks` on `sync.RWMutex`. Statistics redaction (`redactServiceDetails`) is separate and handles the statistics-layer SNMP community.
+`Report.ToJSON()` and `Report.ToYAML()` serialize a redacted copy via `redactedCopyUnsafe()` to prevent sensitive fields from leaking. Currently redacted: `SNMP.ROCommunity`, `Certificate.PrivateKey` (in `Certificates` slice), and `CertificateAuthority.PrivateKey` (in `CAs` slice). When adding new sensitive fields to `CommonDevice`, extend `redactedCopyUnsafe()` in `internal/processor/report.go`. The device copy is created once and shared across all redaction blocks. Certificate/CA slices are deep-copied via `make` + `copy` before mutation (per §5.6a). Only entries with non-empty sensitive values are redacted — empty fields are left as-is to avoid injecting `[REDACTED]` where no data existed. The copy is constructed field-by-field (not `cp := *r`) to avoid `copylocks` on `sync.RWMutex`. Statistics redaction (`redactServiceDetails`) is separate and handles the statistics-layer SNMP community.
 
 ### 5.25b Sanitizer Field Pattern Maintenance
 
