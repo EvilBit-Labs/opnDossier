@@ -150,18 +150,13 @@ opndossier convert config.xml -o documentation.md
 # Convert to JSON with forced overwrite
 opndossier convert config.xml -f json -o output.json --force
 
-# Blue team audit with STIG and SANS compliance
-opndossier audit config.xml --mode blue --plugins stig,sans -o audit.md
-
-# Red team attack surface analysis
-opndossier audit config.xml --mode red -o recon.md
-
 # Convert multiple files to JSON (auto-named outputs)
 opndossier convert -f json config1.xml config2.xml
 ```
 
 ## Related
 
+- [audit](audit.md) -- run security audits with compliance checks
 - [display](display.md) -- render in terminal instead of writing to file
 - [validate](validate.md) -- check config correctness before converting
 - [Configuration Reference](../configuration-reference.md) -- global flags and settings

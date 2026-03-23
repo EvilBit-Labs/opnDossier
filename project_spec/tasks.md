@@ -992,7 +992,7 @@ This document provides a comprehensive task checklist for implementing the opnDo
 - TASK-011 → TASK-012 → TASK-013 (In-memory markdown generation foundation)
 - TASK-014 → TASK-015 → TASK-016 (Terminal display foundation)
 - TASK-017 → TASK-018 → TASK-019 → TASK-020 → TASK-021 (File export foundation)
-- TASK-023 → TASK-024 → TASK-025 → TASK-026 → TASK-027 → TASK-028 → TASK-029 (Audit report generation foundation)
+- TASK-023 → TASK-024 → TASK-025 → TASK-026 → TASK-027 → TASK-029 (Audit report generation foundation)
 - TASK-030 → TASK-031 → TASK-032 (CLI foundation)
 
 ### Parallel Development Opportunities

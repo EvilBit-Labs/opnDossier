@@ -136,7 +136,7 @@
   - **F022**: Support plugin-based compliance architecture with standardized interfaces, dynamic registration, lifecycle management, metadata tracking, configuration support, dependency management, and statistics reporting for both internal and external plugins
   - **F023**: Support convert mode that processes OPNsense XML configuration files and exports to JSON, YAML, or Markdown files on disk (with error handling, overwrite protection, and smart file naming)
   - **F024**: Support display mode that converts XML configurations to Markdown and renders in terminal with syntax highlighting using Charm Lipgloss (supporting themes from F009 and output styles from F012)
-  - **F025**: Support audit mode that runs the compliance audit engine using plugin architecture (F022) and template-driven reporting (F017) with all three modes (F016) and structured findings (F021)
+  - **F025**: Support audit mode that runs the compliance audit engine using plugin architecture (F022) and template-driven reporting (F017) with both modes defined in F016 (`blue`, `red`) and structured findings (F021)
   - **F026**: Support programmatic markdown generation system that creates structured markdown output using Go code rather than templates, providing better performance, maintainability, consistency, testability, and separation of concerns while maintaining backward compatibility with existing template functionality
 
 - **User Stories and Use Cases**:
