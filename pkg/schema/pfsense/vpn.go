@@ -9,18 +9,29 @@ import (
 
 // IPsec represents the top-level IPsec VPN configuration container.
 type IPsec struct {
-	Phase1  []IPsecPhase1 `xml:"phase1,omitempty"  json:"phase1,omitempty" yaml:"phase1,omitempty"`
-	Phase2  []IPsecPhase2 `xml:"phase2,omitempty"  json:"phase2,omitempty" yaml:"phase2,omitempty"`
-	Client  IPsecClient   `xml:"client,omitempty"  json:"client"           yaml:"client,omitempty"`
-	Logging IPsecLogging  `xml:"logging,omitempty" json:"logging"          yaml:"logging,omitempty"`
+	Phase1     []IPsecPhase1 `xml:"phase1,omitempty"    json:"phase1,omitempty"     yaml:"phase1,omitempty"`
+	Phase2     []IPsecPhase2 `xml:"phase2,omitempty"    json:"phase2,omitempty"     yaml:"phase2,omitempty"`
+	MobileKeys []MobileKey   `xml:"mobilekey,omitempty" json:"mobileKeys,omitempty" yaml:"mobileKeys,omitempty"`
+	Client     IPsecClient   `xml:"client,omitempty"    json:"client"               yaml:"client,omitempty"`
+	Logging    IPsecLogging  `xml:"logging,omitempty"   json:"logging"              yaml:"logging,omitempty"`
 }
 
-// NewIPsec returns a new IPsec configuration with Phase1 and Phase2 slices initialized for safe use.
+// NewIPsec returns a new IPsec configuration with Phase1, Phase2, and MobileKeys slices initialized for safe use.
 func NewIPsec() IPsec {
 	return IPsec{
-		Phase1: make([]IPsecPhase1, 0),
-		Phase2: make([]IPsecPhase2, 0),
+		Phase1:     make([]IPsecPhase1, 0),
+		Phase2:     make([]IPsecPhase2, 0),
+		MobileKeys: make([]MobileKey, 0),
 	}
+}
+
+// MobileKey represents a mobile IPsec pre-shared key entry.
+// MobileKey entries are listtags in pfSense config.xml.
+type MobileKey struct {
+	Ident string `xml:"ident,omitempty" json:"ident,omitempty" yaml:"ident,omitempty"`
+	// PreSharedKey is a sensitive credential. Excluded from JSON/YAML export to prevent
+	// secret leakage — matching the pattern used on IPsecPhase1.PreSharedKey.
+	PreSharedKey string `xml:"pre-shared-key,omitempty" json:"-" yaml:"-"`
 }
 
 // IPsecPhase1 represents a single IKE Phase 1 (SA) entry.
