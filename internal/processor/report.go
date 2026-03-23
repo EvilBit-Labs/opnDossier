@@ -228,6 +228,10 @@ func (r *Report) ToYAML() (string, error) {
 // in NormalizedConfig replaced by the redaction marker. The caller's original
 // CommonDevice is never mutated. The mu field is omitted (json:"-" / yaml:"-")
 // so the copy does not need a live mutex. Caller must hold mu.
+//
+// NOTE: IPsec pre-shared keys are currently excluded from the common model
+// (see pkg/schema/pfsense/vpn.go PreSharedKey field). If PSKs are ever added to
+// common.IPsecPhase1Tunnel, this function MUST be extended to redact them.
 func (r *Report) redactedCopyUnsafe() *Report {
 	cp := &Report{
 		DeviceType:       r.DeviceType,

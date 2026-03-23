@@ -56,30 +56,31 @@ vlan, wolentry
 
 ### Implemented in This Package
 
-| Section                    | File          | Reuses OPNsense?              | Notes                                           |
-| -------------------------- | ------------- | ----------------------------- | ----------------------------------------------- |
-| `<pfsense>` root           | `document.go` | Partial                       | Root document with all top-level fields         |
-| `system`                   | `system.go`   | Partial (Group, SSHConfig)    | pfSense-specific User, WebGUI, DNS arrays       |
-| `interfaces`               | `document.go` | Yes (full)                    | Map-based, identical structure                  |
-| `filter`                   | `security.go` | Partial (Source, Destination) | pfSense-specific FilterRule                     |
-| `nat` (inbound + outbound) | `security.go` | Outbound reused               | Inbound forked for `<target>` vs `<internalip>` |
-| `dhcpd`                    | `document.go` | Yes (full)                    | Identical map-based structure                   |
-| `dhcpdv6`                  | `network.go`  | No (pfSense-specific)         | Map-based with RAMode, RAPriority               |
-| `snmpd`                    | `document.go` | Yes (full)                    | Identical                                       |
-| `openvpn`                  | `document.go` | Yes (full)                    | Client + server arrays                          |
-| `syslog`                   | `services.go` | No (pfSense-specific)         | Currently minimal                               |
-| `unbound`                  | `services.go` | No (pfSense-specific)         | Core fields                                     |
-| `cron`                     | `services.go` | No (pfSense-specific)         | `item[]` array                                  |
-| `widgets`                  | `services.go` | No (pfSense-specific)         | Adds Period field                               |
-| `diag`                     | `services.go` | No (pfSense-specific)         | IPv6NAT only                                    |
-| `rrd`                      | `document.go` | Yes (full)                    | Enable flag                                     |
-| `load_balancer`            | `document.go` | Yes (full)                    | Deprecated in pfSense 2.8+                      |
-| `staticroutes`             | `document.go` | Yes (full)                    | Identical                                       |
-| `ppps`                     | `document.go` | Yes (full)                    | Identical base                                  |
-| `gateways`                 | `document.go` | Yes (full)                    | Identical base                                  |
-| `ca[]` / `cert[]`          | `document.go` | Yes (full)                    | Top-level arrays                                |
-| `vlans`                    | `document.go` | Yes (full)                    | Identical                                       |
-| `revision`                 | `document.go` | Yes (full)                    | Identical                                       |
+| Section                    | File          | Reuses OPNsense?              | Notes                                                                          |
+| -------------------------- | ------------- | ----------------------------- | ------------------------------------------------------------------------------ |
+| `<pfsense>` root           | `document.go` | Partial                       | Root document with all top-level fields                                        |
+| `system`                   | `system.go`   | Partial (Group, SSHConfig)    | pfSense-specific User, WebGUI, DNS arrays                                      |
+| `interfaces`               | `document.go` | Yes (full)                    | Map-based, identical structure                                                 |
+| `filter`                   | `security.go` | Partial (Source, Destination) | pfSense-specific FilterRule                                                    |
+| `nat` (inbound + outbound) | `security.go` | Outbound reused               | Inbound forked for `<target>` vs `<internalip>`                                |
+| `dhcpd`                    | `document.go` | Yes (full)                    | Identical map-based structure                                                  |
+| `dhcpdv6`                  | `network.go`  | No (pfSense-specific)         | Map-based with RAMode, RAPriority                                              |
+| `snmpd`                    | `document.go` | Yes (full)                    | Identical                                                                      |
+| `openvpn`                  | `document.go` | Yes (full)                    | Client + server arrays                                                         |
+| `syslog`                   | `services.go` | No (pfSense-specific)         | Currently minimal                                                              |
+| `unbound`                  | `services.go` | No (pfSense-specific)         | Core fields                                                                    |
+| `cron`                     | `services.go` | No (pfSense-specific)         | `item[]` array                                                                 |
+| `widgets`                  | `services.go` | No (pfSense-specific)         | Adds Period field                                                              |
+| `diag`                     | `services.go` | No (pfSense-specific)         | IPv6NAT only                                                                   |
+| `rrd`                      | `document.go` | Yes (full)                    | Enable flag                                                                    |
+| `load_balancer`            | `document.go` | Yes (full)                    | Deprecated in pfSense 2.8+                                                     |
+| `staticroutes`             | `document.go` | Yes (full)                    | Identical                                                                      |
+| `ppps`                     | `document.go` | Yes (full)                    | Identical base                                                                 |
+| `gateways`                 | `document.go` | Yes (full)                    | Identical base                                                                 |
+| `ca[]` / `cert[]`          | `document.go` | Yes (full)                    | Top-level arrays                                                               |
+| `vlans`                    | `document.go` | Yes (full)                    | Identical                                                                      |
+| `revision`                 | `document.go` | Yes (full)                    | Identical                                                                      |
+| `ipsec`                    | `vpn.go`      | Partial (`BoolFlag`)          | `phase1[]`, `phase2[]` listtags; `client` mobile config; `logging` sub-element |
 
 ### Not Yet Implemented
 
@@ -101,75 +102,6 @@ Path: `aliases/alias[]`
 | `aliasurl`   | string[] | Array of alias URLs (alternative to single url)                |
 
 OPNsense difference: OPNsense stores aliases at `OPNsense/Firewall/Alias` with a UUID-based model. pfSense uses a flat `aliases/alias[]` array.
-
-##### `<ipsec>` -- IPsec VPN
-
-Path: `ipsec/phase1[]`, `ipsec/phase2[]`, `ipsec/client`, `ipsec/mobilekey[]`
-
-Phase 1 fields (`ipsec/phase1[]`):
-
-| Field                                      | Type     | Description                               |
-| ------------------------------------------ | -------- | ----------------------------------------- |
-| `ikeid`                                    | string   | Unique IKE identifier                     |
-| `iketype`                                  | string   | `ikev1`, `ikev2`, `auto`                  |
-| `interface`                                | string   | Local endpoint interface                  |
-| `remote-gateway`                           | string   | Remote peer address/hostname              |
-| `protocol`                                 | string   | `inet`, `inet6`, `both`                   |
-| `myid_type` / `myid_data`                  | string   | Local identifier                          |
-| `peerid_type` / `peerid_data`              | string   | Remote identifier                         |
-| `encryption`                               | complex  | Contains `encryption-algorithm-option[]`  |
-| `authentication_method`                    | string   | `pre_shared_key`, `cert`, `eap-tls`, etc. |
-| `pre-shared-key`                           | string   | PSK value                                 |
-| `certref` / `caref`                        | string   | Certificate/CA references                 |
-| `lifetime`                                 | string   | IKE SA lifetime (seconds)                 |
-| `rekey_time` / `reauth_time` / `rand_time` | string   | Timing parameters                         |
-| `mode`                                     | string   | `main`, `aggressive`                      |
-| `nat_traversal`                            | string   | NAT-T enablement                          |
-| `mobike`                                   | string   | MOBIKE support                            |
-| `dpd_delay` / `dpd_maxfail`                | string   | Dead peer detection                       |
-| `startaction` / `closeaction`              | string   | SA lifecycle                              |
-| `disabled`                                 | presence | Enable/disable flag                       |
-| `descr`                                    | string   | Description                               |
-| `mobile`                                   | presence | Mobile client mode                        |
-| `ikeport` / `nattport`                     | string   | Custom ports                              |
-| `splitconn`                                | string   | Split connection                          |
-
-Phase 2 fields (`ipsec/phase2[]`):
-
-| Field                           | Type     | Description                                 |
-| ------------------------------- | -------- | ------------------------------------------- |
-| `ikeid`                         | string   | Parent Phase 1 identifier                   |
-| `uniqid`                        | string   | Unique identifier                           |
-| `mode`                          | string   | `tunnel`, `tunnel6`, `vti`                  |
-| `disabled`                      | presence | Disable flag                                |
-| `reqid`                         | string   | Request ID                                  |
-| `localid` / `remoteid`          | complex  | Network identities (type, address, netbits) |
-| `natlocalid`                    | complex  | NAT/BINAT identity                          |
-| `protocol`                      | string   | `ESP` or `AH`                               |
-| `encryption-algorithm-option[]` | array    | Encryption algorithms with keylen           |
-| `hash-algorithm-option[]`       | array    | Hash algorithms                             |
-| `pfsgroup`                      | string   | PFS key group                               |
-| `lifetime`                      | string   | SA lifetime                                 |
-| `pinghost`                      | string   | Keep-alive IP                               |
-| `descr`                         | string   | Description                                 |
-
-Mobile client (`ipsec/client`):
-
-| Field                                 | Type     | Description                   |
-| ------------------------------------- | -------- | ----------------------------- |
-| `enable`                              | presence | Enable mobile clients         |
-| `user_source`                         | string   | Comma-separated auth sources  |
-| `group_source`                        | string   | Group-based access            |
-| `pool_address` / `pool_netbits`       | string   | IPv4 address pool             |
-| `pool_address_v6` / `pool_netbits_v6` | string   | IPv6 address pool             |
-| `dns_server1` through `dns_server4`   | string   | DNS servers pushed to clients |
-| `wins_server1` / `wins_server2`       | string   | WINS servers                  |
-| `dns_domain`                          | string   | Search domain                 |
-| `dns_split`                           | string   | Split DNS                     |
-| `login_banner`                        | string   | Connection banner             |
-| `save_passwd`                         | presence | Password persistence          |
-
-Logging (`ipsec/logging`): per-subsystem log levels (`dmn`, `mgr`, `ike`, `chd`, `job`, `cfg`, `knl`, `net`, `asn`, `enc`, `lib`).
 
 ##### `<virtualip>` -- Virtual IPs (CARP/Alias/ProxyARP)
 

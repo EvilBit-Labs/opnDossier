@@ -1570,3 +1570,418 @@ func TestConverter_FirmwareVersion(t *testing.T) {
 	assert.Equal(t, "22.9", device.System.Firmware.Version)
 	assert.Equal(t, "22.9", device.Version)
 }
+
+// --- IPsec converter tests ---
+
+// TestConverter_IPsec_Phase1 verifies Phase 1 (IKE SA) tunnel conversion from pfSense schema
+// to common model, including all field mappings, BoolFlag handling, and encryption algorithms.
+func TestConverter_IPsec_Phase1(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		setup func(doc *pfsenseSchema.Document)
+		check func(t *testing.T, device *common.CommonDevice)
+	}{
+		{
+			name:  "empty phase1",
+			setup: func(_ *pfsenseSchema.Document) {},
+			check: func(t *testing.T, device *common.CommonDevice) {
+				t.Helper()
+				assert.Nil(t, device.VPN.IPsec.Phase1Tunnels)
+			},
+		},
+		{
+			name: "single active tunnel",
+			setup: func(doc *pfsenseSchema.Document) {
+				doc.IPsec.Phase1 = []pfsenseSchema.IPsecPhase1{
+					{
+						IKEId:        "1",
+						IKEType:      "ikev2",
+						Interface:    "wan",
+						RemoteGW:     "203.0.113.1",
+						Protocol:     "inet",
+						AuthMethod:   "pre_shared_key",
+						MyIDType:     "myaddress",
+						MyIDData:     "198.51.100.1",
+						PeerIDType:   "peeraddress",
+						PeerIDData:   "203.0.113.1",
+						Mode:         "main",
+						Lifetime:     "28800",
+						RekeyTime:    "25200",
+						ReauthTime:   "0",
+						RandTime:     "540",
+						NATTraversal: "on",
+						Mobike:       "on",
+						DPDDelay:     "10",
+						DPDMaxFail:   "5",
+						StartAction:  "none",
+						CloseAction:  "none",
+						CertRef:      "cert-abc123",
+						CARef:        "ca-def456",
+						IKEPort:      "500",
+						NATTPort:     "4500",
+						SplitConn:    "on",
+						Descr:        "Site-to-site VPN",
+					},
+				}
+			},
+			check: func(t *testing.T, device *common.CommonDevice) {
+				t.Helper()
+				assert.True(t, device.VPN.IPsec.Enabled, "IPsec must be enabled when Phase1 tunnels exist")
+				require.Len(t, device.VPN.IPsec.Phase1Tunnels, 1)
+				p1 := device.VPN.IPsec.Phase1Tunnels[0]
+				assert.Equal(t, "1", p1.IKEID)
+				assert.Equal(t, "ikev2", p1.IKEType)
+				assert.Equal(t, "wan", p1.Interface)
+				assert.Equal(t, "203.0.113.1", p1.RemoteGateway)
+				assert.Equal(t, "inet", p1.Protocol)
+				assert.Equal(t, "pre_shared_key", p1.AuthMethod)
+				assert.Equal(t, "myaddress", p1.MyIDType)
+				assert.Equal(t, "198.51.100.1", p1.MyIDData)
+				assert.Equal(t, "peeraddress", p1.PeerIDType)
+				assert.Equal(t, "203.0.113.1", p1.PeerIDData)
+				assert.Equal(t, "main", p1.Mode)
+				assert.Equal(t, "28800", p1.Lifetime)
+				assert.Equal(t, "25200", p1.RekeyTime)
+				assert.Equal(t, "0", p1.ReauthTime)
+				assert.Equal(t, "540", p1.RandTime)
+				assert.Equal(t, "on", p1.NATTraversal)
+				assert.Equal(t, "on", p1.MOBIKE)
+				assert.Equal(t, "10", p1.DPDDelay)
+				assert.Equal(t, "5", p1.DPDMaxFail)
+				assert.Equal(t, "none", p1.StartAction)
+				assert.Equal(t, "none", p1.CloseAction)
+				assert.Equal(t, "cert-abc123", p1.CertRef)
+				assert.Equal(t, "ca-def456", p1.CARef)
+				assert.Equal(t, "500", p1.IKEPort)
+				assert.Equal(t, "4500", p1.NATTPort)
+				assert.Equal(t, "on", p1.SplitConn)
+				assert.Equal(t, "Site-to-site VPN", p1.Description)
+				assert.False(t, p1.Disabled)
+				assert.False(t, p1.Mobile)
+			},
+		},
+		{
+			name: "disabled tunnel",
+			setup: func(doc *pfsenseSchema.Document) {
+				doc.IPsec.Phase1 = []pfsenseSchema.IPsecPhase1{
+					{
+						IKEId:    "1",
+						Disabled: opnsense.BoolFlag(true),
+					},
+				}
+			},
+			check: func(t *testing.T, device *common.CommonDevice) {
+				t.Helper()
+				require.Len(t, device.VPN.IPsec.Phase1Tunnels, 1)
+				assert.True(t, device.VPN.IPsec.Phase1Tunnels[0].Disabled)
+			},
+		},
+		{
+			name: "mobile tunnel",
+			setup: func(doc *pfsenseSchema.Document) {
+				doc.IPsec.Phase1 = []pfsenseSchema.IPsecPhase1{
+					{
+						IKEId:  "1",
+						Mobile: opnsense.BoolFlag(true),
+					},
+				}
+			},
+			check: func(t *testing.T, device *common.CommonDevice) {
+				t.Helper()
+				require.Len(t, device.VPN.IPsec.Phase1Tunnels, 1)
+				assert.True(t, device.VPN.IPsec.Phase1Tunnels[0].Mobile)
+			},
+		},
+		{
+			name: "with encryption algorithms",
+			setup: func(doc *pfsenseSchema.Document) {
+				doc.IPsec.Phase1 = []pfsenseSchema.IPsecPhase1{
+					{
+						IKEId: "1",
+						Encryption: pfsenseSchema.IPsecPhase1Encryption{
+							Algorithms: []pfsenseSchema.IPsecEncryptionAlgorithm{
+								{Name: "aes", KeyLen: "256"},
+								{Name: "aes", KeyLen: "128"},
+							},
+						},
+					},
+				}
+			},
+			check: func(t *testing.T, device *common.CommonDevice) {
+				t.Helper()
+				require.Len(t, device.VPN.IPsec.Phase1Tunnels, 1)
+				assert.Equal(t, []string{"aes-256", "aes-128"}, device.VPN.IPsec.Phase1Tunnels[0].EncryptionAlgorithms)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			doc := pfsenseSchema.NewDocument()
+			tt.setup(doc)
+
+			device, _, err := pfsense.ConvertDocument(doc)
+			require.NoError(t, err)
+			tt.check(t, device)
+		})
+	}
+}
+
+// TestConverter_IPsec_Phase2 verifies Phase 2 (child SA) tunnel conversion from pfSense schema
+// to common model, including network identity netbits, NATLocalID, and hash/encryption algorithms.
+func TestConverter_IPsec_Phase2(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		setup func(doc *pfsenseSchema.Document)
+		check func(t *testing.T, device *common.CommonDevice)
+	}{
+		{
+			name:  "empty phase2",
+			setup: func(_ *pfsenseSchema.Document) {},
+			check: func(t *testing.T, device *common.CommonDevice) {
+				t.Helper()
+				assert.Nil(t, device.VPN.IPsec.Phase2Tunnels)
+			},
+		},
+		{
+			name: "single tunnel",
+			setup: func(doc *pfsenseSchema.Document) {
+				doc.IPsec.Phase1 = []pfsenseSchema.IPsecPhase1{
+					{IKEId: "1", Interface: "wan", RemoteGW: "203.0.113.1"},
+				}
+				doc.IPsec.Phase2 = []pfsenseSchema.IPsecPhase2{
+					{
+						IKEId:    "1",
+						UniqID:   "abc123",
+						ReqID:    "42",
+						Mode:     "tunnel",
+						Protocol: "esp",
+						LocalID: pfsenseSchema.IPsecID{
+							Type:    "network",
+							Address: "192.168.1.0",
+							Netbits: "24",
+						},
+						RemoteID: pfsenseSchema.IPsecID{
+							Type:    "network",
+							Address: "10.0.0.0",
+							Netbits: "8",
+						},
+						NATLocalID: pfsenseSchema.IPsecID{
+							Type:    "network",
+							Address: "172.16.0.0",
+							Netbits: "16",
+						},
+						PFSGroup: "14",
+						Lifetime: "3600",
+						PingHost: "10.0.0.1",
+						Descr:    "LAN to remote",
+					},
+				}
+			},
+			check: func(t *testing.T, device *common.CommonDevice) {
+				t.Helper()
+				assert.True(t, device.VPN.IPsec.Enabled, "IPsec must be enabled when Phase1 tunnels exist")
+				require.Len(t, device.VPN.IPsec.Phase2Tunnels, 1)
+				p2 := device.VPN.IPsec.Phase2Tunnels[0]
+				assert.Equal(t, "1", p2.IKEID)
+				assert.Equal(t, "abc123", p2.UniqID)
+				assert.Equal(t, "42", p2.ReqID)
+				assert.Equal(t, "tunnel", p2.Mode)
+				assert.Equal(t, "esp", p2.Protocol)
+				assert.Equal(t, "network", p2.LocalIDType)
+				assert.Equal(t, "192.168.1.0", p2.LocalIDAddress)
+				assert.Equal(t, "24", p2.LocalIDNetbits)
+				assert.Equal(t, "network", p2.RemoteIDType)
+				assert.Equal(t, "10.0.0.0", p2.RemoteIDAddress)
+				assert.Equal(t, "8", p2.RemoteIDNetbits)
+				assert.Equal(t, "network", p2.NATLocalIDType)
+				assert.Equal(t, "172.16.0.0", p2.NATLocalIDAddress)
+				assert.Equal(t, "16", p2.NATLocalIDNetbits)
+				assert.Equal(t, "14", p2.PFSGroup)
+				assert.Equal(t, "3600", p2.Lifetime)
+				assert.Equal(t, "10.0.0.1", p2.PingHost)
+				assert.Equal(t, "LAN to remote", p2.Description)
+				assert.False(t, p2.Disabled)
+			},
+		},
+		{
+			name: "disabled phase2",
+			setup: func(doc *pfsenseSchema.Document) {
+				doc.IPsec.Phase1 = []pfsenseSchema.IPsecPhase1{
+					{IKEId: "1", Interface: "wan", RemoteGW: "203.0.113.1"},
+				}
+				doc.IPsec.Phase2 = []pfsenseSchema.IPsecPhase2{
+					{
+						IKEId:    "1",
+						Disabled: opnsense.BoolFlag(true),
+					},
+				}
+			},
+			check: func(t *testing.T, device *common.CommonDevice) {
+				t.Helper()
+				require.Len(t, device.VPN.IPsec.Phase2Tunnels, 1)
+				assert.True(t, device.VPN.IPsec.Phase2Tunnels[0].Disabled)
+			},
+		},
+		{
+			name: "with encryption algorithms and key lengths",
+			setup: func(doc *pfsenseSchema.Document) {
+				doc.IPsec.Phase1 = []pfsenseSchema.IPsecPhase1{
+					{IKEId: "1", Interface: "wan", RemoteGW: "203.0.113.1"},
+				}
+				doc.IPsec.Phase2 = []pfsenseSchema.IPsecPhase2{
+					{
+						IKEId: "1",
+						EncryptionAlgorithms: []pfsenseSchema.IPsecEncryptionAlgorithm{
+							{Name: "aes", KeyLen: "256"},
+							{Name: "aes", KeyLen: "128"},
+							{Name: "blowfish"},
+						},
+					},
+				}
+			},
+			check: func(t *testing.T, device *common.CommonDevice) {
+				t.Helper()
+				require.Len(t, device.VPN.IPsec.Phase2Tunnels, 1)
+				assert.Equal(
+					t,
+					[]string{"aes-256", "aes-128", "blowfish"},
+					device.VPN.IPsec.Phase2Tunnels[0].EncryptionAlgorithms,
+				)
+			},
+		},
+		{
+			name: "with hash algorithms",
+			setup: func(doc *pfsenseSchema.Document) {
+				doc.IPsec.Phase1 = []pfsenseSchema.IPsecPhase1{
+					{IKEId: "1", Interface: "wan", RemoteGW: "203.0.113.1"},
+				}
+				doc.IPsec.Phase2 = []pfsenseSchema.IPsecPhase2{
+					{
+						IKEId: "1",
+						HashAlgorithms: []pfsenseSchema.IPsecHashAlgorithm{
+							{Name: "hmac-sha256"},
+							{Name: "hmac-sha1"},
+						},
+					},
+				}
+			},
+			check: func(t *testing.T, device *common.CommonDevice) {
+				t.Helper()
+				require.Len(t, device.VPN.IPsec.Phase2Tunnels, 1)
+				assert.Equal(t, []string{"hmac-sha256", "hmac-sha1"}, device.VPN.IPsec.Phase2Tunnels[0].HashAlgorithms)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			doc := pfsenseSchema.NewDocument()
+			tt.setup(doc)
+
+			device, _, err := pfsense.ConvertDocument(doc)
+			require.NoError(t, err)
+			tt.check(t, device)
+		})
+	}
+}
+
+// TestConverter_IPsec_MobileClient verifies mobile/road-warrior client pool conversion,
+// including IPv4/IPv6 pools, DNS/WINS aggregation, and SavePassword flag.
+func TestConverter_IPsec_MobileClient(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		setup func(doc *pfsenseSchema.Document)
+		check func(t *testing.T, device *common.CommonDevice)
+	}{
+		{
+			name:  "disabled mobile client",
+			setup: func(_ *pfsenseSchema.Document) {},
+			check: func(t *testing.T, device *common.CommonDevice) {
+				t.Helper()
+				assert.False(t, device.VPN.IPsec.MobileClient.Enabled)
+			},
+		},
+		{
+			name: "enabled mobile client",
+			setup: func(doc *pfsenseSchema.Document) {
+				doc.IPsec.Phase1 = []pfsenseSchema.IPsecPhase1{
+					{IKEId: "1", Interface: "wan", RemoteGW: "0.0.0.0", Mobile: opnsense.BoolFlag(true)},
+				}
+				doc.IPsec.Client = pfsenseSchema.IPsecClient{
+					Enable:      opnsense.BoolFlag(true),
+					UserSource:  "local",
+					GroupSource: "system",
+					PoolAddress: "10.10.10.0",
+					PoolNetbits: "24",
+					PoolAddrV6:  "fd00::1",
+					PoolNetV6:   "64",
+					DNSServer1:  "8.8.8.8",
+					DNSServer2:  "8.8.4.4",
+					WINSServer1: "192.168.1.10",
+					DNSDomain:   "vpn.local",
+					DNSSplit:    "internal.local",
+					LoginBanner: "Welcome to the VPN",
+					SavePasswd:  opnsense.BoolFlag(true),
+				}
+			},
+			check: func(t *testing.T, device *common.CommonDevice) {
+				t.Helper()
+				assert.True(t, device.VPN.IPsec.Enabled, "IPsec must be enabled when Phase1 tunnels exist")
+				mc := device.VPN.IPsec.MobileClient
+				assert.True(t, mc.Enabled)
+				assert.Equal(t, "local", mc.UserSource)
+				assert.Equal(t, "system", mc.GroupSource)
+				assert.Equal(t, "10.10.10.0", mc.PoolAddress)
+				assert.Equal(t, "24", mc.PoolNetbits)
+				assert.Equal(t, "fd00::1", mc.PoolAddressV6)
+				assert.Equal(t, "64", mc.PoolNetbitsV6)
+				assert.Equal(t, []string{"8.8.8.8", "8.8.4.4"}, mc.DNSServers)
+				assert.Equal(t, []string{"192.168.1.10"}, mc.WINSServers)
+				assert.Equal(t, "vpn.local", mc.DNSDomain)
+				assert.Equal(t, "internal.local", mc.DNSSplit)
+				assert.Equal(t, "Welcome to the VPN", mc.LoginBanner)
+				assert.True(t, mc.SavePassword)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			doc := pfsenseSchema.NewDocument()
+			tt.setup(doc)
+
+			device, _, err := pfsense.ConvertDocument(doc)
+			require.NoError(t, err)
+			tt.check(t, device)
+		})
+	}
+}
+
+// TestConverter_IPsec_EmptyDocument verifies that an empty pfSense document produces a
+// zero-value IPsecConfig with Enabled=false and nil tunnel slices.
+func TestConverter_IPsec_EmptyDocument(t *testing.T) {
+	t.Parallel()
+
+	doc := pfsenseSchema.NewDocument()
+
+	device, _, err := pfsense.ConvertDocument(doc)
+	require.NoError(t, err)
+
+	assert.False(t, device.VPN.IPsec.Enabled, "IPsec must not be enabled on empty document")
+	assert.Nil(t, device.VPN.IPsec.Phase1Tunnels)
+	assert.Nil(t, device.VPN.IPsec.Phase2Tunnels)
+	assert.False(t, device.VPN.IPsec.MobileClient.Enabled)
+}

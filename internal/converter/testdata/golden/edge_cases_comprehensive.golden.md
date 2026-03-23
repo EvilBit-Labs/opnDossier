@@ -3,7 +3,7 @@
 - **Hostname**: edge-case-test!@#$%^&*()
 - **Domain**: domain*with*asterisks
 - **Platform**: OPNsense
-- **Generated On**: 2026-03-22T18:27:34-04:00
+- **Generated On**: 2026-03-23T19:22:09-04:00
 - **Parsed By**: opnDossier vdev
 ## Table of Contents
 - [System Configuration](#system-configuration)
