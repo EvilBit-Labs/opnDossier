@@ -295,11 +295,11 @@ tar -xzf opnDossier_Darwin_arm64.tar.gz
 
 # Test package installation (Linux)
 # Debian/Ubuntu
-sudo dpkg -i opndossier_1.2.0_linux_amd64.deb
+sudo dpkg -i opndossier_1.2.0_amd64.deb
 opndossier --version
 
 # RHEL/Fedora
-sudo rpm -i opndossier_1.2.0_linux_amd64.rpm
+sudo rpm -i opndossier-1.2.0-1.x86_64.rpm
 opndossier --version
 ```
 
@@ -434,16 +434,16 @@ If `QUILL_SIGN_P12` is not set, macOS signing is skipped entirely.
 
 Each release includes:
 
-| Artifact                                      | Description                                                      |
-| --------------------------------------------- | ---------------------------------------------------------------- |
-| `opnDossier_<OS>_<arch>.tar.gz`               | Binary archives (Linux, macOS, FreeBSD) with THIRD_PARTY_NOTICES |
-| `opnDossier_<OS>_<arch>.zip`                  | Binary archive (Windows) with THIRD_PARTY_NOTICES                |
-| `opndossier_<version>_linux_amd64.deb`        | Debian/Ubuntu package with THIRD_PARTY_NOTICES in /usr/share/doc |
-| `opndossier_<version>_linux_amd64.rpm`        | RHEL/Fedora package with THIRD_PARTY_NOTICES in /usr/share/doc   |
-| `opndossier_<version>_linux_amd64.apk`        | Alpine package with THIRD_PARTY_NOTICES                          |
-| `opndossier_<version>_linux_amd64.pkg.tar.xz` | Arch Linux package with THIRD_PARTY_NOTICES                      |
-| `opnDossier_checksums.txt`                    | SHA256 checksums for all artifacts                               |
-| `opnDossier_checksums.txt.sigstore.json`      | Cosign v3 signature bundle                                       |
-| `*.sig`                                       | GPG detached signatures for archives/packages                    |
-| `*.bom.json`                                  | Software Bill of Materials (CycloneDX SBOM)                      |
-| `THIRD_PARTY_NOTICES`                         | Human-readable license attribution for all dependencies          |
+| Artifact                                      | Description                                                                |
+| --------------------------------------------- | -------------------------------------------------------------------------- |
+| `opnDossier_<OS>_<arch>.tar.gz`               | Binary archives (Linux, macOS, FreeBSD) with man page and completions     |
+| `opnDossier_<OS>_<arch>.zip`                  | Binary archive (Windows) with THIRD_PARTY_NOTICES                         |
+| `opndossier_<version>_amd64.deb`              | Debian/Ubuntu package with THIRD_PARTY_NOTICES in /usr/share/doc          |
+| `opndossier-<version>-1.x86_64.rpm`           | RHEL/Fedora package with THIRD_PARTY_NOTICES in /usr/share/doc            |
+| `opndossier_<version>_x86_64.apk`             | Alpine package with THIRD_PARTY_NOTICES                                   |
+| `opndossier-<version>-1-x86_64.pkg.tar.zst`   | Arch Linux package with THIRD_PARTY_NOTICES                               |
+| `opnDossier_checksums.txt`                    | SHA256 checksums for all artifacts                                        |
+| `opnDossier_checksums.txt.sigstore.json`      | Cosign v3 signature bundle                                                |
+| `*.sig`                                       | GPG detached signatures for archives/packages                             |
+| `*.bom.json`                                  | Software Bill of Materials (CycloneDX SBOM)                               |
+| `THIRD_PARTY_NOTICES`                         | Human-readable license attribution for all dependencies                   |
