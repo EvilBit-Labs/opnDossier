@@ -89,7 +89,7 @@ archives:
       - src: ./packaging/completions/*
         dst: completions
       - src: ./packaging/opnDossier.1
-        dst: man/opnDossier.1
+        dst: man/opndossier.1
     # Preserve commit timestamp for reproducibility
     builds_info:
       mtime: "{{ .CommitTimestamp }}"
@@ -169,6 +169,10 @@ release:
     sudo pacman -U opndossier-{{.Version}}-1-x86_64.pkg.tar.zst
     ```
 
+    > **Note:** For pre-release versions (e.g., `1.4.0-rc.1`), package filenames
+    > use format-specific version transforms (`~` for deb/rpm, `_` for apk,
+    > concatenated for archlinux). Check the release assets list for exact filenames.
+
     ### Download Binary
     Download the appropriate binary for your platform from the assets below.
 
@@ -228,7 +232,7 @@ homebrew_casks:
     binaries:
       - opndossier
     manpages:
-      - man/opnDossier.1
+      - man/opndossier.1
     completions:
       bash: completions/opndossier.bash
       zsh: completions/opndossier.zsh
