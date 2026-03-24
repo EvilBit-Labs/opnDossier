@@ -197,6 +197,8 @@ source:
 # Universal binaries for macOS (combines amd64 and arm64)
 universal_binaries:
   - id: opndossier-universal
+    ids:
+      - opndossier
     replace: true
 
 # Milestone auto-close
