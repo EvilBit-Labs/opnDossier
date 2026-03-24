@@ -199,22 +199,22 @@ func TestAuditCmdPreRunEModeValidation(t *testing.T) {
 	}
 }
 
-// TestAuditCmdPreRunEPluginValidation exercises the PreRunE validation of the --plugins
-// flag with valid and invalid plugin names in blue mode. It drives flag values through
-// Cobra/pflag binding to verify the real CLI wiring as well as the validation behavior.
+// TestAuditCmdPreRunEPluginValidation exercises the PreRunE handling of the --plugins
+// flag with various plugin names in blue mode. Plugin name validation is deferred to
+// ValidateModeConfig (post-init, registry-aware), so PreRunE accepts all names.
 func TestAuditCmdPreRunEPluginValidation(t *testing.T) {
 	tests := []struct {
-		name      string
-		plugins   string // comma-separated, as a user would pass on the CLI
-		wantErr   bool
-		errSubstr string
+		name    string
+		plugins string // comma-separated, as a user would pass on the CLI
+		wantErr bool
 	}{
-		{"stig accepted", "stig", false, ""},
-		{"sans accepted", "sans", false, ""},
-		{"firewall accepted", "firewall", false, ""},
-		{"all accepted", "stig,sans,firewall", false, ""},
-		{"invalid rejected", "invalid", true, "invalid audit plugin"},
-		{"mixed valid+invalid", "stig,bad", true, "invalid audit plugin"},
+		{"stig accepted", "stig", false},
+		{"sans accepted", "sans", false},
+		{"firewall accepted", "firewall", false},
+		{"all accepted", "stig,sans,firewall", false},
+		{"unknown name accepted at PreRunE", "invalid", false},
+		{"mixed valid+unknown accepted at PreRunE", "stig,bad", false},
+		{"dynamic plugin name accepted at PreRunE", "myplugin", false},
 	}
 
 	for _, tt := range tests {
@@ -243,12 +243,39 @@ func TestAuditCmdPreRunEPluginValidation(t *testing.T) {
 			err := auditCmd.PreRunE(tempCmd, []string{"dummy.xml"})
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.Contains(t, err.Error(), tt.errSubstr)
 			} else {
 				assert.NoError(t, err)
 			}
 		})
 	}
+}
+
+// TestAuditCmdPreRunEDynamicPluginAccepted verifies that a --plugin-dir combined with an
+// unknown plugin name does not cause PreRunE to return an error. Plugin name validation
+// is deferred to ValidateModeConfig which runs after InitializePlugins loads dynamic plugins.
+func TestAuditCmdPreRunEDynamicPluginAccepted(t *testing.T) {
+	auditSnap := captureAuditFlags()
+	sharedSnap := captureSharedFlags()
+	t.Cleanup(func() {
+		auditSnap.restore()
+		sharedSnap.restore()
+	})
+
+	tempCmd := &cobra.Command{}
+	tempCmd.Flags().StringVar(&auditMode, "mode", "blue", "")
+	tempCmd.Flags().StringSliceVar(&auditPlugins, "plugins", []string{}, "")
+	tempCmd.Flags().StringVar(&auditPluginDir, "plugin-dir", "", "")
+	tempCmd.Flags().StringVar(&outputFile, "output", "", "")
+	tempCmd.Flags().StringVar(&format, "format", "markdown", "")
+	tempCmd.Flags().Bool("no-wrap", false, "")
+	tempCmd.Flags().Int("wrap", -1, "")
+
+	require.NoError(t, tempCmd.Flags().Set("mode", "blue"))
+	require.NoError(t, tempCmd.Flags().Set("plugins", "myplugin"))
+	require.NoError(t, tempCmd.Flags().Set("plugin-dir", "/tmp/plugins"))
+
+	err := auditCmd.PreRunE(tempCmd, []string{"dummy.xml"})
+	assert.NoError(t, err)
 }
 
 // TestAuditCmdPreRunEPluginsRequireBlueMode verifies that the --plugins flag is rejected
@@ -353,13 +380,22 @@ func TestAuditCmdCompletions(t *testing.T) {
 
 	t.Run("audit plugins", func(t *testing.T) {
 		completions, directive := ValidAuditPlugins(nil, nil, "")
-		assert.Len(t, completions, 3)
 		assert.Equal(t, cobra.ShellCompDirectiveNoFileComp, directive)
 
-		joined := strings.Join(completions, " ")
-		assert.Contains(t, joined, "stig")
-		assert.Contains(t, joined, "sans")
-		assert.Contains(t, joined, "firewall")
+		// Build expected plugin names from the same registry-backed source
+		// used by ValidAuditPlugins, so this test stays in sync with any
+		// future plugin registration changes.
+		expectedNames := registryPluginNames()
+		assert.Len(t, completions, len(expectedNames), "completion count should match registry plugin count")
+
+		// Extract just the name portion (before \t) from each completion entry.
+		gotNames := make([]string, 0, len(completions))
+		for _, c := range completions {
+			name, _, _ := strings.Cut(c, "\t")
+			gotNames = append(gotNames, name)
+		}
+
+		assert.ElementsMatch(t, expectedNames, gotNames, "completion names should match registry plugins")
 	})
 
 	t.Run("formats", func(t *testing.T) {

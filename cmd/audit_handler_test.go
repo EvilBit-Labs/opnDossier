@@ -548,3 +548,40 @@ func TestHandleAuditMode_StructuredFormats(t *testing.T) {
 		})
 	}
 }
+
+// TestHandleAuditMode_UnknownPluginRejectedPostInit verifies the two-phase
+// validation: (1) PreRunE accepts an unknown plugin name when --plugin-dir is
+// set, and (2) handleAuditMode rejects it after plugin initialization because
+// the registry does not contain the requested plugin.
+func TestHandleAuditMode_UnknownPluginRejectedPostInit(t *testing.T) {
+	t.Parallel()
+
+	logger, err := logging.New(logging.Config{Level: "warn"})
+	require.NoError(t, err)
+
+	device := &common.CommonDevice{
+		System: common.System{
+			Hostname: "test-fw",
+			Domain:   "example.com",
+		},
+	}
+
+	pluginDir := t.TempDir()
+
+	auditOpts := audit.Options{
+		AuditMode:         "blue",
+		SelectedPlugins:   []string{"myplugin"},
+		PluginDir:         pluginDir,
+		ExplicitPluginDir: true,
+	}
+
+	opt := converter.Options{
+		Format: converter.FormatMarkdown,
+	}
+
+	_, err = handleAuditMode(context.Background(), device, auditOpts, opt, logger)
+	require.Error(t, err)
+	require.ErrorIs(t, err, audit.ErrPluginNotFound,
+		"expected ErrPluginNotFound in error chain, got: %v", err)
+	assert.Contains(t, err.Error(), "myplugin")
+}

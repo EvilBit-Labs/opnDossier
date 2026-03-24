@@ -118,15 +118,6 @@ var auditCmd = &cobra.Command{
 				auditMode, strings.Join(validModes, ", "))
 		}
 
-		// Validate audit plugins
-		validPlugins := []string{"stig", "sans", "firewall"}
-		for _, p := range auditPlugins {
-			if !slices.Contains(validPlugins, strings.ToLower(p)) {
-				return fmt.Errorf("invalid audit plugin %q, must be one of: %s",
-					p, strings.Join(validPlugins, ", "))
-			}
-		}
-
 		// Reject --plugins when the selected mode does not execute compliance checks.
 		// Only blue mode runs RunComplianceChecks; red mode ignores plugins.
 		if len(auditPlugins) > 0 && !strings.EqualFold(auditMode, "blue") {
