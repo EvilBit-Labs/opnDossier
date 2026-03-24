@@ -390,86 +390,86 @@ IPsec VPN tunnel and mobile client configuration.
 
 IKE Phase 1 (SA) tunnel configuration with authentication, timing, and encryption settings.
 
-| Field                    | Type         | JSON Path                                    | Description                                                                  |
-| ------------------------ | ------------ | -------------------------------------------- | ---------------------------------------------------------------------------- |
-| `IKEID`                  | `string`     | `ipsec.phase1Tunnels[].ikeId`                | Unique IKE SA identifier                                                     |
-| `IKEType`                | `string`     | `ipsec.phase1Tunnels[].ikeType`              | IKE version; Options: `ikev1`, `ikev2`, `auto`                               |
-| `Interface`              | `string`     | `ipsec.phase1Tunnels[].interface`            | Network interface for this tunnel                                            |
-| `RemoteGateway`          | `string`     | `ipsec.phase1Tunnels[].remoteGateway`        | Remote peer's IP address or hostname                                         |
-| `Protocol`               | `string`     | `ipsec.phase1Tunnels[].protocol`             | Key exchange protocol; Options: `inet`, `inet6`                              |
-| `AuthMethod`             | `string`     | `ipsec.phase1Tunnels[].authMethod`           | Authentication method; Options: `pre_shared_key`, `rsasig`                   |
-| `MyIDType`               | `string`     | `ipsec.phase1Tunnels[].myIdType`             | Local identification type; Options: `myaddress`, `fqdn`                      |
-| `MyIDData`               | `string`     | `ipsec.phase1Tunnels[].myIdData`             | Local identification data                                                    |
-| `PeerIDType`             | `string`     | `ipsec.phase1Tunnels[].peerIdType`           | Remote identification type                                                   |
-| `PeerIDData`             | `string`     | `ipsec.phase1Tunnels[].peerIdData`           | Remote identification data                                                   |
-| `Mode`                   | `string`     | `ipsec.phase1Tunnels[].mode`                 | IKE negotiation mode; Options: `main`, `aggressive`                          |
-| `Lifetime`               | `string`     | `ipsec.phase1Tunnels[].lifetime`             | Phase 1 SA lifetime in seconds                                               |
-| `RekeyTime`              | `string`     | `ipsec.phase1Tunnels[].rekeyTime`            | IKE SA rekey time in seconds                                                 |
-| `ReauthTime`             | `string`     | `ipsec.phase1Tunnels[].reauthTime`           | IKE SA reauthentication time in seconds                                      |
-| `RandTime`               | `string`     | `ipsec.phase1Tunnels[].randTime`             | Random time range to subtract from rekey/reauth time                         |
-| `NATTraversal`           | `string`     | `ipsec.phase1Tunnels[].natTraversal`         | NAT-T setting; Options: `on`, `force`                                        |
-| `MOBIKE`                 | `string`     | `ipsec.phase1Tunnels[].mobike`               | MOBIKE protocol support; Options: `on`, `off`                                |
-| `DPDDelay`               | `string`     | `ipsec.phase1Tunnels[].dpdDelay`             | Dead peer detection check interval in seconds                                |
-| `DPDMaxFail`             | `string`     | `ipsec.phase1Tunnels[].dpdMaxFail`           | Maximum number of DPD failures before declaring peer dead                    |
-| `StartAction`            | `string`     | `ipsec.phase1Tunnels[].startAction`          | Action on tunnel startup; Options: `none`, `start`, `trap`                   |
-| `CloseAction`            | `string`     | `ipsec.phase1Tunnels[].closeAction`          | Action on tunnel close; Options: `none`, `start`, `trap`                     |
-| `CertRef`                | `string`     | `ipsec.phase1Tunnels[].certRef`              | Reference ID of the certificate used for this tunnel                         |
-| `CARef`                  | `string`     | `ipsec.phase1Tunnels[].caRef`                | Reference ID of the certificate authority                                    |
-| `IKEPort`                | `string`     | `ipsec.phase1Tunnels[].ikePort`              | Custom IKE port override (default 500)                                       |
-| `NATTPort`               | `string`     | `ipsec.phase1Tunnels[].nattPort`             | Custom NAT-T port override (default 4500)                                    |
-| `SplitConn`              | `string`     | `ipsec.phase1Tunnels[].splitConn`            | Split connection configuration                                               |
-| `Description`            | `string`     | `ipsec.phase1Tunnels[].description`          | Human-readable description of the tunnel                                     |
-| `Disabled`               | `bool`       | `ipsec.phase1Tunnels[].disabled`             | Whether tunnel is administratively disabled                                  |
-| `Mobile`                 | `bool`       | `ipsec.phase1Tunnels[].mobile`               | Whether tunnel is a mobile/road-warrior endpoint                             |
-| `EncryptionAlgorithms`   | `[]string`   | `ipsec.phase1Tunnels[].encryptionAlgorithms` | List of encryption algorithms; e.g., `aes-256`, `aes-128`                    |
+| Field                  | Type       | JSON Path                                    | Description                                                |
+| ---------------------- | ---------- | -------------------------------------------- | ---------------------------------------------------------- |
+| `IKEID`                | `string`   | `ipsec.phase1Tunnels[].ikeId`                | Unique IKE SA identifier                                   |
+| `IKEType`              | `string`   | `ipsec.phase1Tunnels[].ikeType`              | IKE version; Options: `ikev1`, `ikev2`, `auto`             |
+| `Interface`            | `string`   | `ipsec.phase1Tunnels[].interface`            | Network interface for this tunnel                          |
+| `RemoteGateway`        | `string`   | `ipsec.phase1Tunnels[].remoteGateway`        | Remote peer's IP address or hostname                       |
+| `Protocol`             | `string`   | `ipsec.phase1Tunnels[].protocol`             | Key exchange protocol; Options: `inet`, `inet6`            |
+| `AuthMethod`           | `string`   | `ipsec.phase1Tunnels[].authMethod`           | Authentication method; Options: `pre_shared_key`, `rsasig` |
+| `MyIDType`             | `string`   | `ipsec.phase1Tunnels[].myIdType`             | Local identification type; Options: `myaddress`, `fqdn`    |
+| `MyIDData`             | `string`   | `ipsec.phase1Tunnels[].myIdData`             | Local identification data                                  |
+| `PeerIDType`           | `string`   | `ipsec.phase1Tunnels[].peerIdType`           | Remote identification type                                 |
+| `PeerIDData`           | `string`   | `ipsec.phase1Tunnels[].peerIdData`           | Remote identification data                                 |
+| `Mode`                 | `string`   | `ipsec.phase1Tunnels[].mode`                 | IKE negotiation mode; Options: `main`, `aggressive`        |
+| `Lifetime`             | `string`   | `ipsec.phase1Tunnels[].lifetime`             | Phase 1 SA lifetime in seconds                             |
+| `RekeyTime`            | `string`   | `ipsec.phase1Tunnels[].rekeyTime`            | IKE SA rekey time in seconds                               |
+| `ReauthTime`           | `string`   | `ipsec.phase1Tunnels[].reauthTime`           | IKE SA reauthentication time in seconds                    |
+| `RandTime`             | `string`   | `ipsec.phase1Tunnels[].randTime`             | Random time range to subtract from rekey/reauth time       |
+| `NATTraversal`         | `string`   | `ipsec.phase1Tunnels[].natTraversal`         | NAT-T setting; Options: `on`, `force`                      |
+| `MOBIKE`               | `string`   | `ipsec.phase1Tunnels[].mobike`               | MOBIKE protocol support; Options: `on`, `off`              |
+| `DPDDelay`             | `string`   | `ipsec.phase1Tunnels[].dpdDelay`             | Dead peer detection check interval in seconds              |
+| `DPDMaxFail`           | `string`   | `ipsec.phase1Tunnels[].dpdMaxFail`           | Maximum number of DPD failures before declaring peer dead  |
+| `StartAction`          | `string`   | `ipsec.phase1Tunnels[].startAction`          | Action on tunnel startup; Options: `none`, `start`, `trap` |
+| `CloseAction`          | `string`   | `ipsec.phase1Tunnels[].closeAction`          | Action on tunnel close; Options: `none`, `start`, `trap`   |
+| `CertRef`              | `string`   | `ipsec.phase1Tunnels[].certRef`              | Reference ID of the certificate used for this tunnel       |
+| `CARef`                | `string`   | `ipsec.phase1Tunnels[].caRef`                | Reference ID of the certificate authority                  |
+| `IKEPort`              | `string`   | `ipsec.phase1Tunnels[].ikePort`              | Custom IKE port override (default 500)                     |
+| `NATTPort`             | `string`   | `ipsec.phase1Tunnels[].nattPort`             | Custom NAT-T port override (default 4500)                  |
+| `SplitConn`            | `string`   | `ipsec.phase1Tunnels[].splitConn`            | Split connection configuration                             |
+| `Description`          | `string`   | `ipsec.phase1Tunnels[].description`          | Human-readable description of the tunnel                   |
+| `Disabled`             | `bool`     | `ipsec.phase1Tunnels[].disabled`             | Whether tunnel is administratively disabled                |
+| `Mobile`               | `bool`     | `ipsec.phase1Tunnels[].mobile`               | Whether tunnel is a mobile/road-warrior endpoint           |
+| `EncryptionAlgorithms` | `[]string` | `ipsec.phase1Tunnels[].encryptionAlgorithms` | List of encryption algorithms; e.g., `aes-256`, `aes-128`  |
 
 #### IPsecPhase2Tunnel
 
 IPsec Phase 2 (child SA) configuration with network identity, encryption, and monitoring settings.
 
-| Field                    | Type         | JSON Path                                    | Description                                                                  |
-| ------------------------ | ------------ | -------------------------------------------- | ---------------------------------------------------------------------------- |
-| `IKEID`                  | `string`     | `ipsec.phase2Tunnels[].ikeId`                | Parent Phase 1 IKE SA identifier                                             |
-| `UniqID`                 | `string`     | `ipsec.phase2Tunnels[].uniqId`               | Unique identifier for this Phase 2 entry                                     |
-| `ReqID`                  | `string`     | `ipsec.phase2Tunnels[].reqId`                | Unique request identifier                                                    |
-| `Mode`                   | `string`     | `ipsec.phase2Tunnels[].mode`                 | IPsec mode; Options: `tunnel`, `transport`                                   |
-| `Disabled`               | `bool`       | `ipsec.phase2Tunnels[].disabled`             | Whether Phase 2 entry is administratively disabled                           |
-| `Protocol`               | `string`     | `ipsec.phase2Tunnels[].protocol`             | IPsec protocol; Options: `esp`, `ah`                                         |
-| `LocalIDType`            | `string`     | `ipsec.phase2Tunnels[].localIdType`          | Local network identity type; Options: `network`, `address`                   |
-| `LocalIDAddress`         | `string`     | `ipsec.phase2Tunnels[].localIdAddress`       | Local network identity address                                               |
-| `LocalIDNetbits`         | `string`     | `ipsec.phase2Tunnels[].localIdNetbits`       | Local network identity prefix length                                         |
-| `RemoteIDType`           | `string`     | `ipsec.phase2Tunnels[].remoteIdType`         | Remote network identity type                                                 |
-| `RemoteIDAddress`        | `string`     | `ipsec.phase2Tunnels[].remoteIdAddress`      | Remote network identity address                                              |
-| `RemoteIDNetbits`        | `string`     | `ipsec.phase2Tunnels[].remoteIdNetbits`      | Remote network identity prefix length                                        |
-| `NATLocalIDType`         | `string`     | `ipsec.phase2Tunnels[].natLocalIdType`       | NAT/BINAT local identity type                                                |
-| `NATLocalIDAddress`      | `string`     | `ipsec.phase2Tunnels[].natLocalIdAddress`    | NAT/BINAT local identity address                                             |
-| `NATLocalIDNetbits`      | `string`     | `ipsec.phase2Tunnels[].natLocalIdNetbits`    | NAT/BINAT local identity prefix length                                       |
-| `PFSGroup`               | `string`     | `ipsec.phase2Tunnels[].pfsGroup`             | Perfect Forward Secrecy Diffie-Hellman group number                          |
-| `Lifetime`               | `string`     | `ipsec.phase2Tunnels[].lifetime`             | Phase 2 SA lifetime in seconds                                               |
-| `PingHost`               | `string`     | `ipsec.phase2Tunnels[].pingHost`             | Keep-alive destination IP for tunnel monitoring                              |
-| `Description`            | `string`     | `ipsec.phase2Tunnels[].description`          | Human-readable description                                                   |
-| `EncryptionAlgorithms`   | `[]string`   | `ipsec.phase2Tunnels[].encryptionAlgorithms` | List of encryption algorithms                                                |
-| `HashAlgorithms`         | `[]string`   | `ipsec.phase2Tunnels[].hashAlgorithms`       | List of hash/integrity algorithms                                            |
+| Field                  | Type       | JSON Path                                    | Description                                                |
+| ---------------------- | ---------- | -------------------------------------------- | ---------------------------------------------------------- |
+| `IKEID`                | `string`   | `ipsec.phase2Tunnels[].ikeId`                | Parent Phase 1 IKE SA identifier                           |
+| `UniqID`               | `string`   | `ipsec.phase2Tunnels[].uniqId`               | Unique identifier for this Phase 2 entry                   |
+| `ReqID`                | `string`   | `ipsec.phase2Tunnels[].reqId`                | Unique request identifier                                  |
+| `Mode`                 | `string`   | `ipsec.phase2Tunnels[].mode`                 | IPsec mode; Options: `tunnel`, `transport`                 |
+| `Disabled`             | `bool`     | `ipsec.phase2Tunnels[].disabled`             | Whether Phase 2 entry is administratively disabled         |
+| `Protocol`             | `string`   | `ipsec.phase2Tunnels[].protocol`             | IPsec protocol; Options: `esp`, `ah`                       |
+| `LocalIDType`          | `string`   | `ipsec.phase2Tunnels[].localIdType`          | Local network identity type; Options: `network`, `address` |
+| `LocalIDAddress`       | `string`   | `ipsec.phase2Tunnels[].localIdAddress`       | Local network identity address                             |
+| `LocalIDNetbits`       | `string`   | `ipsec.phase2Tunnels[].localIdNetbits`       | Local network identity prefix length                       |
+| `RemoteIDType`         | `string`   | `ipsec.phase2Tunnels[].remoteIdType`         | Remote network identity type                               |
+| `RemoteIDAddress`      | `string`   | `ipsec.phase2Tunnels[].remoteIdAddress`      | Remote network identity address                            |
+| `RemoteIDNetbits`      | `string`   | `ipsec.phase2Tunnels[].remoteIdNetbits`      | Remote network identity prefix length                      |
+| `NATLocalIDType`       | `string`   | `ipsec.phase2Tunnels[].natLocalIdType`       | NAT/BINAT local identity type                              |
+| `NATLocalIDAddress`    | `string`   | `ipsec.phase2Tunnels[].natLocalIdAddress`    | NAT/BINAT local identity address                           |
+| `NATLocalIDNetbits`    | `string`   | `ipsec.phase2Tunnels[].natLocalIdNetbits`    | NAT/BINAT local identity prefix length                     |
+| `PFSGroup`             | `string`   | `ipsec.phase2Tunnels[].pfsGroup`             | Perfect Forward Secrecy Diffie-Hellman group number        |
+| `Lifetime`             | `string`   | `ipsec.phase2Tunnels[].lifetime`             | Phase 2 SA lifetime in seconds                             |
+| `PingHost`             | `string`   | `ipsec.phase2Tunnels[].pingHost`             | Keep-alive destination IP for tunnel monitoring            |
+| `Description`          | `string`   | `ipsec.phase2Tunnels[].description`          | Human-readable description                                 |
+| `EncryptionAlgorithms` | `[]string` | `ipsec.phase2Tunnels[].encryptionAlgorithms` | List of encryption algorithms                              |
+| `HashAlgorithms`       | `[]string` | `ipsec.phase2Tunnels[].hashAlgorithms`       | List of hash/integrity algorithms                          |
 
 #### IPsecMobileClient
 
 Mobile/road-warrior IPsec client pool configuration for remote user access.
 
-| Field              | Type         | JSON Path                           | Description                                                                  |
-| ------------------ | ------------ | ----------------------------------- | ---------------------------------------------------------------------------- |
-| `Enabled`          | `bool`       | `ipsec.mobileClient.enabled`        | Whether mobile client pool is active                                         |
-| `UserSource`       | `string`     | `ipsec.mobileClient.userSource`     | Authentication source for mobile users; Options: `local`, `radius`           |
-| `GroupSource`      | `string`     | `ipsec.mobileClient.groupSource`    | Group-based access source for mobile users                                   |
-| `PoolAddress`      | `string`     | `ipsec.mobileClient.poolAddress`    | IPv4 virtual address pool network address                                    |
-| `PoolNetbits`      | `string`     | `ipsec.mobileClient.poolNetbits`    | IPv4 virtual address pool prefix length                                      |
-| `PoolAddressV6`    | `string`     | `ipsec.mobileClient.poolAddressV6`  | IPv6 virtual address pool network address                                    |
-| `PoolNetbitsV6`    | `string`     | `ipsec.mobileClient.poolNetbitsV6`  | IPv6 virtual address pool prefix length                                      |
-| `DNSServers`       | `[]string`   | `ipsec.mobileClient.dnsServers`     | DNS servers pushed to mobile clients                                         |
-| `WINSServers`      | `[]string`   | `ipsec.mobileClient.winsServers`    | WINS servers pushed to mobile clients                                        |
-| `DNSDomain`        | `string`     | `ipsec.mobileClient.dnsDomain`      | DNS domain pushed to mobile clients                                          |
-| `DNSSplit`         | `string`     | `ipsec.mobileClient.dnsSplit`       | Split DNS configuration for mobile clients                                   |
-| `LoginBanner`      | `string`     | `ipsec.mobileClient.loginBanner`    | Banner message displayed to mobile clients on connection                     |
-| `SavePasswd`       | `bool`       | `ipsec.mobileClient.savePasswd`     | Whether mobile clients can save passwords                                    |
+| Field           | Type       | JSON Path                          | Description                                                        |
+| --------------- | ---------- | ---------------------------------- | ------------------------------------------------------------------ |
+| `Enabled`       | `bool`     | `ipsec.mobileClient.enabled`       | Whether mobile client pool is active                               |
+| `UserSource`    | `string`   | `ipsec.mobileClient.userSource`    | Authentication source for mobile users; Options: `local`, `radius` |
+| `GroupSource`   | `string`   | `ipsec.mobileClient.groupSource`   | Group-based access source for mobile users                         |
+| `PoolAddress`   | `string`   | `ipsec.mobileClient.poolAddress`   | IPv4 virtual address pool network address                          |
+| `PoolNetbits`   | `string`   | `ipsec.mobileClient.poolNetbits`   | IPv4 virtual address pool prefix length                            |
+| `PoolAddressV6` | `string`   | `ipsec.mobileClient.poolAddressV6` | IPv6 virtual address pool network address                          |
+| `PoolNetbitsV6` | `string`   | `ipsec.mobileClient.poolNetbitsV6` | IPv6 virtual address pool prefix length                            |
+| `DNSServers`    | `[]string` | `ipsec.mobileClient.dnsServers`    | DNS servers pushed to mobile clients                               |
+| `WINSServers`   | `[]string` | `ipsec.mobileClient.winsServers`   | WINS servers pushed to mobile clients                              |
+| `DNSDomain`     | `string`   | `ipsec.mobileClient.dnsDomain`     | DNS domain pushed to mobile clients                                |
+| `DNSSplit`      | `string`   | `ipsec.mobileClient.dnsSplit`      | Split DNS configuration for mobile clients                         |
+| `LoginBanner`   | `string`   | `ipsec.mobileClient.loginBanner`   | Banner message displayed to mobile clients on connection           |
+| `SavePasswd`    | `bool`     | `ipsec.mobileClient.savePasswd`    | Whether mobile clients can save passwords                          |
 
 ### OpenVPN Server
 
