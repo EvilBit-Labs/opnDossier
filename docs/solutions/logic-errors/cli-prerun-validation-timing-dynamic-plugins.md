@@ -55,6 +55,8 @@ for _, p := range auditPlugins {
 
 `ValidateModeConfig()` in `internal/audit/mode_controller.go` already validates `SelectedPlugins` against `mc.registry.ListPlugins()` after `InitializePlugins` populates the registry. It returns `ErrPluginNotFound` for unrecognized names. This method is called by `GenerateReport()`, invoked from `handleAuditMode()` in the `RunE` phase. No changes were needed here.
 
+> **Thread safety:** `PluginRegistry` methods (`ListPlugins`, `GetPlugin`) are protected by `sync.RWMutex` and are safe for concurrent access. After `InitializePlugins` completes, the registry is effectively read-only. See [architecture docs](../../../docs/development/architecture.md) and AGENTS.md 5.6 for the canonical thread-safety pattern.
+
 ### 3. Add registry-backed shell completion
 
 Added `registryPluginNames()` in `cmd/shared_flags.go` that creates a temporary `PluginManager`, initializes built-in plugins, and returns names from the registry. `ValidAuditPlugins()` now uses this instead of a hardcoded list, mirroring the `ValidDeviceTypes` registry-driven pattern. A `pluginDescriptions` map provides fallback descriptions for shell completions.

@@ -43,15 +43,15 @@ opnDossier display config.xml
 
 #### Markdown display output
 
-![sample display output](images/display.png)
+![Terminal screenshot showing opnDossier markdown output with system configuration and firewall rules](images/display.png)
 
 #### Convert to JSON for automation/integration
 
-![json output example](images/json-output.png)
+![Screenshot of JSON export showing structured device data for automation and integration](images/json-output.png)
 
 #### Audit findings example
 
-![audit findings example](images/audit.png)
+![Screenshot of audit compliance findings showing severity levels and remediation recommendations](images/audit.png)
 
 ## Analysis & Security Features
 
@@ -68,7 +68,7 @@ Identifies common security issues in your firewall configuration:
 
 Example output:
 
-![findings](images/findings.png)
+![Screenshot of security findings with severity indicators and actionable recommendations](images/findings.png)
 
 ### Dead Rule Detection
 
@@ -98,7 +98,7 @@ Comprehensive checks for structural and logical issues:
 
 Example validation report:
 
-![validation output](images/validation.png)
+![Screenshot of configuration validation output showing detected issues and warnings](images/validation.png)
 
 ### Unused Resource Detection
 
