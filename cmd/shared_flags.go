@@ -2,13 +2,18 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"io"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/audit"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
@@ -237,13 +242,70 @@ func ValidAuditModes(_ *cobra.Command, _ []string, _ string) ([]string, cobra.Sh
 	}, cobra.ShellCompDirectiveNoFileComp
 }
 
+// pluginDescriptions maps audit plugin names to their shell completion descriptions.
+// Plugins not in this map receive a generic "<name> plugin" description.
+var pluginDescriptions = map[string]string{ //nolint:gochecknoglobals // static lookup table
+	"stig":     "Security Technical Implementation Guide",
+	"sans":     "SANS Firewall Baseline",
+	"firewall": "Firewall Configuration Analysis",
+}
+
+// cachedPluginNames holds the result of a one-time PluginManager initialization.
+// Cached via sync.Once to avoid re-initializing on every shell completion keystroke.
+var ( //nolint:gochecknoglobals // cached singleton, mirrors DefaultRegistry pattern
+	cachedPluginNames     []string
+	cachedPluginNamesOnce sync.Once
+)
+
+// registryPluginNames returns plugin names from a one-time initialized PluginManager.
+// This is the source of truth for available audit plugin names, including built-in
+// plugins registered during initialization. Dynamic plugins are not included because
+// shell completion runs before --plugin-dir is processed. Results are cached after
+// the first call to avoid repeated initialization on every tab-completion keystroke.
+func registryPluginNames() []string {
+	cachedPluginNamesOnce.Do(func() {
+		logger, err := logging.New(logging.Config{
+			Level:  "error",
+			Format: "text",
+			Output: io.Discard,
+		})
+		if err != nil {
+			// Fallback to static description keys if logger creation fails.
+			cachedPluginNames = slices.Sorted(maps.Keys(pluginDescriptions))
+
+			return
+		}
+
+		pm := audit.NewPluginManager(logger)
+		if initErr := pm.InitializePlugins(context.Background()); initErr != nil {
+			cachedPluginNames = slices.Sorted(maps.Keys(pluginDescriptions))
+
+			return
+		}
+
+		cachedPluginNames = pm.GetRegistry().ListPlugins()
+	})
+
+	return cachedPluginNames
+}
+
 // ValidAuditPlugins provides shell completion for audit plugin values.
+// Plugin names are sourced from the audit registry to stay in sync with
+// actual registered plugins, mirroring the ValidDeviceTypes registry-driven pattern.
 func ValidAuditPlugins(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
-	return []string{
-		"stig\tSecurity Technical Implementation Guide",
-		"sans\tSANS Firewall Baseline",
-		"firewall\tFirewall Configuration Analysis",
-	}, cobra.ShellCompDirectiveNoFileComp
+	names := registryPluginNames()
+	completions := make([]string, 0, len(names))
+
+	for _, name := range names {
+		desc, ok := pluginDescriptions[name]
+		if !ok {
+			desc = name + " plugin"
+		}
+
+		completions = append(completions, name+"\t"+desc)
+	}
+
+	return completions, cobra.ShellCompDirectiveNoFileComp
 }
 
 // ValidDeviceTypes provides shell completion for device type values.

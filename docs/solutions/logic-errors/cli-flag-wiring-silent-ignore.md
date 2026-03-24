@@ -131,3 +131,4 @@ If a flag is supposed to change output, verify it actually does. A flag that pro
 - [GOTCHAS.md section 1.1](../../GOTCHAS.md) -- t.Parallel() and Global State
 - [GitHub Issue #412](https://github.com/EvilBit-Labs/opnDossier/issues/412) -- Original bug report
 - [PR #413](https://github.com/EvilBit-Labs/opnDossier/pull/413) -- Fix implementation
+- [Deferred plugin validation timing](cli-prerun-validation-timing-dynamic-plugins.md) -- inverse pattern (flag rejected prematurely vs. silently ignored)

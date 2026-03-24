@@ -114,8 +114,8 @@ Unix GID 0 (wheel/root group) and UID 0 (root user) are valid. The validator che
 
 Only `blue` mode runs `RunComplianceChecks`. Red mode ignores `SelectedPlugins` entirely. The `--plugins` flag is rejected in `PreRunE` unless `--mode blue` is set.
 
-- **Gotcha:** Adding plugin support to red mode requires wiring `RunComplianceChecks` into `generateRedReport` in `mode_controller.go` AND removing the `PreRunE` guard in `cmd/audit.go`.
-- **Gotcha:** `--plugins` only accepts built-in names (`stig`, `sans`, `firewall`). Dynamic plugins loaded via `--plugin-dir` are included automatically when `--plugins` is omitted (the "all available" default). To run *only* a dynamic plugin, the current design does not support it — this is intentional to avoid unvalidated plugin name strings.
+- **Gotcha:** Adding plugin support to red mode requires wiring `RunComplianceChecks` into `generateRedReport` in `mode_controller.go` AND removing the `--plugins`+non-blue-mode rejection guard in `cmd/audit.go` `PreRunE`.
+- **Gotcha:** `--plugins` accepts any name at the CLI level — validation is deferred to `ValidateModeConfig` post-init, which checks against the live `PluginRegistry`. Dynamic plugins loaded via `--plugin-dir` are included automatically when `--plugins` is omitted (the "all available" default).
 
 ### 8.2 Concurrent Generation, Serial Emission
 

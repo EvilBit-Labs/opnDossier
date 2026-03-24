@@ -46,6 +46,20 @@ func TestValidAuditPlugins(t *testing.T) {
 	assert.Contains(t, completionStr, "firewall")
 }
 
+// TestPluginDescriptionsSyncWithRegistry verifies that every built-in plugin
+// registered in the audit registry has a corresponding entry in the
+// pluginDescriptions map used for shell completion descriptions.
+func TestPluginDescriptionsSyncWithRegistry(t *testing.T) {
+	t.Parallel()
+
+	registryNames := registryPluginNames()
+	for _, name := range registryNames {
+		_, ok := pluginDescriptions[name]
+		assert.True(t, ok,
+			"pluginDescriptions missing entry for registered plugin %q", name)
+	}
+}
+
 // TestMapAuditReportToComplianceResults verifies the mapping function
 // correctly converts audit.Report data into common.ComplianceResults.
 func TestMapAuditReportToComplianceResults(t *testing.T) {
@@ -547,4 +561,42 @@ func TestHandleAuditMode_StructuredFormats(t *testing.T) {
 			assert.Equal(t, "blue", checks["mode"])
 		})
 	}
+}
+
+// TestHandleAuditMode_UnknownPluginRejectedPostInit verifies that handleAuditMode
+// rejects an unknown plugin name after plugin initialization, because the registry
+// does not contain the requested plugin. This tests the post-init validation phase
+// (ValidateModeConfig via GenerateReport). PreRunE acceptance is tested separately
+// in TestAuditCmdPreRunEDynamicPluginAccepted.
+func TestHandleAuditMode_UnknownPluginRejectedPostInit(t *testing.T) {
+	t.Parallel()
+
+	logger, err := logging.New(logging.Config{Level: "warn"})
+	require.NoError(t, err)
+
+	device := &common.CommonDevice{
+		System: common.System{
+			Hostname: "test-fw",
+			Domain:   "example.com",
+		},
+	}
+
+	pluginDir := t.TempDir()
+
+	auditOpts := audit.Options{
+		AuditMode:         "blue",
+		SelectedPlugins:   []string{"myplugin"},
+		PluginDir:         pluginDir,
+		ExplicitPluginDir: true,
+	}
+
+	opt := converter.Options{
+		Format: converter.FormatMarkdown,
+	}
+
+	_, err = handleAuditMode(context.Background(), device, auditOpts, opt, logger)
+	require.Error(t, err)
+	require.ErrorIs(t, err, audit.ErrPluginNotFound,
+		"expected ErrPluginNotFound in error chain, got: %v", err)
+	assert.Contains(t, err.Error(), "myplugin")
 }

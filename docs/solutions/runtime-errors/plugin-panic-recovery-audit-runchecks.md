@@ -114,3 +114,4 @@ Use the `mockPanickingPlugin` pattern:
 - [Architecture Issues: Pluggable DeviceParser Registry](../architecture-issues/pluggable-deviceparser-registry-pattern.md) -- parallel registry pattern
 - GitHub Issue #309 -- original tracking issue
 - GitHub Issue #311 -- dynamic plugin load failures (related, still open)
+- [Deferred plugin validation timing](../logic-errors/cli-prerun-validation-timing-dynamic-plugins.md) -- PreRunE validation deferred to post-init for dynamic plugin support
