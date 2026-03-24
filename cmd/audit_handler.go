@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -52,23 +53,38 @@ func handleAuditMode(
 		return "", fmt.Errorf("initialize plugins: %w", err)
 	}
 
-	// Surface any dynamic plugin load failures to the CLI user.
-	if loadResult := pm.GetLoadResult(); loadResult.Failed() > 0 {
-		failedNames := make([]string, len(loadResult.Failures))
-		for i, f := range loadResult.Failures {
-			failedNames[i] = f.Name
+	// Surface any dynamic plugin load failures to the CLI user, including
+	// per-plugin error details so users can diagnose why a plugin failed.
+	loadResult := pm.GetLoadResult()
+	if loadResult.Failed() > 0 {
+		for _, f := range loadResult.Failures {
+			logger.Warn("Dynamic plugin failed to load",
+				"plugin", f.Name,
+				"error", f.Err,
+			)
 		}
-
-		logger.Warn("Some dynamic plugins failed to load",
-			"failed", loadResult.Failed(),
-			"loaded", loadResult.Loaded,
-			"files", strings.Join(failedNames, ", "),
-		)
 	}
 
 	// Create mode controller and generate audit report
 	mc := audit.NewModeController(pm.GetRegistry(), logger)
 	auditReport, err := mc.GenerateReport(ctx, device, modeConfig)
+
+	if err != nil && errors.Is(err, audit.ErrPluginNotFound) && loadResult.Failed() > 0 {
+		// Link the "plugin not found" error to dynamic load failures so the
+		// user understands that the plugin may have existed but failed to load.
+		failedNames := make([]string, len(loadResult.Failures))
+		for i, f := range loadResult.Failures {
+			failedNames[i] = f.Name
+		}
+
+		return "", fmt.Errorf(
+			"%w (note: %d dynamic plugin(s) failed to load: %s)",
+			err,
+			loadResult.Failed(),
+			strings.Join(failedNames, ", "),
+		)
+	}
+
 	if err != nil {
 		return "", fmt.Errorf("generate audit report: %w", err)
 	}

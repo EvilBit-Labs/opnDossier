@@ -186,6 +186,22 @@ go build -buildmode=plugin -o myplugin.so main.go
 - **Static plugins**: Register in the plugin manager as before.
 - **Dynamic plugins**: Drop `.so` files into the plugin directory. They will be loaded automatically at startup.
 
+#### Plugin Name Validation Timing
+
+Plugin name validation occurs in two phases to support dynamic plugins:
+
+1. **CLI Parsing (PreRunE)**: When `--plugin-dir` is specified, all plugin names are accepted without validation. This allows dynamic plugins to be discovered and loaded before validation.
+
+2. **Post-Initialization (ValidateModeConfig)**: After `InitializePlugins()` loads both built-in and dynamic plugins, `ValidateModeConfig()` validates plugin names against the live registry. Unknown plugin names are rejected at this stage with `ErrPluginNotFound`.
+
+**Implications for plugin authors:**
+
+- Plugin names must be registered in the registry after loading (either statically or via `.so` export).
+- Unknown plugin names will be rejected by `ValidateModeConfig` with a clear error message.
+- Shell completions reflect both built-in and dynamically loaded plugins via registry-backed completion functions.
+
+**Test coverage:** See `TestAuditCmdPreRunEDynamicPluginAccepted` and `TestHandleAuditMode_UnknownPluginRejectedPostInit` in `cmd/audit_test.go` for examples of this two-phase validation behavior.
+
 ## Dynamic Plugin Loading
 
 The audit engine scans a configurable directory for `.so` files and loads any plugin that exports `var Plugin compliance.Plugin`.
@@ -223,6 +239,8 @@ opndossier audit config.xml --mode blue --plugin-dir /path/to/plugins
 3. `LoadResult.Failures` contains individual `PluginLoadError` entries with filename and error
 
 **PluginLoadError type:** Each failure captures the `.so` filename and the underlying error. It implements the `error` interface for use with `errors.Join`.
+
+**Per-plugin load failures:** Individual plugin load errors are tracked in `LoadResult.Failures` and do not prevent other plugins from loading. Common failure causes include Go version mismatch, missing dependencies, malformed `.so` files, and duplicate plugin names. Failed plugins are skipped and do not appear in the audit results.
 
 ### Requirements
 
@@ -290,7 +308,10 @@ Dynamic plugin load failures (from `.so` files) are distinct from runtime panics
 - Failed plugins do not appear in the audit results at all (they are never registered)
 - The CLI surfaces load failures via `Warn` logs with failed plugin filenames
 - Programmatic callers should check `PluginManager.GetLoadResult()` after initialization
+- Per-plugin load errors are tracked in `LoadResult.Failures` and do not fail the entire load process — other plugins continue loading
 - Common load failure causes: Go version mismatch, missing dependencies, malformed `.so` files, duplicate plugin names
+
+**Validation of plugin names:** Plugin name validation is deferred to post-initialization via `ValidateModeConfig()`. This two-phase approach allows dynamic plugins to be discovered and loaded before validation. See "Plugin Name Validation Timing" above for details.
 
 ### Setting Finding Severity
 

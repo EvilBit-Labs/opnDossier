@@ -23,7 +23,9 @@ var (
 	// ErrUnsupportedMode is returned when an unsupported report mode is specified.
 	ErrUnsupportedMode = errors.New("unsupported report mode")
 	// ErrPluginNotFound is returned when a requested compliance plugin cannot be found.
-	ErrPluginNotFound = errors.New("plugin not found")
+	// This is an alias for compliance.ErrPluginNotFound to ensure a single sentinel
+	// identity across both packages, so errors.Is checks match regardless of origin.
+	ErrPluginNotFound = compliance.ErrPluginNotFound
 	// ErrConfigurationNil is returned when the OPNsense configuration is nil.
 	ErrConfigurationNil = errors.New("configuration cannot be nil")
 	// ErrDuplicatePlugin is returned when the same plugin appears more than once in the selection.
@@ -98,7 +100,12 @@ func (mc *ModeController) ValidateModeConfig(config *ModeConfig) error {
 			seen[lower] = struct{}{}
 
 			if !slices.Contains(availablePlugins, lower) {
-				return fmt.Errorf("%w: %s", ErrPluginNotFound, lower)
+				return fmt.Errorf(
+					"%w: %q; available plugins: %s",
+					ErrPluginNotFound,
+					lower,
+					strings.Join(availablePlugins, ", "),
+				)
 			}
 
 			normalized = append(normalized, lower)

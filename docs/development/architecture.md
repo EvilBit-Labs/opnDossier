@@ -458,9 +458,10 @@ The `opndossier audit` command provides the dedicated, first-class entry point f
    - Reuses shared output flags: `--format`, `--output`, `--wrap`, `--section`, `--comprehensive`, `--redact`
    - `PreRunE` validation enforces:
      - Valid audit mode (blue, red)
-     - Valid plugin names (stig, sans, firewall)
      - `--plugins` flag only accepted with `--mode blue` (compliance checks only run in blue mode)
      - `--output` flag rejected when auditing multiple files (prevents output clobbering)
+   - Plugin name validation deferred to post-initialization (`ValidateModeConfig` in `internal/audit/mode_controller.go`) to support dynamic plugins loaded from `--plugin-dir`
+   - Shell completions for `--plugins` flag use registry-backed `registryPluginNames()` function, mirroring the `ValidDeviceTypes` pattern for dynamic discovery of available plugins
 
 2. **Execution Flow** (`runAudit`):
 
@@ -476,6 +477,12 @@ The `opndossier audit` command provides the dedicated, first-class entry point f
    - Markdown output to stdout uses glamour for styled terminal rendering
    - Non-markdown formats (JSON, YAML, text, HTML) written raw
    - File output uses standard file export without terminal styling
+
+### Related Documentation
+
+For complete implementation details of the two-phase validation pattern (CLI parsing vs. post-initialization validation), see:
+
+- **[docs/solutions/logic-errors/cli-prerun-validation-timing-dynamic-plugins.md](../solutions/logic-errors/cli-prerun-validation-timing-dynamic-plugins.md)** — Deferred plugin validation pattern for dynamic plugin support
 
 ### Architectural Patterns
 
