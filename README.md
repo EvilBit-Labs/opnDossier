@@ -39,6 +39,16 @@ opnDossier audit config.xml
 opnDossier display config.xml
 ```
 
+### Example Output
+
+#### Markdown display output
+
+![sample display output](images/display.png)
+
+#### Convert to JSON for automation/integration
+
+![json output example](images/json-output.png)
+
 ## Analysis & Security Features
 
 opnDossier automatically analyzes your OPNsense or pfSense configuration to identify security issues, misconfigurations, and optimization opportunities.
@@ -54,13 +64,7 @@ Identifies common security issues in your firewall configuration:
 
 Example output:
 
-```text
-SECURITY FINDINGS:
-- [HIGH] Admin interface accessible via HTTP (port 80)
-- [HIGH] SNMP using default community string 'public'
-- [MEDIUM] Firewall rule allows ANY to ANY on port 22
-- [MEDIUM] VPN certificate expires in 14 days
-```
+![findings](images/findings.png)
 
 ### Dead Rule Detection
 
@@ -90,12 +94,7 @@ Comprehensive checks for structural and logical issues:
 
 Example validation report:
 
-```text
-VALIDATION ERRORS:
-- opnsense.interfaces.wan.ipaddr: IP address '300.300.300.300' is invalid
-- opnsense.system.hostname: hostname is required
-- opnsense.firewall.rules: gateway 'WAN_GW' referenced but not defined
-```
+![validation output](images/validation.png)
 
 ### Unused Resource Detection
 
