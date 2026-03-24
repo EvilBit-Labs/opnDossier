@@ -15,7 +15,7 @@ This guide covers various methods to install opnDossier on your system.
 brew install EvilBit-Labs/tap/opndossier
 ```
 
-This installs the binary along with shell completions for bash, zsh, and fish.
+This installs the binary along with shell completions for bash, zsh, and fish. Man pages are included and can be accessed with `man opndossier`.
 
 ### 2. Linux Packages
 
@@ -24,25 +24,25 @@ Native packages are published with each release. Download the appropriate packag
 **Debian / Ubuntu (.deb):**
 
 ```bash
-sudo dpkg -i opndossier_*_linux_amd64.deb
+sudo dpkg -i opndossier_*_amd64.deb
 ```
 
 **Red Hat / CentOS / Fedora (.rpm):**
 
 ```bash
-sudo rpm -i opndossier_*_linux_amd64.rpm
+sudo rpm -i opndossier-*-1.x86_64.rpm
 ```
 
 **Alpine (.apk):**
 
 ```bash
-sudo apk add --allow-untrusted opndossier_*_linux_amd64.apk
+sudo apk add --allow-untrusted opndossier_*_x86_64.apk
 ```
 
 **Arch Linux:**
 
 ```bash
-sudo pacman -U opndossier_*_linux_amd64.pkg.tar.xz
+sudo pacman -U opndossier-*-1-x86_64.pkg.tar.zst
 ```
 
 Native packages include man pages, shell completions, and documentation.

@@ -253,7 +253,7 @@ The `.goreleaser.yaml` file configures the following release artifacts:
 
 - **Format**: tar.gz (zip for Windows)
 - **Naming**: `opnDossier_OS_ARCH` format
-- **Includes**: LICENSE, README.md, CHANGELOG.md, THIRD_PARTY_NOTICES
+- **Includes**: LICENSE, README.md, CHANGELOG.md, THIRD_PARTY_NOTICES, man pages, shell completions
 
 ### Docker Images
 
@@ -278,6 +278,9 @@ Two Docker image variants are built:
 - **License Notices**: `THIRD_PARTY_NOTICES` with complete license attribution for all dependencies
 - **Source Code**: Automatically included
 - **Universal Binaries**: For macOS (replaces individual arch binaries)
+  - The universal binary combines amd64 and arm64 architectures into a single `Darwin_all` binary
+  - macOS code signing runs on the universal binary (not the individual arch binaries) via `universal_binaries.hooks.post`
+  - This ensures the signed artifact is what ships in release tarballs
 
 ## Dynamic Documentation Generation
 
@@ -321,12 +324,14 @@ During the release process, GoReleaser automatically:
 2. Builds a temporary binary with correct version information
 3. Generates shell completions for bash, zsh, fish, and PowerShell
 4. Generates man pages for all commands and subcommands
-5. Includes these files in native packages (.deb, .rpm, .apk, .pkg.tar.xz)
+5. Includes these files in archives (under `man/opnDossier.1` for man pages) and native packages (.deb, .rpm, .apk, .pkg.tar.xz)
 6. Cleans up temporary files
 
 This ensures that:
 
+- Archive tarballs include man pages under `man/opnDossier.1`
 - Package installations include working completions and man pages
+- Homebrew cask installations automatically install man pages, enabling `man opndossier`
 - Documentation is always synchronized with the actual CLI interface
 - No manual maintenance of static documentation files is required
 - License attribution is transparent and complete for end users
