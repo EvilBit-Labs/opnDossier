@@ -458,9 +458,9 @@ The `opndossier audit` command provides the dedicated, first-class entry point f
    - Reuses shared output flags: `--format`, `--output`, `--wrap`, `--section`, `--comprehensive`, `--redact`
    - `PreRunE` validation enforces:
      - Valid audit mode (blue, red)
-     - Valid plugin names (stig, sans, firewall)
      - `--plugins` flag only accepted with `--mode blue` (compliance checks only run in blue mode)
      - `--output` flag rejected when auditing multiple files (prevents output clobbering)
+   - Plugin name validation is deferred to `ValidateModeConfig()` in `RunE`, after `InitializePlugins` populates the registry (supports dynamic plugins)
 
 2. **Execution Flow** (`runAudit`):
 

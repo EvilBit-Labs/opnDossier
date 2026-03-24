@@ -250,9 +250,10 @@ func TestAuditCmdPreRunEPluginValidation(t *testing.T) {
 	}
 }
 
-// TestAuditCmdPreRunEDynamicPluginAccepted verifies that a --plugin-dir combined with an
-// unknown plugin name does not cause PreRunE to return an error. Plugin name validation
-// is deferred to ValidateModeConfig which runs after InitializePlugins loads dynamic plugins.
+// TestAuditCmdPreRunEDynamicPluginAccepted verifies that PreRunE accepts an unknown plugin
+// name unconditionally. PreRunE no longer validates plugin names — validation is deferred to
+// ValidateModeConfig (post-init, registry-aware). The --plugin-dir flag is set to demonstrate
+// the dynamic plugin use case but does not affect PreRunE behavior.
 func TestAuditCmdPreRunEDynamicPluginAccepted(t *testing.T) {
 	auditSnap := captureAuditFlags()
 	sharedSnap := captureSharedFlags()
@@ -382,12 +383,6 @@ func TestAuditCmdCompletions(t *testing.T) {
 		completions, directive := ValidAuditPlugins(nil, nil, "")
 		assert.Equal(t, cobra.ShellCompDirectiveNoFileComp, directive)
 
-		// Build expected plugin names from the same registry-backed source
-		// used by ValidAuditPlugins, so this test stays in sync with any
-		// future plugin registration changes.
-		expectedNames := registryPluginNames()
-		assert.Len(t, completions, len(expectedNames), "completion count should match registry plugin count")
-
 		// Extract just the name portion (before \t) from each completion entry.
 		gotNames := make([]string, 0, len(completions))
 		for _, c := range completions {
@@ -395,7 +390,17 @@ func TestAuditCmdCompletions(t *testing.T) {
 			gotNames = append(gotNames, name)
 		}
 
-		assert.ElementsMatch(t, expectedNames, gotNames, "completion names should match registry plugins")
+		// Assert against concrete built-in plugin names to catch registration
+		// regressions. Using registryPluginNames() as the expected set would be
+		// tautological since ValidAuditPlugins calls the same function.
+		expectedBuiltins := []string{"stig", "sans", "firewall"}
+		for _, name := range expectedBuiltins {
+			assert.Contains(t, gotNames, name,
+				"built-in plugin %q must appear in completions", name)
+		}
+
+		assert.GreaterOrEqual(t, len(completions), len(expectedBuiltins),
+			"completions should include at least all built-in plugins")
 	})
 
 	t.Run("formats", func(t *testing.T) {
