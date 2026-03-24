@@ -62,19 +62,9 @@ builds:
         -X github.com/EvilBit-Labs/opnDossier/cmd.gitCommit={{.Commit}}
     # Ensures mod timestamp matches commit for reproducibility
     mod_timestamp: "{{ .CommitTimestamp }}"
-    hooks:
-      post:
-        # macOS code signing with quill (optional, requires Apple credentials)
-        # Set QUILL_SIGN_P12, QUILL_SIGN_PASSWORD, QUILL_NOTARY_KEY, QUILL_NOTARY_KEY_ID, QUILL_NOTARY_ISSUER
-        # For snapshots: ad-hoc signing only (no notarization)
-        # For releases: full signing and notarization
-        - cmd: >-
-            {{ if and (eq .Os "darwin") (isEnvSet "QUILL_SIGN_P12") }}
-            quill sign-and-notarize "{{ .Path }}" --dry-run={{ .IsSnapshot }} --ad-hoc={{ .IsSnapshot }} -vv
-            {{ end }}
-          env:
-            - QUILL_LOG_FILE=/tmp/quill-{{ .Target }}.log
-          output: true
+    # NOTE: macOS code signing moved to universal_binaries.hooks.post so it runs
+    # on the combined universal binary, not the individual arch binaries that
+    # get replaced by universal_binaries with replace: true.
 
 # Archive configuration
 # https://goreleaser.com/customization/archive/
@@ -98,6 +88,8 @@ archives:
       - THIRD_PARTY_NOTICES
       - src: ./packaging/completions/*
         dst: completions
+      - src: ./packaging/opnDossier.1
+        dst: man/opnDossier.1
     # Preserve commit timestamp for reproducibility
     builds_info:
       mtime: "{{ .CommitTimestamp }}"
@@ -155,35 +147,30 @@ release:
 
     **Debian/Ubuntu (.deb)**:
     ```bash
-    wget https://github.com/EvilBit-Labs/opnDossier/releases/download/{{.Tag}}/opndossier_{{.Version}}_linux_amd64.deb
-    sudo dpkg -i opndossier_{{.Version}}_linux_amd64.deb
+    wget https://github.com/EvilBit-Labs/opnDossier/releases/download/{{.Tag}}/opndossier_{{.Version}}_amd64.deb
+    sudo dpkg -i opndossier_{{.Version}}_amd64.deb
     ```
 
     **Red Hat/CentOS/Fedora (.rpm)**:
     ```bash
-    wget https://github.com/EvilBit-Labs/opnDossier/releases/download/{{.Tag}}/opndossier_{{.Version}}_linux_amd64.rpm
-    sudo rpm -i opndossier_{{.Version}}_linux_amd64.rpm
+    wget https://github.com/EvilBit-Labs/opnDossier/releases/download/{{.Tag}}/opndossier-{{.Version}}-1.x86_64.rpm
+    sudo rpm -i opndossier-{{.Version}}-1.x86_64.rpm
     ```
 
     **Alpine (.apk)**:
     ```bash
-    wget https://github.com/EvilBit-Labs/opnDossier/releases/download/{{.Tag}}/opndossier_{{.Version}}_linux_amd64.apk
-    sudo apk add --allow-untrusted opndossier_{{.Version}}_linux_amd64.apk
+    wget https://github.com/EvilBit-Labs/opnDossier/releases/download/{{.Tag}}/opndossier_{{.Version}}_x86_64.apk
+    sudo apk add --allow-untrusted opndossier_{{.Version}}_x86_64.apk
     ```
 
     **Arch Linux**:
     ```bash
-    wget https://github.com/EvilBit-Labs/opnDossier/releases/download/{{.Tag}}/opndossier_{{.Version}}_linux_amd64.pkg.tar.xz
-    sudo pacman -U opndossier_{{.Version}}_linux_amd64.pkg.tar.xz
+    wget https://github.com/EvilBit-Labs/opnDossier/releases/download/{{.Tag}}/opndossier-{{.Version}}-1-x86_64.pkg.tar.zst
+    sudo pacman -U opndossier-{{.Version}}-1-x86_64.pkg.tar.zst
     ```
 
     ### Download Binary
     Download the appropriate binary for your platform from the assets below.
-
-    ### Docker
-    ```bash
-    docker pull ghcr.io/evilbit-labs/opndossier:{{.Tag}}
-    ```
 
     ### Verify Checksums
     ```bash
@@ -195,11 +182,29 @@ source:
   enabled: false
 
 # Universal binaries for macOS (combines amd64 and arm64)
+# With replace: true, the individual darwin/amd64 and darwin/arm64 binaries are
+# removed from artifacts and replaced by a single darwin/all universal binary.
+# The archive name_template produces "Darwin_all" for the Arch variable.
 universal_binaries:
   - id: opndossier-universal
     ids:
       - opndossier
     replace: true
+    hooks:
+      post:
+        # macOS code signing with quill (optional, requires Apple credentials)
+        # Set QUILL_SIGN_P12, QUILL_SIGN_PASSWORD, QUILL_NOTARY_KEY, QUILL_NOTARY_KEY_ID, QUILL_NOTARY_ISSUER
+        # For snapshots: ad-hoc signing only (no notarization)
+        # For releases: full signing and notarization
+        # Runs on the universal binary (not individual arch binaries) so the
+        # signed artifact is what ships in the release tarball.
+        - cmd: >-
+            {{ if isEnvSet "QUILL_SIGN_P12" }}
+            quill sign-and-notarize "{{ .Path }}" --dry-run={{ .IsSnapshot }} --ad-hoc={{ .IsSnapshot }} -vv
+            {{ end }}
+          env:
+            - QUILL_LOG_FILE=/tmp/quill-universal.log
+          output: true
 
 # Milestone auto-close
 milestones:
@@ -222,6 +227,8 @@ homebrew_casks:
     description: "OPNsense configuration documentation and compliance auditing tool"
     binaries:
       - opndossier
+    manpages:
+      - man/opnDossier.1
     completions:
       bash: completions/opndossier.bash
       zsh: completions/opndossier.zsh
