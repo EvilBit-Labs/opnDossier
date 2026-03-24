@@ -297,3 +297,4 @@ func validateDeviceType() error {
 - AGENTS.md section 5.25a -- DeviceParser Registry Pattern documentation
 - GOTCHAS.md section 7.1 -- Blank import requirement
 - [Panic recovery for plugin RunChecks()](../runtime-errors/plugin-panic-recovery-audit-runchecks.md) -- fault isolation for the audit plugin registry
+- [Deferred plugin validation timing](../logic-errors/cli-prerun-validation-timing-dynamic-plugins.md) -- same registry-driven validation pattern applied to audit plugin names
