@@ -49,6 +49,10 @@ opnDossier display config.xml
 
 ![json output example](images/json-output.png)
 
+#### Audit findings example
+
+![audit findings example](images/audit.png)
+
 ## Analysis & Security Features
 
 opnDossier automatically analyzes your OPNsense or pfSense configuration to identify security issues, misconfigurations, and optimization opportunities.
