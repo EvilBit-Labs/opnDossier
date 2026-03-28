@@ -138,6 +138,16 @@ var auditCmd = &cobra.Command{
 			)
 		}
 
+		// Reject --failures-only with non-markdown formats — the flag only affects
+		// the markdown plugin controls table. JSON/YAML consumers should filter
+		// client-side to avoid information loss (GOTCHAS.md §5.1).
+		if auditFailuresOnly && !strings.EqualFold(format, "markdown") {
+			return fmt.Errorf(
+				"--failures-only is only supported with --format markdown; %q format always includes all controls",
+				format,
+			)
+		}
+
 		// Reject --output with multiple input files to prevent output clobbering.
 		// Each file produces a separate report auto-named as <input>-audit.<ext>.
 		if outputFile != "" && len(args) > 1 {

@@ -415,19 +415,44 @@ func TestAuditCmdCompletions(t *testing.T) {
 }
 
 // TestAuditCmdPreRunEFailuresOnlyRequiresBlueMode verifies that the --failures-only flag
-// is rejected when the audit mode is not blue. It drives flag values through Cobra/pflag
-// binding to verify the real CLI wiring as well as the validation behavior.
+// is rejected when the audit mode is not blue and when the format is not markdown.
+// It drives flag values through Cobra/pflag binding to verify the real CLI wiring.
 func TestAuditCmdPreRunEFailuresOnlyRequiresBlueMode(t *testing.T) {
 	tests := []struct {
 		name         string
 		mode         string
+		format       string
 		failuresOnly bool
 		wantErr      bool
 		errSubstr    string
 	}{
-		{"failures-only with red rejected", "red", true, true, "--failures-only is only supported with --mode blue"},
-		{"failures-only with blue accepted", "blue", true, false, ""},
-		{"failures-only=false with red accepted", "red", false, false, ""},
+		{
+			"failures-only with red rejected",
+			"red",
+			"markdown",
+			true,
+			true,
+			"--failures-only is only supported with --mode blue",
+		},
+		{"failures-only with blue markdown accepted", "blue", "markdown", true, false, ""},
+		{"failures-only=false with red accepted", "red", "markdown", false, false, ""},
+		{
+			"failures-only with json rejected",
+			"blue",
+			"json",
+			true,
+			true,
+			"--failures-only is only supported with --format markdown",
+		},
+		{
+			"failures-only with yaml rejected",
+			"blue",
+			"yaml",
+			true,
+			true,
+			"--failures-only is only supported with --format markdown",
+		},
+		{"failures-only=false with json accepted", "blue", "json", false, false, ""},
 	}
 
 	for _, tt := range tests {
@@ -449,6 +474,7 @@ func TestAuditCmdPreRunEFailuresOnlyRequiresBlueMode(t *testing.T) {
 			tempCmd.Flags().Int("wrap", -1, "")
 
 			require.NoError(t, tempCmd.Flags().Set("mode", tt.mode))
+			require.NoError(t, tempCmd.Flags().Set("format", tt.format))
 			if tt.failuresOnly {
 				require.NoError(t, tempCmd.Flags().Set("failures-only", "true"))
 			}

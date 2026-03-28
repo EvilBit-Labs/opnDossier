@@ -247,11 +247,11 @@ A fresh `NewRuleEngine` creates a fresh `NewMapper()` — mappings are determini
 
 ### 17.1 reportGenerator Must Stay Subset of ReportComposer
 
-`hybrid_generator.go` defines `reportGenerator` — a narrow interface that `HybridGenerator` uses internally. `NewHybridGenerator` accepts `builder.ReportBuilder`, which composes `ReportComposer`. Since `ReportBuilder` is stored as `reportGenerator`, any method added to `reportGenerator` must also be added to `ReportComposer` in `builder.go`, otherwise the compile-time assertion `var _ reportGenerator = (*builder.MarkdownBuilder)(nil)` passes but `NewHybridGenerator` fails because `ReportBuilder` does not satisfy `reportGenerator`.
+`hybrid_generator.go` defines `reportGenerator` — a narrow interface that `HybridGenerator` uses internally. `NewHybridGenerator` accepts `builder.ReportBuilder`, which embeds `ReportComposer`. The constructor stores the `ReportBuilder` value into a field typed as `reportGenerator`. If a method is added to `reportGenerator` without also adding it to `ReportComposer`, the `ReportBuilder` interface no longer satisfies `reportGenerator`, and the assignment in `NewHybridGenerator` fails at compile time. Note: there is no standalone `var _ reportGenerator = ...` assertion — the compile-time check occurs at the assignment site in the constructor.
 
 - **Symptom:** `cannot use reportBuilder (variable of interface type builder.ReportBuilder) as reportGenerator value`
 - **Fix:** Add the method to both `reportGenerator` (in `hybrid_generator.go`) and `ReportComposer` (in `builder/builder.go`).
-- **Precedent:** `SetIncludeTunables` and `SetFailuresOnly` both follow this pattern.
+- **Precedent:** `SetIncludeTunables` established this pattern; `SetFailuresOnly` was added following the same approach.
 
 ### 17.2 narrowOnlyBuilder Test Mock
 

@@ -193,7 +193,7 @@ type ReportBuilder interface {
 }
 ```
 
-This interface segregation allows consumers to depend only on the specific capabilities they need. For example, `HybridGenerator` uses a consumer-local `reportGenerator` interface that includes only `SetIncludeTunables`, `BuildAuditSection`, and the two `ReportComposer` methods—it never calls individual section or table methods.
+This interface segregation allows consumers to depend only on the specific capabilities they need. For example, `HybridGenerator` uses a consumer-local `reportGenerator` interface that includes only `SetIncludeTunables`, `SetFailuresOnly`, `BuildAuditSection`, and the two `ReportComposer` methods—it never calls individual section or table methods.
 
 `MarkdownBuilder` implements all three interfaces, with `ReportBuilder` serving as the complete interface contract for full functionality.
 

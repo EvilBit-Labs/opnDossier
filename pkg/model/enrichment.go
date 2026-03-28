@@ -321,10 +321,21 @@ type CompliancePluginInfo struct {
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 }
 
+// Control compliance status values used in audit report output (markdown tables, JSON/YAML exports).
+const (
+	// ControlStatusPass indicates a control is compliant.
+	ControlStatusPass = "PASS"
+	// ControlStatusFail indicates a control is non-compliant.
+	ControlStatusFail = "FAIL"
+)
+
 // ComplianceControl represents a single compliance control definition from a plugin.
 type ComplianceControl struct {
 	// ID is the unique control identifier (e.g., "STIG-V-123456", "SANS-001").
 	ID string `json:"id,omitempty" yaml:"id,omitempty"`
+	// Status is the compliance evaluation result ("PASS" or "FAIL").
+	// Derived from the Compliance map during export mapping.
+	Status string `json:"status" yaml:"status"`
 	// Title is the control title.
 	Title string `json:"title,omitempty" yaml:"title,omitempty"`
 	// Description is a detailed explanation of the control.

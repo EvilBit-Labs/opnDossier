@@ -1308,9 +1308,27 @@ func TestBuildAuditSection_ControlsTableAllStatuses(t *testing.T) {
 						NonCompliant:  1,
 					},
 					Controls: []common.ComplianceControl{
-						{ID: "CTRL-001", Title: "Enable logging", Severity: "high", Category: "Logging"},
-						{ID: "CTRL-002", Title: "Disable telnet", Severity: "critical", Category: "Access"},
-						{ID: "CTRL-003", Title: "Set timezone", Severity: "low", Category: "System"},
+						{
+							ID:       "CTRL-001",
+							Status:   common.ControlStatusPass,
+							Title:    "Enable logging",
+							Severity: "high",
+							Category: "Logging",
+						},
+						{
+							ID:       "CTRL-002",
+							Status:   common.ControlStatusFail,
+							Title:    "Disable telnet",
+							Severity: "critical",
+							Category: "Access",
+						},
+						{
+							ID:       "CTRL-003",
+							Status:   common.ControlStatusPass,
+							Title:    "Set timezone",
+							Severity: "low",
+							Category: "System",
+						},
 					},
 					Compliance: map[string]bool{
 						"CTRL-001": true,
@@ -1355,9 +1373,27 @@ func TestBuildAuditSection_ControlsTableFailuresOnly(t *testing.T) {
 						NonCompliant:  1,
 					},
 					Controls: []common.ComplianceControl{
-						{ID: "CTRL-001", Title: "Enable logging", Severity: "high", Category: "Logging"},
-						{ID: "CTRL-002", Title: "Disable telnet", Severity: "critical", Category: "Access"},
-						{ID: "CTRL-003", Title: "Set timezone", Severity: "low", Category: "System"},
+						{
+							ID:       "CTRL-001",
+							Status:   common.ControlStatusPass,
+							Title:    "Enable logging",
+							Severity: "high",
+							Category: "Logging",
+						},
+						{
+							ID:       "CTRL-002",
+							Status:   common.ControlStatusFail,
+							Title:    "Disable telnet",
+							Severity: "critical",
+							Category: "Access",
+						},
+						{
+							ID:       "CTRL-003",
+							Status:   common.ControlStatusPass,
+							Title:    "Set timezone",
+							Severity: "low",
+							Category: "System",
+						},
 					},
 					Compliance: map[string]bool{
 						"CTRL-001": true,
@@ -1382,6 +1418,80 @@ func TestBuildAuditSection_ControlsTableFailuresOnly(t *testing.T) {
 	for _, unwanted := range []string{"CTRL-001", "CTRL-003"} {
 		if strings.Contains(result, unwanted) {
 			t.Errorf("expected output NOT to contain %q (passing control), got:\n%s", unwanted, result)
+		}
+	}
+}
+
+// TestBuildAuditSection_ControlsTableFailuresOnlyAllPass verifies that when failuresOnly
+// is true and all controls pass, an "All controls compliant" message is emitted.
+func TestBuildAuditSection_ControlsTableFailuresOnlyAllPass(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	b.SetFailuresOnly(true)
+
+	data := &common.CommonDevice{
+		ComplianceChecks: &common.ComplianceResults{
+			Mode: "blue",
+			Summary: &common.ComplianceResultSummary{
+				Compliant:    3,
+				NonCompliant: 0,
+			},
+			PluginResults: map[string]common.PluginComplianceResult{
+				"test-plugin": {
+					Summary: &common.ComplianceResultSummary{
+						Compliant:    3,
+						NonCompliant: 0,
+					},
+					Controls: []common.ComplianceControl{
+						{
+							ID:       "CTRL-001",
+							Status:   common.ControlStatusPass,
+							Title:    "A",
+							Severity: "high",
+							Category: "Logging",
+						},
+						{
+							ID:       "CTRL-002",
+							Status:   common.ControlStatusPass,
+							Title:    "B",
+							Severity: "medium",
+							Category: "Access",
+						},
+						{
+							ID:       "CTRL-003",
+							Status:   common.ControlStatusPass,
+							Title:    "C",
+							Severity: "low",
+							Category: "System",
+						},
+					},
+					Compliance: map[string]bool{
+						"CTRL-001": true,
+						"CTRL-002": true,
+						"CTRL-003": true,
+					},
+				},
+			},
+		},
+	}
+
+	result := b.BuildAuditSection(data)
+
+	// Should show the all-compliant message, not an empty table
+	if !strings.Contains(result, "All controls compliant") {
+		t.Errorf("expected 'All controls compliant' message, got:\n%s", result)
+	}
+
+	// Should still show the section header
+	if !strings.Contains(result, "Plugin Results") {
+		t.Errorf("expected 'Plugin Results' header, got:\n%s", result)
+	}
+
+	// No control IDs should appear in the table (all filtered)
+	for _, unwanted := range []string{"CTRL-001", "CTRL-002", "CTRL-003"} {
+		if strings.Contains(result, unwanted) {
+			t.Errorf("expected output NOT to contain %q (all pass, filtered), got:\n%s", unwanted, result)
 		}
 	}
 }

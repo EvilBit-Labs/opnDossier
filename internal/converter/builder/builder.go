@@ -608,7 +608,9 @@ func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
 			if len(result.Controls) > 0 {
 				b.writePluginControlsTable(md, pluginName, result)
 			} else if len(result.Findings) > 0 {
-				// Legacy fallback: render findings table when no Controls data
+				// Legacy fallback: render findings table when no Controls data.
+				// failuresOnly does not apply here — findings ARE failures by definition;
+				// the flag only filters the controls table which has both PASS and FAIL rows.
 				b.writePluginFindingsTable(md, pluginName, result)
 			}
 		}
@@ -678,12 +680,14 @@ func (b *MarkdownBuilder) writePluginControlsTable(
 	}
 
 	for _, ctrl := range sortedControls {
-		status := "FAIL"
-		if passed, exists := result.Compliance[ctrl.ID]; exists && passed {
-			status = "PASS"
+		// Read the pre-populated Status field set by mapControls in the mapping layer.
+		// Fall back to FAIL defensively if Status is empty (e.g., legacy code path).
+		status := ctrl.Status
+		if status == "" {
+			status = common.ControlStatusFail
 		}
 
-		if b.failuresOnly && status == "PASS" {
+		if b.failuresOnly && status == common.ControlStatusPass {
 			continue
 		}
 
@@ -699,6 +703,9 @@ func (b *MarkdownBuilder) writePluginControlsTable(
 	if len(controlTable.Rows) > 0 {
 		md.H5(pluginName + " Plugin Results")
 		md.Table(controlTable)
+	} else if b.failuresOnly {
+		md.H5(pluginName + " Plugin Results")
+		md.PlainText("All controls compliant — no failures to display.")
 	}
 }
 
