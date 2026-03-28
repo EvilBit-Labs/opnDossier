@@ -158,7 +158,14 @@ When changing a `Document` field type from an opnsense type to a local pfSense f
 - **Fix:** Add `t.Setenv("TERM", "dumb")` at the start of the test (no `t.Parallel()`).
 - **Precedent:** `internal/converter/markdown_test.go` uses this pattern throughout.
 
-### 10.2 NAT Rule Field Name Disambiguation
+### 10.2 builder_test.go Uses Raw testing Package
+
+`internal/converter/builder/builder_test.go` does not import `testify/assert`. Use `strings.Contains` + `t.Errorf` for assertions, not `assert.Contains`.
+
+- **Symptom:** `undefined: assert` compilation error in builder tests.
+- **Detection:** Check imports at top of test file before adding new test functions.
+
+### 10.3 NAT Rule Field Name Disambiguation
 
 `OutboundNATRule.Target` is the NAT target address. `InboundNATRule.InternalIP` is the port-forward destination — there is no `Target` field on `InboundNATRule`. `FirewallRule` has no `Tag`/`Tagged` fields — those exist only on `OutboundNATRule`.
 
@@ -235,3 +242,20 @@ A fresh `NewRuleEngine` creates a fresh `NewMapper()` — mappings are determini
 
 - **Symptom:** IPsec tunnels are converted but reports say "No IPsec configuration present."
 - **Fix:** Ensure the converter sets `Enabled: true` whenever meaningful IPsec data exists.
+
+## 17. HybridGenerator Interface Coupling
+
+### 17.1 reportGenerator Must Stay Subset of ReportComposer
+
+`hybrid_generator.go` defines `reportGenerator` — a narrow interface that `HybridGenerator` uses internally. `NewHybridGenerator` accepts `builder.ReportBuilder`, which composes `ReportComposer`. Since `ReportBuilder` is stored as `reportGenerator`, any method added to `reportGenerator` must also be added to `ReportComposer` in `builder.go`, otherwise the compile-time assertion `var _ reportGenerator = (*builder.MarkdownBuilder)(nil)` passes but `NewHybridGenerator` fails because `ReportBuilder` does not satisfy `reportGenerator`.
+
+- **Symptom:** `cannot use reportBuilder (variable of interface type builder.ReportBuilder) as reportGenerator value`
+- **Fix:** Add the method to both `reportGenerator` (in `hybrid_generator.go`) and `ReportComposer` (in `builder/builder.go`).
+- **Precedent:** `SetIncludeTunables` and `SetFailuresOnly` both follow this pattern.
+
+### 17.2 narrowOnlyBuilder Test Mock
+
+`hybrid_generator_test.go` defines `narrowOnlyBuilder` — a minimal mock satisfying `reportGenerator` but NOT `ReportBuilder`. Adding a method to `reportGenerator` requires updating this mock.
+
+- **Symptom:** `*narrowOnlyBuilder does not implement reportGenerator (missing method X)`
+- **Fix:** Add a no-op method to `narrowOnlyBuilder` in `hybrid_generator_test.go`.
