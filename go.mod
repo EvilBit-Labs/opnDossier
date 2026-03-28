@@ -21,6 +21,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/yuin/goldmark v1.8.2
 	github.com/yuin/goldmark-emoji v1.0.6
+	go.uber.org/automaxprocs v1.6.0
 	golang.org/x/term v0.41.0
 	golang.org/x/text v0.35.0
 	gopkg.in/yaml.v3 v3.0.1
