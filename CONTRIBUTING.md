@@ -60,7 +60,9 @@ When solving problems, follow a **framework-first** mindset. Reach for the exist
 
 The project also values **polish over scale**. A smaller, well-documented feature set with sane defaults is more useful than a large, inconsistent surface area that is difficult to test or explain. Contributors should optimize for clarity and operator experience, not feature count.
 
-Finally, opnDossier has explicit **ethical constraints**: no telemetry, no dark patterns, and no spyware. Decorative emojis should not be added to code comments or documentation prose, though the codebase does use emoji characters for functional purposes such as status indicators (`✅`/`❌`) in CLI output and report formatters. Those boundaries are part of the product, not decoration. For the canonical summary of these principles, see **[AGENTS.md](AGENTS.md)** §2.
+Finally, opnDossier has explicit **ethical constraints**: no telemetry, no dark patterns, and no spyware. Decorative emojis should not be added to code comments or documentation prose, though the codebase does use emoji characters for functional purposes such as status indicators (`✅`/`❌`) in CLI output and report formatters. Those boundaries are part of the product, not decoration.
+
+**Repository Roles:** Maintainer: `unclesp1d3r` (principal maintainer, enqueues PRs via Mergify `/queue`). Trusted bots: `dependabot[bot]`, `dosubot[bot]` (auto-approved by Mergify).
 
 ## Architecture Overview
 
@@ -533,21 +535,21 @@ ctxLogger.Error("Conversion failed", "error", err)
 
 ### Thread Safety with `sync.RWMutex`
 
-When a struct uses `sync.RWMutex`, all read methods need `RLock()` -- not just write paths. Go's `RWMutex` is also not reentrant, so internal call chains should use lock-free `*Unsafe()` helpers instead of trying to acquire the same lock twice. Getter methods should return value copies rather than pointers into protected internal state. The canonical pattern lives in `internal/processor/report.go`. See **[AGENTS.md](AGENTS.md)** §5.6 for the full thread safety guide.
+When a struct uses `sync.RWMutex`, all read methods need `RLock()` -- not just write paths. Go's `RWMutex` is also not reentrant, so internal call chains should use lock-free `*Unsafe()` helpers instead of trying to acquire the same lock twice. Getter methods should return value copies rather than pointers into protected internal state. The canonical pattern lives in `internal/processor/report.go`. See the [Development Standards](docs/development/standards.md#thread-safety-with-syncrwmutex) for the full thread safety guide.
 
 ### XML Handling
 
 When working with `encoding/xml`, remember that `string` fields cannot distinguish between an absent element and a self-closing element such as `<any/>`; both decode to `""`. Use `*string` when presence itself matters, and add helpers such as `IsAny()` or `Equal()` instead of comparing raw `*string` fields throughout the codebase. See `pkg/schema/opnsense/security.go` for the established pattern.
 
-For escaping, use `xml.EscapeText` from the standard library. Do not hand-roll XML escaping logic. See **[AGENTS.md](AGENTS.md)** §§5.16-5.17 for additional XML patterns.
+For escaping, use `xml.EscapeText` from the standard library. Do not hand-roll XML escaping logic. See the [Development Standards](docs/development/standards.md#xml-handling) for additional XML patterns.
 
 ### Streaming Interfaces
 
-When adding `io.Writer` support alongside string-returning APIs, split the responsibilities. Create a dedicated writer-oriented interface such as `SectionWriter`, then expose a `Streaming*` wrapper interface for consumers that need streaming behaviour. Keep string-based methods for flows that still need post-processing such as HTML conversion. Also note that `MarkdownBuilder` is not safe for concurrent use; create a new instance per goroutine. See `internal/converter/builder/writer.go` for the canonical pattern and **[AGENTS.md](AGENTS.md)** §5.9 for details.
+When adding `io.Writer` support alongside string-returning APIs, split the responsibilities. Create a dedicated writer-oriented interface such as `SectionWriter`, then expose a `Streaming*` wrapper interface for consumers that need streaming behaviour. Keep string-based methods for flows that still need post-processing such as HTML conversion. Also note that `MarkdownBuilder` is not safe for concurrent use; create a new instance per goroutine. See `internal/converter/builder/writer.go` for the canonical pattern and [Development Standards](docs/development/standards.md#streaming-interfaces) for details.
 
 ### FormatRegistry Pattern
 
-`converter.DefaultRegistry` in `internal/converter/registry.go` is the single source of truth for supported output formats. To add a new format, register a `FormatHandler` in `newDefaultRegistry()` and let validation, shell completion, file extensions, and dispatch pick it up automatically. Do not reintroduce format constants or switch statements in `cmd/convert.go`; use `converter.FormatMarkdown`, `converter.FormatJSON`, and the other registry-backed constants instead. See **[AGENTS.md](AGENTS.md)** §5.9b for the full registry specification.
+`converter.DefaultRegistry` in `internal/converter/registry.go` is the single source of truth for supported output formats. To add a new format, register a `FormatHandler` in `newDefaultRegistry()` and let validation, shell completion, file extensions, and dispatch pick it up automatically. Do not reintroduce format constants or switch statements in `cmd/convert.go`; use `converter.FormatMarkdown`, `converter.FormatJSON`, and the other registry-backed constants instead. See the [Development Standards](docs/development/standards.md#formatregistry-pattern) for the full registry specification.
 
 ### DeviceParser Registry Pattern
 
@@ -555,15 +557,15 @@ Device parser registration follows the `database/sql` model: parsers call `parse
 
 ### File Write Safety
 
-Always call `file.Sync()` before `Close()` when writing files that matter. Handle close failures in a deferred function with `logger.Warn`; never silently discard them. See **[AGENTS.md](AGENTS.md)** §5.15.
+Always call `file.Sync()` before `Close()` when writing files that matter. Handle close failures in a deferred function with `logger.Warn`; never silently discard them. See the [Development Standards](docs/development/standards.md#file-write-safety).
 
 ### Public Package Purity
 
-Packages under `pkg/` must never import `internal/` packages. Before committing `pkg/` changes, run `grep -rn 'internal/' --include='*.go' pkg/ | grep -v _test.go` to confirm the public boundary remains clean. When `pkg/` needs functionality implemented in `internal/`, define an interface in `pkg/` and inject the concrete implementation from the `cmd/` layer. See **[AGENTS.md](AGENTS.md)** §5.24 for the full boundary rules.
+Packages under `pkg/` must never import `internal/` packages. Before committing `pkg/` changes, run `grep -rn 'internal/' --include='*.go' pkg/ | grep -v _test.go` to confirm the public boundary remains clean. When `pkg/` needs functionality implemented in `internal/`, define an interface in `pkg/` and inject the concrete implementation from the `cmd/` layer. See the [Development Standards](docs/development/standards.md#public-package-purity) for the full boundary rules.
 
 ### Linter Guidance
 
-Treat `just lint` as the authoritative linter reference; IDE diagnostics are helpful suggestions, not the final word. For common patterns such as replacing magic numbers with named constants, preferring `s == ""` over `len(s) == 0`, or using `slices.*` instead of legacy `sort.*`, see **[AGENTS.md](AGENTS.md)** §5.10 and `.golangci.yml`.
+Treat `just lint` as the authoritative linter reference; IDE diagnostics are helpful suggestions, not the final word. For common patterns such as replacing magic numbers with named constants, preferring `s == ""` over `len(s) == 0`, or using `slices.*` instead of legacy `sort.*`, see the [Development Standards](docs/development/standards.md#linter-guidance) and `.golangci.yml`.
 
 ### Testing Standards
 
@@ -782,15 +784,15 @@ cmd/
 
 ### Map Iteration in Tests
 
-Go map iteration is non-deterministic. When output is assembled from maps, tests should usually assert presence with helpers such as `strings.Contains()` instead of comparing full string output byte-for-byte. Production code is responsible for sorting before rendering. See **[AGENTS.md](AGENTS.md)** §7.4.
+Go map iteration is non-deterministic. When output is assembled from maps, tests should usually assert presence with helpers such as `strings.Contains()` instead of comparing full string output byte-for-byte. Production code is responsible for sorting before rendering. See the [Development Standards](docs/development/standards.md#map-iteration-in-tests).
 
 ### Golden File Testing
 
-The project uses `sebdah/goldie/v2` for snapshot-style testing. Golden files should contain real expected values, not placeholders, and tests should normalize dynamic content with helpers such as `normalizeGoldenOutput` before comparison. Update snapshots with `go test ./path -run TestGolden -update`, and make sure every golden file ends with a trailing newline. For the full pattern, see **[AGENTS.md](AGENTS.md)** §7.6.
+The project uses `sebdah/goldie/v2` for snapshot-style testing. Golden files should contain real expected values, not placeholders, and tests should normalize dynamic content with helpers such as `normalizeGoldenOutput` before comparison. Update snapshots with `go test ./path -run TestGolden -update`, and make sure every golden file ends with a trailing newline. For the full pattern, see the [Development Standards](docs/development/standards.md#golden-file-testing).
 
 ### Pointer Identity Assertions
 
-When verifying that two interface values refer to the same underlying object, use `assert.Same(t, expected, actual)` rather than `assert.Equal`. This is especially important for registry tests that confirm aliases resolve to the canonical handler instance. See **[AGENTS.md](AGENTS.md)** §7.4a.
+When verifying that two interface values refer to the same underlying object, use `assert.Same(t, expected, actual)` rather than `assert.Equal`. This is especially important for registry tests that confirm aliases resolve to the canonical handler instance. See the [Development Standards](docs/development/standards.md#pointer-identity-in-tests).
 
 ### Global Flag Testing in `cmd/`
 
@@ -798,7 +800,7 @@ Tests in `cmd/` must account for Cobra's package-level flag bindings. Do not use
 
 ### Duplicate Code Detection
 
-The `dupl` linter will flag structurally similar test files, especially paired JSON and YAML coverage. When two test files mostly differ by format, extract the shared setup and assertions into `test_helpers.go` and use subtests to cover each format cleanly. See **[AGENTS.md](AGENTS.md)** §5.21.
+The `dupl` linter will flag structurally similar test files, especially paired JSON and YAML coverage. When two test files mostly differ by format, extract the shared setup and assertions into `test_helpers.go` and use subtests to cover each format cleanly. See the [Development Standards](docs/development/standards.md#duplicate-code-detection-in-tests).
 
 ## Documentation
 
@@ -817,6 +819,31 @@ When adding features:
 2. Update CLI help text
 3. Add examples to README
 4. Update configuration documentation
+
+## Open-Source Quality Standards (OSSF Best Practices)
+
+This project maintains the OSSF Best Practices passing badge. All contributions must uphold these standards:
+
+### Every PR Must
+
+- Sign off commits with `git commit -s` (DCO enforced by GitHub App)
+- Pass CI (golangci-lint, gofumpt, tests, CodeQL, Grype) before merge
+- Include tests for new functionality — this is policy, not optional
+- Be reviewed (human or CodeRabbit) for correctness, safety, and style
+- Not introduce `panic()` in library code, unchecked errors, or unvalidated input
+
+### Every Release Must
+
+- Have human-readable release notes via git-cliff (not raw git log)
+- Use unique SemVer identifiers (`vX.Y.Z` tags)
+- Be built reproducibly (pinned toolchain, committed `go.sum`, GoReleaser)
+
+### Documentation Requirements
+
+- Exported APIs require godoc comments with examples where appropriate
+- CONTRIBUTING.md documents code review criteria, test policy, DCO, and governance
+- SECURITY.md documents vulnerability reporting with scope, safe harbor, and PGP key
+- `docs/security/security-assurance.md` must be updated when new attack surface is introduced
 
 ## Pull Request Process
 
