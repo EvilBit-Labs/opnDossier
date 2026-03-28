@@ -1612,4 +1612,53 @@ func TestBuildAuditSection_ZeroCompliantCountsStillRendered(t *testing.T) {
 	}
 }
 
+// TestBuildAuditSection_EmptyStatusDefaultsToFail verifies that controls with an
+// empty Status field are rendered as FAIL (defensive fallback in writePluginControlsTable).
+func TestBuildAuditSection_EmptyStatusDefaultsToFail(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	data := &common.CommonDevice{
+		ComplianceChecks: &common.ComplianceResults{
+			Mode: "blue",
+			Summary: &common.ComplianceResultSummary{
+				TotalFindings: 0,
+				NonCompliant:  1,
+			},
+			PluginResults: map[string]common.PluginComplianceResult{
+				"test-plugin": {
+					Summary: &common.ComplianceResultSummary{
+						NonCompliant: 1,
+					},
+					Controls: []common.ComplianceControl{
+						{
+							ID:       "CTRL-EMPTY",
+							Status:   "",
+							Title:    "Empty status control",
+							Severity: "high",
+							Category: "Test",
+						},
+					},
+					Compliance: map[string]bool{},
+				},
+			},
+		},
+	}
+
+	result := b.BuildAuditSection(data)
+
+	// Control should render as FAIL due to empty-string fallback
+	if !strings.Contains(result, "CTRL-EMPTY") {
+		t.Errorf("expected CTRL-EMPTY in output, got:\n%s", result)
+	}
+
+	if !strings.Contains(result, "FAIL") {
+		t.Errorf("expected FAIL status for empty-Status control, got:\n%s", result)
+	}
+
+	if strings.Contains(result, "PASS") {
+		t.Errorf("expected no PASS in output for empty-Status control, got:\n%s", result)
+	}
+}
+
 // Use helper functions from existing helpers_test.go

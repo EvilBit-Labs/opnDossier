@@ -547,6 +547,14 @@ func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
 				totalNonCompliant += pr.Summary.NonCompliant
 			} else {
 				totalFindings += len(pr.Findings)
+				// Derive compliant/non-compliant from Controls when Summary is nil
+				for _, ctrl := range pr.Controls {
+					if ctrl.Status == common.ControlStatusPass {
+						totalCompliant++
+					} else {
+						totalNonCompliant++
+					}
+				}
 			}
 		}
 	}

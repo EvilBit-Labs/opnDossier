@@ -140,7 +140,7 @@ var auditCmd = &cobra.Command{
 
 		// Reject --failures-only with non-markdown formats — the flag only affects
 		// the markdown plugin controls table. JSON/YAML consumers should filter
-		// client-side to avoid information loss (GOTCHAS.md §5.1).
+		// client-side to avoid information loss.
 		if auditFailuresOnly && !strings.EqualFold(format, "markdown") {
 			return fmt.Errorf(
 				"--failures-only is only supported with --format markdown; %q format always includes all controls",
@@ -432,6 +432,7 @@ func generateAuditOutput(
 	ctxLogger.Debug("Running audit",
 		"mode", auditOpts.AuditMode,
 		"plugins", auditOpts.SelectedPlugins,
+		"failuresOnly", auditOpts.FailuresOnly,
 	)
 
 	output, err := handleAuditMode(ctx, device, auditOpts, opt, ctxLogger)

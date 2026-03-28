@@ -779,3 +779,36 @@ func TestHandleAuditMode_UnknownPluginRejectedPostInit(t *testing.T) {
 		"expected ErrPluginNotFound in error chain, got: %v", err)
 	assert.Contains(t, err.Error(), "myplugin")
 }
+
+// TestHandleAuditMode_FailuresOnlyPipeline verifies that FailuresOnly propagates
+// through the full pipeline: audit.Options → converter.Options → builder → filtered output.
+// Passing controls should be excluded from the rendered markdown when FailuresOnly is true.
+func TestHandleAuditMode_FailuresOnlyPipeline(t *testing.T) {
+	// Do NOT use t.Parallel() — exercises audit pipeline with package-level state.
+	logger, err := logging.New(logging.Config{Level: "warn"})
+	require.NoError(t, err)
+
+	device := &common.CommonDevice{
+		System: common.System{
+			Hostname: "test-fw",
+			Domain:   "example.com",
+		},
+	}
+
+	auditOpts := audit.Options{
+		AuditMode:       "blue",
+		SelectedPlugins: []string{"stig"},
+		FailuresOnly:    true,
+	}
+
+	opt := converter.Options{
+		Format: converter.FormatMarkdown,
+	}
+
+	result, err := handleAuditMode(context.Background(), device, auditOpts, opt, logger)
+	require.NoError(t, err)
+
+	// Output should contain FAIL but not PASS — failuresOnly filters passing controls
+	assert.Contains(t, result, "FAIL", "expected FAIL controls in filtered output")
+	assert.NotContains(t, result, "| PASS", "expected PASS controls to be filtered out")
+}
