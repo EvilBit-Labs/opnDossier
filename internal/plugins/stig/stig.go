@@ -159,6 +159,17 @@ func (sp *Plugin) GetControls() []compliance.Control {
 	return compliance.CloneControls(sp.controls)
 }
 
+// EvaluatedControlIDs returns the IDs of controls this plugin can evaluate.
+// The STIG plugin can evaluate all of its controls from config.xml data.
+func (sp *Plugin) EvaluatedControlIDs(_ *common.CommonDevice) []string {
+	ids := make([]string, len(sp.controls))
+	for i, c := range sp.controls {
+		ids[i] = c.ID
+	}
+
+	return ids
+}
+
 // GetControlByID returns a specific control by ID.
 func (sp *Plugin) GetControlByID(id string) (*compliance.Control, error) {
 	for _, control := range sp.controls {

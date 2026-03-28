@@ -327,6 +327,9 @@ const (
 	ControlStatusPass = "PASS"
 	// ControlStatusFail indicates a control is non-compliant.
 	ControlStatusFail = "FAIL"
+	// ControlStatusUnknown indicates a control could not be evaluated
+	// from the available configuration data.
+	ControlStatusUnknown = "UNKNOWN"
 )
 
 // ComplianceControl represents a single compliance control definition from a plugin.

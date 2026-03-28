@@ -1612,9 +1612,9 @@ func TestBuildAuditSection_ZeroCompliantCountsStillRendered(t *testing.T) {
 	}
 }
 
-// TestBuildAuditSection_EmptyStatusDefaultsToFail verifies that controls with an
-// empty Status field are rendered as FAIL (defensive fallback in writePluginControlsTable).
-func TestBuildAuditSection_EmptyStatusDefaultsToFail(t *testing.T) {
+// TestBuildAuditSection_EmptyStatusDefaultsToUnknown verifies that controls with an
+// empty Status field are rendered as UNKNOWN (defensive fallback in writePluginControlsTable).
+func TestBuildAuditSection_EmptyStatusDefaultsToUnknown(t *testing.T) {
 	t.Parallel()
 
 	b := NewMarkdownBuilder()
@@ -1623,13 +1623,10 @@ func TestBuildAuditSection_EmptyStatusDefaultsToFail(t *testing.T) {
 			Mode: "blue",
 			Summary: &common.ComplianceResultSummary{
 				TotalFindings: 0,
-				NonCompliant:  1,
 			},
 			PluginResults: map[string]common.PluginComplianceResult{
 				"test-plugin": {
-					Summary: &common.ComplianceResultSummary{
-						NonCompliant: 1,
-					},
+					Summary: &common.ComplianceResultSummary{},
 					Controls: []common.ComplianceControl{
 						{
 							ID:       "CTRL-EMPTY",
@@ -1647,13 +1644,13 @@ func TestBuildAuditSection_EmptyStatusDefaultsToFail(t *testing.T) {
 
 	result := b.BuildAuditSection(data)
 
-	// Control should render as FAIL due to empty-string fallback
+	// Control should render as UNKNOWN due to empty-string fallback
 	if !strings.Contains(result, "CTRL-EMPTY") {
 		t.Errorf("expected CTRL-EMPTY in output, got:\n%s", result)
 	}
 
-	if !strings.Contains(result, "FAIL") {
-		t.Errorf("expected FAIL status for empty-Status control, got:\n%s", result)
+	if !strings.Contains(result, "UNKNOWN") {
+		t.Errorf("expected UNKNOWN status for empty-Status control, got:\n%s", result)
 	}
 
 	if strings.Contains(result, "PASS") {

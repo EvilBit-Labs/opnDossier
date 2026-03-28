@@ -547,11 +547,13 @@ func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
 				totalNonCompliant += pr.Summary.NonCompliant
 			} else {
 				totalFindings += len(pr.Findings)
-				// Derive compliant/non-compliant from Controls when Summary is nil
+				// Derive compliant/non-compliant from Controls when Summary is nil.
+				// UNCONFIRMED controls are excluded from both counts.
 				for _, ctrl := range pr.Controls {
-					if ctrl.Status == common.ControlStatusPass {
+					switch ctrl.Status {
+					case common.ControlStatusPass:
 						totalCompliant++
-					} else {
+					case common.ControlStatusFail:
 						totalNonCompliant++
 					}
 				}
@@ -689,10 +691,11 @@ func (b *MarkdownBuilder) writePluginControlsTable(
 
 	for _, ctrl := range sortedControls {
 		// Read the pre-populated Status field set by mapControls in the mapping layer.
-		// Fall back to FAIL defensively if Status is empty (e.g., legacy code path).
+		// Fall back to UNCONFIRMED if Status is empty (e.g., legacy code path
+		// where controls were not enriched with compliance status).
 		status := ctrl.Status
 		if status == "" {
-			status = common.ControlStatusFail
+			status = common.ControlStatusUnknown
 		}
 
 		if b.failuresOnly && status == common.ControlStatusPass {

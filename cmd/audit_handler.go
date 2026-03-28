@@ -285,7 +285,9 @@ func mapComplianceFindings(findings []compliance.Finding) []common.ComplianceFin
 
 // mapControls converts compliance.Control slices to common.ComplianceControl slices,
 // enriching each control with its compliance status from the provided map.
-// A nil complianceStatus map is safe — all controls default to FAIL (defensive).
+// Controls present in the map as true → PASS, false → FAIL.
+// Controls absent from the map → UNCONFIRMED (not evaluable from available data).
+// A nil complianceStatus map is safe — all controls default to UNCONFIRMED.
 func mapControls(controls []compliance.Control, complianceStatus map[string]bool) []common.ComplianceControl {
 	if len(controls) == 0 {
 		return nil
@@ -293,9 +295,13 @@ func mapControls(controls []compliance.Control, complianceStatus map[string]bool
 
 	mapped := make([]common.ComplianceControl, len(controls))
 	for i, c := range controls {
-		status := common.ControlStatusFail // defensive default
-		if passed, exists := complianceStatus[c.ID]; exists && passed {
-			status = common.ControlStatusPass
+		status := common.ControlStatusUnknown // default for unevaluated controls
+		if passed, exists := complianceStatus[c.ID]; exists {
+			if passed {
+				status = common.ControlStatusPass
+			} else {
+				status = common.ControlStatusFail
+			}
 		}
 
 		mapped[i] = common.ComplianceControl{

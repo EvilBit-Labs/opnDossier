@@ -399,9 +399,9 @@ func TestMapAuditReportToComplianceResults(t *testing.T) {
 				assert.Equal(t, "STIG-V-000002", c.ID)
 				assert.Equal(
 					t,
-					common.ControlStatusFail,
+					common.ControlStatusUnknown,
 					c.Status,
-					"control with empty compliance map defaults to FAIL",
+					"control absent from compliance map defaults to UNKNOWN",
 				)
 				assert.Equal(t, "Required for accountability", c.Rationale)
 				assert.Equal(t, "Enable audit logging", c.Remediation)
@@ -484,17 +484,17 @@ func TestMapControls_StatusPopulation(t *testing.T) {
 			},
 		},
 		{
-			name:             "nil compliance map defaults to FAIL",
+			name:             "nil compliance map defaults to UNKNOWN",
 			controls:         controls,
 			complianceStatus: nil,
 			wantStatuses: []string{
-				common.ControlStatusFail,
-				common.ControlStatusFail,
-				common.ControlStatusFail,
+				common.ControlStatusUnknown,
+				common.ControlStatusUnknown,
+				common.ControlStatusUnknown,
 			},
 		},
 		{
-			name:     "missing entry defaults to FAIL",
+			name:     "missing entry defaults to UNKNOWN",
 			controls: controls,
 			complianceStatus: map[string]bool{
 				"CTRL-001": true,
@@ -503,7 +503,7 @@ func TestMapControls_StatusPopulation(t *testing.T) {
 			},
 			wantStatuses: []string{
 				common.ControlStatusPass,
-				common.ControlStatusFail,
+				common.ControlStatusUnknown,
 				common.ControlStatusPass,
 			},
 		},

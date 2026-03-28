@@ -282,6 +282,34 @@ func (fp *Plugin) ValidateConfiguration() error {
 	return nil
 }
 
+// EvaluatedControlIDs returns the IDs of controls this plugin can evaluate
+// given the device configuration. Controls that return Unknown (Known=false)
+// are excluded — they cannot be assessed from config.xml data alone.
+func (fp *Plugin) EvaluatedControlIDs(device *common.CommonDevice) []string {
+	// Map control IDs to their check functions for systematic evaluation.
+	checks := map[string]func(*common.CommonDevice) checkResult{
+		"FIREWALL-001": fp.hasSSHBanner,
+		"FIREWALL-002": fp.hasAutoConfigBackup,
+		"FIREWALL-003": fp.hasCustomMOTD,
+		"FIREWALL-004": fp.hasCustomHostname,
+		"FIREWALL-005": fp.hasDNSServers,
+		"FIREWALL-006": fp.hasIPv6Enabled,
+		"FIREWALL-007": fp.hasDNSRebindCheck,
+		"FIREWALL-008": fp.hasHTTPSManagement,
+	}
+
+	var evaluated []string
+	for _, ctrl := range fp.controls {
+		if checkFn, exists := checks[ctrl.ID]; exists {
+			if cr := checkFn(device); cr.Known {
+				evaluated = append(evaluated, ctrl.ID)
+			}
+		}
+	}
+
+	return evaluated
+}
+
 // controlSeverity returns the severity for a control ID from the control
 // definitions. This ensures findings derive severity from the single source
 // of truth (the control metadata) rather than hard-coding literals.

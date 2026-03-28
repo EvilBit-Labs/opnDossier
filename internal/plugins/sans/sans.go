@@ -150,6 +150,14 @@ func (sp *Plugin) GetControls() []compliance.Control {
 	return compliance.CloneControls(sp.controls)
 }
 
+// EvaluatedControlIDs returns the IDs of controls this plugin can evaluate.
+// The SANS plugin currently uses placeholder check logic for all controls,
+// so no controls are reported as evaluated. They will appear as UNKNOWN
+// in reports until real check logic is implemented.
+func (sp *Plugin) EvaluatedControlIDs(_ *common.CommonDevice) []string {
+	return nil // No controls have real check logic yet
+}
+
 // GetControlByID returns a specific control by ID.
 func (sp *Plugin) GetControlByID(id string) (*compliance.Control, error) {
 	for _, control := range sp.controls {

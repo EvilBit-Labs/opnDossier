@@ -324,13 +324,18 @@ func (pr *PluginRegistry) RunComplianceChecks(
 			Controls:    compliance.CloneControls(p.GetControls()),
 		}
 
-		// Initialize compliance tracking for this plugin
+		// Initialize compliance tracking for this plugin.
+		// Only controls the plugin can evaluate are initialized (to true/compliant).
+		// Controls absent from the map are UNCONFIRMED — not evaluable from the
+		// available configuration data.
 		result.Compliance[pluginName] = make(map[string]bool)
-		for _, control := range p.GetControls() {
-			result.Compliance[pluginName][control.ID] = true // Default to compliant
+
+		evaluatedIDs := resolveEvaluatedControls(p, device)
+		for _, id := range evaluatedIDs {
+			result.Compliance[pluginName][id] = true // Default evaluated controls to compliant
 		}
 
-		// Update compliance status based on findings
+		// Update compliance status based on findings — flip evaluated controls to false
 		for _, finding := range findings {
 			for _, ref := range finding.References {
 				if result.Compliance[pluginName] != nil {
@@ -344,6 +349,25 @@ func (pr *PluginRegistry) RunComplianceChecks(
 	result.Summary = pr.calculateSummary(result)
 
 	return result, nil
+}
+
+// resolveEvaluatedControls returns the IDs of controls that the plugin can evaluate.
+// If the plugin implements compliance.ControlEvaluator, its EvaluatedControlIDs method
+// is called. Otherwise, all controls from GetControls() are assumed evaluable
+// (backward-compatible default).
+func resolveEvaluatedControls(p compliance.Plugin, device *common.CommonDevice) []string {
+	if evaluator, ok := p.(compliance.ControlEvaluator); ok {
+		return evaluator.EvaluatedControlIDs(device)
+	}
+
+	// Legacy: plugin does not implement ControlEvaluator — assume all controls evaluable
+	controls := p.GetControls()
+	ids := make([]string, len(controls))
+	for i, c := range controls {
+		ids[i] = c.ID
+	}
+
+	return ids
 }
 
 // deduplicatePluginNames normalizes names to lowercase and returns a new slice
