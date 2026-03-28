@@ -30,22 +30,14 @@ type Plugin interface {
 	// GetControlByID returns a specific control by its ID
 	GetControlByID(id string) (*Control, error)
 
+	// EvaluatedControlIDs returns the IDs of controls this plugin can evaluate
+	// given the provided device configuration. Controls returned by GetControls()
+	// but NOT in this list will be reported as UNKNOWN in the audit report.
+	// Return nil to indicate no controls are evaluable.
+	EvaluatedControlIDs(device *common.CommonDevice) []string
+
 	// ValidateConfiguration validates the plugin's configuration
 	ValidateConfiguration() error
-}
-
-// ControlEvaluator is an optional interface that plugins can implement to report
-// which controls they are able to evaluate from the available configuration data.
-// Controls returned by GetControls() but NOT in the evaluated set will be marked
-// as UNCONFIRMED in the report rather than defaulting to PASS.
-//
-// Plugins that do NOT implement this interface are assumed to evaluate all their
-// controls (backward-compatible: existing behavior is preserved).
-type ControlEvaluator interface {
-	// EvaluatedControlIDs returns the IDs of controls this plugin can evaluate
-	// given the provided device configuration. Controls not in this list will
-	// be reported as UNCONFIRMED.
-	EvaluatedControlIDs(device *common.CommonDevice) []string
 }
 
 // Control represents a single compliance control.
