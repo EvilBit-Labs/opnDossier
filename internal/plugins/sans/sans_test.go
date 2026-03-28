@@ -16,30 +16,77 @@ func TestSANSPlugin_RunChecks(t *testing.T) {
 	tests := []struct {
 		name               string
 		config             *common.CommonDevice
-		expectedFindings   int
 		expectedFindingIDs []string
 		description        string
 	}{
 		{
-			name: "Default configuration - all findings expected",
+			name: "Default configuration - minimal device triggers multiple findings",
 			config: &common.CommonDevice{
 				System: common.System{
 					Hostname: "OPNsense",
 					Domain:   "localdomain",
 				},
 			},
-			expectedFindings:   0,
-			expectedFindingIDs: []string{},
-			description:        "Default config should trigger all SANS compliance checks",
+			expectedFindingIDs: []string{
+				"SANS-FW-003", // zone separation (0 enabled interfaces)
+				"SANS-FW-004", // logging not enabled
+				"SANS-FW-006", // no proxy packages
+				"SANS-FW-008", // no firmware version
+				"SANS-FW-009", // no DMZ interface
+				"SANS-FW-015", // SSH not enabled
+				"SANS-FW-019", // NAT not configured
+				"SANS-FW-022", // no WAN-to-LAN deny rules
+				"SANS-FW-025", // no HA config
+			},
+			description: "Default config with no interfaces/rules triggers expected findings",
 		},
 		{
-			name: "Empty configuration - all findings expected",
+			name: "Compliant configuration - no findings expected",
 			config: &common.CommonDevice{
-				System: common.System{},
+				System: common.System{
+					Hostname: "fw01",
+					SSH:      common.SSH{Enabled: true},
+					Firmware: common.Firmware{Version: "24.7"},
+				},
+				Interfaces: []common.Interface{
+					{Name: "wan", Enabled: true, BlockPrivate: true, BlockBogons: true},
+					{Name: "lan", Enabled: true},
+					{Name: "opt1", Enabled: true},
+				},
+				FirewallRules: []common.FirewallRule{
+					{
+						Type: common.RuleTypeBlock, Interfaces: []string{"wan"},
+						Description: "Block RFC1918 on WAN",
+					},
+					{
+						Type: common.RuleTypePass, Interfaces: []string{"lan"},
+						Protocol: "tcp", StateType: "keep state",
+						Description: "Allow LAN outbound",
+						Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
+						Destination: common.RuleEndpoint{Address: "any"},
+						Direction:   common.DirectionOut,
+					},
+				},
+				Syslog: common.SyslogConfig{
+					Enabled:       true,
+					FilterLogging: true,
+				},
+				Sysctl: []common.SysctlItem{
+					{Tunable: "net.inet.ip.sourceroute", Value: "0"},
+					{Tunable: "net.inet.ip.accept_sourceroute", Value: "0"},
+				},
+				NAT: common.NATConfig{
+					OutboundMode: common.OutboundAutomatic,
+				},
+				Packages: []common.Package{
+					{Name: "os-haproxy", Installed: true},
+				},
+				HighAvailability: common.HighAvailability{
+					PfsyncPeerIP: "10.0.0.2",
+				},
 			},
-			expectedFindings:   0,
 			expectedFindingIDs: []string{},
-			description:        "Empty config should trigger all SANS compliance checks",
+			description:        "Fully compliant config should produce no findings",
 		},
 	}
 
@@ -49,8 +96,8 @@ func TestSANSPlugin_RunChecks(t *testing.T) {
 			findings := sansPlugin.RunChecks(tt.config)
 
 			// Verify the expected number of findings
-			assert.Len(t, findings, tt.expectedFindings, "Expected %d findings, got %d: %v",
-				tt.expectedFindings, len(findings), getFindings(findings))
+			assert.Len(t, findings, len(tt.expectedFindingIDs), "Expected %d findings, got %d: %v",
+				len(tt.expectedFindingIDs), len(findings), getFindings(findings))
 
 			// Verify each expected finding is present
 			for _, expectedID := range tt.expectedFindingIDs {
@@ -160,7 +207,7 @@ func TestSANSPlugin_Controls(t *testing.T) {
 
 	// Test GetControls returns all controls
 	controls := sansPlugin.GetControls()
-	assert.Len(t, controls, 4, "Expected 4 SANS controls")
+	assert.Len(t, controls, 25, "Expected 25 SANS controls")
 
 	// Verify all control IDs are unique
 	controlIDs := make(map[string]bool)
