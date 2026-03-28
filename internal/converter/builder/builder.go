@@ -606,9 +606,8 @@ func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
 		}
 	}
 
-	md.H2("Audit Metadata")
+	// ── Compliance summary ──
 
-	// Compliance audit summary table
 	summaryRows := [][]string{
 		{"Mode", cc.Mode},
 		{"Total Findings", strconv.Itoa(totalFindings)},
@@ -616,7 +615,7 @@ func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
 		{"Non-Compliant", strconv.Itoa(totalNonCompliant)},
 	}
 
-	md.H3("Compliance Audit Summary")
+	md.H2("Compliance Audit Summary")
 	md.Table(markdown.TableSet{
 		Header: []string{"Metric", "Value"},
 		Rows:   summaryRows,
@@ -624,11 +623,9 @@ func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
 
 	// Per-plugin summary statistics
 	if len(cc.PluginResults) > 0 {
-		md.H3("Plugin Summary")
-
 		for _, pluginName := range slices.Sorted(maps.Keys(cc.PluginResults)) {
 			result := cc.PluginResults[pluginName]
-			md.H4(pluginName)
+			md.H3(pluginName)
 
 			if result.Summary == nil {
 				md.BulletList("Summary: no data available")
@@ -661,9 +658,10 @@ func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
 		}
 	}
 
-	// Custom audit metadata key-value pairs
+	// ── Audit metadata (at the very end) ──
+
 	if len(cc.Metadata) > 0 {
-		md.H3("Additional Metadata")
+		md.H2("Audit Metadata")
 		metadataTable := markdown.TableSet{
 			Header: []string{"Key", "Value"},
 			Rows:   make([][]string, 0, len(cc.Metadata)),

@@ -995,7 +995,7 @@ func TestBuildAuditSection_EmptyComplianceResults(t *testing.T) {
 	}
 
 	result := b.BuildAuditSection(data)
-	if !strings.Contains(result, "### Compliance Audit Summary") {
+	if !strings.Contains(result, "## Compliance Audit Summary") {
 		t.Error("Expected '### Compliance Audit Summary' in output")
 	}
 	if !strings.Contains(result, "blue") {
@@ -1128,7 +1128,7 @@ func TestBuildAuditSection_WithMetadata(t *testing.T) {
 	result := b.BuildAuditSection(data)
 
 	expectedContent := []string{
-		"### Additional Metadata",
+		"## Audit Metadata",
 		"scan_time",
 		"version",
 		"2024-01-15",
