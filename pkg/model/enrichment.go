@@ -336,7 +336,7 @@ const (
 type ComplianceControl struct {
 	// ID is the unique control identifier (e.g., "STIG-V-123456", "SANS-001").
 	ID string `json:"id,omitempty" yaml:"id,omitempty"`
-	// Status is the compliance evaluation result ("PASS" or "FAIL").
+	// Status is the compliance evaluation result ("PASS", "FAIL", or "UNKNOWN").
 	// Derived from the Compliance map during export mapping.
 	Status string `json:"status" yaml:"status"`
 	// Title is the control title.

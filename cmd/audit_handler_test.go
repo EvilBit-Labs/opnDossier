@@ -427,8 +427,6 @@ func TestMapAuditReportToComplianceResults(t *testing.T) {
 }
 
 func TestMapControls_StatusPopulation(t *testing.T) {
-	t.Parallel()
-
 	controls := []compliance.Control{
 		{ID: "CTRL-001", Title: "Passes", Severity: "low"},
 		{ID: "CTRL-002", Title: "Fails", Severity: "high"},
@@ -517,7 +515,6 @@ func TestMapControls_StatusPopulation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
 			result := mapControls(tt.controls, tt.complianceStatus)
 
 			if tt.wantStatuses == nil {
@@ -535,8 +532,6 @@ func TestMapControls_StatusPopulation(t *testing.T) {
 }
 
 func TestMapControls_PreservesAllFields(t *testing.T) {
-	t.Parallel()
-
 	controls := []compliance.Control{
 		{
 			ID:          "CTRL-001",
@@ -570,8 +565,6 @@ func TestMapControls_PreservesAllFields(t *testing.T) {
 }
 
 func TestMapControls_JSONRoundTrip(t *testing.T) {
-	t.Parallel()
-
 	controls := []compliance.Control{
 		{ID: "CTRL-001", Title: "Pass Control", Severity: "low"},
 		{ID: "CTRL-002", Title: "Fail Control", Severity: "high"},

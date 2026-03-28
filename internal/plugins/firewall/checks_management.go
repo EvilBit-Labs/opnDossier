@@ -110,7 +110,7 @@ func (fp *Plugin) checkLeastPrivilegeAccess(device *common.CommonDevice) checkRe
 	}
 
 	for _, group := range device.Groups {
-		if strings.Contains(group.Privileges, pageAllPrivilege) {
+		if slices.Contains(strings.Split(group.Privileges, ","), pageAllPrivilege) {
 			return checkResult{Result: false, Known: true}
 		}
 	}

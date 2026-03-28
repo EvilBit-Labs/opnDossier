@@ -2,6 +2,7 @@ package sans
 
 import (
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
@@ -79,7 +80,10 @@ func portMatchesDangerous(port string) bool {
 		// Check if the dangerous port falls within a range like "135-139".
 		//nolint:mnd // 2 is the expected number of parts in a port range "start-end"
 		if parts := strings.SplitN(port, "-", 2); len(parts) == 2 {
-			if dp >= parts[0] && dp <= parts[1] {
+			dpNum, errDP := strconv.Atoi(dp)
+			low, errLow := strconv.Atoi(parts[0])
+			high, errHigh := strconv.Atoi(parts[1])
+			if errDP == nil && errLow == nil && errHigh == nil && dpNum >= low && dpNum <= high {
 				return true
 			}
 		}
@@ -192,7 +196,6 @@ func (sp *Plugin) checkRulesetOrdering(device *common.CommonDevice) checkResult 
 	}
 
 	seenPass := false
-	seenBlockAfterPass := false
 
 	for _, r := range rules {
 		if r.Disabled {
@@ -201,14 +204,9 @@ func (sp *Plugin) checkRulesetOrdering(device *common.CommonDevice) checkResult 
 		if r.Type == common.RuleTypePass {
 			seenPass = true
 		}
-		if seenPass && (r.Type == common.RuleTypeBlock || r.Type == common.RuleTypeReject) {
-			seenBlockAfterPass = true
-		}
 	}
 
-	// If there are block rules after pass rules, ordering is suboptimal but
-	// still valid. We specifically check whether ALL block rules come before
-	// the first pass rule.
+	// Check whether ALL block rules come before the first pass rule.
 	firstPassIdx := -1
 	lastBlockIdx := -1
 
@@ -239,7 +237,6 @@ func (sp *Plugin) checkRulesetOrdering(device *common.CommonDevice) checkResult 
 	}
 
 	// If all block rules appear before the first pass rule.
-	_ = seenBlockAfterPass
 	return checkResult{Result: lastBlockIdx < firstPassIdx, Known: true}
 }
 
