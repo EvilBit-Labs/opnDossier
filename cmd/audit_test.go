@@ -14,24 +14,26 @@ import (
 // for test isolation. Use captureAuditFlags to save and restore via t.Cleanup to
 // prevent test pollution when flags are modified during test execution.
 type auditFlagSnapshot struct {
-	mode       string
-	plugins    []string
-	pluginDir  string
-	formatFlag string
-	outputFile string
-	forceFlag  bool
+	mode         string
+	plugins      []string
+	pluginDir    string
+	failuresOnly bool
+	formatFlag   string
+	outputFile   string
+	forceFlag    bool
 }
 
 // captureAuditFlags saves the current state of audit-specific and shared
 // convert-level flag variables for later restoration.
 func captureAuditFlags() auditFlagSnapshot {
 	return auditFlagSnapshot{
-		mode:       auditMode,
-		plugins:    auditPlugins,
-		pluginDir:  auditPluginDir,
-		formatFlag: format,
-		outputFile: outputFile,
-		forceFlag:  force,
+		mode:         auditMode,
+		plugins:      auditPlugins,
+		pluginDir:    auditPluginDir,
+		failuresOnly: auditFailuresOnly,
+		formatFlag:   format,
+		outputFile:   outputFile,
+		forceFlag:    force,
 	}
 }
 
@@ -41,6 +43,7 @@ func (s auditFlagSnapshot) restore() {
 	auditMode = s.mode
 	auditPlugins = s.plugins
 	auditPluginDir = s.pluginDir
+	auditFailuresOnly = s.failuresOnly
 	format = s.formatFlag
 	outputFile = s.outputFile
 	force = s.forceFlag
@@ -85,6 +88,7 @@ func TestAuditCmdFlagDefaults(t *testing.T) {
 		{"mode", "blue"},
 		{"plugins", "[]"},
 		{"plugin-dir", ""},
+		{"failures-only", "false"},
 		{"format", "markdown"},
 		{"output", ""},
 		{"force", "false"},
@@ -408,4 +412,54 @@ func TestAuditCmdCompletions(t *testing.T) {
 		assert.Len(t, completions, 5)
 		assert.Equal(t, cobra.ShellCompDirectiveNoFileComp, directive)
 	})
+}
+
+// TestAuditCmdPreRunEFailuresOnlyRequiresBlueMode verifies that the --failures-only flag
+// is rejected when the audit mode is not blue. It drives flag values through Cobra/pflag
+// binding to verify the real CLI wiring as well as the validation behavior.
+func TestAuditCmdPreRunEFailuresOnlyRequiresBlueMode(t *testing.T) {
+	tests := []struct {
+		name         string
+		mode         string
+		failuresOnly bool
+		wantErr      bool
+		errSubstr    string
+	}{
+		{"failures-only with red rejected", "red", true, true, "--failures-only is only supported with --mode blue"},
+		{"failures-only with blue accepted", "blue", true, false, ""},
+		{"failures-only=false with red accepted", "red", false, false, ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			auditSnap := captureAuditFlags()
+			sharedSnap := captureSharedFlags()
+			t.Cleanup(func() {
+				auditSnap.restore()
+				sharedSnap.restore()
+			})
+
+			tempCmd := &cobra.Command{}
+			tempCmd.Flags().StringVar(&auditMode, "mode", "blue", "")
+			tempCmd.Flags().StringSliceVar(&auditPlugins, "plugins", []string{}, "")
+			tempCmd.Flags().BoolVar(&auditFailuresOnly, "failures-only", false, "")
+			tempCmd.Flags().StringVar(&outputFile, "output", "", "")
+			tempCmd.Flags().StringVar(&format, "format", "markdown", "")
+			tempCmd.Flags().Bool("no-wrap", false, "")
+			tempCmd.Flags().Int("wrap", -1, "")
+
+			require.NoError(t, tempCmd.Flags().Set("mode", tt.mode))
+			if tt.failuresOnly {
+				require.NoError(t, tempCmd.Flags().Set("failures-only", "true"))
+			}
+
+			err := auditCmd.PreRunE(tempCmd, []string{"dummy.xml"})
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errSubstr)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }
