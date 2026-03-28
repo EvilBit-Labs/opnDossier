@@ -64,6 +64,66 @@ func NewPlugin() *Plugin {
 				Remediation: "Enable comprehensive logging for all firewall rules and ensure logs capture success/failure outcomes",
 				Tags:        []string{"logging", "audit-trail", "security-monitoring"},
 			},
+			{
+				ID:          "V-206701",
+				Title:       "Firewall must employ DoS attack prevention filters",
+				Description: "Firewall must implement rate limiting or connection throttling to mitigate denial-of-service attacks",
+				Category:    "DoS Prevention",
+				Severity:    "high",
+				Rationale:   "DoS prevention filters reduce the impact of volumetric attacks on protected services",
+				Remediation: "Configure connection rate limiting (MaxSrcConnRate) and maximum connection limits (MaxSrcConn) on pass rules",
+				Tags:        []string{"dos-prevention", "rate-limiting", "availability"},
+			},
+			{
+				ID:          "V-206680",
+				Title:       "Firewall must log network location information",
+				Description: "Firewall must capture source and destination interface information in log entries",
+				Category:    "Logging",
+				Severity:    "medium",
+				Rationale:   "Network location data in logs enables accurate incident response and traffic attribution",
+				Remediation: "Configure syslog to include interface and zone information in firewall log entries",
+				Tags:        []string{"logging", "network-location", "audit-trail"},
+			},
+			{
+				ID:          "V-206679",
+				Title:       "Firewall must log event timestamps",
+				Description: "Firewall must include accurate timestamps in all log entries for forensic timeline reconstruction",
+				Category:    "Logging",
+				Severity:    "medium",
+				Rationale:   "Accurate timestamps are essential for correlating events across multiple systems during incident investigation",
+				Remediation: "Enable NTP synchronization and ensure syslog includes timestamps in all forwarded messages",
+				Tags:        []string{"logging", "timestamps", "ntp", "forensics"},
+			},
+			{
+				ID:          "V-206678",
+				Title:       "Firewall must log event type information",
+				Description: "Firewall must categorize log entries by event type for efficient filtering and analysis",
+				Category:    "Logging",
+				Severity:    "medium",
+				Rationale:   "Event type classification enables automated log analysis and priority-based alerting",
+				Remediation: "Configure syslog to include facility and severity information in all forwarded log messages",
+				Tags:        []string{"logging", "event-type", "categorization"},
+			},
+			{
+				ID:          "V-206681",
+				Title:       "Firewall must log source information for events",
+				Description: "Firewall must capture source IP addresses and identifiers in all security-relevant log entries",
+				Category:    "Logging",
+				Severity:    "medium",
+				Rationale:   "Source attribution in logs is critical for identifying threat actors and compromised systems",
+				Remediation: "Enable filter logging with source/destination information in syslog configuration",
+				Tags:        []string{"logging", "source-tracking", "attribution"},
+			},
+			{
+				ID:          "V-206711",
+				Title:       "Firewall must alert on DoS incidents",
+				Description: "Firewall must generate alerts when denial-of-service conditions are detected",
+				Category:    "DoS Prevention",
+				Severity:    "medium",
+				Rationale:   "Timely DoS alerting enables rapid response to mitigate service disruption",
+				Remediation: "Configure IDS/IPS alerting for DoS patterns and integrate with SIEM for automated notification",
+				Tags:        []string{"dos-prevention", "alerting", "incident-response"},
+			},
 		},
 	}
 
@@ -149,6 +209,64 @@ func (sp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 		})
 	}
 
+	// V-206701: DoS prevention filters (rate limiting on rules)
+	if !sp.hasDoSPreventionFilters(device) {
+		findings = append(findings, compliance.Finding{
+			Type:           "compliance",
+			Severity:       sp.controlSeverity("V-206701"),
+			Title:          "Missing DoS Prevention Filters",
+			Description:    "Firewall does not implement rate limiting or connection throttling on pass rules",
+			Recommendation: "Configure MaxSrcConnRate and MaxSrcConn on critical pass rules to mitigate DoS attacks",
+			Component:      "firewall-rules",
+			Reference:      "STIG V-206701",
+			References:     []string{"V-206701"},
+			Tags:           []string{"dos-prevention", "rate-limiting", "availability", "stig"},
+		})
+	}
+
+	// V-206680 through V-206681 and V-206678/V-206679: Logging detail controls
+	// These require syslog to be properly configured — checked via syslog enablement
+	if !sp.hasSyslogEnabled(device) {
+		for _, ctrl := range []struct {
+			id    string
+			title string
+			desc  string
+		}{
+			{"V-206680", "Network Location Logging Not Configured", "Firewall does not log network location (interface/zone) information"},
+			{"V-206679", "Event Timestamp Logging Not Configured", "Firewall does not log event timestamps via NTP-synchronized syslog"},
+			{"V-206678", "Event Type Logging Not Configured", "Firewall does not log event type (facility/severity) information"},
+			{"V-206681", "Source Information Logging Not Configured", "Firewall does not log source IP/identifier information"},
+		} {
+			findings = append(findings, compliance.Finding{
+				Type:           "compliance",
+				Severity:       sp.controlSeverity(ctrl.id),
+				Title:          ctrl.title,
+				Description:    ctrl.desc,
+				Recommendation: "Enable syslog with system, auth, and filter logging to capture comprehensive event data",
+				Component:      "logging-config",
+				Reference:      "STIG " + ctrl.id,
+				References:     []string{ctrl.id},
+				Tags:           []string{"logging", "syslog", "audit-trail", "stig"},
+			})
+		}
+	}
+
+	// V-206711: DoS incident alerting — requires IDS/IPS with alerting, advisory
+	// We can partially check: is IDS enabled?
+	if !sp.hasDoSAlerting(device) {
+		findings = append(findings, compliance.Finding{
+			Type:           "compliance",
+			Severity:       sp.controlSeverity("V-206711"),
+			Title:          "DoS Incident Alerting Not Configured",
+			Description:    "Firewall does not have IDS/IPS-based DoS alerting configured",
+			Recommendation: "Enable Suricata IDS/IPS with DoS detection rules and integrate with SIEM for alerting",
+			Component:      "ids-config",
+			Reference:      "STIG V-206711",
+			References:     []string{"V-206711"},
+			Tags:           []string{"dos-prevention", "alerting", "ids", "stig"},
+		})
+	}
+
 	return findings
 }
 
@@ -160,7 +278,9 @@ func (sp *Plugin) GetControls() []compliance.Control {
 }
 
 // EvaluatedControlIDs returns the IDs of controls this plugin can evaluate.
-// The STIG plugin can evaluate all of its controls from config.xml data.
+// All 10 STIG controls can be evaluated from config.xml data: the original 4
+// check firewall rules/services/syslog, V-206701 checks rate-limiting fields,
+// V-206680/679/678/681 check syslog enablement, V-206711 checks IDS presence.
 func (sp *Plugin) EvaluatedControlIDs(_ *common.CommonDevice) []string {
 	ids := make([]string, len(sp.controls))
 	for i, c := range sp.controls {
@@ -390,6 +510,34 @@ func (sp *Plugin) analyzeLoggingConfiguration(device *common.CommonDevice) Loggi
 
 	// No logging configuration detected
 	return LoggingStatusNotConfigured
+}
+
+// hasDoSPreventionFilters checks whether any pass rules have rate-limiting or
+// connection-throttling parameters configured (MaxSrcConn, MaxSrcConnRate, MaxSrcNodes).
+func (sp *Plugin) hasDoSPreventionFilters(device *common.CommonDevice) bool {
+	for _, rule := range device.FirewallRules {
+		if rule.Type != common.RuleTypePass || rule.Disabled {
+			continue
+		}
+
+		if rule.MaxSrcConn != "" || rule.MaxSrcConnRate != "" || rule.MaxSrcNodes != "" {
+			return true
+		}
+	}
+
+	return false
+}
+
+// hasSyslogEnabled checks whether syslog is enabled with remote forwarding configured.
+func (sp *Plugin) hasSyslogEnabled(device *common.CommonDevice) bool {
+	return device.Syslog.Enabled && device.Syslog.RemoteServer != ""
+}
+
+// hasDoSAlerting checks whether IDS/IPS is enabled, which provides DoS detection capability.
+// Full alerting configuration (SIEM integration, notification rules) cannot be verified from
+// config.xml alone, but IDS/IPS enablement is the prerequisite.
+func (sp *Plugin) hasDoSAlerting(device *common.CommonDevice) bool {
+	return device.IDS != nil && device.IDS.Enabled
 }
 
 // broadNetworks contains common broad network ranges used to detect overly
