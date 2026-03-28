@@ -528,91 +528,17 @@ func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
 	var buf bytes.Buffer
 	md := markdown.NewMarkdown(&buf)
 
-	// Summary table
-	var totalFindings int
-	var totalCompliant, totalNonCompliant int
+	// Horizontal rule separating config data from audit report
+	md.HorizontalRule()
 
-	if cc.Summary != nil {
-		totalFindings = cc.Summary.TotalFindings
-		totalCompliant = cc.Summary.Compliant
-		totalNonCompliant = cc.Summary.NonCompliant
-	} else {
-		// Compute from direct findings plus plugin results if summary is nil
-		totalFindings = len(cc.Findings)
-		for _, pluginName := range slices.Sorted(maps.Keys(cc.PluginResults)) {
-			pr := cc.PluginResults[pluginName]
-			if pr.Summary != nil {
-				totalFindings += pr.Summary.TotalFindings
-				totalCompliant += pr.Summary.Compliant
-				totalNonCompliant += pr.Summary.NonCompliant
-			} else {
-				totalFindings += len(pr.Findings)
-				// Derive compliant/non-compliant from Controls when Summary is nil.
-				// UNCONFIRMED controls are excluded from both counts.
-				for _, ctrl := range pr.Controls {
-					switch ctrl.Status {
-					case common.ControlStatusPass:
-						totalCompliant++
-					case common.ControlStatusFail:
-						totalNonCompliant++
-					}
-				}
-			}
-		}
-	}
+	// ── Per-plugin control results (main audit content) ──
 
-	summaryRows := [][]string{
-		{"Mode", cc.Mode},
-		{"Total Findings", strconv.Itoa(totalFindings)},
-	}
-
-	summaryRows = append(summaryRows,
-		[]string{"Compliant", strconv.Itoa(totalCompliant)},
-		[]string{"Non-Compliant", strconv.Itoa(totalNonCompliant)},
-	)
-
-	md.H2("Compliance Audit Summary")
-	md.Table(markdown.TableSet{
-		Header: []string{"Metric", "Value"},
-		Rows:   summaryRows,
-	})
-
-	// Plugin compliance results
 	if len(cc.PluginResults) > 0 {
-		md.H3("Plugin Compliance Results")
+		md.H2("Compliance Audit Results")
 
 		for _, pluginName := range slices.Sorted(maps.Keys(cc.PluginResults)) {
 			result := cc.PluginResults[pluginName]
-			md.H4(pluginName)
-
-			if result.Summary == nil {
-				md.BulletList("Summary: no data available")
-			} else {
-				items := []string{fmt.Sprintf("Summary: %d findings", result.Summary.TotalFindings)}
-
-				items = append(items,
-					fmt.Sprintf("Compliant: %d", result.Summary.Compliant),
-					fmt.Sprintf("Non-Compliant: %d", result.Summary.NonCompliant),
-				)
-
-				if result.Summary.CriticalFindings > 0 {
-					items = append(items, fmt.Sprintf("Critical: %d", result.Summary.CriticalFindings))
-				}
-
-				if result.Summary.HighFindings > 0 {
-					items = append(items, fmt.Sprintf("High: %d", result.Summary.HighFindings))
-				}
-
-				if result.Summary.MediumFindings > 0 {
-					items = append(items, fmt.Sprintf("Medium: %d", result.Summary.MediumFindings))
-				}
-
-				if result.Summary.LowFindings > 0 {
-					items = append(items, fmt.Sprintf("Low: %d", result.Summary.LowFindings))
-				}
-
-				md.BulletList(items...)
-			}
+			md.H3(pluginName)
 
 			// Render unified controls table when Controls data is available
 			if len(result.Controls) > 0 {
@@ -646,9 +572,98 @@ func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
 		md.Table(findingsTable)
 	}
 
-	// Audit metadata table
+	// ── Summary and metadata (reference section at bottom) ──
+
+	// Compute summary totals
+	var totalFindings int
+	var totalCompliant, totalNonCompliant int
+
+	if cc.Summary != nil {
+		totalFindings = cc.Summary.TotalFindings
+		totalCompliant = cc.Summary.Compliant
+		totalNonCompliant = cc.Summary.NonCompliant
+	} else {
+		totalFindings = len(cc.Findings)
+		for _, pluginName := range slices.Sorted(maps.Keys(cc.PluginResults)) {
+			pr := cc.PluginResults[pluginName]
+			if pr.Summary != nil {
+				totalFindings += pr.Summary.TotalFindings
+				totalCompliant += pr.Summary.Compliant
+				totalNonCompliant += pr.Summary.NonCompliant
+			} else {
+				totalFindings += len(pr.Findings)
+				// Derive compliant/non-compliant from Controls when Summary is nil.
+				// UNKNOWN controls are excluded from both counts.
+				for _, ctrl := range pr.Controls {
+					switch ctrl.Status {
+					case common.ControlStatusPass:
+						totalCompliant++
+					case common.ControlStatusFail:
+						totalNonCompliant++
+					}
+				}
+			}
+		}
+	}
+
+	md.H2("Audit Metadata")
+
+	// Compliance audit summary table
+	summaryRows := [][]string{
+		{"Mode", cc.Mode},
+		{"Total Findings", strconv.Itoa(totalFindings)},
+		{"Compliant", strconv.Itoa(totalCompliant)},
+		{"Non-Compliant", strconv.Itoa(totalNonCompliant)},
+	}
+
+	md.H3("Compliance Audit Summary")
+	md.Table(markdown.TableSet{
+		Header: []string{"Metric", "Value"},
+		Rows:   summaryRows,
+	})
+
+	// Per-plugin summary statistics
+	if len(cc.PluginResults) > 0 {
+		md.H3("Plugin Summary")
+
+		for _, pluginName := range slices.Sorted(maps.Keys(cc.PluginResults)) {
+			result := cc.PluginResults[pluginName]
+			md.H4(pluginName)
+
+			if result.Summary == nil {
+				md.BulletList("Summary: no data available")
+			} else {
+				items := []string{fmt.Sprintf("Findings: %d", result.Summary.TotalFindings)}
+
+				items = append(items,
+					fmt.Sprintf("Compliant: %d", result.Summary.Compliant),
+					fmt.Sprintf("Non-Compliant: %d", result.Summary.NonCompliant),
+				)
+
+				if result.Summary.CriticalFindings > 0 {
+					items = append(items, fmt.Sprintf("Critical: %d", result.Summary.CriticalFindings))
+				}
+
+				if result.Summary.HighFindings > 0 {
+					items = append(items, fmt.Sprintf("High: %d", result.Summary.HighFindings))
+				}
+
+				if result.Summary.MediumFindings > 0 {
+					items = append(items, fmt.Sprintf("Medium: %d", result.Summary.MediumFindings))
+				}
+
+				if result.Summary.LowFindings > 0 {
+					items = append(items, fmt.Sprintf("Low: %d", result.Summary.LowFindings))
+				}
+
+				md.BulletList(items...)
+			}
+		}
+	}
+
+	// Custom audit metadata key-value pairs
 	if len(cc.Metadata) > 0 {
-		md.H3("Audit Metadata")
+		md.H3("Additional Metadata")
 		metadataTable := markdown.TableSet{
 			Header: []string{"Key", "Value"},
 			Rows:   make([][]string, 0, len(cc.Metadata)),
@@ -712,10 +727,10 @@ func (b *MarkdownBuilder) writePluginControlsTable(
 	}
 
 	if len(controlTable.Rows) > 0 {
-		md.H5(pluginName + " Plugin Results")
+		md.H4(pluginName + " Plugin Results")
 		md.Table(controlTable)
 	} else if b.failuresOnly {
-		md.H5(pluginName + " Plugin Results")
+		md.H4(pluginName + " Plugin Results")
 		md.PlainText("All controls compliant — no failures to display.")
 	}
 }
@@ -727,7 +742,7 @@ func (b *MarkdownBuilder) writePluginFindingsTable(
 	pluginName string,
 	result common.PluginComplianceResult,
 ) {
-	md.H5(pluginName + " Plugin Findings")
+	md.H4(pluginName + " Plugin Findings")
 	pluginTable := markdown.TableSet{
 		Header: []string{"Control", "Severity", "Title", "Description"},
 		Rows:   make([][]string, 0, len(result.Findings)),

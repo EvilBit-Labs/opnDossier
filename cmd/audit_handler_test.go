@@ -628,10 +628,10 @@ func TestHandleAuditMode_EndToEnd(t *testing.T) {
 	result, err := handleAuditMode(context.Background(), device, auditOpts, opt, logger)
 	require.NoError(t, err)
 
-	// The rendered markdown must contain the compliance audit summary section
+	// The rendered markdown must contain the compliance audit results and summary
 	// (rendered by the builder layer, not the old appendAuditFindings).
-	assert.Contains(t, result, "## Compliance Audit Summary")
-	assert.Contains(t, result, "Plugin Compliance Results")
+	assert.Contains(t, result, "## Compliance Audit Results")
+	assert.Contains(t, result, "### Compliance Audit Summary")
 	assert.Contains(t, result, "stig")
 
 	// handleAuditMode must NOT mutate the input device (immutability rule)

@@ -995,8 +995,8 @@ func TestBuildAuditSection_EmptyComplianceResults(t *testing.T) {
 	}
 
 	result := b.BuildAuditSection(data)
-	if !strings.Contains(result, "## Compliance Audit Summary") {
-		t.Error("Expected '## Compliance Audit Summary' in output")
+	if !strings.Contains(result, "### Compliance Audit Summary") {
+		t.Error("Expected '### Compliance Audit Summary' in output")
 	}
 	if !strings.Contains(result, "blue") {
 		t.Error("Expected mode 'blue' in output")
@@ -1004,8 +1004,8 @@ func TestBuildAuditSection_EmptyComplianceResults(t *testing.T) {
 	if strings.Contains(result, "### Security Findings") {
 		t.Error("Should not contain '### Security Findings' when no findings")
 	}
-	if strings.Contains(result, "### Plugin Compliance Results") {
-		t.Error("Should not contain '### Plugin Compliance Results' when no plugin results")
+	if strings.Contains(result, "## Compliance Audit Results") {
+		t.Error("Should not contain '## Compliance Audit Results' when no plugin results")
 	}
 }
 
@@ -1087,14 +1087,14 @@ func TestBuildAuditSection_WithPluginResults(t *testing.T) {
 	result := b.BuildAuditSection(data)
 
 	expectedContent := []string{
-		"### Plugin Compliance Results",
-		"#### firewall",
-		"#### stig",
+		"## Compliance Audit Results",
+		"### firewall",
+		"### stig",
 		"Critical: 2",
 		"High: 1",
 		"Medium: 1",
-		"### firewall Plugin Findings",
-		"### stig Plugin Findings",
+		"#### firewall Plugin Findings",
+		"#### stig Plugin Findings",
 	}
 	for _, content := range expectedContent {
 		if !strings.Contains(result, content) {
@@ -1103,8 +1103,8 @@ func TestBuildAuditSection_WithPluginResults(t *testing.T) {
 	}
 
 	// Verify sorted order: firewall before stig
-	fwIdx := strings.Index(result, "#### firewall")
-	stigIdx := strings.Index(result, "#### stig")
+	fwIdx := strings.Index(result, "### firewall")
+	stigIdx := strings.Index(result, "### stig")
 	if fwIdx >= stigIdx {
 		t.Error("Expected 'firewall' to appear before 'stig' (sorted order)")
 	}
@@ -1128,7 +1128,7 @@ func TestBuildAuditSection_WithMetadata(t *testing.T) {
 	result := b.BuildAuditSection(data)
 
 	expectedContent := []string{
-		"### Audit Metadata",
+		"### Additional Metadata",
 		"scan_time",
 		"version",
 		"2024-01-15",
