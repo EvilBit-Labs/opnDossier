@@ -996,7 +996,7 @@ func TestBuildAuditSection_EmptyComplianceResults(t *testing.T) {
 
 	result := b.BuildAuditSection(data)
 	if !strings.Contains(result, "## Compliance Audit Summary") {
-		t.Error("Expected '## Compliance Audit Summary' in output")
+		t.Error("Expected '### Compliance Audit Summary' in output")
 	}
 	if !strings.Contains(result, "blue") {
 		t.Error("Expected mode 'blue' in output")
@@ -1004,8 +1004,8 @@ func TestBuildAuditSection_EmptyComplianceResults(t *testing.T) {
 	if strings.Contains(result, "### Security Findings") {
 		t.Error("Should not contain '### Security Findings' when no findings")
 	}
-	if strings.Contains(result, "### Plugin Compliance Results") {
-		t.Error("Should not contain '### Plugin Compliance Results' when no plugin results")
+	if strings.Contains(result, "## Compliance Audit Results") {
+		t.Error("Should not contain '## Compliance Audit Results' when no plugin results")
 	}
 }
 
@@ -1087,14 +1087,14 @@ func TestBuildAuditSection_WithPluginResults(t *testing.T) {
 	result := b.BuildAuditSection(data)
 
 	expectedContent := []string{
-		"### Plugin Compliance Results",
-		"#### firewall",
-		"#### stig",
+		"## Compliance Audit Results",
+		"### firewall",
+		"### stig",
 		"Critical: 2",
 		"High: 1",
 		"Medium: 1",
-		"### firewall Plugin Findings",
-		"### stig Plugin Findings",
+		"#### firewall Plugin Findings",
+		"#### stig Plugin Findings",
 	}
 	for _, content := range expectedContent {
 		if !strings.Contains(result, content) {
@@ -1103,8 +1103,8 @@ func TestBuildAuditSection_WithPluginResults(t *testing.T) {
 	}
 
 	// Verify sorted order: firewall before stig
-	fwIdx := strings.Index(result, "#### firewall")
-	stigIdx := strings.Index(result, "#### stig")
+	fwIdx := strings.Index(result, "### firewall")
+	stigIdx := strings.Index(result, "### stig")
 	if fwIdx >= stigIdx {
 		t.Error("Expected 'firewall' to appear before 'stig' (sorted order)")
 	}
@@ -1128,7 +1128,7 @@ func TestBuildAuditSection_WithMetadata(t *testing.T) {
 	result := b.BuildAuditSection(data)
 
 	expectedContent := []string{
-		"### Audit Metadata",
+		"## Audit Metadata",
 		"scan_time",
 		"version",
 		"2024-01-15",
@@ -1283,6 +1283,378 @@ func TestBuildAuditSection_FallbackTotalCountsFindings(t *testing.T) {
 	// Fallback should count 2 direct + 1 plugin finding = 3 total
 	if !strings.Contains(result, "3") {
 		t.Errorf("Fallback total should count direct findings + plugin findings, got:\n%s", result)
+	}
+}
+
+// TestBuildAuditSection_ControlsTableAllStatuses verifies that when Controls and Compliance
+// data are available, the unified controls table renders all controls with PASS/FAIL status.
+func TestBuildAuditSection_ControlsTableAllStatuses(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	data := &common.CommonDevice{
+		ComplianceChecks: &common.ComplianceResults{
+			Mode: "blue",
+			Summary: &common.ComplianceResultSummary{
+				TotalFindings: 1,
+				Compliant:     2,
+				NonCompliant:  1,
+			},
+			PluginResults: map[string]common.PluginComplianceResult{
+				"test-plugin": {
+					Summary: &common.ComplianceResultSummary{
+						TotalFindings: 1,
+						Compliant:     2,
+						NonCompliant:  1,
+					},
+					Controls: []common.ComplianceControl{
+						{
+							ID:       "CTRL-001",
+							Status:   common.ControlStatusPass,
+							Title:    "Enable logging",
+							Severity: "high",
+							Category: "Logging",
+						},
+						{
+							ID:       "CTRL-002",
+							Status:   common.ControlStatusFail,
+							Title:    "Disable telnet",
+							Severity: "critical",
+							Category: "Access",
+						},
+						{
+							ID:       "CTRL-003",
+							Status:   common.ControlStatusPass,
+							Title:    "Set timezone",
+							Severity: "low",
+							Category: "System",
+						},
+					},
+					Compliance: map[string]bool{
+						"CTRL-001": true,
+						"CTRL-002": false,
+						"CTRL-003": true,
+					},
+				},
+			},
+		},
+	}
+
+	result := b.BuildAuditSection(data)
+
+	for _, want := range []string{"CTRL-001", "CTRL-002", "CTRL-003", "PASS", "FAIL", "Compliant", "Non-Compliant", "Control ID", "Status"} {
+		if !strings.Contains(result, want) {
+			t.Errorf("expected output to contain %q, got:\n%s", want, result)
+		}
+	}
+}
+
+// TestBuildAuditSection_ControlsTableFailuresOnly verifies that when failuresOnly is true,
+// only FAIL rows appear in the controls table and PASS rows are excluded.
+func TestBuildAuditSection_ControlsTableFailuresOnly(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	b.SetFailuresOnly(true)
+
+	data := &common.CommonDevice{
+		ComplianceChecks: &common.ComplianceResults{
+			Mode: "blue",
+			Summary: &common.ComplianceResultSummary{
+				TotalFindings: 1,
+				Compliant:     2,
+				NonCompliant:  1,
+			},
+			PluginResults: map[string]common.PluginComplianceResult{
+				"test-plugin": {
+					Summary: &common.ComplianceResultSummary{
+						TotalFindings: 1,
+						Compliant:     2,
+						NonCompliant:  1,
+					},
+					Controls: []common.ComplianceControl{
+						{
+							ID:       "CTRL-001",
+							Status:   common.ControlStatusPass,
+							Title:    "Enable logging",
+							Severity: "high",
+							Category: "Logging",
+						},
+						{
+							ID:       "CTRL-002",
+							Status:   common.ControlStatusFail,
+							Title:    "Disable telnet",
+							Severity: "critical",
+							Category: "Access",
+						},
+						{
+							ID:       "CTRL-003",
+							Status:   common.ControlStatusPass,
+							Title:    "Set timezone",
+							Severity: "low",
+							Category: "System",
+						},
+					},
+					Compliance: map[string]bool{
+						"CTRL-001": true,
+						"CTRL-002": false,
+						"CTRL-003": true,
+					},
+				},
+			},
+		},
+	}
+
+	result := b.BuildAuditSection(data)
+
+	// Only CTRL-002 (FAIL) should appear
+	for _, want := range []string{"CTRL-002", "FAIL"} {
+		if !strings.Contains(result, want) {
+			t.Errorf("expected output to contain %q, got:\n%s", want, result)
+		}
+	}
+
+	// CTRL-001 and CTRL-003 (PASS) should be excluded
+	for _, unwanted := range []string{"CTRL-001", "CTRL-003"} {
+		if strings.Contains(result, unwanted) {
+			t.Errorf("expected output NOT to contain %q (passing control), got:\n%s", unwanted, result)
+		}
+	}
+}
+
+// TestBuildAuditSection_ControlsTableFailuresOnlyAllPass verifies that when failuresOnly
+// is true and all controls pass, an "All controls compliant" message is emitted.
+func TestBuildAuditSection_ControlsTableFailuresOnlyAllPass(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	b.SetFailuresOnly(true)
+
+	data := &common.CommonDevice{
+		ComplianceChecks: &common.ComplianceResults{
+			Mode: "blue",
+			Summary: &common.ComplianceResultSummary{
+				Compliant:    3,
+				NonCompliant: 0,
+			},
+			PluginResults: map[string]common.PluginComplianceResult{
+				"test-plugin": {
+					Summary: &common.ComplianceResultSummary{
+						Compliant:    3,
+						NonCompliant: 0,
+					},
+					Controls: []common.ComplianceControl{
+						{
+							ID:       "CTRL-001",
+							Status:   common.ControlStatusPass,
+							Title:    "A",
+							Severity: "high",
+							Category: "Logging",
+						},
+						{
+							ID:       "CTRL-002",
+							Status:   common.ControlStatusPass,
+							Title:    "B",
+							Severity: "medium",
+							Category: "Access",
+						},
+						{
+							ID:       "CTRL-003",
+							Status:   common.ControlStatusPass,
+							Title:    "C",
+							Severity: "low",
+							Category: "System",
+						},
+					},
+					Compliance: map[string]bool{
+						"CTRL-001": true,
+						"CTRL-002": true,
+						"CTRL-003": true,
+					},
+				},
+			},
+		},
+	}
+
+	result := b.BuildAuditSection(data)
+
+	// Should show the all-compliant message, not an empty table
+	if !strings.Contains(result, "All controls compliant") {
+		t.Errorf("expected 'All controls compliant' message, got:\n%s", result)
+	}
+
+	// Should still show the section header
+	if !strings.Contains(result, "Plugin Results") {
+		t.Errorf("expected 'Plugin Results' header, got:\n%s", result)
+	}
+
+	// No control IDs should appear in the table (all filtered)
+	for _, unwanted := range []string{"CTRL-001", "CTRL-002", "CTRL-003"} {
+		if strings.Contains(result, unwanted) {
+			t.Errorf("expected output NOT to contain %q (all pass, filtered), got:\n%s", unwanted, result)
+		}
+	}
+}
+
+// TestBuildAuditSection_SummaryCompliantCounts verifies that Compliant and Non-Compliant
+// counts appear in the summary table when present.
+func TestBuildAuditSection_SummaryCompliantCounts(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	data := &common.CommonDevice{
+		ComplianceChecks: &common.ComplianceResults{
+			Mode: "blue",
+			Summary: &common.ComplianceResultSummary{
+				TotalFindings: 2,
+				Compliant:     3,
+				NonCompliant:  2,
+			},
+			PluginResults: map[string]common.PluginComplianceResult{},
+		},
+	}
+
+	result := b.BuildAuditSection(data)
+
+	for _, want := range []string{"Compliant", "Non-Compliant"} {
+		if !strings.Contains(result, want) {
+			t.Errorf("expected output to contain %q, got:\n%s", want, result)
+		}
+	}
+}
+
+// TestBuildAuditSection_ControlsFallbackToFindings verifies that when a plugin has no Controls
+// but has Findings, the legacy Plugin Findings table is rendered (regression guard).
+func TestBuildAuditSection_ControlsFallbackToFindings(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	data := &common.CommonDevice{
+		ComplianceChecks: &common.ComplianceResults{
+			Mode: "blue",
+			PluginResults: map[string]common.PluginComplianceResult{
+				"legacy-plugin": {
+					Summary: &common.ComplianceResultSummary{TotalFindings: 1},
+					Findings: []common.ComplianceFinding{
+						{
+							Control:     "LEGACY-001",
+							Severity:    "medium",
+							Title:       "Legacy finding",
+							Description: "A legacy finding without controls data",
+						},
+					},
+					// Controls is nil — triggers legacy fallback
+				},
+			},
+		},
+	}
+
+	result := b.BuildAuditSection(data)
+
+	// Legacy findings table header should appear
+	for _, want := range []string{"legacy-plugin Plugin Findings", "LEGACY-001", "Legacy finding"} {
+		if !strings.Contains(result, want) {
+			t.Errorf("expected output to contain %q, got:\n%s", want, result)
+		}
+	}
+
+	// Controls table headers should NOT appear
+	for _, unwanted := range []string{"Plugin Results", "Status"} {
+		if strings.Contains(result, unwanted) {
+			t.Errorf("expected output NOT to contain %q, got:\n%s", unwanted, result)
+		}
+	}
+}
+
+// TestBuildAuditSection_ZeroCompliantCountsStillRendered verifies that Compliant and
+// Non-Compliant rows appear in both the summary table and per-plugin bullet lists even
+// when both counts are zero.
+func TestBuildAuditSection_ZeroCompliantCountsStillRendered(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	data := &common.CommonDevice{
+		ComplianceChecks: &common.ComplianceResults{
+			Mode: "blue",
+			Summary: &common.ComplianceResultSummary{
+				TotalFindings: 0,
+				Compliant:     0,
+				NonCompliant:  0,
+			},
+			PluginResults: map[string]common.PluginComplianceResult{
+				"zero-plugin": {
+					Summary: &common.ComplianceResultSummary{
+						TotalFindings: 0,
+						Compliant:     0,
+						NonCompliant:  0,
+					},
+				},
+			},
+		},
+	}
+
+	result := b.BuildAuditSection(data)
+
+	// Top-level summary table must include Compliant and Non-Compliant rows
+	for _, want := range []string{"Compliant", "Non-Compliant"} {
+		if !strings.Contains(result, want) {
+			t.Errorf("expected summary table to contain %q even when zero, got:\n%s", want, result)
+		}
+	}
+
+	// Per-plugin bullet list must include Compliant and Non-Compliant items
+	if !strings.Contains(result, "Compliant: 0") {
+		t.Errorf("expected per-plugin bullet to contain 'Compliant: 0', got:\n%s", result)
+	}
+
+	if !strings.Contains(result, "Non-Compliant: 0") {
+		t.Errorf("expected per-plugin bullet to contain 'Non-Compliant: 0', got:\n%s", result)
+	}
+}
+
+// TestBuildAuditSection_EmptyStatusDefaultsToUnknown verifies that controls with an
+// empty Status field are rendered as UNKNOWN (defensive fallback in writePluginControlsTable).
+func TestBuildAuditSection_EmptyStatusDefaultsToUnknown(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	data := &common.CommonDevice{
+		ComplianceChecks: &common.ComplianceResults{
+			Mode: "blue",
+			Summary: &common.ComplianceResultSummary{
+				TotalFindings: 0,
+			},
+			PluginResults: map[string]common.PluginComplianceResult{
+				"test-plugin": {
+					Summary: &common.ComplianceResultSummary{},
+					Controls: []common.ComplianceControl{
+						{
+							ID:       "CTRL-EMPTY",
+							Status:   "",
+							Title:    "Empty status control",
+							Severity: "high",
+							Category: "Test",
+						},
+					},
+					Compliance: map[string]bool{},
+				},
+			},
+		},
+	}
+
+	result := b.BuildAuditSection(data)
+
+	// Control should render as UNKNOWN due to empty-string fallback
+	if !strings.Contains(result, "CTRL-EMPTY") {
+		t.Errorf("expected CTRL-EMPTY in output, got:\n%s", result)
+	}
+
+	if !strings.Contains(result, "UNKNOWN") {
+		t.Errorf("expected UNKNOWN status for empty-Status control, got:\n%s", result)
+	}
+
+	if strings.Contains(result, "PASS") {
+		t.Errorf("expected no PASS in output for empty-Status control, got:\n%s", result)
 	}
 }
 

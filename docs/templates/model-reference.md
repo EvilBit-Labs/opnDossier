@@ -1,6 +1,6 @@
 # Model Reference
 
-> **Auto-generated documentation** - Do not edit manually. Generated: 2026-02-27 00:55:57
+> **Auto-generated documentation** - Do not edit manually. Generated: 2026-03-27 23:07:43
 
 This document provides a complete reference of all data fields available in the opnDossier configuration model. Use this reference when working with JSON/YAML exports or building custom integrations.
 
@@ -207,100 +207,72 @@ Network interface configuration including VLANs and gateways.
 
 Firewall rules and NAT configuration.
 
-### Typed Enums
-
-opnDossier uses typed string enums for domain constants to provide type safety and compile-time validation:
-
-- **`FirewallRuleType`**: Firewall rule actions
-
-  - `RuleTypePass`: Allow matching traffic to pass
-  - `RuleTypeBlock`: Silently drop matching traffic
-  - `RuleTypeReject`: Drop matching traffic and send rejection response
-
-- **`FirewallDirection`**: Traffic direction for rules
-
-  - `DirectionIn`: Inbound traffic
-  - `DirectionOut`: Outbound traffic
-  - `DirectionAny`: Traffic in either direction
-
-- **`IPProtocol`**: IP address family
-
-  - `IPProtocolInet`: IPv4 (inet)
-  - `IPProtocolInet6`: IPv6 (inet6)
-
-- **`NATOutboundMode`**: Outbound NAT operating mode
-
-  - `OutboundAutomatic`: Automatic outbound NAT rules
-  - `OutboundHybrid`: Combined automatic and manual rules
-  - `OutboundAdvanced`: Manual rules only
-  - `OutboundDisabled`: Outbound NAT disabled
-
 ### Rule (Firewall)
 
-| Field             | Type                | JSON Path                       | Description                                                               |
-| ----------------- | ------------------- | ------------------------------- | ------------------------------------------------------------------------- |
-| `XMLName`         | `Name`              | `filter.rule[].xmlname`         | -                                                                         |
-| `Type`            | `FirewallRuleType`  | `filter.rule[].type`            | Rule action; Options: `RuleTypePass`, `RuleTypeBlock`, `RuleTypeReject`   |
-| `Descr`           | `string`            | `filter.rule[].descr`           | -                                                                         |
-| `Interface`       | `[]string`          | `filter.rule[].interface`       | -                                                                         |
-| `IPProtocol`      | `IPProtocol`        | `filter.rule[].ipprotocol`      | IP address family; Options: `IPProtocolInet`, `IPProtocolInet6`           |
-| `StateType`       | `string`            | `filter.rule[].statetype`       | -                                                                         |
-| `Direction`       | `FirewallDirection` | `filter.rule[].direction`       | Traffic direction; Options: `DirectionIn`, `DirectionOut`, `DirectionAny` |
-| `Floating`        | `string`            | `filter.rule[].floating`        | -                                                                         |
-| `Quick`           | `BoolFlag`          | `filter.rule[].quick`           | -                                                                         |
-| `Protocol`        | `string`            | `filter.rule[].protocol`        | -                                                                         |
-| `Source`          | `Source`            | `filter.rule[].source`          | -                                                                         |
-| `Destination`     | `Destination`       | `filter.rule[].destination`     | -                                                                         |
-| `Target`          | `string`            | `filter.rule[].target`          | -                                                                         |
-| `Gateway`         | `string`            | `filter.rule[].gateway`         | -                                                                         |
-| `SourcePort`      | `string`            | `filter.rule[].sourceport`      | -                                                                         |
-| `Log`             | `BoolFlag`          | `filter.rule[].log`             | -                                                                         |
-| `Disabled`        | `BoolFlag`          | `filter.rule[].disabled`        | -                                                                         |
-| `Tracker`         | `string`            | `filter.rule[].tracker`         | -                                                                         |
-| `MaxSrcNodes`     | `string`            | `filter.rule[].maxsrcnodes`     | -                                                                         |
-| `MaxSrcConn`      | `string`            | `filter.rule[].maxsrcconn`      | -                                                                         |
-| `MaxSrcConnRate`  | `string`            | `filter.rule[].maxsrcconnrate`  | -                                                                         |
-| `MaxSrcConnRates` | `string`            | `filter.rule[].maxsrcconnrates` | -                                                                         |
-| `TCPFlags1`       | `string`            | `filter.rule[].tcpflags1`       | -                                                                         |
-| `TCPFlags2`       | `string`            | `filter.rule[].tcpflags2`       | -                                                                         |
-| `TCPFlagsAny`     | `BoolFlag`          | `filter.rule[].tcpflagsany`     | -                                                                         |
-| `ICMPType`        | `string`            | `filter.rule[].icmptype`        | -                                                                         |
-| `ICMP6Type`       | `string`            | `filter.rule[].icmp6type`       | -                                                                         |
-| `StateTimeout`    | `string`            | `filter.rule[].statetimeout`    | -                                                                         |
-| `AllowOpts`       | `BoolFlag`          | `filter.rule[].allowopts`       | -                                                                         |
-| `DisableReplyTo`  | `BoolFlag`          | `filter.rule[].disablereplyto`  | -                                                                         |
-| `NoPfSync`        | `BoolFlag`          | `filter.rule[].nopfsync`        | -                                                                         |
-| `NoSync`          | `BoolFlag`          | `filter.rule[].nosync`          | -                                                                         |
-| `Updated`         | `*Updated`          | `filter.rule[].updated`         | -                                                                         |
-| `Created`         | `*Created`          | `filter.rule[].created`         | -                                                                         |
-| `UUID`            | `string`            | `filter.rule[].uuid`            | -                                                                         |
+| Field             | Type          | JSON Path                       | Description |
+| ----------------- | ------------- | ------------------------------- | ----------- |
+| `XMLName`         | `Name`        | `filter.rule[].xmlname`         | -           |
+| `Type`            | `string`      | `filter.rule[].type`            | -           |
+| `Descr`           | `string`      | `filter.rule[].descr`           | -           |
+| `Interface`       | `[]string`    | `filter.rule[].interface`       | -           |
+| `IPProtocol`      | `string`      | `filter.rule[].ipprotocol`      | -           |
+| `StateType`       | `string`      | `filter.rule[].statetype`       | -           |
+| `Direction`       | `string`      | `filter.rule[].direction`       | -           |
+| `Floating`        | `string`      | `filter.rule[].floating`        | -           |
+| `Quick`           | `BoolFlag`    | `filter.rule[].quick`           | -           |
+| `Protocol`        | `string`      | `filter.rule[].protocol`        | -           |
+| `Source`          | `Source`      | `filter.rule[].source`          | -           |
+| `Destination`     | `Destination` | `filter.rule[].destination`     | -           |
+| `Target`          | `string`      | `filter.rule[].target`          | -           |
+| `Gateway`         | `string`      | `filter.rule[].gateway`         | -           |
+| `SourcePort`      | `string`      | `filter.rule[].sourceport`      | -           |
+| `Log`             | `BoolFlag`    | `filter.rule[].log`             | -           |
+| `Disabled`        | `BoolFlag`    | `filter.rule[].disabled`        | -           |
+| `Tracker`         | `string`      | `filter.rule[].tracker`         | -           |
+| `MaxSrcNodes`     | `string`      | `filter.rule[].maxsrcnodes`     | -           |
+| `MaxSrcConn`      | `string`      | `filter.rule[].maxsrcconn`      | -           |
+| `MaxSrcConnRate`  | `string`      | `filter.rule[].maxsrcconnrate`  | -           |
+| `MaxSrcConnRates` | `string`      | `filter.rule[].maxsrcconnrates` | -           |
+| `TCPFlags1`       | `string`      | `filter.rule[].tcpflags1`       | -           |
+| `TCPFlags2`       | `string`      | `filter.rule[].tcpflags2`       | -           |
+| `TCPFlagsAny`     | `BoolFlag`    | `filter.rule[].tcpflagsany`     | -           |
+| `ICMPType`        | `string`      | `filter.rule[].icmptype`        | -           |
+| `ICMP6Type`       | `string`      | `filter.rule[].icmp6type`       | -           |
+| `StateTimeout`    | `string`      | `filter.rule[].statetimeout`    | -           |
+| `AllowOpts`       | `BoolFlag`    | `filter.rule[].allowopts`       | -           |
+| `DisableReplyTo`  | `BoolFlag`    | `filter.rule[].disablereplyto`  | -           |
+| `NoPfSync`        | `BoolFlag`    | `filter.rule[].nopfsync`        | -           |
+| `NoSync`          | `BoolFlag`    | `filter.rule[].nosync`          | -           |
+| `Updated`         | `*Updated`    | `filter.rule[].updated`         | -           |
+| `Created`         | `*Created`    | `filter.rule[].created`         | -           |
+| `UUID`            | `string`      | `filter.rule[].uuid`            | -           |
 
 ### NATRule (Outbound)
 
-| Field                | Type          | JSON Path                                | Description                                                     |
-| -------------------- | ------------- | ---------------------------------------- | --------------------------------------------------------------- |
-| `XMLName`            | `Name`        | `nat.outbound.rule[].xmlname`            | -                                                               |
-| `Interface`          | `[]string`    | `nat.outbound.rule[].interface`          | Optional                                                        |
-| `IPProtocol`         | `IPProtocol`  | `nat.outbound.rule[].ipProtocol`         | IP address family; Options: `IPProtocolInet`, `IPProtocolInet6` |
-| `Protocol`           | `string`      | `nat.outbound.rule[].protocol`           | Optional                                                        |
-| `Source`             | `Source`      | `nat.outbound.rule[].source`             | -                                                               |
-| `Destination`        | `Destination` | `nat.outbound.rule[].destination`        | -                                                               |
-| `Target`             | `string`      | `nat.outbound.rule[].target`             | Optional                                                        |
-| `SourcePort`         | `string`      | `nat.outbound.rule[].sourcePort`         | Optional                                                        |
-| `NatPort`            | `string`      | `nat.outbound.rule[].natPort`            | Optional                                                        |
-| `PoolOpts`           | `string`      | `nat.outbound.rule[].poolOpts`           | Optional                                                        |
-| `PoolOptsSrcHashKey` | `string`      | `nat.outbound.rule[].poolOptsSrcHashKey` | Optional                                                        |
-| `StaticNatPort`      | `BoolFlag`    | `nat.outbound.rule[].staticNatPort`      | Optional                                                        |
-| `NoNat`              | `BoolFlag`    | `nat.outbound.rule[].noNat`              | Optional                                                        |
-| `Disabled`           | `BoolFlag`    | `nat.outbound.rule[].disabled`           | Optional                                                        |
-| `Log`                | `BoolFlag`    | `nat.outbound.rule[].log`                | Optional                                                        |
-| `Descr`              | `string`      | `nat.outbound.rule[].description`        | Optional                                                        |
-| `Category`           | `string`      | `nat.outbound.rule[].category`           | Optional                                                        |
-| `Tag`                | `string`      | `nat.outbound.rule[].tag`                | Optional                                                        |
-| `Tagged`             | `string`      | `nat.outbound.rule[].tagged`             | Optional                                                        |
-| `Updated`            | `*Updated`    | `nat.outbound.rule[].updated`            | Optional                                                        |
-| `Created`            | `*Created`    | `nat.outbound.rule[].created`            | Optional                                                        |
-| `UUID`               | `string`      | `nat.outbound.rule[].uuid`               | Optional                                                        |
+| Field                | Type          | JSON Path                                | Description |
+| -------------------- | ------------- | ---------------------------------------- | ----------- |
+| `XMLName`            | `Name`        | `nat.outbound.rule[].xmlname`            | -           |
+| `Interface`          | `[]string`    | `nat.outbound.rule[].interface`          | Optional    |
+| `IPProtocol`         | `string`      | `nat.outbound.rule[].ipProtocol`         | Optional    |
+| `Protocol`           | `string`      | `nat.outbound.rule[].protocol`           | Optional    |
+| `Source`             | `Source`      | `nat.outbound.rule[].source`             | -           |
+| `Destination`        | `Destination` | `nat.outbound.rule[].destination`        | -           |
+| `Target`             | `string`      | `nat.outbound.rule[].target`             | Optional    |
+| `SourcePort`         | `string`      | `nat.outbound.rule[].sourcePort`         | Optional    |
+| `NatPort`            | `string`      | `nat.outbound.rule[].natPort`            | Optional    |
+| `PoolOpts`           | `string`      | `nat.outbound.rule[].poolOpts`           | Optional    |
+| `PoolOptsSrcHashKey` | `string`      | `nat.outbound.rule[].poolOptsSrcHashKey` | Optional    |
+| `StaticNatPort`      | `BoolFlag`    | `nat.outbound.rule[].staticNatPort`      | Optional    |
+| `NoNat`              | `BoolFlag`    | `nat.outbound.rule[].noNat`              | Optional    |
+| `Disabled`           | `BoolFlag`    | `nat.outbound.rule[].disabled`           | Optional    |
+| `Log`                | `BoolFlag`    | `nat.outbound.rule[].log`                | Optional    |
+| `Descr`              | `string`      | `nat.outbound.rule[].description`        | Optional    |
+| `Category`           | `string`      | `nat.outbound.rule[].category`           | Optional    |
+| `Tag`                | `string`      | `nat.outbound.rule[].tag`                | Optional    |
+| `Tagged`             | `string`      | `nat.outbound.rule[].tagged`             | Optional    |
+| `Updated`            | `*Updated`    | `nat.outbound.rule[].updated`            | Optional    |
+| `Created`            | `*Created`    | `nat.outbound.rule[].created`            | Optional    |
+| `UUID`               | `string`      | `nat.outbound.rule[].uuid`               | Optional    |
 
 ---
 
@@ -380,96 +352,7 @@ System services configuration.
 
 ## VPN Configuration
 
-VPN service configuration including OpenVPN, IPsec, and WireGuard.
-
-### IPsec Configuration
-
-IPsec VPN tunnel and mobile client configuration.
-
-#### IPsecPhase1Tunnel
-
-IKE Phase 1 (SA) tunnel configuration with authentication, timing, and encryption settings.
-
-| Field                  | Type       | JSON Path                                    | Description                                                |
-| ---------------------- | ---------- | -------------------------------------------- | ---------------------------------------------------------- |
-| `IKEID`                | `string`   | `ipsec.phase1Tunnels[].ikeId`                | Unique IKE SA identifier                                   |
-| `IKEType`              | `string`   | `ipsec.phase1Tunnels[].ikeType`              | IKE version; Options: `ikev1`, `ikev2`, `auto`             |
-| `Interface`            | `string`   | `ipsec.phase1Tunnels[].interface`            | Network interface for this tunnel                          |
-| `RemoteGateway`        | `string`   | `ipsec.phase1Tunnels[].remoteGateway`        | Remote peer's IP address or hostname                       |
-| `Protocol`             | `string`   | `ipsec.phase1Tunnels[].protocol`             | Key exchange protocol; Options: `inet`, `inet6`            |
-| `AuthMethod`           | `string`   | `ipsec.phase1Tunnels[].authMethod`           | Authentication method; Options: `pre_shared_key`, `rsasig` |
-| `MyIDType`             | `string`   | `ipsec.phase1Tunnels[].myIdType`             | Local identification type; Options: `myaddress`, `fqdn`    |
-| `MyIDData`             | `string`   | `ipsec.phase1Tunnels[].myIdData`             | Local identification data                                  |
-| `PeerIDType`           | `string`   | `ipsec.phase1Tunnels[].peerIdType`           | Remote identification type                                 |
-| `PeerIDData`           | `string`   | `ipsec.phase1Tunnels[].peerIdData`           | Remote identification data                                 |
-| `Mode`                 | `string`   | `ipsec.phase1Tunnels[].mode`                 | IKE negotiation mode; Options: `main`, `aggressive`        |
-| `Lifetime`             | `string`   | `ipsec.phase1Tunnels[].lifetime`             | Phase 1 SA lifetime in seconds                             |
-| `RekeyTime`            | `string`   | `ipsec.phase1Tunnels[].rekeyTime`            | IKE SA rekey time in seconds                               |
-| `ReauthTime`           | `string`   | `ipsec.phase1Tunnels[].reauthTime`           | IKE SA reauthentication time in seconds                    |
-| `RandTime`             | `string`   | `ipsec.phase1Tunnels[].randTime`             | Random time range to subtract from rekey/reauth time       |
-| `NATTraversal`         | `string`   | `ipsec.phase1Tunnels[].natTraversal`         | NAT-T setting; Options: `on`, `force`                      |
-| `MOBIKE`               | `string`   | `ipsec.phase1Tunnels[].mobike`               | MOBIKE protocol support; Options: `on`, `off`              |
-| `DPDDelay`             | `string`   | `ipsec.phase1Tunnels[].dpdDelay`             | Dead peer detection check interval in seconds              |
-| `DPDMaxFail`           | `string`   | `ipsec.phase1Tunnels[].dpdMaxFail`           | Maximum number of DPD failures before declaring peer dead  |
-| `StartAction`          | `string`   | `ipsec.phase1Tunnels[].startAction`          | Action on tunnel startup; Options: `none`, `start`, `trap` |
-| `CloseAction`          | `string`   | `ipsec.phase1Tunnels[].closeAction`          | Action on tunnel close; Options: `none`, `start`, `trap`   |
-| `CertRef`              | `string`   | `ipsec.phase1Tunnels[].certRef`              | Reference ID of the certificate used for this tunnel       |
-| `CARef`                | `string`   | `ipsec.phase1Tunnels[].caRef`                | Reference ID of the certificate authority                  |
-| `IKEPort`              | `string`   | `ipsec.phase1Tunnels[].ikePort`              | Custom IKE port override (default 500)                     |
-| `NATTPort`             | `string`   | `ipsec.phase1Tunnels[].nattPort`             | Custom NAT-T port override (default 4500)                  |
-| `SplitConn`            | `string`   | `ipsec.phase1Tunnels[].splitConn`            | Split connection configuration                             |
-| `Description`          | `string`   | `ipsec.phase1Tunnels[].description`          | Human-readable description of the tunnel                   |
-| `Disabled`             | `bool`     | `ipsec.phase1Tunnels[].disabled`             | Whether tunnel is administratively disabled                |
-| `Mobile`               | `bool`     | `ipsec.phase1Tunnels[].mobile`               | Whether tunnel is a mobile/road-warrior endpoint           |
-| `EncryptionAlgorithms` | `[]string` | `ipsec.phase1Tunnels[].encryptionAlgorithms` | List of encryption algorithms; e.g., `aes-256`, `aes-128`  |
-
-#### IPsecPhase2Tunnel
-
-IPsec Phase 2 (child SA) configuration with network identity, encryption, and monitoring settings.
-
-| Field                  | Type       | JSON Path                                    | Description                                                |
-| ---------------------- | ---------- | -------------------------------------------- | ---------------------------------------------------------- |
-| `IKEID`                | `string`   | `ipsec.phase2Tunnels[].ikeId`                | Parent Phase 1 IKE SA identifier                           |
-| `UniqID`               | `string`   | `ipsec.phase2Tunnels[].uniqId`               | Unique identifier for this Phase 2 entry                   |
-| `ReqID`                | `string`   | `ipsec.phase2Tunnels[].reqId`                | Unique request identifier                                  |
-| `Mode`                 | `string`   | `ipsec.phase2Tunnels[].mode`                 | IPsec mode; Options: `tunnel`, `transport`                 |
-| `Disabled`             | `bool`     | `ipsec.phase2Tunnels[].disabled`             | Whether Phase 2 entry is administratively disabled         |
-| `Protocol`             | `string`   | `ipsec.phase2Tunnels[].protocol`             | IPsec protocol; Options: `esp`, `ah`                       |
-| `LocalIDType`          | `string`   | `ipsec.phase2Tunnels[].localIdType`          | Local network identity type; Options: `network`, `address` |
-| `LocalIDAddress`       | `string`   | `ipsec.phase2Tunnels[].localIdAddress`       | Local network identity address                             |
-| `LocalIDNetbits`       | `string`   | `ipsec.phase2Tunnels[].localIdNetbits`       | Local network identity prefix length                       |
-| `RemoteIDType`         | `string`   | `ipsec.phase2Tunnels[].remoteIdType`         | Remote network identity type                               |
-| `RemoteIDAddress`      | `string`   | `ipsec.phase2Tunnels[].remoteIdAddress`      | Remote network identity address                            |
-| `RemoteIDNetbits`      | `string`   | `ipsec.phase2Tunnels[].remoteIdNetbits`      | Remote network identity prefix length                      |
-| `NATLocalIDType`       | `string`   | `ipsec.phase2Tunnels[].natLocalIdType`       | NAT/BINAT local identity type                              |
-| `NATLocalIDAddress`    | `string`   | `ipsec.phase2Tunnels[].natLocalIdAddress`    | NAT/BINAT local identity address                           |
-| `NATLocalIDNetbits`    | `string`   | `ipsec.phase2Tunnels[].natLocalIdNetbits`    | NAT/BINAT local identity prefix length                     |
-| `PFSGroup`             | `string`   | `ipsec.phase2Tunnels[].pfsGroup`             | Perfect Forward Secrecy Diffie-Hellman group number        |
-| `Lifetime`             | `string`   | `ipsec.phase2Tunnels[].lifetime`             | Phase 2 SA lifetime in seconds                             |
-| `PingHost`             | `string`   | `ipsec.phase2Tunnels[].pingHost`             | Keep-alive destination IP for tunnel monitoring            |
-| `Description`          | `string`   | `ipsec.phase2Tunnels[].description`          | Human-readable description                                 |
-| `EncryptionAlgorithms` | `[]string` | `ipsec.phase2Tunnels[].encryptionAlgorithms` | List of encryption algorithms                              |
-| `HashAlgorithms`       | `[]string` | `ipsec.phase2Tunnels[].hashAlgorithms`       | List of hash/integrity algorithms                          |
-
-#### IPsecMobileClient
-
-Mobile/road-warrior IPsec client pool configuration for remote user access.
-
-| Field           | Type       | JSON Path                          | Description                                                        |
-| --------------- | ---------- | ---------------------------------- | ------------------------------------------------------------------ |
-| `Enabled`       | `bool`     | `ipsec.mobileClient.enabled`       | Whether mobile client pool is active                               |
-| `UserSource`    | `string`   | `ipsec.mobileClient.userSource`    | Authentication source for mobile users; Options: `local`, `radius` |
-| `GroupSource`   | `string`   | `ipsec.mobileClient.groupSource`   | Group-based access source for mobile users                         |
-| `PoolAddress`   | `string`   | `ipsec.mobileClient.poolAddress`   | IPv4 virtual address pool network address                          |
-| `PoolNetbits`   | `string`   | `ipsec.mobileClient.poolNetbits`   | IPv4 virtual address pool prefix length                            |
-| `PoolAddressV6` | `string`   | `ipsec.mobileClient.poolAddressV6` | IPv6 virtual address pool network address                          |
-| `PoolNetbitsV6` | `string`   | `ipsec.mobileClient.poolNetbitsV6` | IPv6 virtual address pool prefix length                            |
-| `DNSServers`    | `[]string` | `ipsec.mobileClient.dnsServers`    | DNS servers pushed to mobile clients                               |
-| `WINSServers`   | `[]string` | `ipsec.mobileClient.winsServers`   | WINS servers pushed to mobile clients                              |
-| `DNSDomain`     | `string`   | `ipsec.mobileClient.dnsDomain`     | DNS domain pushed to mobile clients                                |
-| `DNSSplit`      | `string`   | `ipsec.mobileClient.dnsSplit`      | Split DNS configuration for mobile clients                         |
-| `LoginBanner`   | `string`   | `ipsec.mobileClient.loginBanner`   | Banner message displayed to mobile clients on connection           |
-| `SavePasswd`    | `bool`     | `ipsec.mobileClient.savePasswd`    | Whether mobile clients can save passwords                          |
+VPN service configuration including OpenVPN and WireGuard.
 
 ### OpenVPN Server
 
@@ -546,24 +429,6 @@ Mobile/road-warrior IPsec client pool configuration for remote user access.
 ---
 
 ## Usage Examples
-
-### Working with Typed Enums
-
-```go
-import "github.com/EvilBit-Labs/opnDossier/pkg/model"
-
-// Create a firewall rule using typed constants
-rule := model.FirewallRule{
-    Type:       model.RuleTypePass,
-    Direction:  model.DirectionIn,
-    IPProtocol: model.IPProtocolInet,
-}
-
-// Configure NAT outbound mode
-natConfig := model.NATConfig{
-    OutboundMode: model.OutboundHybrid,
-}
-```
 
 ### Accessing Fields in JSON Export
 

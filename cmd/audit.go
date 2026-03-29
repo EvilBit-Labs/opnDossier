@@ -24,9 +24,10 @@ import (
 
 // Package-level flag variables for the audit command, required by cobra's flag binding mechanism.
 var (
-	auditMode      string   //nolint:gochecknoglobals // Cobra flag variable — audit reporting mode
-	auditPlugins   []string //nolint:gochecknoglobals // Cobra flag variable — selected compliance plugins
-	auditPluginDir string   //nolint:gochecknoglobals // Cobra flag variable — dynamic plugin directory
+	auditMode         string   //nolint:gochecknoglobals // Cobra flag variable — audit reporting mode
+	auditPlugins      []string //nolint:gochecknoglobals // Cobra flag variable — selected compliance plugins
+	auditPluginDir    string   //nolint:gochecknoglobals // Cobra flag variable — dynamic plugin directory
+	auditFailuresOnly bool     //nolint:gochecknoglobals // Cobra flag variable — show only failing controls
 )
 
 // init registers the audit command with the root command and configures its command-line flags.
@@ -45,6 +46,10 @@ func init() {
 	auditCmd.Flags().
 		StringVar(&auditPluginDir, "plugin-dir", "", "Directory containing dynamic .so compliance plugins")
 	setFlagAnnotation(auditCmd.Flags(), "plugin-dir", []string{"audit"})
+
+	auditCmd.Flags().
+		BoolVar(&auditFailuresOnly, "failures-only", false, "Show only failing controls in blue mode plugin results tables")
+	setFlagAnnotation(auditCmd.Flags(), "failures-only", []string{"audit"})
 
 	// Output and format flags (reuse existing package-level variables)
 	auditCmd.Flags().
@@ -125,6 +130,24 @@ var auditCmd = &cobra.Command{
 				auditMode)
 		}
 
+		// Reject --failures-only when the selected mode does not execute compliance checks.
+		if auditFailuresOnly && !strings.EqualFold(auditMode, "blue") {
+			return fmt.Errorf(
+				"--failures-only is only supported with --mode blue; %q mode does not run compliance checks",
+				auditMode,
+			)
+		}
+
+		// Reject --failures-only with non-markdown formats — the flag only affects
+		// the markdown plugin controls table. JSON/YAML consumers should filter
+		// client-side to avoid information loss.
+		if auditFailuresOnly && !strings.EqualFold(format, "markdown") {
+			return fmt.Errorf(
+				"--failures-only is only supported with --format markdown; %q format always includes all controls",
+				format,
+			)
+		}
+
 		// Reject --output with multiple input files to prevent output clobbering.
 		// Each file produces a separate report auto-named as <input>-audit.<ext>.
 		if outputFile != "" && len(args) > 1 {
@@ -162,6 +185,10 @@ mode and compliance plugins.
   When no plugins are specified in blue mode, all available plugins are run.
   The --plugins flag is not accepted with red mode.
 
+  CONTROL FILTERING (blue mode only):
+  Use --failures-only to show only non-compliant controls in plugin results tables.
+  When omitted, all controls (PASS and FAIL) are shown.
+
   OUTPUT FORMATS:
   The audit report can be exported in multiple formats using the --format flag:
 
@@ -189,6 +216,9 @@ Examples:
 
   # Comprehensive blue team audit with all compliance checks
   opnDossier audit config.xml --mode blue --comprehensive --plugins stig,sans,firewall
+
+  # Show only failing controls in blue mode
+  opnDossier audit config.xml --mode blue --failures-only
 
   # Redact sensitive fields from audit output
   opnDossier audit config.xml --redact
@@ -390,6 +420,7 @@ func generateAuditOutput(
 	auditOpts := audit.Options{
 		AuditMode:       auditMode,
 		SelectedPlugins: auditPlugins,
+		FailuresOnly:    auditFailuresOnly,
 	}
 
 	if auditPluginDir != "" {
@@ -401,6 +432,7 @@ func generateAuditOutput(
 	ctxLogger.Debug("Running audit",
 		"mode", auditOpts.AuditMode,
 		"plugins", auditOpts.SelectedPlugins,
+		"failuresOnly", auditOpts.FailuresOnly,
 	)
 
 	output, err := handleAuditMode(ctx, device, auditOpts, opt, ctxLogger)

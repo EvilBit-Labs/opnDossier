@@ -19,4 +19,8 @@ type Options struct {
 	// the user (via CLI flag). When true and the directory does not exist,
 	// LoadDynamicPlugins returns an error instead of silently continuing.
 	ExplicitPluginDir bool
+
+	// FailuresOnly filters the control results table to show only non-compliant
+	// controls. Only meaningful in blue mode where compliance checks are executed.
+	FailuresOnly bool
 }

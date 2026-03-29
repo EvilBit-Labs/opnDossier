@@ -93,6 +93,9 @@ func handleAuditMode(
 	enrichedDevice := *device
 	enrichedDevice.ComplianceChecks = mapAuditReportToComplianceResults(auditReport)
 
+	// Thread audit-specific rendering options into converter options.
+	opt.FailuresOnly = auditOpts.FailuresOnly
+
 	// Delegate to the shared generator pipeline (handles markdown, JSON, YAML, etc.)
 	return generateWithProgrammaticGenerator(ctx, &enrichedDevice, opt, logger)
 }
@@ -215,6 +218,13 @@ func mapAuditFindings(findings []audit.Finding) []common.ComplianceFinding {
 func mapPluginComplianceResult(pluginName string, cr *audit.ComplianceResult) common.PluginComplianceResult {
 	pluginResult := common.PluginComplianceResult{}
 
+	// Extract per-control compliance status early — needed by both mapControls
+	// (to populate Status field) and the Compliance map clone below.
+	var controlCompliance map[string]bool
+	if cc, exists := cr.Compliance[pluginName]; exists {
+		controlCompliance = cc
+	}
+
 	// Map plugin info
 	if info, exists := cr.PluginInfo[pluginName]; exists {
 		pluginResult.PluginInfo = common.CompliancePluginInfo{
@@ -222,8 +232,8 @@ func mapPluginComplianceResult(pluginName string, cr *audit.ComplianceResult) co
 			Version:     info.Version,
 			Description: info.Description,
 		}
-		// Map controls from plugin info
-		pluginResult.Controls = mapControls(info.Controls)
+		// Map controls from plugin info, enriching each with its compliance status
+		pluginResult.Controls = mapControls(info.Controls, controlCompliance)
 	}
 
 	// Map findings from cr.Findings (the per-plugin subset).
@@ -250,8 +260,8 @@ func mapPluginComplianceResult(pluginName string, cr *audit.ComplianceResult) co
 		}
 	}
 
-	// Map per-control compliance status (clone to avoid shared reference)
-	if controlCompliance, exists := cr.Compliance[pluginName]; exists {
+	// Clone per-control compliance map for export (retained for backward compatibility)
+	if controlCompliance != nil {
 		pluginResult.Compliance = maps.Clone(controlCompliance)
 	}
 
@@ -273,16 +283,30 @@ func mapComplianceFindings(findings []compliance.Finding) []common.ComplianceFin
 	return mapped
 }
 
-// mapControls converts compliance.Control slices to common.ComplianceControl slices.
-func mapControls(controls []compliance.Control) []common.ComplianceControl {
+// mapControls converts compliance.Control slices to common.ComplianceControl slices,
+// enriching each control with its compliance status from the provided map.
+// Controls present in the map as true → PASS, false → FAIL.
+// Controls absent from the map → UNCONFIRMED (not evaluable from available data).
+// A nil complianceStatus map is safe — all controls default to UNCONFIRMED.
+func mapControls(controls []compliance.Control, complianceStatus map[string]bool) []common.ComplianceControl {
 	if len(controls) == 0 {
 		return nil
 	}
 
 	mapped := make([]common.ComplianceControl, len(controls))
 	for i, c := range controls {
+		status := common.ControlStatusUnknown // default for unevaluated controls
+		if passed, exists := complianceStatus[c.ID]; exists {
+			if passed {
+				status = common.ControlStatusPass
+			} else {
+				status = common.ControlStatusFail
+			}
+		}
+
 		mapped[i] = common.ComplianceControl{
 			ID:          c.ID,
+			Status:      status,
 			Title:       c.Title,
 			Description: c.Description,
 			Category:    c.Category,

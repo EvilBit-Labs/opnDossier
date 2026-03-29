@@ -1186,6 +1186,15 @@ func (m *mockPluginWithFindings) GetControls() []compliance.Control {
 	return m.controls
 }
 
+func (m *mockPluginWithFindings) EvaluatedControlIDs(_ *common.CommonDevice) []string {
+	ids := make([]string, len(m.controls))
+	for i, c := range m.controls {
+		ids[i] = c.ID
+	}
+
+	return ids
+}
+
 func (m *mockPluginWithFindings) GetControlByID(id string) (*compliance.Control, error) {
 	for i := range m.controls {
 		if m.controls[i].ID == id {
@@ -1210,6 +1219,15 @@ func (m *mockPanickingPlugin) RunChecks(_ *common.CommonDevice) []compliance.Fin
 // GetControls returns the controls configured on the mock.
 func (m *mockPanickingPlugin) GetControls() []compliance.Control {
 	return m.controls
+}
+
+func (m *mockPanickingPlugin) EvaluatedControlIDs(_ *common.CommonDevice) []string {
+	ids := make([]string, len(m.controls))
+	for i, c := range m.controls {
+		ids[i] = c.ID
+	}
+
+	return ids
 }
 
 // GetControlByID returns the control matching the given ID.

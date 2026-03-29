@@ -44,6 +44,15 @@ func (m *mockCompliancePlugin) GetControlByID(_ string) (*compliance.Control, er
 	return nil, compliance.ErrControlNotFound
 }
 
+func (m *mockCompliancePlugin) EvaluatedControlIDs(_ *common.CommonDevice) []string {
+	ids := make([]string, len(m.GetControls()))
+	for i, c := range m.GetControls() {
+		ids[i] = c.ID
+	}
+
+	return ids
+}
+
 func (m *mockCompliancePlugin) ValidateConfiguration() error {
 	return nil
 }

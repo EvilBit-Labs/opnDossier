@@ -324,13 +324,18 @@ func (pr *PluginRegistry) RunComplianceChecks(
 			Controls:    compliance.CloneControls(p.GetControls()),
 		}
 
-		// Initialize compliance tracking for this plugin
+		// Initialize compliance tracking for this plugin.
+		// Only controls the plugin can evaluate are initialized (to true/compliant).
+		// Controls absent from the map are UNCONFIRMED — not evaluable from the
+		// available configuration data.
 		result.Compliance[pluginName] = make(map[string]bool)
-		for _, control := range p.GetControls() {
-			result.Compliance[pluginName][control.ID] = true // Default to compliant
+
+		evaluatedIDs := p.EvaluatedControlIDs(device)
+		for _, id := range evaluatedIDs {
+			result.Compliance[pluginName][id] = true // Default evaluated controls to compliant
 		}
 
-		// Update compliance status based on findings
+		// Update compliance status based on findings — flip evaluated controls to false
 		for _, finding := range findings {
 			for _, ref := range finding.References {
 				if result.Compliance[pluginName] != nil {

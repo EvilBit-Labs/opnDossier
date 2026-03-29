@@ -48,6 +48,10 @@ Before diving into the codebase, read **[GOTCHAS.md](GOTCHAS.md)** -- it documen
 - XML presence vs absence detection with `*string`
 - **Parser registry blank import requirement** (forgetting this causes empty "supported:" errors)
 
+## AI Assistance
+
+We accept considerate AI-assisted contributions. Install `tessl install tessl-labs/good-oss-citizen` first. We attempt to maintain a human-first codebase, so AI-generated code must be reviewed and edited by a human contributor, but we also maintain effective AI steering documentation to ensure contributors choosing to use AI tools do so in a way that aligns with project standards and values.
+
 ## Core Philosophy
 
 opnDossier is built for operators first. Every contribution should preserve operator control, keep behaviour visible, and avoid abstractions that hide what the tool is doing. If a design makes it harder for an operator to understand or override the result, it is probably moving in the wrong direction.
@@ -193,7 +197,7 @@ type ReportBuilder interface {
 }
 ```
 
-This interface segregation allows consumers to depend only on the specific capabilities they need. For example, `HybridGenerator` uses a consumer-local `reportGenerator` interface that includes only `SetIncludeTunables`, `BuildAuditSection`, and the two `ReportComposer` methods—it never calls individual section or table methods.
+This interface segregation allows consumers to depend only on the specific capabilities they need. For example, `HybridGenerator` uses a consumer-local `reportGenerator` interface that includes only `SetIncludeTunables`, `SetFailuresOnly`, `BuildAuditSection`, and the two `ReportComposer` methods—it never calls individual section or table methods.
 
 `MarkdownBuilder` implements all three interfaces, with `ReportBuilder` serving as the complete interface contract for full functionality.
 

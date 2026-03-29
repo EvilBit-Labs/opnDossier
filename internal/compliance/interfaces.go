@@ -30,6 +30,12 @@ type Plugin interface {
 	// GetControlByID returns a specific control by its ID
 	GetControlByID(id string) (*Control, error)
 
+	// EvaluatedControlIDs returns the IDs of controls this plugin can evaluate
+	// given the provided device configuration. Controls returned by GetControls()
+	// but NOT in this list will be reported as UNKNOWN in the audit report.
+	// Return nil to indicate no controls are evaluable.
+	EvaluatedControlIDs(device *common.CommonDevice) []string
+
 	// ValidateConfiguration validates the plugin's configuration
 	ValidateConfiguration() error
 }
