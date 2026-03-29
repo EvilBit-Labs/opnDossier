@@ -49,52 +49,52 @@ checksum = "sha256:f5a0c663f2e3d372119049a0ae74de51b6b9b9e40aa5d2d82f1bd05378da0
 url = "https://github.com/nektos/act/releases/download/v0.2.86/act_Windows_x86_64.zip"
 
 [[tools.bun]]
-version = "1.3.10"
+version = "1.3.11"
 backend = "core:bun"
 
 [tools.bun."platforms.linux-arm64"]
-checksum = "sha256:fa5ecb25cafa8e8f5c87a0f833719d46dd0af0a86c7837d806531212d55636d3"
-url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.10/bun-linux-aarch64.zip"
+checksum = "sha256:d13944da12a53ecc74bf6a720bd1d04c4555c038dfe422365356a7be47691fdf"
+url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.11/bun-linux-aarch64.zip"
 
 [tools.bun."platforms.linux-arm64-musl"]
-checksum = "sha256:d2c81365a2e529b78a42330d3a0056e8dbd7896b4a6782c8e392b6532141e34d"
-url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.10/bun-linux-aarch64-musl.zip"
+checksum = "sha256:0f5bf5dc3f276053196274bb84f90a44e2fa40c9432bd6757e3247a8d9476a3d"
+url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.11/bun-linux-aarch64-musl.zip"
 
 [tools.bun."platforms.linux-x64"]
-checksum = "sha256:f57bc0187e39623de716ba3a389fda5486b2d7be7131a980ba54dc7b733d2e08"
-url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.10/bun-linux-x64.zip"
+checksum = "sha256:8611ba935af886f05a6f38740a15160326c15e5d5d07adef966130b4493607ed"
+url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.11/bun-linux-x64.zip"
 
 [tools.bun."platforms.linux-x64-baseline"]
-checksum = "sha256:41201a8c5ee74a9dcbb1ce25a1104f1f929838b57a845aa78d98379b0ce7cde2"
-url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.10/bun-linux-x64-baseline.zip"
+checksum = "sha256:abe346f63414547cdf6b35b7a649a490c728b93d006226156923918a84c0e59b"
+url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.11/bun-linux-x64-baseline.zip"
 
 [tools.bun."platforms.linux-x64-musl"]
-checksum = "sha256:48a6c32277d343db0148ce066336472ffd380358a4d26bb1329714742492d824"
-url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.10/bun-linux-x64-musl.zip"
+checksum = "sha256:b0fce3bc4fab52f26a1e0d8886dc07fd0c0eb2a274cb343b59c83a2d5997b5b1"
+url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.11/bun-linux-x64-musl.zip"
 
 [tools.bun."platforms.linux-x64-musl-baseline"]
-checksum = "sha256:a7bc4cdea1ef255a83adbf39c7aafcd30e09f2b8f74deec4b10ee318bc024d1f"
-url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.10/bun-linux-x64-musl-baseline.zip"
+checksum = "sha256:2fa2b697f14ada86a28df771d3876ca7606d7453b2339454893b1937aa9c0c7e"
+url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.11/bun-linux-x64-musl-baseline.zip"
 
 [tools.bun."platforms.macos-arm64"]
-checksum = "sha256:82034e87c9d9b4398ea619aee2eed5d2a68c8157e9a6ae2d1052d84d533ccd8d"
-url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.10/bun-darwin-aarch64.zip"
+checksum = "sha256:6f5a3467ed9caec4795bf78cd476507d9f870c7d57b86c945fcb338126772ffc"
+url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.11/bun-darwin-aarch64.zip"
 
 [tools.bun."platforms.macos-x64"]
-checksum = "sha256:c1d90bf6140f20e572c473065dc6b37a4b036349b5e9e4133779cc642ad94323"
-url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.10/bun-darwin-x64.zip"
+checksum = "sha256:c4fe2b9247218b0295f24e895aaec8fee62e74452679a9026b67eacbd611a286"
+url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.11/bun-darwin-x64.zip"
 
 [tools.bun."platforms.macos-x64-baseline"]
-checksum = "sha256:f9686c4e4e760db4cde77a0f1fad05e552648b9c9cbfa4f7fc9a7ec26b9f3267"
-url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.10/bun-darwin-x64-baseline.zip"
+checksum = "sha256:fb6739b08bf54550edaa7c824cd5b2dca45b6a06afef408443087a63105f6f8d"
+url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.11/bun-darwin-x64-baseline.zip"
 
 [tools.bun."platforms.windows-x64"]
-checksum = "sha256:7a77b3e245e2e26965c93089a4a1332e8a326d3364c89fae1d1fd99cdd3cd73d"
-url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.10/bun-windows-x64.zip"
+checksum = "sha256:066f8694f8b7d8df592452746d18f01710d4053e93030922dbc6e8c34a8c4b9f"
+url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.11/bun-windows-x64.zip"
 
 [tools.bun."platforms.windows-x64-baseline"]
-checksum = "sha256:715709c69b176e20994533d3292bd0b7c32de9c0c5575b916746ec6b2aa38346"
-url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.10/bun-windows-x64-baseline.zip"
+checksum = "sha256:9d0e0f923e9626f3bc6044fc32e0d3ab29039aea753f5678ef8801cf26f75288"
+url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.11/bun-windows-x64-baseline.zip"
 
 [[tools.cosign]]
 version = "3.0.5"
@@ -426,52 +426,52 @@ url = "https://github.com/goreleaser/goreleaser/releases/download/v2.14.3/gorele
 provenance = "cosign"
 
 [[tools.just]]
-version = "1.48.0"
+version = "1.48.1"
 backend = "aqua:casey/just"
 
 [tools.just."platforms.linux-arm64"]
-checksum = "sha256:3c28914f0059161bc263c41db0ed3f786866cfb9632d1ee7809f529c8f18835e"
-url = "https://github.com/casey/just/releases/download/1.48.0/just-1.48.0-aarch64-unknown-linux-musl.tar.gz"
+checksum = "sha256:3308721b991cf88cf2b9bbb3b31ac40550ec61a0c9b6fc011564e25e87964030"
+url = "https://github.com/casey/just/releases/download/1.48.1/just-1.48.1-aarch64-unknown-linux-musl.tar.gz"
 
 [tools.just."platforms.linux-arm64-musl"]
-checksum = "sha256:3c28914f0059161bc263c41db0ed3f786866cfb9632d1ee7809f529c8f18835e"
-url = "https://github.com/casey/just/releases/download/1.48.0/just-1.48.0-aarch64-unknown-linux-musl.tar.gz"
+checksum = "sha256:3308721b991cf88cf2b9bbb3b31ac40550ec61a0c9b6fc011564e25e87964030"
+url = "https://github.com/casey/just/releases/download/1.48.1/just-1.48.1-aarch64-unknown-linux-musl.tar.gz"
 
 [tools.just."platforms.linux-x64"]
-checksum = "sha256:a62e100de2922519ff3d6128f580837b4c0e197aa61a6fb448f43e50e7dd9b9b"
-url = "https://github.com/casey/just/releases/download/1.48.0/just-1.48.0-x86_64-unknown-linux-musl.tar.gz"
+checksum = "sha256:9293e553ce401d1b524bf4e104918f72f268e3f9c6827e0055fe98d84a1b2522"
+url = "https://github.com/casey/just/releases/download/1.48.1/just-1.48.1-x86_64-unknown-linux-musl.tar.gz"
 
 [tools.just."platforms.linux-x64-baseline"]
-checksum = "sha256:a62e100de2922519ff3d6128f580837b4c0e197aa61a6fb448f43e50e7dd9b9b"
-url = "https://github.com/casey/just/releases/download/1.48.0/just-1.48.0-x86_64-unknown-linux-musl.tar.gz"
+checksum = "sha256:9293e553ce401d1b524bf4e104918f72f268e3f9c6827e0055fe98d84a1b2522"
+url = "https://github.com/casey/just/releases/download/1.48.1/just-1.48.1-x86_64-unknown-linux-musl.tar.gz"
 
 [tools.just."platforms.linux-x64-musl"]
-checksum = "sha256:a62e100de2922519ff3d6128f580837b4c0e197aa61a6fb448f43e50e7dd9b9b"
-url = "https://github.com/casey/just/releases/download/1.48.0/just-1.48.0-x86_64-unknown-linux-musl.tar.gz"
+checksum = "sha256:9293e553ce401d1b524bf4e104918f72f268e3f9c6827e0055fe98d84a1b2522"
+url = "https://github.com/casey/just/releases/download/1.48.1/just-1.48.1-x86_64-unknown-linux-musl.tar.gz"
 
 [tools.just."platforms.linux-x64-musl-baseline"]
-checksum = "sha256:a62e100de2922519ff3d6128f580837b4c0e197aa61a6fb448f43e50e7dd9b9b"
-url = "https://github.com/casey/just/releases/download/1.48.0/just-1.48.0-x86_64-unknown-linux-musl.tar.gz"
+checksum = "sha256:9293e553ce401d1b524bf4e104918f72f268e3f9c6827e0055fe98d84a1b2522"
+url = "https://github.com/casey/just/releases/download/1.48.1/just-1.48.1-x86_64-unknown-linux-musl.tar.gz"
 
 [tools.just."platforms.macos-arm64"]
-checksum = "sha256:507edd5cbe97e13f048f650e52ae6cf3fd6c7464b18abe64fb01eca1bd65f8a2"
-url = "https://github.com/casey/just/releases/download/1.48.0/just-1.48.0-aarch64-apple-darwin.tar.gz"
+checksum = "sha256:03a73339ff55bcf7411a3c940cdcb0a726d98134b87203c83a9008575434e2a8"
+url = "https://github.com/casey/just/releases/download/1.48.1/just-1.48.1-aarch64-apple-darwin.tar.gz"
 
 [tools.just."platforms.macos-x64"]
-checksum = "sha256:9c4a018665ede3167db8210a6c846e59b675ecce71a35d2f802035fbc9199627"
-url = "https://github.com/casey/just/releases/download/1.48.0/just-1.48.0-x86_64-apple-darwin.tar.gz"
+checksum = "sha256:4c3e9c880b8fc93d7fc24abfde3c36b0cc59f6e9f8b31f7175095700f64125a7"
+url = "https://github.com/casey/just/releases/download/1.48.1/just-1.48.1-x86_64-apple-darwin.tar.gz"
 
 [tools.just."platforms.macos-x64-baseline"]
-checksum = "sha256:9c4a018665ede3167db8210a6c846e59b675ecce71a35d2f802035fbc9199627"
-url = "https://github.com/casey/just/releases/download/1.48.0/just-1.48.0-x86_64-apple-darwin.tar.gz"
+checksum = "sha256:4c3e9c880b8fc93d7fc24abfde3c36b0cc59f6e9f8b31f7175095700f64125a7"
+url = "https://github.com/casey/just/releases/download/1.48.1/just-1.48.1-x86_64-apple-darwin.tar.gz"
 
 [tools.just."platforms.windows-x64"]
-checksum = "sha256:06000d1e1f97155c6dff316f20fad029aa70f69c4ecbe2fbe5b821d9bb79aef0"
-url = "https://github.com/casey/just/releases/download/1.48.0/just-1.48.0-x86_64-pc-windows-msvc.zip"
+checksum = "sha256:368cd9ca827cba04d9e6fc00f7ad840773c4605b6f64b9f87bdb00325d351029"
+url = "https://github.com/casey/just/releases/download/1.48.1/just-1.48.1-x86_64-pc-windows-msvc.zip"
 
 [tools.just."platforms.windows-x64-baseline"]
-checksum = "sha256:06000d1e1f97155c6dff316f20fad029aa70f69c4ecbe2fbe5b821d9bb79aef0"
-url = "https://github.com/casey/just/releases/download/1.48.0/just-1.48.0-x86_64-pc-windows-msvc.zip"
+checksum = "sha256:368cd9ca827cba04d9e6fc00f7ad840773c4605b6f64b9f87bdb00325d351029"
+url = "https://github.com/casey/just/releases/download/1.48.1/just-1.48.1-x86_64-pc-windows-msvc.zip"
 
 [[tools.markdownlint-cli2]]
 version = "0.22.0"
