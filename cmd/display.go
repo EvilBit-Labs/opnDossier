@@ -280,8 +280,7 @@ func buildDisplayOptions(cfg *config.Config) converter.Options {
 
 // validateDisplayFlags checks display command flag combinations and value constraints.
 //
-// It inspects both local and inherited flags on cmd and enforces:
-// - Rejection of `--json-output` (inherited from root), which is not supported by display.
+// It inspects the command's flags and enforces:
 // - Mutual exclusivity of `--no-wrap` and `--wrap` (returns an error if both were set).
 // - Normalizes `sharedWrapWidth` to 0 when `sharedNoWrap` is true.
 // - Validates that `sharedTheme`, if provided, is one of: "light", "dark", "auto", or "none" (returns an error otherwise).
@@ -290,11 +289,6 @@ func buildDisplayOptions(cfg *config.Config) converter.Options {
 //
 // Returns an error when flag combinations or values are invalid; nil otherwise.
 func validateDisplayFlags(cmd *cobra.Command) error {
-	// Reject --json-output early: display always renders to terminal
-	if jsonOut, _ := cmd.InheritedFlags().GetBool("json-output"); jsonOut {
-		return errors.New("--json-output is not supported by the display command; use 'opnDossier convert --format json' to output JSON")
-	}
-
 	// Validate mutual exclusivity for wrap flags before other checks
 	flags := cmd.Flags()
 	if flags != nil {

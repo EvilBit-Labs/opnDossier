@@ -14,12 +14,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// testDisplayCmd creates a minimal *cobra.Command with the given local flags
-// and the root command's persistent flags as inherited flags, suitable for
-// testing validateDisplayFlags.
+// testDisplayCmd creates a minimal *cobra.Command with the given local flags,
+// suitable for testing validateDisplayFlags.
 func testDisplayCmd(localFlags *pflag.FlagSet) *cobra.Command {
 	parent := &cobra.Command{Use: "root"}
-	parent.PersistentFlags().Bool("json-output", false, "")
 
 	child := &cobra.Command{Use: "display"}
 	if localFlags != nil {
@@ -373,6 +371,17 @@ func TestValidateDisplayFlagsInvalidWrapWidth(t *testing.T) {
 	}
 }
 
+func TestDisplayCmd_NoJSONOutputFlag(t *testing.T) {
+	// --json-output should not be available on the display command.
+	// It was previously inherited as a persistent root flag but has no effect
+	// on display output (see GOTCHAS.md §5.1, issue #479).
+	flag := displayCmd.Flags().Lookup("json-output")
+	assert.Nil(t, flag, "--json-output should not be a local flag on the display command")
+
+	inherited := displayCmd.InheritedFlags().Lookup("json-output")
+	assert.Nil(t, inherited, "--json-output should not be inherited by the display command")
+}
+
 func TestValidateDisplayFlagsNoWrapMutualExclusivity(t *testing.T) {
 	snapshot := captureSharedFlags()
 	t.Cleanup(snapshot.restore)
@@ -450,30 +459,4 @@ func TestValidateDisplayFlagsNoWrapMutualExclusivity(t *testing.T) {
 			assert.Equal(t, 0, sharedWrapWidth)
 		})
 	}
-}
-
-func TestValidateDisplayFlagsRejectsJSONOutput(t *testing.T) {
-	snapshot := captureSharedFlags()
-	t.Cleanup(snapshot.restore)
-
-	// Build a command tree where the parent has --json-output as a persistent flag
-	cmd := testDisplayCmd(nil)
-
-	// Set the inherited --json-output flag to true
-	require.NoError(t, cmd.InheritedFlags().Set("json-output", "true"))
-
-	err := validateDisplayFlags(cmd)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "--json-output is not supported by the display command")
-	assert.Contains(t, err.Error(), "opnDossier convert --format json")
-}
-
-func TestValidateDisplayFlagsAllowsWithoutJSONOutput(t *testing.T) {
-	snapshot := captureSharedFlags()
-	t.Cleanup(snapshot.restore)
-
-	// Default (json-output not set) should not error
-	cmd := testDisplayCmd(nil)
-	err := validateDisplayFlags(cmd)
-	require.NoError(t, err)
 }

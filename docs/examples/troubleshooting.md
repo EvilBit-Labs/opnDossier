@@ -107,10 +107,10 @@ For scripting and automation, use JSON error output:
 
 ```bash
 # Get errors in JSON format for programmatic handling
-opndossier --json-output validate config.xml
+opndossier validate --json-output config.xml
 
 # Parse JSON errors with jq
-opndossier --json-output validate config.xml 2>&1 | jq '.error'
+opndossier validate --json-output config.xml 2>&1 | jq '.error'
 ```
 
 ## Common Issues and Solutions

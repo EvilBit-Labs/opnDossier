@@ -219,9 +219,8 @@ func init() {
 	rootCmd.PersistentFlags().
 		Bool("minimal", false, "Minimal output mode (suppresses progress and verbose messages)")
 	setFlagAnnotation(rootCmd.PersistentFlags(), "minimal", []string{"output"})
-	rootCmd.PersistentFlags().
-		Bool("json-output", false, "Output errors in JSON format (for machine consumption)")
-	setFlagAnnotation(rootCmd.PersistentFlags(), "json-output", []string{"output"})
+	// Note: --json-output is registered on validateCmd only (not here as persistent).
+	// It has no effect on other commands. See issue #479, GOTCHAS.md §5.1.
 
 	// Parsing control flags
 	rootCmd.PersistentFlags().
