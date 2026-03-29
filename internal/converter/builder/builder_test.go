@@ -1658,4 +1658,150 @@ func TestBuildAuditSection_EmptyStatusDefaultsToUnknown(t *testing.T) {
 	}
 }
 
+// TestBuildAuditSection_ConfigurationNotes verifies that inventory-type findings
+// appear in a dedicated "Configuration Notes" section and not in "Security Findings".
+func TestBuildAuditSection_ConfigurationNotes(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	data := &common.CommonDevice{
+		ComplianceChecks: &common.ComplianceResults{
+			Mode: "blue",
+			PluginResults: map[string]common.PluginComplianceResult{
+				"firewall": {
+					Findings: []common.ComplianceFinding{
+						{
+							Type:           "compliance",
+							Severity:       "high",
+							Component:      "ssh-config",
+							Title:          "SSH Banner Missing",
+							Recommendation: "Add banner",
+						},
+						{
+							Type:        "inventory",
+							Severity:    "info",
+							Component:   "dhcp-config",
+							Title:       "DHCP Scopes Configured",
+							Description: "2 DHCP scope(s) configured on interface(s): lan, guest",
+						},
+						{
+							Type:        "inventory",
+							Severity:    "info",
+							Component:   "interfaces",
+							Title:       "Active Interfaces",
+							Description: "4 enabled interface(s)",
+						},
+					},
+					Summary: &common.ComplianceResultSummary{
+						TotalFindings: 3,
+						HighFindings:  1,
+						InfoFindings:  2,
+					},
+				},
+			},
+			Summary: &common.ComplianceResultSummary{
+				TotalFindings: 3,
+				HighFindings:  1,
+				InfoFindings:  2,
+			},
+		},
+	}
+
+	result := b.BuildAuditSection(data)
+
+	// Configuration Notes section should be present
+	if !strings.Contains(result, "### Configuration Notes") {
+		t.Errorf("expected Configuration Notes section in output")
+	}
+
+	// Inventory content should appear in Configuration Notes
+	for _, content := range []string{"dhcp-config", "DHCP Scopes Configured", "2 DHCP scope(s)", "interfaces", "Active Interfaces", "4 enabled"} {
+		if !strings.Contains(result, content) {
+			t.Errorf("expected Configuration Notes to contain %q", content)
+		}
+	}
+
+	// InfoFindings should appear in per-plugin summary
+	if !strings.Contains(result, "Informational: 2") {
+		t.Errorf("expected per-plugin summary to show Informational: 2")
+	}
+}
+
+// TestBuildAuditSection_NoConfigurationNotesWhenNoInventory verifies that the
+// Configuration Notes section is omitted when there are no inventory findings.
+func TestBuildAuditSection_NoConfigurationNotesWhenNoInventory(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	data := &common.CommonDevice{
+		ComplianceChecks: &common.ComplianceResults{
+			Mode: "blue",
+			PluginResults: map[string]common.PluginComplianceResult{
+				"firewall": {
+					Findings: []common.ComplianceFinding{
+						{
+							Type:           "compliance",
+							Severity:       "high",
+							Component:      "ssh-config",
+							Title:          "SSH Banner Missing",
+							Recommendation: "Add banner",
+						},
+					},
+					Summary: &common.ComplianceResultSummary{TotalFindings: 1, HighFindings: 1},
+				},
+			},
+			Summary: &common.ComplianceResultSummary{TotalFindings: 1, HighFindings: 1},
+		},
+	}
+
+	result := b.BuildAuditSection(data)
+
+	if strings.Contains(result, "Configuration Notes") {
+		t.Errorf("expected no Configuration Notes section when no inventory findings exist")
+	}
+}
+
+// TestBuildAuditSection_InventoryExcludedFromSecurityFindings verifies that
+// inventory findings do not appear in the Security Findings table.
+func TestBuildAuditSection_InventoryExcludedFromSecurityFindings(t *testing.T) {
+	t.Parallel()
+
+	b := NewMarkdownBuilder()
+	data := &common.CommonDevice{
+		ComplianceChecks: &common.ComplianceResults{
+			Mode: "blue",
+			Findings: []common.ComplianceFinding{
+				{
+					Type:           "compliance",
+					Severity:       "high",
+					Component:      "auth",
+					Title:          "Weak Password",
+					Recommendation: "Fix it",
+				},
+				{
+					Type:        "inventory",
+					Severity:    "info",
+					Component:   "dhcp",
+					Title:       "DHCP Inventory",
+					Description: "3 scopes",
+				},
+			},
+			Summary: &common.ComplianceResultSummary{TotalFindings: 2},
+		},
+	}
+
+	result := b.BuildAuditSection(data)
+
+	// Security Findings should contain the compliance finding
+	if !strings.Contains(result, "Weak Password") {
+		t.Errorf("expected Security Findings to contain compliance finding")
+	}
+
+	// Security Findings should NOT contain the inventory finding title in the same table
+	// The inventory finding should only be in Configuration Notes
+	if !strings.Contains(result, "Configuration Notes") {
+		t.Errorf("expected Configuration Notes section for inventory findings in top-level Findings")
+	}
+}
+
 // Use helper functions from existing helpers_test.go
