@@ -60,7 +60,7 @@ opndossier convert config.xml --section firewall,network -o network-security.md
 | `services` | DHCP server (scopes, static leases, DHCPv6), DNS resolver (Unbound), SNMP, NTP, load balancer monitors              |
 | `security` | NAT configuration (inbound/outbound), IDS/Suricata, certificates                                                    |
 
-<!-- Screenshots of each section's output will be added here -->
+![Screenshot of opnDossier convert command showing JSON export of firewall rules](../../../images/json-output.png)
 
 ## System Tunables
 

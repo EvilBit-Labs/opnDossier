@@ -49,6 +49,10 @@ opnDossier display config.xml
 
 ![Screenshot of JSON export showing structured device data for automation and integration](images/json-output.png)
 
+#### Configuration diff
+
+![Screenshot of structured configuration diff showing added interfaces, changed DHCP ranges, and modified firewall rules](images/diff.png)
+
 #### Audit findings example
 
 ![Screenshot of audit compliance findings showing severity levels and remediation recommendations](images/audit.png)
