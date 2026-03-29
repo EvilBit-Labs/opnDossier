@@ -185,6 +185,7 @@ func TestMapAuditReportToComplianceResults(t *testing.T) {
 				require.Len(t, pr.Controls, 1)
 				assert.Equal(t, "STIG-V-000001", pr.Controls[0].ID)
 				assert.Equal(t, "high", pr.Controls[0].Severity)
+				assert.Equal(t, common.ControlStatusFail, pr.Controls[0].Status)
 
 				// Findings
 				require.Len(t, pr.Findings, 1)
@@ -396,6 +397,12 @@ func TestMapAuditReportToComplianceResults(t *testing.T) {
 				require.Len(t, pr.Controls, 1)
 				c := pr.Controls[0]
 				assert.Equal(t, "STIG-V-000002", c.ID)
+				assert.Equal(
+					t,
+					common.ControlStatusUnknown,
+					c.Status,
+					"control absent from compliance map defaults to UNKNOWN",
+				)
 				assert.Equal(t, "Required for accountability", c.Rationale)
 				assert.Equal(t, "Enable audit logging", c.Remediation)
 				assert.Equal(t, []string{"NIST-AU-2"}, c.References)
@@ -417,6 +424,171 @@ func TestMapAuditReportToComplianceResults(t *testing.T) {
 			tt.verify(t, result)
 		})
 	}
+}
+
+func TestMapControls_StatusPopulation(t *testing.T) {
+	controls := []compliance.Control{
+		{ID: "CTRL-001", Title: "Passes", Severity: "low"},
+		{ID: "CTRL-002", Title: "Fails", Severity: "high"},
+		{ID: "CTRL-003", Title: "Also Passes", Severity: "medium"},
+	}
+
+	tests := []struct {
+		name             string
+		controls         []compliance.Control
+		complianceStatus map[string]bool
+		wantStatuses     []string
+	}{
+		{
+			name:     "mixed pass and fail",
+			controls: controls,
+			complianceStatus: map[string]bool{
+				"CTRL-001": true,
+				"CTRL-002": false,
+				"CTRL-003": true,
+			},
+			wantStatuses: []string{
+				common.ControlStatusPass,
+				common.ControlStatusFail,
+				common.ControlStatusPass,
+			},
+		},
+		{
+			name:     "all pass",
+			controls: controls,
+			complianceStatus: map[string]bool{
+				"CTRL-001": true,
+				"CTRL-002": true,
+				"CTRL-003": true,
+			},
+			wantStatuses: []string{
+				common.ControlStatusPass,
+				common.ControlStatusPass,
+				common.ControlStatusPass,
+			},
+		},
+		{
+			name:     "all fail",
+			controls: controls,
+			complianceStatus: map[string]bool{
+				"CTRL-001": false,
+				"CTRL-002": false,
+				"CTRL-003": false,
+			},
+			wantStatuses: []string{
+				common.ControlStatusFail,
+				common.ControlStatusFail,
+				common.ControlStatusFail,
+			},
+		},
+		{
+			name:             "nil compliance map defaults to UNKNOWN",
+			controls:         controls,
+			complianceStatus: nil,
+			wantStatuses: []string{
+				common.ControlStatusUnknown,
+				common.ControlStatusUnknown,
+				common.ControlStatusUnknown,
+			},
+		},
+		{
+			name:     "missing entry defaults to UNKNOWN",
+			controls: controls,
+			complianceStatus: map[string]bool{
+				"CTRL-001": true,
+				// CTRL-002 intentionally absent
+				"CTRL-003": true,
+			},
+			wantStatuses: []string{
+				common.ControlStatusPass,
+				common.ControlStatusUnknown,
+				common.ControlStatusPass,
+			},
+		},
+		{
+			name:             "empty controls returns nil",
+			controls:         nil,
+			complianceStatus: map[string]bool{"CTRL-001": true},
+			wantStatuses:     nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := mapControls(tt.controls, tt.complianceStatus)
+
+			if tt.wantStatuses == nil {
+				assert.Nil(t, result)
+				return
+			}
+
+			require.Len(t, result, len(tt.wantStatuses))
+			for i, want := range tt.wantStatuses {
+				assert.Equal(t, want, result[i].Status,
+					"control %s status mismatch", result[i].ID)
+			}
+		})
+	}
+}
+
+func TestMapControls_PreservesAllFields(t *testing.T) {
+	controls := []compliance.Control{
+		{
+			ID:          "CTRL-001",
+			Title:       "Test Control",
+			Description: "A test control",
+			Category:    "security",
+			Severity:    "high",
+			Rationale:   "Because security",
+			Remediation: "Fix it",
+			References:  []string{"REF-1", "REF-2"},
+			Tags:        []string{"tag-a"},
+			Metadata:    map[string]string{"key": "value"},
+		},
+	}
+
+	result := mapControls(controls, map[string]bool{"CTRL-001": true})
+
+	require.Len(t, result, 1)
+	c := result[0]
+	assert.Equal(t, "CTRL-001", c.ID)
+	assert.Equal(t, common.ControlStatusPass, c.Status)
+	assert.Equal(t, "Test Control", c.Title)
+	assert.Equal(t, "A test control", c.Description)
+	assert.Equal(t, "security", c.Category)
+	assert.Equal(t, "high", c.Severity)
+	assert.Equal(t, "Because security", c.Rationale)
+	assert.Equal(t, "Fix it", c.Remediation)
+	assert.Equal(t, []string{"REF-1", "REF-2"}, c.References)
+	assert.Equal(t, []string{"tag-a"}, c.Tags)
+	assert.Equal(t, map[string]string{"key": "value"}, c.Metadata)
+}
+
+func TestMapControls_JSONRoundTrip(t *testing.T) {
+	controls := []compliance.Control{
+		{ID: "CTRL-001", Title: "Pass Control", Severity: "low"},
+		{ID: "CTRL-002", Title: "Fail Control", Severity: "high"},
+	}
+	complianceMap := map[string]bool{
+		"CTRL-001": true,
+		"CTRL-002": false,
+	}
+
+	result := mapControls(controls, complianceMap)
+
+	data, err := json.Marshal(result)
+	require.NoError(t, err)
+
+	jsonStr := string(data)
+	assert.Contains(t, jsonStr, `"status":"PASS"`)
+	assert.Contains(t, jsonStr, `"status":"FAIL"`)
+
+	// Round-trip: unmarshal back and verify
+	var unmarshaled []common.ComplianceControl
+	require.NoError(t, json.Unmarshal(data, &unmarshaled))
+	require.Len(t, unmarshaled, 2)
+	assert.Equal(t, common.ControlStatusPass, unmarshaled[0].Status)
+	assert.Equal(t, common.ControlStatusFail, unmarshaled[1].Status)
 }
 
 // TestHandleAuditMode_EndToEnd exercises the full audit pipeline: plugin
@@ -449,10 +621,10 @@ func TestHandleAuditMode_EndToEnd(t *testing.T) {
 	result, err := handleAuditMode(context.Background(), device, auditOpts, opt, logger)
 	require.NoError(t, err)
 
-	// The rendered markdown must contain the compliance audit summary section
+	// The rendered markdown must contain the compliance audit results and summary
 	// (rendered by the builder layer, not the old appendAuditFindings).
+	assert.Contains(t, result, "## Compliance Audit Results")
 	assert.Contains(t, result, "## Compliance Audit Summary")
-	assert.Contains(t, result, "Plugin Compliance Results")
 	assert.Contains(t, result, "stig")
 
 	// handleAuditMode must NOT mutate the input device (immutability rule)
@@ -599,4 +771,37 @@ func TestHandleAuditMode_UnknownPluginRejectedPostInit(t *testing.T) {
 	require.ErrorIs(t, err, audit.ErrPluginNotFound,
 		"expected ErrPluginNotFound in error chain, got: %v", err)
 	assert.Contains(t, err.Error(), "myplugin")
+}
+
+// TestHandleAuditMode_FailuresOnlyPipeline verifies that FailuresOnly propagates
+// through the full pipeline: audit.Options → converter.Options → builder → filtered output.
+// Passing controls should be excluded from the rendered markdown when FailuresOnly is true.
+func TestHandleAuditMode_FailuresOnlyPipeline(t *testing.T) {
+	// Do NOT use t.Parallel() — exercises audit pipeline with package-level state.
+	logger, err := logging.New(logging.Config{Level: "warn"})
+	require.NoError(t, err)
+
+	device := &common.CommonDevice{
+		System: common.System{
+			Hostname: "test-fw",
+			Domain:   "example.com",
+		},
+	}
+
+	auditOpts := audit.Options{
+		AuditMode:       "blue",
+		SelectedPlugins: []string{"stig"},
+		FailuresOnly:    true,
+	}
+
+	opt := converter.Options{
+		Format: converter.FormatMarkdown,
+	}
+
+	result, err := handleAuditMode(context.Background(), device, auditOpts, opt, logger)
+	require.NoError(t, err)
+
+	// Output should contain FAIL but not PASS — failuresOnly filters passing controls
+	assert.Contains(t, result, "FAIL", "expected FAIL controls in filtered output")
+	assert.NotContains(t, result, "| PASS", "expected PASS controls to be filtered out")
 }

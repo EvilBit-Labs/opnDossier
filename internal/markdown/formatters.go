@@ -11,6 +11,7 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/yuin/goldmark"
+	emoji "github.com/yuin/goldmark-emoji"
 	"github.com/yuin/goldmark/extension"
 	goldmark_parser "github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
@@ -351,7 +352,7 @@ func InfoBadge() Badge {
 // It returns an error if the content cannot be parsed as markdown.
 func ValidateMarkdown(content string) error {
 	md := goldmark.New(
-		goldmark.WithExtensions(extension.Table),
+		goldmark.WithExtensions(extension.GFM, extension.DefinitionList, emoji.Emoji, extension.Footnote),
 		goldmark.WithParserOptions(
 			goldmark_parser.WithAutoHeadingID(),
 		),
@@ -374,7 +375,7 @@ func ValidateMarkdown(content string) error {
 // Raw HTML tags (e.g., <details>, <summary>) are preserved in the output.
 func RenderMarkdown(content string) (string, error) {
 	md := goldmark.New(
-		goldmark.WithExtensions(extension.Table),
+		goldmark.WithExtensions(extension.GFM, extension.DefinitionList, emoji.Emoji, extension.Footnote),
 		goldmark.WithParserOptions(
 			goldmark_parser.WithAutoHeadingID(),
 		),

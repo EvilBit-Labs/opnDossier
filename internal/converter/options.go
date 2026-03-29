@@ -94,6 +94,10 @@ type Options struct {
 	// JSON and YAML exports always include all tunables regardless of this setting.
 	IncludeTunables bool
 
+	// FailuresOnly filters the plugin control results table to show only non-compliant controls.
+	// Only meaningful in blue mode audit reports where compliance checks are executed.
+	FailuresOnly bool
+
 	// Redact controls whether sensitive fields (passwords, private keys, community strings, etc.)
 	// are replaced with [REDACTED] in the output. Defaults to false.
 	Redact bool
@@ -213,5 +217,11 @@ func (o Options) WithRedact(redact bool) Options {
 // When false, only security-related tunables are shown in reports.
 func (o Options) WithIncludeTunables(enabled bool) Options {
 	o.IncludeTunables = enabled
+	return o
+}
+
+// WithFailuresOnly enables or disables filtering plugin control results to show only failures.
+func (o Options) WithFailuresOnly(enabled bool) Options {
+	o.FailuresOnly = enabled
 	return o
 }

@@ -35,18 +35,20 @@ type StreamingGenerator interface {
 }
 
 // reportGenerator is the narrowest interface HybridGenerator requires from its
-// builder. It lists only the four methods HybridGenerator directly calls:
+// builder. It lists only the methods HybridGenerator directly calls:
 // report composition (BuildStandardReport, BuildComprehensiveReport),
-// audit section rendering (BuildAuditSection), and a tunables toggle
-// (SetIncludeTunables). The remaining SectionBuilder and TableWriter methods
-// are deliberately excluded — HybridGenerator delegates full-report assembly
-// to the builder and only renders the audit section individually.
+// audit section rendering (BuildAuditSection), and rendering toggles
+// (SetIncludeTunables, SetFailuresOnly). The remaining SectionBuilder and
+// TableWriter methods are deliberately excluded — HybridGenerator delegates
+// full-report assembly to the builder and only renders the audit section individually.
 //
 // Note: HybridGenerator also type-asserts the builder to builder.SectionWriter
 // for streaming support — see generateMarkdownToWriter.
 type reportGenerator interface {
 	// SetIncludeTunables configures whether all system tunables are included in the report.
 	SetIncludeTunables(v bool)
+	// SetFailuresOnly configures whether only non-compliant controls are shown in audit reports.
+	SetFailuresOnly(v bool)
 	// BuildAuditSection builds the compliance audit section from the device's ComplianceChecks.
 	BuildAuditSection(data *common.CommonDevice) string
 	// BuildStandardReport generates a standard configuration report.
@@ -190,6 +192,7 @@ func (g *HybridGenerator) generateMarkdown(data *common.CommonDevice, opts Optio
 	}
 
 	g.builder.SetIncludeTunables(opts.IncludeTunables)
+	g.builder.SetFailuresOnly(opts.FailuresOnly)
 	target := prepareForExport(data, opts.Redact)
 
 	var report string
@@ -230,6 +233,7 @@ func (g *HybridGenerator) generateMarkdownToWriter(
 	}
 
 	g.builder.SetIncludeTunables(opts.IncludeTunables)
+	g.builder.SetFailuresOnly(opts.FailuresOnly)
 	target := prepareForExport(data, opts.Redact)
 
 	// Check if builder supports SectionWriter interface for streaming

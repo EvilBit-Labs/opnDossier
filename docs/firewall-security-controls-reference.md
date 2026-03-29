@@ -314,45 +314,130 @@ Enable HTTPS for web management:
 
 ## Future Controls
 
-The following controls are under consideration for future releases. They are not implemented in the current audit engine.
+The following controls are planned for future releases, organized by security domain. They are not implemented in the current audit engine. For the full cross-standard view (including SANS and STIG), see [Compliance Standards](compliance-standards.md).
 
-### System and User Management
+### Management Plane Security
 
-| Control ID   | Title                      | Category          | Notes                                |
-| ------------ | -------------------------- | ----------------- | ------------------------------------ |
-| FIREWALL-009 | HA Configuration           | High Availability | Validate HA peer sync settings       |
-| FIREWALL-010 | Session Timeout            | User Management   | Verify timeout is 10 min or less     |
-| FIREWALL-011 | Central Authentication     | Authentication    | Check LDAP/RADIUS configuration      |
-| FIREWALL-012 | Console Menu Protection    | Access Control    | Verify console password protection   |
-| FIREWALL-013 | Default Account Management | User Management   | Check default account security       |
-| FIREWALL-014 | Local Account Status       | User Management   | Verify unnecessary accounts disabled |
+| Control ID   | Title                            | Severity | Description                                                             |
+| ------------ | -------------------------------- | -------- | ----------------------------------------------------------------------- |
+| FIREWALL-009 | Non-Default Web GUI Port         | Low      | Web GUI port changed from default 443 to reduce automated scanning risk |
+| FIREWALL-010 | Management Interface Restriction | High     | Web GUI bound to specific interfaces, not all interfaces                |
+| FIREWALL-011 | TLS Version Minimum              | High     | Web GUI TLS minimum version >= 1.2; no SSLv3/TLS 1.0/1.1                |
+| FIREWALL-012 | Anti-Lockout Rule Awareness      | Low      | Anti-lockout rule status is explicitly configured and intentional       |
+| FIREWALL-013 | Session Timeout                  | Medium   | Web GUI idle session timeout \<= 30 minutes                             |
+| FIREWALL-014 | Console Menu Protection          | Medium   | Serial/console access password-protected (`DisableConsoleMenu`)         |
+| FIREWALL-015 | Login Protection / Brute Force   | Medium   | Web GUI login protection with rate limiting on authentication failures  |
 
-### Security Policy
+### Authentication and Access Control
 
-| Control ID   | Title                      | Category        | Notes                             |
-| ------------ | -------------------------- | --------------- | --------------------------------- |
-| FIREWALL-015 | Login Protection Threshold | Security Policy | Verify threshold is 30 or less    |
-| FIREWALL-016 | Access Block Time          | Security Policy | Verify block time is 300s or more |
-| FIREWALL-017 | Default Password Change    | Security Policy | Detect default credentials        |
+| Control ID   | Title                      | Severity | Description                                                             |
+| ------------ | -------------------------- | -------- | ----------------------------------------------------------------------- |
+| FIREWALL-016 | Default Credential Reset   | Critical | Default admin password changed; known default username patterns flagged |
+| FIREWALL-017 | Unique Administrator Accts | Medium   | Each admin has a unique named account; shared "admin" usage flagged     |
+| FIREWALL-018 | Least Privilege Access     | Medium   | Users assigned minimum necessary privileges; `page-all` flagged         |
+| FIREWALL-019 | Centralized Authentication | Medium   | LDAP/RADIUS configured for admin authentication                         |
+| FIREWALL-020 | Disabled Unused Accounts   | Medium   | Unused or default accounts are disabled                                 |
+| FIREWALL-021 | Group-Based Privileges     | Low      | Privileges assigned via groups rather than per-user                     |
 
-### Firewall Rules
+### Firewall Rule Hygiene
 
-| Control ID   | Title                          | Category       | Notes                      |
-| ------------ | ------------------------------ | -------------- | -------------------------- |
-| FIREWALL-018 | Destination Field Restrictions | Firewall Rules | Flag "Any" in destination  |
-| FIREWALL-019 | Source Field Restrictions      | Firewall Rules | Flag "Any" in source       |
-| FIREWALL-020 | Service Field Restrictions     | Firewall Rules | Flag "Any" in service/port |
+| Control ID   | Title                          | Severity | Description                                                        |
+| ------------ | ------------------------------ | -------- | ------------------------------------------------------------------ |
+| FIREWALL-022 | No "Any-Any" Pass Rules        | High     | No rules with source=any, dest=any, port=any, protocol=any         |
+| FIREWALL-023 | No "Any" Source on WAN Inbound | High     | Inbound WAN pass rules have specific source restrictions           |
+| FIREWALL-024 | Specific Port Rules            | Medium   | Rules specify exact ports/services, not "any" port                 |
+| FIREWALL-025 | Rule Documentation             | Medium   | Every firewall rule has a non-empty description                    |
+| FIREWALL-026 | Disabled Rule Cleanup          | Low      | Flag excessive disabled rules (>10) indicating stale configuration |
+| FIREWALL-027 | Protocol Specification         | Medium   | Pass rules specify protocol (TCP, UDP, ICMP), not "any"            |
+| FIREWALL-028 | Pass Rule Logging              | Medium   | Critical pass rules have logging enabled for security monitoring   |
 
-### Service Configuration
+### Network Segmentation
 
-Additional service-level controls under consideration:
+| Control ID   | Title                        | Severity | Description                                                          |
+| ------------ | ---------------------------- | -------- | -------------------------------------------------------------------- |
+| FIREWALL-029 | Private Address Filtering    | Critical | `BlockPrivate` enabled on WAN to block RFC 1918 addresses            |
+| FIREWALL-030 | Bogon Filtering on WAN       | Critical | `BlockBogons` enabled on WAN to block unallocated/reserved addresses |
+| FIREWALL-031 | Unused Interface Disablement | Low      | Interfaces not in use are administratively disabled                  |
+| FIREWALL-032 | VLAN Segmentation            | Medium   | VLANs configured for network segmentation where multiple zones exist |
 
-- SNMP trap receiver configuration and enablement
-- NTP time zone and server configuration
-- DNSSEC enablement on DNS resolver
-- VPN authentication and certificate management
-- OpenVPN TLS and cipher configuration
-- Syslog remote logging configuration
+### Anti-Spoofing and Traffic Validation
+
+| Control ID   | Title                   | Severity | Description                                                            |
+| ------------ | ----------------------- | -------- | ---------------------------------------------------------------------- |
+| FIREWALL-033 | Source Route Rejection  | High     | IP source routing disabled via `net.inet.ip.sourceroute=0` in tunables |
+| FIREWALL-034 | SYN Flood Protection    | Medium   | SYN cookies enabled via `net.inet.tcp.syncookies=1` in tunables        |
+| FIREWALL-035 | Connection State Limits | Medium   | Maximum state table entries configured appropriately                   |
+
+### Encryption and TLS
+
+| Control ID   | Title                     | Severity | Description                                                                 |
+| ------------ | ------------------------- | -------- | --------------------------------------------------------------------------- |
+| FIREWALL-036 | Valid Web GUI Certificate | Medium   | Web GUI uses a valid (non-self-signed or internally-trusted CA) certificate |
+| FIREWALL-037 | Certificate Expiration    | Medium   | No certificates expired or expiring within 30 days                          |
+| FIREWALL-038 | Strong Key Lengths        | Medium   | RSA keys >= 2048 bits, EC keys >= 256 bits across all certificates          |
+
+### Logging and Monitoring
+
+| Control ID   | Title                       | Severity | Description                                                            |
+| ------------ | --------------------------- | -------- | ---------------------------------------------------------------------- |
+| FIREWALL-039 | Remote Syslog Configured    | High     | Logs forwarded to remote syslog/SIEM (`Syslog.RemoteServer` non-empty) |
+| FIREWALL-040 | Authentication Event Log    | Medium   | Auth logging enabled (`Syslog.AuthLogging`)                            |
+| FIREWALL-041 | Firewall Filter Logging     | Medium   | Firewall filter logging enabled (`Syslog.FilterLogging`)               |
+| FIREWALL-042 | Log Retention Configuration | Low      | Local log rotation and size limits configured                          |
+
+### Time Synchronization
+
+| Control ID   | Title                  | Severity | Description                                                    |
+| ------------ | ---------------------- | -------- | -------------------------------------------------------------- |
+| FIREWALL-043 | NTP Configuration      | Medium   | At least 2 NTP time sources configured in `System.TimeServers` |
+| FIREWALL-044 | Timezone Configuration | Low      | System timezone explicitly set (not empty/default)             |
+
+### SNMP Security
+
+| Control ID   | Title                        | Severity | Description                                            |
+| ------------ | ---------------------------- | -------- | ------------------------------------------------------ |
+| FIREWALL-045 | SNMP Disabled if Unused      | Medium   | SNMP service disabled when no operational need         |
+| FIREWALL-046 | No Default Community Strings | High     | SNMP community strings changed from "public"/"private" |
+
+### VPN Configuration
+
+| Control ID   | Title                    | Severity | Description                                             |
+| ------------ | ------------------------ | -------- | ------------------------------------------------------- |
+| FIREWALL-047 | Strong VPN Encryption    | High     | AES-256-GCM or AES-128-GCM; no DES, 3DES, or Blowfish   |
+| FIREWALL-048 | Strong VPN Integrity     | High     | SHA-256+ for integrity; no MD5 or SHA-1                 |
+| FIREWALL-049 | Perfect Forward Secrecy  | High     | PFS enabled on all IPsec Phase 2 tunnels                |
+| FIREWALL-050 | VPN Key Lifetime         | Medium   | Phase 1 lifetime \<= 28800s, Phase 2 lifetime \<= 3600s |
+| FIREWALL-051 | No IKEv1 Aggressive Mode | High     | IKEv1 aggressive mode disabled; use main mode or IKEv2  |
+| FIREWALL-052 | IKEv2 Preferred          | Medium   | IKEv2 used instead of IKEv1 where possible              |
+| FIREWALL-053 | Dead Peer Detection      | Medium   | DPD enabled on IPsec Phase 1 tunnels                    |
+
+### NAT Security
+
+| Control ID   | Title                    | Severity | Description                                                |
+| ------------ | ------------------------ | -------- | ---------------------------------------------------------- |
+| FIREWALL-054 | Documented Port Forwards | Medium   | Every inbound NAT rule has a non-empty description         |
+| FIREWALL-055 | Outbound NAT Control     | Medium   | Outbound NAT mode is "Hybrid" or "Manual", not "Automatic" |
+| FIREWALL-056 | NAT Reflection Disabled  | Low      | NAT reflection disabled unless explicitly required         |
+
+### Service Hardening
+
+| Control ID   | Title                           | Severity | Description                                                         |
+| ------------ | ------------------------------- | -------- | ------------------------------------------------------------------- |
+| FIREWALL-057 | UPnP/NAT-PMP Disabled           | High     | UPnP and NAT-PMP disabled (auto port forwarding is a security risk) |
+| FIREWALL-058 | DNSSEC Validation               | Medium   | Unbound DNS resolver has DNSSEC validation enabled                  |
+| FIREWALL-059 | DNS Resolver Access Restriction | Medium   | DNS resolver serves only internal networks, not WAN-facing          |
+
+### Change Management
+
+| Control ID   | Title                    | Severity | Description                                                |
+| ------------ | ------------------------ | -------- | ---------------------------------------------------------- |
+| FIREWALL-060 | Config Revision Tracking | Low      | Configuration change history and revision tracking enabled |
+
+### High Availability
+
+| Control ID   | Title            | Severity | Description                                                 |
+| ------------ | ---------------- | -------- | ----------------------------------------------------------- |
+| FIREWALL-061 | HA Configuration | Medium   | CARP/pfsync HA peer and synchronization properly configured |
 
 ## References
 

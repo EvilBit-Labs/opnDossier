@@ -17,7 +17,7 @@ func TestNewPlugin(t *testing.T) {
 	p := NewPlugin()
 	assert.NotNil(t, p)
 	assert.NotEmpty(t, p.controls)
-	assert.Len(t, p.controls, 4) // Should have 4 STIG controls
+	assert.Len(t, p.controls, 10) // 4 original + 6 new (V-206701, V-206680/679/678/681, V-206711)
 }
 
 func TestPluginMetadata(t *testing.T) {
@@ -37,10 +37,13 @@ func TestGetControls(t *testing.T) {
 	p := NewPlugin()
 	controls := p.GetControls()
 
-	assert.Len(t, controls, 4)
+	assert.Len(t, controls, 10)
 
 	// Verify all expected control IDs are present
-	expectedIDs := []string{"V-206694", "V-206674", "V-206690", "V-206682"}
+	expectedIDs := []string{
+		"V-206694", "V-206674", "V-206690", "V-206682",
+		"V-206701", "V-206680", "V-206679", "V-206678", "V-206681", "V-206711",
+	}
 	for _, expectedID := range expectedIDs {
 		found := false
 		for _, control := range controls {
@@ -137,13 +140,16 @@ func TestRunChecks(t *testing.T) {
 	findings := p.RunChecks(emptyConfig)
 
 	// With empty config:
-	// - Default deny policy check should pass (conservative approach)
-	// - Overly permissive rules should pass (no rules to be permissive)
-	// - Unnecessary services should pass (no services configured)
-	// - Comprehensive logging should fail (no logging configured)
-	assert.Len(t, findings, 1) // Only logging should fail
+	// - Default deny policy: pass (conservative — no rules = default deny)
+	// - Overly permissive rules: pass (no rules)
+	// - Unnecessary services: pass (no services)
+	// - Comprehensive logging: FAIL (no syslog)
+	// - DoS prevention filters: FAIL (no rules with rate limits)
+	// - 4x logging detail: FAIL (no syslog enabled)
+	// - DoS incident alerting: FAIL (no IDS)
+	assert.Len(t, findings, 7)
 
-	// Verify the finding is for logging
+	// Verify first finding is for logging (order: V-206682 before new controls)
 	assert.Equal(t, "Insufficient Firewall Logging", findings[0].Title)
 	assert.Equal(t, "STIG V-206682", findings[0].Reference)
 }
@@ -172,12 +178,10 @@ func TestRunChecksWithProblematicConfig(t *testing.T) {
 
 	findings := p.RunChecks(problematicConfig)
 
-	// Should have multiple findings:
-	// 1. Missing default deny policy
-	// 2. Overly permissive rules
-	// 3. Unnecessary services
-	// 4. Insufficient logging
-	assert.Len(t, findings, 4)
+	// Should have findings for all 10 controls:
+	// Original 4: default deny, permissive rules, unnecessary services, logging
+	// New 6: DoS prevention, 4 logging detail, DoS alerting
+	assert.Len(t, findings, 10)
 
 	// Verify all findings are present
 	findingTitles := make([]string, len(findings))
@@ -192,6 +196,12 @@ func TestRunChecksWithProblematicConfig(t *testing.T) {
 		"Overly Permissive Firewall Rules",
 		"Unnecessary Network Services Enabled",
 		"Insufficient Firewall Logging",
+		"Missing DoS Prevention Filters",
+		"Network Location Logging Not Configured",
+		"Event Timestamp Logging Not Configured",
+		"Event Type Logging Not Configured",
+		"Source Information Logging Not Configured",
+		"DoS Incident Alerting Not Configured",
 	}
 
 	for _, expected := range expectedTitles {
@@ -579,18 +589,22 @@ func TestComplexScenarios(t *testing.T) {
 		// Good logging configuration
 		Syslog: common.SyslogConfig{
 			Enabled:       true,
+			RemoteServer:  "10.0.0.50",
 			SystemLogging: true,
 			AuthLogging:   true,
 		},
+		// IDS enabled for DoS alerting
+		IDS: &common.IDSConfig{Enabled: true},
 		// No unnecessary services
 	}
 
 	findings := p.RunChecks(mixedConfig)
 
-	// Should detect multiple issues:
+	// Should detect:
 	// 1. Missing default deny (any-to-any rule overrides the explicit deny)
 	// 2. Overly permissive rules (any-to-any rule)
-	assert.Len(t, findings, 2)
+	// 3. Missing DoS prevention filters (no rate limiting on pass rules)
+	assert.Len(t, findings, 3)
 
 	// Check that both expected findings are present
 	findingTitles := make([]string, len(findings))
@@ -600,4 +614,5 @@ func TestComplexScenarios(t *testing.T) {
 
 	assert.Contains(t, findingTitles, "Missing Default Deny Policy")
 	assert.Contains(t, findingTitles, "Overly Permissive Firewall Rules")
+	assert.Contains(t, findingTitles, "Missing DoS Prevention Filters")
 }

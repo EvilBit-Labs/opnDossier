@@ -16,7 +16,7 @@ opndossier audit config.xml -o report.md
 
 ## Blue Team — Defensive Audit
 
-Blue mode runs compliance plugins and produces a defensive audit report with security findings and recommendations.
+Blue mode runs compliance plugins and produces a defensive audit report with security findings and recommendations. The report includes a unified controls table showing the compliance status (PASS/FAIL) for each evaluated control.
 
 ```bash
 # Blue team audit with all available plugins (default when no --plugins specified)
@@ -27,7 +27,24 @@ opndossier audit config.xml --mode blue --plugins stig,sans
 
 # Full compliance suite with comprehensive report
 opndossier audit config.xml --mode blue --plugins stig,sans,firewall --comprehensive
+
+# Show only failing controls (hides passing controls)
+opndossier audit config.xml --mode blue --failures-only
 ```
+
+### Filtering Compliance Results
+
+The `--failures-only` flag filters blue mode audit reports to display only non-compliant controls, hiding passing controls from the compliance tables. This is useful for focusing on remediation tasks.
+
+```bash
+# Show only failing controls in the report
+opndossier audit config.xml --mode blue --failures-only
+
+# Combine with specific plugins for focused remediation
+opndossier audit config.xml --mode blue --plugins stig --failures-only
+```
+
+**Important:** The `--failures-only` flag only works with blue mode and markdown format. Blue mode is required because compliance checks are only executed in blue mode. Markdown format is required because the flag filters the controls table rendered in markdown — JSON and YAML exports always include all controls to avoid information loss.
 
 ## Red Team — Attack Surface Analysis
 
