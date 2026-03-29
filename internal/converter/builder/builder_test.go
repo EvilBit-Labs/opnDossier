@@ -1792,15 +1792,40 @@ func TestBuildAuditSection_InventoryExcludedFromSecurityFindings(t *testing.T) {
 
 	result := b.BuildAuditSection(data)
 
-	// Security Findings should contain the compliance finding
-	if !strings.Contains(result, "Weak Password") {
-		t.Errorf("expected Security Findings to contain compliance finding")
+	if !strings.Contains(result, "### Configuration Notes") {
+		t.Fatalf("expected Configuration Notes section for inventory findings")
 	}
 
-	// Security Findings should NOT contain the inventory finding title in the same table
-	// The inventory finding should only be in Configuration Notes
-	if !strings.Contains(result, "Configuration Notes") {
-		t.Errorf("expected Configuration Notes section for inventory findings in top-level Findings")
+	// Extract the Security Findings section and verify inventory is absent.
+	secStart := strings.Index(result, "### Security Findings")
+	if secStart == -1 {
+		t.Fatalf("expected Security Findings section")
+	}
+
+	secSection := result[secStart:]
+	if next := strings.Index(secSection, "\n### "); next != -1 {
+		secSection = secSection[:next]
+	}
+
+	if !strings.Contains(secSection, "Weak Password") {
+		t.Errorf("expected Weak Password in Security Findings section")
+	}
+
+	for _, inventoryText := range []string{"DHCP Inventory", "3 scopes"} {
+		if strings.Contains(secSection, inventoryText) {
+			t.Errorf("did not expect inventory content %q in Security Findings section", inventoryText)
+		}
+	}
+
+	// Inventory content should still exist under Configuration Notes.
+	notesStart := strings.Index(result, "### Configuration Notes")
+	if notesStart == -1 {
+		t.Fatalf("expected Configuration Notes section")
+	}
+
+	notesSection := result[notesStart:]
+	if !strings.Contains(notesSection, "DHCP Inventory") {
+		t.Errorf("expected inventory finding in Configuration Notes")
 	}
 }
 
