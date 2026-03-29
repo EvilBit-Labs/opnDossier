@@ -389,14 +389,15 @@ func deriveSeverityFromControl(p compliance.Plugin, f compliance.Finding) (strin
 	for _, ref := range f.References {
 		ctrl, err := p.GetControlByID(ref)
 		if err == nil && ctrl.Severity != "" {
-			if !analysis.IsValidSeverity(analysis.Severity(ctrl.Severity)) {
+			normalized := strings.ToLower(ctrl.Severity)
+			if !analysis.IsValidSeverity(analysis.Severity(normalized)) {
 				return "", fmt.Errorf(
 					"control %q has unrecognized severity %q",
 					ref, ctrl.Severity,
 				)
 			}
 
-			return ctrl.Severity, nil
+			return normalized, nil
 		}
 
 		unresolvedRefs = append(unresolvedRefs, ref)
@@ -406,14 +407,15 @@ func deriveSeverityFromControl(p compliance.Plugin, f compliance.Finding) (strin
 	if f.Reference != "" {
 		ctrl, err := p.GetControlByID(f.Reference)
 		if err == nil && ctrl.Severity != "" {
-			if !analysis.IsValidSeverity(analysis.Severity(ctrl.Severity)) {
+			normalized := strings.ToLower(ctrl.Severity)
+			if !analysis.IsValidSeverity(analysis.Severity(normalized)) {
 				return "", fmt.Errorf(
 					"control %q has unrecognized severity %q",
 					f.Reference, ctrl.Severity,
 				)
 			}
 
-			return ctrl.Severity, nil
+			return normalized, nil
 		}
 
 		// Only add if not already tracked via References

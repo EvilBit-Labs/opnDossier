@@ -59,11 +59,20 @@ func (fp *Plugin) checkDHCPInventory(device *common.CommonDevice) checkResult {
 
 // dhcpInventoryDescription builds a human-readable description of configured DHCP scopes.
 func (fp *Plugin) dhcpInventoryDescription(device *common.CommonDevice) string {
+	if device == nil {
+		return "No DHCP scopes configured"
+	}
+
 	count := len(device.DHCP)
 
 	interfaces := make([]string, 0, count)
 	for _, scope := range device.DHCP {
-		interfaces = append(interfaces, scope.Interface)
+		iface := scope.Interface
+		if iface == "" {
+			iface = "(unnamed)"
+		}
+
+		interfaces = append(interfaces, iface)
 	}
 
 	return fmt.Sprintf(
@@ -90,6 +99,10 @@ func (fp *Plugin) checkActiveInterfaces(device *common.CommonDevice) checkResult
 
 // interfaceInventoryDescription builds a human-readable description of active interfaces.
 func (fp *Plugin) interfaceInventoryDescription(device *common.CommonDevice) string {
+	if device == nil {
+		return "No interfaces configured"
+	}
+
 	var enabled int
 
 	for _, iface := range device.Interfaces {

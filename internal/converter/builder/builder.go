@@ -792,6 +792,11 @@ func (b *MarkdownBuilder) writePluginFindingsTable(
 	}
 
 	for _, f := range result.Findings {
+		// Inventory findings are rendered in Configuration Notes, not the findings table.
+		if f.Type == findingTypeInventory {
+			continue
+		}
+
 		controlID := f.Control
 		switch {
 		case controlID != "":
