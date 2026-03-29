@@ -12,7 +12,7 @@ import (
 )
 
 // totalControls is the expected number of controls in the firewall plugin.
-const totalControls = 61
+const totalControls = 63
 
 func TestFirewallPlugin_RunChecks(t *testing.T) {
 	firewallPlugin := firewall.NewPlugin()
@@ -1629,6 +1629,8 @@ func TestFirewallPlugin_EvaluatedControlIDs(t *testing.T) {
 		"FIREWALL-019", "FIREWALL-035",
 		"FIREWALL-037", "FIREWALL-038",
 		"FIREWALL-057", "FIREWALL-059", "FIREWALL-060",
+		// Inventory controls are intentionally excluded from compliance evaluation.
+		"FIREWALL-062", "FIREWALL-063",
 	} {
 		assert.NotContains(t, evaluated, id, "Expected %s to be unknown/not evaluated", id)
 	}

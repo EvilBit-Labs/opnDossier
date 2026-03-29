@@ -20,7 +20,7 @@ Each firewall compliance check returns one of three states:
 | ------------ | -------------------------------- | --------------------- | -------- | ----------- |
 | FIREWALL-001 | SSH Warning Banner Configuration | SSH Security          | Medium   | Unknown     |
 | FIREWALL-002 | Auto Configuration Backup        | Backup and Recovery   | Medium   | Implemented |
-| FIREWALL-003 | Message of the Day               | System Configuration  | Low      | Unknown     |
+| FIREWALL-003 | Message of the Day               | System Configuration  | Info     | Unknown     |
 | FIREWALL-004 | Hostname Configuration           | System Configuration  | Low      | Implemented |
 | FIREWALL-005 | DNS Server Configuration         | Network Configuration | Medium   | Implemented |
 | FIREWALL-006 | IPv6 Disablement                 | Network Configuration | Medium   | Implemented |
@@ -105,7 +105,7 @@ Install and enable AutoConfigBackup:
 | ------------ | ------------------------------------------- |
 | **ID**       | FIREWALL-003                                |
 | **Category** | System Configuration                        |
-| **Severity** | Low                                         |
+| **Severity** | Info                                        |
 | **Status**   | Unknown (OS-level setting)                  |
 | **Tags**     | `motd`, `legal-notice`, `firewall-controls` |
 
@@ -311,6 +311,7 @@ Enable HTTPS for web management:
 | **High**   | Critical security controls that must be implemented. Non-compliance creates significant risk.                   |
 | **Medium** | Important security controls that should be implemented. Non-compliance creates moderate risk.                   |
 | **Low**    | Recommended security controls for enhanced security posture. Non-compliance is acceptable in some environments. |
+| **Info**   | Informational observations about configuration. Not a security failure; provided for awareness and documentation. |
 
 ## Future Controls
 
@@ -347,7 +348,7 @@ The following controls are planned for future releases, organized by security do
 | FIREWALL-023 | No "Any" Source on WAN Inbound | High     | Inbound WAN pass rules have specific source restrictions           |
 | FIREWALL-024 | Specific Port Rules            | Medium   | Rules specify exact ports/services, not "any" port                 |
 | FIREWALL-025 | Rule Documentation             | Medium   | Every firewall rule has a non-empty description                    |
-| FIREWALL-026 | Disabled Rule Cleanup          | Low      | Flag excessive disabled rules (>10) indicating stale configuration |
+| FIREWALL-026 | Disabled Rule Cleanup          | Info     | Flag excessive disabled rules (>10) indicating stale configuration |
 | FIREWALL-027 | Protocol Specification         | Medium   | Pass rules specify protocol (TCP, UDP, ICMP), not "any"            |
 | FIREWALL-028 | Pass Rule Logging              | Medium   | Critical pass rules have logging enabled for security monitoring   |
 
@@ -383,14 +384,14 @@ The following controls are planned for future releases, organized by security do
 | FIREWALL-039 | Remote Syslog Configured    | High     | Logs forwarded to remote syslog/SIEM (`Syslog.RemoteServer` non-empty) |
 | FIREWALL-040 | Authentication Event Log    | Medium   | Auth logging enabled (`Syslog.AuthLogging`)                            |
 | FIREWALL-041 | Firewall Filter Logging     | Medium   | Firewall filter logging enabled (`Syslog.FilterLogging`)               |
-| FIREWALL-042 | Log Retention Configuration | Low      | Local log rotation and size limits configured                          |
+| FIREWALL-042 | Log Retention Configuration | Info     | Local log rotation and size limits configured                          |
 
 ### Time Synchronization
 
 | Control ID   | Title                  | Severity | Description                                                    |
 | ------------ | ---------------------- | -------- | -------------------------------------------------------------- |
 | FIREWALL-043 | NTP Configuration      | Medium   | At least 2 NTP time sources configured in `System.TimeServers` |
-| FIREWALL-044 | Timezone Configuration | Low      | System timezone explicitly set (not empty/default)             |
+| FIREWALL-044 | Timezone Configuration | Info     | System timezone explicitly set (not empty/default)             |
 
 ### SNMP Security
 
@@ -431,13 +432,22 @@ The following controls are planned for future releases, organized by security do
 
 | Control ID   | Title                    | Severity | Description                                                |
 | ------------ | ------------------------ | -------- | ---------------------------------------------------------- |
-| FIREWALL-060 | Config Revision Tracking | Low      | Configuration change history and revision tracking enabled |
+| FIREWALL-060 | Config Revision Tracking | Info     | Configuration change history and revision tracking enabled |
 
 ### High Availability
 
 | Control ID   | Title            | Severity | Description                                                 |
 | ------------ | ---------------- | -------- | ----------------------------------------------------------- |
 | FIREWALL-061 | HA Configuration | Medium   | CARP/pfsync HA peer and synchronization properly configured |
+
+### Configuration Inventory
+
+| Control ID   | Title                    | Severity | Description                                                        |
+| ------------ | ------------------------ | -------- | ------------------------------------------------------------------ |
+| FIREWALL-062 | DHCP Scope Inventory     | Info     | Reports configured DHCP scopes and their interfaces                |
+| FIREWALL-063 | Active Interface Summary | Info     | Reports enabled interfaces and their types                         |
+
+**Note:** Configuration inventory controls use `Type: "inventory"` and are excluded from compliance evaluation. They are rendered in a separate "Configuration Notes" section of audit reports and do not affect pass/fail compliance status.
 
 ## References
 

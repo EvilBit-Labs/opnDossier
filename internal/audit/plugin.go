@@ -335,8 +335,16 @@ func (pr *PluginRegistry) RunComplianceChecks(
 			result.Compliance[pluginName][id] = true // Default evaluated controls to compliant
 		}
 
-		// Update compliance status based on findings — flip evaluated controls to false
+		// Update compliance status based on findings — flip evaluated controls to false.
+		// Inventory findings (Type: "inventory") are informational observations, not
+		// compliance failures. Their referenced controls are not in EvaluatedControlIDs
+		// and thus not in the compliance map, so the flip would be a no-op. We skip
+		// them explicitly for clarity and to guard against accidental map pollution.
 		for _, finding := range findings {
+			if finding.Type == "inventory" {
+				continue
+			}
+
 			for _, ref := range finding.References {
 				if result.Compliance[pluginName] != nil {
 					result.Compliance[pluginName][ref] = false // Non-compliant
@@ -381,7 +389,15 @@ func deriveSeverityFromControl(p compliance.Plugin, f compliance.Finding) (strin
 	for _, ref := range f.References {
 		ctrl, err := p.GetControlByID(ref)
 		if err == nil && ctrl.Severity != "" {
-			return ctrl.Severity, nil
+			normalized := strings.ToLower(ctrl.Severity)
+			if !analysis.IsValidSeverity(analysis.Severity(normalized)) {
+				return "", fmt.Errorf(
+					"control %q has unrecognized severity %q",
+					ref, ctrl.Severity,
+				)
+			}
+
+			return normalized, nil
 		}
 
 		unresolvedRefs = append(unresolvedRefs, ref)
@@ -391,7 +407,15 @@ func deriveSeverityFromControl(p compliance.Plugin, f compliance.Finding) (strin
 	if f.Reference != "" {
 		ctrl, err := p.GetControlByID(f.Reference)
 		if err == nil && ctrl.Severity != "" {
-			return ctrl.Severity, nil
+			normalized := strings.ToLower(ctrl.Severity)
+			if !analysis.IsValidSeverity(analysis.Severity(normalized)) {
+				return "", fmt.Errorf(
+					"control %q has unrecognized severity %q",
+					f.Reference, ctrl.Severity,
+				)
+			}
+
+			return normalized, nil
 		}
 
 		// Only add if not already tracked via References
@@ -421,6 +445,7 @@ const (
 	severityHigh     = string(analysis.SeverityHigh)
 	severityMedium   = string(analysis.SeverityMedium)
 	severityLow      = string(analysis.SeverityLow)
+	severityInfo     = string(analysis.SeverityInfo)
 )
 
 // severityCounts holds the result of tallying findings by severity level.
@@ -429,6 +454,8 @@ type severityCounts struct {
 	high     int
 	medium   int
 	low      int
+	info     int
+	unknown  int
 }
 
 // countSeverities tallies findings by severity level.
@@ -445,6 +472,10 @@ func countSeverities(findings []compliance.Finding) severityCounts {
 			counts.medium++
 		case severityLow:
 			counts.low++
+		case severityInfo:
+			counts.info++
+		default:
+			counts.unknown++
 		}
 	}
 
@@ -461,6 +492,7 @@ func (pr *PluginRegistry) calculateSummary(result *ComplianceResult) *Compliance
 		HighFindings:     counts.high,
 		MediumFindings:   counts.medium,
 		LowFindings:      counts.low,
+		InfoFindings:     counts.info,
 		PluginCount:      len(result.PluginInfo),
 		Compliance:       make(map[string]PluginCompliance),
 	}
@@ -502,6 +534,7 @@ func computePerPluginSummary(
 		HighFindings:     counts.high,
 		MediumFindings:   counts.medium,
 		LowFindings:      counts.low,
+		InfoFindings:     counts.info,
 		PluginCount:      1,
 		Compliance:       make(map[string]PluginCompliance),
 	}
@@ -542,6 +575,7 @@ type ComplianceSummary struct {
 	HighFindings     int                         `json:"highFindings"`
 	MediumFindings   int                         `json:"mediumFindings"`
 	LowFindings      int                         `json:"lowFindings"`
+	InfoFindings     int                         `json:"infoFindings"`
 	PluginCount      int                         `json:"pluginCount"`
 	Compliance       map[string]PluginCompliance `json:"compliance"`
 }

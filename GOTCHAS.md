@@ -38,6 +38,14 @@ When a data race occurs in a test touching global state, the Go race detector ma
 
 `PluginManager.SetPluginDir(dir, explicit)` configures the directory for dynamic `.so` loading. It must be called **before** `InitializePlugins(ctx)` because `InitializePlugins` reads `pm.pluginDir` only during its execution. Calling `SetPluginDir` after `InitializePlugins` mutates the field but has no observable effect on plugin loading because `InitializePlugins` has already completed.
 
+### 2.4 Info Severity Does Not Bypass Compliance
+
+Reclassified info-severity controls (e.g., FIREWALL-003 "Message of the Day") participate in the compliance map normally — they can PASS or FAIL. Severity only affects presentation priority (summary counts, sort order), NOT compliance status. The compliance flip in `RunComplianceChecks` is never skipped based on severity.
+
+- **Gotcha:** A finding with `Severity == "info"` that references a control still flips that control to non-compliant. This is intentional — severity is triage priority, not compliance gating.
+- **Gotcha:** Inventory controls (`Type: "inventory"`) are excluded from `EvaluatedControlIDs` entirely and do not appear in the compliance map. They only appear in "Configuration Notes."
+- **Gotcha:** `countSeverities` tracks unrecognized severity strings in a private `unknown` counter. Callers with loggers should warn when `counts.unknown > 0`.
+
 ## 3. Data Processing
 
 ### 3.1 Map Iteration Order
