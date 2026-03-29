@@ -49,7 +49,7 @@ func NewPlugin() *Plugin {
 			Title:       "Message of the Day",
 			Description: "Message of the Day should be customized",
 			Category:    "System Configuration",
-			Severity:    "low",
+			Severity:    "info",
 			Rationale:   "Custom MOTD provides legal notice and system identification",
 			Remediation: "Configure custom MOTD in /etc/motd with appropriate legal notice",
 			Tags:        []string{"motd", "legal-notice", "firewall-controls"},
@@ -256,6 +256,9 @@ func (fp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 
 	// Run new checks (FIREWALL-009 through -061) via table-driven dispatch.
 	findings = append(findings, fp.runNewChecks(device)...)
+
+	// Run inventory checks (FIREWALL-062+) — Type: "inventory", excluded from compliance map.
+	findings = append(findings, fp.runInventoryChecks(device)...)
 
 	return findings
 }
