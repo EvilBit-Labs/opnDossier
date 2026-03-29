@@ -1057,6 +1057,7 @@ func TestDeriveSeverityFromControl(t *testing.T) {
 		controls: []compliance.Control{
 			{ID: "CTRL-001", Severity: severityCritical},
 			{ID: "CTRL-002", Severity: "high"},
+			{ID: "CTRL-003", Severity: "warning"},
 		},
 	}
 
@@ -1127,6 +1128,39 @@ func TestDeriveSeverityFromControl(t *testing.T) {
 		})
 		if err == nil {
 			t.Fatal("expected error for finding with no control references")
+		}
+	})
+
+	t.Run("invalid severity from control returns error via References", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := deriveSeverityFromControl(mockPlugin, compliance.Finding{
+			Title:      "Bad Severity Finding",
+			References: []string{"CTRL-003"},
+		})
+		if err == nil {
+			t.Fatal("expected error for control with unrecognized severity")
+		}
+		if !strings.Contains(err.Error(), "unrecognized severity") {
+			t.Errorf("error should mention unrecognized severity, got: %v", err)
+		}
+		if !strings.Contains(err.Error(), "warning") {
+			t.Errorf("error should include the invalid severity value, got: %v", err)
+		}
+	})
+
+	t.Run("invalid severity from control returns error via Reference fallback", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := deriveSeverityFromControl(mockPlugin, compliance.Finding{
+			Title:     "Bad Severity Fallback",
+			Reference: "CTRL-003",
+		})
+		if err == nil {
+			t.Fatal("expected error for control with unrecognized severity via Reference")
+		}
+		if !strings.Contains(err.Error(), "warning") {
+			t.Errorf("error should include the invalid severity value, got: %v", err)
 		}
 	})
 }

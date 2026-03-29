@@ -20,6 +20,10 @@ import (
 // destinationAny is the canonical string used to represent an unrestricted destination in firewall rules.
 const destinationAny = "any"
 
+// findingTypeInventory is the Type value for informational inventory findings
+// that are rendered in "Configuration Notes" rather than "Security Findings".
+const findingTypeInventory = "inventory"
+
 // SectionBuilder defines methods for building individual report sections.
 // Each method renders a specific configuration domain into a markdown string
 // or returns an empty string when the section has no data.
@@ -552,15 +556,25 @@ func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
 		}
 	}
 
-	// Security findings table (top-level, non-plugin findings)
-	if len(cc.Findings) > 0 {
+	// Partition top-level findings into security (compliance) and inventory.
+	var securityFindings, inventoryFindings []common.ComplianceFinding
+
+	for _, f := range cc.Findings {
+		if f.Type == findingTypeInventory {
+			inventoryFindings = append(inventoryFindings, f)
+		} else {
+			securityFindings = append(securityFindings, f)
+		}
+	}
+
+	if len(securityFindings) > 0 {
 		md.H3("Security Findings")
 		findingsTable := markdown.TableSet{
 			Header: []string{"Severity", "Component", "Title", "Recommendation"},
-			Rows:   make([][]string, 0, len(cc.Findings)),
+			Rows:   make([][]string, 0, len(securityFindings)),
 		}
 
-		for _, f := range cc.Findings {
+		for _, f := range securityFindings {
 			findingsTable.Rows = append(findingsTable.Rows, []string{
 				EscapePipeForMarkdown(f.Severity),
 				EscapePipeForMarkdown(f.Component),
@@ -570,6 +584,33 @@ func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
 		}
 
 		md.Table(findingsTable)
+	}
+
+	// Configuration Notes — inventory-type findings from top-level and per-plugin
+	for _, pluginName := range slices.Sorted(maps.Keys(cc.PluginResults)) {
+		for _, f := range cc.PluginResults[pluginName].Findings {
+			if f.Type == findingTypeInventory {
+				inventoryFindings = append(inventoryFindings, f)
+			}
+		}
+	}
+
+	if len(inventoryFindings) > 0 {
+		md.H3("Configuration Notes")
+		notesTable := markdown.TableSet{
+			Header: []string{"Component", "Title", "Details"},
+			Rows:   make([][]string, 0, len(inventoryFindings)),
+		}
+
+		for _, f := range inventoryFindings {
+			notesTable.Rows = append(notesTable.Rows, []string{
+				EscapePipeForMarkdown(f.Component),
+				EscapePipeForMarkdown(f.Title),
+				EscapePipeForMarkdown(f.Description),
+			})
+		}
+
+		md.Table(notesTable)
 	}
 
 	// ── Summary and metadata (reference section at bottom) ──
@@ -651,6 +692,10 @@ func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
 
 				if result.Summary.LowFindings > 0 {
 					items = append(items, fmt.Sprintf("Low: %d", result.Summary.LowFindings))
+				}
+
+				if result.Summary.InfoFindings > 0 {
+					items = append(items, fmt.Sprintf("Informational: %d", result.Summary.InfoFindings))
 				}
 
 				md.BulletList(items...)
@@ -747,6 +792,11 @@ func (b *MarkdownBuilder) writePluginFindingsTable(
 	}
 
 	for _, f := range result.Findings {
+		// Inventory findings are rendered in Configuration Notes, not the findings table.
+		if f.Type == findingTypeInventory {
+			continue
+		}
+
 		controlID := f.Control
 		switch {
 		case controlID != "":

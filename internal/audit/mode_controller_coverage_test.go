@@ -245,15 +245,24 @@ func TestCountSeverities(t *testing.T) {
 			want: severityCounts{critical: 1, high: 1, medium: 1, low: 1},
 		},
 		{
-			name: "unknown severities are ignored",
+			name: "info severity is counted",
+			findings: []compliance.Finding{
+				{Severity: "info"},
+				{Severity: "INFO"},
+				{Severity: "Info"},
+			},
+			want: severityCounts{info: 3},
+		},
+		{
+			name: "unknown and empty severities tracked separately",
 			findings: []compliance.Finding{
 				{Severity: "critical"},
 				{Severity: "unknown"},
-				{Severity: "info"},
 				{Severity: ""},
 				{Severity: "high"},
+				{Severity: "warning"},
 			},
-			want: severityCounts{critical: 1, high: 1},
+			want: severityCounts{critical: 1, high: 1, unknown: 3},
 		},
 		{
 			name: "multiple same severity",
@@ -289,6 +298,7 @@ func TestComputePerPluginSummary(t *testing.T) {
 		wantHigh      int
 		wantMedium    int
 		wantLow       int
+		wantInfo      int
 		wantCompliant int
 		wantNonCompl  int
 	}{
@@ -316,27 +326,44 @@ func TestComputePerPluginSummary(t *testing.T) {
 			wantNonCompl:  2,
 		},
 		{
-			name:       "all four severity levels",
+			name:       "all five severity levels",
 			pluginName: "firewall",
 			findings: []compliance.Finding{
 				{Severity: "critical", Title: "f1"},
 				{Severity: "high", Title: "f2"},
 				{Severity: "medium", Title: "f3"},
 				{Severity: "low", Title: "f4"},
+				{Severity: "info", Title: "f5"},
 			},
 			complianceMap: map[string]bool{
 				"CTRL-001": false,
 				"CTRL-002": false,
 				"CTRL-003": true,
 				"CTRL-004": true,
+				"CTRL-005": true,
 			},
-			wantTotal:     4,
+			wantTotal:     5,
 			wantCritical:  1,
 			wantHigh:      1,
 			wantMedium:    1,
 			wantLow:       1,
-			wantCompliant: 2,
+			wantInfo:      1,
+			wantCompliant: 3,
 			wantNonCompl:  2,
+		},
+		{
+			name:       "info-only findings",
+			pluginName: "firewall",
+			findings: []compliance.Finding{
+				{Severity: "info", Title: "note1"},
+				{Severity: "info", Title: "note2"},
+			},
+			complianceMap: map[string]bool{
+				"CTRL-001": true,
+			},
+			wantTotal:     2,
+			wantInfo:      2,
+			wantCompliant: 1,
 		},
 	}
 
@@ -351,6 +378,7 @@ func TestComputePerPluginSummary(t *testing.T) {
 			assert.Equal(t, tt.wantHigh, summary.HighFindings)
 			assert.Equal(t, tt.wantMedium, summary.MediumFindings)
 			assert.Equal(t, tt.wantLow, summary.LowFindings)
+			assert.Equal(t, tt.wantInfo, summary.InfoFindings)
 			assert.Equal(t, 1, summary.PluginCount)
 
 			pc, exists := summary.Compliance[tt.pluginName]

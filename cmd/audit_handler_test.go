@@ -359,6 +359,61 @@ func TestMapAuditReportToComplianceResults(t *testing.T) {
 			},
 		},
 		{
+			name: "plugin-only info findings aggregated correctly",
+			report: &audit.Report{
+				Mode:     audit.ModeBlue,
+				Findings: []audit.Finding{}, // no direct findings
+				Compliance: map[string]audit.ComplianceResult{
+					"firewall": {
+						Findings: []compliance.Finding{},
+						Summary: &audit.ComplianceSummary{
+							TotalFindings: 3,
+							InfoFindings:  3,
+						},
+						PluginInfo: map[string]audit.PluginInfo{
+							"firewall": {
+								Name:    "firewall",
+								Version: "1.0.0",
+							},
+						},
+						Compliance: map[string]map[string]bool{},
+					},
+				},
+				Metadata: make(map[string]any),
+			},
+			verify: func(t *testing.T, result *common.ComplianceResults) {
+				t.Helper()
+
+				// Per-plugin summary must reflect info findings
+				require.Contains(t, result.PluginResults, "firewall")
+				pr := result.PluginResults["firewall"]
+				require.NotNil(t, pr.Summary)
+				assert.Equal(t, 3, pr.Summary.InfoFindings,
+					"plugin summary should report info findings")
+				assert.Equal(t, 3, pr.Summary.TotalFindings,
+					"plugin total should equal info count when only info findings exist")
+				assert.Equal(t, 0, pr.Summary.CriticalFindings)
+				assert.Equal(t, 0, pr.Summary.HighFindings)
+				assert.Equal(t, 0, pr.Summary.MediumFindings)
+				assert.Equal(t, 0, pr.Summary.LowFindings)
+
+				// Aggregate summary must include the plugin-only info findings
+				require.NotNil(t, result.Summary)
+				assert.Equal(t, 3, result.Summary.InfoFindings,
+					"aggregate info findings should include plugin-only values")
+				assert.Equal(t, 3, result.Summary.TotalFindings,
+					"aggregate total should be consistent with plugin summary totals")
+				assert.Equal(t, 0, result.Summary.CriticalFindings)
+				assert.Equal(t, 0, result.Summary.HighFindings)
+				assert.Equal(t, 0, result.Summary.MediumFindings)
+				assert.Equal(t, 0, result.Summary.LowFindings)
+				assert.Equal(t, 1, result.Summary.PluginCount)
+
+				// No direct findings should exist
+				assert.Empty(t, result.Findings)
+			},
+		},
+		{
 			name: "controls with tags and metadata are deep-copied",
 			report: &audit.Report{
 				Mode:     audit.ModeBlue,

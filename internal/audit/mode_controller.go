@@ -189,6 +189,15 @@ func (mc *ModeController) generateBlueReport(_ context.Context, report *Report, 
 		for pluginName, info := range complianceResult.PluginInfo {
 			pluginFindings := complianceResult.PluginFindings[pluginName]
 			pluginComplianceMap := complianceResult.Compliance[pluginName]
+
+			// Warn if plugin produced findings with unrecognized severity values.
+			if counts := countSeverities(pluginFindings); counts.unknown > 0 {
+				mc.logger.Warn("Plugin produced findings with unrecognized severity",
+					"plugin", pluginName,
+					"unknownCount", counts.unknown,
+				)
+			}
+
 			pluginSummary := computePerPluginSummary(pluginName, pluginFindings, pluginComplianceMap)
 
 			report.Compliance[pluginName] = ComplianceResult{
