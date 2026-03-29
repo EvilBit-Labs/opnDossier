@@ -421,6 +421,7 @@ const (
 	severityHigh     = string(analysis.SeverityHigh)
 	severityMedium   = string(analysis.SeverityMedium)
 	severityLow      = string(analysis.SeverityLow)
+	severityInfo     = string(analysis.SeverityInfo)
 )
 
 // severityCounts holds the result of tallying findings by severity level.
@@ -429,6 +430,7 @@ type severityCounts struct {
 	high     int
 	medium   int
 	low      int
+	info     int
 }
 
 // countSeverities tallies findings by severity level.
@@ -445,6 +447,10 @@ func countSeverities(findings []compliance.Finding) severityCounts {
 			counts.medium++
 		case severityLow:
 			counts.low++
+		case severityInfo:
+			counts.info++
+		default:
+			// unrecognized severity — silently ignored
 		}
 	}
 
@@ -461,6 +467,7 @@ func (pr *PluginRegistry) calculateSummary(result *ComplianceResult) *Compliance
 		HighFindings:     counts.high,
 		MediumFindings:   counts.medium,
 		LowFindings:      counts.low,
+		InfoFindings:     counts.info,
 		PluginCount:      len(result.PluginInfo),
 		Compliance:       make(map[string]PluginCompliance),
 	}
@@ -502,6 +509,7 @@ func computePerPluginSummary(
 		HighFindings:     counts.high,
 		MediumFindings:   counts.medium,
 		LowFindings:      counts.low,
+		InfoFindings:     counts.info,
 		PluginCount:      1,
 		Compliance:       make(map[string]PluginCompliance),
 	}
@@ -542,6 +550,7 @@ type ComplianceSummary struct {
 	HighFindings     int                         `json:"highFindings"`
 	MediumFindings   int                         `json:"mediumFindings"`
 	LowFindings      int                         `json:"lowFindings"`
+	InfoFindings     int                         `json:"infoFindings"`
 	PluginCount      int                         `json:"pluginCount"`
 	Compliance       map[string]PluginCompliance `json:"compliance"`
 }
