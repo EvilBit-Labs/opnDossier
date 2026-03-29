@@ -8,10 +8,29 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
+	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// testDisplayCmd creates a minimal *cobra.Command with the given local flags
+// and the root command's persistent flags as inherited flags, suitable for
+// testing validateDisplayFlags.
+func testDisplayCmd(localFlags *pflag.FlagSet) *cobra.Command {
+	parent := &cobra.Command{Use: "root"}
+	parent.PersistentFlags().Bool("json-output", false, "")
+
+	child := &cobra.Command{Use: "display"}
+	if localFlags != nil {
+		localFlags.VisitAll(func(f *pflag.Flag) {
+			child.Flags().AddFlag(f)
+		})
+	}
+	parent.AddCommand(child)
+
+	return child
+}
 
 // sharedFlagSnapshot captures a subset of shared flags for test isolation.
 // This snapshot is used to save and restore flag state between tests to prevent
@@ -182,7 +201,7 @@ func TestBuildDisplayOptionsWrapWidthPrecedence(t *testing.T) {
 				WrapWidth: tt.configWrap,
 			}
 
-			require.NoError(t, validateDisplayFlags(flags))
+			require.NoError(t, validateDisplayFlags(testDisplayCmd(flags)))
 			result := buildDisplayOptions(cfg)
 			assert.Equal(t, tt.expected, result.WrapWidth)
 		})
@@ -296,7 +315,7 @@ func TestValidateDisplayFlagsWrapWidthWarning(t *testing.T) {
 			sharedWrapWidth = tt.wrap
 
 			output := captureStderr(t, func() {
-				err := validateDisplayFlags(pflag.NewFlagSet("test", pflag.ContinueOnError))
+				err := validateDisplayFlags(testDisplayCmd(pflag.NewFlagSet("test", pflag.ContinueOnError)))
 				require.NoError(t, err)
 			})
 
@@ -346,7 +365,7 @@ func TestValidateDisplayFlagsInvalidWrapWidth(t *testing.T) {
 			sharedWrapWidth = tt.wrap
 			sharedNoWrap = false
 
-			err := validateDisplayFlags(pflag.NewFlagSet("test", pflag.ContinueOnError))
+			err := validateDisplayFlags(testDisplayCmd(pflag.NewFlagSet("test", pflag.ContinueOnError)))
 
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), tt.wantError)
@@ -421,7 +440,7 @@ func TestValidateDisplayFlagsNoWrapMutualExclusivity(t *testing.T) {
 				sharedWrapWidth = wrapVal
 			}
 
-			err := validateDisplayFlags(flags)
+			err := validateDisplayFlags(testDisplayCmd(flags))
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.wantErrSubstr)
@@ -431,4 +450,30 @@ func TestValidateDisplayFlagsNoWrapMutualExclusivity(t *testing.T) {
 			assert.Equal(t, 0, sharedWrapWidth)
 		})
 	}
+}
+
+func TestValidateDisplayFlagsRejectsJSONOutput(t *testing.T) {
+	snapshot := captureSharedFlags()
+	t.Cleanup(snapshot.restore)
+
+	// Build a command tree where the parent has --json-output as a persistent flag
+	cmd := testDisplayCmd(nil)
+
+	// Set the inherited --json-output flag to true
+	require.NoError(t, cmd.InheritedFlags().Set("json-output", "true"))
+
+	err := validateDisplayFlags(cmd)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "--json-output is not supported by the display command")
+	assert.Contains(t, err.Error(), "opnDossier convert --format json")
+}
+
+func TestValidateDisplayFlagsAllowsWithoutJSONOutput(t *testing.T) {
+	snapshot := captureSharedFlags()
+	t.Cleanup(snapshot.restore)
+
+	// Default (json-output not set) should not error
+	cmd := testDisplayCmd(nil)
+	err := validateDisplayFlags(cmd)
+	require.NoError(t, err)
 }
