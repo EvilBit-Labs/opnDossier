@@ -132,6 +132,7 @@ func mapAuditReportToComplianceResults(report *audit.Report) *common.ComplianceR
 			totalHigh += pluginResult.Summary.HighFindings
 			totalMedium += pluginResult.Summary.MediumFindings
 			totalLow += pluginResult.Summary.LowFindings
+			totalInfo += pluginResult.Summary.InfoFindings
 			totalCompliant += pluginResult.Summary.Compliant
 			totalNonCompliant += pluginResult.Summary.NonCompliant
 		}
@@ -250,6 +251,7 @@ func mapPluginComplianceResult(pluginName string, cr *audit.ComplianceResult) co
 			HighFindings:     cr.Summary.HighFindings,
 			MediumFindings:   cr.Summary.MediumFindings,
 			LowFindings:      cr.Summary.LowFindings,
+			InfoFindings:     cr.Summary.InfoFindings,
 			PluginCount:      cr.Summary.PluginCount,
 		}
 
