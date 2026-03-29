@@ -335,8 +335,16 @@ func (pr *PluginRegistry) RunComplianceChecks(
 			result.Compliance[pluginName][id] = true // Default evaluated controls to compliant
 		}
 
-		// Update compliance status based on findings — flip evaluated controls to false
+		// Update compliance status based on findings — flip evaluated controls to false.
+		// Inventory findings (Type: "inventory") are informational observations, not
+		// compliance failures. Their referenced controls are not in EvaluatedControlIDs
+		// and thus not in the compliance map, so the flip would be a no-op. We skip
+		// them explicitly for clarity and to guard against accidental map pollution.
 		for _, finding := range findings {
+			if finding.Type == "inventory" {
+				continue
+			}
+
 			for _, ref := range finding.References {
 				if result.Compliance[pluginName] != nil {
 					result.Compliance[pluginName][ref] = false // Non-compliant
@@ -381,6 +389,13 @@ func deriveSeverityFromControl(p compliance.Plugin, f compliance.Finding) (strin
 	for _, ref := range f.References {
 		ctrl, err := p.GetControlByID(ref)
 		if err == nil && ctrl.Severity != "" {
+			if !analysis.IsValidSeverity(analysis.Severity(ctrl.Severity)) {
+				return "", fmt.Errorf(
+					"control %q has unrecognized severity %q",
+					ref, ctrl.Severity,
+				)
+			}
+
 			return ctrl.Severity, nil
 		}
 
@@ -391,6 +406,13 @@ func deriveSeverityFromControl(p compliance.Plugin, f compliance.Finding) (strin
 	if f.Reference != "" {
 		ctrl, err := p.GetControlByID(f.Reference)
 		if err == nil && ctrl.Severity != "" {
+			if !analysis.IsValidSeverity(analysis.Severity(ctrl.Severity)) {
+				return "", fmt.Errorf(
+					"control %q has unrecognized severity %q",
+					f.Reference, ctrl.Severity,
+				)
+			}
+
 			return ctrl.Severity, nil
 		}
 
@@ -431,6 +453,7 @@ type severityCounts struct {
 	medium   int
 	low      int
 	info     int
+	unknown  int
 }
 
 // countSeverities tallies findings by severity level.
@@ -450,7 +473,7 @@ func countSeverities(findings []compliance.Finding) severityCounts {
 		case severityInfo:
 			counts.info++
 		default:
-			// unrecognized severity — silently ignored
+			counts.unknown++
 		}
 	}
 
