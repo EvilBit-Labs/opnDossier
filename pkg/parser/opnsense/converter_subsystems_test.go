@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const sourceKea = "kea" // DHCP scope source for Kea subnets
+
 func TestConverter_IPsec_FullMapping(t *testing.T) {
 	t.Parallel()
 
@@ -473,7 +475,7 @@ func TestConverter_KeaDHCP(t *testing.T) {
 		// Subnets and reservations are parsed into device.DHCP as unified scopes
 		var keaScopes []common.DHCPScope
 		for _, s := range device.DHCP {
-			if s.Source == "kea" {
+			if s.Source == sourceKea {
 				keaScopes = append(keaScopes, s)
 			}
 		}
@@ -511,7 +513,13 @@ func TestConverter_KeaDHCP_UnifiedScopes(t *testing.T) {
 			},
 		}
 		doc.OPNsense.Kea.Dhcp4.Reservations = []schema.KeaReservation{
-			{UUID: "res-x", Subnet: "sub-1", IPAddress: "192.168.1.50", HWAddress: "aa:bb:cc:dd:ee:ff", Hostname: "myhost"},
+			{
+				UUID:      "res-x",
+				Subnet:    "sub-1",
+				IPAddress: "192.168.1.50",
+				HWAddress: "aa:bb:cc:dd:ee:ff",
+				Hostname:  "myhost",
+			},
 		}
 
 		device, _, err := opnsense.ConvertDocument(doc)
@@ -519,14 +527,14 @@ func TestConverter_KeaDHCP_UnifiedScopes(t *testing.T) {
 
 		var keaScope *common.DHCPScope
 		for i := range device.DHCP {
-			if device.DHCP[i].Source == "kea" {
+			if device.DHCP[i].Source == sourceKea {
 				keaScope = &device.DHCP[i]
 				break
 			}
 		}
 		require.NotNil(t, keaScope, "expected Kea scope in device.DHCP")
 
-		assert.Equal(t, "kea", keaScope.Source)
+		assert.Equal(t, sourceKea, keaScope.Source)
 		assert.Equal(t, "LAN subnet", keaScope.Description)
 		assert.True(t, keaScope.Enabled)
 
@@ -559,7 +567,7 @@ func TestConverter_KeaDHCP_UnifiedScopes(t *testing.T) {
 		require.NoError(t, err)
 
 		for _, s := range device.DHCP {
-			assert.NotEqual(t, "kea", s.Source, "disabled Kea should not produce scopes")
+			assert.NotEqual(t, sourceKea, s.Source, "disabled Kea should not produce scopes")
 		}
 	})
 
@@ -573,7 +581,7 @@ func TestConverter_KeaDHCP_UnifiedScopes(t *testing.T) {
 		require.NoError(t, err)
 
 		for _, s := range device.DHCP {
-			assert.NotEqual(t, "kea", s.Source, "empty subnets should not produce scopes")
+			assert.NotEqual(t, sourceKea, s.Source, "empty subnets should not produce scopes")
 		}
 	})
 
@@ -594,7 +602,7 @@ func TestConverter_KeaDHCP_UnifiedScopes(t *testing.T) {
 
 		var keaScope *common.DHCPScope
 		for i := range device.DHCP {
-			if device.DHCP[i].Source == "kea" {
+			if device.DHCP[i].Source == sourceKea {
 				keaScope = &device.DHCP[i]
 				break
 			}
@@ -617,7 +625,7 @@ func TestConverter_KeaDHCP_UnifiedScopes(t *testing.T) {
 
 		var keaScope *common.DHCPScope
 		for i := range device.DHCP {
-			if device.DHCP[i].Source == "kea" {
+			if device.DHCP[i].Source == sourceKea {
 				keaScope = &device.DHCP[i]
 				break
 			}

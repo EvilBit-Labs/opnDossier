@@ -207,7 +207,7 @@ func (c *converter) convertKeaDHCP(doc *schema.OpnSenseDocument) *common.KeaDHCP
 // and attach as static leases. Option data (gateway, DNS, NTP) is extracted from
 // each subnet's inline option_data element.
 //
-//nolint:dupl // ISC and Kea converters have similar structure but distinct data sources
+
 func (c *converter) convertKeaDHCPScopes(doc *schema.OpnSenseDocument) []common.DHCPScope {
 	kea := doc.OPNsense.Kea.Dhcp4
 	if kea.General.Enabled != xmlBoolTrue || len(kea.Subnets) == 0 {
@@ -270,7 +270,7 @@ func (c *converter) convertKeaDHCPScopes(doc *schema.OpnSenseDocument) []common.
 // Each entry is either "start-end" or "cidr/prefix". Empty entries are filtered.
 func splitKeaPools(pools string) []string {
 	var result []string
-	for _, line := range strings.Split(pools, "\n") {
+	for line := range strings.SplitSeq(pools, "\n") {
 		if trimmed := strings.TrimSpace(line); trimmed != "" {
 			result = append(result, trimmed)
 		}
@@ -281,17 +281,15 @@ func splitKeaPools(pools string) []string {
 // parseKeaRange converts a Kea pool range string ("start-end") to DHCPRange.
 // CIDR entries (e.g., "10.0.0.0/24") are stored as-is in From with empty To.
 func parseKeaRange(rangeStr string) common.DHCPRange {
-	parts := strings.SplitN(rangeStr, "-", 2)
-	if len(parts) != 2 {
+	from, to, ok := strings.Cut(rangeStr, "-")
+	if !ok {
 		return common.DHCPRange{From: rangeStr}
 	}
-	return common.DHCPRange{From: strings.TrimSpace(parts[0]), To: strings.TrimSpace(parts[1])}
+	return common.DHCPRange{From: strings.TrimSpace(from), To: strings.TrimSpace(to)}
 }
 
 // firstCSV returns the first value from a comma-separated string.
 func firstCSV(s string) string {
-	if i := strings.IndexByte(s, ','); i >= 0 {
-		return s[:i]
-	}
-	return s
+	before, _, _ := strings.Cut(s, ",")
+	return before
 }
