@@ -102,28 +102,9 @@ type OPNsense struct {
 
 	// DHCP components
 	Kea struct {
-		Text    string `xml:",chardata" json:"text,omitempty"`
-		Version string `xml:"version,attr" json:"version,omitempty"`
-		Dhcp4   struct {
-			Text    string `xml:",chardata" json:"text,omitempty"`
-			Version string `xml:"version,attr" json:"version,omitempty"`
-			General struct {
-				Text          string `xml:",chardata" json:"text,omitempty"`
-				Enabled       string `xml:"enabled"`
-				Interfaces    string `xml:"interfaces"`
-				FirewallRules string `xml:"fwrules"`
-				ValidLifetime string `xml:"valid_lifetime"`
-			} `xml:"general" json:"general"`
-			HighAvailability struct {
-				Text              string `xml:",chardata" json:"text,omitempty"`
-				Enabled           string `xml:"enabled"`
-				ThisServerName    string `xml:"this_server_name"`
-				MaxUnackedClients string `xml:"max_unacked_clients"`
-			} `xml:"ha" json:"ha"`
-			Subnets      string `xml:"subnets"`
-			Reservations string `xml:"reservations"`
-			HAPeers      string `xml:"ha_peers"`
-		} `xml:"dhcp4" json:"dhcp4"`
+		Text      string   `xml:",chardata" json:"text,omitempty"`
+		Version   string   `xml:"version,attr" json:"version,omitempty"`
+		Dhcp4     KeaDhcp4 `xml:"dhcp4" json:"dhcp4"`
 		CtrlAgent struct {
 			Text    string `xml:",chardata" json:"text,omitempty"`
 			Version string `xml:"version,attr" json:"version,omitempty"`

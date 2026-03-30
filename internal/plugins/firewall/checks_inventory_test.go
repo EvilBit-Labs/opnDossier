@@ -31,13 +31,13 @@ func TestFirewallPlugin_InventoryChecks_DHCP(t *testing.T) {
 
 	fp := firewall.NewPlugin()
 
-	t.Run("emits finding when DHCP scopes present", func(t *testing.T) {
+	t.Run("emits finding when ISC DHCP scopes present", func(t *testing.T) {
 		t.Parallel()
 
 		device := &common.CommonDevice{
 			DHCP: []common.DHCPScope{
-				{Interface: "lan"},
-				{Interface: "guest"},
+				{Interface: "lan", Source: common.DHCPSourceISC},
+				{Interface: "guest", Source: common.DHCPSourceISC},
 			},
 		}
 
@@ -46,9 +46,58 @@ func TestFirewallPlugin_InventoryChecks_DHCP(t *testing.T) {
 		require.NotNil(t, f, "expected FIREWALL-062 inventory finding")
 		assert.Equal(t, "inventory", f.Type)
 		assert.Equal(t, "info", f.Severity)
-		assert.Contains(t, f.Description, "2 DHCP scope(s)")
+		assert.Contains(t, f.Description, "2 ISC DHCP scope(s)")
 		assert.Contains(t, f.Description, "lan")
 		assert.Contains(t, f.Description, "guest")
+	})
+
+	t.Run("emits finding when only Kea DHCP scopes present", func(t *testing.T) {
+		t.Parallel()
+
+		device := &common.CommonDevice{
+			DHCP: []common.DHCPScope{
+				{Source: common.DHCPSourceKea, Description: "LAN subnet"},
+			},
+		}
+
+		findings := fp.RunChecks(device)
+		f := inventoryFindingByRef(findings, controlDHCPInventory)
+		require.NotNil(t, f, "expected FIREWALL-062 inventory finding for Kea scopes")
+		assert.Equal(t, "inventory", f.Type)
+		assert.Contains(t, f.Description, "1 Kea subnet(s)")
+		assert.Contains(t, f.Description, "LAN subnet")
+	})
+
+	t.Run("emits finding with both ISC and Kea scopes", func(t *testing.T) {
+		t.Parallel()
+
+		device := &common.CommonDevice{
+			DHCP: []common.DHCPScope{
+				{Interface: "lan", Source: common.DHCPSourceISC},
+				{Source: common.DHCPSourceKea, Description: "Server VLAN"},
+			},
+		}
+
+		findings := fp.RunChecks(device)
+		f := inventoryFindingByRef(findings, controlDHCPInventory)
+		require.NotNil(t, f)
+		assert.Contains(t, f.Description, "1 ISC DHCP scope(s)")
+		assert.Contains(t, f.Description, "1 Kea subnet(s)")
+	})
+
+	t.Run("ISC scope without Source treated as ISC", func(t *testing.T) {
+		t.Parallel()
+
+		device := &common.CommonDevice{
+			DHCP: []common.DHCPScope{
+				{Interface: "lan"}, // Source empty → treated as ISC
+			},
+		}
+
+		findings := fp.RunChecks(device)
+		f := inventoryFindingByRef(findings, controlDHCPInventory)
+		require.NotNil(t, f)
+		assert.Contains(t, f.Description, "1 ISC DHCP scope(s)")
 	})
 
 	t.Run("no finding when DHCP scopes empty", func(t *testing.T) {

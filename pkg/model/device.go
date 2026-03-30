@@ -165,14 +165,14 @@ type CommonDevice struct {
 	ComplianceChecks *ComplianceResults `json:"complianceChecks,omitempty" yaml:"complianceChecks,omitempty"`
 }
 
-// HasDHCP reports whether the device has any DHCP configuration,
-// including both legacy ISC DHCP scopes and modern Kea DHCP.
+// HasDHCP reports whether the device has any DHCP configuration.
+// Both ISC and Kea DHCP scopes are normalized into the unified DHCP slice.
 // Returns false if d is nil.
 func (d *CommonDevice) HasDHCP() bool {
 	if d == nil {
 		return false
 	}
-	return len(d.DHCP) > 0 || d.KeaDHCP != nil
+	return len(d.DHCP) > 0
 }
 
 // HasInterfaces reports whether the device has any interface configuration.

@@ -46,40 +46,51 @@ func (fp *Plugin) runInventoryChecks(device *common.CommonDevice) []compliance.F
 	return findings
 }
 
-// checkDHCPInventory reports whether ISC DHCP scopes are configured.
-// Only checks device.DHCP (ISC DHCP), not KeaDHCP, to match the description
-// generator which can only enumerate ISC scopes.
+// checkDHCPInventory reports whether any DHCP scopes (ISC or Kea) are configured.
 func (fp *Plugin) checkDHCPInventory(device *common.CommonDevice) checkResult {
 	if device == nil {
 		return checkResult{Result: false, Known: true}
 	}
 
-	return checkResult{Result: len(device.DHCP) > 0, Known: true}
+	return checkResult{Result: device.HasDHCP(), Known: true}
 }
 
-// dhcpInventoryDescription builds a human-readable description of configured DHCP scopes.
+// dhcpInventoryDescription builds a human-readable description of configured DHCP scopes,
+// distinguishing ISC vs Kea sources when both are present.
 func (fp *Plugin) dhcpInventoryDescription(device *common.CommonDevice) string {
-	if device == nil {
+	if device == nil || len(device.DHCP) == 0 {
 		return "No DHCP scopes configured"
 	}
 
-	count := len(device.DHCP)
-
-	interfaces := make([]string, 0, count)
+	var iscLabels, keaLabels []string
 	for _, scope := range device.DHCP {
-		iface := scope.Interface
-		if iface == "" {
-			iface = "(unnamed)"
+		label := scope.Interface
+		if label == "" {
+			label = scope.Description
+		}
+		if label == "" {
+			label = "(unnamed)"
 		}
 
-		interfaces = append(interfaces, iface)
+		switch scope.Source {
+		case common.DHCPSourceKea:
+			keaLabels = append(keaLabels, label)
+		default:
+			iscLabels = append(iscLabels, label)
+		}
 	}
 
-	return fmt.Sprintf(
-		"%d DHCP scope(s) configured on interface(s): %s",
-		count,
-		strings.Join(interfaces, ", "),
-	)
+	var parts []string
+	if len(iscLabels) > 0 {
+		parts = append(parts, fmt.Sprintf("%d ISC DHCP scope(s) on: %s",
+			len(iscLabels), strings.Join(iscLabels, ", ")))
+	}
+	if len(keaLabels) > 0 {
+		parts = append(parts, fmt.Sprintf("%d Kea subnet(s): %s",
+			len(keaLabels), strings.Join(keaLabels, ", ")))
+	}
+
+	return strings.Join(parts, "; ")
 }
 
 // checkActiveInterfaces reports whether enabled interfaces exist.

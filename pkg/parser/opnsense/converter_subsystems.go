@@ -1,6 +1,11 @@
 package opnsense
 
 import (
+	"fmt"
+	"maps"
+	"slices"
+	"strings"
+
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
@@ -197,7 +202,141 @@ func (c *converter) convertKeaDHCP(doc *schema.OpnSenseDocument) *common.KeaDHCP
 			ThisServerName:    kea.Dhcp4.HighAvailability.ThisServerName,
 			MaxUnackedClients: kea.Dhcp4.HighAvailability.MaxUnackedClients,
 		},
-		Subnets:      kea.Dhcp4.Subnets,
-		Reservations: kea.Dhcp4.Reservations,
 	}
+}
+
+// convertKeaDHCPScopes converts Kea DHCP4 subnets into unified DHCPScope entries.
+// Reservations reference their parent subnet by UUID; we group them by subnet UUID
+// and attach as static leases. Option data (gateway, DNS, NTP) is extracted from
+// each subnet's inline option_data element.
+func (c *converter) convertKeaDHCPScopes(doc *schema.OpnSenseDocument) []common.DHCPScope {
+	kea := doc.OPNsense.Kea.Dhcp4
+	if len(kea.Subnets) == 0 {
+		return nil
+	}
+
+	enabled := kea.General.Enabled == xmlBoolTrue
+
+	// Group reservations by parent subnet UUID (skip blank UUIDs).
+	resBySubnet := make(map[string][]schema.KeaReservation, len(kea.Reservations))
+	for _, r := range kea.Reservations {
+		if r.Subnet == "" {
+			c.addWarning("kea.dhcp4.reservations.reservation.subnet",
+				r.UUID,
+				"Kea reservation missing parent subnet UUID; reservation orphaned",
+				common.SeverityMedium)
+			continue
+		}
+		resBySubnet[r.Subnet] = append(resBySubnet[r.Subnet], r)
+	}
+
+	scopes := make([]common.DHCPScope, 0, len(kea.Subnets))
+	for _, sub := range kea.Subnets {
+		canMatchReservations := sub.UUID != ""
+		if !canMatchReservations {
+			c.addWarning("kea.dhcp4.subnets.subnet4",
+				sub.Subnet,
+				"Kea subnet missing UUID attribute; reservation matching will not work",
+				common.SeverityMedium)
+		}
+
+		scope := common.DHCPScope{
+			Source:      common.DHCPSourceKea,
+			Enabled:     enabled,
+			Description: sub.Description,
+		}
+
+		// Extract gateway, DNS, NTP from option_data.
+		// Fields can be comma-separated lists; use the first value.
+		if sub.OptionData.Routers != "" {
+			scope.Gateway = firstCSV(sub.OptionData.Routers)
+		}
+		if sub.OptionData.DomainNameServers != "" {
+			scope.DNSServer = firstCSV(sub.OptionData.DomainNameServers)
+		}
+		if sub.OptionData.NTPServers != "" {
+			scope.NTPServer = firstCSV(sub.OptionData.NTPServers)
+		}
+
+		// Parse pool ranges from the pools field.
+		// KeaPoolsField stores newline-separated range strings or CIDR subnets;
+		// use the first entry as the primary range.
+		if sub.Pools != "" {
+			pools := splitKeaPools(sub.Pools)
+			if len(pools) > 0 {
+				scope.Range = parseKeaRange(pools[0])
+				if len(pools) > 1 {
+					c.addWarning("kea.dhcp4.subnets.subnet4.pools",
+						sub.Pools,
+						fmt.Sprintf("Kea subnet %s has %d pools; only the first is represented in the unified scope",
+							sub.UUID, len(pools)),
+						common.SeverityInfo)
+				}
+			}
+		}
+
+		// Attach reservations that reference this subnet.
+		if canMatchReservations {
+			for _, res := range resBySubnet[sub.UUID] {
+				scope.StaticLeases = append(scope.StaticLeases, common.DHCPStaticLease{
+					IPAddress:   res.IPAddress,
+					MAC:         res.HWAddress,
+					Hostname:    res.Hostname,
+					Description: res.Description,
+				})
+			}
+		}
+
+		scopes = append(scopes, scope)
+	}
+
+	// Warn on orphaned reservations referencing nonexistent subnet UUIDs.
+	// Sort for deterministic warning order (GOTCHAS.md §3.1).
+	seenSubnets := make(map[string]struct{}, len(kea.Subnets))
+	for _, sub := range kea.Subnets {
+		if sub.UUID != "" {
+			seenSubnets[sub.UUID] = struct{}{}
+		}
+	}
+
+	for _, subnetUUID := range slices.Sorted(maps.Keys(resBySubnet)) {
+		if _, ok := seenSubnets[subnetUUID]; !ok {
+			c.addWarning(
+				"kea.dhcp4.reservations",
+				subnetUUID,
+				fmt.Sprintf("reservation references nonexistent subnet UUID %q; reservation orphaned", subnetUUID),
+				common.SeverityMedium,
+			)
+		}
+	}
+
+	return scopes
+}
+
+// splitKeaPools splits the newline-separated pool ranges from KeaPoolsField.
+// Each entry is either "start-end" or "cidr/prefix". Empty entries are filtered.
+func splitKeaPools(pools string) []string {
+	var result []string
+	for line := range strings.SplitSeq(pools, "\n") {
+		if trimmed := strings.TrimSpace(line); trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
+}
+
+// parseKeaRange converts a Kea pool range string ("start-end") to DHCPRange.
+// CIDR entries (e.g., "10.0.0.0/24") are stored as-is in From with empty To.
+func parseKeaRange(rangeStr string) common.DHCPRange {
+	from, to, ok := strings.Cut(rangeStr, "-")
+	if !ok {
+		return common.DHCPRange{From: rangeStr}
+	}
+	return common.DHCPRange{From: strings.TrimSpace(from), To: strings.TrimSpace(to)}
+}
+
+// firstCSV returns the first trimmed value from a comma-separated string.
+func firstCSV(s string) string {
+	before, _, _ := strings.Cut(s, ",")
+	return strings.TrimSpace(before)
 }
