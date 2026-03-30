@@ -449,8 +449,12 @@ func TestConverter_KeaDHCP(t *testing.T) {
 		doc.OPNsense.Kea.Dhcp4.HighAvailability.Enabled = "1"
 		doc.OPNsense.Kea.Dhcp4.HighAvailability.ThisServerName = "primary"
 		doc.OPNsense.Kea.Dhcp4.HighAvailability.MaxUnackedClients = "5"
-		doc.OPNsense.Kea.Dhcp4.Subnets = "subnet-uuid-1"
-		doc.OPNsense.Kea.Dhcp4.Reservations = "res-uuid-1"
+		doc.OPNsense.Kea.Dhcp4.Subnets = []schema.KeaSubnet{
+			{UUID: "subnet-uuid-1", Subnet: "192.168.1.0/24", Description: "Test subnet"},
+		}
+		doc.OPNsense.Kea.Dhcp4.Reservations = []schema.KeaReservation{
+			{UUID: "res-uuid-1", Subnet: "subnet-uuid-1", IPAddress: "192.168.1.50", HWAddress: "aa:bb:cc:dd:ee:ff"},
+		}
 
 		device, warnings, err := opnsense.ConvertDocument(doc)
 		require.NoError(t, err)
@@ -465,8 +469,7 @@ func TestConverter_KeaDHCP(t *testing.T) {
 		assert.True(t, kea.HA.Enabled)
 		assert.Equal(t, "primary", kea.HA.ThisServerName)
 		assert.Equal(t, "5", kea.HA.MaxUnackedClients)
-		assert.Equal(t, "subnet-uuid-1", kea.Subnets)
-		assert.Equal(t, "res-uuid-1", kea.Reservations)
+		// Subnets and reservations are now parsed into device.DHCP as unified scopes (Task 8)
 	})
 }
 

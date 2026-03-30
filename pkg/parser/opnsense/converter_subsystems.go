@@ -197,7 +197,5 @@ func (c *converter) convertKeaDHCP(doc *schema.OpnSenseDocument) *common.KeaDHCP
 			ThisServerName:    kea.Dhcp4.HighAvailability.ThisServerName,
 			MaxUnackedClients: kea.Dhcp4.HighAvailability.MaxUnackedClients,
 		},
-		Subnets:      kea.Dhcp4.Subnets,
-		Reservations: kea.Dhcp4.Reservations,
 	}
 }
