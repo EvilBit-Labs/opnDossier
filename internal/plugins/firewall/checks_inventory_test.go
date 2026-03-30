@@ -36,8 +36,8 @@ func TestFirewallPlugin_InventoryChecks_DHCP(t *testing.T) {
 
 		device := &common.CommonDevice{
 			DHCP: []common.DHCPScope{
-				{Interface: "lan", Source: "isc"},
-				{Interface: "guest", Source: "isc"},
+				{Interface: "lan", Source: common.DHCPSourceISC},
+				{Interface: "guest", Source: common.DHCPSourceISC},
 			},
 		}
 
@@ -56,7 +56,7 @@ func TestFirewallPlugin_InventoryChecks_DHCP(t *testing.T) {
 
 		device := &common.CommonDevice{
 			DHCP: []common.DHCPScope{
-				{Source: "kea", Description: "LAN subnet"},
+				{Source: common.DHCPSourceKea, Description: "LAN subnet"},
 			},
 		}
 
@@ -73,8 +73,8 @@ func TestFirewallPlugin_InventoryChecks_DHCP(t *testing.T) {
 
 		device := &common.CommonDevice{
 			DHCP: []common.DHCPScope{
-				{Interface: "lan", Source: "isc"},
-				{Source: "kea", Description: "Server VLAN"},
+				{Interface: "lan", Source: common.DHCPSourceISC},
+				{Source: common.DHCPSourceKea, Description: "Server VLAN"},
 			},
 		}
 

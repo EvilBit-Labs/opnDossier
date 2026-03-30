@@ -72,9 +72,10 @@ func (fp *Plugin) dhcpInventoryDescription(device *common.CommonDevice) string {
 			label = "(unnamed)"
 		}
 
-		if scope.Source == "kea" {
+		switch scope.Source {
+		case common.DHCPSourceKea:
 			keaLabels = append(keaLabels, label)
-		} else {
+		default:
 			iscLabels = append(iscLabels, label)
 		}
 	}

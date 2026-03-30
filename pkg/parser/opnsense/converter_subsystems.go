@@ -207,8 +207,6 @@ func (c *converter) convertKeaDHCP(doc *schema.OpnSenseDocument) *common.KeaDHCP
 // Reservations reference their parent subnet by UUID; we group them by subnet UUID
 // and attach as static leases. Option data (gateway, DNS, NTP) is extracted from
 // each subnet's inline option_data element.
-//
-
 func (c *converter) convertKeaDHCPScopes(doc *schema.OpnSenseDocument) []common.DHCPScope {
 	kea := doc.OPNsense.Kea.Dhcp4
 	if kea.General.Enabled != xmlBoolTrue || len(kea.Subnets) == 0 {
@@ -224,7 +222,7 @@ func (c *converter) convertKeaDHCPScopes(doc *schema.OpnSenseDocument) []common.
 	scopes := make([]common.DHCPScope, 0, len(kea.Subnets))
 	for _, sub := range kea.Subnets {
 		scope := common.DHCPScope{
-			Source:      "kea",
+			Source:      common.DHCPSourceKea,
 			Enabled:     true, // Kea subnets are active when the server is enabled
 			Description: sub.Description,
 		}
@@ -269,6 +267,23 @@ func (c *converter) convertKeaDHCPScopes(doc *schema.OpnSenseDocument) []common.
 		}
 
 		scopes = append(scopes, scope)
+	}
+
+	// Warn on orphaned reservations referencing nonexistent subnet UUIDs.
+	seenSubnets := make(map[string]struct{}, len(kea.Subnets))
+	for _, sub := range kea.Subnets {
+		seenSubnets[sub.UUID] = struct{}{}
+	}
+
+	for subnetUUID := range resBySubnet {
+		if _, ok := seenSubnets[subnetUUID]; !ok {
+			c.addWarning(
+				"kea.dhcp4.reservations",
+				subnetUUID,
+				fmt.Sprintf("reservation references nonexistent subnet UUID %q; reservation orphaned", subnetUUID),
+				common.SeverityMedium,
+			)
+		}
 	}
 
 	return scopes

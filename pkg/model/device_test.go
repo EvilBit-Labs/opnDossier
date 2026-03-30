@@ -473,7 +473,7 @@ func TestCommonDevice_HasDHCP(t *testing.T) {
 		{
 			name: "Kea DHCP scope in unified slice returns true",
 			device: common.CommonDevice{
-				DHCP: []common.DHCPScope{{Source: "kea", Description: "LAN subnet"}},
+				DHCP: []common.DHCPScope{{Source: common.DHCPSourceKea, Description: "LAN subnet"}},
 			},
 			want: true,
 		},

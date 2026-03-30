@@ -6,7 +6,7 @@ import "encoding/xml"
 // reservations as stored in the OPNsense MVC model (KeaDhcpv4.xml v1.0.4).
 type KeaDhcp4 struct {
 	XMLName xml.Name `xml:"dhcp4"`
-	Text    string   `xml:",chardata" json:"text,omitempty"`
+	Text    string   `xml:",chardata"              json:"text,omitempty"`
 	Version string   `xml:"version,attr,omitempty" json:"version,omitempty"`
 	General struct {
 		Text          string `xml:",chardata" json:"text,omitempty"`
@@ -14,13 +14,13 @@ type KeaDhcp4 struct {
 		Interfaces    string `xml:"interfaces"`
 		FirewallRules string `xml:"fwrules"`
 		ValidLifetime string `xml:"valid_lifetime"`
-	} `xml:"general" json:"general"`
+	} `xml:"general"                json:"general"`
 	HighAvailability struct {
 		Text              string `xml:",chardata" json:"text,omitempty"`
 		Enabled           string `xml:"enabled"`
 		ThisServerName    string `xml:"this_server_name"`
 		MaxUnackedClients string `xml:"max_unacked_clients"`
-	} `xml:"ha" json:"ha"`
+	} `xml:"ha"                     json:"ha"`
 	// Subnets are MVC ArrayField elements named "subnet4" under <subnets>.
 	Subnets []KeaSubnet `xml:"subnets>subnet4"`
 	// Reservations reference their parent subnet by UUID.
@@ -48,7 +48,7 @@ type KeaOptionData struct {
 	DomainSearch      string `xml:"domain_search"`       // Comma-separated domains
 	Routers           string `xml:"routers"`             // Gateway — comma-separated IPs
 	DomainName        string `xml:"domain_name"`
-	NTPServers        string `xml:"ntp_servers"`    // Comma-separated IPs
+	NTPServers        string `xml:"ntp_servers"` // Comma-separated IPs
 	TFTPServerName    string `xml:"tftp_server_name"`
 	BootFileName      string `xml:"boot_file_name"`
 }
@@ -57,7 +57,7 @@ type KeaOptionData struct {
 // The Subnet field references the parent subnet's UUID.
 type KeaReservation struct {
 	UUID        string        `xml:"uuid,attr"`
-	Subnet      string        `xml:"subnet"`    // UUID of parent subnet
+	Subnet      string        `xml:"subnet"` // UUID of parent subnet
 	IPAddress   string        `xml:"ip_address"`
 	HWAddress   string        `xml:"hw_address"`
 	Hostname    string        `xml:"hostname"`
