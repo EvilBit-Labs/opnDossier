@@ -22,6 +22,7 @@ func (c *converter) convertDHCP(doc *schema.OpnSenseDocument) []common.DHCPScope
 		d := items[key]
 		scope := common.DHCPScope{
 			Interface:  key,
+			Source:     "isc",
 			Enabled:    d.Enable == xmlBoolTrue,
 			Range:      common.DHCPRange{From: d.Range.From, To: d.Range.To},
 			Gateway:    d.Gateway,

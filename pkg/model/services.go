@@ -136,10 +136,15 @@ type DHCPAdvancedV6 struct {
 	AdvDHCP6ConfigFileOverridePath string `json:"advDhcp6ConfigFileOverridePath,omitempty" yaml:"advDhcp6ConfigFileOverridePath,omitempty"`
 }
 
-// DHCPScope represents DHCP server configuration for a single interface.
+// DHCPScope represents DHCP server configuration for a single interface or subnet.
 type DHCPScope struct {
 	// Interface is the logical interface name this DHCP scope is bound to.
 	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
+	// Source identifies which DHCP server produced this scope ("isc" or "kea").
+	// Empty string is treated as "isc" for backward compatibility.
+	Source string `json:"source,omitempty" yaml:"source,omitempty"`
+	// Description is a human-readable label for the scope (Kea subnets have descriptions; ISC scopes use the interface name).
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// Enabled indicates whether the DHCP server is active on this interface.
 	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 	// Range defines the start and end of the DHCP address pool.
