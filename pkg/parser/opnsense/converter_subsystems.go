@@ -221,6 +221,13 @@ func (c *converter) convertKeaDHCPScopes(doc *schema.OpnSenseDocument) []common.
 
 	scopes := make([]common.DHCPScope, 0, len(kea.Subnets))
 	for _, sub := range kea.Subnets {
+		if sub.UUID == "" {
+			c.addWarning("kea.dhcp4.subnets.subnet4",
+				sub.Subnet,
+				"Kea subnet missing UUID attribute; reservation matching will not work",
+				common.SeverityMedium)
+		}
+
 		scope := common.DHCPScope{
 			Source:      common.DHCPSourceKea,
 			Enabled:     true, // Kea subnets are active when the server is enabled
@@ -311,8 +318,8 @@ func parseKeaRange(rangeStr string) common.DHCPRange {
 	return common.DHCPRange{From: strings.TrimSpace(from), To: strings.TrimSpace(to)}
 }
 
-// firstCSV returns the first value from a comma-separated string.
+// firstCSV returns the first trimmed value from a comma-separated string.
 func firstCSV(s string) string {
 	before, _, _ := strings.Cut(s, ",")
-	return before
+	return strings.TrimSpace(before)
 }

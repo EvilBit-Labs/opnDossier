@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-
 func TestConverter_IPsec_FullMapping(t *testing.T) {
 	t.Parallel()
 
@@ -722,6 +721,38 @@ func TestConverter_KeaDHCP_UnifiedScopes(t *testing.T) {
 		assert.Equal(t, "10.0.0.0/24", keaScope.Range.From)
 		assert.Empty(t, keaScope.Range.To)
 	})
+}
+
+func TestConverter_KeaDHCP_ISCAndKeaCoexist(t *testing.T) {
+	t.Parallel()
+
+	doc := schema.NewOpnSenseDocument()
+	// ISC DHCP scope
+	doc.Dhcpd.Items = map[string]schema.DhcpdInterface{
+		"lan": {Enable: "1", Range: schema.Range{From: "10.0.0.100", To: "10.0.0.200"}},
+	}
+	// Kea DHCP scope
+	doc.OPNsense.Kea.Dhcp4.General.Enabled = "1"
+	doc.OPNsense.Kea.Dhcp4.Subnets = []schema.KeaSubnet{
+		{UUID: "sub-1", Subnet: "192.168.1.0/24", Description: "Kea LAN"},
+	}
+
+	device, _, err := opnsense.ConvertDocument(doc)
+	require.NoError(t, err)
+
+	var iscCount, keaCount int
+	for _, s := range device.DHCP {
+		switch s.Source {
+		case common.DHCPSourceISC:
+			iscCount++
+		case common.DHCPSourceKea:
+			keaCount++
+		}
+	}
+
+	assert.Equal(t, 1, iscCount, "expected 1 ISC scope")
+	assert.Equal(t, 1, keaCount, "expected 1 Kea scope")
+	assert.Len(t, device.DHCP, 2, "expected both ISC and Kea in unified DHCP slice")
 }
 
 func TestConverter_Syslog_ExtendedCategories(t *testing.T) {
