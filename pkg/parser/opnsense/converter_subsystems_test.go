@@ -3,6 +3,7 @@ package opnsense_test
 import (
 	"testing"
 
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"
 	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 	"github.com/stretchr/testify/assert"
@@ -449,8 +450,12 @@ func TestConverter_KeaDHCP(t *testing.T) {
 		doc.OPNsense.Kea.Dhcp4.HighAvailability.Enabled = "1"
 		doc.OPNsense.Kea.Dhcp4.HighAvailability.ThisServerName = "primary"
 		doc.OPNsense.Kea.Dhcp4.HighAvailability.MaxUnackedClients = "5"
-		doc.OPNsense.Kea.Dhcp4.Subnets = "subnet-uuid-1"
-		doc.OPNsense.Kea.Dhcp4.Reservations = "res-uuid-1"
+		doc.OPNsense.Kea.Dhcp4.Subnets = []schema.KeaSubnet{
+			{UUID: "subnet-uuid-1", Subnet: "192.168.1.0/24", Description: "Test subnet"},
+		}
+		doc.OPNsense.Kea.Dhcp4.Reservations = []schema.KeaReservation{
+			{UUID: "res-uuid-1", Subnet: "subnet-uuid-1", IPAddress: "192.168.1.50", HWAddress: "aa:bb:cc:dd:ee:ff"},
+		}
 
 		device, warnings, err := opnsense.ConvertDocument(doc)
 		require.NoError(t, err)
@@ -465,9 +470,295 @@ func TestConverter_KeaDHCP(t *testing.T) {
 		assert.True(t, kea.HA.Enabled)
 		assert.Equal(t, "primary", kea.HA.ThisServerName)
 		assert.Equal(t, "5", kea.HA.MaxUnackedClients)
-		assert.Equal(t, "subnet-uuid-1", kea.Subnets)
-		assert.Equal(t, "res-uuid-1", kea.Reservations)
+		// Subnets and reservations are parsed into device.DHCP as unified scopes
+		var keaScopes []common.DHCPScope
+		for _, s := range device.DHCP {
+			if s.Source == common.DHCPSourceKea {
+				keaScopes = append(keaScopes, s)
+			}
+		}
+		require.Len(t, keaScopes, 1)
+		assert.Equal(t, "Test subnet", keaScopes[0].Description)
+		assert.True(t, keaScopes[0].Enabled)
+
+		// Reservation attached as static lease
+		require.Len(t, keaScopes[0].StaticLeases, 1)
+		assert.Equal(t, "192.168.1.50", keaScopes[0].StaticLeases[0].IPAddress)
+		assert.Equal(t, "aa:bb:cc:dd:ee:ff", keaScopes[0].StaticLeases[0].MAC)
 	})
+}
+
+func TestConverter_KeaDHCP_UnifiedScopes(t *testing.T) {
+	t.Parallel()
+
+	t.Run("full conversion with pools and option_data", func(t *testing.T) {
+		t.Parallel()
+
+		doc := schema.NewOpnSenseDocument()
+		doc.OPNsense.Kea.Dhcp4.General.Enabled = "1"
+		doc.OPNsense.Kea.Dhcp4.General.Interfaces = "lan"
+		doc.OPNsense.Kea.Dhcp4.Subnets = []schema.KeaSubnet{
+			{
+				UUID:        "sub-1",
+				Subnet:      "192.168.1.0/24",
+				Pools:       "192.168.1.100-192.168.1.200\n192.168.1.210-192.168.1.250",
+				Description: "LAN subnet",
+				OptionData: schema.KeaOptionData{
+					Routers:           "192.168.1.1",
+					DomainNameServers: "192.168.1.1,8.8.8.8",
+					NTPServers:        "192.168.1.1",
+				},
+			},
+		}
+		doc.OPNsense.Kea.Dhcp4.Reservations = []schema.KeaReservation{
+			{
+				UUID:      "res-x",
+				Subnet:    "sub-1",
+				IPAddress: "192.168.1.50",
+				HWAddress: "aa:bb:cc:dd:ee:ff",
+				Hostname:  "myhost",
+			},
+		}
+
+		device, warnings, err := opnsense.ConvertDocument(doc)
+		require.NoError(t, err)
+
+		// Multi-pool warning emitted
+		var foundPoolWarning bool
+		for _, w := range warnings {
+			if w.Field == "kea.dhcp4.subnets.subnet4.pools" {
+				foundPoolWarning = true
+				assert.Contains(t, w.Message, "2 pools")
+			}
+		}
+		assert.True(t, foundPoolWarning, "expected warning for multi-pool subnet")
+
+		var keaScope *common.DHCPScope
+		for i := range device.DHCP {
+			if device.DHCP[i].Source == common.DHCPSourceKea {
+				keaScope = &device.DHCP[i]
+				break
+			}
+		}
+		require.NotNil(t, keaScope, "expected Kea scope in device.DHCP")
+
+		assert.Equal(t, common.DHCPSourceKea, keaScope.Source)
+		assert.Equal(t, "LAN subnet", keaScope.Description)
+		assert.True(t, keaScope.Enabled)
+
+		// Option data → scope fields
+		assert.Equal(t, "192.168.1.1", keaScope.Gateway)
+		assert.Equal(t, "192.168.1.1", keaScope.DNSServer)
+		assert.Equal(t, "192.168.1.1", keaScope.NTPServer)
+
+		// First pool → range
+		assert.Equal(t, "192.168.1.100", keaScope.Range.From)
+		assert.Equal(t, "192.168.1.200", keaScope.Range.To)
+
+		// Reservation → static lease
+		require.Len(t, keaScope.StaticLeases, 1)
+		assert.Equal(t, "192.168.1.50", keaScope.StaticLeases[0].IPAddress)
+		assert.Equal(t, "aa:bb:cc:dd:ee:ff", keaScope.StaticLeases[0].MAC)
+		assert.Equal(t, "myhost", keaScope.StaticLeases[0].Hostname)
+	})
+
+	t.Run("disabled kea produces scopes with Enabled false", func(t *testing.T) {
+		t.Parallel()
+
+		doc := schema.NewOpnSenseDocument()
+		doc.OPNsense.Kea.Dhcp4.General.Enabled = "0"
+		doc.OPNsense.Kea.Dhcp4.Subnets = []schema.KeaSubnet{
+			{UUID: "sub-1", Subnet: "192.168.1.0/24"},
+		}
+
+		device, _, err := opnsense.ConvertDocument(doc)
+		require.NoError(t, err)
+
+		var keaScope *common.DHCPScope
+		for i := range device.DHCP {
+			if device.DHCP[i].Source == common.DHCPSourceKea {
+				keaScope = &device.DHCP[i]
+				break
+			}
+		}
+		require.NotNil(t, keaScope, "disabled Kea should still produce scopes")
+		assert.False(t, keaScope.Enabled, "disabled Kea scope should have Enabled=false")
+	})
+
+	t.Run("empty subnets produces no scopes", func(t *testing.T) {
+		t.Parallel()
+
+		doc := schema.NewOpnSenseDocument()
+		doc.OPNsense.Kea.Dhcp4.General.Enabled = "1"
+
+		device, _, err := opnsense.ConvertDocument(doc)
+		require.NoError(t, err)
+
+		for _, s := range device.DHCP {
+			assert.NotEqual(t, common.DHCPSourceKea, s.Source, "empty subnets should not produce scopes")
+		}
+	})
+
+	t.Run("dangling reservation UUID is ignored", func(t *testing.T) {
+		t.Parallel()
+
+		doc := schema.NewOpnSenseDocument()
+		doc.OPNsense.Kea.Dhcp4.General.Enabled = "1"
+		doc.OPNsense.Kea.Dhcp4.Subnets = []schema.KeaSubnet{
+			{UUID: "sub-1", Subnet: "10.0.0.0/24"},
+		}
+		doc.OPNsense.Kea.Dhcp4.Reservations = []schema.KeaReservation{
+			{UUID: "res-orphan", Subnet: "nonexistent-uuid", IPAddress: "10.0.0.50"},
+		}
+
+		device, _, err := opnsense.ConvertDocument(doc)
+		require.NoError(t, err)
+
+		var keaScope *common.DHCPScope
+		for i := range device.DHCP {
+			if device.DHCP[i].Source == common.DHCPSourceKea {
+				keaScope = &device.DHCP[i]
+				break
+			}
+		}
+		require.NotNil(t, keaScope)
+		assert.Empty(t, keaScope.StaticLeases, "orphaned reservation should not appear")
+	})
+
+	t.Run("orphaned reservation emits warning", func(t *testing.T) {
+		t.Parallel()
+
+		doc := schema.NewOpnSenseDocument()
+		doc.OPNsense.Kea.Dhcp4.General.Enabled = "1"
+		doc.OPNsense.Kea.Dhcp4.Subnets = []schema.KeaSubnet{
+			{UUID: "sub-1", Subnet: "10.0.0.0/24"},
+		}
+		doc.OPNsense.Kea.Dhcp4.Reservations = []schema.KeaReservation{
+			{UUID: "res-valid", Subnet: "sub-1", IPAddress: "10.0.0.50", HWAddress: "aa:bb:cc:dd:ee:ff"},
+			{UUID: "res-orphan", Subnet: "nonexistent-uuid", IPAddress: "10.0.0.99"},
+		}
+
+		device, warnings, err := opnsense.ConvertDocument(doc)
+		require.NoError(t, err)
+
+		// Orphan warning emitted.
+		var foundOrphanWarning bool
+		for _, w := range warnings {
+			if w.Field == "kea.dhcp4.reservations" && w.Value == "nonexistent-uuid" {
+				foundOrphanWarning = true
+				assert.Contains(t, w.Message, "nonexistent subnet UUID")
+			}
+		}
+		assert.True(t, foundOrphanWarning, "expected warning for orphaned reservation")
+
+		// Valid reservation still attached.
+		var keaScope *common.DHCPScope
+		for i := range device.DHCP {
+			if device.DHCP[i].Source == common.DHCPSourceKea {
+				keaScope = &device.DHCP[i]
+				break
+			}
+		}
+		require.NotNil(t, keaScope)
+		require.Len(t, keaScope.StaticLeases, 1)
+		assert.Equal(t, "10.0.0.50", keaScope.StaticLeases[0].IPAddress)
+	})
+
+	t.Run("multiple subnets with distributed reservations", func(t *testing.T) {
+		t.Parallel()
+
+		doc := schema.NewOpnSenseDocument()
+		doc.OPNsense.Kea.Dhcp4.General.Enabled = "1"
+		doc.OPNsense.Kea.Dhcp4.Subnets = []schema.KeaSubnet{
+			{UUID: "sub-1", Subnet: "10.0.1.0/24", Description: "Subnet A"},
+			{UUID: "sub-2", Subnet: "10.0.2.0/24", Description: "Subnet B"},
+		}
+		doc.OPNsense.Kea.Dhcp4.Reservations = []schema.KeaReservation{
+			{UUID: "res-a1", Subnet: "sub-1", IPAddress: "10.0.1.10", HWAddress: "aa:aa:aa:aa:aa:01"},
+			{UUID: "res-a2", Subnet: "sub-1", IPAddress: "10.0.1.11", HWAddress: "aa:aa:aa:aa:aa:02"},
+			{UUID: "res-b1", Subnet: "sub-2", IPAddress: "10.0.2.10", HWAddress: "bb:bb:bb:bb:bb:01"},
+		}
+
+		device, warnings, err := opnsense.ConvertDocument(doc)
+		require.NoError(t, err)
+		assert.Empty(t, warnings)
+
+		// Collect Kea scopes by description.
+		scopeByDesc := make(map[string]*common.DHCPScope)
+		for i := range device.DHCP {
+			if device.DHCP[i].Source == common.DHCPSourceKea {
+				scopeByDesc[device.DHCP[i].Description] = &device.DHCP[i]
+			}
+		}
+
+		require.Contains(t, scopeByDesc, "Subnet A")
+		require.Contains(t, scopeByDesc, "Subnet B")
+
+		// Subnet A gets its 2 reservations.
+		require.Len(t, scopeByDesc["Subnet A"].StaticLeases, 2)
+		assert.Equal(t, "10.0.1.10", scopeByDesc["Subnet A"].StaticLeases[0].IPAddress)
+		assert.Equal(t, "10.0.1.11", scopeByDesc["Subnet A"].StaticLeases[1].IPAddress)
+
+		// Subnet B gets its 1 reservation.
+		require.Len(t, scopeByDesc["Subnet B"].StaticLeases, 1)
+		assert.Equal(t, "10.0.2.10", scopeByDesc["Subnet B"].StaticLeases[0].IPAddress)
+	})
+
+	t.Run("CIDR pool entry stores as From only", func(t *testing.T) {
+		t.Parallel()
+
+		doc := schema.NewOpnSenseDocument()
+		doc.OPNsense.Kea.Dhcp4.General.Enabled = "1"
+		doc.OPNsense.Kea.Dhcp4.Subnets = []schema.KeaSubnet{
+			{UUID: "sub-1", Subnet: "10.0.0.0/24", Pools: "10.0.0.0/24"},
+		}
+
+		device, _, err := opnsense.ConvertDocument(doc)
+		require.NoError(t, err)
+
+		var keaScope *common.DHCPScope
+		for i := range device.DHCP {
+			if device.DHCP[i].Source == common.DHCPSourceKea {
+				keaScope = &device.DHCP[i]
+				break
+			}
+		}
+		require.NotNil(t, keaScope)
+		assert.Equal(t, "10.0.0.0/24", keaScope.Range.From)
+		assert.Empty(t, keaScope.Range.To)
+	})
+}
+
+func TestConverter_KeaDHCP_ISCAndKeaCoexist(t *testing.T) {
+	t.Parallel()
+
+	doc := schema.NewOpnSenseDocument()
+	// ISC DHCP scope
+	doc.Dhcpd.Items = map[string]schema.DhcpdInterface{
+		"lan": {Enable: "1", Range: schema.Range{From: "10.0.0.100", To: "10.0.0.200"}},
+	}
+	// Kea DHCP scope
+	doc.OPNsense.Kea.Dhcp4.General.Enabled = "1"
+	doc.OPNsense.Kea.Dhcp4.Subnets = []schema.KeaSubnet{
+		{UUID: "sub-1", Subnet: "192.168.1.0/24", Description: "Kea LAN"},
+	}
+
+	device, _, err := opnsense.ConvertDocument(doc)
+	require.NoError(t, err)
+
+	var iscCount, keaCount int
+	for _, s := range device.DHCP {
+		switch s.Source {
+		case common.DHCPSourceISC:
+			iscCount++
+		case common.DHCPSourceKea:
+			keaCount++
+		}
+	}
+
+	assert.Equal(t, 1, iscCount, "expected 1 ISC scope")
+	assert.Equal(t, 1, keaCount, "expected 1 Kea scope")
+	assert.Len(t, device.DHCP, 2, "expected both ISC and Kea in unified DHCP slice")
 }
 
 func TestConverter_Syslog_ExtendedCategories(t *testing.T) {

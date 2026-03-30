@@ -267,3 +267,26 @@ A fresh `NewRuleEngine` creates a fresh `NewMapper()` — mappings are determini
 
 - **Symptom:** `*narrowOnlyBuilder does not implement reportGenerator (missing method X)`
 - **Fix:** Add a no-op method to `narrowOnlyBuilder` in `hybrid_generator_test.go`.
+
+## 18. Kea DHCP4 Schema Version Pinning
+
+### 18.1 Element Names Tied to MVC Model Version
+
+The `KeaDhcp4` schema types in `pkg/schema/opnsense/kea.go` parse child elements named `subnet4` (under `<subnets>`) and `reservation` (under `<reservations>`), matching the OPNsense MVC model `KeaDhcpv4.xml` v1.0.4. If a future OPNsense release renames these elements, the Go XML decoder will silently produce empty slices — no error, no warning, just missing data.
+
+- **Symptom:** Kea DHCP configured in OPNsense but opnDossier reports "no Kea subnets."
+- **Detection:** Compare `KeaDhcp4.Version` attribute against known versions. If it differs from `1.0.4`, investigate element name changes.
+- **Prevention:** When adding support for newer Kea MVC model versions, verify element names match by testing against a real config.xml from that version.
+
+### 18.2 Pools Are Newline-Separated Inline Strings
+
+Kea's `<pools>` element on each `<subnet4>` stores newline-separated (`\n`) IP range or CIDR strings via `KeaPoolsField` — NOT comma-separated UUIDs referencing a separate container. There is no `<pools>` container at the dhcp4 level.
+
+- **Gotcha:** Only the first pool entry is represented in `DHCPScope.Range`. A conversion warning is emitted when multiple pools exist.
+- **Source:** Confirmed via `KeaPoolsField.php` in OPNsense core.
+
+### 18.3 Reservations Reference Subnets, Not Vice Versa
+
+`KeaReservation.Subnet` contains the UUID of the parent subnet. The converter groups reservations by this field to attach them as static leases. Orphaned reservations (referencing nonexistent subnet UUIDs) emit a conversion warning.
+
+- **Gotcha:** This is the inverse of what the OPNsense MVC model XML might suggest at first glance. The `<reservations>` container is a flat sibling of `<subnets>`, not nested inside each subnet.

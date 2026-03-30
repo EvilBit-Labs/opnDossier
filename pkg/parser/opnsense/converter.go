@@ -70,7 +70,7 @@ func (c *converter) ToCommonDevice(
 		InterfaceGroups:  c.convertInterfaceGroups(doc),
 		FirewallRules:    c.convertFirewallRules(doc),
 		NAT:              c.convertNAT(doc),
-		DHCP:             c.convertDHCP(doc),
+		DHCP:             append(c.convertDHCP(doc), c.convertKeaDHCPScopes(doc)...),
 		DNS:              c.convertDNS(doc),
 		NTP:              c.convertNTP(doc),
 		SNMP:             c.convertSNMP(doc),

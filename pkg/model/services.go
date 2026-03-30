@@ -136,10 +136,25 @@ type DHCPAdvancedV6 struct {
 	AdvDHCP6ConfigFileOverridePath string `json:"advDhcp6ConfigFileOverridePath,omitempty" yaml:"advDhcp6ConfigFileOverridePath,omitempty"`
 }
 
-// DHCPScope represents DHCP server configuration for a single interface.
+// DHCPSource identifies the DHCP server that produced a scope.
+type DHCPSource string
+
+const (
+	// DHCPSourceISC indicates an ISC DHCP scope.
+	DHCPSourceISC DHCPSource = "isc"
+	// DHCPSourceKea indicates a Kea DHCP4 scope.
+	DHCPSourceKea DHCPSource = "kea"
+)
+
+// DHCPScope represents DHCP server configuration for a single interface or subnet.
 type DHCPScope struct {
 	// Interface is the logical interface name this DHCP scope is bound to.
 	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
+	// Source identifies which DHCP server produced this scope ("isc" or "kea").
+	// Empty string is treated as "isc" for backward compatibility.
+	Source DHCPSource `json:"source,omitempty" yaml:"source,omitempty"`
+	// Description is a human-readable label for the scope (Kea subnets have descriptions; ISC scopes use the interface name).
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// Enabled indicates whether the DHCP server is active on this interface.
 	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 	// Range defines the start and end of the DHCP address pool.
@@ -495,7 +510,8 @@ type CronConfig struct {
 	Jobs string `json:"jobs,omitempty" yaml:"jobs,omitempty"`
 }
 
-// KeaDHCPConfig contains Kea DHCP server configuration (modern DHCP replacement).
+// KeaDHCPConfig contains Kea DHCP server general settings.
+// Subnet and reservation data is normalized into the unified DHCP slice on CommonDevice.
 type KeaDHCPConfig struct {
 	// Enabled indicates whether the Kea DHCP4 server is active.
 	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
@@ -507,10 +523,6 @@ type KeaDHCPConfig struct {
 	ValidLifetime string `json:"validLifetime,omitempty" yaml:"validLifetime,omitempty"`
 	// HA contains Kea high-availability settings.
 	HA KeaDHCPHA `json:"ha" yaml:"ha,omitempty"`
-	// Subnets contains Kea DHCP subnet identifiers.
-	Subnets string `json:"subnets,omitempty" yaml:"subnets,omitempty"`
-	// Reservations contains Kea DHCP reservation identifiers.
-	Reservations string `json:"reservations,omitempty" yaml:"reservations,omitempty"`
 }
 
 // KeaDHCPHA contains Kea DHCP high-availability configuration.
