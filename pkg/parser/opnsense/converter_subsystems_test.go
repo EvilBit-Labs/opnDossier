@@ -522,8 +522,18 @@ func TestConverter_KeaDHCP_UnifiedScopes(t *testing.T) {
 			},
 		}
 
-		device, _, err := opnsense.ConvertDocument(doc)
+		device, warnings, err := opnsense.ConvertDocument(doc)
 		require.NoError(t, err)
+
+		// Multi-pool warning emitted
+		var foundPoolWarning bool
+		for _, w := range warnings {
+			if w.Field == "kea.dhcp4.subnets.subnet4.pools" {
+				foundPoolWarning = true
+				assert.Contains(t, w.Message, "2 pools")
+			}
+		}
+		assert.True(t, foundPoolWarning, "expected warning for multi-pool subnet")
 
 		var keaScope *common.DHCPScope
 		for i := range device.DHCP {

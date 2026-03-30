@@ -1,6 +1,7 @@
 package opnsense
 
 import (
+	"fmt"
 	"strings"
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
@@ -247,6 +248,13 @@ func (c *converter) convertKeaDHCPScopes(doc *schema.OpnSenseDocument) []common.
 			pools := splitKeaPools(sub.Pools)
 			if len(pools) > 0 {
 				scope.Range = parseKeaRange(pools[0])
+				if len(pools) > 1 {
+					c.addWarning("kea.dhcp4.subnets.subnet4.pools",
+						sub.Pools,
+						fmt.Sprintf("Kea subnet %s has %d pools; only the first is represented in the unified scope",
+							sub.UUID, len(pools)),
+						common.SeverityInfo)
+				}
 			}
 		}
 
