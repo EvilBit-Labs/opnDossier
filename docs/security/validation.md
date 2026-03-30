@@ -74,10 +74,10 @@ For programmatic error handling, use JSON output:
 
 ```bash
 # Get errors in JSON format
-opndossier --json-output validate config.xml
+opndossier validate --json-output config.xml
 
 # Parse JSON errors with jq
-opndossier --json-output validate config.xml 2>&1 | jq '.error'
+opndossier validate --json-output config.xml 2>&1 | jq '.error'
 ```
 
 ## Parser Security Features

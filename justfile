@@ -321,6 +321,20 @@ docs-test:
 generate-docs:
     @{{ mise_exec }} go run tools/docgen/main.go
 
+# Regenerate VHS terminal demo GIFs from tape files
+[group('docs')]
+generate-demos:
+    @echo "Building opnDossier binary for demos..."
+    @{{ mise_exec }} go build -o vhs/opnDossier .
+    @mkdir -p vhs/gif vhs/screenshots
+    @set -e; \
+    trap 'rm -f vhs/opnDossier' EXIT; \
+    for tape in vhs/*.tape; do \
+        echo "Recording $tape..."; \
+        env -i HOME="$HOME" PATH="$PATH" TERM="xterm-256color" vhs "$tape"; \
+    done
+    @echo "Done — GIFs in vhs/gif/"
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Changelog
 # ─────────────────────────────────────────────────────────────────────────────

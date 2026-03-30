@@ -16,7 +16,6 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/display"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 // init registers the display command with the root command and sets up its CLI flags for XML validation control, theming, section filtering, and text wrapping.
@@ -59,7 +58,7 @@ var displayCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 	ValidArgsFunction: ValidXMLFiles,
 	PreRunE: func(cmd *cobra.Command, _ []string) error {
 		// Validate flag combinations specific to display command
-		if err := validateDisplayFlags(cmd.Flags()); err != nil {
+		if err := validateDisplayFlags(cmd); err != nil {
 			return fmt.Errorf("display command validation failed: %w", err)
 		}
 
@@ -281,20 +280,17 @@ func buildDisplayOptions(cfg *config.Config) converter.Options {
 
 // validateDisplayFlags checks display command flag combinations and value constraints.
 //
-// It inspects the provided FlagSet to detect flags that were explicitly set and enforces:
+// It inspects the command's flags and enforces:
 // - Mutual exclusivity of `--no-wrap` and `--wrap` (returns an error if both were set).
 // - Normalizes `sharedWrapWidth` to 0 when `sharedNoWrap` is true.
 // - Validates that `sharedTheme`, if provided, is one of: "light", "dark", "auto", or "none" (returns an error otherwise).
 // - Emits a warning to stderr when a positive `sharedWrapWidth` is outside the recommended [MinWrapWidth, MaxWrapWidth] range.
 // - Returns an error if `sharedWrapWidth` is less than -1.
 //
-// Parameters:
-//
-//	flags: the command FlagSet used to determine whether `--no-wrap` or `--wrap` were explicitly changed.
-//
 // Returns an error when flag combinations or values are invalid; nil otherwise.
-func validateDisplayFlags(flags *pflag.FlagSet) error {
+func validateDisplayFlags(cmd *cobra.Command) error {
 	// Validate mutual exclusivity for wrap flags before other checks
+	flags := cmd.Flags()
 	if flags != nil {
 		noWrapFlag := flags.Lookup("no-wrap")
 		wrapFlag := flags.Lookup("wrap")
