@@ -477,7 +477,7 @@ This section documents the full `<Kea><dhcp4>` XML structure in OPNsense config.
   </general>
   <ha>
     <enabled>0</enabled>
-    <this_server_name/>
+    <this_server_name />
     <max_unacked_clients>2</max_unacked_clients>
   </ha>
   <subnets>
@@ -486,7 +486,7 @@ This section documents the full `<Kea><dhcp4>` XML structure in OPNsense config.
   <reservations>
     <reservation uuid="..."> ... </reservation>
   </reservations>
-  <ha_peers/>
+  <ha_peers />
 </dhcp4>
 ```
 
@@ -533,22 +533,22 @@ Used on both `<subnet4>` and `<reservation>` elements.
 
 ### 11d. `KeaReservation` (`<reservation>` element)
 
-| XML Element     | Go Field                    | Go Type         | Notes                                         |
-| --------------- | --------------------------- | --------------- | --------------------------------------------- |
-| `uuid` (attr)   | `KeaReservation.UUID`       | `string`        |                                               |
-| `<subnet>`      | `KeaReservation.Subnet`     | `string`        | UUID of the parent `<subnet4>` (not the CIDR) |
-| `<ip_address>`  | `KeaReservation.IPAddress`  | `string`        |                                               |
-| `<hw_address>`  | `KeaReservation.HWAddress`  | `string`        | MAC address                                   |
-| `<hostname>`    | `KeaReservation.Hostname`   | `string`        |                                               |
-| `<description>` | `KeaReservation.Description`| `string`        |                                               |
-| `<option_data>` | `KeaReservation.OptionData` | `KeaOptionData` | See §11c                                      |
+| XML Element     | Go Field                     | Go Type         | Notes                                         |
+| --------------- | ---------------------------- | --------------- | --------------------------------------------- |
+| `uuid` (attr)   | `KeaReservation.UUID`        | `string`        |                                               |
+| `<subnet>`      | `KeaReservation.Subnet`      | `string`        | UUID of the parent `<subnet4>` (not the CIDR) |
+| `<ip_address>`  | `KeaReservation.IPAddress`   | `string`        |                                               |
+| `<hw_address>`  | `KeaReservation.HWAddress`   | `string`        | MAC address                                   |
+| `<hostname>`    | `KeaReservation.Hostname`    | `string`        |                                               |
+| `<description>` | `KeaReservation.Description` | `string`        |                                               |
+| `<option_data>` | `KeaReservation.OptionData`  | `KeaOptionData` | See §11c                                      |
 
 ### 11e. Converter Behavior (`convertKeaDHCPScopes`)
 
 `convertKeaDHCPScopes()` in `pkg/parser/opnsense/converter_subsystems.go` converts Kea subnets into `[]common.DHCPScope` entries and appends them to `CommonDevice.DHCP` alongside ISC scopes (which carry `Source: "isc"`). Key behaviors:
 
-- Produces no scopes when `<general><enabled>` is not `"1"` or when `<subnets>` is empty.
-- Each `DHCPScope` has `Source: "kea"` and `Enabled: true`.
+- Produces no scopes when `<subnets>` is empty. Scopes are emitted even when Kea is disabled (`Enabled` reflects the server state).
+- Each `DHCPScope` has `Source: "kea"` and `Enabled` set from the Kea general enabled flag.
 - Option data is mapped: `Routers` → `Gateway`, `DomainNameServers` → `DNSServer`, `NTPServers` → `NTPServer`. For comma-separated values, only the first entry is used.
-- Reservations are grouped by their `<subnet>` UUID and attached as `StaticLeases` on the matching scope. Reservations referencing a nonexistent subnet UUID are silently ignored.
+- Reservations are grouped by their `<subnet>` UUID and attached as `StaticLeases` on the matching scope. Reservations referencing a nonexistent subnet UUID are not attached and emit a conversion warning.
 - ISC DHCP scopes (OPNsense and pfSense) carry `Source: "isc"`. An empty `Source` is treated as `"isc"` for backward compatibility.

@@ -2,6 +2,8 @@ package opnsense
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
@@ -209,19 +211,29 @@ func (c *converter) convertKeaDHCP(doc *schema.OpnSenseDocument) *common.KeaDHCP
 // each subnet's inline option_data element.
 func (c *converter) convertKeaDHCPScopes(doc *schema.OpnSenseDocument) []common.DHCPScope {
 	kea := doc.OPNsense.Kea.Dhcp4
-	if kea.General.Enabled != xmlBoolTrue || len(kea.Subnets) == 0 {
+	if len(kea.Subnets) == 0 {
 		return nil
 	}
 
-	// Group reservations by parent subnet UUID.
+	enabled := kea.General.Enabled == xmlBoolTrue
+
+	// Group reservations by parent subnet UUID (skip blank UUIDs).
 	resBySubnet := make(map[string][]schema.KeaReservation, len(kea.Reservations))
 	for _, r := range kea.Reservations {
+		if r.Subnet == "" {
+			c.addWarning("kea.dhcp4.reservations.reservation.subnet",
+				r.UUID,
+				"Kea reservation missing parent subnet UUID; reservation orphaned",
+				common.SeverityMedium)
+			continue
+		}
 		resBySubnet[r.Subnet] = append(resBySubnet[r.Subnet], r)
 	}
 
 	scopes := make([]common.DHCPScope, 0, len(kea.Subnets))
 	for _, sub := range kea.Subnets {
-		if sub.UUID == "" {
+		canMatchReservations := sub.UUID != ""
+		if !canMatchReservations {
 			c.addWarning("kea.dhcp4.subnets.subnet4",
 				sub.Subnet,
 				"Kea subnet missing UUID attribute; reservation matching will not work",
@@ -230,7 +242,7 @@ func (c *converter) convertKeaDHCPScopes(doc *schema.OpnSenseDocument) []common.
 
 		scope := common.DHCPScope{
 			Source:      common.DHCPSourceKea,
-			Enabled:     true, // Kea subnets are active when the server is enabled
+			Enabled:     enabled,
 			Description: sub.Description,
 		}
 
@@ -264,25 +276,30 @@ func (c *converter) convertKeaDHCPScopes(doc *schema.OpnSenseDocument) []common.
 		}
 
 		// Attach reservations that reference this subnet.
-		for _, res := range resBySubnet[sub.UUID] {
-			scope.StaticLeases = append(scope.StaticLeases, common.DHCPStaticLease{
-				IPAddress:   res.IPAddress,
-				MAC:         res.HWAddress,
-				Hostname:    res.Hostname,
-				Description: res.Description,
-			})
+		if canMatchReservations {
+			for _, res := range resBySubnet[sub.UUID] {
+				scope.StaticLeases = append(scope.StaticLeases, common.DHCPStaticLease{
+					IPAddress:   res.IPAddress,
+					MAC:         res.HWAddress,
+					Hostname:    res.Hostname,
+					Description: res.Description,
+				})
+			}
 		}
 
 		scopes = append(scopes, scope)
 	}
 
 	// Warn on orphaned reservations referencing nonexistent subnet UUIDs.
+	// Sort for deterministic warning order (GOTCHAS.md §3.1).
 	seenSubnets := make(map[string]struct{}, len(kea.Subnets))
 	for _, sub := range kea.Subnets {
-		seenSubnets[sub.UUID] = struct{}{}
+		if sub.UUID != "" {
+			seenSubnets[sub.UUID] = struct{}{}
+		}
 	}
 
-	for subnetUUID := range resBySubnet {
+	for _, subnetUUID := range slices.Sorted(maps.Keys(resBySubnet)) {
 		if _, ok := seenSubnets[subnetUUID]; !ok {
 			c.addWarning(
 				"kea.dhcp4.reservations",

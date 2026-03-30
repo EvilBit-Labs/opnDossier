@@ -562,7 +562,7 @@ func TestConverter_KeaDHCP_UnifiedScopes(t *testing.T) {
 		assert.Equal(t, "myhost", keaScope.StaticLeases[0].Hostname)
 	})
 
-	t.Run("disabled kea produces no scopes", func(t *testing.T) {
+	t.Run("disabled kea produces scopes with Enabled false", func(t *testing.T) {
 		t.Parallel()
 
 		doc := schema.NewOpnSenseDocument()
@@ -574,9 +574,15 @@ func TestConverter_KeaDHCP_UnifiedScopes(t *testing.T) {
 		device, _, err := opnsense.ConvertDocument(doc)
 		require.NoError(t, err)
 
-		for _, s := range device.DHCP {
-			assert.NotEqual(t, common.DHCPSourceKea, s.Source, "disabled Kea should not produce scopes")
+		var keaScope *common.DHCPScope
+		for i := range device.DHCP {
+			if device.DHCP[i].Source == common.DHCPSourceKea {
+				keaScope = &device.DHCP[i]
+				break
+			}
 		}
+		require.NotNil(t, keaScope, "disabled Kea should still produce scopes")
+		assert.False(t, keaScope.Enabled, "disabled Kea scope should have Enabled=false")
 	})
 
 	t.Run("empty subnets produces no scopes", func(t *testing.T) {
