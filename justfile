@@ -327,11 +327,12 @@ generate-demos:
     @echo "Building opnDossier binary for demos..."
     @{{ mise_exec }} go build -o vhs/opnDossier .
     @mkdir -p vhs/gif vhs/screenshots
-    @for tape in vhs/*.tape; do \
+    @set -e; \
+    trap 'rm -f vhs/opnDossier' EXIT; \
+    for tape in vhs/*.tape; do \
         echo "Recording $tape..."; \
         env -i HOME="$HOME" PATH="$PATH" TERM="xterm-256color" vhs "$tape"; \
     done
-    @rm -f vhs/opnDossier
     @echo "Done — GIFs in vhs/gif/"
 
 # ─────────────────────────────────────────────────────────────────────────────
