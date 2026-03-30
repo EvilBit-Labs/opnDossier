@@ -1,6 +1,8 @@
 package opnsense
 
 import (
+	"strings"
+
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
@@ -198,4 +200,98 @@ func (c *converter) convertKeaDHCP(doc *schema.OpnSenseDocument) *common.KeaDHCP
 			MaxUnackedClients: kea.Dhcp4.HighAvailability.MaxUnackedClients,
 		},
 	}
+}
+
+// convertKeaDHCPScopes converts Kea DHCP4 subnets into unified DHCPScope entries.
+// Reservations reference their parent subnet by UUID; we group them by subnet UUID
+// and attach as static leases. Option data (gateway, DNS, NTP) is extracted from
+// each subnet's inline option_data element.
+//
+//nolint:dupl // ISC and Kea converters have similar structure but distinct data sources
+func (c *converter) convertKeaDHCPScopes(doc *schema.OpnSenseDocument) []common.DHCPScope {
+	kea := doc.OPNsense.Kea.Dhcp4
+	if kea.General.Enabled != xmlBoolTrue || len(kea.Subnets) == 0 {
+		return nil
+	}
+
+	// Group reservations by parent subnet UUID.
+	resBySubnet := make(map[string][]schema.KeaReservation, len(kea.Reservations))
+	for _, r := range kea.Reservations {
+		resBySubnet[r.Subnet] = append(resBySubnet[r.Subnet], r)
+	}
+
+	scopes := make([]common.DHCPScope, 0, len(kea.Subnets))
+	for _, sub := range kea.Subnets {
+		scope := common.DHCPScope{
+			Source:      "kea",
+			Enabled:     true, // Kea subnets are active when the server is enabled
+			Description: sub.Description,
+		}
+
+		// Extract gateway, DNS, NTP from option_data.
+		// Fields can be comma-separated lists; use the first value.
+		if sub.OptionData.Routers != "" {
+			scope.Gateway = firstCSV(sub.OptionData.Routers)
+		}
+		if sub.OptionData.DomainNameServers != "" {
+			scope.DNSServer = firstCSV(sub.OptionData.DomainNameServers)
+		}
+		if sub.OptionData.NTPServers != "" {
+			scope.NTPServer = firstCSV(sub.OptionData.NTPServers)
+		}
+
+		// Parse pool ranges from the pools field.
+		// KeaPoolsField stores newline-separated range strings or CIDR subnets;
+		// use the first entry as the primary range.
+		if sub.Pools != "" {
+			pools := splitKeaPools(sub.Pools)
+			if len(pools) > 0 {
+				scope.Range = parseKeaRange(pools[0])
+			}
+		}
+
+		// Attach reservations that reference this subnet.
+		for _, res := range resBySubnet[sub.UUID] {
+			scope.StaticLeases = append(scope.StaticLeases, common.DHCPStaticLease{
+				IPAddress:   res.IPAddress,
+				MAC:         res.HWAddress,
+				Hostname:    res.Hostname,
+				Description: res.Description,
+			})
+		}
+
+		scopes = append(scopes, scope)
+	}
+
+	return scopes
+}
+
+// splitKeaPools splits the newline-separated pool ranges from KeaPoolsField.
+// Each entry is either "start-end" or "cidr/prefix". Empty entries are filtered.
+func splitKeaPools(pools string) []string {
+	var result []string
+	for _, line := range strings.Split(pools, "\n") {
+		if trimmed := strings.TrimSpace(line); trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
+}
+
+// parseKeaRange converts a Kea pool range string ("start-end") to DHCPRange.
+// CIDR entries (e.g., "10.0.0.0/24") are stored as-is in From with empty To.
+func parseKeaRange(rangeStr string) common.DHCPRange {
+	parts := strings.SplitN(rangeStr, "-", 2)
+	if len(parts) != 2 {
+		return common.DHCPRange{From: rangeStr}
+	}
+	return common.DHCPRange{From: strings.TrimSpace(parts[0]), To: strings.TrimSpace(parts[1])}
+}
+
+// firstCSV returns the first value from a comma-separated string.
+func firstCSV(s string) string {
+	if i := strings.IndexByte(s, ','); i >= 0 {
+		return s[:i]
+	}
+	return s
 }
