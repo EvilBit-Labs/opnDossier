@@ -17,9 +17,13 @@ opndossier validate [flags] <config.xml> [config2.xml ...]
 
 ## Flags
 
-This command has no command-specific flags.
+| Flag            | Short | Default | Description                                            |
+| --------------- | ----- | ------- | ------------------------------------------------------ |
+| `--json-output` |       | `false` | Output validation errors in JSON format for automation |
 
 For global flags (`--verbose`, `--quiet`, `--config`, etc.), see [Configuration Reference](../configuration-reference.md).
+
+![Screenshot of opnDossier validate command showing successful validation and JSON output mode](../../../images/validation.png)
 
 ## Validation Checks
 

@@ -306,11 +306,11 @@ Enable HTTPS for web management:
 
 ## Severity Levels
 
-| Level      | Meaning                                                                                                         |
-| ---------- | --------------------------------------------------------------------------------------------------------------- |
-| **High**   | Critical security controls that must be implemented. Non-compliance creates significant risk.                   |
-| **Medium** | Important security controls that should be implemented. Non-compliance creates moderate risk.                   |
-| **Low**    | Recommended security controls for enhanced security posture. Non-compliance is acceptable in some environments. |
+| Level      | Meaning                                                                                                           |
+| ---------- | ----------------------------------------------------------------------------------------------------------------- |
+| **High**   | Critical security controls that must be implemented. Non-compliance creates significant risk.                     |
+| **Medium** | Important security controls that should be implemented. Non-compliance creates moderate risk.                     |
+| **Low**    | Recommended security controls for enhanced security posture. Non-compliance is acceptable in some environments.   |
 | **Info**   | Informational observations about configuration. Not a security failure; provided for awareness and documentation. |
 
 ## Future Controls
@@ -442,10 +442,10 @@ The following controls are planned for future releases, organized by security do
 
 ### Configuration Inventory
 
-| Control ID   | Title                    | Severity | Description                                                        |
-| ------------ | ------------------------ | -------- | ------------------------------------------------------------------ |
-| FIREWALL-062 | DHCP Scope Inventory     | Info     | Reports configured DHCP scopes and their interfaces                |
-| FIREWALL-063 | Active Interface Summary | Info     | Reports enabled interfaces and their types                         |
+| Control ID   | Title                    | Severity | Description                                         |
+| ------------ | ------------------------ | -------- | --------------------------------------------------- |
+| FIREWALL-062 | DHCP Scope Inventory     | Info     | Reports configured DHCP scopes and their interfaces |
+| FIREWALL-063 | Active Interface Summary | Info     | Reports enabled interfaces and their types          |
 
 **Note:** Configuration inventory controls use `Type: "inventory"` and are excluded from compliance evaluation. They are rendered in a separate "Configuration Notes" section of audit reports and do not affect pass/fail compliance status.
 

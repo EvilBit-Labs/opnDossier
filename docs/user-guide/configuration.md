@@ -44,19 +44,19 @@ sections: []
 
 ### Configuration Options
 
-| Option        | Type     | Default      | Description                                      |
-| ------------- | -------- | ------------ | ------------------------------------------------ |
-| `verbose`     | boolean  | `false`      | Enable verbose/debug logging                     |
-| `quiet`       | boolean  | `false`      | Suppress all output except errors                |
-| `format`      | string   | `"markdown"` | Output format (markdown, json, yaml, text, html) |
-| `theme`       | string   | `""`         | Display theme (auto, dark, light, none)          |
-| `wrap`        | int      | `-1`         | Text wrap width (-1=auto, 0=off, >0=columns)     |
-| `sections`    | string[] | `[]`         | Sections to include in output                    |
-| `input_file`  | string   | `""`         | Default input file path                          |
-| `output_file` | string   | `""`         | Default output file path                         |
-| `no_progress` | boolean  | `false`      | Disable progress indicators                      |
-| `json_output` | boolean  | `false`      | Output errors in JSON format                     |
-| `minimal`     | boolean  | `false`      | Minimal output mode                              |
+| Option        | Type     | Default      | Description                                                              |
+| ------------- | -------- | ------------ | ------------------------------------------------------------------------ |
+| `verbose`     | boolean  | `false`      | Enable info-level logging (warnings, errors, and informational messages) |
+| `quiet`       | boolean  | `false`      | Suppress all output except errors                                        |
+| `format`      | string   | `"markdown"` | Output format (markdown, json, yaml, text, html)                         |
+| `theme`       | string   | `""`         | Display theme (auto, dark, light, none)                                  |
+| `wrap`        | int      | `-1`         | Text wrap width (-1=auto, 0=off, >0=columns)                             |
+| `sections`    | string[] | `[]`         | Sections to include in output                                            |
+| `input_file`  | string   | `""`         | Default input file path                                                  |
+| `output_file` | string   | `""`         | Default output file path                                                 |
+| `no_progress` | boolean  | `false`      | Disable progress indicators                                              |
+| `json_output` | boolean  | `false`      | Output validation errors in JSON format (validate command only)          |
+| `minimal`     | boolean  | `false`      | Minimal output mode                                                      |
 
 ## Environment Variables
 

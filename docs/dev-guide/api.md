@@ -80,7 +80,8 @@ config := cmdCtx.Config
 | `--no-progress` | bool   | false    | Disable progress indicators        |
 | `--timestamps`  | bool   | false    | Include timestamps in logs         |
 | `--minimal`     | bool   | false    | Minimal output mode                |
-| `--json-output` | bool   | false    | Output errors in JSON format       |
+
+> **Note:** `--json-output` is a validate-command-only flag (not global). It outputs validation errors in JSON format for machine consumption.
 
 ## Parser Package (internal/cfgparser)
 

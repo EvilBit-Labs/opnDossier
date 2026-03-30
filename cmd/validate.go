@@ -18,6 +18,11 @@ import (
 // init registers the validate command with the root command for the CLI.
 func init() {
 	rootCmd.AddCommand(validateCmd)
+
+	// --json-output is validate-specific: outputs validation errors as JSON for machine consumption.
+	// Scoped here (not on rootCmd) so it only appears on commands that act on it (issue #479).
+	validateCmd.Flags().Bool("json-output", false, "Output errors in JSON format (for machine consumption)")
+	setFlagAnnotation(validateCmd.Flags(), "json-output", []string{"output"})
 }
 
 // validateCmd is the cobra.Command for the validate subcommand.

@@ -18,7 +18,6 @@ These options are persistent flags available on all subcommands.
 | No progress     | `--no-progress` | `OPNDOSSIER_NO_PROGRESS` | `no_progress` | boolean | `false`  | Disable progress indicators                |
 | Timestamps      | `--timestamps`  | -                        | -             | boolean | `false`  | Include timestamps in log output           |
 | Minimal mode    | `--minimal`     | `OPNDOSSIER_MINIMAL`     | `minimal`     | boolean | `false`  | Minimal output (suppress progress/verbose) |
-| JSON output     | `--json-output` | `OPNDOSSIER_JSON_OUTPUT` | `json_output` | boolean | `false`  | Output errors in JSON format               |
 | Device type     | `--device-type` | -                        | -             | string  | `""`     | Force device type (auto-detected if empty) |
 | Config file     | `--config`      | -                        | -             | string  | `""`     | Custom config file path                    |
 
@@ -125,7 +124,9 @@ opndossier audit config1.xml config2.xml --mode blue --format json
 
 ## Validate Command Options
 
-The validate command uses only global flags. It has no command-specific flags.
+| Setting     | CLI Flag        | Environment Variable     | Config File   | Type    | Default | Description                             |
+| ----------- | --------------- | ------------------------ | ------------- | ------- | ------- | --------------------------------------- |
+| JSON output | `--json-output` | `OPNDOSSIER_JSON_OUTPUT` | `json_output` | boolean | `false` | Output validation errors in JSON format |
 
 ## Configuration File Format
 
