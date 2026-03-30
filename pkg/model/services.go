@@ -500,7 +500,8 @@ type CronConfig struct {
 	Jobs string `json:"jobs,omitempty" yaml:"jobs,omitempty"`
 }
 
-// KeaDHCPConfig contains Kea DHCP server configuration (modern DHCP replacement).
+// KeaDHCPConfig contains Kea DHCP server general settings.
+// Subnet and reservation data is normalized into the unified DHCP slice on CommonDevice.
 type KeaDHCPConfig struct {
 	// Enabled indicates whether the Kea DHCP4 server is active.
 	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
@@ -512,10 +513,6 @@ type KeaDHCPConfig struct {
 	ValidLifetime string `json:"validLifetime,omitempty" yaml:"validLifetime,omitempty"`
 	// HA contains Kea high-availability settings.
 	HA KeaDHCPHA `json:"ha" yaml:"ha,omitempty"`
-	// Subnets contains Kea DHCP subnet identifiers.
-	Subnets string `json:"subnets,omitempty" yaml:"subnets,omitempty"`
-	// Reservations contains Kea DHCP reservation identifiers.
-	Reservations string `json:"reservations,omitempty" yaml:"reservations,omitempty"`
 }
 
 // KeaDHCPHA contains Kea DHCP high-availability configuration.
