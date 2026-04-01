@@ -17,7 +17,7 @@ opnDossier is a **CLI-based multi-device firewall configuration processor** desi
 5. **Security-First**: No telemetry, input validation, secure processing, restrictive file permissions
 6. **Polish Over Scale**: Smaller, well-documented feature set with sane defaults over large inconsistent surface area
 
-For the complete philosophical foundation and ethical constraints, see **[CONTRIBUTING.md](../../CONTRIBUTING.md) Core Philosophy** section.
+For the complete philosophical foundation and ethical constraints, see **[CONTRIBUTING.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/CONTRIBUTING.md) Core Philosophy** section.
 
 ### Architecture Pattern
 
@@ -143,7 +143,7 @@ For detailed examples and the historical context of fixing `pkg/internal/` bound
 
 - **[docs/solutions/architecture-issues/pkg-internal-import-boundary.md](../solutions/architecture-issues/pkg-internal-import-boundary.md)**
 
-For practical developer guidance on public package purity and the boundary verification command, see **[CONTRIBUTING.md](../../CONTRIBUTING.md) Go Development Standards** section.
+For practical developer guidance on public package purity and the boundary verification command, see **[CONTRIBUTING.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/CONTRIBUTING.md) Go Development Standards** section.
 
 ## Services and Components
 
@@ -630,13 +630,13 @@ The `resolveDeviceType()` function replaces the previous `sharedDeviceType` stri
 For complete implementation details, error-handling patterns, and gotchas, see:
 
 - **[docs/solutions/architecture-issues/pluggable-deviceparser-registry-pattern.md](../solutions/architecture-issues/pluggable-deviceparser-registry-pattern.md)**
-- **[GOTCHAS.md §7.1](../../GOTCHAS.md)** — Blank import requirement
+- **[GOTCHAS.md §7.1](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#71-blank-import-requirement)** — Blank import requirement
 
-For practical developer guidance on the DeviceParser registry pattern and blank import footgun, see **[CONTRIBUTING.md](../../CONTRIBUTING.md) Go Development Standards** section.
+For practical developer guidance on the DeviceParser registry pattern and blank import footgun, see **[CONTRIBUTING.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/CONTRIBUTING.md) Go Development Standards** section.
 
 ## Data Flow Architecture
 
-The data processing pipeline follows a clear multi-stage architecture documented in **[CONTRIBUTING.md](../../CONTRIBUTING.md) Data Processing Pipeline** section:
+The data processing pipeline follows a clear multi-stage architecture documented in **[CONTRIBUTING.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/CONTRIBUTING.md) Data Processing Pipeline** section:
 
 1. **Ingestion**: Device-specific parsers parse configuration files → schema documents
    - OPNsense: `internal/cfgparser/` parses `config.xml` → `pkg/schema/opnsense.OpnSenseDocument`
@@ -1311,7 +1311,7 @@ All validation, shell completion, and dispatch logic automatically picks up the 
 
 For detailed guidance on the FormatRegistry pattern and consumer-local interface narrowing, see AGENTS.md §5.9b.
 
-For practical developer guidance on the FormatRegistry pattern, format addition workflow, and avoiding hardcoded switch statements, see **[CONTRIBUTING.md](../../CONTRIBUTING.md) Go Development Standards** section.
+For practical developer guidance on the FormatRegistry pattern, format addition workflow, and avoiding hardcoded switch statements, see **[CONTRIBUTING.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/CONTRIBUTING.md) Go Development Standards** section.
 
 ## Versioned Data Strategy
 
@@ -1505,7 +1505,7 @@ When the `--quiet` flag is used:
 - **Processing Security**: Memory safety (Go runtime), type safety, error handling that prevents credential leakage
 - **Output Security**: Path validation, restrictive file permissions (0600 for sensitive data), content sanitization
 
-For secure coding principles, SNMP redaction patterns, and the canonical approach to safe error messages, see **[CONTRIBUTING.md](../../CONTRIBUTING.md) Secure Coding Principles** section and `internal/processor/report.go`.
+For secure coding principles, SNMP redaction patterns, and the canonical approach to safe error messages, see **[CONTRIBUTING.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/CONTRIBUTING.md) Secure Coding Principles** section and `internal/processor/report.go`.
 
 ### Air-Gap Security Benefits
 

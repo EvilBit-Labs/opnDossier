@@ -119,6 +119,6 @@ When a struct has mutable state (like MarkdownBuilder), create a fresh instance 
 
 ## Related Documentation
 
-- [AGENTS.md section 5.9b](../../AGENTS.md) -- FormatRegistry Pattern documentation
-- [architecture.md](../../../docs/development/architecture.md) -- FormatRegistry Integration section
+- [AGENTS.md section 5.9b](https://github.com/EvilBit-Labs/opnDossier/blob/main/AGENTS.md) -- FormatRegistry Pattern documentation
+- [architecture.md](../../development/architecture.md) -- FormatRegistry Integration section
 - [documentation-code-drift-interface-refactoring.md](../logic-errors/documentation-code-drift-interface-refactoring.md) -- documentation accuracy guidelines

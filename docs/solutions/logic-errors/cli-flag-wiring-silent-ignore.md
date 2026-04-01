@@ -126,9 +126,9 @@ If a flag is supposed to change output, verify it actually does. A flag that pro
 
 ## Related Documentation
 
-- [AGENTS.md section 5.7](../../AGENTS.md) -- CommandContext Pattern
-- [AGENTS.md section 7.7](../../AGENTS.md) -- Testing Global Flag Variables
-- [GOTCHAS.md section 1.1](../../GOTCHAS.md) -- t.Parallel() and Global State
+- [AGENTS.md section 5.7](https://github.com/EvilBit-Labs/opnDossier/blob/main/AGENTS.md) -- CommandContext Pattern
+- [AGENTS.md section 7.7](https://github.com/EvilBit-Labs/opnDossier/blob/main/AGENTS.md) -- Testing Global Flag Variables
+- [GOTCHAS.md section 1.1](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#11-tparallel-and-global-state) -- t.Parallel() and Global State
 - [GitHub Issue #412](https://github.com/EvilBit-Labs/opnDossier/issues/412) -- Original bug report
 - [PR #413](https://github.com/EvilBit-Labs/opnDossier/pull/413) -- Fix implementation
 - [Deferred plugin validation timing](cli-prerun-validation-timing-dynamic-plugins.md) -- inverse pattern (flag rejected prematurely vs. silently ignored)

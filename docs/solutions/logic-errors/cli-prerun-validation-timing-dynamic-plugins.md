@@ -55,7 +55,7 @@ for _, p := range auditPlugins {
 
 `ValidateModeConfig()` in `internal/audit/mode_controller.go` already validates `SelectedPlugins` against `mc.registry.ListPlugins()` after `InitializePlugins` populates the registry. It returns `ErrPluginNotFound` for unrecognized names. This method is called by `GenerateReport()`, invoked from `handleAuditMode()` in the `RunE` phase. No changes were needed here.
 
-> **Thread safety:** `PluginRegistry` methods (`ListPlugins`, `GetPlugin`) are protected by `sync.RWMutex` and are safe for concurrent access. After `InitializePlugins` completes, the registry is effectively read-only. See [architecture docs](../../../docs/development/architecture.md) and AGENTS.md 5.6 for the canonical thread-safety pattern.
+> **Thread safety:** `PluginRegistry` methods (`ListPlugins`, `GetPlugin`) are protected by `sync.RWMutex` and are safe for concurrent access. After `InitializePlugins` completes, the registry is effectively read-only. See [architecture docs](../../development/architecture.md) and AGENTS.md 5.6 for the canonical thread-safety pattern.
 
 ### 3. Add registry-backed shell completion
 
@@ -108,9 +108,9 @@ The two tests pin both sides of the invariant.
 ## Related Documentation
 
 - [cli-flag-wiring-silent-ignore.md](cli-flag-wiring-silent-ignore.md) -- inverse pattern (flag accepted but silently ignored vs. flag rejected prematurely)
-- [GOTCHAS.md 5.1](../../../GOTCHAS.md) -- Silent Flag Ignores
-- [GOTCHAS.md 8.1](../../../GOTCHAS.md) -- Mode/Plugin Coupling
-- [GOTCHAS.md 2.1](../../../GOTCHAS.md) -- Registry Independence
-- [GOTCHAS.md 2.3](../../../GOTCHAS.md) -- SetPluginDir Must Precede InitializePlugins
+- [GOTCHAS.md 5.1](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md) -- Silent Flag Ignores
+- [GOTCHAS.md 8.1](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md) -- Mode/Plugin Coupling
+- [GOTCHAS.md 2.1](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md) -- Registry Independence
+- [GOTCHAS.md 2.3](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md) -- SetPluginDir Must Precede InitializePlugins
 - `docs/solutions/runtime-errors/plugin-panic-recovery-audit-runchecks.md` -- plugin fault isolation
 - `docs/solutions/architecture-issues/pluggable-deviceparser-registry-pattern.md` -- registry pattern precedent

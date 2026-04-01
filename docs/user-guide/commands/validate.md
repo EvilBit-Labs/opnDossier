@@ -23,7 +23,7 @@ opndossier validate [flags] <config.xml> [config2.xml ...]
 
 For global flags (`--verbose`, `--quiet`, `--config`, etc.), see [Configuration Reference](../configuration-reference.md).
 
-![Screenshot of opnDossier validate command showing successful validation and JSON output mode](../../../images/validation.png)
+![Screenshot of opnDossier validate command showing successful validation and JSON output mode](../../images/validation.png)
 
 ## Validation Checks
 
