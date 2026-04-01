@@ -107,9 +107,9 @@ Use the `mockPanickingPlugin` pattern:
 
 ## Related Documentation
 
-- [GOTCHAS.md SS2.1](../../../GOTCHAS.md) -- Registry Independence
-- [GOTCHAS.md SS2.2](../../../GOTCHAS.md) -- Panic Recovery Retains Plugins (invariant)
-- [AGENTS.md SS8.2](../../../AGENTS.md) -- Plugin Development standards
+- [GOTCHAS.md SS2.1](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md) -- Registry Independence
+- [GOTCHAS.md SS2.2](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md) -- Panic Recovery Retains Plugins (invariant)
+- [AGENTS.md SS8.2](https://github.com/EvilBit-Labs/opnDossier/blob/main/AGENTS.md) -- Plugin Development standards
 - [Plugin Development Guide](../../development/plugin-development.md)
 - [Architecture Issues: Pluggable DeviceParser Registry](../architecture-issues/pluggable-deviceparser-registry-pattern.md) -- parallel registry pattern
 - GitHub Issue #309 -- original tracking issue

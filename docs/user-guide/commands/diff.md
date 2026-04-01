@@ -29,7 +29,7 @@ opndossier diff [flags] <old-config.xml> <new-config.xml>
 
 For global flags (`--verbose`, `--quiet`, `--config`, etc.), see [Configuration Reference](../configuration-reference.md).
 
-![Screenshot of opnDossier diff command showing structured configuration changes grouped by section](../../../images/diff.png)
+![Screenshot of opnDossier diff command showing structured configuration changes grouped by section](../../images/diff.png)
 
 ## Display Modes
 

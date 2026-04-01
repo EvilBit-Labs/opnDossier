@@ -160,7 +160,7 @@ import (
 )
 ```
 
-Missing the blank import causes "unsupported device type" errors and a supported device list that only includes a hint about missing blank imports. The parser implementation exists but its `init()` function never runs, so the registry remains empty. See [GOTCHAS.md section 7.1](../../GOTCHAS.md#71-blank-import-requirement) for details.
+Missing the blank import causes "unsupported device type" errors and a supported device list that only includes a hint about missing blank imports. The parser implementation exists but its `init()` function never runs, so the registry remains empty. See [GOTCHAS.md section 7.1](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#71-blank-import-requirement) for details.
 
 #### Test Isolation
 

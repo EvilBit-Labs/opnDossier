@@ -48,7 +48,7 @@ opndossier display --theme dark config.xml
 opndossier display --theme none config.xml
 ```
 
-![Screenshot of opnDossier display command showing glamour-rendered terminal output with system and network configuration](../../../images/display.png)
+![Screenshot of opnDossier display command showing glamour-rendered terminal output with system and network configuration](../../images/display.png)
 
 ## Examples
 

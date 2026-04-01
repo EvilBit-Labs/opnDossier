@@ -158,25 +158,25 @@ test(parser): add integration tests for XML parsing
 
 Treat `just lint` as authoritative; IDE diagnostics are suggestions, not the final word. Common patterns and fixes:
 
-| Linter                     | Issue                                  | Fix                                                                                                                                                       |
-| -------------------------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `gocritic emptyStringTest` | `len(s) == 0`                          | Use `s == ""`                                                                                                                                             |
-| `gosec G115`               | Integer overflow on int→int32          | Add `//nolint:gosec` with bounded value comment                                                                                                           |
-| `mnd`                      | Magic numbers                          | Create named constants                                                                                                                                    |
-| `minmax`                   | Manual min/max comparisons             | Use `min()`/`max()` builtins                                                                                                                              |
-| `goconst`                  | Repeated string literals               | Extract to package-level constants                                                                                                                        |
-| `tparallel`                | Subtests use `t.Parallel()`            | Parent test must also call `t.Parallel()`                                                                                                                 |
-| `tparallel`                | Subtests share mutable state           | Add `//nolint:tparallel` above func when subtests cannot be parallel due to shared mutable state                                                          |
-| `nonamedreturns`           | Named return values                    | Use a struct return type instead of named returns                                                                                                         |
-| `funcorder`                | Method placed between constructors     | All constructors (`New*`) must be grouped before any methods on the struct                                                                                |
-| `copylocks`                | Copying `sync.Once`                    | In tests resetting globals, suppress with `//nolint:govet` and comment explaining intentional reset                                                       |
-| `revive redefines-builtin` | Package name shadows stdlib            | Rename package (e.g., `log` → `logging`)                                                                                                                  |
-| `revive stutters`          | `pkg.PkgThing` repeats name            | Drop prefix: `compliance.Plugin` not `compliance.CompliancePlugin`                                                                                        |
-| `modernize`                | `omitempty` on struct fields           | Remove `omitempty` from JSON tags on struct-typed fields (no effect in `encoding/json`); YAML `omitempty` is fine                                         |
-| `staticcheck SA1019`       | Deprecated type alias usage            | Migrate ALL references (including test files) when deprecating a type alias — `Deprecated:` doc comment triggers SA1019 on every reference                |
-| `modernize`                | Legacy `sort.Strings`/`sort.Slice`     | Use `slices.Sort()` / `slices.SortFunc()` with `strings.Compare`                                                                                          |
-| `gofumpt` vs `//nolint`    | Directive between doc comment and func | `gofumpt` inserts a blank line that detaches the directive from the func — embed the suppression rationale in the doc comment instead of using `//nolint` |
-| `dupl`                     | Cross-type validator similarity        | Both sides of the duplicate pair need `//nolint:dupl` — see [GOTCHAS.md](../../GOTCHAS.md) §9.1                                                           |
+| Linter                     | Issue                                  | Fix                                                                                                                                                                                |
+| -------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gocritic emptyStringTest` | `len(s) == 0`                          | Use `s == ""`                                                                                                                                                                      |
+| `gosec G115`               | Integer overflow on int→int32          | Add `//nolint:gosec` with bounded value comment                                                                                                                                    |
+| `mnd`                      | Magic numbers                          | Create named constants                                                                                                                                                             |
+| `minmax`                   | Manual min/max comparisons             | Use `min()`/`max()` builtins                                                                                                                                                       |
+| `goconst`                  | Repeated string literals               | Extract to package-level constants                                                                                                                                                 |
+| `tparallel`                | Subtests use `t.Parallel()`            | Parent test must also call `t.Parallel()`                                                                                                                                          |
+| `tparallel`                | Subtests share mutable state           | Add `//nolint:tparallel` above func when subtests cannot be parallel due to shared mutable state                                                                                   |
+| `nonamedreturns`           | Named return values                    | Use a struct return type instead of named returns                                                                                                                                  |
+| `funcorder`                | Method placed between constructors     | All constructors (`New*`) must be grouped before any methods on the struct                                                                                                         |
+| `copylocks`                | Copying `sync.Once`                    | In tests resetting globals, suppress with `//nolint:govet` and comment explaining intentional reset                                                                                |
+| `revive redefines-builtin` | Package name shadows stdlib            | Rename package (e.g., `log` → `logging`)                                                                                                                                           |
+| `revive stutters`          | `pkg.PkgThing` repeats name            | Drop prefix: `compliance.Plugin` not `compliance.CompliancePlugin`                                                                                                                 |
+| `modernize`                | `omitempty` on struct fields           | Remove `omitempty` from JSON tags on struct-typed fields (no effect in `encoding/json`); YAML `omitempty` is fine                                                                  |
+| `staticcheck SA1019`       | Deprecated type alias usage            | Migrate ALL references (including test files) when deprecating a type alias — `Deprecated:` doc comment triggers SA1019 on every reference                                         |
+| `modernize`                | Legacy `sort.Strings`/`sort.Slice`     | Use `slices.Sort()` / `slices.SortFunc()` with `strings.Compare`                                                                                                                   |
+| `gofumpt` vs `//nolint`    | Directive between doc comment and func | `gofumpt` inserts a blank line that detaches the directive from the func — embed the suppression rationale in the doc comment instead of using `//nolint`                          |
+| `dupl`                     | Cross-type validator similarity        | Both sides of the duplicate pair need `//nolint:dupl` — see [GOTCHAS.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#91-cross-type-validator-duplication) §9.1 |
 
 ## Testing Requirements
 
@@ -253,7 +253,7 @@ Use `t.Helper()` in all test helpers and `t.Cleanup()` for teardown. Place share
 
 ### Map Iteration in Tests
 
-Map iteration is non-deterministic — test for presence (`strings.Contains()`) not exact equality. Production code must sort before rendering (see [GOTCHAS.md](../../GOTCHAS.md) §3.1).
+Map iteration is non-deterministic — test for presence (`strings.Contains()`) not exact equality. Production code must sort before rendering (see [GOTCHAS.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#31-map-iteration-order) §3.1).
 
 ### Pointer Identity in Tests
 
@@ -287,13 +287,13 @@ Use `sebdah/goldie/v2` for snapshot testing. Key patterns:
 
 ### Testing Global Flag Variables
 
-When testing CLI commands with package-level flag variables (required by Cobra), save originals and use `t.Cleanup()` to restore them. Do NOT use `t.Parallel()` — see [GOTCHAS.md](../../GOTCHAS.md) §1.1.
+When testing CLI commands with package-level flag variables (required by Cobra), save originals and use `t.Cleanup()` to restore them. Do NOT use `t.Parallel()` — see [GOTCHAS.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#11-tparallel-and-global-state) §1.1.
 
 When adding new shared flags (`cmd/shared_flags.go`), update `sharedFlagSnapshot` in `cmd/display_test.go`. When adding audit-specific flags, update `auditFlagSnapshot` in `cmd/audit_test.go`.
 
 ### Testing Cobra PreRunE Validators
 
-To unit-test `PreRunE` without requiring a full `CommandContext`, construct a temporary `cobra.Command` with flags bound to the same global variables, set values via `cmd.Flags().Set("name", "value")`, then invoke `auditCmd.PreRunE(tempCmd, args)` directly. See `cmd/audit_test.go` for the canonical pattern and [GOTCHAS.md](../../GOTCHAS.md) §5.3 for the binding pitfall.
+To unit-test `PreRunE` without requiring a full `CommandContext`, construct a temporary `cobra.Command` with flags bound to the same global variables, set values via `cmd.Flags().Set("name", "value")`, then invoke `auditCmd.PreRunE(tempCmd, args)` directly. See `cmd/audit_test.go` for the canonical pattern and [GOTCHAS.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#53-prerune-test-commands-must-bind-to-real-globals) §5.3 for the binding pitfall.
 
 ## Development Workflow
 
@@ -492,7 +492,7 @@ When adding `io.Writer` support alongside string-returning APIs, split responsib
 
 ### DeviceParser Registry Pattern
 
-Parser registration follows the `database/sql` model: parsers call `parser.Register(name, factory)` from `init()`. **Critical:** any file using `parser.NewFactory()` must blank-import the parser packages (e.g., `_ ".../pkg/parser/opnsense"` and `_ ".../pkg/parser/pfsense"`). Without it, the registry is empty. See **[GOTCHAS.md](GOTCHAS.md)** for symptoms and fixes.
+Parser registration follows the `database/sql` model: parsers call `parser.Register(name, factory)` from `init()`. **Critical:** any file using `parser.NewFactory()` must blank-import the parser packages (e.g., `_ ".../pkg/parser/opnsense"` and `_ ".../pkg/parser/pfsense"`). Without it, the registry is empty. See **[GOTCHAS.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#71-blank-import-requirement)** for symptoms and fixes.
 
 Both parsers share XML security hardening via `parser.NewSecureXMLDecoder()` in `pkg/parser/xmlutil.go` (LimitReader, XXE protection, charset handling). The pfSense parser manages its own XML decoding because `XMLDecoder` returns `*schema.OpnSenseDocument`; validation is injected via `pfsense.ValidateFunc` (set in `cmd/root.go`).
 
@@ -609,7 +609,7 @@ Use `nao1215/markdown` for programmatic markdown generation in `internal/convert
 
 ### XML Element Presence Detection
 
-Go's `encoding/xml` produces `""` for both self-closing tags (`<any/>`) and absent elements when using `string` fields. Use `*string` to distinguish presence from absence: self-closing → `*string` pointing to `""` (non-nil); absent → `nil`. See [GOTCHAS.md](../../GOTCHAS.md) §3.2 for the pitfall.
+Go's `encoding/xml` produces `""` for both self-closing tags (`<any/>`) and absent elements when using `string` fields. Use `*string` to distinguish presence from absence: self-closing → `*string` pointing to `""` (non-nil); absent → `nil`. See [GOTCHAS.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#32-xml-presence-vs-absence) §3.2 for the pitfall.
 
 **Creating `*string` values:** Use `new(expr)` (Go 1.26+), e.g., `Source{Any: new(""), Network: new("lan")}`.
 
@@ -625,9 +625,9 @@ Add `IsAny()` / `Equal()` methods rather than comparing `*string` fields directl
 
 See `docs/development/xml-structure-research.md` for the complete field inventory with upstream source citations.
 
-**BoolFlag in forked structs:** When a copy-on-write struct changes a field from `string` to `BoolFlag`, add a private type alias and a pointer-receiver `MarshalXML` that delegates via `e.EncodeElement((*alias)(ptr), start)`. See `pkg/schema/pfsense/interfaces.go` and [GOTCHAS.md](../../GOTCHAS.md) §15.1.
+**BoolFlag in forked structs:** When a copy-on-write struct changes a field from `string` to `BoolFlag`, add a private type alias and a pointer-receiver `MarshalXML` that delegates via `e.EncodeElement((*alias)(ptr), start)`. See `pkg/schema/pfsense/interfaces.go` and [GOTCHAS.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#151-pointer-receiver-marshalxml-and-value-marshaling) §15.1.
 
-**Repeated XML elements:** Use `[]string` for elements that can appear multiple times — see [GOTCHAS.md](../../GOTCHAS.md) §3.3 for the silent data loss pitfall.
+**Repeated XML elements:** Use `[]string` for elements that can appear multiple times — see [GOTCHAS.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#33-repeated-xml-elements-and-string-fields) §3.3 for the silent data loss pitfall.
 
 ### Context-Aware Semaphore
 
@@ -722,7 +722,7 @@ When splitting a large file into domain-specific files within the same package:
 - `pfsense.Interface` has `Enable opnsense.BoolFlag` (not `string`) — use `iface.Enable.Bool()`
 - `pfsense.Group.Member` is `[]string` (listtag) — converter uses `strings.Join(g.Member, ", ")`
 
-See [`pkg/schema/pfsense/README.md`](../../pkg/schema/pfsense/README.md) for the complete pfSense structural reference.
+See [`pkg/schema/pfsense/README.md`](https://github.com/EvilBit-Labs/opnDossier/blob/main/pkg/schema/pfsense/README.md) for the complete pfSense structural reference.
 
 **Platform-agnostic model layer:**
 
