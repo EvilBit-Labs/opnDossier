@@ -247,6 +247,33 @@ func builtinRules() []Rule {
 	aggressiveOnly := []Mode{ModeAggressive}
 
 	return []Rule{
+		{
+			Name:        "authserver_config",
+			Description: "Pseudonymizes sensitive system/authserver LDAP values",
+			Category:    CategorySystem,
+			Modes:       allModes,
+			FieldPatterns: []string{
+				"system.authserver.name",
+				"system.authserver.host",
+				"ldap_port",
+				"ldap_basedn",
+				"ldap_authcn",
+				"ldap_extended_query",
+				"ldap_attr_user",
+				"ldap_binddn",
+				"ldap_bindpw",
+				"ldap_sync_memberof_groups",
+				"ldap_sync_default_groups",
+			},
+			Redactor: func(m *Mapper, fieldName, value string) string {
+				authServerField := authServerFieldFromPath(fieldName)
+				if authServerField == "" {
+					return value
+				}
+				return m.MapAuthServerValue(authServerField, value)
+			},
+		},
+
 		// Credential rules - all modes
 		{
 			Name:        "password",
@@ -299,7 +326,6 @@ func builtinRules() []Rule {
 				return "[REDACTED-SNMP-COMMUNITY]"
 			},
 		},
-
 		// Crypto rules - all modes
 		{
 			Name:        "private_key",
@@ -522,6 +548,35 @@ func builtinRules() []Rule {
 				return redactedPublicKeyValue
 			},
 		},
+	}
+}
+
+func authServerFieldFromPath(fieldName string) string {
+	lowerFieldName := toLower(fieldName)
+	lastDot := strings.LastIndexByte(lowerFieldName, '.')
+	field := lowerFieldName
+	if lastDot != -1 && lastDot < len(lowerFieldName)-1 {
+		field = lowerFieldName[lastDot+1:]
+	}
+
+	switch field {
+	case authServerFieldLDAPPort,
+		authServerFieldLDAPBaseDN,
+		authServerFieldLDAPAuthCN,
+		authServerFieldLDAPExtendedQuery,
+		authServerFieldLDAPAttrUser,
+		authServerFieldLDAPBindDN,
+		authServerFieldLDAPBindPW,
+		authServerFieldLDAPSyncMemberOfGroups,
+		authServerFieldLDAPSyncDefaultGroups:
+		return field
+	case authServerFieldName, authServerFieldHost:
+		if contains(lowerFieldName, "authserver.") || contains(lowerFieldName, "authserver[") {
+			return field
+		}
+		return ""
+	default:
+		return ""
 	}
 }
 

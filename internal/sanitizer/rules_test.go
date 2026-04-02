@@ -5,6 +5,10 @@ import (
 )
 
 // Test constants for expected redaction values.
+//
+//nolint:gosec // G101: expected redaction marker used in tests, not a real credential.
+const expectedRedactedPassValue = "[REDACTED-PASSWORD]"
+
 const (
 	expectedRedactedPublicIP1 = "[REDACTED-PUBLIC-IP-1]"
 	expectedMappedHostname1   = "host-001.example.com"
@@ -84,6 +88,31 @@ func TestShouldRedactField_Password(t *testing.T) {
 		{ModeAggressive, "Password", true},
 		{ModeAggressive, "passwd", true},
 		{ModeAggressive, "description", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.mode)+"_"+tt.fieldName, func(t *testing.T) {
+			engine := NewRuleEngine(tt.mode)
+			got, _ := engine.ShouldRedactField(tt.fieldName)
+			if got != tt.want {
+				t.Errorf("ShouldRedactField(%q) = %v, want %v", tt.fieldName, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestShouldRedactField_AuthServer(t *testing.T) {
+	tests := []struct {
+		mode      Mode
+		fieldName string
+		want      bool
+	}{
+		{ModeAggressive, "opnsense.system.authserver.name", true},
+		{ModeModerate, "opnsense.system.authserver.host", true},
+		{ModeMinimal, "ldap_bindpw", true},
+		{ModeMinimal, "ldap_basedn", true},
+		{ModeMinimal, "name", false},
+		{ModeMinimal, "opnsense.system.user.name", false},
 	}
 
 	for _, tt := range tests {
@@ -195,8 +224,17 @@ func TestShouldRedactValue_Email(t *testing.T) {
 func TestRedact_Password(t *testing.T) {
 	engine := NewRuleEngine(ModeMinimal)
 	result := engine.Redact("password", "supersecret123")
-	if result != "[REDACTED-PASSWORD]" {
-		t.Errorf("Redact password = %q, want %q", result, "[REDACTED-PASSWORD]")
+	if result != expectedRedactedPassValue {
+		t.Errorf("Redact password = %q, want %q", result, expectedRedactedPassValue)
+	}
+}
+
+func TestRedact_AuthServerBindPassword(t *testing.T) {
+	engine := NewRuleEngine(ModeMinimal)
+
+	result := engine.Redact("ldap_bindpw", "supersecret123")
+	if result != expectedAuthServerBindPW1 {
+		t.Errorf("Redact authserver ldap_bindpw = %q, want %q", result, expectedAuthServerBindPW1)
 	}
 }
 
@@ -299,6 +337,50 @@ func TestRedact_NoRedaction(t *testing.T) {
 	}
 }
 
+func TestRedact_AuthServerConfig(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		field string
+		value string
+		want  string
+	}{
+		{"opnsense.system.authserver.name", "corp-ldap", expectedAuthServerName1},
+		{"opnsense.system.authserver.host", "ldap.corp.example.com", expectedAuthServerHost1},
+		{"ldap_port", "636", expectedAuthServerPort1},
+		{"ldap_basedn", "dc=corp,dc=example,dc=com", expectedAuthServerBaseDN1},
+		{"ldap_authcn", "cn=users,dc=corp,dc=example,dc=com", expectedAuthServerAuthCN1},
+		{
+			"ldap_extended_query",
+			"(|(memberOf=cn=admins,ou=groups,dc=corp,dc=example,dc=com))",
+			expectedAuthServerExtendedQuery1,
+		},
+		{"ldap_attr_user", "uid", expectedAuthServerAttrUser1},
+		{"ldap_binddn", "cn=svc_bind,ou=svc,dc=corp,dc=example,dc=com", expectedAuthServerBindDN1},
+		{"ldap_bindpw", "supersecret123", expectedAuthServerBindPW1},
+		{
+			"ldap_sync_memberof_groups",
+			"cn=sync-members,ou=groups,dc=corp,dc=example,dc=com",
+			expectedAuthServerSyncMemberOfGroups1,
+		},
+		{
+			"ldap_sync_default_groups",
+			"cn=defaults,ou=groups,dc=corp,dc=example,dc=com",
+			expectedAuthServerSyncDefaultGroups1,
+		},
+	}
+
+	for _, mode := range ValidModes() {
+		engine := NewRuleEngine(mode)
+		for _, tt := range tests {
+			result := engine.Redact(tt.field, tt.value)
+			if result != tt.want {
+				t.Errorf("mode=%q Redact(%q) = %q, want %q", mode, tt.field, result, tt.want)
+			}
+		}
+	}
+}
+
 func TestGetActiveRules(t *testing.T) {
 	tests := []struct {
 		mode         Mode
@@ -306,7 +388,7 @@ func TestGetActiveRules(t *testing.T) {
 	}{
 		{ModeAggressive, 18}, // All rules including aggressive-only
 		{ModeModerate, 9},    // Credentials + crypto + identity + network (public IP, MAC)
-		{ModeMinimal, 6},     // Credentials + crypto + system (SSH keys)
+		{ModeMinimal, 7},     // Credentials + crypto + system (SSH keys + authserver)
 	}
 
 	for _, tt := range tests {

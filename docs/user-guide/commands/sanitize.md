@@ -1,6 +1,6 @@
 # sanitize
 
-The `sanitize` command redacts sensitive information from an OPNsense or pfSense configuration file while preserving its structure and relationships. The output is a valid XML file with passwords, keys, IP addresses, and other secrets replaced by consistent pseudonymized values -- so network topology and rule logic remain visible without exposing real credentials or addresses. Both OPNsense password fields (`<password>`) and pfSense bcrypt hashes (`<bcrypt-hash>`) are detected and redacted.
+The `sanitize` command redacts sensitive information from an OPNsense or pfSense configuration file while preserving its structure and relationships. The output is a valid XML file with passwords, keys, IP addresses, `system/authserver` LDAP values, and other secrets replaced by consistent pseudonymized values -- so network topology and rule logic remain visible without exposing real credentials or addresses. Both OPNsense password fields (`<password>`) and pfSense bcrypt hashes (`<bcrypt-hash>`) are detected and redacted.
 
 **When to use it:**
 
@@ -32,7 +32,7 @@ The `--mode` flag controls how aggressively the sanitizer redacts data. Each mod
 
 ### Minimal
 
-Redacts only direct secrets. Use this in trusted environments where network topology can remain visible but credentials must not.
+Redacts direct secrets and pseudonymizes sensitive `system/authserver` LDAP values. Use this in trusted environments where most network topology can remain visible but credentials and LDAP server details must not.
 
 - Passwords, passphrases
 - API keys, tokens, secrets
@@ -40,6 +40,7 @@ Redacts only direct secrets. Use this in trusted environments where network topo
 - Private keys
 - SSH authorized keys
 - SNMP community strings
+- Sensitive `system/authserver` LDAP values
 
 ### Moderate (default)
 
@@ -51,7 +52,7 @@ Everything in minimal, plus:
 - MAC addresses
 - Email addresses
 
-Private IPs (RFC 1918) are preserved, so internal network structure remains readable.
+Private IPs (RFC 1918) and hostnames outside `system/authserver` are preserved, so internal network structure remains readable.
 
 ### Aggressive
 
@@ -107,6 +108,20 @@ The mapping file is organized by category:
     },
     "emails": {
       "admin@example.com": "user-001@example.com"
+    },
+    "authserver": {
+      "name": {
+        "corp-ldap": "authserver-001"
+      },
+      "host": {
+        "ldap.corp.example.com": "ldap-001.example.invalid"
+      },
+      "ldap_port": {
+        "636": "55001"
+      },
+      "ldap_bindpw": {
+        "supersecret123": "BindPw-001-NotReal!"
+      }
     }
   }
 }
