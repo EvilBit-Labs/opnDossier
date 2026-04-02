@@ -11,7 +11,7 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 	github.com/charmbracelet/log v1.0.0
 	github.com/clbanning/mxj v1.8.4
-	github.com/go-playground/validator/v10 v10.30.1
+	github.com/go-playground/validator/v10 v10.30.2
 	github.com/k3a/html2text v1.4.0
 	github.com/nao1215/markdown v0.13.0
 	github.com/sebdah/goldie/v2 v2.8.0
