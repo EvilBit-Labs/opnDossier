@@ -87,27 +87,63 @@ The `<source>` and `<destination>` elements are the most complex sub-structures 
 
 ### 2a. XML Structure Examples
 
+Match any address:
+
 ```xml
-<!-- Match any address -->
-<source><any/></source>
+<source>
+  <any />
+</source>
+```
 
-<!-- Match interface subnet -->
-<source><network>lan</network></source>
+Match interface subnet:
 
-<!-- Match specific IP/CIDR -->
-<source><address>192.168.1.0/24</address></source>
+```xml
+<source>
+  <network>lan</network>
+</source>
+```
 
-<!-- Match alias -->
-<source><address>MyAlias</address></source>
+Match specific IP/CIDR:
 
-<!-- Negated match -->
-<source><not/><network>lan</network></source>
+```xml
+<source>
+  <address>192.168.1.0/24</address>
+</source>
+```
 
-<!-- With port (TCP/UDP only) -->
-<destination><network>wan</network><port>443</port></destination>
+Match alias:
 
-<!-- Port range -->
-<destination><any/><port>8000-9000</port></destination>
+```xml
+<source>
+  <address>MyAlias</address>
+</source>
+```
+
+Negated match:
+
+```xml
+<source>
+  <not />
+  <network>lan</network>
+</source>
+```
+
+With port (TCP/UDP only):
+
+```xml
+<destination>
+  <network>wan</network>
+  <port>443</port>
+</destination>
+```
+
+Port range:
+
+```xml
+<destination>
+  <any />
+  <port>8000-9000</port>
+</destination>
 ```
 
 ### 2b. Mutual Exclusivity
