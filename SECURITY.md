@@ -2,14 +2,15 @@
 
 ## Supported Versions
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.2.x   | :white_check_mark: |
-| 1.1.x   | :white_check_mark: |
-| 1.0.x   | :x:                |
-| < 1.0   | :x:                |
+| Version | Supported                       |
+| ------- | ------------------------------- |
+| 1.3.x   | :white_check_mark: Full support |
+| 1.2.x   | :white_check_mark: Best effort  |
+| 1.1.x   | :x:                             |
+| 1.0.x   | :x:                             |
+| < 1.0   | :x:                             |
 
-Users on 1.0.x or earlier should upgrade to the latest release. Please review the [release notes](https://github.com/EvilBit-Labs/opnDossier/releases) when upgrading.
+**Support policy:** Releases within the last 90 days receive full support (security patches, bug fixes). Releases within the last 6 months receive best-effort assistance. Older releases are unsupported — please upgrade to the latest version. Review the [release notes](https://github.com/EvilBit-Labs/opnDossier/releases) when upgrading.
 
 ## Reporting a Vulnerability
 

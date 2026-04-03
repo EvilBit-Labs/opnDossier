@@ -126,7 +126,7 @@ reporting without exposing credentials, IP addresses, or other sensitive data.
                    Redacts: passwords, keys, authserver values, public IPs, MACs, emails
                    Preserves: private IPs, hostnames (for network topology analysis)
 
-    minimal      - Credential-only redaction for trusted environments
+    minimal      - Credentials + authserver redaction for trusted environments
                    Redacts: passwords, secrets, API keys, PSKs, private keys, SSH keys,
                    authserver values
                    Preserves: certificates, all network information

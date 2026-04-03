@@ -1,6 +1,6 @@
 # opnDossier - OPNsense and pfSense Configuration Processor
 
-[![OpenSSF Best Practices][ossf-badge]][ossf] [![Go Version][go-badge]][go] [![License][license-badge]][license] [![codecov][codecov-badge]][codecov] [![Documentation][docs-badge]][docs] [![wakatime][wakatime-badge]][wakatime] [![Go Report Card][goreportcard-badge]][goreportcard] [![Mergify Status][mergify-status]][mergify]
+[![OpenSSF Best Practices][ossf-badge]][ossf] [![Go Version][go-badge]][go] [![License][license-badge]][license] [![codecov][codecov-badge]][codecov] [![Documentation][docs-badge]][docs] [![wakatime][wakatime-badge]][wakatime] [![Go Report Card][goreportcard-badge]][goreportcard] [![Mergify Status][mergify-status]][mergify] [![All Contributors][all-contributors-badge]][all-contributors]
 
 ## Overview
 
@@ -428,12 +428,6 @@ Apache License 2.0 - see [LICENSE](LICENSE) file for details.
 
 ## Contributors
 
-<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-
-[![All Contributors](https://img.shields.io/github/all-contributors/EvilBit-Labs/opnDossier?color=ee8449&style=flat-square)](#contributors)
-
-<!-- ALL-CONTRIBUTORS-BADGE:END -->
-
 See [CONTRIBUTORS.md](CONTRIBUTORS.md) for the full list of contributors.
 
 ## Acknowledgements
@@ -450,6 +444,8 @@ Built for network operators and security professionals.
 
 <!-- Reference Links -->
 
+[all-contributors]: #contributors
+[all-contributors-badge]: https://img.shields.io/github/all-contributors/EvilBit-Labs/opnDossier?color=ee8449&style=flat-square
 [codecov]: https://codecov.io/gh/EvilBit-Labs/opnDossier
 [codecov-badge]: https://codecov.io/gh/EvilBit-Labs/opnDossier/graph/badge.svg?token=WD1QD9ITZF
 [docs]: https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/index.md

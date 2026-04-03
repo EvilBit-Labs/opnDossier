@@ -206,6 +206,18 @@ func fieldNameMatches(fieldName, pattern string) bool {
 // fields; each rule indicates the modes in which it is active and provides field patterns,
 // optional value detectors, and redactors that the engine uses to determine and perform
 // redaction.
+//
+// ORDERING CONTRACT: Rule ordering matters. ShouldRedactField returns on the first
+// matching rule, so earlier rules take precedence. Specifically:
+//
+//   - authserver_config MUST precede password. Both match "ldap_bindpw" (authserver_config
+//     via an exact field pattern, password via the "pass" substring). authserver_config
+//     pseudonymizes the value via MapAuthServerValue; password flat-redacts to
+//     "[REDACTED-PASSWORD]". If reordered, LDAP bind passwords silently switch from
+//     pseudonymized to flat-redacted with no error or warning.
+//
+//   - email MUST precede hostname. Email addresses contain dots that match hostname
+//     patterns. The ordering ensures emails are mapped via MapEmail, not MapHostname.
 func builtinRules() []Rule {
 	allModes := []Mode{ModeAggressive, ModeModerate, ModeMinimal}
 	aggressiveModerate := []Mode{ModeAggressive, ModeModerate}

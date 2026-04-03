@@ -290,3 +290,13 @@ Kea's `<pools>` element on each `<subnet4>` stores newline-separated (`\n`) IP r
 `KeaReservation.Subnet` contains the UUID of the parent subnet. The converter groups reservations by this field to attach them as static leases. Orphaned reservations (referencing nonexistent subnet UUIDs) emit a conversion warning.
 
 - **Gotcha:** This is the inverse of what the OPNsense MVC model XML might suggest at first glance. The `<reservations>` container is a flat sibling of `<subnets>`, not nested inside each subnet.
+
+## 19. Sanitizer Rule Ordering
+
+### 19.1 `authserver_config` Must Precede `password` in `builtinRules()`
+
+`ShouldRedactField` iterates the rule slice and returns on the first match. Both `authserver_config` and `password` match LDAP bind password fields — `authserver_config` via the exact pattern `authserver.ldap_bindpw`, and `password` via the `pass` substring. The `authserver_config` rule pseudonymizes the value through `MapAuthServerValue`; the `password` rule flat-redacts to `[REDACTED-PASSWORD]`.
+
+- **Problem:** If `password` is moved above `authserver_config` in the `builtinRules()` slice, `ldap_bindpw` values silently switch from pseudonymized to flat-redacted. No error or warning is emitted.
+- **Symptom:** Sanitized output shows `[REDACTED-PASSWORD]` for LDAP bind passwords instead of a pseudonymized value like `ldap-bindpw-001`.
+- **Fix:** Ensure `authserver_config` remains the first rule in `builtinRules()`. The same first-match precedence applies to `email` vs `hostname` (email must precede hostname).
