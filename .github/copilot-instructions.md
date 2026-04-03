@@ -40,16 +40,24 @@ opnDossier is a tool for auditing and reporting on OPNsense configurations, with
 - **Major Components**:
 
   - `cmd/`: CLI entrypoints (`convert`, `display`, `validate`). See `cmd/root.go` for command registration.
+
   - `internal/cfgparser/`: XML parsing to `schema.OpnSenseDocument` (XML DTO), converted to `common.CommonDevice` via `pkg/parser/opnsense/`.
+
   - `pkg/model/`: Platform-agnostic CommonDevice domain model.
+
   - `pkg/parser/`: Factory + DeviceParser interface (`pkg/parser/opnsense/` for OPNsense-specific converter).
+
   - `pkg/schema/opnsense/`: Canonical OPNsense XML data model structs.
+
   - `internal/processor/`: Normalization, validation, analysis, and transformation pipeline.
-  - `internal/converter/`, `internal/markdown/`: Multi-format export (Markdown, JSON, YAML) using templates and options.
+
+  - `internal/converter/`: Multi-format export (Markdown, JSON, YAML) using templates and options.
+
   - `internal/audit/`, `internal/compliance/`, `internal/plugins/`: Compliance audit engine and plugin system (STIG, SANS, firewall).
+
   - `internal/display/`, `internal/logging/`: Terminal output and structured logging.
 
-- **Data Flow**: `cfgparser` → `pkg/parser/opnsense` → `processor` → `converter`/`markdown` → `export`
+  - **Data Flow**: `cfgparser` → `pkg/parser/opnsense` → `processor` → `converter` → `export`
 
 - **Audit overlays**: `processor` → `audit` → `plugins`
 
@@ -236,7 +244,6 @@ opndossier/
 │   ├── cfgparser/    # XML parsing and validation
 │   ├── processor/    # Data processing and analysis
 │   ├── converter/    # Data conversion utilities
-│   ├── markdown/     # Markdown generation
 │   ├── display/      # Terminal display formatting
 │   ├── export/       # File export functionality
 │   ├── audit/        # Audit engine and compliance checking

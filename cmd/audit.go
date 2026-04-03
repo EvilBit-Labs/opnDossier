@@ -123,6 +123,14 @@ var auditCmd = &cobra.Command{
 				auditMode, strings.Join(validModes, ", "))
 		}
 
+		// Warn when red mode is selected — its analysis methods are placeholder stubs
+		// that return fabricated metadata. Results will be incomplete until the red
+		// team pipeline is fully implemented.
+		if strings.EqualFold(auditMode, "red") {
+			fmt.Fprintf(os.Stderr,
+				"WARNING: Red team mode is experimental and not yet fully implemented. Results may be incomplete.\n")
+		}
+
 		// Reject --plugins when the selected mode does not execute compliance checks.
 		// Only blue mode runs RunComplianceChecks; red mode ignores plugins.
 		if len(auditPlugins) > 0 && !strings.EqualFold(auditMode, "blue") {

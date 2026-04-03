@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/diff"
-	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
 )
 
 // htmlShell wraps rendered HTML body content in a self-contained HTML document
@@ -76,7 +76,7 @@ func (f *HTMLFormatter) Format(result *diff.Result) error {
 	}
 
 	// Convert markdown to HTML body via goldmark
-	htmlBody, err := markdown.RenderMarkdown(mdBuf.String())
+	htmlBody, err := converter.RenderMarkdown(mdBuf.String())
 	if err != nil {
 		return fmt.Errorf("failed to convert markdown to HTML: %w", err)
 	}

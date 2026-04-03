@@ -13,6 +13,9 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 )
 
+// ErrNoResolvableAncestor is returned when no ancestor directory of a path can be resolved.
+var ErrNoResolvableAncestor = errors.New("no resolvable ancestor directory")
+
 // File export constants for permissions and platform detection.
 const (
 	// DefaultFilePermissions defines the default file permissions for exported files.
@@ -142,30 +145,117 @@ func (e *FileExporter) validateExportPath(path string) error {
 	return nil
 }
 
-// checkPathTraversal checks for potentially malicious path traversal patterns.
+// checkPathTraversal validates that the given path resolves to a location
+// within the current working directory. Simple filenames (no path separators)
+// are allowed without checking — they cannot escape the CWD. Absolute paths
+// without traversal segments are allowed (validated downstream by directory
+// checks). All relative paths with separators are resolved via filepath.Abs
+// and filepath.EvalSymlinks to prevent both ".." traversal and symlink-based
+// escapes.
 func (e *FileExporter) checkPathTraversal(path string) error {
-	// Check for path traversal attempts BEFORE cleaning the path
-	// This catches attempts like "../../../etc/passwd" or "test/../../../etc/passwd"
-	if strings.Contains(path, "..") {
-		// Check if the path contains suspicious traversal patterns
-		parts := strings.Split(path, string(filepath.Separator))
-		dotDotCount := 0
+	// Simple filenames without path separators cannot escape CWD.
+	if !strings.Contains(path, string(filepath.Separator)) && !strings.Contains(path, "/") {
+		return nil
+	}
 
-		for _, part := range parts {
-			if part == ".." {
-				dotDotCount++
-			}
-		}
-		// If we have multiple ".." segments, it's likely a traversal attempt
-		if dotDotCount > 1 {
-			return &Error{
-				Operation: "validate_path",
-				Path:      path,
-				Message:   "path contains potentially malicious traversal sequences",
-			}
+	// Absolute paths without ".." traversal segments are validated by
+	// downstream directory and permission checks.
+	if filepath.IsAbs(path) && !strings.Contains(path, "..") {
+		return nil
+	}
+
+	// Determine the allowed base directory (CWD).
+	cwd, err := os.Getwd()
+	if err != nil {
+		return &Error{
+			Operation: "validate_path",
+			Path:      path,
+			Message:   "failed to determine current working directory",
+			Cause:     err,
 		}
 	}
+
+	// Resolve the allowed base through symlinks for accurate comparison.
+	allowedBase, err := filepath.EvalSymlinks(cwd)
+	if err != nil {
+		return &Error{
+			Operation: "validate_path",
+			Path:      path,
+			Message:   "failed to resolve current working directory",
+			Cause:     err,
+		}
+	}
+
+	// Resolve the candidate path to absolute.
+	absPath, err := filepath.Abs(filepath.Clean(path))
+	if err != nil {
+		return &Error{
+			Operation: "validate_path",
+			Path:      path,
+			Message:   "failed to resolve absolute path for traversal check",
+			Cause:     err,
+		}
+	}
+
+	// EvalSymlinks requires existing paths. Resolve the deepest existing
+	// ancestor directory, then re-append the remaining segments.
+	resolved, err := resolveWithMissingTail(absPath)
+	if err != nil {
+		return &Error{
+			Operation: "validate_path",
+			Path:      path,
+			Message:   "path traversal check could not resolve any ancestor directory — symlink protection unavailable",
+			Cause:     err,
+		}
+	}
+
+	// Ensure the resolved path is within the allowed base directory.
+	// Append filepath.Separator to the base to prevent prefix false-positives
+	// (e.g., /home/userx matching /home/user).
+	if resolved != allowedBase && !strings.HasPrefix(resolved, allowedBase+string(filepath.Separator)) {
+		return &Error{
+			Operation: "validate_path",
+			Path:      path,
+			Message:   "path contains potentially malicious traversal sequences",
+		}
+	}
+
 	return nil
+}
+
+// resolveWithMissingTail resolves symlinks for the deepest existing ancestor
+// of absPath, then appends any non-existent tail segments. This allows
+// validation of paths where the target file does not yet exist.
+//
+// Returns an error if no ancestor directory can be resolved (i.e., the
+// entire path chain is non-existent up to the filesystem root).
+func resolveWithMissingTail(absPath string) (string, error) {
+	// Try resolving the full path first (fast path for existing files).
+	resolved, err := filepath.EvalSymlinks(absPath)
+	if err == nil {
+		return resolved, nil
+	}
+
+	// Walk up to find the deepest existing ancestor.
+	dir := filepath.Dir(absPath)
+	tail := filepath.Base(absPath)
+
+	for {
+		resolved, err = filepath.EvalSymlinks(dir)
+		if err == nil {
+			return filepath.Join(resolved, tail), nil
+		}
+
+		// Move one level up and accumulate the tail.
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			// Reached filesystem root without finding an existing ancestor.
+			return "", fmt.Errorf("%w: %s", ErrNoResolvableAncestor, absPath)
+		}
+
+		tail = filepath.Join(filepath.Base(dir), tail)
+		dir = parent
+	}
 }
 
 // resolveAbsolutePath normalizes and resolves the path to an absolute path.

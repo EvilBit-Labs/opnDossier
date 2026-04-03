@@ -2,6 +2,7 @@ package sanitizer
 
 import (
 	"bytes"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -484,6 +485,80 @@ func TestSanitizeXML_GuardedRedactorStats(t *testing.T) {
 	}
 }
 
+func TestSanitizeXML_PreventsEntityExpansion(t *testing.T) {
+	t.Parallel()
+
+	// XML with entity definition and reference — entity must not expand.
+	// With Strict=false and empty Entity map, the decoder passes entity
+	// references through as literal text rather than expanding them.
+	input := `<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe "pwned">]><root>&xxe;</root>`
+
+	s := NewSanitizer(ModeMinimal)
+	var output bytes.Buffer
+	err := s.SanitizeXML(strings.NewReader(input), &output)
+	if err != nil {
+		t.Fatalf("SanitizeXML() error = %v", err)
+	}
+
+	result := output.String()
+	// The entity value "pwned" must NOT appear in the output.
+	if strings.Contains(result, "pwned") {
+		t.Error("XXE entity was expanded — entity value 'pwned' found in output")
+	}
+	// The DTD directive should be stripped.
+	if strings.Contains(result, "DOCTYPE") {
+		t.Error("DOCTYPE directive was not stripped from output")
+	}
+}
+
+func TestSanitizeXML_RejectsOversizedInput(t *testing.T) {
+	t.Parallel()
+
+	// Create input larger than maxSanitizeInputSize.
+	oversized := strings.Repeat("x", int(maxSanitizeInputSize)+1)
+	input := "<root>" + oversized + "</root>"
+
+	s := NewSanitizer(ModeMinimal)
+	var output bytes.Buffer
+	err := s.SanitizeXML(strings.NewReader(input), &output)
+
+	if err == nil {
+		t.Fatal("expected error for oversized input, got nil")
+	}
+	if !strings.Contains(err.Error(), "exceeds maximum size") {
+		t.Errorf("expected size limit error, got: %v", err)
+	}
+}
+
+func TestSanitizeXML_StripsDTDDirective(t *testing.T) {
+	t.Parallel()
+
+	// XML with a DTD directive that should be stripped.
+	input := `<?xml version="1.0"?><!DOCTYPE foo SYSTEM "http://evil.com/xxe.dtd"><root><name>safe</name></root>`
+
+	s := NewSanitizer(ModeMinimal)
+	var output bytes.Buffer
+	err := s.SanitizeXML(strings.NewReader(input), &output)
+	if err != nil {
+		t.Fatalf("SanitizeXML() error = %v", err)
+	}
+
+	result := output.String()
+
+	// The DTD directive should be replaced with a comment.
+	if !strings.Contains(result, "<!-- DTD directive stripped -->") {
+		t.Error("DTD directive was not replaced with stripped comment")
+	}
+	// The original DOCTYPE should not appear.
+	if strings.Contains(result, "DOCTYPE") {
+		t.Error("DOCTYPE directive was not stripped from output")
+	}
+	// The document content should still be present.
+	if !strings.Contains(result, "<root>") {
+		t.Error("root element not preserved after directive stripping")
+	}
+}
+
 func TestEscapeXMLAttr(t *testing.T) {
 	tests := []struct {
 		input string
@@ -502,5 +577,67 @@ func TestEscapeXMLAttr(t *testing.T) {
 				t.Errorf("escapeXMLAttr(%q) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
+	}
+}
+
+func BenchmarkSanitizeXML(b *testing.B) {
+	// Generate a realistic XML input with ~1000 nested elements.
+	var sb strings.Builder
+	sb.WriteString(`<?xml version="1.0"?>` + "\n")
+	sb.WriteString("<opnsense>\n")
+	sb.WriteString("  <system>\n")
+
+	// Generate users with passwords and IPs to exercise redaction paths.
+	for i := range 100 {
+		n := strconv.Itoa(i)
+		sb.WriteString("    <user>\n")
+		sb.WriteString("      <name>user" + n + "</name>\n")
+		sb.WriteString("      <password>secret" + n + "</password>\n")
+		sb.WriteString("      <email>user" + n + "@company.com</email>\n")
+		sb.WriteString("      <gateway>8.8." + strconv.Itoa(i/256) + "." + n + "</gateway>\n")
+		sb.WriteString("    </user>\n")
+	}
+
+	sb.WriteString("  </system>\n")
+	sb.WriteString("  <interfaces>\n")
+
+	// Generate interface entries with nested elements.
+	for i := range 50 {
+		n := strconv.Itoa(i)
+		sb.WriteString("    <iface" + n + ">\n")
+		sb.WriteString("      <ipaddr>192.168." + n + ".1</ipaddr>\n")
+		sb.WriteString("      <subnet>24</subnet>\n")
+		sb.WriteString("      <descr>Interface " + n + "</descr>\n")
+		sb.WriteString("    </iface" + n + ">\n")
+	}
+
+	sb.WriteString("  </interfaces>\n")
+	sb.WriteString("  <filter>\n")
+
+	// Generate firewall rules.
+	for i := range 100 {
+		n := strconv.Itoa(i)
+		sb.WriteString("    <rule>\n")
+		sb.WriteString("      <descr>Rule " + n + "</descr>\n")
+		sb.WriteString("      <source>10.0." + n + ".0/24</source>\n")
+		sb.WriteString("      <destination>172.16." + n + ".0/24</destination>\n")
+		sb.WriteString("      <protocol>tcp</protocol>\n")
+		sb.WriteString("    </rule>\n")
+	}
+
+	sb.WriteString("  </filter>\n")
+	sb.WriteString("</opnsense>\n")
+
+	input := sb.String()
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for b.Loop() {
+		s := NewSanitizer(ModeAggressive)
+		var output bytes.Buffer
+		if err := s.SanitizeXML(strings.NewReader(input), &output); err != nil {
+			b.Fatal(err)
+		}
 	}
 }

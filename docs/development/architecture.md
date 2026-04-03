@@ -389,7 +389,7 @@ graph TD
     D["pkg/parser/pfsense/ — pfSense parser + converter"]
     E["pkg/model/ — CommonDevice domain model"]
     F["internal/analysis/ — Canonical Finding + Severity types"]
-    G["Consumers: processor / converter / markdown / audit / diff / plugins"]
+    G["Consumers: processor / converter / audit / diff / plugins"]
 
     A --> B
     C --> D
@@ -405,7 +405,7 @@ graph TD
 - **`pkg/parser/opnsense/`** — Contains `parser.go` and `converter.go`. Reads schema DTOs and emits `*common.CommonDevice` with conversion warnings. **Converts OPNsense XML string values to typed enum constants** (e.g., `"pass"` → `common.RuleTypePass`, `"automatic"` → `common.OutboundAutomatic`). This is the only package that imports `pkg/schema/opnsense/`.
 - **`pkg/schema/pfsense/`** — XML DTO layer for pfSense. Follows **copy-on-write pattern**: reuses OPNsense types where XML structures are identical (e.g., `Interface`, `Destination`, `Source`, `Outbound`), forks locally at divergence points (e.g., `InboundRule` uses `<target>` instead of `<internalip>`, `FilterRule` adds pfSense-specific fields like `ID`, `Tag`, `OS`, `AssociatedRuleID`, `IPsec` contains Phase1/Phase2 arrays with BoolFlag fields). Documented in `pkg/schema/pfsense/README.md`.
 - **`pkg/parser/pfsense/`** — Contains `parser.go`, `converter.go`, and subsystem converters (`converter_services.go`). Manages its own XML decoding via `parser.NewSecureXMLDecoder()` (pfSense parser doesn't use `internal/cfgparser.NewXMLParser()` because the shared `XMLDecoder` interface returns `*schema.OpnSenseDocument`). Converts pfSense-specific VPN subsystems (OpenVPN and IPsec with Phase1/Phase2 tunnels and mobile client) to `*common.CommonDevice`. Emits `*common.CommonDevice` with conversion warnings.
-- **`pkg/model/`** — Device-agnostic domain model. No XML tags. Defines typed string enums for firewall rules (`RuleType`, `Direction`, `IPProtocol`), NAT configurations (`OutboundMode`), and network elements (`LAGGProtocol`, `VIPMode`). All consumer code (processor, converter, markdown, audit, diff, compliance plugins) operates on `CommonDevice`. Includes `ConversionWarning` type for non-fatal issues and `ComplianceResults` type (with nested `ComplianceFinding`, `PluginComplianceResult`, `ComplianceControl`, `ComplianceResultSummary`, `CompliancePluginInfo`, `ComplianceAttackSurface`) for compliance audit data representation. VPN model includes `IPsecConfig` with `Phase1Tunnels`, `Phase2Tunnels`, and `MobileClient` fields for platform-agnostic IPsec representation. Adds `DeviceType.DisplayName()` method for dynamic report headers (e.g., "OPNsense" vs "pfSense").
+- **`pkg/model/`** — Device-agnostic domain model. No XML tags. Defines typed string enums for firewall rules (`RuleType`, `Direction`, `IPProtocol`), NAT configurations (`OutboundMode`), and network elements (`LAGGProtocol`, `VIPMode`). All consumer code (processor, converter, audit, diff, compliance plugins) operates on `CommonDevice`. Includes `ConversionWarning` type for non-fatal issues and `ComplianceResults` type (with nested `ComplianceFinding`, `PluginComplianceResult`, `ComplianceControl`, `ComplianceResultSummary`, `CompliancePluginInfo`, `ComplianceAttackSurface`) for compliance audit data representation. VPN model includes `IPsecConfig` with `Phase1Tunnels`, `Phase2Tunnels`, and `MobileClient` fields for platform-agnostic IPsec representation. Adds `DeviceType.DisplayName()` method for dynamic report headers (e.g., "OPNsense" vs "pfSense").
 - **`internal/analysis/`** — Shared analysis logic and canonical finding types. Provides detection functions (`DetectDeadRules`, `DetectUnusedInterfaces`, `DetectSecurityIssues`, `DetectPerformanceIssues`, `DetectConsistency`), statistics computation (`ComputeStatistics`), analysis aggregation (`ComputeAnalysis`), and rule comparison (`RulesEquivalent`). **Uses typed constants for rule type comparisons** (e.g., `rule.Type == common.RuleTypeBlock`) instead of string literals. Used by both `internal/converter` and `internal/processor` to eliminate duplicated logic.
 - **`pkg/parser/factory.go`** — `Factory` and `DeviceParser` interface. Uses the `DeviceParserRegistry` for device type dispatch. Auto-detects the device type from the XML root element or uses the `--device-type` flag to bypass auto-detection. Returns 3 values: device model, warnings slice, and error.
 
@@ -761,7 +761,7 @@ The `ReportBuilder` interface follows the Interface Segregation Principle (SOLID
 
 - **`SectionBuilder`** (9 methods): Build\*Section methods for rendering individual configuration domains
 - **`TableWriter`** (11 methods): Write\*Table methods for formatting data tables
-- **`ReportComposer`** (3 methods): SetIncludeTunables, BuildStandardReport, and BuildComprehensiveReport
+- **`ReportComposer`** (4 methods): SetIncludeTunables, SetFailuresOnly, BuildStandardReport, and BuildComprehensiveReport
 
 This composition provides full backward compatibility—existing code using `ReportBuilder` continues to work unchanged—while enabling consumers to depend only on the methods they actually use.
 
@@ -798,6 +798,7 @@ classDiagram
     class ReportComposer {
         <<interface>>
         +SetIncludeTunables(v bool)
+        +SetFailuresOnly(v bool)
         +BuildStandardReport(data) (string, error)
         +BuildComprehensiveReport(data) (string, error)
     }

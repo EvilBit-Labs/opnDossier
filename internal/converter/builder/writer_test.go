@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
-	internalMarkdown "github.com/EvilBit-Labs/opnDossier/internal/markdown"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/nao1215/markdown"
 )
@@ -695,7 +695,7 @@ func TestMarkdownBuilder_ValidateMarkdownSyntax(t *testing.T) {
 				t.Fatalf("%s produced empty output", tt.name)
 			}
 
-			err := internalMarkdown.ValidateMarkdown(output)
+			err := converter.ValidateMarkdown(output)
 			if err != nil {
 				t.Errorf("%s produced invalid markdown: %v\nOutput:\n%s", tt.name, err, output)
 			}
@@ -720,7 +720,7 @@ func TestMarkdownBuilder_ValidateStandardReport(t *testing.T) {
 		t.Fatal("BuildStandardReport produced empty output")
 	}
 
-	err = internalMarkdown.ValidateMarkdown(report)
+	err = converter.ValidateMarkdown(report)
 	if err != nil {
 		t.Errorf("Standard report produced invalid markdown: %v", err)
 	}
@@ -743,7 +743,7 @@ func TestMarkdownBuilder_ValidateComprehensiveReport(t *testing.T) {
 		t.Fatal("BuildComprehensiveReport produced empty output")
 	}
 
-	err = internalMarkdown.ValidateMarkdown(report)
+	err = converter.ValidateMarkdown(report)
 	if err != nil {
 		t.Errorf("Comprehensive report produced invalid markdown: %v", err)
 	}
@@ -820,7 +820,7 @@ func TestMarkdownBuilder_ValidateWriteMethods(t *testing.T) {
 				t.Fatalf("%s produced empty output", tt.name)
 			}
 
-			err = internalMarkdown.ValidateMarkdown(output)
+			err = converter.ValidateMarkdown(output)
 			if err != nil {
 				t.Errorf("%s produced invalid markdown: %v", tt.name, err)
 			}
@@ -903,7 +903,7 @@ func TestMarkdownBuilder_ValidateTableMethods(t *testing.T) {
 				t.Fatalf("%s produced empty output", tt.name)
 			}
 
-			err := internalMarkdown.ValidateMarkdown(output)
+			err := converter.ValidateMarkdown(output)
 			if err != nil {
 				t.Errorf("%s produced invalid markdown: %v\nOutput:\n%s", tt.name, err, output)
 			}
@@ -989,7 +989,7 @@ func TestMarkdownBuilder_ValidateEmptyData(t *testing.T) {
 
 			output := tt.generate()
 			// Empty sections may produce minimal but valid markdown
-			err := internalMarkdown.ValidateMarkdown(output)
+			err := converter.ValidateMarkdown(output)
 			if err != nil {
 				t.Errorf("%s produced invalid markdown: %v\nOutput:\n%s", tt.name, err, output)
 			}

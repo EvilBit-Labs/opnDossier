@@ -1,6 +1,6 @@
 ---
 name: "opnDossier"
-description: "Audit and document OPNsense configurations in your GitHub Actions workflow"
+description: "Audit and document OPNsense and pfSense configurations in your GitHub Actions workflow"
 
 # See: https://docs.github.com/en/actions/reference/workflows-and-actions/metadata-syntax
 branding:
@@ -9,14 +9,14 @@ branding:
 
 inputs:
   command:
-    description: "opnDossier sub-command to run: convert | audit | display | validate | sanitize ... etc"
+    description: "opnDossier sub-command to run: audit | convert | diff | display | sanitize | validate | version"
     required: false
     default: "audit"
   config-file:
-    description: "Path to the OPNsense config.xml file (relative to workspace root)"
+    description: "Path to the OPNsense or pfSense config.xml file (relative to workspace root)"
     required: true
   format:
-    description: "Output format for convert/audit: markdown | json | yaml"
+    description: "Output format for convert/audit: markdown | json | yaml | text | html"
     required: false
     default: ""
   output:
@@ -24,7 +24,7 @@ inputs:
     required: false
     default: ""
   args:
-    description: "Any additional arguments to pass verbatim to opnDossier"
+    description: "Additional arguments to pass to opnDossier (split on whitespace; quoted strings with spaces are not preserved)"
     required: false
     default: ""
   version:
@@ -37,26 +37,79 @@ runs:
   steps:
     - name: Run opnDossier
       shell: bash
+      env:
+        INPUT_COMMAND: ${{ inputs.command }}
+        INPUT_CONFIG_FILE: ${{ inputs.config-file }}
+        INPUT_FORMAT: ${{ inputs.format }}
+        INPUT_VERSION: ${{ inputs.version }}
+        INPUT_ARGS: ${{ inputs.args }}
+        INPUT_OUTPUT_FILE: ${{ inputs.output }}
       run: |
-        ARGS=("${{ inputs.command }}" "${{ inputs.config-file }}")
+        set -euo pipefail
 
-        if [[ -n "${{ inputs.format }}" ]]; then
-          ARGS+=("--format" "${{ inputs.format }}")
+        # --- Input validation ---
+        if [[ -z "${INPUT_CONFIG_FILE}" ]]; then
+          echo "::error::config-file input is required" && exit 1
         fi
 
-        if [[ -n "${{ inputs.output }}" ]]; then
-          ARGS+=("--output" "${{ inputs.output }}")
+        if [[ ! "${INPUT_VERSION}" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+          echo "::error::version input contains invalid characters: ${INPUT_VERSION}" && exit 1
+        fi
+
+        case "${INPUT_COMMAND}" in
+          audit|convert|diff|display|sanitize|validate|version) ;;
+          *) echo "::error::Invalid command '${INPUT_COMMAND}'. Must be one of: audit, convert, diff, display, sanitize, validate, version"; exit 1 ;;
+        esac
+
+        # Reject path traversal in config-file and output inputs
+        if [[ "${INPUT_CONFIG_FILE}" == /* ]] || [[ "${INPUT_CONFIG_FILE}" == *".."* ]]; then
+          echo "::error::config-file must be a relative path within the workspace (no absolute paths or '..')"
+          exit 1
+        fi
+        if [[ -n "${INPUT_OUTPUT_FILE}" ]]; then
+          if [[ "${INPUT_OUTPUT_FILE}" == /* ]] || [[ "${INPUT_OUTPUT_FILE}" == *".."* ]]; then
+            echo "::error::output must be a relative path within the workspace (no absolute paths or '..')"
+            exit 1
+          fi
+        fi
+
+        if [[ -n "${INPUT_FORMAT}" ]]; then
+          case "${INPUT_FORMAT}" in
+            markdown|json|yaml|text|html) ;;
+            *) echo "::error::Invalid format '${INPUT_FORMAT}'. Must be: markdown, json, yaml, text, or html"; exit 1 ;;
+          esac
+        fi
+
+        # --- Pull image with actionable error ---
+        IMAGE="ghcr.io/evilbit-labs/opndossier:${INPUT_VERSION}"
+        if ! docker pull "${IMAGE}" 2>&1; then
+          echo "::error::Failed to pull ${IMAGE}. Check that the version '${INPUT_VERSION}' exists at https://ghcr.io/evilbit-labs/opndossier"
+          exit 1
+        fi
+
+        # --- Build argument list ---
+        ARGS=("${INPUT_COMMAND}" "${INPUT_CONFIG_FILE}")
+
+        if [[ -n "${INPUT_FORMAT}" ]]; then
+          ARGS+=("--format" "${INPUT_FORMAT}")
+        fi
+
+        if [[ -n "${INPUT_OUTPUT_FILE}" ]]; then
+          ARGS+=("--output" "${INPUT_OUTPUT_FILE}")
         fi
 
         # Append any extra user-supplied args (word-split intentional)
         # Use read -ra to split on whitespace without glob expansion
-        if [[ -n "${{ inputs.args }}" ]]; then
-          read -ra EXTRA <<< "${{ inputs.args }}"
+        if [[ -n "${INPUT_ARGS}" ]]; then
+          if [[ "${INPUT_ARGS}" == *\"* ]] || [[ "${INPUT_ARGS}" == *\'* ]]; then
+            echo "::warning::args input contains quotes which are NOT preserved — arguments are split on whitespace only"
+          fi
+          read -ra EXTRA <<< "${INPUT_ARGS}"
           ARGS+=("${EXTRA[@]}")
         fi
 
         docker run --rm \
-          --volume "${{ github.workspace }}:/data" \
+          --volume "${GITHUB_WORKSPACE}:/data" \
           --workdir /data \
-          "ghcr.io/evilbit-labs/opndossier:${{ inputs.version }}" \
+          "${IMAGE}" \
           "${ARGS[@]}"

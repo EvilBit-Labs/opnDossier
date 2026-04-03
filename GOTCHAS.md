@@ -46,6 +46,14 @@ Reclassified info-severity controls (e.g., FIREWALL-003 "Message of the Day") pa
 - **Gotcha:** Inventory controls (`Type: "inventory"`) are excluded from `EvaluatedControlIDs` entirely and do not appear in the compliance map. They only appear in "Configuration Notes."
 - **Gotcha:** `countSeverities` tracks unrecognized severity strings in a private `unknown` counter. Callers with loggers should warn when `counts.unknown > 0`.
 
+### 2.5 Dynamic Plugin Trust Model
+
+`PluginRegistry.LoadDynamicPlugins` uses `plugin.Open()` to load `.so` files from a directory. Loaded plugins execute with full process privileges — there is no signature verification, checksum validation, or sandboxing.
+
+- **Gotcha:** Any `.so` file in the plugin directory will be loaded and executed. A malicious or compromised plugin has the same access as the opnDossier process itself.
+- **Mitigation:** Loading is opt-in: it requires an explicit `--plugin-dir` flag or the presence of a `./plugins` directory. Plugins are never fetched remotely.
+- **Prevention:** Restrict filesystem permissions on the plugin directory. Only load plugins built from reviewed source code. In shared or CI environments, avoid pointing `--plugin-dir` at world-writable directories.
+
 ## 3. Data Processing
 
 ### 3.1 Map Iteration Order
@@ -138,6 +146,14 @@ Only `blue` mode runs `RunComplianceChecks`. Red mode ignores `SelectedPlugins` 
 
 - **Gotcha:** Simple character replacement (e.g., `/` → `-`) is NOT sufficient — paths like `a-b/c/config.xml` and `a/b-c/config.xml` would collide. The escaping must be lossless (invertible). The earlier double-underscore scheme (`_` → `__`, separator → `_`) was also insufficient — it collapsed at segment boundaries where trailing/leading underscores were indistinguishable from the separator.
 - **Gotcha:** Expected output filenames are asserted in 5+ test functions (`TestDeriveAuditOutputPath`, `TestEmitAuditResult_MultiFileAutoNaming`, `TestEmitAuditResult_MultiFileConfigOutputFileIgnored`, `TestDeriveAuditOutputPath_BasenameCollision`, `TestDeriveAuditOutputPath_BoundaryUnderscoreCollision`, etc.). When changing the encoding scheme, grep for all assertion sites — missing one causes CI failure.
+
+### 8.4 Red Mode Stub Implementations
+
+`generateRedReport` in `mode_controller.go` calls five analysis methods (`addWANExposedServices`, `addWeakNATRules`, `addAdminPortals`, `addAttackSurfaces`, `addEnumerationData`) that are all placeholder stubs. Each method writes fabricated metadata (e.g., `"exposed_services_count": 0`, `"admin_portals_found": 1`) without inspecting the actual `CommonDevice` configuration. A CLI warning is emitted in `cmd/audit.go` `PreRunE` when `--mode red` is selected.
+
+- **Gotcha:** Red mode reports look structurally complete (all metadata keys present, no errors) but contain no real analysis. Do not use red mode output for actual security assessments.
+- **Gotcha:** When implementing real red mode analysis, each stub method must be replaced individually. The fabricated metadata keys (e.g., `"wan_exposure_scan_completed"`) are not covered by tests asserting specific values, so changing them will not break CI — but consumers relying on the metadata schema should be updated simultaneously.
+- **Prevention:** The `PreRunE` warning in `cmd/audit.go` alerts users at invocation time. Remove the warning once the red mode pipeline is fully implemented.
 
 ## 9. Dupl Linter Bidirectional Firing
 
@@ -290,3 +306,13 @@ Kea's `<pools>` element on each `<subnet4>` stores newline-separated (`\n`) IP r
 `KeaReservation.Subnet` contains the UUID of the parent subnet. The converter groups reservations by this field to attach them as static leases. Orphaned reservations (referencing nonexistent subnet UUIDs) emit a conversion warning.
 
 - **Gotcha:** This is the inverse of what the OPNsense MVC model XML might suggest at first glance. The `<reservations>` container is a flat sibling of `<subnets>`, not nested inside each subnet.
+
+## 19. Sanitizer Rule Ordering
+
+### 19.1 `authserver_config` Must Precede `password` in `builtinRules()`
+
+`ShouldRedactField` iterates the rule slice and returns on the first match. Both `authserver_config` and `password` match LDAP bind password fields — `authserver_config` via the exact pattern `authserver.ldap_bindpw`, and `password` via the `pass` substring. The `authserver_config` rule pseudonymizes the value through `MapAuthServerValue`; the `password` rule flat-redacts to `[REDACTED-PASSWORD]`.
+
+- **Problem:** If `password` is moved above `authserver_config` in the `builtinRules()` slice, `ldap_bindpw` values silently switch from pseudonymized to flat-redacted. No error or warning is emitted.
+- **Symptom:** Sanitized output shows `[REDACTED-PASSWORD]` for LDAP bind passwords instead of a pseudonymized value like `ldap-bindpw-001`.
+- **Fix:** Ensure `authserver_config` remains the first rule in `builtinRules()`. The same first-match precedence applies to `email` vs `hostname` (email must precede hostname).

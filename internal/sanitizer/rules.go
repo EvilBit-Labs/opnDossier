@@ -81,9 +81,17 @@ type RuleEngine struct {
 
 // NewRuleEngine creates a RuleEngine configured for the given Mode.
 // The engine is populated with the package's builtin rules and a default Mapper.
+// Field patterns are pre-lowercased at construction time to avoid redundant
+// allocations on every fieldNameMatches call.
 func NewRuleEngine(mode Mode) *RuleEngine {
+	rules := builtinRules()
+	for i := range rules {
+		for j, pat := range rules[i].FieldPatterns {
+			rules[i].FieldPatterns[j] = strings.ToLower(pat)
+		}
+	}
 	engine := &RuleEngine{
-		rules:  builtinRules(),
+		rules:  rules,
 		mapper: NewMapper(),
 		mode:   mode,
 	}
@@ -174,66 +182,23 @@ func (e *RuleEngine) ruleActiveForMode(rule *Rule) bool {
 // matching instead of substring matching. This prevents false positives on
 // compound field names (e.g., "key" would otherwise match "sshkey", "apikey";
 // "from"/"to" would match "timeout", "protocol", "platformfrom").
+// All entries are stored pre-lowercased to match the pre-lowercased field patterns.
 var exactMatchPatterns = []string{"key", "from", "to"}
 
 // fieldNameMatches reports whether pattern matches fieldName using a
 // case-insensitive substring check. An empty pattern always matches.
 // Patterns listed in exactMatchPatterns require an exact (case-insensitive)
 // match to prevent false positives on compound field names.
+//
+// The pattern argument must be pre-lowercased (see NewRuleEngine).
 func fieldNameMatches(fieldName, pattern string) bool {
+	lowerField := strings.ToLower(fieldName)
 	for _, exact := range exactMatchPatterns {
-		if strings.EqualFold(pattern, exact) {
-			return strings.EqualFold(fieldName, exact)
+		if pattern == exact {
+			return lowerField == exact
 		}
 	}
-	return containsIgnoreCase(fieldName, pattern)
-}
-
-// containsIgnoreCase reports whether substr is contained within s using an
-// ASCII-only, case-insensitive comparison.
-// It returns true if substr appears in s when letters A–Z are treated as a–z,
-// false otherwise.
-func containsIgnoreCase(s, substr string) bool {
-	sLower := toLower(s)
-	substrLower := toLower(substr)
-	return contains(sLower, substrLower)
-}
-
-// asciiLowercaseDelta is the offset between uppercase and lowercase ASCII letters.
-const asciiLowercaseDelta = 32
-
-// toLower converts ASCII uppercase letters (A-Z) in s to their lowercase
-// equivalents and returns the resulting string. Non-ASCII bytes and ASCII
-// characters outside A-Z are left unchanged; the result has the same length
-// as the input.
-func toLower(s string) string {
-	result := make([]byte, len(s))
-	for i := range len(s) {
-		c := s[i]
-		if c >= 'A' && c <= 'Z' {
-			result[i] = c + asciiLowercaseDelta
-		} else {
-			result[i] = c
-		}
-	}
-	return string(result)
-}
-
-// contains reports whether substr is a substring of s.
-// An empty substr is considered contained; if substr is longer than s it is not contained.
-func contains(s, substr string) bool {
-	if substr == "" {
-		return true
-	}
-	if len(substr) > len(s) {
-		return false
-	}
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
+	return strings.Contains(lowerField, pattern)
 }
 
 // builtinRules returns the default set of redaction rules used by the sanitizer package.
@@ -241,12 +206,30 @@ func contains(s, substr string) bool {
 // fields; each rule indicates the modes in which it is active and provides field patterns,
 // optional value detectors, and redactors that the engine uses to determine and perform
 // redaction.
+//
+// ORDERING CONTRACT: Rule ordering matters. ShouldRedactField returns on the first
+// matching rule, so earlier rules take precedence. Specifically:
+//
+//   - authserver_config MUST precede password. Both match "ldap_bindpw" (authserver_config
+//     via an exact field pattern, password via the "pass" substring). authserver_config
+//     pseudonymizes the value via MapAuthServerValue; password flat-redacts to
+//     "[REDACTED-PASSWORD]". If reordered, LDAP bind passwords silently switch from
+//     pseudonymized to flat-redacted with no error or warning.
+//
+//   - email MUST precede hostname. Email addresses contain dots that match hostname
+//     patterns. The ordering ensures emails are mapped via MapEmail, not MapHostname.
 func builtinRules() []Rule {
 	allModes := []Mode{ModeAggressive, ModeModerate, ModeMinimal}
 	aggressiveModerate := []Mode{ModeAggressive, ModeModerate}
 	aggressiveOnly := []Mode{ModeAggressive}
 
 	return []Rule{
+		// NOTE: authserver.ldap_* patterns assume OPNsense XML nesting
+		// (system.authserver.ldap_*). If a device type uses different nesting
+		// (e.g., system.ldap_bindpw without authserver parent), those fields
+		// will fall through to the password rule (flat-redacted, not
+		// pseudonymized). This is acceptable — pfSense reuses the same
+		// opnsense.AuthServer schema with identical nesting.
 		{
 			Name:        "authserver_config",
 			Description: "Pseudonymizes sensitive system/authserver LDAP values",
@@ -255,15 +238,15 @@ func builtinRules() []Rule {
 			FieldPatterns: []string{
 				"system.authserver.name",
 				"system.authserver.host",
-				"ldap_port",
-				"ldap_basedn",
-				"ldap_authcn",
-				"ldap_extended_query",
-				"ldap_attr_user",
-				"ldap_binddn",
-				"ldap_bindpw",
-				"ldap_sync_memberof_groups",
-				"ldap_sync_default_groups",
+				"authserver.ldap_port",
+				"authserver.ldap_basedn",
+				"authserver.ldap_authcn",
+				"authserver.ldap_extended_query",
+				"authserver.ldap_attr_user",
+				"authserver.ldap_binddn",
+				"authserver.ldap_bindpw",
+				"authserver.ldap_sync_memberof_groups",
+				"authserver.ldap_sync_default_groups",
 			},
 			Redactor: func(m *Mapper, fieldName, value string) string {
 				return m.MapAuthServerValue(authServerFieldFromPath(fieldName), value)
@@ -555,7 +538,7 @@ func builtinRules() []Rule {
 // authserver_config rule scope which paths reach this function; this function only
 // extracts the terminal segment for mapping dispatch.
 func authServerFieldFromPath(fieldName string) string {
-	lowerFieldName := toLower(fieldName)
+	lowerFieldName := strings.ToLower(fieldName)
 	lastDot := strings.LastIndexByte(lowerFieldName, '.')
 	field := lowerFieldName
 	if lastDot != -1 && lastDot < len(lowerFieldName)-1 {
@@ -576,7 +559,7 @@ var systemUsers = []string{
 // isSystemUser reports whether username matches a known common system account.
 // The check is case-insensitive and uses a predefined list (for example: "root", "admin", "nobody", "daemon", "www-data").
 func isSystemUser(username string) bool {
-	lower := toLower(username)
+	lower := strings.ToLower(username)
 	return slices.Contains(systemUsers, lower)
 }
 

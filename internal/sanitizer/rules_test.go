@@ -1,6 +1,7 @@
 package sanitizer
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -109,8 +110,8 @@ func TestShouldRedactField_AuthServer(t *testing.T) {
 	}{
 		{ModeAggressive, "opnsense.system.authserver.name", true},
 		{ModeModerate, "opnsense.system.authserver.host", true},
-		{ModeMinimal, "ldap_bindpw", true},
-		{ModeMinimal, "ldap_basedn", true},
+		{ModeMinimal, "opnsense.system.authserver.ldap_bindpw", true},
+		{ModeMinimal, "opnsense.system.authserver.ldap_basedn", true},
 		{ModeMinimal, "name", false},
 		{ModeMinimal, "opnsense.system.user.name", false},
 	}
@@ -232,7 +233,7 @@ func TestRedact_Password(t *testing.T) {
 func TestRedact_AuthServerBindPassword(t *testing.T) {
 	engine := NewRuleEngine(ModeMinimal)
 
-	result := engine.Redact("ldap_bindpw", "supersecret123")
+	result := engine.Redact("opnsense.system.authserver.ldap_bindpw", "supersecret123")
 	if result != expectedAuthServerBindPW1 {
 		t.Errorf("Redact authserver ldap_bindpw = %q, want %q", result, expectedAuthServerBindPW1)
 	}
@@ -347,36 +348,44 @@ func TestRedact_AuthServerConfig(t *testing.T) {
 	}{
 		{"opnsense.system.authserver.name", "corp-ldap", expectedAuthServerName1},
 		{"opnsense.system.authserver.host", "ldap.corp.example.com", expectedAuthServerHost1},
-		{"ldap_port", "636", expectedAuthServerPort1},
-		{"ldap_basedn", "dc=corp,dc=example,dc=com", expectedAuthServerBaseDN1},
-		{"ldap_authcn", "cn=users,dc=corp,dc=example,dc=com", expectedAuthServerAuthCN1},
+		{"opnsense.system.authserver.ldap_port", "636", expectedAuthServerPort1},
+		{"opnsense.system.authserver.ldap_basedn", "dc=corp,dc=example,dc=com", expectedAuthServerBaseDN1},
+		{"opnsense.system.authserver.ldap_authcn", "cn=users,dc=corp,dc=example,dc=com", expectedAuthServerAuthCN1},
 		{
-			"ldap_extended_query",
+			"opnsense.system.authserver.ldap_extended_query",
 			"(|(memberOf=cn=admins,ou=groups,dc=corp,dc=example,dc=com))",
 			expectedAuthServerExtendedQuery1,
 		},
-		{"ldap_attr_user", "uid", expectedAuthServerAttrUser1},
-		{"ldap_binddn", "cn=svc_bind,ou=svc,dc=corp,dc=example,dc=com", expectedAuthServerBindDN1},
-		{"ldap_bindpw", "supersecret123", expectedAuthServerBindPW1},
+		{"opnsense.system.authserver.ldap_attr_user", "uid", expectedAuthServerAttrUser1},
 		{
-			"ldap_sync_memberof_groups",
+			"opnsense.system.authserver.ldap_binddn",
+			"cn=svc_bind,ou=svc,dc=corp,dc=example,dc=com",
+			expectedAuthServerBindDN1,
+		},
+		{"opnsense.system.authserver.ldap_bindpw", "supersecret123", expectedAuthServerBindPW1},
+		{
+			"opnsense.system.authserver.ldap_sync_memberof_groups",
 			"cn=sync-members,ou=groups,dc=corp,dc=example,dc=com",
 			expectedAuthServerSyncMemberOfGroups1,
 		},
 		{
-			"ldap_sync_default_groups",
+			"opnsense.system.authserver.ldap_sync_default_groups",
 			"cn=defaults,ou=groups,dc=corp,dc=example,dc=com",
 			expectedAuthServerSyncDefaultGroups1,
 		},
 	}
 
 	for _, mode := range ValidModes() {
-		engine := NewRuleEngine(mode)
 		for _, tt := range tests {
-			result := engine.Redact(tt.field, tt.value)
-			if result != tt.want {
-				t.Errorf("mode=%q Redact(%q) = %q, want %q", mode, tt.field, result, tt.want)
-			}
+			t.Run(fmt.Sprintf("%s/%s", mode, tt.field), func(t *testing.T) {
+				t.Parallel()
+
+				engine := NewRuleEngine(mode)
+				result := engine.Redact(tt.field, tt.value)
+				if result != tt.want {
+					t.Errorf("mode=%q Redact(%q) = %q, want %q", mode, tt.field, result, tt.want)
+				}
+			})
 		}
 	}
 }
@@ -445,11 +454,11 @@ func TestSetMapper(t *testing.T) {
 	}
 }
 
-func TestContainsIgnoreCase(t *testing.T) {
+func TestFieldNameMatches_SubstringIgnoreCase(t *testing.T) {
 	tests := []struct {
-		s      string
-		substr string
-		want   bool
+		fieldName string
+		pattern   string
+		want      bool
 	}{
 		{"password", "pass", true},
 		{"PASSWORD", "pass", true},
@@ -460,9 +469,9 @@ func TestContainsIgnoreCase(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.s+"_"+tt.substr, func(t *testing.T) {
-			if got := containsIgnoreCase(tt.s, tt.substr); got != tt.want {
-				t.Errorf("containsIgnoreCase(%q, %q) = %v, want %v", tt.s, tt.substr, got, tt.want)
+		t.Run(tt.fieldName+"_"+tt.pattern, func(t *testing.T) {
+			if got := fieldNameMatches(tt.fieldName, tt.pattern); got != tt.want {
+				t.Errorf("fieldNameMatches(%q, %q) = %v, want %v", tt.fieldName, tt.pattern, got, tt.want)
 			}
 		})
 	}
@@ -535,6 +544,67 @@ func TestRedact_Hostname_NonEmailValue(t *testing.T) {
 	}
 	if result != expectedMappedHostname1 {
 		t.Errorf("Redact('hostname', FQDN) = %q, want 'host-001.example.com'", result)
+	}
+}
+
+func BenchmarkShouldRedactField(b *testing.B) {
+	engine := NewRuleEngine(ModeAggressive)
+
+	// Realistic mix: some fields match, some don't.
+	fields := []string{
+		"password",
+		"description",
+		"hostname",
+		"ipaddr",
+		"enabled",
+		"opnsense.system.authserver.ldap_bindpw",
+		"interface",
+		"apikey",
+		"gateway",
+		"username",
+		"protocol",
+		"subnet",
+		"certificate",
+		"value",
+		"bcrypt-hash",
+		"name",
+		"from",
+		"timeout",
+		"mac",
+		"email",
+	}
+
+	b.ResetTimer()
+	for b.Loop() {
+		for _, f := range fields {
+			engine.ShouldRedactField(f)
+		}
+	}
+}
+
+func BenchmarkFieldNameMatches(b *testing.B) {
+	// Pre-lowercased patterns as they would be in the engine.
+	benchCases := []struct {
+		fieldName string
+		pattern   string
+	}{
+		{"password", "pass"},
+		{"UserPassword", "password"},
+		{"description", "secret"},
+		{"hostname", "hostname"},
+		{"ipaddr", "ipaddr"},
+		{"key", "key"},       // exact match path
+		{"monkeybar", "key"}, // exact match, no match
+		{"from", "from"},     // exact match path
+		{"timeout", "from"},  // exact match, no match
+		{"bcrypt-hash", "bcrypt-hash"},
+	}
+
+	b.ResetTimer()
+	for b.Loop() {
+		for _, bc := range benchCases {
+			fieldNameMatches(bc.fieldName, bc.pattern)
+		}
 	}
 }
 

@@ -1,6 +1,6 @@
 # opnDossier - OPNsense and pfSense Configuration Processor
 
-[![OpenSSF Best Practices][ossf-badge]][ossf] [![Go Version][go-badge]][go] [![License][license-badge]][license] [![codecov][codecov-badge]][codecov] [![Documentation][docs-badge]][docs] [![wakatime][wakatime-badge]][wakatime] [![Go Report Card][goreportcard-badge]][goreportcard] [![Mergify Status][mergify-status]][mergify]
+[![OpenSSF Best Practices][ossf-badge]][ossf] [![Go Version][go-badge]][go] [![License][license-badge]][license] [![codecov][codecov-badge]][codecov] [![Documentation][docs-badge]][docs] [![wakatime][wakatime-badge]][wakatime] [![Go Report Card][goreportcard-badge]][goreportcard] [![Mergify Status][mergify-status]][mergify] [![All Contributors][all-contributors-badge]][all-contributors]
 
 ## Overview
 
@@ -78,17 +78,15 @@ Example output:
 
 Automatically identifies firewall rules that will never be reached:
 
-- Rules positioned after "block all" rules
-- Duplicate rules with identical criteria
-- Rules referencing deleted interfaces or aliases
+- Rules positioned after "block all" rules on the same interface
+- Duplicate rules with identical criteria (type, protocol, source, destination)
 
 Example output:
 
 ```text
 DEAD RULES DETECTED:
-- Rule #15: Allow SSH from LAN - unreachable (blocked by rule #12)
-- Rule #23: Allow HTTPS from DMZ - references deleted interface 'dmz0'
-- Rule #31: Block RDP - duplicate of rule #28
+- Rule #15: Rules after position 12 on interface lan are unreachable due to preceding block-all rule
+- Rule #31: Rule at position 31 is duplicate of rule at position 28 on interface wan
 ```
 
 ### Configuration Validation
@@ -115,12 +113,10 @@ Finds enabled resources not actively used:
 
 ### Compliance Checking
 
-Built-in validation against security and operational best practices (planned v2.1). Tracking: [#174](https://github.com/EvilBit-Labs/opnDossier/issues/174).
+Built-in validation against security and operational best practices.
 
-- STIG compliance checks (planned v2.1)
-- Industry-standard security baselines (planned v2.1)
-- SANS security guidelines (planned v2.1)
-- Custom compliance profiles (planned v2.1)
+- Industry-standard security baselines
+- SANS security guidelines
 
 ## Features
 
@@ -130,7 +126,7 @@ Built-in validation against security and operational best practices (planned v2.
 - **Dead rule detection** - Find unreachable firewall rules and duplicate rules
 - **Unused resource analysis** - Detect unused interfaces, aliases, and services
 - **Configuration validation** - Comprehensive structural and logical validation
-- **Compliance checking (planned v2.1)** - Industry-standard security baselines and best practices
+- **Compliance checking** - Industry-standard security baselines and best practices
 
 ### Output & Export
 
@@ -226,8 +222,8 @@ opnDossier display --wrap 100 config.xml
 # Validate configuration file
 opnDossier validate config.xml
 
-# Validate and convert in one step
-opnDossier convert --validate config.xml -o report.md
+# Validate before converting
+opnDossier validate config.xml && opnDossier convert config.xml -o report.md
 ```
 
 ### Advanced Options
@@ -305,7 +301,7 @@ opnDossier convert -f markdown config.xml -o output.md  # default
 
 ## GitHub Actions
 
-opnDossier is available as a GitHub Action backed by its Docker image. Use it to audit or document OPNsense configurations automatically on every commit, PR, or scheduled run.
+opnDossier is available as a GitHub Action backed by its Docker image. Use it to audit or document OPNsense and pfSense configurations automatically on every commit, PR, or scheduled run.
 
 ### Quick Start
 
@@ -326,8 +322,8 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Audit OPNsense config
-        # Pin to a release tag for reproducibility; check releases for the latest version
-        uses: EvilBit-Labs/opnDossier@v1
+        # No release tags exist yet — use @main until v1 is tagged
+        uses: EvilBit-Labs/opnDossier@main
         with:
           command: audit
           config-file: config.xml
@@ -335,21 +331,21 @@ jobs:
 
 ### Inputs
 
-| Input         | Required | Default  | Description                                                                 |
-| ------------- | -------- | -------- | --------------------------------------------------------------------------- |
-| `command`     | No       | `audit`  | Sub-command: `convert`, `audit`, `display`, `validate`, `sanitize` ... etc. |
-| `config-file` | **Yes**  | —        | Path to `config.xml` relative to the workspace root                         |
-| `format`      | No       | —        | Output format for `convert`/`audit`: `markdown`, `json`, or `yaml`          |
-| `output`      | No       | —        | Path to write the output file, relative to the workspace root               |
-| `args`        | No       | —        | Additional arguments passed verbatim to the binary                          |
-| `version`     | No       | `latest` | Image tag to pull (e.g. `v1.2.0`); defaults to the latest release           |
+| Input         | Required | Default  | Description                                                                              |
+| ------------- | -------- | -------- | ---------------------------------------------------------------------------------------- |
+| `command`     | No       | `audit`  | Sub-command: `audit`, `convert`, `diff`, `display`, `sanitize`, `validate`, or `version` |
+| `config-file` | **Yes**  | —        | Path to OPNsense or pfSense `config.xml` relative to the workspace root                  |
+| `format`      | No       | —        | Output format for `convert`/`audit`: `markdown`, `json`, `yaml`, `text`, or `html`       |
+| `output`      | No       | —        | Path to write the output file, relative to the workspace root                            |
+| `args`        | No       | —        | Additional arguments split on whitespace (quoted strings with spaces are not preserved)  |
+| `version`     | No       | `latest` | Image tag to pull (e.g. `v1.2.0`); defaults to the latest release                        |
 
 ### Export findings to JSON
 
 ```yaml
   - name: Export audit findings
-  # Pin to a release tag for reproducibility; check releases for the latest version
-    uses: EvilBit-Labs/opnDossier@v1
+  # No release tags exist yet — use @main until v1 is tagged
+    uses: EvilBit-Labs/opnDossier@main
     with:
       command: audit
       config-file: firewall/config.xml
@@ -367,8 +363,8 @@ jobs:
 
 ```yaml
   - name: Generate firewall documentation
-  # Pin to a release tag for reproducibility; check releases for the latest version
-    uses: EvilBit-Labs/opnDossier@v1
+  # No release tags exist yet — use @main until v1 is tagged
+    uses: EvilBit-Labs/opnDossier@main
     with:
       command: convert
       config-file: config.xml
@@ -385,10 +381,11 @@ The Docker image is published to the GitHub Container Registry alongside every r
 docker pull ghcr.io/evilbit-labs/opndossier:latest
 
 # Run an audit, mounting your config directory
+# WORKDIR is /data, so use relative paths after the volume mount
 docker run --rm \
   --volume "$(pwd):/data" \
   ghcr.io/evilbit-labs/opndossier:latest \
-  audit /data/config.xml
+  audit config.xml
 ```
 
 ## Documentation
@@ -432,12 +429,6 @@ Apache License 2.0 - see [LICENSE](LICENSE) file for details.
 
 ## Contributors
 
-<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-
-[![All Contributors](https://img.shields.io/github/all-contributors/EvilBit-Labs/opnDossier?color=ee8449&style=flat-square)](#contributors)
-
-<!-- ALL-CONTRIBUTORS-BADGE:END -->
-
 See [CONTRIBUTORS.md](CONTRIBUTORS.md) for the full list of contributors.
 
 ## Acknowledgements
@@ -454,6 +445,8 @@ Built for network operators and security professionals.
 
 <!-- Reference Links -->
 
+[all-contributors]: #contributors
+[all-contributors-badge]: https://img.shields.io/github/all-contributors/EvilBit-Labs/opnDossier?color=ee8449&style=flat-square
 [codecov]: https://codecov.io/gh/EvilBit-Labs/opnDossier
 [codecov-badge]: https://codecov.io/gh/EvilBit-Labs/opnDossier/graph/badge.svg?token=WD1QD9ITZF
 [docs]: https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/index.md

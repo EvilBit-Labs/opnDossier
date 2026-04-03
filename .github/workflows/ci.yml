@@ -97,7 +97,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.txt
-          fail_ci_if_error: false
+          fail_ci_if_error: true
 
   # ─────────────────────────────────────────────────────────────────────────
   # Build - Verify builds across platforms
