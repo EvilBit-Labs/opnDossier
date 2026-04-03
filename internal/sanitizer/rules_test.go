@@ -445,11 +445,11 @@ func TestSetMapper(t *testing.T) {
 	}
 }
 
-func TestContainsIgnoreCase(t *testing.T) {
+func TestFieldNameMatches_SubstringIgnoreCase(t *testing.T) {
 	tests := []struct {
-		s      string
-		substr string
-		want   bool
+		fieldName string
+		pattern   string
+		want      bool
 	}{
 		{"password", "pass", true},
 		{"PASSWORD", "pass", true},
@@ -460,9 +460,9 @@ func TestContainsIgnoreCase(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.s+"_"+tt.substr, func(t *testing.T) {
-			if got := containsIgnoreCase(tt.s, tt.substr); got != tt.want {
-				t.Errorf("containsIgnoreCase(%q, %q) = %v, want %v", tt.s, tt.substr, got, tt.want)
+		t.Run(tt.fieldName+"_"+tt.pattern, func(t *testing.T) {
+			if got := fieldNameMatches(tt.fieldName, tt.pattern); got != tt.want {
+				t.Errorf("fieldNameMatches(%q, %q) = %v, want %v", tt.fieldName, tt.pattern, got, tt.want)
 			}
 		})
 	}

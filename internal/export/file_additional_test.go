@@ -88,6 +88,13 @@ func TestError_Unwrap(t *testing.T) {
 func TestFileExporter_CheckPathTraversal(t *testing.T) {
 	exporter := NewFileExporter(nil)
 
+	// Create a subdirectory within a temp dir so that single-.. tests
+	// can resolve to a path that is still within the allowed base (CWD).
+	tempDir := t.TempDir()
+	subDir := filepath.Join(tempDir, "project", "subdir")
+	require.NoError(t, os.MkdirAll(subDir, 0o700))
+	t.Chdir(filepath.Join(tempDir, "project"))
+
 	tests := []struct {
 		name    string
 		path    string
@@ -99,13 +106,18 @@ func TestFileExporter_CheckPathTraversal(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "absolute path",
+			name:    "absolute path without traversal",
 			path:    "/tmp/test.txt",
 			wantErr: false,
 		},
 		{
-			name:    "single parent directory",
+			name:    "single dotdot escaping CWD",
 			path:    "../test.txt",
+			wantErr: true,
+		},
+		{
+			name:    "single dotdot staying within CWD",
+			path:    "subdir/../output.md",
 			wantErr: false,
 		},
 		{
@@ -119,13 +131,23 @@ func TestFileExporter_CheckPathTraversal(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "mixed path with traversal",
+			name:    "mixed path with traversal escaping CWD",
 			path:    "normal/path/../../../etc/passwd",
 			wantErr: true,
 		},
 		{
 			name:    "no traversal",
 			path:    "normal/path/file.txt",
+			wantErr: false,
+		},
+		{
+			name:    "relative path in CWD",
+			path:    "./test.txt",
+			wantErr: false,
+		},
+		{
+			name:    "absolute path within CWD",
+			path:    filepath.Join(tempDir, "project", "output.md"),
 			wantErr: false,
 		},
 	}

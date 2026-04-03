@@ -210,9 +210,17 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cd dist
+          FAILED=0
           for file in ./*.tar.gz ./*.zip; do
             if [[ -f "$file" ]]; then
               echo "Verifying attestation for $file"
-              gh attestation verify "$file" --owner "${GITHUB_REPOSITORY_OWNER}" || echo "WARNING: Attestation not found for $file"
+              if ! gh attestation verify "$file" --owner "${GITHUB_REPOSITORY_OWNER}"; then
+                echo "::error::Attestation verification FAILED for $file"
+                FAILED=1
+              fi
             fi
           done
+          if [[ "$FAILED" -ne 0 ]]; then
+            echo "::error::One or more attestation verifications failed"
+            exit 1
+          fi

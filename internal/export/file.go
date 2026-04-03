@@ -142,30 +142,100 @@ func (e *FileExporter) validateExportPath(path string) error {
 	return nil
 }
 
-// checkPathTraversal checks for potentially malicious path traversal patterns.
+// checkPathTraversal validates that paths containing ".." segments resolve to
+// a location within the current working directory. Absolute paths without
+// traversal segments are allowed (validated downstream by directory checks).
+// Paths with ".." are resolved via filepath.Abs and filepath.EvalSymlinks to
+// prevent symlink-based escapes.
 func (e *FileExporter) checkPathTraversal(path string) error {
-	// Check for path traversal attempts BEFORE cleaning the path
-	// This catches attempts like "../../../etc/passwd" or "test/../../../etc/passwd"
-	if strings.Contains(path, "..") {
-		// Check if the path contains suspicious traversal patterns
-		parts := strings.Split(path, string(filepath.Separator))
-		dotDotCount := 0
+	// Only perform containment checks when the path contains ".." segments.
+	// Absolute paths without traversal are validated by downstream checks.
+	if !strings.Contains(path, "..") {
+		return nil
+	}
 
-		for _, part := range parts {
-			if part == ".." {
-				dotDotCount++
-			}
-		}
-		// If we have multiple ".." segments, it's likely a traversal attempt
-		if dotDotCount > 1 {
-			return &Error{
-				Operation: "validate_path",
-				Path:      path,
-				Message:   "path contains potentially malicious traversal sequences",
-			}
+	// Determine the allowed base directory (CWD).
+	cwd, err := os.Getwd()
+	if err != nil {
+		return &Error{
+			Operation: "validate_path",
+			Path:      path,
+			Message:   "failed to determine current working directory",
+			Cause:     err,
 		}
 	}
+
+	// Resolve the allowed base through symlinks for accurate comparison.
+	allowedBase, err := filepath.EvalSymlinks(cwd)
+	if err != nil {
+		return &Error{
+			Operation: "validate_path",
+			Path:      path,
+			Message:   "failed to resolve current working directory",
+			Cause:     err,
+		}
+	}
+
+	// Resolve the candidate path to absolute.
+	absPath, err := filepath.Abs(filepath.Clean(path))
+	if err != nil {
+		return &Error{
+			Operation: "validate_path",
+			Path:      path,
+			Message:   "failed to resolve absolute path for traversal check",
+			Cause:     err,
+		}
+	}
+
+	// EvalSymlinks requires existing paths. Resolve the deepest existing
+	// ancestor directory, then re-append the remaining segments.
+	resolved := resolveWithMissingTail(absPath)
+
+	// Ensure the resolved path is within the allowed base directory.
+	// Append filepath.Separator to the base to prevent prefix false-positives
+	// (e.g., /home/userx matching /home/user).
+	if resolved != allowedBase && !strings.HasPrefix(resolved, allowedBase+string(filepath.Separator)) {
+		return &Error{
+			Operation: "validate_path",
+			Path:      path,
+			Message:   "path contains potentially malicious traversal sequences",
+		}
+	}
+
 	return nil
+}
+
+// resolveWithMissingTail resolves symlinks for the deepest existing ancestor
+// of absPath, then appends any non-existent tail segments. This allows
+// validation of paths where the target file does not yet exist.
+func resolveWithMissingTail(absPath string) string {
+	// Try resolving the full path first (fast path for existing files).
+	resolved, err := filepath.EvalSymlinks(absPath)
+	if err == nil {
+		return resolved
+	}
+
+	// Walk up to find the deepest existing ancestor.
+	dir := filepath.Dir(absPath)
+	tail := filepath.Base(absPath)
+
+	for {
+		resolved, err = filepath.EvalSymlinks(dir)
+		if err == nil {
+			return filepath.Join(resolved, tail)
+		}
+
+		// Move one level up and accumulate the tail.
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			// Reached filesystem root without finding an existing ancestor.
+			// Fall back to the cleaned absolute path.
+			return absPath
+		}
+
+		tail = filepath.Join(filepath.Base(dir), tail)
+		dir = parent
+	}
 }
 
 // resolveAbsolutePath normalizes and resolves the path to an absolute path.

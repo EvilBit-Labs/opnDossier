@@ -186,54 +186,7 @@ func fieldNameMatches(fieldName, pattern string) bool {
 			return strings.EqualFold(fieldName, exact)
 		}
 	}
-	return containsIgnoreCase(fieldName, pattern)
-}
-
-// containsIgnoreCase reports whether substr is contained within s using an
-// ASCII-only, case-insensitive comparison.
-// It returns true if substr appears in s when letters A–Z are treated as a–z,
-// false otherwise.
-func containsIgnoreCase(s, substr string) bool {
-	sLower := toLower(s)
-	substrLower := toLower(substr)
-	return contains(sLower, substrLower)
-}
-
-// asciiLowercaseDelta is the offset between uppercase and lowercase ASCII letters.
-const asciiLowercaseDelta = 32
-
-// toLower converts ASCII uppercase letters (A-Z) in s to their lowercase
-// equivalents and returns the resulting string. Non-ASCII bytes and ASCII
-// characters outside A-Z are left unchanged; the result has the same length
-// as the input.
-func toLower(s string) string {
-	result := make([]byte, len(s))
-	for i := range len(s) {
-		c := s[i]
-		if c >= 'A' && c <= 'Z' {
-			result[i] = c + asciiLowercaseDelta
-		} else {
-			result[i] = c
-		}
-	}
-	return string(result)
-}
-
-// contains reports whether substr is a substring of s.
-// An empty substr is considered contained; if substr is longer than s it is not contained.
-func contains(s, substr string) bool {
-	if substr == "" {
-		return true
-	}
-	if len(substr) > len(s) {
-		return false
-	}
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
+	return strings.Contains(strings.ToLower(fieldName), strings.ToLower(pattern))
 }
 
 // builtinRules returns the default set of redaction rules used by the sanitizer package.
@@ -555,7 +508,7 @@ func builtinRules() []Rule {
 // authserver_config rule scope which paths reach this function; this function only
 // extracts the terminal segment for mapping dispatch.
 func authServerFieldFromPath(fieldName string) string {
-	lowerFieldName := toLower(fieldName)
+	lowerFieldName := strings.ToLower(fieldName)
 	lastDot := strings.LastIndexByte(lowerFieldName, '.')
 	field := lowerFieldName
 	if lastDot != -1 && lastDot < len(lowerFieldName)-1 {
@@ -576,7 +529,7 @@ var systemUsers = []string{
 // isSystemUser reports whether username matches a known common system account.
 // The check is case-insensitive and uses a predefined list (for example: "root", "admin", "nobody", "daemon", "www-data").
 func isSystemUser(username string) bool {
-	lower := toLower(username)
+	lower := strings.ToLower(username)
 	return slices.Contains(systemUsers, lower)
 }
 

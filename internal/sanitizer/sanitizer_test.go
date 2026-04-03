@@ -484,6 +484,80 @@ func TestSanitizeXML_GuardedRedactorStats(t *testing.T) {
 	}
 }
 
+func TestSanitizeXML_PreventsEntityExpansion(t *testing.T) {
+	t.Parallel()
+
+	// XML with entity definition and reference — entity must not expand.
+	// With Strict=false and empty Entity map, the decoder passes entity
+	// references through as literal text rather than expanding them.
+	input := `<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe "pwned">]><root>&xxe;</root>`
+
+	s := NewSanitizer(ModeMinimal)
+	var output bytes.Buffer
+	err := s.SanitizeXML(strings.NewReader(input), &output)
+	if err != nil {
+		t.Fatalf("SanitizeXML() error = %v", err)
+	}
+
+	result := output.String()
+	// The entity value "pwned" must NOT appear in the output.
+	if strings.Contains(result, "pwned") {
+		t.Error("XXE entity was expanded — entity value 'pwned' found in output")
+	}
+	// The DTD directive should be stripped.
+	if strings.Contains(result, "DOCTYPE") {
+		t.Error("DOCTYPE directive was not stripped from output")
+	}
+}
+
+func TestSanitizeXML_RejectsOversizedInput(t *testing.T) {
+	t.Parallel()
+
+	// Create input larger than maxSanitizeInputSize.
+	oversized := strings.Repeat("x", int(maxSanitizeInputSize)+1)
+	input := "<root>" + oversized + "</root>"
+
+	s := NewSanitizer(ModeMinimal)
+	var output bytes.Buffer
+	err := s.SanitizeXML(strings.NewReader(input), &output)
+
+	if err == nil {
+		t.Fatal("expected error for oversized input, got nil")
+	}
+	if !strings.Contains(err.Error(), "exceeds maximum size") {
+		t.Errorf("expected size limit error, got: %v", err)
+	}
+}
+
+func TestSanitizeXML_StripsDTDDirective(t *testing.T) {
+	t.Parallel()
+
+	// XML with a DTD directive that should be stripped.
+	input := `<?xml version="1.0"?><!DOCTYPE foo SYSTEM "http://evil.com/xxe.dtd"><root><name>safe</name></root>`
+
+	s := NewSanitizer(ModeMinimal)
+	var output bytes.Buffer
+	err := s.SanitizeXML(strings.NewReader(input), &output)
+	if err != nil {
+		t.Fatalf("SanitizeXML() error = %v", err)
+	}
+
+	result := output.String()
+
+	// The DTD directive should be replaced with a comment.
+	if !strings.Contains(result, "<!-- DTD directive stripped -->") {
+		t.Error("DTD directive was not replaced with stripped comment")
+	}
+	// The original DOCTYPE should not appear.
+	if strings.Contains(result, "DOCTYPE") {
+		t.Error("DOCTYPE directive was not stripped from output")
+	}
+	// The document content should still be present.
+	if !strings.Contains(result, "<root>") {
+		t.Error("root element not preserved after directive stripping")
+	}
+}
+
 func TestEscapeXMLAttr(t *testing.T) {
 	tests := []struct {
 		input string

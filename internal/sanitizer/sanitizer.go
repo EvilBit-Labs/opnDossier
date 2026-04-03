@@ -62,13 +62,21 @@ func (s *Sanitizer) GetMapper() *Mapper {
 	return s.engine.GetMapper()
 }
 
+// maxSanitizeInputSize is the maximum allowed size in bytes for XML input
+// to the sanitizer, preventing denial-of-service via oversized payloads.
+const maxSanitizeInputSize = 100 * 1024 * 1024 // 100 MB
+
 // SanitizeXML reads XML from the reader, sanitizes it, and writes to the writer.
 // This processes the XML as a stream, maintaining the original structure.
+// Input is limited to maxSanitizeInputSize bytes to prevent resource exhaustion.
 func (s *Sanitizer) SanitizeXML(r io.Reader, w io.Writer) error {
-	// Read entire input
-	data, err := io.ReadAll(r)
+	// Read entire input, bounded by size limit to prevent resource exhaustion
+	data, err := io.ReadAll(io.LimitReader(r, maxSanitizeInputSize+1))
 	if err != nil {
 		return fmt.Errorf("reading input: %w", err)
+	}
+	if int64(len(data)) > maxSanitizeInputSize {
+		return fmt.Errorf("input exceeds maximum size of %d bytes", maxSanitizeInputSize)
 	}
 
 	// Parse and sanitize
@@ -91,6 +99,8 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 	// Use a token-based approach to preserve XML structure
 	decoder := xml.NewDecoder(bytes.NewReader(data))
 	decoder.Strict = false
+	// Prevent XXE attacks by disabling entity expansion
+	decoder.Entity = map[string]string{}
 
 	var output strings.Builder
 	output.Grow(len(data))
@@ -204,9 +214,9 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 			}
 
 		case xml.Directive:
-			output.WriteString("<!")
-			output.Write(t)
-			output.WriteString(">")
+			// Strip DTD directives to prevent XXE and entity injection.
+			// Replace with an XML comment indicating the directive was removed.
+			output.WriteString("<!-- DTD directive stripped -->")
 		}
 	}
 
