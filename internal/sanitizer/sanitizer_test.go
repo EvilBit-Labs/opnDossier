@@ -127,6 +127,62 @@ func TestSanitizeXML_PrivateIP_Moderate(t *testing.T) {
 	}
 }
 
+func TestSanitizeXML_AuthServerConfig(t *testing.T) {
+	input := `<opnsense><system><authserver><type>ldap</type><name>corp-ldap</name><host>ldap.corp.example.com</host><ldap_port>636</ldap_port><ldap_basedn>dc=corp,dc=example,dc=com</ldap_basedn><ldap_authcn>cn=users,dc=corp,dc=example,dc=com</ldap_authcn><ldap_extended_query>(|(memberOf=cn=admins,ou=groups,dc=corp,dc=example,dc=com))</ldap_extended_query><ldap_attr_user>uid</ldap_attr_user><ldap_binddn>cn=svc_bind,ou=svc,dc=corp,dc=example,dc=com</ldap_binddn><ldap_bindpw>supersecret123</ldap_bindpw><ldap_sync_memberof_groups>cn=sync-members,ou=groups,dc=corp,dc=example,dc=com</ldap_sync_memberof_groups><ldap_sync_default_groups>cn=defaults,ou=groups,dc=corp,dc=example,dc=com</ldap_sync_default_groups></authserver></system></opnsense>`
+
+	rawFragments := []string{
+		"<name>corp-ldap</name>",
+		"<host>ldap.corp.example.com</host>",
+		"<ldap_port>636</ldap_port>",
+		"<ldap_basedn>dc=corp,dc=example,dc=com</ldap_basedn>",
+		"<ldap_authcn>cn=users,dc=corp,dc=example,dc=com</ldap_authcn>",
+		"<ldap_extended_query>(|(memberOf=cn=admins,ou=groups,dc=corp,dc=example,dc=com))</ldap_extended_query>",
+		"<ldap_attr_user>uid</ldap_attr_user>",
+		"<ldap_binddn>cn=svc_bind,ou=svc,dc=corp,dc=example,dc=com</ldap_binddn>",
+		"<ldap_bindpw>supersecret123</ldap_bindpw>",
+		"<ldap_sync_memberof_groups>cn=sync-members,ou=groups,dc=corp,dc=example,dc=com</ldap_sync_memberof_groups>",
+		"<ldap_sync_default_groups>cn=defaults,ou=groups,dc=corp,dc=example,dc=com</ldap_sync_default_groups>",
+	}
+
+	expectedFragments := []string{
+		"<name>" + expectedAuthServerName1 + "</name>",
+		"<host>" + expectedAuthServerHost1 + "</host>",
+		"<ldap_port>" + expectedAuthServerPort1 + "</ldap_port>",
+		"<ldap_basedn>" + expectedAuthServerBaseDN1 + "</ldap_basedn>",
+		"<ldap_authcn>" + expectedAuthServerAuthCN1 + "</ldap_authcn>",
+		"<ldap_extended_query>(&amp;(objectClass=person)(uid=redacted-001))</ldap_extended_query>",
+		"<ldap_attr_user>" + expectedAuthServerAttrUser1 + "</ldap_attr_user>",
+		"<ldap_binddn>" + expectedAuthServerBindDN1 + "</ldap_binddn>",
+		"<ldap_bindpw>" + expectedAuthServerBindPW1 + "</ldap_bindpw>",
+		"<ldap_sync_memberof_groups>" + expectedAuthServerSyncMemberOfGroups1 + "</ldap_sync_memberof_groups>",
+		"<ldap_sync_default_groups>" + expectedAuthServerSyncDefaultGroups1 + "</ldap_sync_default_groups>",
+	}
+
+	for _, mode := range ValidModes() {
+		s := NewSanitizer(mode)
+		var output bytes.Buffer
+		err := s.SanitizeXML(strings.NewReader(input), &output)
+		if err != nil {
+			t.Fatalf("SanitizeXML() error = %v", err)
+		}
+
+		result := output.String()
+		for _, rawFragment := range rawFragments {
+			if strings.Contains(result, rawFragment) {
+				t.Errorf("mode=%q should not leak authserver fragment %q", mode, rawFragment)
+			}
+		}
+		for _, expectedFragment := range expectedFragments {
+			if !strings.Contains(result, expectedFragment) {
+				t.Errorf("mode=%q missing mapped authserver fragment %q", mode, expectedFragment)
+			}
+		}
+		if !strings.Contains(result, "<type>ldap</type>") {
+			t.Errorf("mode=%q should preserve authserver type", mode)
+		}
+	}
+}
+
 func TestSanitizeXML_MAC(t *testing.T) {
 	input := `<config><hwaddr>00:11:22:33:44:55</hwaddr></config>`
 

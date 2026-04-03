@@ -29,7 +29,7 @@ const (
 	SanitizeModeAggressive = "aggressive"
 	// SanitizeModeModerate redacts most data but preserves some network structure.
 	SanitizeModeModerate = "moderate"
-	// SanitizeModeMinimal redacts only the most sensitive data (passwords, keys).
+	// SanitizeModeMinimal redacts only the most sensitive data (credentials and authserver values).
 	SanitizeModeMinimal = "minimal"
 )
 
@@ -46,7 +46,7 @@ func init() {
 	// Mode flag
 	sanitizeCmd.Flags().
 		StringVarP(&sanitizeMode, "mode", "m", SanitizeModeModerate,
-			"Sanitization mode: aggressive (public sharing), moderate (internal sharing), minimal (credentials only)")
+			"Sanitization mode: aggressive (public sharing), moderate (internal sharing), minimal (credentials + authserver values)")
 	setFlagAnnotation(sanitizeCmd.Flags(), "mode", []string{"sanitize"})
 
 	// Output flag
@@ -91,7 +91,7 @@ func ValidSanitizeModes(_ *cobra.Command, _ []string, _ string) ([]string, cobra
 	return []string{
 		SanitizeModeAggressive + "\tRedact all sensitive data for public sharing",
 		SanitizeModeModerate + "\tRedact most sensitive data, preserve network structure",
-		SanitizeModeMinimal + "\tRedact only credentials (passwords, keys, secrets)",
+		SanitizeModeMinimal + "\tRedact credentials and authserver values",
 	}, cobra.ShellCompDirectiveNoFileComp
 }
 
@@ -123,11 +123,12 @@ reporting without exposing credentials, IP addresses, or other sensitive data.
                    tunnel addresses, subnets, Cloudflare account/zone IDs, public keys
 
     moderate     - Balanced redaction for internal sharing (default)
-                   Redacts: passwords, keys, public IPs, MACs, emails
+                   Redacts: passwords, keys, authserver values, public IPs, MACs, emails
                    Preserves: private IPs, hostnames (for network topology analysis)
 
     minimal      - Credential-only redaction for trusted environments
-                   Redacts: passwords, secrets, API keys, PSKs, private keys, SSH keys
+                   Redacts: passwords, secrets, API keys, PSKs, private keys, SSH keys,
+                   authserver values
                    Preserves: certificates, all network information
 
   REFERENTIAL INTEGRITY:
@@ -150,7 +151,7 @@ Examples:
   # Sanitize with mapping file for reverse lookup
   opnDossier sanitize config.xml -o sanitized.xml --mapping mappings.json
 
-  # Minimal redaction (credentials only)
+  # Minimal redaction (credentials and authserver values)
   opnDossier sanitize config.xml --mode minimal
 
   # Force overwrite existing files

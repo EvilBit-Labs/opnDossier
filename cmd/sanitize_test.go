@@ -143,6 +143,20 @@ func TestSanitizeCommandIntegration(t *testing.T) {
       <password>supersecret123</password>
       <name>admin</name>
     </user>
+    <authserver>
+      <type>ldap</type>
+      <name>corp-ldap</name>
+      <host>ldap.example.com</host>
+      <ldap_port>636</ldap_port>
+      <ldap_basedn>dc=corp,dc=example,dc=com</ldap_basedn>
+      <ldap_authcn>cn=users,dc=corp,dc=example,dc=com</ldap_authcn>
+      <ldap_attr_user>uid</ldap_attr_user>
+      <ldap_binddn>cn=svc_bind,ou=svc,dc=corp,dc=example,dc=com</ldap_binddn>
+      <ldap_bindpw>bindpwsecret</ldap_bindpw>
+      <ldap_extended_query>(|(memberOf=cn=admins,ou=groups,dc=corp,dc=example,dc=com))</ldap_extended_query>
+      <ldap_sync_memberof_groups>cn=sync-members,ou=groups,dc=corp,dc=example,dc=com</ldap_sync_memberof_groups>
+      <ldap_sync_default_groups>cn=defaults,ou=groups,dc=corp,dc=example,dc=com</ldap_sync_default_groups>
+    </authserver>
     <hostname>firewall.company.com</hostname>
   </system>
   <interfaces>
@@ -192,6 +206,10 @@ func TestSanitizeCommandIntegration(t *testing.T) {
 		t.Error("password was not redacted")
 	}
 
+	if bytes.Contains(outputContent, []byte("bindpwsecret")) {
+		t.Error("ldap bind password was not redacted")
+	}
+
 	if bytes.Contains(outputContent, []byte("203.0.113.50")) {
 		t.Error("public IP was not redacted")
 	}
@@ -199,6 +217,53 @@ func TestSanitizeCommandIntegration(t *testing.T) {
 	// In aggressive mode, private IPs should also be redacted
 	if bytes.Contains(outputContent, []byte("192.168.1.1")) {
 		t.Error("private IP was not redacted in aggressive mode")
+	}
+
+	if bytes.Contains(outputContent, []byte("dc=corp,dc=example,dc=com")) {
+		t.Error("ldap basedn was not redacted in aggressive mode")
+	}
+
+	if bytes.Contains(outputContent, []byte("cn=users,dc=corp,dc=example,dc=com")) {
+		t.Error("ldap authcn was not redacted in aggressive mode")
+	}
+
+	if bytes.Contains(outputContent, []byte("cn=svc_bind,ou=svc,dc=corp,dc=example,dc=com")) {
+		t.Error("ldap binddn was not redacted in aggressive mode")
+	}
+
+	if bytes.Contains(outputContent, []byte("memberOf=cn=admins,ou=groups,dc=corp,dc=example,dc=com")) {
+		t.Error("ldap extended query was not redacted in aggressive mode")
+	}
+
+	if bytes.Contains(outputContent, []byte("cn=sync-members,ou=groups,dc=corp,dc=example,dc=com")) {
+		t.Error("ldap sync memberof groups was not redacted in aggressive mode")
+	}
+
+	if bytes.Contains(outputContent, []byte("cn=defaults,ou=groups,dc=corp,dc=example,dc=com")) {
+		t.Error("ldap sync default groups was not redacted in aggressive mode")
+	}
+
+	expectedAuthServerFragments := [][]byte{
+		[]byte("<name>authserver-001</name>"),
+		[]byte("<host>ldap-001.example.invalid</host>"),
+		[]byte("<ldap_port>55001</ldap_port>"),
+		[]byte("<ldap_basedn>dc=auth001,dc=example,dc=invalid</ldap_basedn>"),
+		[]byte("<ldap_authcn>cn=auth-search-001,ou=ldap,dc=example,dc=invalid</ldap_authcn>"),
+		[]byte("<ldap_attr_user>opndossierUserAttr001</ldap_attr_user>"),
+		[]byte("<ldap_binddn>cn=bind-user-001,ou=svc,dc=example,dc=invalid</ldap_binddn>"),
+		[]byte("<ldap_bindpw>BindPw-001-NotReal!</ldap_bindpw>"),
+		[]byte("<ldap_extended_query>(&amp;(objectClass=person)(uid=redacted-001))</ldap_extended_query>"),
+		[]byte(
+			"<ldap_sync_memberof_groups>cn=memberof-sync-001,ou=groups,dc=example,dc=invalid</ldap_sync_memberof_groups>",
+		),
+		[]byte(
+			"<ldap_sync_default_groups>cn=default-sync-001,ou=groups,dc=example,dc=invalid</ldap_sync_default_groups>",
+		),
+	}
+	for _, expectedFragment := range expectedAuthServerFragments {
+		if !bytes.Contains(outputContent, expectedFragment) {
+			t.Errorf("expected authserver pseudonymized fragment %q in output", expectedFragment)
+		}
 	}
 
 	// Verify XML structure is preserved
