@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -87,13 +88,13 @@ func TestValidXMLFiles(t *testing.T) {
 
 	t.Run("completes within subdirectory path", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		subDir := tmpDir + "/configs"
+		subDir := filepath.Join(tmpDir, "configs")
 		require.NoError(t, os.Mkdir(subDir, 0o755))
 
-		require.NoError(t, os.WriteFile(subDir+"/test.xml", []byte("<root/>"), 0o600))
+		require.NoError(t, os.WriteFile(filepath.Join(subDir, "test.xml"), []byte("<root/>"), 0o600))
 
-		completions, directive := ValidXMLFiles(nil, nil, subDir+"/")
+		completions, directive := ValidXMLFiles(nil, nil, subDir+string(filepath.Separator))
 		assert.Equal(t, cobra.ShellCompDirectiveNoSpace, directive)
-		assert.Contains(t, completions, subDir+"/test.xml")
+		assert.Contains(t, completions, filepath.Join(subDir, "test.xml"))
 	})
 }
