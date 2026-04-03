@@ -34,7 +34,7 @@ For global flags (`--verbose`, `--quiet`, `--config`, etc.), see [Configuration 
 
 ## Device Types
 
-By default, opnDossier auto-detects the device type from the XML root element of the configuration file. Currently, OPNsense (`<opnsense>`) is the built-in device type.
+By default, opnDossier auto-detects the device type from the XML root element of the configuration file. The built-in device types are OPNsense (`<opnsense>`) and pfSense (`<pfsense>`).
 
 The `--device-type` flag overrides auto-detection, which is useful if a config file has an unexpected root element or if you want to explicitly specify the parser.
 
@@ -42,7 +42,7 @@ The `--device-type` flag overrides auto-detection, which is useful if a config f
 opndossier convert config.xml --device-type opnsense
 ```
 
-opnDossier's device type system is extensible -- additional device types (e.g., pfSense, Fortinet) can be added via third-party parser plugins. Use `opndossier convert --device-type <TAB>` to see all available device types via shell completion. See the [Plugin Development Guide](../../dev-guide/plugin-development.md#device-parser-development) for details on creating device parsers.
+opnDossier includes built-in parsers for OPNsense and pfSense. The device type system is extensible -- additional device types (e.g., Fortinet) can be added via parser plugins. Use `opndossier convert --device-type <TAB>` to see all available device types via shell completion. See the [Plugin Development Guide](../../dev-guide/plugin-development.md#device-parser-development) for details on creating device parsers.
 
 ## Sections
 

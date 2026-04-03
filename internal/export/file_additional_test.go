@@ -88,6 +88,13 @@ func TestError_Unwrap(t *testing.T) {
 func TestFileExporter_CheckPathTraversal(t *testing.T) {
 	exporter := NewFileExporter(nil)
 
+	// Create a subdirectory within a temp dir so that single-.. tests
+	// can resolve to a path that is still within the allowed base (CWD).
+	tempDir := t.TempDir()
+	subDir := filepath.Join(tempDir, "project", "subdir")
+	require.NoError(t, os.MkdirAll(subDir, 0o700))
+	t.Chdir(filepath.Join(tempDir, "project"))
+
 	tests := []struct {
 		name    string
 		path    string
@@ -99,13 +106,18 @@ func TestFileExporter_CheckPathTraversal(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "absolute path",
+			name:    "absolute path without traversal",
 			path:    "/tmp/test.txt",
 			wantErr: false,
 		},
 		{
-			name:    "single parent directory",
+			name:    "single dotdot escaping CWD",
 			path:    "../test.txt",
+			wantErr: true,
+		},
+		{
+			name:    "single dotdot staying within CWD",
+			path:    "subdir/../output.md",
 			wantErr: false,
 		},
 		{
@@ -119,13 +131,23 @@ func TestFileExporter_CheckPathTraversal(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "mixed path with traversal",
+			name:    "mixed path with traversal escaping CWD",
 			path:    "normal/path/../../../etc/passwd",
 			wantErr: true,
 		},
 		{
 			name:    "no traversal",
 			path:    "normal/path/file.txt",
+			wantErr: false,
+		},
+		{
+			name:    "relative path in CWD",
+			path:    "./test.txt",
+			wantErr: false,
+		},
+		{
+			name:    "absolute path within CWD",
+			path:    filepath.Join(tempDir, "project", "output.md"),
 			wantErr: false,
 		},
 	}
@@ -144,6 +166,85 @@ func TestFileExporter_CheckPathTraversal(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFileExporter_CheckPathTraversal_SymlinkWithDotDot(t *testing.T) {
+	tempDir := t.TempDir()
+	projectDir := filepath.Join(tempDir, "project")
+	subDir := filepath.Join(projectDir, "sub")
+	require.NoError(t, os.MkdirAll(subDir, 0o700))
+	t.Chdir(projectDir)
+
+	exporter := NewFileExporter(nil)
+
+	// Create a symlink sub/escape -> ../../outside (resolves outside CWD)
+	outsideDir := filepath.Join(tempDir, "outside")
+	require.NoError(t, os.MkdirAll(outsideDir, 0o700))
+	require.NoError(t, os.Symlink(outsideDir, filepath.Join(subDir, "escape")))
+
+	// Path with ".." that goes through a symlink resolving outside CWD
+	// sub/../sub/escape resolves through the symlink to outside/
+	err := exporter.checkPathTraversal("sub/escape/../../../outside/secret.txt")
+	require.Error(t, err)
+	var exportErr *Error
+	require.ErrorAs(t, err, &exportErr)
+	assert.Contains(t, exportErr.Message, "malicious traversal")
+}
+
+func TestFileExporter_CheckPathTraversal_SymlinkWithoutDotDot(t *testing.T) {
+	tempDir := t.TempDir()
+	projectDir := filepath.Join(tempDir, "project")
+	require.NoError(t, os.MkdirAll(projectDir, 0o700))
+	t.Chdir(projectDir)
+
+	exporter := NewFileExporter(nil)
+
+	// Create a directory outside CWD and a symlink pointing to it.
+	outsideDir := filepath.Join(tempDir, "outside")
+	require.NoError(t, os.MkdirAll(outsideDir, 0o700))
+	require.NoError(t, os.Symlink(outsideDir, filepath.Join(projectDir, "escape")))
+
+	// Path has no ".." but the symlink resolves outside CWD.
+	err := exporter.checkPathTraversal("escape/secret.txt")
+	require.Error(t, err)
+	var exportErr *Error
+	require.ErrorAs(t, err, &exportErr)
+	assert.Contains(t, exportErr.Message, "malicious traversal")
+}
+
+func TestResolveWithMissingTail(t *testing.T) {
+	tempDir := t.TempDir()
+	existingDir := filepath.Join(tempDir, "existing")
+	require.NoError(t, os.MkdirAll(existingDir, 0o700))
+
+	t.Run("existing path resolves directly", func(t *testing.T) {
+		resolved, err := resolveWithMissingTail(existingDir)
+		require.NoError(t, err)
+		// Should resolve successfully (may differ from input if tempDir has symlinks)
+		assert.NotEmpty(t, resolved)
+	})
+
+	t.Run("non-existent tail appended to resolved ancestor", func(t *testing.T) {
+		nonExistent := filepath.Join(existingDir, "no", "such", "file.txt")
+		resolved, err := resolveWithMissingTail(nonExistent)
+		require.NoError(t, err)
+		assert.True(t, strings.HasSuffix(resolved, filepath.Join("no", "such", "file.txt")),
+			"resolved path should end with the non-existent tail: %s", resolved)
+	})
+
+	t.Run("completely non-existent path resolves via root ancestor", func(t *testing.T) {
+		// On Unix, "/" always exists, so the function will resolve via the root.
+		// This tests the walk-up behavior reaching a valid ancestor (the root).
+		bogus := "/nonexistent_root_abc123/deep/path/file.txt"
+		resolved, err := resolveWithMissingTail(bogus)
+		require.NoError(t, err)
+		assert.True(
+			t,
+			strings.HasSuffix(resolved, filepath.Join("nonexistent_root_abc123", "deep", "path", "file.txt")),
+			"resolved path should end with the non-existent tail: %s",
+			resolved,
+		)
+	})
 }
 
 func TestFileExporter_ResolveAbsolutePath(t *testing.T) {

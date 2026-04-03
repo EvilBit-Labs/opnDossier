@@ -3,7 +3,7 @@
 - **Hostname**: comprehensive-firewall
 - **Domain**: security.local
 - **Platform**: OPNsense 24.1.2
-- **Generated On**: 2026-03-23T19:22:09-04:00
+- **Generated On**: 2026-04-02T23:55:21-04:00
 - **Parsed By**: opnDossier vdev
 ## Table of Contents
 - [System Configuration](#system-configuration)
@@ -29,10 +29,14 @@
 **Domain**: security.local
   
 **Optimization**: aggressive
+  
 **Timezone**: America/New_York
+  
 **Language**: en_US
+  
 ### Web GUI Configuration
 **Protocol**: https
+  
 ### System Settings
 **DNS Allow Override**: ✓
   
@@ -41,7 +45,9 @@
 **Next GID**: 0
   
 **Time Servers**: time.nist.gov, pool.ntp.org
+  
 **DNS Server**: 1.1.1.1, 8.8.8.8
+  
 ### Hardware Offloading
 **Disable NAT Reflection**: ✗
   
@@ -76,10 +82,13 @@
 **Netflow Backup**: ✗
 ### Bogons Configuration
 **Interval**: weekly
+  
 ### SSH Configuration
 **Group**: wheel
+  
 ### Firmware Information
 **Version**: 24.1.2
+  
 ### System Users
 | Name | Description | Group | Scope |
 |---------|---------|---------|---------|

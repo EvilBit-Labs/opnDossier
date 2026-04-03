@@ -12,7 +12,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/markdown"
+	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/charmbracelet/glamour"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -426,7 +426,7 @@ Just plain text with a heading.
 			assert.Equal(t, tt.content, string(exportedContent))
 
 			// Validate that the exported markdown passes validation
-			err = markdown.ValidateMarkdown(string(exportedContent))
+			err = converter.ValidateMarkdown(string(exportedContent))
 			require.NoError(t, err, "Exported markdown should pass validation")
 		})
 	}
@@ -530,7 +530,7 @@ func TestFileExporter_ActualExportedFile(t *testing.T) {
 	contentStr := string(exportedContent)
 
 	// 1. Validate that the markdown passes validation
-	err = markdown.ValidateMarkdown(contentStr)
+	err = converter.ValidateMarkdown(contentStr)
 	require.NoError(t, err, "Exported markdown should pass validation")
 
 	// 2. Check for no terminal control characters
@@ -1062,7 +1062,7 @@ func TestFileExporter_LibraryValidation(t *testing.T) {
 				// Test with multiple markdown parsers
 
 				// 1. Test with goldmark (already used in ValidateMarkdown)
-				err := markdown.ValidateMarkdown(string(content))
+				err := converter.ValidateMarkdown(string(content))
 				require.NoError(t, err, "Markdown should pass goldmark validation")
 
 				// 2. Test with glamour (terminal markdown renderer)
@@ -1279,7 +1279,7 @@ func TestFileExporter_CrossPlatformValidation(t *testing.T) {
 			// 4. File should be readable by standard tools
 			switch tt.format {
 			case "markdown":
-				err = markdown.ValidateMarkdown(contentStr)
+				err = converter.ValidateMarkdown(contentStr)
 				require.NoError(t, err, "Markdown should be valid")
 			case "json":
 				assert.True(t, json.Valid(exportedContent), "JSON should be valid")

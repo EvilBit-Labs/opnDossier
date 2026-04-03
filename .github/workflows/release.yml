@@ -64,7 +64,7 @@ jobs:
         run: git checkout -- mise.lock || true
 
       - name: Install cyclonedx-gomod for SBOM generation
-        run: go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
+        run: go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.10.0
 
       - name: Remove mise go shim
         # cyclonedx-gomod shells out to `go mod why` and resolves the mise
@@ -89,7 +89,7 @@ jobs:
         with:
           distribution: goreleaser
           version: "~> v2"
-          args: ${{ github.event_name == 'workflow_dispatch' && 'release --clean --snapshot' || 'release --clean' }}
+          args: ${{ github.event_name == 'workflow_dispatch' && 'release --clean --snapshot --skip=docker' || 'release --clean' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
@@ -100,6 +100,17 @@ jobs:
           QUILL_NOTARY_KEY: ${{ secrets.QUILL_NOTARY_KEY }}
           QUILL_NOTARY_KEY_ID: ${{ secrets.QUILL_NOTARY_KEY_ID }}
           QUILL_NOTARY_ISSUER: ${{ secrets.QUILL_NOTARY_ISSUER }}
+
+      - name: Warn if snapshot mode
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "::warning::This was a snapshot build. No artifacts were published to GHCR or GitHub Releases."
+          {
+            echo "## ⚠️ Snapshot Build"
+            echo ""
+            echo "This was a **snapshot** build triggered via workflow_dispatch."
+            echo "No artifacts were published. Docker images were skipped."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload dist artifacts
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
@@ -210,9 +221,17 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cd dist
+          FAILED=0
           for file in ./*.tar.gz ./*.zip; do
             if [[ -f "$file" ]]; then
               echo "Verifying attestation for $file"
-              gh attestation verify "$file" --owner "${GITHUB_REPOSITORY_OWNER}" || echo "WARNING: Attestation not found for $file"
+              if ! gh attestation verify "$file" --owner "${GITHUB_REPOSITORY_OWNER}"; then
+                echo "::error::Attestation verification FAILED for $file"
+                FAILED=1
+              fi
             fi
           done
+          if [[ "$FAILED" -ne 0 ]]; then
+            echo "::error::One or more attestation verifications failed"
+            exit 1
+          fi

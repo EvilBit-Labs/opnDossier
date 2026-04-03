@@ -62,13 +62,21 @@ func (s *Sanitizer) GetMapper() *Mapper {
 	return s.engine.GetMapper()
 }
 
+// maxSanitizeInputSize is the maximum allowed size in bytes for XML input
+// to the sanitizer, preventing denial-of-service via oversized payloads.
+const maxSanitizeInputSize = 100 * 1024 * 1024 // 100 MB
+
 // SanitizeXML reads XML from the reader, sanitizes it, and writes to the writer.
 // This processes the XML as a stream, maintaining the original structure.
+// Input is limited to maxSanitizeInputSize bytes to prevent resource exhaustion.
 func (s *Sanitizer) SanitizeXML(r io.Reader, w io.Writer) error {
-	// Read entire input
-	data, err := io.ReadAll(r)
+	// Read entire input, bounded by size limit to prevent resource exhaustion
+	data, err := io.ReadAll(io.LimitReader(r, maxSanitizeInputSize+1))
 	if err != nil {
 		return fmt.Errorf("reading input: %w", err)
+	}
+	if int64(len(data)) > maxSanitizeInputSize {
+		return fmt.Errorf("input exceeds maximum size of %d bytes", maxSanitizeInputSize)
 	}
 
 	// Parse and sanitize
@@ -91,10 +99,17 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 	// Use a token-based approach to preserve XML structure
 	decoder := xml.NewDecoder(bytes.NewReader(data))
 	decoder.Strict = false
+	// Prevent XXE attacks by disabling entity expansion
+	decoder.Entity = map[string]string{}
 
 	var output strings.Builder
 	output.Grow(len(data))
 	var elementStack []string
+	// pathStack mirrors elementStack but tracks the cumulative dot-joined
+	// path at each depth. This avoids using strings.LastIndex(".") which
+	// would break if an element name contains a literal dot.
+	var pathStack []string
+	var currentPath string
 
 	// Write XML declaration if present
 	if bytes.HasPrefix(bytes.TrimSpace(data), []byte("<?xml")) {
@@ -117,6 +132,12 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 		switch t := token.(type) {
 		case xml.StartElement:
 			elementStack = append(elementStack, t.Name.Local)
+			if currentPath == "" {
+				currentPath = t.Name.Local
+			} else {
+				currentPath = currentPath + "." + t.Name.Local
+			}
+			pathStack = append(pathStack, currentPath)
 			output.WriteString("<")
 			output.WriteString(t.Name.Local)
 
@@ -135,6 +156,12 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 		case xml.EndElement:
 			if len(elementStack) > 0 {
 				elementStack = elementStack[:len(elementStack)-1]
+				pathStack = pathStack[:len(pathStack)-1]
+				if len(pathStack) > 0 {
+					currentPath = pathStack[len(pathStack)-1]
+				} else {
+					currentPath = ""
+				}
 			}
 			output.WriteString("</")
 			output.WriteString(t.Name.Local)
@@ -148,8 +175,8 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 				if len(elementStack) > 0 {
 					currentElement = elementStack[len(elementStack)-1]
 				}
-				// Build the full path for context
-				fullPath := strings.Join(elementStack, ".")
+				// Use the running path for context
+				fullPath := currentPath
 
 				// Check if we should redact (try full path first, then element name)
 				// Only check - don't update stats yet
@@ -204,9 +231,9 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 			}
 
 		case xml.Directive:
-			output.WriteString("<!")
-			output.Write(t)
-			output.WriteString(">")
+			// Strip DTD directives to prevent XXE and entity injection.
+			// Replace with an XML comment indicating the directive was removed.
+			output.WriteString("<!-- DTD directive stripped -->")
 		}
 	}
 
