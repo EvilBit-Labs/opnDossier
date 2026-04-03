@@ -109,8 +109,8 @@ func TestShouldRedactField_AuthServer(t *testing.T) {
 	}{
 		{ModeAggressive, "opnsense.system.authserver.name", true},
 		{ModeModerate, "opnsense.system.authserver.host", true},
-		{ModeMinimal, "ldap_bindpw", true},
-		{ModeMinimal, "ldap_basedn", true},
+		{ModeMinimal, "opnsense.system.authserver.ldap_bindpw", true},
+		{ModeMinimal, "opnsense.system.authserver.ldap_basedn", true},
 		{ModeMinimal, "name", false},
 		{ModeMinimal, "opnsense.system.user.name", false},
 	}
@@ -232,7 +232,7 @@ func TestRedact_Password(t *testing.T) {
 func TestRedact_AuthServerBindPassword(t *testing.T) {
 	engine := NewRuleEngine(ModeMinimal)
 
-	result := engine.Redact("ldap_bindpw", "supersecret123")
+	result := engine.Redact("opnsense.system.authserver.ldap_bindpw", "supersecret123")
 	if result != expectedAuthServerBindPW1 {
 		t.Errorf("Redact authserver ldap_bindpw = %q, want %q", result, expectedAuthServerBindPW1)
 	}
@@ -347,24 +347,28 @@ func TestRedact_AuthServerConfig(t *testing.T) {
 	}{
 		{"opnsense.system.authserver.name", "corp-ldap", expectedAuthServerName1},
 		{"opnsense.system.authserver.host", "ldap.corp.example.com", expectedAuthServerHost1},
-		{"ldap_port", "636", expectedAuthServerPort1},
-		{"ldap_basedn", "dc=corp,dc=example,dc=com", expectedAuthServerBaseDN1},
-		{"ldap_authcn", "cn=users,dc=corp,dc=example,dc=com", expectedAuthServerAuthCN1},
+		{"opnsense.system.authserver.ldap_port", "636", expectedAuthServerPort1},
+		{"opnsense.system.authserver.ldap_basedn", "dc=corp,dc=example,dc=com", expectedAuthServerBaseDN1},
+		{"opnsense.system.authserver.ldap_authcn", "cn=users,dc=corp,dc=example,dc=com", expectedAuthServerAuthCN1},
 		{
-			"ldap_extended_query",
+			"opnsense.system.authserver.ldap_extended_query",
 			"(|(memberOf=cn=admins,ou=groups,dc=corp,dc=example,dc=com))",
 			expectedAuthServerExtendedQuery1,
 		},
-		{"ldap_attr_user", "uid", expectedAuthServerAttrUser1},
-		{"ldap_binddn", "cn=svc_bind,ou=svc,dc=corp,dc=example,dc=com", expectedAuthServerBindDN1},
-		{"ldap_bindpw", "supersecret123", expectedAuthServerBindPW1},
+		{"opnsense.system.authserver.ldap_attr_user", "uid", expectedAuthServerAttrUser1},
 		{
-			"ldap_sync_memberof_groups",
+			"opnsense.system.authserver.ldap_binddn",
+			"cn=svc_bind,ou=svc,dc=corp,dc=example,dc=com",
+			expectedAuthServerBindDN1,
+		},
+		{"opnsense.system.authserver.ldap_bindpw", "supersecret123", expectedAuthServerBindPW1},
+		{
+			"opnsense.system.authserver.ldap_sync_memberof_groups",
 			"cn=sync-members,ou=groups,dc=corp,dc=example,dc=com",
 			expectedAuthServerSyncMemberOfGroups1,
 		},
 		{
-			"ldap_sync_default_groups",
+			"opnsense.system.authserver.ldap_sync_default_groups",
 			"cn=defaults,ou=groups,dc=corp,dc=example,dc=com",
 			expectedAuthServerSyncDefaultGroups1,
 		},
@@ -535,6 +539,67 @@ func TestRedact_Hostname_NonEmailValue(t *testing.T) {
 	}
 	if result != expectedMappedHostname1 {
 		t.Errorf("Redact('hostname', FQDN) = %q, want 'host-001.example.com'", result)
+	}
+}
+
+func BenchmarkShouldRedactField(b *testing.B) {
+	engine := NewRuleEngine(ModeAggressive)
+
+	// Realistic mix: some fields match, some don't.
+	fields := []string{
+		"password",
+		"description",
+		"hostname",
+		"ipaddr",
+		"enabled",
+		"opnsense.system.authserver.ldap_bindpw",
+		"interface",
+		"apikey",
+		"gateway",
+		"username",
+		"protocol",
+		"subnet",
+		"certificate",
+		"value",
+		"bcrypt-hash",
+		"name",
+		"from",
+		"timeout",
+		"mac",
+		"email",
+	}
+
+	b.ResetTimer()
+	for b.Loop() {
+		for _, f := range fields {
+			engine.ShouldRedactField(f)
+		}
+	}
+}
+
+func BenchmarkFieldNameMatches(b *testing.B) {
+	// Pre-lowercased patterns as they would be in the engine.
+	benchCases := []struct {
+		fieldName string
+		pattern   string
+	}{
+		{"password", "pass"},
+		{"UserPassword", "password"},
+		{"description", "secret"},
+		{"hostname", "hostname"},
+		{"ipaddr", "ipaddr"},
+		{"key", "key"},       // exact match path
+		{"monkeybar", "key"}, // exact match, no match
+		{"from", "from"},     // exact match path
+		{"timeout", "from"},  // exact match, no match
+		{"bcrypt-hash", "bcrypt-hash"},
+	}
+
+	b.ResetTimer()
+	for b.Loop() {
+		for _, bc := range benchCases {
+			fieldNameMatches(bc.fieldName, bc.pattern)
+		}
 	}
 }
 

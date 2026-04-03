@@ -9,14 +9,14 @@ branding:
 
 inputs:
   command:
-    description: "opnDossier sub-command to run: convert | audit | display | validate | sanitize ... etc"
+    description: "opnDossier sub-command to run: audit | convert | diff | display | sanitize | validate | version"
     required: false
     default: "audit"
   config-file:
     description: "Path to the OPNsense config.xml file (relative to workspace root)"
     required: true
   format:
-    description: "Output format for convert/audit: markdown | json | yaml"
+    description: "Output format for convert/audit: markdown | json | yaml | text | html"
     required: false
     default: ""
   output:
@@ -56,6 +56,25 @@ runs:
           echo "::error::version input contains invalid characters: ${INPUT_VERSION}" && exit 1
         fi
 
+        case "${INPUT_COMMAND}" in
+          audit|completion|config|convert|diff|display|man|sanitize|validate|version) ;;
+          *) echo "::error::Invalid command '${INPUT_COMMAND}'. Must be one of: audit, convert, diff, display, sanitize, validate, version"; exit 1 ;;
+        esac
+
+        if [[ -n "${INPUT_FORMAT}" ]]; then
+          case "${INPUT_FORMAT}" in
+            markdown|json|yaml|text|html) ;;
+            *) echo "::error::Invalid format '${INPUT_FORMAT}'. Must be: markdown, json, yaml, text, or html"; exit 1 ;;
+          esac
+        fi
+
+        # --- Pull image with actionable error ---
+        IMAGE="ghcr.io/evilbit-labs/opndossier:${INPUT_VERSION}"
+        if ! docker pull "${IMAGE}" 2>&1; then
+          echo "::error::Failed to pull ${IMAGE}. Check that the version '${INPUT_VERSION}' exists at https://ghcr.io/evilbit-labs/opndossier"
+          exit 1
+        fi
+
         # --- Build argument list ---
         ARGS=("${INPUT_COMMAND}" "${INPUT_CONFIG_FILE}")
 
@@ -77,5 +96,5 @@ runs:
         docker run --rm \
           --volume "${GITHUB_WORKSPACE}:/data" \
           --workdir /data \
-          "ghcr.io/evilbit-labs/opndossier:${INPUT_VERSION}" \
+          "${IMAGE}" \
           "${ARGS[@]}"

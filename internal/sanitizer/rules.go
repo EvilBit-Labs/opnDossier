@@ -81,9 +81,17 @@ type RuleEngine struct {
 
 // NewRuleEngine creates a RuleEngine configured for the given Mode.
 // The engine is populated with the package's builtin rules and a default Mapper.
+// Field patterns are pre-lowercased at construction time to avoid redundant
+// allocations on every fieldNameMatches call.
 func NewRuleEngine(mode Mode) *RuleEngine {
+	rules := builtinRules()
+	for i := range rules {
+		for j, pat := range rules[i].FieldPatterns {
+			rules[i].FieldPatterns[j] = strings.ToLower(pat)
+		}
+	}
 	engine := &RuleEngine{
-		rules:  builtinRules(),
+		rules:  rules,
 		mapper: NewMapper(),
 		mode:   mode,
 	}
@@ -174,19 +182,23 @@ func (e *RuleEngine) ruleActiveForMode(rule *Rule) bool {
 // matching instead of substring matching. This prevents false positives on
 // compound field names (e.g., "key" would otherwise match "sshkey", "apikey";
 // "from"/"to" would match "timeout", "protocol", "platformfrom").
+// All entries are stored pre-lowercased to match the pre-lowercased field patterns.
 var exactMatchPatterns = []string{"key", "from", "to"}
 
 // fieldNameMatches reports whether pattern matches fieldName using a
 // case-insensitive substring check. An empty pattern always matches.
 // Patterns listed in exactMatchPatterns require an exact (case-insensitive)
 // match to prevent false positives on compound field names.
+//
+// The pattern argument must be pre-lowercased (see NewRuleEngine).
 func fieldNameMatches(fieldName, pattern string) bool {
+	lowerField := strings.ToLower(fieldName)
 	for _, exact := range exactMatchPatterns {
-		if strings.EqualFold(pattern, exact) {
-			return strings.EqualFold(fieldName, exact)
+		if pattern == exact {
+			return lowerField == exact
 		}
 	}
-	return strings.Contains(strings.ToLower(fieldName), strings.ToLower(pattern))
+	return strings.Contains(lowerField, pattern)
 }
 
 // builtinRules returns the default set of redaction rules used by the sanitizer package.
@@ -208,15 +220,15 @@ func builtinRules() []Rule {
 			FieldPatterns: []string{
 				"system.authserver.name",
 				"system.authserver.host",
-				"ldap_port",
-				"ldap_basedn",
-				"ldap_authcn",
-				"ldap_extended_query",
-				"ldap_attr_user",
-				"ldap_binddn",
-				"ldap_bindpw",
-				"ldap_sync_memberof_groups",
-				"ldap_sync_default_groups",
+				"authserver.ldap_port",
+				"authserver.ldap_basedn",
+				"authserver.ldap_authcn",
+				"authserver.ldap_extended_query",
+				"authserver.ldap_attr_user",
+				"authserver.ldap_binddn",
+				"authserver.ldap_bindpw",
+				"authserver.ldap_sync_memberof_groups",
+				"authserver.ldap_sync_default_groups",
 			},
 			Redactor: func(m *Mapper, fieldName, value string) string {
 				return m.MapAuthServerValue(authServerFieldFromPath(fieldName), value)

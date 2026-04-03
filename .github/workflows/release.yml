@@ -101,6 +101,17 @@ jobs:
           QUILL_NOTARY_KEY_ID: ${{ secrets.QUILL_NOTARY_KEY_ID }}
           QUILL_NOTARY_ISSUER: ${{ secrets.QUILL_NOTARY_ISSUER }}
 
+      - name: Warn if snapshot mode
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "::warning::This was a snapshot build. No artifacts were published to GHCR or GitHub Releases."
+          {
+            echo "## ⚠️ Snapshot Build"
+            echo ""
+            echo "This was a **snapshot** build triggered via workflow_dispatch."
+            echo "No artifacts were published. Docker images were skipped."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload dist artifacts
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
