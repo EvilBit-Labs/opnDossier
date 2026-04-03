@@ -2,7 +2,55 @@
 
 All notable changes to this project will be documented in this file.
 
-## [unreleased]
+## [1.4.0] - 2026-04-03
+
+### Features
+
+- **parser**: Add IPsec parsing support for pfSense configurations ([#476](https://github.com/EvilBit-Labs/opnDossier/pull/476))
+
+- **plugin**: Report compliant controls alongside findings in blue mode reports ([#495](https://github.com/EvilBit-Labs/opnDossier/pull/495))
+
+- Parse full Kea DHCP4 subnets and unify with ISC DHCP in CommonDevice ([#519](https://github.com/EvilBit-Labs/opnDossier/pull/519))
+
+- Add basic `Dockerfile` and `action.yaml` ([#521](https://github.com/EvilBit-Labs/opnDossier/pull/521))
+
+
+### Bug Fixes
+
+- **release**: Fix universal binary, man pages, and release footer ([#477](https://github.com/EvilBit-Labs/opnDossier/pull/477))
+
+- **cli**: Defer audit plugin name validation to support dynamic plugins ([#480](https://github.com/EvilBit-Labs/opnDossier/pull/480))
+
+- **audit**: Count info severity, add inventory controls, render Configuration Notes ([#449](https://github.com/EvilBit-Labs/opnDossier/pull/449)) ([#510](https://github.com/EvilBit-Labs/opnDossier/pull/510))
+
+- **cli**: Scope --json-output flag to validate command only ([#516](https://github.com/EvilBit-Labs/opnDossier/pull/516))
+
+- **docs**: Resolve broken links for GitHub Pages
+
+- **docs**: Split XML fragments into individual code blocks
+
+- **sanitize**: Pseudonymize authserver LDAP values ([#529](https://github.com/EvilBit-Labs/opnDossier/pull/529))
+
+- Comprehensive tech debt cleanup — security, CI, docs, tests, refactors ([#535](https://github.com/EvilBit-Labs/opnDossier/pull/535))
+
+- Update versions for Jeffallan/claude-skills and mcollina/skills dependencies
+
+
+### Documentation
+
+- Update CONTRIBUTING.md and development standards
+
+- Add all-contributors recognition ([#530](https://github.com/EvilBit-Labs/opnDossier/pull/530))
+
+- Add KryptoKat08 as a contributor for security ([#534](https://github.com/EvilBit-Labs/opnDossier/pull/534))
+
+
+### Miscellaneous Tasks
+
+- **repo**: Untrack local AI tooling configs from version control
+
+
+## [1.3.0] - 2026-03-23
 
 ### Features
 
@@ -57,6 +105,20 @@ All notable changes to this project will be documented in this file.
 
 - **converter**: Wire --include-tunables flag through display and convert commands ([#413](https://github.com/EvilBit-Labs/opnDossier/pull/413))
 
+- **report**: Add certificate and CA private key redaction to report serialization ([#470](https://github.com/EvilBit-Labs/opnDossier/pull/470))
+
+- **pfsense**: Resolve interfaces and DHCP scopes always reporting as disabled ([#461](https://github.com/EvilBit-Labs/opnDossier/pull/461)) ([#473](https://github.com/EvilBit-Labs/opnDossier/pull/473))
+
+- **release**: Reset mise.lock to avoid dirty-tree failure and add platform checksums
+
+- **ci**: Install cyclonedx-gomod in release workflow for SBOM generation
+
+- **ci**: Strip mise shims from PATH before goreleaser SBOM generation
+
+- **ci**: Delete mise go shim instead of PATH manipulation
+
+- **release**: Include shell completions in archive tarballs
+
 
 ### Refactor
 
@@ -86,6 +148,8 @@ All notable changes to this project will be documented in this file.
 
 - **model**: Improve type safety with enums for firewall rules, NAT, and DHCP ([#452](https://github.com/EvilBit-Labs/opnDossier/pull/452))
 
+- **audit**: Remove standard mode — duplicates convert with no audit value ([#465](https://github.com/EvilBit-Labs/opnDossier/pull/465))
+
 
 ### Documentation
 
@@ -113,12 +177,20 @@ All notable changes to this project will be documented in this file.
 
 - **contributing**: Sync CONTRIBUTING.md with AGENTS.md coverage ([#440](https://github.com/EvilBit-Labs/opnDossier/pull/440))
 
+- **gotchas**: Add guidelines for git tagging after squash-merge commits
+
+- Comprehensively restructure README and add Copilot guidance ([#467](https://github.com/EvilBit-Labs/opnDossier/pull/467))
+
+- Add comprehensive security assurance case document ([#471](https://github.com/EvilBit-Labs/opnDossier/pull/471))
+
 
 ### Miscellaneous Tasks
 
 - **Mergify**: Configuration update ([#259](https://github.com/EvilBit-Labs/opnDossier/pull/259))
 
 - **ci**: Various minor improvements to mergify configs, documentation, mise settings, and AGENTS.md rules ([#348](https://github.com/EvilBit-Labs/opnDossier/pull/348))
+
+- **changelog**: Update changelog with new features, bug fixes, and refactors
 
 
 ### Security
