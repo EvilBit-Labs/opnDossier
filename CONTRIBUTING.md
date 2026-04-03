@@ -185,6 +185,7 @@ type TableWriter interface {
 // Each method assembles multiple sections into a complete markdown document.
 type ReportComposer interface {
     SetIncludeTunables(v bool)
+    SetFailuresOnly(v bool)
     BuildStandardReport(data *common.CommonDevice) (string, error)
     BuildComprehensiveReport(data *common.CommonDevice) (string, error)
 }

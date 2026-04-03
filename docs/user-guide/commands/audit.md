@@ -25,6 +25,7 @@ opndossier audit [flags] <config.xml> [config2.xml ...]
 | `--plugin-dir`       |       |                | Directory containing dynamic `.so` compliance plugins                                                           |
 | `--output`           | `-o`  | stdout         | Output file path                                                                                                |
 | `--format`           | `-f`  | `markdown`     | Output format: `markdown` (`md`), `json`, `yaml` (`yml`), `text` (`txt`), `html` (`htm`)                        |
+| `--failures-only`    |       | `false`        | Show only failing controls in blue mode plugin results tables                                                   |
 | `--force`            |       | `false`        | Overwrite existing output file without prompt                                                                   |
 | `--comprehensive`    |       | `false`        | Generate detailed comprehensive report                                                                          |
 | `--redact`           |       | `false`        | Redact sensitive fields (passwords, keys, community strings)                                                    |
@@ -51,6 +52,9 @@ The default mode. Defensive audit mode targeting blue team operators. Runs compl
 When no `--plugins` flag is specified, all available plugins are run by default. The `--plugins` flag is only accepted in blue mode and is rejected for red mode.
 
 ### Red
+
+!!! warning "Experimental"
+    Red team mode is not yet fully implemented. Its analysis methods are placeholder stubs that return static metadata. Results will be incomplete and should not be relied upon for real assessments. A CLI warning is emitted when this mode is selected.
 
 Attacker-focused recon mode highlighting attack surfaces, pivot points, and exposed services.
 
@@ -131,6 +135,9 @@ opndossier audit config1.xml config2.xml --mode blue
 
 # Comprehensive blue team audit with all compliance checks
 opndossier audit config.xml --mode blue --comprehensive --plugins stig,sans,firewall
+
+# Show only failing controls (skip passing controls)
+opndossier audit config.xml --mode blue --failures-only
 
 # Redact sensitive fields from audit output
 opndossier audit config.xml --redact
