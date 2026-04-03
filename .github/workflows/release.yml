@@ -89,7 +89,7 @@ jobs:
         with:
           distribution: goreleaser
           version: "~> v2"
-          args: ${{ github.event_name == 'workflow_dispatch' && 'release --clean --snapshot' || 'release --clean' }}
+          args: ${{ github.event_name == 'workflow_dispatch' && 'release --clean --snapshot --skip=docker' || 'release --clean' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}

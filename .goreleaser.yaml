@@ -379,11 +379,12 @@ dockers_v2:
 
   # Floating tags (latest, major) — stable releases only
   - id: ghcr-stable
+    skip_push: "{{ if .Prerelease }}true{{ else }}false{{ end }}"
     images:
       - "ghcr.io/evilbit-labs/opndossier"
     tags:
-      - "{{ if not .Prerelease }}v{{ .Major }}{{ end }}"
-      - "{{ if not .Prerelease }}latest{{ end }}"
+      - "v{{ .Major }}"
+      - "latest"
     dockerfile: Dockerfile
     platforms:
       - linux/amd64

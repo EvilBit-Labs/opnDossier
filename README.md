@@ -78,17 +78,15 @@ Example output:
 
 Automatically identifies firewall rules that will never be reached:
 
-- Rules positioned after "block all" rules
-- Duplicate rules with identical criteria
-- Rules referencing deleted interfaces or aliases
+- Rules positioned after "block all" rules on the same interface
+- Duplicate rules with identical criteria (type, protocol, source, destination)
 
 Example output:
 
 ```text
 DEAD RULES DETECTED:
-- Rule #15: Allow SSH from LAN - unreachable (blocked by rule #12)
-- Rule #23: Allow HTTPS from DMZ - references deleted interface 'dmz0'
-- Rule #31: Block RDP - duplicate of rule #28
+- Rule #15: Rules after position 12 on interface lan are unreachable due to preceding block-all rule
+- Rule #31: Rule at position 31 is duplicate of rule at position 28 on interface wan
 ```
 
 ### Configuration Validation
@@ -115,12 +113,11 @@ Finds enabled resources not actively used:
 
 ### Compliance Checking
 
-Built-in validation against security and operational best practices (planned v2.1). Tracking: [#174](https://github.com/EvilBit-Labs/opnDossier/issues/174).
+Built-in validation against security and operational best practices.
 
-- STIG compliance checks (planned v2.1)
-- Industry-standard security baselines (planned v2.1)
-- SANS security guidelines (planned v2.1)
-- Custom compliance profiles (planned v2.1)
+- Industry-standard security baselines
+- SANS security guidelines
+- Custom compliance profiles
 
 ## Features
 
@@ -130,7 +127,7 @@ Built-in validation against security and operational best practices (planned v2.
 - **Dead rule detection** - Find unreachable firewall rules and duplicate rules
 - **Unused resource analysis** - Detect unused interfaces, aliases, and services
 - **Configuration validation** - Comprehensive structural and logical validation
-- **Compliance checking (planned v2.1)** - Industry-standard security baselines and best practices
+- **Compliance checking** - Industry-standard security baselines and best practices
 
 ### Output & Export
 
@@ -226,8 +223,8 @@ opnDossier display --wrap 100 config.xml
 # Validate configuration file
 opnDossier validate config.xml
 
-# Validate and convert in one step
-opnDossier convert --validate config.xml -o report.md
+# Validate before converting
+opnDossier validate config.xml && opnDossier convert config.xml -o report.md
 ```
 
 ### Advanced Options

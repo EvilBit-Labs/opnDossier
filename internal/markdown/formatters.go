@@ -2,9 +2,11 @@
 package markdown
 
 import (
+	"cmp"
 	"fmt"
 	"reflect"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -229,10 +231,14 @@ func formatMapValue(key string, v reflect.Value) string {
 		return fmt.Sprintf("**%s**: *empty*\n", key)
 	}
 
-	mapKeys := v.MapKeys()
-	lines := make([]string, 0, len(mapKeys))
+	keys := v.MapKeys()
+	slices.SortFunc(keys, func(a, b reflect.Value) int {
+		return cmp.Compare(a.String(), b.String())
+	})
 
-	for _, mapKey := range v.MapKeys() {
+	lines := make([]string, 0, len(keys))
+
+	for _, mapKey := range keys {
 		mapValue := v.MapIndex(mapKey)
 		line := fmt.Sprintf("**%v**: %v", mapKey.Interface(), mapValue.Interface())
 		lines = append(lines, line)

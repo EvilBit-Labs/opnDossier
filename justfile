@@ -398,7 +398,7 @@ notices:
 
 # Run full CI checks (pre-commit, format, lint, test)
 [group('ci')]
-ci-check: check format-check lint test test-integration
+ci-check: check format-check lint test test-integration test-race
 
 # Run smoke tests (fast, minimal validation)
 [group('ci')]
