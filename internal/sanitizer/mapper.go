@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -16,21 +17,23 @@ type Mapper struct {
 	mu sync.RWMutex
 
 	// Counters for generating sequential replacements
-	publicIPCounter  int
-	privateIPCounter int
-	hostnameCounter  int
-	usernameCounter  int
-	domainCounter    int
-	macCounter       int
-	emailCounter     int
+	publicIPCounter    int
+	privateIPCounter   int
+	hostnameCounter    int
+	usernameCounter    int
+	domainCounter      int
+	macCounter         int
+	emailCounter       int
+	authServerCounters map[string]int
 
 	// Maps original values to their replacements
-	ipMappings       map[string]string
-	hostnameMappings map[string]string
-	usernameMappings map[string]string
-	domainMappings   map[string]string
-	macMappings      map[string]string
-	emailMappings    map[string]string
+	ipMappings         map[string]string
+	hostnameMappings   map[string]string
+	usernameMappings   map[string]string
+	domainMappings     map[string]string
+	macMappings        map[string]string
+	emailMappings      map[string]string
+	authServerMappings map[string]map[string]string
 
 	// Generic mappings for other values
 	genericMappings map[string]string
@@ -46,26 +49,44 @@ type MappingReport struct {
 
 // MappingCategories groups mappings by category.
 type MappingCategories struct {
-	IPAddresses  map[string]string `json:"ip_addresses,omitempty"`
-	Hostnames    map[string]string `json:"hostnames,omitempty"`
-	Usernames    map[string]string `json:"usernames,omitempty"`
-	Domains      map[string]string `json:"domains,omitempty"`
-	MACAddresses map[string]string `json:"mac_addresses,omitempty"`
-	Emails       map[string]string `json:"emails,omitempty"`
-	Other        map[string]string `json:"other,omitempty"`
+	IPAddresses  map[string]string   `json:"ip_addresses,omitempty"`
+	Hostnames    map[string]string   `json:"hostnames,omitempty"`
+	Usernames    map[string]string   `json:"usernames,omitempty"`
+	Domains      map[string]string   `json:"domains,omitempty"`
+	MACAddresses map[string]string   `json:"mac_addresses,omitempty"`
+	Emails       map[string]string   `json:"emails,omitempty"`
+	AuthServer   *AuthServerMappings `json:"authserver,omitempty"`
+	Other        map[string]string   `json:"other,omitempty"`
+}
+
+// AuthServerMappings groups field-specific mappings for system/authserver values.
+type AuthServerMappings struct {
+	Name                   map[string]string `json:"name,omitempty"`
+	Host                   map[string]string `json:"host,omitempty"`
+	LDAPPort               map[string]string `json:"ldap_port,omitempty"`
+	LDAPBaseDN             map[string]string `json:"ldap_basedn,omitempty"`
+	LDAPAuthCN             map[string]string `json:"ldap_authcn,omitempty"`
+	LDAPExtendedQuery      map[string]string `json:"ldap_extended_query,omitempty"`
+	LDAPAttrUser           map[string]string `json:"ldap_attr_user,omitempty"`
+	LDAPBindDN             map[string]string `json:"ldap_binddn,omitempty"`
+	LDAPBindPW             map[string]string `json:"ldap_bindpw,omitempty"`
+	LDAPSyncMemberOfGroups map[string]string `json:"ldap_sync_memberof_groups,omitempty"`
+	LDAPSyncDefaultGroups  map[string]string `json:"ldap_sync_default_groups,omitempty"`
 }
 
 // NewMapper creates and returns a ready-to-use Mapper with all mapping tables initialized.
 // The returned Mapper is safe for concurrent use via its internal mutex.
 func NewMapper() *Mapper {
 	return &Mapper{
-		ipMappings:       make(map[string]string),
-		hostnameMappings: make(map[string]string),
-		usernameMappings: make(map[string]string),
-		domainMappings:   make(map[string]string),
-		macMappings:      make(map[string]string),
-		emailMappings:    make(map[string]string),
-		genericMappings:  make(map[string]string),
+		ipMappings:         make(map[string]string),
+		hostnameMappings:   make(map[string]string),
+		usernameMappings:   make(map[string]string),
+		domainMappings:     make(map[string]string),
+		macMappings:        make(map[string]string),
+		emailMappings:      make(map[string]string),
+		authServerCounters: make(map[string]int),
+		authServerMappings: make(map[string]map[string]string),
+		genericMappings:    make(map[string]string),
 	}
 }
 
@@ -199,6 +220,27 @@ func (m *Mapper) MapEmail(original string) string {
 	return replacement
 }
 
+// MapAuthServerValue returns a consistent replacement for a system/authserver field value.
+func (m *Mapper) MapAuthServerValue(field, original string) string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	fieldMappings, exists := m.authServerMappings[field]
+	if !exists {
+		fieldMappings = make(map[string]string)
+		m.authServerMappings[field] = fieldMappings
+	}
+
+	if replacement, exists := fieldMappings[original]; exists {
+		return replacement
+	}
+
+	m.authServerCounters[field]++
+	replacement := authServerReplacement(field, m.authServerCounters[field])
+	fieldMappings[original] = replacement
+	return replacement
+}
+
 // MapGeneric returns a consistent replacement for a generic value.
 func (m *Mapper) MapGeneric(original, category string) string {
 	m.mu.Lock()
@@ -230,6 +272,7 @@ func (m *Mapper) GenerateReport(mode string) *MappingReport {
 			Domains:      copyMap(m.domainMappings),
 			MACAddresses: copyMap(m.macMappings),
 			Emails:       copyMap(m.emailMappings),
+			AuthServer:   authServerReport(m.authServerMappings),
 			Other:        copyMap(m.genericMappings),
 		},
 	}
@@ -253,6 +296,7 @@ func (m *Mapper) Reset() {
 	m.domainCounter = 0
 	m.macCounter = 0
 	m.emailCounter = 0
+	m.authServerCounters = make(map[string]int)
 
 	m.ipMappings = make(map[string]string)
 	m.hostnameMappings = make(map[string]string)
@@ -260,7 +304,74 @@ func (m *Mapper) Reset() {
 	m.domainMappings = make(map[string]string)
 	m.macMappings = make(map[string]string)
 	m.emailMappings = make(map[string]string)
+	m.authServerMappings = make(map[string]map[string]string)
 	m.genericMappings = make(map[string]string)
+}
+
+// authserver field keys.
+const (
+	authServerFieldName              = "name"
+	authServerFieldHost              = "host"
+	authServerFieldLDAPPort          = "ldap_port"
+	authServerFieldLDAPBaseDN        = "ldap_basedn"
+	authServerFieldLDAPAuthCN        = "ldap_authcn"
+	authServerFieldLDAPExtendedQuery = "ldap_extended_query"
+	authServerFieldLDAPAttrUser      = "ldap_attr_user"
+	authServerFieldLDAPBindDN        = "ldap_binddn"
+
+	//nolint:gosec // G101: XML field name for pfSense/OPNsense authserver config, not a credential.
+	authServerFieldLDAPBindPW             = "ldap_bindpw"
+	authServerFieldLDAPSyncMemberOfGroups = "ldap_sync_memberof_groups"
+	authServerFieldLDAPSyncDefaultGroups  = "ldap_sync_default_groups"
+	authServerPortBase                    = 55000
+)
+
+func authServerReplacement(field string, seq int) string {
+	switch field {
+	case authServerFieldName:
+		return fmt.Sprintf("authserver-%03d", seq)
+	case authServerFieldHost:
+		return fmt.Sprintf("ldap-%03d.example.invalid", seq)
+	case authServerFieldLDAPPort:
+		return strconv.Itoa(authServerPortBase + seq)
+	case authServerFieldLDAPBaseDN:
+		return fmt.Sprintf("dc=auth%03d,dc=example,dc=invalid", seq)
+	case authServerFieldLDAPAuthCN:
+		return fmt.Sprintf("cn=auth-search-%03d,ou=ldap,dc=example,dc=invalid", seq)
+	case authServerFieldLDAPExtendedQuery:
+		return fmt.Sprintf("(&(objectClass=person)(uid=redacted-%03d))", seq)
+	case authServerFieldLDAPAttrUser:
+		return fmt.Sprintf("opndossierUserAttr%03d", seq)
+	case authServerFieldLDAPBindDN:
+		return fmt.Sprintf("cn=bind-user-%03d,ou=svc,dc=example,dc=invalid", seq)
+	case authServerFieldLDAPBindPW:
+		return fmt.Sprintf("BindPw-%03d-NotReal!", seq)
+	case authServerFieldLDAPSyncMemberOfGroups:
+		return fmt.Sprintf("cn=memberof-sync-%03d,ou=groups,dc=example,dc=invalid", seq)
+	case authServerFieldLDAPSyncDefaultGroups:
+		return fmt.Sprintf("cn=default-sync-%03d,ou=groups,dc=example,dc=invalid", seq)
+	default:
+		return fmt.Sprintf("[AUTHSERVER-%s-%03d]", field, seq)
+	}
+}
+
+func authServerReport(mappings map[string]map[string]string) *AuthServerMappings {
+	if len(mappings) == 0 {
+		return nil
+	}
+	return &AuthServerMappings{
+		Name:                   copyMap(mappings[authServerFieldName]),
+		Host:                   copyMap(mappings[authServerFieldHost]),
+		LDAPPort:               copyMap(mappings[authServerFieldLDAPPort]),
+		LDAPBaseDN:             copyMap(mappings[authServerFieldLDAPBaseDN]),
+		LDAPAuthCN:             copyMap(mappings[authServerFieldLDAPAuthCN]),
+		LDAPExtendedQuery:      copyMap(mappings[authServerFieldLDAPExtendedQuery]),
+		LDAPAttrUser:           copyMap(mappings[authServerFieldLDAPAttrUser]),
+		LDAPBindDN:             copyMap(mappings[authServerFieldLDAPBindDN]),
+		LDAPBindPW:             copyMap(mappings[authServerFieldLDAPBindPW]),
+		LDAPSyncMemberOfGroups: copyMap(mappings[authServerFieldLDAPSyncMemberOfGroups]),
+		LDAPSyncDefaultGroups:  copyMap(mappings[authServerFieldLDAPSyncDefaultGroups]),
+	}
 }
 
 // copyMap returns a shallow copy of the provided string-to-string map.

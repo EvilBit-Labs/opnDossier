@@ -14,7 +14,7 @@ const (
 	ModeAggressive Mode = "aggressive"
 	// ModeModerate redacts most sensitive data but preserves some network structure.
 	ModeModerate Mode = "moderate"
-	// ModeMinimal redacts only the most sensitive data (passwords, keys).
+	// ModeMinimal redacts only the most sensitive data (credentials and authserver values).
 	ModeMinimal Mode = "minimal"
 )
 
@@ -247,6 +247,29 @@ func builtinRules() []Rule {
 	aggressiveOnly := []Mode{ModeAggressive}
 
 	return []Rule{
+		{
+			Name:        "authserver_config",
+			Description: "Pseudonymizes sensitive system/authserver LDAP values",
+			Category:    CategorySystem,
+			Modes:       allModes,
+			FieldPatterns: []string{
+				"system.authserver.name",
+				"system.authserver.host",
+				"ldap_port",
+				"ldap_basedn",
+				"ldap_authcn",
+				"ldap_extended_query",
+				"ldap_attr_user",
+				"ldap_binddn",
+				"ldap_bindpw",
+				"ldap_sync_memberof_groups",
+				"ldap_sync_default_groups",
+			},
+			Redactor: func(m *Mapper, fieldName, value string) string {
+				return m.MapAuthServerValue(authServerFieldFromPath(fieldName), value)
+			},
+		},
+
 		// Credential rules - all modes
 		{
 			Name:        "password",
@@ -299,7 +322,6 @@ func builtinRules() []Rule {
 				return "[REDACTED-SNMP-COMMUNITY]"
 			},
 		},
-
 		// Crypto rules - all modes
 		{
 			Name:        "private_key",
@@ -523,6 +545,24 @@ func builtinRules() []Rule {
 			},
 		},
 	}
+}
+
+// authServerFieldFromPath extracts the authserver field type from a dotted path.
+// For ldap_* fields, the terminal segment is returned unconditionally since these
+// names are LDAP-specific and unambiguous. For all other fields (including "name"
+// and "host"), the raw terminal segment is returned so the caller's default
+// replacement handles unknown fields in a fail-closed manner. FieldPatterns on the
+// authserver_config rule scope which paths reach this function; this function only
+// extracts the terminal segment for mapping dispatch.
+func authServerFieldFromPath(fieldName string) string {
+	lowerFieldName := toLower(fieldName)
+	lastDot := strings.LastIndexByte(lowerFieldName, '.')
+	field := lowerFieldName
+	if lastDot != -1 && lastDot < len(lowerFieldName)-1 {
+		field = lowerFieldName[lastDot+1:]
+	}
+
+	return field
 }
 
 // systemUsers lists known common system accounts for isSystemUser lookups.

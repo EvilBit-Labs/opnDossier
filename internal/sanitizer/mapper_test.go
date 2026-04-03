@@ -8,11 +8,25 @@ import (
 
 // Test constants for expected redaction values.
 const (
-	expectedPublicIP1  = "[REDACTED-PUBLIC-IP-1]"
-	expectedPublicIP2  = "[REDACTED-PUBLIC-IP-2]"
-	expectedMappedMAC1 = "XX:XX:XX:XX:XX:01"
-	expectedMappedMAC2 = "XX:XX:XX:XX:XX:02"
-	expectedPrivateIP1 = "10.0.0.1"
+	expectedPublicIP1                = "[REDACTED-PUBLIC-IP-1]"
+	expectedPublicIP2                = "[REDACTED-PUBLIC-IP-2]"
+	expectedMappedMAC1               = "XX:XX:XX:XX:XX:01"
+	expectedMappedMAC2               = "XX:XX:XX:XX:XX:02"
+	expectedPrivateIP1               = "10.0.0.1"
+	expectedAuthServerName1          = "authserver-001"
+	expectedAuthServerHost1          = "ldap-001.example.invalid"
+	expectedAuthServerPort1          = "55001"
+	expectedAuthServerBaseDN1        = "dc=auth001,dc=example,dc=invalid"
+	expectedAuthServerAuthCN1        = "cn=auth-search-001,ou=ldap,dc=example,dc=invalid"
+	expectedAuthServerExtendedQuery1 = "(&(objectClass=person)(uid=redacted-001))"
+	expectedAuthServerAttrUser1      = "opndossierUserAttr001"
+	expectedAuthServerBindDN1        = "cn=bind-user-001,ou=svc,dc=example,dc=invalid"
+
+	//nolint:gosec // G101: expected pseudonymized bind password used in tests, not a real credential.
+	expectedAuthServerBindPW1 = "BindPw-001-NotReal!"
+
+	expectedAuthServerSyncMemberOfGroups1 = "cn=memberof-sync-001,ou=groups,dc=example,dc=invalid"
+	expectedAuthServerSyncDefaultGroups1  = "cn=default-sync-001,ou=groups,dc=example,dc=invalid"
 )
 
 func TestNewMapper(t *testing.T) {
@@ -37,6 +51,12 @@ func TestNewMapper(t *testing.T) {
 	}
 	if m.emailMappings == nil {
 		t.Error("emailMappings map not initialized")
+	}
+	if m.authServerCounters == nil {
+		t.Error("authServerCounters map not initialized")
+	}
+	if m.authServerMappings == nil {
+		t.Error("authServerMappings map not initialized")
 	}
 	if m.genericMappings == nil {
 		t.Error("genericMappings map not initialized")
@@ -230,6 +250,54 @@ func TestMapGeneric(t *testing.T) {
 	}
 }
 
+func TestMapAuthServerValue(t *testing.T) {
+	m := NewMapper()
+
+	result1 := m.MapAuthServerValue(authServerFieldLDAPBaseDN, "dc=corp,dc=example,dc=com")
+	if result1 != expectedAuthServerBaseDN1 {
+		t.Errorf("MapAuthServerValue(ldap_basedn) = %q, want %q", result1, expectedAuthServerBaseDN1)
+	}
+
+	result2 := m.MapAuthServerValue(authServerFieldLDAPBaseDN, "dc=corp,dc=example,dc=com")
+	if result2 != result1 {
+		t.Errorf("MapAuthServerValue second call = %q, want %q", result2, result1)
+	}
+
+	result3 := m.MapAuthServerValue(authServerFieldLDAPBindDN, "cn=svc_bind,ou=svc,dc=corp,dc=example,dc=com")
+	if result3 != expectedAuthServerBindDN1 {
+		t.Errorf("MapAuthServerValue(ldap_binddn) = %q, want %q", result3, expectedAuthServerBindDN1)
+	}
+
+	result4 := m.MapAuthServerValue(authServerFieldLDAPBindPW, "supersecret123")
+	if result4 != expectedAuthServerBindPW1 {
+		t.Errorf("MapAuthServerValue(ldap_bindpw) = %q, want %q", result4, expectedAuthServerBindPW1)
+	}
+}
+
+func TestMapAuthServerValue_UnknownField(t *testing.T) {
+	m := NewMapper()
+
+	// Unknown fields should produce a fail-closed sentinel, not leak the value.
+	result := m.MapAuthServerValue("ldap_unknown_future_field", "sensitive-data")
+	expected := "[AUTHSERVER-ldap_unknown_future_field-001]"
+	if result != expected {
+		t.Errorf("MapAuthServerValue(unknown) = %q, want %q", result, expected)
+	}
+
+	// Same value should return the same mapping (idempotent).
+	result2 := m.MapAuthServerValue("ldap_unknown_future_field", "sensitive-data")
+	if result2 != result {
+		t.Errorf("MapAuthServerValue(unknown) second call = %q, want %q", result2, result)
+	}
+
+	// Different value for same unknown field should increment.
+	result3 := m.MapAuthServerValue("ldap_unknown_future_field", "other-sensitive-data")
+	expected3 := "[AUTHSERVER-ldap_unknown_future_field-002]"
+	if result3 != expected3 {
+		t.Errorf("MapAuthServerValue(unknown, different value) = %q, want %q", result3, expected3)
+	}
+}
+
 func TestReset(t *testing.T) {
 	m := NewMapper()
 
@@ -265,6 +333,8 @@ func TestGenerateReport(t *testing.T) {
 	m.MapDomain("mycompany.com")
 	m.MapMAC("00:11:22:33:44:55")
 	m.MapEmail("admin@mycompany.com")
+	m.MapAuthServerValue(authServerFieldHost, "ldap.example.com")
+	m.MapAuthServerValue(authServerFieldLDAPBindPW, "supersecret123")
 	m.MapGeneric("secret", "PASSWORD")
 
 	report := m.GenerateReport("aggressive")
@@ -293,12 +363,34 @@ func TestGenerateReport(t *testing.T) {
 	if len(report.Mappings.Usernames) != 1 {
 		t.Errorf("report.Mappings.Usernames has %d entries, want 1", len(report.Mappings.Usernames))
 	}
+
+	if report.Mappings.AuthServer == nil {
+		t.Fatal("report.Mappings.AuthServer is nil")
+	}
+	if len(report.Mappings.AuthServer.Host) != 1 {
+		t.Errorf("report.Mappings.AuthServer.Host has %d entries, want 1", len(report.Mappings.AuthServer.Host))
+	}
+	if report.Mappings.AuthServer.Host["ldap.example.com"] != expectedAuthServerHost1 {
+		t.Errorf(
+			"report.Mappings.AuthServer.Host[ldap.example.com] = %q, want %q",
+			report.Mappings.AuthServer.Host["ldap.example.com"],
+			expectedAuthServerHost1,
+		)
+	}
+	if report.Mappings.AuthServer.LDAPBindPW["supersecret123"] != expectedAuthServerBindPW1 {
+		t.Errorf(
+			"report.Mappings.AuthServer.LDAPBindPW[supersecret123] = %q, want %q",
+			report.Mappings.AuthServer.LDAPBindPW["supersecret123"],
+			expectedAuthServerBindPW1,
+		)
+	}
 }
 
 func TestToJSON(t *testing.T) {
 	m := NewMapper()
 	m.MapPublicIP("8.8.8.8")
 	m.MapHostname("test.example.com")
+	m.MapAuthServerValue(authServerFieldName, "corp-ldap")
 
 	jsonBytes, err := m.ToJSON("moderate")
 	if err != nil {
@@ -319,6 +411,12 @@ func TestToJSON(t *testing.T) {
 	jsonStr := string(jsonBytes)
 	if !strings.Contains(jsonStr, "\n") {
 		t.Error("JSON should be pretty-printed with newlines")
+	}
+	if !strings.Contains(jsonStr, `"authserver"`) {
+		t.Error("JSON should include authserver mappings")
+	}
+	if !strings.Contains(jsonStr, `"name"`) {
+		t.Error("JSON should include authserver field names")
 	}
 }
 
