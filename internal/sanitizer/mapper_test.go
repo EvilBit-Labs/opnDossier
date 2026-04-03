@@ -274,6 +274,30 @@ func TestMapAuthServerValue(t *testing.T) {
 	}
 }
 
+func TestMapAuthServerValue_UnknownField(t *testing.T) {
+	m := NewMapper()
+
+	// Unknown fields should produce a fail-closed sentinel, not leak the value.
+	result := m.MapAuthServerValue("ldap_unknown_future_field", "sensitive-data")
+	expected := "[AUTHSERVER-ldap_unknown_future_field-001]"
+	if result != expected {
+		t.Errorf("MapAuthServerValue(unknown) = %q, want %q", result, expected)
+	}
+
+	// Same value should return the same mapping (idempotent).
+	result2 := m.MapAuthServerValue("ldap_unknown_future_field", "sensitive-data")
+	if result2 != result {
+		t.Errorf("MapAuthServerValue(unknown) second call = %q, want %q", result2, result)
+	}
+
+	// Different value for same unknown field should increment.
+	result3 := m.MapAuthServerValue("ldap_unknown_future_field", "other-sensitive-data")
+	expected3 := "[AUTHSERVER-ldap_unknown_future_field-002]"
+	if result3 != expected3 {
+		t.Errorf("MapAuthServerValue(unknown, different value) = %q, want %q", result3, expected3)
+	}
+}
+
 func TestReset(t *testing.T) {
 	m := NewMapper()
 

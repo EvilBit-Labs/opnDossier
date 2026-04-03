@@ -548,11 +548,12 @@ func builtinRules() []Rule {
 }
 
 // authServerFieldFromPath extracts the authserver field type from a dotted path.
-// For ldap_* fields, the terminal segment is returned unconditionally.
-// For ambiguous fields like "name" and "host", the path must contain an
-// "authserver." or "authserver[" ancestor to qualify. If no known field matches,
-// the raw terminal segment is returned so the caller's default replacement
-// handles it in a fail-closed manner (no sensitive value passes through).
+// For ldap_* fields, the terminal segment is returned unconditionally since these
+// names are LDAP-specific and unambiguous. For all other fields (including "name"
+// and "host"), the raw terminal segment is returned so the caller's default
+// replacement handles unknown fields in a fail-closed manner. FieldPatterns on the
+// authserver_config rule scope which paths reach this function; this function only
+// extracts the terminal segment for mapping dispatch.
 func authServerFieldFromPath(fieldName string) string {
 	lowerFieldName := toLower(fieldName)
 	lastDot := strings.LastIndexByte(lowerFieldName, '.')
@@ -561,25 +562,7 @@ func authServerFieldFromPath(fieldName string) string {
 		field = lowerFieldName[lastDot+1:]
 	}
 
-	switch field {
-	case authServerFieldLDAPPort,
-		authServerFieldLDAPBaseDN,
-		authServerFieldLDAPAuthCN,
-		authServerFieldLDAPExtendedQuery,
-		authServerFieldLDAPAttrUser,
-		authServerFieldLDAPBindDN,
-		authServerFieldLDAPBindPW,
-		authServerFieldLDAPSyncMemberOfGroups,
-		authServerFieldLDAPSyncDefaultGroups:
-		return field
-	case authServerFieldName, authServerFieldHost:
-		if contains(lowerFieldName, "authserver.") || contains(lowerFieldName, "authserver[") {
-			return field
-		}
-		return field
-	default:
-		return field
-	}
+	return field
 }
 
 // systemUsers lists known common system accounts for isSystemUser lookups.
