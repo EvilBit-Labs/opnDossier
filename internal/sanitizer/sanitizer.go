@@ -105,6 +105,7 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 	var output strings.Builder
 	output.Grow(len(data))
 	var elementStack []string
+	var currentPath string
 
 	// Write XML declaration if present
 	if bytes.HasPrefix(bytes.TrimSpace(data), []byte("<?xml")) {
@@ -127,6 +128,11 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 		switch t := token.(type) {
 		case xml.StartElement:
 			elementStack = append(elementStack, t.Name.Local)
+			if currentPath == "" {
+				currentPath = t.Name.Local
+			} else {
+				currentPath = currentPath + "." + t.Name.Local
+			}
 			output.WriteString("<")
 			output.WriteString(t.Name.Local)
 
@@ -145,6 +151,11 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 		case xml.EndElement:
 			if len(elementStack) > 0 {
 				elementStack = elementStack[:len(elementStack)-1]
+				if idx := strings.LastIndex(currentPath, "."); idx >= 0 {
+					currentPath = currentPath[:idx]
+				} else {
+					currentPath = ""
+				}
 			}
 			output.WriteString("</")
 			output.WriteString(t.Name.Local)
@@ -158,8 +169,8 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 				if len(elementStack) > 0 {
 					currentElement = elementStack[len(elementStack)-1]
 				}
-				// Build the full path for context
-				fullPath := strings.Join(elementStack, ".")
+				// Use the running path for context
+				fullPath := currentPath
 
 				// Check if we should redact (try full path first, then element name)
 				// Only check - don't update stats yet

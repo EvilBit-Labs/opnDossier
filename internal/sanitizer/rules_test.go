@@ -1,6 +1,7 @@
 package sanitizer
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -375,12 +376,16 @@ func TestRedact_AuthServerConfig(t *testing.T) {
 	}
 
 	for _, mode := range ValidModes() {
-		engine := NewRuleEngine(mode)
 		for _, tt := range tests {
-			result := engine.Redact(tt.field, tt.value)
-			if result != tt.want {
-				t.Errorf("mode=%q Redact(%q) = %q, want %q", mode, tt.field, result, tt.want)
-			}
+			t.Run(fmt.Sprintf("%s/%s", mode, tt.field), func(t *testing.T) {
+				t.Parallel()
+
+				engine := NewRuleEngine(mode)
+				result := engine.Redact(tt.field, tt.value)
+				if result != tt.want {
+					t.Errorf("mode=%q Redact(%q) = %q, want %q", mode, tt.field, result, tt.want)
+				}
+			})
 		}
 	}
 }

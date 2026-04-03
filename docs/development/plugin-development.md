@@ -192,6 +192,22 @@ go build -buildmode=plugin -o myplugin.so main.go
 2. Change `RunChecks(config *model.OpnSenseDocument)` to `RunChecks(device *common.CommonDevice)`
 3. Update field access — `CommonDevice` mirrors the full OPNsense surface area; field names follow Go domain conventions rather than XML tag names. Refer to `pkg/model/` for the full type definitions.
 
+## Security Model
+
+Dynamic plugins are loaded as Go `.so` shared objects via the standard `plugin.Open()` mechanism. This carries important security implications:
+
+- **Full process privileges.** A loaded plugin executes within the same process as opnDossier with identical permissions. There is no sandboxing, privilege separation, or capability restriction.
+- **No verification.** The loader does not perform signature verification, checksum validation, or provenance checks on `.so` files. Any file matching the `.so` extension in the plugin directory will be loaded and executed.
+- **Opt-in loading.** Dynamic plugin loading only occurs when the `--plugin-dir` flag is explicitly provided or the default `./plugins` directory exists. Plugins are not fetched from remote sources.
+- **Same-toolchain requirement.** Plugins must be compiled with the exact same Go version and module dependencies as the main binary. A version mismatch causes a load error, not a security bypass.
+
+**Recommendations:**
+
+- Only load plugins from sources you trust. Treat `.so` files with the same caution as any executable.
+- Review plugin source code before building and deploying.
+- Restrict filesystem permissions on the plugin directory to prevent unauthorized plugin injection.
+- In CI/CD or shared environments, avoid using `--plugin-dir` with world-writable directories.
+
 ## Plugin Development Best Practices
 
 - Use unique, descriptive control IDs and titles.

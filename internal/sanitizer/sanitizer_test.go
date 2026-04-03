@@ -2,6 +2,7 @@ package sanitizer
 
 import (
 	"bytes"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -576,5 +577,67 @@ func TestEscapeXMLAttr(t *testing.T) {
 				t.Errorf("escapeXMLAttr(%q) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
+	}
+}
+
+func BenchmarkSanitizeXML(b *testing.B) {
+	// Generate a realistic XML input with ~1000 nested elements.
+	var sb strings.Builder
+	sb.WriteString(`<?xml version="1.0"?>` + "\n")
+	sb.WriteString("<opnsense>\n")
+	sb.WriteString("  <system>\n")
+
+	// Generate users with passwords and IPs to exercise redaction paths.
+	for i := range 100 {
+		n := strconv.Itoa(i)
+		sb.WriteString("    <user>\n")
+		sb.WriteString("      <name>user" + n + "</name>\n")
+		sb.WriteString("      <password>secret" + n + "</password>\n")
+		sb.WriteString("      <email>user" + n + "@company.com</email>\n")
+		sb.WriteString("      <gateway>8.8." + strconv.Itoa(i/256) + "." + n + "</gateway>\n")
+		sb.WriteString("    </user>\n")
+	}
+
+	sb.WriteString("  </system>\n")
+	sb.WriteString("  <interfaces>\n")
+
+	// Generate interface entries with nested elements.
+	for i := range 50 {
+		n := strconv.Itoa(i)
+		sb.WriteString("    <iface" + n + ">\n")
+		sb.WriteString("      <ipaddr>192.168." + n + ".1</ipaddr>\n")
+		sb.WriteString("      <subnet>24</subnet>\n")
+		sb.WriteString("      <descr>Interface " + n + "</descr>\n")
+		sb.WriteString("    </iface" + n + ">\n")
+	}
+
+	sb.WriteString("  </interfaces>\n")
+	sb.WriteString("  <filter>\n")
+
+	// Generate firewall rules.
+	for i := range 100 {
+		n := strconv.Itoa(i)
+		sb.WriteString("    <rule>\n")
+		sb.WriteString("      <descr>Rule " + n + "</descr>\n")
+		sb.WriteString("      <source>10.0." + n + ".0/24</source>\n")
+		sb.WriteString("      <destination>172.16." + n + ".0/24</destination>\n")
+		sb.WriteString("      <protocol>tcp</protocol>\n")
+		sb.WriteString("    </rule>\n")
+	}
+
+	sb.WriteString("  </filter>\n")
+	sb.WriteString("</opnsense>\n")
+
+	input := sb.String()
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for b.Loop() {
+		s := NewSanitizer(ModeAggressive)
+		var output bytes.Buffer
+		if err := s.SanitizeXML(strings.NewReader(input), &output); err != nil {
+			b.Fatal(err)
+		}
 	}
 }

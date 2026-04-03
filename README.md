@@ -301,7 +301,7 @@ opnDossier convert -f markdown config.xml -o output.md  # default
 
 ## GitHub Actions
 
-opnDossier is available as a GitHub Action backed by its Docker image. Use it to audit or document OPNsense configurations automatically on every commit, PR, or scheduled run.
+opnDossier is available as a GitHub Action backed by its Docker image. Use it to audit or document OPNsense and pfSense configurations automatically on every commit, PR, or scheduled run.
 
 ### Quick Start
 
@@ -322,8 +322,8 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Audit OPNsense config
-        # Pin to a release tag for reproducibility; check releases for the latest version
-        uses: EvilBit-Labs/opnDossier@v1
+        # No release tags exist yet — use @main until v1 is tagged
+        uses: EvilBit-Labs/opnDossier@main
         with:
           command: audit
           config-file: config.xml
@@ -331,21 +331,21 @@ jobs:
 
 ### Inputs
 
-| Input         | Required | Default  | Description                                                                 |
-| ------------- | -------- | -------- | --------------------------------------------------------------------------- |
-| `command`     | No       | `audit`  | Sub-command: `convert`, `audit`, `display`, `validate`, `sanitize` ... etc. |
-| `config-file` | **Yes**  | —        | Path to `config.xml` relative to the workspace root                         |
-| `format`      | No       | —        | Output format for `convert`/`audit`: `markdown`, `json`, or `yaml`          |
-| `output`      | No       | —        | Path to write the output file, relative to the workspace root               |
-| `args`        | No       | —        | Additional arguments passed verbatim to the binary                          |
-| `version`     | No       | `latest` | Image tag to pull (e.g. `v1.2.0`); defaults to the latest release           |
+| Input         | Required | Default  | Description                                                                              |
+| ------------- | -------- | -------- | ---------------------------------------------------------------------------------------- |
+| `command`     | No       | `audit`  | Sub-command: `audit`, `convert`, `diff`, `display`, `sanitize`, `validate`, or `version` |
+| `config-file` | **Yes**  | —        | Path to OPNsense or pfSense `config.xml` relative to the workspace root                  |
+| `format`      | No       | —        | Output format for `convert`/`audit`: `markdown`, `json`, `yaml`, `text`, or `html`       |
+| `output`      | No       | —        | Path to write the output file, relative to the workspace root                            |
+| `args`        | No       | —        | Additional arguments split on whitespace (quoted strings with spaces are not preserved)  |
+| `version`     | No       | `latest` | Image tag to pull (e.g. `v1.2.0`); defaults to the latest release                        |
 
 ### Export findings to JSON
 
 ```yaml
   - name: Export audit findings
-  # Pin to a release tag for reproducibility; check releases for the latest version
-    uses: EvilBit-Labs/opnDossier@v1
+  # No release tags exist yet — use @main until v1 is tagged
+    uses: EvilBit-Labs/opnDossier@main
     with:
       command: audit
       config-file: firewall/config.xml
@@ -363,8 +363,8 @@ jobs:
 
 ```yaml
   - name: Generate firewall documentation
-  # Pin to a release tag for reproducibility; check releases for the latest version
-    uses: EvilBit-Labs/opnDossier@v1
+  # No release tags exist yet — use @main until v1 is tagged
+    uses: EvilBit-Labs/opnDossier@main
     with:
       command: convert
       config-file: config.xml
@@ -381,10 +381,11 @@ The Docker image is published to the GitHub Container Registry alongside every r
 docker pull ghcr.io/evilbit-labs/opndossier:latest
 
 # Run an audit, mounting your config directory
+# WORKDIR is /data, so use relative paths after the volume mount
 docker run --rm \
   --volume "$(pwd):/data" \
   ghcr.io/evilbit-labs/opndossier:latest \
-  audit /data/config.xml
+  audit config.xml
 ```
 
 ## Documentation

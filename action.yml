@@ -1,6 +1,6 @@
 ---
 name: "opnDossier"
-description: "Audit and document OPNsense configurations in your GitHub Actions workflow"
+description: "Audit and document OPNsense and pfSense configurations in your GitHub Actions workflow"
 
 # See: https://docs.github.com/en/actions/reference/workflows-and-actions/metadata-syntax
 branding:
@@ -13,7 +13,7 @@ inputs:
     required: false
     default: "audit"
   config-file:
-    description: "Path to the OPNsense config.xml file (relative to workspace root)"
+    description: "Path to the OPNsense or pfSense config.xml file (relative to workspace root)"
     required: true
   format:
     description: "Output format for convert/audit: markdown | json | yaml | text | html"
@@ -24,7 +24,7 @@ inputs:
     required: false
     default: ""
   args:
-    description: "Any additional arguments to pass verbatim to opnDossier"
+    description: "Additional arguments to pass to opnDossier (split on whitespace; quoted strings with spaces are not preserved)"
     required: false
     default: ""
   version:
