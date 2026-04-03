@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -29,7 +30,7 @@ const (
 func TestRunAuditWithRealXML(t *testing.T) {
 	testdataPath := filepath.Join("..", "testdata", "sample.config.1.xml")
 	if _, err := os.Stat(testdataPath); os.IsNotExist(err) {
-		t.Skip("testdata not available")
+		t.Fatal("required testdata not available — ensure testdata/ is checked out")
 	}
 
 	auditSnap := captureAuditFlags()
@@ -73,8 +74,8 @@ func TestRunAuditWithRealXML(t *testing.T) {
 
 	output := stdout.String()
 	assert.NotEmpty(t, output, "audit should produce JSON output")
-	// Verify it's valid JSON
-	assert.Contains(t, output, "{", "output should be JSON")
+	// Verify it's well-formed JSON
+	assert.True(t, json.Valid([]byte(output)), "output should be valid JSON")
 }
 
 // TestRunAuditMissingFile verifies that runAudit returns an error when
@@ -138,7 +139,7 @@ func TestRunAuditNilContext(t *testing.T) {
 func TestRunAuditFileOutput(t *testing.T) {
 	testdataPath := filepath.Join("..", "testdata", "sample.config.1.xml")
 	if _, err := os.Stat(testdataPath); os.IsNotExist(err) {
-		t.Skip("testdata not available")
+		t.Fatal("required testdata not available — ensure testdata/ is checked out")
 	}
 
 	auditSnap := captureAuditFlags()
@@ -189,7 +190,7 @@ func TestRunAuditFileOutput(t *testing.T) {
 func TestRunAuditRedMode(t *testing.T) {
 	testdataPath := filepath.Join("..", "testdata", "sample.config.1.xml")
 	if _, err := os.Stat(testdataPath); os.IsNotExist(err) {
-		t.Skip("testdata not available")
+		t.Fatal("required testdata not available — ensure testdata/ is checked out")
 	}
 
 	auditSnap := captureAuditFlags()
@@ -238,10 +239,10 @@ func TestRunAuditMultiFile(t *testing.T) {
 	relPath1 := filepath.Join("..", "testdata", "sample.config.1.xml")
 	relPath2 := filepath.Join("..", "testdata", "sample.config.2.xml")
 	if _, err := os.Stat(relPath1); os.IsNotExist(err) {
-		t.Skip("testdata not available")
+		t.Fatal("required testdata not available — ensure testdata/ is checked out")
 	}
 	if _, err := os.Stat(relPath2); os.IsNotExist(err) {
-		t.Skip("testdata not available")
+		t.Fatal("required testdata not available — ensure testdata/ is checked out")
 	}
 
 	// Convert to absolute paths before changing directories
@@ -304,7 +305,7 @@ func TestRunAuditMultiFile(t *testing.T) {
 func TestGenerateAuditOutput(t *testing.T) {
 	testdataPath := filepath.Join("..", "testdata", "sample.config.1.xml")
 	if _, err := os.Stat(testdataPath); os.IsNotExist(err) {
-		t.Skip("testdata not available")
+		t.Fatal("required testdata not available — ensure testdata/ is checked out")
 	}
 
 	auditSnap := captureAuditFlags()

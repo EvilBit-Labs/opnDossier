@@ -57,9 +57,21 @@ runs:
         fi
 
         case "${INPUT_COMMAND}" in
-          audit|completion|config|convert|diff|display|man|sanitize|validate|version) ;;
+          audit|convert|diff|display|sanitize|validate|version) ;;
           *) echo "::error::Invalid command '${INPUT_COMMAND}'. Must be one of: audit, convert, diff, display, sanitize, validate, version"; exit 1 ;;
         esac
+
+        # Reject path traversal in config-file and output inputs
+        if [[ "${INPUT_CONFIG_FILE}" == /* ]] || [[ "${INPUT_CONFIG_FILE}" == *".."* ]]; then
+          echo "::error::config-file must be a relative path within the workspace (no absolute paths or '..')"
+          exit 1
+        fi
+        if [[ -n "${INPUT_OUTPUT_FILE}" ]]; then
+          if [[ "${INPUT_OUTPUT_FILE}" == /* ]] || [[ "${INPUT_OUTPUT_FILE}" == *".."* ]]; then
+            echo "::error::output must be a relative path within the workspace (no absolute paths or '..')"
+            exit 1
+          fi
+        fi
 
         if [[ -n "${INPUT_FORMAT}" ]]; then
           case "${INPUT_FORMAT}" in
@@ -89,6 +101,9 @@ runs:
         # Append any extra user-supplied args (word-split intentional)
         # Use read -ra to split on whitespace without glob expansion
         if [[ -n "${INPUT_ARGS}" ]]; then
+          if [[ "${INPUT_ARGS}" == *\"* ]] || [[ "${INPUT_ARGS}" == *\'* ]]; then
+            echo "::warning::args input contains quotes which are NOT preserved — arguments are split on whitespace only"
+          fi
           read -ra EXTRA <<< "${INPUT_ARGS}"
           ARGS+=("${EXTRA[@]}")
         fi

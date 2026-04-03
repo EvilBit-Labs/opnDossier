@@ -224,6 +224,12 @@ func builtinRules() []Rule {
 	aggressiveOnly := []Mode{ModeAggressive}
 
 	return []Rule{
+		// NOTE: authserver.ldap_* patterns assume OPNsense XML nesting
+		// (system.authserver.ldap_*). If a device type uses different nesting
+		// (e.g., system.ldap_bindpw without authserver parent), those fields
+		// will fall through to the password rule (flat-redacted, not
+		// pseudonymized). This is acceptable — pfSense reuses the same
+		// opnsense.AuthServer schema with identical nesting.
 		{
 			Name:        "authserver_config",
 			Description: "Pseudonymizes sensitive system/authserver LDAP values",

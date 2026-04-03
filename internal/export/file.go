@@ -229,7 +229,14 @@ func resolveWithMissingTail(absPath string) string {
 		parent := filepath.Dir(dir)
 		if parent == dir {
 			// Reached filesystem root without finding an existing ancestor.
-			// Fall back to the cleaned absolute path.
+			// Fall back to the cleaned absolute path. This degrades the
+			// containment check to a string prefix comparison — the path
+			// may contain unresolved symlinks.
+			fmt.Fprintf(
+				os.Stderr,
+				"WARNING: path traversal check could not resolve any ancestor of %q — symlink protection degraded\n",
+				absPath,
+			)
 			return absPath
 		}
 

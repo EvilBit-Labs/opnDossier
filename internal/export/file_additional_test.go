@@ -168,6 +168,55 @@ func TestFileExporter_CheckPathTraversal(t *testing.T) {
 	}
 }
 
+func TestFileExporter_CheckPathTraversal_SymlinkWithDotDot(t *testing.T) {
+	tempDir := t.TempDir()
+	projectDir := filepath.Join(tempDir, "project")
+	subDir := filepath.Join(projectDir, "sub")
+	require.NoError(t, os.MkdirAll(subDir, 0o700))
+	t.Chdir(projectDir)
+
+	exporter := NewFileExporter(nil)
+
+	// Create a symlink sub/escape -> ../../outside (resolves outside CWD)
+	outsideDir := filepath.Join(tempDir, "outside")
+	require.NoError(t, os.MkdirAll(outsideDir, 0o700))
+	require.NoError(t, os.Symlink(outsideDir, filepath.Join(subDir, "escape")))
+
+	// Path with ".." that goes through a symlink resolving outside CWD
+	// sub/../sub/escape resolves through the symlink to outside/
+	err := exporter.checkPathTraversal("sub/escape/../../../outside/secret.txt")
+	require.Error(t, err)
+	var exportErr *Error
+	require.ErrorAs(t, err, &exportErr)
+	assert.Contains(t, exportErr.Message, "malicious traversal")
+}
+
+func TestResolveWithMissingTail(t *testing.T) {
+	tempDir := t.TempDir()
+	existingDir := filepath.Join(tempDir, "existing")
+	require.NoError(t, os.MkdirAll(existingDir, 0o700))
+
+	t.Run("existing path resolves directly", func(t *testing.T) {
+		resolved := resolveWithMissingTail(existingDir)
+		// Should resolve successfully (may differ from input if tempDir has symlinks)
+		assert.NotEmpty(t, resolved)
+	})
+
+	t.Run("non-existent tail appended to resolved ancestor", func(t *testing.T) {
+		nonExistent := filepath.Join(existingDir, "no", "such", "file.txt")
+		resolved := resolveWithMissingTail(nonExistent)
+		assert.True(t, strings.HasSuffix(resolved, filepath.Join("no", "such", "file.txt")),
+			"resolved path should end with the non-existent tail: %s", resolved)
+	})
+
+	t.Run("completely non-existent path falls back", func(t *testing.T) {
+		// Use a path where no ancestor exists (unlikely in practice but tests the fallback)
+		bogus := "/nonexistent_root_abc123/deep/path/file.txt"
+		resolved := resolveWithMissingTail(bogus)
+		assert.Equal(t, bogus, resolved, "should fall back to original when no ancestor resolves")
+	})
+}
+
 func TestFileExporter_ResolveAbsolutePath(t *testing.T) {
 	exporter := NewFileExporter(nil)
 

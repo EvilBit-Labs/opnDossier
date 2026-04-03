@@ -852,7 +852,13 @@ func TestParseConfigFile_ContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // Cancel immediately
 
-	// The parser may or may not check context — this exercises the code path
-	//nolint:errcheck,gosec // intentionally ignoring — testing that cancelled context doesn't panic
-	parseConfigFile(ctx, absPath, cmdLogger, false)
+	// The parser may or may not check context — verify it doesn't panic
+	// and returns without corrupting state.
+	require.NotPanics(t, func() {
+		device, parseErr := parseConfigFile(ctx, absPath, cmdLogger, false)
+		// Parser may complete before checking context, so either outcome is valid
+		if parseErr != nil {
+			assert.Nil(t, device, "device should be nil on error")
+		}
+	})
 }

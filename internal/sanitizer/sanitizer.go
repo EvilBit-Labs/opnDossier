@@ -105,6 +105,10 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 	var output strings.Builder
 	output.Grow(len(data))
 	var elementStack []string
+	// pathStack mirrors elementStack but tracks the cumulative dot-joined
+	// path at each depth. This avoids using strings.LastIndex(".") which
+	// would break if an element name contains a literal dot.
+	var pathStack []string
 	var currentPath string
 
 	// Write XML declaration if present
@@ -133,6 +137,7 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 			} else {
 				currentPath = currentPath + "." + t.Name.Local
 			}
+			pathStack = append(pathStack, currentPath)
 			output.WriteString("<")
 			output.WriteString(t.Name.Local)
 
@@ -151,8 +156,9 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 		case xml.EndElement:
 			if len(elementStack) > 0 {
 				elementStack = elementStack[:len(elementStack)-1]
-				if idx := strings.LastIndex(currentPath, "."); idx >= 0 {
-					currentPath = currentPath[:idx]
+				pathStack = pathStack[:len(pathStack)-1]
+				if len(pathStack) > 0 {
+					currentPath = pathStack[len(pathStack)-1]
 				} else {
 					currentPath = ""
 				}
