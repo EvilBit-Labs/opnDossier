@@ -1,0 +1,54 @@
+{
+  "projectName": "opnDossier",
+  "projectOwner": "EvilBit-Labs",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "files": [
+    "CONTRIBUTORS.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "commitConvention": "angular",
+  "contributors": [
+    {
+      "login": "unclesp1d3r",
+      "name": "UncleSp1d3r",
+      "avatar_url": "https://avatars.githubusercontent.com/unclesp1d3r",
+      "profile": "https://github.com/unclesp1d3r",
+      "contributions": [
+        "code",
+        "doc",
+        "test",
+        "infra",
+        "maintenance",
+        "review",
+        "security",
+        "projectManagement"
+      ]
+    },
+    {
+      "login": "kquinsland",
+      "name": "Karl Quinsland",
+      "avatar_url": "https://avatars.githubusercontent.com/kquinsland",
+      "profile": "https://github.com/kquinsland",
+      "contributions": [
+        "infra"
+      ]
+    },
+    {
+      "login": "infowolfe",
+      "name": "Parker",
+      "avatar_url": "https://avatars.githubusercontent.com/infowolfe",
+      "profile": "https://github.com/infowolfe",
+      "contributions": [
+        "code",
+        "security",
+        "test",
+        "doc"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "skipCi": true,
+  "commitType": "docs"
+}

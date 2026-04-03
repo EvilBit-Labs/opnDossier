@@ -430,6 +430,16 @@ For security vulnerabilities, please see our [security policy](SECURITY.md).
 
 Apache License 2.0 - see [LICENSE](LICENSE) file for details.
 
+## Contributors
+
+<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
+
+[![All Contributors](https://img.shields.io/github/all-contributors/EvilBit-Labs/opnDossier?color=ee8449&style=flat-square)](#contributors)
+
+<!-- ALL-CONTRIBUTORS-BADGE:END -->
+
+See [CONTRIBUTORS.md](CONTRIBUTORS.md) for the full list of contributors.
+
 ## Acknowledgements
 
 - Inspired by [TKCERT/pfFocus](https://github.com/TKCERT/pfFocus) for pfSense configurations
