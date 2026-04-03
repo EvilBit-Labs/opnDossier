@@ -49,7 +49,7 @@ opnDossier is a tool for auditing and reporting on OPNsense configurations, with
   - `internal/audit/`, `internal/compliance/`, `internal/plugins/`: Compliance audit engine and plugin system (STIG, SANS, firewall).
   - `internal/display/`, `internal/logging/`: Terminal output and structured logging.
 
-- **Data Flow**: `cfgparser` → `pkg/parser/opnsense` → `processor` → `converter` → `export`
+  - **Data Flow**: `cfgparser` → `pkg/parser/opnsense` → `processor` → `converter` → `export`
 
 - **Audit overlays**: `processor` → `audit` → `plugins`
 
@@ -236,7 +236,6 @@ opndossier/
 │   ├── cfgparser/    # XML parsing and validation
 │   ├── processor/    # Data processing and analysis
 │   ├── converter/    # Data conversion utilities
-│   ├── markdown/     # Markdown generation
 │   ├── display/      # Terminal display formatting
 │   ├── export/       # File export functionality
 │   ├── audit/        # Audit engine and compliance checking
