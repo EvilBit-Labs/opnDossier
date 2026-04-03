@@ -14,7 +14,7 @@ const (
 	ModeAggressive Mode = "aggressive"
 	// ModeModerate redacts most sensitive data but preserves some network structure.
 	ModeModerate Mode = "moderate"
-	// ModeMinimal redacts only the most sensitive data (passwords, keys).
+	// ModeMinimal redacts only the most sensitive data (credentials and authserver values).
 	ModeMinimal Mode = "minimal"
 )
 
@@ -266,11 +266,7 @@ func builtinRules() []Rule {
 				"ldap_sync_default_groups",
 			},
 			Redactor: func(m *Mapper, fieldName, value string) string {
-				authServerField := authServerFieldFromPath(fieldName)
-				if authServerField == "" {
-					return value
-				}
-				return m.MapAuthServerValue(authServerField, value)
+				return m.MapAuthServerValue(authServerFieldFromPath(fieldName), value)
 			},
 		},
 
@@ -551,6 +547,12 @@ func builtinRules() []Rule {
 	}
 }
 
+// authServerFieldFromPath extracts the authserver field type from a dotted path.
+// For ldap_* fields, the terminal segment is returned unconditionally.
+// For ambiguous fields like "name" and "host", the path must contain an
+// "authserver." or "authserver[" ancestor to qualify. If no known field matches,
+// the raw terminal segment is returned so the caller's default replacement
+// handles it in a fail-closed manner (no sensitive value passes through).
 func authServerFieldFromPath(fieldName string) string {
 	lowerFieldName := toLower(fieldName)
 	lastDot := strings.LastIndexByte(lowerFieldName, '.')
@@ -574,9 +576,9 @@ func authServerFieldFromPath(fieldName string) string {
 		if contains(lowerFieldName, "authserver.") || contains(lowerFieldName, "authserver[") {
 			return field
 		}
-		return ""
+		return field
 	default:
-		return ""
+		return field
 	}
 }
 

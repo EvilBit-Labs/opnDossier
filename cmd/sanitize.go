@@ -29,7 +29,7 @@ const (
 	SanitizeModeAggressive = "aggressive"
 	// SanitizeModeModerate redacts most data but preserves some network structure.
 	SanitizeModeModerate = "moderate"
-	// SanitizeModeMinimal redacts only the most sensitive data (passwords, keys).
+	// SanitizeModeMinimal redacts only the most sensitive data (credentials and authserver values).
 	SanitizeModeMinimal = "minimal"
 )
 
@@ -151,7 +151,7 @@ Examples:
   # Sanitize with mapping file for reverse lookup
   opnDossier sanitize config.xml -o sanitized.xml --mapping mappings.json
 
-  # Minimal redaction (credentials only)
+  # Minimal redaction (credentials and authserver values)
   opnDossier sanitize config.xml --mode minimal
 
   # Force overwrite existing files
