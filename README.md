@@ -117,7 +117,6 @@ Built-in validation against security and operational best practices.
 
 - Industry-standard security baselines
 - SANS security guidelines
-- Custom compliance profiles
 
 ## Features
 

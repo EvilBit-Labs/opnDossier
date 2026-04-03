@@ -377,9 +377,10 @@ dockers_v2:
     annotations:
       org.opencontainers.image.source: "https://github.com/EvilBit-Labs/opnDossier"
 
-  # Floating tags (latest, major) — stable releases only
+  # Floating tags (latest, major) — stable releases only.
+  # Disabled entirely for prerelease builds to avoid pushing empty tags.
   - id: ghcr-stable
-    skip_push: "{{ if .Prerelease }}true{{ else }}false{{ end }}"
+    disable: "{{ if .Prerelease }}true{{ else }}false{{ end }}"
     images:
       - "ghcr.io/evilbit-labs/opndossier"
     tags:

@@ -64,7 +64,7 @@ jobs:
         run: git checkout -- mise.lock || true
 
       - name: Install cyclonedx-gomod for SBOM generation
-        run: go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
+        run: go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.10.0
 
       - name: Remove mise go shim
         # cyclonedx-gomod shells out to `go mod why` and resolves the mise
