@@ -603,46 +603,7 @@ func TestAnalyzer_CompareVLANs_SectionRemoved(t *testing.T) {
 	assert.Equal(t, "VLANs configuration section removed", changes[0].Description)
 }
 
-func TestAnalyzer_CompareDHCP_BothEmpty(t *testing.T) {
-	t.Parallel()
-	analyzer := NewAnalyzer()
-	changes := analyzer.CompareDHCP([]common.DHCPScope{}, []common.DHCPScope{})
-	assert.Nil(t, changes)
-}
-
-func TestAnalyzer_CompareDHCP_SectionAdded(t *testing.T) {
-	t.Parallel()
-	analyzer := NewAnalyzer()
-	old := []common.DHCPScope{}
-	newCfg := []common.DHCPScope{
-		{Interface: "lan", Enabled: true},
-	}
-
-	changes := analyzer.CompareDHCP(old, newCfg)
-
-	assert.Len(t, changes, 1)
-	assert.Equal(t, ChangeAdded, changes[0].Type)
-	assert.Equal(t, SectionDHCP, changes[0].Section)
-	assert.Equal(t, "dhcpd", changes[0].Path)
-	assert.Equal(t, "DHCP configuration section added", changes[0].Description)
-}
-
-func TestAnalyzer_CompareDHCP_SectionRemoved(t *testing.T) {
-	t.Parallel()
-	analyzer := NewAnalyzer()
-	old := []common.DHCPScope{
-		{Interface: "lan", Enabled: true},
-	}
-	newCfg := []common.DHCPScope{}
-
-	changes := analyzer.CompareDHCP(old, newCfg)
-
-	assert.Len(t, changes, 1)
-	assert.Equal(t, ChangeRemoved, changes[0].Type)
-	assert.Equal(t, SectionDHCP, changes[0].Section)
-	assert.Equal(t, "dhcpd", changes[0].Path)
-	assert.Equal(t, "DHCP configuration section removed", changes[0].Description)
-}
+// DHCP tests moved to analyzer_dhcp_test.go
 
 func TestAnalyzer_CompareRoutes_BothEmpty(t *testing.T) {
 	t.Parallel()
