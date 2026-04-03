@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/yuin/goldmark"
+	emoji "github.com/yuin/goldmark-emoji"
 	"github.com/yuin/goldmark/extension"
 	goldmark_parser "github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
@@ -112,7 +113,7 @@ var alertTitles = map[string]string{
 //   - HTML output (RenderMarkdownToHTML)
 //   - Plain text output (StripMarkdownFormatting in plaintext.go)
 //
-// Configuration matches internal/markdown/formatters.go:RenderMarkdown().
+// Configuration matches RenderMarkdown() below (minus extended extensions).
 //
 // WithUnsafe allows raw HTML in the markdown source to pass through to the
 // rendered output (without it, goldmark replaces raw HTML with comments).
@@ -175,4 +176,43 @@ func RenderMarkdownToHTML(md string) (string, error) {
 	body := transformAlertBlockquotes(buf.String())
 
 	return fmt.Sprintf(htmlShell, body), nil
+}
+
+// richGoldmarkRenderer is a goldmark instance configured with extended markdown
+// features (GFM, definition lists, emoji, footnotes) for rendering markdown
+// content to HTML. Used by RenderMarkdown and ValidateMarkdown.
+var richGoldmarkRenderer = goldmark.New(
+	goldmark.WithExtensions(extension.GFM, extension.DefinitionList, emoji.Emoji, extension.Footnote),
+	goldmark.WithParserOptions(
+		goldmark_parser.WithAutoHeadingID(),
+	),
+	goldmark.WithRendererOptions(
+		html.WithHardWraps(),
+		html.WithXHTML(),
+		html.WithUnsafe(),
+	),
+)
+
+// RenderMarkdown parses and renders markdown content to HTML using goldmark
+// with extended features (GFM, definition lists, emoji, footnotes).
+// Returns the rendered HTML string or an error if rendering fails.
+// Raw HTML tags (e.g., <details>, <summary>) are preserved in the output.
+func RenderMarkdown(content string) (string, error) {
+	var buf strings.Builder
+	if err := richGoldmarkRenderer.Convert([]byte(content), &buf); err != nil {
+		return "", fmt.Errorf("failed to render markdown: %w", err)
+	}
+
+	return buf.String(), nil
+}
+
+// ValidateMarkdown checks if the provided markdown content is syntactically valid.
+// It returns an error if the content cannot be parsed as markdown.
+func ValidateMarkdown(content string) error {
+	var buf strings.Builder
+	if err := richGoldmarkRenderer.Convert([]byte(content), &buf); err != nil {
+		return fmt.Errorf("failed to parse markdown content: %w", err)
+	}
+
+	return nil
 }
