@@ -3,7 +3,7 @@
 - **Hostname**: minimal-host
 - **Domain**: minimal.local
 - **Platform**: OPNsense 23.1.1
-- **Generated On**: 2026-03-23T19:22:09-04:00
+- **Generated On**: 2026-04-02T23:55:21-04:00
 - **Parsed By**: opnDossier vdev
 ## Table of Contents
 - [System Configuration](#system-configuration)
@@ -61,6 +61,7 @@
 **Netflow Backup**: ✗
 ### Firmware Information
 **Version**: 23.1.1
+  
 ## Network Configuration
 ### Interfaces
 | Name | Description | IP Address | CIDR | Enabled |

@@ -13,6 +13,9 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 )
 
+// ErrNoResolvableAncestor is returned when no ancestor directory of a path can be resolved.
+var ErrNoResolvableAncestor = errors.New("no resolvable ancestor directory")
+
 // File export constants for permissions and platform detection.
 const (
 	// DefaultFilePermissions defines the default file permissions for exported files.
@@ -142,15 +145,22 @@ func (e *FileExporter) validateExportPath(path string) error {
 	return nil
 }
 
-// checkPathTraversal validates that paths containing ".." segments resolve to
-// a location within the current working directory. Absolute paths without
-// traversal segments are allowed (validated downstream by directory checks).
-// Paths with ".." are resolved via filepath.Abs and filepath.EvalSymlinks to
-// prevent symlink-based escapes.
+// checkPathTraversal validates that the given path resolves to a location
+// within the current working directory. Simple filenames (no path separators)
+// are allowed without checking — they cannot escape the CWD. Absolute paths
+// without traversal segments are allowed (validated downstream by directory
+// checks). All relative paths with separators are resolved via filepath.Abs
+// and filepath.EvalSymlinks to prevent both ".." traversal and symlink-based
+// escapes.
 func (e *FileExporter) checkPathTraversal(path string) error {
-	// Only perform containment checks when the path contains ".." segments.
-	// Absolute paths without traversal are validated by downstream checks.
-	if !strings.Contains(path, "..") {
+	// Simple filenames without path separators cannot escape CWD.
+	if !strings.Contains(path, string(filepath.Separator)) && !strings.Contains(path, "/") {
+		return nil
+	}
+
+	// Absolute paths without ".." traversal segments are validated by
+	// downstream directory and permission checks.
+	if filepath.IsAbs(path) && !strings.Contains(path, "..") {
 		return nil
 	}
 
@@ -189,7 +199,15 @@ func (e *FileExporter) checkPathTraversal(path string) error {
 
 	// EvalSymlinks requires existing paths. Resolve the deepest existing
 	// ancestor directory, then re-append the remaining segments.
-	resolved := resolveWithMissingTail(absPath)
+	resolved, err := resolveWithMissingTail(absPath)
+	if err != nil {
+		return &Error{
+			Operation: "validate_path",
+			Path:      path,
+			Message:   "path traversal check could not resolve any ancestor directory — symlink protection unavailable",
+			Cause:     err,
+		}
+	}
 
 	// Ensure the resolved path is within the allowed base directory.
 	// Append filepath.Separator to the base to prevent prefix false-positives
@@ -208,11 +226,14 @@ func (e *FileExporter) checkPathTraversal(path string) error {
 // resolveWithMissingTail resolves symlinks for the deepest existing ancestor
 // of absPath, then appends any non-existent tail segments. This allows
 // validation of paths where the target file does not yet exist.
-func resolveWithMissingTail(absPath string) string {
+//
+// Returns an error if no ancestor directory can be resolved (i.e., the
+// entire path chain is non-existent up to the filesystem root).
+func resolveWithMissingTail(absPath string) (string, error) {
 	// Try resolving the full path first (fast path for existing files).
 	resolved, err := filepath.EvalSymlinks(absPath)
 	if err == nil {
-		return resolved
+		return resolved, nil
 	}
 
 	// Walk up to find the deepest existing ancestor.
@@ -222,22 +243,14 @@ func resolveWithMissingTail(absPath string) string {
 	for {
 		resolved, err = filepath.EvalSymlinks(dir)
 		if err == nil {
-			return filepath.Join(resolved, tail)
+			return filepath.Join(resolved, tail), nil
 		}
 
 		// Move one level up and accumulate the tail.
 		parent := filepath.Dir(dir)
 		if parent == dir {
 			// Reached filesystem root without finding an existing ancestor.
-			// Fall back to the cleaned absolute path. This degrades the
-			// containment check to a string prefix comparison — the path
-			// may contain unresolved symlinks.
-			fmt.Fprintf(
-				os.Stderr,
-				"WARNING: path traversal check could not resolve any ancestor of %q — symlink protection degraded\n",
-				absPath,
-			)
-			return absPath
+			return "", fmt.Errorf("%w: %s", ErrNoResolvableAncestor, absPath)
 		}
 
 		tail = filepath.Join(filepath.Base(dir), tail)

@@ -19,20 +19,20 @@ func (b *MarkdownBuilder) writeSystemSection(md *markdown.Markdown, data *common
 		PlainTextf("%s: %s", markdown.Bold("Domain"), sys.Domain).LF()
 
 	if sys.Optimization != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Optimization"), sys.Optimization)
+		md.PlainTextf("%s: %s", markdown.Bold("Optimization"), sys.Optimization).LF()
 	}
 
 	if sys.Timezone != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Timezone"), sys.Timezone)
+		md.PlainTextf("%s: %s", markdown.Bold("Timezone"), sys.Timezone).LF()
 	}
 
 	if sys.Language != "" {
-		md.PlainTextf("%s: %s", markdown.Bold("Language"), sys.Language)
+		md.PlainTextf("%s: %s", markdown.Bold("Language"), sys.Language).LF()
 	}
 
 	if sys.WebGUI.Protocol != "" {
 		md.H3("Web GUI Configuration")
-		md.PlainTextf("%s: %s", markdown.Bold("Protocol"), sys.WebGUI.Protocol)
+		md.PlainTextf("%s: %s", markdown.Bold("Protocol"), sys.WebGUI.Protocol).LF()
 	}
 
 	md.H3("System Settings").
@@ -45,11 +45,11 @@ func (b *MarkdownBuilder) writeSystemSection(md *markdown.Markdown, data *common
 		PlainTextf("%s: %d", markdown.Bold("Next GID"), sys.NextGID).LF()
 
 	if len(sys.TimeServers) > 0 {
-		md.PlainTextf("%s: %s", markdown.Bold("Time Servers"), strings.Join(sys.TimeServers, ", "))
+		md.PlainTextf("%s: %s", markdown.Bold("Time Servers"), strings.Join(sys.TimeServers, ", ")).LF()
 	}
 
 	if len(sys.DNSServers) > 0 {
-		md.PlainTextf("%s: %s", markdown.Bold("DNS Server"), strings.Join(sys.DNSServers, ", "))
+		md.PlainTextf("%s: %s", markdown.Bold("DNS Server"), strings.Join(sys.DNSServers, ", ")).LF()
 	}
 
 	md.H3("Hardware Offloading").
@@ -128,17 +128,17 @@ func (b *MarkdownBuilder) writeSystemSection(md *markdown.Markdown, data *common
 
 	if sys.Bogons.Interval != "" {
 		md.H3("Bogons Configuration").
-			PlainTextf("%s: %s", markdown.Bold("Interval"), sys.Bogons.Interval)
+			PlainTextf("%s: %s", markdown.Bold("Interval"), sys.Bogons.Interval).LF()
 	}
 
 	if sys.SSH.Group != "" {
 		md.H3("SSH Configuration").
-			PlainTextf("%s: %s", markdown.Bold("Group"), sys.SSH.Group)
+			PlainTextf("%s: %s", markdown.Bold("Group"), sys.SSH.Group).LF()
 	}
 
 	if sys.Firmware.Version != "" {
 		md.H3("Firmware Information").
-			PlainTextf("%s: %s", markdown.Bold("Version"), sys.Firmware.Version)
+			PlainTextf("%s: %s", markdown.Bold("Version"), sys.Firmware.Version).LF()
 	}
 
 	if len(data.Users) > 0 {

@@ -3,7 +3,7 @@
 - **Hostname**: edge-case-test!@#$%^&*()
 - **Domain**: domain*with*asterisks
 - **Platform**: OPNsense
-- **Generated On**: 2026-03-23T19:22:09-04:00
+- **Generated On**: 2026-04-02T23:55:21-04:00
 - **Parsed By**: opnDossier vdev
 ## Table of Contents
 - [System Configuration](#system-configuration)
@@ -29,7 +29,9 @@
 **Domain**: domain*with*asterisks
   
 **Timezone**: GMT+12:45
+  
 **Language**: invalid_locale
+  
 ### System Settings
 **DNS Allow Override**: ✗
   
