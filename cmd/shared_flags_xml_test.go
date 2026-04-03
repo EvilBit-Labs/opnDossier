@@ -3,6 +3,7 @@ package cmd
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -87,14 +88,18 @@ func TestValidXMLFiles(t *testing.T) {
 	})
 
 	t.Run("completes within subdirectory path", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("shell completion is Unix-only — ValidXMLFiles checks for '/' separator")
+		}
+
 		tmpDir := t.TempDir()
 		subDir := filepath.Join(tmpDir, "configs")
 		require.NoError(t, os.Mkdir(subDir, 0o755))
 
 		require.NoError(t, os.WriteFile(filepath.Join(subDir, "test.xml"), []byte("<root/>"), 0o600))
 
-		completions, directive := ValidXMLFiles(nil, nil, subDir+string(filepath.Separator))
+		completions, directive := ValidXMLFiles(nil, nil, subDir+"/")
 		assert.Equal(t, cobra.ShellCompDirectiveNoSpace, directive)
-		assert.Contains(t, completions, filepath.Join(subDir, "test.xml"))
+		assert.Contains(t, completions, subDir+"/test.xml")
 	})
 }
