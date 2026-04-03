@@ -303,6 +303,94 @@ opnDossier convert -f yaml config.xml -o output.yaml
 opnDossier convert -f markdown config.xml -o output.md  # default
 ```
 
+## GitHub Actions
+
+opnDossier is available as a GitHub Action backed by its Docker image. Use it to audit or document OPNsense configurations automatically on every commit, PR, or scheduled run.
+
+### Quick Start
+
+```yaml
+name: Audit firewall configuration
+
+on:
+  push:
+    paths:
+      - config.xml
+  schedule:
+    - cron: 0 6 * * 1   # every Monday at 06:00 UTC
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Audit OPNsense config
+        # Pin to a release tag for reproducibility; check releases for the latest version
+        uses: EvilBit-Labs/opnDossier@v1
+        with:
+          command: audit
+          config-file: config.xml
+```
+
+### Inputs
+
+| Input         | Required | Default  | Description                                                                 |
+| ------------- | -------- | -------- | --------------------------------------------------------------------------- |
+| `command`     | No       | `audit`  | Sub-command: `convert`, `audit`, `display`, `validate`, `sanitize` ... etc. |
+| `config-file` | **Yes**  | —        | Path to `config.xml` relative to the workspace root                         |
+| `format`      | No       | —        | Output format for `convert`/`audit`: `markdown`, `json`, or `yaml`          |
+| `output`      | No       | —        | Path to write the output file, relative to the workspace root               |
+| `args`        | No       | —        | Additional arguments passed verbatim to the binary                          |
+| `version`     | No       | `latest` | Image tag to pull (e.g. `v1.2.0`); defaults to the latest release           |
+
+### Export findings to JSON
+
+```yaml
+  - name: Export audit findings
+  # Pin to a release tag for reproducibility; check releases for the latest version
+    uses: EvilBit-Labs/opnDossier@v1
+    with:
+      command: audit
+      config-file: firewall/config.xml
+      format: json
+      output: findings.json
+
+  - name: Upload findings
+    uses: actions/upload-artifact@v4
+    with:
+      name: audit-findings
+      path: findings.json
+```
+
+### Generate configuration documentation
+
+```yaml
+  - name: Generate firewall documentation
+  # Pin to a release tag for reproducibility; check releases for the latest version
+    uses: EvilBit-Labs/opnDossier@v1
+    with:
+      command: convert
+      config-file: config.xml
+      format: markdown
+      output: docs/firewall.md
+```
+
+### Using the Docker image directly
+
+The Docker image is published to the GitHub Container Registry alongside every release and can be used independently of the Action:
+
+```bash
+# Pull the latest release
+docker pull ghcr.io/evilbit-labs/opndossier:latest
+
+# Run an audit, mounting your config directory
+docker run --rm \
+  --volume "$(pwd):/data" \
+  ghcr.io/evilbit-labs/opndossier:latest \
+  audit /data/config.xml
+```
+
 ## Documentation
 
 - **[User Guide](docs/user-guide/)** - Installation, usage, and configuration

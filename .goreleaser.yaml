@@ -354,6 +354,61 @@ winget:
           name: winget-pkgs
           branch: master
 
+# Docker image configuration (v2 - native multi-platform)
+# https://goreleaser.com/customization/package/dockers_v2
+dockers_v2:
+  # Versioned tag — always pushed, including pre-releases
+  - id: ghcr-versioned
+    images:
+      - "ghcr.io/evilbit-labs/opndossier"
+    tags:
+      - "{{ .Tag }}"
+    dockerfile: Dockerfile
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    labels:
+      org.opencontainers.image.created: "{{.Date}}"
+      org.opencontainers.image.title: "{{.ProjectName}}"
+      org.opencontainers.image.revision: "{{.FullCommit}}"
+      org.opencontainers.image.version: "{{.Version}}"
+      org.opencontainers.image.source: "https://github.com/EvilBit-Labs/opnDossier"
+      org.opencontainers.image.licenses: "Apache-2.0"
+    annotations:
+      org.opencontainers.image.source: "https://github.com/EvilBit-Labs/opnDossier"
+
+  # Floating tags (latest, major) — stable releases only
+  - id: ghcr-stable
+    images:
+      - "ghcr.io/evilbit-labs/opndossier"
+    tags:
+      - "{{ if not .Prerelease }}v{{ .Major }}{{ end }}"
+      - "{{ if not .Prerelease }}latest{{ end }}"
+    dockerfile: Dockerfile
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    labels:
+      org.opencontainers.image.created: "{{.Date}}"
+      org.opencontainers.image.title: "{{.ProjectName}}"
+      org.opencontainers.image.revision: "{{.FullCommit}}"
+      org.opencontainers.image.version: "{{.Version}}"
+      org.opencontainers.image.source: "https://github.com/EvilBit-Labs/opnDossier"
+      org.opencontainers.image.licenses: "Apache-2.0"
+    annotations:
+      org.opencontainers.image.source: "https://github.com/EvilBit-Labs/opnDossier"
+
+# Docker image signing with Cosign (keyless)
+# https://goreleaser.com/customization/docker_sign/
+docker_signs:
+  - cmd: cosign
+    args:
+      - "sign"
+      - "--yes"
+      - "${artifact}"
+    artifacts: manifests
+    output: true
+
 # SBOM generation with CycloneDX-gomod
 # https://goreleaser.com/customization/sbom/
 # https://github.com/CycloneDX/cyclonedx-gomod

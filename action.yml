@@ -1,0 +1,62 @@
+---
+name: "opnDossier"
+description: "Audit and document OPNsense configurations in your GitHub Actions workflow"
+
+# See: https://docs.github.com/en/actions/reference/workflows-and-actions/metadata-syntax
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  command:
+    description: "opnDossier sub-command to run: convert | audit | display | validate | sanitize ... etc"
+    required: false
+    default: "audit"
+  config-file:
+    description: "Path to the OPNsense config.xml file (relative to workspace root)"
+    required: true
+  format:
+    description: "Output format for convert/audit: markdown | json | yaml"
+    required: false
+    default: ""
+  output:
+    description: "Path to write the output file (relative to workspace root)"
+    required: false
+    default: ""
+  args:
+    description: "Any additional arguments to pass verbatim to opnDossier"
+    required: false
+    default: ""
+  version:
+    description: "Image tag to pull from ghcr.io/evilbit-labs/opndossier (e.g. v1.2.0 or latest)"
+    required: false
+    default: "latest"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Run opnDossier
+      shell: bash
+      run: |
+        ARGS=("${{ inputs.command }}" "${{ inputs.config-file }}")
+
+        if [[ -n "${{ inputs.format }}" ]]; then
+          ARGS+=("--format" "${{ inputs.format }}")
+        fi
+
+        if [[ -n "${{ inputs.output }}" ]]; then
+          ARGS+=("--output" "${{ inputs.output }}")
+        fi
+
+        # Append any extra user-supplied args (word-split intentional)
+        # Use read -ra to split on whitespace without glob expansion
+        if [[ -n "${{ inputs.args }}" ]]; then
+          read -ra EXTRA <<< "${{ inputs.args }}"
+          ARGS+=("${EXTRA[@]}")
+        fi
+
+        docker run --rm \
+          --volume "${{ github.workspace }}:/data" \
+          --workdir /data \
+          "ghcr.io/evilbit-labs/opndossier:${{ inputs.version }}" \
+          "${ARGS[@]}"
