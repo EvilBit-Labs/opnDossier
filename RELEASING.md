@@ -447,3 +447,40 @@ Each release includes:
 | `*.sig`                                     | GPG detached signatures for archives/packages                         |
 | `*.bom.json`                                | Software Bill of Materials (CycloneDX SBOM)                           |
 | `THIRD_PARTY_NOTICES`                       | Human-readable license attribution for all dependencies               |
+
+## Quick Release Checklist
+
+Copy-paste checklist for cutting a release. See sections above for details on each step.
+
+### Pre-flight
+
+- [ ] CI green on `main` — `gh run list --branch main --limit 5`
+- [ ] `just ci-check` passes locally (lint, tests, race detector)
+- [ ] Milestone closed — `gh milestone list --state open`, then close if exists
+- [ ] No uncommitted or unrelated changes on `main`
+
+### Prepare
+
+- [ ] Generate changelog — `just changelog-version vX.Y.Z`
+- [ ] Review `CHANGELOG.md` — verify entries are correct and complete
+- [ ] Write or update `RELEASE_NOTES.md`
+- [ ] Commit `RELEASE_NOTES.md` and `CHANGELOG.md` to `main`
+- [ ] Push to `main`
+
+### Tag and Release
+
+- [ ] Ensure you are on `main` with latest — `git checkout main && git pull origin main`
+- [ ] Create annotated tag — `git tag -a vX.Y.Z -m "Release vX.Y.Z"`
+- [ ] Push tag — `git push origin vX.Y.Z`
+- [ ] Create GitHub release — `gh release create vX.Y.Z --title "vX.Y.Z" --notes-file RELEASE_NOTES.md`
+
+> **Reminder:** Always tag the commit on `main`, never a feature branch head (see GOTCHAS.md #12.1).
+
+### Post-release Verification
+
+- [ ] Monitor workflow — `gh run watch` or `gh run list --workflow=release.yml`
+- [ ] Verify artifacts — `gh release view vX.Y.Z`
+- [ ] Verify cosign signature — download checksums + `.sigstore.json`, run `cosign verify-blob`
+- [ ] Test binary — download, run `opndossier --version`, confirm version
+- [ ] Verify Docker — `docker pull ghcr.io/evilbit-labs/opndossier:vX.Y.Z`
+- [ ] Verify Homebrew cask updated (if `HOMEBREW_TAP_TOKEN` is set)
