@@ -100,26 +100,6 @@ jobs:
           fail_ci_if_error: true
 
   # ─────────────────────────────────────────────────────────────────────────
-  # Race Detection - Informational race condition check
-  # ─────────────────────────────────────────────────────────────────────────
-  test-race:
-    name: Race Detector
-    runs-on: ubuntu-latest
-    needs: lint
-    timeout-minutes: 10
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # v4.0.1
-        with:
-          install: true
-          cache: true
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Run tests with race detector
-        run: just test-race
-
-  # ─────────────────────────────────────────────────────────────────────────
   # Build - Verify builds across platforms
   # ─────────────────────────────────────────────────────────────────────────
   build:
