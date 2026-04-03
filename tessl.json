@@ -32,7 +32,7 @@
       }
     },
     "Jeffallan/claude-skills": {
-      "version": "3bf9a24b76a7c122f1fc05e83929fbc84e1c207a",
+      "version": "5b761018cebd430edcecbeeb46bdde6150d22c65",
       "source": "https://github.com/Jeffallan/claude-skills",
       "include": {
         "skills": [
@@ -47,7 +47,7 @@
       "version": "0.1.1"
     },
     "mcollina/skills": {
-      "version": "9a6d43f05298b009373157cafcd07e219c17181c",
+      "version": "3a5bd304cf5cdf75a997b03bb675121f4bbb365b",
       "source": "https://github.com/mcollina/skills",
       "include": {
         "skills": [
