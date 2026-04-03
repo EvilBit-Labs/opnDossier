@@ -46,6 +46,15 @@
         "test",
         "doc"
       ]
+    },
+    {
+      "login": "KryptoKat08",
+      "name": "KryptoKat",
+      "avatar_url": "https://avatars.githubusercontent.com/u/51892820?v=4",
+      "profile": "https://github.com/KryptoKat08",
+      "contributions": [
+        "security"
+      ]
     }
   ],
   "contributorsPerLine": 7,
