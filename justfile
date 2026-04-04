@@ -173,8 +173,9 @@ test-coverage:
 test-integration:
     @{{ mise_exec }} go test -tags=integration ./...
 
-# Run tests with race detector
+# Run tests with race detector (requires CGO; Linux CI preferred, skipped on Windows)
 [group('test')]
+[env('CGO_ENABLED', '1')]
 test-race:
     @{{ mise_exec }} go test -race -timeout 10m ./...
 
@@ -252,8 +253,9 @@ build:
 
 # Build with optimizations for release
 [group('build')]
+[env('CGO_ENABLED', '0')]
 build-release:
-    @CGO_ENABLED=0 {{ mise_exec }} go build -trimpath -ldflags="-s -w" -o {{ binary_name }}{{ if os_family() == "windows" { ".exe" } else { "" } }} main.go
+    @{{ mise_exec }} go build -trimpath -ldflags="-s -w" -o {{ binary_name }}{{ if os_family() == "windows" { ".exe" } else { "" } }} main.go
 
 # Clean build artifacts
 [group('build')]
@@ -397,8 +399,21 @@ notices:
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Run full CI checks (pre-commit, format, lint, test)
+# Note: test-race is skipped on Windows (no CGO toolchain); run separately or in Linux CI
 [group('ci')]
-ci-check: check format-check lint test test-integration test-race
+ci-check: check format-check lint test test-integration _ci-race
+
+[private]
+[windows]
+_ci-race:
+    @echo "Skipping race tests on Windows (no CGO toolchain)"
+
+[private]
+[linux]
+[macos]
+[env('CGO_ENABLED', '1')]
+_ci-race:
+    @{{ mise_exec }} go test -race -timeout 10m ./...
 
 # Run smoke tests (fast, minimal validation)
 [group('ci')]
