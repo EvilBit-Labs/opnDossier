@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -68,12 +69,12 @@ func TestEndToEndConversion(t *testing.T) {
 	require.NoError(t, err)
 
 	// Build the opnDossier binary if it doesn't exist
-	binaryPath := filepath.Join(tmpDir, "opndossier")
-	if _, err := os.Stat("./opndossier"); os.IsNotExist(err) {
+	binaryPath := filepath.Join(tmpDir, binaryName())
+	if _, err := os.Stat("./" + binaryName()); os.IsNotExist(err) {
 		buildBinary(t, binaryPath)
 	} else {
 		// Copy existing binary
-		binaryPath = "./opndossier"
+		binaryPath = "./" + binaryName()
 	}
 
 	// Test cases for different CLI scenarios
@@ -158,8 +159,7 @@ func TestEndToEndValidation(t *testing.T) {
 	require.NoError(t, err)
 
 	// Use the built binary or build it
-	binaryPath := "./opndossier"
-	binaryPath = filepath.Join(tmpDir, "opndossier")
+	binaryPath := filepath.Join(tmpDir, binaryName())
 	buildBinary(t, binaryPath)
 
 	// Test validation command
@@ -204,7 +204,7 @@ func TestEndToEndDisplay(t *testing.T) {
 	require.NoError(t, err)
 
 	// Use the built binary or build it
-	binaryPath := filepath.Join(tmpDir, "opndossier")
+	binaryPath := filepath.Join(tmpDir, binaryName())
 	buildBinary(t, binaryPath)
 
 	// Verify --no-wrap flag is available in display command help
@@ -261,7 +261,7 @@ func TestEndToEndDisplayWrapWidth(t *testing.T) {
 	err = os.WriteFile(configFile, []byte(configContent), 0o644)
 	require.NoError(t, err)
 
-	binaryPath := filepath.Join(tmpDir, "opndossier")
+	binaryPath := filepath.Join(tmpDir, binaryName())
 	buildBinary(t, binaryPath)
 
 	t.Run("Explicit wrap widths", func(t *testing.T) {
@@ -372,6 +372,15 @@ func stripANSI(input string) string {
 	return re.ReplaceAllString(input, "")
 }
 
+// binaryName returns the platform-appropriate binary name for opnDossier.
+func binaryName() string {
+	name := "opndossier"
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	return name
+}
+
 func buildBinary(t *testing.T, binaryPath string) {
 	t.Helper()
 
@@ -452,7 +461,7 @@ func TestEndToEndConversion_PfSense(t *testing.T) {
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
-	binaryPath := filepath.Join(tmpDir, "opndossier")
+	binaryPath := filepath.Join(tmpDir, binaryName())
 	buildBinary(t, binaryPath)
 
 	// Use the committed fixture file with an absolute path for working-directory safety.
