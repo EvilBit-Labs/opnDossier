@@ -98,7 +98,10 @@ func normalizedEqual(actual, expected []byte) bool {
 // When updating golden files with `go test -update`, the test framework writes
 // the actual generated output (with real timestamps/versions), which is correct.
 func normalizeGoldenOutput(output []byte) []byte {
-	lines := strings.Split(string(output), "\n")
+	// Normalize line endings to LF so golden files work across platforms.
+	text := strings.ReplaceAll(string(output), "\r\n", "\n")
+
+	lines := strings.Split(text, "\n")
 	var normalized []string
 
 	for _, line := range lines {
