@@ -107,7 +107,7 @@ func TestFileExporter_CheckPathTraversal(t *testing.T) {
 		},
 		{
 			name:    "absolute path without traversal",
-			path:    "/tmp/test.txt",
+			path:    filepath.Join(tempDir, "project", "test.txt"),
 			wantErr: false,
 		},
 		{

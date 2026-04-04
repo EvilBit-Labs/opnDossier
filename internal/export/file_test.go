@@ -177,7 +177,7 @@ func TestFileExporter_ExportErrorTypes(t *testing.T) {
 		{
 			name:       "nonexistent directory error",
 			content:    "test content",
-			path:       "/nonexistent/directory/test.md",
+			path:       "nonexistent_dir/test.md",
 			expectedOp: "validate_path",
 			checkError: func(t *testing.T, err error) {
 				t.Helper()
@@ -260,7 +260,7 @@ func TestFileExporter_PathValidation(t *testing.T) {
 		},
 		{
 			name:        "nonexistent directory",
-			path:        "/nonexistent/dir/test.md",
+			path:        "nonexistent_dir/test.md",
 			expectError: true,
 			errorCheck: func(t *testing.T, err error) {
 				t.Helper()
@@ -351,8 +351,9 @@ func TestFileExporter_AtomicWrite(t *testing.T) {
 func TestFileExporter_ExportErrorUnwrap(t *testing.T) {
 	e := NewFileExporter(nil)
 
-	// Test with a path that will cause an underlying error
-	err := e.Export(context.Background(), "test content", "/nonexistent/dir/test.md")
+	// Test with a path that will cause an underlying error (use relative path
+	// so it works on both Unix and Windows without triggering traversal checks)
+	err := e.Export(context.Background(), "test content", "nonexistent_dir/test.md")
 
 	var exportErr *Error
 	require.ErrorAs(t, err, &exportErr)
