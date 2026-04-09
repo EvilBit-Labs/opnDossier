@@ -7,7 +7,7 @@
 # build-platform stage so multi-arch buildx runs do not depend on target-arch
 # emulation for `RUN` steps.
 # ─────────────────────────────────────────────────────────────────────────────
-FROM --platform=$BUILDPLATFORM alpine:3.21 AS runtime-assets
+FROM --platform=$BUILDPLATFORM alpine:3.23 AS runtime-assets
 
 RUN apk --no-cache add ca-certificates tzdata
 
