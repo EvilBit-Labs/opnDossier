@@ -48,8 +48,12 @@ Element existing = true, absent = false. Content is irrelevant.
 | `<interfacenot/>`           | `<rule>` (filter)           | `!empty($rule['interfacenot'])`                         |
 | `<nottagged/>`              | `<rule>` (filter)           | Match packets NOT tagged                                |
 | `<trigger_initial_wizard/>` | `<opnsense>` (root)         | First-boot wizard trigger                               |
+| `<enable/>`                 | `<interfaces><wan>`         | Interface enabled (pfSense uses BoolFlag)               |
+| `<enable/>`                 | `<dhcpd><lan>`              | DHCP scope enabled (pfSense uses BoolFlag)              |
 
 **pfSense Bug #6893 note:** Prior to pfSense 2.3.3, some code produced `<tag/>` while other code produced `<tag></tag>`. Both forms are valid XML and our `*string` / `BoolFlag` types handle both correctly via Go's `encoding/xml`.
+
+**pfSense presence-based enable note:** pfSense correctly parses `Interface` and `DhcpdInterface` `<enable/>` elements as presence-based using BoolFlag types. The public API converts to string `"1"` for backward compatibility.
 
 ### 1b. Value-Based Booleans
 
@@ -59,10 +63,11 @@ Element contains `1`, `yes`, or a specific value. Absent or empty = false.
 
 **Go type:** `string` with value check, or potentially a custom type
 
-| Element                  | Parent                   | Values | Notes                    |
-| ------------------------ | ------------------------ | ------ | ------------------------ |
-| `<enable>`               | `<interfaces><wan>`      | `1`    | Interface enable/disable |
-| `<blockpriv>`            | `<interfaces><wan>`      | `1`    | Block private networks   |
+| Element                  | Parent                   | Values | Notes                                                                                            |
+| ------------------------ | ------------------------ | ------ | ------------------------------------------------------------------------------------------------ |
+| `<enable>`               | `<interfaces><wan>`      | `1`    | pfSense: presence-based (see §1a). OPNsense: value-based. pfSense parser uses BoolFlag fork     |
+| `<enable>`               | `<dhcpd><lan>`           | `1`    | pfSense: presence-based (see §1a). OPNsense: value-based. pfSense parser uses BoolFlag fork     |
+| `<blockpriv>`            | `<interfaces><wan>`      | `1`    | Block private networks                                                                           |
 | `<blockbogons>`          | `<interfaces><wan>`      | `1`    | Block bogon networks     |
 | `<dnsallowoverride>`     | `<system>`               | `1`    | Allow DNS override       |
 | `<ipv6allow>`            | `<system>`               | `1`    | IPv6 enabled             |
@@ -87,63 +92,27 @@ The `<source>` and `<destination>` elements are the most complex sub-structures 
 
 ### 2a. XML Structure Examples
 
-Match any address:
-
 ```xml
-<source>
-  <any />
-</source>
-```
+<!-- Match any address -->
+<source><any/></source>
 
-Match interface subnet:
+<!-- Match interface subnet -->
+<source><network>lan</network></source>
 
-```xml
-<source>
-  <network>lan</network>
-</source>
-```
+<!-- Match specific IP/CIDR -->
+<source><address>192.168.1.0/24</address></source>
 
-Match specific IP/CIDR:
+<!-- Match alias -->
+<source><address>MyAlias</address></source>
 
-```xml
-<source>
-  <address>192.168.1.0/24</address>
-</source>
-```
+<!-- Negated match -->
+<source><not/><network>lan</network></source>
 
-Match alias:
+<!-- With port (TCP/UDP only) -->
+<destination><network>wan</network><port>443</port></destination>
 
-```xml
-<source>
-  <address>MyAlias</address>
-</source>
-```
-
-Negated match:
-
-```xml
-<source>
-  <not />
-  <network>lan</network>
-</source>
-```
-
-With port (TCP/UDP only):
-
-```xml
-<destination>
-  <network>wan</network>
-  <port>443</port>
-</destination>
-```
-
-Port range:
-
-```xml
-<destination>
-  <any />
-  <port>8000-9000</port>
-</destination>
+<!-- Port range -->
+<destination><any/><port>8000-9000</port></destination>
 ```
 
 ### 2b. Mutual Exclusivity
@@ -330,31 +299,36 @@ The following fields use OPNsense MVC value-based semantics where `<field>0</fie
 
 ### 5c. OPNsense module (opnsense.go) — value-based, kept as string
 
-| Struct                     | Field               | Type     | Rationale              |
-| -------------------------- | ------------------- | -------- | ---------------------- |
-| Kea.Dhcp4.General          | Enabled             | `string` | MVC field, value-based |
-| Kea.Dhcp4.HighAvailability | Enabled             | `string` | MVC field, value-based |
-| UnboundPlus.General        | Enabled             | `string` | MVC field, value-based |
-| UnboundPlus.General        | Stats               | `string` | MVC field, value-based |
-| UnboundPlus.General        | Dnssec              | `string` | MVC field, value-based |
-| UnboundPlus.General        | DNS64               | `string` | MVC field, value-based |
-| UnboundPlus.General        | RegisterDHCP\* (x3) | `string` | MVC field, value-based |
-| UnboundPlus.General        | No\* fields (x2)    | `string` | MVC field, value-based |
-| UnboundPlus.General        | Txtsupport          | `string` | MVC field, value-based |
-| UnboundPlus.General        | Cacheflush          | `string` | MVC field, value-based |
-| UnboundPlus.General        | EnableWpad          | `string` | MVC field, value-based |
-| UnboundPlus.Dnsbl          | Enabled             | `string` | MVC field, value-based |
-| UnboundPlus.Dnsbl          | Safesearch          | `string` | MVC field, value-based |
-| UnboundPlus.Forwarding     | Enabled             | `string` | MVC field, value-based |
-| SyslogInternal.General     | Enabled             | `string` | MVC field, value-based |
-| Netflow.Capture            | EgressOnly          | `string` | MVC field, value-based |
-| Netflow.Collect            | Enable              | `string` | MVC field, value-based |
+| Struct                 | Field               | Type     | Rationale              |
+| ---------------------- | ------------------- | -------- | ---------------------- |
+| Kea.Dhcp4.General      | Enabled             | `string` | MVC field, value-based |
+| Kea.HighAvailability   | Enabled             | `string` | MVC field, value-based |
+| UnboundPlus.General    | Enabled             | `string` | MVC field, value-based |
+| UnboundPlus.General    | Stats               | `string` | MVC field, value-based |
+| UnboundPlus.General    | Dnssec              | `string` | MVC field, value-based |
+| UnboundPlus.General    | DNS64               | `string` | MVC field, value-based |
+| UnboundPlus.General    | RegisterDHCP\* (x3) | `string` | MVC field, value-based |
+| UnboundPlus.General    | No\* fields (x2)    | `string` | MVC field, value-based |
+| UnboundPlus.General    | Txtsupport          | `string` | MVC field, value-based |
+| UnboundPlus.General    | Cacheflush          | `string` | MVC field, value-based |
+| UnboundPlus.General    | EnableWpad          | `string` | MVC field, value-based |
+| UnboundPlus.Dnsbl      | Enabled             | `string` | MVC field, value-based |
+| UnboundPlus.Dnsbl      | Safesearch          | `string` | MVC field, value-based |
+| UnboundPlus.Forwarding | Enabled             | `string` | MVC field, value-based |
+| SyslogInternal.General | Enabled             | `string` | MVC field, value-based |
+| Netflow.Capture        | EgressOnly          | `string` | MVC field, value-based |
+| Netflow.Collect        | Enable              | `string` | MVC field, value-based |
 
-### 5d. DHCP (dhcp.go) — value-based, kept as string
+### 5d. Interfaces and DHCP (interfaces.go, dhcp.go) — platform-specific
 
-| Struct         | Field  | Type     | Rationale                                     |
-| -------------- | ------ | -------- | --------------------------------------------- |
-| DhcpdInterface | Enable | `string` | Value-based (`<enable>1</enable>`), heavy use |
+pfSense and OPNsense use different boolean semantics for interface and DHCP scope enable flags:
+
+| Struct           | Field  | pfSense Type      | OPNsense Type | Rationale                                                                                                                                                                                                                              |
+| ---------------- | ------ | ----------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Interface        | Enable | `opnsense.BoolFlag` | `string`      | pfSense: presence-based `<enable/>` / absent. OPNsense: value-based `<enable>1</enable>`. pfSense parser uses platform-specific type fork (`pkg/schema/pfsense/interfaces.go`) with BoolFlag, converts to `"1"` for API compatibility |
+| DhcpdInterface   | Enable | `opnsense.BoolFlag` | `string`      | pfSense: presence-based `<enable/>` / absent. OPNsense: value-based `<enable>1</enable>`. pfSense parser uses platform-specific type fork (`pkg/schema/pfsense/dhcp.go`) with BoolFlag, converts to `"1"` for API compatibility       |
+
+**Implementation:** The pfSense parser uses an intermediate `decodeDocument` type (`pkg/parser/pfsense/decode_types.go`) that decodes XML with BoolFlag-aware pfsense.Interface and pfsense.DhcpdInterface types, then converts to backward-compatible opnsense.Interfaces/opnsense.Dhcpd with string Enable fields set to `"1"` (enabled) or `""` (disabled).
 
 **Note on value-based fields:** These use OPNsense MVC pattern `<field>1</field>` / `<field>0</field>`. Converting to `BoolFlag` would break semantics because `BoolFlag.UnmarshalXML` treats any present element as true, regardless of content — so `<enabled>0</enabled>` would incorrectly become `true`.
 
@@ -449,9 +423,19 @@ Correctly handles comma-separated interface lists for floating rules.
 
 Correctly handle dynamic interface element names via custom `UnmarshalXML`/`MarshalXML`.
 
-### 8e. `RuleLocation` Struct
+### 8e. decodeDocument Intermediate Layer (pfSense parser)
 
-Already has all needed fields for complete source/destination modeling. Just needs to be connected to the actual `Source`/`Destination` types.
+The pfSense parser uses a two-stage architecture for correct presence-based boolean handling:
+
+1. **Decode stage:** XML is decoded into an intermediate `decodeDocument` type (defined in `pkg/parser/pfsense/decode_types.go`) that uses platform-specific types with BoolFlag-aware Enable fields:
+   - `pfsense.Interface` with `Enable opnsense.BoolFlag` (from `pkg/schema/pfsense/interfaces.go`)
+   - `pfsense.DhcpdInterface` with `Enable opnsense.BoolFlag` (from `pkg/schema/pfsense/dhcp.go`)
+
+2. **Conversion stage:** The intermediate document is converted to a `pfsense.Document` with backward-compatible opnsense types via `toDocument()`:
+   - BoolFlag Enable fields are transformed to string: `true` → `"1"`, `false` → `""`
+   - This preserves API compatibility with existing consumers expecting string Enable fields
+
+This architecture resolves the type mismatch issue described in Section 5 by using platform-specific type forks at the decode layer while maintaining a unified public API. It correctly distinguishes pfSense's presence-based `<enable/>` (element present = enabled) from absent elements (disabled), which was previously mishandled when using string types that cannot distinguish `<enable/>` from `<enable></enable>` from absent elements.
 
 ---
 
@@ -494,97 +478,3 @@ Already has all needed fields for complete source/destination modeling. Just nee
 | 3     | Rate-limiting and advanced fields | 14 fields (max-src-\*, TCP/ICMP, state/advanced)                                         | Complete |
 | 4     | NAT rule enhancements             | NATRule +4 fields, InboundRule +5 fields                                                 | Complete |
 | 5     | Documentation and validation      | Research doc updates, field reference, validator enhancements                            | Complete |
-
----
-
-## 11. Kea DHCP4 XML Structure
-
-This section documents the full `<Kea><dhcp4>` XML structure in OPNsense config.xml as parsed by the Go schema package (`pkg/schema/opnsense/kea.go`).
-
-### 11a. `<dhcp4>` Top-Level Structure
-
-```xml
-<dhcp4 version="1.0.4">
-  <general>
-    <enabled>1</enabled>
-    <interfaces>lan</interfaces>
-    <fwrules>1</fwrules>
-    <valid_lifetime>4000</valid_lifetime>
-  </general>
-  <ha>
-    <enabled>0</enabled>
-    <this_server_name />
-    <max_unacked_clients>2</max_unacked_clients>
-  </ha>
-  <subnets>
-    <subnet4 uuid="..."> ... </subnet4>
-  </subnets>
-  <reservations>
-    <reservation uuid="..."> ... </reservation>
-  </reservations>
-  <ha_peers />
-</dhcp4>
-```
-
-**Go type mapping:**
-
-| XML Element      | Go Field                    | Go Type            | Notes                                         |
-| ---------------- | --------------------------- | ------------------ | --------------------------------------------- |
-| `<dhcp4>`        | `OPNsense.Kea.Dhcp4`        | `schema.KeaDhcp4`  | Defined in `pkg/schema/opnsense/kea.go`       |
-| `<general>`      | `KeaDhcp4.General`          | inline struct      | value-based booleans (`"0"` / `"1"`)          |
-| `<ha>`           | `KeaDhcp4.HighAvailability` | inline struct      | value-based booleans                          |
-| `<subnets>`      | `KeaDhcp4.Subnets`          | `[]KeaSubnet`      | MVC ArrayField; elements named `<subnet4>`    |
-| `<reservations>` | `KeaDhcp4.Reservations`     | `[]KeaReservation` | Each element references parent subnet by UUID |
-| `<ha_peers>`     | `KeaDhcp4.HAPeers`          | `string`           |                                               |
-
-### 11b. `KeaSubnet` (`<subnet4>` element)
-
-Each `<subnet4>` element carries a `uuid` attribute and the following child elements:
-
-| XML Element                 | Go Field                          | Go Type         | Notes                                                          |
-| --------------------------- | --------------------------------- | --------------- | -------------------------------------------------------------- |
-| `uuid` (attr)               | `KeaSubnet.UUID`                  | `string`        | Used by reservations to reference the parent subnet            |
-| `<subnet>`                  | `KeaSubnet.Subnet`                | `string`        | CIDR notation (e.g., `192.168.1.0/24`)                         |
-| `<option_data_autocollect>` | `KeaSubnet.OptionDataAutocollect` | `string`        | `"0"` or `"1"`, value-based                                    |
-| `<option_data>`             | `KeaSubnet.OptionData`            | `KeaOptionData` | See §11c                                                       |
-| `<pools>`                   | `KeaSubnet.Pools`                 | `string`        | Newline-separated pool ranges (`"start-end"` or CIDR notation) |
-| `<next_server>`             | `KeaSubnet.NextServer`            | `string`        |                                                                |
-| `<description>`             | `KeaSubnet.Description`           | `string`        | Human-readable label                                           |
-
-**Pools format note:** The `<pools>` field stores entries from OPNsense's `KeaPoolsField`. Each newline-separated entry is either a range (`192.168.1.100-192.168.1.200`) or CIDR notation. The converter uses the first entry as `DHCPScope.Range`; additional entries emit a `SeverityInfo` warning.
-
-### 11c. `KeaOptionData` (`<option_data>` element)
-
-Used on both `<subnet4>` and `<reservation>` elements.
-
-| XML Element             | Go Field                          | Go Type  | Notes                        |
-| ----------------------- | --------------------------------- | -------- | ---------------------------- |
-| `<domain_name_servers>` | `KeaOptionData.DomainNameServers` | `string` | Comma-separated IPs          |
-| `<domain_search>`       | `KeaOptionData.DomainSearch`      | `string` | Comma-separated domain names |
-| `<routers>`             | `KeaOptionData.Routers`           | `string` | Gateway; comma-separated IPs |
-| `<domain_name>`         | `KeaOptionData.DomainName`        | `string` |                              |
-| `<ntp_servers>`         | `KeaOptionData.NTPServers`        | `string` | Comma-separated IPs          |
-| `<tftp_server_name>`    | `KeaOptionData.TFTPServerName`    | `string` |                              |
-| `<boot_file_name>`      | `KeaOptionData.BootFileName`      | `string` |                              |
-
-### 11d. `KeaReservation` (`<reservation>` element)
-
-| XML Element     | Go Field                     | Go Type         | Notes                                         |
-| --------------- | ---------------------------- | --------------- | --------------------------------------------- |
-| `uuid` (attr)   | `KeaReservation.UUID`        | `string`        |                                               |
-| `<subnet>`      | `KeaReservation.Subnet`      | `string`        | UUID of the parent `<subnet4>` (not the CIDR) |
-| `<ip_address>`  | `KeaReservation.IPAddress`   | `string`        |                                               |
-| `<hw_address>`  | `KeaReservation.HWAddress`   | `string`        | MAC address                                   |
-| `<hostname>`    | `KeaReservation.Hostname`    | `string`        |                                               |
-| `<description>` | `KeaReservation.Description` | `string`        |                                               |
-| `<option_data>` | `KeaReservation.OptionData`  | `KeaOptionData` | See §11c                                      |
-
-### 11e. Converter Behavior (`convertKeaDHCPScopes`)
-
-`convertKeaDHCPScopes()` in `pkg/parser/opnsense/converter_subsystems.go` converts Kea subnets into `[]common.DHCPScope` entries and appends them to `CommonDevice.DHCP` alongside ISC scopes (which carry `Source: "isc"`). Key behaviors:
-
-- Produces no scopes when `<subnets>` is empty. Scopes are emitted even when Kea is disabled (`Enabled` reflects the server state).
-- Each `DHCPScope` has `Source: "kea"` and `Enabled` set from the Kea general enabled flag.
-- Option data is mapped: `Routers` → `Gateway`, `DomainNameServers` → `DNSServer`, `NTPServers` → `NTPServer`. For comma-separated values, only the first entry is used.
-- Reservations are grouped by their `<subnet>` UUID and attached as `StaticLeases` on the matching scope. Reservations referencing a nonexistent subnet UUID are not attached and emit a conversion warning.
-- ISC DHCP scopes (OPNsense and pfSense) carry `Source: "isc"`. An empty `Source` is treated as `"isc"` for backward compatibility.
