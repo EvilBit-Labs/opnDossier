@@ -14,9 +14,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestMarkdownBuilder_TemplateParityValidation validates that the new programmatic
-// methods produce equivalent output to what would be expected from templates.
-func TestMarkdownBuilder_TemplateParityValidation(t *testing.T) {
+// TestMarkdownBuilder_ReportContentValidation validates that programmatic report
+// generation produces correct and complete output for various configurations.
+func TestMarkdownBuilder_ReportContentValidation(t *testing.T) {
 	tests := []struct {
 		name         string
 		dataFile     string
