@@ -104,7 +104,6 @@ func setupLightweightContext(cmd *cobra.Command) error {
 	// Use minimal default config - no file loading, no env var processing
 	cfg = &config.Config{
 		Format: "markdown",
-		Engine: "programmatic",
 	}
 
 	// Create minimal command context with default logger

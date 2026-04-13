@@ -199,7 +199,6 @@ func TestLoadConfigFromEnvWithAllFields(t *testing.T) {
 	t.Setenv("OPNDOSSIER_QUIET", "false")
 	t.Setenv("OPNDOSSIER_THEME", "dark")
 	t.Setenv("OPNDOSSIER_FORMAT", "yaml")
-	t.Setenv("OPNDOSSIER_TEMPLATE", "comprehensive")
 	t.Setenv("OPNDOSSIER_SECTIONS", "system,network,firewall")
 	t.Setenv("OPNDOSSIER_WRAP", "80")
 
@@ -214,7 +213,6 @@ func TestLoadConfigFromEnvWithAllFields(t *testing.T) {
 	assert.False(t, cfg.Quiet)
 	assert.Equal(t, "dark", cfg.Theme)
 	assert.Equal(t, "yaml", cfg.Format)
-	assert.Equal(t, "comprehensive", cfg.Template)
 	assert.Equal(t, []string{"system", "network", "firewall"}, cfg.Sections)
 	assert.Equal(t, 80, cfg.WrapWidth)
 }
@@ -306,7 +304,6 @@ func clearEnvironment(_ *testing.T) {
 		"OPNDOSSIER_QUIET",
 		"OPNDOSSIER_THEME",
 		"OPNDOSSIER_FORMAT",
-		"OPNDOSSIER_TEMPLATE",
 		"OPNDOSSIER_SECTIONS",
 		"OPNDOSSIER_WRAP",
 		// Nested config env vars
@@ -315,7 +312,6 @@ func clearEnvironment(_ *testing.T) {
 		"OPNDOSSIER_DISPLAY_SYNTAX_HIGHLIGHTING",
 		"OPNDOSSIER_EXPORT_FORMAT",
 		"OPNDOSSIER_EXPORT_DIRECTORY",
-		"OPNDOSSIER_EXPORT_TEMPLATE",
 		"OPNDOSSIER_EXPORT_BACKUP",
 		"OPNDOSSIER_LOGGING_LEVEL",
 		"OPNDOSSIER_LOGGING_FORMAT",
@@ -342,7 +338,6 @@ display:
 export:
   format: json
   directory: ./output
-  template: comprehensive
   backup: true
 logging:
   level: debug
@@ -366,7 +361,6 @@ validation:
 	// Verify nested export config
 	assert.Equal(t, "json", cfg.Export.Format)
 	assert.Equal(t, "./output", cfg.Export.Directory)
-	assert.Equal(t, "comprehensive", cfg.Export.Template)
 	assert.True(t, cfg.Export.Backup)
 
 	// Verify nested logging config
@@ -394,7 +388,6 @@ func TestNestedConfigDefaults(t *testing.T) {
 	// Verify export defaults
 	assert.Equal(t, "markdown", cfg.Export.Format)
 	assert.Empty(t, cfg.Export.Directory)
-	assert.Empty(t, cfg.Export.Template)
 	assert.False(t, cfg.Export.Backup)
 
 	// Verify logging defaults
@@ -489,7 +482,6 @@ func TestNestedConfigGetters(t *testing.T) {
 		Export: ExportConfig{
 			Format:    "yaml",
 			Directory: "/output",
-			Template:  "full",
 			Backup:    true,
 		},
 		Logging: LoggingConfig{
@@ -510,7 +502,6 @@ func TestNestedConfigGetters(t *testing.T) {
 	// Test Export getters
 	assert.Equal(t, "yaml", cfg.GetExportFormat())
 	assert.Equal(t, "/output", cfg.GetExportDirectory())
-	assert.Equal(t, "full", cfg.GetExportTemplate())
 	assert.True(t, cfg.IsExportBackup())
 
 	// Test Logging getters
@@ -545,7 +536,6 @@ display:
 export:
   format: markdown
   directory: %s
-  template: default
   backup: false
 logging:
   level: info
@@ -563,7 +553,6 @@ validation:
 	t.Setenv("OPNDOSSIER_DISPLAY_SYNTAX_HIGHLIGHTING", "false")
 	t.Setenv("OPNDOSSIER_EXPORT_FORMAT", "json")
 	t.Setenv("OPNDOSSIER_EXPORT_DIRECTORY", envExportDir)
-	t.Setenv("OPNDOSSIER_EXPORT_TEMPLATE", "comprehensive")
 	t.Setenv("OPNDOSSIER_EXPORT_BACKUP", "true")
 	t.Setenv("OPNDOSSIER_LOGGING_LEVEL", "debug")
 	t.Setenv("OPNDOSSIER_LOGGING_FORMAT", "json")
@@ -586,7 +575,6 @@ validation:
 	// Verify env vars override file config for export
 	assert.Equal(t, "json", cfg.Export.Format, "OPNDOSSIER_EXPORT_FORMAT should override file config")
 	assert.Equal(t, envExportDir, cfg.Export.Directory, "OPNDOSSIER_EXPORT_DIRECTORY should override file config")
-	assert.Equal(t, "comprehensive", cfg.Export.Template, "OPNDOSSIER_EXPORT_TEMPLATE should override file config")
 	assert.True(t, cfg.Export.Backup, "OPNDOSSIER_EXPORT_BACKUP should override file config")
 
 	// Verify env vars override file config for logging
@@ -653,7 +641,6 @@ quiet: false
 format: markdown
 theme: auto
 wrap: 120
-engine: programmatic
 display:
   width: 120
   pager: false
@@ -714,7 +701,6 @@ quiet: false
 format: markdown
 theme: auto
 wrap: 120
-engine: programmatic
 display:
   width: 120
   pager: false
@@ -778,7 +764,6 @@ func BenchmarkConfigValidation(b *testing.B) {
 		Format:    "markdown",
 		Theme:     "dark",
 		WrapWidth: 120,
-		Engine:    "programmatic",
 		Display: DisplayConfig{
 			Width:              120,
 			Pager:              false,

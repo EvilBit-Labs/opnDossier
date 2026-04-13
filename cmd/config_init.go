@@ -57,12 +57,6 @@ const configTemplate = `# opnDossier Configuration File
 # Text wrap width (-1 = auto-detect, 0 = no wrap, >0 = specific width)
 # wrap: -1
 
-# Report generation engine: programmatic, template
-# engine: programmatic
-
-# Enable template mode explicitly
-# use_template: false
-
 # Output errors in JSON format for automation
 # json_output: false
 
@@ -96,9 +90,6 @@ const configTemplate = `# opnDossier Configuration File
 #
 #   # Default export directory
 #   directory: ""
-#
-#   # Default export template
-#   template: ""
 #
 #   # Create backup before overwriting
 #   backup: false

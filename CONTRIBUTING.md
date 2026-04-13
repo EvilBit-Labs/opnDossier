@@ -301,8 +301,8 @@ func TestMarkdownBuilder_FilterSystemTunables(t *testing.T) {
 
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
-            builder := converter.NewMarkdownBuilder()
-            result := builder.FilterSystemTunables(tt.tunables, tt.includeTunables)
+            mb := builder.NewMarkdownBuilder()
+            result := mb.FilterSystemTunables(tt.tunables, tt.includeTunables)
             assert.Len(t, result, tt.expected)
         })
     }
@@ -313,12 +313,12 @@ func TestMarkdownBuilder_FilterSystemTunables(t *testing.T) {
 
 ```go
 func BenchmarkMarkdownBuilder_CalculateSecurityScore(b *testing.B) {
-    builder := converter.NewMarkdownBuilder()
+    mb := builder.NewMarkdownBuilder()
     config := loadTestConfig()
 
     b.ResetTimer()
     for i := 0; i < b.N; i++ {
-        _ = builder.CalculateSecurityScore(config)
+        _ = mb.CalculateSecurityScore(config)
     }
 }
 ```
@@ -331,8 +331,8 @@ func TestMarkdownBuilder_BuildStandardReport(t *testing.T) {
     config := loadTestConfig("testdata/sample-config.xml")
 
     // Generate report
-    builder := converter.NewMarkdownBuilder()
-    report, err := builder.BuildStandardReport(config)
+    mb := builder.NewMarkdownBuilder()
+    report, err := mb.BuildStandardReport(config)
 
     // Validate results
     require.NoError(t, err)

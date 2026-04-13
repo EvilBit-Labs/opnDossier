@@ -22,7 +22,6 @@ type DisplayConfig struct {
 type ExportConfig struct {
 	Format    string `mapstructure:"format"`    // Output format (markdown, json, yaml)
 	Directory string `mapstructure:"directory"` // Output directory
-	Template  string `mapstructure:"template"`  // Template name
 	Backup    bool   `mapstructure:"backup"`    // Create backups before overwriting
 }
 
@@ -41,21 +40,18 @@ type ValidationConfig struct {
 // Config holds the configuration for the opnDossier application.
 type Config struct {
 	// Flat fields (backward compatible)
-	InputFile   string   `mapstructure:"input_file"`
-	OutputFile  string   `mapstructure:"output_file"`
-	Verbose     bool     `mapstructure:"verbose"`
-	Debug       bool     `mapstructure:"debug"`
-	Quiet       bool     `mapstructure:"quiet"`
-	Theme       string   `mapstructure:"theme"`
-	Format      string   `mapstructure:"format"`
-	Template    string   `mapstructure:"template"`
-	Sections    []string `mapstructure:"sections"`
-	WrapWidth   int      `mapstructure:"wrap"`
-	Engine      string   `mapstructure:"engine"`       // Generation engine (programmatic, template)
-	UseTemplate bool     `mapstructure:"use_template"` // Explicitly enable template mode
-	JSONOutput  bool     `mapstructure:"json_output"`  // Output errors in JSON format
-	Minimal     bool     `mapstructure:"minimal"`      // Minimal output mode
-	NoProgress  bool     `mapstructure:"no_progress"`  // Disable progress indicators
+	InputFile  string   `mapstructure:"input_file"`
+	OutputFile string   `mapstructure:"output_file"`
+	Verbose    bool     `mapstructure:"verbose"`
+	Debug      bool     `mapstructure:"debug"`
+	Quiet      bool     `mapstructure:"quiet"`
+	Theme      string   `mapstructure:"theme"`
+	Format     string   `mapstructure:"format"`
+	Sections   []string `mapstructure:"sections"`
+	WrapWidth  int      `mapstructure:"wrap"`
+	JSONOutput bool     `mapstructure:"json_output"` // Output errors in JSON format
+	Minimal    bool     `mapstructure:"minimal"`     // Minimal output mode
+	NoProgress bool     `mapstructure:"no_progress"` // Disable progress indicators
 
 	// Nested configuration sections
 	Display    DisplayConfig    `mapstructure:"display"`
@@ -103,11 +99,8 @@ func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 	v.SetDefault("quiet", false)
 	v.SetDefault("theme", "")
 	v.SetDefault("format", "markdown")
-	v.SetDefault("template", "")
 	v.SetDefault("sections", []string{})
 	v.SetDefault("wrap", -1)
-	v.SetDefault("engine", "programmatic") // Default to programmatic mode
-	v.SetDefault("use_template", false)
 	v.SetDefault("json_output", false)
 	v.SetDefault("minimal", false)
 	v.SetDefault("no_progress", false)
@@ -120,7 +113,6 @@ func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 	// Set defaults for nested export config
 	v.SetDefault("export.format", "markdown")
 	v.SetDefault("export.directory", "")
-	v.SetDefault("export.template", "")
 	v.SetDefault("export.backup", false)
 
 	// Set defaults for nested logging config
@@ -145,7 +137,6 @@ func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 		"display.syntax_highlighting":  "DISPLAY_SYNTAX_HIGHLIGHTING",
 		"export.format":                "EXPORT_FORMAT",
 		"export.directory":             "EXPORT_DIRECTORY",
-		"export.template":              "EXPORT_TEMPLATE",
 		"export.backup":                "EXPORT_BACKUP",
 		"logging.level":                "LOGGING_LEVEL",
 		"logging.format":               "LOGGING_FORMAT",
@@ -185,14 +176,6 @@ func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 	cfg := &Config{}
 	if err := v.Unmarshal(cfg); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
-	}
-
-	// Normalize engine value after loading
-	if cfg.Engine != "" {
-		normalizedEngine := strings.ToLower(strings.TrimSpace(cfg.Engine))
-		cfg.Engine = normalizedEngine
-		// Update the viper instance to reflect the normalized value
-		v.Set("engine", normalizedEngine)
 	}
 
 	// Validate the configuration
@@ -296,11 +279,6 @@ func (c *Config) GetFormat() string {
 	return c.Format
 }
 
-// GetTemplate returns the configured template name.
-func (c *Config) GetTemplate() string {
-	return c.Template
-}
-
 // GetSections returns the configured sections to include.
 func (c *Config) GetSections() []string {
 	return c.Sections
@@ -309,16 +287,6 @@ func (c *Config) GetSections() []string {
 // GetWrapWidth returns the configured wrap width.
 func (c *Config) GetWrapWidth() int {
 	return c.WrapWidth
-}
-
-// GetEngine returns the configured generation engine.
-func (c *Config) GetEngine() string {
-	return c.Engine
-}
-
-// IsUseTemplate returns true if template mode is explicitly enabled.
-func (c *Config) IsUseTemplate() bool {
-	return c.UseTemplate
 }
 
 // IsJSONOutput returns true if JSON output mode is enabled.
@@ -359,11 +327,6 @@ func (c *Config) GetExportFormat() string {
 // GetExportDirectory returns the configured export directory.
 func (c *Config) GetExportDirectory() string {
 	return c.Export.Directory
-}
-
-// GetExportTemplate returns the configured export template.
-func (c *Config) GetExportTemplate() string {
-	return c.Export.Template
 }
 
 // IsExportBackup returns true if backup is enabled for exports.

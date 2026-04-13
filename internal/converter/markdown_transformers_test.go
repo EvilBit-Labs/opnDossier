@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMarkdownBuilder_FilterSystemTunables(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	mb := builder.NewMarkdownBuilder()
 
 	tunables := []common.SysctlItem{
 		{Tunable: "net.inet.ip.forwarding", Value: "0", Description: "IP forwarding"},
@@ -60,7 +61,7 @@ func TestMarkdownBuilder_FilterSystemTunables(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := builder.FilterSystemTunables(tunables, tt.includeTunables)
+			result := mb.FilterSystemTunables(tunables, tt.includeTunables)
 
 			assert.Len(t, result, tt.expectedCount)
 
@@ -78,17 +79,17 @@ func TestMarkdownBuilder_FilterSystemTunables(t *testing.T) {
 }
 
 func TestMarkdownBuilder_FilterSystemTunables_EmptyInput(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	mb := builder.NewMarkdownBuilder()
 
-	result := builder.FilterSystemTunables([]common.SysctlItem{}, false)
+	result := mb.FilterSystemTunables([]common.SysctlItem{}, false)
 	assert.Empty(t, result)
 
-	result = builder.FilterSystemTunables([]common.SysctlItem{}, true)
+	result = mb.FilterSystemTunables([]common.SysctlItem{}, true)
 	assert.Empty(t, result)
 }
 
 func TestMarkdownBuilder_FilterSystemTunables_EdgeCases(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	mb := builder.NewMarkdownBuilder()
 
 	tests := []struct {
 		name            string
@@ -133,7 +134,7 @@ func TestMarkdownBuilder_FilterSystemTunables_EdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := builder.FilterSystemTunables(tt.input, tt.includeTunables)
+			result := mb.FilterSystemTunables(tt.input, tt.includeTunables)
 			assert.Equal(t, tt.expected, result)
 
 			// Verify it's a copy when include all is true
@@ -149,7 +150,7 @@ func TestMarkdownBuilder_FilterSystemTunables_EdgeCases(t *testing.T) {
 }
 
 func TestMarkdownBuilder_AggregatePackageStats(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	mb := builder.NewMarkdownBuilder()
 
 	packages := []common.Package{
 		{Name: "vim", Installed: true, Locked: false, Automatic: false},
@@ -159,7 +160,7 @@ func TestMarkdownBuilder_AggregatePackageStats(t *testing.T) {
 		{Name: "nano", Installed: true, Locked: true, Automatic: true},
 	}
 
-	result := builder.AggregatePackageStats(packages)
+	result := mb.AggregatePackageStats(packages)
 
 	assert.Equal(t, 5, result["total"])
 	assert.Equal(t, 4, result["installed"])
@@ -168,9 +169,9 @@ func TestMarkdownBuilder_AggregatePackageStats(t *testing.T) {
 }
 
 func TestMarkdownBuilder_AggregatePackageStats_EmptyInput(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	mb := builder.NewMarkdownBuilder()
 
-	result := builder.AggregatePackageStats([]common.Package{})
+	result := mb.AggregatePackageStats([]common.Package{})
 	expected := map[string]int{
 		"total":     0,
 		"installed": 0,
@@ -181,14 +182,14 @@ func TestMarkdownBuilder_AggregatePackageStats_EmptyInput(t *testing.T) {
 }
 
 func TestMarkdownBuilder_AggregatePackageStats_AllFalse(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	mb := builder.NewMarkdownBuilder()
 
 	packages := []common.Package{
 		{Name: "pkg1", Installed: false, Locked: false, Automatic: false},
 		{Name: "pkg2", Installed: false, Locked: false, Automatic: false},
 	}
 
-	result := builder.AggregatePackageStats(packages)
+	result := mb.AggregatePackageStats(packages)
 	assert.Equal(t, 2, result["total"])
 	assert.Equal(t, 0, result["installed"])
 	assert.Equal(t, 0, result["locked"])
@@ -196,7 +197,7 @@ func TestMarkdownBuilder_AggregatePackageStats_AllFalse(t *testing.T) {
 }
 
 func TestMarkdownBuilder_AggregatePackageStats_EdgeCases(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	mb := builder.NewMarkdownBuilder()
 
 	tests := []struct {
 		name     string
@@ -249,7 +250,7 @@ func TestMarkdownBuilder_AggregatePackageStats_EdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := builder.AggregatePackageStats(tt.input)
+			result := mb.AggregatePackageStats(tt.input)
 
 			if tt.isNil {
 				assert.Nil(t, result)
@@ -262,7 +263,7 @@ func TestMarkdownBuilder_AggregatePackageStats_EdgeCases(t *testing.T) {
 }
 
 func TestMarkdownBuilder_FilterRulesByType(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	mb := builder.NewMarkdownBuilder()
 
 	rules := []common.FirewallRule{
 		{Type: common.RuleTypePass, Description: "Allow HTTP"},
@@ -318,7 +319,7 @@ func TestMarkdownBuilder_FilterRulesByType(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := builder.FilterRulesByType(rules, tt.ruleType)
+			result := mb.FilterRulesByType(rules, tt.ruleType)
 
 			assert.Len(t, result, tt.expectedCount)
 
@@ -337,17 +338,17 @@ func TestMarkdownBuilder_FilterRulesByType(t *testing.T) {
 }
 
 func TestMarkdownBuilder_FilterRulesByType_EmptyInput(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	mb := builder.NewMarkdownBuilder()
 
-	result := builder.FilterRulesByType([]common.FirewallRule{}, "pass")
+	result := mb.FilterRulesByType([]common.FirewallRule{}, "pass")
 	assert.Empty(t, result)
 
-	result = builder.FilterRulesByType([]common.FirewallRule{}, "")
+	result = mb.FilterRulesByType([]common.FirewallRule{}, "")
 	assert.Empty(t, result)
 }
 
 func TestMarkdownBuilder_FilterRulesByType_EdgeCases(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	mb := builder.NewMarkdownBuilder()
 
 	tests := []struct {
 		name         string
@@ -404,7 +405,7 @@ func TestMarkdownBuilder_FilterRulesByType_EdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := builder.FilterRulesByType(tt.input, tt.ruleType)
+			result := mb.FilterRulesByType(tt.input, tt.ruleType)
 
 			if tt.shouldBeNil {
 				assert.Nil(t, result)
@@ -426,7 +427,7 @@ func TestMarkdownBuilder_FilterRulesByType_EdgeCases(t *testing.T) {
 }
 
 func TestMarkdownBuilder_ExtractUniqueValues(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	mb := builder.NewMarkdownBuilder()
 
 	tests := []struct {
 		name     string
@@ -467,14 +468,14 @@ func TestMarkdownBuilder_ExtractUniqueValues(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := builder.ExtractUniqueValues(tt.input)
+			result := mb.ExtractUniqueValues(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
 
 func TestMarkdownBuilder_ExtractUniqueValues_EdgeCases(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	mb := builder.NewMarkdownBuilder()
 
 	tests := []struct {
 		name        string
@@ -526,7 +527,7 @@ func TestMarkdownBuilder_ExtractUniqueValues_EdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := builder.ExtractUniqueValues(tt.input)
+			result := mb.ExtractUniqueValues(tt.input)
 
 			if tt.shouldBeNil {
 				assert.Nil(t, result)
@@ -539,7 +540,7 @@ func TestMarkdownBuilder_ExtractUniqueValues_EdgeCases(t *testing.T) {
 }
 
 func TestMarkdownBuilder_ExtractUniqueValues_PreservesOrder(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	mb := builder.NewMarkdownBuilder()
 
 	// Test that the result is always sorted regardless of input order
 	inputs := [][]string{
@@ -552,7 +553,7 @@ func TestMarkdownBuilder_ExtractUniqueValues_PreservesOrder(t *testing.T) {
 
 	for i, input := range inputs {
 		t.Run(fmt.Sprintf("Order test %d", i+1), func(t *testing.T) {
-			result := builder.ExtractUniqueValues(input)
+			result := mb.ExtractUniqueValues(input)
 			assert.Equal(t, expected, result)
 		})
 	}
@@ -561,7 +562,7 @@ func TestMarkdownBuilder_ExtractUniqueValues_PreservesOrder(t *testing.T) {
 // Performance tests for large datasets
 
 func BenchmarkFilterSystemTunables(b *testing.B) {
-	builder := NewMarkdownBuilder()
+	mb := builder.NewMarkdownBuilder()
 
 	// Generate large dataset
 	tunables := make([]common.SysctlItem, 10000)
@@ -575,12 +576,12 @@ func BenchmarkFilterSystemTunables(b *testing.B) {
 
 	b.ResetTimer()
 	for b.Loop() {
-		builder.FilterSystemTunables(tunables, false)
+		mb.FilterSystemTunables(tunables, false)
 	}
 }
 
 func BenchmarkAggregatePackageStats(b *testing.B) {
-	builder := NewMarkdownBuilder()
+	mb := builder.NewMarkdownBuilder()
 
 	// Generate large dataset
 	packages := make([]common.Package, 20000)
@@ -595,12 +596,12 @@ func BenchmarkAggregatePackageStats(b *testing.B) {
 
 	b.ResetTimer()
 	for b.Loop() {
-		builder.AggregatePackageStats(packages)
+		mb.AggregatePackageStats(packages)
 	}
 }
 
 func BenchmarkFilterRulesByType(b *testing.B) {
-	builder := NewMarkdownBuilder()
+	mb := builder.NewMarkdownBuilder()
 
 	// Generate large dataset
 	rules := make([]common.FirewallRule, 10000)
@@ -614,12 +615,12 @@ func BenchmarkFilterRulesByType(b *testing.B) {
 
 	b.ResetTimer()
 	for b.Loop() {
-		builder.FilterRulesByType(rules, "pass")
+		mb.FilterRulesByType(rules, "pass")
 	}
 }
 
 func BenchmarkExtractUniqueValues(b *testing.B) {
-	builder := NewMarkdownBuilder()
+	mb := builder.NewMarkdownBuilder()
 
 	// Generate large dataset with duplicates
 	items := make([]string, 50000)
@@ -630,6 +631,6 @@ func BenchmarkExtractUniqueValues(b *testing.B) {
 
 	b.ResetTimer()
 	for b.Loop() {
-		builder.ExtractUniqueValues(items)
+		mb.ExtractUniqueValues(items)
 	}
 }

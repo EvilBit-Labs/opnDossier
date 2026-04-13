@@ -63,19 +63,19 @@ Element contains `1`, `yes`, or a specific value. Absent or empty = false.
 
 **Go type:** `string` with value check, or potentially a custom type
 
-| Element                  | Parent                   | Values | Notes                                                                                            |
-| ------------------------ | ------------------------ | ------ | ------------------------------------------------------------------------------------------------ |
-| `<enable>`               | `<interfaces><wan>`      | `1`    | pfSense: presence-based (see §1a). OPNsense: value-based. pfSense parser uses BoolFlag fork     |
-| `<enable>`               | `<dhcpd><lan>`           | `1`    | pfSense: presence-based (see §1a). OPNsense: value-based. pfSense parser uses BoolFlag fork     |
-| `<blockpriv>`            | `<interfaces><wan>`      | `1`    | Block private networks                                                                           |
-| `<blockbogons>`          | `<interfaces><wan>`      | `1`    | Block bogon networks     |
-| `<dnsallowoverride>`     | `<system>`               | `1`    | Allow DNS override       |
-| `<ipv6allow>`            | `<system>`               | `1`    | IPv6 enabled             |
-| `<usevirtualterminal>`   | `<system>`               | `1`    | Virtual terminal         |
-| `<pf_share_forward>`     | `<system>`               | `1`    | Shared forwarding        |
-| `<lb_use_sticky>`        | `<system>`               | `1`    | Sticky load balancing    |
-| `<disablenatreflection>` | `<system>`               | `yes`  | NAT reflection disabled  |
-| `<enable>`               | various OPNsense modules | `1`    | Service/feature enabled  |
+| Element                  | Parent                   | Values | Notes                                                                                       |
+| ------------------------ | ------------------------ | ------ | ------------------------------------------------------------------------------------------- |
+| `<enable>`               | `<interfaces><wan>`      | `1`    | pfSense: presence-based (see §1a). OPNsense: value-based. pfSense parser uses BoolFlag fork |
+| `<enable>`               | `<dhcpd><lan>`           | `1`    | pfSense: presence-based (see §1a). OPNsense: value-based. pfSense parser uses BoolFlag fork |
+| `<blockpriv>`            | `<interfaces><wan>`      | `1`    | Block private networks                                                                      |
+| `<blockbogons>`          | `<interfaces><wan>`      | `1`    | Block bogon networks                                                                        |
+| `<dnsallowoverride>`     | `<system>`               | `1`    | Allow DNS override                                                                          |
+| `<ipv6allow>`            | `<system>`               | `1`    | IPv6 enabled                                                                                |
+| `<usevirtualterminal>`   | `<system>`               | `1`    | Virtual terminal                                                                            |
+| `<pf_share_forward>`     | `<system>`               | `1`    | Shared forwarding                                                                           |
+| `<lb_use_sticky>`        | `<system>`               | `1`    | Sticky load balancing                                                                       |
+| `<disablenatreflection>` | `<system>`               | `yes`  | NAT reflection disabled                                                                     |
+| `<enable>`               | various OPNsense modules | `1`    | Service/feature enabled                                                                     |
 
 ### 1c. Design Rationale
 
@@ -323,10 +323,10 @@ The following fields use OPNsense MVC value-based semantics where `<field>0</fie
 
 pfSense and OPNsense use different boolean semantics for interface and DHCP scope enable flags:
 
-| Struct           | Field  | pfSense Type      | OPNsense Type | Rationale                                                                                                                                                                                                                              |
-| ---------------- | ------ | ----------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Interface        | Enable | `opnsense.BoolFlag` | `string`      | pfSense: presence-based `<enable/>` / absent. OPNsense: value-based `<enable>1</enable>`. pfSense parser uses platform-specific type fork (`pkg/schema/pfsense/interfaces.go`) with BoolFlag, converts to `"1"` for API compatibility |
-| DhcpdInterface   | Enable | `opnsense.BoolFlag` | `string`      | pfSense: presence-based `<enable/>` / absent. OPNsense: value-based `<enable>1</enable>`. pfSense parser uses platform-specific type fork (`pkg/schema/pfsense/dhcp.go`) with BoolFlag, converts to `"1"` for API compatibility       |
+| Struct         | Field  | pfSense Type        | OPNsense Type | Rationale                                                                                                                                                                                                                             |
+| -------------- | ------ | ------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Interface      | Enable | `opnsense.BoolFlag` | `string`      | pfSense: presence-based `<enable/>` / absent. OPNsense: value-based `<enable>1</enable>`. pfSense parser uses platform-specific type fork (`pkg/schema/pfsense/interfaces.go`) with BoolFlag, converts to `"1"` for API compatibility |
+| DhcpdInterface | Enable | `opnsense.BoolFlag` | `string`      | pfSense: presence-based `<enable/>` / absent. OPNsense: value-based `<enable>1</enable>`. pfSense parser uses platform-specific type fork (`pkg/schema/pfsense/dhcp.go`) with BoolFlag, converts to `"1"` for API compatibility       |
 
 **Implementation:** The pfSense parser uses an intermediate `decodeDocument` type (`pkg/parser/pfsense/decode_types.go`) that decodes XML with BoolFlag-aware pfsense.Interface and pfsense.DhcpdInterface types, then converts to backward-compatible opnsense.Interfaces/opnsense.Dhcpd with string Enable fields set to `"1"` (enabled) or `""` (disabled).
 
@@ -428,10 +428,12 @@ Correctly handle dynamic interface element names via custom `UnmarshalXML`/`Mars
 The pfSense parser uses a two-stage architecture for correct presence-based boolean handling:
 
 1. **Decode stage:** XML is decoded into an intermediate `decodeDocument` type (defined in `pkg/parser/pfsense/decode_types.go`) that uses platform-specific types with BoolFlag-aware Enable fields:
+
    - `pfsense.Interface` with `Enable opnsense.BoolFlag` (from `pkg/schema/pfsense/interfaces.go`)
    - `pfsense.DhcpdInterface` with `Enable opnsense.BoolFlag` (from `pkg/schema/pfsense/dhcp.go`)
 
 2. **Conversion stage:** The intermediate document is converted to a `pfsense.Document` with backward-compatible opnsense types via `toDocument()`:
+
    - BoolFlag Enable fields are transformed to string: `true` → `"1"`, `false` → `""`
    - This preserves API compatibility with existing consumers expecting string Enable fields
 

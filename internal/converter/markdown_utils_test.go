@@ -4,12 +4,13 @@ import (
 	"reflect"
 	"testing"
 
+	builderPkg "github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 func TestMarkdownBuilder_EscapeTableContent(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	tests := []struct {
 		name     string
@@ -114,7 +115,7 @@ func TestMarkdownBuilder_EscapeTableContent(t *testing.T) {
 }
 
 func TestMarkdownBuilder_TruncateDescription(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	tests := []struct {
 		name        string
@@ -183,7 +184,7 @@ func TestMarkdownBuilder_TruncateDescription(t *testing.T) {
 }
 
 func TestMarkdownBuilder_IsLastInSlice(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	tests := []struct {
 		name     string
@@ -252,7 +253,7 @@ func TestMarkdownBuilder_IsLastInSlice(t *testing.T) {
 }
 
 func TestMarkdownBuilder_DefaultValue(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	tests := []struct {
 		name       string
@@ -327,7 +328,7 @@ func TestMarkdownBuilder_DefaultValue(t *testing.T) {
 }
 
 func TestMarkdownBuilder_IsEmpty(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	tests := []struct {
 		name     string
@@ -378,7 +379,7 @@ func TestMarkdownBuilder_IsEmpty(t *testing.T) {
 }
 
 func TestMarkdownBuilder_StringOperations(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	tests := []struct {
 		name    string
@@ -433,7 +434,7 @@ func TestMarkdownBuilder_StringOperations(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BoolToString(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	tests := []struct {
 		name     string
@@ -463,7 +464,7 @@ func TestMarkdownBuilder_BoolToString(t *testing.T) {
 }
 
 func TestMarkdownBuilder_FormatBytes(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	tests := []struct {
 		name     string
@@ -518,7 +519,7 @@ func TestMarkdownBuilder_FormatBytes(t *testing.T) {
 }
 
 func TestMarkdownBuilder_SanitizeID(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	tests := []struct {
 		name     string
@@ -589,7 +590,7 @@ func TestNewMarkdownBuilderWithConfig(t *testing.T) {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
 
-	builder := NewMarkdownBuilderWithConfig(config, logger)
+	builder := builderPkg.NewMarkdownBuilderWithConfig(config, logger)
 	if builder == nil {
 		t.Error("Expected builder to be created")
 	}
@@ -597,7 +598,7 @@ func TestNewMarkdownBuilderWithConfig(t *testing.T) {
 	// The builder is configured correctly but we cannot directly access the fields
 
 	// Test with nil logger - builder should handle nil logger gracefully
-	builder2 := NewMarkdownBuilderWithConfig(config, nil)
+	builder2 := builderPkg.NewMarkdownBuilderWithConfig(config, nil)
 	if builder2 == nil {
 		t.Error("Expected builder to be created even with nil logger")
 	}
@@ -605,7 +606,7 @@ func TestNewMarkdownBuilderWithConfig(t *testing.T) {
 
 // Benchmark tests.
 func BenchmarkEscapeTableContent(b *testing.B) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 	content := "hello | world\nwith some | pipes and\nnewlines"
 
 	b.ResetTimer()
@@ -615,7 +616,7 @@ func BenchmarkEscapeTableContent(b *testing.B) {
 }
 
 func BenchmarkTruncateDescription(b *testing.B) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 	description := "This is a very long description that needs to be truncated at word boundaries when possible"
 
 	b.ResetTimer()
@@ -625,7 +626,7 @@ func BenchmarkTruncateDescription(b *testing.B) {
 }
 
 func BenchmarkIsEmpty(b *testing.B) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 	testValues := []any{
 		"",
 		"hello",

@@ -3,12 +3,13 @@ package converter
 import (
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMarkdownBuilder_AssessRiskLevel(t *testing.T) {
-	b := NewMarkdownBuilder()
+	b := builder.NewMarkdownBuilder()
 
 	tests := map[string]string{
 		"critical":      "🔴 Critical Risk",
@@ -39,7 +40,7 @@ func TestMarkdownBuilder_AssessRiskLevel(t *testing.T) {
 }
 
 func TestMarkdownBuilder_AssessServiceRisk(t *testing.T) {
-	b := NewMarkdownBuilder()
+	b := builder.NewMarkdownBuilder()
 
 	tests := []struct {
 		name         string
@@ -122,7 +123,7 @@ func TestMarkdownBuilder_AssessServiceRisk(t *testing.T) {
 }
 
 func TestMarkdownBuilder_CalculateSecurityScore(t *testing.T) {
-	b := NewMarkdownBuilder()
+	b := builder.NewMarkdownBuilder()
 
 	t.Run("nil configuration", func(t *testing.T) {
 		score := b.CalculateSecurityScore(nil)

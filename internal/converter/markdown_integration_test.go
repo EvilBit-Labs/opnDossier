@@ -149,7 +149,7 @@ func TestMarkdownBuilder_TemplateParityValidation(t *testing.T) {
 			testData := loadTestDataFromFile(t, tt.dataFile)
 
 			// Generate standard report (include all tunables to test escaping)
-			builder := NewMarkdownBuilder()
+			builder := builderPkg.NewMarkdownBuilder()
 			builder.SetIncludeTunables(true)
 			standardOutput, err := builder.BuildStandardReport(testData)
 			require.NoError(t, err)
@@ -174,7 +174,7 @@ func TestMarkdownBuilder_TemplateParityValidation(t *testing.T) {
 // work together correctly and share data appropriately.
 func TestMarkdownBuilder_CrossMethodInteraction(t *testing.T) {
 	testData := loadTestDataFromFile(t, "complete.json")
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	// Test that section builders can be used independently
 	systemSection := builder.BuildSystemSection(testData)
@@ -219,7 +219,7 @@ func TestMarkdownBuilder_CrossMethodInteraction(t *testing.T) {
 
 // TestMarkdownBuilder_ErrorHandling tests comprehensive error handling.
 func TestMarkdownBuilder_ErrorHandling(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	tests := []struct {
 		name     string
@@ -287,7 +287,7 @@ func TestMarkdownBuilder_LargeDatasetHandling(t *testing.T) {
 
 	// Generate large test data
 	largeData := generateLargeTestData(t)
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	// Test that large datasets can be processed
 	result, err := builder.BuildStandardReport(largeData)
@@ -309,7 +309,7 @@ func TestMarkdownBuilder_LargeDatasetHandling(t *testing.T) {
 // TestMarkdownBuilder_MarkdownValidation tests that generated markdown is valid.
 func TestMarkdownBuilder_MarkdownValidation(t *testing.T) {
 	testData := loadTestDataFromFile(t, "complete.json")
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	reports := map[string]string{}
 
