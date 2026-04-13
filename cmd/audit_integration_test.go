@@ -20,7 +20,6 @@ const (
 	testAuditModeRed   = "red"
 	testFormatMarkdown = "markdown"
 	testFormatJSON     = "json"
-	testEngineProg     = "programmatic"
 )
 
 // TestRunAuditWithRealXML exercises the full runAudit pipeline with a real
@@ -54,7 +53,6 @@ func TestRunAuditWithRealXML(t *testing.T) {
 
 	cfg := &config.Config{
 		Format: testFormatJSON,
-		Engine: testEngineProg,
 	}
 
 	var stdout bytes.Buffer
@@ -97,7 +95,6 @@ func TestRunAuditMissingFile(t *testing.T) {
 
 	cfg := &config.Config{
 		Format: testFormatMarkdown,
-		Engine: testEngineProg,
 	}
 
 	cmd := &cobra.Command{Use: "test"}
@@ -163,7 +160,6 @@ func TestRunAuditFileOutput(t *testing.T) {
 
 	cfg := &config.Config{
 		Format: testFormatMarkdown,
-		Engine: testEngineProg,
 	}
 
 	cmd := &cobra.Command{Use: "test"}
@@ -213,7 +209,6 @@ func TestRunAuditRedMode(t *testing.T) {
 
 	cfg := &config.Config{
 		Format: testFormatMarkdown,
-		Engine: testEngineProg,
 	}
 
 	cmd := &cobra.Command{Use: "test"}
@@ -268,7 +263,6 @@ func TestRunAuditMultiFile(t *testing.T) {
 
 	cfg := &config.Config{
 		Format: testFormatMarkdown,
-		Engine: testEngineProg,
 	}
 
 	// Use a temp dir as working directory so auto-named files go there
@@ -323,7 +317,6 @@ func TestGenerateAuditOutput(t *testing.T) {
 
 	cfg := &config.Config{
 		Format: testFormatMarkdown,
-		Engine: testEngineProg,
 	}
 
 	ctx := context.Background()
@@ -350,7 +343,6 @@ func TestGenerateAuditOutputInvalidFile(t *testing.T) {
 
 	cfg := &config.Config{
 		Format: testFormatMarkdown,
-		Engine: testEngineProg,
 	}
 
 	ctx := context.Background()

@@ -133,7 +133,6 @@ Built-in validation against security and operational best practices.
 - **Multi-format export** - Generate markdown documentation, JSON, or YAML output
 - **Terminal display** - Rich terminal output with syntax highlighting and theme support
 - **File export** - Save processed configurations with overwrite protection
-- **Template-based reports** - Customizable markdown templates (legacy, deprecated v3.0)
 - **International character support** - UTF-8, US-ASCII, ISO-8859-1, and Windows-1252 input encodings
 
 ### Performance & Architecture

@@ -41,7 +41,6 @@ func TestLoadConfig(t *testing.T) {
 input_file: ""
 output_file: ""
 verbose: false
-engine: "programmatic"
 `
 				if err := os.WriteFile(cfgPath, []byte(content), 0o600); err != nil {
 					t.Fatalf("Failed to create config file: %v", err)
@@ -419,64 +418,10 @@ func TestWrapWidthValidationIndirectly(t *testing.T) {
 	}
 }
 
-// TestEngineValidationIndirectly tests engine validation through the main Validate method.
-func TestEngineValidationIndirectly(t *testing.T) {
-	tests := []struct {
-		name        string
-		engine      string
-		expectError bool
-	}{
-		{
-			name:        "empty engine",
-			engine:      "",
-			expectError: false,
-		},
-		{
-			name:        "programmatic engine",
-			engine:      "programmatic",
-			expectError: false,
-		},
-		{
-			name:        "template engine",
-			engine:      "template",
-			expectError: false,
-		},
-		{
-			name:        "case insensitive programmatic",
-			engine:      "PROGRAMMATIC",
-			expectError: false,
-		},
-		{
-			name:        "case insensitive template",
-			engine:      "TEMPLATE",
-			expectError: false,
-		},
-		{
-			name:        "invalid engine",
-			engine:      "invalid",
-			expectError: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			config := Config{Engine: tt.engine}
-			err := config.Validate()
-
-			if tt.expectError {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
-}
-
 // TestCombineValidationErrorsIndirectly tests the validation error combination indirectly.
 func TestCombineValidationErrorsIndirectly(t *testing.T) {
 	// Test by creating a config with multiple validation errors
 	config := Config{
-		Engine:    "invalid",
 		Format:    "badformat",
 		Theme:     "badtheme",
 		WrapWidth: -2,
@@ -493,13 +438,10 @@ func TestCombineValidationErrorsIndirectly(t *testing.T) {
 // TestConfigGetterMethods tests all the getter methods with 0% coverage.
 func TestConfigGetterMethods(t *testing.T) {
 	cfg := &Config{
-		Theme:       "dark",
-		Format:      "json",
-		Template:    "comprehensive",
-		Sections:    []string{"system", "network"},
-		WrapWidth:   120,
-		Engine:      "template",
-		UseTemplate: true,
+		Theme:     "dark",
+		Format:    "json",
+		Sections:  []string{"system", "network"},
+		WrapWidth: 120,
 	}
 
 	// Test IsVerbose and IsQuiet
@@ -519,20 +461,11 @@ func TestConfigGetterMethods(t *testing.T) {
 	// Test GetFormat
 	assert.Equal(t, "json", cfg.GetFormat())
 
-	// Test GetTemplate
-	assert.Equal(t, "comprehensive", cfg.GetTemplate())
-
 	// Test GetSections
 	assert.Equal(t, []string{"system", "network"}, cfg.GetSections())
 
 	// Test GetWrapWidth
 	assert.Equal(t, 120, cfg.GetWrapWidth())
-
-	// Test GetEngine
-	assert.Equal(t, "template", cfg.GetEngine())
-
-	// Test IsUseTemplate
-	assert.True(t, cfg.IsUseTemplate())
 }
 
 // TestConfigGetterMethodsWithDefaults tests getter methods with default values.
@@ -544,11 +477,8 @@ func TestConfigGetterMethodsWithDefaults(t *testing.T) {
 	assert.False(t, cfg.IsQuiet())
 	assert.Empty(t, cfg.GetTheme())
 	assert.Empty(t, cfg.GetFormat())
-	assert.Empty(t, cfg.GetTemplate())
 	assert.Nil(t, cfg.GetSections())
 	assert.Equal(t, 0, cfg.GetWrapWidth())
-	assert.Empty(t, cfg.GetEngine())
-	assert.False(t, cfg.IsUseTemplate())
 }
 
 // TestLoadConfigWithViperErrors tests error scenarios in LoadConfigWithViper.
@@ -588,7 +518,6 @@ invalid: yaml: syntax:
 verbose: true
 quiet: true
 wrap: -1
-engine: "invalid"
 theme: "badtheme"
 format: "badformat"
 `
@@ -617,79 +546,6 @@ format: "badformat"
 			} else {
 				require.NoError(t, err)
 				require.NotNil(t, cfg)
-			}
-		})
-	}
-}
-
-// TestEngineValidationNew tests the new engine validation added in the changes.
-func TestEngineValidationNew(t *testing.T) {
-	tests := []struct {
-		name      string
-		cfg       *Config
-		expectErr bool
-	}{
-		{
-			name: "valid programmatic engine",
-			cfg: &Config{
-				Engine: "programmatic",
-			},
-			expectErr: false,
-		},
-		{
-			name: "valid template engine",
-			cfg: &Config{
-				Engine: "template",
-			},
-			expectErr: false,
-		},
-		{
-			name: "empty engine is valid (defaults to programmatic)",
-			cfg: &Config{
-				Engine: "",
-			},
-			expectErr: false,
-		},
-		{
-			name: "invalid engine should fail validation",
-			cfg: &Config{
-				Engine: "invalid",
-			},
-			expectErr: true,
-		},
-		{
-			name: "case insensitive engine validation",
-			cfg: &Config{
-				Engine: "TEMPLATE",
-			},
-			expectErr: false,
-		},
-		{
-			name: "whitespace trimming engine validation",
-			cfg: &Config{
-				Engine: " template ",
-			},
-			expectErr: false,
-		},
-		{
-			name: "whitespace trimming with invalid engine shows trimmed value in error",
-			cfg: &Config{
-				Engine: " invalid ",
-			},
-			expectErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := tt.cfg.Validate()
-			hasErr := err != nil
-			if hasErr != tt.expectErr {
-				if tt.expectErr {
-					t.Errorf("Expected validation error for engine '%s', but got none", tt.cfg.Engine)
-				} else {
-					t.Errorf("Unexpected validation error for engine '%s': %v", tt.cfg.Engine, err)
-				}
 			}
 		})
 	}

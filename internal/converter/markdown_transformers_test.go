@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"testing"
 
+	builderPkg "github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMarkdownBuilder_FilterSystemTunables(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	tunables := []common.SysctlItem{
 		{Tunable: "net.inet.ip.forwarding", Value: "0", Description: "IP forwarding"},
@@ -78,7 +79,7 @@ func TestMarkdownBuilder_FilterSystemTunables(t *testing.T) {
 }
 
 func TestMarkdownBuilder_FilterSystemTunables_EmptyInput(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	result := builder.FilterSystemTunables([]common.SysctlItem{}, false)
 	assert.Empty(t, result)
@@ -88,7 +89,7 @@ func TestMarkdownBuilder_FilterSystemTunables_EmptyInput(t *testing.T) {
 }
 
 func TestMarkdownBuilder_FilterSystemTunables_EdgeCases(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	tests := []struct {
 		name            string
@@ -149,7 +150,7 @@ func TestMarkdownBuilder_FilterSystemTunables_EdgeCases(t *testing.T) {
 }
 
 func TestMarkdownBuilder_AggregatePackageStats(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	packages := []common.Package{
 		{Name: "vim", Installed: true, Locked: false, Automatic: false},
@@ -168,7 +169,7 @@ func TestMarkdownBuilder_AggregatePackageStats(t *testing.T) {
 }
 
 func TestMarkdownBuilder_AggregatePackageStats_EmptyInput(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	result := builder.AggregatePackageStats([]common.Package{})
 	expected := map[string]int{
@@ -181,7 +182,7 @@ func TestMarkdownBuilder_AggregatePackageStats_EmptyInput(t *testing.T) {
 }
 
 func TestMarkdownBuilder_AggregatePackageStats_AllFalse(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	packages := []common.Package{
 		{Name: "pkg1", Installed: false, Locked: false, Automatic: false},
@@ -196,7 +197,7 @@ func TestMarkdownBuilder_AggregatePackageStats_AllFalse(t *testing.T) {
 }
 
 func TestMarkdownBuilder_AggregatePackageStats_EdgeCases(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	tests := []struct {
 		name     string
@@ -262,7 +263,7 @@ func TestMarkdownBuilder_AggregatePackageStats_EdgeCases(t *testing.T) {
 }
 
 func TestMarkdownBuilder_FilterRulesByType(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	rules := []common.FirewallRule{
 		{Type: common.RuleTypePass, Description: "Allow HTTP"},
@@ -337,7 +338,7 @@ func TestMarkdownBuilder_FilterRulesByType(t *testing.T) {
 }
 
 func TestMarkdownBuilder_FilterRulesByType_EmptyInput(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	result := builder.FilterRulesByType([]common.FirewallRule{}, "pass")
 	assert.Empty(t, result)
@@ -347,7 +348,7 @@ func TestMarkdownBuilder_FilterRulesByType_EmptyInput(t *testing.T) {
 }
 
 func TestMarkdownBuilder_FilterRulesByType_EdgeCases(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	tests := []struct {
 		name         string
@@ -426,7 +427,7 @@ func TestMarkdownBuilder_FilterRulesByType_EdgeCases(t *testing.T) {
 }
 
 func TestMarkdownBuilder_ExtractUniqueValues(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	tests := []struct {
 		name     string
@@ -474,7 +475,7 @@ func TestMarkdownBuilder_ExtractUniqueValues(t *testing.T) {
 }
 
 func TestMarkdownBuilder_ExtractUniqueValues_EdgeCases(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	tests := []struct {
 		name        string
@@ -539,7 +540,7 @@ func TestMarkdownBuilder_ExtractUniqueValues_EdgeCases(t *testing.T) {
 }
 
 func TestMarkdownBuilder_ExtractUniqueValues_PreservesOrder(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	// Test that the result is always sorted regardless of input order
 	inputs := [][]string{
@@ -561,7 +562,7 @@ func TestMarkdownBuilder_ExtractUniqueValues_PreservesOrder(t *testing.T) {
 // Performance tests for large datasets
 
 func BenchmarkFilterSystemTunables(b *testing.B) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	// Generate large dataset
 	tunables := make([]common.SysctlItem, 10000)
@@ -580,7 +581,7 @@ func BenchmarkFilterSystemTunables(b *testing.B) {
 }
 
 func BenchmarkAggregatePackageStats(b *testing.B) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	// Generate large dataset
 	packages := make([]common.Package, 20000)
@@ -600,7 +601,7 @@ func BenchmarkAggregatePackageStats(b *testing.B) {
 }
 
 func BenchmarkFilterRulesByType(b *testing.B) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	// Generate large dataset
 	rules := make([]common.FirewallRule, 10000)
@@ -619,7 +620,7 @@ func BenchmarkFilterRulesByType(b *testing.B) {
 }
 
 func BenchmarkExtractUniqueValues(b *testing.B) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	// Generate large dataset with duplicates
 	items := make([]string, 50000)

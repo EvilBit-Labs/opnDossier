@@ -13,13 +13,13 @@ import (
 )
 
 func TestNewMarkdownBuilder(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 	assert.NotNil(t, builder)
 	// Note: generated and toolVersion fields are now unexported for proper encapsulation
 }
 
 func TestMarkdownBuilder_BuildSystemSection(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	// Create test data with NAT reflection disabled
 	data := createComprehensiveTestData()
@@ -55,7 +55,7 @@ func TestMarkdownBuilder_BuildSystemSection(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildNetworkSection(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	// Create test data with interfaces
 	data := &common.CommonDevice{
@@ -105,7 +105,7 @@ func TestMarkdownBuilder_BuildNetworkSection(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildSecuritySection(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	// Create test data with security configuration
 	data := &common.CommonDevice{
@@ -166,7 +166,7 @@ func TestMarkdownBuilder_BuildSecuritySection(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildServicesSection(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	// Create test data with services configuration
 	data := &common.CommonDevice{
@@ -438,7 +438,7 @@ func TestMarkdownBuilder_BuildSysctlTable(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildStandardReport(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	data := &common.CommonDevice{
 		DeviceType: common.DeviceTypeOPNsense,
@@ -487,7 +487,7 @@ func TestMarkdownBuilder_BuildStandardReport(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildComprehensiveReport(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	data := &common.CommonDevice{
 		DeviceType: common.DeviceTypeOPNsense,
@@ -538,7 +538,7 @@ func TestMarkdownBuilder_BuildComprehensiveReport(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildStandardReport_NilData(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	result, err := builder.BuildStandardReport(nil)
 
@@ -548,7 +548,7 @@ func TestMarkdownBuilder_BuildStandardReport_NilData(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildComprehensiveReport_NilData(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	result, err := builder.BuildComprehensiveReport(nil)
 
@@ -792,7 +792,7 @@ func TestBuildFirewallRulesTable_AnyFieldAndDestPort(t *testing.T) {
 }
 
 func TestBuildStandardReport_EdgeCases(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	tests := []struct {
 		name string
@@ -836,7 +836,7 @@ func TestBuildStandardReport_EdgeCases(t *testing.T) {
 }
 
 func TestBuildSecuritySection_EdgeCases(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	tests := []struct {
 		name string
@@ -883,7 +883,7 @@ func TestBuildSecuritySection_EdgeCases(t *testing.T) {
 }
 
 func TestBuildServicesSection_EdgeCases(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	tests := []struct {
 		name string
@@ -1036,7 +1036,7 @@ func TestGetTheme_EdgeCases(t *testing.T) {
 
 // Test that the MarkdownBuilder implements the ReportBuilder interface.
 func TestMarkdownBuilder_ImplementsReportBuilder(_ *testing.T) {
-	var _ ReportBuilder = (*MarkdownBuilder)(nil)
+	var _ builderPkg.ReportBuilder = (*builderPkg.MarkdownBuilder)(nil)
 }
 
 // Integration test comparing with the old MarkdownConverter.
@@ -1062,7 +1062,7 @@ func TestMarkdownBuilder_IntegrationWithOldConverter(t *testing.T) {
 	}
 
 	// Test new builder
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 	newResult, err := builder.BuildStandardReport(data)
 	require.NoError(t, err)
 
@@ -1089,7 +1089,7 @@ func TestMarkdownBuilder_IntegrationWithOldConverter(t *testing.T) {
 
 // Benchmark tests for performance comparison.
 func BenchmarkMarkdownBuilder_BuildStandardReport(b *testing.B) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	data := &common.CommonDevice{
 		System: common.System{
@@ -1127,7 +1127,7 @@ func BenchmarkMarkdownBuilder_BuildStandardReport(b *testing.B) {
 }
 
 func BenchmarkMarkdownBuilder_BuildComprehensiveReport(b *testing.B) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	data := &common.CommonDevice{
 		System: common.System{
@@ -1166,7 +1166,7 @@ func BenchmarkMarkdownBuilder_BuildComprehensiveReport(b *testing.B) {
 
 // Test additional edge cases and missing coverage scenarios.
 func TestMarkdownBuilder_BuildSecuritySection_WithNATReflection(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	// Test with NAT reflection enabled
 	data := &common.CommonDevice{
@@ -1202,7 +1202,7 @@ func TestMarkdownBuilder_BuildSecuritySection_WithNATReflection(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildServicesSection_WithLoadBalancerMonitors(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	// Test with load balancer monitors
 	data := &common.CommonDevice{
@@ -1233,7 +1233,7 @@ func TestMarkdownBuilder_BuildServicesSection_WithLoadBalancerMonitors(t *testin
 }
 
 func TestMarkdownBuilder_BuildStandardReport_WithUsersAndSysctl(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 	builder.SetIncludeTunables(true)
 
 	// Test with users and sysctl data
@@ -1285,7 +1285,7 @@ func TestMarkdownBuilder_BuildStandardReport_WithUsersAndSysctl(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildComprehensiveReport_WithGroups(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	// Test comprehensive report with groups
 	data := &common.CommonDevice{
@@ -1499,7 +1499,7 @@ func TestFormatIntBooleanWithUnset(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildSystemSection_WithAllFields(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	// Test with comprehensive system configuration
 	data := createComprehensiveTestData()
@@ -1602,7 +1602,7 @@ func createComprehensiveTestData() *common.CommonDevice {
 }
 
 func TestMarkdownBuilder_BuildNetworkSection_WithComplexInterfaces(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	// Test with complex network configuration
 	data := &common.CommonDevice{
@@ -1904,7 +1904,7 @@ func TestMarkdownBuilder_BuildInboundNATTable_SpecialCharacters(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildSecuritySection_WithBothNATTypes(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	data := &common.CommonDevice{
 		System: common.System{
@@ -1959,7 +1959,7 @@ func TestMarkdownBuilder_BuildSecuritySection_WithBothNATTypes(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildSecuritySection_InboundSecurityWarning(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	data := &common.CommonDevice{
 		System: common.System{
@@ -2095,7 +2095,7 @@ func TestMarkdownBuilder_NATRulesEmptyInterfaceList(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildIDSSection_Enabled(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	data := &common.CommonDevice{
 		IDS: &common.IDSConfig{
@@ -2138,7 +2138,7 @@ func TestMarkdownBuilder_BuildIDSSection_Enabled(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildIDSSection_IDSMode(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	data := &common.CommonDevice{
 		IDS: &common.IDSConfig{
@@ -2155,7 +2155,7 @@ func TestMarkdownBuilder_BuildIDSSection_IDSMode(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildIDSSection_Disabled(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	data := &common.CommonDevice{
 		IDS: &common.IDSConfig{
@@ -2169,7 +2169,7 @@ func TestMarkdownBuilder_BuildIDSSection_Disabled(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildIDSSection_NilIDS(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	data := &common.CommonDevice{}
 
@@ -2179,7 +2179,7 @@ func TestMarkdownBuilder_BuildIDSSection_NilIDS(t *testing.T) {
 }
 
 func TestMarkdownBuilder_BuildSecuritySection_IncludesIDS(t *testing.T) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	data := &common.CommonDevice{
 		IDS: &common.IDSConfig{

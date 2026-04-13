@@ -3,12 +3,13 @@ package converter
 import (
 	"testing"
 
+	builderPkg "github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMarkdownBuilder_AssessRiskLevel(t *testing.T) {
-	b := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	tests := map[string]string{
 		"critical":      "🔴 Critical Risk",
@@ -32,14 +33,14 @@ func TestMarkdownBuilder_AssessRiskLevel(t *testing.T) {
 
 	for input, expected := range tests {
 		t.Run(input, func(t *testing.T) {
-			actual := b.AssessRiskLevel(input)
+			actual := builder.AssessRiskLevel(input)
 			assert.Equal(t, expected, actual, "Risk level for %q should be %q, got %q", input, expected, actual)
 		})
 	}
 }
 
 func TestMarkdownBuilder_AssessServiceRisk(t *testing.T) {
-	b := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	tests := []struct {
 		name         string
@@ -115,17 +116,17 @@ func TestMarkdownBuilder_AssessServiceRisk(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actual := b.AssessServiceRisk(tt.service)
+			actual := builder.AssessServiceRisk(tt.service)
 			assert.Equal(t, tt.expectedRisk, actual)
 		})
 	}
 }
 
 func TestMarkdownBuilder_CalculateSecurityScore(t *testing.T) {
-	b := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	t.Run("nil configuration", func(t *testing.T) {
-		score := b.CalculateSecurityScore(nil)
+		score := builder.CalculateSecurityScore(nil)
 		assert.Equal(t, 0, score)
 	})
 
@@ -142,7 +143,7 @@ func TestMarkdownBuilder_CalculateSecurityScore(t *testing.T) {
 				{Name: "john"}, // non-default user
 			},
 		}
-		score := b.CalculateSecurityScore(cfg)
+		score := builder.CalculateSecurityScore(cfg)
 		assert.GreaterOrEqual(t, score, 80)
 		assert.LessOrEqual(t, score, 100)
 	})
@@ -162,7 +163,7 @@ func TestMarkdownBuilder_CalculateSecurityScore(t *testing.T) {
 				{Name: "admin"}, // default user
 			},
 		}
-		score := b.CalculateSecurityScore(cfg)
+		score := builder.CalculateSecurityScore(cfg)
 		assert.Less(t, score, 80)
 	})
 
@@ -173,7 +174,7 @@ func TestMarkdownBuilder_CalculateSecurityScore(t *testing.T) {
 				{Name: "normaluser"},
 			},
 		}
-		score := b.CalculateSecurityScore(cfg)
+		score := builder.CalculateSecurityScore(cfg)
 		assert.LessOrEqual(t, score, 80) // Should lose points for no firewall rules
 	})
 
@@ -188,7 +189,7 @@ func TestMarkdownBuilder_CalculateSecurityScore(t *testing.T) {
 				{Name: "normaluser"},
 			},
 		}
-		score := b.CalculateSecurityScore(cfg)
+		score := builder.CalculateSecurityScore(cfg)
 		assert.Less(t, score, 100) // Should lose points for bad sysctl settings
 	})
 
@@ -210,7 +211,7 @@ func TestMarkdownBuilder_CalculateSecurityScore(t *testing.T) {
 				{Name: "user"},  // -15
 			},
 		}
-		score := b.CalculateSecurityScore(cfg)
+		score := builder.CalculateSecurityScore(cfg)
 		assert.GreaterOrEqual(t, score, 0, "Score should not go below 0")
 		assert.LessOrEqual(t, score, 100, "Score should not exceed 100")
 	})

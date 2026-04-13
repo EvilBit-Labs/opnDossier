@@ -16,7 +16,7 @@ import (
 // BenchmarkMarkdownBuilder_CompleteReport benchmarks report generation with complete data.
 func BenchmarkMarkdownBuilder_CompleteReport(b *testing.B) {
 	testData := loadBenchmarkData(b)
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	b.ResetTimer()
 	for b.Loop() {
@@ -30,7 +30,7 @@ func BenchmarkMarkdownBuilder_CompleteReport(b *testing.B) {
 // BenchmarkMarkdownBuilder_ComprehensiveReport benchmarks comprehensive report generation.
 func BenchmarkMarkdownBuilder_ComprehensiveReport(b *testing.B) {
 	testData := loadBenchmarkData(b)
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	b.ResetTimer()
 	for b.Loop() {
@@ -44,7 +44,7 @@ func BenchmarkMarkdownBuilder_ComprehensiveReport(b *testing.B) {
 // BenchmarkMarkdownBuilder_SystemSection benchmarks system section generation.
 func BenchmarkMarkdownBuilder_SystemSection(b *testing.B) {
 	testData := loadBenchmarkData(b)
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	b.ResetTimer()
 	for b.Loop() {
@@ -55,7 +55,7 @@ func BenchmarkMarkdownBuilder_SystemSection(b *testing.B) {
 // BenchmarkMarkdownBuilder_NetworkSection benchmarks network section generation.
 func BenchmarkMarkdownBuilder_NetworkSection(b *testing.B) {
 	testData := loadBenchmarkData(b)
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	b.ResetTimer()
 	for b.Loop() {
@@ -66,7 +66,7 @@ func BenchmarkMarkdownBuilder_NetworkSection(b *testing.B) {
 // BenchmarkMarkdownBuilder_SecuritySection benchmarks security section generation.
 func BenchmarkMarkdownBuilder_SecuritySection(b *testing.B) {
 	testData := loadBenchmarkData(b)
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	b.ResetTimer()
 	for b.Loop() {
@@ -77,7 +77,7 @@ func BenchmarkMarkdownBuilder_SecuritySection(b *testing.B) {
 // BenchmarkMarkdownBuilder_ServicesSection benchmarks services section generation.
 func BenchmarkMarkdownBuilder_ServicesSection(b *testing.B) {
 	testData := loadBenchmarkData(b)
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	b.ResetTimer()
 	for b.Loop() {
@@ -128,7 +128,7 @@ func BenchmarkMarkdownBuilder_SysctlTable(b *testing.B) {
 // BenchmarkMarkdownBuilder_LargeDataset benchmarks with large synthetic dataset.
 func BenchmarkMarkdownBuilder_LargeDataset(b *testing.B) {
 	testData := generateLargeBenchmarkData(b)
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	b.ResetTimer()
 	for b.Loop() {
@@ -142,7 +142,7 @@ func BenchmarkMarkdownBuilder_LargeDataset(b *testing.B) {
 // BenchmarkMarkdownBuilder_MemoryUsage measures memory allocations.
 func BenchmarkMarkdownBuilder_MemoryUsage(b *testing.B) {
 	testData := loadBenchmarkData(b)
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -156,7 +156,7 @@ func BenchmarkMarkdownBuilder_MemoryUsage(b *testing.B) {
 
 // BenchmarkMarkdownBuilder_UtilityFunctions benchmarks utility functions.
 func BenchmarkMarkdownBuilder_UtilityFunctions(b *testing.B) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 	testContent := "This is a test | with pipes | and \n newlines \t tabs for benchmarking"
 
 	b.Run("EscapeTableContent", func(b *testing.B) {
@@ -192,7 +192,7 @@ func BenchmarkMarkdownBuilder_UtilityFunctions(b *testing.B) {
 // BenchmarkMarkdownBuilder_SecurityAssessment benchmarks security assessment functions.
 func BenchmarkMarkdownBuilder_SecurityAssessment(b *testing.B) {
 	testData := loadBenchmarkData(b)
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	b.Run("CalculateSecurityScore", func(b *testing.B) {
 		for b.Loop() {
@@ -228,7 +228,7 @@ func BenchmarkMarkdownBuilder_SecurityAssessment(b *testing.B) {
 // BenchmarkMarkdownBuilder_DataTransformers benchmarks data transformation functions.
 func BenchmarkMarkdownBuilder_DataTransformers(b *testing.B) {
 	testData := loadBenchmarkData(b)
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	b.Run("FilterSystemTunables", func(b *testing.B) {
 		for b.Loop() {
@@ -255,7 +255,7 @@ func BenchmarkOldVsNewConverter(b *testing.B) {
 	testData := loadBenchmarkData(b)
 
 	b.Run("NewMarkdownBuilder", func(b *testing.B) {
-		builder := NewMarkdownBuilder()
+		builder := builderPkg.NewMarkdownBuilder()
 		for b.Loop() {
 			_, err := builder.BuildStandardReport(testData)
 			if err != nil {
@@ -383,7 +383,7 @@ func TestPerformanceBaselines(t *testing.T) {
 
 	// Load test data
 	testData := loadTestDataForPerformance(t)
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 
 	t.Run("StandardReportGeneration", func(t *testing.T) {
 		// Target: <3ms for standard configurations (accounts for CI environment variability)

@@ -33,9 +33,6 @@ var ValidFormats = append(
 // incompatible with programmatic consumption (automation, integration, tooling).
 var ValidExportFormats = []string{"markdown", "md", "json", "yaml", "yml", ""}
 
-// ValidEngines defines the allowed generation engines.
-var ValidEngines = []string{"programmatic", "template", ""}
-
 // Validator provides comprehensive configuration validation.
 type Validator struct {
 	errors *MultiValidationError
@@ -58,7 +55,6 @@ func (v *Validator) Validate() *MultiValidationError {
 	v.validateTheme()
 	v.validateFormat()
 	v.validateWrapWidth()
-	v.validateEngine()
 	v.validateDisplayConfig()
 	v.validateExportConfig()
 	v.validateLoggingConfig()
@@ -172,29 +168,6 @@ func (v *Validator) validateWrapWidth() {
 			Message:    "wrap width must be -1 (auto-detect), 0 (no wrapping), or a positive value",
 			Value:      strconv.Itoa(v.config.WrapWidth),
 			Suggestion: "use -1 for automatic detection, 0 to disable, or a positive number like 80 or 120",
-		})
-	}
-}
-
-// validateEngine validates the generation engine.
-func (v *Validator) validateEngine() {
-	// Normalize the engine value
-	if v.config.Engine != "" {
-		v.config.Engine = strings.ToLower(strings.TrimSpace(v.config.Engine))
-	}
-
-	if v.config.Engine == "" {
-		return
-	}
-
-	if !isValidEnum(v.config.Engine, ValidEngines) {
-		validOptions := filterEmpty(ValidEngines)
-		v.errors.Add(FieldValidationError{
-			Field:      "engine",
-			Message:    "invalid generation engine",
-			Value:      v.config.Engine,
-			ValidItems: validOptions,
-			Suggestion: "programmatic is the default and recommended engine",
 		})
 	}
 }
