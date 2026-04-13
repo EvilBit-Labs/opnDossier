@@ -47,7 +47,6 @@ func TestSetupLightweightContext(t *testing.T) {
 	require.NotNil(t, cmdCtx.Logger, "Logger should be set")
 
 	assert.Equal(t, "markdown", cmdCtx.Config.Format)
-	assert.Equal(t, "programmatic", cmdCtx.Config.Engine)
 	assert.NotNil(t, cmd.Context())
 }
 

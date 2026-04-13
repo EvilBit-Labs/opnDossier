@@ -115,11 +115,8 @@ func buildConfigValues(cfg *config.Config) []ConfigValue {
 		{Key: "quiet", Value: cfg.Quiet, Source: detectSourceBool(cfg.Quiet, false)},
 		{Key: "theme", Value: cfg.Theme, Source: detectSource(cfg.Theme, "")},
 		{Key: "format", Value: cfg.Format, Source: detectSource(cfg.Format, "markdown")},
-		{Key: "template", Value: cfg.Template, Source: detectSource(cfg.Template, "")},
 		{Key: "sections", Value: cfg.Sections, Source: detectSourceSlice(cfg.Sections)},
 		{Key: "wrap", Value: cfg.WrapWidth, Source: detectSourceInt(cfg.WrapWidth, -1)},
-		{Key: "engine", Value: cfg.Engine, Source: detectSource(cfg.Engine, "programmatic")},
-		{Key: "use_template", Value: cfg.UseTemplate, Source: detectSourceBool(cfg.UseTemplate, false)},
 		{Key: "json_output", Value: cfg.JSONOutput, Source: detectSourceBool(cfg.JSONOutput, false)},
 		{Key: "minimal", Value: cfg.Minimal, Source: detectSourceBool(cfg.Minimal, false)},
 		{Key: "no_progress", Value: cfg.NoProgress, Source: detectSourceBool(cfg.NoProgress, false)},
@@ -136,7 +133,6 @@ func buildConfigValues(cfg *config.Config) []ConfigValue {
 		// Export section
 		{Key: "export.format", Value: cfg.Export.Format, Source: detectSource(cfg.Export.Format, "markdown")},
 		{Key: "export.directory", Value: cfg.Export.Directory, Source: detectSource(cfg.Export.Directory, "")},
-		{Key: "export.template", Value: cfg.Export.Template, Source: detectSource(cfg.Export.Template, "")},
 		{Key: "export.backup", Value: cfg.Export.Backup, Source: detectSourceBool(cfg.Export.Backup, false)},
 
 		// Logging section

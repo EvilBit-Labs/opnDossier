@@ -63,7 +63,7 @@ func (s *BuildTestSuite) runBinary(args ...string) (string, error) {
 
 	//nolint:gosec // This is test code, the binary path is controlled by the test
 	cmd := exec.CommandContext(ctx, s.binaryPath, args...)
-	cmd.Dir = s.tempDir // Run from temp dir where there are no template files
+	cmd.Dir = s.tempDir // Run from isolated temp dir
 	output, err := cmd.CombinedOutput()
 	return string(output), err
 }
@@ -92,62 +92,51 @@ func (s *BuildTestSuite) createTestConfig() string {
 	return configPath
 }
 
-// TestBinaryWithEmbeddedTemplates tests that the binary works with embedded templates.
-func (s *BuildTestSuite) TestBinaryWithEmbeddedTemplates() {
+// TestBinaryHelp tests that the built binary runs and displays help correctly.
+func (s *BuildTestSuite) TestBinaryHelp() {
 	if testing.Short() {
 		s.T().Skip("Skipping build test in short mode")
 	}
 
 	output, err := s.runBinary("--help")
 
-	// The binary should run successfully using embedded templates
-	s.Require().NoError(err, "Binary should run with embedded templates, output: %s", output)
+	s.Require().NoError(err, "Binary should run successfully, output: %s", output)
 	s.Contains(output, "opnDossier", "Help output should contain application name")
 	s.Contains(output, "convert", "Help output should contain convert command")
 }
 
-// TestTemplateEmbeddingInBinary tests that embedded templates are accessible.
-func (s *BuildTestSuite) TestTemplateEmbeddingInBinary() {
+// TestBinaryConvert tests that the built binary can convert a config file.
+func (s *BuildTestSuite) TestBinaryConvert() {
 	if testing.Short() {
-		s.T().Skip("Skipping template embedding test in short mode")
+		s.T().Skip("Skipping build conversion test in short mode")
 	}
 
 	// Create a minimal test config file
 	configPath := s.createTestConfig()
 
 	// Try to convert the config using the binary
-	// This will test that embedded templates are accessible
 	output, err := s.runBinary("convert", configPath, "--format", "json")
 
-	// The command might fail for other reasons (invalid config, etc.)
-	// but it should NOT fail due to missing templates
+	// The command should succeed for this minimal valid config fixture.
 	s.NotContains(output, "buildssa", "Should not have build errors")
 	s.NotContains(output, "export data", "Should not have export data errors")
-	s.NotContains(output, "no templates found", "Should find embedded templates")
-
-	// If it fails, it should be for legitimate reasons, not embedding
-	if err != nil {
-		s.T().Logf("Binary output (may fail for legitimate reasons): %s", output)
-		// We mainly care that it's not failing due to embedding issues
-	}
+	s.Require().NoError(err, "convert should succeed, output: %s", output)
 }
 
-// TestBinaryWithEmbeddedTemplatesSuite runs the build test suite.
-func TestBinaryWithEmbeddedTemplatesSuite(t *testing.T) {
+// TestBuildTestSuite runs the build test suite.
+func TestBuildTestSuite(t *testing.T) {
 	suite.Run(t, new(BuildTestSuite))
 }
 
-// Legacy test functions for backward compatibility and simpler test runs.
-func TestBinaryWithEmbeddedTemplates_Legacy(t *testing.T) {
+// TestBinaryHelp_Standalone verifies the binary builds and shows help.
+func TestBinaryHelp_Standalone(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping build test in short mode")
 	}
 
-	t.Run("binary works with embedded templates when filesystem templates are missing", func(t *testing.T) {
-		// Create a temporary directory for our test
+	t.Run("binary builds and shows help from isolated directory", func(t *testing.T) {
 		tempDir := t.TempDir()
 
-		// Build the binary in the temp directory
 		binaryName := testBinaryName
 		if runtime.GOOS == windowsOS {
 			binaryName += exeExtension
@@ -157,40 +146,34 @@ func TestBinaryWithEmbeddedTemplates_Legacy(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		// Build the binary
 		cmd := exec.CommandContext(ctx, "go", "build", "-o", binaryPath, ".")
 		cmd.Dir = "." // Current directory (project root)
 		output, err := cmd.CombinedOutput()
 		require.NoError(t, err, "Failed to build binary: %s", string(output))
 
-		// Verify the binary was created
 		_, err = os.Stat(binaryPath)
 		require.NoError(t, err, "Binary should exist")
 
-		// Test that the binary can run and show help (this exercises template loading)
 		ctx2, cancel2 := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel2()
 
 		cmd = exec.CommandContext(ctx2, binaryPath, "--help")
-		cmd.Dir = tempDir // Run from temp dir where there are no template files
+		cmd.Dir = tempDir // Run from isolated temp dir
 		output, err = cmd.CombinedOutput()
 
-		// The binary should run successfully using embedded templates
-		require.NoError(t, err, "Binary should run with embedded templates, output: %s", string(output))
+		require.NoError(t, err, "Binary should run successfully, output: %s", string(output))
 		assert.Contains(t, string(output), "opnDossier", "Help output should contain application name")
 		assert.Contains(t, string(output), "convert", "Help output should contain convert command")
 	})
 }
 
-func TestTemplateEmbeddingInBinary_Legacy(t *testing.T) {
+// TestBinaryConvert_Standalone verifies the binary can convert a config file.
+func TestBinaryConvert_Standalone(t *testing.T) {
 	if testing.Short() {
-		t.Skip("Skipping template embedding test in short mode")
+		t.Skip("Skipping build conversion test in short mode")
 	}
 
-	t.Run("binary can access embedded templates for conversion", func(t *testing.T) {
-		// This test verifies that a built binary can access embedded templates
-		// even when running from a directory without template files
-
+	t.Run("binary converts config from isolated directory", func(t *testing.T) {
 		tempDir := t.TempDir()
 		binaryName := testBinaryName
 		if runtime.GOOS == windowsOS {
@@ -228,27 +211,18 @@ func TestTemplateEmbeddingInBinary_Legacy(t *testing.T) {
 		require.NoError(t, err)
 
 		// Try to convert the config using the binary
-		// This will test that embedded templates are accessible
 		ctx2, cancel2 := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel2()
 
 		cmd = exec.CommandContext(ctx2, binaryPath, "convert", configPath, "--format", "json")
-		cmd.Dir = tempDir // Run from temp dir without template files
+		cmd.Dir = tempDir // Run from isolated temp dir
 		output, err = cmd.CombinedOutput()
 
-		// The command might fail for other reasons (invalid config, etc.)
-		// but it should NOT fail due to missing templates
 		outputStr := string(output)
 
-		// Check that it's not failing due to template embedding issues
+		// The command should succeed for this minimal valid config fixture.
 		assert.NotContains(t, outputStr, "buildssa", "Should not have build errors")
 		assert.NotContains(t, outputStr, "export data", "Should not have export data errors")
-		assert.NotContains(t, outputStr, "no templates found", "Should find embedded templates")
-
-		// If it fails, it should be for legitimate reasons, not embedding
-		if err != nil {
-			t.Logf("Binary output (may fail for legitimate reasons): %s", outputStr)
-			// We mainly care that it's not failing due to embedding issues
-		}
+		require.NoError(t, err, "convert should succeed, output: %s", outputStr)
 	})
 }

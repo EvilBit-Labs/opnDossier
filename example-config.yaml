@@ -43,10 +43,6 @@ format: markdown
 # Default: "" (auto-detect)
 theme: "auto"
 
-# Template name for report generation
-# Default: ""
-template: ""
-
 # Sections to include in output
 # Empty array = all sections
 # Example: [system, network, firewall, dhcp]
@@ -60,17 +56,6 @@ sections: []
 #   >0 = specific character width
 # Default: -1
 wrap: -1
-
-# Report generation engine
-# Valid values:
-#   programmatic - Fast, secure, recommended (default)
-#   template     - Template-based generation
-# Default: programmatic
-engine: programmatic
-
-# Explicitly enable template mode
-# Default: false
-use_template: false
 
 # Output errors in JSON format (for automation/CI)
 # Default: false
@@ -121,10 +106,6 @@ export:
   # Empty = current directory
   # Default: ""
   directory: ""
-
-  # Default export template name
-  # Default: ""
-  template: ""
 
   # Create backup before overwriting existing files
   # Default: false
@@ -178,7 +159,6 @@ validation:
 #   OPNDOSSIER_FORMAT=json
 #   OPNDOSSIER_THEME=dark
 #   OPNDOSSIER_WRAP=120
-#   OPNDOSSIER_ENGINE=programmatic
 #   OPNDOSSIER_JSON_OUTPUT=true
 #   OPNDOSSIER_MINIMAL=true
 #   OPNDOSSIER_NO_PROGRESS=true
@@ -235,7 +215,6 @@ validation:
 
 # Example 4: Airgapped Environment
 # --------------------------------
-# engine: programmatic
 # no_progress: false
 # export:
 #   backup: true

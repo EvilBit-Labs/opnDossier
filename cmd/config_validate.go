@@ -292,11 +292,8 @@ func findUnknownKeys(raw map[string]any) []string {
 		"quiet":        true,
 		"theme":        true,
 		"format":       true,
-		"template":     true,
 		"sections":     true,
 		"wrap":         true,
-		"engine":       true,
-		"use_template": true,
 		"json_output":  true,
 		"minimal":      true,
 		"no_progress":  true,
@@ -315,7 +312,6 @@ func findUnknownKeys(raw map[string]any) []string {
 		"export": {
 			"format":    true,
 			"directory": true,
-			"template":  true,
 			"backup":    true,
 		},
 		"logging": {

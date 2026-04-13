@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
+	builderPkg "github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 	_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense" // self-registers OPNsense parser via init()
@@ -69,7 +70,7 @@ func BenchmarkReportGeneration(b *testing.B) {
 	ctx := context.Background()
 
 	b.Run("Small/Programmatic", func(b *testing.B) {
-		builder := NewMarkdownBuilder()
+		builder := builderPkg.NewMarkdownBuilder()
 		b.ResetTimer()
 		for b.Loop() {
 			if _, err := builder.BuildStandardReport(small); err != nil {
@@ -89,7 +90,7 @@ func BenchmarkReportGeneration(b *testing.B) {
 	})
 
 	b.Run("Medium/Programmatic", func(b *testing.B) {
-		builder := NewMarkdownBuilder()
+		builder := builderPkg.NewMarkdownBuilder()
 		b.ResetTimer()
 		for b.Loop() {
 			if _, err := builder.BuildStandardReport(medium); err != nil {
@@ -109,7 +110,7 @@ func BenchmarkReportGeneration(b *testing.B) {
 	})
 
 	b.Run("Large/Programmatic", func(b *testing.B) {
-		builder := NewMarkdownBuilder()
+		builder := builderPkg.NewMarkdownBuilder()
 		b.ResetTimer()
 		for b.Loop() {
 			if _, err := builder.BuildStandardReport(large); err != nil {
@@ -131,7 +132,7 @@ func BenchmarkReportGeneration(b *testing.B) {
 
 // BenchmarkIndividualMethods benchmarks individual transformation methods.
 func BenchmarkIndividualMethods(b *testing.B) {
-	builder := NewMarkdownBuilder()
+	builder := builderPkg.NewMarkdownBuilder()
 	testData := loadCompleteTestData()
 
 	b.Run("AssessRiskLevel", func(b *testing.B) {
@@ -185,7 +186,7 @@ func BenchmarkMemoryUsage(b *testing.B) {
 	ctx := context.Background()
 
 	b.Run("Programmatic", func(b *testing.B) {
-		builder := NewMarkdownBuilder()
+		builder := builderPkg.NewMarkdownBuilder()
 		b.ReportAllocs()
 		b.ResetTimer()
 		for b.Loop() {
@@ -213,7 +214,7 @@ func BenchmarkThroughput(b *testing.B) {
 	ctx := context.Background()
 
 	b.Run("Programmatic_Throughput", func(b *testing.B) {
-		builder := NewMarkdownBuilder()
+		builder := builderPkg.NewMarkdownBuilder()
 		b.ResetTimer()
 		for b.Loop() {
 			if _, err := builder.BuildStandardReport(medium); err != nil {
@@ -246,7 +247,7 @@ func BenchmarkConcurrentGeneration(b *testing.B) {
 
 	b.Run("Programmatic_Concurrent", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
-			builder := NewMarkdownBuilder()
+			builder := builderPkg.NewMarkdownBuilder()
 			for pb.Next() {
 				if _, err := builder.BuildStandardReport(medium); err != nil {
 					b.Error(err)

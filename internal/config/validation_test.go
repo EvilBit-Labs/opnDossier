@@ -116,37 +116,6 @@ func TestValidator_ValidateFormat(t *testing.T) {
 	}
 }
 
-func TestValidator_ValidateEngine(t *testing.T) {
-	tests := []struct {
-		name        string
-		engine      string
-		expectError bool
-	}{
-		{"empty engine is valid", "", false},
-		{"programmatic engine is valid", "programmatic", false},
-		{"template engine is valid", "template", false},
-		{"case insensitive programmatic", "PROGRAMMATIC", false},
-		{"case insensitive template", "TEMPLATE", false},
-		{"with whitespace", " template ", false},
-		{"invalid engine", "invalid", true},
-		{"hybrid engine is invalid", "hybrid", true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cfg := &Config{Engine: tt.engine}
-			validator := NewValidator(cfg)
-			errs := validator.Validate()
-
-			if tt.expectError {
-				assertFieldErrorWithValidItems(t, errs, "engine")
-			} else {
-				assertFieldError(t, errs, "engine", false)
-			}
-		})
-	}
-}
-
 func TestValidator_ValidateWrapWidth(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -408,7 +377,6 @@ func TestValidator_MultipleErrors(t *testing.T) {
 	cfg := &Config{
 		Theme:     "invalid_theme",
 		Format:    "invalid_format",
-		Engine:    "invalid_engine",
 		WrapWidth: -5,
 		Logging:   LoggingConfig{Level: "invalid_level"},
 	}
@@ -428,7 +396,6 @@ func TestValidator_MultipleErrors(t *testing.T) {
 
 	assert.True(t, fields["theme"], "should have theme error")
 	assert.True(t, fields["format"], "should have format error")
-	assert.True(t, fields["engine"], "should have engine error")
 	assert.True(t, fields["wrap"], "should have wrap error")
 	assert.True(t, fields["logging.level"], "should have logging.level error")
 }
@@ -610,7 +577,6 @@ func TestConfig_ValidateV2(t *testing.T) {
 		cfg := &Config{
 			Theme:     "dark",
 			Format:    "markdown",
-			Engine:    "programmatic",
 			WrapWidth: 80,
 		}
 		errs := cfg.ValidateV2()
@@ -620,13 +586,13 @@ func TestConfig_ValidateV2(t *testing.T) {
 	t.Run("invalid config returns errors", func(t *testing.T) {
 		cfg := &Config{
 			Theme:   "invalid",
-			Engine:  "invalid",
 			Logging: LoggingConfig{Level: "invalid"},
 		}
 		errs := cfg.ValidateV2()
 		require.NotNil(t, errs)
 		assert.True(t, errs.HasErrors())
-		assert.GreaterOrEqual(t, errs.Count(), 3)
+		assertFieldError(t, errs, "theme", true)
+		assertFieldError(t, errs, "logging.level", true)
 	})
 }
 

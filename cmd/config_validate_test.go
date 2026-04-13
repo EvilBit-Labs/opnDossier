@@ -171,6 +171,25 @@ func TestFindUnknownKeys(t *testing.T) {
 			},
 			expected: nil,
 		},
+		{
+			name: "Removed template-era keys are flagged as unknown",
+			input: map[string]any{
+				"engine":       "programmatic",
+				"template":     "comprehensive",
+				"use_template": false,
+			},
+			expected: []string{"engine", "template", "use_template"},
+		},
+		{
+			name: "Removed export.template key is flagged as unknown",
+			input: map[string]any{
+				"export": map[string]any{
+					"format":   "json",
+					"template": "default",
+				},
+			},
+			expected: []string{"export.template"},
+		},
 	}
 
 	for _, tt := range tests {
