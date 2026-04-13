@@ -591,7 +591,8 @@ func TestConfig_ValidateV2(t *testing.T) {
 		errs := cfg.ValidateV2()
 		require.NotNil(t, errs)
 		assert.True(t, errs.HasErrors())
-		assert.GreaterOrEqual(t, errs.Count(), 2)
+		assertFieldError(t, errs, "theme", true)
+		assertFieldError(t, errs, "logging.level", true)
 	})
 }
 

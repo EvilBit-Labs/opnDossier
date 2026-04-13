@@ -105,7 +105,7 @@ verbose: false
 # Enable quiet mode (suppress all except errors)
 quiet: false
 
-# Output format: markdown, md, json, yaml, yml
+# Output format: markdown, md, json, yaml, yml, text, txt, html, htm
 format: markdown
 
 # Default theme for terminal output: light, dark, auto, none, custom
@@ -197,8 +197,8 @@ All environment variables use the `OPNDOSSIER_` prefix with the following transf
 
 ### Complete Environment Variable Reference
 
-| Configuration Key              | Environment Variable                      | Type     | Default        |
-| ------------------------------ | ----------------------------------------- | -------- | -------------- |
+| Configuration Key              | Environment Variable                      | Type     | Default    |
+| ------------------------------ | ----------------------------------------- | -------- | ---------- |
 | `input_file`                   | `OPNDOSSIER_INPUT_FILE`                   | string   | ""         |
 | `output_file`                  | `OPNDOSSIER_OUTPUT_FILE`                  | string   | ""         |
 | `verbose`                      | `OPNDOSSIER_VERBOSE`                      | boolean  | false      |
@@ -210,16 +210,16 @@ All environment variables use the `OPNDOSSIER_` prefix with the following transf
 | `json_output`                  | `OPNDOSSIER_JSON_OUTPUT`                  | boolean  | false      |
 | `minimal`                      | `OPNDOSSIER_MINIMAL`                      | boolean  | false      |
 | `no_progress`                  | `OPNDOSSIER_NO_PROGRESS`                  | boolean  | false      |
-| `display.width`                | `OPNDOSSIER_DISPLAY_WIDTH`                | int      | -1             |
-| `display.pager`                | `OPNDOSSIER_DISPLAY_PAGER`                | boolean  | false          |
-| `display.syntax_highlighting`  | `OPNDOSSIER_DISPLAY_SYNTAX_HIGHLIGHTING`  | boolean  | true           |
-| `export.format`                | `OPNDOSSIER_EXPORT_FORMAT`                | string   | "markdown"     |
-| `export.directory`             | `OPNDOSSIER_EXPORT_DIRECTORY`             | string   | ""             |
-| `export.backup`                | `OPNDOSSIER_EXPORT_BACKUP`                | boolean  | false          |
-| `logging.level`                | `OPNDOSSIER_LOGGING_LEVEL`                | string   | "info"         |
-| `logging.format`               | `OPNDOSSIER_LOGGING_FORMAT`               | string   | "text"         |
-| `validation.strict`            | `OPNDOSSIER_VALIDATION_STRICT`            | boolean  | false          |
-| `validation.schema_validation` | `OPNDOSSIER_VALIDATION_SCHEMA_VALIDATION` | boolean  | false          |
+| `display.width`                | `OPNDOSSIER_DISPLAY_WIDTH`                | int      | -1         |
+| `display.pager`                | `OPNDOSSIER_DISPLAY_PAGER`                | boolean  | false      |
+| `display.syntax_highlighting`  | `OPNDOSSIER_DISPLAY_SYNTAX_HIGHLIGHTING`  | boolean  | true       |
+| `export.format`                | `OPNDOSSIER_EXPORT_FORMAT`                | string   | "markdown" |
+| `export.directory`             | `OPNDOSSIER_EXPORT_DIRECTORY`             | string   | ""         |
+| `export.backup`                | `OPNDOSSIER_EXPORT_BACKUP`                | boolean  | false      |
+| `logging.level`                | `OPNDOSSIER_LOGGING_LEVEL`                | string   | "info"     |
+| `logging.format`               | `OPNDOSSIER_LOGGING_FORMAT`               | string   | "text"     |
+| `validation.strict`            | `OPNDOSSIER_VALIDATION_STRICT`            | boolean  | false      |
+| `validation.schema_validation` | `OPNDOSSIER_VALIDATION_SCHEMA_VALIDATION` | boolean  | false      |
 
 ### Boolean Values
 
@@ -266,15 +266,15 @@ These flags are available on all commands:
 #### convert
 
 ```bash
-opnDossier convert [flags] <config.xml>
+opnDossier convert [flags] [file ...]
 ```
 
-| Flag         | Short | Description                          | Default    |
-| ------------ | ----- | ---------------------------------------- | ---------- |
-| `--output`   | `-o`  | Output file path (default: stdout)       | ""         |
-| `--format`   | `-f`  | Output format (markdown, json, yaml)     | "markdown" |
-| `--sections` |       | Sections to include (comma-separated)    | all        |
-| `--force`    |       | Overwrite existing output file           | false      |
+| Flag         | Short | Description                                      | Default    |
+| ------------ | ----- | ------------------------------------------------ | ---------- |
+| `--output`   | `-o`  | Output file path (default: stdout)               | ""         |
+| `--format`   | `-f`  | Output format (markdown, json, yaml, text, html) | "markdown" |
+| `--sections` |       | Sections to include (comma-separated)            | all        |
+| `--force`    |       | Overwrite existing output file                   | false      |
 
 #### display
 
@@ -303,19 +303,19 @@ opnDossier validate [flags] <config.xml>
 
 ### Basic Settings
 
-| Setting        | Type     | Default    | Valid Values                    | Description                       |
-| -------------- | -------- | ---------- | ------------------------------- | --------------------------------- |
-| `input_file`   | string   | ""         | Any valid file path             | Default input file path           |
-| `output_file`  | string   | ""         | Any valid file path             | Default output file path          |
-| `verbose`      | boolean  | false      | true, false                     | Enable debug-level logging        |
-| `quiet`        | boolean  | false      | true, false                     | Suppress non-error output         |
-| `format`       | string   | "markdown" | markdown, md, json, yaml, yml   | Output format                     |
-| `theme`        | string   | ""         | light, dark, auto, none, custom | Terminal display theme            |
-| `sections`     | []string | []         | Section names                   | Sections to include (empty = all) |
-| `wrap`         | int      | -1         | -1, 0, or positive integer      | Text wrap width                   |
-| `json_output`  | boolean  | false      | true, false                     | Output errors as JSON             |
-| `minimal`      | boolean  | false      | true, false                     | Minimal output mode               |
-| `no_progress`  | boolean  | false      | true, false                     | Disable progress indicators       |
+| Setting       | Type     | Default    | Valid Values                    | Description                       |
+| ------------- | -------- | ---------- | ------------------------------- | --------------------------------- |
+| `input_file`  | string   | ""         | Any valid file path             | Default input file path           |
+| `output_file` | string   | ""         | Any valid file path             | Default output file path          |
+| `verbose`     | boolean  | false      | true, false                     | Enable debug-level logging        |
+| `quiet`       | boolean  | false      | true, false                     | Suppress non-error output         |
+| `format`      | string   | "markdown" | markdown, md, json, yaml, yml   | Output format                     |
+| `theme`       | string   | ""         | light, dark, auto, none, custom | Terminal display theme            |
+| `sections`    | []string | []         | Section names                   | Sections to include (empty = all) |
+| `wrap`        | int      | -1         | -1, 0, or positive integer      | Text wrap width                   |
+| `json_output` | boolean  | false      | true, false                     | Output errors as JSON             |
+| `minimal`     | boolean  | false      | true, false                     | Minimal output mode               |
+| `no_progress` | boolean  | false      | true, false                     | Disable progress indicators       |
 
 ### Display Settings
 
@@ -491,8 +491,8 @@ opnDossier config validate --config /path/to/config.yaml
 # Verify config file exists
 ls -la ~/.opnDossier.yaml
 
-# Check file permissions (should be readable)
-chmod 644 ~/.opnDossier.yaml
+# Check file permissions (owner read/write only)
+chmod 600 ~/.opnDossier.yaml
 
 # Explicitly specify config path
 opnDossier --config ~/.opnDossier.yaml convert config.xml

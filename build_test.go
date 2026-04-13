@@ -117,14 +117,10 @@ func (s *BuildTestSuite) TestBinaryConvert() {
 	// Try to convert the config using the binary
 	output, err := s.runBinary("convert", configPath, "--format", "json")
 
-	// The command might fail for other reasons (invalid config, etc.)
-	// but it should not fail due to build or linking errors
+	// The command should succeed for this minimal valid config fixture.
 	s.NotContains(output, "buildssa", "Should not have build errors")
 	s.NotContains(output, "export data", "Should not have export data errors")
-
-	if err != nil {
-		s.T().Logf("Binary output (may fail for legitimate reasons): %s", output)
-	}
+	s.Require().NoError(err, "convert should succeed, output: %s", output)
 }
 
 // TestBuildTestSuite runs the build test suite.
@@ -224,12 +220,9 @@ func TestBinaryConvert_Standalone(t *testing.T) {
 
 		outputStr := string(output)
 
-		// Should not fail due to build or linking errors
+		// The command should succeed for this minimal valid config fixture.
 		assert.NotContains(t, outputStr, "buildssa", "Should not have build errors")
 		assert.NotContains(t, outputStr, "export data", "Should not have export data errors")
-
-		if err != nil {
-			t.Logf("Binary output (may fail for legitimate reasons): %s", outputStr)
-		}
+		require.NoError(t, err, "convert should succeed, output: %s", outputStr)
 	})
 }

@@ -281,6 +281,8 @@ This refactoring was completed in PR #431 (closing issue #323) and maintains ful
 ##### Unit Tests for Methods
 
 ```go
+// import "github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
+
 func TestMarkdownBuilder_FilterSystemTunables(t *testing.T) {
     tests := []struct {
         name            string
