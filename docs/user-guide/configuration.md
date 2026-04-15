@@ -44,10 +44,11 @@ sections: []
 
 ### Configuration Options
 
-| Option        | Type     | Default      | Description                                                              |
-| ------------- | -------- | ------------ | ------------------------------------------------------------------------ |
-| `verbose`     | boolean  | `false`      | Enable info-level logging (warnings, errors, and informational messages) |
-| `quiet`       | boolean  | `false`      | Suppress all output except errors                                        |
+| Option        | Type     | Default      | Description                                                                                         |
+| ------------- | -------- | ------------ | --------------------------------------------------------------------------------------------------- |
+| `verbose`     | boolean  | `false`      | Enable info-level logging (warnings, errors, and informational messages)                            |
+| `debug`       | boolean  | `false`      | Enable debug mode - shows all messages for troubleshooting (mutually exclusive with verbose/quiet)  |
+| `quiet`       | boolean  | `false`      | Suppress all output except errors                                                                   |
 | `format`      | string   | `"markdown"` | Output format (markdown, json, yaml, text, html)                         |
 | `theme`       | string   | `""`         | Display theme (auto, dark, light, none)                                  |
 | `wrap`        | int      | `-1`         | Text wrap width (-1=auto, 0=off, >0=columns)                             |
@@ -65,6 +66,7 @@ All configuration options can be set using environment variables with the `OPNDO
 ```bash
 # Logging configuration
 export OPNDOSSIER_VERBOSE=true
+export OPNDOSSIER_DEBUG=false
 export OPNDOSSIER_QUIET=false
 
 # Output settings
