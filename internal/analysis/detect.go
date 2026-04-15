@@ -49,6 +49,16 @@ func DetectDeadRules(cfg *common.CommonDevice) []common.DeadRuleFinding {
 
 	for _, iface := range slices.Sorted(maps.Keys(interfaceRules)) {
 		rules := interfaceRules[iface]
+
+		// Bucket prior rules by hash so duplicate detection runs in O(n) on the
+		// common case (distinct rules hit empty buckets). Worst case remains
+		// O(n²) when every rule is equivalent — expected and acceptable, since
+		// that workload requires the pairwise findings anyway. Findings are
+		// emitted when the later duplicate is visited; RuleIndex points to the
+		// duplicate and the description references the earlier rule, matching
+		// the prior nested-loop output byte-for-byte.
+		buckets := make(map[uint64][]int, len(rules))
+
 		for i, ir := range rules {
 			// Block-all makes subsequent rules unreachable.
 			srcAny := ir.Rule.Source.Address == constants.NetworkAny
@@ -66,21 +76,23 @@ func DetectDeadRules(cfg *common.CommonDevice) []common.DeadRuleFinding {
 				})
 			}
 
-			// Duplicate detection.
-			for j := i + 1; j < len(rules); j++ {
-				if RulesEquivalent(ir.Rule, rules[j].Rule) {
+			// Duplicate detection via hash bucket.
+			h := hashRule(ir.Rule)
+			for _, priorIdx := range buckets[h] {
+				if RulesEquivalent(rules[priorIdx].Rule, ir.Rule) {
 					findings = append(findings, common.DeadRuleFinding{
 						Kind:      common.DeadRuleKindDuplicate,
-						RuleIndex: rules[j].Index,
+						RuleIndex: ir.Index,
 						Interface: iface,
 						Description: fmt.Sprintf(
 							"Rule at position %d is duplicate of rule at position %d on interface %s",
-							rules[j].Index+1, ir.Index+1, iface,
+							ir.Index+1, rules[priorIdx].Index+1, iface,
 						),
 						Recommendation: "Remove duplicate rule to simplify configuration",
 					})
 				}
 			}
+			buckets[h] = append(buckets[h], i)
 		}
 	}
 
