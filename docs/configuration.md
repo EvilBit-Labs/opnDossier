@@ -99,8 +99,13 @@ input_file: ''
 # Default output file path (empty = stdout)
 output_file: ''
 
-# Enable verbose logging (debug level)
+# Enable verbose logging (info level: warnings, errors, informational messages)
 verbose: false
+
+# Enable debug logging (all messages, for troubleshooting)
+# CLI flags --verbose/--debug/--quiet are mutually exclusive.
+# In config/env, if multiple are set, precedence is: quiet > debug > verbose.
+debug: false
 
 # Enable quiet mode (suppress all except errors)
 quiet: false
@@ -202,6 +207,7 @@ All environment variables use the `OPNDOSSIER_` prefix with the following transf
 | `input_file`                   | `OPNDOSSIER_INPUT_FILE`                   | string   | ""         |
 | `output_file`                  | `OPNDOSSIER_OUTPUT_FILE`                  | string   | ""         |
 | `verbose`                      | `OPNDOSSIER_VERBOSE`                      | boolean  | false      |
+| `debug`                        | `OPNDOSSIER_DEBUG`                        | boolean  | false      |
 | `quiet`                        | `OPNDOSSIER_QUIET`                        | boolean  | false      |
 | `format`                       | `OPNDOSSIER_FORMAT`                       | string   | "markdown" |
 | `theme`                        | `OPNDOSSIER_THEME`                        | string   | ""         |
@@ -258,8 +264,11 @@ These flags are available on all commands:
 | Flag        | Short | Description                                           |
 | ----------- | ----- | ----------------------------------------------------- |
 | `--config`  |       | Configuration file path (default: ~/.opnDossier.yaml) |
-| `--verbose` | `-v`  | Enable verbose/debug output                           |
+| `--verbose` | `-v`  | Enable verbose (info-level) logging                   |
+| `--debug`   |       | Enable debug-level logging (all messages)             |
 | `--quiet`   | `-q`  | Suppress all output except errors                     |
+
+`--verbose`, `--debug`, and `--quiet` are mutually exclusive at the CLI. In the config file or environment variables, if more than one is set, precedence is `quiet > debug > verbose`.
 
 ### Command-Specific Flags
 
@@ -269,12 +278,12 @@ These flags are available on all commands:
 opnDossier convert [flags] [file ...]
 ```
 
-| Flag         | Short | Description                                      | Default    |
-| ------------ | ----- | ------------------------------------------------ | ---------- |
-| `--output`   | `-o`  | Output file path (default: stdout)               | ""         |
-| `--format`   | `-f`  | Output format (markdown, json, yaml, text, html) | "markdown" |
-| `--sections` |       | Sections to include (comma-separated)            | all        |
-| `--force`    |       | Overwrite existing output file                   | false      |
+| Flag        | Short | Description                                      | Default    |
+| ----------- | ----- | ------------------------------------------------ | ---------- |
+| `--output`  | `-o`  | Output file path (default: stdout)               | ""         |
+| `--format`  | `-f`  | Output format (markdown, json, yaml, text, html) | "markdown" |
+| `--section` |       | Sections to include (comma-separated)            | all        |
+| `--force`   |       | Overwrite existing output file                   | false      |
 
 #### display
 
@@ -307,7 +316,8 @@ opnDossier validate [flags] <config.xml>
 | ------------- | -------- | ---------- | ------------------------------- | --------------------------------- |
 | `input_file`  | string   | ""         | Any valid file path             | Default input file path           |
 | `output_file` | string   | ""         | Any valid file path             | Default output file path          |
-| `verbose`     | boolean  | false      | true, false                     | Enable debug-level logging        |
+| `verbose`     | boolean  | false      | true, false                     | Enable info-level logging         |
+| `debug`       | boolean  | false      | true, false                     | Enable debug mode (troubleshoot)  |
 | `quiet`       | boolean  | false      | true, false                     | Suppress non-error output         |
 | `format`      | string   | "markdown" | markdown, md, json, yaml, yml   | Output format                     |
 | `theme`       | string   | ""         | light, dark, auto, none, custom | Terminal display theme            |
