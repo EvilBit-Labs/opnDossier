@@ -51,12 +51,15 @@ func DetectDeadRules(cfg *common.CommonDevice) []common.DeadRuleFinding {
 		rules := interfaceRules[iface]
 
 		// Bucket prior rules by hash so duplicate detection runs in O(n) on the
-		// common case (distinct rules hit empty buckets). Worst case remains
-		// O(n²) when every rule is equivalent — expected and acceptable, since
-		// that workload requires the pairwise findings anyway. Findings are
-		// emitted when the later duplicate is visited; RuleIndex points to the
-		// duplicate and the description references the earlier rule, matching
-		// the prior nested-loop output byte-for-byte.
+		// common case (distinct rules hit empty buckets). Worst case is O(n²)
+		// when every rule is equivalent — required anyway because each pair
+		// yields a finding. Findings are buffered under the "owner" rule's
+		// per-interface position (block-all owns its unreachable finding; the
+		// earlier rule owns each duplicate finding) and flattened in position
+		// order so output matches the prior nested-loop implementation
+		// byte-for-byte, even for equivalence classes of size ≥ 4 and for
+		// block-all rules interleaved with duplicates.
+		perPos := make([][]common.DeadRuleFinding, len(rules))
 		buckets := make(map[uint64][]int, len(rules))
 
 		for i, ir := range rules {
@@ -64,7 +67,7 @@ func DetectDeadRules(cfg *common.CommonDevice) []common.DeadRuleFinding {
 			srcAny := ir.Rule.Source.Address == constants.NetworkAny
 			dstAny := ir.Rule.Destination.Address == constants.NetworkAny
 			if ir.Rule.Type == common.RuleTypeBlock && srcAny && dstAny && i < len(rules)-1 {
-				findings = append(findings, common.DeadRuleFinding{
+				perPos[i] = append(perPos[i], common.DeadRuleFinding{
 					Kind:      common.DeadRuleKindUnreachable,
 					RuleIndex: ir.Index,
 					Interface: iface,
@@ -76,11 +79,13 @@ func DetectDeadRules(cfg *common.CommonDevice) []common.DeadRuleFinding {
 				})
 			}
 
-			// Duplicate detection via hash bucket.
+			// Duplicate detection via hash bucket. Each duplicate is recorded
+			// under the earlier rule's position so that flattening in position
+			// order reproduces the nested-loop's "group by outer i" ordering.
 			h := hashRule(ir.Rule)
 			for _, priorIdx := range buckets[h] {
 				if RulesEquivalent(rules[priorIdx].Rule, ir.Rule) {
-					findings = append(findings, common.DeadRuleFinding{
+					perPos[priorIdx] = append(perPos[priorIdx], common.DeadRuleFinding{
 						Kind:      common.DeadRuleKindDuplicate,
 						RuleIndex: ir.Index,
 						Interface: iface,
@@ -93,6 +98,10 @@ func DetectDeadRules(cfg *common.CommonDevice) []common.DeadRuleFinding {
 				}
 			}
 			buckets[h] = append(buckets[h], i)
+		}
+
+		for _, bucketFindings := range perPos {
+			findings = append(findings, bucketFindings...)
 		}
 	}
 
