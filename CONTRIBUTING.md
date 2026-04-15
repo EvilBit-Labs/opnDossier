@@ -284,9 +284,10 @@ This refactoring was completed in PR #431 (closing issue #323) and maintains ful
 import (
     "testing"
 
-    "github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
-    "github.com/EvilBit-Labs/opnDossier/internal/model/common"
     "github.com/stretchr/testify/assert"
+
+    "github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
+    common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 func TestMarkdownBuilder_FilterSystemTunables(t *testing.T) {

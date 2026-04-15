@@ -44,11 +44,11 @@ sections: []
 
 ### Configuration Options
 
-| Option        | Type     | Default      | Description                                                                                         |
-| ------------- | -------- | ------------ | --------------------------------------------------------------------------------------------------- |
-| `verbose`     | boolean  | `false`      | Enable info-level logging (warnings, errors, and informational messages)                            |
-| `debug`       | boolean  | `false`      | Enable debug mode - shows all messages for troubleshooting (mutually exclusive with verbose/quiet)  |
-| `quiet`       | boolean  | `false`      | Suppress all output except errors                                                                   |
+| Option        | Type     | Default      | Description                                                              |
+| ------------- | -------- | ------------ | ------------------------------------------------------------------------ |
+| `verbose`     | boolean  | `false`      | Enable info-level logging (warnings, errors, and informational messages) |
+| `debug`       | boolean  | `false`      | Enable debug-level logging (all messages, for troubleshooting)           |
+| `quiet`       | boolean  | `false`      | Suppress all output except errors                                        |
 | `format`      | string   | `"markdown"` | Output format (markdown, json, yaml, text, html)                         |
 | `theme`       | string   | `""`         | Display theme (auto, dark, light, none)                                  |
 | `wrap`        | int      | `-1`         | Text wrap width (-1=auto, 0=off, >0=columns)                             |
@@ -91,7 +91,7 @@ Environment variables follow this pattern:
 
 ## Command-Line Flags
 
-Command-line flags have the highest precedence and override both environment variables and config file values. Global flags (like `--verbose` and `--quiet`) apply to all commands, while some flags are command-specific (like `--theme` for `display` or `--mode` for `audit`).
+Command-line flags have the highest precedence and override both environment variables and config file values. Global flags (like `--verbose`, `--debug`, and `--quiet`) apply to all commands, while some flags are command-specific (like `--theme` for `display` or `--mode` for `audit`). `--verbose`, `--debug`, and `--quiet` are mutually exclusive at the CLI; when set via config or environment variables, the resolution precedence is `quiet > debug > verbose`.
 
 Each command's flags are documented on its own page under [Commands](commands/overview.md). For a single table listing every flag, environment variable, and config file key, see the [Configuration Reference](configuration-reference.md).
 
