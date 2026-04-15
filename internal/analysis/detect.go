@@ -49,12 +49,25 @@ func DetectDeadRules(cfg *common.CommonDevice) []common.DeadRuleFinding {
 
 	for _, iface := range slices.Sorted(maps.Keys(interfaceRules)) {
 		rules := interfaceRules[iface]
+
+		// Bucket prior rules by hash so duplicate detection runs in O(n) on the
+		// common case (distinct rules hit empty buckets). Worst case is O(n²)
+		// when every rule is equivalent — required anyway because each pair
+		// yields a finding. Findings are buffered under the "owner" rule's
+		// per-interface position (block-all owns its unreachable finding; the
+		// earlier rule owns each duplicate finding) and flattened in position
+		// order so output matches the prior nested-loop implementation
+		// byte-for-byte, even for equivalence classes of size ≥ 4 and for
+		// block-all rules interleaved with duplicates.
+		perPos := make([][]common.DeadRuleFinding, len(rules))
+		buckets := make(map[uint64][]int, len(rules))
+
 		for i, ir := range rules {
 			// Block-all makes subsequent rules unreachable.
 			srcAny := ir.Rule.Source.Address == constants.NetworkAny
 			dstAny := ir.Rule.Destination.Address == constants.NetworkAny
 			if ir.Rule.Type == common.RuleTypeBlock && srcAny && dstAny && i < len(rules)-1 {
-				findings = append(findings, common.DeadRuleFinding{
+				perPos[i] = append(perPos[i], common.DeadRuleFinding{
 					Kind:      common.DeadRuleKindUnreachable,
 					RuleIndex: ir.Index,
 					Interface: iface,
@@ -66,21 +79,29 @@ func DetectDeadRules(cfg *common.CommonDevice) []common.DeadRuleFinding {
 				})
 			}
 
-			// Duplicate detection.
-			for j := i + 1; j < len(rules); j++ {
-				if RulesEquivalent(ir.Rule, rules[j].Rule) {
-					findings = append(findings, common.DeadRuleFinding{
+			// Duplicate detection via hash bucket. Each duplicate is recorded
+			// under the earlier rule's position so that flattening in position
+			// order reproduces the nested-loop's "group by outer i" ordering.
+			h := hashRule(ir.Rule)
+			for _, priorIdx := range buckets[h] {
+				if RulesEquivalent(rules[priorIdx].Rule, ir.Rule) {
+					perPos[priorIdx] = append(perPos[priorIdx], common.DeadRuleFinding{
 						Kind:      common.DeadRuleKindDuplicate,
-						RuleIndex: rules[j].Index,
+						RuleIndex: ir.Index,
 						Interface: iface,
 						Description: fmt.Sprintf(
 							"Rule at position %d is duplicate of rule at position %d on interface %s",
-							rules[j].Index+1, ir.Index+1, iface,
+							ir.Index+1, rules[priorIdx].Index+1, iface,
 						),
 						Recommendation: "Remove duplicate rule to simplify configuration",
 					})
 				}
 			}
+			buckets[h] = append(buckets[h], i)
+		}
+
+		for _, bucketFindings := range perPos {
+			findings = append(findings, bucketFindings...)
 		}
 	}
 

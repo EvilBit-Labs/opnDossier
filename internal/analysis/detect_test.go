@@ -191,6 +191,197 @@ func TestDetectDeadRules(t *testing.T) {
 	}
 }
 
+// TestDetectDeadRules_DisabledNotEquivalent ensures a disabled rule is not
+// reported as a duplicate of an otherwise-identical enabled rule. Both
+// RulesEquivalent and hashRule must agree on this — if either drops the
+// Disabled check, integration output changes silently.
+func TestDetectDeadRules_DisabledNotEquivalent(t *testing.T) {
+	t.Parallel()
+
+	rule := common.FirewallRule{
+		Type:        common.RuleTypePass,
+		IPProtocol:  common.IPProtocolInet,
+		Interfaces:  []string{"lan"},
+		Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
+		Destination: common.RuleEndpoint{Address: "any"},
+	}
+	disabled := rule
+	disabled.Disabled = true
+
+	cfg := &common.CommonDevice{FirewallRules: []common.FirewallRule{rule, disabled}}
+	findings := analysis.DetectDeadRules(cfg)
+	assert.Empty(t, findings, "disabled rule must not duplicate enabled rule")
+}
+
+// TestDetectDeadRules_CrossInterfaceDuplicates ensures that two identical
+// multi-interface rules produce one duplicate finding per shared interface.
+// Guards the per-interface bucket reset — if buckets ever leak across
+// interfaces, counts change.
+func TestDetectDeadRules_CrossInterfaceDuplicates(t *testing.T) {
+	t.Parallel()
+
+	rule := common.FirewallRule{
+		Type:        common.RuleTypePass,
+		IPProtocol:  common.IPProtocolInet,
+		Interfaces:  []string{"wan", "lan"},
+		Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
+		Destination: common.RuleEndpoint{Address: "any"},
+	}
+	cfg := &common.CommonDevice{FirewallRules: []common.FirewallRule{rule, rule}}
+
+	findings := analysis.DetectDeadRules(cfg)
+	require.Len(t, findings, 2)
+
+	seenIfaces := map[string]bool{}
+	for _, f := range findings {
+		assert.Equal(t, common.DeadRuleKindDuplicate, f.Kind)
+		assert.Equal(t, 1, f.RuleIndex)
+		seenIfaces[f.Interface] = true
+	}
+	assert.True(t, seenIfaces["lan"], "expected duplicate finding on lan")
+	assert.True(t, seenIfaces["wan"], "expected duplicate finding on wan")
+}
+
+// TestDetectDeadRules_BlockAllPlusDuplicate exercises the mixed case: a
+// block-all rule followed by two identical pass rules on one interface.
+// Expected: one unreachable finding (block-all at index 0) plus one duplicate
+// finding (index 2 duplicates index 1).
+func TestDetectDeadRules_BlockAllPlusDuplicate(t *testing.T) {
+	t.Parallel()
+
+	blockAll := common.FirewallRule{
+		Type:        common.RuleTypeBlock,
+		Interfaces:  []string{"wan"},
+		Source:      common.RuleEndpoint{Address: "any"},
+		Destination: common.RuleEndpoint{Address: "any"},
+	}
+	pass := common.FirewallRule{
+		Type:        common.RuleTypePass,
+		IPProtocol:  common.IPProtocolInet,
+		Interfaces:  []string{"wan"},
+		Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
+		Destination: common.RuleEndpoint{Address: "any"},
+	}
+	cfg := &common.CommonDevice{FirewallRules: []common.FirewallRule{blockAll, pass, pass}}
+
+	findings := analysis.DetectDeadRules(cfg)
+	require.Len(t, findings, 2)
+
+	assert.Equal(t, common.DeadRuleKindUnreachable, findings[0].Kind)
+	assert.Equal(t, 0, findings[0].RuleIndex)
+
+	assert.Equal(t, common.DeadRuleKindDuplicate, findings[1].Kind)
+	assert.Equal(t, 2, findings[1].RuleIndex)
+	assert.Contains(t, findings[1].Description, "position 3 is duplicate of rule at position 2")
+}
+
+// TestDetectDeadRules_TriplicatePairwise verifies the exact pairwise emission
+// contract for three equivalent rules. This is tighter than the existing
+// table-based "wantCount: 3" assertion and would catch a regression to a
+// first-seen-only scheme (which would drop the rule-3-dup-of-rule-2 finding).
+func TestDetectDeadRules_TriplicatePairwise(t *testing.T) {
+	t.Parallel()
+
+	rule := common.FirewallRule{
+		Type:        common.RuleTypePass,
+		IPProtocol:  common.IPProtocolInet,
+		Interfaces:  []string{"lan"},
+		Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
+		Destination: common.RuleEndpoint{Address: "any"},
+	}
+	cfg := &common.CommonDevice{FirewallRules: []common.FirewallRule{rule, rule, rule}}
+
+	findings := analysis.DetectDeadRules(cfg)
+	require.Len(t, findings, 3)
+
+	type pair struct {
+		dupIndex    int
+		description string
+	}
+	want := []pair{
+		{dupIndex: 1, description: "position 2 is duplicate of rule at position 1"},
+		{dupIndex: 2, description: "position 3 is duplicate of rule at position 1"},
+		{dupIndex: 2, description: "position 3 is duplicate of rule at position 2"},
+	}
+	for i, w := range want {
+		assert.Equal(t, common.DeadRuleKindDuplicate, findings[i].Kind, "finding %d kind", i)
+		assert.Equal(t, w.dupIndex, findings[i].RuleIndex, "finding %d rule index", i)
+		assert.Contains(t, findings[i].Description, w.description, "finding %d description", i)
+	}
+}
+
+// TestDetectDeadRules_QuadruplicatePairwise locks in the nested-loop ordering
+// for equivalence classes of size 4. The old algorithm emits findings grouped
+// by the earlier rule's position (i=0 first, then i=1, i=2); a naive hash
+// approach that emits when the later rule is visited would interleave
+// differently. Reported by Copilot on PR #554.
+func TestDetectDeadRules_QuadruplicatePairwise(t *testing.T) {
+	t.Parallel()
+
+	rule := common.FirewallRule{
+		Type:        common.RuleTypePass,
+		IPProtocol:  common.IPProtocolInet,
+		Interfaces:  []string{"lan"},
+		Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
+		Destination: common.RuleEndpoint{Address: "any"},
+	}
+	cfg := &common.CommonDevice{FirewallRules: []common.FirewallRule{rule, rule, rule, rule}}
+
+	findings := analysis.DetectDeadRules(cfg)
+	require.Len(t, findings, 6)
+
+	type pair struct {
+		dupIndex    int
+		description string
+	}
+	want := []pair{
+		{dupIndex: 1, description: "position 2 is duplicate of rule at position 1"},
+		{dupIndex: 2, description: "position 3 is duplicate of rule at position 1"},
+		{dupIndex: 3, description: "position 4 is duplicate of rule at position 1"},
+		{dupIndex: 2, description: "position 3 is duplicate of rule at position 2"},
+		{dupIndex: 3, description: "position 4 is duplicate of rule at position 2"},
+		{dupIndex: 3, description: "position 4 is duplicate of rule at position 3"},
+	}
+	for i, w := range want {
+		assert.Equal(t, common.DeadRuleKindDuplicate, findings[i].Kind, "finding %d kind", i)
+		assert.Equal(t, w.dupIndex, findings[i].RuleIndex, "finding %d rule index", i)
+		assert.Contains(t, findings[i].Description, w.description, "finding %d description", i)
+	}
+}
+
+// TestDetectDeadRules_DuplicateBeforeBlockAll ensures that when a block-all
+// rule is sandwiched between identical pass rules, the duplicate finding from
+// the earlier pass rule precedes the unreachable finding from the block-all
+// rule — preserving the per-position ordering of the original nested loop.
+func TestDetectDeadRules_DuplicateBeforeBlockAll(t *testing.T) {
+	t.Parallel()
+
+	pass := common.FirewallRule{
+		Type:        common.RuleTypePass,
+		IPProtocol:  common.IPProtocolInet,
+		Interfaces:  []string{"wan"},
+		Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
+		Destination: common.RuleEndpoint{Address: "any"},
+	}
+	blockAll := common.FirewallRule{
+		Type:        common.RuleTypeBlock,
+		Interfaces:  []string{"wan"},
+		Source:      common.RuleEndpoint{Address: "any"},
+		Destination: common.RuleEndpoint{Address: "any"},
+	}
+	cfg := &common.CommonDevice{FirewallRules: []common.FirewallRule{pass, blockAll, pass}}
+
+	findings := analysis.DetectDeadRules(cfg)
+	require.Len(t, findings, 2)
+
+	assert.Equal(t, common.DeadRuleKindDuplicate, findings[0].Kind)
+	assert.Equal(t, 2, findings[0].RuleIndex)
+	assert.Contains(t, findings[0].Description, "position 3 is duplicate of rule at position 1")
+
+	assert.Equal(t, common.DeadRuleKindUnreachable, findings[1].Kind)
+	assert.Equal(t, 1, findings[1].RuleIndex)
+}
+
 func TestDetectUnusedInterfaces(t *testing.T) {
 	t.Parallel()
 
