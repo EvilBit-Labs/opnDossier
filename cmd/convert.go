@@ -51,7 +51,7 @@ var (
 //   - `--format, -f` : output format to produce; supported values are `markdown`, `json`, and `yaml` (default: `markdown`).
 //   - `--force`      : overwrite existing output files without prompting.
 //
-// It also adds shared styling and content flags (sections, theme, wrap width, etc.) via addSharedTemplateFlags and
+// It also adds shared styling and content flags (sections, theme, wrap width, etc.) via addSharedContentFlags and
 // disables automatic flag sorting to preserve logical flag grouping in help output.
 //
 // Examples:
@@ -76,7 +76,7 @@ func init() {
 	setFlagAnnotation(convertCmd.Flags(), "force", []string{"output"})
 
 	// Add shared styling and content flags
-	addSharedTemplateFlags(convertCmd)
+	addSharedContentFlags(convertCmd)
 
 	// Add shared redact flag
 	addSharedRedactFlag(convertCmd)

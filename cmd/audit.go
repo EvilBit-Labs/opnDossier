@@ -65,7 +65,7 @@ func init() {
 	setFlagAnnotation(auditCmd.Flags(), "force", []string{"output"})
 
 	// Add shared styling and content flags
-	addSharedTemplateFlags(auditCmd)
+	addSharedContentFlags(auditCmd)
 
 	// Add shared redact flag
 	addSharedRedactFlag(auditCmd)

@@ -11,9 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAddSharedTemplateFlagsRegistersFlags(t *testing.T) {
+func TestAddSharedContentFlagsRegistersFlags(t *testing.T) {
 	cmd := &cobra.Command{Use: "test"}
-	addSharedTemplateFlags(cmd)
+	addSharedContentFlags(cmd)
 
 	flags := cmd.Flags()
 	// These flags should exist

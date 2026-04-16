@@ -482,15 +482,11 @@ This text should be plain markdown without any ANSI escape codes or terminal con
 func TestFileExporter_ActualExportedFile(t *testing.T) {
 	// This test validates that the actual exported markdown file meets all acceptance criteria:
 	// 1. Exports valid markdown file with no terminal control characters
-	// 2. Uses templates from internal/templates
+	// 2. Contains expected programmatically generated sections
 	// 3. Passes markdown validation tests
 
 	// Create a temporary directory for test files
 	tmpDir := t.TempDir()
-
-	defer func() {
-		_ = os.RemoveAll(tmpDir)
-	}()
 
 	// Use existing test config file
 	configFile := findTestConfigFile(t)
@@ -538,17 +534,16 @@ func TestFileExporter_ActualExportedFile(t *testing.T) {
 	assert.NotContains(t, contentStr, "\x07", "Exported markdown should not contain bell characters")
 	assert.NotContains(t, contentStr, "\x08", "Exported markdown should not contain backspace characters")
 
-	// 3. Verify it uses templates from internal/templates by checking for expected content
-	// The templates should generate content with specific structure
+	// 3. Verify the programmatic generator produced the expected report structure
 	assert.Contains(
 		t,
 		contentStr,
 		"# OPNsense Configuration Summary",
-		"Should contain expected template-generated content",
+		"Should contain expected generated content",
 	)
-	assert.Contains(t, contentStr, "## System Information", "Should contain expected template-generated content")
-	assert.Contains(t, contentStr, "## Table of Contents", "Should contain expected template-generated content")
-	assert.Contains(t, contentStr, "## Interfaces", "Should contain expected template-generated content")
+	assert.Contains(t, contentStr, "## System Information", "Should contain expected generated content")
+	assert.Contains(t, contentStr, "## Table of Contents", "Should contain expected generated content")
+	assert.Contains(t, contentStr, "## Interfaces", "Should contain expected generated content")
 
 	// 4. Verify it's valid markdown structure
 	assert.Contains(t, contentStr, "---", "Should contain markdown horizontal rules")
@@ -662,10 +657,6 @@ func TestFileExporter_ActualExportedJSONFile(t *testing.T) {
 
 	// Create a temporary directory for test files
 	tmpDir := t.TempDir()
-
-	defer func() {
-		_ = os.RemoveAll(tmpDir)
-	}()
 
 	// Use existing test config file
 	configFile := findTestConfigFile(t)
@@ -821,10 +812,6 @@ func TestFileExporter_ActualExportedYAMLFile(t *testing.T) {
 	// Create a temporary directory for test files
 	tmpDir := t.TempDir()
 
-	defer func() {
-		_ = os.RemoveAll(tmpDir)
-	}()
-
 	// Use existing test config file
 	configFile := findTestConfigFile(t)
 
@@ -890,10 +877,6 @@ func validateYAML(content string) error {
 func TestFileExporter_StandardToolValidation(t *testing.T) {
 	// Create a temporary directory for test files
 	tmpDir := t.TempDir()
-
-	defer func() {
-		_ = os.RemoveAll(tmpDir)
-	}()
 
 	// Use existing test config file
 	configFile := findTestConfigFile(t)
@@ -1041,10 +1024,6 @@ func TestFileExporter_LibraryValidation(t *testing.T) {
 	// Create a temporary directory for test files
 	tmpDir := t.TempDir()
 
-	defer func() {
-		_ = os.RemoveAll(tmpDir)
-	}()
-
 	// Use existing test config file
 	configFile := findTestConfigFile(t)
 	projectRoot := filepath.Join("..", "..")
@@ -1189,10 +1168,6 @@ func TestFileExporter_LibraryValidation(t *testing.T) {
 func TestFileExporter_CrossPlatformValidation(t *testing.T) {
 	// Create a temporary directory for test files
 	tmpDir := t.TempDir()
-
-	defer func() {
-		_ = os.RemoveAll(tmpDir)
-	}()
 
 	// Use existing test config file
 	configFile := findTestConfigFile(t)
