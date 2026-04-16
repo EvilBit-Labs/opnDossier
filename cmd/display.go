@@ -23,7 +23,7 @@ func init() {
 	rootCmd.AddCommand(displayCmd)
 
 	// Add shared styling and content flags
-	addSharedTemplateFlags(displayCmd)
+	addSharedContentFlags(displayCmd)
 	// Add display-specific flags
 	addDisplayFlags(displayCmd)
 	// Add shared redact flag
