@@ -11,9 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAddSharedTemplateFlagsRegistersFlags(t *testing.T) {
+func TestAddSharedContentFlagsRegistersFlags(t *testing.T) {
 	cmd := &cobra.Command{Use: "test"}
-	addSharedTemplateFlags(cmd)
+	addSharedContentFlags(cmd)
 
 	flags := cmd.Flags()
 	// These flags should exist
@@ -23,7 +23,7 @@ func TestAddSharedTemplateFlagsRegistersFlags(t *testing.T) {
 	require.NotNil(t, flags.Lookup("include-tunables"))
 	require.NotNil(t, flags.Lookup("comprehensive"))
 
-	// These template-related flags should NOT exist
+	// These legacy flags (removed in NATS-6) should NOT exist
 	assert.Nil(t, flags.Lookup("legacy"))
 	assert.Nil(t, flags.Lookup("custom-template"))
 	assert.Nil(t, flags.Lookup("template-cache-size"))

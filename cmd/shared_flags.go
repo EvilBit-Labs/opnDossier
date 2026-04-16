@@ -45,9 +45,8 @@ var (
 	sharedPluginDir       string   //nolint:gochecknoglobals // Directory for dynamic .so plugins
 )
 
-// addSharedTemplateFlags adds shared CLI flags for content, formatting, and audit-related
-// output controls to the provided command. The function name is retained for backward
-// compatibility but it no longer introduces template-specific flags.
+// addSharedContentFlags adds shared CLI flags for content, formatting, and audit-related
+// output controls to the provided command.
 //
 // Flags added:
 //
@@ -62,7 +61,7 @@ var (
 //	mycmd --section system,network --wrap 100 --include-tunables --comprehensive
 //
 // cmd must be a non-nil *cobra.Command.
-func addSharedTemplateFlags(cmd *cobra.Command) {
+func addSharedContentFlags(cmd *cobra.Command) {
 	cmd.Flags().
 		BoolVar(&sharedIncludeTunables, "include-tunables", false, "Include all system tunables in report output (markdown, text, HTML only; JSON/YAML always include all tunables)")
 	setFlagAnnotation(cmd.Flags(), "include-tunables", []string{"content"})
