@@ -48,7 +48,7 @@ jobs:
 
       - name: Download baseline (main branch)
         if: github.event_name == 'pull_request'
-        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: baseline-benchmark.txt
           key: benchmark-baseline-${{ github.base_ref }}
@@ -128,7 +128,7 @@ jobs:
 
       - name: Save baseline (main branch only)
         if: github.ref == 'refs/heads/main'
-        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: benchmark-results.txt
           key: benchmark-baseline-main-${{ github.sha }}
