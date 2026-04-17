@@ -232,7 +232,10 @@ knowledge_base:
     usage: disabled
   linked_repositories:
     - repository: EvilBit-Labs/opnConfigGenerator
-      instructions: A related tool in the same suite that uses the exported pkgs.
+      instructions: >-
+        Downstream consumer of github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense
+        and pkg/model. Prioritize compatibility checks for exported schema types,
+        BoolFlag presence-based MarshalXML semantics, and CommonDevice field contracts.
 code_generation:
   docstrings:
     path_instructions:
@@ -378,10 +381,6 @@ issue_enrichment:
       - label: priority:normal
         instructions: Use for standard work items, regular features, and routine bug
           fixes with normal urgency
-      - label: bug
-        instructions: >-
-          Use when something isn't working correctly - parsing errors, crashes,
-          incorrect output, or unexpected behavior
       - label: documentation
         instructions: >-
           Use for improvements to documentation, README updates, code comments,
@@ -460,9 +459,6 @@ issue_enrichment:
       - label: refactoring
         instructions: Use for code refactoring, restructuring existing code without
           changing functionality
-      - label: refactor
-        instructions: Use for code cleanup, simplification, or improving code quality
-          without adding features
       - label: cleanup
         instructions: Use for code cleanup tasks, removing dead code, or tidying up
           technical debt
