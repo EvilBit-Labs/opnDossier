@@ -1,4 +1,4 @@
-// Package pfsense defines the data structures for pfSense configurations.
+// Package pfsense defines the XML schema types for pfSense configuration files.
 package pfsense
 
 import (
@@ -12,8 +12,10 @@ type SyslogConfig struct {
 }
 
 // UnboundConfig represents the pfSense Unbound DNS resolver configuration.
-// It includes more fields than the OPNsense Unbound type, covering interface
-// bindings, security options, and port configuration.
+// It is forked from the OPNsense Unbound type because pfSense includes additional
+// fields for interface bindings, security options (HideIdentity, HideVersion),
+// SSL/TLS port configuration, and DNSSEC-stripped mode. Several boolean fields
+// use [opnsense.BoolFlag] for presence-based XML serialization.
 type UnboundConfig struct {
 	Enable                    opnsense.BoolFlag `xml:"enable,omitempty"                        json:"enable"                              yaml:"enable,omitempty"`
 	DNSSEC                    opnsense.BoolFlag `xml:"dnssec,omitempty"                        json:"dnssec"                              yaml:"dnssec,omitempty"`

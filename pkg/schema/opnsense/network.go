@@ -12,28 +12,27 @@ type NetworkConfig struct {
 	Gateways   []Gateway    `json:"gateways,omitempty" yaml:"gateways,omitempty"`
 }
 
-// DhcpOption represents a DHCP option.
+// DhcpOption represents a numbered DHCP option with its value, used in interface-level DHCP configuration.
 type DhcpOption struct {
 	Number string `xml:"number,omitempty" json:"number,omitempty" yaml:"number,omitempty"`
 	Value  string `xml:"value,omitempty"  json:"value,omitempty"  yaml:"value,omitempty"`
 }
 
-// DhcpRange represents a DHCP range.
+// DhcpRange represents a DHCP address range on an interface, defined by From and To IP addresses.
 type DhcpRange struct {
 	From string `xml:"from,omitempty" json:"from,omitempty" yaml:"from,omitempty"`
 	To   string `xml:"to,omitempty"   json:"to,omitempty"   yaml:"to,omitempty"`
 }
 
-// Vlans represents VLAN configuration.
-
-// Gateways represents gateway configuration.
+// Gateways represents the <gateways> container element holding gateway items and gateway groups.
 type Gateways struct {
 	XMLName xml.Name       `xml:"gateways"`
 	Gateway []Gateway      `xml:"gateway_item,omitempty"`
 	Groups  []GatewayGroup `xml:"gateway_group,omitempty"`
 }
 
-// Gateway struct for individual gateway configuration.
+// Gateway represents an individual gateway configuration entry, including the bound interface,
+// gateway address, IP protocol version, monitoring settings, and default gateway designation.
 type Gateway struct {
 	XMLName        xml.Name `xml:"gateway_item"`
 	Interface      string   `xml:"interface,omitempty"`
@@ -52,7 +51,7 @@ type Gateway struct {
 	FarGW          string   `xml:"fargw,omitempty"`
 }
 
-// GatewayGroup represents a group of gateways for OPNsense configuration.
+// GatewayGroup represents a group of gateways used for multi-WAN failover or load balancing.
 type GatewayGroup struct {
 	XMLName xml.Name `xml:"gateway_group"`
 	Name    string   `xml:"name,omitempty"`
@@ -61,13 +60,13 @@ type GatewayGroup struct {
 	Descr   string   `xml:"descr,omitempty"`
 }
 
-// StaticRoutes represents static routing configuration.
+// StaticRoutes represents the <staticroutes> container element holding all static route entries.
 type StaticRoutes struct {
 	XMLName xml.Name      `xml:"staticroutes"`
 	Route   []StaticRoute `xml:"route,omitempty"`
 }
 
-// StaticRoute struct for individual static route configuration.
+// StaticRoute represents a single static route entry mapping a destination network to a gateway.
 type StaticRoute struct {
 	XMLName  xml.Name `xml:"route"`
 	Network  string   `xml:"network,omitempty"`

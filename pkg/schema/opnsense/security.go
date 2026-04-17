@@ -62,13 +62,14 @@ func (il *InterfaceList) IsEmpty() bool {
 	return len(*il) == 0
 }
 
-// SecurityConfig groups security-related configuration.
+// SecurityConfig groups security-related configuration, combining NAT and firewall filter settings.
 type SecurityConfig struct {
 	Nat    Nat    `json:"nat"    yaml:"nat,omitempty"`
 	Filter Filter `json:"filter" yaml:"filter,omitempty"`
 }
 
-// NATSummary provides comprehensive NAT configuration for security analysis.
+// NATSummary provides a flattened view of NAT configuration for security analysis,
+// combining outbound mode, reflection settings, and both inbound and outbound rule sets.
 type NATSummary struct {
 	Mode               string        `json:"mode"                    yaml:"mode"`
 	ReflectionDisabled bool          `json:"reflectionDisabled"      yaml:"reflectionDisabled"`
@@ -77,24 +78,26 @@ type NATSummary struct {
 	InboundRules       []InboundRule `json:"inboundRules,omitempty"  yaml:"inboundRules,omitempty"`
 }
 
-// Nat represents NAT configuration.
+// Nat represents the complete NAT configuration, including outbound NAT rules and inbound port-forwarding rules.
 type Nat struct {
 	Outbound Outbound      `xml:"outbound"     json:"outbound"          yaml:"outbound"`
 	Inbound  []InboundRule `xml:"inbound>rule" json:"inbound,omitempty" yaml:"inbound,omitempty"`
 }
 
-// Outbound represents outbound NAT configuration.
+// Outbound represents outbound NAT configuration, including the NAT mode
+// (automatic, hybrid, advanced, or disabled) and the list of outbound NAT rules.
 type Outbound struct {
 	Mode string    `xml:"mode" json:"mode"            yaml:"mode"`
 	Rule []NATRule `xml:"rule" json:"rules,omitempty" yaml:"rules,omitempty"`
 }
 
-// Filter represents firewall filter configuration.
+// Filter represents the legacy firewall filter configuration containing an ordered list of firewall rules.
 type Filter struct {
 	Rule []Rule `xml:"rule"`
 }
 
-// NATRule represents a NAT rule with enhanced fields for security analysis.
+// NATRule represents an outbound NAT rule. The Target field specifies the NAT target address.
+// Tag and Tagged fields are available on outbound rules only (not on [InboundRule] or [Rule]).
 type NATRule struct {
 	XMLName            xml.Name      `xml:"rule"`
 	Interface          InterfaceList `xml:"interface,omitempty"              json:"interface,omitempty"          yaml:"interface,omitempty"`
@@ -120,7 +123,8 @@ type NATRule struct {
 	UUID               string        `xml:"uuid,attr,omitempty"              json:"uuid,omitempty"               yaml:"uuid,omitempty"`
 }
 
-// InboundRule represents an inbound NAT rule (port forwarding) with enhanced fields for security analysis.
+// InboundRule represents an inbound NAT rule (port forwarding). The InternalIP field specifies
+// the port-forward destination address; there is no Target field on InboundRule (unlike [NATRule]).
 type InboundRule struct {
 	XMLName          xml.Name      `xml:"rule"`
 	Interface        InterfaceList `xml:"interface,omitempty"          json:"interface,omitempty"        yaml:"interface,omitempty"`
@@ -146,7 +150,8 @@ type InboundRule struct {
 	UUID             string        `xml:"uuid,attr,omitempty"          json:"uuid,omitempty"             yaml:"uuid,omitempty"`
 }
 
-// Rule represents a firewall rule.
+// Rule represents a firewall filter rule with full source/destination specification,
+// protocol matching, rate limiting, TCP flag filtering, and state tracking options.
 type Rule struct {
 	XMLName     xml.Name      `xml:"rule"`
 	Type        string        `xml:"type"`
@@ -284,21 +289,22 @@ func (d Destination) Equal(other Destination) bool {
 		d.Not == other.Not
 }
 
-// Updated represents update information.
+// Updated records the user, timestamp, and description of the most recent modification to a rule or configuration item.
 type Updated struct {
 	Username    string `xml:"username"`
 	Time        string `xml:"time"`
 	Description string `xml:"description"`
 }
 
-// Created represents creation information.
+// Created records the user, timestamp, and description from when a rule or configuration item was first created.
 type Created struct {
 	Username    string `xml:"username"`
 	Time        string `xml:"time"`
 	Description string `xml:"description"`
 }
 
-// Firewall represents firewall configuration.
+// Firewall represents the OPNsense MVC-based firewall configuration, including
+// live templates, alias definitions, category groupings, and filter/SNAT rules.
 type Firewall struct {
 	XMLName    xml.Name `xml:"Firewall"`
 	Text       string   `xml:",chardata"  json:"text,omitempty"`
@@ -331,11 +337,10 @@ type Firewall struct {
 	} `xml:"Filter"     json:"filter"`
 }
 
-// IDS represents Intrusion Detection System configuration.
-//
 //revive:disable:var-naming
 
-// IDS represents the complete Intrusion Detection System configuration.
+// IDS represents the complete Intrusion Detection System configuration,
+// including Suricata general settings, detection profiles, EVE logging, and syslog output.
 type IDS struct {
 	XMLName          xml.Name `xml:"IDS"`
 	Text             string   `xml:",chardata"        json:"text,omitempty"`
@@ -386,7 +391,8 @@ type IDS struct {
 	} `xml:"general"          json:"general"`
 }
 
-// IPsec represents IPsec configuration.
+// IPsec represents the OPNsense MVC-based IPsec VPN configuration, including
+// general settings, strongSwan charon daemon tuning, key pairs, and pre-shared keys.
 type IPsec struct {
 	XMLName xml.Name `xml:"IPsec"`
 	Text    string   `xml:",chardata"     json:"text,omitempty"`
@@ -443,7 +449,8 @@ type IPsec struct {
 	PreSharedKeys string `xml:"preSharedKeys"`
 }
 
-// Swanctl represents StrongSwan configuration.
+// Swanctl represents the StrongSwan swanctl configuration, including connections,
+// local/remote authentication, child SAs, address pools, VTIs, and SPD entries.
 type Swanctl struct {
 	XMLName     xml.Name `xml:"Swanctl"`
 	Text        string   `xml:",chardata"    json:"text,omitempty"`
@@ -457,7 +464,7 @@ type Swanctl struct {
 	SPDs        string   `xml:"SPDs"`
 }
 
-// NewIDS creates a new IDS configuration with zero-value defaults.
+// NewIDS returns a pointer to a new [IDS] configuration with zero-value defaults.
 func NewIDS() *IDS {
 	return &IDS{}
 }

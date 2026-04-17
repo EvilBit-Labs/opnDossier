@@ -153,7 +153,8 @@ func (i *Interfaces) Lan() (Interface, bool) {
 	return i.Get("lan")
 }
 
-// Interface represents a network interface configuration.
+// Interface represents a single network interface configuration, including IP addressing,
+// VLAN settings, gateway bindings, DHCP options, and advanced DHCPv6 fields.
 type Interface struct {
 	Enable              string       `xml:"enable,omitempty"              json:"enable,omitempty"              yaml:"enable,omitempty"`
 	If                  string       `xml:"if,omitempty"                  json:"if,omitempty"                  yaml:"if,omitempty"`
@@ -196,7 +197,8 @@ type Interface struct {
 	AdvDHCP6IDAssocStatementPrefixPLTime     string `xml:"adv_dhcp6_id_assoc_statement_prefix_pltime,omitempty"    json:"advDhcp6IdAssocStatementPrefixPltime,omitempty"     yaml:"advDhcp6IdAssocStatementPrefixPltime,omitempty"`
 }
 
-// VLANConfig represents a Virtual Local Area Network configuration for network config.
+// VLANConfig represents a Virtual Local Area Network configuration used in [NetworkConfig].
+// This is a simplified VLAN representation for the common device model.
 type VLANConfig struct {
 	Name              string `xml:"vlanif,omitempty"`
 	Tag               string `xml:"tag,omitempty"`
@@ -205,13 +207,14 @@ type VLANConfig struct {
 	Description       string `xml:"descr,omitempty"`
 }
 
-// VLANs represents a collection of VLAN configurations in the OPNsense document.
+// VLANs represents the <vlans> container element holding all VLAN configurations in the OPNsense document.
 type VLANs struct {
 	XMLName xml.Name `xml:"vlans"`
 	VLAN    []VLAN   `xml:"vlan,omitempty"`
 }
 
-// VLAN represents a VLAN configuration in the OPNsense document.
+// VLAN represents a single VLAN configuration entry with its parent physical interface,
+// 802.1Q tag, virtual interface name (vlanif), and creation/update timestamps.
 type VLAN struct {
 	XMLName xml.Name `xml:"vlan"`
 	If      string   `xml:"if,omitempty"`
@@ -222,7 +225,8 @@ type VLAN struct {
 	Updated string   `xml:"updated,omitempty"`
 }
 
-// Bridge represents a network bridge configuration.
+// Bridge represents a network bridge configuration, combining multiple interfaces
+// into a single Layer 2 broadcast domain with optional STP (Spanning Tree Protocol).
 type Bridge struct {
 	XMLName  xml.Name `xml:"bridge"`
 	Members  string   `xml:"members,omitempty"`
@@ -233,13 +237,13 @@ type Bridge struct {
 	Updated  string   `xml:"updated,omitempty"`
 }
 
-// Bridges represents a collection of bridge configurations.
+// Bridges represents the <bridges> container element holding all bridge configurations.
 type Bridges struct {
 	XMLName xml.Name `xml:"bridges"`
 	Bridge  []Bridge `xml:"bridge,omitempty"`
 }
 
-// GIF represents a GIF (Generic Tunnel Interface) configuration entry.
+// GIF represents a GIF (Generic Tunnel Interface) configuration entry for IPv4/IPv6-in-IPv4/IPv6 tunneling.
 type GIF struct {
 	XMLName xml.Name `xml:"gif"`
 	Gifif   string   `xml:"gifif,omitempty"`
@@ -250,7 +254,7 @@ type GIF struct {
 	Updated string   `xml:"updated,omitempty"`
 }
 
-// GRE represents a GRE (Generic Routing Encapsulation) tunnel configuration entry.
+// GRE represents a GRE (Generic Routing Encapsulation) tunnel configuration entry for point-to-point encapsulation.
 type GRE struct {
 	XMLName xml.Name `xml:"gre"`
 	Greif   string   `xml:"greif,omitempty"`
@@ -261,7 +265,8 @@ type GRE struct {
 	Updated string   `xml:"updated,omitempty"`
 }
 
-// LAGG represents a LAGG (Link Aggregation) interface configuration entry.
+// LAGG represents a LAGG (Link Aggregation) interface configuration entry for bonding
+// multiple physical interfaces using protocols like LACP, failover, or round-robin.
 type LAGG struct {
 	XMLName xml.Name `xml:"lagg"`
 	Laggif  string   `xml:"laggif,omitempty"`
@@ -272,7 +277,8 @@ type LAGG struct {
 	Updated string   `xml:"updated,omitempty"`
 }
 
-// VIP represents a virtual IP address configuration entry.
+// VIP represents a virtual IP address configuration entry used for CARP, IP alias,
+// proxy ARP, or other virtual address modes bound to a specific interface.
 type VIP struct {
 	XMLName   xml.Name `xml:"vip"`
 	Mode      string   `xml:"mode,omitempty"`
@@ -281,7 +287,8 @@ type VIP struct {
 	Descr     string   `xml:"descr,omitempty"`
 }
 
-// PPP represents a PPP (Point-to-Point Protocol) interface configuration entry.
+// PPP represents a PPP (Point-to-Point Protocol) interface configuration entry,
+// covering PPPoE, PPTP, and L2TP connection types.
 type PPP struct {
 	XMLName xml.Name `xml:"ppp"`
 	If      string   `xml:"if,omitempty"`
@@ -289,7 +296,7 @@ type PPP struct {
 	Descr   string   `xml:"descr,omitempty"`
 }
 
-// IfGroupEntry represents an interface group entry configuration.
+// IfGroupEntry represents an interface group entry, binding a group name to its member interfaces.
 type IfGroupEntry struct {
 	XMLName xml.Name `xml:"ifgroupentry"`
 	IfName  string   `xml:"ifname,omitempty"`

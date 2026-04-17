@@ -1,4 +1,13 @@
-// Package pfsense defines the data structures for pfSense configurations.
+// Package pfsense defines the XML schema types for pfSense configuration files.
+//
+// This package heavily reuses types from [github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense]
+// and only forks types where the pfSense XML structure differs from OPNsense. The most
+// common reason for forking is pfSense's use of presence-based <enable/> elements
+// (represented as [opnsense.BoolFlag]) where OPNsense uses plain strings.
+//
+// Forked types that contain BoolFlag fields require a custom MarshalXML method and a
+// private type alias (e.g., interfaceAlias) to ensure correct XML serialization. See the
+// BoolFlag addressability pattern documented in GOTCHAS.md section 15.
 package pfsense
 
 import (
@@ -7,7 +16,12 @@ import (
 	opnsense "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
 
-// Document is the root of the pfSense configuration.
+// Document is the root schema type for a pfSense configuration file (config.xml).
+// It maps to the top-level <pfsense> XML element. Fields that are structurally identical
+// to OPNsense reuse opnsense types directly (e.g., Snmpd, Gateways, VLANs); fields that
+// differ use pfSense-specific types defined in this package.
+//
+// Use [NewDocument] to create a Document with all slice and map fields pre-initialized.
 type Document struct {
 	XMLName      xml.Name                        `xml:"pfsense"                 json:"-"                    yaml:"-"`
 	Version      string                          `xml:"version,omitempty"       json:"version,omitempty"    yaml:"version,omitempty"`

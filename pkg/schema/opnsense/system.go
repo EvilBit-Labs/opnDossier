@@ -1,7 +1,8 @@
 // Package opnsense defines the data structures for OPNsense configurations.
 package opnsense
 
-// WebGUIConfig represents the WebGUI configuration.
+// WebGUIConfig represents the web management interface configuration, including
+// protocol (HTTP/HTTPS), SSL certificate reference, login autocomplete, and process limits.
 type WebGUIConfig struct {
 	Protocol          string   `xml:"protocol"                    json:"protocol"               yaml:"protocol"                    validate:"required,oneof=http https"`
 	SSLCertRef        string   `xml:"ssl-certref,omitempty"       json:"sslCertRef,omitempty"   yaml:"sslCertRef,omitempty"`
@@ -9,21 +10,23 @@ type WebGUIConfig struct {
 	MaxProcesses      string   `xml:"max_procs,omitempty"         json:"maxProcesses,omitempty" yaml:"maxProcesses,omitempty"`
 }
 
-// SSHConfig represents the SSH configuration.
+// SSHConfig represents the SSH daemon configuration, including whether it is enabled,
+// the listening port, and the permitted login group.
 type SSHConfig struct {
 	Enabled BoolFlag `xml:"enabled,omitempty" json:"enabled"        yaml:"enabled,omitempty"`
 	Port    string   `xml:"port,omitempty"    json:"port,omitempty" yaml:"port,omitempty"`
 	Group   string   `xml:"group"             json:"group"          yaml:"group"             validate:"required"`
 }
 
-// SystemConfig groups system-related configuration.
+// SystemConfig groups system-related configuration, combining the core [System] settings
+// with kernel tunables ([SysctlItem] entries).
 type SystemConfig struct {
 	System System       `json:"system"           yaml:"system,omitempty" validate:"required"`
 	Sysctl []SysctlItem `json:"sysctl,omitempty" yaml:"sysctl,omitempty"`
 }
 
-// SysctlItem represents a single sysctl item.
-// This supports both the simple format (direct elements) and nested item format.
+// SysctlItem represents a single kernel tunable (sysctl) entry with its name, value, and description.
+// This supports both the simple format (direct elements) and nested item format used in OPNsense XML.
 type SysctlItem struct {
 	Descr   string `xml:"descr"         json:"description,omitempty" yaml:"description,omitempty"`
 	Tunable string `xml:"tunable"       json:"tunable"               yaml:"tunable"               validate:"required"`
@@ -34,7 +37,8 @@ type SysctlItem struct {
 	Item   string `xml:"item,omitempty"   json:"item,omitempty"   yaml:"item,omitempty"`
 }
 
-// System contains the system configuration.
+// System contains the core system configuration including hostname, domain, DNS, users, groups,
+// web GUI settings, SSH access, firmware, power management, and hardware offloading options.
 type System struct {
 	Optimization                  string       `xml:"optimization"                  json:"optimization,omitempty"                  yaml:"optimization,omitempty"                  validate:"omitempty,oneof=normal high-latency conservative aggressive"`
 	Hostname                      string       `xml:"hostname"                      json:"hostname"                                yaml:"hostname"                                validate:"required,hostname"`
@@ -91,13 +95,15 @@ type System struct {
 	Notes []string `xml:"notes>note" json:"notes,omitempty" yaml:"notes,omitempty"`
 }
 
-// Widgets represents the dashboard widgets configuration.
+// Widgets represents the OPNsense dashboard widgets layout configuration,
+// including the widget display sequence and column count.
 type Widgets struct {
 	Sequence    string `xml:"sequence"     json:"sequence,omitempty"    yaml:"sequence,omitempty"`
 	ColumnCount string `xml:"column_count" json:"columnCount,omitempty" yaml:"columnCount,omitempty"`
 }
 
-// Group represents a user group.
+// Group represents a user group with a name, GID, scope (system or local), member list,
+// and assigned privileges.
 type Group struct {
 	Name        string `xml:"name"        json:"name"                  yaml:"name"                  validate:"required,alphanum"`
 	Description string `xml:"description" json:"description,omitempty" yaml:"description,omitempty"`
@@ -107,7 +113,8 @@ type Group struct {
 	Priv        string `xml:"priv"        json:"privileges,omitempty"  yaml:"privileges,omitempty"`
 }
 
-// Firmware represents the firmware configuration.
+// Firmware represents the OPNsense firmware configuration, including the update mirror,
+// flavour, installed plugins, and subscription/reboot flags.
 type Firmware struct {
 	Version      string   `xml:"version,attr"           json:"version,omitempty" yaml:"version,omitempty"`
 	Mirror       string   `xml:"mirror"                 json:"mirror,omitempty"  yaml:"mirror,omitempty"`
@@ -118,7 +125,8 @@ type Firmware struct {
 	Reboot       BoolFlag `xml:"reboot,omitempty"       json:"reboot"            yaml:"reboot,omitempty"`
 }
 
-// User represents a user.
+// User represents a local user account with authentication credentials, group membership,
+// UID, scope, API keys, and optional OTP/IPsec PSK/SSH authorized key flags.
 type User struct {
 	Name      string   `xml:"name"      json:"name"                  yaml:"name"                  validate:"required,alphanum"`
 	Disabled  BoolFlag `xml:"disabled"  json:"disabled"              yaml:"disabled"`
@@ -135,7 +143,8 @@ type User struct {
 	OTPSeed        BoolFlag `xml:"otp_seed"       json:"otpSeed"           yaml:"otpSeed,omitempty"`
 }
 
-// APIKey represents a user API key.
+// APIKey represents a user API key pair with its key, secret, associated privileges,
+// scope, ownership (UID/GID), and creation/modification timestamps.
 type APIKey struct {
 	Key string `xml:"key" json:"key" yaml:"key"`
 

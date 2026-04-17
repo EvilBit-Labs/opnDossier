@@ -3,7 +3,8 @@ package opnsense
 
 import "encoding/xml"
 
-// OpenVPN represents OpenVPN configuration.
+// OpenVPN represents the legacy OpenVPN configuration container, holding server instances,
+// client instances, client-specific configurations (CSC), and client export settings.
 type OpenVPN struct {
 	XMLName      xml.Name        `xml:"openvpn"`
 	Servers      []OpenVPNServer `xml:"openvpn-server,omitempty"`
@@ -14,7 +15,8 @@ type OpenVPN struct {
 	Updated      string          `xml:"updated,omitempty"`
 }
 
-// OpenVPNServer represents an OpenVPN server configuration.
+// OpenVPNServer represents a single OpenVPN server instance with TLS settings, tunnel networks,
+// client routing, DNS push options, compression, and topology configuration.
 type OpenVPNServer struct {
 	XMLName           xml.Name `xml:"openvpn-server"`
 	VPN_ID            string   `xml:"vpnid,omitempty"` //nolint:revive,staticcheck // XML field name requires underscore
@@ -64,7 +66,8 @@ type OpenVPNServer struct {
 	Updated           string   `xml:"updated,omitempty"`
 }
 
-// OpenVPNClient represents an OpenVPN client configuration.
+// OpenVPNClient represents a single OpenVPN client instance with server address,
+// TLS settings, compression, and custom options.
 type OpenVPNClient struct {
 	XMLName         xml.Name `xml:"openvpn-client"`
 	VPN_ID          string   `xml:"vpnid,omitempty"` //nolint:revive,staticcheck // XML field name requires underscore
@@ -84,7 +87,8 @@ type OpenVPNClient struct {
 	Updated         string   `xml:"updated,omitempty"`
 }
 
-// ClientExport represents client export options for OpenVPN.
+// ClientExport represents client export options for OpenVPN, used to generate
+// downloadable client configuration packages.
 type ClientExport struct {
 	XMLName           xml.Name `xml:"openvpn-client-export"`
 	Server_list       []string `xml:"server_list,omitempty"` //nolint:revive,staticcheck // XML field name requires underscore
@@ -94,7 +98,8 @@ type ClientExport struct {
 	Use_token         BoolFlag `xml:"use_token,omitempty"`         //nolint:revive,staticcheck // XML field name requires underscore
 }
 
-// OpenVPNCSC represents client-specific configurations for OpenVPN.
+// OpenVPNCSC represents a client-specific configuration (CSC) override for OpenVPN,
+// allowing per-client tunnel networks, DNS settings, and routing overrides.
 type OpenVPNCSC struct {
 	XMLName          xml.Name `xml:"openvpn-csc"`
 	Common_name      string   `xml:"common_name,omitempty"` //nolint:revive,staticcheck // XML field name requires underscore
@@ -120,7 +125,7 @@ type OpenVPNCSC struct {
 	Updated          string   `xml:"updated,omitempty"`
 }
 
-// OpenVPNExport represents OpenVPN export configuration.
+// OpenVPNExport represents the MVC-based OpenVPN export configuration for client package generation.
 type OpenVPNExport struct {
 	XMLName xml.Name `xml:"OpenVPNExport"`
 	Text    string   `xml:",chardata"     json:"text,omitempty"`
@@ -128,7 +133,8 @@ type OpenVPNExport struct {
 	Servers string   `xml:"servers"`
 }
 
-// OpenVPNSystem represents OpenVPN system configuration.
+// OpenVPNSystem represents the MVC-based OpenVPN system configuration, including
+// instance overwrites, instance definitions, and static key management.
 type OpenVPNSystem struct {
 	XMLName    xml.Name `xml:"OpenVPN"`
 	Text       string   `xml:",chardata"    json:"text,omitempty"`
@@ -138,7 +144,8 @@ type OpenVPNSystem struct {
 	StaticKeys string   `xml:"StaticKeys"`
 }
 
-// WireGuard represents WireGuard VPN configuration.
+// WireGuard represents the WireGuard VPN configuration, including global enable state,
+// server (local peer) definitions, and client (remote peer) definitions.
 type WireGuard struct {
 	XMLName xml.Name `xml:"wireguard"`
 	Text    string   `xml:",chardata" json:"text,omitempty"`
@@ -165,7 +172,8 @@ type WireGuard struct {
 	} `xml:"client"    json:"client"`
 }
 
-// WireGuardServerItem represents a WireGuard server configuration.
+// WireGuardServerItem represents a WireGuard local peer (server) configuration with
+// public/private key pair, listen port, tunnel addresses, and assigned peer references.
 type WireGuardServerItem struct {
 	Text          string `xml:",chardata"     json:"text,omitempty"`
 	UUID          string `xml:"uuid,attr"     json:"uuid,omitempty"`
@@ -184,7 +192,8 @@ type WireGuardServerItem struct {
 	Peers         string `xml:"peers"         json:"peers,omitempty"`
 }
 
-// WireGuardClientItem represents a WireGuard client configuration.
+// WireGuardClientItem represents a WireGuard remote peer (client) configuration with
+// public key, optional pre-shared key, allowed tunnel addresses, endpoint, and keepalive interval.
 type WireGuardClientItem struct {
 	Text          string `xml:",chardata"     json:"text,omitempty"`
 	UUID          string `xml:"uuid,attr"     json:"uuid,omitempty"`
