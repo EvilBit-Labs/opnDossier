@@ -3,6 +3,8 @@ package opnsense
 
 import (
 	"encoding/xml"
+	"maps"
+	"slices"
 )
 
 // InterfaceGroups represents interface groups configuration.
@@ -92,8 +94,9 @@ func (i *Interfaces) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 		return err
 	}
 
-	// Encode each interface as a separate element using the key as the element name
-	for key, iface := range i.Items {
+	// Encode interfaces in sorted key order for deterministic output (GOTCHAS §3.1).
+	for _, key := range slices.Sorted(maps.Keys(i.Items)) {
+		iface := i.Items[key]
 		ifaceStart := xml.StartElement{Name: xml.Name{Local: key}}
 		if err := e.EncodeElement(iface, ifaceStart); err != nil {
 			return err
@@ -133,12 +136,7 @@ func (i *Interfaces) Names() []string {
 		return []string{}
 	}
 
-	names := make([]string, 0, len(i.Items))
-	for key := range i.Items {
-		names = append(names, key)
-	}
-
-	return names
+	return slices.Sorted(maps.Keys(i.Items))
 }
 
 // Wan returns the WAN interface if it exists, otherwise returns a zero-value Interface and false.
