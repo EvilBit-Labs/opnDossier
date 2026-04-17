@@ -89,6 +89,8 @@ func TestDocument_InterfaceByName(t *testing.T) {
 
 			if tt.wantFound {
 				assert.Equal(t, tt.wantDescr, iface.Descr)
+			} else {
+				assert.Equal(t, Interface{}, iface)
 			}
 		})
 	}
