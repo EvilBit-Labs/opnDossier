@@ -1,4 +1,4 @@
-// Package pfsense defines the data structures for pfSense configurations.
+// Package pfsense defines the XML schema types for pfSense configuration files.
 package pfsense
 
 import (
@@ -7,7 +7,11 @@ import (
 	opnsense "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
 
-// IPsec represents the top-level IPsec VPN configuration container.
+// IPsec represents the top-level IPsec VPN configuration container for pfSense.
+// It maps to the <ipsec> XML element and contains Phase 1 (IKE SA), Phase 2 (child SA),
+// mobile key, client pool, and logging sub-configurations.
+//
+// Use [NewIPsec] to create an IPsec with all slice fields pre-initialized.
 type IPsec struct {
 	Phase1     []IPsecPhase1 `xml:"phase1,omitempty"    json:"phase1,omitempty"     yaml:"phase1,omitempty"`
 	Phase2     []IPsecPhase2 `xml:"phase2,omitempty"    json:"phase2,omitempty"     yaml:"phase2,omitempty"`
@@ -76,6 +80,12 @@ type IPsecPhase1 struct {
 
 // ipsecPhase1Alias is a type alias used to break the recursion in IPsecPhase1.MarshalXML.
 // encoding/xml would infinitely recurse if MarshalXML called EncodeElement on the same type.
+//
+// This alias exists because [opnsense.BoolFlag] implements MarshalXML on a pointer receiver
+// (*BoolFlag). When a struct containing BoolFlag fields (Disabled, Mobile) is marshaled by
+// value, encoding/xml cannot find the pointer-receiver method and falls back to default bool
+// serialization. By casting to *ipsecPhase1Alias and encoding that pointer, the BoolFlag
+// fields become addressable and (*BoolFlag).MarshalXML is correctly invoked.
 type ipsecPhase1Alias IPsecPhase1
 
 // MarshalXML implements custom XML marshaling for IPsecPhase1, ensuring that the
@@ -87,7 +97,8 @@ func (p IPsecPhase1) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return e.EncodeElement((*ipsecPhase1Alias)(&p), start)
 }
 
-// IPsecPhase1Encryption wraps the encryption sub-element containing algorithm options for Phase 1.
+// IPsecPhase1Encryption wraps the <encryption> sub-element containing algorithm options for Phase 1.
+// Each algorithm option specifies a cipher name and optional key length.
 type IPsecPhase1Encryption struct {
 	Algorithms []IPsecEncryptionAlgorithm `xml:"encryption-algorithm-option,omitempty" json:"algorithms,omitempty" yaml:"algorithms,omitempty"`
 }
@@ -114,6 +125,12 @@ type IPsecPhase2 struct {
 
 // ipsecPhase2Alias is a type alias used to break the recursion in IPsecPhase2.MarshalXML.
 // encoding/xml would infinitely recurse if MarshalXML called EncodeElement on the same type.
+//
+// This alias exists because [opnsense.BoolFlag] implements MarshalXML on a pointer receiver
+// (*BoolFlag). When a struct containing BoolFlag fields (Disabled) is marshaled by value,
+// encoding/xml cannot find the pointer-receiver method and falls back to default bool
+// serialization. By casting to *ipsecPhase2Alias and encoding that pointer, the BoolFlag
+// fields become addressable and (*BoolFlag).MarshalXML is correctly invoked.
 type ipsecPhase2Alias IPsecPhase2
 
 // MarshalXML implements custom XML marshaling for IPsecPhase2, ensuring that the
@@ -168,6 +185,12 @@ type IPsecClient struct {
 
 // ipsecClientAlias is a type alias used to break the recursion in IPsecClient.MarshalXML.
 // encoding/xml would infinitely recurse if MarshalXML called EncodeElement on the same type.
+//
+// This alias exists because [opnsense.BoolFlag] implements MarshalXML on a pointer receiver
+// (*BoolFlag). When a struct containing BoolFlag fields (Enable, SavePasswd) is marshaled by
+// value, encoding/xml cannot find the pointer-receiver method and falls back to default bool
+// serialization. By casting to *ipsecClientAlias and encoding that pointer, the BoolFlag
+// fields become addressable and (*BoolFlag).MarshalXML is correctly invoked.
 type ipsecClientAlias IPsecClient
 
 // MarshalXML implements custom XML marshaling for IPsecClient, ensuring that the

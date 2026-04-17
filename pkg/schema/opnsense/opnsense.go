@@ -5,7 +5,9 @@ import (
 	"encoding/xml"
 )
 
-// OpnSenseDocument is the root of the OPNsense configuration.
+// OpnSenseDocument is the root schema type representing a complete OPNsense configuration file.
+// It maps to the top-level <opnsense> XML element and contains all subsystem configurations.
+// Use [NewOpnSenseDocument] to create an instance with all slice and map fields safely initialized.
 //
 //nolint:revive // stutters as opnsense.OpnSenseDocument — rename tracked separately
 type OpnSenseDocument struct {
@@ -47,7 +49,9 @@ type OpnSenseDocument struct {
 	OPNsense             OPNsense               `xml:"OPNsense,omitempty"               json:"opnsense"             yaml:"opnsense,omitempty"`
 }
 
-// OPNsense represents the main OPNsense system configuration.
+// OPNsense represents the <OPNsense> sub-element within the configuration, containing
+// MVC-model-based components such as Firewall, IDS, IPsec, Kea DHCP, WireGuard, and other
+// subsystems that use the OPNsense MVC framework rather than legacy XML structures.
 type OPNsense struct {
 	XMLName xml.Name `xml:"OPNsense"`
 	Text    string   `xml:",chardata" json:"text,omitempty"`
@@ -285,7 +289,8 @@ type OPNsense struct {
 	Updated string `xml:"updated,omitempty"`
 }
 
-// Cert represents a certificate configuration.
+// Cert represents an X.509 certificate entry in the OPNsense configuration,
+// containing the certificate body (Crt), private key (Prv), reference ID, and description.
 type Cert struct {
 	Text  string `xml:",chardata" json:"text,omitempty"`
 	Refid string `xml:"refid"`
@@ -294,9 +299,9 @@ type Cert struct {
 	Prv   string `xml:"prv"`
 }
 
-// Constructor functions
-
-// NewOpnSenseDocument returns a new OpnSenseDocument with all slice and map fields initialized for safe use.
+// NewOpnSenseDocument returns a new [OpnSenseDocument] with all slice and map fields initialized
+// for safe use. This avoids nil-pointer panics when accessing nested collections like
+// Filter.Rule, System.User, Interfaces.Items, and Dhcpd.Items.
 func NewOpnSenseDocument() *OpnSenseDocument {
 	return &OpnSenseDocument{
 		Sysctl: make([]SysctlItem, 0),
@@ -318,8 +323,6 @@ func NewOpnSenseDocument() *OpnSenseDocument {
 		},
 	}
 }
-
-// Helper methods for RootConfig
 
 // Hostname returns the configured hostname from the system configuration.
 func (o *OpnSenseDocument) Hostname() string {
@@ -377,7 +380,8 @@ func (o *OpnSenseDocument) ServiceConfig() ServiceConfig {
 	}
 }
 
-// NATSummary provides comprehensive NAT configuration information for security analysis.
+// NATSummary returns a [NATSummary] aggregating NAT configuration from the document's
+// System and Nat fields, providing a consolidated view for security analysis.
 func (o *OpnSenseDocument) NATSummary() NATSummary {
 	// Initialize with safe defaults
 	summary := NATSummary{

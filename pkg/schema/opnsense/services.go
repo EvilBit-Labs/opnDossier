@@ -3,7 +3,8 @@ package opnsense
 
 import "encoding/xml"
 
-// ServiceConfig groups service-related configuration.
+// ServiceConfig groups service-related configuration including DHCP, DNS, SNMP, RRD,
+// load balancing, and NTP subsystems.
 type ServiceConfig struct {
 	Dhcpd        Dhcpd        `json:"dhcpd"        yaml:"dhcpd,omitempty"`
 	Unbound      Unbound      `json:"unbound"      yaml:"unbound,omitempty"`
@@ -20,24 +21,26 @@ type Unbound struct {
 	Dnssecstripped string `xml:"dnssecstripped,omitempty" json:"dnssecstripped,omitempty" yaml:"dnssecstripped,omitempty"`
 }
 
-// Snmpd contains the SNMP daemon configuration.
+// Snmpd contains the SNMP daemon configuration, including system location, contact, and
+// read-only community string. The ROCommunity field is a sensitive credential.
 type Snmpd struct {
 	SysLocation string `xml:"syslocation"`
 	SysContact  string `xml:"syscontact"`
 	ROCommunity string `xml:"rocommunity"`
 }
 
-// Rrd contains the RRDtool configuration.
+// Rrd contains the RRDtool (Round-Robin Database) configuration for time-series data collection.
 type Rrd struct {
 	Enable BoolFlag `xml:"enable"`
 }
 
-// LoadBalancer contains the load balancer configuration.
+// LoadBalancer contains the load balancer configuration with its associated health monitor types.
 type LoadBalancer struct {
 	MonitorType []MonitorType `xml:"monitor_type"`
 }
 
-// MonitorType represents a load balancer monitor type.
+// MonitorType represents a load balancer health monitor type with its name, check type,
+// description, and protocol-specific options.
 type MonitorType struct {
 	Name    string  `xml:"name"`
 	Type    string  `xml:"type"`
@@ -45,7 +48,8 @@ type MonitorType struct {
 	Options Options `xml:"options"`
 }
 
-// Options contains the options for a load balancer monitor type.
+// Options contains protocol-specific options for a load balancer [MonitorType],
+// such as HTTP path/host/code or TCP send/expect strings.
 type Options struct {
 	Path   string `xml:"path,omitempty"`
 	Host   string `xml:"host,omitempty"`
@@ -54,12 +58,13 @@ type Options struct {
 	Expect string `xml:"expect,omitempty"`
 }
 
-// Ntpd contains the NTP daemon configuration.
+// Ntpd contains the NTP daemon configuration with the preferred time server setting.
 type Ntpd struct {
 	Prefer string `xml:"prefer"`
 }
 
-// DNSMasq represents DNS masquerading configuration.
+// DNSMasq represents the dnsmasq DNS forwarder configuration, including host overrides,
+// domain overrides, forwarder groups, DHCP registration, and custom options.
 type DNSMasq struct {
 	XMLName            xml.Name         `xml:"dnsmasq"`
 	Enable             BoolFlag         `xml:"enable,omitempty"`
@@ -77,7 +82,7 @@ type DNSMasq struct {
 	Updated            string           `xml:"updated,omitempty"`
 }
 
-// DNSMasqHost represents a DNSMasq host entry.
+// DNSMasqHost represents a static DNS host override entry mapping a hostname/domain to an IP address.
 type DNSMasqHost struct {
 	XMLName xml.Name `xml:"host"`
 	Host    string   `xml:"host,omitempty"`
@@ -87,7 +92,8 @@ type DNSMasqHost struct {
 	Aliases []string `xml:"aliases,omitempty"`
 }
 
-// DomainOverride represents a domain override entry.
+// DomainOverride represents a DNS domain override entry, forwarding queries for a specific
+// domain to a designated DNS server IP.
 type DomainOverride struct {
 	XMLName xml.Name `xml:"domainoverride"`
 	Domain  string   `xml:"domain,omitempty"`
@@ -95,7 +101,7 @@ type DomainOverride struct {
 	Descr   string   `xml:"descr,omitempty"`
 }
 
-// ForwarderGroup represents a DNS forwarder group configuration.
+// ForwarderGroup represents a DNS forwarder entry specifying an upstream DNS server IP and port.
 type ForwarderGroup struct {
 	XMLName xml.Name `xml:"forwarder"`
 	IP      string   `xml:"ip,omitempty"`
@@ -103,7 +109,8 @@ type ForwarderGroup struct {
 	Descr   string   `xml:"descr,omitempty"`
 }
 
-// Syslog represents system logging configuration.
+// Syslog represents system logging configuration, including remote syslog servers,
+// per-facility enable flags (firewall, DHCP, auth, VPN, etc.), log rotation, and format settings.
 type Syslog struct {
 	XMLName       xml.Name `xml:"syslog"`
 	Reverse       []string `xml:"reverse,omitempty"`
@@ -132,7 +139,8 @@ type Syslog struct {
 	Updated       string   `xml:"updated,omitempty"`
 }
 
-// Monit represents system monitoring configuration.
+// Monit represents the Monit system monitoring daemon configuration, including
+// mail server settings, HTTP dashboard, M/Monit integration, alert rules, monitored services, and tests.
 type Monit struct {
 	XMLName xml.Name `xml:"monit"`
 	Text    string   `xml:",chardata"    json:"text,omitempty"`
@@ -178,7 +186,8 @@ type Monit struct {
 	Test    []MonitTest    `xml:"test"         json:"test,omitempty"`
 }
 
-// MonitService represents a monitored service.
+// MonitService represents a single monitored service entry with its type (process, host, system, etc.),
+// start/stop commands, health tests, polling interval, and dependencies.
 type MonitService struct {
 	Text         string `xml:",chardata"    json:"text,omitempty"`
 	UUID         string `xml:"uuid,attr"    json:"uuid,omitempty"`
@@ -200,7 +209,8 @@ type MonitService struct {
 	Polltime     string `xml:"polltime"`
 }
 
-// MonitTest represents a monitoring test.
+// MonitTest represents a Monit health check test with a condition expression, action to take on failure,
+// and optional file path for filesystem checks.
 type MonitTest struct {
 	Text      string `xml:",chardata" json:"text,omitempty"`
 	UUID      string `xml:"uuid,attr" json:"uuid,omitempty"`

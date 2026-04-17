@@ -44,6 +44,9 @@ func IsValidSeverity(s Severity) bool {
 
 // ConversionWarning represents a non-fatal issue encountered during conversion
 // from a platform-specific schema to the platform-agnostic CommonDevice model.
+// Warnings do not prevent conversion from completing; they signal data-quality
+// issues (e.g., unrecognized enum values, missing optional fields, truncated
+// collections) that consumers may want to surface in reports or logs.
 type ConversionWarning struct {
 	// Field is the dot-path of the problematic field (e.g., "FirewallRules[0].Type").
 	Field string

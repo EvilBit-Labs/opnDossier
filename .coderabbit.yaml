@@ -1,14 +1,17 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 tone_instructions: >-
-  Focus on OPNsense XML parsing accuracy, markdown generation quality, and audit compliance.
-  Prioritize CLI usability, offline functionality, and clear documentation. Red team tool - output
-  obfuscation may not apply. Security-first design.
+  Focus on OPNsense XML parsing accuracy, markdown generation quality, and audit
+  compliance. Prioritize CLI usability, offline functionality, and clear
+  documentation. Red team tool - output obfuscation may not apply.
+  Security-first design.
 early_access: true
+inheritance: true
 reviews:
   profile: assertive
   request_changes_workflow: true
   high_level_summary_in_walkthrough: true
   auto_title_instructions: "Use conventional commit format: <type>(<scope>): <description>"
+  commit_status: false
   collapse_walkthrough: false
   labeling_instructions:
     - label: type:feature
@@ -38,7 +41,6 @@ reviews:
     - label: audit
       instructions: Use for audit compliance and report generation work
   auto_apply_labels: true
-  auto_assign_reviewers: true
   path_instructions:
     - path: cmd/**/*.go
       instructions: |-
@@ -157,6 +159,8 @@ reviews:
       enabled: false
     phpcs:
       enabled: false
+    tflint:
+      enabled: false
     detekt:
       enabled: false
     eslint:
@@ -171,7 +175,11 @@ reviews:
       enabled: false
     pmd:
       enabled: false
+    clang:
+      enabled: false
     cppcheck:
+      enabled: false
+    circleci:
       enabled: false
     clippy:
       enabled: false
@@ -190,6 +198,16 @@ reviews:
     brakeman:
       enabled: false
     htmlhint:
+      enabled: false
+    stylelint:
+      enabled: false
+    checkmake:
+      enabled: false
+    blinter:
+      enabled: false
+    smartyLint:
+      enabled: false
+    emberTemplateLint:
       enabled: false
 chat:
   allow_non_org_members: false
@@ -212,6 +230,12 @@ knowledge_base:
       - NATS
   linear:
     usage: disabled
+  linked_repositories:
+    - repository: EvilBit-Labs/opnConfigGenerator
+      instructions: >-
+        Downstream consumer of github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense
+        and pkg/model. Prioritize compatibility checks for exported schema types,
+        BoolFlag presence-based MarshalXML semantics, and CommonDevice field contracts.
 code_generation:
   docstrings:
     path_instructions:
@@ -337,128 +361,139 @@ issue_enrichment:
     labeling_instructions:
       - label: type:feature
         instructions: >-
-          Use for new functionality, feature requests, and enhancements that add capabilities to the
-          tool
+          Use for new functionality, feature requests, and enhancements that add
+          capabilities to the tool
       - label: type:bug
         instructions: >-
-          Use for bug fixes, defect corrections, and issues where something isn't working as
-          expected
+          Use for bug fixes, defect corrections, and issues where something
+          isn't working as expected
       - label: enhancement
-        instructions: Use for improvements to existing features, optimizations, or incremental enhancements
+        instructions: Use for improvements to existing features, optimizations, or
+          incremental enhancements
       - label: priority:critical
         instructions: >-
-          Use for critical issues requiring immediate attention, security vulnerabilities, data loss
-          risks, or blocking production issues
+          Use for critical issues requiring immediate attention, security
+          vulnerabilities, data loss risks, or blocking production issues
       - label: priority:high
         instructions: >-
-          Use for high priority issues that significantly impact functionality, user experience, or
-          project goals
+          Use for high priority issues that significantly impact functionality,
+          user experience, or project goals
       - label: priority:normal
-        instructions: Use for standard work items, regular features, and routine bug fixes with normal urgency
-      - label: bug
-        instructions: >-
-          Use when something isn't working correctly - parsing errors, crashes, incorrect output, or
-          unexpected behavior
+        instructions: Use for standard work items, regular features, and routine bug
+          fixes with normal urgency
       - label: documentation
         instructions: >-
-          Use for improvements to documentation, README updates, code comments, API docs, or usage
-          examples
+          Use for improvements to documentation, README updates, code comments,
+          API docs, or usage examples
       - label: duplicate
-        instructions: Use when this issue or pull request already exists - reference the original issue number
+        instructions: Use when this issue or pull request already exists - reference the
+          original issue number
       - label: invalid
         instructions: >-
-          Use when the issue doesn't seem right, is not applicable, or contains incorrect
-          information
+          Use when the issue doesn't seem right, is not applicable, or contains
+          incorrect information
       - label: question
-        instructions: Use when further information is requested or clarification is needed about functionality
+        instructions: Use when further information is requested or clarification is
+          needed about functionality
       - label: wontfix
-        instructions: Use when this issue will not be worked on - explain reasoning in comments
+        instructions: Use when this issue will not be worked on - explain reasoning in
+          comments
       - label: good first issue
         instructions: >-
-          Use for issues that are well-defined, relatively simple, and good for newcomers to the
-          project
+          Use for issues that are well-defined, relatively simple, and good for
+          newcomers to the project
       - label: help wanted
-        instructions: Use when extra attention is needed or community contributions are especially welcome
+        instructions: Use when extra attention is needed or community contributions are
+          especially welcome
       - label: go
-        instructions: Use for Go code changes, Go-specific issues, or modifications to .go files
+        instructions: Use for Go code changes, Go-specific issues, or modifications to
+          .go files
       - label: javascript
-        instructions: Use for JavaScript code updates in documentation site or related tooling
+        instructions: Use for JavaScript code updates in documentation site or related
+          tooling
       - label: component:display
         instructions: >-
-          Use for issues related to the display command, terminal output rendering, markdown
-          formatting, or text wrapping
+          Use for issues related to the display command, terminal output
+          rendering, markdown formatting, or text wrapping
       - label: cli
         instructions: >-
-          Use for command-line interface improvements, flag handling, or user experience
-          enhancements
+          Use for command-line interface improvements, flag handling, or user
+          experience enhancements
       - label: dependencies
         instructions: >-
-          Use for dependency updates, package upgrades, go.mod changes, or third-party library
-          modifications
+          Use for dependency updates, package upgrades, go.mod changes, or
+          third-party library modifications
       - label: ci
         instructions: >-
-          Use for CI/CD pipeline changes, GitHub Actions workflows, automated testing, or build
-          process modifications
+          Use for CI/CD pipeline changes, GitHub Actions workflows, automated
+          testing, or build process modifications
       - label: github_actions
         instructions: >-
-          Use specifically for GitHub Actions workflow files, action configurations, or
-          runner-related issues
+          Use specifically for GitHub Actions workflow files, action
+          configurations, or runner-related issues
       - label: audit
-        instructions: Use for audit report generation, compliance checking, or Phase 4.3 audit-related tasks
+        instructions: Use for audit report generation, compliance checking, or Phase 4.3
+          audit-related tasks
       - label: audit-mode
         instructions: >-
-          Use for issues related to audit mode functionality, compliance scanning, or audit feature
-          enhancements
+          Use for issues related to audit mode functionality, compliance
+          scanning, or audit feature enhancements
       - label: compliance
         instructions: >-
-          Use for compliance scanning features, security standards (STIG, SANS, NIST), or regulatory
-          requirements
+          Use for compliance scanning features, security standards (STIG, SANS,
+          NIST), or regulatory requirements
       - label: security
-        instructions: Use for security-related features, vulnerability fixes, or security analysis capabilities
+        instructions: Use for security-related features, vulnerability fixes, or
+          security analysis capabilities
       - label: blue-team
         instructions: >-
-          Use for defensive security features, monitoring capabilities, or blue team operational
-          tooling
+          Use for defensive security features, monitoring capabilities, or blue
+          team operational tooling
       - label: configuration
-        instructions: Use for configuration management, settings handling, or config file parsing improvements
+        instructions: Use for configuration management, settings handling, or config
+          file parsing improvements
       - label: architecture
         instructions: >-
-          Use for architectural changes, design decisions, major refactoring, or structural
-          improvements
+          Use for architectural changes, design decisions, major refactoring, or
+          structural improvements
       - label: refactoring
-        instructions: Use for code refactoring, restructuring existing code without changing functionality
-      - label: refactor
-        instructions: Use for code cleanup, simplification, or improving code quality without adding features
+        instructions: Use for code refactoring, restructuring existing code without
+          changing functionality
       - label: cleanup
-        instructions: Use for code cleanup tasks, removing dead code, or tidying up technical debt
+        instructions: Use for code cleanup tasks, removing dead code, or tidying up
+          technical debt
       - label: technical-debt
         instructions: >-
-          Use for technical debt that needs to be addressed, legacy code improvements, or
-          modernization efforts
+          Use for technical debt that needs to be addressed, legacy code
+          improvements, or modernization efforts
       - label: performance
         instructions: >-
-          Use for performance optimizations, speed improvements, memory usage reductions, or
-          efficiency enhancements
+          Use for performance optimizations, speed improvements, memory usage
+          reductions, or efficiency enhancements
       - label: testing
-        instructions: Use for test infrastructure, test coverage improvements, or test-related changes
+        instructions: Use for test infrastructure, test coverage improvements, or
+          test-related changes
       - label: breaking_change
         instructions: >-
-          Use for significant changes that disrupt backward compatibility, require migration, or
-          change public APIs
+          Use for significant changes that disrupt backward compatibility,
+          require migration, or change public APIs
       - label: epic
         instructions: >-
-          Use for large initiatives spanning multiple issues, major features, or multi-phase project
-          work
+          Use for large initiatives spanning multiple issues, major features, or
+          multi-phase project work
       - label: requirements
-        instructions: Use for gathering requirements, specification work, or defining feature scope
+        instructions: Use for gathering requirements, specification work, or defining
+          feature scope
       - label: review
-        instructions: Use for code review discussions, review feedback items, or issues requiring team review
+        instructions: Use for code review discussions, review feedback items, or issues
+          requiring team review
       - label: v2.0
         instructions: Use for issues specifically targeted for the v2.0 release milestone
       - label: premium
         instructions: >-
-          Use for premium tier features requiring licensing, advanced functionality, or
-          enterprise-only capabilities
+          Use for premium tier features requiring licensing, advanced
+          functionality, or enterprise-only capabilities
       - label: windows
-        instructions: Use for Windows platform-specific issues, Windows compatibility, or Windows-only bugs
+        instructions: Use for Windows platform-specific issues, Windows compatibility,
+          or Windows-only bugs
     auto_apply_labels: true

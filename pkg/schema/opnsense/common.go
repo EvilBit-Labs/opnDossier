@@ -9,10 +9,26 @@ import (
 	"strings"
 )
 
-// BoolFlag provides custom XML marshaling for OPNsense boolean values.
+// BoolFlag represents a presence-based boolean used throughout OPNsense XML configurations.
+// In OPNsense, boolean settings are encoded as element presence: a self-closing element
+// like <enable/> means true, while the absence of the element means false. This differs
+// from the typical "true"/"false" text representation.
+//
+// MarshalXML is defined on a POINTER receiver (*BoolFlag). This is critical for correct
+// serialization: when a struct containing a BoolFlag field is marshaled by value (not pointer),
+// encoding/xml cannot find the pointer-receiver method and falls back to default bool
+// serialization, producing <enable>true</enable> instead of <enable/>. When embedding
+// BoolFlag in structs that may be marshaled by value, the parent struct needs special
+// handling for addressability (see GOTCHAS 15.1 in project documentation).
+//
+// Compile-time interface compliance is verified below:
+//
+//	var _ xml.Marshaler = (*BoolFlag)(nil)
 type BoolFlag bool
 
-// MarshalXML implements custom XML marshaling for boolean flags.
+// MarshalXML implements [xml.Marshaler] for BoolFlag on a pointer receiver.
+// When true, it encodes a self-closing empty element (e.g., <enable/>).
+// When false, it encodes nothing (element absence means false in OPNsense).
 func (bf *BoolFlag) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	if *bf {
 		return e.EncodeElement("", start)
@@ -21,7 +37,9 @@ func (bf *BoolFlag) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return nil
 }
 
-// UnmarshalXML implements custom XML unmarshaling for boolean flags.
+// UnmarshalXML implements [xml.Unmarshaler] for BoolFlag. Any element presence
+// (including self-closing tags like <enable/>) sets the flag to true. The element's
+// text content, if any, is consumed but ignored.
 func (bf *BoolFlag) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	*bf = true
 
@@ -55,14 +73,19 @@ func (bf *BoolFlag) Set(value bool) {
 // Compile-time interface compliance check for BoolFlag implementing xml.Marshaler.
 var _ xml.Marshaler = (*BoolFlag)(nil)
 
-// ChangeMeta tracks creation and modification metadata for configuration items.
+// ChangeMeta tracks creation and modification metadata for configuration items,
+// recording who made the change and when it was created or last updated.
 type ChangeMeta struct {
 	Created  string `xml:"created,omitempty"`
 	Updated  string `xml:"updated,omitempty"`
 	Username string `xml:"username,omitempty"`
 }
 
-// RuleLocation provides granular source/destination address and port specification.
+// RuleLocation provides granular source/destination address and port specification
+// for firewall and NAT rules. It supports network aliases, CIDR addresses, and
+// negation via the Not flag. The Network, Address, and Subnet fields are used in
+// combination: Network is a named alias (e.g., "lan", "wanip"), while Address holds
+// a literal IP and Subnet holds the CIDR prefix length.
 type RuleLocation struct {
 	XMLName xml.Name `xml:",omitempty"`
 
@@ -73,7 +96,8 @@ type RuleLocation struct {
 	Not     BoolFlag `xml:"not,omitempty"`
 }
 
-// IsAny returns true if this location represents "any".
+// IsAny returns true if this location represents "any" -- either because Network
+// is explicitly set to NetworkAny, or because all address fields are empty.
 func (rl *RuleLocation) IsAny() bool {
 	return rl.Network == NetworkAny || (rl.Network == "" && rl.Address == "" && rl.Port == "")
 }

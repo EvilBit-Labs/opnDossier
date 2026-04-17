@@ -1,4 +1,4 @@
-// Package pfsense defines the data structures for pfSense configurations.
+// Package pfsense defines the XML schema types for pfSense configuration files.
 package pfsense
 
 import (
@@ -79,6 +79,13 @@ type DhcpdInterface struct {
 
 // dhcpdInterfaceAlias is a type alias used to break the recursion in DhcpdInterface.MarshalXML.
 // encoding/xml would infinitely recurse if MarshalXML called EncodeElement on the same type.
+//
+// This alias exists because [opnsense.BoolFlag] implements MarshalXML on a pointer receiver
+// (*BoolFlag). When a struct containing a BoolFlag field is marshaled by value (not pointer),
+// encoding/xml cannot find the pointer-receiver method and falls back to default bool
+// serialization -- producing <enable>true</enable> instead of the correct <enable/>.
+// By casting to *dhcpdInterfaceAlias and encoding that pointer, the BoolFlag fields become
+// addressable and (*BoolFlag).MarshalXML is correctly invoked.
 type dhcpdInterfaceAlias DhcpdInterface
 
 // MarshalXML implements custom XML marshaling for DhcpdInterface, ensuring that the
@@ -92,6 +99,10 @@ func (d DhcpdInterface) MarshalXML(e *xml.Encoder, start xml.StartElement) error
 
 // Dhcpd contains the DHCP server configuration for all pfSense interfaces.
 // Uses a map-based representation where keys are interface identifiers (wan, lan, opt0, etc.).
+//
+// Custom UnmarshalXML and MarshalXML methods handle the dynamic XML element names
+// (e.g., <wan>, <lan>, <opt0>) that cannot be expressed with static struct tags.
+// MarshalXML iterates keys in sorted order to produce deterministic output.
 type Dhcpd struct {
 	Items map[string]DhcpdInterface `xml:",any" json:"dhcp,omitempty" yaml:"dhcp,omitempty"`
 }
