@@ -65,8 +65,14 @@ func ParseDeviceType(s string) DeviceType {
 }
 
 // CommonDevice is the platform-agnostic root struct for a firewall device
-// configuration. All downstream consumers (processor, builder, plugins, diff
-// engine) operate against this type rather than XML-shaped DTOs.
+// configuration. Parsers produce CommonDevice values by converting platform-
+// specific XML schemas (OPNsense, pfSense) into this normalized form. All
+// downstream consumers (processor, builder, plugins, diff engine, JSON/YAML
+// exporters) operate against this type rather than XML-shaped DTOs.
+//
+// Has* methods report whether specific configuration sections are populated,
+// and NATSummary returns a convenience snapshot of NAT configuration with
+// cloned slices to prevent mutation of the original device.
 //
 //nolint:revive // CommonDevice is the canonical name established by the architecture spec
 type CommonDevice struct {

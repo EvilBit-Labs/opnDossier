@@ -1,9 +1,14 @@
+// Package opnsense defines the data structures for OPNsense configurations.
 package opnsense
 
 import "encoding/xml"
 
 // KeaDhcp4 contains the full Kea DHCP4 configuration including subnets and
 // reservations as stored in the OPNsense MVC model (KeaDhcpv4.xml v1.0.4).
+// Element names ("subnet4", "reservation") are pinned to this MVC model version;
+// if a future OPNsense release renames these elements, the Go XML decoder will
+// silently produce empty slices — no error, no warning, just missing data.
+// See GOTCHAS 18.1 for version compatibility notes.
 type KeaDhcp4 struct {
 	XMLName xml.Name `xml:"dhcp4"`
 	Text    string   `xml:",chardata"              json:"text,omitempty"`

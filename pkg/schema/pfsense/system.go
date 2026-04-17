@@ -1,13 +1,16 @@
-// Package pfsense defines the data structures for pfSense configurations.
+// Package pfsense defines the XML schema types for pfSense configuration files.
 package pfsense
 
 import (
 	opnsense "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
 
-// System contains the pfSense system configuration.
-// It mirrors the OPNsense System struct but with pfSense-specific differences:
-// multiple DNS servers, bcrypt-hash user passwords, and additional system fields.
+// System contains the pfSense system configuration, mapping to the <system> XML element.
+// It is forked from the OPNsense System struct because of pfSense-specific differences:
+// multiple DNS servers ([]string vs single string), bcrypt-hash user passwords instead of
+// password fields, user-level privileges (Priv), and additional power management fields.
+//
+// Use [NewSystem] to create a System with all slice fields pre-initialized.
 type System struct {
 	Optimization                  string             `xml:"optimization"                         json:"optimization,omitempty"                  yaml:"optimization,omitempty"`
 	Hostname                      string             `xml:"hostname"                             json:"hostname"                                yaml:"hostname"`

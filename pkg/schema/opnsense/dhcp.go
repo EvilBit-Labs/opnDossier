@@ -3,6 +3,8 @@ package opnsense
 
 import (
 	"encoding/xml"
+	"maps"
+	"slices"
 )
 
 // Dhcpd contains the DHCP server configuration for all interfaces.
@@ -45,8 +47,9 @@ func (d *Dhcpd) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 		return err
 	}
 
-	// Encode each DHCP interface as a separate element using the key as the element name
-	for key, dhcpIface := range d.Items {
+	// Encode DHCP interfaces in sorted key order for deterministic output (GOTCHAS §3.1).
+	for _, key := range slices.Sorted(maps.Keys(d.Items)) {
+		dhcpIface := d.Items[key]
 		dhcpStart := xml.StartElement{Name: xml.Name{Local: key}}
 		if err := e.EncodeElement(dhcpIface, dhcpStart); err != nil {
 			return err
@@ -86,12 +89,7 @@ func (d *Dhcpd) Names() []string {
 		return []string{}
 	}
 
-	names := make([]string, 0, len(d.Items))
-	for key := range d.Items {
-		names = append(names, key)
-	}
-
-	return names
+	return slices.Sorted(maps.Keys(d.Items))
 }
 
 // Wan returns the WAN DHCP interface configuration if it exists, otherwise returns a zero-value DhcpdInterface and false.

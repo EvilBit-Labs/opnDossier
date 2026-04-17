@@ -1,4 +1,4 @@
-// Package pfsense defines the data structures for pfSense configurations.
+// Package pfsense defines the XML schema types for pfSense configuration files.
 package pfsense
 
 import (
@@ -46,6 +46,7 @@ type InboundRule struct {
 }
 
 // Filter represents the pfSense firewall filter configuration.
+// It maps to the <filter> XML element and contains an ordered list of firewall rules.
 type Filter struct {
 	Separator string       `xml:"separator,omitempty" json:"separator,omitempty" yaml:"separator,omitempty"`
 	Rule      []FilterRule `xml:"rule"                json:"rules,omitempty"     yaml:"rules,omitempty"`

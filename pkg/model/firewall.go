@@ -284,8 +284,9 @@ func (c NATConfig) HasData() bool {
 		c.BiNATEnabled
 }
 
-// NATSummary is a convenience view of a device's NAT configuration for
-// report generation.
+// NATSummary is a read-only convenience view of a device's NAT configuration,
+// returned by [CommonDevice.NATSummary]. Slice fields are cloned so callers
+// can iterate or filter without mutating the original device.
 type NATSummary struct {
 	// Mode is the outbound NAT mode.
 	Mode NATOutboundMode `json:"mode,omitempty" yaml:"mode,omitempty"`

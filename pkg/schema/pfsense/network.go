@@ -1,4 +1,4 @@
-// Package pfsense defines the data structures for pfSense configurations.
+// Package pfsense defines the XML schema types for pfSense configuration files.
 package pfsense
 
 import (
@@ -10,8 +10,13 @@ import (
 	opnsense "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
 
-// DHCPv6 contains the DHCPv6 server configuration for all interfaces.
-// Uses a map-based representation identical to Dhcpd, supporting wan, lan, opt0, etc.
+// DHCPv6 contains the DHCPv6 server configuration for all pfSense interfaces.
+// Uses a map-based representation identical to [Dhcpd], where keys are interface
+// identifiers (wan, lan, opt0, etc.).
+//
+// Custom UnmarshalXML and MarshalXML methods handle the dynamic XML element names
+// that cannot be expressed with static struct tags. MarshalXML iterates keys in
+// sorted order to produce deterministic output.
 type DHCPv6 struct {
 	Items map[string]DHCPv6Interface `xml:",any" json:"dhcpv6,omitempty" yaml:"dhcpv6,omitempty"`
 }
