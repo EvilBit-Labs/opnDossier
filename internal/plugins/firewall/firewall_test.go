@@ -83,7 +83,12 @@ func TestFirewallPlugin_RunChecks(t *testing.T) {
 					OutboundMode:       common.OutboundHybrid,
 				},
 				DNS: common.DNSConfig{
-					Unbound: common.UnboundConfig{Enabled: true, DNSSEC: true},
+					Unbound: common.UnboundConfig{
+						Enabled:                  true,
+						DNSSEC:                   true,
+						PrivateAddressConfigured: true,
+						PrivateAddress:           []string{"192.168.0.0/16", "10.0.0.0/8"},
+					},
 				},
 			},
 			expectedFindingIDs: []string{
@@ -1501,6 +1506,135 @@ func TestFirewallPlugin_DNSSECValidation(t *testing.T) {
 	}
 }
 
+func TestFirewallPlugin_DNSRebindProtection(t *testing.T) {
+	fp := firewall.NewPlugin()
+
+	tests := []struct {
+		name          string
+		config        *common.CommonDevice
+		expectFinding bool
+	}{
+		{
+			// Rebind protection configured → compliant, no finding.
+			name: "unbound enabled with private-address list - no finding",
+			config: &common.CommonDevice{
+				DNS: common.DNSConfig{
+					Unbound: common.UnboundConfig{
+						Enabled:                  true,
+						PrivateAddressConfigured: true,
+						PrivateAddress:           []string{"192.168.0.0/16", "10.0.0.0/8"},
+					},
+				},
+			},
+			expectFinding: false,
+		},
+		{
+			// Operator explicitly cleared the private-address list → Fail.
+			name: "unbound enabled with configured-empty private-address - finding expected",
+			config: &common.CommonDevice{
+				DNS: common.DNSConfig{
+					Unbound: common.UnboundConfig{
+						Enabled:                  true,
+						PrivateAddressConfigured: true,
+						PrivateAddress:           nil,
+					},
+				},
+			},
+			expectFinding: true,
+		},
+		{
+			// Same as above but with a non-nil zero-length slice.
+			name: "unbound enabled with configured zero-length slice - finding expected",
+			config: &common.CommonDevice{
+				DNS: common.DNSConfig{
+					Unbound: common.UnboundConfig{
+						Enabled:                  true,
+						PrivateAddressConfigured: true,
+						PrivateAddress:           []string{},
+					},
+				},
+			},
+			expectFinding: true,
+		},
+		{
+			// MVC <privateaddress> element absent → Unknown (not Fail).
+			// Common on older installs or fresh setups that never touched
+			// the Unbound MVC advanced block.
+			name: "unbound enabled but MVC privateaddress absent - no finding (unknown)",
+			config: &common.CommonDevice{
+				DNS: common.DNSConfig{
+					Unbound: common.UnboundConfig{
+						Enabled:                  true,
+						PrivateAddressConfigured: false,
+					},
+				},
+			},
+			expectFinding: false,
+		},
+		{
+			// Unbound off → check is Unknown (may be DNSMasq install).
+			name: "unbound disabled with private-address populated - no finding (unknown)",
+			config: &common.CommonDevice{
+				DNS: common.DNSConfig{
+					Unbound: common.UnboundConfig{
+						Enabled:                  false,
+						PrivateAddressConfigured: true,
+						PrivateAddress:           []string{"192.168.0.0/16"},
+					},
+				},
+			},
+			expectFinding: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assertFindingPresence(t, fp, tt.config, "FIREWALL-007", tt.expectFinding)
+		})
+	}
+}
+
+func TestFirewallPlugin_DNSRebindProtection_NilDevice(t *testing.T) {
+	fp := firewall.NewPlugin()
+
+	// Nil device: hasDNSRebindProtection returns Unknown, so no FIREWALL-007 finding fires.
+	assertFindingPresence(t, fp, nil, "FIREWALL-007", false)
+}
+
+func TestFirewallPlugin_DNSRebindProtection_EvaluableWhenConfigured(t *testing.T) {
+	fp := firewall.NewPlugin()
+
+	// When Unbound is enabled AND the MVC <privateaddress> element was present
+	// in config.xml, FIREWALL-007 is evaluable. This is the positive counterpart
+	// to the EvaluatedControlIDs test whose device has Unbound disabled.
+	device := &common.CommonDevice{
+		DNS: common.DNSConfig{
+			Unbound: common.UnboundConfig{
+				Enabled:                  true,
+				PrivateAddressConfigured: true,
+			},
+		},
+	}
+	assert.Contains(t, fp.EvaluatedControlIDs(device), "FIREWALL-007")
+}
+
+func TestFirewallPlugin_DNSRebindProtection_UnknownWhenAbsent(t *testing.T) {
+	fp := firewall.NewPlugin()
+
+	// When Unbound is enabled but the MVC <privateaddress> element was never
+	// present in config.xml, FIREWALL-007 is Unknown (not evaluable) — avoids
+	// firing a false Fail on older installs that never touched the MVC block.
+	device := &common.CommonDevice{
+		DNS: common.DNSConfig{
+			Unbound: common.UnboundConfig{
+				Enabled:                  true,
+				PrivateAddressConfigured: false,
+			},
+		},
+	}
+	assert.NotContains(t, fp.EvaluatedControlIDs(device), "FIREWALL-007")
+}
+
 func TestFirewallPlugin_HAConfiguration(t *testing.T) {
 	fp := firewall.NewPlugin()
 
@@ -1621,7 +1755,8 @@ func TestFirewallPlugin_EvaluatedControlIDs(t *testing.T) {
 		assert.Contains(t, evaluated, id, "Expected %s to be evaluable", id)
 	}
 
-	// Verify unknown controls are NOT present.
+	// Verify unknown controls are NOT present. FIREWALL-007 is Unknown here
+	// because the test device has Unbound disabled.
 	for _, id := range []string{
 		"FIREWALL-001", "FIREWALL-003", "FIREWALL-007",
 		"FIREWALL-009", "FIREWALL-010", "FIREWALL-011",

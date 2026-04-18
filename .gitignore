@@ -226,6 +226,7 @@ CLAUDE.md
 SECURITY_AUDIT.md
 docs/plans/
 todos/
+.context/
 
 # VHS demo artifacts (regenerated from vhs/*.tape)
 vhs/gif/
