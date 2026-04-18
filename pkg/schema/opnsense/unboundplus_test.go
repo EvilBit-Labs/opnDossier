@@ -63,6 +63,23 @@ func TestUnboundPlus_UnmarshalXML(t *testing.T) {
 	assert.Equal(t, "allow", got.Acls.DefaultAction)
 	assert.Equal(t, "ads", got.Dnsbl.Type)
 	assert.Equal(t, "0", got.Forwarding.Enabled)
+
+	// Present-but-empty container elements must deserialize to non-nil
+	// pointers pointing to empty strings — this is the contract the *string
+	// promotion exists to protect (GOTCHAS 3.2). The NotNil checks confirm
+	// the XML elements were present and unmarshaled into populated pointers.
+	// If these fields regressed to plain `string`, NotNil could still pass
+	// because a string stored in an interface{} is non-nil; the real guard
+	// is the dereference below, which requires the fields to remain *string
+	// or the test will fail to compile.
+	require.NotNil(t, got.Dots)
+	require.NotNil(t, got.Hosts)
+	require.NotNil(t, got.Aliases)
+	require.NotNil(t, got.Domains)
+	assert.Empty(t, *got.Dots)
+	assert.Empty(t, *got.Hosts)
+	assert.Empty(t, *got.Aliases)
+	assert.Empty(t, *got.Domains)
 }
 
 func TestUnboundPlus_EmptyElement(t *testing.T) {
@@ -75,6 +92,12 @@ func TestUnboundPlus_EmptyElement(t *testing.T) {
 	assert.Empty(t, got.General.Enabled)
 	assert.Nil(t, got.Advanced.Privateaddress)
 	assert.Empty(t, got.Acls.DefaultAction)
+	// Absent container elements must deserialize to nil pointers so callers
+	// can distinguish "never configured" from "present but empty".
+	assert.Nil(t, got.Dots)
+	assert.Nil(t, got.Hosts)
+	assert.Nil(t, got.Aliases)
+	assert.Nil(t, got.Domains)
 }
 
 func TestUnboundPlus_RoundTrip(t *testing.T) {

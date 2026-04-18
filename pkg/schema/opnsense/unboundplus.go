@@ -110,7 +110,7 @@ type UnboundPlusAdvanced struct {
 	// but empty ("configured, cleared out") — see GOTCHAS 3.2. The converter
 	// carries this distinction through to common.UnboundConfig so the firewall
 	// plugin can treat unknown and configured-empty differently.
-	Privateaddress         *string `xml:"privateaddress"         json:"privateaddress,omitempty"`
+	Privateaddress         *string `xml:"privateaddress"         json:",omitempty"`
 	Insecuredomain         string  `xml:"insecuredomain"`         // separator-delimited domain list
 	Msgcachesize           string  `xml:"msgcachesize"`           // bytes, decimal
 	Rrsetcachesize         string  `xml:"rrsetcachesize"`         // bytes, decimal
