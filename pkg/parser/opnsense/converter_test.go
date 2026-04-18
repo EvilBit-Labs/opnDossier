@@ -29,17 +29,17 @@ func TestConverter_System(t *testing.T) {
 	doc.System.TimeServers = "0.pool.ntp.org 1.pool.ntp.org"
 	doc.System.DisableNATReflection = "yes"
 	doc.System.DisableConsoleMenu = true
-	doc.System.PfShareForward = 1
+	doc.System.PfShareForward = true
 	doc.System.IPv6Allow = "1"
-	doc.System.DNSAllowOverride = 1
-	doc.System.DisableVLANHWFilter = 1
-	doc.System.DisableChecksumOffloading = 1
-	doc.System.DisableSegmentationOffloading = 1
-	doc.System.DisableLargeReceiveOffloading = 1
-	doc.System.LbUseSticky = 1
-	doc.System.RrdBackup = 1
-	doc.System.NetflowBackup = 1
-	doc.System.UseVirtualTerminal = 1
+	doc.System.DNSAllowOverride = true
+	doc.System.DisableVLANHWFilter = true
+	doc.System.DisableChecksumOffloading = true
+	doc.System.DisableSegmentationOffloading = true
+	doc.System.DisableLargeReceiveOffloading = true
+	doc.System.LbUseSticky = true
+	doc.System.RrdBackup = true
+	doc.System.NetflowBackup = true
+	doc.System.UseVirtualTerminal = true
 	doc.System.NextUID = 2000
 	doc.System.NextGID = 2000
 	doc.System.PowerdACMode = "hadp"
@@ -197,7 +197,7 @@ func TestConverter_NAT(t *testing.T) {
 	doc := schema.NewOpnSenseDocument()
 	doc.Nat.Outbound.Mode = "hybrid"
 	doc.System.DisableNATReflection = "yes"
-	doc.System.PfShareForward = 1
+	doc.System.PfShareForward = true
 
 	anyStr := ""
 	doc.Nat.Outbound.Rule = []schema.NATRule{

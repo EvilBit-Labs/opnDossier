@@ -1,0 +1,124 @@
+package shared
+
+import (
+	"encoding/json"
+	"encoding/xml"
+	"fmt"
+	"strconv"
+	"strings"
+
+	"gopkg.in/yaml.v3"
+)
+
+// FlexInt is a liberal integer for XML-encoded configuration fields that are
+// semantically integers but may receive truthy/falsy strings ("on", "off",
+// "yes", "no") in addition to numeric values. Truthy strings coerce to 1,
+// falsy strings to 0, clean numerics pass through unchanged. Unknown strings
+// return a wrapped error so callers can surface a meaningful message.
+//
+// Use FlexInt on fields that must retain int semantics (for example, a field
+// that sometimes carries a count and sometimes a boolean toggle). For fields
+// that are purely boolean, prefer [FlexBool] or BoolFlag for clearer
+// downstream consumer semantics.
+//
+// FlexInt marshals as canonical decimal integer. JSON and YAML round-trip as
+// native integers.
+type FlexInt int
+
+// Int returns the underlying int value for convenience at call sites.
+func (fi *FlexInt) Int() int {
+	return int(*fi)
+}
+
+// UnmarshalXML implements [xml.Unmarshaler] for FlexInt.
+func (fi *FlexInt) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	var body string
+	if err := d.DecodeElement(&body, &start); err != nil {
+		return fmt.Errorf("decode FlexInt body: %w", err)
+	}
+
+	return fi.parse(body)
+}
+
+// MarshalXML implements [xml.Marshaler] for FlexInt.
+func (fi *FlexInt) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	return e.EncodeElement(strconv.Itoa(int(*fi)), start)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]. Accepts raw integers, bool
+// literals, and string forms recognised by [IsValueTrue] / [IsValueFalse].
+func (fi *FlexInt) UnmarshalJSON(data []byte) error {
+	// Try native int first.
+	var n int
+	if err := json.Unmarshal(data, &n); err == nil {
+		*fi = FlexInt(n)
+		return nil
+	}
+
+	// Native bool.
+	var b bool
+	if err := json.Unmarshal(data, &b); err == nil {
+		if b {
+			*fi = 1
+		} else {
+			*fi = 0
+		}
+		return nil
+	}
+
+	// Fall back to string form.
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return fmt.Errorf("decode FlexInt: %w", err)
+	}
+
+	return fi.parse(s)
+}
+
+// MarshalJSON implements [json.Marshaler], emitting a native JSON integer.
+func (fi *FlexInt) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.Itoa(int(*fi))), nil
+}
+
+// UnmarshalYAML implements the yaml.v3 Unmarshaler interface.
+func (fi *FlexInt) UnmarshalYAML(node *yaml.Node) error {
+	return fi.parse(node.Value)
+}
+
+// MarshalYAML implements the yaml.v3 Marshaler interface, emitting a native
+// YAML integer.
+func (fi *FlexInt) MarshalYAML() (any, error) {
+	return int(*fi), nil
+}
+
+// parse interprets s as either a decimal integer or a liberal boolean
+// string. Numeric inputs pass through; "on"/"yes"/"true"/etc. → 1;
+// "off"/"no"/"false"/"" → 0. Unknown strings return a wrapped error.
+func (fi *FlexInt) parse(s string) error {
+	trimmed := strings.TrimSpace(s)
+
+	// Prefer numeric interpretation — a value of "1" should be 1 even
+	// though IsValueTrue would also accept it.
+	if n, err := strconv.Atoi(trimmed); err == nil {
+		*fi = FlexInt(n)
+		return nil
+	}
+
+	if IsValueTrue(trimmed) {
+		*fi = 1
+		return nil
+	}
+
+	if IsValueFalse(trimmed) {
+		*fi = 0
+		return nil
+	}
+
+	return fmt.Errorf("invalid FlexInt value %q: not numeric and not a recognised boolean", s)
+}
+
+// Compile-time interface compliance checks.
+var (
+	_ xml.Marshaler   = (*FlexInt)(nil)
+	_ xml.Unmarshaler = (*FlexInt)(nil)
+)

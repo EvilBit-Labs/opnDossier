@@ -258,7 +258,7 @@ func TestOpnSenseDocument_NATSummary_WithValues(t *testing.T) {
 	doc := NewOpnSenseDocument()
 
 	doc.System.DisableNATReflection = "yes"
-	doc.System.PfShareForward = 1
+	doc.System.PfShareForward = true
 	doc.Nat.Outbound.Mode = "hybrid"
 	doc.Nat.Outbound.Rule = []NATRule{
 		{Source: Source{Network: "192.168.1.0/24"}},
@@ -295,7 +295,7 @@ func TestOpnSenseDocument_NATSummary_ReflectionNotDisabled(t *testing.T) {
 func TestOpnSenseDocument_NATSummary_PfShareForwardZero(t *testing.T) {
 	doc := NewOpnSenseDocument()
 
-	doc.System.PfShareForward = 0
+	doc.System.PfShareForward = false
 
 	summary := doc.NATSummary()
 

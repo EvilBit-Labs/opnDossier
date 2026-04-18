@@ -718,7 +718,7 @@ When splitting a large file into domain-specific files within the same package:
 - `pfsense.Group` has `Priv []string` (not `string`) — converter uses `strings.Join(g.Priv, ", ")`
 - `pfsense.System.DNSServers` is `[]string` (not space-separated `string`) — no `strings.Fields()` needed
 - `pfsense.InboundRule` has `Target` field — converter uses `Target` with fallback to `InternalIP`
-- pfSense value-based booleans use "1", "on", or "yes" — use `isPfSenseValueTrue()`, not `== "1"`
+- pfSense and OPNsense value-based booleans use "1", "on", "yes", "true", or "enabled" (case-insensitive) — use `shared.IsValueTrue()` from `pkg/schema/shared`, or type the field as `BoolFlag` / `FlexBool`, rather than `== "1"`
 - `pfsense.Interface` has `Enable opnsense.BoolFlag` (not `string`) — use `iface.Enable.Bool()`
 - `pfsense.Group.Member` is `[]string` (listtag) — converter uses `strings.Join(g.Member, ", ")`
 

@@ -247,7 +247,22 @@ When tagging a release after a squash-merge PR, always tag the resulting commit 
 
 A fresh `NewRuleEngine` creates a fresh `NewMapper()` — mappings are deterministic (e.g., first private IP maps to `10.0.0.1`, first hostname to `host-001.example.com`). Always assert exact expected values, not just inequality.
 
-## 15. BoolFlag Addressability in Forked Structs
+## 15. Liberal Boolean and Integer Parsing
+
+### 15.0 `BoolFlag` vs `FlexBool` vs `FlexInt` vs strict `int`/`bool`
+
+Four boolean/int handling styles coexist in the schema layer — pick the right one.
+
+| Type                  | Where defined                    | XML input semantics                                                                       | Use when                                                                                              |
+| --------------------- | -------------------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `opnsense.BoolFlag`   | `pkg/schema/opnsense/common.go`  | absent → `false`; `<tag/>` → `true`; `<tag>body</tag>` → `shared.IsValueTrue(body)`       | Field is a boolean toggle in OPNsense/pfSense XML. Absence of the element is meaningful (= disabled). |
+| `shared.FlexBool`     | `pkg/schema/shared/flex_bool.go` | body → `shared.IsValueTrue(body)`; no presence semantics                                  | Field is a boolean but the element is always emitted and presence carries no signal.                  |
+| `shared.FlexInt`      | `pkg/schema/shared/flex_int.go`  | numeric → that value; `on`/`yes` → 1; `off`/`no` → 0; unknown non-numeric → wrapped error | Field must stay int-typed (may carry a count or a liberal toggle).                                    |
+| strict `int` / `bool` | built-in                         | only decimal digits (for `int`); `true`/`false` only (for `bool`)                         | Field is genuinely numeric (UID, GID, PID, MTU) and non-numeric input is a real error.                |
+
+Both OPNsense and pfSense emit the same liberal truthy vocabulary (`1|on|yes|true|enable|enabled`, case-insensitive). Always go through `shared.IsValueTrue` / `shared.IsValueFalse` — never hand-roll a truthy parser at the call site.
+
+`BoolFlag.UnmarshalXML` was upgraded to delegate non-empty bodies through `shared.IsValueTrue` (previously it treated any element presence — even `<tag>0</tag>` — as `true`, silently dropping the body). Any code or test that relied on the old "presence = true regardless of body" behavior needs to be updated. See issue #558 and the plan at `docs/plans/2026-04-18-002-fix-issue-558-parser-on-value.md`.
 
 ### 15.1 Pointer-Receiver MarshalXML and Value Marshaling
 
@@ -257,6 +272,7 @@ A fresh `NewRuleEngine` creates a fresh `NewMapper()` — mappings are determini
 - **Fix:** Add a private type alias (e.g., `type interfaceAlias Interface`) and a pointer-receiver `MarshalXML` on the parent struct that delegates via `e.EncodeElement((*alias)(ptr), start)`. Also pass `&value` (not `value`) when encoding the struct within map-based containers like `Interfaces.MarshalXML`.
 - **Precedent:** `pkg/schema/pfsense/interfaces.go` — `interfaceAlias` and `(*Interface).MarshalXML`.
 - **Rule:** Any pfSense struct forked from opnsense that changes a field to `BoolFlag` needs this pattern.
+- **Scope:** The same pointer-receiver caveat applies to `shared.FlexBool` and `shared.FlexInt` — their `MarshalXML` methods are also pointer-receiver. Any struct embedding one of these types that is subsequently marshaled by value (not pointer) will silently fall back to Go's default `bool`/`int` serialization, producing `<tag>true</tag>` or `<tag>42</tag>` instead of the canonical form. Use the same alias + pointer-receiver `MarshalXML` workaround on the parent struct.
 
 ## 16. pfSense IPsec Enabled Flag
 

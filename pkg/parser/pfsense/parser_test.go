@@ -65,14 +65,14 @@ func TestParser_Parse(t *testing.T) {
 			input:     "",
 			ctxFn:     context.Background,
 			wantErr:   true,
-			errSubstr: "XML decode",
+			errSubstr: `field "/pfsense"`,
 		},
 		{
 			name:      "malformed XML",
 			input:     "<<<not xml",
 			ctxFn:     context.Background,
 			wantErr:   true,
-			errSubstr: "XML decode",
+			errSubstr: `field "/pfsense"`,
 		},
 		{
 			name:  "context cancelled",

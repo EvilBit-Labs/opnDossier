@@ -1,0 +1,104 @@
+package shared
+
+import (
+	"encoding/xml"
+	"fmt"
+
+	"gopkg.in/yaml.v3"
+)
+
+// FlexBool is a value-level liberal boolean for XML-encoded configuration
+// fields where the source device may emit any of the recognised truthy or
+// falsy strings ("1", "on", "yes", "true", etc. — see [IsValueTrue] for the
+// full vocabulary).
+//
+// Use FlexBool on schema fields whose element is always emitted and whose
+// content carries the boolean signal. If the element's presence itself is
+// the signal (i.e., <tag/> means true and absence means false), use
+// BoolFlag instead — BoolFlag delegates non-empty bodies through FlexBool
+// so both styles share the same liberal vocabulary.
+//
+// FlexBool marshals to XML as "1" (true) or "0" (false) for determinism
+// in reserialised output. JSON and YAML round-trip as native booleans.
+// Unknown values unmarshal to false without error; callers that need to
+// flag unknown inputs should pre-validate with [IsValueTrue] and
+// [IsValueFalse].
+type FlexBool bool
+
+// Bool returns the underlying boolean value for convenient comparison at
+// call sites that do not want to cast explicitly.
+func (fb *FlexBool) Bool() bool {
+	return bool(*fb)
+}
+
+// UnmarshalXML implements [xml.Unmarshaler] for FlexBool.
+// The element body is decoded as a string and interpreted by [IsValueTrue].
+func (fb *FlexBool) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	var body string
+	if err := d.DecodeElement(&body, &start); err != nil {
+		return fmt.Errorf("decode FlexBool body: %w", err)
+	}
+
+	*fb = FlexBool(IsValueTrue(body))
+
+	return nil
+}
+
+// MarshalXML implements [xml.Marshaler] for FlexBool.
+// True marshals as "1", false as "0" — canonical numeric form so downstream
+// tooling sees deterministic output.
+func (fb *FlexBool) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	value := "0"
+	if *fb {
+		value = "1"
+	}
+
+	return e.EncodeElement(value, start)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]. JSON round-trip treats the
+// value as a native bool. A raw boolean literal, the string forms
+// recognised by [IsValueTrue], or a numeric 0/1 all unmarshal cleanly.
+func (fb *FlexBool) UnmarshalJSON(data []byte) error {
+	// Strip surrounding quotes if present so string forms ("on", "1") are
+	// recognised via IsValueTrue. For raw literals (true/false/1/0), fall
+	// back to IsValueTrue's handling of "true"/"false"/"1"/"0".
+	s := string(data)
+	if len(s) >= 2 && s[0] == '"' && s[len(s)-1] == '"' {
+		s = s[1 : len(s)-1]
+	}
+
+	*fb = FlexBool(IsValueTrue(s))
+
+	return nil
+}
+
+// MarshalJSON implements [json.Marshaler], emitting a native JSON boolean.
+func (fb *FlexBool) MarshalJSON() ([]byte, error) {
+	if *fb {
+		return []byte("true"), nil
+	}
+
+	return []byte("false"), nil
+}
+
+// UnmarshalYAML implements the yaml.v3 Unmarshaler interface. Accepts any
+// scalar form (bool, int, string) and delegates to [IsValueTrue] for
+// interpretation.
+func (fb *FlexBool) UnmarshalYAML(node *yaml.Node) error {
+	*fb = FlexBool(IsValueTrue(node.Value))
+
+	return nil
+}
+
+// MarshalYAML implements the yaml.v3 Marshaler interface, emitting a
+// native YAML boolean.
+func (fb *FlexBool) MarshalYAML() (any, error) {
+	return bool(*fb), nil
+}
+
+// Compile-time interface compliance checks.
+var (
+	_ xml.Marshaler   = (*FlexBool)(nil)
+	_ xml.Unmarshaler = (*FlexBool)(nil)
+)

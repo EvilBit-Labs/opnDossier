@@ -7,6 +7,7 @@ import (
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/EvilBit-Labs/opnDossier/pkg/schema/pfsense"
+	"github.com/EvilBit-Labs/opnDossier/pkg/schema/shared"
 )
 
 // convertInterfaces maps doc.Interfaces.Items to []common.Interface.
@@ -30,8 +31,8 @@ func (c *converter) convertInterfaces(doc *pfsense.Document) []common.Interface 
 			SubnetV6:     iface.Subnetv6,
 			Gateway:      iface.Gateway,
 			GatewayV6:    iface.Gatewayv6,
-			BlockPrivate: isPfSenseValueTrue(iface.BlockPriv),
-			BlockBogons:  isPfSenseValueTrue(iface.BlockBogons),
+			BlockPrivate: shared.IsValueTrue(iface.BlockPriv),
+			BlockBogons:  shared.IsValueTrue(iface.BlockBogons),
 			Type:         iface.Type,
 			MTU:          iface.MTU,
 			SpoofMAC:     iface.Spoofmac,
@@ -132,7 +133,7 @@ func (c *converter) convertGateways(doc *pfsense.Document) []common.Gateway {
 			Disabled:       bool(gw.Disabled),
 			DefaultGW:      gw.DefaultGW,
 			MonitorDisable: gw.MonitorDisable,
-			FarGW:          isPfSenseValueTrue(gw.FarGW),
+			FarGW:          shared.IsValueTrue(gw.FarGW),
 		})
 	}
 

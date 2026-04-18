@@ -127,8 +127,8 @@ func (p *Parser) decode(ctx context.Context, r io.Reader) (*pfsense.Document, er
 	dec := parser.NewSecureXMLDecoder(r, p.maxInputSize)
 
 	var doc pfsense.Document
-	if err := dec.Decode(&doc); err != nil {
-		return nil, fmt.Errorf("XML decode: %w", err)
+	if err := parser.WrapDecodeError(dec.Decode(&doc), "/pfsense"); err != nil {
+		return nil, err
 	}
 
 	select {
