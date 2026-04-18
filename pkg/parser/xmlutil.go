@@ -1,4 +1,3 @@
-// Package parser provides shared XML utilities for device-specific parsers.
 package parser
 
 import (
