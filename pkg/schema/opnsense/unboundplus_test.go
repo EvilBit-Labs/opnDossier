@@ -66,9 +66,12 @@ func TestUnboundPlus_UnmarshalXML(t *testing.T) {
 
 	// Present-but-empty container elements must deserialize to non-nil
 	// pointers pointing to empty strings — this is the contract the *string
-	// promotion exists to protect (GOTCHAS 3.2). A regression that reverted
-	// to plain `string` would still fail this assertion because string zero
-	// value is "", not a non-nil pointer.
+	// promotion exists to protect (GOTCHAS 3.2). The NotNil checks confirm
+	// the XML elements were present and unmarshaled into populated pointers.
+	// If these fields regressed to plain `string`, NotNil could still pass
+	// because a string stored in an interface{} is non-nil; the real guard
+	// is the dereference below, which requires the fields to remain *string
+	// or the test will fail to compile.
 	require.NotNil(t, got.Dots)
 	require.NotNil(t, got.Hosts)
 	require.NotNil(t, got.Aliases)
