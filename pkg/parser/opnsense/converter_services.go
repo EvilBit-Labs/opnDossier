@@ -216,8 +216,9 @@ func (c *converter) convertDNS(doc *schema.OpnSenseDocument) common.DNSConfig {
 // copy/paste edits. Each token must parse as either a netip.Prefix (CIDR) or
 // a netip.Addr (bare IP); the original token text is preserved verbatim when
 // accepted. Invalid tokens are dropped with a conversion warning (GOTCHAS 5.2
-// pattern). Returns nil when the resulting slice is empty so downstream
-// JSON/YAML `omitempty` keeps zero-value output compact.
+// pattern). Returns nil (not an empty slice) when the resulting slice would be
+// empty, so reflect-based diffs stay stable and downstream consumers can
+// distinguish "never populated" from "populated but filtered to empty".
 func (c *converter) splitPrivateAddress(raw string) []string {
 	fields := strings.FieldsFunc(raw, func(r rune) bool {
 		return r == ',' || unicode.IsSpace(r)

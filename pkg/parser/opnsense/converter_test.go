@@ -614,8 +614,10 @@ func TestConverter_DNS(t *testing.T) {
 	require.Len(t, device.DNS.DNSMasq.Hosts, 1)
 	assert.Equal(t, "server", device.DNS.DNSMasq.Hosts[0].Host)
 	// Advanced Unbound fields default to zero when <unboundplus> is empty.
-	// PrivateAddress must be nil (not a zero-length slice) so JSON/YAML
-	// `omitempty` produces compact output.
+	// Assert `nil` (not just empty) because `splitPrivateAddress`'s documented
+	// contract returns nil on empty input — pinning that contract here prevents
+	// a silent switch to `[]string{}` that would change reflect-based diffs and
+	// any downstream consumer relying on the nil-vs-empty distinction.
 	assert.Nil(t, device.DNS.Unbound.PrivateAddress)
 	assert.False(t, device.DNS.Unbound.HideIdentity)
 	assert.False(t, device.DNS.Unbound.Prefetch)

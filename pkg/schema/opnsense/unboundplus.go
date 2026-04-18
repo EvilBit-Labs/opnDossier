@@ -22,9 +22,14 @@ import "encoding/xml"
 // JSON tags are omitted on the leaf *config* fields (Enabled, Port, Hideidentity,
 // Privateaddress, etc.) so JSON marshaling uses Go field names (PascalCase),
 // matching the pre-refactor inline-struct serialization shape. Fields that map
-// to XML text/attributes (Text, Version) retain their json tags. Changing the
-// leaf-config field tags would be a breaking JSON-export change for downstream
-// consumers of the OpnSenseDocument model.
+// to XML text/attributes (Text, Version) retain their json tags. The *string
+// container fields (Dots/Hosts/Aliases/Domains) carry explicit PascalCase json
+// tags with `omitempty` — without the tag a nil pointer would emit `null`
+// (a shape change from the previous empty-string behavior), and without the
+// PascalCase name JSON would downcase the Go field name. `omitempty` omits
+// nil pointers entirely; populated pointers emit as strings. Changing any of
+// these conventions is a breaking JSON-export change for downstream consumers
+// of the OpnSenseDocument model.
 type UnboundPlus struct {
 	XMLName    xml.Name              `xml:"unboundplus"  json:"-"`
 	Text       string                `xml:",chardata"    json:"text,omitempty"`
@@ -36,10 +41,13 @@ type UnboundPlus struct {
 	Forwarding UnboundPlusForwarding `xml:"forwarding"   json:"forwarding"`
 	// Dots, Hosts, Aliases, Domains are container references typed as *string
 	// so absent vs. present-but-empty elements survive XML round-trip.
-	Dots    *string `xml:"dots"`    // DNS-over-TLS config reference
-	Hosts   *string `xml:"hosts"`   // host override references
-	Aliases *string `xml:"aliases"` // host alias references
-	Domains *string `xml:"domains"` // domain override references
+	// Explicit PascalCase `json` tags with `omitempty` preserve the pre-refactor
+	// Go-field-name casing and keep zero-value JSON output compact (nil pointers
+	// are omitted instead of emitting `null`).
+	Dots    *string `xml:"dots"    json:"Dots,omitempty"`    // DNS-over-TLS config reference
+	Hosts   *string `xml:"hosts"   json:"Hosts,omitempty"`   // host override references
+	Aliases *string `xml:"aliases" json:"Aliases,omitempty"` // host alias references
+	Domains *string `xml:"domains" json:"Domains,omitempty"` // domain override references
 }
 
 // UnboundPlusGeneral mirrors the <general> block under <unboundplus>.

@@ -1505,7 +1505,7 @@ func TestFirewallPlugin_DNSSECValidation(t *testing.T) {
 	}
 }
 
-func TestFirewallPlugin_DNSRebindCheck(t *testing.T) {
+func TestFirewallPlugin_DNSRebindProtection(t *testing.T) {
 	fp := firewall.NewPlugin()
 
 	tests := []struct {
@@ -1568,14 +1568,14 @@ func TestFirewallPlugin_DNSRebindCheck(t *testing.T) {
 	}
 }
 
-func TestFirewallPlugin_DNSRebindCheck_NilDevice(t *testing.T) {
+func TestFirewallPlugin_DNSRebindProtection_NilDevice(t *testing.T) {
 	fp := firewall.NewPlugin()
 
 	// Nil device: hasDNSRebindProtection returns Unknown, so no FIREWALL-007 finding fires.
 	assertFindingPresence(t, fp, nil, "FIREWALL-007", false)
 }
 
-func TestFirewallPlugin_DNSRebindCheck_EvaluableWhenUnboundEnabled(t *testing.T) {
+func TestFirewallPlugin_DNSRebindProtection_EvaluableWhenUnboundEnabled(t *testing.T) {
 	fp := firewall.NewPlugin()
 
 	// When Unbound is enabled, FIREWALL-007 is evaluable regardless of the
