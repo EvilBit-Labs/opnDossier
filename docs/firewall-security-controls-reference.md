@@ -238,41 +238,44 @@ Disable IPv6 if not required:
 
 ---
 
-## FIREWALL-007: DNS Rebind Check
+## FIREWALL-007: DNS Rebind Protection
 
 | Field        | Value                                         |
 | ------------ | --------------------------------------------- |
 | **ID**       | FIREWALL-007                                  |
 | **Category** | DNS Security                                  |
-| **Severity** | Low                                           |
-| **Status**   | Pass / Fail                                   |
+| **Severity** | Medium                                        |
+| **Status**   | Pass / Fail / Unknown                         |
 | **Tags**     | `dns-rebind`, `security`, `firewall-controls` |
 
 ### Description
 
-The DNS rebind check should be disabled in environments where it interferes with legitimate DNS resolution. This control checks whether the DNS rebinding protection setting is configured appropriately.
+The Unbound DNS resolver should have a non-empty `private-address` list configured. This blocks DNS responses that resolve public domain names to private IP ranges, mitigating DNS rebinding attacks against internal services.
 
 ### Rationale
 
-DNS rebind checks can interfere with legitimate DNS resolution in environments that use split-horizon DNS or internal DNS names that resolve to private addresses from external resolvers. The appropriate setting depends on the network architecture.
+DNS rebinding attacks exploit browser same-origin policy by resolving a public domain to a private IP — for example, `attacker.com` resolving to `192.168.1.1` to target a router admin interface. Unbound's `private-address` directive blocks responses that fall inside user-declared private ranges, closing this attack vector. Environments using split-horizon DNS should scope private-address entries carefully, not disable the protection entirely.
 
 ### What opnDossier Checks
 
-opnDossier parses the OPNsense Unbound MVC configuration from `<OPNsense><unboundplus><advanced>` and extracts the `<privateaddress>` field, which contains DNS rebinding protection zones (CIDR ranges). 
+opnDossier parses the OPNsense Unbound MVC configuration from `<OPNsense><unboundplus><advanced>` and extracts the `<privateaddress>` field (CIDR ranges or bare IPs). Each entry is validated via `netip.ParsePrefix`/`netip.ParseAddr`; invalid entries are dropped with a conversion warning.
 
-The check evaluates whether DNS rebind protection is active:
-- **Pass**: The Unbound resolver is enabled AND the `privateaddress` field contains at least one CIDR range
-- **Fail**: The resolver is disabled OR the `privateaddress` field is empty/absent
+The check evaluates whether DNS rebind protection is configured:
 
-A finding is emitted when the check passes (rebind protection is active), since the control policy recommends disabling the check in certain environments.
+- **Pass**: Unbound is enabled AND the `privateaddress` list contains at least one valid entry
+- **Fail**: Unbound is enabled but `privateaddress` is empty or absent
+- **Unknown**: Unbound is disabled (the install may be using DNSMasq, which has its own rebind-protection mechanism)
+
+A finding is emitted when the check fails (`cr.Known && !cr.Result` in `internal/plugins/firewall/firewall.go`) — i.e. when Unbound is active but rebind protection is missing.
 
 ### Recommended Action
 
-Review DNS rebind check settings:
+Enable DNS rebind protection:
 
-1. Navigate to **System > Advanced > Administration** (or **System > Advanced** depending on OPNsense version)
-2. Evaluate whether the DNS rebind check should be enabled or disabled based on your DNS architecture
-3. If using split-horizon DNS or internal names that resolve to private IPs, consider disabling the check
+1. Navigate to **System > Services > Unbound DNS > Advanced**
+2. Populate the **Private networks** list with the CIDR ranges that should never appear in public DNS responses (commonly `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, and any internal public allocations)
+3. Save and apply changes
+4. Verify the behaviour by resolving a test hostname that would rebind to a private address — Unbound should refuse to return it
 
 ---
 
