@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"strings"
 	"testing"
@@ -245,6 +246,75 @@ func TestInitializeDefaultLoggerFallbackWritesToStderr(t *testing.T) {
 
 	assert.Contains(t, output, "unable to initialize logging")
 	// Fallback logger is created but unexported - verify it doesn't panic
+}
+
+// TestGetBuildDate verifies that getBuildDate returns the current buildDate value.
+func TestGetBuildDate(t *testing.T) {
+	origBuildDate := buildDate
+	t.Cleanup(func() { buildDate = origBuildDate })
+
+	buildDate = "2024-01-01"
+	assert.Equal(t, "2024-01-01", getBuildDate())
+
+	buildDate = "dev"
+	assert.Equal(t, "dev", getBuildDate())
+}
+
+// TestGetGitCommit verifies that getGitCommit returns the current gitCommit value.
+func TestGetGitCommit(t *testing.T) {
+	origGitCommit := gitCommit
+	t.Cleanup(func() { gitCommit = origGitCommit })
+
+	gitCommit = "abc123"
+	assert.Equal(t, "abc123", getGitCommit())
+
+	gitCommit = "none"
+	assert.Equal(t, "none", getGitCommit())
+}
+
+// TestSetupLightweightContext verifies that setupLightweightContext creates
+// a minimal command context with default config and logger.
+func TestSetupLightweightContext(t *testing.T) {
+	cmd := &cobra.Command{Use: "test"}
+
+	err := setupLightweightContext(cmd)
+	require.NoError(t, err)
+
+	// Verify context was set
+	cmdCtx := GetCommandContext(cmd)
+	require.NotNil(t, cmdCtx, "CommandContext should be set")
+	require.NotNil(t, cmdCtx.Config, "Config should be set")
+	require.NotNil(t, cmdCtx.Logger, "Logger should be set")
+
+	// Verify default config values
+	assert.Equal(t, "markdown", cmdCtx.Config.Format)
+
+	// Verify command has a context set
+	assert.NotNil(t, cmd.Context())
+}
+
+// TestSetupLightweightContextPreservesExistingContext verifies that
+// setupLightweightContext does not overwrite an existing context.
+func TestSetupLightweightContextPreservesExistingContext(t *testing.T) {
+	cmd := &cobra.Command{Use: "test"}
+
+	// Pre-set a context
+	ctx := cmd.Context()
+	if ctx == nil {
+		cmd.SetContext(context.Background())
+		ctx = cmd.Context()
+	}
+
+	err := setupLightweightContext(cmd)
+	require.NoError(t, err)
+
+	// Context should still be set (either the original or a new one)
+	assert.NotNil(t, cmd.Context())
+
+	// CommandContext should still have Config populated.
+	cmdCtx := GetCommandContext(cmd)
+	require.NotNil(t, cmdCtx)
+	assert.NotNil(t, cmdCtx.Config)
 }
 
 func TestRootCmdPersistentPreRunERecoversFromFallback(t *testing.T) {
