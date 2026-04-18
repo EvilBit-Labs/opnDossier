@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<opnsense>
+  <system>
+    <hostname>reporter-scenario</hostname>
+    <domain>example.local</domain>
+    <dnsallowoverride>on</dnsallowoverride>
+    <usevirtualterminal>yes</usevirtualterminal>
+    <disablevlanhwfilter>1</disablevlanhwfilter>
+    <disablechecksumoffloading>true</disablechecksumoffloading>
+    <disablesegmentationoffloading>ENABLED</disablesegmentationoffloading>
+    <pf_share_forward>0</pf_share_forward>
+    <lb_use_sticky>off</lb_use_sticky>
+    <rrdbackup>no</rrdbackup>
+  </system>
+</opnsense>

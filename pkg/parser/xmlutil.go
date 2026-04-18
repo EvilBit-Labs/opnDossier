@@ -25,6 +25,27 @@ func NewSecureXMLDecoder(r io.Reader, maxSize int64) *xml.Decoder {
 	return dec
 }
 
+// WrapDecodeError annotates an encoding/xml decode error with the element
+// path of the failing node so operators can identify the exact field that
+// failed to parse. The path is caller-supplied (e.g., "/opnsense/system"
+// or "/pfsense") because XML decoding does not expose the full element
+// stack once control is inside encoding/xml. Callers that decode
+// section-by-section can build deep paths; callers that decode the entire
+// document at once can at least supply the root name.
+//
+// Returns nil when err is nil so it is safe to call unconditionally.
+//
+// Both the OPNsense and pfSense parsers delegate to this function to avoid
+// duplicating error-wrapping logic. Future device parsers registered with
+// [Register] should do the same.
+func WrapDecodeError(err error, elementPath string) error {
+	if err == nil {
+		return nil
+	}
+
+	return fmt.Errorf("field %q: %w", elementPath, err)
+}
+
 // CharsetReader creates a reader for the specified XML charset declaration.
 // Supported encodings: UTF-8, US-ASCII, ISO-8859-1 (Latin1), and Windows-1252.
 // Only charsets whose ASCII subset matches UTF-8 are accepted, which is

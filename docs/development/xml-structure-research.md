@@ -61,21 +61,21 @@ Element contains `1`, `yes`, or a specific value. Absent or empty = false.
 
 **Upstream PHP pattern:** `$config['system']['ipv6allow'] == "1"`
 
-**Go type:** `string` with value check, or potentially a custom type
+**Go type:** `string` with value check, or `BoolFlag` (which now delegates non-empty body content to `shared.IsValueTrue`)
 
-| Element                  | Parent                   | Values | Notes                                                                                       |
-| ------------------------ | ------------------------ | ------ | ------------------------------------------------------------------------------------------- |
-| `<enable>`               | `<interfaces><wan>`      | `1`    | pfSense: presence-based (see §1a). OPNsense: value-based. pfSense parser uses BoolFlag fork |
-| `<enable>`               | `<dhcpd><lan>`           | `1`    | pfSense: presence-based (see §1a). OPNsense: value-based. pfSense parser uses BoolFlag fork |
-| `<blockpriv>`            | `<interfaces><wan>`      | `1`    | Block private networks                                                                      |
-| `<blockbogons>`          | `<interfaces><wan>`      | `1`    | Block bogon networks                                                                        |
-| `<dnsallowoverride>`     | `<system>`               | `1`    | Allow DNS override                                                                          |
-| `<ipv6allow>`            | `<system>`               | `1`    | IPv6 enabled                                                                                |
-| `<usevirtualterminal>`   | `<system>`               | `1`    | Virtual terminal                                                                            |
-| `<pf_share_forward>`     | `<system>`               | `1`    | Shared forwarding                                                                           |
-| `<lb_use_sticky>`        | `<system>`               | `1`    | Sticky load balancing                                                                       |
-| `<disablenatreflection>` | `<system>`               | `yes`  | NAT reflection disabled                                                                     |
-| `<enable>`               | various OPNsense modules | `1`    | Service/feature enabled                                                                     |
+| Element                  | Parent                   | Values | Type       | Notes                                                                                       |
+| ------------------------ | ------------------------ | ------ | ---------- | ------------------------------------------------------------------------------------------- |
+| `<enable>`               | `<interfaces><wan>`      | `1`    | varies     | pfSense: presence-based (see §1a). OPNsense: value-based. pfSense parser uses BoolFlag fork |
+| `<enable>`               | `<dhcpd><lan>`           | `1`    | varies     | pfSense: presence-based (see §1a). OPNsense: value-based. pfSense parser uses BoolFlag fork |
+| `<blockpriv>`            | `<interfaces><wan>`      | `1`    | `string`   | Block private networks                                                                      |
+| `<blockbogons>`          | `<interfaces><wan>`      | `1`    | `string`   | Block bogon networks                                                                        |
+| `<dnsallowoverride>`     | `<system>`               | `1`    | `BoolFlag` | Allow DNS override (migrated from int)                                                      |
+| `<ipv6allow>`            | `<system>`               | `1`    | `string`   | IPv6 enabled                                                                                |
+| `<usevirtualterminal>`   | `<system>`               | `1`    | `BoolFlag` | Virtual terminal (migrated from int)                                                        |
+| `<pf_share_forward>`     | `<system>`               | `1`    | `BoolFlag` | Shared forwarding (migrated from int)                                                       |
+| `<lb_use_sticky>`        | `<system>`               | `1`    | `BoolFlag` | Sticky load balancing (migrated from int)                                                   |
+| `<disablenatreflection>` | `<system>`               | `yes`  | `string`   | NAT reflection disabled                                                                     |
+| `<enable>`               | various OPNsense modules | `1`    | `string`   | Service/feature enabled                                                                     |
 
 ### 1c. Design Rationale
 
@@ -83,6 +83,15 @@ The distinction is not arbitrary:
 
 - **Presence-based** = flags typically absent (disabled, negation, special modes)
 - **Value-based** = feature toggles typically enabled (with explicit `1`)
+
+**Note:** As of PR #577, `BoolFlag` now delegates non-empty element bodies to `shared.IsValueTrue`, so `int` or `string` toggle fields can migrate to `BoolFlag` when the semantics allow. This addresses issue #558 where OPNsense 26.1 emits `on` into fields previously typed as `int`, causing parse failures. The canonical truthy/falsy parsers are implemented in `pkg/schema/shared/` (see §8b).
+
+**`BoolFlag` is NOT a drop-in for every value-based boolean.** `BoolFlag.MarshalXML` emits a self-closing element for `true` and emits nothing at all for `false`. That means a field whose on-wire representation is always `<tag>0</tag>` or `<tag>1</tag>` (and must remain so on round-trip) cannot migrate to `BoolFlag` — the `false` case would disappear from the output. Criteria for safe migration:
+
+1. Absence of the element must be semantically equivalent to `false` in the target device's behavior (OPNsense/pfSense treat most toggles this way — absent = disabled).
+2. No round-trip consumer must depend on the literal `<tag>0</tag>` form when the underlying value is false.
+
+If either criterion fails, prefer `shared.FlexBool` (always emits `<tag>0</tag>` or `<tag>1</tag>`) or keep the field as `string` and call `shared.IsValueTrue` at the converter.
 
 ---
 
@@ -330,8 +339,6 @@ pfSense and OPNsense use different boolean semantics for interface and DHCP scop
 
 **Implementation:** The pfSense parser uses an intermediate `decodeDocument` type (`pkg/parser/pfsense/decode_types.go`) that decodes XML with BoolFlag-aware pfsense.Interface and pfsense.DhcpdInterface types, then converts to backward-compatible opnsense.Interfaces/opnsense.Dhcpd with string Enable fields set to `"1"` (enabled) or `""` (disabled).
 
-**Note on value-based fields:** These use OPNsense MVC pattern `<field>1</field>` / `<field>0</field>`. Converting to `BoolFlag` would break semantics because `BoolFlag.UnmarshalXML` treats any present element as true, regardless of content — so `<enabled>0</enabled>` would incorrectly become `true`.
-
 ---
 
 ## 6. NAT Structure Issues
@@ -413,7 +420,15 @@ Go's `encoding/xml` produces `""` for both `<any/>` and absent elements when usi
 
 ### 8b. `BoolFlag` Custom Type
 
-Correctly implements presence-based boolean semantics: `UnmarshalXML` sets true on any element presence, regardless of content.
+Correctly implements presence-based boolean semantics: absent element → false, `<tag/>` (empty body) → true, `<tag>body</tag>` → delegates to `shared.IsValueTrue(body)`. This means `<tag>0</tag>`, `<tag>off</tag>`, and `<tag>no</tag>` correctly parse as false, fixing a latent bug where any element presence previously returned true regardless of content.
+
+**Shared boolean vocabulary:** The `pkg/schema/shared/` package defines the canonical liberal parsers:
+
+- `IsValueTrue(s)` / `IsValueFalse(s)` — recognizes "on"/"off", "yes"/"no", "1"/"0", "true"/"false", "enable"/"disable", "enabled"/"disabled" (case-insensitive)
+- `FlexBool` — value-level liberal boolean for fields where element presence is not the signal (always emitted, content carries the boolean value)
+- `FlexInt` — liberal int parser sibling (delegates to `IsValueTrue` for non-numeric content)
+
+`BoolFlag.UnmarshalXML` layers presence semantics over `shared.IsValueTrue` — absent → false, `<tag/>` → true, `<tag>body</tag>` → `IsValueTrue(body)`. `FlexBool` delegates to the same `IsValueTrue` helper for its body parsing, so the two types share the liberal vocabulary without one depending on the other. pfSense converters use `shared.IsValueTrue` directly (retired `pfsense.isPfSenseValueTrue`).
 
 ### 8c. `InterfaceList` Custom Type
 

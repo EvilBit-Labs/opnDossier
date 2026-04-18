@@ -7,12 +7,15 @@ package opnsense
 import (
 	"encoding/xml"
 	"strings"
+
+	"github.com/EvilBit-Labs/opnDossier/pkg/schema/shared"
 )
 
 // BoolFlag represents a presence-based boolean used throughout OPNsense XML configurations.
-// In OPNsense, boolean settings are encoded as element presence: a self-closing element
-// like <enable/> means true, while the absence of the element means false. This differs
-// from the typical "true"/"false" text representation.
+// Absent element means false; <tag/> (empty body) means true; <tag>value</tag> delegates
+// to the liberal value-parser [shared.IsValueTrue] so "on", "yes", "1", "true", "enable",
+// "enabled", and their case variants are all interpreted correctly. This matches how both
+// OPNsense and pfSense emit boolean-semantic fields in the wild.
 //
 // MarshalXML is defined on a POINTER receiver (*BoolFlag). This is critical for correct
 // serialization: when a struct containing a BoolFlag field is marshaled by value (not pointer),
@@ -23,7 +26,8 @@ import (
 //
 // Compile-time interface compliance is verified below:
 //
-//	var _ xml.Marshaler = (*BoolFlag)(nil)
+//	var _ xml.Marshaler   = (*BoolFlag)(nil)
+//	var _ xml.Unmarshaler = (*BoolFlag)(nil)
 type BoolFlag bool
 
 // MarshalXML implements [xml.Marshaler] for BoolFlag on a pointer receiver.
@@ -37,16 +41,30 @@ func (bf *BoolFlag) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return nil
 }
 
-// UnmarshalXML implements [xml.Unmarshaler] for BoolFlag. Any element presence
-// (including self-closing tags like <enable/>) sets the flag to true. The element's
-// text content, if any, is consumed but ignored.
+// UnmarshalXML implements [xml.Unmarshaler] for BoolFlag with presence+value
+// semantics:
+//   - Absent element (UnmarshalXML never called) → false (Go zero value).
+//   - <tag/> or <tag></tag> (empty body) → true (presence means enabled,
+//     preserving the historical OPNsense convention).
+//   - <tag>body</tag> → [shared.IsValueTrue](body): "on", "yes", "1",
+//     "true", "enable", "enabled" (any casing) → true; "off", "no", "0",
+//     "false", "disable", "disabled" → false; unknown values → false.
+//
+// The delegation to shared.IsValueTrue unifies the liberal boolean vocabulary
+// used by OPNsense and pfSense configuration exports.
 func (bf *BoolFlag) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	*bf = true
-
 	var content string
 	if err := d.DecodeElement(&content, &start); err != nil {
 		return err
 	}
+
+	if strings.TrimSpace(content) == "" {
+		*bf = true
+
+		return nil
+	}
+
+	*bf = BoolFlag(shared.IsValueTrue(content))
 
 	return nil
 }
@@ -70,8 +88,11 @@ func (bf *BoolFlag) Set(value bool) {
 	*bf = BoolFlag(value)
 }
 
-// Compile-time interface compliance check for BoolFlag implementing xml.Marshaler.
-var _ xml.Marshaler = (*BoolFlag)(nil)
+// Compile-time interface compliance checks for BoolFlag.
+var (
+	_ xml.Marshaler   = (*BoolFlag)(nil)
+	_ xml.Unmarshaler = (*BoolFlag)(nil)
+)
 
 // ChangeMeta tracks creation and modification metadata for configuration items,
 // recording who made the change and when it was created or last updated.
