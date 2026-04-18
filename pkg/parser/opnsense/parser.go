@@ -1,5 +1,26 @@
 // Package opnsense provides an OPNsense-specific parser and converter that
-// transforms schema.OpnSenseDocument into the platform-agnostic CommonDevice.
+// transforms [schema.OpnSenseDocument] (pkg/schema/opnsense) into the
+// platform-agnostic [common.CommonDevice] (pkg/model). The bracketed names
+// match the import aliases used in this file.
+//
+// # Registration
+//
+// This package self-registers its [Parser] with the global
+// [parser.DefaultRegistry] under the device type name "opnsense" from an
+// init() function. Consumers that want the OPNsense parser available through
+// [parser.Factory] must add a blank import:
+//
+//	import _ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"
+//
+// See [parser] for the full registration contract.
+//
+// # Dependencies
+//
+// This package has no internal/ dependencies in production code; it depends
+// only on other public pkg/ packages plus the standard library. The
+// [parser.XMLDecoder] is injected at construction so this package can stay
+// on the public pkg/ side of the import boundary while still using the
+// internal/cfgparser decoder when wired from the CLI layer.
 package opnsense
 
 import (

@@ -1,0 +1,77 @@
+{
+  "$schema": "https://aka.ms/codetour-schema",
+  "title": "Parser Public API — NATS-144",
+  "description": "Walkthrough of opnDossier's pkg/parser public API surface for an engineer integrating opnDossier as a library. Covers the Factory, the blank-import registration contract, per-device parsers, and the regression test that locks the missing-import hint.",
+  "ref": "main",
+  "steps": [
+    {
+      "directory": "pkg/parser",
+      "title": "Where to Start",
+      "description": "Everything you need to parse an OPNsense or pfSense config into a CommonDevice lives here. The root of pkg/parser (registry.go, factory.go, xmlutil.go) is the public contract. The opnsense/ and pfsense/ subdirectories are the per-device implementations that self-register. This package has no internal/ dependencies in production code — so external Go modules can import it directly."
+    },
+    {
+      "file": "pkg/parser/registry.go",
+      "line": 1,
+      "title": "The Registration Contract",
+      "description": "Situation: The package-level godoc is the canonical spec for the public API and the blank-import registration contract. Mechanism: Device parsers register themselves from init() functions. Consumers must blank-import the per-device packages for those init() calls to run. Implication: Forget the blank import and every CreateDevice call fails with a clear hint — no silent misconfiguration. Gotcha: The registration pattern follows database/sql; do NOT call Register() at arbitrary times, only from init()."
+    },
+    {
+      "file": "pkg/parser/factory.go",
+      "line": 25,
+      "title": "XMLDecoder — The Injection Boundary",
+      "description": "Situation: The Factory does not know how to decode XML on its own. Mechanism: XMLDecoder is a narrow interface consumers inject. opnDossier's CLI wires internal/cfgparser.NewXMLParser, but any consumer can supply their own — there is no internal/ dependency leaking out of pkg/parser. Implication: This is the reason pkg/parser is safe to consume cross-repo. Gotcha: The decoder is only used by the OPNsense path; pfSense manages its own decoder (see later step)."
+    },
+    {
+      "file": "pkg/parser/factory.go",
+      "line": 47,
+      "title": "Factory — The Dispatch Point",
+      "description": "Situation: Factory glues a registered parser lookup to an XML decoder. Mechanism: Construct with NewFactory(decoder) to use the global DefaultRegistry, or NewFactoryWithRegistry(decoder, reg) to isolate a registry in tests. Implication: Production code uses the default; tests that want a clean slate use the isolated constructor. Gotcha: Passing a nil decoder panics — it's a configuration error, not a runtime one."
+    },
+    {
+      "file": "pkg/parser/factory.go",
+      "selection": {
+        "start": { "line": 141, "character": 0 },
+        "end": { "line": 162, "character": 0 }
+      },
+      "title": "Auto-Detect and the Missing-Import Hint",
+      "description": "Situation: createWithAutoDetect peeks the XML root element and looks up the matching parser. Mechanism: If the registry does not know this root (because no parser package was blank-imported, or the root is genuinely unsupported), the error message includes f.registry.SupportedDevices() — which prints either the sorted device list OR the actionable hint '(none registered -- ensure parser packages are imported)'. Implication: The error tells the end user exactly how to fix their build. Gotcha: See the regression test later in this tour — the substring 'ensure parser packages are imported' is treated as a stable signal."
+    },
+    {
+      "file": "pkg/parser/opnsense/parser.go",
+      "line": 95,
+      "title": "Self-Registration via init()",
+      "description": "Situation: This is the init() that registers the OPNsense parser under the key 'opnsense'. Mechanism: Running this init() requires the package to be imported — a blank import is the normal way consumers trigger it. Implication: If a caller imports pkg/parser alone and never imports pkg/parser/opnsense, the registry stays empty and CreateDevice returns the missing-import hint. Gotcha: The registration key is the lowercase XML root element name, not a human label."
+    },
+    {
+      "file": "pkg/parser/pfsense/parser.go",
+      "selection": {
+        "start": { "line": 1, "character": 0 },
+        "end": { "line": 44, "character": 0 }
+      },
+      "title": "pfSense: Why the XMLDecoder Is Ignored",
+      "description": "Situation: pfsense.NewParser accepts a parser.XMLDecoder but never uses it. Mechanism: The shared XMLDecoder interface returns *schema.OpnSenseDocument, which is incompatible with pfsense.Document. pfSense uses parser.NewSecureXMLDecoder directly against its own types. The parameter exists solely so NewParserFactory satisfies parser.ConstructorFunc. Implication: Consumers wiring an alternative decoder for pfSense will find it has no effect — this is deliberate. Gotcha: The package doc spells this out explicitly because it's a common confusion."
+    },
+    {
+      "file": "pkg/parser/pfsense/parser.go",
+      "line": 62,
+      "title": "ValidateFunc — The Safe Default Injection Point",
+      "description": "Situation: ValidateFunc is a package-level variable holding the semantic validator. Mechanism: cmd/ (or an equivalent composition root) sets this once at startup to plug internal/validator into the public package without breaking the pkg/ import boundary. When nil, ParseAndValidate falls back to structural parsing only. Implication: Library consumers get a safe no-validator default; the CLI gets full validation. Gotcha: The nil fallback is a feature, not a bug — it's what lets external modules consume the parser without pulling in opnDossier's validator."
+    },
+    {
+      "file": "pkg/parser/xmlutil.go",
+      "line": 20,
+      "title": "Shared Security Hardening",
+      "description": "Situation: NewSecureXMLDecoder is the shared decoder constructor used by both per-device parsers. Mechanism: It disables external entity expansion (XXE protection), caps input size, and wires the charset reader supporting UTF-8 / US-ASCII / ISO-8859-1 / Windows-1252. Implication: Every parser path gets the same security posture — no one re-invents it. Gotcha: Charsets outside the supported list are rejected as 'unsupported charset' rather than silently falling back."
+    },
+    {
+      "file": "pkg/parser/factory_test.go",
+      "line": 190,
+      "title": "The Regression Test That Locks the Hint",
+      "description": "Situation: TestFactory_EmptyRegistry_HintSurfaced pins the stable 'ensure parser packages are imported' substring on both the auto-detect and the override error paths. Mechanism: It builds a Factory with an isolated empty DeviceParserRegistry, so neither path can find a match — guaranteed to surface the hint. Implication: If someone refactors factory.go and accidentally drops SupportedDevices() from the error message, this test fires. Gotcha: The FULL wording '(none registered -- ...)' is locked at the registry unit level by TestSupportedDevices in registry_test.go; the factory test only locks the trailing substring. Both are needed."
+    },
+    {
+      "title": "Next Moves",
+      "description": "You can now: (1) import pkg/parser + blank-import the per-device packages you need, inject an XMLDecoder, and call Factory.CreateDevice; (2) add a new device type by creating a package whose init() calls parser.Register('vendorname', ConstructorFunc); (3) wire semantic validation by setting pfsense.ValidateFunc (and its future OPNsense equivalent, if added) from your composition root. See GOTCHAS.md §7.1 for the blank-import pitfall and the NATS-144 ticket for the audit that produced this public surface."
+    }
+  ]
+}

@@ -187,6 +187,50 @@ func TestFactory_ErrorWrapsOriginal(t *testing.T) {
 	assert.ErrorIs(t, err, io.EOF, "original decoder error should be wrapped")
 }
 
+// TestFactory_EmptyRegistry_HintSurfaced verifies that when a Factory is
+// constructed with an isolated, empty registry (independent of any global
+// registrations from this file's blank imports), the error surfaced to
+// callers contains the actionable hint telling end users to import parser
+// packages. The assertion pins the stable substring "ensure parser packages
+// are imported" — the wider hint string may be refined, but this substring
+// must continue to appear in the CLI error so consumers who encounter an
+// unpopulated registry (typically because they forgot the blank imports)
+// get a fixable signal.
+func TestFactory_EmptyRegistry_HintSurfaced(t *testing.T) {
+	t.Parallel()
+
+	emptyReg := parser.NewDeviceParserRegistry()
+	factory := parser.NewFactoryWithRegistry(cfgparser.NewXMLParser(), emptyReg)
+
+	t.Run("auto-detect path", func(t *testing.T) {
+		t.Parallel()
+
+		_, _, err := factory.CreateDevice(
+			context.Background(),
+			strings.NewReader(validOPNsenseXML),
+			common.DeviceTypeUnknown,
+			false,
+		)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "unsupported device type")
+		assert.Contains(t, err.Error(), "ensure parser packages are imported")
+	})
+
+	t.Run("override path", func(t *testing.T) {
+		t.Parallel()
+
+		_, _, err := factory.CreateDevice(
+			context.Background(),
+			strings.NewReader(validOPNsenseXML),
+			common.DeviceTypeOPNsense,
+			false,
+		)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "unsupported device type override")
+		assert.Contains(t, err.Error(), "ensure parser packages are imported")
+	})
+}
+
 func TestFactory_UnsupportedCharset(t *testing.T) {
 	t.Parallel()
 
