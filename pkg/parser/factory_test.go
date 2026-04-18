@@ -188,12 +188,14 @@ func TestFactory_ErrorWrapsOriginal(t *testing.T) {
 }
 
 // TestFactory_EmptyRegistry_HintSurfaced verifies that when a Factory is
-// constructed with an isolated, empty registry (no blank imports have run),
-// the error surfaced to callers contains the actionable hint telling end
-// users to import parser packages. The assertion pins the stable substring
-// "ensure parser packages are imported" — the wider hint string may be
-// refined, but this substring must continue to appear in the CLI error so
-// consumers who forget the blank imports get a fixable signal.
+// constructed with an isolated, empty registry (independent of any global
+// registrations from this file's blank imports), the error surfaced to
+// callers contains the actionable hint telling end users to import parser
+// packages. The assertion pins the stable substring "ensure parser packages
+// are imported" — the wider hint string may be refined, but this substring
+// must continue to appear in the CLI error so consumers who encounter an
+// unpopulated registry (typically because they forgot the blank imports)
+// get a fixable signal.
 func TestFactory_EmptyRegistry_HintSurfaced(t *testing.T) {
 	t.Parallel()
 
