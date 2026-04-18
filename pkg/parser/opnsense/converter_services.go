@@ -187,18 +187,27 @@ func (c *converter) convertDNS(doc *schema.OpnSenseDocument) common.DNSConfig {
 	}
 
 	advanced := unboundPlus.Advanced
+	var (
+		privateAddress           []string
+		privateAddressConfigured bool
+	)
+	if advanced.Privateaddress != nil {
+		privateAddressConfigured = true
+		privateAddress = c.splitPrivateAddress(*advanced.Privateaddress)
+	}
 	return common.DNSConfig{
 		Servers: strings.Fields(doc.System.DNSServer),
 		Unbound: common.UnboundConfig{
-			Enabled:        doc.Unbound.Enable == xmlBoolTrue,
-			DNSSEC:         doc.Unbound.Dnssec == xmlBoolTrue,
-			DNSSECStripped: doc.Unbound.Dnssecstripped == xmlBoolTrue,
-			PrivateAddress: c.splitPrivateAddress(advanced.Privateaddress),
-			HideIdentity:   advanced.Hideidentity == xmlBoolTrue,
-			HideVersion:    advanced.Hideversion == xmlBoolTrue,
-			LogQueries:     advanced.Logqueries == xmlBoolTrue,
-			LogReplies:     advanced.Logreplies == xmlBoolTrue,
-			Prefetch:       advanced.Prefetch == xmlBoolTrue,
+			Enabled:                  doc.Unbound.Enable == xmlBoolTrue,
+			DNSSEC:                   doc.Unbound.Dnssec == xmlBoolTrue,
+			DNSSECStripped:           doc.Unbound.Dnssecstripped == xmlBoolTrue,
+			PrivateAddress:           privateAddress,
+			PrivateAddressConfigured: privateAddressConfigured,
+			HideIdentity:             advanced.Hideidentity == xmlBoolTrue,
+			HideVersion:              advanced.Hideversion == xmlBoolTrue,
+			LogQueries:               advanced.Logqueries == xmlBoolTrue,
+			LogReplies:               advanced.Logreplies == xmlBoolTrue,
+			Prefetch:                 advanced.Prefetch == xmlBoolTrue,
 		},
 		DNSMasq: common.DNSMasqConfig{
 			Enabled:         bool(doc.DNSMasquerade.Enable),

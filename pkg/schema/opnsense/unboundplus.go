@@ -104,23 +104,29 @@ type UnboundPlusAdvanced struct {
 	Logverbosity              string `xml:"logverbosity"`              // decimal, typically "0".."5"
 	Valloglevel               string `xml:"valloglevel"`               // decimal, typically "0".."2"
 	Privatedomain             string `xml:"privatedomain"`             // separator-delimited domain list
-	Privateaddress            string `xml:"privateaddress"`            // separator-delimited CIDR/IP list (DNS rebind protection)
-	Insecuredomain            string `xml:"insecuredomain"`            // separator-delimited domain list
-	Msgcachesize              string `xml:"msgcachesize"`              // bytes, decimal
-	Rrsetcachesize            string `xml:"rrsetcachesize"`            // bytes, decimal
-	Outgoingnumtcp            string `xml:"outgoingnumtcp"`            // decimal
-	Incomingnumtcp            string `xml:"incomingnumtcp"`            // decimal
-	Numqueriesperthread       string `xml:"numqueriesperthread"`       // decimal
-	Outgoingrange             string `xml:"outgoingrange"`             // decimal
-	Jostletimeout             string `xml:"jostletimeout"`             // milliseconds, decimal
-	Discardtimeout            string `xml:"discardtimeout"`            // milliseconds, decimal
-	Cachemaxttl               string `xml:"cachemaxttl"`               // seconds, decimal
-	Cachemaxnegativettl       string `xml:"cachemaxnegativettl"`       // seconds, decimal
-	Cacheminttl               string `xml:"cacheminttl"`               // seconds, decimal
-	Infrahostttl              string `xml:"infrahostttl"`              // seconds, decimal
-	Infrakeepprobing          string `xml:"infrakeepprobing"`          // "0" or "1"
-	Infracachenumhosts        string `xml:"infracachenumhosts"`        // decimal
-	Unwantedreplythreshold    string `xml:"unwantedreplythreshold"`    // decimal
+	// Privateaddress is a separator-delimited CIDR/IP list powering Unbound's
+	// DNS rebind protection. *string so an absent element ("MVC advanced
+	// section never configured") is distinguishable from an element present
+	// but empty ("configured, cleared out") — see GOTCHAS 3.2. The converter
+	// carries this distinction through to common.UnboundConfig so the firewall
+	// plugin can treat unknown and configured-empty differently.
+	Privateaddress         *string `xml:"privateaddress"         json:"privateaddress,omitempty"`
+	Insecuredomain         string  `xml:"insecuredomain"`         // separator-delimited domain list
+	Msgcachesize           string  `xml:"msgcachesize"`           // bytes, decimal
+	Rrsetcachesize         string  `xml:"rrsetcachesize"`         // bytes, decimal
+	Outgoingnumtcp         string  `xml:"outgoingnumtcp"`         // decimal
+	Incomingnumtcp         string  `xml:"incomingnumtcp"`         // decimal
+	Numqueriesperthread    string  `xml:"numqueriesperthread"`    // decimal
+	Outgoingrange          string  `xml:"outgoingrange"`          // decimal
+	Jostletimeout          string  `xml:"jostletimeout"`          // milliseconds, decimal
+	Discardtimeout         string  `xml:"discardtimeout"`         // milliseconds, decimal
+	Cachemaxttl            string  `xml:"cachemaxttl"`            // seconds, decimal
+	Cachemaxnegativettl    string  `xml:"cachemaxnegativettl"`    // seconds, decimal
+	Cacheminttl            string  `xml:"cacheminttl"`            // seconds, decimal
+	Infrahostttl           string  `xml:"infrahostttl"`           // seconds, decimal
+	Infrakeepprobing       string  `xml:"infrakeepprobing"`       // "0" or "1"
+	Infracachenumhosts     string  `xml:"infracachenumhosts"`     // decimal
+	Unwantedreplythreshold string  `xml:"unwantedreplythreshold"` // decimal
 }
 
 // UnboundPlusAcls mirrors the <acls> block under <unboundplus>.

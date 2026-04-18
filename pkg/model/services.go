@@ -253,6 +253,13 @@ type UnboundConfig struct {
 	// and warns on unparseable values); consumers may still want to re-verify
 	// before acting on them.
 	PrivateAddress []string `json:"privateAddress,omitempty" yaml:"privateAddress,omitempty"`
+	// PrivateAddressConfigured distinguishes "the MVC <privateaddress> element
+	// was absent from config.xml" (false — rebind-protection status is Unknown,
+	// common on older installs or fresh setups) from "the element was present
+	// but empty, or filtered down to empty after validation" (true — rebind
+	// protection is explicitly not in force). Consumers evaluating rebind
+	// protection should gate on this before acting on PrivateAddress length.
+	PrivateAddressConfigured bool `json:"privateAddressConfigured,omitempty" yaml:"privateAddressConfigured,omitempty"`
 	// HideIdentity corresponds to Unbound's `hide-identity` directive.
 	// When true, Unbound does not reveal its server identity in responses.
 	HideIdentity bool `json:"hideIdentity,omitempty" yaml:"hideIdentity,omitempty"`

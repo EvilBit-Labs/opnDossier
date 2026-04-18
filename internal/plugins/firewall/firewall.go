@@ -484,18 +484,27 @@ func (fp *Plugin) hasIPv6Enabled(device *common.CommonDevice) checkResult {
 }
 
 // hasDNSRebindProtection checks whether Unbound DNS rebind protection is
-// configured. Returns Known=true only when the Unbound resolver is active;
-// otherwise returns Unknown so the control is not evaluated against non-Unbound
-// configurations (for example, OPNsense installations using DNSMasq as the
-// primary resolver). When Unbound is active, Result=true iff its
-// `private-address` list (sourced from <OPNsense><unboundplus><advanced><privateaddress>)
-// has at least one entry; callers interpret Result=false as protection missing.
+// configured. Returns Known=true only when Unbound is active AND the MVC
+// <privateaddress> element was present in config.xml — otherwise returns
+// Unknown so the control is not evaluated against:
+//   - nil devices (pipeline error)
+//   - non-Unbound configurations (DNSMasq-only installs)
+//   - installs where the MVC advanced block was never configured
+//     (common on older OPNsense or minimal setups)
+//
+// When the check runs, Result=true iff the private-address list has at least
+// one entry; Result=false means the operator explicitly cleared the list and
+// rebind protection is not in force.
 func (fp *Plugin) hasDNSRebindProtection(device *common.CommonDevice) checkResult {
 	if device == nil {
 		return unknown
 	}
 
 	if !device.DNS.Unbound.Enabled {
+		return unknown
+	}
+
+	if !device.DNS.Unbound.PrivateAddressConfigured {
 		return unknown
 	}
 

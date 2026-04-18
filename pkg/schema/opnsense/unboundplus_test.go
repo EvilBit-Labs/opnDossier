@@ -57,7 +57,8 @@ func TestUnboundPlus_UnmarshalXML(t *testing.T) {
 	assert.Equal(t, "1", got.Advanced.Hideversion)
 	assert.Equal(t, "1", got.Advanced.Prefetch)
 	assert.Equal(t, "0", got.Advanced.Logqueries)
-	assert.Equal(t, "10.0.0.0/8,192.168.0.0/16", got.Advanced.Privateaddress)
+	require.NotNil(t, got.Advanced.Privateaddress)
+	assert.Equal(t, "10.0.0.0/8,192.168.0.0/16", *got.Advanced.Privateaddress)
 	assert.Equal(t, "corp.example.com", got.Advanced.Privatedomain)
 	assert.Equal(t, "allow", got.Acls.DefaultAction)
 	assert.Equal(t, "ads", got.Dnsbl.Type)
@@ -72,7 +73,7 @@ func TestUnboundPlus_EmptyElement(t *testing.T) {
 
 	assert.Empty(t, got.Version)
 	assert.Empty(t, got.General.Enabled)
-	assert.Empty(t, got.Advanced.Privateaddress)
+	assert.Nil(t, got.Advanced.Privateaddress)
 	assert.Empty(t, got.Acls.DefaultAction)
 }
 
@@ -85,6 +86,7 @@ func TestUnboundPlus_RoundTrip(t *testing.T) {
 	// locals (rather than a one-line helper) avoids the modernize analyzer's
 	// false-positive `new()` suggestion for value-to-pointer conversions.
 	dots, hosts, aliases, domains := "dot1", "host1", "alias1", "domain1"
+	privAddr := "192.168.0.0/16,10.0.0.0/8"
 	original := UnboundPlus{
 		XMLName: xml.Name{Local: "unboundplus"},
 		Version: "1.0.0",
@@ -106,7 +108,7 @@ func TestUnboundPlus_RoundTrip(t *testing.T) {
 			Logqueries:     "0",
 			Logreplies:     "0",
 			Privatedomain:  "corp.example.com",
-			Privateaddress: "192.168.0.0/16,10.0.0.0/8",
+			Privateaddress: &privAddr,
 			Dnssecstripped: "0",
 		},
 		Acls:       UnboundPlusAcls{DefaultAction: "allow"},
@@ -146,7 +148,8 @@ func TestUnboundPlus_UnmarshalsWithinOPNsenseDocument(t *testing.T) {
 	require.NoError(t, xml.Unmarshal([]byte(input), &doc))
 
 	assert.Equal(t, "1.0.0", doc.OPNsense.UnboundPlus.Version)
-	assert.Equal(t, "10.0.0.0/8", doc.OPNsense.UnboundPlus.Advanced.Privateaddress)
+	require.NotNil(t, doc.OPNsense.UnboundPlus.Advanced.Privateaddress)
+	assert.Equal(t, "10.0.0.0/8", *doc.OPNsense.UnboundPlus.Advanced.Privateaddress)
 	assert.Equal(t, "1", doc.OPNsense.UnboundPlus.Advanced.Hideidentity)
 	assert.True(t, strings.HasPrefix(doc.XMLName.Local, "opnsense"))
 }

@@ -670,7 +670,8 @@ func TestConverter_DNS_UnboundPlusAdvanced(t *testing.T) {
 
 			doc := schema.NewOpnSenseDocument()
 			doc.Unbound.Enable = "1"
-			doc.OPNsense.UnboundPlus.Advanced.Privateaddress = tc.rawAddresses
+			raw := tc.rawAddresses
+			doc.OPNsense.UnboundPlus.Advanced.Privateaddress = &raw
 			doc.OPNsense.UnboundPlus.Advanced.Hideidentity = "1"
 			doc.OPNsense.UnboundPlus.Advanced.Hideversion = "1"
 			doc.OPNsense.UnboundPlus.Advanced.Logqueries = "0"
@@ -682,6 +683,8 @@ func TestConverter_DNS_UnboundPlusAdvanced(t *testing.T) {
 			assert.Empty(t, warnings)
 
 			assert.Equal(t, tc.want, device.DNS.Unbound.PrivateAddress)
+			// Privateaddress element was present in the document — configured.
+			assert.True(t, device.DNS.Unbound.PrivateAddressConfigured)
 			assert.True(t, device.DNS.Unbound.HideIdentity)
 			assert.True(t, device.DNS.Unbound.HideVersion)
 			assert.False(t, device.DNS.Unbound.LogQueries)
@@ -693,6 +696,46 @@ func TestConverter_DNS_UnboundPlusAdvanced(t *testing.T) {
 	}
 }
 
+func TestConverter_DNS_PrivateAddressAbsent(t *testing.T) {
+	t.Parallel()
+
+	// When <privateaddress> is entirely absent from the MVC advanced block,
+	// the converter preserves that as PrivateAddressConfigured=false so
+	// downstream FIREWALL-007 can return Unknown instead of Fail.
+	doc := schema.NewOpnSenseDocument()
+	doc.Unbound.Enable = "1"
+	// Leave doc.OPNsense.UnboundPlus.Advanced.Privateaddress at its zero value (nil).
+
+	device, warnings, err := opnsense.ConvertDocument(doc)
+	require.NoError(t, err)
+	assert.Empty(t, warnings)
+
+	assert.Nil(t, device.DNS.Unbound.PrivateAddress)
+	assert.False(t, device.DNS.Unbound.PrivateAddressConfigured,
+		"absent <privateaddress> element must not be reported as configured")
+}
+
+func TestConverter_DNS_PrivateAddressPresentEmpty(t *testing.T) {
+	t.Parallel()
+
+	// When <privateaddress></privateaddress> is present but empty, the
+	// converter records PrivateAddressConfigured=true with an empty slice,
+	// so downstream FIREWALL-007 can return Fail (operator explicitly
+	// cleared the list).
+	doc := schema.NewOpnSenseDocument()
+	doc.Unbound.Enable = "1"
+	empty := ""
+	doc.OPNsense.UnboundPlus.Advanced.Privateaddress = &empty
+
+	device, warnings, err := opnsense.ConvertDocument(doc)
+	require.NoError(t, err)
+	assert.Empty(t, warnings)
+
+	assert.Nil(t, device.DNS.Unbound.PrivateAddress)
+	assert.True(t, device.DNS.Unbound.PrivateAddressConfigured,
+		"present-but-empty <privateaddress> must be reported as configured")
+}
+
 func TestConverter_DNS_LegacyAndMVCCoexist(t *testing.T) {
 	t.Parallel()
 
@@ -702,7 +745,8 @@ func TestConverter_DNS_LegacyAndMVCCoexist(t *testing.T) {
 	doc.Unbound.Enable = "1"
 	doc.Unbound.Dnssec = "1"
 	doc.Unbound.Dnssecstripped = "0"
-	doc.OPNsense.UnboundPlus.Advanced.Privateaddress = "192.168.0.0/16"
+	single := "192.168.0.0/16"
+	doc.OPNsense.UnboundPlus.Advanced.Privateaddress = &single
 	doc.OPNsense.UnboundPlus.Advanced.Hideidentity = "1"
 
 	device, warnings, err := opnsense.ConvertDocument(doc)
@@ -723,7 +767,8 @@ func TestConverter_DNS_PrivateAddressValidation(t *testing.T) {
 	// remain. Prevents silent pass-through of typos like "192.168/16".
 	doc := schema.NewOpnSenseDocument()
 	doc.Unbound.Enable = "1"
-	doc.OPNsense.UnboundPlus.Advanced.Privateaddress = "garbage, 192.168.0.0/16, 192.168/16, 10.0.0.0/8, not-a-cidr"
+	mixed := "garbage, 192.168.0.0/16, 192.168/16, 10.0.0.0/8, not-a-cidr"
+	doc.OPNsense.UnboundPlus.Advanced.Privateaddress = &mixed
 
 	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
