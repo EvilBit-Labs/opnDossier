@@ -57,6 +57,7 @@ When rules conflict, follow the higher precedence rule.
 - **Focus on Value**: Enhance the project's unique value as an OPNsense auditing tool
 - **No Destructive Actions**: No major refactors without explicit permission
 - **Stay Focused**: Avoid scope creep
+- **Task Tracking**: Jira (NATS project) is the primary tracker for planned work — reference tickets by key (e.g., `NATS-33`) in plans, commits, and PR titles. GitHub issues are reserved for community-submitted bug reports/feature requests and for PRs. Do not open new GitHub issues for internal work; file in Jira instead.
 
 ### Issue Resolution
 
