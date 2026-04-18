@@ -21,109 +21,114 @@ package opnsense
 // for downstream consumers of the OpnSenseDocument model.
 type UnboundPlus struct {
 	Text       string                `xml:",chardata"    json:"text,omitempty"`
-	Version    string                `xml:"version,attr" json:"version,omitempty"`
+	Version    string                `xml:"version,attr" json:"version,omitempty"` // OPNsense MVC model version, e.g., "1.0.0"
 	General    UnboundPlusGeneral    `xml:"general"      json:"general"`
 	Advanced   UnboundPlusAdvanced   `xml:"advanced"     json:"advanced"`
 	Acls       UnboundPlusAcls       `xml:"acls"         json:"acls"`
 	Dnsbl      UnboundPlusDnsbl      `xml:"dnsbl"        json:"dnsbl"`
 	Forwarding UnboundPlusForwarding `xml:"forwarding"   json:"forwarding"`
-	Dots       string                `xml:"dots"`
-	Hosts      string                `xml:"hosts"`
-	Aliases    string                `xml:"aliases"`
-	Domains    string                `xml:"domains"`
+	Dots       string                `xml:"dots"`    // DNS-over-TLS config reference
+	Hosts      string                `xml:"hosts"`   // host override references
+	Aliases    string                `xml:"aliases"` // host alias references
+	Domains    string                `xml:"domains"` // domain override references
 }
 
 // UnboundPlusGeneral mirrors the <general> block under <unboundplus>.
+// All fields are stored verbatim from config.xml; truthy values are "0" / "1"
+// unless otherwise noted.
 type UnboundPlusGeneral struct {
 	Text               string `xml:",chardata"          json:"text,omitempty"`
-	Enabled            string `xml:"enabled"`
-	Port               string `xml:"port"`
-	Stats              string `xml:"stats"`
-	ActiveInterface    string `xml:"active_interface"`
-	Dnssec             string `xml:"dnssec"`
-	DNS64              string `xml:"dns64"`
-	DNS64prefix        string `xml:"dns64prefix"`
-	Noarecords         string `xml:"noarecords"`
-	RegisterDHCP       string `xml:"regdhcp"`
-	RegisterDHCPDomain string `xml:"regdhcpdomain"`
-	RegisterDHCPStatic string `xml:"regdhcpstatic"`
-	NoRegisterLLAddr6  string `xml:"noreglladdr6"`
-	NoRegisterRecords  string `xml:"noregrecords"`
-	Txtsupport         string `xml:"txtsupport"`
-	Cacheflush         string `xml:"cacheflush"`
-	LocalZoneType      string `xml:"local_zone_type"`
+	Enabled            string `xml:"enabled"`          // "0" or "1"
+	Port               string `xml:"port"`             // numeric port string, e.g., "53"
+	Stats              string `xml:"stats"`            // "0" or "1"
+	ActiveInterface    string `xml:"active_interface"` // interface name, e.g., "lan"
+	Dnssec             string `xml:"dnssec"`           // "0" or "1"
+	DNS64              string `xml:"dns64"`            // "0" or "1"
+	DNS64prefix        string `xml:"dns64prefix"`      // IPv6 prefix, e.g., "64:ff9b::/96"
+	Noarecords         string `xml:"noarecords"`       // "0" or "1"
+	RegisterDHCP       string `xml:"regdhcp"`          // "0" or "1"
+	RegisterDHCPDomain string `xml:"regdhcpdomain"`    // "0" or "1"
+	RegisterDHCPStatic string `xml:"regdhcpstatic"`    // "0" or "1"
+	NoRegisterLLAddr6  string `xml:"noreglladdr6"`     // "0" or "1"
+	NoRegisterRecords  string `xml:"noregrecords"`     // "0" or "1"
+	Txtsupport         string `xml:"txtsupport"`       // "0" or "1"
+	Cacheflush         string `xml:"cacheflush"`       // "0" or "1"
+	LocalZoneType      string `xml:"local_zone_type"`  // e.g., "transparent", "static"
 	OutgoingInterface  string `xml:"outgoing_interface"`
-	EnableWpad         string `xml:"enable_wpad"`
+	EnableWpad         string `xml:"enable_wpad"` // "0" or "1"
 }
 
-// UnboundPlusAdvanced mirrors the <advanced> block under <unboundplus>.
+// UnboundPlusAdvanced mirrors the <advanced> block under <unboundplus>. All
+// fields are stored verbatim from config.xml; boolean fields use "0" / "1"
+// and cache/TTL fields are decimal strings unless otherwise noted.
 // Privateaddress holds the DNS rebind protection list (Unbound `private-address`
 // directive): a separator-delimited list of CIDR ranges whose presence in a DNS
 // response causes Unbound to treat the response as a rebinding attempt.
 type UnboundPlusAdvanced struct {
 	Text                      string `xml:",chardata"                 json:"text,omitempty"`
-	Hideidentity              string `xml:"hideidentity"`
-	Hideversion               string `xml:"hideversion"`
-	Prefetch                  string `xml:"prefetch"`
-	Prefetchkey               string `xml:"prefetchkey"`
-	Dnssecstripped            string `xml:"dnssecstripped"`
-	Aggressivensec            string `xml:"aggressivensec"`
-	Serveexpired              string `xml:"serveexpired"`
-	Serveexpiredreplyttl      string `xml:"serveexpiredreplyttl"`
-	Serveexpiredttl           string `xml:"serveexpiredttl"`
-	Serveexpiredttlreset      string `xml:"serveexpiredttlreset"`
-	Serveexpiredclienttimeout string `xml:"serveexpiredclienttimeout"`
-	Qnameminstrict            string `xml:"qnameminstrict"`
-	Extendedstatistics        string `xml:"extendedstatistics"`
-	Logqueries                string `xml:"logqueries"`
-	Logreplies                string `xml:"logreplies"`
-	Logtagqueryreply          string `xml:"logtagqueryreply"`
-	Logservfail               string `xml:"logservfail"`
-	Loglocalactions           string `xml:"loglocalactions"`
-	Logverbosity              string `xml:"logverbosity"`
-	Valloglevel               string `xml:"valloglevel"`
-	Privatedomain             string `xml:"privatedomain"`
-	Privateaddress            string `xml:"privateaddress"`
-	Insecuredomain            string `xml:"insecuredomain"`
-	Msgcachesize              string `xml:"msgcachesize"`
-	Rrsetcachesize            string `xml:"rrsetcachesize"`
-	Outgoingnumtcp            string `xml:"outgoingnumtcp"`
-	Incomingnumtcp            string `xml:"incomingnumtcp"`
-	Numqueriesperthread       string `xml:"numqueriesperthread"`
-	Outgoingrange             string `xml:"outgoingrange"`
-	Jostletimeout             string `xml:"jostletimeout"`
-	Discardtimeout            string `xml:"discardtimeout"`
-	Cachemaxttl               string `xml:"cachemaxttl"`
-	Cachemaxnegativettl       string `xml:"cachemaxnegativettl"`
-	Cacheminttl               string `xml:"cacheminttl"`
-	Infrahostttl              string `xml:"infrahostttl"`
-	Infrakeepprobing          string `xml:"infrakeepprobing"`
-	Infracachenumhosts        string `xml:"infracachenumhosts"`
-	Unwantedreplythreshold    string `xml:"unwantedreplythreshold"`
+	Hideidentity              string `xml:"hideidentity"`              // "0" or "1"; hides Unbound identity in responses
+	Hideversion               string `xml:"hideversion"`               // "0" or "1"; hides Unbound version string
+	Prefetch                  string `xml:"prefetch"`                  // "0" or "1"; cache-warm near-expiry messages
+	Prefetchkey               string `xml:"prefetchkey"`               // "0" or "1"
+	Dnssecstripped            string `xml:"dnssecstripped"`            // "0" or "1"
+	Aggressivensec            string `xml:"aggressivensec"`            // "0" or "1"
+	Serveexpired              string `xml:"serveexpired"`              // "0" or "1"
+	Serveexpiredreplyttl      string `xml:"serveexpiredreplyttl"`      // seconds, decimal
+	Serveexpiredttl           string `xml:"serveexpiredttl"`           // seconds, decimal
+	Serveexpiredttlreset      string `xml:"serveexpiredttlreset"`      // "0" or "1"
+	Serveexpiredclienttimeout string `xml:"serveexpiredclienttimeout"` // milliseconds, decimal
+	Qnameminstrict            string `xml:"qnameminstrict"`            // "0" or "1"
+	Extendedstatistics        string `xml:"extendedstatistics"`        // "0" or "1"
+	Logqueries                string `xml:"logqueries"`                // "0" or "1"
+	Logreplies                string `xml:"logreplies"`                // "0" or "1"
+	Logtagqueryreply          string `xml:"logtagqueryreply"`          // "0" or "1"
+	Logservfail               string `xml:"logservfail"`               // "0" or "1"
+	Loglocalactions           string `xml:"loglocalactions"`           // "0" or "1"
+	Logverbosity              string `xml:"logverbosity"`              // decimal, typically "0".."5"
+	Valloglevel               string `xml:"valloglevel"`               // decimal, typically "0".."2"
+	Privatedomain             string `xml:"privatedomain"`             // separator-delimited domain list
+	Privateaddress            string `xml:"privateaddress"`            // separator-delimited CIDR/IP list (DNS rebind protection)
+	Insecuredomain            string `xml:"insecuredomain"`            // separator-delimited domain list
+	Msgcachesize              string `xml:"msgcachesize"`              // bytes, decimal
+	Rrsetcachesize            string `xml:"rrsetcachesize"`            // bytes, decimal
+	Outgoingnumtcp            string `xml:"outgoingnumtcp"`            // decimal
+	Incomingnumtcp            string `xml:"incomingnumtcp"`            // decimal
+	Numqueriesperthread       string `xml:"numqueriesperthread"`       // decimal
+	Outgoingrange             string `xml:"outgoingrange"`             // decimal
+	Jostletimeout             string `xml:"jostletimeout"`             // milliseconds, decimal
+	Discardtimeout            string `xml:"discardtimeout"`            // milliseconds, decimal
+	Cachemaxttl               string `xml:"cachemaxttl"`               // seconds, decimal
+	Cachemaxnegativettl       string `xml:"cachemaxnegativettl"`       // seconds, decimal
+	Cacheminttl               string `xml:"cacheminttl"`               // seconds, decimal
+	Infrahostttl              string `xml:"infrahostttl"`              // seconds, decimal
+	Infrakeepprobing          string `xml:"infrakeepprobing"`          // "0" or "1"
+	Infracachenumhosts        string `xml:"infracachenumhosts"`        // decimal
+	Unwantedreplythreshold    string `xml:"unwantedreplythreshold"`    // decimal
 }
 
 // UnboundPlusAcls mirrors the <acls> block under <unboundplus>.
 type UnboundPlusAcls struct {
 	Text          string `xml:",chardata"      json:"text,omitempty"`
-	DefaultAction string `xml:"default_action"`
+	DefaultAction string `xml:"default_action"` // e.g., "allow", "deny"
 }
 
 // UnboundPlusDnsbl mirrors the <dnsbl> block under <unboundplus>.
+// All boolean fields use "0" / "1".
 type UnboundPlusDnsbl struct {
 	Text       string `xml:",chardata"  json:"text,omitempty"`
-	Enabled    string `xml:"enabled"`
-	Safesearch string `xml:"safesearch"`
-	Type       string `xml:"type"`
-	Lists      string `xml:"lists"`
-	Whitelists string `xml:"whitelists"`
-	Blocklists string `xml:"blocklists"`
-	Wildcards  string `xml:"wildcards"`
-	Address    string `xml:"address"`
-	Nxdomain   string `xml:"nxdomain"`
+	Enabled    string `xml:"enabled"`    // "0" or "1"
+	Safesearch string `xml:"safesearch"` // "0" or "1"
+	Type       string `xml:"type"`       // blocklist category keyword, e.g., "ads"
+	Lists      string `xml:"lists"`      // separator-delimited DNSBL feed names
+	Whitelists string `xml:"whitelists"` // separator-delimited allow patterns
+	Blocklists string `xml:"blocklists"` // separator-delimited block patterns
+	Wildcards  string `xml:"wildcards"`  // separator-delimited wildcard patterns
+	Address    string `xml:"address"`    // override IP for blocked lookups
+	Nxdomain   string `xml:"nxdomain"`   // "0" or "1"; return NXDOMAIN for blocked names
 }
 
 // UnboundPlusForwarding mirrors the <forwarding> block under <unboundplus>.
 type UnboundPlusForwarding struct {
 	Text    string `xml:",chardata" json:"text,omitempty"`
-	Enabled string `xml:"enabled"`
+	Enabled string `xml:"enabled"` // "0" or "1"
 }
