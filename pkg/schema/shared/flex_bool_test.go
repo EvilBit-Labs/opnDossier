@@ -131,6 +131,46 @@ func TestFlexBool_JSON(t *testing.T) {
 	}
 }
 
+// TestFlexBool_UnmarshalJSON_EscapeSequences verifies that JSON string
+// escapes are decoded before being compared against the truthy vocabulary.
+// Prior implementations hand-stripped surrounding quotes without unescaping,
+// so "\u006fn" (legal JSON for "on") silently parsed as false.
+func TestFlexBool_UnmarshalJSON_EscapeSequences(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		data string
+		want bool
+	}{
+		{"escaped on via unicode", `"\u006fn"`, true},
+		{"escaped yes via unicode", `"\u0079es"`, true},
+		{"escaped off via unicode", `"\u006fff"`, false},
+		{"string true", `"true"`, true},
+		{"string false", `"false"`, false},
+		{"native true", `true`, true},
+		{"native false", `false`, false},
+		{"native one", `1`, true},
+		{"native zero", `0`, false},
+		{"native number non-zero", `42`, true},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			var fb shared.FlexBool
+			if err := json.Unmarshal([]byte(tc.data), &fb); err != nil {
+				t.Fatalf("unmarshal %s: %v", tc.data, err)
+			}
+			if got := fb.Bool(); got != tc.want {
+				t.Errorf("FlexBool(%s) = %v, want %v", tc.data, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestFlexBool_YAML(t *testing.T) {
 	t.Parallel()
 

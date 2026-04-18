@@ -1,6 +1,7 @@
 package shared
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 
@@ -15,8 +16,8 @@ import (
 // Use FlexBool on schema fields whose element is always emitted and whose
 // content carries the boolean signal. If the element's presence itself is
 // the signal (i.e., <tag/> means true and absence means false), use
-// BoolFlag instead — BoolFlag delegates non-empty bodies through FlexBool
-// so both styles share the same liberal vocabulary.
+// BoolFlag instead — BoolFlag and FlexBool both delegate body parsing to
+// [IsValueTrue] so they share the same liberal vocabulary.
 //
 // FlexBool marshals to XML as "1" (true) or "0" (false) for determinism
 // in reserialised output. JSON and YAML round-trip as native booleans.
@@ -56,16 +57,36 @@ func (fb *FlexBool) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return e.EncodeElement(value, start)
 }
 
-// UnmarshalJSON implements [json.Unmarshaler]. JSON round-trip treats the
-// value as a native bool. A raw boolean literal, the string forms
-// recognised by [IsValueTrue], or a numeric 0/1 all unmarshal cleanly.
+// UnmarshalJSON implements [json.Unmarshaler]. Accepts native booleans,
+// native integers (0/1), and strings in the [IsValueTrue] vocabulary. Any
+// other JSON value — including numeric values outside {0,1}, null, and
+// unrecognised strings — unmarshals to false without error, consistent
+// with the type-level "unknown → false" contract.
+//
+// Delegates string decoding to encoding/json so escape sequences (e.g.
+// "\u006fn") are decoded before being compared against the truthy vocabulary.
 func (fb *FlexBool) UnmarshalJSON(data []byte) error {
-	// Strip surrounding quotes if present so string forms ("on", "1") are
-	// recognised via IsValueTrue. For raw literals (true/false/1/0), fall
-	// back to IsValueTrue's handling of "true"/"false"/"1"/"0".
-	s := string(data)
-	if len(s) >= 2 && s[0] == '"' && s[len(s)-1] == '"' {
-		s = s[1 : len(s)-1]
+	// Native bool: true/false.
+	var b bool
+	if err := json.Unmarshal(data, &b); err == nil {
+		*fb = FlexBool(b)
+
+		return nil
+	}
+
+	// Native number: 0/1 (and any non-zero integer is truthy).
+	var n int
+	if err := json.Unmarshal(data, &n); err == nil {
+		*fb = FlexBool(n != 0)
+
+		return nil
+	}
+
+	// Fall back to string — json.Unmarshal decodes escapes before
+	// IsValueTrue inspects the vocabulary.
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return fmt.Errorf("decode FlexBool: %w", err)
 	}
 
 	*fb = FlexBool(IsValueTrue(s))

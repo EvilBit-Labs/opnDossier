@@ -13,9 +13,9 @@ import (
 
 // BoolFlag represents a presence-based boolean used throughout OPNsense XML configurations.
 // Absent element means false; <tag/> (empty body) means true; <tag>value</tag> delegates
-// to the liberal value-parser [shared.IsValueTrue] so "on", "yes", "1", "true", "enabled",
-// and their case variants are all interpreted correctly. This matches how both OPNsense
-// and pfSense emit boolean-semantic fields in the wild.
+// to the liberal value-parser [shared.IsValueTrue] so "on", "yes", "1", "true", "enable",
+// "enabled", and their case variants are all interpreted correctly. This matches how both
+// OPNsense and pfSense emit boolean-semantic fields in the wild.
 //
 // MarshalXML is defined on a POINTER receiver (*BoolFlag). This is critical for correct
 // serialization: when a struct containing a BoolFlag field is marshaled by value (not pointer),
@@ -47,8 +47,8 @@ func (bf *BoolFlag) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 //   - <tag/> or <tag></tag> (empty body) → true (presence means enabled,
 //     preserving the historical OPNsense convention).
 //   - <tag>body</tag> → [shared.IsValueTrue](body): "on", "yes", "1",
-//     "true", "enabled" (any casing) → true; "off", "no", "0", "false",
-//     "disabled" → false; unknown values → false.
+//     "true", "enable", "enabled" (any casing) → true; "off", "no", "0",
+//     "false", "disable", "disabled" → false; unknown values → false.
 //
 // The delegation to shared.IsValueTrue unifies the liberal boolean vocabulary
 // used by OPNsense and pfSense configuration exports.

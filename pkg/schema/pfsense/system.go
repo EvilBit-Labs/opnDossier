@@ -15,7 +15,7 @@ type System struct {
 	Optimization                  string             `xml:"optimization"                         json:"optimization,omitempty"                  yaml:"optimization,omitempty"`
 	Hostname                      string             `xml:"hostname"                             json:"hostname"                                yaml:"hostname"`
 	Domain                        string             `xml:"domain"                               json:"domain"                                  yaml:"domain"`
-	DNSAllowOverride              int                `xml:"dnsallowoverride"                     json:"dnsAllowOverride,omitempty"              yaml:"dnsAllowOverride,omitempty"`
+	DNSAllowOverride              opnsense.BoolFlag  `xml:"dnsallowoverride,omitempty"           json:"dnsAllowOverride,omitempty"              yaml:"dnsAllowOverride,omitempty"`
 	DNSServers                    []string           `xml:"dnsserver"                            json:"dnsServers,omitempty"                    yaml:"dnsServers,omitempty"`
 	DNS1GW                        string             `xml:"dns1gw,omitempty"                     json:"dns1gw,omitempty"                        yaml:"dns1gw,omitempty"`
 	DNS2GW                        string             `xml:"dns2gw,omitempty"                     json:"dns2gw,omitempty"                        yaml:"dns2gw,omitempty"`
@@ -27,8 +27,8 @@ type System struct {
 	Timezone                      string             `xml:"timezone"                             json:"timezone,omitempty"                      yaml:"timezone,omitempty"`
 	TimeServers                   string             `xml:"timeservers"                          json:"timeServers,omitempty"                   yaml:"timeServers,omitempty"`
 	DisableNATReflection          string             `xml:"disablenatreflection"                 json:"disableNatReflection,omitempty"          yaml:"disableNatReflection,omitempty"`
-	DisableSegmentationOffloading int                `xml:"disablesegmentationoffloading"        json:"disableSegmentationOffloading,omitempty" yaml:"disableSegmentationOffloading,omitempty"`
-	DisableLargeReceiveOffloading int                `xml:"disablelargereceiveoffloading"        json:"disableLargeReceiveOffloading,omitempty" yaml:"disableLargeReceiveOffloading,omitempty"`
+	DisableSegmentationOffloading opnsense.BoolFlag  `xml:"disablesegmentationoffloading,omitempty" json:"disableSegmentationOffloading,omitempty" yaml:"disableSegmentationOffloading,omitempty"`
+	DisableLargeReceiveOffloading opnsense.BoolFlag  `xml:"disablelargereceiveoffloading,omitempty" json:"disableLargeReceiveOffloading,omitempty" yaml:"disableLargeReceiveOffloading,omitempty"`
 	IPv6Allow                     string             `xml:"ipv6allow"                            json:"ipv6Allow,omitempty"                     yaml:"ipv6Allow,omitempty"`
 	MaximumTableEntries           string             `xml:"maximumtableentries,omitempty"        json:"maximumTableEntries,omitempty"           yaml:"maximumTableEntries,omitempty"`
 	CryptoHardware                string             `xml:"crypto_hardware,omitempty"            json:"cryptoHardware,omitempty"                yaml:"cryptoHardware,omitempty"`
